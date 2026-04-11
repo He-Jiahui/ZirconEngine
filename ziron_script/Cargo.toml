@@ -1,0 +1,6 @@
+[package]
+name = "ziron_script"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Scripting language bindings and runtime hooks (Godot scripting stack parallel)."

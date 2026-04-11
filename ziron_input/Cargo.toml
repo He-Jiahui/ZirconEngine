@@ -1,0 +1,9 @@
+[package]
+name = "ziron_input"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Action maps, devices, and high-level input routing above raw platform events."
+
+[dependencies]
+winit.workspace = true

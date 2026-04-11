@@ -1,0 +1,9 @@
+[package]
+name = "ziron_app"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Application bootstrap, main loop, and engine lifecycle entry (Godot main/ parallel)."
+
+[dependencies]
+winit.workspace = true

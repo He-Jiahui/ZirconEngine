@@ -1,0 +1,9 @@
+[package]
+name = "ziron_sound"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Audio mixing and playback (Godot AudioServer-adjacent)."
+
+[dependencies]
+kira = "0.12.0"

@@ -1,0 +1,9 @@
+[package]
+name = "ziron_navigation"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Navmesh baking, path queries, and avoidance helpers."
+
+[dependencies]
+rerecast = { version = "0.3.2", default-features = false, features = ["std", "tracing"] }

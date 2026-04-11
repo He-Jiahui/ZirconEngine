@@ -1,0 +1,6 @@
+[package]
+name = "ziron_scene"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Scene graph and nodes (Godot scene/ parallel)."
