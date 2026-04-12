@@ -1595,6 +1595,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f70749695b063ecbf6b62949ccccde2e733ec3ecbbd71d467dca4e5c6c97cca0"
 dependencies = [
  "mint",
+ "serde_core",
 ]
 
 [[package]]
@@ -1783,6 +1784,7 @@ dependencies = [
  "iced_runtime",
  "iced_widget",
  "iced_winit",
+ "image",
  "thiserror 2.0.18",
 ]
 
@@ -1825,6 +1827,7 @@ dependencies = [
  "iced_core",
  "log",
  "rustc-hash 2.1.2",
+ "tokio",
  "wasm-bindgen-futures",
  "wasmtimer",
 ]
@@ -1841,6 +1844,8 @@ dependencies = [
  "half",
  "iced_core",
  "iced_futures",
+ "image",
+ "kamadak-exif",
  "log",
  "raw-window-handle",
  "rustc-hash 2.1.2",
@@ -2157,6 +2162,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "kamadak-exif"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1130d80c7374efad55a117d715a3af9368f0fa7a2c54573afc15a188cd984837"
+dependencies = [
+ "mutate_once",
+]
+
+[[package]]
 name = "khronos-egl"
 version = "6.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2464,6 +2478,12 @@ dependencies = [
  "windows 0.62.2",
  "zbus",
 ]
+
+[[package]]
+name = "mutate_once"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "13d2233c9842d08cfe13f9eac96e207ca6a2ea10b80259ebe8ad0268be27d2af"
 
 [[package]]
 name = "naga"
@@ -3212,6 +3232,12 @@ dependencies = [
  "rustix 1.1.4",
  "windows-sys 0.61.2",
 ]
+
+[[package]]
+name = "pollster"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2f3a9f18d041e6d0e102a0a46750538147e5e8992d3b4873aaafee2520b00ce3"
 
 [[package]]
 name = "portable-atomic"
@@ -3973,7 +3999,7 @@ version = "5.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b882be9bf6b37258bfba80ed5b5eeccccd6700bfbaca202bbd53e4c13bf3daa7"
 dependencies = [
- "glam 0.25.0",
+ "glam 0.30.10",
 ]
 
 [[package]]
@@ -4280,6 +4306,15 @@ name = "tinyvec_macros"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
+
+[[package]]
+name = "tokio"
+version = "1.51.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f66bf9585cda4b724d3e78ab34b73fb2bbaba9011b9bfdf69dc836382ea13b8c"
+dependencies = [
+ "pin-project-lite",
+]
 
 [[package]]
 name = "toml_datetime"
@@ -5612,7 +5647,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "ziron_animation"
+name = "zircon_animation"
 version = "0.1.0"
 dependencies = [
  "glam 0.32.1",
@@ -5620,25 +5655,38 @@ dependencies = [
 ]
 
 [[package]]
-name = "ziron_app"
+name = "zircon_app"
 version = "0.1.0"
 dependencies = [
+ "iced",
+ "pollster",
+ "wgpu",
  "winit",
+ "zircon_asset",
+ "zircon_core",
+ "zircon_editor",
+ "zircon_graphics",
+ "zircon_math",
+ "zircon_scene",
 ]
 
 [[package]]
-name = "ziron_asset"
+name = "zircon_asset"
 version = "0.1.0"
 dependencies = [
+ "crossbeam-channel",
+ "image",
  "ron",
  "serde",
  "serde_json",
  "uuid",
+ "zircon_core",
+ "zircon_math",
  "zstd",
 ]
 
 [[package]]
-name = "ziron_core"
+name = "zircon_core"
 version = "0.1.0"
 dependencies = [
  "crossbeam-channel",
@@ -5649,103 +5697,124 @@ dependencies = [
 ]
 
 [[package]]
-name = "ziron_editor"
+name = "zircon_editor"
 version = "0.1.0"
 dependencies = [
  "iced",
+ "zircon_asset",
+ "zircon_graphics",
+ "zircon_math",
+ "zircon_scene",
 ]
 
 [[package]]
-name = "ziron_graphics"
+name = "zircon_graphics"
 version = "0.1.0"
 dependencies = [
  "bytemuck",
+ "crossbeam-channel",
  "glam 0.32.1",
+ "pollster",
  "raw-window-handle",
+ "thiserror 2.0.18",
+ "tracing",
  "wgpu",
+ "winit",
+ "zircon_asset",
+ "zircon_core",
+ "zircon_math",
+ "zircon_scene",
 ]
 
 [[package]]
-name = "ziron_input"
+name = "zircon_input"
 version = "0.1.0"
 dependencies = [
  "winit",
 ]
 
 [[package]]
-name = "ziron_math"
+name = "zircon_math"
 version = "0.1.0"
 dependencies = [
  "glam 0.32.1",
+ "serde",
 ]
 
 [[package]]
-name = "ziron_module"
+name = "zircon_module"
 version = "0.1.0"
 dependencies = [
  "libloading 0.9.0",
 ]
 
 [[package]]
-name = "ziron_navigation"
+name = "zircon_navigation"
 version = "0.1.0"
 dependencies = [
  "rerecast",
 ]
 
 [[package]]
-name = "ziron_net"
+name = "zircon_net"
 version = "0.1.0"
 
 [[package]]
-name = "ziron_particles"
+name = "zircon_particles"
 version = "0.1.0"
 dependencies = [
  "serde",
 ]
 
 [[package]]
-name = "ziron_physics"
+name = "zircon_physics"
 version = "0.1.0"
 dependencies = [
  "rolt",
 ]
 
 [[package]]
-name = "ziron_platform"
+name = "zircon_platform"
 version = "0.1.0"
 dependencies = [
  "winit",
 ]
 
 [[package]]
-name = "ziron_scene"
+name = "zircon_scene"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+ "zircon_asset",
+ "zircon_math",
+]
+
+[[package]]
+name = "zircon_script"
 version = "0.1.0"
 
 [[package]]
-name = "ziron_script"
+name = "zircon_server"
 version = "0.1.0"
 
 [[package]]
-name = "ziron_server"
-version = "0.1.0"
-
-[[package]]
-name = "ziron_sound"
+name = "zircon_sound"
 version = "0.1.0"
 dependencies = [
  "kira",
 ]
 
 [[package]]
-name = "ziron_texture"
+name = "zircon_texture"
 version = "0.1.0"
 dependencies = [
  "image",
 ]
 
 [[package]]
-name = "ziron_ui"
+name = "zircon_ui"
 version = "0.1.0"
 
 [[package]]

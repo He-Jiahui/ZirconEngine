@@ -1,36 +1,44 @@
 [workspace]
 members = [
-    "ziron_core",
-    "ziron_math",
-    "ziron_graphics",
-    "ziron_physics",
-    "ziron_sound",
-    "ziron_texture",
-    "ziron_ui",
-    "ziron_asset",
-    "ziron_scene",
-    "ziron_platform",
-    "ziron_editor",
-    "ziron_server",
-    "ziron_module",
-    "ziron_app",
-    "ziron_script",
-    "ziron_animation",
-    "ziron_net",
-    "ziron_input",
-    "ziron_navigation",
-    "ziron_particles",
+    "zircon_core",
+    "zircon_math",
+    "zircon_graphics",
+    "zircon_physics",
+    "zircon_sound",
+    "zircon_texture",
+    "zircon_ui",
+    "zircon_asset",
+    "zircon_scene",
+    "zircon_platform",
+    "zircon_editor",
+    "zircon_server",
+    "zircon_module",
+    "zircon_app",
+    "zircon_script",
+    "zircon_animation",
+    "zircon_net",
+    "zircon_input",
+    "zircon_navigation",
+    "zircon_particles",
 ]
 resolver = "2"
-default-members = ["ziron_core", "ziron_math"]
+default-members = ["zircon_core", "zircon_math"]
 
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 
-# 仅多 crate 共用的版本；其余依赖写在各 ziron_* 的 Cargo.toml 中。
+# 仅多 crate 共用的版本；其余依赖写在各 zircon_* 的 Cargo.toml 中。
 [workspace.dependencies]
-glam = "0.32.1"
+bytemuck = { version = "1.25.0", features = ["derive"] }
+crossbeam-channel = "0.5.15"
+glam = { version = "0.32.1", features = ["serde"] }
+iced = { version = "0.14.0", features = ["image", "tokio", "wgpu"] }
+image = "0.25.10"
+pollster = "0.4.0"
 serde = { version = "1.0.228", features = ["derive"] }
+thiserror = "2.0.18"
+tracing = "0.1.44"
+wgpu = "27.0.1"
 winit = "0.30.13"

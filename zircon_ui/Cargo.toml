@@ -1,0 +1,6 @@
+[package]
+name = "zircon_ui"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Immediate and retained UI (Godot Control / Fyrox UI-adjacent)."

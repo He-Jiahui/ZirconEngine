@@ -1,6 +1,0 @@
-[package]
-name = "ziron_net"
-version.workspace = true
-edition.workspace = true
-license.workspace = true
-description = "Networking, replication, and multiplayer session layer."

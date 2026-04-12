@@ -1,6 +1,0 @@
-[package]
-name = "ziron_server"
-version.workspace = true
-edition.workspace = true
-license.workspace = true
-description = "Engine service facades: render/audio/physics/window APIs (Godot servers/ parallel)."

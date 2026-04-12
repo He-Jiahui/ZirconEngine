@@ -1,0 +1,13 @@
+[package]
+name = "zircon_editor"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Editor shell, tools, and iced-based UI (Godot editor/ parallel)."
+
+[dependencies]
+iced.workspace = true
+zircon_asset = { path = "../zircon_asset" }
+zircon_graphics = { path = "../zircon_graphics" }
+zircon_math = { path = "../zircon_math" }
+zircon_scene = { path = "../zircon_scene" }

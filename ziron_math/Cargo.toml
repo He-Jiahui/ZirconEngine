@@ -1,9 +1,0 @@
-[package]
-name = "ziron_math"
-version.workspace = true
-edition.workspace = true
-license.workspace = true
-description = "Vectors, transforms, and collision primitives (Fyrox fyrox-math-adjacent)."
-
-[dependencies]
-glam.workspace = true

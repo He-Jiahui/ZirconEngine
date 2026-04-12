@@ -1,0 +1,18 @@
+[package]
+name = "zircon_app"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Application bootstrap, main loop, and engine lifecycle entry (Godot main/ parallel)."
+
+[dependencies]
+iced.workspace = true
+pollster.workspace = true
+wgpu.workspace = true
+winit.workspace = true
+zircon_asset = { path = "../zircon_asset" }
+zircon_core = { path = "../zircon_core" }
+zircon_editor = { path = "../zircon_editor" }
+zircon_graphics = { path = "../zircon_graphics" }
+zircon_math = { path = "../zircon_math" }
+zircon_scene = { path = "../zircon_scene" }

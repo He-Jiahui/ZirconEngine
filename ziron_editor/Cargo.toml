@@ -1,9 +1,0 @@
-[package]
-name = "ziron_editor"
-version.workspace = true
-edition.workspace = true
-license.workspace = true
-description = "Editor shell, tools, and iced-based UI (Godot editor/ parallel)."
-
-[dependencies]
-iced = { version = "0.14.0", features = ["wgpu"] }

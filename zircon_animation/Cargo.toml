@@ -1,0 +1,10 @@
+[package]
+name = "zircon_animation"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Skeletal animation, blend trees, and timelines."
+
+[dependencies]
+glam.workspace = true
+splines = { version = "5.0.0", features = ["glam"] }

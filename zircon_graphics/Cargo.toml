@@ -1,0 +1,21 @@
+[package]
+name = "zircon_graphics"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Rendering device and draw submission (Godot RenderingServer / Fyrox graphics-adjacent)."
+
+[dependencies]
+bytemuck.workspace = true
+crossbeam-channel.workspace = true
+glam.workspace = true
+pollster.workspace = true
+raw-window-handle = "0.6.2"
+thiserror.workspace = true
+tracing.workspace = true
+wgpu.workspace = true
+winit.workspace = true
+zircon_asset = { path = "../zircon_asset" }
+zircon_core = { path = "../zircon_core" }
+zircon_math = { path = "../zircon_math" }
+zircon_scene = { path = "../zircon_scene" }

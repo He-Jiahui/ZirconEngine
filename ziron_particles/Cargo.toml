@@ -1,9 +1,0 @@
-[package]
-name = "ziron_particles"
-version.workspace = true
-edition.workspace = true
-license.workspace = true
-description = "GPU/CPU particle systems and VFX authoring data."
-
-[dependencies]
-serde.workspace = true
