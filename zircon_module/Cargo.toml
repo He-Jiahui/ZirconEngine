@@ -7,3 +7,4 @@ description = "Native extensions and engine module loading (Godot modules/ paral
 
 [dependencies]
 libloading = "0.9.0"
+zircon_core = { path = "../zircon_core" }

@@ -1,0 +1,557 @@
+export component Palette {
+    out property <color> shell_bg: #1f2023;
+    out property <color> shell_bg_soft: #25262a;
+    out property <color> chrome_bg: #2b2d30;
+    out property <color> chrome_bg_soft: #313438;
+    out property <color> panel_bg: #202225;
+    out property <color> panel_bg_soft: #2b2d30;
+    out property <color> rail_bg: #2b2d30;
+    out property <color> border: #3b3e41;
+    out property <color> border_soft: #323538;
+    out property <color> tab_bg: #2b2d30;
+    out property <color> tab_hover: #34383d;
+    out property <color> tab_active: #202225;
+    out property <color> accent: #4c88c7;
+    out property <color> accent_soft: #2c5279;
+    out property <color> text: #cfd3d8;
+    out property <color> text_muted: #a8adb5;
+    out property <color> text_dim: #7d838d;
+}
+
+export component ShellIcon inherits Image {
+    in property <string> icon_key;
+    in property <color> icon_color: #d7dde8;
+    source:
+        icon_key == "project" ? @image-url("../../../dev/ionicons.designerpack/folder-open-outline.svg") :
+        icon_key == "assets" ? @image-url("../../../dev/ionicons.designerpack/albums-outline.svg") :
+        icon_key == "hierarchy" ? @image-url("../../../dev/ionicons.designerpack/list-outline.svg") :
+        icon_key == "inspector" ? @image-url("../../../dev/ionicons.designerpack/options-outline.svg") :
+        icon_key == "scene" ? @image-url("../../../dev/ionicons.designerpack/cube-outline.svg") :
+        icon_key == "game" ? @image-url("../../../dev/ionicons.designerpack/game-controller-outline.svg") :
+        icon_key == "console" ? @image-url("../../../dev/ionicons.designerpack/terminal-outline.svg") :
+        icon_key == "prefab" ? @image-url("../../../dev/ionicons.designerpack/layers-outline.svg") :
+        icon_key == "asset-browser" ? @image-url("../../../dev/ionicons.designerpack/grid-outline.svg") :
+        icon_key == "tool-select" ? @image-url("../../../dev/ionicons.designerpack/scan-outline.svg") :
+        icon_key == "tool-move" ? @image-url("../../../dev/ionicons.designerpack/move-outline.svg") :
+        icon_key == "tool-rotate" ? @image-url("../../../dev/ionicons.designerpack/sync-outline.svg") :
+        icon_key == "tool-scale" ? @image-url("../../../dev/ionicons.designerpack/resize-outline.svg") :
+        icon_key == "tool-play" ? @image-url("../../../dev/ionicons.designerpack/play-outline.svg") :
+        icon_key == "tool-grid" ? @image-url("../../../dev/ionicons.designerpack/grid-outline.svg") :
+        icon_key == "tool-shaded" ? @image-url("../../../dev/ionicons.designerpack/color-fill-outline.svg") :
+        icon_key == "tool-fit" ? @image-url("../../../dev/ionicons.designerpack/locate-outline.svg") :
+        @image-url("../../../dev/ionicons.designerpack/ellipse-outline.svg");
+    colorize: icon_color;
+}
+
+export component ShellButton inherits Rectangle {
+    in property <string> label;
+    in property <bool> active;
+    in property <bool> enabled: true;
+    callback clicked();
+    min-width: 84px;
+    height: 24px;
+    border-radius: 4px;
+    border-width: 1px;
+    border-color: active ? palette.accent : palette.border;
+    background: !enabled ? palette.panel_bg :
+        active ? palette.accent_soft :
+        touch.pressed ? palette.chrome_bg :
+        touch.has-hover ? palette.chrome_bg_soft : palette.panel_bg_soft;
+    opacity: enabled ? 1.0 : 0.45;
+
+    palette := Palette {}
+
+    Text {
+        text: root.label;
+        color: root.active ? #eef3fb : palette.text;
+        vertical-alignment: center;
+        horizontal-alignment: center;
+        font-size: 11px;
+        width: parent.width;
+        height: parent.height;
+    }
+
+    touch := TouchArea {
+        enabled: root.enabled;
+        clicked => { root.clicked(); }
+    }
+}
+
+export component MenuBarButton inherits Rectangle {
+    in property <string> label;
+    in property <bool> active;
+    callback clicked();
+    height: 22px;
+    border-radius: 3px;
+    border-width: 0px;
+    width: max(34px, label_text.preferred-width + 18px);
+    background: active ? palette.chrome_bg_soft : touch.pressed ? palette.chrome_bg : touch.has-hover ? palette.chrome_bg_soft : transparent;
+
+    palette := Palette {}
+
+    label_text := Text {
+        text: root.label;
+        color: root.active ? palette.text : palette.text_muted;
+        vertical-alignment: center;
+        horizontal-alignment: center;
+        font-size: 11px;
+        width: parent.width;
+        height: parent.height;
+    }
+
+    touch := TouchArea {
+        clicked => { root.clicked(); }
+    }
+}
+
+export component RailButton inherits Rectangle {
+    in property <string> icon_key;
+    in property <bool> active;
+    callback clicked();
+    width: 30px;
+    height: 30px;
+    border-radius: 3px;
+    border-width: 0px;
+    border-color: transparent;
+    background: active ? palette.chrome_bg_soft : touch.pressed ? palette.chrome_bg : touch.has-hover ? palette.chrome_bg_soft : transparent;
+
+    palette := Palette {}
+
+    ShellIcon {
+        width: 15px;
+        height: 15px;
+        x: 8px;
+        y: 7px;
+        icon_key: root.icon_key;
+        icon_color: root.active ? palette.text : palette.text_muted;
+    }
+
+    if root.active: Rectangle {
+        x: 0px;
+        y: 5px;
+        width: 2px;
+        height: parent.height - 10px;
+        background: palette.accent;
+        border-radius: 1px;
+    }
+
+    touch := TouchArea {
+        clicked => { root.clicked(); }
+    }
+}
+
+export component TabChip inherits Rectangle {
+    in property <string> label;
+    in property <string> icon_key;
+    in property <bool> active;
+    in property <bool> closeable;
+    in property <bool> drag_enabled: true;
+    in property <float> drag_origin_x: 0.0;
+    in property <float> drag_origin_y: 0.0;
+    callback clicked();
+    callback close_clicked();
+    callback drag_started(x: float, y: float);
+    callback drag_moved(x: float, y: float);
+    callback drag_finished(x: float, y: float);
+    height: 30px;
+    border-width: 1px;
+    border-color: active ? palette.border : transparent;
+    border-radius: 3px;
+    background: active ? (touch.pressed ? palette.chrome_bg_soft : palette.panel_bg) : touch.pressed ? palette.chrome_bg_soft : touch.has-hover ? palette.tab_hover : palette.tab_bg;
+    width: closeable ? max(114px, label_text.preferred-width + 54px) : max(92px, label_text.preferred-width + 42px);
+    property <bool> drag_pressed: false;
+    property <bool> suppress_click: false;
+    property <float> press_x: 0.0;
+    property <float> press_y: 0.0;
+    property <float> drag_threshold_px: 10.0;
+
+    palette := Palette {}
+
+    ShellIcon {
+        width: 14px;
+        height: 14px;
+        x: 10px;
+        y: 8px;
+        icon_key: root.icon_key;
+        icon_color: root.active ? palette.text : palette.text_muted;
+    }
+
+    label_text := Text {
+        x: 30px;
+        y: 7px;
+        width: parent.width - (root.closeable ? 52px : 38px);
+        height: 16px;
+        text: root.label;
+        color: root.active ? palette.text : palette.text_muted;
+        font-size: 11px;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+
+    if root.active: Rectangle {
+        x: 1px;
+        y: parent.height - 2px;
+        width: parent.width - 2px;
+        height: 3px;
+        background: palette.panel_bg;
+    }
+
+    if root.closeable: Rectangle {
+        x: parent.width - 24px;
+        y: 7px;
+        width: 16px;
+        height: 16px;
+        border-radius: 3px;
+        background: close_touch.pressed ? palette.chrome_bg : close_touch.has-hover ? palette.chrome_bg_soft : transparent;
+        Text {
+            text: "x";
+            width: parent.width;
+            height: parent.height;
+            color: palette.text_dim;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+            font-size: 10px;
+        }
+        close_touch := TouchArea {
+            clicked => {
+                root.drag_pressed = false;
+                root.suppress_click = true;
+                root.close_clicked();
+            }
+        }
+    }
+
+    touch := TouchArea {
+        clicked => {
+            if (!root.suppress_click) {
+                root.clicked();
+            }
+            root.suppress_click = false;
+        }
+        pointer-event(event) => {
+            if (!root.drag_enabled || event.button != PointerEventButton.left) {
+                return;
+            }
+            if (event.kind == PointerEventKind.down) {
+                root.drag_pressed = true;
+                root.suppress_click = false;
+                root.press_x = self.mouse-x / 1px;
+                root.press_y = self.mouse-y / 1px;
+            } else if (event.kind == PointerEventKind.up) {
+                if (root.drag_pressed && root.suppress_click) {
+                    root.drag_finished(
+                        root.drag_origin_x + self.mouse-x / 1px,
+                        root.drag_origin_y + self.mouse-y / 1px,
+                    );
+                }
+                root.drag_pressed = false;
+            }
+        }
+        moved => {
+            if (!root.drag_enabled || !root.drag_pressed) {
+                return;
+            }
+            if (
+                !root.suppress_click
+                && (
+                    (
+                        (self.mouse-x / 1px - root.press_x) * (self.mouse-x / 1px - root.press_x)
+                        + (self.mouse-y / 1px - root.press_y) * (self.mouse-y / 1px - root.press_y)
+                    ) >= root.drag_threshold_px * root.drag_threshold_px
+                )
+            ) {
+                root.suppress_click = true;
+                root.drag_started(
+                    root.drag_origin_x + root.press_x,
+                    root.drag_origin_y + root.press_y,
+                );
+            }
+            if (root.suppress_click) {
+                root.drag_moved(
+                    root.drag_origin_x + self.mouse-x / 1px,
+                    root.drag_origin_y + self.mouse-y / 1px,
+                );
+            }
+        }
+    }
+}
+
+export component MenuItemRow inherits Rectangle {
+    in property <string> label;
+    in property <string> shortcut;
+    in property <bool> enabled: true;
+    callback clicked();
+    height: 28px;
+    border-radius: 4px;
+    background: enabled && touch.pressed ? palette.chrome_bg : enabled && touch.has-hover ? palette.tab_hover : transparent;
+    opacity: enabled ? 1.0 : 0.4;
+
+    palette := Palette {}
+
+    Text {
+        x: 10px;
+        y: 6px;
+        text: root.label;
+        color: palette.text;
+        font-size: 12px;
+    }
+
+    Text {
+        x: parent.width - self.preferred-width - 10px;
+        y: 6px;
+        text: root.shortcut;
+        color: palette.text_dim;
+        font-size: 11px;
+    }
+
+    touch := TouchArea {
+        enabled: root.enabled;
+        clicked => { root.clicked(); }
+    }
+}
+
+export component EmptyStateCard inherits Rectangle {
+    in property <string> eyebrow;
+    in property <string> title;
+    in property <string> body;
+    in property <string> primary_action_label;
+    in property <string> primary_action_id;
+    in property <string> secondary_action_label;
+    in property <string> secondary_action_id;
+    in property <string> secondary_hint;
+    in property <bool> compact: false;
+    callback trigger_action(action_id: string);
+
+    palette := Palette {}
+    background: transparent;
+
+    content := Rectangle {
+        width: root.compact
+            ? (parent.width > 280px ? 236px : parent.width - 24px)
+            : (parent.width > 460px ? 420px : parent.width - 36px);
+        height: root.compact ? 156px : 204px;
+        x: (parent.width - self.width) / 2;
+        y: root.compact ? 42px : max(32px, (parent.height - self.height) / 2 - 24px);
+        background: transparent;
+
+        VerticalLayout {
+            width: parent.width;
+            spacing: root.compact ? 8px : 10px;
+
+            if root.eyebrow != "": Text {
+                text: root.eyebrow;
+                color: palette.accent;
+                font-size: 10px;
+                font-weight: 600;
+                horizontal-alignment: center;
+            }
+
+            Text {
+                text: root.title;
+                color: palette.text;
+                font-size: root.compact ? 14px : 22px;
+                font-weight: 600;
+                horizontal-alignment: center;
+            }
+
+            Text {
+                text: root.body;
+                color: palette.text_muted;
+                font-size: root.compact ? 11px : 12px;
+                wrap: word-wrap;
+                horizontal-alignment: center;
+            }
+
+            if root.primary_action_label != "" || root.secondary_action_label != "": HorizontalLayout {
+                spacing: 8px;
+                alignment: center;
+
+                if root.primary_action_label != "": ShellButton {
+                    width: root.compact ? 96px : 112px;
+                    label: root.primary_action_label;
+                    active: true;
+                    clicked => { root.trigger_action(root.primary_action_id); }
+                }
+
+                if root.secondary_action_label != "": ShellButton {
+                    width: root.compact ? 96px : 112px;
+                    label: root.secondary_action_label;
+                    active: false;
+                    clicked => { root.trigger_action(root.secondary_action_id); }
+                }
+            }
+
+            if root.secondary_hint != "": Text {
+                text: root.secondary_hint;
+                color: palette.text_dim;
+                font-size: 10px;
+                horizontal-alignment: center;
+                wrap: word-wrap;
+            }
+        }
+    }
+}
+
+export component DockTabButton inherits Rectangle {
+    in property <string> label;
+    in property <string> icon_key;
+    in property <bool> active;
+    in property <bool> drag_enabled: false;
+    in property <float> drag_origin_x: 0.0;
+    in property <float> drag_origin_y: 0.0;
+    callback clicked();
+    callback drag_started(x: float, y: float);
+    callback drag_moved(x: float, y: float);
+    callback drag_finished(x: float, y: float);
+    width: max(68px, label_text.preferred-width + 30px);
+    height: 22px;
+    border-width: 0px;
+    border-color: transparent;
+    border-radius: 3px;
+    background: active ? palette.chrome_bg_soft : touch.pressed ? palette.chrome_bg : touch.has-hover ? palette.tab_hover : transparent;
+    property <bool> drag_pressed: false;
+    property <bool> suppress_click: false;
+    property <float> press_x: 0.0;
+    property <float> press_y: 0.0;
+    property <float> drag_threshold_px: 10.0;
+
+    palette := Palette {}
+
+    ShellIcon {
+        width: 12px;
+        height: 12px;
+        x: 8px;
+        y: 5px;
+        icon_key: root.icon_key;
+        icon_color: root.active ? palette.text : palette.text_muted;
+    }
+
+    label_text := Text {
+        x: 25px;
+        y: 5px;
+        width: parent.width - 31px;
+        height: 14px;
+        text: root.label;
+        color: root.active ? palette.text : palette.text_muted;
+        font-size: 10px;
+        overflow: elide;
+    }
+
+    if root.active: Rectangle {
+        x: 6px;
+        y: parent.height - 1px;
+        width: parent.width - 12px;
+        height: 2px;
+        background: palette.accent;
+        border-radius: 1px;
+    }
+
+    touch := TouchArea {
+        clicked => {
+            if (!root.suppress_click) {
+                root.clicked();
+            }
+            root.suppress_click = false;
+        }
+        pointer-event(event) => {
+            if (!root.drag_enabled || event.button != PointerEventButton.left) {
+                return;
+            }
+            if (event.kind == PointerEventKind.down) {
+                root.drag_pressed = true;
+                root.suppress_click = false;
+                root.press_x = self.mouse-x / 1px;
+                root.press_y = self.mouse-y / 1px;
+            } else if (event.kind == PointerEventKind.up) {
+                if (root.drag_pressed && root.suppress_click) {
+                    root.drag_finished(
+                        root.drag_origin_x + self.mouse-x / 1px,
+                        root.drag_origin_y + self.mouse-y / 1px,
+                    );
+                }
+                root.drag_pressed = false;
+            }
+        }
+        moved => {
+            if (!root.drag_enabled || !root.drag_pressed) {
+                return;
+            }
+            if (
+                !root.suppress_click
+                && (
+                    (
+                        (self.mouse-x / 1px - root.press_x) * (self.mouse-x / 1px - root.press_x)
+                        + (self.mouse-y / 1px - root.press_y) * (self.mouse-y / 1px - root.press_y)
+                    ) >= root.drag_threshold_px * root.drag_threshold_px
+                )
+            ) {
+                root.suppress_click = true;
+                root.drag_started(
+                    root.drag_origin_x + root.press_x,
+                    root.drag_origin_y + root.press_y,
+                );
+            }
+            if (root.suppress_click) {
+                root.drag_moved(
+                    root.drag_origin_x + self.mouse-x / 1px,
+                    root.drag_origin_y + self.mouse-y / 1px,
+                );
+            }
+        }
+    }
+}
+
+export component ToolbarButton inherits Rectangle {
+    in property <string> label;
+    in property <bool> active;
+    callback clicked();
+    min-width: 48px;
+    height: 20px;
+    border-width: 1px;
+    border-color: active ? palette.accent : palette.border_soft;
+    border-radius: 3px;
+    background: active ? palette.chrome_bg_soft : touch.pressed ? palette.chrome_bg : touch.has-hover ? palette.chrome_bg_soft : transparent;
+
+    palette := Palette {}
+
+    Text {
+        text: root.label;
+        color: root.active ? palette.text : palette.text_muted;
+        width: parent.width;
+        height: parent.height;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        font-size: 10px;
+    }
+
+    touch := TouchArea {
+        clicked => { root.clicked(); }
+    }
+}
+
+export component ToolbarIconButton inherits Rectangle {
+    in property <string> icon_key;
+    in property <bool> active;
+    callback clicked();
+    width: 20px;
+    height: 20px;
+    border-width: 1px;
+    border-color: active ? palette.accent : palette.border_soft;
+    border-radius: 2px;
+    background: active ? palette.chrome_bg_soft : touch.pressed ? palette.chrome_bg : touch.has-hover ? palette.chrome_bg_soft : transparent;
+
+    palette := Palette {}
+
+    ShellIcon {
+        width: 12px;
+        height: 12px;
+        x: 4px;
+        y: 4px;
+        icon_key: root.icon_key;
+        icon_color: root.active ? palette.text : palette.text_muted;
+    }
+
+    touch := TouchArea {
+        clicked => { root.clicked(); }
+    }
+}

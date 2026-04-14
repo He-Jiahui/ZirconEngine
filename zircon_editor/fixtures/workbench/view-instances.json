@@ -1,0 +1,80 @@
+[
+  {
+    "instance_id": "editor.project#1",
+    "descriptor_id": "editor.project",
+    "title": "Project",
+    "serializable_payload": null,
+    "dirty": false,
+    "host": {
+      "Drawer": "LeftTop"
+    }
+  },
+  {
+    "instance_id": "editor.hierarchy#1",
+    "descriptor_id": "editor.hierarchy",
+    "title": "Hierarchy",
+    "serializable_payload": null,
+    "dirty": false,
+    "host": {
+      "Drawer": "LeftTop"
+    }
+  },
+  {
+    "instance_id": "editor.inspector#1",
+    "descriptor_id": "editor.inspector",
+    "title": "Inspector",
+    "serializable_payload": null,
+    "dirty": false,
+    "host": {
+      "Drawer": "RightTop"
+    }
+  },
+  {
+    "instance_id": "editor.scene#1",
+    "descriptor_id": "editor.scene",
+    "title": "Scene",
+    "serializable_payload": null,
+    "dirty": false,
+    "host": {
+      "Document": [
+        "workbench",
+        []
+      ]
+    }
+  },
+  {
+    "instance_id": "editor.game#1",
+    "descriptor_id": "editor.game",
+    "title": "Game",
+    "serializable_payload": null,
+    "dirty": false,
+    "host": {
+      "Document": [
+        "workbench",
+        []
+      ]
+    }
+  },
+  {
+    "instance_id": "editor.assets#1",
+    "descriptor_id": "editor.assets",
+    "title": "Assets",
+    "serializable_payload": {
+      "root": "crate://"
+    },
+    "dirty": false,
+    "host": {
+      "Drawer": "LeftTop"
+    }
+  },
+  {
+    "instance_id": "editor.console#1",
+    "descriptor_id": "editor.console",
+    "title": "Console",
+    "serializable_payload": null,
+    "dirty": false,
+    "host": {
+      "Drawer": "BottomLeft"
+    }
+  }
+]

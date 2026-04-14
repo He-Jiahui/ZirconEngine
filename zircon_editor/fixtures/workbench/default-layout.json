@@ -1,0 +1,97 @@
+{
+  "active_main_page": "workbench",
+  "main_pages": [
+    {
+      "WorkbenchPage": {
+        "id": "workbench",
+        "title": "Workbench",
+        "document_workspace": {
+          "Tabs": {
+            "tabs": [
+              "editor.scene#1",
+              "editor.game#1"
+            ],
+            "active_tab": "editor.scene#1"
+          }
+        }
+      }
+    }
+  ],
+  "drawers": {
+    "LeftTop": {
+      "slot": "LeftTop",
+      "tab_stack": {
+        "tabs": [
+          "editor.project#1",
+          "editor.assets#1",
+          "editor.hierarchy#1"
+        ],
+        "active_tab": "editor.project#1"
+      },
+      "active_view": "editor.project#1",
+      "mode": "Pinned",
+      "extent": 312.0,
+      "visible": true
+    },
+    "LeftBottom": {
+      "slot": "LeftBottom",
+      "tab_stack": {
+        "tabs": [],
+        "active_tab": null
+      },
+      "active_view": null,
+      "mode": "Collapsed",
+      "extent": 288.0,
+      "visible": true
+    },
+    "RightTop": {
+      "slot": "RightTop",
+      "tab_stack": {
+        "tabs": [
+          "editor.inspector#1"
+        ],
+        "active_tab": "editor.inspector#1"
+      },
+      "active_view": "editor.inspector#1",
+      "mode": "Pinned",
+      "extent": 308.0,
+      "visible": true
+    },
+    "RightBottom": {
+      "slot": "RightBottom",
+      "tab_stack": {
+        "tabs": [],
+        "active_tab": null
+      },
+      "active_view": null,
+      "mode": "Collapsed",
+      "extent": 288.0,
+      "visible": true
+    },
+    "BottomLeft": {
+      "slot": "BottomLeft",
+      "tab_stack": {
+        "tabs": [
+          "editor.console#1"
+        ],
+        "active_tab": "editor.console#1"
+      },
+      "active_view": "editor.console#1",
+      "mode": "Pinned",
+      "extent": 164.0,
+      "visible": true
+    },
+    "BottomRight": {
+      "slot": "BottomRight",
+      "tab_stack": {
+        "tabs": [],
+        "active_tab": null
+      },
+      "active_view": null,
+      "mode": "Collapsed",
+      "extent": 224.0,
+      "visible": true
+    }
+  },
+  "floating_windows": []
+}

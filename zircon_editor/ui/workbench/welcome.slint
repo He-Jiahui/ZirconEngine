@@ -1,0 +1,430 @@
+import { LineEdit, ScrollView } from "std-widgets.slint";
+import { Palette, ShellButton, ShellIcon } from "chrome.slint";
+
+export struct RecentProjectData {
+    display_name: string,
+    path: string,
+    last_opened_label: string,
+    status_label: string,
+    invalid: bool,
+}
+
+export struct NewProjectFormData {
+    project_name: string,
+    location: string,
+    project_path_preview: string,
+    template_label: string,
+    validation_message: string,
+    can_create: bool,
+    can_open_existing: bool,
+    browse_supported: bool,
+}
+
+export struct WelcomePaneData {
+    title: string,
+    subtitle: string,
+    status_message: string,
+    form: NewProjectFormData,
+}
+
+component FieldCard inherits Rectangle {
+    in property <string> label;
+    in property <string> value;
+    in property <string> placeholder;
+    callback edited(value: string);
+
+    palette := Palette {}
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: palette.border_soft;
+    background: palette.panel_bg_soft;
+
+    Text {
+        x: 12px;
+        y: 10px;
+        text: root.label;
+        color: palette.text_dim;
+        font-size: 10px;
+        font-weight: 700;
+    }
+
+    LineEdit {
+        x: 12px;
+        y: 28px;
+        width: parent.width - 24px;
+        height: 28px;
+        text: root.value;
+        placeholder-text: root.placeholder;
+        font-size: 12px;
+        edited(value) => { root.edited(value); }
+    }
+}
+
+export component WelcomePane inherits Rectangle {
+    in property <WelcomePaneData> welcome;
+    in property <[RecentProjectData]> recent_projects;
+    callback project_name_edited(value: string);
+    callback location_edited(value: string);
+    callback create_project();
+    callback open_existing_project();
+    callback open_recent_project(path: string);
+    callback remove_recent_project(path: string);
+
+    palette := Palette {}
+    background: palette.panel_bg;
+    clip: true;
+
+    Rectangle {
+        x: 18px;
+        y: 18px;
+        width: parent.width - 36px;
+        height: parent.height - 36px;
+        border-radius: 16px;
+        border-width: 1px;
+        border-color: palette.border;
+        background: #1c1f23;
+
+        Rectangle {
+            x: 0px;
+            y: 0px;
+            width: 320px;
+            height: parent.height;
+            border-top-left-radius: 16px;
+            border-bottom-left-radius: 16px;
+            background: #181b1f;
+            border-width: 0px;
+
+            Text {
+                x: 24px;
+                y: 26px;
+                text: "Recent Projects";
+                color: palette.text;
+                font-size: 20px;
+                font-weight: 700;
+            }
+
+            Text {
+                x: 24px;
+                y: 56px;
+                width: parent.width - 48px;
+                text: "Resume a valid directory project or clean up broken entries.";
+                color: palette.text_dim;
+                font-size: 11px;
+                wrap: word-wrap;
+            }
+
+            ScrollView {
+                x: 16px;
+                y: 94px;
+                width: parent.width - 32px;
+                height: parent.height - 110px;
+                viewport_width: parent.width - 32px;
+                viewport_height: max(parent.height - 110px, recent_rows.preferred-height + 8px);
+
+                recent_rows := VerticalLayout {
+                    x: 0px;
+                    y: 0px;
+                    width: parent.width - 8px;
+                    spacing: 10px;
+
+                    for recent in root.recent_projects: Rectangle {
+                        height: 112px;
+                        border-radius: 10px;
+                        border-width: 1px;
+                        border-color: recent.invalid ? #6d4a4a : palette.border_soft;
+                        background: recent.invalid ? #312224 : palette.panel_bg_soft;
+
+                        ShellIcon {
+                            x: 14px;
+                            y: 14px;
+                            width: 18px;
+                            height: 18px;
+                            icon_key: "project";
+                            icon_color: recent.invalid ? #f0b3b3 : palette.text_muted;
+                        }
+
+                        Text {
+                            x: 42px;
+                            y: 12px;
+                            width: parent.width - 56px;
+                            text: recent.display_name;
+                            color: palette.text;
+                            font-size: 13px;
+                            font-weight: 700;
+                            overflow: elide;
+                        }
+
+                        Text {
+                            x: 14px;
+                            y: 40px;
+                            width: parent.width - 28px;
+                            text: recent.path;
+                            color: palette.text_dim;
+                            font-size: 10px;
+                            overflow: elide;
+                        }
+
+                        Text {
+                            x: 14px;
+                            y: 62px;
+                            text: recent.last_opened_label;
+                            color: palette.text_dim;
+                            font-size: 10px;
+                        }
+
+                        if recent.status_label != "": Rectangle {
+                            x: parent.width - status_text.preferred-width - 26px;
+                            y: 58px;
+                            width: status_text.preferred-width + 14px;
+                            height: 18px;
+                            border-radius: 9px;
+                            border-width: 1px;
+                            border-color: recent.invalid ? #8b5f5f : palette.border_soft;
+                            background: recent.invalid ? #4a2f33 : palette.chrome_bg_soft;
+
+                            status_text := Text {
+                                x: 7px;
+                                y: 3px;
+                                text: recent.status_label;
+                                color: recent.invalid ? #ffd1d1 : palette.text_dim;
+                                font-size: 9px;
+                                font-weight: 700;
+                            }
+                        }
+
+                        ShellButton {
+                            x: 14px;
+                            y: 80px;
+                            width: 88px;
+                            label: "Open";
+                            enabled: true;
+                            clicked => { root.open_recent_project(recent.path); }
+                        }
+
+                        ShellButton {
+                            x: 110px;
+                            y: 80px;
+                            width: 88px;
+                            label: "Remove";
+                            enabled: true;
+                            clicked => { root.remove_recent_project(recent.path); }
+                        }
+                    }
+
+                    if root.recent_projects.length == 0: Rectangle {
+                        height: 116px;
+                        border-radius: 10px;
+                        border-width: 1px;
+                        border-color: palette.border_soft;
+                        background: palette.panel_bg_soft;
+
+                        Text {
+                            x: 18px;
+                            y: 18px;
+                            text: "No recent projects";
+                            color: palette.text;
+                            font-size: 13px;
+                            font-weight: 700;
+                        }
+
+                        Text {
+                            x: 18px;
+                            y: 44px;
+                            width: parent.width - 36px;
+                            text: "Create a renderable empty project on the right, or type an existing project root to open it.";
+                            color: palette.text_dim;
+                            font-size: 11px;
+                            wrap: word-wrap;
+                        }
+                    }
+                }
+            }
+        }
+
+        Rectangle {
+            x: 320px;
+            y: 0px;
+            width: parent.width - 320px;
+            height: parent.height;
+            background: transparent;
+
+            Rectangle {
+                x: 28px;
+                y: 28px;
+                width: parent.width - 56px;
+                height: 92px;
+                border-radius: 14px;
+                border-width: 1px;
+                border-color: palette.border_soft;
+                background: #1f242a;
+
+                Text {
+                    x: 20px;
+                    y: 18px;
+                    text: root.welcome.title;
+                    color: palette.text;
+                    font-size: 26px;
+                    font-weight: 800;
+                }
+
+                Text {
+                    x: 20px;
+                    y: 50px;
+                    width: parent.width - 40px;
+                    text: root.welcome.subtitle;
+                    color: palette.text_dim;
+                    font-size: 12px;
+                    wrap: word-wrap;
+                }
+            }
+
+            Rectangle {
+                x: 28px;
+                y: 132px;
+                width: parent.width - 56px;
+                height: 34px;
+                border-radius: 10px;
+                border-width: 1px;
+                border-color: palette.border_soft;
+                background: palette.chrome_bg_soft;
+
+                Text {
+                    x: 14px;
+                    y: 8px;
+                    width: parent.width - 28px;
+                    text: root.welcome.status_message;
+                    color: palette.text_muted;
+                    font-size: 11px;
+                    overflow: elide;
+                }
+            }
+
+            Text {
+                x: 28px;
+                y: 188px;
+                text: "New Project";
+                color: palette.text;
+                font-size: 18px;
+                font-weight: 700;
+            }
+
+            Text {
+                x: 28px;
+                y: 216px;
+                width: parent.width - 56px;
+                text: "JetBrains-style scaffold flow: name first, root directory second, preview the final path before creation.";
+                color: palette.text_dim;
+                font-size: 11px;
+                wrap: word-wrap;
+            }
+
+            FieldCard {
+                x: 28px;
+                y: 258px;
+                width: parent.width - 56px;
+                height: 70px;
+                label: "Project Name";
+                value: root.welcome.form.project_name;
+                placeholder: "MyGame";
+                edited(value) => { root.project_name_edited(value); }
+            }
+
+            FieldCard {
+                x: 28px;
+                y: 340px;
+                width: parent.width - 56px;
+                height: 70px;
+                label: "Location";
+                value: root.welcome.form.location;
+                placeholder: "E:/Projects";
+                edited(value) => { root.location_edited(value); }
+            }
+
+            Rectangle {
+                x: 28px;
+                y: 424px;
+                width: parent.width - 56px;
+                height: 88px;
+                border-radius: 10px;
+                border-width: 1px;
+                border-color: palette.border_soft;
+                background: palette.panel_bg_soft;
+
+                Text {
+                    x: 14px;
+                    y: 12px;
+                    text: "Project Path Preview";
+                    color: palette.text_dim;
+                    font-size: 10px;
+                    font-weight: 700;
+                }
+
+                Text {
+                    x: 14px;
+                    y: 32px;
+                    width: parent.width - 28px;
+                    text: root.welcome.form.project_path_preview;
+                    color: palette.text;
+                    font-size: 12px;
+                    overflow: elide;
+                }
+
+                Text {
+                    x: 14px;
+                    y: 56px;
+                    width: parent.width - 28px;
+                    text: "Template: " + root.welcome.form.template_label;
+                    color: palette.text_dim;
+                    font-size: 10px;
+                    overflow: elide;
+                }
+            }
+
+            if root.welcome.form.validation_message != "": Rectangle {
+                x: 28px;
+                y: 526px;
+                width: parent.width - 56px;
+                height: 44px;
+                border-radius: 10px;
+                border-width: 1px;
+                border-color: #7a4a4f;
+                background: #341f22;
+
+                Text {
+                    x: 14px;
+                    y: 12px;
+                    width: parent.width - 28px;
+                    text: root.welcome.form.validation_message;
+                    color: #ffd4d8;
+                    font-size: 11px;
+                    wrap: word-wrap;
+                }
+            }
+
+            Rectangle {
+                x: 28px;
+                y: root.welcome.form.validation_message != "" ? 584px : 526px;
+                width: parent.width - 56px;
+                height: 60px;
+                background: transparent;
+
+                HorizontalLayout {
+                    spacing: 10px;
+                    ShellButton {
+                        width: 138px;
+                        label: "Create Project";
+                        active: root.welcome.form.can_create;
+                        enabled: root.welcome.form.can_create;
+                        clicked => { root.create_project(); }
+                    }
+                    ShellButton {
+                        width: 156px;
+                        label: "Open Existing Project";
+                        enabled: root.welcome.form.can_open_existing;
+                        clicked => { root.open_existing_project(); }
+                    }
+                }
+            }
+        }
+    }
+}

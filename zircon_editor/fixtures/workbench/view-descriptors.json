@@ -1,0 +1,111 @@
+[
+  {
+    "descriptor_id": "editor.project",
+    "kind": "ActivityView",
+    "default_title": "Project",
+    "icon_key": "folder-open-outline",
+    "multi_instance": false,
+    "dock_policy": "DrawerOrDocument",
+    "preferred_drawer_slot": "LeftTop",
+    "preferred_host": {
+      "Drawer": "LeftTop"
+    },
+    "persistence_key_policy": "editor.project"
+  },
+  {
+    "descriptor_id": "editor.hierarchy",
+    "kind": "ActivityView",
+    "default_title": "Hierarchy",
+    "icon_key": "list-outline",
+    "multi_instance": false,
+    "dock_policy": "DrawerOrDocument",
+    "preferred_drawer_slot": "LeftTop",
+    "preferred_host": {
+      "Drawer": "LeftTop"
+    },
+    "persistence_key_policy": "editor.hierarchy"
+  },
+  {
+    "descriptor_id": "editor.inspector",
+    "kind": "ActivityView",
+    "default_title": "Inspector",
+    "icon_key": "options-outline",
+    "multi_instance": false,
+    "dock_policy": "DrawerOrDocument",
+    "preferred_drawer_slot": "RightTop",
+    "preferred_host": {
+      "Drawer": "RightTop"
+    },
+    "persistence_key_policy": "editor.inspector"
+  },
+  {
+    "descriptor_id": "editor.scene",
+    "kind": "ActivityView",
+    "default_title": "Scene",
+    "icon_key": "cube-outline",
+    "multi_instance": false,
+    "dock_policy": "DrawerOrDocument",
+    "preferred_drawer_slot": null,
+    "preferred_host": "DocumentCenter",
+    "persistence_key_policy": "editor.scene"
+  },
+  {
+    "descriptor_id": "editor.game",
+    "kind": "ActivityView",
+    "default_title": "Game",
+    "icon_key": "play-outline",
+    "multi_instance": false,
+    "dock_policy": "DrawerOrDocument",
+    "preferred_drawer_slot": null,
+    "preferred_host": "DocumentCenter",
+    "persistence_key_policy": "editor.game"
+  },
+  {
+    "descriptor_id": "editor.assets",
+    "kind": "ActivityView",
+    "default_title": "Assets",
+    "icon_key": "folder-outline",
+    "multi_instance": false,
+    "dock_policy": "DrawerOrDocument",
+    "preferred_drawer_slot": "LeftTop",
+    "preferred_host": {
+      "Drawer": "LeftTop"
+    },
+    "persistence_key_policy": "editor.assets"
+  },
+  {
+    "descriptor_id": "editor.console",
+    "kind": "ActivityView",
+    "default_title": "Console",
+    "icon_key": "terminal-outline",
+    "multi_instance": false,
+    "dock_policy": "DrawerOrDocument",
+    "preferred_drawer_slot": "BottomLeft",
+    "preferred_host": {
+      "Drawer": "BottomLeft"
+    },
+    "persistence_key_policy": "editor.console"
+  },
+  {
+    "descriptor_id": "editor.prefab",
+    "kind": "ActivityWindow",
+    "default_title": "Prefab Editor",
+    "icon_key": "construct-outline",
+    "multi_instance": true,
+    "dock_policy": "DrawerOrDocument",
+    "preferred_drawer_slot": null,
+    "preferred_host": "DocumentCenter",
+    "persistence_key_policy": "editor.prefab"
+  },
+  {
+    "descriptor_id": "editor.asset_browser",
+    "kind": "ActivityWindow",
+    "default_title": "Asset Browser",
+    "icon_key": "grid-outline",
+    "multi_instance": false,
+    "dock_policy": "DrawerOrDocument",
+    "preferred_drawer_slot": null,
+    "preferred_host": "ExclusiveMainPage",
+    "persistence_key_policy": "editor.asset_browser"
+  }
+]

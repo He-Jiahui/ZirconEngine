@@ -1,0 +1,429 @@
+import { LineEdit, ScrollView } from "std-widgets.slint";
+import { EmptyStateCard, Palette, ShellButton } from "chrome.slint";
+
+export struct SceneNodeData {
+    id: string,
+    name: string,
+    depth: int,
+    selected: bool,
+}
+
+component CompactField inherits Rectangle {
+    in property <string> text;
+    in property <string> placeholder;
+    in property <bool> enabled: true;
+    callback edited(value: string);
+
+    palette := Palette {}
+    height: 22px;
+    border-radius: 3px;
+    border-width: 1px;
+    border-color: palette.border;
+    background: enabled ? palette.panel_bg_soft : palette.panel_bg;
+    opacity: enabled ? 1.0 : 0.55;
+
+    LineEdit {
+        x: 6px;
+        y: 1px;
+        width: parent.width - 12px;
+        height: parent.height - 2px;
+        text: root.text;
+        placeholder-text: root.placeholder;
+        enabled: root.enabled;
+        font-size: 11px;
+        edited(value) => { root.edited(value); }
+    }
+}
+
+component AxisField inherits Rectangle {
+    in property <string> axis;
+    in property <color> axis_color;
+    in property <string> value;
+    callback edited(value: string);
+
+    palette := Palette {}
+    height: 22px;
+    border-radius: 3px;
+    border-width: 1px;
+    border-color: palette.border;
+    background: palette.panel_bg_soft;
+
+    Text {
+        x: 7px;
+        y: 5px;
+        text: root.axis;
+        color: root.axis_color;
+        font-size: 10px;
+        font-weight: 700;
+    }
+
+    LineEdit {
+        x: 18px;
+        y: 1px;
+        width: parent.width - 24px;
+        height: parent.height - 2px;
+        text: root.value;
+        placeholder-text: root.axis;
+        font-size: 11px;
+        edited(value) => { root.edited(value); }
+    }
+}
+
+export component ToolWindowEmptyState inherits Rectangle {
+    in property <string> eyebrow;
+    in property <string> title;
+    in property <string> body;
+    in property <string> primary_action_label;
+    in property <string> primary_action_id;
+    in property <string> secondary_hint;
+    callback trigger_action(action_id: string);
+
+    palette := Palette {}
+    background: transparent;
+
+    Rectangle {
+        x: 12px;
+        y: 18px;
+        width: parent.width - 24px;
+        height: min(parent.height - 24px, 188px);
+        background: transparent;
+
+        VerticalLayout {
+            width: parent.width;
+            spacing: 8px;
+
+            if root.eyebrow != "": Text {
+                text: root.eyebrow;
+                color: palette.accent;
+                font-size: 10px;
+                font-weight: 600;
+            }
+
+            Text {
+                text: root.title;
+                color: palette.text;
+                font-size: 14px;
+                font-weight: 600;
+            }
+
+            Text {
+                text: root.body;
+                color: palette.text_muted;
+                font-size: 11px;
+                wrap: word-wrap;
+            }
+
+            if root.primary_action_label != "": ShellButton {
+                width: 96px;
+                label: root.primary_action_label;
+                active: true;
+                clicked => { root.trigger_action(root.primary_action_id); }
+            }
+
+            if root.secondary_hint != "": Text {
+                text: root.secondary_hint;
+                color: palette.text_dim;
+                font-size: 10px;
+                wrap: word-wrap;
+            }
+        }
+    }
+}
+
+export component HierarchyPane inherits Rectangle {
+    in property <[SceneNodeData]> hierarchy_nodes;
+    callback select(node_id: string);
+
+    palette := Palette {}
+    background: transparent;
+    clip: true;
+
+    ScrollView {
+        width: parent.width;
+        height: parent.height;
+        viewport_width: parent.width;
+        viewport_height: max(parent.height, rows.preferred-height + 12px);
+
+        rows := VerticalLayout {
+            x: 8px;
+            y: 8px;
+            width: parent.width - 16px;
+            spacing: 1px;
+
+            for node in root.hierarchy_nodes: Rectangle {
+                height: 22px;
+                border-radius: 3px;
+                background: node.selected ? #365880 : row_touch.has-hover ? palette.chrome_bg_soft : transparent;
+
+                Text {
+                    x: 10px + node.depth * 14px;
+                    y: 4px;
+                    text: node.name;
+                    color: node.selected ? #eef4ff : palette.text_muted;
+                    font-size: 11px;
+                }
+
+                row_touch := TouchArea {
+                    clicked => { root.select(node.id); }
+                }
+            }
+        }
+    }
+}
+
+export component InspectorPane inherits Rectangle {
+    in property <string> info;
+    in property <string> inspector_name;
+    in property <string> inspector_parent;
+    in property <string> inspector_x;
+    in property <string> inspector_y;
+    in property <string> inspector_z;
+    in property <bool> delete_enabled;
+    callback inspector_name_edited(value: string);
+    callback inspector_parent_edited(value: string);
+    callback inspector_x_edited(value: string);
+    callback inspector_y_edited(value: string);
+    callback inspector_z_edited(value: string);
+    callback inspector_apply();
+    callback delete_selected();
+
+    palette := Palette {}
+    background: transparent;
+    clip: true;
+
+    ScrollView {
+        width: parent.width;
+        height: parent.height;
+        viewport_width: parent.width;
+        viewport_height: max(parent.height, content.preferred-height + 16px);
+
+        content := VerticalLayout {
+            x: 10px;
+            y: 10px;
+            width: parent.width - 20px;
+            spacing: 4px;
+
+            Rectangle {
+                width: parent.width;
+                height: 22px;
+                border-width: 1px;
+                border-color: palette.border_soft;
+                background: palette.panel_bg_soft;
+
+                Text {
+                    x: 8px;
+                    y: 3px;
+                    text: "Transform";
+                    color: palette.text;
+                    font-size: 11px;
+                    font-weight: 600;
+                }
+
+                Text {
+                    x: parent.width - self.preferred-width - 8px;
+                    y: 4px;
+                    text: root.info;
+                    color: palette.text_dim;
+                    font-size: 9px;
+                    overflow: elide;
+                }
+            }
+
+            Rectangle {
+                width: parent.width;
+                height: 22px;
+                background: transparent;
+
+                Text {
+                    x: 0px;
+                    y: 4px;
+                    width: 58px;
+                    text: "Name";
+                    color: palette.text_dim;
+                    font-size: 10px;
+                }
+
+                CompactField {
+                    x: 62px;
+                    y: 0px;
+                    width: parent.width - 62px;
+                    text: root.inspector_name;
+                    placeholder: "Name";
+                    edited(value) => { root.inspector_name_edited(value); }
+                }
+            }
+
+            Rectangle {
+                width: parent.width;
+                height: 22px;
+                background: transparent;
+
+                Text {
+                    x: 0px;
+                    y: 4px;
+                    width: 58px;
+                    text: "Parent";
+                    color: palette.text_dim;
+                    font-size: 10px;
+                }
+
+                CompactField {
+                    x: 62px;
+                    y: 0px;
+                    width: parent.width - 62px;
+                    text: root.inspector_parent;
+                    placeholder: "Parent Id";
+                    edited(value) => { root.inspector_parent_edited(value); }
+                }
+            }
+
+            Rectangle {
+                width: parent.width;
+                height: 22px;
+                background: transparent;
+
+                Text {
+                    x: 0px;
+                    y: 4px;
+                    width: 58px;
+                    text: "Position";
+                    color: palette.text_dim;
+                    font-size: 10px;
+                }
+
+                HorizontalLayout {
+                    x: 62px;
+                    y: 0px;
+                    width: parent.width - 62px;
+                    spacing: 4px;
+
+                    AxisField {
+                        width: (parent.width - 8px) / 3;
+                        axis: "X";
+                        axis_color: #c75450;
+                        value: root.inspector_x;
+                        edited(value) => { root.inspector_x_edited(value); }
+                    }
+
+                    AxisField {
+                        width: (parent.width - 8px) / 3;
+                        axis: "Y";
+                        axis_color: #7fb062;
+                        value: root.inspector_y;
+                        edited(value) => { root.inspector_y_edited(value); }
+                    }
+
+                    AxisField {
+                        width: (parent.width - 8px) / 3;
+                        axis: "Z";
+                        axis_color: #5a88d2;
+                        value: root.inspector_z;
+                        edited(value) => { root.inspector_z_edited(value); }
+                    }
+                }
+            }
+
+            Rectangle {
+                width: parent.width;
+                height: 1px;
+                background: palette.border_soft;
+            }
+
+            Rectangle {
+                width: parent.width;
+                height: 24px;
+                background: transparent;
+
+                ShellButton {
+                    x: parent.width - 126px;
+                    y: 0px;
+                    width: 58px;
+                    label: "Apply";
+                    active: true;
+                    clicked => { root.inspector_apply(); }
+                }
+
+                ShellButton {
+                    x: parent.width - 62px;
+                    y: 0px;
+                    width: 58px;
+                    label: "Delete";
+                    active: false;
+                    enabled: root.delete_enabled;
+                    clicked => { root.delete_selected(); }
+                }
+            }
+        }
+    }
+}
+
+export component ConsolePane inherits Rectangle {
+    in property <bool> show_empty;
+    in property <string> empty_title;
+    in property <string> empty_body;
+    in property <string> status_text;
+
+    palette := Palette {}
+    background: #17191c;
+    clip: true;
+
+    ScrollView {
+        width: parent.width;
+        height: parent.height;
+        viewport_width: parent.width;
+        viewport_height: max(parent.height, lines.preferred-height + 12px);
+
+        lines := VerticalLayout {
+            x: 10px;
+            y: 8px;
+            width: parent.width - 20px;
+            spacing: 6px;
+
+            if root.show_empty: Text {
+                text: root.status_text != "" ? "> " + root.status_text : "> No output yet";
+                color: #c3ccd8;
+                font-size: 11px;
+                font-family: "JetBrains Mono, Cascadia Mono, Consolas";
+                wrap: word-wrap;
+            }
+
+            if root.show_empty && root.empty_body != "": Text {
+                text: root.empty_body;
+                color: palette.text_dim;
+                font-size: 10px;
+                wrap: word-wrap;
+            }
+
+            if !root.show_empty: Text {
+                text: root.status_text;
+                color: #c3ccd8;
+                font-size: 11px;
+                font-family: "JetBrains Mono, Cascadia Mono, Consolas";
+                wrap: word-wrap;
+            }
+        }
+    }
+}
+
+export component FallbackPane inherits Rectangle {
+    in property <string> title;
+    in property <string> body;
+    in property <string> hint;
+    in property <bool> compact: true;
+
+    background: transparent;
+
+    EmptyStateCard {
+        width: parent.width;
+        height: parent.height;
+        compact: root.compact;
+        eyebrow: "";
+        title: root.title;
+        body: root.body;
+        primary_action_label: "";
+        primary_action_id: "";
+        secondary_action_label: "";
+        secondary_action_id: "";
+        secondary_hint: root.hint;
+    }
+}

@@ -1,13 +1,21 @@
-//! Rigid bodies, queries, and simulation stepping.
-//!
-//! Conceptual counterpart: Godot `servers/physics`; Fyrox physics integration.
-//!
-//! Enable **`feature = "jolt"`** for [`rolt`] / Jolt. Requires a native toolchain (CMake, libclang).
+//! Physics module skeleton wired into the core runtime.
 
-/// `true` when crate was built with **`jolt`** (Jolt bindings available).
+use zircon_module::{stub_module_descriptor, ModuleDescriptor};
+
 pub const JOLT_ENABLED: bool = cfg!(feature = "jolt");
+pub const PHYSICS_MODULE_NAME: &str = "PhysicsModule";
 
-/// Returns the workspace engine name.
-pub fn engine_name() -> &'static str {
-    "ZirconEngine"
+#[derive(Clone, Debug, Default)]
+pub struct PhysicsConfig {
+    pub enabled: bool,
+    pub backend: &'static str,
+}
+
+pub fn module_descriptor() -> ModuleDescriptor {
+    stub_module_descriptor(
+        PHYSICS_MODULE_NAME,
+        "Physics world, queries, and backend selection",
+        "PhysicsDriver",
+        "PhysicsManager",
+    )
 }

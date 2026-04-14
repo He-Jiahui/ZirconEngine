@@ -1,0 +1,1777 @@
+import { DockTabButton, EmptyStateCard, MenuBarButton, MenuItemRow, Palette, RailButton, ShellButton, ShellIcon, TabChip, ToolbarButton, ToolbarIconButton } from "workbench/chrome.slint";
+import { AssetBrowserPane, AssetFolderData, AssetItemData, AssetReferenceData, AssetSelectionData, AssetsActivityPane, ProjectOverviewData, ProjectOverviewPane } from "workbench/assets.slint";
+import { ConsolePane, FallbackPane, HierarchyPane, InspectorPane, SceneNodeData, ToolWindowEmptyState } from "workbench/panes.slint";
+import { NewProjectFormData, RecentProjectData, WelcomePane, WelcomePaneData } from "workbench/welcome.slint";
+
+export struct TabData {
+    id: string,
+    slot: string,
+    title: string,
+    icon_key: string,
+    active: bool,
+    closeable: bool,
+}
+
+export struct BreadcrumbData {
+    label: string,
+}
+
+export struct PaneData {
+    id: string,
+    slot: string,
+    kind: string,
+    title: string,
+    icon_key: string,
+    subtitle: string,
+    info: string,
+    show_empty: bool,
+    empty_title: string,
+    empty_body: string,
+    primary_action_label: string,
+    primary_action_id: string,
+    secondary_action_label: string,
+    secondary_action_id: string,
+    secondary_hint: string,
+    show_toolbar: bool,
+}
+
+export struct FrameRect {
+    x: float,
+    y: float,
+    width: float,
+    height: float,
+}
+
+component PaneSurface inherits Rectangle {
+    in property <PaneData> pane;
+    in property <WelcomePaneData> welcome_pane;
+    in property <[RecentProjectData]> recent_projects;
+    in property <[SceneNodeData]> hierarchy_nodes;
+    in property <ProjectOverviewData> project_overview;
+    in property <[AssetFolderData]> activity_asset_tree_folders;
+    in property <[AssetFolderData]> activity_asset_content_folders;
+    in property <[AssetItemData]> activity_asset_content_items;
+    in property <AssetSelectionData> activity_asset_selection;
+    in property <[AssetReferenceData]> activity_asset_references;
+    in property <[AssetReferenceData]> activity_asset_used_by;
+    in property <string> activity_asset_search_query;
+    in property <string> activity_asset_kind_filter;
+    in property <string> activity_asset_view_mode;
+    in property <string> activity_asset_utility_tab;
+    in property <[AssetFolderData]> browser_asset_tree_folders;
+    in property <[AssetFolderData]> browser_asset_content_folders;
+    in property <[AssetItemData]> browser_asset_content_items;
+    in property <AssetSelectionData> browser_asset_selection;
+    in property <[AssetReferenceData]> browser_asset_references;
+    in property <[AssetReferenceData]> browser_asset_used_by;
+    in property <string> browser_asset_search_query;
+    in property <string> browser_asset_kind_filter;
+    in property <string> browser_asset_view_mode;
+    in property <string> browser_asset_utility_tab;
+    in property <image> viewport_image;
+    in property <string> project_path;
+    in property <string> inspector_name;
+    in property <string> inspector_parent;
+    in property <string> inspector_x;
+    in property <string> inspector_y;
+    in property <string> inspector_z;
+    in property <string> status_text;
+    in property <bool> delete_enabled;
+    callback empty_action(action_id: string);
+    callback hierarchy_select(node_id: string);
+    callback inspector_name_edited(value: string);
+    callback inspector_parent_edited(value: string);
+    callback inspector_x_edited(value: string);
+    callback inspector_y_edited(value: string);
+    callback inspector_z_edited(value: string);
+    callback inspector_apply();
+    callback delete_selected();
+    callback mesh_import_path_edited(value: string);
+    callback import_model();
+    callback asset_select_folder(folder_id: string);
+    callback asset_select_item(asset_uuid: string);
+    callback asset_search_edited(value: string);
+    callback asset_kind_filter_changed(kind: string);
+    callback asset_view_mode_changed(surface_mode: string, mode: string);
+    callback asset_utility_tab_changed(surface_mode: string, tab: string);
+    callback asset_activate_reference(asset_uuid: string);
+    callback open_asset_browser();
+    callback locate_selected_asset();
+    callback welcome_project_name_edited(value: string);
+    callback welcome_location_edited(value: string);
+    callback welcome_create_project();
+    callback welcome_open_existing_project();
+    callback welcome_open_recent_project(path: string);
+    callback welcome_remove_recent_project(path: string);
+    callback viewport_pointer_moved(x: float, y: float);
+    callback viewport_left_pressed(x: float, y: float);
+    callback viewport_left_released();
+    callback viewport_right_pressed(x: float, y: float);
+    callback viewport_right_released();
+    callback viewport_middle_pressed(x: float, y: float);
+    callback viewport_middle_released();
+    callback viewport_scrolled(delta: float);
+    in-out property <string> mesh_import_path;
+    in property <bool> show_header: true;
+    in property <bool> compact_empty: true;
+    out property <float> viewport_width: root.pane.kind == "Scene" || root.pane.kind == "Game" ? self.width / 1px : 0.0;
+    out property <float> viewport_height: root.pane.kind == "Scene" || root.pane.kind == "Game" ? (self.height - root.chrome_height - 30px) / 1px : 0.0;
+
+    palette := Palette {}
+    background: transparent;
+    clip: true;
+    property <length> chrome_height: root.show_header ? 34px : 0px;
+    property <string> empty_eyebrow:
+        root.pane.kind == "Scene" || root.pane.kind == "Game" ? "Welcome" :
+        root.pane.kind == "Project" || root.pane.kind == "Assets" ? "Workspace" :
+        root.pane.kind == "Console" ? "Task Output" :
+        "";
+
+    if root.show_header: Rectangle {
+        width: parent.width;
+        height: 34px;
+        background: palette.panel_bg_soft;
+        border-color: palette.border_soft;
+        border-width: 1px;
+
+        ShellIcon {
+            width: 14px;
+            height: 14px;
+            x: 10px;
+            y: 10px;
+            icon_key: root.pane.icon_key;
+            icon_color: palette.text_muted;
+        }
+
+        Text {
+            x: 30px;
+            y: 7px;
+            text: root.pane.title;
+            color: palette.text;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        Text {
+            x: parent.width - self.preferred-width - 12px;
+            y: 8px;
+            text: root.pane.subtitle;
+            color: palette.text_dim;
+            font-size: 11px;
+        }
+    }
+
+    if root.pane.kind == "Welcome": WelcomePane {
+        y: root.chrome_height;
+        width: parent.width;
+        height: parent.height - root.chrome_height;
+        welcome: root.welcome_pane;
+        recent_projects: root.recent_projects;
+        project_name_edited(value) => { root.welcome_project_name_edited(value); }
+        location_edited(value) => { root.welcome_location_edited(value); }
+        create_project() => { root.welcome_create_project(); }
+        open_existing_project() => { root.welcome_open_existing_project(); }
+        open_recent_project(path) => { root.welcome_open_recent_project(path); }
+        remove_recent_project(path) => { root.welcome_remove_recent_project(path); }
+    }
+
+    if root.pane.kind == "Scene" || root.pane.kind == "Game": Rectangle {
+        y: root.chrome_height;
+        width: parent.width;
+        height: parent.height - root.chrome_height;
+        background: #1c1f24;
+        clip: true;
+
+        Rectangle {
+            width: parent.width;
+            height: 28px;
+            background: #2b2d30;
+            border-width: 1px;
+            border-color: palette.border_soft;
+
+            HorizontalLayout {
+                x: 8px;
+                y: 4px;
+                spacing: 4px;
+
+                ToolbarIconButton { icon_key: "tool-select"; active: false; }
+                ToolbarIconButton { icon_key: "tool-move"; active: true; }
+                ToolbarIconButton { icon_key: "tool-rotate"; active: false; }
+                ToolbarIconButton { icon_key: "tool-scale"; active: false; }
+
+                Rectangle {
+                    width: 1px;
+                    height: 14px;
+                    y: 4px;
+                    background: palette.border;
+                }
+
+                ToolbarButton { label: "Local"; active: true; min-width: 44px; }
+                ToolbarButton { label: "Shaded"; active: true; min-width: 54px; }
+                ToolbarIconButton { icon_key: "tool-grid"; active: false; }
+                ToolbarIconButton { icon_key: "tool-play"; active: false; }
+                ToolbarButton { label: "1.0x"; active: false; min-width: 40px; }
+            }
+
+            Text {
+                x: parent.width - 140px;
+                y: 7px;
+                width: 128px;
+                horizontal-alignment: right;
+                text: root.pane.subtitle;
+                color: palette.text_dim;
+                font-size: 10px;
+                overflow: elide;
+            }
+        }
+
+        viewport_canvas := Rectangle {
+            y: 28px;
+            width: parent.width;
+            height: parent.height - 28px;
+            background: #171a20;
+            clip: true;
+
+            if !root.pane.show_empty: Rectangle {
+                x: 0px;
+                y: parent.height / 2;
+                width: parent.width;
+                height: 1px;
+                background: #ffffff09;
+            }
+
+            if !root.pane.show_empty: Rectangle {
+                x: parent.width / 2;
+                y: 0px;
+                width: 1px;
+                height: parent.height;
+                background: #ffffff09;
+            }
+
+            if !root.pane.show_empty: Image {
+                width: parent.width;
+                height: parent.height;
+                source: root.viewport_image;
+                image-fit: contain;
+            }
+
+            if !root.pane.show_empty: Rectangle {
+                x: 10px;
+                y: 10px;
+                width: 94px;
+                height: 18px;
+                border-radius: 3px;
+                border-width: 1px;
+                border-color: palette.border_soft;
+                background: #1d2027dd;
+                Text {
+                    text: root.pane.subtitle;
+                    x: 8px;
+                    y: 2px;
+                    color: palette.text;
+                    font-size: 10px;
+                }
+            }
+
+            if root.pane.show_empty: EmptyStateCard {
+                width: parent.width;
+                height: parent.height;
+                compact: false;
+                eyebrow: root.empty_eyebrow;
+                title: root.pane.empty_title;
+                body: root.pane.empty_body;
+                primary_action_label: root.pane.primary_action_label;
+                primary_action_id: root.pane.primary_action_id;
+                secondary_action_label: root.pane.secondary_action_label;
+                secondary_action_id: root.pane.secondary_action_id;
+                secondary_hint: root.pane.secondary_hint;
+                trigger_action(action_id) => { root.empty_action(action_id); }
+            }
+
+            viewport_touch := TouchArea {
+                enabled: !root.pane.show_empty;
+                width: parent.width;
+                height: parent.height;
+                mouse-cursor: crosshair;
+                pointer-event(event) => {
+                    if (event.button == PointerEventButton.left && event.kind == PointerEventKind.down) {
+                        root.viewport_left_pressed(self.mouse-x / 1px, self.mouse-y / 1px);
+                    } else if (event.button == PointerEventButton.left && event.kind == PointerEventKind.up) {
+                        root.viewport_left_released();
+                    } else if (event.button == PointerEventButton.right && event.kind == PointerEventKind.down) {
+                        root.viewport_right_pressed(self.mouse-x / 1px, self.mouse-y / 1px);
+                    } else if (event.button == PointerEventButton.right && event.kind == PointerEventKind.up) {
+                        root.viewport_right_released();
+                    } else if (event.button == PointerEventButton.middle && event.kind == PointerEventKind.down) {
+                        root.viewport_middle_pressed(self.mouse-x / 1px, self.mouse-y / 1px);
+                    } else if (event.button == PointerEventButton.middle && event.kind == PointerEventKind.up) {
+                        root.viewport_middle_released();
+                    }
+                }
+                moved => {
+                    root.viewport_pointer_moved(self.mouse-x / 1px, self.mouse-y / 1px);
+                }
+                scroll-event(event) => {
+                    root.viewport_scrolled(event.delta_y / 1px);
+                    accept
+                }
+            }
+        }
+    }
+
+    if !(root.pane.kind == "Scene" || root.pane.kind == "Game") && root.pane.show_empty && root.pane.kind != "Console" && root.compact_empty: ToolWindowEmptyState {
+        width: parent.width;
+        height: parent.height - root.chrome_height;
+        y: root.chrome_height;
+        eyebrow: root.empty_eyebrow;
+        title: root.pane.empty_title;
+        body: root.pane.empty_body;
+        primary_action_label: root.pane.primary_action_label;
+        primary_action_id: root.pane.primary_action_id;
+        secondary_hint: root.pane.secondary_hint;
+        trigger_action(action_id) => { root.empty_action(action_id); }
+    }
+
+    if !(root.pane.kind == "Scene" || root.pane.kind == "Game") && root.pane.show_empty && root.pane.kind != "Console" && !root.compact_empty: EmptyStateCard {
+        width: parent.width;
+        height: parent.height - root.chrome_height;
+        y: root.chrome_height;
+        compact: false;
+        eyebrow: root.empty_eyebrow;
+        title: root.pane.empty_title;
+        body: root.pane.empty_body;
+        primary_action_label: root.pane.primary_action_label;
+        primary_action_id: root.pane.primary_action_id;
+        secondary_action_label: root.pane.secondary_action_label;
+        secondary_action_id: root.pane.secondary_action_id;
+        secondary_hint: root.pane.secondary_hint;
+        trigger_action(action_id) => { root.empty_action(action_id); }
+    }
+
+    if !root.pane.show_empty && root.pane.kind == "Project": ProjectOverviewPane {
+        y: root.chrome_height;
+        width: parent.width;
+        height: parent.height - root.chrome_height;
+        project: root.project_overview;
+        open_assets() => { root.empty_action("OpenView.editor.assets"); }
+        open_asset_browser() => { root.open_asset_browser(); }
+    }
+
+    if !root.pane.show_empty && root.pane.kind == "Assets": AssetsActivityPane {
+        y: root.chrome_height;
+        width: parent.width;
+        height: parent.height - root.chrome_height;
+        folder_tree: root.activity_asset_tree_folders;
+        content_folders: root.activity_asset_content_folders;
+        content_items: root.activity_asset_content_items;
+        selection: root.activity_asset_selection;
+        references: root.activity_asset_references;
+        used_by: root.activity_asset_used_by;
+        search_query: root.activity_asset_search_query;
+        kind_filter: root.activity_asset_kind_filter;
+        view_mode: root.activity_asset_view_mode;
+        utility_tab: root.activity_asset_utility_tab;
+        mesh_import_path: root.mesh_import_path;
+        select_folder(folder_id) => { root.asset_select_folder(folder_id); }
+        select_asset(asset_uuid) => { root.asset_select_item(asset_uuid); }
+        search_edited(value) => { root.asset_search_edited(value); }
+        kind_filter_changed(kind) => { root.asset_kind_filter_changed(kind); }
+        view_mode_changed(mode) => { root.asset_view_mode_changed("activity", mode); }
+        utility_tab_changed(tab) => { root.asset_utility_tab_changed("activity", tab); }
+        activate_reference(asset_uuid) => { root.asset_activate_reference(asset_uuid); }
+        open_asset_browser() => { root.open_asset_browser(); }
+        mesh_import_path_edited(value) => { root.mesh_import_path_edited(value); }
+        import_model() => { root.import_model(); }
+    }
+
+    if !root.pane.show_empty && root.pane.kind == "AssetBrowser": AssetBrowserPane {
+        y: root.chrome_height;
+        width: parent.width;
+        height: parent.height - root.chrome_height;
+        project: root.project_overview;
+        folder_tree: root.browser_asset_tree_folders;
+        content_folders: root.browser_asset_content_folders;
+        content_items: root.browser_asset_content_items;
+        selection: root.browser_asset_selection;
+        references: root.browser_asset_references;
+        used_by: root.browser_asset_used_by;
+        search_query: root.browser_asset_search_query;
+        kind_filter: root.browser_asset_kind_filter;
+        view_mode: root.browser_asset_view_mode;
+        utility_tab: root.browser_asset_utility_tab;
+        mesh_import_path: root.mesh_import_path;
+        select_folder(folder_id) => { root.asset_select_folder(folder_id); }
+        select_asset(asset_uuid) => { root.asset_select_item(asset_uuid); }
+        search_edited(value) => { root.asset_search_edited(value); }
+        kind_filter_changed(kind) => { root.asset_kind_filter_changed(kind); }
+        view_mode_changed(mode) => { root.asset_view_mode_changed("browser", mode); }
+        utility_tab_changed(tab) => { root.asset_utility_tab_changed("browser", tab); }
+        activate_reference(asset_uuid) => { root.asset_activate_reference(asset_uuid); }
+        locate_selected() => { root.locate_selected_asset(); }
+        mesh_import_path_edited(value) => { root.mesh_import_path_edited(value); }
+        import_model() => { root.import_model(); }
+    }
+
+    if !root.pane.show_empty && root.pane.kind == "Hierarchy": HierarchyPane {
+        y: root.chrome_height;
+        width: parent.width;
+        height: parent.height - root.chrome_height;
+        hierarchy_nodes: root.hierarchy_nodes;
+        select(node_id) => { root.hierarchy_select(node_id); }
+    }
+
+    if !root.pane.show_empty && root.pane.kind == "Inspector": InspectorPane {
+        y: root.chrome_height;
+        width: parent.width;
+        height: parent.height - root.chrome_height;
+        info: root.pane.info;
+        inspector_name: root.inspector_name;
+        inspector_parent: root.inspector_parent;
+        inspector_x: root.inspector_x;
+        inspector_y: root.inspector_y;
+        inspector_z: root.inspector_z;
+        delete_enabled: root.delete_enabled;
+        inspector_name_edited(value) => { root.inspector_name_edited(value); }
+        inspector_parent_edited(value) => { root.inspector_parent_edited(value); }
+        inspector_x_edited(value) => { root.inspector_x_edited(value); }
+        inspector_y_edited(value) => { root.inspector_y_edited(value); }
+        inspector_z_edited(value) => { root.inspector_z_edited(value); }
+        inspector_apply() => { root.inspector_apply(); }
+        delete_selected() => { root.delete_selected(); }
+    }
+
+    if root.pane.kind == "Console": ConsolePane {
+        y: root.chrome_height;
+        width: parent.width;
+        height: parent.height - root.chrome_height;
+        show_empty: root.pane.show_empty;
+        empty_title: root.pane.empty_title;
+        empty_body: root.pane.empty_body;
+        status_text: root.status_text;
+    }
+
+    if !root.pane.show_empty && !(root.pane.kind == "Project" || root.pane.kind == "Assets" || root.pane.kind == "Hierarchy" || root.pane.kind == "Inspector" || root.pane.kind == "Scene" || root.pane.kind == "Game" || root.pane.kind == "Console" || root.pane.kind == "AssetBrowser"): FallbackPane {
+        y: root.chrome_height;
+        width: parent.width;
+        height: parent.height - root.chrome_height;
+        compact: root.compact_empty;
+        title: root.pane.title;
+        body: root.pane.info;
+        hint: root.pane.subtitle;
+    }
+}
+
+export component WorkbenchShell inherits Window {
+    preferred-width: 1600px;
+    preferred-height: 980px;
+    min-width: root.shell_min_width_px * 1px;
+    min-height: root.shell_min_height_px * 1px;
+    max-width: 16777215px;
+    max-height: 16777215px;
+    no-frame: false;
+    resize-border-width: 8px;
+    title: "Zircon Editor";
+    background: #1f232a;
+    default-font-family: "JetBrains Sans, Segoe UI, Microsoft YaHei UI, Noto Sans";
+
+    in property <[TabData]> host_tabs;
+    in property <[BreadcrumbData]> breadcrumbs;
+    in property <[TabData]> left_tabs;
+    in property <[TabData]> right_tabs;
+    in property <[TabData]> bottom_tabs;
+    in property <[TabData]> document_tabs;
+    in property <PaneData> left_pane;
+    in property <PaneData> right_pane;
+    in property <PaneData> bottom_pane;
+    in property <PaneData> document_pane;
+    in property <WelcomePaneData> welcome_pane;
+    in property <[RecentProjectData]> recent_projects;
+    in property <[SceneNodeData]> hierarchy_nodes;
+    in property <ProjectOverviewData> project_overview;
+    in property <[AssetFolderData]> activity_asset_tree_folders;
+    in property <[AssetFolderData]> activity_asset_content_folders;
+    in property <[AssetItemData]> activity_asset_content_items;
+    in property <AssetSelectionData> activity_asset_selection;
+    in property <[AssetReferenceData]> activity_asset_references;
+    in property <[AssetReferenceData]> activity_asset_used_by;
+    in property <string> activity_asset_search_query;
+    in property <string> activity_asset_kind_filter;
+    in property <string> activity_asset_view_mode;
+    in property <string> activity_asset_utility_tab;
+    in property <[AssetFolderData]> browser_asset_tree_folders;
+    in property <[AssetFolderData]> browser_asset_content_folders;
+    in property <[AssetItemData]> browser_asset_content_items;
+    in property <AssetSelectionData> browser_asset_selection;
+    in property <[AssetReferenceData]> browser_asset_references;
+    in property <[AssetReferenceData]> browser_asset_used_by;
+    in property <string> browser_asset_search_query;
+    in property <string> browser_asset_kind_filter;
+    in property <string> browser_asset_view_mode;
+    in property <string> browser_asset_utility_tab;
+    in property <image> viewport_image;
+    in property <string> project_path;
+    in property <string> status_primary;
+    in property <string> status_secondary;
+    in property <string> viewport_label;
+    in property <bool> drawers_visible;
+    in property <bool> left_expanded;
+    in property <bool> right_expanded;
+    in property <bool> bottom_expanded;
+    in property <float> left_drawer_extent: 0.0;
+    in property <float> right_drawer_extent: 0.0;
+    in property <float> bottom_drawer_extent: 0.0;
+    in property <bool> save_project_enabled;
+    in property <bool> undo_enabled;
+    in property <bool> redo_enabled;
+    in property <bool> delete_enabled;
+    in property <string> inspector_name;
+    in property <string> inspector_parent;
+    in property <string> inspector_x;
+    in property <string> inspector_y;
+    in property <string> inspector_z;
+    in property <string> mesh_import_path;
+    in property <[string]> preset_names;
+    in property <string> active_preset_name;
+    in property <float> shell_min_width_px: 0.0;
+    in property <float> shell_min_height_px: 0.0;
+    in property <FrameRect> center_band_frame: { x: 0.0, y: 0.0, width: 0.0, height: 0.0 };
+    in property <FrameRect> status_bar_frame: { x: 0.0, y: 0.0, width: 0.0, height: 0.0 };
+    in property <FrameRect> left_region_frame: { x: 0.0, y: 0.0, width: 0.0, height: 0.0 };
+    in property <FrameRect> document_region_frame: { x: 0.0, y: 0.0, width: 0.0, height: 0.0 };
+    in property <FrameRect> right_region_frame: { x: 0.0, y: 0.0, width: 0.0, height: 0.0 };
+    in property <FrameRect> bottom_region_frame: { x: 0.0, y: 0.0, width: 0.0, height: 0.0 };
+    in property <FrameRect> left_splitter_frame: { x: 0.0, y: 0.0, width: 0.0, height: 0.0 };
+    in property <FrameRect> right_splitter_frame: { x: 0.0, y: 0.0, width: 0.0, height: 0.0 };
+    in property <FrameRect> bottom_splitter_frame: { x: 0.0, y: 0.0, width: 0.0, height: 0.0 };
+    in property <FrameRect> viewport_content_frame: { x: 0.0, y: 0.0, width: 0.0, height: 0.0 };
+    in property <string> resolved_preset_name: root.active_preset_name != "" ? root.active_preset_name : "rider";
+    in-out property <int> open_menu_index: -1;
+    out property <float> shell_width_px: root.width / 1px;
+    out property <float> shell_height_px: root.height / 1px;
+    out property <float> viewport_width: root.viewport_content_frame.width;
+    out property <float> viewport_height: root.viewport_content_frame.height;
+
+    callback menu_action(action_id: string);
+    callback activate_host_page(page_id: string);
+    callback toggle_drawer_tab(slot: string, tab_id: string);
+    callback activate_document_tab(tab_id: string);
+    callback close_tab(tab_id: string);
+    callback drop_tab(tab_id: string, target_group: string, pointer_x: float, pointer_y: float);
+    callback begin_drawer_resize(target_group: string, x: float, y: float);
+    callback update_drawer_resize(x: float, y: float);
+    callback finish_drawer_resize(x: float, y: float);
+    callback hierarchy_select(node_id: string);
+    callback inspector_name_edited(value: string);
+    callback inspector_parent_edited(value: string);
+    callback inspector_x_edited(value: string);
+    callback inspector_y_edited(value: string);
+    callback inspector_z_edited(value: string);
+    callback inspector_apply();
+    callback delete_selected();
+    callback mesh_import_path_edited(value: string);
+    callback import_model();
+    callback asset_select_folder(folder_id: string);
+    callback asset_select_item(asset_uuid: string);
+    callback asset_search_edited(value: string);
+    callback asset_kind_filter_changed(kind: string);
+    callback asset_view_mode_changed(surface_mode: string, mode: string);
+    callback asset_utility_tab_changed(surface_mode: string, tab: string);
+    callback asset_activate_reference(asset_uuid: string);
+    callback open_asset_browser();
+    callback locate_selected_asset();
+    callback welcome_project_name_edited(value: string);
+    callback welcome_location_edited(value: string);
+    callback welcome_create_project();
+    callback welcome_open_existing_project();
+    callback welcome_open_recent_project(path: string);
+    callback welcome_remove_recent_project(path: string);
+    callback viewport_pointer_moved(x: float, y: float);
+    callback viewport_left_pressed(x: float, y: float);
+    callback viewport_left_released();
+    callback viewport_right_pressed(x: float, y: float);
+    callback viewport_right_released();
+    callback viewport_middle_pressed(x: float, y: float);
+    callback viewport_middle_released();
+    callback viewport_scrolled(delta: float);
+
+    palette := Palette {}
+    property <length> outer_margin: 0px;
+    property <length> rail_width: 34px;
+    property <length> top_bar_height: 25px;
+    property <length> host_bar_height: 24px;
+    property <length> status_bar_height: 20px;
+    property <length> panel_header_height: 25px;
+    property <length> document_header_height: 31px;
+    property <length> splitter_hit_size: 8px;
+    property <bool> resize_active: false;
+    property <string> resize_group: "";
+    property <length> left_rail_width: root.left_region_frame.width > 0.0 && root.left_tabs.length > 0 ? root.rail_width : 0px;
+    property <length> right_rail_width: root.right_region_frame.width > 0.0 && root.right_tabs.length > 0 ? root.rail_width : 0px;
+    property <length> left_stack_width: root.left_region_frame.width * 1px;
+    property <length> right_stack_width: root.right_region_frame.width * 1px;
+    property <length> left_panel_width: root.left_expanded && root.left_stack_width > root.left_rail_width ? max(0px, root.left_stack_width - root.left_rail_width) : 0px;
+    property <length> right_panel_width: root.right_expanded && root.right_stack_width > root.right_rail_width ? max(0px, root.right_stack_width - root.right_rail_width) : 0px;
+    property <length> bottom_panel_height: root.bottom_region_frame.height * 1px;
+    property <length> popup_y: root.outer_margin + root.top_bar_height + 1px;
+    property <length> main_content_y: root.center_band_frame.y * 1px;
+    property <length> main_content_height: root.center_band_frame.height * 1px;
+    property <length> document_zone_x: root.document_region_frame.x * 1px;
+    property <length> document_zone_width: root.document_region_frame.width * 1px;
+    property <length> right_stack_x: root.right_region_frame.x * 1px;
+    property <length> bottom_panel_y: root.bottom_region_frame.y * 1px;
+    property <length> left_tab_origin_x: root.left_rail_width + (root.left_panel_width > 0px ? 1px : 0px) + 6px;
+    property <length> left_tab_origin_y: root.main_content_y + 2px;
+    property <length> document_tab_origin_x: root.document_zone_x + 8px;
+    property <length> document_tab_origin_y: root.main_content_y + 1px;
+    property <length> right_tab_origin_x: root.right_stack_x + 6px;
+    property <length> right_tab_origin_y: root.main_content_y + 2px;
+    property <length> bottom_tab_origin_x: 6px;
+    property <length> bottom_tab_origin_y: root.bottom_panel_y + 2px;
+    property <length> left_drop_width: max(root.left_stack_width, 92px);
+    property <length> right_drop_width: max(root.right_stack_width, 92px);
+    property <length> bottom_drop_height: max(root.bottom_panel_height, 92px);
+    property <bool> left_drop_enabled: root.drawers_visible;
+    property <bool> right_drop_enabled: root.drawers_visible;
+    property <bool> bottom_drop_enabled: root.drawers_visible;
+    in-out property <bool> drag_active: false;
+    in-out property <string> drag_tab_id: "";
+    in-out property <string> drag_tab_title: "";
+    in-out property <string> drag_source_group: "";
+    in-out property <float> drag_pointer_x: 0.0;
+    in-out property <float> drag_pointer_y: 0.0;
+    property <float> drag_overlay_top_px: root.center_band_frame.y;
+    property <float> drag_overlay_bottom_px: root.status_bar_frame.y;
+    property <float> bottom_drop_top_px: root.status_bar_frame.y - root.bottom_drop_height / 1px;
+    property <bool> pointer_in_left_drop:
+        root.left_drop_enabled && root.drag_pointer_x <= root.left_drop_width / 1px;
+    property <bool> pointer_in_right_drop:
+        root.right_drop_enabled
+            && root.drag_pointer_x >= (root.width - root.right_drop_width) / 1px;
+    property <bool> pointer_in_bottom_drop:
+        root.bottom_drop_enabled && root.drag_pointer_y >= root.bottom_drop_top_px;
+    property <float> left_edge_distance_px: root.drag_pointer_x;
+    property <float> right_edge_distance_px: root.width / 1px - root.drag_pointer_x;
+    property <float> bottom_edge_distance_px: root.drag_overlay_bottom_px - root.drag_pointer_y;
+    property <bool> prefer_left_drop_over_bottom:
+        root.pointer_in_left_drop
+            && root.pointer_in_bottom_drop
+            && root.left_edge_distance_px <= root.bottom_edge_distance_px;
+    property <bool> prefer_right_drop_over_bottom:
+        root.pointer_in_right_drop
+            && root.pointer_in_bottom_drop
+            && root.right_edge_distance_px <= root.bottom_edge_distance_px;
+    property <string> drag_target_group:
+        !root.drag_active ? "" :
+        root.drag_pointer_y < root.drag_overlay_top_px ? "" :
+        root.drag_pointer_y > root.drag_overlay_bottom_px ? "" :
+        root.prefer_left_drop_over_bottom ? "left" :
+        root.prefer_right_drop_over_bottom ? "right" :
+        root.pointer_in_bottom_drop ? "bottom" :
+        root.pointer_in_left_drop ? "left" :
+        root.pointer_in_right_drop ? "right" :
+        root.drag_pointer_x >= root.document_zone_x / 1px && root.drag_pointer_x <= (root.document_zone_x + root.document_zone_width) / 1px ? "document" :
+        "";
+    property <string> drag_target_label:
+        root.drag_target_group == "left" ? "Dock Left" :
+        root.drag_target_group == "right" ? "Dock Right" :
+        root.drag_target_group == "bottom" ? "Dock Bottom" :
+        root.drag_target_group == "document" ? "Dock Document" :
+        "Drag Tab";
+    out property <string> active_drag_target_group: root.drag_target_group;
+
+    Rectangle {
+        width: parent.width;
+        height: parent.height;
+        background: palette.shell_bg;
+
+        Rectangle {
+            x: root.outer_margin;
+            y: root.outer_margin;
+            width: parent.width - root.outer_margin * 2;
+            height: parent.height - root.outer_margin * 2;
+            background: palette.chrome_bg;
+            border-width: 0px;
+            border-color: palette.border;
+            border-radius: 0px;
+            clip: true;
+
+            Rectangle {
+                x: 0px;
+                y: 0px;
+                width: parent.width;
+                height: root.top_bar_height;
+                background: palette.chrome_bg;
+
+                HorizontalLayout {
+                    x: 8px;
+                    y: 1px;
+                    spacing: 2px;
+
+                    MenuBarButton { label: "File"; active: root.open_menu_index == 0; clicked => { root.open_menu_index = root.open_menu_index == 0 ? -1 : 0; } }
+                    MenuBarButton { label: "Edit"; active: root.open_menu_index == 1; clicked => { root.open_menu_index = root.open_menu_index == 1 ? -1 : 1; } }
+                    MenuBarButton { label: "Selection"; active: root.open_menu_index == 2; clicked => { root.open_menu_index = root.open_menu_index == 2 ? -1 : 2; } }
+                    MenuBarButton { label: "View"; active: root.open_menu_index == 3; clicked => { root.open_menu_index = root.open_menu_index == 3 ? -1 : 3; } }
+                    MenuBarButton { label: "Window"; active: root.open_menu_index == 4; clicked => { root.open_menu_index = root.open_menu_index == 4 ? -1 : 4; } }
+                    MenuBarButton { label: "Help"; active: root.open_menu_index == 5; clicked => { root.open_menu_index = root.open_menu_index == 5 ? -1 : 5; } }
+                }
+            }
+
+            Rectangle {
+                x: 0px;
+                y: root.top_bar_height;
+                width: parent.width;
+                height: 1px;
+                background: palette.border;
+            }
+
+            Rectangle {
+                x: 0px;
+                y: root.top_bar_height + 1px;
+                width: parent.width;
+                height: root.host_bar_height;
+                background: palette.chrome_bg;
+
+                HorizontalLayout {
+                    x: 8px;
+                    y: 1px;
+                    spacing: 4px;
+
+                    for page in root.host_tabs: DockTabButton {
+                        label: page.title;
+                        icon_key: page.icon_key;
+                        active: page.active;
+                        clicked => { root.activate_host_page(page.id); }
+                    }
+                }
+
+                Text {
+                    x: parent.width - 292px;
+                    y: 5px;
+                    width: 280px;
+                    horizontal-alignment: right;
+                    text: root.project_path != "" ? root.project_path : "No project open";
+                    color: palette.text_dim;
+                    font-size: 9px;
+                    overflow: elide;
+                }
+            }
+
+            Rectangle {
+                x: 0px;
+                y: root.center_band_frame.y * 1px - 1px;
+                width: parent.width;
+                height: 1px;
+                background: palette.border;
+            }
+
+            main_content_zone := Rectangle {
+                x: root.center_band_frame.x * 1px;
+                y: root.center_band_frame.y * 1px;
+                width: root.center_band_frame.width * 1px;
+                height: root.center_band_frame.height * 1px;
+                background: palette.panel_bg;
+            }
+
+            if root.left_stack_width > 0px: left_stack_zone := Rectangle {
+                x: root.left_region_frame.x * 1px;
+                y: root.left_region_frame.y * 1px;
+                width: root.left_region_frame.width * 1px;
+                height: root.left_region_frame.height * 1px;
+                background: transparent;
+                clip: true;
+                            HorizontalLayout {
+                                spacing: 0px;
+
+                                Rectangle {
+                                    width: root.left_rail_width;
+                                    background: palette.rail_bg;
+
+                                    VerticalLayout {
+                                        x: 3px;
+                                        y: 6px;
+                                        spacing: 2px;
+                                        for tab in root.left_tabs: RailButton {
+                                            icon_key: tab.icon_key;
+                                            active: tab.active;
+                                            clicked => { root.toggle_drawer_tab(tab.slot, tab.id); }
+                                        }
+                                    }
+                                }
+
+                                if root.left_panel_width > 0px: Rectangle { width: 1px; background: palette.border_soft; }
+
+                                if root.left_panel_width > 0px: Rectangle {
+                                    width: root.left_panel_width;
+                                    background: palette.panel_bg;
+
+                                    VerticalLayout {
+                                        spacing: 0px;
+
+                                        Rectangle {
+                                            height: root.panel_header_height;
+                                            background: palette.chrome_bg;
+
+                                            HorizontalLayout {
+                                                x: 6px;
+                                                y: 2px;
+                                                spacing: 4px;
+                                                for tab in root.left_tabs: left_header_tab := DockTabButton {
+                                                    label: tab.title;
+                                                    icon_key: tab.icon_key;
+                                                    active: tab.active;
+                                                    drag_enabled: true;
+                                                    drag_origin_x: (root.left_tab_origin_x + self.x) / 1px;
+                                                    drag_origin_y: (root.left_tab_origin_y + self.y) / 1px;
+                                                    clicked => { root.toggle_drawer_tab(tab.slot, tab.id); }
+                                                    drag_started(x, y) => {
+                                                        root.drag_active = true;
+                                                        root.drag_tab_id = tab.id;
+                                                        root.drag_tab_title = tab.title;
+                                                        root.drag_source_group = "left";
+                                                        root.drag_pointer_x = x;
+                                                        root.drag_pointer_y = y;
+                                                    }
+                                                    drag_moved(x, y) => {
+                                                        if (root.drag_tab_id == tab.id) {
+                                                            root.drag_pointer_x = x;
+                                                            root.drag_pointer_y = y;
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        Rectangle { height: 1px; background: palette.border_soft; }
+
+                                        PaneSurface {
+                                            width: parent.width;
+                                            height: parent.height - root.panel_header_height - 1px;
+                                            pane: root.left_pane;
+                                            welcome_pane: root.welcome_pane;
+                                            recent_projects: root.recent_projects;
+                                            hierarchy_nodes: root.hierarchy_nodes;
+                                            project_overview: root.project_overview;
+                                            activity_asset_tree_folders: root.activity_asset_tree_folders;
+                                            activity_asset_content_folders: root.activity_asset_content_folders;
+                                            activity_asset_content_items: root.activity_asset_content_items;
+                                            activity_asset_selection: root.activity_asset_selection;
+                                            activity_asset_references: root.activity_asset_references;
+                                            activity_asset_used_by: root.activity_asset_used_by;
+                                            activity_asset_search_query: root.activity_asset_search_query;
+                                            activity_asset_kind_filter: root.activity_asset_kind_filter;
+                                            activity_asset_view_mode: root.activity_asset_view_mode;
+                                            activity_asset_utility_tab: root.activity_asset_utility_tab;
+                                            browser_asset_tree_folders: root.browser_asset_tree_folders;
+                                            browser_asset_content_folders: root.browser_asset_content_folders;
+                                            browser_asset_content_items: root.browser_asset_content_items;
+                                            browser_asset_selection: root.browser_asset_selection;
+                                            browser_asset_references: root.browser_asset_references;
+                                            browser_asset_used_by: root.browser_asset_used_by;
+                                            browser_asset_search_query: root.browser_asset_search_query;
+                                            browser_asset_kind_filter: root.browser_asset_kind_filter;
+                                            browser_asset_view_mode: root.browser_asset_view_mode;
+                                            browser_asset_utility_tab: root.browser_asset_utility_tab;
+                                            viewport_image: root.viewport_image;
+                                            project_path: root.project_path;
+                                            inspector_name: root.inspector_name;
+                                            inspector_parent: root.inspector_parent;
+                                            inspector_x: root.inspector_x;
+                                            inspector_y: root.inspector_y;
+                                            inspector_z: root.inspector_z;
+                                            status_text: root.status_primary;
+                                            delete_enabled: root.delete_enabled;
+                                            mesh_import_path: root.mesh_import_path;
+                                            show_header: false;
+                                            compact_empty: true;
+                                            empty_action(action_id) => { root.menu_action(action_id); }
+                                            hierarchy_select(node_id) => { root.hierarchy_select(node_id); }
+                                            inspector_name_edited(value) => { root.inspector_name_edited(value); }
+                                            inspector_parent_edited(value) => { root.inspector_parent_edited(value); }
+                                            inspector_x_edited(value) => { root.inspector_x_edited(value); }
+                                            inspector_y_edited(value) => { root.inspector_y_edited(value); }
+                                            inspector_z_edited(value) => { root.inspector_z_edited(value); }
+                                            inspector_apply() => { root.inspector_apply(); }
+                                            delete_selected() => { root.delete_selected(); }
+                                            mesh_import_path_edited(value) => { root.mesh_import_path_edited(value); }
+                                            import_model() => { root.import_model(); }
+                                            asset_select_folder(folder_id) => { root.asset_select_folder(folder_id); }
+                                            asset_select_item(asset_uuid) => { root.asset_select_item(asset_uuid); }
+                                            asset_search_edited(value) => { root.asset_search_edited(value); }
+                                            asset_kind_filter_changed(kind) => { root.asset_kind_filter_changed(kind); }
+                                            asset_view_mode_changed(surface_mode, mode) => { root.asset_view_mode_changed(surface_mode, mode); }
+                                            asset_utility_tab_changed(surface_mode, tab) => { root.asset_utility_tab_changed(surface_mode, tab); }
+                                            asset_activate_reference(asset_uuid) => { root.asset_activate_reference(asset_uuid); }
+                                            open_asset_browser() => { root.open_asset_browser(); }
+                                            locate_selected_asset() => { root.locate_selected_asset(); }
+                                            welcome_project_name_edited(value) => { root.welcome_project_name_edited(value); }
+                                            welcome_location_edited(value) => { root.welcome_location_edited(value); }
+                                            welcome_create_project() => { root.welcome_create_project(); }
+                                            welcome_open_existing_project() => { root.welcome_open_existing_project(); }
+                                            welcome_open_recent_project(path) => { root.welcome_open_recent_project(path); }
+                                            welcome_remove_recent_project(path) => { root.welcome_remove_recent_project(path); }
+                                            viewport_pointer_moved(x, y) => { root.viewport_pointer_moved(x, y); }
+                                            viewport_left_pressed(x, y) => { root.viewport_left_pressed(x, y); }
+                                            viewport_left_released() => { root.viewport_left_released(); }
+                                            viewport_right_pressed(x, y) => { root.viewport_right_pressed(x, y); }
+                                            viewport_right_released() => { root.viewport_right_released(); }
+                                            viewport_middle_pressed(x, y) => { root.viewport_middle_pressed(x, y); }
+                                            viewport_middle_released() => { root.viewport_middle_released(); }
+                                            viewport_scrolled(delta) => { root.viewport_scrolled(delta); }
+                                        }
+                                    }
+                                }
+                            }
+
+            }
+
+            document_zone := Rectangle {
+                x: root.document_region_frame.x * 1px;
+                y: root.document_region_frame.y * 1px;
+                width: root.document_region_frame.width * 1px;
+                height: root.document_region_frame.height * 1px;
+                background: palette.panel_bg;
+                clip: true;
+                            VerticalLayout {
+                                spacing: 0px;
+
+                                Rectangle {
+                                    height: root.document_header_height;
+                                    background: palette.tab_bg;
+
+                                    HorizontalLayout {
+                                        x: 8px;
+                                        y: 1px;
+                                        spacing: 2px;
+                                        for tab in root.document_tabs: document_tab := TabChip {
+                                            label: tab.title;
+                                            icon_key: tab.icon_key;
+                                            active: tab.active;
+                                            closeable: tab.closeable;
+                                            drag_origin_x: (root.document_tab_origin_x + self.x) / 1px;
+                                            drag_origin_y: (root.document_tab_origin_y + self.y) / 1px;
+                                            clicked => { root.activate_document_tab(tab.id); }
+                                            close_clicked => { root.close_tab(tab.id); }
+                                            drag_started(x, y) => {
+                                                root.drag_active = true;
+                                                root.drag_tab_id = tab.id;
+                                                root.drag_tab_title = tab.title;
+                                                root.drag_source_group = "document";
+                                                root.drag_pointer_x = x;
+                                                root.drag_pointer_y = y;
+                                            }
+                                            drag_moved(x, y) => {
+                                                if (root.drag_tab_id == tab.id) {
+                                                    root.drag_pointer_x = x;
+                                                    root.drag_pointer_y = y;
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    Text {
+                                        x: parent.width - 144px;
+                                        y: 9px;
+                                        width: 132px;
+                                        horizontal-alignment: right;
+                                        text: root.document_pane.subtitle;
+                                        color: palette.text_dim;
+                                        font-size: 10px;
+                                        overflow: elide;
+                                    }
+                                }
+
+                                Rectangle { height: 1px; background: palette.border_soft; }
+
+                                document_surface := PaneSurface {
+                                    width: parent.width;
+                                    height: parent.height - root.document_header_height - 1px;
+                                    pane: root.document_pane;
+                                    welcome_pane: root.welcome_pane;
+                                    recent_projects: root.recent_projects;
+                                    hierarchy_nodes: root.hierarchy_nodes;
+                                    project_overview: root.project_overview;
+                                    activity_asset_tree_folders: root.activity_asset_tree_folders;
+                                    activity_asset_content_folders: root.activity_asset_content_folders;
+                                    activity_asset_content_items: root.activity_asset_content_items;
+                                    activity_asset_selection: root.activity_asset_selection;
+                                    activity_asset_references: root.activity_asset_references;
+                                    activity_asset_used_by: root.activity_asset_used_by;
+                                    activity_asset_search_query: root.activity_asset_search_query;
+                                    activity_asset_kind_filter: root.activity_asset_kind_filter;
+                                    activity_asset_view_mode: root.activity_asset_view_mode;
+                                    activity_asset_utility_tab: root.activity_asset_utility_tab;
+                                    browser_asset_tree_folders: root.browser_asset_tree_folders;
+                                    browser_asset_content_folders: root.browser_asset_content_folders;
+                                    browser_asset_content_items: root.browser_asset_content_items;
+                                    browser_asset_selection: root.browser_asset_selection;
+                                    browser_asset_references: root.browser_asset_references;
+                                    browser_asset_used_by: root.browser_asset_used_by;
+                                    browser_asset_search_query: root.browser_asset_search_query;
+                                    browser_asset_kind_filter: root.browser_asset_kind_filter;
+                                    browser_asset_view_mode: root.browser_asset_view_mode;
+                                    browser_asset_utility_tab: root.browser_asset_utility_tab;
+                                    viewport_image: root.viewport_image;
+                                    project_path: root.project_path;
+                                    inspector_name: root.inspector_name;
+                                    inspector_parent: root.inspector_parent;
+                                    inspector_x: root.inspector_x;
+                                    inspector_y: root.inspector_y;
+                                    inspector_z: root.inspector_z;
+                                    status_text: root.status_primary;
+                                    delete_enabled: root.delete_enabled;
+                                    mesh_import_path: root.mesh_import_path;
+                                    show_header: false;
+                                    compact_empty: false;
+                                    empty_action(action_id) => { root.menu_action(action_id); }
+                                    hierarchy_select(node_id) => { root.hierarchy_select(node_id); }
+                                    inspector_name_edited(value) => { root.inspector_name_edited(value); }
+                                    inspector_parent_edited(value) => { root.inspector_parent_edited(value); }
+                                    inspector_x_edited(value) => { root.inspector_x_edited(value); }
+                                    inspector_y_edited(value) => { root.inspector_y_edited(value); }
+                                    inspector_z_edited(value) => { root.inspector_z_edited(value); }
+                                    inspector_apply() => { root.inspector_apply(); }
+                                    delete_selected() => { root.delete_selected(); }
+                                    mesh_import_path_edited(value) => { root.mesh_import_path_edited(value); }
+                                    import_model() => { root.import_model(); }
+                                    asset_select_folder(folder_id) => { root.asset_select_folder(folder_id); }
+                                    asset_select_item(asset_uuid) => { root.asset_select_item(asset_uuid); }
+                                    asset_search_edited(value) => { root.asset_search_edited(value); }
+                                    asset_kind_filter_changed(kind) => { root.asset_kind_filter_changed(kind); }
+                                    asset_view_mode_changed(surface_mode, mode) => { root.asset_view_mode_changed(surface_mode, mode); }
+                                    asset_utility_tab_changed(surface_mode, tab) => { root.asset_utility_tab_changed(surface_mode, tab); }
+                                    asset_activate_reference(asset_uuid) => { root.asset_activate_reference(asset_uuid); }
+                                    open_asset_browser() => { root.open_asset_browser(); }
+                                    locate_selected_asset() => { root.locate_selected_asset(); }
+                                    welcome_project_name_edited(value) => { root.welcome_project_name_edited(value); }
+                                    welcome_location_edited(value) => { root.welcome_location_edited(value); }
+                                    welcome_create_project() => { root.welcome_create_project(); }
+                                    welcome_open_existing_project() => { root.welcome_open_existing_project(); }
+                                    welcome_open_recent_project(path) => { root.welcome_open_recent_project(path); }
+                                    welcome_remove_recent_project(path) => { root.welcome_remove_recent_project(path); }
+                                    viewport_pointer_moved(x, y) => { root.viewport_pointer_moved(x, y); }
+                                    viewport_left_pressed(x, y) => { root.viewport_left_pressed(x, y); }
+                                    viewport_left_released() => { root.viewport_left_released(); }
+                                    viewport_right_pressed(x, y) => { root.viewport_right_pressed(x, y); }
+                                    viewport_right_released() => { root.viewport_right_released(); }
+                                    viewport_middle_pressed(x, y) => { root.viewport_middle_pressed(x, y); }
+                                    viewport_middle_released() => { root.viewport_middle_released(); }
+                                    viewport_scrolled(delta) => { root.viewport_scrolled(delta); }
+                                }
+                            }
+
+            }
+
+            if root.right_stack_width > 0px: right_stack_zone := Rectangle {
+                x: root.right_region_frame.x * 1px;
+                y: root.right_region_frame.y * 1px;
+                width: root.right_region_frame.width * 1px;
+                height: root.right_region_frame.height * 1px;
+                background: transparent;
+                clip: true;
+                        HorizontalLayout {
+                            spacing: 0px;
+
+                            if root.right_panel_width > 0px: Rectangle {
+                                width: root.right_panel_width;
+                                background: palette.panel_bg;
+
+                                VerticalLayout {
+                                    spacing: 0px;
+
+                                    Rectangle {
+                                        height: root.panel_header_height;
+                                        background: palette.chrome_bg;
+
+                                        HorizontalLayout {
+                                            x: 6px;
+                                            y: 2px;
+                                            spacing: 4px;
+                                            for tab in root.right_tabs: right_header_tab := DockTabButton {
+                                                label: tab.title;
+                                                icon_key: tab.icon_key;
+                                                active: tab.active;
+                                                drag_enabled: true;
+                                                drag_origin_x: (root.right_tab_origin_x + self.x) / 1px;
+                                                drag_origin_y: (root.right_tab_origin_y + self.y) / 1px;
+                                                clicked => { root.toggle_drawer_tab(tab.slot, tab.id); }
+                                                drag_started(x, y) => {
+                                                    root.drag_active = true;
+                                                    root.drag_tab_id = tab.id;
+                                                    root.drag_tab_title = tab.title;
+                                                    root.drag_source_group = "right";
+                                                    root.drag_pointer_x = x;
+                                                    root.drag_pointer_y = y;
+                                                }
+                                                drag_moved(x, y) => {
+                                                    if (root.drag_tab_id == tab.id) {
+                                                        root.drag_pointer_x = x;
+                                                        root.drag_pointer_y = y;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    Rectangle { height: 1px; background: palette.border_soft; }
+
+                                    PaneSurface {
+                                        width: parent.width;
+                                        height: parent.height - root.panel_header_height - 1px;
+                                        pane: root.right_pane;
+                                        welcome_pane: root.welcome_pane;
+                                        recent_projects: root.recent_projects;
+                                        hierarchy_nodes: root.hierarchy_nodes;
+                                        project_overview: root.project_overview;
+                                        activity_asset_tree_folders: root.activity_asset_tree_folders;
+                                        activity_asset_content_folders: root.activity_asset_content_folders;
+                                        activity_asset_content_items: root.activity_asset_content_items;
+                                        activity_asset_selection: root.activity_asset_selection;
+                                        activity_asset_references: root.activity_asset_references;
+                                        activity_asset_used_by: root.activity_asset_used_by;
+                                        activity_asset_search_query: root.activity_asset_search_query;
+                                        activity_asset_kind_filter: root.activity_asset_kind_filter;
+                                        activity_asset_view_mode: root.activity_asset_view_mode;
+                                        activity_asset_utility_tab: root.activity_asset_utility_tab;
+                                        browser_asset_tree_folders: root.browser_asset_tree_folders;
+                                        browser_asset_content_folders: root.browser_asset_content_folders;
+                                        browser_asset_content_items: root.browser_asset_content_items;
+                                        browser_asset_selection: root.browser_asset_selection;
+                                        browser_asset_references: root.browser_asset_references;
+                                        browser_asset_used_by: root.browser_asset_used_by;
+                                        browser_asset_search_query: root.browser_asset_search_query;
+                                        browser_asset_kind_filter: root.browser_asset_kind_filter;
+                                        browser_asset_view_mode: root.browser_asset_view_mode;
+                                        browser_asset_utility_tab: root.browser_asset_utility_tab;
+                                        viewport_image: root.viewport_image;
+                                        project_path: root.project_path;
+                                        inspector_name: root.inspector_name;
+                                        inspector_parent: root.inspector_parent;
+                                        inspector_x: root.inspector_x;
+                                        inspector_y: root.inspector_y;
+                                        inspector_z: root.inspector_z;
+                                        status_text: root.status_primary;
+                                        delete_enabled: root.delete_enabled;
+                                        mesh_import_path: root.mesh_import_path;
+                                        show_header: false;
+                                        compact_empty: true;
+                                        empty_action(action_id) => { root.menu_action(action_id); }
+                                        hierarchy_select(node_id) => { root.hierarchy_select(node_id); }
+                                        inspector_name_edited(value) => { root.inspector_name_edited(value); }
+                                        inspector_parent_edited(value) => { root.inspector_parent_edited(value); }
+                                        inspector_x_edited(value) => { root.inspector_x_edited(value); }
+                                        inspector_y_edited(value) => { root.inspector_y_edited(value); }
+                                        inspector_z_edited(value) => { root.inspector_z_edited(value); }
+                                        inspector_apply() => { root.inspector_apply(); }
+                                        delete_selected() => { root.delete_selected(); }
+                                        mesh_import_path_edited(value) => { root.mesh_import_path_edited(value); }
+                                        import_model() => { root.import_model(); }
+                                        asset_select_folder(folder_id) => { root.asset_select_folder(folder_id); }
+                                        asset_select_item(asset_uuid) => { root.asset_select_item(asset_uuid); }
+                                        asset_search_edited(value) => { root.asset_search_edited(value); }
+                                        asset_kind_filter_changed(kind) => { root.asset_kind_filter_changed(kind); }
+                                        asset_view_mode_changed(surface_mode, mode) => { root.asset_view_mode_changed(surface_mode, mode); }
+                                        asset_utility_tab_changed(surface_mode, tab) => { root.asset_utility_tab_changed(surface_mode, tab); }
+                                        asset_activate_reference(asset_uuid) => { root.asset_activate_reference(asset_uuid); }
+                                        open_asset_browser() => { root.open_asset_browser(); }
+                                        locate_selected_asset() => { root.locate_selected_asset(); }
+                                        welcome_project_name_edited(value) => { root.welcome_project_name_edited(value); }
+                                        welcome_location_edited(value) => { root.welcome_location_edited(value); }
+                                        welcome_create_project() => { root.welcome_create_project(); }
+                                        welcome_open_existing_project() => { root.welcome_open_existing_project(); }
+                                        welcome_open_recent_project(path) => { root.welcome_open_recent_project(path); }
+                                        welcome_remove_recent_project(path) => { root.welcome_remove_recent_project(path); }
+                                        viewport_pointer_moved(x, y) => { root.viewport_pointer_moved(x, y); }
+                                        viewport_left_pressed(x, y) => { root.viewport_left_pressed(x, y); }
+                                        viewport_left_released() => { root.viewport_left_released(); }
+                                        viewport_right_pressed(x, y) => { root.viewport_right_pressed(x, y); }
+                                        viewport_right_released() => { root.viewport_right_released(); }
+                                        viewport_middle_pressed(x, y) => { root.viewport_middle_pressed(x, y); }
+                                        viewport_middle_released() => { root.viewport_middle_released(); }
+                                        viewport_scrolled(delta) => { root.viewport_scrolled(delta); }
+                                    }
+                                }
+                            }
+
+                            if root.right_panel_width > 0px: Rectangle { width: 1px; background: palette.border_soft; }
+
+                            Rectangle {
+                                width: root.right_rail_width;
+                                background: palette.rail_bg;
+
+                                VerticalLayout {
+                                    x: 3px;
+                                    y: 6px;
+                                    spacing: 2px;
+                                    for tab in root.right_tabs: RailButton {
+                                        icon_key: tab.icon_key;
+                                        active: tab.active;
+                                        clicked => { root.toggle_drawer_tab(tab.slot, tab.id); }
+                                    }
+                                }
+                            }
+                        }
+
+            }
+
+            if root.bottom_panel_height > 0px: bottom_panel_zone := Rectangle {
+                x: root.bottom_region_frame.x * 1px;
+                y: root.bottom_region_frame.y * 1px;
+                width: root.bottom_region_frame.width * 1px;
+                height: root.bottom_region_frame.height * 1px;
+                background: palette.panel_bg;
+                clip: true;
+                VerticalLayout {
+                    spacing: 0px;
+
+                    Rectangle {
+                        height: root.panel_header_height;
+                        background: palette.chrome_bg;
+
+                        HorizontalLayout {
+                            x: 6px;
+                            y: 2px;
+                            spacing: 4px;
+
+                            for tab in root.bottom_tabs: bottom_header_tab := DockTabButton {
+                                    label: tab.title;
+                                    icon_key: tab.icon_key;
+                                    active: tab.active;
+                                    drag_enabled: true;
+                                    drag_origin_x: (root.bottom_tab_origin_x + self.x) / 1px;
+                                    drag_origin_y: (root.bottom_tab_origin_y + self.y) / 1px;
+                                    clicked => { root.toggle_drawer_tab(tab.slot, tab.id); }
+                                    drag_started(x, y) => {
+                                        root.drag_active = true;
+                                        root.drag_tab_id = tab.id;
+                                        root.drag_tab_title = tab.title;
+                                        root.drag_source_group = "bottom";
+                                        root.drag_pointer_x = x;
+                                        root.drag_pointer_y = y;
+                                    }
+                                    drag_moved(x, y) => {
+                                        if (root.drag_tab_id == tab.id) {
+                                            root.drag_pointer_x = x;
+                                            root.drag_pointer_y = y;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if root.bottom_expanded: Rectangle { height: 1px; background: palette.border_soft; }
+
+                    if root.bottom_expanded: PaneSurface {
+                        width: parent.width;
+                        height: parent.height - root.panel_header_height - 1px;
+                        pane: root.bottom_pane;
+                        welcome_pane: root.welcome_pane;
+                        recent_projects: root.recent_projects;
+                        hierarchy_nodes: root.hierarchy_nodes;
+                        project_overview: root.project_overview;
+                        activity_asset_tree_folders: root.activity_asset_tree_folders;
+                        activity_asset_content_folders: root.activity_asset_content_folders;
+                        activity_asset_content_items: root.activity_asset_content_items;
+                        activity_asset_selection: root.activity_asset_selection;
+                        activity_asset_references: root.activity_asset_references;
+                        activity_asset_used_by: root.activity_asset_used_by;
+                        activity_asset_search_query: root.activity_asset_search_query;
+                        activity_asset_kind_filter: root.activity_asset_kind_filter;
+                        activity_asset_view_mode: root.activity_asset_view_mode;
+                        activity_asset_utility_tab: root.activity_asset_utility_tab;
+                        browser_asset_tree_folders: root.browser_asset_tree_folders;
+                        browser_asset_content_folders: root.browser_asset_content_folders;
+                        browser_asset_content_items: root.browser_asset_content_items;
+                        browser_asset_selection: root.browser_asset_selection;
+                        browser_asset_references: root.browser_asset_references;
+                        browser_asset_used_by: root.browser_asset_used_by;
+                        browser_asset_search_query: root.browser_asset_search_query;
+                        browser_asset_kind_filter: root.browser_asset_kind_filter;
+                        browser_asset_view_mode: root.browser_asset_view_mode;
+                        browser_asset_utility_tab: root.browser_asset_utility_tab;
+                        viewport_image: root.viewport_image;
+                        project_path: root.project_path;
+                        inspector_name: root.inspector_name;
+                        inspector_parent: root.inspector_parent;
+                        inspector_x: root.inspector_x;
+                        inspector_y: root.inspector_y;
+                        inspector_z: root.inspector_z;
+                        status_text: root.status_primary;
+                        delete_enabled: root.delete_enabled;
+                        mesh_import_path: root.mesh_import_path;
+                        show_header: false;
+                        compact_empty: true;
+                        empty_action(action_id) => { root.menu_action(action_id); }
+                        hierarchy_select(node_id) => { root.hierarchy_select(node_id); }
+                        inspector_name_edited(value) => { root.inspector_name_edited(value); }
+                        inspector_parent_edited(value) => { root.inspector_parent_edited(value); }
+                        inspector_x_edited(value) => { root.inspector_x_edited(value); }
+                        inspector_y_edited(value) => { root.inspector_y_edited(value); }
+                        inspector_z_edited(value) => { root.inspector_z_edited(value); }
+                        inspector_apply() => { root.inspector_apply(); }
+                                    delete_selected() => { root.delete_selected(); }
+                                    mesh_import_path_edited(value) => { root.mesh_import_path_edited(value); }
+                                    import_model() => { root.import_model(); }
+                                    asset_select_folder(folder_id) => { root.asset_select_folder(folder_id); }
+                                    asset_select_item(asset_uuid) => { root.asset_select_item(asset_uuid); }
+                                    asset_search_edited(value) => { root.asset_search_edited(value); }
+                                    asset_kind_filter_changed(kind) => { root.asset_kind_filter_changed(kind); }
+                        asset_view_mode_changed(surface_mode, mode) => { root.asset_view_mode_changed(surface_mode, mode); }
+                        asset_utility_tab_changed(surface_mode, tab) => { root.asset_utility_tab_changed(surface_mode, tab); }
+                        asset_activate_reference(asset_uuid) => { root.asset_activate_reference(asset_uuid); }
+                        open_asset_browser() => { root.open_asset_browser(); }
+                        locate_selected_asset() => { root.locate_selected_asset(); }
+                        welcome_project_name_edited(value) => { root.welcome_project_name_edited(value); }
+                        welcome_location_edited(value) => { root.welcome_location_edited(value); }
+                        welcome_create_project() => { root.welcome_create_project(); }
+                        welcome_open_existing_project() => { root.welcome_open_existing_project(); }
+                        welcome_open_recent_project(path) => { root.welcome_open_recent_project(path); }
+                        welcome_remove_recent_project(path) => { root.welcome_remove_recent_project(path); }
+                        viewport_pointer_moved(x, y) => { root.viewport_pointer_moved(x, y); }
+                        viewport_left_pressed(x, y) => { root.viewport_left_pressed(x, y); }
+                        viewport_left_released() => { root.viewport_left_released(); }
+                        viewport_right_pressed(x, y) => { root.viewport_right_pressed(x, y); }
+                        viewport_right_released() => { root.viewport_right_released(); }
+                        viewport_middle_pressed(x, y) => { root.viewport_middle_pressed(x, y); }
+                        viewport_middle_released() => { root.viewport_middle_released(); }
+                        viewport_scrolled(delta) => { root.viewport_scrolled(delta); }
+                    }
+                }
+            }
+
+            Rectangle {
+                x: 0px;
+                y: root.status_bar_frame.y * 1px - 1px;
+                width: parent.width;
+                height: 1px;
+                background: palette.border;
+            }
+
+            status_bar_zone := Rectangle {
+                x: root.status_bar_frame.x * 1px;
+                y: root.status_bar_frame.y * 1px;
+                width: root.status_bar_frame.width * 1px;
+                height: root.status_bar_frame.height * 1px;
+                background: palette.chrome_bg;
+                Text {
+                    x: 12px;
+                    y: 4px;
+                    width: parent.width * 0.55;
+                    text: root.status_primary;
+                    color: palette.text_muted;
+                    font-size: 10px;
+                    overflow: elide;
+                }
+
+                if root.status_secondary != "": Text {
+                    x: parent.width - 224px;
+                    y: 4px;
+                    width: 96px;
+                    horizontal-alignment: right;
+                    text: root.status_secondary;
+                    color: palette.text_dim;
+                    font-size: 10px;
+                    overflow: elide;
+                }
+
+                Text {
+                    x: parent.width - 118px;
+                    y: 4px;
+                    width: 104px;
+                    horizontal-alignment: right;
+                    text: root.viewport_label;
+                    color: palette.text_dim;
+                    font-size: 10px;
+                    overflow: elide;
+                }
+            }
+            }
+
+        if root.left_splitter_frame.width > 0.0: left_splitter := Rectangle {
+            x: root.left_splitter_frame.x * 1px;
+            y: root.left_splitter_frame.y * 1px;
+            width: root.left_splitter_frame.width * 1px;
+            height: root.left_splitter_frame.height * 1px;
+            background: transparent;
+
+            Rectangle {
+                x: (parent.width - 1px) / 2;
+                width: 1px;
+                height: parent.height;
+                background: root.resize_active && root.resize_group == "left" ? palette.accent : palette.border_soft;
+                opacity: left_splitter_touch.has-hover || (root.resize_active && root.resize_group == "left") ? 1.0 : 0.0;
+            }
+
+            left_splitter_touch := TouchArea {
+                width: parent.width;
+                height: parent.height;
+                mouse-cursor: ew-resize;
+                pointer-event(event) => {
+                    if (event.button == PointerEventButton.left && event.kind == PointerEventKind.down) {
+                        root.resize_active = true;
+                        root.resize_group = "left";
+                        root.begin_drawer_resize(
+                            "left",
+                            (left_splitter.x + self.mouse-x) / 1px,
+                            (left_splitter.y + self.mouse-y) / 1px,
+                        );
+                    }
+                }
+            }
+        }
+
+        if root.right_splitter_frame.width > 0.0: right_splitter := Rectangle {
+            x: root.right_splitter_frame.x * 1px;
+            y: root.right_splitter_frame.y * 1px;
+            width: root.right_splitter_frame.width * 1px;
+            height: root.right_splitter_frame.height * 1px;
+            background: transparent;
+
+            Rectangle {
+                x: (parent.width - 1px) / 2;
+                width: 1px;
+                height: parent.height;
+                background: root.resize_active && root.resize_group == "right" ? palette.accent : palette.border_soft;
+                opacity: right_splitter_touch.has-hover || (root.resize_active && root.resize_group == "right") ? 1.0 : 0.0;
+            }
+
+            right_splitter_touch := TouchArea {
+                width: parent.width;
+                height: parent.height;
+                mouse-cursor: ew-resize;
+                pointer-event(event) => {
+                    if (event.button == PointerEventButton.left && event.kind == PointerEventKind.down) {
+                        root.resize_active = true;
+                        root.resize_group = "right";
+                        root.begin_drawer_resize(
+                            "right",
+                            (right_splitter.x + self.mouse-x) / 1px,
+                            (right_splitter.y + self.mouse-y) / 1px,
+                        );
+                    }
+                }
+            }
+        }
+
+        if root.bottom_splitter_frame.height > 0.0: bottom_splitter := Rectangle {
+            x: root.bottom_splitter_frame.x * 1px;
+            y: root.bottom_splitter_frame.y * 1px;
+            width: root.bottom_splitter_frame.width * 1px;
+            height: root.bottom_splitter_frame.height * 1px;
+            background: transparent;
+
+            Rectangle {
+                y: (parent.height - 1px) / 2;
+                width: parent.width;
+                height: 1px;
+                background: root.resize_active && root.resize_group == "bottom" ? palette.accent : palette.border_soft;
+                opacity: bottom_splitter_touch.has-hover || (root.resize_active && root.resize_group == "bottom") ? 1.0 : 0.0;
+            }
+
+            bottom_splitter_touch := TouchArea {
+                width: parent.width;
+                height: parent.height;
+                mouse-cursor: ns-resize;
+                pointer-event(event) => {
+                    if (event.button == PointerEventButton.left && event.kind == PointerEventKind.down) {
+                        root.resize_active = true;
+                        root.resize_group = "bottom";
+                        root.begin_drawer_resize(
+                            "bottom",
+                            (bottom_splitter.x + self.mouse-x) / 1px,
+                            (bottom_splitter.y + self.mouse-y) / 1px,
+                        );
+                    }
+                }
+            }
+        }
+
+        if root.resize_active: TouchArea {
+            x: 0px;
+            y: 0px;
+            width: parent.width;
+            height: parent.height;
+            mouse-cursor: root.resize_group == "bottom" ? ns-resize : ew-resize;
+            moved => {
+                root.update_drawer_resize(self.mouse-x / 1px, self.mouse-y / 1px);
+            }
+            pointer-event(event) => {
+                if (event.button == PointerEventButton.left && event.kind == PointerEventKind.up) {
+                    root.finish_drawer_resize(self.mouse-x / 1px, self.mouse-y / 1px);
+                    root.resize_active = false;
+                    root.resize_group = "";
+                }
+            }
+        }
+
+        if root.drag_active: Rectangle {
+            x: 0px;
+            y: 0px;
+            width: parent.width;
+            height: parent.height;
+            background: transparent;
+
+            drag_capture := TouchArea {
+                width: parent.width;
+                height: parent.height;
+                moved => {
+                    root.drag_pointer_x = self.mouse-x / 1px;
+                    root.drag_pointer_y = self.mouse-y / 1px;
+                }
+                pointer-event(event) => {
+                    if (event.button == PointerEventButton.left && event.kind == PointerEventKind.up) {
+                        root.drag_pointer_x = self.mouse-x / 1px;
+                        root.drag_pointer_y = self.mouse-y / 1px;
+                        if (root.drag_tab_id != "" && root.drag_target_group != "") {
+                            root.drop_tab(
+                                root.drag_tab_id,
+                                root.drag_target_group,
+                                root.drag_pointer_x,
+                                root.drag_pointer_y,
+                            );
+                        }
+                        root.drag_active = false;
+                        root.drag_tab_id = "";
+                        root.drag_tab_title = "";
+                        root.drag_source_group = "";
+                        root.drag_pointer_x = 0.0;
+                        root.drag_pointer_y = 0.0;
+                    }
+                }
+            }
+
+            if root.left_drop_enabled: Rectangle {
+                x: 8px;
+                y: root.main_content_y + 8px;
+                width: root.left_drop_width - 16px;
+                height: root.main_content_height - 16px;
+                border-radius: 6px;
+                border-width: 1px;
+                border-color: root.drag_target_group == "left" ? palette.accent : palette.border_soft;
+                background: root.drag_target_group == "left" ? #2c527933 : #17191d22;
+                Text {
+                    x: 12px;
+                    y: 12px;
+                    text: "Left";
+                    color: root.drag_target_group == "left" ? palette.text : palette.text_dim;
+                    font-size: 10px;
+                    font-weight: 600;
+                }
+            }
+
+            Rectangle {
+                x: root.document_zone_x + 8px;
+                y: root.main_content_y + 8px;
+                width: max(root.document_zone_width - 16px, 80px);
+                height: root.main_content_height - 16px;
+                border-radius: 8px;
+                border-width: 1px;
+                border-color: root.drag_target_group == "document" ? palette.accent : palette.border_soft;
+                background: root.drag_target_group == "document" ? #2c527933 : #17191d11;
+                Text {
+                    x: 12px;
+                    y: 12px;
+                    text: "Document";
+                    color: root.drag_target_group == "document" ? palette.text : palette.text_dim;
+                    font-size: 10px;
+                    font-weight: 600;
+                }
+            }
+
+            if root.right_drop_enabled: Rectangle {
+                x: parent.width - root.right_drop_width + 8px;
+                y: root.main_content_y + 8px;
+                width: root.right_drop_width - 16px;
+                height: root.main_content_height - 16px;
+                border-radius: 6px;
+                border-width: 1px;
+                border-color: root.drag_target_group == "right" ? palette.accent : palette.border_soft;
+                background: root.drag_target_group == "right" ? #2c527933 : #17191d22;
+                Text {
+                    x: parent.width - self.preferred-width - 12px;
+                    y: 12px;
+                    text: "Right";
+                    color: root.drag_target_group == "right" ? palette.text : palette.text_dim;
+                    font-size: 10px;
+                    font-weight: 600;
+                }
+            }
+
+            if root.bottom_drop_enabled: Rectangle {
+                x: 8px;
+                y: root.bottom_drop_top_px * 1px + 8px;
+                width: parent.width - 16px;
+                height: root.bottom_drop_height - 16px;
+                border-radius: 6px;
+                border-width: 1px;
+                border-color: root.drag_target_group == "bottom" ? palette.accent : palette.border_soft;
+                background: root.drag_target_group == "bottom" ? #2c527933 : #17191d22;
+                Text {
+                    x: 12px;
+                    y: 12px;
+                    text: "Bottom";
+                    color: root.drag_target_group == "bottom" ? palette.text : palette.text_dim;
+                    font-size: 10px;
+                    font-weight: 600;
+                }
+            }
+
+            Rectangle {
+                x: (parent.width - 220px) / 2;
+                y: root.main_content_y + 12px;
+                width: 220px;
+                height: 26px;
+                border-radius: 4px;
+                border-width: 1px;
+                border-color: root.drag_target_group != "" ? palette.accent : palette.border_soft;
+                background: #1d2027ee;
+                Text {
+                    width: parent.width;
+                    height: parent.height;
+                    text: root.drag_tab_title != "" ? root.drag_tab_title + " -> " + root.drag_target_label : root.drag_target_label;
+                    color: palette.text;
+                    font-size: 10px;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+            }
+        }
+
+        if root.open_menu_index != -1: TouchArea {
+            x: 0px;
+            y: root.popup_y;
+            width: parent.width;
+            height: parent.height - root.popup_y;
+            clicked => { root.open_menu_index = -1; }
+        }
+
+        if root.open_menu_index == 0: Rectangle {
+            x: root.outer_margin + 10px;
+            y: root.popup_y;
+            width: 208px;
+            height: 146px;
+            border-radius: 8px;
+            background: palette.panel_bg;
+            border-width: 1px;
+            border-color: palette.border;
+            VerticalLayout {
+                x: 6px;
+                y: 6px;
+                width: parent.width - 12px;
+                spacing: 2px;
+                MenuItemRow { label: "Open Project"; shortcut: "Ctrl+O"; clicked => { root.menu_action("OpenProject"); root.open_menu_index = -1; } }
+                MenuItemRow { label: "Save Project"; shortcut: "Ctrl+S"; enabled: root.save_project_enabled; clicked => { root.menu_action("SaveProject"); root.open_menu_index = -1; } }
+                MenuItemRow { label: "Save Layout"; shortcut: ""; clicked => { root.menu_action("SaveLayout"); root.open_menu_index = -1; } }
+                MenuItemRow { label: "Reset Layout"; shortcut: ""; clicked => { root.menu_action("ResetLayout"); root.open_menu_index = -1; } }
+                MenuItemRow { label: "Recent Projects"; shortcut: ""; enabled: false; }
+            }
+        }
+
+        if root.open_menu_index == 1: Rectangle {
+            x: root.outer_margin + 62px;
+            y: root.popup_y;
+            width: 186px;
+            height: 66px;
+            border-radius: 8px;
+            background: palette.panel_bg;
+            border-width: 1px;
+            border-color: palette.border;
+            VerticalLayout {
+                x: 6px;
+                y: 6px;
+                width: parent.width - 12px;
+                spacing: 2px;
+                MenuItemRow { label: "Undo"; shortcut: "Ctrl+Z"; enabled: root.undo_enabled; clicked => { root.menu_action("Undo"); root.open_menu_index = -1; } }
+                MenuItemRow { label: "Redo"; shortcut: "Ctrl+Shift+Z"; enabled: root.redo_enabled; clicked => { root.menu_action("Redo"); root.open_menu_index = -1; } }
+            }
+        }
+
+        if root.open_menu_index == 2: Rectangle {
+            x: root.outer_margin + 117px;
+            y: root.popup_y;
+            width: 218px;
+            height: 118px;
+            border-radius: 8px;
+            background: palette.panel_bg;
+            border-width: 1px;
+            border-color: palette.border;
+            VerticalLayout {
+                x: 6px;
+                y: 6px;
+                width: parent.width - 12px;
+                spacing: 2px;
+                MenuItemRow { label: "Create Cube"; shortcut: ""; clicked => { root.menu_action("CreateNode.Cube"); root.open_menu_index = -1; } }
+                MenuItemRow { label: "Create Camera"; shortcut: ""; clicked => { root.menu_action("CreateNode.Camera"); root.open_menu_index = -1; } }
+                MenuItemRow { label: "Create Directional Light"; shortcut: ""; clicked => { root.menu_action("CreateNode.DirectionalLight"); root.open_menu_index = -1; } }
+                MenuItemRow { label: "Delete Selection"; shortcut: "Delete"; enabled: root.delete_enabled; clicked => { root.menu_action("DeleteSelected"); root.open_menu_index = -1; } }
+            }
+        }
+
+        if root.open_menu_index == 3: Rectangle {
+            x: root.outer_margin + 196px;
+            y: root.popup_y;
+            width: 198px;
+            height: 234px;
+            border-radius: 8px;
+            background: palette.panel_bg;
+            border-width: 1px;
+            border-color: palette.border;
+            VerticalLayout {
+                x: 6px;
+                y: 6px;
+                width: parent.width - 12px;
+                spacing: 2px;
+                MenuItemRow { label: "Project"; shortcut: ""; clicked => { root.menu_action("OpenView.editor.project"); root.open_menu_index = -1; } }
+                MenuItemRow { label: "Hierarchy"; shortcut: ""; clicked => { root.menu_action("OpenView.editor.hierarchy"); root.open_menu_index = -1; } }
+                MenuItemRow { label: "Inspector"; shortcut: ""; clicked => { root.menu_action("OpenView.editor.inspector"); root.open_menu_index = -1; } }
+                MenuItemRow { label: "Scene"; shortcut: ""; clicked => { root.menu_action("OpenView.editor.scene"); root.open_menu_index = -1; } }
+                MenuItemRow { label: "Game"; shortcut: ""; clicked => { root.menu_action("OpenView.editor.game"); root.open_menu_index = -1; } }
+                MenuItemRow { label: "Assets"; shortcut: ""; clicked => { root.menu_action("OpenView.editor.assets"); root.open_menu_index = -1; } }
+                MenuItemRow { label: "Console"; shortcut: ""; clicked => { root.menu_action("OpenView.editor.console"); root.open_menu_index = -1; } }
+                MenuItemRow { label: "Prefab Editor"; shortcut: ""; clicked => { root.menu_action("OpenView.editor.prefab"); root.open_menu_index = -1; } }
+            }
+        }
+
+        if root.open_menu_index == 4: Rectangle {
+            x: root.outer_margin + 245px;
+            y: root.popup_y;
+            width: 224px;
+            height: 72px + root.preset_names.length * 30px;
+            border-radius: 8px;
+            background: palette.panel_bg;
+            border-width: 1px;
+            border-color: palette.border;
+            VerticalLayout {
+                x: 6px;
+                y: 6px;
+                width: parent.width - 12px;
+                spacing: 2px;
+                MenuItemRow { label: "Save Preset Asset"; shortcut: root.resolved_preset_name; clicked => { root.menu_action("SavePreset." + root.resolved_preset_name); root.open_menu_index = -1; } }
+                MenuItemRow { label: "Reset Layout"; shortcut: ""; clicked => { root.menu_action("ResetLayout"); root.open_menu_index = -1; } }
+                for preset in root.preset_names: MenuItemRow {
+                    label: preset;
+                    shortcut: preset == root.active_preset_name ? "active" : "";
+                    clicked => { root.menu_action("LoadPreset." + preset); root.open_menu_index = -1; }
+                }
+            }
+        }
+
+        if root.open_menu_index == 5: Rectangle {
+            x: root.outer_margin + 307px;
+            y: root.popup_y;
+            width: 194px;
+            height: 38px;
+            border-radius: 8px;
+            background: palette.panel_bg;
+            border-width: 1px;
+            border-color: palette.border;
+            VerticalLayout {
+                x: 6px;
+                y: 6px;
+                width: parent.width - 12px;
+                spacing: 2px;
+                MenuItemRow { label: "Workbench Guide"; shortcut: ""; clicked => { root.menu_action("OpenView.editor.asset_browser"); root.open_menu_index = -1; } }
+            }
+        }
+    }

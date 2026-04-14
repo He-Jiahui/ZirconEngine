@@ -3,12 +3,13 @@ name = "zircon_graphics"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "Rendering device and draw submission (Godot RenderingServer / Fyrox graphics-adjacent)."
+description = "Rendering device and draw submission (Godot rendering core / Fyrox graphics-adjacent)."
 
 [dependencies]
 bytemuck.workspace = true
 crossbeam-channel.workspace = true
 glam.workspace = true
+image.workspace = true
 pollster.workspace = true
 raw-window-handle = "0.6.2"
 thiserror.workspace = true
@@ -18,4 +19,7 @@ winit.workspace = true
 zircon_asset = { path = "../zircon_asset" }
 zircon_core = { path = "../zircon_core" }
 zircon_math = { path = "../zircon_math" }
+zircon_module = { path = "../zircon_module" }
+zircon_resource = { path = "../zircon_resource" }
 zircon_scene = { path = "../zircon_scene" }
+zircon_manager = { path = "../zircon_manager" }

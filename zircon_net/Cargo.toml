@@ -4,3 +4,6 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 description = "Networking, replication, and multiplayer session layer."
+
+[dependencies]
+zircon_module = { path = "../zircon_module" }

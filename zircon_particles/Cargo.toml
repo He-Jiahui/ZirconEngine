@@ -7,3 +7,4 @@ description = "GPU/CPU particle systems and VFX authoring data."
 
 [dependencies]
 serde.workspace = true
+zircon_module = { path = "../zircon_module" }

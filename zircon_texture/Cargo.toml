@@ -7,3 +7,4 @@ description = "Texture formats and GPU upload helpers (Godot Image/Texture-adjac
 
 [dependencies]
 image = "0.25.10"
+zircon_module = { path = "../zircon_module" }

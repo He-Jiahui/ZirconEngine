@@ -7,11 +7,19 @@ description = "Asset paths, loading, and resource registry (Godot ResourceLoader
 
 [dependencies]
 crossbeam-channel.workspace = true
+gltf.workspace = true
 image.workspace = true
+naga.workspace = true
+notify.workspace = true
 ron = "0.12.1"
 serde.workspace = true
 serde_json = "1.0.149"
+tobj.workspace = true
+thiserror.workspace = true
+toml.workspace = true
 zircon_core = { path = "../zircon_core" }
+zircon_module = { path = "../zircon_module" }
 zircon_math = { path = "../zircon_math" }
-uuid = { version = "1.23.0", features = ["v4", "serde"] }
+zircon_resource = { path = "../zircon_resource" }
+zircon_manager = { path = "../zircon_manager" }
 zstd = "0.13.3"

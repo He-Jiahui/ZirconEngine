@@ -1,0 +1,30 @@
+[package]
+name = "zircon_entry"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Engine entry bootstrap, shell startup, and profile selection."
+
+[dependencies]
+pollster.workspace = true
+serde_json = "1.0.149"
+wgpu.workspace = true
+winit.workspace = true
+zircon_asset = { path = "../zircon_asset" }
+zircon_animation = { path = "../zircon_animation" }
+zircon_core = { path = "../zircon_core" }
+zircon_editor = { path = "../zircon_editor" }
+zircon_graphics = { path = "../zircon_graphics" }
+zircon_input = { path = "../zircon_input" }
+zircon_math = { path = "../zircon_math" }
+zircon_navigation = { path = "../zircon_navigation" }
+zircon_net = { path = "../zircon_net" }
+zircon_particles = { path = "../zircon_particles" }
+zircon_physics = { path = "../zircon_physics" }
+zircon_platform = { path = "../zircon_platform" }
+zircon_scene = { path = "../zircon_scene" }
+zircon_script = { path = "../zircon_script" }
+zircon_manager = { path = "../zircon_manager" }
+zircon_sound = { path = "../zircon_sound" }
+zircon_texture = { path = "../zircon_texture" }
+zircon_ui = { path = "../zircon_ui" }

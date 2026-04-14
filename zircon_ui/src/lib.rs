@@ -1,8 +1,37 @@
-//! UI widgets, layout, and input routing.
-//!
-//! Conceptual counterpart: Godot `scene/gui`; Fyrox `fyrox-ui`.
+//! Runtime UI module skeleton wired into the core runtime.
 
-/// Returns the workspace engine name.
-pub fn engine_name() -> &'static str {
-    "ZirconEngine"
+mod binding;
+mod event_ui;
+
+use zircon_module::{stub_module_descriptor, ModuleDescriptor};
+
+pub use binding::{
+    UiBindingCall, UiBindingParseError, UiBindingValue, UiEventBinding, UiEventKind, UiEventPath,
+    UiEventRouter,
+};
+pub use event_ui::{
+    UiActionDescriptor, UiBindingCodec, UiControlRequest, UiControlResponse, UiEventManager,
+    UiInvocationContext, UiInvocationError, UiInvocationRequest, UiInvocationResponse,
+    UiInvocationResult, UiInvocationSource, UiNodeDescriptor, UiNodeId, UiNodePath, UiNotification,
+    UiParameterDescriptor, UiPropertyDescriptor, UiReflectionDiff, UiReflectionSnapshot, UiRouteId,
+    UiStateFlags, UiSubscriptionId, UiTreeId, UiValueType,
+};
+
+pub const UI_MODULE_NAME: &str = "UiModule";
+
+#[derive(Clone, Debug, Default)]
+pub struct UiConfig {
+    pub enabled: bool,
 }
+
+pub fn module_descriptor() -> ModuleDescriptor {
+    stub_module_descriptor(
+        UI_MODULE_NAME,
+        "Runtime UI widgets and layout",
+        "UiDriver",
+        "UiManager",
+    )
+}
+
+#[cfg(test)]
+mod tests;

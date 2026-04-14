@@ -8,3 +8,4 @@ description = "Skeletal animation, blend trees, and timelines."
 [dependencies]
 glam.workspace = true
 splines = { version = "5.0.0", features = ["glam"] }
+zircon_module = { path = "../zircon_module" }

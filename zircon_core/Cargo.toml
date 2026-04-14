@@ -9,5 +9,7 @@ description = "Core types, ECS hooks, and engine lifecycle (Godot core/scene-adj
 crossbeam-channel.workspace = true
 crossbeam-utils = "0.8.21"
 rayon = "1.11.0"
+serde.workspace = true
+serde_json = "1.0.149"
 thiserror.workspace = true
 tracing.workspace = true

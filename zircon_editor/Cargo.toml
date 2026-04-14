@@ -3,11 +3,30 @@ name = "zircon_editor"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "Editor shell, tools, and iced-based UI (Godot editor/ parallel)."
+description = "Editor shell, tools, and Slint-based workbench UI (Godot editor/ parallel)."
+build = "build.rs"
 
 [dependencies]
-iced.workspace = true
+serde.workspace = true
+serde_json = "1.0.149"
+slint.workspace = true
+thiserror.workspace = true
+wgpu.workspace = true
 zircon_asset = { path = "../zircon_asset" }
+zircon_core = { path = "../zircon_core" }
+zircon_editor_ui = { path = "../zircon_editor_ui" }
 zircon_graphics = { path = "../zircon_graphics" }
+zircon_input = { path = "../zircon_input" }
 zircon_math = { path = "../zircon_math" }
+zircon_module = { path = "../zircon_module" }
+zircon_resource = { path = "../zircon_resource" }
 zircon_scene = { path = "../zircon_scene" }
+zircon_manager = { path = "../zircon_manager" }
+zircon_ui = { path = "../zircon_ui" }
+
+[build-dependencies]
+slint-build.workspace = true
+
+[dev-dependencies]
+crossbeam-channel.workspace = true
+i-slint-backend-testing = "1.15.1"

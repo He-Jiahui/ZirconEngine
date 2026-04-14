@@ -1,6 +1,6 @@
 use thiserror::Error;
-use zircon_asset::{MeshSource, TextureSource};
 use zircon_math::UVec2;
+use zircon_resource::ResourceId;
 use zircon_scene::RenderSceneSnapshot;
 
 #[derive(Debug, Error)]
@@ -15,6 +15,8 @@ pub enum GraphicsError {
     RequestDevice(#[from] wgpu::RequestDeviceError),
     #[error("asset channel failure: {0}")]
     Channel(String),
+    #[error("asset loading failed: {0}")]
+    Asset(String),
     #[error("thread bootstrap failure: {0}")]
     ThreadBootstrap(String),
     #[error("buffer map failed: {0}")]
@@ -49,6 +51,16 @@ pub struct ViewportFrame {
 }
 
 #[derive(Clone, Debug)]
+pub struct ViewportFrameTextureHandle {
+    pub width: u32,
+    pub height: u32,
+    pub texture: wgpu::Texture,
+    pub format: wgpu::TextureFormat,
+    pub usage: wgpu::TextureUsages,
+    pub generation: u64,
+}
+
+#[derive(Clone, Debug)]
 pub struct EditorOrRuntimeFrame {
     pub scene: RenderSceneSnapshot,
     pub viewport: ViewportState,
@@ -56,8 +68,8 @@ pub struct EditorOrRuntimeFrame {
 
 #[derive(Clone, Debug, Hash, Eq, PartialEq)]
 pub enum GpuResourceHandle {
-    Texture(TextureSource),
-    Mesh(MeshSource),
+    Texture(ResourceId),
+    Model(ResourceId),
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

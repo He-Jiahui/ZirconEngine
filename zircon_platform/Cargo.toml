@@ -7,3 +7,4 @@ description = "OS/window/input abstractions and platform shims (Godot drivers/pl
 
 [dependencies]
 winit.workspace = true
+zircon_module = { path = "../zircon_module" }

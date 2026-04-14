@@ -2,6 +2,7 @@
 members = [
     "zircon_core",
     "zircon_math",
+    "zircon_resource",
     "zircon_graphics",
     "zircon_physics",
     "zircon_sound",
@@ -11,9 +12,10 @@ members = [
     "zircon_scene",
     "zircon_platform",
     "zircon_editor",
-    "zircon_server",
+    "zircon_editor_ui",
+    "zircon_manager",
     "zircon_module",
-    "zircon_app",
+    "zircon_entry",
     "zircon_script",
     "zircon_animation",
     "zircon_net",
@@ -34,11 +36,18 @@ license = "MIT OR Apache-2.0"
 bytemuck = { version = "1.25.0", features = ["derive"] }
 crossbeam-channel = "0.5.15"
 glam = { version = "0.32.1", features = ["serde"] }
-iced = { version = "0.14.0", features = ["image", "tokio", "wgpu"] }
+gltf = "1.4.1"
 image = "0.25.10"
+naga = { version = "27.0.3", features = ["wgsl-in"] }
+notify = "6.1.1"
 pollster = "0.4.0"
 serde = { version = "1.0.228", features = ["derive"] }
+slint = { version = "1.15", default-features = false, features = ["std", "backend-winit", "renderer-skia", "unstable-wgpu-27", "unstable-winit-030", "compat-1-2"] }
+slint-build = "1.15"
+tobj = "4.0.3"
 thiserror = "2.0.18"
+toml = "0.9.8"
 tracing = "0.1.44"
+uuid = { version = "1.23.0", features = ["v4", "serde"] }
 wgpu = "27.0.1"
 winit = "0.30.13"

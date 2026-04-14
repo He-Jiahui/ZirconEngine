@@ -1,8 +1,19 @@
-//! Animation clips, skeletal poses, and state machines driving transforms.
-//!
-//! Conceptual counterpart: Godot `scene/animation` and AnimationPlayer stack.
+//! Animation module skeleton wired into the core runtime.
 
-/// Returns the workspace engine name.
-pub fn engine_name() -> &'static str {
-    "ZirconEngine"
+use zircon_module::{stub_module_descriptor, ModuleDescriptor};
+
+pub const ANIMATION_MODULE_NAME: &str = "AnimationModule";
+
+#[derive(Clone, Debug, Default)]
+pub struct AnimationConfig {
+    pub enabled: bool,
+}
+
+pub fn module_descriptor() -> ModuleDescriptor {
+    stub_module_descriptor(
+        ANIMATION_MODULE_NAME,
+        "Animation scheduling and clip playback",
+        "AnimationDriver",
+        "AnimationManager",
+    )
 }

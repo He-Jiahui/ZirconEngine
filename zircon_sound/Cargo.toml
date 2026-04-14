@@ -7,3 +7,4 @@ description = "Audio mixing and playback (Godot AudioServer-adjacent)."
 
 [dependencies]
 kira = "0.12.0"
+zircon_module = { path = "../zircon_module" }
