@@ -333,7 +333,7 @@ impl UpdateNodeCommand {
         }
         let _ = scene.set_parent_checked(node_id, state.parent)?;
         scene.rename_node(node_id, state.name.clone())?;
-        scene.update_transform(node_id, state.transform);
+        let _ = scene.update_transform(node_id, state.transform)?;
         scene.set_selected(Some(node_id));
         Ok(())
     }

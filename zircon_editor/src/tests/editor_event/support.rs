@@ -41,7 +41,8 @@ impl EventRuntimeHarness {
             .unwrap();
         core.register_module(module::module_descriptor()).unwrap();
         core.activate_module(MANAGER_MODULE_NAME).unwrap();
-        core.activate_module(zircon_asset::ASSET_MODULE_NAME).unwrap();
+        core.activate_module(zircon_asset::ASSET_MODULE_NAME)
+            .unwrap();
         core.activate_module(module::EDITOR_MODULE_NAME).unwrap();
 
         std::env::remove_var("ZIRCON_EDITOR_CONFIG_PATH");

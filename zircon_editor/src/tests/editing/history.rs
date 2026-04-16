@@ -33,7 +33,7 @@ fn gizmo_drag_is_undone_via_transform_command() {
 
     state.apply_intent(EditorIntent::BeginGizmoDrag).unwrap();
     state.world.with_world_mut(|scene| {
-        scene.update_transform(cube, Transform::from_translation(Vec3::new(2.0, 0.0, 0.0)));
+        let _ = scene.update_transform(cube, Transform::from_translation(Vec3::new(2.0, 0.0, 0.0)));
     });
     state.apply_intent(EditorIntent::EndGizmoDrag).unwrap();
 

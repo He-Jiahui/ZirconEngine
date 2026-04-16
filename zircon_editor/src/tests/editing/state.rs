@@ -1,9 +1,10 @@
+use zircon_editor_ui::ViewportCommand;
 use zircon_manager::{AssetRecordKind, ResourceStateRecord};
-use zircon_math::UVec2;
+use zircon_math::{UVec2, Vec2};
 use zircon_scene::DefaultLevelManager;
 
 use super::asset_workspace::{sample_catalog, sample_material_details, sample_resource_status};
-use super::support::test_state;
+use super::support::{cube_and_camera, cube_id, test_state};
 use crate::EditorSessionMode;
 use crate::EditorState;
 
@@ -89,7 +90,9 @@ fn editor_state_new_starts_in_welcome_mode_without_default_selection() {
     assert!(!snapshot.project_open);
     assert_eq!(snapshot.session_mode, EditorSessionMode::Welcome);
     assert!(snapshot.inspector.is_none());
-    assert!(state.world.with_world(|scene| scene.selected_node().is_none()));
+    assert!(state
+        .world
+        .with_world(|scene| scene.selected_node().is_none()));
 }
 
 #[test]
@@ -101,5 +104,213 @@ fn editor_state_with_default_selection_preserves_editor_authored_selection() {
     let snapshot = state.snapshot();
 
     assert!(snapshot.inspector.is_some());
-    assert!(state.world.with_world(|scene| scene.selected_node().is_some()));
+    assert!(state
+        .world
+        .with_world(|scene| scene.selected_node().is_some()));
+}
+
+#[test]
+fn drag_tool_click_selects_renderable_without_handle_overlay() {
+    let mut state = test_state();
+    let (cube, camera) = cube_and_camera(&state);
+    state
+        .apply_intent(crate::EditorIntent::SelectNode(camera))
+        .unwrap();
+
+    let _ = state.apply_viewport_command(&ViewportCommand::SetTool(
+        zircon_scene::SceneViewportTool::Drag,
+    ));
+
+    let cursor = project_entity_cursor(&state, cube, zircon_math::Vec3::new(0.55, 0.0, 0.0));
+    let _ = state.apply_viewport_command(&ViewportCommand::LeftPressed {
+        x: cursor.x,
+        y: cursor.y,
+    });
+    let _ = state.apply_viewport_command(&ViewportCommand::LeftReleased);
+
+    assert_eq!(
+        state.world.with_world(|scene| scene.selected_node()),
+        Some(cube)
+    );
+    assert!(state.render_snapshot().unwrap().overlays.handles.is_empty());
+}
+
+#[test]
+fn viewport_clicking_light_gizmo_selects_light_node() {
+    let mut state = test_state();
+    let light = state.world.with_world(|scene| {
+        scene
+            .nodes()
+            .iter()
+            .find(|node| matches!(node.kind, zircon_scene::NodeKind::DirectionalLight))
+            .map(|node| node.id)
+            .expect("directional light")
+    });
+
+    let cursor = {
+        let packet = state.render_snapshot().expect("render packet");
+        let icon = packet
+            .overlays
+            .scene_gizmos
+            .iter()
+            .find(|gizmo| gizmo.owner == light)
+            .and_then(|gizmo| gizmo.icons.first())
+            .expect("light gizmo icon");
+        project_world_position(
+            &packet.scene.camera,
+            state.viewport_state().size,
+            icon.position,
+        )
+        .expect("light gizmo cursor")
+    };
+
+    let _ = state.apply_viewport_command(&ViewportCommand::LeftPressed {
+        x: cursor.x,
+        y: cursor.y,
+    });
+    let _ = state.apply_viewport_command(&ViewportCommand::LeftReleased);
+
+    assert_eq!(
+        state.world.with_world(|scene| scene.selected_node()),
+        Some(light)
+    );
+}
+
+#[test]
+fn render_frame_extract_matches_legacy_render_snapshot_projection() {
+    let state = test_state();
+
+    let snapshot = state.render_snapshot().expect("render snapshot");
+    let extract = state.render_frame_extract().expect("render frame extract");
+
+    assert_eq!(extract.to_legacy_snapshot(), snapshot);
+}
+
+#[test]
+fn viewport_handle_drag_collapses_into_single_undoable_command() {
+    let mut state = test_state();
+    let cube = cube_id(&state);
+    let start = state
+        .world
+        .with_world(|scene| scene.find_node(cube).unwrap().transform);
+
+    let _ = state.apply_viewport_command(&ViewportCommand::SetTool(
+        zircon_scene::SceneViewportTool::Move,
+    ));
+
+    let (press, release) = move_handle_drag_cursor_pair(&state, cube);
+    let _ = state.apply_viewport_command(&ViewportCommand::LeftPressed {
+        x: press.x,
+        y: press.y,
+    });
+    let _ = state.apply_viewport_command(&ViewportCommand::PointerMoved {
+        x: release.x,
+        y: release.y,
+    });
+    let _ = state.apply_viewport_command(&ViewportCommand::LeftReleased);
+
+    let after_drag = state.snapshot();
+    assert!(after_drag.can_undo);
+    assert!(!after_drag.can_redo);
+    assert_ne!(
+        state
+            .world
+            .with_world(|scene| scene.find_node(cube).unwrap().transform),
+        start
+    );
+
+    assert!(state.apply_intent(crate::EditorIntent::Undo).unwrap());
+    assert_eq!(
+        state
+            .world
+            .with_world(|scene| scene.find_node(cube).unwrap().transform),
+        start
+    );
+    let after_undo = state.snapshot();
+    assert!(!after_undo.can_undo);
+    assert!(after_undo.can_redo);
+
+    assert!(state.apply_intent(crate::EditorIntent::Redo).unwrap());
+    assert_ne!(
+        state
+            .world
+            .with_world(|scene| scene.find_node(cube).unwrap().transform),
+        start
+    );
+}
+
+fn project_entity_cursor(state: &EditorState, entity: u64, offset: zircon_math::Vec3) -> Vec2 {
+    let packet = state.render_snapshot().expect("render packet");
+    let transform = state
+        .world
+        .with_world(|scene| scene.world_transform(entity).unwrap());
+    project_world_position(
+        &packet.scene.camera,
+        state.viewport_state().size,
+        transform.matrix().transform_point3(offset),
+    )
+    .expect("entity cursor")
+}
+
+fn move_handle_drag_cursor_pair(state: &EditorState, cube: u64) -> (Vec2, Vec2) {
+    let packet = state.render_snapshot().expect("render packet");
+    let handle = packet
+        .overlays
+        .handles
+        .iter()
+        .find(|handle| handle.owner == cube)
+        .expect("move handle");
+    let (start, end) = handle
+        .elements
+        .iter()
+        .find_map(|element| match element {
+            zircon_scene::HandleElementExtract::AxisLine {
+                axis, start, end, ..
+            } if *axis == zircon_scene::OverlayAxis::X => Some((*start, *end)),
+            _ => None,
+        })
+        .expect("x axis handle");
+    let start_cursor =
+        project_world_position(&packet.scene.camera, state.viewport_state().size, start)
+            .expect("axis start");
+    let end_cursor = project_world_position(&packet.scene.camera, state.viewport_state().size, end)
+        .expect("axis end");
+    let direction = (end_cursor - start_cursor).normalize_or_zero();
+    let press = start_cursor + direction * 24.0;
+    let release = press + direction * 96.0;
+    (press, release)
+}
+
+fn project_world_position(
+    camera: &zircon_scene::ViewportCameraSnapshot,
+    viewport: UVec2,
+    world: zircon_math::Vec3,
+) -> Option<Vec2> {
+    let aspect = viewport.x as f32 / viewport.y.max(1) as f32;
+    let projection = match camera.projection_mode {
+        zircon_scene::ProjectionMode::Perspective => {
+            zircon_math::perspective(camera.fov_y_radians, aspect, camera.z_near, camera.z_far)
+        }
+        zircon_scene::ProjectionMode::Orthographic => {
+            let half_height = camera.ortho_size.max(0.01);
+            let half_width = half_height * aspect.max(0.001);
+            zircon_math::Mat4::orthographic_rh(
+                -half_width,
+                half_width,
+                -half_height,
+                half_height,
+                camera.z_near.max(0.001),
+                camera.z_far,
+            )
+        }
+    };
+    let clip = projection * zircon_math::view_matrix(camera.transform) * world.extend(1.0);
+    if clip.w <= f32::EPSILON {
+        return None;
+    }
+    let ndc = clip.truncate() / clip.w;
+    Some(Vec2::new(
+        (ndc.x * 0.5 + 0.5) * viewport.x as f32,
+        (-ndc.y * 0.5 + 0.5) * viewport.y as f32,
+    ))
 }

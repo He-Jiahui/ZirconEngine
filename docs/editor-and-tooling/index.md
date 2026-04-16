@@ -9,10 +9,11 @@ related_code:
   - zircon_editor/src/workbench/layout.rs
   - zircon_editor/src/host/manager.rs
   - zircon_editor/src/host/message.rs
-  - zircon_editor/src/editing/state.rs
-  - zircon_editor/src/workbench/project.rs
-  - zircon_editor/src/workbench/snapshot.rs
-  - zircon_editor/src/workbench/view.rs
+  - zircon_editor/src/editing/state/mod.rs
+  - zircon_editor/src/workbench/project/mod.rs
+  - zircon_editor/src/workbench/snapshot/mod.rs
+  - zircon_editor/src/workbench/view/mod.rs
+  - zircon_editor_ui/src/ui_asset_editor.rs
   - zircon_resource/src/lib.rs
   - zircon_resource/src/handle.rs
   - zircon_resource/src/locator.rs
@@ -27,12 +28,13 @@ implementation_files:
   - zircon_editor/src/editing/command.rs
   - zircon_editor/src/editing/history.rs
   - zircon_editor/src/host/manager.rs
-  - zircon_editor/src/workbench/project.rs
-  - zircon_editor/src/workbench/snapshot.rs
-  - zircon_editor/src/editing/state.rs
+  - zircon_editor/src/workbench/project/mod.rs
+  - zircon_editor/src/workbench/snapshot/mod.rs
+  - zircon_editor/src/editing/state/mod.rs
+  - zircon_editor_ui/src/ui_asset_editor.rs
   - zircon_resource/src/handle.rs
   - zircon_resource/src/locator.rs
-  - zircon_editor/src/workbench/view.rs
+  - zircon_editor/src/workbench/view/mod.rs
   - zircon_editor/ui/workbench.slint
   - zircon_editor/ui/workbench/chrome.slint
   - zircon_scene/src/world.rs
@@ -44,8 +46,10 @@ plan_sources:
   - .codex/plans/全系统重构方案.md
   - .cursor/plans/基本路线图.md
 tests:
+  - zircon_editor_ui/src/tests/activity.rs
   - zircon_editor/src/lib.rs
   - zircon_scene/src/lib.rs
+  - cargo test -p zircon_editor_ui --lib --locked tests::activity
   - cargo test -p zircon_editor -- --nocapture
   - cargo test -p zircon_entry -- --nocapture
   - cargo test -p zircon_resource -p zircon_asset -p zircon_scene -p zircon_graphics -p zircon_editor
@@ -68,22 +72,37 @@ doc_type: category-index
 
 - [Editor Workbench Shell](./editor-workbench-shell.md): 混合固定壳 workbench、主 tabs、drawers、document workspace、native floating windows、拖放命中与布局持久化。
 - [Editor Command Workflow](./editor-command-workflow.md): editor 命令层、历史栈、inspector 草稿批量提交、删除/改父子/重命名等行为约束。
+- [Scene Viewport Gizmo, Handle, And Overlay Pipeline](./scene-viewport-gizmo-handle-overlays.md): Scene 视图的 typed viewport settings、scene render packet、scene gizmo provider、handle overlay、wireframe/preview/grid 分层与测试口径。
 - [UI Binding And Reflection Architecture](./ui-binding-reflection-architecture.md): `zircon_ui` / `zircon_editor_ui` / `zircon_input` 边界，nativeBinding、反射树、REPL/网络操控与 headless 回放架构。
+- [Editor Template Compatibility Migration](./editor-template-compatibility-migration.md): `zircon_editor_ui` 的 editor-only template catalog/registry/adapter，如何把 shared `UiBindingRef` 收口到 typed `EditorUiBinding`，以及后续把 TOML 模板实例接到 Slint host 的迁移顺序。
+- [UI Asset Editor Host Session](./ui-asset-editor-host-session.md): `zircon_editor` 的 `UiAssetEditorSession`、recursive import hydration、canonical source save、Slint pane callbacks，以及 `zircon_asset` 对 `.ui.toml` 三类正式资产的注册与 catalog 接入。
+- [UI And Layout / UI Asset Documents And Editor Protocol](../ui-and-layout/ui-asset-documents-and-editor-protocol.md): `zircon_ui::template::asset` 的 `layout/widget/style` 编译链、selector stylesheet、legacy adapter、slot-aware shared bridge，以及 shared asset model 如何移交给 editor asset pipeline 和 host session。
+- [UI And Layout / Shared UI Core Foundation](../ui-and-layout/shared-ui-core-foundation.md): 运行时/编辑器共享的 `zircon_ui` 约束类型、retained tree、命中索引、surface/render extract，以及 editor workbench 对共享布局核心的复用边界。
+- [UI And Layout / Shared UI Template Runtime](../ui-and-layout/shared-ui-template-runtime.md): shared TOML 模板文档、slot/composite 展开和稳定 binding ref 保留语义，是 editor shell compatibility migration 的共享模板真源。
 - [Assets And Rendering / Directory Project Asset Rendering](../assets-and-rendering/directory-project-asset-rendering.md): 目录式项目根、`ResourceLocator`/typed handle、`AssetManager`、`ResourceManager`、`EditorAssetManager`、资源 watcher 和 viewport 自动刷新。
 
 ## Related Files
 
 - `zircon_editor/src/editing/command.rs`
 - `zircon_editor/src/editing/history.rs`
+- `zircon_editor/src/editing/viewport/controller/mod.rs`
+- `zircon_editor/src/editing/viewport/handles/mod.rs`
 - `zircon_editor/src/workbench/layout.rs`
 - `zircon_editor/src/host/slint_host/app.rs`
 - `zircon_editor/src/host/slint_host/ui.rs`
 - `zircon_editor/src/host/manager.rs`
 - `zircon_editor/src/host/message.rs`
-- `zircon_editor/src/editing/state.rs`
-- `zircon_editor/src/workbench/project.rs`
-- `zircon_editor/src/workbench/snapshot.rs`
-- `zircon_editor/src/workbench/view.rs`
+- `zircon_editor/src/editing/state/mod.rs`
+- `zircon_editor_ui/src/binding.rs`
+- `zircon_editor/src/workbench/project/mod.rs`
+- `zircon_editor/src/workbench/snapshot/mod.rs`
+- `zircon_editor/src/workbench/view/mod.rs`
+- `zircon_scene/src/components.rs`
+- `zircon_scene/src/world/render.rs`
+- `zircon_graphics/src/scene/resources/mod.rs`
+- `zircon_graphics/src/scene/scene_renderer/core/mod.rs`
+- `zircon_graphics/src/scene/scene_renderer/mesh/mod.rs`
+- `zircon_graphics/src/scene/scene_renderer/overlay.rs`
 - `zircon_editor/ui/workbench.slint`
 - `zircon_editor/ui/workbench/chrome.slint`
 - `zircon_scene/src/world.rs`
@@ -98,9 +117,12 @@ doc_type: category-index
 - `ResourceLocator` / typed handle 驱动的 editor 导入与 `LevelSystem` runtime 绑定
 - editor host 通过 `AssetManager + ResourceManager + EditorAssetManager` façade 读取项目与资源状态，并在宿主层统一解析 ready typed handle
 - 项目级最近布局和用户级默认布局/preset 持久化
+- `zircon_ui` 共享 layout/tree/hit-test/surface 基础，以及 editor workbench 对共享约束求解器和几何类型的复用
 - 节点创建、删除、重命名、改父子层级
 - inspector 的名称、父节点、平移字段草稿与批量提交
 - gizmo 拖拽和普通命令共用的 undo/redo 历史栈
+- Scene 视图的 typed viewport settings、scene gizmo provider、handle overlay、outline/wireframe/grid/preview packet 分层
 - 命令层对最后一个 camera、层级成环、空名称等非法编辑的保护
 
 后续如果 inspector 扩展到 rotation/scale、多选批量编辑、拖拽层级树重排，继续在本目录追加细化文档。
+

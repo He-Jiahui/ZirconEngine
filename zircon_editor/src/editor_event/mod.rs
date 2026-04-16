@@ -12,7 +12,7 @@ pub use runtime::{EditorEventDispatcher, EditorEventRuntime};
 pub use transient::EditorTransientUiState;
 pub use types::{
     EditorAssetEvent, EditorAssetSurface, EditorAssetUtilityTab, EditorAssetViewMode,
-    EditorEvent, EditorEventEffect, EditorEventEnvelope, EditorEventId, EditorEventRecord,
-    EditorEventResult, EditorEventSequence, EditorEventSource, EditorEventTransient,
-    EditorEventUndoPolicy, EditorInspectorEvent, EditorViewportEvent,
+    EditorDraftEvent, EditorEvent, EditorEventEffect, EditorEventEnvelope, EditorEventId,
+    EditorEventRecord, EditorEventResult, EditorEventSequence, EditorEventSource,
+    EditorEventTransient, EditorEventUndoPolicy, EditorInspectorEvent, EditorViewportEvent,
 };

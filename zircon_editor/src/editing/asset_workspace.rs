@@ -88,13 +88,10 @@ impl AssetWorkspaceState {
     }
 
     pub fn select_asset(&mut self, asset_uuid: Option<String>) {
-        self.selected_asset_uuid = asset_uuid
-            .filter(|uuid| self.asset_record(uuid).is_some());
-        if self
-            .selected_details
-            .as_ref()
-            .is_some_and(|details| Some(details.asset.uuid.as_str()) != self.selected_asset_uuid.as_deref())
-        {
+        self.selected_asset_uuid = asset_uuid.filter(|uuid| self.asset_record(uuid).is_some());
+        if self.selected_details.as_ref().is_some_and(|details| {
+            Some(details.asset.uuid.as_str()) != self.selected_asset_uuid.as_deref()
+        }) {
             self.selected_details = None;
         }
     }
@@ -158,7 +155,9 @@ impl AssetWorkspaceState {
         let visible_folders = catalog
             .folders
             .iter()
-            .filter(|folder| folder.parent_folder_id.as_deref() == Some(self.selected_folder_id.as_str()))
+            .filter(|folder| {
+                folder.parent_folder_id.as_deref() == Some(self.selected_folder_id.as_str())
+            })
             .filter(|folder| folder_matches_search(folder, &self.search_query))
             .map(|folder| AssetFolderSnapshot {
                 folder_id: folder.folder_id.clone(),
@@ -230,9 +229,12 @@ impl AssetWorkspaceState {
     }
 
     fn folder_exists(&self, folder_id: &str) -> bool {
-        self.catalog
-            .as_ref()
-            .is_some_and(|catalog| catalog.folders.iter().any(|folder| folder.folder_id == folder_id))
+        self.catalog.as_ref().is_some_and(|catalog| {
+            catalog
+                .folders
+                .iter()
+                .any(|folder| folder.folder_id == folder_id)
+        })
     }
 
     fn asset_record(&self, asset_uuid: &str) -> Option<&EditorAssetCatalogRecord> {
@@ -363,7 +365,13 @@ fn append_folder_branch(
             selected: folder.folder_id == selected_folder_id,
         });
         if let Some(children) = folders_by_parent.get(&Some(folder.folder_id.as_str())) {
-            append_folder_branch(out, children, folders_by_parent, selected_folder_id, depth + 1);
+            append_folder_branch(
+                out,
+                children,
+                folders_by_parent,
+                selected_folder_id,
+                depth + 1,
+            );
         }
     }
 }
@@ -409,7 +417,9 @@ fn asset_matches_filters(
     search_matches && kind_matches
 }
 
-fn reference_snapshot(reference: &zircon_manager::EditorAssetReferenceRecord) -> AssetReferenceSnapshot {
+fn reference_snapshot(
+    reference: &zircon_manager::EditorAssetReferenceRecord,
+) -> AssetReferenceSnapshot {
     AssetReferenceSnapshot {
         uuid: reference.uuid.clone(),
         locator: reference.locator.clone(),

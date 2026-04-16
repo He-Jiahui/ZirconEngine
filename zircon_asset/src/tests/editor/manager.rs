@@ -11,7 +11,8 @@ use crate::{
     ProjectPaths,
 };
 use zircon_manager::{
-    EditorAssetChangeKind, EditorAssetManager as EditorAssetManagerFacade, PreviewStateRecord,
+    AssetRecordKind, EditorAssetChangeKind, EditorAssetManager as EditorAssetManagerFacade,
+    PreviewStateRecord,
 };
 
 #[test]
@@ -65,7 +66,8 @@ fn editor_asset_manager_builds_catalog_and_direct_reference_graph() {
         .any(|record| record.locator == AssetUri::parse("res://models/triangle.obj").unwrap()));
     assert!(scene_refs
         .iter()
-        .any(|record| record.locator == AssetUri::parse("res://materials/grid.material.toml").unwrap()));
+        .any(|record| record.locator
+            == AssetUri::parse("res://materials/grid.material.toml").unwrap()));
 
     let referenced_by_material = manager.referenced_by(material.asset_uuid);
     assert!(referenced_by_material
@@ -110,21 +112,34 @@ fn editor_asset_manager_marks_preview_dirty_and_refreshes_visible_assets() {
 
     manager.mark_preview_dirty(scene.asset_uuid).unwrap();
     assert_eq!(
-        manager.record_by_uuid(scene.asset_uuid).unwrap().preview_state,
+        manager
+            .record_by_uuid(scene.asset_uuid)
+            .unwrap()
+            .preview_state,
         PreviewState::Dirty
     );
     assert!(!preview_path.exists());
 
-    manager.request_preview_refresh(scene.asset_uuid, false).unwrap();
+    manager
+        .request_preview_refresh(scene.asset_uuid, false)
+        .unwrap();
     assert_eq!(
-        manager.record_by_uuid(scene.asset_uuid).unwrap().preview_state,
+        manager
+            .record_by_uuid(scene.asset_uuid)
+            .unwrap()
+            .preview_state,
         PreviewState::Dirty
     );
     assert!(!preview_path.exists());
 
-    manager.request_preview_refresh(scene.asset_uuid, true).unwrap();
+    manager
+        .request_preview_refresh(scene.asset_uuid, true)
+        .unwrap();
     assert_eq!(
-        manager.record_by_uuid(scene.asset_uuid).unwrap().preview_state,
+        manager
+            .record_by_uuid(scene.asset_uuid)
+            .unwrap()
+            .preview_state,
         PreviewState::Ready
     );
     assert!(preview_path.exists());
@@ -303,11 +318,171 @@ fn editor_asset_manager_keeps_last_good_preview_when_marked_dirty() {
     assert!(preview_path.exists());
 
     EditorAssetManagerFacade::mark_preview_dirty(&manager, &texture.uuid).unwrap();
-    let details = EditorAssetManagerFacade::asset_details(&manager, &texture.uuid)
-        .expect("texture details");
+    let details =
+        EditorAssetManagerFacade::asset_details(&manager, &texture.uuid).expect("texture details");
     assert_eq!(details.asset.preview_state, PreviewStateRecord::Dirty);
     assert!(details.asset.preview_artifact_path.ends_with(".png"));
     assert!(preview_path.exists());
 
     let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn editor_asset_manager_catalog_snapshot_includes_ui_asset_kinds_and_references() {
+    let root = unique_temp_project_root("editor_asset_manager_ui_assets");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths.ensure_layout().unwrap();
+    ProjectManifest::new(
+        "Sandbox",
+        AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+        1,
+    )
+    .save(paths.manifest_path())
+    .unwrap();
+
+    write_valid_wgsl(paths.assets_root().join("shaders").join("pbr.wgsl"));
+    write_checker_png(paths.assets_root().join("textures").join("checker.png"));
+    write_triangle_obj(paths.assets_root().join("models").join("triangle.obj"));
+    write_default_material(
+        paths
+            .assets_root()
+            .join("materials")
+            .join("grid.material.toml"),
+    );
+    write_default_scene(paths.assets_root().join("scenes").join("main.scene.toml"));
+    write_ui_assets(&paths);
+
+    let manager = DefaultEditorAssetManager::default();
+    manager.open_project(&root).unwrap();
+
+    let snapshot = EditorAssetManagerFacade::catalog_snapshot(&manager);
+    let layout = snapshot
+        .assets
+        .iter()
+        .find(|asset| asset.locator == "res://ui/layouts/editor.ui.toml")
+        .expect("ui layout asset");
+    let widget = snapshot
+        .assets
+        .iter()
+        .find(|asset| asset.locator == "res://ui/widgets/button.ui.toml")
+        .expect("ui widget asset");
+    let style = snapshot
+        .assets
+        .iter()
+        .find(|asset| asset.locator == "res://ui/styles/theme.ui.toml")
+        .expect("ui style asset");
+
+    assert_eq!(layout.kind, AssetRecordKind::UiLayout);
+    assert_eq!(widget.kind, AssetRecordKind::UiWidget);
+    assert_eq!(style.kind, AssetRecordKind::UiStyle);
+
+    let layout_details =
+        EditorAssetManagerFacade::asset_details(&manager, &layout.uuid).expect("ui layout details");
+    assert!(layout_details
+        .direct_references
+        .iter()
+        .any(|reference| reference.locator == "res://ui/widgets/button.ui.toml"));
+    assert!(layout_details
+        .direct_references
+        .iter()
+        .any(|reference| reference.locator == "res://ui/styles/theme.ui.toml"));
+
+    let style_details =
+        EditorAssetManagerFacade::asset_details(&manager, &style.uuid).expect("ui style details");
+    assert!(style_details.referenced_by.iter().any(|reference| {
+        reference.locator == "res://ui/layouts/editor.ui.toml"
+            || reference.locator == "res://ui/widgets/button.ui.toml"
+    }));
+
+    let _ = fs::remove_dir_all(root);
+}
+
+fn write_ui_assets(paths: &ProjectPaths) {
+    let widget_path = paths
+        .assets_root()
+        .join("ui")
+        .join("widgets")
+        .join("button.ui.toml");
+    let style_path = paths
+        .assets_root()
+        .join("ui")
+        .join("styles")
+        .join("theme.ui.toml");
+    let layout_path = paths
+        .assets_root()
+        .join("ui")
+        .join("layouts")
+        .join("editor.ui.toml");
+    fs::create_dir_all(widget_path.parent().unwrap()).unwrap();
+    fs::create_dir_all(style_path.parent().unwrap()).unwrap();
+    fs::create_dir_all(layout_path.parent().unwrap()).unwrap();
+
+    fs::write(
+        &widget_path,
+        r#"
+[asset]
+kind = "widget"
+id = "ui.widgets.button"
+version = 1
+display_name = "Button Widget"
+
+[imports]
+styles = ["res://ui/styles/theme.ui.toml"]
+
+[root]
+node = "root"
+
+[components.ButtonRoot]
+root = "root"
+
+[nodes.root]
+kind = "native"
+type = "Button"
+classes = ["primary"]
+props = { text = "Press" }
+"#,
+    )
+    .unwrap();
+
+    fs::write(
+        &style_path,
+        r##"
+[asset]
+kind = "style"
+id = "ui.styles.theme"
+version = 1
+display_name = "Theme"
+
+[[stylesheets]]
+id = "theme"
+
+[[stylesheets.rules]]
+selector = ".primary"
+set = { self.background = { color = "#224488" } }
+"##,
+    )
+    .unwrap();
+
+    fs::write(
+        &layout_path,
+        r#"
+[asset]
+kind = "layout"
+id = "ui.layouts.editor"
+version = 1
+display_name = "Editor Layout"
+
+[imports]
+widgets = ["res://ui/widgets/button.ui.toml#ButtonRoot"]
+styles = ["res://ui/styles/theme.ui.toml"]
+
+[root]
+node = "root"
+
+[nodes.root]
+kind = "reference"
+component_ref = "res://ui/widgets/button.ui.toml#ButtonRoot"
+"#,
+    )
+    .unwrap();
 }

@@ -1,13 +1,23 @@
 //! Runtime UI module skeleton wired into the core runtime.
 
 mod binding;
+mod dispatch;
 mod event_ui;
-
-use zircon_module::{stub_module_descriptor, ModuleDescriptor};
+mod layout;
+mod module;
+mod surface;
+mod template;
+mod tree;
 
 pub use binding::{
     UiBindingCall, UiBindingParseError, UiBindingValue, UiEventBinding, UiEventKind, UiEventPath,
     UiEventRouter,
+};
+pub use dispatch::{
+    UiNavigationDispatchContext, UiNavigationDispatchEffect, UiNavigationDispatchInvocation,
+    UiNavigationDispatchResult, UiNavigationDispatcher, UiPointerDispatchContext,
+    UiPointerDispatchEffect, UiPointerDispatchInvocation, UiPointerDispatchResult,
+    UiPointerDispatcher, UiPointerEvent,
 };
 pub use event_ui::{
     UiActionDescriptor, UiBindingCodec, UiControlRequest, UiControlResponse, UiEventManager,
@@ -16,22 +26,32 @@ pub use event_ui::{
     UiParameterDescriptor, UiPropertyDescriptor, UiReflectionDiff, UiReflectionSnapshot, UiRouteId,
     UiStateFlags, UiSubscriptionId, UiTreeId, UiValueType,
 };
-
-pub const UI_MODULE_NAME: &str = "UiModule";
-
-#[derive(Clone, Debug, Default)]
-pub struct UiConfig {
-    pub enabled: bool,
-}
-
-pub fn module_descriptor() -> ModuleDescriptor {
-    stub_module_descriptor(
-        UI_MODULE_NAME,
-        "Runtime UI widgets and layout",
-        "UiDriver",
-        "UiManager",
-    )
-}
+pub use layout::{
+    compute_layout_tree, compute_virtual_list_window, solve_axis_constraints, Anchor,
+    AxisConstraint, BoxConstraints, DesiredSize, LayoutBoundary, Pivot, Position,
+    ResolvedAxisConstraint, StretchMode, UiAxis, UiContainerKind, UiFrame, UiLinearBoxConfig,
+    UiPoint, UiScrollState, UiScrollableBoxConfig, UiScrollbarVisibility, UiSize,
+    UiVirtualListConfig, UiVirtualListWindow,
+};
+pub use module::{module_descriptor, UiConfig, UI_MODULE_NAME};
+pub use surface::{
+    UiFocusState, UiNavigationEventKind, UiNavigationRoute, UiNavigationState, UiPointerButton,
+    UiPointerEventKind, UiPointerRoute, UiRenderCommand, UiRenderExtract, UiRenderList, UiSurface,
+};
+pub use template::{
+    UiActionRef, UiAssetDocument, UiAssetError, UiAssetHeader, UiAssetImports, UiAssetKind,
+    UiAssetLoader, UiAssetRoot, UiBindingRef, UiChildMount, UiCompiledDocument,
+    UiComponentDefinition, UiComponentParamSchema, UiComponentTemplate, UiDocumentCompiler,
+    UiLegacyTemplateAdapter, UiNamedSlotSchema, UiNodeDefinition, UiNodeDefinitionKind, UiSelector,
+    UiSelectorToken, UiSlotTemplate, UiStyleDeclarationBlock, UiStyleResolver, UiStyleRule,
+    UiStyleScope, UiStyleSheet, UiTemplateBuildError, UiTemplateDocument, UiTemplateError,
+    UiTemplateInstance, UiTemplateLoader, UiTemplateNode, UiTemplateSurfaceBuilder,
+    UiTemplateTreeBuilder, UiTemplateValidator,
+};
+pub use tree::{
+    UiDirtyFlags, UiHitTestIndex, UiHitTestResult, UiInputPolicy, UiLayoutCache,
+    UiTemplateNodeMetadata, UiTree, UiTreeError, UiTreeNode,
+};
 
 #[cfg(test)]
 mod tests;

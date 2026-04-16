@@ -23,7 +23,10 @@ fn asset_workspace_builds_folder_tree_and_visible_content_from_catalog() {
 
     let snapshot = workspace.build_snapshot(AssetSurfaceMode::Activity);
 
-    assert_eq!(snapshot.selected_folder_id.as_deref(), Some("res://materials"));
+    assert_eq!(
+        snapshot.selected_folder_id.as_deref(),
+        Some("res://materials")
+    );
     assert_eq!(
         snapshot.selected_asset_uuid.as_deref(),
         Some("11111111-1111-1111-1111-111111111111")
@@ -142,9 +145,7 @@ pub(super) fn sample_catalog() -> EditorAssetCatalogSnapshotRecord {
                 source_hash: "mat".to_string(),
                 dirty: false,
                 diagnostics: Vec::new(),
-                direct_reference_uuids: vec![
-                    "33333333-3333-3333-3333-333333333333".to_string(),
-                ],
+                direct_reference_uuids: vec!["33333333-3333-3333-3333-333333333333".to_string()],
             },
             EditorAssetCatalogRecord {
                 uuid: "22222222-2222-2222-2222-222222222222".to_string(),
@@ -161,9 +162,7 @@ pub(super) fn sample_catalog() -> EditorAssetCatalogSnapshotRecord {
                 source_hash: "scene".to_string(),
                 dirty: true,
                 diagnostics: vec!["preview dirty".to_string()],
-                direct_reference_uuids: vec![
-                    "11111111-1111-1111-1111-111111111111".to_string(),
-                ],
+                direct_reference_uuids: vec!["11111111-1111-1111-1111-111111111111".to_string()],
             },
             EditorAssetCatalogRecord {
                 uuid: "33333333-3333-3333-3333-333333333333".to_string(),

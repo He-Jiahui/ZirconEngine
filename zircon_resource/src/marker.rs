@@ -11,6 +11,9 @@ pub enum ResourceKind {
     Texture,
     Shader,
     Scene,
+    UiLayout,
+    UiWidget,
+    UiStyle,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
@@ -27,6 +30,15 @@ pub struct ShaderMarker;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 pub struct SceneMarker;
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+pub struct UiLayoutMarker;
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+pub struct UiWidgetMarker;
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+pub struct UiStyleMarker;
 
 impl ResourceMarker for ModelMarker {
     const KIND: ResourceKind = ResourceKind::Model;
@@ -46,4 +58,16 @@ impl ResourceMarker for ShaderMarker {
 
 impl ResourceMarker for SceneMarker {
     const KIND: ResourceKind = ResourceKind::Scene;
+}
+
+impl ResourceMarker for UiLayoutMarker {
+    const KIND: ResourceKind = ResourceKind::UiLayout;
+}
+
+impl ResourceMarker for UiWidgetMarker {
+    const KIND: ResourceKind = ResourceKind::UiWidget;
+}
+
+impl ResourceMarker for UiStyleMarker {
+    const KIND: ResourceKind = ResourceKind::UiStyle;
 }

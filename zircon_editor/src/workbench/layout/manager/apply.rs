@@ -1,0 +1,147 @@
+use crate::ShellFrame;
+
+use super::super::{
+    DocumentNode, FloatingWindowLayout, LayoutCommand, LayoutDiff, LayoutManager, SplitPlacement,
+    TabStackLayout, WorkbenchLayout,
+};
+
+impl LayoutManager {
+    pub fn apply(
+        &self,
+        layout: &mut WorkbenchLayout,
+        cmd: LayoutCommand,
+    ) -> Result<LayoutDiff, String> {
+        match cmd {
+            LayoutCommand::OpenView {
+                instance_id,
+                target,
+            }
+            | LayoutCommand::MoveView {
+                instance_id,
+                target,
+            } => {
+                self.detach_instance(layout, &instance_id);
+                self.attach_instance(layout, instance_id, target, None)?;
+                Ok(LayoutDiff { changed: true })
+            }
+            LayoutCommand::AttachView {
+                instance_id,
+                target,
+                anchor,
+            } => {
+                self.detach_instance(layout, &instance_id);
+                self.attach_instance(layout, instance_id, target, anchor)?;
+                Ok(LayoutDiff { changed: true })
+            }
+            LayoutCommand::CloseView { instance_id } => Ok(LayoutDiff {
+                changed: self.detach_instance(layout, &instance_id),
+            }),
+            LayoutCommand::FocusView { instance_id } => Ok(LayoutDiff {
+                changed: self.focus_instance(layout, &instance_id),
+            }),
+            LayoutCommand::DetachViewToWindow {
+                instance_id,
+                new_window,
+            } => {
+                self.detach_instance(layout, &instance_id);
+                layout.floating_windows.push(FloatingWindowLayout {
+                    window_id: new_window.clone(),
+                    title: format!("Window {}", new_window.0),
+                    workspace: DocumentNode::Tabs(TabStackLayout {
+                        tabs: vec![instance_id.clone()],
+                        active_tab: Some(instance_id.clone()),
+                    }),
+                    focused_view: Some(instance_id),
+                    frame: ShellFrame::default(),
+                });
+                Ok(LayoutDiff { changed: true })
+            }
+            LayoutCommand::CreateSplit {
+                workspace,
+                path,
+                axis,
+                placement,
+                new_instance,
+            } => {
+                self.detach_instance(layout, &new_instance);
+                let node = self
+                    .workspace_node_mut(layout, &workspace, &path)
+                    .ok_or_else(|| format!("missing workspace path for {:?}", workspace))?;
+                let previous = node.clone();
+                let inserted = DocumentNode::Tabs(TabStackLayout {
+                    tabs: vec![new_instance.clone()],
+                    active_tab: Some(new_instance),
+                });
+                let (first, second) = match placement {
+                    SplitPlacement::Before => (inserted, previous),
+                    SplitPlacement::After => (previous, inserted),
+                };
+                *node = DocumentNode::SplitNode {
+                    axis,
+                    ratio: 0.5,
+                    first: Box::new(first),
+                    second: Box::new(second),
+                };
+                Ok(LayoutDiff { changed: true })
+            }
+            LayoutCommand::ResizeSplit {
+                workspace,
+                path,
+                ratio,
+            } => {
+                let node = self
+                    .workspace_node_mut(layout, &workspace, &path)
+                    .ok_or_else(|| format!("missing split path for {:?}", workspace))?;
+                let DocumentNode::SplitNode {
+                    ratio: current_ratio,
+                    ..
+                } = node
+                else {
+                    return Err("target path is not a split node".to_string());
+                };
+                *current_ratio = ratio.clamp(0.1, 0.9);
+                Ok(LayoutDiff { changed: true })
+            }
+            LayoutCommand::SetDrawerMode { slot, mode } => {
+                let drawer = layout
+                    .drawers
+                    .get_mut(&slot)
+                    .ok_or_else(|| format!("missing drawer {:?}", slot))?;
+                drawer.mode = mode;
+                Ok(LayoutDiff { changed: true })
+            }
+            LayoutCommand::SetDrawerExtent { slot, extent } => {
+                let drawer = layout
+                    .drawers
+                    .get_mut(&slot)
+                    .ok_or_else(|| format!("missing drawer {:?}", slot))?;
+                drawer.extent = extent.max(120.0);
+                Ok(LayoutDiff { changed: true })
+            }
+            LayoutCommand::ActivateDrawerTab { slot, instance_id } => {
+                let drawer = layout
+                    .drawers
+                    .get_mut(&slot)
+                    .ok_or_else(|| format!("missing drawer {:?}", slot))?;
+                if drawer.tab_stack.tabs.contains(&instance_id) {
+                    drawer.tab_stack.active_tab = Some(instance_id.clone());
+                    drawer.active_view = Some(instance_id);
+                    Ok(LayoutDiff { changed: true })
+                } else {
+                    Err("drawer does not contain target tab".to_string())
+                }
+            }
+            LayoutCommand::ActivateMainPage { page_id } => {
+                layout.active_main_page = page_id;
+                Ok(LayoutDiff { changed: true })
+            }
+            LayoutCommand::SavePreset { .. } | LayoutCommand::LoadPreset { .. } => {
+                Ok(LayoutDiff { changed: false })
+            }
+            LayoutCommand::ResetToDefault => {
+                *layout = self.default_layout();
+                Ok(LayoutDiff { changed: true })
+            }
+        }
+    }
+}

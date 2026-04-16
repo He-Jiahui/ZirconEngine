@@ -195,14 +195,14 @@ fn map_notify_event(assets_root: &Path, event: Event) -> Vec<AssetWatchEvent> {
         EventKind::Create(_) => event
             .paths
             .into_iter()
-            .filter_map(|path| asset_uri_for_path(assets_root, &path).ok())
+            .filter_map(|path| watched_asset_uri_for_path(assets_root, &path).ok())
             .map(AssetWatchEvent::Added)
             .collect(),
         EventKind::Modify(ModifyKind::Name(RenameMode::Both)) => {
             if let [from, to] = event.paths.as_slice() {
                 if let (Ok(from), Ok(to)) = (
-                    asset_uri_for_path(assets_root, from),
-                    asset_uri_for_path(assets_root, to),
+                    watched_asset_uri_for_path(assets_root, from),
+                    watched_asset_uri_for_path(assets_root, to),
                 ) {
                     return vec![AssetWatchEvent::Renamed { from, to }];
                 }
@@ -212,23 +212,39 @@ fn map_notify_event(assets_root: &Path, event: Event) -> Vec<AssetWatchEvent> {
         EventKind::Modify(_) => event
             .paths
             .into_iter()
-            .filter_map(|path| asset_uri_for_path(assets_root, &path).ok())
+            .filter_map(|path| watched_asset_uri_for_path(assets_root, &path).ok())
             .map(AssetWatchEvent::Modified)
             .collect(),
         EventKind::Remove(_) => event
             .paths
             .into_iter()
-            .filter_map(|path| asset_uri_for_path(assets_root, &path).ok())
+            .filter_map(|path| watched_asset_uri_for_path(assets_root, &path).ok())
             .map(AssetWatchEvent::Removed)
             .collect(),
         _ => Vec::new(),
     }
 }
 
+pub(crate) fn watched_asset_uri_for_path(
+    assets_root: &Path,
+    path: &Path,
+) -> Result<AssetUri, crate::AssetUriError> {
+    if is_meta_sidecar(path) {
+        return Err(crate::AssetUriError::UnsupportedScheme(
+            path.display().to_string(),
+        ));
+    }
+    asset_uri_for_path(assets_root, path)
+}
+
 fn asset_uri_for_path(assets_root: &Path, path: &Path) -> Result<AssetUri, crate::AssetUriError> {
     let relative = match path.strip_prefix(assets_root) {
         Ok(relative) => relative,
-        Err(_) => return Err(crate::AssetUriError::EscapeAttempt(path.display().to_string())),
+        Err(_) => {
+            return Err(crate::AssetUriError::EscapeAttempt(
+                path.display().to_string(),
+            ))
+        }
     };
     let normalized = relative
         .components()
@@ -240,6 +256,12 @@ fn asset_uri_for_path(assets_root: &Path, path: &Path) -> Result<AssetUri, crate
 
 fn watch_io_error(error: notify::Error) -> std::io::Error {
     std::io::Error::other(error.to_string())
+}
+
+fn is_meta_sidecar(path: &Path) -> bool {
+    path.file_name()
+        .and_then(|name| name.to_str())
+        .is_some_and(|name| name.ends_with(".meta.toml"))
 }
 
 fn recommended_watcher(

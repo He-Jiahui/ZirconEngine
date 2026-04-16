@@ -7,9 +7,8 @@ use zircon_scene::DefaultLevelManager;
 
 use crate::{
     ActivityDrawerLayout, ActivityDrawerMode, ActivityDrawerSlot, DocumentNode,
-    EditorProjectDocument, FloatingWindowLayout, MainHostPageLayout, MainPageId,
-    NewProjectDraft, NewProjectTemplate, ProjectEditorWorkspace, TabStackLayout, ViewInstanceId,
-    WorkbenchLayout,
+    EditorProjectDocument, FloatingWindowLayout, MainHostPageLayout, MainPageId, NewProjectDraft,
+    NewProjectTemplate, ProjectEditorWorkspace, TabStackLayout, ViewInstanceId, WorkbenchLayout,
 };
 
 #[test]
@@ -55,6 +54,7 @@ fn editor_project_document_roundtrips_world_and_workspace() {
                     active_tab: Some(ViewInstanceId::new("scene#1")),
                 }),
                 focused_view: Some(ViewInstanceId::new("scene#1")),
+                frame: crate::ShellFrame::default(),
             }],
             region_overrides: BTreeMap::new(),
             view_overrides: BTreeMap::new(),
@@ -69,7 +69,11 @@ fn editor_project_document_roundtrips_world_and_workspace() {
     let paths = ProjectPaths::from_root(&root).unwrap();
 
     assert!(paths.manifest_path().exists());
-    assert!(paths.assets_root().join("materials").join("default.material.toml").exists());
+    assert!(paths
+        .assets_root()
+        .join("materials")
+        .join("default.material.toml")
+        .exists());
     assert!(paths.assets_root().join("models").join("cube.obj").exists());
 
     assert_eq!(loaded.world.nodes().len(), world.nodes().len());
@@ -100,14 +104,29 @@ fn create_renderable_template_scaffolds_directory_project_defaults() {
 
     assert!(paths.root().exists());
     assert!(paths.manifest_path().exists());
-    assert!(paths.assets_root().join("scenes").join("main.scene.toml").exists());
-    assert!(paths.assets_root().join("materials").join("default.material.toml").exists());
-    assert!(paths.assets_root().join("shaders").join("pbr.wgsl").exists());
+    assert!(paths
+        .assets_root()
+        .join("scenes")
+        .join("main.scene.toml")
+        .exists());
+    assert!(paths
+        .assets_root()
+        .join("materials")
+        .join("default.material.toml")
+        .exists());
+    assert!(paths
+        .assets_root()
+        .join("shaders")
+        .join("pbr.wgsl")
+        .exists());
     assert!(paths.library_root().exists());
 
     let loaded = EditorProjectDocument::load_from_path(&created_root).unwrap();
     assert_eq!(loaded.manifest.name, "WelcomeProject");
-    assert_eq!(loaded.manifest.default_scene.to_string(), "res://scenes/main.scene.toml");
+    assert_eq!(
+        loaded.manifest.default_scene.to_string(),
+        "res://scenes/main.scene.toml"
+    );
     assert!(!loaded.world.nodes().is_empty());
 
     let _ = fs::remove_dir_all(&location);

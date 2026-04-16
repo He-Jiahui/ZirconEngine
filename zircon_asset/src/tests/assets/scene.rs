@@ -1,6 +1,6 @@
 use crate::{
-    AssetReference, AssetUri, AssetUuid, SceneAsset, SceneCameraAsset,
-    SceneDirectionalLightAsset, SceneEntityAsset, SceneMeshInstanceAsset, TransformAsset,
+    AssetReference, AssetUri, AssetUuid, SceneAsset, SceneCameraAsset, SceneDirectionalLightAsset,
+    SceneEntityAsset, SceneMeshInstanceAsset, SceneMobilityAsset, TransformAsset,
 };
 
 #[test]
@@ -17,6 +17,8 @@ fn scene_asset_toml_roundtrip_preserves_entities_and_bindings() {
                     scale: [1.0, 1.0, 1.0],
                 },
                 active: true,
+                render_layer_mask: 0x0000_0001,
+                mobility: SceneMobilityAsset::Dynamic,
                 camera: Some(SceneCameraAsset {
                     fov_y_radians: 1.0471976,
                     z_near: 0.1,
@@ -35,6 +37,8 @@ fn scene_asset_toml_roundtrip_preserves_entities_and_bindings() {
                     scale: [1.0, 1.0, 1.0],
                 },
                 active: true,
+                render_layer_mask: 0x0000_0001,
+                mobility: SceneMobilityAsset::Dynamic,
                 camera: None,
                 mesh: Some(SceneMeshInstanceAsset {
                     model: AssetReference::new(
@@ -58,6 +62,8 @@ fn scene_asset_toml_roundtrip_preserves_entities_and_bindings() {
                     scale: [1.0, 1.0, 1.0],
                 },
                 active: true,
+                render_layer_mask: 0x0000_0004,
+                mobility: SceneMobilityAsset::Static,
                 camera: None,
                 mesh: None,
                 directional_light: Some(SceneDirectionalLightAsset {
@@ -90,9 +96,30 @@ mesh = { model = "res://models/robot.gltf", material = "res://materials/robot.ma
     let loaded = SceneAsset::from_toml_str(document).unwrap();
     let mesh = loaded.entities[0].mesh.as_ref().unwrap();
 
-    assert_eq!(mesh.model.locator, AssetUri::parse("res://models/robot.gltf").unwrap());
+    assert_eq!(
+        mesh.model.locator,
+        AssetUri::parse("res://models/robot.gltf").unwrap()
+    );
     assert_eq!(
         mesh.material.locator,
         AssetUri::parse("res://materials/robot.material.toml").unwrap()
     );
+}
+
+#[test]
+fn scene_asset_defaults_new_runtime_foundation_fields_when_omitted() {
+    let document = r#"
+[[entities]]
+entity = 7
+name = "Legacy"
+transform = { translation = [0.0, 0.0, 0.0], rotation = [0.0, 0.0, 0.0, 1.0], scale = [1.0, 1.0, 1.0] }
+active = true
+"#;
+
+    let loaded = SceneAsset::from_toml_str(document).unwrap();
+    let entity = &loaded.entities[0];
+
+    assert!(entity.active);
+    assert_eq!(entity.render_layer_mask, 0x0000_0001);
+    assert_eq!(entity.mobility, SceneMobilityAsset::Dynamic);
 }

@@ -1,3 +1,4 @@
+use crossbeam_channel::RecvTimeoutError;
 use std::fs;
 use std::time::{Duration, Instant};
 
@@ -11,7 +12,10 @@ use crate::tests::support::{
     write_checker_png, write_default_material, write_default_scene, write_triangle_obj,
     write_valid_wgsl,
 };
-use crate::{AssetUri, MaterialAsset, ProjectAssetManager, ProjectManifest, ProjectPaths, RuntimeResourceState};
+use crate::{
+    AssetUri, MaterialAsset, ProjectAssetManager, ProjectManifest, ProjectPaths,
+    RuntimeResourceState,
+};
 
 #[test]
 fn asset_manager_opens_project_reports_assets_and_publishes_changes() {
@@ -62,7 +66,10 @@ fn asset_manager_opens_project_reports_assets_and_publishes_changes() {
     let material_id = manager
         .resolve_asset_id(&AssetUri::parse("res://materials/grid.material.toml").unwrap())
         .expect("material asset id");
-    assert_eq!(manager.load_model_asset(model_id).unwrap().primitives.len(), 1);
+    assert_eq!(
+        manager.load_model_asset(model_id).unwrap().primitives.len(),
+        1
+    );
     assert_eq!(
         manager
             .load_material_asset(material_id)
@@ -104,11 +111,13 @@ fn asset_manager_watcher_reimports_modified_assets() {
 
     let manager = ProjectAssetManager::default();
     let changes = manager.subscribe_asset_changes();
-    manager.open_project(root.to_string_lossy().as_ref()).unwrap();
+    manager
+        .open_project(root.to_string_lossy().as_ref())
+        .unwrap();
     while changes.recv_timeout(Duration::from_millis(50)).is_ok() {}
 
-    let mut material = MaterialAsset::from_toml_str(&fs::read_to_string(&material_path).unwrap())
-        .unwrap();
+    let mut material =
+        MaterialAsset::from_toml_str(&fs::read_to_string(&material_path).unwrap()).unwrap();
     material.base_color = [0.2, 0.7, 0.9, 1.0];
     fs::write(&material_path, material.to_toml_string().unwrap()).unwrap();
 
@@ -124,7 +133,10 @@ fn asset_manager_watcher_reimports_modified_assets() {
         }
     }
 
-    assert!(modified.is_some(), "watcher did not report material modification");
+    assert!(
+        modified.is_some(),
+        "watcher did not report material modification"
+    );
     let material_id = manager
         .resolve_asset_id(&AssetUri::parse("res://materials/grid.material.toml").unwrap())
         .expect("material asset id");
@@ -161,7 +173,9 @@ fn resource_server_reports_resource_records_for_project_assets() {
     write_default_scene(paths.assets_root().join("scenes").join("main.scene.toml"));
 
     let manager = ProjectAssetManager::default();
-    manager.open_project(root.to_string_lossy().as_ref()).unwrap();
+    manager
+        .open_project(root.to_string_lossy().as_ref())
+        .unwrap();
 
     let status = manager
         .resource_status("res://models/triangle.obj")
@@ -169,7 +183,10 @@ fn resource_server_reports_resource_records_for_project_assets() {
     assert_eq!(status.kind, AssetRecordKind::Model);
     assert_eq!(status.state, ResourceStateRecord::Ready);
     assert_eq!(status.revision, 1);
-    assert!(status.artifact_locator.as_deref().is_some_and(|uri| uri.starts_with("lib://")));
+    assert!(status
+        .artifact_locator
+        .as_deref()
+        .is_some_and(|uri| uri.starts_with("lib://")));
     assert!(status.dependency_ids.is_empty());
     assert!(status.diagnostics.is_empty());
     assert_eq!(
@@ -183,15 +200,42 @@ fn resource_server_reports_resource_records_for_project_assets() {
 
     let resources = manager.list_resources();
     assert!(
-        resources.iter().any(|record| record.locator == "builtin://shader/pbr.wgsl"),
+        resources
+            .iter()
+            .any(|record| record.locator == "builtin://shader/pbr.wgsl"),
         "builtin resources should be visible through ResourceManager"
     );
     assert!(
-        resources.iter().any(|record| record.locator == "res://models/triangle.obj"),
+        resources
+            .iter()
+            .any(|record| record.locator == "builtin://editor/icons/albums-outline.svg"),
+        "editor builtin icon resources should be visible through ResourceManager"
+    );
+    assert!(
+        resources
+            .iter()
+            .any(|record| record.locator == "res://models/triangle.obj"),
         "project resources should be visible through ResourceManager"
     );
 
     let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn builtin_editor_icons_are_registered_as_texture_resources() {
+    let manager = ProjectAssetManager::default();
+    let icon_uri = AssetUri::parse("builtin://editor/icons/albums-outline.svg").unwrap();
+    let icon_id = manager
+        .resolve_asset_id(&icon_uri)
+        .expect("builtin editor icon id");
+    let icon = manager
+        .load_texture_asset(icon_id)
+        .expect("builtin editor icon");
+
+    assert_eq!(icon.uri, icon_uri);
+    assert_eq!(icon.width, 1);
+    assert_eq!(icon.height, 1);
+    assert_eq!(icon.rgba.len(), 4);
 }
 
 #[test]
@@ -218,14 +262,16 @@ fn resource_server_reimport_bumps_revision_and_publishes_updated_event() {
     write_default_scene(paths.assets_root().join("scenes").join("main.scene.toml"));
 
     let manager = ProjectAssetManager::default();
-    manager.open_project(root.to_string_lossy().as_ref()).unwrap();
+    manager
+        .open_project(root.to_string_lossy().as_ref())
+        .unwrap();
     let resource_changes = manager.subscribe_resource_changes();
     let baseline_revision = manager
         .resource_revision("res://materials/grid.material.toml")
         .expect("baseline revision");
 
-    let mut material = MaterialAsset::from_toml_str(&fs::read_to_string(&material_path).unwrap())
-        .unwrap();
+    let mut material =
+        MaterialAsset::from_toml_str(&fs::read_to_string(&material_path).unwrap()).unwrap();
     material.base_color = [0.6, 0.2, 0.9, 1.0];
     fs::write(&material_path, material.to_toml_string().unwrap()).unwrap();
 
@@ -261,6 +307,215 @@ fn resource_server_reimport_bumps_revision_and_publishes_updated_event() {
 }
 
 #[test]
+fn importing_one_asset_does_not_bump_unrelated_resource_revisions() {
+    let root = unique_temp_project_root("asset_manager_unrelated_revision");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths.ensure_layout().unwrap();
+    ProjectManifest::new(
+        "Sandbox",
+        AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+        1,
+    )
+    .save(paths.manifest_path())
+    .unwrap();
+
+    write_valid_wgsl(paths.assets_root().join("shaders").join("pbr.wgsl"));
+    write_checker_png(paths.assets_root().join("textures").join("checker.png"));
+    let model_path = paths.assets_root().join("models").join("triangle.obj");
+    write_triangle_obj(model_path);
+    let material_path = paths
+        .assets_root()
+        .join("materials")
+        .join("grid.material.toml");
+    write_default_material(material_path.clone());
+    write_default_scene(paths.assets_root().join("scenes").join("main.scene.toml"));
+
+    let manager = ProjectAssetManager::default();
+    manager
+        .open_project(root.to_string_lossy().as_ref())
+        .unwrap();
+
+    let baseline_material_revision = manager
+        .resource_revision("res://materials/grid.material.toml")
+        .expect("material revision");
+    let baseline_model_revision = manager
+        .resource_revision("res://models/triangle.obj")
+        .expect("model revision");
+
+    let mut material =
+        MaterialAsset::from_toml_str(&fs::read_to_string(&material_path).unwrap()).unwrap();
+    material.base_color = [0.1, 0.6, 0.8, 1.0];
+    fs::write(&material_path, material.to_toml_string().unwrap()).unwrap();
+
+    manager
+        .import_asset("res://materials/grid.material.toml")
+        .unwrap();
+
+    assert!(
+        manager
+            .resource_revision("res://materials/grid.material.toml")
+            .expect("updated material revision")
+            > baseline_material_revision
+    );
+    assert_eq!(
+        manager.resource_revision("res://models/triangle.obj"),
+        Some(baseline_model_revision),
+        "reimporting one asset must not bump unrelated resource revisions",
+    );
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn watcher_ignores_meta_sidecar_updates_for_revision_tracking() {
+    let root = unique_temp_project_root("asset_manager_meta_sidecar");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths.ensure_layout().unwrap();
+    ProjectManifest::new(
+        "Sandbox",
+        AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+        1,
+    )
+    .save(paths.manifest_path())
+    .unwrap();
+
+    write_valid_wgsl(paths.assets_root().join("shaders").join("pbr.wgsl"));
+    write_checker_png(paths.assets_root().join("textures").join("checker.png"));
+    write_triangle_obj(paths.assets_root().join("models").join("triangle.obj"));
+    let material_path = paths
+        .assets_root()
+        .join("materials")
+        .join("grid.material.toml");
+    write_default_material(material_path.clone());
+    write_default_scene(paths.assets_root().join("scenes").join("main.scene.toml"));
+
+    let manager = ProjectAssetManager::default();
+    let asset_changes = manager.subscribe_asset_changes();
+    manager
+        .open_project(root.to_string_lossy().as_ref())
+        .unwrap();
+    while asset_changes
+        .recv_timeout(Duration::from_millis(50))
+        .is_ok()
+    {}
+
+    let baseline_revision = manager
+        .resource_revision("res://materials/grid.material.toml")
+        .expect("baseline material revision");
+    let meta_path = material_path.with_file_name("grid.material.toml.meta.toml");
+    let meta_before = fs::read_to_string(&meta_path).unwrap();
+    fs::write(&meta_path, meta_before).unwrap();
+
+    let deadline = Instant::now() + Duration::from_millis(800);
+    let mut saw_material_change = false;
+    while Instant::now() < deadline {
+        let remaining = deadline.saturating_duration_since(Instant::now());
+        match asset_changes.recv_timeout(remaining.min(Duration::from_millis(100))) {
+            Ok(change) => {
+                if change.uri == "res://materials/grid.material.toml" {
+                    saw_material_change = true;
+                    break;
+                }
+            }
+            Err(RecvTimeoutError::Timeout) => continue,
+            Err(RecvTimeoutError::Disconnected) => break,
+        }
+    }
+
+    assert!(
+        !saw_material_change,
+        "sidecar-only updates must not emit asset changes for the source asset"
+    );
+    assert_eq!(
+        manager.resource_revision("res://materials/grid.material.toml"),
+        Some(baseline_revision),
+        "sidecar-only updates must not bump resource revisions",
+    );
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn watcher_reimports_modified_asset_once_without_revision_loop() {
+    let root = unique_temp_project_root("asset_manager_single_watch_reimport");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths.ensure_layout().unwrap();
+    ProjectManifest::new(
+        "Sandbox",
+        AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+        1,
+    )
+    .save(paths.manifest_path())
+    .unwrap();
+
+    write_valid_wgsl(paths.assets_root().join("shaders").join("pbr.wgsl"));
+    write_checker_png(paths.assets_root().join("textures").join("checker.png"));
+    write_triangle_obj(paths.assets_root().join("models").join("triangle.obj"));
+    let material_path = paths
+        .assets_root()
+        .join("materials")
+        .join("grid.material.toml");
+    write_default_material(material_path.clone());
+    write_default_scene(paths.assets_root().join("scenes").join("main.scene.toml"));
+
+    let manager = ProjectAssetManager::default();
+    let asset_changes = manager.subscribe_asset_changes();
+    manager
+        .open_project(root.to_string_lossy().as_ref())
+        .unwrap();
+    while asset_changes
+        .recv_timeout(Duration::from_millis(50))
+        .is_ok()
+    {}
+
+    let baseline_material_revision = manager
+        .resource_revision("res://materials/grid.material.toml")
+        .expect("baseline material revision");
+    let baseline_model_revision = manager
+        .resource_revision("res://models/triangle.obj")
+        .expect("baseline model revision");
+
+    let mut material =
+        MaterialAsset::from_toml_str(&fs::read_to_string(&material_path).unwrap()).unwrap();
+    material.base_color = [0.7, 0.3, 0.2, 1.0];
+    fs::write(&material_path, material.to_toml_string().unwrap()).unwrap();
+
+    let deadline = Instant::now() + Duration::from_secs(2);
+    let mut material_changes = 0;
+    while Instant::now() < deadline {
+        let remaining = deadline.saturating_duration_since(Instant::now());
+        match asset_changes.recv_timeout(remaining.min(Duration::from_millis(150))) {
+            Ok(change) => {
+                if change.kind == FacadeAssetChangeKind::Modified
+                    && change.uri == "res://materials/grid.material.toml"
+                {
+                    material_changes += 1;
+                }
+            }
+            Err(RecvTimeoutError::Timeout) => continue,
+            Err(RecvTimeoutError::Disconnected) => break,
+        }
+    }
+
+    assert_eq!(
+        material_changes, 1,
+        "one source edit should produce one material change notification",
+    );
+    assert_eq!(
+        manager.resource_revision("res://materials/grid.material.toml"),
+        Some(baseline_material_revision + 1),
+        "one source edit should bump the changed asset revision once",
+    );
+    assert_eq!(
+        manager.resource_revision("res://models/triangle.obj"),
+        Some(baseline_model_revision),
+        "watcher reimport should not bump unrelated resource revisions",
+    );
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn asset_manager_acquire_release_unloads_and_rehydrates_runtime_resources() {
     let root = unique_temp_project_root("asset_manager_runtime_leases");
     let paths = ProjectPaths::from_root(&root).unwrap();
@@ -285,7 +540,9 @@ fn asset_manager_acquire_release_unloads_and_rehydrates_runtime_resources() {
     write_default_scene(paths.assets_root().join("scenes").join("main.scene.toml"));
 
     let manager = ProjectAssetManager::default();
-    manager.open_project(root.to_string_lossy().as_ref()).unwrap();
+    manager
+        .open_project(root.to_string_lossy().as_ref())
+        .unwrap();
     let material_id = manager
         .resolve_asset_id(&AssetUri::parse("res://materials/grid.material.toml").unwrap())
         .expect("material asset id");

@@ -90,7 +90,10 @@ impl EditorUiControlService {
         self.event_manager.query_tree(tree_id)
     }
 
-    pub fn query_node(&self, node_path: &zircon_ui::UiNodePath) -> Option<zircon_ui::UiNodeDescriptor> {
+    pub fn query_node(
+        &self,
+        node_path: &zircon_ui::UiNodePath,
+    ) -> Option<zircon_ui::UiNodeDescriptor> {
         self.event_manager.query_node(node_path)
     }
 

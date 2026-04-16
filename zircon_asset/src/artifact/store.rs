@@ -61,5 +61,8 @@ fn asset_kind_directory(kind: AssetKind) -> &'static str {
         AssetKind::Material => "materials",
         AssetKind::Scene => "scenes",
         AssetKind::Model => "models",
+        AssetKind::UiLayout => "ui/layouts",
+        AssetKind::UiWidget => "ui/widgets",
+        AssetKind::UiStyle => "ui/styles",
     }
 }

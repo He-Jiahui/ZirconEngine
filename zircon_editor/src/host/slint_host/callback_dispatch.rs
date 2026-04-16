@@ -1,135 +1,57 @@
-use zircon_scene::NodeId;
+mod asset;
+mod common;
+mod constants;
+mod hierarchy;
+mod inspector;
+mod layout;
+mod pane;
+mod shared_pointer;
+mod template_bridge;
+mod viewport;
+mod welcome;
+mod workbench;
 
-use crate::editor_event::{
-    host_adapter, EditorAssetEvent, EditorAssetSurface, EditorAssetUtilityTab,
-    EditorAssetViewMode, EditorEvent, EditorEventEnvelope, EditorEventRuntime, EditorEventSource,
-    EditorInspectorEvent, EditorViewportEvent,
+#[cfg(test)]
+pub(crate) use asset::{dispatch_asset_item_selection, dispatch_asset_search};
+pub(crate) use asset::{dispatch_builtin_asset_surface_control, dispatch_mesh_import_path_edit};
+pub(crate) use hierarchy::dispatch_hierarchy_selection;
+pub(crate) use inspector::dispatch_builtin_inspector_surface_control;
+#[cfg(test)]
+pub(crate) use inspector::{
+    dispatch_inspector_apply, dispatch_inspector_delete_selected, dispatch_inspector_draft_field,
 };
-use crate::LayoutCommand;
-
-use super::event_bridge::{apply_record_effects, SlintDispatchEffects};
-
-fn dispatch_envelope(
-    runtime: &EditorEventRuntime,
-    envelope: EditorEventEnvelope,
-) -> Result<SlintDispatchEffects, String> {
-    let record = runtime.dispatch_envelope(envelope)?;
-    let mut effects = SlintDispatchEffects::default();
-    apply_record_effects(&mut effects, &record);
-    Ok(effects)
-}
-
-pub(crate) fn dispatch_menu_action(
-    runtime: &EditorEventRuntime,
-    action: &str,
-) -> Result<SlintDispatchEffects, String> {
-    dispatch_envelope(runtime, host_adapter::slint_menu_action(action)?)
-}
-
-pub(crate) fn dispatch_layout_command(
-    runtime: &EditorEventRuntime,
-    command: LayoutCommand,
-) -> Result<SlintDispatchEffects, String> {
-    dispatch_envelope(
-        runtime,
-        EditorEventEnvelope::new(EditorEventSource::Slint, crate::EditorEvent::Layout(command)),
-    )
-}
-
-pub(crate) fn dispatch_hierarchy_selection(
-    runtime: &EditorEventRuntime,
-    node_id: NodeId,
-) -> Result<SlintDispatchEffects, String> {
-    dispatch_envelope(runtime, host_adapter::slint_hierarchy_selection(node_id))
-}
-
-pub(crate) fn dispatch_asset_folder_selection(
-    runtime: &EditorEventRuntime,
-    folder_id: impl Into<String>,
-) -> Result<SlintDispatchEffects, String> {
-    dispatch_envelope(runtime, host_adapter::slint_asset_folder_selection(folder_id))
-}
-
-pub(crate) fn dispatch_asset_item_selection(
-    runtime: &EditorEventRuntime,
-    asset_uuid: impl Into<String>,
-) -> Result<SlintDispatchEffects, String> {
-    dispatch_envelope(runtime, host_adapter::slint_asset_item_selection(asset_uuid))
-}
-
-pub(crate) fn dispatch_asset_search(
-    runtime: &EditorEventRuntime,
-    query: impl Into<String>,
-) -> Result<SlintDispatchEffects, String> {
-    dispatch_envelope(runtime, host_adapter::slint_asset_search(query))
-}
-
-pub(crate) fn dispatch_asset_kind_filter(
-    runtime: &EditorEventRuntime,
-    kind: Option<String>,
-) -> Result<SlintDispatchEffects, String> {
-    dispatch_envelope(runtime, host_adapter::slint_asset_kind_filter(kind))
-}
-
-pub(crate) fn dispatch_asset_view_mode(
-    runtime: &EditorEventRuntime,
-    surface: EditorAssetSurface,
-    view_mode: EditorAssetViewMode,
-) -> Result<SlintDispatchEffects, String> {
-    dispatch_envelope(runtime, host_adapter::slint_asset_view_mode(surface, view_mode))
-}
-
-pub(crate) fn dispatch_asset_utility_tab(
-    runtime: &EditorEventRuntime,
-    surface: EditorAssetSurface,
-    tab: EditorAssetUtilityTab,
-) -> Result<SlintDispatchEffects, String> {
-    dispatch_envelope(runtime, host_adapter::slint_asset_utility_tab(surface, tab))
-}
-
-pub(crate) fn dispatch_asset_activate_reference(
-    runtime: &EditorEventRuntime,
-    asset_uuid: impl Into<String>,
-) -> Result<SlintDispatchEffects, String> {
-    dispatch_envelope(
-        runtime,
-        EditorEventEnvelope::new(
-            EditorEventSource::Slint,
-            EditorEvent::Asset(EditorAssetEvent::ActivateReference {
-                asset_uuid: asset_uuid.into(),
-            }),
-        ),
-    )
-}
-
-pub(crate) fn dispatch_open_asset_browser(
-    runtime: &EditorEventRuntime,
-) -> Result<SlintDispatchEffects, String> {
-    dispatch_envelope(runtime, host_adapter::slint_open_asset_browser())
-}
-
-pub(crate) fn dispatch_locate_selected_asset(
-    runtime: &EditorEventRuntime,
-) -> Result<SlintDispatchEffects, String> {
-    dispatch_envelope(runtime, host_adapter::slint_locate_selected_asset())
-}
-
-pub(crate) fn dispatch_viewport_event(
-    runtime: &EditorEventRuntime,
-    event: EditorViewportEvent,
-) -> Result<SlintDispatchEffects, String> {
-    dispatch_envelope(runtime, host_adapter::slint_viewport(event))
-}
-
-pub(crate) fn dispatch_inspector_apply(
-    runtime: &EditorEventRuntime,
-    event: EditorInspectorEvent,
-) -> Result<SlintDispatchEffects, String> {
-    dispatch_envelope(
-        runtime,
-        EditorEventEnvelope::new(
-            EditorEventSource::Slint,
-            crate::EditorEvent::Inspector(event),
-        ),
-    )
-}
+pub(crate) use layout::{
+    dispatch_builtin_floating_window_focus, dispatch_builtin_floating_window_focus_for_source,
+    dispatch_builtin_workbench_document_tab_activation,
+    dispatch_builtin_workbench_document_tab_close, dispatch_builtin_workbench_drawer_toggle,
+    dispatch_builtin_workbench_host_page_activation, dispatch_layout_command, dispatch_tab_drop,
+    resolve_builtin_floating_window_close_instances,
+};
+pub(crate) use pane::dispatch_builtin_pane_surface_control;
+pub(crate) use shared_pointer::{
+    dispatch_shared_activity_rail_pointer_click, dispatch_shared_asset_content_pointer_click,
+    dispatch_shared_asset_reference_pointer_click, dispatch_shared_asset_tree_pointer_click,
+    dispatch_shared_document_tab_close_pointer_click, dispatch_shared_document_tab_pointer_click,
+    dispatch_shared_drawer_header_pointer_click, dispatch_shared_hierarchy_pointer_click,
+    dispatch_shared_host_page_pointer_click, dispatch_shared_menu_pointer_click,
+    dispatch_shared_viewport_toolbar_pointer_click, dispatch_shared_welcome_recent_pointer_click,
+};
+pub(crate) use template_bridge::{
+    BuiltinAssetSurfaceTemplateBridge, BuiltinInspectorSurfaceTemplateBridge,
+    BuiltinPaneSurfaceTemplateBridge, BuiltinViewportToolbarTemplateBridge,
+    BuiltinWelcomeSurfaceTemplateBridge, BuiltinWorkbenchTemplateBridge,
+};
+#[cfg(test)]
+pub(crate) use viewport::{dispatch_builtin_viewport_toolbar_control, dispatch_viewport_command};
+pub(crate) use viewport::{
+    dispatch_viewport_event, dispatch_viewport_pointer_event,
+    dispatch_viewport_toolbar_pointer_route, viewport_event_from_command,
+    SharedViewportPointerBridge,
+};
+pub(crate) use welcome::dispatch_builtin_welcome_surface_control;
+pub(crate) use workbench::dispatch_workbench_menu_action_with_template_fallback;
+#[cfg(test)]
+pub(crate) use workbench::{
+    dispatch_builtin_workbench_control, dispatch_builtin_workbench_menu_action,
+    dispatch_menu_action,
+};

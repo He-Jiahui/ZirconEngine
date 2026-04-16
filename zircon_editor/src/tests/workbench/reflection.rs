@@ -1,8 +1,8 @@
+use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
 use crate::{
     activity_descriptors_from_views, build_workbench_reflection_model, default_preview_fixture,
     register_workbench_reflection_routes, WorkbenchViewModel,
 };
-use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
 use zircon_editor_ui::{EditorUiControlService, EditorUiReflectionAdapter};
 use zircon_ui::{UiBindingValue, UiControlRequest, UiControlResponse, UiNodePath};
 
@@ -19,6 +19,9 @@ fn workbench_reflection_model_projects_menu_and_activity_descriptors() {
     assert!(windows
         .iter()
         .any(|descriptor| descriptor.window_id == "editor.asset_browser"));
+    assert!(windows
+        .iter()
+        .any(|descriptor| descriptor.window_id == "editor.ui_asset"));
 
     let reflection = build_workbench_reflection_model(&chrome, &view_model);
     let snapshot = EditorUiReflectionAdapter::build_snapshot(&reflection);
@@ -52,7 +55,24 @@ fn workbench_reflection_model_projects_menu_and_activity_descriptors() {
         inspector,
         UiControlResponse::Node(Some(node))
             if node.actions.contains_key("apply_batch")
+                && node.actions.contains_key("edit_field")
                 && node.actions["apply_batch"].binding_symbol == "InspectorFieldBatch"
+                && node.actions["edit_field"].binding_symbol
+                    == "DraftCommand.SetInspectorField"
+    ));
+
+    let assets = service.handle_request(UiControlRequest::QueryNode {
+        node_path: UiNodePath::new("editor/workbench/drawers/left_top/editor.assets#1"),
+    });
+    assert!(matches!(
+        assets,
+        UiControlResponse::Node(Some(node))
+            if node.actions.contains_key("set_mesh_import_path")
+                && node.actions.contains_key("import_model")
+                && node.actions["set_mesh_import_path"].binding_symbol
+                    == "DraftCommand.SetMeshImportPath"
+                && node.actions["import_model"].binding_symbol
+                    == "AssetCommand.ImportModel"
     ));
 }
 
@@ -100,6 +120,20 @@ fn workbench_reflection_routes_mark_activity_actions_as_remotely_callable() {
         UiControlResponse::Node(Some(node))
             if node.actions["apply_batch"].callable_from_remote
                 && node.actions["apply_batch"].route_id.is_some()
+                && node.actions["edit_field"].callable_from_remote
+                && node.actions["edit_field"].route_id.is_some()
+    ));
+
+    let assets = service.handle_request(UiControlRequest::QueryNode {
+        node_path: UiNodePath::new("editor/workbench/drawers/left_top/editor.assets#1"),
+    });
+    assert!(matches!(
+        assets,
+        UiControlResponse::Node(Some(node))
+            if node.actions["set_mesh_import_path"].callable_from_remote
+                && node.actions["set_mesh_import_path"].route_id.is_some()
+                && node.actions["import_model"].callable_from_remote
+                && node.actions["import_model"].route_id.is_some()
     ));
 }
 
@@ -108,23 +142,25 @@ fn workbench_reflection_call_action_dispatches_docking_inspector_and_viewport_ac
     let _guard = env_lock().lock().unwrap();
     let runtime = EventRuntimeHarness::new("zircon_workbench_reflection_runtime");
 
-    let inspector = runtime.runtime.handle_control_request(UiControlRequest::CallAction {
-        node_path: UiNodePath::new("editor/workbench/drawers/right_top/editor.inspector#1"),
-        action_id: "apply_batch".to_string(),
-        arguments: vec![
-            UiBindingValue::string("entity://selected"),
-            UiBindingValue::array(vec![
+    let inspector = runtime
+        .runtime
+        .handle_control_request(UiControlRequest::CallAction {
+            node_path: UiNodePath::new("editor/workbench/drawers/right_top/editor.inspector#1"),
+            action_id: "apply_batch".to_string(),
+            arguments: vec![
+                UiBindingValue::string("entity://selected"),
                 UiBindingValue::array(vec![
-                    UiBindingValue::string("name"),
-                    UiBindingValue::string("Bound Cube"),
+                    UiBindingValue::array(vec![
+                        UiBindingValue::string("name"),
+                        UiBindingValue::string("Bound Cube"),
+                    ]),
+                    UiBindingValue::array(vec![
+                        UiBindingValue::string("transform.translation.x"),
+                        UiBindingValue::Float(4.0),
+                    ]),
                 ]),
-                UiBindingValue::array(vec![
-                    UiBindingValue::string("transform.translation.x"),
-                    UiBindingValue::Float(4.0),
-                ]),
-            ]),
-        ],
-    });
+            ],
+        });
     assert!(matches!(
         inspector,
         UiControlResponse::Invocation(result)
@@ -146,14 +182,16 @@ fn workbench_reflection_call_action_dispatches_docking_inspector_and_viewport_ac
         Some("4.00")
     );
 
-    let viewport = runtime.runtime.handle_control_request(UiControlRequest::CallAction {
-        node_path: UiNodePath::new("editor/workbench/pages/workbench/editor.scene#1"),
-        action_id: "resize".to_string(),
-        arguments: vec![
-            UiBindingValue::Unsigned(1024),
-            UiBindingValue::Unsigned(768),
-        ],
-    });
+    let viewport = runtime
+        .runtime
+        .handle_control_request(UiControlRequest::CallAction {
+            node_path: UiNodePath::new("editor/workbench/pages/workbench/editor.scene#1"),
+            action_id: "resize".to_string(),
+            arguments: vec![
+                UiBindingValue::Unsigned(1024),
+                UiBindingValue::Unsigned(768),
+            ],
+        });
     assert!(matches!(
         viewport,
         UiControlResponse::Invocation(result)
@@ -164,15 +202,102 @@ fn workbench_reflection_call_action_dispatches_docking_inspector_and_viewport_ac
         zircon_math::UVec2::new(1024, 768)
     );
 
-    let docking = runtime.runtime.handle_control_request(UiControlRequest::CallAction {
-        node_path: UiNodePath::new("editor/workbench/pages/workbench/editor.scene#1"),
-        action_id: "detach_to_window".to_string(),
-        arguments: Vec::new(),
-    });
+    let docking = runtime
+        .runtime
+        .handle_control_request(UiControlRequest::CallAction {
+            node_path: UiNodePath::new("editor/workbench/pages/workbench/editor.scene#1"),
+            action_id: "detach_to_window".to_string(),
+            arguments: Vec::new(),
+        });
     assert!(matches!(
         docking,
         UiControlResponse::Invocation(result)
             if result.error.is_none() && result.value.is_some()
     ));
     assert_eq!(runtime.runtime.current_layout().floating_windows.len(), 1);
+}
+
+#[test]
+fn workbench_reflection_call_action_dispatches_typed_draft_actions() {
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::new("zircon_workbench_reflection_draft_runtime");
+
+    let inspector = runtime
+        .runtime
+        .handle_control_request(UiControlRequest::CallAction {
+            node_path: UiNodePath::new("editor/workbench/drawers/right_top/editor.inspector#1"),
+            action_id: "edit_field".to_string(),
+            arguments: vec![
+                UiBindingValue::string("entity://selected"),
+                UiBindingValue::string("name"),
+                UiBindingValue::string("Drafted Cube"),
+            ],
+        });
+    assert!(matches!(
+        inspector,
+        UiControlResponse::Invocation(result)
+            if result.error.is_none()
+                && result.value.is_some()
+                && result
+                    .binding
+                    .as_ref()
+                    .map(|binding| binding.path.control_id.as_str())
+                    == Some("NameField")
+    ));
+    assert_eq!(
+        runtime
+            .runtime
+            .editor_snapshot()
+            .inspector
+            .as_ref()
+            .map(|inspector| inspector.name.as_str()),
+        Some("Drafted Cube")
+    );
+
+    let mesh_import = runtime
+        .runtime
+        .handle_control_request(UiControlRequest::CallAction {
+            node_path: UiNodePath::new("editor/workbench/drawers/left_top/editor.assets#1"),
+            action_id: "set_mesh_import_path".to_string(),
+            arguments: vec![UiBindingValue::string("E:/Models/cube.glb")],
+        });
+    assert!(matches!(
+        mesh_import,
+        UiControlResponse::Invocation(result)
+            if result.error.is_none() && result.value.is_some()
+    ));
+    assert_eq!(
+        runtime.runtime.editor_snapshot().mesh_import_path,
+        "E:/Models/cube.glb"
+    );
+}
+
+#[test]
+fn workbench_reflection_call_action_dispatches_asset_import_action() {
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::new("zircon_workbench_reflection_asset_import_runtime");
+
+    let import_model = runtime
+        .runtime
+        .handle_control_request(UiControlRequest::CallAction {
+            node_path: UiNodePath::new("editor/workbench/drawers/left_top/editor.assets#1"),
+            action_id: "import_model".to_string(),
+            arguments: Vec::new(),
+        });
+    assert!(matches!(
+        import_model,
+        UiControlResponse::Invocation(result)
+            if result.error.is_none() && result.value.is_some()
+    ));
+    assert_eq!(
+        runtime
+            .runtime
+            .journal()
+            .records()
+            .last()
+            .map(|record| &record.event),
+        Some(&crate::EditorEvent::Asset(
+            crate::EditorAssetEvent::ImportModel
+        ))
+    );
 }

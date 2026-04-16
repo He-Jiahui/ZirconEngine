@@ -1,0 +1,18 @@
+use zircon_graphics::ViewportState;
+use zircon_math::{UVec2, Vec3};
+use zircon_scene::SceneViewportSettings;
+
+use super::{scene_viewport_state::SceneViewportState, viewport_hover_state::ViewportHoverState};
+
+impl SceneViewportState {
+    pub(in crate::editing::viewport::controller) fn new(viewport_size: UVec2) -> Self {
+        Self {
+            settings: SceneViewportSettings::default(),
+            viewport: ViewportState::new(viewport_size),
+            camera: None,
+            orbit_target: Vec3::ZERO,
+            hover: ViewportHoverState::default(),
+            drag: None,
+        }
+    }
+}

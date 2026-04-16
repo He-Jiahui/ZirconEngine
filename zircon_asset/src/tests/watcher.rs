@@ -1,3 +1,6 @@
+use std::path::Path;
+
+use crate::watch::watched_asset_uri_for_path;
 use crate::{AssetChange, AssetChangeKind, AssetUri, AssetWatchEvent, AssetWatcher};
 
 #[test]
@@ -22,4 +25,12 @@ fn watcher_folds_redundant_events_into_latest_change_set() {
             Some(material),
         )]
     );
+}
+
+#[test]
+fn watcher_ignores_meta_sidecar_paths() {
+    let assets_root = Path::new("sandbox/assets");
+    let meta_path = Path::new("sandbox/assets/materials/grid.material.toml.meta.toml");
+
+    assert!(watched_asset_uri_for_path(assets_root, meta_path).is_err());
 }

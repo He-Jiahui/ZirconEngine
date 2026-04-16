@@ -1,0 +1,10 @@
+[package]
+name = "zircon_rhi"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Render hardware interface contracts and GPU resource descriptors."
+
+[dependencies]
+serde.workspace = true
+

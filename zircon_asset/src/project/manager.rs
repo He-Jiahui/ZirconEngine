@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use std::collections::hash_map::DefaultHasher;
+use std::collections::HashMap;
 use std::fs;
 use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
@@ -7,8 +7,8 @@ use std::time::UNIX_EPOCH;
 
 use crate::{
     ArtifactStore, AssetId, AssetImportError, AssetImporter, AssetKind, AssetMetaDocument,
-    AssetMetadata, AssetReference, AssetRegistry, AssetUri, AssetUuid, ImportedAsset,
-    ProjectManifest, ProjectPaths, PreviewState, ResourceId,
+    AssetMetadata, AssetReference, AssetRegistry, AssetUri, AssetUuid, ImportedAsset, PreviewState,
+    ProjectManifest, ProjectPaths, ResourceId,
 };
 
 const IMPORTER_VERSION: u32 = 1;
@@ -58,7 +58,9 @@ impl ProjectManager {
             let source_hash = hash_bytes(&source_bytes);
             let source_mtime_unix_ms = source_mtime_unix_ms(&file)?;
             let meta_path = meta_path_for_source(&file);
+            let meta_exists = meta_path.exists();
             let mut meta = load_or_create_meta(&meta_path, &uri, kind)?;
+            let previous_meta = meta.clone();
             let previous_source_hash = meta.source_hash.clone();
             meta.primary_locator = uri.clone();
             meta.kind = kind;
@@ -67,7 +69,9 @@ impl ProjectManager {
             if meta.source_hash != previous_source_hash {
                 meta.preview_state = PreviewState::Dirty;
             }
-            meta.save(&meta_path)?;
+            if !meta_exists || meta != previous_meta {
+                meta.save(&meta_path)?;
+            }
 
             let asset_id = ResourceId::from_asset_uuid_label(meta.asset_uuid, uri.label());
             let artifact_uri = self.artifact_store.write(
@@ -105,7 +109,9 @@ impl ProjectManager {
     }
 
     pub fn asset_id_for_uri(&self, uri: &AssetUri) -> Option<AssetId> {
-        self.registry.get_by_locator(uri).map(|metadata| metadata.id())
+        self.registry
+            .get_by_locator(uri)
+            .map(|metadata| metadata.id())
     }
 
     pub fn asset_id_for_uuid(&self, uuid: AssetUuid) -> Option<AssetId> {
@@ -113,7 +119,9 @@ impl ProjectManager {
     }
 
     pub fn asset_uri_for_id(&self, id: AssetId) -> Option<&AssetUri> {
-        self.registry.get(id).map(|metadata| metadata.primary_locator())
+        self.registry
+            .get(id)
+            .map(|metadata| metadata.primary_locator())
     }
 
     pub fn asset_reference_for_id(&self, id: AssetId) -> Option<AssetReference> {
@@ -132,11 +140,11 @@ impl ProjectManager {
             crate::AssetUriScheme::Library => Err(AssetImportError::UnsupportedFormat(format!(
                 "source path requested for library uri {uri}"
             ))),
-            crate::AssetUriScheme::Builtin | crate::AssetUriScheme::Memory => Err(
-                AssetImportError::UnsupportedFormat(format!(
+            crate::AssetUriScheme::Builtin | crate::AssetUriScheme::Memory => {
+                Err(AssetImportError::UnsupportedFormat(format!(
                     "source path requested for non-project uri {uri}"
-                )),
-            ),
+                )))
+            }
         }
     }
 
@@ -202,6 +210,9 @@ fn asset_kind(imported: &ImportedAsset) -> AssetKind {
         ImportedAsset::Material(_) => AssetKind::Material,
         ImportedAsset::Scene(_) => AssetKind::Scene,
         ImportedAsset::Model(_) => AssetKind::Model,
+        ImportedAsset::UiLayout(_) => AssetKind::UiLayout,
+        ImportedAsset::UiWidget(_) => AssetKind::UiWidget,
+        ImportedAsset::UiStyle(_) => AssetKind::UiStyle,
     }
 }
 
@@ -243,7 +254,5 @@ fn load_or_create_meta(
         return Ok(meta);
     }
 
-    let meta = AssetMetaDocument::new(AssetUuid::new(), uri.clone(), kind);
-    meta.save(meta_path)?;
-    Ok(meta)
+    Ok(AssetMetaDocument::new(AssetUuid::new(), uri.clone(), kind))
 }

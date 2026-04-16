@@ -7,13 +7,15 @@ fn workbench_shell_window_can_resize_and_toggle_maximize() {
     i_slint_backend_testing::init_no_event_loop();
 
     let ui = WorkbenchShell::new().expect("workbench shell should instantiate");
-    ui.show().expect("workbench shell should show in test backend");
+    ui.show()
+        .expect("workbench shell should show in test backend");
 
     let initial = ui.window().size();
     assert!(initial.width > 0);
     assert!(initial.height > 0);
 
-    ui.window().set_size(PhysicalSize::new(initial.width + 120, initial.height + 80));
+    ui.window()
+        .set_size(PhysicalSize::new(initial.width + 120, initial.height + 80));
 
     let resized = ui.window().size();
     assert_eq!(resized.width, initial.width + 120);

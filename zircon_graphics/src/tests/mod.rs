@@ -1,1 +1,14 @@
+mod hybrid_gi_gpu;
+mod hybrid_gi_resolve_render;
+mod hybrid_gi_runtime;
+mod hybrid_gi_visibility;
+mod m4_behavior_layers;
+mod m5_flagship_slots;
+mod pipeline_compile;
 mod project_render;
+mod render_server_bridge;
+mod scene_overlay;
+mod virtual_geometry_gpu;
+mod virtual_geometry_prepare_render;
+mod virtual_geometry_runtime;
+mod visibility;

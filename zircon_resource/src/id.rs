@@ -6,7 +6,7 @@ use uuid::Uuid;
 use crate::identity::{stable_uuid_from_components, AssetUuid};
 use crate::{ResourceLocator, ResourceScheme};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct ResourceId(Uuid);
 
 impl ResourceId {

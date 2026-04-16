@@ -1,7 +1,9 @@
-use zircon_math::Transform;
+use std::collections::{HashMap, HashSet};
+
+use zircon_math::{transform_to_mat4, Mat4, Transform};
 
 use super::World;
-use crate::components::{NodeKind, NodeRecord, SceneNode, WorldTransform};
+use crate::components::{ActiveInHierarchy, NodeKind, NodeRecord, SceneNode, WorldMatrix};
 use crate::EntityId;
 
 impl World {
@@ -18,7 +20,9 @@ impl World {
     }
 
     pub(super) fn rebuild_derived_state(&mut self) {
-        self.rebuild_world_transforms();
+        self.rebuild_hierarchy_validity();
+        self.rebuild_active_in_hierarchy();
+        self.rebuild_world_matrices();
         self.refresh_node_cache();
     }
 
@@ -27,12 +31,7 @@ impl World {
             return;
         };
         records.push(record);
-        let children: Vec<_> = self
-            .hierarchy
-            .iter()
-            .filter_map(|(child, hierarchy)| (hierarchy.parent == Some(entity)).then_some(*child))
-            .collect();
-        for child in children {
+        for child in self.children_of(entity) {
             self.collect_subtree_records(child, records);
         }
     }
@@ -48,51 +47,102 @@ impl World {
         false
     }
 
-    fn rebuild_world_transforms(&mut self) {
-        self.world_transforms.clear();
-        let roots: Vec<_> = self
+    pub(super) fn project_world_transform(&self, entity: EntityId) -> Option<Transform> {
+        self.world_matrices
+            .get(&entity)
+            .copied()
+            .map(|world| matrix_to_transform(world.0))
+    }
+
+    fn rebuild_hierarchy_validity(&mut self) {
+        let entities: HashSet<_> = self.entities.iter().copied().collect();
+        let parents: HashMap<_, _> = self
             .entities
             .iter()
             .copied()
-            .filter(|entity| {
-                self.hierarchy
-                    .get(entity)
-                    .and_then(|hierarchy| hierarchy.parent)
-                    .is_none_or(|parent| !self.entities.contains(&parent))
+            .map(|entity| {
+                (
+                    entity,
+                    self.hierarchy
+                        .get(&entity)
+                        .and_then(|hierarchy| hierarchy.parent),
+                )
             })
             .collect();
-        for root in roots {
-            self.propagate_world_transform(root, Transform::identity());
+
+        for entity in self.entities.iter().copied().collect::<Vec<_>>() {
+            let Some(hierarchy) = self.hierarchy.get_mut(&entity) else {
+                continue;
+            };
+            let parent = hierarchy.parent;
+            hierarchy.parent = parent.filter(|parent| {
+                *parent != entity
+                    && entities.contains(parent)
+                    && !parent_chain_is_invalid(*parent, entity, &parents)
+            });
         }
     }
 
-    fn propagate_world_transform(&mut self, entity: EntityId, parent_world: Transform) {
+    fn rebuild_active_in_hierarchy(&mut self) {
+        self.active_in_hierarchy.clear();
+        for root in self.root_entities() {
+            self.propagate_active_state(root, true);
+        }
+    }
+
+    fn rebuild_world_matrices(&mut self) {
+        self.world_matrices.clear();
+        for root in self.root_entities() {
+            self.propagate_world_matrix(root, Mat4::IDENTITY);
+        }
+    }
+
+    fn propagate_active_state(&mut self, entity: EntityId, parent_active: bool) {
+        let active = parent_active && self.active_self_value(entity);
+        self.active_in_hierarchy
+            .insert(entity, ActiveInHierarchy(active));
+        for child in self.children_of(entity) {
+            self.propagate_active_state(child, active);
+        }
+    }
+
+    fn propagate_world_matrix(&mut self, entity: EntityId, parent_world: Mat4) {
         let local = self
             .local_transforms
             .get(&entity)
             .copied()
             .unwrap_or_default()
             .transform;
-        let world = if self
-            .hierarchy
-            .get(&entity)
-            .and_then(|hierarchy| hierarchy.parent)
-            .is_some()
-        {
-            combine_transforms(parent_world, local)
+        let local_matrix = transform_to_mat4(local);
+        let world = if self.parent_of(entity).is_some() {
+            parent_world * local_matrix
         } else {
-            local
+            local_matrix
         };
-        self.world_transforms
-            .insert(entity, WorldTransform { transform: world });
-        let children: Vec<_> = self
-            .hierarchy
-            .iter()
-            .filter_map(|(child, hierarchy)| (hierarchy.parent == Some(entity)).then_some(*child))
-            .collect();
-        for child in children {
-            self.propagate_world_transform(child, world);
+        self.world_matrices.insert(entity, WorldMatrix(world));
+        for child in self.children_of(entity) {
+            self.propagate_world_matrix(child, world);
         }
+    }
+
+    fn root_entities(&self) -> Vec<EntityId> {
+        self.entities
+            .iter()
+            .copied()
+            .filter(|entity| self.parent_of(*entity).is_none())
+            .collect()
+    }
+
+    fn children_of(&self, entity: EntityId) -> Vec<EntityId> {
+        self.entities
+            .iter()
+            .copied()
+            .filter(|child| self.parent_of(*child) == Some(entity))
+            .collect()
+    }
+
+    fn active_self_value(&self, entity: EntityId) -> bool {
+        self.active_self.get(&entity).copied().unwrap_or_default().0
     }
 
     pub(super) fn refresh_node_cache(&mut self) {
@@ -107,10 +157,7 @@ impl World {
                     id: entity,
                     name,
                     kind,
-                    parent: self
-                        .hierarchy
-                        .get(&entity)
-                        .and_then(|hierarchy| hierarchy.parent),
+                    parent: self.parent_of(entity),
                     transform: self
                         .local_transforms
                         .get(&entity)
@@ -126,8 +173,23 @@ impl World {
     }
 }
 
-fn combine_transforms(parent: Transform, local: Transform) -> Transform {
-    let matrix = parent.matrix() * local.matrix();
+fn parent_chain_is_invalid(
+    start_parent: EntityId,
+    entity: EntityId,
+    parents: &HashMap<EntityId, Option<EntityId>>,
+) -> bool {
+    let mut seen = HashSet::from([entity]);
+    let mut cursor = Some(start_parent);
+    while let Some(current) = cursor {
+        if !seen.insert(current) {
+            return true;
+        }
+        cursor = parents.get(&current).copied().flatten();
+    }
+    false
+}
+
+pub(super) fn matrix_to_transform(matrix: Mat4) -> Transform {
     let (scale, rotation, translation) = matrix.to_scale_rotation_translation();
     Transform {
         translation,

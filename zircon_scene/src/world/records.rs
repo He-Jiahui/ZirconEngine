@@ -1,5 +1,5 @@
 use super::World;
-use crate::components::{Active, Hierarchy, LocalTransform, Name, NodeRecord};
+use crate::components::{ActiveSelf, Hierarchy, LocalTransform, Name, NodeRecord, RenderLayerMask};
 use crate::EntityId;
 
 impl World {
@@ -21,7 +21,14 @@ impl World {
             camera: self.cameras.get(&entity).cloned(),
             mesh: self.mesh_renderers.get(&entity).cloned(),
             directional_light: self.directional_lights.get(&entity).cloned(),
-            active: self.active.get(&entity).copied().unwrap_or_default().0,
+            active: self.active_self.get(&entity).copied().unwrap_or_default().0,
+            render_layer_mask: self
+                .render_layer_masks
+                .get(&entity)
+                .copied()
+                .unwrap_or_default()
+                .0,
+            mobility: self.mobility.get(&entity).copied().unwrap_or_default(),
         })
     }
 
@@ -45,7 +52,11 @@ impl World {
                 transform: record.transform,
             },
         );
-        self.active.insert(record.id, Active(record.active));
+        self.active_self
+            .insert(record.id, ActiveSelf(record.active));
+        self.render_layer_masks
+            .insert(record.id, RenderLayerMask(record.render_layer_mask));
+        self.mobility.insert(record.id, record.mobility);
 
         if let Some(camera) = record.camera {
             self.cameras.insert(record.id, camera);
@@ -61,6 +72,7 @@ impl World {
         }
 
         self.next_id = self.next_id.max(record.id + 1);
+        self.validate_mobility_change(record.id, record.mobility)?;
         self.rebuild_derived_state();
         Ok(())
     }

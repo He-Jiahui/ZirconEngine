@@ -22,24 +22,25 @@ export component ShellIcon inherits Image {
     in property <string> icon_key;
     in property <color> icon_color: #d7dde8;
     source:
-        icon_key == "project" ? @image-url("../../../dev/ionicons.designerpack/folder-open-outline.svg") :
-        icon_key == "assets" ? @image-url("../../../dev/ionicons.designerpack/albums-outline.svg") :
-        icon_key == "hierarchy" ? @image-url("../../../dev/ionicons.designerpack/list-outline.svg") :
-        icon_key == "inspector" ? @image-url("../../../dev/ionicons.designerpack/options-outline.svg") :
-        icon_key == "scene" ? @image-url("../../../dev/ionicons.designerpack/cube-outline.svg") :
-        icon_key == "game" ? @image-url("../../../dev/ionicons.designerpack/game-controller-outline.svg") :
-        icon_key == "console" ? @image-url("../../../dev/ionicons.designerpack/terminal-outline.svg") :
-        icon_key == "prefab" ? @image-url("../../../dev/ionicons.designerpack/layers-outline.svg") :
-        icon_key == "asset-browser" ? @image-url("../../../dev/ionicons.designerpack/grid-outline.svg") :
-        icon_key == "tool-select" ? @image-url("../../../dev/ionicons.designerpack/scan-outline.svg") :
-        icon_key == "tool-move" ? @image-url("../../../dev/ionicons.designerpack/move-outline.svg") :
-        icon_key == "tool-rotate" ? @image-url("../../../dev/ionicons.designerpack/sync-outline.svg") :
-        icon_key == "tool-scale" ? @image-url("../../../dev/ionicons.designerpack/resize-outline.svg") :
-        icon_key == "tool-play" ? @image-url("../../../dev/ionicons.designerpack/play-outline.svg") :
-        icon_key == "tool-grid" ? @image-url("../../../dev/ionicons.designerpack/grid-outline.svg") :
-        icon_key == "tool-shaded" ? @image-url("../../../dev/ionicons.designerpack/color-fill-outline.svg") :
-        icon_key == "tool-fit" ? @image-url("../../../dev/ionicons.designerpack/locate-outline.svg") :
-        @image-url("../../../dev/ionicons.designerpack/ellipse-outline.svg");
+        icon_key == "project" ? @image-url("../../assets/icons/ionicons/folder-open-outline.svg") :
+        icon_key == "assets" ? @image-url("../../assets/icons/ionicons/albums-outline.svg") :
+        icon_key == "hierarchy" ? @image-url("../../assets/icons/ionicons/list-outline.svg") :
+        icon_key == "inspector" ? @image-url("../../assets/icons/ionicons/options-outline.svg") :
+        icon_key == "scene" ? @image-url("../../assets/icons/ionicons/cube-outline.svg") :
+        icon_key == "game" ? @image-url("../../assets/icons/ionicons/game-controller-outline.svg") :
+        icon_key == "console" ? @image-url("../../assets/icons/ionicons/terminal-outline.svg") :
+        icon_key == "prefab" ? @image-url("../../assets/icons/ionicons/layers-outline.svg") :
+        icon_key == "asset-browser" ? @image-url("../../assets/icons/ionicons/grid-outline.svg") :
+        icon_key == "ui-asset" ? @image-url("../../assets/icons/ionicons/albums-outline.svg") :
+        icon_key == "tool-select" ? @image-url("../../assets/icons/ionicons/scan-outline.svg") :
+        icon_key == "tool-move" ? @image-url("../../assets/icons/ionicons/move-outline.svg") :
+        icon_key == "tool-rotate" ? @image-url("../../assets/icons/ionicons/sync-outline.svg") :
+        icon_key == "tool-scale" ? @image-url("../../assets/icons/ionicons/resize-outline.svg") :
+        icon_key == "tool-play" ? @image-url("../../assets/icons/ionicons/play-outline.svg") :
+        icon_key == "tool-grid" ? @image-url("../../assets/icons/ionicons/grid-outline.svg") :
+        icon_key == "tool-shaded" ? @image-url("../../assets/icons/ionicons/color-fill-outline.svg") :
+        icon_key == "tool-fit" ? @image-url("../../assets/icons/ionicons/locate-outline.svg") :
+        @image-url("../../assets/icons/ionicons/ellipse-outline.svg");
     colorize: icon_color;
 }
 
@@ -47,6 +48,8 @@ export component ShellButton inherits Rectangle {
     in property <string> label;
     in property <bool> active;
     in property <bool> enabled: true;
+    in property <bool> interactive: true;
+    in property <bool> hovered: false;
     callback clicked();
     min-width: 84px;
     height: 24px;
@@ -56,7 +59,7 @@ export component ShellButton inherits Rectangle {
     background: !enabled ? palette.panel_bg :
         active ? palette.accent_soft :
         touch.pressed ? palette.chrome_bg :
-        touch.has-hover ? palette.chrome_bg_soft : palette.panel_bg_soft;
+        hovered || touch.has-hover ? palette.chrome_bg_soft : palette.panel_bg_soft;
     opacity: enabled ? 1.0 : 0.45;
 
     palette := Palette {}
@@ -72,7 +75,7 @@ export component ShellButton inherits Rectangle {
     }
 
     touch := TouchArea {
-        enabled: root.enabled;
+        enabled: root.enabled && root.interactive;
         clicked => { root.clicked(); }
     }
 }
@@ -80,12 +83,14 @@ export component ShellButton inherits Rectangle {
 export component MenuBarButton inherits Rectangle {
     in property <string> label;
     in property <bool> active;
+    in property <bool> hovered: false;
+    in property <bool> interactive: true;
     callback clicked();
     height: 22px;
     border-radius: 3px;
     border-width: 0px;
     width: max(34px, label_text.preferred-width + 18px);
-    background: active ? palette.chrome_bg_soft : touch.pressed ? palette.chrome_bg : touch.has-hover ? palette.chrome_bg_soft : transparent;
+    background: active ? palette.chrome_bg_soft : hovered ? palette.chrome_bg_soft : transparent;
 
     palette := Palette {}
 
@@ -100,6 +105,7 @@ export component MenuBarButton inherits Rectangle {
     }
 
     touch := TouchArea {
+        enabled: root.interactive;
         clicked => { root.clicked(); }
     }
 }
@@ -108,6 +114,7 @@ export component RailButton inherits Rectangle {
     in property <string> icon_key;
     in property <bool> active;
     callback clicked();
+    callback pointer_pressed(x: float, y: float);
     width: 30px;
     height: 30px;
     border-radius: 3px;
@@ -136,6 +143,11 @@ export component RailButton inherits Rectangle {
     }
 
     touch := TouchArea {
+        pointer-event(event) => {
+            if (event.kind == PointerEventKind.down && event.button == PointerEventButton.left) {
+                root.pointer_pressed(self.mouse-x / 1px, self.mouse-y / 1px);
+            }
+        }
         clicked => { root.clicked(); }
     }
 }
@@ -150,6 +162,8 @@ export component TabChip inherits Rectangle {
     in property <float> drag_origin_y: 0.0;
     callback clicked();
     callback close_clicked();
+    callback pointer_clicked(x: float, y: float);
+    callback close_pointer_clicked(x: float, y: float);
     callback drag_started(x: float, y: float);
     callback drag_moved(x: float, y: float);
     callback drag_finished(x: float, y: float);
@@ -163,7 +177,7 @@ export component TabChip inherits Rectangle {
     property <bool> suppress_click: false;
     property <float> press_x: 0.0;
     property <float> press_y: 0.0;
-    property <float> drag_threshold_px: 10.0;
+    property <float> drag_threshold_px: 4.0;
 
     palette := Palette {}
 
@@ -216,14 +230,17 @@ export component TabChip inherits Rectangle {
             clicked => {
                 root.drag_pressed = false;
                 root.suppress_click = true;
+                root.close_pointer_clicked(self.mouse-x / 1px, self.mouse-y / 1px);
                 root.close_clicked();
             }
         }
     }
 
     touch := TouchArea {
+        mouse-cursor: root.drag_enabled ? (root.drag_pressed || root.suppress_click ? MouseCursor.grabbing : MouseCursor.grab) : default;
         clicked => {
             if (!root.suppress_click) {
+                root.pointer_clicked(self.mouse-x / 1px, self.mouse-y / 1px);
                 root.clicked();
             }
             root.suppress_click = false;
@@ -265,8 +282,12 @@ export component TabChip inherits Rectangle {
                     root.drag_origin_x + root.press_x,
                     root.drag_origin_y + root.press_y,
                 );
-            }
-            if (root.suppress_click) {
+                root.drag_moved(
+                    root.drag_origin_x + self.mouse-x / 1px,
+                    root.drag_origin_y + self.mouse-y / 1px,
+                );
+                root.drag_pressed = false;
+            } else if (root.suppress_click) {
                 root.drag_moved(
                     root.drag_origin_x + self.mouse-x / 1px,
                     root.drag_origin_y + self.mouse-y / 1px,
@@ -280,10 +301,12 @@ export component MenuItemRow inherits Rectangle {
     in property <string> label;
     in property <string> shortcut;
     in property <bool> enabled: true;
+    in property <bool> hovered: false;
+    in property <bool> interactive: true;
     callback clicked();
     height: 28px;
     border-radius: 4px;
-    background: enabled && touch.pressed ? palette.chrome_bg : enabled && touch.has-hover ? palette.tab_hover : transparent;
+    background: enabled && hovered ? palette.tab_hover : transparent;
     opacity: enabled ? 1.0 : 0.4;
 
     palette := Palette {}
@@ -305,7 +328,7 @@ export component MenuItemRow inherits Rectangle {
     }
 
     touch := TouchArea {
-        enabled: root.enabled;
+        enabled: root.enabled && root.interactive;
         clicked => { root.clicked(); }
     }
 }
@@ -400,6 +423,8 @@ export component DockTabButton inherits Rectangle {
     in property <float> drag_origin_x: 0.0;
     in property <float> drag_origin_y: 0.0;
     callback clicked();
+    callback pointer_pressed(x: float, y: float);
+    callback pointer_clicked(x: float, y: float);
     callback drag_started(x: float, y: float);
     callback drag_moved(x: float, y: float);
     callback drag_finished(x: float, y: float);
@@ -413,7 +438,7 @@ export component DockTabButton inherits Rectangle {
     property <bool> suppress_click: false;
     property <float> press_x: 0.0;
     property <float> press_y: 0.0;
-    property <float> drag_threshold_px: 10.0;
+    property <float> drag_threshold_px: 4.0;
 
     palette := Palette {}
 
@@ -447,17 +472,23 @@ export component DockTabButton inherits Rectangle {
     }
 
     touch := TouchArea {
+        mouse-cursor: root.drag_enabled ? (root.drag_pressed || root.suppress_click ? MouseCursor.grabbing : MouseCursor.grab) : default;
         clicked => {
             if (!root.suppress_click) {
+                root.pointer_clicked(self.mouse-x / 1px, self.mouse-y / 1px);
                 root.clicked();
             }
             root.suppress_click = false;
         }
         pointer-event(event) => {
             if (!root.drag_enabled || event.button != PointerEventButton.left) {
+                if (event.kind == PointerEventKind.down && event.button == PointerEventButton.left) {
+                    root.pointer_pressed(self.mouse-x / 1px, self.mouse-y / 1px);
+                }
                 return;
             }
             if (event.kind == PointerEventKind.down) {
+                root.pointer_pressed(self.mouse-x / 1px, self.mouse-y / 1px);
                 root.drag_pressed = true;
                 root.suppress_click = false;
                 root.press_x = self.mouse-x / 1px;
@@ -490,8 +521,12 @@ export component DockTabButton inherits Rectangle {
                     root.drag_origin_x + root.press_x,
                     root.drag_origin_y + root.press_y,
                 );
-            }
-            if (root.suppress_click) {
+                root.drag_moved(
+                    root.drag_origin_x + self.mouse-x / 1px,
+                    root.drag_origin_y + self.mouse-y / 1px,
+                );
+                root.drag_pressed = false;
+            } else if (root.suppress_click) {
                 root.drag_moved(
                     root.drag_origin_x + self.mouse-x / 1px,
                     root.drag_origin_y + self.mouse-y / 1px,
@@ -505,6 +540,7 @@ export component ToolbarButton inherits Rectangle {
     in property <string> label;
     in property <bool> active;
     callback clicked();
+    callback pointer_clicked(x: float, y: float);
     min-width: 48px;
     height: 20px;
     border-width: 1px;
@@ -525,6 +561,11 @@ export component ToolbarButton inherits Rectangle {
     }
 
     touch := TouchArea {
+        pointer-event(event) => {
+            if (event.kind == PointerEventKind.down && event.button == PointerEventButton.left) {
+                root.pointer_clicked(self.mouse-x / 1px, self.mouse-y / 1px);
+            }
+        }
         clicked => { root.clicked(); }
     }
 }
@@ -533,6 +574,7 @@ export component ToolbarIconButton inherits Rectangle {
     in property <string> icon_key;
     in property <bool> active;
     callback clicked();
+    callback pointer_clicked(x: float, y: float);
     width: 20px;
     height: 20px;
     border-width: 1px;
@@ -552,6 +594,11 @@ export component ToolbarIconButton inherits Rectangle {
     }
 
     touch := TouchArea {
+        pointer-event(event) => {
+            if (event.kind == PointerEventKind.down && event.button == PointerEventButton.left) {
+                root.pointer_clicked(self.mouse-x / 1px, self.mouse-y / 1px);
+            }
+        }
         clicked => { root.clicked(); }
     }
 }

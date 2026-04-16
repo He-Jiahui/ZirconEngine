@@ -1,0 +1,15 @@
+version = 1
+
+[root]
+template = "InspectorSurfaceControls"
+
+[components.InspectorSurfaceControls]
+root = { component = "InspectorSurfaceControls", children = [
+    { component = "UiHostIconButton", control_id = "NameField", bindings = [{ id = "InspectorView/NameField", event = "Change", route = "DraftCommand.SetInspectorField" }], attributes = { label = "NameField" } },
+    { component = "UiHostIconButton", control_id = "ParentField", bindings = [{ id = "InspectorView/ParentField", event = "Change", route = "DraftCommand.SetInspectorField" }], attributes = { label = "ParentField" } },
+    { component = "UiHostIconButton", control_id = "PositionXField", bindings = [{ id = "InspectorView/PositionXField", event = "Change", route = "DraftCommand.SetInspectorField" }], attributes = { label = "PositionXField" } },
+    { component = "UiHostIconButton", control_id = "PositionYField", bindings = [{ id = "InspectorView/PositionYField", event = "Change", route = "DraftCommand.SetInspectorField" }], attributes = { label = "PositionYField" } },
+    { component = "UiHostIconButton", control_id = "PositionZField", bindings = [{ id = "InspectorView/PositionZField", event = "Change", route = "DraftCommand.SetInspectorField" }], attributes = { label = "PositionZField" } },
+    { component = "UiHostIconButton", control_id = "ApplyBatchButton", bindings = [{ id = "InspectorView/ApplyBatchButton", event = "Click", route = "InspectorFieldBatch" }], attributes = { label = "ApplyBatchButton" } },
+    { component = "UiHostIconButton", control_id = "DeleteSelected", bindings = [{ id = "InspectorView/DeleteSelected", event = "Click", route = "MenuAction.DeleteSelected" }], attributes = { label = "DeleteSelected" } }
+] }

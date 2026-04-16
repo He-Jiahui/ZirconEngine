@@ -7382,6 +7382,7 @@ dependencies = [
  "zircon_math",
  "zircon_module",
  "zircon_resource",
+ "zircon_ui",
  "zstd",
 ]
 
@@ -7409,7 +7410,7 @@ dependencies = [
  "slint",
  "slint-build",
  "thiserror 2.0.18",
- "wgpu",
+ "toml",
  "zircon_asset",
  "zircon_core",
  "zircon_editor_ui",
@@ -7418,6 +7419,7 @@ dependencies = [
  "zircon_manager",
  "zircon_math",
  "zircon_module",
+ "zircon_render_server",
  "zircon_resource",
  "zircon_scene",
  "zircon_ui",
@@ -7431,6 +7433,7 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror 2.0.18",
+ "zircon_scene",
  "zircon_ui",
 ]
 
@@ -7438,9 +7441,8 @@ dependencies = [
 name = "zircon_entry"
 version = "0.1.0"
 dependencies = [
- "pollster",
  "serde_json",
- "wgpu",
+ "softbuffer",
  "winit",
  "zircon_animation",
  "zircon_asset",
@@ -7455,6 +7457,7 @@ dependencies = [
  "zircon_particles",
  "zircon_physics",
  "zircon_platform",
+ "zircon_render_server",
  "zircon_scene",
  "zircon_script",
  "zircon_sound",
@@ -7481,7 +7484,11 @@ dependencies = [
  "zircon_manager",
  "zircon_math",
  "zircon_module",
+ "zircon_render_graph",
+ "zircon_render_server",
  "zircon_resource",
+ "zircon_rhi",
+ "zircon_rhi_wgpu",
  "zircon_scene",
 ]
 
@@ -7562,6 +7569,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "zircon_render_graph"
+version = "0.1.0"
+dependencies = [
+ "thiserror 2.0.18",
+]
+
+[[package]]
+name = "zircon_render_server"
+version = "0.1.0"
+dependencies = [
+ "thiserror 2.0.18",
+ "zircon_core",
+ "zircon_math",
+ "zircon_scene",
+]
+
+[[package]]
 name = "zircon_resource"
 version = "0.1.0"
 dependencies = [
@@ -7570,6 +7594,22 @@ dependencies = [
  "serde_json",
  "thiserror 2.0.18",
  "uuid",
+]
+
+[[package]]
+name = "zircon_rhi"
+version = "0.1.0"
+dependencies = [
+ "serde",
+]
+
+[[package]]
+name = "zircon_rhi_wgpu"
+version = "0.1.0"
+dependencies = [
+ "thiserror 2.0.18",
+ "wgpu",
+ "zircon_rhi",
 ]
 
 [[package]]
@@ -7624,6 +7664,7 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror 2.0.18",
+ "toml",
  "zircon_module",
 ]
 

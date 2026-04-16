@@ -1,0 +1,22 @@
+mod constants;
+mod scene_viewport_controller;
+mod scene_viewport_controller_accessors;
+mod scene_viewport_controller_apply_command;
+mod scene_viewport_controller_build_render_snapshot;
+mod scene_viewport_controller_camera;
+mod scene_viewport_controller_clone;
+mod scene_viewport_controller_debug;
+mod scene_viewport_controller_frame_selection;
+mod scene_viewport_controller_handle_input;
+mod scene_viewport_controller_handle_interaction;
+mod scene_viewport_controller_navigation;
+mod scene_viewport_controller_new;
+mod scene_viewport_controller_pointer_route;
+mod scene_viewport_controller_reset_from_scene;
+mod scene_viewport_controller_selection;
+mod scene_viewport_state;
+mod scene_viewport_state_new;
+mod viewport_drag_session;
+mod viewport_hover_state;
+
+pub(crate) use scene_viewport_controller::SceneViewportController;

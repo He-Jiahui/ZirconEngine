@@ -63,13 +63,19 @@ fn project_manager_scans_assets_imports_library_and_loads_artifacts() {
         .assets_root()
         .join("models")
         .join("triangle.obj.meta.toml");
-    assert!(model_meta_path.exists(), "expected sidecar meta file to be generated");
+    assert!(
+        model_meta_path.exists(),
+        "expected sidecar meta file to be generated"
+    );
     let model_meta = AssetMetaDocument::load(&model_meta_path).unwrap();
     let model_record = manager
         .registry()
         .get_by_locator(&AssetUri::parse("res://models/triangle.obj").unwrap())
         .unwrap();
-    assert_eq!(model_meta.primary_locator, AssetUri::parse("res://models/triangle.obj").unwrap());
+    assert_eq!(
+        model_meta.primary_locator,
+        AssetUri::parse("res://models/triangle.obj").unwrap()
+    );
     assert_eq!(
         model_record.id(),
         ResourceId::from_asset_uuid_label(model_meta.asset_uuid, None)

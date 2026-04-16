@@ -1,0 +1,1423 @@
+---
+related_code:
+  - zircon_editor_ui/src/lib.rs
+  - zircon_editor_ui/src/template/mod.rs
+  - zircon_editor_ui/src/template/catalog.rs
+  - zircon_editor_ui/src/template/registry.rs
+  - zircon_editor_ui/src/template/adapter.rs
+  - zircon_editor_ui/src/binding/mod.rs
+  - zircon_editor_ui/src/tests/binding.rs
+  - zircon_editor_ui/src/tests/template.rs
+  - zircon_ui/src/template/mod.rs
+  - zircon_ui/src/template/document.rs
+  - zircon_ui/src/template/instance.rs
+  - zircon_editor/src/host/template_runtime/mod.rs
+  - zircon_editor/src/host/template_runtime/host_nodes.rs
+  - zircon_editor/src/host/template_runtime/model.rs
+  - zircon_editor/src/host/template_runtime/runtime.rs
+  - zircon_editor/src/host/template_runtime/slint_adapter.rs
+  - zircon_editor/src/host/template_runtime/harness.rs
+  - zircon_editor/src/editor_event/runtime.rs
+  - zircon_editor/src/host/slint_host/callback_dispatch.rs
+  - zircon_editor/src/host/slint_host/callback_dispatch/template_bridge/mod.rs
+  - zircon_editor/src/host/slint_host/callback_dispatch/template_bridge/workbench.rs
+  - zircon_editor/src/host/slint_host/callback_dispatch/workbench/menu_action.rs
+  - zircon_editor/src/host/slint_host/app.rs
+  - zircon_editor/src/host/slint_host/app/host_lifecycle.rs
+  - zircon_editor/src/host/slint_host/app/assets.rs
+  - zircon_editor/src/host/slint_host/app/callback_wiring.rs
+  - zircon_editor/src/host/slint_host/app/native_windows.rs
+  - zircon_editor/src/host/slint_host/app/pane_surface_actions.rs
+  - zircon_editor/src/host/slint_host/app/workspace_docking.rs
+  - zircon_editor/src/host/slint_host/app/viewport.rs
+  - zircon_editor/src/host/slint_host/callback_dispatch/viewport/mod.rs
+  - zircon_editor/src/host/slint_host/callback_dispatch/viewport/route_mapping.rs
+  - zircon_editor/src/host/slint_host/callback_dispatch/viewport/snap_cycle.rs
+  - zircon_editor/src/host/slint_host/callback_dispatch/layout/mod.rs
+  - zircon_editor/src/host/slint_host/callback_dispatch/layout/floating_window.rs
+  - zircon_editor/src/host/slint_host/callback_dispatch/layout/tab_drop.rs
+  - zircon_editor/src/host/slint_host/activity_rail_pointer.rs
+  - zircon_editor/src/host/slint_host/host_page_pointer.rs
+  - zircon_editor/src/host/slint_host/document_tab_pointer/mod.rs
+  - zircon_editor/src/host/slint_host/drawer_header_pointer.rs
+  - zircon_editor/src/host/slint_host/viewport_toolbar_pointer.rs
+  - zircon_editor/src/editing/viewport/controller/mod.rs
+  - zircon_editor/src/editing/viewport/pointer/mod.rs
+  - zircon_editor/src/host/slint_host/detail_pointer.rs
+  - zircon_editor/src/host/slint_host/scroll_surface_host.rs
+  - zircon_editor/src/host/slint_host/event_bridge.rs
+  - zircon_editor/src/host/slint_host/menu_pointer.rs
+  - zircon_editor/src/host/slint_host/menu_pointer/workbench_menu_pointer_bridge_popup_state.rs
+  - zircon_editor/src/host/slint_host/shell_pointer.rs
+  - zircon_editor/src/host/slint_host/callback_dispatch/layout/floating_window.rs
+  - zircon_editor/src/host/slint_host/tab_drag.rs
+  - zircon_editor/src/host/manager/layout_commands.rs
+  - zircon_editor/src/host/manager/window_host_manager.rs
+  - zircon_editor/src/host/manager/workspace_state.rs
+  - zircon_editor/src/lib.rs
+  - zircon_editor/src/workbench/autolayout.rs
+  - zircon_editor/src/workbench/layout.rs
+  - zircon_editor/src/workbench/layout/layout_manager.rs
+  - zircon_editor/src/workbench/layout/manager/mod.rs
+  - zircon_editor/src/workbench/model/mod.rs
+  - zircon_editor/src/host/slint_host/ui.rs
+  - zircon_editor/ui/workbench.slint
+  - zircon_editor/ui/workbench/chrome.slint
+  - zircon_editor/ui/workbench/assets.slint
+  - zircon_editor/ui/workbench/panes.slint
+  - zircon_editor/ui/workbench/welcome.slint
+  - zircon_editor/src/tests/host/template_runtime.rs
+  - zircon_editor/src/tests/host/binding_dispatch.rs
+  - zircon_editor/src/tests/host/slint_callback_dispatch.rs
+  - zircon_editor/src/tests/host/slint_callback_dispatch/support.rs
+  - zircon_editor/src/tests/host/slint_callback_dispatch/workbench.rs
+  - zircon_editor/src/tests/host/slint_callback_dispatch/layout.rs
+  - zircon_editor/src/tests/host/slint_callback_dispatch/viewport.rs
+  - zircon_editor/src/tests/host/slint_callback_dispatch/asset.rs
+  - zircon_editor/src/tests/host/slint_callback_dispatch/inspector.rs
+  - zircon_editor/src/tests/host/slint_callback_dispatch/welcome.rs
+  - zircon_editor/src/tests/host/slint_callback_dispatch/pane.rs
+  - zircon_editor/src/tests/host/slint_activity_rail_pointer.rs
+  - zircon_editor/src/tests/host/slint_host_page_pointer.rs
+  - zircon_editor/src/tests/host/slint_document_tab_pointer.rs
+  - zircon_editor/src/tests/host/slint_drawer_header_pointer.rs
+  - zircon_editor/src/tests/host/slint_detail_pointer.rs
+  - zircon_editor/src/tests/host/slint_list_pointer.rs
+  - zircon_editor/src/tests/host/slint_menu_pointer.rs
+  - zircon_editor/src/tests/host/slint_viewport_toolbar_pointer.rs
+  - zircon_editor/src/tests/host/slint_tab_drag.rs
+  - zircon_editor/src/tests/host/slint_drawer_resize.rs
+  - zircon_editor/tests/workbench_autolayout.rs
+  - zircon_editor/tests/workbench_drag_targets.rs
+  - zircon_editor/src/tests/workbench/view_model.rs
+  - zircon_editor/tests/workbench_slint_shell.rs
+  - zircon_editor/ui/templates/workbench_shell.toml
+  - zircon_editor/ui/templates/scene_viewport_toolbar.toml
+  - zircon_editor/ui/templates/asset_surface_controls.toml
+  - zircon_editor/ui/templates/pane_surface_controls.toml
+  - zircon_editor/ui/templates/startup_welcome_controls.toml
+implementation_files:
+  - zircon_editor_ui/src/lib.rs
+  - zircon_editor_ui/src/template/mod.rs
+  - zircon_editor_ui/src/template/catalog.rs
+  - zircon_editor_ui/src/template/registry.rs
+  - zircon_editor_ui/src/template/adapter.rs
+  - zircon_editor/src/host/template_runtime/mod.rs
+  - zircon_editor/src/host/template_runtime/host_nodes.rs
+  - zircon_editor/src/host/template_runtime/model.rs
+  - zircon_editor/src/host/template_runtime/runtime.rs
+  - zircon_editor/src/host/template_runtime/slint_adapter.rs
+  - zircon_editor/src/host/template_runtime/harness.rs
+  - zircon_editor/src/editor_event/runtime.rs
+  - zircon_editor/src/host/slint_host/callback_dispatch.rs
+  - zircon_editor/src/host/slint_host/callback_dispatch/template_bridge/mod.rs
+  - zircon_editor/src/host/slint_host/app.rs
+  - zircon_editor/src/host/slint_host/app/host_lifecycle.rs
+  - zircon_editor/src/host/slint_host/app/assets.rs
+  - zircon_editor/src/host/slint_host/app/callback_wiring.rs
+  - zircon_editor/src/host/slint_host/app/native_windows.rs
+  - zircon_editor/src/host/slint_host/app/pane_surface_actions.rs
+  - zircon_editor/src/host/slint_host/app/workspace_docking.rs
+  - zircon_editor/src/host/slint_host/app/viewport.rs
+  - zircon_editor/src/host/slint_host/callback_dispatch/viewport/mod.rs
+  - zircon_editor/src/host/slint_host/callback_dispatch/viewport/route_mapping.rs
+  - zircon_editor/src/host/slint_host/callback_dispatch/viewport/snap_cycle.rs
+  - zircon_editor/src/host/slint_host/activity_rail_pointer.rs
+  - zircon_editor/src/host/slint_host/host_page_pointer.rs
+  - zircon_editor/src/host/slint_host/document_tab_pointer/mod.rs
+  - zircon_editor/src/host/slint_host/drawer_header_pointer.rs
+  - zircon_editor/src/host/slint_host/viewport_toolbar_pointer.rs
+  - zircon_editor/src/host/slint_host/detail_pointer.rs
+  - zircon_editor/src/host/slint_host/scroll_surface_host.rs
+  - zircon_editor/src/host/slint_host/event_bridge.rs
+  - zircon_editor/src/host/slint_host/menu_pointer.rs
+  - zircon_editor/src/host/slint_host/menu_pointer/workbench_menu_pointer_bridge_popup_state.rs
+  - zircon_editor/src/host/slint_host/shell_pointer.rs
+  - zircon_editor/src/host/slint_host/tab_drag.rs
+  - zircon_editor/src/host/manager/layout_commands.rs
+  - zircon_editor/src/host/manager/window_host_manager.rs
+  - zircon_editor/src/host/manager/workspace_state.rs
+  - zircon_editor/src/lib.rs
+  - zircon_editor/src/workbench/autolayout.rs
+  - zircon_editor/src/workbench/layout.rs
+  - zircon_editor/src/workbench/model/mod.rs
+  - zircon_editor/src/host/slint_host/ui.rs
+  - zircon_editor/ui/workbench.slint
+  - zircon_editor/ui/workbench/chrome.slint
+  - zircon_editor/ui/workbench/assets.slint
+  - zircon_editor/ui/workbench/panes.slint
+  - zircon_editor/ui/workbench/welcome.slint
+  - zircon_editor/ui/templates/workbench_shell.toml
+  - zircon_editor/ui/templates/scene_viewport_toolbar.toml
+  - zircon_editor/ui/templates/asset_surface_controls.toml
+  - zircon_editor/ui/templates/pane_surface_controls.toml
+  - zircon_editor/ui/templates/startup_welcome_controls.toml
+plan_sources:
+  - user: 2026-04-15 按自定义 TOML 描述文件运行时构建 Slint 树并严格服从 Shared Layout 契约
+  - user: 2026-04-15 PLEASE IMPLEMENT THIS PLAN
+  - user: 2026-04-16 把非-menu 的 popup/dialog/tree/list scroll 输入继续迁到同一套 shared pointer dispatcher
+  - user: 2026-04-16 继续下一刀，把 secondary native window presenter 接到真实 slint_host
+  - .codex/plans/Zircon 运行时编辑器共享 UI 布局与事件系统架构计划.md
+  - .codex/plans/编辑器 UI 兼容迁移计划（自定义描述文件运行时构建 Slint 树，严格服从 Shared Layout 契约）.md
+tests:
+  - zircon_editor_ui/src/tests/binding.rs
+  - zircon_editor_ui/src/tests/template.rs
+  - zircon_editor/src/tests/host/template_runtime.rs
+  - zircon_editor/src/tests/host/binding_dispatch.rs
+  - zircon_editor/src/tests/host/slint_callback_dispatch.rs
+  - zircon_editor/src/tests/host/slint_asset_pointer.rs
+  - zircon_editor/src/tests/host/slint_activity_rail_pointer.rs
+  - zircon_editor/src/tests/host/slint_host_page_pointer.rs
+  - zircon_editor/src/tests/host/slint_document_tab_pointer.rs
+  - zircon_editor/src/tests/host/slint_drawer_header_pointer.rs
+  - zircon_editor/src/tests/host/slint_viewport_toolbar_pointer.rs
+  - zircon_editor/src/tests/host/slint_detail_pointer.rs
+  - zircon_editor/src/tests/host/slint_list_pointer.rs
+  - zircon_editor/src/tests/host/slint_menu_pointer.rs
+  - zircon_editor/src/tests/host/slint_event_bridge.rs
+  - zircon_editor/src/tests/host/slint_window.rs
+  - zircon_editor/src/tests/editor_event/runtime.rs
+  - zircon_editor/src/tests/editing/viewport.rs
+  - zircon_editor/src/tests/host/slint_tab_drag.rs
+  - zircon_editor/tests/workbench_autolayout.rs
+  - zircon_editor/tests/workbench_drag_targets.rs
+  - zircon_editor/tests/native_window_hosts.rs
+  - zircon_editor/src/tests/workbench/view_model.rs
+  - zircon_editor/tests/workbench_slint_shell.rs
+  - cargo test -p zircon_editor_ui template -- --nocapture
+  - cargo test -p zircon_editor_ui --lib binding -- --nocapture
+  - cargo test -p zircon_editor_ui --lib -- --nocapture
+  - cargo test -p zircon_editor_ui --lib --locked -- --nocapture
+  - cargo test -p zircon_editor --lib binding_dispatch -- --nocapture
+  - cargo test -p zircon_editor --lib template_runtime -- --nocapture
+  - cargo test -p zircon_editor --lib template_runtime --locked -- --nocapture
+  - cargo test -p zircon_editor --lib slint_callback_dispatch -- --nocapture
+  - cargo test -p zircon_editor --lib slint_callback_dispatch --locked -- --nocapture
+  - cargo test -p zircon_editor --lib shared_viewport_surface_replaces_legacy_direct_pointer_callback_abi --locked -- --nocapture
+  - cargo test -p zircon_editor --lib slint_event_bridge -- --nocapture
+  - cargo test -p zircon_editor --lib editor_event::runtime -- --nocapture
+  - cargo test -p zircon_editor --lib slint_tab_drag --locked -- --nocapture
+  - cargo test -p zircon_editor --test workbench_autolayout floating_window --locked -- --nocapture
+  - cargo test -p zircon_editor --test workbench_drag_targets --locked -- --nocapture
+  - cargo test -p zircon_editor --test native_window_hosts --locked -- --nocapture
+  - cargo test -p zircon_editor --lib slint_window --locked -- --nocapture
+  - cargo test -p zircon_editor --lib viewport_toolbar -- --nocapture
+  - cargo test -p zircon_editor --lib slint_viewport_toolbar_pointer --offline -- --nocapture
+  - cargo test -p zircon_editor --lib viewport_ --offline -- --nocapture
+  - cargo test -p zircon_editor --lib workbench_view_model_exposes_floating_windows_as_workspace_tabs --locked -- --nocapture
+  - cargo test -p zircon_editor --lib host::slint_host::ui::tests --locked -- --nocapture
+  - cargo test -p zircon_editor --test workbench_slint_shell -- --nocapture
+  - cargo test -p zircon_editor --lib slint_detail_pointer --offline -- --nocapture
+  - cargo test -p zircon_editor --lib slint_activity_rail_pointer --offline -- --nocapture
+  - cargo test -p zircon_editor --lib slint_host_page_pointer --offline -- --nocapture
+  - cargo test -p zircon_editor --lib slint_document_tab_pointer --offline -- --nocapture
+  - cargo test -p zircon_editor --lib slint_drawer_header_pointer --offline -- --nocapture
+  - cargo test -p zircon_editor --lib slint_ --offline -- --nocapture
+  - cargo check -p zircon_editor --lib --offline
+  - cargo test -p zircon_editor --test workbench_slint_shell --offline -- --nocapture
+  - cargo test -p zircon_editor --lib --locked -- --nocapture
+  - cargo test -p zircon_editor --lib resolve_floating_window_focus_instance_ --locked -- --nocapture
+  - cargo check -p zircon_graphics --lib --locked
+  - cargo check -p zircon_editor --lib --locked
+doc_type: module-detail
+---
+
+# Editor Template Compatibility Migration
+
+## Purpose
+
+这份文档记录“保留 Slint 宿主，但把 editor 壳体模板真源前移到 TOML + shared template runtime”的第一段兼容迁移实现。
+
+当前已经落地的 editor-only 边界是：
+
+- `zircon_ui` 负责模板文档、slot 语义、运行时实例展开，以及 shared `UiTree` / `UiSurface` 的第一段模板桥接
+- `zircon_editor_ui` 负责 editor composite catalog、模板文档注册，以及稳定 binding id 到 typed `EditorUiBinding` 的解析
+- `zircon_editor` 和 Slint host 还没有在这一轮被强制改写，只保留后续接线入口
+
+这样做的目的不是拖慢迁移，而是避免在 `slint_host` 主链正活跃时又把一半模板逻辑散落进 editor host。
+
+## Latest Compatibility Cutover
+
+最新一刀已经把 viewport 外层原始输入 ABI 也收口到 shared pointer seam：
+
+- `workbench.slint` 不再向 host 暴露 `viewport_pointer_moved` / `viewport_left_pressed` / `viewport_scrolled` 这类 7 个分散回调
+- Slint 现在只上报统一 `viewport_pointer_event(kind, button, x, y, delta)` 事实
+- `callback_wiring.rs` 和 `app/viewport.rs` 不再把这条链直接旁路到 `InputManager`
+- 真实宿主改为复用 `callback_dispatch.rs` 里的 `SharedViewportPointerBridge + dispatch_viewport_pointer_event(...)`
+
+这一步的意义不是“少几个回调名”，而是把 editor host 最后那段 viewport raw pointer authority 从 Slint/宿主局部逻辑，继续拉回 shared `UiSurface + UiPointerDispatcher` 语义里，和 menu/list/toolbar/tree/scroll 的迁移方向一致。
+
+## Editor-Only Types
+
+### `EditorComponentCatalog`
+
+这一层记录 editor composite 的最小描述：
+
+- `component_id`
+- `document_id`
+- `binding_namespace`
+
+它的职责不是存放 layout/frame 结果，而是明确：
+
+- 哪些 composite 属于 editor-only 目录
+- 哪份模板文档拥有这个 composite
+- 它对外稳定暴露的 binding 命名空间是什么
+
+当前这能直接覆盖诸如：
+
+- `WorkbenchShell`
+- `MenuBar`
+- 后续的 `ActivityRail`
+- `DocumentTabs`
+- `StatusBar`
+
+### `EditorTemplateRegistry`
+
+registry 负责托管已加载的 `UiTemplateDocument`，并对外提供：
+
+- `register_document(...)`
+- `document(...)`
+- `instantiate(...)`
+
+这让 editor 迁移后可以先把模板文档作为 build/embed 资源注册进来，再由运行时按需实例化，而不是重新让 `.slint` 业务壳承担模板装配权。
+
+### `EditorTemplateAdapter`
+
+adapter 当前只做一件事：把 shared `UiBindingRef` 解析为 typed `EditorUiBinding`。
+
+它内部维护的是：
+
+- `binding_id -> EditorUiBinding`
+
+解析时会：
+
+- 检查 stable binding id 是否存在
+- 检查 `UiBindingRef.event` 和已注册 typed binding 的事件种类是否一致
+- 返回稳定顺序的 `EditorUiBinding` 列表，供后续 host/runtime 接线
+
+这一步非常关键，因为它把模板文档里的稳定命名空间，和 editor-only 的 typed command payload 严格分层了。
+
+## Stable Binding Contract
+
+当前迁移切片默认采用以下约束：
+
+- TOML 里只写稳定 `UiBindingRef`
+- `UiBindingRef.id` 使用稳定 shell 命名空间
+- `UiBindingRef.route` 只是 route key，不直接等于宿主 callback
+- 真正的 typed payload 仍然由 `EditorUiBinding` / `EditorUiBindingPayload` 权威定义
+
+因此像 `WorkbenchMenuBar/SaveProject` 这样的 binding id，在模板里只是稳定引用；具体它最终映射到：
+
+- `MenuAction("SaveProject")`
+- `DockCommand::*`
+- `ViewportCommand::*`
+
+仍然由 editor-only adapter/runtime 决定。
+
+## Repository Template Asset
+
+当前仓库已经放入第一份真实 editor template 资产：
+
+- [workbench_shell.toml](/E:/Git/ZirconEngine/zircon_editor/ui/templates/workbench_shell.toml)
+
+它现在承担的是“复合装配层 baseline + shared layout 契约入口”，不是最终的手写 `.slint` 业务树。当前覆盖的 composite 有：
+
+- `WorkbenchShell`
+- `MenuBar`
+- `ActivityRail`
+- `DocumentHost`
+- `StatusBar`
+
+除了这些 editor composite，本轮还在模板里显式引入了通用 shared container 节点与 layout 描述，例如：
+
+- `WorkbenchShell` 根节点通过 `attributes.layout.container = VerticalBox` 下沉 shared 布局语义
+- `WorkbenchBody` 使用通用 `HorizontalBox` 把 `ActivityRail` 和 `DocumentHost` 组合成主体区
+- toolbar / activity rail / tabs / status bar / pane surface 都通过 `attributes.layout` 显式给出宽高、stretch、gap、clip 和滚动语义
+
+这一步的意义是把模板接口从测试字符串推进到真实仓库源文件，同时让 editor shell 的 shared frame 结果终于能从模板契约直接求出来，而不是再回退到手写 `.slint` 公式。
+
+## Editor Host Runtime Scaffold
+
+这一轮先把下一层安全骨架补到了 `zircon_editor`；在本文后半段，又继续把最小的 `slint_host` callback 主链接缝补上了。
+
+新增的宿主侧接口是：
+
+- `EditorUiHostRuntime`
+- `SlintUiProjection`
+- `SlintUiNodeProjection`
+- `SlintUiBindingProjection`
+- `EditorUiCompatibilityHarness`
+
+### `EditorUiHostRuntime`
+
+它当前负责三件事：
+
+1. 加载真实模板资产
+2. 持有 editor component catalog / template registry / binding adapter
+3. 把模板实例和 shared surface 投成 host-neutral `SlintUiProjection` / `SlintUiHostModel`
+
+当前内置入口 `load_builtin_workbench_shell()` 会：
+
+- 加载 [`workbench_shell.toml`](/E:/Git/ZirconEngine/zircon_editor/ui/templates/workbench_shell.toml)
+- 注册 `WorkbenchShell`、`MenuBar`、`ActivityRail`、`DocumentHost`、`StatusBar` 这些 editor component descriptor
+- 注册第一批稳定 binding id 到 typed `EditorUiBinding` 的默认映射
+
+这意味着后续 editor host 接 Slint 时，至少不需要再手写“怎么从模板资产变成一棵宿主节点树”。
+
+这一轮又补上了一条更靠近 shared core 的运行时入口：
+
+- `build_shared_surface(document_id)`
+
+它会直接把模板文档实例化之后交给 `zircon_ui::UiTemplateSurfaceBuilder`，产出带模板元数据的 shared `UiSurface`。因此 editor runtime 现在已经不是只会“模板 -> host projection”，而是已经具备：
+
+- 模板 -> shared surface
+- 模板 -> host-neutral projection
+- 模板 -> Slint host projection
+
+这对后续真正把 layout、hit-test、focus 和 pointer route 统一下沉到 shared core 很关键，因为 editor 侧终于能在不碰旧 `slint_host` 的情况下直接拿到 shared retained tree。
+
+在这条链路上，本轮又补上了：
+
+- `build_host_model_with_surface(projection, surface)`
+- `build_slint_host_projection_with_surface(projection, surface)`
+
+这两个入口会把 shared `UiSurface` 的权威结果直接带进宿主模型，因此 host/slint 投影不再只有 component/control/binding 信息，还开始消费：
+
+- `frame`
+- `clip_frame`
+- `z_index`
+
+### `SlintUiProjection`
+
+当前 projection 还是刻意收窄的 host-neutral 形态：
+
+- `document_id`
+- `root: SlintUiNodeProjection`
+- `bindings: Vec<SlintUiBindingProjection>`
+
+节点只先保留：
+
+- `component`
+- `control_id`
+- `attributes`
+- `style_tokens`
+- `binding_ids`
+- `children`
+
+也就是说，这一层先把模板资产里的稳定结构、control id 和 binding id 收口成宿主可消费的数据模型，但还没有直接映射到现有 `WorkbenchShell.set_*` 那套 Slint 属性投影。
+
+### `SlintUiHostModel`
+
+这一轮继续把 projection 往真正的宿主接线方向推了一层，但仍然停在 `template_runtime` 内，不直接进入当前活跃的 `slint_host` 主链。
+
+新增的 host-neutral 宿主节点模型是：
+
+- `SlintUiHostModel`
+- `SlintUiHostNodeProjection`
+- `SlintUiHostBindingProjection`
+
+这层模型把 `SlintUiProjection` 进一步压成稳定的 preorder node list，并保留：
+
+- `node_id` / `parent_id`
+- `component`
+- `control_id`
+- `frame`
+- `clip_frame`
+- `z_index`
+- `attributes`
+- `style_tokens`
+- `binding_id`
+- `event_kind`
+- `route_id`
+
+这样后续真正替换 `slint_host/ui.rs` 时，就不需要直接从模板实例树重新做一次散装遍历，而是可以消费已经定型的宿主节点列表。
+
+更重要的是，这个 host model 已经显式携带 `route_id`，意味着：
+
+- 模板里的稳定 binding id
+- `EditorUiControlService` 注册后的共享 `UiRouteId`
+- 未来 Slint host 的统一 dispatcher
+
+现在已经能在同一个中间层里汇合，而不是继续依赖旧壳体里分散的 callback 命名。
+
+### `SlintUiHostAdapter`
+
+这一刀继续把“host-neutral 节点列表”往真正的 Slint 宿主可绑定形态推进了一层，但仍然不直接接入当前手写 `workbench.slint`。
+
+新增接口是：
+
+- `SlintUiHostAdapter`
+- `SlintUiHostProjection`
+- `SlintUiHostNodeModel`
+- `SlintUiHostComponentKind`
+- `SlintUiHostRouteProjection`
+- `SlintUiHostValue`
+
+这层 adapter 做的事情很克制：
+
+- 根据 `component` 归类通用宿主节点种类
+- 从通用 `attributes` 里提炼 `text` / `icon`
+- 保留 `control_id`
+- 保留 route 绑定结果
+- 把 TOML 值转换成更稳定的宿主属性值模型
+
+当前已经覆盖的 kind 包括：
+
+- `Root`
+- `Toolbar`
+- `IconButton`
+- `ActivityRail`
+- `DocumentHost`
+- `HorizontalBox`
+- `TabStrip`
+- `PaneSurface`
+- `StatusBar`
+- `VerticalBox`
+- `Label`
+
+这意味着后续真正做通用 Slint host 组件库时，不需要再从 `toml::Value` 原始表里现场猜字段，而可以直接绑定：
+
+- `kind`
+- `frame`
+- `clip_frame`
+- `text`
+- `icon`
+- `routes`
+- `style_tokens`
+
+### Runtime Convenience Projection
+
+`EditorUiHostRuntime` 现在除了：
+
+- `project_document(...)`
+- `build_host_model(...)`
+
+还新增：
+
+- `build_slint_host_projection(...)`
+
+这样后续 editor host 做并行接线时，可以直接从 runtime 取到“已注册 route 的 Slint 宿主节点投影”，而不需要在调用侧自己重复组合：
+
+1. template projection
+2. route registration
+3. host model build
+4. adapter conversion
+
+### Embedded Template Authority
+
+`EditorUiHostRuntime::load_builtin_workbench_shell()` 现在不再通过运行时文件路径读取模板，而是使用 `include_str!` 嵌入 [`workbench_shell.toml`](/E:/Git/ZirconEngine/zircon_editor/ui/templates/workbench_shell.toml)。
+
+这一步让当前链路更符合迁移计划里的“仓库模板源文件 + build/embed 作为发布权威”的要求：
+
+- 发布态不再依赖运行时文件 IO 才能拿到 builtin workbench template
+- 模板源文件仍然保留在仓库里，便于后续 debug hot-reload 再补回开发态覆盖
+- 现有测试直接覆盖嵌入版本，不需要额外的宿主路径探测逻辑
+
+### Route Stub Registration
+
+`EditorUiHostRuntime::register_projection_routes(...)` 现在可以把 projection 里的 typed binding 注册成 `EditorUiControlService` route stub。
+
+这一步的意义是：
+
+- projection 里的稳定 binding id
+- editor-only 的 typed `EditorUiBinding`
+- 远控 / reflection / host 共享的 `UiRouteId`
+
+三者开始在同一条宿主模板运行时骨架上汇合，而不是继续只靠旧手写壳体上的分散 callback。
+
+## Real Slint Host Callback Bridge
+
+这一刀第一次把 shared template runtime 真正接进了 `slint_host` 的实际 callback 路径，但仍然避开了高冲突的 `workbench.slint` 业务树重写。
+
+新增的实际宿主桥是：
+
+- `BuiltinWorkbenchTemplateBridge`
+
+2026-04-16 之后，[`callback_dispatch.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/callback_dispatch.rs) 只保留结构入口；`BuiltinWorkbenchTemplateBridge` 的实际实现位于 [`callback_dispatch/template_bridge/workbench.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/callback_dispatch/template_bridge/workbench.rs)，workbench 菜单分发位于 [`callback_dispatch/workbench/menu_action.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/callback_dispatch/workbench/menu_action.rs)，layout 行为位于 [`callback_dispatch/layout/`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/callback_dispatch/layout) 子树。
+
+`BuiltinWorkbenchTemplateBridge` 负责：
+
+1. 加载 builtin [`workbench_shell.toml`](/E:/Git/ZirconEngine/zircon_editor/ui/templates/workbench_shell.toml)
+2. 构建 `SlintUiProjection`
+3. 通过 shared `UiSurface::compute_layout(...)` 生成随 shell 尺寸变化的 shared-surface-backed `SlintUiHostProjection`
+4. 从宿主投影里按 `control_id + event_kind` 查回稳定 binding id
+5. 再把该 binding 作为 typed `EditorUiBinding` 交给 `EditorEventRuntime`
+
+这条链路的关键点是：实际宿主不再需要先把 `"ResetLayout"`、`"SaveProject"` 这类字符串硬编码翻译成 editor event，而是可以先从共享模板投影解析“当前这个 control 在 shared core 权威下绑定了什么 typed payload”。
+
+### `slint_host/app.rs` 中的最小 cutover
+
+[`app.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/app.rs) 现在持有一份 builtin template bridge，并在宿主重排时同步重算它的 shared frame：
+
+- shell 初始化时创建 bridge
+- 每次 `recompute_if_dirty()` 时按当前 shell 尺寸更新 bridge 的 shared host projection
+- `handle_menu_action(...)` 对已经进入 TOML 模板的菜单 control，优先走 template bridge
+- 未模板化或仍保留宿主执行权的路径继续回退旧 callback 分发
+
+当前保留的特殊分支仍然包括：
+
+- 还未模板化的 legacy menu action
+
+其中 `OpenProject` 这条菜单语义现在已经不再由 [`app.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/app.rs) 本地 special-case 拦截，而是变成：
+
+- `WorkbenchMenuBar/OpenProject`
+  -> builtin template binding
+  -> `MenuAction::OpenProject`
+  -> `EditorEventEffect::PresentWelcomeRequested`
+  -> 宿主消费 effect 后展示 welcome surface
+
+`SavePreset.*` / `LoadPreset.*` 这组动态菜单 id 这轮也已经不再由 [`app.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/app.rs) 本地前缀分支拦截，而是下沉到 [`host_adapter.rs`](/E:/Git/ZirconEngine/zircon_editor/src/editor_event/host_adapter.rs)：
+
+- `dispatch_menu_action(...)`
+  -> `slint_menu_action("SavePreset.<name>" | "LoadPreset.<name>")`
+  -> canonical `EditorEvent::Layout(LayoutCommand::SavePreset/LoadPreset)`
+  -> `SlintDispatchEffects.active_layout_preset_name`
+  -> 宿主只消费 effect，更新当前 preset 选择与状态行
+
+scene 空态里的 `Open Scene` / `Create Scene` 按钮这轮也已经从 label fallback 改成真实 typed menu binding：
+
+- [`workbench/model/mod.rs`](/E:/Git/ZirconEngine/zircon_editor/src/workbench/model/mod.rs) 现在直接为 scene empty-state 生成 `MenuAction::OpenScene` / `MenuAction::CreateScene`
+- [`ui.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/ui.rs) 不再需要用按钮文案反推 action id
+- [`runtime.rs`](/E:/Git/ZirconEngine/zircon_editor/src/editor_event/runtime.rs) 统一产出当前占位状态 `"Scene open/create workflow is not wired yet"`
+
+因此当前 `handle_menu_action(...)` 保留下来的本地分支只剩未模板化 legacy menu action；startup/welcome 的执行态仍然在宿主，但已经接入 runtime 的 menu 入口都回到了统一 template/adapter authority。
+
+这条链路这轮又补了一条更硬的兼容约束：`WorkbenchMenuBar/ResetLayout` 继续保持 `MenuAction::ResetLayout`，而不是在模板侧提前改写成 `DockCommand::ResetToDefault`。真正的 layout reset 仍然在 runtime 内部执行 `LayoutCommand::ResetToDefault`；这里锁住的是 canonical event log 真源。这样旧手写 Slint 菜单入口和 builtin template 菜单入口在同一 fixture 上仍然会产出同构 `EditorEventRecord`，不会因为 cutover 路径不同而把同一个菜单动作记成两类上层事件。
+
+### 当前已接入的真实收益
+
+这一刀带来的不是“Slint 壳已经替换完成”，而是三件更基础但更关键的事情：
+
+- `slint_host` 终于有了一个真实 consumer，会消费 shared `UiSurface` 求出的 frame/route，而不是只有测试在消费
+- builtin TOML 模板里的稳定 binding id 开始进入真实 menu/dock callback 链路
+- 后续继续迁移 activity rail、toolbar、dock target、viewport chrome 时，可以复用同一条 `control_id -> shared host projection -> typed binding` 解析链，而不是再复制一套字符串 callback 对照表
+
+### Workbench structural tab cutover
+
+这一轮把 editor shell 里四类最核心的“结构性标签输入”同时收口到了 shared `UiSurface + UiPointerDispatcher`，不再让手写 `.slint` callback 名称或 `(slot, id)` 字符串组合作为点击真源：
+
+- `ActivityRail`
+- host page strip
+- document / floating document tabs
+- drawer header tabs
+
+新增的宿主桥接分别是：
+
+- [`activity_rail_pointer.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/activity_rail_pointer.rs)
+- [`host_page_pointer.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/host_page_pointer.rs)
+- [`document_tab_pointer.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/document_tab_pointer/mod.rs)
+- [`drawer_header_pointer.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/drawer_header_pointer.rs)
+
+它们都遵守同一条权威链：
+
+Slint 上传 strip-local pointer 事实与必要的几何输入
+-> host bridge rebuild focused shared `UiSurface`
+-> `UiPointerDispatcher` 解析 top-most route
+-> [`callback_dispatch.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/callback_dispatch.rs) 把 route 投影到 builtin template binding 或兼容 fallback
+-> `EditorEventRuntime`
+
+当前 `workbench.slint` / `chrome.slint` 的职责已经进一步收窄成“表现层 + 原始 pointer 坐标上传层”：
+
+- `RailButton.pointer_pressed(...)` 只上传 rail 内本地坐标
+- `DockTabButton.pointer_pressed(...)` 只上传 host page strip 内本地坐标
+- `TabChip.pointer_clicked(...)` / `close_pointer_clicked(...)` 只上传 document tab 的点击事实
+- `DockTabButton.pointer_clicked(...)` 只上传 drawer header tab 的点击事实
+
+对应地，真实宿主已经不再注册这些旧直连业务入口：
+
+- `ui.on_activate_host_page(...)`
+- `ui.on_activate_document_tab(...)`
+- `ui.on_close_tab(...)`
+- `ui.on_toggle_drawer_tab(...)`
+
+现在统一替换成：
+
+- `ui.on_activity_rail_pointer_clicked(...)`
+- `ui.on_host_page_pointer_clicked(...)`
+- `ui.on_document_tab_pointer_clicked(...)`
+- `ui.on_document_tab_close_pointer_clicked(...)`
+- `ui.on_drawer_header_pointer_clicked(...)`
+
+这里有两个关键实现约束：
+
+- host page 与 activity rail 使用 `pointer_pressed`，因为它们本身不承担拖拽语义，按下即可让 shared surface 做命中和 typed route 解析
+- document tab 与 drawer header tab 使用 click-level pointer hook，而不是 `down`，因为它们和 drag/drop 共享同一颗 visual tab；只有沿用 Slint 现有 click suppression，才能避免拖拽开始时误发激活/关闭/折叠事件
+
+这让 `BuiltinWorkbenchTemplateBridge` 在真实宿主里首次同时覆盖四类 shell structural route：
+
+- `ActivityRail/*`
+- `WorkbenchShell/ActivateMainPage`
+- `DocumentTabs/ActivateTab`
+- `DocumentTabs/CloseTab`
+
+其中 drawer header toggle 仍然保留 editor shell 的既有兼容语义，但解释权已经从 Slint callback 参数本身转到了 shared route + template binding：
+
+- route 落到当前激活且已展开的 drawer tab 时，仍会折叠该 drawer
+- route 落到已折叠 drawer 的目标 tab 时，仍会重新激活并恢复可见
+- 语义判断现在由 `dispatch_builtin_workbench_drawer_toggle(...)` 统一完成，而不是回到 `app.rs` 手写分支
+
+因此当前真实宿主里的结构性标签输入已经不再是“模板能解释一部分，但 Slint 仍保留第二真源”的过渡态，而是共享 pointer authority 真正进入主链：
+
+- 命中顺序由 shared retained surface 决定
+- 是否触发激活/关闭/折叠由 shared route 决定
+- typed payload 仍由 builtin template binding 决定
+- Slint 只保留视觉、drag suppression 和局部坐标上传职责
+
+### Asset surface semantic cutover
+
+这一轮继续把 `assets.slint` 的语义入口也收到了 builtin template authority 下，但仍然不去改现有 Slint 视觉树。
+
+新增的 builtin 文档是：
+
+- [`asset_surface_controls.toml`](/E:/Git/ZirconEngine/zircon_editor/ui/templates/asset_surface_controls.toml)
+
+它固定了稳定命名空间：
+
+- `AssetSurface/SelectFolder`
+- `AssetSurface/SelectItem`
+- `AssetSurface/SearchEdited`
+- `AssetSurface/SetKindFilter`
+- `AssetSurface/SetViewMode`
+- `AssetSurface/SetUtilityTab`
+- `AssetSurface/ActivateReference`
+- `AssetSurface/OpenAssetBrowser`
+- `AssetSurface/LocateSelectedAsset`
+
+配套改动是：
+
+- [`zircon_editor_ui/src/binding/mod.rs`](/E:/Git/ZirconEngine/zircon_editor_ui/src/binding/mod.rs) 把 `AssetCommand` 扩成 typed surface command 集合
+- [`binding_dispatch/mod.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/binding_dispatch/mod.rs) 通过 `asset/` 子模块集中解析 `surface/view_mode/utility_tab`
+- [`callback_dispatch.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/callback_dispatch.rs) 新增 `BuiltinAssetSurfaceTemplateBridge`
+- [`app/assets.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/app/assets.rs) 现在只保留 `control_id -> UiEventKind + template arguments` 的翻译，而不再保留 `update_asset_search(...)` / `open_asset_browser()` 这类业务 helper
+- [`app/callback_wiring.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/app/callback_wiring.rs) 的 asset 宿主注册现在只剩 `ui.on_asset_control_changed(...)` 和 `ui.on_asset_control_clicked(...)`
+
+因此现在真实宿主链路已经从：
+
+- Slint callback
+  -> `app.rs` 本地字符串解析
+  -> 直接改 asset workspace / layout
+
+变成：
+
+- Slint callback
+  -> builtin asset surface projection
+  -> stable `AssetSurface/*`
+  -> typed `AssetCommand`
+  -> `EditorEventRuntime`
+
+但 [`assets.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/assets.slint) 仍然负责现有界面渲染，这一步只替换语义权威，不替换视觉壳体。
+
+这一轮又把 asset surface header / utility / import 这层的 ABI 继续收紧成“稳定 control id，而不是业务 callback 名称”：
+
+- [`assets.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/assets.slint) 的 activity/browser leaf surface 现在统一只暴露：
+  - `control_changed(control_id, value)`
+  - `control_clicked(control_id)`
+- `SearchEdited` / `SetKindFilter` / `SetViewMode` / `SetUtilityTab` / `OpenAssetBrowser` / `LocateSelectedAsset` / `ImportModel` 都通过同一套 generic control route 上传
+- [`workbench.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench.slint) 顶层只保留：
+  - `asset_control_changed(source, control_id, value)`
+  - `asset_control_clicked(source, control_id)`
+- `ProjectOverviewPane` 的 “Asset Browser” 按钮现在也复用 `asset_control_clicked("project", "OpenAssetBrowser")`，而不是保留单独 `open_asset_browser()` ABI
+- `mesh_import_path_edited(...)` 仍然保留在 draft/binding 主链上，因为它还没有进入 `asset_surface_controls.toml` 这份 builtin template 文档
+
+因此 asset 宿主的非 pointer 语义边界现在也开始和 menu / welcome 一样收口成：
+
+- Slint 只上传稳定 `control_id`
+- host 只负责把 `control_id` 翻译成 template arguments
+- typed payload 继续由 builtin template binding 和 `EditorEventRuntime` 权威决定
+
+这一轮又把 asset surface 的非菜单列表输入继续往 shared core 收口了一刀，而且不再只停在 folder tree / content list：
+
+- [`asset_pointer.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/asset_pointer.rs) 现在除了 `AssetFolderTreePointerBridge` 和 `AssetContentListPointerBridge` 之外，还新增 `AssetReferenceListPointerBridge`
+- `AssetSurfacePointerState` 现在同时持有：
+  - folder tree shared pointer state
+  - content list shared pointer state
+  - `references` shared pointer state
+  - `used_by` shared pointer state
+- [`callback_dispatch.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/callback_dispatch.rs) 新增 `dispatch_shared_asset_reference_pointer_click(...)`
+- reference list click 不再由 Slint row `TouchArea` 直接触发 `activate_reference(uuid)`，而是走：
+  坐标
+  -> shared `UiSurface`
+  -> shared `UiPointerDispatcher`
+  -> `AssetPointerReferenceRoute`
+  -> stable `AssetSurface/ActivateReference`
+  -> typed `AssetCommand::ActivateReference`
+  -> `EditorEventRuntime`
+
+对应地，[`assets.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/assets.slint) 里的 `ReferenceListView` 现在也不再把 `ScrollView` 和 per-row `TouchArea` 当成事件真源，而是改成和 welcome recent list、hierarchy list、asset tree/content 一样的模式：
+
+- Slint 只消费 host 投影下来的 `hovered_index` / `scroll_px`
+- Slint 只上报 viewport-local pointer 坐标和滚轮 delta
+- activity/browser 两套 asset surface 的 `references` / `used_by` 列都复用同一套 shared pointer dispatcher 语义
+
+因此 asset 面板当前已经形成一条更完整的 shared-core-first 输入链：
+
+- folder tree
+- content list
+- references list
+- used-by list
+
+四类列表都不再以手写 Slint row 命中作为权威。
+
+### Scroll-only pane surfaces now stay host-authoritative
+
+这一轮继续把不需要 editor-only row route、但仍然需要 shared wheel/scroll authority 的 pane surface 往同一条主链上收口：
+
+- [`detail_pointer.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/detail_pointer.rs) 现在不再只服务 console 和 asset details rail，还新增了 inspector 对应的 shared scroll layout helper
+- `ScrollSurfacePointerBridge` 继续作为统一的 scroll-only 宿主桥：
+  - host 同步 `pane_size + content_extent`
+  - bridge 在 shared `UiSurface` 里建立单一 `ScrollableBox`
+  - wheel 事件先经过 `UiPointerDispatcher`
+  - 最终只把 `scroll_offset` 回灌给 Slint 的 `scroll_px`
+- 宿主侧的 `bridge + state + size` 也已经从 [`app.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/app.rs) 抽到 [`scroll_surface_host.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/scroll_surface_host.rs)，后续 popup/dialog-like overlay 不需要再复制同一套状态样板代码
+- [`panes.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/panes.slint) 里的 `InspectorPane` 已经不再把 Slint `ScrollView` 当成滚动真源，而是改成和 hierarchy/tree/list 一样的“clip + host-driven content offset”模式
+- 这条改法刻意保留了 inspector 里的 `CompactField`、`AxisField` 和 `ShellButton` 现有 callback 语义；shared core 只接管 wheel / scroll state，不重新定义 inspector draft/apply/delete 协议
+
+因此当前进入 shared scroll authority 的非-menu pane surface 已经包括：
+
+- `ConsolePane`
+- `SelectionDetailsRail`
+- `InspectorPane`
+
+### Welcome surface semantic cutover
+
+这轮继续把 startup/welcome 的 callback 语义入口也迁到了 builtin template authority 上，但刻意把切口停在“typed host event”，没有把整个 startup session 生命周期强行推进 `EditorEventRuntime`。
+
+新增的 builtin 文档是：
+
+- [`startup_welcome_controls.toml`](/E:/Git/ZirconEngine/zircon_editor/ui/templates/startup_welcome_controls.toml)
+
+它定义了稳定命名空间：
+
+- `WelcomeSurface/ProjectNameEdited`
+- `WelcomeSurface/LocationEdited`
+- `WelcomeSurface/CreateProject`
+- `WelcomeSurface/OpenExistingProject`
+- `WelcomeSurface/OpenRecentProject`
+- `WelcomeSurface/RemoveRecentProject`
+
+对应的 typed 层现在拆成两段：
+
+- [`zircon_editor_ui/src/binding/mod.rs`](/E:/Git/ZirconEngine/zircon_editor_ui/src/binding/mod.rs) 新增 `WelcomeCommand`
+- [`binding_dispatch/mod.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/binding_dispatch/mod.rs) 通过 `welcome/` 子模块新增 `WelcomeHostEvent`
+
+真实宿主里：
+
+- [`callback_dispatch.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/callback_dispatch.rs) 新增 `BuiltinWelcomeSurfaceTemplateBridge`
+- [`app.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/app.rs) 的 `on_welcome_*` 回调不再直接把 callback 名称当语义，而是先解析稳定 binding，再执行已有的 startup session 逻辑
+
+当前刻意保留的宿主 seam 是：
+
+- `EditorStartupSessionDocument`
+- recent project 验证与移除
+- `create_project_and_open / open_project_and_remember`
+- exclusive welcome page 的 show/dismiss 生命周期
+
+也就是说，welcome 现在已经不再是“本地回调名就是协议”，但它还没有被错误地伪装成 runtime 已经完全接管。模板 authority 负责 control 语义，startup session 仍然由宿主持有。
+
+### Legacy List ABI Retirement
+
+这一轮又补了一层 authority hygiene，把 list surface 上最后一批直连 Slint callback ABI 彻底切掉了，而不是只满足“shared pointer 已经能工作”：
+
+- [`workbench.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench.slint)、[`assets.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/assets.slint)、[`panes.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/panes.slint)、[`welcome.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/welcome.slint) 不再声明或转发：
+  - `hierarchy_select`
+  - `asset_select_folder`
+  - `asset_select_item`
+  - `asset_activate_reference`
+  - `welcome_open_recent_project`
+  - `welcome_remove_recent_project`
+- [`app.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/app.rs) 也同步移除了对应 `ui.on_*` 注册和 helper 方法，不再保留“shared pointer route 之外还可以直接打进 runtime”的第二条旁路
+- list surface 现在只保留 viewport-local `pointer_clicked / moved / scrolled` 上报，以及 host 回灌的 `hovered_index / scroll_px`
+
+这意味着 hierarchy、asset tree/content/reference、welcome recent projects 这些列表面已经统一遵守同一条主链：
+
+坐标/滚轮
+-> shared `UiSurface`
+-> shared `UiPointerDispatcher`
+-> stable binding / route id
+-> typed `EditorEventRuntime`
+
+对应回归由 [`slint_list_pointer.rs`](/E:/Git/ZirconEngine/zircon_editor/src/tests/host/slint_list_pointer.rs) 的 `shared_list_surfaces_do_not_expose_legacy_direct_callback_routes` 锁定，避免后续 cutover 时把旧 callback 壳层悄悄接回来。
+
+### Inspector drafts and asset import cutover
+
+这一轮又补上了一条之前还留在宿主直写状态里的兼容缺口：inspector 实时草稿编辑和 asset pane 的 mesh import path 编辑，不再直接在 [`app.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/app.rs) 里调用 `runtime.update_*` / `runtime.set_mesh_import_path(...)`。
+
+现在它们统一变成：
+
+- [`zircon_editor_ui/src/binding/mod.rs`](/E:/Git/ZirconEngine/zircon_editor_ui/src/binding/mod.rs) 新增 `DraftCommand`
+  - `DraftCommand::SetInspectorField { subject_path, field_id, value }`
+  - `DraftCommand::SetMeshImportPath { value }`
+- [`zircon_editor/src/editor_event/types.rs`](/E:/Git/ZirconEngine/zircon_editor/src/editor_event/types.rs) 新增 `EditorDraftEvent`
+- [`callback_dispatch.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/callback_dispatch.rs) 新增：
+  - `dispatch_inspector_draft_field(...)`
+  - `dispatch_mesh_import_path_edit(...)`
+- [`runtime.rs`](/E:/Git/ZirconEngine/zircon_editor/src/editor_event/runtime.rs) 把这些 typed binding 归一化成 canonical `EditorEvent::Draft(...)`
+
+因此当前真实主链已经变成：
+
+- Slint callback
+  -> typed `DraftCommand`
+  -> `EditorEvent::Draft(EditorDraftEvent::...)`
+  -> runtime 更新 live snapshot
+  -> `SlintDispatchEffects::presentation_dirty`
+
+这一步的约束非常明确：
+
+- inspector 的实时输入仍然只是草稿态，不会提前触发 `ApplyInspectorChanges`
+- mesh import path 的实时输入仍然只是 presentation/runtime 草稿，不会提前触发模型导入或 asset sync
+- `Import Model` 提交动作现在已经进入 typed asset command authority：
+  - `AssetCommand::ImportModel`
+  - `EditorEvent::Asset(EditorAssetEvent::ImportModel)`
+  - `EditorEventEffect::ImportModelRequested`
+- 真正的文件复制、asset import、resource resolve 和 scene mesh 注入仍然保留在宿主 `import_model_into_project()`；本轮 cutover 的目标是把“控件语义解释权”移出 [`app.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/app.rs)，不是把文件系统 side effect 伪装成纯 runtime 逻辑
+
+同一轮里，reflection/action surface 也同步补齐了远控入口，而不是只改桌面 callback：
+
+- inspector activity 现在额外暴露 `edit_field`
+- assets activity 现在额外暴露 `set_mesh_import_path`
+- assets activity 现在额外暴露 `import_model`
+
+因此 live draft 语义现在已经同时进入：
+
+- desktop Slint callback
+- typed binding codec
+- runtime journal/event normalization
+- reflection `CallAction`
+- runtime host-effect request for `ImportModel`
+
+### Shell Pointer Route Normalization
+
+这一轮继续把 editor shell 的 pointer/drop 路由往 shared core 权威收口，但仍然保持 cutover 的范围足够小，不去重写高冲突的 startup/welcome 状态机。
+
+新增的收口点最初有三层：
+
+- `WorkbenchShellPointerRoute` 现在不只表示 splitter resize，还显式带上 `DragTarget(...)`
+- [`tab_drag.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/tab_drag.rs) 新增 `ResolvedWorkbenchTabDropRoute`
+- [`callback_dispatch.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/callback_dispatch.rs) 新增 `dispatch_tab_drop(...)`
+
+这三层让真实宿主中的 tab drop 主链从原先的：
+
+- Slint callback 提供 `target_group` 字符串
+- `app.rs` 在局部手写逻辑里混合 pointer hit-test、fallback 和 attach/reopen dispatch
+
+变成现在的：
+
+- `WorkbenchShellPointerBridge` 在 shared `UiSurface` 上给出 `WorkbenchShellPointerRoute::DragTarget`
+- `resolve_workbench_tab_drop_route(...)` 用 shared pointer route 先决，再保留旧 `target_group` 作为兼容 fallback
+- `dispatch_tab_drop(...)` 统一把 normalized drop route 落成 typed `LayoutCommand::AttachView`
+- 如果目标是 collapsed drawer，再由统一 dispatcher 追加 `SetDrawerMode::Pinned`
+
+这一步的收益不是单纯删掉几行字符串判断，而是把真实宿主里的 dock drop 流程也推到了与 menu、activity rail、document tabs 相同的“先拿 shared/template/shared-surface authority，再做 typed dispatch”的方向上。
+
+这一轮又补了一条 route dispatcher 的兼容约束：attach 到 drawer 不再无条件补发 `SetDrawerMode::Pinned`。现在只有目标 drawer 处于 `Collapsed` 时才会 reopen；已经 `Pinned` 或 `AutoHide` 的 drawer 会保留原模式，只记录 `AttachView`。这样 normalized drop route 和旧宿主语义在 journal 上重新对齐，不会因为 shared route cutover 多出一条无意义的 layout event。
+
+更重要的是，当前还保留了迁移期兼容面：
+
+- shared pointer route 缺失时，仍允许回退到旧的 `target_group` 字符串
+- 精确 tab anchor 解析仍然复用已有 `resolve_tab_drop(...)`
+- `app.rs` 不再直接决定 attach/reopen 次序，只负责拿 route 和设置状态提示
+
+因此当前切片没有把 editor shell 的拖放行为重新定义一遍，而是把“谁是 drop route 真源”重新钉到了 shared shell pointer bridge 上。
+
+### Document edge route host cutover
+
+在这一轮之后，这条链又往前推了一刀，document edge 不再只是 shared pointer 内部语义，而是已经进入真实 Slint 宿主可见的 drag feedback 与 fallback key：
+
+- `WorkbenchShellPointerRoute` 现在显式区分：
+  - `DragTarget(...)`
+  - `DocumentEdge(DockEdge)`
+  - `Resize(...)`
+- [`app.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/app.rs) 的 `update_drag_target(...)` 不再把所有 document edge 都压扁成 `"document"`，而是直接把 shared route 投成稳定宿主 key：
+  - `document-left`
+  - `document-right`
+  - `document-top`
+  - `document-bottom`
+- [`workbench.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench.slint) 的 drag overlay 现在直接消费这些 key，并把 badge / edge highlight 与 shared route 对齐，而不是继续只显示粗粒度的 `"Dock Document"`
+- [`tab_drag.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/tab_drag.rs) 现在还能把这些 key 当作兼容 fallback 重新解释成 `ResolvedWorkbenchTabDropTarget::Split`，因此即便 pointer route 在 drop 时缺失，宿主仍然会保留 `CreateSplit` 语义，而不是回退到普通 attach
+
+这意味着 document split 的 cutover 已经不再只有“dispatcher 内部能分辨 edge”，而是已经形成一条完整的 shared-core-first 主链：
+
+- shared pointer hit-test 决定 edge
+- host overlay 显示与该 edge 一致的反馈
+- normalized route 落到 `CreateSplit`
+- 宿主 fallback key 与 shared route 保持同一套命名，而不是再发明一套 Slint-only 字符串
+
+### Floating window route normalization and view-model exposure
+
+这一刀继续往 shared authority 链路推进，但刻意只补“projection + route contract”，没有直接跳去重写浮窗宿主视觉。
+
+[`WorkbenchViewModel`](/E:/Git/ZirconEngine/zircon_editor/src/workbench/model/mod.rs) 现在新增 `floating_windows`，并把浮窗里的 tab 也收敛成和主 document 一致的 workspace-tab 术语：
+
+- `FloatingWindowModel.window_id`
+- `FloatingWindowModel.title`
+- `FloatingWindowModel.focused_view`
+- `FloatingWindowModel.tabs`
+
+与此同时，`DocumentTabModel` 不再把 host 固定死成 main page，而是显式携带 `WorkspaceTarget`。这让主 document 和 floating workspace 终于可以共用同一套：
+
+- `workspace`
+- `workspace_path`
+- `instance_id`
+- active/closeable/empty-state 投影
+
+在 route 这一层，又补上了两类稳定 fallback key：
+
+- `floating-window/<window_id>`
+- `floating-window-edge/<window_id>/<edge>`
+
+[`tab_drag.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/tab_drag.rs) 现在会把它们统一归一成 typed shared route：
+
+- attach 到 `ViewHost::FloatingWindow(window_id, path)`
+- split 到 `WorkspaceTarget::FloatingWindow(window_id)`
+
+其中 `path` 会优先跟随 layout 的 `focused_view`，否则回退到浮窗 workspace 内第一个 active/non-empty tab stack。这样 route 归一层和 workspace 语义先独立定型，之后再把真实 shared pointer surface 命中补到同一条主链上：
+
+- 浮窗 attach
+- 浮窗 edge split
+- 与 `WorkbenchLayout` / `FloatingWindowSnapshot` 保持一致的 workspace 语义
+
+这一步之后，真实 `slint_host` 也已经开始消费这份投影：
+
+- [`ui.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/ui.rs) 现在会把 `WorkbenchViewModel.floating_windows` 投成 `FloatingWindowData`
+- [`workbench.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench.slint) 新增最小浮窗 overlay host，会真正渲染：
+  - 浮窗标题
+  - 浮窗 tab strip
+  - 复用 `PaneSurface` 的活动 pane 内容
+- 浮窗 tab 已经可以复用现有 shared document-tab pointer 桥：
+  - 激活 route
+  - 关闭 route
+  - 拖出到现有 dock/document 目标组
+
+也就是说，当前已经不是“只有模型和路由，没有宿主消费”，而是“已有过渡性的真实宿主 overlay，并且浮窗几何 authority 与 pointer route authority 都已经开始走 shared core”。
+
+这一轮又把浮窗 overlay 的 header click 收口成了一条明确的 runtime dispatch 主链：
+
+- [`workbench.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench.slint) 的浮窗 card 只暴露 `floating_window_header_pointer_clicked(...)`
+- [`callback_wiring.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/app/callback_wiring.rs) 只接这条 pointer fact
+- [`app/workbench_pointer.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/app/workbench_pointer.rs) 先经由 [`shell_pointer.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/shell_pointer.rs) 解析 shared `FloatingWindow/FloatingWindowEdge` route
+- [`callback_dispatch/layout/floating_window.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/callback_dispatch/layout/floating_window.rs) 再把 route 收口为 typed `LayoutCommand::FocusView`
+- [`FloatingWindowModel`](/E:/Git/ZirconEngine/zircon_editor/src/workbench/model/mod.rs) 现在提供唯一的 `focus_target_instance()` / `focus_target_tab()` helper，overlay projection 和焦点 dispatch 不再各自维护一份 fallback 逻辑
+- focus fallback 顺序已经固定并由测试锁住：存在于该浮窗 tab 集中的 `focused_view -> active tab -> first tab`
+
+这也把当前 shell 的 non-menu transient overlay inventory 盘清了：
+
+- menu popup 仍然是唯一具备 dismiss overlay 语义的 transient surface
+- menu 之外，当前 workbench shell 没有第二个 standalone popup/dialog/modal dismiss surface
+- floating-window header 是当前唯一活着的 non-menu transient overlay 命中层，但它属于 persistent workspace host，而不是 dismissible popup/dialog
+
+这一刀之后，这里的 authority 边界已经继续下沉了两层：
+
+- [`layout.rs`](/E:/Git/ZirconEngine/zircon_editor/src/workbench/layout.rs) 的 `FloatingWindowLayout` 现在显式持久化 `frame: ShellFrame`
+- [`autolayout.rs`](/E:/Git/ZirconEngine/zircon_editor/src/workbench/autolayout.rs) 的 `WorkbenchShellGeometry` 现在生成 `floating_window_frames`
+- 未持久化 frame 的旧 layout 会由 shared geometry 层按中心工作区生成默认浮窗 frame，再统一 clamp 到 `center_band_frame`
+- [`ui.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/ui.rs) 会把这些 frame 和稳定 route key 一起投进 `FloatingWindowData`
+- [`workbench.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench.slint) 不再自己决定浮窗位置，只消费 `window.frame.*`
+
+同时，浮窗自身的 shared pointer route 也已经接进真实主链，而不是只剩 fallback key：
+
+- [`shell_pointer.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/shell_pointer.rs) 的 drag surface 现在会直接产出：
+  - `WorkbenchShellPointerRoute::FloatingWindow(window_id)`
+  - `WorkbenchShellPointerRoute::FloatingWindowEdge { window_id, edge }`
+- [`app.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/app.rs) 的 `update_drag_target(...)` 会把这些 route 归一成稳定宿主 key：
+  - `floating-window/<window_id>`
+  - `floating-window-edge/<window_id>/<edge>`
+- [`tab_drag.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/tab_drag.rs) 会优先消费 shared route，只在 route 缺失时再回退到同名 fallback key
+
+这一刀还顺手修正了一个 shared-core 命中边界：
+
+- document edge split 热区现在只落在真实 `Document` region frame 上
+- empty bottom/right dock band 不再被 `document-bottom` / `document-right` split 路由吞掉
+- 因此 shared dock target route 与旧 workbench drag-target 契约重新对齐
+
+这一刀仍然故意没有完成的是：
+
+- 真正的多宿主/多原生窗口 cutover
+- detach/promote 之外更完整的 window lifecycle / focus / capture 语义
+- 让通用 Slint host 组件树直接消费更多 editor shell frame/clip/z-order，而不是继续保留一部分手写 overlay 结构
+
+也就是说，当前完成的已经不只是“模型、typed 路由、以及最小宿主可视消费”，而是“浮窗 frame authority + 浮窗 pointer route authority + 最小宿主消费”都已经接到了 shared contract；还没有结束的是更完整的窗口化宿主 cutover。
+
+### Viewport toolbar callback cutover
+
+这一轮继续沿着“保留 Slint 壳，但把语义权威前移到模板/runtime”推进，不过 cutover 的对象换成了 Scene viewport toolbar。
+
+新增的模板入口是：
+
+- [`scene_viewport_toolbar.toml`](/E:/Git/ZirconEngine/zircon_editor/ui/templates/scene_viewport_toolbar.toml)
+
+它现在定义了一组稳定 control id 和 binding id：
+
+- `SetTool`
+- `SetTransformSpace`
+- `SetProjectionMode`
+- `AlignView`
+- `SetDisplayMode`
+- `SetGridMode`
+- `SetTranslateSnap`
+- `SetRotateSnapDegrees`
+- `SetScaleSnap`
+- `SetPreviewLighting`
+- `SetPreviewSkybox`
+- `SetGizmosEnabled`
+- `FrameSelection`
+
+对应的稳定 binding 命名空间固定为：
+
+- `ViewportToolbar/*`
+
+真实 cutover 发生在宿主侧：
+
+- [`template_runtime/runtime.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/template_runtime/runtime.rs) 把 `scene.viewport_toolbar` 注册进 builtin runtime，并把这些 control id 映射到 typed `ViewportCommand`
+- [`callback_dispatch.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/callback_dispatch.rs) 新增 `BuiltinViewportToolbarTemplateBridge`
+- [`viewport_toolbar_pointer.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/viewport_toolbar_pointer.rs) 现在持有 `ViewportToolbarPointerBridge`，用最小 `UiSurface + UiPointerDispatcher` 统一解析 toolbar control hit-test
+- [`app.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/app.rs) 里的 viewport toolbar callback 不再本地手写字符串解析 `tool/space/projection/display/grid`，只上传 `surface_key + control_id + local frame + pointer point`
+
+这让当前主链从原先的：
+
+- Slint callback 上传字符串
+- `app.rs` 本地 `parse_*`
+- 再拼成 `EditorViewportEvent`
+
+变成现在的：
+
+- Slint callback 上传稳定 `control_id + event_kind + arguments`
+- `BuiltinViewportToolbarTemplateBridge` 先从 builtin template projection 找到 `ViewportToolbar/*`
+- `ViewportToolbarPointerBridge` 先用 shared route 确认实际命中的 control
+- typed binding 再落到 `EditorEventRuntime`
+
+这一步刻意只替换“命令解释权”，不替换现有视觉树：
+
+- `workbench.slint` 仍然渲染 Scene viewport toolbar
+- host 仍然保留当前 Scene pane 的 Slint 布局与样式
+- 但 toolbar 命中和命令语义都已经不再以 `app.rs` 的局部字符串 parser 或 `.slint` 直连 callback ABI 为权威
+
+因此当前 editor UI 不是“全部替换完成”，而是：
+
+- viewport toolbar 的命令语义已经进入模板 binding 权威链
+- viewport toolbar 的 pointer hit-test 已经进入 shared `UiSurface + UiPointerDispatcher`
+- viewport toolbar 的视觉结构仍然属于迁移中的 Slint compatibility shell
+- `workbench.slint` 已移除 `viewport_set_*` / `viewport_frame_selection` 直连 callback 声明和转发，只保留 `viewport_toolbar_pointer_clicked(...)` 这一条 pointer-fact 宿主边界
+
+这一层目前有两类回归保护：
+
+- [`template_runtime.rs`](/E:/Git/ZirconEngine/zircon_editor/src/tests/host/template_runtime.rs) 验证 builtin projection 确实暴露 `ViewportToolbar/*`
+- [`slint_viewport_toolbar_pointer.rs`](/E:/Git/ZirconEngine/zircon_editor/src/tests/host/slint_viewport_toolbar_pointer.rs) 锁定 shared pointer bridge、runtime dispatcher，以及 `.slint` 不再暴露 legacy direct callback ABI
+- [`slint_callback_dispatch/viewport.rs`](/E:/Git/ZirconEngine/zircon_editor/src/tests/host/slint_callback_dispatch/viewport.rs) 验证 `SetTool` 和 `FrameSelection` 已经通过模板桥接落成 typed `EditorViewportEvent`
+
+### Pane surface action callback cutover
+
+这一轮又把还留在兼容壳里的一个显式逃逸口补掉了：pane empty-state 和 project overview 里的“动作按钮”不再从 [`workbench.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench.slint) 直接抛 `menu_action(action_id)` 给宿主。
+
+新的权威链路是：
+
+- [`pane_surface_controls.toml`](/E:/Git/ZirconEngine/zircon_editor/ui/templates/pane_surface_controls.toml) 定义 builtin `PaneSurface/TriggerAction`
+- [`callback_dispatch/pane/surface_control.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/callback_dispatch/pane/surface_control.rs) 通过 `BuiltinPaneSurfaceTemplateBridge` 把 `control_id + action_id` 归一化成 typed `MenuAction`
+- [`pane_surface_actions.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/app/pane_surface_actions.rs) 成为真实宿主入口
+- [`callback_wiring.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/app/callback_wiring.rs) 不再注册 `ui.on_menu_action(...)`
+
+对应的 Slint 兼容壳也一起收口：
+
+- `PaneSurface` 内部不再声明 `empty_action(...)`
+- workbench root 不再声明 `menu_action(...)`
+- scene/game empty-state 的主/次按钮，以及 `ProjectOverviewPane` 的 `Open Assets`，现在统一只上传 `pane_surface_control_clicked(control_id, action_id)` 这一条 generic control seam
+
+这一步的价值不是“再多一层包装”，而是避免 transient shell surface 在 template/runtime 主链之外保留第二条直接字符串业务 ABI。现在这些条件性 surface 和 inspector / welcome / asset surface 一样，已经回到 builtin template binding authority。
+
+同一轮里，viewport toolbar 的 authority hygiene 也继续收紧了一层：
+
+- `SceneViewportToolbar` 组件本身已经删掉残留的 `set_tool` / `set_projection_mode` / `frame_selection` 等 legacy callback 壳声明
+- [`slint_viewport_toolbar_pointer.rs`](/E:/Git/ZirconEngine/zircon_editor/src/tests/host/slint_viewport_toolbar_pointer.rs) 现在把这些声明也视为 ABI 回退
+
+### `EditorUiCompatibilityHarness`
+
+当前 harness 不再只看模板 projection 摘要，还能直接捕获 host model 的稳定快照。
+
+projection 侧仍然记录：
+
+- `components`
+- `control_ids`
+- `binding_ids`
+
+host model 侧新增记录：
+
+- `host_nodes`
+- `route_bindings`
+- `frame_entries`
+- `attribute_entries`
+- `style_token_entries`
+- `route_key_entries`
+
+它还不是最终的“旧 Slint 壳 vs 新模板宿主”的完整 parity harness，但已经开始覆盖：
+
+- 哪个宿主节点暴露了哪个 `control_id`
+- 哪个 binding 在注册后拿到了哪个 `route_id`
+- 哪些 icon/text/token 属性真正落到了宿主节点模型上
+
+这让后续 parity 对照不再只比较“树里有没有这些节点”，而是能比较“宿主真正能消费到的节点与路由数据是否一致”。
+
+这一轮又开始把这份 parity 从“静态 projection/snapshot”推进到“同 fixture 的 runtime event log”。当前已经直接锁住三组 shared/template vs legacy/raw 的等价性：
+
+- `WorkbenchMenuBar/ResetLayout` vs `dispatch_menu_action("ResetLayout")`
+- `ViewportToolbar/SetTool` vs `dispatch_viewport_command(ViewportCommand::SetTool(...))`
+- `AssetSurface/SearchEdited` vs `dispatch_asset_search(...)`
+
+这些测试现在直接比较 `EditorEventRecord` 和 `SlintDispatchEffects`，而不只比较 binding id、route id 或 frame 摘要。因此 template runtime 一旦把某个 control 误归类成另一种 payload family，就会在 same-fixture parity 上立即暴露出来。
+
+这轮 parity 又往前补了两类入口：
+
+- `WorkbenchShell/ActivateMainPage` template dispatch vs 直接 `LayoutCommand::ActivateMainPage`
+- `WelcomeSurface/ProjectNameEdited`、`WelcomeSurface/OpenRecentProject` template dispatch vs 直接 `dispatch_welcome_binding(...)`
+
+同时，dock route dispatcher 现在也有 focused journal parity 保护：
+
+- attach 到 collapsed drawer 仍会产生 `AttachView + SetDrawerMode(Pinned)`
+- attach 到已经可见的 drawer 只会产生 `AttachView`
+- attach 到 `AutoHide` drawer 会保留 `AutoHide` 模式，不会被 template/shared route cutover 意外改写成 `Pinned`
+
+这一轮又补了一组 Slint host projection 侧的摘要：
+
+- `slint_nodes`
+- `frame_entries`
+- `text_entries`
+- `icon_entries`
+
+因此 parity harness 现在已经能分别对比：
+
+- 模板实例树摘要
+- host-neutral 节点摘要
+- Slint 可绑定节点摘要
+- legacy floating overlay 摘要
+
+虽然还没有真正拿旧手写壳体做双边对照，但对照数据面已经开始成形。
+
+与此同时，harness 现在还能抓 shared surface 摘要，记录：
+
+- `surface_nodes`
+- `frame_entries`
+- surface 节点上的 `binding_ids`
+- surface 节点上的 `attribute_entries`
+- surface 节点上的 `style_token_entries`
+
+这让兼容对照的中间层变成了三段：
+
+1. shared surface
+2. host-neutral node model
+3. Slint-consumable host projection
+
+后续如果某个行为在 shared core 和 Slint host 之间发生了漂移，至少已经能知道偏差是出在：
+
+- 模板到 shared tree
+- shared tree 到 host-neutral model
+- host-neutral model 到 Slint host projection
+
+而不是再像旧手写壳那样把所有差异都堆在一个 callback 或属性投影层里。
+
+这一轮又把 legacy shell 浮窗 overlay 正式纳入 harness：
+
+- [`EditorUiCompatibilityHarness`](/E:/Git/ZirconEngine/zircon_editor/src/host/template_runtime/harness.rs) 新增 `capture_floating_window_overlay_snapshot(...)`
+- 同一份 harness 现在又新增：
+  - `capture_event_journal_delta_snapshot(...)`
+  - `capture_resolved_tab_drop_route_snapshot(...)`
+- snapshot 现在会记录：
+  - `floating-window/<window_id>=x,y,w,h`
+  - `floating-window/<window_id>.attach=<stable-route-key>`
+  - `floating-window/<window_id>.<edge>=<stable-edge-route-key>`
+  - `floating-window/<window_id>.focus_target_id=<stable-view-instance-id>`
+  - `floating-window/<window_id>.active_pane.*`
+
+这不是把 floating window 直接模板化了，而是先把“旧 Slint 壳当前真实消费到的 shared frame / route key”固定成可比较的 parity 数据。
+这样后续即使继续推进 multi-window host cutover，也不会再退回到“只有视觉看起来差不多，但不知道 route key 有没有漂”的状态。
+现在又进一步把“浮窗 header click 最终应该 focus 到哪个 view”也固定成 parity 数据，因此 route key、active pane 和 runtime focus dispatch 可以在同一 fixture 上一起对照，而不是各自漂移。
+同一轮里，dock/drop route normalization 也不再只靠结构体 `assert_eq!` 零散覆盖：
+
+- `slint_tab_drag.rs` 现在会把 shared pointer route 和 fallback group key 各自解析出的结果都压成 `route_result_entries`
+- 文档边缘 split 和 floating-window attach 都已经有 same-fixture parity，对照 shared pointer authority 与 legacy host group key 是否仍然归一到同一条 normalized route
+- `slint_callback_dispatch/layout.rs` 则把 floating-window focus 的 builtin dispatch journal delta 和直接 `LayoutCommand::FocusView` journal delta 并排对照，防止后续 route/event cutover 把 focus target、effect 或 undo 语义悄悄漂移
+
+同一轮里，[`workbench.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench.slint) 的 `FloatingWindowData` 也新增 `focus_target_id`。它不是新的业务 ABI，只是把 shared projection 的 canonical focus target 显式带到宿主壳里，方便 parity 和后续 multi-window host cutover 复用。
+
+与之配套，[`tab_drag.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/tab_drag.rs) 现在抽出了 `workbench_shell_pointer_route_group_key(...)`，把：
+
+- `DragTarget(...)`
+- `DocumentEdge(...)`
+- `FloatingWindow(...)`
+- `FloatingWindowEdge { .. }`
+
+统一归一成宿主稳定 key。  
+[`app.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/app.rs) 和新 parity 测试现在共用这一份 helper，不再各自手写一套 route -> string 映射。
+
+## Shared Menu Pointer Authority
+
+这一轮又把 editor shell 的 menu / popup / scroll pointer 路由推进到了和 dock / drag / resize 同一层的 shared authority：
+
+- [`menu_pointer.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/menu_pointer.rs) 现在持有 `WorkbenchMenuPointerBridge`，内部维护独立 `UiSurface + UiPointerDispatcher`
+- bridge surface 会显式建出：
+  - top menu button 节点
+  - popup dismiss overlay 节点
+  - popup surface 节点
+  - popup item 节点
+- `Window` 菜单的 popup surface 不再只是一块 Slint 裁剪区域，而是 shared `ScrollableBox + UiScrollState` 节点；滚轮会先更新 shared scroll state，再回灌 host 的 `window_menu_scroll_px`
+- dismiss overlay route 现在只收起 popup，不再在 close path 上清空 `popup_scroll_offset`；shared scroll state 只在下一次 `open_popup(...)` 时重置，这样 template/runtime parity 和真实 host dismiss/reopen 都继续共用同一份 canonical state
+- [`workbench.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench.slint) 和 [`chrome.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/chrome.slint) 里的 menu button / item 现在只是表现层，真实命中和 hover/open state 都由 host 下发
+- [`callback_dispatch.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/callback_dispatch.rs) 新增 `dispatch_shared_menu_pointer_click(...)`，把：
+  Slint 坐标
+  -> shared menu hit-test
+  -> shared pointer route
+  -> template-aware menu dispatch fallback
+  -> `EditorEventRuntime`
+  收成一条可测试的统一链路
+
+这意味着 menu/popup 不再只是“shared core 负责命中，`app.rs` 再自己猜 action”的半迁移状态。现在 pointer click 已经能在 shared route 返回后直接进入 runtime dispatcher，并对静态按钮和动态 preset menu item 走同一条入口。
+
+## Viewport Overlay Pointer Authority
+
+viewport 这条链路现在也不再停留在“外框进入 shared bridge，但 gizmo/handle/renderable 仍由本地 picking cache 判断”的中间态：
+
+- outer viewport surface 仍然先经过 [`callback_dispatch.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/callback_dispatch.rs) 里的 `SharedViewportPointerBridge`，统一处理 frame bounds、pointer capture 和 `ViewportCommand` 映射
+- 进入 editor runtime 之后，[`SceneViewportController`](/E:/Git/ZirconEngine/zircon_editor/src/editing/viewport/controller/mod.rs) 现在会把 camera、viewport、handle overlay、scene gizmo 和 renderable 候选同步进 [`ViewportOverlayPointerBridge`](/E:/Git/ZirconEngine/zircon_editor/src/editing/viewport/pointer/mod.rs)
+- overlay bridge 内部会建立一棵最小 `UiSurface`，把 coarse candidate frame、z-order 和 `UiPointerDispatcher` 放进 shared core，再统一产出 `ViewportPointerRoute::{HandleAxis, SceneGizmo, Renderable}`
+- route 优先级固定为 `HandleAxis > SceneGizmo > Renderable`，并由 [`zircon_editor/src/tests/editing/viewport.rs`](/E:/Git/ZirconEngine/zircon_editor/src/tests/editing/viewport.rs) 锁住
+- 旧的 `picking.rs` 已经退出主链，因此 Slint host 现在只负责窗口/纹理/pointer 坐标上传；viewport overlay 命中语义属于 shared surface + editor runtime
+
+这让模板迁移路径不再只覆盖菜单、dock 和列表输入。即便 Scene viewport 还保留现有 Slint 壳和 viewport texture host，它的 overlay hit-test 真源也已经开始遵守 shared contract，而不是继续藏在一份 editor-local pick helper 里。
+
+## Drag/Resize Capture Pointer-Fact Cutover
+
+这一轮把 editor shell 最后那段仍然依赖 handwritten Slint callback ABI 的 drag/resize capture 也收到了 shared contract 下：
+
+- [`workbench.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench.slint) 不再声明或转发 `drop_tab(...)`、`update_drag_target(...)`、`begin_drawer_resize(...)`、`update_drawer_resize(...)`、`finish_drawer_resize(...)`
+- drag overlay 和 splitter/full-screen resize capture 现在统一只上传两类 pointer fact：
+  - `workbench_drag_pointer_event(kind, x, y)`
+  - `workbench_resize_pointer_event(kind, x, y)`
+- [`callback_wiring.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/app/callback_wiring.rs) 现在只注册这两条 shared pointer 入口，不再把 drag/drop 或 resize lifecycle 拆成五个业务回调
+- [`workspace_docking.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/app/workspace_docking.rs) 现在把这些 pointer fact 还原成统一宿主流程：
+  - drag move/up 先经过 `WorkbenchShellPointerBridge::drag_route_at(...)`
+  - resize down/move/up 先经过 `WorkbenchShellPointerBridge::{begin,update,finish}_resize(...)`
+  - drop/resize 的 typed runtime dispatch 仍分别走 `resolve_workbench_tab_drop_route(...) + dispatch_tab_drop(...)` 与 `dispatch_resize_to_group(...)`
+
+这一步的关键不是“把几个 callback 合并成两个名字”，而是把 editor shell capture 期间的真实 authority 从 Slint business ABI 退回到 shared `UiSurface + UiPointerDispatcher`：
+
+- Slint 只保留局部拖拽开始、视觉状态和 pointer 坐标上传
+- shared shell surface 负责 route 解析、capture 延续和 group key 归一
+- runtime dispatcher 继续负责 typed `LayoutCommand` / `DockCommand` 落地
+
+这样一来，drag/drop、splitter resize、document edge split、floating attach/edge 和未来 popup/dialog capture 都可以沿用同一条 host seam，而不是在 `workbench.slint` 里重新扩张 callback ABI。
+
+## ScrollView Authority Cleanup
+
+这一轮又补掉了之前仍然留在 Slint 壳里的“双滚动真源”残留：
+
+- [`ConsolePane`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/panes.slint) 不再使用 `ScrollView.viewport-y`
+- asset browser [`SelectionDetailsRail`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/assets.slint) 也不再使用 `ScrollView.viewport-y`
+- 两者现在都改成 `clip + retained content stack + host-driven scroll_px`
+- wheel 输入继续由 [`detail_pointer.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/detail_pointer.rs) 和 [`scroll_surface_host.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/scroll_surface_host.rs) 这条 shared scroll bridge 处理
+
+这让非-menu pane surface 的滚动 authority 终于一致了：
+
+- Slint 只做表现层裁剪和位移
+- shared `UiSurface + UiPointerDispatcher` 才是 scroll offset 的唯一权威
+- `InspectorPane`、`ConsolePane`、`SelectionDetailsRail` 不再出现“wheel 进 shared dispatcher，但 viewport-y 仍由 Slint 本地维护”的混合状态
+
+同一轮里，[`callback_dispatch/viewport/snap_cycle.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/callback_dispatch/viewport/snap_cycle.rs) 的 helper 可见性也已经补齐到 `viewport` 子树内，避免 [`route_mapping.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/callback_dispatch/viewport/route_mapping.rs) 在真实宿主 shared viewport dispatcher 主链上再次因为模块拆分而失编。
+
+## What This Slice Already Enables
+
+这一轮已经把第一段真实 `slint_host/app.rs` callback 接缝落下来了，并把后续迁移最危险的几件事先定住了：
+
+- editor composite 不需要再依赖手写 `.slint` 业务树作为真源
+- binding 稳定命名空间不会因为切换宿主结构而丢失
+- shared template runtime 和 typed editor binding 已经进入真实宿主 callback 链路
+- inspector live edit、mesh import path live edit、以及 `Import Model` submit 已经不再由宿主直接解释 UI 语义，而是进入 typed draft/asset/runtime authority
+- shell pointer route 现在已经能直接驱动 normalized tab drop route 和统一 dispatcher，而不是只给 `app.rs` 提供局部 group 字符串
+- viewport overlay hit-test 现在也能通过 shared `UiSurface + UiPointerDispatcher` 收口，而不是保留 editor-local `picking.rs` 例外
+- 未来做 parity harness 时，可以直接对比“模板实例 binding 列表”和“旧 Slint 壳回调投影”的等价性
+
+这正是兼容迁移第一阶段需要的基础，而且仍然不必先去重写高冲突的 startup 状态机或 `workbench.slint` 主业务树。
+
+## Manager-side Native Window Seam
+
+为了让下一刀 multi-window cutover 不再建立在“只有 overlay snapshot，没有原生窗口宿主状态”的过渡态上，manager 层这次已经先补齐了一条稳定 seam：
+
+- [`window_host_manager.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/manager/window_host_manager.rs) 现在维护 `NativeWindowHostState { window_id, handle, bounds }`
+- [`workspace_state.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/manager/workspace_state.rs) 会在 `recompute_session_metadata()` 里把 `WorkbenchLayout.floating_windows` 全量同步进 `WindowHostManager`
+- [`layout_commands.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/manager/layout_commands.rs) 会在 detach 出去的最后一个 view 被重新 attach 回主 workbench 后，通过 `reattach_window(...)` 清掉失效原生窗口记录
+- [`EditorManager::native_window_hosts()`](/E:/Git/ZirconEngine/zircon_editor/src/host/manager/workspace_state.rs) 现在是公开 API，后续 secondary-window presenter 不需要穿透私有 manager 状态就能读取窗口宿主账本
+- [`native_window_hosts.rs`](/E:/Git/ZirconEngine/zircon_editor/tests/native_window_hosts.rs) 已经锁住三件事：
+  - detach 最后一个 view 后会生成 host record
+  - restore 含 floating window 的 workspace 时会同步 bounds
+  - config/bootstrap 默认布局不会伪造原生窗口记录
+
+这条 seam 现在已经不再只停在 manager/bookkeeping：
+
+- [`app/native_windows.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/app/native_windows.rs) 现在会在真实 `slint_host` 里维护 `NativeWindowPresenterStore`
+- presenter target 会先读取 [`EditorManager::native_window_hosts()`](/E:/Git/ZirconEngine/zircon_editor/src/host/manager/workspace_state.rs)，再与 [`WorkbenchShellGeometry::floating_window_frame(...)`](/E:/Git/ZirconEngine/zircon_editor/src/workbench/autolayout.rs) 合并；当 manager 账本里的 bounds 还是零时，会直接回退到 shared geometry frame，而不是生成不可见的 1x1 窗口
+- [`workbench.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench.slint) 新增 `native_floating_window_mode` / `native_window_title` / `native_window_bounds`，同一套 `WorkbenchShell` 现在既能渲染主壳，也能把指定 floating window 投成 full-window child host
+- [`app/host_lifecycle.rs`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/app/host_lifecycle.rs) 现在会在 secondary shell 创建时复用 [`wire_callbacks(...)`](/E:/Git/ZirconEngine/zircon_editor/src/host/slint_host/app/callback_wiring.rs)，把 child host 直接接回同一份 shared callback/runtime dispatcher
+- native-mode [`workbench.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench.slint) 现在会把 floating tab activate/close、header focus click 和 `PaneSurface` 内部 pointer/scroll/control 回调重新转回 root host；header route 额外叠加 `native_window_bounds`，避免 child native window 因本地坐标丢失 shared shell 几何语义
+- [`slint_window.rs`](/E:/Git/ZirconEngine/zircon_editor/src/tests/host/slint_window.rs) 现在锁住 geometry fallback、presenter create/update/hide 生命周期、creation hook，以及 native-mode callback forwarding 契约
+
+因此 multi-window cutover 已经推进到“真实 secondary native window create/update/hide + shared presentation reuse”，不再只是 overlay-first 过渡态。
+
+当前仍然刻意保留的限制是：
+
+- child-window 的 tab/header/pane 本地 pointer 与 scroll/control 回调已经迁到 shared dispatcher
+- native close request 现在只在“该 floating window 内所有 tab 都可关闭”时转成 shared `CloseView` 序列；如果包含 non-closeable tab，则仍会保守拦截
+- pointer capture 与更细的 multi-window focus/close UX 还没有完整落地
+
+## Deliberate Non-Goals In This Slice
+
+这一轮故意没有在 `zircon_editor_ui` 里加入：
+
+- docking 拓扑求解
+- `WorkbenchLayout` 替代品
+- 全量替换手写 Slint callback/属性投影
+- reflection/nativeBinding 协议改写
+- runtime `UiTree` 自动装配
+
+这些后续都应该建立在当前 catalog/registry/adapter 已经稳定的前提上继续推进。
+
+## Next Integration Steps
+
+按当前边界，后续最合理的接线顺序是：
+
+1. 在已经落地的 secondary native presenter 之上，继续把 child-window 的 pointer capture 与更细的 close/focus UX 迁到 shared dispatcher，而不是让 child shell 永久停在“基础输入已统一，但 capture/close 仍保守”的阶段
+2. 当前 shell inventory 已经没有剩余 standalone non-menu popup/dialog-like overlay surface；下一条 overlay 相关工作应转到 multi-window / detach-promote host，或未来新增 dialog/popup 时直接落在 shared `UiSurface` dispatcher，而不是回退到宿主本地 hit-test
+3. 在真实 `slint_host` 的 presentation 侧开始消费更多 `SlintUiHostProjection` 的 frame/clip/z-order，而不是只把它保留在 callback bridge 和局部 overlay 上
+4. 为旧手写 Slint 壳和描述文件驱动宿主补真正的同 fixture parity snapshot，对齐 shell structure、route 结果和 event log
+5. 继续保留 startup/welcome 的 host-owned session 执行、preset 和其他高冲突特殊语义的兼容 seam，直到 startup session 也进入受控 runtime authority
+
+只要遵守这个顺序，`slint_host` 的重构就不需要再重新定义模板语义或 binding 命名，而是只做宿主接线。
+
+这一轮新增的直接验证包括：
+
+- `cargo test -p zircon_editor --lib host::slint_host::ui::tests --locked -- --nocapture`
+- `cargo test -p zircon_editor --lib slint_detail_pointer --offline -- --nocapture`
+- `cargo check -p zircon_editor --lib --offline`
+- `cargo test -p zircon_editor --test workbench_slint_shell --offline -- --nocapture`
+- `cargo test -p zircon_editor --lib slint_menu_pointer --locked -- --nocapture`
+- `cargo test -p zircon_editor --lib slint_tab_drag --locked -- --nocapture`
+- `cargo test -p zircon_editor --lib shared_drag_capture_surface_replaces_legacy_direct_drop_callback_abi --locked -- --nocapture`
+- `cargo test -p zircon_editor --lib slint_drawer_resize --locked -- --nocapture`
+- `cargo test -p zircon_editor --lib shared_resize_surface_replaces_legacy_direct_resize_callback_abi --locked -- --nocapture`
+- `cargo test -p zircon_editor --lib shared_detail_scroll_surfaces_do_not_leave_slint_scrollview_as_authority --locked -- --nocapture`
+- `cargo check -p zircon_editor --lib --locked`
+- `cargo test -p zircon_editor --lib template_runtime --locked -- --nocapture`
+- `cargo test -p zircon_editor_ui draft_command_bindings_parse_into_typed_payloads_instead_of_custom_calls --locked`
+- `cargo test -p zircon_editor --lib draft_inspector_binding_normalizes_and_updates_live_snapshot --locked`
+- `cargo test -p zircon_editor --lib draft_mesh_import_path_binding_normalizes_and_updates_live_snapshot --locked`
+- `cargo test -p zircon_editor --lib inspector_draft_field_dispatch_updates_live_snapshot_without_scene_side_effects --locked`
+- `cargo test -p zircon_editor --lib mesh_import_path_edit_dispatch_updates_live_snapshot_without_backend_sync --locked`
+- `cargo test -p zircon_editor --lib workbench_reflection_call_action_dispatches_typed_draft_actions --locked`
+- `cargo test -p zircon_editor_ui --lib asset_command_binding_roundtrips_for_import_model --locked`
+- `cargo test -p zircon_editor --lib asset_import_binding_normalizes_to_runtime_host_request --locked`
+- `cargo test -p zircon_editor --lib builtin_asset_surface_import_model_dispatches_host_request_from_template --locked`
+- `cargo test -p zircon_editor --lib workbench_reflection_call_action_dispatches_asset_import_action --locked`
+- `cargo test -p zircon_editor --lib builtin_pane_surface_trigger_action_matches_legacy_menu_action_dispatch --locked -- --nocapture`
+- `cargo test -p zircon_editor --lib pane_surface_actions_use_generic_template_callbacks_instead_of_legacy_menu_action_abi --locked -- --nocapture`
+- `cargo test -p zircon_editor --lib shared_viewport_toolbar_surface_replaces_legacy_direct_click_routes --locked -- --nocapture`
+- `cargo test -p zircon_editor --locked -- --nocapture`
+- `cargo test -p zircon_editor --lib asset_surface_controls_use_generic_template_callbacks_instead_of_legacy_business_abi --offline -- --nocapture`
+- `cargo test -p zircon_editor --lib slint_asset_pointer --offline -- --nocapture`
+- `cargo test -p zircon_editor --lib slint_callback_dispatch --offline -- --nocapture`
+
+

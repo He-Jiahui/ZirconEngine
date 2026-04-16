@@ -1,8 +1,20 @@
 //! Service registry and core runtime.
 
-mod core;
+mod contexts;
+mod descriptors;
+mod handle;
+mod runtime;
+mod state;
+mod weak;
 
-pub use core::{
-    CoreHandle, CoreRuntime, CoreWeak, DependencySpec, DriverDescriptor, ManagerDescriptor,
-    ModuleContext, ModuleDescriptor, PluginContext, PluginDescriptor, RegistryName, ServiceFactory,
+pub use contexts::{ModuleContext, PluginContext};
+pub use descriptors::{
+    DependencySpec, DriverDescriptor, ManagerDescriptor, ModuleDescriptor, PluginDescriptor,
+    RegistryName, ServiceFactory,
 };
+pub use handle::CoreHandle;
+pub use runtime::CoreRuntime;
+pub use weak::CoreWeak;
+
+#[cfg(test)]
+mod tests;

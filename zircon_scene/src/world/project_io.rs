@@ -5,14 +5,15 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use zircon_asset::{
     AssetImportError, AssetReference, ImportedAsset, ProjectManager, SceneAsset,
-    SceneDirectionalLightAsset, SceneEntityAsset, SceneMeshInstanceAsset, TransformAsset,
+    SceneDirectionalLightAsset, SceneEntityAsset, SceneMeshInstanceAsset, SceneMobilityAsset,
+    TransformAsset,
 };
 use zircon_resource::{
     MaterialMarker, ModelMarker, ResourceHandle, ResourceId, ResourceLocator, ResourceScheme,
 };
 
 use super::World;
-use crate::components::{NodeKind, Schedule};
+use crate::components::{Mobility, NodeKind, Schedule};
 
 const PROJECT_FORMAT_VERSION: u32 = 2;
 const BUILTIN_CUBE: &str = "builtin://cube";
@@ -81,39 +82,50 @@ impl World {
                 )
             });
 
-            world.insert_node_record(crate::components::NodeRecord {
-                id: entity.entity,
-                name: entity.name.clone(),
-                kind,
-                parent: entity.parent,
-                transform: zircon_math::Transform {
-                    translation: zircon_math::Vec3::from_array(entity.transform.translation),
-                    rotation: zircon_math::Quat::from_array(entity.transform.rotation),
-                    scale: zircon_math::Vec3::from_array(entity.transform.scale),
-                },
-                camera: entity.camera.clone().map(|camera| crate::components::CameraComponent {
-                    fov_y_radians: camera.fov_y_radians,
-                    z_near: camera.z_near,
-                    z_far: camera.z_far,
-                }),
-                mesh,
-                directional_light: entity.directional_light.clone().map(|light| {
-                    crate::components::DirectionalLight {
-                        direction: zircon_math::Vec3::from_array(light.direction),
-                        color: zircon_math::Vec3::from_array(light.color),
-                        intensity: light.intensity,
-                    }
-                }),
-                active: entity.active,
-            })
-            .map_err(SceneProjectError::SceneAsset)?;
+            world
+                .insert_node_record(crate::components::NodeRecord {
+                    id: entity.entity,
+                    name: entity.name.clone(),
+                    kind,
+                    parent: entity.parent,
+                    transform: zircon_math::Transform {
+                        translation: zircon_math::Vec3::from_array(entity.transform.translation),
+                        rotation: zircon_math::Quat::from_array(entity.transform.rotation),
+                        scale: zircon_math::Vec3::from_array(entity.transform.scale),
+                    },
+                    camera: entity.camera.clone().map(|camera| {
+                        crate::components::CameraComponent {
+                            fov_y_radians: camera.fov_y_radians,
+                            z_near: camera.z_near,
+                            z_far: camera.z_far,
+                        }
+                    }),
+                    mesh,
+                    directional_light: entity.directional_light.clone().map(|light| {
+                        crate::components::DirectionalLight {
+                            direction: zircon_math::Vec3::from_array(light.direction),
+                            color: zircon_math::Vec3::from_array(light.color),
+                            intensity: light.intensity,
+                        }
+                    }),
+                    active: entity.active,
+                    render_layer_mask: entity.render_layer_mask,
+                    mobility: match entity.mobility {
+                        SceneMobilityAsset::Dynamic => Mobility::Dynamic,
+                        SceneMobilityAsset::Static => Mobility::Static,
+                    },
+                })
+                .map_err(SceneProjectError::SceneAsset)?;
         }
 
         world.normalize_after_load();
         Ok(world)
     }
 
-    pub fn to_scene_asset(&self, project: &ProjectManager) -> Result<SceneAsset, SceneProjectError> {
+    pub fn to_scene_asset(
+        &self,
+        project: &ProjectManager,
+    ) -> Result<SceneAsset, SceneProjectError> {
         let entities = self
             .entities
             .iter()
@@ -140,6 +152,11 @@ impl World {
                         scale: record.transform.scale.to_array(),
                     },
                     active: record.active,
+                    render_layer_mask: record.render_layer_mask,
+                    mobility: match record.mobility {
+                        Mobility::Dynamic => SceneMobilityAsset::Dynamic,
+                        Mobility::Static => SceneMobilityAsset::Static,
+                    },
                     camera: record.camera.map(|camera| zircon_asset::SceneCameraAsset {
                         fov_y_radians: camera.fov_y_radians,
                         z_near: camera.z_near,
@@ -216,6 +233,11 @@ impl World {
         if self.directional_lights.is_empty() {
             self.spawn_node(NodeKind::DirectionalLight);
         }
+        for entity in self.entities.iter().copied().collect::<Vec<_>>() {
+            self.active_self.entry(entity).or_default();
+            self.render_layer_masks.entry(entity).or_default();
+            self.mobility.entry(entity).or_default();
+        }
         if self
             .selected_entity
             .is_some_and(|entity| !self.entities.contains(&entity))
@@ -242,7 +264,9 @@ fn model_handle_for_reference(
         .asset_id_for_uuid(reference.uuid)
         .or_else(|| project.asset_id_for_uri(locator))
         .map(ResourceHandle::new)
-        .unwrap_or_else(|| ResourceHandle::new(ResourceId::from_stable_label(BUILTIN_MISSING_MODEL)))
+        .unwrap_or_else(|| {
+            ResourceHandle::new(ResourceId::from_stable_label(BUILTIN_MISSING_MODEL))
+        })
 }
 
 fn material_handle_for_reference(

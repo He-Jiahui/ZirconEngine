@@ -16,7 +16,8 @@ pub use artifact::{ArtifactStore, LibraryCacheKey};
 pub use assets::{
     AlphaMode, ImportedAsset, MaterialAsset, ModelAsset, ModelPrimitiveAsset, SceneAsset,
     SceneCameraAsset, SceneDirectionalLightAsset, SceneEntityAsset, SceneMeshInstanceAsset,
-    ShaderAsset, TextureAsset, TransformAsset,
+    SceneMobilityAsset, ShaderAsset, TextureAsset, TransformAsset, UiAssetDocumentError,
+    UiLayoutAsset, UiStyleAsset, UiWidgetAsset,
 };
 pub use editor::{
     AssetCatalogRecord, DefaultEditorAssetManager, PreviewArtifactKey, PreviewCache,
@@ -24,8 +25,8 @@ pub use editor::{
 };
 pub use importer::{AssetImportError, AssetImporter};
 pub use pipeline::manager::{
-    module_descriptor, AssetIoDriver, ProjectAssetManager, EDITOR_ASSET_MANAGER_NAME,
-    ASSET_IO_DRIVER_NAME, ASSET_MANAGER_NAME, ASSET_MODULE_NAME, PROJECT_ASSET_MANAGER_NAME,
+    module_descriptor, AssetIoDriver, ProjectAssetManager, ASSET_IO_DRIVER_NAME,
+    ASSET_MANAGER_NAME, ASSET_MODULE_NAME, EDITOR_ASSET_MANAGER_NAME, PROJECT_ASSET_MANAGER_NAME,
     RESOURCE_MANAGER_NAME,
 };
 pub use pipeline::types::{
@@ -33,8 +34,8 @@ pub use pipeline::types::{
     TextureSource,
 };
 pub use pipeline::worker_pool::AssetWorkerPool;
-pub use project::{ProjectManager, ProjectManifest, ProjectPaths};
 pub use project::{AssetMetaDocument, PreviewState};
+pub use project::{ProjectManager, ProjectManifest, ProjectPaths};
 pub use watch::{AssetChange, AssetChangeKind, AssetWatchEvent, AssetWatcher};
 pub use zircon_resource::{
     AssetReference, AssetUuid, MaterialMarker, ModelMarker, ResourceData, ResourceDiagnostic,
@@ -42,7 +43,8 @@ pub use zircon_resource::{
     ResourceInspectorAdapterKey, ResourceIo, ResourceIoError, ResourceKind, ResourceLease,
     ResourceLocator, ResourceLocatorError, ResourceManager, ResourceMarker, ResourceRecord,
     ResourceRegistry, ResourceRuntimeInfo, ResourceScheme, ResourceState, ResourceTypeDescriptor,
-    RuntimeResourceState, SceneMarker, ShaderMarker, TextureMarker, UntypedResourceHandle,
+    RuntimeResourceState, SceneMarker, ShaderMarker, TextureMarker, UiLayoutMarker, UiStyleMarker,
+    UiWidgetMarker, UntypedResourceHandle,
 };
 
 pub type AssetId = ResourceId;

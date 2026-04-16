@@ -1,0 +1,13 @@
+[package]
+name = "zircon_render_server"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Stable rendering facade contracts, handles, commands, and queries."
+
+[dependencies]
+thiserror.workspace = true
+zircon_core = { path = "../zircon_core" }
+zircon_math = { path = "../zircon_math" }
+zircon_scene = { path = "../zircon_scene" }
+

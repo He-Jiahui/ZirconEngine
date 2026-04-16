@@ -58,7 +58,10 @@ double_sided = false
 
     let loaded = MaterialAsset::from_toml_str(document).unwrap();
 
-    assert_eq!(loaded.shader.locator, AssetUri::parse("res://shaders/pbr.wgsl").unwrap());
+    assert_eq!(
+        loaded.shader.locator,
+        AssetUri::parse("res://shaders/pbr.wgsl").unwrap()
+    );
     assert_eq!(
         loaded.base_color_texture.unwrap().locator,
         AssetUri::parse("res://textures/albedo.png").unwrap()

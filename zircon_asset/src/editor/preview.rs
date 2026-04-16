@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use image::{DynamicImage, ImageBuffer, ImageFormat, Rgba, imageops::FilterType};
+use image::{imageops::FilterType, DynamicImage, ImageBuffer, ImageFormat, Rgba};
 
 use crate::AssetUuid;
 
@@ -122,9 +122,7 @@ impl PreviewScheduler {
 }
 
 fn blend(left: [u8; 4], right: [u8; 4], t: f32) -> Rgba<u8> {
-    let lerp = |a: u8, b: u8| -> u8 {
-        (((a as f32) * (1.0 - t)) + ((b as f32) * t)).round() as u8
-    };
+    let lerp = |a: u8, b: u8| -> u8 { (((a as f32) * (1.0 - t)) + ((b as f32) * t)).round() as u8 };
     Rgba([
         lerp(left[0], right[0]),
         lerp(left[1], right[1]),

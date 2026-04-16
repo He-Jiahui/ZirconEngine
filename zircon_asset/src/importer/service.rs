@@ -8,7 +8,7 @@ use zircon_math::{Vec2, Vec3};
 
 use crate::assets::{
     ImportedAsset, MaterialAsset, ModelAsset, ModelPrimitiveAsset, SceneAsset, ShaderAsset,
-    TextureAsset,
+    TextureAsset, UiLayoutAsset, UiStyleAsset, UiWidgetAsset,
 };
 use crate::{AssetImportError, AssetUri, MeshVertex};
 
@@ -32,6 +32,9 @@ impl AssetImporter {
         }
         if lower_name.ends_with(".scene.toml") {
             return self.import_scene(source_path);
+        }
+        if lower_name.ends_with(".ui.toml") {
+            return self.import_ui_asset(source_path);
         }
 
         let extension = source_path
@@ -99,6 +102,23 @@ impl AssetImporter {
         let scene = SceneAsset::from_toml_str(&document)
             .map_err(|error| AssetImportError::Parse(format!("parse scene toml: {error}")))?;
         Ok(ImportedAsset::Scene(scene))
+    }
+
+    fn import_ui_asset(&self, source_path: &Path) -> Result<ImportedAsset, AssetImportError> {
+        let document = fs::read_to_string(source_path)?;
+        if let Ok(asset) = UiLayoutAsset::from_toml_str(&document) {
+            return Ok(ImportedAsset::UiLayout(asset));
+        }
+        if let Ok(asset) = UiWidgetAsset::from_toml_str(&document) {
+            return Ok(ImportedAsset::UiWidget(asset));
+        }
+        if let Ok(asset) = UiStyleAsset::from_toml_str(&document) {
+            return Ok(ImportedAsset::UiStyle(asset));
+        }
+        Err(AssetImportError::Parse(format!(
+            "parse ui asset toml {}: unsupported or mismatched [asset.kind]",
+            source_path.display()
+        )))
     }
 
     fn import_obj(

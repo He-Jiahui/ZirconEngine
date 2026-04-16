@@ -116,7 +116,10 @@ impl DefaultEditorAssetManager {
 
         let reference_graph = ReferenceGraph::rebuild(catalog_by_uuid.values());
         let change = {
-            let mut state = self.state.write().expect("editor asset state lock poisoned");
+            let mut state = self
+                .state
+                .write()
+                .expect("editor asset state lock poisoned");
             state.project_root = Some(project.paths().root().to_path_buf());
             state.assets_root = Some(project.paths().assets_root().to_path_buf());
             state.library_root = Some(project.paths().library_root().to_path_buf());
@@ -203,7 +206,10 @@ impl DefaultEditorAssetManager {
         asset_uuid: AssetUuid,
     ) -> Result<Option<AssetCatalogRecord>, AssetImportError> {
         let change = {
-            let mut state = self.state.write().expect("editor asset state lock poisoned");
+            let mut state = self
+                .state
+                .write()
+                .expect("editor asset state lock poisoned");
             let updated = {
                 let Some(record) = state.catalog_by_uuid.get_mut(&asset_uuid) else {
                     return Ok(None);
@@ -234,7 +240,10 @@ impl DefaultEditorAssetManager {
         visible: bool,
     ) -> Result<Option<AssetCatalogRecord>, AssetImportError> {
         let change = {
-            let mut state = self.state.write().expect("editor asset state lock poisoned");
+            let mut state = self
+                .state
+                .write()
+                .expect("editor asset state lock poisoned");
             let should_refresh = state.preview_scheduler.request_refresh(asset_uuid, visible);
             let catalog_revision = state.catalog_revision;
             let cache = state.preview_cache.as_ref().cloned().ok_or_else(|| {
@@ -445,16 +454,12 @@ fn reference_to_facade(
     reference: &AssetReference,
     state: &EditorAssetState,
 ) -> EditorAssetReferenceRecord {
-    if let Some(record) = state
-        .catalog_by_uuid
-        .get(&reference.uuid)
-        .or_else(|| {
-            state
-                .uuid_by_locator
-                .get(&reference.locator)
-                .and_then(|uuid| state.catalog_by_uuid.get(uuid))
-        })
-    {
+    if let Some(record) = state.catalog_by_uuid.get(&reference.uuid).or_else(|| {
+        state
+            .uuid_by_locator
+            .get(&reference.locator)
+            .and_then(|uuid| state.catalog_by_uuid.get(uuid))
+    }) {
         return EditorAssetReferenceRecord {
             uuid: record.asset_uuid.to_string(),
             locator: record.locator.to_string(),
@@ -519,7 +524,9 @@ fn build_folder_records(state: &EditorAssetState) -> Vec<EditorAssetFolderRecord
             parent_id = folder_id;
         }
         if let Some(folder) = folders.get_mut(&parent_id) {
-            folder.direct_asset_uuids.push(record.asset_uuid.to_string());
+            folder
+                .direct_asset_uuids
+                .push(record.asset_uuid.to_string());
             folder.recursive_asset_count += 1;
         }
     }
@@ -596,12 +603,17 @@ fn generate_preview_artifact(
                     source_path.display()
                 ))
             })?;
-            cache.write_thumbnail(&key, &image).map_err(AssetImportError::from)
+            cache
+                .write_thumbnail(&key, &image)
+                .map_err(AssetImportError::from)
         }
         crate::AssetKind::Material
         | crate::AssetKind::Scene
         | crate::AssetKind::Model
-        | crate::AssetKind::Shader => cache
+        | crate::AssetKind::Shader
+        | crate::AssetKind::UiLayout
+        | crate::AssetKind::UiWidget
+        | crate::AssetKind::UiStyle => cache
             .write_kind_placeholder(&key, preview_palette(record.kind))
             .map_err(AssetImportError::from),
     }
@@ -639,6 +651,24 @@ fn preview_palette(kind: crate::AssetKind) -> PreviewPalette {
             accent: [255, 208, 219, 255],
             banner: [255, 231, 236, 255],
         },
+        crate::AssetKind::UiLayout => PreviewPalette {
+            primary: [65, 112, 148, 255],
+            secondary: [29, 54, 71, 255],
+            accent: [190, 228, 250, 255],
+            banner: [226, 243, 255, 255],
+        },
+        crate::AssetKind::UiWidget => PreviewPalette {
+            primary: [116, 98, 169, 255],
+            secondary: [52, 44, 81, 255],
+            accent: [221, 210, 255, 255],
+            banner: [238, 232, 255, 255],
+        },
+        crate::AssetKind::UiStyle => PreviewPalette {
+            primary: [164, 113, 55, 255],
+            secondary: [79, 53, 24, 255],
+            accent: [246, 217, 173, 255],
+            banner: [255, 239, 214, 255],
+        },
     }
 }
 
@@ -649,6 +679,9 @@ fn asset_record_kind(kind: crate::AssetKind) -> AssetRecordKind {
         crate::AssetKind::Material => AssetRecordKind::Material,
         crate::AssetKind::Scene => AssetRecordKind::Scene,
         crate::AssetKind::Model => AssetRecordKind::Model,
+        crate::AssetKind::UiLayout => AssetRecordKind::UiLayout,
+        crate::AssetKind::UiWidget => AssetRecordKind::UiWidget,
+        crate::AssetKind::UiStyle => AssetRecordKind::UiStyle,
     }
 }
 
@@ -731,9 +764,16 @@ fn direct_references(imported: &ImportedAsset) -> Vec<AssetReference> {
                 }
             }
         }
-        ImportedAsset::Texture(_)
-        | ImportedAsset::Shader(_)
-        | ImportedAsset::Model(_) => {}
+        ImportedAsset::UiLayout(asset) => {
+            references.extend(crate::assets::ui_asset_references(&asset.document));
+        }
+        ImportedAsset::UiWidget(asset) => {
+            references.extend(crate::assets::ui_asset_references(&asset.document));
+        }
+        ImportedAsset::UiStyle(asset) => {
+            references.extend(crate::assets::ui_asset_references(&asset.document));
+        }
+        ImportedAsset::Texture(_) | ImportedAsset::Shader(_) | ImportedAsset::Model(_) => {}
     }
 
     dedup_references(references)

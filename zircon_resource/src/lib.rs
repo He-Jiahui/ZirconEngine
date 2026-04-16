@@ -26,7 +26,7 @@ pub use locator::{ResourceLocator, ResourceLocatorError, ResourceScheme};
 pub use manager::ResourceManager;
 pub use marker::{
     MaterialMarker, ModelMarker, ResourceKind, ResourceMarker, SceneMarker, ShaderMarker,
-    TextureMarker,
+    TextureMarker, UiLayoutMarker, UiStyleMarker, UiWidgetMarker,
 };
 pub use record::{ResourceEvent, ResourceEventKind, ResourceRecord};
 pub use registry::ResourceRegistry;

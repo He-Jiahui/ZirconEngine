@@ -4,19 +4,28 @@ use std::path::{Path, PathBuf};
 use serde_json::Value;
 use zircon_asset::{ProjectManifest, ProjectPaths};
 
-use super::*;
+use crate::default_constraints_for_content;
+use crate::layout::{LayoutCommand, MainPageId};
+use crate::project::{project_root_path, EditorProjectDocument};
+use crate::view::{
+    PreferredHost, ViewDescriptor, ViewDescriptorId, ViewHost, ViewInstance, ViewInstanceId,
+    ViewKind,
+};
 use crate::workbench::startup::{
     now_unix_ms, EditorSessionMode, EditorStartupSessionDocument, NewProjectDraft,
     RecentProjectEntry, RecentProjectValidation, StoredStartupSession, STARTUP_SESSION_KEY,
     WELCOME_DESCRIPTOR_ID, WELCOME_INSTANCE_ID, WELCOME_PAGE_ID,
 };
+use crate::ViewContentKind;
+
+use super::editor_error::EditorError;
+use super::editor_manager::EditorManager;
 
 impl EditorManager {
     pub fn resolve_startup_session(&self) -> Result<EditorStartupSessionDocument, EditorError> {
         let stored = self.load_startup_session()?;
-        let recent_projects = stored.recent_projects_with_validation(|path| {
-            self.validate_recent_project(path)
-        });
+        let recent_projects =
+            stored.recent_projects_with_validation(|path| self.validate_recent_project(path));
         let mut session = EditorStartupSessionDocument {
             recent_projects,
             draft: NewProjectDraft::renderable_empty_default(),
@@ -35,8 +44,9 @@ impl EditorManager {
 
             self.show_welcome_page()?;
             session.mode = EditorSessionMode::Welcome;
-            session.status_message =
-                format!("Last project is unavailable: {path}. Choose a recent project or create a new one.");
+            session.status_message = format!(
+                "Last project is unavailable: {path}. Choose a recent project or create a new one."
+            );
             return Ok(session);
         }
 

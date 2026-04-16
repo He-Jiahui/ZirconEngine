@@ -1,0 +1,12 @@
+[package]
+name = "zircon_rhi_wgpu"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "wgpu-backed implementation and capability mapping for zircon_rhi."
+
+[dependencies]
+thiserror.workspace = true
+wgpu.workspace = true
+zircon_rhi = { path = "../zircon_rhi" }
+

@@ -1,4 +1,4 @@
-import { LineEdit, ScrollView } from "std-widgets.slint";
+import { LineEdit, TextEdit } from "std-widgets.slint";
 import { EmptyStateCard, Palette, ShellButton } from "chrome.slint";
 
 export struct SceneNodeData {
@@ -6,6 +6,142 @@ export struct SceneNodeData {
     name: string,
     depth: int,
     selected: bool,
+}
+
+component UiAssetSection inherits Rectangle {
+    in property <string> title;
+    in property <[string]> items;
+    in property <color> accent: #7aa2e3;
+
+    palette := Palette {}
+    background: palette.panel_bg_soft;
+    border-radius: 4px;
+    border-width: 1px;
+    border-color: palette.border_soft;
+    clip: true;
+
+    Rectangle {
+        x: 0px;
+        y: 0px;
+        width: parent.width;
+        height: 26px;
+        background: #ffffff06;
+
+        Text {
+            x: 10px;
+            y: 6px;
+            text: root.title;
+            color: root.accent;
+            font-size: 11px;
+            font-weight: 700;
+        }
+    }
+
+    Rectangle {
+        x: 0px;
+        y: 26px;
+        width: parent.width;
+        height: parent.height - 26px;
+        clip: true;
+
+        VerticalLayout {
+            x: 10px;
+            y: 8px;
+            width: parent.width - 20px;
+            spacing: 4px;
+
+            if root.items.length == 0: Text {
+                text: "No entries";
+                color: palette.text_dim;
+                font-size: 10px;
+            }
+
+            for item in root.items: Text {
+                text: item;
+                color: palette.text_muted;
+                font-size: 10px;
+                wrap: word-wrap;
+            }
+        }
+    }
+}
+
+component UiAssetSelectableSection inherits Rectangle {
+    in property <string> title;
+    in property <[string]> items;
+    in property <int> selected_index: -1;
+    in property <color> accent: #7aa2e3;
+    callback item_selected(item_index: int);
+
+    palette := Palette {}
+    background: palette.panel_bg_soft;
+    border-radius: 4px;
+    border-width: 1px;
+    border-color: palette.border_soft;
+    clip: true;
+
+    Rectangle {
+        x: 0px;
+        y: 0px;
+        width: parent.width;
+        height: 26px;
+        background: #ffffff06;
+
+        Text {
+            x: 10px;
+            y: 6px;
+            text: root.title;
+            color: root.accent;
+            font-size: 11px;
+            font-weight: 700;
+        }
+    }
+
+    Rectangle {
+        x: 0px;
+        y: 26px;
+        width: parent.width;
+        height: parent.height - 26px;
+        clip: true;
+
+        VerticalLayout {
+            x: 10px;
+            y: 8px;
+            width: parent.width - 20px;
+            spacing: 4px;
+
+            if root.items.length == 0: Text {
+                text: "No entries";
+                color: palette.text_dim;
+                font-size: 10px;
+            }
+
+            for item[index] in root.items: item_row := Rectangle {
+                height: max(20px, item_text.preferred-height + 6px);
+                border-radius: 3px;
+                background:
+                    index == root.selected_index ? #ffffff10 :
+                    row_touch.has-hover ? #ffffff09 :
+                    transparent;
+
+                item_text := Text {
+                    x: 6px;
+                    y: 3px;
+                    width: parent.width - 12px;
+                    text: item;
+                    color: palette.text_muted;
+                    font-size: 10px;
+                    wrap: word-wrap;
+                }
+
+                row_touch := TouchArea {
+                    width: parent.width;
+                    height: parent.height;
+                    clicked => { root.item_selected(index); }
+                }
+            }
+        }
+    }
 }
 
 component CompactField inherits Rectangle {
@@ -132,28 +268,31 @@ export component ToolWindowEmptyState inherits Rectangle {
 
 export component HierarchyPane inherits Rectangle {
     in property <[SceneNodeData]> hierarchy_nodes;
-    callback select(node_id: string);
+    in property <int> hovered_index: -1;
+    in property <float> scroll_px: 0.0;
+    callback pointer_clicked(x: float, y: float, width: float, height: float);
+    callback pointer_moved(x: float, y: float, width: float, height: float);
+    callback pointer_scrolled(x: float, y: float, delta: float, width: float, height: float);
 
     palette := Palette {}
     background: transparent;
     clip: true;
 
-    ScrollView {
+    Rectangle {
         width: parent.width;
         height: parent.height;
-        viewport_width: parent.width;
-        viewport_height: max(parent.height, rows.preferred-height + 12px);
+        clip: true;
 
         rows := VerticalLayout {
             x: 8px;
-            y: 8px;
+            y: 8px - root.scroll_px * 1px;
             width: parent.width - 16px;
             spacing: 1px;
 
-            for node in root.hierarchy_nodes: Rectangle {
+            for node[index] in root.hierarchy_nodes: Rectangle {
                 height: 22px;
                 border-radius: 3px;
-                background: node.selected ? #365880 : row_touch.has-hover ? palette.chrome_bg_soft : transparent;
+                background: node.selected ? #365880 : root.hovered_index == index ? palette.chrome_bg_soft : transparent;
 
                 Text {
                     x: 10px + node.depth * 14px;
@@ -162,10 +301,37 @@ export component HierarchyPane inherits Rectangle {
                     color: node.selected ? #eef4ff : palette.text_muted;
                     font-size: 11px;
                 }
+            }
+        }
 
-                row_touch := TouchArea {
-                    clicked => { root.select(node.id); }
-                }
+        TouchArea {
+            width: parent.width;
+            height: parent.height;
+            moved => {
+                root.pointer_moved(
+                    self.mouse-x / 1px,
+                    self.mouse-y / 1px,
+                    root.width / 1px,
+                    root.height / 1px,
+                );
+            }
+            clicked => {
+                root.pointer_clicked(
+                    self.mouse-x / 1px,
+                    self.mouse-y / 1px,
+                    root.width / 1px,
+                    root.height / 1px,
+                );
+            }
+            scroll-event(event) => {
+                root.pointer_scrolled(
+                    self.mouse-x / 1px,
+                    self.mouse-y / 1px,
+                    event.delta_y / 1px,
+                    root.width / 1px,
+                    root.height / 1px,
+                );
+                accept
             }
         }
     }
@@ -178,179 +344,190 @@ export component InspectorPane inherits Rectangle {
     in property <string> inspector_x;
     in property <string> inspector_y;
     in property <string> inspector_z;
+    in property <float> scroll_px: 0.0;
     in property <bool> delete_enabled;
-    callback inspector_name_edited(value: string);
-    callback inspector_parent_edited(value: string);
-    callback inspector_x_edited(value: string);
-    callback inspector_y_edited(value: string);
-    callback inspector_z_edited(value: string);
-    callback inspector_apply();
-    callback delete_selected();
+    callback pointer_scrolled(x: float, y: float, delta: float, width: float, height: float);
+    callback control_changed(control_id: string, value: string);
+    callback control_clicked(control_id: string);
 
     palette := Palette {}
     background: transparent;
     clip: true;
 
-    ScrollView {
+    scroll_capture := TouchArea {
         width: parent.width;
         height: parent.height;
-        viewport_width: parent.width;
-        viewport_height: max(parent.height, content.preferred-height + 16px);
+        scroll-event(event) => {
+            root.pointer_scrolled(
+                self.mouse-x / 1px,
+                self.mouse-y / 1px,
+                event.delta_y / 1px,
+                root.width / 1px,
+                root.height / 1px,
+            );
+            accept
+        }
 
-        content := VerticalLayout {
-            x: 10px;
-            y: 10px;
-            width: parent.width - 20px;
-            spacing: 4px;
+        Rectangle {
+            width: parent.width;
+            height: parent.height;
+            clip: true;
 
-            Rectangle {
-                width: parent.width;
-                height: 22px;
-                border-width: 1px;
-                border-color: palette.border_soft;
-                background: palette.panel_bg_soft;
+            content := VerticalLayout {
+                x: 10px;
+                y: 10px - root.scroll_px * 1px;
+                width: parent.width - 20px;
+                spacing: 4px;
 
-                Text {
-                    x: 8px;
-                    y: 3px;
-                    text: "Transform";
-                    color: palette.text;
-                    font-size: 11px;
-                    font-weight: 600;
-                }
+                Rectangle {
+                    width: parent.width;
+                    height: 22px;
+                    border-width: 1px;
+                    border-color: palette.border_soft;
+                    background: palette.panel_bg_soft;
 
-                Text {
-                    x: parent.width - self.preferred-width - 8px;
-                    y: 4px;
-                    text: root.info;
-                    color: palette.text_dim;
-                    font-size: 9px;
-                    overflow: elide;
-                }
-            }
-
-            Rectangle {
-                width: parent.width;
-                height: 22px;
-                background: transparent;
-
-                Text {
-                    x: 0px;
-                    y: 4px;
-                    width: 58px;
-                    text: "Name";
-                    color: palette.text_dim;
-                    font-size: 10px;
-                }
-
-                CompactField {
-                    x: 62px;
-                    y: 0px;
-                    width: parent.width - 62px;
-                    text: root.inspector_name;
-                    placeholder: "Name";
-                    edited(value) => { root.inspector_name_edited(value); }
-                }
-            }
-
-            Rectangle {
-                width: parent.width;
-                height: 22px;
-                background: transparent;
-
-                Text {
-                    x: 0px;
-                    y: 4px;
-                    width: 58px;
-                    text: "Parent";
-                    color: palette.text_dim;
-                    font-size: 10px;
-                }
-
-                CompactField {
-                    x: 62px;
-                    y: 0px;
-                    width: parent.width - 62px;
-                    text: root.inspector_parent;
-                    placeholder: "Parent Id";
-                    edited(value) => { root.inspector_parent_edited(value); }
-                }
-            }
-
-            Rectangle {
-                width: parent.width;
-                height: 22px;
-                background: transparent;
-
-                Text {
-                    x: 0px;
-                    y: 4px;
-                    width: 58px;
-                    text: "Position";
-                    color: palette.text_dim;
-                    font-size: 10px;
-                }
-
-                HorizontalLayout {
-                    x: 62px;
-                    y: 0px;
-                    width: parent.width - 62px;
-                    spacing: 4px;
-
-                    AxisField {
-                        width: (parent.width - 8px) / 3;
-                        axis: "X";
-                        axis_color: #c75450;
-                        value: root.inspector_x;
-                        edited(value) => { root.inspector_x_edited(value); }
+                    Text {
+                        x: 8px;
+                        y: 3px;
+                        text: "Transform";
+                        color: palette.text;
+                        font-size: 11px;
+                        font-weight: 600;
                     }
 
-                    AxisField {
-                        width: (parent.width - 8px) / 3;
-                        axis: "Y";
-                        axis_color: #7fb062;
-                        value: root.inspector_y;
-                        edited(value) => { root.inspector_y_edited(value); }
-                    }
-
-                    AxisField {
-                        width: (parent.width - 8px) / 3;
-                        axis: "Z";
-                        axis_color: #5a88d2;
-                        value: root.inspector_z;
-                        edited(value) => { root.inspector_z_edited(value); }
+                    Text {
+                        x: parent.width - self.preferred-width - 8px;
+                        y: 4px;
+                        text: root.info;
+                        color: palette.text_dim;
+                        font-size: 9px;
+                        overflow: elide;
                     }
                 }
-            }
 
-            Rectangle {
-                width: parent.width;
-                height: 1px;
-                background: palette.border_soft;
-            }
+                Rectangle {
+                    width: parent.width;
+                    height: 22px;
+                    background: transparent;
 
-            Rectangle {
-                width: parent.width;
-                height: 24px;
-                background: transparent;
+                    Text {
+                        x: 0px;
+                        y: 4px;
+                        width: 58px;
+                        text: "Name";
+                        color: palette.text_dim;
+                        font-size: 10px;
+                    }
 
-                ShellButton {
-                    x: parent.width - 126px;
-                    y: 0px;
-                    width: 58px;
-                    label: "Apply";
-                    active: true;
-                    clicked => { root.inspector_apply(); }
+                    CompactField {
+                        x: 62px;
+                        y: 0px;
+                        width: parent.width - 62px;
+                        text: root.inspector_name;
+                        placeholder: "Name";
+                        edited(value) => { root.control_changed("NameField", value); }
+                    }
                 }
 
-                ShellButton {
-                    x: parent.width - 62px;
-                    y: 0px;
-                    width: 58px;
-                    label: "Delete";
-                    active: false;
-                    enabled: root.delete_enabled;
-                    clicked => { root.delete_selected(); }
+                Rectangle {
+                    width: parent.width;
+                    height: 22px;
+                    background: transparent;
+
+                    Text {
+                        x: 0px;
+                        y: 4px;
+                        width: 58px;
+                        text: "Parent";
+                        color: palette.text_dim;
+                        font-size: 10px;
+                    }
+
+                    CompactField {
+                        x: 62px;
+                        y: 0px;
+                        width: parent.width - 62px;
+                        text: root.inspector_parent;
+                        placeholder: "Parent Id";
+                        edited(value) => { root.control_changed("ParentField", value); }
+                    }
+                }
+
+                Rectangle {
+                    width: parent.width;
+                    height: 22px;
+                    background: transparent;
+
+                    Text {
+                        x: 0px;
+                        y: 4px;
+                        width: 58px;
+                        text: "Position";
+                        color: palette.text_dim;
+                        font-size: 10px;
+                    }
+
+                    HorizontalLayout {
+                        x: 62px;
+                        y: 0px;
+                        width: parent.width - 62px;
+                        spacing: 4px;
+
+                        AxisField {
+                            width: (parent.width - 8px) / 3;
+                            axis: "X";
+                            axis_color: #c75450;
+                            value: root.inspector_x;
+                            edited(value) => { root.control_changed("PositionXField", value); }
+                        }
+
+                        AxisField {
+                            width: (parent.width - 8px) / 3;
+                            axis: "Y";
+                            axis_color: #7fb062;
+                            value: root.inspector_y;
+                            edited(value) => { root.control_changed("PositionYField", value); }
+                        }
+
+                        AxisField {
+                            width: (parent.width - 8px) / 3;
+                            axis: "Z";
+                            axis_color: #5a88d2;
+                            value: root.inspector_z;
+                            edited(value) => { root.control_changed("PositionZField", value); }
+                        }
+                    }
+                }
+
+                Rectangle {
+                    width: parent.width;
+                    height: 1px;
+                    background: palette.border_soft;
+                }
+
+                Rectangle {
+                    width: parent.width;
+                    height: 24px;
+                    background: transparent;
+
+                    ShellButton {
+                        x: parent.width - 126px;
+                        y: 0px;
+                        width: 58px;
+                        label: "Apply";
+                        active: true;
+                        clicked => { root.control_clicked("ApplyBatchButton"); }
+                    }
+
+                    ShellButton {
+                        x: parent.width - 62px;
+                        y: 0px;
+                        width: 58px;
+                        label: "Delete";
+                        active: false;
+                        enabled: root.delete_enabled;
+                        clicked => { root.control_clicked("DeleteSelected"); }
+                    }
                 }
             }
         }
@@ -362,20 +539,21 @@ export component ConsolePane inherits Rectangle {
     in property <string> empty_title;
     in property <string> empty_body;
     in property <string> status_text;
+    in property <float> scroll_px: 0.0;
+    callback pointer_scrolled(x: float, y: float, delta: float, width: float, height: float);
 
     palette := Palette {}
     background: #17191c;
     clip: true;
 
-    ScrollView {
+    Rectangle {
         width: parent.width;
         height: parent.height;
-        viewport_width: parent.width;
-        viewport_height: max(parent.height, lines.preferred-height + 12px);
+        clip: true;
 
         lines := VerticalLayout {
             x: 10px;
-            y: 8px;
+            y: 8px - root.scroll_px * 1px;
             width: parent.width - 20px;
             spacing: 6px;
 
@@ -400,6 +578,1166 @@ export component ConsolePane inherits Rectangle {
                 font-size: 11px;
                 font-family: "JetBrains Mono, Cascadia Mono, Consolas";
                 wrap: word-wrap;
+            }
+        }
+    }
+
+    TouchArea {
+        width: parent.width;
+        height: parent.height;
+        scroll-event(event) => {
+            root.pointer_scrolled(
+                self.mouse-x / 1px,
+                self.mouse-y / 1px,
+                event.delta_y / 1px,
+                root.width / 1px,
+                root.height / 1px,
+            );
+            accept
+        }
+    }
+}
+
+export component UiAssetEditorPane inherits Rectangle {
+    in property <string> instance_id;
+    in property <string> asset_id;
+    in property <string> mode;
+    in property <string> status;
+    in property <string> selection;
+    in property <string> source_text;
+    in property <string> preview_summary;
+    in property <bool> can_save;
+    in property <bool> can_undo;
+    in property <bool> can_redo;
+    in property <bool> can_create_rule;
+    in property <bool> can_extract_rule;
+    in property <bool> preview_available;
+    in property <bool> state_hover;
+    in property <bool> state_focus;
+    in property <bool> state_pressed;
+    in property <bool> state_disabled;
+    in property <bool> state_selected;
+    in property <[string]> palette_items;
+    in property <[string]> hierarchy_items;
+    in property <string> inspector_selected_node_id;
+    in property <string> inspector_parent_node_id;
+    in property <string> inspector_mount;
+    in property <string> inspector_slot_padding;
+    in property <string> inspector_slot_width_preferred;
+    in property <string> inspector_slot_height_preferred;
+    in property <string> inspector_layout_width_preferred;
+    in property <string> inspector_layout_height_preferred;
+    in property <[string]> inspector_binding_items;
+    in property <int> inspector_binding_selected_index;
+    in property <string> inspector_binding_id;
+    in property <string> inspector_binding_event;
+    in property <string> inspector_binding_route;
+    in property <bool> inspector_can_edit_binding;
+    in property <bool> inspector_can_delete_binding;
+    in property <string> inspector_widget_kind;
+    in property <string> inspector_widget_label;
+    in property <string> inspector_control_id;
+    in property <string> inspector_text_prop;
+    in property <bool> inspector_can_edit_control_id;
+    in property <bool> inspector_can_edit_text_prop;
+    in property <[string]> inspector_items;
+    in property <[string]> style_class_items;
+    in property <[string]> style_rule_items;
+    in property <int> style_rule_selected_index;
+    in property <string> selected_rule_selector;
+    in property <bool> can_edit_rule;
+    in property <bool> can_delete_rule;
+    in property <[string]> style_matched_rule_items;
+    in property <int> style_matched_rule_selected_index;
+    in property <string> selected_matched_rule_origin;
+    in property <string> selected_matched_rule_selector;
+    in property <int> selected_matched_rule_specificity;
+    in property <int> selected_matched_rule_source_order;
+    in property <[string]> selected_matched_rule_declaration_items;
+    in property <[string]> style_rule_declaration_items;
+    in property <int> style_rule_declaration_selected_index;
+    in property <string> selected_rule_declaration_path;
+    in property <string> selected_rule_declaration_value;
+    in property <bool> can_edit_rule_declaration;
+    in property <bool> can_delete_rule_declaration;
+    in property <[string]> style_token_items;
+    in property <int> style_token_selected_index;
+    in property <string> selected_token_name;
+    in property <string> selected_token_value;
+    in property <bool> can_edit_token;
+    in property <bool> can_delete_token;
+    in property <[string]> stylesheet_items;
+    in property <[string]> preview_items;
+    callback action(action_id: string);
+    callback style_class_action(action_id: string, class_name: string);
+    callback inspector_widget_action(action_id: string, value: string);
+    callback style_rule_action(action_id: string, item_index: int, selector: string);
+    callback matched_style_rule_selected(item_index: int);
+    callback style_rule_declaration_action(action_id: string, item_index: int, declaration_path: string, declaration_value: string);
+    callback style_token_action(action_id: string, item_index: int, token_name: string, token_value: string);
+    callback source_edited(value: string);
+    callback hierarchy_selected(item_index: int);
+    callback preview_selected(item_index: int);
+    callback binding_selected(item_index: int);
+
+    palette := Palette {}
+    property <string> style_class_draft: "";
+    property <string> style_rule_selector_draft: "";
+    property <string> style_rule_declaration_path_draft: "";
+    property <string> style_rule_declaration_value_draft: "";
+    property <string> style_token_name_draft: "";
+    property <string> style_token_value_draft: "";
+    background: transparent;
+    clip: true;
+
+    Rectangle {
+        x: 10px;
+        y: 10px;
+        width: parent.width - 20px;
+        height: 56px;
+        border-radius: 4px;
+        border-width: 1px;
+        border-color: palette.border_soft;
+        background: #ffffff06;
+
+        Text {
+            x: 10px;
+            y: 6px;
+            text: root.asset_id != "" ? root.asset_id : root.mode;
+            color: palette.text;
+            font-size: 10px;
+            overflow: elide;
+        }
+
+        Text {
+            x: 10px;
+            y: 16px;
+            width: parent.width - 20px;
+            text:
+                root.status != "" ?
+                root.mode + " • " + root.selection + " • " + root.status :
+                root.mode + " • " + root.selection;
+            color: palette.text_dim;
+            font-size: 9px;
+            overflow: elide;
+        }
+
+        HorizontalLayout {
+            x: 10px;
+            y: 28px;
+            width: parent.width - 20px;
+            spacing: 4px;
+
+            ShellButton {
+                width: 56px;
+                label: "Design";
+                active: root.mode == "Design";
+                clicked => { root.action("mode.design"); }
+            }
+            ShellButton {
+                width: 52px;
+                label: "Split";
+                active: root.mode == "Split";
+                clicked => { root.action("mode.split"); }
+            }
+            ShellButton {
+                width: 56px;
+                label: "Source";
+                active: root.mode == "Source";
+                clicked => { root.action("mode.source"); }
+            }
+            ShellButton {
+                width: 60px;
+                label: "Preview";
+                active: root.mode == "Preview";
+                clicked => { root.action("mode.preview"); }
+            }
+
+            Rectangle { width: 1px; height: 20px; background: palette.border_soft; }
+
+            ShellButton {
+                width: 46px;
+                label: "Save";
+                enabled: root.can_save;
+                active: root.can_save;
+                clicked => { root.action("save"); }
+            }
+            ShellButton {
+                width: 48px;
+                label: "Undo";
+                enabled: root.can_undo;
+                clicked => { root.action("undo"); }
+            }
+            ShellButton {
+                width: 48px;
+                label: "Redo";
+                enabled: root.can_redo;
+                clicked => { root.action("redo"); }
+            }
+
+            Text {
+                text: root.preview_available ? root.preview_summary : "Preview unavailable";
+                color: palette.text_dim;
+                font-size: 9px;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+        }
+    }
+
+    HorizontalLayout {
+        x: 10px;
+        y: 74px;
+        width: parent.width - 20px;
+        height: parent.height - 84px;
+        spacing: 8px;
+
+        Rectangle {
+            width: 240px;
+            height: parent.height;
+            background: transparent;
+
+            VerticalLayout {
+                width: parent.width;
+                height: parent.height;
+                spacing: 8px;
+
+                UiAssetSection {
+                    height: parent.height * 0.42;
+                    title: "Palette";
+                    items: root.palette_items;
+                    accent: #9dc07c;
+                }
+
+                UiAssetSelectableSection {
+                    height: parent.height * 0.58 - 8px;
+                    title: "Hierarchy";
+                    items: root.hierarchy_items;
+                    accent: #7aa2e3;
+                    item_selected(item_index) => { root.hierarchy_selected(item_index); }
+                }
+            }
+        }
+
+        Rectangle {
+            width: max(240px, parent.width - 536px);
+            height: parent.height;
+            background: transparent;
+
+            VerticalLayout {
+                width: parent.width;
+                height: parent.height;
+                spacing: 8px;
+
+                UiAssetSelectableSection {
+                    height: parent.height * 0.46;
+                    title: "Designer Canvas";
+                    items: root.preview_items;
+                    accent: #e0aa5e;
+                    item_selected(item_index) => { root.preview_selected(item_index); }
+                }
+
+                Rectangle {
+                    height: parent.height * 0.54 - 8px;
+                    background: palette.panel_bg_soft;
+                    border-radius: 4px;
+                    border-width: 1px;
+                    border-color: palette.border_soft;
+                    clip: true;
+
+                    Text {
+                        x: 10px;
+                        y: 8px;
+                        text: "Source";
+                        color: #d8d28a;
+                        font-size: 11px;
+                        font-weight: 700;
+                    }
+
+                    TextEdit {
+                        x: 10px;
+                        y: 28px;
+                        width: parent.width - 20px;
+                        height: parent.height - 38px;
+                        text: root.source_text;
+                        enabled: true;
+                        font-size: 10px;
+                        font-family: "JetBrains Mono, Cascadia Mono, Consolas";
+                        wrap: word-wrap;
+                        edited(value) => { root.source_edited(value); }
+                    }
+                }
+            }
+        }
+
+        Rectangle {
+            width: 280px;
+            height: parent.height;
+            background: transparent;
+
+            VerticalLayout {
+                width: parent.width;
+                height: parent.height;
+                spacing: 8px;
+
+                Rectangle {
+                    height: parent.height * 0.5;
+                    background: palette.panel_bg_soft;
+                    border-radius: 4px;
+                    border-width: 1px;
+                    border-color: palette.border_soft;
+                    clip: true;
+
+                    Text {
+                        x: 10px;
+                        y: 6px;
+                        text: "Inspector";
+                        color: #d98bb5;
+                        font-size: 11px;
+                        font-weight: 700;
+                    }
+
+                    Rectangle {
+                        x: 0px;
+                        y: 26px;
+                        width: parent.width;
+                        height: parent.height - 26px;
+                        clip: true;
+
+                        VerticalLayout {
+                            x: 10px;
+                            y: 8px;
+                            width: parent.width - 20px;
+                            spacing: 4px;
+
+                            Text {
+                                text: "Widget";
+                                color: palette.text;
+                                font-size: 10px;
+                                font-weight: 600;
+                            }
+
+                            Rectangle {
+                                width: parent.width;
+                                height: 18px;
+                                background: transparent;
+
+                                Text {
+                                    x: 0px;
+                                    y: 3px;
+                                    width: 52px;
+                                    text: "Node";
+                                    color: palette.text_dim;
+                                    font-size: 10px;
+                                }
+
+                                Text {
+                                    x: 56px;
+                                    y: 3px;
+                                    width: parent.width - 56px;
+                                    text: root.inspector_selected_node_id != "" ? root.inspector_selected_node_id : "No selection";
+                                    color: palette.text_muted;
+                                    font-size: 10px;
+                                    overflow: elide;
+                                }
+                            }
+
+                            Rectangle {
+                                width: parent.width;
+                                height: 18px;
+                                background: transparent;
+
+                                Text {
+                                    x: 0px;
+                                    y: 3px;
+                                    width: 52px;
+                                    text: "Type";
+                                    color: palette.text_dim;
+                                    font-size: 10px;
+                                }
+
+                                Text {
+                                    x: 56px;
+                                    y: 3px;
+                                    width: parent.width - 56px;
+                                    text:
+                                        root.inspector_widget_label != "" ?
+                                        root.inspector_widget_kind + " • " + root.inspector_widget_label :
+                                        "";
+                                    color: palette.text_muted;
+                                    font-size: 10px;
+                                    overflow: elide;
+                                }
+                            }
+
+                            Rectangle {
+                                width: parent.width;
+                                height: 18px;
+                                background: transparent;
+
+                                Text {
+                                    x: 0px;
+                                    y: 3px;
+                                    width: 52px;
+                                    text: "Parent";
+                                    color: palette.text_dim;
+                                    font-size: 10px;
+                                }
+
+                                Text {
+                                    x: 56px;
+                                    y: 3px;
+                                    width: parent.width - 56px;
+                                    text:
+                                        root.inspector_parent_node_id != "" ?
+                                        (root.inspector_mount != "" ? root.inspector_parent_node_id + " • " + root.inspector_mount : root.inspector_parent_node_id) :
+                                        "";
+                                    color: palette.text_muted;
+                                    font-size: 10px;
+                                    overflow: elide;
+                                }
+                            }
+
+                            Rectangle {
+                                width: parent.width;
+                                height: 22px;
+                                background: transparent;
+
+                                Text {
+                                    x: 0px;
+                                    y: 4px;
+                                    width: 58px;
+                                    text: "Control Id";
+                                    color: palette.text_dim;
+                                    font-size: 10px;
+                                }
+
+                                CompactField {
+                                    x: 62px;
+                                    y: 0px;
+                                    width: parent.width - 62px;
+                                    text: root.inspector_control_id;
+                                    placeholder: "control-id";
+                                    enabled: root.inspector_can_edit_control_id;
+                                    edited(value) => { root.inspector_widget_action("widget.control_id.set", value); }
+                                }
+                            }
+
+                            Rectangle {
+                                width: parent.width;
+                                height: 22px;
+                                background: transparent;
+
+                                Text {
+                                    x: 0px;
+                                    y: 4px;
+                                    width: 58px;
+                                    text: "Text";
+                                    color: palette.text_dim;
+                                    font-size: 10px;
+                                }
+
+                                CompactField {
+                                    x: 62px;
+                                    y: 0px;
+                                    width: parent.width - 62px;
+                                    text: root.inspector_text_prop;
+                                    placeholder: "props.text";
+                                    enabled: root.inspector_can_edit_text_prop;
+                                    edited(value) => { root.inspector_widget_action("widget.text.set", value); }
+                                }
+                            }
+
+                            Text {
+                                text: "Slot";
+                                color: palette.text;
+                                font-size: 10px;
+                                font-weight: 600;
+                            }
+
+                            Rectangle {
+                                width: parent.width;
+                                height: 22px;
+                                background: transparent;
+
+                                Text {
+                                    x: 0px;
+                                    y: 4px;
+                                    width: 58px;
+                                    text: "Mount";
+                                    color: palette.text_dim;
+                                    font-size: 10px;
+                                }
+
+                                CompactField {
+                                    x: 62px;
+                                    y: 0px;
+                                    width: parent.width - 62px;
+                                    text: root.inspector_mount;
+                                    placeholder: "slot mount";
+                                    enabled: root.inspector_parent_node_id != "";
+                                    edited(value) => { root.inspector_widget_action("slot.mount.set", value); }
+                                }
+                            }
+
+                            Rectangle {
+                                width: parent.width;
+                                height: 22px;
+                                background: transparent;
+
+                                Text {
+                                    x: 0px;
+                                    y: 4px;
+                                    width: 58px;
+                                    text: "Padding";
+                                    color: palette.text_dim;
+                                    font-size: 10px;
+                                }
+
+                                CompactField {
+                                    x: 62px;
+                                    y: 0px;
+                                    width: parent.width - 62px;
+                                    text: root.inspector_slot_padding;
+                                    placeholder: "slot.padding";
+                                    enabled: root.inspector_parent_node_id != "";
+                                    edited(value) => { root.inspector_widget_action("slot.padding.set", value); }
+                                }
+                            }
+
+                            Rectangle {
+                                width: parent.width;
+                                height: 22px;
+                                background: transparent;
+
+                                Text {
+                                    x: 0px;
+                                    y: 4px;
+                                    width: 58px;
+                                    text: "Width";
+                                    color: palette.text_dim;
+                                    font-size: 10px;
+                                }
+
+                                CompactField {
+                                    x: 62px;
+                                    y: 0px;
+                                    width: parent.width - 62px;
+                                    text: root.inspector_slot_width_preferred;
+                                    placeholder: "slot.layout.width.preferred";
+                                    enabled: root.inspector_parent_node_id != "";
+                                    edited(value) => { root.inspector_widget_action("slot.layout.width.preferred.set", value); }
+                                }
+                            }
+
+                            Rectangle {
+                                width: parent.width;
+                                height: 22px;
+                                background: transparent;
+
+                                Text {
+                                    x: 0px;
+                                    y: 4px;
+                                    width: 58px;
+                                    text: "Height";
+                                    color: palette.text_dim;
+                                    font-size: 10px;
+                                }
+
+                                CompactField {
+                                    x: 62px;
+                                    y: 0px;
+                                    width: parent.width - 62px;
+                                    text: root.inspector_slot_height_preferred;
+                                    placeholder: "slot.layout.height.preferred";
+                                    enabled: root.inspector_parent_node_id != "";
+                                    edited(value) => { root.inspector_widget_action("slot.layout.height.preferred.set", value); }
+                                }
+                            }
+
+                            Text {
+                                text: "Layout";
+                                color: palette.text;
+                                font-size: 10px;
+                                font-weight: 600;
+                            }
+
+                            Rectangle {
+                                width: parent.width;
+                                height: 22px;
+                                background: transparent;
+
+                                Text {
+                                    x: 0px;
+                                    y: 4px;
+                                    width: 58px;
+                                    text: "Width";
+                                    color: palette.text_dim;
+                                    font-size: 10px;
+                                }
+
+                                CompactField {
+                                    x: 62px;
+                                    y: 0px;
+                                    width: parent.width - 62px;
+                                    text: root.inspector_layout_width_preferred;
+                                    placeholder: "layout.width.preferred";
+                                    enabled: root.inspector_selected_node_id != "";
+                                    edited(value) => { root.inspector_widget_action("layout.width.preferred.set", value); }
+                                }
+                            }
+
+                            Rectangle {
+                                width: parent.width;
+                                height: 22px;
+                                background: transparent;
+
+                                Text {
+                                    x: 0px;
+                                    y: 4px;
+                                    width: 58px;
+                                    text: "Height";
+                                    color: palette.text_dim;
+                                    font-size: 10px;
+                                }
+
+                                CompactField {
+                                    x: 62px;
+                                    y: 0px;
+                                    width: parent.width - 62px;
+                                    text: root.inspector_layout_height_preferred;
+                                    placeholder: "layout.height.preferred";
+                                    enabled: root.inspector_selected_node_id != "";
+                                    edited(value) => { root.inspector_widget_action("layout.height.preferred.set", value); }
+                                }
+                            }
+
+                            Text {
+                                text: "Bindings";
+                                color: palette.text;
+                                font-size: 10px;
+                                font-weight: 600;
+                            }
+
+                            UiAssetSelectableSection {
+                                width: parent.width;
+                                height: 104px;
+                                title: "Bindings";
+                                items: root.inspector_binding_items;
+                                selected_index: root.inspector_binding_selected_index;
+                                accent: #7cc6b9;
+                                item_selected(item_index) => { root.binding_selected(item_index); }
+                            }
+
+                            CompactField {
+                                width: parent.width;
+                                text: root.inspector_binding_id;
+                                placeholder: "binding id";
+                                enabled: root.inspector_can_edit_binding;
+                                edited(value) => { root.inspector_widget_action("binding.id.set", value); }
+                            }
+
+                            CompactField {
+                                width: parent.width;
+                                text: root.inspector_binding_event;
+                                placeholder: "onClick";
+                                enabled: root.inspector_can_edit_binding;
+                                edited(value) => { root.inspector_widget_action("binding.event.set", value); }
+                            }
+
+                            CompactField {
+                                width: parent.width;
+                                text: root.inspector_binding_route;
+                                placeholder: "MenuAction.SaveProject";
+                                enabled: root.inspector_can_edit_binding;
+                                edited(value) => { root.inspector_widget_action("binding.route.set", value); }
+                            }
+
+                            HorizontalLayout {
+                                width: parent.width;
+                                spacing: 4px;
+
+                                ShellButton {
+                                    width: 64px;
+                                    label: "Add Click";
+                                    enabled: root.inspector_selected_node_id != "";
+                                    active: root.inspector_selected_node_id != "";
+                                    clicked => { root.inspector_widget_action("binding.add", ""); }
+                                }
+
+                                ShellButton {
+                                    width: 52px;
+                                    label: "Delete";
+                                    enabled: root.inspector_can_delete_binding;
+                                    clicked => { root.inspector_widget_action("binding.delete", ""); }
+                                }
+                            }
+
+                            Rectangle {
+                                width: parent.width;
+                                height: 1px;
+                                background: palette.border_soft;
+                            }
+
+                            if root.inspector_items.length == 0: Text {
+                                text: "No inspector summary entries";
+                                color: palette.text_dim;
+                                font-size: 10px;
+                            }
+
+                            for item in root.inspector_items: Text {
+                                text: item;
+                                color: palette.text_muted;
+                                font-size: 10px;
+                                wrap: word-wrap;
+                            }
+                        }
+                    }
+                }
+
+                Rectangle {
+                    height: parent.height * 0.5 - 8px;
+                    background: palette.panel_bg_soft;
+                    border-radius: 4px;
+                    border-width: 1px;
+                    border-color: palette.border_soft;
+                    clip: true;
+
+                    Text {
+                        x: 10px;
+                        y: 6px;
+                        text: "Stylesheet";
+                        color: #8dc8c1;
+                        font-size: 11px;
+                        font-weight: 700;
+                    }
+
+                    HorizontalLayout {
+                        x: 10px;
+                        y: 26px;
+                        width: parent.width - 20px;
+                        spacing: 4px;
+
+                        ShellButton {
+                            width: 42px;
+                            label: "Rule";
+                            enabled: root.can_create_rule;
+                            active: root.can_create_rule;
+                            clicked => {
+                                root.style_rule_selector_draft = "";
+                                root.action("style.rule.create");
+                            }
+                        }
+
+                        ShellButton {
+                            width: 58px;
+                            label: "Extract";
+                            enabled: root.can_extract_rule;
+                            active: root.can_extract_rule;
+                            clicked => {
+                                root.style_rule_selector_draft = "";
+                                root.action("style.rule.extract_inline");
+                            }
+                        }
+                    }
+
+                    HorizontalLayout {
+                        x: 10px;
+                        y: 54px;
+                        width: parent.width - 20px;
+                        spacing: 4px;
+
+                        ShellButton {
+                            width: 46px;
+                            label: "Hover";
+                            active: root.state_hover;
+                            clicked => { root.action("style.state.hover"); }
+                        }
+
+                        ShellButton {
+                            width: 46px;
+                            label: "Focus";
+                            active: root.state_focus;
+                            clicked => { root.action("style.state.focus"); }
+                        }
+
+                        ShellButton {
+                            width: 60px;
+                            label: "Pressed";
+                            active: root.state_pressed;
+                            clicked => { root.action("style.state.pressed"); }
+                        }
+                    }
+
+                    HorizontalLayout {
+                        x: 10px;
+                        y: 82px;
+                        width: parent.width - 20px;
+                        spacing: 4px;
+
+                        ShellButton {
+                            width: 62px;
+                            label: "Disabled";
+                            active: root.state_disabled;
+                            clicked => { root.action("style.state.disabled"); }
+                        }
+
+                        ShellButton {
+                            width: 58px;
+                            label: "Selected";
+                            active: root.state_selected;
+                            clicked => { root.action("style.state.selected"); }
+                        }
+                    }
+
+                    Rectangle {
+                        x: 10px;
+                        y: 112px;
+                        width: parent.width - 20px;
+                        height: 1px;
+                        background: palette.border_soft;
+                    }
+
+                    Rectangle {
+                        x: 0px;
+                        y: 118px;
+                        width: parent.width;
+                        height: parent.height - 118px;
+                        clip: true;
+
+                        VerticalLayout {
+                            x: 10px;
+                            y: 8px;
+                            width: parent.width - 20px;
+                            spacing: 4px;
+
+                            Text {
+                                text: "Classes";
+                                color: palette.text;
+                                font-size: 10px;
+                                font-weight: 600;
+                            }
+
+                            if root.style_class_items.length == 0: Text {
+                                text: "No classes on selection";
+                                color: palette.text_dim;
+                                font-size: 10px;
+                            }
+
+                            for class_name in root.style_class_items: Text {
+                                text: "." + class_name;
+                                color: palette.text_muted;
+                                font-size: 10px;
+                                wrap: word-wrap;
+                            }
+
+                            CompactField {
+                                width: parent.width;
+                                text: root.style_class_draft;
+                                placeholder: "class-name";
+                                edited(value) => { root.style_class_draft = value; }
+                            }
+
+                              HorizontalLayout {
+                                  width: parent.width;
+                                  spacing: 4px;
+
+                                  ShellButton {
+                                    width: 46px;
+                                    label: "Add";
+                                    enabled: root.style_class_draft != "";
+                                    active: root.style_class_draft != "";
+                                    clicked => {
+                                        root.style_class_action("style.class.add", root.style_class_draft);
+                                        root.style_class_draft = "";
+                                    }
+                                }
+
+                                ShellButton {
+                                    width: 62px;
+                                    label: "Remove";
+                                    enabled: root.style_class_draft != "";
+                                    clicked => {
+                                        root.style_class_action("style.class.remove", root.style_class_draft);
+                                        root.style_class_draft = "";
+                                    }
+                                }
+                            }
+
+                            Rectangle {
+                                width: parent.width;
+                                height: 1px;
+                                background: palette.border_soft;
+                            }
+
+                            UiAssetSelectableSection {
+                                width: parent.width;
+                                height: 118px;
+                                title: "Tokens";
+                                items: root.style_token_items;
+                                selected_index: root.style_token_selected_index;
+                                accent: #8dc8c1;
+                                item_selected(item_index) => {
+                                    root.style_token_action("style.token.select", item_index, "", "");
+                                    root.style_token_name_draft = root.selected_token_name;
+                                    root.style_token_value_draft = root.selected_token_value;
+                                }
+                            }
+
+                            CompactField {
+                                width: parent.width;
+                                text:
+                                    root.style_token_name_draft != "" ?
+                                    root.style_token_name_draft :
+                                    root.selected_token_name;
+                                placeholder: "token-name";
+                                edited(value) => { root.style_token_name_draft = value; }
+                            }
+
+                            CompactField {
+                                width: parent.width;
+                                text:
+                                    root.style_token_value_draft != "" ?
+                                    root.style_token_value_draft :
+                                    root.selected_token_value;
+                                placeholder: "token-value";
+                                edited(value) => { root.style_token_value_draft = value; }
+                            }
+
+                            HorizontalLayout {
+                                width: parent.width;
+                                spacing: 4px;
+
+                                ShellButton {
+                                    width: 48px;
+                                    label: "Apply";
+                                    enabled: root.style_token_name_draft != "" || root.selected_token_name != "";
+                                    active: root.style_token_name_draft != "" || root.selected_token_name != "";
+                                    clicked => {
+                                        root.style_token_action("style.token.upsert", root.style_token_selected_index, root.style_token_name_draft != "" ? root.style_token_name_draft : root.selected_token_name, root.style_token_value_draft != "" ? root.style_token_value_draft : root.selected_token_value);
+                                        root.style_token_name_draft = "";
+                                        root.style_token_value_draft = "";
+                                    }
+                                }
+
+                                ShellButton {
+                                    width: 56px;
+                                    label: "Delete";
+                                    enabled: root.can_delete_token;
+                                    clicked => {
+                                        root.style_token_action("style.token.delete", root.style_token_selected_index, "", "");
+                                        root.style_token_name_draft = "";
+                                        root.style_token_value_draft = "";
+                                    }
+                                }
+                            }
+
+                            Rectangle {
+                                width: parent.width;
+                                height: 1px;
+                                background: palette.border_soft;
+                            }
+
+                            UiAssetSelectableSection {
+                                width: parent.width;
+                                height: 126px;
+                                title: "Rules";
+                                items: root.style_rule_items;
+                                selected_index: root.style_rule_selected_index;
+                                accent: #8dc8c1;
+                                item_selected(item_index) => {
+                                    root.style_rule_selector_draft = root.style_rule_items[item_index];
+                                    root.style_rule_action("style.rule.select", item_index, "");
+                                }
+                            }
+
+                            CompactField {
+                                width: parent.width;
+                                text:
+                                    root.style_rule_selector_draft != "" ?
+                                    root.style_rule_selector_draft :
+                                    root.selected_rule_selector;
+                                placeholder: "selector";
+                                enabled: root.can_edit_rule;
+                                edited(value) => { root.style_rule_selector_draft = value; }
+                            }
+
+                            HorizontalLayout {
+                                width: parent.width;
+                                spacing: 4px;
+
+                                ShellButton {
+                                    width: 48px;
+                                    label: "Apply";
+                                    enabled: root.can_edit_rule && (root.style_rule_selector_draft != "" || root.selected_rule_selector != "");
+                                    active: root.can_edit_rule && (root.style_rule_selector_draft != "" || root.selected_rule_selector != "");
+                                    clicked => {
+                                        root.style_rule_action("style.rule.rename", root.style_rule_selected_index, root.style_rule_selector_draft != "" ? root.style_rule_selector_draft : root.selected_rule_selector);
+                                        root.style_rule_selector_draft = "";
+                                    }
+                                }
+
+                                ShellButton {
+                                    width: 56px;
+                                    label: "Delete";
+                                    enabled: root.can_delete_rule;
+                                    clicked => {
+                                        root.style_rule_action("style.rule.delete", root.style_rule_selected_index, "");
+                                        root.style_rule_selector_draft = "";
+                                      }
+                                  }
+                              }
+
+                              Rectangle {
+                                  width: parent.width;
+                                  height: 1px;
+                                  background: palette.border_soft;
+                              }
+
+                              UiAssetSelectableSection {
+                                  width: parent.width;
+                                  height: 126px;
+                                  title: "Declarations";
+                                  items: root.style_rule_declaration_items;
+                                  selected_index: root.style_rule_declaration_selected_index;
+                                  accent: #8dc8c1;
+                                  item_selected(item_index) => {
+                                      root.style_rule_declaration_action("style.rule.declaration.select", item_index, "", "");
+                                      root.style_rule_declaration_path_draft = root.selected_rule_declaration_path;
+                                      root.style_rule_declaration_value_draft = root.selected_rule_declaration_value;
+                                  }
+                              }
+
+                              CompactField {
+                                  width: parent.width;
+                                  text:
+                                      root.style_rule_declaration_path_draft != "" ?
+                                      root.style_rule_declaration_path_draft :
+                                      root.selected_rule_declaration_path;
+                                  placeholder: "self.background.color";
+                                  enabled: root.can_edit_rule_declaration;
+                                  edited(value) => { root.style_rule_declaration_path_draft = value; }
+                              }
+
+                              CompactField {
+                                  width: parent.width;
+                                  text:
+                                      root.style_rule_declaration_value_draft != "" ?
+                                      root.style_rule_declaration_value_draft :
+                                      root.selected_rule_declaration_value;
+                                  placeholder: "value";
+                                  enabled: root.can_edit_rule_declaration;
+                                  edited(value) => { root.style_rule_declaration_value_draft = value; }
+                              }
+
+                              HorizontalLayout {
+                                  width: parent.width;
+                                  spacing: 4px;
+
+                                  ShellButton {
+                                      width: 48px;
+                                      label: "Apply";
+                                      enabled: root.can_edit_rule_declaration;
+                                      active: root.can_edit_rule_declaration;
+                                      clicked => {
+                                          root.style_rule_declaration_action("style.rule.declaration.upsert", root.style_rule_declaration_selected_index, root.style_rule_declaration_path_draft != "" ? root.style_rule_declaration_path_draft : root.selected_rule_declaration_path, root.style_rule_declaration_value_draft != "" ? root.style_rule_declaration_value_draft : root.selected_rule_declaration_value);
+                                          root.style_rule_declaration_path_draft = "";
+                                          root.style_rule_declaration_value_draft = "";
+                                      }
+                                  }
+
+                                  ShellButton {
+                                      width: 56px;
+                                      label: "Delete";
+                                      enabled: root.can_delete_rule_declaration;
+                                      clicked => {
+                                          root.style_rule_declaration_action("style.rule.declaration.delete", root.style_rule_declaration_selected_index, "", "");
+                                          root.style_rule_declaration_path_draft = "";
+                                          root.style_rule_declaration_value_draft = "";
+                                      }
+                                  }
+                              }
+
+                              Rectangle {
+                                  width: parent.width;
+                                  height: 1px;
+                                  background: palette.border_soft;
+                              }
+
+                              UiAssetSelectableSection {
+                                  width: parent.width;
+                                  height: 126px;
+                                  title: "Matched Rules";
+                                  items: root.style_matched_rule_items;
+                                  selected_index: root.style_matched_rule_selected_index;
+                                  accent: #8dc8c1;
+                                  item_selected(item_index) => {
+                                      // matched_style_rule_selected(item_index) => {
+                                      root.matched_style_rule_selected(item_index);
+                                  }
+                              }
+
+                              Rectangle {
+                                  width: parent.width;
+                                  height: 78px;
+                                  background: palette.panel_bg_soft;
+                                  border-radius: 4px;
+                                  border-width: 1px;
+                                  border-color: palette.border_soft;
+                                  clip: true;
+
+                                  VerticalLayout {
+                                      x: 10px;
+                                      y: 8px;
+                                      width: parent.width - 20px;
+                                      spacing: 3px;
+
+                                      Text {
+                                          text: root.selected_matched_rule_origin != "" ? root.selected_matched_rule_origin : "No matched rule selected";
+                                          color: palette.text;
+                                          font-size: 10px;
+                                          font-weight: 600;
+                                          wrap: word-wrap;
+                                      }
+
+                                      Text {
+                                          text: root.selected_matched_rule_selector;
+                                          color: palette.text_muted;
+                                          font-size: 10px;
+                                          wrap: word-wrap;
+                                      }
+
+                                      Text {
+                                          text: root.selected_matched_rule_specificity >= 0 ? "specificity " + root.selected_matched_rule_specificity + " • order " + root.selected_matched_rule_source_order : "";
+                                          color: palette.text_dim;
+                                          font-size: 10px;
+                                          wrap: word-wrap;
+                                      }
+
+                                      for item in root.selected_matched_rule_declaration_items: Text {
+                                          text: item;
+                                          color: palette.text_muted;
+                                          font-size: 10px;
+                                          wrap: word-wrap;
+                                      }
+                                  }
+                              }
+
+                              if root.stylesheet_items.length == 0: Text {
+                                  text: "No stylesheet entries";
+                                  color: palette.text_dim;
+                                  font-size: 10px;
+                            }
+
+                            for item in root.stylesheet_items: Text {
+                                text: item;
+                                color: palette.text_muted;
+                                font-size: 10px;
+                                wrap: word-wrap;
+                            }
+                        }
+                    }
+                }
             }
         }
     }

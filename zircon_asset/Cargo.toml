@@ -22,4 +22,5 @@ zircon_module = { path = "../zircon_module" }
 zircon_math = { path = "../zircon_math" }
 zircon_resource = { path = "../zircon_resource" }
 zircon_manager = { path = "../zircon_manager" }
+zircon_ui = { path = "../zircon_ui" }
 zstd = "0.13.3"

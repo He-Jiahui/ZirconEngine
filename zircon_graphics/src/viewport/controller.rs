@@ -142,7 +142,7 @@ impl ViewportController {
         );
         let transform =
             Transform::looking_at(self.orbit_target + next_offset, self.orbit_target, Vec3::Y);
-        scene.update_transform(camera.id, transform);
+        let _ = scene.update_transform(camera.id, transform);
     }
 
     fn apply_pan(&mut self, scene: &mut Scene, previous: Vec2, current: Vec2) {
@@ -161,7 +161,7 @@ impl ViewportController {
             ..camera.transform
         };
         self.orbit_target += translation;
-        scene.update_transform(camera.id, transform);
+        let _ = scene.update_transform(camera.id, transform);
     }
 
     fn apply_zoom(&self, scene: &mut Scene, delta: f32) {
@@ -177,7 +177,7 @@ impl ViewportController {
             translation: camera.transform.translation + direction * step,
             ..camera.transform
         };
-        scene.update_transform(camera.id, transform);
+        let _ = scene.update_transform(camera.id, transform);
     }
 
     fn apply_translation(
@@ -231,8 +231,7 @@ impl ViewportController {
                 + axis_vector(axis) * delta_pixels * world_per_pixel,
             ..node.transform
         };
-        scene.update_transform(node_id, transform);
-        true
+        scene.update_transform(node_id, transform).is_ok()
     }
 
     fn pick_axis(&self, scene: &Scene, cursor: Vec2) -> Option<GizmoAxis> {

@@ -5,8 +5,8 @@ use zircon_resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
 
 use super::World;
 use crate::components::{
-    Active, CameraComponent, DirectionalLight, Hierarchy, LocalTransform, MeshRenderer, Name,
-    NodeKind, Schedule,
+    default_render_layer_mask, ActiveInHierarchy, ActiveSelf, CameraComponent, DirectionalLight,
+    Hierarchy, LocalTransform, MeshRenderer, Mobility, Name, NodeKind, RenderLayerMask, Schedule,
 };
 use crate::EntityId;
 
@@ -18,11 +18,14 @@ impl World {
             names: HashMap::new(),
             hierarchy: HashMap::new(),
             local_transforms: HashMap::new(),
-            world_transforms: HashMap::new(),
+            world_matrices: HashMap::new(),
             cameras: HashMap::new(),
             mesh_renderers: HashMap::new(),
             directional_lights: HashMap::new(),
-            active: HashMap::new(),
+            active_self: HashMap::new(),
+            active_in_hierarchy: HashMap::new(),
+            render_layer_masks: HashMap::new(),
+            mobility: HashMap::new(),
             next_id: 1,
             active_camera: 0,
             selected_entity: None,
@@ -52,7 +55,12 @@ impl World {
             Name(default_name(&kind, self.ordinal_for(kind.clone()))),
         );
         self.hierarchy.insert(id, Hierarchy::default());
-        self.active.insert(id, Active::default());
+        self.active_self.insert(id, ActiveSelf::default());
+        self.active_in_hierarchy
+            .insert(id, ActiveInHierarchy::default());
+        self.render_layer_masks
+            .insert(id, RenderLayerMask(default_render_layer_mask()));
+        self.mobility.insert(id, Mobility::default());
 
         match kind {
             NodeKind::Camera => {
@@ -81,6 +89,7 @@ impl World {
             }
             NodeKind::DirectionalLight => {
                 let mut transform = Transform::default();
+                transform.translation = Vec3::new(1.5, 2.0, 1.5);
                 transform.rotation = Quat::from_rotation_x(-45.0_f32.to_radians());
                 self.local_transforms
                     .insert(id, LocalTransform { transform });

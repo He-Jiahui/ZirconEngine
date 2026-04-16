@@ -3,9 +3,9 @@ use zircon_core::{ChannelReceiver, CoreError, EngineEvent};
 
 use crate::{
     AssetChangeRecord, AssetPipelineInfo, AssetStatusRecord, EditorAssetCatalogSnapshotRecord,
-    EditorAssetChangeRecord, EditorAssetDetailsRecord, InputEvent, InputEventRecord,
-    InputSnapshot, LevelSummary, ProjectInfo, RenderingBackendInfo, ResourceChangeRecord,
-    ResourceStatusRecord, WorldHandle,
+    EditorAssetChangeRecord, EditorAssetDetailsRecord, InputEvent, InputEventRecord, InputSnapshot,
+    LevelSummary, ProjectInfo, RenderingBackendInfo, ResourceChangeRecord, ResourceStatusRecord,
+    WorldHandle,
 };
 
 pub trait RenderingManager: Send + Sync {
@@ -40,7 +40,8 @@ pub trait EditorAssetManager: Send + Sync {
     fn catalog_snapshot(&self) -> EditorAssetCatalogSnapshotRecord;
     fn asset_details(&self, uuid: &str) -> Option<EditorAssetDetailsRecord>;
     fn subscribe_editor_asset_changes(&self) -> ChannelReceiver<EditorAssetChangeRecord>;
-    fn mark_preview_dirty(&self, uuid: &str) -> Result<Option<EditorAssetDetailsRecord>, CoreError>;
+    fn mark_preview_dirty(&self, uuid: &str)
+        -> Result<Option<EditorAssetDetailsRecord>, CoreError>;
     fn request_preview_refresh(
         &self,
         uuid: &str,

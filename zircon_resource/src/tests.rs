@@ -1,8 +1,8 @@
 use crate::{
-    AssetReference, AssetUuid, MaterialMarker, ModelMarker, ResourceDiagnostic,
-    ResourceEventKind, ResourceHandle, ResourceId, ResourceKind, ResourceLocator,
-    ResourceLocatorError, ResourceManager, ResourceRecord, ResourceScheme, ResourceState,
-    RuntimeResourceState, UntypedResourceHandle,
+    AssetReference, AssetUuid, MaterialMarker, ModelMarker, ResourceDiagnostic, ResourceEventKind,
+    ResourceHandle, ResourceId, ResourceKind, ResourceLocator, ResourceLocatorError,
+    ResourceManager, ResourceRecord, ResourceScheme, ResourceState, RuntimeResourceState,
+    UntypedResourceHandle,
 };
 
 #[derive(Debug, PartialEq, Eq)]
@@ -116,7 +116,10 @@ fn typed_and_untyped_handles_roundtrip() {
 #[test]
 fn registry_rename_preserves_id_and_remove_clears_lookup() {
     let mut registry = crate::ResourceRegistry::default();
-    let original = record("res://materials/default.material.toml", ResourceKind::Material);
+    let original = record(
+        "res://materials/default.material.toml",
+        ResourceKind::Material,
+    );
     let id = original.id;
     registry.upsert(original.clone());
 
@@ -128,11 +131,9 @@ fn registry_rename_preserves_id_and_remove_clears_lookup() {
         .expect("rename should succeed");
 
     assert_eq!(renamed.id, id);
-    assert!(
-        registry
-            .get_by_locator(&locator("res://materials/default.material.toml"))
-            .is_none()
-    );
+    assert!(registry
+        .get_by_locator(&locator("res://materials/default.material.toml"))
+        .is_none());
     assert_eq!(
         registry
             .get_by_locator(&locator("res://materials/default-renamed.material.toml"))
@@ -157,12 +158,7 @@ fn manager_failed_reload_keeps_last_good_payload_and_emits_events() {
     let mut record = ResourceRecord::new(id, ResourceKind::Model, locator.clone());
     record.state = ResourceState::Pending;
 
-    let handle = manager.register_ready(
-        record,
-        TestPayload {
-            name: "cube-ready",
-        },
-    );
+    let handle = manager.register_ready(record, TestPayload { name: "cube-ready" });
     let typed = handle.typed::<ModelMarker>().expect("model handle");
 
     let added = events.recv().expect("added event");
@@ -177,7 +173,9 @@ fn manager_failed_reload_keeps_last_good_payload_and_emits_events() {
     let failed = events.recv().expect("reload failed event");
     assert_eq!(failed.kind, ResourceEventKind::ReloadFailed);
 
-    let payload = manager.get::<ModelMarker, TestPayload>(typed).expect("last good payload");
+    let payload = manager
+        .get::<ModelMarker, TestPayload>(typed)
+        .expect("last good payload");
     assert_eq!(payload.name, "cube-ready");
 
     let record = manager.registry().get(id).cloned().expect("record exists");
@@ -205,18 +203,62 @@ fn resource_leases_increment_refcount_and_drop_unloads_payload() {
         .expect("typed model handle");
 
     assert_eq!(manager.ref_count(id), Some(0));
-    assert_eq!(manager.runtime_state(id), Some(RuntimeResourceState::Loaded));
+    assert_eq!(
+        manager.runtime_state(id),
+        Some(RuntimeResourceState::Loaded)
+    );
 
     let lease = manager
         .acquire::<ModelMarker, TestPayload>(handle)
         .expect("resource lease");
     assert_eq!(lease.name, "leased-model");
     assert_eq!(manager.ref_count(id), Some(1));
-    assert_eq!(manager.runtime_state(id), Some(RuntimeResourceState::Loaded));
+    assert_eq!(
+        manager.runtime_state(id),
+        Some(RuntimeResourceState::Loaded)
+    );
 
     drop(lease);
 
     assert_eq!(manager.ref_count(id), Some(0));
-    assert_eq!(manager.runtime_state(id), Some(RuntimeResourceState::Unloaded));
+    assert_eq!(
+        manager.runtime_state(id),
+        Some(RuntimeResourceState::Unloaded)
+    );
     assert!(manager.get::<ModelMarker, TestPayload>(handle).is_none());
+}
+
+#[test]
+fn register_ready_is_idempotent_for_unchanged_records() {
+    let manager = ResourceManager::new();
+    let events = manager.subscribe();
+    let locator = locator("res://models/cube.obj");
+    let id = ResourceId::from_locator(&locator);
+    let record = ResourceRecord::new(id, ResourceKind::Model, locator);
+
+    let handle = manager
+        .register_ready(record.clone(), TestPayload { name: "cube-ready" })
+        .typed::<ModelMarker>()
+        .expect("typed model handle");
+    let added = events.recv().expect("added event");
+    assert_eq!(added.kind, ResourceEventKind::Added);
+
+    manager.register_ready(record, TestPayload { name: "cube-ready" });
+
+    assert!(
+        events.try_recv().is_err(),
+        "unchanged ready registration must be a no-op"
+    );
+    assert_eq!(
+        manager.registry().get(id).expect("record exists").revision,
+        1,
+        "unchanged ready registration must not bump revision"
+    );
+    assert_eq!(
+        manager
+            .get::<ModelMarker, TestPayload>(handle)
+            .expect("payload should remain resident")
+            .name,
+        "cube-ready"
+    );
 }

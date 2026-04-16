@@ -1,5 +1,8 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use zircon_scene::{
+    DisplayMode, GridMode, ProjectionMode, SceneViewportTool, TransformSpace, ViewOrientation,
+};
 
 use crate::host::binding_dispatch::SelectionHostEvent;
 use crate::workbench::model::MenuAction;
@@ -63,12 +66,24 @@ pub enum EditorAssetUtilityTab {
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum EditorAssetEvent {
-    OpenAsset { asset_path: String },
-    SelectFolder { folder_id: String },
-    SelectItem { asset_uuid: String },
-    ActivateReference { asset_uuid: String },
-    SetSearchQuery { query: String },
-    SetKindFilter { kind: Option<String> },
+    OpenAsset {
+        asset_path: String,
+    },
+    SelectFolder {
+        folder_id: String,
+    },
+    SelectItem {
+        asset_uuid: String,
+    },
+    ActivateReference {
+        asset_uuid: String,
+    },
+    SetSearchQuery {
+        query: String,
+    },
+    SetKindFilter {
+        kind: Option<String>,
+    },
     SetViewMode {
         surface: EditorAssetSurface,
         view_mode: EditorAssetViewMode,
@@ -79,12 +94,25 @@ pub enum EditorAssetEvent {
     },
     OpenAssetBrowser,
     LocateSelectedAsset,
+    ImportModel,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct EditorInspectorEvent {
     pub subject_path: String,
     pub changes: Vec<InspectorFieldChange>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub enum EditorDraftEvent {
+    SetInspectorField {
+        subject_path: String,
+        field_id: String,
+        value: String,
+    },
+    SetMeshImportPath {
+        value: String,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -98,6 +126,19 @@ pub enum EditorViewportEvent {
     MiddleReleased,
     Scrolled { delta: f32 },
     Resized { width: u32, height: u32 },
+    SetTool { tool: SceneViewportTool },
+    SetTransformSpace { space: TransformSpace },
+    SetProjectionMode { mode: ProjectionMode },
+    AlignView { orientation: ViewOrientation },
+    SetDisplayMode { mode: DisplayMode },
+    SetGridMode { mode: GridMode },
+    SetTranslateSnap { step: f32 },
+    SetRotateSnapDegrees { step: f32 },
+    SetScaleSnap { step: f32 },
+    SetPreviewLighting { enabled: bool },
+    SetPreviewSkybox { enabled: bool },
+    SetGizmosEnabled { enabled: bool },
+    FrameSelection,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -116,6 +157,7 @@ pub enum EditorEvent {
     Layout(LayoutCommand),
     Selection(SelectionHostEvent),
     Asset(EditorAssetEvent),
+    Draft(EditorDraftEvent),
     Inspector(EditorInspectorEvent),
     Viewport(EditorViewportEvent),
     Transient(EditorEventTransient),
@@ -139,9 +181,12 @@ pub enum EditorEventEffect {
     LayoutChanged,
     RenderChanged,
     ReflectionChanged,
+    PresentWelcomeRequested,
     ProjectOpenRequested,
     ProjectSaveRequested,
-    AssetWorkspaceChanged,
+    AssetDetailsRefreshRequested,
+    AssetPreviewRefreshRequested,
+    ImportModelRequested,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]

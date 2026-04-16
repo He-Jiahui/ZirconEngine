@@ -1,7 +1,7 @@
 use zircon_editor_ui::{EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind};
 use zircon_scene::NodeId;
 
-use crate::{dispatch_workbench_binding, MenuAction};
+use crate::{dispatch_workbench_binding, LayoutCommand, MenuAction};
 
 use super::{
     EditorAssetEvent, EditorAssetSurface, EditorAssetUtilityTab, EditorAssetViewMode, EditorEvent,
@@ -9,6 +9,26 @@ use super::{
 };
 
 pub fn slint_menu_action(action_id: &str) -> Result<EditorEventEnvelope, String> {
+    if let Some(name) = action_id.strip_prefix("SavePreset.") {
+        let name = if name.is_empty() { "current" } else { name };
+        return Ok(EditorEventEnvelope::new(
+            EditorEventSource::Slint,
+            EditorEvent::Layout(LayoutCommand::SavePreset {
+                name: name.to_string(),
+            }),
+        ));
+    }
+
+    if let Some(name) = action_id.strip_prefix("LoadPreset.") {
+        let name = if name.is_empty() { "current" } else { name };
+        return Ok(EditorEventEnvelope::new(
+            EditorEventSource::Slint,
+            EditorEvent::Layout(LayoutCommand::LoadPreset {
+                name: name.to_string(),
+            }),
+        ));
+    }
+
     let binding = EditorUiBinding::new(
         "WorkbenchMenuBar",
         action_id,

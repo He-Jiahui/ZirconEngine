@@ -17,29 +17,64 @@ related_code:
   - zircon_asset/src/editor/preview.rs
   - zircon_asset/src/editor/manager.rs
   - zircon_asset/src/pipeline/manager.rs
+  - zircon_asset/src/pipeline/manager/asset_io_driver.rs
+  - zircon_asset/src/pipeline/manager/project_asset_manager.rs
+  - zircon_asset/src/pipeline/manager/project_asset_manager_construction.rs
+  - zircon_asset/src/pipeline/manager/project_asset_manager_loading.rs
+  - zircon_asset/src/pipeline/manager/project_asset_manager_runtime.rs
+  - zircon_asset/src/pipeline/manager/asset_manager_facade.rs
+  - zircon_asset/src/pipeline/manager/resource_manager_facade.rs
+  - zircon_asset/src/pipeline/manager/resource_sync.rs
+  - zircon_asset/src/pipeline/manager/records.rs
+  - zircon_asset/src/pipeline/manager/builtins.rs
+  - zircon_asset/src/pipeline/manager/module_descriptor.rs
+  - zircon_asset/src/pipeline/manager/service_names.rs
+  - zircon_asset/src/pipeline/manager/errors.rs
   - zircon_asset/src/watch.rs
   - zircon_asset/src/assets/material.rs
   - zircon_asset/src/assets/scene.rs
   - zircon_manager/src/lib.rs
+  - zircon_manager/src/service_names.rs
   - zircon_scene/src/components.rs
+  - zircon_scene/src/world/world.rs
   - zircon_scene/src/world/bootstrap.rs
   - zircon_scene/src/world/project_io.rs
   - zircon_scene/src/level_system.rs
   - zircon_scene/src/module.rs
-  - zircon_graphics/src/scene/scene_renderer.rs
-  - zircon_graphics/src/service.rs
+  - zircon_scene/src/module/default_level_manager.rs
+  - zircon_scene/src/module/level_manager_lifecycle.rs
+  - zircon_scene/src/module/level_manager_project_io.rs
+  - zircon_scene/src/module/level_manager_facade.rs
+  - zircon_scene/src/module/manager_access.rs
+  - zircon_scene/src/module/module_descriptor.rs
+  - zircon_scene/src/module/service_names.rs
+  - zircon_scene/src/module/world_driver.rs
+  - zircon_scene/src/module/level_display_name.rs
+  - zircon_scene/src/module/core_error.rs
+  - zircon_graphics/src/scene/resources/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/core/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/mesh/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/overlay.rs
+  - zircon_graphics/src/scene/scene_renderer/overlay/viewport_overlay_renderer/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/overlay/passes/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/overlay/icons/viewport_icon_atlas.rs
+  - zircon_graphics/src/scene/scene_renderer/primitives/mod.rs
+  - zircon_graphics/src/service/mod.rs
   - zircon_graphics/src/types.rs
-  - zircon_graphics/src/backend/render_backend.rs
+  - zircon_graphics/src/backend/render_backend/mod.rs
   - zircon_editor/src/editing/command.rs
-  - zircon_editor/src/editing/state.rs
+  - zircon_editor/src/editing/state/mod.rs
   - zircon_editor/src/editing/asset_workspace.rs
-  - zircon_editor/src/workbench/snapshot.rs
-  - zircon_editor/src/workbench/project.rs
+  - zircon_editor/src/workbench/snapshot/mod.rs
+  - zircon_editor/src/workbench/project/mod.rs
   - zircon_editor/src/host/resource_access.rs
   - zircon_editor/src/host/slint_host/app.rs
+  - zircon_editor/src/host/slint_host/event_bridge.rs
   - zircon_editor/src/host/slint_host/ui.rs
   - zircon_editor/ui/workbench.slint
   - zircon_editor/ui/workbench/assets.slint
+  - zircon_editor/ui/workbench/chrome.slint
   - zircon_editor/src/host/bridge/viewport.rs
 implementation_files:
   - zircon_resource/src/lib.rs
@@ -59,29 +94,63 @@ implementation_files:
   - zircon_asset/src/editor/preview.rs
   - zircon_asset/src/editor/manager.rs
   - zircon_asset/src/pipeline/manager.rs
+  - zircon_asset/src/pipeline/manager/asset_io_driver.rs
+  - zircon_asset/src/pipeline/manager/project_asset_manager.rs
+  - zircon_asset/src/pipeline/manager/project_asset_manager_construction.rs
+  - zircon_asset/src/pipeline/manager/project_asset_manager_loading.rs
+  - zircon_asset/src/pipeline/manager/project_asset_manager_runtime.rs
+  - zircon_asset/src/pipeline/manager/asset_manager_facade.rs
+  - zircon_asset/src/pipeline/manager/resource_manager_facade.rs
+  - zircon_asset/src/pipeline/manager/resource_sync.rs
+  - zircon_asset/src/pipeline/manager/records.rs
+  - zircon_asset/src/pipeline/manager/builtins.rs
+  - zircon_asset/src/pipeline/manager/module_descriptor.rs
+  - zircon_asset/src/pipeline/manager/service_names.rs
+  - zircon_asset/src/pipeline/manager/errors.rs
   - zircon_asset/src/watch.rs
   - zircon_scene/src/components.rs
+  - zircon_scene/src/world/world.rs
   - zircon_scene/src/world/bootstrap.rs
   - zircon_scene/src/world/project_io.rs
   - zircon_manager/src/lib.rs
+  - zircon_manager/src/service_names.rs
   - zircon_scene/src/level_system.rs
   - zircon_scene/src/module.rs
-  - zircon_graphics/src/scene/scene_renderer.rs
+  - zircon_scene/src/module/default_level_manager.rs
+  - zircon_scene/src/module/level_manager_lifecycle.rs
+  - zircon_scene/src/module/level_manager_project_io.rs
+  - zircon_scene/src/module/level_manager_facade.rs
+  - zircon_scene/src/module/manager_access.rs
+  - zircon_scene/src/module/module_descriptor.rs
+  - zircon_scene/src/module/service_names.rs
+  - zircon_scene/src/module/world_driver.rs
+  - zircon_scene/src/module/level_display_name.rs
+  - zircon_scene/src/module/core_error.rs
+  - zircon_graphics/src/scene/resources/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/core/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/mesh/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/overlay.rs
+  - zircon_graphics/src/scene/scene_renderer/primitives/mod.rs
   - zircon_graphics/src/types.rs
   - zircon_editor/src/editing/command.rs
-  - zircon_editor/src/editing/state.rs
+  - zircon_editor/src/editing/state/mod.rs
   - zircon_editor/src/editing/asset_workspace.rs
-  - zircon_editor/src/workbench/snapshot.rs
-  - zircon_editor/src/workbench/project.rs
+  - zircon_editor/src/workbench/snapshot/mod.rs
+  - zircon_editor/src/workbench/project/mod.rs
   - zircon_editor/src/host/resource_access.rs
   - zircon_editor/src/host/slint_host/app.rs
+  - zircon_editor/src/host/slint_host/event_bridge.rs
   - zircon_editor/src/host/slint_host/ui.rs
+  - zircon_editor/ui/workbench/chrome.slint
   - zircon_resource/src/id.rs
   - zircon_asset/src/tests/pipeline/manager.rs
   - zircon_editor/src/tests/host/resource_access.rs
 plan_sources:
   - user: 2026-04-13 实现目录式 Project 资源抽象优先全链路替换计划
   - user: 2026-04-14 编辑器资源管理器 UI 真正接到 EditorAssetManager / EditorAssetServer
+  - user: 2026-04-14 编辑器 Builtin 资产归位与 Revision 稳定化计划
+  - user: 2026-04-16 全仓库模块边界拆分与根入口去逻辑化
   - .codex/plans/全系统重构方案.md
   - .codex/plans/编辑器资源管理器双模式 UI 接线计划.md
 tests:
@@ -97,7 +166,14 @@ tests:
   - zircon_editor/src/tests/editing/state.rs
   - zircon_editor/src/tests/editing/import.rs
   - zircon_editor/src/tests/host/resource_access.rs
+  - zircon_editor/src/tests/host/slint_callback_dispatch/asset.rs
+  - zircon_editor/src/tests/host/slint_callback_dispatch/layout.rs
+  - zircon_editor/src/tests/host/slint_event_bridge.rs
+  - zircon_editor/src/tests/host/slint_asset_refresh.rs
+  - zircon_editor/src/tests/host/slint_builtin_assets.rs
   - cargo test -p zircon_resource -p zircon_asset -p zircon_scene -p zircon_graphics -p zircon_editor
+  - cargo test -p zircon_asset --offline
+  - cargo test -p zircon_scene --offline
   - cargo test --workspace --locked
 doc_type: module-detail
 ---
@@ -117,6 +193,12 @@ doc_type: module-detail
 - `zircon_editor` 通过 `AssetManager + ResourceManager + EditorAssetManager` 消费这些层
 
 目标不是先堆更多 importer 分支，而是先把“project -> resource -> scene -> render -> editor”变成统一的框架主链。
+
+这一轮模块边界重构没有改掉这条主链的行为语义，但把两个历史聚合点降成了纯结构入口：
+
+- `zircon_asset/src/pipeline/manager.rs` 现在只负责声明 folder-backed 子模块；驱动声明、`ProjectAssetManager` 构造、runtime resident 载入、watcher 同步、facade 实现、builtin 资源和模块描述符分别落到 `pipeline/manager/` 下
+- `zircon_scene/src/module.rs` 现在只保留 scene 模块导出层；`DefaultLevelManager`、level project I/O、manager façade、descriptor 和 service name 已拆到 `module/` 子树
+- `zircon_scene/src/world.rs` 继续作为 world 子系统边界，但 `World` 结构定义本身已经独立到 `zircon_scene/src/world/world.rs`
 
 ## Resource Foundation
 
@@ -283,6 +365,44 @@ UI 侧不再消费 `asset_entries: Vec<String>` 这类降级模型，也不再�
 5. editor 收到 change record 后重建 `AssetWorkspaceSnapshot`，并在需要时重置 viewport render service
 6. 新 render service 按最新 revision 重建 prepared GPU 资源
 
+## Editor Builtin Assets And Revision Stability
+
+### Builtin Icon Authority
+
+这一轮把 editor chrome 还残留在仓库根 `dev/` 的图标依赖彻底收回到 crate 本地：
+
+- `zircon_editor/ui/workbench/chrome.slint` 只允许从 `zircon_editor/assets/icons/ionicons/` 读取静态 SVG
+- editor icon 的统一资源命名空间固定为 `builtin://editor/icons/<file>.svg`
+- `zircon_asset::pipeline::manager` 会把同一批 icon 注册进 builtin registry，使 editor builtin 资产在资源系统里也是一等 locator
+
+当前 Slint 仍直接读取 crate 本地 SVG 文件显示图标，不经过 builtin locator bridge；builtin registry 则先注册为 texture-kind placeholder 资源，目标不是立刻参与 Slint 渲染，而是先稳定 `builtin://editor/icons/...` 这条引擎级命名路径，后续再接真正的 SVG -> runtime image bridge。
+
+### Asset Workspace Refresh Boundary
+
+asset workspace 现在明确拆成两条链：
+
+- UI 本地交互
+  - 搜索、filter、folder 选择、item 选择、view mode、utility tab、引用跳转
+  - 这些事件只会在 `EditorEventEffect` 中发出 `AssetDetailsRefreshRequested` 或 `AssetPreviewRefreshRequested`
+  - Slint host 只做局部 `asset_details()` 查询或 `request_preview_refresh()`，不再顺手调用 `sync_asset_workspace()`
+- 后端真实数据变化
+  - `EditorAssetChangeRecord::{CatalogChanged, PreviewChanged, ReferenceChanged}`
+  - `ResourceChangeRecord::{Added, Updated, Removed, Renamed, ReloadFailed}`
+  - 这些后台事件才允许触发 catalog/resource snapshot 重同步，必要时重载默认 scene
+
+这样 editor UI 不再把“我改了一个搜索词”误当成“runtime/resource 发生了真实变化”。
+
+### Revision Stability Contract
+
+这一轮把 editor 可见的 `resource_revision` 稳定契约补齐为：
+
+- idle tick、布局调整、搜索、筛选、tab 切换、普通选择变化都不能导致 runtime `revision` 漂移
+- `PreviewChanged` 只更新 editor catalog/details/thumbnail 呈现，不顺带重拉 runtime resource list
+- visible preview 刷新继续采用“可见即刷新，否则保留 last-good cache”的策略，但 preview/meta 写回不会形成新的 resource revision loop
+- `zircon_resource::ResourceManager::register_ready()` 保持幂等；同一 ready record 重复注册不发 updated event，也不 bump revision
+
+因此现在面板里的 `r####` 只应该在源文件、导入结果或真实 resource record 变化时增长，而不会随着 editor 每帧刷新自己累加。
+
 ## Constraints
 
 - `ResourceLocator` 拒绝绝对路径、`..` 逃逸和空路径
@@ -339,3 +459,4 @@ UI 侧不再消费 `asset_entries: Vec<String>` 这类降级模型，也不再�
 - `zircon_graphics` 内部 shader locator 解析还在直接走 `AssetManager` 内部查询，后续可以继续收敛到更纯粹的 resource-only helper
 - `mem://` 资源创建入口还未暴露给 editor/runtime
 - 更完整的 PBR 扩展材质和 importer/transcoder 扩展仍需后续落地
+

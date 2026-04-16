@@ -237,7 +237,10 @@ fn attach_view_to_drawer_inserts_before_anchor_and_keeps_it_active() {
         )
         .unwrap();
 
-    let drawer = layout.drawers.get(&ActivityDrawerSlot::RightBottom).unwrap();
+    let drawer = layout
+        .drawers
+        .get(&ActivityDrawerSlot::RightBottom)
+        .unwrap();
     assert_eq!(drawer.tab_stack.tabs, vec![first, inserted.clone(), second]);
     assert_eq!(drawer.tab_stack.active_tab.as_ref(), Some(&inserted));
     assert_eq!(drawer.active_view.as_ref(), Some(&inserted));

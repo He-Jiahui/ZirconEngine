@@ -1,0 +1,19 @@
+use serde::{Deserialize, Serialize};
+use zircon_scene::NodeKind;
+
+use crate::view::ViewDescriptorId;
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum MenuAction {
+    OpenProject,
+    OpenScene,
+    CreateScene,
+    SaveProject,
+    SaveLayout,
+    ResetLayout,
+    Undo,
+    Redo,
+    CreateNode(NodeKind),
+    DeleteSelected,
+    OpenView(ViewDescriptorId),
+}

@@ -29,7 +29,11 @@ pub struct LevelSystem {
 }
 
 impl LevelSystem {
-    pub(crate) fn new(handle: WorldHandle, inner: Arc<Mutex<World>>, metadata: LevelMetadata) -> Self {
+    pub(crate) fn new(
+        handle: WorldHandle,
+        inner: Arc<Mutex<World>>,
+        metadata: LevelMetadata,
+    ) -> Self {
         Self {
             handle,
             inner,

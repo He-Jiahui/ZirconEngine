@@ -1,25 +1,57 @@
 //! Core rendering, viewport control, and host-agnostic GPU services.
 
 mod backend;
+mod compat;
+mod extract;
+mod feature;
 mod host;
+mod material;
+mod pipeline;
+mod runtime;
 mod scene;
 mod service;
+mod shader;
 mod types;
 mod viewport;
+mod visibility;
 
 pub use backend::RuntimePreviewRenderer;
-pub use host::{
-    create_render_service, create_runtime_preview_renderer, create_shared_texture_render_service,
-    module_descriptor, WgpuDriver, WgpuRenderingManager, GRAPHICS_MODULE_NAME,
-    RENDERING_MANAGER_NAME, WGPU_DRIVER_NAME,
+pub use compat::{
+    LegacyRenderService, LegacyRuntimePreviewRenderer, LegacySharedTextureRenderService,
 };
-pub use scene::SceneRenderer;
+pub use extract::{FrameHistoryAccess, FrameHistoryBinding, FrameHistoryHandle, FrameHistorySlot};
+pub use feature::{BuiltinRenderFeature, RenderFeature, RenderFeatureDescriptor};
+pub use host::{
+    create_render_server, create_render_service, create_render_service_with_icon_source,
+    create_runtime_preview_renderer, create_shared_texture_render_service,
+    create_shared_texture_render_service_with_icon_source, module_descriptor, WgpuDriver,
+    WgpuRenderingManager, GRAPHICS_MODULE_NAME, RENDERING_MANAGER_NAME, RENDER_SERVER_NAME,
+    WGPU_DRIVER_NAME,
+};
+pub use material::MaterialDomain;
+pub use pipeline::{
+    CompiledRenderPipeline, RenderPassStage, RenderPipelineAsset, RenderPipelineCompileOptions,
+    RendererAsset, RendererFeatureAsset,
+};
+pub use runtime::{offline_bake_frame, OfflineBakeOutput, OfflineBakeSettings, WgpuRenderServer};
+#[cfg(test)]
+pub(crate) use scene::ViewportOverlayRenderer;
+pub use scene::{SceneRenderer, ViewportIconSource};
 pub use service::{RenderService, SharedTextureRenderService};
+pub use shader::{MaterialGraphAsset, ShaderGraphAsset, ShaderProgramAsset, ShaderVariantKey};
 pub use types::{
     EditorOrRuntimeFrame, GizmoAxis, GpuResourceHandle, GraphicsError, ViewportFeedback,
     ViewportFrame, ViewportFrameTextureHandle, ViewportInput, ViewportState,
 };
 pub use viewport::ViewportController;
+pub use visibility::{
+    VisibilityBatch, VisibilityBatchKey, VisibilityBounds, VisibilityBvhInstance,
+    VisibilityBvhUpdatePlan, VisibilityBvhUpdateStrategy, VisibilityContext, VisibilityDrawCommand,
+    VisibilityHistoryEntry, VisibilityHistorySnapshot, VisibilityHybridGiFeedback,
+    VisibilityHybridGiProbe, VisibilityHybridGiUpdatePlan, VisibilityInstanceUploadPlan,
+    VisibilityParticleUploadPlan, VisibilityVirtualGeometryCluster,
+    VisibilityVirtualGeometryFeedback, VisibilityVirtualGeometryPageUploadPlan,
+};
 
 #[cfg(test)]
 mod tests;

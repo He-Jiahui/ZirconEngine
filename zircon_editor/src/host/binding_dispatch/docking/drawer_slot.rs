@@ -1,0 +1,18 @@
+use super::super::error::EditorBindingDispatchError;
+use crate::ActivityDrawerSlot;
+
+pub(super) fn parse_drawer_slot(
+    slot: &str,
+) -> Result<ActivityDrawerSlot, EditorBindingDispatchError> {
+    match slot {
+        "left_top" => Ok(ActivityDrawerSlot::LeftTop),
+        "left_bottom" => Ok(ActivityDrawerSlot::LeftBottom),
+        "right_top" => Ok(ActivityDrawerSlot::RightTop),
+        "right_bottom" => Ok(ActivityDrawerSlot::RightBottom),
+        "bottom_left" => Ok(ActivityDrawerSlot::BottomLeft),
+        "bottom_right" => Ok(ActivityDrawerSlot::BottomRight),
+        _ => Err(EditorBindingDispatchError::UnknownDrawerSlot(
+            slot.to_string(),
+        )),
+    }
+}

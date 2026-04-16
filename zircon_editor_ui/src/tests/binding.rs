@@ -1,6 +1,10 @@
 use crate::{
-    AssetCommand, DockCommand, EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind,
-    EditorUiRouter, InspectorFieldChange, SelectionCommand, ViewportCommand,
+    AssetCommand, DockCommand, DraftCommand, EditorUiBinding, EditorUiBindingPayload,
+    EditorUiEventKind, EditorUiRouter, InspectorFieldChange, SelectionCommand, ViewportCommand,
+    WelcomeCommand,
+};
+use zircon_scene::{
+    DisplayMode, GridMode, ProjectionMode, SceneViewportTool, TransformSpace, ViewOrientation,
 };
 use zircon_ui::UiBindingValue;
 
@@ -207,6 +211,45 @@ fn dock_attach_command_bindings_roundtrip_through_native_binding() {
 }
 
 #[test]
+fn welcome_command_binding_roundtrips_through_native_binding() {
+    let edit_binding = EditorUiBinding::new(
+        "WelcomeSurface",
+        "ProjectNameEdited",
+        EditorUiEventKind::Change,
+        EditorUiBindingPayload::welcome_command(WelcomeCommand::SetProjectName {
+            value: "Sandbox".to_string(),
+        }),
+    );
+
+    assert_eq!(
+        edit_binding.native_binding(),
+        r#"WelcomeSurface/ProjectNameEdited:onChange(WelcomeCommand.SetProjectName("Sandbox"))"#
+    );
+    assert_eq!(
+        EditorUiBinding::parse_native_binding(&edit_binding.native_binding()).unwrap(),
+        edit_binding
+    );
+
+    let open_recent_binding = EditorUiBinding::new(
+        "WelcomeSurface",
+        "OpenRecentProject",
+        EditorUiEventKind::Click,
+        EditorUiBindingPayload::welcome_command(WelcomeCommand::OpenRecentProject {
+            path: "E:/Projects/Sandbox".to_string(),
+        }),
+    );
+
+    assert_eq!(
+        open_recent_binding.native_binding(),
+        r#"WelcomeSurface/OpenRecentProject:onClick(WelcomeCommand.OpenRecentProject("E:/Projects/Sandbox"))"#
+    );
+    assert_eq!(
+        EditorUiBinding::parse_native_binding(&open_recent_binding.native_binding()).unwrap(),
+        open_recent_binding
+    );
+}
+
+#[test]
 fn viewport_command_binding_roundtrips_with_resize_event_kind() {
     let binding = EditorUiBinding::new(
         "SceneView",
@@ -226,6 +269,196 @@ fn viewport_command_binding_roundtrips_with_resize_event_kind() {
         EditorUiBinding::parse_native_binding(&binding.native_binding()).unwrap(),
         binding
     );
+}
+
+#[test]
+fn viewport_toolbar_command_bindings_roundtrip_through_native_binding() {
+    let bindings = [
+        (
+            EditorUiBinding::new(
+                "SceneView",
+                "ViewportToolbar",
+                EditorUiEventKind::Click,
+                EditorUiBindingPayload::viewport_command(ViewportCommand::SetTool(
+                    SceneViewportTool::Rotate,
+                )),
+            ),
+            r#"SceneView/ViewportToolbar:onClick(ViewportCommand.SetTool("Rotate"))"#,
+        ),
+        (
+            EditorUiBinding::new(
+                "SceneView",
+                "ViewportToolbar",
+                EditorUiEventKind::Click,
+                EditorUiBindingPayload::viewport_command(ViewportCommand::SetTransformSpace(
+                    TransformSpace::Global,
+                )),
+            ),
+            r#"SceneView/ViewportToolbar:onClick(ViewportCommand.SetTransformSpace("Global"))"#,
+        ),
+        (
+            EditorUiBinding::new(
+                "SceneView",
+                "ViewportToolbar",
+                EditorUiEventKind::Click,
+                EditorUiBindingPayload::viewport_command(ViewportCommand::SetProjectionMode(
+                    ProjectionMode::Orthographic,
+                )),
+            ),
+            r#"SceneView/ViewportToolbar:onClick(ViewportCommand.SetProjectionMode("Orthographic"))"#,
+        ),
+        (
+            EditorUiBinding::new(
+                "SceneView",
+                "ViewportToolbar",
+                EditorUiEventKind::Click,
+                EditorUiBindingPayload::viewport_command(ViewportCommand::AlignView(
+                    ViewOrientation::NegZ,
+                )),
+            ),
+            r#"SceneView/ViewportToolbar:onClick(ViewportCommand.AlignView("NegZ"))"#,
+        ),
+        (
+            EditorUiBinding::new(
+                "SceneView",
+                "ViewportToolbar",
+                EditorUiEventKind::Click,
+                EditorUiBindingPayload::viewport_command(ViewportCommand::SetDisplayMode(
+                    DisplayMode::WireOverlay,
+                )),
+            ),
+            r#"SceneView/ViewportToolbar:onClick(ViewportCommand.SetDisplayMode("WireOverlay"))"#,
+        ),
+        (
+            EditorUiBinding::new(
+                "SceneView",
+                "ViewportToolbar",
+                EditorUiEventKind::Click,
+                EditorUiBindingPayload::viewport_command(ViewportCommand::SetGridMode(
+                    GridMode::VisibleAndSnap,
+                )),
+            ),
+            r#"SceneView/ViewportToolbar:onClick(ViewportCommand.SetGridMode("VisibleAndSnap"))"#,
+        ),
+        (
+            EditorUiBinding::new(
+                "SceneView",
+                "ViewportToolbar",
+                EditorUiEventKind::Click,
+                EditorUiBindingPayload::viewport_command(ViewportCommand::SetTranslateSnap(2.0)),
+            ),
+            r#"SceneView/ViewportToolbar:onClick(ViewportCommand.SetTranslateSnap(2.0))"#,
+        ),
+        (
+            EditorUiBinding::new(
+                "SceneView",
+                "ViewportToolbar",
+                EditorUiEventKind::Click,
+                EditorUiBindingPayload::viewport_command(ViewportCommand::SetRotateSnapDegrees(
+                    30.0,
+                )),
+            ),
+            r#"SceneView/ViewportToolbar:onClick(ViewportCommand.SetRotateSnapDegrees(30.0))"#,
+        ),
+        (
+            EditorUiBinding::new(
+                "SceneView",
+                "ViewportToolbar",
+                EditorUiEventKind::Click,
+                EditorUiBindingPayload::viewport_command(ViewportCommand::SetScaleSnap(0.25)),
+            ),
+            r#"SceneView/ViewportToolbar:onClick(ViewportCommand.SetScaleSnap(0.25))"#,
+        ),
+        (
+            EditorUiBinding::new(
+                "SceneView",
+                "ViewportToolbar",
+                EditorUiEventKind::Click,
+                EditorUiBindingPayload::viewport_command(ViewportCommand::SetPreviewLighting(
+                    false,
+                )),
+            ),
+            r#"SceneView/ViewportToolbar:onClick(ViewportCommand.SetPreviewLighting(false))"#,
+        ),
+        (
+            EditorUiBinding::new(
+                "SceneView",
+                "ViewportToolbar",
+                EditorUiEventKind::Click,
+                EditorUiBindingPayload::viewport_command(ViewportCommand::SetPreviewSkybox(false)),
+            ),
+            r#"SceneView/ViewportToolbar:onClick(ViewportCommand.SetPreviewSkybox(false))"#,
+        ),
+        (
+            EditorUiBinding::new(
+                "SceneView",
+                "ViewportToolbar",
+                EditorUiEventKind::Click,
+                EditorUiBindingPayload::viewport_command(ViewportCommand::SetGizmosEnabled(false)),
+            ),
+            r#"SceneView/ViewportToolbar:onClick(ViewportCommand.SetGizmosEnabled(false))"#,
+        ),
+    ];
+
+    for (binding, expected) in bindings {
+        assert_eq!(binding.native_binding(), expected);
+        assert_eq!(
+            EditorUiBinding::parse_native_binding(&binding.native_binding()).unwrap(),
+            binding
+        );
+    }
+}
+
+#[test]
+fn viewport_toolbar_command_binding_roundtrips_with_typed_settings_payload() {
+    let binding = EditorUiBinding::new(
+        "SceneView",
+        "ViewportToolbar",
+        EditorUiEventKind::Click,
+        EditorUiBindingPayload::viewport_command(ViewportCommand::SetDisplayMode(
+            DisplayMode::WireOverlay,
+        )),
+    );
+
+    assert_eq!(
+        binding.native_binding(),
+        r#"SceneView/ViewportToolbar:onClick(ViewportCommand.SetDisplayMode("WireOverlay"))"#
+    );
+    assert_eq!(
+        EditorUiBinding::parse_native_binding(&binding.native_binding()).unwrap(),
+        binding
+    );
+}
+
+#[test]
+fn viewport_toolbar_command_roundtrips_for_projection_alignment_and_snaps() {
+    let commands = [
+        ViewportCommand::SetTool(SceneViewportTool::Scale),
+        ViewportCommand::SetTransformSpace(TransformSpace::Global),
+        ViewportCommand::SetProjectionMode(ProjectionMode::Orthographic),
+        ViewportCommand::AlignView(ViewOrientation::PosY),
+        ViewportCommand::SetGridMode(GridMode::VisibleAndSnap),
+        ViewportCommand::SetTranslateSnap(2.5),
+        ViewportCommand::SetRotateSnapDegrees(30.0),
+        ViewportCommand::SetScaleSnap(0.25),
+        ViewportCommand::SetPreviewLighting(false),
+        ViewportCommand::SetPreviewSkybox(false),
+        ViewportCommand::SetGizmosEnabled(false),
+        ViewportCommand::FrameSelection,
+    ];
+
+    for command in commands {
+        let binding = EditorUiBinding::new(
+            "SceneView",
+            "ViewportToolbar",
+            EditorUiEventKind::Click,
+            EditorUiBindingPayload::viewport_command(command),
+        );
+        assert_eq!(
+            EditorUiBinding::parse_native_binding(&binding.native_binding()).unwrap(),
+            binding
+        );
+    }
 }
 
 #[test]
@@ -265,5 +498,74 @@ fn asset_command_binding_roundtrips_for_asset_open() {
     assert_eq!(
         EditorUiBinding::parse_native_binding(&binding.native_binding()).unwrap(),
         binding
+    );
+}
+
+#[test]
+fn asset_command_binding_roundtrips_for_import_model() {
+    let binding = EditorUiBinding::new(
+        "AssetsView",
+        "ImportModel",
+        EditorUiEventKind::Click,
+        EditorUiBindingPayload::asset_command(AssetCommand::ImportModel),
+    );
+
+    assert_eq!(
+        binding.native_binding(),
+        r#"AssetsView/ImportModel:onClick(AssetCommand.ImportModel())"#
+    );
+    assert_eq!(
+        EditorUiBinding::parse_native_binding(&binding.native_binding()).unwrap(),
+        binding
+    );
+}
+
+#[test]
+fn draft_command_bindings_parse_into_typed_payloads_instead_of_custom_calls() {
+    let inspector = EditorUiBinding::parse_native_binding(
+        r#"InspectorView/NameField:onChange(DraftCommand.SetInspectorField("entity://selected","name","Draft Cube"))"#,
+    )
+    .unwrap();
+    assert!(
+        !matches!(inspector.payload(), EditorUiBindingPayload::Custom(_)),
+        "inspector draft edit should not remain a custom payload"
+    );
+
+    let mesh_import = EditorUiBinding::parse_native_binding(
+        r#"AssetsView/MeshImportPathEdited:onChange(DraftCommand.SetMeshImportPath("E:/Models/cube.glb"))"#,
+    )
+    .unwrap();
+    assert!(
+        !matches!(mesh_import.payload(), EditorUiBindingPayload::Custom(_)),
+        "mesh import path edit should not remain a custom payload"
+    );
+}
+
+#[test]
+fn inspector_draft_binding_with_arguments_rewrites_control_id_from_field_id() {
+    let binding = EditorUiBinding::new(
+        "InspectorView",
+        "NameField",
+        EditorUiEventKind::Change,
+        EditorUiBindingPayload::draft_command(DraftCommand::SetInspectorField {
+            subject_path: "entity://selected".to_string(),
+            field_id: "name".to_string(),
+            value: UiBindingValue::string(String::new()),
+        }),
+    );
+
+    let rebound = binding
+        .with_arguments(vec![
+            UiBindingValue::string("entity://selected"),
+            UiBindingValue::string("transform.translation.y"),
+            UiBindingValue::string("12.5"),
+        ])
+        .unwrap();
+
+    assert_eq!(rebound.path().view_id, "InspectorView");
+    assert_eq!(rebound.path().control_id, "PositionYField");
+    assert_eq!(
+        rebound.native_binding(),
+        r#"InspectorView/PositionYField:onChange(DraftCommand.SetInspectorField("entity://selected","transform.translation.y","12.5"))"#
     );
 }

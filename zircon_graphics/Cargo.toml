@@ -20,6 +20,10 @@ zircon_asset = { path = "../zircon_asset" }
 zircon_core = { path = "../zircon_core" }
 zircon_math = { path = "../zircon_math" }
 zircon_module = { path = "../zircon_module" }
+zircon_render_graph = { path = "../zircon_render_graph" }
+zircon_render_server = { path = "../zircon_render_server" }
+zircon_rhi = { path = "../zircon_rhi" }
+zircon_rhi_wgpu = { path = "../zircon_rhi_wgpu" }
 zircon_resource = { path = "../zircon_resource" }
 zircon_scene = { path = "../zircon_scene" }
 zircon_manager = { path = "../zircon_manager" }

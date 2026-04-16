@@ -1,0 +1,21 @@
+mod activity_drawer_snapshot;
+mod descriptor_content_kind;
+mod document_workspace_snapshot;
+mod floating_window_snapshot;
+mod main_page_snapshot;
+mod placeholder_view;
+mod resolve_document_workspace;
+mod resolve_view_tab;
+mod view_content_kind;
+mod view_tab_snapshot;
+mod workbench_snapshot;
+
+pub use activity_drawer_snapshot::ActivityDrawerSnapshot;
+pub use document_workspace_snapshot::DocumentWorkspaceSnapshot;
+pub use floating_window_snapshot::FloatingWindowSnapshot;
+pub use main_page_snapshot::MainPageSnapshot;
+pub(crate) use resolve_document_workspace::resolve_document_workspace;
+pub(crate) use resolve_view_tab::resolve_view_tab;
+pub use view_content_kind::ViewContentKind;
+pub use view_tab_snapshot::ViewTabSnapshot;
+pub use workbench_snapshot::WorkbenchSnapshot;

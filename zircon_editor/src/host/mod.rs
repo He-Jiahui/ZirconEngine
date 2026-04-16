@@ -5,4 +5,4 @@ pub(crate) mod manager;
 pub(crate) mod module;
 pub(crate) mod resource_access;
 pub(crate) mod slint_host;
-pub(crate) mod viewport_texture;
+pub(crate) mod template_runtime;

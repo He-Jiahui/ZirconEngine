@@ -1,7 +1,43 @@
 use crate::editor_event::EditorEventRuntime;
 use crate::host::slint_host::callback_dispatch;
 use crate::host::slint_host::event_bridge::SlintDispatchEffects;
-use crate::{ActivityDrawerSlot, LayoutCommand};
+use crate::{ActivityDrawerSlot, LayoutCommand, ShellRegionId};
+
+#[cfg(test)]
+use crate::{ShellSizePx, WorkbenchShellGeometry};
+#[cfg(test)]
+use zircon_ui::UiPoint;
+
+#[cfg(test)]
+use super::shell_pointer::WorkbenchShellPointerBridge;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum WorkbenchResizeTargetGroup {
+    Left,
+    Right,
+    Bottom,
+}
+
+impl WorkbenchResizeTargetGroup {
+    pub(crate) const fn region(self) -> ShellRegionId {
+        match self {
+            Self::Left => ShellRegionId::Left,
+            Self::Right => ShellRegionId::Right,
+            Self::Bottom => ShellRegionId::Bottom,
+        }
+    }
+}
+
+#[cfg(test)]
+pub(crate) fn resolve_workbench_resize_target_group(
+    root_size: ShellSizePx,
+    geometry: &WorkbenchShellGeometry,
+    point: UiPoint,
+) -> Option<WorkbenchResizeTargetGroup> {
+    let mut bridge = WorkbenchShellPointerBridge::new();
+    bridge.update_layout(root_size, geometry, true);
+    bridge.resize_target_at(point)
+}
 
 #[cfg(test)]
 use crate::EditorManager;
@@ -49,6 +85,8 @@ pub(crate) fn dispatch_resize_to_group(
         combined.layout_dirty |= effects.layout_dirty;
         combined.render_dirty |= effects.render_dirty;
         combined.sync_asset_workspace |= effects.sync_asset_workspace;
+        combined.refresh_asset_details |= effects.refresh_asset_details;
+        combined.refresh_visible_asset_previews |= effects.refresh_visible_asset_previews;
         combined.reset_active_layout_preset |= effects.reset_active_layout_preset;
     }
 

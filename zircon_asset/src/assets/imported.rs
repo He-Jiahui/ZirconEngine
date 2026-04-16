@@ -1,6 +1,9 @@
 use serde::{Deserialize, Serialize};
 
-use super::{MaterialAsset, ModelAsset, SceneAsset, ShaderAsset, TextureAsset};
+use super::{
+    MaterialAsset, ModelAsset, SceneAsset, ShaderAsset, TextureAsset, UiLayoutAsset, UiStyleAsset,
+    UiWidgetAsset,
+};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum ImportedAsset {
@@ -9,4 +12,7 @@ pub enum ImportedAsset {
     Material(MaterialAsset),
     Scene(SceneAsset),
     Model(ModelAsset),
+    UiLayout(UiLayoutAsset),
+    UiWidget(UiWidgetAsset),
+    UiStyle(UiStyleAsset),
 }

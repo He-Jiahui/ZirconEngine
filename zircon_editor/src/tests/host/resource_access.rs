@@ -1,9 +1,9 @@
 use crossbeam_channel::unbounded;
-use zircon_resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId, ResourceLocator};
 use zircon_manager::{
     AssetRecordKind, ResourceChangeRecord, ResourceManager, ResourceStateRecord,
     ResourceStatusRecord,
 };
+use zircon_resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId, ResourceLocator};
 
 #[test]
 fn resolve_ready_handle_returns_typed_handle_from_resource_server() {
@@ -15,8 +15,9 @@ fn resolve_ready_handle_returns_typed_handle_from_resource_server() {
         ResourceStateRecord::Ready,
     )]);
 
-    let handle = crate::host::resource_access::resolve_ready_handle::<ModelMarker>(&server, &locator)
-        .expect("ready model handle");
+    let handle =
+        crate::host::resource_access::resolve_ready_handle::<ModelMarker>(&server, &locator)
+            .expect("ready model handle");
 
     assert_eq!(handle, ResourceHandle::<ModelMarker>::new(expected_id));
 }
@@ -87,7 +88,11 @@ impl ResourceManager for FakeResourceServer {
     }
 }
 
-fn status(locator: &str, kind: AssetRecordKind, state: ResourceStateRecord) -> ResourceStatusRecord {
+fn status(
+    locator: &str,
+    kind: AssetRecordKind,
+    state: ResourceStateRecord,
+) -> ResourceStatusRecord {
     let locator = ResourceLocator::parse(locator).unwrap();
     ResourceStatusRecord {
         id: ResourceId::from_locator(&locator).to_string(),

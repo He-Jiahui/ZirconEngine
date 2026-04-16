@@ -1,5 +1,5 @@
-use zircon_scene::NodeKind;
 use zircon_resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
+use zircon_scene::NodeKind;
 
 use crate::EditorIntent;
 
@@ -12,7 +12,9 @@ fn imported_mesh_can_be_undone() {
 
     assert!(state
         .import_mesh_asset(
-            ResourceHandle::<ModelMarker>::new(ResourceId::from_stable_label("res://models/test.obj")),
+            ResourceHandle::<ModelMarker>::new(ResourceId::from_stable_label(
+                "res://models/test.obj"
+            )),
             ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
                 "res://materials/default.material.toml",
             )),

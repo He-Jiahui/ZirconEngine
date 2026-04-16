@@ -1,8 +1,7 @@
 //! Editor host UI built on Slint, with viewport frames coming from core graphics.
 
-pub mod editor_event;
-
 mod editing;
+pub mod editor_event;
 mod host;
 mod workbench;
 
@@ -12,27 +11,48 @@ pub(crate) use workbench::{autolayout, layout, project, snapshot, view};
 
 pub use editing::intent::EditorIntent;
 pub use editing::state::EditorState;
+pub use editing::ui_asset::{
+    UiAssetDragDropPolicy, UiAssetEditorCommand, UiAssetEditorPanePresentation,
+    UiAssetEditorSession, UiAssetEditorSessionError, UiAssetEditorUndoStack, UiAssetPreviewHost,
+    UiAssetSourceBuffer,
+};
 pub use editor_event::{
-    EditorAssetEvent, EditorAssetSurface, EditorAssetUtilityTab, EditorAssetViewMode, EditorEvent,
-    EditorEventDispatcher, EditorEventEffect, EditorEventEnvelope, EditorEventId,
-    EditorEventJournal, EditorEventRecord, EditorEventReplay, EditorEventResult,
+    EditorAssetEvent, EditorAssetSurface, EditorAssetUtilityTab, EditorAssetViewMode,
+    EditorDraftEvent, EditorEvent, EditorEventDispatcher, EditorEventEffect, EditorEventEnvelope,
+    EditorEventId, EditorEventJournal, EditorEventRecord, EditorEventReplay, EditorEventResult,
     EditorEventRuntime, EditorEventSequence, EditorEventSource, EditorEventTransient,
     EditorEventUndoPolicy, EditorInspectorEvent, EditorTransientUiState, EditorViewportEvent,
 };
 pub use host::binding_dispatch::{
-    apply_inspector_binding, apply_selection_binding, apply_viewport_binding,
+    apply_draft_binding, apply_inspector_binding, apply_selection_binding, apply_viewport_binding,
     dispatch_animation_binding, dispatch_asset_binding, dispatch_docking_binding,
-    dispatch_inspector_binding, dispatch_selection_binding, dispatch_viewport_binding,
-    AnimationHostEvent, AssetHostEvent, EditorBindingDispatchError, InspectorBindingBatch,
-    SelectionHostEvent,
+    dispatch_draft_binding, dispatch_inspector_binding, dispatch_selection_binding,
+    dispatch_viewport_binding, dispatch_welcome_binding, AnimationHostEvent, AssetHostEvent,
+    DraftHostEvent, EditorBindingDispatchError, InspectorBindingBatch, SelectionHostEvent,
+    WelcomeHostEvent,
 };
-pub use host::manager::{EditorError, EditorManager, EditorSessionState, WindowHostManager};
+pub use host::manager::{EditorError, EditorManager, NativeWindowHostState};
 pub use host::module::{
     module_descriptor, EditorHostDriver, EDITOR_HOST_DRIVER_NAME, EDITOR_MANAGER_NAME,
     EDITOR_MODULE_NAME,
 };
 pub use host::slint_host::run_editor;
-pub use host::viewport_texture::{ViewportTextureBridge, ViewportTextureBridgeError};
+pub use host::slint_host::tab_drag::{
+    resolve_workbench_drag_target_group, WorkbenchDragTargetGroup,
+};
+pub use host::template_runtime::{
+    EditorUiCompatibilityHarness, EditorUiCompatibilitySnapshot, EditorUiHostRuntime,
+    EditorUiHostRuntimeError, SlintUiBindingProjection, SlintUiHostAdapter,
+    SlintUiHostBindingProjection, SlintUiHostComponentKind, SlintUiHostModel, SlintUiHostNodeModel,
+    SlintUiHostNodeProjection, SlintUiHostProjection, SlintUiHostRouteProjection, SlintUiHostValue,
+    SlintUiNodeProjection, SlintUiProjection,
+};
+pub use workbench::autolayout::{
+    compute_workbench_shell_geometry, default_constraints_for_content, default_region_constraints,
+    solve_axis_constraints, AxisConstraint, AxisConstraintOverride, PaneConstraintOverride,
+    PaneConstraints, ResolvedAxisConstraint, ShellFrame, ShellRegionId, ShellSizePx, StretchMode,
+    WorkbenchChromeMetrics, WorkbenchShellGeometry,
+};
 pub use workbench::event::{
     dispatch_workbench_binding, menu_action_binding, WorkbenchHostEvent, WorkbenchHostEventError,
 };
@@ -47,18 +67,11 @@ pub use workbench::layout::{
     SplitAxis, SplitPlacement, TabInsertionAnchor, TabInsertionSide, TabStackLayout,
     WorkbenchLayout, WorkspaceTarget,
 };
-pub use workbench::autolayout::{
-    compute_workbench_shell_geometry, default_constraints_for_content,
-    default_region_constraints, solve_axis_constraints, AxisConstraint,
-    AxisConstraintOverride, PaneConstraintOverride, PaneConstraints,
-    ResolvedAxisConstraint, ShellFrame, ShellRegionId, ShellSizePx, StretchMode,
-    WorkbenchChromeMetrics, WorkbenchShellGeometry,
-};
 pub use workbench::model::{
-    BreadcrumbModel, DocumentTabModel, DocumentWorkspaceModel, DrawerRingModel, HostPageTabModel,
-    MainHostStripModel, MainHostStripViewModel, MenuAction, MenuBarModel, MenuItemModel, MenuModel,
-    PaneActionModel, PaneEmptyStateModel, PaneTabModel, StatusBarModel, ToolWindowStackModel,
-    WorkbenchViewModel,
+    BreadcrumbModel, DocumentTabModel, DocumentWorkspaceModel, DrawerRingModel,
+    FloatingWindowModel, HostPageTabModel, MainHostStripModel, MainHostStripViewModel, MenuAction,
+    MenuBarModel, MenuItemModel, MenuModel, PaneActionModel, PaneEmptyStateModel, PaneTabModel,
+    StatusBarModel, ToolWindowStackModel, WorkbenchViewModel,
 };
 pub use workbench::project::{EditorProjectDocument, ProjectEditorWorkspace};
 pub use workbench::reflection::{
@@ -80,7 +93,12 @@ pub use workbench::view::{
     ViewInstanceId, ViewKind, ViewRegistry,
 };
 pub use zircon_editor_ui::InspectorFieldChange;
+pub use zircon_editor_ui::{
+    UiAssetEditorMode, UiAssetEditorReflectionModel, UiAssetEditorRoute, UiDesignerSelectionModel,
+    UiMatchedStyleRuleReflection, UiStyleInspectorReflectionModel,
+};
 pub use zircon_ui::UiBindingValue;
+pub use zircon_ui::UiSize;
 
 #[cfg(test)]
 mod tests;

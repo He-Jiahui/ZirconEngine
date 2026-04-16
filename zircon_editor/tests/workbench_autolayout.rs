@@ -1,8 +1,10 @@
 use zircon_editor::{
     compute_workbench_shell_geometry, default_preview_fixture, solve_axis_constraints,
-    AxisConstraint, ShellRegionId, ShellSizePx, StretchMode, WorkbenchChromeMetrics,
+    AxisConstraint, DocumentNode, FloatingWindowLayout, MainPageId, ShellFrame, ShellRegionId,
+    ShellSizePx, StretchMode, TabStackLayout, ViewInstanceId, WorkbenchChromeMetrics,
     WorkbenchViewModel,
 };
+use zircon_ui::BoxConstraints;
 
 fn stretch_constraint(min: f32, preferred: f32, priority: i32, weight: f32) -> AxisConstraint {
     AxisConstraint {
@@ -97,4 +99,87 @@ fn geometry_viewport_frame_is_derived_from_shell_layout_not_snapshot_viewport_si
 
     assert!(geometry.viewport_content_frame.width > 32.0);
     assert!(geometry.viewport_content_frame.height > 32.0);
+}
+
+#[test]
+fn floating_windows_without_persisted_frame_use_shared_default_geometry() {
+    let mut fixture = default_preview_fixture();
+    let window_id = MainPageId::new("window:preview");
+    fixture.layout.floating_windows.push(FloatingWindowLayout {
+        window_id: window_id.clone(),
+        title: "Preview Popout".to_string(),
+        workspace: DocumentNode::Tabs(TabStackLayout {
+            tabs: vec![ViewInstanceId::new("editor.scene#1")],
+            active_tab: Some(ViewInstanceId::new("editor.scene#1")),
+        }),
+        focused_view: Some(ViewInstanceId::new("editor.scene#1")),
+        frame: ShellFrame::default(),
+    });
+
+    let chrome = fixture.build_chrome();
+    let model = WorkbenchViewModel::build(&chrome);
+    let geometry = compute_workbench_shell_geometry(
+        &model,
+        &chrome,
+        &fixture.layout,
+        &fixture.descriptors,
+        ShellSizePx::new(1440.0, 900.0),
+        &WorkbenchChromeMetrics::default(),
+        None,
+    );
+
+    let frame = geometry.floating_window_frame(&window_id);
+    assert!(frame.width >= 320.0);
+    assert!(frame.height >= 220.0);
+    assert!(frame.x >= geometry.region_frame(ShellRegionId::Document).x);
+    assert!(frame.y >= geometry.center_band_frame.y);
+    assert!(frame.right() <= geometry.center_band_frame.right());
+    assert!(frame.bottom() <= geometry.center_band_frame.bottom());
+}
+
+#[test]
+fn persisted_floating_window_frame_is_clamped_to_center_band() {
+    let mut fixture = default_preview_fixture();
+    let window_id = MainPageId::new("window:preview");
+    fixture.layout.floating_windows.push(FloatingWindowLayout {
+        window_id: window_id.clone(),
+        title: "Preview Popout".to_string(),
+        workspace: DocumentNode::Tabs(TabStackLayout {
+            tabs: vec![ViewInstanceId::new("editor.scene#1")],
+            active_tab: Some(ViewInstanceId::new("editor.scene#1")),
+        }),
+        focused_view: Some(ViewInstanceId::new("editor.scene#1")),
+        frame: ShellFrame::new(-600.0, -240.0, 2800.0, 1800.0),
+    });
+
+    let chrome = fixture.build_chrome();
+    let model = WorkbenchViewModel::build(&chrome);
+    let geometry = compute_workbench_shell_geometry(
+        &model,
+        &chrome,
+        &fixture.layout,
+        &fixture.descriptors,
+        ShellSizePx::new(1440.0, 900.0),
+        &WorkbenchChromeMetrics::default(),
+        None,
+    );
+
+    assert_eq!(
+        geometry.floating_window_frame(&window_id),
+        geometry.center_band_frame
+    );
+}
+
+#[test]
+fn editor_default_constraints_are_shared_box_constraints() {
+    fn accepts_shared_constraints(constraints: BoxConstraints) -> BoxConstraints {
+        constraints
+    }
+
+    let constraints =
+        zircon_editor::default_constraints_for_content(zircon_editor::ViewContentKind::Scene);
+    let shared = accepts_shared_constraints(constraints);
+
+    assert!(shared.width.preferred >= 960.0);
+    assert!(shared.height.preferred >= 640.0);
 }

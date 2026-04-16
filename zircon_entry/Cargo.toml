@@ -6,9 +6,8 @@ license.workspace = true
 description = "Engine entry bootstrap, shell startup, and profile selection."
 
 [dependencies]
-pollster.workspace = true
 serde_json = "1.0.149"
-wgpu.workspace = true
+softbuffer = "0.4.6"
 winit.workspace = true
 zircon_asset = { path = "../zircon_asset" }
 zircon_animation = { path = "../zircon_animation" }
@@ -22,6 +21,7 @@ zircon_net = { path = "../zircon_net" }
 zircon_particles = { path = "../zircon_particles" }
 zircon_physics = { path = "../zircon_physics" }
 zircon_platform = { path = "../zircon_platform" }
+zircon_render_server = { path = "../zircon_render_server" }
 zircon_scene = { path = "../zircon_scene" }
 zircon_script = { path = "../zircon_script" }
 zircon_manager = { path = "../zircon_manager" }

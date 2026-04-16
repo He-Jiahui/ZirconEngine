@@ -1,4 +1,4 @@
-import { LineEdit, ScrollView } from "std-widgets.slint";
+import { LineEdit } from "std-widgets.slint";
 import { Palette, ShellButton, ShellIcon, ToolbarButton } from "chrome.slint";
 
 export struct AssetFolderData {
@@ -120,7 +120,11 @@ component FolderTreeView inherits AssetSurfaceFrame {
     in property <[AssetFolderData]> folders;
     in property <string> title: "Sources";
     in property <string> subtitle: "Project assets";
-    callback select_folder(folder_id: string);
+    in property <int> hovered_index: -1;
+    in property <float> scroll_px: 0.0;
+    callback pointer_clicked(x: float, y: float, width: float, height: float);
+    callback pointer_moved(x: float, y: float, width: float, height: float);
+    callback pointer_scrolled(x: float, y: float, delta: float, width: float, height: float);
 
     palette := Palette {}
     private property <length> header_height: 48px;
@@ -160,24 +164,23 @@ component FolderTreeView inherits AssetSurfaceFrame {
         background: palette.border_soft;
     }
 
-    ScrollView {
+    Rectangle {
         x: 0px;
         y: root.header_height + 1px;
         width: parent.width;
         height: parent.height - root.header_height - 1px;
-        viewport_width: parent.width;
-        viewport_height: max(parent.height - root.header_height - 1px, rows.preferred-height + 12px);
+        clip: true;
 
         rows := VerticalLayout {
             x: 8px;
-            y: 8px;
+            y: 8px - root.scroll_px * 1px;
             width: parent.width - 16px;
             spacing: 4px;
 
-            for folder in root.folders: Rectangle {
+            for folder[index] in root.folders: Rectangle {
                 height: 28px;
                 border-radius: 6px;
-                background: folder.selected ? #365880 : folder_touch.has-hover ? palette.chrome_bg_soft : transparent;
+                background: folder.selected ? #365880 : root.hovered_index == index ? palette.chrome_bg_soft : transparent;
 
                 ShellIcon {
                     x: 8px + folder.depth * 12px;
@@ -207,10 +210,37 @@ component FolderTreeView inherits AssetSurfaceFrame {
                     color: folder.selected ? #dce8ff : palette.text_dim;
                     font-size: 10px;
                 }
+            }
+        }
 
-                folder_touch := TouchArea {
-                    clicked => { root.select_folder(folder.id); }
-                }
+        TouchArea {
+            width: parent.width;
+            height: parent.height;
+            moved => {
+                root.pointer_moved(
+                    self.mouse-x / 1px,
+                    self.mouse-y / 1px + root.header_height / 1px + 1.0,
+                    root.width / 1px,
+                    root.height / 1px,
+                );
+            }
+            clicked => {
+                root.pointer_clicked(
+                    self.mouse-x / 1px,
+                    self.mouse-y / 1px + root.header_height / 1px + 1.0,
+                    root.width / 1px,
+                    root.height / 1px,
+                );
+            }
+            scroll-event(event) => {
+                root.pointer_scrolled(
+                    self.mouse-x / 1px,
+                    self.mouse-y / 1px + root.header_height / 1px + 1.0,
+                    event.delta_y / 1px,
+                    root.width / 1px,
+                    root.height / 1px,
+                );
+                accept
             }
         }
     }
@@ -222,8 +252,11 @@ component AssetListView inherits AssetSurfaceFrame {
     in property <string> view_mode;
     in property <string> title: "Content";
     in property <string> subtitle: "Folder contents";
-    callback select_folder(folder_id: string);
-    callback select_asset(asset_uuid: string);
+    in property <int> hovered_index: -1;
+    in property <float> scroll_px: 0.0;
+    callback pointer_clicked(x: float, y: float, width: float, height: float);
+    callback pointer_moved(x: float, y: float, width: float, height: float);
+    callback pointer_scrolled(x: float, y: float, delta: float, width: float, height: float);
 
     palette := Palette {}
     private property <length> header_height: 52px;
@@ -273,25 +306,24 @@ component AssetListView inherits AssetSurfaceFrame {
         background: palette.border_soft;
     }
 
-    ScrollView {
+    Rectangle {
         x: 0px;
         y: root.header_height + 1px;
         width: parent.width;
         height: parent.height - root.header_height - 1px;
-        viewport_width: parent.width;
-        viewport_height: max(parent.height - root.header_height - 1px, entries.preferred-height + 12px);
+        clip: true;
 
         entries := VerticalLayout {
             x: 8px;
-            y: 8px;
+            y: 8px - root.scroll_px * 1px;
             width: parent.width - 16px;
             spacing: 8px;
-            for folder in root.folders: Rectangle {
+            for folder[index] in root.folders: Rectangle {
                 height: root.view_mode == "thumbnail" ? 60px : 32px;
                 border-radius: 6px;
                 border-width: 1px;
                 border-color: palette.border_soft;
-                background: folder_touch.has-hover ? palette.chrome_bg_soft : palette.panel_bg_soft;
+                background: root.hovered_index == index ? palette.chrome_bg_soft : palette.panel_bg_soft;
 
                 ShellIcon {
                     x: 10px;
@@ -319,18 +351,14 @@ component AssetListView inherits AssetSurfaceFrame {
                     color: palette.text_dim;
                     font-size: 10px;
                 }
-
-                folder_touch := TouchArea {
-                    clicked => { root.select_folder(folder.id); }
-                }
             }
 
-            for item in root.items: Rectangle {
+            for item[index] in root.items: Rectangle {
                 height: root.view_mode == "thumbnail" ? 88px : 38px;
                 border-radius: 6px;
                 border-width: 1px;
                 border-color: item.selected ? palette.accent : palette.border_soft;
-                background: item.selected ? #2c527933 : item_touch.has-hover ? palette.chrome_bg_soft : palette.panel_bg_soft;
+                background: item.selected ? #2c527933 : root.hovered_index == root.folders.length + index ? palette.chrome_bg_soft : palette.panel_bg_soft;
 
                 if root.view_mode == "thumbnail": Rectangle {
                     x: 8px;
@@ -465,10 +493,37 @@ component AssetListView inherits AssetSurfaceFrame {
                         vertical-alignment: center;
                     }
                 }
+            }
+        }
 
-                item_touch := TouchArea {
-                    clicked => { root.select_asset(item.uuid); }
-                }
+        TouchArea {
+            width: parent.width;
+            height: parent.height;
+            moved => {
+                root.pointer_moved(
+                    self.mouse-x / 1px,
+                    self.mouse-y / 1px + root.header_height / 1px + 1.0,
+                    root.width / 1px,
+                    root.height / 1px,
+                );
+            }
+            clicked => {
+                root.pointer_clicked(
+                    self.mouse-x / 1px,
+                    self.mouse-y / 1px + root.header_height / 1px + 1.0,
+                    root.width / 1px,
+                    root.height / 1px,
+                );
+            }
+            scroll-event(event) => {
+                root.pointer_scrolled(
+                    self.mouse-x / 1px,
+                    self.mouse-y / 1px + root.header_height / 1px + 1.0,
+                    event.delta_y / 1px,
+                    root.width / 1px,
+                    root.height / 1px,
+                );
+                accept
             }
         }
     }
@@ -477,10 +532,15 @@ component AssetListView inherits AssetSurfaceFrame {
 component ReferenceListView inherits Rectangle {
     in property <string> title;
     in property <[AssetReferenceData]> references;
-    callback activate_reference(asset_uuid: string);
+    in property <int> hovered_index: -1;
+    in property <float> scroll_px: 0.0;
+    callback pointer_clicked(x: float, y: float, width: float, height: float);
+    callback pointer_moved(x: float, y: float, width: float, height: float);
+    callback pointer_scrolled(x: float, y: float, delta: float, width: float, height: float);
 
     palette := Palette {}
     background: transparent;
+    private property <length> header_height: 20px;
 
     Text {
         x: 0px;
@@ -491,17 +551,16 @@ component ReferenceListView inherits Rectangle {
         font-weight: 600;
     }
 
-    ScrollView {
+    Rectangle {
         x: 0px;
-        y: 20px;
+        y: root.header_height;
         width: parent.width;
-        height: parent.height - 20px;
-        viewport_width: parent.width;
-        viewport_height: max(parent.height - 20px, rows.preferred-height + 4px);
+        height: max(0px, parent.height - root.header_height);
+        clip: true;
 
         rows := VerticalLayout {
             x: 0px;
-            y: 0px;
+            y: 0px - root.scroll_px * 1px;
             width: parent.width - 4px;
             spacing: 4px;
 
@@ -511,10 +570,10 @@ component ReferenceListView inherits Rectangle {
                 font-size: 10px;
             }
 
-            for reference in root.references: Rectangle {
+            for reference[index] in root.references: Rectangle {
                 height: 34px;
                 border-radius: 6px;
-                background: ref_touch.has-hover ? palette.chrome_bg_soft : palette.panel_bg_soft;
+                background: root.hovered_index == index ? palette.chrome_bg_soft : palette.panel_bg_soft;
                 border-width: 1px;
                 border-color: palette.border_soft;
 
@@ -547,11 +606,37 @@ component ReferenceListView inherits Rectangle {
                     color: palette.text_dim;
                     font-size: 9px;
                 }
+            }
+        }
 
-                ref_touch := TouchArea {
-                    enabled: reference.known_project_asset;
-                    clicked => { root.activate_reference(reference.uuid); }
-                }
+        TouchArea {
+            width: parent.width;
+            height: parent.height;
+            moved => {
+                root.pointer_moved(
+                    self.mouse-x / 1px,
+                    self.mouse-y / 1px + root.header_height / 1px,
+                    root.width / 1px,
+                    root.height / 1px,
+                );
+            }
+            clicked => {
+                root.pointer_clicked(
+                    self.mouse-x / 1px,
+                    self.mouse-y / 1px + root.header_height / 1px,
+                    root.width / 1px,
+                    root.height / 1px,
+                );
+            }
+            scroll-event(event) => {
+                root.pointer_scrolled(
+                    self.mouse-x / 1px,
+                    self.mouse-y / 1px + root.header_height / 1px,
+                    event.delta_y / 1px,
+                    root.width / 1px,
+                    root.height / 1px,
+                );
+                accept
             }
         }
     }
@@ -671,6 +756,8 @@ component SelectionPreviewCard inherits Rectangle {
 
 component SelectionDetailsRail inherits AssetSurfaceFrame {
     in property <AssetSelectionData> selection;
+    in property <float> scroll_px: 0.0;
+    callback pointer_scrolled(x: float, y: float, delta: float, width: float, height: float);
 
     palette := Palette {}
     private property <length> header_height: 48px;
@@ -710,17 +797,16 @@ component SelectionDetailsRail inherits AssetSurfaceFrame {
         background: palette.border_soft;
     }
 
-    ScrollView {
+    Rectangle {
         x: 0px;
         y: root.header_height + 1px;
         width: parent.width;
         height: parent.height - root.header_height - 1px;
-        viewport_width: parent.width;
-        viewport_height: max(parent.height - root.header_height - 1px, detail_rows.preferred-height + 24px);
+        clip: true;
 
         detail_rows := VerticalLayout {
             x: 12px;
-            y: 12px;
+            y: 12px - root.scroll_px * 1px;
             width: parent.width - 24px;
             spacing: 10px;
 
@@ -904,12 +990,29 @@ component SelectionDetailsRail inherits AssetSurfaceFrame {
             }
         }
     }
+
+    TouchArea {
+        x: 0px;
+        y: root.header_height + 1px;
+        width: parent.width;
+        height: parent.height - root.header_height - 1px;
+        scroll-event(event) => {
+            root.pointer_scrolled(
+                self.mouse-x / 1px,
+                self.mouse-y / 1px + root.header_height / 1px + 1.0,
+                event.delta_y / 1px,
+                root.width / 1px,
+                root.height / 1px,
+            );
+            accept
+        }
+    }
 }
 
 export component ProjectOverviewPane inherits Rectangle {
     in property <ProjectOverviewData> project;
-    callback open_assets();
-    callback open_asset_browser();
+    callback surface_control_clicked(control_id: string, action_id: string);
+    callback asset_control_clicked(control_id: string);
 
     palette := Palette {}
     background: transparent;
@@ -975,21 +1078,21 @@ export component ProjectOverviewPane inherits Rectangle {
             Text { x: 12px; y: 30px; text: root.project.folder_count + " folders • " + root.project.asset_count + " assets"; color: palette.text; font-size: 12px; font-weight: 600; }
 
             ShellButton {
-                x: parent.width - 176px;
+                x: parent.width - 218px;
                 y: 18px;
-                width: 72px;
-                label: "Assets";
+                width: 94px;
+                label: "Open Assets";
                 active: true;
-                clicked => { root.open_assets(); }
+                clicked => { root.surface_control_clicked("TriggerAction", "OpenView.editor.assets"); }
             }
 
             ShellButton {
-                x: parent.width - 94px;
+                x: parent.width - 112px;
                 y: 18px;
-                width: 82px;
-                label: "Browser";
+                width: 100px;
+                label: "Asset Browser";
                 active: false;
-                clicked => { root.open_asset_browser(); }
+                clicked => { root.asset_control_clicked("OpenAssetBrowser"); }
             }
         }
     }
@@ -1006,28 +1109,35 @@ export component AssetsActivityPane inherits Rectangle {
     in property <string> kind_filter;
     in property <string> view_mode;
     in property <string> utility_tab;
-    in-out property <string> mesh_import_path;
-    callback select_folder(folder_id: string);
-    callback select_asset(asset_uuid: string);
-    callback search_edited(value: string);
-    callback kind_filter_changed(kind: string);
-    callback view_mode_changed(mode: string);
-    callback utility_tab_changed(tab: string);
-    callback activate_reference(asset_uuid: string);
-    callback open_asset_browser();
-    callback mesh_import_path_edited(value: string);
-    callback import_model();
+    in property <int> tree_hovered_index: -1;
+    in property <float> tree_scroll_px: 0.0;
+    in property <int> content_hovered_index: -1;
+    in property <float> content_scroll_px: 0.0;
+    in property <int> references_hovered_index: -1;
+    in property <float> references_scroll_px: 0.0;
+    in property <int> used_by_hovered_index: -1;
+    in property <float> used_by_scroll_px: 0.0;
+    callback control_changed(control_id: string, value: string);
+    callback control_clicked(control_id: string);
+    callback tree_pointer_clicked(x: float, y: float, width: float, height: float);
+    callback tree_pointer_moved(x: float, y: float, width: float, height: float);
+    callback tree_pointer_scrolled(x: float, y: float, delta: float, width: float, height: float);
+    callback content_pointer_clicked(x: float, y: float, width: float, height: float);
+    callback content_pointer_moved(x: float, y: float, width: float, height: float);
+    callback content_pointer_scrolled(x: float, y: float, delta: float, width: float, height: float);
+    callback reference_pointer_clicked(list_kind: string, x: float, y: float, width: float, height: float);
+    callback reference_pointer_moved(list_kind: string, x: float, y: float, width: float, height: float);
+    callback reference_pointer_scrolled(list_kind: string, x: float, y: float, delta: float, width: float, height: float);
 
     palette := Palette {}
     background: transparent;
     private property <length> outer_margin: 10px;
     private property <length> section_gap: 10px;
-    private property <length> toolbar_height: 132px;
-    private property <length> import_height: 44px;
-    private property <length> utility_height: 182px;
+    private property <length> toolbar_height: 92px;
+    private property <length> utility_height: min(max(22% * root.height, 132px), 176px);
     private property <length> tree_width: min(max(28% * root.width, 206px), 272px);
-    private property <length> main_top: root.outer_margin + root.toolbar_height + root.section_gap + root.import_height + root.section_gap;
-    private property <length> main_height: max(root.height - root.main_top - root.utility_height - root.section_gap - root.outer_margin, 140px);
+    private property <length> main_top: root.outer_margin + root.toolbar_height + root.section_gap;
+    private property <length> main_height: max(root.height - root.main_top - root.utility_height - root.section_gap - root.outer_margin, 160px);
 
     AssetSurfaceFrame {
         x: root.outer_margin;
@@ -1049,7 +1159,7 @@ export component AssetsActivityPane inherits Rectangle {
             x: 12px;
             y: 27px;
             width: parent.width - 120px;
-            text: "Unity-first activity panel for project browsing and quick preview";
+            text: "Browse project assets";
             color: palette.text_dim;
             font-size: 9px;
             overflow: elide;
@@ -1061,7 +1171,7 @@ export component AssetsActivityPane inherits Rectangle {
             width: 82px;
             label: "Browser";
             active: false;
-            clicked => { root.open_asset_browser(); }
+            clicked => { root.control_clicked("OpenAssetBrowser"); }
         }
 
         SearchField {
@@ -1071,7 +1181,7 @@ export component AssetsActivityPane inherits Rectangle {
             height: 28px;
             text: root.search_query;
             placeholder: "Search assets";
-            edited(value) => { root.search_edited(value); }
+            edited(value) => { root.control_changed("SearchEdited", value); }
         }
 
         ToolbarButton {
@@ -1080,7 +1190,7 @@ export component AssetsActivityPane inherits Rectangle {
             label: "List";
             active: root.view_mode == "list";
             min-width: 44px;
-            clicked => { root.view_mode_changed("list"); }
+            clicked => { root.control_changed("SetViewMode", "list"); }
         }
 
         ToolbarButton {
@@ -1089,51 +1199,15 @@ export component AssetsActivityPane inherits Rectangle {
             label: "Thumb";
             active: root.view_mode == "thumbnail";
             min-width: 52px;
-            clicked => { root.view_mode_changed("thumbnail"); }
+            clicked => { root.control_changed("SetViewMode", "thumbnail"); }
         }
 
-        KindChip { x: 12px; y: 78px; width: 34px; label: "All"; active: root.kind_filter == "" || root.kind_filter == "All"; clicked => { root.kind_filter_changed(""); } }
-        KindChip { x: 50px; y: 78px; width: 52px; label: "Texture"; active: root.kind_filter == "Texture"; clicked => { root.kind_filter_changed("Texture"); } }
-        KindChip { x: 106px; y: 78px; width: 56px; label: "Material"; active: root.kind_filter == "Material"; clicked => { root.kind_filter_changed("Material"); } }
-        KindChip { x: 12px; y: 106px; width: 46px; label: "Scene"; active: root.kind_filter == "Scene"; clicked => { root.kind_filter_changed("Scene"); } }
-        KindChip { x: 62px; y: 106px; width: 50px; label: "Model"; active: root.kind_filter == "Model"; clicked => { root.kind_filter_changed("Model"); } }
-        KindChip { x: 116px; y: 106px; width: 54px; label: "Shader"; active: root.kind_filter == "Shader"; clicked => { root.kind_filter_changed("Shader"); } }
-    }
-
-    AssetSurfaceFrame {
-        x: root.outer_margin;
-        y: root.outer_margin + root.toolbar_height + root.section_gap;
-        width: parent.width - root.outer_margin * 2;
-        height: root.import_height;
-        background: palette.chrome_bg_soft;
-
-        Text {
-            x: 12px;
-            y: 13px;
-            text: "Quick Import";
-            color: palette.text_dim;
-            font-size: 9px;
-        }
-
-        SearchField {
-            x: 88px;
-            y: 8px;
-            width: parent.width - 180px;
-            height: 28px;
-            text: root.mesh_import_path;
-            placeholder: "Import model (.obj/.gltf/.glb)";
-            edited(value) => { root.mesh_import_path_edited(value); }
-        }
-
-        ShellButton {
-            x: parent.width - 80px;
-            y: 9px;
-            width: 68px;
-            label: "Import";
-            active: true;
-            enabled: root.mesh_import_path != "";
-            clicked => { root.import_model(); }
-        }
+        KindChip { x: 12px; y: 78px; width: 34px; label: "All"; active: root.kind_filter == "" || root.kind_filter == "All"; clicked => { root.control_changed("SetKindFilter", ""); } }
+        KindChip { x: 50px; y: 78px; width: 52px; label: "Texture"; active: root.kind_filter == "Texture"; clicked => { root.control_changed("SetKindFilter", "Texture"); } }
+        KindChip { x: 106px; y: 78px; width: 56px; label: "Material"; active: root.kind_filter == "Material"; clicked => { root.control_changed("SetKindFilter", "Material"); } }
+        KindChip { x: 166px; y: 78px; width: 46px; label: "Scene"; active: root.kind_filter == "Scene"; clicked => { root.control_changed("SetKindFilter", "Scene"); } }
+        KindChip { x: 216px; y: 78px; width: 50px; label: "Model"; active: root.kind_filter == "Model"; clicked => { root.control_changed("SetKindFilter", "Model"); } }
+        KindChip { x: 270px; y: 78px; width: 54px; label: "Shader"; active: root.kind_filter == "Shader"; clicked => { root.control_changed("SetKindFilter", "Shader"); } }
     }
 
     Rectangle {
@@ -1151,7 +1225,11 @@ export component AssetsActivityPane inherits Rectangle {
             title: "Folders";
             subtitle: "Project/assets";
             folders: root.folder_tree;
-            select_folder(folder_id) => { root.select_folder(folder_id); }
+            hovered_index: root.tree_hovered_index;
+            scroll_px: root.tree_scroll_px;
+            pointer_clicked(x, y, width, height) => { root.tree_pointer_clicked(x, y, width, height); }
+            pointer_moved(x, y, width, height) => { root.tree_pointer_moved(x, y, width, height); }
+            pointer_scrolled(x, y, delta, width, height) => { root.tree_pointer_scrolled(x, y, delta, width, height); }
         }
 
         AssetListView {
@@ -1164,8 +1242,11 @@ export component AssetsActivityPane inherits Rectangle {
             folders: root.content_folders;
             items: root.content_items;
             view_mode: root.view_mode;
-            select_folder(folder_id) => { root.select_folder(folder_id); }
-            select_asset(asset_uuid) => { root.select_asset(asset_uuid); }
+            hovered_index: root.content_hovered_index;
+            scroll_px: root.content_scroll_px;
+            pointer_clicked(x, y, width, height) => { root.content_pointer_clicked(x, y, width, height); }
+            pointer_moved(x, y, width, height) => { root.content_pointer_moved(x, y, width, height); }
+            pointer_scrolled(x, y, delta, width, height) => { root.content_pointer_scrolled(x, y, delta, width, height); }
         }
     }
 
@@ -1175,8 +1256,8 @@ export component AssetsActivityPane inherits Rectangle {
         width: parent.width - root.outer_margin * 2;
         height: root.utility_height;
 
-        ToolbarButton { x: 12px; y: 10px; label: "Preview"; active: root.utility_tab == "preview"; min-width: 56px; clicked => { root.utility_tab_changed("preview"); } }
-        ToolbarButton { x: 76px; y: 10px; label: "References"; active: root.utility_tab == "references"; min-width: 74px; clicked => { root.utility_tab_changed("references"); } }
+        ToolbarButton { x: 12px; y: 10px; label: "Preview"; active: root.utility_tab == "preview"; min-width: 56px; clicked => { root.control_changed("SetUtilityTab", "preview"); } }
+        ToolbarButton { x: 76px; y: 10px; label: "References"; active: root.utility_tab == "references"; min-width: 74px; clicked => { root.control_changed("SetUtilityTab", "references"); } }
 
         Text {
             x: parent.width - 180px;
@@ -1219,7 +1300,11 @@ export component AssetsActivityPane inherits Rectangle {
                 height: parent.height;
                 title: "References";
                 references: root.references;
-                activate_reference(asset_uuid) => { root.activate_reference(asset_uuid); }
+                hovered_index: root.references_hovered_index;
+                scroll_px: root.references_scroll_px;
+                pointer_clicked(x, y, width, height) => { root.reference_pointer_clicked("references", x, y, width, height); }
+                pointer_moved(x, y, width, height) => { root.reference_pointer_moved("references", x, y, width, height); }
+                pointer_scrolled(x, y, delta, width, height) => { root.reference_pointer_scrolled("references", x, y, delta, width, height); }
             }
 
             ReferenceListView {
@@ -1229,7 +1314,11 @@ export component AssetsActivityPane inherits Rectangle {
                 height: parent.height;
                 title: "Used By";
                 references: root.used_by;
-                activate_reference(asset_uuid) => { root.activate_reference(asset_uuid); }
+                hovered_index: root.used_by_hovered_index;
+                scroll_px: root.used_by_scroll_px;
+                pointer_clicked(x, y, width, height) => { root.reference_pointer_clicked("used_by", x, y, width, height); }
+                pointer_moved(x, y, width, height) => { root.reference_pointer_moved("used_by", x, y, width, height); }
+                pointer_scrolled(x, y, delta, width, height) => { root.reference_pointer_scrolled("used_by", x, y, delta, width, height); }
             }
         }
     }
@@ -1247,17 +1336,29 @@ export component AssetBrowserPane inherits Rectangle {
     in property <string> kind_filter;
     in property <string> view_mode;
     in property <string> utility_tab;
+    in property <int> tree_hovered_index: -1;
+    in property <float> tree_scroll_px: 0.0;
+    in property <int> content_hovered_index: -1;
+    in property <float> content_scroll_px: 0.0;
+    in property <int> references_hovered_index: -1;
+    in property <float> references_scroll_px: 0.0;
+    in property <int> used_by_hovered_index: -1;
+    in property <float> used_by_scroll_px: 0.0;
+    in property <float> details_scroll_px: 0.0;
     in-out property <string> mesh_import_path;
-    callback select_folder(folder_id: string);
-    callback select_asset(asset_uuid: string);
-    callback search_edited(value: string);
-    callback kind_filter_changed(kind: string);
-    callback view_mode_changed(mode: string);
-    callback utility_tab_changed(tab: string);
-    callback activate_reference(asset_uuid: string);
-    callback locate_selected();
+    callback control_changed(control_id: string, value: string);
+    callback control_clicked(control_id: string);
+    callback tree_pointer_clicked(x: float, y: float, width: float, height: float);
+    callback tree_pointer_moved(x: float, y: float, width: float, height: float);
+    callback tree_pointer_scrolled(x: float, y: float, delta: float, width: float, height: float);
+    callback content_pointer_clicked(x: float, y: float, width: float, height: float);
+    callback content_pointer_moved(x: float, y: float, width: float, height: float);
+    callback content_pointer_scrolled(x: float, y: float, delta: float, width: float, height: float);
+    callback reference_pointer_clicked(list_kind: string, x: float, y: float, width: float, height: float);
+    callback reference_pointer_moved(list_kind: string, x: float, y: float, width: float, height: float);
+    callback reference_pointer_scrolled(list_kind: string, x: float, y: float, delta: float, width: float, height: float);
+    callback details_pointer_scrolled(x: float, y: float, delta: float, width: float, height: float);
     callback mesh_import_path_edited(value: string);
-    callback import_model();
 
     palette := Palette {}
     background: transparent;
@@ -1265,7 +1366,7 @@ export component AssetBrowserPane inherits Rectangle {
     private property <length> section_gap: 12px;
     private property <length> toolbar_height: 82px;
     private property <length> import_height: 44px;
-    private property <length> utility_height: 188px;
+    private property <length> utility_height: min(max(24% * root.height, 176px), 240px);
     private property <length> sources_width: min(max(20% * root.width, 220px), 280px);
     private property <length> details_width: min(max(30% * root.width, 300px), 360px);
     private property <length> main_top: root.outer_margin + root.toolbar_height + root.section_gap + root.import_height + root.section_gap;
@@ -1301,12 +1402,12 @@ export component AssetBrowserPane inherits Rectangle {
         }
 
         ShellButton {
-            x: parent.width - 122px;
+            x: parent.width - 136px;
             y: 14px;
-            width: 110px;
-            label: "Open Assets";
+            width: 124px;
+            label: "Locate In Assets";
             active: false;
-            clicked => { root.locate_selected(); }
+            clicked => { root.control_clicked("LocateSelectedAsset"); }
         }
 
         SearchField {
@@ -1316,15 +1417,15 @@ export component AssetBrowserPane inherits Rectangle {
             height: 28px;
             text: root.search_query;
             placeholder: "Search assets";
-            edited(value) => { root.search_edited(value); }
+            edited(value) => { root.control_changed("SearchEdited", value); }
         }
 
-        KindChip { x: 260px; y: 48px; width: 34px; label: "All"; active: root.kind_filter == "" || root.kind_filter == "All"; clicked => { root.kind_filter_changed(""); } }
-        KindChip { x: 298px; y: 48px; width: 52px; label: "Texture"; active: root.kind_filter == "Texture"; clicked => { root.kind_filter_changed("Texture"); } }
-        KindChip { x: 354px; y: 48px; width: 56px; label: "Material"; active: root.kind_filter == "Material"; clicked => { root.kind_filter_changed("Material"); } }
-        KindChip { x: 414px; y: 48px; width: 46px; label: "Scene"; active: root.kind_filter == "Scene"; clicked => { root.kind_filter_changed("Scene"); } }
-        KindChip { x: 464px; y: 48px; width: 50px; label: "Model"; active: root.kind_filter == "Model"; clicked => { root.kind_filter_changed("Model"); } }
-        KindChip { x: 518px; y: 48px; width: 54px; label: "Shader"; active: root.kind_filter == "Shader"; clicked => { root.kind_filter_changed("Shader"); } }
+        KindChip { x: 260px; y: 48px; width: 34px; label: "All"; active: root.kind_filter == "" || root.kind_filter == "All"; clicked => { root.control_changed("SetKindFilter", ""); } }
+        KindChip { x: 298px; y: 48px; width: 52px; label: "Texture"; active: root.kind_filter == "Texture"; clicked => { root.control_changed("SetKindFilter", "Texture"); } }
+        KindChip { x: 354px; y: 48px; width: 56px; label: "Material"; active: root.kind_filter == "Material"; clicked => { root.control_changed("SetKindFilter", "Material"); } }
+        KindChip { x: 414px; y: 48px; width: 46px; label: "Scene"; active: root.kind_filter == "Scene"; clicked => { root.control_changed("SetKindFilter", "Scene"); } }
+        KindChip { x: 464px; y: 48px; width: 50px; label: "Model"; active: root.kind_filter == "Model"; clicked => { root.control_changed("SetKindFilter", "Model"); } }
+        KindChip { x: 518px; y: 48px; width: 54px; label: "Shader"; active: root.kind_filter == "Shader"; clicked => { root.control_changed("SetKindFilter", "Shader"); } }
 
         ToolbarButton {
             x: parent.width - 114px;
@@ -1332,7 +1433,7 @@ export component AssetBrowserPane inherits Rectangle {
             label: "List";
             active: root.view_mode == "list";
             min-width: 44px;
-            clicked => { root.view_mode_changed("list"); }
+            clicked => { root.control_changed("SetViewMode", "list"); }
         }
 
         ToolbarButton {
@@ -1341,7 +1442,7 @@ export component AssetBrowserPane inherits Rectangle {
             label: "Thumb";
             active: root.view_mode == "thumbnail";
             min-width: 52px;
-            clicked => { root.view_mode_changed("thumbnail"); }
+            clicked => { root.control_changed("SetViewMode", "thumbnail"); }
         }
     }
 
@@ -1377,7 +1478,7 @@ export component AssetBrowserPane inherits Rectangle {
             label: "Import";
             active: true;
             enabled: root.mesh_import_path != "";
-            clicked => { root.import_model(); }
+            clicked => { root.control_clicked("ImportModel"); }
         }
     }
 
@@ -1396,7 +1497,11 @@ export component AssetBrowserPane inherits Rectangle {
             title: "Sources";
             subtitle: "Project/assets";
             folders: root.folder_tree;
-            select_folder(folder_id) => { root.select_folder(folder_id); }
+            hovered_index: root.tree_hovered_index;
+            scroll_px: root.tree_scroll_px;
+            pointer_clicked(x, y, width, height) => { root.tree_pointer_clicked(x, y, width, height); }
+            pointer_moved(x, y, width, height) => { root.tree_pointer_moved(x, y, width, height); }
+            pointer_scrolled(x, y, delta, width, height) => { root.tree_pointer_scrolled(x, y, delta, width, height); }
         }
 
         AssetListView {
@@ -1409,8 +1514,11 @@ export component AssetBrowserPane inherits Rectangle {
             folders: root.content_folders;
             items: root.content_items;
             view_mode: root.view_mode;
-            select_folder(folder_id) => { root.select_folder(folder_id); }
-            select_asset(asset_uuid) => { root.select_asset(asset_uuid); }
+            hovered_index: root.content_hovered_index;
+            scroll_px: root.content_scroll_px;
+            pointer_clicked(x, y, width, height) => { root.content_pointer_clicked(x, y, width, height); }
+            pointer_moved(x, y, width, height) => { root.content_pointer_moved(x, y, width, height); }
+            pointer_scrolled(x, y, delta, width, height) => { root.content_pointer_scrolled(x, y, delta, width, height); }
         }
 
         SelectionDetailsRail {
@@ -1419,6 +1527,8 @@ export component AssetBrowserPane inherits Rectangle {
             width: root.details_width;
             height: parent.height;
             selection: root.selection;
+            scroll_px: root.details_scroll_px;
+            pointer_scrolled(x, y, delta, width, height) => { root.details_pointer_scrolled(x, y, delta, width, height); }
         }
     }
 
@@ -1428,10 +1538,10 @@ export component AssetBrowserPane inherits Rectangle {
         width: parent.width - root.outer_margin * 2;
         height: root.utility_height;
 
-        ToolbarButton { x: 12px; y: 10px; label: "Preview"; active: root.utility_tab == "preview"; min-width: 56px; clicked => { root.utility_tab_changed("preview"); } }
-        ToolbarButton { x: 76px; y: 10px; label: "References"; active: root.utility_tab == "references"; min-width: 74px; clicked => { root.utility_tab_changed("references"); } }
-        ToolbarButton { x: 156px; y: 10px; label: "Metadata"; active: root.utility_tab == "metadata"; min-width: 74px; clicked => { root.utility_tab_changed("metadata"); } }
-        ToolbarButton { x: 236px; y: 10px; label: "Plugins"; active: root.utility_tab == "plugins"; min-width: 64px; clicked => { root.utility_tab_changed("plugins"); } }
+        ToolbarButton { x: 12px; y: 10px; label: "Preview"; active: root.utility_tab == "preview"; min-width: 56px; clicked => { root.control_changed("SetUtilityTab", "preview"); } }
+        ToolbarButton { x: 76px; y: 10px; label: "References"; active: root.utility_tab == "references"; min-width: 74px; clicked => { root.control_changed("SetUtilityTab", "references"); } }
+        ToolbarButton { x: 156px; y: 10px; label: "Metadata"; active: root.utility_tab == "metadata"; min-width: 74px; clicked => { root.control_changed("SetUtilityTab", "metadata"); } }
+        ToolbarButton { x: 236px; y: 10px; label: "Plugins"; active: root.utility_tab == "plugins"; min-width: 64px; clicked => { root.control_changed("SetUtilityTab", "plugins"); } }
 
         Text {
             x: parent.width - 240px;
@@ -1474,7 +1584,11 @@ export component AssetBrowserPane inherits Rectangle {
                 height: parent.height;
                 title: "References";
                 references: root.references;
-                activate_reference(asset_uuid) => { root.activate_reference(asset_uuid); }
+                hovered_index: root.references_hovered_index;
+                scroll_px: root.references_scroll_px;
+                pointer_clicked(x, y, width, height) => { root.reference_pointer_clicked("references", x, y, width, height); }
+                pointer_moved(x, y, width, height) => { root.reference_pointer_moved("references", x, y, width, height); }
+                pointer_scrolled(x, y, delta, width, height) => { root.reference_pointer_scrolled("references", x, y, delta, width, height); }
             }
 
             ReferenceListView {
@@ -1484,7 +1598,11 @@ export component AssetBrowserPane inherits Rectangle {
                 height: parent.height;
                 title: "Used By";
                 references: root.used_by;
-                activate_reference(asset_uuid) => { root.activate_reference(asset_uuid); }
+                hovered_index: root.used_by_hovered_index;
+                scroll_px: root.used_by_scroll_px;
+                pointer_clicked(x, y, width, height) => { root.reference_pointer_clicked("used_by", x, y, width, height); }
+                pointer_moved(x, y, width, height) => { root.reference_pointer_moved("used_by", x, y, width, height); }
+                pointer_scrolled(x, y, delta, width, height) => { root.reference_pointer_scrolled("used_by", x, y, delta, width, height); }
             }
         }
 

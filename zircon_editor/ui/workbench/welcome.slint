@@ -1,4 +1,4 @@
-import { LineEdit, ScrollView } from "std-widgets.slint";
+import { LineEdit } from "std-widgets.slint";
 import { Palette, ShellButton, ShellIcon } from "chrome.slint";
 
 export struct RecentProjectData {
@@ -63,12 +63,14 @@ component FieldCard inherits Rectangle {
 export component WelcomePane inherits Rectangle {
     in property <WelcomePaneData> welcome;
     in property <[RecentProjectData]> recent_projects;
-    callback project_name_edited(value: string);
-    callback location_edited(value: string);
-    callback create_project();
-    callback open_existing_project();
-    callback open_recent_project(path: string);
-    callback remove_recent_project(path: string);
+    in property <int> hovered_recent_project_index: -1;
+    in property <int> hovered_recent_action: -1;
+    in property <float> recent_projects_scroll_px: 0.0;
+    callback control_changed(control_id: string, value: string);
+    callback control_clicked(control_id: string);
+    callback recent_projects_pointer_clicked(x: float, y: float, width: float, height: float);
+    callback recent_projects_pointer_moved(x: float, y: float, width: float, height: float);
+    callback recent_projects_pointer_scrolled(x: float, y: float, delta: float, width: float, height: float);
 
     palette := Palette {}
     background: palette.panel_bg;
@@ -113,26 +115,28 @@ export component WelcomePane inherits Rectangle {
                 wrap: word-wrap;
             }
 
-            ScrollView {
+            recent_list_viewport := Rectangle {
                 x: 16px;
                 y: 94px;
                 width: parent.width - 32px;
                 height: parent.height - 110px;
-                viewport_width: parent.width - 32px;
-                viewport_height: max(parent.height - 110px, recent_rows.preferred-height + 8px);
+                clip: true;
 
                 recent_rows := VerticalLayout {
                     x: 0px;
-                    y: 0px;
+                    y: 0px - root.recent_projects_scroll_px * 1px;
                     width: parent.width - 8px;
                     spacing: 10px;
 
-                    for recent in root.recent_projects: Rectangle {
+                    for recent[index] in root.recent_projects: Rectangle {
                         height: 112px;
                         border-radius: 10px;
                         border-width: 1px;
                         border-color: recent.invalid ? #6d4a4a : palette.border_soft;
-                        background: recent.invalid ? #312224 : palette.panel_bg_soft;
+                        background:
+                            recent.invalid
+                                ? (root.hovered_recent_project_index == index ? #3a292c : #312224)
+                                : (root.hovered_recent_project_index == index ? palette.chrome_bg_soft : palette.panel_bg_soft);
 
                         ShellIcon {
                             x: 14px;
@@ -198,7 +202,8 @@ export component WelcomePane inherits Rectangle {
                             width: 88px;
                             label: "Open";
                             enabled: true;
-                            clicked => { root.open_recent_project(recent.path); }
+                            interactive: false;
+                            hovered: root.hovered_recent_project_index == index && root.hovered_recent_action == 0;
                         }
 
                         ShellButton {
@@ -207,7 +212,8 @@ export component WelcomePane inherits Rectangle {
                             width: 88px;
                             label: "Remove";
                             enabled: true;
-                            clicked => { root.remove_recent_project(recent.path); }
+                            interactive: false;
+                            hovered: root.hovered_recent_project_index == index && root.hovered_recent_action == 1;
                         }
                     }
 
@@ -236,6 +242,37 @@ export component WelcomePane inherits Rectangle {
                             font-size: 11px;
                             wrap: word-wrap;
                         }
+                    }
+                }
+
+                TouchArea {
+                    width: parent.width;
+                    height: parent.height;
+                    moved => {
+                        root.recent_projects_pointer_moved(
+                            parent.x / 1px + self.mouse-x / 1px,
+                            parent.y / 1px + self.mouse-y / 1px,
+                            root.width / 1px,
+                            root.height / 1px,
+                        );
+                    }
+                    clicked => {
+                        root.recent_projects_pointer_clicked(
+                            parent.x / 1px + self.mouse-x / 1px,
+                            parent.y / 1px + self.mouse-y / 1px,
+                            root.width / 1px,
+                            root.height / 1px,
+                        );
+                    }
+                    scroll-event(event) => {
+                        root.recent_projects_pointer_scrolled(
+                            parent.x / 1px + self.mouse-x / 1px,
+                            parent.y / 1px + self.mouse-y / 1px,
+                            event.delta_y / 1px,
+                            root.width / 1px,
+                            root.height / 1px,
+                        );
+                        accept
                     }
                 }
             }
@@ -326,7 +363,7 @@ export component WelcomePane inherits Rectangle {
                 label: "Project Name";
                 value: root.welcome.form.project_name;
                 placeholder: "MyGame";
-                edited(value) => { root.project_name_edited(value); }
+                edited(value) => { root.control_changed("ProjectNameEdited", value); }
             }
 
             FieldCard {
@@ -337,7 +374,7 @@ export component WelcomePane inherits Rectangle {
                 label: "Location";
                 value: root.welcome.form.location;
                 placeholder: "E:/Projects";
-                edited(value) => { root.location_edited(value); }
+                edited(value) => { root.control_changed("LocationEdited", value); }
             }
 
             Rectangle {
@@ -415,13 +452,13 @@ export component WelcomePane inherits Rectangle {
                         label: "Create Project";
                         active: root.welcome.form.can_create;
                         enabled: root.welcome.form.can_create;
-                        clicked => { root.create_project(); }
+                        clicked => { root.control_clicked("CreateProject"); }
                     }
                     ShellButton {
                         width: 156px;
                         label: "Open Existing Project";
                         enabled: root.welcome.form.can_open_existing;
-                        clicked => { root.open_existing_project(); }
+                        clicked => { root.control_clicked("OpenExistingProject"); }
                     }
                 }
             }

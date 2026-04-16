@@ -22,9 +22,14 @@ fn config_manager_roundtrip_works_through_resolver() {
     runtime.activate_module(MANAGER_MODULE_NAME).unwrap();
 
     let config = resolve_config_manager(&runtime.handle()).unwrap();
-    config.set_value("editor.layout", json!({"dock": "main"})).unwrap();
+    config
+        .set_value("editor.layout", json!({"dock": "main"}))
+        .unwrap();
 
-    assert_eq!(config.get_value("editor.layout").unwrap()["dock"], json!("main"));
+    assert_eq!(
+        config.get_value("editor.layout").unwrap()["dock"],
+        json!("main")
+    );
 }
 
 #[test]

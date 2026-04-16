@@ -29,7 +29,10 @@ fn asset_registry_tracks_add_update_delete_and_rename() {
     assert_eq!(renamed.id(), asset_id);
     assert!(registry.get_by_locator(&original_uri).is_none());
     assert_eq!(
-        registry.get_by_locator(&renamed_uri).unwrap().primary_locator(),
+        registry
+            .get_by_locator(&renamed_uri)
+            .unwrap()
+            .primary_locator(),
         &renamed_uri
     );
 
