@@ -87,6 +87,14 @@ fn hybrid_gi_gpu_completion_readback_reports_completed_probe_updates_and_traces(
     assert_eq!(readback.cache_entries, vec![(200, 0), (500, 1)]);
     assert_eq!(readback.completed_probe_ids, vec![300]);
     assert_eq!(readback.completed_trace_region_ids, vec![40]);
+    assert_eq!(
+        readback.probe_irradiance_rgb,
+        vec![
+            (200, expected_gpu_irradiance(200, 0, 64, 2, 1, false)),
+            (500, expected_gpu_irradiance(500, 1, 32, 2, 1, false)),
+            (300, expected_gpu_irradiance(300, 2, 128, 2, 1, true)),
+        ]
+    );
 }
 
 #[test]
@@ -148,6 +156,10 @@ fn hybrid_gi_gpu_completion_readback_respects_probe_budget_without_evictable_slo
     assert_eq!(readback.cache_entries, vec![(200, 0)]);
     assert_eq!(readback.completed_probe_ids, Vec::<u32>::new());
     assert_eq!(readback.completed_trace_region_ids, vec![40, 50]);
+    assert_eq!(
+        readback.probe_irradiance_rgb,
+        vec![(200, expected_gpu_irradiance(200, 0, 64, 2, 2, false))]
+    );
 }
 
 fn build_extract(
@@ -191,4 +203,32 @@ fn trace_region(region_id: u32) -> RenderHybridGiTraceRegion {
         bounds_radius: 0.5,
         screen_coverage: 1.0,
     }
+}
+
+fn expected_gpu_irradiance(
+    probe_id: u32,
+    slot_or_index: u32,
+    ray_budget: u32,
+    trace_region_count: u32,
+    tracing_budget: u32,
+    pending_completion: bool,
+) -> [u8; 3] {
+    let pending_bias = if pending_completion { 97 } else { 13 };
+    let seed = probe_id
+        .wrapping_mul(17)
+        .wrapping_add(slot_or_index.wrapping_mul(31))
+        .wrapping_add(ray_budget.wrapping_mul(7))
+        .wrapping_add(trace_region_count.wrapping_mul(19))
+        .wrapping_add(tracing_budget.wrapping_mul(23))
+        .wrapping_add(pending_bias);
+    [
+        channel(seed, 0x1f),
+        channel(seed.rotate_left(7), 0x3d),
+        channel(seed.rotate_left(13), 0x59),
+    ]
+}
+
+fn channel(seed: u32, bias: u32) -> u8 {
+    let value = 48 + ((seed.wrapping_add(bias)) % 160);
+    value as u8
 }

@@ -2,8 +2,8 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use zircon_ui::{
     UiFrame, UiInputPolicy, UiNodeId, UiNodePath, UiPoint, UiPointerDispatchEffect,
-    UiPointerDispatcher, UiPointerEvent, UiPointerEventKind, UiStateFlags, UiSurface, UiTreeId,
-    UiTreeNode,
+    UiPointerDispatcher, UiPointerEvent, UiPointerEventKind, UiSize, UiStateFlags, UiSurface,
+    UiTreeId, UiTreeNode,
 };
 
 const ROOT_NODE_ID: UiNodeId = UiNodeId::new(1);
@@ -249,6 +249,20 @@ where
     I: IntoIterator<Item = S>,
     S: AsRef<str>,
 {
+    build_viewport_toolbar_pointer_layout_with_size(
+        surface_keys,
+        UiSize::new(SURFACE_WIDTH, SURFACE_HEIGHT),
+    )
+}
+
+pub(crate) fn build_viewport_toolbar_pointer_layout_with_size<I, S>(
+    surface_keys: I,
+    surface_size: UiSize,
+) -> ViewportToolbarPointerLayout
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<str>,
+{
     ViewportToolbarPointerLayout {
         surfaces: surface_keys
             .into_iter()
@@ -258,8 +272,8 @@ where
                 frame: UiFrame::new(
                     0.0,
                     index as f32 * SURFACE_VERTICAL_STRIDE,
-                    SURFACE_WIDTH,
-                    SURFACE_HEIGHT,
+                    surface_size.width.max(1.0),
+                    surface_size.height.max(1.0),
                 ),
             })
             .collect(),

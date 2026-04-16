@@ -1,4 +1,5 @@
 use super::*;
+use crate::{ActivityDrawerSlot, ViewHost};
 use zircon_ui::{UiPointerButton, UiPointerEvent, UiPointerEventKind};
 
 const VIEWPORT_POINTER_DOWN: i32 = 0;
@@ -55,8 +56,13 @@ impl SlintEditorHost {
     ) {
         self.recompute_if_dirty();
         self.focus_callback_source_window();
+        let surface_size = self.viewport_toolbar_surface_size(surface_key);
+        let _ = self.viewport_toolbar_bridge.recompute_layout(surface_size);
         self.viewport_toolbar_pointer_bridge
-            .sync(build_viewport_toolbar_pointer_layout([surface_key]));
+            .sync(build_viewport_toolbar_pointer_layout_with_size(
+                [surface_key],
+                surface_size,
+            ));
         match callback_dispatch::dispatch_shared_viewport_toolbar_pointer_click(
             &self.runtime,
             &self.viewport_toolbar_bridge,
@@ -76,6 +82,49 @@ impl SlintEditorHost {
             }
             Err(error) => self.set_status_line(error),
         }
+    }
+
+    fn viewport_toolbar_surface_size(&self, surface_key: &str) -> UiSize {
+        const TOOLBAR_HEIGHT: f32 = 28.0;
+
+        let Some(geometry) = self.shell_geometry.as_ref() else {
+            return UiSize::new(self.shell_size.width.max(1.0), TOOLBAR_HEIGHT);
+        };
+
+        let width = self
+            .runtime
+            .current_view_instances()
+            .into_iter()
+            .find(|instance| instance.instance_id.0 == surface_key)
+            .map(|instance| match instance.host {
+                ViewHost::FloatingWindow(window_id, _) => {
+                    geometry.floating_window_frame(&window_id).width.max(1.0)
+                }
+                ViewHost::Document(_, _) => geometry.region_frame(ShellRegionId::Document).width,
+                ViewHost::Drawer(slot) => {
+                    let region = match slot {
+                        ActivityDrawerSlot::LeftTop | ActivityDrawerSlot::LeftBottom => {
+                            ShellRegionId::Left
+                        }
+                        ActivityDrawerSlot::RightTop | ActivityDrawerSlot::RightBottom => {
+                            ShellRegionId::Right
+                        }
+                        ActivityDrawerSlot::BottomLeft | ActivityDrawerSlot::BottomRight => {
+                            ShellRegionId::Bottom
+                        }
+                    };
+                    geometry.region_frame(region).width
+                }
+                ViewHost::ExclusivePage(_) => self.shell_size.width,
+            })
+            .unwrap_or_else(|| {
+                geometry
+                    .region_frame(ShellRegionId::Document)
+                    .width
+                    .max(1.0)
+            });
+
+        UiSize::new(width.max(1.0), TOOLBAR_HEIGHT)
     }
 }
 

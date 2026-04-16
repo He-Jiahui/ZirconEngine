@@ -304,7 +304,16 @@ fn hybrid_gi_runtime_state_applies_gpu_completed_updates_and_trace_schedule() {
         },
     );
 
-    state.complete_gpu_updates([300], [50], &[500]);
+    state.complete_gpu_updates(
+        [300],
+        [50],
+        &[
+            (200, [121, 133, 145]),
+            (300, [210, 164, 118]),
+            (500, [89, 101, 113]),
+        ],
+        &[500],
+    );
 
     assert_eq!(state.probe_slot(200), Some(0));
     assert_eq!(state.probe_slot(300), Some(1));
@@ -318,6 +327,28 @@ fn hybrid_gi_runtime_state_applies_gpu_completed_updates_and_trace_schedule() {
         Vec::<HybridGiProbeUpdateRequest>::new()
     );
     assert_eq!(state.scheduled_trace_regions(), vec![50]);
+    assert_eq!(
+        state.build_prepare_frame(),
+        HybridGiPrepareFrame {
+            resident_probes: vec![
+                HybridGiPrepareProbe {
+                    probe_id: 200,
+                    slot: 0,
+                    ray_budget: 64,
+                    irradiance_rgb: [121, 133, 145],
+                },
+                HybridGiPrepareProbe {
+                    probe_id: 300,
+                    slot: 1,
+                    ray_budget: 128,
+                    irradiance_rgb: [210, 164, 118],
+                },
+            ],
+            pending_updates: Vec::new(),
+            scheduled_trace_region_ids: vec![50],
+            evictable_probe_ids: Vec::new(),
+        }
+    );
 }
 
 fn probe(probe_id: u32, resident: bool, ray_budget: u32) -> RenderHybridGiProbe {

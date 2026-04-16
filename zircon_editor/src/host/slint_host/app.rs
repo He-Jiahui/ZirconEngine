@@ -69,7 +69,7 @@ use super::tab_drag::{resolve_workbench_tab_drop_route, workbench_shell_pointer_
 use super::ui::apply_presentation;
 use super::viewport::SlintViewportController;
 use super::viewport_toolbar_pointer::{
-    build_viewport_toolbar_pointer_layout, ViewportToolbarPointerBridge,
+    build_viewport_toolbar_pointer_layout_with_size, ViewportToolbarPointerBridge,
 };
 use super::welcome_recent_pointer::{
     WelcomeRecentPointerAction, WelcomeRecentPointerBridge, WelcomeRecentPointerLayout,

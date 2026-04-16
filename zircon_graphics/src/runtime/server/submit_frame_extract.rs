@@ -211,6 +211,7 @@ pub(in crate::runtime::server) fn submit_frame_extract(
                 runtime.complete_gpu_updates(
                     readback.completed_probe_ids.iter().copied(),
                     readback.completed_trace_region_ids.iter().copied(),
+                    &readback.probe_irradiance_rgb,
                     &hybrid_gi_evictable_probe_ids,
                 );
             } else if let Some(feedback) = hybrid_gi_feedback.as_ref() {

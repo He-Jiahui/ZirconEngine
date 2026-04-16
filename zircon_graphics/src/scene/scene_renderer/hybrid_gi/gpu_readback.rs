@@ -5,6 +5,7 @@ pub(crate) struct HybridGiGpuReadback {
     pub(crate) cache_entries: Vec<(u32, u32)>,
     pub(crate) completed_probe_ids: Vec<u32>,
     pub(crate) completed_trace_region_ids: Vec<u32>,
+    pub(crate) probe_irradiance_rgb: Vec<(u32, [u8; 3])>,
 }
 
 pub(crate) struct HybridGiGpuPendingReadback {
@@ -14,6 +15,8 @@ pub(crate) struct HybridGiGpuPendingReadback {
     completed_probe_buffer: wgpu::Buffer,
     completed_trace_word_count: usize,
     completed_trace_buffer: wgpu::Buffer,
+    irradiance_word_count: usize,
+    irradiance_buffer: wgpu::Buffer,
 }
 
 impl HybridGiGpuPendingReadback {
@@ -24,6 +27,8 @@ impl HybridGiGpuPendingReadback {
         completed_probe_buffer: wgpu::Buffer,
         completed_trace_word_count: usize,
         completed_trace_buffer: wgpu::Buffer,
+        irradiance_word_count: usize,
+        irradiance_buffer: wgpu::Buffer,
     ) -> Self {
         Self {
             cache_word_count,
@@ -32,6 +37,8 @@ impl HybridGiGpuPendingReadback {
             completed_probe_buffer,
             completed_trace_word_count,
             completed_trace_buffer,
+            irradiance_word_count,
+            irradiance_buffer,
         }
     }
 
@@ -71,10 +78,31 @@ impl HybridGiGpuPendingReadback {
             .take(completed_trace_count)
             .collect();
 
+        let irradiance_words =
+            read_buffer_u32s(device, &self.irradiance_buffer, self.irradiance_word_count)?;
+        let irradiance_count = irradiance_words.first().copied().unwrap_or_default() as usize;
+        let probe_irradiance_rgb = irradiance_words
+            .into_iter()
+            .skip(1)
+            .collect::<Vec<_>>()
+            .chunks_exact(2)
+            .take(irradiance_count)
+            .map(|chunk| (chunk[0], unpack_rgb8(chunk[1])))
+            .collect();
+
         Ok(HybridGiGpuReadback {
             cache_entries,
             completed_probe_ids,
             completed_trace_region_ids,
+            probe_irradiance_rgb,
         })
     }
+}
+
+fn unpack_rgb8(packed: u32) -> [u8; 3] {
+    [
+        (packed & 0xff) as u8,
+        ((packed >> 8) & 0xff) as u8,
+        ((packed >> 16) & 0xff) as u8,
+    ]
 }

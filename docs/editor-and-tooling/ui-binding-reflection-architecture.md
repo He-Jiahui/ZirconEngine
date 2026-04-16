@@ -50,7 +50,7 @@ related_code:
   - zircon_editor/src/host/slint_host/ui.rs
   - zircon_editor/src/lib.rs
   - zircon_editor/src/host/manager.rs
-  - zircon_editor/src/workbench/event.rs
+  - zircon_editor/src/workbench/event/mod.rs
   - zircon_editor/src/workbench/model/mod.rs
   - zircon_editor/src/workbench/project/mod.rs
   - zircon_editor/src/workbench/reflection/mod.rs
@@ -101,7 +101,7 @@ implementation_files:
   - zircon_editor/src/host/slint_host/viewport_toolbar_pointer.rs
   - zircon_editor/src/lib.rs
   - zircon_editor/src/host/manager.rs
-  - zircon_editor/src/workbench/event.rs
+  - zircon_editor/src/workbench/event/mod.rs
   - zircon_editor/src/workbench/model/mod.rs
   - zircon_editor/src/workbench/project/mod.rs
   - zircon_editor/src/workbench/reflection/mod.rs

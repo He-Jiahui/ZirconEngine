@@ -1267,6 +1267,75 @@ fn editor_manager_runs_ui_asset_binding_inspector_editing_actions() {
 }
 
 #[test]
+fn editor_manager_runs_ui_asset_palette_and_tree_authoring_actions() {
+    let _guard = env_lock().lock().unwrap();
+    let path = unique_temp_path("zircon_editor_ui_asset_tree_authoring");
+    let ui_asset_path =
+        unique_temp_dir("zircon_editor_ui_asset_tree_authoring_file").join("style.ui.toml");
+    fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
+    fs::write(&ui_asset_path, STYLE_UI_LAYOUT_ASSET).unwrap();
+
+    let runtime = editor_runtime_with_config_path(&path);
+    let manager = runtime
+        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+        .unwrap();
+
+    let instance_id = manager
+        .open_ui_asset_editor(&ui_asset_path, None)
+        .expect("ui asset editor should open");
+    let palette_index = manager
+        .ui_asset_editor_pane_presentation(&instance_id)
+        .expect("initial pane")
+        .palette_items
+        .iter()
+        .position(|item| item == "Native / Button")
+        .expect("button palette item");
+
+    manager
+        .select_ui_asset_editor_hierarchy_index(&instance_id, 0)
+        .expect("select root");
+    assert!(manager
+        .select_ui_asset_editor_palette_index(&instance_id, palette_index)
+        .expect("select palette item"));
+    assert!(manager
+        .insert_ui_asset_editor_selected_palette_item_as_child(&instance_id)
+        .expect("insert palette child"));
+
+    let inserted = manager
+        .ui_asset_editor_pane_presentation(&instance_id)
+        .expect("updated pane");
+    assert_eq!(inserted.palette_selected_index, palette_index as i32);
+    assert!(inserted.hierarchy_items.iter().any(|item| item.contains("button_2")));
+
+    manager
+        .select_ui_asset_editor_hierarchy_index(&instance_id, 1)
+        .expect("select original button");
+    assert!(manager
+        .wrap_ui_asset_editor_selected_node(&instance_id, "VerticalBox")
+        .expect("wrap selected node"));
+    assert!(manager
+        .unwrap_ui_asset_editor_selected_node(&instance_id)
+        .expect("unwrap selected node"));
+
+    let saved = manager
+        .save_ui_asset_editor(&instance_id)
+        .expect("save ui asset editor");
+    let document = UiAssetLoader::load_toml_str(&saved).expect("saved ui asset document");
+    assert!(document.nodes.contains_key("button_2"));
+    assert_eq!(
+        document
+            .nodes
+            .get("root")
+            .map(|node| node.children.iter().map(|child| child.child.clone()).collect::<Vec<_>>()),
+        Some(vec!["button".to_string(), "button_2".to_string()])
+    );
+
+    std::env::remove_var("ZIRCON_EDITOR_CONFIG_PATH");
+    let _ = fs::remove_file(path);
+    let _ = fs::remove_dir_all(ui_asset_path.parent().unwrap());
+}
+
+#[test]
 fn editor_manager_runs_ui_asset_style_token_editing_actions() {
     let _guard = env_lock().lock().unwrap();
     let path = unique_temp_path("zircon_editor_ui_asset_style_tokens");

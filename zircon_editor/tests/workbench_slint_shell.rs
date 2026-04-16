@@ -881,6 +881,77 @@ fn ui_asset_editor_pane_declares_binding_inspector_editing_controls() {
 }
 
 #[test]
+fn ui_asset_editor_pane_declares_palette_tree_authoring_and_selection_sync_controls() {
+    let source = shell_source();
+    let panes = panes_source();
+    let pane_block = block_after(
+        &panes,
+        "export component UiAssetEditorPane inherits Rectangle {",
+    );
+    let pane_surface = block_after(
+        &source,
+        "if !root.pane.show_empty && root.pane.kind == \"UiAssetEditor\": UiAssetEditorPane {",
+    );
+
+    assert!(source
+        .contains("callback ui_asset_palette_selected(instance_id: string, item_index: int);"));
+    assert!(source.contains("ui_asset_palette_selected_index: int,"));
+    assert!(source.contains("ui_asset_hierarchy_selected_index: int,"));
+    assert!(source.contains("ui_asset_preview_selected_index: int,"));
+    assert!(source.contains("ui_asset_source_selected_block_label: string,"));
+    assert!(source.contains("ui_asset_source_selected_line: int,"));
+    assert!(source.contains("ui_asset_source_selected_excerpt: string,"));
+    assert!(source.contains("ui_asset_source_roundtrip_status: string,"));
+
+    assert!(pane_surface
+        .contains("palette_selected_index: root.pane.ui_asset_palette_selected_index;"));
+    assert!(pane_surface
+        .contains("hierarchy_selected_index: root.pane.ui_asset_hierarchy_selected_index;"));
+    assert!(pane_surface
+        .contains("preview_selected_index: root.pane.ui_asset_preview_selected_index;"));
+    assert!(pane_surface.contains(
+        "source_selected_block_label: root.pane.ui_asset_source_selected_block_label;"
+    ));
+    assert!(pane_surface
+        .contains("source_selected_line: root.pane.ui_asset_source_selected_line;"));
+    assert!(pane_surface.contains(
+        "source_selected_excerpt: root.pane.ui_asset_source_selected_excerpt;"
+    ));
+    assert!(pane_surface
+        .contains("source_roundtrip_status: root.pane.ui_asset_source_roundtrip_status;"));
+    assert!(pane_surface.contains(
+        "palette_selected(item_index) => { root.ui_asset_palette_selected(root.pane.id, item_index); }"
+    ));
+
+    assert!(pane_block.contains("in property <int> palette_selected_index;"));
+    assert!(pane_block.contains("in property <int> hierarchy_selected_index;"));
+    assert!(pane_block.contains("in property <int> preview_selected_index;"));
+    assert!(pane_block.contains("in property <string> source_selected_block_label;"));
+    assert!(pane_block.contains("in property <int> source_selected_line;"));
+    assert!(pane_block.contains("in property <string> source_selected_excerpt;"));
+    assert!(pane_block.contains("in property <string> source_roundtrip_status;"));
+    assert!(pane_block.contains("callback palette_selected(item_index: int);"));
+
+    assert!(panes.contains("title: \"Palette\";"));
+    assert!(panes.contains("selected_index: root.palette_selected_index;"));
+    assert!(panes.contains("root.palette_selected(item_index);"));
+    assert!(panes.contains("selected_index: root.hierarchy_selected_index;"));
+    assert!(panes.contains("selected_index: root.preview_selected_index;"));
+    assert!(panes.contains("root.action(\"palette.insert.child\");"));
+    assert!(panes.contains("root.action(\"palette.insert.after\");"));
+    assert!(panes.contains("root.action(\"canvas.move.up\");"));
+    assert!(panes.contains("root.action(\"canvas.move.down\");"));
+    assert!(panes.contains("root.action(\"canvas.wrap.vertical_box\");"));
+    assert!(panes.contains("root.action(\"canvas.unwrap\");"));
+    assert!(panes.contains("text: root.source_selected_block_label != \"\" ? root.source_selected_block_label : \"No source block\";"));
+    assert!(panes.contains(
+        "text: root.source_selected_line >= 0 ? \"line \" + root.source_selected_line : \"\";"
+    ));
+    assert!(panes.contains("text: root.source_roundtrip_status;"));
+    assert!(panes.contains("text: root.source_selected_excerpt;"));
+}
+
+#[test]
 fn tab_drag_controls_use_low_drag_threshold_for_single_click_responsiveness() {
     let chrome_source_path =
         PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("ui/workbench/chrome.slint");

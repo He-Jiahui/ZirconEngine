@@ -178,6 +178,23 @@ props = { text = "Save" }
 bindings = [{ id = "SaveButton/onClick", event = "Click", route = "MenuAction.SaveProject" }]
 "##;
 
+const IMPORTED_WIDGET_ASSET_TOML: &str = r##"
+[asset]
+kind = "widget"
+id = "ui.common.confirm_button"
+version = 1
+display_name = "Confirm Button"
+
+[root]
+node = "root"
+
+[nodes.root]
+kind = "native"
+type = "Button"
+control_id = "ConfirmButton"
+props = { text = "Confirm" }
+"##;
+
 #[test]
 fn ui_asset_editor_session_compiles_preview_surface_and_projects_reflection_state() {
     let route = UiAssetEditorRoute::new(
@@ -1160,6 +1177,192 @@ fn ui_asset_editor_session_updates_selected_binding_inspector_fields() {
     assert_eq!(
         button.bindings[0].route.as_deref(),
         Some("MenuAction.HighlightSave")
+    );
+}
+
+#[test]
+fn ui_asset_editor_session_projects_selection_indices_and_source_block_summary() {
+    let route = UiAssetEditorRoute::new(
+        "asset://ui/tests/style-authoring.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Split,
+    );
+    let mut session = UiAssetEditorSession::from_source(
+        route,
+        STYLE_AUTHORING_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("session");
+
+    session
+        .select_hierarchy_index(1)
+        .expect("select button from hierarchy");
+
+    let pane = session.pane_presentation();
+    assert_eq!(pane.hierarchy_selected_index, 1);
+    assert!(pane.preview_selected_index >= 0);
+    assert_eq!(pane.source_selected_block_label, "[nodes.button]");
+    assert!(pane.source_selected_line > 0);
+    assert!(pane.source_selected_excerpt.contains("[nodes.button]"));
+    assert!(pane.source_roundtrip_status.contains("line"));
+}
+
+#[test]
+fn ui_asset_editor_session_inserts_palette_items_and_tracks_tree_edits_in_undo_stack() {
+    let route = UiAssetEditorRoute::new(
+        "asset://ui/tests/style-authoring.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Design,
+    );
+    let mut session = UiAssetEditorSession::from_source(
+        route,
+        STYLE_AUTHORING_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("session");
+    let original_source = session.source_buffer().text().to_string();
+    let palette_index = session
+        .pane_presentation()
+        .palette_items
+        .iter()
+        .position(|item| item == "Native / Button")
+        .expect("button palette item");
+
+    session
+        .select_hierarchy_index(0)
+        .expect("select root from hierarchy");
+    assert!(session
+        .select_palette_index(palette_index)
+        .expect("select palette item"));
+    assert!(session
+        .insert_selected_palette_item_as_child()
+        .expect("insert button as child"));
+
+    let inserted = UiAssetLoader::load_toml_str(session.source_buffer().text()).expect("document");
+    assert!(inserted.nodes.contains_key("button_2"));
+    assert_eq!(
+        inserted
+            .nodes
+            .get("button_2")
+            .and_then(|node| node.widget_type.as_deref()),
+        Some("Button")
+    );
+    assert_eq!(
+        inserted
+            .nodes
+            .get("button_2")
+            .and_then(|node| node.props.get("text"))
+            .and_then(toml::Value::as_str),
+        Some("Button")
+    );
+    assert!(session.can_undo());
+
+    assert!(session.undo().expect("undo tree edit"));
+    assert_eq!(session.source_buffer().text(), original_source);
+    assert!(session.can_redo());
+
+    assert!(session.redo().expect("redo tree edit"));
+    let redone = UiAssetLoader::load_toml_str(session.source_buffer().text()).expect("document");
+    assert!(redone.nodes.contains_key("button_2"));
+}
+
+#[test]
+fn ui_asset_editor_session_creates_reference_nodes_from_imported_widget_palette_entries() {
+    let route = UiAssetEditorRoute::new(
+        "asset://ui/tests/style-authoring.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Design,
+    );
+    let mut session = UiAssetEditorSession::from_source(
+        route,
+        STYLE_AUTHORING_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("session");
+    let imported_widget =
+        UiAssetLoader::load_toml_str(IMPORTED_WIDGET_ASSET_TOML).expect("imported widget");
+    let reference = "asset://ui/common/confirm_button.ui#ConfirmButton";
+    session
+        .register_widget_import(reference, imported_widget)
+        .expect("register widget import");
+    let palette_index = session
+        .pane_presentation()
+        .palette_items
+        .iter()
+        .position(|item| item == "Reference / ConfirmButton")
+        .expect("reference palette item");
+
+    session
+        .select_hierarchy_index(0)
+        .expect("select root from hierarchy");
+    assert!(session
+        .select_palette_index(palette_index)
+        .expect("select reference palette item"));
+    assert!(session
+        .insert_selected_palette_item_as_child()
+        .expect("insert reference node"));
+
+    let document = UiAssetLoader::load_toml_str(session.source_buffer().text()).expect("document");
+    let reference_node = document
+        .nodes
+        .values()
+        .find(|node| node.kind == zircon_ui::UiNodeDefinitionKind::Reference)
+        .expect("reference node");
+    assert_eq!(reference_node.component_ref.as_deref(), Some(reference));
+}
+
+#[test]
+fn ui_asset_editor_session_wraps_and_unwraps_selected_node() {
+    let route = UiAssetEditorRoute::new(
+        "asset://ui/tests/style-authoring.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Design,
+    );
+    let mut session = UiAssetEditorSession::from_source(
+        route,
+        STYLE_AUTHORING_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("session");
+
+    session
+        .select_hierarchy_index(1)
+        .expect("select button from hierarchy");
+    assert!(session
+        .wrap_selected_node_with("VerticalBox")
+        .expect("wrap selected node"));
+
+    let wrapped = UiAssetLoader::load_toml_str(session.source_buffer().text()).expect("document");
+    let wrapper_id = wrapped
+        .nodes
+        .get("root")
+        .and_then(|node| node.children.first())
+        .map(|child| child.child.clone())
+        .expect("wrapper child");
+    assert_ne!(wrapper_id, "button");
+    assert_eq!(
+        wrapped
+            .nodes
+            .get(&wrapper_id)
+            .and_then(|node| node.widget_type.as_deref()),
+        Some("VerticalBox")
+    );
+    assert_eq!(
+        wrapped
+            .nodes
+            .get(&wrapper_id)
+            .map(|node| node.children.iter().map(|child| child.child.clone()).collect::<Vec<_>>()),
+        Some(vec!["button".to_string()])
+    );
+
+    assert!(session.unwrap_selected_node().expect("unwrap wrapper"));
+    let unwrapped = UiAssetLoader::load_toml_str(session.source_buffer().text()).expect("document");
+    assert_eq!(
+        unwrapped
+            .nodes
+            .get("root")
+            .map(|node| node.children.iter().map(|child| child.child.clone()).collect::<Vec<_>>()),
+        Some(vec!["button".to_string()])
     );
 }
 

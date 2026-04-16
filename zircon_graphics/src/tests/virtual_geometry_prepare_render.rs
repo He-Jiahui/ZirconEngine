@@ -158,6 +158,148 @@ fn virtual_geometry_prepare_filters_mesh_fallback_to_allowed_entities() {
     let _ = fs::remove_dir_all(root);
 }
 
+#[test]
+fn virtual_geometry_prepare_streaming_state_changes_fallback_raster_output() {
+    let root = unique_temp_project_root("graphics_virtual_geometry_streaming");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths.ensure_layout().unwrap();
+    ProjectManifest::new(
+        "GraphicsVirtualGeometryStreaming",
+        AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+        1,
+    )
+    .save(paths.manifest_path())
+    .unwrap();
+
+    write_flat_color_wgsl(
+        paths.assets_root().join("shaders").join("flat_red.wgsl"),
+        [0.95, 0.08, 0.08],
+    );
+    write_flat_color_wgsl(
+        paths.assets_root().join("shaders").join("flat_green.wgsl"),
+        [0.08, 0.95, 0.08],
+    );
+    write_solid_png(
+        paths.assets_root().join("textures").join("white.png"),
+        [255, 255, 255, 255],
+    );
+    write_quad_obj(paths.assets_root().join("models").join("quad.obj"));
+    write_material(
+        paths
+            .assets_root()
+            .join("materials")
+            .join("flat_red.material.toml"),
+        "res://shaders/flat_red.wgsl",
+        "res://textures/white.png",
+    );
+    write_material(
+        paths
+            .assets_root()
+            .join("materials")
+            .join("flat_green.material.toml"),
+        "res://shaders/flat_green.wgsl",
+        "res://textures/white.png",
+    );
+
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    asset_manager
+        .open_project(root.to_string_lossy().as_ref())
+        .unwrap();
+    let mut project = zircon_asset::ProjectManager::open(&root).unwrap();
+    project.scan_and_import().unwrap();
+
+    let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/quad.obj");
+    let red_material =
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/flat_red.material.toml");
+    let green_material = resource_handle::<MaterialMarker>(
+        &asset_manager,
+        "res://materials/flat_green.material.toml",
+    );
+    let viewport_size = UVec2::new(160, 120);
+    let extract = build_extract(viewport_size, model, red_material, green_material);
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(
+            &extract,
+            &RenderPipelineCompileOptions::default()
+                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
+                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
+                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
+                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
+                .with_feature_disabled(BuiltinRenderFeature::Bloom)
+                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
+                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
+                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
+                .with_feature_disabled(BuiltinRenderFeature::Particle)
+                .with_async_compute(false),
+        )
+        .unwrap();
+
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let pending = renderer
+        .render_frame_with_pipeline(
+            &EditorOrRuntimeFrame::from_extract(extract.clone(), ViewportState::new(viewport_size))
+                .with_virtual_geometry_prepare(Some(VirtualGeometryPrepareFrame {
+                    visible_entities: vec![2],
+                    visible_clusters: vec![VirtualGeometryPrepareCluster {
+                        entity: 2,
+                        cluster_id: 2,
+                        page_id: 300,
+                        lod_level: 0,
+                        resident_slot: None,
+                        state: VirtualGeometryPrepareClusterState::PendingUpload,
+                    }],
+                    resident_pages: Vec::new(),
+                    pending_page_requests: vec![crate::types::VirtualGeometryPrepareRequest {
+                        page_id: 300,
+                        size_bytes: 4096,
+                        generation: 5,
+                    }],
+                    evictable_pages: Vec::new(),
+                })),
+            &compiled,
+            None,
+        )
+        .unwrap();
+    let resident = renderer
+        .render_frame_with_pipeline(
+            &EditorOrRuntimeFrame::from_extract(extract, ViewportState::new(viewport_size))
+                .with_virtual_geometry_prepare(Some(VirtualGeometryPrepareFrame {
+                    visible_entities: vec![2],
+                    visible_clusters: vec![VirtualGeometryPrepareCluster {
+                        entity: 2,
+                        cluster_id: 2,
+                        page_id: 300,
+                        lod_level: 0,
+                        resident_slot: Some(1),
+                        state: VirtualGeometryPrepareClusterState::Resident,
+                    }],
+                    resident_pages: vec![VirtualGeometryPreparePage {
+                        page_id: 300,
+                        slot: 1,
+                        size_bytes: 4096,
+                    }],
+                    pending_page_requests: Vec::new(),
+                    evictable_pages: Vec::new(),
+                })),
+            &compiled,
+            None,
+        )
+        .unwrap();
+
+    let pending_green = average_channel(&pending.rgba, 1);
+    let resident_green = average_channel(&resident.rgba, 1);
+    assert!(
+        resident_green > pending_green + 6.0,
+        "expected resident Virtual Geometry clusters to raster more strongly than pending clusters; pending={pending_green:.2}, resident={resident_green:.2}"
+    );
+    assert_ne!(
+        pending.rgba, resident.rgba,
+        "expected cluster streaming state to change fallback raster output"
+    );
+
+    let _ = fs::remove_dir_all(root);
+}
+
 fn unique_temp_project_root(label: &str) -> PathBuf {
     let unique = SystemTime::now()
         .duration_since(UNIX_EPOCH)

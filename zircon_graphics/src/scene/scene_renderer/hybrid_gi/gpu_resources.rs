@@ -20,6 +20,24 @@ struct HybridGiCompletionParams {
     _padding: [u32; 2],
 }
 
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Pod, Zeroable)]
+struct GpuResidentProbeInput {
+    probe_id: u32,
+    slot: u32,
+    ray_budget: u32,
+    _padding: u32,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Pod, Zeroable)]
+struct GpuPendingProbeInput {
+    probe_id: u32,
+    logical_index: u32,
+    ray_budget: u32,
+    _padding: u32,
+}
+
 pub(crate) struct HybridGiGpuResources {
     bind_group_layout: wgpu::BindGroupLayout,
     pipeline: wgpu::ComputePipeline,
@@ -65,7 +83,7 @@ impl HybridGiGpuResources {
                     binding: 3,
                     visibility: wgpu::ShaderStages::COMPUTE,
                     ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Storage { read_only: false },
+                        ty: wgpu::BufferBindingType::Storage { read_only: true },
                         has_dynamic_offset: false,
                         min_binding_size: None,
                     },
@@ -73,6 +91,26 @@ impl HybridGiGpuResources {
                 },
                 wgpu::BindGroupLayoutEntry {
                     binding: 4,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: false },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 5,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: false },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 6,
                     visibility: wgpu::ShaderStages::COMPUTE,
                     ty: wgpu::BindingType::Buffer {
                         ty: wgpu::BufferBindingType::Storage { read_only: false },
@@ -134,15 +172,33 @@ impl HybridGiGpuResources {
             .iter()
             .map(|probe| [probe.probe_id, probe.slot])
             .collect::<Vec<_>>();
-        let pending_probe_ids = prepare
+        let resident_probe_inputs = prepare
+            .resident_probes
+            .iter()
+            .map(|probe| GpuResidentProbeInput {
+                probe_id: probe.probe_id,
+                slot: probe.slot,
+                ray_budget: probe.ray_budget,
+                _padding: 0,
+            })
+            .collect::<Vec<_>>();
+        let pending_probe_inputs = prepare
             .pending_updates
             .iter()
-            .map(|update| update.probe_id)
+            .enumerate()
+            .map(|(index, update)| GpuPendingProbeInput {
+                probe_id: update.probe_id,
+                logical_index: prepare.resident_probes.len() as u32 + index as u32,
+                ray_budget: update.ray_budget,
+                _padding: 0,
+            })
             .collect::<Vec<_>>();
         let trace_region_ids = prepare.scheduled_trace_region_ids.clone();
         let cache_word_count = cache_entries.len() * 2;
-        let completed_probe_word_count = pending_probe_ids.len() + 1;
+        let completed_probe_word_count = pending_probe_inputs.len() + 1;
         let completed_trace_word_count = trace_region_ids.len() + 1;
+        let irradiance_word_count =
+            1 + (resident_probe_inputs.len() + pending_probe_inputs.len()).max(1) * 2;
 
         let cache_buffer = create_u32_storage_buffer(
             device,
@@ -160,10 +216,16 @@ impl HybridGiGpuResources {
             buffer_size_for_words(cache_word_count),
         );
 
-        let pending_probe_buffer = create_u32_storage_buffer(
+        let resident_probe_buffer = create_pod_storage_buffer(
+            device,
+            "zircon-hybrid-gi-resident-probes",
+            &resident_probe_inputs,
+            wgpu::BufferUsages::STORAGE,
+        );
+        let pending_probe_buffer = create_pod_storage_buffer(
             device,
             "zircon-hybrid-gi-pending-probes",
-            &pending_probe_ids,
+            &pending_probe_inputs,
             wgpu::BufferUsages::STORAGE,
         );
         let trace_region_buffer = create_u32_storage_buffer(
@@ -194,10 +256,21 @@ impl HybridGiGpuResources {
             "zircon-hybrid-gi-completed-trace-readback",
             completed_trace_word_count.max(1),
         );
+        let irradiance_buffer = create_u32_storage_buffer(
+            device,
+            "zircon-hybrid-gi-irradiance-buffer",
+            &vec![0_u32; irradiance_word_count.max(1)],
+            wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC,
+        );
+        let irradiance_readback = create_readback_buffer(
+            device,
+            "zircon-hybrid-gi-irradiance-readback",
+            irradiance_word_count.max(1),
+        );
 
         let params = HybridGiCompletionParams {
             resident_probe_count: prepare.resident_probes.len() as u32,
-            pending_probe_count: pending_probe_ids.len() as u32,
+            pending_probe_count: pending_probe_inputs.len() as u32,
             probe_budget,
             trace_region_count: trace_region_ids.len() as u32,
             tracing_budget,
@@ -216,24 +289,35 @@ impl HybridGiGpuResources {
                 },
                 wgpu::BindGroupEntry {
                     binding: 1,
-                    resource: pending_probe_buffer.as_entire_binding(),
+                    resource: resident_probe_buffer.as_entire_binding(),
                 },
                 wgpu::BindGroupEntry {
                     binding: 2,
-                    resource: trace_region_buffer.as_entire_binding(),
+                    resource: pending_probe_buffer.as_entire_binding(),
                 },
                 wgpu::BindGroupEntry {
                     binding: 3,
-                    resource: completed_probe_buffer.as_entire_binding(),
+                    resource: trace_region_buffer.as_entire_binding(),
                 },
                 wgpu::BindGroupEntry {
                     binding: 4,
+                    resource: completed_probe_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 5,
                     resource: completed_trace_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 6,
+                    resource: irradiance_buffer.as_entire_binding(),
                 },
             ],
         });
 
-        let dispatch_count = pending_probe_ids.len().max(trace_region_ids.len());
+        let dispatch_count = resident_probe_inputs
+            .len()
+            .max(pending_probe_inputs.len())
+            .max(trace_region_ids.len());
         if dispatch_count > 0 {
             let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
                 label: Some("HybridGiCompletionPass"),
@@ -262,6 +346,13 @@ impl HybridGiGpuResources {
             0,
             buffer_size_for_words(completed_trace_word_count.max(1)),
         );
+        encoder.copy_buffer_to_buffer(
+            &irradiance_buffer,
+            0,
+            &irradiance_readback,
+            0,
+            buffer_size_for_words(irradiance_word_count.max(1)),
+        );
 
         Ok(Some(HybridGiGpuPendingReadback::new(
             cache_word_count,
@@ -270,6 +361,8 @@ impl HybridGiGpuResources {
             completed_probe_readback,
             completed_trace_word_count.max(1),
             completed_trace_readback,
+            irradiance_word_count.max(1),
+            irradiance_readback,
         )))
     }
 }
@@ -303,4 +396,25 @@ fn create_readback_buffer(
 
 fn buffer_size_for_words(word_count: usize) -> u64 {
     (word_count.max(1) as u64) * U32_SIZE
+}
+
+fn create_pod_storage_buffer<T: Pod + Zeroable>(
+    device: &wgpu::Device,
+    label: &'static str,
+    contents: &[T],
+    usage: wgpu::BufferUsages,
+) -> wgpu::Buffer {
+    if contents.is_empty() {
+        return device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some(label),
+            contents: bytemuck::bytes_of(&T::zeroed()),
+            usage: usage | wgpu::BufferUsages::COPY_DST,
+        });
+    }
+
+    device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        label: Some(label),
+        contents: bytemuck::cast_slice(contents),
+        usage: usage | wgpu::BufferUsages::COPY_DST,
+    })
 }
