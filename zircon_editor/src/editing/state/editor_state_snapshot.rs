@@ -1,4 +1,4 @@
-use zircon_graphics::ViewportState;
+use crate::ViewportState;
 use zircon_scene::{RenderFrameExtract, RenderSceneSnapshot, RenderWorldSnapshotHandle};
 
 use crate::snapshot::{AssetSurfaceMode, EditorDataSnapshot, InspectorSnapshot, SceneEntry};

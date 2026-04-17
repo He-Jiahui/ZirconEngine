@@ -41,6 +41,7 @@ impl PreviewSkyPass {
             }),
             occlusion_query_set: None,
             timestamp_writes: None,
+            multiview_mask: None,
         });
         if frame.scene.preview.skybox_enabled
             && matches!(

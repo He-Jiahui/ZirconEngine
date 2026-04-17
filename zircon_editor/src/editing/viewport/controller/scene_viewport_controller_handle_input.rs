@@ -1,4 +1,4 @@
-use zircon_graphics::{ViewportFeedback, ViewportInput};
+use crate::{ViewportFeedback, ViewportInput};
 use zircon_math::Vec2;
 use zircon_scene::{Scene, SceneViewportTool};
 

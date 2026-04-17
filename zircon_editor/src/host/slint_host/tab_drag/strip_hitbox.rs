@@ -1,3 +1,9 @@
+use crate::host::slint_host::callback_dispatch::BuiltinWorkbenchRootShellFrames;
+use crate::host::slint_host::root_shell_projection::{
+    resolve_root_bottom_region_frame, resolve_root_center_band_frame,
+    resolve_root_document_region_frame, resolve_root_left_region_frame,
+    resolve_root_right_region_frame,
+};
 use crate::{
     ActivityDrawerMode, ActivityDrawerSlot, DocumentTabModel, PaneTabModel, ShellRegionId,
     TabInsertionAnchor, TabInsertionSide, ToolWindowStackModel, ViewHost, ViewInstanceId,
@@ -39,8 +45,9 @@ pub(super) fn precise_drop_target(
     target_group: &str,
     pointer_x: f32,
     pointer_y: f32,
+    shared_root_frames: Option<&BuiltinWorkbenchRootShellFrames>,
 ) -> Option<ResolvedTabDrop> {
-    let strip = strip_hit_box(model, geometry, metrics, target_group)?;
+    let strip = strip_hit_box(model, geometry, metrics, target_group, shared_root_frames)?;
     if pointer_y < strip.y
         || pointer_y > strip.y + strip.height
         || pointer_x < strip.start_x
@@ -107,6 +114,7 @@ fn strip_hit_box(
     geometry: &WorkbenchShellGeometry,
     metrics: &WorkbenchChromeMetrics,
     target_group: &str,
+    shared_root_frames: Option<&BuiltinWorkbenchRootShellFrames>,
 ) -> Option<TabStripHitBox> {
     match target_group {
         "left" => tool_strip_hit_box(
@@ -116,6 +124,7 @@ fn strip_hit_box(
             &[ActivityDrawerSlot::LeftTop, ActivityDrawerSlot::LeftBottom],
             ShellRegionId::Left,
             true,
+            shared_root_frames,
         ),
         "right" => tool_strip_hit_box(
             model,
@@ -127,9 +136,10 @@ fn strip_hit_box(
             ],
             ShellRegionId::Right,
             false,
+            shared_root_frames,
         ),
-        "bottom" => bottom_strip_hit_box(model, geometry, metrics),
-        "document" => document_strip_hit_box(model, geometry),
+        "bottom" => bottom_strip_hit_box(model, geometry, metrics, shared_root_frames),
+        "document" => document_strip_hit_box(model, geometry, shared_root_frames),
         _ => None,
     }
 }
@@ -141,12 +151,17 @@ fn tool_strip_hit_box(
     slots: &[ActivityDrawerSlot],
     region: ShellRegionId,
     rail_on_left: bool,
+    shared_root_frames: Option<&BuiltinWorkbenchRootShellFrames>,
 ) -> Option<TabStripHitBox> {
     if !group_expanded(model, slots) {
         return None;
     }
 
-    let frame = geometry.region_frame(region);
+    let frame = match region {
+        ShellRegionId::Left => resolve_root_left_region_frame(geometry, shared_root_frames),
+        ShellRegionId::Right => resolve_root_right_region_frame(geometry, shared_root_frames),
+        _ => geometry.region_frame(region),
+    };
     if frame.width <= 0.0 {
         return None;
     }
@@ -175,12 +190,11 @@ fn tool_strip_hit_box(
     } else {
         frame.right() - metrics.rail_width - metrics.separator_thickness - 6.0
     };
-
     Some(TabStripHitBox {
         style: StripStyle::Dock,
         start_x,
         end_x,
-        y: geometry.center_band_frame.y + 2.0,
+        y: frame.y + 2.0,
         height: 22.0,
         spacing: 4.0,
         tabs,
@@ -191,6 +205,7 @@ fn bottom_strip_hit_box(
     model: &WorkbenchViewModel,
     geometry: &WorkbenchShellGeometry,
     metrics: &WorkbenchChromeMetrics,
+    shared_root_frames: Option<&BuiltinWorkbenchRootShellFrames>,
 ) -> Option<TabStripHitBox> {
     if !group_expanded(
         model,
@@ -202,7 +217,7 @@ fn bottom_strip_hit_box(
         return None;
     }
 
-    let frame = geometry.region_frame(ShellRegionId::Bottom);
+    let frame = resolve_root_bottom_region_frame(geometry, shared_root_frames);
     if frame.width <= 0.0 || frame.height <= 0.0 {
         return None;
     }
@@ -238,8 +253,9 @@ fn bottom_strip_hit_box(
 fn document_strip_hit_box(
     model: &WorkbenchViewModel,
     geometry: &WorkbenchShellGeometry,
+    shared_root_frames: Option<&BuiltinWorkbenchRootShellFrames>,
 ) -> Option<TabStripHitBox> {
-    let frame = geometry.region_frame(ShellRegionId::Document);
+    let frame = resolve_root_document_region_frame(geometry, shared_root_frames);
     if frame.width <= 0.0 {
         return None;
     }
@@ -252,12 +268,13 @@ fn document_strip_hit_box(
     if tabs.is_empty() {
         return None;
     }
+    let resolved_center_band_frame = resolve_root_center_band_frame(geometry, shared_root_frames);
 
     Some(TabStripHitBox {
         style: StripStyle::Document,
         start_x: frame.x + 8.0,
         end_x: frame.right() - 8.0,
-        y: geometry.center_band_frame.y + 1.0,
+        y: resolved_center_band_frame.y + 1.0,
         height: 30.0,
         spacing: 2.0,
         tabs,

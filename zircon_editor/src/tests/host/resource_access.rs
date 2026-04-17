@@ -1,9 +1,10 @@
 use crossbeam_channel::unbounded;
 use zircon_manager::{
-    AssetRecordKind, ResourceChangeRecord, ResourceManager, ResourceStateRecord,
-    ResourceStatusRecord,
+    ResourceChangeRecord, ResourceManager, ResourceStateRecord, ResourceStatusRecord,
 };
-use zircon_resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId, ResourceLocator};
+use zircon_resource::{
+    MaterialMarker, ModelMarker, ResourceHandle, ResourceId, ResourceKind, ResourceLocator,
+};
 
 #[test]
 fn resolve_ready_handle_returns_typed_handle_from_resource_server() {
@@ -11,7 +12,7 @@ fn resolve_ready_handle_returns_typed_handle_from_resource_server() {
     let expected_id = ResourceId::from_locator(&locator);
     let server = FakeResourceServer::new(vec![status(
         &locator.to_string(),
-        AssetRecordKind::Model,
+        ResourceKind::Model,
         ResourceStateRecord::Ready,
     )]);
 
@@ -28,7 +29,7 @@ fn resolve_ready_handle_surfaces_non_ready_state_and_diagnostics() {
     let server = FakeResourceServer::new(vec![ResourceStatusRecord {
         id: ResourceId::from_locator(&locator).to_string(),
         locator: locator.to_string(),
-        kind: AssetRecordKind::Material,
+        kind: ResourceKind::Material,
         artifact_locator: Some("lib://materials/default.material.bin".to_string()),
         revision: 2,
         state: ResourceStateRecord::Error,
@@ -88,11 +89,7 @@ impl ResourceManager for FakeResourceServer {
     }
 }
 
-fn status(
-    locator: &str,
-    kind: AssetRecordKind,
-    state: ResourceStateRecord,
-) -> ResourceStatusRecord {
+fn status(locator: &str, kind: ResourceKind, state: ResourceStateRecord) -> ResourceStatusRecord {
     let locator = ResourceLocator::parse(locator).unwrap();
     ResourceStatusRecord {
         id: ResourceId::from_locator(&locator).to_string(),

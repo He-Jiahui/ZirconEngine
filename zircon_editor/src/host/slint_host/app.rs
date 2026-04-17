@@ -8,12 +8,13 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use slint::{ComponentHandle, Timer, TimerMode};
-use zircon_asset::{ProjectManager, ProjectPaths};
+use zircon_asset::{
+    EditorAssetChangeRecord, EditorAssetManager as EditorAssetManagerFacade, ProjectManager,
+    ProjectPaths,
+};
 use zircon_core::{ChannelReceiver, CoreHandle};
 use zircon_manager::{
-    AssetChangeRecord, AssetManager, EditorAssetChangeRecord,
-    EditorAssetManager as EditorAssetManagerFacade, ManagerResolver, ResourceChangeRecord,
-    ResourceManager,
+    AssetChangeRecord, AssetManager, ManagerResolver, ResourceChangeRecord, ResourceManager,
 };
 use zircon_math::UVec2;
 use zircon_resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceLocator};
@@ -26,15 +27,15 @@ use crate::paths::canonical_model_source_path;
 use crate::project::EditorProjectDocument;
 use crate::snapshot::ViewContentKind;
 use crate::{
-    compute_workbench_shell_geometry, ActivityDrawerMode, EditorManager, EditorSessionMode,
+    ActivityDrawerMode, EDITOR_MANAGER_NAME, EditorManager, EditorSessionMode,
     EditorStartupSessionDocument, EditorState, MainPageId, ShellRegionId, ShellSizePx,
     WelcomeHostEvent, WorkbenchChromeMetrics, WorkbenchShellGeometry, WorkbenchViewModel,
-    EDITOR_MANAGER_NAME,
+    compute_workbench_shell_geometry,
 };
 
 use super::activity_rail_pointer::{
-    build_workbench_activity_rail_pointer_layout, WorkbenchActivityRailPointerBridge,
-    WorkbenchActivityRailPointerSide,
+    WorkbenchActivityRailPointerBridge, WorkbenchActivityRailPointerSide,
+    build_workbench_activity_rail_pointer_layout,
 };
 use super::asset_pointer::{
     AssetContentListPointerBridge, AssetContentListPointerLayout, AssetFolderTreePointerBridge,
@@ -47,29 +48,30 @@ use super::detail_pointer::{
     inspector_scroll_layout,
 };
 use super::document_tab_pointer::{
-    build_workbench_document_tab_pointer_layout, WorkbenchDocumentTabPointerBridge,
+    WorkbenchDocumentTabPointerBridge, build_workbench_document_tab_pointer_layout,
 };
 use super::drawer_header_pointer::{
-    build_workbench_drawer_header_pointer_layout, WorkbenchDrawerHeaderPointerBridge,
+    WorkbenchDrawerHeaderPointerBridge, build_workbench_drawer_header_pointer_layout,
 };
 use super::drawer_resize::dispatch_resize_to_group;
 use super::event_bridge::SlintDispatchEffects;
+use super::floating_window_projection::FloatingWindowProjectionBundle;
 use super::hierarchy_pointer::{
     HierarchyPointerBridge, HierarchyPointerLayout, HierarchyPointerState,
 };
 use super::host_page_pointer::{
-    build_workbench_host_page_pointer_layout, WorkbenchHostPagePointerBridge,
+    WorkbenchHostPagePointerBridge, build_workbench_host_page_pointer_layout,
 };
 use super::menu_pointer::{
     WorkbenchMenuPointerBridge, WorkbenchMenuPointerLayout, WorkbenchMenuPointerState,
 };
 use super::scroll_surface_host::ScrollSurfaceHostState;
 use super::shell_pointer::{WorkbenchShellPointerBridge, WorkbenchShellPointerRoute};
-use super::tab_drag::{resolve_workbench_tab_drop_route, workbench_shell_pointer_route_group_key};
+use super::tab_drag::workbench_shell_pointer_route_group_key;
 use super::ui::apply_presentation;
 use super::viewport::SlintViewportController;
 use super::viewport_toolbar_pointer::{
-    build_viewport_toolbar_pointer_layout_with_size, ViewportToolbarPointerBridge,
+    ViewportToolbarPointerBridge, build_viewport_toolbar_pointer_layout_with_size,
 };
 use super::welcome_recent_pointer::{
     WelcomeRecentPointerAction, WelcomeRecentPointerBridge, WelcomeRecentPointerLayout,
@@ -105,15 +107,14 @@ mod workbench_pointer;
 mod workspace_docking;
 use callback_wiring::wire_callbacks;
 pub(super) use helpers::{
-    asset_surface_visible, compute_window_menu_popup_height, frame_rect_to_ui_frame,
-    resolve_callback_source_window_id, shell_region_group_key, stage_model_source,
-    viewport_size_from_frame,
+    asset_surface_visible, compute_window_menu_popup_height, resolve_callback_source_window_id,
+    shell_region_group_key, stage_model_source, viewport_size_from_frame,
 };
 #[cfg(test)]
 pub(crate) use native_windows::NativeFloatingWindowTarget;
 pub(crate) use native_windows::{
-    collect_native_floating_window_targets, configure_native_floating_window_presentation,
-    NativeWindowPresenterStore,
+    NativeWindowPresenterStore, collect_native_floating_window_targets,
+    configure_native_floating_window_presentation,
 };
 pub(super) use startup::build_startup_state;
 
@@ -158,6 +159,7 @@ struct SlintEditorHost {
     viewport_size: UVec2,
     viewport_pointer_bridge: callback_dispatch::SharedViewportPointerBridge,
     template_bridge: callback_dispatch::BuiltinWorkbenchTemplateBridge,
+    floating_window_source_bridge: callback_dispatch::BuiltinFloatingWindowSourceTemplateBridge,
     viewport_toolbar_bridge: callback_dispatch::BuiltinViewportToolbarTemplateBridge,
     viewport_toolbar_pointer_bridge: ViewportToolbarPointerBridge,
     asset_surface_bridge: callback_dispatch::BuiltinAssetSurfaceTemplateBridge,
@@ -184,6 +186,7 @@ struct SlintEditorHost {
     activity_asset_pointer: AssetSurfacePointerState,
     browser_asset_pointer: AssetSurfacePointerState,
     native_window_presenters: NativeWindowPresenterStore,
+    floating_window_projection_bundle: FloatingWindowProjectionBundle,
     callback_source_window: Option<MainPageId>,
     last_focused_callback_window: Option<MainPageId>,
     active_layout_preset: Option<String>,

@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::UiEventKind;
+use crate::{UiActionRef, UiEventKind};
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct UiTemplateDocument {
@@ -29,12 +29,14 @@ pub struct UiSlotTemplate {
     pub multiple: bool,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiBindingRef {
     pub id: String,
     pub event: UiEventKind,
     #[serde(default)]
     pub route: Option<String>,
+    #[serde(default)]
+    pub action: Option<UiActionRef>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]

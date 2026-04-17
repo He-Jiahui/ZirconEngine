@@ -10,6 +10,8 @@ mod pipeline;
 mod project;
 mod watch;
 
+use zircon_module::{EngineModule, ModuleDescriptor};
+
 pub(crate) use pipeline::{types, worker_pool};
 
 pub use artifact::{ArtifactStore, LibraryCacheKey};
@@ -20,7 +22,10 @@ pub use assets::{
     UiLayoutAsset, UiStyleAsset, UiWidgetAsset,
 };
 pub use editor::{
-    AssetCatalogRecord, DefaultEditorAssetManager, PreviewArtifactKey, PreviewCache,
+    resolve_editor_asset_manager, AssetCatalogRecord, DefaultEditorAssetManager,
+    EditorAssetCatalogRecord, EditorAssetCatalogSnapshotRecord, EditorAssetChangeKind,
+    EditorAssetChangeRecord, EditorAssetDetailsRecord, EditorAssetFolderRecord, EditorAssetManager,
+    EditorAssetManagerHandle, EditorAssetReferenceRecord, PreviewArtifactKey, PreviewCache,
     PreviewScheduler, ReferenceGraph,
 };
 pub use importer::{AssetImportError, AssetImporter};
@@ -54,6 +59,23 @@ pub type AssetRegistry = ResourceRegistry;
 pub type AssetUri = ResourceLocator;
 pub type AssetUriError = ResourceLocatorError;
 pub type AssetUriScheme = ResourceScheme;
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct AssetModule;
+
+impl EngineModule for AssetModule {
+    fn module_name(&self) -> &'static str {
+        ASSET_MODULE_NAME
+    }
+
+    fn module_description(&self) -> &'static str {
+        "Project asset pipeline, import workers, and resource indexing"
+    }
+
+    fn descriptor(&self) -> ModuleDescriptor {
+        module_descriptor()
+    }
+}
 
 #[cfg(test)]
 mod tests;

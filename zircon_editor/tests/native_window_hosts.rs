@@ -7,7 +7,8 @@ use zircon_editor::{
     module_descriptor, EditorManager, MainPageId, NativeWindowHostState, ProjectEditorWorkspace,
     ViewDescriptorId, ViewHost, ViewInstance, ViewInstanceId, WorkbenchLayout, EDITOR_MANAGER_NAME,
 };
-use zircon_manager::{resolve_config_manager, MANAGER_MODULE_NAME};
+use zircon_foundation::{module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME};
+use zircon_manager::resolve_config_manager;
 
 fn env_lock() -> &'static Mutex<()> {
     static ENV_LOCK: Mutex<()> = Mutex::new(());
@@ -26,13 +27,13 @@ fn editor_runtime_with_config_path(path: &std::path::Path) -> CoreRuntime {
     std::env::set_var("ZIRCON_EDITOR_CONFIG_PATH", path);
     let runtime = CoreRuntime::new();
     runtime
-        .register_module(zircon_manager::module_descriptor())
+        .register_module(foundation_module_descriptor())
         .unwrap();
     runtime
         .register_module(zircon_asset::module_descriptor())
         .unwrap();
     runtime.register_module(module_descriptor()).unwrap();
-    runtime.activate_module(MANAGER_MODULE_NAME).unwrap();
+    runtime.activate_module(FOUNDATION_MODULE_NAME).unwrap();
     runtime
         .activate_module(zircon_asset::ASSET_MODULE_NAME)
         .unwrap();

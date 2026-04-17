@@ -1,11 +1,9 @@
 use zircon_manager::{
-    AssetRecordKind, AssetStatusRecord, ProjectInfo, ResourceChangeKind, ResourceChangeRecord,
-    ResourceStateRecord, ResourceStatusRecord,
+    AssetStatusRecord, ProjectInfo, ResourceChangeKind, ResourceChangeRecord, ResourceStateRecord,
+    ResourceStatusRecord,
 };
 
-use crate::{
-    AssetKind, AssetMetadata, ProjectManager, ResourceEvent, ResourceEventKind, ResourceState,
-};
+use crate::{AssetMetadata, ProjectManager, ResourceEvent, ResourceEventKind, ResourceState};
 
 pub(super) fn project_info(project: &ProjectManager) -> ProjectInfo {
     ProjectInfo {
@@ -20,16 +18,7 @@ pub(super) fn status_record(metadata: &AssetMetadata) -> AssetStatusRecord {
     AssetStatusRecord {
         id: metadata.id().to_string(),
         uri: metadata.primary_locator().to_string(),
-        kind: match metadata.kind {
-            AssetKind::Texture => AssetRecordKind::Texture,
-            AssetKind::Shader => AssetRecordKind::Shader,
-            AssetKind::Material => AssetRecordKind::Material,
-            AssetKind::Scene => AssetRecordKind::Scene,
-            AssetKind::Model => AssetRecordKind::Model,
-            AssetKind::UiLayout => AssetRecordKind::UiLayout,
-            AssetKind::UiWidget => AssetRecordKind::UiWidget,
-            AssetKind::UiStyle => AssetRecordKind::UiStyle,
-        },
+        kind: metadata.kind,
         artifact_uri: metadata.artifact_locator().map(ToString::to_string),
         imported: metadata.artifact_locator().is_some(),
         source_hash: metadata.source_hash.clone(),
@@ -42,16 +31,7 @@ pub(super) fn resource_status_record(metadata: &AssetMetadata) -> ResourceStatus
     ResourceStatusRecord {
         id: metadata.id().to_string(),
         locator: metadata.primary_locator().to_string(),
-        kind: match metadata.kind {
-            AssetKind::Texture => AssetRecordKind::Texture,
-            AssetKind::Shader => AssetRecordKind::Shader,
-            AssetKind::Material => AssetRecordKind::Material,
-            AssetKind::Scene => AssetRecordKind::Scene,
-            AssetKind::Model => AssetRecordKind::Model,
-            AssetKind::UiLayout => AssetRecordKind::UiLayout,
-            AssetKind::UiWidget => AssetRecordKind::UiWidget,
-            AssetKind::UiStyle => AssetRecordKind::UiStyle,
-        },
+        kind: metadata.kind,
         artifact_locator: metadata.artifact_locator().map(ToString::to_string),
         revision: metadata.revision,
         state: match metadata.state {

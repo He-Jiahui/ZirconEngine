@@ -1,6 +1,8 @@
 use zircon_math::Vec2;
 use zircon_scene::{HandleOverlayExtract, Scene, ViewportCameraSnapshot};
 
+use crate::GizmoAxis;
+
 use super::{viewport_drag_session::ViewportDragSession, SceneViewportController};
 
 impl SceneViewportController {
@@ -17,7 +19,7 @@ impl SceneViewportController {
         &mut self,
         scene: &Scene,
         cursor: Vec2,
-        axis: zircon_graphics::GizmoAxis,
+        axis: GizmoAxis,
     ) -> bool {
         let camera = self.current_camera(scene);
         let Some(session) =

@@ -1,6 +1,5 @@
-use zircon_manager::{
-    EditorAssetCatalogSnapshotRecord, EditorAssetDetailsRecord, ResourceStatusRecord,
-};
+use zircon_asset::{EditorAssetCatalogSnapshotRecord, EditorAssetDetailsRecord};
+use zircon_manager::ResourceStatusRecord;
 use zircon_resource::{MaterialMarker, ModelMarker, ResourceHandle};
 use zircon_scene::LevelSystem;
 
@@ -53,7 +52,7 @@ impl EditorEventRuntime {
         self.inner.lock().unwrap().state.render_frame_extract()
     }
 
-    pub fn viewport_state(&self) -> zircon_graphics::ViewportState {
+    pub fn viewport_state(&self) -> crate::ViewportState {
         self.inner.lock().unwrap().state.viewport_state()
     }
 

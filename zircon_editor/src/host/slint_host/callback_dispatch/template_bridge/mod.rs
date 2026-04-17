@@ -1,4 +1,5 @@
 mod asset_surface;
+mod floating_window_source;
 mod inspector_surface;
 mod pane_surface;
 mod viewport_toolbar;
@@ -15,11 +16,14 @@ use crate::host::template_runtime::{
 };
 
 pub(crate) use asset_surface::BuiltinAssetSurfaceTemplateBridge;
+pub(crate) use floating_window_source::{
+    BuiltinFloatingWindowSourceFrames, BuiltinFloatingWindowSourceTemplateBridge,
+};
 pub(crate) use inspector_surface::BuiltinInspectorSurfaceTemplateBridge;
 pub(crate) use pane_surface::BuiltinPaneSurfaceTemplateBridge;
 pub(crate) use viewport_toolbar::BuiltinViewportToolbarTemplateBridge;
 pub(crate) use welcome_surface::BuiltinWelcomeSurfaceTemplateBridge;
-pub(crate) use workbench::BuiltinWorkbenchTemplateBridge;
+pub(crate) use workbench::{BuiltinWorkbenchRootShellFrames, BuiltinWorkbenchTemplateBridge};
 
 fn build_bindings_by_id(projection: &SlintUiProjection) -> BTreeMap<String, EditorUiBinding> {
     projection

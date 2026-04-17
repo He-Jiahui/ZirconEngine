@@ -1,7 +1,7 @@
 use zircon_editor_ui::EditorUiBinding;
 
 use crate::editor_event::{EditorEventEnvelope, EditorEventRuntime, EditorEventSource};
-use crate::host::slint_host::event_bridge::{apply_record_effects, SlintDispatchEffects};
+use crate::host::slint_host::event_bridge::{SlintDispatchEffects, apply_record_effects};
 
 pub(crate) fn dispatch_envelope(
     runtime: &EditorEventRuntime,

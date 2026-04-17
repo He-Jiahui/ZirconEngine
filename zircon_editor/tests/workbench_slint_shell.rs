@@ -143,17 +143,17 @@ fn menu_popups_anchor_to_actual_menu_buttons_instead_of_hardcoded_offsets() {
     assert!(source.contains("x: menu_button_row.x / 1px + help_menu_button.x / 1px,"));
 
     assert!(source.contains("if root.open_menu_index == 0: Rectangle {"));
-    assert!(source.contains("x: top_bar.file_menu_button_local_frame.x * 1px;"));
+    assert!(source.contains("x: root.file_menu_button_frame.x * 1px;"));
     assert!(source.contains("if root.open_menu_index == 1: Rectangle {"));
-    assert!(source.contains("x: top_bar.edit_menu_button_local_frame.x * 1px;"));
+    assert!(source.contains("x: root.edit_menu_button_frame.x * 1px;"));
     assert!(source.contains("if root.open_menu_index == 2: Rectangle {"));
-    assert!(source.contains("x: top_bar.selection_menu_button_local_frame.x * 1px;"));
+    assert!(source.contains("x: root.selection_menu_button_frame.x * 1px;"));
     assert!(source.contains("if root.open_menu_index == 3: Rectangle {"));
-    assert!(source.contains("x: top_bar.view_menu_button_local_frame.x * 1px;"));
+    assert!(source.contains("x: root.view_menu_button_frame.x * 1px;"));
     assert!(source.contains("if root.open_menu_index == 4: Rectangle {"));
-    assert!(source.contains("x: top_bar.window_menu_button_local_frame.x * 1px;"));
+    assert!(source.contains("x: root.window_menu_button_frame.x * 1px;"));
     assert!(source.contains("if root.open_menu_index == 5: Rectangle {"));
-    assert!(source.contains("x: top_bar.help_menu_button_local_frame.x * 1px;"));
+    assert!(source.contains("x: root.help_menu_button_frame.x * 1px;"));
 
     assert!(!source.contains("x: root.outer_margin + 10px;"));
     assert!(!source.contains("x: root.outer_margin + 62px;"));
@@ -329,6 +329,182 @@ fn ui_asset_editor_pane_declares_interactive_callbacks_and_multiline_source_edit
     assert!(panes.contains("callback hierarchy_selected(item_index: int);"));
     assert!(panes.contains("callback preview_selected(item_index: int);"));
     assert!(panes.contains("TextEdit {"));
+}
+
+#[test]
+fn ui_asset_editor_pane_declares_open_reference_action_and_state_binding() {
+    let source = shell_source();
+    let panes = panes_source();
+    let pane_block = block_after(
+        &panes,
+        "export component UiAssetEditorPane inherits Rectangle {",
+    );
+    let pane_surface = block_after(
+        &source,
+        "if !root.pane.show_empty && root.pane.kind == \"UiAssetEditor\": UiAssetEditorPane {",
+    );
+
+    assert!(source.contains("ui_asset_can_open_reference: bool,"));
+    assert!(pane_surface.contains("can_open_reference: root.pane.ui_asset_can_open_reference;"));
+
+    assert!(pane_block.contains("in property <bool> can_open_reference;"));
+    assert!(pane_block.contains("label: \"Open Ref\";"));
+    assert!(pane_block.contains("enabled: root.can_open_reference;"));
+    assert!(pane_block.contains("active: root.can_open_reference;"));
+    assert!(pane_block.contains("root.action(\"reference.open\");"));
+}
+
+#[test]
+fn ui_asset_editor_pane_declares_preview_preset_controls_and_state_binding() {
+    let source = shell_source();
+    let panes = panes_source();
+    let pane_block = block_after(
+        &panes,
+        "export component UiAssetEditorPane inherits Rectangle {",
+    );
+    let pane_surface = block_after(
+        &source,
+        "if !root.pane.show_empty && root.pane.kind == \"UiAssetEditor\": UiAssetEditorPane {",
+    );
+
+    assert!(source.contains("ui_asset_preview_preset: string,"));
+    assert!(pane_surface.contains("preview_preset: root.pane.ui_asset_preview_preset;"));
+
+    assert!(pane_block.contains("in property <string> preview_preset;"));
+    assert!(pane_block.contains("label: \"Docked\";"));
+    assert!(pane_block.contains("active: root.preview_preset == \"Editor Docked\";"));
+    assert!(pane_block.contains("root.action(\"preview.preset.editor_docked\");"));
+    assert!(pane_block.contains("label: \"Float\";"));
+    assert!(pane_block.contains("active: root.preview_preset == \"Editor Floating\";"));
+    assert!(pane_block.contains("root.action(\"preview.preset.editor_floating\");"));
+    assert!(pane_block.contains("label: \"HUD\";"));
+    assert!(pane_block.contains("active: root.preview_preset == \"Game HUD\";"));
+    assert!(pane_block.contains("root.action(\"preview.preset.game_hud\");"));
+    assert!(pane_block.contains("label: \"Dialog\";"));
+    assert!(pane_block.contains("active: root.preview_preset == \"Dialog\";"));
+    assert!(pane_block.contains("root.action(\"preview.preset.dialog\");"));
+}
+
+#[test]
+fn ui_asset_editor_pane_declares_slot_aware_external_palette_drop_overlays() {
+    let panes = panes_source();
+    let canvas_block = block_after(
+        &panes,
+        "component UiAssetCanvasSurface inherits Rectangle {",
+    );
+
+    assert!(canvas_block.contains("root.external_drag_target_action == \"palette.insert.child\""));
+    assert!(canvas_block.contains("root.external_drag_target_action == \"palette.insert.after\""));
+    assert!(canvas_block.contains("text: root.external_drag_target_label;"));
+    assert!(canvas_block.contains("drop_inside_overlay := Rectangle {"));
+    assert!(canvas_block.contains("drop_after_overlay := Rectangle {"));
+}
+
+#[test]
+fn ui_asset_editor_pane_declares_explicit_palette_slot_target_overlay_projection() {
+    let source = shell_source();
+    let panes = panes_source();
+    let pane_block = block_after(
+        &panes,
+        "export component UiAssetEditorPane inherits Rectangle {",
+    );
+    let pane_surface = block_after(
+        &source,
+        "if !root.pane.show_empty && root.pane.kind == \"UiAssetEditor\": UiAssetEditorPane {",
+    );
+    let canvas_block = block_after(
+        &panes,
+        "component UiAssetCanvasSurface inherits Rectangle {",
+    );
+
+    assert!(panes.contains("export struct UiAssetCanvasSlotTargetData {"));
+    assert!(source.contains("UiAssetCanvasSlotTargetData"));
+    assert!(
+        source.contains("ui_asset_palette_drag_slot_target_items: [UiAssetCanvasSlotTargetData],")
+    );
+    assert!(pane_surface.contains(
+        "palette_drag_slot_target_items: root.pane.ui_asset_palette_drag_slot_target_items;"
+    ));
+
+    assert!(pane_block
+        .contains("in property <[UiAssetCanvasSlotTargetData]> palette_drag_slot_target_items;"));
+    assert!(pane_block.contains("external_slot_target_items: root.palette_drag_slot_target_items;"));
+
+    assert!(canvas_block
+        .contains("in property <[UiAssetCanvasSlotTargetData]> external_slot_target_items;"));
+    assert!(canvas_block.contains(
+        "for target[index] in root.external_slot_target_items: external_slot_target := Rectangle {"
+    ));
+    assert!(canvas_block.contains("target.selected ? 2px : 1px;"));
+    assert!(canvas_block.contains("target.label"));
+    assert!(canvas_block.contains("root.external_slot_target_items.length == 0"));
+}
+
+#[test]
+fn ui_asset_editor_pane_declares_mock_preview_controls_and_callbacks() {
+    let source = shell_source();
+    let panes = panes_source();
+    let pane_surface = block_after(
+        &source,
+        "if !root.pane.show_empty && root.pane.kind == \"UiAssetEditor\": UiAssetEditorPane {",
+    );
+    let pane_block = block_after(
+        &panes,
+        "export component UiAssetEditorPane inherits Rectangle {",
+    );
+
+    assert!(source.contains("ui_asset_preview_mock_items: [string],"));
+    assert!(source.contains("ui_asset_preview_mock_selected_index: int,"));
+    assert!(source.contains("ui_asset_preview_mock_property: string,"));
+    assert!(source.contains("ui_asset_preview_mock_kind: string,"));
+    assert!(source.contains("ui_asset_preview_mock_value: string,"));
+    assert!(source.contains("ui_asset_preview_mock_can_edit: bool,"));
+    assert!(source.contains("ui_asset_preview_mock_can_clear: bool,"));
+    assert!(source.contains(
+        "callback ui_asset_preview_mock_selected(instance_id: string, item_index: int);"
+    ));
+    assert!(source.contains(
+        "callback ui_asset_preview_mock_action(instance_id: string, action_id: string, value: string);"
+    ));
+    assert!(pane_surface.contains("preview_mock_items: root.pane.ui_asset_preview_mock_items;"));
+    assert!(pane_surface
+        .contains("preview_mock_selected_index: root.pane.ui_asset_preview_mock_selected_index;"));
+    assert!(
+        pane_surface.contains("preview_mock_property: root.pane.ui_asset_preview_mock_property;")
+    );
+    assert!(pane_surface.contains("preview_mock_kind: root.pane.ui_asset_preview_mock_kind;"));
+    assert!(pane_surface.contains("preview_mock_value: root.pane.ui_asset_preview_mock_value;"));
+    assert!(
+        pane_surface.contains("preview_mock_can_edit: root.pane.ui_asset_preview_mock_can_edit;")
+    );
+    assert!(
+        pane_surface.contains("preview_mock_can_clear: root.pane.ui_asset_preview_mock_can_clear;")
+    );
+    assert!(pane_surface.contains(
+        "preview_mock_selected(item_index) => { root.ui_asset_preview_mock_selected(root.pane.id, item_index); }"
+    ));
+    assert!(pane_surface.contains(
+        "preview_mock_action(action_id, value) => { root.ui_asset_preview_mock_action(root.pane.id, action_id, value); }"
+    ));
+
+    assert!(pane_block.contains("in property <[string]> preview_mock_items;"));
+    assert!(pane_block.contains("in property <int> preview_mock_selected_index;"));
+    assert!(pane_block.contains("in property <string> preview_mock_property;"));
+    assert!(pane_block.contains("in property <string> preview_mock_kind;"));
+    assert!(pane_block.contains("in property <string> preview_mock_value;"));
+    assert!(pane_block.contains("in property <bool> preview_mock_can_edit;"));
+    assert!(pane_block.contains("in property <bool> preview_mock_can_clear;"));
+    assert!(pane_block.contains("callback preview_mock_selected(item_index: int);"));
+    assert!(pane_block.contains("callback preview_mock_action(action_id: string, value: string);"));
+    assert!(panes.contains("title: \"Mock Preview\";"));
+    assert!(panes.contains("items: root.preview_mock_items;"));
+    assert!(panes.contains("selected_index: root.preview_mock_selected_index;"));
+    assert!(panes.contains("root.preview_mock_selected(item_index);"));
+    assert!(panes.contains("text: root.preview_mock_property;"));
+    assert!(panes.contains("text: root.preview_mock_kind;"));
+    assert!(panes.contains("root.preview_mock_value;"));
+    assert!(panes.contains("root.preview_mock_action(\"preview.mock.value.set\""));
+    assert!(panes.contains("root.preview_mock_action(\"preview.mock.clear\", \"\");"));
 }
 
 #[test]
@@ -836,6 +1012,72 @@ fn ui_asset_editor_pane_declares_layout_inspector_editing_controls() {
 }
 
 #[test]
+fn ui_asset_editor_pane_declares_parent_specific_semantic_inspector_controls() {
+    let source = shell_source();
+    let panes = panes_source();
+    let pane_block = block_after(
+        &panes,
+        "export component UiAssetEditorPane inherits Rectangle {",
+    );
+    let pane_surface = block_after(
+        &source,
+        "if !root.pane.show_empty && root.pane.kind == \"UiAssetEditor\": UiAssetEditorPane {",
+    );
+
+    assert!(source.contains("ui_asset_inspector_slot_semantic_title: string,"));
+    assert!(source.contains("ui_asset_inspector_slot_semantic_items: [string],"));
+    assert!(source.contains("ui_asset_inspector_slot_semantic_selected_index: int,"));
+    assert!(source.contains("ui_asset_inspector_slot_semantic_path: string,"));
+    assert!(source.contains("ui_asset_inspector_slot_semantic_value: string,"));
+    assert!(source.contains("ui_asset_inspector_layout_semantic_title: string,"));
+    assert!(source.contains("ui_asset_inspector_layout_semantic_items: [string],"));
+    assert!(source.contains("ui_asset_inspector_layout_semantic_selected_index: int,"));
+    assert!(source.contains("ui_asset_inspector_layout_semantic_path: string,"));
+    assert!(source.contains("ui_asset_inspector_layout_semantic_value: string,"));
+    assert!(source.contains(
+        "callback ui_asset_slot_semantic_selected(instance_id: string, item_index: int);"
+    ));
+    assert!(source.contains(
+        "callback ui_asset_layout_semantic_selected(instance_id: string, item_index: int);"
+    ));
+
+    assert!(pane_surface.contains(
+        "inspector_slot_semantic_title: root.pane.ui_asset_inspector_slot_semantic_title;"
+    ));
+    assert!(pane_surface.contains(
+        "inspector_slot_semantic_items: root.pane.ui_asset_inspector_slot_semantic_items;"
+    ));
+    assert!(pane_surface.contains(
+        "slot_semantic_selected(item_index) => { root.ui_asset_slot_semantic_selected(root.pane.id, item_index); }"
+    ));
+    assert!(pane_surface.contains(
+        "layout_semantic_selected(item_index) => { root.ui_asset_layout_semantic_selected(root.pane.id, item_index); }"
+    ));
+
+    assert!(pane_block.contains("in property <string> inspector_slot_semantic_title;"));
+    assert!(pane_block.contains("in property <[string]> inspector_slot_semantic_items;"));
+    assert!(pane_block.contains("in property <int> inspector_slot_semantic_selected_index;"));
+    assert!(pane_block.contains("in property <string> inspector_slot_semantic_path;"));
+    assert!(pane_block.contains("in property <string> inspector_slot_semantic_value;"));
+    assert!(pane_block.contains("in property <string> inspector_layout_semantic_title;"));
+    assert!(pane_block.contains("in property <[string]> inspector_layout_semantic_items;"));
+    assert!(pane_block.contains("in property <int> inspector_layout_semantic_selected_index;"));
+    assert!(pane_block.contains("in property <string> inspector_layout_semantic_path;"));
+    assert!(pane_block.contains("in property <string> inspector_layout_semantic_value;"));
+    assert!(pane_block.contains("callback slot_semantic_selected(item_index: int);"));
+    assert!(pane_block.contains("callback layout_semantic_selected(item_index: int);"));
+
+    assert!(panes.contains("text: root.inspector_slot_semantic_title;"));
+    assert!(panes.contains("text: root.inspector_layout_semantic_title;"));
+    assert!(panes.contains("root.slot_semantic_selected(item_index);"));
+    assert!(panes.contains("root.layout_semantic_selected(item_index);"));
+    assert!(panes.contains("root.inspector_widget_action(\"slot.semantic.value.set\", value);"));
+    assert!(panes.contains("root.inspector_widget_action(\"slot.semantic.delete\", \"\");"));
+    assert!(panes.contains("root.inspector_widget_action(\"layout.semantic.value.set\", value);"));
+    assert!(panes.contains("root.inspector_widget_action(\"layout.semantic.delete\", \"\");"));
+}
+
+#[test]
 fn ui_asset_editor_pane_declares_binding_inspector_editing_controls() {
     let source = shell_source();
     let panes = panes_source();
@@ -852,9 +1094,27 @@ fn ui_asset_editor_pane_declares_binding_inspector_editing_controls() {
     assert!(source.contains("ui_asset_inspector_binding_selected_index: int,"));
     assert!(source.contains("ui_asset_inspector_binding_id: string,"));
     assert!(source.contains("ui_asset_inspector_binding_event: string,"));
+    assert!(source.contains("ui_asset_inspector_binding_event_items: [string],"));
+    assert!(source.contains("ui_asset_inspector_binding_event_selected_index: int,"));
     assert!(source.contains("ui_asset_inspector_binding_route: string,"));
+    assert!(source.contains("ui_asset_inspector_binding_action_kind_items: [string],"));
+    assert!(source.contains("ui_asset_inspector_binding_action_kind_selected_index: int,"));
+    assert!(source.contains("ui_asset_inspector_binding_payload_items: [string],"));
+    assert!(source.contains("ui_asset_inspector_binding_payload_selected_index: int,"));
+    assert!(source.contains("ui_asset_inspector_binding_payload_key: string,"));
+    assert!(source.contains("ui_asset_inspector_binding_payload_value: string,"));
     assert!(source
         .contains("callback ui_asset_binding_selected(instance_id: string, item_index: int);"));
+    assert!(source.contains(
+        "callback ui_asset_binding_event_selected(instance_id: string, item_index: int);"
+    ));
+    assert!(source.contains(
+        "callback ui_asset_binding_action_kind_selected(instance_id: string, item_index: int);"
+    ));
+    assert!(source.contains(
+        "callback ui_asset_binding_payload_selected(instance_id: string, item_index: int);"
+    ));
+    assert!(source.contains("callback ui_asset_binding_payload_action(instance_id: string, action_id: string, payload_key: string, payload_value: string);"));
 
     assert!(pane_surface
         .contains("inspector_binding_items: root.pane.ui_asset_inspector_binding_items;"));
@@ -862,22 +1122,85 @@ fn ui_asset_editor_pane_declares_binding_inspector_editing_controls() {
         "inspector_binding_selected_index: root.pane.ui_asset_inspector_binding_selected_index;"
     ));
     assert!(pane_surface.contains(
+        "inspector_binding_event_items: root.pane.ui_asset_inspector_binding_event_items;"
+    ));
+    assert!(pane_surface.contains(
+        "inspector_binding_event_selected_index: root.pane.ui_asset_inspector_binding_event_selected_index;"
+    ));
+    assert!(pane_surface.contains(
+        "inspector_binding_action_kind_items: root.pane.ui_asset_inspector_binding_action_kind_items;"
+    ));
+    assert!(pane_surface.contains(
+        "inspector_binding_action_kind_selected_index: root.pane.ui_asset_inspector_binding_action_kind_selected_index;"
+    ));
+    assert!(pane_surface.contains(
+        "inspector_binding_payload_items: root.pane.ui_asset_inspector_binding_payload_items;"
+    ));
+    assert!(pane_surface.contains(
+        "inspector_binding_payload_selected_index: root.pane.ui_asset_inspector_binding_payload_selected_index;"
+    ));
+    assert!(pane_surface.contains(
+        "inspector_binding_payload_key: root.pane.ui_asset_inspector_binding_payload_key;"
+    ));
+    assert!(pane_surface.contains(
+        "inspector_binding_payload_value: root.pane.ui_asset_inspector_binding_payload_value;"
+    ));
+    assert!(pane_surface.contains(
         "binding_selected(item_index) => { root.ui_asset_binding_selected(root.pane.id, item_index); }"
+    ));
+    assert!(pane_surface.contains(
+        "binding_event_selected(item_index) => { root.ui_asset_binding_event_selected(root.pane.id, item_index); }"
+    ));
+    assert!(pane_surface.contains(
+        "binding_action_kind_selected(item_index) => { root.ui_asset_binding_action_kind_selected(root.pane.id, item_index); }"
+    ));
+    assert!(pane_surface.contains(
+        "binding_payload_selected(item_index) => { root.ui_asset_binding_payload_selected(root.pane.id, item_index); }"
+    ));
+    assert!(pane_surface.contains(
+        "binding_payload_action(action_id, payload_key, payload_value) => { root.ui_asset_binding_payload_action(root.pane.id, action_id, payload_key, payload_value); }"
     ));
 
     assert!(pane_block.contains("in property <[string]> inspector_binding_items;"));
     assert!(pane_block.contains("in property <int> inspector_binding_selected_index;"));
     assert!(pane_block.contains("in property <string> inspector_binding_id;"));
     assert!(pane_block.contains("in property <string> inspector_binding_event;"));
+    assert!(pane_block.contains("in property <[string]> inspector_binding_event_items;"));
+    assert!(pane_block.contains("in property <int> inspector_binding_event_selected_index;"));
     assert!(pane_block.contains("in property <string> inspector_binding_route;"));
+    assert!(pane_block.contains("in property <[string]> inspector_binding_action_kind_items;"));
+    assert!(pane_block.contains("in property <int> inspector_binding_action_kind_selected_index;"));
+    assert!(pane_block.contains("in property <[string]> inspector_binding_payload_items;"));
+    assert!(pane_block.contains("in property <int> inspector_binding_payload_selected_index;"));
+    assert!(pane_block.contains("in property <string> inspector_binding_payload_key;"));
+    assert!(pane_block.contains("in property <string> inspector_binding_payload_value;"));
     assert!(pane_block.contains("callback binding_selected(item_index: int);"));
+    assert!(pane_block.contains("callback binding_event_selected(item_index: int);"));
+    assert!(pane_block.contains("callback binding_action_kind_selected(item_index: int);"));
+    assert!(pane_block.contains("callback binding_payload_selected(item_index: int);"));
+    assert!(pane_block.contains(
+        "callback binding_payload_action(action_id: string, payload_key: string, payload_value: string);"
+    ));
 
     assert!(panes.contains("text: \"Bindings\";"));
     assert!(panes.contains("root.inspector_widget_action(\"binding.add\", \"\");"));
     assert!(panes.contains("root.inspector_widget_action(\"binding.delete\", \"\");"));
     assert!(panes.contains("root.inspector_widget_action(\"binding.id.set\", value);"));
-    assert!(panes.contains("root.inspector_widget_action(\"binding.event.set\", value);"));
     assert!(panes.contains("root.inspector_widget_action(\"binding.route.set\", value);"));
+    assert!(panes.contains("title: \"Event\";"));
+    assert!(panes.contains("items: root.inspector_binding_event_items;"));
+    assert!(panes.contains("selected_index: root.inspector_binding_event_selected_index;"));
+    assert!(panes.contains("root.binding_event_selected(item_index);"));
+    assert!(panes.contains("title: \"Action Kind\";"));
+    assert!(panes.contains("items: root.inspector_binding_action_kind_items;"));
+    assert!(panes.contains("selected_index: root.inspector_binding_action_kind_selected_index;"));
+    assert!(panes.contains("root.binding_action_kind_selected(item_index);"));
+    assert!(panes.contains("title: \"Payload\";"));
+    assert!(panes.contains("items: root.inspector_binding_payload_items;"));
+    assert!(panes.contains("selected_index: root.inspector_binding_payload_selected_index;"));
+    assert!(panes.contains("root.binding_payload_selected(item_index);"));
+    assert!(panes.contains("root.binding_payload_action(\"binding.payload.upsert\""));
+    assert!(panes.contains("root.binding_payload_action(\"binding.payload.delete\", \"\", \"\");"));
 }
 
 #[test]
@@ -902,23 +1225,38 @@ fn ui_asset_editor_pane_declares_palette_tree_authoring_and_selection_sync_contr
     assert!(source.contains("ui_asset_source_selected_line: int,"));
     assert!(source.contains("ui_asset_source_selected_excerpt: string,"));
     assert!(source.contains("ui_asset_source_roundtrip_status: string,"));
+    assert!(source.contains("ui_asset_source_outline_items: [string],"));
+    assert!(source.contains("ui_asset_source_outline_selected_index: int,"));
+    assert!(source.contains("ui_asset_preview_surface_width: float,"));
+    assert!(source.contains("ui_asset_preview_surface_height: float,"));
+    assert!(source.contains("ui_asset_preview_canvas_items: [UiAssetCanvasNodeData],"));
 
-    assert!(pane_surface
-        .contains("palette_selected_index: root.pane.ui_asset_palette_selected_index;"));
+    assert!(
+        pane_surface.contains("palette_selected_index: root.pane.ui_asset_palette_selected_index;")
+    );
     assert!(pane_surface
         .contains("hierarchy_selected_index: root.pane.ui_asset_hierarchy_selected_index;"));
+    assert!(
+        pane_surface.contains("preview_selected_index: root.pane.ui_asset_preview_selected_index;")
+    );
     assert!(pane_surface
-        .contains("preview_selected_index: root.pane.ui_asset_preview_selected_index;"));
-    assert!(pane_surface.contains(
-        "source_selected_block_label: root.pane.ui_asset_source_selected_block_label;"
-    ));
+        .contains("source_selected_block_label: root.pane.ui_asset_source_selected_block_label;"));
+    assert!(pane_surface.contains("source_selected_line: root.pane.ui_asset_source_selected_line;"));
     assert!(pane_surface
-        .contains("source_selected_line: root.pane.ui_asset_source_selected_line;"));
-    assert!(pane_surface.contains(
-        "source_selected_excerpt: root.pane.ui_asset_source_selected_excerpt;"
-    ));
+        .contains("source_selected_excerpt: root.pane.ui_asset_source_selected_excerpt;"));
     assert!(pane_surface
         .contains("source_roundtrip_status: root.pane.ui_asset_source_roundtrip_status;"));
+    assert!(pane_surface.contains("source_outline_items: root.pane.ui_asset_source_outline_items;"));
+    assert!(pane_surface.contains(
+        "source_outline_selected_index: root.pane.ui_asset_source_outline_selected_index;"
+    ));
+    assert!(
+        pane_surface.contains("preview_surface_width: root.pane.ui_asset_preview_surface_width;")
+    );
+    assert!(
+        pane_surface.contains("preview_surface_height: root.pane.ui_asset_preview_surface_height;")
+    );
+    assert!(pane_surface.contains("preview_canvas_items: root.pane.ui_asset_preview_canvas_items;"));
     assert!(pane_surface.contains(
         "palette_selected(item_index) => { root.ui_asset_palette_selected(root.pane.id, item_index); }"
     ));
@@ -930,8 +1268,23 @@ fn ui_asset_editor_pane_declares_palette_tree_authoring_and_selection_sync_contr
     assert!(pane_block.contains("in property <int> source_selected_line;"));
     assert!(pane_block.contains("in property <string> source_selected_excerpt;"));
     assert!(pane_block.contains("in property <string> source_roundtrip_status;"));
+    assert!(pane_block.contains("in property <[string]> source_outline_items;"));
+    assert!(pane_block.contains("in property <int> source_outline_selected_index;"));
+    assert!(pane_block.contains("in property <float> preview_surface_width;"));
+    assert!(pane_block.contains("in property <float> preview_surface_height;"));
+    assert!(pane_block.contains("in property <[UiAssetCanvasNodeData]> preview_canvas_items;"));
     assert!(pane_block.contains("callback palette_selected(item_index: int);"));
 
+    assert!(panes.contains("export struct UiAssetCanvasNodeData {"));
+    assert!(panes.contains("component UiAssetCanvasSurface inherits Rectangle {"));
+    assert!(panes.contains("text: \"Designer Canvas\";"));
+    assert!(panes.contains("items: root.preview_canvas_items;"));
+    assert!(panes.contains("surface_width: root.preview_surface_width;"));
+    assert!(panes.contains("surface_height: root.preview_surface_height;"));
+    assert!(panes.contains("title: \"Render Stack\";"));
+    assert!(panes.contains("title: \"Source Outline\";"));
+    assert!(panes.contains("selected_index: root.source_outline_selected_index;"));
+    assert!(panes.contains("root.source_outline_selected(item_index);"));
     assert!(panes.contains("title: \"Palette\";"));
     assert!(panes.contains("selected_index: root.palette_selected_index;"));
     assert!(panes.contains("root.palette_selected(item_index);"));
@@ -941,6 +1294,11 @@ fn ui_asset_editor_pane_declares_palette_tree_authoring_and_selection_sync_contr
     assert!(panes.contains("root.action(\"palette.insert.after\");"));
     assert!(panes.contains("root.action(\"canvas.move.up\");"));
     assert!(panes.contains("root.action(\"canvas.move.down\");"));
+    assert!(panes.contains("root.action(\"canvas.reparent.into_previous\");"));
+    assert!(panes.contains("root.action(\"canvas.reparent.into_next\");"));
+    assert!(panes.contains("root.action(\"canvas.reparent.outdent\");"));
+    assert!(panes.contains("root.action(\"canvas.convert.reference\");"));
+    assert!(panes.contains("root.action(\"canvas.extract.component\");"));
     assert!(panes.contains("root.action(\"canvas.wrap.vertical_box\");"));
     assert!(panes.contains("root.action(\"canvas.unwrap\");"));
     assert!(panes.contains("text: root.source_selected_block_label != \"\" ? root.source_selected_block_label : \"No source block\";"));
@@ -949,6 +1307,581 @@ fn ui_asset_editor_pane_declares_palette_tree_authoring_and_selection_sync_contr
     ));
     assert!(panes.contains("text: root.source_roundtrip_status;"));
     assert!(panes.contains("text: root.source_selected_excerpt;"));
+}
+
+#[test]
+fn ui_asset_editor_pane_declares_convert_to_reference_action_and_state_binding() {
+    let source = shell_source();
+    let panes = panes_source();
+    let pane_block = block_after(
+        &panes,
+        "export component UiAssetEditorPane inherits Rectangle {",
+    );
+    let pane_surface = block_after(
+        &source,
+        "if !root.pane.show_empty && root.pane.kind == \"UiAssetEditor\": UiAssetEditorPane {",
+    );
+
+    assert!(source.contains("ui_asset_can_convert_to_reference: bool,"));
+    assert!(pane_surface
+        .contains("can_convert_to_reference: root.pane.ui_asset_can_convert_to_reference;"));
+    assert!(pane_block.contains("in property <bool> can_convert_to_reference;"));
+    assert!(panes.contains("label: \"To Ref\";"));
+    assert!(panes.contains("enabled: root.can_convert_to_reference;"));
+    assert!(panes.contains("active: root.can_convert_to_reference;"));
+    assert!(panes.contains("root.action(\"canvas.convert.reference\");"));
+}
+
+#[test]
+fn ui_asset_editor_pane_declares_extract_component_action_and_state_binding() {
+    let source = shell_source();
+    let panes = panes_source();
+    let pane_block = block_after(
+        &panes,
+        "export component UiAssetEditorPane inherits Rectangle {",
+    );
+    let pane_surface = block_after(
+        &source,
+        "if !root.pane.show_empty && root.pane.kind == \"UiAssetEditor\": UiAssetEditorPane {",
+    );
+
+    assert!(source.contains("ui_asset_can_extract_component: bool,"));
+    assert!(
+        pane_surface.contains("can_extract_component: root.pane.ui_asset_can_extract_component;")
+    );
+    assert!(pane_block.contains("in property <bool> can_extract_component;"));
+    assert!(panes.contains("label: \"Extract\";"));
+    assert!(panes.contains("enabled: root.can_extract_component;"));
+    assert!(panes.contains("active: root.can_extract_component;"));
+    assert!(panes.contains("root.action(\"canvas.extract.component\");"));
+}
+
+#[test]
+fn ui_asset_editor_pane_declares_promote_widget_action_and_state_binding() {
+    let source = shell_source();
+    let panes = panes_source();
+    let pane_block = block_after(
+        &panes,
+        "export component UiAssetEditorPane inherits Rectangle {",
+    );
+    let pane_surface = block_after(
+        &source,
+        "if !root.pane.show_empty && root.pane.kind == \"UiAssetEditor\": UiAssetEditorPane {",
+    );
+
+    assert!(source.contains("ui_asset_can_promote_to_external_widget: bool,"));
+    assert!(pane_surface.contains(
+        "can_promote_to_external_widget: root.pane.ui_asset_can_promote_to_external_widget;"
+    ));
+    assert!(pane_block.contains("in property <bool> can_promote_to_external_widget;"));
+    assert!(panes.contains("label: \"Promote\";"));
+    assert!(panes.contains("enabled: root.can_promote_to_external_widget;"));
+    assert!(panes.contains("active: root.can_promote_to_external_widget;"));
+    assert!(panes.contains("root.action(\"canvas.promote.widget\");"));
+}
+
+#[test]
+fn ui_asset_editor_pane_declares_promote_widget_draft_controls() {
+    let source = shell_source();
+    let panes = panes_source();
+    let pane_block = block_after(
+        &panes,
+        "export component UiAssetEditorPane inherits Rectangle {",
+    );
+    let pane_surface = block_after(
+        &source,
+        "if !root.pane.show_empty && root.pane.kind == \"UiAssetEditor\": UiAssetEditorPane {",
+    );
+
+    assert!(source.contains("ui_asset_inspector_promote_asset_id: string,"));
+    assert!(source.contains("ui_asset_inspector_promote_component_name: string,"));
+    assert!(source.contains("ui_asset_inspector_promote_document_id: string,"));
+    assert!(source.contains("ui_asset_inspector_can_edit_promote_draft: bool,"));
+
+    assert!(pane_surface
+        .contains("inspector_promote_asset_id: root.pane.ui_asset_inspector_promote_asset_id;"));
+    assert!(pane_surface.contains(
+        "inspector_promote_component_name: root.pane.ui_asset_inspector_promote_component_name;"
+    ));
+    assert!(pane_surface.contains(
+        "inspector_promote_document_id: root.pane.ui_asset_inspector_promote_document_id;"
+    ));
+    assert!(pane_surface.contains(
+        "inspector_can_edit_promote_draft: root.pane.ui_asset_inspector_can_edit_promote_draft;"
+    ));
+
+    assert!(pane_block.contains("in property <string> inspector_promote_asset_id;"));
+    assert!(pane_block.contains("in property <string> inspector_promote_component_name;"));
+    assert!(pane_block.contains("in property <string> inspector_promote_document_id;"));
+    assert!(pane_block.contains("in property <bool> inspector_can_edit_promote_draft;"));
+
+    assert!(panes.contains("text: \"Promote Draft\";"));
+    assert!(panes.contains("text: \"Asset\";"));
+    assert!(panes.contains("text: \"Comp\";"));
+    assert!(panes.contains("text: \"Doc\";"));
+    assert!(panes.contains("root.inspector_widget_action(\"promote.asset_id.set\", value);"));
+    assert!(panes.contains("root.inspector_widget_action(\"promote.component_name.set\", value);"));
+    assert!(panes.contains("root.inspector_widget_action(\"promote.document_id.set\", value);"));
+}
+
+#[test]
+fn ui_asset_editor_pane_declares_hierarchy_activation_callback_and_double_click_binding() {
+    let source = shell_source();
+    let panes = panes_source();
+    let pane_block = block_after(
+        &panes,
+        "export component UiAssetEditorPane inherits Rectangle {",
+    );
+    let pane_surface = block_after(
+        &source,
+        "if !root.pane.show_empty && root.pane.kind == \"UiAssetEditor\": UiAssetEditorPane {",
+    );
+
+    assert!(source
+        .contains("callback ui_asset_hierarchy_activated(instance_id: string, item_index: int);"));
+    assert!(pane_surface.contains(
+        "hierarchy_activated(item_index) => { root.ui_asset_hierarchy_activated(root.pane.id, item_index); }"
+    ));
+
+    assert!(panes.contains("callback item_activated(item_index: int);"));
+    assert!(panes.contains("double-clicked => {"));
+    assert!(panes.contains("root.item_activated(index);"));
+    assert!(pane_block.contains("callback hierarchy_activated(item_index: int);"));
+    assert!(
+        panes.contains("item_activated(item_index) => { root.hierarchy_activated(item_index); }")
+    );
+}
+
+#[test]
+fn ui_asset_editor_pane_declares_preview_activation_callback_and_double_click_binding() {
+    let source = shell_source();
+    let panes = panes_source();
+    let pane_block = block_after(
+        &panes,
+        "export component UiAssetEditorPane inherits Rectangle {",
+    );
+    let pane_surface = block_after(
+        &source,
+        "if !root.pane.show_empty && root.pane.kind == \"UiAssetEditor\": UiAssetEditorPane {",
+    );
+
+    assert!(source
+        .contains("callback ui_asset_preview_activated(instance_id: string, item_index: int);"));
+    assert!(pane_surface.contains(
+        "preview_activated(item_index) => { root.ui_asset_preview_activated(root.pane.id, item_index); }"
+    ));
+    assert!(pane_surface.contains(
+        "source_outline_selected(item_index) => { root.ui_asset_source_outline_selected(root.pane.id, item_index); }"
+    ));
+    assert!(pane_block.contains("callback preview_activated(item_index: int);"));
+    assert!(pane_block.contains("callback source_outline_selected(item_index: int);"));
+    assert!(panes.contains("item_activated(item_index) => { root.preview_activated(item_index); }"));
+    assert!(panes.contains("UiAssetCanvasSurface {"));
+}
+
+#[test]
+fn ui_asset_editor_canvas_declares_selected_frame_authoring_overlay_controls() {
+    let source = shell_source();
+    let panes = panes_source();
+    let pane_surface = block_after(
+        &source,
+        "if !root.pane.show_empty && root.pane.kind == \"UiAssetEditor\": UiAssetEditorPane {",
+    );
+
+    let canvas_block = block_after(
+        &panes,
+        "component UiAssetCanvasSurface inherits Rectangle {",
+    );
+
+    assert!(canvas_block.contains("in property <bool> palette_has_selection: false;"));
+    assert!(canvas_block.contains("in property <bool> can_insert_child: false;"));
+    assert!(canvas_block.contains("in property <bool> can_insert_after: false;"));
+    assert!(canvas_block.contains("in property <bool> can_move_up: false;"));
+    assert!(canvas_block.contains("in property <bool> can_move_down: false;"));
+    assert!(canvas_block.contains("in property <bool> can_reparent_into_previous: false;"));
+    assert!(canvas_block.contains("in property <bool> can_reparent_into_next: false;"));
+    assert!(canvas_block.contains("in property <bool> can_reparent_outdent: false;"));
+    assert!(canvas_block.contains("in property <bool> can_open_reference: false;"));
+    assert!(canvas_block.contains("in property <bool> can_convert_to_reference: false;"));
+    assert!(canvas_block.contains("in property <bool> can_extract_component: false;"));
+    assert!(canvas_block.contains("in property <bool> can_promote_to_external_widget: false;"));
+    assert!(canvas_block.contains("in property <bool> can_wrap_in_vertical_box: false;"));
+    assert!(canvas_block.contains("in property <bool> can_unwrap: false;"));
+    assert!(canvas_block.contains("callback action_requested(action_id: string);"));
+    assert!(canvas_block.contains("property <int> overlay_index:"));
+    assert!(canvas_block.contains("if root.overlay_index >= 0: overlay := Rectangle {"));
+    assert!(canvas_block.contains("text: root.items[root.overlay_index].label + \" • \" + root.items[root.overlay_index].kind;"));
+    assert!(canvas_block.contains("label: \"Add In\";"));
+    assert!(canvas_block.contains("enabled: root.can_insert_child;"));
+    assert!(canvas_block.contains("root.action_requested(\"palette.insert.child\");"));
+    assert!(canvas_block.contains("enabled: root.can_insert_after;"));
+    assert!(canvas_block.contains("root.action_requested(\"palette.insert.after\");"));
+    assert!(canvas_block.contains("enabled: root.can_move_up;"));
+    assert!(canvas_block.contains("root.action_requested(\"canvas.move.up\");"));
+    assert!(canvas_block.contains("enabled: root.can_move_down;"));
+    assert!(canvas_block.contains("root.action_requested(\"canvas.move.down\");"));
+    assert!(canvas_block.contains("enabled: root.can_reparent_into_previous;"));
+    assert!(canvas_block.contains("root.action_requested(\"canvas.reparent.into_previous\");"));
+    assert!(canvas_block.contains("enabled: root.can_reparent_into_next;"));
+    assert!(canvas_block.contains("root.action_requested(\"canvas.reparent.into_next\");"));
+    assert!(canvas_block.contains("enabled: root.can_reparent_outdent;"));
+    assert!(canvas_block.contains("root.action_requested(\"canvas.reparent.outdent\");"));
+    assert!(canvas_block.contains("root.action_requested(\"reference.open\");"));
+    assert!(canvas_block.contains("root.action_requested(\"canvas.convert.reference\");"));
+    assert!(canvas_block.contains("root.action_requested(\"canvas.extract.component\");"));
+    assert!(canvas_block.contains("root.action_requested(\"canvas.promote.widget\");"));
+    assert!(canvas_block.contains("enabled: root.can_wrap_in_vertical_box;"));
+    assert!(canvas_block.contains("root.action_requested(\"canvas.wrap.vertical_box\");"));
+    assert!(canvas_block.contains("enabled: root.can_unwrap;"));
+    assert!(canvas_block.contains("root.action_requested(\"canvas.unwrap\");"));
+
+    assert!(source.contains("ui_asset_can_insert_child: bool,"));
+    assert!(source.contains("ui_asset_can_insert_after: bool,"));
+    assert!(source.contains("ui_asset_can_move_up: bool,"));
+    assert!(source.contains("ui_asset_can_move_down: bool,"));
+    assert!(source.contains("ui_asset_can_reparent_into_previous: bool,"));
+    assert!(source.contains("ui_asset_can_reparent_into_next: bool,"));
+    assert!(source.contains("ui_asset_can_reparent_outdent: bool,"));
+    assert!(source.contains("ui_asset_can_wrap_in_vertical_box: bool,"));
+    assert!(source.contains("ui_asset_can_unwrap: bool,"));
+    assert!(pane_surface.contains("can_insert_child: root.pane.ui_asset_can_insert_child;"));
+    assert!(pane_surface.contains("can_insert_after: root.pane.ui_asset_can_insert_after;"));
+    assert!(pane_surface.contains("can_move_up: root.pane.ui_asset_can_move_up;"));
+    assert!(pane_surface.contains("can_move_down: root.pane.ui_asset_can_move_down;"));
+    assert!(pane_surface
+        .contains("can_reparent_into_previous: root.pane.ui_asset_can_reparent_into_previous;"));
+    assert!(
+        pane_surface.contains("can_reparent_into_next: root.pane.ui_asset_can_reparent_into_next;")
+    );
+    assert!(pane_surface.contains("can_reparent_outdent: root.pane.ui_asset_can_reparent_outdent;"));
+    assert!(pane_surface
+        .contains("can_wrap_in_vertical_box: root.pane.ui_asset_can_wrap_in_vertical_box;"));
+    assert!(pane_surface.contains("can_unwrap: root.pane.ui_asset_can_unwrap;"));
+
+    assert!(panes.contains("palette_has_selection: root.palette_selected_index >= 0;"));
+    assert!(panes.contains("can_insert_child: root.can_insert_child;"));
+    assert!(panes.contains("can_insert_after: root.can_insert_after;"));
+    assert!(panes.contains("can_move_up: root.can_move_up;"));
+    assert!(panes.contains("can_move_down: root.can_move_down;"));
+    assert!(panes.contains("can_reparent_into_previous: root.can_reparent_into_previous;"));
+    assert!(panes.contains("can_reparent_into_next: root.can_reparent_into_next;"));
+    assert!(panes.contains("can_reparent_outdent: root.can_reparent_outdent;"));
+    assert!(panes.contains("can_open_reference: root.can_open_reference;"));
+    assert!(panes.contains("can_convert_to_reference: root.can_convert_to_reference;"));
+    assert!(panes.contains("can_extract_component: root.can_extract_component;"));
+    assert!(panes.contains("can_promote_to_external_widget: root.can_promote_to_external_widget;"));
+    assert!(panes.contains("can_wrap_in_vertical_box: root.can_wrap_in_vertical_box;"));
+    assert!(panes.contains("can_unwrap: root.can_unwrap;"));
+    assert!(panes.contains("action_requested(action_id) => { root.action(action_id); }"));
+}
+
+#[test]
+fn ui_asset_editor_canvas_declares_contextual_insert_and_reparent_targets() {
+    let panes = panes_source();
+
+    let canvas_block = block_after(
+        &panes,
+        "component UiAssetCanvasSurface inherits Rectangle {",
+    );
+
+    assert!(canvas_block.contains("property <float> target_pad_thickness: 14.0;"));
+    assert!(canvas_block.contains(
+        "if root.overlay_index >= 0 && root.can_insert_child: insert_child_target := Rectangle {"
+    ));
+    assert!(canvas_block.contains("text: \"Insert In\";"));
+    assert!(canvas_block.contains("root.action_requested(\"palette.insert.child\");"));
+    assert!(canvas_block.contains(
+        "if root.overlay_index >= 0 && root.can_insert_after: insert_after_target := Rectangle {"
+    ));
+    assert!(canvas_block.contains("text: \"Insert After\";"));
+    assert!(canvas_block.contains("root.action_requested(\"palette.insert.after\");"));
+    assert!(
+        canvas_block.contains("if root.overlay_index >= 0 && root.can_reparent_into_previous: reparent_prev_target := Rectangle {")
+    );
+    assert!(canvas_block.contains("text: \"Into Prev\";"));
+    assert!(canvas_block.contains("root.action_requested(\"canvas.reparent.into_previous\");"));
+    assert!(
+        canvas_block.contains("if root.overlay_index >= 0 && root.can_reparent_into_next: reparent_next_target := Rectangle {")
+    );
+    assert!(canvas_block.contains("text: \"Into Next\";"));
+    assert!(canvas_block.contains("root.action_requested(\"canvas.reparent.into_next\");"));
+    assert!(canvas_block.contains(
+        "if root.overlay_index >= 0 && root.can_reparent_outdent: outdent_target := Rectangle {"
+    ));
+    assert!(canvas_block.contains("text: \"Outdent\";"));
+    assert!(canvas_block.contains("root.action_requested(\"canvas.reparent.outdent\");"));
+}
+
+#[test]
+fn ui_asset_editor_canvas_declares_drag_authoring_state_and_drop_resolution() {
+    let panes = panes_source();
+
+    let canvas_block = block_after(
+        &panes,
+        "component UiAssetCanvasSurface inherits Rectangle {",
+    );
+
+    assert!(canvas_block.contains("property <float> drag_threshold_px: 8.0;"));
+    assert!(canvas_block.contains("property <bool> drag_pressed: false;"));
+    assert!(canvas_block.contains("property <bool> drag_active: false;"));
+    assert!(canvas_block.contains("property <int> drag_source_index: -1;"));
+    assert!(canvas_block.contains("property <float> drag_press_x: 0.0;"));
+    assert!(canvas_block.contains("property <float> drag_press_y: 0.0;"));
+    assert!(canvas_block.contains("property <float> drag_pointer_x: 0.0;"));
+    assert!(canvas_block.contains("property <float> drag_pointer_y: 0.0;"));
+    assert!(canvas_block.contains("property <string> drag_target_action:"));
+    assert!(canvas_block
+        .contains("root.drag_target_action == \"palette.insert.child\" ? \"Insert In\" :"));
+    assert!(canvas_block.contains(
+        "root.drag_target_action == \"canvas.reparent.into_previous\" ? \"Into Prev\" :"
+    ));
+    assert!(canvas_block.contains("if root.drag_active: drag_overlay := Rectangle {"));
+    assert!(canvas_block.contains(
+        "text: root.drag_target_label != \"\" ? root.drag_target_label : \"Drag Authoring\";"
+    ));
+    assert!(canvas_block.contains("mouse-cursor: MouseCursor.grabbing;"));
+    assert!(canvas_block.contains("root.drag_source_index = index;"));
+    assert!(canvas_block.contains("root.drag_pointer_x = frame_rect.x / 1px + self.mouse-x / 1px;"));
+    assert!(canvas_block.contains("root.drag_pointer_y = frame_rect.y / 1px + self.mouse-y / 1px;"));
+    assert!(canvas_block.contains("root.drag_active = true;"));
+    assert!(canvas_block.contains("root.action_requested(root.drag_target_action);"));
+    assert!(canvas_block.contains("root.drag_active = false;"));
+    assert!(canvas_block.contains("root.drag_source_index = -1;"));
+}
+
+#[test]
+fn ui_asset_editor_pane_declares_palette_drag_creation_flow() {
+    let source = shell_source();
+    let panes = panes_source();
+    let pane_block = block_after(
+        &panes,
+        "export component UiAssetEditorPane inherits Rectangle {",
+    );
+    let pane_surface = block_after(
+        &source,
+        "if !root.pane.show_empty && root.pane.kind == \"UiAssetEditor\": UiAssetEditorPane {",
+    );
+    let canvas_block = block_after(
+        &panes,
+        "component UiAssetCanvasSurface inherits Rectangle {",
+    );
+
+    assert!(source.contains(
+        "callback ui_asset_palette_drag_hover(instance_id: string, surface_x: float, surface_y: float);"
+    ));
+    assert!(source.contains("callback ui_asset_palette_drag_drop(instance_id: string);"));
+    assert!(source.contains("callback ui_asset_palette_drag_cancel(instance_id: string);"));
+    assert!(source.contains("ui_asset_palette_drag_target_preview_index: int,"));
+    assert!(source.contains("ui_asset_palette_drag_target_action: string,"));
+    assert!(source.contains("ui_asset_palette_drag_target_label: string,"));
+
+    assert!(pane_surface.contains(
+        "palette_drag_target_preview_index: root.pane.ui_asset_palette_drag_target_preview_index;"
+    ));
+    assert!(pane_surface
+        .contains("palette_drag_target_action: root.pane.ui_asset_palette_drag_target_action;"));
+    assert!(pane_surface
+        .contains("palette_drag_target_label: root.pane.ui_asset_palette_drag_target_label;"));
+    assert!(pane_surface.contains(
+        "palette_drag_hovered(surface_x, surface_y) => { root.ui_asset_palette_drag_hover(root.pane.id, surface_x, surface_y); }"
+    ));
+    assert!(pane_surface
+        .contains("palette_drag_dropped() => { root.ui_asset_palette_drag_drop(root.pane.id); }"));
+    assert!(pane_surface.contains(
+        "palette_drag_cancelled() => { root.ui_asset_palette_drag_cancel(root.pane.id); }"
+    ));
+
+    assert!(pane_block.contains("in-out property <bool> palette_drag_active: false;"));
+    assert!(pane_block.contains("in-out property <int> palette_drag_source_index: -1;"));
+    assert!(pane_block.contains("in-out property <float> palette_drag_pointer_x: 0.0;"));
+    assert!(pane_block.contains("in-out property <float> palette_drag_pointer_y: 0.0;"));
+    assert!(pane_block.contains("property <string> palette_drag_label:"));
+    assert!(pane_block.contains("in property <int> palette_drag_target_preview_index: -1;"));
+    assert!(pane_block.contains("in property <string> palette_drag_target_action;"));
+    assert!(pane_block.contains("in property <string> palette_drag_target_label;"));
+    assert!(
+        pane_block.contains("callback palette_drag_hovered(surface_x: float, surface_y: float);")
+    );
+    assert!(pane_block.contains("callback palette_drag_dropped();"));
+    assert!(pane_block.contains("callback palette_drag_cancelled();"));
+    assert!(pane_block.contains("if root.palette_drag_active: TouchArea {"));
+    assert!(pane_block.contains("mouse-cursor: MouseCursor.grabbing;"));
+    assert!(pane_block.contains("root.palette_drag_hovered("));
+    assert!(pane_block.contains("preview_canvas.surface_origin_x"));
+    assert!(pane_block.contains("preview_canvas.surface_origin_y"));
+    assert!(pane_block.contains("preview_canvas.surface_scale"));
+    assert!(pane_block.contains("if (event.kind == PointerEventKind.up) {"));
+    assert!(pane_block.contains("if (root.palette_drag_target_action != \"\") {"));
+    assert!(pane_block.contains("root.palette_drag_dropped();"));
+    assert!(pane_block.contains("root.palette_drag_cancelled();"));
+    assert!(pane_block.contains("root.palette_drag_active = false;"));
+    assert!(pane_block.contains("root.palette_drag_source_index = -1;"));
+
+    assert!(pane_block.contains("drag_enabled: true;"));
+    assert!(pane_block.contains("item_drag_started(item_index, x, y) => {"));
+    assert!(pane_block.contains("root.palette_selected(item_index);"));
+    assert!(pane_block.contains("root.palette_drag_active = true;"));
+    assert!(pane_block.contains("root.palette_drag_source_index = item_index;"));
+    assert!(pane_block.contains("root.palette_drag_pointer_x = palette_section.x / 1px + x;"));
+    assert!(pane_block.contains("root.palette_drag_pointer_y = palette_section.y / 1px + y;"));
+
+    assert!(canvas_block.contains("in property <bool> external_drag_active: false;"));
+    assert!(canvas_block.contains("in property <float> external_drag_pointer_x: 0.0;"));
+    assert!(canvas_block.contains("in property <float> external_drag_pointer_y: 0.0;"));
+    assert!(canvas_block.contains("in property <int> external_drag_target_index: -1;"));
+    assert!(canvas_block.contains("in property <string> external_drag_target_action;"));
+    assert!(canvas_block.contains("in property <string> external_drag_target_label;"));
+    assert!(canvas_block.contains("out property <float> surface_scale:"));
+    assert!(canvas_block.contains("out property <float> surface_origin_x:"));
+    assert!(canvas_block.contains("out property <float> surface_origin_y:"));
+    assert!(canvas_block.contains("property <bool> external_target_active:"));
+    assert!(canvas_block.contains("self.external_target_active ?"));
+    assert!(
+        canvas_block.contains("if root.external_drag_active: external_drag_overlay := Rectangle {")
+    );
+    assert!(canvas_block.contains(
+        "text: root.external_drag_target_label != \"\" ? root.external_drag_target_label : \"Drop On Canvas\";"
+    ));
+    assert!(canvas_block.contains("drop_inside_overlay := Rectangle {"));
+    assert!(canvas_block.contains("drop_after_overlay := Rectangle {"));
+    assert!(pane_block.contains("external_drag_active: root.palette_drag_active;"));
+    assert!(pane_block.contains(
+        "external_drag_pointer_x: root.palette_drag_pointer_x - preview_canvas.x / 1px;"
+    ));
+    assert!(pane_block.contains(
+        "external_drag_pointer_y: root.palette_drag_pointer_y - preview_canvas.y / 1px;"
+    ));
+    assert!(
+        pane_block.contains("external_drag_target_index: root.palette_drag_target_preview_index;")
+    );
+    assert!(pane_block.contains("external_drag_target_action: root.palette_drag_target_action;"));
+    assert!(pane_block.contains("external_drag_target_label: root.palette_drag_target_label;"));
+}
+
+#[test]
+fn ui_asset_editor_pane_declares_palette_target_cycle_panel_and_keyboard_controls() {
+    let source = shell_source();
+    let panes = panes_source();
+    let pane_block = block_after(
+        &panes,
+        "export component UiAssetEditorPane inherits Rectangle {",
+    );
+    let pane_surface = block_after(
+        &source,
+        "if !root.pane.show_empty && root.pane.kind == \"UiAssetEditor\": UiAssetEditorPane {",
+    );
+    let drag_overlay = block_after(&panes, "if root.palette_drag_active: TouchArea {");
+
+    assert!(source.contains("ui_asset_palette_drag_candidate_items: [string],"));
+    assert!(source.contains("ui_asset_palette_drag_candidate_selected_index: int,"));
+    assert!(pane_surface
+        .contains("palette_drag_candidate_items: root.pane.ui_asset_palette_drag_candidate_items;"));
+    assert!(pane_surface.contains(
+        "palette_drag_candidate_selected_index: root.pane.ui_asset_palette_drag_candidate_selected_index;"
+    ));
+
+    assert!(pane_block.contains("in property <[string]> palette_drag_candidate_items;"));
+    assert!(pane_block.contains("in property <int> palette_drag_candidate_selected_index: -1;"));
+    assert!(pane_block.contains("title: \"Target Cycle\";"));
+    assert!(pane_block.contains("items: root.palette_drag_candidate_items;"));
+    assert!(pane_block.contains(
+        "selected_index: root.palette_drag_candidate_selected_index;"
+    ));
+
+    assert!(drag_overlay.contains("drag_focus := FocusScope {"));
+    assert!(drag_overlay.contains("key-pressed(event) => {"));
+    assert!(drag_overlay.contains("root.action(\"palette.target.previous\");"));
+    assert!(drag_overlay.contains("root.action(\"palette.target.next\");"));
+    assert!(drag_overlay.contains("root.palette_drag_dropped();"));
+    assert!(drag_overlay.contains("root.palette_drag_cancelled();"));
+}
+
+#[test]
+fn ui_asset_editor_pane_declares_sticky_palette_target_chooser_controls() {
+    let source = shell_source();
+    let panes = panes_source();
+    let pane_block = block_after(
+        &panes,
+        "export component UiAssetEditorPane inherits Rectangle {",
+    );
+    let pane_surface = block_after(
+        &source,
+        "if !root.pane.show_empty && root.pane.kind == \"UiAssetEditor\": UiAssetEditorPane {",
+    );
+
+    assert!(source.contains("ui_asset_palette_target_chooser_active: bool,"));
+    assert!(source.contains(
+        "callback ui_asset_palette_target_candidate_selected(instance_id: string, item_index: int);"
+    ));
+    assert!(source.contains("callback ui_asset_palette_target_confirm(instance_id: string);"));
+    assert!(source.contains("callback ui_asset_palette_target_cancel(instance_id: string);"));
+    assert!(pane_surface.contains(
+        "palette_target_chooser_active: root.pane.ui_asset_palette_target_chooser_active;"
+    ));
+    assert!(pane_surface.contains(
+        "palette_target_candidate_selected(item_index) => { root.ui_asset_palette_target_candidate_selected(root.pane.id, item_index); }"
+    ));
+    assert!(pane_surface.contains(
+        "palette_target_confirm() => { root.ui_asset_palette_target_confirm(root.pane.id); }"
+    ));
+    assert!(pane_surface.contains(
+        "palette_target_cancel() => { root.ui_asset_palette_target_cancel(root.pane.id); }"
+    ));
+
+    assert!(pane_block.contains("in property <bool> palette_target_chooser_active: false;"));
+    assert!(pane_block.contains("callback palette_target_candidate_selected(item_index: int);"));
+    assert!(pane_block.contains("callback palette_target_confirm();"));
+    assert!(pane_block.contains("callback palette_target_cancel();"));
+    assert!(panes.contains(
+        "if root.palette_drag_candidate_items.length > 1 && (root.palette_drag_active || root.palette_target_chooser_active): Rectangle {"
+    ));
+    assert!(panes.contains("root.palette_target_candidate_selected(item_index);"));
+    assert!(panes.contains("root.palette_target_confirm();"));
+    assert!(panes.contains("root.palette_target_cancel();"));
+}
+
+#[test]
+fn ui_asset_editor_pane_declares_typed_parent_specific_slot_layout_and_binding_fields() {
+    let source = shell_source();
+    let panes = panes_source();
+    let pane_block = block_after(
+        &panes,
+        "export component UiAssetEditorPane inherits Rectangle {",
+    );
+
+    assert!(source.contains("ui_asset_inspector_slot_kind: string,"));
+    assert!(source.contains("ui_asset_inspector_slot_overlay_anchor_x: string,"));
+    assert!(source.contains("ui_asset_inspector_slot_grid_row: string,"));
+    assert!(source.contains("ui_asset_inspector_slot_flow_alignment: string,"));
+    assert!(source.contains("ui_asset_inspector_layout_kind: string,"));
+    assert!(source.contains("ui_asset_inspector_layout_scroll_axis: string,"));
+    assert!(source.contains("ui_asset_inspector_layout_scrollbar_visibility: string,"));
+    assert!(source.contains("ui_asset_inspector_binding_route_target: string,"));
+    assert!(source.contains("ui_asset_inspector_binding_action_target: string,"));
+
+    assert!(pane_block.contains("in property <string> inspector_slot_kind;"));
+    assert!(pane_block.contains("in property <string> inspector_slot_overlay_anchor_x;"));
+    assert!(pane_block.contains("in property <string> inspector_slot_grid_row;"));
+    assert!(pane_block.contains("in property <string> inspector_slot_flow_alignment;"));
+    assert!(pane_block.contains("in property <string> inspector_layout_kind;"));
+    assert!(pane_block.contains("in property <string> inspector_layout_scroll_axis;"));
+    assert!(pane_block.contains("in property <string> inspector_layout_scrollbar_visibility;"));
+    assert!(pane_block.contains("in property <string> inspector_binding_route_target;"));
+    assert!(pane_block.contains("in property <string> inspector_binding_action_target;"));
+
+    assert!(panes.contains("root.inspector_widget_action(\"slot.overlay.anchor_x.set\", value);"));
+    assert!(panes.contains("root.inspector_widget_action(\"slot.grid.row.set\", value);"));
+    assert!(panes.contains("root.inspector_widget_action(\"slot.flow.alignment.set\", value);"));
+    assert!(panes.contains("root.inspector_widget_action(\"layout.scroll.axis.set\", value);"));
+    assert!(panes.contains(
+        "root.inspector_widget_action(\"layout.scroll.scrollbar_visibility.set\", value);"
+    ));
+    assert!(panes.contains(
+        "root.inspector_widget_action(\"binding.route_target.set\", value);"
+    ));
+    assert!(panes.contains(
+        "root.inspector_widget_action(\"binding.action_target.set\", value);"
+    ));
 }
 
 #[test]

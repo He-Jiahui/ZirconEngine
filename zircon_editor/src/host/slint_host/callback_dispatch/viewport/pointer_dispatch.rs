@@ -7,7 +7,7 @@ use crate::editor_event::{EditorEventRuntime, EditorViewportEvent};
 use crate::host::slint_host::event_bridge::SlintDispatchEffects;
 
 use super::super::constants::VIEWPORT_SURFACE_NODE_ID;
-use super::{dispatch_viewport_event, SharedViewportPointerBridge};
+use super::{SharedViewportPointerBridge, dispatch_viewport_event};
 
 pub(crate) fn dispatch_viewport_pointer_event(
     runtime: &EditorEventRuntime,

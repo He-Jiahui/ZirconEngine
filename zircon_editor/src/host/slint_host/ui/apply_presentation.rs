@@ -1,5 +1,13 @@
 use super::shell_presentation::ShellPresentation;
 use super::*;
+use crate::host::slint_host::callback_dispatch::BuiltinWorkbenchRootShellFrames;
+use crate::host::slint_host::floating_window_projection::FloatingWindowProjectionBundle;
+use crate::host::slint_host::root_shell_projection::{
+    resolve_root_bottom_region_frame, resolve_root_center_band_frame,
+    resolve_root_document_region_frame, resolve_root_left_region_frame,
+    resolve_root_right_region_frame, resolve_root_status_bar_frame,
+    resolve_root_viewport_content_frame,
+};
 
 pub(crate) fn apply_presentation(
     ui: &WorkbenchShell,
@@ -9,6 +17,8 @@ pub(crate) fn apply_presentation(
     preset_names: &[String],
     active_preset_name: Option<&str>,
     ui_asset_panes: &std::collections::BTreeMap<String, crate::UiAssetEditorPanePresentation>,
+    shared_root_frames: Option<&BuiltinWorkbenchRootShellFrames>,
+    floating_window_projection_bundle: &FloatingWindowProjectionBundle,
 ) {
     let presentation = ShellPresentation::from_state(
         model,
@@ -17,7 +27,9 @@ pub(crate) fn apply_presentation(
         preset_names,
         active_preset_name,
         ui_asset_panes,
+        floating_window_projection_bundle,
     );
+    let document_pane_shows_viewport_toolbar = presentation.document_pane.show_toolbar;
 
     ui.set_host_tabs(presentation.host_tabs);
     ui.set_breadcrumbs(presentation.breadcrumbs);
@@ -79,16 +91,38 @@ pub(crate) fn apply_presentation(
     ui.set_active_preset_name(presentation.active_preset_name);
     ui.set_shell_min_width_px(geometry.window_min_width);
     ui.set_shell_min_height_px(geometry.window_min_height);
-    ui.set_center_band_frame(frame_rect(geometry.center_band_frame));
-    ui.set_status_bar_frame(frame_rect(geometry.status_bar_frame));
-    ui.set_left_region_frame(frame_rect(geometry.region_frame(ShellRegionId::Left)));
-    ui.set_document_region_frame(frame_rect(geometry.region_frame(ShellRegionId::Document)));
-    ui.set_right_region_frame(frame_rect(geometry.region_frame(ShellRegionId::Right)));
-    ui.set_bottom_region_frame(frame_rect(geometry.region_frame(ShellRegionId::Bottom)));
+    ui.set_center_band_frame(frame_rect(resolve_root_center_band_frame(
+        geometry,
+        shared_root_frames,
+    )));
+    ui.set_status_bar_frame(frame_rect(resolve_root_status_bar_frame(
+        geometry,
+        shared_root_frames,
+    )));
+    ui.set_left_region_frame(frame_rect(resolve_root_left_region_frame(
+        geometry,
+        shared_root_frames,
+    )));
+    ui.set_document_region_frame(frame_rect(resolve_root_document_region_frame(
+        geometry,
+        shared_root_frames,
+    )));
+    ui.set_right_region_frame(frame_rect(resolve_root_right_region_frame(
+        geometry,
+        shared_root_frames,
+    )));
+    ui.set_bottom_region_frame(frame_rect(resolve_root_bottom_region_frame(
+        geometry,
+        shared_root_frames,
+    )));
     ui.set_left_splitter_frame(frame_rect(geometry.splitter_frame(ShellRegionId::Left)));
     ui.set_right_splitter_frame(frame_rect(geometry.splitter_frame(ShellRegionId::Right)));
     ui.set_bottom_splitter_frame(frame_rect(geometry.splitter_frame(ShellRegionId::Bottom)));
-    ui.set_viewport_content_frame(frame_rect(geometry.viewport_content_frame));
+    ui.set_viewport_content_frame(frame_rect(resolve_root_viewport_content_frame(
+        geometry,
+        shared_root_frames,
+        document_pane_shows_viewport_toolbar,
+    )));
     ui.set_native_floating_window_mode(false);
     ui.set_native_floating_window_id("".into());
     ui.set_native_window_title("Zircon Editor".into());

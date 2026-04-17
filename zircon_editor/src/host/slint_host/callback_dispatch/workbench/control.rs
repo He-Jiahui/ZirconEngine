@@ -1,7 +1,7 @@
 use crate::editor_event::EditorEventRuntime;
 use crate::host::slint_host::event_bridge::SlintDispatchEffects;
 
-use super::super::{common::dispatch_editor_binding, BuiltinWorkbenchTemplateBridge};
+use super::super::{BuiltinWorkbenchTemplateBridge, common::dispatch_editor_binding};
 
 pub(crate) fn dispatch_builtin_workbench_control(
     runtime: &EditorEventRuntime,

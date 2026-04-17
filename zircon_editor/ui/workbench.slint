@@ -1,6 +1,6 @@
 import { DockTabButton, EmptyStateCard, MenuBarButton, MenuItemRow, Palette, RailButton, ShellButton, ShellIcon, TabChip, ToolbarButton, ToolbarIconButton } from "workbench/chrome.slint";
 import { AssetBrowserPane, AssetFolderData, AssetItemData, AssetReferenceData, AssetSelectionData, AssetsActivityPane, ProjectOverviewData, ProjectOverviewPane } from "workbench/assets.slint";
-import { ConsolePane, FallbackPane, HierarchyPane, InspectorPane, SceneNodeData, ToolWindowEmptyState, UiAssetEditorPane } from "workbench/panes.slint";
+import { ConsolePane, FallbackPane, HierarchyPane, InspectorPane, SceneNodeData, ToolWindowEmptyState, UiAssetCanvasNodeData, UiAssetCanvasSlotTargetData, UiAssetEditorPane } from "workbench/panes.slint";
 import { NewProjectFormData, RecentProjectData, WelcomePane, WelcomePaneData } from "workbench/welcome.slint";
 
 export struct TabData {
@@ -56,10 +56,24 @@ export struct PaneData {
     ui_asset_status: string,
     ui_asset_selection: string,
     ui_asset_source_text: string,
+    ui_asset_preview_preset: string,
     ui_asset_preview_summary: string,
     ui_asset_can_save: bool,
     ui_asset_can_undo: bool,
     ui_asset_can_redo: bool,
+    ui_asset_can_insert_child: bool,
+    ui_asset_can_insert_after: bool,
+    ui_asset_can_move_up: bool,
+    ui_asset_can_move_down: bool,
+    ui_asset_can_reparent_into_previous: bool,
+    ui_asset_can_reparent_into_next: bool,
+    ui_asset_can_reparent_outdent: bool,
+    ui_asset_can_open_reference: bool,
+    ui_asset_can_convert_to_reference: bool,
+    ui_asset_can_extract_component: bool,
+    ui_asset_can_promote_to_external_widget: bool,
+    ui_asset_can_wrap_in_vertical_box: bool,
+    ui_asset_can_unwrap: bool,
     ui_asset_can_create_rule: bool,
     ui_asset_can_extract_rule: bool,
     ui_asset_preview_available: bool,
@@ -68,6 +82,32 @@ export struct PaneData {
     ui_asset_style_state_pressed: bool,
     ui_asset_style_state_disabled: bool,
     ui_asset_style_state_selected: bool,
+    ui_asset_palette_selected_index: int,
+    ui_asset_palette_drag_target_preview_index: int,
+    ui_asset_palette_drag_target_action: string,
+    ui_asset_palette_drag_target_label: string,
+    ui_asset_palette_drag_slot_target_items: [UiAssetCanvasSlotTargetData],
+    ui_asset_palette_drag_candidate_items: [string],
+    ui_asset_palette_drag_candidate_selected_index: int,
+    ui_asset_palette_target_chooser_active: bool,
+    ui_asset_hierarchy_selected_index: int,
+    ui_asset_preview_selected_index: int,
+    ui_asset_source_selected_block_label: string,
+    ui_asset_source_selected_line: int,
+    ui_asset_source_selected_excerpt: string,
+    ui_asset_source_roundtrip_status: string,
+    ui_asset_source_outline_items: [string],
+    ui_asset_source_outline_selected_index: int,
+    ui_asset_preview_surface_width: float,
+    ui_asset_preview_surface_height: float,
+    ui_asset_preview_canvas_items: [UiAssetCanvasNodeData],
+    ui_asset_preview_mock_items: [string],
+    ui_asset_preview_mock_selected_index: int,
+    ui_asset_preview_mock_property: string,
+    ui_asset_preview_mock_kind: string,
+    ui_asset_preview_mock_value: string,
+    ui_asset_preview_mock_can_edit: bool,
+    ui_asset_preview_mock_can_clear: bool,
     ui_asset_style_class_items: [string],
     ui_asset_style_rule_items: [string],
     ui_asset_style_rule_selected_index: int,
@@ -99,13 +139,54 @@ export struct PaneData {
     ui_asset_inspector_slot_padding: string,
     ui_asset_inspector_slot_width_preferred: string,
     ui_asset_inspector_slot_height_preferred: string,
+    ui_asset_inspector_slot_semantic_title: string,
+    ui_asset_inspector_slot_semantic_items: [string],
+    ui_asset_inspector_slot_semantic_selected_index: int,
+    ui_asset_inspector_slot_semantic_path: string,
+    ui_asset_inspector_slot_semantic_value: string,
+    ui_asset_inspector_slot_kind: string,
+    ui_asset_inspector_slot_overlay_anchor_x: string,
+    ui_asset_inspector_slot_overlay_anchor_y: string,
+    ui_asset_inspector_slot_overlay_pivot_x: string,
+    ui_asset_inspector_slot_overlay_pivot_y: string,
+    ui_asset_inspector_slot_overlay_position_x: string,
+    ui_asset_inspector_slot_overlay_position_y: string,
+    ui_asset_inspector_slot_overlay_z_index: string,
+    ui_asset_inspector_slot_grid_row: string,
+    ui_asset_inspector_slot_grid_column: string,
+    ui_asset_inspector_slot_grid_row_span: string,
+    ui_asset_inspector_slot_grid_column_span: string,
+    ui_asset_inspector_slot_flow_break_before: string,
+    ui_asset_inspector_slot_flow_alignment: string,
     ui_asset_inspector_layout_width_preferred: string,
     ui_asset_inspector_layout_height_preferred: string,
+    ui_asset_inspector_layout_semantic_title: string,
+    ui_asset_inspector_layout_semantic_items: [string],
+    ui_asset_inspector_layout_semantic_selected_index: int,
+    ui_asset_inspector_layout_semantic_path: string,
+    ui_asset_inspector_layout_semantic_value: string,
+    ui_asset_inspector_layout_kind: string,
+    ui_asset_inspector_layout_scroll_axis: string,
+    ui_asset_inspector_layout_scroll_gap: string,
+    ui_asset_inspector_layout_scrollbar_visibility: string,
+    ui_asset_inspector_layout_virtualization_item_extent: string,
+    ui_asset_inspector_layout_virtualization_overscan: string,
+    ui_asset_inspector_layout_clip: string,
     ui_asset_inspector_binding_items: [string],
     ui_asset_inspector_binding_selected_index: int,
     ui_asset_inspector_binding_id: string,
     ui_asset_inspector_binding_event: string,
+    ui_asset_inspector_binding_event_items: [string],
+    ui_asset_inspector_binding_event_selected_index: int,
     ui_asset_inspector_binding_route: string,
+    ui_asset_inspector_binding_route_target: string,
+    ui_asset_inspector_binding_action_target: string,
+    ui_asset_inspector_binding_action_kind_items: [string],
+    ui_asset_inspector_binding_action_kind_selected_index: int,
+    ui_asset_inspector_binding_payload_items: [string],
+    ui_asset_inspector_binding_payload_selected_index: int,
+    ui_asset_inspector_binding_payload_key: string,
+    ui_asset_inspector_binding_payload_value: string,
     ui_asset_inspector_can_edit_binding: bool,
     ui_asset_inspector_can_delete_binding: bool,
     ui_asset_inspector_widget_kind: string,
@@ -114,6 +195,10 @@ export struct PaneData {
     ui_asset_inspector_text_prop: string,
     ui_asset_inspector_can_edit_control_id: bool,
     ui_asset_inspector_can_edit_text_prop: bool,
+    ui_asset_inspector_promote_asset_id: string,
+    ui_asset_inspector_promote_component_name: string,
+    ui_asset_inspector_promote_document_id: string,
+    ui_asset_inspector_can_edit_promote_draft: bool,
     ui_asset_palette_items: [string],
     ui_asset_hierarchy_items: [string],
     ui_asset_inspector_items: [string],
@@ -445,9 +530,27 @@ component PaneSurface inherits Rectangle {
     callback ui_asset_style_rule_declaration_action(instance_id: string, action_id: string, item_index: int, declaration_path: string, declaration_value: string);
     callback ui_asset_style_token_action(instance_id: string, action_id: string, item_index: int, token_name: string, token_value: string);
     callback ui_asset_source_edited(instance_id: string, value: string);
+    callback ui_asset_palette_selected(instance_id: string, item_index: int);
+    callback ui_asset_palette_drag_hover(instance_id: string, surface_x: float, surface_y: float);
+    callback ui_asset_palette_drag_drop(instance_id: string);
+    callback ui_asset_palette_drag_cancel(instance_id: string);
+    callback ui_asset_palette_target_candidate_selected(instance_id: string, item_index: int);
+    callback ui_asset_palette_target_confirm(instance_id: string);
+    callback ui_asset_palette_target_cancel(instance_id: string);
     callback ui_asset_hierarchy_selected(instance_id: string, item_index: int);
+    callback ui_asset_hierarchy_activated(instance_id: string, item_index: int);
     callback ui_asset_preview_selected(instance_id: string, item_index: int);
+    callback ui_asset_preview_activated(instance_id: string, item_index: int);
+    callback ui_asset_source_outline_selected(instance_id: string, item_index: int);
+    callback ui_asset_preview_mock_selected(instance_id: string, item_index: int);
+    callback ui_asset_preview_mock_action(instance_id: string, action_id: string, value: string);
     callback ui_asset_binding_selected(instance_id: string, item_index: int);
+    callback ui_asset_binding_event_selected(instance_id: string, item_index: int);
+    callback ui_asset_binding_action_kind_selected(instance_id: string, item_index: int);
+    callback ui_asset_binding_payload_selected(instance_id: string, item_index: int);
+    callback ui_asset_binding_payload_action(instance_id: string, action_id: string, payload_key: string, payload_value: string);
+    callback ui_asset_slot_semantic_selected(instance_id: string, item_index: int);
+    callback ui_asset_layout_semantic_selected(instance_id: string, item_index: int);
     in-out property <string> mesh_import_path;
     in property <bool> show_header: true;
     in property <bool> compact_empty: true;
@@ -789,10 +892,24 @@ component PaneSurface inherits Rectangle {
         status: root.pane.ui_asset_status;
         selection: root.pane.ui_asset_selection;
         source_text: root.pane.ui_asset_source_text;
+        preview_preset: root.pane.ui_asset_preview_preset;
         preview_summary: root.pane.ui_asset_preview_summary;
         can_save: root.pane.ui_asset_can_save;
         can_undo: root.pane.ui_asset_can_undo;
         can_redo: root.pane.ui_asset_can_redo;
+        can_insert_child: root.pane.ui_asset_can_insert_child;
+        can_insert_after: root.pane.ui_asset_can_insert_after;
+        can_move_up: root.pane.ui_asset_can_move_up;
+        can_move_down: root.pane.ui_asset_can_move_down;
+        can_reparent_into_previous: root.pane.ui_asset_can_reparent_into_previous;
+        can_reparent_into_next: root.pane.ui_asset_can_reparent_into_next;
+        can_reparent_outdent: root.pane.ui_asset_can_reparent_outdent;
+        can_open_reference: root.pane.ui_asset_can_open_reference;
+        can_convert_to_reference: root.pane.ui_asset_can_convert_to_reference;
+        can_extract_component: root.pane.ui_asset_can_extract_component;
+        can_promote_to_external_widget: root.pane.ui_asset_can_promote_to_external_widget;
+        can_wrap_in_vertical_box: root.pane.ui_asset_can_wrap_in_vertical_box;
+        can_unwrap: root.pane.ui_asset_can_unwrap;
         can_create_rule: root.pane.ui_asset_can_create_rule;
         can_extract_rule: root.pane.ui_asset_can_extract_rule;
         preview_available: root.pane.ui_asset_preview_available;
@@ -801,6 +918,32 @@ component PaneSurface inherits Rectangle {
         state_pressed: root.pane.ui_asset_style_state_pressed;
         state_disabled: root.pane.ui_asset_style_state_disabled;
         state_selected: root.pane.ui_asset_style_state_selected;
+        palette_selected_index: root.pane.ui_asset_palette_selected_index;
+                palette_drag_target_preview_index: root.pane.ui_asset_palette_drag_target_preview_index;
+                palette_drag_target_action: root.pane.ui_asset_palette_drag_target_action;
+                palette_drag_target_label: root.pane.ui_asset_palette_drag_target_label;
+                palette_drag_slot_target_items: root.pane.ui_asset_palette_drag_slot_target_items;
+                palette_drag_candidate_items: root.pane.ui_asset_palette_drag_candidate_items;
+                palette_drag_candidate_selected_index: root.pane.ui_asset_palette_drag_candidate_selected_index;
+                palette_target_chooser_active: root.pane.ui_asset_palette_target_chooser_active;
+                hierarchy_selected_index: root.pane.ui_asset_hierarchy_selected_index;
+        preview_selected_index: root.pane.ui_asset_preview_selected_index;
+        source_selected_block_label: root.pane.ui_asset_source_selected_block_label;
+        source_selected_line: root.pane.ui_asset_source_selected_line;
+        source_selected_excerpt: root.pane.ui_asset_source_selected_excerpt;
+        source_roundtrip_status: root.pane.ui_asset_source_roundtrip_status;
+        source_outline_items: root.pane.ui_asset_source_outline_items;
+        source_outline_selected_index: root.pane.ui_asset_source_outline_selected_index;
+        preview_surface_width: root.pane.ui_asset_preview_surface_width;
+        preview_surface_height: root.pane.ui_asset_preview_surface_height;
+        preview_canvas_items: root.pane.ui_asset_preview_canvas_items;
+        preview_mock_items: root.pane.ui_asset_preview_mock_items;
+        preview_mock_selected_index: root.pane.ui_asset_preview_mock_selected_index;
+        preview_mock_property: root.pane.ui_asset_preview_mock_property;
+        preview_mock_kind: root.pane.ui_asset_preview_mock_kind;
+        preview_mock_value: root.pane.ui_asset_preview_mock_value;
+        preview_mock_can_edit: root.pane.ui_asset_preview_mock_can_edit;
+        preview_mock_can_clear: root.pane.ui_asset_preview_mock_can_clear;
         style_class_items: root.pane.ui_asset_style_class_items;
         style_rule_items: root.pane.ui_asset_style_rule_items;
         style_rule_selected_index: root.pane.ui_asset_style_rule_selected_index;
@@ -832,13 +975,54 @@ component PaneSurface inherits Rectangle {
         inspector_slot_padding: root.pane.ui_asset_inspector_slot_padding;
         inspector_slot_width_preferred: root.pane.ui_asset_inspector_slot_width_preferred;
         inspector_slot_height_preferred: root.pane.ui_asset_inspector_slot_height_preferred;
+        inspector_slot_semantic_title: root.pane.ui_asset_inspector_slot_semantic_title;
+        inspector_slot_semantic_items: root.pane.ui_asset_inspector_slot_semantic_items;
+        inspector_slot_semantic_selected_index: root.pane.ui_asset_inspector_slot_semantic_selected_index;
+        inspector_slot_semantic_path: root.pane.ui_asset_inspector_slot_semantic_path;
+        inspector_slot_semantic_value: root.pane.ui_asset_inspector_slot_semantic_value;
+        inspector_slot_kind: root.pane.ui_asset_inspector_slot_kind;
+        inspector_slot_overlay_anchor_x: root.pane.ui_asset_inspector_slot_overlay_anchor_x;
+        inspector_slot_overlay_anchor_y: root.pane.ui_asset_inspector_slot_overlay_anchor_y;
+        inspector_slot_overlay_pivot_x: root.pane.ui_asset_inspector_slot_overlay_pivot_x;
+        inspector_slot_overlay_pivot_y: root.pane.ui_asset_inspector_slot_overlay_pivot_y;
+        inspector_slot_overlay_position_x: root.pane.ui_asset_inspector_slot_overlay_position_x;
+        inspector_slot_overlay_position_y: root.pane.ui_asset_inspector_slot_overlay_position_y;
+        inspector_slot_overlay_z_index: root.pane.ui_asset_inspector_slot_overlay_z_index;
+        inspector_slot_grid_row: root.pane.ui_asset_inspector_slot_grid_row;
+        inspector_slot_grid_column: root.pane.ui_asset_inspector_slot_grid_column;
+        inspector_slot_grid_row_span: root.pane.ui_asset_inspector_slot_grid_row_span;
+        inspector_slot_grid_column_span: root.pane.ui_asset_inspector_slot_grid_column_span;
+        inspector_slot_flow_break_before: root.pane.ui_asset_inspector_slot_flow_break_before;
+        inspector_slot_flow_alignment: root.pane.ui_asset_inspector_slot_flow_alignment;
         inspector_layout_width_preferred: root.pane.ui_asset_inspector_layout_width_preferred;
         inspector_layout_height_preferred: root.pane.ui_asset_inspector_layout_height_preferred;
+        inspector_layout_semantic_title: root.pane.ui_asset_inspector_layout_semantic_title;
+        inspector_layout_semantic_items: root.pane.ui_asset_inspector_layout_semantic_items;
+        inspector_layout_semantic_selected_index: root.pane.ui_asset_inspector_layout_semantic_selected_index;
+        inspector_layout_semantic_path: root.pane.ui_asset_inspector_layout_semantic_path;
+        inspector_layout_semantic_value: root.pane.ui_asset_inspector_layout_semantic_value;
+        inspector_layout_kind: root.pane.ui_asset_inspector_layout_kind;
+        inspector_layout_scroll_axis: root.pane.ui_asset_inspector_layout_scroll_axis;
+        inspector_layout_scroll_gap: root.pane.ui_asset_inspector_layout_scroll_gap;
+        inspector_layout_scrollbar_visibility: root.pane.ui_asset_inspector_layout_scrollbar_visibility;
+        inspector_layout_virtualization_item_extent: root.pane.ui_asset_inspector_layout_virtualization_item_extent;
+        inspector_layout_virtualization_overscan: root.pane.ui_asset_inspector_layout_virtualization_overscan;
+        inspector_layout_clip: root.pane.ui_asset_inspector_layout_clip;
         inspector_binding_items: root.pane.ui_asset_inspector_binding_items;
         inspector_binding_selected_index: root.pane.ui_asset_inspector_binding_selected_index;
         inspector_binding_id: root.pane.ui_asset_inspector_binding_id;
         inspector_binding_event: root.pane.ui_asset_inspector_binding_event;
+        inspector_binding_event_items: root.pane.ui_asset_inspector_binding_event_items;
+        inspector_binding_event_selected_index: root.pane.ui_asset_inspector_binding_event_selected_index;
         inspector_binding_route: root.pane.ui_asset_inspector_binding_route;
+        inspector_binding_route_target: root.pane.ui_asset_inspector_binding_route_target;
+        inspector_binding_action_target: root.pane.ui_asset_inspector_binding_action_target;
+        inspector_binding_action_kind_items: root.pane.ui_asset_inspector_binding_action_kind_items;
+        inspector_binding_action_kind_selected_index: root.pane.ui_asset_inspector_binding_action_kind_selected_index;
+        inspector_binding_payload_items: root.pane.ui_asset_inspector_binding_payload_items;
+        inspector_binding_payload_selected_index: root.pane.ui_asset_inspector_binding_payload_selected_index;
+        inspector_binding_payload_key: root.pane.ui_asset_inspector_binding_payload_key;
+        inspector_binding_payload_value: root.pane.ui_asset_inspector_binding_payload_value;
         inspector_can_edit_binding: root.pane.ui_asset_inspector_can_edit_binding;
         inspector_can_delete_binding: root.pane.ui_asset_inspector_can_delete_binding;
         inspector_widget_kind: root.pane.ui_asset_inspector_widget_kind;
@@ -847,6 +1031,10 @@ component PaneSurface inherits Rectangle {
         inspector_text_prop: root.pane.ui_asset_inspector_text_prop;
         inspector_can_edit_control_id: root.pane.ui_asset_inspector_can_edit_control_id;
         inspector_can_edit_text_prop: root.pane.ui_asset_inspector_can_edit_text_prop;
+        inspector_promote_asset_id: root.pane.ui_asset_inspector_promote_asset_id;
+        inspector_promote_component_name: root.pane.ui_asset_inspector_promote_component_name;
+        inspector_promote_document_id: root.pane.ui_asset_inspector_promote_document_id;
+        inspector_can_edit_promote_draft: root.pane.ui_asset_inspector_can_edit_promote_draft;
         palette_items: root.pane.ui_asset_palette_items;
         hierarchy_items: root.pane.ui_asset_hierarchy_items;
         inspector_items: root.pane.ui_asset_inspector_items;
@@ -860,9 +1048,27 @@ component PaneSurface inherits Rectangle {
         style_rule_declaration_action(action_id, item_index, declaration_path, declaration_value) => { root.ui_asset_style_rule_declaration_action(root.pane.id, action_id, item_index, declaration_path, declaration_value); }
         style_token_action(action_id, item_index, token_name, token_value) => { root.ui_asset_style_token_action(root.pane.id, action_id, item_index, token_name, token_value); }
         source_edited(value) => { root.ui_asset_source_edited(root.pane.id, value); }
+        palette_selected(item_index) => { root.ui_asset_palette_selected(root.pane.id, item_index); }
+        palette_drag_hovered(surface_x, surface_y) => { root.ui_asset_palette_drag_hover(root.pane.id, surface_x, surface_y); }
+        palette_drag_dropped() => { root.ui_asset_palette_drag_drop(root.pane.id); }
+        palette_drag_cancelled() => { root.ui_asset_palette_drag_cancel(root.pane.id); }
+        palette_target_candidate_selected(item_index) => { root.ui_asset_palette_target_candidate_selected(root.pane.id, item_index); }
+        palette_target_confirm() => { root.ui_asset_palette_target_confirm(root.pane.id); }
+        palette_target_cancel() => { root.ui_asset_palette_target_cancel(root.pane.id); }
         hierarchy_selected(item_index) => { root.ui_asset_hierarchy_selected(root.pane.id, item_index); }
+        hierarchy_activated(item_index) => { root.ui_asset_hierarchy_activated(root.pane.id, item_index); }
         preview_selected(item_index) => { root.ui_asset_preview_selected(root.pane.id, item_index); }
+        preview_activated(item_index) => { root.ui_asset_preview_activated(root.pane.id, item_index); }
+        source_outline_selected(item_index) => { root.ui_asset_source_outline_selected(root.pane.id, item_index); }
+        preview_mock_selected(item_index) => { root.ui_asset_preview_mock_selected(root.pane.id, item_index); }
+        preview_mock_action(action_id, value) => { root.ui_asset_preview_mock_action(root.pane.id, action_id, value); }
         binding_selected(item_index) => { root.ui_asset_binding_selected(root.pane.id, item_index); }
+        binding_event_selected(item_index) => { root.ui_asset_binding_event_selected(root.pane.id, item_index); }
+        binding_action_kind_selected(item_index) => { root.ui_asset_binding_action_kind_selected(root.pane.id, item_index); }
+        binding_payload_selected(item_index) => { root.ui_asset_binding_payload_selected(root.pane.id, item_index); }
+        binding_payload_action(action_id, payload_key, payload_value) => { root.ui_asset_binding_payload_action(root.pane.id, action_id, payload_key, payload_value); }
+        slot_semantic_selected(item_index) => { root.ui_asset_slot_semantic_selected(root.pane.id, item_index); }
+        layout_semantic_selected(item_index) => { root.ui_asset_layout_semantic_selected(root.pane.id, item_index); }
     }
 
     if !root.pane.show_empty && !(root.pane.kind == "Project" || root.pane.kind == "Assets" || root.pane.kind == "Hierarchy" || root.pane.kind == "Inspector" || root.pane.kind == "Scene" || root.pane.kind == "Game" || root.pane.kind == "Console" || root.pane.kind == "AssetBrowser" || root.pane.kind == "UiAssetEditor"): FallbackPane {
@@ -998,37 +1204,37 @@ export component WorkbenchShell inherits Window {
     out property <float> shell_height_px: root.height / 1px;
     out property <float> viewport_width: root.viewport_content_frame.width;
     out property <float> viewport_height: root.viewport_content_frame.height;
-    out property <FrameRect> file_menu_button_frame: {
+    in-out property <FrameRect> file_menu_button_frame: {
         x: root.outer_margin / 1px + top_bar.file_menu_button_local_frame.x,
         y: root.outer_margin / 1px + top_bar.file_menu_button_local_frame.y,
         width: top_bar.file_menu_button_local_frame.width,
         height: top_bar.file_menu_button_local_frame.height,
     };
-    out property <FrameRect> edit_menu_button_frame: {
+    in-out property <FrameRect> edit_menu_button_frame: {
         x: root.outer_margin / 1px + top_bar.edit_menu_button_local_frame.x,
         y: root.outer_margin / 1px + top_bar.edit_menu_button_local_frame.y,
         width: top_bar.edit_menu_button_local_frame.width,
         height: top_bar.edit_menu_button_local_frame.height,
     };
-    out property <FrameRect> selection_menu_button_frame: {
+    in-out property <FrameRect> selection_menu_button_frame: {
         x: root.outer_margin / 1px + top_bar.selection_menu_button_local_frame.x,
         y: root.outer_margin / 1px + top_bar.selection_menu_button_local_frame.y,
         width: top_bar.selection_menu_button_local_frame.width,
         height: top_bar.selection_menu_button_local_frame.height,
     };
-    out property <FrameRect> view_menu_button_frame: {
+    in-out property <FrameRect> view_menu_button_frame: {
         x: root.outer_margin / 1px + top_bar.view_menu_button_local_frame.x,
         y: root.outer_margin / 1px + top_bar.view_menu_button_local_frame.y,
         width: top_bar.view_menu_button_local_frame.width,
         height: top_bar.view_menu_button_local_frame.height,
     };
-    out property <FrameRect> window_menu_button_frame: {
+    in-out property <FrameRect> window_menu_button_frame: {
         x: root.outer_margin / 1px + top_bar.window_menu_button_local_frame.x,
         y: root.outer_margin / 1px + top_bar.window_menu_button_local_frame.y,
         width: top_bar.window_menu_button_local_frame.width,
         height: top_bar.window_menu_button_local_frame.height,
     };
-    out property <FrameRect> help_menu_button_frame: {
+    in-out property <FrameRect> help_menu_button_frame: {
         x: root.outer_margin / 1px + top_bar.help_menu_button_local_frame.x,
         y: root.outer_margin / 1px + top_bar.help_menu_button_local_frame.y,
         width: top_bar.help_menu_button_local_frame.width,
@@ -1082,9 +1288,27 @@ export component WorkbenchShell inherits Window {
     callback ui_asset_style_rule_declaration_action(instance_id: string, action_id: string, item_index: int, declaration_path: string, declaration_value: string);
     callback ui_asset_style_token_action(instance_id: string, action_id: string, item_index: int, token_name: string, token_value: string);
     callback ui_asset_source_edited(instance_id: string, value: string);
+    callback ui_asset_palette_selected(instance_id: string, item_index: int);
+    callback ui_asset_palette_drag_hover(instance_id: string, surface_x: float, surface_y: float);
+    callback ui_asset_palette_drag_drop(instance_id: string);
+    callback ui_asset_palette_drag_cancel(instance_id: string);
+    callback ui_asset_palette_target_candidate_selected(instance_id: string, item_index: int);
+    callback ui_asset_palette_target_confirm(instance_id: string);
+    callback ui_asset_palette_target_cancel(instance_id: string);
     callback ui_asset_hierarchy_selected(instance_id: string, item_index: int);
+    callback ui_asset_hierarchy_activated(instance_id: string, item_index: int);
     callback ui_asset_preview_selected(instance_id: string, item_index: int);
+    callback ui_asset_preview_activated(instance_id: string, item_index: int);
+    callback ui_asset_source_outline_selected(instance_id: string, item_index: int);
+    callback ui_asset_preview_mock_selected(instance_id: string, item_index: int);
+    callback ui_asset_preview_mock_action(instance_id: string, action_id: string, value: string);
     callback ui_asset_binding_selected(instance_id: string, item_index: int);
+    callback ui_asset_binding_event_selected(instance_id: string, item_index: int);
+    callback ui_asset_binding_action_kind_selected(instance_id: string, item_index: int);
+    callback ui_asset_binding_payload_selected(instance_id: string, item_index: int);
+    callback ui_asset_binding_payload_action(instance_id: string, action_id: string, payload_key: string, payload_value: string);
+    callback ui_asset_slot_semantic_selected(instance_id: string, item_index: int);
+    callback ui_asset_layout_semantic_selected(instance_id: string, item_index: int);
 
     palette := Palette {}
     property <length> outer_margin: 0px;
@@ -1487,9 +1711,20 @@ export component WorkbenchShell inherits Window {
                                             ui_asset_style_rule_declaration_action(instance_id, action_id, item_index, declaration_path, declaration_value) => { root.ui_asset_style_rule_declaration_action(instance_id, action_id, item_index, declaration_path, declaration_value); }
                                             ui_asset_style_token_action(instance_id, action_id, item_index, token_name, token_value) => { root.ui_asset_style_token_action(instance_id, action_id, item_index, token_name, token_value); }
                                             ui_asset_source_edited(instance_id, value) => { root.ui_asset_source_edited(instance_id, value); }
+                                            ui_asset_palette_selected(instance_id, item_index) => { root.ui_asset_palette_selected(instance_id, item_index); }
+                                            ui_asset_palette_drag_hover(instance_id, surface_x, surface_y) => { root.ui_asset_palette_drag_hover(instance_id, surface_x, surface_y); }
+                                            ui_asset_palette_drag_drop(instance_id) => { root.ui_asset_palette_drag_drop(instance_id); }
+                                            ui_asset_palette_drag_cancel(instance_id) => { root.ui_asset_palette_drag_cancel(instance_id); }
                                             ui_asset_hierarchy_selected(instance_id, item_index) => { root.ui_asset_hierarchy_selected(instance_id, item_index); }
+                                            ui_asset_hierarchy_activated(instance_id, item_index) => { root.ui_asset_hierarchy_activated(instance_id, item_index); }
                                             ui_asset_preview_selected(instance_id, item_index) => { root.ui_asset_preview_selected(instance_id, item_index); }
                                             ui_asset_binding_selected(instance_id, item_index) => { root.ui_asset_binding_selected(instance_id, item_index); }
+                                            ui_asset_binding_event_selected(instance_id, item_index) => { root.ui_asset_binding_event_selected(instance_id, item_index); }
+                                            ui_asset_binding_action_kind_selected(instance_id, item_index) => { root.ui_asset_binding_action_kind_selected(instance_id, item_index); }
+                                            ui_asset_binding_payload_selected(instance_id, item_index) => { root.ui_asset_binding_payload_selected(instance_id, item_index); }
+                                            ui_asset_binding_payload_action(instance_id, action_id, payload_key, payload_value) => { root.ui_asset_binding_payload_action(instance_id, action_id, payload_key, payload_value); }
+                                            ui_asset_slot_semantic_selected(instance_id, item_index) => { root.ui_asset_slot_semantic_selected(instance_id, item_index); }
+                                            ui_asset_layout_semantic_selected(instance_id, item_index) => { root.ui_asset_layout_semantic_selected(instance_id, item_index); }
                                         }
                                     }
                                 }
@@ -1676,9 +1911,20 @@ export component WorkbenchShell inherits Window {
                                     ui_asset_style_rule_declaration_action(instance_id, action_id, item_index, declaration_path, declaration_value) => { root.ui_asset_style_rule_declaration_action(instance_id, action_id, item_index, declaration_path, declaration_value); }
                                     ui_asset_style_token_action(instance_id, action_id, item_index, token_name, token_value) => { root.ui_asset_style_token_action(instance_id, action_id, item_index, token_name, token_value); }
                                     ui_asset_source_edited(instance_id, value) => { root.ui_asset_source_edited(instance_id, value); }
+                                    ui_asset_palette_selected(instance_id, item_index) => { root.ui_asset_palette_selected(instance_id, item_index); }
+                                    ui_asset_palette_drag_hover(instance_id, surface_x, surface_y) => { root.ui_asset_palette_drag_hover(instance_id, surface_x, surface_y); }
+                                    ui_asset_palette_drag_drop(instance_id) => { root.ui_asset_palette_drag_drop(instance_id); }
+                                    ui_asset_palette_drag_cancel(instance_id) => { root.ui_asset_palette_drag_cancel(instance_id); }
                                     ui_asset_hierarchy_selected(instance_id, item_index) => { root.ui_asset_hierarchy_selected(instance_id, item_index); }
+                                            ui_asset_hierarchy_activated(instance_id, item_index) => { root.ui_asset_hierarchy_activated(instance_id, item_index); }
                                     ui_asset_preview_selected(instance_id, item_index) => { root.ui_asset_preview_selected(instance_id, item_index); }
                                     ui_asset_binding_selected(instance_id, item_index) => { root.ui_asset_binding_selected(instance_id, item_index); }
+                                    ui_asset_binding_event_selected(instance_id, item_index) => { root.ui_asset_binding_event_selected(instance_id, item_index); }
+                                    ui_asset_binding_action_kind_selected(instance_id, item_index) => { root.ui_asset_binding_action_kind_selected(instance_id, item_index); }
+                                    ui_asset_binding_payload_selected(instance_id, item_index) => { root.ui_asset_binding_payload_selected(instance_id, item_index); }
+                                    ui_asset_binding_payload_action(instance_id, action_id, payload_key, payload_value) => { root.ui_asset_binding_payload_action(instance_id, action_id, payload_key, payload_value); }
+                                    ui_asset_slot_semantic_selected(instance_id, item_index) => { root.ui_asset_slot_semantic_selected(instance_id, item_index); }
+                                    ui_asset_layout_semantic_selected(instance_id, item_index) => { root.ui_asset_layout_semantic_selected(instance_id, item_index); }
                                 }
                             }
 
@@ -1849,9 +2095,20 @@ export component WorkbenchShell inherits Window {
                                         ui_asset_style_rule_declaration_action(instance_id, action_id, item_index, declaration_path, declaration_value) => { root.ui_asset_style_rule_declaration_action(instance_id, action_id, item_index, declaration_path, declaration_value); }
                                         ui_asset_style_token_action(instance_id, action_id, item_index, token_name, token_value) => { root.ui_asset_style_token_action(instance_id, action_id, item_index, token_name, token_value); }
                                         ui_asset_source_edited(instance_id, value) => { root.ui_asset_source_edited(instance_id, value); }
+                                        ui_asset_palette_selected(instance_id, item_index) => { root.ui_asset_palette_selected(instance_id, item_index); }
+                                        ui_asset_palette_drag_hover(instance_id, surface_x, surface_y) => { root.ui_asset_palette_drag_hover(instance_id, surface_x, surface_y); }
+                                        ui_asset_palette_drag_drop(instance_id) => { root.ui_asset_palette_drag_drop(instance_id); }
+                                        ui_asset_palette_drag_cancel(instance_id) => { root.ui_asset_palette_drag_cancel(instance_id); }
                                         ui_asset_hierarchy_selected(instance_id, item_index) => { root.ui_asset_hierarchy_selected(instance_id, item_index); }
+                                            ui_asset_hierarchy_activated(instance_id, item_index) => { root.ui_asset_hierarchy_activated(instance_id, item_index); }
                                         ui_asset_preview_selected(instance_id, item_index) => { root.ui_asset_preview_selected(instance_id, item_index); }
                                         ui_asset_binding_selected(instance_id, item_index) => { root.ui_asset_binding_selected(instance_id, item_index); }
+                                        ui_asset_binding_event_selected(instance_id, item_index) => { root.ui_asset_binding_event_selected(instance_id, item_index); }
+                                        ui_asset_binding_action_kind_selected(instance_id, item_index) => { root.ui_asset_binding_action_kind_selected(instance_id, item_index); }
+                                        ui_asset_binding_payload_selected(instance_id, item_index) => { root.ui_asset_binding_payload_selected(instance_id, item_index); }
+                                        ui_asset_binding_payload_action(instance_id, action_id, payload_key, payload_value) => { root.ui_asset_binding_payload_action(instance_id, action_id, payload_key, payload_value); }
+                                        ui_asset_slot_semantic_selected(instance_id, item_index) => { root.ui_asset_slot_semantic_selected(instance_id, item_index); }
+                                        ui_asset_layout_semantic_selected(instance_id, item_index) => { root.ui_asset_layout_semantic_selected(instance_id, item_index); }
                                     }
                                 }
                             }
@@ -2043,9 +2300,20 @@ export component WorkbenchShell inherits Window {
                         ui_asset_style_rule_declaration_action(instance_id, action_id, item_index, declaration_path, declaration_value) => { root.ui_asset_style_rule_declaration_action(instance_id, action_id, item_index, declaration_path, declaration_value); }
                         ui_asset_style_token_action(instance_id, action_id, item_index, token_name, token_value) => { root.ui_asset_style_token_action(instance_id, action_id, item_index, token_name, token_value); }
                         ui_asset_source_edited(instance_id, value) => { root.ui_asset_source_edited(instance_id, value); }
+                        ui_asset_palette_selected(instance_id, item_index) => { root.ui_asset_palette_selected(instance_id, item_index); }
+                        ui_asset_palette_drag_hover(instance_id, surface_x, surface_y) => { root.ui_asset_palette_drag_hover(instance_id, surface_x, surface_y); }
+                        ui_asset_palette_drag_drop(instance_id) => { root.ui_asset_palette_drag_drop(instance_id); }
+                        ui_asset_palette_drag_cancel(instance_id) => { root.ui_asset_palette_drag_cancel(instance_id); }
                         ui_asset_hierarchy_selected(instance_id, item_index) => { root.ui_asset_hierarchy_selected(instance_id, item_index); }
+                                            ui_asset_hierarchy_activated(instance_id, item_index) => { root.ui_asset_hierarchy_activated(instance_id, item_index); }
                         ui_asset_preview_selected(instance_id, item_index) => { root.ui_asset_preview_selected(instance_id, item_index); }
                         ui_asset_binding_selected(instance_id, item_index) => { root.ui_asset_binding_selected(instance_id, item_index); }
+                        ui_asset_binding_event_selected(instance_id, item_index) => { root.ui_asset_binding_event_selected(instance_id, item_index); }
+                        ui_asset_binding_action_kind_selected(instance_id, item_index) => { root.ui_asset_binding_action_kind_selected(instance_id, item_index); }
+                        ui_asset_binding_payload_selected(instance_id, item_index) => { root.ui_asset_binding_payload_selected(instance_id, item_index); }
+                        ui_asset_binding_payload_action(instance_id, action_id, payload_key, payload_value) => { root.ui_asset_binding_payload_action(instance_id, action_id, payload_key, payload_value); }
+                        ui_asset_slot_semantic_selected(instance_id, item_index) => { root.ui_asset_slot_semantic_selected(instance_id, item_index); }
+                        ui_asset_layout_semantic_selected(instance_id, item_index) => { root.ui_asset_layout_semantic_selected(instance_id, item_index); }
                     }
                 }
             }
@@ -2406,9 +2674,20 @@ export component WorkbenchShell inherits Window {
                         ui_asset_style_rule_declaration_action(instance_id, action_id, item_index, declaration_path, declaration_value) => { root.ui_asset_style_rule_declaration_action(instance_id, action_id, item_index, declaration_path, declaration_value); }
                         ui_asset_style_token_action(instance_id, action_id, item_index, token_name, token_value) => { root.ui_asset_style_token_action(instance_id, action_id, item_index, token_name, token_value); }
                         ui_asset_source_edited(instance_id, value) => { root.ui_asset_source_edited(instance_id, value); }
+                        ui_asset_palette_selected(instance_id, item_index) => { root.ui_asset_palette_selected(instance_id, item_index); }
+                        ui_asset_palette_drag_hover(instance_id, surface_x, surface_y) => { root.ui_asset_palette_drag_hover(instance_id, surface_x, surface_y); }
+                        ui_asset_palette_drag_drop(instance_id) => { root.ui_asset_palette_drag_drop(instance_id); }
+                        ui_asset_palette_drag_cancel(instance_id) => { root.ui_asset_palette_drag_cancel(instance_id); }
                         ui_asset_hierarchy_selected(instance_id, item_index) => { root.ui_asset_hierarchy_selected(instance_id, item_index); }
+                                            ui_asset_hierarchy_activated(instance_id, item_index) => { root.ui_asset_hierarchy_activated(instance_id, item_index); }
                         ui_asset_preview_selected(instance_id, item_index) => { root.ui_asset_preview_selected(instance_id, item_index); }
                         ui_asset_binding_selected(instance_id, item_index) => { root.ui_asset_binding_selected(instance_id, item_index); }
+                        ui_asset_binding_event_selected(instance_id, item_index) => { root.ui_asset_binding_event_selected(instance_id, item_index); }
+                        ui_asset_binding_action_kind_selected(instance_id, item_index) => { root.ui_asset_binding_action_kind_selected(instance_id, item_index); }
+                        ui_asset_binding_payload_selected(instance_id, item_index) => { root.ui_asset_binding_payload_selected(instance_id, item_index); }
+                        ui_asset_binding_payload_action(instance_id, action_id, payload_key, payload_value) => { root.ui_asset_binding_payload_action(instance_id, action_id, payload_key, payload_value); }
+                        ui_asset_slot_semantic_selected(instance_id, item_index) => { root.ui_asset_slot_semantic_selected(instance_id, item_index); }
+                        ui_asset_layout_semantic_selected(instance_id, item_index) => { root.ui_asset_layout_semantic_selected(instance_id, item_index); }
                     }
                 }
 
@@ -2760,8 +3039,8 @@ export component WorkbenchShell inherits Window {
         }
 
         if root.open_menu_index == 0: Rectangle {
-            x: top_bar.file_menu_button_local_frame.x * 1px;
-            y: root.popup_y;
+            x: root.file_menu_button_frame.x * 1px;
+            y: (root.file_menu_button_frame.y + root.file_menu_button_frame.height + 3) * 1px;
             width: 208px;
             height: 146px;
             border-radius: 8px;
@@ -2782,8 +3061,8 @@ export component WorkbenchShell inherits Window {
         }
 
         if root.open_menu_index == 1: Rectangle {
-            x: top_bar.edit_menu_button_local_frame.x * 1px;
-            y: root.popup_y;
+            x: root.edit_menu_button_frame.x * 1px;
+            y: (root.edit_menu_button_frame.y + root.edit_menu_button_frame.height + 3) * 1px;
             width: 186px;
             height: 66px;
             border-radius: 8px;
@@ -2801,8 +3080,8 @@ export component WorkbenchShell inherits Window {
         }
 
         if root.open_menu_index == 2: Rectangle {
-            x: top_bar.selection_menu_button_local_frame.x * 1px;
-            y: root.popup_y;
+            x: root.selection_menu_button_frame.x * 1px;
+            y: (root.selection_menu_button_frame.y + root.selection_menu_button_frame.height + 3) * 1px;
             width: 218px;
             height: 118px;
             border-radius: 8px;
@@ -2822,8 +3101,8 @@ export component WorkbenchShell inherits Window {
         }
 
         if root.open_menu_index == 3: Rectangle {
-            x: top_bar.view_menu_button_local_frame.x * 1px;
-            y: root.popup_y;
+            x: root.view_menu_button_frame.x * 1px;
+            y: (root.view_menu_button_frame.y + root.view_menu_button_frame.height + 3) * 1px;
             width: 198px;
             height: 234px;
             border-radius: 8px;
@@ -2847,8 +3126,8 @@ export component WorkbenchShell inherits Window {
         }
 
         if root.open_menu_index == 4: Rectangle {
-            x: top_bar.window_menu_button_local_frame.x * 1px;
-            y: root.popup_y;
+            x: root.window_menu_button_frame.x * 1px;
+            y: (root.window_menu_button_frame.y + root.window_menu_button_frame.height + 3) * 1px;
             width: 224px;
             height: root.window_menu_popup_height_px * 1px;
             border-radius: 8px;
@@ -2873,8 +3152,8 @@ export component WorkbenchShell inherits Window {
         }
 
         if root.open_menu_index == 5: Rectangle {
-            x: top_bar.help_menu_button_local_frame.x * 1px;
-            y: root.popup_y;
+            x: root.help_menu_button_frame.x * 1px;
+            y: (root.help_menu_button_frame.y + root.help_menu_button_frame.height + 3) * 1px;
             width: 194px;
             height: 38px;
             border-radius: 8px;
@@ -3090,9 +3369,20 @@ export component WorkbenchShell inherits Window {
                         ui_asset_style_rule_declaration_action(instance_id, action_id, item_index, declaration_path, declaration_value) => { root.ui_asset_style_rule_declaration_action(instance_id, action_id, item_index, declaration_path, declaration_value); }
                         ui_asset_style_token_action(instance_id, action_id, item_index, token_name, token_value) => { root.ui_asset_style_token_action(instance_id, action_id, item_index, token_name, token_value); }
                         ui_asset_source_edited(instance_id, value) => { root.ui_asset_source_edited(instance_id, value); }
+                        ui_asset_palette_selected(instance_id, item_index) => { root.ui_asset_palette_selected(instance_id, item_index); }
+                        ui_asset_palette_drag_hover(instance_id, surface_x, surface_y) => { root.ui_asset_palette_drag_hover(instance_id, surface_x, surface_y); }
+                        ui_asset_palette_drag_drop(instance_id) => { root.ui_asset_palette_drag_drop(instance_id); }
+                        ui_asset_palette_drag_cancel(instance_id) => { root.ui_asset_palette_drag_cancel(instance_id); }
                         ui_asset_hierarchy_selected(instance_id, item_index) => { root.ui_asset_hierarchy_selected(instance_id, item_index); }
+                                            ui_asset_hierarchy_activated(instance_id, item_index) => { root.ui_asset_hierarchy_activated(instance_id, item_index); }
                         ui_asset_preview_selected(instance_id, item_index) => { root.ui_asset_preview_selected(instance_id, item_index); }
                         ui_asset_binding_selected(instance_id, item_index) => { root.ui_asset_binding_selected(instance_id, item_index); }
+                        ui_asset_binding_event_selected(instance_id, item_index) => { root.ui_asset_binding_event_selected(instance_id, item_index); }
+                        ui_asset_binding_action_kind_selected(instance_id, item_index) => { root.ui_asset_binding_action_kind_selected(instance_id, item_index); }
+                        ui_asset_binding_payload_selected(instance_id, item_index) => { root.ui_asset_binding_payload_selected(instance_id, item_index); }
+                        ui_asset_binding_payload_action(instance_id, action_id, payload_key, payload_value) => { root.ui_asset_binding_payload_action(instance_id, action_id, payload_key, payload_value); }
+                        ui_asset_slot_semantic_selected(instance_id, item_index) => { root.ui_asset_slot_semantic_selected(instance_id, item_index); }
+                        ui_asset_layout_semantic_selected(instance_id, item_index) => { root.ui_asset_layout_semantic_selected(instance_id, item_index); }
                     }
                 }
             }

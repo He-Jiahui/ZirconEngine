@@ -11,7 +11,12 @@ impl SlintEditorHost {
     ) {
         self.focus_callback_source_window();
         self.console_scroll_surface
-            .set_size(UiSize::new(width.max(0.0), height.max(0.0)));
+            .set_size(self.resolve_callback_surface_size_for_kind(
+                width,
+                height,
+                self.console_scroll_surface.size(),
+                ViewContentKind::Console,
+            ));
         let chrome = self.runtime.chrome_snapshot();
         self.sync_console_pointer_layout(&chrome);
         match self
@@ -35,7 +40,12 @@ impl SlintEditorHost {
     ) {
         self.focus_callback_source_window();
         self.inspector_scroll_surface
-            .set_size(UiSize::new(width.max(0.0), height.max(0.0)));
+            .set_size(self.resolve_callback_surface_size_for_kind(
+                width,
+                height,
+                self.inspector_scroll_surface.size(),
+                ViewContentKind::Inspector,
+            ));
         self.sync_inspector_pointer_layout();
         match self
             .inspector_scroll_surface
@@ -57,8 +67,14 @@ impl SlintEditorHost {
         height: f32,
     ) {
         self.focus_callback_source_window();
-        self.browser_asset_details_scroll_surface
-            .set_size(UiSize::new(width.max(0.0), height.max(0.0)));
+        self.browser_asset_details_scroll_surface.set_size(
+            self.resolve_callback_surface_size_for_kind(
+                width,
+                height,
+                self.browser_asset_details_scroll_surface.size(),
+                ViewContentKind::AssetBrowser,
+            ),
+        );
         let snapshot = self.runtime.editor_snapshot().asset_browser;
         self.sync_browser_asset_details_pointer_layout(&snapshot);
         match self

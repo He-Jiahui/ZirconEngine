@@ -1,4 +1,4 @@
-use zircon_graphics::GizmoAxis;
+use crate::GizmoAxis;
 use zircon_math::Transform;
 use zircon_scene::{HandleOverlayExtract, SceneViewportTool};
 

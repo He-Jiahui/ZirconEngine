@@ -1,9 +1,10 @@
 use std::collections::HashMap;
-
-use zircon_manager::{
-    AssetRecordKind, EditorAssetCatalogRecord, EditorAssetCatalogSnapshotRecord,
-    EditorAssetDetailsRecord, EditorAssetFolderRecord, ResourceStatusRecord,
+use zircon_asset::{
+    EditorAssetCatalogRecord, EditorAssetCatalogSnapshotRecord, EditorAssetDetailsRecord,
+    EditorAssetFolderRecord,
 };
+use zircon_manager::ResourceStatusRecord;
+use zircon_resource::ResourceKind;
 
 use crate::snapshot::{
     AssetFolderSnapshot, AssetItemSnapshot, AssetReferenceSnapshot, AssetSelectionSnapshot,
@@ -19,7 +20,7 @@ pub struct AssetWorkspaceState {
     selected_details: Option<EditorAssetDetailsRecord>,
     resources_by_locator: HashMap<String, ResourceStatusRecord>,
     search_query: String,
-    kind_filter: Option<AssetRecordKind>,
+    kind_filter: Option<ResourceKind>,
     activity_view_mode: AssetViewMode,
     browser_view_mode: AssetViewMode,
     activity_utility_tab: AssetUtilityTab,
@@ -107,7 +108,7 @@ impl AssetWorkspaceState {
         self.search_query = query.into();
     }
 
-    pub fn set_kind_filter(&mut self, kind_filter: Option<AssetRecordKind>) {
+    pub fn set_kind_filter(&mut self, kind_filter: Option<ResourceKind>) {
         self.kind_filter = kind_filter;
     }
 
@@ -403,7 +404,7 @@ fn folder_matches_search(folder: &EditorAssetFolderRecord, search_query: &str) -
 fn asset_matches_filters(
     asset: &EditorAssetCatalogRecord,
     search_query: &str,
-    kind_filter: Option<AssetRecordKind>,
+    kind_filter: Option<ResourceKind>,
 ) -> bool {
     let search_matches = if search_query.is_empty() {
         true
@@ -418,7 +419,7 @@ fn asset_matches_filters(
 }
 
 fn reference_snapshot(
-    reference: &zircon_manager::EditorAssetReferenceRecord,
+    reference: &zircon_asset::EditorAssetReferenceRecord,
 ) -> AssetReferenceSnapshot {
     AssetReferenceSnapshot {
         uuid: reference.uuid.clone(),

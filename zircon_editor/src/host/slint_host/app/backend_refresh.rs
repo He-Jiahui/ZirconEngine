@@ -1,4 +1,5 @@
 use super::*;
+use zircon_asset::EditorAssetChangeKind;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(crate) struct AssetBackendRefreshPlan {
@@ -22,17 +23,17 @@ pub(crate) fn plan_asset_backend_refresh(
 
     for change in editor_changes {
         match change.kind {
-            zircon_manager::EditorAssetChangeKind::CatalogChanged => {
+            EditorAssetChangeKind::CatalogChanged => {
                 plan.sync_catalog = true;
                 plan.refresh_selected_asset_details = true;
                 plan.refresh_visible_asset_previews = true;
                 plan.mark_presentation_dirty = true;
             }
-            zircon_manager::EditorAssetChangeKind::PreviewChanged => {
+            EditorAssetChangeKind::PreviewChanged => {
                 plan.sync_catalog = true;
                 plan.mark_presentation_dirty = true;
             }
-            zircon_manager::EditorAssetChangeKind::ReferenceChanged => {
+            EditorAssetChangeKind::ReferenceChanged => {
                 plan.sync_catalog = true;
                 plan.refresh_selected_asset_details = true;
                 plan.mark_presentation_dirty = true;
@@ -42,8 +43,7 @@ pub(crate) fn plan_asset_backend_refresh(
         if change.uuid.as_deref() == selected_asset_uuid
             && matches!(
                 change.kind,
-                zircon_manager::EditorAssetChangeKind::CatalogChanged
-                    | zircon_manager::EditorAssetChangeKind::ReferenceChanged
+                EditorAssetChangeKind::CatalogChanged | EditorAssetChangeKind::ReferenceChanged
             )
         {
             plan.refresh_selected_asset_details = true;

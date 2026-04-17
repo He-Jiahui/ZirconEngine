@@ -12,12 +12,12 @@
 
 ## Target File Structure
 
-### `zircon_editor/src/host/slint_host/callback_dispatch.rs`
+### `zircon_editor/src/host/slint_host/callback_dispatch/mod.rs`
 
 目标形态：
 
 ```text
-zircon_editor/src/host/slint_host/callback_dispatch.rs
+zircon_editor/src/host/slint_host/callback_dispatch/mod.rs
 zircon_editor/src/host/slint_host/callback_dispatch/
   constants.rs
   common/
@@ -85,12 +85,12 @@ zircon_editor/src/host/slint_host/callback_dispatch/
 - viewport command / pointer route / snap cycle 分开
 - inspector/asset/welcome/layout 行为不得再互相混放
 
-### `zircon_editor/src/workbench/layout.rs`
+### `zircon_editor/src/workbench/layout/mod.rs`
 
 目标形态：
 
 ```text
-zircon_editor/src/workbench/layout.rs
+zircon_editor/src/workbench/layout/mod.rs
 zircon_editor/src/workbench/layout/
   main_page_id.rs
   activity_drawer_slot.rs
@@ -137,12 +137,12 @@ zircon_editor/src/workbench/layout/
 - `DocumentNode` / `TabStackLayout` 的树操作不能和持久化/恢复逻辑混放
 - layout schema 与 mutation pipeline 明确分层
 
-### `zircon_graphics/src/scene/scene_renderer/overlay.rs`
+### `zircon_graphics/src/scene/scene_renderer/overlay/mod.rs`
 
 目标形态：
 
 ```text
-zircon_graphics/src/scene/scene_renderer/overlay.rs
+zircon_graphics/src/scene/scene_renderer/overlay/mod.rs
 zircon_graphics/src/scene/scene_renderer/overlay/
   viewport_icon_source.rs
   empty_viewport_icon_source.rs
@@ -163,7 +163,7 @@ zircon_graphics/src/scene/scene_renderer/overlay/
     scene_gizmo_pass.rs
   icons/
     mod.rs
-    viewport_icon_atlas.rs
+    viewport_icon_atlas/mod.rs
     icon_entry.rs
     viewport_icon_sprite.rs
     icon_slot.rs
@@ -195,7 +195,7 @@ zircon_graphics/src/scene/scene_renderer/overlay/
 ### Task 1: Callback Dispatch Skeleton
 
 **Files:**
-- Modify: `zircon_editor/src/host/slint_host/callback_dispatch.rs`
+- Modify: `zircon_editor/src/host/slint_host/callback_dispatch/mod.rs`
 - Create: `zircon_editor/src/host/slint_host/callback_dispatch/constants.rs`
 - Create: `zircon_editor/src/host/slint_host/callback_dispatch/common/mod.rs`
 - Create: `zircon_editor/src/host/slint_host/callback_dispatch/common/dispatch.rs`
@@ -212,7 +212,7 @@ zircon_graphics/src/scene/scene_renderer/overlay/
 ### Task 2: Callback Dispatch Template Bridges
 
 **Files:**
-- Modify: `zircon_editor/src/host/slint_host/callback_dispatch.rs`
+- Modify: `zircon_editor/src/host/slint_host/callback_dispatch/mod.rs`
 - Create: `zircon_editor/src/host/slint_host/callback_dispatch/template_bridge/mod.rs`
 - Create: `zircon_editor/src/host/slint_host/callback_dispatch/template_bridge/workbench.rs`
 - Create: `zircon_editor/src/host/slint_host/callback_dispatch/template_bridge/viewport_toolbar.rs`
@@ -232,7 +232,7 @@ zircon_graphics/src/scene/scene_renderer/overlay/
 ### Task 3: Callback Dispatch Shared Pointer Modules
 
 **Files:**
-- Modify: `zircon_editor/src/host/slint_host/callback_dispatch.rs`
+- Modify: `zircon_editor/src/host/slint_host/callback_dispatch/mod.rs`
 - Create: `zircon_editor/src/host/slint_host/callback_dispatch/shared_pointer/mod.rs`
 - Create: `zircon_editor/src/host/slint_host/callback_dispatch/shared_pointer/menu.rs`
 - Create: `zircon_editor/src/host/slint_host/callback_dispatch/shared_pointer/activity_rail.rs`
@@ -270,7 +270,7 @@ zircon_graphics/src/scene/scene_renderer/overlay/
 ### Task 4: Callback Dispatch Builtin Controls And Viewport
 
 **Files:**
-- Modify: `zircon_editor/src/host/slint_host/callback_dispatch.rs`
+- Modify: `zircon_editor/src/host/slint_host/callback_dispatch/mod.rs`
 - Create: `zircon_editor/src/host/slint_host/callback_dispatch/viewport/mod.rs`
 - Create: `zircon_editor/src/host/slint_host/callback_dispatch/viewport/bridge.rs`
 - Create: `zircon_editor/src/host/slint_host/callback_dispatch/viewport/pointer_dispatch.rs`
@@ -330,7 +330,7 @@ zircon_graphics/src/scene/scene_renderer/overlay/
 ### Task 6: Workbench Layout Declarations
 
 **Files:**
-- Modify: `zircon_editor/src/workbench/layout.rs`
+- Modify: `zircon_editor/src/workbench/layout/mod.rs`
 - Create: `zircon_editor/src/workbench/layout/main_page_id.rs`
 - Create: `zircon_editor/src/workbench/layout/activity_drawer_slot.rs`
 - Create: `zircon_editor/src/workbench/layout/activity_drawer_mode.rs`
@@ -422,14 +422,14 @@ zircon_graphics/src/scene/scene_renderer/overlay/
 ### Task 10: Overlay Skeleton And Public Types
 
 **Files:**
-- Modify: `zircon_graphics/src/scene/scene_renderer/overlay.rs`
-- Create: `zircon_graphics/src/scene/scene_renderer/overlay/viewport_icon_source.rs`
-- Create: `zircon_graphics/src/scene/scene_renderer/overlay/empty_viewport_icon_source.rs`
+- Modify: `zircon_graphics/src/scene/scene_renderer/overlay/mod.rs`
+- Create: `zircon_graphics/src/scene/scene_renderer/overlay/icon_source/viewport_icon_source.rs`
+- Create: `zircon_graphics/src/scene/scene_renderer/overlay/icon_source/empty_viewport_icon_source.rs`
 - Create: `zircon_graphics/src/scene/scene_renderer/overlay/viewport_overlay_renderer.rs`
-- Create: `zircon_graphics/src/scene/scene_renderer/overlay/prepared_overlay_buffers.rs`
-- Create: `zircon_graphics/src/scene/scene_renderer/overlay/prepared_scene_gizmo_pass.rs`
-- Create: `zircon_graphics/src/scene/scene_renderer/overlay/prepared_icon_draw.rs`
-- Create: `zircon_graphics/src/scene/scene_renderer/overlay/pass_order.rs`
+- Create: `zircon_graphics/src/scene/scene_renderer/overlay/prepared/prepared_overlay_buffers.rs`
+- Create: `zircon_graphics/src/scene/scene_renderer/overlay/prepared/prepared_scene_gizmo_pass.rs`
+- Create: `zircon_graphics/src/scene/scene_renderer/overlay/prepared/prepared_icon_draw.rs`
+- Create: `zircon_graphics/src/scene/scene_renderer/overlay/passes/pass_order.rs`
 - Test: `zircon_graphics/src/tests/scene_overlay.rs`
 
 - [x] 先抽 public trait/type，不动 render pass 细节
@@ -440,7 +440,7 @@ zircon_graphics/src/scene/scene_renderer/overlay/
 ### Task 11: Overlay Pass Extraction
 
 **Files:**
-- Create: `zircon_graphics/src/scene/scene_renderer/overlay/line_pass.rs`
+- Create: `zircon_graphics/src/scene/scene_renderer/overlay/passes/line_pass.rs`
 - Create: `zircon_graphics/src/scene/scene_renderer/overlay/passes/mod.rs`
 - Create: `zircon_graphics/src/scene/scene_renderer/overlay/passes/preview_sky_pass.rs`
 - Create: `zircon_graphics/src/scene/scene_renderer/overlay/passes/base_scene_pass.rs`
@@ -448,7 +448,7 @@ zircon_graphics/src/scene/scene_renderer/overlay/
 - Create: `zircon_graphics/src/scene/scene_renderer/overlay/passes/wireframe_pass.rs`
 - Create: `zircon_graphics/src/scene/scene_renderer/overlay/passes/grid_pass.rs`
 - Create: `zircon_graphics/src/scene/scene_renderer/overlay/passes/handle_pass.rs`
-- Create: `zircon_graphics/src/scene/scene_renderer/overlay/passes/scene_gizmo_pass.rs`
+- Create: `zircon_graphics/src/scene/scene_renderer/overlay/passes/scene_gizmo_pass/mod.rs`
 - Test: `zircon_graphics/src/tests/scene_overlay.rs`
 - Test: `zircon_graphics/src/tests/project_render.rs`
 
@@ -463,14 +463,14 @@ zircon_graphics/src/scene/scene_renderer/overlay/
 
 **Files:**
 - Create: `zircon_graphics/src/scene/scene_renderer/overlay/icons/mod.rs`
-- Create: `zircon_graphics/src/scene/scene_renderer/overlay/icons/viewport_icon_atlas.rs`
+- Create: `zircon_graphics/src/scene/scene_renderer/overlay/icons/viewport_icon_atlas/mod.rs`
 - Create: `zircon_graphics/src/scene/scene_renderer/overlay/icons/icon_entry.rs`
 - Create: `zircon_graphics/src/scene/scene_renderer/overlay/icons/viewport_icon_sprite.rs`
 - Create: `zircon_graphics/src/scene/scene_renderer/overlay/icons/icon_slot.rs`
 - Create: `zircon_graphics/src/scene/scene_renderer/overlay/shaders/line.wgsl`
 - Create: `zircon_graphics/src/scene/scene_renderer/overlay/shaders/icon.wgsl`
 - Create: `zircon_graphics/src/scene/scene_renderer/overlay/shaders/sky.wgsl`
-- Modify: `zircon_graphics/src/scene/scene_renderer/overlay/passes/scene_gizmo_pass.rs`
+- Modify: `zircon_graphics/src/scene/scene_renderer/overlay/passes/scene_gizmo_pass/mod.rs`
 - Modify: `zircon_graphics/src/scene/scene_renderer/overlay/viewport_overlay_renderer.rs`
 - Test: `zircon_graphics/src/tests/scene_overlay.rs`
 - Test: `zircon_graphics/src/tests/project_render.rs`

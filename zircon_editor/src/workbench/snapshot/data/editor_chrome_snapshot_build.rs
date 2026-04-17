@@ -4,8 +4,8 @@ use crate::layout::{MainHostPageLayout, WorkbenchLayout};
 use crate::view::{ViewDescriptor, ViewDescriptorId, ViewInstance, ViewInstanceId};
 
 use super::super::workbench::{
-    resolve_document_workspace, resolve_view_tab, ActivityDrawerSnapshot, FloatingWindowSnapshot,
-    MainPageSnapshot, WorkbenchSnapshot,
+    ActivityDrawerSnapshot, FloatingWindowSnapshot, MainPageSnapshot, WorkbenchSnapshot,
+    resolve_document_workspace, resolve_view_tab,
 };
 use super::{EditorChromeSnapshot, EditorDataSnapshot};
 
@@ -128,6 +128,7 @@ fn build_floating_windows(
         .map(|window| FloatingWindowSnapshot {
             window_id: window.window_id.clone(),
             title: window.title.clone(),
+            requested_frame: window.frame,
             workspace: resolve_document_workspace(&window.workspace, instances, descriptors),
             focused_view: window.focused_view.clone(),
         })

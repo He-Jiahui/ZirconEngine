@@ -1,3 +1,4 @@
+mod build_workbench_menu_pointer_layout;
 mod constants;
 mod menu_item_spec;
 mod menu_items_for_layout;
@@ -22,6 +23,7 @@ mod workbench_menu_pointer_route;
 mod workbench_menu_pointer_state;
 mod workbench_menu_pointer_target;
 
+pub(crate) use build_workbench_menu_pointer_layout::build_workbench_menu_pointer_layout;
 pub(crate) use workbench_menu_pointer_bridge::WorkbenchMenuPointerBridge;
 pub(crate) use workbench_menu_pointer_dispatch::WorkbenchMenuPointerDispatch;
 pub(crate) use workbench_menu_pointer_layout::WorkbenchMenuPointerLayout;

@@ -30,8 +30,8 @@ related_code:
   - zircon_graphics/src/scene/resources/mod.rs
   - zircon_graphics/src/scene/scene_renderer/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh.rs
-  - zircon_graphics/src/scene/scene_renderer/overlay.rs
+  - zircon_graphics/src/scene/scene_renderer/mesh/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/overlay/mod.rs
   - zircon_graphics/src/scene/scene_renderer/primitives/mod.rs
   - zircon_graphics/src/tests/project_render.rs
   - zircon_graphics/src/tests/scene_overlay.rs
@@ -62,8 +62,8 @@ implementation_files:
   - zircon_graphics/src/scene/resources/mod.rs
   - zircon_graphics/src/scene/scene_renderer/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh.rs
-  - zircon_graphics/src/scene/scene_renderer/overlay.rs
+  - zircon_graphics/src/scene/scene_renderer/mesh/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/overlay/mod.rs
   - zircon_graphics/src/scene/scene_renderer/primitives/mod.rs
 plan_sources:
   - user: 2026-04-15 implement the f64-ready runtime foundation plan with math/scene/asset/graphics boundaries

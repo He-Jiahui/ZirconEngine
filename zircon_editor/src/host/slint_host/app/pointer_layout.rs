@@ -1,4 +1,6 @@
 use super::*;
+use crate::host::slint_host::floating_window_projection::FloatingWindowProjectionBundle;
+use crate::host::slint_host::menu_pointer::build_workbench_menu_pointer_layout;
 
 impl SlintEditorHost {
     pub(super) fn sync_menu_pointer_layout(
@@ -6,38 +8,14 @@ impl SlintEditorHost {
         chrome: &crate::EditorChromeSnapshot,
         preset_names: &[String],
     ) {
-        let button_frames = [
-            frame_rect_to_ui_frame(self.ui.get_file_menu_button_frame()),
-            frame_rect_to_ui_frame(self.ui.get_edit_menu_button_frame()),
-            frame_rect_to_ui_frame(self.ui.get_selection_menu_button_frame()),
-            frame_rect_to_ui_frame(self.ui.get_view_menu_button_frame()),
-            frame_rect_to_ui_frame(self.ui.get_window_menu_button_frame()),
-            frame_rect_to_ui_frame(self.ui.get_help_menu_button_frame()),
-        ];
-        let active_preset_name = self.active_layout_preset.clone().unwrap_or_default();
-        let resolved_preset_name = if active_preset_name.is_empty() {
-            "rider".to_string()
-        } else {
-            active_preset_name.clone()
-        };
-        let window_popup_height = compute_window_menu_popup_height(
-            self.shell_size.height,
-            button_frames[4],
-            preset_names.len(),
+        let root_shell_frames = self.template_bridge.root_shell_frames();
+        self.menu_pointer_layout = build_workbench_menu_pointer_layout(
+            chrome,
+            self.shell_size,
+            preset_names,
+            self.active_layout_preset.as_deref(),
+            Some(&root_shell_frames),
         );
-
-        self.menu_pointer_layout = WorkbenchMenuPointerLayout {
-            shell_frame: UiFrame::new(0.0, 0.0, self.shell_size.width, self.shell_size.height),
-            button_frames,
-            save_project_enabled: chrome.project_open,
-            undo_enabled: chrome.can_undo,
-            redo_enabled: chrome.can_redo,
-            delete_enabled: chrome.inspector.is_some(),
-            preset_names: preset_names.to_vec(),
-            active_preset_name,
-            resolved_preset_name,
-            window_popup_height,
-        };
         self.menu_pointer_bridge.sync(
             self.menu_pointer_layout.clone(),
             self.menu_pointer_state.clone(),
@@ -46,6 +24,18 @@ impl SlintEditorHost {
     }
 
     pub(super) fn apply_menu_pointer_state_to_ui(&self) {
+        self.ui
+            .set_file_menu_button_frame(frame_rect(self.menu_pointer_layout.button_frames[0]));
+        self.ui
+            .set_edit_menu_button_frame(frame_rect(self.menu_pointer_layout.button_frames[1]));
+        self.ui
+            .set_selection_menu_button_frame(frame_rect(self.menu_pointer_layout.button_frames[2]));
+        self.ui
+            .set_view_menu_button_frame(frame_rect(self.menu_pointer_layout.button_frames[3]));
+        self.ui
+            .set_window_menu_button_frame(frame_rect(self.menu_pointer_layout.button_frames[4]));
+        self.ui
+            .set_help_menu_button_frame(frame_rect(self.menu_pointer_layout.button_frames[5]));
         self.ui.set_open_menu_index(
             self.menu_pointer_state
                 .open_menu_index
@@ -75,19 +65,23 @@ impl SlintEditorHost {
         model: &WorkbenchViewModel,
         geometry: &WorkbenchShellGeometry,
     ) {
+        let root_shell_frames = self.template_bridge.root_shell_frames();
         self.activity_rail_pointer_bridge
             .sync(build_workbench_activity_rail_pointer_layout(
                 model,
                 geometry,
                 &self.chrome_metrics,
+                Some(&root_shell_frames),
             ));
     }
 
     pub(super) fn sync_host_page_pointer_layout(&mut self, model: &WorkbenchViewModel) {
+        let root_shell_frames = self.template_bridge.root_shell_frames();
         self.host_page_pointer_bridge
             .sync(build_workbench_host_page_pointer_layout(
                 model,
                 &self.chrome_metrics,
+                Some(&root_shell_frames),
             ));
     }
 
@@ -95,12 +89,16 @@ impl SlintEditorHost {
         &mut self,
         model: &WorkbenchViewModel,
         geometry: &WorkbenchShellGeometry,
+        floating_window_projection_bundle: &FloatingWindowProjectionBundle,
     ) {
+        let root_shell_frames = self.template_bridge.root_shell_frames();
         self.document_tab_pointer_bridge
             .sync(build_workbench_document_tab_pointer_layout(
                 model,
                 geometry,
                 &self.chrome_metrics,
+                Some(&root_shell_frames),
+                floating_window_projection_bundle,
             ));
     }
 
@@ -109,11 +107,13 @@ impl SlintEditorHost {
         model: &WorkbenchViewModel,
         geometry: &WorkbenchShellGeometry,
     ) {
+        let root_shell_frames = self.template_bridge.root_shell_frames();
         self.drawer_header_pointer_bridge
             .sync(build_workbench_drawer_header_pointer_layout(
                 model,
                 geometry,
                 &self.chrome_metrics,
+                Some(&root_shell_frames),
             ));
     }
 
@@ -121,16 +121,18 @@ impl SlintEditorHost {
         &mut self,
         welcome: &crate::WelcomePaneSnapshot,
     ) {
-        if self.welcome_recent_pointer_size.width <= 0.0
-            || self.welcome_recent_pointer_size.height <= 0.0
-        {
+        let pane_size = self
+            .resolve_welcome_recent_pointer_size()
+            .unwrap_or(self.welcome_recent_pointer_size);
+        if pane_size.width <= 0.0 || pane_size.height <= 0.0 {
             self.apply_welcome_recent_pointer_state_to_ui();
             return;
         }
+        self.welcome_recent_pointer_size = pane_size;
 
         self.welcome_recent_pointer_bridge.sync(
             WelcomeRecentPointerLayout {
-                pane_size: self.welcome_recent_pointer_size,
+                pane_size,
                 recent_project_paths: welcome
                     .recent_projects
                     .iter()
@@ -140,6 +142,19 @@ impl SlintEditorHost {
             self.welcome_recent_pointer_state.clone(),
         );
         self.apply_welcome_recent_pointer_state_to_ui();
+    }
+
+    fn resolve_welcome_recent_pointer_size(&self) -> Option<UiSize> {
+        if self.welcome_recent_pointer_size.width > 0.0
+            && self.welcome_recent_pointer_size.height > 0.0
+        {
+            return Some(self.welcome_recent_pointer_size);
+        }
+
+        self.template_bridge
+            .control_frame(callback_dispatch::PANE_SURFACE_CONTROL_ID)
+            .map(|frame| UiSize::new(frame.width.max(0.0), frame.height.max(0.0)))
+            .filter(|size| size.width > 0.0 && size.height > 0.0)
     }
 
     pub(super) fn apply_welcome_recent_pointer_state_to_ui(&self) {
@@ -414,5 +429,14 @@ impl SlintEditorHost {
             )),
             _ => None,
         }
+    }
+}
+
+fn frame_rect(frame: UiFrame) -> FrameRect {
+    FrameRect {
+        x: frame.x,
+        y: frame.y,
+        width: frame.width,
+        height: frame.height,
     }
 }

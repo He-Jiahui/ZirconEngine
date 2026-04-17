@@ -396,6 +396,7 @@ pub struct RenderHybridGiProbe {
     pub probe_id: u32,
     pub position: Vec3,
     pub radius: Real,
+    pub parent_probe_id: Option<u32>,
     pub resident: bool,
     pub ray_budget: u32,
 }
@@ -407,6 +408,7 @@ impl Default for RenderHybridGiProbe {
             probe_id: 0,
             position: Vec3::ZERO,
             radius: 0.0,
+            parent_probe_id: None,
             resident: false,
             ray_budget: 0,
         }
@@ -420,6 +422,7 @@ pub struct RenderHybridGiTraceRegion {
     pub bounds_center: Vec3,
     pub bounds_radius: Real,
     pub screen_coverage: Real,
+    pub rt_lighting_rgb: [u8; 3],
 }
 
 impl Default for RenderHybridGiTraceRegion {
@@ -430,6 +433,7 @@ impl Default for RenderHybridGiTraceRegion {
             bounds_center: Vec3::ZERO,
             bounds_radius: 0.0,
             screen_coverage: 0.0,
+            rt_lighting_rgb: [0, 0, 0],
         }
     }
 }

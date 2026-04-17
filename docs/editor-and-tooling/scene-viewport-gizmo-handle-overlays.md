@@ -6,12 +6,12 @@ related_code:
   - zircon_graphics/src/scene/resources/mod.rs
   - zircon_graphics/src/scene/scene_renderer/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh.rs
-  - zircon_graphics/src/scene/scene_renderer/overlay.rs
-  - zircon_graphics/src/scene/scene_renderer/overlay/viewport_overlay_renderer.rs
+  - zircon_graphics/src/scene/scene_renderer/mesh/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/overlay/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/overlay/viewport_overlay_renderer/mod.rs
   - zircon_graphics/src/scene/scene_renderer/overlay/passes/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/overlay/passes/scene_gizmo_pass.rs
-  - zircon_graphics/src/scene/scene_renderer/overlay/icons/viewport_icon_atlas.rs
+  - zircon_graphics/src/scene/scene_renderer/overlay/passes/scene_gizmo_pass/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/overlay/icons/viewport_icon_atlas/mod.rs
   - zircon_graphics/src/scene/scene_renderer/overlay/shaders/icon.wgsl
   - zircon_graphics/src/scene/scene_renderer/primitives/mod.rs
   - zircon_graphics/src/tests/project_render.rs
@@ -28,7 +28,7 @@ related_code:
   - zircon_editor/src/editing/viewport/projection.rs
   - zircon_editor/src/host/slint_host/app.rs
   - zircon_editor/src/host/slint_host/ui.rs
-  - zircon_editor/src/host/slint_host/viewport.rs
+- zircon_editor/src/host/slint_host/viewport/mod.rs
   - zircon_editor/src/host/binding_dispatch/mod.rs
   - zircon_editor/src/editor_event/types.rs
   - zircon_editor/src/editor_event/runtime.rs
@@ -47,12 +47,12 @@ implementation_files:
   - zircon_graphics/src/scene/resources/mod.rs
   - zircon_graphics/src/scene/scene_renderer/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh.rs
-  - zircon_graphics/src/scene/scene_renderer/overlay.rs
-  - zircon_graphics/src/scene/scene_renderer/overlay/viewport_overlay_renderer.rs
+  - zircon_graphics/src/scene/scene_renderer/mesh/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/overlay/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/overlay/viewport_overlay_renderer/mod.rs
   - zircon_graphics/src/scene/scene_renderer/overlay/passes/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/overlay/passes/scene_gizmo_pass.rs
-  - zircon_graphics/src/scene/scene_renderer/overlay/icons/viewport_icon_atlas.rs
+  - zircon_graphics/src/scene/scene_renderer/overlay/passes/scene_gizmo_pass/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/overlay/icons/viewport_icon_atlas/mod.rs
   - zircon_graphics/src/scene/scene_renderer/overlay/shaders/icon.wgsl
   - zircon_graphics/src/scene/scene_renderer/primitives/mod.rs
   - zircon_graphics/src/tests/scene_overlay.rs
@@ -67,7 +67,7 @@ implementation_files:
   - zircon_editor/src/editing/viewport/projection.rs
   - zircon_editor/src/host/slint_host/app.rs
   - zircon_editor/src/host/slint_host/ui.rs
-  - zircon_editor/src/host/slint_host/viewport.rs
+- zircon_editor/src/host/slint_host/viewport/mod.rs
   - zircon_editor/src/host/binding_dispatch/mod.rs
   - zircon_editor/src/editor_event/types.rs
   - zircon_editor/src/editor_event/runtime.rs
@@ -124,8 +124,8 @@ doc_type: module-detail
 - `zircon_scene/src/world/render.rs`
 - `zircon_graphics/src/scene/resources/mod.rs`
 - `zircon_graphics/src/scene/scene_renderer/core/mod.rs`
-- `zircon_graphics/src/scene/scene_renderer/mesh.rs`
-- `zircon_graphics/src/scene/scene_renderer/overlay.rs`
+- `zircon_graphics/src/scene/scene_renderer/mesh/mod.rs`
+- `zircon_graphics/src/scene/scene_renderer/overlay/mod.rs`
 - `zircon_graphics/src/scene/scene_renderer/overlay/viewport_overlay_renderer.rs`
 - `zircon_graphics/src/scene/scene_renderer/overlay/passes/*.rs`
 - `zircon_graphics/src/scene/scene_renderer/overlay/icons/*.rs`
@@ -142,7 +142,7 @@ doc_type: module-detail
 - `zircon_editor/src/host/binding_dispatch/mod.rs`
 - `zircon_editor/src/editor_event/runtime.rs`
 - `zircon_editor/src/workbench/reflection/mod.rs`
-- `zircon_editor/src/host/slint_host/viewport.rs`
+- `zircon_editor/src/host/slint_host/viewport/mod.rs`
 
 ## Behavior Model
 
@@ -378,7 +378,7 @@ viewport scene gizmo icon 现在有了独立的 builtin icon source 管线：
 
 ### Slint Viewport Render Attachment
 
-`zircon_editor/src/host/slint_host/viewport.rs` 现在不只是“拿到 device/queue 就开 shared texture service”。它会在 renderer attach 时显式注入 `BuiltinViewportIconSource`，这样 Scene viewport 实际运行路径也遵守了规格里要求的“editor builtin gizmo icon source -> graphics atlas/pass”，而不是只在文档里存在抽象接口。
+`zircon_editor/src/host/slint_host/viewport/mod.rs` 现在不只是“拿到 device/queue 就开 shared texture service”。它会在 renderer attach 时显式注入 `BuiltinViewportIconSource`，这样 Scene viewport 实际运行路径也遵守了规格里要求的“editor builtin gizmo icon source -> graphics atlas/pass”，而不是只在文档里存在抽象接口。
 
 ### Graphics Pass Expectations
 

@@ -1,4 +1,4 @@
-use zircon_graphics::GizmoAxis;
+use crate::GizmoAxis;
 use zircon_scene::GridMode;
 
 use crate::editing::viewport::handles::{

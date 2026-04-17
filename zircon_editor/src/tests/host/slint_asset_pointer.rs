@@ -12,10 +12,11 @@ use crate::host::slint_host::callback_dispatch::{
 };
 use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
 use crate::{EditorAssetEvent, EditorEvent};
-use zircon_manager::{
-    AssetRecordKind, EditorAssetCatalogRecord, EditorAssetCatalogSnapshotRecord,
-    EditorAssetFolderRecord, PreviewStateRecord,
+use zircon_asset::{
+    EditorAssetCatalogRecord, EditorAssetCatalogSnapshotRecord, EditorAssetFolderRecord,
+    PreviewState,
 };
+use zircon_resource::ResourceKind;
 use zircon_ui::{UiBindingValue, UiEventKind, UiPoint, UiSize};
 
 #[test]
@@ -424,11 +425,11 @@ fn sample_catalog() -> EditorAssetCatalogSnapshotRecord {
                 uuid: "11111111-1111-1111-1111-111111111111".to_string(),
                 id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa".to_string(),
                 locator: "res://materials/grid.material.toml".to_string(),
-                kind: AssetRecordKind::Material,
+                kind: ResourceKind::Material,
                 display_name: "grid.material".to_string(),
                 file_name: "grid.material.toml".to_string(),
                 extension: "toml".to_string(),
-                preview_state: PreviewStateRecord::Ready,
+                preview_state: PreviewState::Ready,
                 meta_path: "E:/Sandbox/assets/materials/grid.material.toml.meta.toml".to_string(),
                 preview_artifact_path: "E:/Sandbox/library/editor-previews/grid.png".to_string(),
                 source_mtime_unix_ms: 10,
@@ -441,11 +442,11 @@ fn sample_catalog() -> EditorAssetCatalogSnapshotRecord {
                 uuid: "22222222-2222-2222-2222-222222222222".to_string(),
                 id: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb".to_string(),
                 locator: "res://scenes/main.scene.toml".to_string(),
-                kind: AssetRecordKind::Scene,
+                kind: ResourceKind::Scene,
                 display_name: "main.scene".to_string(),
                 file_name: "main.scene.toml".to_string(),
                 extension: "toml".to_string(),
-                preview_state: PreviewStateRecord::Dirty,
+                preview_state: PreviewState::Dirty,
                 meta_path: "E:/Sandbox/assets/scenes/main.scene.toml.meta.toml".to_string(),
                 preview_artifact_path: "E:/Sandbox/library/editor-previews/main.png".to_string(),
                 source_mtime_unix_ms: 20,

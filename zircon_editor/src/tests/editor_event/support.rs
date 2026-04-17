@@ -4,7 +4,7 @@ use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use zircon_core::CoreRuntime;
-use zircon_manager::MANAGER_MODULE_NAME;
+use zircon_foundation::{module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME};
 use zircon_math::UVec2;
 use zircon_scene::DefaultLevelManager;
 
@@ -35,12 +35,12 @@ impl EventRuntimeHarness {
         std::env::set_var("ZIRCON_EDITOR_CONFIG_PATH", &config_path);
 
         let core = CoreRuntime::new();
-        core.register_module(zircon_manager::module_descriptor())
+        core.register_module(foundation_module_descriptor())
             .unwrap();
         core.register_module(zircon_asset::module_descriptor())
             .unwrap();
         core.register_module(module::module_descriptor()).unwrap();
-        core.activate_module(MANAGER_MODULE_NAME).unwrap();
+        core.activate_module(FOUNDATION_MODULE_NAME).unwrap();
         core.activate_module(zircon_asset::ASSET_MODULE_NAME)
             .unwrap();
         core.activate_module(module::EDITOR_MODULE_NAME).unwrap();

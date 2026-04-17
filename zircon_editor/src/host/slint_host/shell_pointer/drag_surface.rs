@@ -6,6 +6,14 @@ use zircon_ui::{
     UiPointerEventKind, UiSurface, UiTreeId, UiTreeNode,
 };
 
+use crate::host::slint_host::callback_dispatch::BuiltinWorkbenchRootShellFrames;
+use crate::host::slint_host::floating_window_projection::{
+    FloatingWindowProjectionBundle, resolve_floating_window_outer_frame,
+};
+use crate::host::slint_host::root_shell_projection::{
+    resolve_root_center_band_frame, resolve_root_document_region_frame,
+    resolve_root_status_bar_frame,
+};
 use crate::host::slint_host::tab_drag::WorkbenchDragTargetGroup;
 use crate::{DockEdge, FloatingWindowModel, ShellRegionId, ShellSizePx, WorkbenchShellGeometry};
 
@@ -13,10 +21,10 @@ use super::common::{base_target_state, clamp_frame_to_root, frame_if_visible, up
 use super::drag_frames::DragTargetFrames;
 use super::effects::{document_edge_effect, edge_effect_in_frame, side_target_effect};
 use super::node_ids::{
-    floating_window_attach_node_id, floating_window_edge_node_id, DOCUMENT_EDGE_BOTTOM_NODE_ID,
-    DOCUMENT_EDGE_LEFT_NODE_ID, DOCUMENT_EDGE_RIGHT_NODE_ID, DOCUMENT_EDGE_TOP_NODE_ID,
-    DRAG_POINTER_ROOT_NODE_ID, DRAG_TARGET_BOTTOM_NODE_ID, DRAG_TARGET_DOCUMENT_NODE_ID,
-    DRAG_TARGET_LEFT_NODE_ID, DRAG_TARGET_RIGHT_NODE_ID,
+    DOCUMENT_EDGE_BOTTOM_NODE_ID, DOCUMENT_EDGE_LEFT_NODE_ID, DOCUMENT_EDGE_RIGHT_NODE_ID,
+    DOCUMENT_EDGE_TOP_NODE_ID, DRAG_POINTER_ROOT_NODE_ID, DRAG_TARGET_BOTTOM_NODE_ID,
+    DRAG_TARGET_DOCUMENT_NODE_ID, DRAG_TARGET_LEFT_NODE_ID, DRAG_TARGET_RIGHT_NODE_ID,
+    floating_window_attach_node_id, floating_window_edge_node_id,
 };
 use super::route::WorkbenchShellPointerRoute;
 
@@ -28,6 +36,8 @@ pub(super) fn build_drag_surface(
     geometry: &WorkbenchShellGeometry,
     drawers_visible: bool,
     floating_windows: &[FloatingWindowModel],
+    shared_root_frames: Option<&BuiltinWorkbenchRootShellFrames>,
+    floating_window_projection_bundle: Option<&FloatingWindowProjectionBundle>,
 ) -> (
     UiSurface,
     UiPointerDispatcher,
@@ -103,9 +113,12 @@ pub(super) fn build_drag_surface(
         root_size.width.max(0.0),
         root_size.height.max(0.0),
     );
-    let overlay_top = geometry.center_band_frame.y.max(0.0);
-    let overlay_bottom = geometry
-        .status_bar_frame
+    let resolved_center_band_frame = resolve_root_center_band_frame(geometry, shared_root_frames);
+    let resolved_status_bar_frame = resolve_root_status_bar_frame(geometry, shared_root_frames);
+    let resolved_document_region_frame =
+        resolve_root_document_region_frame(geometry, shared_root_frames);
+    let overlay_top = resolved_center_band_frame.y.max(0.0);
+    let overlay_bottom = resolved_status_bar_frame
         .y
         .min(root_frame.height)
         .max(overlay_top);
@@ -160,18 +173,15 @@ pub(super) fn build_drag_surface(
         .flatten();
     let document_drag_frame = frame_if_visible(clamp_frame_to_root(
         UiFrame::new(
-            geometry.region_frame(ShellRegionId::Document).x.max(0.0),
+            resolved_document_region_frame.x.max(0.0),
             overlay_top,
-            geometry
-                .region_frame(ShellRegionId::Document)
-                .width
-                .max(0.0),
+            resolved_document_region_frame.width.max(0.0),
             overlay_height,
         ),
         root_frame,
     ));
     let document_edge_frame = frame_if_visible(clamp_frame_to_root(
-        geometry.region_frame(ShellRegionId::Document),
+        resolved_document_region_frame,
         root_frame,
     ));
 
@@ -287,7 +297,11 @@ pub(super) fn build_drag_surface(
 
     for (index, window) in floating_windows.iter().enumerate() {
         let frame = frame_if_visible(clamp_frame_to_root(
-            geometry.floating_window_frame(&window.window_id),
+            floating_window_projection_bundle
+                .and_then(|bundle| bundle.outer_frame(&window.window_id))
+                .unwrap_or_else(|| {
+                    resolve_floating_window_outer_frame(geometry, &window.window_id)
+                }),
             root_frame,
         ));
         let Some(frame) = frame else {

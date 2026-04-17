@@ -8,19 +8,19 @@ related_code:
   - zircon_graphics/src/runtime/server/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/runtime_features.rs
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene.rs
-  - zircon_graphics/src/scene/scene_renderer/post_process.rs
-  - zircon_graphics/src/scene/scene_renderer/post_process/bloom_params.rs
-  - zircon_graphics/src/scene/scene_renderer/post_process/reflection_probe_gpu.rs
-  - zircon_graphics/src/scene/scene_renderer/post_process/scene_runtime_feature_flags.rs
-  - zircon_graphics/src/scene/scene_renderer/post_process/scene_post_process_resources.rs
-  - zircon_graphics/src/scene/scene_renderer/post_process/resources/execute_bloom.rs
-  - zircon_graphics/src/scene/scene_renderer/post_process/resources/new.rs
-  - zircon_graphics/src/scene/scene_renderer/post_process/resources/execute_post_process.rs
+  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/post_process/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/post_process/params/bloom_params.rs
+  - zircon_graphics/src/scene/scene_renderer/post_process/gpu_data/reflection_probe_gpu.rs
+  - zircon_graphics/src/scene/scene_renderer/post_process/scene_runtime_feature_flags/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/post_process/scene_post_process_resources/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/post_process/resources/execute_bloom/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/post_process/resources/new/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/post_process/resources/execute_post_process/mod.rs
   - zircon_graphics/src/scene/scene_renderer/post_process/shaders/bloom.wgsl
   - zircon_graphics/src/scene/scene_renderer/post_process/shaders/post_process.wgsl
   - zircon_graphics/src/scene/scene_renderer/particle.rs
-  - zircon_graphics/src/runtime/offline_bake.rs
+  - zircon_graphics/src/runtime/offline_bake/mod.rs
   - zircon_graphics/src/tests/mod.rs
   - zircon_graphics/src/tests/pipeline_compile.rs
   - zircon_graphics/src/tests/render_server_bridge.rs
@@ -35,19 +35,19 @@ implementation_files:
   - zircon_graphics/src/runtime/server/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/runtime_features.rs
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene.rs
-  - zircon_graphics/src/scene/scene_renderer/post_process.rs
-  - zircon_graphics/src/scene/scene_renderer/post_process/bloom_params.rs
-  - zircon_graphics/src/scene/scene_renderer/post_process/reflection_probe_gpu.rs
-  - zircon_graphics/src/scene/scene_renderer/post_process/scene_runtime_feature_flags.rs
-  - zircon_graphics/src/scene/scene_renderer/post_process/scene_post_process_resources.rs
-  - zircon_graphics/src/scene/scene_renderer/post_process/resources/execute_bloom.rs
-  - zircon_graphics/src/scene/scene_renderer/post_process/resources/new.rs
-  - zircon_graphics/src/scene/scene_renderer/post_process/resources/execute_post_process.rs
+  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/post_process/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/post_process/params/bloom_params.rs
+  - zircon_graphics/src/scene/scene_renderer/post_process/gpu_data/reflection_probe_gpu.rs
+  - zircon_graphics/src/scene/scene_renderer/post_process/scene_runtime_feature_flags/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/post_process/scene_post_process_resources/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/post_process/resources/execute_bloom/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/post_process/resources/new/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/post_process/resources/execute_post_process/mod.rs
   - zircon_graphics/src/scene/scene_renderer/post_process/shaders/bloom.wgsl
   - zircon_graphics/src/scene/scene_renderer/post_process/shaders/post_process.wgsl
   - zircon_graphics/src/scene/scene_renderer/particle.rs
-  - zircon_graphics/src/runtime/offline_bake.rs
+  - zircon_graphics/src/runtime/offline_bake/mod.rs
   - zircon_graphics/src/tests/mod.rs
   - zircon_graphics/src/tests/pipeline_compile.rs
   - zircon_graphics/src/tests/render_server_bridge.rs
@@ -106,7 +106,7 @@ doc_type: milestone-detail
   - 新增 bloom 纹理/缓冲、reflection probe 缓冲、baked lighting 与 color grading 参数，并更新 WGSL shader。
 - `zircon_graphics/src/scene/scene_renderer/particle.rs`
   - 实现 billboard 粒子透明阶段 runtime pass。
-- `zircon_graphics/src/runtime/offline_bake.rs`
+- `zircon_graphics/src/runtime/offline_bake/mod.rs`
   - 实现 CPU baseline bake 任务，生成 baked lighting + reflection probe 输出。
 - `zircon_graphics/src/tests/m4_behavior_layers.rs`
   - 新增这一批行为层的离屏集成测试，避免继续膨胀 `project_render.rs`。
@@ -164,12 +164,12 @@ doc_type: milestone-detail
 **Files:**
 - Modify: `zircon_graphics/src/backend/render_backend/mod.rs`
 - Modify: `zircon_graphics/src/scene/scene_renderer/core/mod.rs`
-- Modify: `zircon_graphics/src/scene/scene_renderer/post_process/scene_runtime_feature_flags.rs`
-- Modify: `zircon_graphics/src/scene/scene_renderer/post_process/scene_post_process_resources.rs`
-- Modify: `zircon_graphics/src/scene/scene_renderer/post_process/resources/new.rs`
-- Create: `zircon_graphics/src/scene/scene_renderer/post_process/resources/execute_bloom.rs`
+- Modify: `zircon_graphics/src/scene/scene_renderer/post_process/scene_runtime_feature_flags/mod.rs`
+- Modify: `zircon_graphics/src/scene/scene_renderer/post_process/scene_post_process_resources/mod.rs`
+- Modify: `zircon_graphics/src/scene/scene_renderer/post_process/resources/new/mod.rs`
+- Create: `zircon_graphics/src/scene/scene_renderer/post_process/resources/execute_bloom/mod.rs`
 - Modify: `zircon_graphics/src/scene/scene_renderer/post_process/resources/mod.rs`
-- Modify: `zircon_graphics/src/scene/scene_renderer/post_process/resources/execute_post_process.rs`
+- Modify: `zircon_graphics/src/scene/scene_renderer/post_process/resources/execute_post_process/mod.rs`
 - Modify: `zircon_graphics/src/scene/scene_renderer/post_process/shaders/post_process.wgsl`
 
 - [x] Step 1: Add `bloom_texture` to `OffscreenTarget`.
@@ -193,12 +193,12 @@ doc_type: milestone-detail
 
 **Files:**
 - Modify: `zircon_graphics/src/scene/scene_renderer/core/mod.rs`
-- Modify: `zircon_graphics/src/scene/scene_renderer/post_process/scene_runtime_feature_flags.rs`
-- Modify: `zircon_graphics/src/scene/scene_renderer/post_process/scene_post_process_resources.rs`
-- Modify: `zircon_graphics/src/scene/scene_renderer/post_process/resources/new.rs`
-- Modify: `zircon_graphics/src/scene/scene_renderer/post_process/resources/execute_post_process.rs`
+- Modify: `zircon_graphics/src/scene/scene_renderer/post_process/scene_runtime_feature_flags/mod.rs`
+- Modify: `zircon_graphics/src/scene/scene_renderer/post_process/scene_post_process_resources/mod.rs`
+- Modify: `zircon_graphics/src/scene/scene_renderer/post_process/resources/new/mod.rs`
+- Modify: `zircon_graphics/src/scene/scene_renderer/post_process/resources/execute_post_process/mod.rs`
 - Modify: `zircon_graphics/src/scene/scene_renderer/post_process/shaders/post_process.wgsl`
-- Create: `zircon_graphics/src/runtime/offline_bake.rs`
+- Create: `zircon_graphics/src/runtime/offline_bake/mod.rs`
 - Modify: `zircon_graphics/src/runtime/mod.rs`
 - Modify: `zircon_graphics/src/lib.rs`
 

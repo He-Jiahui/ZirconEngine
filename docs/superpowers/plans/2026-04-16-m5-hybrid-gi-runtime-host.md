@@ -4,10 +4,10 @@ related_code:
   - zircon_scene/src/lib.rs
   - zircon_scene/src/render_extract.rs
   - zircon_graphics/src/runtime/mod.rs
-  - zircon_graphics/src/runtime/hybrid_gi.rs
-  - zircon_graphics/src/runtime/server/create_viewport.rs
-  - zircon_graphics/src/runtime/server/viewport_record.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract.rs
+  - zircon_graphics/src/runtime/hybrid_gi/mod.rs
+  - zircon_graphics/src/runtime/server/create_viewport/mod.rs
+  - zircon_graphics/src/runtime/server/viewport_record/mod.rs
+  - zircon_graphics/src/runtime/server/submit_frame_extract/mod.rs
   - zircon_graphics/src/visibility/declarations/mod.rs
   - zircon_graphics/src/visibility/declarations/visibility_context.rs
   - zircon_graphics/src/visibility/declarations/visibility_history_snapshot.rs
@@ -15,8 +15,8 @@ related_code:
   - zircon_graphics/src/visibility/declarations/visibility_hybrid_gi_feedback.rs
   - zircon_graphics/src/visibility/declarations/visibility_hybrid_gi_update_plan.rs
   - zircon_graphics/src/visibility/planning/mod.rs
-  - zircon_graphics/src/visibility/planning/build_hybrid_gi_plan.rs
-  - zircon_graphics/src/visibility/context/from_extract_with_history.rs
+  - zircon_graphics/src/visibility/planning/build_hybrid_gi_plan/mod.rs
+  - zircon_graphics/src/visibility/context/from_extract_with_history/mod.rs
   - zircon_graphics/src/tests/hybrid_gi_visibility.rs
   - zircon_graphics/src/tests/hybrid_gi_runtime.rs
   - zircon_graphics/src/tests/render_server_bridge.rs
@@ -28,10 +28,10 @@ implementation_files:
   - zircon_scene/src/components.rs
   - zircon_scene/src/lib.rs
   - zircon_graphics/src/runtime/mod.rs
-  - zircon_graphics/src/runtime/hybrid_gi.rs
-  - zircon_graphics/src/runtime/server/create_viewport.rs
-  - zircon_graphics/src/runtime/server/viewport_record.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract.rs
+  - zircon_graphics/src/runtime/hybrid_gi/mod.rs
+  - zircon_graphics/src/runtime/server/create_viewport/mod.rs
+  - zircon_graphics/src/runtime/server/viewport_record/mod.rs
+  - zircon_graphics/src/runtime/server/submit_frame_extract/mod.rs
   - zircon_graphics/src/visibility/declarations/mod.rs
   - zircon_graphics/src/visibility/declarations/visibility_context.rs
   - zircon_graphics/src/visibility/declarations/visibility_history_snapshot.rs
@@ -39,8 +39,8 @@ implementation_files:
   - zircon_graphics/src/visibility/declarations/visibility_hybrid_gi_feedback.rs
   - zircon_graphics/src/visibility/declarations/visibility_hybrid_gi_update_plan.rs
   - zircon_graphics/src/visibility/planning/mod.rs
-  - zircon_graphics/src/visibility/planning/build_hybrid_gi_plan.rs
-  - zircon_graphics/src/visibility/context/from_extract_with_history.rs
+  - zircon_graphics/src/visibility/planning/build_hybrid_gi_plan/mod.rs
+  - zircon_graphics/src/visibility/context/from_extract_with_history/mod.rs
   - zircon_render_server/src/types.rs
 plan_sources:
   - user: 2026-04-16 continue M5 Hybrid GI runtime representation slice

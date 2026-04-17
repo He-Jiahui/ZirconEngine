@@ -8,62 +8,27 @@ export struct SceneNodeData {
     selected: bool,
 }
 
-component UiAssetSection inherits Rectangle {
-    in property <string> title;
-    in property <[string]> items;
-    in property <color> accent: #7aa2e3;
+export struct UiAssetCanvasNodeData {
+    node_id: string,
+    label: string,
+    kind: string,
+    x: float,
+    y: float,
+    width: float,
+    height: float,
+    depth: int,
+    z_index: int,
+    selected: bool,
+}
 
-    palette := Palette {}
-    background: palette.panel_bg_soft;
-    border-radius: 4px;
-    border-width: 1px;
-    border-color: palette.border_soft;
-    clip: true;
-
-    Rectangle {
-        x: 0px;
-        y: 0px;
-        width: parent.width;
-        height: 26px;
-        background: #ffffff06;
-
-        Text {
-            x: 10px;
-            y: 6px;
-            text: root.title;
-            color: root.accent;
-            font-size: 11px;
-            font-weight: 700;
-        }
-    }
-
-    Rectangle {
-        x: 0px;
-        y: 26px;
-        width: parent.width;
-        height: parent.height - 26px;
-        clip: true;
-
-        VerticalLayout {
-            x: 10px;
-            y: 8px;
-            width: parent.width - 20px;
-            spacing: 4px;
-
-            if root.items.length == 0: Text {
-                text: "No entries";
-                color: palette.text_dim;
-                font-size: 10px;
-            }
-
-            for item in root.items: Text {
-                text: item;
-                color: palette.text_muted;
-                font-size: 10px;
-                wrap: word-wrap;
-            }
-        }
-    }
+export struct UiAssetCanvasSlotTargetData {
+    label: string,
+    detail: string,
+    x: float,
+    y: float,
+    width: float,
+    height: float,
+    selected: bool,
 }
 
 component UiAssetSelectableSection inherits Rectangle {
@@ -71,7 +36,10 @@ component UiAssetSelectableSection inherits Rectangle {
     in property <[string]> items;
     in property <int> selected_index: -1;
     in property <color> accent: #7aa2e3;
+    in property <bool> drag_enabled: false;
     callback item_selected(item_index: int);
+    callback item_activated(item_index: int);
+    callback item_drag_started(item_index: int, x: float, y: float);
 
     palette := Palette {}
     background: palette.panel_bg_soft;
@@ -79,6 +47,8 @@ component UiAssetSelectableSection inherits Rectangle {
     border-width: 1px;
     border-color: palette.border_soft;
     clip: true;
+    property <float> content_origin_x: 10.0;
+    property <float> content_origin_y: 34.0;
 
     Rectangle {
         x: 0px;
@@ -135,12 +105,707 @@ component UiAssetSelectableSection inherits Rectangle {
                 }
 
                 row_touch := TouchArea {
+                    property <float> drag_threshold_px: 8.0;
+                    property <bool> drag_pressed: false;
+                    property <bool> drag_active: false;
+                    property <bool> suppress_click: false;
+                    property <float> press_x: 0.0;
+                    property <float> press_y: 0.0;
                     width: parent.width;
                     height: parent.height;
-                    clicked => { root.item_selected(index); }
+                    clicked => {
+                        if (!self.suppress_click) {
+                            root.item_selected(index);
+                        }
+                        self.suppress_click = false;
+                    }
+                    double-clicked => {
+                        if (!self.suppress_click) {
+                            root.item_activated(index);
+                        }
+                        self.suppress_click = false;
+                    }
+                    pointer-event(event) => {
+                        if (!root.drag_enabled || event.button != PointerEventButton.left) {
+                            return;
+                        }
+                        if (event.kind == PointerEventKind.down) {
+                            self.drag_pressed = true;
+                            self.drag_active = false;
+                            self.suppress_click = false;
+                            self.press_x = self.mouse-x / 1px;
+                            self.press_y = self.mouse-y / 1px;
+                        } else if (event.kind == PointerEventKind.up) {
+                            self.drag_pressed = false;
+                            self.drag_active = false;
+                        }
+                    }
+                    moved => {
+                        if (!root.drag_enabled || !self.drag_pressed || self.drag_active) {
+                            return;
+                        }
+                        if (
+                            (
+                                (self.mouse-x / 1px - self.press_x) * (self.mouse-x / 1px - self.press_x)
+                                + (self.mouse-y / 1px - self.press_y) * (self.mouse-y / 1px - self.press_y)
+                            ) >= self.drag_threshold_px * self.drag_threshold_px
+                        ) {
+                            self.drag_active = true;
+                            self.suppress_click = true;
+                            root.item_drag_started(
+                                index,
+                                root.content_origin_x + item_row.x / 1px + self.mouse-x / 1px,
+                                root.content_origin_y + item_row.y / 1px + self.mouse-y / 1px,
+                            );
+                        }
+                    }
                 }
             }
         }
+    }
+}
+
+component UiAssetCanvasSurface inherits Rectangle {
+    in property <[UiAssetCanvasNodeData]> items;
+    in property <float> surface_width: 0.0;
+    in property <float> surface_height: 0.0;
+    in property <int> selected_index: -1;
+    in property <bool> palette_has_selection: false;
+    in property <bool> can_insert_child: false;
+    in property <bool> can_insert_after: false;
+    in property <bool> can_move_up: false;
+    in property <bool> can_move_down: false;
+    in property <bool> can_reparent_into_previous: false;
+    in property <bool> can_reparent_into_next: false;
+    in property <bool> can_reparent_outdent: false;
+    in property <bool> can_open_reference: false;
+    in property <bool> can_convert_to_reference: false;
+    in property <bool> can_extract_component: false;
+    in property <bool> can_promote_to_external_widget: false;
+    in property <bool> can_wrap_in_vertical_box: false;
+    in property <bool> can_unwrap: false;
+    in property <bool> external_drag_active: false;
+    in property <int> external_drag_target_index: -1;
+    in property <string> external_drag_target_action;
+    in property <string> external_drag_target_label;
+    in property <[UiAssetCanvasSlotTargetData]> external_slot_target_items;
+    in property <float> external_drag_pointer_x: 0.0;
+    in property <float> external_drag_pointer_y: 0.0;
+    callback item_selected(item_index: int);
+    callback item_activated(item_index: int);
+    callback action_requested(action_id: string);
+
+    palette := Palette {}
+    background: palette.panel_bg_soft;
+    border-radius: 4px;
+    border-width: 1px;
+    border-color: palette.border_soft;
+    clip: true;
+
+    property <float> safe_surface_width: root.surface_width > 1.0 ? root.surface_width : 1.0;
+    property <float> safe_surface_height: root.surface_height > 1.0 ? root.surface_height : 1.0;
+    property <float> available_width: max(root.width / 1px - 24.0, 1.0);
+    property <float> available_height: max(root.height / 1px - 24.0, 1.0);
+    property <float> scale:
+        min(root.available_width / root.safe_surface_width, root.available_height / root.safe_surface_height);
+    out property <float> surface_scale: root.scale;
+    property <float> scaled_surface_width: root.safe_surface_width * root.scale;
+    property <float> scaled_surface_height: root.safe_surface_height * root.scale;
+    property <float> surface_offset_x: ((root.width / 1px) - root.scaled_surface_width) * 0.5;
+    property <float> surface_offset_y: ((root.height / 1px) - root.scaled_surface_height) * 0.5;
+    out property <float> surface_origin_x: root.surface_offset_x;
+    out property <float> surface_origin_y: root.surface_offset_y;
+    property <float> target_pad_thickness: 14.0;
+    property <float> drag_threshold_px: 8.0;
+    property <bool> drag_pressed: false;
+    property <bool> drag_active: false;
+    property <bool> drag_suppress_click: false;
+    property <int> drag_source_index: -1;
+    property <float> drag_press_x: 0.0;
+    property <float> drag_press_y: 0.0;
+    property <float> drag_pointer_x: 0.0;
+    property <float> drag_pointer_y: 0.0;
+    property <int> overlay_index:
+        root.drag_source_index >= 0 && root.drag_source_index < root.items.length && (root.drag_pressed || root.drag_active) ? root.drag_source_index :
+        root.selected_index >= 0 && root.selected_index < root.items.length ? root.selected_index : -1;
+    property <float> overlay_frame_x:
+        root.overlay_index >= 0 ? root.surface_offset_x + root.items[root.overlay_index].x * root.scale : 0.0;
+    property <float> overlay_frame_y:
+        root.overlay_index >= 0 ? root.surface_offset_y + root.items[root.overlay_index].y * root.scale : 0.0;
+    property <float> overlay_frame_width:
+        root.overlay_index >= 0 ? max(root.items[root.overlay_index].width * root.scale, 2.0) : 0.0;
+    property <float> overlay_frame_height:
+        root.overlay_index >= 0 ? max(root.items[root.overlay_index].height * root.scale, 2.0) : 0.0;
+    property <string> drag_target_action:
+        !root.drag_active ? "" :
+        root.can_insert_child
+            && root.drag_pointer_x >= root.overlay_frame_x
+            && root.drag_pointer_x <= root.overlay_frame_x + root.overlay_frame_width
+            && root.drag_pointer_y >= root.overlay_frame_y
+            && root.drag_pointer_y <= root.overlay_frame_y + root.overlay_frame_height ? "palette.insert.child" :
+        root.can_insert_after
+            && root.drag_pointer_x >= root.overlay_frame_x
+            && root.drag_pointer_x <= root.overlay_frame_x + root.overlay_frame_width
+            && root.drag_pointer_y >= root.overlay_frame_y + root.overlay_frame_height + 4.0
+            && root.drag_pointer_y <= root.overlay_frame_y + root.overlay_frame_height + 4.0 + root.target_pad_thickness ? "palette.insert.after" :
+        root.can_reparent_into_previous
+            && root.drag_pointer_x >= max(root.overlay_frame_x - root.target_pad_thickness - 4.0, 4.0)
+            && root.drag_pointer_x <= max(root.overlay_frame_x - 4.0, 4.0)
+            && root.drag_pointer_y >= root.overlay_frame_y
+            && root.drag_pointer_y <= root.overlay_frame_y + root.overlay_frame_height ? "canvas.reparent.into_previous" :
+        root.can_reparent_into_next
+            && root.drag_pointer_x >= min(root.overlay_frame_x + root.overlay_frame_width + 4.0, root.width / 1px - root.target_pad_thickness - 4.0)
+            && root.drag_pointer_x <= min(root.overlay_frame_x + root.overlay_frame_width + root.target_pad_thickness + 4.0, root.width / 1px - 4.0)
+            && root.drag_pointer_y >= root.overlay_frame_y
+            && root.drag_pointer_y <= root.overlay_frame_y + root.overlay_frame_height ? "canvas.reparent.into_next" :
+        root.can_reparent_outdent
+            && root.drag_pointer_x >= root.overlay_frame_x
+            && root.drag_pointer_x <= root.overlay_frame_x + root.overlay_frame_width
+            && root.drag_pointer_y >= max(root.overlay_frame_y - root.target_pad_thickness - 4.0, 4.0)
+            && root.drag_pointer_y <= max(root.overlay_frame_y - 4.0, 4.0) ? "canvas.reparent.outdent" :
+        "";
+    property <string> drag_target_label:
+        root.drag_target_action == "palette.insert.child" ? "Insert In" :
+        root.drag_target_action == "palette.insert.after" ? "Insert After" :
+        root.drag_target_action == "canvas.reparent.into_previous" ? "Into Prev" :
+        root.drag_target_action == "canvas.reparent.into_next" ? "Into Next" :
+        root.drag_target_action == "canvas.reparent.outdent" ? "Outdent" :
+        "";
+
+    Rectangle {
+        x: root.surface_offset_x * 1px;
+        y: root.surface_offset_y * 1px;
+        width: root.scaled_surface_width * 1px;
+        height: root.scaled_surface_height * 1px;
+        border-radius: 4px;
+        border-width: 1px;
+        border-color: #ffffff12;
+        background: #12161c;
+    }
+
+    if root.items.length == 0: Text {
+        x: 10px;
+        y: 10px;
+        text: "No preview frames";
+        color: palette.text_dim;
+        font-size: 10px;
+    }
+
+    for item[index] in root.items: frame_rect := Rectangle {
+        x: root.surface_offset_x * 1px + item.x * root.scale * 1px;
+        y: root.surface_offset_y * 1px + item.y * root.scale * 1px;
+        width: max(item.width * root.scale * 1px, 2px);
+        height: max(item.height * root.scale * 1px, 2px);
+        property <bool> external_target_active:
+            root.external_drag_active && root.external_drag_target_index == index;
+        property <bool> external_child_target_active:
+            self.external_target_active
+            && root.external_drag_target_action == "palette.insert.child"
+            && root.external_slot_target_items.length == 0;
+        property <bool> external_after_target_active:
+            self.external_target_active && root.external_drag_target_action == "palette.insert.after";
+        border-radius: 3px;
+        border-width:
+            self.external_target_active ? 2px :
+            index == root.selected_index || item.selected ? 2px :
+            1px;
+        border-color:
+            self.external_target_active ? #53c98a :
+            index == root.selected_index || item.selected ? #ffd479 :
+            frame_touch.has-hover ? #9ec1ff :
+            #7f8b9b;
+        background:
+            self.external_target_active ? #53c98a22 :
+            index == root.selected_index || item.selected ? #ffd47922 :
+            frame_touch.has-hover ? #8ab7ff16 :
+            #ffffff08;
+        clip: true;
+
+        Text {
+            visible: parent.width >= 48px && parent.height >= 16px;
+            x: 4px;
+            y: 3px;
+            width: parent.width - 8px;
+            text: item.label;
+            color: index == root.selected_index || item.selected ? #fff3d6 : #d7dce4;
+            font-size: 9px;
+            font-weight: 600;
+            overflow: elide;
+        }
+
+        if frame_rect.external_child_target_active: drop_inside_overlay := Rectangle {
+            x: 6px;
+            y: 6px;
+            width: max(parent.width - 12px, 18px);
+            height: max(parent.height - 12px, 18px);
+            border-radius: 3px;
+            border-width: 1px;
+            border-color: #53c98acc;
+            background: #53c98a12;
+
+            Text {
+                visible: parent.width >= 56px;
+                x: 6px;
+                y: 4px;
+                width: parent.width - 12px;
+                text: root.external_drag_target_label;
+                color: #dff8e8;
+                font-size: 8px;
+                font-weight: 700;
+                overflow: elide;
+            }
+        }
+
+        frame_touch := TouchArea {
+            mouse-cursor:
+                root.drag_source_index == index && (root.drag_pressed || root.drag_active) ? MouseCursor.grabbing :
+                MouseCursor.grab;
+            width: parent.width;
+            height: parent.height;
+            clicked => {
+                if (!root.drag_suppress_click) {
+                    root.item_selected(index);
+                }
+                root.drag_suppress_click = false;
+            }
+            double-clicked => {
+                if (!root.drag_suppress_click) {
+                    root.item_activated(index);
+                }
+                root.drag_suppress_click = false;
+            }
+            pointer-event(event) => {
+                if (event.button != PointerEventButton.left) {
+                    return;
+                }
+                if (event.kind == PointerEventKind.down) {
+                    root.drag_pressed = true;
+                    root.drag_active = false;
+                    root.drag_suppress_click = false;
+                    root.drag_source_index = index;
+                    root.drag_press_x = frame_rect.x / 1px + self.mouse-x / 1px;
+                    root.drag_press_y = frame_rect.y / 1px + self.mouse-y / 1px;
+                    root.drag_pointer_x = frame_rect.x / 1px + self.mouse-x / 1px;
+                    root.drag_pointer_y = frame_rect.y / 1px + self.mouse-y / 1px;
+                } else if (event.kind == PointerEventKind.up && root.drag_source_index == index) {
+                    root.drag_pointer_x = frame_rect.x / 1px + self.mouse-x / 1px;
+                    root.drag_pointer_y = frame_rect.y / 1px + self.mouse-y / 1px;
+                    if (root.drag_active && root.drag_target_action != "") {
+                        root.action_requested(root.drag_target_action);
+                    }
+                    root.drag_pressed = false;
+                    root.drag_active = false;
+                    root.drag_source_index = -1;
+                }
+            }
+            moved => {
+                if (!root.drag_pressed || root.drag_source_index != index) {
+                    return;
+                }
+                root.drag_pointer_x = frame_rect.x / 1px + self.mouse-x / 1px;
+                root.drag_pointer_y = frame_rect.y / 1px + self.mouse-y / 1px;
+                if (
+                    !root.drag_active
+                    && (
+                        (root.drag_pointer_x - root.drag_press_x) * (root.drag_pointer_x - root.drag_press_x)
+                        + (root.drag_pointer_y - root.drag_press_y) * (root.drag_pointer_y - root.drag_press_y)
+                    ) >= root.drag_threshold_px * root.drag_threshold_px
+                ) {
+                    root.drag_active = true;
+                    root.drag_suppress_click = true;
+                    root.item_selected(index);
+                }
+            }
+        }
+    }
+
+    for target[index] in root.external_slot_target_items: external_slot_target := Rectangle {
+        visible:
+            root.external_drag_active
+            && root.external_drag_target_action == "palette.insert.child";
+        x: root.surface_offset_x * 1px + target.x * root.scale * 1px;
+        y: root.surface_offset_y * 1px + target.y * root.scale * 1px;
+        width: max(target.width * root.scale * 1px, 10px);
+        height: max(target.height * root.scale * 1px, 10px);
+        border-radius: 3px;
+        border-width: target.selected ? 2px : 1px;
+        border-color: target.selected ? #53c98acc : #53c98a66;
+        background: target.selected ? #53c98a28 : #53c98a10;
+
+        Text {
+            visible: parent.width >= 34px && parent.height >= 14px;
+            x: 4px;
+            y: 3px;
+            width: parent.width - 8px;
+            text: target.label;
+            color: target.selected ? #dff8e8 : #b9d8c4;
+            font-size: 8px;
+            font-weight: target.selected ? 700 : 600;
+            overflow: elide;
+        }
+    }
+
+    for item[index] in root.items: drop_after_overlay := Rectangle {
+        visible:
+            root.external_drag_active
+            && root.external_drag_target_index == index
+            && root.external_drag_target_action == "palette.insert.after";
+        x: root.surface_offset_x * 1px + item.x * root.scale * 1px + 4px;
+        y: root.surface_offset_y * 1px + (item.y + item.height) * root.scale * 1px + 6px;
+        width: max(item.width * root.scale * 1px - 8px, 44px);
+        height: 18px;
+        border-radius: 9px;
+        border-width: 1px;
+        border-color: #53c98acc;
+        background: #0f1a13ee;
+
+        Text {
+            x: 8px;
+            y: 4px;
+            width: parent.width - 16px;
+            text: root.external_drag_target_label;
+            color: #dff8e8;
+            font-size: 8px;
+            font-weight: 700;
+            overflow: elide;
+        }
+    }
+
+    if root.drag_active: drag_overlay := Rectangle {
+        x: min(max(root.drag_pointer_x * 1px + 12px, 8px), max(root.width - self.width - 8px, 8px));
+        y: min(max(root.drag_pointer_y * 1px - self.height - 12px, 8px), max(root.height - self.height - 8px, 8px));
+        width: 116px;
+        height: 24px;
+        border-radius: 4px;
+        border-width: 1px;
+        border-color: root.drag_target_label != "" ? #53c98a88 : #7f8b9b88;
+        background: root.drag_target_label != "" ? #0f1a13ee : #10161eea;
+
+        Text {
+            x: 8px;
+            y: 5px;
+            width: parent.width - 16px;
+            text: root.drag_target_label != "" ? root.drag_target_label : "Drag Authoring";
+            color: root.drag_target_label != "" ? #dff8e8 : #d7dce4;
+            font-size: 9px;
+            font-weight: 700;
+            overflow: elide;
+        }
+
+        TouchArea {
+            width: parent.width;
+            height: parent.height;
+            mouse-cursor: MouseCursor.grabbing;
+        }
+    }
+
+    if root.external_drag_active: external_drag_overlay := Rectangle {
+        x: min(max(root.external_drag_pointer_x * 1px + 12px, 8px), max(root.width - self.width - 8px, 8px));
+        y: min(max(root.external_drag_pointer_y * 1px - self.height - 12px, 8px), max(root.height - self.height - 8px, 8px));
+        width: 122px;
+        height: 24px;
+        border-radius: 4px;
+        border-width: 1px;
+        border-color: root.external_drag_target_label != "" ? #53c98a88 : #7f8b9b88;
+        background: root.external_drag_target_label != "" ? #0f1a13ee : #10161eea;
+
+        Text {
+            x: 8px;
+            y: 5px;
+            width: parent.width - 16px;
+            text: root.external_drag_target_label != "" ? root.external_drag_target_label : "Drop On Canvas";
+            color: root.external_drag_target_label != "" ? #dff8e8 : #d7dce4;
+            font-size: 9px;
+            font-weight: 700;
+            overflow: elide;
+        }
+    }
+
+    if root.overlay_index >= 0 && root.can_insert_child: insert_child_target := Rectangle {
+        x: root.overlay_frame_x * 1px;
+        y: root.overlay_frame_y * 1px;
+        width: root.overlay_frame_width * 1px;
+        height: root.overlay_frame_height * 1px;
+        border-radius: 3px;
+        border-width: 2px;
+        border-color: #53c98a;
+        background: #53c98a22;
+
+        Text {
+            x: 6px;
+            y: 4px;
+            text: "Insert In";
+            color: #dff8e8;
+            font-size: 9px;
+            font-weight: 700;
+        }
+
+        TouchArea {
+            width: parent.width;
+            height: parent.height;
+            clicked => { root.action_requested("palette.insert.child"); }
+        }
+    }
+
+    if root.overlay_index >= 0 && root.can_insert_after: insert_after_target := Rectangle {
+        x: root.overlay_frame_x * 1px;
+        y: (root.overlay_frame_y + root.overlay_frame_height + 4.0) * 1px;
+        width: root.overlay_frame_width * 1px;
+        height: root.target_pad_thickness * 1px;
+        border-radius: 3px;
+        border-width: 1px;
+        border-color: #53c98a;
+        background: #53c98a2a;
+
+        Text {
+            x: 6px;
+            y: 2px;
+            text: "Insert After";
+            color: #dff8e8;
+            font-size: 8px;
+            font-weight: 700;
+        }
+
+        TouchArea {
+            width: parent.width;
+            height: parent.height;
+            clicked => { root.action_requested("palette.insert.after"); }
+        }
+    }
+
+    if root.overlay_index >= 0 && root.can_reparent_into_previous: reparent_prev_target := Rectangle {
+        x: max(root.overlay_frame_x - root.target_pad_thickness - 4.0, 4.0) * 1px;
+        y: root.overlay_frame_y * 1px;
+        width: root.target_pad_thickness * 1px;
+        height: root.overlay_frame_height * 1px;
+        border-radius: 3px;
+        border-width: 1px;
+        border-color: #7db8ff;
+        background: #7db8ff24;
+
+        Text {
+            x: parent.width + 4px;
+            y: 4px;
+            text: "Into Prev";
+            color: #dbeafe;
+            font-size: 8px;
+            font-weight: 700;
+        }
+
+        TouchArea {
+            width: parent.width;
+            height: parent.height;
+            clicked => { root.action_requested("canvas.reparent.into_previous"); }
+        }
+    }
+
+    if root.overlay_index >= 0 && root.can_reparent_into_next: reparent_next_target := Rectangle {
+        x: min(root.overlay_frame_x + root.overlay_frame_width + 4.0, root.width / 1px - root.target_pad_thickness - 4.0) * 1px;
+        y: root.overlay_frame_y * 1px;
+        width: root.target_pad_thickness * 1px;
+        height: root.overlay_frame_height * 1px;
+        border-radius: 3px;
+        border-width: 1px;
+        border-color: #7db8ff;
+        background: #7db8ff24;
+
+        Text {
+            x: -52px;
+            y: 4px;
+            text: "Into Next";
+            color: #dbeafe;
+            font-size: 8px;
+            font-weight: 700;
+        }
+
+        TouchArea {
+            width: parent.width;
+            height: parent.height;
+            clicked => { root.action_requested("canvas.reparent.into_next"); }
+        }
+    }
+
+    if root.overlay_index >= 0 && root.can_reparent_outdent: outdent_target := Rectangle {
+        x: root.overlay_frame_x * 1px;
+        y: max(root.overlay_frame_y - root.target_pad_thickness - 4.0, 4.0) * 1px;
+        width: root.overlay_frame_width * 1px;
+        height: root.target_pad_thickness * 1px;
+        border-radius: 3px;
+        border-width: 1px;
+        border-color: #f0b667;
+        background: #f0b66724;
+
+        Text {
+            x: 6px;
+            y: 2px;
+            text: "Outdent";
+            color: #fff3d6;
+            font-size: 8px;
+            font-weight: 700;
+        }
+
+        TouchArea {
+            width: parent.width;
+            height: parent.height;
+            clicked => { root.action_requested("canvas.reparent.outdent"); }
+        }
+    }
+
+    if root.overlay_index >= 0: overlay := Rectangle {
+        x: min(root.overlay_frame_x * 1px, max(root.width - 256px, 8px));
+        y: min((root.overlay_frame_y + root.overlay_frame_height + 8.0) * 1px, max(root.height - 96px, 8px));
+        width: 248px;
+        height: 88px;
+        border-radius: 4px;
+        border-width: 1px;
+        border-color: #ffd47988;
+        background: #10161eea;
+
+        VerticalLayout {
+            x: 8px;
+            y: 7px;
+            width: parent.width - 16px;
+            height: parent.height - 14px;
+            spacing: 4px;
+
+            Text {
+                text: root.items[root.overlay_index].label + " • " + root.items[root.overlay_index].kind;
+                color: #fff3d6;
+                font-size: 9px;
+                font-weight: 700;
+                overflow: elide;
+            }
+
+            HorizontalLayout {
+                width: parent.width;
+                spacing: 2px;
+
+                ShellButton {
+                    width: 52px;
+                    label: "Add In";
+                    enabled: root.can_insert_child;
+                    active: root.can_insert_child;
+                    clicked => { root.action_requested("palette.insert.child"); }
+                }
+
+                ShellButton {
+                    width: 66px;
+                    label: "Add After";
+                    enabled: root.can_insert_after;
+                    active: root.can_insert_after;
+                    clicked => { root.action_requested("palette.insert.after"); }
+                }
+
+                ShellButton {
+                    width: 36px;
+                    label: "Up";
+                    enabled: root.can_move_up;
+                    active: root.can_move_up;
+                    clicked => { root.action_requested("canvas.move.up"); }
+                }
+
+                ShellButton {
+                    width: 46px;
+                    label: "Down";
+                    enabled: root.can_move_down;
+                    active: root.can_move_down;
+                    clicked => { root.action_requested("canvas.move.down"); }
+                }
+            }
+
+            HorizontalLayout {
+                width: parent.width;
+                spacing: 2px;
+
+                ShellButton {
+                    width: 44px;
+                    label: "Prev";
+                    enabled: root.can_reparent_into_previous;
+                    active: root.can_reparent_into_previous;
+                    clicked => { root.action_requested("canvas.reparent.into_previous"); }
+                }
+
+                ShellButton {
+                    width: 44px;
+                    label: "Next";
+                    enabled: root.can_reparent_into_next;
+                    active: root.can_reparent_into_next;
+                    clicked => { root.action_requested("canvas.reparent.into_next"); }
+                }
+
+                ShellButton {
+                    width: 40px;
+                    label: "Out";
+                    enabled: root.can_reparent_outdent;
+                    active: root.can_reparent_outdent;
+                    clicked => { root.action_requested("canvas.reparent.outdent"); }
+                }
+
+                ShellButton {
+                    width: 50px;
+                    label: "Wrap";
+                    enabled: root.can_wrap_in_vertical_box;
+                    active: root.can_wrap_in_vertical_box;
+                    clicked => { root.action_requested("canvas.wrap.vertical_box"); }
+                }
+
+                ShellButton {
+                    width: 58px;
+                    label: "Unwrap";
+                    enabled: root.can_unwrap;
+                    active: root.can_unwrap;
+                    clicked => { root.action_requested("canvas.unwrap"); }
+                }
+            }
+
+            HorizontalLayout {
+                width: parent.width;
+                spacing: 2px;
+
+                ShellButton {
+                    width: 48px;
+                    label: "Open";
+                    enabled: root.can_open_reference;
+                    active: root.can_open_reference;
+                    clicked => { root.action_requested("reference.open"); }
+                }
+
+                ShellButton {
+                    width: 54px;
+                    label: "To Ref";
+                    enabled: root.can_convert_to_reference;
+                    active: root.can_convert_to_reference;
+                    clicked => { root.action_requested("canvas.convert.reference"); }
+                }
+
+                ShellButton {
+                    width: 58px;
+                    label: "Extract";
+                    enabled: root.can_extract_component;
+                    active: root.can_extract_component;
+                    clicked => { root.action_requested("canvas.extract.component"); }
+                }
+
+                ShellButton {
+                    width: 64px;
+                    label: "Promote";
+                    enabled: root.can_promote_to_external_widget;
+                    active: root.can_promote_to_external_widget;
+                    clicked => { root.action_requested("canvas.promote.widget"); }
+                }
+            }
+        }
+    }
+
+    Text {
+        x: 10px;
+        y: parent.height - 18px;
+        text:
+            root.surface_width > 0.0 && root.surface_height > 0.0 ?
+            root.surface_width + " x " + root.surface_height + " • " + root.items.length + " draw nodes" :
+            "";
+        color: palette.text_dim;
+        font-size: 9px;
     }
 }
 
@@ -605,10 +1270,24 @@ export component UiAssetEditorPane inherits Rectangle {
     in property <string> status;
     in property <string> selection;
     in property <string> source_text;
+    in property <string> preview_preset;
     in property <string> preview_summary;
     in property <bool> can_save;
     in property <bool> can_undo;
     in property <bool> can_redo;
+    in property <bool> can_insert_child;
+    in property <bool> can_insert_after;
+    in property <bool> can_move_up;
+    in property <bool> can_move_down;
+    in property <bool> can_reparent_into_previous;
+    in property <bool> can_reparent_into_next;
+    in property <bool> can_reparent_outdent;
+    in property <bool> can_open_reference;
+    in property <bool> can_convert_to_reference;
+    in property <bool> can_extract_component;
+    in property <bool> can_promote_to_external_widget;
+    in property <bool> can_wrap_in_vertical_box;
+    in property <bool> can_unwrap;
     in property <bool> can_create_rule;
     in property <bool> can_extract_rule;
     in property <bool> preview_available;
@@ -617,6 +1296,25 @@ export component UiAssetEditorPane inherits Rectangle {
     in property <bool> state_pressed;
     in property <bool> state_disabled;
     in property <bool> state_selected;
+    in property <int> palette_selected_index;
+    in property <int> hierarchy_selected_index;
+    in property <int> preview_selected_index;
+    in property <string> source_selected_block_label;
+    in property <int> source_selected_line;
+    in property <string> source_selected_excerpt;
+    in property <string> source_roundtrip_status;
+    in property <[string]> source_outline_items;
+    in property <int> source_outline_selected_index;
+    in property <float> preview_surface_width;
+    in property <float> preview_surface_height;
+    in property <[UiAssetCanvasNodeData]> preview_canvas_items;
+    in property <[string]> preview_mock_items;
+    in property <int> preview_mock_selected_index;
+    in property <string> preview_mock_property;
+    in property <string> preview_mock_kind;
+    in property <string> preview_mock_value;
+    in property <bool> preview_mock_can_edit;
+    in property <bool> preview_mock_can_clear;
     in property <[string]> palette_items;
     in property <[string]> hierarchy_items;
     in property <string> inspector_selected_node_id;
@@ -625,13 +1323,54 @@ export component UiAssetEditorPane inherits Rectangle {
     in property <string> inspector_slot_padding;
     in property <string> inspector_slot_width_preferred;
     in property <string> inspector_slot_height_preferred;
+    in property <string> inspector_slot_semantic_title;
+    in property <[string]> inspector_slot_semantic_items;
+    in property <int> inspector_slot_semantic_selected_index;
+    in property <string> inspector_slot_semantic_path;
+    in property <string> inspector_slot_semantic_value;
+    in property <string> inspector_slot_kind;
+    in property <string> inspector_slot_overlay_anchor_x;
+    in property <string> inspector_slot_overlay_anchor_y;
+    in property <string> inspector_slot_overlay_pivot_x;
+    in property <string> inspector_slot_overlay_pivot_y;
+    in property <string> inspector_slot_overlay_position_x;
+    in property <string> inspector_slot_overlay_position_y;
+    in property <string> inspector_slot_overlay_z_index;
+    in property <string> inspector_slot_grid_row;
+    in property <string> inspector_slot_grid_column;
+    in property <string> inspector_slot_grid_row_span;
+    in property <string> inspector_slot_grid_column_span;
+    in property <string> inspector_slot_flow_break_before;
+    in property <string> inspector_slot_flow_alignment;
     in property <string> inspector_layout_width_preferred;
     in property <string> inspector_layout_height_preferred;
+    in property <string> inspector_layout_semantic_title;
+    in property <[string]> inspector_layout_semantic_items;
+    in property <int> inspector_layout_semantic_selected_index;
+    in property <string> inspector_layout_semantic_path;
+    in property <string> inspector_layout_semantic_value;
+    in property <string> inspector_layout_kind;
+    in property <string> inspector_layout_scroll_axis;
+    in property <string> inspector_layout_scroll_gap;
+    in property <string> inspector_layout_scrollbar_visibility;
+    in property <string> inspector_layout_virtualization_item_extent;
+    in property <string> inspector_layout_virtualization_overscan;
+    in property <string> inspector_layout_clip;
     in property <[string]> inspector_binding_items;
     in property <int> inspector_binding_selected_index;
     in property <string> inspector_binding_id;
     in property <string> inspector_binding_event;
+    in property <[string]> inspector_binding_event_items;
+    in property <int> inspector_binding_event_selected_index;
     in property <string> inspector_binding_route;
+    in property <string> inspector_binding_route_target;
+    in property <string> inspector_binding_action_target;
+    in property <[string]> inspector_binding_action_kind_items;
+    in property <int> inspector_binding_action_kind_selected_index;
+    in property <[string]> inspector_binding_payload_items;
+    in property <int> inspector_binding_payload_selected_index;
+    in property <string> inspector_binding_payload_key;
+    in property <string> inspector_binding_payload_value;
     in property <bool> inspector_can_edit_binding;
     in property <bool> inspector_can_delete_binding;
     in property <string> inspector_widget_kind;
@@ -640,6 +1379,10 @@ export component UiAssetEditorPane inherits Rectangle {
     in property <string> inspector_text_prop;
     in property <bool> inspector_can_edit_control_id;
     in property <bool> inspector_can_edit_text_prop;
+    in property <string> inspector_promote_asset_id;
+    in property <string> inspector_promote_component_name;
+    in property <string> inspector_promote_document_id;
+    in property <bool> inspector_can_edit_promote_draft;
     in property <[string]> inspector_items;
     in property <[string]> style_class_items;
     in property <[string]> style_rule_items;
@@ -675,10 +1418,43 @@ export component UiAssetEditorPane inherits Rectangle {
     callback matched_style_rule_selected(item_index: int);
     callback style_rule_declaration_action(action_id: string, item_index: int, declaration_path: string, declaration_value: string);
     callback style_token_action(action_id: string, item_index: int, token_name: string, token_value: string);
+    in-out property <bool> palette_drag_active: false;
+    in-out property <int> palette_drag_source_index: -1;
+    in-out property <float> palette_drag_pointer_x: 0.0;
+    in-out property <float> palette_drag_pointer_y: 0.0;
+    property <string> palette_drag_label:
+        root.palette_drag_source_index >= 0 && root.palette_drag_source_index < root.palette_items.length ?
+        root.palette_items[root.palette_drag_source_index] :
+        "";
     callback source_edited(value: string);
+    callback palette_selected(item_index: int);
+    in property <int> palette_drag_target_preview_index: -1;
+    in property <string> palette_drag_target_action;
+    in property <string> palette_drag_target_label;
+    in property <[UiAssetCanvasSlotTargetData]> palette_drag_slot_target_items;
+    in property <[string]> palette_drag_candidate_items;
+    in property <int> palette_drag_candidate_selected_index: -1;
+    in property <bool> palette_target_chooser_active: false;
+    callback palette_drag_hovered(surface_x: float, surface_y: float);
+    callback palette_drag_dropped();
+    callback palette_drag_cancelled();
+    callback palette_target_candidate_selected(item_index: int);
+    callback palette_target_confirm();
+    callback palette_target_cancel();
     callback hierarchy_selected(item_index: int);
+    callback hierarchy_activated(item_index: int);
     callback preview_selected(item_index: int);
+    callback preview_activated(item_index: int);
+    callback source_outline_selected(item_index: int);
+    callback preview_mock_selected(item_index: int);
+    callback preview_mock_action(action_id: string, value: string);
     callback binding_selected(item_index: int);
+    callback binding_event_selected(item_index: int);
+    callback binding_action_kind_selected(item_index: int);
+    callback binding_payload_selected(item_index: int);
+    callback binding_payload_action(action_id: string, payload_key: string, payload_value: string);
+    callback slot_semantic_selected(item_index: int);
+    callback layout_semantic_selected(item_index: int);
 
     palette := Palette {}
     property <string> style_class_draft: "";
@@ -687,6 +1463,51 @@ export component UiAssetEditorPane inherits Rectangle {
     property <string> style_rule_declaration_value_draft: "";
     property <string> style_token_name_draft: "";
     property <string> style_token_value_draft: "";
+    property <string> preview_mock_value_draft: "";
+    property <string> binding_payload_key_draft: "";
+    property <string> binding_payload_value_draft: "";
+    drag_focus_host := FocusScope {
+        x: 0px;
+        y: 0px;
+        width: 0px;
+        height: 0px;
+        enabled: root.palette_drag_active || root.palette_target_chooser_active;
+        key-pressed(event) => {
+            if (event.text == Key.LeftArrow || event.text == Key.UpArrow) {
+                root.action("palette.target.previous");
+                return accept;
+            }
+            if (
+                event.text == Key.RightArrow
+                || event.text == Key.DownArrow
+                || event.text == Key.Tab
+                ) {
+                root.action("palette.target.next");
+                return accept;
+            }
+            if (event.text == Key.Return || event.text == "\n") {
+                if (root.palette_target_chooser_active) {
+                    root.palette_target_confirm();
+                    return accept;
+                }
+                if (root.palette_drag_target_action != "") {
+                    root.palette_drag_dropped();
+                }
+                return accept;
+            }
+            if (event.text == Key.Escape) {
+                if (root.palette_target_chooser_active) {
+                    root.palette_target_cancel();
+                } else {
+                    root.palette_drag_cancelled();
+                    root.palette_drag_active = false;
+                    root.palette_drag_source_index = -1;
+                }
+                return accept;
+            }
+            reject
+        }
+    }
     background: transparent;
     clip: true;
 
@@ -756,6 +1577,33 @@ export component UiAssetEditorPane inherits Rectangle {
             Rectangle { width: 1px; height: 20px; background: palette.border_soft; }
 
             ShellButton {
+                width: 58px;
+                label: "Docked";
+                active: root.preview_preset == "Editor Docked";
+                clicked => { root.action("preview.preset.editor_docked"); }
+            }
+            ShellButton {
+                width: 50px;
+                label: "Float";
+                active: root.preview_preset == "Editor Floating";
+                clicked => { root.action("preview.preset.editor_floating"); }
+            }
+            ShellButton {
+                width: 44px;
+                label: "HUD";
+                active: root.preview_preset == "Game HUD";
+                clicked => { root.action("preview.preset.game_hud"); }
+            }
+            ShellButton {
+                width: 58px;
+                label: "Dialog";
+                active: root.preview_preset == "Dialog";
+                clicked => { root.action("preview.preset.dialog"); }
+            }
+
+            Rectangle { width: 1px; height: 20px; background: palette.border_soft; }
+
+            ShellButton {
                 width: 46px;
                 label: "Save";
                 enabled: root.can_save;
@@ -802,19 +1650,32 @@ export component UiAssetEditorPane inherits Rectangle {
                 height: parent.height;
                 spacing: 8px;
 
-                UiAssetSection {
+                palette_section := UiAssetSelectableSection {
                     height: parent.height * 0.42;
                     title: "Palette";
                     items: root.palette_items;
+                    selected_index: root.palette_selected_index;
                     accent: #9dc07c;
+                    drag_enabled: true;
+                    item_selected(item_index) => { root.palette_selected(item_index); }
+                    item_drag_started(item_index, x, y) => {
+                        root.palette_selected(item_index);
+                        root.palette_drag_active = true;
+                        root.palette_drag_source_index = item_index;
+                        root.palette_drag_pointer_x = palette_section.x / 1px + x;
+                        root.palette_drag_pointer_y = palette_section.y / 1px + y;
+                        drag_focus_host.focus();
+                    }
                 }
 
                 UiAssetSelectableSection {
                     height: parent.height * 0.58 - 8px;
                     title: "Hierarchy";
                     items: root.hierarchy_items;
+                    selected_index: root.hierarchy_selected_index;
                     accent: #7aa2e3;
                     item_selected(item_index) => { root.hierarchy_selected(item_index); }
+                    item_activated(item_index) => { root.hierarchy_activated(item_index); }
                 }
             }
         }
@@ -829,16 +1690,217 @@ export component UiAssetEditorPane inherits Rectangle {
                 height: parent.height;
                 spacing: 8px;
 
-                UiAssetSelectableSection {
-                    height: parent.height * 0.46;
-                    title: "Designer Canvas";
-                    items: root.preview_items;
-                    accent: #e0aa5e;
-                    item_selected(item_index) => { root.preview_selected(item_index); }
+                Rectangle {
+                    height: parent.height * 0.38;
+                    background: palette.panel_bg_soft;
+                    border-radius: 4px;
+                    border-width: 1px;
+                    border-color: palette.border_soft;
+                    clip: true;
+
+                    Text {
+                        x: 10px;
+                        y: 8px;
+                        text: "Designer Canvas";
+                        color: #e0aa5e;
+                        font-size: 11px;
+                        font-weight: 700;
+                    }
+
+                    Text {
+                        x: parent.width - self.preferred-width - 10px;
+                        y: 8px;
+                        text: root.preview_summary;
+                        color: palette.text_dim;
+                        font-size: 9px;
+                    }
+
+                    preview_canvas := UiAssetCanvasSurface {
+                        x: 10px;
+                        y: 28px;
+                        width: parent.width - 20px;
+                        height: max(92px, parent.height - 126px);
+                        items: root.preview_canvas_items;
+                        surface_width: root.preview_surface_width;
+                        surface_height: root.preview_surface_height;
+                        selected_index: root.preview_selected_index;
+                        palette_has_selection: root.palette_selected_index >= 0;
+                        can_insert_child: root.can_insert_child;
+                        can_insert_after: root.can_insert_after;
+                        can_move_up: root.can_move_up;
+                        can_move_down: root.can_move_down;
+                        can_reparent_into_previous: root.can_reparent_into_previous;
+                        can_reparent_into_next: root.can_reparent_into_next;
+                        can_reparent_outdent: root.can_reparent_outdent;
+                        can_open_reference: root.can_open_reference;
+                        can_convert_to_reference: root.can_convert_to_reference;
+                        can_extract_component: root.can_extract_component;
+                        can_promote_to_external_widget: root.can_promote_to_external_widget;
+                        can_wrap_in_vertical_box: root.can_wrap_in_vertical_box;
+                        can_unwrap: root.can_unwrap;
+                        external_drag_active: root.palette_drag_active;
+                        external_drag_target_index: root.palette_drag_target_preview_index;
+                        external_drag_target_action: root.palette_drag_target_action;
+                        external_drag_target_label: root.palette_drag_target_label;
+                        external_slot_target_items: root.palette_drag_slot_target_items;
+                        external_drag_pointer_x: root.palette_drag_pointer_x - preview_canvas.x / 1px;
+                        external_drag_pointer_y: root.palette_drag_pointer_y - preview_canvas.y / 1px;
+                        item_selected(item_index) => { root.preview_selected(item_index); }
+                        item_activated(item_index) => { root.preview_activated(item_index); }
+                        action_requested(action_id) => { root.action(action_id); }
+                    }
+
+                    UiAssetSelectableSection {
+                        x: 10px;
+                        y: parent.height - 90px;
+                        width: parent.width - 20px;
+                        height: 80px;
+                        title: "Render Stack";
+                        items: root.preview_items;
+                        selected_index: root.preview_selected_index;
+                        accent: #e0aa5e;
+                        item_selected(item_index) => { root.preview_selected(item_index); }
+                        item_activated(item_index) => { root.preview_activated(item_index); }
+                    }
                 }
 
                 Rectangle {
-                    height: parent.height * 0.54 - 8px;
+                    height: 54px;
+                    background: palette.panel_bg_soft;
+                    border-radius: 4px;
+                    border-width: 1px;
+                    border-color: palette.border_soft;
+
+                    VerticalLayout {
+                        x: 10px;
+                        y: 8px;
+                        width: parent.width - 20px;
+                        spacing: 4px;
+
+                        HorizontalLayout {
+                            width: parent.width;
+                            spacing: 4px;
+
+                            ShellButton {
+                                width: 56px;
+                                label: "Add In";
+                                enabled: root.can_insert_child;
+                                active: root.can_insert_child;
+                                clicked => { root.action("palette.insert.child"); }
+                            }
+
+                            ShellButton {
+                                width: 68px;
+                                label: "Add After";
+                                enabled: root.can_insert_after;
+                                active: root.can_insert_after;
+                                clicked => { root.action("palette.insert.after"); }
+                            }
+
+                            ShellButton {
+                                width: 44px;
+                                label: "Up";
+                                enabled: root.can_move_up;
+                                active: root.can_move_up;
+                                clicked => { root.action("canvas.move.up"); }
+                            }
+
+                            ShellButton {
+                                width: 56px;
+                                label: "Down";
+                                enabled: root.can_move_down;
+                                active: root.can_move_down;
+                                clicked => { root.action("canvas.move.down"); }
+                            }
+                        }
+
+                        HorizontalLayout {
+                            width: parent.width;
+                            spacing: 4px;
+
+                            ShellButton {
+                                width: 84px;
+                                label: "Into Prev";
+                                enabled: root.can_reparent_into_previous;
+                                active: root.can_reparent_into_previous;
+                                clicked => { root.action("canvas.reparent.into_previous"); }
+                            }
+
+                            ShellButton {
+                                width: 78px;
+                                label: "Into Next";
+                                enabled: root.can_reparent_into_next;
+                                active: root.can_reparent_into_next;
+                                clicked => { root.action("canvas.reparent.into_next"); }
+                            }
+
+                            ShellButton {
+                                width: 64px;
+                                label: "Outdent";
+                                enabled: root.can_reparent_outdent;
+                                active: root.can_reparent_outdent;
+                                clicked => { root.action("canvas.reparent.outdent"); }
+                            }
+
+                        }
+
+                        HorizontalLayout {
+                            width: parent.width;
+                            spacing: 4px;
+
+                            ShellButton {
+                                width: 74px;
+                                label: "Open Ref";
+                                enabled: root.can_open_reference;
+                                active: root.can_open_reference;
+                                clicked => { root.action("reference.open"); }
+                            }
+
+                            ShellButton {
+                                width: 58px;
+                                label: "To Ref";
+                                enabled: root.can_convert_to_reference;
+                                active: root.can_convert_to_reference;
+                                clicked => { root.action("canvas.convert.reference"); }
+                            }
+
+                            ShellButton {
+                                width: 64px;
+                                label: "Extract";
+                                enabled: root.can_extract_component;
+                                active: root.can_extract_component;
+                                clicked => { root.action("canvas.extract.component"); }
+                            }
+
+                            ShellButton {
+                                width: 70px;
+                                label: "Promote";
+                                enabled: root.can_promote_to_external_widget;
+                                active: root.can_promote_to_external_widget;
+                                clicked => { root.action("canvas.promote.widget"); }
+                            }
+
+                            ShellButton {
+                                width: 82px;
+                                label: "Wrap VBox";
+                                enabled: root.can_wrap_in_vertical_box;
+                                active: root.can_wrap_in_vertical_box;
+                                clicked => { root.action("canvas.wrap.vertical_box"); }
+                            }
+
+                            ShellButton {
+                                width: 58px;
+                                label: "Unwrap";
+                                enabled: root.can_unwrap;
+                                active: root.can_unwrap;
+                                clicked => { root.action("canvas.unwrap"); }
+                            }
+                        }
+                    }
+                }
+
+                Rectangle {
+                    height: parent.height * 0.62 - 62px;
                     background: palette.panel_bg_soft;
                     border-radius: 4px;
                     border-width: 1px;
@@ -854,17 +1916,152 @@ export component UiAssetEditorPane inherits Rectangle {
                         font-weight: 700;
                     }
 
+                    Rectangle {
+                        x: 10px;
+                        y: 26px;
+                        width: parent.width - 20px;
+                        height: 58px;
+                        background: #ffffff05;
+                        border-radius: 4px;
+                        border-width: 1px;
+                        border-color: palette.border_soft;
+
+                        VerticalLayout {
+                            x: 8px;
+                            y: 6px;
+                            width: parent.width - 16px;
+                            spacing: 2px;
+
+                            Text {
+                                text: root.source_selected_block_label != "" ? root.source_selected_block_label : "No source block";
+                                color: palette.text;
+                                font-size: 10px;
+                                font-weight: 600;
+                                wrap: word-wrap;
+                            }
+
+                            Text {
+                                text: root.source_selected_line >= 0 ? "line " + root.source_selected_line : "";
+                                color: palette.text_dim;
+                                font-size: 9px;
+                            }
+
+                            Text {
+                                text: root.source_roundtrip_status;
+                                color: palette.text_muted;
+                                font-size: 9px;
+                                wrap: word-wrap;
+                            }
+                        }
+                    }
+
+                    UiAssetSelectableSection {
+                        x: 10px;
+                        y: 92px;
+                        width: parent.width - 20px;
+                        height: 72px;
+                        title: "Source Outline";
+                        items: root.source_outline_items;
+                        selected_index: root.source_outline_selected_index;
+                        accent: #d8d28a;
+                        item_selected(item_index) => { root.source_outline_selected(item_index); }
+                    }
+
+                    UiAssetSelectableSection {
+                        x: 10px;
+                        y: 170px;
+                        width: parent.width - 20px;
+                        height: 72px;
+                        title: "Mock Preview";
+                        items: root.preview_mock_items;
+                        selected_index: root.preview_mock_selected_index;
+                        accent: #c98fe3;
+                        item_selected(item_index) => {
+                            root.preview_mock_selected(item_index);
+                            root.preview_mock_value_draft = root.preview_mock_value;
+                        }
+                    }
+
+                    Text {
+                        x: 10px;
+                        y: 248px;
+                        width: 88px;
+                        text: root.preview_mock_property;
+                        color: palette.text;
+                        font-size: 9px;
+                        font-weight: 600;
+                    }
+
+                    Text {
+                        x: 102px;
+                        y: 248px;
+                        width: parent.width - 112px;
+                        text: root.preview_mock_kind;
+                        color: palette.text_dim;
+                        font-size: 9px;
+                        horizontal-alignment: right;
+                    }
+
                     TextEdit {
                         x: 10px;
-                        y: 28px;
+                        y: 262px;
+                        width: parent.width - 148px;
+                        height: 28px;
+                        text:
+                            root.preview_mock_value_draft != "" ?
+                            root.preview_mock_value_draft :
+                            root.preview_mock_value;
+                        enabled: root.preview_mock_can_edit;
+                        font-size: 9px;
+                        font-family: "JetBrains Mono, Cascadia Mono, Consolas";
+                        edited(value) => { root.preview_mock_value_draft = value; }
+                    }
+
+                    ShellButton {
+                        x: parent.width - 132px;
+                        y: 262px;
+                        width: 56px;
+                        label: "Apply";
+                        enabled: root.preview_mock_can_edit;
+                        clicked => {
+                            root.preview_mock_action("preview.mock.value.set", root.preview_mock_value_draft != "" ? root.preview_mock_value_draft : root.preview_mock_value);
+                            root.preview_mock_value_draft = "";
+                        }
+                    }
+
+                    ShellButton {
+                        x: parent.width - 68px;
+                        y: 262px;
+                        width: 58px;
+                        label: "Clear";
+                        enabled: root.preview_mock_can_clear;
+                        clicked => {
+                            root.preview_mock_action("preview.mock.clear", "");
+                            root.preview_mock_value_draft = "";
+                        }
+                    }
+
+                    TextEdit {
+                        x: 10px;
+                        y: 298px;
                         width: parent.width - 20px;
-                        height: parent.height - 38px;
+                        height: max(120px, parent.height - 348px);
                         text: root.source_text;
                         enabled: true;
                         font-size: 10px;
                         font-family: "JetBrains Mono, Cascadia Mono, Consolas";
                         wrap: word-wrap;
                         edited(value) => { root.source_edited(value); }
+                    }
+
+                    Text {
+                        x: 10px;
+                        y: parent.height - 42px;
+                        width: parent.width - 20px;
+                        text: root.source_selected_excerpt;
+                        color: palette.text_dim;
+                        font-size: 9px;
+                        wrap: word-wrap;
                     }
                 }
             }
@@ -1049,6 +2246,88 @@ export component UiAssetEditorPane inherits Rectangle {
                             }
 
                             Text {
+                                text: "Promote Draft";
+                                color: palette.text;
+                                font-size: 10px;
+                                font-weight: 600;
+                            }
+
+                            Rectangle {
+                                width: parent.width;
+                                height: 22px;
+                                background: transparent;
+
+                                Text {
+                                    x: 0px;
+                                    y: 4px;
+                                    width: 58px;
+                                    text: "Asset";
+                                    color: palette.text_dim;
+                                    font-size: 10px;
+                                }
+
+                                CompactField {
+                                    x: 62px;
+                                    y: 0px;
+                                    width: parent.width - 62px;
+                                    text: root.inspector_promote_asset_id;
+                                    placeholder: "res://ui/widgets/widget.ui.toml";
+                                    enabled: root.inspector_can_edit_promote_draft;
+                                    edited(value) => { root.inspector_widget_action("promote.asset_id.set", value); }
+                                }
+                            }
+
+                            Rectangle {
+                                width: parent.width;
+                                height: 22px;
+                                background: transparent;
+
+                                Text {
+                                    x: 0px;
+                                    y: 4px;
+                                    width: 58px;
+                                    text: "Comp";
+                                    color: palette.text_dim;
+                                    font-size: 10px;
+                                }
+
+                                CompactField {
+                                    x: 62px;
+                                    y: 0px;
+                                    width: parent.width - 62px;
+                                    text: root.inspector_promote_component_name;
+                                    placeholder: "ComponentName";
+                                    enabled: root.inspector_can_edit_promote_draft;
+                                    edited(value) => { root.inspector_widget_action("promote.component_name.set", value); }
+                                }
+                            }
+
+                            Rectangle {
+                                width: parent.width;
+                                height: 22px;
+                                background: transparent;
+
+                                Text {
+                                    x: 0px;
+                                    y: 4px;
+                                    width: 58px;
+                                    text: "Doc";
+                                    color: palette.text_dim;
+                                    font-size: 10px;
+                                }
+
+                                CompactField {
+                                    x: 62px;
+                                    y: 0px;
+                                    width: parent.width - 62px;
+                                    text: root.inspector_promote_document_id;
+                                    placeholder: "ui.widgets.widget";
+                                    enabled: root.inspector_can_edit_promote_draft;
+                                    edited(value) => { root.inspector_widget_action("promote.document_id.set", value); }
+                                }
+                            }
+
+                            Text {
                                 text: "Slot";
                                 color: palette.text;
                                 font-size: 10px;
@@ -1155,6 +2434,169 @@ export component UiAssetEditorPane inherits Rectangle {
                                 }
                             }
 
+                            if root.inspector_slot_kind == "Overlay": Text {
+                                text: "Overlay Slot";
+                                color: palette.text;
+                                font-size: 10px;
+                                font-weight: 600;
+                            }
+
+                            if root.inspector_slot_kind == "Overlay": Rectangle {
+                                width: parent.width;
+                                height: 22px;
+                                background: transparent;
+                                Text { x: 0px; y: 4px; width: 58px; text: "Anchor X"; color: palette.text_dim; font-size: 10px; }
+                                CompactField {
+                                    x: 62px; y: 0px; width: parent.width - 62px;
+                                    text: root.inspector_slot_overlay_anchor_x;
+                                    placeholder: "layout.anchor.x";
+                                    enabled: root.inspector_parent_node_id != "";
+                                    edited(value) => { root.inspector_widget_action("slot.overlay.anchor_x.set", value); }
+                                }
+                            }
+
+                            if root.inspector_slot_kind == "Overlay": Rectangle {
+                                width: parent.width; height: 22px; background: transparent;
+                                Text { x: 0px; y: 4px; width: 58px; text: "Anchor Y"; color: palette.text_dim; font-size: 10px; }
+                                CompactField { x: 62px; y: 0px; width: parent.width - 62px; text: root.inspector_slot_overlay_anchor_y; placeholder: "layout.anchor.y"; enabled: root.inspector_parent_node_id != ""; edited(value) => { root.inspector_widget_action("slot.overlay.anchor_y.set", value); } }
+                            }
+
+                            if root.inspector_slot_kind == "Overlay": Rectangle {
+                                width: parent.width; height: 22px; background: transparent;
+                                Text { x: 0px; y: 4px; width: 58px; text: "Pivot X"; color: palette.text_dim; font-size: 10px; }
+                                CompactField { x: 62px; y: 0px; width: parent.width - 62px; text: root.inspector_slot_overlay_pivot_x; placeholder: "layout.pivot.x"; enabled: root.inspector_parent_node_id != ""; edited(value) => { root.inspector_widget_action("slot.overlay.pivot_x.set", value); } }
+                            }
+
+                            if root.inspector_slot_kind == "Overlay": Rectangle {
+                                width: parent.width; height: 22px; background: transparent;
+                                Text { x: 0px; y: 4px; width: 58px; text: "Pivot Y"; color: palette.text_dim; font-size: 10px; }
+                                CompactField { x: 62px; y: 0px; width: parent.width - 62px; text: root.inspector_slot_overlay_pivot_y; placeholder: "layout.pivot.y"; enabled: root.inspector_parent_node_id != ""; edited(value) => { root.inspector_widget_action("slot.overlay.pivot_y.set", value); } }
+                            }
+
+                            if root.inspector_slot_kind == "Overlay": Rectangle {
+                                width: parent.width; height: 22px; background: transparent;
+                                Text { x: 0px; y: 4px; width: 58px; text: "Pos X"; color: palette.text_dim; font-size: 10px; }
+                                CompactField { x: 62px; y: 0px; width: parent.width - 62px; text: root.inspector_slot_overlay_position_x; placeholder: "layout.position.x"; enabled: root.inspector_parent_node_id != ""; edited(value) => { root.inspector_widget_action("slot.overlay.position_x.set", value); } }
+                            }
+
+                            if root.inspector_slot_kind == "Overlay": Rectangle {
+                                width: parent.width; height: 22px; background: transparent;
+                                Text { x: 0px; y: 4px; width: 58px; text: "Pos Y"; color: palette.text_dim; font-size: 10px; }
+                                CompactField { x: 62px; y: 0px; width: parent.width - 62px; text: root.inspector_slot_overlay_position_y; placeholder: "layout.position.y"; enabled: root.inspector_parent_node_id != ""; edited(value) => { root.inspector_widget_action("slot.overlay.position_y.set", value); } }
+                            }
+
+                            if root.inspector_slot_kind == "Overlay": Rectangle {
+                                width: parent.width; height: 22px; background: transparent;
+                                Text { x: 0px; y: 4px; width: 58px; text: "Z"; color: palette.text_dim; font-size: 10px; }
+                                CompactField { x: 62px; y: 0px; width: parent.width - 62px; text: root.inspector_slot_overlay_z_index; placeholder: "layout.z_index"; enabled: root.inspector_parent_node_id != ""; edited(value) => { root.inspector_widget_action("slot.overlay.z_index.set", value); } }
+                            }
+
+                            if root.inspector_slot_kind == "Grid": Text {
+                                text: "Grid Slot";
+                                color: palette.text;
+                                font-size: 10px;
+                                font-weight: 600;
+                            }
+
+                            if root.inspector_slot_kind == "Grid": Rectangle {
+                                width: parent.width; height: 22px; background: transparent;
+                                Text { x: 0px; y: 4px; width: 58px; text: "Row"; color: palette.text_dim; font-size: 10px; }
+                                CompactField { x: 62px; y: 0px; width: parent.width - 62px; text: root.inspector_slot_grid_row; placeholder: "row"; enabled: root.inspector_parent_node_id != ""; edited(value) => { root.inspector_widget_action("slot.grid.row.set", value); } }
+                            }
+
+                            if root.inspector_slot_kind == "Grid": Rectangle {
+                                width: parent.width; height: 22px; background: transparent;
+                                Text { x: 0px; y: 4px; width: 58px; text: "Column"; color: palette.text_dim; font-size: 10px; }
+                                CompactField { x: 62px; y: 0px; width: parent.width - 62px; text: root.inspector_slot_grid_column; placeholder: "column"; enabled: root.inspector_parent_node_id != ""; edited(value) => { root.inspector_widget_action("slot.grid.column.set", value); } }
+                            }
+
+                            if root.inspector_slot_kind == "Grid": Rectangle {
+                                width: parent.width; height: 22px; background: transparent;
+                                Text { x: 0px; y: 4px; width: 58px; text: "Row Span"; color: palette.text_dim; font-size: 10px; }
+                                CompactField { x: 62px; y: 0px; width: parent.width - 62px; text: root.inspector_slot_grid_row_span; placeholder: "row_span"; enabled: root.inspector_parent_node_id != ""; edited(value) => { root.inspector_widget_action("slot.grid.row_span.set", value); } }
+                            }
+
+                            if root.inspector_slot_kind == "Grid": Rectangle {
+                                width: parent.width; height: 22px; background: transparent;
+                                Text { x: 0px; y: 4px; width: 58px; text: "Col Span"; color: palette.text_dim; font-size: 10px; }
+                                CompactField { x: 62px; y: 0px; width: parent.width - 62px; text: root.inspector_slot_grid_column_span; placeholder: "column_span"; enabled: root.inspector_parent_node_id != ""; edited(value) => { root.inspector_widget_action("slot.grid.column_span.set", value); } }
+                            }
+
+                            if root.inspector_slot_kind == "Flow": Text {
+                                text: "Flow Slot";
+                                color: palette.text;
+                                font-size: 10px;
+                                font-weight: 600;
+                            }
+
+                            if root.inspector_slot_kind == "Flow": Rectangle {
+                                width: parent.width; height: 22px; background: transparent;
+                                Text { x: 0px; y: 4px; width: 58px; text: "Break"; color: palette.text_dim; font-size: 10px; }
+                                CompactField { x: 62px; y: 0px; width: parent.width - 62px; text: root.inspector_slot_flow_break_before; placeholder: "break_before"; enabled: root.inspector_parent_node_id != ""; edited(value) => { root.inspector_widget_action("slot.flow.break_before.set", value); } }
+                            }
+
+                            if root.inspector_slot_kind == "Flow": Rectangle {
+                                width: parent.width; height: 22px; background: transparent;
+                                Text { x: 0px; y: 4px; width: 58px; text: "Align"; color: palette.text_dim; font-size: 10px; }
+                                CompactField { x: 62px; y: 0px; width: parent.width - 62px; text: root.inspector_slot_flow_alignment; placeholder: "alignment"; enabled: root.inspector_parent_node_id != ""; edited(value) => { root.inspector_widget_action("slot.flow.alignment.set", value); } }
+                            }
+
+                            if root.inspector_slot_semantic_title != "": Text {
+                                text: root.inspector_slot_semantic_title;
+                                color: palette.text;
+                                font-size: 10px;
+                                font-weight: 600;
+                            }
+
+                            if root.inspector_slot_semantic_title != "": UiAssetSelectableSection {
+                                width: parent.width;
+                                height: 92px;
+                                title: root.inspector_slot_semantic_title;
+                                items: root.inspector_slot_semantic_items;
+                                selected_index: root.inspector_slot_semantic_selected_index;
+                                accent: #6ec0d5;
+                                item_selected(item_index) => { root.slot_semantic_selected(item_index); }
+                            }
+
+                            if root.inspector_slot_semantic_title != "": Rectangle {
+                                width: parent.width;
+                                height: 18px;
+                                background: transparent;
+
+                                Text {
+                                    x: 0px;
+                                    y: 3px;
+                                    width: parent.width;
+                                    text:
+                                        root.inspector_slot_semantic_path != "" ?
+                                        root.inspector_slot_semantic_path :
+                                        "Select slot semantic";
+                                    color: palette.text_dim;
+                                    font-size: 10px;
+                                    overflow: elide;
+                                }
+                            }
+
+                            if root.inspector_slot_semantic_title != "": CompactField {
+                                width: parent.width;
+                                text: root.inspector_slot_semantic_value;
+                                placeholder: root.inspector_slot_semantic_path;
+                                enabled: root.inspector_slot_semantic_selected_index >= 0;
+                                edited(value) => { root.inspector_widget_action("slot.semantic.value.set", value); }
+                            }
+
+                            if root.inspector_slot_semantic_title != "": HorizontalLayout {
+                                width: parent.width;
+                                spacing: 4px;
+
+                                ShellButton {
+                                    width: 52px;
+                                    label: "Clear";
+                                    enabled: root.inspector_slot_semantic_selected_index >= 0;
+                                    clicked => { root.inspector_widget_action("slot.semantic.delete", ""); }
+                                }
+                            }
+
                             Text {
                                 text: "Layout";
                                 color: palette.text;
@@ -1212,6 +2654,105 @@ export component UiAssetEditorPane inherits Rectangle {
                                 }
                             }
 
+                            if root.inspector_layout_kind == "ScrollableBox": Text {
+                                text: "Scrollable Layout";
+                                color: palette.text;
+                                font-size: 10px;
+                                font-weight: 600;
+                            }
+
+                            if root.inspector_layout_kind == "ScrollableBox": Rectangle {
+                                width: parent.width; height: 22px; background: transparent;
+                                Text { x: 0px; y: 4px; width: 58px; text: "Axis"; color: palette.text_dim; font-size: 10px; }
+                                CompactField { x: 62px; y: 0px; width: parent.width - 62px; text: root.inspector_layout_scroll_axis; placeholder: "container.axis"; enabled: root.inspector_selected_node_id != ""; edited(value) => { root.inspector_widget_action("layout.scroll.axis.set", value); } }
+                            }
+
+                            if root.inspector_layout_kind == "ScrollableBox": Rectangle {
+                                width: parent.width; height: 22px; background: transparent;
+                                Text { x: 0px; y: 4px; width: 58px; text: "Gap"; color: palette.text_dim; font-size: 10px; }
+                                CompactField { x: 62px; y: 0px; width: parent.width - 62px; text: root.inspector_layout_scroll_gap; placeholder: "container.gap"; enabled: root.inspector_selected_node_id != ""; edited(value) => { root.inspector_widget_action("layout.scroll.gap.set", value); } }
+                            }
+
+                            if root.inspector_layout_kind == "ScrollableBox": Rectangle {
+                                width: parent.width; height: 22px; background: transparent;
+                                Text { x: 0px; y: 4px; width: 58px; text: "Bar"; color: palette.text_dim; font-size: 10px; }
+                                CompactField { x: 62px; y: 0px; width: parent.width - 62px; text: root.inspector_layout_scrollbar_visibility; placeholder: "container.scrollbar_visibility"; enabled: root.inspector_selected_node_id != ""; edited(value) => { root.inspector_widget_action("layout.scroll.scrollbar_visibility.set", value); } }
+                            }
+
+                            if root.inspector_layout_kind == "ScrollableBox": Rectangle {
+                                width: parent.width; height: 22px; background: transparent;
+                                Text { x: 0px; y: 4px; width: 58px; text: "Extent"; color: palette.text_dim; font-size: 10px; }
+                                CompactField { x: 62px; y: 0px; width: parent.width - 62px; text: root.inspector_layout_virtualization_item_extent; placeholder: "container.virtualization.item_extent"; enabled: root.inspector_selected_node_id != ""; edited(value) => { root.inspector_widget_action("layout.scroll.virtualization.item_extent.set", value); } }
+                            }
+
+                            if root.inspector_layout_kind == "ScrollableBox": Rectangle {
+                                width: parent.width; height: 22px; background: transparent;
+                                Text { x: 0px; y: 4px; width: 58px; text: "Over"; color: palette.text_dim; font-size: 10px; }
+                                CompactField { x: 62px; y: 0px; width: parent.width - 62px; text: root.inspector_layout_virtualization_overscan; placeholder: "container.virtualization.overscan"; enabled: root.inspector_selected_node_id != ""; edited(value) => { root.inspector_widget_action("layout.scroll.virtualization.overscan.set", value); } }
+                            }
+
+                            if root.inspector_layout_kind == "ScrollableBox": Rectangle {
+                                width: parent.width; height: 22px; background: transparent;
+                                Text { x: 0px; y: 4px; width: 58px; text: "Clip"; color: palette.text_dim; font-size: 10px; }
+                                CompactField { x: 62px; y: 0px; width: parent.width - 62px; text: root.inspector_layout_clip; placeholder: "clip"; enabled: root.inspector_selected_node_id != ""; edited(value) => { root.inspector_widget_action("layout.scroll.clip.set", value); } }
+                            }
+
+                            if root.inspector_layout_semantic_title != "": Text {
+                                text: root.inspector_layout_semantic_title;
+                                color: palette.text;
+                                font-size: 10px;
+                                font-weight: 600;
+                            }
+
+                            if root.inspector_layout_semantic_title != "": UiAssetSelectableSection {
+                                width: parent.width;
+                                height: 92px;
+                                title: root.inspector_layout_semantic_title;
+                                items: root.inspector_layout_semantic_items;
+                                selected_index: root.inspector_layout_semantic_selected_index;
+                                accent: #d7a86b;
+                                item_selected(item_index) => { root.layout_semantic_selected(item_index); }
+                            }
+
+                            if root.inspector_layout_semantic_title != "": Rectangle {
+                                width: parent.width;
+                                height: 18px;
+                                background: transparent;
+
+                                Text {
+                                    x: 0px;
+                                    y: 3px;
+                                    width: parent.width;
+                                    text:
+                                        root.inspector_layout_semantic_path != "" ?
+                                        root.inspector_layout_semantic_path :
+                                        "Select layout semantic";
+                                    color: palette.text_dim;
+                                    font-size: 10px;
+                                    overflow: elide;
+                                }
+                            }
+
+                            if root.inspector_layout_semantic_title != "": CompactField {
+                                width: parent.width;
+                                text: root.inspector_layout_semantic_value;
+                                placeholder: root.inspector_layout_semantic_path;
+                                enabled: root.inspector_layout_semantic_selected_index >= 0;
+                                edited(value) => { root.inspector_widget_action("layout.semantic.value.set", value); }
+                            }
+
+                            if root.inspector_layout_semantic_title != "": HorizontalLayout {
+                                width: parent.width;
+                                spacing: 4px;
+
+                                ShellButton {
+                                    width: 52px;
+                                    label: "Clear";
+                                    enabled: root.inspector_layout_semantic_selected_index >= 0;
+                                    clicked => { root.inspector_widget_action("layout.semantic.delete", ""); }
+                                }
+                            }
+
                             Text {
                                 text: "Bindings";
                                 color: palette.text;
@@ -1237,20 +2778,108 @@ export component UiAssetEditorPane inherits Rectangle {
                                 edited(value) => { root.inspector_widget_action("binding.id.set", value); }
                             }
 
-                            CompactField {
+                            UiAssetSelectableSection {
                                 width: parent.width;
-                                text: root.inspector_binding_event;
-                                placeholder: "onClick";
+                                height: 86px;
+                                title: "Event";
+                                items: root.inspector_binding_event_items;
+                                selected_index: root.inspector_binding_event_selected_index;
+                                accent: #7cc6b9;
+                                item_selected(item_index) => { root.binding_event_selected(item_index); }
+                            }
+
+                            UiAssetSelectableSection {
+                                width: parent.width;
+                                height: 68px;
+                                title: "Action Kind";
+                                items: root.inspector_binding_action_kind_items;
+                                selected_index: root.inspector_binding_action_kind_selected_index;
+                                accent: #7cc6b9;
+                                item_selected(item_index) => { root.binding_action_kind_selected(item_index); }
+                            }
+
+                            if root.inspector_binding_action_kind_selected_index != 2: Rectangle {
+                                width: parent.width;
+                                height: 18px;
+                                background: transparent;
+
+                                Text {
+                                    x: 0px;
+                                    y: 3px;
+                                    width: parent.width;
+                                    text: "Route Target";
+                                    color: palette.text_dim;
+                                    font-size: 10px;
+                                    overflow: elide;
+                                }
+                            }
+
+                            if root.inspector_binding_action_kind_selected_index != 2: CompactField {
+                                width: parent.width;
+                                text: root.inspector_binding_route_target;
+                                placeholder: "MenuAction.SaveProject";
                                 enabled: root.inspector_can_edit_binding;
-                                edited(value) => { root.inspector_widget_action("binding.event.set", value); }
+                                edited(value) => { root.inspector_widget_action("binding.route_target.set", value); }
+                            }
+
+                            if root.inspector_binding_action_kind_selected_index == 2: Rectangle {
+                                width: parent.width;
+                                height: 18px;
+                                background: transparent;
+
+                                Text {
+                                    x: 0px;
+                                    y: 3px;
+                                    width: parent.width;
+                                    text: "Action Target";
+                                    color: palette.text_dim;
+                                    font-size: 10px;
+                                    overflow: elide;
+                                }
+                            }
+
+                            if root.inspector_binding_action_kind_selected_index == 2: CompactField {
+                                width: parent.width;
+                                text: root.inspector_binding_action_target;
+                                placeholder: "EditorActions.SaveProject";
+                                enabled: root.inspector_can_edit_binding;
+                                edited(value) => { root.inspector_widget_action("binding.action_target.set", value); }
+                            }
+
+                            UiAssetSelectableSection {
+                                width: parent.width;
+                                height: 104px;
+                                title: "Payload";
+                                items: root.inspector_binding_payload_items;
+                                selected_index: root.inspector_binding_payload_selected_index;
+                                accent: #7cc6b9;
+                                item_selected(item_index) => {
+                                    root.binding_payload_selected(item_index);
+                                    root.binding_payload_key_draft = root.inspector_binding_payload_key;
+                                    root.binding_payload_value_draft = root.inspector_binding_payload_value;
+                                }
                             }
 
                             CompactField {
                                 width: parent.width;
-                                text: root.inspector_binding_route;
-                                placeholder: "MenuAction.SaveProject";
+                                text:
+                                    root.binding_payload_key_draft != "" ?
+                                    root.binding_payload_key_draft :
+                                    root.inspector_binding_payload_key;
+                                placeholder: "payload key";
                                 enabled: root.inspector_can_edit_binding;
-                                edited(value) => { root.inspector_widget_action("binding.route.set", value); }
+                                edited(value) => { root.binding_payload_key_draft = value; }
+                            }
+
+                            CompactField {
+                                width: parent.width;
+                                text:
+                                    root.binding_payload_value_draft != "" ?
+                                    root.binding_payload_value_draft :
+                                    root.inspector_binding_payload_value;
+                                placeholder: "payload value";
+                                enabled: root.inspector_can_edit_binding;
+                                edited(value) => { root.binding_payload_value_draft = value; }
                             }
 
                             HorizontalLayout {
@@ -1270,6 +2899,38 @@ export component UiAssetEditorPane inherits Rectangle {
                                     label: "Delete";
                                     enabled: root.inspector_can_delete_binding;
                                     clicked => { root.inspector_widget_action("binding.delete", ""); }
+                                }
+                            }
+
+                            HorizontalLayout {
+                                width: parent.width;
+                                spacing: 4px;
+
+                                ShellButton {
+                                    width: 48px;
+                                    label: "Upsert";
+                                    enabled:
+                                        root.inspector_can_edit_binding &&
+                                        ((root.binding_payload_key_draft != "" ? root.binding_payload_key_draft : root.inspector_binding_payload_key) != "");
+                                    active:
+                                        root.inspector_can_edit_binding &&
+                                        ((root.binding_payload_key_draft != "" ? root.binding_payload_key_draft : root.inspector_binding_payload_key) != "");
+                                    clicked => {
+                                        root.binding_payload_action("binding.payload.upsert", root.binding_payload_key_draft != "" ? root.binding_payload_key_draft : root.inspector_binding_payload_key, root.binding_payload_value_draft != "" ? root.binding_payload_value_draft : root.inspector_binding_payload_value);
+                                        root.binding_payload_key_draft = "";
+                                        root.binding_payload_value_draft = "";
+                                    }
+                                }
+
+                                ShellButton {
+                                    width: 56px;
+                                    label: "Delete";
+                                    enabled: root.inspector_binding_payload_selected_index >= 0;
+                                    clicked => {
+                                        root.binding_payload_action("binding.payload.delete", "", "");
+                                        root.binding_payload_key_draft = "";
+                                        root.binding_payload_value_draft = "";
+                                    }
                                 }
                             }
 
@@ -1738,6 +3399,104 @@ export component UiAssetEditorPane inherits Rectangle {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    if root.palette_drag_active: TouchArea {
+        x: 0px;
+        y: 0px;
+        width: parent.width;
+        height: parent.height;
+        mouse-cursor: MouseCursor.grabbing;
+        moved => {
+            root.palette_drag_pointer_x = self.mouse-x / 1px;
+            root.palette_drag_pointer_y = self.mouse-y / 1px;
+            root.palette_drag_hovered(
+                (root.palette_drag_pointer_x - preview_canvas.x / 1px - preview_canvas.surface_origin_x)
+                / max(preview_canvas.surface_scale, 0.0001),
+                (root.palette_drag_pointer_y - preview_canvas.y / 1px - preview_canvas.surface_origin_y)
+                / max(preview_canvas.surface_scale, 0.0001),
+            );
+        }
+        pointer-event(event) => {
+            if (event.button != PointerEventButton.left) {
+                return;
+            }
+            if (event.kind == PointerEventKind.up) {
+                root.palette_drag_pointer_x = self.mouse-x / 1px;
+                root.palette_drag_pointer_y = self.mouse-y / 1px;
+                root.palette_drag_hovered(
+                    (root.palette_drag_pointer_x - preview_canvas.x / 1px - preview_canvas.surface_origin_x)
+                    / max(preview_canvas.surface_scale, 0.0001),
+                    (root.palette_drag_pointer_y - preview_canvas.y / 1px - preview_canvas.surface_origin_y)
+                    / max(preview_canvas.surface_scale, 0.0001),
+                );
+                if (root.palette_drag_target_action != "") {
+                    root.palette_drag_dropped();
+                } else {
+                    root.palette_drag_cancelled();
+                }
+                root.palette_drag_active = false;
+                root.palette_drag_source_index = -1;
+            }
+        }
+    }
+
+    if root.palette_drag_candidate_items.length > 1 && (root.palette_drag_active || root.palette_target_chooser_active): Rectangle {
+        x: min(
+            max(preview_canvas.x + preview_canvas.width - self.width - 12px, 8px),
+            max(root.width - self.width - 8px, 8px)
+        );
+        y: max(preview_canvas.y - 2px, 8px);
+        width: 248px;
+        height: min(224px, max(118px, 68px + root.palette_drag_candidate_items.length * 22px));
+        background: transparent;
+
+        UiAssetSelectableSection {
+            x: 0px;
+            y: 0px;
+            width: parent.width;
+            height: parent.height - 38px;
+            title: "Target Cycle";
+            items: root.palette_drag_candidate_items;
+            selected_index: root.palette_drag_candidate_selected_index;
+            accent: #53c98a;
+            item_selected(item_index) => {
+                root.palette_target_candidate_selected(item_index);
+            }
+            item_activated(item_index) => {
+                root.palette_target_candidate_selected(item_index);
+                root.palette_target_confirm();
+            }
+        }
+
+        HorizontalLayout {
+            x: 10px;
+            y: parent.height - 34px;
+            width: parent.width - 20px;
+            spacing: 6px;
+
+            ShellButton {
+                width: 56px;
+                label: "Apply";
+                active: true;
+                clicked => { root.palette_target_confirm(); }
+            }
+
+            ShellButton {
+                width: 58px;
+                label: "Cancel";
+                clicked => { root.palette_target_cancel(); }
+            }
+
+            Text {
+                width: parent.width - 120px;
+                y: 4px;
+                text: "Tab / arrows cycle  Enter apply  Esc cancel";
+                color: palette.text_dim;
+                font-size: 9px;
+                overflow: elide;
             }
         }
     }

@@ -6,10 +6,25 @@ slots = { menu_bar = [{ template = "MenuBar" }], activity_rail = [{ template = "
 
 [components.WorkbenchShell]
 slots = { menu_bar = { required = true }, activity_rail = { required = true }, document_host = { required = true }, status_bar = { required = true } }
-root = { component = "WorkbenchShell", control_id = "WorkbenchShellRoot", bindings = [{ id = "WorkbenchShell/ActivateMainPage", event = "Change", route = "DockCommand.ActivateMainPage" }], attributes = { layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, clip = true } }, children = [
-    { slot = "menu_bar" },
-    { component = "HorizontalBox", control_id = "WorkbenchBody", attributes = { layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } } }, children = [{ slot = "activity_rail" }, { slot = "document_host" }] },
-    { slot = "status_bar" }
+root = { component = "WorkbenchShell", control_id = "WorkbenchShellRoot", bindings = [{ id = "WorkbenchShell/ActivateMainPage", event = "Change", route = "DockCommand.ActivateMainPage" }], attributes = { layout = { container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, clip = true } }, children = [
+    { component = "VerticalBox", control_id = "WorkbenchScaffold", attributes = { layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, clip = true } }, children = [
+        { slot = "menu_bar" },
+        { component = "HorizontalBox", control_id = "WorkbenchBody", attributes = { layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } } }, children = [{ slot = "activity_rail" }, { slot = "document_host" }] },
+        { slot = "status_bar" }
+    ] },
+    { component = "Container", control_id = "HostPageStripRoot", attributes = { layout = { width = { min = 0.0, preferred = 0.0, max = 0.0, stretch = "Fixed" }, height = { min = 0.0, preferred = 0.0, max = 0.0, stretch = "Fixed" }, clip = true } } },
+    { component = "Overlay", control_id = "LeftDrawerShellRoot", attributes = { layout = { container = { kind = "Overlay" }, width = { min = 0.0, preferred = 0.0, max = 0.0, stretch = "Fixed" }, height = { min = 0.0, preferred = 0.0, max = 0.0, stretch = "Fixed" }, clip = true } }, children = [
+        { component = "Container", control_id = "LeftDrawerHeaderRoot", attributes = { layout = { width = { min = 0.0, preferred = 0.0, max = 0.0, stretch = "Fixed" }, height = { min = 25.0, preferred = 25.0, max = 25.0, stretch = "Fixed" }, clip = true } } },
+        { component = "Container", control_id = "LeftDrawerContentRoot", attributes = { layout = { width = { min = 0.0, preferred = 0.0, max = 0.0, stretch = "Fixed" }, height = { min = 0.0, preferred = 0.0, max = 0.0, stretch = "Fixed" }, clip = true } } }
+    ] },
+    { component = "Overlay", control_id = "RightDrawerShellRoot", attributes = { layout = { container = { kind = "Overlay" }, width = { min = 0.0, preferred = 0.0, max = 0.0, stretch = "Fixed" }, height = { min = 0.0, preferred = 0.0, max = 0.0, stretch = "Fixed" }, clip = true } }, children = [
+        { component = "Container", control_id = "RightDrawerHeaderRoot", attributes = { layout = { width = { min = 0.0, preferred = 0.0, max = 0.0, stretch = "Fixed" }, height = { min = 25.0, preferred = 25.0, max = 25.0, stretch = "Fixed" }, clip = true } } },
+        { component = "Container", control_id = "RightDrawerContentRoot", attributes = { layout = { width = { min = 0.0, preferred = 0.0, max = 0.0, stretch = "Fixed" }, height = { min = 0.0, preferred = 0.0, max = 0.0, stretch = "Fixed" }, clip = true } } }
+    ] },
+    { component = "Overlay", control_id = "BottomDrawerShellRoot", attributes = { layout = { container = { kind = "Overlay" }, width = { min = 0.0, preferred = 0.0, max = 0.0, stretch = "Fixed" }, height = { min = 0.0, preferred = 0.0, max = 0.0, stretch = "Fixed" }, clip = true } }, children = [
+        { component = "Container", control_id = "BottomDrawerHeaderRoot", attributes = { layout = { width = { min = 0.0, preferred = 0.0, max = 0.0, stretch = "Fixed" }, height = { min = 25.0, preferred = 25.0, max = 25.0, stretch = "Fixed" }, clip = true } } },
+        { component = "Container", control_id = "BottomDrawerContentRoot", attributes = { layout = { width = { min = 0.0, preferred = 0.0, max = 0.0, stretch = "Fixed" }, height = { min = 0.0, preferred = 0.0, max = 0.0, stretch = "Fixed" }, clip = true } } }
+    ] }
 ] }
 
 [components.MenuBar]

@@ -13,6 +13,7 @@ use crate::editing::viewport::handles::{
     },
     scale_handle_tool::ScaleHandleTool,
 };
+use crate::GizmoAxis;
 
 impl HandleTool for ScaleHandleTool {
     fn tool(&self) -> SceneViewportTool {
@@ -59,7 +60,7 @@ impl HandleTool for ScaleHandleTool {
     fn begin_drag(
         &self,
         ctx: &HandlePickContext<'_>,
-        axis: zircon_graphics::GizmoAxis,
+        axis: GizmoAxis,
     ) -> Option<HandleDragSession> {
         Some(HandleDragSession::Scale(begin_transform_session(
             ctx, axis,
@@ -89,15 +90,9 @@ impl HandleTool for ScaleHandleTool {
         );
         let mut scale = session.initial_transform.scale;
         match session.axis {
-            zircon_graphics::GizmoAxis::X => {
-                scale.x = (session.initial_transform.scale.x + delta).max(0.05)
-            }
-            zircon_graphics::GizmoAxis::Y => {
-                scale.y = (session.initial_transform.scale.y + delta).max(0.05)
-            }
-            zircon_graphics::GizmoAxis::Z => {
-                scale.z = (session.initial_transform.scale.z + delta).max(0.05)
-            }
+            GizmoAxis::X => scale.x = (session.initial_transform.scale.x + delta).max(0.05),
+            GizmoAxis::Y => scale.y = (session.initial_transform.scale.y + delta).max(0.05),
+            GizmoAxis::Z => scale.z = (session.initial_transform.scale.z + delta).max(0.05),
         }
         Some(Transform {
             scale,

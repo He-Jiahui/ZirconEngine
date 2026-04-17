@@ -153,11 +153,11 @@ pub(super) fn wire_callbacks(ui: &WorkbenchShell, host: &Rc<RefCell<SlintEditorH
     });
 
     let weak = Rc::downgrade(host);
+    let source_ui = ui.clone_strong();
     ui.on_hierarchy_pointer_moved(move |x, y, width, height| {
-        if let Some(host) = weak.upgrade() {
-            host.borrow_mut()
-                .hierarchy_pointer_moved(x, y, width, height);
-        }
+        dispatch_with_callback_source(&weak, &source_ui, |host| {
+            host.hierarchy_pointer_moved(x, y, width, height);
+        });
     });
 
     let weak = Rc::downgrade(host);
@@ -247,11 +247,11 @@ pub(super) fn wire_callbacks(ui: &WorkbenchShell, host: &Rc<RefCell<SlintEditorH
     });
 
     let weak = Rc::downgrade(host);
+    let source_ui = ui.clone_strong();
     ui.on_asset_tree_pointer_moved(move |surface_mode, x, y, width, height| {
-        if let Some(host) = weak.upgrade() {
-            host.borrow_mut()
-                .asset_tree_pointer_moved(surface_mode.as_str(), x, y, width, height);
-        }
+        dispatch_with_callback_source(&weak, &source_ui, |host| {
+            host.asset_tree_pointer_moved(surface_mode.as_str(), x, y, width, height);
+        });
     });
 
     let weak = Rc::downgrade(host);
@@ -271,16 +271,11 @@ pub(super) fn wire_callbacks(ui: &WorkbenchShell, host: &Rc<RefCell<SlintEditorH
     });
 
     let weak = Rc::downgrade(host);
+    let source_ui = ui.clone_strong();
     ui.on_asset_content_pointer_moved(move |surface_mode, x, y, width, height| {
-        if let Some(host) = weak.upgrade() {
-            host.borrow_mut().asset_content_pointer_moved(
-                surface_mode.as_str(),
-                x,
-                y,
-                width,
-                height,
-            );
-        }
+        dispatch_with_callback_source(&weak, &source_ui, |host| {
+            host.asset_content_pointer_moved(surface_mode.as_str(), x, y, width, height);
+        });
     });
 
     let weak = Rc::downgrade(host);
@@ -307,9 +302,10 @@ pub(super) fn wire_callbacks(ui: &WorkbenchShell, host: &Rc<RefCell<SlintEditorH
     });
 
     let weak = Rc::downgrade(host);
+    let source_ui = ui.clone_strong();
     ui.on_asset_reference_pointer_moved(move |surface_mode, list_kind, x, y, width, height| {
-        if let Some(host) = weak.upgrade() {
-            host.borrow_mut().asset_reference_pointer_moved(
+        dispatch_with_callback_source(&weak, &source_ui, |host| {
+            host.asset_reference_pointer_moved(
                 surface_mode.as_str(),
                 list_kind.as_str(),
                 x,
@@ -317,7 +313,7 @@ pub(super) fn wire_callbacks(ui: &WorkbenchShell, host: &Rc<RefCell<SlintEditorH
                 width,
                 height,
             );
-        }
+        });
     });
 
     let weak = Rc::downgrade(host);
@@ -497,9 +493,76 @@ pub(super) fn wire_callbacks(ui: &WorkbenchShell, host: &Rc<RefCell<SlintEditorH
 
     let weak = Rc::downgrade(host);
     let source_ui = ui.clone_strong();
+    ui.on_ui_asset_palette_selected(move |instance_id, item_index| {
+        dispatch_with_callback_source(&weak, &source_ui, |host| {
+            host.dispatch_ui_asset_palette_selected(instance_id.as_str(), item_index);
+        });
+    });
+
+    let weak = Rc::downgrade(host);
+    let source_ui = ui.clone_strong();
+    ui.on_ui_asset_palette_drag_hover(move |instance_id, surface_x, surface_y| {
+        dispatch_with_callback_source(&weak, &source_ui, |host| {
+            host.dispatch_ui_asset_palette_drag_hover(instance_id.as_str(), surface_x, surface_y);
+        });
+    });
+
+    let weak = Rc::downgrade(host);
+    let source_ui = ui.clone_strong();
+    ui.on_ui_asset_palette_drag_drop(move |instance_id| {
+        dispatch_with_callback_source(&weak, &source_ui, |host| {
+            host.dispatch_ui_asset_palette_drag_drop(instance_id.as_str());
+        });
+    });
+
+    let weak = Rc::downgrade(host);
+    let source_ui = ui.clone_strong();
+    ui.on_ui_asset_palette_drag_cancel(move |instance_id| {
+        dispatch_with_callback_source(&weak, &source_ui, |host| {
+            host.dispatch_ui_asset_palette_drag_cancel(instance_id.as_str());
+        });
+    });
+
+    let weak = Rc::downgrade(host);
+    let source_ui = ui.clone_strong();
+    ui.on_ui_asset_palette_target_candidate_selected(move |instance_id, item_index| {
+        dispatch_with_callback_source(&weak, &source_ui, |host| {
+            host.dispatch_ui_asset_palette_target_candidate_selected(
+                instance_id.as_str(),
+                item_index,
+            );
+        });
+    });
+
+    let weak = Rc::downgrade(host);
+    let source_ui = ui.clone_strong();
+    ui.on_ui_asset_palette_target_confirm(move |instance_id| {
+        dispatch_with_callback_source(&weak, &source_ui, |host| {
+            host.dispatch_ui_asset_palette_target_confirm(instance_id.as_str());
+        });
+    });
+
+    let weak = Rc::downgrade(host);
+    let source_ui = ui.clone_strong();
+    ui.on_ui_asset_palette_target_cancel(move |instance_id| {
+        dispatch_with_callback_source(&weak, &source_ui, |host| {
+            host.dispatch_ui_asset_palette_target_cancel(instance_id.as_str());
+        });
+    });
+
+    let weak = Rc::downgrade(host);
+    let source_ui = ui.clone_strong();
     ui.on_ui_asset_hierarchy_selected(move |instance_id, item_index| {
         dispatch_with_callback_source(&weak, &source_ui, |host| {
             host.dispatch_ui_asset_hierarchy_selected(instance_id.as_str(), item_index);
+        });
+    });
+
+    let weak = Rc::downgrade(host);
+    let source_ui = ui.clone_strong();
+    ui.on_ui_asset_hierarchy_activated(move |instance_id, item_index| {
+        dispatch_with_callback_source(&weak, &source_ui, |host| {
+            host.dispatch_ui_asset_hierarchy_activated(instance_id.as_str(), item_index);
         });
     });
 
@@ -513,9 +576,100 @@ pub(super) fn wire_callbacks(ui: &WorkbenchShell, host: &Rc<RefCell<SlintEditorH
 
     let weak = Rc::downgrade(host);
     let source_ui = ui.clone_strong();
+    ui.on_ui_asset_source_outline_selected(move |instance_id, item_index| {
+        dispatch_with_callback_source(&weak, &source_ui, |host| {
+            host.dispatch_ui_asset_source_outline_selected(instance_id.as_str(), item_index);
+        });
+    });
+
+    let weak = Rc::downgrade(host);
+    let source_ui = ui.clone_strong();
+    ui.on_ui_asset_preview_activated(move |instance_id, item_index| {
+        dispatch_with_callback_source(&weak, &source_ui, |host| {
+            host.dispatch_ui_asset_preview_activated(instance_id.as_str(), item_index);
+        });
+    });
+
+    let weak = Rc::downgrade(host);
+    let source_ui = ui.clone_strong();
+    ui.on_ui_asset_preview_mock_selected(move |instance_id, item_index| {
+        dispatch_with_callback_source(&weak, &source_ui, |host| {
+            host.dispatch_ui_asset_preview_mock_selected(instance_id.as_str(), item_index);
+        });
+    });
+
+    let weak = Rc::downgrade(host);
+    let source_ui = ui.clone_strong();
+    ui.on_ui_asset_preview_mock_action(move |instance_id, action_id, value| {
+        dispatch_with_callback_source(&weak, &source_ui, |host| {
+            host.dispatch_ui_asset_preview_mock_action(
+                instance_id.as_str(),
+                action_id.as_str(),
+                value.as_str(),
+            );
+        });
+    });
+
+    let weak = Rc::downgrade(host);
+    let source_ui = ui.clone_strong();
     ui.on_ui_asset_binding_selected(move |instance_id, item_index| {
         dispatch_with_callback_source(&weak, &source_ui, |host| {
             host.dispatch_ui_asset_binding_selected(instance_id.as_str(), item_index);
+        });
+    });
+
+    let weak = Rc::downgrade(host);
+    let source_ui = ui.clone_strong();
+    ui.on_ui_asset_binding_event_selected(move |instance_id, item_index| {
+        dispatch_with_callback_source(&weak, &source_ui, |host| {
+            host.dispatch_ui_asset_binding_event_selected(instance_id.as_str(), item_index);
+        });
+    });
+
+    let weak = Rc::downgrade(host);
+    let source_ui = ui.clone_strong();
+    ui.on_ui_asset_binding_action_kind_selected(move |instance_id, item_index| {
+        dispatch_with_callback_source(&weak, &source_ui, |host| {
+            host.dispatch_ui_asset_binding_action_kind_selected(instance_id.as_str(), item_index);
+        });
+    });
+
+    let weak = Rc::downgrade(host);
+    let source_ui = ui.clone_strong();
+    ui.on_ui_asset_binding_payload_selected(move |instance_id, item_index| {
+        dispatch_with_callback_source(&weak, &source_ui, |host| {
+            host.dispatch_ui_asset_binding_payload_selected(instance_id.as_str(), item_index);
+        });
+    });
+
+    let weak = Rc::downgrade(host);
+    let source_ui = ui.clone_strong();
+    ui.on_ui_asset_binding_payload_action(
+        move |instance_id, action_id, payload_key, payload_value| {
+            dispatch_with_callback_source(&weak, &source_ui, |host| {
+                host.dispatch_ui_asset_binding_payload_action(
+                    instance_id.as_str(),
+                    action_id.as_str(),
+                    payload_key.as_str(),
+                    payload_value.as_str(),
+                );
+            });
+        },
+    );
+
+    let weak = Rc::downgrade(host);
+    let source_ui = ui.clone_strong();
+    ui.on_ui_asset_slot_semantic_selected(move |instance_id, item_index| {
+        dispatch_with_callback_source(&weak, &source_ui, |host| {
+            host.dispatch_ui_asset_slot_semantic_selected(instance_id.as_str(), item_index);
+        });
+    });
+
+    let weak = Rc::downgrade(host);
+    let source_ui = ui.clone_strong();
+    ui.on_ui_asset_layout_semantic_selected(move |instance_id, item_index| {
+        dispatch_with_callback_source(&weak, &source_ui, |host| {
+            host.dispatch_ui_asset_layout_semantic_selected(instance_id.as_str(), item_index);
         });
     });
 }

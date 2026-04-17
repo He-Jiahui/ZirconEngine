@@ -1,3 +1,4 @@
+mod asset_manager_boundary;
 mod binding_dispatch;
 mod manager;
 mod render_server_boundary;

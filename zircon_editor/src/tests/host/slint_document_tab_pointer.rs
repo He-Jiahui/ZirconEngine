@@ -1,17 +1,20 @@
 use crate::host::slint_host::callback_dispatch::{
+    BuiltinAssetSurfaceTemplateBridge, BuiltinWorkbenchTemplateBridge,
     dispatch_builtin_asset_surface_control, dispatch_shared_document_tab_close_pointer_click,
-    dispatch_shared_document_tab_pointer_click, BuiltinAssetSurfaceTemplateBridge,
-    BuiltinWorkbenchTemplateBridge,
+    dispatch_shared_document_tab_pointer_click,
 };
 use crate::host::slint_host::document_tab_pointer::{
-    build_workbench_document_tab_pointer_layout, WorkbenchDocumentTabPointerBridge,
-    WorkbenchDocumentTabPointerItem, WorkbenchDocumentTabPointerLayout,
-    WorkbenchDocumentTabPointerRoute, WorkbenchDocumentTabPointerSurface,
+    WorkbenchDocumentTabPointerBridge, WorkbenchDocumentTabPointerItem,
+    WorkbenchDocumentTabPointerLayout, WorkbenchDocumentTabPointerRoute,
+    WorkbenchDocumentTabPointerSurface, build_workbench_document_tab_pointer_layout,
 };
-use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
+use crate::host::slint_host::floating_window_projection::build_floating_window_projection_bundle;
+use crate::tests::editor_event::support::{EventRuntimeHarness, env_lock};
 use crate::{
-    compute_workbench_shell_geometry, EditorEvent, LayoutCommand, ShellSizePx,
-    WorkbenchChromeMetrics, WorkbenchViewModel,
+    DocumentNode, EditorEvent, FloatingWindowLayout, LayoutCommand, MainPageId,
+    NativeWindowHostState, ShellFrame, ShellSizePx, TabStackLayout, ViewDescriptorId, ViewHost,
+    ViewInstance, ViewInstanceId, WorkbenchChromeMetrics, WorkbenchViewModel,
+    compute_workbench_shell_geometry, default_preview_fixture,
 };
 use zircon_ui::{UiEventKind, UiFrame, UiPoint, UiSize};
 
@@ -64,10 +67,18 @@ fn shared_document_tab_pointer_click_dispatches_focus_view_through_runtime_dispa
         None,
     );
     let mut pointer_bridge = WorkbenchDocumentTabPointerBridge::new();
+    let floating_window_projection_bundle = build_floating_window_projection_bundle(
+        &model,
+        &geometry,
+        &WorkbenchChromeMetrics::default(),
+        &[],
+    );
     pointer_bridge.sync(build_workbench_document_tab_pointer_layout(
         &model,
         &geometry,
         &WorkbenchChromeMetrics::default(),
+        None,
+        &floating_window_projection_bundle,
     ));
 
     let dispatched = dispatch_shared_document_tab_pointer_click(
@@ -139,10 +150,18 @@ fn shared_document_tab_close_pointer_click_dispatches_close_view_through_runtime
         None,
     );
     let mut pointer_bridge = WorkbenchDocumentTabPointerBridge::new();
+    let floating_window_projection_bundle = build_floating_window_projection_bundle(
+        &model,
+        &geometry,
+        &WorkbenchChromeMetrics::default(),
+        &[],
+    );
     pointer_bridge.sync(build_workbench_document_tab_pointer_layout(
         &model,
         &geometry,
         &WorkbenchChromeMetrics::default(),
+        None,
+        &floating_window_projection_bundle,
     ));
 
     let dispatched = dispatch_shared_document_tab_close_pointer_click(
@@ -232,6 +251,76 @@ fn shared_document_tab_surfaces_replace_legacy_direct_click_routes() {
             "slint host app must register shared document tab callback `{needle}`"
         );
     }
+}
+
+#[test]
+fn shared_document_tab_pointer_layout_prefers_native_window_host_bounds_for_floating_strip() {
+    let mut fixture = default_preview_fixture();
+    let window_id = MainPageId::new("window:preview");
+    let scene_instance = ViewInstance {
+        instance_id: ViewInstanceId::new("editor.scene#float"),
+        descriptor_id: ViewDescriptorId::new("editor.scene"),
+        title: "Scene".to_string(),
+        serializable_payload: serde_json::json!({ "path": "crate://scene/floating.scene" }),
+        dirty: false,
+        host: ViewHost::FloatingWindow(window_id.clone(), vec![]),
+    };
+    fixture.instances.push(scene_instance.clone());
+    fixture.layout.floating_windows.push(FloatingWindowLayout {
+        window_id: window_id.clone(),
+        title: "Preview Popout".to_string(),
+        workspace: DocumentNode::Tabs(TabStackLayout {
+            tabs: vec![scene_instance.instance_id.clone()],
+            active_tab: Some(scene_instance.instance_id.clone()),
+        }),
+        focused_view: Some(scene_instance.instance_id.clone()),
+        frame: ShellFrame::new(420.0, 180.0, 360.0, 240.0),
+    });
+
+    let chrome = fixture.build_chrome();
+    let model = WorkbenchViewModel::build(&chrome);
+    let geometry = compute_workbench_shell_geometry(
+        &model,
+        &chrome,
+        &fixture.layout,
+        &fixture.descriptors,
+        ShellSizePx::new(1440.0, 900.0),
+        &WorkbenchChromeMetrics::default(),
+        None,
+    );
+    let floating_window_projection_bundle = build_floating_window_projection_bundle(
+        &model,
+        &geometry,
+        &WorkbenchChromeMetrics::default(),
+        &[NativeWindowHostState {
+            window_id: window_id.clone(),
+            handle: None,
+            bounds: [640.0, 320.0, 700.0, 420.0],
+        }],
+    );
+    let layout = build_workbench_document_tab_pointer_layout(
+        &model,
+        &geometry,
+        &WorkbenchChromeMetrics::default(),
+        None,
+        &floating_window_projection_bundle,
+    );
+    let floating_surface = layout
+        .surfaces
+        .iter()
+        .find(|surface| surface.key == window_id.0)
+        .expect("floating window strip should exist");
+
+    assert_eq!(
+        floating_surface.strip_frame,
+        UiFrame::new(
+            640.0,
+            320.0,
+            700.0,
+            WorkbenchChromeMetrics::default().document_header_height,
+        ),
+        "floating tab strip should follow native host bounds when they are available"
+    );
 }
 
 fn sample_document_tab_layout() -> WorkbenchDocumentTabPointerLayout {

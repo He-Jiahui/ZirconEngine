@@ -23,7 +23,7 @@ use zircon_scene::{
     RenderWorldSnapshotHandle, ViewportCameraSnapshot,
 };
 
-use crate::{runtime::WgpuRenderServer, SceneRenderer, ViewportState};
+use crate::{runtime::WgpuRenderServer, SceneRenderer};
 
 #[test]
 fn directory_project_scene_renders_non_background_frame_with_gizmo_overlay() {
@@ -74,10 +74,7 @@ fn directory_project_scene_renders_non_background_frame_with_gizmo_overlay() {
 
     let mut renderer = SceneRenderer::new(asset_manager).unwrap();
     let frame = renderer
-        .render(
-            level.snapshot().to_render_snapshot(),
-            ViewportState::new(UVec2::new(320, 240)),
-        )
+        .render(level.snapshot().to_render_snapshot(), UVec2::new(320, 240))
         .unwrap();
 
     let background = [20_u8, 23_u8, 28_u8, 255_u8];
@@ -135,9 +132,7 @@ fn directory_project_material_shader_drives_pipeline_color_output() {
     };
 
     let mut renderer = SceneRenderer::new(asset_manager).unwrap();
-    let frame = renderer
-        .render(snapshot, ViewportState::new(UVec2::new(320, 240)))
-        .unwrap();
+    let frame = renderer.render(snapshot, UVec2::new(320, 240)).unwrap();
 
     let green_pixels = frame
         .rgba
@@ -207,12 +202,8 @@ fn wire_only_mode_reduces_filled_surface_pixels() {
     wire_only.overlays.display_mode = DisplayMode::WireOnly;
 
     let mut renderer = SceneRenderer::new(asset_manager).unwrap();
-    let shaded_frame = renderer
-        .render(shaded, ViewportState::new(UVec2::new(320, 240)))
-        .unwrap();
-    let wire_frame = renderer
-        .render(wire_only, ViewportState::new(UVec2::new(320, 240)))
-        .unwrap();
+    let shaded_frame = renderer.render(shaded, UVec2::new(320, 240)).unwrap();
+    let wire_frame = renderer.render(wire_only, UVec2::new(320, 240)).unwrap();
 
     let background: [u8; 4] = wire_frame.rgba[..4].try_into().unwrap();
     let shaded_surface_pixels = shaded_frame

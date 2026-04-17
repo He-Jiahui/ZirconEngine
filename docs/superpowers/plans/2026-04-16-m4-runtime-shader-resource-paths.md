@@ -6,10 +6,10 @@ related_code:
   - zircon_graphics/src/scene/resources/mod.rs
   - zircon_graphics/src/scene/scene_renderer/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/history.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh.rs
-  - zircon_graphics/src/scene/scene_renderer/overlay/viewport_overlay_renderer.rs
-  - zircon_graphics/src/scene/scene_renderer/post_process.rs
+  - zircon_graphics/src/scene/scene_renderer/history/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/mesh/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/overlay/viewport_overlay_renderer/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/post_process/mod.rs
   - zircon_graphics/src/scene/scene_renderer/prepass.rs
   - zircon_graphics/src/tests/project_render.rs
   - zircon_render_server/src/types.rs
@@ -22,10 +22,10 @@ implementation_files:
   - zircon_graphics/src/scene/resources/mod.rs
   - zircon_graphics/src/scene/scene_renderer/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/history.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh.rs
-  - zircon_graphics/src/scene/scene_renderer/overlay/viewport_overlay_renderer.rs
-  - zircon_graphics/src/scene/scene_renderer/post_process.rs
+  - zircon_graphics/src/scene/scene_renderer/history/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/mesh/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/overlay/viewport_overlay_renderer/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/post_process/mod.rs
   - zircon_graphics/src/scene/scene_renderer/prepass.rs
   - zircon_graphics/src/tests/project_render.rs
   - docs/assets-and-rendering/srp-rhi-render-server-architecture.md

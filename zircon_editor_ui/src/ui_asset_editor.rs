@@ -17,11 +17,33 @@ pub enum UiAssetEditorMode {
     Preview,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub enum UiAssetPreviewPreset {
+    #[default]
+    EditorDocked,
+    EditorFloating,
+    GameHud,
+    Dialog,
+}
+
+impl UiAssetPreviewPreset {
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::EditorDocked => "Editor Docked",
+            Self::EditorFloating => "Editor Floating",
+            Self::GameHud => "Game HUD",
+            Self::Dialog => "Dialog",
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UiAssetEditorRoute {
     pub asset_id: String,
     pub asset_kind: UiAssetKind,
     pub mode: UiAssetEditorMode,
+    #[serde(default)]
+    pub preview_preset: UiAssetPreviewPreset,
 }
 
 impl UiAssetEditorRoute {
@@ -34,6 +56,7 @@ impl UiAssetEditorRoute {
             asset_id: asset_id.into(),
             asset_kind,
             mode,
+            preview_preset: UiAssetPreviewPreset::default(),
         }
     }
 

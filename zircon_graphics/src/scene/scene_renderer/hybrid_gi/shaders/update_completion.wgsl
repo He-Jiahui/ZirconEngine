@@ -5,14 +5,20 @@ struct HybridGiCompletionParams {
     trace_region_count: u32,
     tracing_budget: u32,
     evictable_probe_count: u32,
-    _padding0: u32,
-    _padding1: u32,
+    scene_light_seed_rgb: u32,
+    scene_light_strength_q: u32,
 };
 
 struct ResidentProbeInput {
     probe_id: u32,
     slot: u32,
     ray_budget: u32,
+    position_x_q: u32,
+    position_y_q: u32,
+    position_z_q: u32,
+    radius_q: u32,
+    previous_irradiance_rgb: u32,
+    parent_probe_id: u32,
     _padding: u32,
 };
 
@@ -20,7 +26,24 @@ struct PendingProbeInput {
     probe_id: u32,
     logical_index: u32,
     ray_budget: u32,
-    _padding: u32,
+    position_x_q: u32,
+    position_y_q: u32,
+    position_z_q: u32,
+    radius_q: u32,
+    parent_probe_id: u32,
+    resident_ancestor_probe_id: u32,
+    resident_ancestor_depth: u32,
+};
+
+struct TraceRegionInput {
+    region_id: u32,
+    center_x_q: u32,
+    center_y_q: u32,
+    center_z_q: u32,
+    radius_q: u32,
+    coverage_q: u32,
+    rt_lighting_rgb: u32,
+    _padding1: u32,
 };
 
 @group(0) @binding(0)
@@ -33,7 +56,7 @@ var<storage, read> resident_probe_inputs: array<ResidentProbeInput>;
 var<storage, read> pending_probe_updates: array<PendingProbeInput>;
 
 @group(0) @binding(3)
-var<storage, read> scheduled_trace_regions: array<u32>;
+var<storage, read> scheduled_trace_regions: array<TraceRegionInput>;
 
 @group(0) @binding(4)
 var<storage, read_write> completed_probe_updates: array<u32>;
@@ -44,41 +67,347 @@ var<storage, read_write> completed_trace_regions: array<u32>;
 @group(0) @binding(6)
 var<storage, read_write> probe_irradiance_updates: array<u32>;
 
+const NO_PARENT_PROBE_ID: u32 = 0xffffffffu;
+
 fn available_probe_completion_budget() -> u32 {
     let free_budget = max(params.probe_budget, params.resident_probe_count) - params.resident_probe_count;
     return free_budget + params.evictable_probe_count;
 }
 
-fn rotate_left_u32(value: u32, amount: u32) -> u32 {
-    let shift = amount & 31u;
-    if (shift == 0u) {
-        return value;
+fn active_trace_count() -> u32 {
+    return min(params.trace_region_count, params.tracing_budget);
+}
+
+fn abs_diff_u32(a: u32, b: u32) -> u32 {
+    if (a >= b) {
+        return a - b;
     }
-    return (value << shift) | (value >> (32u - shift));
+    return b - a;
 }
 
-fn irradiance_channel(seed: u32, bias: u32) -> u32 {
-    return 48u + ((seed + bias) % 160u);
+fn pack_rgb8(rgb: vec3<u32>) -> u32 {
+    return rgb.x | (rgb.y << 8u) | (rgb.z << 16u);
 }
 
-fn packed_irradiance_rgb(
-    probe_id: u32,
-    slot_or_index: u32,
+fn unpack_rgb8(packed: u32) -> vec3<u32> {
+    return vec3<u32>(
+        packed & 0xffu,
+        (packed >> 8u) & 0xffu,
+        (packed >> 16u) & 0xffu,
+    );
+}
+
+fn temporal_update_weight(ray_budget: u32, tracing_budget: u32) -> u32 {
+    return min(224u, 48u + min(ray_budget, 192u) / 2u + min(tracing_budget, 4u) * 12u);
+}
+
+fn apply_scene_light_seed(base_rgb: vec3<u32>) -> vec3<u32> {
+    let seed_rgb = unpack_rgb8(params.scene_light_seed_rgb);
+    let seeded_rgb = vec3<u32>(
+        min(255u, (base_rgb.x * max(seed_rgb.x, 1u) + 127u) / 255u),
+        min(255u, (base_rgb.y * max(seed_rgb.y, 1u) + 127u) / 255u),
+        min(255u, (base_rgb.z * max(seed_rgb.z, 1u) + 127u) / 255u),
+    );
+    let strength_q = max(params.scene_light_strength_q, 1u);
+    return vec3<u32>(
+        min(255u, (seeded_rgb.x * strength_q + 127u) / 255u),
+        min(255u, (seeded_rgb.y * strength_q + 127u) / 255u),
+        min(255u, (seeded_rgb.z * strength_q + 127u) / 255u),
+    );
+}
+
+fn trace_region_base_rgb(region: TraceRegionInput) -> vec3<u32> {
+    var base_rgb = unpack_rgb8(region.rt_lighting_rgb);
+    if (region.rt_lighting_rgb == 0u) {
+        base_rgb = vec3<u32>(
+            32u + ((region.region_id * 17u + region.center_x_q + region.coverage_q) % 160u),
+            32u + ((region.region_id * 11u + region.center_y_q + region.radius_q) % 160u),
+            32u + ((region.region_id * 7u + region.center_z_q + region.coverage_q * 3u) % 160u),
+        );
+    }
+    return apply_scene_light_seed(base_rgb);
+}
+
+fn trace_region_contribution_weight(
+    distance_to_region: u32,
+    max_distance: u32,
     ray_budget: u32,
-    pending_completion: bool,
+    coverage_q: u32,
 ) -> u32 {
-    let pending_bias = select(13u, 97u, pending_completion);
-    let seed =
-        probe_id * 17u
-        + slot_or_index * 31u
-        + ray_budget * 7u
-        + params.trace_region_count * 19u
-        + params.tracing_budget * 23u
-        + pending_bias;
-    let r = irradiance_channel(seed, 0x1fu);
-    let g = irradiance_channel(rotate_left_u32(seed, 7u), 0x3du);
-    let b = irradiance_channel(rotate_left_u32(seed, 13u), 0x59u);
-    return r | (g << 8u) | (b << 16u);
+    let proximity = max_distance - distance_to_region;
+    let proximity_weight = min(255u, (proximity * 255u) / max(max_distance, 1u));
+    let trace_strength =
+        min(255u, 32u + min(ray_budget, 160u) / 2u + min(coverage_q, 160u) / 2u + min(params.tracing_budget, 4u) * 40u);
+    return (proximity_weight * trace_strength + 127u) / 255u;
+}
+
+fn resident_probe_gather_weight(
+    distance_to_probe: u32,
+    max_distance: u32,
+    ray_budget: u32,
+    resident_ray_budget: u32,
+) -> u32 {
+    let proximity = max_distance - distance_to_probe;
+    let proximity_weight = min(255u, (proximity * 255u) / max(max_distance, 1u));
+    let gather_strength =
+        min(255u, 24u + min(ray_budget, 160u) / 3u + min(resident_ray_budget, 160u) / 3u
+            + min(params.tracing_budget, 4u) * 20u);
+    return (proximity_weight * gather_strength + 127u) / 255u;
+}
+
+fn hierarchy_probe_gather_boost(
+    probe_id: u32,
+    parent_probe_id: u32,
+    resident_ancestor_probe_id: u32,
+    resident_ancestor_depth: u32,
+    resident_probe_id: u32,
+    resident_parent_probe_id: u32,
+) -> u32 {
+    if (parent_probe_id != NO_PARENT_PROBE_ID && resident_probe_id == parent_probe_id) {
+        return 160u;
+    }
+    if (resident_ancestor_probe_id != NO_PARENT_PROBE_ID
+        && resident_ancestor_depth > 1u
+        && resident_probe_id == resident_ancestor_probe_id) {
+        return max(72u, 152u - min(resident_ancestor_depth - 1u, 3u) * 24u);
+    }
+    if (resident_parent_probe_id != NO_PARENT_PROBE_ID && resident_parent_probe_id == probe_id) {
+        return 96u;
+    }
+    return 0u;
+}
+
+fn traced_contribution_rgb_for_trace_count(
+    position_x_q: u32,
+    position_y_q: u32,
+    position_z_q: u32,
+    radius_q: u32,
+    ray_budget: u32,
+    trace_count: u32,
+) -> u32 {
+    if (trace_count == 0u) {
+        return 0u;
+    }
+
+    var weighted_rgb = vec3<u32>(0u);
+    var total_weight = 0u;
+    for (var trace_index = 0u; trace_index < trace_count; trace_index = trace_index + 1u) {
+        let region = scheduled_trace_regions[trace_index];
+        let reach = max(radius_q + region.radius_q + 1u, 1u);
+        let max_distance = max(reach * 3u, 1u);
+        let distance_to_region =
+            abs_diff_u32(position_x_q, region.center_x_q)
+            + abs_diff_u32(position_y_q, region.center_y_q)
+            + abs_diff_u32(position_z_q, region.center_z_q);
+        if (distance_to_region >= max_distance) {
+            continue;
+        }
+
+        let contribution_weight = trace_region_contribution_weight(
+            distance_to_region,
+            max_distance,
+            ray_budget,
+            region.coverage_q,
+        );
+        let base_rgb = trace_region_base_rgb(region);
+        weighted_rgb = vec3<u32>(
+            weighted_rgb.x + base_rgb.x * contribution_weight,
+            weighted_rgb.y + base_rgb.y * contribution_weight,
+            weighted_rgb.z + base_rgb.z * contribution_weight,
+        );
+        total_weight = total_weight + contribution_weight;
+    }
+
+    if (total_weight == 0u) {
+        return 0u;
+    }
+
+    return pack_rgb8(vec3<u32>(
+        min(255u, (weighted_rgb.x + total_weight / 2u) / total_weight),
+        min(255u, (weighted_rgb.y + total_weight / 2u) / total_weight),
+        min(255u, (weighted_rgb.z + total_weight / 2u) / total_weight),
+    ));
+}
+
+fn traced_contribution_rgb(
+    position_x_q: u32,
+    position_y_q: u32,
+    position_z_q: u32,
+    radius_q: u32,
+    ray_budget: u32,
+) -> u32 {
+    return traced_contribution_rgb_for_trace_count(
+        position_x_q,
+        position_y_q,
+        position_z_q,
+        radius_q,
+        ray_budget,
+        active_trace_count(),
+    );
+}
+
+fn gathered_resident_rgb(
+    exclude_probe_id: u32,
+    parent_probe_id: u32,
+    resident_ancestor_probe_id: u32,
+    resident_ancestor_depth: u32,
+    position_x_q: u32,
+    position_y_q: u32,
+    position_z_q: u32,
+    radius_q: u32,
+    ray_budget: u32,
+) -> u32 {
+    if (params.resident_probe_count == 0u) {
+        return 0u;
+    }
+
+    var weighted_rgb = vec3<u32>(0u);
+    var total_weight = 0u;
+    for (var resident_index = 0u; resident_index < params.resident_probe_count; resident_index = resident_index + 1u) {
+        let resident = resident_probe_inputs[resident_index];
+        if (resident.probe_id == exclude_probe_id || resident.previous_irradiance_rgb == 0u) {
+            continue;
+        }
+
+        let max_distance = max(radius_q + resident.radius_q + 1u, 1u);
+        let distance_to_probe =
+            abs_diff_u32(position_x_q, resident.position_x_q)
+            + abs_diff_u32(position_y_q, resident.position_y_q)
+            + abs_diff_u32(position_z_q, resident.position_z_q);
+        if (distance_to_probe >= max_distance) {
+            continue;
+        }
+
+        let gather_weight = resident_probe_gather_weight(
+            distance_to_probe,
+            max_distance,
+            ray_budget,
+            resident.ray_budget,
+        );
+        let hierarchy_weight = hierarchy_probe_gather_boost(
+            exclude_probe_id,
+            parent_probe_id,
+            resident_ancestor_probe_id,
+            resident_ancestor_depth,
+            resident.probe_id,
+            resident.parent_probe_id,
+        );
+        let combined_weight = min(255u, gather_weight + hierarchy_weight);
+        let resident_rgb = unpack_rgb8(resident.previous_irradiance_rgb);
+        weighted_rgb = vec3<u32>(
+            weighted_rgb.x + resident_rgb.x * combined_weight,
+            weighted_rgb.y + resident_rgb.y * combined_weight,
+            weighted_rgb.z + resident_rgb.z * combined_weight,
+        );
+        total_weight = total_weight + combined_weight;
+    }
+
+    if (total_weight == 0u) {
+        return 0u;
+    }
+
+    return pack_rgb8(vec3<u32>(
+        min(255u, (weighted_rgb.x + total_weight / 2u) / total_weight),
+        min(255u, (weighted_rgb.y + total_weight / 2u) / total_weight),
+        min(255u, (weighted_rgb.z + total_weight / 2u) / total_weight),
+    ));
+}
+
+fn find_resident_probe_index(probe_id: u32) -> u32 {
+    for (var resident_index = 0u; resident_index < params.resident_probe_count; resident_index = resident_index + 1u) {
+        if (resident_probe_inputs[resident_index].probe_id == probe_id) {
+            return resident_index;
+        }
+    }
+    return NO_PARENT_PROBE_ID;
+}
+
+fn resident_ancestor_trace_inheritance_weight(resident_ancestor_depth: u32) -> u32 {
+    if (resident_ancestor_depth <= 1u) {
+        return 0u;
+    }
+
+    var weight = 96u;
+    for (var depth = 2u; depth < resident_ancestor_depth; depth = depth + 1u) {
+        weight = max(28u, (weight * 184u + 127u) / 256u);
+    }
+    return weight;
+}
+
+fn traced_contribution_rgb_with_resident_ancestor(
+    position_x_q: u32,
+    position_y_q: u32,
+    position_z_q: u32,
+    radius_q: u32,
+    ray_budget: u32,
+    resident_ancestor_probe_id: u32,
+    resident_ancestor_depth: u32,
+) -> u32 {
+    let local_traced = traced_contribution_rgb(
+        position_x_q,
+        position_y_q,
+        position_z_q,
+        radius_q,
+        ray_budget,
+    );
+    if (resident_ancestor_probe_id == NO_PARENT_PROBE_ID || resident_ancestor_depth <= 1u) {
+        return local_traced;
+    }
+
+    let resident_index = find_resident_probe_index(resident_ancestor_probe_id);
+    if (resident_index == NO_PARENT_PROBE_ID) {
+        return local_traced;
+    }
+
+    let ancestor_probe = resident_probe_inputs[resident_index];
+    let ancestor_traced = traced_contribution_rgb_for_trace_count(
+        ancestor_probe.position_x_q,
+        ancestor_probe.position_y_q,
+        ancestor_probe.position_z_q,
+        ancestor_probe.radius_q,
+        max(ray_budget, ancestor_probe.ray_budget),
+        params.trace_region_count,
+    );
+    if (ancestor_traced == 0u) {
+        return local_traced;
+    }
+
+    let inheritance_weight = resident_ancestor_trace_inheritance_weight(resident_ancestor_depth);
+    if (inheritance_weight == 0u) {
+        return local_traced;
+    }
+    return temporal_update_rgb(local_traced, ancestor_traced, inheritance_weight);
+}
+
+fn blend_channel(previous: u32, contribution: u32, weight: u32) -> u32 {
+    let clamped_weight = min(weight, 255u);
+    let inverse_weight = 255u - clamped_weight;
+    return (previous * inverse_weight + contribution * clamped_weight + 127u) / 255u;
+}
+
+fn temporal_update_rgb(previous_packed: u32, contribution_packed: u32, weight: u32) -> u32 {
+    let previous = unpack_rgb8(previous_packed);
+    let contribution = unpack_rgb8(contribution_packed);
+    let blended = vec3<u32>(
+        blend_channel(previous.x, contribution.x, weight),
+        blend_channel(previous.y, contribution.y, weight),
+        blend_channel(previous.z, contribution.z, weight),
+    );
+    return blended.x | (blended.y << 8u) | (blended.z << 16u);
+}
+
+fn combine_traced_and_gathered_rgb(
+    traced_packed: u32,
+    gathered_packed: u32,
+    ray_budget: u32,
+) -> u32 {
+    if (traced_packed == 0u || gathered_packed == 0u) {
+        return traced_packed;
+    }
+
+    let gather_weight =
+        min(160u, 24u + min(ray_budget, 160u) / 3u + min(params.tracing_budget, 4u) * 16u);
+    return temporal_update_rgb(traced_packed, gathered_packed, gather_weight);
 }
 
 @compute @workgroup_size(64, 1, 1)
@@ -97,9 +426,35 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     if (index < params.resident_probe_count) {
         let probe = resident_probe_inputs[index];
         let entry_offset = 1u + index * 2u;
+        let traced = traced_contribution_rgb(
+            probe.position_x_q,
+            probe.position_y_q,
+            probe.position_z_q,
+            probe.radius_q,
+            probe.ray_budget,
+        );
+        let gathered = gathered_resident_rgb(
+            probe.probe_id,
+            probe.parent_probe_id,
+            NO_PARENT_PROBE_ID,
+            0u,
+            probe.position_x_q,
+            probe.position_y_q,
+            probe.position_z_q,
+            probe.radius_q,
+            probe.ray_budget,
+        );
+        let contribution = combine_traced_and_gathered_rgb(traced, gathered, probe.ray_budget);
         probe_irradiance_updates[entry_offset] = probe.probe_id;
-        probe_irradiance_updates[entry_offset + 1u] =
-            packed_irradiance_rgb(probe.probe_id, probe.slot, probe.ray_budget, false);
+        probe_irradiance_updates[entry_offset + 1u] = select(
+            temporal_update_rgb(
+                probe.previous_irradiance_rgb,
+                contribution,
+                temporal_update_weight(probe.ray_budget, params.tracing_budget),
+            ),
+            probe.previous_irradiance_rgb,
+            contribution == 0u,
+        );
     }
 
     if (index < completed_probe_count) {
@@ -107,12 +462,35 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
         completed_probe_updates[index + 1u] = probe.probe_id;
         let entry_index = params.resident_probe_count + index;
         let entry_offset = 1u + entry_index * 2u;
+        let traced = traced_contribution_rgb_with_resident_ancestor(
+            probe.position_x_q,
+            probe.position_y_q,
+            probe.position_z_q,
+            probe.radius_q,
+            probe.ray_budget,
+            probe.resident_ancestor_probe_id,
+            probe.resident_ancestor_depth,
+        );
+        let gathered = gathered_resident_rgb(
+            probe.probe_id,
+            probe.parent_probe_id,
+            probe.resident_ancestor_probe_id,
+            probe.resident_ancestor_depth,
+            probe.position_x_q,
+            probe.position_y_q,
+            probe.position_z_q,
+            probe.radius_q,
+            probe.ray_budget,
+        );
         probe_irradiance_updates[entry_offset] = probe.probe_id;
-        probe_irradiance_updates[entry_offset + 1u] =
-            packed_irradiance_rgb(probe.probe_id, probe.logical_index, probe.ray_budget, true);
+        probe_irradiance_updates[entry_offset + 1u] = combine_traced_and_gathered_rgb(
+            traced,
+            gathered,
+            probe.ray_budget,
+        );
     }
 
     if (index < completed_trace_count) {
-        completed_trace_regions[index + 1u] = scheduled_trace_regions[index];
+        completed_trace_regions[index + 1u] = scheduled_trace_regions[index].region_id;
     }
 }

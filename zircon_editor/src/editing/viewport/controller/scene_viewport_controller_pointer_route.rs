@@ -1,4 +1,4 @@
-use zircon_graphics::GizmoAxis;
+use crate::GizmoAxis;
 use zircon_math::Vec2;
 use zircon_scene::{Scene, ViewportCameraSnapshot};
 use zircon_ui::UiPoint;

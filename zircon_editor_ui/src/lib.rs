@@ -25,8 +25,8 @@ pub use template::{
 };
 pub use ui_asset_editor::{
     ui_asset_editor_window_descriptor, UiAssetEditorMode, UiAssetEditorReflectionModel,
-    UiAssetEditorRoute, UiDesignerSelectionModel, UiMatchedStyleRuleReflection,
-    UiStyleInspectorReflectionModel, UI_ASSET_EDITOR_WINDOW_ID,
+    UiAssetEditorRoute, UiAssetPreviewPreset, UiDesignerSelectionModel,
+    UiMatchedStyleRuleReflection, UiStyleInspectorReflectionModel, UI_ASSET_EDITOR_WINDOW_ID,
 };
 
 #[cfg(test)]

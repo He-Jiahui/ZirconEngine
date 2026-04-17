@@ -13,6 +13,7 @@ use crate::editing::viewport::handles::{
     },
     rotate_handle_tool::RotateHandleTool,
 };
+use crate::GizmoAxis;
 
 impl HandleTool for RotateHandleTool {
     fn tool(&self) -> SceneViewportTool {
@@ -59,7 +60,7 @@ impl HandleTool for RotateHandleTool {
     fn begin_drag(
         &self,
         ctx: &HandlePickContext<'_>,
-        axis: zircon_graphics::GizmoAxis,
+        axis: GizmoAxis,
     ) -> Option<HandleDragSession> {
         Some(HandleDragSession::Rotate(begin_transform_session(
             ctx, axis,

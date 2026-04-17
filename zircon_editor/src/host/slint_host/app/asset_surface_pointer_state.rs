@@ -24,6 +24,17 @@ impl AssetSurfacePointerState {
         }
     }
 
+    pub(super) fn reference_list(
+        &self,
+        list_kind: &str,
+    ) -> Option<&AssetReferenceListSurfacePointerState> {
+        match list_kind {
+            "references" => Some(&self.references),
+            "used_by" => Some(&self.used_by),
+            _ => None,
+        }
+    }
+
     pub(super) fn reference_list_mut(
         &mut self,
         list_kind: &str,

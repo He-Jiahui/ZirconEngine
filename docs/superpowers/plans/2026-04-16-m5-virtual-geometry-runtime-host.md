@@ -1,10 +1,10 @@
 ---
 related_code:
   - zircon_graphics/src/runtime/mod.rs
-  - zircon_graphics/src/runtime/virtual_geometry.rs
-  - zircon_graphics/src/runtime/server/create_viewport.rs
-  - zircon_graphics/src/runtime/server/viewport_record.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract.rs
+  - zircon_graphics/src/runtime/virtual_geometry/mod.rs
+  - zircon_graphics/src/runtime/server/create_viewport/mod.rs
+  - zircon_graphics/src/runtime/server/viewport_record/mod.rs
+  - zircon_graphics/src/runtime/server/submit_frame_extract/mod.rs
   - zircon_graphics/src/tests/virtual_geometry_runtime.rs
   - zircon_graphics/src/tests/render_server_bridge.rs
   - zircon_render_server/src/types.rs
@@ -13,10 +13,10 @@ related_code:
   - docs/assets-and-rendering/index.md
 implementation_files:
   - zircon_graphics/src/runtime/mod.rs
-  - zircon_graphics/src/runtime/virtual_geometry.rs
-  - zircon_graphics/src/runtime/server/create_viewport.rs
-  - zircon_graphics/src/runtime/server/viewport_record.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract.rs
+  - zircon_graphics/src/runtime/virtual_geometry/mod.rs
+  - zircon_graphics/src/runtime/server/create_viewport/mod.rs
+  - zircon_graphics/src/runtime/server/viewport_record/mod.rs
+  - zircon_graphics/src/runtime/server/submit_frame_extract/mod.rs
   - zircon_render_server/src/types.rs
 plan_sources:
   - user: 2026-04-16 continue M5 Virtual Geometry runtime host slice

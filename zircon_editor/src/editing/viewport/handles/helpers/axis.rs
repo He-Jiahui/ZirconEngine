@@ -1,4 +1,4 @@
-use zircon_graphics::GizmoAxis;
+use crate::GizmoAxis;
 use zircon_math::{Vec3, Vec4};
 use zircon_scene::OverlayAxis;
 

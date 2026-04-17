@@ -18,7 +18,10 @@ related_code:
   - zircon_asset/src/assets/ui.rs
   - zircon_asset/src/importer/service.rs
   - zircon_asset/src/project/manager.rs
+  - zircon_asset/src/editor/api.rs
   - zircon_asset/src/editor/manager.rs
+  - zircon_asset/src/editor/records.rs
+  - zircon_asset/src/editor/resolver.rs
   - zircon_editor_ui/src/lib.rs
   - zircon_editor_ui/src/ui_asset_editor.rs
   - zircon_editor_ui/src/tests/activity.rs
@@ -55,7 +58,10 @@ implementation_files:
   - zircon_asset/src/assets/ui.rs
   - zircon_asset/src/importer/service.rs
   - zircon_asset/src/project/manager.rs
+  - zircon_asset/src/editor/api.rs
   - zircon_asset/src/editor/manager.rs
+  - zircon_asset/src/editor/records.rs
+  - zircon_asset/src/editor/resolver.rs
   - zircon_editor_ui/src/lib.rs
   - zircon_editor_ui/src/ui_asset_editor.rs
   - zircon_editor/src/editing/ui_asset/mod.rs
@@ -75,6 +81,8 @@ plan_sources:
   - user: 2026-04-16 增加 activityWindow 界面作为 UI 编辑布局工具并把 UI Layout 资产化
   - user: 2026-04-16 PLEASE IMPLEMENT THIS PLAN
   - user: 2026-04-16 继续把完整 zircon_editor 宿主实现补完
+  - user: 2026-04-17 继续扫描明显错包模块并按方案2把 editor asset API 从 zircon_manager 迁回 zircon_asset
+  - docs/superpowers/plans/2026-04-17-asset-editor-api-boundary-migration.md
   - .codex/plans/布局系统.md
   - .codex/plans/Zircon 运行时编辑器共享 UI 布局与事件系统架构计划.md
 tests:
@@ -278,7 +286,7 @@ V1 样式系统已经能处理：
 - `ImportedAsset::{UiLayout, UiWidget, UiStyle}` 已加入统一 imported asset 枚举
 - `AssetImporter::import_from_source(...)` 会识别 `.ui.toml` 并按 `[asset.kind]` 分流
 - `ProjectManager::scan_and_import(...)` 会把它们映射到 `AssetKind::{UiLayout, UiWidget, UiStyle}`
-- `ui_asset_references(...)` 会把 `imports.widgets` / `imports.styles` 转成 direct references，进入 `EditorAssetManager` 的 catalog/reference graph
+- `ui_asset_references(...)` 会把 `imports.widgets` / `imports.styles` 转成 direct references，进入 `zircon_asset` 自己拥有的 `EditorAssetManager` catalog/reference graph
 
 对应的 editor 宿主链路也已经接上：
 

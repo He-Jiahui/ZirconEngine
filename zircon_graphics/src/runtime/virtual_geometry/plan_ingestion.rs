@@ -1,0 +1,36 @@
+use crate::VisibilityVirtualGeometryPageUploadPlan;
+
+use super::virtual_geometry_page_request::VirtualGeometryPageRequest;
+use super::virtual_geometry_runtime_state::VirtualGeometryRuntimeState;
+
+impl VirtualGeometryRuntimeState {
+    pub(crate) fn ingest_plan(
+        &mut self,
+        generation: u64,
+        plan: &VisibilityVirtualGeometryPageUploadPlan,
+    ) {
+        for &page_id in &plan.resident_pages {
+            self.promote_to_resident(page_id);
+        }
+
+        for &page_id in &plan.dirty_requested_pages {
+            if self.resident_slots.contains_key(&page_id) || self.pending_pages.contains(&page_id) {
+                continue;
+            }
+
+            self.pending_pages.insert(page_id);
+            self.pending_requests.push(VirtualGeometryPageRequest {
+                page_id,
+                size_bytes: self.page_sizes.get(&page_id).copied().unwrap_or_default(),
+                generation,
+            });
+        }
+
+        self.evictable_pages = plan
+            .evictable_pages
+            .iter()
+            .copied()
+            .filter(|page_id| self.resident_slots.contains_key(page_id))
+            .collect();
+    }
+}

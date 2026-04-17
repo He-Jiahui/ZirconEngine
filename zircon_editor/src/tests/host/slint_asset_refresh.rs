@@ -1,6 +1,6 @@
+use zircon_asset::{EditorAssetChangeKind, EditorAssetChangeRecord};
 use zircon_manager::{
-    AssetChangeKind, AssetChangeRecord, EditorAssetChangeKind, EditorAssetChangeRecord,
-    ResourceChangeKind, ResourceChangeRecord,
+    AssetChangeKind, AssetChangeRecord, ResourceChangeKind, ResourceChangeRecord,
 };
 
 use crate::host::slint_host::{plan_asset_backend_refresh, AssetBackendRefreshPlan};

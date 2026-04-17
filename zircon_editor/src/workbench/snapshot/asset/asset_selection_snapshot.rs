@@ -1,4 +1,5 @@
-use zircon_manager::{AssetRecordKind, ResourceStateRecord};
+use zircon_manager::ResourceStateRecord;
+use zircon_resource::ResourceKind;
 
 use super::AssetReferenceSnapshot;
 
@@ -7,7 +8,7 @@ pub struct AssetSelectionSnapshot {
     pub uuid: Option<String>,
     pub display_name: String,
     pub locator: String,
-    pub kind: Option<AssetRecordKind>,
+    pub kind: Option<ResourceKind>,
     pub preview_artifact_path: String,
     pub meta_path: String,
     pub adapter_key: String,

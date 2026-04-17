@@ -375,6 +375,8 @@ fn visibility_context_builds_virtual_geometry_visibility_feedback_and_page_plan(
                 cluster_id: 30,
                 page_id: 300,
                 lod_level: 0,
+                cluster_ordinal: 3,
+                cluster_count: 4,
                 resident: false,
             },
             VisibilityVirtualGeometryCluster {
@@ -382,6 +384,8 @@ fn visibility_context_builds_virtual_geometry_visibility_feedback_and_page_plan(
                 cluster_id: 20,
                 page_id: 200,
                 lod_level: 1,
+                cluster_ordinal: 2,
+                cluster_count: 4,
                 resident: true,
             },
         ]
@@ -508,8 +512,8 @@ fn visibility_context_refines_virtual_geometry_parent_cluster_into_visible_child
         ],
         pages: vec![
             virtual_page(100, true),
-            virtual_page(200, false),
-            virtual_page(300, false),
+            virtual_page(200, true),
+            virtual_page(300, true),
         ],
     });
 
@@ -523,16 +527,83 @@ fn visibility_context_refines_virtual_geometry_parent_cluster_into_visible_child
                 cluster_id: 20,
                 page_id: 200,
                 lod_level: 1,
-                resident: false,
+                cluster_ordinal: 1,
+                cluster_count: 3,
+                resident: true,
             },
             VisibilityVirtualGeometryCluster {
                 entity: mesh,
                 cluster_id: 30,
                 page_id: 300,
                 lod_level: 1,
-                resident: false,
+                cluster_ordinal: 2,
+                cluster_count: 3,
+                resident: true,
             },
         ]
+    );
+    assert_eq!(
+        context.virtual_geometry_page_upload_plan,
+        VisibilityVirtualGeometryPageUploadPlan {
+            resident_pages: vec![100, 200, 300],
+            requested_pages: Vec::new(),
+            dirty_requested_pages: Vec::new(),
+            evictable_pages: vec![100],
+        }
+    );
+    assert_eq!(
+        context.virtual_geometry_feedback,
+        VisibilityVirtualGeometryFeedback {
+            visible_cluster_ids: vec![20, 30],
+            requested_pages: Vec::new(),
+            evictable_pages: vec![100],
+        }
+    );
+}
+
+#[test]
+fn visibility_context_keeps_parent_virtual_geometry_cluster_visible_while_requesting_nonresident_children(
+) {
+    let mut world = World::new();
+    remove_default_meshes(&mut world);
+
+    let mesh = world.spawn_mesh_node(
+        model_handle("res://models/virtual_geometry.obj"),
+        material_handle("res://materials/virtual_geometry.material.toml"),
+    );
+    world
+        .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
+        .expect("mesh transform should update");
+
+    let mut extract = world.to_render_frame_extract();
+    extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
+        cluster_budget: 2,
+        page_budget: 2,
+        clusters: vec![
+            virtual_cluster(mesh, 10, 100, 0, None, Vec3::ZERO, 12.0),
+            virtual_cluster(mesh, 20, 200, 1, Some(10), Vec3::new(0.1, 0.0, 0.0), 9.0),
+            virtual_cluster(mesh, 30, 300, 1, Some(10), Vec3::new(-0.1, 0.0, 0.0), 8.0),
+        ],
+        pages: vec![
+            virtual_page(100, true),
+            virtual_page(200, false),
+            virtual_page(300, false),
+        ],
+    });
+
+    let context = VisibilityContext::from(&extract);
+
+    assert_eq!(
+        context.virtual_geometry_visible_clusters,
+        vec![VisibilityVirtualGeometryCluster {
+            entity: mesh,
+            cluster_id: 10,
+            page_id: 100,
+            lod_level: 0,
+            cluster_ordinal: 0,
+            cluster_count: 3,
+            resident: true,
+        }]
     );
     assert_eq!(
         context.virtual_geometry_page_upload_plan,
@@ -540,7 +611,355 @@ fn visibility_context_refines_virtual_geometry_parent_cluster_into_visible_child
             resident_pages: vec![100],
             requested_pages: vec![200, 300],
             dirty_requested_pages: vec![200, 300],
+            evictable_pages: Vec::new(),
+        }
+    );
+    assert_eq!(
+        context.virtual_geometry_feedback,
+        VisibilityVirtualGeometryFeedback {
+            visible_cluster_ids: vec![10],
+            requested_pages: vec![200, 300],
+            evictable_pages: Vec::new(),
+        }
+    );
+}
+
+#[test]
+fn visibility_context_keeps_resident_virtual_geometry_children_visible_while_requesting_nonresident_grandchildren(
+) {
+    let mut world = World::new();
+    remove_default_meshes(&mut world);
+
+    let mesh = world.spawn_mesh_node(
+        model_handle("res://models/virtual_geometry.obj"),
+        material_handle("res://materials/virtual_geometry.material.toml"),
+    );
+    world
+        .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
+        .expect("mesh transform should update");
+
+    let mut extract = world.to_render_frame_extract();
+    extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
+        cluster_budget: 2,
+        page_budget: 2,
+        clusters: vec![
+            virtual_cluster(mesh, 10, 100, 0, None, Vec3::ZERO, 12.0),
+            virtual_cluster(mesh, 20, 200, 1, Some(10), Vec3::new(0.1, 0.0, 0.0), 9.0),
+            virtual_cluster(mesh, 30, 300, 1, Some(10), Vec3::new(-0.1, 0.0, 0.0), 8.0),
+            virtual_cluster(mesh, 40, 400, 2, Some(20), Vec3::new(0.16, 0.0, 0.0), 6.5),
+            virtual_cluster(mesh, 50, 500, 2, Some(30), Vec3::new(-0.16, 0.0, 0.0), 5.5),
+        ],
+        pages: vec![
+            virtual_page(100, true),
+            virtual_page(200, true),
+            virtual_page(300, true),
+            virtual_page(400, false),
+            virtual_page(500, false),
+        ],
+    });
+
+    let context = VisibilityContext::from(&extract);
+
+    assert_eq!(
+        context.virtual_geometry_visible_clusters,
+        vec![
+            VisibilityVirtualGeometryCluster {
+                entity: mesh,
+                cluster_id: 20,
+                page_id: 200,
+                lod_level: 1,
+                cluster_ordinal: 1,
+                cluster_count: 5,
+                resident: true,
+            },
+            VisibilityVirtualGeometryCluster {
+                entity: mesh,
+                cluster_id: 30,
+                page_id: 300,
+                lod_level: 1,
+                cluster_ordinal: 2,
+                cluster_count: 5,
+                resident: true,
+            },
+        ]
+    );
+    assert_eq!(
+        context.virtual_geometry_page_upload_plan,
+        VisibilityVirtualGeometryPageUploadPlan {
+            resident_pages: vec![100, 200, 300],
+            requested_pages: vec![400, 500],
+            dirty_requested_pages: vec![400, 500],
             evictable_pages: vec![100],
+        }
+    );
+    assert_eq!(
+        context.virtual_geometry_feedback,
+        VisibilityVirtualGeometryFeedback {
+            visible_cluster_ids: vec![20, 30],
+            requested_pages: vec![400, 500],
+            evictable_pages: vec![100],
+        }
+    );
+}
+
+#[test]
+fn visibility_context_holds_resident_parent_one_frame_after_requested_children_become_resident() {
+    let mut world = World::new();
+    remove_default_meshes(&mut world);
+
+    let mesh = world.spawn_mesh_node(
+        model_handle("res://models/virtual_geometry.obj"),
+        material_handle("res://materials/virtual_geometry.material.toml"),
+    );
+    world
+        .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
+        .expect("mesh transform should update");
+
+    let mut previous_extract = world.to_render_frame_extract();
+    previous_extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
+        cluster_budget: 2,
+        page_budget: 2,
+        clusters: vec![
+            virtual_cluster(mesh, 10, 100, 0, None, Vec3::ZERO, 12.0),
+            virtual_cluster(mesh, 20, 200, 1, Some(10), Vec3::new(0.1, 0.0, 0.0), 9.0),
+            virtual_cluster(mesh, 30, 300, 1, Some(10), Vec3::new(-0.1, 0.0, 0.0), 8.0),
+        ],
+        pages: vec![
+            virtual_page(100, true),
+            virtual_page(200, false),
+            virtual_page(300, false),
+        ],
+    });
+    let previous_context = VisibilityContext::from(&previous_extract);
+
+    let mut current_extract = world.to_render_frame_extract();
+    current_extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
+        cluster_budget: 2,
+        page_budget: 2,
+        clusters: vec![
+            virtual_cluster(mesh, 10, 100, 0, None, Vec3::ZERO, 12.0),
+            virtual_cluster(mesh, 20, 200, 1, Some(10), Vec3::new(0.1, 0.0, 0.0), 9.0),
+            virtual_cluster(mesh, 30, 300, 1, Some(10), Vec3::new(-0.1, 0.0, 0.0), 8.0),
+        ],
+        pages: vec![
+            virtual_page(100, true),
+            virtual_page(200, true),
+            virtual_page(300, true),
+        ],
+    });
+
+    let held_context = VisibilityContext::from_extract_with_history(
+        &current_extract,
+        Some(&previous_context.history_snapshot),
+    );
+
+    assert_eq!(
+        held_context.virtual_geometry_visible_clusters,
+        vec![VisibilityVirtualGeometryCluster {
+            entity: mesh,
+            cluster_id: 10,
+            page_id: 100,
+            lod_level: 0,
+            cluster_ordinal: 0,
+            cluster_count: 3,
+            resident: true,
+        }]
+    );
+    assert_eq!(
+        held_context.virtual_geometry_page_upload_plan,
+        VisibilityVirtualGeometryPageUploadPlan {
+            resident_pages: vec![100, 200, 300],
+            requested_pages: Vec::new(),
+            dirty_requested_pages: Vec::new(),
+            evictable_pages: Vec::new(),
+        }
+    );
+    assert_eq!(
+        held_context.virtual_geometry_feedback,
+        VisibilityVirtualGeometryFeedback {
+            visible_cluster_ids: vec![10],
+            requested_pages: Vec::new(),
+            evictable_pages: Vec::new(),
+        }
+    );
+
+    let settled_context = VisibilityContext::from_extract_with_history(
+        &current_extract,
+        Some(&held_context.history_snapshot),
+    );
+
+    assert_eq!(
+        settled_context.virtual_geometry_visible_clusters,
+        vec![
+            VisibilityVirtualGeometryCluster {
+                entity: mesh,
+                cluster_id: 20,
+                page_id: 200,
+                lod_level: 1,
+                cluster_ordinal: 1,
+                cluster_count: 3,
+                resident: true,
+            },
+            VisibilityVirtualGeometryCluster {
+                entity: mesh,
+                cluster_id: 30,
+                page_id: 300,
+                lod_level: 1,
+                cluster_ordinal: 2,
+                cluster_count: 3,
+                resident: true,
+            },
+        ]
+    );
+    assert_eq!(
+        settled_context.virtual_geometry_page_upload_plan,
+        VisibilityVirtualGeometryPageUploadPlan {
+            resident_pages: vec![100, 200, 300],
+            requested_pages: Vec::new(),
+            dirty_requested_pages: Vec::new(),
+            evictable_pages: Vec::new(),
+        }
+    );
+    assert_eq!(
+        settled_context.virtual_geometry_feedback,
+        VisibilityVirtualGeometryFeedback {
+            visible_cluster_ids: vec![20, 30],
+            requested_pages: Vec::new(),
+            evictable_pages: Vec::new(),
+        }
+    );
+
+    let merge_ready_context = VisibilityContext::from_extract_with_history(
+        &current_extract,
+        Some(&settled_context.history_snapshot),
+    );
+
+    assert_eq!(
+        merge_ready_context.virtual_geometry_page_upload_plan,
+        VisibilityVirtualGeometryPageUploadPlan {
+            resident_pages: vec![100, 200, 300],
+            requested_pages: Vec::new(),
+            dirty_requested_pages: Vec::new(),
+            evictable_pages: vec![100],
+        }
+    );
+    assert_eq!(
+        merge_ready_context.virtual_geometry_feedback,
+        VisibilityVirtualGeometryFeedback {
+            visible_cluster_ids: vec![20, 30],
+            requested_pages: Vec::new(),
+            evictable_pages: vec![100],
+        }
+    );
+}
+
+#[test]
+fn visibility_context_holds_resident_child_page_one_frame_when_frontier_merges_back_to_parent() {
+    let mut world = World::new();
+    remove_default_meshes(&mut world);
+
+    let mesh = world.spawn_mesh_node(
+        model_handle("res://models/virtual_geometry.obj"),
+        material_handle("res://materials/virtual_geometry.material.toml"),
+    );
+    world
+        .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
+        .expect("mesh transform should update");
+
+    let mut previous_extract = world.to_render_frame_extract();
+    previous_extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
+        cluster_budget: 2,
+        page_budget: 3,
+        clusters: vec![
+            virtual_cluster(mesh, 10, 100, 0, None, Vec3::ZERO, 12.0),
+            virtual_cluster(mesh, 20, 200, 1, Some(10), Vec3::new(0.1, 0.0, 0.0), 9.0),
+            virtual_cluster(mesh, 30, 300, 1, Some(10), Vec3::new(-0.1, 0.0, 0.0), 8.0),
+        ],
+        pages: vec![
+            virtual_page(100, true),
+            virtual_page(200, true),
+            virtual_page(300, true),
+        ],
+    });
+    let previous_context = VisibilityContext::from(&previous_extract);
+
+    assert_eq!(
+        previous_context.virtual_geometry_feedback.visible_cluster_ids,
+        vec![20, 30],
+        "expected the fully resident frame to settle onto the child frontier before testing merge-back hysteresis"
+    );
+
+    let mut current_extract = world.to_render_frame_extract();
+    current_extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
+        cluster_budget: 2,
+        page_budget: 3,
+        clusters: vec![
+            virtual_cluster(mesh, 10, 100, 0, None, Vec3::ZERO, 12.0),
+            virtual_cluster(mesh, 20, 200, 1, Some(10), Vec3::new(0.1, 0.0, 0.0), 9.0),
+            virtual_cluster(mesh, 30, 300, 1, Some(10), Vec3::new(-0.1, 0.0, 0.0), 8.0),
+        ],
+        pages: vec![
+            virtual_page(100, true),
+            virtual_page(200, true),
+            virtual_page(300, false),
+        ],
+    });
+
+    let held_context = VisibilityContext::from_extract_with_history(
+        &current_extract,
+        Some(&previous_context.history_snapshot),
+    );
+
+    assert_eq!(
+        held_context.virtual_geometry_visible_clusters,
+        vec![VisibilityVirtualGeometryCluster {
+            entity: mesh,
+            cluster_id: 10,
+            page_id: 100,
+            lod_level: 0,
+            cluster_ordinal: 0,
+            cluster_count: 3,
+            resident: true,
+        }]
+    );
+    assert_eq!(
+        held_context.virtual_geometry_page_upload_plan,
+        VisibilityVirtualGeometryPageUploadPlan {
+            resident_pages: vec![100, 200],
+            requested_pages: vec![300],
+            dirty_requested_pages: vec![300],
+            evictable_pages: Vec::new(),
+        }
+    );
+    assert_eq!(
+        held_context.virtual_geometry_feedback,
+        VisibilityVirtualGeometryFeedback {
+            visible_cluster_ids: vec![10],
+            requested_pages: vec![300],
+            evictable_pages: Vec::new(),
+        }
+    );
+
+    let settled_context = VisibilityContext::from_extract_with_history(
+        &current_extract,
+        Some(&held_context.history_snapshot),
+    );
+
+    assert_eq!(
+        settled_context.virtual_geometry_page_upload_plan,
+        VisibilityVirtualGeometryPageUploadPlan {
+            resident_pages: vec![100, 200],
+            requested_pages: vec![300],
+            dirty_requested_pages: Vec::new(),
+            evictable_pages: vec![200],
+        }
+    );
+    assert_eq!(
+        settled_context.virtual_geometry_feedback,
+        VisibilityVirtualGeometryFeedback {
+            visible_cluster_ids: vec![10],
+            requested_pages: vec![300],
+            evictable_pages: vec![200],
         }
     );
 }
@@ -585,6 +1004,8 @@ fn visibility_context_keeps_parent_virtual_geometry_cluster_when_children_exceed
             cluster_id: 10,
             page_id: 100,
             lod_level: 0,
+            cluster_ordinal: 0,
+            cluster_count: 4,
             resident: false,
         }]
     );
@@ -594,6 +1015,105 @@ fn visibility_context_keeps_parent_virtual_geometry_cluster_when_children_exceed
             resident_pages: Vec::new(),
             requested_pages: vec![100],
             dirty_requested_pages: vec![100],
+            evictable_pages: Vec::new(),
+        }
+    );
+}
+
+#[test]
+fn visibility_context_prioritizes_virtual_geometry_pages_backing_more_visible_clusters_when_page_budget_is_tight(
+) {
+    let mut world = World::new();
+    remove_default_meshes(&mut world);
+
+    let mesh = world.spawn_mesh_node(
+        model_handle("res://models/virtual_geometry.obj"),
+        material_handle("res://materials/virtual_geometry.material.toml"),
+    );
+    world
+        .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
+        .expect("mesh transform should update");
+
+    let mut extract = world.to_render_frame_extract();
+    extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
+        cluster_budget: 3,
+        page_budget: 1,
+        clusters: vec![
+            virtual_cluster(mesh, 10, 100, 0, None, Vec3::new(0.0, 0.0, 0.0), 12.0),
+            virtual_cluster(mesh, 20, 200, 1, None, Vec3::new(0.1, 0.0, 0.0), 8.0),
+            virtual_cluster(mesh, 30, 200, 1, None, Vec3::new(-0.1, 0.0, 0.0), 7.0),
+        ],
+        pages: vec![
+            virtual_page(100, false),
+            virtual_page(200, false),
+            virtual_page(500, true),
+        ],
+    });
+
+    let context = VisibilityContext::from(&extract);
+
+    assert_eq!(
+        context.virtual_geometry_page_upload_plan,
+        VisibilityVirtualGeometryPageUploadPlan {
+            resident_pages: vec![500],
+            requested_pages: vec![200],
+            dirty_requested_pages: vec![200],
+            evictable_pages: vec![500],
+        }
+    );
+    assert_eq!(
+        context.virtual_geometry_feedback,
+        VisibilityVirtualGeometryFeedback {
+            visible_cluster_ids: vec![10, 20, 30],
+            requested_pages: vec![200],
+            evictable_pages: vec![500],
+        }
+    );
+}
+
+#[test]
+fn visibility_context_uses_aggregate_screen_space_error_to_break_virtual_geometry_page_priority_ties(
+) {
+    let mut world = World::new();
+    remove_default_meshes(&mut world);
+
+    let mesh = world.spawn_mesh_node(
+        model_handle("res://models/virtual_geometry.obj"),
+        material_handle("res://materials/virtual_geometry.material.toml"),
+    );
+    world
+        .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
+        .expect("mesh transform should update");
+
+    let mut extract = world.to_render_frame_extract();
+    extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
+        cluster_budget: 4,
+        page_budget: 1,
+        clusters: vec![
+            virtual_cluster(mesh, 10, 100, 0, None, Vec3::new(0.0, 0.0, 0.0), 7.5),
+            virtual_cluster(mesh, 11, 100, 0, None, Vec3::new(0.1, 0.0, 0.0), 6.5),
+            virtual_cluster(mesh, 20, 200, 0, None, Vec3::new(-0.1, 0.0, 0.0), 6.0),
+            virtual_cluster(mesh, 21, 200, 0, None, Vec3::new(-0.2, 0.0, 0.0), 5.0),
+        ],
+        pages: vec![virtual_page(100, false), virtual_page(200, false)],
+    });
+
+    let context = VisibilityContext::from(&extract);
+
+    assert_eq!(
+        context.virtual_geometry_page_upload_plan,
+        VisibilityVirtualGeometryPageUploadPlan {
+            resident_pages: Vec::new(),
+            requested_pages: vec![100],
+            dirty_requested_pages: vec![100],
+            evictable_pages: Vec::new(),
+        }
+    );
+    assert_eq!(
+        context.virtual_geometry_feedback,
+        VisibilityVirtualGeometryFeedback {
+            visible_cluster_ids: vec![10, 11, 20, 21],
+            requested_pages: vec![100],
             evictable_pages: Vec::new(),
         }
     );

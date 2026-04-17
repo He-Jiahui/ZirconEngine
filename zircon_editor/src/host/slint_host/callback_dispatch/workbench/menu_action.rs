@@ -1,6 +1,6 @@
-use crate::editor_event::{host_adapter, EditorEventRuntime};
-use crate::host::slint_host::event_bridge::SlintDispatchEffects;
 use crate::LayoutCommand;
+use crate::editor_event::{EditorEventRuntime, host_adapter};
+use crate::host::slint_host::event_bridge::SlintDispatchEffects;
 
 use super::super::common::dispatch_envelope;
 use super::control::dispatch_builtin_workbench_menu_action;

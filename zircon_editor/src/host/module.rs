@@ -5,7 +5,7 @@ use std::sync::Arc;
 use zircon_core::{
     DriverDescriptor, ManagerDescriptor, ModuleDescriptor, ServiceKind, ServiceObject, StartupMode,
 };
-use zircon_manager::MANAGER_MODULE_NAME;
+use zircon_foundation::FOUNDATION_MODULE_NAME;
 use zircon_module::{dependency_on, factory, qualified_name};
 
 use crate::manager::EditorManager;
@@ -35,7 +35,7 @@ pub fn module_descriptor() -> ModuleDescriptor {
         qualified_name(EDITOR_MODULE_NAME, ServiceKind::Manager, "EditorManager"),
         StartupMode::Lazy,
         vec![dependency_on(
-            MANAGER_MODULE_NAME,
+            FOUNDATION_MODULE_NAME,
             ServiceKind::Manager,
             "ConfigManager",
         )],

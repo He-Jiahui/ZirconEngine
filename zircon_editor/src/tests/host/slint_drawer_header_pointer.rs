@@ -55,6 +55,7 @@ fn shared_drawer_header_pointer_click_dispatches_drawer_toggle_through_runtime_d
         &model,
         &geometry,
         &WorkbenchChromeMetrics::default(),
+        Some(&template_bridge.root_shell_frames()),
     ));
 
     let dispatched = dispatch_shared_drawer_header_pointer_click(
@@ -89,6 +90,86 @@ fn shared_drawer_header_pointer_click_dispatches_drawer_toggle_through_runtime_d
             slot: ActivityDrawerSlot::LeftTop,
             mode: ActivityDrawerMode::Collapsed,
         })
+    );
+}
+
+#[test]
+fn shared_drawer_header_pointer_layout_prefers_shared_root_projection_for_visible_drawer_regions() {
+    let fixture = crate::default_preview_fixture();
+    let chrome = fixture.build_chrome();
+    let model = WorkbenchViewModel::build(&chrome);
+    let metrics = WorkbenchChromeMetrics::default();
+    let mut bridge = BuiltinWorkbenchTemplateBridge::new(UiSize::new(1280.0, 720.0))
+        .expect("builtin workbench template bridge should build");
+    bridge
+        .recompute_layout_with_chrome(UiSize::new(1280.0, 720.0), &chrome, &metrics)
+        .expect("builtin workbench template bridge should recompute visible drawer frames");
+    let root_frames = bridge.root_shell_frames();
+    let left_geometry = UiFrame::new(180.0, 140.0, 180.0, 519.0);
+    let bottom_geometry = UiFrame::new(52.0, 704.0, 777.0, 120.0);
+    let geometry = crate::WorkbenchShellGeometry {
+        region_frames: [
+            (
+                crate::ShellRegionId::Left,
+                crate::ShellFrame::new(
+                    left_geometry.x,
+                    left_geometry.y,
+                    left_geometry.width,
+                    left_geometry.height,
+                ),
+            ),
+            (
+                crate::ShellRegionId::Document,
+                crate::ShellFrame::new(493.0, 140.0, 531.0, 440.0),
+            ),
+            (
+                crate::ShellRegionId::Right,
+                crate::ShellFrame::new(1025.0, 140.0, 255.0, 440.0),
+            ),
+            (
+                crate::ShellRegionId::Bottom,
+                crate::ShellFrame::new(
+                    bottom_geometry.x,
+                    bottom_geometry.y,
+                    bottom_geometry.width,
+                    bottom_geometry.height,
+                ),
+            ),
+        ]
+        .into_iter()
+        .collect(),
+        ..crate::WorkbenchShellGeometry::default()
+    };
+
+    let layout = build_workbench_drawer_header_pointer_layout(
+        &model,
+        &geometry,
+        &metrics,
+        Some(&root_frames),
+    );
+
+    let left_surface = layout
+        .surfaces
+        .iter()
+        .find(|surface| surface.key == "left")
+        .expect("left drawer surface should exist");
+    assert_eq!(
+        left_surface.strip_frame,
+        root_frames
+            .left_drawer_header_frame
+            .expect("shared left drawer header frame should exist")
+    );
+
+    let bottom_surface = layout
+        .surfaces
+        .iter()
+        .find(|surface| surface.key == "bottom")
+        .expect("bottom drawer surface should exist");
+    assert_eq!(
+        bottom_surface.strip_frame,
+        root_frames
+            .bottom_drawer_header_frame
+            .expect("shared bottom drawer header frame should exist")
     );
 }
 

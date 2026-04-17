@@ -4,3 +4,4 @@ mod entry;
 mod runtime_presenter;
 
 pub use entry::{BuiltinEntryModuleSet, EntryConfig, EntryProfile, EntryRunner};
+pub use entry::{BuiltinEngineEntry, EngineEntry, EntryRunMode};

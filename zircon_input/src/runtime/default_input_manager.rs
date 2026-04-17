@@ -1,9 +1,9 @@
 use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use zircon_manager::{
-    InputEvent, InputEventRecord, InputManager as InputManagerFacade, InputSnapshot,
-};
+use zircon_manager::InputManager as InputManagerFacade;
+
+use crate::{InputEvent, InputEventRecord, InputSnapshot};
 
 use super::InputState;
 

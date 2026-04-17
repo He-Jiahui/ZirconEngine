@@ -8,7 +8,10 @@ mod level_system;
 mod module;
 mod render_extract;
 mod serializer;
+mod semantics;
 mod world;
+
+use zircon_module::{EngineModule, ModuleDescriptor};
 
 pub use components::{
     aspect_ratio_from_viewport_size, default_render_layer_mask, default_viewport_aspect_ratio,
@@ -39,9 +42,27 @@ pub use render_extract::{
     RenderWorldSnapshotHandle, VisibilityInput, VisibilityRenderableInput,
 };
 pub use serializer::SceneAssetSerializer;
+pub use semantics::{ComponentData, EntityIdentity, RuntimeObject, RuntimeSystem};
 pub use world::{SceneProjectError, World};
 
 pub type Scene = World;
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct SceneModule;
+
+impl EngineModule for SceneModule {
+    fn module_name(&self) -> &'static str {
+        SCENE_MODULE_NAME
+    }
+
+    fn module_description(&self) -> &'static str {
+        "ECS world management, hierarchy, level lifecycle, and render extraction"
+    }
+
+    fn descriptor(&self) -> ModuleDescriptor {
+        module_descriptor()
+    }
+}
 
 #[cfg(test)]
 mod tests;

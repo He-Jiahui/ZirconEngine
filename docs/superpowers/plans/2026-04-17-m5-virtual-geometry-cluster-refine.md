@@ -1,12 +1,12 @@
 ---
 related_code:
   - zircon_scene/src/components.rs
-  - zircon_graphics/src/visibility/planning/build_virtual_geometry_plan.rs
+  - zircon_graphics/src/visibility/planning/build_virtual_geometry_plan/mod.rs
   - zircon_graphics/src/tests/visibility.rs
   - zircon_graphics/src/tests/virtual_geometry_prepare_render.rs
 implementation_files:
   - zircon_scene/src/components.rs
-  - zircon_graphics/src/visibility/planning/build_virtual_geometry_plan.rs
+  - zircon_graphics/src/visibility/planning/build_virtual_geometry_plan/mod.rs
 plan_sources:
   - user: 2026-04-17 continue next M5 slice after Virtual Geometry GPU uploader/readback
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
@@ -63,5 +63,4 @@ doc_type: milestone-detail
 
 - hierarchy 的更深层 split-merge / hysteresis / SSE threshold policy
 - cluster frontier 和 page residency manager 的联动
-- refined frontier 对 indirect draw、occlusion、cluster raster 的真正消费
-- `Hybrid GI` 的 radiance-cache lighting resolve
+- refined frontier 对 indirect draw、occlusion、cluster raster 的真正消费；当前仍只有 prepare-driven fallback `draw_index_count + tint` consumption baseline

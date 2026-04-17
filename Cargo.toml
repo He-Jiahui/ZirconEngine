@@ -18,12 +18,14 @@ members = [
     "zircon_editor",
     "zircon_editor_ui",
     "zircon_manager",
+    "zircon_foundation",
     "zircon_module",
     "zircon_entry",
     "zircon_script",
     "zircon_animation",
     "zircon_net",
     "zircon_input",
+    "zircon_input_protocol",
     "zircon_navigation",
     "zircon_particles",
 ]
@@ -42,16 +44,16 @@ crossbeam-channel = "0.5.15"
 glam = { version = "0.32.1", features = ["serde"] }
 gltf = "1.4.1"
 image = "0.25.10"
-naga = { version = "27.0.3", features = ["wgsl-in"] }
-notify = "6.1.1"
+naga = { version = "29.0.1", features = ["wgsl-in"] }
+notify = "9.0.0-rc.3"
 pollster = "0.4.0"
 serde = { version = "1.0.228", features = ["derive"] }
-slint = { version = "1.15", default-features = false, features = ["std", "backend-winit", "renderer-skia", "unstable-wgpu-27", "unstable-winit-030", "compat-1-2"] }
-slint-build = "1.15"
+slint = { version = "1.16.0", default-features = false, features = ["std", "backend-winit", "renderer-skia", "unstable-wgpu-27", "unstable-winit-030", "compat-1-2"] }
+slint-build = "1.16.0"
 tobj = "4.0.3"
 thiserror = "2.0.18"
-toml = "0.9.8"
+toml = "1.1.2+spec-1.1.0"
 tracing = "0.1.44"
-uuid = { version = "1.23.0", features = ["v4", "serde"] }
-wgpu = "27.0.1"
-winit = "0.30.13"
+uuid = { version = "1.23.1", features = ["v4", "serde"] }
+wgpu = "29.0.1"
+winit = "0.31.0-beta.2"

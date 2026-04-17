@@ -3,15 +3,12 @@ mod fallback;
 mod grid;
 mod handles;
 mod icon_vertex;
-mod icon_vertex_layout;
 mod icons;
 mod line_geometry;
 mod line_vertex;
-mod line_vertex_layout;
 mod model_uniform;
 mod scene_gizmo;
 mod scene_uniform;
-mod scene_uniform_from_frame;
 mod selection;
 mod wireframe;
 

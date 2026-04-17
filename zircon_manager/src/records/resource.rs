@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
-
-use super::AssetRecordKind;
+use zircon_resource::ResourceKind;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ResourceStateRecord {
@@ -14,7 +13,7 @@ pub enum ResourceStateRecord {
 pub struct ResourceStatusRecord {
     pub id: String,
     pub locator: String,
-    pub kind: AssetRecordKind,
+    pub kind: ResourceKind,
     pub artifact_locator: Option<String>,
     pub revision: u64,
     pub state: ResourceStateRecord,

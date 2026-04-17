@@ -1,11 +1,10 @@
 use serde_json::Value;
 use zircon_core::{ChannelReceiver, CoreError, EngineEvent};
+use zircon_input_protocol::{InputEvent, InputEventRecord, InputSnapshot};
 
 use crate::{
-    AssetChangeRecord, AssetPipelineInfo, AssetStatusRecord, EditorAssetCatalogSnapshotRecord,
-    EditorAssetChangeRecord, EditorAssetDetailsRecord, InputEvent, InputEventRecord, InputSnapshot,
-    LevelSummary, ProjectInfo, RenderingBackendInfo, ResourceChangeRecord, ResourceStatusRecord,
-    WorldHandle,
+    AssetChangeRecord, AssetPipelineInfo, AssetStatusRecord, LevelSummary, ProjectInfo,
+    RenderingBackendInfo, ResourceChangeRecord, ResourceStatusRecord, WorldHandle,
 };
 
 pub trait RenderingManager: Send + Sync {
@@ -34,19 +33,6 @@ pub trait AssetManager: Send + Sync {
     fn subscribe_asset_changes(&self) -> ChannelReceiver<AssetChangeRecord>;
     fn import_asset(&self, uri: &str) -> Result<Option<AssetStatusRecord>, CoreError>;
     fn reimport_all(&self) -> Result<Vec<AssetStatusRecord>, CoreError>;
-}
-
-pub trait EditorAssetManager: Send + Sync {
-    fn catalog_snapshot(&self) -> EditorAssetCatalogSnapshotRecord;
-    fn asset_details(&self, uuid: &str) -> Option<EditorAssetDetailsRecord>;
-    fn subscribe_editor_asset_changes(&self) -> ChannelReceiver<EditorAssetChangeRecord>;
-    fn mark_preview_dirty(&self, uuid: &str)
-        -> Result<Option<EditorAssetDetailsRecord>, CoreError>;
-    fn request_preview_refresh(
-        &self,
-        uuid: &str,
-        visible: bool,
-    ) -> Result<Option<EditorAssetDetailsRecord>, CoreError>;
 }
 
 pub trait ResourceManager: Send + Sync {

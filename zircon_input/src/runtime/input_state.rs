@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use zircon_manager::{InputButton, InputEvent, InputEventRecord};
+use crate::{InputButton, InputEvent, InputEventRecord};
 
 #[derive(Debug, Default)]
 pub(crate) struct InputState {

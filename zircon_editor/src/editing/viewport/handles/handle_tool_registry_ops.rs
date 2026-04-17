@@ -1,4 +1,4 @@
-use zircon_graphics::GizmoAxis;
+use crate::GizmoAxis;
 use zircon_math::{Transform, UVec2, Vec2};
 use zircon_scene::{
     HandleOverlayExtract, Scene, SceneViewportSettings, SceneViewportTool, ViewportCameraSnapshot,

@@ -1,4 +1,5 @@
 use super::*;
+use crate::host::slint_host::tab_drag::resolve_workbench_tab_drop_route_with_root_frames;
 
 const WORKBENCH_POINTER_DOWN: i32 = 0;
 const WORKBENCH_POINTER_MOVE: i32 = 1;
@@ -69,8 +70,9 @@ impl SlintEditorHost {
         let chrome = self.build_chrome();
         let model = WorkbenchViewModel::build(&chrome);
         let pointer_route = self.shell_pointer_bridge.drag_route_at(UiPoint::new(x, y));
+        let root_shell_frames = self.template_bridge.root_shell_frames();
         let Some(resolved) = self.shell_geometry.as_ref().and_then(|geometry| {
-            resolve_workbench_tab_drop_route(
+            resolve_workbench_tab_drop_route_with_root_frames(
                 &layout,
                 &model,
                 geometry,
@@ -80,6 +82,7 @@ impl SlintEditorHost {
                 target_group.as_str(),
                 x,
                 y,
+                Some(&root_shell_frames),
             )
         }) else {
             self.set_status_line(format!("Unsupported drop target {target_group}"));

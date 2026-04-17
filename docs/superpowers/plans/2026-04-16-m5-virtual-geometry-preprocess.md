@@ -5,9 +5,9 @@ related_code:
   - zircon_scene/src/lib.rs
   - zircon_render_server/src/types.rs
   - zircon_render_server/src/tests.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract.rs
+  - zircon_graphics/src/runtime/server/submit_frame_extract/mod.rs
   - zircon_graphics/src/visibility/mod.rs
-  - zircon_graphics/src/visibility/context/from_extract_with_history.rs
+  - zircon_graphics/src/visibility/context/from_extract_with_history/mod.rs
   - zircon_graphics/src/visibility/declarations/mod.rs
   - zircon_graphics/src/visibility/declarations/visibility_context.rs
   - zircon_graphics/src/visibility/declarations/visibility_history_snapshot.rs
@@ -15,7 +15,7 @@ related_code:
   - zircon_graphics/src/visibility/declarations/visibility_virtual_geometry_feedback.rs
   - zircon_graphics/src/visibility/declarations/visibility_virtual_geometry_page_upload_plan.rs
   - zircon_graphics/src/visibility/planning/mod.rs
-  - zircon_graphics/src/visibility/planning/build_virtual_geometry_plan.rs
+  - zircon_graphics/src/visibility/planning/build_virtual_geometry_plan/mod.rs
   - zircon_graphics/src/tests/visibility.rs
   - zircon_graphics/src/tests/render_server_bridge.rs
   - docs/assets-and-rendering/srp-rhi-render-server-architecture.md
@@ -25,9 +25,9 @@ implementation_files:
   - zircon_scene/src/lib.rs
   - zircon_render_server/src/types.rs
   - zircon_render_server/src/tests.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract.rs
+  - zircon_graphics/src/runtime/server/submit_frame_extract/mod.rs
   - zircon_graphics/src/visibility/mod.rs
-  - zircon_graphics/src/visibility/context/from_extract_with_history.rs
+  - zircon_graphics/src/visibility/context/from_extract_with_history/mod.rs
   - zircon_graphics/src/visibility/declarations/mod.rs
   - zircon_graphics/src/visibility/declarations/visibility_context.rs
   - zircon_graphics/src/visibility/declarations/visibility_history_snapshot.rs
@@ -35,7 +35,7 @@ implementation_files:
   - zircon_graphics/src/visibility/declarations/visibility_virtual_geometry_feedback.rs
   - zircon_graphics/src/visibility/declarations/visibility_virtual_geometry_page_upload_plan.rs
   - zircon_graphics/src/visibility/planning/mod.rs
-  - zircon_graphics/src/visibility/planning/build_virtual_geometry_plan.rs
+  - zircon_graphics/src/visibility/planning/build_virtual_geometry_plan/mod.rs
   - zircon_graphics/src/tests/visibility.rs
   - zircon_graphics/src/tests/render_server_bridge.rs
   - docs/assets-and-rendering/srp-rhi-render-server-architecture.md

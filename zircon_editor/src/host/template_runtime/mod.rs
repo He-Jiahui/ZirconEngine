@@ -1,3 +1,4 @@
+mod builtin;
 mod harness;
 mod host_nodes;
 mod model;

@@ -7,15 +7,19 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use slint::{ComponentHandle, PhysicalSize};
 use zircon_core::CoreRuntime;
-use zircon_manager::MANAGER_MODULE_NAME;
+use zircon_foundation::{
+    FOUNDATION_MODULE_NAME, module_descriptor as foundation_module_descriptor,
+};
 use zircon_math::UVec2;
-use zircon_scene::{DefaultLevelManager, DisplayMode};
+use zircon_scene::{DefaultLevelManager, DisplayMode, ViewOrientation};
+mod floating_window_projection;
 
 use super::*;
 use crate::{
-    module, EditorAssetEvent, EditorDraftEvent, EditorEvent, EditorEventRuntime, EditorManager,
-    EditorState, EditorViewportEvent, LayoutCommand, MainPageId, MenuAction, ViewDescriptorId,
-    ViewInstanceId, EDITOR_MANAGER_NAME,
+    ActivityDrawerMode, ActivityDrawerSlot, EDITOR_MANAGER_NAME, EditorAssetEvent,
+    EditorDraftEvent, EditorEvent, EditorEventRuntime, EditorManager, EditorSessionMode,
+    EditorState, EditorViewportEvent, LayoutCommand, MainPageId, MenuAction, RecentProjectEntry,
+    RecentProjectValidation, ShellFrame, ViewDescriptorId, ViewInstanceId, module,
 };
 
 struct ChildWindowHostHarness {
@@ -32,12 +36,12 @@ impl ChildWindowHostHarness {
         let config_path = unique_temp_path(prefix);
         std::env::set_var("ZIRCON_EDITOR_CONFIG_PATH", &config_path);
         let core = CoreRuntime::new();
-        core.register_module(zircon_manager::module_descriptor())
+        core.register_module(foundation_module_descriptor())
             .unwrap();
         core.register_module(zircon_asset::module_descriptor())
             .unwrap();
         core.register_module(module::module_descriptor()).unwrap();
-        core.activate_module(MANAGER_MODULE_NAME).unwrap();
+        core.activate_module(FOUNDATION_MODULE_NAME).unwrap();
         core.activate_module(zircon_asset::ASSET_MODULE_NAME)
             .unwrap();
         core.activate_module(module::EDITOR_MODULE_NAME).unwrap();
@@ -139,6 +143,59 @@ impl ChildWindowHostHarness {
             .expect("menu action dispatch should succeed");
         host.apply_dispatch_effects(effects);
         host.recompute_if_dirty();
+    }
+
+    fn activate_workbench_page(&self) {
+        let mut host = self.host.borrow_mut();
+        host.runtime.set_session_mode(EditorSessionMode::Project);
+        host.editor_manager
+            .dismiss_welcome_page()
+            .expect("welcome page should dismiss");
+        host.mark_layout_dirty();
+        host.refresh_ui();
+        host.recompute_if_dirty();
+    }
+
+    fn activate_drawer_tab(&self, slot: ActivityDrawerSlot, instance_id: &str) {
+        let mut host = self.host.borrow_mut();
+        let effects = callback_dispatch::dispatch_layout_command(
+            &host.runtime,
+            LayoutCommand::ActivateDrawerTab {
+                slot,
+                instance_id: ViewInstanceId::new(instance_id),
+            },
+        )
+        .expect("drawer tab activation should succeed");
+        host.apply_dispatch_effects(effects);
+        let effects = callback_dispatch::dispatch_layout_command(
+            &host.runtime,
+            LayoutCommand::SetDrawerMode {
+                slot,
+                mode: ActivityDrawerMode::Pinned,
+            },
+        )
+        .expect("drawer mode update should succeed");
+        host.apply_dispatch_effects(effects);
+        host.refresh_ui();
+        host.recompute_if_dirty();
+    }
+
+    fn stage_missing_recent_project(&self, path: &str, display_name: &str) {
+        self.host
+            .borrow()
+            .editor_manager
+            .update_recent_project(path, display_name)
+            .expect("recent project should be staged");
+        let mut host = self.host.borrow_mut();
+        host.startup_session.recent_projects = vec![RecentProjectEntry {
+            display_name: display_name.to_string(),
+            path: path.to_string(),
+            last_opened_unix_ms: 1,
+            validation: RecentProjectValidation::Missing,
+        }];
+        host.startup_session.status_message = "Choose a recent project or create a new one.".into();
+        host.refresh_welcome_snapshot();
+        host.refresh_ui();
     }
 }
 
@@ -391,9 +448,14 @@ fn root_menu_popup_scroll_and_dismiss_flow_through_shared_pointer_bridge_in_real
         harness.dispatch_menu_action(&format!("SavePreset.alpha-{index:02}"));
     }
 
-    let window_button = harness.root_ui.get_window_menu_button_frame();
-    let click_x = window_button.x + window_button.width * 0.5;
-    let click_y = window_button.y + window_button.height * 0.5;
+    let (click_x, click_y) = {
+        let host = harness.host.borrow();
+        let window_button = host.menu_pointer_layout.button_frames[4];
+        (
+            window_button.x + window_button.width * 0.5,
+            window_button.y + window_button.height * 0.5,
+        )
+    };
 
     let baseline = harness.journal_len();
     harness
@@ -466,6 +528,652 @@ fn root_viewport_toolbar_pointer_click_uses_projection_fallback_in_real_host() {
             mode: DisplayMode::WireOverlay,
         })]
     );
+}
+
+#[test]
+fn root_viewport_toolbar_pointer_click_prefers_shared_projection_surface_width_over_stale_document_geometry()
+ {
+    let _guard = lock_env();
+
+    let harness =
+        ChildWindowHostHarness::new("zircon_slint_root_viewport_toolbar_projection_width");
+    let (point_x, point_y) = {
+        let mut host = harness.host.borrow_mut();
+        let geometry = host
+            .shell_geometry
+            .as_mut()
+            .expect("root host should have computed shell geometry");
+        geometry
+            .region_frames
+            .insert(ShellRegionId::Left, ShellFrame::default());
+        geometry
+            .region_frames
+            .insert(ShellRegionId::Right, ShellFrame::default());
+        geometry
+            .region_frames
+            .insert(ShellRegionId::Bottom, ShellFrame::default());
+        let document = geometry.region_frame(ShellRegionId::Document);
+        geometry.region_frames.insert(
+            ShellRegionId::Document,
+            ShellFrame::new(document.x, document.y, 800.0, document.height),
+        );
+
+        let surface_size = host.viewport_toolbar_surface_size("editor.scene#1");
+        assert!(
+            surface_size.width > 1000.0,
+            "shared projection width should outrank stale document geometry"
+        );
+        host.viewport_toolbar_bridge
+            .recompute_layout(surface_size)
+            .expect("viewport toolbar projection should recompute");
+        let control_frame = host
+            .viewport_toolbar_bridge
+            .control_frame_for_action("align.neg_z")
+            .expect("align.neg_z should map to a projected control frame");
+        (
+            control_frame.x + control_frame.width * 0.75,
+            control_frame.y + control_frame.height * 0.5,
+        )
+    };
+    let baseline = harness.journal_len();
+
+    harness.root_ui.invoke_viewport_toolbar_pointer_clicked(
+        "editor.scene#1".into(),
+        "align.neg_z".into(),
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        point_x,
+        point_y,
+    );
+
+    assert_eq!(
+        harness.delta_events_since(baseline),
+        vec![EditorEvent::Viewport(EditorViewportEvent::AlignView {
+            orientation: ViewOrientation::NegZ,
+        })]
+    );
+}
+
+#[test]
+fn root_document_tab_pointer_click_prefers_shared_projection_surface_width_over_stale_document_geometry()
+ {
+    let _guard = lock_env();
+
+    let harness = ChildWindowHostHarness::new("zircon_slint_root_document_tab_projection_width");
+    harness.activate_workbench_page();
+    let expected_instance = ViewInstanceId::new("editor.scene#1");
+    let (tab_index, tab_x, point_x, point_y, tab_width) = {
+        let mut host = harness.host.borrow_mut();
+        let chrome = host.runtime.chrome_snapshot();
+        let model = WorkbenchViewModel::build(&chrome);
+        let tab_index = model
+            .document_tabs
+            .iter()
+            .position(|tab| tab.instance_id == expected_instance)
+            .expect("scene view should exist in document tabs");
+        let shared_tabs_frame = host
+            .template_bridge
+            .control_frame("DocumentTabsRoot")
+            .expect("document tabs root should map to a projected control frame");
+        assert!(
+            shared_tabs_frame.width > 1000.0,
+            "shared projection width should outrank stale document geometry"
+        );
+        {
+            let geometry = host
+                .shell_geometry
+                .as_mut()
+                .expect("root host should have computed shell geometry");
+            geometry
+                .region_frames
+                .insert(ShellRegionId::Left, ShellFrame::default());
+            geometry
+                .region_frames
+                .insert(ShellRegionId::Right, ShellFrame::default());
+            geometry
+                .region_frames
+                .insert(ShellRegionId::Bottom, ShellFrame::default());
+            let document = geometry.region_frame(ShellRegionId::Document);
+            geometry.region_frames.insert(
+                ShellRegionId::Document,
+                ShellFrame::new(document.x, document.y, 800.0, document.height),
+            );
+            let geometry = geometry.clone();
+            let floating_window_projection_bundle =
+                crate::host::slint_host::floating_window_projection::FloatingWindowProjectionBundle::default();
+            host.sync_document_tab_pointer_layout(
+                &model,
+                &geometry,
+                &floating_window_projection_bundle,
+            );
+        }
+
+        let tab_width = 140.0;
+        let tab_x = shared_tabs_frame.width - tab_width - 24.0;
+        (tab_index as i32, tab_x, tab_x + 32.0, 14.0, tab_width)
+    };
+    let baseline = harness.journal_len();
+
+    harness.root_ui.invoke_document_tab_pointer_clicked(
+        "main".into(),
+        tab_index,
+        tab_x,
+        tab_width,
+        point_x,
+        point_y,
+    );
+
+    assert_eq!(
+        harness.delta_events_since(baseline),
+        vec![EditorEvent::Layout(LayoutCommand::FocusView {
+            instance_id: expected_instance,
+        })]
+    );
+}
+
+#[test]
+fn root_host_page_pointer_click_prefers_shared_projection_shell_width_over_metric_strip_estimate() {
+    let _guard = lock_env();
+
+    let harness = ChildWindowHostHarness::new("zircon_slint_root_host_page_projection_width");
+    let (tab_x, point_x, point_y, tab_width) = {
+        let mut host = harness.host.borrow_mut();
+        let chrome = host.runtime.chrome_snapshot();
+        let model = WorkbenchViewModel::build(&chrome);
+        let shared_shell_frame = host
+            .template_bridge
+            .control_frame("WorkbenchShellRoot")
+            .expect("workbench shell root should map to a projected control frame");
+        assert!(
+            shared_shell_frame.width > 1000.0,
+            "shared shell projection width should outrank host-page metric estimates"
+        );
+        host.sync_host_page_pointer_layout(&model);
+
+        let tab_width = 220.0;
+        let tab_x = shared_shell_frame.width - tab_width - 24.0;
+        (tab_x, tab_x + tab_width * 0.5, 12.0, tab_width)
+    };
+    let baseline = harness.journal_len();
+
+    harness
+        .root_ui
+        .invoke_host_page_pointer_clicked(0, tab_x, tab_width, point_x, point_y);
+
+    assert_eq!(
+        harness.delta_events_since(baseline),
+        vec![EditorEvent::Layout(LayoutCommand::ActivateMainPage {
+            page_id: MainPageId::workbench(),
+        })]
+    );
+}
+
+#[test]
+fn root_activity_rail_pointer_click_prefers_shared_projection_surface_when_left_region_geometry_is_stale()
+ {
+    let _guard = lock_env();
+
+    let harness = ChildWindowHostHarness::new("zircon_slint_root_activity_rail_projection_width");
+    harness.activate_workbench_page();
+    let (point_x, point_y) = {
+        let mut host = harness.host.borrow_mut();
+        let chrome = host.runtime.chrome_snapshot();
+        let model = WorkbenchViewModel::build(&chrome);
+        let shared_activity_rail = host
+            .template_bridge
+            .control_frame("ActivityRailRoot")
+            .expect("activity rail root should map to a projected control frame");
+        assert!(
+            shared_activity_rail.width > 0.0,
+            "shared projection activity rail should exist"
+        );
+        {
+            let geometry = host
+                .shell_geometry
+                .as_mut()
+                .expect("root host should have computed shell geometry");
+            geometry
+                .region_frames
+                .insert(ShellRegionId::Left, ShellFrame::default());
+            geometry
+                .region_frames
+                .insert(ShellRegionId::Right, ShellFrame::default());
+            geometry
+                .region_frames
+                .insert(ShellRegionId::Bottom, ShellFrame::default());
+            let geometry = geometry.clone();
+            host.sync_activity_rail_pointer_layout(&model, &geometry);
+        }
+
+        (shared_activity_rail.width * 0.5, 20.0)
+    };
+    let baseline = harness.journal_len();
+
+    harness
+        .root_ui
+        .invoke_activity_rail_pointer_clicked("left".into(), point_x, point_y);
+
+    assert_eq!(
+        harness.delta_events_since(baseline),
+        vec![EditorEvent::Layout(LayoutCommand::SetDrawerMode {
+            slot: ActivityDrawerSlot::LeftTop,
+            mode: ActivityDrawerMode::Collapsed,
+        })]
+    );
+}
+
+#[test]
+fn root_host_viewport_size_matches_presented_viewport_content_frame_when_drawers_are_collapsed() {
+    let _guard = lock_env();
+
+    let harness = ChildWindowHostHarness::new("zircon_slint_root_viewport_size_alignment");
+    let viewport_frame = harness.root_ui.get_viewport_content_frame();
+    let host = harness.host.borrow();
+
+    assert_eq!(
+        host.viewport_size,
+        UVec2::new(
+            viewport_frame.width.max(0.0).round() as u32,
+            viewport_frame.height.max(0.0).round() as u32,
+        )
+    );
+}
+
+#[test]
+fn root_host_recomputes_builtin_template_bridge_with_visible_drawer_shell_and_header_frames() {
+    let _guard = lock_env();
+
+    let harness = ChildWindowHostHarness::new("zircon_slint_root_visible_drawer_template_frames");
+    harness.activate_workbench_page();
+
+    let host = harness.host.borrow();
+    let body_frame = host
+        .template_bridge
+        .control_frame("WorkbenchBody")
+        .expect("workbench body control frame should exist");
+    let expected_center_height = body_frame.height - 164.0 - 1.0;
+    assert_eq!(
+        host.template_bridge.control_frame("LeftDrawerShellRoot"),
+        Some(UiFrame::new(
+            body_frame.x,
+            body_frame.y,
+            312.0,
+            expected_center_height
+        ))
+    );
+    assert_eq!(
+        host.template_bridge.control_frame("LeftDrawerHeaderRoot"),
+        Some(UiFrame::new(body_frame.x + 35.0, body_frame.y, 277.0, 25.0,))
+    );
+    assert_eq!(
+        host.template_bridge.control_frame("RightDrawerShellRoot"),
+        Some(UiFrame::new(
+            body_frame.x + body_frame.width - 308.0,
+            body_frame.y,
+            308.0,
+            expected_center_height,
+        ))
+    );
+    assert_eq!(
+        host.template_bridge.control_frame("RightDrawerHeaderRoot"),
+        Some(UiFrame::new(
+            body_frame.x + body_frame.width - 308.0,
+            body_frame.y,
+            273.0,
+            25.0,
+        ))
+    );
+    assert_eq!(
+        host.template_bridge.control_frame("BottomDrawerShellRoot"),
+        Some(UiFrame::new(
+            body_frame.x,
+            body_frame.y + body_frame.height - 164.0,
+            body_frame.width,
+            164.0,
+        ))
+    );
+    assert_eq!(
+        host.template_bridge.control_frame("BottomDrawerHeaderRoot"),
+        Some(UiFrame::new(
+            body_frame.x,
+            body_frame.y + body_frame.height - 164.0,
+            body_frame.width,
+            25.0,
+        ))
+    );
+}
+
+#[test]
+fn root_welcome_recent_pointer_click_uses_projection_fallback_in_real_host() {
+    let _guard = lock_env();
+
+    let harness = ChildWindowHostHarness::new("zircon_slint_root_welcome_recent_projection");
+    harness.stage_missing_recent_project("E:/Missing/RecentProject", "RecentProject");
+
+    harness
+        .root_ui
+        .invoke_welcome_recent_pointer_clicked(160.0, 204.0, 0.0, 0.0);
+
+    let host = harness.host.borrow();
+    assert!(host.welcome_recent_pointer_size.width > 0.0);
+    assert!(host.welcome_recent_pointer_size.height > 0.0);
+    assert!(
+        host.runtime
+            .chrome_snapshot()
+            .welcome
+            .recent_projects
+            .is_empty()
+    );
+    assert_eq!(
+        host.runtime.editor_snapshot().status_line,
+        "Removed recent project E:/Missing/RecentProject"
+    );
+}
+
+#[test]
+fn root_welcome_recent_pointer_move_prefers_cached_size_over_projection_fallback_in_real_host() {
+    let _guard = lock_env();
+
+    let harness = ChildWindowHostHarness::new("zircon_slint_root_welcome_recent_cached_move");
+    harness.stage_missing_recent_project("E:/Missing/RecentProject", "RecentProject");
+    {
+        let mut host = harness.host.borrow_mut();
+        host.welcome_recent_pointer_size = UiSize::new(321.0, 222.0);
+    }
+
+    harness
+        .root_ui
+        .invoke_welcome_recent_pointer_moved(160.0, 204.0, 0.0, 0.0);
+
+    let host = harness.host.borrow();
+    assert_eq!(host.welcome_recent_pointer_size, UiSize::new(321.0, 222.0));
+}
+
+#[test]
+fn root_welcome_recent_pointer_scroll_prefers_cached_size_over_projection_fallback_in_real_host() {
+    let _guard = lock_env();
+
+    let harness = ChildWindowHostHarness::new("zircon_slint_root_welcome_recent_cached_scroll");
+    harness.stage_missing_recent_project("E:/Missing/RecentProject", "RecentProject");
+    {
+        let mut host = harness.host.borrow_mut();
+        host.welcome_recent_pointer_size = UiSize::new(321.0, 222.0);
+    }
+
+    harness
+        .root_ui
+        .invoke_welcome_recent_pointer_scrolled(160.0, 204.0, 24.0, 0.0, 0.0);
+
+    let host = harness.host.borrow();
+    assert_eq!(host.welcome_recent_pointer_size, UiSize::new(321.0, 222.0));
+}
+
+#[test]
+fn root_hierarchy_pointer_move_uses_region_frame_fallback_in_real_host() {
+    let _guard = lock_env();
+
+    let harness = ChildWindowHostHarness::new("zircon_slint_root_hierarchy_projection");
+    harness.activate_workbench_page();
+    harness.activate_drawer_tab(ActivityDrawerSlot::LeftTop, "editor.hierarchy#1");
+
+    harness
+        .root_ui
+        .invoke_hierarchy_pointer_moved(80.0, 40.0, 0.0, 0.0);
+
+    let host = harness.host.borrow();
+    assert!(host.hierarchy_pointer_size.width > 0.0);
+    assert!(host.hierarchy_pointer_size.height > 0.0);
+    assert_eq!(host.hierarchy_pointer_state.hovered_item_index, Some(1));
+}
+
+#[test]
+fn root_hierarchy_pointer_move_prefers_shared_drawer_content_projection_over_stale_left_region_geometry()
+ {
+    let _guard = lock_env();
+
+    let harness =
+        ChildWindowHostHarness::new("zircon_slint_root_hierarchy_content_projection_width");
+    harness.activate_workbench_page();
+    harness.activate_drawer_tab(ActivityDrawerSlot::LeftTop, "editor.hierarchy#1");
+
+    let expected_size = {
+        let mut host = harness.host.borrow_mut();
+        let shared_content = host
+            .template_bridge
+            .control_frame("LeftDrawerContentRoot")
+            .expect("left drawer content root should map to a projected control frame");
+        assert!(
+            shared_content.width > 200.0 && shared_content.height > 100.0,
+            "shared left drawer content frame should be larger than the stale fallback"
+        );
+        let geometry = host
+            .shell_geometry
+            .as_mut()
+            .expect("root host should have computed shell geometry");
+        let left = geometry.region_frame(ShellRegionId::Left);
+        geometry.region_frames.insert(
+            ShellRegionId::Left,
+            ShellFrame::new(left.x, left.y, 120.0, 80.0),
+        );
+        UiSize::new(shared_content.width, shared_content.height)
+    };
+
+    harness
+        .root_ui
+        .invoke_hierarchy_pointer_moved(80.0, 40.0, 0.0, 0.0);
+
+    let host = harness.host.borrow();
+    assert_eq!(
+        host.hierarchy_pointer_size, expected_size,
+        "shared drawer content projection should own hierarchy pointer sizing when root callback width/height are missing"
+    );
+}
+
+#[test]
+fn root_console_pointer_scroll_uses_region_frame_fallback_in_real_host() {
+    let _guard = lock_env();
+
+    let harness = ChildWindowHostHarness::new("zircon_slint_root_console_projection");
+    harness.activate_workbench_page();
+    harness.activate_drawer_tab(ActivityDrawerSlot::BottomLeft, "editor.console#1");
+
+    harness
+        .root_ui
+        .invoke_console_pointer_scrolled(24.0, 24.0, 48.0, 0.0, 0.0);
+
+    let host = harness.host.borrow();
+    assert!(host.console_scroll_surface.size().width > 0.0);
+    assert!(host.console_scroll_surface.size().height > 0.0);
+}
+
+#[test]
+fn root_console_pointer_scroll_prefers_shared_drawer_content_projection_over_stale_bottom_region_geometry()
+ {
+    let _guard = lock_env();
+
+    let harness =
+        ChildWindowHostHarness::new("zircon_slint_root_console_content_projection_height");
+    harness.activate_workbench_page();
+    harness.activate_drawer_tab(ActivityDrawerSlot::BottomLeft, "editor.console#1");
+
+    let expected_size = {
+        let mut host = harness.host.borrow_mut();
+        let shared_content = host
+            .template_bridge
+            .control_frame("BottomDrawerContentRoot")
+            .expect("bottom drawer content root should map to a projected control frame");
+        assert!(
+            shared_content.width > 400.0 && shared_content.height > 60.0,
+            "shared bottom drawer content frame should be larger than the stale fallback"
+        );
+        let geometry = host
+            .shell_geometry
+            .as_mut()
+            .expect("root host should have computed shell geometry");
+        let bottom = geometry.region_frame(ShellRegionId::Bottom);
+        geometry.region_frames.insert(
+            ShellRegionId::Bottom,
+            ShellFrame::new(bottom.x, bottom.y, 260.0, 44.0),
+        );
+        UiSize::new(shared_content.width, shared_content.height)
+    };
+
+    harness
+        .root_ui
+        .invoke_console_pointer_scrolled(24.0, 24.0, 48.0, 0.0, 0.0);
+
+    let host = harness.host.borrow();
+    assert_eq!(
+        host.console_scroll_surface.size(),
+        expected_size,
+        "shared drawer content projection should own console scroll sizing when root callback width/height are missing"
+    );
+}
+
+#[test]
+fn root_inspector_pointer_scroll_uses_region_frame_fallback_in_real_host() {
+    let _guard = lock_env();
+
+    let harness = ChildWindowHostHarness::new("zircon_slint_root_inspector_projection");
+    harness.activate_workbench_page();
+
+    harness
+        .root_ui
+        .invoke_inspector_pointer_scrolled(24.0, 24.0, 48.0, 0.0, 0.0);
+
+    let host = harness.host.borrow();
+    assert!(host.inspector_scroll_surface.size().width > 0.0);
+    assert!(host.inspector_scroll_surface.size().height > 0.0);
+}
+
+#[test]
+fn root_asset_browser_details_scroll_uses_region_frame_fallback_in_real_host() {
+    let _guard = lock_env();
+
+    let harness = ChildWindowHostHarness::new("zircon_slint_root_asset_browser_projection");
+    let _asset_browser = harness.open_view("editor.asset_browser");
+
+    harness
+        .root_ui
+        .invoke_browser_asset_details_pointer_scrolled(24.0, 24.0, 48.0, 0.0, 0.0);
+
+    let host = harness.host.borrow();
+    assert!(host.browser_asset_details_scroll_surface.size().width > 0.0);
+    assert!(host.browser_asset_details_scroll_surface.size().height > 0.0);
+}
+
+#[test]
+fn root_activity_asset_tree_move_uses_region_frame_fallback_in_real_host() {
+    let _guard = lock_env();
+
+    let harness = ChildWindowHostHarness::new("zircon_slint_root_activity_asset_tree_projection");
+    harness.activate_workbench_page();
+    harness.activate_drawer_tab(ActivityDrawerSlot::LeftTop, "editor.assets#1");
+
+    harness
+        .root_ui
+        .invoke_asset_tree_pointer_moved("activity".into(), 48.0, 72.0, 0.0, 0.0);
+
+    let host = harness.host.borrow();
+    assert!(host.activity_asset_pointer.tree_size.width > 0.0);
+    assert!(host.activity_asset_pointer.tree_size.height > 0.0);
+}
+
+#[test]
+fn root_browser_asset_tree_move_uses_region_frame_fallback_in_real_host() {
+    let _guard = lock_env();
+
+    let harness = ChildWindowHostHarness::new("zircon_slint_root_browser_asset_tree_projection");
+    let _asset_browser = harness.open_view("editor.asset_browser");
+
+    harness
+        .root_ui
+        .invoke_asset_tree_pointer_moved("browser".into(), 48.0, 72.0, 0.0, 0.0);
+
+    let host = harness.host.borrow();
+    assert!(host.browser_asset_pointer.tree_size.width > 0.0);
+    assert!(host.browser_asset_pointer.tree_size.height > 0.0);
+}
+
+#[test]
+fn root_activity_asset_content_move_uses_region_frame_fallback_in_real_host() {
+    let _guard = lock_env();
+
+    let harness =
+        ChildWindowHostHarness::new("zircon_slint_root_activity_asset_content_projection");
+    harness.activate_workbench_page();
+    harness.activate_drawer_tab(ActivityDrawerSlot::LeftTop, "editor.assets#1");
+
+    harness
+        .root_ui
+        .invoke_asset_content_pointer_moved("activity".into(), 96.0, 96.0, 0.0, 0.0);
+
+    let host = harness.host.borrow();
+    assert!(host.activity_asset_pointer.content_size.width > 0.0);
+    assert!(host.activity_asset_pointer.content_size.height > 0.0);
+}
+
+#[test]
+fn root_browser_asset_content_move_uses_region_frame_fallback_in_real_host() {
+    let _guard = lock_env();
+
+    let harness = ChildWindowHostHarness::new("zircon_slint_root_browser_asset_content_projection");
+    let _asset_browser = harness.open_view("editor.asset_browser");
+
+    harness
+        .root_ui
+        .invoke_asset_content_pointer_moved("browser".into(), 96.0, 96.0, 0.0, 0.0);
+
+    let host = harness.host.borrow();
+    assert!(host.browser_asset_pointer.content_size.width > 0.0);
+    assert!(host.browser_asset_pointer.content_size.height > 0.0);
+}
+
+#[test]
+fn root_activity_asset_reference_move_uses_region_frame_fallback_in_real_host() {
+    let _guard = lock_env();
+
+    let harness =
+        ChildWindowHostHarness::new("zircon_slint_root_activity_asset_reference_projection");
+    harness.activate_workbench_page();
+    harness.activate_drawer_tab(ActivityDrawerSlot::LeftTop, "editor.assets#1");
+
+    harness.root_ui.invoke_asset_reference_pointer_moved(
+        "activity".into(),
+        "references".into(),
+        96.0,
+        160.0,
+        0.0,
+        0.0,
+    );
+
+    let host = harness.host.borrow();
+    assert!(host.activity_asset_pointer.references.size.width > 0.0);
+    assert!(host.activity_asset_pointer.references.size.height > 0.0);
+}
+
+#[test]
+fn root_browser_asset_reference_move_uses_region_frame_fallback_in_real_host() {
+    let _guard = lock_env();
+
+    let harness =
+        ChildWindowHostHarness::new("zircon_slint_root_browser_asset_reference_projection");
+    let _asset_browser = harness.open_view("editor.asset_browser");
+
+    harness.root_ui.invoke_asset_reference_pointer_moved(
+        "browser".into(),
+        "references".into(),
+        96.0,
+        160.0,
+        0.0,
+        0.0,
+    );
+
+    let host = harness.host.borrow();
+    assert!(host.browser_asset_pointer.references.size.width > 0.0);
+    assert!(host.browser_asset_pointer.references.size.height > 0.0);
 }
 
 #[test]

@@ -1,0 +1,13 @@
+[package]
+name = "zircon_foundation"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Built-in runtime foundation services such as config and event management."
+
+[dependencies]
+serde_json = "1.0.149"
+zircon_core = { path = "../zircon_core" }
+zircon_manager = { path = "../zircon_manager" }
+zircon_module = { path = "../zircon_module" }
+

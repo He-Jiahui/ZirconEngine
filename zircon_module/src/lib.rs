@@ -3,6 +3,7 @@
 mod contexts;
 mod descriptors;
 mod engine_module;
+mod engine_service;
 mod service_factory;
 
 pub use zircon_core::{
@@ -17,6 +18,10 @@ pub use descriptors::{
     stub_module_descriptor, stub_plugin_descriptor, StubDriver, StubManager,
 };
 pub use engine_module::EngineModule;
+pub use engine_service::{
+    driver_contract, manager_contract, plugin_contract, DriverContract, EngineDriver,
+    EngineManager, EnginePlugin, EngineService, ManagerContract, PluginContract,
+};
 pub use service_factory::factory;
 
 #[cfg(test)]

@@ -9,7 +9,7 @@ use crate::host::slint_host::{
     event_bridge::SlintDispatchEffects,
 };
 
-use super::super::{dispatch_builtin_workbench_drawer_toggle, BuiltinWorkbenchTemplateBridge};
+use super::super::{BuiltinWorkbenchTemplateBridge, dispatch_builtin_workbench_drawer_toggle};
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct SharedDrawerHeaderPointerClickDispatch {

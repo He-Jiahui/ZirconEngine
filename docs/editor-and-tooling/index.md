@@ -6,7 +6,7 @@ related_code:
   - zircon_editor/src/host/slint_host/ui.rs
   - zircon_editor/src/editing/command.rs
   - zircon_editor/src/editing/history.rs
-  - zircon_editor/src/workbench/layout.rs
+- zircon_editor/src/workbench/layout/mod.rs
   - zircon_editor/src/host/manager.rs
   - zircon_editor/src/host/message.rs
   - zircon_editor/src/editing/state/mod.rs
@@ -42,6 +42,7 @@ plan_sources:
   - user: 2026-04-12 扩展 editor 命令系统到删除节点、改父子层级、重命名和 inspector 字段批量提交
   - user: 2026-04-12 实现 Zircon Editor Workbench Shell V1
   - user: 2026-04-13 实现目录式 Project 资源抽象优先全链路替换计划
+  - user: 2026-04-17 Viewport 交互边界重构计划
   - .codex/plans/Zircon Editor Workbench Shell V1.md
   - .codex/plans/全系统重构方案.md
   - .cursor/plans/基本路线图.md
@@ -55,6 +56,11 @@ tests:
   - cargo test -p zircon_resource -p zircon_asset -p zircon_scene -p zircon_graphics -p zircon_editor
   - cargo build --workspace --locked --verbose
   - cargo test --workspace --locked --verbose
+  - cargo test -p zircon_entry --locked
+  - cargo test -p zircon_graphics --locked
+  - cargo test -p zircon_editor editor_viewport_interaction_boundary_lives_in_editor_crate --locked
+  - cargo test -p zircon_editor editor_viewport_sources_route_through_render_server_without_wgpu_preview_bindings --locked
+  - cargo check --workspace --locked
 doc_type: category-index
 ---
 
@@ -73,6 +79,8 @@ doc_type: category-index
 - [Editor Workbench Shell](./editor-workbench-shell.md): 混合固定壳 workbench、主 tabs、drawers、document workspace、native floating windows、拖放命中与布局持久化。
 - [Editor Command Workflow](./editor-command-workflow.md): editor 命令层、历史栈、inspector 草稿批量提交、删除/改父子/重命名等行为约束。
 - [Scene Viewport Gizmo, Handle, And Overlay Pipeline](./scene-viewport-gizmo-handle-overlays.md): Scene 视图的 typed viewport settings、scene render packet、scene gizmo provider、handle overlay、wireframe/preview/grid 分层与测试口径。
+- [Viewport Interaction Boundary Split](./viewport-interaction-boundary-split.md): `zircon_editor` / `zircon_graphics` / `zircon_entry` 的 viewport ownership 重分配，editor-owned interaction types、runtime-private camera controller，以及 graphics 仅保留 render/server/overlay 职责。
+- [Crate Boundary Audit Round 2](./crate-boundary-audit-round-2.md): 第二轮更严格的错包审计规则、`zircon_graphics` 红测根因、已通过的边界项，以及下一批最强迁移候选。
 - [UI Binding And Reflection Architecture](./ui-binding-reflection-architecture.md): `zircon_ui` / `zircon_editor_ui` / `zircon_input` 边界，nativeBinding、反射树、REPL/网络操控与 headless 回放架构。
 - [Editor Template Compatibility Migration](./editor-template-compatibility-migration.md): `zircon_editor_ui` 的 editor-only template catalog/registry/adapter，如何把 shared `UiBindingRef` 收口到 typed `EditorUiBinding`，以及后续把 TOML 模板实例接到 Slint host 的迁移顺序。
 - [UI Asset Editor Host Session](./ui-asset-editor-host-session.md): `zircon_editor` 的 `UiAssetEditorSession`、recursive import hydration、canonical source save、Slint pane callbacks，以及 `zircon_asset` 对 `.ui.toml` 三类正式资产的注册与 catalog 接入。
@@ -87,7 +95,7 @@ doc_type: category-index
 - `zircon_editor/src/editing/history.rs`
 - `zircon_editor/src/editing/viewport/controller/mod.rs`
 - `zircon_editor/src/editing/viewport/handles/mod.rs`
-- `zircon_editor/src/workbench/layout.rs`
+- `zircon_editor/src/workbench/layout/mod.rs`
 - `zircon_editor/src/host/slint_host/app.rs`
 - `zircon_editor/src/host/slint_host/ui.rs`
 - `zircon_editor/src/host/manager.rs`
@@ -102,7 +110,7 @@ doc_type: category-index
 - `zircon_graphics/src/scene/resources/mod.rs`
 - `zircon_graphics/src/scene/scene_renderer/core/mod.rs`
 - `zircon_graphics/src/scene/scene_renderer/mesh/mod.rs`
-- `zircon_graphics/src/scene/scene_renderer/overlay.rs`
+- `zircon_graphics/src/scene/scene_renderer/overlay/mod.rs`
 - `zircon_editor/ui/workbench.slint`
 - `zircon_editor/ui/workbench/chrome.slint`
 - `zircon_scene/src/world.rs`

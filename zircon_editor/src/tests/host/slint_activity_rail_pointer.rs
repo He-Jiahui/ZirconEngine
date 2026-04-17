@@ -52,6 +52,32 @@ fn shared_activity_rail_pointer_bridge_routes_left_and_right_button_hits() {
 }
 
 #[test]
+fn shared_activity_rail_pointer_bridge_accepts_projected_global_points() {
+    let mut bridge = WorkbenchActivityRailPointerBridge::new();
+    let layout = sample_activity_rail_layout();
+    bridge.sync(layout.clone());
+
+    let left = bridge
+        .handle_click(
+            WorkbenchActivityRailPointerSide::Left,
+            UiPoint::new(
+                layout.left_strip_frame.x + 15.0,
+                layout.left_strip_frame.y + 20.0,
+            ),
+        )
+        .unwrap();
+    assert_eq!(
+        left.route,
+        Some(WorkbenchActivityRailPointerRoute::Button {
+            side: WorkbenchActivityRailPointerSide::Left,
+            item_index: 0,
+            slot: "left_top".to_string(),
+            instance_id: "editor.project#1".to_string(),
+        })
+    );
+}
+
+#[test]
 fn shared_activity_rail_pointer_click_dispatches_project_toggle_through_runtime_dispatcher() {
     let _guard = env_lock().lock().unwrap();
 
@@ -74,6 +100,7 @@ fn shared_activity_rail_pointer_click_dispatches_project_toggle_through_runtime_
         &model,
         &geometry,
         &WorkbenchChromeMetrics::default(),
+        Some(&template_bridge.root_shell_frames()),
     ));
 
     let dispatched = dispatch_shared_activity_rail_pointer_click(
@@ -105,6 +132,105 @@ fn shared_activity_rail_pointer_click_dispatches_project_toggle_through_runtime_
             slot: crate::ActivityDrawerSlot::LeftTop,
             mode: crate::ActivityDrawerMode::Collapsed,
         })
+    );
+}
+
+#[test]
+fn shared_activity_rail_pointer_layout_prefers_shared_root_projection_when_left_region_geometry_is_stale(
+) {
+    let _guard = env_lock().lock().unwrap();
+
+    let harness = EventRuntimeHarness::new("zircon_slint_activity_rail_pointer_root_projection");
+    let template_bridge = BuiltinWorkbenchTemplateBridge::new(UiSize::new(1280.0, 720.0))
+        .expect("builtin workbench template bridge should build");
+    let chrome = harness.runtime.chrome_snapshot();
+    let model = WorkbenchViewModel::build(&chrome);
+    let mut geometry = compute_workbench_shell_geometry(
+        &model,
+        &chrome,
+        &harness.runtime.current_layout(),
+        &harness.runtime.descriptors(),
+        ShellSizePx::new(1280.0, 720.0),
+        &WorkbenchChromeMetrics::default(),
+        None,
+    );
+    geometry
+        .region_frames
+        .insert(crate::ShellRegionId::Left, crate::ShellFrame::default());
+    geometry
+        .region_frames
+        .insert(crate::ShellRegionId::Right, crate::ShellFrame::default());
+    geometry
+        .region_frames
+        .insert(crate::ShellRegionId::Bottom, crate::ShellFrame::default());
+
+    let root_frames = template_bridge.root_shell_frames();
+    let layout = build_workbench_activity_rail_pointer_layout(
+        &model,
+        &geometry,
+        &WorkbenchChromeMetrics::default(),
+        Some(&root_frames),
+    );
+
+    assert_eq!(
+        layout.left_strip_frame,
+        root_frames.activity_rail_frame.unwrap()
+    );
+    assert_eq!(layout.right_strip_frame, UiFrame::default());
+}
+
+#[test]
+fn shared_activity_rail_pointer_layout_prefers_shared_visible_drawer_regions_when_cross_axis_geometry_is_stale(
+) {
+    let fixture = crate::default_preview_fixture();
+    let chrome = fixture.build_chrome();
+    let model = WorkbenchViewModel::build(&chrome);
+    let metrics = WorkbenchChromeMetrics::default();
+    let template_bridge = BuiltinWorkbenchTemplateBridge::new(UiSize::new(1280.0, 720.0))
+        .expect("builtin workbench template bridge should build");
+    let root_frames = template_bridge.root_shell_frames();
+    let body_frame = root_frames
+        .workbench_body_frame
+        .expect("workbench body projection frame should exist");
+    let left_geometry = crate::ShellFrame::new(180.0, 140.0, 312.0, 519.0);
+    let right_geometry = crate::ShellFrame::new(1024.0, 168.0, 256.0, 401.0);
+    let bottom_geometry = crate::ShellFrame::new(48.0, 704.0, 777.0, 180.0);
+    let expected_strip_height =
+        body_frame.height - bottom_geometry.height - metrics.separator_thickness;
+    let geometry = crate::WorkbenchShellGeometry {
+        region_frames: [
+            (crate::ShellRegionId::Left, left_geometry),
+            (
+                crate::ShellRegionId::Document,
+                crate::ShellFrame::new(493.0, 140.0, 531.0, 440.0),
+            ),
+            (crate::ShellRegionId::Right, right_geometry),
+            (crate::ShellRegionId::Bottom, bottom_geometry),
+        ]
+        .into_iter()
+        .collect(),
+        ..crate::WorkbenchShellGeometry::default()
+    };
+
+    let layout = build_workbench_activity_rail_pointer_layout(
+        &model,
+        &geometry,
+        &metrics,
+        Some(&root_frames),
+    );
+
+    assert_eq!(
+        layout.left_strip_frame,
+        UiFrame::new(0.0, body_frame.y, metrics.rail_width, expected_strip_height)
+    );
+    assert_eq!(
+        layout.right_strip_frame,
+        UiFrame::new(
+            body_frame.x + body_frame.width - metrics.rail_width,
+            body_frame.y,
+            metrics.rail_width,
+            expected_strip_height,
+        )
     );
 }
 

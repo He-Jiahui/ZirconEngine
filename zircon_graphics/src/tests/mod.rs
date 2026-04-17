@@ -1,4 +1,5 @@
 mod hybrid_gi_gpu;
+mod hybrid_gi_gpu_hierarchy;
 mod hybrid_gi_resolve_render;
 mod hybrid_gi_runtime;
 mod hybrid_gi_visibility;
@@ -11,4 +12,5 @@ mod scene_overlay;
 mod virtual_geometry_gpu;
 mod virtual_geometry_prepare_render;
 mod virtual_geometry_runtime;
+mod virtual_geometry_unified_indirect;
 mod visibility;

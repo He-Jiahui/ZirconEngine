@@ -2,7 +2,7 @@ use crate::editing::viewport::pointer::{
     ViewportOverlayPointerBridge, ViewportPointerLayout, ViewportPointerRoute,
     ViewportRenderablePickCandidate,
 };
-use zircon_graphics::GizmoAxis;
+use crate::GizmoAxis;
 use zircon_math::{perspective, view_matrix, Transform, UVec2, Vec2, Vec3, Vec4};
 use zircon_scene::{
     HandleElementExtract, HandleOverlayExtract, OverlayAxis, OverlayPickShape, ProjectionMode,

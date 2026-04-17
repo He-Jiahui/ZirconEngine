@@ -1,6 +1,7 @@
 use super::*;
 use crate::host::slint_host::callback_dispatch::dispatch_builtin_floating_window_focus_for_source;
-use crate::MainPageId;
+use crate::host::slint_host::floating_window_projection::resolve_floating_window_content_frame;
+use crate::{ActivityDrawerSlot, MainPageId, ShellFrame};
 
 pub(crate) fn asset_surface_visible(
     chrome: &crate::EditorChromeSnapshot,
@@ -48,18 +49,14 @@ fn active_workspace_tab(
     }
 }
 
-pub(crate) fn viewport_size_from_frame(geometry: &WorkbenchShellGeometry) -> Option<UVec2> {
-    let width = geometry.viewport_content_frame.width.max(0.0).round() as u32;
-    let height = geometry.viewport_content_frame.height.max(0.0).round() as u32;
+pub(crate) fn viewport_size_from_frame(frame: ShellFrame) -> Option<UVec2> {
+    let width = frame.width.max(0.0).round() as u32;
+    let height = frame.height.max(0.0).round() as u32;
     if width == 0 || height == 0 {
         None
     } else {
         Some(UVec2::new(width, height))
     }
-}
-
-pub(crate) fn frame_rect_to_ui_frame(frame: FrameRect) -> UiFrame {
-    UiFrame::new(frame.x, frame.y, frame.width, frame.height)
 }
 
 pub(crate) fn compute_window_menu_popup_height(
@@ -83,6 +80,75 @@ pub(crate) fn resolve_callback_source_window_id(ui: &WorkbenchShell) -> Option<M
         None
     } else {
         Some(MainPageId::new(window_id))
+    }
+}
+
+fn is_valid_size(size: UiSize) -> bool {
+    size.width > 0.0 && size.height > 0.0
+}
+
+fn frame_size(frame: ShellFrame) -> Option<UiSize> {
+    let size = UiSize::new(frame.width.max(0.0), frame.height.max(0.0));
+    is_valid_size(size).then_some(size)
+}
+
+fn ui_frame_size(frame: UiFrame) -> Option<UiSize> {
+    let size = UiSize::new(frame.width.max(0.0), frame.height.max(0.0));
+    is_valid_size(size).then_some(size)
+}
+
+fn drawer_slot_region(slot: ActivityDrawerSlot) -> ShellRegionId {
+    match slot {
+        ActivityDrawerSlot::LeftTop | ActivityDrawerSlot::LeftBottom => ShellRegionId::Left,
+        ActivityDrawerSlot::RightTop | ActivityDrawerSlot::RightBottom => ShellRegionId::Right,
+        ActivityDrawerSlot::BottomLeft | ActivityDrawerSlot::BottomRight => ShellRegionId::Bottom,
+    }
+}
+
+fn active_drawer_region_for_kind(
+    workbench: &crate::WorkbenchSnapshot,
+    kind: ViewContentKind,
+) -> Option<ShellRegionId> {
+    workbench
+        .drawers
+        .values()
+        .find(|drawer| {
+            drawer.visible
+                && drawer.mode != ActivityDrawerMode::Collapsed
+                && drawer
+                    .active_tab
+                    .as_ref()
+                    .and_then(|active| drawer.tabs.iter().find(|tab| &tab.instance_id == active))
+                    .or_else(|| drawer.tabs.first())
+                    .is_some_and(|tab| tab.content_kind == kind)
+        })
+        .map(|drawer| drawer_slot_region(drawer.slot))
+}
+
+fn active_main_page_matches_kind(
+    workbench: &crate::WorkbenchSnapshot,
+    kind: ViewContentKind,
+) -> bool {
+    let Some(page) = workbench.main_pages.iter().find(|page| match page {
+        crate::MainPageSnapshot::Workbench { id, .. }
+        | crate::MainPageSnapshot::Exclusive { id, .. } => id == &workbench.active_main_page,
+    }) else {
+        return false;
+    };
+
+    match page {
+        crate::MainPageSnapshot::Workbench { workspace, .. } => {
+            active_workspace_tab(workspace).is_some_and(|tab| tab.content_kind == kind)
+        }
+        crate::MainPageSnapshot::Exclusive { view, .. } => view.content_kind == kind,
+    }
+}
+
+fn asset_surface_kind(surface_mode: &str) -> Option<ViewContentKind> {
+    match surface_mode {
+        "activity" => Some(ViewContentKind::Assets),
+        "browser" => Some(ViewContentKind::AssetBrowser),
+        _ => None,
     }
 }
 
@@ -140,6 +206,78 @@ impl SlintEditorHost {
             .iter()
             .find(|window| window.window_id.0 == surface_key)
             .map(|window| window.window_id.clone());
+    }
+
+    fn resolve_host_frame_backed_size_for_kind(&self, kind: ViewContentKind) -> Option<UiSize> {
+        let geometry = self.shell_geometry.as_ref()?;
+        let root_shell_frames = self.template_bridge.root_shell_frames();
+
+        if let Some(window_id) = self.callback_source_window.as_ref() {
+            return self
+                .floating_window_projection_bundle
+                .content_frame(window_id)
+                .and_then(frame_size)
+                .or_else(|| {
+                    frame_size(resolve_floating_window_content_frame(
+                        geometry,
+                        &self.chrome_metrics,
+                        window_id,
+                    ))
+                });
+        }
+
+        let workbench = &self.runtime.chrome_snapshot().workbench;
+        if let Some(region) = active_drawer_region_for_kind(workbench, kind) {
+            return root_shell_frames
+                .drawer_content_frame(region)
+                .and_then(ui_frame_size)
+                .or_else(|| frame_size(geometry.region_frame(region)));
+        }
+
+        if active_main_page_matches_kind(workbench, kind) {
+            return root_shell_frames
+                .pane_surface_frame
+                .and_then(ui_frame_size)
+                .or_else(|| {
+                    self.template_bridge
+                        .control_frame(callback_dispatch::PANE_SURFACE_CONTROL_ID)
+                        .and_then(ui_frame_size)
+                })
+                .or_else(|| frame_size(geometry.region_frame(ShellRegionId::Document)));
+        }
+
+        None
+    }
+
+    pub(super) fn resolve_callback_surface_size_for_kind(
+        &self,
+        width: f32,
+        height: f32,
+        cached_size: UiSize,
+        kind: ViewContentKind,
+    ) -> UiSize {
+        let callback_size = UiSize::new(width.max(0.0), height.max(0.0));
+        if is_valid_size(callback_size) {
+            return callback_size;
+        }
+        if is_valid_size(cached_size) {
+            return cached_size;
+        }
+
+        self.resolve_host_frame_backed_size_for_kind(kind)
+            .unwrap_or(UiSize::new(0.0, 0.0))
+    }
+
+    pub(super) fn resolve_callback_surface_size_for_asset_surface(
+        &self,
+        surface_mode: &str,
+        width: f32,
+        height: f32,
+        cached_size: UiSize,
+    ) -> Option<UiSize> {
+        asset_surface_kind(surface_mode).map(|kind| {
+            self.resolve_callback_surface_size_for_kind(width, height, cached_size, kind)
+        })
     }
 }
 
@@ -218,8 +356,8 @@ fn asset_uri_from_relative_path(relative: impl AsRef<Path>) -> Result<ResourceLo
 #[cfg(test)]
 mod tests {
     use super::resolve_callback_source_window_id;
-    use crate::host::slint_host::WorkbenchShell;
     use crate::MainPageId;
+    use crate::host::slint_host::WorkbenchShell;
 
     #[test]
     fn resolve_callback_source_window_id_returns_none_for_root_shell() {

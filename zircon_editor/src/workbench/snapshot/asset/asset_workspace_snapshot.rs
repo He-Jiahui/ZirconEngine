@@ -1,4 +1,4 @@
-use zircon_manager::AssetRecordKind;
+use zircon_resource::ResourceKind;
 
 use super::{
     AssetFolderSnapshot, AssetItemSnapshot, AssetSelectionSnapshot, AssetSurfaceMode,
@@ -17,7 +17,7 @@ pub struct AssetWorkspaceSnapshot {
     pub view_mode: AssetViewMode,
     pub utility_tab: AssetUtilityTab,
     pub search_query: String,
-    pub kind_filter: Option<AssetRecordKind>,
+    pub kind_filter: Option<ResourceKind>,
     pub folder_tree: Vec<AssetFolderSnapshot>,
     pub visible_folders: Vec<AssetFolderSnapshot>,
     pub visible_assets: Vec<AssetItemSnapshot>,

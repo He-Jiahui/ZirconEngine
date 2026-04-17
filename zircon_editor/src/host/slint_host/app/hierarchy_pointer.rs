@@ -2,7 +2,12 @@ use super::*;
 
 impl SlintEditorHost {
     pub(super) fn hierarchy_pointer_clicked(&mut self, x: f32, y: f32, width: f32, height: f32) {
-        self.hierarchy_pointer_size = UiSize::new(width.max(0.0), height.max(0.0));
+        self.hierarchy_pointer_size = self.resolve_callback_surface_size_for_kind(
+            width,
+            height,
+            self.hierarchy_pointer_size,
+            ViewContentKind::Hierarchy,
+        );
         let scene_entries = self.runtime.editor_snapshot().scene_entries;
         self.sync_hierarchy_pointer_layout(&scene_entries);
         self.focus_callback_source_window();
@@ -23,7 +28,12 @@ impl SlintEditorHost {
     }
 
     pub(super) fn hierarchy_pointer_moved(&mut self, x: f32, y: f32, width: f32, height: f32) {
-        self.hierarchy_pointer_size = UiSize::new(width.max(0.0), height.max(0.0));
+        self.hierarchy_pointer_size = self.resolve_callback_surface_size_for_kind(
+            width,
+            height,
+            self.hierarchy_pointer_size,
+            ViewContentKind::Hierarchy,
+        );
         let scene_entries = self.runtime.editor_snapshot().scene_entries;
         self.sync_hierarchy_pointer_layout(&scene_entries);
         match self
@@ -46,7 +56,12 @@ impl SlintEditorHost {
         width: f32,
         height: f32,
     ) {
-        self.hierarchy_pointer_size = UiSize::new(width.max(0.0), height.max(0.0));
+        self.hierarchy_pointer_size = self.resolve_callback_surface_size_for_kind(
+            width,
+            height,
+            self.hierarchy_pointer_size,
+            ViewContentKind::Hierarchy,
+        );
         let scene_entries = self.runtime.editor_snapshot().scene_entries;
         self.sync_hierarchy_pointer_layout(&scene_entries);
         self.focus_callback_source_window();

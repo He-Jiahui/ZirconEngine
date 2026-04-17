@@ -7,13 +7,10 @@ use crate::tests::support::{
     write_valid_wgsl,
 };
 use crate::{
-    AssetMetaDocument, AssetUri, DefaultEditorAssetManager, PreviewState, ProjectManifest,
-    ProjectPaths,
+    AssetMetaDocument, AssetUri, DefaultEditorAssetManager, EditorAssetChangeKind,
+    EditorAssetManager as EditorAssetManagerFacade, PreviewState, ProjectManifest, ProjectPaths,
 };
-use zircon_manager::{
-    AssetRecordKind, EditorAssetChangeKind, EditorAssetManager as EditorAssetManagerFacade,
-    PreviewStateRecord,
-};
+use zircon_resource::ResourceKind;
 
 #[test]
 fn editor_asset_manager_builds_catalog_and_direct_reference_graph() {
@@ -209,7 +206,7 @@ fn editor_asset_manager_catalog_snapshot_exposes_folder_tree_and_details() {
     assert_eq!(material.display_name, "grid.material");
     assert_eq!(material.file_name, "grid.material.toml");
     assert_eq!(material.extension, "toml");
-    assert_eq!(material.preview_state, PreviewStateRecord::Dirty);
+    assert_eq!(material.preview_state, PreviewState::Dirty);
     assert_eq!(material.direct_reference_uuids.len(), 2);
 
     let details = EditorAssetManagerFacade::asset_details(&manager, &material.uuid)
@@ -320,7 +317,7 @@ fn editor_asset_manager_keeps_last_good_preview_when_marked_dirty() {
     EditorAssetManagerFacade::mark_preview_dirty(&manager, &texture.uuid).unwrap();
     let details =
         EditorAssetManagerFacade::asset_details(&manager, &texture.uuid).expect("texture details");
-    assert_eq!(details.asset.preview_state, PreviewStateRecord::Dirty);
+    assert_eq!(details.asset.preview_state, PreviewState::Dirty);
     assert!(details.asset.preview_artifact_path.ends_with(".png"));
     assert!(preview_path.exists());
 
@@ -372,9 +369,9 @@ fn editor_asset_manager_catalog_snapshot_includes_ui_asset_kinds_and_references(
         .find(|asset| asset.locator == "res://ui/styles/theme.ui.toml")
         .expect("ui style asset");
 
-    assert_eq!(layout.kind, AssetRecordKind::UiLayout);
-    assert_eq!(widget.kind, AssetRecordKind::UiWidget);
-    assert_eq!(style.kind, AssetRecordKind::UiStyle);
+    assert_eq!(layout.kind, ResourceKind::UiLayout);
+    assert_eq!(widget.kind, ResourceKind::UiWidget);
+    assert_eq!(style.kind, ResourceKind::UiStyle);
 
     let layout_details =
         EditorAssetManagerFacade::asset_details(&manager, &layout.uuid).expect("ui layout details");
@@ -485,4 +482,27 @@ component_ref = "res://ui/widgets/button.ui.toml#ButtonRoot"
 "#,
     )
     .unwrap();
+}
+
+#[test]
+fn editor_asset_manager_is_split_by_responsibility_modules() {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("src")
+        .join("editor")
+        .join("manager");
+
+    for relative in [
+        "mod.rs",
+        "default_editor_asset_manager.rs",
+        "project_sync.rs",
+        "preview_refresh.rs",
+        "folder_projection.rs",
+        "reference_analysis.rs",
+    ] {
+        assert!(
+            root.join(relative).exists(),
+            "expected editor asset manager module {relative} under {:?}",
+            root
+        );
+    }
 }

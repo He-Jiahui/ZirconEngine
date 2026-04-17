@@ -153,16 +153,16 @@ fn reference_data(reference: &crate::snapshot::AssetReferenceSnapshot) -> AssetR
     }
 }
 
-fn asset_kind_label(kind: AssetRecordKind) -> &'static str {
+fn asset_kind_label(kind: ResourceKind) -> &'static str {
     match kind {
-        AssetRecordKind::Texture => "Texture",
-        AssetRecordKind::Shader => "Shader",
-        AssetRecordKind::Material => "Material",
-        AssetRecordKind::Scene => "Scene",
-        AssetRecordKind::Model => "Model",
-        AssetRecordKind::UiLayout => "UiLayout",
-        AssetRecordKind::UiWidget => "UiWidget",
-        AssetRecordKind::UiStyle => "UiStyle",
+        ResourceKind::Texture => "Texture",
+        ResourceKind::Shader => "Shader",
+        ResourceKind::Material => "Material",
+        ResourceKind::Scene => "Scene",
+        ResourceKind::Model => "Model",
+        ResourceKind::UiLayout => "UiLayout",
+        ResourceKind::UiWidget => "UiWidget",
+        ResourceKind::UiStyle => "UiStyle",
     }
 }
 

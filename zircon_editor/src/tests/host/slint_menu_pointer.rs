@@ -2,8 +2,8 @@ use crate::host::slint_host::callback_dispatch::{
     dispatch_menu_action, dispatch_shared_menu_pointer_click, BuiltinWorkbenchTemplateBridge,
 };
 use crate::host::slint_host::menu_pointer::{
-    WorkbenchMenuPointerBridge, WorkbenchMenuPointerLayout, WorkbenchMenuPointerRoute,
-    WorkbenchMenuPointerState,
+    build_workbench_menu_pointer_layout, WorkbenchMenuPointerBridge, WorkbenchMenuPointerLayout,
+    WorkbenchMenuPointerRoute, WorkbenchMenuPointerState,
 };
 use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
 use crate::{EditorEvent, LayoutCommand, MenuAction};
@@ -276,4 +276,142 @@ fn window_menu_layout(preset_count: usize) -> WorkbenchMenuPointerLayout {
         .collect();
     layout.window_popup_height = 192.0;
     layout
+}
+
+#[test]
+fn shared_menu_pointer_layout_prefers_shared_root_menu_bar_projection_over_stale_legacy_frames() {
+    let harness = EventRuntimeHarness::new("zircon_slint_menu_pointer_root_projection");
+    let chrome = harness.runtime.chrome_snapshot();
+    let layout = build_workbench_menu_pointer_layout(
+        &chrome,
+        UiSize::new(1280.0, 720.0),
+        &["alpha-00".to_string(), "alpha-01".to_string()],
+        Some("compact"),
+        Some(
+            &crate::host::slint_host::callback_dispatch::BuiltinWorkbenchRootShellFrames {
+                shell_frame: Some(UiFrame::new(32.0, 18.0, 1440.0, 900.0)),
+                menu_bar_frame: Some(UiFrame::new(32.0, 18.0, 1440.0, 40.0)),
+                ..Default::default()
+            },
+        ),
+    );
+
+    assert_eq!(layout.shell_frame, UiFrame::new(32.0, 18.0, 1440.0, 900.0));
+    assert_eq!(
+        layout.button_frames,
+        [
+            UiFrame::new(40.0, 19.0, 40.0, 22.0),
+            UiFrame::new(82.0, 19.0, 42.0, 22.0),
+            UiFrame::new(126.0, 19.0, 74.0, 22.0),
+            UiFrame::new(202.0, 19.0, 42.0, 22.0),
+            UiFrame::new(246.0, 19.0, 56.0, 22.0),
+            UiFrame::new(304.0, 19.0, 40.0, 22.0),
+        ],
+        "shared root menu bar projection should own top-level menu button frames"
+    );
+    assert_eq!(layout.active_preset_name, "compact");
+    assert_eq!(layout.resolved_preset_name, "compact");
+}
+
+#[test]
+fn shared_menu_pointer_layout_derives_button_frames_from_shared_shell_when_menu_bar_frame_is_missing(
+) {
+    let harness = EventRuntimeHarness::new("zircon_slint_menu_pointer_shell_projection");
+    let chrome = harness.runtime.chrome_snapshot();
+    let layout = build_workbench_menu_pointer_layout(
+        &chrome,
+        UiSize::new(1280.0, 720.0),
+        &["alpha-00".to_string(), "alpha-01".to_string()],
+        Some("compact"),
+        Some(
+            &crate::host::slint_host::callback_dispatch::BuiltinWorkbenchRootShellFrames {
+                shell_frame: Some(UiFrame::new(32.0, 18.0, 1440.0, 900.0)),
+                menu_bar_frame: None,
+                ..Default::default()
+            },
+        ),
+    );
+
+    assert_eq!(
+        layout.button_frames,
+        [
+            UiFrame::new(40.0, 19.0, 40.0, 22.0),
+            UiFrame::new(82.0, 19.0, 42.0, 22.0),
+            UiFrame::new(126.0, 19.0, 74.0, 22.0),
+            UiFrame::new(202.0, 19.0, 42.0, 22.0),
+            UiFrame::new(246.0, 19.0, 56.0, 22.0),
+            UiFrame::new(304.0, 19.0, 40.0, 22.0),
+        ],
+        "shared shell projection should still own top-level menu button frames when menu bar frame is temporarily unavailable"
+    );
+}
+
+#[test]
+fn shared_menu_pointer_layout_sync_replaces_direct_slint_menu_button_frame_getters() {
+    let pointer_layout = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/host/slint_host/app/pointer_layout.rs"
+    ));
+
+    for getter in [
+        "get_file_menu_button_frame()",
+        "get_edit_menu_button_frame()",
+        "get_selection_menu_button_frame()",
+        "get_view_menu_button_frame()",
+        "get_window_menu_button_frame()",
+        "get_help_menu_button_frame()",
+    ] {
+        assert!(
+            !pointer_layout.contains(getter),
+            "menu pointer sync should not keep direct Slint geometry getter `{getter}`"
+        );
+    }
+
+    assert!(
+        pointer_layout.contains("build_workbench_menu_pointer_layout("),
+        "menu pointer sync should delegate top-level button frame authority to a shared layout builder"
+    );
+}
+
+#[test]
+fn shared_menu_popup_presentation_anchors_to_host_projected_menu_button_frames() {
+    let workbench = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/ui/workbench.slint"));
+    let pointer_layout = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/host/slint_host/app/pointer_layout.rs"
+    ));
+
+    for legacy_anchor in [
+        "x: top_bar.file_menu_button_local_frame.x * 1px;",
+        "x: top_bar.edit_menu_button_local_frame.x * 1px;",
+        "x: top_bar.selection_menu_button_local_frame.x * 1px;",
+        "x: top_bar.view_menu_button_local_frame.x * 1px;",
+        "x: top_bar.window_menu_button_local_frame.x * 1px;",
+        "x: top_bar.help_menu_button_local_frame.x * 1px;",
+    ] {
+        assert!(
+            !workbench.contains(legacy_anchor),
+            "menu popup presentation should not anchor to legacy local frame `{legacy_anchor}`"
+        );
+    }
+
+    for projected_anchor in [
+        "x: root.file_menu_button_frame.x * 1px;",
+        "x: root.edit_menu_button_frame.x * 1px;",
+        "x: root.selection_menu_button_frame.x * 1px;",
+        "x: root.view_menu_button_frame.x * 1px;",
+        "x: root.window_menu_button_frame.x * 1px;",
+        "x: root.help_menu_button_frame.x * 1px;",
+        "set_file_menu_button_frame(",
+        "set_edit_menu_button_frame(",
+        "set_selection_menu_button_frame(",
+        "set_view_menu_button_frame(",
+        "set_window_menu_button_frame(",
+        "set_help_menu_button_frame(",
+    ] {
+        assert!(
+            workbench.contains(projected_anchor) || pointer_layout.contains(projected_anchor),
+            "menu popup presentation is missing shared projected anchor `{projected_anchor}`"
+        );
+    }
 }

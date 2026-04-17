@@ -1,13 +1,14 @@
-use super::asset_surface_presentation::{asset_surface_presentation, AssetSurfacePresentation};
+use super::asset_surface_presentation::{AssetSurfacePresentation, asset_surface_presentation};
 use super::floating_windows::collect_floating_windows;
 use super::model_rc::model_rc;
 use super::pane_projection::{document_pane, side_pane};
 use super::project_overview::project_overview_data;
-use super::welcome_presentation::{welcome_presentation, WelcomePresentation};
+use super::welcome_presentation::{WelcomePresentation, welcome_presentation};
 use super::workbench_tabs::{
     collect_tabs, document_tab_data, drawer_extent, host_tab_data, side_expanded,
 };
 use super::*;
+use crate::host::slint_host::floating_window_projection::FloatingWindowProjectionBundle;
 
 pub(super) struct ShellPresentation {
     pub host_tabs: ModelRc<TabData>,
@@ -59,6 +60,7 @@ impl ShellPresentation {
         preset_names: &[String],
         active_preset_name: Option<&str>,
         ui_asset_panes: &std::collections::BTreeMap<String, crate::UiAssetEditorPanePresentation>,
+        floating_window_projection_bundle: &FloatingWindowProjectionBundle,
     ) -> Self {
         let left_tabs = collect_tabs(
             model,
@@ -150,6 +152,7 @@ impl ShellPresentation {
                 chrome,
                 geometry,
                 ui_asset_panes,
+                floating_window_projection_bundle,
             )),
             left_pane: side_pane(
                 model,

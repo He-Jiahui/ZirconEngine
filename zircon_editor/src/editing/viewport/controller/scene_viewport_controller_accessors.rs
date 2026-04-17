@@ -1,4 +1,4 @@
-use zircon_graphics::{GizmoAxis, ViewportState};
+use crate::{GizmoAxis, ViewportState};
 use zircon_math::Vec3;
 use zircon_scene::SceneViewportSettings;
 

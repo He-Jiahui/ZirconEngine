@@ -20,7 +20,7 @@ related_code:
   - zircon_ui/src/tree/hit_test.rs
   - zircon_ui/src/surface.rs
   - zircon_editor_ui/src/ui_asset_editor.rs
-  - zircon_editor/src/workbench/autolayout.rs
+  - zircon_editor/src/workbench/autolayout/mod.rs
   - zircon_editor/src/host/slint_host/tab_drag.rs
   - zircon_editor/ui/workbench.slint
 implementation_files:
@@ -44,7 +44,7 @@ implementation_files:
   - zircon_ui/src/tree/hit_test.rs
   - zircon_ui/src/surface.rs
   - zircon_editor_ui/src/ui_asset_editor.rs
-  - zircon_editor/src/workbench/autolayout.rs
+  - zircon_editor/src/workbench/autolayout/mod.rs
   - zircon_editor/src/host/slint_host/tab_drag.rs
   - zircon_editor/ui/workbench.slint
 plan_sources:
@@ -103,7 +103,7 @@ doc_type: category-index
 - `zircon_ui/src/tree/node/mod.rs`
 - `zircon_ui/src/tree/hit_test.rs`
 - `zircon_ui/src/surface.rs`
-- `zircon_editor/src/workbench/autolayout.rs`
+- `zircon_editor/src/workbench/autolayout/mod.rs`
 
 ## Current Scope
 

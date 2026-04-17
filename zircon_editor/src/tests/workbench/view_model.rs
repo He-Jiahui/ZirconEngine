@@ -18,9 +18,9 @@ use crate::view::{
     ViewKind,
 };
 use crate::{
-    default_preview_fixture, EditorSessionMode, MainHostStripModel, MenuAction,
-    NewProjectFormSnapshot, RecentProjectItemSnapshot, RecentProjectValidation, ViewContentKind,
-    WelcomePaneSnapshot, WorkbenchViewModel,
+    EditorSessionMode, MainHostStripModel, MenuAction, NewProjectFormSnapshot,
+    RecentProjectItemSnapshot, RecentProjectValidation, ViewContentKind, WelcomePaneSnapshot,
+    WorkbenchViewModel, default_preview_fixture,
 };
 
 #[test]
@@ -38,12 +38,14 @@ fn workbench_view_model_projects_menu_strip_drawers_and_status() {
             .collect::<Vec<_>>(),
         vec!["File", "Edit", "Selection", "View", "Window", "Help"]
     );
-    assert!(model
-        .menu_bar
-        .menus
-        .iter()
-        .flat_map(|menu| menu.items.iter())
-        .any(|item| item.action == MenuAction::Undo && item.enabled));
+    assert!(
+        model
+            .menu_bar
+            .menus
+            .iter()
+            .flat_map(|menu| menu.items.iter())
+            .any(|item| item.action == MenuAction::Undo && item.enabled)
+    );
     assert_eq!(model.host_strip.active_page, MainPageId::workbench());
     assert_eq!(
         model
@@ -55,10 +57,12 @@ fn workbench_view_model_projects_menu_strip_drawers_and_status() {
         vec!["Workbench", "Scene"]
     );
     assert!(model.drawer_ring.visible);
-    assert!(model
-        .drawer_ring
-        .drawers
-        .contains_key(&ActivityDrawerSlot::LeftTop));
+    assert!(
+        model
+            .drawer_ring
+            .drawers
+            .contains_key(&ActivityDrawerSlot::LeftTop)
+    );
     assert_eq!(model.status_bar.primary_text, "Editor booted");
     assert_eq!(model.status_bar.viewport_label, "1280 x 720");
     let save_project_binding = model
@@ -110,6 +114,10 @@ fn workbench_view_model_exposes_floating_windows_as_workspace_tabs() {
     assert_eq!(floating.window_id, MainPageId::new("window:prefab"));
     assert_eq!(floating.title, "Prefab Popout");
     assert_eq!(
+        floating.requested_frame,
+        crate::ShellFrame::new(111.0, 92.0, 640.0, 420.0)
+    );
+    assert_eq!(
         floating.focused_view.as_ref().map(|id| id.0.as_str()),
         Some("editor.prefab#float")
     );
@@ -139,48 +147,60 @@ fn default_preview_fixture_projects_drawers_and_document_workspace() {
         .drawers
         .get(&ActivityDrawerSlot::LeftTop)
         .expect("left top drawer");
-    assert!(left_top
-        .tabs
-        .iter()
-        .any(|tab| tab.content_kind == ViewContentKind::Project));
-    assert!(left_top
-        .tabs
-        .iter()
-        .any(|tab| tab.content_kind == ViewContentKind::Assets));
-    assert!(left_top
-        .tabs
-        .iter()
-        .any(|tab| tab.content_kind == ViewContentKind::Hierarchy));
+    assert!(
+        left_top
+            .tabs
+            .iter()
+            .any(|tab| tab.content_kind == ViewContentKind::Project)
+    );
+    assert!(
+        left_top
+            .tabs
+            .iter()
+            .any(|tab| tab.content_kind == ViewContentKind::Assets)
+    );
+    assert!(
+        left_top
+            .tabs
+            .iter()
+            .any(|tab| tab.content_kind == ViewContentKind::Hierarchy)
+    );
 
     let right_top = model
         .drawer_ring
         .drawers
         .get(&ActivityDrawerSlot::RightTop)
         .expect("right top drawer");
-    assert!(right_top
-        .tabs
-        .iter()
-        .any(|tab| tab.content_kind == ViewContentKind::Inspector));
+    assert!(
+        right_top
+            .tabs
+            .iter()
+            .any(|tab| tab.content_kind == ViewContentKind::Inspector)
+    );
 
     let bottom_left = model
         .drawer_ring
         .drawers
         .get(&ActivityDrawerSlot::BottomLeft)
         .expect("bottom left drawer");
-    assert!(bottom_left
-        .tabs
-        .iter()
-        .any(|tab| tab.content_kind == ViewContentKind::Console));
+    assert!(
+        bottom_left
+            .tabs
+            .iter()
+            .any(|tab| tab.content_kind == ViewContentKind::Console)
+    );
 
     match &model.document {
         crate::DocumentWorkspaceModel::Workbench { workspace, .. } => match workspace {
             DocumentWorkspaceSnapshot::Tabs { tabs, active_tab } => {
-                assert!(tabs
-                    .iter()
-                    .any(|tab| tab.content_kind == ViewContentKind::Scene));
-                assert!(tabs
-                    .iter()
-                    .any(|tab| tab.content_kind == ViewContentKind::Game));
+                assert!(
+                    tabs.iter()
+                        .any(|tab| tab.content_kind == ViewContentKind::Scene)
+                );
+                assert!(
+                    tabs.iter()
+                        .any(|tab| tab.content_kind == ViewContentKind::Game)
+                );
                 assert_eq!(
                     active_tab.as_ref().map(|id| id.0.as_str()),
                     Some("editor.scene#1")
@@ -291,10 +311,12 @@ fn default_preview_fixture_exposes_hybrid_shell_tool_windows_and_empty_states() 
         vec![ViewContentKind::Scene, ViewContentKind::Game]
     );
     assert!(model.document_tabs.iter().all(|tab| !tab.closeable));
-    assert!(!model
-        .document_tabs
-        .iter()
-        .any(|tab| tab.content_kind == ViewContentKind::PrefabEditor));
+    assert!(
+        !model
+            .document_tabs
+            .iter()
+            .any(|tab| tab.content_kind == ViewContentKind::PrefabEditor)
+    );
 
     let scene_tab = model
         .document_tabs
@@ -393,13 +415,15 @@ fn scene_empty_state_actions_expose_typed_menu_bindings() {
 
 #[test]
 fn welcome_startup_projects_into_exclusive_page_model() {
-    let descriptors = vec![ViewDescriptor::new(
-        ViewDescriptorId::new("editor.welcome"),
-        ViewKind::ActivityWindow,
-        "Welcome",
-    )
-    .with_preferred_host(PreferredHost::ExclusiveMainPage)
-    .with_icon_key("welcome")];
+    let descriptors = vec![
+        ViewDescriptor::new(
+            ViewDescriptorId::new("editor.welcome"),
+            ViewKind::ActivityWindow,
+            "Welcome",
+        )
+        .with_preferred_host(PreferredHost::ExclusiveMainPage)
+        .with_icon_key("welcome"),
+    ];
     let welcome_instance = ViewInstance {
         instance_id: ViewInstanceId::new("editor.welcome#1"),
         descriptor_id: ViewDescriptorId::new("editor.welcome"),
@@ -579,14 +603,16 @@ fn sample_exclusive_chrome() -> EditorChromeSnapshot {
         dirty: true,
         host: ViewHost::ExclusivePage(MainPageId::new("page:prefab")),
     };
-    let descriptors = vec![ViewDescriptor::new(
-        ViewDescriptorId::new("editor.prefab"),
-        ViewKind::ActivityWindow,
-        "Prefab Editor",
-    )
-    .with_multi_instance(true)
-    .with_preferred_host(PreferredHost::ExclusiveMainPage)
-    .with_icon_key("prefab")];
+    let descriptors = vec![
+        ViewDescriptor::new(
+            ViewDescriptorId::new("editor.prefab"),
+            ViewKind::ActivityWindow,
+            "Prefab Editor",
+        )
+        .with_multi_instance(true)
+        .with_preferred_host(PreferredHost::ExclusiveMainPage)
+        .with_icon_key("prefab"),
+    ];
     EditorChromeSnapshot::build(
         EditorDataSnapshot {
             scene_entries: Vec::new(),
@@ -718,7 +744,7 @@ fn sample_floating_window_chrome() -> EditorChromeSnapshot {
                     })),
                 },
                 focused_view: Some(prefab_instance.instance_id.clone()),
-                frame: crate::ShellFrame::default(),
+                frame: crate::ShellFrame::new(111.0, 92.0, 640.0, 420.0),
             }],
             region_overrides: BTreeMap::new(),
             view_overrides: BTreeMap::new(),

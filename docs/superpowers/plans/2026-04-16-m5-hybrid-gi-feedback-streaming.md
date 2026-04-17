@@ -1,14 +1,22 @@
 ---
 related_code:
-  - zircon_graphics/src/runtime/hybrid_gi.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract.rs
+  - zircon_graphics/src/runtime/hybrid_gi/mod.rs
+  - zircon_graphics/src/runtime/hybrid_gi/pending_completion/mod.rs
+  - zircon_graphics/src/runtime/hybrid_gi/residency_management/mod.rs
+  - zircon_graphics/src/runtime/server/submit_frame_extract/mod.rs
+  - zircon_graphics/src/runtime/server/submit_frame_extract/record_submission/mod.rs
+  - zircon_graphics/src/runtime/server/submit_frame_extract/submit/mod.rs
   - zircon_graphics/src/visibility/declarations/visibility_hybrid_gi_feedback.rs
   - zircon_graphics/src/tests/hybrid_gi_runtime.rs
   - docs/assets-and-rendering/srp-rhi-render-server-architecture.md
   - docs/assets-and-rendering/index.md
 implementation_files:
-  - zircon_graphics/src/runtime/hybrid_gi.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract.rs
+  - zircon_graphics/src/runtime/hybrid_gi/mod.rs
+  - zircon_graphics/src/runtime/hybrid_gi/pending_completion/mod.rs
+  - zircon_graphics/src/runtime/hybrid_gi/residency_management/mod.rs
+  - zircon_graphics/src/runtime/server/submit_frame_extract/mod.rs
+  - zircon_graphics/src/runtime/server/submit_frame_extract/record_submission/mod.rs
+  - zircon_graphics/src/runtime/server/submit_frame_extract/submit/mod.rs
 plan_sources:
   - user: 2026-04-16 continue next M5 Hybrid GI slice after runtime-host baseline
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
@@ -41,6 +49,7 @@ doc_type: milestone-detail
   - resident 数达到 budget 时，只能回收 feedback 提供的 `evictable_probe_ids`
   - 没有可回收 budget 时，request 会继续保持 pending，而不是无上限扩 probe cache
 - `WgpuRenderServer::submit_frame_extract(...)` 现在会在 render 完成后调用 `consume_feedback(...)`，再用更新后的 runtime snapshot 写回 façade stats。
+- `runtime/hybrid_gi/{pending_completion,residency_management}/` 与 `runtime/server/submit_frame_extract/{submit,record_submission}/` 当前都已经下沉成 root-only wiring + helper 子模块，feedback completion、resident-slot bookkeeping、trace schedule 回写与 record 更新不再继续混放在单脚本里。
 
 ## Runtime Rules
 

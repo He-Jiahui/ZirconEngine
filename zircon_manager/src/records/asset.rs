@@ -1,27 +1,16 @@
 use serde::{Deserialize, Serialize};
+use zircon_resource::ResourceKind;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AssetPipelineInfo {
     pub default_worker_count: usize,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub enum AssetRecordKind {
-    Texture,
-    Shader,
-    Material,
-    Scene,
-    Model,
-    UiLayout,
-    UiWidget,
-    UiStyle,
-}
-
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AssetStatusRecord {
     pub id: String,
     pub uri: String,
-    pub kind: AssetRecordKind,
+    pub kind: ResourceKind,
     pub artifact_uri: Option<String>,
     pub imported: bool,
     pub source_hash: String,
@@ -42,11 +31,4 @@ pub struct AssetChangeRecord {
     pub kind: AssetChangeKind,
     pub uri: String,
     pub previous_uri: Option<String>,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub enum PreviewStateRecord {
-    Dirty,
-    Ready,
-    Error,
 }

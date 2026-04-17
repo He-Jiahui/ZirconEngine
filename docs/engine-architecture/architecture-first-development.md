@@ -4,6 +4,7 @@ related_code:
   - zircon_core/src/lib.rs
   - zircon_module/src/lib.rs
   - zircon_manager/src/lib.rs
+  - zircon_foundation/src/lib.rs
   - zircon_scene/src/lib.rs
   - zircon_editor/src/lib.rs
   - zircon_script/src/lib.rs
@@ -13,6 +14,7 @@ implementation_files:
   - zircon_core/src/lib.rs
   - zircon_module/src/lib.rs
   - zircon_manager/src/lib.rs
+  - zircon_foundation/src/lib.rs
   - zircon_scene/src/lib.rs
   - zircon_editor/src/lib.rs
   - zircon_script/src/lib.rs
@@ -46,6 +48,7 @@ doc_type: module-detail
 - `zircon_core/src/lib.rs`
 - `zircon_module/src/lib.rs`
 - `zircon_manager/src/lib.rs`
+- `zircon_foundation/src/lib.rs`
 - `zircon_scene/src/lib.rs`
 - `zircon_editor/src/lib.rs`
 - `zircon_script/src/lib.rs`
@@ -59,7 +62,7 @@ doc_type: module-detail
 
 运行时主干固定为：
 
-`zircon_entry -> zircon_core -> zircon_module/zircon_manager -> subsystem modules`
+`zircon_entry -> zircon_core -> zircon_module/zircon_manager -> zircon_foundation + subsystem modules`
 
 这条主干的含义是：
 
@@ -67,6 +70,7 @@ doc_type: module-detail
 - `zircon_core` 负责进程级唯一 `CoreRuntime`、生命周期、依赖排序、事件、配置和调度
 - `zircon_module` 负责模块、驱动器、管理器、插件 descriptor 和上下文
 - `zircon_manager` 负责稳定 façade、trait、resolver 和 handle surface
+- `zircon_foundation` 负责 config/event 这类进程级内建 runtime services 的具体模块实现
 - 具体领域能力由 `zircon_*` 子系统模块实现，并通过 core/module/manager 模型接入
 
 ### ECS Authority
@@ -270,4 +274,4 @@ doc_type: module-detail
 ## Open Issues or Follow-up
 
 - 后续可以继续拆分本目录，分别补 `core-runtime-lifecycle.md`、`manager-facade-contracts.md`、`level-runtime-world.md`、`vm-plugin-host-contract.md`
-- 当 `zircon_core`、`zircon_module`、`zircon_manager`、`zircon_entry`、`zircon_scene`、`zircon_script` 稳定后，应把这里的全局规则细化成每个子系统的叶子文档
+- 当 `zircon_core`、`zircon_module`、`zircon_manager`、`zircon_foundation`、`zircon_entry`、`zircon_scene`、`zircon_script` 稳定后，应把这里的全局规则细化成每个子系统的叶子文档

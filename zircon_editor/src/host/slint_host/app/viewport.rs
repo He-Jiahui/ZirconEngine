@@ -1,4 +1,6 @@
 use super::*;
+use crate::host::slint_host::floating_window_projection::resolve_floating_window_content_frame;
+use crate::host::slint_host::root_shell_projection::resolve_root_viewport_content_frame;
 use crate::{ActivityDrawerSlot, ViewHost};
 use zircon_ui::{UiPointerButton, UiPointerEvent, UiPointerEventKind};
 
@@ -84,12 +86,13 @@ impl SlintEditorHost {
         }
     }
 
-    fn viewport_toolbar_surface_size(&self, surface_key: &str) -> UiSize {
+    pub(super) fn viewport_toolbar_surface_size(&self, surface_key: &str) -> UiSize {
         const TOOLBAR_HEIGHT: f32 = 28.0;
 
         let Some(geometry) = self.shell_geometry.as_ref() else {
             return UiSize::new(self.shell_size.width.max(1.0), TOOLBAR_HEIGHT);
         };
+        let root_shell_frames = self.template_bridge.root_shell_frames();
 
         let width = self
             .runtime
@@ -97,10 +100,24 @@ impl SlintEditorHost {
             .into_iter()
             .find(|instance| instance.instance_id.0 == surface_key)
             .map(|instance| match instance.host {
-                ViewHost::FloatingWindow(window_id, _) => {
-                    geometry.floating_window_frame(&window_id).width.max(1.0)
+                ViewHost::FloatingWindow(window_id, _) => self
+                    .floating_window_projection_bundle
+                    .content_frame(&window_id)
+                    .unwrap_or_else(|| {
+                        resolve_floating_window_content_frame(
+                            geometry,
+                            &self.chrome_metrics,
+                            &window_id,
+                        )
+                    })
+                    .width
+                    .max(1.0),
+                ViewHost::Document(_, _) => {
+                    resolve_root_viewport_content_frame(geometry, Some(&root_shell_frames), true)
+                        .width
+                        .max(geometry.region_frame(ShellRegionId::Document).width)
+                        .max(1.0)
                 }
-                ViewHost::Document(_, _) => geometry.region_frame(ShellRegionId::Document).width,
                 ViewHost::Drawer(slot) => {
                     let region = match slot {
                         ActivityDrawerSlot::LeftTop | ActivityDrawerSlot::LeftBottom => {

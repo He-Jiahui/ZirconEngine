@@ -4,10 +4,9 @@ use std::sync::Arc;
 use zircon_core::{CoreError, CoreHandle};
 
 use crate::{
-    AssetManager, ConfigManager, EditorAssetManager, EventManager, InputManager, LevelManager,
-    RenderingManager, ResourceManager, ASSET_MANAGER_NAME, CONFIG_MANAGER_NAME,
-    EDITOR_ASSET_MANAGER_NAME, EVENT_MANAGER_NAME, INPUT_MANAGER_NAME, LEVEL_MANAGER_NAME,
-    RENDERING_MANAGER_NAME, RESOURCE_MANAGER_NAME,
+    AssetManager, ConfigManager, EventManager, InputManager, LevelManager, RenderingManager,
+    ResourceManager, ASSET_MANAGER_NAME, CONFIG_MANAGER_NAME, EVENT_MANAGER_NAME,
+    INPUT_MANAGER_NAME, LEVEL_MANAGER_NAME, RENDERING_MANAGER_NAME, RESOURCE_MANAGER_NAME,
 };
 
 macro_rules! define_manager_holder {
@@ -88,13 +87,6 @@ define_manager_holder!(
     resolve_resource_manager,
     RESOURCE_MANAGER_NAME,
     resource
-);
-define_manager_holder!(
-    EditorAssetManagerHandle,
-    EditorAssetManager,
-    resolve_editor_asset_manager,
-    EDITOR_ASSET_MANAGER_NAME,
-    editor_asset
 );
 define_manager_holder!(
     InputManagerHandle,

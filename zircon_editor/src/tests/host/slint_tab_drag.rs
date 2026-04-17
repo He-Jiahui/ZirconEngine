@@ -1,23 +1,25 @@
 use std::collections::BTreeMap;
 
+use crate::host::slint_host::callback_dispatch::BuiltinWorkbenchRootShellFrames;
 use crate::host::slint_host::shell_pointer::WorkbenchShellPointerRoute;
 use crate::host::slint_host::tab_drag::{
-    document_edge_group_key, drop_host_for_group, drop_host_for_tab, estimate_dock_tab_width,
-    estimate_document_tab_width, floating_window_edge_group_key, floating_window_group_key,
-    resolve_tab_drop, resolve_workbench_drag_target_group, resolve_workbench_tab_drop_route,
-    workbench_shell_pointer_route_group_key, ResolvedTabDrop, ResolvedWorkbenchTabDropRoute,
-    ResolvedWorkbenchTabDropTarget, WorkbenchDragTargetGroup,
+    ResolvedTabDrop, ResolvedWorkbenchTabDropRoute, ResolvedWorkbenchTabDropTarget,
+    WorkbenchDragTargetGroup, document_edge_group_key, drop_host_for_group, drop_host_for_tab,
+    estimate_dock_tab_width, estimate_document_tab_width, floating_window_edge_group_key,
+    floating_window_group_key, resolve_tab_drop, resolve_workbench_drag_target_group,
+    resolve_workbench_drag_target_group_with_root_frames, resolve_workbench_tab_drop_route,
+    resolve_workbench_tab_drop_route_with_root_frames, workbench_shell_pointer_route_group_key,
 };
 use crate::{
     ActivityDrawerLayout, ActivityDrawerMode, ActivityDrawerSlot, DockEdge, DocumentNode,
     DocumentTabModel, DocumentWorkspaceModel, DrawerRingModel, EditorUiCompatibilityHarness,
     FloatingWindowModel, MainHostPageLayout, MainHostStripModel, MainHostStripViewModel,
-    MainPageId, MenuBarModel, PaneTabModel, ShellFrame, ShellRegionId, SplitAxis, SplitPlacement,
-    StatusBarModel, TabInsertionAnchor, TabInsertionSide, TabStackLayout, ToolWindowStackModel,
-    ViewContentKind, ViewDescriptorId, ViewHost, ViewInstanceId, WorkbenchLayout,
-    WorkbenchShellGeometry, WorkbenchViewModel, WorkspaceTarget,
+    MainPageId, MenuBarModel, NativeWindowHostState, PaneTabModel, ShellFrame, ShellRegionId,
+    SplitAxis, SplitPlacement, StatusBarModel, TabInsertionAnchor, TabInsertionSide,
+    TabStackLayout, ToolWindowStackModel, ViewContentKind, ViewDescriptorId, ViewHost,
+    ViewInstanceId, WorkbenchLayout, WorkbenchShellGeometry, WorkbenchViewModel, WorkspaceTarget,
 };
-use zircon_ui::{UiPoint, UiSize};
+use zircon_ui::{UiFrame, UiPoint, UiSize};
 
 use crate::host::slint_host::shell_pointer::WorkbenchShellPointerBridge;
 
@@ -541,8 +543,8 @@ fn resolve_workbench_tab_drop_route_maps_document_edge_to_create_split_on_active
 }
 
 #[test]
-fn resolved_workbench_tab_drop_route_snapshot_matches_shared_pointer_and_group_key_for_document_edge(
-) {
+fn resolved_workbench_tab_drop_route_snapshot_matches_shared_pointer_and_group_key_for_document_edge()
+ {
     let layout = WorkbenchLayout {
         active_main_page: MainPageId::workbench(),
         main_pages: vec![workbench_page(MainPageId::workbench())],
@@ -585,7 +587,13 @@ fn resolved_workbench_tab_drop_route_snapshot_matches_shared_pointer_and_group_k
         viewport_content_frame: ShellFrame::new(0.0, 0.0, 0.0, 0.0),
     };
     let mut bridge = WorkbenchShellPointerBridge::new();
-    bridge.update_layout_with_floating_windows(UiSize::new(1440.0, 900.0), &geometry, false, &[]);
+    bridge.update_layout_with_floating_windows(
+        UiSize::new(1440.0, 900.0),
+        &geometry,
+        false,
+        &[],
+        &[],
+    );
 
     let pointer_route = bridge.drag_route_at(UiPoint::new(12.0, 240.0));
     let from_pointer = resolve_workbench_tab_drop_route(
@@ -815,8 +823,8 @@ fn resolve_workbench_tab_drop_route_accepts_floating_window_group_fallback_key()
 }
 
 #[test]
-fn resolved_workbench_tab_drop_route_snapshot_matches_shared_pointer_and_group_key_for_floating_window(
-) {
+fn resolved_workbench_tab_drop_route_snapshot_matches_shared_pointer_and_group_key_for_floating_window()
+ {
     let floating_window_id = MainPageId::new("window:prefab");
     let layout = WorkbenchLayout {
         active_main_page: MainPageId::workbench(),
@@ -897,6 +905,7 @@ fn resolved_workbench_tab_drop_route_snapshot_matches_shared_pointer_and_group_k
         &geometry,
         false,
         &floating_windows,
+        &[],
     );
 
     let pointer_route = bridge.drag_route_at(UiPoint::new(600.0, 300.0));
@@ -1055,7 +1064,13 @@ fn shared_shell_pointer_route_reports_document_edge_before_document_group() {
         viewport_content_frame: ShellFrame::new(0.0, 0.0, 0.0, 0.0),
     };
     let mut bridge = WorkbenchShellPointerBridge::new();
-    bridge.update_layout_with_floating_windows(UiSize::new(1440.0, 900.0), &geometry, false, &[]);
+    bridge.update_layout_with_floating_windows(
+        UiSize::new(1440.0, 900.0),
+        &geometry,
+        false,
+        &[],
+        &[],
+    );
 
     assert_eq!(
         bridge.drag_route_at(UiPoint::new(12.0, 240.0)),
@@ -1064,6 +1079,435 @@ fn shared_shell_pointer_route_reports_document_edge_before_document_group() {
     assert_eq!(
         bridge.drag_target_at(UiPoint::new(12.0, 240.0)),
         Some(WorkbenchDragTargetGroup::Document)
+    );
+}
+
+#[test]
+fn shared_shell_pointer_route_uses_shared_root_projection_document_bounds_when_drawers_are_collapsed()
+ {
+    let geometry = WorkbenchShellGeometry {
+        window_min_width: 0.0,
+        window_min_height: 0.0,
+        center_band_frame: ShellFrame::new(0.0, 50.0, 1440.0, 650.0),
+        status_bar_frame: ShellFrame::new(0.0, 700.0, 1440.0, 20.0),
+        region_frames: BTreeMap::from([
+            (ShellRegionId::Left, ShellFrame::new(0.0, 50.0, 0.0, 650.0)),
+            (
+                ShellRegionId::Document,
+                ShellFrame::new(21.0, 50.0, 1419.0, 650.0),
+            ),
+            (
+                ShellRegionId::Right,
+                ShellFrame::new(1440.0, 50.0, 0.0, 650.0),
+            ),
+            (
+                ShellRegionId::Bottom,
+                ShellFrame::new(0.0, 700.0, 1440.0, 0.0),
+            ),
+        ]),
+        splitter_frames: BTreeMap::new(),
+        floating_window_frames: BTreeMap::new(),
+        viewport_content_frame: ShellFrame::default(),
+    };
+    let root_projection = BuiltinWorkbenchRootShellFrames {
+        workbench_body_frame: Some(UiFrame::new(0.0, 40.0, 1440.0, 656.0)),
+        document_host_frame: Some(UiFrame::new(56.0, 40.0, 1384.0, 656.0)),
+        status_bar_frame: Some(UiFrame::new(0.0, 696.0, 1440.0, 24.0)),
+        ..BuiltinWorkbenchRootShellFrames::default()
+    };
+    let mut bridge = WorkbenchShellPointerBridge::new();
+    bridge.update_layout_with_root_shell_frames(
+        UiSize::new(1440.0, 720.0),
+        &geometry,
+        false,
+        &[],
+        Some(&root_projection),
+        None,
+    );
+
+    assert_eq!(bridge.drag_route_at(UiPoint::new(40.0, 240.0)), None);
+    assert_eq!(
+        bridge.drag_route_at(UiPoint::new(80.0, 240.0)),
+        Some(WorkbenchShellPointerRoute::DocumentEdge(DockEdge::Left))
+    );
+    assert_eq!(
+        bridge.drag_target_at(UiPoint::new(80.0, 240.0)),
+        Some(WorkbenchDragTargetGroup::Document)
+    );
+    assert_eq!(
+        bridge.drag_route_at(UiPoint::new(160.0, 240.0)),
+        Some(WorkbenchShellPointerRoute::DragTarget(
+            WorkbenchDragTargetGroup::Document,
+        ))
+    );
+}
+
+#[test]
+fn resolve_workbench_tab_drop_route_uses_shared_root_projection_tab_strip_when_drawers_are_collapsed()
+ {
+    let layout = WorkbenchLayout {
+        active_main_page: MainPageId::workbench(),
+        main_pages: vec![workbench_page(MainPageId::workbench())],
+        drawers: BTreeMap::from([
+            (
+                ActivityDrawerSlot::RightTop,
+                drawer(
+                    ActivityDrawerSlot::RightTop,
+                    &["editor.inspector#1"],
+                    Some("editor.inspector#1"),
+                    ActivityDrawerMode::Pinned,
+                    true,
+                ),
+            ),
+            (
+                ActivityDrawerSlot::RightBottom,
+                drawer(
+                    ActivityDrawerSlot::RightBottom,
+                    &["editor.project#1", "editor.console#1"],
+                    Some("editor.console#1"),
+                    ActivityDrawerMode::Pinned,
+                    true,
+                ),
+            ),
+        ]),
+        floating_windows: Vec::new(),
+        region_overrides: BTreeMap::new(),
+        view_overrides: BTreeMap::new(),
+    };
+    let model = workbench_model(
+        BTreeMap::from([
+            (
+                ActivityDrawerSlot::RightTop,
+                tool_window_stack(
+                    ActivityDrawerSlot::RightTop,
+                    &[pane_tab("editor.inspector#1", "Inspector", true)],
+                    Some("editor.inspector#1"),
+                    true,
+                ),
+            ),
+            (
+                ActivityDrawerSlot::RightBottom,
+                tool_window_stack(
+                    ActivityDrawerSlot::RightBottom,
+                    &[
+                        pane_tab("editor.project#1", "Project", false),
+                        pane_tab("editor.console#1", "Console", true),
+                    ],
+                    Some("editor.console#1"),
+                    true,
+                ),
+            ),
+        ]),
+        Vec::new(),
+        Vec::new(),
+    );
+    let geometry = shell_geometry(
+        ShellFrame::new(1120.0, 50.0, 320.0, 738.0),
+        ShellFrame::new(34.0, 50.0, 1086.0, 738.0),
+        ShellFrame::new(0.0, 788.0, 1440.0, 92.0),
+    );
+    let root_projection = BuiltinWorkbenchRootShellFrames {
+        workbench_body_frame: Some(UiFrame::new(0.0, 40.0, 1440.0, 840.0)),
+        status_bar_frame: Some(UiFrame::new(0.0, 880.0, 1440.0, 20.0)),
+        ..BuiltinWorkbenchRootShellFrames::default()
+    };
+    let mut bridge = WorkbenchShellPointerBridge::new();
+    bridge.update_layout_with_root_shell_frames(
+        UiSize::new(1440.0, 900.0),
+        &geometry,
+        true,
+        &[],
+        Some(&root_projection),
+        None,
+    );
+    let pointer_x = 1120.0
+        + 6.0
+        + estimate_dock_tab_width("Inspector")
+        + 4.0
+        + estimate_dock_tab_width("Project") * 0.25;
+    let pointer_route = bridge.drag_route_at(UiPoint::new(pointer_x, 44.0));
+
+    assert_eq!(
+        resolve_workbench_tab_drop_route_with_root_frames(
+            &layout,
+            &model,
+            &geometry,
+            &crate::WorkbenchChromeMetrics::default(),
+            "editor.hierarchy#1",
+            pointer_route,
+            "right",
+            pointer_x,
+            44.0,
+            Some(&root_projection),
+        ),
+        Some(ResolvedWorkbenchTabDropRoute {
+            target_group: WorkbenchDragTargetGroup::Right,
+            target_label: "right tool stack",
+            target: ResolvedWorkbenchTabDropTarget::Attach(ResolvedTabDrop {
+                host: ViewHost::Drawer(ActivityDrawerSlot::RightBottom),
+                anchor: Some(TabInsertionAnchor {
+                    target_id: ViewInstanceId::new("editor.project#1"),
+                    side: TabInsertionSide::Before,
+                }),
+            }),
+        })
+    );
+}
+
+#[test]
+fn resolve_workbench_tab_drop_route_uses_shared_root_projection_right_tab_strip_when_visible_drawer_geometry_is_stale()
+ {
+    let layout = WorkbenchLayout {
+        active_main_page: MainPageId::workbench(),
+        main_pages: vec![workbench_page(MainPageId::workbench())],
+        drawers: BTreeMap::from([
+            (
+                ActivityDrawerSlot::RightTop,
+                drawer(
+                    ActivityDrawerSlot::RightTop,
+                    &["editor.inspector#1"],
+                    Some("editor.inspector#1"),
+                    ActivityDrawerMode::Pinned,
+                    true,
+                ),
+            ),
+            (
+                ActivityDrawerSlot::RightBottom,
+                drawer(
+                    ActivityDrawerSlot::RightBottom,
+                    &["editor.project#1", "editor.console#1"],
+                    Some("editor.console#1"),
+                    ActivityDrawerMode::Pinned,
+                    true,
+                ),
+            ),
+        ]),
+        floating_windows: Vec::new(),
+        region_overrides: BTreeMap::new(),
+        view_overrides: BTreeMap::new(),
+    };
+    let model = workbench_model(
+        BTreeMap::from([
+            (
+                ActivityDrawerSlot::RightTop,
+                tool_window_stack(
+                    ActivityDrawerSlot::RightTop,
+                    &[pane_tab("editor.inspector#1", "Inspector", true)],
+                    Some("editor.inspector#1"),
+                    true,
+                ),
+            ),
+            (
+                ActivityDrawerSlot::RightBottom,
+                tool_window_stack(
+                    ActivityDrawerSlot::RightBottom,
+                    &[
+                        pane_tab("editor.project#1", "Project", false),
+                        pane_tab("editor.console#1", "Console", true),
+                    ],
+                    Some("editor.console#1"),
+                    true,
+                ),
+            ),
+        ]),
+        Vec::new(),
+        Vec::new(),
+    );
+    let geometry = WorkbenchShellGeometry {
+        window_min_width: 0.0,
+        window_min_height: 0.0,
+        center_band_frame: ShellFrame::new(0.0, 50.0, 1440.0, 830.0),
+        status_bar_frame: ShellFrame::new(0.0, 880.0, 1440.0, 20.0),
+        region_frames: BTreeMap::from([
+            (ShellRegionId::Left, ShellFrame::default()),
+            (
+                ShellRegionId::Document,
+                ShellFrame::new(34.0, 140.0, 960.0, 440.0),
+            ),
+            (
+                ShellRegionId::Right,
+                ShellFrame::new(1240.0, 140.0, 320.0, 520.0),
+            ),
+            (
+                ShellRegionId::Bottom,
+                ShellFrame::new(96.0, 788.0, 640.0, 92.0),
+            ),
+        ]),
+        splitter_frames: BTreeMap::new(),
+        floating_window_frames: BTreeMap::new(),
+        viewport_content_frame: ShellFrame::default(),
+    };
+    let root_projection = BuiltinWorkbenchRootShellFrames {
+        shell_frame: Some(UiFrame::new(0.0, 0.0, 1440.0, 900.0)),
+        workbench_body_frame: Some(UiFrame::new(0.0, 40.0, 1440.0, 840.0)),
+        status_bar_frame: Some(UiFrame::new(0.0, 880.0, 1440.0, 20.0)),
+        ..BuiltinWorkbenchRootShellFrames::default()
+    };
+    let mut bridge = WorkbenchShellPointerBridge::new();
+    bridge.update_layout_with_root_shell_frames(
+        UiSize::new(1440.0, 900.0),
+        &geometry,
+        true,
+        &[],
+        Some(&root_projection),
+        None,
+    );
+    let pointer_x = 1120.0
+        + 6.0
+        + estimate_dock_tab_width("Inspector")
+        + 4.0
+        + estimate_dock_tab_width("Project") * 0.25;
+    let pointer_y = 44.0;
+    let pointer_route = bridge.drag_route_at(UiPoint::new(pointer_x, pointer_y));
+
+    assert_eq!(
+        resolve_workbench_tab_drop_route_with_root_frames(
+            &layout,
+            &model,
+            &geometry,
+            &crate::WorkbenchChromeMetrics::default(),
+            "editor.hierarchy#1",
+            pointer_route,
+            "right",
+            pointer_x,
+            pointer_y,
+            Some(&root_projection),
+        ),
+        Some(ResolvedWorkbenchTabDropRoute {
+            target_group: WorkbenchDragTargetGroup::Right,
+            target_label: "right tool stack",
+            target: ResolvedWorkbenchTabDropTarget::Attach(ResolvedTabDrop {
+                host: ViewHost::Drawer(ActivityDrawerSlot::RightBottom),
+                anchor: Some(TabInsertionAnchor {
+                    target_id: ViewInstanceId::new("editor.project#1"),
+                    side: TabInsertionSide::Before,
+                }),
+            }),
+        })
+    );
+}
+
+#[test]
+fn resolve_workbench_tab_drop_route_uses_shared_root_projection_bottom_tab_strip_when_visible_drawer_geometry_is_stale()
+ {
+    let layout = WorkbenchLayout {
+        active_main_page: MainPageId::workbench(),
+        main_pages: vec![workbench_page(MainPageId::workbench())],
+        drawers: BTreeMap::from([
+            (
+                ActivityDrawerSlot::BottomLeft,
+                drawer(
+                    ActivityDrawerSlot::BottomLeft,
+                    &["editor.console#1"],
+                    Some("editor.console#1"),
+                    ActivityDrawerMode::Pinned,
+                    true,
+                ),
+            ),
+            (
+                ActivityDrawerSlot::BottomRight,
+                drawer(
+                    ActivityDrawerSlot::BottomRight,
+                    &["editor.project#1"],
+                    Some("editor.project#1"),
+                    ActivityDrawerMode::Pinned,
+                    true,
+                ),
+            ),
+        ]),
+        floating_windows: Vec::new(),
+        region_overrides: BTreeMap::new(),
+        view_overrides: BTreeMap::new(),
+    };
+    let model = workbench_model(
+        BTreeMap::from([
+            (
+                ActivityDrawerSlot::BottomLeft,
+                tool_window_stack(
+                    ActivityDrawerSlot::BottomLeft,
+                    &[pane_tab("editor.console#1", "Console", true)],
+                    Some("editor.console#1"),
+                    true,
+                ),
+            ),
+            (
+                ActivityDrawerSlot::BottomRight,
+                tool_window_stack(
+                    ActivityDrawerSlot::BottomRight,
+                    &[pane_tab("editor.project#1", "Project", false)],
+                    Some("editor.project#1"),
+                    true,
+                ),
+            ),
+        ]),
+        Vec::new(),
+        Vec::new(),
+    );
+    let geometry = WorkbenchShellGeometry {
+        window_min_width: 0.0,
+        window_min_height: 0.0,
+        center_band_frame: ShellFrame::new(0.0, 50.0, 1440.0, 830.0),
+        status_bar_frame: ShellFrame::new(0.0, 880.0, 1440.0, 20.0),
+        region_frames: BTreeMap::from([
+            (ShellRegionId::Left, ShellFrame::default()),
+            (
+                ShellRegionId::Document,
+                ShellFrame::new(34.0, 140.0, 1086.0, 440.0),
+            ),
+            (ShellRegionId::Right, ShellFrame::default()),
+            (
+                ShellRegionId::Bottom,
+                ShellFrame::new(96.0, 788.0, 640.0, 92.0),
+            ),
+        ]),
+        splitter_frames: BTreeMap::new(),
+        floating_window_frames: BTreeMap::new(),
+        viewport_content_frame: ShellFrame::default(),
+    };
+    let root_projection = BuiltinWorkbenchRootShellFrames {
+        shell_frame: Some(UiFrame::new(0.0, 0.0, 1440.0, 900.0)),
+        workbench_body_frame: Some(UiFrame::new(0.0, 40.0, 1440.0, 840.0)),
+        status_bar_frame: Some(UiFrame::new(0.0, 880.0, 1440.0, 20.0)),
+        ..BuiltinWorkbenchRootShellFrames::default()
+    };
+    let mut bridge = WorkbenchShellPointerBridge::new();
+    bridge.update_layout_with_root_shell_frames(
+        UiSize::new(1440.0, 900.0),
+        &geometry,
+        true,
+        &[],
+        Some(&root_projection),
+        None,
+    );
+    let pointer_x =
+        6.0 + estimate_dock_tab_width("Console") + 4.0 + estimate_dock_tab_width("Project") * 0.25;
+    let pointer_y = 792.0;
+    let pointer_route = bridge.drag_route_at(UiPoint::new(pointer_x, pointer_y));
+
+    assert_eq!(
+        resolve_workbench_tab_drop_route_with_root_frames(
+            &layout,
+            &model,
+            &geometry,
+            &crate::WorkbenchChromeMetrics::default(),
+            "editor.hierarchy#1",
+            pointer_route,
+            "bottom",
+            pointer_x,
+            pointer_y,
+            Some(&root_projection),
+        ),
+        Some(ResolvedWorkbenchTabDropRoute {
+            target_group: WorkbenchDragTargetGroup::Bottom,
+            target_label: "bottom tool stack",
+            target: ResolvedWorkbenchTabDropTarget::Attach(ResolvedTabDrop {
+                host: ViewHost::Drawer(ActivityDrawerSlot::BottomRight),
+                anchor: Some(TabInsertionAnchor {
+                    target_id: ViewInstanceId::new("editor.project#1"),
+                    side: TabInsertionSide::Before,
+                }),
+            }),
+        })
     );
 }
 
@@ -1122,6 +1566,7 @@ fn shared_shell_pointer_route_reports_floating_window_attach_from_shared_surface
         &geometry,
         false,
         &floating_windows,
+        &[],
     );
 
     assert_eq!(
@@ -1131,6 +1576,45 @@ fn shared_shell_pointer_route_reports_floating_window_attach_from_shared_surface
     assert_eq!(
         bridge.drag_target_at(UiPoint::new(600.0, 300.0)),
         Some(WorkbenchDragTargetGroup::Document)
+    );
+}
+
+#[test]
+fn shared_shell_pointer_route_prefers_native_window_host_bounds_for_floating_attach_surface() {
+    let window_id = MainPageId::new("window:preview");
+    let mut geometry = shell_geometry(
+        ShellFrame::new(1120.0, 50.0, 320.0, 738.0),
+        ShellFrame::new(34.0, 50.0, 1086.0, 738.0),
+        ShellFrame::new(0.0, 788.0, 1440.0, 92.0),
+    );
+    geometry.floating_window_frames.insert(
+        window_id.clone(),
+        ShellFrame::new(420.0, 180.0, 360.0, 240.0),
+    );
+    let floating_windows = vec![floating_window(
+        window_id.clone(),
+        "Preview Popout",
+        Vec::new(),
+        None,
+    )];
+    let mut bridge = WorkbenchShellPointerBridge::new();
+    bridge.update_layout_with_native_window_hosts(
+        UiSize::new(1440.0, 900.0),
+        &geometry,
+        false,
+        &floating_windows,
+        None,
+        &[NativeWindowHostState {
+            window_id: window_id.clone(),
+            handle: None,
+            bounds: [640.0, 320.0, 700.0, 420.0],
+        }],
+    );
+
+    assert_eq!(
+        bridge.drag_route_at(UiPoint::new(900.0, 500.0)),
+        Some(WorkbenchShellPointerRoute::FloatingWindow(window_id)),
+        "drag attach surface should move to native host bounds instead of stale layout geometry"
     );
 }
 
@@ -1158,6 +1642,7 @@ fn shared_shell_pointer_route_reports_floating_window_edge_from_shared_surface()
         &geometry,
         false,
         &floating_windows,
+        &[],
     );
 
     assert_eq!(
@@ -1174,8 +1659,8 @@ fn shared_shell_pointer_route_reports_floating_window_edge_from_shared_surface()
 }
 
 #[test]
-fn shared_drag_target_route_prefers_right_over_bottom_in_overlap_when_pointer_is_closer_to_right_edge(
-) {
+fn shared_drag_target_route_prefers_right_over_bottom_in_overlap_when_pointer_is_closer_to_right_edge()
+ {
     let geometry = shell_geometry(
         ShellFrame::new(1348.0, 50.0, 0.0, 666.0),
         ShellFrame::new(34.0, 50.0, 1314.0, 666.0),
@@ -1194,8 +1679,8 @@ fn shared_drag_target_route_prefers_right_over_bottom_in_overlap_when_pointer_is
 }
 
 #[test]
-fn shared_drag_target_route_prefers_bottom_over_right_in_overlap_when_pointer_is_closer_to_bottom_edge(
-) {
+fn shared_drag_target_route_prefers_bottom_over_right_in_overlap_when_pointer_is_closer_to_bottom_edge()
+ {
     let geometry = shell_geometry(
         ShellFrame::new(1348.0, 50.0, 0.0, 666.0),
         ShellFrame::new(34.0, 50.0, 1314.0, 666.0),
@@ -1227,6 +1712,62 @@ fn shared_drag_target_route_returns_document_inside_document_region() {
             &geometry,
             true,
             UiPoint::new(720.0, 240.0),
+        ),
+        Some(WorkbenchDragTargetGroup::Document)
+    );
+}
+
+#[test]
+fn resolve_workbench_drag_target_group_with_root_frames_uses_shared_root_projection_document_bounds_when_drawers_are_collapsed()
+ {
+    let geometry = WorkbenchShellGeometry {
+        window_min_width: 0.0,
+        window_min_height: 0.0,
+        center_band_frame: ShellFrame::new(0.0, 50.0, 1440.0, 650.0),
+        status_bar_frame: ShellFrame::new(0.0, 700.0, 1440.0, 20.0),
+        region_frames: BTreeMap::from([
+            (ShellRegionId::Left, ShellFrame::new(0.0, 50.0, 0.0, 650.0)),
+            (
+                ShellRegionId::Document,
+                ShellFrame::new(21.0, 50.0, 1419.0, 650.0),
+            ),
+            (
+                ShellRegionId::Right,
+                ShellFrame::new(1440.0, 50.0, 0.0, 650.0),
+            ),
+            (
+                ShellRegionId::Bottom,
+                ShellFrame::new(0.0, 700.0, 1440.0, 0.0),
+            ),
+        ]),
+        splitter_frames: BTreeMap::new(),
+        floating_window_frames: BTreeMap::new(),
+        viewport_content_frame: ShellFrame::default(),
+    };
+    let root_projection = BuiltinWorkbenchRootShellFrames {
+        workbench_body_frame: Some(UiFrame::new(0.0, 40.0, 1440.0, 656.0)),
+        document_host_frame: Some(UiFrame::new(56.0, 40.0, 1384.0, 656.0)),
+        status_bar_frame: Some(UiFrame::new(0.0, 696.0, 1440.0, 24.0)),
+        ..BuiltinWorkbenchRootShellFrames::default()
+    };
+
+    assert_eq!(
+        resolve_workbench_drag_target_group_with_root_frames(
+            UiSize::new(1440.0, 720.0),
+            &geometry,
+            false,
+            UiPoint::new(40.0, 240.0),
+            Some(&root_projection),
+        ),
+        None
+    );
+    assert_eq!(
+        resolve_workbench_drag_target_group_with_root_frames(
+            UiSize::new(1440.0, 720.0),
+            &geometry,
+            false,
+            UiPoint::new(80.0, 240.0),
+            Some(&root_projection),
         ),
         Some(WorkbenchDragTargetGroup::Document)
     );
@@ -1453,6 +1994,7 @@ fn floating_window(
     FloatingWindowModel {
         window_id,
         title: title.to_string(),
+        requested_frame: ShellFrame::default(),
         focused_view: focused_view.map(ViewInstanceId::new),
         tabs,
     }

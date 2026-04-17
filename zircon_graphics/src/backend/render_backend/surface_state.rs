@@ -8,5 +8,5 @@ pub(crate) struct SurfaceState {
     pub(crate) config: wgpu::SurfaceConfiguration,
     pub(crate) size: UVec2,
     #[allow(dead_code)]
-    pub(crate) window: Arc<Window>,
+    pub(crate) window: Arc<dyn Window>,
 }

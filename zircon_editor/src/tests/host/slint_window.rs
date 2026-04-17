@@ -2,10 +2,12 @@ use std::cell::Cell;
 use std::rc::Rc;
 
 use crate::host::slint_host::WorkbenchShell;
+use crate::host::slint_host::floating_window_projection::build_floating_window_projection_bundle;
 use crate::{
-    compute_workbench_shell_geometry, default_preview_fixture, DocumentNode, FloatingWindowLayout,
-    MainPageId, NativeWindowHostState, ShellFrame, ShellSizePx, TabStackLayout, ViewDescriptorId,
-    ViewHost, ViewInstance, ViewInstanceId, WorkbenchChromeMetrics, WorkbenchViewModel,
+    DocumentNode, FloatingWindowLayout, MainPageId, NativeWindowHostState, ShellFrame, ShellSizePx,
+    TabStackLayout, ViewDescriptorId, ViewHost, ViewInstance, ViewInstanceId,
+    WorkbenchChromeMetrics, WorkbenchViewModel, compute_workbench_shell_geometry,
+    default_preview_fixture,
 };
 use slint::{ComponentHandle, PhysicalSize};
 
@@ -77,14 +79,19 @@ fn native_floating_window_targets_fall_back_to_shared_geometry_when_host_bounds_
         None,
     );
 
-    let targets = crate::host::slint_host::collect_native_floating_window_targets(
+    let floating_window_projection_bundle = build_floating_window_projection_bundle(
         &model,
         &geometry,
+        &WorkbenchChromeMetrics::default(),
         &[NativeWindowHostState {
             window_id: window_id.clone(),
             handle: None,
             bounds: [0.0, 0.0, 0.0, 0.0],
         }],
+    );
+    let targets = crate::host::slint_host::collect_native_floating_window_targets(
+        &model,
+        &floating_window_projection_bundle,
     );
 
     assert_eq!(targets.len(), 1);
@@ -312,6 +319,10 @@ fn child_window_callback_wiring_tracks_source_window_for_pane_interactions() {
     for needle in [
         "resolve_callback_source_window_id(&source_ui)",
         ".with_callback_source_window(",
+        "ui.on_ui_asset_binding_event_selected(",
+        "ui.on_ui_asset_binding_action_kind_selected(",
+        "ui.on_ui_asset_binding_payload_selected(",
+        "ui.on_ui_asset_binding_payload_action(",
     ] {
         assert!(
             wiring.contains(needle),
@@ -334,6 +345,23 @@ fn child_window_callback_wiring_tracks_source_window_for_pane_interactions() {
         assert!(
             source.contains("self.focus_callback_source_window();"),
             "{name} interactions should focus the originating floating window before dispatch"
+        );
+    }
+
+    for needle in [
+        "pub(super) fn dispatch_ui_asset_binding_event_selected(",
+        "pub(super) fn dispatch_ui_asset_binding_action_kind_selected(",
+        "pub(super) fn dispatch_ui_asset_binding_payload_selected(",
+        "pub(super) fn dispatch_ui_asset_binding_payload_action(",
+        ".select_ui_asset_editor_binding_event_option(",
+        ".select_ui_asset_editor_binding_action_kind(",
+        ".select_ui_asset_editor_binding_payload(",
+        ".upsert_ui_asset_editor_selected_binding_payload(",
+        ".delete_ui_asset_editor_selected_binding_payload(",
+    ] {
+        assert!(
+            ui_asset_editor.contains(needle),
+            "ui asset editor host dispatch should include `{needle}`"
         );
     }
 

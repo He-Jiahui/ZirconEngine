@@ -1,5 +1,6 @@
 use zircon_ui::UiPoint;
 
+use crate::host::slint_host::callback_dispatch::BuiltinWorkbenchRootShellFrames;
 use crate::host::slint_host::shell_pointer::WorkbenchShellPointerBridge;
 use crate::{ShellSizePx, WorkbenchShellGeometry};
 
@@ -22,14 +23,21 @@ impl WorkbenchDragTargetBridge {
         }
     }
 
-    pub(crate) fn update_layout(
+    pub(crate) fn update_layout_with_root_frames(
         &mut self,
         root_size: ShellSizePx,
         geometry: &WorkbenchShellGeometry,
         drawers_visible: bool,
+        shared_root_frames: Option<&BuiltinWorkbenchRootShellFrames>,
     ) {
-        self.shell_pointer
-            .update_layout(root_size, geometry, drawers_visible);
+        self.shell_pointer.update_layout_with_root_shell_frames(
+            root_size,
+            geometry,
+            drawers_visible,
+            &[],
+            shared_root_frames,
+            None,
+        );
     }
 
     pub(crate) fn resolve(&mut self, point: UiPoint) -> Option<WorkbenchDragTargetGroup> {
@@ -43,7 +51,23 @@ pub fn resolve_workbench_drag_target_group(
     drawers_visible: bool,
     point: UiPoint,
 ) -> Option<WorkbenchDragTargetGroup> {
+    resolve_workbench_drag_target_group_with_root_frames(
+        root_size,
+        geometry,
+        drawers_visible,
+        point,
+        None,
+    )
+}
+
+pub fn resolve_workbench_drag_target_group_with_root_frames(
+    root_size: ShellSizePx,
+    geometry: &WorkbenchShellGeometry,
+    drawers_visible: bool,
+    point: UiPoint,
+    shared_root_frames: Option<&BuiltinWorkbenchRootShellFrames>,
+) -> Option<WorkbenchDragTargetGroup> {
     let mut bridge = WorkbenchDragTargetBridge::new();
-    bridge.update_layout(root_size, geometry, drawers_visible);
+    bridge.update_layout_with_root_frames(root_size, geometry, drawers_visible, shared_root_frames);
     bridge.resolve(point)
 }

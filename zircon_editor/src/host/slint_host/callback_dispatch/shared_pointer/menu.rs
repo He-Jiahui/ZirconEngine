@@ -7,7 +7,7 @@ use crate::host::slint_host::{
 };
 
 use super::super::{
-    dispatch_workbench_menu_action_with_template_fallback, BuiltinWorkbenchTemplateBridge,
+    BuiltinWorkbenchTemplateBridge, dispatch_workbench_menu_action_with_template_fallback,
 };
 
 #[derive(Debug, Clone, PartialEq)]

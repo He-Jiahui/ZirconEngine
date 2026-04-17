@@ -1,6 +1,6 @@
 use super::ShellFrame;
 
-pub(super) fn default_floating_window_frame(
+pub(crate) fn default_floating_window_frame(
     index: usize,
     document_frame: ShellFrame,
     center_band_frame: ShellFrame,
@@ -13,7 +13,7 @@ pub(super) fn default_floating_window_frame(
     ShellFrame::new(x, y, width, height)
 }
 
-pub(super) fn clamp_floating_window_frame(frame: ShellFrame, available: ShellFrame) -> ShellFrame {
+pub(crate) fn clamp_floating_window_frame(frame: ShellFrame, available: ShellFrame) -> ShellFrame {
     if available.width <= 0.0 || available.height <= 0.0 {
         return ShellFrame::default();
     }

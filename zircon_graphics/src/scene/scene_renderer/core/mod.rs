@@ -12,6 +12,7 @@ mod scene_renderer_hybrid_gi;
 mod scene_renderer_new;
 mod scene_renderer_render;
 mod scene_renderer_render_with_pipeline;
+mod scene_renderer_runtime_outputs;
 mod scene_renderer_target;
 mod scene_renderer_virtual_geometry;
 mod target_extent;

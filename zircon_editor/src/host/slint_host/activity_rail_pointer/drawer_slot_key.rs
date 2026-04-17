@@ -1,0 +1,12 @@
+use crate::ActivityDrawerSlot;
+
+pub(super) fn drawer_slot_key(slot: ActivityDrawerSlot) -> &'static str {
+    match slot {
+        ActivityDrawerSlot::LeftTop => "left_top",
+        ActivityDrawerSlot::LeftBottom => "left_bottom",
+        ActivityDrawerSlot::RightTop => "right_top",
+        ActivityDrawerSlot::RightBottom => "right_bottom",
+        ActivityDrawerSlot::BottomLeft => "bottom_left",
+        ActivityDrawerSlot::BottomRight => "bottom_right",
+    }
+}

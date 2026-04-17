@@ -5,7 +5,8 @@ use std::rc::Rc;
 
 use slint::{Image, ModelRc, SharedString, VecModel};
 use zircon_editor_ui::{EditorUiBinding, EditorUiBindingPayload};
-use zircon_manager::{AssetRecordKind, ResourceStateRecord};
+use zircon_manager::ResourceStateRecord;
+use zircon_resource::ResourceKind;
 
 use crate::layout::ActivityDrawerSlot;
 use crate::snapshot::{
@@ -22,8 +23,8 @@ use super::tab_drag::{floating_window_edge_group_key, floating_window_group_key}
 use super::{
     AssetFolderData, AssetItemData, AssetReferenceData, AssetSelectionData, BreadcrumbData,
     FloatingWindowData, FrameRect, NewProjectFormData, PaneData, ProjectOverviewData,
-    RecentProjectData, SceneNodeData, SceneViewportChromeData, TabData, WelcomePaneData,
-    WorkbenchShell,
+    RecentProjectData, SceneNodeData, SceneViewportChromeData, TabData, UiAssetCanvasNodeData,
+    UiAssetCanvasSlotTargetData, WelcomePaneData, WorkbenchShell,
 };
 
 mod apply_presentation;

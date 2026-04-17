@@ -1,5 +1,10 @@
-use crate::editing::ui_asset::{UiAssetEditorCommand, UiAssetEditorSession};
-use crate::{UiAssetEditorMode, UiAssetEditorRoute, UiDesignerSelectionModel, UiSize};
+use crate::editing::ui_asset::{
+    UiAssetEditorCommand, UiAssetEditorSession, UiAssetEditorTreeEdit, UiAssetEditorTreeEditKind,
+};
+use crate::{
+    UiAssetEditorMode, UiAssetEditorRoute, UiAssetEditorUndoStack, UiAssetPreviewPreset,
+    UiDesignerSelectionModel, UiSize,
+};
 use zircon_ui::{UiAssetKind, UiAssetLoader};
 
 const SIMPLE_LAYOUT_ASSET_TOML: &str = r#"
@@ -107,6 +112,76 @@ selector = ".primary:disabled"
 set = { self.background = { color = "#444444" } }
 "##;
 
+const MOCK_PREVIEW_LAYOUT_ASSET_TOML: &str = r##"
+[asset]
+kind = "layout"
+id = "editor.test.mock_preview"
+version = 1
+display_name = "Mock Preview Layout"
+
+[root]
+node = "root"
+
+[nodes.root]
+kind = "native"
+type = "VerticalBox"
+control_id = "Root"
+children = [{ child = "button" }]
+
+[nodes.button]
+kind = "native"
+type = "Button"
+control_id = "SaveButton"
+props = { text = "Save", checked = false, mode = "Full", icon = "asset://ui/icons/save.png" }
+"##;
+
+const TREE_REPARENT_LAYOUT_ASSET_TOML: &str = r##"
+[asset]
+kind = "layout"
+id = "editor.test.tree_reparent"
+version = 1
+display_name = "Tree Reparent Layout"
+
+[root]
+node = "root"
+
+[nodes.root]
+kind = "native"
+type = "VerticalBox"
+control_id = "Root"
+children = [{ child = "group_a" }, { child = "loose" }, { child = "group_b" }]
+
+[nodes.group_a]
+kind = "native"
+type = "VerticalBox"
+control_id = "GroupA"
+children = [{ child = "nested_a" }]
+
+[nodes.nested_a]
+kind = "native"
+type = "Label"
+control_id = "NestedA"
+props = { text = "Nested A" }
+
+[nodes.loose]
+kind = "native"
+type = "Button"
+control_id = "LooseButton"
+props = { text = "Loose" }
+
+[nodes.group_b]
+kind = "native"
+type = "VerticalBox"
+control_id = "GroupB"
+children = [{ child = "nested_b" }]
+
+[nodes.nested_b]
+kind = "native"
+type = "Label"
+control_id = "NestedB"
+props = { text = "Nested B" }
+"##;
+
 const SLOT_AUTHORING_LAYOUT_ASSET_TOML: &str = r##"
 [asset]
 kind = "layout"
@@ -154,6 +229,99 @@ props = { text = "Save" }
 layout = { width = { preferred = 220 }, height = { preferred = 48 } }
 "##;
 
+const OVERLAY_SLOT_LAYOUT_ASSET_TOML: &str = r##"
+[asset]
+kind = "layout"
+id = "editor.test.overlay_slot"
+version = 1
+display_name = "Overlay Slot Layout"
+
+[root]
+node = "root"
+
+[nodes.root]
+kind = "native"
+type = "Overlay"
+control_id = "Root"
+children = [{ child = "badge", slot = { layout = { anchor = { x = 1.0, y = 0.0 }, pivot = { x = 1.0, y = 0.0 }, position = { x = -16.0, y = 12.0 }, z_index = 4 } } }]
+
+[nodes.badge]
+kind = "native"
+type = "Label"
+control_id = "Badge"
+props = { text = "New" }
+"##;
+
+const GRID_SLOT_LAYOUT_ASSET_TOML: &str = r##"
+[asset]
+kind = "layout"
+id = "editor.test.grid_slot"
+version = 1
+display_name = "Grid Slot Layout"
+
+[root]
+node = "root"
+
+[nodes.root]
+kind = "native"
+type = "GridBox"
+control_id = "Root"
+children = [{ child = "button", slot = { row = 1, column = 2, row_span = 2, column_span = 3 } }]
+
+[nodes.button]
+kind = "native"
+type = "Button"
+control_id = "Button"
+props = { text = "Grid" }
+"##;
+
+const FLOW_SLOT_LAYOUT_ASSET_TOML: &str = r##"
+[asset]
+kind = "layout"
+id = "editor.test.flow_slot"
+version = 1
+display_name = "Flow Slot Layout"
+
+[root]
+node = "root"
+
+[nodes.root]
+kind = "native"
+type = "FlowBox"
+control_id = "Root"
+children = [{ child = "button", slot = { break_before = true, alignment = "Center" } }]
+
+[nodes.button]
+kind = "native"
+type = "Button"
+control_id = "Button"
+props = { text = "Flow" }
+"##;
+
+const SCROLLABLE_LAYOUT_ASSET_TOML: &str = r##"
+[asset]
+kind = "layout"
+id = "editor.test.scrollable_layout"
+version = 1
+display_name = "Scrollable Layout"
+
+[root]
+node = "root"
+
+[nodes.root]
+kind = "native"
+type = "ScrollableBox"
+control_id = "Root"
+layout = { container = { kind = "ScrollableBox", axis = "Vertical", gap = 6, scrollbar_visibility = "Always", virtualization = { item_extent = 28, overscan = 2 } }, clip = true }
+children = [{ child = "button" }]
+
+[nodes.button]
+kind = "native"
+type = "Button"
+control_id = "Button"
+props = { text = "Scroll" }
+"##;
+
 const BINDING_AUTHORING_LAYOUT_ASSET_TOML: &str = r##"
 [asset]
 kind = "layout"
@@ -178,6 +346,30 @@ props = { text = "Save" }
 bindings = [{ id = "SaveButton/onClick", event = "Click", route = "MenuAction.SaveProject" }]
 "##;
 
+const STRUCTURED_BINDING_LAYOUT_ASSET_TOML: &str = r##"
+[asset]
+kind = "layout"
+id = "editor.test.structured_binding_authoring"
+version = 1
+display_name = "Structured Binding Layout"
+
+[root]
+node = "root"
+
+[nodes.root]
+kind = "native"
+type = "VerticalBox"
+control_id = "Root"
+children = [{ child = "button" }]
+
+[nodes.button]
+kind = "native"
+type = "Button"
+control_id = "SaveButton"
+props = { text = "Save" }
+bindings = [{ id = "SaveButton/onClick", event = "Click", route = "MenuAction.SaveProject", action = { route = "MenuAction.SaveProject", payload = { confirm = true, mode = "full" } } }]
+"##;
+
 const IMPORTED_WIDGET_ASSET_TOML: &str = r##"
 [asset]
 kind = "widget"
@@ -193,6 +385,52 @@ kind = "native"
 type = "Button"
 control_id = "ConfirmButton"
 props = { text = "Confirm" }
+"##;
+
+const PARAMETERIZED_IMPORTED_WIDGET_ASSET_TOML: &str = r##"
+[asset]
+kind = "widget"
+id = "ui.common.toolbar_button"
+version = 1
+display_name = "Toolbar Button"
+
+[root]
+node = "button_root"
+
+[components.ToolbarButton]
+root = "button_root"
+
+[components.ToolbarButton.params.text]
+type = "string"
+default = "Toolbar"
+
+[nodes.button_root]
+kind = "native"
+type = "Button"
+control_id = "ToolbarButton"
+props = { text = "$param.text" }
+"##;
+
+const REFERENCE_SELECTION_LAYOUT_ASSET_TOML: &str = r##"
+[asset]
+kind = "layout"
+id = "editor.test.reference_selection"
+version = 1
+display_name = "Reference Selection Layout"
+
+[root]
+node = "root"
+
+[nodes.root]
+kind = "native"
+type = "VerticalBox"
+control_id = "Root"
+children = [{ child = "toolbar" }]
+
+[nodes.toolbar]
+kind = "reference"
+component_ref = "res://ui/widgets/button.ui.toml#ToolbarButton"
+control_id = "ToolbarHost"
 "##;
 
 #[test]
@@ -352,6 +590,159 @@ fn ui_asset_editor_session_switches_modes_and_updates_selection_from_hierarchy()
         reflection.style_inspector.matched_rules[1].selector,
         "VerticalBox > Button.primary".to_string()
     );
+}
+
+#[test]
+fn ui_asset_editor_session_switches_preview_presets_and_rebuilds_preview_surface() {
+    let route = UiAssetEditorRoute::new(
+        "asset://ui/tests/layout.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Preview,
+    );
+    let mut session = UiAssetEditorSession::from_source(
+        route,
+        SIMPLE_LAYOUT_ASSET_TOML,
+        UiSize::new(1280.0, 720.0),
+    )
+    .expect("session");
+
+    assert_eq!(
+        session.reflection_model().route.preview_preset,
+        UiAssetPreviewPreset::EditorDocked
+    );
+    assert_eq!(
+        session.preview_host().preview_size(),
+        UiSize::new(1280.0, 720.0)
+    );
+    assert!(session
+        .pane_presentation()
+        .preview_summary
+        .contains("1280x720"));
+
+    assert!(session
+        .set_preview_preset(UiAssetPreviewPreset::GameHud)
+        .expect("set game hud preview preset"));
+    assert_eq!(
+        session.reflection_model().route.preview_preset,
+        UiAssetPreviewPreset::GameHud
+    );
+    assert_eq!(
+        session.preview_host().preview_size(),
+        UiSize::new(1920.0, 1080.0)
+    );
+    assert!(session
+        .pane_presentation()
+        .preview_summary
+        .contains("1920x1080"));
+    assert_eq!(
+        selected_text(session.preview_host().surface(), "StatusLabel"),
+        Some("Ready")
+    );
+
+    assert!(session
+        .set_preview_preset(UiAssetPreviewPreset::Dialog)
+        .expect("set dialog preview preset"));
+    assert_eq!(
+        session.reflection_model().route.preview_preset,
+        UiAssetPreviewPreset::Dialog
+    );
+    assert_eq!(
+        session.preview_host().preview_size(),
+        UiSize::new(640.0, 480.0)
+    );
+    assert!(session
+        .pane_presentation()
+        .preview_summary
+        .contains("640x480"));
+    assert!(!session
+        .set_preview_preset(UiAssetPreviewPreset::Dialog)
+        .expect("same preset should no-op"));
+}
+
+#[test]
+fn ui_asset_editor_session_applies_editor_only_mock_preview_values_without_dirtying_source() {
+    let route = UiAssetEditorRoute::new(
+        "asset://ui/tests/mock-preview.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Preview,
+    );
+    let mut session = UiAssetEditorSession::from_source(
+        route,
+        MOCK_PREVIEW_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("session");
+    let original_source = session.source_buffer().text().to_string();
+
+    session
+        .select_hierarchy_index(1)
+        .expect("select button from hierarchy");
+    session
+        .select_preview_mock_property(0)
+        .expect("select preview mock property");
+    assert!(session
+        .set_selected_preview_mock_value("Preview Save")
+        .expect("set preview mock value"));
+
+    let updated = session.pane_presentation();
+    assert_eq!(updated.preview_mock_selected_index, 0);
+    assert_eq!(updated.preview_mock_property, "text");
+    assert_eq!(updated.preview_mock_kind, "Text");
+    assert_eq!(updated.preview_mock_value, "Preview Save");
+    assert!(updated.preview_mock_can_clear);
+    assert_eq!(
+        selected_text(session.preview_host().surface(), "SaveButton"),
+        Some("Preview Save")
+    );
+    assert_eq!(session.source_buffer().text(), original_source);
+    assert!(!session.reflection_model().source_dirty);
+
+    assert!(session
+        .clear_selected_preview_mock_value()
+        .expect("clear preview mock value"));
+    let cleared = session.pane_presentation();
+    assert_eq!(cleared.preview_mock_value, "Save");
+    assert!(!cleared.preview_mock_can_clear);
+    assert_eq!(
+        selected_text(session.preview_host().surface(), "SaveButton"),
+        Some("Save")
+    );
+    assert_eq!(session.source_buffer().text(), original_source);
+    assert!(!session.reflection_model().source_dirty);
+}
+
+#[test]
+fn ui_asset_editor_session_projects_mock_preview_property_kinds_for_selected_node() {
+    let route = UiAssetEditorRoute::new(
+        "asset://ui/tests/mock-preview.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Preview,
+    );
+    let mut session = UiAssetEditorSession::from_source(
+        route,
+        MOCK_PREVIEW_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("session");
+
+    session
+        .select_hierarchy_index(1)
+        .expect("select button from hierarchy");
+
+    let pane = session.pane_presentation();
+    assert_eq!(
+        pane.preview_mock_items,
+        vec![
+            "text [Text] = Save".to_string(),
+            "checked [Bool] = false".to_string(),
+            "mode [Enum] = Full".to_string(),
+            "icon [Resource] = asset://ui/icons/save.png".to_string(),
+        ]
+    );
+    assert_eq!(pane.preview_mock_selected_index, 0);
+    assert_eq!(pane.preview_mock_property, "text");
+    assert_eq!(pane.preview_mock_kind, "Text");
+    assert_eq!(pane.preview_mock_value, "Save");
 }
 
 #[test]
@@ -1107,6 +1498,250 @@ fn ui_asset_editor_session_updates_selected_layout_inspector_fields() {
 }
 
 #[test]
+fn ui_asset_editor_session_projects_parent_specific_slot_and_layout_semantics() {
+    let overlay_route = UiAssetEditorRoute::new(
+        "asset://ui/tests/overlay-slot.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Design,
+    );
+    let mut overlay_session = UiAssetEditorSession::from_source(
+        overlay_route,
+        OVERLAY_SLOT_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("overlay session");
+    overlay_session
+        .select_hierarchy_index(1)
+        .expect("select overlay child");
+    let overlay = overlay_session.pane_presentation();
+    assert_eq!(overlay.inspector_slot_kind, "Overlay");
+    assert_eq!(overlay.inspector_slot_semantic_title, "Overlay Slot");
+    assert_eq!(overlay.inspector_slot_overlay_anchor_x, "1");
+    assert_eq!(overlay.inspector_slot_overlay_anchor_y, "0");
+    assert_eq!(overlay.inspector_slot_overlay_pivot_x, "1");
+    assert_eq!(overlay.inspector_slot_overlay_pivot_y, "0");
+    assert_eq!(overlay.inspector_slot_overlay_position_x, "-16");
+    assert_eq!(overlay.inspector_slot_overlay_position_y, "12");
+    assert_eq!(overlay.inspector_slot_overlay_z_index, "4");
+    assert_eq!(
+        overlay.inspector_slot_semantic_items,
+        vec![
+            "layout.anchor.x = 1".to_string(),
+            "layout.anchor.y = 0".to_string(),
+            "layout.pivot.x = 1".to_string(),
+            "layout.pivot.y = 0".to_string(),
+            "layout.position.x = -16".to_string(),
+            "layout.position.y = 12".to_string(),
+            "layout.z_index = 4".to_string()
+        ]
+    );
+
+    let grid_route = UiAssetEditorRoute::new(
+        "asset://ui/tests/grid-slot.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Design,
+    );
+    let mut grid_session = UiAssetEditorSession::from_source(
+        grid_route,
+        GRID_SLOT_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("grid session");
+    grid_session
+        .select_hierarchy_index(1)
+        .expect("select grid child");
+    let grid = grid_session.pane_presentation();
+    assert_eq!(grid.inspector_slot_kind, "Grid");
+    assert_eq!(grid.inspector_slot_semantic_title, "Grid Slot");
+    assert_eq!(grid.inspector_slot_grid_row, "1");
+    assert_eq!(grid.inspector_slot_grid_column, "2");
+    assert_eq!(grid.inspector_slot_grid_row_span, "2");
+    assert_eq!(grid.inspector_slot_grid_column_span, "3");
+    assert_eq!(
+        grid.inspector_slot_semantic_items,
+        vec![
+            "row = 1".to_string(),
+            "column = 2".to_string(),
+            "row_span = 2".to_string(),
+            "column_span = 3".to_string()
+        ]
+    );
+
+    let flow_route = UiAssetEditorRoute::new(
+        "asset://ui/tests/flow-slot.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Design,
+    );
+    let mut flow_session = UiAssetEditorSession::from_source(
+        flow_route,
+        FLOW_SLOT_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("flow session");
+    flow_session
+        .select_hierarchy_index(1)
+        .expect("select flow child");
+    let flow = flow_session.pane_presentation();
+    assert_eq!(flow.inspector_slot_kind, "Flow");
+    assert_eq!(flow.inspector_slot_semantic_title, "Flow Slot");
+    assert_eq!(flow.inspector_slot_flow_break_before, "true");
+    assert_eq!(flow.inspector_slot_flow_alignment, "\"Center\"");
+    assert_eq!(
+        flow.inspector_slot_semantic_items,
+        vec![
+            "break_before = true".to_string(),
+            "alignment = \"Center\"".to_string()
+        ]
+    );
+
+    let scroll_route = UiAssetEditorRoute::new(
+        "asset://ui/tests/scrollable-layout.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Design,
+    );
+    let scroll_session = UiAssetEditorSession::from_source(
+        scroll_route,
+        SCROLLABLE_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("scroll session");
+    let scroll = scroll_session.pane_presentation();
+    assert_eq!(scroll.inspector_layout_kind, "ScrollableBox");
+    assert_eq!(scroll.inspector_layout_semantic_title, "Scrollable Layout");
+    assert_eq!(scroll.inspector_layout_scroll_axis, "\"Vertical\"");
+    assert_eq!(scroll.inspector_layout_scroll_gap, "6");
+    assert_eq!(scroll.inspector_layout_scrollbar_visibility, "\"Always\"");
+    assert_eq!(scroll.inspector_layout_virtualization_item_extent, "28");
+    assert_eq!(scroll.inspector_layout_virtualization_overscan, "2");
+    assert_eq!(scroll.inspector_layout_clip, "true");
+    assert_eq!(
+        scroll.inspector_layout_semantic_items,
+        vec![
+            "container.axis = \"Vertical\"".to_string(),
+            "container.gap = 6".to_string(),
+            "container.scrollbar_visibility = \"Always\"".to_string(),
+            "container.virtualization.item_extent = 28".to_string(),
+            "container.virtualization.overscan = 2".to_string(),
+            "clip = true".to_string()
+        ]
+    );
+}
+
+#[test]
+fn ui_asset_editor_session_updates_parent_specific_slot_and_layout_semantics() {
+    let overlay_route = UiAssetEditorRoute::new(
+        "asset://ui/tests/overlay-slot.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Design,
+    );
+    let mut overlay_session = UiAssetEditorSession::from_source(
+        overlay_route,
+        OVERLAY_SLOT_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("overlay session");
+    overlay_session
+        .select_hierarchy_index(1)
+        .expect("select overlay child");
+    assert!(overlay_session
+        .set_selected_slot_semantic_field("layout.pivot.x", "0.5")
+        .expect("update overlay pivot x"));
+
+    let overlay_document =
+        UiAssetLoader::load_toml_str(overlay_session.source_buffer().text()).expect("document");
+    let overlay_mount = overlay_document.nodes["root"]
+        .children
+        .iter()
+        .find(|child_mount| child_mount.child == "badge")
+        .expect("overlay child mount");
+    assert_eq!(
+        slot_value(&overlay_mount.slot, &["layout", "pivot", "x"]).and_then(toml::Value::as_float),
+        Some(0.5)
+    );
+
+    let grid_route = UiAssetEditorRoute::new(
+        "asset://ui/tests/grid-slot.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Design,
+    );
+    let mut grid_session = UiAssetEditorSession::from_source(
+        grid_route,
+        GRID_SLOT_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("grid session");
+    grid_session
+        .select_hierarchy_index(1)
+        .expect("select grid child");
+    assert!(grid_session
+        .set_selected_slot_semantic_field("column_span", "4")
+        .expect("update grid column span"));
+    let grid_document =
+        UiAssetLoader::load_toml_str(grid_session.source_buffer().text()).expect("document");
+    let grid_mount = grid_document.nodes["root"]
+        .children
+        .iter()
+        .find(|child_mount| child_mount.child == "button")
+        .expect("grid child mount");
+    assert_eq!(
+        slot_value(&grid_mount.slot, &["column_span"]).and_then(toml::Value::as_integer),
+        Some(4)
+    );
+
+    let flow_route = UiAssetEditorRoute::new(
+        "asset://ui/tests/flow-slot.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Design,
+    );
+    let mut flow_session = UiAssetEditorSession::from_source(
+        flow_route,
+        FLOW_SLOT_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("flow session");
+    flow_session
+        .select_hierarchy_index(1)
+        .expect("select flow child");
+    assert!(flow_session
+        .set_selected_slot_semantic_field("break_before", "false")
+        .expect("update flow break before"));
+    let flow_document =
+        UiAssetLoader::load_toml_str(flow_session.source_buffer().text()).expect("document");
+    let flow_mount = flow_document.nodes["root"]
+        .children
+        .iter()
+        .find(|child_mount| child_mount.child == "button")
+        .expect("flow child mount");
+    assert_eq!(
+        slot_value(&flow_mount.slot, &["break_before"]).and_then(toml::Value::as_bool),
+        Some(false)
+    );
+
+    let scroll_route = UiAssetEditorRoute::new(
+        "asset://ui/tests/scrollable-layout.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Design,
+    );
+    let mut scroll_session = UiAssetEditorSession::from_source(
+        scroll_route,
+        SCROLLABLE_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("scroll session");
+    assert!(scroll_session
+        .set_selected_layout_semantic_field("container.scrollbar_visibility", "\"Auto\"")
+        .expect("update scroll scrollbar visibility"));
+    let scroll_document =
+        UiAssetLoader::load_toml_str(scroll_session.source_buffer().text()).expect("document");
+    let scroll_root = scroll_document.nodes.get("root").expect("scroll root");
+    assert_eq!(
+        layout_value(scroll_root.layout.as_ref(), &["container", "scrollbar_visibility"])
+            .and_then(toml::Value::as_str),
+        Some("Auto")
+    );
+}
+
+#[test]
 fn ui_asset_editor_session_projects_structured_binding_inspector_fields() {
     let route = UiAssetEditorRoute::new(
         "asset://ui/tests/binding-authoring.ui.toml",
@@ -1133,6 +1768,8 @@ fn ui_asset_editor_session_projects_structured_binding_inspector_fields() {
     assert_eq!(pane.inspector_binding_id, "SaveButton/onClick");
     assert_eq!(pane.inspector_binding_event, "onClick");
     assert_eq!(pane.inspector_binding_route, "MenuAction.SaveProject");
+    assert_eq!(pane.inspector_binding_route_target, "MenuAction.SaveProject");
+    assert_eq!(pane.inspector_binding_action_target, "");
 }
 
 #[test]
@@ -1168,6 +1805,8 @@ fn ui_asset_editor_session_updates_selected_binding_inspector_fields() {
     assert_eq!(updated.inspector_binding_id, "SaveButton/onHover");
     assert_eq!(updated.inspector_binding_event, "onHover");
     assert_eq!(updated.inspector_binding_route, "MenuAction.HighlightSave");
+    assert_eq!(updated.inspector_binding_route_target, "MenuAction.HighlightSave");
+    assert_eq!(updated.inspector_binding_action_target, "");
 
     let document = UiAssetLoader::load_toml_str(session.source_buffer().text()).expect("document");
     let button = document.nodes.get("button").expect("button node");
@@ -1181,7 +1820,119 @@ fn ui_asset_editor_session_updates_selected_binding_inspector_fields() {
 }
 
 #[test]
-fn ui_asset_editor_session_projects_selection_indices_and_source_block_summary() {
+fn ui_asset_editor_session_projects_structured_binding_action_and_payload_fields() {
+    let route = UiAssetEditorRoute::new(
+        "asset://ui/tests/structured-binding-authoring.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Design,
+    );
+    let mut session = UiAssetEditorSession::from_source(
+        route,
+        STRUCTURED_BINDING_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("session");
+
+    session
+        .select_hierarchy_index(1)
+        .expect("select button from hierarchy");
+
+    let pane = session.pane_presentation();
+    assert_eq!(
+        pane.inspector_binding_items,
+        vec!["onClick | SaveButton/onClick -> MenuAction.SaveProject (+2 payload)".to_string()]
+    );
+    assert_eq!(pane.inspector_binding_event_selected_index, 0);
+    assert_eq!(pane.inspector_binding_action_kind_selected_index, 1);
+    assert_eq!(
+        pane.inspector_binding_action_kind_items,
+        vec![
+            "None".to_string(),
+            "Route".to_string(),
+            "Action".to_string()
+        ]
+    );
+    assert_eq!(pane.inspector_binding_route, "MenuAction.SaveProject");
+    assert_eq!(pane.inspector_binding_route_target, "MenuAction.SaveProject");
+    assert_eq!(pane.inspector_binding_action_target, "");
+    assert_eq!(
+        pane.inspector_binding_payload_items,
+        vec!["confirm = true".to_string(), "mode = \"full\"".to_string()]
+    );
+    assert_eq!(pane.inspector_binding_payload_selected_index, 0);
+    assert_eq!(pane.inspector_binding_payload_key, "confirm");
+    assert_eq!(pane.inspector_binding_payload_value, "true");
+}
+
+#[test]
+fn ui_asset_editor_session_updates_structured_binding_action_and_payload_fields() {
+    let route = UiAssetEditorRoute::new(
+        "asset://ui/tests/structured-binding-authoring.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Design,
+    );
+    let mut session = UiAssetEditorSession::from_source(
+        route,
+        STRUCTURED_BINDING_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("session");
+
+    session
+        .select_hierarchy_index(1)
+        .expect("select button from hierarchy");
+    assert!(session
+        .select_binding_event_option(1)
+        .expect("select double click event"));
+    assert!(session
+        .select_binding_action_kind(2)
+        .expect("select action kind"));
+    assert!(session
+        .set_selected_binding_action_target("EditorActions.SaveProject")
+        .expect("set action target"));
+    assert!(session
+        .select_binding_payload(1)
+        .expect("select mode payload"));
+    assert!(session
+        .upsert_selected_binding_payload("mode", "\"compact\"")
+        .expect("update payload"));
+    assert!(session
+        .upsert_selected_binding_payload("channel", "\"toolbar\"")
+        .expect("add payload"));
+    assert!(session
+        .delete_selected_binding_payload()
+        .expect("delete selected payload"));
+
+    let updated = session.pane_presentation();
+    assert_eq!(updated.inspector_binding_event, "onDoubleClick");
+    assert_eq!(updated.inspector_binding_event_selected_index, 1);
+    assert_eq!(updated.inspector_binding_action_kind_selected_index, 2);
+    assert_eq!(updated.inspector_binding_route, "EditorActions.SaveProject");
+    assert_eq!(updated.inspector_binding_route_target, "");
+    assert_eq!(updated.inspector_binding_action_target, "EditorActions.SaveProject");
+    assert_eq!(
+        updated.inspector_binding_payload_items,
+        vec![
+            "confirm = true".to_string(),
+            "mode = \"compact\"".to_string()
+        ]
+    );
+
+    let document = UiAssetLoader::load_toml_str(session.source_buffer().text()).expect("document");
+    let button = document.nodes.get("button").expect("button node");
+    assert_eq!(button.bindings[0].event.to_string(), "onDoubleClick");
+    assert!(button.bindings[0].route.is_none());
+    let action = button.bindings[0].action.as_ref().expect("binding action");
+    assert_eq!(action.action.as_deref(), Some("EditorActions.SaveProject"));
+    assert_eq!(
+        action.payload.get("mode").and_then(toml::Value::as_str),
+        Some("compact")
+    );
+    assert!(action.payload.get("channel").is_none());
+}
+
+#[test]
+fn ui_asset_editor_session_projects_selection_indices_source_summary_and_canvas_frames() {
     let route = UiAssetEditorRoute::new(
         "asset://ui/tests/style-authoring.ui.toml",
         UiAssetKind::Layout,
@@ -1201,10 +1952,87 @@ fn ui_asset_editor_session_projects_selection_indices_and_source_block_summary()
     let pane = session.pane_presentation();
     assert_eq!(pane.hierarchy_selected_index, 1);
     assert!(pane.preview_selected_index >= 0);
+    assert_eq!(pane.preview_surface_width, 640.0);
+    assert_eq!(pane.preview_surface_height, 360.0);
+    let selected_canvas_node = pane
+        .preview_canvas_items
+        .iter()
+        .find(|item| item.selected)
+        .expect("selected canvas node");
+    assert_eq!(selected_canvas_node.node_id, "button");
+    assert_eq!(selected_canvas_node.label, "SaveButton");
+    assert!(selected_canvas_node.width > 0.0);
+    assert!(selected_canvas_node.height > 0.0);
     assert_eq!(pane.source_selected_block_label, "[nodes.button]");
     assert!(pane.source_selected_line > 0);
     assert!(pane.source_selected_excerpt.contains("[nodes.button]"));
     assert!(pane.source_roundtrip_status.contains("line"));
+}
+
+#[test]
+fn ui_asset_editor_session_selects_same_node_from_preview_canvas_projection() {
+    let route = UiAssetEditorRoute::new(
+        "asset://ui/tests/style-authoring.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Split,
+    );
+    let mut session = UiAssetEditorSession::from_source(
+        route,
+        STYLE_AUTHORING_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("session");
+
+    session
+        .select_hierarchy_index(1)
+        .expect("select button from hierarchy");
+    let selected_preview_index = session.pane_presentation().preview_selected_index;
+    assert!(selected_preview_index >= 0);
+
+    session
+        .select_preview_index(selected_preview_index as usize)
+        .expect("select preview node");
+    let pane = session.pane_presentation();
+    assert_eq!(pane.inspector_selected_node_id, "button");
+    assert_eq!(pane.hierarchy_selected_index, 1);
+    assert_eq!(pane.source_selected_block_label, "[nodes.button]");
+}
+
+#[test]
+fn ui_asset_editor_session_selects_same_node_from_source_outline_projection() {
+    let route = UiAssetEditorRoute::new(
+        "asset://ui/tests/style-authoring.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Split,
+    );
+    let mut session = UiAssetEditorSession::from_source(
+        route,
+        STYLE_AUTHORING_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("session");
+
+    session
+        .select_hierarchy_index(1)
+        .expect("select button from hierarchy");
+    let pane = session.pane_presentation();
+    let outline_index = pane.source_outline_selected_index;
+    assert!(outline_index >= 0);
+    assert!(pane
+        .source_outline_items
+        .iter()
+        .any(|entry| entry.contains("[nodes.button]")));
+
+    session
+        .select_source_outline_index(outline_index as usize)
+        .expect("select source outline node");
+    let roundtripped = session.pane_presentation();
+    assert_eq!(roundtripped.inspector_selected_node_id, "button");
+    assert_eq!(
+        roundtripped.preview_selected_index,
+        pane.preview_selected_index
+    );
+    assert_eq!(roundtripped.source_selected_block_label, "[nodes.button]");
 }
 
 #[test]
@@ -1256,14 +2084,287 @@ fn ui_asset_editor_session_inserts_palette_items_and_tracks_tree_edits_in_undo_s
         Some("Button")
     );
     assert!(session.can_undo());
+    assert_eq!(
+        session.next_undo_tree_edit_kind(),
+        Some(UiAssetEditorTreeEditKind::InsertPaletteItem)
+    );
+    assert_eq!(
+        session.next_undo_tree_edit(),
+        Some(UiAssetEditorTreeEdit::InsertPaletteItem {
+            node_id: "button_2".to_string(),
+            parent_node_id: Some("root".to_string()),
+            palette_item_label: "Native / Button".to_string(),
+            insert_mode: "child".to_string(),
+        })
+    );
 
     assert!(session.undo().expect("undo tree edit"));
     assert_eq!(session.source_buffer().text(), original_source);
     assert!(session.can_redo());
+    assert_eq!(
+        session.next_redo_tree_edit_kind(),
+        Some(UiAssetEditorTreeEditKind::InsertPaletteItem)
+    );
+    assert_eq!(
+        session.next_redo_tree_edit(),
+        Some(UiAssetEditorTreeEdit::InsertPaletteItem {
+            node_id: "button_2".to_string(),
+            parent_node_id: Some("root".to_string()),
+            palette_item_label: "Native / Button".to_string(),
+            insert_mode: "child".to_string(),
+        })
+    );
 
     assert!(session.redo().expect("redo tree edit"));
     let redone = UiAssetLoader::load_toml_str(session.source_buffer().text()).expect("document");
     assert!(redone.nodes.contains_key("button_2"));
+}
+
+#[test]
+fn ui_asset_editor_session_targets_palette_drag_drop_to_hovered_preview_node() {
+    let route = UiAssetEditorRoute::new(
+        "asset://ui/tests/simple-layout.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Design,
+    );
+    let mut session = UiAssetEditorSession::from_source(
+        route,
+        SIMPLE_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("session");
+    let palette_index = session
+        .pane_presentation()
+        .palette_items
+        .iter()
+        .position(|item| item == "Native / Button")
+        .expect("button palette item");
+
+    session
+        .select_hierarchy_index(1)
+        .expect("select status label from hierarchy");
+    assert_eq!(
+        session.pane_presentation().inspector_selected_node_id,
+        "status"
+    );
+    assert!(session
+        .select_palette_index(palette_index)
+        .expect("select palette item"));
+
+    let root_frame = session
+        .pane_presentation()
+        .preview_canvas_items
+        .into_iter()
+        .find(|item| item.node_id == "root")
+        .expect("root preview frame");
+    assert!(session
+        .update_palette_drag_target(
+            root_frame.x + root_frame.width * 0.5,
+            root_frame.y + root_frame.height * 0.5,
+        )
+        .expect("hover root preview frame"));
+
+    let targeted = session.pane_presentation();
+    assert_eq!(targeted.palette_drag_target_preview_index, 0);
+    assert_eq!(targeted.palette_drag_target_action, "palette.insert.child");
+    assert_eq!(targeted.palette_drag_target_label, "Insert Column Child");
+    assert_eq!(targeted.inspector_selected_node_id, "status");
+
+    assert!(session
+        .drop_selected_palette_item_at_palette_drag_target()
+        .expect("drop palette item at hovered target"));
+    let inserted = UiAssetLoader::load_toml_str(session.source_buffer().text()).expect("document");
+    let inserted_node_id = inserted
+        .nodes
+        .get("root")
+        .and_then(|node| node.children.get(1))
+        .map(|child| child.child.clone())
+        .expect("inserted child");
+    assert!(inserted.nodes.contains_key(&inserted_node_id));
+    assert_eq!(
+        inserted.nodes.get("root").map(|node| node
+            .children
+            .iter()
+            .map(|child| child.child.as_str())
+            .collect::<Vec<_>>()),
+        Some(vec!["status", inserted_node_id.as_str()])
+    );
+
+    let dropped = session.pane_presentation();
+    assert_eq!(dropped.inspector_selected_node_id, inserted_node_id);
+    assert_eq!(dropped.palette_drag_target_preview_index, -1);
+    assert!(dropped.palette_drag_target_action.is_empty());
+}
+
+#[test]
+fn ui_asset_editor_session_projects_slot_aware_palette_drag_target_labels() {
+    let scenarios = [
+        (
+            "asset://ui/tests/overlay-slot.ui.toml",
+            OVERLAY_SLOT_LAYOUT_ASSET_TOML,
+            "Insert Overlay Child",
+        ),
+        (
+            "asset://ui/tests/grid-slot.ui.toml",
+            GRID_SLOT_LAYOUT_ASSET_TOML,
+            "Insert Grid Child",
+        ),
+        (
+            "asset://ui/tests/flow-slot.ui.toml",
+            FLOW_SLOT_LAYOUT_ASSET_TOML,
+            "Insert Flow Child",
+        ),
+        (
+            "asset://ui/tests/scrollable-layout.ui.toml",
+            SCROLLABLE_LAYOUT_ASSET_TOML,
+            "Insert Scroll Child",
+        ),
+    ];
+
+    for (asset_id, source, expected_label) in scenarios {
+        let route =
+            UiAssetEditorRoute::new(asset_id, UiAssetKind::Layout, UiAssetEditorMode::Design);
+        let mut session =
+            UiAssetEditorSession::from_source(route, source, UiSize::new(640.0, 360.0))
+                .expect("session");
+        let palette_index = session
+            .pane_presentation()
+            .palette_items
+            .iter()
+            .position(|item| item == "Native / Button")
+            .expect("button palette item");
+        session
+            .select_palette_index(palette_index)
+            .expect("select palette item");
+
+        let root_frame = session
+            .pane_presentation()
+            .preview_canvas_items
+            .into_iter()
+            .find(|item| item.node_id == "root")
+            .expect("root preview frame");
+        assert!(session
+            .update_palette_drag_target(
+                root_frame.x + root_frame.width * 0.5,
+                root_frame.y + root_frame.height * 0.5,
+            )
+            .expect("hover root preview frame"));
+
+        let presentation = session.pane_presentation();
+        assert_eq!(
+            presentation.palette_drag_target_action,
+            "palette.insert.child"
+        );
+        assert_eq!(presentation.palette_drag_target_label, expected_label);
+    }
+}
+
+#[test]
+fn ui_asset_editor_undo_stack_replays_document_diffs_for_tree_edits() {
+    let mut undo_stack = UiAssetEditorUndoStack::default();
+    let before_document = UiAssetLoader::load_toml_str(SIMPLE_LAYOUT_ASSET_TOML).expect("before");
+    let after_document =
+        UiAssetLoader::load_toml_str(STYLE_AUTHORING_LAYOUT_ASSET_TOML).expect("after");
+
+    undo_stack.push_edit(
+        "Insert Palette Item",
+        Some(UiAssetEditorTreeEdit::InsertPaletteItem {
+            node_id: "button_2".to_string(),
+            parent_node_id: Some("root".to_string()),
+            palette_item_label: "Native / Button".to_string(),
+            insert_mode: "child".to_string(),
+        }),
+        SIMPLE_LAYOUT_ASSET_TOML.to_string(),
+        UiDesignerSelectionModel::default(),
+        Some(before_document.clone()),
+        STYLE_AUTHORING_LAYOUT_ASSET_TOML.to_string(),
+        UiDesignerSelectionModel::default(),
+        Some(after_document.clone()),
+    );
+
+    let undone = undo_stack.undo().expect("undo replay");
+    let mut undone_document = after_document.clone();
+    assert!(undone
+        .apply_to_document(&mut undone_document)
+        .expect("apply undo diff"));
+    assert_eq!(undone_document, before_document);
+
+    let redone = undo_stack.redo().expect("redo replay");
+    let mut redone_document = before_document.clone();
+    assert!(redone
+        .apply_to_document(&mut redone_document)
+        .expect("apply redo diff"));
+    assert_eq!(redone_document, after_document);
+}
+
+#[test]
+fn ui_asset_editor_undo_stack_keeps_source_only_snapshots_for_source_edits() {
+    let mut undo_stack = UiAssetEditorUndoStack::default();
+    undo_stack.push_edit(
+        "Source Edit",
+        None,
+        SIMPLE_LAYOUT_ASSET_TOML.to_string(),
+        UiDesignerSelectionModel::default(),
+        None,
+        STYLED_LAYOUT_ASSET_TOML.to_string(),
+        UiDesignerSelectionModel::default(),
+        None,
+    );
+
+    let undone = undo_stack.undo().expect("undo snapshot");
+    assert!(undone.document.is_none());
+
+    let redone = undo_stack.redo().expect("redo snapshot");
+    assert!(redone.document.is_none());
+}
+
+#[test]
+fn ui_asset_editor_session_redo_restores_tree_edit_selection_and_source_summary() {
+    let route = UiAssetEditorRoute::new(
+        "asset://ui/tests/style-authoring.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Split,
+    );
+    let mut session = UiAssetEditorSession::from_source(
+        route,
+        STYLE_AUTHORING_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("session");
+    let palette_index = session
+        .pane_presentation()
+        .palette_items
+        .iter()
+        .position(|item| item == "Native / Button")
+        .expect("button palette item");
+
+    session
+        .select_hierarchy_index(0)
+        .expect("select root from hierarchy");
+    assert!(session
+        .select_palette_index(palette_index)
+        .expect("select palette item"));
+    assert!(session
+        .insert_selected_palette_item_as_child()
+        .expect("insert button as child"));
+
+    let inserted = session.pane_presentation();
+    assert_eq!(inserted.inspector_selected_node_id, "button_2");
+    assert_eq!(inserted.source_selected_block_label, "[nodes.button_2]");
+    assert!(inserted
+        .source_selected_excerpt
+        .contains("[nodes.button_2]"));
+
+    assert!(session.undo().expect("undo tree edit"));
+    let undone = session.pane_presentation();
+    assert_eq!(undone.inspector_selected_node_id, "root");
+    assert_eq!(undone.source_selected_block_label, "[nodes.root]");
+
+    assert!(session.redo().expect("redo tree edit"));
+    let redone = session.pane_presentation();
+    assert_eq!(redone.inspector_selected_node_id, "button_2");
+    assert_eq!(redone.source_selected_block_label, "[nodes.button_2]");
+    assert!(redone.source_selected_excerpt.contains("[nodes.button_2]"));
 }
 
 #[test]
@@ -1312,6 +2413,33 @@ fn ui_asset_editor_session_creates_reference_nodes_from_imported_widget_palette_
 }
 
 #[test]
+fn ui_asset_editor_session_resolves_selected_reference_asset_id() {
+    let route = UiAssetEditorRoute::new(
+        "res://ui/layouts/reference_selection.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Design,
+    );
+    let mut session = UiAssetEditorSession::from_source(
+        route,
+        REFERENCE_SELECTION_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("session");
+
+    assert_eq!(session.selected_reference_asset_id(), None);
+
+    session
+        .select_hierarchy_index(1)
+        .expect("select reference node from hierarchy");
+
+    assert_eq!(
+        session.selected_reference_asset_id().as_deref(),
+        Some("res://ui/widgets/button.ui.toml")
+    );
+    assert!(session.pane_presentation().can_open_reference);
+}
+
+#[test]
 fn ui_asset_editor_session_wraps_and_unwraps_selected_node() {
     let route = UiAssetEditorRoute::new(
         "asset://ui/tests/style-authoring.ui.toml",
@@ -1348,22 +2476,546 @@ fn ui_asset_editor_session_wraps_and_unwraps_selected_node() {
         Some("VerticalBox")
     );
     assert_eq!(
-        wrapped
-            .nodes
-            .get(&wrapper_id)
-            .map(|node| node.children.iter().map(|child| child.child.clone()).collect::<Vec<_>>()),
+        wrapped.nodes.get(&wrapper_id).map(|node| node
+            .children
+            .iter()
+            .map(|child| child.child.clone())
+            .collect::<Vec<_>>()),
         Some(vec!["button".to_string()])
     );
 
     assert!(session.unwrap_selected_node().expect("unwrap wrapper"));
     let unwrapped = UiAssetLoader::load_toml_str(session.source_buffer().text()).expect("document");
     assert_eq!(
-        unwrapped
-            .nodes
-            .get("root")
-            .map(|node| node.children.iter().map(|child| child.child.clone()).collect::<Vec<_>>()),
+        unwrapped.nodes.get("root").map(|node| node
+            .children
+            .iter()
+            .map(|child| child.child.clone())
+            .collect::<Vec<_>>()),
         Some(vec!["button".to_string()])
     );
+}
+
+#[test]
+fn ui_asset_editor_session_projects_canvas_insert_and_wrap_availability() {
+    let route = UiAssetEditorRoute::new(
+        "asset://ui/tests/style-authoring.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Design,
+    );
+    let mut session = UiAssetEditorSession::from_source(
+        route,
+        STYLE_AUTHORING_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("session");
+
+    let palette_index = session
+        .pane_presentation()
+        .palette_items
+        .iter()
+        .position(|item| item == "Native / Label")
+        .expect("label palette item");
+    assert!(session
+        .select_palette_index(palette_index)
+        .expect("select label palette item"));
+
+    let root_pane = session.pane_presentation();
+    assert!(root_pane.can_insert_child);
+    assert!(root_pane.can_insert_after);
+    assert!(!root_pane.can_move_up);
+    assert!(!root_pane.can_move_down);
+    assert!(!root_pane.can_wrap_in_vertical_box);
+    assert!(!root_pane.can_unwrap);
+
+    session
+        .select_hierarchy_index(1)
+        .expect("select button from hierarchy");
+    let button_pane = session.pane_presentation();
+    assert!(!button_pane.can_insert_child);
+    assert!(button_pane.can_insert_after);
+    assert!(!button_pane.can_move_up);
+    assert!(!button_pane.can_move_down);
+    assert!(button_pane.can_wrap_in_vertical_box);
+    assert!(!button_pane.can_unwrap);
+
+    assert!(session
+        .wrap_selected_node_with("VerticalBox")
+        .expect("wrap selected node"));
+    let wrapped_pane = session.pane_presentation();
+    assert!(wrapped_pane.can_unwrap);
+}
+
+#[test]
+fn ui_asset_editor_session_reparents_nodes_into_sibling_containers_and_outdents() {
+    let route = UiAssetEditorRoute::new(
+        "asset://ui/tests/tree-reparent.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Design,
+    );
+    let mut session = UiAssetEditorSession::from_source(
+        route,
+        TREE_REPARENT_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("session");
+
+    session
+        .select_hierarchy_index(3)
+        .expect("select loose node from hierarchy");
+    assert!(session
+        .reparent_selected_node_into_previous()
+        .expect("reparent into previous sibling container"));
+
+    let previous = UiAssetLoader::load_toml_str(session.source_buffer().text()).expect("document");
+    assert_eq!(
+        previous.nodes.get("root").map(|node| node
+            .children
+            .iter()
+            .map(|child| child.child.clone())
+            .collect::<Vec<_>>()),
+        Some(vec!["group_a".to_string(), "group_b".to_string()])
+    );
+    assert_eq!(
+        previous.nodes.get("group_a").map(|node| node
+            .children
+            .iter()
+            .map(|child| child.child.clone())
+            .collect::<Vec<_>>()),
+        Some(vec!["nested_a".to_string(), "loose".to_string()])
+    );
+    let previous_pane = session.pane_presentation();
+    assert_eq!(previous_pane.inspector_selected_node_id, "loose");
+    assert_eq!(previous_pane.inspector_parent_node_id, "group_a");
+    assert_eq!(previous_pane.source_selected_block_label, "[nodes.loose]");
+
+    assert!(session
+        .reparent_selected_node_outdent()
+        .expect("outdent reparented node"));
+    let outdented =
+        UiAssetLoader::load_toml_str(session.source_buffer().text()).expect("outdented document");
+    assert_eq!(
+        outdented.nodes.get("root").map(|node| node
+            .children
+            .iter()
+            .map(|child| child.child.clone())
+            .collect::<Vec<_>>()),
+        Some(vec![
+            "group_a".to_string(),
+            "loose".to_string(),
+            "group_b".to_string()
+        ])
+    );
+
+    assert!(session
+        .reparent_selected_node_into_next()
+        .expect("reparent into next sibling container"));
+    let next = UiAssetLoader::load_toml_str(session.source_buffer().text()).expect("document");
+    assert_eq!(
+        next.nodes.get("root").map(|node| node
+            .children
+            .iter()
+            .map(|child| child.child.clone())
+            .collect::<Vec<_>>()),
+        Some(vec!["group_a".to_string(), "group_b".to_string()])
+    );
+    assert_eq!(
+        next.nodes.get("group_b").map(|node| node
+            .children
+            .iter()
+            .map(|child| child.child.clone())
+            .collect::<Vec<_>>()),
+        Some(vec!["loose".to_string(), "nested_b".to_string()])
+    );
+    let next_pane = session.pane_presentation();
+    assert_eq!(next_pane.inspector_selected_node_id, "loose");
+    assert_eq!(next_pane.inspector_parent_node_id, "group_b");
+    assert_eq!(next_pane.source_selected_block_label, "[nodes.loose]");
+}
+
+#[test]
+fn ui_asset_editor_session_projects_canvas_move_and_reparent_availability() {
+    let route = UiAssetEditorRoute::new(
+        "asset://ui/tests/tree-reparent.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Design,
+    );
+    let mut session = UiAssetEditorSession::from_source(
+        route,
+        TREE_REPARENT_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("session");
+
+    session
+        .select_hierarchy_index(3)
+        .expect("select loose node from hierarchy");
+    let loose_pane = session.pane_presentation();
+    assert!(loose_pane.can_move_up);
+    assert!(loose_pane.can_move_down);
+    assert!(loose_pane.can_reparent_into_previous);
+    assert!(loose_pane.can_reparent_into_next);
+    assert!(!loose_pane.can_reparent_outdent);
+
+    assert!(session
+        .reparent_selected_node_into_previous()
+        .expect("reparent into previous sibling container"));
+    let nested_pane = session.pane_presentation();
+    assert!(!nested_pane.can_reparent_into_previous);
+    assert!(!nested_pane.can_reparent_into_next);
+    assert!(nested_pane.can_reparent_outdent);
+}
+
+#[test]
+fn ui_asset_editor_session_converts_selected_node_to_reference_from_palette_selection() {
+    let route = UiAssetEditorRoute::new(
+        "asset://ui/tests/style-authoring.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Design,
+    );
+    let mut session = UiAssetEditorSession::from_source(
+        route,
+        STYLE_AUTHORING_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("session");
+    let imported_widget = UiAssetLoader::load_toml_str(PARAMETERIZED_IMPORTED_WIDGET_ASSET_TOML)
+        .expect("parameterized imported widget");
+    let reference = "asset://ui/common/toolbar_button.ui#ToolbarButton";
+    session
+        .register_widget_import(reference, imported_widget)
+        .expect("register widget import");
+    let palette_index = session
+        .pane_presentation()
+        .palette_items
+        .iter()
+        .position(|item| item == "Reference / ToolbarButton")
+        .expect("toolbar reference palette item");
+
+    session
+        .select_hierarchy_index(1)
+        .expect("select button from hierarchy");
+    assert!(session
+        .select_palette_index(palette_index)
+        .expect("select toolbar reference palette item"));
+    assert!(session.pane_presentation().can_convert_to_reference);
+
+    assert!(session
+        .convert_selected_node_to_reference()
+        .expect("convert selected node to reference"));
+    assert_eq!(
+        session.next_undo_tree_edit_kind(),
+        Some(UiAssetEditorTreeEditKind::ConvertToReference)
+    );
+
+    let converted =
+        UiAssetLoader::load_toml_str(session.source_buffer().text()).expect("converted document");
+    let button = converted.nodes.get("button").expect("button node");
+    assert_eq!(button.kind, zircon_ui::UiNodeDefinitionKind::Reference);
+    assert_eq!(button.component_ref.as_deref(), Some(reference));
+    assert_eq!(button.control_id.as_deref(), Some("SaveButton"));
+    assert_eq!(button.classes, vec!["primary".to_string()]);
+    assert_eq!(
+        button.params.get("text").and_then(toml::Value::as_str),
+        Some("Save")
+    );
+    assert!(button.props.is_empty());
+    assert!(button.layout.is_none());
+    assert!(button.bindings.is_empty());
+
+    let pane = session.pane_presentation();
+    assert_eq!(pane.inspector_widget_kind, "Reference");
+    assert_eq!(pane.inspector_widget_label, "ToolbarButton");
+    assert!(pane.can_open_reference);
+    assert!(!pane.can_convert_to_reference);
+
+    assert!(session.undo().expect("undo convert to reference"));
+    assert_eq!(
+        session.next_redo_tree_edit_kind(),
+        Some(UiAssetEditorTreeEditKind::ConvertToReference)
+    );
+    let undone =
+        UiAssetLoader::load_toml_str(session.source_buffer().text()).expect("undone document");
+    let button = undone.nodes.get("button").expect("button node");
+    assert_eq!(button.kind, zircon_ui::UiNodeDefinitionKind::Native);
+    assert_eq!(button.widget_type.as_deref(), Some("Button"));
+    assert_eq!(
+        button.props.get("text").and_then(toml::Value::as_str),
+        Some("Save")
+    );
+}
+
+#[test]
+fn ui_asset_editor_session_extracts_selected_node_into_local_component() {
+    let route = UiAssetEditorRoute::new(
+        "asset://ui/tests/style-authoring.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Design,
+    );
+    let mut session = UiAssetEditorSession::from_source(
+        route,
+        STYLE_AUTHORING_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("session");
+    let original_source = session.source_buffer().text().to_string();
+
+    session
+        .select_hierarchy_index(1)
+        .expect("select button from hierarchy");
+    assert!(session.pane_presentation().can_extract_component);
+
+    assert!(session
+        .extract_selected_node_to_component()
+        .expect("extract selected node to component"));
+    assert_eq!(
+        session.next_undo_tree_edit_kind(),
+        Some(UiAssetEditorTreeEditKind::ExtractComponent)
+    );
+    assert_eq!(
+        session.next_undo_tree_edit(),
+        Some(UiAssetEditorTreeEdit::ExtractComponent {
+            node_id: "button".to_string(),
+            component_name: "SaveButton".to_string(),
+            component_root_id: "savebutton_root".to_string(),
+        })
+    );
+
+    let extracted =
+        UiAssetLoader::load_toml_str(session.source_buffer().text()).expect("extracted document");
+    let component = extracted
+        .components
+        .get("SaveButton")
+        .expect("new local component");
+    let instance = extracted.nodes.get("button").expect("component instance");
+    assert_eq!(instance.kind, zircon_ui::UiNodeDefinitionKind::Component);
+    assert_eq!(instance.component.as_deref(), Some("SaveButton"));
+    assert_eq!(instance.control_id.as_deref(), Some("SaveButton"));
+    assert_eq!(instance.classes, vec!["primary".to_string()]);
+    assert!(instance.params.is_empty());
+    assert!(instance.props.is_empty());
+    assert!(instance.layout.is_none());
+    assert!(instance.bindings.is_empty());
+    assert!(instance.children.is_empty());
+
+    let component_root = extracted
+        .nodes
+        .get(&component.root)
+        .expect("extracted component root");
+    assert_eq!(component_root.kind, zircon_ui::UiNodeDefinitionKind::Native);
+    assert_eq!(component_root.widget_type.as_deref(), Some("Button"));
+    assert_eq!(component_root.control_id.as_deref(), Some("SaveButton"));
+    assert_eq!(component_root.classes, vec!["primary".to_string()]);
+    assert_eq!(
+        component_root
+            .props
+            .get("text")
+            .and_then(toml::Value::as_str),
+        Some("Save")
+    );
+
+    let pane = session.pane_presentation();
+    assert_eq!(pane.inspector_selected_node_id, "button");
+    assert_eq!(pane.inspector_widget_kind, "Component");
+    assert_eq!(pane.inspector_widget_label, "SaveButton");
+    assert_eq!(pane.source_selected_block_label, "[nodes.button]");
+    assert!(pane
+        .palette_items
+        .iter()
+        .any(|item| item == "Component / SaveButton"));
+
+    assert!(session.undo().expect("undo extract component"));
+    assert_eq!(session.source_buffer().text(), original_source);
+    assert_eq!(
+        session.next_redo_tree_edit_kind(),
+        Some(UiAssetEditorTreeEditKind::ExtractComponent)
+    );
+    assert_eq!(
+        session.next_redo_tree_edit(),
+        Some(UiAssetEditorTreeEdit::ExtractComponent {
+            node_id: "button".to_string(),
+            component_name: "SaveButton".to_string(),
+            component_root_id: "savebutton_root".to_string(),
+        })
+    );
+    assert!(session.redo().expect("redo extract component"));
+    let redone =
+        UiAssetLoader::load_toml_str(session.source_buffer().text()).expect("redone document");
+    assert_eq!(
+        redone
+            .nodes
+            .get("button")
+            .and_then(|node| node.component.as_deref()),
+        Some("SaveButton")
+    );
+}
+
+#[test]
+fn ui_asset_editor_session_projects_and_updates_promote_widget_draft_fields() {
+    let route = UiAssetEditorRoute::new(
+        "asset://ui/tests/style-authoring.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Design,
+    );
+    let mut session = UiAssetEditorSession::from_source(
+        route,
+        STYLE_AUTHORING_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("session");
+
+    session
+        .select_hierarchy_index(1)
+        .expect("select button from hierarchy");
+    assert!(session
+        .extract_selected_node_to_component()
+        .expect("extract selected node to component"));
+
+    let initial = session.pane_presentation();
+    assert_eq!(
+        initial.inspector_promote_asset_id,
+        "res://ui/widgets/save_button.ui.toml"
+    );
+    assert_eq!(initial.inspector_promote_component_name, "SaveButton");
+    assert_eq!(
+        initial.inspector_promote_document_id,
+        "ui.widgets.save_button"
+    );
+    assert!(initial.inspector_can_edit_promote_draft);
+
+    assert!(session
+        .set_selected_promote_widget_asset_id("res://ui/widgets/custom/editor_save.ui.toml")
+        .expect("set promote widget asset id"));
+    assert!(session
+        .set_selected_promote_widget_component_name("EditorSaveButton")
+        .expect("set promote widget component name"));
+    assert!(session
+        .set_selected_promote_widget_document_id("ui.widgets.custom.editor_save")
+        .expect("set promote widget document id"));
+
+    let updated = session.pane_presentation();
+    assert_eq!(
+        updated.inspector_promote_asset_id,
+        "res://ui/widgets/custom/editor_save.ui.toml"
+    );
+    assert_eq!(updated.inspector_promote_component_name, "EditorSaveButton");
+    assert_eq!(
+        updated.inspector_promote_document_id,
+        "ui.widgets.custom.editor_save"
+    );
+}
+
+#[test]
+fn ui_asset_editor_session_promotes_selected_local_component_to_external_widget_asset() {
+    let route = UiAssetEditorRoute::new(
+        "asset://ui/tests/style-authoring.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Design,
+    );
+    let mut session = UiAssetEditorSession::from_source(
+        route,
+        STYLE_AUTHORING_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("session");
+
+    session
+        .select_hierarchy_index(1)
+        .expect("select button from hierarchy");
+    assert!(session
+        .extract_selected_node_to_component()
+        .expect("extract selected node to component"));
+    assert!(session.pane_presentation().can_promote_to_external_widget);
+
+    let promoted_widget = session
+        .promote_selected_component_to_external_widget(
+            "res://ui/widgets/save_button.ui.toml",
+            "SaveButton",
+            "ui.widgets.save_button",
+        )
+        .expect("promote selected component to external widget")
+        .expect("promoted widget document");
+    assert_eq!(
+        session.next_undo_tree_edit_kind(),
+        Some(UiAssetEditorTreeEditKind::PromoteToExternalWidget)
+    );
+    assert_eq!(
+        session.next_undo_tree_edit(),
+        Some(UiAssetEditorTreeEdit::PromoteToExternalWidget {
+            source_component_name: "SaveButton".to_string(),
+            asset_id: "res://ui/widgets/save_button.ui.toml".to_string(),
+            component_name: "SaveButton".to_string(),
+            document_id: "ui.widgets.save_button".to_string(),
+        })
+    );
+
+    assert_eq!(promoted_widget.asset.kind, UiAssetKind::Widget);
+    assert_eq!(promoted_widget.asset.id, "ui.widgets.save_button");
+    assert_eq!(promoted_widget.asset.display_name, "SaveButton");
+    assert_eq!(
+        promoted_widget.root.as_ref().map(|root| root.node.as_str()),
+        Some("savebutton_root")
+    );
+    assert!(promoted_widget.components.contains_key("SaveButton"));
+    assert_eq!(
+        promoted_widget
+            .nodes
+            .get("savebutton_root")
+            .and_then(|node| node.widget_type.as_deref()),
+        Some("Button")
+    );
+
+    let promoted =
+        UiAssetLoader::load_toml_str(session.source_buffer().text()).expect("promoted document");
+    assert!(!promoted.components.contains_key("SaveButton"));
+    assert!(!promoted.nodes.contains_key("savebutton_root"));
+    assert!(promoted
+        .imports
+        .widgets
+        .iter()
+        .any(|reference| { reference == "res://ui/widgets/save_button.ui.toml#SaveButton" }));
+    let button = promoted.nodes.get("button").expect("button node");
+    assert_eq!(button.kind, zircon_ui::UiNodeDefinitionKind::Reference);
+    assert_eq!(
+        button.component_ref.as_deref(),
+        Some("res://ui/widgets/save_button.ui.toml#SaveButton")
+    );
+    assert_eq!(button.control_id.as_deref(), Some("SaveButton"));
+    assert_eq!(button.classes, vec!["primary".to_string()]);
+    assert!(button.props.is_empty());
+    assert!(button.layout.is_none());
+    assert!(button.bindings.is_empty());
+
+    let pane = session.pane_presentation();
+    assert_eq!(pane.inspector_widget_kind, "Reference");
+    assert_eq!(pane.inspector_widget_label, "SaveButton");
+    assert!(pane.can_open_reference);
+    assert!(!pane.can_promote_to_external_widget);
+
+    assert!(session.undo().expect("undo promote widget"));
+    assert_eq!(
+        session.next_redo_tree_edit_kind(),
+        Some(UiAssetEditorTreeEditKind::PromoteToExternalWidget)
+    );
+    assert_eq!(
+        session.next_redo_tree_edit(),
+        Some(UiAssetEditorTreeEdit::PromoteToExternalWidget {
+            source_component_name: "SaveButton".to_string(),
+            asset_id: "res://ui/widgets/save_button.ui.toml".to_string(),
+            component_name: "SaveButton".to_string(),
+            document_id: "ui.widgets.save_button".to_string(),
+        })
+    );
+    let undone =
+        UiAssetLoader::load_toml_str(session.source_buffer().text()).expect("undone document");
+    assert_eq!(
+        undone
+            .nodes
+            .get("button")
+            .and_then(|node| node.component.as_deref()),
+        Some("SaveButton")
+    );
+    assert!(undone.components.contains_key("SaveButton"));
 }
 
 fn selected_text<'a>(surface: &'a zircon_ui::UiSurface, control_id: &str) -> Option<&'a str> {
@@ -1427,4 +3079,49 @@ fn slot_table_value<'a>(
         return None;
     };
     slot_table_value(child, rest)
+}
+
+#[test]
+fn ui_asset_editor_subsystem_is_grouped_by_domain_folders() {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("src")
+        .join("editing")
+        .join("ui_asset");
+
+    for relative in [
+        "binding/mod.rs",
+        "binding/binding_inspector.rs",
+        "preview/mod.rs",
+        "preview/preview_host.rs",
+        "preview/preview_mock.rs",
+        "preview/preview_projection.rs",
+        "source/mod.rs",
+        "source/source_buffer.rs",
+        "source/source_sync.rs",
+        "style/mod.rs",
+        "style/inspector_fields.rs",
+        "style/inspector_semantics.rs",
+        "style/matched_rule_inspection.rs",
+        "style/style_rule_declarations.rs",
+        "tree/mod.rs",
+        "tree/tree_editing.rs",
+        "tree/drag_drop_policy.rs",
+        "tree/palette_drop/mod.rs",
+        "tree/palette_drop/resolution.rs",
+        "tree/palette_drop/overlay_slots.rs",
+        "tree/palette_drop/grid_slots.rs",
+        "tree/palette_drop/flow_slots.rs",
+        "session/mod.rs",
+        "session/ui_asset_editor_session.rs",
+        "session/session_state.rs",
+        "session/preview_compile.rs",
+        "session/style_inspection.rs",
+        "session/hierarchy_projection.rs",
+    ] {
+        assert!(
+            root.join(relative).exists(),
+            "expected ui asset editor module {relative} under {:?}",
+            root
+        );
+    }
 }

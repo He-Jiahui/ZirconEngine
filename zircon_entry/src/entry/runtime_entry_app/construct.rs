@@ -1,12 +1,11 @@
 use std::error::Error;
 
 use zircon_core::CoreHandle;
-use zircon_graphics::{ViewportController, ViewportInput, ViewportState};
 use zircon_manager::ManagerResolver;
 use zircon_math::{UVec2, Vec2};
 use zircon_scene::{create_default_level, NodeKind};
 
-use super::RuntimeEntryApp;
+use super::{camera_controller::RuntimeCameraController, RuntimeEntryApp};
 use crate::runtime_presenter::RenderServerRuntimeBridge;
 
 impl RuntimeEntryApp {
@@ -29,16 +28,15 @@ impl RuntimeEntryApp {
                 .unwrap_or_default()
         });
 
-        let mut viewport_controller =
-            ViewportController::new(ViewportState::new(UVec2::new(1280, 720)));
-        viewport_controller.set_orbit_target(orbit_target);
+        let mut camera_controller = RuntimeCameraController::new(UVec2::new(1280, 720));
+        camera_controller.set_orbit_target(orbit_target);
 
         Ok(Self {
             window: None,
             presenter: None,
             render_bridge,
             level,
-            viewport_controller,
+            camera_controller,
             cursor: Vec2::ZERO,
             input_manager,
             _core: core,
@@ -49,14 +47,52 @@ impl RuntimeEntryApp {
         self.level.with_world(|world| {
             world
                 .to_render_frame_extract()
-                .with_viewport_size(self.viewport_controller.viewport().size)
+                .with_viewport_size(self.camera_controller.viewport_size())
         })
     }
 
-    pub(super) fn handle_viewport_input(&mut self, input: ViewportInput) {
-        let _feedback = self
-            .level
-            .with_world_mut(|world| self.viewport_controller.handle_input(world, input));
+    pub(super) fn resize_viewport(&mut self, size: UVec2) {
+        self.camera_controller.resize(size);
+    }
+
+    pub(super) fn handle_cursor_moved(&mut self, position: Vec2) {
+        self.cursor = position;
+        self.level
+            .with_world_mut(|world| self.camera_controller.pointer_moved(world, position));
+        self.sync_orbit_target_from_selection();
+    }
+
+    pub(super) fn handle_left_pressed(&mut self) {
+        self.camera_controller.left_pressed(self.cursor);
+    }
+
+    pub(super) fn handle_left_released(&mut self) {
+        self.camera_controller.left_released();
+    }
+
+    pub(super) fn handle_right_pressed(&mut self) {
+        self.camera_controller.right_pressed(self.cursor);
+    }
+
+    pub(super) fn handle_right_released(&mut self) {
+        self.camera_controller.right_released();
+    }
+
+    pub(super) fn handle_middle_pressed(&mut self) {
+        self.camera_controller.middle_pressed(self.cursor);
+    }
+
+    pub(super) fn handle_middle_released(&mut self) {
+        self.camera_controller.middle_released();
+    }
+
+    pub(super) fn handle_scroll(&mut self, delta: f32) {
+        self.level
+            .with_world_mut(|world| self.camera_controller.scrolled(world, delta));
+        self.sync_orbit_target_from_selection();
+    }
+
+    fn sync_orbit_target_from_selection(&mut self) {
         let orbit_target = self.level.with_world(|world| {
             world
                 .selected_node()
@@ -64,7 +100,7 @@ impl RuntimeEntryApp {
                 .map(|node| node.transform.translation)
         });
         if let Some(target) = orbit_target {
-            self.viewport_controller.set_orbit_target(target);
+            self.camera_controller.set_orbit_target(target);
         }
     }
 }

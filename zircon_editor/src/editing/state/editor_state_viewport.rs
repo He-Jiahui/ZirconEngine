@@ -1,5 +1,5 @@
+use crate::{ViewportFeedback, ViewportInput};
 use zircon_editor_ui::ViewportCommand;
-use zircon_graphics::{ViewportFeedback, ViewportInput};
 use zircon_math::UVec2;
 use zircon_scene::SceneViewportSettings;
 

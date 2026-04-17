@@ -3,7 +3,7 @@ use zircon_ui::UiBindingValue;
 use crate::editor_event::EditorEventRuntime;
 use crate::host::slint_host::event_bridge::SlintDispatchEffects;
 
-use super::super::{common::dispatch_editor_binding, BuiltinPaneSurfaceTemplateBridge};
+use super::super::{BuiltinPaneSurfaceTemplateBridge, common::dispatch_editor_binding};
 
 pub(crate) fn dispatch_builtin_pane_surface_control(
     runtime: &EditorEventRuntime,

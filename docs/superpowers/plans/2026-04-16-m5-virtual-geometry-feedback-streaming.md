@@ -1,14 +1,22 @@
 ---
 related_code:
-  - zircon_graphics/src/runtime/virtual_geometry.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract.rs
+  - zircon_graphics/src/runtime/virtual_geometry/mod.rs
+  - zircon_graphics/src/runtime/virtual_geometry/pending_completion/mod.rs
+  - zircon_graphics/src/runtime/virtual_geometry/residency_management/mod.rs
+  - zircon_graphics/src/runtime/server/submit_frame_extract/mod.rs
+  - zircon_graphics/src/runtime/server/submit_frame_extract/record_submission/mod.rs
+  - zircon_graphics/src/runtime/server/submit_frame_extract/submit/mod.rs
   - zircon_graphics/src/visibility/declarations/visibility_virtual_geometry_feedback.rs
   - zircon_graphics/src/tests/virtual_geometry_runtime.rs
   - docs/assets-and-rendering/srp-rhi-render-server-architecture.md
   - docs/assets-and-rendering/index.md
 implementation_files:
-  - zircon_graphics/src/runtime/virtual_geometry.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract.rs
+  - zircon_graphics/src/runtime/virtual_geometry/mod.rs
+  - zircon_graphics/src/runtime/virtual_geometry/pending_completion/mod.rs
+  - zircon_graphics/src/runtime/virtual_geometry/residency_management/mod.rs
+  - zircon_graphics/src/runtime/server/submit_frame_extract/mod.rs
+  - zircon_graphics/src/runtime/server/submit_frame_extract/record_submission/mod.rs
+  - zircon_graphics/src/runtime/server/submit_frame_extract/submit/mod.rs
 plan_sources:
   - user: 2026-04-16 continue next M5 Virtual Geometry slice after prepare consumption
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
@@ -39,6 +47,7 @@ doc_type: milestone-detail
   - resident 数达到 budget 时，只能回收 feedback 提供的 `evictable_pages`
   - 没有可回收 budget 时，request 会继续保持 pending，而不是无上限扩 resident cache
 - `WgpuRenderServer::submit_frame_extract(...)` 现在会在 render 完成后调用 `consume_feedback(...)`，再把更新后的 runtime host 写回 viewport record，并用更新后的 snapshot 作为 façade stats 的来源。
+- `runtime/virtual_geometry/{pending_completion,residency_management}/` 与 `runtime/server/submit_frame_extract/{submit,record_submission}/` 当前都已经下沉成 root-only wiring + helper 子模块，feedback completion、resident-slot bookkeeping 与提交后 runtime host 回写不再继续堆放在单脚本里。
 
 ## Runtime Rules
 

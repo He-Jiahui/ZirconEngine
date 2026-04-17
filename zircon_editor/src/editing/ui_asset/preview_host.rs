@@ -34,6 +34,16 @@ impl UiAssetPreviewHost {
         Ok(())
     }
 
+    pub fn rebuild_with_size(
+        &mut self,
+        preview_size: UiSize,
+        asset_id: &str,
+        compiled: &UiCompiledDocument,
+    ) -> Result<(), UiAssetEditorSessionError> {
+        *self = Self::new(preview_size, asset_id, compiled)?;
+        Ok(())
+    }
+
     pub fn surface(&self) -> &UiSurface {
         &self.surface
     }

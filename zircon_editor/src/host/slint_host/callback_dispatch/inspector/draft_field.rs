@@ -1,5 +1,5 @@
 use zircon_editor_ui::{
-    inspector_field_control_id, DraftCommand, EditorUiBinding, EditorUiBindingPayload,
+    DraftCommand, EditorUiBinding, EditorUiBindingPayload, inspector_field_control_id,
 };
 use zircon_ui::UiBindingValue;
 

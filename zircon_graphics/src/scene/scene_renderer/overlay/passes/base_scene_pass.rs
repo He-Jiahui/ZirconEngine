@@ -43,6 +43,7 @@ impl BaseScenePass {
             }),
             occlusion_query_set: None,
             timestamp_writes: None,
+            multiview_mask: None,
         });
         pass.set_bind_group(0, scene_bind_group, &[]);
         if frame.scene.overlays.display_mode == DisplayMode::WireOnly {
@@ -55,7 +56,15 @@ impl BaseScenePass {
             pass.set_bind_group(2, &draw.texture.bind_group, &[]);
             pass.set_vertex_buffer(0, draw.mesh.vertex_buffer.slice(..));
             pass.set_index_buffer(draw.mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint32);
-            pass.draw_indexed(0..draw.mesh.index_count, 0, 0..1);
+            if let Some(indirect_args_buffer) = &draw.indirect_args_buffer {
+                pass.draw_indexed_indirect(indirect_args_buffer, draw.indirect_args_offset);
+            } else {
+                pass.draw_indexed(
+                    draw.first_index..(draw.first_index + draw.draw_index_count),
+                    0,
+                    0..1,
+                );
+            }
         }
     }
 }

@@ -1,8 +1,9 @@
-use zircon_manager::{
-    AssetRecordKind, EditorAssetCatalogRecord, EditorAssetCatalogSnapshotRecord,
-    EditorAssetDetailsRecord, EditorAssetFolderRecord, EditorAssetReferenceRecord,
-    PreviewStateRecord, ResourceStateRecord, ResourceStatusRecord,
+use zircon_asset::{
+    EditorAssetCatalogRecord, EditorAssetCatalogSnapshotRecord, EditorAssetDetailsRecord,
+    EditorAssetFolderRecord, EditorAssetReferenceRecord, PreviewState,
 };
+use zircon_manager::{ResourceStateRecord, ResourceStatusRecord};
+use zircon_resource::ResourceKind;
 
 use crate::editing::asset_workspace::AssetWorkspaceState;
 use crate::snapshot::{AssetSurfaceMode, AssetUtilityTab, AssetViewMode};
@@ -16,7 +17,7 @@ fn asset_workspace_builds_folder_tree_and_visible_content_from_catalog() {
     workspace.sync_selected_details(Some(sample_material_details()));
     workspace.sync_resources(vec![sample_resource_status(
         "res://materials/grid.material.toml",
-        AssetRecordKind::Material,
+        ResourceKind::Material,
         4,
         ResourceStateRecord::Ready,
     )]);
@@ -134,11 +135,11 @@ pub(super) fn sample_catalog() -> EditorAssetCatalogSnapshotRecord {
                 uuid: "11111111-1111-1111-1111-111111111111".to_string(),
                 id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa".to_string(),
                 locator: "res://materials/grid.material.toml".to_string(),
-                kind: AssetRecordKind::Material,
+                kind: ResourceKind::Material,
                 display_name: "grid.material".to_string(),
                 file_name: "grid.material.toml".to_string(),
                 extension: "toml".to_string(),
-                preview_state: PreviewStateRecord::Ready,
+                preview_state: PreviewState::Ready,
                 meta_path: "E:/Sandbox/assets/materials/grid.material.toml.meta.toml".to_string(),
                 preview_artifact_path: "E:/Sandbox/library/editor-previews/grid.png".to_string(),
                 source_mtime_unix_ms: 10,
@@ -151,11 +152,11 @@ pub(super) fn sample_catalog() -> EditorAssetCatalogSnapshotRecord {
                 uuid: "22222222-2222-2222-2222-222222222222".to_string(),
                 id: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb".to_string(),
                 locator: "res://scenes/main.scene.toml".to_string(),
-                kind: AssetRecordKind::Scene,
+                kind: ResourceKind::Scene,
                 display_name: "main.scene".to_string(),
                 file_name: "main.scene.toml".to_string(),
                 extension: "toml".to_string(),
-                preview_state: PreviewStateRecord::Dirty,
+                preview_state: PreviewState::Dirty,
                 meta_path: "E:/Sandbox/assets/scenes/main.scene.toml.meta.toml".to_string(),
                 preview_artifact_path: "E:/Sandbox/library/editor-previews/main.png".to_string(),
                 source_mtime_unix_ms: 20,
@@ -168,11 +169,11 @@ pub(super) fn sample_catalog() -> EditorAssetCatalogSnapshotRecord {
                 uuid: "33333333-3333-3333-3333-333333333333".to_string(),
                 id: "cccccccc-cccc-cccc-cccc-cccccccccccc".to_string(),
                 locator: "res://textures/checker.png".to_string(),
-                kind: AssetRecordKind::Texture,
+                kind: ResourceKind::Texture,
                 display_name: "checker".to_string(),
                 file_name: "checker.png".to_string(),
                 extension: "png".to_string(),
-                preview_state: PreviewStateRecord::Ready,
+                preview_state: PreviewState::Ready,
                 meta_path: "E:/Sandbox/assets/textures/checker.png.meta.toml".to_string(),
                 preview_artifact_path: "E:/Sandbox/library/editor-previews/checker.png".to_string(),
                 source_mtime_unix_ms: 30,
@@ -192,14 +193,14 @@ pub(super) fn sample_material_details() -> EditorAssetDetailsRecord {
             uuid: "33333333-3333-3333-3333-333333333333".to_string(),
             locator: "res://textures/checker.png".to_string(),
             display_name: "checker".to_string(),
-            kind: Some(AssetRecordKind::Texture),
+            kind: Some(ResourceKind::Texture),
             known_project_asset: true,
         }],
         referenced_by: vec![EditorAssetReferenceRecord {
             uuid: "22222222-2222-2222-2222-222222222222".to_string(),
             locator: "res://scenes/main.scene.toml".to_string(),
             display_name: "main.scene".to_string(),
-            kind: Some(AssetRecordKind::Scene),
+            kind: Some(ResourceKind::Scene),
             known_project_asset: true,
         }],
         editor_adapter: Some("material.pbr".to_string()),
@@ -208,7 +209,7 @@ pub(super) fn sample_material_details() -> EditorAssetDetailsRecord {
 
 pub(super) fn sample_resource_status(
     locator: &str,
-    kind: AssetRecordKind,
+    kind: ResourceKind,
     revision: u64,
     state: ResourceStateRecord,
 ) -> ResourceStatusRecord {

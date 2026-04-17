@@ -1,0 +1,20 @@
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum BuiltinRenderFeature {
+    Mesh,
+    DeferredGeometry,
+    DeferredLighting,
+    ClusteredLighting,
+    ScreenSpaceAmbientOcclusion,
+    Bloom,
+    ColorGrading,
+    ReflectionProbes,
+    BakedLighting,
+    HistoryResolve,
+    Shadows,
+    PostProcess,
+    DebugOverlay,
+    Particle,
+    GlobalIllumination,
+    RayTracing,
+    VirtualGeometry,
+}

@@ -14,6 +14,7 @@ use crate::editing::viewport::handles::{
     move_handle_tool::MoveHandleTool,
 };
 use crate::editing::viewport::projection::world_units_per_pixel;
+use crate::GizmoAxis;
 
 impl HandleTool for MoveHandleTool {
     fn tool(&self) -> SceneViewportTool {
@@ -60,7 +61,7 @@ impl HandleTool for MoveHandleTool {
     fn begin_drag(
         &self,
         ctx: &HandlePickContext<'_>,
-        axis: zircon_graphics::GizmoAxis,
+        axis: GizmoAxis,
     ) -> Option<HandleDragSession> {
         Some(HandleDragSession::Move(begin_transform_session(ctx, axis)?))
     }

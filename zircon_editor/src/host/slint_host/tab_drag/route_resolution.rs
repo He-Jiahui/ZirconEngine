@@ -1,10 +1,11 @@
+use crate::host::slint_host::callback_dispatch::BuiltinWorkbenchRootShellFrames;
 use crate::host::slint_host::shell_pointer::WorkbenchShellPointerRoute;
 use crate::{
     DockEdge, MainPageId, SplitAxis, SplitPlacement, ViewHost, WorkbenchChromeMetrics,
     WorkbenchLayout, WorkbenchShellGeometry, WorkbenchViewModel, WorkspaceTarget,
 };
 
-use super::drop_resolution::resolve_tab_drop;
+use super::drop_resolution::resolve_tab_drop_with_root_frames;
 use super::group::{
     document_edge_from_group_key, floating_window_edge_from_group_key,
     floating_window_from_group_key, WorkbenchDragTargetGroup,
@@ -14,6 +15,7 @@ use super::resolved_drop::{
     ResolvedTabDrop, ResolvedWorkbenchTabDropRoute, ResolvedWorkbenchTabDropTarget,
 };
 
+#[cfg(test)]
 pub(crate) fn resolve_workbench_tab_drop_route(
     layout: &WorkbenchLayout,
     model: &WorkbenchViewModel,
@@ -24,6 +26,32 @@ pub(crate) fn resolve_workbench_tab_drop_route(
     fallback_target_group: &str,
     pointer_x: f32,
     pointer_y: f32,
+) -> Option<ResolvedWorkbenchTabDropRoute> {
+    resolve_workbench_tab_drop_route_with_root_frames(
+        layout,
+        model,
+        geometry,
+        metrics,
+        instance_id,
+        pointer_route,
+        fallback_target_group,
+        pointer_x,
+        pointer_y,
+        None,
+    )
+}
+
+pub(crate) fn resolve_workbench_tab_drop_route_with_root_frames(
+    layout: &WorkbenchLayout,
+    model: &WorkbenchViewModel,
+    geometry: &WorkbenchShellGeometry,
+    metrics: &WorkbenchChromeMetrics,
+    instance_id: &str,
+    pointer_route: Option<WorkbenchShellPointerRoute>,
+    fallback_target_group: &str,
+    pointer_x: f32,
+    pointer_y: f32,
+    shared_root_frames: Option<&BuiltinWorkbenchRootShellFrames>,
 ) -> Option<ResolvedWorkbenchTabDropRoute> {
     match pointer_route {
         Some(WorkbenchShellPointerRoute::DocumentEdge(edge)) => {
@@ -41,7 +69,7 @@ pub(crate) fn resolve_workbench_tab_drop_route(
                     return document_edge_drop_route(layout, model, edge);
                 }
             }
-            let drop = resolve_tab_drop(
+            let drop = resolve_tab_drop_with_root_frames(
                 layout,
                 model,
                 geometry,
@@ -50,6 +78,7 @@ pub(crate) fn resolve_workbench_tab_drop_route(
                 target_group.as_str(),
                 pointer_x,
                 pointer_y,
+                shared_root_frames,
             )?;
             Some(ResolvedWorkbenchTabDropRoute {
                 target_group,
@@ -66,6 +95,7 @@ pub(crate) fn resolve_workbench_tab_drop_route(
             fallback_target_group,
             pointer_x,
             pointer_y,
+            shared_root_frames,
         ),
     }
 }
@@ -180,6 +210,7 @@ fn resolve_fallback_drop_route(
     fallback_target_group: &str,
     pointer_x: f32,
     pointer_y: f32,
+    shared_root_frames: Option<&BuiltinWorkbenchRootShellFrames>,
 ) -> Option<ResolvedWorkbenchTabDropRoute> {
     if let Some(edge) = document_edge_from_group_key(fallback_target_group) {
         return document_edge_drop_route(layout, model, edge);
@@ -192,7 +223,7 @@ fn resolve_fallback_drop_route(
     }
 
     let target_group = WorkbenchDragTargetGroup::from_str(fallback_target_group)?;
-    let drop = resolve_tab_drop(
+    let drop = resolve_tab_drop_with_root_frames(
         layout,
         model,
         geometry,
@@ -201,6 +232,7 @@ fn resolve_fallback_drop_route(
         target_group.as_str(),
         pointer_x,
         pointer_y,
+        shared_root_frames,
     )?;
     Some(ResolvedWorkbenchTabDropRoute {
         target_group,

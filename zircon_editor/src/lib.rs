@@ -5,6 +5,8 @@ pub mod editor_event;
 mod host;
 mod workbench;
 
+use zircon_module::{EngineModule, ModuleDescriptor};
+
 pub(crate) use editing::{command, history, intent, paths};
 pub(crate) use host::{manager, module};
 pub(crate) use workbench::{autolayout, layout, project, snapshot, view};
@@ -13,9 +15,11 @@ pub use editing::intent::EditorIntent;
 pub use editing::state::EditorState;
 pub use editing::ui_asset::{
     UiAssetDragDropPolicy, UiAssetEditorCommand, UiAssetEditorPanePresentation,
-    UiAssetEditorSession, UiAssetEditorSessionError, UiAssetEditorUndoStack, UiAssetPreviewHost,
+    UiAssetEditorPreviewCanvasNode, UiAssetEditorSession, UiAssetEditorSessionError,
+    UiAssetEditorTreeEdit, UiAssetEditorTreeEditKind, UiAssetEditorUndoStack, UiAssetPreviewHost,
     UiAssetSourceBuffer,
 };
+pub use editing::viewport::{GizmoAxis, ViewportFeedback, ViewportInput, ViewportState};
 pub use editor_event::{
     EditorAssetEvent, EditorAssetSurface, EditorAssetUtilityTab, EditorAssetViewMode,
     EditorDraftEvent, EditorEvent, EditorEventDispatcher, EditorEventEffect, EditorEventEnvelope,
@@ -94,11 +98,28 @@ pub use workbench::view::{
 };
 pub use zircon_editor_ui::InspectorFieldChange;
 pub use zircon_editor_ui::{
-    UiAssetEditorMode, UiAssetEditorReflectionModel, UiAssetEditorRoute, UiDesignerSelectionModel,
-    UiMatchedStyleRuleReflection, UiStyleInspectorReflectionModel,
+    UiAssetEditorMode, UiAssetEditorReflectionModel, UiAssetEditorRoute, UiAssetPreviewPreset,
+    UiDesignerSelectionModel, UiMatchedStyleRuleReflection, UiStyleInspectorReflectionModel,
 };
 pub use zircon_ui::UiBindingValue;
 pub use zircon_ui::UiSize;
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct EditorModule;
+
+impl EngineModule for EditorModule {
+    fn module_name(&self) -> &'static str {
+        EDITOR_MODULE_NAME
+    }
+
+    fn module_description(&self) -> &'static str {
+        "Slint-based editor host and tooling shell"
+    }
+
+    fn descriptor(&self) -> ModuleDescriptor {
+        module_descriptor()
+    }
+}
 
 #[cfg(test)]
 mod tests;

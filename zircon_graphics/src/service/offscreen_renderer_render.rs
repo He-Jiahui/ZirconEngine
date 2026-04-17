@@ -14,7 +14,7 @@ impl OffscreenRenderer {
         generation: u64,
     ) -> Result<ViewportFrame, GraphicsError> {
         let size =
-            zircon_math::UVec2::new(frame.viewport.size.x.max(1), frame.viewport.size.y.max(1));
+            zircon_math::UVec2::new(frame.viewport_size.x.max(1), frame.viewport_size.y.max(1));
         if self
             .target
             .as_ref()

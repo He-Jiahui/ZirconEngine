@@ -11,7 +11,7 @@ use super::runtime_preview_renderer::RuntimePreviewRenderer;
 
 impl RuntimePreviewRenderer {
     pub fn new(
-        window: Arc<Window>,
+        window: Arc<dyn Window>,
         asset_manager: Arc<ProjectAssetManager>,
     ) -> Result<Self, GraphicsError> {
         let (backend, surface_state) = RenderBackend::new_with_surface(window)?;

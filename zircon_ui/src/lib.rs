@@ -9,6 +9,8 @@ mod surface;
 mod template;
 mod tree;
 
+use zircon_module::{EngineModule, ModuleDescriptor};
+
 pub use binding::{
     UiBindingCall, UiBindingParseError, UiBindingValue, UiEventBinding, UiEventKind, UiEventPath,
     UiEventRouter,
@@ -52,6 +54,23 @@ pub use tree::{
     UiDirtyFlags, UiHitTestIndex, UiHitTestResult, UiInputPolicy, UiLayoutCache,
     UiTemplateNodeMetadata, UiTree, UiTreeError, UiTreeNode,
 };
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct UiModule;
+
+impl EngineModule for UiModule {
+    fn module_name(&self) -> &'static str {
+        UI_MODULE_NAME
+    }
+
+    fn module_description(&self) -> &'static str {
+        "Runtime UI widgets and layout"
+    }
+
+    fn descriptor(&self) -> ModuleDescriptor {
+        module_descriptor()
+    }
+}
 
 #[cfg(test)]
 mod tests;

@@ -11,7 +11,7 @@ use super::surface_state::SurfaceState;
 
 impl RenderBackend {
     pub(crate) fn new_with_surface(
-        window: Arc<Window>,
+        window: Arc<dyn Window>,
     ) -> Result<(Self, SurfaceState), GraphicsError> {
         let instance = wgpu::Instance::default();
         let surface = instance.create_surface(window.clone())?;
@@ -22,10 +22,8 @@ impl RenderBackend {
         }))
         .map_err(|_| GraphicsError::NoAdapter)?;
         let (device, queue) = request_device(&adapter)?;
-        let size = UVec2::new(
-            window.inner_size().width.max(1),
-            window.inner_size().height.max(1),
-        );
+        let surface_size = window.surface_size();
+        let size = UVec2::new(surface_size.width.max(1), surface_size.height.max(1));
         let capabilities = surface.get_capabilities(&adapter);
         let format = capabilities
             .formats

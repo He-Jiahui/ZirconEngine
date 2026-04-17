@@ -3,14 +3,14 @@ use std::sync::Arc;
 use zircon_core::{
     DriverDescriptor, ManagerDescriptor, ModuleDescriptor, ServiceKind, ServiceObject, StartupMode,
 };
-use zircon_manager::{AssetManagerHandle, EditorAssetManagerHandle, ResourceManagerHandle};
+use zircon_manager::{AssetManagerHandle, ResourceManagerHandle};
 use zircon_module::{dependency_on, factory, qualified_name};
 
 use super::{
     service_names::DEFAULT_EDITOR_ASSET_MANAGER_NAME, AssetIoDriver, ProjectAssetManager,
     ASSET_MODULE_NAME, PROJECT_ASSET_MANAGER_NAME,
 };
-use crate::DefaultEditorAssetManager as EditorAssetManagerService;
+use crate::{DefaultEditorAssetManager as EditorAssetManagerService, EditorAssetManagerHandle};
 
 pub fn module_descriptor() -> ModuleDescriptor {
     ModuleDescriptor::new(

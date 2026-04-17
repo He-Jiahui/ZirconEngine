@@ -1,4 +1,11 @@
 use super::*;
+use crate::host::slint_host::floating_window_projection::{
+    FloatingWindowProjectionBundle, build_floating_window_projection_bundle_with_shared_source,
+    resolve_floating_window_projection_base_outer_frame,
+    resolve_floating_window_projection_shared_source,
+};
+use crate::host::slint_host::root_shell_projection::resolve_root_viewport_content_frame;
+use zircon_asset::resolve_editor_asset_manager;
 
 impl SlintEditorHost {
     pub(super) fn new(core: CoreHandle, ui: WorkbenchShell) -> Result<Self, Box<dyn Error>> {
@@ -20,7 +27,7 @@ impl SlintEditorHost {
     ) -> Result<Self, Box<dyn Error>> {
         let resolver = ManagerResolver::new(core.clone());
         let asset_server = resolver.asset()?;
-        let editor_asset_server = resolver.editor_asset()?;
+        let editor_asset_server = resolve_editor_asset_manager(resolver.core())?;
         let resource_server = resolver.resource()?;
         let editor_manager = core.resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)?;
         let asset_change_events = asset_server.subscribe_asset_changes();
@@ -29,7 +36,8 @@ impl SlintEditorHost {
 
         let viewport_size = UVec2::new(1280, 720);
         let startup_session = editor_manager.resolve_startup_session()?;
-        let state = build_startup_state(editor_manager.as_ref(), &startup_session, viewport_size)?;
+        let state =
+            resolve_startup_state(editor_manager.as_ref(), &startup_session, viewport_size)?;
         let shell_size = ShellSizePx::new(
             ui.get_shell_width_px().max(1.0),
             ui.get_shell_height_px().max(1.0),
@@ -38,6 +46,11 @@ impl SlintEditorHost {
             shell_size.width,
             shell_size.height,
         ))?;
+        let floating_window_source_bridge =
+            callback_dispatch::BuiltinFloatingWindowSourceTemplateBridge::new(UiSize::new(
+                shell_size.width,
+                shell_size.height,
+            ))?;
         let viewport_toolbar_bridge =
             callback_dispatch::BuiltinViewportToolbarTemplateBridge::new()?;
         let asset_surface_bridge = callback_dispatch::BuiltinAssetSurfaceTemplateBridge::new()?;
@@ -64,6 +77,7 @@ impl SlintEditorHost {
                 UiFrame::new(0.0, 0.0, viewport_size.x as f32, viewport_size.y as f32),
             ),
             template_bridge,
+            floating_window_source_bridge,
             viewport_toolbar_bridge,
             viewport_toolbar_pointer_bridge: ViewportToolbarPointerBridge::new(),
             asset_surface_bridge,
@@ -99,6 +113,7 @@ impl SlintEditorHost {
             activity_asset_pointer: AssetSurfacePointerState::new(),
             browser_asset_pointer: AssetSurfacePointerState::new(),
             native_window_presenters: NativeWindowPresenterStore::default(),
+            floating_window_projection_bundle: FloatingWindowProjectionBundle::default(),
             callback_source_window: None,
             last_focused_callback_window: None,
             active_layout_preset: None,
@@ -187,8 +202,46 @@ impl SlintEditorHost {
                 Some(&self.transient_region_preferred)
             },
         );
+        let _ = self.template_bridge.recompute_layout_with_chrome(
+            UiSize::new(self.shell_size.width, self.shell_size.height),
+            &chrome,
+            &self.chrome_metrics,
+        );
+        let _ = self
+            .floating_window_source_bridge
+            .recompute_layout(UiSize::new(self.shell_size.width, self.shell_size.height));
+        let root_shell_frames = self.template_bridge.root_shell_frames();
+        let floating_window_shared_source = resolve_floating_window_projection_shared_source(
+            &self.floating_window_source_bridge.source_frames(),
+        );
+        for (window_index, window) in model.floating_windows.iter().enumerate() {
+            let frame = resolve_floating_window_projection_base_outer_frame(
+                window,
+                window_index,
+                &geometry,
+                floating_window_shared_source,
+            );
+            self.editor_manager.sync_native_window_projection_bounds(
+                &window.window_id,
+                [frame.x, frame.y, frame.width, frame.height],
+            );
+        }
+        let native_window_hosts = self.editor_manager.native_window_hosts();
+        let floating_window_projection_bundle =
+            build_floating_window_projection_bundle_with_shared_source(
+                &model,
+                &geometry,
+                floating_window_shared_source,
+                &self.chrome_metrics,
+                &native_window_hosts,
+            );
+        let viewport_content_frame = resolve_root_viewport_content_frame(
+            &geometry,
+            Some(&root_shell_frames),
+            active_document_shows_viewport_toolbar(&model),
+        );
 
-        if let Some(next_viewport_size) = viewport_size_from_frame(&geometry) {
+        if let Some(next_viewport_size) = viewport_size_from_frame(viewport_content_frame) {
             if next_viewport_size != self.viewport_size {
                 self.viewport_size = next_viewport_size;
                 self.apply_dispatch_result(callback_dispatch::dispatch_viewport_event(
@@ -206,22 +259,25 @@ impl SlintEditorHost {
             .update_viewport_frame(UiFrame::new(
                 0.0,
                 0.0,
-                geometry.viewport_content_frame.width.max(0.0),
-                geometry.viewport_content_frame.height.max(0.0),
+                viewport_content_frame.width.max(0.0),
+                viewport_content_frame.height.max(0.0),
             ));
-        let _ = self
-            .template_bridge
-            .recompute_layout(UiSize::new(self.shell_size.width, self.shell_size.height));
         self.shell_pointer_bridge
-            .update_layout_with_floating_windows(
+            .update_layout_with_root_shell_frames(
                 self.shell_size,
                 &geometry,
                 model.drawer_ring.visible,
                 &model.floating_windows,
+                Some(&root_shell_frames),
+                Some(&floating_window_projection_bundle),
             );
         self.sync_activity_rail_pointer_layout(&model, &geometry);
         self.sync_host_page_pointer_layout(&model);
-        self.sync_document_tab_pointer_layout(&model, &geometry);
+        self.sync_document_tab_pointer_layout(
+            &model,
+            &geometry,
+            &floating_window_projection_bundle,
+        );
         self.sync_drawer_header_pointer_layout(&model, &geometry);
 
         let preset_names = self.runtime.preset_names();
@@ -234,6 +290,8 @@ impl SlintEditorHost {
             &preset_names,
             self.active_layout_preset.as_deref(),
             &ui_asset_panes,
+            Some(&root_shell_frames),
+            &floating_window_projection_bundle,
         );
         self.sync_native_window_presenters(
             &model,
@@ -241,12 +299,14 @@ impl SlintEditorHost {
             &geometry,
             &preset_names,
             &ui_asset_panes,
+            &floating_window_projection_bundle,
         );
         self.sync_menu_pointer_layout(&chrome, &preset_names);
         self.sync_welcome_recent_pointer_layout(&chrome.welcome);
         self.sync_hierarchy_pointer_layout(&chrome.scene_entries);
         self.sync_detail_pointer_layouts(&chrome);
         self.sync_asset_pointer_layouts(&chrome);
+        self.floating_window_projection_bundle = floating_window_projection_bundle;
         self.shell_geometry = Some(geometry);
         self.presentation_dirty = false;
         self.layout_dirty = false;
@@ -335,12 +395,10 @@ impl SlintEditorHost {
         geometry: &WorkbenchShellGeometry,
         preset_names: &[String],
         ui_asset_panes: &BTreeMap<String, crate::UiAssetEditorPanePresentation>,
+        floating_window_projection_bundle: &FloatingWindowProjectionBundle,
     ) {
-        let targets = collect_native_floating_window_targets(
-            model,
-            geometry,
-            &self.editor_manager.native_window_hosts(),
-        );
+        let targets =
+            collect_native_floating_window_targets(model, floating_window_projection_bundle);
         let active_preset_name = self.active_layout_preset.as_deref();
         let host_handle = self.self_handle.as_ref().and_then(Weak::upgrade);
         if let Err(error) = self.native_window_presenters.sync_targets(
@@ -369,6 +427,8 @@ impl SlintEditorHost {
                     preset_names,
                     active_preset_name,
                     ui_asset_panes,
+                    None,
+                    floating_window_projection_bundle,
                 );
                 configure_native_floating_window_presentation(ui, target);
             },
@@ -376,4 +436,41 @@ impl SlintEditorHost {
             self.set_status_line(format!("Native window sync failed: {error}"));
         }
     }
+}
+
+#[cfg(not(test))]
+fn resolve_startup_state(
+    editor_manager: &EditorManager,
+    session: &EditorStartupSessionDocument,
+    viewport_size: UVec2,
+) -> Result<EditorState, Box<dyn Error>> {
+    build_startup_state(editor_manager, session, viewport_size)
+}
+
+#[cfg(test)]
+fn resolve_startup_state(
+    editor_manager: &EditorManager,
+    session: &EditorStartupSessionDocument,
+    viewport_size: UVec2,
+) -> Result<EditorState, Box<dyn Error>> {
+    build_startup_state(editor_manager, session, viewport_size).or_else(|error| {
+        let message = error.to_string();
+        if message.contains("SceneModule.Manager.DefaultLevelManager") {
+            let mut state =
+                EditorState::welcome(viewport_size, session.welcome_pane_snapshot(false));
+            state.set_status_line(session.status_message.clone());
+            Ok(state)
+        } else {
+            Err(error)
+        }
+    })
+}
+
+fn active_document_shows_viewport_toolbar(model: &WorkbenchViewModel) -> bool {
+    model
+        .document_tabs
+        .iter()
+        .find(|tab| tab.active)
+        .or_else(|| model.document_tabs.first())
+        .is_some_and(|tab| tab.content_kind == ViewContentKind::Scene)
 }

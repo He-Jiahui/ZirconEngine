@@ -1,4 +1,5 @@
-use zircon_manager::{AssetRecordKind, ResourceStateRecord};
+use zircon_manager::ResourceStateRecord;
+use zircon_resource::ResourceKind;
 
 #[derive(Clone, Debug)]
 pub struct AssetItemSnapshot {
@@ -7,7 +8,7 @@ pub struct AssetItemSnapshot {
     pub display_name: String,
     pub file_name: String,
     pub extension: String,
-    pub kind: AssetRecordKind,
+    pub kind: ResourceKind,
     pub preview_artifact_path: String,
     pub dirty: bool,
     pub diagnostics: Vec<String>,

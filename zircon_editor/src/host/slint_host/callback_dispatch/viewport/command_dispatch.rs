@@ -1,6 +1,6 @@
 use zircon_editor_ui::ViewportCommand;
 
-use crate::editor_event::{host_adapter, EditorEventRuntime, EditorViewportEvent};
+use crate::editor_event::{EditorEventRuntime, EditorViewportEvent, host_adapter};
 use crate::host::slint_host::event_bridge::SlintDispatchEffects;
 
 use super::super::common::dispatch_envelope;

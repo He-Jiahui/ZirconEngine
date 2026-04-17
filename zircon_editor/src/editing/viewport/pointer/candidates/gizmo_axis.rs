@@ -1,4 +1,4 @@
-use zircon_graphics::GizmoAxis;
+use crate::GizmoAxis;
 use zircon_scene::OverlayAxis;
 
 pub(in crate::editing::viewport::pointer) fn gizmo_axis(axis: OverlayAxis) -> GizmoAxis {

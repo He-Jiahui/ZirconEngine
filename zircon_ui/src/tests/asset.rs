@@ -286,3 +286,30 @@ fn ui_legacy_template_adapter_converts_template_documents_into_asset_documents()
     );
     assert_eq!(instance.root.children[0].bindings[0].id, "Legacy/Button");
 }
+
+#[test]
+fn ui_asset_compiler_is_split_into_folder_backed_pipeline_modules() {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("src")
+        .join("template")
+        .join("asset")
+        .join("compiler");
+
+    for relative in [
+        "mod.rs",
+        "ui_document_compiler.rs",
+        "compile.rs",
+        "node_expander.rs",
+        "component_instance_expander.rs",
+        "ui_style_resolver.rs",
+        "style_apply.rs",
+        "value_normalizer.rs",
+        "shape_validator.rs",
+    ] {
+        assert!(
+            root.join(relative).exists(),
+            "expected compiler pipeline module {relative} under {:?}",
+            root
+        );
+    }
+}

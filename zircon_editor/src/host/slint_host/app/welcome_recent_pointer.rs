@@ -8,7 +8,12 @@ impl SlintEditorHost {
         width: f32,
         height: f32,
     ) {
-        self.welcome_recent_pointer_size = UiSize::new(width.max(0.0), height.max(0.0));
+        self.welcome_recent_pointer_size = self.resolve_callback_surface_size_for_kind(
+            width,
+            height,
+            self.welcome_recent_pointer_size,
+            ViewContentKind::Welcome,
+        );
         let welcome = self.runtime.chrome_snapshot().welcome;
         self.sync_welcome_recent_pointer_layout(&welcome);
         match callback_dispatch::dispatch_shared_welcome_recent_pointer_click(
@@ -28,7 +33,12 @@ impl SlintEditorHost {
     }
 
     pub(super) fn welcome_recent_pointer_moved(&mut self, x: f32, y: f32, width: f32, height: f32) {
-        self.welcome_recent_pointer_size = UiSize::new(width.max(0.0), height.max(0.0));
+        self.welcome_recent_pointer_size = self.resolve_callback_surface_size_for_kind(
+            width,
+            height,
+            self.welcome_recent_pointer_size,
+            ViewContentKind::Welcome,
+        );
         let welcome = self.runtime.chrome_snapshot().welcome;
         self.sync_welcome_recent_pointer_layout(&welcome);
         match self
@@ -51,7 +61,12 @@ impl SlintEditorHost {
         width: f32,
         height: f32,
     ) {
-        self.welcome_recent_pointer_size = UiSize::new(width.max(0.0), height.max(0.0));
+        self.welcome_recent_pointer_size = self.resolve_callback_surface_size_for_kind(
+            width,
+            height,
+            self.welcome_recent_pointer_size,
+            ViewContentKind::Welcome,
+        );
         let welcome = self.runtime.chrome_snapshot().welcome;
         self.sync_welcome_recent_pointer_layout(&welcome);
         match self

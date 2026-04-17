@@ -1,8 +1,12 @@
 use zircon_ui::UiFrame;
 
+use crate::host::slint_host::callback_dispatch::BuiltinWorkbenchRootShellFrames;
+use crate::host::slint_host::floating_window_projection::{
+    FloatingWindowProjectionBundle, resolve_floating_window_tab_strip_frame,
+};
+use crate::host::slint_host::root_shell_projection::resolve_root_document_tabs_frame;
 use crate::{WorkbenchChromeMetrics, WorkbenchShellGeometry, WorkbenchViewModel};
 
-use super::document_region_frame_ext::DocumentRegionFrameExt;
 use super::workbench_document_tab_pointer_item::WorkbenchDocumentTabPointerItem;
 use super::workbench_document_tab_pointer_layout::WorkbenchDocumentTabPointerLayout;
 use super::workbench_document_tab_pointer_surface::WorkbenchDocumentTabPointerSurface;
@@ -11,17 +15,19 @@ pub(crate) fn build_workbench_document_tab_pointer_layout(
     model: &WorkbenchViewModel,
     geometry: &WorkbenchShellGeometry,
     metrics: &WorkbenchChromeMetrics,
+    shared_root_frames: Option<&BuiltinWorkbenchRootShellFrames>,
+    floating_window_projection_bundle: &FloatingWindowProjectionBundle,
 ) -> WorkbenchDocumentTabPointerLayout {
     let mut surfaces = Vec::new();
     if !model.document_tabs.is_empty() {
-        let document_region = geometry.document_region_frame();
+        let document_tabs = resolve_root_document_tabs_frame(geometry, metrics, shared_root_frames);
         surfaces.push(WorkbenchDocumentTabPointerSurface {
             key: "main".to_string(),
             strip_frame: UiFrame::new(
-                document_region.x,
-                document_region.y,
-                document_region.width,
-                metrics.document_header_height,
+                document_tabs.x,
+                document_tabs.y,
+                document_tabs.width,
+                document_tabs.height,
             ),
             items: model
                 .document_tabs
@@ -35,15 +41,14 @@ pub(crate) fn build_workbench_document_tab_pointer_layout(
     }
 
     surfaces.extend(model.floating_windows.iter().map(|window| {
-        let frame = geometry.floating_window_frame(&window.window_id);
+        let frame = floating_window_projection_bundle
+            .tab_strip_frame(&window.window_id)
+            .unwrap_or_else(|| {
+                resolve_floating_window_tab_strip_frame(geometry, metrics, &window.window_id)
+            });
         WorkbenchDocumentTabPointerSurface {
             key: window.window_id.0.clone(),
-            strip_frame: UiFrame::new(
-                frame.x,
-                frame.y,
-                frame.width,
-                metrics.document_header_height,
-            ),
+            strip_frame: UiFrame::new(frame.x, frame.y, frame.width, frame.height),
             items: window
                 .tabs
                 .iter()

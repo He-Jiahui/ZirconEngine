@@ -31,7 +31,7 @@ fn editor_ui_host_runtime_projects_builtin_workbench_template_into_slint_project
             .iter()
             .map(|node| node.component.as_str())
             .collect::<Vec<_>>(),
-        vec!["UiHostToolbar", "HorizontalBox", "StatusBar"]
+        vec!["VerticalBox", "Container", "Overlay", "Overlay", "Overlay"]
     );
 
     let open_project = projection
@@ -69,19 +69,8 @@ fn editor_ui_host_runtime_projects_builtin_viewport_toolbar_template_into_slint_
             .map(|node| node.control_id.as_deref().unwrap_or_default())
             .collect::<Vec<_>>(),
         vec![
-            "SetTool",
-            "SetTransformSpace",
-            "SetProjectionMode",
-            "AlignView",
-            "SetDisplayMode",
-            "SetGridMode",
-            "SetTranslateSnap",
-            "SetRotateSnapDegrees",
-            "SetScaleSnap",
-            "SetPreviewLighting",
-            "SetPreviewSkybox",
-            "SetGizmosEnabled",
-            "FrameSelection",
+            "SceneViewportToolbarLeftGroup",
+            "SceneViewportToolbarRightGroup",
         ]
     );
 
@@ -366,6 +355,7 @@ fn editor_ui_compatibility_harness_captures_projection_shape_for_parity_checks()
         snapshot.components,
         vec![
             "WorkbenchShell",
+            "VerticalBox",
             "UiHostToolbar",
             "UiHostIconButton",
             "UiHostIconButton",
@@ -380,6 +370,16 @@ fn editor_ui_compatibility_harness_captures_projection_shape_for_parity_checks()
             "PaneSurface",
             "StatusBar",
             "UiHostLabel",
+            "Container",
+            "Overlay",
+            "Container",
+            "Container",
+            "Overlay",
+            "Container",
+            "Container",
+            "Overlay",
+            "Container",
+            "Container",
         ]
     );
     assert!(snapshot
@@ -411,6 +411,7 @@ fn editor_ui_host_runtime_builds_host_node_model_with_routes_and_attributes() {
             .collect::<Vec<_>>(),
         vec![
             "WorkbenchShell",
+            "VerticalBox",
             "UiHostToolbar",
             "UiHostIconButton",
             "UiHostIconButton",
@@ -425,6 +426,16 @@ fn editor_ui_host_runtime_builds_host_node_model_with_routes_and_attributes() {
             "PaneSurface",
             "StatusBar",
             "UiHostLabel",
+            "Container",
+            "Overlay",
+            "Container",
+            "Container",
+            "Overlay",
+            "Container",
+            "Container",
+            "Overlay",
+            "Container",
+            "Container",
         ]
     );
 
@@ -433,8 +444,8 @@ fn editor_ui_host_runtime_builds_host_node_model_with_routes_and_attributes() {
         .iter()
         .find(|node| node.control_id.as_deref() == Some("OpenProject"))
         .unwrap();
-    assert_eq!(open_project.node_id, "root.0.0");
-    assert_eq!(open_project.parent_id.as_deref(), Some("root.0"));
+    assert_eq!(open_project.node_id, "root.0.0.0");
+    assert_eq!(open_project.parent_id.as_deref(), Some("root.0.0"));
     assert_eq!(
         open_project.attributes.get("icon"),
         Some(&Value::String("folder-open-outline".to_string()))
@@ -466,7 +477,7 @@ fn editor_ui_host_runtime_builds_host_node_model_with_routes_and_attributes() {
         .iter()
         .find(|node| node.control_id.as_deref() == Some("StatusText"))
         .unwrap();
-    assert_eq!(status_text.node_id, "root.2.0");
+    assert_eq!(status_text.node_id, "root.0.2.0");
     assert_eq!(
         status_text.attributes.get("text"),
         Some(&Value::String("Ready".to_string()))
@@ -488,20 +499,20 @@ fn editor_ui_compatibility_harness_captures_host_model_routes_and_attributes() {
 
     assert!(snapshot
         .host_nodes
-        .contains(&"root.0.0|UiHostIconButton|OpenProject".to_string()));
+        .contains(&"root.0.0.0|UiHostIconButton|OpenProject".to_string()));
     assert!(snapshot
         .host_nodes
-        .contains(&"root.2.0|UiHostLabel|StatusText".to_string()));
+        .contains(&"root.0.2.0|UiHostLabel|StatusText".to_string()));
     assert!(snapshot
         .route_bindings
         .iter()
         .any(|entry| entry.starts_with("WorkbenchMenuBar/OpenProject@")));
     assert!(snapshot
         .attribute_entries
-        .contains(&"root.0.0.icon=folder-open-outline".to_string()));
+        .contains(&"root.0.0.0.icon=folder-open-outline".to_string()));
     assert!(snapshot
         .attribute_entries
-        .contains(&"root.2.0.text=Ready".to_string()));
+        .contains(&"root.0.2.0.text=Ready".to_string()));
 }
 
 #[test]
@@ -526,6 +537,7 @@ fn slint_ui_host_adapter_builds_generic_projection_from_host_model() {
             .collect::<Vec<_>>(),
         vec![
             SlintUiHostComponentKind::Root,
+            SlintUiHostComponentKind::VerticalBox,
             SlintUiHostComponentKind::Toolbar,
             SlintUiHostComponentKind::IconButton,
             SlintUiHostComponentKind::IconButton,
@@ -540,12 +552,22 @@ fn slint_ui_host_adapter_builds_generic_projection_from_host_model() {
             SlintUiHostComponentKind::PaneSurface,
             SlintUiHostComponentKind::StatusBar,
             SlintUiHostComponentKind::Label,
+            SlintUiHostComponentKind::Unknown,
+            SlintUiHostComponentKind::Unknown,
+            SlintUiHostComponentKind::Unknown,
+            SlintUiHostComponentKind::Unknown,
+            SlintUiHostComponentKind::Unknown,
+            SlintUiHostComponentKind::Unknown,
+            SlintUiHostComponentKind::Unknown,
+            SlintUiHostComponentKind::Unknown,
+            SlintUiHostComponentKind::Unknown,
+            SlintUiHostComponentKind::Unknown,
         ]
     );
 
     let open_project = slint_projection.node_by_control_id("OpenProject").unwrap();
-    assert_eq!(open_project.node_id, "root.0.0");
-    assert_eq!(open_project.parent_id.as_deref(), Some("root.0"));
+    assert_eq!(open_project.node_id, "root.0.0.0");
+    assert_eq!(open_project.parent_id.as_deref(), Some("root.0.0"));
     assert_eq!(open_project.kind, SlintUiHostComponentKind::IconButton);
     assert_eq!(open_project.text.as_deref(), Some("Open"));
     assert_eq!(open_project.icon.as_deref(), Some("folder-open-outline"));
@@ -591,17 +613,19 @@ fn editor_ui_host_runtime_builds_slint_host_projection_and_snapshot() {
     let snapshot =
         EditorUiCompatibilityHarness::capture_slint_host_projection_snapshot(&slint_projection);
 
-    assert_eq!(slint_projection.nodes.len(), 15);
+    assert_eq!(slint_projection.nodes.len(), 26);
     assert!(snapshot
         .slint_nodes
-        .contains(&"root.0.0|IconButton|OpenProject".to_string()));
+        .contains(&"root.0.0.0|IconButton|OpenProject".to_string()));
     assert!(snapshot
         .slint_nodes
-        .contains(&"root.2.0|Label|StatusText".to_string()));
-    assert!(snapshot.text_entries.contains(&"root.0.0=Open".to_string()));
+        .contains(&"root.0.2.0|Label|StatusText".to_string()));
+    assert!(snapshot
+        .text_entries
+        .contains(&"root.0.0.0=Open".to_string()));
     assert!(snapshot
         .icon_entries
-        .contains(&"root.0.0=folder-open-outline".to_string()));
+        .contains(&"root.0.0.0=folder-open-outline".to_string()));
     assert!(snapshot
         .route_bindings
         .iter()
@@ -617,9 +641,9 @@ fn editor_ui_host_runtime_builds_shared_surface_for_builtin_template() {
 
     assert_eq!(surface.tree.tree_id.0, "template.workbench.shell");
     assert_eq!(surface.tree.roots.len(), 1);
-    assert_eq!(surface.tree.nodes.len(), 15);
+    assert_eq!(surface.tree.nodes.len(), 26);
     assert_eq!(surface.render_extract.tree_id.0, "template.workbench.shell");
-    assert_eq!(surface.render_extract.list.commands.len(), 15);
+    assert_eq!(surface.render_extract.list.commands.len(), 26);
 
     let open_project = surface
         .tree
@@ -657,13 +681,15 @@ fn editor_ui_compatibility_harness_captures_shared_surface_snapshot() {
         .surface_nodes
         .contains(&"root|WorkbenchShell|WorkbenchShellRoot".to_string()));
     assert!(snapshot.surface_nodes.contains(
-        &"root/WorkbenchMenuBarRoot_0/OpenProject_0|UiHostIconButton|OpenProject".to_string()
+        &"root/WorkbenchScaffold_0/WorkbenchMenuBarRoot_0/OpenProject_0|UiHostIconButton|OpenProject"
+            .to_string()
     ));
-    assert!(snapshot
-        .surface_nodes
-        .contains(&"root/StatusBarRoot_2/StatusText_0|UiHostLabel|StatusText".to_string()));
+    assert!(snapshot.surface_nodes.contains(
+        &"root/WorkbenchScaffold_0/StatusBarRoot_2/StatusText_0|UiHostLabel|StatusText".to_string()
+    ));
     assert!(snapshot.attribute_entries.contains(
-        &"root/WorkbenchMenuBarRoot_0/OpenProject_0.icon=folder-open-outline".to_string()
+        &"root/WorkbenchScaffold_0/WorkbenchMenuBarRoot_0/OpenProject_0.icon=folder-open-outline"
+            .to_string()
     ));
     assert!(snapshot
         .binding_ids
@@ -692,18 +718,24 @@ fn editor_ui_host_runtime_builds_laid_out_host_model_from_shared_surface_authori
     let menu_bar = host_model
         .node_by_control_id("WorkbenchMenuBarRoot")
         .unwrap();
-    assert_eq!(menu_bar.node_id, "root/WorkbenchMenuBarRoot_0");
-    assert_eq!(menu_bar.parent_id.as_deref(), Some("root"));
+    assert_eq!(
+        menu_bar.node_id,
+        "root/WorkbenchScaffold_0/WorkbenchMenuBarRoot_0"
+    );
+    assert_eq!(
+        menu_bar.parent_id.as_deref(),
+        Some("root/WorkbenchScaffold_0")
+    );
     assert_eq!(menu_bar.frame, UiFrame::new(0.0, 0.0, 1280.0, 40.0));
 
     let open_project = host_model.node_by_control_id("OpenProject").unwrap();
     assert_eq!(
         open_project.node_id,
-        "root/WorkbenchMenuBarRoot_0/OpenProject_0"
+        "root/WorkbenchScaffold_0/WorkbenchMenuBarRoot_0/OpenProject_0"
     );
     assert_eq!(
         open_project.parent_id.as_deref(),
-        Some("root/WorkbenchMenuBarRoot_0")
+        Some("root/WorkbenchScaffold_0/WorkbenchMenuBarRoot_0")
     );
     assert_eq!(open_project.frame, UiFrame::new(0.0, 0.0, 120.0, 32.0));
 
@@ -749,11 +781,36 @@ fn editor_ui_compatibility_harness_captures_shared_layout_frames_from_surface_an
 
     assert!(surface_snapshot
         .frame_entries
-        .contains(&"root/WorkbenchMenuBarRoot_0=0,0,1280,40".to_string()));
-    assert!(host_snapshot
-        .frame_entries
-        .contains(&"root/WorkbenchBody_1/DocumentHostRoot_1=56,40,1224,656".to_string()));
+        .contains(&"root/WorkbenchScaffold_0/WorkbenchMenuBarRoot_0=0,0,1280,40".to_string()));
+    assert!(host_snapshot.frame_entries.contains(
+        &"root/WorkbenchScaffold_0/WorkbenchBody_1/DocumentHostRoot_1=56,40,1224,656".to_string()
+    ));
     assert!(slint_snapshot
         .frame_entries
-        .contains(&"root/StatusBarRoot_2=0,696,1280,24".to_string()));
+        .contains(&"root/WorkbenchScaffold_0/StatusBarRoot_2=0,696,1280,24".to_string()));
+}
+
+#[test]
+fn editor_template_runtime_splits_builtin_data_from_runtime_pipeline() {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("src")
+        .join("host")
+        .join("template_runtime");
+
+    for relative in [
+        "runtime/mod.rs",
+        "runtime/runtime_host.rs",
+        "runtime/build_session.rs",
+        "runtime/projection.rs",
+        "builtin/mod.rs",
+        "builtin/template_documents.rs",
+        "builtin/template_bindings.rs",
+        "builtin/component_descriptors.rs",
+    ] {
+        assert!(
+            root.join(relative).exists(),
+            "expected template runtime module {relative} under {:?}",
+            root
+        );
+    }
 }

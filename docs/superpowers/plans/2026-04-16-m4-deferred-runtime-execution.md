@@ -4,12 +4,12 @@ related_code:
   - zircon_graphics/src/runtime/server/mod.rs
   - zircon_graphics/src/scene/scene_renderer/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/deferred.rs
-  - zircon_graphics/src/scene/scene_renderer/history.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh.rs
-  - zircon_graphics/src/scene/scene_renderer/overlay/viewport_overlay_renderer.rs
+  - zircon_graphics/src/scene/scene_renderer/deferred/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/history/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/mesh/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/overlay/viewport_overlay_renderer/mod.rs
   - zircon_graphics/src/scene/scene_renderer/overlay/passes/base_scene_pass.rs
-  - zircon_graphics/src/scene/scene_renderer/post_process.rs
+  - zircon_graphics/src/scene/scene_renderer/post_process/mod.rs
   - zircon_graphics/src/scene/scene_renderer/prepass.rs
   - zircon_graphics/src/pipeline/mod.rs
   - zircon_graphics/src/feature/mod.rs
@@ -20,9 +20,9 @@ implementation_files:
   - zircon_graphics/src/runtime/server/mod.rs
   - zircon_graphics/src/scene/scene_renderer/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/deferred.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh.rs
-  - zircon_graphics/src/scene/scene_renderer/overlay/viewport_overlay_renderer.rs
+  - zircon_graphics/src/scene/scene_renderer/deferred/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/mesh/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/overlay/viewport_overlay_renderer/mod.rs
   - zircon_graphics/src/scene/scene_renderer/overlay/passes/base_scene_pass.rs
   - zircon_graphics/src/tests/project_render.rs
   - docs/assets-and-rendering/srp-rhi-render-server-architecture.md
@@ -62,13 +62,13 @@ doc_type: milestone-detail
   - 新增真实失败用例，证明 built-in deferred 不能继续沿用 forward shader 直写路径。
 - `zircon_graphics/src/backend/render_backend/mod.rs`
   - 为 offscreen target 增加 deferred 所需的 GBuffer 纹理。
-- `zircon_graphics/src/scene/scene_renderer/deferred.rs`
+- `zircon_graphics/src/scene/scene_renderer/deferred/mod.rs`
   - 新增 deferred geometry/deferred lighting 运行时资源与 WGSL shader。
 - `zircon_graphics/src/scene/scene_renderer/core/mod.rs`
   - 基于 `CompiledRenderPipeline` 的 feature 集在 runtime 中分支 forward/deferred 路径。
-- `zircon_graphics/src/scene/scene_renderer/mesh.rs`
+- `zircon_graphics/src/scene/scene_renderer/mesh/mod.rs`
   - 暴露 mesh draw 的透明/不透明分类信息，供 deferred 几何与透明补绘共用。
-- `zircon_graphics/src/scene/scene_renderer/overlay/viewport_overlay_renderer.rs`
+- `zircon_graphics/src/scene/scene_renderer/overlay/viewport_overlay_renderer/mod.rs`
   - 把 preview sky、mesh scene content 继续拆细，允许 deferred 路径只复用背景和透明 mesh，而不回退整条 forward base-scene pass。
 - `zircon_graphics/src/scene/scene_renderer/overlay/passes/base_scene_pass.rs`
   - 支持按 draw 列表子集录制 mesh 内容。
@@ -100,7 +100,7 @@ doc_type: milestone-detail
 - Modify: `zircon_graphics/src/backend/render_backend/mod.rs`
 - Modify: `zircon_graphics/src/scene/scene_renderer/mod.rs`
 - Modify: `zircon_graphics/src/scene/scene_renderer/core/mod.rs`
-- Modify: `zircon_graphics/src/scene/scene_renderer/mesh.rs`
+- Modify: `zircon_graphics/src/scene/scene_renderer/mesh/mod.rs`
 
 - [x] Step 1: Extend `OffscreenTarget` with a dedicated `gbuffer_albedo` render target.
   - Requirements:
@@ -118,9 +118,9 @@ doc_type: milestone-detail
 ## Task 3: Implement Real GBuffer Geometry And Deferred Lighting Passes
 
 **Files:**
-- Create: `zircon_graphics/src/scene/scene_renderer/deferred.rs`
+- Create: `zircon_graphics/src/scene/scene_renderer/deferred/mod.rs`
 - Modify: `zircon_graphics/src/scene/scene_renderer/core/mod.rs`
-- Modify: `zircon_graphics/src/scene/scene_renderer/overlay/viewport_overlay_renderer.rs`
+- Modify: `zircon_graphics/src/scene/scene_renderer/overlay/viewport_overlay_renderer/mod.rs`
 - Modify: `zircon_graphics/src/scene/scene_renderer/overlay/passes/base_scene_pass.rs`
 
 - [x] Step 1: Add a fixed deferred geometry pipeline that writes material albedo/tint into `gbuffer_albedo`.

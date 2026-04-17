@@ -1,5 +1,5 @@
+use crate::ViewportFeedback;
 use zircon_editor_ui::{EditorUiBinding, ViewportCommand};
-use zircon_graphics::ViewportFeedback;
 
 use super::super::error::EditorBindingDispatchError;
 use super::dispatch::dispatch_viewport_binding;

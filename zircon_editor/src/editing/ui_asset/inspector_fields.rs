@@ -251,7 +251,14 @@ fn node_label(node: &UiNodeDefinition) -> String {
     node.widget_type
         .clone()
         .or_else(|| node.component.clone())
-        .or_else(|| node.component_ref.clone())
+        .or_else(|| {
+            node.component_ref.as_ref().map(|reference| {
+                reference
+                    .split_once('#')
+                    .map(|(_, component)| component.to_string())
+                    .unwrap_or_else(|| reference.clone())
+            })
+        })
         .or_else(|| node.slot_name.clone())
         .unwrap_or_else(|| "Node".to_string())
 }

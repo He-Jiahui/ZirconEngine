@@ -126,7 +126,7 @@ fn hybrid_gi_runtime_state_deduplicates_probe_updates_and_reuses_evicted_slots()
 }
 
 #[test]
-fn hybrid_gi_runtime_state_builds_prepare_frame_with_resident_pending_and_trace_schedule() {
+fn hybrid_gi_runtime_state_builds_prepare_frame_without_host_bootstrap_irradiance() {
     let mut state = HybridGiRuntimeState::default();
     let extract = RenderHybridGiExtract {
         probe_budget: 2,
@@ -159,13 +159,13 @@ fn hybrid_gi_runtime_state_builds_prepare_frame_with_resident_pending_and_trace_
                     probe_id: 200,
                     slot: 0,
                     ray_budget: 64,
-                    irradiance_rgb: [80, 96, 112],
+                    irradiance_rgb: [0, 0, 0],
                 },
                 HybridGiPrepareProbe {
                     probe_id: 500,
                     slot: 1,
                     ray_budget: 32,
-                    irradiance_rgb: [64, 80, 96],
+                    irradiance_rgb: [0, 0, 0],
                 },
             ],
             pending_updates: vec![HybridGiPrepareUpdateRequest {
@@ -351,12 +351,92 @@ fn hybrid_gi_runtime_state_applies_gpu_completed_updates_and_trace_schedule() {
     );
 }
 
+#[test]
+fn hybrid_gi_runtime_state_applies_gpu_cache_snapshot_as_residency_truth() {
+    let mut state = HybridGiRuntimeState::default();
+    let extract = RenderHybridGiExtract {
+        probe_budget: 3,
+        tracing_budget: 1,
+        probes: vec![
+            probe(200, true, 64),
+            probe(300, false, 128),
+            probe(500, true, 32),
+            probe(600, false, 48),
+        ],
+        trace_regions: vec![trace_region(40), trace_region(50)],
+    };
+
+    state.register_extract(Some(&extract));
+    state.ingest_plan(
+        9,
+        &VisibilityHybridGiUpdatePlan {
+            resident_probe_ids: vec![200, 500],
+            requested_probe_ids: vec![300, 600],
+            dirty_requested_probe_ids: vec![300, 600],
+            scheduled_trace_region_ids: vec![40],
+            evictable_probe_ids: vec![500],
+        },
+    );
+
+    state.apply_gpu_cache_entries(&[(200, 0), (300, 1)]);
+
+    assert_eq!(state.probe_slot(200), Some(0));
+    assert_eq!(state.probe_slot(300), Some(1));
+    assert_eq!(state.probe_slot(500), None);
+    assert_eq!(state.probe_slot(600), None);
+    assert_eq!(
+        state.probe_residency(300),
+        Some(HybridGiProbeResidencyState::Resident)
+    );
+    assert_eq!(
+        state.probe_residency(600),
+        Some(HybridGiProbeResidencyState::PendingUpdate)
+    );
+    assert_eq!(
+        state.pending_updates(),
+        vec![HybridGiProbeUpdateRequest {
+            probe_id: 600,
+            ray_budget: 48,
+            generation: 9,
+        }]
+    );
+    assert!(state.evictable_probes().is_empty());
+
+    assert_eq!(
+        state.build_prepare_frame(),
+        HybridGiPrepareFrame {
+            resident_probes: vec![
+                HybridGiPrepareProbe {
+                    probe_id: 200,
+                    slot: 0,
+                    ray_budget: 64,
+                    irradiance_rgb: [0, 0, 0],
+                },
+                HybridGiPrepareProbe {
+                    probe_id: 300,
+                    slot: 1,
+                    ray_budget: 128,
+                    irradiance_rgb: [0, 0, 0],
+                },
+            ],
+            pending_updates: vec![HybridGiPrepareUpdateRequest {
+                probe_id: 600,
+                ray_budget: 48,
+                generation: 9,
+            }],
+            scheduled_trace_region_ids: vec![40],
+            evictable_probe_ids: Vec::new(),
+        }
+    );
+}
+
 fn probe(probe_id: u32, resident: bool, ray_budget: u32) -> RenderHybridGiProbe {
     RenderHybridGiProbe {
         entity: 1,
         probe_id,
         position: zircon_math::Vec3::ZERO,
         radius: 0.5,
+        parent_probe_id: None,
         resident,
         ray_budget,
     }
@@ -369,5 +449,6 @@ fn trace_region(region_id: u32) -> RenderHybridGiTraceRegion {
         bounds_center: zircon_math::Vec3::ZERO,
         bounds_radius: 0.5,
         screen_coverage: 1.0,
+        rt_lighting_rgb: [0, 0, 0],
     }
 }

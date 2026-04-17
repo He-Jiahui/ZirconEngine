@@ -2,7 +2,8 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use slint::{CloseRequestResponse, ComponentHandle, PhysicalPosition, PhysicalSize, PlatformError};
 
-use crate::{MainPageId, NativeWindowHostState, WorkbenchShellGeometry, WorkbenchViewModel};
+use crate::host::slint_host::floating_window_projection::FloatingWindowProjectionBundle;
+use crate::{MainPageId, WorkbenchViewModel};
 
 use super::{FrameRect, WorkbenchShell};
 
@@ -20,31 +21,24 @@ pub(crate) struct NativeWindowPresenterStore {
 
 pub(crate) fn collect_native_floating_window_targets(
     model: &WorkbenchViewModel,
-    geometry: &WorkbenchShellGeometry,
-    native_window_hosts: &[NativeWindowHostState],
+    floating_window_projection_bundle: &FloatingWindowProjectionBundle,
 ) -> Vec<NativeFloatingWindowTarget> {
-    let host_bounds = native_window_hosts
-        .iter()
-        .map(|host| (host.window_id.clone(), host.bounds))
-        .collect::<BTreeMap<_, _>>();
-
     model
         .floating_windows
         .iter()
         .filter_map(|window| {
-            host_bounds.get(&window.window_id).map(|bounds| {
-                let bounds = if bounds[2] > 0.0 && bounds[3] > 0.0 {
-                    *bounds
-                } else {
-                    let frame = geometry.floating_window_frame(&window.window_id);
-                    [frame.x, frame.y, frame.width, frame.height]
-                };
-                NativeFloatingWindowTarget {
-                    window_id: window.window_id.clone(),
-                    title: window.title.clone(),
-                    bounds,
-                }
-            })
+            floating_window_projection_bundle
+                .frames(&window.window_id)
+                .filter(|frames| frames.native_host_present)
+                .map(|frames| {
+                    let frame = frames.outer_frame;
+                    let bounds = [frame.x, frame.y, frame.width, frame.height];
+                    NativeFloatingWindowTarget {
+                        window_id: window.window_id.clone(),
+                        title: window.title.clone(),
+                        bounds,
+                    }
+                })
         })
         .collect()
 }

@@ -15,8 +15,15 @@ struct ReflectionProbe {
 };
 
 struct HybridGiProbe {
-    slot_and_budget: vec4<f32>,
-    irradiance_and_weight: vec4<f32>,
+    screen_uv_and_radius: vec4<f32>,
+    irradiance_and_intensity: vec4<f32>,
+    hierarchy_rt_lighting_rgb_and_weight: vec4<f32>,
+};
+
+struct HybridGiTraceRegion {
+    screen_uv_and_radius: vec4<f32>,
+    boost_and_coverage: vec4<f32>,
+    rt_lighting_rgb_and_weight: vec4<f32>,
 };
 
 @group(0) @binding(0) var scene_color_tex: texture_2d<f32>;
@@ -27,6 +34,7 @@ struct HybridGiProbe {
 @group(0) @binding(5) var<storage, read> cluster_buffer: array<vec4<f32>>;
 @group(0) @binding(6) var<storage, read> reflection_probe_buffer: array<ReflectionProbe>;
 @group(0) @binding(7) var<storage, read> hybrid_gi_probe_buffer: array<HybridGiProbe>;
+@group(0) @binding(8) var<storage, read> hybrid_gi_trace_region_buffer: array<HybridGiTraceRegion>;
 
 struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
@@ -110,18 +118,52 @@ fn fs_main(@builtin(position) position: vec4<f32>) -> @location(0) vec4<f32> {
         var gi_light = vec3<f32>(0.0);
         for (var probe_index = 0u; probe_index < params.hybrid_gi_counts.x; probe_index = probe_index + 1u) {
             let probe = hybrid_gi_probe_buffer[probe_index];
-            let slot = probe.slot_and_budget.x;
-            let slot_phase = fract((slot + 1.0) * 0.173 + uv.x * 0.37 + uv.y * 0.29);
-            let probe_weight = mix(0.65, 1.0, slot_phase) * probe.irradiance_and_weight.w;
-            gi_light = gi_light + probe.irradiance_and_weight.rgb * probe_weight;
+            let probe_uv = probe.screen_uv_and_radius.xy;
+            let probe_radius = max(probe.screen_uv_and_radius.z, 0.0001);
+            let budget_weight = probe.screen_uv_and_radius.w;
+            let distance_to_probe = distance(uv, probe_uv);
+            let falloff = max(1.0 - distance_to_probe / probe_radius, 0.0);
+            var trace_support = 1.0;
+            var rt_lighting_sum =
+                probe.hierarchy_rt_lighting_rgb_and_weight.rgb
+                * probe.hierarchy_rt_lighting_rgb_and_weight.w;
+            var rt_lighting_weight = probe.hierarchy_rt_lighting_rgb_and_weight.w;
+            for (var trace_index = 0u; trace_index < params.hybrid_gi_counts.y; trace_index = trace_index + 1u) {
+                let trace_region = hybrid_gi_trace_region_buffer[trace_index];
+                let region_uv = trace_region.screen_uv_and_radius.xy;
+                let region_radius = max(trace_region.screen_uv_and_radius.z, 0.0001);
+                let pixel_region_distance = distance(uv, region_uv);
+                let pixel_region_falloff = max(1.0 - pixel_region_distance / region_radius, 0.0);
+                let probe_region_distance = distance(probe_uv, region_uv);
+                let probe_region_reach = max(region_radius, 0.0001);
+                let probe_region_falloff =
+                    max(1.0 - probe_region_distance / probe_region_reach, 0.0);
+                let region_support =
+                    pixel_region_falloff * pixel_region_falloff
+                    * probe_region_falloff * probe_region_falloff
+                    * trace_region.boost_and_coverage.x
+                    * trace_region.boost_and_coverage.y;
+                trace_support = trace_support + region_support * 4.0;
+                let rt_support = region_support * trace_region.rt_lighting_rgb_and_weight.w;
+                rt_lighting_sum =
+                    rt_lighting_sum + trace_region.rt_lighting_rgb_and_weight.rgb * rt_support;
+                rt_lighting_weight = rt_lighting_weight + rt_support;
+            }
+            var probe_irradiance = probe.irradiance_and_intensity.rgb;
+            if (rt_lighting_weight > 0.0) {
+                let rt_lighting_tint = rt_lighting_sum / rt_lighting_weight;
+                let rt_mix = clamp(rt_lighting_weight * 0.45, 0.0, 0.65);
+                probe_irradiance = mix(probe_irradiance, rt_lighting_tint, rt_mix);
+            }
+            let probe_weight =
+                falloff * falloff * budget_weight * probe.irradiance_and_intensity.w * trace_support;
+            gi_light = gi_light + probe_irradiance * probe_weight;
         }
 
-        let trace_boost = 1.0 + f32(params.hybrid_gi_counts.y) * 0.15;
         let probe_count = max(f32(params.hybrid_gi_counts.x), 1.0);
         let indirect_light =
             (gi_light / probe_count)
-            * params.hybrid_gi_color_and_intensity.w
-            * trace_boost;
+            * params.hybrid_gi_color_and_intensity.w;
         color = color + indirect_light;
     }
 

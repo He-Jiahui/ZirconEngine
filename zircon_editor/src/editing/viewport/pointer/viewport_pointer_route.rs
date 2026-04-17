@@ -1,4 +1,4 @@
-use zircon_graphics::GizmoAxis;
+use crate::GizmoAxis;
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) enum ViewportPointerRoute {

@@ -191,6 +191,7 @@ mod tests {
         FloatingWindowModel {
             window_id: window_id.clone(),
             title: window_id.0.clone(),
+            requested_frame: crate::ShellFrame::default(),
             focused_view,
             tabs: tabs
                 .iter()

@@ -12,10 +12,13 @@ related_code:
   - zircon_asset/src/project/meta.rs
   - zircon_asset/src/project/paths.rs
   - zircon_asset/src/project/manager.rs
+  - zircon_asset/src/editor/api.rs
   - zircon_asset/src/editor/catalog.rs
+  - zircon_asset/src/editor/records.rs
   - zircon_asset/src/editor/reference_graph.rs
   - zircon_asset/src/editor/preview.rs
   - zircon_asset/src/editor/manager.rs
+  - zircon_asset/src/editor/resolver.rs
   - zircon_asset/src/pipeline/manager.rs
   - zircon_asset/src/pipeline/manager/asset_io_driver.rs
   - zircon_asset/src/pipeline/manager/project_asset_manager.rs
@@ -55,13 +58,13 @@ related_code:
   - zircon_graphics/src/scene/scene_renderer/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/mod.rs
   - zircon_graphics/src/scene/scene_renderer/mesh/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/overlay.rs
+  - zircon_graphics/src/scene/scene_renderer/overlay/mod.rs
   - zircon_graphics/src/scene/scene_renderer/overlay/viewport_overlay_renderer/mod.rs
   - zircon_graphics/src/scene/scene_renderer/overlay/passes/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/overlay/icons/viewport_icon_atlas.rs
+  - zircon_graphics/src/scene/scene_renderer/overlay/icons/viewport_icon_atlas/mod.rs
   - zircon_graphics/src/scene/scene_renderer/primitives/mod.rs
   - zircon_graphics/src/service/mod.rs
-  - zircon_graphics/src/types.rs
+  - zircon_graphics/src/types/mod.rs
   - zircon_graphics/src/backend/render_backend/mod.rs
   - zircon_editor/src/editing/command.rs
   - zircon_editor/src/editing/state/mod.rs
@@ -89,10 +92,13 @@ implementation_files:
   - zircon_asset/src/project/meta.rs
   - zircon_asset/src/project/paths.rs
   - zircon_asset/src/project/manager.rs
+  - zircon_asset/src/editor/api.rs
   - zircon_asset/src/editor/catalog.rs
+  - zircon_asset/src/editor/records.rs
   - zircon_asset/src/editor/reference_graph.rs
   - zircon_asset/src/editor/preview.rs
   - zircon_asset/src/editor/manager.rs
+  - zircon_asset/src/editor/resolver.rs
   - zircon_asset/src/pipeline/manager.rs
   - zircon_asset/src/pipeline/manager/asset_io_driver.rs
   - zircon_asset/src/pipeline/manager/project_asset_manager.rs
@@ -130,9 +136,9 @@ implementation_files:
   - zircon_graphics/src/scene/scene_renderer/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/mod.rs
   - zircon_graphics/src/scene/scene_renderer/mesh/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/overlay.rs
+  - zircon_graphics/src/scene/scene_renderer/overlay/mod.rs
   - zircon_graphics/src/scene/scene_renderer/primitives/mod.rs
-  - zircon_graphics/src/types.rs
+  - zircon_graphics/src/types/mod.rs
   - zircon_editor/src/editing/command.rs
   - zircon_editor/src/editing/state/mod.rs
   - zircon_editor/src/editing/asset_workspace.rs
@@ -151,12 +157,15 @@ plan_sources:
   - user: 2026-04-14 编辑器资源管理器 UI 真正接到 EditorAssetManager / EditorAssetServer
   - user: 2026-04-14 编辑器 Builtin 资产归位与 Revision 稳定化计划
   - user: 2026-04-16 全仓库模块边界拆分与根入口去逻辑化
+  - user: 2026-04-17 继续扫描明显错包模块并按方案2把 editor asset API 从 zircon_manager 迁回 zircon_asset
+  - docs/superpowers/plans/2026-04-17-asset-editor-api-boundary-migration.md
   - .codex/plans/全系统重构方案.md
   - .codex/plans/编辑器资源管理器双模式 UI 接线计划.md
 tests:
   - zircon_resource/src/tests.rs
   - zircon_asset/src/tests/project/manifest.rs
   - zircon_asset/src/tests/project/manager.rs
+  - zircon_asset/src/tests/editor/boundary.rs
   - zircon_asset/src/tests/editor/manager.rs
   - zircon_asset/src/tests/pipeline/manager.rs
   - zircon_asset/src/tests/watcher.rs
@@ -165,6 +174,7 @@ tests:
   - zircon_editor/src/tests/workbench/project.rs
   - zircon_editor/src/tests/editing/state.rs
   - zircon_editor/src/tests/editing/import.rs
+  - zircon_editor/src/tests/host/asset_manager_boundary.rs
   - zircon_editor/src/tests/host/resource_access.rs
   - zircon_editor/src/tests/host/slint_callback_dispatch/asset.rs
   - zircon_editor/src/tests/host/slint_callback_dispatch/layout.rs
@@ -172,6 +182,9 @@ tests:
   - zircon_editor/src/tests/host/slint_asset_refresh.rs
   - zircon_editor/src/tests/host/slint_builtin_assets.rs
   - cargo test -p zircon_resource -p zircon_asset -p zircon_scene -p zircon_graphics -p zircon_editor
+  - cargo test -p zircon_manager manager_public_surface_excludes_editor_asset_api --locked
+  - cargo test -p zircon_asset editor_asset_api_boundary_lives_in_zircon_asset --locked
+  - cargo test -p zircon_editor editor_asset_boundary_lives_in_asset_crate --locked
   - cargo test -p zircon_asset --offline
   - cargo test -p zircon_scene --offline
   - cargo test --workspace --locked
@@ -186,11 +199,11 @@ doc_type: module-detail
 
 - `zircon_resource` 定义跨 crate 的 locator、typed handle、record、state、event 和 manager 契约
 - `zircon_asset::AssetManager` 负责 runtime resident 资源生命周期
-- `zircon_asset::DefaultEditorAssetManager` 负责 editor catalog/meta/reference/preview 生命周期，并通过 `zircon_manager::EditorAssetManager` façade 对外暴露
+- `zircon_asset::DefaultEditorAssetManager` 负责 editor catalog/meta/reference/preview 生命周期，并由 `zircon_asset` 自己公开 `EditorAssetManager` / records / resolver
 - `zircon_scene::World` 运行时只持 typed handle，不再持路径语义
 - `zircon_scene::LevelSystem` 托管运行中的 world、metadata 和子系统生命周期
 - `zircon_graphics` 按 `ResourceId + revision` 准备 GPU 资源
-- `zircon_editor` 通过 `AssetManager + ResourceManager + EditorAssetManager` 消费这些层
+- `zircon_editor` 通过 `AssetManager + ResourceManager + zircon_asset::EditorAssetManager` 消费这些层
 
 目标不是先堆更多 importer 分支，而是先把“project -> resource -> scene -> render -> editor”变成统一的框架主链。
 
@@ -266,7 +279,7 @@ sidecar meta 文件当前固定为 `foo.ext.meta.toml`，至少记录：
 
 `AssetManager` 继续负责项目打开、重导入、watch 生命周期。  
 `ResourceManager` 负责 locator 解析、resource status/revision 查询和资源事件订阅。  
-`EditorAssetManager` 负责 catalog、引用图和 preview 刷新。
+`EditorAssetManager` 负责 catalog、引用图和 preview 刷新；它的 trait、records、resolver、handle 和 service-name 现在都归 `zircon_asset`，不再经过 `zircon_manager` façade。
 
 ## Scene Runtime
 
@@ -337,6 +350,7 @@ shader 缺失时回退到 `builtin://shader/pbr.wgsl`。
   - ready/error/reloading 状态、revision、typed handle 解析
 - `EditorAssetManager`
   - folder tree、catalog details、reference graph、preview policy
+  - 这组 editor-facing 资产工作区 API 现在直接由 `zircon_asset` 导出
 
 UI 侧不再消费 `asset_entries: Vec<String>` 这类降级模型，也不再保留旧 `iced` fallback host：
 

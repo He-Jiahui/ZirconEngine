@@ -1,7 +1,6 @@
-use zircon_manager::{
-    AssetRecordKind, EditorAssetCatalogSnapshotRecord, EditorAssetDetailsRecord,
-    ResourceStatusRecord,
-};
+use zircon_asset::{EditorAssetCatalogSnapshotRecord, EditorAssetDetailsRecord};
+use zircon_manager::ResourceStatusRecord;
+use zircon_resource::ResourceKind;
 
 use crate::snapshot::{AssetUtilityTab, AssetViewMode};
 
@@ -36,7 +35,7 @@ impl EditorState {
         self.asset_workspace.set_search_query(query);
     }
 
-    pub fn set_asset_kind_filter(&mut self, kind_filter: Option<AssetRecordKind>) {
+    pub fn set_asset_kind_filter(&mut self, kind_filter: Option<ResourceKind>) {
         self.asset_workspace.set_kind_filter(kind_filter);
     }
 

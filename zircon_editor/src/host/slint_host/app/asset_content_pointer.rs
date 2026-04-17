@@ -15,13 +15,27 @@ impl SlintEditorHost {
             self.set_status_line(format!("Unknown asset surface mode {surface_mode}"));
             return;
         };
+        let Some(content_size) =
+            self.asset_surface_pointer_state(surface_mode)
+                .and_then(|surface| {
+                    self.resolve_callback_surface_size_for_asset_surface(
+                        surface_mode,
+                        width,
+                        height,
+                        surface.content_size,
+                    )
+                })
+        else {
+            self.set_status_line(format!("Unknown asset surface mode {surface_mode}"));
+            return;
+        };
 
         {
             let Some(surface) = self.asset_surface_pointer_state_mut(surface_mode) else {
                 self.set_status_line(format!("Unknown asset surface mode {surface_mode}"));
                 return;
             };
-            surface.content_size = UiSize::new(width.max(0.0), height.max(0.0));
+            surface.content_size = content_size;
             surface.content_bridge.sync(
                 AssetContentListPointerLayout::from_snapshot(&snapshot, surface.content_size),
                 surface.content_state.clone(),
@@ -78,13 +92,27 @@ impl SlintEditorHost {
             self.set_status_line(format!("Unknown asset surface mode {surface_mode}"));
             return;
         };
+        let Some(content_size) =
+            self.asset_surface_pointer_state(surface_mode)
+                .and_then(|surface| {
+                    self.resolve_callback_surface_size_for_asset_surface(
+                        surface_mode,
+                        width,
+                        height,
+                        surface.content_size,
+                    )
+                })
+        else {
+            self.set_status_line(format!("Unknown asset surface mode {surface_mode}"));
+            return;
+        };
 
         let dispatch = {
             let Some(surface) = self.asset_surface_pointer_state_mut(surface_mode) else {
                 self.set_status_line(format!("Unknown asset surface mode {surface_mode}"));
                 return;
             };
-            surface.content_size = UiSize::new(width.max(0.0), height.max(0.0));
+            surface.content_size = content_size;
             surface.content_bridge.sync(
                 AssetContentListPointerLayout::from_snapshot(&snapshot, surface.content_size),
                 surface.content_state.clone(),
@@ -118,13 +146,27 @@ impl SlintEditorHost {
             self.set_status_line(format!("Unknown asset surface mode {surface_mode}"));
             return;
         };
+        let Some(content_size) =
+            self.asset_surface_pointer_state(surface_mode)
+                .and_then(|surface| {
+                    self.resolve_callback_surface_size_for_asset_surface(
+                        surface_mode,
+                        width,
+                        height,
+                        surface.content_size,
+                    )
+                })
+        else {
+            self.set_status_line(format!("Unknown asset surface mode {surface_mode}"));
+            return;
+        };
 
         let dispatch = {
             let Some(surface) = self.asset_surface_pointer_state_mut(surface_mode) else {
                 self.set_status_line(format!("Unknown asset surface mode {surface_mode}"));
                 return;
             };
-            surface.content_size = UiSize::new(width.max(0.0), height.max(0.0));
+            surface.content_size = content_size;
             surface.content_bridge.sync(
                 AssetContentListPointerLayout::from_snapshot(&snapshot, surface.content_size),
                 surface.content_state.clone(),

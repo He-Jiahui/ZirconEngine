@@ -5,13 +5,20 @@ use zircon_ui::{
     UiSurface,
 };
 
+use crate::host::slint_host::callback_dispatch::BuiltinWorkbenchRootShellFrames;
 use crate::host::slint_host::drawer_resize::WorkbenchResizeTargetGroup;
+use crate::host::slint_host::floating_window_projection::{
+    FloatingWindowProjectionBundle, build_floating_window_projection_bundle_from_windows,
+};
 use crate::host::slint_host::tab_drag::WorkbenchDragTargetGroup;
-use crate::{FloatingWindowModel, ShellSizePx, WorkbenchShellGeometry};
+use crate::{
+    FloatingWindowModel, NativeWindowHostState, ShellSizePx, WorkbenchChromeMetrics,
+    WorkbenchShellGeometry,
+};
 
 use super::drag_surface::build_drag_surface;
 use super::resize_surface::{build_resize_surface, update_resize_surface};
-use super::route::{drag_route_from_node, resize_group_from_dispatch, WorkbenchShellPointerRoute};
+use super::route::{WorkbenchShellPointerRoute, drag_route_from_node, resize_group_from_dispatch};
 
 pub(crate) struct WorkbenchShellPointerBridge {
     drag_surface: UiSurface,
@@ -34,6 +41,8 @@ impl WorkbenchShellPointerBridge {
             &WorkbenchShellGeometry::default(),
             false,
             &[],
+            None,
+            None,
         );
         let (resize_surface, resize_dispatcher) = build_resize_surface();
         Self {
@@ -45,24 +54,79 @@ impl WorkbenchShellPointerBridge {
         }
     }
 
+    #[cfg_attr(not(test), allow(dead_code))]
     pub(crate) fn update_layout(
         &mut self,
         root_size: ShellSizePx,
         geometry: &WorkbenchShellGeometry,
         drawers_visible: bool,
     ) {
-        self.update_layout_with_floating_windows(root_size, geometry, drawers_visible, &[]);
+        self.update_layout_with_floating_windows(root_size, geometry, drawers_visible, &[], &[]);
     }
 
+    #[cfg_attr(not(test), allow(dead_code))]
     pub(crate) fn update_layout_with_floating_windows(
         &mut self,
         root_size: ShellSizePx,
         geometry: &WorkbenchShellGeometry,
         drawers_visible: bool,
         floating_windows: &[FloatingWindowModel],
+        _native_window_hosts: &[NativeWindowHostState],
     ) {
-        let (drag_surface, drag_dispatcher, drag_routes) =
-            build_drag_surface(root_size, geometry, drawers_visible, floating_windows);
+        self.update_layout_with_root_shell_frames(
+            root_size,
+            geometry,
+            drawers_visible,
+            floating_windows,
+            None,
+            None,
+        );
+    }
+
+    #[cfg_attr(not(test), allow(dead_code))]
+    pub(crate) fn update_layout_with_native_window_hosts(
+        &mut self,
+        root_size: ShellSizePx,
+        geometry: &WorkbenchShellGeometry,
+        drawers_visible: bool,
+        floating_windows: &[FloatingWindowModel],
+        shared_root_frames: Option<&BuiltinWorkbenchRootShellFrames>,
+        native_window_hosts: &[NativeWindowHostState],
+    ) {
+        let floating_window_projection_bundle =
+            build_floating_window_projection_bundle_from_windows(
+                floating_windows,
+                geometry,
+                &WorkbenchChromeMetrics::default(),
+                native_window_hosts,
+            );
+        self.update_layout_with_root_shell_frames(
+            root_size,
+            geometry,
+            drawers_visible,
+            floating_windows,
+            shared_root_frames,
+            Some(&floating_window_projection_bundle),
+        );
+    }
+
+    pub(crate) fn update_layout_with_root_shell_frames(
+        &mut self,
+        root_size: ShellSizePx,
+        geometry: &WorkbenchShellGeometry,
+        drawers_visible: bool,
+        floating_windows: &[FloatingWindowModel],
+        shared_root_frames: Option<&BuiltinWorkbenchRootShellFrames>,
+        floating_window_projection_bundle: Option<&FloatingWindowProjectionBundle>,
+    ) {
+        let (drag_surface, drag_dispatcher, drag_routes) = build_drag_surface(
+            root_size,
+            geometry,
+            drawers_visible,
+            floating_windows,
+            shared_root_frames,
+            floating_window_projection_bundle,
+        );
         self.drag_surface = drag_surface;
         self.drag_dispatcher = drag_dispatcher;
         self.drag_routes = drag_routes;

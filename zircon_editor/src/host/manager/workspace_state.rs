@@ -1,4 +1,4 @@
-use crate::layout::{MainHostPageLayout, RestorePolicy, WorkbenchLayout};
+use crate::layout::{MainHostPageLayout, MainPageId, RestorePolicy, WorkbenchLayout};
 use crate::project::ProjectEditorWorkspace;
 use crate::view::{ViewDescriptor, ViewInstance};
 
@@ -7,7 +7,9 @@ use super::editor_error::EditorError;
 use super::editor_manager::EditorManager;
 use super::editor_session_state::EditorSessionState;
 use super::layout_hosts::{
-    active_tab_from_document, collect_instance_hosts, repair_builtin_shell_layout,
+    active_tab_from_document::active_tab_from_document,
+    collect_instance_hosts::collect_instance_hosts,
+    repair_builtin_shell_layout::repair_builtin_shell_layout,
 };
 use super::ui_asset_sessions::UI_ASSET_EDITOR_DESCRIPTOR_ID;
 
@@ -28,6 +30,17 @@ impl EditorManager {
 
     pub fn native_window_hosts(&self) -> Vec<super::window_host_manager::NativeWindowHostState> {
         self.window_host_manager.lock().unwrap().states()
+    }
+
+    pub fn sync_native_window_projection_bounds(
+        &self,
+        window_id: &MainPageId,
+        bounds: [f32; 4],
+    ) {
+        self.window_host_manager
+            .lock()
+            .unwrap()
+            .sync_window_bounds(window_id, bounds);
     }
 
     pub fn descriptors(&self) -> Vec<ViewDescriptor> {

@@ -5,18 +5,19 @@ use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use zircon_core::CoreRuntime;
-use zircon_manager::{resolve_config_manager, MANAGER_MODULE_NAME};
+use zircon_foundation::{module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME};
+use zircon_manager::resolve_config_manager;
 
 use crate::host::slint_host::drawer_resize::{
-    apply_resize_to_group, resolve_workbench_resize_target_group, WorkbenchResizeTargetGroup,
+    WorkbenchResizeTargetGroup, apply_resize_to_group, resolve_workbench_resize_target_group,
 };
 use crate::host::slint_host::shell_pointer::{
     WorkbenchShellPointerBridge, WorkbenchShellPointerRoute,
 };
 use crate::host::slint_host::tab_drag::WorkbenchDragTargetGroup;
 use crate::{
-    ActivityDrawerSlot, EditorManager, ShellFrame, ShellRegionId, ShellSizePx,
-    WorkbenchShellGeometry, EDITOR_MANAGER_NAME,
+    ActivityDrawerSlot, EDITOR_MANAGER_NAME, EditorManager, ShellFrame, ShellRegionId, ShellSizePx,
+    WorkbenchShellGeometry,
 };
 use zircon_ui::UiPoint;
 
@@ -36,7 +37,7 @@ fn editor_runtime_with_config_path(path: &Path) -> CoreRuntime {
     std::env::set_var("ZIRCON_EDITOR_CONFIG_PATH", path);
     let runtime = CoreRuntime::new();
     runtime
-        .register_module(zircon_manager::module_descriptor())
+        .register_module(foundation_module_descriptor())
         .unwrap();
     runtime
         .register_module(zircon_asset::module_descriptor())
@@ -44,7 +45,7 @@ fn editor_runtime_with_config_path(path: &Path) -> CoreRuntime {
     runtime
         .register_module(crate::module::module_descriptor())
         .unwrap();
-    runtime.activate_module(MANAGER_MODULE_NAME).unwrap();
+    runtime.activate_module(FOUNDATION_MODULE_NAME).unwrap();
     runtime
         .activate_module(zircon_asset::ASSET_MODULE_NAME)
         .unwrap();
@@ -258,6 +259,7 @@ fn unified_shell_pointer_bridge_routes_drag_targets_and_resize_targets_from_one_
         &geometry,
         true,
         &[],
+        &[],
     );
 
     assert_eq!(
@@ -305,6 +307,7 @@ fn unified_shell_pointer_bridge_keeps_resize_route_captured_until_pointer_up() {
         ShellSizePx::new(1440.0, 900.0),
         &geometry,
         true,
+        &[],
         &[],
     );
 

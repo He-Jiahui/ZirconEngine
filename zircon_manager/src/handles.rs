@@ -19,5 +19,3 @@ macro_rules! define_handle {
 
 define_handle!(WorldHandle);
 define_handle!(AssetHandle);
-define_handle!(PluginSlotId);
-define_handle!(HostHandle);

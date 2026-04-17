@@ -1,5 +1,5 @@
-use crate::DefaultInputManager;
-use zircon_manager::{InputButton, InputEvent, InputManager};
+use crate::{DefaultInputManager, InputButton, InputEvent};
+use zircon_manager::InputManager;
 
 #[test]
 fn input_manager_tracks_state_and_drains_events() {

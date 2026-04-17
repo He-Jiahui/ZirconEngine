@@ -1,4 +1,4 @@
-use zircon_manager::{AssetRecordKind, ResourceManager, ResourceStateRecord};
+use zircon_manager::{ResourceManager, ResourceStateRecord};
 use zircon_resource::{ResourceHandle, ResourceId, ResourceKind, ResourceLocator, ResourceMarker};
 
 pub(crate) fn resolve_ready_handle<TMarker>(
@@ -41,17 +41,8 @@ where
     Ok(ResourceHandle::new(id))
 }
 
-fn record_kind_matches<TMarker: ResourceMarker>(kind: AssetRecordKind) -> bool {
-    match kind {
-        AssetRecordKind::Model => TMarker::KIND == ResourceKind::Model,
-        AssetRecordKind::Material => TMarker::KIND == ResourceKind::Material,
-        AssetRecordKind::Texture => TMarker::KIND == ResourceKind::Texture,
-        AssetRecordKind::Shader => TMarker::KIND == ResourceKind::Shader,
-        AssetRecordKind::Scene => TMarker::KIND == ResourceKind::Scene,
-        AssetRecordKind::UiLayout => TMarker::KIND == ResourceKind::UiLayout,
-        AssetRecordKind::UiWidget => TMarker::KIND == ResourceKind::UiWidget,
-        AssetRecordKind::UiStyle => TMarker::KIND == ResourceKind::UiStyle,
-    }
+fn record_kind_matches<TMarker: ResourceMarker>(kind: ResourceKind) -> bool {
+    kind == TMarker::KIND
 }
 
 fn resource_kind_name(kind: ResourceKind) -> &'static str {

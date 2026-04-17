@@ -1,29 +1,19 @@
-mod constants;
-mod host_registry;
-mod hot_reload_coordinator;
-mod mock_vm_backend;
-mod module_descriptor;
-mod plugin_host_driver;
+mod capability_set;
+mod handles;
+mod backend;
+mod host;
+mod module;
+mod plugin;
+mod runtime;
 mod tests;
-mod unavailable_vm_backend;
-mod vm_backend;
-mod vm_error;
-mod vm_plugin_instance;
-mod vm_plugin_manager;
-mod vm_plugin_manifest;
-mod vm_plugin_package;
-mod vm_state_blob;
 
-pub use constants::{PLUGIN_HOST_DRIVER_NAME, SCRIPT_MODULE_NAME, VM_PLUGIN_MANAGER_NAME};
-pub use host_registry::HostRegistry;
-pub use hot_reload_coordinator::HotReloadCoordinator;
-pub use module_descriptor::module_descriptor;
-pub use plugin_host_driver::PluginHostDriver;
-pub use unavailable_vm_backend::UnavailableVmBackend;
-pub use vm_backend::VmBackend;
-pub use vm_error::VmError;
-pub use vm_plugin_instance::VmPluginInstance;
-pub use vm_plugin_manager::VmPluginManager;
-pub use vm_plugin_manifest::VmPluginManifest;
-pub use vm_plugin_package::VmPluginPackage;
-pub use vm_state_blob::VmStateBlob;
+pub use capability_set::CapabilitySet;
+pub use backend::{UnavailableVmBackend, VmBackend, VmError};
+pub use handles::{HostHandle, PluginSlotId};
+pub use host::{
+    HostRegistry, PluginHostDriver, PLUGIN_HOST_DRIVER_NAME, SCRIPT_MODULE_NAME,
+    VM_PLUGIN_MANAGER_NAME,
+};
+pub use module::{module_descriptor, ScriptModule};
+pub use plugin::{VmPluginInstance, VmPluginManifest, VmPluginPackage, VmStateBlob};
+pub use runtime::{HotReloadCoordinator, VmPluginManager};

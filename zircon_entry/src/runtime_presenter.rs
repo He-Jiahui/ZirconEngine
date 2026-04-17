@@ -83,16 +83,16 @@ impl Drop for RenderServerRuntimeBridge {
 
 pub(crate) struct SoftbufferRuntimePresenter {
     #[allow(dead_code)]
-    context: Context<Arc<Window>>,
-    surface: Surface<Arc<Window>, Arc<Window>>,
+    context: Context<Arc<dyn Window>>,
+    surface: Surface<Arc<dyn Window>, Arc<dyn Window>>,
     size: UVec2,
 }
 
 impl SoftbufferRuntimePresenter {
-    pub(crate) fn new(window: Arc<Window>) -> Result<Self, softbuffer::SoftBufferError> {
+    pub(crate) fn new(window: Arc<dyn Window>) -> Result<Self, softbuffer::SoftBufferError> {
         let context = Context::new(window.clone())?;
         let mut surface = Surface::new(&context, window.clone())?;
-        let size = current_window_size(&window);
+        let size = current_window_size(window.as_ref());
         resize_surface(&mut surface, size)?;
         Ok(Self {
             context,
@@ -117,27 +117,33 @@ impl SoftbufferRuntimePresenter {
             self.resize(frame_size)?;
         }
 
+        let window = self.surface.window().clone();
         let mut buffer = self.surface.buffer_mut()?;
         buffer.fill(0);
-
-        for (pixel, rgba) in buffer.iter_mut().zip(frame.rgba.chunks_exact(4)) {
+        let pixel_count = (frame_size.x as usize) * (frame_size.y as usize);
+        for (pixel, rgba) in buffer
+            .iter_mut()
+            .take(pixel_count)
+            .zip(frame.rgba.chunks_exact(4))
+        {
             let red = rgba[0] as u32;
             let green = rgba[1] as u32;
             let blue = rgba[2] as u32;
             *pixel = (red << 16) | (green << 8) | blue;
         }
 
+        window.pre_present_notify();
         buffer.present()
     }
 }
 
-fn current_window_size(window: &Window) -> UVec2 {
-    let size = window.inner_size();
+fn current_window_size(window: &dyn Window) -> UVec2 {
+    let size = window.surface_size();
     UVec2::new(size.width.max(1), size.height.max(1))
 }
 
 fn resize_surface(
-    surface: &mut Surface<Arc<Window>, Arc<Window>>,
+    surface: &mut Surface<Arc<dyn Window>, Arc<dyn Window>>,
     size: UVec2,
 ) -> Result<(), softbuffer::SoftBufferError> {
     surface.resize(non_zero(size.x), non_zero(size.y))

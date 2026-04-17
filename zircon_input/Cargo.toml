@@ -10,3 +10,4 @@ winit.workspace = true
 zircon_core = { path = "../zircon_core" }
 zircon_module = { path = "../zircon_module" }
 zircon_manager = { path = "../zircon_manager" }
+zircon_input_protocol = { path = "../zircon_input_protocol" }

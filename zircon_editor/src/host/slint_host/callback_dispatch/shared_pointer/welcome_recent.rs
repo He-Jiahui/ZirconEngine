@@ -1,12 +1,12 @@
 use zircon_ui::{UiBindingValue, UiEventKind, UiPoint};
 
+use crate::WelcomeHostEvent;
 use crate::host::slint_host::welcome_recent_pointer::{
     WelcomeRecentPointerAction, WelcomeRecentPointerBridge, WelcomeRecentPointerDispatch,
     WelcomeRecentPointerRoute,
 };
-use crate::WelcomeHostEvent;
 
-use super::super::{dispatch_builtin_welcome_surface_control, BuiltinWelcomeSurfaceTemplateBridge};
+use super::super::{BuiltinWelcomeSurfaceTemplateBridge, dispatch_builtin_welcome_surface_control};
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct SharedWelcomeRecentPointerClickDispatch {

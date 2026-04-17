@@ -1,0 +1,10 @@
+pub(super) const CONSOLE_VIEWPORT_Y: f32 = 0.0;
+pub(super) const CONSOLE_PADDING_TOP: f32 = 8.0;
+pub(super) const CONSOLE_PADDING_BOTTOM: f32 = 12.0;
+pub(super) const CONSOLE_TEXT_WIDTH_INSET: f32 = 20.0;
+pub(super) const CONSOLE_BLOCK_GAP: f32 = 6.0;
+pub(super) const CONSOLE_MONO_LINE_HEIGHT: f32 = 16.0;
+pub(super) const CONSOLE_BODY_LINE_HEIGHT: f32 = 14.0;
+pub(super) const CONSOLE_MONO_CHAR_WIDTH: f32 = 6.6;
+pub(super) const CONSOLE_BODY_CHAR_WIDTH: f32 = 5.8;
+pub(super) const CONSOLE_EMPTY_STATUS: &str = "> No output yet";

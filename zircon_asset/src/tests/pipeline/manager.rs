@@ -3,9 +3,10 @@ use std::fs;
 use std::time::{Duration, Instant};
 
 use zircon_manager::{
-    AssetChangeKind as FacadeAssetChangeKind, AssetManager, AssetRecordKind, ResourceChangeKind,
-    ResourceManager, ResourceStateRecord,
+    AssetChangeKind as FacadeAssetChangeKind, AssetManager, ResourceChangeKind, ResourceManager,
+    ResourceStateRecord,
 };
+use zircon_resource::ResourceKind;
 
 use crate::tests::project::unique_temp_project_root;
 use crate::tests::support::{
@@ -57,7 +58,7 @@ fn asset_manager_opens_project_reports_assets_and_publishes_changes() {
         .asset_status("res://models/triangle.obj")
         .expect("model status");
     assert!(status.imported);
-    assert_eq!(status.kind, AssetRecordKind::Model);
+    assert_eq!(status.kind, ResourceKind::Model);
     assert!(manager.list_assets().len() >= 5);
 
     let model_id = manager
@@ -180,7 +181,7 @@ fn resource_server_reports_resource_records_for_project_assets() {
     let status = manager
         .resource_status("res://models/triangle.obj")
         .expect("model resource status");
-    assert_eq!(status.kind, AssetRecordKind::Model);
+    assert_eq!(status.kind, ResourceKind::Model);
     assert_eq!(status.state, ResourceStateRecord::Ready);
     assert_eq!(status.revision, 1);
     assert!(status

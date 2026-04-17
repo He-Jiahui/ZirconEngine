@@ -16,6 +16,23 @@ impl SlintEditorHost {
             self.set_status_line(format!("Unknown asset surface mode {surface_mode}"));
             return;
         };
+        let Some(list_size) = self
+            .asset_surface_pointer_state(surface_mode)
+            .and_then(|surface| surface.reference_list(list_kind))
+            .and_then(|list| {
+                self.resolve_callback_surface_size_for_asset_surface(
+                    surface_mode,
+                    width,
+                    height,
+                    list.size,
+                )
+            })
+        else {
+            self.set_status_line(format!(
+                "Unknown asset reference pointer target {surface_mode}/{list_kind}"
+            ));
+            return;
+        };
 
         {
             let Some(surface) = self.asset_surface_pointer_state_mut(surface_mode) else {
@@ -26,7 +43,7 @@ impl SlintEditorHost {
                 self.set_status_line(format!("Unknown asset reference list {list_kind}"));
                 return;
             };
-            list.size = UiSize::new(width.max(0.0), height.max(0.0));
+            list.size = list_size;
             let Some(layout) = Self::asset_reference_layout(&snapshot, list_kind, list.size) else {
                 self.set_status_line(format!("Unknown asset reference list {list_kind}"));
                 return;
@@ -109,6 +126,23 @@ impl SlintEditorHost {
             self.set_status_line(format!("Unknown asset surface mode {surface_mode}"));
             return;
         };
+        let Some(list_size) = self
+            .asset_surface_pointer_state(surface_mode)
+            .and_then(|surface| surface.reference_list(list_kind))
+            .and_then(|list| {
+                self.resolve_callback_surface_size_for_asset_surface(
+                    surface_mode,
+                    width,
+                    height,
+                    list.size,
+                )
+            })
+        else {
+            self.set_status_line(format!(
+                "Unknown asset reference pointer target {surface_mode}/{list_kind}"
+            ));
+            return;
+        };
 
         let dispatch = {
             let Some(surface) = self.asset_surface_pointer_state_mut(surface_mode) else {
@@ -119,7 +153,7 @@ impl SlintEditorHost {
                 self.set_status_line(format!("Unknown asset reference list {list_kind}"));
                 return;
             };
-            list.size = UiSize::new(width.max(0.0), height.max(0.0));
+            list.size = list_size;
             let Some(layout) = Self::asset_reference_layout(&snapshot, list_kind, list.size) else {
                 self.set_status_line(format!("Unknown asset reference list {list_kind}"));
                 return;
@@ -157,6 +191,23 @@ impl SlintEditorHost {
             self.set_status_line(format!("Unknown asset surface mode {surface_mode}"));
             return;
         };
+        let Some(list_size) = self
+            .asset_surface_pointer_state(surface_mode)
+            .and_then(|surface| surface.reference_list(list_kind))
+            .and_then(|list| {
+                self.resolve_callback_surface_size_for_asset_surface(
+                    surface_mode,
+                    width,
+                    height,
+                    list.size,
+                )
+            })
+        else {
+            self.set_status_line(format!(
+                "Unknown asset reference pointer target {surface_mode}/{list_kind}"
+            ));
+            return;
+        };
 
         let dispatch = {
             let Some(surface) = self.asset_surface_pointer_state_mut(surface_mode) else {
@@ -167,7 +218,7 @@ impl SlintEditorHost {
                 self.set_status_line(format!("Unknown asset reference list {list_kind}"));
                 return;
             };
-            list.size = UiSize::new(width.max(0.0), height.max(0.0));
+            list.size = list_size;
             let Some(layout) = Self::asset_reference_layout(&snapshot, list_kind, list.size) else {
                 self.set_status_line(format!("Unknown asset reference list {list_kind}"));
                 return;

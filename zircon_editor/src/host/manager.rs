@@ -10,6 +10,7 @@ mod layout_hosts;
 mod layout_persistence;
 mod project_access;
 mod startup;
+mod ui_asset_promotion;
 mod ui_asset_sessions;
 mod view_registry;
 mod window_host_manager;
