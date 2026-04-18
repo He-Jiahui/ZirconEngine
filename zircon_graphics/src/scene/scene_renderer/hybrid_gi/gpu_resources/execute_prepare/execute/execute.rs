@@ -51,6 +51,8 @@ impl HybridGiGpuResources {
             buffers.completed_trace_readback,
             inputs.irradiance_word_count.max(1),
             buffers.irradiance_readback,
+            inputs.trace_lighting_word_count.max(1),
+            buffers.trace_lighting_readback,
         )))
     }
 }

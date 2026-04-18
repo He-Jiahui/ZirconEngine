@@ -1,7 +1,7 @@
 ---
 related_code:
-  - zircon_entry/src/lib.rs
-  - zircon_entry/src/entry/engine_entry.rs
+  - zircon_app/src/lib.rs
+  - zircon_app/src/entry/engine_entry.rs
   - zircon_foundation/src/lib.rs
   - zircon_core/src/lib.rs
   - zircon_core/src/runtime/mod.rs
@@ -27,8 +27,8 @@ related_code:
   - zircon_editor/src/lib.rs
   - zircon_script/src/lib.rs
 implementation_files:
-  - zircon_entry/src/lib.rs
-  - zircon_entry/src/entry/engine_entry.rs
+  - zircon_app/src/lib.rs
+  - zircon_app/src/entry/engine_entry.rs
   - zircon_foundation/src/lib.rs
   - zircon_core/src/lib.rs
   - zircon_core/src/runtime/mod.rs
@@ -74,7 +74,7 @@ doc_type: category-index
 
 ## Documents
 
-- [Architecture-First Development](./architecture-first-development.md): `zircon_entry -> zircon_core -> zircon_module/zircon_manager -> zircon_foundation + subsystem modules` 主干、ECS 运行时世界、manager façade、runtime foundation 模块、`LevelManager -> LevelSystem -> World` 分层、VM 插件边界、架构优先设计流程、主流引擎对齐要求和实现红线。
+- [Architecture-First Development](./architecture-first-development.md): `zircon_app -> zircon_core -> zircon_module/zircon_manager -> zircon_foundation + subsystem modules` 主干、ECS 运行时世界、manager façade、runtime foundation 模块、`LevelManager -> LevelSystem -> World` 分层、VM 插件边界、架构优先设计流程、主流引擎对齐要求和实现红线。
 - [Core Runtime Service Registry](./core-runtime-service-registry.md): `zircon_core::runtime` 的目录化边界，公开导出层、descriptor 子树、`CoreHandle` 行为文件、内部状态层，以及后续继续扩展 service registry 时必须遵守的模块纪律。
 - [Runtime Interface Convergence](./runtime-interface-convergence.md): `EngineEntry`、`EngineModule`、`EngineService`、ECS 语义合同、内建 module owner 收敛、结构审计 skill，以及当前 `converged/skeleton/needs-refactor` 诊断基线。
 - [Runtime Foundation Precision And Scene Authority](./runtime-foundation-precision-and-scene-authority.md): `zircon_math` 精度 seam、`zircon_scene` 的 `LocalTransform + WorldMatrix + ActiveSelf/ActiveInHierarchy + RenderLayerMask + Mobility` authority、scene asset 的默认化新字段，以及 `zircon_graphics` 的 runtime-to-render downcast 边界。
@@ -93,3 +93,4 @@ doc_type: category-index
 - 跨 crate 功能接入时对 sibling `zircon_*` crates 的一致性要求
 
 后续如果继续细化 `zircon_core` 生命周期、`zircon_manager` façade 族、`zircon_foundation` 的 clock/config/event/scheduler 内建模块拆分、`zircon_scene` 的 `LevelSystem` 子系统托管、runtime `f64` 切换过程或 `zircon_script` VM 热替换协议，可以在本目录继续追加叶子文档。
+

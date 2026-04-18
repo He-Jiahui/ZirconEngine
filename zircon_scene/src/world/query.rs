@@ -33,14 +33,6 @@ impl World {
         }
     }
 
-    pub fn set_selected(&mut self, entity: Option<EntityId>) {
-        self.selected_entity = entity;
-    }
-
-    pub fn selected_node(&self) -> Option<EntityId> {
-        self.selected_entity
-    }
-
     pub fn nodes(&self) -> &[SceneNode] {
         &self.node_cache
     }

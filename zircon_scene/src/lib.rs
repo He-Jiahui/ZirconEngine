@@ -12,7 +12,7 @@ mod serializer;
 mod world;
 
 use zircon_module::{EngineModule, ModuleDescriptor};
-pub use zircon_scene_protocol::{LevelSummary, WorldHandle};
+pub use zircon_framework::scene::{LevelSummary, WorldHandle};
 
 pub use components::{
     aspect_ratio_from_viewport_size, default_render_layer_mask, default_viewport_aspect_ratio,
@@ -26,8 +26,7 @@ pub use components::{
     RenderMeshSnapshot, RenderOverlayExtract, RenderParticleSpriteSnapshot,
     RenderReflectionProbeSnapshot, RenderSceneGeometryExtract, RenderSceneSnapshot,
     RenderVirtualGeometryCluster, RenderVirtualGeometryExtract, RenderVirtualGeometryPage,
-    SceneGizmoBuildContext, SceneGizmoKind, SceneGizmoOverlayExtract, SceneGizmoProvider,
-    SceneGizmoRegistry, SceneNode, SceneViewportExtractRequest, SceneViewportRenderPacket,
+    SceneGizmoKind, SceneGizmoOverlayExtract, SceneNode, SceneViewportExtractRequest, SceneViewportRenderPacket,
     SceneViewportSettings, SceneViewportTool, Schedule, SelectionAnchorExtract,
     SelectionHighlightExtract, SystemStage, TransformSpace, ViewOrientation,
     ViewportCameraSnapshot, ViewportIconId, WorldMatrix, WorldTransform,
@@ -37,7 +36,7 @@ pub use module::{
     create_default_level, load_level_asset, module_descriptor, DefaultLevelManager, WorldDriver,
     DEFAULT_LEVEL_MANAGER_NAME, LEVEL_MANAGER_NAME, SCENE_MODULE_NAME, WORLD_DRIVER_NAME,
 };
-pub use render_extract::{
+pub use zircon_framework::render::{
     DebugOverlayExtract, GeometryExtract, LightingExtract, ParticleExtract, PostProcessExtract,
     RenderExtractContext, RenderExtractProducer, RenderFrameExtract, RenderViewExtract,
     RenderWorldSnapshotHandle, VisibilityInput, VisibilityRenderableInput,

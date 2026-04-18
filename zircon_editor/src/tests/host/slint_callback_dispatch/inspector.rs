@@ -124,7 +124,7 @@ fn builtin_inspector_surface_apply_batch_matches_direct_batch_dispatch() {
     let legacy_harness = EventRuntimeHarness::new("zircon_slint_parity_inspector_apply_legacy");
     let legacy_effects = dispatch_inspector_apply(
         &legacy_harness.runtime,
-        crate::editor_event::EditorInspectorEvent {
+        crate::core::editor_event::EditorInspectorEvent {
             subject_path: "entity://selected".to_string(),
             changes: batch.clone(),
         },

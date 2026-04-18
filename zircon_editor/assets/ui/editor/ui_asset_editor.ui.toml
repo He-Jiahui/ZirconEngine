@@ -1,0 +1,106 @@
+[asset]
+kind = "layout"
+id = "editor.ui_asset_editor"
+version = 1
+display_name = "UI Asset Editor"
+
+[imports]
+widgets = [
+  "res://ui/editor/editor_widgets.ui.toml#EditorToolbarButton",
+  "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard",
+]
+styles = ["res://ui/theme/editor_base.ui.toml"]
+
+[root]
+node = "editor_root"
+
+[nodes.editor_root]
+kind = "native"
+type = "VerticalBox"
+control_id = "UiAssetEditorRoot"
+classes = ["editor-shell"]
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox", gap = 10.0 } }
+children = [
+  { child = "toolbar" },
+  { child = "body" },
+]
+
+[nodes.toolbar]
+kind = "native"
+type = "HorizontalBox"
+control_id = "UiAssetEditorToolbar"
+classes = ["toolbar"]
+layout = { width = { stretch = "Stretch" }, height = { min = 40.0, preferred = 40.0, max = 40.0, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 8.0 } }
+children = [
+  { child = "save_button" },
+  { child = "preview_button" },
+]
+
+[nodes.save_button]
+kind = "reference"
+component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorToolbarButton"
+control_id = "SaveAsset"
+classes = ["toolbar-primary"]
+params = { label = "Save Asset", icon = "albums-outline" }
+
+[nodes.preview_button]
+kind = "reference"
+component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorToolbarButton"
+control_id = "PreviewAsset"
+params = { label = "Preview", icon = "play-outline" }
+
+[nodes.body]
+kind = "native"
+type = "HorizontalBox"
+control_id = "UiAssetEditorBody"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "HorizontalBox", gap = 10.0 } }
+children = [
+  { child = "hierarchy_panel", slot = { layout = { width = { min = 220.0, preferred = 220.0, max = 260.0, stretch = "Fixed" } } } },
+  { child = "designer_panel" },
+  { child = "inspector_panel", slot = { layout = { width = { min = 260.0, preferred = 260.0, max = 320.0, stretch = "Fixed" } } } },
+]
+
+[nodes.hierarchy_panel]
+kind = "reference"
+component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard"
+control_id = "HierarchyPanel"
+params = { title = "Hierarchy" }
+children = [
+  { child = "hierarchy_label", mount = "content" },
+]
+
+[nodes.hierarchy_label]
+kind = "native"
+type = "Label"
+control_id = "HierarchyLabel"
+props = { text = "Widget Tree" }
+
+[nodes.designer_panel]
+kind = "reference"
+component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard"
+control_id = "DesignerPanel"
+params = { title = "Designer" }
+children = [
+  { child = "designer_label", mount = "content" },
+]
+
+[nodes.designer_label]
+kind = "native"
+type = "Label"
+control_id = "DesignerLabel"
+props = { text = "Designer Surface" }
+
+[nodes.inspector_panel]
+kind = "reference"
+component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard"
+control_id = "InspectorPanel"
+params = { title = "Inspector" }
+children = [
+  { child = "inspector_label", mount = "content" },
+]
+
+[nodes.inspector_label]
+kind = "native"
+type = "Label"
+control_id = "InspectorLabel"
+props = { text = "Selection Details" }

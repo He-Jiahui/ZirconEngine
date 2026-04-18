@@ -9,7 +9,5 @@ description = "Engine manager facades, handles, and resolver contracts."
 serde.workspace = true
 serde_json = "1.0.149"
 zircon_core = { path = "../zircon_core" }
-zircon_input_protocol = { path = "../zircon_input_protocol" }
-zircon_module = { path = "../zircon_module" }
+zircon_framework = { path = "../zircon_framework" }
 zircon_resource = { path = "../zircon_resource" }
-zircon_scene_protocol = { path = "../zircon_scene_protocol" }

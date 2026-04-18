@@ -1,7 +1,7 @@
-use crate::host::slint_host::callback_dispatch::{
+use crate::ui::slint_host::callback_dispatch::{
     dispatch_shared_host_page_pointer_click, BuiltinWorkbenchTemplateBridge,
 };
-use crate::host::slint_host::host_page_pointer::{
+use crate::ui::slint_host::host_page_pointer::{
     build_workbench_host_page_pointer_layout, WorkbenchHostPagePointerBridge,
     WorkbenchHostPagePointerItem, WorkbenchHostPagePointerLayout, WorkbenchHostPagePointerRoute,
 };
@@ -104,7 +104,7 @@ fn shared_host_page_pointer_layout_prefers_shared_host_strip_frame_over_shell_me
         &model,
         &WorkbenchChromeMetrics::default(),
         Some(
-            &crate::host::slint_host::callback_dispatch::BuiltinWorkbenchRootShellFrames {
+            &crate::ui::slint_host::callback_dispatch::BuiltinWorkbenchRootShellFrames {
                 shell_frame: Some(UiFrame::new(32.0, 18.0, 1440.0, 900.0)),
                 host_page_strip_frame: Some(UiFrame::new(40.0, 54.0, 1110.0, 28.0)),
                 ..Default::default()
@@ -128,11 +128,11 @@ fn shared_host_page_surface_replaces_legacy_direct_click_route() {
     ));
     let app = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/host/slint_host/app.rs"
+        "/src/ui/slint_host/app.rs"
     ));
     let wiring = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/host/slint_host/app/callback_wiring.rs"
+        "/src/ui/slint_host/app/callback_wiring.rs"
     ));
 
     assert!(

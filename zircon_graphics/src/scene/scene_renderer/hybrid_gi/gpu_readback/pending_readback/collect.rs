@@ -2,6 +2,7 @@ use crate::types::GraphicsError;
 
 use super::super::decode::{
     cache_entries, completed_probe_ids, completed_trace_region_ids, probe_irradiance_rgb,
+    probe_trace_lighting_rgb,
 };
 use super::super::readback::HybridGiGpuReadback;
 use super::HybridGiGpuPendingReadback;
@@ -27,6 +28,11 @@ impl HybridGiGpuPendingReadback {
                 device,
                 &self.irradiance_buffer,
                 self.irradiance_word_count,
+            )?,
+            probe_trace_lighting_rgb: probe_trace_lighting_rgb(
+                device,
+                &self.trace_lighting_buffer,
+                self.trace_lighting_word_count,
             )?,
         })
     }

@@ -2,11 +2,17 @@ use std::fmt;
 use std::sync::Arc;
 
 use zircon_core::{CoreError, CoreHandle};
+use zircon_framework::{
+    asset::ResourceManager,
+    foundation::{ConfigManager, EventManager},
+    input::InputManager,
+    render::{RenderFramework, RenderingManager},
+    scene::LevelManager,
+};
 
 use crate::{
-    ConfigManager, EventManager, InputManager, LevelManager, RenderingManager, ResourceManager,
     CONFIG_MANAGER_NAME, EVENT_MANAGER_NAME, INPUT_MANAGER_NAME, LEVEL_MANAGER_NAME,
-    RENDERING_MANAGER_NAME, RESOURCE_MANAGER_NAME,
+    RENDER_FRAMEWORK_NAME, RENDERING_MANAGER_NAME, RESOURCE_MANAGER_NAME,
 };
 
 macro_rules! define_manager_holder {
@@ -66,6 +72,13 @@ define_manager_holder!(
     resolve_rendering_manager,
     RENDERING_MANAGER_NAME,
     rendering
+);
+define_manager_holder!(
+    RenderFrameworkHandle,
+    RenderFramework,
+    resolve_render_framework,
+    RENDER_FRAMEWORK_NAME,
+    render_framework
 );
 define_manager_holder!(
     LevelManagerHandle,

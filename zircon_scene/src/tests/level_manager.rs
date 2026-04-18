@@ -1,7 +1,7 @@
 use std::fs;
 
 use zircon_asset::{AssetUri, ImportedAsset, ProjectManager};
-use zircon_manager::LevelManager;
+use zircon_framework::scene::LevelManager;
 
 use crate::DefaultLevelManager;
 

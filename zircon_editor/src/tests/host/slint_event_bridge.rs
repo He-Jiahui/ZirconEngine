@@ -1,8 +1,8 @@
-use crate::editor_event::{
+use crate::core::editor_event::{
     EditorAssetEvent, EditorEvent, EditorEventEffect, EditorEventId, EditorEventRecord,
     EditorEventResult, EditorEventSequence, EditorEventSource, EditorEventUndoPolicy,
 };
-use crate::host::slint_host::event_bridge::{apply_record_effects, SlintDispatchEffects};
+use crate::ui::slint_host::event_bridge::{apply_record_effects, SlintDispatchEffects};
 
 fn record_with_event_and_effects(
     event: EditorEvent,

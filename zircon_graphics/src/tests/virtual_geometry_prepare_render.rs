@@ -42,6 +42,7 @@ fn draw_segment(
         cluster_ordinal,
         cluster_span_count: 1,
         cluster_count,
+        lineage_depth: 0,
         lod_level,
         state,
     }
@@ -66,6 +67,7 @@ fn draw_segment_with_span(
         cluster_ordinal,
         cluster_span_count,
         cluster_count,
+        lineage_depth: u32::from(lod_level),
         lod_level,
         state,
     }
@@ -313,6 +315,9 @@ fn virtual_geometry_prepare_streaming_state_changes_fallback_raster_output() {
                         page_id: 300,
                         size_bytes: 4096,
                         generation: 5,
+                        frontier_rank: 0,
+                        assigned_slot: None,
+                        recycled_page_id: None,
                     }],
                     available_slots: Vec::new(),
                     evictable_pages: Vec::new(),
@@ -459,6 +464,9 @@ fn virtual_geometry_prepare_streaming_state_changes_fallback_raster_coverage() {
                         page_id: 300,
                         size_bytes: 4096,
                         generation: 7,
+                        frontier_rank: 0,
+                        assigned_slot: None,
+                        recycled_page_id: None,
                     }],
                     available_slots: Vec::new(),
                     evictable_pages: Vec::new(),
@@ -2330,6 +2338,179 @@ fn virtual_geometry_prepare_gpu_generated_indirect_args_change_when_page_id_chan
 }
 
 #[test]
+fn virtual_geometry_prepare_gpu_generated_indirect_args_change_when_lod_level_changes_inside_same_page_slot(
+) {
+    let root = unique_temp_project_root("graphics_virtual_geometry_lod_indirect_args");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths.ensure_layout().unwrap();
+    ProjectManifest::new(
+        "GraphicsVirtualGeometryLodIndirectArgs",
+        AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+        1,
+    )
+    .save(paths.manifest_path())
+    .unwrap();
+
+    write_flat_color_wgsl(
+        paths.assets_root().join("shaders").join("flat_green.wgsl"),
+        [0.08, 0.95, 0.08],
+    );
+    write_solid_png(
+        paths.assets_root().join("textures").join("white.png"),
+        [255, 255, 255, 255],
+    );
+    write_tiled_quad_obj(paths.assets_root().join("models").join("tiled_quad.obj"));
+    write_material(
+        paths
+            .assets_root()
+            .join("materials")
+            .join("flat_green.material.toml"),
+        "res://shaders/flat_green.wgsl",
+        "res://textures/white.png",
+    );
+
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    asset_manager
+        .open_project(root.to_string_lossy().as_ref())
+        .unwrap();
+    let mut project = zircon_asset::ProjectManager::open(&root).unwrap();
+    project.scan_and_import().unwrap();
+
+    let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/tiled_quad.obj");
+    let green_material = resource_handle::<MaterialMarker>(
+        &asset_manager,
+        "res://materials/flat_green.material.toml",
+    );
+    let viewport_size = UVec2::new(160, 120);
+    let extract = build_single_entity_extract_with_clusters(
+        viewport_size,
+        model,
+        green_material,
+        vec![RenderVirtualGeometryCluster {
+            entity: 2,
+            cluster_id: 2,
+            page_id: 300,
+            lod_level: 0,
+            parent_cluster_id: None,
+            bounds_center: Vec3::ZERO,
+            bounds_radius: 1.0,
+            screen_space_error: 1.0,
+        }],
+        vec![RenderVirtualGeometryPage {
+            page_id: 300,
+            resident: true,
+            size_bytes: 4096,
+        }],
+    );
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(
+            &extract,
+            &RenderPipelineCompileOptions::default()
+                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
+                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
+                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
+                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
+                .with_feature_disabled(BuiltinRenderFeature::Bloom)
+                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
+                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
+                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
+                .with_feature_disabled(BuiltinRenderFeature::Particle)
+                .with_async_compute(false),
+        )
+        .unwrap();
+
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    renderer
+        .render_frame_with_pipeline(
+            &EditorOrRuntimeFrame::from_extract(extract.clone(), viewport_size)
+                .with_virtual_geometry_prepare(Some(VirtualGeometryPrepareFrame {
+                    visible_entities: vec![2],
+                    visible_clusters: vec![VirtualGeometryPrepareCluster {
+                        entity: 2,
+                        cluster_id: 2,
+                        page_id: 300,
+                        lod_level: 0,
+                        resident_slot: Some(7),
+                        state: VirtualGeometryPrepareClusterState::Resident,
+                    }],
+                    cluster_draw_segments: vec![draw_segment_with_span(
+                        2,
+                        2,
+                        300,
+                        Some(7),
+                        0,
+                        1,
+                        1,
+                        0,
+                        VirtualGeometryPrepareClusterState::Resident,
+                    )],
+                    resident_pages: vec![VirtualGeometryPreparePage {
+                        page_id: 300,
+                        slot: 7,
+                        size_bytes: 4096,
+                    }],
+                    pending_page_requests: Vec::new(),
+                    available_slots: Vec::new(),
+                    evictable_pages: Vec::new(),
+                })),
+            &compiled,
+            None,
+        )
+        .unwrap();
+    let lod_zero_args = renderer.read_last_virtual_geometry_indirect_args().unwrap();
+
+    renderer
+        .render_frame_with_pipeline(
+            &EditorOrRuntimeFrame::from_extract(extract, viewport_size)
+                .with_virtual_geometry_prepare(Some(VirtualGeometryPrepareFrame {
+                    visible_entities: vec![2],
+                    visible_clusters: vec![VirtualGeometryPrepareCluster {
+                        entity: 2,
+                        cluster_id: 2,
+                        page_id: 300,
+                        lod_level: 3,
+                        resident_slot: Some(7),
+                        state: VirtualGeometryPrepareClusterState::Resident,
+                    }],
+                    cluster_draw_segments: vec![draw_segment_with_span(
+                        2,
+                        2,
+                        300,
+                        Some(7),
+                        0,
+                        1,
+                        1,
+                        3,
+                        VirtualGeometryPrepareClusterState::Resident,
+                    )],
+                    resident_pages: vec![VirtualGeometryPreparePage {
+                        page_id: 300,
+                        slot: 7,
+                        size_bytes: 4096,
+                    }],
+                    pending_page_requests: Vec::new(),
+                    available_slots: Vec::new(),
+                    evictable_pages: Vec::new(),
+                })),
+            &compiled,
+            None,
+        )
+        .unwrap();
+    let lod_three_args = renderer.read_last_virtual_geometry_indirect_args().unwrap();
+
+    assert_ne!(
+        lod_zero_args, lod_three_args,
+        "expected deeper cluster frontier lod_level to affect GPU-generated indirect args so real indirect submission consumes more than page/slot ownership"
+    );
+    assert!(
+        lod_three_args[0].0 > lod_zero_args[0].0 || lod_three_args[0].1 < lod_zero_args[0].1,
+        "expected deeper lod ownership to shift or trim the GPU indirect cluster raster span inside the same page/slot; lod0={lod_zero_args:?}, lod3={lod_three_args:?}"
+    );
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn virtual_geometry_prepare_cluster_raster_output_changes_when_page_id_changes_inside_same_resident_slot(
 ) {
     let root =
@@ -2501,6 +2682,222 @@ fn virtual_geometry_prepare_cluster_raster_output_changes_when_page_id_changes_i
         (page_300_left_green - page_301_left_green).abs() > 0.45
             || page_300_coverage.abs_diff(page_301_coverage) > 96,
         "expected page-owned submission offset to materially shift cluster raster coverage or balance; page300_left={page_300_left_green:.2}, page301_left={page_301_left_green:.2}, page300_coverage={page_300_coverage}, page301_coverage={page_301_coverage}"
+    );
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn virtual_geometry_prepare_cluster_raster_output_changes_when_pending_request_frontier_rank_changes(
+) {
+    let root = unique_temp_project_root("graphics_virtual_geometry_frontier_rank_raster_output");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths.ensure_layout().unwrap();
+    ProjectManifest::new(
+        "GraphicsVirtualGeometryFrontierRankRasterOutput",
+        AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+        1,
+    )
+    .save(paths.manifest_path())
+    .unwrap();
+
+    write_flat_color_wgsl(
+        paths.assets_root().join("shaders").join("flat_green.wgsl"),
+        [0.08, 0.95, 0.08],
+    );
+    write_solid_png(
+        paths.assets_root().join("textures").join("white.png"),
+        [255, 255, 255, 255],
+    );
+    write_tiled_quad_obj(paths.assets_root().join("models").join("tiled_quad.obj"));
+    write_material(
+        paths
+            .assets_root()
+            .join("materials")
+            .join("flat_green.material.toml"),
+        "res://shaders/flat_green.wgsl",
+        "res://textures/white.png",
+    );
+
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    asset_manager
+        .open_project(root.to_string_lossy().as_ref())
+        .unwrap();
+    let mut project = zircon_asset::ProjectManager::open(&root).unwrap();
+    project.scan_and_import().unwrap();
+
+    let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/tiled_quad.obj");
+    let green_material = resource_handle::<MaterialMarker>(
+        &asset_manager,
+        "res://materials/flat_green.material.toml",
+    );
+    let viewport_size = UVec2::new(160, 120);
+    let extract = build_single_entity_extract_with_clusters(
+        viewport_size,
+        model,
+        green_material,
+        vec![RenderVirtualGeometryCluster {
+            entity: 2,
+            cluster_id: 2,
+            page_id: 300,
+            lod_level: 0,
+            parent_cluster_id: None,
+            bounds_center: Vec3::ZERO,
+            bounds_radius: 1.0,
+            screen_space_error: 1.0,
+        }],
+        vec![RenderVirtualGeometryPage {
+            page_id: 300,
+            resident: false,
+            size_bytes: 4096,
+        }],
+    );
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(
+            &extract,
+            &RenderPipelineCompileOptions::default()
+                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
+                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
+                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
+                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
+                .with_feature_disabled(BuiltinRenderFeature::Bloom)
+                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
+                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
+                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
+                .with_feature_disabled(BuiltinRenderFeature::Particle)
+                .with_async_compute(false),
+        )
+        .unwrap();
+
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let early_frontier = renderer
+        .render_frame_with_pipeline(
+            &EditorOrRuntimeFrame::from_extract(extract.clone(), viewport_size)
+                .with_virtual_geometry_prepare(Some(VirtualGeometryPrepareFrame {
+                    visible_entities: vec![2],
+                    visible_clusters: vec![VirtualGeometryPrepareCluster {
+                        entity: 2,
+                        cluster_id: 2,
+                        page_id: 300,
+                        lod_level: 0,
+                        resident_slot: None,
+                        state: VirtualGeometryPrepareClusterState::PendingUpload,
+                    }],
+                    cluster_draw_segments: vec![draw_segment_with_span(
+                        2,
+                        2,
+                        300,
+                        None,
+                        0,
+                        1,
+                        1,
+                        0,
+                        VirtualGeometryPrepareClusterState::PendingUpload,
+                    )],
+                    resident_pages: Vec::new(),
+                    pending_page_requests: vec![crate::types::VirtualGeometryPrepareRequest {
+                        page_id: 300,
+                        size_bytes: 4096,
+                        generation: 1,
+                        frontier_rank: 0,
+                        assigned_slot: None,
+                        recycled_page_id: None,
+                    }],
+                    available_slots: Vec::new(),
+                    evictable_pages: Vec::new(),
+                })),
+            &compiled,
+            None,
+        )
+        .unwrap();
+    let early_args = renderer.read_last_virtual_geometry_indirect_args().unwrap();
+    let late_frontier = renderer
+        .render_frame_with_pipeline(
+            &EditorOrRuntimeFrame::from_extract(extract, viewport_size)
+                .with_virtual_geometry_prepare(Some(VirtualGeometryPrepareFrame {
+                    visible_entities: vec![2],
+                    visible_clusters: vec![VirtualGeometryPrepareCluster {
+                        entity: 2,
+                        cluster_id: 2,
+                        page_id: 300,
+                        lod_level: 0,
+                        resident_slot: None,
+                        state: VirtualGeometryPrepareClusterState::PendingUpload,
+                    }],
+                    cluster_draw_segments: vec![draw_segment_with_span(
+                        2,
+                        2,
+                        300,
+                        None,
+                        0,
+                        1,
+                        1,
+                        0,
+                        VirtualGeometryPrepareClusterState::PendingUpload,
+                    )],
+                    resident_pages: Vec::new(),
+                    pending_page_requests: vec![
+                        crate::types::VirtualGeometryPrepareRequest {
+                            page_id: 300,
+                            size_bytes: 4096,
+                            generation: 2,
+                            frontier_rank: 3,
+                            assigned_slot: None,
+                            recycled_page_id: None,
+                        },
+                        crate::types::VirtualGeometryPrepareRequest {
+                            page_id: 301,
+                            size_bytes: 4096,
+                            generation: 3,
+                            frontier_rank: 0,
+                            assigned_slot: None,
+                            recycled_page_id: None,
+                        },
+                        crate::types::VirtualGeometryPrepareRequest {
+                            page_id: 302,
+                            size_bytes: 4096,
+                            generation: 4,
+                            frontier_rank: 1,
+                            assigned_slot: None,
+                            recycled_page_id: None,
+                        },
+                        crate::types::VirtualGeometryPrepareRequest {
+                            page_id: 303,
+                            size_bytes: 4096,
+                            generation: 5,
+                            frontier_rank: 2,
+                            assigned_slot: None,
+                            recycled_page_id: None,
+                        },
+                    ],
+                    available_slots: Vec::new(),
+                    evictable_pages: Vec::new(),
+                })),
+            &compiled,
+            None,
+        )
+        .unwrap();
+    let late_args = renderer.read_last_virtual_geometry_indirect_args().unwrap();
+
+    let early_coverage = count_non_background_pixels(&early_frontier.rgba);
+    let late_coverage = count_non_background_pixels(&late_frontier.rgba);
+
+    assert_ne!(
+        early_frontier.rgba, late_frontier.rgba,
+        "expected pending request frontier rank to change the real rendered cluster raster output, not only the CPU-side uploader ordering"
+    );
+    assert_ne!(
+        early_args, late_args,
+        "expected pending request frontier rank to change the real GPU-generated indirect args before it changes the rendered raster output"
+    );
+    assert!(
+        early_coverage > late_coverage + 120,
+        "expected earlier pending request frontier rank to keep materially more cluster raster coverage than a later request rank; early_coverage={early_coverage}, late_coverage={late_coverage}"
+    );
+    assert_eq!(
+        late_args.len(),
+        1,
+        "expected the pending frontier-rank raster regression to stay on one indirect draw"
     );
 
     let _ = fs::remove_dir_all(root);

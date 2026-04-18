@@ -1,5 +1,5 @@
 use zircon_editor::{EditorUiHostRuntime, UiSize};
-use zircon_editor_ui::EditorUiControlService;
+use zircon_editor::EditorUiControlService;
 use zircon_ui::UiFrame;
 
 #[test]

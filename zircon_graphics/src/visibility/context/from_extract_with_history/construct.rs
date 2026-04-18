@@ -48,6 +48,7 @@ impl VisibilityContext {
             virtual_geometry_page_upload_plan,
             virtual_geometry_feedback,
             virtual_geometry_requested_pages,
+            virtual_geometry_history_visible_cluster_ids,
         ) = build_virtual_geometry_plan(
             value.geometry.virtual_geometry.as_ref(),
             &visible_entities,
@@ -62,10 +63,7 @@ impl VisibilityContext {
                 .map(|probe| probe.probe_id)
                 .collect(),
             hybrid_gi_requested_probes,
-            virtual_geometry_visible_clusters
-                .iter()
-                .map(|cluster| cluster.cluster_id)
-                .collect(),
+            virtual_geometry_history_visible_cluster_ids,
             virtual_geometry_requested_pages,
         );
         let bvh_update_plan = build_bvh_update_plan(&history_snapshot, previous);

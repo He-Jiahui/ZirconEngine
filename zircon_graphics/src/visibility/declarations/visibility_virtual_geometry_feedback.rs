@@ -3,4 +3,5 @@ pub struct VisibilityVirtualGeometryFeedback {
     pub visible_cluster_ids: Vec<u32>,
     pub requested_pages: Vec<u32>,
     pub evictable_pages: Vec<u32>,
+    pub hot_resident_pages: Vec<u32>,
 }

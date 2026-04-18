@@ -37,7 +37,6 @@ fn framework_contract_types_are_constructible() {
     let level = LevelSummary {
         handle: WorldHandle::new(42),
         entity_count: 5,
-        selected_entity: Some(3),
         active_camera: Some(4),
     };
 

@@ -1,4 +1,4 @@
-use crate::editing::ui_asset::UiAssetEditorSession;
+use crate::core::editing::ui_asset::UiAssetEditorSession;
 use crate::{UiAssetEditorMode, UiAssetEditorRoute, UiSize};
 use zircon_ui::{UiAssetKind, UiAssetLoader};
 
@@ -1003,7 +1003,7 @@ fn select_palette_entry(session: &mut UiAssetEditorSession, label: &str) {
 fn preview_frame(
     session: &UiAssetEditorSession,
     node_id: &str,
-) -> crate::editing::ui_asset::UiAssetEditorPreviewCanvasNode {
+) -> crate::core::editing::ui_asset::UiAssetEditorPreviewCanvasNode {
     session
         .pane_presentation()
         .preview_canvas_items

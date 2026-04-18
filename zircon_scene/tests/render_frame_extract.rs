@@ -18,7 +18,7 @@ fn render_frame_extract_adapter_preserves_legacy_snapshot_content() {
         extract.debug.overlays.display_mode,
         snapshot.overlays.display_mode
     );
-    assert_eq!(extract.to_legacy_snapshot(), snapshot);
+    assert_eq!(extract.to_scene_snapshot(), snapshot);
 }
 
 #[test]
@@ -94,7 +94,7 @@ fn render_frame_extract_preserves_camera_aspect_ratio() {
         RenderFrameExtract::from_snapshot(RenderWorldSnapshotHandle::new(17), snapshot.clone());
 
     assert!((extract.view.camera.aspect_ratio - 2.0).abs() < 0.0001);
-    assert!((extract.to_legacy_snapshot().scene.camera.aspect_ratio - 2.0).abs() < 0.0001);
+    assert!((extract.to_scene_snapshot().scene.camera.aspect_ratio - 2.0).abs() < 0.0001);
 }
 
 fn model_handle(label: &str) -> ResourceHandle<ModelMarker> {

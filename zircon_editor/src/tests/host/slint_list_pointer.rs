@@ -1,11 +1,11 @@
-use crate::host::slint_host::callback_dispatch::{
+use crate::ui::slint_host::callback_dispatch::{
     dispatch_shared_hierarchy_pointer_click, dispatch_shared_welcome_recent_pointer_click,
     BuiltinWelcomeSurfaceTemplateBridge,
 };
-use crate::host::slint_host::hierarchy_pointer::{
+use crate::ui::slint_host::hierarchy_pointer::{
     HierarchyPointerBridge, HierarchyPointerLayout, HierarchyPointerRoute, HierarchyPointerState,
 };
-use crate::host::slint_host::welcome_recent_pointer::{
+use crate::ui::slint_host::welcome_recent_pointer::{
     WelcomeRecentPointerAction, WelcomeRecentPointerBridge, WelcomeRecentPointerLayout,
     WelcomeRecentPointerRoute, WelcomeRecentPointerState,
 };
@@ -134,7 +134,7 @@ fn shared_list_surfaces_do_not_expose_legacy_direct_callback_routes() {
     ));
     let app = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/host/slint_host/app.rs"
+        "/src/ui/slint_host/app.rs"
     ));
 
     for needle in [
@@ -211,7 +211,7 @@ fn welcome_surface_controls_use_generic_template_callbacks_instead_of_legacy_bus
     ));
     let wiring = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/host/slint_host/app/callback_wiring.rs"
+        "/src/ui/slint_host/app/callback_wiring.rs"
     ));
 
     for needle in [
@@ -298,17 +298,21 @@ fn welcome_surface_controls_use_generic_template_callbacks_instead_of_legacy_bus
 #[test]
 fn pane_surface_actions_use_generic_template_callbacks_instead_of_legacy_menu_action_abi() {
     let workbench = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/ui/workbench.slint"));
+    let pane_surface = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/ui/workbench/pane_surface.slint"
+    ));
     let assets = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/ui/workbench/assets.slint"
     ));
     let wiring = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/host/slint_host/app/callback_wiring.rs"
+        "/src/ui/slint_host/app/callback_wiring.rs"
     ));
     let lifecycle = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/host/slint_host/app/host_lifecycle.rs"
+        "/src/ui/slint_host/app/host_lifecycle.rs"
     ));
 
     for needle in [
@@ -347,7 +351,8 @@ fn pane_surface_actions_use_generic_template_callbacks_instead_of_legacy_menu_ac
         "trigger_action(action_id) => { root.surface_control_clicked(\"TriggerAction\", action_id); }",
         "clicked => { root.surface_control_clicked(\"TriggerAction\", \"OpenView.editor.assets\"); }",
     ] {
-        let found = workbench.contains(needle) || assets.contains(needle);
+        let found =
+            workbench.contains(needle) || pane_surface.contains(needle) || assets.contains(needle);
         assert!(
             found,
             "pane leaf surfaces are missing generic control route `{needle}`"

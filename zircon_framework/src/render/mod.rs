@@ -32,9 +32,9 @@ pub use overlay::{
     SelectionHighlightExtract, ViewportIconId,
 };
 pub use scene_extract::{
-    PreviewEnvironmentExtract, RenderBakedLightingExtract, RenderDirectionalLightSnapshot,
-    RenderBloomSettings, RenderColorGradingSettings, RenderExtractPacket, RenderHybridGiExtract,
-    RenderHybridGiProbe, RenderHybridGiTraceRegion, RenderMeshSnapshot,
+    PreviewEnvironmentExtract, RenderBakedLightingExtract, RenderBloomSettings,
+    RenderColorGradingSettings, RenderDirectionalLightSnapshot, RenderExtractPacket,
+    RenderHybridGiExtract, RenderHybridGiProbe, RenderHybridGiTraceRegion, RenderMeshSnapshot,
     RenderParticleSpriteSnapshot, RenderReflectionProbeSnapshot, RenderSceneGeometryExtract,
     RenderSceneSnapshot, RenderVirtualGeometryCluster, RenderVirtualGeometryExtract,
     RenderVirtualGeometryPage, SceneViewportRenderPacket,

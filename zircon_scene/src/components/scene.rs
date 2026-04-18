@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use zircon_framework::scene::Mobility;
 use zircon_math::{Mat4, Real, Transform, Vec3, Vec4};
 use zircon_resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
 
@@ -79,18 +80,6 @@ pub struct RenderLayerMask(pub u32);
 impl Default for RenderLayerMask {
     fn default() -> Self {
         Self(default_render_layer_mask())
-    }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum Mobility {
-    Dynamic,
-    Static,
-}
-
-impl Default for Mobility {
-    fn default() -> Self {
-        Self::Dynamic
     }
 }
 

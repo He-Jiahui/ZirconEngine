@@ -24,6 +24,7 @@ pub(crate) fn build_virtual_geometry_plan(
     VisibilityVirtualGeometryPageUploadPlan,
     VisibilityVirtualGeometryFeedback,
     Vec<u32>,
+    Vec<u32>,
 ) {
     let Some(extract) = extract else {
         return (
@@ -31,6 +32,7 @@ pub(crate) fn build_virtual_geometry_plan(
             Vec::new(),
             VisibilityVirtualGeometryPageUploadPlan::default(),
             VisibilityVirtualGeometryFeedback::default(),
+            Vec::new(),
             Vec::new(),
         );
     };
@@ -101,7 +103,7 @@ pub(crate) fn build_virtual_geometry_plan(
         })
         .collect::<Vec<_>>();
     let virtual_geometry_draw_segments =
-        build_visibility_owned_draw_segments(extract, &visible_clusters);
+        build_visibility_owned_draw_segments(extract, &visible_clusters, &clusters_by_id);
     let visible_page_set = virtual_geometry_visible_clusters
         .iter()
         .map(|cluster| cluster.page_id)
@@ -201,33 +203,34 @@ pub(crate) fn build_virtual_geometry_plan(
         .filter(|cluster| has_visible_ancestor(**cluster, &clusters_by_id, &visible_cluster_id_set))
         .map(|cluster| cluster.page_id)
         .collect::<BTreeSet<_>>();
-    let requested_frontier_cluster_ids = requested_frontier_cluster_ids(
+    let requested_lineage_targets = requested_lineage_targets(
         &requested_pages,
         &candidate_visible_clusters,
         &clusters_by_id,
         &visible_cluster_id_set,
     );
-    let cascade_requested_frontier_hold_protected_pages = candidate_visible_clusters
+    let streaming_target_lineage_targets = streaming_target_lineage_targets(
+        &streaming_target_clusters,
+        &clusters_by_id,
+        &visible_cluster_id_set,
+    );
+    let requested_lineage_hold_protected_pages = candidate_visible_clusters
         .iter()
         .filter(|cluster| resident_page_set.contains(&cluster.page_id))
         .filter(|cluster| !visible_cluster_id_set.contains(&cluster.cluster_id))
         .filter(|cluster| {
-            visible_frontier_cluster_id_for_cluster(
-                **cluster,
-                &clusters_by_id,
-                &visible_cluster_id_set,
-            )
-            .is_some_and(|frontier_cluster_id| {
-                requested_frontier_cluster_ids.contains(&frontier_cluster_id)
-            })
-        })
-        .filter(|cluster| {
-            !has_hidden_resident_descendant(
-                **cluster,
-                &clusters_by_id,
-                &resident_page_set,
-                &visible_cluster_id_set,
-            )
+            requested_lineage_targets
+                .iter()
+                .chain(streaming_target_lineage_targets.iter())
+                .copied()
+                .any(|(target_cluster, frontier_cluster_id)| {
+                    cluster_is_within_streaming_target_lineage_below_frontier(
+                        **cluster,
+                        target_cluster,
+                        frontier_cluster_id,
+                        &clusters_by_id,
+                    )
+                })
         })
         .map(|cluster| cluster.page_id)
         .collect::<BTreeSet<_>>();
@@ -238,7 +241,13 @@ pub(crate) fn build_virtual_geometry_plan(
         .filter(|page_id| !split_hold_protected_pages.contains(page_id))
         .filter(|page_id| !merge_hold_protected_pages.contains(page_id))
         .filter(|page_id| !merge_back_child_hold_protected_pages.contains(page_id))
-        .filter(|page_id| !cascade_requested_frontier_hold_protected_pages.contains(page_id))
+        .filter(|page_id| !requested_lineage_hold_protected_pages.contains(page_id))
+        .collect::<Vec<_>>();
+    let hot_resident_pages = resident_pages
+        .iter()
+        .copied()
+        .filter(|page_id| !visible_page_set.contains(page_id))
+        .filter(|page_id| !evictable_pages.contains(page_id))
         .collect::<Vec<_>>();
 
     let page_upload_plan = VisibilityVirtualGeometryPageUploadPlan {
@@ -254,7 +263,30 @@ pub(crate) fn build_virtual_geometry_plan(
             .collect(),
         requested_pages: requested_pages.clone(),
         evictable_pages: evictable_pages.clone(),
+        hot_resident_pages,
     };
+    let carried_merge_back_cluster_ids = requested_pages
+        .is_empty()
+        .then(|| {
+            candidate_visible_clusters
+                .iter()
+                .filter(|cluster| resident_page_set.contains(&cluster.page_id))
+                .filter(|cluster| previous_visible_cluster_ids.contains(&cluster.cluster_id))
+                .filter(|cluster| !visible_cluster_id_set.contains(&cluster.cluster_id))
+                .filter(|cluster| {
+                    has_visible_ancestor(**cluster, &clusters_by_id, &visible_cluster_id_set)
+                })
+                .map(|cluster| cluster.cluster_id)
+                .collect::<BTreeSet<_>>()
+        })
+        .unwrap_or_default();
+    let history_visible_cluster_ids = visible_cluster_id_set
+        .iter()
+        .copied()
+        .chain(carried_merge_back_cluster_ids)
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect::<Vec<_>>();
 
     (
         virtual_geometry_visible_clusters,
@@ -262,12 +294,14 @@ pub(crate) fn build_virtual_geometry_plan(
         page_upload_plan,
         feedback,
         requested_pages,
+        history_visible_cluster_ids,
     )
 }
 
 fn build_visibility_owned_draw_segments(
     extract: &RenderVirtualGeometryExtract,
     visible_clusters: &[RenderVirtualGeometryCluster],
+    clusters_by_id: &BTreeMap<u32, RenderVirtualGeometryCluster>,
 ) -> Vec<VisibilityVirtualGeometryDrawSegment> {
     let mut draw_segments: Vec<VisibilityVirtualGeometryDrawSegment> = Vec::new();
     let mut last_parent_cluster_id = None::<Option<u32>>;
@@ -275,6 +309,7 @@ fn build_visibility_owned_draw_segments(
     for cluster in visible_clusters {
         let cluster_ordinal = virtual_geometry_cluster_ordinal(extract, cluster);
         let cluster_count = virtual_geometry_cluster_count(extract, cluster.entity);
+        let lineage_depth = cluster_lineage_depth(*cluster, clusters_by_id);
         if let Some(previous) = draw_segments.last_mut() {
             let previous_end = previous
                 .cluster_ordinal
@@ -282,6 +317,7 @@ fn build_visibility_owned_draw_segments(
             let same_visibility_segment = previous.entity == cluster.entity
                 && previous.page_id == cluster.page_id
                 && previous.cluster_count == cluster_count
+                && previous.lineage_depth == lineage_depth
                 && previous.lod_level == cluster.lod_level
                 && previous_end == cluster_ordinal
                 && last_parent_cluster_id == Some(cluster.parent_cluster_id);
@@ -298,12 +334,34 @@ fn build_visibility_owned_draw_segments(
             cluster_ordinal,
             cluster_span_count: 1,
             cluster_count,
+            lineage_depth,
             lod_level: cluster.lod_level,
         });
         last_parent_cluster_id = Some(cluster.parent_cluster_id);
     }
 
     draw_segments
+}
+
+fn cluster_lineage_depth(
+    cluster: RenderVirtualGeometryCluster,
+    clusters_by_id: &BTreeMap<u32, RenderVirtualGeometryCluster>,
+) -> u32 {
+    let mut depth = 0_u32;
+    let mut current_parent_cluster_id = cluster.parent_cluster_id;
+    let mut visited_cluster_ids = BTreeSet::new();
+
+    while let Some(parent_cluster_id) = current_parent_cluster_id {
+        if !visited_cluster_ids.insert(parent_cluster_id) {
+            break;
+        }
+        depth = depth.saturating_add(1);
+        current_parent_cluster_id = clusters_by_id
+            .get(&parent_cluster_id)
+            .and_then(|parent| parent.parent_cluster_id);
+    }
+
+    depth
 }
 
 fn prioritized_requested_pages(
@@ -344,13 +402,25 @@ fn requested_page_reaches_visible_frontier(
         })
 }
 
-fn requested_frontier_cluster_ids(
+fn streaming_target_lineage_targets(
+    streaming_target_clusters: &[RenderVirtualGeometryCluster],
+    clusters_by_id: &BTreeMap<u32, RenderVirtualGeometryCluster>,
+    visible_cluster_id_set: &BTreeSet<u32>,
+) -> Vec<(RenderVirtualGeometryCluster, u32)> {
+    lineage_targets(
+        streaming_target_clusters,
+        clusters_by_id,
+        visible_cluster_id_set,
+    )
+}
+
+fn requested_lineage_targets(
     requested_pages: &[u32],
     candidate_visible_clusters: &[RenderVirtualGeometryCluster],
     clusters_by_id: &BTreeMap<u32, RenderVirtualGeometryCluster>,
     visible_cluster_id_set: &BTreeSet<u32>,
-) -> BTreeSet<u32> {
-    requested_pages
+) -> Vec<(RenderVirtualGeometryCluster, u32)> {
+    let requested_clusters = requested_pages
         .iter()
         .flat_map(|page_id| {
             candidate_visible_clusters
@@ -358,8 +428,22 @@ fn requested_frontier_cluster_ids(
                 .copied()
                 .filter(move |cluster| cluster.page_id == *page_id)
         })
+        .collect::<Vec<_>>();
+
+    lineage_targets(&requested_clusters, clusters_by_id, visible_cluster_id_set)
+}
+
+fn lineage_targets(
+    target_clusters: &[RenderVirtualGeometryCluster],
+    clusters_by_id: &BTreeMap<u32, RenderVirtualGeometryCluster>,
+    visible_cluster_id_set: &BTreeSet<u32>,
+) -> Vec<(RenderVirtualGeometryCluster, u32)> {
+    target_clusters
+        .iter()
+        .copied()
         .filter_map(|cluster| {
             visible_frontier_cluster_id_for_cluster(cluster, clusters_by_id, visible_cluster_id_set)
+                .map(|frontier_cluster_id| (cluster, frontier_cluster_id))
         })
         .collect()
 }
@@ -377,6 +461,57 @@ fn has_visible_ancestor(
             break;
         }
         if visible_cluster_id_set.contains(&parent_cluster_id) {
+            return true;
+        }
+        current_parent_cluster_id = clusters_by_id
+            .get(&parent_cluster_id)
+            .and_then(|parent| parent.parent_cluster_id);
+    }
+
+    false
+}
+
+fn cluster_is_within_streaming_target_lineage_below_frontier(
+    cluster: RenderVirtualGeometryCluster,
+    target_cluster: RenderVirtualGeometryCluster,
+    frontier_cluster_id: u32,
+    clusters_by_id: &BTreeMap<u32, RenderVirtualGeometryCluster>,
+) -> bool {
+    if cluster.cluster_id == frontier_cluster_id {
+        return false;
+    }
+
+    if cluster.cluster_id == target_cluster.cluster_id {
+        return true;
+    }
+
+    (cluster_is_ancestor_of(
+        cluster.cluster_id,
+        target_cluster.cluster_id,
+        clusters_by_id,
+    ) && cluster_is_ancestor_of(frontier_cluster_id, cluster.cluster_id, clusters_by_id))
+        || cluster_is_ancestor_of(
+            target_cluster.cluster_id,
+            cluster.cluster_id,
+            clusters_by_id,
+        )
+}
+
+fn cluster_is_ancestor_of(
+    ancestor_cluster_id: u32,
+    descendant_cluster_id: u32,
+    clusters_by_id: &BTreeMap<u32, RenderVirtualGeometryCluster>,
+) -> bool {
+    let mut current_parent_cluster_id = clusters_by_id
+        .get(&descendant_cluster_id)
+        .and_then(|cluster| cluster.parent_cluster_id);
+    let mut visited_cluster_ids = BTreeSet::new();
+
+    while let Some(parent_cluster_id) = current_parent_cluster_id {
+        if !visited_cluster_ids.insert(parent_cluster_id) {
+            break;
+        }
+        if parent_cluster_id == ancestor_cluster_id {
             return true;
         }
         current_parent_cluster_id = clusters_by_id
@@ -408,39 +543,6 @@ fn visible_frontier_cluster_id_for_cluster(
     }
 
     None
-}
-
-fn has_hidden_resident_descendant(
-    cluster: RenderVirtualGeometryCluster,
-    clusters_by_id: &BTreeMap<u32, RenderVirtualGeometryCluster>,
-    resident_page_set: &BTreeSet<u32>,
-    visible_cluster_id_set: &BTreeSet<u32>,
-) -> bool {
-    let mut stack = clusters_by_id
-        .values()
-        .filter(|candidate| candidate.parent_cluster_id == Some(cluster.cluster_id))
-        .copied()
-        .collect::<Vec<_>>();
-    let mut visited_cluster_ids = BTreeSet::new();
-
-    while let Some(candidate_cluster) = stack.pop() {
-        if !visited_cluster_ids.insert(candidate_cluster.cluster_id) {
-            continue;
-        }
-        if resident_page_set.contains(&candidate_cluster.page_id)
-            && !visible_cluster_id_set.contains(&candidate_cluster.cluster_id)
-        {
-            return true;
-        }
-        stack.extend(
-            clusters_by_id
-                .values()
-                .filter(|child| child.parent_cluster_id == Some(candidate_cluster.cluster_id))
-                .copied(),
-        );
-    }
-
-    false
 }
 
 fn highest_nonresident_ancestor_page_before_visible(

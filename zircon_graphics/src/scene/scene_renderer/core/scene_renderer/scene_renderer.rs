@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use zircon_render_server::FrameHistoryHandle;
+use zircon_framework::render::FrameHistoryHandle;
 
 use super::super::scene_renderer_core::SceneRendererCore;
 use crate::backend::{OffscreenTarget, RenderBackend};

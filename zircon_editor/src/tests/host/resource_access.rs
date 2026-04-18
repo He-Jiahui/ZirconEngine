@@ -1,5 +1,5 @@
 use crossbeam_channel::unbounded;
-use zircon_manager::ResourceManager;
+use zircon_framework::asset::ResourceManager;
 use zircon_resource::{
     MaterialMarker, ModelMarker, ResourceDiagnostic, ResourceEvent, ResourceHandle, ResourceId,
     ResourceKind, ResourceLocator, ResourceRecord, ResourceState,
@@ -16,7 +16,7 @@ fn resolve_ready_handle_returns_typed_handle_from_resource_server() {
     )]);
 
     let handle =
-        crate::host::resource_access::resolve_ready_handle::<ModelMarker>(&server, &locator)
+        crate::core::host::resource_access::resolve_ready_handle::<ModelMarker>(&server, &locator)
             .expect("ready model handle");
 
     assert_eq!(handle, ResourceHandle::<ModelMarker>::new(expected_id));
@@ -42,7 +42,7 @@ fn resolve_ready_handle_surfaces_non_ready_state_and_diagnostics() {
     }]);
 
     let error =
-        crate::host::resource_access::resolve_ready_handle::<MaterialMarker>(&server, &locator)
+        crate::core::host::resource_access::resolve_ready_handle::<MaterialMarker>(&server, &locator)
             .expect_err("error state should be rejected");
 
     assert!(error.contains("res://materials/default.material.toml"));

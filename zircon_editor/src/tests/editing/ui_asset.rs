@@ -1,4 +1,4 @@
-use crate::editing::ui_asset::{
+use crate::core::editing::ui_asset::{
     UiAssetEditorCommand, UiAssetEditorExternalEffect, UiAssetEditorSession,
     UiAssetEditorSessionError, UiAssetEditorTreeEdit, UiAssetEditorTreeEditKind,
     UiAssetEditorUndoExternalEffects,
@@ -135,6 +135,64 @@ kind = "native"
 type = "Button"
 control_id = "SaveButton"
 props = { text = "Save", checked = false, mode = "Full", icon = "asset://ui/icons/save.png" }
+"##;
+
+const CROSS_NODE_PREVIEW_LAYOUT_ASSET_TOML: &str = r##"
+[asset]
+kind = "layout"
+id = "editor.test.cross_node_preview"
+version = 1
+display_name = "Cross Node Preview Layout"
+
+[root]
+node = "root"
+
+[nodes.root]
+kind = "native"
+type = "VerticalBox"
+control_id = "Root"
+children = [{ child = "status" }, { child = "button" }]
+
+[nodes.status]
+kind = "native"
+type = "Label"
+control_id = "StatusLabel"
+props = { text = "Ready" }
+
+[nodes.button]
+kind = "native"
+type = "Button"
+control_id = "SaveButton"
+props = { text = "Save", checked = false, mode = "Full", icon = "asset://ui/icons/save.png" }
+"##;
+
+const RICH_PREVIEW_LAYOUT_ASSET_TOML: &str = r##"
+[asset]
+kind = "layout"
+id = "editor.test.rich_preview"
+version = 1
+display_name = "Rich Preview Layout"
+
+[root]
+node = "root"
+
+[nodes.root]
+kind = "native"
+type = "VerticalBox"
+control_id = "Root"
+children = [{ child = "status" }, { child = "button" }]
+
+[nodes.status]
+kind = "native"
+type = "Label"
+control_id = "StatusLabel"
+props = { text = "Ready" }
+
+[nodes.button]
+kind = "native"
+type = "Button"
+control_id = "SaveButton"
+props = { text = "Save", checked = false, count = 3, mode = "Full", icon = "asset://ui/icons/save.png", items = ["Save", "Publish"], metadata = { state = "Ready", enabled = true }, text_expr = "=preview.save_label" }
 "##;
 
 const TREE_REPARENT_LAYOUT_ASSET_TOML: &str = r##"
@@ -853,6 +911,154 @@ fn ui_asset_editor_session_projects_mock_preview_property_kinds_for_selected_nod
     assert_eq!(pane.preview_mock_property, "text");
     assert_eq!(pane.preview_mock_kind, "Text");
     assert_eq!(pane.preview_mock_value, "Save");
+}
+
+#[test]
+fn ui_asset_editor_session_supports_cross_node_preview_mock_subjects_without_changing_selection() {
+    let route = UiAssetEditorRoute::new(
+        "asset://ui/tests/cross-node-preview.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Preview,
+    );
+    let mut session = UiAssetEditorSession::from_source(
+        route,
+        CROSS_NODE_PREVIEW_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("session");
+    let original_source = session.source_buffer().text().to_string();
+
+    session
+        .select_hierarchy_index(2)
+        .expect("select button from hierarchy");
+    assert_eq!(
+        session.reflection_model().selection.primary_node_id.as_deref(),
+        Some("button")
+    );
+
+    assert!(session
+        .select_preview_mock_subject_node("status")
+        .expect("select preview mock subject node"));
+    let subject_pane = session.pane_presentation();
+    assert_eq!(
+        subject_pane.preview_mock_items,
+        vec!["StatusLabel.text [Text] = Ready".to_string()]
+    );
+    assert_eq!(subject_pane.preview_mock_selected_index, 0);
+    assert_eq!(subject_pane.preview_mock_property, "StatusLabel.text");
+    assert_eq!(subject_pane.preview_mock_value, "Ready");
+
+    session
+        .select_preview_mock_property(0)
+        .expect("select status text preview property");
+    assert!(session
+        .set_selected_preview_mock_value("Dirty")
+        .expect("override status preview text"));
+    assert_eq!(
+        selected_text(session.preview_host().surface(), "StatusLabel"),
+        Some("Dirty")
+    );
+    assert_eq!(
+        selected_text(session.preview_host().surface(), "SaveButton"),
+        Some("Save")
+    );
+    assert_eq!(
+        session.reflection_model().selection.primary_node_id.as_deref(),
+        Some("button")
+    );
+    assert_eq!(session.source_buffer().text(), original_source);
+    assert!(!session.reflection_model().source_dirty);
+}
+
+#[test]
+fn ui_asset_editor_session_projects_rich_preview_mock_kinds_and_state_graph() {
+    let route = UiAssetEditorRoute::new(
+        "asset://ui/tests/rich-preview.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Preview,
+    );
+    let mut session = UiAssetEditorSession::from_source(
+        route,
+        RICH_PREVIEW_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("session");
+
+    session
+        .select_hierarchy_index(2)
+        .expect("select button from hierarchy");
+
+    let initial = session.pane_presentation();
+    assert!(initial
+        .preview_mock_items
+        .contains(&"text [Text] = Save".to_string()));
+    assert!(initial
+        .preview_mock_items
+        .contains(&"checked [Bool] = false".to_string()));
+    assert!(initial
+        .preview_mock_items
+        .contains(&"count [Number] = 3".to_string()));
+    assert!(initial
+        .preview_mock_items
+        .contains(&"mode [Enum] = Full".to_string()));
+    assert!(initial
+        .preview_mock_items
+        .contains(&"icon [Resource] = asset://ui/icons/save.png".to_string()));
+    assert!(initial
+        .preview_mock_items
+        .contains(&"items [Collection] = [\"Save\", \"Publish\"]".to_string()));
+    assert!(initial
+        .preview_mock_items
+        .contains(&"metadata [Object] = { enabled = true, state = \"Ready\" }".to_string()));
+    assert!(initial
+        .preview_mock_items
+        .contains(&"text_expr [Expression] = =preview.save_label".to_string()));
+    assert!(initial.preview_state_graph_items.is_empty());
+
+    let items_index = initial
+        .preview_mock_items
+        .iter()
+        .position(|item| item.starts_with("items [Collection]"))
+        .expect("items preview entry");
+    session
+        .select_preview_mock_property(items_index)
+        .expect("select collection preview property");
+    assert!(session
+        .set_selected_preview_mock_value("[\"Save\", \"Ship\"]")
+        .expect("set collection preview override"));
+
+    let graph_after_items = session.pane_presentation();
+    assert_eq!(graph_after_items.preview_mock_kind, "Collection");
+    assert_eq!(graph_after_items.preview_mock_value, "[\"Save\", \"Ship\"]");
+    assert_eq!(
+        graph_after_items.preview_state_graph_items,
+        vec!["SaveButton.items = [\"Save\", \"Ship\"]".to_string()]
+    );
+
+    session
+        .select_preview_mock_subject_node("status")
+        .expect("select status node as preview subject");
+    let status_pane = session.pane_presentation();
+    let status_index = status_pane
+        .preview_mock_items
+        .iter()
+        .position(|item| item.starts_with("StatusLabel.text [Text]"))
+        .expect("status preview entry");
+    session
+        .select_preview_mock_property(status_index)
+        .expect("select status text preview property");
+    assert!(session
+        .set_selected_preview_mock_value("Dirty")
+        .expect("set status preview override"));
+
+    let graph_with_status = session.pane_presentation();
+    assert_eq!(
+        graph_with_status.preview_state_graph_items,
+        vec![
+            "SaveButton.items = [\"Save\", \"Ship\"]".to_string(),
+            "StatusLabel.text = Dirty".to_string(),
+        ]
+    );
 }
 
 #[test]
@@ -2511,6 +2717,7 @@ fn ui_asset_editor_session_tracks_source_cursor_line_inside_selected_block() {
     assert_eq!(pane.inspector_selected_node_id, "button");
     assert_eq!(pane.source_selected_block_label, "[nodes.button]");
     assert_eq!(pane.source_selected_line, target_line as i32);
+    assert_eq!(pane.source_cursor_byte_offset, byte_offset as i32);
 }
 
 #[test]
@@ -2554,6 +2761,7 @@ fn ui_asset_editor_session_preserves_source_cursor_line_through_valid_source_rou
     assert_eq!(pane.inspector_selected_node_id, "button");
     assert_eq!(pane.source_selected_block_label, "[nodes.button]");
     assert_eq!(pane.source_selected_line, target_line as i32 + 1);
+    assert_eq!(pane.source_cursor_byte_offset, byte_offset as i32 + 1);
     assert!(pane.source_selected_excerpt.contains("[nodes.button]"));
 }
 
@@ -2607,6 +2815,7 @@ fn ui_asset_editor_session_undo_restores_source_cursor_line_within_selected_bloc
     assert_eq!(pane.inspector_selected_node_id, "button");
     assert_eq!(pane.source_selected_block_label, "[nodes.button]");
     assert_eq!(pane.source_selected_line, target_line as i32);
+    assert_eq!(pane.source_cursor_byte_offset, byte_offset as i32);
 }
 
 #[test]
@@ -2647,9 +2856,14 @@ fn ui_asset_editor_session_falls_back_to_last_valid_source_selection_when_source
         .expect("apply invalid source edit");
 
     let pane = session.pane_presentation();
+    let expected_invalid_cursor_offset = byte_offset_for_line(session.source_buffer().text(), target_line);
     assert_eq!(pane.inspector_selected_node_id, "button");
     assert_eq!(pane.source_selected_block_label, "[nodes.button]");
     assert_eq!(pane.source_selected_line, target_line as i32);
+    assert_eq!(
+        pane.source_cursor_byte_offset,
+        expected_invalid_cursor_offset as i32
+    );
     assert!(pane.source_selected_excerpt.contains("[nodes.button]"));
     assert!(pane.source_roundtrip_status.contains("last valid snapshot"));
     assert!(pane
@@ -2917,10 +3131,12 @@ fn ui_asset_editor_undo_stack_replays_document_diffs_for_tree_edits() {
         SIMPLE_LAYOUT_ASSET_TOML.to_string(),
         UiDesignerSelectionModel::default(),
         Default::default(),
+        None,
         Some(before_document.clone()),
         STYLE_AUTHORING_LAYOUT_ASSET_TOML.to_string(),
         UiDesignerSelectionModel::default(),
         Default::default(),
+        None,
         Some(after_document.clone()),
         UiAssetEditorUndoExternalEffects::default(),
     );
@@ -2951,6 +3167,122 @@ fn ui_asset_editor_undo_stack_replays_document_diffs_for_tree_edits() {
 }
 
 #[test]
+fn ui_asset_editor_undo_stack_tracks_inverse_tree_edits_for_command_log_entries() {
+    let mut undo_stack = UiAssetEditorUndoStack::default();
+    undo_stack.push_edit(
+        "Move Node",
+        Some(UiAssetEditorTreeEdit::MoveNode {
+            node_id: "button".to_string(),
+            direction: "Down".to_string(),
+        }),
+        SIMPLE_LAYOUT_ASSET_TOML.to_string(),
+        UiDesignerSelectionModel::single("button"),
+        Default::default(),
+        None,
+        Some(UiAssetLoader::load_toml_str(SIMPLE_LAYOUT_ASSET_TOML).expect("before")),
+        STYLED_LAYOUT_ASSET_TOML.to_string(),
+        UiDesignerSelectionModel::single("button"),
+        Default::default(),
+        None,
+        Some(UiAssetLoader::load_toml_str(STYLED_LAYOUT_ASSET_TOML).expect("after")),
+        UiAssetEditorUndoExternalEffects::default(),
+    );
+
+    assert_eq!(undo_stack.next_undo_label().as_deref(), Some("Move Node"));
+    assert_eq!(
+        undo_stack.next_undo_inverse_tree_edit(),
+        Some(UiAssetEditorTreeEdit::MoveNode {
+            node_id: "button".to_string(),
+            direction: "Up".to_string(),
+        })
+    );
+
+    let _ = undo_stack.undo().expect("undo");
+    assert_eq!(undo_stack.next_redo_label().as_deref(), Some("Move Node"));
+    assert_eq!(
+        undo_stack.next_redo_inverse_tree_edit(),
+        Some(UiAssetEditorTreeEdit::MoveNode {
+            node_id: "button".to_string(),
+            direction: "Up".to_string(),
+        })
+    );
+}
+
+#[test]
+fn ui_asset_editor_undo_stack_tracks_composite_external_effect_vectors() {
+    let mut undo_stack = UiAssetEditorUndoStack::default();
+    undo_stack.push_edit(
+        "Composite Effects",
+        Some(UiAssetEditorTreeEdit::Generic {
+            kind: UiAssetEditorTreeEditKind::DocumentEdit,
+        }),
+        SIMPLE_LAYOUT_ASSET_TOML.to_string(),
+        UiDesignerSelectionModel::default(),
+        Default::default(),
+        None,
+        Some(UiAssetLoader::load_toml_str(SIMPLE_LAYOUT_ASSET_TOML).expect("before")),
+        STYLED_LAYOUT_ASSET_TOML.to_string(),
+        UiDesignerSelectionModel::default(),
+        Default::default(),
+        None,
+        Some(UiAssetLoader::load_toml_str(STYLED_LAYOUT_ASSET_TOML).expect("after")),
+        UiAssetEditorUndoExternalEffects {
+            undo: vec![
+                UiAssetEditorExternalEffect::RemoveAssetSource {
+                    asset_id: "res://ui/theme/editor_base.ui.toml".to_string(),
+                },
+                UiAssetEditorExternalEffect::UpsertAssetSource {
+                    asset_id: "res://ui/theme/editor_local.ui.toml".to_string(),
+                    source: "[asset]\nkind = \"style\"\nid = \"ui.theme.editor_local\"\nversion = 1\n"
+                        .to_string(),
+                },
+            ],
+            redo: vec![
+                UiAssetEditorExternalEffect::UpsertAssetSource {
+                    asset_id: "res://ui/theme/editor_base.ui.toml".to_string(),
+                    source: "[asset]\nkind = \"style\"\nid = \"ui.theme.editor_base\"\nversion = 1\n"
+                        .to_string(),
+                },
+                UiAssetEditorExternalEffect::RemoveAssetSource {
+                    asset_id: "res://ui/theme/editor_local.ui.toml".to_string(),
+                },
+            ],
+        },
+    );
+
+    assert_eq!(
+        undo_stack.next_undo_external_effects(),
+        vec![
+            UiAssetEditorExternalEffect::RemoveAssetSource {
+                asset_id: "res://ui/theme/editor_base.ui.toml".to_string(),
+            },
+            UiAssetEditorExternalEffect::UpsertAssetSource {
+                asset_id: "res://ui/theme/editor_local.ui.toml".to_string(),
+                source:
+                    "[asset]\nkind = \"style\"\nid = \"ui.theme.editor_local\"\nversion = 1\n"
+                        .to_string(),
+            },
+        ]
+    );
+
+    let _ = undo_stack.undo().expect("undo composite");
+    assert_eq!(
+        undo_stack.next_redo_external_effects(),
+        vec![
+            UiAssetEditorExternalEffect::UpsertAssetSource {
+                asset_id: "res://ui/theme/editor_base.ui.toml".to_string(),
+                source:
+                    "[asset]\nkind = \"style\"\nid = \"ui.theme.editor_base\"\nversion = 1\n"
+                        .to_string(),
+            },
+            UiAssetEditorExternalEffect::RemoveAssetSource {
+                asset_id: "res://ui/theme/editor_local.ui.toml".to_string(),
+            },
+        ]
+    );
+}
+
+#[test]
 fn ui_asset_editor_undo_stack_keeps_source_only_replays_for_source_edits() {
     let mut undo_stack = UiAssetEditorUndoStack::default();
     undo_stack.push_edit(
@@ -2960,9 +3292,11 @@ fn ui_asset_editor_undo_stack_keeps_source_only_replays_for_source_edits() {
         UiDesignerSelectionModel::default(),
         Default::default(),
         None,
+        None,
         STYLED_LAYOUT_ASSET_TOML.to_string(),
         UiDesignerSelectionModel::default(),
         Default::default(),
+        None,
         None,
         UiAssetEditorUndoExternalEffects::default(),
     );
@@ -3698,6 +4032,78 @@ fn ui_asset_editor_session_promotes_selected_local_component_to_external_widget_
     assert!(undone.components.contains_key("SaveButton"));
 }
 
+#[test]
+fn ui_asset_editor_session_promotes_local_theme_to_external_style_asset_and_links_import() {
+    let route = UiAssetEditorRoute::new(
+        "asset://ui/tests/style-authoring.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Design,
+    );
+    let mut session = UiAssetEditorSession::from_source(
+        route,
+        STYLE_AUTHORING_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("session");
+
+    let promoted_theme = session
+        .promote_local_theme_to_external_style_asset(
+            "res://ui/themes/editor_base.ui.toml",
+            "ui.theme.editor_base",
+            "Editor Base",
+        )
+        .expect("promote local theme")
+        .expect("promoted style asset document");
+
+    assert_eq!(promoted_theme.asset.kind, UiAssetKind::Style);
+    assert_eq!(promoted_theme.asset.id, "ui.theme.editor_base");
+    assert_eq!(promoted_theme.asset.display_name, "Editor Base");
+    assert_eq!(
+        promoted_theme
+            .tokens
+            .get("accent")
+            .and_then(toml::Value::as_str),
+        Some("#4488ff")
+    );
+    assert_eq!(promoted_theme.stylesheets.len(), 1);
+    assert!(promoted_theme.root.is_none());
+    assert!(promoted_theme.nodes.is_empty());
+    assert!(promoted_theme.components.is_empty());
+
+    let promoted =
+        UiAssetLoader::load_toml_str(session.source_buffer().text()).expect("promoted document");
+    assert!(promoted.tokens.is_empty());
+    assert!(promoted.stylesheets.is_empty());
+    assert_eq!(
+        promoted.imports.styles,
+        vec!["res://ui/themes/editor_base.ui.toml".to_string()]
+    );
+    assert_eq!(
+        session.next_undo_external_effect(),
+        Some(UiAssetEditorExternalEffect::RemoveAssetSource {
+            asset_id: "res://ui/themes/editor_base.ui.toml".to_string(),
+        })
+    );
+
+    assert!(session.undo().expect("undo promote local theme"));
+    let undone =
+        UiAssetLoader::load_toml_str(session.source_buffer().text()).expect("undone document");
+    assert_eq!(
+        undone.tokens.get("accent").and_then(toml::Value::as_str),
+        Some("#4488ff")
+    );
+    assert_eq!(undone.stylesheets.len(), 1);
+    assert!(undone.imports.styles.is_empty());
+    assert_eq!(
+        session.next_redo_external_effect(),
+        Some(UiAssetEditorExternalEffect::UpsertAssetSource {
+            asset_id: "res://ui/themes/editor_base.ui.toml".to_string(),
+            source: toml::to_string_pretty(&promoted_theme)
+                .expect("serialize promoted style asset document"),
+        })
+    );
+}
+
 fn selected_text<'a>(surface: &'a zircon_ui::UiSurface, control_id: &str) -> Option<&'a str> {
     surface
         .tree
@@ -3765,6 +4171,7 @@ fn slot_table_value<'a>(
 fn ui_asset_editor_subsystem_is_grouped_by_domain_folders() {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("src")
+        .join("core")
         .join("editing")
         .join("ui_asset");
 

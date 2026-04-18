@@ -11,6 +11,7 @@ use super::super::super::super::overlay::{
 use super::super::super::super::particle::ParticleRenderer;
 use super::super::super::super::post_process::ScenePostProcessResources;
 use super::super::super::super::prepass::NormalPrepassPipeline;
+use super::super::super::super::ui::ScreenSpaceUiRenderer;
 use super::super::super::super::virtual_geometry::VirtualGeometryGpuResources;
 use super::super::super::scene_renderer_core::SceneRendererCore;
 use super::super::layouts::{create_model_bind_group_layout, create_texture_bind_group_layout};
@@ -69,6 +70,7 @@ impl SceneRendererCore {
             &texture_bind_group_layout,
             icon_source,
         );
+        let screen_space_ui_renderer = ScreenSpaceUiRenderer::new(device, target_format);
         let hybrid_gi = HybridGiGpuResources::new(device);
         let virtual_geometry = VirtualGeometryGpuResources::new(device);
         let virtual_geometry_indirect_args = VirtualGeometryIndirectArgsGpuResources::new(device);
@@ -84,6 +86,7 @@ impl SceneRendererCore {
             particle_renderer,
             post_process,
             overlay_renderer,
+            screen_space_ui_renderer,
             hybrid_gi,
             virtual_geometry,
             virtual_geometry_indirect_args,

@@ -4,15 +4,14 @@ use zircon_asset::ASSET_MODULE_NAME;
 use zircon_core::{
     DriverDescriptor, ManagerDescriptor, ModuleDescriptor, ServiceKind, ServiceObject, StartupMode,
 };
-use zircon_manager::RenderingManagerHandle;
+use zircon_manager::{RenderFrameworkHandle, RenderingManagerHandle};
 use zircon_module::{dependency_on, factory, qualified_name};
-use zircon_render_server::RenderServerHandle;
 
-use super::super::create::create_render_server;
+use super::super::create::create_render_framework;
 use super::super::driver::WgpuDriver;
 use super::super::rendering_manager::WgpuRenderingManager;
 use super::graphics_core_error::graphics_core_error;
-use super::service_names::{GRAPHICS_MODULE_NAME, RENDER_SERVER_NAME};
+use super::service_names::{GRAPHICS_MODULE_NAME, RENDER_FRAMEWORK_NAME};
 
 pub fn module_descriptor() -> ModuleDescriptor {
     ModuleDescriptor::new(
@@ -26,7 +25,11 @@ pub fn module_descriptor() -> ModuleDescriptor {
         factory(|_| Ok(Arc::new(WgpuDriver) as ServiceObject)),
     ))
     .with_manager(ManagerDescriptor::new(
-        qualified_name(GRAPHICS_MODULE_NAME, ServiceKind::Manager, "RenderServer"),
+        qualified_name(
+            GRAPHICS_MODULE_NAME,
+            ServiceKind::Manager,
+            "RenderFramework",
+        ),
         StartupMode::Immediate,
         vec![dependency_on(
             ASSET_MODULE_NAME,
@@ -34,9 +37,9 @@ pub fn module_descriptor() -> ModuleDescriptor {
             "ProjectAssetManager",
         )],
         factory(|core| {
-            let render_server = create_render_server(core)
-                .map_err(|error| graphics_core_error(RENDER_SERVER_NAME, error))?;
-            Ok(Arc::new(RenderServerHandle::new(render_server)) as ServiceObject)
+            let render_framework = create_render_framework(core)
+                .map_err(|error| graphics_core_error(RENDER_FRAMEWORK_NAME, error))?;
+            Ok(Arc::new(RenderFrameworkHandle::new(render_framework)) as ServiceObject)
         }),
     ))
     .with_manager(ManagerDescriptor::new(

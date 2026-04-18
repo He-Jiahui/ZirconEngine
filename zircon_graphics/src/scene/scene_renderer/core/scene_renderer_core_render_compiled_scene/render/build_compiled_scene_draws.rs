@@ -31,6 +31,7 @@ pub(super) fn build_compiled_scene_draws(
     );
     let indirect_stats = virtual_geometry_indirect_stats(
         &built_mesh_draws.draws,
+        built_mesh_draws.indirect_args_count,
         built_mesh_draws.indirect_segment_count,
         built_mesh_draws.indirect_draw_ref_buffer,
         built_mesh_draws.indirect_segment_buffer,

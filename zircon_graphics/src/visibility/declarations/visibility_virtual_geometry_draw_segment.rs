@@ -8,5 +8,6 @@ pub struct VisibilityVirtualGeometryDrawSegment {
     pub cluster_ordinal: u32,
     pub cluster_span_count: u32,
     pub cluster_count: u32,
+    pub lineage_depth: u32,
     pub lod_level: u8,
 }

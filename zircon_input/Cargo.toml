@@ -8,6 +8,6 @@ description = "Action maps, devices, and high-level input routing above raw plat
 [dependencies]
 winit.workspace = true
 zircon_core = { path = "../zircon_core" }
+zircon_framework = { path = "../zircon_framework" }
 zircon_module = { path = "../zircon_module" }
 zircon_manager = { path = "../zircon_manager" }
-zircon_input_protocol = { path = "../zircon_input_protocol" }

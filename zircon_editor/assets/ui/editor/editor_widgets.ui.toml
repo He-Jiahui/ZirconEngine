@@ -1,0 +1,59 @@
+[asset]
+kind = "widget"
+id = "ui.editor.widgets"
+version = 1
+display_name = "Editor Widgets"
+
+[root]
+node = "section_card_root"
+
+[components.EditorToolbarButton]
+root = "toolbar_button_root"
+style_scope = "closed"
+
+[components.EditorToolbarButton.params.label]
+type = "string"
+default = "Action"
+
+[components.EditorToolbarButton.params.icon]
+type = "string"
+default = "ellipse-outline"
+
+[components.EditorSectionCard]
+root = "section_card_root"
+style_scope = "open"
+
+[components.EditorSectionCard.params.title]
+type = "string"
+default = "Section"
+
+[components.EditorSectionCard.slots.content]
+required = true
+multiple = true
+
+[nodes.toolbar_button_root]
+kind = "native"
+type = "Button"
+classes = ["toolbar-button"]
+props = { text = "$param.label", icon = "$param.icon" }
+layout = { width = { min = 112.0, preferred = 112.0, max = 144.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.section_card_root]
+kind = "native"
+type = "VerticalBox"
+classes = ["panel", "section-card"]
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox", gap = 8.0 } }
+children = [
+  { child = "section_title" },
+  { child = "section_content" },
+]
+
+[nodes.section_title]
+kind = "native"
+type = "Label"
+classes = ["section-title"]
+props = { text = "$param.title" }
+
+[nodes.section_content]
+kind = "slot"
+slot_name = "content"

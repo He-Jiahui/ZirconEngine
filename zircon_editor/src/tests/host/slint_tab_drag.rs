@@ -1,9 +1,9 @@
 use std::collections::BTreeMap;
 
-use crate::host::slint_host::callback_dispatch::BuiltinWorkbenchRootShellFrames;
-use crate::host::slint_host::floating_window_projection::FloatingWindowProjectionBundle;
-use crate::host::slint_host::shell_pointer::WorkbenchShellPointerRoute;
-use crate::host::slint_host::tab_drag::{
+use crate::ui::slint_host::callback_dispatch::BuiltinWorkbenchRootShellFrames;
+use crate::ui::slint_host::floating_window_projection::FloatingWindowProjectionBundle;
+use crate::ui::slint_host::shell_pointer::WorkbenchShellPointerRoute;
+use crate::ui::slint_host::tab_drag::{
     document_edge_group_key, drop_host_for_group, drop_host_for_tab, estimate_dock_tab_width,
     estimate_document_tab_width, floating_window_edge_group_key, floating_window_group_key,
     resolve_tab_drop, resolve_workbench_drag_target_group,
@@ -23,7 +23,7 @@ use crate::{
 };
 use zircon_ui::{UiFrame, UiPoint, UiSize};
 
-use crate::host::slint_host::shell_pointer::WorkbenchShellPointerBridge;
+use crate::ui::slint_host::shell_pointer::WorkbenchShellPointerBridge;
 
 #[test]
 fn drop_host_for_left_group_prefers_active_visible_left_slot() {
@@ -1883,11 +1883,11 @@ fn shared_drag_capture_surface_replaces_legacy_direct_drop_callback_abi() {
     let workbench = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/ui/workbench.slint"));
     let wiring = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/host/slint_host/app/callback_wiring.rs"
+        "/src/ui/slint_host/app/callback_wiring.rs"
     ));
     let docking = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/host/slint_host/app/workspace_docking.rs"
+        "/src/ui/slint_host/app/workspace_docking.rs"
     ));
 
     for needle in [

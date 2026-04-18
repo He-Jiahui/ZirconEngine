@@ -6,5 +6,6 @@ mod node_ops;
 mod state;
 mod support;
 mod ui_asset;
+mod ui_asset_theme_authoring;
 mod ui_asset_palette_drop;
 mod viewport;

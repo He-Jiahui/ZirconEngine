@@ -11,7 +11,6 @@ fn asset_manager_api_boundary_lives_in_zircon_asset() {
         include_str!("../../pipeline/manager/registration/module_descriptor.rs");
     let service_names_source = include_str!("../../pipeline/manager/registration/service_names.rs");
     let manager_lib_source = include_str!("../../../../zircon_manager/src/lib.rs");
-    let manager_traits_source = include_str!("../../../../zircon_manager/src/traits.rs");
     let manager_resolver_source = include_str!("../../../../zircon_manager/src/resolver.rs");
 
     for required in [
@@ -80,11 +79,7 @@ fn asset_manager_api_boundary_lives_in_zircon_asset() {
         "asset service names should not source ASSET_MANAGER_NAME from zircon_manager"
     );
 
-    for source in [
-        manager_lib_source,
-        manager_traits_source,
-        manager_resolver_source,
-    ] {
+    for source in [manager_lib_source, manager_resolver_source] {
         assert!(
             !source.contains("AssetManager"),
             "zircon_manager should not expose generic asset manager API after asset boundary cleanup"
@@ -231,15 +226,13 @@ fn resource_status_protocol_lives_in_resource_crate() {
     let resource_manager_facade_source =
         include_str!("../../pipeline/manager/facades/resource_manager_facade.rs");
     let manager_lib_source = include_str!("../../../../zircon_manager/src/lib.rs");
-    let manager_records_mod_source = include_str!("../../../../zircon_manager/src/records/mod.rs");
-    let manager_traits_source = include_str!("../../../../zircon_manager/src/traits.rs");
+    let manager_resolver_source = include_str!("../../../../zircon_manager/src/resolver.rs");
 
     for source in [
         pipeline_asset_status_record_source,
         resource_manager_facade_source,
         manager_lib_source,
-        manager_records_mod_source,
-        manager_traits_source,
+        manager_resolver_source,
     ] {
         assert!(
             !source.contains("ResourceStatusRecord"),
@@ -248,8 +241,8 @@ fn resource_status_protocol_lives_in_resource_crate() {
     }
 
     assert!(
-        manager_traits_source.contains("ResourceRecord"),
-        "zircon_manager::ResourceManager should expose zircon_resource::ResourceRecord"
+        manager_resolver_source.contains("ResourceManager"),
+        "zircon_manager resolver should continue exposing the resource manager handle"
     );
     assert!(
         !manager_resource_records_path.exists(),
@@ -264,15 +257,9 @@ fn resource_change_protocol_lives_in_resource_crate() {
     let resource_manager_facade_source =
         include_str!("../../pipeline/manager/facades/resource_manager_facade.rs");
     let manager_lib_source = include_str!("../../../../zircon_manager/src/lib.rs");
-    let manager_records_mod_source = include_str!("../../../../zircon_manager/src/records/mod.rs");
-    let manager_traits_source = include_str!("../../../../zircon_manager/src/traits.rs");
+    let manager_resolver_source = include_str!("../../../../zircon_manager/src/resolver.rs");
 
-    for source in [
-        resource_manager_facade_source,
-        manager_lib_source,
-        manager_records_mod_source,
-        manager_traits_source,
-    ] {
+    for source in [resource_manager_facade_source, manager_lib_source, manager_resolver_source] {
         assert!(
             !source.contains("ResourceChangeRecord"),
             "resource change boundary should not depend on zircon_manager::ResourceChangeRecord after canonical ResourceEvent migration"
@@ -284,8 +271,8 @@ fn resource_change_protocol_lives_in_resource_crate() {
     }
 
     assert!(
-        manager_traits_source.contains("ResourceEvent"),
-        "zircon_manager::ResourceManager should expose zircon_resource::ResourceEvent"
+        manager_resolver_source.contains("ResourceManager"),
+        "zircon_manager resolver should continue exposing the resource manager handle"
     );
     assert!(
         !manager_resource_records_path.exists(),

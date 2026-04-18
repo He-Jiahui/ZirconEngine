@@ -7,10 +7,15 @@ impl HybridGiRuntimeState {
         probe_ids: impl IntoIterator<Item = u32>,
         trace_region_ids: impl IntoIterator<Item = u32>,
         probe_irradiance_rgb: &[(u32, [u8; 3])],
+        probe_trace_lighting_rgb: &[(u32, [u8; 3])],
         evictable_probe_ids: &[u32],
     ) {
         for (probe_id, irradiance_rgb) in probe_irradiance_rgb {
             self.probe_irradiance_rgb.insert(*probe_id, *irradiance_rgb);
+        }
+        for (probe_id, trace_lighting_rgb) in probe_trace_lighting_rgb {
+            self.probe_rt_lighting_rgb
+                .insert(*probe_id, *trace_lighting_rgb);
         }
         self.scheduled_trace_regions = trace_region_ids.into_iter().collect();
         complete_pending_probes(self, probe_ids, evictable_probe_ids);

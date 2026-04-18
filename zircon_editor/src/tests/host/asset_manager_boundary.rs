@@ -1,10 +1,10 @@
 #[test]
 fn editor_asset_boundary_lives_in_asset_crate() {
-    let app_source = include_str!("../../host/slint_host/app.rs");
-    let host_lifecycle_source = include_str!("../../host/slint_host/app/host_lifecycle.rs");
-    let project_access_source = include_str!("../../host/manager/project_access.rs");
-    let asset_workspace_source = include_str!("../../editing/asset_workspace.rs");
-    let accessors_source = include_str!("../../editor_event/runtime/accessors.rs");
+    let app_source = include_str!("../../ui/slint_host/app.rs");
+    let host_lifecycle_source = include_str!("../../ui/slint_host/app/host_lifecycle.rs");
+    let project_access_source = include_str!("../../core/host/manager/project_access.rs");
+    let asset_workspace_source = include_str!("../../core/editing/asset_workspace.rs");
+    let accessors_source = include_str!("../../core/editor_event/runtime/accessors.rs");
 
     assert!(
         app_source.contains("use zircon_asset::{"),
@@ -50,8 +50,8 @@ fn editor_asset_boundary_lives_in_asset_crate() {
 
 #[test]
 fn editor_host_uses_asset_owned_asset_change_stream() {
-    let app_source = include_str!("../../host/slint_host/app.rs");
-    let backend_refresh_source = include_str!("../../host/slint_host/app/backend_refresh.rs");
+    let app_source = include_str!("../../ui/slint_host/app.rs");
+    let backend_refresh_source = include_str!("../../ui/slint_host/app/backend_refresh.rs");
     let slint_asset_refresh_test_source = include_str!("slint_asset_refresh.rs");
 
     for source in [
@@ -79,19 +79,19 @@ fn editor_host_uses_asset_owned_asset_change_stream() {
 
 #[test]
 fn editor_asset_workspace_uses_canonical_resource_kind() {
-    let asset_workspace_source = include_str!("../../editing/asset_workspace.rs");
+    let asset_workspace_source = include_str!("../../core/editing/asset_workspace.rs");
     let editor_state_asset_workspace_source =
-        include_str!("../../editing/state/editor_state_asset_workspace.rs");
-    let event_common_source = include_str!("../../editor_event/runtime/execution/common.rs");
-    let resource_access_source = include_str!("../../host/resource_access.rs");
+        include_str!("../../core/editing/state/editor_state_asset_workspace.rs");
+    let event_common_source = include_str!("../../core/editor_event/runtime/execution/common.rs");
+    let resource_access_source = include_str!("../../core/host/resource_access.rs");
     let asset_item_snapshot_source =
-        include_str!("../../workbench/snapshot/asset/asset_item_snapshot.rs");
+        include_str!("../../ui/workbench/snapshot/asset/asset_item_snapshot.rs");
     let asset_reference_snapshot_source =
-        include_str!("../../workbench/snapshot/asset/asset_reference_snapshot.rs");
+        include_str!("../../ui/workbench/snapshot/asset/asset_reference_snapshot.rs");
     let asset_selection_snapshot_source =
-        include_str!("../../workbench/snapshot/asset/asset_selection_snapshot.rs");
+        include_str!("../../ui/workbench/snapshot/asset/asset_selection_snapshot.rs");
     let asset_workspace_snapshot_source =
-        include_str!("../../workbench/snapshot/asset/asset_workspace_snapshot.rs");
+        include_str!("../../ui/workbench/snapshot/asset/asset_workspace_snapshot.rs");
 
     for source in [
         asset_workspace_source,
@@ -112,17 +112,17 @@ fn editor_asset_workspace_uses_canonical_resource_kind() {
 
 #[test]
 fn editor_asset_workspace_uses_canonical_resource_state() {
-    let asset_workspace_source = include_str!("../../editing/asset_workspace.rs");
+    let asset_workspace_source = include_str!("../../core/editing/asset_workspace.rs");
     let editor_state_asset_workspace_source =
-        include_str!("../../editing/state/editor_state_asset_workspace.rs");
-    let accessors_source = include_str!("../../editor_event/runtime/accessors.rs");
-    let resource_access_source = include_str!("../../host/resource_access.rs");
+        include_str!("../../core/editing/state/editor_state_asset_workspace.rs");
+    let accessors_source = include_str!("../../core/editor_event/runtime/accessors.rs");
+    let resource_access_source = include_str!("../../core/host/resource_access.rs");
     let asset_surface_source =
-        include_str!("../../host/slint_host/ui/asset_surface_presentation.rs");
+        include_str!("../../ui/slint_host/ui/asset_surface_presentation.rs");
     let asset_item_snapshot_source =
-        include_str!("../../workbench/snapshot/asset/asset_item_snapshot.rs");
+        include_str!("../../ui/workbench/snapshot/asset/asset_item_snapshot.rs");
     let asset_selection_snapshot_source =
-        include_str!("../../workbench/snapshot/asset/asset_selection_snapshot.rs");
+        include_str!("../../ui/workbench/snapshot/asset/asset_selection_snapshot.rs");
 
     for source in [
         asset_workspace_source,
@@ -154,11 +154,11 @@ fn editor_asset_workspace_uses_canonical_resource_state() {
 
 #[test]
 fn editor_asset_workspace_uses_canonical_resource_record() {
-    let asset_workspace_source = include_str!("../../editing/asset_workspace.rs");
+    let asset_workspace_source = include_str!("../../core/editing/asset_workspace.rs");
     let editor_state_asset_workspace_source =
-        include_str!("../../editing/state/editor_state_asset_workspace.rs");
-    let accessors_source = include_str!("../../editor_event/runtime/accessors.rs");
-    let resource_access_source = include_str!("../../host/resource_access.rs");
+        include_str!("../../core/editing/state/editor_state_asset_workspace.rs");
+    let accessors_source = include_str!("../../core/editor_event/runtime/accessors.rs");
+    let resource_access_source = include_str!("../../core/host/resource_access.rs");
     let resource_access_test_source = include_str!("resource_access.rs");
 
     for source in [
@@ -184,8 +184,8 @@ fn editor_asset_workspace_uses_canonical_resource_record() {
 
 #[test]
 fn editor_host_uses_canonical_resource_event() {
-    let app_source = include_str!("../../host/slint_host/app.rs");
-    let backend_refresh_source = include_str!("../../host/slint_host/app/backend_refresh.rs");
+    let app_source = include_str!("../../ui/slint_host/app.rs");
+    let backend_refresh_source = include_str!("../../ui/slint_host/app/backend_refresh.rs");
     let resource_access_test_source = include_str!("resource_access.rs");
     let slint_asset_refresh_test_source = include_str!("slint_asset_refresh.rs");
 

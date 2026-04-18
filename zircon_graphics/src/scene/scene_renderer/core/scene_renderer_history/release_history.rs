@@ -1,4 +1,4 @@
-use zircon_render_server::FrameHistoryHandle;
+use zircon_framework::render::FrameHistoryHandle;
 
 use super::super::scene_renderer::SceneRenderer;
 

@@ -10,13 +10,13 @@ use zircon_foundation::{
 };
 use zircon_manager::resolve_config_manager;
 
-use crate::host::slint_host::drawer_resize::{
+use crate::ui::slint_host::drawer_resize::{
     apply_resize_to_group, resolve_workbench_resize_target_group, WorkbenchResizeTargetGroup,
 };
-use crate::host::slint_host::shell_pointer::{
+use crate::ui::slint_host::shell_pointer::{
     WorkbenchShellPointerBridge, WorkbenchShellPointerRoute,
 };
-use crate::host::slint_host::tab_drag::WorkbenchDragTargetGroup;
+use crate::ui::slint_host::tab_drag::WorkbenchDragTargetGroup;
 use crate::{
     ActivityDrawerSlot, EditorManager, ShellFrame, ShellRegionId, ShellSizePx,
     WorkbenchShellGeometry, EDITOR_MANAGER_NAME,
@@ -335,11 +335,11 @@ fn shared_resize_surface_replaces_legacy_direct_resize_callback_abi() {
     let workbench = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/ui/workbench.slint"));
     let wiring = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/host/slint_host/app/callback_wiring.rs"
+        "/src/ui/slint_host/app/callback_wiring.rs"
     ));
     let docking = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/host/slint_host/app/workspace_docking.rs"
+        "/src/ui/slint_host/app/workspace_docking.rs"
     ));
 
     for needle in [

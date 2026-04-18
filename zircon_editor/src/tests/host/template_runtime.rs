@@ -1,12 +1,12 @@
 use toml::Value;
-use zircon_editor_ui::EditorUiControlService;
+use crate::ui::EditorUiControlService;
 use zircon_ui::{
     UiAssetKind, UiEventKind, UiFrame, UiInputPolicy, UiLegacyTemplateAdapter, UiSize,
     UiTemplateLoader,
 };
 
 use crate::{
-    host::template_runtime::{UI_HOST_WINDOW_DOCUMENT_ID, WORKBENCH_SHELL_DOCUMENT_ID},
+    ui::template_runtime::{UI_HOST_WINDOW_DOCUMENT_ID, WORKBENCH_SHELL_DOCUMENT_ID},
     EditorUiCompatibilityHarness, EditorUiHostRuntime, SlintUiHostAdapter,
     SlintUiHostComponentKind, SlintUiHostValue, UiAssetEditorMode, UiAssetEditorRoute,
     UiAssetEditorSession,
@@ -167,22 +167,22 @@ fn editor_ui_host_runtime_projects_asset_document_source_into_slint_projection()
     runtime
         .register_binding(
             "WorkbenchMenuBar/OpenProject",
-            zircon_editor_ui::EditorUiBinding::new(
+            crate::ui::EditorUiBinding::new(
                 "WorkbenchMenuBar",
                 "OpenProject",
-                zircon_editor_ui::EditorUiEventKind::Click,
-                zircon_editor_ui::EditorUiBindingPayload::menu_action("OpenProject"),
+                crate::ui::EditorUiEventKind::Click,
+                crate::ui::EditorUiBindingPayload::menu_action("OpenProject"),
             ),
         )
         .unwrap();
     runtime
         .register_binding(
             "WorkbenchMenuBar/SaveProject",
-            zircon_editor_ui::EditorUiBinding::new(
+            crate::ui::EditorUiBinding::new(
                 "WorkbenchMenuBar",
                 "SaveProject",
-                zircon_editor_ui::EditorUiEventKind::Click,
-                zircon_editor_ui::EditorUiBindingPayload::menu_action("SaveProject"),
+                crate::ui::EditorUiEventKind::Click,
+                crate::ui::EditorUiBindingPayload::menu_action("SaveProject"),
             ),
         )
         .unwrap();
@@ -1011,7 +1011,7 @@ fn editor_ui_compatibility_harness_captures_shared_layout_frames_from_surface_an
 fn editor_template_runtime_splits_builtin_data_from_runtime_pipeline() {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("src")
-        .join("host")
+        .join("ui")
         .join("template_runtime");
 
     for relative in [

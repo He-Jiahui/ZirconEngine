@@ -1,24 +1,24 @@
 ---
 related_code:
   - zircon_editor/src/lib.rs
-  - zircon_editor/src/host/slint_host/app.rs
-  - zircon_editor/src/editing/command.rs
-  - zircon_editor/src/editing/history.rs
-  - zircon_editor/src/editing/state/mod.rs
-  - zircon_editor/src/host/manager.rs
-  - zircon_editor/src/host/message.rs
-  - zircon_editor/src/workbench/project/mod.rs
-  - zircon_editor/src/workbench/snapshot/mod.rs
+  - zircon_editor/src/ui/slint_host/app.rs
+  - zircon_editor/src/core/editing/command.rs
+  - zircon_editor/src/core/editing/history.rs
+  - zircon_editor/src/core/editing/state/mod.rs
+  - zircon_editor/src/core/host/manager.rs
+  - zircon_editor/src/core/editor_event/host_adapter.rs
+  - zircon_editor/src/ui/workbench/project/mod.rs
+  - zircon_editor/src/ui/workbench/snapshot/mod.rs
   - zircon_scene/src/lib.rs
   - zircon_scene/src/world.rs
 implementation_files:
-  - zircon_editor/src/host/slint_host/app.rs
-  - zircon_editor/src/editing/command.rs
-  - zircon_editor/src/editing/history.rs
-  - zircon_editor/src/host/manager.rs
-  - zircon_editor/src/editing/state/mod.rs
-  - zircon_editor/src/workbench/project/mod.rs
-  - zircon_editor/src/workbench/snapshot/mod.rs
+  - zircon_editor/src/ui/slint_host/app.rs
+  - zircon_editor/src/core/editing/command.rs
+  - zircon_editor/src/core/editing/history.rs
+  - zircon_editor/src/core/host/manager.rs
+  - zircon_editor/src/core/editing/state/mod.rs
+  - zircon_editor/src/ui/workbench/project/mod.rs
+  - zircon_editor/src/ui/workbench/snapshot/mod.rs
   - zircon_scene/src/world.rs
 plan_sources:
   - user: 2026-04-12 扩展 editor 命令系统到删除节点、改父子层级、重命名和 inspector 字段批量提交
@@ -29,7 +29,7 @@ tests:
   - zircon_editor/src/lib.rs
   - zircon_scene/src/lib.rs
   - cargo test -p zircon_editor -- --nocapture
-  - cargo test -p zircon_entry -- --nocapture
+  - cargo test -p zircon_app -- --nocapture
 doc_type: module-detail
 ---
 
@@ -46,13 +46,13 @@ doc_type: module-detail
 
 ## Related Files
 
-- `zircon_editor/src/editing/command.rs`: 命令类型、创建/删除/更新节点逻辑
-- `zircon_editor/src/editing/history.rs`: undo/redo 栈和 gizmo drag 聚合逻辑
-- `zircon_editor/src/editing/state/mod.rs`: `EditorIntent` 到命令执行的主入口，维护 inspector 草稿态
-- `zircon_editor/src/host/slint_host/app.rs`: 统一接住项目保存/加载和多窗口 workbench 宿主消息，再驱动命令执行
-- `zircon_editor/src/host/manager.rs`: 提供布局、view registry、项目 workspace 的 editor 域协调入口
-- `zircon_editor/src/workbench/project/mod.rs`: editor project/workspace sidecar 与 level 文档桥接
-- `zircon_editor/src/workbench/snapshot/mod.rs`: workbench 与资产面板投影快照
+- `zircon_editor/src/core/editing/command.rs`: 命令类型、创建/删除/更新节点逻辑
+- `zircon_editor/src/core/editing/history.rs`: undo/redo 栈和 gizmo drag 聚合逻辑
+- `zircon_editor/src/core/editing/state/mod.rs`: `EditorIntent` 到命令执行的主入口，维护 inspector 草稿态
+- `zircon_editor/src/ui/slint_host/app.rs`: 统一接住项目保存/加载和多窗口 workbench 宿主消息，再驱动命令执行
+- `zircon_editor/src/core/host/manager.rs`: 提供布局、view registry、项目 workspace 的 editor 域协调入口
+- `zircon_editor/src/ui/workbench/project/mod.rs`: editor project/workspace sidecar 与 level 文档桥接
+- `zircon_editor/src/ui/workbench/snapshot/mod.rs`: workbench 与资产面板投影快照
 - `zircon_scene/src/world.rs`: 世界层约束，如最后一个 camera 不可删、层级不可成环
 
 ## Behavior Model

@@ -9,8 +9,20 @@ impl SceneRenderer {
     #[cfg(test)]
     pub(crate) fn read_last_virtual_geometry_indirect_segments(
         &self,
-    ) -> Result<Vec<(u32, u32, u32, u32, u32, VirtualGeometryPrepareClusterState)>, GraphicsError>
-    {
+    ) -> Result<
+        Vec<(
+            u32,
+            u32,
+            u32,
+            u32,
+            u32,
+            VirtualGeometryPrepareClusterState,
+            u32,
+            u32,
+            u32,
+        )>,
+        GraphicsError,
+    > {
         let Some(buffer) = self.last_virtual_geometry_indirect_segments_buffer.as_ref() else {
             return Ok(Vec::new());
         };
@@ -22,7 +34,7 @@ impl SceneRenderer {
             label: Some("zircon-vg-indirect-segments-readback"),
             size: (self.last_virtual_geometry_indirect_segment_count as u64)
                 * (std::mem::size_of::<u32>() as u64)
-                * 6,
+                * 9,
             usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
             mapped_at_creation: false,
         });
@@ -39,17 +51,17 @@ impl SceneRenderer {
             0,
             (self.last_virtual_geometry_indirect_segment_count as u64)
                 * (std::mem::size_of::<u32>() as u64)
-                * 6,
+                * 9,
         );
         self.backend.queue.submit([encoder.finish()]);
         let words = read_buffer_u32s(
             &self.backend.device,
             &staging,
-            (self.last_virtual_geometry_indirect_segment_count as usize) * 6,
+            (self.last_virtual_geometry_indirect_segment_count as usize) * 9,
         )?;
 
         Ok(words
-            .chunks_exact(6)
+            .chunks_exact(9)
             .map(|chunk| {
                 (
                     chunk[0],
@@ -58,6 +70,9 @@ impl SceneRenderer {
                     chunk[3],
                     chunk[4],
                     decode_cluster_state(chunk[5]),
+                    chunk[6],
+                    chunk[7],
+                    chunk[8],
                 )
             })
             .collect())

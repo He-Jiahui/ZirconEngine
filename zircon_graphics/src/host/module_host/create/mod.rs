@@ -1,4 +1,4 @@
-mod create_render_server;
+mod create_render_framework;
 mod create_render_service;
 mod create_render_service_with_icon_source;
 mod create_runtime_preview_renderer;
@@ -6,7 +6,7 @@ mod create_shared_texture_render_service;
 mod create_shared_texture_render_service_with_icon_source;
 mod resolve_project_asset_manager;
 
-pub use create_render_server::create_render_server;
+pub use create_render_framework::create_render_framework;
 pub use create_render_service::create_render_service;
 pub use create_render_service_with_icon_source::create_render_service_with_icon_source;
 pub use create_runtime_preview_renderer::create_runtime_preview_renderer;

@@ -11,4 +11,5 @@ pub(super) struct HybridGiPrepareExecutionInputs {
     pub(super) completed_probe_word_count: usize,
     pub(super) completed_trace_word_count: usize,
     pub(super) irradiance_word_count: usize,
+    pub(super) trace_lighting_word_count: usize,
 }

@@ -80,6 +80,17 @@ pub(super) fn create_buffers(
         "zircon-hybrid-gi-irradiance-readback",
         inputs.irradiance_word_count.max(1),
     );
+    let trace_lighting_buffer = create_u32_storage_buffer(
+        device,
+        "zircon-hybrid-gi-trace-lighting-buffer",
+        &vec![0_u32; inputs.trace_lighting_word_count.max(1)],
+        wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC,
+    );
+    let trace_lighting_readback = create_readback_buffer(
+        device,
+        "zircon-hybrid-gi-trace-lighting-readback",
+        inputs.trace_lighting_word_count.max(1),
+    );
 
     HybridGiPrepareExecutionBuffers {
         cache_readback,
@@ -92,5 +103,7 @@ pub(super) fn create_buffers(
         completed_trace_readback,
         irradiance_buffer,
         irradiance_readback,
+        trace_lighting_buffer,
+        trace_lighting_readback,
     }
 }

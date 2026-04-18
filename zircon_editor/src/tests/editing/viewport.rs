@@ -1,4 +1,4 @@
-use crate::editing::viewport::pointer::{
+use crate::scene::viewport::pointer::{
     ViewportOverlayPointerBridge, ViewportPointerLayout, ViewportPointerRoute,
     ViewportRenderablePickCandidate,
 };

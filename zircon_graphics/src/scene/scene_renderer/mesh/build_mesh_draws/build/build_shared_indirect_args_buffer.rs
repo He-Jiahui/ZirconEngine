@@ -6,7 +6,8 @@ use wgpu::util::DeviceExt;
 use super::super::super::virtual_geometry_indirect_args_gpu_resources::VirtualGeometryIndirectArgsGpuResources;
 use super::super::indexed_indirect_args::IndexedIndirectArgs;
 use super::pending_mesh_draw::{
-    draw_ref_input, segment_input, PendingMeshDraw, VirtualGeometryIndirectDrawRefInput,
+    draw_ref_input, segment_input, PendingMeshDraw, VirtualGeometryIndirectDrawRef,
+    VirtualGeometryIndirectDrawRefInput,
     VirtualGeometryIndirectSegmentInput, VirtualGeometryIndirectSegmentKey,
 };
 
@@ -15,6 +16,8 @@ pub(super) struct SharedIndirectArgsBuffer {
     pub(super) draw_ref_buffer: Arc<wgpu::Buffer>,
     pub(super) segment_buffer: Arc<wgpu::Buffer>,
     pub(super) segment_count: u32,
+    pub(super) args_count: u32,
+    pub(super) indirect_args_offsets: Vec<u64>,
 }
 
 pub(super) fn build_shared_indirect_args_buffer(
@@ -23,24 +26,62 @@ pub(super) fn build_shared_indirect_args_buffer(
     virtual_geometry_indirect_args: &VirtualGeometryIndirectArgsGpuResources,
     pending_draws: &[PendingMeshDraw],
 ) -> Option<SharedIndirectArgsBuffer> {
-    let mut segment_indices = HashMap::<VirtualGeometryIndirectSegmentKey, u32>::new();
-    let mut segment_inputs = Vec::<VirtualGeometryIndirectSegmentInput>::new();
-    let mut draw_refs = Vec::<VirtualGeometryIndirectDrawRefInput>::new();
+    let mut ordered_draw_refs = pending_draws
+        .iter()
+        .enumerate()
+        .filter_map(|(pending_draw_index, pending_draw)| {
+            pending_draw.indirect_draw_ref.map(|draw_ref| OrderedDrawRef {
+                pending_draw_index,
+                draw_ref,
+            })
+        })
+        .collect::<Vec<_>>();
 
-    for pending_draw in pending_draws {
-        let Some(indirect_draw_ref) = pending_draw.indirect_draw_ref else {
-            continue;
+    if ordered_draw_refs.is_empty() {
+        return None;
+    }
+
+    ordered_draw_refs.sort_by_key(draw_ref_submission_order_key);
+
+    let mut unique_segment_keys = ordered_draw_refs
+        .iter()
+        .map(|ordered_draw_ref| ordered_draw_ref.draw_ref.segment_key)
+        .collect::<Vec<_>>();
+    unique_segment_keys.sort_by_key(segment_submission_order_key);
+    unique_segment_keys.dedup();
+
+    let segment_indices = unique_segment_keys
+        .iter()
+        .copied()
+        .enumerate()
+        .map(|(segment_index, segment_key)| (segment_key, segment_index as u32))
+        .collect::<HashMap<_, _>>();
+    let segment_inputs = unique_segment_keys
+        .iter()
+        .copied()
+        .map(segment_input)
+        .collect::<Vec<VirtualGeometryIndirectSegmentInput>>();
+    let indirect_args_stride = std::mem::size_of::<IndexedIndirectArgs>() as u64;
+    let mut indirect_args_offsets = vec![0_u64; pending_draws.len()];
+    let mut indirect_args_keys = HashMap::<IndirectArgsKey, u32>::new();
+    let mut draw_refs = Vec::<VirtualGeometryIndirectDrawRefInput>::new();
+    for ordered_draw_ref in ordered_draw_refs {
+        let indirect_args_key = IndirectArgsKey {
+            mesh_index_count: ordered_draw_ref.draw_ref.mesh_index_count,
+            segment_key: ordered_draw_ref.draw_ref.segment_key,
         };
-        let segment_index =
-            if let Some(&segment_index) = segment_indices.get(&indirect_draw_ref.segment_key) {
-                segment_index
-            } else {
-                let segment_index = segment_inputs.len() as u32;
-                segment_indices.insert(indirect_draw_ref.segment_key, segment_index);
-                segment_inputs.push(segment_input(indirect_draw_ref.segment_key));
-                segment_index
-            };
-        draw_refs.push(draw_ref_input(indirect_draw_ref, segment_index));
+        let draw_ref_index = match indirect_args_keys.get(&indirect_args_key).copied() {
+            Some(existing_index) => existing_index,
+            None => {
+                let segment_index = segment_indices[&ordered_draw_ref.draw_ref.segment_key];
+                let next_index = draw_refs.len() as u32;
+                draw_refs.push(draw_ref_input(ordered_draw_ref.draw_ref, segment_index));
+                indirect_args_keys.insert(indirect_args_key, next_index);
+                next_index
+            }
+        };
+        indirect_args_offsets[ordered_draw_ref.pending_draw_index] =
+            (draw_ref_index as u64) * indirect_args_stride;
     }
 
     if draw_refs.is_empty() {
@@ -90,7 +131,70 @@ pub(super) fn build_shared_indirect_args_buffer(
         draw_ref_buffer,
         segment_buffer,
         segment_count: segment_inputs.len() as u32,
+        args_count: draw_refs.len() as u32,
+        indirect_args_offsets,
     })
+}
+
+#[derive(Clone, Copy)]
+struct OrderedDrawRef {
+    pending_draw_index: usize,
+    draw_ref: VirtualGeometryIndirectDrawRef,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+struct IndirectArgsKey {
+    mesh_index_count: u32,
+    segment_key: VirtualGeometryIndirectSegmentKey,
+}
+
+fn draw_ref_submission_order_key(
+    ordered_draw_ref: &OrderedDrawRef,
+) -> (
+    (u32, u32, u32, u64, u32, u32),
+    (u32, u32, u8, u32, u32, u32),
+    usize,
+) {
+    let segment_key = ordered_draw_ref.draw_ref.segment_key;
+    (
+        (
+            segment_key.submission_index,
+            segment_key.submission_slot.unwrap_or(u32::MAX),
+            segment_key.frontier_rank,
+            segment_key.entity,
+            segment_key.cluster_start_ordinal,
+            segment_key.page_id,
+        ),
+        (
+            segment_key.cluster_span_count,
+            segment_key.cluster_total_count,
+            segment_key.lod_level,
+            segment_key.lineage_depth,
+            segment_key.state,
+            ordered_draw_ref.draw_ref.mesh_index_count,
+        ),
+        ordered_draw_ref.pending_draw_index,
+    )
+}
+
+fn segment_submission_order_key(
+    segment_key: &VirtualGeometryIndirectSegmentKey,
+) -> ((u32, u32, u32, u64, u32, u32, u32, u32, u8, u32), u32) {
+    (
+        (
+            segment_key.submission_index,
+            segment_key.submission_slot.unwrap_or(u32::MAX),
+            segment_key.frontier_rank,
+            segment_key.entity,
+            segment_key.cluster_start_ordinal,
+            segment_key.page_id,
+            segment_key.cluster_span_count,
+            segment_key.cluster_total_count,
+            segment_key.lod_level,
+            segment_key.lineage_depth,
+        ),
+        segment_key.state,
+    )
 }
 
 fn segment_buffer(

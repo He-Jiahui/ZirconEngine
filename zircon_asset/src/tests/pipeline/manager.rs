@@ -2,7 +2,7 @@ use crossbeam_channel::RecvTimeoutError;
 use std::fs;
 use std::time::{Duration, Instant};
 
-use zircon_manager::ResourceManager;
+use zircon_framework::asset::ResourceManager;
 use zircon_resource::{ResourceEventKind, ResourceKind, ResourceState, RuntimeResourceState};
 
 use crate::tests::project::unique_temp_project_root;

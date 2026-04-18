@@ -1,14 +1,14 @@
-use crate::host::slint_host::callback_dispatch::{
+use crate::ui::slint_host::callback_dispatch::{
     dispatch_builtin_asset_surface_control, dispatch_shared_document_tab_close_pointer_click,
     dispatch_shared_document_tab_pointer_click, BuiltinAssetSurfaceTemplateBridge,
     BuiltinWorkbenchTemplateBridge,
 };
-use crate::host::slint_host::document_tab_pointer::{
+use crate::ui::slint_host::document_tab_pointer::{
     build_workbench_document_tab_pointer_layout, WorkbenchDocumentTabPointerBridge,
     WorkbenchDocumentTabPointerItem, WorkbenchDocumentTabPointerLayout,
     WorkbenchDocumentTabPointerRoute, WorkbenchDocumentTabPointerSurface,
 };
-use crate::host::slint_host::floating_window_projection::build_floating_window_projection_bundle;
+use crate::ui::slint_host::floating_window_projection::build_floating_window_projection_bundle;
 use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
 use crate::{
     compute_workbench_shell_geometry, default_preview_fixture, DocumentNode, EditorEvent,
@@ -206,11 +206,11 @@ fn shared_document_tab_surfaces_replace_legacy_direct_click_routes() {
     ));
     let app = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/host/slint_host/app.rs"
+        "/src/ui/slint_host/app.rs"
     ));
     let wiring = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/host/slint_host/app/callback_wiring.rs"
+        "/src/ui/slint_host/app/callback_wiring.rs"
     ));
 
     for needle in [

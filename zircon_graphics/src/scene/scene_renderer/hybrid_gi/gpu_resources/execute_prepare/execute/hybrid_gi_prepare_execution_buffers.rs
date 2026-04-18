@@ -9,4 +9,6 @@ pub(super) struct HybridGiPrepareExecutionBuffers {
     pub(super) completed_trace_readback: wgpu::Buffer,
     pub(super) irradiance_buffer: wgpu::Buffer,
     pub(super) irradiance_readback: wgpu::Buffer,
+    pub(super) trace_lighting_buffer: wgpu::Buffer,
+    pub(super) trace_lighting_readback: wgpu::Buffer,
 }

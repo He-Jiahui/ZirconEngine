@@ -1,4 +1,4 @@
-use zircon_manager::{RenderingBackendInfo, RenderingManager as RenderingManagerFacade};
+use zircon_framework::render::{RenderingBackendInfo, RenderingManager as RenderingManagerFacade};
 
 use super::wgpu_rendering_manager::WgpuRenderingManager;
 

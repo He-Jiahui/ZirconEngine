@@ -11,6 +11,9 @@ pub(super) fn pending_requests(
         .map(|request| GpuPendingRequestInput {
             page_id: request.page_id,
             size_bytes: request.size_bytes.min(u64::from(u32::MAX)) as u32,
+            frontier_rank: request.frontier_rank,
+            assigned_slot: request.assigned_slot.unwrap_or(u32::MAX),
+            recycled_page_id: request.recycled_page_id.unwrap_or(u32::MAX),
         })
         .collect()
 }

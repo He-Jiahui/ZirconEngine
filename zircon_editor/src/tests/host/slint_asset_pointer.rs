@@ -1,11 +1,11 @@
-use crate::host::slint_host::asset_pointer::{
+use crate::ui::slint_host::asset_pointer::{
     AssetContentListPointerBridge, AssetContentListPointerLayout, AssetFolderTreePointerBridge,
     AssetFolderTreePointerLayout, AssetListPointerState, AssetListViewMode,
     AssetPointerContentRoute, AssetPointerReferenceRoute, AssetPointerTreeRoute,
     AssetReferenceListPointerBridge, AssetReferenceListPointerEntry,
     AssetReferenceListPointerLayout,
 };
-use crate::host::slint_host::callback_dispatch::{
+use crate::ui::slint_host::callback_dispatch::{
     dispatch_builtin_asset_surface_control, dispatch_shared_asset_content_pointer_click,
     dispatch_shared_asset_reference_pointer_click, dispatch_shared_asset_tree_pointer_click,
     BuiltinAssetSurfaceTemplateBridge,
@@ -239,18 +239,23 @@ fn shared_asset_reference_pointer_bridge_scrolls_and_dispatches_reference_activa
 #[test]
 fn asset_surface_controls_use_generic_template_callbacks_instead_of_legacy_business_abi() {
     let workbench = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/ui/workbench.slint"));
+    let pane_surface = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/ui/workbench/pane_surface.slint"
+    ));
     let assets = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/ui/workbench/assets.slint"
     ));
     let wiring = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/host/slint_host/app/callback_wiring.rs"
+        "/src/ui/slint_host/app/callback_wiring.rs"
     ));
     let app_assets = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/host/slint_host/app/assets.rs"
+        "/src/ui/slint_host/app/assets.rs"
     ));
+    let workbench_shell_and_surface = [workbench, pane_surface].join("\n");
 
     for needle in [
         "callback asset_search_edited(",
@@ -335,7 +340,7 @@ fn asset_surface_controls_use_generic_template_callbacks_instead_of_legacy_busin
         "asset_control_clicked(control_id) => { root.asset_control_clicked(\"project\", control_id); }",
     ] {
         assert!(
-            workbench.contains(needle),
+            workbench_shell_and_surface.contains(needle),
             "workbench shell is missing generic asset control route `{needle}`"
         );
     }

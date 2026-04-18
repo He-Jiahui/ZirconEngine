@@ -1,7 +1,7 @@
 mod asset_manager_boundary;
 mod binding_dispatch;
 mod manager;
-mod render_server_boundary;
+mod render_framework_boundary;
 mod resource_access;
 mod slint_activity_rail_pointer;
 mod slint_asset_pointer;

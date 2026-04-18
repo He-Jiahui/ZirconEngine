@@ -1,0 +1,27 @@
+[package]
+name = "zircon_app"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Engine entry bootstrap, shell startup, and profile selection."
+autobins = false
+
+[[bin]]
+name = "zircon_editor"
+path = "src/bin/editor.rs"
+
+[[bin]]
+name = "zircon_runtime"
+path = "src/bin/runtime_preview.rs"
+
+[dependencies]
+serde_json = "1.0.149"
+softbuffer = "0.4.6"
+winit.workspace = true
+zircon_core = { path = "../zircon_core" }
+zircon_editor = { path = "../zircon_editor" }
+zircon_framework = { path = "../zircon_framework" }
+zircon_manager = { path = "../zircon_manager" }
+zircon_math = { path = "../zircon_math" }
+zircon_module = { path = "../zircon_module" }
+zircon_runtime = { path = "../zircon_runtime" }

@@ -1,4 +1,4 @@
-use zircon_render_server::FrameHistoryHandle;
+use zircon_framework::render::FrameHistoryHandle;
 
 use super::super::super::history::SceneFrameHistoryTextures;
 use super::super::super::post_process::SceneRuntimeFeatureFlags;

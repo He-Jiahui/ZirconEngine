@@ -7,10 +7,14 @@ mod m4_behavior_layers;
 mod m5_flagship_slots;
 mod pipeline_compile;
 mod project_render;
-mod render_server_bridge;
+mod render_framework_bridge;
+#[cfg(feature = "runtime-ui-integration-tests")]
+mod runtime_ui_integration;
 mod scene_overlay;
+mod virtual_geometry_frontier_runtime;
 mod virtual_geometry_gpu;
 mod virtual_geometry_prepare_render;
 mod virtual_geometry_runtime;
+mod virtual_geometry_submission_authority;
 mod virtual_geometry_unified_indirect;
 mod visibility;

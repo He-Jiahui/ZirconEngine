@@ -146,8 +146,9 @@ fn forward_plus_pipeline_compilation_is_deterministic() {
 
 #[test]
 fn builtin_pipeline_lookup_exposes_deferred_pipeline_handle() {
-    let builtin = RenderPipelineAsset::builtin(zircon_render_server::RenderPipelineHandle::new(2))
-        .expect("handle 2 should map to the built-in deferred pipeline");
+    let builtin =
+        RenderPipelineAsset::builtin(zircon_framework::render::RenderPipelineHandle::new(2))
+            .expect("handle 2 should map to the built-in deferred pipeline");
 
     assert_eq!(builtin, RenderPipelineAsset::default_deferred());
 }

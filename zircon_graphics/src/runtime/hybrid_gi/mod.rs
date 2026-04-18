@@ -1,3 +1,4 @@
+mod build_resolve_runtime;
 mod declarations;
 mod extract_registration;
 mod pending_completion;

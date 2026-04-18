@@ -1,0 +1,20 @@
+use std::sync::{Arc, Mutex};
+
+use zircon_framework::render::RenderFramework;
+
+use super::slint_viewport_controller::SlintViewportController;
+use super::viewport_state::ViewportState;
+
+impl SlintViewportController {
+    pub(super) fn new_with_framework(render_framework: Arc<dyn RenderFramework>) -> Self {
+        Self {
+            shared: Arc::new(Mutex::new(ViewportState {
+                render_framework,
+                viewport: None,
+                latest_generation: None,
+                latest_image: None,
+                last_error: None,
+            })),
+        }
+    }
+}

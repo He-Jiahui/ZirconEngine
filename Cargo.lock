@@ -7881,6 +7881,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "zircon_app"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
+ "softbuffer",
+ "winit 0.31.0-beta.2",
+ "zircon_core",
+ "zircon_editor",
+ "zircon_framework",
+ "zircon_manager",
+ "zircon_math",
+ "zircon_module",
+ "zircon_runtime",
+]
+
+[[package]]
 name = "zircon_asset"
 version = "0.1.0"
 dependencies = [
@@ -7896,34 +7912,13 @@ dependencies = [
  "tobj",
  "toml 1.1.2+spec-1.1.0",
  "zircon_core",
+ "zircon_framework",
  "zircon_manager",
  "zircon_math",
  "zircon_module",
  "zircon_resource",
  "zircon_ui",
  "zstd",
-]
-
-[[package]]
-name = "zircon_builtin_modules"
-version = "0.1.0"
-dependencies = [
- "zircon_animation",
- "zircon_asset",
- "zircon_foundation",
- "zircon_graphics",
- "zircon_input",
- "zircon_module",
- "zircon_navigation",
- "zircon_net",
- "zircon_particles",
- "zircon_physics",
- "zircon_platform",
- "zircon_scene",
- "zircon_script",
- "zircon_sound",
- "zircon_texture",
- "zircon_ui",
 ]
 
 [[package]]
@@ -7953,48 +7948,15 @@ dependencies = [
  "toml 1.1.2+spec-1.1.0",
  "zircon_asset",
  "zircon_core",
- "zircon_editor_ui",
  "zircon_foundation",
+ "zircon_framework",
  "zircon_input",
  "zircon_manager",
  "zircon_math",
  "zircon_module",
- "zircon_render_server",
  "zircon_resource",
  "zircon_scene",
  "zircon_ui",
-]
-
-[[package]]
-name = "zircon_editor_ui"
-version = "0.1.0"
-dependencies = [
- "crossbeam-channel",
- "serde",
- "serde_json",
- "thiserror 2.0.18",
- "zircon_scene",
- "zircon_ui",
-]
-
-[[package]]
-name = "zircon_entry"
-version = "0.1.0"
-dependencies = [
- "serde_json",
- "softbuffer",
- "winit 0.31.0-beta.2",
- "zircon_asset",
- "zircon_builtin_modules",
- "zircon_core",
- "zircon_editor",
- "zircon_graphics",
- "zircon_input",
- "zircon_manager",
- "zircon_math",
- "zircon_module",
- "zircon_render_server",
- "zircon_scene",
 ]
 
 [[package]]
@@ -8003,6 +7965,7 @@ version = "0.1.0"
 dependencies = [
  "serde_json",
  "zircon_core",
+ "zircon_framework",
  "zircon_manager",
  "zircon_module",
 ]
@@ -8035,15 +7998,16 @@ dependencies = [
  "winit 0.31.0-beta.2",
  "zircon_asset",
  "zircon_core",
+ "zircon_framework",
  "zircon_manager",
  "zircon_math",
  "zircon_module",
  "zircon_render_graph",
- "zircon_render_server",
  "zircon_resource",
  "zircon_rhi",
  "zircon_rhi_wgpu",
  "zircon_scene",
+ "zircon_ui",
 ]
 
 [[package]]
@@ -8052,16 +8016,9 @@ version = "0.1.0"
 dependencies = [
  "winit 0.31.0-beta.2",
  "zircon_core",
- "zircon_input_protocol",
+ "zircon_framework",
  "zircon_manager",
  "zircon_module",
-]
-
-[[package]]
-name = "zircon_input_protocol"
-version = "0.1.0"
-dependencies = [
- "serde",
 ]
 
 [[package]]
@@ -8071,10 +8028,8 @@ dependencies = [
  "serde",
  "serde_json",
  "zircon_core",
- "zircon_input_protocol",
- "zircon_module",
+ "zircon_framework",
  "zircon_resource",
- "zircon_scene_protocol",
 ]
 
 [[package]]
@@ -8140,16 +8095,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "zircon_render_server"
-version = "0.1.0"
-dependencies = [
- "thiserror 2.0.18",
- "zircon_core",
- "zircon_math",
- "zircon_scene",
-]
-
-[[package]]
 name = "zircon_resource"
 version = "0.1.0"
 dependencies = [
@@ -8177,6 +8122,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "zircon_runtime"
+version = "0.1.0"
+dependencies = [
+ "zircon_animation",
+ "zircon_asset",
+ "zircon_foundation",
+ "zircon_graphics",
+ "zircon_input",
+ "zircon_module",
+ "zircon_navigation",
+ "zircon_net",
+ "zircon_particles",
+ "zircon_physics",
+ "zircon_platform",
+ "zircon_scene",
+ "zircon_script",
+ "zircon_sound",
+ "zircon_texture",
+ "zircon_ui",
+]
+
+[[package]]
 name = "zircon_scene"
 version = "0.1.0"
 dependencies = [
@@ -8186,18 +8153,11 @@ dependencies = [
  "thiserror 2.0.18",
  "zircon_asset",
  "zircon_core",
+ "zircon_framework",
  "zircon_manager",
  "zircon_math",
  "zircon_module",
  "zircon_resource",
- "zircon_scene_protocol",
-]
-
-[[package]]
-name = "zircon_scene_protocol"
-version = "0.1.0"
-dependencies = [
- "serde",
 ]
 
 [[package]]

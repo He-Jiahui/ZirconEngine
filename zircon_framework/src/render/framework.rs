@@ -9,10 +9,7 @@ pub trait RenderFramework: Send + Sync {
         descriptor: RenderViewportDescriptor,
     ) -> Result<RenderViewportHandle, RenderFrameworkError>;
 
-    fn destroy_viewport(
-        &self,
-        viewport: RenderViewportHandle,
-    ) -> Result<(), RenderFrameworkError>;
+    fn destroy_viewport(&self, viewport: RenderViewportHandle) -> Result<(), RenderFrameworkError>;
 
     fn submit_frame_extract(
         &self,
@@ -26,8 +23,7 @@ pub trait RenderFramework: Send + Sync {
         pipeline: RenderPipelineHandle,
     ) -> Result<(), RenderFrameworkError>;
 
-    fn reload_pipeline(&self, pipeline: RenderPipelineHandle)
-        -> Result<(), RenderFrameworkError>;
+    fn reload_pipeline(&self, pipeline: RenderPipelineHandle) -> Result<(), RenderFrameworkError>;
 
     fn query_stats(&self) -> Result<RenderStats, RenderFrameworkError>;
 

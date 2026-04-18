@@ -5,6 +5,7 @@ use super::super::super::overlay::ViewportOverlayRenderer;
 use super::super::super::particle::ParticleRenderer;
 use super::super::super::post_process::ScenePostProcessResources;
 use super::super::super::prepass::NormalPrepassPipeline;
+use super::super::super::ui::ScreenSpaceUiRenderer;
 use super::super::super::virtual_geometry::VirtualGeometryGpuResources;
 
 pub(crate) struct SceneRendererCore {
@@ -18,6 +19,7 @@ pub(crate) struct SceneRendererCore {
     pub(in crate::scene::scene_renderer::core) particle_renderer: ParticleRenderer,
     pub(in crate::scene::scene_renderer::core) post_process: ScenePostProcessResources,
     pub(in crate::scene::scene_renderer::core) overlay_renderer: ViewportOverlayRenderer,
+    pub(in crate::scene::scene_renderer::core) screen_space_ui_renderer: ScreenSpaceUiRenderer,
     pub(in crate::scene::scene_renderer::core) hybrid_gi: HybridGiGpuResources,
     pub(in crate::scene::scene_renderer::core) virtual_geometry: VirtualGeometryGpuResources,
     pub(in crate::scene::scene_renderer::core) virtual_geometry_indirect_args:

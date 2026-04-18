@@ -26,13 +26,16 @@ pub(super) struct VirtualGeometryIndirectDrawRef {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub(super) struct VirtualGeometryIndirectSegmentKey {
+    pub(super) submission_index: u32,
     pub(super) entity: EntityId,
     pub(super) page_id: u32,
     pub(super) cluster_start_ordinal: u32,
     pub(super) cluster_span_count: u32,
     pub(super) cluster_total_count: u32,
+    pub(super) lineage_depth: u32,
     pub(super) lod_level: u8,
-    pub(super) resident_slot: Option<u32>,
+    pub(super) frontier_rank: u32,
+    pub(super) submission_slot: Option<u32>,
     pub(super) state: u32,
 }
 
@@ -43,8 +46,11 @@ pub(super) struct VirtualGeometryIndirectSegmentInput {
     pub(super) cluster_span_count: u32,
     pub(super) cluster_total_count: u32,
     pub(super) page_id: u32,
-    pub(super) resident_slot: u32,
+    pub(super) submission_slot: u32,
     pub(super) state: u32,
+    pub(super) lineage_depth: u32,
+    pub(super) lod_level: u32,
+    pub(super) frontier_rank: u32,
 }
 
 #[repr(C)]
@@ -61,13 +67,16 @@ pub(super) fn full_mesh_indirect_draw_ref(
     VirtualGeometryIndirectDrawRef {
         mesh_index_count,
         segment_key: VirtualGeometryIndirectSegmentKey {
+            submission_index: 0,
             entity,
             page_id: 0,
             cluster_start_ordinal: 0,
             cluster_span_count: 1,
             cluster_total_count: 1,
+            lineage_depth: 0,
             lod_level: 0,
-            resident_slot: Some(0),
+            frontier_rank: 0,
+            submission_slot: Some(0),
             state: encode_cluster_state(VirtualGeometryPrepareClusterState::Resident),
         },
     }
@@ -81,13 +90,16 @@ pub(super) fn indirect_draw_ref_for_cluster_draw(
     VirtualGeometryIndirectDrawRef {
         mesh_index_count,
         segment_key: VirtualGeometryIndirectSegmentKey {
+            submission_index: cluster_draw.submission_index,
             entity,
             page_id: cluster_draw.page_id,
             cluster_start_ordinal: cluster_draw.entity_cluster_start_ordinal as u32,
             cluster_span_count: cluster_draw.entity_cluster_span_count.max(1) as u32,
             cluster_total_count: cluster_draw.entity_cluster_total_count.max(1) as u32,
+            lineage_depth: cluster_draw.lineage_depth,
             lod_level: cluster_draw.lod_level,
-            resident_slot: cluster_draw.resident_slot,
+            frontier_rank: cluster_draw.frontier_rank,
+            submission_slot: cluster_draw.submission_slot,
             state: encode_cluster_state(cluster_draw.state),
         },
     }
@@ -101,8 +113,11 @@ pub(super) fn segment_input(
         cluster_span_count: segment_key.cluster_span_count,
         cluster_total_count: segment_key.cluster_total_count,
         page_id: segment_key.page_id,
-        resident_slot: segment_key.resident_slot.unwrap_or_default(),
+        submission_slot: segment_key.submission_slot.unwrap_or_default(),
         state: segment_key.state,
+        lineage_depth: segment_key.lineage_depth,
+        lod_level: u32::from(segment_key.lod_level),
+        frontier_rank: segment_key.frontier_rank,
     }
 }
 

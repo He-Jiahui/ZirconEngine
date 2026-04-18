@@ -15,14 +15,15 @@ related_code:
   - zircon_ui/src/tree/node/mod.rs
   - zircon_ui/src/surface.rs
   - zircon_ui/src/tests/template.rs
-  - zircon_editor_ui/src/template/mod.rs
-  - zircon_editor_ui/src/template/registry.rs
-  - zircon_editor/src/host/template_runtime/mod.rs
-  - zircon_editor/src/host/template_runtime/builtin/mod.rs
-  - zircon_editor/src/host/template_runtime/builtin/template_documents.rs
-  - zircon_editor/src/host/template_runtime/builtin/component_descriptors.rs
-  - zircon_editor/src/host/template_runtime/runtime/build_session.rs
-  - zircon_editor/src/host/template_runtime/runtime/runtime_host.rs
+  - zircon_ui/src/tests/asset.rs
+  - zircon_editor/src/ui/template/mod.rs
+  - zircon_editor/src/ui/template/registry.rs
+  - zircon_editor/src/ui/template_runtime/mod.rs
+  - zircon_editor/src/ui/template_runtime/builtin/mod.rs
+  - zircon_editor/src/ui/template_runtime/builtin/template_documents.rs
+  - zircon_editor/src/ui/template_runtime/builtin/component_descriptors.rs
+  - zircon_editor/src/ui/template_runtime/runtime/build_session.rs
+  - zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs
   - zircon_editor/ui/templates/workbench_shell.toml
 implementation_files:
   - zircon_ui/src/lib.rs
@@ -39,20 +40,23 @@ implementation_files:
   - zircon_ui/src/tree/mod.rs
   - zircon_ui/src/tree/node/mod.rs
   - zircon_ui/src/surface.rs
-  - zircon_editor/src/host/template_runtime/mod.rs
-  - zircon_editor/src/host/template_runtime/builtin/mod.rs
-  - zircon_editor/src/host/template_runtime/builtin/template_documents.rs
-  - zircon_editor/src/host/template_runtime/builtin/component_descriptors.rs
-  - zircon_editor/src/host/template_runtime/runtime/build_session.rs
-  - zircon_editor/src/host/template_runtime/runtime/runtime_host.rs
+  - zircon_editor/src/ui/template_runtime/mod.rs
+  - zircon_editor/src/ui/template_runtime/builtin/mod.rs
+  - zircon_editor/src/ui/template_runtime/builtin/template_documents.rs
+  - zircon_editor/src/ui/template_runtime/builtin/component_descriptors.rs
+  - zircon_editor/src/ui/template_runtime/runtime/build_session.rs
+  - zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs
 plan_sources:
   - user: 2026-04-15 按自定义 TOML 描述文件运行时构建 Slint 树并严格服从 Shared Layout 契约
   - user: 2026-04-15 PLEASE IMPLEMENT THIS PLAN
+  - user: 2026-04-18 继续下一步，推进 Runtime visual contract
   - .codex/plans/布局系统.md
   - .codex/plans/Zircon 运行时编辑器共享 UI 布局与事件系统架构计划.md
 tests:
   - zircon_ui/src/tests/template.rs
+  - zircon_ui/src/tests/asset.rs
   - cargo test -p zircon_ui template -- --nocapture
+  - cargo test -p zircon_ui --lib --locked ui_document_compiler_expands_imported_widget_references_and_applies_stylesheets -- --nocapture
   - cargo test -p zircon_ui --offline --verbose
 doc_type: module-detail
 ---
@@ -286,7 +290,16 @@ root = { component = "UiHostToolbar", children = [
 - 再放入 `UiSurface`
 - 最后调用 `rebuild()` 生成 hit-test index 和初始 `UiRenderExtract`
 
-这让 shared template runtime 现在已经具备了“模板实例 -> shared retained surface -> shared layout 求 frame”的最低闭环，而不是停留在纯文档/纯实例层。
+这让 shared template runtime 现在已经具备了“模板实例 -> shared retained surface -> shared layout 求 frame -> shared visual draw list”的最低闭环，而不是停留在纯文档/纯实例层。
+
+当前 `rebuild()` 输出的 `UiRenderExtract` 会直接把模板属性里已经 resolved 的视觉字段带出来，而不再只保留几何：
+
+- `background` / `foreground` / `border` 会落到 `UiResolvedStyle`
+- `text` / `label` 会落到 render command 的 `text`
+- `icon` / `image` 会落到 `UiVisualAssetRef`
+- `opacity` 会落到 render command 的 `opacity`
+
+这意味着 style asset 和 inline override 在 template compiler 里完成归并以后，shared surface 已经能把这些视觉结果继续传给 preview/runtime consumer；后续还没做的部分是文本测量、字体 atlas、图片资源装载和真实 GPU pass，而不是再回头重建另一套 visual payload 模型。
 
 ## Current Scope And Deliberate Gaps
 
@@ -319,5 +332,7 @@ root = { component = "UiHostToolbar", children = [
 - 旧的 `workbench.shell` 仍作为兼容 alias 同时注册到同一份 [`workbench_shell.toml`](/E:/Git/ZirconEngine/zircon_editor/ui/templates/workbench_shell.toml)
 - `UiHostWindow` 相关 component descriptor 也同步改成指向 `ui.host_window`
 - `EditorUiHostRuntime` 新增 generic `load_builtin_host_templates()`，把“加载一组 builtin host template”与“加载 workbench shell”两个概念拆开
+- [`zircon_editor/ui/workbench.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench.slint) 的导出 root 现在也已经跟着这个 identity 收口：`UiHostWindow` 只剩 window/bootstrap wrapper，自身不再直接拥有 menu/drawer/document/floating 业务树；真正的 workbench 结构落在内部 `WorkbenchHostScaffold`
+- 这层 wrapper 目前仍通过属性别名和 callback forwarding 暂时保留旧的宿主 ABI，因此 shared template/runtime 的 generic root identity 可以先稳定下来，而不需要一次性重写所有 host/slint 业务接线
 
 这样 shared template runtime 对外暴露的默认 root 入口已经不再是 workbench 业务名；workbench 只剩兼容标签，而不是 builtin host root 的唯一 canonical identity。后续继续做 `Generic host boundary` 时，就可以在不改 shared runtime 主入口命名的前提下，逐步削掉 `workbench.slint` 和 builtin projection 里的业务壳结构。

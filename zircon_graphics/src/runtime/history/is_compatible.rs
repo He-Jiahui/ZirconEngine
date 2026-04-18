@@ -1,5 +1,5 @@
+use zircon_framework::render::RenderPipelineHandle;
 use zircon_math::UVec2;
-use zircon_render_server::RenderPipelineHandle;
 
 use crate::FrameHistoryBinding;
 

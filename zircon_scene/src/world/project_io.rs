@@ -238,15 +238,6 @@ impl World {
             self.render_layer_masks.entry(entity).or_default();
             self.mobility.entry(entity).or_default();
         }
-        if self
-            .selected_entity
-            .is_some_and(|entity| !self.entities.contains(&entity))
-        {
-            self.selected_entity = None;
-        }
-        if self.selected_entity.is_none() {
-            self.selected_entity = Some(self.active_camera);
-        }
         self.rebuild_derived_state();
     }
 }

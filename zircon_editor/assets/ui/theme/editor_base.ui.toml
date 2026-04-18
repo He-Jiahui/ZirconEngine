@@ -1,0 +1,34 @@
+[asset]
+kind = "style"
+id = "ui.theme.editor_base"
+version = 1
+display_name = "Editor Base"
+
+[tokens]
+shell_bg = "#171a20"
+panel_bg = "#20252d"
+accent = "#4d89ff"
+title = "#eef3ff"
+
+[[stylesheets]]
+id = "editor_base"
+
+[[stylesheets.rules]]
+selector = ".editor-shell"
+set = { self = { background = { color = "$shell_bg" } } }
+
+[[stylesheets.rules]]
+selector = ".panel"
+set = { self = { background = { color = "$panel_bg" } } }
+
+[[stylesheets.rules]]
+selector = ".section-title"
+set = { self = { text = "$title" } }
+
+[[stylesheets.rules]]
+selector = ".toolbar > Button.toolbar-primary"
+set = { self = { background = { color = "$accent" } } }
+
+[[stylesheets.rules]]
+selector = "#DesignerLabel"
+set = { self = { text = "Canvas Preview" } }

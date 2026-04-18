@@ -4,8 +4,9 @@ use crate::{
     UiFocusState, UiFrame, UiHitTestIndex, UiInputPolicy, UiNavigationDispatchEffect,
     UiNavigationDispatcher, UiNavigationEventKind, UiNodeId, UiNodePath, UiPoint, UiPointerButton,
     UiPointerDispatchEffect, UiPointerDispatcher, UiPointerEvent, UiPointerEventKind,
-    UiScrollState, UiScrollableBoxConfig, UiScrollbarVisibility, UiSize, UiStateFlags, UiSurface,
-    UiTree, UiTreeId, UiTreeNode, UiVirtualListConfig, UiVirtualListWindow,
+    UiRenderCommandKind, UiResolvedStyle, UiScrollState, UiScrollableBoxConfig,
+    UiScrollbarVisibility, UiSize, UiStateFlags, UiSurface, UiTemplateNodeMetadata, UiTree,
+    UiTreeId, UiTreeNode, UiVirtualListConfig, UiVirtualListWindow, UiVisualAssetRef,
 };
 
 fn stretch_constraint(min: f32, preferred: f32, priority: i32, weight: f32) -> AxisConstraint {
@@ -222,6 +223,123 @@ fn container_deserializes_and_arranges_anchored_children_like_shared_free_layout
             .layout_cache
             .frame,
         UiFrame::new(150.0, 125.0, 120.0, 40.0)
+    );
+}
+
+#[test]
+fn render_extract_carries_visual_contract_fields_for_visible_nodes() {
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui"));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_frame(UiFrame::new(0.0, 0.0, 200.0, 120.0))
+            .with_state_flags(UiStateFlags {
+                visible: true,
+                enabled: true,
+                clickable: false,
+                hoverable: false,
+                focusable: false,
+                pressed: false,
+                checked: false,
+                dirty: false,
+            }),
+    );
+    surface
+        .tree
+        .insert_child(
+            UiNodeId::new(1),
+            UiTreeNode::new(UiNodeId::new(2), UiNodePath::new("root/launch"))
+                .with_frame(UiFrame::new(12.0, 8.0, 96.0, 32.0))
+                .with_z_index(7)
+                .with_state_flags(UiStateFlags {
+                    visible: true,
+                    enabled: true,
+                    clickable: true,
+                    hoverable: true,
+                    focusable: true,
+                    pressed: false,
+                    checked: false,
+                    dirty: false,
+                })
+                .with_template_metadata(UiTemplateNodeMetadata {
+                    component: "UiHostIconButton".to_string(),
+                    control_id: Some("LaunchButton".to_string()),
+                    classes: vec!["primary".to_string()],
+                    attributes: toml::from_str(
+                        r##"
+text = "Launch"
+icon = "rocket-outline"
+opacity = 0.75
+
+[background]
+color = "#112233"
+
+[foreground]
+color = "#ddeeff"
+
+[border]
+color = "#334455"
+width = 2.0
+radius = 6.0
+"##,
+                    )
+                    .unwrap(),
+                    slot_attributes: Default::default(),
+                    style_overrides: Default::default(),
+                    style_tokens: Default::default(),
+                    bindings: Vec::new(),
+                }),
+        )
+        .unwrap();
+    surface
+        .tree
+        .node_mut(UiNodeId::new(2))
+        .unwrap()
+        .layout_cache
+        .clip_frame = Some(UiFrame::new(0.0, 0.0, 80.0, 28.0));
+
+    surface.rebuild();
+
+    let root_command = surface
+        .render_extract
+        .list
+        .commands
+        .iter()
+        .find(|command| command.node_id == UiNodeId::new(1))
+        .unwrap();
+    assert_eq!(root_command.kind, UiRenderCommandKind::Group);
+    assert_eq!(root_command.style, UiResolvedStyle::default());
+    assert_eq!(root_command.text.as_deref(), None);
+    assert_eq!(root_command.image, None);
+    assert_eq!(root_command.opacity, 1.0);
+
+    let launch_command = surface
+        .render_extract
+        .list
+        .commands
+        .iter()
+        .find(|command| command.node_id == UiNodeId::new(2))
+        .unwrap();
+    assert_eq!(launch_command.kind, UiRenderCommandKind::Quad);
+    assert_eq!(
+        launch_command.clip_frame,
+        Some(UiFrame::new(0.0, 0.0, 80.0, 28.0))
+    );
+    assert_eq!(launch_command.z_index, 7);
+    assert_eq!(launch_command.text.as_deref(), Some("Launch"));
+    assert_eq!(
+        launch_command.image,
+        Some(UiVisualAssetRef::Icon("rocket-outline".to_string()))
+    );
+    assert_eq!(launch_command.opacity, 0.75);
+    assert_eq!(
+        launch_command.style,
+        UiResolvedStyle {
+            background_color: Some("#112233".to_string()),
+            foreground_color: Some("#ddeeff".to_string()),
+            border_color: Some("#334455".to_string()),
+            border_width: 2.0,
+            corner_radius: 6.0,
+        }
     );
 }
 

@@ -9,7 +9,7 @@ impl VirtualGeometryGpuPendingReadback {
         self,
         device: &wgpu::Device,
     ) -> Result<VirtualGeometryGpuReadback, GraphicsError> {
-        let (completed_page_assignments, completed_page_ids) =
+        let (completed_page_assignments, completed_page_ids, completed_page_replacements) =
             completed_page_assignments(device, &self.completed_buffer, self.completed_word_count)?;
         let page_table_entries = page_table_entries(
             device,
@@ -24,6 +24,7 @@ impl VirtualGeometryGpuPendingReadback {
             page_table_entries,
             completed_page_ids,
             completed_page_assignments,
+            completed_page_replacements,
         })
     }
 }

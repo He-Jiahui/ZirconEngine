@@ -15,6 +15,14 @@ pub(super) fn hybrid_gi_hierarchy_resolve_weight(
     frame: &EditorOrRuntimeFrame,
     source: &RenderHybridGiProbe,
 ) -> f32 {
+    if let Some(runtime_weight) = frame
+        .hybrid_gi_resolve_runtime
+        .as_ref()
+        .and_then(|runtime| runtime.hierarchy_resolve_weight(source.probe_id))
+    {
+        return runtime_weight;
+    }
+
     let Some(extract) = frame.extract.lighting.hybrid_global_illumination.as_ref() else {
         return 1.0;
     };

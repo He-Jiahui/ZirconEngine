@@ -26,6 +26,8 @@ pub(super) fn collect_inputs(
         completed_trace_word_count: trace_region_inputs.len() + 1,
         irradiance_word_count: 1
             + (resident_probe_inputs.len() + pending_probe_inputs.len()).max(1) * 2,
+        trace_lighting_word_count: 1
+            + (resident_probe_inputs.len() + pending_probe_inputs.len()).max(1) * 2,
         cache_entries,
         resident_probe_inputs,
         pending_probe_inputs,

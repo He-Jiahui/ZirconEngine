@@ -1,6 +1,6 @@
 use serde_json::Value;
 use zircon_core::{ChannelReceiver, CoreHandle, EngineEvent};
-use zircon_manager::EventManager;
+use zircon_framework::foundation::EventManager;
 
 #[derive(Clone, Debug)]
 pub struct DefaultEventManager {

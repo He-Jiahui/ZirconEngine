@@ -1,8 +1,8 @@
 use toml::Value;
 
 use crate::{
-    UiAssetKind, UiAssetLoader, UiDocumentCompiler, UiLegacyTemplateAdapter, UiSize,
-    UiTemplateLoader, UiTemplateSurfaceBuilder, UiTreeId,
+    UiAssetKind, UiAssetLoader, UiDocumentCompiler, UiLegacyTemplateAdapter, UiRenderCommandKind,
+    UiSize, UiTemplateLoader, UiTemplateSurfaceBuilder, UiTreeId, UiVisualAssetRef,
 };
 
 const IMPORTED_BUTTON_ASSET_TOML: &str = r##"
@@ -248,6 +248,25 @@ fn ui_document_compiler_expands_imported_widget_references_and_applies_styleshee
         .unwrap();
     assert_eq!(open_button_node.layout_cache.frame.width, 144.0);
     assert_eq!(open_button_node.layout_cache.frame.height, 40.0);
+
+    let open_button_render = surface
+        .render_extract
+        .list
+        .commands
+        .iter()
+        .find(|command| command.node_id == open_button_node.node_id)
+        .unwrap();
+    assert_eq!(open_button_render.kind, UiRenderCommandKind::Quad);
+    assert_eq!(open_button_render.text.as_deref(), Some("Open Override"));
+    assert_eq!(
+        open_button_render.image,
+        Some(UiVisualAssetRef::Icon("folder-open-outline".to_string()))
+    );
+    assert_eq!(open_button_render.opacity, 1.0);
+    assert_eq!(
+        open_button_render.style.background_color.as_deref(),
+        Some("#4488ff")
+    );
 }
 
 #[test]

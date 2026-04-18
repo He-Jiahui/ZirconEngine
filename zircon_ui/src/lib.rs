@@ -38,7 +38,8 @@ pub use layout::{
 pub use module::{module_descriptor, UiConfig, UI_MODULE_NAME};
 pub use surface::{
     UiFocusState, UiNavigationEventKind, UiNavigationRoute, UiNavigationState, UiPointerButton,
-    UiPointerEventKind, UiPointerRoute, UiRenderCommand, UiRenderExtract, UiRenderList, UiSurface,
+    UiPointerEventKind, UiPointerRoute, UiRenderCommand, UiRenderCommandKind, UiRenderExtract,
+    UiRenderList, UiResolvedStyle, UiSurface, UiVisualAssetRef,
 };
 pub use template::{
     UiActionRef, UiAssetDocument, UiAssetError, UiAssetHeader, UiAssetImports, UiAssetKind,

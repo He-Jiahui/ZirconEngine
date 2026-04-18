@@ -2,13 +2,13 @@
 related_code:
   - zircon_editor/src/lib.rs
   - zircon_editor/Cargo.toml
-  - zircon_editor/src/editing/viewport/mod.rs
-  - zircon_editor/src/editing/viewport/interaction/mod.rs
-  - zircon_editor/src/editing/viewport/interaction/gizmo_axis.rs
-  - zircon_editor/src/editing/viewport/interaction/viewport_input.rs
-  - zircon_editor/src/editing/viewport/interaction/viewport_feedback.rs
-  - zircon_editor/src/editing/viewport/interaction/viewport_state.rs
-  - zircon_editor/src/editor_event/runtime/accessors.rs
+  - zircon_editor/src/scene/viewport/mod.rs
+  - zircon_editor/src/scene/viewport/interaction/mod.rs
+  - zircon_editor/src/scene/viewport/interaction/gizmo_axis.rs
+  - zircon_editor/src/scene/viewport/interaction/viewport_input.rs
+  - zircon_editor/src/scene/viewport/interaction/viewport_feedback.rs
+  - zircon_editor/src/scene/viewport/interaction/viewport_state.rs
+  - zircon_editor/src/core/editor_event/runtime/accessors.rs
   - zircon_entry/src/entry/runtime_entry_app.rs
   - zircon_entry/src/entry/runtime_entry_app/application_handler.rs
   - zircon_entry/src/entry/runtime_entry_app/construct.rs
@@ -22,12 +22,12 @@ related_code:
 implementation_files:
   - zircon_editor/src/lib.rs
   - zircon_editor/Cargo.toml
-  - zircon_editor/src/editing/viewport/mod.rs
-  - zircon_editor/src/editing/viewport/interaction/mod.rs
-  - zircon_editor/src/editing/viewport/interaction/gizmo_axis.rs
-  - zircon_editor/src/editing/viewport/interaction/viewport_input.rs
-  - zircon_editor/src/editing/viewport/interaction/viewport_feedback.rs
-  - zircon_editor/src/editing/viewport/interaction/viewport_state.rs
+  - zircon_editor/src/scene/viewport/mod.rs
+  - zircon_editor/src/scene/viewport/interaction/mod.rs
+  - zircon_editor/src/scene/viewport/interaction/gizmo_axis.rs
+  - zircon_editor/src/scene/viewport/interaction/viewport_input.rs
+  - zircon_editor/src/scene/viewport/interaction/viewport_feedback.rs
+  - zircon_editor/src/scene/viewport/interaction/viewport_state.rs
   - zircon_entry/src/entry/runtime_entry_app.rs
   - zircon_entry/src/entry/runtime_entry_app/application_handler.rs
   - zircon_entry/src/entry/runtime_entry_app/construct.rs
@@ -56,7 +56,7 @@ tests:
   - zircon_graphics/src/tests/virtual_geometry_gpu.rs
   - zircon_graphics/src/tests/virtual_geometry_prepare_render.rs
   - cargo test -p zircon_graphics --locked
-  - cargo test -p zircon_entry --locked
+  - cargo test -p zircon_app --locked
   - cargo test -p zircon_editor editor_viewport_interaction_boundary_lives_in_editor_crate --locked
   - cargo test -p zircon_editor editor_viewport_sources_route_through_render_server_without_wgpu_preview_bindings --locked
   - cargo check --workspace --locked
@@ -93,7 +93,7 @@ doc_type: module-detail
 ## Validation
 
 - `cargo test -p zircon_graphics --locked` 通过。
-- `cargo test -p zircon_entry --locked` 通过，包含新的 `camera_controller` unit tests 与 runtime boundary regression。
+- `cargo test -p zircon_app --locked` 通过，包含新的 `camera_controller` unit tests 与 runtime boundary regression。
 - `cargo test -p zircon_editor editor_viewport_interaction_boundary_lives_in_editor_crate --locked` 通过。
 - `cargo test -p zircon_editor editor_viewport_sources_route_through_render_server_without_wgpu_preview_bindings --locked` 通过。
 - `cargo check --workspace --locked` 通过。

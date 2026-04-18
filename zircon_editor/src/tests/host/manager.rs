@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use zircon_asset::UiWidgetAsset;
+use zircon_asset::{UiStyleAsset, UiWidgetAsset};
 use zircon_core::CoreRuntime;
 use zircon_foundation::{
     module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
@@ -116,6 +116,61 @@ set = { self.background = { color = "#224488" } }
 [[stylesheets.rules]]
 selector = ".primary:hover"
 set = { self.text = { color = "#ffeeaa" } }
+"##;
+
+const DETACH_THEME_UI_LAYOUT_ASSET: &str = r##"
+[asset]
+kind = "layout"
+id = "editor.tests.asset.detach_theme"
+version = 1
+display_name = "Detach Theme UI Asset"
+
+[imports]
+styles = ["res://ui/theme/shared_theme.ui.toml"]
+
+[tokens]
+accent = "#4488ff"
+
+[root]
+node = "root"
+
+[nodes.root]
+kind = "native"
+type = "VerticalBox"
+control_id = "Root"
+children = [{ child = "button" }]
+
+[nodes.button]
+kind = "native"
+type = "Button"
+control_id = "SaveButton"
+props = { text = "Save" }
+
+[[stylesheets]]
+id = "local_theme"
+
+[[stylesheets.rules]]
+selector = "#SaveButton"
+set = { self = { text = "Local Save" } }
+"##;
+
+const IMPORTED_THEME_COLLISION_ASSET: &str = r##"
+[asset]
+kind = "style"
+id = "ui.theme.shared_theme"
+version = 1
+display_name = "Shared Theme"
+
+[tokens]
+accent = "#223344"
+panel = "$accent"
+
+[[stylesheets]]
+id = "local_theme"
+
+[[stylesheets.rules]]
+selector = "Button"
+set = { self = { text = "$panel" } }
 "##;
 
 const MOCK_PREVIEW_UI_LAYOUT_ASSET: &str = r##"
@@ -656,8 +711,8 @@ fn create_project_and_open_persists_recent_project_and_returns_project_session()
 #[test]
 fn editor_manager_opens_and_saves_ui_asset_editor_sessions() {
     let _guard = env_lock().lock().unwrap();
-    let path = unique_temp_path("zircon_editor_ui_asset_session");
-    let ui_asset_path = unique_temp_dir("zircon_editor_ui_asset_session_file").join("test.ui.toml");
+    let path = unique_temp_path("zircon_editor_asset_session");
+    let ui_asset_path = unique_temp_dir("zircon_editor_asset_session_file").join("test.ui.toml");
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     fs::write(&ui_asset_path, SIMPLE_UI_LAYOUT_ASSET).unwrap();
 
@@ -713,9 +768,9 @@ fn editor_manager_opens_and_saves_ui_asset_editor_sessions() {
 #[test]
 fn editor_manager_runs_ui_asset_preview_preset_actions() {
     let _guard = env_lock().lock().unwrap();
-    let path = unique_temp_path("zircon_editor_ui_asset_preview_presets");
+    let path = unique_temp_path("zircon_editor_asset_preview_presets");
     let ui_asset_path =
-        unique_temp_dir("zircon_editor_ui_asset_preview_presets_file").join("layout.ui.toml");
+        unique_temp_dir("zircon_editor_asset_preview_presets_file").join("layout.ui.toml");
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     fs::write(&ui_asset_path, SIMPLE_UI_LAYOUT_ASSET).unwrap();
 
@@ -762,9 +817,9 @@ fn editor_manager_runs_ui_asset_preview_preset_actions() {
 #[test]
 fn editor_manager_runs_ui_asset_mock_preview_actions_without_dirtying_source() {
     let _guard = env_lock().lock().unwrap();
-    let path = unique_temp_path("zircon_editor_ui_asset_mock_preview");
+    let path = unique_temp_path("zircon_editor_asset_mock_preview");
     let ui_asset_path =
-        unique_temp_dir("zircon_editor_ui_asset_mock_preview_file").join("layout.ui.toml");
+        unique_temp_dir("zircon_editor_asset_mock_preview_file").join("layout.ui.toml");
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     fs::write(&ui_asset_path, MOCK_PREVIEW_UI_LAYOUT_ASSET).unwrap();
 
@@ -821,8 +876,8 @@ fn editor_manager_runs_ui_asset_mock_preview_actions_without_dirtying_source() {
 #[test]
 fn editor_manager_resolves_ui_asset_imports_and_interactive_session_commands() {
     let _guard = env_lock().lock().unwrap();
-    let path = unique_temp_path("zircon_editor_ui_asset_imports");
-    let project_root = unique_temp_dir("zircon_editor_ui_asset_import_project");
+    let path = unique_temp_path("zircon_editor_asset_imports");
+    let project_root = unique_temp_dir("zircon_editor_asset_import_project");
     let runtime = editor_runtime_with_config_path(&path);
     let manager = runtime
         .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
@@ -962,9 +1017,9 @@ control_id = "ToolbarHost"
 #[test]
 fn editor_manager_runs_ui_asset_style_authoring_actions() {
     let _guard = env_lock().lock().unwrap();
-    let path = unique_temp_path("zircon_editor_ui_asset_style_authoring");
+    let path = unique_temp_path("zircon_editor_asset_style_authoring");
     let ui_asset_path =
-        unique_temp_dir("zircon_editor_ui_asset_style_authoring_file").join("style.ui.toml");
+        unique_temp_dir("zircon_editor_asset_style_authoring_file").join("style.ui.toml");
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     fs::write(&ui_asset_path, STYLE_UI_LAYOUT_ASSET).unwrap();
 
@@ -1030,9 +1085,9 @@ fn editor_manager_runs_ui_asset_style_authoring_actions() {
 #[test]
 fn editor_manager_selects_ui_asset_nodes_from_source_byte_offsets() {
     let _guard = env_lock().lock().unwrap();
-    let path = unique_temp_path("zircon_editor_ui_asset_source_byte_offset");
+    let path = unique_temp_path("zircon_editor_asset_source_byte_offset");
     let ui_asset_path =
-        unique_temp_dir("zircon_editor_ui_asset_source_byte_offset_file").join("style.ui.toml");
+        unique_temp_dir("zircon_editor_asset_source_byte_offset_file").join("style.ui.toml");
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     fs::write(&ui_asset_path, STYLE_UI_LAYOUT_ASSET).unwrap();
 
@@ -1071,6 +1126,7 @@ fn editor_manager_selects_ui_asset_nodes_from_source_byte_offsets() {
         .expect("selected pane");
     assert_eq!(pane.inspector_selected_node_id, "button");
     assert_eq!(pane.hierarchy_selected_index, 1);
+    assert_eq!(pane.source_cursor_byte_offset, byte_offset as i32);
 
     assert!(!manager
         .select_ui_asset_editor_source_byte_offset(&instance_id, 0)
@@ -1089,9 +1145,9 @@ fn editor_manager_selects_ui_asset_nodes_from_source_byte_offsets() {
 #[test]
 fn editor_manager_runs_ui_asset_style_class_editing_actions() {
     let _guard = env_lock().lock().unwrap();
-    let path = unique_temp_path("zircon_editor_ui_asset_style_classes");
+    let path = unique_temp_path("zircon_editor_asset_style_classes");
     let ui_asset_path =
-        unique_temp_dir("zircon_editor_ui_asset_style_classes_file").join("style.ui.toml");
+        unique_temp_dir("zircon_editor_asset_style_classes_file").join("style.ui.toml");
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     fs::write(&ui_asset_path, STYLE_UI_LAYOUT_ASSET).unwrap();
 
@@ -1134,9 +1190,9 @@ fn editor_manager_runs_ui_asset_style_class_editing_actions() {
 #[test]
 fn editor_manager_runs_ui_asset_style_rule_editing_actions() {
     let _guard = env_lock().lock().unwrap();
-    let path = unique_temp_path("zircon_editor_ui_asset_style_rules");
+    let path = unique_temp_path("zircon_editor_asset_style_rules");
     let ui_asset_path =
-        unique_temp_dir("zircon_editor_ui_asset_style_rules_file").join("style.ui.toml");
+        unique_temp_dir("zircon_editor_asset_style_rules_file").join("style.ui.toml");
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     fs::write(&ui_asset_path, STYLE_UI_LAYOUT_ASSET).unwrap();
 
@@ -1188,9 +1244,9 @@ fn editor_manager_runs_ui_asset_style_rule_editing_actions() {
 #[test]
 fn editor_manager_runs_ui_asset_style_rule_declaration_editing_actions() {
     let _guard = env_lock().lock().unwrap();
-    let path = unique_temp_path("zircon_editor_ui_asset_style_rule_declarations");
-    let ui_asset_path = unique_temp_dir("zircon_editor_ui_asset_style_rule_declarations_file")
-        .join("style.ui.toml");
+    let path = unique_temp_path("zircon_editor_asset_style_rule_declarations");
+    let ui_asset_path =
+        unique_temp_dir("zircon_editor_asset_style_rule_declarations_file").join("style.ui.toml");
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     fs::write(&ui_asset_path, STYLE_UI_LAYOUT_ASSET).unwrap();
 
@@ -1243,9 +1299,9 @@ fn editor_manager_runs_ui_asset_style_rule_declaration_editing_actions() {
 #[test]
 fn editor_manager_projects_matched_style_rule_summaries_into_stylesheet_items() {
     let _guard = env_lock().lock().unwrap();
-    let path = unique_temp_path("zircon_editor_ui_asset_matched_rule_details");
+    let path = unique_temp_path("zircon_editor_asset_matched_rule_details");
     let ui_asset_path =
-        unique_temp_dir("zircon_editor_ui_asset_matched_rule_details_file").join("style.ui.toml");
+        unique_temp_dir("zircon_editor_asset_matched_rule_details_file").join("style.ui.toml");
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     fs::write(&ui_asset_path, STYLE_UI_LAYOUT_ASSET).unwrap();
 
@@ -1286,9 +1342,9 @@ fn editor_manager_projects_matched_style_rule_summaries_into_stylesheet_items() 
 #[test]
 fn editor_manager_projects_selected_matched_style_rule_details() {
     let _guard = env_lock().lock().unwrap();
-    let path = unique_temp_path("zircon_editor_ui_asset_matched_rule_details");
+    let path = unique_temp_path("zircon_editor_asset_matched_rule_details");
     let ui_asset_path =
-        unique_temp_dir("zircon_editor_ui_asset_matched_rule_details_file").join("style.ui.toml");
+        unique_temp_dir("zircon_editor_asset_matched_rule_details_file").join("style.ui.toml");
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     fs::write(&ui_asset_path, STYLE_UI_LAYOUT_ASSET).unwrap();
 
@@ -1341,9 +1397,9 @@ fn editor_manager_projects_selected_matched_style_rule_details() {
 #[test]
 fn editor_manager_runs_ui_asset_widget_inspector_editing_actions() {
     let _guard = env_lock().lock().unwrap();
-    let path = unique_temp_path("zircon_editor_ui_asset_widget_inspector");
+    let path = unique_temp_path("zircon_editor_asset_widget_inspector");
     let ui_asset_path =
-        unique_temp_dir("zircon_editor_ui_asset_widget_inspector_file").join("style.ui.toml");
+        unique_temp_dir("zircon_editor_asset_widget_inspector_file").join("style.ui.toml");
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     fs::write(&ui_asset_path, STYLE_UI_LAYOUT_ASSET).unwrap();
 
@@ -1393,9 +1449,9 @@ fn editor_manager_runs_ui_asset_widget_inspector_editing_actions() {
 #[test]
 fn editor_manager_runs_ui_asset_slot_inspector_editing_actions() {
     let _guard = env_lock().lock().unwrap();
-    let path = unique_temp_path("zircon_editor_ui_asset_slot_inspector");
+    let path = unique_temp_path("zircon_editor_asset_slot_inspector");
     let ui_asset_path =
-        unique_temp_dir("zircon_editor_ui_asset_slot_inspector_file").join("style.ui.toml");
+        unique_temp_dir("zircon_editor_asset_slot_inspector_file").join("style.ui.toml");
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     fs::write(&ui_asset_path, STYLE_UI_LAYOUT_ASSET).unwrap();
 
@@ -1465,9 +1521,9 @@ fn editor_manager_runs_ui_asset_slot_inspector_editing_actions() {
 #[test]
 fn editor_manager_runs_ui_asset_layout_inspector_editing_actions() {
     let _guard = env_lock().lock().unwrap();
-    let path = unique_temp_path("zircon_editor_ui_asset_layout_inspector");
+    let path = unique_temp_path("zircon_editor_asset_layout_inspector");
     let ui_asset_path =
-        unique_temp_dir("zircon_editor_ui_asset_layout_inspector_file").join("style.ui.toml");
+        unique_temp_dir("zircon_editor_asset_layout_inspector_file").join("style.ui.toml");
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     fs::write(&ui_asset_path, STYLE_UI_LAYOUT_ASSET).unwrap();
 
@@ -1520,9 +1576,9 @@ fn editor_manager_runs_ui_asset_layout_inspector_editing_actions() {
 #[test]
 fn editor_manager_runs_ui_asset_parent_specific_semantic_actions() {
     let _guard = env_lock().lock().unwrap();
-    let path = unique_temp_path("zircon_editor_ui_asset_semantic_inspector");
+    let path = unique_temp_path("zircon_editor_asset_semantic_inspector");
     let ui_asset_path =
-        unique_temp_dir("zircon_editor_ui_asset_semantic_inspector_file").join("semantic.ui.toml");
+        unique_temp_dir("zircon_editor_asset_semantic_inspector_file").join("semantic.ui.toml");
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     fs::write(&ui_asset_path, SEMANTIC_UI_LAYOUT_ASSET).unwrap();
 
@@ -1591,9 +1647,9 @@ fn editor_manager_runs_ui_asset_parent_specific_semantic_actions() {
 #[test]
 fn editor_manager_runs_ui_asset_binding_inspector_editing_actions() {
     let _guard = env_lock().lock().unwrap();
-    let path = unique_temp_path("zircon_editor_ui_asset_binding_inspector");
+    let path = unique_temp_path("zircon_editor_asset_binding_inspector");
     let ui_asset_path =
-        unique_temp_dir("zircon_editor_ui_asset_binding_inspector_file").join("style.ui.toml");
+        unique_temp_dir("zircon_editor_asset_binding_inspector_file").join("style.ui.toml");
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     fs::write(&ui_asset_path, STYLE_UI_LAYOUT_ASSET).unwrap();
 
@@ -1651,8 +1707,8 @@ fn editor_manager_runs_ui_asset_binding_inspector_editing_actions() {
 #[test]
 fn editor_manager_runs_ui_asset_structured_binding_inspector_actions() {
     let _guard = env_lock().lock().unwrap();
-    let path = unique_temp_path("zircon_editor_ui_asset_structured_binding_inspector");
-    let ui_asset_path = unique_temp_dir("zircon_editor_ui_asset_structured_binding_inspector_file")
+    let path = unique_temp_path("zircon_editor_asset_structured_binding_inspector");
+    let ui_asset_path = unique_temp_dir("zircon_editor_asset_structured_binding_inspector_file")
         .join("structured-binding.ui.toml");
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     fs::write(&ui_asset_path, STRUCTURED_BINDING_UI_LAYOUT_ASSET).unwrap();
@@ -1760,9 +1816,9 @@ fn editor_manager_runs_ui_asset_structured_binding_inspector_actions() {
 #[test]
 fn editor_manager_runs_ui_asset_palette_and_tree_authoring_actions() {
     let _guard = env_lock().lock().unwrap();
-    let path = unique_temp_path("zircon_editor_ui_asset_tree_authoring");
+    let path = unique_temp_path("zircon_editor_asset_tree_authoring");
     let ui_asset_path =
-        unique_temp_dir("zircon_editor_ui_asset_tree_authoring_file").join("style.ui.toml");
+        unique_temp_dir("zircon_editor_asset_tree_authoring_file").join("style.ui.toml");
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     fs::write(&ui_asset_path, STYLE_UI_LAYOUT_ASSET).unwrap();
 
@@ -1833,9 +1889,9 @@ fn editor_manager_runs_ui_asset_palette_and_tree_authoring_actions() {
 #[test]
 fn editor_manager_restores_ui_asset_tree_selection_across_undo_and_redo() {
     let _guard = env_lock().lock().unwrap();
-    let path = unique_temp_path("zircon_editor_ui_asset_tree_selection_undo");
+    let path = unique_temp_path("zircon_editor_asset_tree_selection_undo");
     let ui_asset_path =
-        unique_temp_dir("zircon_editor_ui_asset_tree_selection_undo_file").join("style.ui.toml");
+        unique_temp_dir("zircon_editor_asset_tree_selection_undo_file").join("style.ui.toml");
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     fs::write(&ui_asset_path, STYLE_UI_LAYOUT_ASSET).unwrap();
 
@@ -1897,8 +1953,8 @@ fn editor_manager_restores_ui_asset_tree_selection_across_undo_and_redo() {
 #[test]
 fn editor_manager_opens_selected_ui_asset_reference_in_new_editor_instance() {
     let _guard = env_lock().lock().unwrap();
-    let path = unique_temp_path("zircon_editor_ui_asset_open_reference");
-    let project_root = unique_temp_dir("zircon_editor_ui_asset_open_reference_project");
+    let path = unique_temp_path("zircon_editor_asset_open_reference");
+    let project_root = unique_temp_dir("zircon_editor_asset_open_reference_project");
     let runtime = editor_runtime_with_config_path(&path);
     let manager = runtime
         .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
@@ -2001,8 +2057,8 @@ control_id = "ToolbarHost"
 #[test]
 fn editor_manager_activates_selected_ui_asset_reference_from_hierarchy() {
     let _guard = env_lock().lock().unwrap();
-    let path = unique_temp_path("zircon_editor_ui_asset_activate_reference");
-    let project_root = unique_temp_dir("zircon_editor_ui_asset_activate_reference_project");
+    let path = unique_temp_path("zircon_editor_asset_activate_reference");
+    let project_root = unique_temp_dir("zircon_editor_asset_activate_reference_project");
     let runtime = editor_runtime_with_config_path(&path);
     let manager = runtime
         .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
@@ -2102,8 +2158,8 @@ control_id = "ToolbarHost"
 #[test]
 fn editor_manager_activates_selected_ui_asset_reference_from_preview() {
     let _guard = env_lock().lock().unwrap();
-    let path = unique_temp_path("zircon_editor_ui_asset_activate_preview_reference");
-    let project_root = unique_temp_dir("zircon_editor_ui_asset_activate_preview_reference_project");
+    let path = unique_temp_path("zircon_editor_asset_activate_preview_reference");
+    let project_root = unique_temp_dir("zircon_editor_asset_activate_preview_reference_project");
     let runtime = editor_runtime_with_config_path(&path);
     let manager = runtime
         .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
@@ -2210,9 +2266,9 @@ control_id = "ToolbarHost"
 #[test]
 fn editor_manager_runs_ui_asset_reparent_actions() {
     let _guard = env_lock().lock().unwrap();
-    let path = unique_temp_path("zircon_editor_ui_asset_tree_reparent");
+    let path = unique_temp_path("zircon_editor_asset_tree_reparent");
     let ui_asset_path =
-        unique_temp_dir("zircon_editor_ui_asset_tree_reparent_file").join("tree.ui.toml");
+        unique_temp_dir("zircon_editor_asset_tree_reparent_file").join("tree.ui.toml");
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     fs::write(&ui_asset_path, TREE_REPARENT_UI_LAYOUT_ASSET).unwrap();
 
@@ -2270,8 +2326,8 @@ fn editor_manager_runs_ui_asset_reparent_actions() {
 #[test]
 fn editor_manager_converts_selected_ui_asset_node_to_reference_from_palette_selection() {
     let _guard = env_lock().lock().unwrap();
-    let path = unique_temp_path("zircon_editor_ui_asset_convert_reference");
-    let project_root = unique_temp_dir("zircon_editor_ui_asset_convert_reference_project");
+    let path = unique_temp_path("zircon_editor_asset_convert_reference");
+    let project_root = unique_temp_dir("zircon_editor_asset_convert_reference_project");
     let runtime = editor_runtime_with_config_path(&path);
     let manager = runtime
         .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
@@ -2423,9 +2479,9 @@ style_overrides = { self = { text = { color = "#ffffff" } }, slot = { padding = 
 #[test]
 fn editor_manager_extracts_selected_ui_asset_node_to_local_component() {
     let _guard = env_lock().lock().unwrap();
-    let path = unique_temp_path("zircon_editor_ui_asset_extract_component");
+    let path = unique_temp_path("zircon_editor_asset_extract_component");
     let ui_asset_path =
-        unique_temp_dir("zircon_editor_ui_asset_extract_component_file").join("style.ui.toml");
+        unique_temp_dir("zircon_editor_asset_extract_component_file").join("style.ui.toml");
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     fs::write(&ui_asset_path, STYLE_UI_LAYOUT_ASSET).unwrap();
 
@@ -2493,8 +2549,8 @@ fn editor_manager_extracts_selected_ui_asset_node_to_local_component() {
 #[test]
 fn editor_manager_promotes_selected_ui_asset_component_to_external_widget_asset() {
     let _guard = env_lock().lock().unwrap();
-    let path = unique_temp_path("zircon_editor_ui_asset_promote_widget");
-    let project_root = unique_temp_dir("zircon_editor_ui_asset_promote_widget_project");
+    let path = unique_temp_path("zircon_editor_asset_promote_widget");
+    let project_root = unique_temp_dir("zircon_editor_asset_promote_widget_project");
     let runtime = editor_runtime_with_config_path(&path);
     let manager = runtime
         .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
@@ -2625,10 +2681,470 @@ fn editor_manager_promotes_selected_ui_asset_component_to_external_widget_asset(
 }
 
 #[test]
+fn editor_manager_promotes_local_theme_to_external_style_asset_and_opens_selected_theme_source() {
+    let _guard = env_lock().lock().unwrap();
+    let path = unique_temp_path("zircon_editor_asset_promote_theme");
+    let project_root = unique_temp_dir("zircon_editor_asset_promote_theme_project");
+    let runtime = editor_runtime_with_config_path(&path);
+    let manager = runtime
+        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+        .unwrap();
+    let world = DefaultLevelManager::default()
+        .create_default_level()
+        .snapshot();
+    EditorProjectDocument::save_to_path(&project_root, &world, None).unwrap();
+
+    let layout_path = project_root
+        .join("assets")
+        .join("ui")
+        .join("layouts")
+        .join("editor.ui.toml");
+    fs::create_dir_all(layout_path.parent().unwrap()).unwrap();
+    fs::write(&layout_path, STYLE_UI_LAYOUT_ASSET).unwrap();
+
+    manager.open_project(&project_root).unwrap();
+
+    let instance_id = manager
+        .open_ui_asset_editor_by_id("res://ui/layouts/editor.ui.toml", None)
+        .expect("ui asset editor should open from project asset id");
+    let before = manager
+        .ui_asset_editor_pane_presentation(&instance_id)
+        .expect("pane before promote theme");
+    assert_eq!(before.theme_selected_source_kind, "Local");
+    assert!(before.theme_can_promote_local);
+
+    assert!(manager
+        .promote_ui_asset_editor_local_theme_to_external_style_asset(&instance_id)
+        .expect("promote local theme to external style asset"));
+
+    let theme_path = project_root
+        .join("assets")
+        .join("ui")
+        .join("themes")
+        .join("editor_theme.ui.toml");
+    let theme_source = fs::read_to_string(&theme_path).expect("promoted theme file");
+    let theme_asset = UiStyleAsset::from_toml_str(&theme_source).expect("style asset");
+    assert_eq!(theme_asset.document.asset.id, "ui.theme.editor_theme");
+    assert_eq!(
+        theme_asset.document.asset.display_name,
+        "Styled UI Asset Theme"
+    );
+    assert_eq!(
+        theme_asset
+            .document
+            .tokens
+            .get("accent")
+            .and_then(toml::Value::as_str),
+        Some("#4488ff")
+    );
+
+    let promoted = manager
+        .ui_asset_editor_pane_presentation(&instance_id)
+        .expect("pane after promote theme");
+    assert_eq!(promoted.theme_selected_source_kind, "Imported");
+    assert_eq!(
+        promoted.theme_selected_source_reference,
+        "res://ui/themes/editor_theme.ui.toml"
+    );
+    assert!(promoted.theme_selected_source_available);
+    assert!(!promoted.theme_can_promote_local);
+
+    let saved = manager
+        .save_ui_asset_editor(&instance_id)
+        .expect("save ui asset editor after theme promote");
+    let document = UiAssetLoader::load_toml_str(&saved).expect("saved ui asset document");
+    assert!(document.tokens.is_empty());
+    assert!(document.stylesheets.is_empty());
+    assert_eq!(
+        document.imports.styles,
+        vec!["res://ui/themes/editor_theme.ui.toml".to_string()]
+    );
+
+    let opened = manager
+        .open_ui_asset_editor_selected_theme_source(&instance_id)
+        .expect("open selected theme source")
+        .expect("theme source editor instance");
+    let reflection = manager
+        .ui_asset_editor_reflection(&opened)
+        .expect("theme source reflection");
+    assert_eq!(
+        reflection.route.asset_id,
+        "res://ui/themes/editor_theme.ui.toml"
+    );
+    assert_eq!(reflection.route.asset_kind, zircon_ui::UiAssetKind::Style);
+
+    assert!(manager
+        .undo_ui_asset_editor(&instance_id)
+        .expect("undo promote local theme"));
+    assert!(!theme_path.exists());
+    let undone = manager
+        .ui_asset_editor_pane_presentation(&instance_id)
+        .expect("pane after undo theme promote");
+    assert_eq!(undone.theme_selected_source_kind, "Local");
+    assert!(undone.theme_can_promote_local);
+
+    assert!(manager
+        .redo_ui_asset_editor(&instance_id)
+        .expect("redo promote local theme"));
+    assert!(theme_path.exists());
+    let redone = manager
+        .ui_asset_editor_pane_presentation(&instance_id)
+        .expect("pane after redo theme promote");
+    assert_eq!(redone.theme_selected_source_kind, "Imported");
+    assert_eq!(
+        redone.theme_selected_source_reference,
+        "res://ui/themes/editor_theme.ui.toml"
+    );
+
+    std::env::remove_var("ZIRCON_EDITOR_CONFIG_PATH");
+    let _ = fs::remove_file(path);
+    let _ = fs::remove_dir_all(project_root);
+}
+
+#[test]
+fn editor_manager_uses_custom_promote_theme_draft_values() {
+    let _guard = env_lock().lock().unwrap();
+    let path = unique_temp_path("zircon_editor_asset_promote_theme_custom");
+    let project_root = unique_temp_dir("zircon_editor_asset_promote_theme_custom_project");
+    let runtime = editor_runtime_with_config_path(&path);
+    let manager = runtime
+        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+        .unwrap();
+    let world = DefaultLevelManager::default()
+        .create_default_level()
+        .snapshot();
+    EditorProjectDocument::save_to_path(&project_root, &world, None).unwrap();
+
+    let layout_path = project_root
+        .join("assets")
+        .join("ui")
+        .join("layouts")
+        .join("editor.ui.toml");
+    fs::create_dir_all(layout_path.parent().unwrap()).unwrap();
+    fs::write(&layout_path, STYLE_UI_LAYOUT_ASSET).unwrap();
+
+    manager.open_project(&project_root).unwrap();
+
+    let instance_id = manager
+        .open_ui_asset_editor_by_id("res://ui/layouts/editor.ui.toml", None)
+        .expect("ui asset editor should open from project asset id");
+    manager
+        .set_ui_asset_editor_promote_theme_asset_id(
+            &instance_id,
+            "res://ui/themes/custom/editor_shell.ui.toml",
+        )
+        .expect("set promote theme asset id");
+    manager
+        .set_ui_asset_editor_promote_theme_document_id(&instance_id, "ui.theme.custom.editor_shell")
+        .expect("set promote theme document id");
+    manager
+        .set_ui_asset_editor_promote_theme_display_name(&instance_id, "Editor Shell Theme")
+        .expect("set promote theme display name");
+
+    assert!(manager
+        .promote_ui_asset_editor_local_theme_to_external_style_asset(&instance_id)
+        .expect("promote local theme to custom external style asset"));
+
+    let theme_path = project_root
+        .join("assets")
+        .join("ui")
+        .join("themes")
+        .join("custom")
+        .join("editor_shell.ui.toml");
+    let theme_source = fs::read_to_string(&theme_path).expect("custom promoted theme file");
+    let theme_asset = UiStyleAsset::from_toml_str(&theme_source).expect("custom style asset");
+    assert_eq!(
+        theme_asset.document.asset.id,
+        "ui.theme.custom.editor_shell"
+    );
+    assert_eq!(
+        theme_asset.document.asset.display_name,
+        "Editor Shell Theme"
+    );
+
+    let saved = manager
+        .save_ui_asset_editor(&instance_id)
+        .expect("save ui asset editor after custom theme promote");
+    let document = UiAssetLoader::load_toml_str(&saved).expect("saved ui asset document");
+    assert_eq!(
+        document.imports.styles,
+        vec!["res://ui/themes/custom/editor_shell.ui.toml".to_string()]
+    );
+
+    std::env::remove_var("ZIRCON_EDITOR_CONFIG_PATH");
+    let _ = fs::remove_file(path);
+    let _ = fs::remove_dir_all(project_root);
+}
+
+#[test]
+fn editor_manager_detaches_selected_imported_theme_into_local_theme_layer() {
+    let _guard = env_lock().lock().unwrap();
+    let path = unique_temp_path("zircon_editor_asset_detach_theme");
+    let project_root = unique_temp_dir("zircon_editor_asset_detach_theme_project");
+    let runtime = editor_runtime_with_config_path(&path);
+    let manager = runtime
+        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+        .unwrap();
+    let world = DefaultLevelManager::default()
+        .create_default_level()
+        .snapshot();
+    EditorProjectDocument::save_to_path(&project_root, &world, None).unwrap();
+
+    let layout_path = project_root
+        .join("assets")
+        .join("ui")
+        .join("layouts")
+        .join("editor.ui.toml");
+    let imported_theme_path = project_root
+        .join("assets")
+        .join("ui")
+        .join("theme")
+        .join("shared_theme.ui.toml");
+    fs::create_dir_all(layout_path.parent().unwrap()).unwrap();
+    fs::create_dir_all(imported_theme_path.parent().unwrap()).unwrap();
+    fs::write(&layout_path, DETACH_THEME_UI_LAYOUT_ASSET).unwrap();
+    fs::write(&imported_theme_path, IMPORTED_THEME_COLLISION_ASSET).unwrap();
+
+    manager.open_project(&project_root).unwrap();
+
+    let instance_id = manager
+        .open_ui_asset_editor_by_id("res://ui/layouts/editor.ui.toml", None)
+        .expect("ui asset editor should open from project asset id");
+    manager
+        .select_ui_asset_editor_theme_source(&instance_id, 1)
+        .expect("select imported theme");
+
+    let before = manager
+        .ui_asset_editor_pane_presentation(&instance_id)
+        .expect("pane before detach");
+    assert_eq!(before.theme_selected_source_kind, "Imported");
+    assert_eq!(
+        before.theme_selected_source_reference,
+        "res://ui/theme/shared_theme.ui.toml"
+    );
+
+    assert!(manager
+        .detach_ui_asset_editor_selected_theme_source_to_local(&instance_id)
+        .expect("detach selected imported theme into local layer"));
+
+    let detached = manager
+        .ui_asset_editor_pane_presentation(&instance_id)
+        .expect("pane after detach");
+    assert_eq!(detached.theme_selected_source_kind, "Local");
+    assert_eq!(detached.theme_selected_source_reference, "local");
+    assert_eq!(
+        detached.theme_selected_source_token_items,
+        vec![
+            "accent = \"#4488ff\"".to_string(),
+            "panel = \"$shared_theme_accent\"".to_string(),
+            "shared_theme_accent = \"#223344\"".to_string(),
+        ]
+    );
+    assert_eq!(
+        detached.theme_selected_source_rule_items,
+        vec![
+            "shared_theme_local_theme • Button".to_string(),
+            "local_theme • #SaveButton".to_string(),
+        ]
+    );
+
+    let saved = manager
+        .save_ui_asset_editor(&instance_id)
+        .expect("save detached theme ui asset");
+    let document = UiAssetLoader::load_toml_str(&saved).expect("saved detached ui asset");
+    assert!(document.imports.styles.is_empty());
+    assert_eq!(
+        document.tokens.get("accent").and_then(toml::Value::as_str),
+        Some("#4488ff")
+    );
+    assert_eq!(
+        document
+            .tokens
+            .get("shared_theme_accent")
+            .and_then(toml::Value::as_str),
+        Some("#223344")
+    );
+    assert_eq!(
+        document.tokens.get("panel").and_then(toml::Value::as_str),
+        Some("$shared_theme_accent")
+    );
+    assert_eq!(
+        document
+            .stylesheets
+            .iter()
+            .map(|sheet| sheet.id.as_str())
+            .collect::<Vec<_>>(),
+        vec!["shared_theme_local_theme", "local_theme"]
+    );
+
+    assert!(manager
+        .undo_ui_asset_editor(&instance_id)
+        .expect("undo detach imported theme"));
+    let undone = manager
+        .ui_asset_editor_pane_presentation(&instance_id)
+        .expect("pane after undo detach");
+    assert_eq!(undone.theme_selected_source_kind, "Imported");
+    assert_eq!(
+        undone.theme_selected_source_reference,
+        "res://ui/theme/shared_theme.ui.toml"
+    );
+
+    assert!(manager
+        .redo_ui_asset_editor(&instance_id)
+        .expect("redo detach imported theme"));
+    let redone = manager
+        .ui_asset_editor_pane_presentation(&instance_id)
+        .expect("pane after redo detach");
+    assert_eq!(redone.theme_selected_source_kind, "Local");
+    assert_eq!(
+        redone.theme_selected_source_token_items,
+        vec![
+            "accent = \"#4488ff\"".to_string(),
+            "panel = \"$shared_theme_accent\"".to_string(),
+            "shared_theme_accent = \"#223344\"".to_string(),
+        ]
+    );
+    let imported_theme_source =
+        fs::read_to_string(&imported_theme_path).expect("imported theme source should remain");
+    let imported_theme =
+        UiStyleAsset::from_toml_str(&imported_theme_source).expect("imported theme asset");
+    assert_eq!(imported_theme.document.asset.id, "ui.theme.shared_theme");
+
+    std::env::remove_var("ZIRCON_EDITOR_CONFIG_PATH");
+    let _ = fs::remove_file(path);
+    let _ = fs::remove_dir_all(project_root);
+}
+
+#[test]
+fn editor_manager_clones_selected_imported_theme_into_local_theme_layer() {
+    let _guard = env_lock().lock().unwrap();
+    let path = unique_temp_path("zircon_editor_asset_clone_theme");
+    let project_root = unique_temp_dir("zircon_editor_asset_clone_theme_project");
+    let runtime = editor_runtime_with_config_path(&path);
+    let manager = runtime
+        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+        .unwrap();
+    let world = DefaultLevelManager::default()
+        .create_default_level()
+        .snapshot();
+    EditorProjectDocument::save_to_path(&project_root, &world, None).unwrap();
+
+    let layout_path = project_root
+        .join("assets")
+        .join("ui")
+        .join("layouts")
+        .join("editor.ui.toml");
+    let imported_theme_path = project_root
+        .join("assets")
+        .join("ui")
+        .join("theme")
+        .join("shared_theme.ui.toml");
+    fs::create_dir_all(layout_path.parent().unwrap()).unwrap();
+    fs::create_dir_all(imported_theme_path.parent().unwrap()).unwrap();
+    fs::write(&layout_path, DETACH_THEME_UI_LAYOUT_ASSET).unwrap();
+    fs::write(&imported_theme_path, IMPORTED_THEME_COLLISION_ASSET).unwrap();
+
+    manager.open_project(&project_root).unwrap();
+
+    let instance_id = manager
+        .open_ui_asset_editor_by_id("res://ui/layouts/editor.ui.toml", None)
+        .expect("ui asset editor should open from project asset id");
+    manager
+        .select_ui_asset_editor_theme_source(&instance_id, 1)
+        .expect("select imported theme");
+
+    assert!(manager
+        .clone_ui_asset_editor_selected_theme_source_to_local(&instance_id)
+        .expect("clone selected imported theme into local layer"));
+
+    let cloned = manager
+        .ui_asset_editor_pane_presentation(&instance_id)
+        .expect("pane after clone");
+    assert_eq!(cloned.theme_selected_source_kind, "Local");
+    assert_eq!(cloned.theme_selected_source_reference, "local");
+    assert_eq!(
+        cloned.theme_source_items,
+        vec![
+            "Local Theme • 3 tokens • 2 rules".to_string(),
+            "res://ui/theme/shared_theme.ui.toml • 2 tokens • 1 rules".to_string(),
+        ]
+    );
+    assert_eq!(
+        cloned.theme_selected_source_token_items,
+        vec![
+            "accent = \"#4488ff\"".to_string(),
+            "panel = \"$shared_theme_accent\"".to_string(),
+            "shared_theme_accent = \"#223344\"".to_string(),
+        ]
+    );
+
+    let saved = manager
+        .save_ui_asset_editor(&instance_id)
+        .expect("save cloned theme ui asset");
+    let document = UiAssetLoader::load_toml_str(&saved).expect("saved cloned ui asset");
+    assert_eq!(
+        document.imports.styles,
+        vec!["res://ui/theme/shared_theme.ui.toml".to_string()]
+    );
+    assert_eq!(
+        document
+            .tokens
+            .get("shared_theme_accent")
+            .and_then(toml::Value::as_str),
+        Some("#223344")
+    );
+    assert_eq!(
+        document
+            .stylesheets
+            .iter()
+            .map(|sheet| sheet.id.as_str())
+            .collect::<Vec<_>>(),
+        vec!["shared_theme_local_theme", "local_theme"]
+    );
+
+    assert!(manager
+        .undo_ui_asset_editor(&instance_id)
+        .expect("undo clone imported theme"));
+    let undone = manager
+        .ui_asset_editor_pane_presentation(&instance_id)
+        .expect("pane after undo clone");
+    assert_eq!(undone.theme_selected_source_kind, "Imported");
+    assert_eq!(
+        undone.theme_selected_source_reference,
+        "res://ui/theme/shared_theme.ui.toml"
+    );
+
+    assert!(manager
+        .redo_ui_asset_editor(&instance_id)
+        .expect("redo clone imported theme"));
+    let redone = manager
+        .ui_asset_editor_pane_presentation(&instance_id)
+        .expect("pane after redo clone");
+    assert_eq!(redone.theme_selected_source_kind, "Local");
+    assert_eq!(
+        redone.theme_source_items,
+        vec![
+            "Local Theme • 3 tokens • 2 rules".to_string(),
+            "res://ui/theme/shared_theme.ui.toml • 2 tokens • 1 rules".to_string(),
+        ]
+    );
+
+    let imported_theme_source =
+        fs::read_to_string(&imported_theme_path).expect("imported theme source should remain");
+    let imported_theme =
+        UiStyleAsset::from_toml_str(&imported_theme_source).expect("imported theme asset");
+    assert_eq!(imported_theme.document.asset.id, "ui.theme.shared_theme");
+
+    std::env::remove_var("ZIRCON_EDITOR_CONFIG_PATH");
+    let _ = fs::remove_file(path);
+    let _ = fs::remove_dir_all(project_root);
+}
+
+#[test]
 fn editor_manager_uses_custom_promote_widget_draft_values() {
     let _guard = env_lock().lock().unwrap();
-    let path = unique_temp_path("zircon_editor_ui_asset_promote_widget_custom");
-    let project_root = unique_temp_dir("zircon_editor_ui_asset_promote_widget_custom_project");
+    let path = unique_temp_path("zircon_editor_asset_promote_widget_custom");
+    let project_root = unique_temp_dir("zircon_editor_asset_promote_widget_custom_project");
     let runtime = editor_runtime_with_config_path(&path);
     let manager = runtime
         .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
@@ -2718,9 +3234,9 @@ fn editor_manager_uses_custom_promote_widget_draft_values() {
 #[test]
 fn editor_manager_runs_ui_asset_style_token_editing_actions() {
     let _guard = env_lock().lock().unwrap();
-    let path = unique_temp_path("zircon_editor_ui_asset_style_tokens");
+    let path = unique_temp_path("zircon_editor_asset_style_tokens");
     let ui_asset_path =
-        unique_temp_dir("zircon_editor_ui_asset_style_tokens_file").join("style.ui.toml");
+        unique_temp_dir("zircon_editor_asset_style_tokens_file").join("style.ui.toml");
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     fs::write(&ui_asset_path, STYLE_UI_LAYOUT_ASSET).unwrap();
 
@@ -2820,6 +3336,7 @@ fn slot_table_value<'a>(
 fn editor_manager_ui_asset_sessions_are_split_by_host_orchestration_behaviors() {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("src")
+        .join("core")
         .join("host")
         .join("manager")
         .join("ui_asset_sessions");

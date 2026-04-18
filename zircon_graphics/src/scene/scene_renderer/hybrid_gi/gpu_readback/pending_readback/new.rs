@@ -10,6 +10,8 @@ impl HybridGiGpuPendingReadback {
         completed_trace_buffer: wgpu::Buffer,
         irradiance_word_count: usize,
         irradiance_buffer: wgpu::Buffer,
+        trace_lighting_word_count: usize,
+        trace_lighting_buffer: wgpu::Buffer,
     ) -> Self {
         Self {
             cache_word_count,
@@ -20,6 +22,8 @@ impl HybridGiGpuPendingReadback {
             completed_trace_buffer,
             irradiance_word_count,
             irradiance_buffer,
+            trace_lighting_word_count,
+            trace_lighting_buffer,
         }
     }
 }

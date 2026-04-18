@@ -38,6 +38,10 @@ pub(super) fn create_bind_group(
                 binding: 6,
                 resource: buffers.irradiance_buffer.as_entire_binding(),
             },
+            wgpu::BindGroupEntry {
+                binding: 7,
+                resource: buffers.trace_lighting_buffer.as_entire_binding(),
+            },
         ],
     })
 }

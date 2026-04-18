@@ -1,24 +1,14 @@
-use std::collections::BTreeSet;
-
 use zircon_math::Vec4;
 
 use super::World;
 use crate::components::{
     aspect_ratio_from_viewport_size, default_render_layer_mask, default_viewport_aspect_ratio,
-    DisplayMode, FallbackSkyboxKind, GridMode, GridOverlayExtract, OverlayBillboardIcon,
-    OverlayLineSegment, OverlayPickShape, OverlayWireShape, PreviewEnvironmentExtract,
-    RenderDirectionalLightSnapshot, RenderMeshSnapshot, RenderOverlayExtract,
-    RenderSceneGeometryExtract, RenderSceneSnapshot, SceneGizmoBuildContext, SceneGizmoKind,
-    SceneGizmoOverlayExtract, SceneGizmoProvider, SceneGizmoRegistry, SceneViewportExtractRequest,
-    SceneViewportRenderPacket, SelectionAnchorExtract, SelectionHighlightExtract,
-    ViewportCameraSnapshot, ViewportIconId,
+    FallbackSkyboxKind, PreviewEnvironmentExtract, RenderDirectionalLightSnapshot,
+    RenderMeshSnapshot, RenderOverlayExtract, RenderSceneGeometryExtract, RenderSceneSnapshot,
+    SceneViewportExtractRequest, SceneViewportRenderPacket, ViewportCameraSnapshot,
 };
 
 const SCENE_CLEAR_COLOR: Vec4 = Vec4::new(0.09, 0.11, 0.14, 1.0);
-const SELECTION_TINT: Vec4 = Vec4::new(1.0, 0.92, 0.55, 0.18);
-const ANCHOR_COLOR: Vec4 = Vec4::new(1.0, 0.85, 0.3, 1.0);
-const CAMERA_GIZMO_COLOR: Vec4 = Vec4::new(0.42, 0.72, 1.0, 1.0);
-const LIGHT_GIZMO_COLOR: Vec4 = Vec4::new(1.0, 0.88, 0.36, 1.0);
 
 impl World {
     pub fn to_render_snapshot(&self) -> RenderSceneSnapshot {
@@ -28,7 +18,7 @@ impl World {
     pub fn to_render_extract(&self) -> SceneViewportRenderPacket {
         let request = SceneViewportExtractRequest {
             settings: crate::SceneViewportSettings::default(),
-            selection: self.selected_entity.into_iter().collect(),
+            selection: Vec::new(),
             active_camera_override: None,
             camera: None,
             viewport_size: None,
@@ -41,7 +31,6 @@ impl World {
         request: &SceneViewportExtractRequest,
     ) -> SceneViewportRenderPacket {
         let camera = self.build_render_camera(request);
-        let selection: BTreeSet<_> = request.selection.iter().copied().collect();
 
         let mut meshes = self
             .mesh_renderers
@@ -81,12 +70,8 @@ impl World {
                 lights,
             },
             overlays: RenderOverlayExtract {
-                selection: self.build_selection_highlights(&selection, request),
-                selection_anchors: self.build_selection_anchors(&selection, request),
-                grid: build_grid_extract(request),
-                handles: Vec::new(),
-                scene_gizmos: self.build_scene_gizmos(&selection, request),
                 display_mode: request.settings.display_mode,
+                ..RenderOverlayExtract::default()
             },
             preview: build_preview_environment(request),
         }
@@ -137,111 +122,6 @@ impl World {
                 .unwrap_or_else(default_viewport_aspect_ratio),
         }
     }
-
-    fn build_selection_highlights(
-        &self,
-        selection: &BTreeSet<u64>,
-        request: &SceneViewportExtractRequest,
-    ) -> Vec<SelectionHighlightExtract> {
-        selection
-            .iter()
-            .copied()
-            .filter(|entity| self.mesh_renderers.contains_key(entity))
-            .map(|owner| SelectionHighlightExtract {
-                owner,
-                outline: true,
-                tint: match request.settings.display_mode {
-                    DisplayMode::WireOnly => None,
-                    DisplayMode::Shaded | DisplayMode::WireOverlay => Some(SELECTION_TINT),
-                },
-            })
-            .collect()
-    }
-
-    fn build_selection_anchors(
-        &self,
-        selection: &BTreeSet<u64>,
-        request: &SceneViewportExtractRequest,
-    ) -> Vec<SelectionAnchorExtract> {
-        if request.settings.gizmos_enabled {
-            return Vec::new();
-        }
-
-        selection
-            .iter()
-            .copied()
-            .filter(|entity| !self.mesh_renderers.contains_key(entity))
-            .map(|owner| SelectionAnchorExtract {
-                owner,
-                position: self.world_transform(owner).unwrap_or_default().translation,
-                size: 0.12,
-                color: ANCHOR_COLOR,
-            })
-            .collect()
-    }
-
-    fn build_scene_gizmos(
-        &self,
-        selection: &BTreeSet<u64>,
-        request: &SceneViewportExtractRequest,
-    ) -> Vec<SceneGizmoOverlayExtract> {
-        if !request.settings.gizmos_enabled {
-            return Vec::new();
-        }
-
-        let registry = build_default_scene_gizmo_registry();
-        let mut gizmos = Vec::new();
-        for entity in self
-            .entities
-            .iter()
-            .copied()
-            .filter(|entity| self.active_in_hierarchy(*entity) == Some(true))
-        {
-            for provider in &registry.providers {
-                if !provider.supports(self, entity) {
-                    continue;
-                }
-                let mut extract = SceneGizmoOverlayExtract {
-                    owner: entity,
-                    kind: provider.kind(),
-                    selected: selection.contains(&entity),
-                    lines: Vec::new(),
-                    wire_shapes: Vec::new(),
-                    icons: Vec::new(),
-                    pick_shapes: Vec::new(),
-                };
-                provider.build(
-                    &SceneGizmoBuildContext {
-                        world: self,
-                        entity,
-                        selected: selection.contains(&entity),
-                        camera: &request
-                            .camera
-                            .clone()
-                            .unwrap_or_else(|| self.build_render_camera(request)),
-                    },
-                    &mut extract,
-                );
-                gizmos.push(extract);
-                break;
-            }
-        }
-        gizmos
-    }
-}
-
-fn build_grid_extract(request: &SceneViewportExtractRequest) -> Option<GridOverlayExtract> {
-    match request.settings.grid_mode {
-        GridMode::Hidden => None,
-        GridMode::VisibleNoSnap => Some(GridOverlayExtract {
-            visible: true,
-            snap_enabled: false,
-        }),
-        GridMode::VisibleAndSnap => Some(GridOverlayExtract {
-            visible: true,
-            snap_enabled: true,
-        }),
-    }
 }
 
 fn build_preview_environment(request: &SceneViewportExtractRequest) -> PreviewEnvironmentExtract {
@@ -254,121 +134,5 @@ fn build_preview_environment(request: &SceneViewportExtractRequest) -> PreviewEn
             FallbackSkyboxKind::None
         },
         clear_color: SCENE_CLEAR_COLOR,
-    }
-}
-
-fn build_default_scene_gizmo_registry() -> SceneGizmoRegistry {
-    SceneGizmoRegistry::new(vec![
-        Box::new(CameraGizmoProvider),
-        Box::new(DirectionalLightGizmoProvider),
-    ])
-}
-
-struct CameraGizmoProvider;
-
-impl SceneGizmoProvider for CameraGizmoProvider {
-    fn kind(&self) -> SceneGizmoKind {
-        SceneGizmoKind::Camera
-    }
-
-    fn supports(&self, world: &World, entity: u64) -> bool {
-        world.cameras.contains_key(&entity)
-    }
-
-    fn build(&self, ctx: &SceneGizmoBuildContext<'_>, out: &mut SceneGizmoOverlayExtract) {
-        let Some(node) = ctx.world.find_node(ctx.entity) else {
-            return;
-        };
-        let Some(camera) = node.camera.as_ref() else {
-            return;
-        };
-        let color = if ctx.selected {
-            CAMERA_GIZMO_COLOR * Vec4::new(1.15, 1.15, 1.15, 1.0)
-        } else {
-            CAMERA_GIZMO_COLOR
-        };
-        let position = ctx
-            .world
-            .world_transform(ctx.entity)
-            .unwrap_or(node.transform)
-            .translation;
-        out.icons.push(OverlayBillboardIcon {
-            id: ViewportIconId::Camera,
-            position,
-            tint: color,
-            size: 28.0,
-        });
-        out.wire_shapes.push(OverlayWireShape::Frustum {
-            transform: ctx
-                .world
-                .world_transform(ctx.entity)
-                .unwrap_or(node.transform),
-            fov_y_radians: camera.fov_y_radians,
-            aspect_ratio: ctx.camera.aspect_ratio,
-            z_near: camera.z_near.max(0.05),
-            z_far: camera.z_far.min(2.5),
-            color,
-        });
-        out.pick_shapes.push(OverlayPickShape::Sphere {
-            center: position,
-            radius: 0.4,
-        });
-    }
-}
-
-struct DirectionalLightGizmoProvider;
-
-impl SceneGizmoProvider for DirectionalLightGizmoProvider {
-    fn kind(&self) -> SceneGizmoKind {
-        SceneGizmoKind::DirectionalLight
-    }
-
-    fn supports(&self, world: &World, entity: u64) -> bool {
-        world.directional_lights.contains_key(&entity)
-    }
-
-    fn build(&self, ctx: &SceneGizmoBuildContext<'_>, out: &mut SceneGizmoOverlayExtract) {
-        let Some(node) = ctx.world.find_node(ctx.entity) else {
-            return;
-        };
-        let Some(light) = node.directional_light.as_ref() else {
-            return;
-        };
-        let color = if ctx.selected {
-            LIGHT_GIZMO_COLOR * Vec4::new(1.1, 1.1, 1.1, 1.0)
-        } else {
-            LIGHT_GIZMO_COLOR
-        };
-        let transform = ctx
-            .world
-            .world_transform(ctx.entity)
-            .unwrap_or(node.transform);
-        let position = transform.translation;
-        let direction = if light.direction.length_squared() > zircon_math::Real::EPSILON {
-            light.direction.normalize_or_zero()
-        } else {
-            transform.forward()
-        };
-        out.icons.push(OverlayBillboardIcon {
-            id: ViewportIconId::DirectionalLight,
-            position,
-            tint: color,
-            size: 28.0,
-        });
-        out.wire_shapes.push(OverlayWireShape::Arrow {
-            origin: position,
-            direction,
-            length: 1.5,
-            color,
-        });
-        out.lines.push(OverlayLineSegment {
-            start: position,
-            end: position + direction * 1.5,
-            color,
-        });
-        out.pick_shapes.push(OverlayPickShape::Sphere {
-            center: position,
-            radius: 0.4,
-        });
     }
 }

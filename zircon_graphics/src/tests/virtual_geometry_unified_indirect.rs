@@ -8,6 +8,7 @@ use zircon_asset::{
     AlphaMode, AssetManager, AssetReference, AssetUri, MaterialAsset, ProjectAssetManager,
     ProjectManifest, ProjectPaths,
 };
+use zircon_framework::render::{RenderFramework, RenderQualityProfile, RenderViewportDescriptor};
 use zircon_math::{Transform, UVec2, Vec3, Vec4};
 use zircon_resource::{MaterialMarker, ModelMarker, ResourceHandle};
 use zircon_scene::{
@@ -19,6 +20,7 @@ use zircon_scene::{
 };
 
 use crate::{
+    runtime::WgpuRenderFramework,
     types::{
         EditorOrRuntimeFrame, VirtualGeometryPrepareCluster, VirtualGeometryPrepareClusterState,
         VirtualGeometryPrepareFrame, VirtualGeometryPreparePage,
@@ -116,6 +118,7 @@ fn virtual_geometry_prepare_uses_one_visibility_owned_indirect_segment_across_mu
                         cluster_ordinal: 0,
                         cluster_span_count: 1,
                         cluster_count: 1,
+                        lineage_depth: 0,
                         lod_level: 0,
                         state: VirtualGeometryPrepareClusterState::Resident,
                     }],
@@ -153,18 +156,502 @@ fn virtual_geometry_prepare_uses_one_visibility_owned_indirect_segment_across_mu
             .read_last_virtual_geometry_indirect_args()
             .unwrap()
             .len(),
-        2,
-        "expected the unified segment to still produce one indirect args record per primitive draw"
+        1,
+        "expected identical primitive draws to collapse onto one visibility-owned indirect args record instead of duplicating the same args per primitive"
     );
     assert_eq!(
         renderer.read_last_virtual_geometry_indirect_segments().unwrap(),
-        vec![(0, 1, 1, 300, 1, VirtualGeometryPrepareClusterState::Resident)],
+        vec![(
+            0,
+            1,
+            1,
+            300,
+            1,
+            VirtualGeometryPrepareClusterState::Resident,
+            0,
+            0,
+            0,
+        )],
         "expected the actual GPU-submitted indirect segment buffer to preserve the visibility-owned segment contract instead of only preserving it in prepare-time projections"
     );
     assert_eq!(
         renderer.read_last_virtual_geometry_indirect_draw_refs().unwrap(),
-        vec![(3, 0), (3, 0)],
-        "expected the actual GPU-submitted draw-ref buffer to keep both primitive draws mapped onto the same visibility-owned segment instead of only preserving the segment truth"
+        vec![(3, 0)],
+        "expected the actual GPU-submitted draw-ref buffer to collapse duplicate primitive records once the visibility-owned segment truth is shared"
+    );
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn virtual_geometry_unified_indirect_keeps_lineage_depth_in_gpu_submission_and_indirect_args() {
+    let root = unique_temp_project_root("graphics_virtual_geometry_lineage_depth_indirect");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths.ensure_layout().unwrap();
+    ProjectManifest::new(
+        "GraphicsVirtualGeometryLineageDepthIndirect",
+        AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+        1,
+    )
+    .save(paths.manifest_path())
+    .unwrap();
+
+    write_flat_color_wgsl(
+        paths.assets_root().join("shaders").join("flat_green.wgsl"),
+        [0.08, 0.95, 0.08],
+    );
+    write_solid_png(
+        paths.assets_root().join("textures").join("white.png"),
+        [255, 255, 255, 255],
+    );
+    write_quad_obj(paths.assets_root().join("models").join("quad.obj"));
+    write_material(
+        paths
+            .assets_root()
+            .join("materials")
+            .join("flat_green.material.toml"),
+        "res://shaders/flat_green.wgsl",
+        "res://textures/white.png",
+    );
+
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    asset_manager
+        .open_project(root.to_string_lossy().as_ref())
+        .unwrap();
+    let mut project = zircon_asset::ProjectManager::open(&root).unwrap();
+    project.scan_and_import().unwrap();
+
+    let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/quad.obj");
+    let green_material = resource_handle::<MaterialMarker>(
+        &asset_manager,
+        "res://materials/flat_green.material.toml",
+    );
+    let viewport_size = UVec2::new(160, 120);
+    let extract = build_single_entity_extract(viewport_size, model, green_material);
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(
+            &extract,
+            &RenderPipelineCompileOptions::default()
+                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
+                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
+                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
+                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
+                .with_feature_disabled(BuiltinRenderFeature::Bloom)
+                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
+                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
+                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
+                .with_feature_disabled(BuiltinRenderFeature::Particle)
+                .with_async_compute(false),
+        )
+        .unwrap();
+
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    renderer
+        .render_frame_with_pipeline(
+            &EditorOrRuntimeFrame::from_extract(extract.clone(), viewport_size)
+                .with_virtual_geometry_prepare(Some(VirtualGeometryPrepareFrame {
+                    visible_entities: vec![2],
+                    visible_clusters: vec![VirtualGeometryPrepareCluster {
+                        entity: 2,
+                        cluster_id: 2,
+                        page_id: 300,
+                        lod_level: 0,
+                        resident_slot: Some(1),
+                        state: VirtualGeometryPrepareClusterState::Resident,
+                    }],
+                    cluster_draw_segments: vec![crate::types::VirtualGeometryPrepareDrawSegment {
+                        entity: 2,
+                        cluster_id: 2,
+                        page_id: 300,
+                        resident_slot: Some(1),
+                        cluster_ordinal: 0,
+                        cluster_span_count: 1,
+                        cluster_count: 1,
+                        lineage_depth: 0,
+                        lod_level: 0,
+                        state: VirtualGeometryPrepareClusterState::Resident,
+                    }],
+                    resident_pages: vec![VirtualGeometryPreparePage {
+                        page_id: 300,
+                        slot: 1,
+                        size_bytes: 4096,
+                    }],
+                    pending_page_requests: Vec::new(),
+                    available_slots: Vec::new(),
+                    evictable_pages: Vec::new(),
+                })),
+            &compiled,
+            None,
+        )
+        .unwrap();
+    let root_args = renderer.read_last_virtual_geometry_indirect_args().unwrap();
+
+    renderer
+        .render_frame_with_pipeline(
+            &EditorOrRuntimeFrame::from_extract(extract, viewport_size)
+                .with_virtual_geometry_prepare(Some(VirtualGeometryPrepareFrame {
+                    visible_entities: vec![2],
+                    visible_clusters: vec![VirtualGeometryPrepareCluster {
+                        entity: 2,
+                        cluster_id: 2,
+                        page_id: 300,
+                        lod_level: 0,
+                        resident_slot: Some(1),
+                        state: VirtualGeometryPrepareClusterState::Resident,
+                    }],
+                    cluster_draw_segments: vec![crate::types::VirtualGeometryPrepareDrawSegment {
+                        entity: 2,
+                        cluster_id: 2,
+                        page_id: 300,
+                        resident_slot: Some(1),
+                        cluster_ordinal: 0,
+                        cluster_span_count: 1,
+                        cluster_count: 1,
+                        lineage_depth: 3,
+                        lod_level: 0,
+                        state: VirtualGeometryPrepareClusterState::Resident,
+                    }],
+                    resident_pages: vec![VirtualGeometryPreparePage {
+                        page_id: 300,
+                        slot: 1,
+                        size_bytes: 4096,
+                    }],
+                    pending_page_requests: Vec::new(),
+                    available_slots: Vec::new(),
+                    evictable_pages: Vec::new(),
+                })),
+            &compiled,
+            None,
+        )
+        .unwrap();
+    let deep_args = renderer.read_last_virtual_geometry_indirect_args().unwrap();
+    let deep_segments = renderer
+        .read_last_virtual_geometry_indirect_segments()
+        .unwrap();
+
+    assert_ne!(
+        root_args, deep_args,
+        "expected deeper visibility-owned lineage depth to flow into the actual GPU indirect args so cluster raster consumption distinguishes deeper refined submission even when page/slot/lod stay fixed"
+    );
+    assert_eq!(
+        deep_segments,
+        vec![(
+            0,
+            1,
+            1,
+            300,
+            1,
+            VirtualGeometryPrepareClusterState::Resident,
+            3,
+            0,
+            0,
+        )],
+        "expected the actual GPU-submitted indirect segment buffer to retain lineage depth alongside page/slot/lod ownership so deeper cluster raster consumption keeps visibility-owned hierarchy truth through submission"
+    );
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn virtual_geometry_unified_indirect_keeps_pending_request_frontier_rank_in_gpu_submission_and_indirect_args(
+) {
+    let root = unique_temp_project_root("graphics_virtual_geometry_frontier_rank_indirect");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths.ensure_layout().unwrap();
+    ProjectManifest::new(
+        "GraphicsVirtualGeometryFrontierRankIndirect",
+        AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+        1,
+    )
+    .save(paths.manifest_path())
+    .unwrap();
+
+    write_flat_color_wgsl(
+        paths.assets_root().join("shaders").join("flat_green.wgsl"),
+        [0.08, 0.95, 0.08],
+    );
+    write_solid_png(
+        paths.assets_root().join("textures").join("white.png"),
+        [255, 255, 255, 255],
+    );
+    write_tiled_quad_obj(paths.assets_root().join("models").join("tiled_quad.obj"));
+    write_material(
+        paths
+            .assets_root()
+            .join("materials")
+            .join("flat_green.material.toml"),
+        "res://shaders/flat_green.wgsl",
+        "res://textures/white.png",
+    );
+
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    asset_manager
+        .open_project(root.to_string_lossy().as_ref())
+        .unwrap();
+    let mut project = zircon_asset::ProjectManager::open(&root).unwrap();
+    project.scan_and_import().unwrap();
+
+    let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/tiled_quad.obj");
+    let green_material = resource_handle::<MaterialMarker>(
+        &asset_manager,
+        "res://materials/flat_green.material.toml",
+    );
+    let viewport_size = UVec2::new(160, 120);
+    let extract = build_single_entity_extract(viewport_size, model, green_material);
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(
+            &extract,
+            &RenderPipelineCompileOptions::default()
+                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
+                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
+                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
+                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
+                .with_feature_disabled(BuiltinRenderFeature::Bloom)
+                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
+                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
+                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
+                .with_feature_disabled(BuiltinRenderFeature::Particle)
+                .with_async_compute(false),
+        )
+        .unwrap();
+
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    renderer
+        .render_frame_with_pipeline(
+            &EditorOrRuntimeFrame::from_extract(extract.clone(), viewport_size)
+                .with_virtual_geometry_prepare(Some(VirtualGeometryPrepareFrame {
+                    visible_entities: vec![2],
+                    visible_clusters: vec![VirtualGeometryPrepareCluster {
+                        entity: 2,
+                        cluster_id: 2,
+                        page_id: 300,
+                        lod_level: 0,
+                        resident_slot: None,
+                        state: VirtualGeometryPrepareClusterState::PendingUpload,
+                    }],
+                    cluster_draw_segments: vec![crate::types::VirtualGeometryPrepareDrawSegment {
+                        entity: 2,
+                        cluster_id: 2,
+                        page_id: 300,
+                        resident_slot: None,
+                        cluster_ordinal: 0,
+                        cluster_span_count: 1,
+                        cluster_count: 1,
+                        lineage_depth: 0,
+                        lod_level: 0,
+                        state: VirtualGeometryPrepareClusterState::PendingUpload,
+                    }],
+                    resident_pages: Vec::new(),
+                    pending_page_requests: vec![crate::types::VirtualGeometryPrepareRequest {
+                        page_id: 300,
+                        size_bytes: 4096,
+                        generation: 1,
+                        frontier_rank: 0,
+                        assigned_slot: None,
+                        recycled_page_id: None,
+                    }],
+                    available_slots: Vec::new(),
+                    evictable_pages: Vec::new(),
+                })),
+            &compiled,
+            None,
+        )
+        .unwrap();
+    let early_frontier_args = renderer.read_last_virtual_geometry_indirect_args().unwrap();
+    let early_frontier_segments = renderer
+        .read_last_virtual_geometry_indirect_segments()
+        .unwrap();
+
+    renderer
+        .render_frame_with_pipeline(
+            &EditorOrRuntimeFrame::from_extract(extract, viewport_size)
+                .with_virtual_geometry_prepare(Some(VirtualGeometryPrepareFrame {
+                    visible_entities: vec![2],
+                    visible_clusters: vec![VirtualGeometryPrepareCluster {
+                        entity: 2,
+                        cluster_id: 2,
+                        page_id: 300,
+                        lod_level: 0,
+                        resident_slot: None,
+                        state: VirtualGeometryPrepareClusterState::PendingUpload,
+                    }],
+                    cluster_draw_segments: vec![crate::types::VirtualGeometryPrepareDrawSegment {
+                        entity: 2,
+                        cluster_id: 2,
+                        page_id: 300,
+                        resident_slot: None,
+                        cluster_ordinal: 0,
+                        cluster_span_count: 1,
+                        cluster_count: 1,
+                        lineage_depth: 0,
+                        lod_level: 0,
+                        state: VirtualGeometryPrepareClusterState::PendingUpload,
+                    }],
+                    resident_pages: Vec::new(),
+                    pending_page_requests: vec![
+                        crate::types::VirtualGeometryPrepareRequest {
+                            page_id: 300,
+                            size_bytes: 4096,
+                            generation: 2,
+                            frontier_rank: 3,
+                            assigned_slot: None,
+                            recycled_page_id: None,
+                        },
+                        crate::types::VirtualGeometryPrepareRequest {
+                            page_id: 301,
+                            size_bytes: 4096,
+                            generation: 3,
+                            frontier_rank: 0,
+                            assigned_slot: None,
+                            recycled_page_id: None,
+                        },
+                        crate::types::VirtualGeometryPrepareRequest {
+                            page_id: 302,
+                            size_bytes: 4096,
+                            generation: 4,
+                            frontier_rank: 1,
+                            assigned_slot: None,
+                            recycled_page_id: None,
+                        },
+                        crate::types::VirtualGeometryPrepareRequest {
+                            page_id: 303,
+                            size_bytes: 4096,
+                            generation: 5,
+                            frontier_rank: 2,
+                            assigned_slot: None,
+                            recycled_page_id: None,
+                        },
+                    ],
+                    available_slots: Vec::new(),
+                    evictable_pages: Vec::new(),
+                })),
+            &compiled,
+            None,
+        )
+        .unwrap();
+    let late_frontier_args = renderer.read_last_virtual_geometry_indirect_args().unwrap();
+    let late_frontier_segments = renderer
+        .read_last_virtual_geometry_indirect_segments()
+        .unwrap();
+
+    assert_ne!(
+        early_frontier_args, late_frontier_args,
+        "expected later pending request frontier rank to flow into the actual GPU indirect args so deeper cluster raster submission consumes runtime frontier order instead of only page/slot/lod/state"
+    );
+    assert_ne!(
+        early_frontier_segments, late_frontier_segments,
+        "expected the actual GPU-submitted segment buffer to preserve pending request frontier order instead of only preserving page/slot/state lineage metadata"
+    );
+    assert_eq!(
+        late_frontier_segments,
+        vec![(
+            0,
+            1,
+            1,
+            300,
+            0,
+            VirtualGeometryPrepareClusterState::PendingUpload,
+            0,
+            0,
+            3,
+        )],
+        "expected the actual GPU-submitted indirect segment buffer to retain pending request frontier rank so runtime request order continues into real submission authority"
+    );
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn render_framework_stats_follow_actual_virtual_geometry_gpu_submission_for_multi_primitive_model()
+{
+    let root = unique_temp_project_root("graphics_virtual_geometry_unified_indirect_server");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths.ensure_layout().unwrap();
+    ProjectManifest::new(
+        "GraphicsVirtualGeometryUnifiedIndirectServer",
+        AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+        1,
+    )
+    .save(paths.manifest_path())
+    .unwrap();
+
+    write_flat_color_wgsl(
+        paths.assets_root().join("shaders").join("flat_green.wgsl"),
+        [0.08, 0.95, 0.08],
+    );
+    write_solid_png(
+        paths.assets_root().join("textures").join("white.png"),
+        [255, 255, 255, 255],
+    );
+    write_two_primitive_gltf(
+        paths
+            .assets_root()
+            .join("models")
+            .join("double_triangle.gltf"),
+    );
+    write_material(
+        paths
+            .assets_root()
+            .join("materials")
+            .join("flat_green.material.toml"),
+        "res://shaders/flat_green.wgsl",
+        "res://textures/white.png",
+    );
+
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    asset_manager
+        .open_project(root.to_string_lossy().as_ref())
+        .unwrap();
+    let mut project = zircon_asset::ProjectManager::open(&root).unwrap();
+    project.scan_and_import().unwrap();
+
+    let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/double_triangle.gltf");
+    let green_material = resource_handle::<MaterialMarker>(
+        &asset_manager,
+        "res://materials/flat_green.material.toml",
+    );
+    let viewport_size = UVec2::new(160, 120);
+    let mut extract = build_single_entity_extract(viewport_size, model, green_material);
+    extract.apply_viewport_size(viewport_size);
+
+    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let viewport = server
+        .create_viewport(RenderViewportDescriptor::new(viewport_size))
+        .unwrap();
+    server
+        .set_quality_profile(
+            viewport,
+            RenderQualityProfile::new("vg-unified-indirect")
+                .with_virtual_geometry(true)
+                .with_hybrid_global_illumination(false)
+                .with_clustered_lighting(false)
+                .with_screen_space_ambient_occlusion(false)
+                .with_history_resolve(false)
+                .with_bloom(false)
+                .with_color_grading(false)
+                .with_reflection_probes(false)
+                .with_baked_lighting(false)
+                .with_particle_rendering(false)
+                .with_async_compute(false),
+        )
+        .unwrap();
+    server.submit_frame_extract(viewport, extract).unwrap();
+
+    let stats = server.query_stats().unwrap();
+    assert_eq!(
+        stats.last_virtual_geometry_indirect_draw_count,
+        2,
+        "expected render-server stats to report the real GPU-submitted indirect draw count for the two-primitive model instead of only the pre-submission unified segment count"
+    );
+    assert_eq!(
+        stats.last_virtual_geometry_indirect_segment_count,
+        1,
+        "expected render-server stats to keep the visibility-owned segment count distinct from the real per-primitive GPU draw count"
+    );
+    assert_eq!(
+        stats.last_virtual_geometry_indirect_buffer_count,
+        1,
+        "expected the shared indirect args buffer count to stay tied to the real renderer submission state"
     );
 
     let _ = fs::remove_dir_all(root);
@@ -322,6 +809,56 @@ fn write_two_primitive_gltf(path: PathBuf) {
         binary.len()
     );
     fs::write(path, gltf).unwrap();
+}
+
+fn write_quad_obj(path: PathBuf) {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).unwrap();
+    }
+    fs::write(
+        path,
+        "v -1.0 -1.0 0.0\nv 1.0 -1.0 0.0\nv 1.0 1.0 0.0\nv -1.0 1.0 0.0\nvt 0.0 0.0\nvt 1.0 0.0\nvt 1.0 1.0\nvt 0.0 1.0\nvn 0.0 0.0 1.0\nf 1/1/1 2/2/1 3/3/1\nf 1/1/1 3/3/1 4/4/1\n",
+    )
+    .unwrap();
+}
+
+fn write_tiled_quad_obj(path: PathBuf) {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).unwrap();
+    }
+    fs::write(
+        path,
+        "\
+v -1.0 -1.0 0.0
+v 0.0 -1.0 0.0
+v 1.0 -1.0 0.0
+v -1.0 0.0 0.0
+v 0.0 0.0 0.0
+v 1.0 0.0 0.0
+v -1.0 1.0 0.0
+v 0.0 1.0 0.0
+v 1.0 1.0 0.0
+vt 0.0 1.0
+vt 0.5 1.0
+vt 1.0 1.0
+vt 0.0 0.5
+vt 0.5 0.5
+vt 1.0 0.5
+vt 0.0 0.0
+vt 0.5 0.0
+vt 1.0 0.0
+vn 0.0 0.0 1.0
+f 1/1/1 2/2/1 5/5/1
+f 1/1/1 5/5/1 4/4/1
+f 2/2/1 3/3/1 6/6/1
+f 2/2/1 6/6/1 5/5/1
+f 4/4/1 5/5/1 8/8/1
+f 4/4/1 8/8/1 7/7/1
+f 5/5/1 6/6/1 9/9/1
+f 5/5/1 9/9/1 8/8/1
+",
+    )
+    .unwrap();
 }
 
 fn write_flat_color_wgsl(path: PathBuf, color: [f32; 3]) {

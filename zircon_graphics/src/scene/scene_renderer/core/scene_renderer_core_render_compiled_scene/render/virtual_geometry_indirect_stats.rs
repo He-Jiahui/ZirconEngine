@@ -15,6 +15,7 @@ pub(super) struct VirtualGeometryIndirectStats {
 
 pub(super) fn virtual_geometry_indirect_stats(
     mesh_draws: &[MeshDraw],
+    args_count: u32,
     segment_count: u32,
     draw_ref_buffer: Option<Arc<wgpu::Buffer>>,
     segment_buffer: Option<Arc<wgpu::Buffer>>,
@@ -41,7 +42,7 @@ pub(super) fn virtual_geometry_indirect_stats(
         buffer_count,
         segment_count,
         args_buffer,
-        args_count: draw_count,
+        args_count,
         draw_ref_buffer,
         segment_buffer,
     }

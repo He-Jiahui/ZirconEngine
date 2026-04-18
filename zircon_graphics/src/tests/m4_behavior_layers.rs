@@ -8,11 +8,11 @@ use zircon_asset::{
     AlphaMode, AssetManager, AssetReference, AssetUri, MaterialAsset, ProjectAssetManager,
     ProjectManifest, ProjectPaths,
 };
-use zircon_math::{Transform, UVec2, Vec3, Vec4};
-use zircon_render_server::{
-    RenderPipelineHandle, RenderQualityProfile, RenderServer, RenderViewportDescriptor,
+use zircon_framework::render::{
+    RenderFramework, RenderPipelineHandle, RenderQualityProfile, RenderViewportDescriptor,
     RenderViewportHandle,
 };
+use zircon_math::{Transform, UVec2, Vec3, Vec4};
 use zircon_resource::{MaterialMarker, ModelMarker, ResourceHandle};
 use zircon_scene::{
     default_render_layer_mask, DisplayMode, FallbackSkyboxKind, Mobility, ProjectionMode,
@@ -22,7 +22,7 @@ use zircon_scene::{
     ViewportCameraSnapshot,
 };
 
-use crate::{offline_bake_frame, runtime::WgpuRenderServer, OfflineBakeSettings};
+use crate::{offline_bake_frame, runtime::WgpuRenderFramework, OfflineBakeSettings};
 
 #[test]
 fn bloom_quality_profile_spreads_bright_pixels_when_enabled() {
@@ -304,8 +304,8 @@ impl RenderFixture {
         }
     }
 
-    fn server(&self) -> WgpuRenderServer {
-        WgpuRenderServer::new(self.asset_manager.clone()).unwrap()
+    fn server(&self) -> WgpuRenderFramework {
+        WgpuRenderFramework::new(self.asset_manager.clone()).unwrap()
     }
 
     fn frame_extract<F>(
@@ -327,10 +327,10 @@ impl RenderFixture {
 
     fn render_extract(
         &self,
-        server: &WgpuRenderServer,
+        server: &WgpuRenderFramework,
         extract: RenderFrameExtract,
         profile: RenderQualityProfile,
-    ) -> zircon_render_server::CapturedFrame {
+    ) -> zircon_framework::render::CapturedFrame {
         let viewport = server
             .create_viewport(RenderViewportDescriptor::new(self.viewport_size))
             .unwrap();
@@ -407,10 +407,10 @@ fn centered_quad_transform(scale: f32) -> Transform {
 }
 
 fn submit_extract(
-    server: &WgpuRenderServer,
+    server: &WgpuRenderFramework,
     viewport: RenderViewportHandle,
     extract: RenderFrameExtract,
-) -> zircon_render_server::CapturedFrame {
+) -> zircon_framework::render::CapturedFrame {
     server.submit_frame_extract(viewport, extract).unwrap();
     server
         .capture_frame(viewport)

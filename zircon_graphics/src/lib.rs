@@ -23,10 +23,10 @@ pub use compat::{
 pub use extract::{FrameHistoryAccess, FrameHistoryBinding, FrameHistoryHandle, FrameHistorySlot};
 pub use feature::{BuiltinRenderFeature, RenderFeature, RenderFeatureDescriptor};
 pub use host::{
-    create_render_server, create_render_service, create_render_service_with_icon_source,
+    create_render_framework, create_render_service, create_render_service_with_icon_source,
     create_runtime_preview_renderer, create_shared_texture_render_service,
     create_shared_texture_render_service_with_icon_source, module_descriptor, WgpuDriver,
-    WgpuRenderingManager, GRAPHICS_MODULE_NAME, RENDERING_MANAGER_NAME, RENDER_SERVER_NAME,
+    WgpuRenderingManager, GRAPHICS_MODULE_NAME, RENDERING_MANAGER_NAME, RENDER_FRAMEWORK_NAME,
     WGPU_DRIVER_NAME,
 };
 pub use material::MaterialDomain;
@@ -34,7 +34,10 @@ pub use pipeline::{
     CompiledRenderPipeline, RenderPassStage, RenderPipelineAsset, RenderPipelineCompileOptions,
     RendererAsset, RendererFeatureAsset,
 };
-pub use runtime::{offline_bake_frame, OfflineBakeOutput, OfflineBakeSettings, WgpuRenderServer};
+pub use runtime::{
+    offline_bake_frame, OfflineBakeOutput, OfflineBakeSettings, RuntimeUiFixture, RuntimeUiManager,
+    RuntimeUiManagerError, WgpuRenderFramework,
+};
 #[cfg(test)]
 pub(crate) use scene::ViewportOverlayRenderer;
 pub use scene::{SceneRenderer, ViewportIconSource};

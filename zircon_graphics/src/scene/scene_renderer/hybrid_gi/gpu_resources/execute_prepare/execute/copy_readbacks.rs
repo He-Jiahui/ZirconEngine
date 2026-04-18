@@ -28,4 +28,11 @@ pub(super) fn copy_readbacks(
         0,
         buffer_size_for_words(inputs.irradiance_word_count.max(1)),
     );
+    encoder.copy_buffer_to_buffer(
+        &buffers.trace_lighting_buffer,
+        0,
+        &buffers.trace_lighting_readback,
+        0,
+        buffer_size_for_words(inputs.trace_lighting_word_count.max(1)),
+    );
 }

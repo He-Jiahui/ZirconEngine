@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use zircon_core::{CoreError, CoreHandle};
-use zircon_manager::ConfigManager;
+use zircon_framework::foundation::ConfigManager;
 
 use super::config_path::config_file_path;
 

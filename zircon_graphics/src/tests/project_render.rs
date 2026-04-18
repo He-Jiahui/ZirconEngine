@@ -9,20 +9,21 @@ use zircon_asset::{
     ProjectManifest, ProjectPaths, SceneAsset, SceneCameraAsset, SceneEntityAsset,
     SceneMeshInstanceAsset, SceneMobilityAsset, TransformAsset,
 };
-use zircon_math::{Transform, UVec2, Vec3, Vec4};
-use zircon_render_server::{
-    RenderPipelineHandle, RenderQualityProfile, RenderServer, RenderViewportDescriptor,
+use zircon_framework::render::{
+    RenderFramework, RenderPipelineHandle, RenderQualityProfile, RenderViewportDescriptor,
     RenderViewportHandle,
 };
+use zircon_math::{Transform, UVec2, Vec3, Vec4};
 use zircon_resource::{MaterialMarker, ModelMarker, ResourceHandle};
 use zircon_scene::{
     default_render_layer_mask, DefaultLevelManager, DisplayMode, FallbackSkyboxKind, Mobility,
     PreviewEnvironmentExtract, ProjectionMode, RenderDirectionalLightSnapshot, RenderFrameExtract,
     RenderMeshSnapshot, RenderOverlayExtract, RenderSceneGeometryExtract, RenderSceneSnapshot,
-    RenderWorldSnapshotHandle, ViewportCameraSnapshot,
+    RenderWorldSnapshotHandle, SceneViewportExtractRequest, SceneViewportSettings,
+    ViewportCameraSnapshot,
 };
 
-use crate::{runtime::WgpuRenderServer, SceneRenderer};
+use crate::{runtime::WgpuRenderFramework, SceneRenderer};
 
 #[test]
 fn directory_project_scene_renders_non_background_frame_with_gizmo_overlay() {
@@ -61,20 +62,24 @@ fn directory_project_scene_renders_non_background_frame_with_gizmo_overlay() {
     let mut project = zircon_asset::ProjectManager::open(&root).unwrap();
     project.scan_and_import().unwrap();
     let level = level_manager.load_level(&project, &scene_uri).unwrap();
-    level.with_world_mut(|world| {
+    let snapshot = level.with_world(|world| {
         let mesh = world
             .nodes()
             .iter()
             .find(|node| node.mesh.is_some())
             .map(|node| node.id)
             .unwrap();
-        world.set_selected(Some(mesh));
+        world.build_viewport_render_packet(&SceneViewportExtractRequest {
+            settings: SceneViewportSettings::default(),
+            selection: vec![mesh],
+            active_camera_override: None,
+            camera: None,
+            viewport_size: Some(UVec2::new(320, 240)),
+        })
     });
 
     let mut renderer = SceneRenderer::new(asset_manager).unwrap();
-    let frame = renderer
-        .render(level.snapshot().to_render_snapshot(), UVec2::new(320, 240))
-        .unwrap();
+    let frame = renderer.render(snapshot, UVec2::new(320, 240)).unwrap();
 
     let background = [20_u8, 23_u8, 28_u8, 255_u8];
     assert!(frame.rgba.chunks_exact(4).any(|pixel| pixel != background));
@@ -280,7 +285,7 @@ fn history_resolve_blends_previous_scene_color_when_enabled() {
     );
     let viewport_size = UVec2::new(160, 120);
 
-    let server = WgpuRenderServer::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new(asset_manager).unwrap();
     let history_viewport = server
         .create_viewport(RenderViewportDescriptor::new(viewport_size))
         .unwrap();
@@ -434,7 +439,7 @@ fn ssao_quality_profile_darkens_scene_when_enabled() {
         viewport_size,
     );
 
-    let server = WgpuRenderServer::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new(asset_manager).unwrap();
     let ao_viewport = server
         .create_viewport(RenderViewportDescriptor::new(viewport_size))
         .unwrap();
@@ -532,7 +537,7 @@ fn clustered_lighting_quality_profile_applies_runtime_tile_lighting() {
         viewport_size,
     );
 
-    let server = WgpuRenderServer::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new(asset_manager).unwrap();
     let clustered_viewport = server
         .create_viewport(RenderViewportDescriptor::new(viewport_size))
         .unwrap();
@@ -630,7 +635,7 @@ fn deferred_pipeline_uses_gbuffer_material_path_instead_of_forward_shader_path()
         viewport_size,
     );
 
-    let server = WgpuRenderServer::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new(asset_manager).unwrap();
     let forward_viewport = server
         .create_viewport(RenderViewportDescriptor::new(viewport_size))
         .unwrap();
@@ -1030,10 +1035,10 @@ fn offset_quad_transform() -> Transform {
 }
 
 fn submit_snapshot(
-    server: &WgpuRenderServer,
+    server: &WgpuRenderFramework,
     viewport: RenderViewportHandle,
     snapshot: RenderSceneSnapshot,
-) -> zircon_render_server::CapturedFrame {
+) -> zircon_framework::render::CapturedFrame {
     server
         .submit_frame_extract(
             viewport,

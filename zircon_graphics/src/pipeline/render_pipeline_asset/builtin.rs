@@ -1,4 +1,4 @@
-use zircon_render_server::RenderPipelineHandle;
+use zircon_framework::render::RenderPipelineHandle;
 
 use crate::pipeline::declarations::RenderPipelineAsset;
 

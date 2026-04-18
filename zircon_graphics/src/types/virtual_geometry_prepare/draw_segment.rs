@@ -11,6 +11,7 @@ pub(crate) struct VirtualGeometryPrepareDrawSegment {
     pub(crate) cluster_ordinal: u32,
     pub(crate) cluster_span_count: u32,
     pub(crate) cluster_count: u32,
+    pub(crate) lineage_depth: u32,
     pub(crate) lod_level: u8,
     pub(crate) state: VirtualGeometryPrepareClusterState,
 }

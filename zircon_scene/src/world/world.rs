@@ -30,7 +30,6 @@ pub struct World {
     pub(super) mobility: HashMap<EntityId, Mobility>,
     pub(super) next_id: EntityId,
     pub(super) active_camera: EntityId,
-    pub(super) selected_entity: Option<EntityId>,
     #[serde(skip, default)]
     pub(super) schedule: Schedule,
     #[serde(skip, default)]

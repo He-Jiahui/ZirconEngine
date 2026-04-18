@@ -24,23 +24,23 @@ related_code:
   - zircon_graphics/src/tests/scene_overlay.rs
   - zircon_editor/build.rs
   - zircon_editor/src/builtin_assets.rs
-  - zircon_editor_ui/src/binding.rs
-  - zircon_editor_ui/src/tests/binding.rs
-  - zircon_editor/src/editing/state/mod.rs
-  - zircon_editor/src/editing/viewport/mod.rs
-  - zircon_editor/src/editing/viewport/controller/mod.rs
-  - zircon_editor/src/editing/viewport/handles/mod.rs
-  - zircon_editor/src/editing/viewport/pointer/mod.rs
-  - zircon_editor/src/editing/viewport/projection.rs
-  - zircon_editor/src/host/slint_host/app.rs
-  - zircon_editor/src/host/slint_host/ui.rs
-  - zircon_editor/src/host/slint_host/viewport/mod.rs
-  - zircon_editor/src/host/binding_dispatch/mod.rs
-  - zircon_editor/src/editor_event/types.rs
-  - zircon_editor/src/editor_event/runtime.rs
-  - zircon_editor/src/workbench/fixture/mod.rs
-  - zircon_editor/src/workbench/reflection/mod.rs
-  - zircon_editor/src/workbench/snapshot/mod.rs
+  - zircon_editor/src/ui/binding/mod.rs
+  - zircon_editor/src/tests/ui/binding.rs
+  - zircon_editor/src/core/editing/state/mod.rs
+  - zircon_editor/src/scene/viewport/mod.rs
+  - zircon_editor/src/scene/viewport/controller/mod.rs
+  - zircon_editor/src/scene/viewport/handles/mod.rs
+  - zircon_editor/src/scene/viewport/pointer/mod.rs
+  - zircon_editor/src/scene/viewport/projection.rs
+  - zircon_editor/src/ui/slint_host/app.rs
+  - zircon_editor/src/ui/slint_host/ui.rs
+  - zircon_editor/src/ui/slint_host/viewport/mod.rs
+  - zircon_editor/src/ui/binding_dispatch/mod.rs
+  - zircon_editor/src/core/editor_event/types.rs
+  - zircon_editor/src/core/editor_event/runtime.rs
+  - zircon_editor/src/ui/workbench/fixture/mod.rs
+  - zircon_editor/src/ui/workbench/reflection/mod.rs
+  - zircon_editor/src/ui/workbench/snapshot/mod.rs
   - zircon_editor/assets/viewport_gizmos/camera.pbm
   - zircon_editor/assets/viewport_gizmos/directional_light.pbm
   - zircon_editor/ui/workbench.slint
@@ -70,22 +70,22 @@ implementation_files:
   - zircon_graphics/src/tests/scene_overlay.rs
   - zircon_editor/build.rs
   - zircon_editor/src/builtin_assets.rs
-  - zircon_editor_ui/src/binding.rs
-  - zircon_editor/src/editing/state/mod.rs
-  - zircon_editor/src/editing/viewport/mod.rs
-  - zircon_editor/src/editing/viewport/controller/mod.rs
-  - zircon_editor/src/editing/viewport/handles/mod.rs
-  - zircon_editor/src/editing/viewport/pointer/mod.rs
-  - zircon_editor/src/editing/viewport/projection.rs
-  - zircon_editor/src/host/slint_host/app.rs
-  - zircon_editor/src/host/slint_host/ui.rs
-  - zircon_editor/src/host/slint_host/viewport/mod.rs
-  - zircon_editor/src/host/binding_dispatch/mod.rs
-  - zircon_editor/src/editor_event/types.rs
-  - zircon_editor/src/editor_event/runtime.rs
-  - zircon_editor/src/workbench/fixture/mod.rs
-  - zircon_editor/src/workbench/reflection/mod.rs
-  - zircon_editor/src/workbench/snapshot/mod.rs
+  - zircon_editor/src/ui/binding/mod.rs
+  - zircon_editor/src/core/editing/state/mod.rs
+  - zircon_editor/src/scene/viewport/mod.rs
+  - zircon_editor/src/scene/viewport/controller/mod.rs
+  - zircon_editor/src/scene/viewport/handles/mod.rs
+  - zircon_editor/src/scene/viewport/pointer/mod.rs
+  - zircon_editor/src/scene/viewport/projection.rs
+  - zircon_editor/src/ui/slint_host/app.rs
+  - zircon_editor/src/ui/slint_host/ui.rs
+  - zircon_editor/src/ui/slint_host/viewport/mod.rs
+  - zircon_editor/src/ui/binding_dispatch/mod.rs
+  - zircon_editor/src/core/editor_event/types.rs
+  - zircon_editor/src/core/editor_event/runtime.rs
+  - zircon_editor/src/ui/workbench/fixture/mod.rs
+  - zircon_editor/src/ui/workbench/reflection/mod.rs
+  - zircon_editor/src/ui/workbench/snapshot/mod.rs
   - zircon_editor/assets/viewport_gizmos/camera.pbm
   - zircon_editor/assets/viewport_gizmos/directional_light.pbm
   - zircon_editor/ui/workbench.slint
@@ -97,17 +97,17 @@ tests:
   - zircon_scene/tests/viewport_packet.rs
   - zircon_graphics/src/tests/project_render.rs
   - zircon_graphics/src/tests/scene_overlay.rs
-  - zircon_editor_ui/src/tests/binding.rs
+  - zircon_editor/src/tests/ui/binding.rs
   - zircon_editor/src/tests/host/binding_dispatch.rs
   - zircon_editor/src/tests/host/slint_builtin_assets.rs
   - zircon_editor/src/tests/host/slint_callback_dispatch/viewport.rs
   - zircon_editor/src/tests/editing/state.rs
   - zircon_editor/src/tests/editing/viewport.rs
-  - zircon_editor/src/host/slint_host/ui.rs
+  - zircon_editor/src/ui/slint_host/ui.rs
   - cargo test -p zircon_scene --test viewport_packet -- --nocapture
   - cargo test -p zircon_graphics project_render -- --nocapture
   - cargo test -p zircon_graphics --lib -- --nocapture
-  - cargo test -p zircon_editor_ui --lib --locked
+  - cargo test -p zircon_editor --lib --locked
   - cargo test -p zircon_editor --lib --locked
   - cargo test -p zircon_editor --lib viewport_ --offline -- --nocapture
   - cargo check -p zircon_editor --lib --offline
@@ -148,16 +148,16 @@ doc_type: module-detail
 - `zircon_graphics/src/scene/scene_renderer/primitives/mod.rs`
 - `zircon_editor/build.rs`
 - `zircon_editor/src/builtin_assets.rs`
-- `zircon_editor_ui/src/binding.rs`
-- `zircon_editor/src/editing/state/mod.rs`
-- `zircon_editor/src/editing/viewport/controller/mod.rs`
-- `zircon_editor/src/editing/viewport/handles/mod.rs`
-- `zircon_editor/src/editing/viewport/pointer/mod.rs`
-- `zircon_editor/src/editing/viewport/projection.rs`
-- `zircon_editor/src/host/binding_dispatch/mod.rs`
-- `zircon_editor/src/editor_event/runtime.rs`
-- `zircon_editor/src/workbench/reflection/mod.rs`
-- `zircon_editor/src/host/slint_host/viewport/mod.rs`
+- `zircon_editor/src/ui/binding/mod.rs`
+- `zircon_editor/src/core/editing/state/mod.rs`
+- `zircon_editor/src/scene/viewport/controller/mod.rs`
+- `zircon_editor/src/scene/viewport/handles/mod.rs`
+- `zircon_editor/src/scene/viewport/pointer/mod.rs`
+- `zircon_editor/src/scene/viewport/projection.rs`
+- `zircon_editor/src/ui/binding_dispatch/mod.rs`
+- `zircon_editor/src/core/editor_event/runtime.rs`
+- `zircon_editor/src/ui/workbench/reflection/mod.rs`
+- `zircon_editor/src/ui/slint_host/viewport/mod.rs`
 
 ## Behavior Model
 
@@ -238,13 +238,13 @@ Scene gizmo 和 handle 现在是物理分层：
 
 ### Shared Pointer Route And Selection Semantics
 
-`zircon_editor/src/editing/viewport/projection.rs` 现在把 viewport 内共用的 CPU 投影计算单独收口出来：
+`zircon_editor/src/scene/viewport/projection.rs` 现在把 viewport 内共用的 CPU 投影计算单独收口出来：
 
 - world -> screen projection
 - world-units-per-pixel 估算
 - 线段/圆环屏幕距离计算
 
-`zircon_editor/src/editing/viewport/pointer/mod.rs` 现在在这层之上建立 `ViewportOverlayPointerBridge`，把 viewport overlay 命中真源前移到 shared retained surface：
+`zircon_editor/src/scene/viewport/pointer/mod.rs` 现在在这层之上建立 `ViewportOverlayPointerBridge`，把 viewport overlay 命中真源前移到 shared retained surface：
 
 - bridge 会把 handle overlay、scene gizmo `pick_shapes` 和 renderable 候选先投成一棵最小 `UiSurface`
 - retained tree 里保留 root、viewport，以及每个 coarse candidate 的 frame 和 z-order
@@ -259,7 +259,7 @@ Scene gizmo 和 handle 现在是物理分层：
 - `Move / Rotate / Scale` 下，未命中 handle 时按普通对象选择处理
 - `Gizmos On` 时，non-renderable node 可以通过 scene gizmo pick shape 被选中
 
-`zircon_editor/src/editing/viewport/controller/mod.rs` 现在只负责同步 `ViewportPointerLayout` 并消费 `ViewportPointerRoute`，而不再持有一份本地 overlay hit cache 或额外的 `picking.rs` 选择语义。这样 viewport 里“谁接住 hover/down”的判断，也已经和 menu、dock target、asset list 一样进入 shared `UiSurface + UiPointerDispatcher` 的统一边界。
+`zircon_editor/src/scene/viewport/controller/mod.rs` 现在只负责同步 `ViewportPointerLayout` 并消费 `ViewportPointerRoute`，而不再持有一份本地 overlay hit cache 或额外的 `picking.rs` 选择语义。这样 viewport 里“谁接住 hover/down”的判断，也已经和 menu、dock target、asset list 一样进入 shared `UiSurface + UiPointerDispatcher` 的统一边界。
 
 ### Handle Tool Registry
 
@@ -399,7 +399,7 @@ viewport scene gizmo icon 现在有了独立的 builtin icon source 管线：
 
 ### Slint Viewport Render Attachment
 
-`zircon_editor/src/host/slint_host/viewport/mod.rs` 现在不只是“拿到 device/queue 就开 shared texture service”。它会在 renderer attach 时显式注入 `BuiltinViewportIconSource`，这样 Scene viewport 实际运行路径也遵守了规格里要求的“editor builtin gizmo icon source -> graphics atlas/pass”，而不是只在文档里存在抽象接口。
+`zircon_editor/src/ui/slint_host/viewport/mod.rs` 现在不只是“拿到 device/queue 就开 shared texture service”。它会在 renderer attach 时显式注入 `BuiltinViewportIconSource`，这样 Scene viewport 实际运行路径也遵守了规格里要求的“editor builtin gizmo icon source -> graphics atlas/pass”，而不是只在文档里存在抽象接口。
 
 ### Graphics Pass Expectations
 
@@ -452,7 +452,7 @@ viewport scene gizmo icon 现在有了独立的 builtin icon source 管线：
 
 ### Editor UI / Editor Runtime
 
-- `zircon_editor_ui/src/tests/binding.rs`
+- `zircon_editor/src/tests/ui/binding.rs`
   - typed viewport toolbar command native binding roundtrip
 - `zircon_editor/src/tests/host/binding_dispatch.rs`
   - toolbar commands 更新 `SceneViewportSettings`
@@ -467,7 +467,7 @@ viewport scene gizmo icon 现在有了独立的 builtin icon source 管线：
   - typed `ViewportCommand` 不经过 pointer bridge 也能更新 render packet
 - `zircon_editor/src/tests/host/slint_builtin_assets.rs`
   - viewport gizmo builtin icon manifest 同时暴露 camera / directional light 两种 icon bytes
-- `zircon_editor/src/host/slint_host/ui.rs`
+- `zircon_editor/src/ui/slint_host/ui.rs`
   - Scene document pane 会投影 viewport toolbar/right-top 状态到 `PaneData.viewport`
 
 ## Plan Sources

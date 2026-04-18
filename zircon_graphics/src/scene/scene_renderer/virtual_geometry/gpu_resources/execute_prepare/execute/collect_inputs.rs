@@ -17,7 +17,7 @@ pub(super) fn collect_inputs(
     let evictable_slots = evictable_slots(prepare);
     let page_table_entry_capacity = resident_entries.len() + pending_requests.len();
     let page_table_word_count = page_table_entry_capacity.max(1) * 2;
-    let completed_word_count = pending_requests.len().saturating_mul(2) + 1;
+    let completed_word_count = pending_requests.len().saturating_mul(3) + 1;
     let page_table_words = page_table_words(&resident_entries, page_table_word_count);
 
     VirtualGeometryPrepareExecutionInputs {

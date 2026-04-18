@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use zircon_editor_ui::EditorUiBindingPayload;
+use crate::ui::EditorUiBindingPayload;
 use zircon_math::UVec2;
 use zircon_scene::SceneViewportSettings;
 

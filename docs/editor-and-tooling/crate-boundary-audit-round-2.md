@@ -62,18 +62,18 @@ related_code:
   - zircon_script/src/vm/plugin/vm_plugin_manifest.rs
   - zircon_script/src/vm/runtime/hot_reload_coordinator.rs
   - zircon_script/src/vm/tests.rs
-  - zircon_editor/src/editing/asset_workspace.rs
-  - zircon_editor/src/editing/state/editor_state_asset_workspace.rs
-  - zircon_editor/src/editor_event/runtime/execution/common.rs
-  - zircon_editor/src/host/resource_access.rs
-  - zircon_editor/src/host/slint_host/app.rs
-  - zircon_editor/src/host/slint_host/app/backend_refresh.rs
-  - zircon_editor/src/host/slint_host/ui.rs
-  - zircon_editor/src/host/slint_host/ui/asset_surface_presentation.rs
-  - zircon_editor/src/workbench/snapshot/asset/asset_item_snapshot.rs
-  - zircon_editor/src/workbench/snapshot/asset/asset_reference_snapshot.rs
-  - zircon_editor/src/workbench/snapshot/asset/asset_selection_snapshot.rs
-  - zircon_editor/src/workbench/snapshot/asset/asset_workspace_snapshot.rs
+  - zircon_editor/src/core/editing/asset_workspace.rs
+  - zircon_editor/src/core/editing/state/editor_state_asset_workspace.rs
+  - zircon_editor/src/core/editor_event/runtime/execution/common.rs
+  - zircon_editor/src/core/host/resource_access.rs
+  - zircon_editor/src/ui/slint_host/app.rs
+  - zircon_editor/src/ui/slint_host/app/backend_refresh.rs
+  - zircon_editor/src/ui/slint_host/ui.rs
+  - zircon_editor/src/ui/slint_host/ui/asset_surface_presentation.rs
+  - zircon_editor/src/ui/workbench/snapshot/asset/asset_item_snapshot.rs
+  - zircon_editor/src/ui/workbench/snapshot/asset/asset_reference_snapshot.rs
+  - zircon_editor/src/ui/workbench/snapshot/asset/asset_selection_snapshot.rs
+  - zircon_editor/src/ui/workbench/snapshot/asset/asset_workspace_snapshot.rs
   - zircon_editor/src/tests/editing/asset_workspace.rs
   - zircon_editor/src/tests/editing/state.rs
   - zircon_editor/src/tests/host/asset_manager_boundary.rs
@@ -136,18 +136,18 @@ implementation_files:
   - zircon_script/src/vm/runtime/hot_reload_coordinator.rs
   - zircon_script/src/vm/tests.rs
   - zircon_entry/src/entry/runtime_entry_app/application_handler.rs
-  - zircon_editor/src/editing/asset_workspace.rs
-  - zircon_editor/src/editing/state/editor_state_asset_workspace.rs
-  - zircon_editor/src/editor_event/runtime/execution/common.rs
-  - zircon_editor/src/host/resource_access.rs
-  - zircon_editor/src/host/slint_host/app.rs
-  - zircon_editor/src/host/slint_host/app/backend_refresh.rs
-  - zircon_editor/src/host/slint_host/ui.rs
-  - zircon_editor/src/host/slint_host/ui/asset_surface_presentation.rs
-  - zircon_editor/src/workbench/snapshot/asset/asset_item_snapshot.rs
-  - zircon_editor/src/workbench/snapshot/asset/asset_reference_snapshot.rs
-  - zircon_editor/src/workbench/snapshot/asset/asset_selection_snapshot.rs
-  - zircon_editor/src/workbench/snapshot/asset/asset_workspace_snapshot.rs
+  - zircon_editor/src/core/editing/asset_workspace.rs
+  - zircon_editor/src/core/editing/state/editor_state_asset_workspace.rs
+  - zircon_editor/src/core/editor_event/runtime/execution/common.rs
+  - zircon_editor/src/core/host/resource_access.rs
+  - zircon_editor/src/ui/slint_host/app.rs
+  - zircon_editor/src/ui/slint_host/app/backend_refresh.rs
+  - zircon_editor/src/ui/slint_host/ui.rs
+  - zircon_editor/src/ui/slint_host/ui/asset_surface_presentation.rs
+  - zircon_editor/src/ui/workbench/snapshot/asset/asset_item_snapshot.rs
+  - zircon_editor/src/ui/workbench/snapshot/asset/asset_reference_snapshot.rs
+  - zircon_editor/src/ui/workbench/snapshot/asset/asset_selection_snapshot.rs
+  - zircon_editor/src/ui/workbench/snapshot/asset/asset_workspace_snapshot.rs
   - zircon_resource/src/record/resource_event.rs
   - zircon_resource/src/record/resource_event_kind.rs
 plan_sources:
@@ -173,7 +173,7 @@ tests:
   - cargo test -p zircon_input input_protocol_types_live_in_input_subsystem --offline
   - cargo test -p zircon_input --offline
   - cargo test -p zircon_input_protocol --offline
-  - cargo test -p zircon_entry runtime_input_protocol_is_owned_by_input_subsystem --offline
+  - cargo test -p zircon_app runtime_input_protocol_is_owned_by_input_subsystem --offline
   - cargo test -p zircon_manager manager_public_surface_excludes_vm_plugin_protocol_types --offline
   - cargo test -p zircon_script vm_plugin_protocol_types_live_in_script_subsystem --offline
   - cargo test -p zircon_script --offline
@@ -456,8 +456,8 @@ doc_type: module-detail
 这轮再把 watchlist 收窄到 legacy template compat 链后，结论仍然是“先不搬”：
 
 - [zircon_ui/src/template/document.rs](../../zircon_ui/src/template/document.rs) 里的 `UiTemplateDocument` 不是孤立 editor DTO；[zircon_ui/src/template/validate.rs](../../zircon_ui/src/template/validate.rs)、[zircon_ui/src/template/instance.rs](../../zircon_ui/src/template/instance.rs) 和 [zircon_ui/src/template/loader.rs](../../zircon_ui/src/template/loader.rs) 共同组成 `zircon_ui` 自己的 template runtime 真源
-- [zircon_editor_ui/src/template/registry.rs](../../zircon_editor_ui/src/template/registry.rs) 当前虽然直接托管 `UiTemplateDocument`，但实例化仍然回到 `UiTemplateInstance::from_document(...)` 这条 shared runtime 合同，而不是 editor 私有实例树
-- [zircon_editor/src/host/template_runtime/runtime/runtime_host.rs](../../zircon_editor/src/host/template_runtime/runtime/runtime_host.rs) 对 `UiTemplateLoader::load_toml_str(...)` 的生产态使用，本质上也是 editor runtime 对 shared legacy template 输入格式的 fallback 兼容，而不是 editor 自己拥有 parser
+- [zircon_editor/src/ui/template/registry.rs](../../zircon_editor/src/ui/template/registry.rs) 当前虽然直接托管 `UiTemplateDocument`，但实例化仍然回到 `UiTemplateInstance::from_document(...)` 这条 shared runtime 合同，而不是 editor 私有实例树
+- [zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs](../../zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs) 对 `UiTemplateLoader::load_toml_str(...)` 的生产态使用，本质上也是 editor runtime 对 shared legacy template 输入格式的 fallback 兼容，而不是 editor 自己拥有 parser
 - [zircon_ui/src/template/asset/legacy.rs](../../zircon_ui/src/template/asset/legacy.rs) 的 `UiLegacyTemplateAdapter` 确实更接近 migration/authoring compat，但它桥接的是 `UiTemplateDocument -> UiAssetDocument` 这两种都由 `zircon_ui` 自己拥有的 shared model；现在把 adapter 迁到 editor 侧，会让 legacy->canonical 的共享合同脱离 model owner
 
 因此 `UiTemplateDocument` / `UiTemplateLoader` / `UiLegacyTemplateAdapter` 当前最多只能算 `zircon_ui::template` 下的 legacy compat watchlist，还没有达到 crate 迁移门槛。
@@ -569,7 +569,7 @@ doc_type: module-detail
 - `cargo test -p zircon_input input_protocol_types_live_in_input_subsystem --offline`
 - `cargo test -p zircon_input --offline`
 - `cargo test -p zircon_input_protocol --offline`
-- `cargo test -p zircon_entry runtime_input_protocol_is_owned_by_input_subsystem --offline`
+- `cargo test -p zircon_app runtime_input_protocol_is_owned_by_input_subsystem --offline`
 - `cargo test -p zircon_manager manager_public_surface_excludes_vm_plugin_protocol_types --offline`
 - `cargo test -p zircon_script vm_plugin_protocol_types_live_in_script_subsystem --offline`
 - `cargo test -p zircon_script --offline`
@@ -614,4 +614,4 @@ doc_type: module-detail
 - `zircon_asset` 根级 raw `zircon_resource` foreign re-export 已进入收口实现：raw `Resource*` surface 应回到 `zircon_resource`，asset crate 根只保留 asset-named 语义 alias；其中 `AssetReference` 这类仍有消费证据的 asset 别名不在删除范围
 - 当前仓库不存在 `docs/source/` 目录；这轮文档清扫已转为更新 `docs/` 下的 live 总览文档，避免继续沿用过期的 manager-owned asset/scene 表述
 - 本轮没有重新跑 full workspace `--locked` 联测；原因是工作树里的 `Cargo.lock` 已脏，这不在本批边界收口范围内
-- `cargo check -p zircon_editor --lib --offline --target-dir target/tdd-red-editor --message-format short` 目前仍被 crate 内现有无关红阻塞；失败点落在 [`inspector_semantics.rs`](../../zircon_editor/src/editing/ui_asset/inspector_semantics.rs) 里 `UiAssetStructuredLayoutSemanticFields` 缺少 `box_gap` 字段初始化，不是这轮 `ResourceEvent` 迁移直接引入的断点
+- `cargo check -p zircon_editor --lib --offline --target-dir target/tdd-red-editor --message-format short` 目前仍被 crate 内现有无关红阻塞；失败点落在 [`inspector_semantics.rs`](../../zircon_editor/src/core/editing/ui_asset/inspector_semantics.rs) 里 `UiAssetStructuredLayoutSemanticFields` 缺少 `box_gap` 字段初始化，不是这轮 `ResourceEvent` 迁移直接引入的断点

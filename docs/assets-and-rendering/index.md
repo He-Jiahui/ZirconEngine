@@ -85,30 +85,32 @@ related_code:
   - zircon_graphics/src/runtime/virtual_geometry/prepare_frame/build_prepare_frame.rs
   - zircon_graphics/src/runtime/virtual_geometry/prepare_frame/prepare_visible_clusters.rs
   - zircon_graphics/src/runtime/virtual_geometry/pending_completion/mod.rs
+  - zircon_graphics/src/runtime/virtual_geometry/snapshot.rs
   - zircon_graphics/src/runtime/virtual_geometry/residency_management/mod.rs
   - zircon_graphics/src/backend/render_backend/read_buffer_u32s.rs
-  - zircon_graphics/src/runtime/server/mod.rs
-  - zircon_graphics/src/runtime/server/capability_summary/mod.rs
-  - zircon_graphics/src/runtime/server/capture_frame/mod.rs
-  - zircon_graphics/src/runtime/server/compile_options_for_profile/mod.rs
-  - zircon_graphics/src/runtime/server/compiled_feature_names/mod.rs
-  - zircon_graphics/src/runtime/server/create_viewport/mod.rs
-  - zircon_graphics/src/runtime/server/destroy_viewport/mod.rs
-  - zircon_graphics/src/runtime/server/query_stats/mod.rs
-  - zircon_graphics/src/runtime/server/queue_capability/mod.rs
-  - zircon_graphics/src/runtime/server/reload_pipeline/mod.rs
-  - zircon_graphics/src/runtime/server/render_server_impl/mod.rs
-  - zircon_graphics/src/runtime/server/set_pipeline_asset/mod.rs
-  - zircon_graphics/src/runtime/server/set_quality_profile/mod.rs
-  - zircon_graphics/src/runtime/server/viewport_record/mod.rs
-  - zircon_graphics/src/runtime/server/wgpu_render_server_new/mod.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/mod.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/build_frame_submission_context/mod.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/prepare_runtime_submission/mod.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/prepare_runtime_submission/virtual_geometry/build_virtual_geometry_prepare.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/record_submission/mod.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/submit/mod.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/update_stats/mod.rs
+  - zircon_graphics/src/runtime/render_framework/mod.rs
+  - zircon_graphics/src/runtime/render_framework/capability_summary/mod.rs
+  - zircon_graphics/src/runtime/render_framework/capture_frame/mod.rs
+  - zircon_graphics/src/runtime/render_framework/compile_options_for_profile/mod.rs
+  - zircon_graphics/src/runtime/render_framework/compiled_feature_names/mod.rs
+  - zircon_graphics/src/runtime/render_framework/create_viewport/mod.rs
+  - zircon_graphics/src/runtime/render_framework/destroy_viewport/mod.rs
+  - zircon_graphics/src/runtime/render_framework/query_stats/mod.rs
+  - zircon_graphics/src/runtime/render_framework/queue_capability/mod.rs
+  - zircon_graphics/src/runtime/render_framework/reload_pipeline/mod.rs
+  - zircon_graphics/src/runtime/render_framework/render_server_impl/mod.rs
+  - zircon_graphics/src/runtime/render_framework/set_pipeline_asset/mod.rs
+  - zircon_graphics/src/runtime/render_framework/set_quality_profile/mod.rs
+  - zircon_graphics/src/runtime/render_framework/viewport_record/mod.rs
+  - zircon_graphics/src/runtime/render_framework/wgpu_render_server_new/mod.rs
+  - zircon_graphics/src/runtime/render_framework/submit_frame_extract/mod.rs
+  - zircon_graphics/src/runtime/render_framework/submit_frame_extract/build_frame_submission_context/mod.rs
+  - zircon_graphics/src/runtime/render_framework/submit_frame_extract/prepare_runtime_submission/mod.rs
+  - zircon_graphics/src/runtime/render_framework/submit_frame_extract/prepare_runtime_submission/virtual_geometry/build_virtual_geometry_prepare.rs
+  - zircon_graphics/src/runtime/render_framework/submit_frame_extract/record_submission/mod.rs
+  - zircon_graphics/src/runtime/render_framework/submit_frame_extract/record_submission/update_virtual_geometry_runtime.rs
+  - zircon_graphics/src/runtime/render_framework/submit_frame_extract/submit/mod.rs
+  - zircon_graphics/src/runtime/render_framework/submit_frame_extract/update_stats/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_render/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_render_with_pipeline/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_runtime_outputs/mod.rs
@@ -166,7 +168,7 @@ related_code:
   - zircon_rhi/src/lib.rs
   - zircon_rhi_wgpu/src/lib.rs
   - zircon_render_graph/src/lib.rs
-  - zircon_render_server/src/lib.rs
+  - zircon_framework/src/lib.rs
   - zircon_scene/src/render_extract.rs
   - zircon_editor/src/workbench/project/mod.rs
   - zircon_editor/src/host/app.rs
@@ -256,30 +258,32 @@ implementation_files:
   - zircon_graphics/src/runtime/virtual_geometry/prepare_frame/build_prepare_frame.rs
   - zircon_graphics/src/runtime/virtual_geometry/prepare_frame/prepare_visible_clusters.rs
   - zircon_graphics/src/runtime/virtual_geometry/pending_completion/mod.rs
+  - zircon_graphics/src/runtime/virtual_geometry/snapshot.rs
   - zircon_graphics/src/runtime/virtual_geometry/residency_management/mod.rs
   - zircon_graphics/src/backend/render_backend/read_buffer_u32s.rs
-  - zircon_graphics/src/runtime/server/mod.rs
-  - zircon_graphics/src/runtime/server/capability_summary/mod.rs
-  - zircon_graphics/src/runtime/server/capture_frame/mod.rs
-  - zircon_graphics/src/runtime/server/compile_options_for_profile/mod.rs
-  - zircon_graphics/src/runtime/server/compiled_feature_names/mod.rs
-  - zircon_graphics/src/runtime/server/create_viewport/mod.rs
-  - zircon_graphics/src/runtime/server/destroy_viewport/mod.rs
-  - zircon_graphics/src/runtime/server/query_stats/mod.rs
-  - zircon_graphics/src/runtime/server/queue_capability/mod.rs
-  - zircon_graphics/src/runtime/server/reload_pipeline/mod.rs
-  - zircon_graphics/src/runtime/server/render_server_impl/mod.rs
-  - zircon_graphics/src/runtime/server/set_pipeline_asset/mod.rs
-  - zircon_graphics/src/runtime/server/set_quality_profile/mod.rs
-  - zircon_graphics/src/runtime/server/viewport_record/mod.rs
-  - zircon_graphics/src/runtime/server/wgpu_render_server_new/mod.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/mod.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/build_frame_submission_context/mod.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/prepare_runtime_submission/mod.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/prepare_runtime_submission/virtual_geometry/build_virtual_geometry_prepare.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/record_submission/mod.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/submit/mod.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/update_stats/mod.rs
+  - zircon_graphics/src/runtime/render_framework/mod.rs
+  - zircon_graphics/src/runtime/render_framework/capability_summary/mod.rs
+  - zircon_graphics/src/runtime/render_framework/capture_frame/mod.rs
+  - zircon_graphics/src/runtime/render_framework/compile_options_for_profile/mod.rs
+  - zircon_graphics/src/runtime/render_framework/compiled_feature_names/mod.rs
+  - zircon_graphics/src/runtime/render_framework/create_viewport/mod.rs
+  - zircon_graphics/src/runtime/render_framework/destroy_viewport/mod.rs
+  - zircon_graphics/src/runtime/render_framework/query_stats/mod.rs
+  - zircon_graphics/src/runtime/render_framework/queue_capability/mod.rs
+  - zircon_graphics/src/runtime/render_framework/reload_pipeline/mod.rs
+  - zircon_graphics/src/runtime/render_framework/render_server_impl/mod.rs
+  - zircon_graphics/src/runtime/render_framework/set_pipeline_asset/mod.rs
+  - zircon_graphics/src/runtime/render_framework/set_quality_profile/mod.rs
+  - zircon_graphics/src/runtime/render_framework/viewport_record/mod.rs
+  - zircon_graphics/src/runtime/render_framework/wgpu_render_server_new/mod.rs
+  - zircon_graphics/src/runtime/render_framework/submit_frame_extract/mod.rs
+  - zircon_graphics/src/runtime/render_framework/submit_frame_extract/build_frame_submission_context/mod.rs
+  - zircon_graphics/src/runtime/render_framework/submit_frame_extract/prepare_runtime_submission/mod.rs
+  - zircon_graphics/src/runtime/render_framework/submit_frame_extract/prepare_runtime_submission/virtual_geometry/build_virtual_geometry_prepare.rs
+  - zircon_graphics/src/runtime/render_framework/submit_frame_extract/record_submission/mod.rs
+  - zircon_graphics/src/runtime/render_framework/submit_frame_extract/record_submission/update_virtual_geometry_runtime.rs
+  - zircon_graphics/src/runtime/render_framework/submit_frame_extract/submit/mod.rs
+  - zircon_graphics/src/runtime/render_framework/submit_frame_extract/update_stats/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_render/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_render_with_pipeline/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_runtime_outputs/mod.rs
@@ -337,7 +341,7 @@ implementation_files:
   - zircon_rhi/src/lib.rs
   - zircon_rhi_wgpu/src/lib.rs
   - zircon_render_graph/src/lib.rs
-  - zircon_render_server/src/lib.rs
+  - zircon_framework/src/lib.rs
   - zircon_scene/src/render_extract.rs
   - zircon_editor/src/workbench/project/mod.rs
   - zircon_editor/src/host/app.rs
@@ -365,6 +369,7 @@ plan_sources:
   - docs/superpowers/plans/2026-04-17-m5-virtual-geometry-size-aware-streaming-uploader.md
   - docs/superpowers/plans/2026-04-17-m5-virtual-geometry-slot-assignment-ownership.md
   - docs/superpowers/plans/2026-04-17-m5-virtual-geometry-shared-indirect-args-buffer.md
+  - docs/superpowers/plans/2026-04-18-m5-virtual-geometry-page-table-confirmed-completion-cascade.md
 tests:
   - zircon_resource/src/tests.rs
   - zircon_asset/src/tests/pipeline/manager.rs
@@ -375,21 +380,24 @@ tests:
   - zircon_rhi_wgpu/src/tests.rs
   - zircon_render_graph/src/tests/ordering.rs
   - zircon_render_graph/src/tests/cycles.rs
-  - zircon_render_server/src/tests.rs
+  - zircon_framework/src/tests.rs
   - zircon_scene/tests/render_frame_extract.rs
   - zircon_graphics/src/tests/render_server_bridge.rs
   - zircon_graphics/src/tests/virtual_geometry_gpu.rs
+  - zircon_graphics/src/tests/virtual_geometry_submission_authority.rs
+  - zircon_graphics/src/tests/virtual_geometry_unified_indirect.rs
   - zircon_graphics/src/tests/hybrid_gi_visibility.rs
   - zircon_graphics/src/tests/hybrid_gi_runtime.rs
   - zircon_graphics/src/tests/hybrid_gi_gpu.rs
   - zircon_graphics/src/tests/hybrid_gi_resolve_render.rs
   - zircon_graphics/src/tests/virtual_geometry_prepare_render.rs
+  - zircon_graphics/src/runtime/render_framework/submit_frame_extract/record_submission/update_virtual_geometry_runtime.rs
   - zircon_editor/src/lib.rs
   - cargo test -p zircon_resource -p zircon_asset -p zircon_scene -p zircon_graphics -p zircon_editor
   - cargo test -p zircon_rhi --lib --tests
   - cargo test -p zircon_rhi_wgpu --lib --tests
   - cargo test -p zircon_render_graph --lib --tests
-  - cargo test -p zircon_render_server --lib --tests
+  - cargo test -p zircon_graphics --locked render_framework_bridge
   - cargo test -p zircon_scene render_frame_extract_adapter_preserves_legacy_snapshot_content
   - cargo test -p zircon_graphics render_server_tracks_viewports_and_accepts_frame_extract_submission
   - cargo test -p zircon_graphics hybrid_gi_gpu_completion_readback_reports_completed_probe_updates_and_traces --locked
@@ -406,7 +414,7 @@ tests:
   - cargo test -p zircon_graphics virtual_geometry --locked
   - cargo test -p zircon_graphics --lib --locked
   - cargo test -p zircon_graphics --locked
-  - cargo test -p zircon_entry --locked
+  - cargo test -p zircon_app --locked
   - cargo test -p zircon_editor editor_viewport_sources_route_through_render_server_without_wgpu_preview_bindings --locked
   - cargo check --workspace --locked
   - ./.codex/skills/zircon-dev/scripts/validate-matrix.ps1 -Package zircon_graphics
@@ -423,11 +431,11 @@ doc_type: category-index
 ## Documents
 
 - [Directory Project Asset Rendering](./directory-project-asset-rendering.md): `zircon_resource` locator/handle/state 契约，`Project/assets` 与 `Project/library` 的职责，`res://`/`lib://`/`builtin://`/`mem://` 统一来源，`AssetManager`/`ResourceManager`/asset-owned `EditorAssetManager`、`SceneAssetSerializer`、`LevelManager -> LevelSystem -> World` 与 graphics revision cache 的自动刷新路径。
-- [SRP RHI Render Server Architecture](./srp-rhi-render-server-architecture.md): `zircon_rhi`、`zircon_rhi_wgpu`、`zircon_render_graph`、`zircon_render_server` 的基础边界，`RenderFrameExtract` 的新公共面，`zircon_graphics` 当前的 render server 兼容桥，以及 M4 已经真正落地的 deferred、clustered lighting、SSAO、history、bloom、color grading、reflection probe、baked lighting、particle 与 offline bake baseline；同时记录 M5 的 `Virtual Geometry / Hybrid GI` capability-slot 边界，以及 Virtual Geometry 从 preprocess 到 GPU completion/hierarchy refine/page-owned cluster-raster consumption、Hybrid GI 从 preprocess 到 GPU completion/GPU radiance update/RT-lighting-tinted screen-probe hierarchy resolve，再到 pure `wgpu` baseline capability lift 的现状。
-- [Editor And Tooling / Viewport Interaction Boundary Split](../editor-and-tooling/viewport-interaction-boundary-split.md): 记录 `zircon_graphics` 把 viewport controller/input/feedback/state 交回 `zircon_editor` 与 `zircon_entry` 之后的新责任边界，避免把 editor/runtime 交互语义重新混回渲染层。
+- [Render Framework Architecture](./render-framework-architecture.md): `zircon_rhi`、`zircon_rhi_wgpu`、`zircon_render_graph`、`zircon_framework` 的基础边界，`RenderFrameExtract` 的新公共面，以及 `zircon_graphics` 当前已经迁移到 `runtime/render_framework/` 的 façade/runtime 实现现实；同时记录 M4 已经真正落地的 deferred、clustered lighting、SSAO、history、bloom、color grading、reflection probe、baked lighting、particle 与 offline bake baseline，以及 M5 的 `Virtual Geometry / Hybrid GI` capability-slot 边界。
+- [Editor And Tooling / Viewport Interaction Boundary Split](../editor-and-tooling/viewport-interaction-boundary-split.md): 记录 `zircon_graphics` 把 viewport controller/input/feedback/state 交回 `zircon_editor` 与 `zircon_app` 之后的新责任边界，避免把 editor/runtime 交互语义重新混回渲染层。
 - [M5 Virtual Geometry Prepare Consumption Plan](../superpowers/plans/2026-04-16-m5-virtual-geometry-prepare-consumption.md): `VirtualGeometryRuntimeState` 如何生成带 `cluster_draw_segments` 的 frame-local prepare snapshot，`build_virtual_geometry_plan(...)` 如何从完整 cluster 集导出稳定 ordinal/count，`submit_frame_extract(...)` 如何在 render 前挂接它，以及当前 mesh fallback 如何只消费 prepare 提供的 segment 合同。
 - [M5 Virtual Geometry Feedback Streaming Plan](../superpowers/plans/2026-04-16-m5-virtual-geometry-feedback-streaming.md): `VisibilityVirtualGeometryFeedback` 如何在帧后驱动 runtime host 消费 pending request、回收 evictable page，并把 residency 推进到下一帧 prepare snapshot。
-- [M5 Hybrid GI Runtime Host Plan](../superpowers/plans/2026-04-16-m5-hybrid-gi-runtime-host.md): `Hybrid GI` 在 `RenderFrameExtract -> VisibilityContext -> WgpuRenderServer` 这条主链上的 probe/trace extract、dirty-request history、viewport probe-cache runtime host，以及 façade stats 边界。
+- [M5 Hybrid GI Runtime Host Plan](../superpowers/plans/2026-04-16-m5-hybrid-gi-runtime-host.md): `Hybrid GI` 在 `RenderFrameExtract -> VisibilityContext -> WgpuRenderFramework` 这条主链上的 probe/trace extract、dirty-request history、viewport probe-cache runtime host，以及 façade stats 边界。
 - [M5 Hybrid GI Feedback Streaming Plan](../superpowers/plans/2026-04-16-m5-hybrid-gi-feedback-streaming.md): `VisibilityHybridGiFeedback` 如何在帧后驱动 runtime host 消费 pending probe update、回收 evictable probe，并把 trace schedule 与 probe residency 推进到下一帧 runtime snapshot。
 - [M5 Virtual Geometry GPU Uploader Readback](../superpowers/plans/2026-04-17-m5-virtual-geometry-gpu-uploader-readback.md): `Virtual Geometry` 如何把 resident page table / pending request 送入真实 `wgpu` compute/readback 路径，并用 GPU completion source 推进 runtime host，而不是继续只靠 CPU feedback。
 - [M5 Virtual Geometry Cluster Refine](../superpowers/plans/2026-04-17-m5-virtual-geometry-cluster-refine.md): `Virtual Geometry` 如何在统一 visibility 规划层引入 budget-aware parent-child refine frontier，让 children 只在预算允许时替换 parent。
@@ -459,12 +467,28 @@ doc_type: category-index
 - [M5 Virtual Geometry Visibility-Owned Lineage Segment Boundaries](../superpowers/plans/2026-04-18-m5-virtual-geometry-visibility-owned-lineage-segments.md): `Virtual Geometry` 如何把 unified indirect segment authority 继续从 runtime prepare 下沉到 visibility planning，并在同 page frontier 上按 parent lineage 保留独立 segment 边界。
 - [M5 Virtual Geometry Page-Owned Cluster Raster Consumption](../superpowers/plans/2026-04-18-m5-virtual-geometry-page-owned-cluster-raster-consumption.md): `Virtual Geometry` 如何把 `page_id` 从 indirect ownership 边界继续推进到真实 GPU indirect args，让不同 resident page 即使共享同一 slot 也会消费不同的 cluster-raster 子范围。
 - [M5 Virtual Geometry Runtime-Owned Stats Closure](../superpowers/plans/2026-04-18-m5-virtual-geometry-runtime-owned-stats-closure.md): `Virtual Geometry` 如何把 prepare-owned indirect authority 与 GPU uploader completion truth 继续推到 `RenderStats`，让 façade 直接看见 completed page 与 indirect segment 规模。
+- [M5 Virtual Geometry Lineage Depth And Eviction Distance](../superpowers/plans/2026-04-18-m5-virtual-geometry-lineage-depth-and-eviction-distance.md): `Virtual Geometry` 如何把 visibility-owned `lineage_depth` 继续压到 unified indirect / GPU submission / indirect args shader，并让 runtime residency completion 在 ancestor / descendant 内部优先回收更远 lineage distance。
 - [M5 Virtual Geometry Merge Hysteresis](../superpowers/plans/2026-04-18-m5-virtual-geometry-merge-hysteresis.md): `Virtual Geometry` 如何在真正 split 到 resident children 的下一拍里继续保护 coarse parent，不让它在 split 落地帧立刻进入 `evictable_pages`。
 - [M5 Virtual Geometry Merge-Back Child Hysteresis](../superpowers/plans/2026-04-18-m5-virtual-geometry-merge-back-child-hysteresis.md): `Virtual Geometry` 如何在 frontier 从 children 回退到 parent 的当帧继续保护仍 resident 的 child page，不让它立刻进入 `evictable_pages`。
 - [M5 Virtual Geometry Current Evictable Slot Recycling Guard](../superpowers/plans/2026-04-18-m5-virtual-geometry-current-evictable-slot-recycling-guard.md): `Virtual Geometry` 如何让 runtime residency completion 只信当前帧 `evictable_pages` 真值，避免 stale runtime state 在 merge-back / cascade 保护撤回后继续抢 slot。
 - [M5 Virtual Geometry GPU Submission Segment Readback](../superpowers/plans/2026-04-18-m5-virtual-geometry-gpu-submission-segment-readback.md): `Virtual Geometry` 如何把 visibility-owned unified indirect authority 继续推进到真实 GPU submission buffer，并让测试直接回读 indirect segment truth。
 - [M5 Virtual Geometry Draw-Ref Readback](../superpowers/plans/2026-04-18-m5-virtual-geometry-draw-ref-readback.md): `Virtual Geometry` 如何继续把 unified indirect authority 从 segment truth 推到真实 draw-ref submission 映射，让测试直接断言每条 indirect draw 实际引用的 segment。
 - [M5 Virtual Geometry Pending-Cascade Descendant Hold](../superpowers/plans/2026-04-18-m5-virtual-geometry-pending-cascade-descendant-hold.md): `Virtual Geometry` 如何让 multi-level collapse 在 ancestor request 仍然 pending 时继续保热更深 resident descendants，而不是在第二个 collapsed frame 就把它们放回 `evictable_pages`。
+- [M5 Virtual Geometry Frontier Priority And Active Request Lineage](../superpowers/plans/2026-04-18-m5-virtual-geometry-frontier-priority-and-active-request-lineage.md): `Virtual Geometry` 如何把当前 visibility `requested_pages` frontier 顺序继续下沉到 runtime pending uploader queue，并让 eviction 排序显式保护其他 active request lineages。
+- [M5 Virtual Geometry Frontier Rank GPU Submission And Cluster Raster Consumption](../superpowers/plans/2026-04-18-m5-virtual-geometry-frontier-rank-gpu-submission-and-cluster-raster-consumption.md): `Virtual Geometry` 如何把 `pending_page_requests` 的 frontier rank 继续压进 unified indirect draw contract、真实 GPU submission segment buffer 与最终 cluster-raster consumption，而不只停在 runtime queue policy。
+- [M5 Virtual Geometry Explicit Frontier Rank Uploader And Page-Table Cascade](../superpowers/plans/2026-04-18-m5-virtual-geometry-explicit-frontier-rank-uploader-and-page-table-cascade.md): `Virtual Geometry` 如何把 frontier truth 变成显式 prepare request contract，并让 GPU uploader / page-table completion 按 `frontier_rank` 选取要完成的 page，而不再只吃 pending input 顺序。
+- [M5 Virtual Geometry Explicit Replacement Runtime Host And Stats Closure](../superpowers/plans/2026-04-18-m5-virtual-geometry-explicit-replacement-runtime-host-and-stats-closure.md): `Virtual Geometry` 如何把 GPU readback 的 `completed_page_replacements` 真值继续推进到 runtime host 和 façade stats，而不再只停在 uploader/page-table decode。
+- [M5 Virtual Geometry Requested-Lineage Frontier Budget Hold](../superpowers/plans/2026-04-18-m5-virtual-geometry-requested-lineage-frontier-budget-hold.md): `Virtual Geometry` 如何在 frontier budget collapse 时区分 requested lineage 与仍被 current streaming target 需要的 lineage，避免 unrelated sibling subtree 被过宽保热。
+- [M5 Virtual Geometry Stale Explicit Recycle-Slot Contract Guard](../superpowers/plans/2026-04-18-m5-virtual-geometry-stale-explicit-recycle-slot-contract-guard.md): `Virtual Geometry` 如何让真实 GPU uploader 校验 `assigned_slot + recycled_page_id` contract，拒绝 stale recycle truth 污染 page-table completion。
+- [M5 Virtual Geometry Implicit Slot Replacement Readback](../superpowers/plans/2026-04-18-m5-virtual-geometry-implicit-slot-replacement-readback.md): `Virtual Geometry` 如何让 GPU 在隐式复用 evictable slot 时也回传真实 recycled page，而不再让 runtime 只能靠 page-table aliasing 推断 replacement truth。
+- [M5 Virtual Geometry Repeated Budget-Collapse Frontier Hold](../superpowers/plans/2026-04-18-m5-virtual-geometry-repeated-budget-collapse-frontier-hold.md): `Virtual Geometry` 如何在没有 pending request 的 repeated budget collapse 下继续保热最近 fully-resident 的 child frontier，而不只保一拍后就把它重新放回 `evictable_pages`。
+- [M5 Virtual Geometry Hot Frontier Runtime Residency Cascade](../superpowers/plans/2026-04-18-m5-virtual-geometry-hot-frontier-runtime-residency-cascade.md): `Virtual Geometry` 如何把 visibility 导出的 `hot_resident_pages` 继续写进 runtime residency state，并让当前帧 completion 与下一帧 prepare recycle 都优先回收 colder page，而不是先踢 recently-hot frontier。
+- [M5 Virtual Geometry Fallback Recycle Preference Uploader Cascade](../superpowers/plans/2026-04-18-m5-virtual-geometry-fallback-recycle-preference-uploader-cascade.md): `Virtual Geometry` 如何让没有即时 `assigned_slot` 的 later request 也保留 frontier-aware recycle 偏好，并让真实 GPU uploader 在 stale request 被跳过后仍按这条偏好选择 slot。
+- [M5 Virtual Geometry Fallback Slot Submission Authority Cascade](../superpowers/plans/2026-04-18-m5-virtual-geometry-fallback-slot-submission-authority-cascade.md): `Virtual Geometry` 如何把 fallback recycle-slot authority 从 prepare/uploader contract 继续推进到 unified indirect segment ordering、draw-ref mapping 与 pending cluster-raster consumption，而不再只停在 uploader fallback 选槽。
+- [M5 Virtual Geometry Page-Table Confirmed Completion Cascade](../superpowers/plans/2026-04-18-m5-virtual-geometry-page-table-confirmed-completion-cascade.md): `Virtual Geometry` 如何让 runtime host 只在 final `page_table_entries` 真正保留 completed page 时承认 completion，并且只按 confirmed slot 的 previous owner 计算 replacement pressure。
+- [M5 Virtual Geometry Authoritative Indirect Submission Order](../superpowers/plans/2026-04-18-m5-virtual-geometry-authoritative-indirect-submission-order.md): `Virtual Geometry` 如何把已经确认下来的 `submission_slot / page-table / completion` 真值继续推进到真实的 draw-ref / indirect args / `draw_indexed_indirect(...)` 执行顺序，而不再只停在 segment truth 或 uploader fallback。
+- [M5 Virtual Geometry Visibility-Owned Indirect Args Compaction](../superpowers/plans/2026-04-18-m5-virtual-geometry-visibility-owned-indirect-args-compaction.md): `Virtual Geometry` 如何把同 page / slot / lineage / mesh-index-count 的重复 primitive draw 继续折叠成共享的 indirect args / draw-ref record，让 unified indirect 的 cardinality 也开始服从 visibility-owned truth。
+- [M5 Virtual Geometry Prepare-Owned Indirect Order Authority](../superpowers/plans/2026-04-18-m5-virtual-geometry-prepare-owned-indirect-order-authority.md): `Virtual Geometry` 如何把 unified indirect 的第一份 authoritative submission ordering 提前固定到 `prepare.unified_indirect_draws()`，再由 renderer 只消费这份顺序而不再重新发明它。
 - [M5 Hybrid GI RT Lighting And Screen-Probe Hierarchy](../superpowers/plans/2026-04-18-m5-hybrid-gi-rt-lighting-screen-probe-hierarchy.md): `Hybrid GI` 如何把 trace region 的 `rt_lighting_rgb` 接进 GPU completion，并让 probe active/request frontier 开始支持 `parent_probe_id` 驱动的最小 hierarchy refine。
 - [M5 Hybrid GI Hierarchy-Aware Radiance Gather](../superpowers/plans/2026-04-18-m5-hybrid-gi-hierarchy-aware-radiance-gather.md): `Hybrid GI` 如何把 `parent_probe_id` 继续下沉到 GPU resident/pending probe 输入，让 hierarchy 关系真实改变 radiance-cache gather。
 - [M5 Hybrid GI Hierarchy-Gap Resolve And RT Inheritance](../superpowers/plans/2026-04-18-m5-hybrid-gi-hierarchy-gap-resolve-and-rt-inheritance.md): `Hybrid GI` 如何让 resolve 在 nonresident hierarchy gap 上继续保留 ancestor/descendant lineage，并让 child probe 继承 ancestor trace-region 的 RT tint。
@@ -475,8 +499,10 @@ doc_type: category-index
 - [M5 Hybrid GI Primary-Lineage Gather And Lineage Budgeting](../superpowers/plans/2026-04-18-m5-hybrid-gi-primary-lineage-gather-and-lineage-budgeting.md): `Hybrid GI` 如何补上 pending probe 对 primary resident ancestor 的 lineage-only radiance gather，以及在多个 active lineages 竞争有限 `probe_budget` 时先做 lineage-fair 的首轮 descendant request 分配。
 - [M5 Hybrid GI Farther-Ancestor Budget-Weighted Resolve](../superpowers/plans/2026-04-18-m5-hybrid-gi-farther-ancestor-budget-weighted-resolve.md): `Hybrid GI` 如何让更远 resident ancestor 的 budget/support 也真实改变 child probe 的最终 resolve 强度，而不再只追加颜色 continuation。
 - [M5 Hybrid GI Pending-Ancestor Descendant Hold](../superpowers/plans/2026-04-18-m5-hybrid-gi-pending-ancestor-descendant-hold.md): `Hybrid GI` 如何让 pending hierarchy request 挂起期间继续保热更深 resident descendant probe，而不是在 runtime-host cache policy 上提前把它们放回 `evictable_probe_ids`。
+- [M5 Hybrid GI Runtime Resolve Source Closure](../superpowers/plans/2026-04-18-m5-hybrid-gi-runtime-resolve-source-closure.md): `Hybrid GI` 如何把 hierarchy resolve weight、farther-ancestor irradiance continuation 与 ancestor-derived RT-lighting continuation 从 encode-side helper 继续收进 `HybridGiResolveRuntime`，让 post-process 优先消费 runtime/GPU host source。
+- [M5 Hybrid GI Scene-Driven Lineage Trace Support Runtime And GPU Source](../superpowers/plans/2026-04-18-m5-hybrid-gi-scene-driven-lineage-trace-support-runtime-and-gpu-source.md): `Hybrid GI` 如何把 probe / trace region 的 scene-driven hierarchy trace support 固定进 runtime host、pending update 排序、GPU input 与 runtime resolve weight，让 nonresident lineage 也能持续驱动 RT hybrid lighting continuation。
 - [M5 Runtime Scene Authority Prune](../superpowers/plans/2026-04-18-m5-runtime-scene-authority-prune.md): `Hybrid GI / Virtual Geometry` 如何在 runtime host 接收新 extract 时主动裁掉已经离开场景的 stale probe/page，避免旧缓存继续污染下一帧 residency truth。
-- [M5 Flagship Baseline Capability Lift](../superpowers/plans/2026-04-17-m5-flagship-baseline-capability-lift.md): `RenderServer` 如何把已落地的 `Virtual Geometry / Hybrid GI` baseline 从“保守 capability gate 关闭”提升为 pure `wgpu` baseline 可显式启用，同时继续保持 RT/AS 路径关闭。
+- [M5 Flagship Baseline Capability Lift](../superpowers/plans/2026-04-17-m5-flagship-baseline-capability-lift.md): `RenderFramework` 如何把已落地的 `Virtual Geometry / Hybrid GI` baseline 从“保守 capability gate 关闭”提升为 pure `wgpu` baseline 可显式启用，同时继续保持 RT/AS 路径关闭。
 
 ## Current Scope
 
@@ -488,17 +514,19 @@ doc_type: category-index
 - PNG/JPEG、WGSL、TOML material、TOML scene、OBJ、glTF/GLB 的导入与 library artifact 持久化
 - `SceneAssetSerializer` 驱动的 `SceneAsset <-> World` 转换，以及 `LevelSystem` 对运行中 world 的托管
 - `MeshRenderer`/`RenderExtract` 基于 `ResourceHandle<ModelMarker/MaterialMarker>` 的渲染输入
-- `zircon_graphics` 基于 `ResourceId + revision` 的 prepare/cache 与 WGSL shader / pipeline 选择，并把 `scene/resources/`、`scene/scene_renderer/core/`、`scene/scene_renderer/post_process/`、`runtime/server/submit_frame_extract/`、`runtime/{virtual_geometry,hybrid_gi}/` 的 prepare/completion/residency 管线继续收口成 root-only wiring + folder-backed 子模块
-- `zircon_graphics` 的 viewport 职责现在只剩 render/server/overlay：frame extract submission、capture、offscreen/shared-texture 服务、scene overlay pass、runtime preview renderer；`ViewportInput` / `ViewportFeedback` / `ViewportState` / `GizmoAxis` / controller 已回收给 `zircon_editor` 或 `zircon_entry`
-- `zircon_rhi` / `zircon_rhi_wgpu` / `zircon_render_graph` / `zircon_render_server` 的基础渲染边界，以及 `RenderFrameExtract` 与旧 `RenderSceneSnapshot` 的过渡桥
-- `zircon_graphics` 通过 `RenderServer` 路径执行真实的 `final color / scene color / bloom / gbuffer albedo / normal / AO / history / clustered-light buffer / reflection-probe buffer` 中间资源链，而不是只停在 compile skeleton；built-in deferred 已经会把 opaque geometry 改走固定材质解码和 deferred lighting，剩余的 `bloom / color grading / baked lighting / reflection probes / particle rendering / offline bake` 也已经沿同一条 runtime path 接通
+- `zircon_graphics` 基于 `ResourceId + revision` 的 prepare/cache 与 WGSL shader / pipeline 选择，并把 `scene/resources/`、`scene/scene_renderer/core/`、`scene/scene_renderer/post_process/`、`runtime/render_framework/submit_frame_extract/`、`runtime/{virtual_geometry,hybrid_gi}/` 的 prepare/completion/residency 管线继续收口成 root-only wiring + folder-backed 子模块
+- `zircon_graphics` 的 viewport 职责现在只剩 render/server/overlay：frame extract submission、capture、offscreen/shared-texture 服务、scene overlay pass、runtime preview renderer；`ViewportInput` / `ViewportFeedback` / `ViewportState` / `GizmoAxis` / controller 已回收给 `zircon_editor` 或 `zircon_app`
+- `zircon_rhi` / `zircon_rhi_wgpu` / `zircon_render_graph` / `zircon_framework` 的基础渲染边界，以及 `RenderFrameExtract` 与旧 `RenderSceneSnapshot` 的过渡桥
+- `zircon_graphics` 通过 `RenderFramework` 路径执行真实的 `final color / scene color / bloom / gbuffer albedo / normal / AO / history / clustered-light buffer / reflection-probe buffer` 中间资源链，而不是只停在 compile skeleton；built-in deferred 已经会把 opaque geometry 改走固定材质解码和 deferred lighting，剩余的 `bloom / color grading / baked lighting / reflection probes / particle rendering / offline bake` 也已经沿同一条 runtime path 接通
 - `Virtual Geometry / Hybrid GI` 的第一段 capability-slot 边界：extract placeholder、quality/profile toggle、history slot、feature descriptor、explicit compile opt-in、render-server capability/stats 可观测性，以及 pure `wgpu` baseline 下对当前非 RT 实现的能力映射
-- `Virtual Geometry` 的 preprocess + runtime host + GPU completion + hierarchy refine baseline：cluster/page 数据合同、cluster-level frustum filtering、budgeted page request planning、跨帧 dirty request 历史、viewport 级 page table/residency/request sink host、带显式 `cluster_draw_segments + available_slots` 的 frame-local prepare snapshot、prepare-driven mesh fallback filtering、resident/pending cluster streaming 状态驱动的 cluster-slice fallback consumption、renderer-local indirect raster baseline、frame-shared indirect args buffer + per-draw offset 消费、compute-generated indirect args、slot-aware cluster-raster consumption、page-owned cluster-raster consumption、feedback-driven residency progression、renderer-local `wgpu` uploader/readback completion source、`size_bytes` 驱动的 streaming/reclaimable byte arbitration、GPU-assigned `completed_page_assignments(page_id, slot)` 回写、post-upload page-table snapshot readback、resident-slot-aware fallback raster consumption，以及把 streaming target frontier 与 resident-gated render frontier 显式拆开的 streaming-aware hierarchy refine；当前 `cluster_draw_segments` 已经被固定成 unified indirect 的最终 ownership authority，renderer 只做 page/slot fallback 投影而不再二次 regroup；最新一层 visibility 还会额外输出 `VisibilityVirtualGeometryDrawSegment`，并在同 page frontier 上按 parent lineage 保留独立 unified-indirect segment 边界，再由 runtime prepare 直接消费这份 visibility-owned contract；renderer last-state 现在还会直接保留并回读真实 GPU-submitted indirect segment buffer与 draw-ref buffer，因此 unified-indirect regressions 不再只验证 prepare projection，而会验证真实 submission truth 与每条 draw 的最终 segment 映射；split/merge 稳定层则同时覆盖 upload-completion split hold、split 落地帧 coarse-parent hold、frontier merge-back 当帧的 resident child-page hold，以及 multi-level frontier collapse 时对缺失 ancestor page 的优先 request 与 resident descendants 的持续保热，只要 ancestor cascade request 仍然 pending，就不会在第二个 collapsed frame 把 deepest hot descendants 提前放回 `evictable_pages`；当前 runtime host 在 extract 收缩或 feature 关闭时也会主动裁掉已经离开场景的 stale page，不再把旧 page-table / pending-request truth 带进下一帧；当前 GPU completion slot recycling 也已经只信当前帧 `evictable_pages` 真值，不会再因为 runtime 内部旧状态把刚被 merge-back / cascade 保护撤回的 resident page 误回收；与此同时 unified indirect draw contract 已经保留 `page_id` 边界，而高 resident-slot 路径下的 GPU indirect args 现在还会继续把 `page_id` 映射成不同的实际 raster 子范围
+- `Virtual Geometry` 的 preprocess + runtime host + GPU completion + hierarchy refine baseline：cluster/page 数据合同、cluster-level frustum filtering、budgeted page request planning、跨帧 dirty request 历史、viewport 级 page table/residency/request sink host、带显式 `cluster_draw_segments + available_slots` 的 frame-local prepare snapshot、prepare-driven mesh fallback filtering、resident/pending cluster streaming 状态驱动的 cluster-slice fallback consumption、renderer-local indirect raster baseline、frame-shared indirect args buffer + per-draw offset 消费、compute-generated indirect args、slot-aware cluster-raster consumption、page-owned cluster-raster consumption、feedback-driven residency progression、renderer-local `wgpu` uploader/readback completion source、`size_bytes` 驱动的 streaming/reclaimable byte arbitration、GPU-assigned `completed_page_assignments(page_id, slot)` 回写、post-upload page-table snapshot readback、resident-slot-aware fallback raster consumption，以及把 streaming target frontier 与 resident-gated render frontier 显式拆开的 streaming-aware hierarchy refine；当前 `cluster_draw_segments` 已经被固定成 unified indirect 的最终 ownership authority，renderer 只做 page/slot fallback 投影而不再二次 regroup；最新一层 visibility 还会额外输出 `VisibilityVirtualGeometryDrawSegment`，并在同 page frontier 上按 parent lineage 保留独立 unified-indirect segment 边界，再由 runtime prepare 直接消费这份 visibility-owned contract；renderer last-state 现在还会直接保留并回读真实 GPU-submitted indirect segment buffer 与 draw-ref buffer，因此 unified-indirect regressions 不再只验证 prepare projection，而会验证真实 submission truth 与每条 draw 的最终 segment 映射；最新一层 prepare projection 还会把 `assigned_slot / recycled_page_id / current page-table snapshot` 收束成显式 `submission_slot`，并让 `prepare.unified_indirect_draws()` 先在 prepare 层排出第一份 authoritative submission order，再把这条顺序继续下沉成 cluster-raster draw 的 internal `submission_index`；随后 shared indirect segment buffer、draw-ref mapping 与 pending cluster-raster consumption 都会优先跟随这条 prepare-owned order，而不再由 renderer mesh-build 发明第一份排序；再往下一层，`draw_ref_buffer` 本身与每条 `MeshDraw.indirect_args_offset` 也已经改为按同一份 `submission_slot / frontier_rank / page / cluster lineage` key 排序，因此真实 `draw_indexed_indirect(...)` 执行顺序不再被 CPU pending-draw 插入顺序绑死；在这条顺序之下，shared indirect args / draw-ref record 现在还会进一步按 `(mesh_index_count, segment_key)` 做 compaction，因此同 page / slot / lineage 上重复 primitive draw 会共享一条 visibility-owned args record，而不再继续把完全相同的 indirect args 按 CPU draw 数机械复制；split/merge 稳定层则同时覆盖 upload-completion split hold、split 落地帧 coarse-parent hold、frontier merge-back 当帧的 resident child-page hold，以及 multi-level frontier collapse 时对缺失 ancestor page 的优先 request 与 resident descendants 的持续保热，只要 ancestor cascade request 仍然 pending，就不会在第二个 collapsed frame 把 deepest hot descendants 提前放回 `evictable_pages`；最新一层 collapse policy 还显式区分 `requested_lineage_targets` 与 `streaming_target_lineage_targets`，因此 budget 真正塌回 coarse frontier 时，系统只会持续保热 request 自己那条恢复路径和 current streaming target 仍然 relevant 的 lineage，而不会把 unrelated sibling subtree 一起钉住；当前 runtime host 还会把 visibility `requested_pages` 的当前 frontier 顺序直接沉到 pending uploader queue，并在 eviction 时继续保护其他 active request lineages，优先回收较晚 request、且离对应 frontier 更远的页；GPU readback 的 `completed_page_replacements(page_id, recycled_page_id)` 现在也已经继续进入 runtime host 与 façade stats，而不再只停在 uploader/page-table decode；即使 request 没有显式 `recycled_page_id`，GPU 在隐式复用 occupied evictable slot 时也会回传真实 recycled page，不再让 runtime 只能靠 page-table aliasing 推断 replacement truth；当前 submit/runtime host 还会在 record 阶段只承认最终 `page_table_entries` 真正保留下来的 completed page，并且 replacement 只会按 confirmed slot 的 previous owner、且该 owner 真正从 final page-table 消失时计数，因此 stale replacement id 或仍然 resident 的旧 owner 已经不会再污染 pending clear、completion stats 或 replacement pressure；当前 residency-manager 主链里也没有再发现额外绕开 final page-table truth 的 raw completion side-channel；当前 runtime host 在 extract 收缩或 feature 关闭时也会主动裁掉已经离开场景的 stale page，不再把旧 page-table / pending-request truth 带进下一帧；当前 GPU completion slot recycling 也已经只信当前帧 `evictable_pages` 真值，不会再因为 runtime 内部旧状态把刚被 merge-back / cascade 保护撤回的 resident page 误回收；与此同时真实 GPU uploader 现在还会校验显式 `assigned_slot + recycled_page_id` contract，slot owner 已经漂移时会跳过 stale request，而不会继续污染 page-table completion；最新一层 prepare contract 还会为 `assigned_slot == None` 的 later request 保留 frontier-aware `recycled_page_id` 偏好，而 uploader fallback 现在会先尝试这条 preferred recycled page，并跳过当前 completion pass 中已被更早 request 占用的 evictable slot，避免 stale request 被跳过后又退回 raw slot 顺序重新踢掉错误 lineage；高 resident-slot 路径下的 GPU indirect args 则会继续把 `page_id` 映射成不同的实际 raster 子范围
 - 当前这些运行时/消费层入口也已经继续下沉：`submit_frame_extract/` 里的 `build_frame_submission_context/`、`prepare_runtime_submission/`、`submit/`、`record_submission/`、`update_stats/`，`runtime/virtual_geometry/{prepare_frame,pending_completion,residency_management}/`，`runtime/hybrid_gi/{prepare_frame,pending_completion,residency_management}/`，`scene_renderer/core/{scene_renderer_render,scene_renderer_render_with_pipeline,scene_renderer_runtime_outputs}/`，以及 `mesh/build_mesh_draws/build/` 现在都已经是 root-only wiring + helper 子模块，不再由单文件同时承担 context、prepare、submit、record、stats、completion、slot bookkeeping 与 render-output bookkeeping。
 - `Hybrid GI` 的 preprocess + runtime host + GPU completion + radiance-cache lighting resolve baseline：probe/trace region 数据合同、probe frustum filtering、budgeted probe request 与 trace schedule、跨帧 dirty probe request 历史、viewport 级 probe cache/residency/update host、feedback-driven probe residency / trace schedule progression、renderer-local probe update / trace completion + trace-region-localized irradiance readback source、resident probe history 驱动的 temporal radiance-cache update、multi-region radiance gather 的归一化权重 blend、scene directional-light tint / intensity 驱动的 GPU radiance seed、trace-region-local `rt_lighting_rgb` override、`parent_probe_id` 驱动的 screen-probe hierarchy frontier、no-trace 帧的 history-preserving / pending-black 规则、host-side 默认 irradiance bootstrap 清理，以及 GPU-produced resident probe irradiance 配合 scheduled trace region screen projection 的 localized post-process lighting resolve；active resident frontier 现在还不再只会请求 direct child，而是会继续追 visible nonresident descendants，并在 trace support 打平或主要落在 ancestor chain 上时继续偏向更深 descendant，让更深层 probe 直接进入 request/update 主链；trace region 也会在 resolve 阶段按 screen-space support 直接偏向附近 probe，而不是只做全局亮度 boost，同时 newly resident probe 与 merge-back child probe 都会获得一帧 eviction hysteresis；最新一层 hierarchy cache policy 还会在 pending ancestor request 继续挂起时，持续保热该 frontier 下最深的 resident hidden descendant probe，不再在第二个 collapsed frame 就把它们重新丢回 `evictable_probe_ids`；与此同时 runtime host 在 extract 收缩或 feature 关闭时也会主动裁掉已经离开场景的 stale probe、pending update 与 irradiance cache，避免旧 hierarchy 分支继续污染下一帧 probe truth；GPU completion 也已把 `parent_probe_id` 继续压到 resident/pending probe 输入，对 direct parent/child radiance gather 做 hierarchy-aware weighting；最新一层 completion 现在已经会为 pending probe 编码三级 resident ancestor id/depth，在 nonresident hierarchy gap 上继续保留 gather boost，并把更远 resident ancestor 的 radiance history 与 traced tint 作为显式 lineage continuation 混进 pending probe update；对应的 resolve 侧也已把 hierarchy 权重扩展到带 nonresident 中间层的 ancestor/descendant lineage，并把 ancestor 命中的 trace-region RT tint 预编码成 per-probe inherited lighting baseline，再交给 shader 和本地 trace support 合并
 - `Hybrid GI` 的最新 hierarchy continuity 还额外补上了三层：其一，pending probe 在只有 lineage、没有 spatial overlap 的情况下，也会继续继承 primary resident ancestor 的 radiance，而不再退化回局部 neutral trace；其二，request budgeting 现在会先把首轮 descendant request 分摊到不同 active lineages，再进入同一 lineage 的第二轮 refine，避免单条 lineage 连续吞掉全部 `probe_budget`；其三，post-process resolve 现在也会把 “beyond-nearest resident ancestor” 的 irradiance continuation 编进 resident probe payload，让更远 ancestor 的 radiance 不再只停在 GPU completion/readback，而会真实改变最终 GI resolve 颜色
-- `zircon_graphics` 的 folder-backed helper 可见性边界：`scene_renderer_core_new`、`hybrid_gi::gpu_resources::new` 与 `virtual_geometry::gpu_resources` 当前都改成 subtree-scoped `pub(in crate::scene::scene_renderer::...)` helper 可见性，保证 construct / execute 子树在继续模块化拆分后仍然 compile-safe，同时不扩大 `RenderServer` 或 feature/runtime 对外 API。
-- editor 打开目录项目、导入模型、保存默认 level、通过 `ResourceManager` 读取资源树并在 watcher 变化后重建 viewport extract，并通过 `RenderServer` 驱动 editor/runtime viewport 输出
+- `Hybrid GI` 的最新 scene-driven lineage trace support closure 现在还把 current-frame scheduled trace work 继续收进 runtime / GPU source：runtime host 会量化保留 probe / trace region scene truth，pending update 排序会优先推进 trace-supported lineage，GPU probe input 也会显式携带 `lineage_trace_support_q + lineage_trace_lighting_rgb`，让 nonresident hierarchy 在 resident ancestor 还没落地时仍能把 RT tint 带进 GPU readback；与此同时 runtime resolve weight 也开始直接吃 current trace schedule 对 probe lineage 的支持强度，而不再只认 resident lineage budget。
+- `zircon_graphics` 的 folder-backed helper 可见性边界：`scene_renderer_core_new`、`hybrid_gi::gpu_resources::new` 与 `virtual_geometry::gpu_resources` 当前都改成 subtree-scoped `pub(in crate::scene::scene_renderer::...)` helper 可见性，保证 construct / execute 子树在继续模块化拆分后仍然 compile-safe，同时不扩大 `RenderFramework` 或 feature/runtime 对外 API。
+- editor 打开目录项目、导入模型、保存默认 level、通过 `ResourceManager` 读取资源树并在 watcher 变化后重建 viewport extract，并通过 `RenderFramework` 驱动 editor/runtime viewport 输出
 
 尚未覆盖的高阶内容仍包括完整 metallic-roughness 扩展材质模型、FBX/ASTC/PVRTexTool 真正导入链、`RenderingManager` 向纯兼容桥的最终收束，以及 GPU-driven visibility 的真实 visibility-owned indirect/occlusion/BVH 执行层、`Virtual Geometry` 的更深层 unified indirect / cluster raster / split-merge 路径、`Hybrid GI` 更完整的 screen-probe hierarchy / RT hybrid lighting 路径。
+
 

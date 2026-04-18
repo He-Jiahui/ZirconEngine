@@ -1,5 +1,5 @@
+use zircon_framework::render::RenderPipelineHandle;
 use zircon_render_graph::CompiledRenderGraph;
-use zircon_render_server::RenderPipelineHandle;
 
 use crate::extract::FrameHistoryBinding;
 

@@ -1,4 +1,4 @@
-pub(super) use crate::host::slint_host::callback_dispatch::{
+pub(super) use crate::ui::slint_host::callback_dispatch::{
     dispatch_asset_item_selection, dispatch_asset_search, dispatch_builtin_asset_surface_control,
     dispatch_builtin_floating_window_focus, dispatch_builtin_floating_window_focus_for_source,
     dispatch_builtin_inspector_surface_control, dispatch_builtin_pane_surface_control,
@@ -15,7 +15,7 @@ pub(super) use crate::host::slint_host::callback_dispatch::{
     BuiltinWelcomeSurfaceTemplateBridge, BuiltinWorkbenchDrawerSourceTemplateBridge,
     BuiltinWorkbenchTemplateBridge, SharedViewportPointerBridge,
 };
-pub(super) use crate::host::slint_host::tab_drag::{
+pub(super) use crate::ui::slint_host::tab_drag::{
     ResolvedTabDrop, ResolvedWorkbenchTabDropRoute, ResolvedWorkbenchTabDropTarget,
     WorkbenchDragTargetGroup,
 };
@@ -25,7 +25,7 @@ pub(super) use crate::{
     EditorEvent, EditorViewportEvent, InspectorFieldChange, LayoutCommand, MainPageId, SplitAxis,
     SplitPlacement, ViewHost, ViewInstanceId, WelcomeHostEvent, WorkspaceTarget,
 };
-pub(super) use zircon_editor_ui::{
+pub(super) use crate::ui::{
     EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind, ViewportCommand, WelcomeCommand,
 };
 pub(super) use zircon_scene::{

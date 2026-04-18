@@ -1,4 +1,4 @@
-use zircon_editor_ui::{
+use crate::ui::{
     AssetCommand, DockCommand, EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind,
     InspectorFieldChange, SelectionCommand, ViewportCommand, WelcomeCommand,
 };
@@ -334,7 +334,7 @@ fn selection_binding_dispatches_and_applies_scene_node_selection() {
     );
     assert!(apply_selection_binding(&mut state, &binding).unwrap());
     assert_eq!(
-        state.world.with_world(|scene| scene.selected_node()),
+        state.viewport_controller.selected_node(),
         Some(cube)
     );
 }

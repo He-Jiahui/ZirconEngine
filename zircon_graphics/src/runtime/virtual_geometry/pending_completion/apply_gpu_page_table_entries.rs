@@ -22,5 +22,7 @@ impl VirtualGeometryRuntimeState {
 
         self.evictable_pages
             .retain(|page_id| self.resident_slots.contains_key(page_id));
+        self.current_hot_resident_pages
+            .retain(|page_id| self.resident_slots.contains_key(page_id));
     }
 }

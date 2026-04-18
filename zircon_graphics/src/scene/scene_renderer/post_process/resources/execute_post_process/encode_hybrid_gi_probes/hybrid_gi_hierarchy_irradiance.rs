@@ -13,6 +13,14 @@ pub(super) fn hybrid_gi_hierarchy_irradiance(
     frame: &EditorOrRuntimeFrame,
     source: &RenderHybridGiProbe,
 ) -> [f32; 4] {
+    if let Some(runtime_irradiance) = frame
+        .hybrid_gi_resolve_runtime
+        .as_ref()
+        .and_then(|runtime| runtime.hierarchy_irradiance(source.probe_id))
+    {
+        return runtime_irradiance;
+    }
+
     let Some(prepare) = frame.hybrid_gi_prepare.as_ref() else {
         return [0.0; 4];
     };

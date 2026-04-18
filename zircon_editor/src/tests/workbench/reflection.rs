@@ -3,7 +3,7 @@ use crate::{
     activity_descriptors_from_views, build_workbench_reflection_model, default_preview_fixture,
     register_workbench_reflection_routes, WorkbenchViewModel,
 };
-use zircon_editor_ui::{EditorUiControlService, EditorUiReflectionAdapter};
+use crate::ui::{EditorUiControlService, EditorUiReflectionAdapter};
 use zircon_ui::{UiBindingValue, UiControlRequest, UiControlResponse, UiNodePath};
 
 #[test]

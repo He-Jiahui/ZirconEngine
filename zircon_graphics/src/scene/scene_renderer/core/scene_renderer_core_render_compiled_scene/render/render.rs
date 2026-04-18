@@ -84,6 +84,8 @@ impl SceneRendererCore {
             frame,
             &prepared_overlays,
         );
+        self.screen_space_ui_renderer
+            .record(device, &mut encoder, &target.final_color_view, frame);
 
         queue.submit([encoder.finish()]);
         Ok((

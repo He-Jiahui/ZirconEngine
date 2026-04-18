@@ -211,7 +211,7 @@ fn shared_viewport_pointer_bridge_respects_updated_viewport_frame_bounds() {
 
     assert_eq!(
         effects,
-        crate::host::slint_host::event_bridge::SlintDispatchEffects::default()
+        crate::ui::slint_host::event_bridge::SlintDispatchEffects::default()
     );
     assert_eq!(
         harness.runtime.journal().records().len(),
@@ -224,15 +224,15 @@ fn shared_viewport_surface_replaces_legacy_direct_pointer_callback_abi() {
     let workbench = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/ui/workbench.slint"));
     let app = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/host/slint_host/app.rs"
+        "/src/ui/slint_host/app.rs"
     ));
     let viewport = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/host/slint_host/app/viewport.rs"
+        "/src/ui/slint_host/app/viewport.rs"
     ));
     let wiring = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/host/slint_host/app/callback_wiring.rs"
+        "/src/ui/slint_host/app/callback_wiring.rs"
     ));
 
     for needle in [

@@ -4,7 +4,7 @@ use zircon_asset::{
 };
 use zircon_resource::{ResourceId, ResourceKind, ResourceLocator, ResourceRecord, ResourceState};
 
-use crate::editing::asset_workspace::AssetWorkspaceState;
+use crate::core::editing::asset_workspace::AssetWorkspaceState;
 use crate::snapshot::{AssetSurfaceMode, AssetUtilityTab, AssetViewMode};
 
 #[test]

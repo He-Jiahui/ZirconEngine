@@ -1,9 +1,10 @@
 use serde::{Deserialize, Serialize};
+use toml::Value;
 
 use crate::{
     compute_layout_tree, UiFrame, UiHitTestIndex, UiHitTestResult, UiNavigationDispatchResult,
     UiNavigationDispatcher, UiNodeId, UiPoint, UiPointerDispatchResult, UiPointerDispatcher,
-    UiPointerEvent, UiSize, UiTree, UiTreeError, UiTreeId,
+    UiPointerEvent, UiSize, UiTemplateNodeMetadata, UiTree, UiTreeError, UiTreeId,
 };
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -72,12 +73,41 @@ pub struct UiNavigationRoute {
     pub root_targets: Vec<UiNodeId>,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub enum UiRenderCommandKind {
+    #[default]
+    Group,
+    Quad,
+    Text,
+    Image,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum UiVisualAssetRef {
+    Icon(String),
+    Image(String),
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct UiResolvedStyle {
+    pub background_color: Option<String>,
+    pub foreground_color: Option<String>,
+    pub border_color: Option<String>,
+    pub border_width: f32,
+    pub corner_radius: f32,
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiRenderCommand {
     pub node_id: UiNodeId,
+    pub kind: UiRenderCommandKind,
     pub frame: UiFrame,
     pub clip_frame: Option<UiFrame>,
     pub z_index: i32,
+    pub style: UiResolvedStyle,
+    pub text: Option<String>,
+    pub image: Option<UiVisualAssetRef>,
+    pub opacity: f32,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -98,14 +128,24 @@ impl UiRenderExtract {
             .into_iter()
             .filter_map(|node_id| {
                 let node = tree.node(node_id)?;
+                let visual = UiNodeVisualData::resolve(node.template_metadata.as_ref());
                 tree.is_visible_in_tree(node_id)
                     .ok()
                     .filter(|visible| *visible)
                     .map(|_| UiRenderCommand {
                         node_id,
+                        kind: resolve_command_kind(
+                            &visual.style,
+                            visual.text.as_ref(),
+                            visual.image.as_ref(),
+                        ),
                         frame: node.layout_cache.frame,
                         clip_frame: node.layout_cache.clip_frame,
                         z_index: node.z_index,
+                        style: visual.style,
+                        text: visual.text,
+                        image: visual.image,
+                        opacity: visual.opacity,
                     })
             })
             .collect();
@@ -332,4 +372,130 @@ fn diff_nodes(current: &[UiNodeId], previous: &[UiNodeId]) -> Vec<UiNodeId> {
         .filter(|node_id| !previous.contains(node_id))
         .copied()
         .collect()
+}
+
+#[derive(Default)]
+struct UiNodeVisualData {
+    style: UiResolvedStyle,
+    text: Option<String>,
+    image: Option<UiVisualAssetRef>,
+    opacity: f32,
+}
+
+impl UiNodeVisualData {
+    fn resolve(metadata: Option<&UiTemplateNodeMetadata>) -> Self {
+        Self {
+            style: resolve_style(metadata),
+            text: resolve_text(metadata),
+            image: resolve_image(metadata),
+            opacity: resolve_opacity(metadata),
+        }
+    }
+}
+
+fn resolve_command_kind(
+    style: &UiResolvedStyle,
+    text: Option<&String>,
+    image: Option<&UiVisualAssetRef>,
+) -> UiRenderCommandKind {
+    if style.background_color.is_some()
+        || style.border_color.is_some()
+        || style.border_width > 0.0
+        || style.corner_radius > 0.0
+    {
+        UiRenderCommandKind::Quad
+    } else if text.is_some() {
+        UiRenderCommandKind::Text
+    } else if image.is_some() {
+        UiRenderCommandKind::Image
+    } else {
+        UiRenderCommandKind::Group
+    }
+}
+
+fn resolve_style(metadata: Option<&UiTemplateNodeMetadata>) -> UiResolvedStyle {
+    UiResolvedStyle {
+        background_color: resolve_color_attribute(metadata, "background"),
+        foreground_color: resolve_color_attribute(metadata, "foreground"),
+        border_color: resolve_color_attribute(metadata, "border"),
+        border_width: resolve_table_number(metadata, "border", "width")
+            .or_else(|| resolve_number_attribute(metadata, "border_width"))
+            .unwrap_or(0.0),
+        corner_radius: resolve_table_number(metadata, "border", "radius")
+            .or_else(|| resolve_number_attribute(metadata, "radius"))
+            .or_else(|| resolve_number_attribute(metadata, "corner_radius"))
+            .unwrap_or(0.0),
+    }
+}
+
+fn resolve_text(metadata: Option<&UiTemplateNodeMetadata>) -> Option<String> {
+    resolve_string_attribute(metadata, "text")
+        .or_else(|| resolve_string_attribute(metadata, "label"))
+        .map(str::to_string)
+}
+
+fn resolve_image(metadata: Option<&UiTemplateNodeMetadata>) -> Option<UiVisualAssetRef> {
+    resolve_string_attribute(metadata, "icon")
+        .map(|icon| UiVisualAssetRef::Icon(icon.to_string()))
+        .or_else(|| {
+            resolve_string_attribute(metadata, "image")
+                .map(|image| UiVisualAssetRef::Image(image.to_string()))
+        })
+}
+
+fn resolve_opacity(metadata: Option<&UiTemplateNodeMetadata>) -> f32 {
+    resolve_number_attribute(metadata, "opacity")
+        .unwrap_or(1.0)
+        .clamp(0.0, 1.0)
+}
+
+fn resolve_string_attribute<'a>(
+    metadata: Option<&'a UiTemplateNodeMetadata>,
+    key: &str,
+) -> Option<&'a str> {
+    metadata
+        .and_then(|metadata| metadata.attributes.get(key))
+        .and_then(Value::as_str)
+}
+
+fn resolve_number_attribute(metadata: Option<&UiTemplateNodeMetadata>, key: &str) -> Option<f32> {
+    metadata
+        .and_then(|metadata| metadata.attributes.get(key))
+        .and_then(value_as_f32)
+}
+
+fn resolve_table_number(
+    metadata: Option<&UiTemplateNodeMetadata>,
+    table_key: &str,
+    value_key: &str,
+) -> Option<f32> {
+    metadata
+        .and_then(|metadata| metadata.attributes.get(table_key))
+        .and_then(Value::as_table)
+        .and_then(|table| table.get(value_key))
+        .and_then(value_as_f32)
+}
+
+fn resolve_color_attribute(metadata: Option<&UiTemplateNodeMetadata>, key: &str) -> Option<String> {
+    metadata
+        .and_then(|metadata| metadata.attributes.get(key))
+        .and_then(resolve_color_value)
+}
+
+fn resolve_color_value(value: &Value) -> Option<String> {
+    match value {
+        Value::String(color) => Some(color.clone()),
+        Value::Table(table) => table
+            .get("color")
+            .and_then(Value::as_str)
+            .map(str::to_string),
+        _ => None,
+    }
+}
+
+fn value_as_f32(value: &Value) -> Option<f32> {
+    value
+        .as_float()
+        .or_else(|| value.as_integer().map(|value| value as f64))
+        .map(|value| value as f32)
 }

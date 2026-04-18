@@ -1,9 +1,0 @@
-[package]
-name = "zircon_input_protocol"
-version.workspace = true
-edition.workspace = true
-license.workspace = true
-description = "Shared input protocol records and events consumed by manager facades and runtime input implementations."
-
-[dependencies]
-serde.workspace = true

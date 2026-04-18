@@ -1,4 +1,4 @@
-pub use zircon_render_server::FrameHistoryHandle;
+pub use zircon_framework::render::FrameHistoryHandle;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum FrameHistorySlot {

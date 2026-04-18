@@ -1,4 +1,4 @@
-use zircon_editor_ui::ViewportCommand;
+use crate::ui::ViewportCommand;
 use zircon_math::{UVec2, Vec2};
 use zircon_resource::{ResourceKind, ResourceState};
 use zircon_scene::DefaultLevelManager;
@@ -90,9 +90,7 @@ fn editor_state_new_starts_in_welcome_mode_without_default_selection() {
     assert!(!snapshot.project_open);
     assert_eq!(snapshot.session_mode, EditorSessionMode::Welcome);
     assert!(snapshot.inspector.is_none());
-    assert!(state
-        .world
-        .with_world(|scene| scene.selected_node().is_none()));
+    assert!(state.viewport_controller.selected_node().is_none());
 }
 
 #[test]
@@ -104,9 +102,7 @@ fn editor_state_with_default_selection_preserves_editor_authored_selection() {
     let snapshot = state.snapshot();
 
     assert!(snapshot.inspector.is_some());
-    assert!(state
-        .world
-        .with_world(|scene| scene.selected_node().is_some()));
+    assert!(state.viewport_controller.selected_node().is_some());
 }
 
 #[test]
@@ -129,7 +125,7 @@ fn drag_tool_click_selects_renderable_without_handle_overlay() {
     let _ = state.apply_viewport_command(&ViewportCommand::LeftReleased);
 
     assert_eq!(
-        state.world.with_world(|scene| scene.selected_node()),
+        state.viewport_controller.selected_node(),
         Some(cube)
     );
     assert!(state.render_snapshot().unwrap().overlays.handles.is_empty());
@@ -171,7 +167,7 @@ fn viewport_clicking_light_gizmo_selects_light_node() {
     let _ = state.apply_viewport_command(&ViewportCommand::LeftReleased);
 
     assert_eq!(
-        state.world.with_world(|scene| scene.selected_node()),
+        state.viewport_controller.selected_node(),
         Some(light)
     );
 }
@@ -183,7 +179,7 @@ fn render_frame_extract_matches_legacy_render_snapshot_projection() {
     let snapshot = state.render_snapshot().expect("render snapshot");
     let extract = state.render_frame_extract().expect("render frame extract");
 
-    assert_eq!(extract.to_legacy_snapshot(), snapshot);
+    assert_eq!(extract.to_scene_snapshot(), snapshot);
 }
 
 #[test]

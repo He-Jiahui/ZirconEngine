@@ -185,10 +185,9 @@ mod tests {
         let package_discovery_source = include_str!("plugin/vm_plugin_package_discovery.rs");
         let hot_reload_source = include_str!("runtime/hot_reload_coordinator.rs");
         let manager_lib_source = include_str!("../../../zircon_manager/src/lib.rs");
-        let manager_records_mod_source = include_str!("../../../zircon_manager/src/records/mod.rs");
         let manager_handles_source =
             std::fs::read_to_string(manager_root.join("src/handles.rs")).unwrap_or_default();
-        let manager_capability_set_path = manager_root.join("src/records/capability_set.rs");
+        let manager_records_root = manager_root.join("src/records");
 
         for required in ["CapabilitySet", "HostHandle", "PluginSlotId"] {
             assert!(
@@ -216,10 +215,6 @@ mod tests {
             );
         }
         assert!(
-            !manager_records_mod_source.contains("CapabilitySet"),
-            "zircon_manager records mod should not re-export CapabilitySet after vm plugin boundary cleanup"
-        );
-        assert!(
             !manager_handles_source.contains("define_handle!(PluginSlotId);"),
             "zircon_manager handles should not define PluginSlotId after vm plugin boundary cleanup"
         );
@@ -228,8 +223,8 @@ mod tests {
             "zircon_manager handles should not define HostHandle after vm plugin boundary cleanup"
         );
         assert!(
-            !manager_capability_set_path.exists(),
-            "zircon_manager should delete src/records/capability_set.rs after vm plugin boundary cleanup"
+            !manager_records_root.exists(),
+            "zircon_manager should delete src/records after vm plugin boundary cleanup"
         );
     }
 

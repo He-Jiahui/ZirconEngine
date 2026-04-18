@@ -6,6 +6,5 @@ use super::{EntityId, WorldHandle};
 pub struct LevelSummary {
     pub handle: WorldHandle,
     pub entity_count: usize,
-    pub selected_entity: Option<EntityId>,
     pub active_camera: Option<EntityId>,
 }

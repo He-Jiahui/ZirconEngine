@@ -1,5 +1,5 @@
 use zircon_core::ChannelReceiver;
-use zircon_manager::ResourceManager as ResourceManagerFacade;
+use zircon_framework::asset::ResourceManager as ResourceManagerFacade;
 use zircon_resource::{ResourceEvent, ResourceRecord};
 
 use super::super::project_asset_manager::ProjectAssetManager;

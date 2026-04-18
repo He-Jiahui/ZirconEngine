@@ -62,6 +62,7 @@ pub(super) fn prepare_visible_clusters(
                     cluster_ordinal: draw_segment.cluster_ordinal,
                     cluster_span_count: draw_segment.cluster_span_count.max(1),
                     cluster_count: draw_segment.cluster_count.max(1),
+                    lineage_depth: draw_segment.lineage_depth,
                     lod_level: draw_segment.lod_level,
                     state: prepared_cluster.state,
                 })
@@ -134,6 +135,7 @@ fn compact_cluster_draw_segments(
             cluster_ordinal: cluster.cluster_ordinal,
             cluster_span_count: 1,
             cluster_count: cluster.cluster_count,
+            lineage_depth: u32::from(cluster.lod_level),
             lod_level: cluster.lod_level,
             state: prepared_cluster.state,
         });

@@ -1,7 +1,7 @@
 use std::fs;
 
 use zircon_asset::{AssetUri, ImportedAsset, ProjectManager};
-use zircon_manager::LevelManager;
+use zircon_framework::scene::LevelManager;
 
 use crate::{DefaultLevelManager, NodeKind, World};
 
@@ -50,10 +50,10 @@ fn scene_assets_instantiate_world_with_asset_bound_meshes() {
 }
 
 #[test]
-fn render_extract_keeps_gizmo_overlay_for_asset_bound_meshes() {
+fn render_extract_keeps_asset_bound_meshes_without_editor_selection_overlay() {
     let root = unique_temp_project_root("scene_gizmo");
     let project = create_test_project(&root);
-    let mut world = World::load_scene_from_uri(
+    let world = World::load_scene_from_uri(
         &project,
         &AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
     )
@@ -64,7 +64,6 @@ fn render_extract_keeps_gizmo_overlay_for_asset_bound_meshes() {
         .find(|node| matches!(node.kind, NodeKind::Mesh))
         .unwrap()
         .id;
-    world.set_selected(Some(mesh_node));
 
     let extract = world.to_render_extract();
     let mesh = extract
@@ -81,11 +80,12 @@ fn render_extract_keeps_gizmo_overlay_for_asset_bound_meshes() {
         mesh.material,
         project_material_handle(&project, "res://materials/grid.material.toml")
     );
+    assert!(extract.overlays.selection.is_empty());
     assert!(extract
-        .overlays
-        .selection
+        .scene
+        .meshes
         .iter()
-        .any(|highlight| highlight.owner == mesh_node && highlight.outline));
+        .any(|mesh| mesh.node_id == mesh_node));
 
     let _ = fs::remove_dir_all(root);
 }

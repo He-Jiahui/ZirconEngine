@@ -28,6 +28,8 @@ doc_type: milestone-detail
 
 **Goal:** 把 `Virtual Geometry` 的 prepare-owned indirect authority 和 GPU completion/readback truth 再往 `RenderServer` façade 推一层，让 `RenderStats` 直接暴露这条 M5 主链的关键 ownership 指标，而不是继续只看 renderer 末端私有计数。
 
+> Repository reality note: 当前 `zircon_graphics` 内的实际 façade/runtime 提交路径已经迁移到 `runtime/render_framework/*`，这份文档里提到的“render server submit path”应读作 `WgpuRenderFramework -> runtime/render_framework/submit_frame_extract/*`，而不是旧的 `runtime/server/*` 磁盘布局。
+
 ## Delivered Slice
 
 - `RenderStats` 新增两项稳定可观测字段：
@@ -66,6 +68,7 @@ doc_type: milestone-detail
 
 - `Virtual Geometry`
   - 继续推进 unified indirect ownership 下沉，让更多 submit/readback/stats 直接围绕 prepare/runtime authority 组织。
+  - 当前 follow-on 已经继续落下两层：其一，`VisibilityVirtualGeometryDrawSegment.lineage_depth` 已经沿 `prepare -> unified indirect -> GPU submission -> indirect args shader` 下沉；其二，runtime residency completion 已经会在 ancestor / descendant 内部优先回收更远 lineage distance，保护更近的 split-merge frontier page。
   - 继续推进 deeper cluster raster consumption，把更深 hierarchy / streaming frontier 对真实 raster submit 的影响扩展开。
   - 继续推进 residency-manager cascade 与 split-merge hysteresis，减少 slot/page/frontier 在深层切换时的抖动。
 - `Hybrid GI`

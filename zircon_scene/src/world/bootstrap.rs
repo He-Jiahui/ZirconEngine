@@ -28,7 +28,6 @@ impl World {
             mobility: HashMap::new(),
             next_id: 1,
             active_camera: 0,
-            selected_entity: None,
             schedule: Schedule::default(),
             node_cache: Vec::new(),
         }
@@ -41,7 +40,6 @@ impl World {
         world.active_camera = camera;
         world.spawn_node(NodeKind::DirectionalLight);
         world.spawn_node(NodeKind::Cube);
-        world.set_selected(Some(camera));
         world
     }
 

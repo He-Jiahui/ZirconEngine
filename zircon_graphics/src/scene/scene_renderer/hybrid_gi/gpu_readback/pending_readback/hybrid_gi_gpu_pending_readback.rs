@@ -7,4 +7,6 @@ pub(crate) struct HybridGiGpuPendingReadback {
     pub(super) completed_trace_buffer: wgpu::Buffer,
     pub(super) irradiance_word_count: usize,
     pub(super) irradiance_buffer: wgpu::Buffer,
+    pub(super) trace_lighting_word_count: usize,
+    pub(super) trace_lighting_buffer: wgpu::Buffer,
 }

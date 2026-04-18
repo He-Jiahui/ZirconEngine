@@ -1,4 +1,4 @@
-use zircon_render_server::FrameHistoryHandle;
+use zircon_framework::render::FrameHistoryHandle;
 
 use crate::types::{EditorOrRuntimeFrame, GraphicsError, ViewportFrame};
 use crate::CompiledRenderPipeline;

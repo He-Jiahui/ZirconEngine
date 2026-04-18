@@ -4,7 +4,7 @@ use super::support::*;
 fn builtin_workbench_drawer_source_document_can_be_loaded_as_shared_surface() {
     let _guard = env_lock().lock().unwrap();
 
-    let mut runtime = crate::host::template_runtime::EditorUiHostRuntime::default();
+    let mut runtime = crate::ui::template_runtime::EditorUiHostRuntime::default();
     runtime.load_builtin_workbench_shell().unwrap();
 
     let mut surface = runtime

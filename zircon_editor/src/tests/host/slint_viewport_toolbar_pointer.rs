@@ -1,7 +1,7 @@
-use crate::host::slint_host::callback_dispatch::{
+use crate::ui::slint_host::callback_dispatch::{
     dispatch_shared_viewport_toolbar_pointer_click, BuiltinViewportToolbarTemplateBridge,
 };
-use crate::host::slint_host::viewport_toolbar_pointer::{
+use crate::ui::slint_host::viewport_toolbar_pointer::{
     build_viewport_toolbar_pointer_layout, ViewportToolbarPointerBridge,
     ViewportToolbarPointerRoute,
 };
@@ -134,11 +134,11 @@ fn shared_viewport_toolbar_surface_replaces_legacy_direct_click_routes() {
     ));
     let app = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/host/slint_host/app.rs"
+        "/src/ui/slint_host/app.rs"
     ));
     let wiring = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/host/slint_host/app/callback_wiring.rs"
+        "/src/ui/slint_host/app/callback_wiring.rs"
     ));
 
     for needle in [

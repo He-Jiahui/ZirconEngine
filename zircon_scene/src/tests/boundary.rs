@@ -1,5 +1,5 @@
 #[test]
-fn level_protocol_types_live_in_scene_protocol_layer() {
+fn level_protocol_types_live_in_scene_framework_layer() {
     let scene_lib_source = include_str!("../lib.rs");
     let level_system_source = include_str!("../level_system.rs");
     let render_extract_source = include_str!("../render_extract.rs");
@@ -8,12 +8,7 @@ fn level_protocol_types_live_in_scene_protocol_layer() {
     let level_manager_lifecycle_source = include_str!("../module/level_manager_lifecycle.rs");
     let level_manager_project_io_source = include_str!("../module/level_manager_project_io.rs");
     let manager_lib_source = include_str!("../../../zircon_manager/src/lib.rs");
-    let manager_traits_source = include_str!("../../../zircon_manager/src/traits.rs");
-    let manager_records_mod_source = include_str!("../../../zircon_manager/src/records/mod.rs");
-    let manager_handles_path =
-        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../zircon_manager/src/handles.rs");
-    let manager_level_records_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../zircon_manager/src/records/level.rs");
+    let manager_resolver_source = include_str!("../../../zircon_manager/src/resolver.rs");
 
     for required in ["LevelSummary", "WorldHandle"] {
         assert!(
@@ -40,31 +35,23 @@ fn level_protocol_types_live_in_scene_protocol_layer() {
         );
         assert!(
             !source.contains("use zircon_manager::{LevelManager as LevelManagerFacade, LevelSummary, WorldHandle};"),
-            "scene manager facade should not source LevelSummary or WorldHandle from zircon_manager after scene protocol migration"
+            "scene manager facade should not source LevelSummary or WorldHandle from zircon_manager after framework migration"
         );
     }
 
     for forbidden in ["WorldHandle", "LevelSummary"] {
         assert!(
             !manager_lib_source.contains(forbidden),
-            "zircon_manager lib.rs should not re-export {forbidden} after scene protocol migration"
-        );
-        assert!(
-            !manager_records_mod_source.contains(forbidden),
-            "zircon_manager records mod should not re-export {forbidden} after scene protocol migration"
+            "zircon_manager lib.rs should not re-export {forbidden} after framework migration"
         );
     }
 
     assert!(
-        manager_traits_source.contains("zircon_scene_protocol"),
-        "zircon_manager traits should depend on zircon_scene_protocol for level protocol types"
+        manager_resolver_source.contains("zircon_framework"),
+        "zircon_manager resolver should depend on zircon_framework for level protocol types"
     );
     assert!(
-        !manager_handles_path.exists(),
-        "zircon_manager should delete src/handles.rs after scene protocol migration"
-    );
-    assert!(
-        !manager_level_records_path.exists(),
-        "zircon_manager should delete src/records/level.rs after scene protocol migration"
+        !manager_resolver_source.contains("zircon_scene_protocol"),
+        "zircon_manager resolver should not depend on zircon_scene_protocol after framework migration"
     );
 }

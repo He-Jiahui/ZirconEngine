@@ -6,6 +6,7 @@ pub struct UiDirtyFlags {
     pub hit_test: bool,
     pub render: bool,
     pub style: bool,
+    pub text: bool,
     pub input: bool,
     pub visible_range: bool,
 }
@@ -16,6 +17,7 @@ impl UiDirtyFlags {
             || self.hit_test
             || self.render
             || self.style
+            || self.text
             || self.input
             || self.visible_range
     }

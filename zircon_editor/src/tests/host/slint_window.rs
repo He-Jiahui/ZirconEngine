@@ -1,8 +1,8 @@
 use std::cell::Cell;
 use std::rc::Rc;
 
-use crate::host::slint_host::floating_window_projection::build_floating_window_projection_bundle;
-use crate::host::slint_host::UiHostWindow;
+use crate::ui::slint_host::floating_window_projection::build_floating_window_projection_bundle;
+use crate::ui::slint_host::UiHostWindow;
 use crate::{
     compute_workbench_shell_geometry, default_preview_fixture, DocumentNode, FloatingWindowLayout,
     MainPageId, NativeWindowHostState, ShellFrame, ShellSizePx, TabStackLayout, ViewDescriptorId,
@@ -88,7 +88,7 @@ fn native_floating_window_targets_fall_back_to_shared_geometry_when_host_bounds_
             bounds: [0.0, 0.0, 0.0, 0.0],
         }],
     );
-    let targets = crate::host::slint_host::collect_native_floating_window_targets(
+    let targets = crate::ui::slint_host::collect_native_floating_window_targets(
         &model,
         &floating_window_projection_bundle,
     );
@@ -108,8 +108,8 @@ fn native_window_presenter_store_creates_updates_and_hides_secondary_windows() {
     i_slint_backend_testing::init_no_event_loop();
 
     let window_id = MainPageId::new("window:native-preview");
-    let mut presenters = crate::host::slint_host::NativeWindowPresenterStore::default();
-    let initial = crate::host::slint_host::NativeFloatingWindowTarget {
+    let mut presenters = crate::ui::slint_host::NativeWindowPresenterStore::default();
+    let initial = crate::ui::slint_host::NativeFloatingWindowTarget {
         window_id: window_id.clone(),
         title: "Native Preview".to_string(),
         bounds: [120.0, 80.0, 640.0, 480.0],
@@ -120,7 +120,7 @@ fn native_window_presenter_store_creates_updates_and_hides_secondary_windows() {
             &[initial.clone()],
             |_ui, _target| {},
             |ui, target| {
-                crate::host::slint_host::configure_native_floating_window_presentation(ui, target);
+                crate::ui::slint_host::configure_native_floating_window_presentation(ui, target);
             },
         )
         .expect("initial native window sync should succeed");
@@ -143,7 +143,7 @@ fn native_window_presenter_store_creates_updates_and_hides_secondary_windows() {
     assert_eq!(initial_bounds.height, 480.0);
     assert_eq!(window.window().size(), PhysicalSize::new(640, 480));
 
-    let updated = crate::host::slint_host::NativeFloatingWindowTarget {
+    let updated = crate::ui::slint_host::NativeFloatingWindowTarget {
         window_id: window_id.clone(),
         title: "Native Preview Updated".to_string(),
         bounds: [160.0, 110.0, 720.0, 520.0],
@@ -153,7 +153,7 @@ fn native_window_presenter_store_creates_updates_and_hides_secondary_windows() {
             &[updated],
             |_ui, _target| {},
             |ui, target| {
-                crate::host::slint_host::configure_native_floating_window_presentation(ui, target);
+                crate::ui::slint_host::configure_native_floating_window_presentation(ui, target);
             },
         )
         .expect("updated native window sync should succeed");
@@ -172,7 +172,7 @@ fn native_window_presenter_store_creates_updates_and_hides_secondary_windows() {
             &[],
             |_ui, _target| {},
             |ui, target| {
-                crate::host::slint_host::configure_native_floating_window_presentation(ui, target);
+                crate::ui::slint_host::configure_native_floating_window_presentation(ui, target);
             },
         )
         .expect("removing native windows should succeed");
@@ -186,8 +186,8 @@ fn native_window_presenter_store_runs_child_window_creation_hook_for_callback_wi
     i_slint_backend_testing::init_no_event_loop();
 
     let window_id = MainPageId::new("window:native-preview");
-    let mut presenters = crate::host::slint_host::NativeWindowPresenterStore::default();
-    let target = crate::host::slint_host::NativeFloatingWindowTarget {
+    let mut presenters = crate::ui::slint_host::NativeWindowPresenterStore::default();
+    let target = crate::ui::slint_host::NativeFloatingWindowTarget {
         window_id: window_id.clone(),
         title: "Native Preview".to_string(),
         bounds: [120.0, 80.0, 640.0, 480.0],
@@ -204,7 +204,7 @@ fn native_window_presenter_store_runs_child_window_creation_hook_for_callback_wi
                 });
             },
             |ui, target| {
-                crate::host::slint_host::configure_native_floating_window_presentation(ui, target);
+                crate::ui::slint_host::configure_native_floating_window_presentation(ui, target);
             },
         )
         .expect("native window sync should install callback wiring hook");
@@ -258,55 +258,55 @@ fn native_floating_window_mode_forwards_tabs_header_and_pane_callbacks_to_root()
 fn child_window_callback_wiring_tracks_source_window_for_pane_interactions() {
     let wiring = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/host/slint_host/app/callback_wiring.rs"
+        "/src/ui/slint_host/app/callback_wiring.rs"
     ));
     let helpers = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/host/slint_host/app/helpers.rs"
+        "/src/ui/slint_host/app/helpers.rs"
     ));
     let viewport = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/host/slint_host/app/viewport.rs"
+        "/src/ui/slint_host/app/viewport.rs"
     ));
     let hierarchy = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/host/slint_host/app/hierarchy_pointer.rs"
+        "/src/ui/slint_host/app/hierarchy_pointer.rs"
     ));
     let tree = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/host/slint_host/app/asset_tree_pointer.rs"
+        "/src/ui/slint_host/app/asset_tree_pointer.rs"
     ));
     let content = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/host/slint_host/app/asset_content_pointer.rs"
+        "/src/ui/slint_host/app/asset_content_pointer.rs"
     ));
     let references = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/host/slint_host/app/asset_reference_pointer.rs"
+        "/src/ui/slint_host/app/asset_reference_pointer.rs"
     ));
     let detail = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/host/slint_host/app/detail_scroll_pointer.rs"
+        "/src/ui/slint_host/app/detail_scroll_pointer.rs"
     ));
     let inspector = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/host/slint_host/app/inspector.rs"
+        "/src/ui/slint_host/app/inspector.rs"
     ));
     let assets = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/host/slint_host/app/assets.rs"
+        "/src/ui/slint_host/app/assets.rs"
     ));
     let pane_actions = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/host/slint_host/app/pane_surface_actions.rs"
+        "/src/ui/slint_host/app/pane_surface_actions.rs"
     ));
     let ui_asset_editor = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/host/slint_host/app/ui_asset_editor.rs"
+        "/src/ui/slint_host/app/ui_asset_editor.rs"
     ));
     let workbench_pointer = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/host/slint_host/app/workbench_pointer.rs"
+        "/src/ui/slint_host/app/workbench_pointer.rs"
     ));
 
     assert!(
@@ -318,10 +318,8 @@ fn child_window_callback_wiring_tracks_source_window_for_pane_interactions() {
     for needle in [
         "resolve_callback_source_window_id(&source_ui)",
         ".with_callback_source_window(",
-        "ui.on_ui_asset_binding_event_selected(",
-        "ui.on_ui_asset_binding_action_kind_selected(",
-        "ui.on_ui_asset_binding_payload_selected(",
-        "ui.on_ui_asset_binding_payload_action(",
+        "ui.on_ui_asset_collection_event(",
+        "ui.on_ui_asset_detail_event(",
     ] {
         assert!(
             wiring.contains(needle),
@@ -348,10 +346,8 @@ fn child_window_callback_wiring_tracks_source_window_for_pane_interactions() {
     }
 
     for needle in [
-        "pub(super) fn dispatch_ui_asset_binding_event_selected(",
-        "pub(super) fn dispatch_ui_asset_binding_action_kind_selected(",
-        "pub(super) fn dispatch_ui_asset_binding_payload_selected(",
-        "pub(super) fn dispatch_ui_asset_binding_payload_action(",
+        "pub(super) fn dispatch_ui_asset_collection_event(",
+        "pub(super) fn dispatch_ui_asset_detail_event(",
         ".select_ui_asset_editor_binding_event_option(",
         ".select_ui_asset_editor_binding_action_kind(",
         ".select_ui_asset_editor_binding_payload(",
@@ -371,6 +367,161 @@ fn child_window_callback_wiring_tracks_source_window_for_pane_interactions() {
         assert!(
             workbench_pointer.contains(needle),
             "floating header/tab focus should keep host callback-window focus state in sync via `{needle}`"
+        );
+    }
+}
+
+#[test]
+fn ui_asset_editor_host_genericizes_collection_event_dispatch() {
+    let wiring = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/ui/slint_host/app/callback_wiring.rs"
+    ));
+    let ui_asset_editor = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/ui/slint_host/app/ui_asset_editor.rs"
+    ));
+
+    assert!(
+        wiring.contains("ui.on_ui_asset_collection_event("),
+        "callback wiring should converge root-level UI asset selection callbacks into a generic collection event hook"
+    );
+
+    for legacy_wiring in [
+        "ui.on_ui_asset_matched_style_rule_selected(",
+        "ui.on_ui_asset_palette_selected(",
+        "ui.on_ui_asset_palette_target_candidate_selected(",
+        "ui.on_ui_asset_hierarchy_selected(",
+        "ui.on_ui_asset_hierarchy_activated(",
+        "ui.on_ui_asset_preview_selected(",
+        "ui.on_ui_asset_preview_activated(",
+        "ui.on_ui_asset_source_outline_selected(",
+        "ui.on_ui_asset_preview_mock_selected(",
+        "ui.on_ui_asset_binding_selected(",
+        "ui.on_ui_asset_binding_event_selected(",
+        "ui.on_ui_asset_binding_action_kind_selected(",
+        "ui.on_ui_asset_binding_payload_selected(",
+        "ui.on_ui_asset_slot_semantic_selected(",
+        "ui.on_ui_asset_layout_semantic_selected(",
+    ] {
+        assert!(
+            !wiring.contains(legacy_wiring),
+            "callback wiring should drop legacy UI asset collection hook `{legacy_wiring}`"
+        );
+    }
+
+    assert!(
+        ui_asset_editor.contains("pub(super) fn dispatch_ui_asset_collection_event("),
+        "ui asset editor host dispatch should expose a generic collection event dispatcher"
+    );
+
+    for legacy_dispatch in [
+        "pub(super) fn dispatch_ui_asset_matched_style_rule_selected(",
+        "pub(super) fn dispatch_ui_asset_palette_selected(",
+        "pub(super) fn dispatch_ui_asset_palette_target_candidate_selected(",
+        "pub(super) fn dispatch_ui_asset_hierarchy_selected(",
+        "pub(super) fn dispatch_ui_asset_hierarchy_activated(",
+        "pub(super) fn dispatch_ui_asset_preview_selected(",
+        "pub(super) fn dispatch_ui_asset_preview_activated(",
+        "pub(super) fn dispatch_ui_asset_source_outline_selected(",
+        "pub(super) fn dispatch_ui_asset_preview_mock_selected(",
+        "pub(super) fn dispatch_ui_asset_binding_selected(",
+        "pub(super) fn dispatch_ui_asset_binding_event_selected(",
+        "pub(super) fn dispatch_ui_asset_binding_action_kind_selected(",
+        "pub(super) fn dispatch_ui_asset_binding_payload_selected(",
+        "pub(super) fn dispatch_ui_asset_slot_semantic_selected(",
+        "pub(super) fn dispatch_ui_asset_layout_semantic_selected(",
+    ] {
+        assert!(
+            !ui_asset_editor.contains(legacy_dispatch),
+            "ui asset editor host dispatch should remove legacy collection handler `{legacy_dispatch}`"
+        );
+    }
+
+    for manager_call in [
+        ".select_ui_asset_editor_matched_style_rule(",
+        ".select_ui_asset_editor_palette_index(",
+        ".select_ui_asset_editor_palette_target_candidate(",
+        ".select_ui_asset_editor_hierarchy_index(",
+        ".activate_ui_asset_editor_hierarchy_index(",
+        ".select_ui_asset_editor_preview_index(",
+        ".activate_ui_asset_editor_preview_index(",
+        ".select_ui_asset_editor_source_outline_index(",
+        ".select_ui_asset_editor_preview_mock_property(",
+        ".select_ui_asset_editor_binding(",
+        ".select_ui_asset_editor_binding_event_option(",
+        ".select_ui_asset_editor_binding_action_kind(",
+        ".select_ui_asset_editor_binding_payload(",
+        ".select_ui_asset_editor_slot_semantic(",
+        ".select_ui_asset_editor_layout_semantic(",
+    ] {
+        assert!(
+            ui_asset_editor.contains(manager_call),
+            "generic collection dispatch should still route through `{manager_call}`"
+        );
+    }
+}
+
+#[test]
+fn ui_asset_editor_host_genericizes_detail_event_dispatch() {
+    let wiring = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/ui/slint_host/app/callback_wiring.rs"
+    ));
+    let ui_asset_editor = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/ui/slint_host/app/ui_asset_editor.rs"
+    ));
+
+    assert!(
+        wiring.contains("ui.on_ui_asset_detail_event("),
+        "callback wiring should converge UI asset detail callbacks into a generic detail event hook"
+    );
+
+    for legacy_wiring in [
+        "ui.on_ui_asset_inspector_widget_action(",
+        "ui.on_ui_asset_style_rule_action(",
+        "ui.on_ui_asset_style_rule_declaration_action(",
+        "ui.on_ui_asset_style_token_action(",
+        "ui.on_ui_asset_preview_mock_action(",
+        "ui.on_ui_asset_binding_payload_action(",
+    ] {
+        assert!(
+            !wiring.contains(legacy_wiring),
+            "callback wiring should drop legacy detail hook `{legacy_wiring}`"
+        );
+    }
+
+    assert!(
+        ui_asset_editor.contains("pub(super) fn dispatch_ui_asset_detail_event("),
+        "ui asset editor host dispatch should expose a generic detail event dispatcher"
+    );
+
+    for legacy_dispatch in [
+        "pub(super) fn dispatch_ui_asset_inspector_widget_action(",
+        "pub(super) fn dispatch_ui_asset_style_rule_action(",
+        "pub(super) fn dispatch_ui_asset_style_rule_declaration_action(",
+        "pub(super) fn dispatch_ui_asset_style_token_action(",
+        "pub(super) fn dispatch_ui_asset_preview_mock_action(",
+        "pub(super) fn dispatch_ui_asset_binding_payload_action(",
+    ] {
+        assert!(
+            !ui_asset_editor.contains(legacy_dispatch),
+            "ui asset editor host dispatch should drop legacy detail dispatcher `{legacy_dispatch}`"
+        );
+    }
+
+    for manager_call in [
+        ".set_ui_asset_editor_selected_widget_control_id(",
+        ".rename_ui_asset_editor_selected_stylesheet_rule(",
+        ".upsert_ui_asset_editor_selected_style_rule_declaration(",
+        ".upsert_ui_asset_editor_style_token(",
+        ".set_ui_asset_editor_selected_preview_mock_value(",
+        ".upsert_ui_asset_editor_selected_binding_payload(",
+    ] {
+        assert!(
+            ui_asset_editor.contains(manager_call),
+            "generic detail dispatch should still route through `{manager_call}`"
         );
     }
 }

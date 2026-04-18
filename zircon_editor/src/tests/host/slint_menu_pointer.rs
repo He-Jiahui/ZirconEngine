@@ -1,11 +1,11 @@
-use crate::host::slint_host::callback_dispatch::{
+use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
+use crate::ui::slint_host::callback_dispatch::{
     dispatch_menu_action, dispatch_shared_menu_pointer_click, BuiltinWorkbenchTemplateBridge,
 };
-use crate::host::slint_host::menu_pointer::{
+use crate::ui::slint_host::menu_pointer::{
     build_workbench_menu_pointer_layout, WorkbenchMenuPointerBridge, WorkbenchMenuPointerLayout,
     WorkbenchMenuPointerRoute, WorkbenchMenuPointerState,
 };
-use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
 use crate::{EditorEvent, LayoutCommand, MenuAction};
 use zircon_ui::{UiFrame, UiPoint, UiSize};
 
@@ -288,7 +288,7 @@ fn shared_menu_pointer_layout_prefers_shared_root_menu_bar_projection_over_stale
         &["alpha-00".to_string(), "alpha-01".to_string()],
         Some("compact"),
         Some(
-            &crate::host::slint_host::callback_dispatch::BuiltinWorkbenchRootShellFrames {
+            &crate::ui::slint_host::callback_dispatch::BuiltinWorkbenchRootShellFrames {
                 shell_frame: Some(UiFrame::new(32.0, 18.0, 1440.0, 900.0)),
                 menu_bar_frame: Some(UiFrame::new(32.0, 18.0, 1440.0, 40.0)),
                 ..Default::default()
@@ -324,7 +324,7 @@ fn shared_menu_pointer_layout_derives_button_frames_from_shared_shell_when_menu_
         &["alpha-00".to_string(), "alpha-01".to_string()],
         Some("compact"),
         Some(
-            &crate::host::slint_host::callback_dispatch::BuiltinWorkbenchRootShellFrames {
+            &crate::ui::slint_host::callback_dispatch::BuiltinWorkbenchRootShellFrames {
                 shell_frame: Some(UiFrame::new(32.0, 18.0, 1440.0, 900.0)),
                 menu_bar_frame: None,
                 ..Default::default()
@@ -350,7 +350,7 @@ fn shared_menu_pointer_layout_derives_button_frames_from_shared_shell_when_menu_
 fn shared_menu_pointer_layout_sync_replaces_direct_slint_menu_button_frame_getters() {
     let pointer_layout = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/host/slint_host/app/pointer_layout.rs"
+        "/src/ui/slint_host/app/pointer_layout.rs"
     ));
 
     for getter in [
@@ -374,11 +374,11 @@ fn shared_menu_pointer_layout_sync_replaces_direct_slint_menu_button_frame_gette
 }
 
 #[test]
-fn shared_menu_popup_presentation_anchors_to_host_projected_menu_button_frames() {
+fn shared_menu_popup_presentation_drops_host_menu_button_frame_setters() {
     let workbench = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/ui/workbench.slint"));
     let pointer_layout = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/host/slint_host/app/pointer_layout.rs"
+        "/src/ui/slint_host/app/pointer_layout.rs"
     ));
 
     for legacy_anchor in [
@@ -402,6 +402,14 @@ fn shared_menu_popup_presentation_anchors_to_host_projected_menu_button_frames()
         "x: root.view_menu_button_frame.x * 1px;",
         "x: root.window_menu_button_frame.x * 1px;",
         "x: root.help_menu_button_frame.x * 1px;",
+    ] {
+        assert!(
+            workbench.contains(projected_anchor),
+            "menu popup presentation is missing shared projected anchor `{projected_anchor}`"
+        );
+    }
+
+    for removed_setter in [
         "set_file_menu_button_frame(",
         "set_edit_menu_button_frame(",
         "set_selection_menu_button_frame(",
@@ -410,8 +418,22 @@ fn shared_menu_popup_presentation_anchors_to_host_projected_menu_button_frames()
         "set_help_menu_button_frame(",
     ] {
         assert!(
-            workbench.contains(projected_anchor) || pointer_layout.contains(projected_anchor),
-            "menu popup presentation is missing shared projected anchor `{projected_anchor}`"
+            !pointer_layout.contains(removed_setter),
+            "menu popup presentation should not keep host menu frame setter `{removed_setter}`"
+        );
+    }
+
+    for removed_binding in [
+        "file_menu_button_frame <=> host.file_menu_button_frame",
+        "edit_menu_button_frame <=> host.edit_menu_button_frame",
+        "selection_menu_button_frame <=> host.selection_menu_button_frame",
+        "view_menu_button_frame <=> host.view_menu_button_frame",
+        "window_menu_button_frame <=> host.window_menu_button_frame",
+        "help_menu_button_frame <=> host.help_menu_button_frame",
+    ] {
+        assert!(
+            !workbench.contains(removed_binding),
+            "menu popup presentation should not keep root/host frame binding `{removed_binding}`"
         );
     }
 }

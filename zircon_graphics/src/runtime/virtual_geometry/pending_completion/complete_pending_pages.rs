@@ -18,7 +18,9 @@ impl VirtualGeometryRuntimeState {
 
         for page_id in requested_pages {
             while self.resident_slots.len() >= self.page_budget {
-                if !self.evict_one(evictable_pages.iter().copied()) {
+                if !self
+                    .evict_one(self.ordered_evictable_pages_for_target(page_id, evictable_pages))
+                {
                     self.evictable_pages
                         .retain(|candidate| self.resident_slots.contains_key(candidate));
                     return;

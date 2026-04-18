@@ -1,10 +1,10 @@
-use crate::host::slint_host::detail_pointer::{
+use crate::ui::slint_host::detail_pointer::{
     asset_details_content_extent, asset_details_scroll_layout, console_content_extent,
     console_scroll_layout, inspector_content_extent, inspector_scroll_layout,
     ScrollSurfacePointerBridge, ScrollSurfacePointerRoute, ScrollSurfacePointerState,
 };
-use crate::host::slint_host::scroll_surface_host::ScrollSurfaceHostState;
-use crate::workbench::snapshot::AssetSelectionSnapshot;
+use crate::ui::slint_host::scroll_surface_host::ScrollSurfaceHostState;
+use crate::ui::workbench::snapshot::AssetSelectionSnapshot;
 use zircon_ui::{UiPoint, UiSize};
 
 #[test]
@@ -115,7 +115,7 @@ fn inspector_surface_controls_use_generic_template_callbacks_instead_of_legacy_b
     ));
     let wiring = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/host/slint_host/app/callback_wiring.rs"
+        "/src/ui/slint_host/app/callback_wiring.rs"
     ));
 
     for needle in [

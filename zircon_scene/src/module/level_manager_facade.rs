@@ -1,6 +1,6 @@
 use zircon_asset::ProjectManager;
 use zircon_core::CoreError;
-use zircon_manager::LevelManager as LevelManagerFacade;
+use zircon_framework::scene::LevelManager as LevelManagerFacade;
 use zircon_resource::ResourceLocator;
 
 use super::core_error::scene_core_error;
@@ -21,7 +21,6 @@ impl LevelManagerFacade for DefaultLevelManager {
             level.with_world(|world| LevelSummary {
                 handle,
                 entity_count: world.nodes().len(),
-                selected_entity: world.selected_node(),
                 active_camera: Some(world.active_camera()),
             })
         })

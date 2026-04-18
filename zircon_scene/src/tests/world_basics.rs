@@ -83,7 +83,6 @@ fn project_roundtrip_preserves_imported_meshes() {
         model_handle("res://models/robot.obj"),
         material_handle("res://materials/robot.material.toml"),
     );
-    world.set_selected(Some(imported));
 
     let unique = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -91,10 +90,11 @@ fn project_roundtrip_preserves_imported_meshes() {
         .as_nanos();
     let path = std::env::temp_dir().join(format!("zircon_scene_roundtrip_{unique}.json"));
     world.save_project_to_path(&path).unwrap();
+    let saved = fs::read_to_string(&path).unwrap();
     let loaded = World::load_project_from_path(&path).unwrap();
     let _ = fs::remove_file(&path);
 
-    assert_eq!(loaded.selected_node(), Some(imported));
+    assert!(!saved.contains("selected"));
     let imported_node = loaded.find_node(imported).unwrap();
     assert!(matches!(imported_node.kind, NodeKind::Mesh));
     assert_eq!(

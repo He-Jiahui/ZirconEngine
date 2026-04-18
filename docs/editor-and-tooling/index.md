@@ -1,19 +1,19 @@
 ---
 related_code:
   - zircon_editor/src/lib.rs
-  - zircon_editor/src/host/slint_host/app.rs
-  - zircon_editor/src/host/resource_access.rs
-  - zircon_editor/src/host/slint_host/ui.rs
-  - zircon_editor/src/editing/command.rs
-  - zircon_editor/src/editing/history.rs
-- zircon_editor/src/workbench/layout/mod.rs
-  - zircon_editor/src/host/manager.rs
-  - zircon_editor/src/host/message.rs
-  - zircon_editor/src/editing/state/mod.rs
-  - zircon_editor/src/workbench/project/mod.rs
-  - zircon_editor/src/workbench/snapshot/mod.rs
-  - zircon_editor/src/workbench/view/mod.rs
-  - zircon_editor_ui/src/ui_asset_editor.rs
+  - zircon_editor/src/ui/slint_host/app.rs
+  - zircon_editor/src/core/host/resource_access.rs
+  - zircon_editor/src/ui/slint_host/ui.rs
+  - zircon_editor/src/core/editing/command.rs
+  - zircon_editor/src/core/editing/history.rs
+  - zircon_editor/src/ui/workbench/layout/mod.rs
+  - zircon_editor/src/core/host/manager.rs
+  - zircon_editor/src/core/editor_event/host_adapter.rs
+  - zircon_editor/src/core/editing/state/mod.rs
+  - zircon_editor/src/ui/workbench/project/mod.rs
+  - zircon_editor/src/ui/workbench/snapshot/mod.rs
+  - zircon_editor/src/ui/workbench/view/mod.rs
+  - zircon_editor/src/ui/ui_asset_editor.rs
   - zircon_resource/src/lib.rs
   - zircon_resource/src/handle.rs
   - zircon_resource/src/locator.rs
@@ -22,19 +22,19 @@ related_code:
   - zircon_scene/src/lib.rs
   - zircon_scene/src/world.rs
 implementation_files:
-  - zircon_editor/src/host/slint_host/app.rs
-  - zircon_editor/src/host/resource_access.rs
-  - zircon_editor/src/host/slint_host/ui.rs
-  - zircon_editor/src/editing/command.rs
-  - zircon_editor/src/editing/history.rs
-  - zircon_editor/src/host/manager.rs
-  - zircon_editor/src/workbench/project/mod.rs
-  - zircon_editor/src/workbench/snapshot/mod.rs
-  - zircon_editor/src/editing/state/mod.rs
-  - zircon_editor_ui/src/ui_asset_editor.rs
+  - zircon_editor/src/ui/slint_host/app.rs
+  - zircon_editor/src/core/host/resource_access.rs
+  - zircon_editor/src/ui/slint_host/ui.rs
+  - zircon_editor/src/core/editing/command.rs
+  - zircon_editor/src/core/editing/history.rs
+  - zircon_editor/src/core/host/manager.rs
+  - zircon_editor/src/ui/workbench/project/mod.rs
+  - zircon_editor/src/ui/workbench/snapshot/mod.rs
+  - zircon_editor/src/core/editing/state/mod.rs
+  - zircon_editor/src/ui/ui_asset_editor.rs
   - zircon_resource/src/handle.rs
   - zircon_resource/src/locator.rs
-  - zircon_editor/src/workbench/view/mod.rs
+  - zircon_editor/src/ui/workbench/view/mod.rs
   - zircon_editor/ui/workbench.slint
   - zircon_editor/ui/workbench/chrome.slint
   - zircon_scene/src/world.rs
@@ -47,19 +47,19 @@ plan_sources:
   - .codex/plans/全系统重构方案.md
   - .cursor/plans/基本路线图.md
 tests:
-  - zircon_editor_ui/src/tests/activity.rs
+  - zircon_editor/src/tests/ui/activity.rs
   - zircon_editor/src/lib.rs
   - zircon_scene/src/lib.rs
-  - cargo test -p zircon_editor_ui --lib --locked tests::activity
+  - cargo test -p zircon_editor --lib --locked tests::ui::activity
   - cargo test -p zircon_editor -- --nocapture
-  - cargo test -p zircon_entry -- --nocapture
+  - cargo test -p zircon_app -- --nocapture
   - cargo test -p zircon_resource -p zircon_asset -p zircon_scene -p zircon_graphics -p zircon_editor
   - cargo build --workspace --locked --verbose
   - cargo test --workspace --locked --verbose
-  - cargo test -p zircon_entry --locked
+  - cargo test -p zircon_app --locked
   - cargo test -p zircon_graphics --locked
   - cargo test -p zircon_editor editor_viewport_interaction_boundary_lives_in_editor_crate --locked
-  - cargo test -p zircon_editor editor_viewport_sources_route_through_render_server_without_wgpu_preview_bindings --locked
+  - cargo test -p zircon_editor editor_viewport_sources_route_through_render_framework_without_wgpu_preview_bindings --locked
   - cargo check --workspace --locked
 doc_type: category-index
 ---
@@ -79,10 +79,10 @@ doc_type: category-index
 - [Editor Workbench Shell](./editor-workbench-shell.md): 混合固定壳 workbench、主 tabs、drawers、document workspace、native floating windows、拖放命中与布局持久化。
 - [Editor Command Workflow](./editor-command-workflow.md): editor 命令层、历史栈、inspector 草稿批量提交、删除/改父子/重命名等行为约束。
 - [Scene Viewport Gizmo, Handle, And Overlay Pipeline](./scene-viewport-gizmo-handle-overlays.md): Scene 视图的 typed viewport settings、scene render packet、scene gizmo provider、handle overlay、wireframe/preview/grid 分层与测试口径。
-- [Viewport Interaction Boundary Split](./viewport-interaction-boundary-split.md): `zircon_editor` / `zircon_graphics` / `zircon_entry` 的 viewport ownership 重分配，editor-owned interaction types、runtime-private camera controller，以及 graphics 仅保留 render/server/overlay 职责。
+- [Viewport Interaction Boundary Split](./viewport-interaction-boundary-split.md): `zircon_editor` / `zircon_graphics` / `zircon_app` 的 viewport ownership 重分配，editor-owned interaction types、runtime-private camera controller，以及 graphics 仅保留 render framework/overlay 职责。
 - [Crate Boundary Audit Round 2](./crate-boundary-audit-round-2.md): 第二轮更严格的错包审计规则、`zircon_graphics` 红测根因、已通过的边界项，以及下一批最强迁移候选。
-- [UI Binding And Reflection Architecture](./ui-binding-reflection-architecture.md): `zircon_ui` / `zircon_editor_ui` / `zircon_input` 边界，nativeBinding、反射树、REPL/网络操控与 headless 回放架构。
-- [Editor Template Compatibility Migration](./editor-template-compatibility-migration.md): `zircon_editor_ui` 的 editor-only template catalog/registry/adapter，如何把 shared `UiBindingRef` 收口到 typed `EditorUiBinding`，以及后续把 TOML 模板实例接到 Slint host 的迁移顺序。
+- [UI Binding And Reflection Architecture](./ui-binding-reflection-architecture.md): `zircon_ui` / `zircon_editor::ui` / `zircon_input` 边界，nativeBinding、反射树、REPL/网络操控与 headless 回放架构。
+- [Editor Template Compatibility Migration](./editor-template-compatibility-migration.md): `zircon_editor::ui` 的 editor-only template catalog/registry/adapter，如何把 shared `UiBindingRef` 收口到 typed `EditorUiBinding`，以及后续把 TOML 模板实例接到 Slint host 的迁移顺序。
 - [UI Asset Editor Host Session](./ui-asset-editor-host-session.md): `zircon_editor` 的 `UiAssetEditorSession`、recursive import hydration、canonical source save、Slint pane callbacks，以及 `zircon_asset` 对 `.ui.toml` 三类正式资产的注册与 catalog 接入。
 - [UI And Layout / UI Asset Documents And Editor Protocol](../ui-and-layout/ui-asset-documents-and-editor-protocol.md): `zircon_ui::template::asset` 的 `layout/widget/style` 编译链、selector stylesheet、legacy adapter、slot-aware shared bridge，以及 shared asset model 如何移交给 editor asset pipeline 和 host session。
 - [UI And Layout / Shared UI Core Foundation](../ui-and-layout/shared-ui-core-foundation.md): 运行时/编辑器共享的 `zircon_ui` 约束类型、retained tree、命中索引、surface/render extract，以及 editor workbench 对共享布局核心的复用边界。
@@ -91,20 +91,20 @@ doc_type: category-index
 
 ## Related Files
 
-- `zircon_editor/src/editing/command.rs`
-- `zircon_editor/src/editing/history.rs`
-- `zircon_editor/src/editing/viewport/controller/mod.rs`
-- `zircon_editor/src/editing/viewport/handles/mod.rs`
-- `zircon_editor/src/workbench/layout/mod.rs`
-- `zircon_editor/src/host/slint_host/app.rs`
-- `zircon_editor/src/host/slint_host/ui.rs`
-- `zircon_editor/src/host/manager.rs`
-- `zircon_editor/src/host/message.rs`
-- `zircon_editor/src/editing/state/mod.rs`
-- `zircon_editor_ui/src/binding.rs`
-- `zircon_editor/src/workbench/project/mod.rs`
-- `zircon_editor/src/workbench/snapshot/mod.rs`
-- `zircon_editor/src/workbench/view/mod.rs`
+- `zircon_editor/src/core/editing/command.rs`
+- `zircon_editor/src/core/editing/history.rs`
+- `zircon_editor/src/scene/viewport/controller/mod.rs`
+- `zircon_editor/src/scene/viewport/handles/mod.rs`
+- `zircon_editor/src/ui/workbench/layout/mod.rs`
+- `zircon_editor/src/ui/slint_host/app.rs`
+- `zircon_editor/src/ui/slint_host/ui.rs`
+- `zircon_editor/src/core/host/manager.rs`
+- `zircon_editor/src/core/editor_event/host_adapter.rs`
+- `zircon_editor/src/core/editing/state/mod.rs`
+- `zircon_editor/src/ui/binding/mod.rs`
+- `zircon_editor/src/ui/workbench/project/mod.rs`
+- `zircon_editor/src/ui/workbench/snapshot/mod.rs`
+- `zircon_editor/src/ui/workbench/view/mod.rs`
 - `zircon_scene/src/components.rs`
 - `zircon_scene/src/world/render.rs`
 - `zircon_graphics/src/scene/resources/mod.rs`
@@ -133,4 +133,6 @@ doc_type: category-index
 - 命令层对最后一个 camera、层级成环、空名称等非法编辑的保护
 
 后续如果 inspector 扩展到 rotation/scale、多选批量编辑、拖拽层级树重排，继续在本目录追加细化文档。
+
+
 

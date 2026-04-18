@@ -8,6 +8,6 @@ description = "Built-in runtime foundation services such as config and event man
 [dependencies]
 serde_json = "1.0.149"
 zircon_core = { path = "../zircon_core" }
+zircon_framework = { path = "../zircon_framework" }
 zircon_manager = { path = "../zircon_manager" }
 zircon_module = { path = "../zircon_module" }
-

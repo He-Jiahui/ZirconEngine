@@ -27,9 +27,6 @@ impl World {
                 child.parent = None;
             }
         }
-        if self.selected_entity == Some(entity) {
-            self.selected_entity = None;
-        }
         if self.active_camera == entity {
             self.active_camera = self
                 .cameras

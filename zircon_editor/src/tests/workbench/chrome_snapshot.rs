@@ -14,7 +14,7 @@ use crate::view::{
     PreferredHost, ViewDescriptor, ViewDescriptorId, ViewHost, ViewInstance, ViewInstanceId,
     ViewKind,
 };
-use crate::workbench::startup::{EditorSessionMode, WelcomePaneSnapshot};
+use crate::ui::workbench::startup::{EditorSessionMode, WelcomePaneSnapshot};
 use zircon_scene::{
     DisplayMode, GridMode, ProjectionMode, SceneViewportSettings, SceneViewportTool,
     TransformSpace, ViewOrientation,

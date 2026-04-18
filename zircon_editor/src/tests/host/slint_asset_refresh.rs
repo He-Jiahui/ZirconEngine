@@ -3,7 +3,7 @@ use zircon_asset::{
 };
 use zircon_resource::{ResourceEvent, ResourceEventKind, ResourceId, ResourceLocator};
 
-use crate::host::slint_host::{plan_asset_backend_refresh, AssetBackendRefreshPlan};
+use crate::ui::slint_host::{plan_asset_backend_refresh, AssetBackendRefreshPlan};
 
 #[test]
 fn asset_backend_refresh_plan_is_idle_without_backend_events() {

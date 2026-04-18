@@ -2,10 +2,13 @@ mod editor_or_runtime_frame;
 mod editor_or_runtime_frame_from_extract;
 mod editor_or_runtime_frame_from_snapshot;
 mod editor_or_runtime_frame_with_hybrid_gi_prepare;
+mod editor_or_runtime_frame_with_hybrid_gi_resolve_runtime;
+mod editor_or_runtime_frame_with_ui;
 mod editor_or_runtime_frame_with_virtual_geometry_prepare;
 mod gpu_resource_handle;
 mod graphics_error;
 mod hybrid_gi_prepare;
+mod hybrid_gi_resolve_runtime;
 mod viewport_frame;
 mod viewport_frame_texture_handle;
 mod virtual_geometry_prepare;
@@ -16,6 +19,7 @@ pub use graphics_error::GraphicsError;
 pub(crate) use hybrid_gi_prepare::{
     HybridGiPrepareFrame, HybridGiPrepareProbe, HybridGiPrepareUpdateRequest,
 };
+pub(crate) use hybrid_gi_resolve_runtime::HybridGiResolveRuntime;
 pub use viewport_frame::ViewportFrame;
 pub use viewport_frame_texture_handle::ViewportFrameTextureHandle;
 #[cfg(test)]

@@ -1,9 +1,9 @@
-use crate::host::slint_host::activity_rail_pointer::{
+use crate::ui::slint_host::activity_rail_pointer::{
     build_workbench_activity_rail_pointer_layout, WorkbenchActivityRailPointerBridge,
     WorkbenchActivityRailPointerItem, WorkbenchActivityRailPointerLayout,
     WorkbenchActivityRailPointerRoute, WorkbenchActivityRailPointerSide,
 };
-use crate::host::slint_host::callback_dispatch::{
+use crate::ui::slint_host::callback_dispatch::{
     dispatch_shared_activity_rail_pointer_click, BuiltinWorkbenchTemplateBridge,
 };
 use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
@@ -239,11 +239,11 @@ fn shared_activity_rail_surfaces_replace_legacy_direct_click_routes() {
     let workbench = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/ui/workbench.slint"));
     let app = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/host/slint_host/app.rs"
+        "/src/ui/slint_host/app.rs"
     ));
     let wiring = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/host/slint_host/app/callback_wiring.rs"
+        "/src/ui/slint_host/app/callback_wiring.rs"
     ));
 
     let direct_toggle_count = workbench

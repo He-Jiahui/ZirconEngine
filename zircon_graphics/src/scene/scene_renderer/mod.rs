@@ -8,6 +8,7 @@ mod particle;
 mod post_process;
 mod prepass;
 mod primitives;
+mod ui;
 mod virtual_geometry;
 
 pub use core::SceneRenderer;

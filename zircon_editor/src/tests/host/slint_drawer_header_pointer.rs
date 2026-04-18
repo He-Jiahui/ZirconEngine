@@ -1,7 +1,7 @@
-use crate::host::slint_host::callback_dispatch::{
+use crate::ui::slint_host::callback_dispatch::{
     dispatch_shared_drawer_header_pointer_click, BuiltinWorkbenchTemplateBridge,
 };
-use crate::host::slint_host::drawer_header_pointer::{
+use crate::ui::slint_host::drawer_header_pointer::{
     build_workbench_drawer_header_pointer_layout, WorkbenchDrawerHeaderPointerBridge,
     WorkbenchDrawerHeaderPointerItem, WorkbenchDrawerHeaderPointerLayout,
     WorkbenchDrawerHeaderPointerRoute, WorkbenchDrawerHeaderPointerSurface,
@@ -182,11 +182,11 @@ fn shared_drawer_header_surfaces_replace_legacy_direct_click_routes() {
     ));
     let app = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/host/slint_host/app.rs"
+        "/src/ui/slint_host/app.rs"
     ));
     let wiring = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/host/slint_host/app/callback_wiring.rs"
+        "/src/ui/slint_host/app/callback_wiring.rs"
     ));
 
     assert!(

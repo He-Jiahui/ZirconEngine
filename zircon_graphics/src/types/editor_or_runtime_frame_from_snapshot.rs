@@ -12,7 +12,9 @@ impl EditorOrRuntimeFrame {
             scene,
             extract,
             viewport_size: UVec2::new(viewport_size.x.max(1), viewport_size.y.max(1)),
+            ui: None,
             hybrid_gi_prepare: None,
+            hybrid_gi_resolve_runtime: None,
             virtual_geometry_prepare: None,
         }
     }
