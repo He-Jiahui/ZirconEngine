@@ -664,9 +664,15 @@ fn ui_asset_editor_session_uses_explicit_slot_overlay_regions_for_low_semantic_c
     );
     assert_eq!(targeted.palette_drag_target_label, "Insert Slot B Slot");
 
+    let original_source = session.source_buffer().text().to_string();
     assert!(session
         .drop_selected_palette_item_at_palette_drag_target()
-        .expect("drop palette item into low semantic component"));
+        .expect("arm sticky chooser for low semantic component"));
+    assert_eq!(session.source_buffer().text(), original_source);
+    assert!(session.pane_presentation().palette_target_chooser_active);
+    assert!(session
+        .confirm_palette_target_choice()
+        .expect("confirm low semantic component target"));
 
     let document = UiAssetLoader::load_toml_str(session.source_buffer().text()).expect("document");
     let inserted_mount = document
@@ -724,7 +730,10 @@ fn ui_asset_editor_session_exposes_palette_drag_target_cycle_candidates_for_low_
         .expect("cycle palette drag target previous"));
     let cycled_previous = session.pane_presentation();
     assert_eq!(cycled_previous.palette_drag_candidate_selected_index, 1);
-    assert_eq!(cycled_previous.palette_drag_target_label, "Insert Slot B Slot");
+    assert_eq!(
+        cycled_previous.palette_drag_target_label,
+        "Insert Slot B Slot"
+    );
 }
 
 #[test]
@@ -890,6 +899,92 @@ fn ui_asset_editor_session_sticky_palette_target_chooser_cancels_without_mutatin
         .expect("cancel sticky chooser"));
 
     assert_eq!(session.source_buffer().text(), original_source);
+    assert!(!session.pane_presentation().palette_target_chooser_active);
+}
+
+#[test]
+fn ui_asset_editor_session_sticky_palette_target_chooser_survives_hover_reconciliation() {
+    let route = UiAssetEditorRoute::new(
+        "asset://ui/tests/low-semantic-component-drop.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Design,
+    );
+    let mut session = UiAssetEditorSession::from_source(
+        route,
+        LOW_SEMANTIC_COMPONENT_SLOT_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("low semantic component drop session");
+
+    select_palette_entry(&mut session, "Native / Button");
+    let host_frame = preview_frame(&session, "host");
+    assert!(session
+        .update_palette_drag_target(
+            host_frame.x + host_frame.width * 0.51,
+            host_frame.y + host_frame.height * 0.5,
+        )
+        .expect("hover low semantic component middle slot overlay"));
+    assert!(session
+        .drop_selected_palette_item_at_palette_drag_target()
+        .expect("arm sticky chooser"));
+    assert!(session
+        .select_palette_target_candidate(2)
+        .expect("select sticky chooser slot c candidate"));
+
+    assert!(!session
+        .update_palette_drag_target(
+            host_frame.x + host_frame.width * 0.18,
+            host_frame.y + host_frame.height * 0.5,
+        )
+        .expect("sticky chooser should ignore hover-driven target changes"));
+
+    let pane = session.pane_presentation();
+    assert!(pane.palette_target_chooser_active);
+    assert_eq!(pane.palette_drag_candidate_selected_index, 2);
+    assert_eq!(pane.palette_drag_target_label, "Insert Slot C Slot");
+}
+
+#[test]
+fn ui_asset_editor_session_sticky_palette_target_chooser_survives_hover_loss_until_cancelled() {
+    let route = UiAssetEditorRoute::new(
+        "asset://ui/tests/low-semantic-component-drop.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Design,
+    );
+    let mut session = UiAssetEditorSession::from_source(
+        route,
+        LOW_SEMANTIC_COMPONENT_SLOT_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("low semantic component drop session");
+
+    select_palette_entry(&mut session, "Native / Button");
+    let host_frame = preview_frame(&session, "host");
+    assert!(session
+        .update_palette_drag_target(
+            host_frame.x + host_frame.width * 0.51,
+            host_frame.y + host_frame.height * 0.5,
+        )
+        .expect("hover low semantic component middle slot overlay"));
+    assert!(session
+        .drop_selected_palette_item_at_palette_drag_target()
+        .expect("arm sticky chooser"));
+    assert!(session
+        .select_palette_target_candidate(2)
+        .expect("select sticky chooser slot c candidate"));
+
+    assert!(!session
+        .update_palette_drag_target(-64.0, -64.0)
+        .expect("ignore hover loss while sticky chooser is armed"));
+
+    let pane = session.pane_presentation();
+    assert!(pane.palette_target_chooser_active);
+    assert_eq!(pane.palette_drag_candidate_selected_index, 2);
+    assert_eq!(pane.palette_drag_target_label, "Insert Slot C Slot");
+
+    assert!(session
+        .cancel_palette_target_choice()
+        .expect("cancel sticky chooser after hover loss"));
     assert!(!session.pane_presentation().palette_target_chooser_active);
 }
 

@@ -1,20 +1,20 @@
 use crate::host::slint_host::callback_dispatch::{
-    BuiltinAssetSurfaceTemplateBridge, BuiltinWorkbenchTemplateBridge,
     dispatch_builtin_asset_surface_control, dispatch_shared_document_tab_close_pointer_click,
-    dispatch_shared_document_tab_pointer_click,
+    dispatch_shared_document_tab_pointer_click, BuiltinAssetSurfaceTemplateBridge,
+    BuiltinWorkbenchTemplateBridge,
 };
 use crate::host::slint_host::document_tab_pointer::{
-    WorkbenchDocumentTabPointerBridge, WorkbenchDocumentTabPointerItem,
-    WorkbenchDocumentTabPointerLayout, WorkbenchDocumentTabPointerRoute,
-    WorkbenchDocumentTabPointerSurface, build_workbench_document_tab_pointer_layout,
+    build_workbench_document_tab_pointer_layout, WorkbenchDocumentTabPointerBridge,
+    WorkbenchDocumentTabPointerItem, WorkbenchDocumentTabPointerLayout,
+    WorkbenchDocumentTabPointerRoute, WorkbenchDocumentTabPointerSurface,
 };
 use crate::host::slint_host::floating_window_projection::build_floating_window_projection_bundle;
-use crate::tests::editor_event::support::{EventRuntimeHarness, env_lock};
+use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
 use crate::{
-    DocumentNode, EditorEvent, FloatingWindowLayout, LayoutCommand, MainPageId,
-    NativeWindowHostState, ShellFrame, ShellSizePx, TabStackLayout, ViewDescriptorId, ViewHost,
-    ViewInstance, ViewInstanceId, WorkbenchChromeMetrics, WorkbenchViewModel,
-    compute_workbench_shell_geometry, default_preview_fixture,
+    compute_workbench_shell_geometry, default_preview_fixture, DocumentNode, EditorEvent,
+    FloatingWindowLayout, LayoutCommand, MainPageId, NativeWindowHostState, ShellFrame,
+    ShellSizePx, TabStackLayout, ViewDescriptorId, ViewHost, ViewInstance, ViewInstanceId,
+    WorkbenchChromeMetrics, WorkbenchViewModel,
 };
 use zircon_ui::{UiEventKind, UiFrame, UiPoint, UiSize};
 

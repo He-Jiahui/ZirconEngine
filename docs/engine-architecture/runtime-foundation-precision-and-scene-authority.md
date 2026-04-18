@@ -4,7 +4,12 @@ related_code:
   - zircon_math/tests/precision_contract.rs
   - zircon_asset/src/assets/scene.rs
   - zircon_asset/src/tests/assets/scene.rs
-  - zircon_scene/src/components.rs
+  - zircon_scene/src/components/mod.rs
+  - zircon_scene/src/components/scene.rs
+  - zircon_scene/src/components/schedule.rs
+  - zircon_scene/src/components/viewport.rs
+  - zircon_scene/src/components/render_extract.rs
+  - zircon_scene/src/components/gizmo.rs
   - zircon_scene/src/lib.rs
   - zircon_scene/src/module.rs
   - zircon_scene/src/module/core_error.rs
@@ -38,7 +43,12 @@ related_code:
 implementation_files:
   - zircon_math/src/lib.rs
   - zircon_asset/src/assets/scene.rs
-  - zircon_scene/src/components.rs
+  - zircon_scene/src/components/mod.rs
+  - zircon_scene/src/components/scene.rs
+  - zircon_scene/src/components/schedule.rs
+  - zircon_scene/src/components/viewport.rs
+  - zircon_scene/src/components/render_extract.rs
+  - zircon_scene/src/components/gizmo.rs
   - zircon_scene/src/module.rs
   - zircon_scene/src/module/core_error.rs
   - zircon_scene/src/module/default_level_manager.rs
@@ -148,6 +158,7 @@ doc_type: module-detail
 
 - `zircon_scene/src/world.rs` 现在只作为 world 子系统入口；`World` 结构定义独立放到 `zircon_scene/src/world/world.rs`
 - `zircon_scene/src/module.rs` 现在只作为 scene module 导出层；`DefaultLevelManager` 生命周期、project I/O、facade 适配和 descriptor 组装拆到 `zircon_scene/src/module/`
+- `zircon_scene/src/components/` 现在按 `schedule`、`scene`、`viewport`、`render_extract`、`gizmo` 分域；`mod.rs` 只保留 re-export，不再让 `components.rs` 继续充当 ECS + viewport + render extract + gizmo 的声明仓库
 
 ## Compatibility Layer
 

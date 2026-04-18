@@ -4,14 +4,14 @@ related_code:
   - zircon_graphics/src/visibility/context/from_extract_with_history/build_history_snapshot.rs
   - zircon_graphics/src/visibility/context/from_extract_with_history/construct.rs
   - zircon_graphics/src/visibility/planning/build_virtual_geometry_plan/build.rs
-  - zircon_graphics/src/visibility/planning/build_virtual_geometry_plan/refine_visible_cluster_frontier.rs
+- zircon_graphics/src/visibility/planning/build_virtual_geometry_plan/frontier/refine_visible_cluster_frontier.rs
   - zircon_graphics/src/tests/visibility.rs
 implementation_files:
   - zircon_graphics/src/visibility/declarations/visibility_history_snapshot.rs
   - zircon_graphics/src/visibility/context/from_extract_with_history/build_history_snapshot.rs
   - zircon_graphics/src/visibility/context/from_extract_with_history/construct.rs
   - zircon_graphics/src/visibility/planning/build_virtual_geometry_plan/build.rs
-  - zircon_graphics/src/visibility/planning/build_virtual_geometry_plan/refine_visible_cluster_frontier.rs
+- zircon_graphics/src/visibility/planning/build_virtual_geometry_plan/frontier/refine_visible_cluster_frontier.rs
   - zircon_graphics/src/tests/visibility.rs
 plan_sources:
   - user: 2026-04-17 continue M5

@@ -1,6 +1,8 @@
 use super::*;
-use crate::host::slint_host::floating_window_projection::resolve_floating_window_content_frame;
-use crate::host::slint_host::root_shell_projection::resolve_root_viewport_content_frame;
+use crate::host::slint_host::root_shell_projection::{
+    resolve_root_bottom_region_frame, resolve_root_left_region_frame,
+    resolve_root_right_region_frame, resolve_root_viewport_content_frame,
+};
 use crate::{ActivityDrawerSlot, ViewHost};
 use zircon_ui::{UiPointerButton, UiPointerEvent, UiPointerEventKind};
 
@@ -89,35 +91,48 @@ impl SlintEditorHost {
     pub(super) fn viewport_toolbar_surface_size(&self, surface_key: &str) -> UiSize {
         const TOOLBAR_HEIGHT: f32 = 28.0;
 
+        let current_instance = self
+            .runtime
+            .current_view_instances()
+            .into_iter()
+            .find(|instance| instance.instance_id.0 == surface_key);
+        if let Some(instance) = current_instance.as_ref() {
+            if let ViewHost::FloatingWindow(window_id, _) = &instance.host {
+                return UiSize::new(
+                    self.resolve_floating_window_content_frame_for_window(window_id)
+                        .unwrap_or_default()
+                        .width
+                        .max(1.0),
+                    TOOLBAR_HEIGHT,
+                );
+            }
+        }
+
         let Some(geometry) = self.shell_geometry.as_ref() else {
             return UiSize::new(self.shell_size.width.max(1.0), TOOLBAR_HEIGHT);
         };
         let root_shell_frames = self.template_bridge.root_shell_frames();
 
-        let width = self
-            .runtime
-            .current_view_instances()
-            .into_iter()
-            .find(|instance| instance.instance_id.0 == surface_key)
+        let width = current_instance
             .map(|instance| match instance.host {
-                ViewHost::FloatingWindow(window_id, _) => self
-                    .floating_window_projection_bundle
-                    .content_frame(&window_id)
-                    .unwrap_or_else(|| {
-                        resolve_floating_window_content_frame(
+                ViewHost::FloatingWindow(_, _) => unreachable!(
+                    "floating window toolbar size should return early through the projection helper"
+                ),
+                ViewHost::Document(_, _) => root_shell_frames
+                    .pane_surface_frame
+                    .or(root_shell_frames.document_host_frame)
+                    .filter(|frame| frame.width > f32::EPSILON)
+                    .map(|frame| frame.width)
+                    .or_else(|| {
+                        let frame = resolve_root_viewport_content_frame(
                             geometry,
-                            &self.chrome_metrics,
-                            &window_id,
-                        )
+                            Some(&root_shell_frames),
+                            true,
+                        );
+                        (frame.width > f32::EPSILON).then_some(frame.width)
                     })
-                    .width
+                    .unwrap_or_else(|| geometry.region_frame(ShellRegionId::Document).width)
                     .max(1.0),
-                ViewHost::Document(_, _) => {
-                    resolve_root_viewport_content_frame(geometry, Some(&root_shell_frames), true)
-                        .width
-                        .max(geometry.region_frame(ShellRegionId::Document).width)
-                        .max(1.0)
-                }
                 ViewHost::Drawer(slot) => {
                     let region = match slot {
                         ActivityDrawerSlot::LeftTop | ActivityDrawerSlot::LeftBottom => {
@@ -130,13 +145,34 @@ impl SlintEditorHost {
                             ShellRegionId::Bottom
                         }
                     };
-                    geometry.region_frame(region).width
+                    root_shell_frames
+                        .drawer_content_frame(region)
+                        .filter(|frame| frame.width > f32::EPSILON)
+                        .map(|frame| frame.width)
+                        .or_else(|| {
+                            let frame = match region {
+                                ShellRegionId::Left => resolve_root_left_region_frame(
+                                    geometry,
+                                    Some(&root_shell_frames),
+                                ),
+                                ShellRegionId::Right => resolve_root_right_region_frame(
+                                    geometry,
+                                    Some(&root_shell_frames),
+                                ),
+                                ShellRegionId::Bottom => resolve_root_bottom_region_frame(
+                                    geometry,
+                                    Some(&root_shell_frames),
+                                ),
+                                ShellRegionId::Document => geometry.region_frame(region),
+                            };
+                            (frame.width > f32::EPSILON).then_some(frame.width)
+                        })
+                        .unwrap_or_else(|| geometry.region_frame(region).width)
                 }
                 ViewHost::ExclusivePage(_) => self.shell_size.width,
             })
             .unwrap_or_else(|| {
-                geometry
-                    .region_frame(ShellRegionId::Document)
+                resolve_root_viewport_content_frame(geometry, Some(&root_shell_frames), true)
                     .width
                     .max(1.0)
             });

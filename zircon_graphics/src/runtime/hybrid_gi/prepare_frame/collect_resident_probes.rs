@@ -1,6 +1,6 @@
 use crate::types::HybridGiPrepareProbe;
 
-use super::super::hybrid_gi_runtime_state::HybridGiRuntimeState;
+use super::super::HybridGiRuntimeState;
 
 const UNINITIALIZED_PROBE_IRRADIANCE_RGB: [u8; 3] = [0, 0, 0];
 

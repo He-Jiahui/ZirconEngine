@@ -1,0 +1,24 @@
+[package]
+name = "zircon_builtin_modules"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Builtin runtime module registry for zircon entry profiles."
+
+[dependencies]
+zircon_module = { path = "../zircon_module" }
+zircon_animation = { path = "../zircon_animation" }
+zircon_asset = { path = "../zircon_asset" }
+zircon_foundation = { path = "../zircon_foundation" }
+zircon_graphics = { path = "../zircon_graphics" }
+zircon_input = { path = "../zircon_input" }
+zircon_navigation = { path = "../zircon_navigation" }
+zircon_net = { path = "../zircon_net" }
+zircon_particles = { path = "../zircon_particles" }
+zircon_physics = { path = "../zircon_physics" }
+zircon_platform = { path = "../zircon_platform" }
+zircon_scene = { path = "../zircon_scene" }
+zircon_script = { path = "../zircon_script" }
+zircon_sound = { path = "../zircon_sound" }
+zircon_texture = { path = "../zircon_texture" }
+zircon_ui = { path = "../zircon_ui" }

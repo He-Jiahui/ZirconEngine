@@ -2,7 +2,7 @@ use zircon_ui::UiFrame;
 
 use crate::host::slint_host::callback_dispatch::BuiltinWorkbenchRootShellFrames;
 use crate::host::slint_host::floating_window_projection::{
-    FloatingWindowProjectionBundle, resolve_floating_window_tab_strip_frame,
+    resolve_floating_window_tab_strip_frame, FloatingWindowProjectionBundle,
 };
 use crate::host::slint_host::root_shell_projection::resolve_root_document_tabs_frame;
 use crate::{WorkbenchChromeMetrics, WorkbenchShellGeometry, WorkbenchViewModel};

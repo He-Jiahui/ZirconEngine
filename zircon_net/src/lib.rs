@@ -1,8 +1,15 @@
-//! Networking module skeleton wired into the core runtime.
+//! Networking module scaffold with explicit core service descriptors.
 
-use zircon_module::{stub_module_descriptor, EngineModule, ModuleDescriptor};
+use std::sync::Arc;
+
+use zircon_module::{
+    dependency_on, factory, qualified_name, DriverDescriptor, EngineModule, ManagerDescriptor,
+    ModuleDescriptor, ServiceKind, StartupMode,
+};
 
 pub const NET_MODULE_NAME: &str = "NetModule";
+pub const NET_DRIVER_NAME: &str = "NetModule.Driver.NetDriver";
+pub const NET_MANAGER_NAME: &str = "NetModule.Manager.NetManager";
 
 #[derive(Clone, Debug, Default)]
 pub struct NetConfig {
@@ -12,13 +19,30 @@ pub struct NetConfig {
 #[derive(Clone, Copy, Debug, Default)]
 pub struct NetModule;
 
+#[derive(Clone, Debug, Default)]
+pub struct NetDriver;
+
+#[derive(Clone, Debug, Default)]
+pub struct NetManager;
+
 pub fn module_descriptor() -> ModuleDescriptor {
-    stub_module_descriptor(
-        NET_MODULE_NAME,
-        "Networking, RPC, and multiplayer sessions",
-        "NetDriver",
-        "NetManager",
-    )
+    ModuleDescriptor::new(NET_MODULE_NAME, "Networking, RPC, and multiplayer sessions")
+        .with_driver(DriverDescriptor::new(
+            qualified_name(NET_MODULE_NAME, ServiceKind::Driver, "NetDriver"),
+            StartupMode::Immediate,
+            Vec::new(),
+            factory(|_| Ok(Arc::new(NetDriver::default()) as _)),
+        ))
+        .with_manager(ManagerDescriptor::new(
+            qualified_name(NET_MODULE_NAME, ServiceKind::Manager, "NetManager"),
+            StartupMode::Lazy,
+            vec![dependency_on(
+                NET_MODULE_NAME,
+                ServiceKind::Driver,
+                "NetDriver",
+            )],
+            factory(|_| Ok(Arc::new(NetManager::default()) as _)),
+        ))
 }
 
 impl EngineModule for NetModule {

@@ -1,4 +1,4 @@
-use super::super::hybrid_gi_runtime_state::HybridGiRuntimeState;
+use super::super::HybridGiRuntimeState;
 use super::complete_pending_probes::complete_pending_probes;
 
 impl HybridGiRuntimeState {

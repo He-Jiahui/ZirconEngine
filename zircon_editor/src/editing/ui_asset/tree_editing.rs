@@ -8,44 +8,44 @@ use zircon_ui::{
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(super) enum PaletteInsertMode {
+pub(crate) enum PaletteInsertMode {
     Child,
     After,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(super) enum UiTreeMoveDirection {
+pub(crate) enum UiTreeMoveDirection {
     Up,
     Down,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(super) enum UiTreeReparentDirection {
+pub(crate) enum UiTreeReparentDirection {
     IntoPrevious,
     IntoNext,
     Outdent,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub(super) enum UiAssetPaletteEntryKind {
+pub(crate) enum UiAssetPaletteEntryKind {
     Native { widget_type: String },
     Component { component: String },
     Reference { component_ref: String },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub(super) struct UiAssetPaletteEntry {
+pub(crate) struct UiAssetPaletteEntry {
     pub label: String,
     pub kind: UiAssetPaletteEntryKind,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub(super) struct UiAssetPaletteInsertionPlacement {
+pub(crate) struct UiAssetPaletteInsertionPlacement {
     pub mount: Option<String>,
     pub slot: BTreeMap<String, Value>,
 }
 
-pub(super) fn build_palette_entries(
+pub(crate) fn build_palette_entries(
     document: &UiAssetDocument,
     widget_imports: &BTreeMap<String, UiAssetDocument>,
 ) -> Vec<UiAssetPaletteEntry> {
@@ -86,7 +86,7 @@ pub(super) fn build_palette_entries(
     entries
 }
 
-pub(super) fn insert_palette_item_with_placement(
+pub(crate) fn insert_palette_item_with_placement(
     document: &mut UiAssetDocument,
     target_node_id: &str,
     entry: &UiAssetPaletteEntry,
@@ -156,7 +156,7 @@ pub(super) fn insert_palette_item_with_placement(
     Some(node_id)
 }
 
-pub(super) fn can_convert_selected_node_to_reference(
+pub(crate) fn can_convert_selected_node_to_reference(
     document: &UiAssetDocument,
     selection: &UiDesignerSelectionModel,
     entry: &UiAssetPaletteEntry,
@@ -165,14 +165,14 @@ pub(super) fn can_convert_selected_node_to_reference(
     reference_conversion_plan(document, selection, entry, widget_imports).is_some()
 }
 
-pub(super) fn can_extract_selected_node_to_component(
+pub(crate) fn can_extract_selected_node_to_component(
     document: &UiAssetDocument,
     selection: &UiDesignerSelectionModel,
 ) -> bool {
     selected_node_for_component_extraction(document, selection).is_some()
 }
 
-pub(super) fn extract_selected_node_to_component(
+pub(crate) fn extract_selected_node_to_component(
     document: &mut UiAssetDocument,
     selection: &UiDesignerSelectionModel,
 ) -> Option<String> {
@@ -215,7 +215,7 @@ pub(super) fn extract_selected_node_to_component(
     Some(node_id)
 }
 
-pub(super) fn convert_selected_node_to_reference(
+pub(crate) fn convert_selected_node_to_reference(
     document: &mut UiAssetDocument,
     selection: &UiDesignerSelectionModel,
     entry: &UiAssetPaletteEntry,
@@ -236,7 +236,7 @@ pub(super) fn convert_selected_node_to_reference(
     Some(node_id)
 }
 
-pub(super) fn move_selected_node(
+pub(crate) fn move_selected_node(
     document: &mut UiAssetDocument,
     selection: &UiDesignerSelectionModel,
     direction: UiTreeMoveDirection,
@@ -259,7 +259,7 @@ pub(super) fn move_selected_node(
     true
 }
 
-pub(super) fn wrap_selected_node(
+pub(crate) fn wrap_selected_node(
     document: &mut UiAssetDocument,
     selection: &UiDesignerSelectionModel,
     widget_type: &str,
@@ -288,7 +288,7 @@ pub(super) fn wrap_selected_node(
     Some(wrapper_id)
 }
 
-pub(super) fn unwrap_selected_node(
+pub(crate) fn unwrap_selected_node(
     document: &mut UiAssetDocument,
     selection: &UiDesignerSelectionModel,
 ) -> Option<String> {
@@ -305,7 +305,7 @@ pub(super) fn unwrap_selected_node(
     Some(child_id)
 }
 
-pub(super) fn reparent_selected_node(
+pub(crate) fn reparent_selected_node(
     document: &mut UiAssetDocument,
     selection: &UiDesignerSelectionModel,
     direction: UiTreeReparentDirection,

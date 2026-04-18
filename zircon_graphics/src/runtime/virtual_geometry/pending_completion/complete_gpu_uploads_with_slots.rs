@@ -1,4 +1,4 @@
-use super::super::virtual_geometry_runtime_state::VirtualGeometryRuntimeState;
+use super::super::VirtualGeometryRuntimeState;
 
 impl VirtualGeometryRuntimeState {
     pub(crate) fn complete_gpu_uploads_with_slots(

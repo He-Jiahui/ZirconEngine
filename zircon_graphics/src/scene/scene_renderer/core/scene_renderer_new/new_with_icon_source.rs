@@ -44,6 +44,8 @@ impl SceneRenderer {
             last_virtual_geometry_indirect_segment_count: 0,
             last_virtual_geometry_indirect_args_buffer: None,
             last_virtual_geometry_indirect_args_count: 0,
+            last_virtual_geometry_indirect_draw_refs_buffer: None,
+            last_virtual_geometry_indirect_segments_buffer: None,
         })
     }
 }

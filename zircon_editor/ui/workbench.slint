@@ -145,6 +145,10 @@ export struct PaneData {
     ui_asset_inspector_slot_semantic_path: string,
     ui_asset_inspector_slot_semantic_value: string,
     ui_asset_inspector_slot_kind: string,
+    ui_asset_inspector_slot_linear_main_weight: string,
+    ui_asset_inspector_slot_linear_main_stretch: string,
+    ui_asset_inspector_slot_linear_cross_weight: string,
+    ui_asset_inspector_slot_linear_cross_stretch: string,
     ui_asset_inspector_slot_overlay_anchor_x: string,
     ui_asset_inspector_slot_overlay_anchor_y: string,
     ui_asset_inspector_slot_overlay_pivot_x: string,
@@ -166,6 +170,7 @@ export struct PaneData {
     ui_asset_inspector_layout_semantic_path: string,
     ui_asset_inspector_layout_semantic_value: string,
     ui_asset_inspector_layout_kind: string,
+    ui_asset_inspector_layout_box_gap: string,
     ui_asset_inspector_layout_scroll_axis: string,
     ui_asset_inspector_layout_scroll_gap: string,
     ui_asset_inspector_layout_scrollbar_visibility: string,
@@ -530,6 +535,7 @@ component PaneSurface inherits Rectangle {
     callback ui_asset_style_rule_declaration_action(instance_id: string, action_id: string, item_index: int, declaration_path: string, declaration_value: string);
     callback ui_asset_style_token_action(instance_id: string, action_id: string, item_index: int, token_name: string, token_value: string);
     callback ui_asset_source_edited(instance_id: string, value: string);
+    callback ui_asset_source_cursor_changed(instance_id: string, byte_offset: int);
     callback ui_asset_palette_selected(instance_id: string, item_index: int);
     callback ui_asset_palette_drag_hover(instance_id: string, surface_x: float, surface_y: float);
     callback ui_asset_palette_drag_drop(instance_id: string);
@@ -981,6 +987,10 @@ component PaneSurface inherits Rectangle {
         inspector_slot_semantic_path: root.pane.ui_asset_inspector_slot_semantic_path;
         inspector_slot_semantic_value: root.pane.ui_asset_inspector_slot_semantic_value;
         inspector_slot_kind: root.pane.ui_asset_inspector_slot_kind;
+        inspector_slot_linear_main_weight: root.pane.ui_asset_inspector_slot_linear_main_weight;
+        inspector_slot_linear_main_stretch: root.pane.ui_asset_inspector_slot_linear_main_stretch;
+        inspector_slot_linear_cross_weight: root.pane.ui_asset_inspector_slot_linear_cross_weight;
+        inspector_slot_linear_cross_stretch: root.pane.ui_asset_inspector_slot_linear_cross_stretch;
         inspector_slot_overlay_anchor_x: root.pane.ui_asset_inspector_slot_overlay_anchor_x;
         inspector_slot_overlay_anchor_y: root.pane.ui_asset_inspector_slot_overlay_anchor_y;
         inspector_slot_overlay_pivot_x: root.pane.ui_asset_inspector_slot_overlay_pivot_x;
@@ -1002,6 +1012,7 @@ component PaneSurface inherits Rectangle {
         inspector_layout_semantic_path: root.pane.ui_asset_inspector_layout_semantic_path;
         inspector_layout_semantic_value: root.pane.ui_asset_inspector_layout_semantic_value;
         inspector_layout_kind: root.pane.ui_asset_inspector_layout_kind;
+        inspector_layout_box_gap: root.pane.ui_asset_inspector_layout_box_gap;
         inspector_layout_scroll_axis: root.pane.ui_asset_inspector_layout_scroll_axis;
         inspector_layout_scroll_gap: root.pane.ui_asset_inspector_layout_scroll_gap;
         inspector_layout_scrollbar_visibility: root.pane.ui_asset_inspector_layout_scrollbar_visibility;
@@ -1048,6 +1059,7 @@ component PaneSurface inherits Rectangle {
         style_rule_declaration_action(action_id, item_index, declaration_path, declaration_value) => { root.ui_asset_style_rule_declaration_action(root.pane.id, action_id, item_index, declaration_path, declaration_value); }
         style_token_action(action_id, item_index, token_name, token_value) => { root.ui_asset_style_token_action(root.pane.id, action_id, item_index, token_name, token_value); }
         source_edited(value) => { root.ui_asset_source_edited(root.pane.id, value); }
+        source_cursor_changed(byte_offset) => { root.ui_asset_source_cursor_changed(root.pane.id, byte_offset); }
         palette_selected(item_index) => { root.ui_asset_palette_selected(root.pane.id, item_index); }
         palette_drag_hovered(surface_x, surface_y) => { root.ui_asset_palette_drag_hover(root.pane.id, surface_x, surface_y); }
         palette_drag_dropped() => { root.ui_asset_palette_drag_drop(root.pane.id); }
@@ -1082,19 +1094,7 @@ component PaneSurface inherits Rectangle {
     }
 }
 
-export component WorkbenchShell inherits Window {
-    preferred-width: 1600px;
-    preferred-height: 980px;
-    min-width: root.shell_min_width_px * 1px;
-    min-height: root.shell_min_height_px * 1px;
-    max-width: 16777215px;
-    max-height: 16777215px;
-    no-frame: false;
-    resize-border-width: 8px;
-    title: root.native_window_title != "" ? root.native_window_title : "Zircon Editor";
-    background: #1f232a;
-    default-font-family: "JetBrains Sans, Segoe UI, Microsoft YaHei UI, Noto Sans";
-
+component WorkbenchHostScaffold inherits Rectangle {
     in property <[TabData]> host_tabs;
     in property <[BreadcrumbData]> breadcrumbs;
     in property <[TabData]> left_tabs;
@@ -1288,6 +1288,7 @@ export component WorkbenchShell inherits Window {
     callback ui_asset_style_rule_declaration_action(instance_id: string, action_id: string, item_index: int, declaration_path: string, declaration_value: string);
     callback ui_asset_style_token_action(instance_id: string, action_id: string, item_index: int, token_name: string, token_value: string);
     callback ui_asset_source_edited(instance_id: string, value: string);
+    callback ui_asset_source_cursor_changed(instance_id: string, byte_offset: int);
     callback ui_asset_palette_selected(instance_id: string, item_index: int);
     callback ui_asset_palette_drag_hover(instance_id: string, surface_x: float, surface_y: float);
     callback ui_asset_palette_drag_drop(instance_id: string);
@@ -1711,6 +1712,7 @@ export component WorkbenchShell inherits Window {
                                             ui_asset_style_rule_declaration_action(instance_id, action_id, item_index, declaration_path, declaration_value) => { root.ui_asset_style_rule_declaration_action(instance_id, action_id, item_index, declaration_path, declaration_value); }
                                             ui_asset_style_token_action(instance_id, action_id, item_index, token_name, token_value) => { root.ui_asset_style_token_action(instance_id, action_id, item_index, token_name, token_value); }
                                             ui_asset_source_edited(instance_id, value) => { root.ui_asset_source_edited(instance_id, value); }
+                                            ui_asset_source_cursor_changed(instance_id, byte_offset) => { root.ui_asset_source_cursor_changed(instance_id, byte_offset); }
                                             ui_asset_palette_selected(instance_id, item_index) => { root.ui_asset_palette_selected(instance_id, item_index); }
                                             ui_asset_palette_drag_hover(instance_id, surface_x, surface_y) => { root.ui_asset_palette_drag_hover(instance_id, surface_x, surface_y); }
                                             ui_asset_palette_drag_drop(instance_id) => { root.ui_asset_palette_drag_drop(instance_id); }
@@ -1911,6 +1913,7 @@ export component WorkbenchShell inherits Window {
                                     ui_asset_style_rule_declaration_action(instance_id, action_id, item_index, declaration_path, declaration_value) => { root.ui_asset_style_rule_declaration_action(instance_id, action_id, item_index, declaration_path, declaration_value); }
                                     ui_asset_style_token_action(instance_id, action_id, item_index, token_name, token_value) => { root.ui_asset_style_token_action(instance_id, action_id, item_index, token_name, token_value); }
                                     ui_asset_source_edited(instance_id, value) => { root.ui_asset_source_edited(instance_id, value); }
+                                    ui_asset_source_cursor_changed(instance_id, byte_offset) => { root.ui_asset_source_cursor_changed(instance_id, byte_offset); }
                                     ui_asset_palette_selected(instance_id, item_index) => { root.ui_asset_palette_selected(instance_id, item_index); }
                                     ui_asset_palette_drag_hover(instance_id, surface_x, surface_y) => { root.ui_asset_palette_drag_hover(instance_id, surface_x, surface_y); }
                                     ui_asset_palette_drag_drop(instance_id) => { root.ui_asset_palette_drag_drop(instance_id); }
@@ -2095,6 +2098,7 @@ export component WorkbenchShell inherits Window {
                                         ui_asset_style_rule_declaration_action(instance_id, action_id, item_index, declaration_path, declaration_value) => { root.ui_asset_style_rule_declaration_action(instance_id, action_id, item_index, declaration_path, declaration_value); }
                                         ui_asset_style_token_action(instance_id, action_id, item_index, token_name, token_value) => { root.ui_asset_style_token_action(instance_id, action_id, item_index, token_name, token_value); }
                                         ui_asset_source_edited(instance_id, value) => { root.ui_asset_source_edited(instance_id, value); }
+                                        ui_asset_source_cursor_changed(instance_id, byte_offset) => { root.ui_asset_source_cursor_changed(instance_id, byte_offset); }
                                         ui_asset_palette_selected(instance_id, item_index) => { root.ui_asset_palette_selected(instance_id, item_index); }
                                         ui_asset_palette_drag_hover(instance_id, surface_x, surface_y) => { root.ui_asset_palette_drag_hover(instance_id, surface_x, surface_y); }
                                         ui_asset_palette_drag_drop(instance_id) => { root.ui_asset_palette_drag_drop(instance_id); }
@@ -2300,6 +2304,7 @@ export component WorkbenchShell inherits Window {
                         ui_asset_style_rule_declaration_action(instance_id, action_id, item_index, declaration_path, declaration_value) => { root.ui_asset_style_rule_declaration_action(instance_id, action_id, item_index, declaration_path, declaration_value); }
                         ui_asset_style_token_action(instance_id, action_id, item_index, token_name, token_value) => { root.ui_asset_style_token_action(instance_id, action_id, item_index, token_name, token_value); }
                         ui_asset_source_edited(instance_id, value) => { root.ui_asset_source_edited(instance_id, value); }
+                        ui_asset_source_cursor_changed(instance_id, byte_offset) => { root.ui_asset_source_cursor_changed(instance_id, byte_offset); }
                         ui_asset_palette_selected(instance_id, item_index) => { root.ui_asset_palette_selected(instance_id, item_index); }
                         ui_asset_palette_drag_hover(instance_id, surface_x, surface_y) => { root.ui_asset_palette_drag_hover(instance_id, surface_x, surface_y); }
                         ui_asset_palette_drag_drop(instance_id) => { root.ui_asset_palette_drag_drop(instance_id); }
@@ -2674,6 +2679,7 @@ export component WorkbenchShell inherits Window {
                         ui_asset_style_rule_declaration_action(instance_id, action_id, item_index, declaration_path, declaration_value) => { root.ui_asset_style_rule_declaration_action(instance_id, action_id, item_index, declaration_path, declaration_value); }
                         ui_asset_style_token_action(instance_id, action_id, item_index, token_name, token_value) => { root.ui_asset_style_token_action(instance_id, action_id, item_index, token_name, token_value); }
                         ui_asset_source_edited(instance_id, value) => { root.ui_asset_source_edited(instance_id, value); }
+                        ui_asset_source_cursor_changed(instance_id, byte_offset) => { root.ui_asset_source_cursor_changed(instance_id, byte_offset); }
                         ui_asset_palette_selected(instance_id, item_index) => { root.ui_asset_palette_selected(instance_id, item_index); }
                         ui_asset_palette_drag_hover(instance_id, surface_x, surface_y) => { root.ui_asset_palette_drag_hover(instance_id, surface_x, surface_y); }
                         ui_asset_palette_drag_drop(instance_id) => { root.ui_asset_palette_drag_drop(instance_id); }
@@ -3369,6 +3375,7 @@ export component WorkbenchShell inherits Window {
                         ui_asset_style_rule_declaration_action(instance_id, action_id, item_index, declaration_path, declaration_value) => { root.ui_asset_style_rule_declaration_action(instance_id, action_id, item_index, declaration_path, declaration_value); }
                         ui_asset_style_token_action(instance_id, action_id, item_index, token_name, token_value) => { root.ui_asset_style_token_action(instance_id, action_id, item_index, token_name, token_value); }
                         ui_asset_source_edited(instance_id, value) => { root.ui_asset_source_edited(instance_id, value); }
+                        ui_asset_source_cursor_changed(instance_id, byte_offset) => { root.ui_asset_source_cursor_changed(instance_id, byte_offset); }
                         ui_asset_palette_selected(instance_id, item_index) => { root.ui_asset_palette_selected(instance_id, item_index); }
                         ui_asset_palette_drag_hover(instance_id, surface_x, surface_y) => { root.ui_asset_palette_drag_hover(instance_id, surface_x, surface_y); }
                         ui_asset_palette_drag_drop(instance_id) => { root.ui_asset_palette_drag_drop(instance_id); }

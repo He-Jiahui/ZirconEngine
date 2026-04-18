@@ -9,15 +9,15 @@ use std::time::Duration;
 
 use slint::{ComponentHandle, Timer, TimerMode};
 use zircon_asset::{
-    EditorAssetChangeRecord, EditorAssetManager as EditorAssetManagerFacade, ProjectManager,
-    ProjectPaths,
+    AssetChange, AssetManager, EditorAssetChange, EditorAssetManager as EditorAssetManagerFacade,
+    ProjectManager, ProjectPaths,
 };
 use zircon_core::{ChannelReceiver, CoreHandle};
-use zircon_manager::{
-    AssetChangeRecord, AssetManager, ManagerResolver, ResourceChangeRecord, ResourceManager,
-};
+use zircon_manager::{ManagerResolver, ResourceManager};
 use zircon_math::UVec2;
-use zircon_resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceLocator};
+use zircon_resource::{
+    MaterialMarker, ModelMarker, ResourceEvent, ResourceHandle, ResourceLocator,
+};
 use zircon_scene::Scene;
 use zircon_ui::{UiBindingValue, UiEventKind, UiFrame, UiPoint, UiSize};
 
@@ -27,15 +27,15 @@ use crate::paths::canonical_model_source_path;
 use crate::project::EditorProjectDocument;
 use crate::snapshot::ViewContentKind;
 use crate::{
-    ActivityDrawerMode, EDITOR_MANAGER_NAME, EditorManager, EditorSessionMode,
+    compute_workbench_shell_geometry, ActivityDrawerMode, EditorManager, EditorSessionMode,
     EditorStartupSessionDocument, EditorState, MainPageId, ShellRegionId, ShellSizePx,
     WelcomeHostEvent, WorkbenchChromeMetrics, WorkbenchShellGeometry, WorkbenchViewModel,
-    compute_workbench_shell_geometry,
+    EDITOR_MANAGER_NAME,
 };
 
 use super::activity_rail_pointer::{
-    WorkbenchActivityRailPointerBridge, WorkbenchActivityRailPointerSide,
-    build_workbench_activity_rail_pointer_layout,
+    build_workbench_activity_rail_pointer_layout, WorkbenchActivityRailPointerBridge,
+    WorkbenchActivityRailPointerSide,
 };
 use super::asset_pointer::{
     AssetContentListPointerBridge, AssetContentListPointerLayout, AssetFolderTreePointerBridge,
@@ -48,10 +48,10 @@ use super::detail_pointer::{
     inspector_scroll_layout,
 };
 use super::document_tab_pointer::{
-    WorkbenchDocumentTabPointerBridge, build_workbench_document_tab_pointer_layout,
+    build_workbench_document_tab_pointer_layout, WorkbenchDocumentTabPointerBridge,
 };
 use super::drawer_header_pointer::{
-    WorkbenchDrawerHeaderPointerBridge, build_workbench_drawer_header_pointer_layout,
+    build_workbench_drawer_header_pointer_layout, WorkbenchDrawerHeaderPointerBridge,
 };
 use super::drawer_resize::dispatch_resize_to_group;
 use super::event_bridge::SlintDispatchEffects;
@@ -60,7 +60,7 @@ use super::hierarchy_pointer::{
     HierarchyPointerBridge, HierarchyPointerLayout, HierarchyPointerState,
 };
 use super::host_page_pointer::{
-    WorkbenchHostPagePointerBridge, build_workbench_host_page_pointer_layout,
+    build_workbench_host_page_pointer_layout, WorkbenchHostPagePointerBridge,
 };
 use super::menu_pointer::{
     WorkbenchMenuPointerBridge, WorkbenchMenuPointerLayout, WorkbenchMenuPointerState,
@@ -71,13 +71,13 @@ use super::tab_drag::workbench_shell_pointer_route_group_key;
 use super::ui::apply_presentation;
 use super::viewport::SlintViewportController;
 use super::viewport_toolbar_pointer::{
-    ViewportToolbarPointerBridge, build_viewport_toolbar_pointer_layout_with_size,
+    build_viewport_toolbar_pointer_layout_with_size, ViewportToolbarPointerBridge,
 };
 use super::welcome_recent_pointer::{
     WelcomeRecentPointerAction, WelcomeRecentPointerBridge, WelcomeRecentPointerLayout,
     WelcomeRecentPointerState,
 };
-use super::{FrameRect, WorkbenchShell};
+use super::{FrameRect, UiHostWindow};
 
 mod asset_content_pointer;
 mod asset_reference_pointer;
@@ -113,8 +113,8 @@ pub(super) use helpers::{
 #[cfg(test)]
 pub(crate) use native_windows::NativeFloatingWindowTarget;
 pub(crate) use native_windows::{
-    NativeWindowPresenterStore, collect_native_floating_window_targets,
-    configure_native_floating_window_presentation,
+    collect_native_floating_window_targets, configure_native_floating_window_presentation,
+    NativeWindowPresenterStore,
 };
 pub(super) use startup::build_startup_state;
 
@@ -123,7 +123,7 @@ pub fn run_editor(core: CoreHandle) -> Result<(), Box<dyn Error>> {
         .require_wgpu_27(slint::wgpu_27::WGPUConfiguration::default())
         .select()?;
 
-    let ui = WorkbenchShell::new()?;
+    let ui = UiHostWindow::new()?;
     let host = Rc::new(RefCell::new(SlintEditorHost::new(core, ui.clone_strong())?));
     wire_callbacks(&ui, &host);
     host.borrow_mut().self_handle = Some(Rc::downgrade(&host));
@@ -144,7 +144,7 @@ pub fn run_editor(core: CoreHandle) -> Result<(), Box<dyn Error>> {
 }
 
 struct SlintEditorHost {
-    ui: WorkbenchShell,
+    ui: UiHostWindow,
     self_handle: Option<Weak<RefCell<SlintEditorHost>>>,
     runtime: EditorEventRuntime,
     editor_manager: Arc<EditorManager>,
@@ -152,9 +152,9 @@ struct SlintEditorHost {
     asset_server: Arc<dyn AssetManager>,
     editor_asset_server: Arc<dyn EditorAssetManagerFacade>,
     resource_server: Arc<dyn ResourceManager>,
-    asset_change_events: ChannelReceiver<AssetChangeRecord>,
-    editor_asset_change_events: ChannelReceiver<EditorAssetChangeRecord>,
-    resource_change_events: ChannelReceiver<ResourceChangeRecord>,
+    asset_change_events: ChannelReceiver<AssetChange>,
+    editor_asset_change_events: ChannelReceiver<EditorAssetChange>,
+    resource_change_events: ChannelReceiver<ResourceEvent>,
     startup_session: EditorStartupSessionDocument,
     viewport_size: UVec2,
     viewport_pointer_bridge: callback_dispatch::SharedViewportPointerBridge,

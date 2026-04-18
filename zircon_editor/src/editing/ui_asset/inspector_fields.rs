@@ -3,7 +3,7 @@ use zircon_editor_ui::UiDesignerSelectionModel;
 use zircon_ui::{UiAssetDocument, UiChildMount, UiNodeDefinition, UiNodeDefinitionKind};
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub(super) struct UiAssetInspectorFields {
+pub(crate) struct UiAssetInspectorFields {
     pub selected_node_id: String,
     pub parent_node_id: String,
     pub mount: String,
@@ -20,7 +20,7 @@ pub(super) struct UiAssetInspectorFields {
     pub can_edit_text_prop: bool,
 }
 
-pub(super) fn build_inspector_fields(
+pub(crate) fn build_inspector_fields(
     document: &UiAssetDocument,
     selection: &UiDesignerSelectionModel,
 ) -> UiAssetInspectorFields {
@@ -71,7 +71,7 @@ pub(super) fn build_inspector_fields(
     }
 }
 
-pub(super) fn set_selected_node_control_id(
+pub(crate) fn set_selected_node_control_id(
     document: &mut UiAssetDocument,
     selection: &UiDesignerSelectionModel,
     control_id: &str,
@@ -90,7 +90,7 @@ pub(super) fn set_selected_node_control_id(
     true
 }
 
-pub(super) fn set_selected_node_mount(
+pub(crate) fn set_selected_node_mount(
     document: &mut UiAssetDocument,
     selection: &UiDesignerSelectionModel,
     mount: &str,
@@ -106,7 +106,7 @@ pub(super) fn set_selected_node_mount(
     true
 }
 
-pub(super) fn set_selected_node_text_property(
+pub(crate) fn set_selected_node_text_property(
     document: &mut UiAssetDocument,
     selection: &UiDesignerSelectionModel,
     text: &str,
@@ -129,7 +129,7 @@ pub(super) fn set_selected_node_text_property(
     true
 }
 
-pub(super) fn set_selected_node_slot_padding(
+pub(crate) fn set_selected_node_slot_padding(
     document: &mut UiAssetDocument,
     selection: &UiDesignerSelectionModel,
     literal: &str,
@@ -138,7 +138,7 @@ pub(super) fn set_selected_node_slot_padding(
         .map_err(|_| "slot.padding")
 }
 
-pub(super) fn set_selected_node_slot_width_preferred(
+pub(crate) fn set_selected_node_slot_width_preferred(
     document: &mut UiAssetDocument,
     selection: &UiDesignerSelectionModel,
     literal: &str,
@@ -152,7 +152,7 @@ pub(super) fn set_selected_node_slot_width_preferred(
     .map_err(|_| "slot.layout.width.preferred")
 }
 
-pub(super) fn set_selected_node_slot_height_preferred(
+pub(crate) fn set_selected_node_slot_height_preferred(
     document: &mut UiAssetDocument,
     selection: &UiDesignerSelectionModel,
     literal: &str,
@@ -166,7 +166,7 @@ pub(super) fn set_selected_node_slot_height_preferred(
     .map_err(|_| "slot.layout.height.preferred")
 }
 
-pub(super) fn set_selected_node_layout_width_preferred(
+pub(crate) fn set_selected_node_layout_width_preferred(
     document: &mut UiAssetDocument,
     selection: &UiDesignerSelectionModel,
     literal: &str,
@@ -175,7 +175,7 @@ pub(super) fn set_selected_node_layout_width_preferred(
         .map_err(|_| "layout.width.preferred")
 }
 
-pub(super) fn set_selected_node_layout_height_preferred(
+pub(crate) fn set_selected_node_layout_height_preferred(
     document: &mut UiAssetDocument,
     selection: &UiDesignerSelectionModel,
     literal: &str,

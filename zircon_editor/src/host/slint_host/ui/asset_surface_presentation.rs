@@ -166,18 +166,18 @@ fn asset_kind_label(kind: ResourceKind) -> &'static str {
     }
 }
 
-fn resource_state_label(state: Option<ResourceStateRecord>) -> &'static str {
+fn resource_state_label(state: Option<ResourceState>) -> &'static str {
     match state {
-        Some(ResourceStateRecord::Pending) => "Pending",
-        Some(ResourceStateRecord::Ready) => "Ready",
-        Some(ResourceStateRecord::Error) => "Error",
-        Some(ResourceStateRecord::Reloading) => "Reloading",
+        Some(ResourceState::Pending) => "Pending",
+        Some(ResourceState::Ready) => "Ready",
+        Some(ResourceState::Error) => "Error",
+        Some(ResourceState::Reloading) => "Reloading",
         None => "",
     }
 }
 
-fn item_has_error(state: Option<ResourceStateRecord>, diagnostics: &[String]) -> bool {
-    matches!(state, Some(ResourceStateRecord::Error)) || !diagnostics.is_empty()
+fn item_has_error(state: Option<ResourceState>, diagnostics: &[String]) -> bool {
+    matches!(state, Some(ResourceState::Error)) || !diagnostics.is_empty()
 }
 
 fn diagnostics_text(diagnostics: &[String]) -> String {

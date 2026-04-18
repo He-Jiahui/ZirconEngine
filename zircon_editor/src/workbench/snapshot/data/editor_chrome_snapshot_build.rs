@@ -4,8 +4,8 @@ use crate::layout::{MainHostPageLayout, WorkbenchLayout};
 use crate::view::{ViewDescriptor, ViewDescriptorId, ViewInstance, ViewInstanceId};
 
 use super::super::workbench::{
-    ActivityDrawerSnapshot, FloatingWindowSnapshot, MainPageSnapshot, WorkbenchSnapshot,
-    resolve_document_workspace, resolve_view_tab,
+    resolve_document_workspace, resolve_view_tab, ActivityDrawerSnapshot, FloatingWindowSnapshot,
+    MainPageSnapshot, WorkbenchSnapshot,
 };
 use super::{EditorChromeSnapshot, EditorDataSnapshot};
 

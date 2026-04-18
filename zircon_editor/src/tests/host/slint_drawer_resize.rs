@@ -5,19 +5,21 @@ use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use zircon_core::CoreRuntime;
-use zircon_foundation::{module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME};
+use zircon_foundation::{
+    module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
+};
 use zircon_manager::resolve_config_manager;
 
 use crate::host::slint_host::drawer_resize::{
-    WorkbenchResizeTargetGroup, apply_resize_to_group, resolve_workbench_resize_target_group,
+    apply_resize_to_group, resolve_workbench_resize_target_group, WorkbenchResizeTargetGroup,
 };
 use crate::host::slint_host::shell_pointer::{
     WorkbenchShellPointerBridge, WorkbenchShellPointerRoute,
 };
 use crate::host::slint_host::tab_drag::WorkbenchDragTargetGroup;
 use crate::{
-    ActivityDrawerSlot, EDITOR_MANAGER_NAME, EditorManager, ShellFrame, ShellRegionId, ShellSizePx,
-    WorkbenchShellGeometry,
+    ActivityDrawerSlot, EditorManager, ShellFrame, ShellRegionId, ShellSizePx,
+    WorkbenchShellGeometry, EDITOR_MANAGER_NAME,
 };
 use zircon_ui::UiPoint;
 

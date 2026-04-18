@@ -1,4 +1,3 @@
-use zircon_manager::WorldHandle;
 use zircon_math::UVec2;
 
 use crate::{
@@ -7,7 +6,7 @@ use crate::{
     RenderDirectionalLightSnapshot, RenderHybridGiExtract, RenderMeshSnapshot,
     RenderOverlayExtract, RenderParticleSpriteSnapshot, RenderReflectionProbeSnapshot,
     RenderSceneSnapshot, RenderVirtualGeometryExtract, SceneViewportExtractRequest,
-    ViewportCameraSnapshot, World,
+    ViewportCameraSnapshot, World, WorldHandle,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]

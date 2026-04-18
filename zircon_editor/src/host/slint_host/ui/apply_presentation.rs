@@ -10,7 +10,7 @@ use crate::host::slint_host::root_shell_projection::{
 };
 
 pub(crate) fn apply_presentation(
-    ui: &WorkbenchShell,
+    ui: &UiHostWindow,
     model: &WorkbenchViewModel,
     chrome: &EditorChromeSnapshot,
     geometry: &WorkbenchShellGeometry,

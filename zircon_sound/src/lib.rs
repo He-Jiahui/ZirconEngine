@@ -1,8 +1,15 @@
-//! Sound module skeleton wired into the core runtime.
+//! Sound module scaffold with explicit core service descriptors.
 
-use zircon_module::{stub_module_descriptor, EngineModule, ModuleDescriptor};
+use std::sync::Arc;
+
+use zircon_module::{
+    dependency_on, factory, qualified_name, DriverDescriptor, EngineModule, ManagerDescriptor,
+    ModuleDescriptor, ServiceKind, StartupMode,
+};
 
 pub const SOUND_MODULE_NAME: &str = "SoundModule";
+pub const SOUND_DRIVER_NAME: &str = "SoundModule.Driver.SoundDriver";
+pub const SOUND_MANAGER_NAME: &str = "SoundModule.Manager.SoundManager";
 
 #[derive(Clone, Debug, Default)]
 pub struct SoundConfig {
@@ -12,13 +19,30 @@ pub struct SoundConfig {
 #[derive(Clone, Copy, Debug, Default)]
 pub struct SoundModule;
 
+#[derive(Clone, Debug, Default)]
+pub struct SoundDriver;
+
+#[derive(Clone, Debug, Default)]
+pub struct SoundManager;
+
 pub fn module_descriptor() -> ModuleDescriptor {
-    stub_module_descriptor(
-        SOUND_MODULE_NAME,
-        "Audio mixing, buses, and playback",
-        "SoundDriver",
-        "SoundManager",
-    )
+    ModuleDescriptor::new(SOUND_MODULE_NAME, "Audio mixing, buses, and playback")
+        .with_driver(DriverDescriptor::new(
+            qualified_name(SOUND_MODULE_NAME, ServiceKind::Driver, "SoundDriver"),
+            StartupMode::Immediate,
+            Vec::new(),
+            factory(|_| Ok(Arc::new(SoundDriver::default()) as _)),
+        ))
+        .with_manager(ManagerDescriptor::new(
+            qualified_name(SOUND_MODULE_NAME, ServiceKind::Manager, "SoundManager"),
+            StartupMode::Lazy,
+            vec![dependency_on(
+                SOUND_MODULE_NAME,
+                ServiceKind::Driver,
+                "SoundDriver",
+            )],
+            factory(|_| Ok(Arc::new(SoundManager::default()) as _)),
+        ))
 }
 
 impl EngineModule for SoundModule {

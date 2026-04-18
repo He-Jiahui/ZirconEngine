@@ -1,4 +1,4 @@
-pub(super) fn pipeline(
+pub(in crate::scene::scene_renderer::hybrid_gi::gpu_resources::new) fn pipeline(
     device: &wgpu::Device,
     bind_group_layout: &wgpu::BindGroupLayout,
 ) -> wgpu::ComputePipeline {

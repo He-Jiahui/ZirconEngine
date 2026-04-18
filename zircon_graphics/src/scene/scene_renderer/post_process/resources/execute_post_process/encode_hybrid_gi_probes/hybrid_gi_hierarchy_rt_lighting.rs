@@ -4,6 +4,8 @@ use zircon_scene::{RenderHybridGiProbe, RenderHybridGiTraceRegion};
 
 use crate::types::EditorOrRuntimeFrame;
 
+use super::hybrid_gi_budget_weight::hybrid_gi_budget_weight;
+
 const ANCESTOR_TRACE_INHERITANCE_FALLOFF: f32 = 0.72;
 const TRACE_INHERITANCE_WEIGHT_SCALE: f32 = 0.45;
 
@@ -33,6 +35,11 @@ pub(super) fn hybrid_gi_hierarchy_rt_lighting(
         .copied()
         .map(|region| (region.region_id, region))
         .collect::<BTreeMap<_, _>>();
+    let resident_prepare_by_id = prepare
+        .resident_probes
+        .iter()
+        .map(|probe| (probe.probe_id, probe))
+        .collect::<BTreeMap<_, _>>();
 
     let mut weighted_rgb = [0.0_f32; 3];
     let mut total_support = 0.0_f32;
@@ -53,6 +60,14 @@ pub(super) fn hybrid_gi_hierarchy_rt_lighting(
         let Some(ancestor_probe) = probes_by_id.get(&parent_probe_id) else {
             break;
         };
+        let resident_budget_weight = resident_prepare_by_id
+            .get(&parent_probe_id)
+            .map(|probe| hybrid_gi_budget_weight(probe.ray_budget))
+            .unwrap_or(0.0);
+        if resident_budget_weight <= f32::EPSILON {
+            current_probe_id = parent_probe_id;
+            continue;
+        }
 
         ancestor_depth += 1;
         let hierarchy_weight =
@@ -67,6 +82,7 @@ pub(super) fn hybrid_gi_hierarchy_rt_lighting(
             }
 
             let support = hierarchy_weight
+                * resident_budget_weight
                 * region_rt_lighting[3]
                 * hierarchy_trace_region_support(ancestor_probe, region);
             if support <= 0.0 {

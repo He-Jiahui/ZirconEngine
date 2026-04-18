@@ -1,9 +1,9 @@
 use std::collections::BTreeMap;
 
-use super::super::WorkbenchChromeMetrics;
 use super::super::constraints::aggregate_row_constraints;
 use super::super::region_state::RegionState;
-use super::super::{ShellFrame, ShellRegionId, ShellSizePx, solve_axis_constraints};
+use super::super::WorkbenchChromeMetrics;
+use super::super::{solve_axis_constraints, ShellFrame, ShellRegionId, ShellSizePx};
 use super::resolved_region_frames::ResolvedRegionFrames;
 
 pub(super) fn build_region_frames(

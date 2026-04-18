@@ -9,8 +9,8 @@ use crate::{
 
 use super::ui_document_compiler::{CompilationArtifacts, UiDocumentCompiler};
 use super::value_normalizer::{
-    append_classes, merge_value_maps, merge_value_maps_resolved, normalize_layout,
-    resolve_value, resolve_value_map,
+    append_classes, merge_value_maps, merge_value_maps_resolved, normalize_layout, resolve_value,
+    resolve_value_map,
 };
 
 impl UiDocumentCompiler {

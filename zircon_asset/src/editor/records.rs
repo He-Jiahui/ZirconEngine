@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
+use zircon_resource::ResourceKind;
 
-use crate::{PreviewState, ResourceKind};
+use crate::PreviewState;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EditorAssetFolderRecord {
@@ -75,3 +76,5 @@ pub struct EditorAssetChangeRecord {
     pub uuid: Option<String>,
     pub locator: Option<String>,
 }
+
+pub type EditorAssetChange = EditorAssetChangeRecord;

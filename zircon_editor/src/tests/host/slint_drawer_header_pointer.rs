@@ -102,7 +102,7 @@ fn shared_drawer_header_pointer_layout_prefers_shared_root_projection_for_visibl
     let mut bridge = BuiltinWorkbenchTemplateBridge::new(UiSize::new(1280.0, 720.0))
         .expect("builtin workbench template bridge should build");
     bridge
-        .recompute_layout_with_chrome(UiSize::new(1280.0, 720.0), &chrome, &metrics)
+        .recompute_layout_with_workbench_model(UiSize::new(1280.0, 720.0), &model, &metrics)
         .expect("builtin workbench template bridge should recompute visible drawer frames");
     let root_frames = bridge.root_shell_frames();
     let left_geometry = UiFrame::new(180.0, 140.0, 180.0, 519.0);

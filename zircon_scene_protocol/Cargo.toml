@@ -1,0 +1,9 @@
+[package]
+name = "zircon_scene_protocol"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Shared scene protocol types consumed by manager facades and scene runtime implementations."
+
+[dependencies]
+serde.workspace = true

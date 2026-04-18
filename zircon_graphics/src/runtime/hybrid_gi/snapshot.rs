@@ -1,5 +1,5 @@
-use super::hybrid_gi_runtime_snapshot::HybridGiRuntimeSnapshot;
-use super::hybrid_gi_runtime_state::HybridGiRuntimeState;
+use super::declarations::HybridGiRuntimeSnapshot;
+use super::HybridGiRuntimeState;
 
 impl HybridGiRuntimeState {
     pub(crate) fn snapshot(&self) -> HybridGiRuntimeSnapshot {

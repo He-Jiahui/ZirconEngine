@@ -5,13 +5,13 @@ use zircon_editor_ui::UiDesignerSelectionModel;
 use zircon_ui::UiAssetDocument;
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub(super) struct UiAssetPreviewMockState {
+pub(crate) struct UiAssetPreviewMockState {
     overrides: BTreeMap<String, BTreeMap<String, Value>>,
     selected_property: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub(super) struct UiAssetPreviewMockFields {
+pub(crate) struct UiAssetPreviewMockFields {
     pub items: Vec<String>,
     pub selected_index: i32,
     pub property: String,
@@ -48,7 +48,7 @@ struct UiAssetPreviewMockEntry {
     overridden: bool,
 }
 
-pub(super) fn build_preview_mock_fields(
+pub(crate) fn build_preview_mock_fields(
     document: &UiAssetDocument,
     selection: &UiDesignerSelectionModel,
     state: &UiAssetPreviewMockState,
@@ -82,7 +82,7 @@ pub(super) fn build_preview_mock_fields(
     }
 }
 
-pub(super) fn reconcile_preview_mock_state(
+pub(crate) fn reconcile_preview_mock_state(
     document: &UiAssetDocument,
     selection: &UiDesignerSelectionModel,
     state: &mut UiAssetPreviewMockState,
@@ -101,7 +101,7 @@ pub(super) fn reconcile_preview_mock_state(
         .and_then(|index| entries.get(index).map(|entry| entry.key.clone()));
 }
 
-pub(super) fn select_preview_mock_property(
+pub(crate) fn select_preview_mock_property(
     document: &UiAssetDocument,
     selection: &UiDesignerSelectionModel,
     state: &mut UiAssetPreviewMockState,
@@ -114,7 +114,7 @@ pub(super) fn select_preview_mock_property(
     Some(changed)
 }
 
-pub(super) fn set_selected_preview_mock_value(
+pub(crate) fn set_selected_preview_mock_value(
     document: &UiAssetDocument,
     selection: &UiDesignerSelectionModel,
     state: &mut UiAssetPreviewMockState,
@@ -156,7 +156,7 @@ pub(super) fn set_selected_preview_mock_value(
     Ok(true)
 }
 
-pub(super) fn clear_selected_preview_mock_value(
+pub(crate) fn clear_selected_preview_mock_value(
     document: &UiAssetDocument,
     selection: &UiDesignerSelectionModel,
     state: &mut UiAssetPreviewMockState,
@@ -182,7 +182,7 @@ pub(super) fn clear_selected_preview_mock_value(
     removed
 }
 
-pub(super) fn apply_preview_mock_overrides(
+pub(crate) fn apply_preview_mock_overrides(
     document: &UiAssetDocument,
     state: &UiAssetPreviewMockState,
 ) -> UiAssetDocument {

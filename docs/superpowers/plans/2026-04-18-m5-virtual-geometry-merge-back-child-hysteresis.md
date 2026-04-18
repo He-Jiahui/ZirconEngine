@@ -1,7 +1,7 @@
 ---
 related_code:
   - zircon_graphics/src/visibility/planning/build_virtual_geometry_plan/build.rs
-  - zircon_graphics/src/visibility/planning/build_virtual_geometry_plan/refine_visible_cluster_frontier.rs
+- zircon_graphics/src/visibility/planning/build_virtual_geometry_plan/frontier/refine_visible_cluster_frontier.rs
   - zircon_graphics/src/tests/visibility.rs
 implementation_files:
   - zircon_graphics/src/visibility/planning/build_virtual_geometry_plan/build.rs

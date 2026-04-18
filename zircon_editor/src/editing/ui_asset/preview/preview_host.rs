@@ -1,4 +1,6 @@
+use super::super::session;
+
 #[path = "../preview_host.rs"]
 mod imp;
 
-pub(crate) use imp::*;
+pub use imp::*;

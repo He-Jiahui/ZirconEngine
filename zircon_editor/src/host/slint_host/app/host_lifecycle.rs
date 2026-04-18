@@ -1,32 +1,29 @@
 use super::*;
 use crate::host::slint_host::floating_window_projection::{
-    FloatingWindowProjectionBundle, build_floating_window_projection_bundle_with_shared_source,
+    build_floating_window_projection_bundle_with_shared_source,
     resolve_floating_window_projection_base_outer_frame,
-    resolve_floating_window_projection_shared_source,
+    resolve_floating_window_projection_shared_source, FloatingWindowProjectionBundle,
 };
 use crate::host::slint_host::root_shell_projection::resolve_root_viewport_content_frame;
-use zircon_asset::resolve_editor_asset_manager;
+use zircon_asset::{resolve_asset_manager, resolve_editor_asset_manager};
 
 impl SlintEditorHost {
-    pub(super) fn new(core: CoreHandle, ui: WorkbenchShell) -> Result<Self, Box<dyn Error>> {
+    pub(super) fn new(core: CoreHandle, ui: UiHostWindow) -> Result<Self, Box<dyn Error>> {
         Self::new_with_viewport(core.clone(), ui, SlintViewportController::new(core)?)
     }
 
     #[cfg(test)]
-    pub(super) fn new_for_test(
-        core: CoreHandle,
-        ui: WorkbenchShell,
-    ) -> Result<Self, Box<dyn Error>> {
+    pub(super) fn new_for_test(core: CoreHandle, ui: UiHostWindow) -> Result<Self, Box<dyn Error>> {
         Self::new_with_viewport(core, ui, SlintViewportController::new_test_stub())
     }
 
     fn new_with_viewport(
         core: CoreHandle,
-        ui: WorkbenchShell,
+        ui: UiHostWindow,
         viewport: SlintViewportController,
     ) -> Result<Self, Box<dyn Error>> {
         let resolver = ManagerResolver::new(core.clone());
-        let asset_server = resolver.asset()?;
+        let asset_server = resolve_asset_manager(resolver.core())?;
         let editor_asset_server = resolve_editor_asset_manager(resolver.core())?;
         let resource_server = resolver.resource()?;
         let editor_manager = core.resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)?;
@@ -202,9 +199,9 @@ impl SlintEditorHost {
                 Some(&self.transient_region_preferred)
             },
         );
-        let _ = self.template_bridge.recompute_layout_with_chrome(
+        let _ = self.template_bridge.recompute_layout_with_workbench_model(
             UiSize::new(self.shell_size.width, self.shell_size.height),
-            &chrome,
+            &model,
             &self.chrome_metrics,
         );
         let _ = self
@@ -218,7 +215,6 @@ impl SlintEditorHost {
             let frame = resolve_floating_window_projection_base_outer_frame(
                 window,
                 window_index,
-                &geometry,
                 floating_window_shared_source,
             );
             self.editor_manager.sync_native_window_projection_bounds(
@@ -230,7 +226,6 @@ impl SlintEditorHost {
         let floating_window_projection_bundle =
             build_floating_window_projection_bundle_with_shared_source(
                 &model,
-                &geometry,
                 floating_window_shared_source,
                 &self.chrome_metrics,
                 &native_window_hosts,

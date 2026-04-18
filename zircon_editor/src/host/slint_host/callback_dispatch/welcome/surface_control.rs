@@ -1,6 +1,6 @@
 use zircon_ui::UiBindingValue;
 
-use crate::{WelcomeHostEvent, dispatch_welcome_binding};
+use crate::{dispatch_welcome_binding, WelcomeHostEvent};
 
 use super::super::BuiltinWelcomeSurfaceTemplateBridge;
 

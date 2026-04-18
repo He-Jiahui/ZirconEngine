@@ -7,7 +7,9 @@ use zircon_editor::{
     module_descriptor, EditorManager, MainPageId, NativeWindowHostState, ProjectEditorWorkspace,
     ViewDescriptorId, ViewHost, ViewInstance, ViewInstanceId, WorkbenchLayout, EDITOR_MANAGER_NAME,
 };
-use zircon_foundation::{module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME};
+use zircon_foundation::{
+    module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
+};
 use zircon_manager::resolve_config_manager;
 
 fn env_lock() -> &'static Mutex<()> {

@@ -5,12 +5,14 @@ use super::apply_presentation;
 use super::floating_windows::collect_floating_windows;
 use super::pane_projection::document_pane;
 use crate::host::slint_host::callback_dispatch::BuiltinWorkbenchTemplateBridge;
-use crate::host::slint_host::floating_window_projection::build_floating_window_projection_bundle;
+use crate::host::slint_host::floating_window_projection::{
+    build_floating_window_projection_bundle, FloatingWindowProjectionBundle,
+};
 use crate::host::slint_host::shell_pointer::WorkbenchShellPointerRoute;
 use crate::{
+    default_preview_fixture, host::slint_host::tab_drag::workbench_shell_pointer_route_group_key,
     EditorChromeSnapshot, EditorUiCompatibilityHarness, FloatingWindowLayout, MainPageId,
     TabStackLayout, ViewHost, ViewInstance, ViewInstanceId, WorkbenchViewModel,
-    default_preview_fixture, host::slint_host::tab_drag::workbench_shell_pointer_route_group_key,
 };
 use zircon_scene::{
     DisplayMode, GridMode, ProjectionMode, SceneViewportTool, TransformSpace, ViewOrientation,
@@ -35,7 +37,7 @@ fn apply_presentation_uses_shared_root_projection_frames_when_drawers_are_collap
 
     let (_fixture, chrome, model, ui_asset_panes) = root_shell_fixture();
     let ui =
-        crate::host::slint_host::WorkbenchShell::new().expect("workbench shell should instantiate");
+        crate::host::slint_host::UiHostWindow::new().expect("workbench shell should instantiate");
     ui.show()
         .expect("workbench shell should show in the test backend");
     ui.window().set_size(slint::PhysicalSize::new(1280, 720));
@@ -108,7 +110,7 @@ fn apply_presentation_prefers_shared_root_projection_for_visible_drawer_document
 
     let (_fixture, chrome, model, ui_asset_panes) = root_shell_fixture();
     let ui =
-        crate::host::slint_host::WorkbenchShell::new().expect("workbench shell should instantiate");
+        crate::host::slint_host::UiHostWindow::new().expect("workbench shell should instantiate");
     ui.show()
         .expect("workbench shell should show in the test backend");
     ui.window().set_size(slint::PhysicalSize::new(1280, 720));
@@ -206,7 +208,7 @@ fn apply_presentation_prefers_shared_root_projection_for_visible_drawer_region_p
 
     let (_fixture, chrome, model, ui_asset_panes) = root_shell_fixture();
     let ui =
-        crate::host::slint_host::WorkbenchShell::new().expect("workbench shell should instantiate");
+        crate::host::slint_host::UiHostWindow::new().expect("workbench shell should instantiate");
     ui.show()
         .expect("workbench shell should show in the test backend");
     ui.window().set_size(slint::PhysicalSize::new(1280, 720));
@@ -291,16 +293,16 @@ fn apply_presentation_prefers_shared_root_projection_for_visible_drawer_region_e
 
     let (_fixture, chrome, model, ui_asset_panes) = root_shell_fixture();
     let ui =
-        crate::host::slint_host::WorkbenchShell::new().expect("workbench shell should instantiate");
+        crate::host::slint_host::UiHostWindow::new().expect("workbench shell should instantiate");
     ui.show()
         .expect("workbench shell should show in the test backend");
     ui.window().set_size(slint::PhysicalSize::new(1280, 720));
 
     let mut bridge = BuiltinWorkbenchTemplateBridge::new(UiSize::new(1280.0, 720.0)).unwrap();
     bridge
-        .recompute_layout_with_chrome(
+        .recompute_layout_with_workbench_model(
             UiSize::new(1280.0, 720.0),
-            &chrome,
+            &model,
             &crate::WorkbenchChromeMetrics::default(),
         )
         .unwrap();
@@ -374,6 +376,109 @@ fn apply_presentation_prefers_shared_root_projection_for_visible_drawer_region_e
             y: projection_frames.bottom_drawer_shell_frame.unwrap().y,
             width: projection_frames.bottom_drawer_shell_frame.unwrap().width,
             height: projection_frames.bottom_drawer_shell_frame.unwrap().height,
+        }
+    );
+}
+
+#[test]
+fn apply_presentation_prefers_shared_visible_drawer_projection_when_legacy_geometry_is_zeroed() {
+    i_slint_backend_testing::init_no_event_loop();
+
+    let (_fixture, chrome, model, ui_asset_panes) = root_shell_fixture();
+    let ui =
+        crate::host::slint_host::UiHostWindow::new().expect("workbench shell should instantiate");
+    ui.show()
+        .expect("workbench shell should show in the test backend");
+    ui.window().set_size(slint::PhysicalSize::new(1280, 720));
+
+    let mut bridge = BuiltinWorkbenchTemplateBridge::new(UiSize::new(1280.0, 720.0)).unwrap();
+    bridge
+        .recompute_layout_with_workbench_model(
+            UiSize::new(1280.0, 720.0),
+            &model,
+            &crate::WorkbenchChromeMetrics::default(),
+        )
+        .unwrap();
+    let projection_frames = bridge.root_shell_frames();
+    let geometry = crate::WorkbenchShellGeometry {
+        center_band_frame: crate::ShellFrame::new(5.0, 17.0, 400.0, 500.0),
+        status_bar_frame: crate::ShellFrame::new(11.0, 520.0, 700.0, 18.0),
+        region_frames: [
+            (crate::ShellRegionId::Left, crate::ShellFrame::default()),
+            (
+                crate::ShellRegionId::Document,
+                crate::ShellFrame::new(21.0, 37.0, 410.0, 250.0),
+            ),
+            (crate::ShellRegionId::Right, crate::ShellFrame::default()),
+            (crate::ShellRegionId::Bottom, crate::ShellFrame::default()),
+        ]
+        .into_iter()
+        .collect(),
+        viewport_content_frame: crate::ShellFrame::new(66.0, 120.0, 320.0, 180.0),
+        ..crate::WorkbenchShellGeometry::default()
+    };
+    let floating_window_projection_bundle = build_floating_window_projection_bundle(
+        &model,
+        &geometry,
+        &crate::WorkbenchChromeMetrics::default(),
+        &[],
+    );
+
+    apply_presentation(
+        &ui,
+        &model,
+        &chrome,
+        &geometry,
+        &[],
+        None,
+        &ui_asset_panes,
+        Some(&projection_frames),
+        &floating_window_projection_bundle,
+    );
+
+    assert_eq!(
+        ui.get_left_region_frame(),
+        crate::host::slint_host::FrameRect {
+            x: projection_frames.left_drawer_shell_frame.unwrap().x,
+            y: projection_frames.left_drawer_shell_frame.unwrap().y,
+            width: projection_frames.left_drawer_shell_frame.unwrap().width,
+            height: projection_frames.left_drawer_shell_frame.unwrap().height,
+        }
+    );
+    assert_eq!(
+        ui.get_right_region_frame(),
+        crate::host::slint_host::FrameRect {
+            x: projection_frames.right_drawer_shell_frame.unwrap().x,
+            y: projection_frames.right_drawer_shell_frame.unwrap().y,
+            width: projection_frames.right_drawer_shell_frame.unwrap().width,
+            height: projection_frames.right_drawer_shell_frame.unwrap().height,
+        }
+    );
+    assert_eq!(
+        ui.get_bottom_region_frame(),
+        crate::host::slint_host::FrameRect {
+            x: projection_frames.bottom_drawer_shell_frame.unwrap().x,
+            y: projection_frames.bottom_drawer_shell_frame.unwrap().y,
+            width: projection_frames.bottom_drawer_shell_frame.unwrap().width,
+            height: projection_frames.bottom_drawer_shell_frame.unwrap().height,
+        }
+    );
+    assert_eq!(
+        ui.get_document_region_frame(),
+        crate::host::slint_host::FrameRect {
+            x: 313.0,
+            y: 40.0,
+            width: 658.0,
+            height: 491.0,
+        }
+    );
+    assert_eq!(
+        ui.get_viewport_content_frame(),
+        crate::host::slint_host::FrameRect {
+            x: 313.0,
+            y: 68.0,
+            width: 658.0,
+            height: 463.0,
         }
     );
 }
@@ -624,52 +729,38 @@ fn floating_window_overlay_snapshot_captures_shared_frame_and_route_keys() {
     let snapshot =
         EditorUiCompatibilityHarness::capture_floating_window_overlay_snapshot(&floating_windows);
 
-    assert!(
-        snapshot
-            .frame_entries
-            .contains(&"floating-window/window:preview=420,180,360,240".to_string())
-    );
+    assert!(snapshot
+        .frame_entries
+        .contains(&"floating-window/window:preview=420,180,360,240".to_string()));
     assert!(snapshot.route_key_entries.contains(
         &"floating-window/window:preview.attach=floating-window/window:preview".to_string()
     ));
     assert!(snapshot.route_key_entries.contains(
         &"floating-window/window:preview.left=floating-window-edge/window:preview/left".to_string()
     ));
-    assert!(
-        snapshot.route_key_entries.contains(
-            &"floating-window/window:preview.right=floating-window-edge/window:preview/right"
-                .to_string()
-        )
-    );
+    assert!(snapshot.route_key_entries.contains(
+        &"floating-window/window:preview.right=floating-window-edge/window:preview/right"
+            .to_string()
+    ));
     assert!(snapshot.route_key_entries.contains(
         &"floating-window/window:preview.top=floating-window-edge/window:preview/top".to_string()
     ));
-    assert!(
-        snapshot.route_key_entries.contains(
-            &"floating-window/window:preview.bottom=floating-window-edge/window:preview/bottom"
-                .to_string()
-        )
-    );
-    assert!(
-        snapshot
-            .attribute_entries
-            .contains(&"floating-window/window:preview.title=Preview Popout".to_string())
-    );
-    assert!(
-        snapshot.attribute_entries.contains(
-            &"floating-window/window:preview.focus_target_id=editor.game#float".to_string()
-        )
-    );
-    assert!(
-        snapshot.attribute_entries.contains(
-            &"floating-window/window:preview.active_pane.id=editor.game#float".to_string()
-        )
-    );
-    assert!(
-        snapshot
-            .attribute_entries
-            .contains(&"floating-window/window:preview.active_pane.kind=Game".to_string())
-    );
+    assert!(snapshot.route_key_entries.contains(
+        &"floating-window/window:preview.bottom=floating-window-edge/window:preview/bottom"
+            .to_string()
+    ));
+    assert!(snapshot
+        .attribute_entries
+        .contains(&"floating-window/window:preview.title=Preview Popout".to_string()));
+    assert!(snapshot
+        .attribute_entries
+        .contains(&"floating-window/window:preview.focus_target_id=editor.game#float".to_string()));
+    assert!(snapshot
+        .attribute_entries
+        .contains(&"floating-window/window:preview.active_pane.id=editor.game#float".to_string()));
+    assert!(snapshot
+        .attribute_entries
+        .contains(&"floating-window/window:preview.active_pane.kind=Game".to_string()));
 }
 
 #[test]
@@ -757,4 +848,60 @@ fn floating_window_overlay_route_keys_match_shared_shell_pointer_route_normaliza
         }),
         Some(window.bottom_edge_target_group.to_string())
     );
+}
+
+#[test]
+fn collect_floating_windows_does_not_fall_back_to_legacy_geometry_when_projection_bundle_is_explicitly_provided(
+) {
+    let mut fixture = default_preview_fixture();
+    let window_id = MainPageId::new("window:preview");
+    let scene_instance = ViewInstance {
+        instance_id: ViewInstanceId::new("editor.scene#float"),
+        descriptor_id: crate::ViewDescriptorId::new("editor.scene"),
+        title: "Scene".to_string(),
+        serializable_payload: serde_json::json!({ "path": "crate://scene/floating.scene" }),
+        dirty: false,
+        host: ViewHost::FloatingWindow(window_id.clone(), vec![]),
+    };
+    fixture.instances.push(scene_instance.clone());
+    fixture.layout.floating_windows.push(FloatingWindowLayout {
+        window_id: window_id.clone(),
+        title: "Preview Popout".to_string(),
+        workspace: crate::DocumentNode::Tabs(TabStackLayout {
+            tabs: vec![scene_instance.instance_id.clone()],
+            active_tab: Some(scene_instance.instance_id.clone()),
+        }),
+        focused_view: Some(scene_instance.instance_id.clone()),
+        frame: crate::ShellFrame::new(420.0, 180.0, 360.0, 240.0),
+    });
+
+    let chrome = fixture.build_chrome();
+    let model = WorkbenchViewModel::build(&chrome);
+    let mut geometry = crate::compute_workbench_shell_geometry(
+        &model,
+        &chrome,
+        &fixture.layout,
+        &fixture.descriptors,
+        crate::ShellSizePx::new(1440.0, 900.0),
+        &crate::WorkbenchChromeMetrics::default(),
+        None,
+    );
+    geometry.floating_window_frames.insert(
+        window_id.clone(),
+        crate::ShellFrame::new(96.0, 72.0, 144.0, 88.0),
+    );
+
+    let floating_windows = collect_floating_windows(
+        &model,
+        &chrome,
+        &geometry,
+        &BTreeMap::new(),
+        &FloatingWindowProjectionBundle::default(),
+    );
+
+    assert_eq!(floating_windows.len(), 1);
+    assert_eq!(floating_windows[0].frame.x, 0.0);
+    assert_eq!(floating_windows[0].frame.y, 0.0);
+    assert_eq!(floating_windows[0].frame.width, 0.0);
+    assert_eq!(floating_windows[0].frame.height, 0.0);
 }

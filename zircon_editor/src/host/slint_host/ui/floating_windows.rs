@@ -3,9 +3,7 @@ use super::model_rc::model_rc;
 use super::pane_projection::{blank_pane, find_tab_snapshot, pane_from_tab};
 use super::workbench_tabs::document_tab_data;
 use super::*;
-use crate::host::slint_host::floating_window_projection::{
-    FloatingWindowProjectionBundle, resolve_floating_window_outer_frame,
-};
+use crate::host::slint_host::floating_window_projection::FloatingWindowProjectionBundle;
 
 pub(super) fn collect_floating_windows(
     model: &WorkbenchViewModel,
@@ -32,7 +30,7 @@ pub(super) fn collect_floating_windows(
 fn floating_window_data(
     window: &crate::FloatingWindowModel,
     chrome: &EditorChromeSnapshot,
-    geometry: &WorkbenchShellGeometry,
+    _geometry: &WorkbenchShellGeometry,
     ui_asset_panes: &std::collections::BTreeMap<String, crate::UiAssetEditorPanePresentation>,
     floating_window_projection_bundle: &FloatingWindowProjectionBundle,
 ) -> FloatingWindowData {
@@ -54,7 +52,7 @@ fn floating_window_data(
         .unwrap_or_else(blank_pane);
     let frame = floating_window_projection_bundle
         .outer_frame(&window.window_id)
-        .unwrap_or_else(|| resolve_floating_window_outer_frame(geometry, &window.window_id));
+        .unwrap_or_default();
 
     FloatingWindowData {
         window_id: window.window_id.0.clone().into(),

@@ -1,15 +1,13 @@
 use std::collections::BTreeMap;
 
 use thiserror::Error;
-use toml::Value;
 use zircon_editor_ui::{
     UiAssetEditorMode, UiAssetEditorReflectionModel, UiAssetEditorRoute, UiAssetPreviewPreset,
     UiDesignerSelectionModel, UiStyleInspectorReflectionModel,
 };
 use zircon_ui::{
-    UiAssetDocument, UiAssetError, UiAssetKind, UiAssetLoader, UiCompiledDocument,
-    UiDocumentCompiler, UiSize, UiStyleDeclarationBlock, UiStyleRule, UiStyleSheet,
-    UiTemplateBuildError, UiTreeError,
+    UiAssetDocument, UiAssetError, UiAssetKind, UiAssetLoader, UiCompiledDocument, UiSize,
+    UiStyleDeclarationBlock, UiStyleRule, UiStyleSheet, UiTemplateBuildError, UiTreeError,
 };
 
 use super::{
@@ -27,6 +25,10 @@ use super::{
         upsert_selected_binding_payload as upsert_selected_binding_payload_field,
     },
     command::{UiAssetEditorCommand, UiAssetEditorTreeEdit, UiAssetEditorTreeEditKind},
+    hierarchy_projection::{
+        build_hierarchy_items, build_inspector_items, hierarchy_node_ids, selected_hierarchy_index,
+        selection_for_node, selection_summary,
+    },
     inspector_fields::{
         build_inspector_fields, set_selected_node_control_id,
         set_selected_node_layout_height_preferred, set_selected_node_layout_width_preferred,
@@ -43,50 +45,66 @@ use super::{
         set_selected_layout_semantic_value as set_selected_layout_semantic_value_field,
         set_selected_slot_semantic_value as set_selected_slot_semantic_value_field,
     },
-    matched_rule_inspection::{
-        MatchedStyleRuleEntry, matched_style_rule_entries, selector_component_name,
-        selector_is_valid,
-    },
     palette_drop::{
-        UiAssetPaletteDragResolution, UiAssetPaletteDragTarget, UiAssetPaletteInsertPlan,
         build_palette_drag_slot_target_overlays, build_palette_insert_plan,
         can_insert_palette_item_for_node as can_insert_palette_item_at_node,
         resolve_palette_drag_target as resolve_palette_drag_target_for_preview,
+        UiAssetPaletteDragResolution, UiAssetPaletteDragTarget, UiAssetPaletteInsertPlan,
     },
-    palette_target_chooser::{UiAssetPaletteTargetChooser, reconcile_palette_target_chooser},
+    palette_target_chooser::{reconcile_palette_target_chooser, UiAssetPaletteTargetChooser},
     presentation::{
         UiAssetEditorPanePresentation, UiAssetEditorPreviewCanvasNode,
         UiAssetEditorPreviewCanvasSlotTarget,
     },
+    preview_compile::{compile_preview, current_preview_size, preview_size_for_preset},
     preview_host::UiAssetPreviewHost,
     preview_mock::{
-        UiAssetPreviewMockState, apply_preview_mock_overrides, build_preview_mock_fields,
-        clear_selected_preview_mock_value, reconcile_preview_mock_state,
-        select_preview_mock_property, set_selected_preview_mock_value,
+        apply_preview_mock_overrides, build_preview_mock_fields, clear_selected_preview_mock_value,
+        reconcile_preview_mock_state, select_preview_mock_property,
+        set_selected_preview_mock_value, UiAssetPreviewMockState,
     },
     preview_projection::{build_preview_projection, preview_node_id_for_index},
     promote_widget::{
-        UiAssetExternalWidgetDraft, can_promote_selected_component_to_external_widget,
-        default_external_widget_draft,
+        can_promote_selected_component_to_external_widget, default_external_widget_draft,
         promote_selected_component_to_external_widget as tree_promote_selected_component_to_external_widget,
-        selected_local_component_name,
+        selected_local_component_name, UiAssetExternalWidgetDraft,
+    },
+    session_state::{
+        default_selection, ensure_asset_kind, reconcile_selection, UiAssetCompilerImports,
     },
     source_buffer::UiAssetSourceBuffer,
-    source_sync::{build_source_outline, build_source_selection_summary},
+    source_sync::{
+        build_source_outline, build_source_selection_summary, source_byte_offset_for_line,
+        source_line_for_byte_offset, source_outline_entry_for_node,
+        source_outline_node_id_for_line,
+    },
+    style_inspection::{
+        build_style_inspector, build_stylesheet_items, local_style_rule_entries,
+        local_style_token_entries, matched_style_rule_entries_for_selection, normalized_class_name,
+        normalized_selector, normalized_token_name, parse_token_literal, pseudo_state_active,
+        reconcile_selected_matched_style_rule_index,
+        reconcile_selected_style_rule_declaration_path, reconcile_selected_style_rule_index,
+        reconcile_selected_style_token_name, selected_node_has_inline_overrides,
+        selected_node_selector, selected_style_rule_declaration_entries, MatchedStyleRuleEntry,
+        SUPPORTED_PSEUDO_STATES,
+    },
     style_rule_declarations::{
-        UiStyleRuleDeclarationEntry, UiStyleRuleDeclarationPath, declaration_entries,
-        parse_declaration_literal, remove_declaration, set_declaration,
+        declaration_entries, parse_declaration_literal, remove_declaration, set_declaration,
+        UiStyleRuleDeclarationPath,
     },
     tree_editing::{
-        PaletteInsertMode, UiTreeMoveDirection, UiTreeReparentDirection, build_palette_entries,
-        can_convert_selected_node_to_reference, can_extract_selected_node_to_component,
+        build_palette_entries, can_convert_selected_node_to_reference,
+        can_extract_selected_node_to_component,
         convert_selected_node_to_reference as tree_convert_selected_node_to_reference,
         extract_selected_node_to_component as tree_extract_selected_node_to_component,
         insert_palette_item_with_placement, move_selected_node,
         reparent_selected_node as tree_reparent_selected_node, unwrap_selected_node,
-        wrap_selected_node,
+        wrap_selected_node, PaletteInsertMode, UiTreeMoveDirection, UiTreeReparentDirection,
     },
-    undo_stack::UiAssetEditorUndoStack,
+    undo_stack::{
+        UiAssetEditorExternalEffect, UiAssetEditorSourceCursorSnapshot,
+        UiAssetEditorUndoExternalEffects, UiAssetEditorUndoStack,
+    },
 };
 
 #[derive(Debug, Error)]
@@ -132,20 +150,17 @@ pub enum UiAssetEditorSessionError {
     InvalidPreviewMockValue { message: String },
 }
 
-#[derive(Default)]
-struct UiAssetCompilerImports {
-    widgets: BTreeMap<String, UiAssetDocument>,
-    styles: BTreeMap<String, UiAssetDocument>,
-}
-
 pub struct UiAssetEditorSession {
     route: UiAssetEditorRoute,
     source_buffer: UiAssetSourceBuffer,
+    last_valid_source_text: String,
     last_valid_document: UiAssetDocument,
     last_valid_compiled: Option<UiCompiledDocument>,
     preview_host: Option<UiAssetPreviewHost>,
     undo_stack: UiAssetEditorUndoStack,
     diagnostics: Vec<String>,
+    source_cursor_byte_offset: usize,
+    source_cursor_anchor: Option<UiAssetSourceCursorAnchor>,
     selection: UiDesignerSelectionModel,
     style_inspector: UiStyleInspectorReflectionModel,
     selected_style_rule_index: Option<usize>,
@@ -164,6 +179,12 @@ pub struct UiAssetEditorSession {
     selected_promote_widget_document_id: Option<String>,
     preview_mock_state: UiAssetPreviewMockState,
     compiler_imports: UiAssetCompilerImports,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct UiAssetSourceCursorAnchor {
+    node_id: String,
+    line_offset: usize,
 }
 
 impl UiAssetEditorSession {
@@ -186,6 +207,21 @@ impl UiAssetEditorSession {
             selected_binding_index,
             None,
         );
+        let source_cursor_anchor =
+            selection
+                .primary_node_id
+                .as_ref()
+                .map(|node_id| UiAssetSourceCursorAnchor {
+                    node_id: node_id.clone(),
+                    line_offset: 0,
+                });
+        let source_cursor_byte_offset = source_cursor_anchor
+            .as_ref()
+            .and_then(|anchor| {
+                source_outline_entry_for_node(&source, &anchor.node_id)
+                    .map(|entry| source_byte_offset_for_line(&source, entry.line as usize))
+            })
+            .unwrap_or(0);
         let promote_draft = default_external_widget_draft(&document, &selection);
         let (last_valid_compiled, preview_host, diagnostics) =
             match compile_preview(&document, preview_size, &compiler_imports) {
@@ -194,12 +230,15 @@ impl UiAssetEditorSession {
             };
         Ok(Self {
             route,
-            source_buffer: UiAssetSourceBuffer::new(source),
+            source_buffer: UiAssetSourceBuffer::new(source.clone()),
+            last_valid_source_text: source,
             last_valid_document: document,
             last_valid_compiled,
             preview_host,
             undo_stack: UiAssetEditorUndoStack::default(),
             diagnostics,
+            source_cursor_byte_offset,
+            source_cursor_anchor,
             selection,
             style_inspector,
             selected_style_rule_index: None,
@@ -275,6 +314,14 @@ impl UiAssetEditorSession {
         self.undo_stack.next_redo_tree_edit()
     }
 
+    pub fn next_undo_external_effect(&self) -> Option<UiAssetEditorExternalEffect> {
+        self.undo_stack.next_undo_external_effect()
+    }
+
+    pub fn next_redo_external_effect(&self) -> Option<UiAssetEditorExternalEffect> {
+        self.undo_stack.next_redo_external_effect()
+    }
+
     pub fn reflection_model(&self) -> UiAssetEditorReflectionModel {
         let mut model = UiAssetEditorReflectionModel::new(
             self.route.clone(),
@@ -343,14 +390,15 @@ impl UiAssetEditorSession {
         let selector_hint = selected_node_selector(&self.last_valid_document, &self.selection);
         let palette_entries =
             build_palette_entries(&self.last_valid_document, &self.compiler_imports.widgets);
+        let roundtrip_source = self.roundtrip_source_text();
         let source_summary = build_source_selection_summary(
             &self.last_valid_document,
             &self.selection,
-            self.source_buffer.text(),
+            roundtrip_source,
             &self.diagnostics,
+            self.selected_source_line_offset(),
         );
-        let source_outline =
-            build_source_outline(&self.last_valid_document, self.source_buffer.text());
+        let source_outline = build_source_outline(&self.last_valid_document, roundtrip_source);
         let source_outline_selected_index = self
             .selection
             .primary_node_id
@@ -743,6 +791,10 @@ impl UiAssetEditorSession {
                 .map(|(_, entry)| entry.literal.clone())
                 .unwrap_or_default(),
             inspector_slot_kind: structured_slot_semantic.kind,
+            inspector_slot_linear_main_weight: structured_slot_semantic.linear_main_weight,
+            inspector_slot_linear_main_stretch: structured_slot_semantic.linear_main_stretch,
+            inspector_slot_linear_cross_weight: structured_slot_semantic.linear_cross_weight,
+            inspector_slot_linear_cross_stretch: structured_slot_semantic.linear_cross_stretch,
             inspector_slot_overlay_anchor_x: structured_slot_semantic.overlay_anchor_x,
             inspector_slot_overlay_anchor_y: structured_slot_semantic.overlay_anchor_y,
             inspector_slot_overlay_pivot_x: structured_slot_semantic.overlay_pivot_x,
@@ -774,6 +826,7 @@ impl UiAssetEditorSession {
                 .map(|(_, entry)| entry.literal.clone())
                 .unwrap_or_default(),
             inspector_layout_kind: structured_layout_semantic.kind,
+            inspector_layout_box_gap: structured_layout_semantic.box_gap,
             inspector_layout_scroll_axis: structured_layout_semantic.scroll_axis,
             inspector_layout_scroll_gap: structured_layout_semantic.scroll_gap,
             inspector_layout_scrollbar_visibility: structured_layout_semantic.scrollbar_visibility,
@@ -860,6 +913,7 @@ impl UiAssetEditorSession {
             .nth(index)
             .ok_or(UiAssetEditorSessionError::InvalidSelectionIndex { index })?;
         self.select_node_id(&node_id);
+        self.set_source_cursor_to_selected_node_start();
         Ok(())
     }
 
@@ -873,6 +927,7 @@ impl UiAssetEditorSession {
             return Err(UiAssetEditorSessionError::InvalidPreviewIndex { index });
         };
         self.select_node_id(&node_id);
+        self.set_source_cursor_to_selected_node_start();
         Ok(())
     }
 
@@ -886,7 +941,61 @@ impl UiAssetEditorSession {
             .map(|entry| entry.node_id)
             .ok_or(UiAssetEditorSessionError::InvalidSelectionIndex { index })?;
         self.select_node_id(&node_id);
+        self.set_source_cursor_to_selected_node_start();
         Ok(())
+    }
+
+    pub fn select_source_line(&mut self, line: usize) -> Result<(), UiAssetEditorSessionError> {
+        let node_id = source_outline_node_id_for_line(
+            &self.last_valid_document,
+            self.source_buffer.text(),
+            line,
+        )
+        .ok_or(UiAssetEditorSessionError::InvalidSelectionIndex { index: line })?;
+        let line_offset = source_outline_entry_for_node(self.source_buffer.text(), &node_id)
+            .map(|entry| line.saturating_sub(entry.line as usize))
+            .unwrap_or_default();
+        self.select_node_id(&node_id);
+        self.set_source_cursor_for_selected_node_line(
+            line_offset,
+            source_byte_offset_for_line(self.source_buffer.text(), line),
+        );
+        Ok(())
+    }
+
+    pub fn select_source_byte_offset(
+        &mut self,
+        byte_offset: usize,
+    ) -> Result<bool, UiAssetEditorSessionError> {
+        let clamped = byte_offset.min(self.source_buffer.text().len());
+        let line = source_line_for_byte_offset(self.source_buffer.text(), clamped);
+        let Some(node_id) = source_outline_node_id_for_line(
+            &self.last_valid_document,
+            self.source_buffer.text(),
+            line,
+        ) else {
+            return Ok(false);
+        };
+        let line_offset = source_outline_entry_for_node(self.source_buffer.text(), &node_id)
+            .map(|entry| line.saturating_sub(entry.line as usize))
+            .unwrap_or_default();
+        let selection_changed = self.selection.primary_node_id.as_deref() != Some(node_id.as_str());
+        let cursor_changed = self.source_cursor_byte_offset != clamped
+            || self
+                .source_cursor_anchor
+                .as_ref()
+                .map(|anchor| {
+                    anchor.node_id.as_str() != node_id.as_str() || anchor.line_offset != line_offset
+                })
+                .unwrap_or(true);
+        if !selection_changed && !cursor_changed {
+            return Ok(false);
+        }
+        if selection_changed {
+            self.select_node_id(&node_id);
+        }
+        self.set_source_cursor_for_selected_node_line(line_offset, clamped);
+        Ok(true)
     }
 
     pub fn select_preview_mock_property(
@@ -1290,17 +1399,30 @@ impl UiAssetEditorSession {
         ) else {
             return Ok(None);
         };
+        let widget_source = toml::to_string_pretty(&widget_document)
+            .map_err(|error| UiAssetError::ParseToml(error.to_string()))?;
         let selection = selection_for_node(&document, &node_id);
-        self.apply_document_edit_with_tree_edit_and_selection(
-            document.clone(),
-            UiAssetEditorTreeEdit::PromoteToExternalWidget {
-                source_component_name,
-                asset_id: widget_asset_id.to_string(),
-                component_name: widget_component_name.to_string(),
-                document_id: widget_document_id.to_string(),
+        self.apply_command_with_effects(
+            UiAssetEditorCommand::tree_edit_structured_with_selection(
+                UiAssetEditorTreeEdit::PromoteToExternalWidget {
+                    source_component_name,
+                    asset_id: widget_asset_id.to_string(),
+                    component_name: widget_component_name.to_string(),
+                    document_id: widget_document_id.to_string(),
+                },
+                "Promote To External Widget",
+                serialize_document(&document)?,
+                selection,
+            ),
+            UiAssetEditorUndoExternalEffects {
+                undo: Some(UiAssetEditorExternalEffect::RemoveAssetSource {
+                    asset_id: widget_asset_id.to_string(),
+                }),
+                redo: Some(UiAssetEditorExternalEffect::UpsertAssetSource {
+                    asset_id: widget_asset_id.to_string(),
+                    source: widget_source,
+                }),
             },
-            "Promote To External Widget",
-            selection,
         )?;
         Ok(Some(widget_document))
     }
@@ -2342,26 +2464,49 @@ impl UiAssetEditorSession {
         &mut self,
         command: UiAssetEditorCommand,
     ) -> Result<(), UiAssetEditorSessionError> {
+        self.apply_command_with_effects(command, UiAssetEditorUndoExternalEffects::default())
+    }
+
+    fn apply_command_with_effects(
+        &mut self,
+        command: UiAssetEditorCommand,
+        external_effects: UiAssetEditorUndoExternalEffects,
+    ) -> Result<(), UiAssetEditorSessionError> {
         let before_source = self.source_buffer.text().to_string();
         let before_selection = self.selection.clone();
+        let before_source_cursor = self.source_cursor_snapshot();
         let tree_edit = command.structured_tree_edit().cloned();
         let before_document = tree_edit.as_ref().map(|_| self.last_valid_document.clone());
         self.source_buffer
             .replace(command.next_source().to_string());
+        self.source_cursor_byte_offset = remap_source_byte_offset(
+            &before_source,
+            self.source_buffer.text(),
+            self.source_cursor_byte_offset,
+        );
         if let Some(next_selection) = command.next_selection() {
             self.selection = next_selection.clone();
         }
         self.revalidate().map(|_| {
+            if command.next_selection().is_some() {
+                self.set_source_cursor_to_selected_node_start();
+            } else if self.diagnostics.is_empty() {
+                self.reconcile_source_cursor_state();
+            }
             let after_document = tree_edit.as_ref().map(|_| self.last_valid_document.clone());
+            let after_source_cursor = self.source_cursor_snapshot();
             self.undo_stack.push_edit(
                 command.label().to_string(),
                 tree_edit,
                 before_source,
                 before_selection,
+                before_source_cursor,
                 before_document,
                 self.source_buffer.text().to_string(),
                 self.selection.clone(),
+                after_source_cursor,
                 after_document,
+                external_effects,
             );
         })
     }
@@ -2407,18 +2552,18 @@ impl UiAssetEditorSession {
     }
 
     pub fn undo(&mut self) -> Result<bool, UiAssetEditorSessionError> {
-        let Some(snapshot) = self.undo_stack.undo() else {
+        let Some(transition) = self.undo_stack.undo() else {
             return Ok(false);
         };
-        self.restore_snapshot(snapshot)?;
+        self.apply_undo_transition(transition)?;
         Ok(true)
     }
 
     pub fn redo(&mut self) -> Result<bool, UiAssetEditorSessionError> {
-        let Some(snapshot) = self.undo_stack.redo() else {
+        let Some(transition) = self.undo_stack.redo() else {
             return Ok(false);
         };
-        self.restore_snapshot(snapshot)?;
+        self.apply_undo_transition(transition)?;
         Ok(true)
     }
 
@@ -2676,24 +2821,162 @@ impl UiAssetEditorSession {
         Ok(())
     }
 
-    fn restore_snapshot(
+    fn apply_undo_transition(
         &mut self,
-        snapshot: super::undo_stack::UiAssetEditorUndoSnapshot,
+        transition: super::undo_stack::UiAssetEditorUndoTransition,
     ) -> Result<(), UiAssetEditorSessionError> {
-        self.selection = snapshot.selection;
-        if let Some(document_replay) = snapshot.document {
+        let mut source = self.source_buffer.text().to_string();
+        let _ = transition
+            .apply_to_source(&mut source)
+            .map_err(|_| UiAssetEditorSessionError::InvalidSourceBuffer)?;
+        let super::undo_stack::UiAssetEditorUndoTransition {
+            selection,
+            source_cursor,
+            document,
+            ..
+        } = transition;
+        self.selection = selection;
+        if let Some(document_replay) = document {
             let mut document = self.last_valid_document.clone();
             let _ = document_replay
                 .apply_to_document(&mut document)
                 .map_err(|_| UiAssetEditorSessionError::InvalidSourceBuffer)?;
-            self.source_buffer.replace(serialize_document(&document)?);
+            self.source_buffer.replace(source);
+            self.restore_source_cursor_snapshot(&source_cursor);
             self.apply_valid_document(document)?;
         } else {
-            self.source_buffer.replace(snapshot.source);
+            self.source_buffer.replace(source);
+            self.restore_source_cursor_snapshot(&source_cursor);
             self.revalidate()?;
         }
         self.clear_palette_drag_state();
         Ok(())
+    }
+
+    fn set_source_cursor_to_selected_node_start(&mut self) {
+        let Some(node_id) = self.selection.primary_node_id.as_deref() else {
+            self.source_cursor_anchor = None;
+            self.source_cursor_byte_offset = 0;
+            return;
+        };
+        self.source_cursor_anchor = Some(UiAssetSourceCursorAnchor {
+            node_id: node_id.to_string(),
+            line_offset: 0,
+        });
+        let source = self.source_buffer.text().to_string();
+        if let Some(entry) = source_outline_entry_for_node(&source, node_id) {
+            self.source_cursor_byte_offset = source_byte_offset_for_line(&source, entry.line as usize);
+        } else {
+            self.source_cursor_byte_offset = self.source_cursor_byte_offset.min(source.len());
+        }
+    }
+
+    fn set_source_cursor_for_selected_node_line(&mut self, line_offset: usize, byte_offset: usize) {
+        let Some(node_id) = self.selection.primary_node_id.as_deref() else {
+            self.source_cursor_anchor = None;
+            self.source_cursor_byte_offset = 0;
+            return;
+        };
+        let source = self.source_buffer.text().to_string();
+        self.source_cursor_byte_offset = byte_offset.min(source.len());
+        if let Some(entry) = source_outline_entry_for_node(&source, node_id) {
+            let max_offset = (entry.end_line - entry.line).max(0) as usize;
+            let line_offset = line_offset.min(max_offset);
+            let current_line = source_line_for_byte_offset(&source, self.source_cursor_byte_offset);
+            if current_line < entry.line as usize || current_line > entry.end_line as usize {
+                self.source_cursor_byte_offset =
+                    source_byte_offset_for_line(&source, entry.line as usize + line_offset);
+            }
+            self.source_cursor_anchor = Some(UiAssetSourceCursorAnchor {
+                node_id: node_id.to_string(),
+                line_offset,
+            });
+        } else {
+            self.source_cursor_anchor = Some(UiAssetSourceCursorAnchor {
+                node_id: node_id.to_string(),
+                line_offset,
+            });
+        }
+    }
+
+    fn selected_source_line_offset(&self) -> Option<usize> {
+        let selected_node_id = self.selection.primary_node_id.as_deref()?;
+        self.source_cursor_anchor
+            .as_ref()
+            .filter(|anchor| anchor.node_id.as_str() == selected_node_id)
+            .map(|anchor| anchor.line_offset)
+    }
+
+    fn source_cursor_snapshot(&self) -> UiAssetEditorSourceCursorSnapshot {
+        UiAssetEditorSourceCursorSnapshot {
+            byte_offset: self.source_cursor_byte_offset,
+            anchor_node_id: self
+                .source_cursor_anchor
+                .as_ref()
+                .map(|anchor| anchor.node_id.clone()),
+            line_offset: self
+                .source_cursor_anchor
+                .as_ref()
+                .map(|anchor| anchor.line_offset)
+                .unwrap_or_default(),
+        }
+    }
+
+    fn restore_source_cursor_snapshot(&mut self, snapshot: &UiAssetEditorSourceCursorSnapshot) {
+        let source_len = self.source_buffer.text().len();
+        self.source_cursor_byte_offset = snapshot.byte_offset.min(source_len);
+        self.source_cursor_anchor =
+            snapshot
+                .anchor_node_id
+                .as_ref()
+                .map(|node_id| UiAssetSourceCursorAnchor {
+                    node_id: node_id.clone(),
+                    line_offset: snapshot.line_offset,
+                });
+    }
+
+    fn roundtrip_source_text(&self) -> &str {
+        if self.diagnostics.is_empty() {
+            self.source_buffer.text()
+        } else {
+            &self.last_valid_source_text
+        }
+    }
+
+    fn reconcile_source_cursor_state(&mut self) {
+        let Some(selected_node_id) = self.selection.primary_node_id.as_deref() else {
+            self.source_cursor_anchor = None;
+            self.source_cursor_byte_offset = 0;
+            return;
+        };
+        let source = self.source_buffer.text().to_string();
+        self.source_cursor_byte_offset = self.source_cursor_byte_offset.min(source.len());
+        let Some(entry) = source_outline_entry_for_node(&source, selected_node_id) else {
+            return;
+        };
+        let current_line = source_line_for_byte_offset(&source, self.source_cursor_byte_offset);
+        let existing_line_offset = self
+            .source_cursor_anchor
+            .as_ref()
+            .filter(|anchor| anchor.node_id.as_str() == selected_node_id)
+            .map(|anchor| anchor.line_offset)
+            .unwrap_or_default();
+        let max_offset = (entry.end_line - entry.line).max(0) as usize;
+        let inside_selected_block =
+            current_line >= entry.line as usize && current_line <= entry.end_line as usize;
+        let line_offset = if inside_selected_block {
+            current_line.saturating_sub(entry.line as usize)
+        } else {
+            existing_line_offset.min(max_offset)
+        };
+        if !inside_selected_block {
+            self.source_cursor_byte_offset =
+                source_byte_offset_for_line(&source, entry.line as usize + line_offset);
+        }
+        self.source_cursor_anchor = Some(UiAssetSourceCursorAnchor {
+            node_id: selected_node_id.to_string(),
+            line_offset,
+        });
     }
 
     fn select_node_id(&mut self, node_id: &str) {
@@ -2788,6 +3071,7 @@ impl UiAssetEditorSession {
     ) -> Result<(), UiAssetEditorSessionError> {
         ensure_asset_kind(self.route.asset_kind, document.asset.kind)?;
         self.last_valid_document = document;
+        self.last_valid_source_text = self.source_buffer.text().to_string();
         self.selection = reconcile_selection(&self.last_valid_document, &self.selection);
         self.reconcile_promote_widget_draft();
         self.selected_style_rule_index = reconcile_selected_style_rule_index(
@@ -2827,6 +3111,7 @@ impl UiAssetEditorSession {
             self.selected_palette_index,
         );
         self.clear_palette_drag_state();
+        self.reconcile_source_cursor_state();
         reconcile_preview_mock_state(
             &self.last_valid_document,
             &self.selection,
@@ -2869,245 +3154,43 @@ impl UiAssetEditorSession {
     }
 }
 
-fn compile_preview(
-    document: &UiAssetDocument,
-    preview_size: UiSize,
-    imports: &UiAssetCompilerImports,
-) -> Result<(Option<UiCompiledDocument>, Option<UiAssetPreviewHost>), UiAssetEditorSessionError> {
-    if matches!(document.asset.kind, UiAssetKind::Style) {
-        return Ok((None, None));
-    }
-
-    let mut compiler = UiDocumentCompiler::default();
-    for (reference, widget) in &imports.widgets {
-        compiler.register_widget_import(reference.clone(), widget.clone())?;
-    }
-    for (reference, style) in &imports.styles {
-        compiler.register_style_import(reference.clone(), style.clone())?;
-    }
-    let compiled = compiler.compile(document)?;
-    let preview_host = UiAssetPreviewHost::new(preview_size, &document.asset.id, &compiled)?;
-    Ok((Some(compiled), Some(preview_host)))
-}
-
-fn preview_size_for_preset(preview_preset: UiAssetPreviewPreset) -> UiSize {
-    match preview_preset {
-        UiAssetPreviewPreset::EditorDocked => UiSize::new(1280.0, 720.0),
-        UiAssetPreviewPreset::EditorFloating => UiSize::new(1100.0, 780.0),
-        UiAssetPreviewPreset::GameHud => UiSize::new(1920.0, 1080.0),
-        UiAssetPreviewPreset::Dialog => UiSize::new(640.0, 480.0),
-    }
-}
-
-fn current_preview_size(
-    current: &Option<UiAssetPreviewHost>,
-    preview_preset: UiAssetPreviewPreset,
-) -> UiSize {
-    current
-        .as_ref()
-        .map(UiAssetPreviewHost::preview_size)
-        .unwrap_or_else(|| preview_size_for_preset(preview_preset))
-}
-
-fn ensure_asset_kind(
-    expected: UiAssetKind,
-    actual: UiAssetKind,
-) -> Result<(), UiAssetEditorSessionError> {
-    if expected != actual {
-        return Err(UiAssetEditorSessionError::UnexpectedKind { expected, actual });
-    }
-    Ok(())
-}
-
-fn default_selection(document: &UiAssetDocument) -> UiDesignerSelectionModel {
-    document
-        .root
-        .as_ref()
-        .map(|root| selection_for_node(document, &root.node))
-        .unwrap_or_default()
-}
-
-fn reconcile_selection(
-    document: &UiAssetDocument,
-    current: &UiDesignerSelectionModel,
-) -> UiDesignerSelectionModel {
-    let primary = current.primary_node_id.as_deref();
-    if let Some(node_id) = primary {
-        if document.nodes.contains_key(node_id) {
-            let mut selection = selection_for_node(document, node_id);
-            let parent = selection.parent_node_id.clone();
-            for sibling in &current.sibling_node_ids {
-                if sibling == node_id || !document.nodes.contains_key(sibling) {
-                    continue;
-                }
-                if parent_for_node(document, sibling)
-                    .map(|(parent_id, _)| Some(parent_id) == parent)
-                    .unwrap_or(false)
-                {
-                    selection = selection.with_sibling(sibling.clone());
-                }
-            }
-            return selection;
-        }
-    }
-    default_selection(document)
-}
-
-fn build_style_inspector(
-    document: &UiAssetDocument,
-    selection: &UiDesignerSelectionModel,
-    imports: &UiAssetCompilerImports,
-    active_states: &[String],
-) -> UiStyleInspectorReflectionModel {
-    let Some(node_id) = selection.primary_node_id.as_deref() else {
-        return UiStyleInspectorReflectionModel::default();
-    };
-    let Some(node) = document.nodes.get(node_id) else {
-        return UiStyleInspectorReflectionModel::default();
-    };
-
-    let mut inspector = UiStyleInspectorReflectionModel::for_node(node_id.to_string());
-    for class_name in &node.classes {
-        inspector = inspector.with_class(class_name.clone());
-    }
-    for state in active_states {
-        inspector = inspector.with_active_pseudo_state(state.clone());
-    }
-    for (path, value) in &node.style_overrides.self_values {
-        inspector =
-            inspector.with_inline_override(format!("self.{path}"), toml_value_to_json(value));
-    }
-    for (path, value) in &node.style_overrides.slot {
-        inspector =
-            inspector.with_inline_override(format!("slot.{path}"), toml_value_to_json(value));
-    }
-    for rule in matched_style_rule_entries(document, &imports.styles, node_id, active_states) {
-        inspector = inspector.with_matched_rule(rule.reflection());
-    }
-    inspector
-}
-
-fn toml_value_to_json(value: &toml::Value) -> serde_json::Value {
-    serde_json::to_value(value).unwrap_or(serde_json::Value::Null)
-}
-
-const SUPPORTED_PSEUDO_STATES: &[&str] = &[
-    "hover", "focus", "pressed", "checked", "selected", "disabled",
-];
-
 fn serialize_document(document: &UiAssetDocument) -> Result<String, UiAssetEditorSessionError> {
     toml::to_string_pretty(document)
         .map_err(|error| UiAssetError::ParseToml(error.to_string()).into())
 }
 
-#[derive(Clone, Debug)]
-struct LocalStyleRuleEntry {
-    stylesheet_index: usize,
-    rule_index: usize,
-    selector: String,
-}
-
-#[derive(Clone, Debug)]
-struct LocalStyleTokenEntry {
-    name: String,
-    literal: String,
-}
-
-fn local_style_rule_entries(document: &UiAssetDocument) -> Vec<LocalStyleRuleEntry> {
-    let mut entries = Vec::new();
-    for (stylesheet_index, stylesheet) in document.stylesheets.iter().enumerate() {
-        for (rule_index, rule) in stylesheet.rules.iter().enumerate() {
-            entries.push(LocalStyleRuleEntry {
-                stylesheet_index,
-                rule_index,
-                selector: rule.selector.clone(),
-            });
-        }
+fn remap_source_byte_offset(current: &str, next: &str, byte_offset: usize) -> usize {
+    let byte_offset = byte_offset.min(current.len());
+    let prefix_len = common_prefix_len(current, next);
+    let current_suffix = &current[prefix_len..];
+    let next_suffix = &next[prefix_len..];
+    let suffix_len = common_suffix_len(current_suffix, next_suffix);
+    let current_replace_end = current.len().saturating_sub(suffix_len);
+    let next_replace_end = next.len().saturating_sub(suffix_len);
+    if byte_offset <= prefix_len {
+        return byte_offset;
     }
-    entries
-}
-
-fn selected_style_rule_declaration_entries(
-    document: &UiAssetDocument,
-    selected_rule_index: Option<usize>,
-) -> Vec<UiStyleRuleDeclarationEntry> {
-    selected_rule_index
-        .and_then(|index| local_style_rule_entries(document).get(index).cloned())
-        .map(|entry| {
-            declaration_entries(
-                &document.stylesheets[entry.stylesheet_index].rules[entry.rule_index].set,
-            )
-        })
-        .unwrap_or_default()
-}
-
-fn matched_style_rule_entries_for_selection(
-    document: &UiAssetDocument,
-    selection: &UiDesignerSelectionModel,
-    imports: &UiAssetCompilerImports,
-    active_states: &[String],
-) -> Vec<MatchedStyleRuleEntry> {
-    selection
-        .primary_node_id
-        .as_deref()
-        .map(|node_id| {
-            matched_style_rule_entries(document, &imports.styles, node_id, active_states)
-        })
-        .unwrap_or_default()
-}
-
-fn local_style_token_entries(document: &UiAssetDocument) -> Vec<LocalStyleTokenEntry> {
-    document
-        .tokens
-        .iter()
-        .map(|(name, value)| LocalStyleTokenEntry {
-            name: name.clone(),
-            literal: toml_value_literal(value),
-        })
-        .collect()
-}
-
-fn reconcile_selected_style_rule_index(
-    document: &UiAssetDocument,
-    current: Option<usize>,
-) -> Option<usize> {
-    let count = local_style_rule_entries(document).len();
-    match (current, count) {
-        (_, 0) => None,
-        (Some(index), count) => Some(index.min(count - 1)),
-        (None, _) => None,
+    if byte_offset >= current_replace_end {
+        return next_replace_end + byte_offset.saturating_sub(current_replace_end);
     }
+    next_replace_end
 }
 
-fn reconcile_selected_style_rule_declaration_path(
-    document: &UiAssetDocument,
-    selected_rule_index: Option<usize>,
-    current: Option<&str>,
-) -> Option<String> {
-    let entries = selected_style_rule_declaration_entries(document, selected_rule_index);
-    current
-        .filter(|path| entries.iter().any(|entry| entry.path.as_str() == *path))
-        .map(str::to_string)
+fn common_prefix_len(left: &str, right: &str) -> usize {
+    left.chars()
+        .zip(right.chars())
+        .take_while(|(left_char, right_char)| left_char == right_char)
+        .map(|(character, _)| character.len_utf8())
+        .sum()
 }
 
-fn reconcile_selected_matched_style_rule_index(
-    entries: &[MatchedStyleRuleEntry],
-    current: Option<usize>,
-) -> Option<usize> {
-    match (current, entries.len()) {
-        (_, 0) => None,
-        (Some(index), count) => Some(index.min(count - 1)),
-        (None, _) => None,
-    }
-}
-
-fn reconcile_selected_style_token_name(
-    document: &UiAssetDocument,
-    current: Option<&str>,
-) -> Option<String> {
-    current
-        .filter(|name| document.tokens.contains_key(*name))
-        .map(str::to_string)
+fn common_suffix_len(left: &str, right: &str) -> usize {
+    left.chars()
+        .rev()
+        .zip(right.chars().rev())
+        .take_while(|(left_char, right_char)| left_char == right_char)
+        .map(|(character, _)| character.len_utf8())
+        .sum()
 }
 
 fn reconcile_selected_palette_index<T>(items: &[T], current: Option<usize>) -> Option<usize> {
@@ -3116,26 +3199,6 @@ fn reconcile_selected_palette_index<T>(items: &[T], current: Option<usize>) -> O
         (Some(index), count) => Some(index.min(count - 1)),
         (None, _) => None,
     }
-}
-
-fn normalized_selector(selector: &str) -> Result<String, UiAssetEditorSessionError> {
-    let trimmed = selector.trim();
-    if trimmed.is_empty() || !selector_is_valid(trimmed) {
-        return Err(UiAssetEditorSessionError::InvalidStyleSelector {
-            selector: trimmed.to_string(),
-        });
-    }
-    Ok(trimmed.to_string())
-}
-
-fn normalized_class_name(class_name: &str) -> Option<String> {
-    let trimmed = class_name.trim();
-    (!trimmed.is_empty() && !trimmed.chars().any(char::is_whitespace)).then(|| trimmed.to_string())
-}
-
-fn normalized_token_name(token_name: &str) -> Option<String> {
-    let trimmed = token_name.trim();
-    (!trimmed.is_empty() && !trimmed.chars().any(char::is_whitespace)).then(|| trimmed.to_string())
 }
 
 fn normalized_promote_asset_id(asset_id: &str) -> Option<String> {
@@ -3266,23 +3329,6 @@ fn reparent_direction_label(direction: UiTreeReparentDirection) -> &'static str 
     }
 }
 
-fn parse_token_literal(value_literal: &str) -> Option<Value> {
-    let trimmed = value_literal.trim();
-    if trimmed.is_empty() {
-        return None;
-    }
-
-    let wrapped = format!("value = {trimmed}");
-    toml::from_str::<toml::Table>(&wrapped)
-        .ok()
-        .and_then(|table| table.get("value").cloned())
-        .or_else(|| Some(Value::String(trimmed.to_string())))
-}
-
-fn toml_value_literal(value: &Value) -> String {
-    value.to_string()
-}
-
 fn editable_stylesheet(document: &mut UiAssetDocument) -> &mut UiStyleSheet {
     if document.stylesheets.is_empty() {
         document.stylesheets.push(UiStyleSheet {
@@ -3296,152 +3342,11 @@ fn editable_stylesheet(document: &mut UiAssetDocument) -> &mut UiStyleSheet {
         .expect("style sheet should exist after initialization")
 }
 
-fn selected_node_selector(
-    document: &UiAssetDocument,
-    selection: &UiDesignerSelectionModel,
-) -> Option<String> {
-    selection
-        .primary_node_id
-        .as_deref()
-        .and_then(|node_id| document.nodes.get(node_id))
-        .map(selector_for_node)
-}
-
 fn reference_asset_id(reference: &str) -> &str {
     reference
         .split_once('#')
         .map(|(asset_id, _)| asset_id)
         .unwrap_or(reference)
-}
-
-fn selector_for_node(node: &zircon_ui::UiNodeDefinition) -> String {
-    if let Some(control_id) = node.control_id.as_deref() {
-        return format!("#{control_id}");
-    }
-
-    let mut selector = selector_component_name(node).to_string();
-    for class_name in &node.classes {
-        selector.push('.');
-        selector.push_str(class_name);
-    }
-    selector
-}
-
-fn selected_node_has_inline_overrides(
-    document: &UiAssetDocument,
-    selection: &UiDesignerSelectionModel,
-) -> bool {
-    selection
-        .primary_node_id
-        .as_deref()
-        .and_then(|node_id| document.nodes.get(node_id))
-        .is_some_and(|node| {
-            !node.style_overrides.self_values.is_empty() || !node.style_overrides.slot.is_empty()
-        })
-}
-
-fn pseudo_state_active(inspector: &UiStyleInspectorReflectionModel, state: &str) -> bool {
-    inspector
-        .active_pseudo_states
-        .iter()
-        .any(|candidate| candidate == state)
-}
-
-fn selection_summary(selection: &UiDesignerSelectionModel) -> String {
-    let primary = selection
-        .primary_node_id
-        .clone()
-        .unwrap_or_else(|| "none".to_string());
-    let parent = selection
-        .parent_node_id
-        .clone()
-        .unwrap_or_else(|| "-".to_string());
-    let mount = selection.mount.clone().unwrap_or_else(|| "-".to_string());
-    format!("selected {primary} • parent {parent} • mount {mount}")
-}
-
-fn build_hierarchy_items(document: &UiAssetDocument, selected: Option<&str>) -> Vec<String> {
-    fn visit(
-        output: &mut Vec<String>,
-        document: &UiAssetDocument,
-        node_id: &str,
-        depth: usize,
-        selected: Option<&str>,
-    ) {
-        let Some(node) = document.nodes.get(node_id) else {
-            return;
-        };
-        let prefix = if selected == Some(node_id) {
-            "> "
-        } else {
-            "  "
-        };
-        let label = node
-            .widget_type
-            .clone()
-            .or_else(|| node.component_ref.clone())
-            .unwrap_or_else(|| "Node".to_string());
-        output.push(format!("{prefix}{}{node_id} [{label}]", "  ".repeat(depth)));
-        for child in &node.children {
-            visit(output, document, &child.child, depth + 1, selected);
-        }
-    }
-
-    let mut items = Vec::new();
-    if let Some(root) = &document.root {
-        visit(&mut items, document, &root.node, 0, selected);
-    }
-    items
-}
-
-fn build_inspector_items(reflection: &UiAssetEditorReflectionModel) -> Vec<String> {
-    let mut items = vec![
-        format!("mode: {:?}", reflection.route.mode),
-        format!("asset kind: {:?}", reflection.route.asset_kind),
-        format!("dirty: {}", reflection.source_dirty),
-        format!("undo: {}", reflection.can_undo),
-        format!("redo: {}", reflection.can_redo),
-        format!("preview: {}", reflection.preview_available),
-    ];
-    if let Some(node_id) = &reflection.selection.primary_node_id {
-        items.push(format!("selection: {node_id}"));
-    }
-    if !reflection.style_inspector.classes.is_empty() {
-        items.push(format!(
-            "classes: {}",
-            reflection.style_inspector.classes.join(", ")
-        ));
-    }
-    items
-}
-
-fn build_stylesheet_items(
-    inspector: &UiStyleInspectorReflectionModel,
-    selector_hint: Option<String>,
-) -> Vec<String> {
-    let mut items = Vec::new();
-    if let Some(selector_hint) = selector_hint {
-        items.push(format!("selection selector: {selector_hint}"));
-    }
-    if !inspector.active_pseudo_states.is_empty() {
-        items.push(format!(
-            "states: {}",
-            inspector.active_pseudo_states.join(", ")
-        ));
-    }
-    for (path, value) in &inspector.inline_overrides {
-        items.push(format!("override {path} = {value}"));
-    }
-    for rule in &inspector.matched_rules {
-        items.push(format!(
-            "{} (spec {}, order {})",
-            rule.selector, rule.specificity, rule.source_order
-        ));
-    }
-    if items.is_empty() {
-        items.push("no matched stylesheet rules".to_string());
-    }
-    items
 }
 
 fn preview_summary(preview_host: Option<&UiAssetPreviewHost>) -> String {
@@ -3454,58 +3359,4 @@ fn preview_summary(preview_host: Option<&UiAssetPreviewHost>) -> String {
         preview_host.preview_size().width,
         preview_host.preview_size().height
     )
-}
-
-fn selected_hierarchy_index(
-    document: &UiAssetDocument,
-    selection: &UiDesignerSelectionModel,
-) -> i32 {
-    let Some(primary) = selection.primary_node_id.as_deref() else {
-        return -1;
-    };
-    hierarchy_node_ids(document)
-        .iter()
-        .position(|id| id == primary)
-        .map(|i| i as i32)
-        .unwrap_or(-1)
-}
-
-fn hierarchy_node_ids(document: &UiAssetDocument) -> Vec<String> {
-    fn visit(output: &mut Vec<String>, document: &UiAssetDocument, node_id: &str) {
-        output.push(node_id.to_string());
-        let Some(node) = document.nodes.get(node_id) else {
-            return;
-        };
-        for child in &node.children {
-            visit(output, document, &child.child);
-        }
-    }
-
-    let mut items = Vec::new();
-    if let Some(root) = &document.root {
-        visit(&mut items, document, &root.node);
-    }
-    items
-}
-
-fn selection_for_node(document: &UiAssetDocument, node_id: &str) -> UiDesignerSelectionModel {
-    let mut selection = UiDesignerSelectionModel::single(node_id.to_string());
-    if let Some((parent_node_id, mount)) = parent_for_node(document, node_id) {
-        selection = selection.with_parent(parent_node_id);
-        if let Some(mount) = mount {
-            selection = selection.with_mount(mount);
-        }
-    }
-    selection
-}
-
-fn parent_for_node(document: &UiAssetDocument, node_id: &str) -> Option<(String, Option<String>)> {
-    for (parent_id, node) in &document.nodes {
-        for child in &node.children {
-            if child.child == node_id {
-                return Some((parent_id.clone(), child.mount.clone()));
-            }
-        }
-    }
-    None
 }

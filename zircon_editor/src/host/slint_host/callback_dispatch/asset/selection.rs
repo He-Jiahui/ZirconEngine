@@ -1,5 +1,5 @@
 #[cfg(test)]
-use crate::editor_event::{EditorEventRuntime, host_adapter};
+use crate::editor_event::{host_adapter, EditorEventRuntime};
 #[cfg(test)]
 use crate::host::slint_host::event_bridge::SlintDispatchEffects;
 

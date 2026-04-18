@@ -2,8 +2,7 @@ use zircon_asset::{
     EditorAssetCatalogRecord, EditorAssetCatalogSnapshotRecord, EditorAssetDetailsRecord,
     EditorAssetFolderRecord, EditorAssetReferenceRecord, PreviewState,
 };
-use zircon_manager::{ResourceStateRecord, ResourceStatusRecord};
-use zircon_resource::ResourceKind;
+use zircon_resource::{ResourceId, ResourceKind, ResourceLocator, ResourceRecord, ResourceState};
 
 use crate::editing::asset_workspace::AssetWorkspaceState;
 use crate::snapshot::{AssetSurfaceMode, AssetUtilityTab, AssetViewMode};
@@ -19,7 +18,7 @@ fn asset_workspace_builds_folder_tree_and_visible_content_from_catalog() {
         "res://materials/grid.material.toml",
         ResourceKind::Material,
         4,
-        ResourceStateRecord::Ready,
+        ResourceState::Ready,
     )]);
 
     let snapshot = workspace.build_snapshot(AssetSurfaceMode::Activity);
@@ -211,16 +210,20 @@ pub(super) fn sample_resource_status(
     locator: &str,
     kind: ResourceKind,
     revision: u64,
-    state: ResourceStateRecord,
-) -> ResourceStatusRecord {
-    ResourceStatusRecord {
-        id: format!("resource::{locator}"),
-        locator: locator.to_string(),
+    state: ResourceState,
+) -> ResourceRecord {
+    let locator = ResourceLocator::parse(locator).unwrap();
+    ResourceRecord {
+        id: ResourceId::from_locator(&locator),
         kind,
+        primary_locator: locator,
         artifact_locator: None,
         revision,
         state,
         dependency_ids: Vec::new(),
         diagnostics: Vec::new(),
+        source_hash: String::new(),
+        importer_version: 0,
+        config_hash: String::new(),
     }
 }

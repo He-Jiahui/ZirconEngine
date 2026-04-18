@@ -40,7 +40,9 @@ fn stable_render_handles_and_frame_types_are_constructible() {
     assert_eq!(stats.last_virtual_geometry_page_table_entry_count, 0);
     assert_eq!(stats.last_virtual_geometry_resident_page_count, 0);
     assert_eq!(stats.last_virtual_geometry_pending_request_count, 0);
+    assert_eq!(stats.last_virtual_geometry_completed_page_count, 0);
     assert_eq!(stats.last_virtual_geometry_indirect_draw_count, 0);
+    assert_eq!(stats.last_virtual_geometry_indirect_segment_count, 0);
     assert_eq!(stats.last_hybrid_gi_active_probe_count, 0);
     assert_eq!(stats.last_hybrid_gi_requested_probe_count, 0);
     assert_eq!(stats.last_hybrid_gi_dirty_probe_count, 0);

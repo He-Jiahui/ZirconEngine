@@ -8,7 +8,7 @@ use crate::host::slint_host::{
     event_bridge::SlintDispatchEffects,
 };
 
-use super::super::{BuiltinAssetSurfaceTemplateBridge, dispatch_builtin_asset_surface_control};
+use super::super::{dispatch_builtin_asset_surface_control, BuiltinAssetSurfaceTemplateBridge};
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct SharedAssetContentPointerClickDispatch {

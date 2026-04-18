@@ -1,5 +1,8 @@
 pub(crate) struct VirtualGeometryGpuResources {
-    pub(super) bind_group_layout: wgpu::BindGroupLayout,
-    pub(super) pipeline: wgpu::ComputePipeline,
-    pub(super) params_buffer: wgpu::Buffer,
+    pub(in crate::scene::scene_renderer::virtual_geometry::gpu_resources) bind_group_layout:
+        wgpu::BindGroupLayout,
+    pub(in crate::scene::scene_renderer::virtual_geometry::gpu_resources) pipeline:
+        wgpu::ComputePipeline,
+    pub(in crate::scene::scene_renderer::virtual_geometry::gpu_resources) params_buffer:
+        wgpu::Buffer,
 }

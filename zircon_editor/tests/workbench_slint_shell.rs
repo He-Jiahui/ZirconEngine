@@ -50,7 +50,7 @@ fn shell_regions_bind_absolute_anchors_from_solver_frames() {
 #[test]
 fn workbench_shell_declares_native_resize_and_maximize_bounds() {
     let source = shell_source();
-    let shell_block = block_after(&source, "export component WorkbenchShell inherits Window {");
+    let shell_block = block_after(&source, "export component UiHostWindow inherits Window {");
 
     assert!(shell_block.contains("no-frame: false;"));
     assert!(shell_block.contains("resize-border-width: 8px;"));
@@ -1480,6 +1480,31 @@ fn ui_asset_editor_pane_declares_preview_activation_callback_and_double_click_bi
 }
 
 #[test]
+fn ui_asset_editor_pane_declares_source_cursor_roundtrip_callback() {
+    let source = shell_source();
+    let panes = panes_source();
+    let pane_block = block_after(
+        &panes,
+        "export component UiAssetEditorPane inherits Rectangle {",
+    );
+    let pane_surface = block_after(
+        &source,
+        "if !root.pane.show_empty && root.pane.kind == \"UiAssetEditor\": UiAssetEditorPane {",
+    );
+
+    assert!(source.contains(
+        "callback ui_asset_source_cursor_changed(instance_id: string, byte_offset: int);"
+    ));
+    assert!(pane_surface.contains(
+        "source_cursor_changed(byte_offset) => { root.ui_asset_source_cursor_changed(root.pane.id, byte_offset); }"
+    ));
+    assert!(pane_block.contains("callback source_cursor_changed(byte_offset: int);"));
+    assert!(panes.contains(
+        "cursor-position-changed(_cursor_position) => { root.source_cursor_changed(self.cursor-position_byte-offset); }"
+    ));
+}
+
+#[test]
 fn ui_asset_editor_canvas_declares_selected_frame_authoring_overlay_controls() {
     let source = shell_source();
     let panes = panes_source();
@@ -1774,8 +1799,9 @@ fn ui_asset_editor_pane_declares_palette_target_cycle_panel_and_keyboard_control
 
     assert!(source.contains("ui_asset_palette_drag_candidate_items: [string],"));
     assert!(source.contains("ui_asset_palette_drag_candidate_selected_index: int,"));
-    assert!(pane_surface
-        .contains("palette_drag_candidate_items: root.pane.ui_asset_palette_drag_candidate_items;"));
+    assert!(pane_surface.contains(
+        "palette_drag_candidate_items: root.pane.ui_asset_palette_drag_candidate_items;"
+    ));
     assert!(pane_surface.contains(
         "palette_drag_candidate_selected_index: root.pane.ui_asset_palette_drag_candidate_selected_index;"
     ));
@@ -1784,9 +1810,7 @@ fn ui_asset_editor_pane_declares_palette_target_cycle_panel_and_keyboard_control
     assert!(pane_block.contains("in property <int> palette_drag_candidate_selected_index: -1;"));
     assert!(pane_block.contains("title: \"Target Cycle\";"));
     assert!(pane_block.contains("items: root.palette_drag_candidate_items;"));
-    assert!(pane_block.contains(
-        "selected_index: root.palette_drag_candidate_selected_index;"
-    ));
+    assert!(pane_block.contains("selected_index: root.palette_drag_candidate_selected_index;"));
 
     assert!(drag_overlay.contains("drag_focus := FocusScope {"));
     assert!(drag_overlay.contains("key-pressed(event) => {"));
@@ -1848,12 +1872,21 @@ fn ui_asset_editor_pane_declares_typed_parent_specific_slot_layout_and_binding_f
         &panes,
         "export component UiAssetEditorPane inherits Rectangle {",
     );
+    let pane_surface = block_after(
+        &source,
+        "if !root.pane.show_empty && root.pane.kind == \"UiAssetEditor\": UiAssetEditorPane {",
+    );
 
     assert!(source.contains("ui_asset_inspector_slot_kind: string,"));
     assert!(source.contains("ui_asset_inspector_slot_overlay_anchor_x: string,"));
     assert!(source.contains("ui_asset_inspector_slot_grid_row: string,"));
     assert!(source.contains("ui_asset_inspector_slot_flow_alignment: string,"));
+    assert!(source.contains("ui_asset_inspector_slot_linear_main_weight: string,"));
+    assert!(source.contains("ui_asset_inspector_slot_linear_main_stretch: string,"));
+    assert!(source.contains("ui_asset_inspector_slot_linear_cross_weight: string,"));
+    assert!(source.contains("ui_asset_inspector_slot_linear_cross_stretch: string,"));
     assert!(source.contains("ui_asset_inspector_layout_kind: string,"));
+    assert!(source.contains("ui_asset_inspector_layout_box_gap: string,"));
     assert!(source.contains("ui_asset_inspector_layout_scroll_axis: string,"));
     assert!(source.contains("ui_asset_inspector_layout_scrollbar_visibility: string,"));
     assert!(source.contains("ui_asset_inspector_binding_route_target: string,"));
@@ -1863,25 +1896,44 @@ fn ui_asset_editor_pane_declares_typed_parent_specific_slot_layout_and_binding_f
     assert!(pane_block.contains("in property <string> inspector_slot_overlay_anchor_x;"));
     assert!(pane_block.contains("in property <string> inspector_slot_grid_row;"));
     assert!(pane_block.contains("in property <string> inspector_slot_flow_alignment;"));
+    assert!(pane_block.contains("in property <string> inspector_slot_linear_main_weight;"));
+    assert!(pane_block.contains("in property <string> inspector_slot_linear_main_stretch;"));
+    assert!(pane_block.contains("in property <string> inspector_slot_linear_cross_weight;"));
+    assert!(pane_block.contains("in property <string> inspector_slot_linear_cross_stretch;"));
     assert!(pane_block.contains("in property <string> inspector_layout_kind;"));
+    assert!(pane_block.contains("in property <string> inspector_layout_box_gap;"));
     assert!(pane_block.contains("in property <string> inspector_layout_scroll_axis;"));
     assert!(pane_block.contains("in property <string> inspector_layout_scrollbar_visibility;"));
     assert!(pane_block.contains("in property <string> inspector_binding_route_target;"));
     assert!(pane_block.contains("in property <string> inspector_binding_action_target;"));
 
+    assert!(panes.contains("root.inspector_widget_action(\"layout.box.gap.set\", value);"));
     assert!(panes.contains("root.inspector_widget_action(\"slot.overlay.anchor_x.set\", value);"));
     assert!(panes.contains("root.inspector_widget_action(\"slot.grid.row.set\", value);"));
     assert!(panes.contains("root.inspector_widget_action(\"slot.flow.alignment.set\", value);"));
+    assert!(
+        panes.contains("root.inspector_widget_action(\"slot.linear.width_weight.set\", value);")
+    );
+    assert!(
+        panes.contains("root.inspector_widget_action(\"slot.linear.width_stretch.set\", value);")
+    );
+    assert!(
+        panes.contains("root.inspector_widget_action(\"slot.linear.height_weight.set\", value);")
+    );
+    assert!(
+        panes.contains("root.inspector_widget_action(\"slot.linear.height_stretch.set\", value);")
+    );
     assert!(panes.contains("root.inspector_widget_action(\"layout.scroll.axis.set\", value);"));
     assert!(panes.contains(
         "root.inspector_widget_action(\"layout.scroll.scrollbar_visibility.set\", value);"
     ));
-    assert!(panes.contains(
-        "root.inspector_widget_action(\"binding.route_target.set\", value);"
+    assert!(pane_surface
+        .contains("inspector_layout_box_gap: root.pane.ui_asset_inspector_layout_box_gap;"));
+    assert!(pane_surface.contains(
+        "inspector_slot_linear_main_weight: root.pane.ui_asset_inspector_slot_linear_main_weight;"
     ));
-    assert!(panes.contains(
-        "root.inspector_widget_action(\"binding.action_target.set\", value);"
-    ));
+    assert!(panes.contains("root.inspector_widget_action(\"binding.route_target.set\", value);"));
+    assert!(panes.contains("root.inspector_widget_action(\"binding.action_target.set\", value);"));
 }
 
 #[test]

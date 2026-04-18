@@ -8,7 +8,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use slint::{ComponentHandle, PhysicalSize};
 use zircon_core::CoreRuntime;
 use zircon_foundation::{
-    FOUNDATION_MODULE_NAME, module_descriptor as foundation_module_descriptor,
+    module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
 };
 use zircon_math::UVec2;
 use zircon_scene::{DefaultLevelManager, DisplayMode, ViewOrientation};
@@ -16,17 +16,17 @@ mod floating_window_projection;
 
 use super::*;
 use crate::{
-    ActivityDrawerMode, ActivityDrawerSlot, EDITOR_MANAGER_NAME, EditorAssetEvent,
-    EditorDraftEvent, EditorEvent, EditorEventRuntime, EditorManager, EditorSessionMode,
-    EditorState, EditorViewportEvent, LayoutCommand, MainPageId, MenuAction, RecentProjectEntry,
-    RecentProjectValidation, ShellFrame, ViewDescriptorId, ViewInstanceId, module,
+    module, ActivityDrawerMode, ActivityDrawerSlot, EditorAssetEvent, EditorDraftEvent,
+    EditorEvent, EditorEventRuntime, EditorManager, EditorSessionMode, EditorState,
+    EditorViewportEvent, LayoutCommand, MainPageId, MenuAction, RecentProjectEntry,
+    RecentProjectValidation, ShellFrame, ViewDescriptorId, ViewInstanceId, EDITOR_MANAGER_NAME,
 };
 
 struct ChildWindowHostHarness {
     _core: CoreRuntime,
     config_path: PathBuf,
     host: Rc<RefCell<SlintEditorHost>>,
-    root_ui: WorkbenchShell,
+    root_ui: UiHostWindow,
 }
 
 impl ChildWindowHostHarness {
@@ -47,7 +47,7 @@ impl ChildWindowHostHarness {
         core.activate_module(module::EDITOR_MODULE_NAME).unwrap();
         std::env::remove_var("ZIRCON_EDITOR_CONFIG_PATH");
 
-        let root_ui = WorkbenchShell::new().expect("root workbench shell should instantiate");
+        let root_ui = UiHostWindow::new().expect("root workbench shell should instantiate");
         root_ui
             .show()
             .expect("root workbench shell should show in the test backend");
@@ -80,15 +80,11 @@ impl ChildWindowHostHarness {
         }
     }
 
-    fn detach_view_to_child_window(&self, instance_id: &str, window_id: &str) -> WorkbenchShell {
+    fn detach_view_to_child_window(&self, instance_id: &str, window_id: &str) -> UiHostWindow {
         self.detach_views_to_child_window(&[instance_id], window_id)
     }
 
-    fn detach_views_to_child_window(
-        &self,
-        instance_ids: &[&str],
-        window_id: &str,
-    ) -> WorkbenchShell {
+    fn detach_views_to_child_window(&self, instance_ids: &[&str], window_id: &str) -> UiHostWindow {
         let window_id = MainPageId::new(window_id);
         {
             let mut host = self.host.borrow_mut();
@@ -331,7 +327,7 @@ fn child_window_inspector_control_focuses_source_window_before_runtime_dispatch(
 
 fn assert_child_window_focus_tracks_asset_scroll(
     event_name: &str,
-    invoke: impl FnOnce(&WorkbenchShell),
+    invoke: impl FnOnce(&UiHostWindow),
 ) {
     let harness = ChildWindowHostHarness::new(event_name);
     let child = harness.detach_view_to_child_window("editor.assets#1", "window:assets");
@@ -531,8 +527,8 @@ fn root_viewport_toolbar_pointer_click_uses_projection_fallback_in_real_host() {
 }
 
 #[test]
-fn root_viewport_toolbar_pointer_click_prefers_shared_projection_surface_width_over_stale_document_geometry()
- {
+fn root_viewport_toolbar_pointer_click_prefers_shared_projection_surface_width_over_stale_document_geometry(
+) {
     let _guard = lock_env();
 
     let harness =
@@ -597,8 +593,52 @@ fn root_viewport_toolbar_pointer_click_prefers_shared_projection_surface_width_o
 }
 
 #[test]
-fn root_document_tab_pointer_click_prefers_shared_projection_surface_width_over_stale_document_geometry()
- {
+fn root_viewport_toolbar_surface_size_prefers_shared_projection_width_when_document_geometry_is_oversized(
+) {
+    let _guard = lock_env();
+
+    let harness =
+        ChildWindowHostHarness::new("zircon_slint_root_viewport_toolbar_projection_oversized");
+    let mut host = harness.host.borrow_mut();
+    let expected_width = host
+        .template_bridge
+        .control_frame("PaneSurfaceRoot")
+        .expect("pane surface root should map to a projected control frame")
+        .width;
+    let geometry = host
+        .shell_geometry
+        .as_mut()
+        .expect("root host should have computed shell geometry");
+    geometry
+        .region_frames
+        .insert(ShellRegionId::Left, ShellFrame::default());
+    geometry
+        .region_frames
+        .insert(ShellRegionId::Right, ShellFrame::default());
+    geometry
+        .region_frames
+        .insert(ShellRegionId::Bottom, ShellFrame::default());
+    let document = geometry.region_frame(ShellRegionId::Document);
+    geometry.region_frames.insert(
+        ShellRegionId::Document,
+        ShellFrame::new(
+            document.x,
+            document.y,
+            expected_width + 480.0,
+            document.height,
+        ),
+    );
+
+    assert_eq!(
+        host.viewport_toolbar_surface_size("editor.scene#1"),
+        UiSize::new(expected_width, 28.0),
+        "shared projection width should remain authoritative even when legacy document geometry is wider"
+    );
+}
+
+#[test]
+fn root_document_tab_pointer_click_prefers_shared_projection_surface_width_over_stale_document_geometry(
+) {
     let _guard = lock_env();
 
     let harness = ChildWindowHostHarness::new("zircon_slint_root_document_tab_projection_width");
@@ -684,7 +724,7 @@ fn root_host_page_pointer_click_prefers_shared_projection_shell_width_over_metri
         let model = WorkbenchViewModel::build(&chrome);
         let shared_shell_frame = host
             .template_bridge
-            .control_frame("WorkbenchShellRoot")
+            .control_frame("UiHostWindowRoot")
             .expect("workbench shell root should map to a projected control frame");
         assert!(
             shared_shell_frame.width > 1000.0,
@@ -711,8 +751,8 @@ fn root_host_page_pointer_click_prefers_shared_projection_shell_width_over_metri
 }
 
 #[test]
-fn root_activity_rail_pointer_click_prefers_shared_projection_surface_when_left_region_geometry_is_stale()
- {
+fn root_activity_rail_pointer_click_prefers_shared_projection_surface_when_left_region_geometry_is_stale(
+) {
     let _guard = lock_env();
 
     let harness = ChildWindowHostHarness::new("zircon_slint_root_activity_rail_projection_width");
@@ -765,6 +805,49 @@ fn root_activity_rail_pointer_click_prefers_shared_projection_surface_when_left_
 }
 
 #[test]
+fn root_resize_capture_prefers_shared_left_drawer_shell_extent_over_stale_region_geometry() {
+    let _guard = lock_env();
+
+    let harness = ChildWindowHostHarness::new("zircon_slint_root_resize_projection_extent");
+    harness.activate_workbench_page();
+
+    let mut host = harness.host.borrow_mut();
+    let expected_width = host
+        .template_bridge
+        .control_frame("LeftDrawerShellRoot")
+        .expect("left drawer shell root should map to a projected control frame")
+        .width;
+    let splitter = host
+        .shell_geometry
+        .as_ref()
+        .expect("root host should have computed shell geometry")
+        .splitter_frame(ShellRegionId::Left);
+    let geometry = host
+        .shell_geometry
+        .as_mut()
+        .expect("root host should have computed shell geometry");
+    let left = geometry.region_frame(ShellRegionId::Left);
+    geometry.region_frames.insert(
+        ShellRegionId::Left,
+        ShellFrame::new(left.x, left.y, 80.0, left.height),
+    );
+
+    host.workbench_resize_pointer_event(
+        0,
+        splitter.x + splitter.width * 0.5,
+        splitter.y + splitter.height * 0.5,
+    );
+
+    assert_eq!(
+        host.active_drawer_resize
+            .as_ref()
+            .map(|active| active.base_preferred),
+        Some(expected_width),
+        "resize capture should start from the shared drawer shell extent instead of stale legacy geometry"
+    );
+}
+
+#[test]
 fn root_host_viewport_size_matches_presented_viewport_content_frame_when_drawers_are_collapsed() {
     let _guard = lock_env();
 
@@ -808,6 +891,15 @@ fn root_host_recomputes_builtin_template_bridge_with_visible_drawer_shell_and_he
         Some(UiFrame::new(body_frame.x + 35.0, body_frame.y, 277.0, 25.0,))
     );
     assert_eq!(
+        host.template_bridge.control_frame("LeftDrawerContentRoot"),
+        Some(UiFrame::new(
+            body_frame.x + 35.0,
+            body_frame.y + 26.0,
+            277.0,
+            expected_center_height - 26.0,
+        ))
+    );
+    assert_eq!(
         host.template_bridge.control_frame("RightDrawerShellRoot"),
         Some(UiFrame::new(
             body_frame.x + body_frame.width - 308.0,
@@ -823,6 +915,15 @@ fn root_host_recomputes_builtin_template_bridge_with_visible_drawer_shell_and_he
             body_frame.y,
             273.0,
             25.0,
+        ))
+    );
+    assert_eq!(
+        host.template_bridge.control_frame("RightDrawerContentRoot"),
+        Some(UiFrame::new(
+            body_frame.x + body_frame.width - 308.0,
+            body_frame.y + 26.0,
+            273.0,
+            expected_center_height - 26.0,
         ))
     );
     assert_eq!(
@@ -843,6 +944,16 @@ fn root_host_recomputes_builtin_template_bridge_with_visible_drawer_shell_and_he
             25.0,
         ))
     );
+    assert_eq!(
+        host.template_bridge
+            .control_frame("BottomDrawerContentRoot"),
+        Some(UiFrame::new(
+            body_frame.x,
+            body_frame.y + body_frame.height - 138.0,
+            body_frame.width,
+            138.0,
+        ))
+    );
 }
 
 #[test]
@@ -859,13 +970,12 @@ fn root_welcome_recent_pointer_click_uses_projection_fallback_in_real_host() {
     let host = harness.host.borrow();
     assert!(host.welcome_recent_pointer_size.width > 0.0);
     assert!(host.welcome_recent_pointer_size.height > 0.0);
-    assert!(
-        host.runtime
-            .chrome_snapshot()
-            .welcome
-            .recent_projects
-            .is_empty()
-    );
+    assert!(host
+        .runtime
+        .chrome_snapshot()
+        .welcome
+        .recent_projects
+        .is_empty());
     assert_eq!(
         host.runtime.editor_snapshot().status_line,
         "Removed recent project E:/Missing/RecentProject"
@@ -929,8 +1039,8 @@ fn root_hierarchy_pointer_move_uses_region_frame_fallback_in_real_host() {
 }
 
 #[test]
-fn root_hierarchy_pointer_move_prefers_shared_drawer_content_projection_over_stale_left_region_geometry()
- {
+fn root_hierarchy_pointer_move_prefers_shared_drawer_content_projection_over_stale_left_region_geometry(
+) {
     let _guard = lock_env();
 
     let harness =
@@ -989,8 +1099,8 @@ fn root_console_pointer_scroll_uses_region_frame_fallback_in_real_host() {
 }
 
 #[test]
-fn root_console_pointer_scroll_prefers_shared_drawer_content_projection_over_stale_bottom_region_geometry()
- {
+fn root_console_pointer_scroll_prefers_shared_drawer_content_projection_over_stale_bottom_region_geometry(
+) {
     let _guard = lock_env();
 
     let harness =

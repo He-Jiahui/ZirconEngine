@@ -288,6 +288,25 @@ fn ui_legacy_template_adapter_converts_template_documents_into_asset_documents()
 }
 
 #[test]
+fn ui_legacy_template_adapter_emits_canonical_asset_source_that_roundtrips() {
+    let legacy = UiTemplateLoader::load_toml_str(LEGACY_TEMPLATE_TOML).unwrap();
+
+    let source =
+        UiLegacyTemplateAdapter::layout_source("legacy.workbench", "Legacy Workbench", &legacy)
+            .unwrap();
+    let document = UiAssetLoader::load_toml_str(&source).unwrap();
+    let compiled = UiDocumentCompiler::default().compile(&document).unwrap();
+    let instance = compiled.into_template_instance();
+
+    assert_eq!(document.asset.id, "legacy.workbench");
+    assert_eq!(instance.root.component.as_deref(), Some("VerticalBox"));
+    assert_eq!(
+        instance.root.children[0].control_id.as_deref(),
+        Some("LegacyButton")
+    );
+}
+
+#[test]
 fn ui_asset_compiler_is_split_into_folder_backed_pipeline_modules() {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("src")

@@ -6,8 +6,8 @@ related_code:
   - zircon_graphics/src/runtime/server/submit_frame_extract/mod.rs
   - zircon_graphics/src/runtime/server/submit_frame_extract/update_stats/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_render_with_pipeline.rs
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_virtual_geometry.rs
+  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_render_with_pipeline/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_virtual_geometry/mod.rs
   - zircon_graphics/src/scene/scene_renderer/virtual_geometry/mod.rs
   - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_readback/mod.rs
   - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/mod.rs
@@ -22,8 +22,8 @@ implementation_files:
   - zircon_graphics/src/runtime/server/submit_frame_extract/mod.rs
   - zircon_graphics/src/runtime/server/submit_frame_extract/update_stats/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_render_with_pipeline.rs
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_virtual_geometry.rs
+  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_render_with_pipeline/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_virtual_geometry/mod.rs
   - zircon_graphics/src/scene/scene_renderer/virtual_geometry/mod.rs
   - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_readback/mod.rs
   - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/mod.rs

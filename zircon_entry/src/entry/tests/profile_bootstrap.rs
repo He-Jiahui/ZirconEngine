@@ -1,15 +1,14 @@
+use zircon_asset::resolve_asset_manager;
 use zircon_editor::{EditorManager, EDITOR_MANAGER_NAME};
 use zircon_input::{InputButton, InputEvent};
 use zircon_manager::{
-    resolve_asset_manager, resolve_config_manager, resolve_event_manager, resolve_input_manager,
+    resolve_config_manager, resolve_event_manager, resolve_input_manager,
     resolve_rendering_manager, ManagerResolver,
 };
 use zircon_render_server::resolve_render_server;
 use zircon_scene::create_default_level;
 
-use super::super::{
-    BuiltinEntryModuleSet, EntryConfig, EntryProfile, EntryRunner,
-};
+use super::super::{BuiltinEntryModuleSet, EntryConfig, EntryProfile, EntryRunner};
 
 #[test]
 fn editor_bootstrap_registers_editor_and_primary_managers() {

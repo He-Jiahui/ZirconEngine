@@ -816,6 +816,417 @@ fn hybrid_gi_resolve_changes_when_resident_ancestor_is_reached_through_nonreside
 }
 
 #[test]
+fn hybrid_gi_resolve_inherits_farther_resident_ancestor_irradiance_beyond_nearest_resident_parent()
+{
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let viewport_size = UVec2::new(96, 64);
+    let trace_regions = Vec::new();
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(
+            &build_extract_with_probes_and_trace_regions(
+                viewport_size,
+                vec![
+                    probe(100, true, 96, Vec3::new(-0.85, 0.0, 0.0), 0.65),
+                    probe(200, true, 96, Vec3::new(-0.2, 0.0, 0.0), 0.85),
+                    probe(250, false, 96, Vec3::new(0.2, 0.0, 0.0), 0.9),
+                    probe(300, true, 128, Vec3::new(0.65, 0.0, 0.0), 1.1),
+                ],
+                trace_regions.clone(),
+            ),
+            &RenderPipelineCompileOptions::default()
+                .with_feature_enabled(BuiltinRenderFeature::GlobalIllumination)
+                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
+                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
+                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
+                .with_feature_disabled(BuiltinRenderFeature::Bloom)
+                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
+                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
+                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
+                .with_feature_disabled(BuiltinRenderFeature::Particle)
+                .with_feature_disabled(BuiltinRenderFeature::VirtualGeometry)
+                .with_async_compute(false),
+        )
+        .unwrap();
+
+    let flat = renderer
+        .render_frame_with_pipeline(
+            &EditorOrRuntimeFrame::from_extract(
+                build_extract_with_probes_and_trace_regions(
+                    viewport_size,
+                    vec![
+                        probe(100, true, 96, Vec3::new(-0.85, 0.0, 0.0), 0.65),
+                        probe(200, true, 96, Vec3::new(-0.2, 0.0, 0.0), 0.85),
+                        probe(250, false, 96, Vec3::new(0.2, 0.0, 0.0), 0.9),
+                        probe(300, true, 128, Vec3::new(0.65, 0.0, 0.0), 1.1),
+                    ],
+                    trace_regions.clone(),
+                ),
+                viewport_size,
+            )
+            .with_hybrid_gi_prepare(Some(HybridGiPrepareFrame {
+                resident_probes: vec![
+                    HybridGiPrepareProbe {
+                        probe_id: 100,
+                        slot: 0,
+                        ray_budget: 96,
+                        irradiance_rgb: [255, 80, 40],
+                    },
+                    HybridGiPrepareProbe {
+                        probe_id: 200,
+                        slot: 1,
+                        ray_budget: 96,
+                        irradiance_rgb: [160, 160, 160],
+                    },
+                    HybridGiPrepareProbe {
+                        probe_id: 300,
+                        slot: 2,
+                        ray_budget: 128,
+                        irradiance_rgb: [160, 160, 160],
+                    },
+                ],
+                pending_updates: Vec::new(),
+                scheduled_trace_region_ids: Vec::new(),
+                evictable_probe_ids: Vec::new(),
+            })),
+            &compiled,
+            None,
+        )
+        .unwrap();
+    let hierarchical = renderer
+        .render_frame_with_pipeline(
+            &EditorOrRuntimeFrame::from_extract(
+                build_extract_with_probes_and_trace_regions(
+                    viewport_size,
+                    vec![
+                        probe(100, true, 96, Vec3::new(-0.85, 0.0, 0.0), 0.65),
+                        probe_with_parent(200, 100, true, 96, Vec3::new(-0.2, 0.0, 0.0), 0.85),
+                        probe_with_parent(250, 200, false, 96, Vec3::new(0.2, 0.0, 0.0), 0.9),
+                        probe_with_parent(300, 250, true, 128, Vec3::new(0.65, 0.0, 0.0), 1.1),
+                    ],
+                    trace_regions,
+                ),
+                viewport_size,
+            )
+            .with_hybrid_gi_prepare(Some(HybridGiPrepareFrame {
+                resident_probes: vec![
+                    HybridGiPrepareProbe {
+                        probe_id: 100,
+                        slot: 0,
+                        ray_budget: 96,
+                        irradiance_rgb: [255, 80, 40],
+                    },
+                    HybridGiPrepareProbe {
+                        probe_id: 200,
+                        slot: 1,
+                        ray_budget: 96,
+                        irradiance_rgb: [160, 160, 160],
+                    },
+                    HybridGiPrepareProbe {
+                        probe_id: 300,
+                        slot: 2,
+                        ray_budget: 128,
+                        irradiance_rgb: [160, 160, 160],
+                    },
+                ],
+                pending_updates: Vec::new(),
+                scheduled_trace_region_ids: Vec::new(),
+                evictable_probe_ids: Vec::new(),
+            })),
+            &compiled,
+            None,
+        )
+        .unwrap();
+
+    let flat_chroma = average_region_channel(&flat.rgba, viewport_size, 0, 0.55, 0.9, 0.25, 0.75)
+        - average_region_channel(&flat.rgba, viewport_size, 2, 0.55, 0.9, 0.25, 0.75);
+    let hierarchical_chroma =
+        average_region_channel(&hierarchical.rgba, viewport_size, 0, 0.55, 0.9, 0.25, 0.75)
+            - average_region_channel(&hierarchical.rgba, viewport_size, 2, 0.55, 0.9, 0.25, 0.75);
+
+    assert!(
+        hierarchical_chroma > flat_chroma + 0.6,
+        "expected a resident child probe to inherit warmer farther-ancestor irradiance beyond the nearest resident parent when linked through the hierarchy chain; flat_chroma={flat_chroma:.2}, hierarchical_chroma={hierarchical_chroma:.2}"
+    );
+}
+
+#[test]
+fn hybrid_gi_resolve_increases_child_intensity_when_farther_resident_ancestor_has_more_budget() {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let viewport_size = UVec2::new(96, 64);
+    let trace_regions = Vec::new();
+
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(
+            &build_extract_with_probes_and_trace_regions(
+                viewport_size,
+                vec![
+                    probe(100, true, 1, Vec3::new(-0.85, 0.0, 0.0), 0.65),
+                    probe_with_parent(200, 100, true, 96, Vec3::new(-0.2, 0.0, 0.0), 0.85),
+                    probe_with_parent(250, 200, false, 96, Vec3::new(0.2, 0.0, 0.0), 0.9),
+                    probe_with_parent(300, 250, true, 128, Vec3::new(0.65, 0.0, 0.0), 1.1),
+                ],
+                trace_regions.clone(),
+            ),
+            &RenderPipelineCompileOptions::default()
+                .with_feature_enabled(BuiltinRenderFeature::GlobalIllumination)
+                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
+                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
+                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
+                .with_feature_disabled(BuiltinRenderFeature::Bloom)
+                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
+                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
+                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
+                .with_feature_disabled(BuiltinRenderFeature::Particle)
+                .with_feature_disabled(BuiltinRenderFeature::VirtualGeometry)
+                .with_async_compute(false),
+        )
+        .unwrap();
+
+    let low_budget = renderer
+        .render_frame_with_pipeline(
+            &EditorOrRuntimeFrame::from_extract(
+                build_extract_with_probes_and_trace_regions(
+                    viewport_size,
+                    vec![
+                        probe(100, true, 1, Vec3::new(-0.85, 0.0, 0.0), 0.65),
+                        probe_with_parent(200, 100, true, 96, Vec3::new(-0.2, 0.0, 0.0), 0.85),
+                        probe_with_parent(250, 200, false, 96, Vec3::new(0.2, 0.0, 0.0), 0.9),
+                        probe_with_parent(300, 250, true, 128, Vec3::new(0.65, 0.0, 0.0), 1.1),
+                    ],
+                    trace_regions.clone(),
+                ),
+                viewport_size,
+            )
+            .with_hybrid_gi_prepare(Some(HybridGiPrepareFrame {
+                resident_probes: vec![
+                    HybridGiPrepareProbe {
+                        probe_id: 100,
+                        slot: 0,
+                        ray_budget: 1,
+                        irradiance_rgb: [160, 160, 160],
+                    },
+                    HybridGiPrepareProbe {
+                        probe_id: 200,
+                        slot: 1,
+                        ray_budget: 96,
+                        irradiance_rgb: [160, 160, 160],
+                    },
+                    HybridGiPrepareProbe {
+                        probe_id: 300,
+                        slot: 2,
+                        ray_budget: 128,
+                        irradiance_rgb: [160, 160, 160],
+                    },
+                ],
+                pending_updates: Vec::new(),
+                scheduled_trace_region_ids: Vec::new(),
+                evictable_probe_ids: Vec::new(),
+            })),
+            &compiled,
+            None,
+        )
+        .unwrap();
+    let high_budget = renderer
+        .render_frame_with_pipeline(
+            &EditorOrRuntimeFrame::from_extract(
+                build_extract_with_probes_and_trace_regions(
+                    viewport_size,
+                    vec![
+                        probe(100, true, 255, Vec3::new(-0.85, 0.0, 0.0), 0.65),
+                        probe_with_parent(200, 100, true, 96, Vec3::new(-0.2, 0.0, 0.0), 0.85),
+                        probe_with_parent(250, 200, false, 96, Vec3::new(0.2, 0.0, 0.0), 0.9),
+                        probe_with_parent(300, 250, true, 128, Vec3::new(0.65, 0.0, 0.0), 1.1),
+                    ],
+                    trace_regions,
+                ),
+                viewport_size,
+            )
+            .with_hybrid_gi_prepare(Some(HybridGiPrepareFrame {
+                resident_probes: vec![
+                    HybridGiPrepareProbe {
+                        probe_id: 100,
+                        slot: 0,
+                        ray_budget: 255,
+                        irradiance_rgb: [160, 160, 160],
+                    },
+                    HybridGiPrepareProbe {
+                        probe_id: 200,
+                        slot: 1,
+                        ray_budget: 96,
+                        irradiance_rgb: [160, 160, 160],
+                    },
+                    HybridGiPrepareProbe {
+                        probe_id: 300,
+                        slot: 2,
+                        ray_budget: 128,
+                        irradiance_rgb: [160, 160, 160],
+                    },
+                ],
+                pending_updates: Vec::new(),
+                scheduled_trace_region_ids: Vec::new(),
+                evictable_probe_ids: Vec::new(),
+            })),
+            &compiled,
+            None,
+        )
+        .unwrap();
+
+    let low_budget_luma =
+        average_region_luma(&low_budget.rgba, viewport_size, 0.55, 0.9, 0.25, 0.75);
+    let high_budget_luma =
+        average_region_luma(&high_budget.rgba, viewport_size, 0.55, 0.9, 0.25, 0.75);
+
+    assert!(
+        high_budget_luma > low_budget_luma + 0.35,
+        "expected a farther resident ancestor with more ray budget to increase the child probe's final resolve intensity instead of only changing lineage color continuation; low_budget_luma={low_budget_luma:.2}, high_budget_luma={high_budget_luma:.2}"
+    );
+}
+
+#[test]
+fn hybrid_gi_resolve_strengthens_farther_ancestor_rt_tint_when_budget_increases() {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let viewport_size = UVec2::new(96, 64);
+    let trace_regions = vec![trace_region_with_bounds_and_rt_lighting(
+        40,
+        Vec3::new(-0.85, 0.0, 0.0),
+        0.75,
+        0.95,
+        [255, 64, 32],
+    )];
+
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(
+            &build_extract_with_probes_and_trace_regions(
+                viewport_size,
+                vec![
+                    probe(100, true, 1, Vec3::new(-0.85, 0.0, 0.0), 0.65),
+                    probe_with_parent(200, 100, true, 96, Vec3::new(-0.2, 0.0, 0.0), 0.85),
+                    probe_with_parent(250, 200, false, 96, Vec3::new(0.2, 0.0, 0.0), 0.9),
+                    probe_with_parent(300, 250, true, 128, Vec3::new(0.65, 0.0, 0.0), 1.1),
+                ],
+                trace_regions.clone(),
+            ),
+            &RenderPipelineCompileOptions::default()
+                .with_feature_enabled(BuiltinRenderFeature::GlobalIllumination)
+                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
+                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
+                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
+                .with_feature_disabled(BuiltinRenderFeature::Bloom)
+                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
+                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
+                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
+                .with_feature_disabled(BuiltinRenderFeature::Particle)
+                .with_feature_disabled(BuiltinRenderFeature::VirtualGeometry)
+                .with_async_compute(false),
+        )
+        .unwrap();
+
+    let low_budget = renderer
+        .render_frame_with_pipeline(
+            &EditorOrRuntimeFrame::from_extract(
+                build_extract_with_probes_and_trace_regions(
+                    viewport_size,
+                    vec![
+                        probe(100, true, 1, Vec3::new(-0.85, 0.0, 0.0), 0.65),
+                        probe_with_parent(200, 100, true, 96, Vec3::new(-0.2, 0.0, 0.0), 0.85),
+                        probe_with_parent(250, 200, false, 96, Vec3::new(0.2, 0.0, 0.0), 0.9),
+                        probe_with_parent(300, 250, true, 128, Vec3::new(0.65, 0.0, 0.0), 1.1),
+                    ],
+                    trace_regions.clone(),
+                ),
+                viewport_size,
+            )
+            .with_hybrid_gi_prepare(Some(HybridGiPrepareFrame {
+                resident_probes: vec![
+                    HybridGiPrepareProbe {
+                        probe_id: 100,
+                        slot: 0,
+                        ray_budget: 1,
+                        irradiance_rgb: [160, 160, 160],
+                    },
+                    HybridGiPrepareProbe {
+                        probe_id: 200,
+                        slot: 1,
+                        ray_budget: 96,
+                        irradiance_rgb: [160, 160, 160],
+                    },
+                    HybridGiPrepareProbe {
+                        probe_id: 300,
+                        slot: 2,
+                        ray_budget: 128,
+                        irradiance_rgb: [160, 160, 160],
+                    },
+                ],
+                pending_updates: Vec::new(),
+                scheduled_trace_region_ids: vec![40],
+                evictable_probe_ids: Vec::new(),
+            })),
+            &compiled,
+            None,
+        )
+        .unwrap();
+    let high_budget = renderer
+        .render_frame_with_pipeline(
+            &EditorOrRuntimeFrame::from_extract(
+                build_extract_with_probes_and_trace_regions(
+                    viewport_size,
+                    vec![
+                        probe(100, true, 255, Vec3::new(-0.85, 0.0, 0.0), 0.65),
+                        probe_with_parent(200, 100, true, 96, Vec3::new(-0.2, 0.0, 0.0), 0.85),
+                        probe_with_parent(250, 200, false, 96, Vec3::new(0.2, 0.0, 0.0), 0.9),
+                        probe_with_parent(300, 250, true, 128, Vec3::new(0.65, 0.0, 0.0), 1.1),
+                    ],
+                    trace_regions,
+                ),
+                viewport_size,
+            )
+            .with_hybrid_gi_prepare(Some(HybridGiPrepareFrame {
+                resident_probes: vec![
+                    HybridGiPrepareProbe {
+                        probe_id: 100,
+                        slot: 0,
+                        ray_budget: 255,
+                        irradiance_rgb: [160, 160, 160],
+                    },
+                    HybridGiPrepareProbe {
+                        probe_id: 200,
+                        slot: 1,
+                        ray_budget: 96,
+                        irradiance_rgb: [160, 160, 160],
+                    },
+                    HybridGiPrepareProbe {
+                        probe_id: 300,
+                        slot: 2,
+                        ray_budget: 128,
+                        irradiance_rgb: [160, 160, 160],
+                    },
+                ],
+                pending_updates: Vec::new(),
+                scheduled_trace_region_ids: vec![40],
+                evictable_probe_ids: Vec::new(),
+            })),
+            &compiled,
+            None,
+        )
+        .unwrap();
+
+    let low_budget_chroma =
+        average_region_channel(&low_budget.rgba, viewport_size, 0, 0.55, 0.9, 0.25, 0.75)
+            - average_region_channel(&low_budget.rgba, viewport_size, 2, 0.55, 0.9, 0.25, 0.75);
+    let high_budget_chroma =
+        average_region_channel(&high_budget.rgba, viewport_size, 0, 0.55, 0.9, 0.25, 0.75)
+            - average_region_channel(&high_budget.rgba, viewport_size, 2, 0.55, 0.9, 0.25, 0.75);
+
+    assert!(
+        high_budget_chroma > low_budget_chroma + 0.35,
+        "expected farther-ancestor RT tint inheritance to strengthen when the resident ancestor has more ray budget instead of staying flat; low_budget_chroma={low_budget_chroma:.2}, high_budget_chroma={high_budget_chroma:.2}"
+    );
+}
+
+#[test]
 fn hybrid_gi_resolve_inherits_rt_lighting_tint_through_nonresident_hierarchy_gap() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let mut renderer = SceneRenderer::new(asset_manager).unwrap();

@@ -44,6 +44,7 @@ impl VisibilityContext {
         );
         let (
             virtual_geometry_visible_clusters,
+            virtual_geometry_draw_segments,
             virtual_geometry_page_upload_plan,
             virtual_geometry_feedback,
             virtual_geometry_requested_pages,
@@ -91,6 +92,7 @@ impl VisibilityContext {
             hybrid_gi_update_plan,
             hybrid_gi_feedback,
             virtual_geometry_visible_clusters,
+            virtual_geometry_draw_segments,
             virtual_geometry_page_upload_plan,
             virtual_geometry_feedback,
             gpu_instancing_candidates,

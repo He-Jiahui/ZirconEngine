@@ -64,6 +64,16 @@ impl UiLegacyTemplateAdapter {
             stylesheets: Vec::new(),
         })
     }
+
+    pub fn layout_source(
+        asset_id: impl Into<String>,
+        display_name: impl Into<String>,
+        document: &UiTemplateDocument,
+    ) -> Result<String, UiAssetError> {
+        let document = Self::layout_document(asset_id, display_name, document)?;
+        toml::to_string_pretty(&document)
+            .map_err(|error| UiAssetError::ParseToml(error.to_string()))
+    }
 }
 
 fn convert_template_node(

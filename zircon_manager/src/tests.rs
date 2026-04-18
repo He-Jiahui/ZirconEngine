@@ -75,34 +75,64 @@ fn manager_public_surface_excludes_editor_asset_api() {
 }
 
 #[test]
-fn manager_public_surface_excludes_asset_display_taxonomy() {
+fn manager_public_surface_excludes_asset_manager_api() {
+    let crate_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let lib_source = include_str!("lib.rs");
+    let handles_source =
+        std::fs::read_to_string(crate_root.join("src/handles.rs")).unwrap_or_default();
+    let traits_source = include_str!("traits.rs");
+    let resolver_source = include_str!("resolver.rs");
     let records_mod_source = include_str!("records/mod.rs");
-    let asset_records_source = include_str!("records/asset.rs");
+    let service_names_source = include_str!("service_names.rs");
+    let asset_records_path = crate_root.join("src/records/asset.rs");
+    let project_records_path = crate_root.join("src/records/project.rs");
+
+    for forbidden in [
+        "AssetManager",
+        "AssetManagerHandle",
+        "resolve_asset_manager",
+        "ASSET_MANAGER_NAME",
+        "AssetPipelineInfo",
+        "AssetStatusRecord",
+        "ProjectInfo",
+        "AssetChangeRecord",
+        "AssetChangeKind",
+        "AssetRecordKind",
+        "PreviewStateRecord",
+    ] {
+        assert!(
+            !lib_source.contains(forbidden),
+            "zircon_manager lib.rs should not re-export {forbidden} after asset boundary cleanup"
+        );
+        assert!(
+            !traits_source.contains(forbidden),
+            "zircon_manager traits should not mention {forbidden} after asset boundary cleanup"
+        );
+        assert!(
+            !resolver_source.contains(forbidden),
+            "zircon_manager resolver should not mention {forbidden} after asset boundary cleanup"
+        );
+        assert!(
+            !records_mod_source.contains(forbidden),
+            "zircon_manager records mod should not mention {forbidden} after asset boundary cleanup"
+        );
+        assert!(
+            !service_names_source.contains(forbidden),
+            "zircon_manager service names should not mention {forbidden} after asset boundary cleanup"
+        );
+    }
 
     assert!(
-        !lib_source.contains("AssetRecordKind"),
-        "zircon_manager lib.rs should not re-export AssetRecordKind after canonical ResourceKind migration"
+        !handles_source.contains("define_handle!(AssetHandle);"),
+        "zircon_manager handles should not define AssetHandle after asset boundary cleanup"
     );
     assert!(
-        !lib_source.contains("PreviewStateRecord"),
-        "zircon_manager lib.rs should not re-export PreviewStateRecord after asset-owned preview migration"
+        !asset_records_path.exists(),
+        "zircon_manager should delete src/records/asset.rs after asset boundary cleanup"
     );
     assert!(
-        !records_mod_source.contains("AssetRecordKind"),
-        "zircon_manager records mod should not re-export AssetRecordKind after canonical ResourceKind migration"
-    );
-    assert!(
-        !records_mod_source.contains("PreviewStateRecord"),
-        "zircon_manager records mod should not re-export PreviewStateRecord after asset-owned preview migration"
-    );
-    assert!(
-        !asset_records_source.contains("pub enum AssetRecordKind"),
-        "zircon_manager asset records should not define AssetRecordKind after canonical ResourceKind migration"
-    );
-    assert!(
-        !asset_records_source.contains("pub enum PreviewStateRecord"),
-        "zircon_manager asset records should not define PreviewStateRecord after asset-owned preview migration"
+        !project_records_path.exists(),
+        "zircon_manager should delete src/records/project.rs after asset boundary cleanup"
     );
 }
 
@@ -113,7 +143,12 @@ fn manager_public_surface_excludes_input_protocol_types() {
     let records_mod_source = include_str!("records/mod.rs");
     let input_records_path = crate_root.join("src/records/input.rs");
 
-    for forbidden in ["InputButton", "InputEvent", "InputEventRecord", "InputSnapshot"] {
+    for forbidden in [
+        "InputButton",
+        "InputEvent",
+        "InputEventRecord",
+        "InputSnapshot",
+    ] {
         assert!(
             !lib_source.contains(forbidden),
             "zircon_manager lib.rs should not re-export {forbidden} after input protocol migration"
@@ -139,7 +174,8 @@ fn manager_public_surface_excludes_vm_plugin_protocol_types() {
     let crate_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let lib_source = include_str!("lib.rs");
     let records_mod_source = include_str!("records/mod.rs");
-    let handles_source = include_str!("handles.rs");
+    let handles_source =
+        std::fs::read_to_string(crate_root.join("src/handles.rs")).unwrap_or_default();
     let capability_set_path = crate_root.join("src/records/capability_set.rs");
 
     for forbidden in ["CapabilitySet", "HostHandle", "PluginSlotId"] {
@@ -172,11 +208,46 @@ fn manager_public_surface_excludes_vm_plugin_protocol_types() {
 }
 
 #[test]
+fn manager_public_surface_excludes_scene_protocol_types() {
+    let crate_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let lib_source = include_str!("lib.rs");
+    let traits_source = include_str!("traits.rs");
+    let records_mod_source = include_str!("records/mod.rs");
+    let handles_path = crate_root.join("src/handles.rs");
+    let level_records_path = crate_root.join("src/records/level.rs");
+
+    for forbidden in ["WorldHandle", "LevelSummary"] {
+        assert!(
+            !lib_source.contains(forbidden),
+            "zircon_manager lib.rs should not re-export {forbidden} after scene protocol migration"
+        );
+        assert!(
+            !records_mod_source.contains(forbidden),
+            "zircon_manager records mod should not re-export {forbidden} after scene protocol migration"
+        );
+    }
+
+    assert!(
+        traits_source.contains("zircon_scene_protocol"),
+        "zircon_manager traits should source scene protocol types from zircon_scene_protocol"
+    );
+    assert!(
+        !handles_path.exists(),
+        "zircon_manager should delete src/handles.rs after scene protocol migration"
+    );
+    assert!(
+        !level_records_path.exists(),
+        "zircon_manager should delete src/records/level.rs after scene protocol migration"
+    );
+}
+
+#[test]
 fn manager_public_surface_excludes_resource_state_mirror() {
+    let crate_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let lib_source = include_str!("lib.rs");
     let records_mod_source = include_str!("records/mod.rs");
-    let resource_records_source = include_str!("records/resource.rs");
     let traits_source = include_str!("traits.rs");
+    let resource_records_path = crate_root.join("src/records/resource.rs");
 
     assert!(
         !lib_source.contains("ResourceStateRecord"),
@@ -187,11 +258,78 @@ fn manager_public_surface_excludes_resource_state_mirror() {
         "zircon_manager records mod should not re-export ResourceStateRecord after canonical ResourceState migration"
     );
     assert!(
-        !resource_records_source.contains("pub enum ResourceStateRecord"),
-        "zircon_manager resource records should not define ResourceStateRecord after canonical ResourceState migration"
+        !resource_records_path.exists(),
+        "zircon_manager should delete src/records/resource.rs after canonical ResourceState migration"
     );
     assert!(
         !traits_source.contains("ResourceStateRecord"),
         "zircon_manager traits should refer to zircon_resource::ResourceState instead of ResourceStateRecord"
+    );
+}
+
+#[test]
+fn manager_public_surface_excludes_resource_status_wrapper() {
+    let crate_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let lib_source = include_str!("lib.rs");
+    let records_mod_source = include_str!("records/mod.rs");
+    let traits_source = include_str!("traits.rs");
+    let resource_records_path = crate_root.join("src/records/resource.rs");
+
+    assert!(
+        !lib_source.contains("ResourceStatusRecord"),
+        "zircon_manager lib.rs should not re-export ResourceStatusRecord after canonical ResourceRecord migration"
+    );
+    assert!(
+        !records_mod_source.contains("ResourceStatusRecord"),
+        "zircon_manager records mod should not re-export ResourceStatusRecord after canonical ResourceRecord migration"
+    );
+    assert!(
+        !resource_records_path.exists(),
+        "zircon_manager should delete src/records/resource.rs after canonical ResourceRecord migration"
+    );
+    assert!(
+        !traits_source.contains("ResourceStatusRecord"),
+        "zircon_manager traits should refer to zircon_resource::ResourceRecord instead of ResourceStatusRecord"
+    );
+    assert!(
+        traits_source.contains("ResourceRecord"),
+        "zircon_manager traits should expose zircon_resource::ResourceRecord after canonical ResourceRecord migration"
+    );
+}
+
+#[test]
+fn manager_public_surface_excludes_resource_change_wrapper() {
+    let crate_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let lib_source = include_str!("lib.rs");
+    let records_mod_source = include_str!("records/mod.rs");
+    let traits_source = include_str!("traits.rs");
+    let resource_records_path = crate_root.join("src/records/resource.rs");
+
+    for forbidden in ["ResourceChangeKind", "ResourceChangeRecord"] {
+        assert!(
+            !lib_source.contains(forbidden),
+            "zircon_manager lib.rs should not re-export {forbidden} after canonical ResourceEvent migration"
+        );
+        assert!(
+            !records_mod_source.contains(forbidden),
+            "zircon_manager records mod should not re-export {forbidden} after canonical ResourceEvent migration"
+        );
+        assert!(
+            !traits_source.contains(forbidden),
+            "zircon_manager traits should not mention {forbidden} after canonical ResourceEvent migration"
+        );
+    }
+
+    assert!(
+        !records_mod_source.contains("mod resource;"),
+        "zircon_manager records mod should not declare resource records after canonical ResourceEvent migration"
+    );
+    assert!(
+        !resource_records_path.exists(),
+        "zircon_manager should delete src/records/resource.rs after canonical ResourceEvent migration"
+    );
+    assert!(
+        traits_source.contains("ResourceEvent"),
+        "zircon_manager traits should expose zircon_resource::ResourceEvent after canonical ResourceEvent migration"
     );
 }

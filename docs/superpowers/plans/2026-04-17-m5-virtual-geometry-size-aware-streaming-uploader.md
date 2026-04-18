@@ -3,17 +3,17 @@ related_code:
   - zircon_graphics/src/types/mod.rs
   - zircon_graphics/src/runtime/virtual_geometry/prepare_frame.rs
   - zircon_graphics/src/runtime/virtual_geometry/pending_completion.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/buffer_helpers.rs
+  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/buffer_helpers/mod.rs
   - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/execute_prepare/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/gpu_pending_request_input.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/virtual_geometry_uploader_params.rs
+  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/gpu_pending_request_input/gpu_pending_request_input.rs
+  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/virtual_geometry_uploader_params/virtual_geometry_uploader_params.rs
   - zircon_graphics/src/scene/scene_renderer/virtual_geometry/shaders/uploader.wgsl
   - zircon_graphics/src/tests/virtual_geometry_gpu.rs
 implementation_files:
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/buffer_helpers.rs
+  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/buffer_helpers/mod.rs
   - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/execute_prepare/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/gpu_pending_request_input.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/virtual_geometry_uploader_params.rs
+  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/gpu_pending_request_input/gpu_pending_request_input.rs
+  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/virtual_geometry_uploader_params/virtual_geometry_uploader_params.rs
   - zircon_graphics/src/scene/scene_renderer/virtual_geometry/shaders/uploader.wgsl
   - zircon_graphics/src/tests/virtual_geometry_gpu.rs
 plan_sources:

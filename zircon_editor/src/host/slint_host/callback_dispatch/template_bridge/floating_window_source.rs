@@ -31,7 +31,7 @@ impl BuiltinFloatingWindowSourceTemplateBridge {
         shell_size: UiSize,
     ) -> Result<Self, BuiltinFloatingWindowSourceTemplateBridgeError> {
         let mut runtime = EditorUiHostRuntime::default();
-        runtime.load_builtin_workbench_shell()?;
+        runtime.load_builtin_host_templates()?;
         let surface = build_builtin_floating_window_source_surface(&runtime, shell_size)?;
         Ok(Self { runtime, surface })
     }

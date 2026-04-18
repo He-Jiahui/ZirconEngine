@@ -1,6 +1,6 @@
 ---
 related_code:
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/execute_runtime_prepare_passes.rs
+  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/runtime_prepare/execute_runtime_prepare_passes.rs
   - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_resources/hybrid_gi_completion_params.rs
   - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_resources/execute_prepare/execute.rs
   - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_resources/execute_prepare/mod.rs
@@ -8,7 +8,7 @@ related_code:
   - zircon_graphics/src/scene/scene_renderer/hybrid_gi/shaders/update_completion.wgsl
   - zircon_graphics/src/tests/hybrid_gi_gpu.rs
 implementation_files:
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/execute_runtime_prepare_passes.rs
+  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/runtime_prepare/execute_runtime_prepare_passes.rs
   - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_resources/hybrid_gi_completion_params.rs
   - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_resources/execute_prepare/execute.rs
   - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_resources/execute_prepare/mod.rs

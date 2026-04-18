@@ -1,13 +1,13 @@
 ---
 related_code:
   - zircon_graphics/src/visibility/planning/build_hybrid_gi_plan/build.rs
-  - zircon_graphics/src/visibility/planning/build_hybrid_gi_plan/hybrid_gi_probe_request_sort_key.rs
+- zircon_graphics/src/visibility/planning/build_hybrid_gi_plan/ordering/hybrid_gi_probe_request_sort_key.rs
   - zircon_graphics/src/scene/scene_renderer/hybrid_gi/shaders/update_completion.wgsl
   - zircon_graphics/src/tests/hybrid_gi_visibility.rs
   - zircon_graphics/src/tests/hybrid_gi_gpu.rs
 implementation_files:
   - zircon_graphics/src/visibility/planning/build_hybrid_gi_plan/build.rs
-  - zircon_graphics/src/visibility/planning/build_hybrid_gi_plan/hybrid_gi_probe_request_sort_key.rs
+- zircon_graphics/src/visibility/planning/build_hybrid_gi_plan/ordering/hybrid_gi_probe_request_sort_key.rs
   - zircon_graphics/src/scene/scene_renderer/hybrid_gi/shaders/update_completion.wgsl
   - zircon_graphics/src/tests/hybrid_gi_visibility.rs
   - zircon_graphics/src/tests/hybrid_gi_gpu.rs

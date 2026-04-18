@@ -1,8 +1,15 @@
-//! Platform module skeleton wired into the core runtime.
+//! Platform module scaffold with explicit core service descriptors.
 
-use zircon_module::{stub_module_descriptor, EngineModule, ModuleDescriptor};
+use std::sync::Arc;
+
+use zircon_module::{
+    dependency_on, factory, qualified_name, DriverDescriptor, EngineModule, ManagerDescriptor,
+    ModuleDescriptor, ServiceKind, StartupMode,
+};
 
 pub const PLATFORM_MODULE_NAME: &str = "PlatformModule";
+pub const PLATFORM_DRIVER_NAME: &str = "PlatformModule.Driver.PlatformDriver";
+pub const PLATFORM_MANAGER_NAME: &str = "PlatformModule.Manager.PlatformManager";
 
 #[derive(Clone, Debug, Default)]
 pub struct PlatformConfig {
@@ -12,13 +19,37 @@ pub struct PlatformConfig {
 #[derive(Clone, Copy, Debug, Default)]
 pub struct PlatformModule;
 
+#[derive(Clone, Debug, Default)]
+pub struct PlatformDriver;
+
+#[derive(Clone, Debug, Default)]
+pub struct PlatformManager;
+
 pub fn module_descriptor() -> ModuleDescriptor {
-    stub_module_descriptor(
+    ModuleDescriptor::new(
         PLATFORM_MODULE_NAME,
         "Platform, windowing, and OS integration",
-        "PlatformDriver",
-        "PlatformManager",
     )
+    .with_driver(DriverDescriptor::new(
+        qualified_name(PLATFORM_MODULE_NAME, ServiceKind::Driver, "PlatformDriver"),
+        StartupMode::Immediate,
+        Vec::new(),
+        factory(|_| Ok(Arc::new(PlatformDriver::default()) as _)),
+    ))
+    .with_manager(ManagerDescriptor::new(
+        qualified_name(
+            PLATFORM_MODULE_NAME,
+            ServiceKind::Manager,
+            "PlatformManager",
+        ),
+        StartupMode::Lazy,
+        vec![dependency_on(
+            PLATFORM_MODULE_NAME,
+            ServiceKind::Driver,
+            "PlatformDriver",
+        )],
+        factory(|_| Ok(Arc::new(PlatformManager::default()) as _)),
+    ))
 }
 
 impl EngineModule for PlatformModule {

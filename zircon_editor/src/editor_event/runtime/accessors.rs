@@ -1,6 +1,5 @@
 use zircon_asset::{EditorAssetCatalogSnapshotRecord, EditorAssetDetailsRecord};
-use zircon_manager::ResourceStatusRecord;
-use zircon_resource::{MaterialMarker, ModelMarker, ResourceHandle};
+use zircon_resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceRecord};
 use zircon_scene::LevelSystem;
 
 use crate::editor_event::{
@@ -80,7 +79,7 @@ impl EditorEventRuntime {
         Self::refresh_reflection_locked(&mut inner);
     }
 
-    pub fn sync_asset_resources(&self, resources: Vec<ResourceStatusRecord>) {
+    pub fn sync_asset_resources(&self, resources: Vec<ResourceRecord>) {
         let mut inner = self.inner.lock().unwrap();
         inner.state.sync_asset_resources(resources);
         Self::refresh_reflection_locked(&mut inner);

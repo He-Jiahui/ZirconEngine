@@ -1,4 +1,4 @@
-use super::super::virtual_geometry_runtime_state::VirtualGeometryRuntimeState;
+use super::super::VirtualGeometryRuntimeState;
 
 impl VirtualGeometryRuntimeState {
     pub(in crate::runtime::virtual_geometry::pending_completion) fn slot_is_assignable(
@@ -14,9 +14,7 @@ impl VirtualGeometryRuntimeState {
                 (resident_slot == slot).then_some(resident_page_id)
             }) {
             Some(resident_page_id) => {
-                resident_page_id == target_page_id
-                    || evictable_pages.contains(&resident_page_id)
-                    || self.evictable_pages.contains(&resident_page_id)
+                resident_page_id == target_page_id || evictable_pages.contains(&resident_page_id)
             }
             None => self.free_slots.contains(&slot) || slot >= self.next_slot,
         }

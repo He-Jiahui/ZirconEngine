@@ -1,6 +1,6 @@
 use crate::types::HybridGiPrepareUpdateRequest;
 
-use super::super::hybrid_gi_runtime_state::HybridGiRuntimeState;
+use super::super::HybridGiRuntimeState;
 
 pub(super) fn collect_pending_updates(
     runtime: &HybridGiRuntimeState,

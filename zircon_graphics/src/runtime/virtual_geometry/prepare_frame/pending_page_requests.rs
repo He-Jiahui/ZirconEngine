@@ -1,6 +1,6 @@
 use crate::types::VirtualGeometryPrepareRequest;
 
-use super::super::virtual_geometry_runtime_state::VirtualGeometryRuntimeState;
+use super::super::VirtualGeometryRuntimeState;
 
 pub(super) fn pending_page_requests(
     state: &VirtualGeometryRuntimeState,

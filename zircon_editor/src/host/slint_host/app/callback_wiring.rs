@@ -2,7 +2,7 @@ use super::*;
 
 fn dispatch_with_callback_source(
     weak: &std::rc::Weak<std::cell::RefCell<SlintEditorHost>>,
-    source_ui: &WorkbenchShell,
+    source_ui: &UiHostWindow,
     callback: impl FnOnce(&mut SlintEditorHost),
 ) {
     if let Some(host) = weak.upgrade() {
@@ -12,7 +12,7 @@ fn dispatch_with_callback_source(
     }
 }
 
-pub(super) fn wire_callbacks(ui: &WorkbenchShell, host: &Rc<RefCell<SlintEditorHost>>) {
+pub(super) fn wire_callbacks(ui: &UiHostWindow, host: &Rc<RefCell<SlintEditorHost>>) {
     let weak = Rc::downgrade(host);
     ui.on_menu_pointer_clicked(move |x, y| {
         if let Some(host) = weak.upgrade() {
@@ -488,6 +488,14 @@ pub(super) fn wire_callbacks(ui: &WorkbenchShell, host: &Rc<RefCell<SlintEditorH
     ui.on_ui_asset_source_edited(move |instance_id, value| {
         dispatch_with_callback_source(&weak, &source_ui, |host| {
             host.dispatch_ui_asset_source_edited(instance_id.as_str(), value.as_str());
+        });
+    });
+
+    let weak = Rc::downgrade(host);
+    let source_ui = ui.clone_strong();
+    ui.on_ui_asset_source_cursor_changed(move |instance_id, byte_offset| {
+        dispatch_with_callback_source(&weak, &source_ui, |host| {
+            host.dispatch_ui_asset_source_cursor_changed(instance_id.as_str(), byte_offset);
         });
     });
 

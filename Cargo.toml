@@ -1,5 +1,7 @@
 [workspace]
 members = [
+    "zircon_framework",
+    "zircon_builtin_modules",
     "zircon_core",
     "zircon_math",
     "zircon_resource",
@@ -14,6 +16,7 @@ members = [
     "zircon_ui",
     "zircon_asset",
     "zircon_scene",
+    "zircon_scene_protocol",
     "zircon_platform",
     "zircon_editor",
     "zircon_editor_ui",

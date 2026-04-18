@@ -1,7 +1,12 @@
-pub(crate) use super::{
-    binding_inspector, command, inspector_fields, inspector_semantics, matched_rule_inspection,
-    palette_target_chooser, preview_host, preview_mock, preview_projection, promote_widget,
-    source_buffer, source_sync, style_rule_declarations, tree_editing,
+use super::{
+    binding::binding_inspector,
+    command, palette_target_chooser, presentation,
+    preview::{preview_host, preview_mock, preview_projection},
+    promote_widget,
+    source::{source_buffer, source_sync},
+    style::{inspector_fields, inspector_semantics, style_rule_declarations},
+    tree::{palette_drop, tree_editing},
+    undo_stack,
 };
 
 pub(crate) mod hierarchy_projection;

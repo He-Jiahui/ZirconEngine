@@ -1,6 +1,28 @@
 use super::support::*;
 
 #[test]
+fn builtin_workbench_drawer_source_document_can_be_loaded_as_shared_surface() {
+    let _guard = env_lock().lock().unwrap();
+
+    let mut runtime = crate::host::template_runtime::EditorUiHostRuntime::default();
+    runtime.load_builtin_workbench_shell().unwrap();
+
+    let mut surface = runtime
+        .build_shared_surface("workbench.drawer_source")
+        .expect("drawer source document should be registered as a builtin shared surface");
+    surface.compute_layout(UiSize::new(1280.0, 720.0)).unwrap();
+
+    assert_eq!(
+        surface_control_frame(&surface, "WorkbenchDrawerTopBarRoot"),
+        Some(UiFrame::new(0.0, 0.0, 1280.0, 40.0))
+    );
+    assert_eq!(
+        surface_control_frame(&surface, "WorkbenchDrawerStatusBarRoot"),
+        Some(UiFrame::new(0.0, 696.0, 1280.0, 24.0))
+    );
+}
+
+#[test]
 fn builtin_workbench_template_bridge_recomputes_surface_backed_frames_with_shell_size() {
     let _guard = env_lock().lock().unwrap();
 
@@ -66,16 +88,18 @@ fn builtin_workbench_template_bridge_recomputes_surface_backed_frames_with_shell
 }
 
 #[test]
-fn builtin_workbench_template_bridge_exports_visible_drawer_shell_and_header_frames_from_chrome() {
+fn builtin_workbench_template_bridge_exports_visible_drawer_shell_and_header_frames_from_workbench_model(
+) {
     let _guard = env_lock().lock().unwrap();
 
     let fixture = crate::default_preview_fixture();
     let chrome = fixture.build_chrome();
+    let model = crate::WorkbenchViewModel::build(&chrome);
     let mut bridge = BuiltinWorkbenchTemplateBridge::new(UiSize::new(1280.0, 720.0)).unwrap();
     bridge
-        .recompute_layout_with_chrome(
+        .recompute_layout_with_workbench_model(
             UiSize::new(1280.0, 720.0),
-            &chrome,
+            &model,
             &crate::WorkbenchChromeMetrics::default(),
         )
         .unwrap();
@@ -99,6 +123,15 @@ fn builtin_workbench_template_bridge_exports_visible_drawer_shell_and_header_fra
         Some(UiFrame::new(body_frame.x + 35.0, body_frame.y, 277.0, 25.0))
     );
     assert_eq!(
+        root_frames.left_drawer_content_frame,
+        Some(UiFrame::new(
+            body_frame.x + 35.0,
+            body_frame.y + 26.0,
+            277.0,
+            expected_center_height - 26.0,
+        ))
+    );
+    assert_eq!(
         root_frames.right_drawer_shell_frame,
         Some(UiFrame::new(
             body_frame.x + body_frame.width - 308.0,
@@ -114,6 +147,15 @@ fn builtin_workbench_template_bridge_exports_visible_drawer_shell_and_header_fra
             body_frame.y,
             273.0,
             25.0,
+        ))
+    );
+    assert_eq!(
+        root_frames.right_drawer_content_frame,
+        Some(UiFrame::new(
+            body_frame.x + body_frame.width - 308.0,
+            body_frame.y + 26.0,
+            273.0,
+            expected_center_height - 26.0,
         ))
     );
     assert_eq!(
@@ -133,6 +175,73 @@ fn builtin_workbench_template_bridge_exports_visible_drawer_shell_and_header_fra
             body_frame.width,
             25.0,
         ))
+    );
+    assert_eq!(
+        root_frames.bottom_drawer_content_frame,
+        Some(UiFrame::new(
+            body_frame.x,
+            body_frame.y + body_frame.height - 138.0,
+            body_frame.width,
+            138.0,
+        ))
+    );
+}
+
+#[test]
+fn builtin_workbench_drawer_source_template_bridge_exports_visible_drawer_frames_from_workbench_model(
+) {
+    let _guard = env_lock().lock().unwrap();
+
+    let fixture = crate::default_preview_fixture();
+    let chrome = fixture.build_chrome();
+    let model = crate::WorkbenchViewModel::build(&chrome);
+    let mut bridge =
+        BuiltinWorkbenchDrawerSourceTemplateBridge::new(UiSize::new(1280.0, 720.0)).unwrap();
+    bridge
+        .recompute_layout_with_workbench_model(
+            UiSize::new(1280.0, 720.0),
+            &model,
+            &crate::WorkbenchChromeMetrics::default(),
+        )
+        .unwrap();
+
+    let frames = bridge.source_frames();
+    let center_height = 720.0 - 40.0 - 24.0 - 1.0 - 164.0;
+    assert_eq!(
+        frames.left_drawer_shell_frame,
+        Some(UiFrame::new(0.0, 40.0, 312.0, center_height))
+    );
+    assert_eq!(
+        frames.left_drawer_header_frame,
+        Some(UiFrame::new(35.0, 40.0, 277.0, 25.0))
+    );
+    assert_eq!(
+        frames.left_drawer_content_frame,
+        Some(UiFrame::new(35.0, 66.0, 277.0, center_height - 26.0))
+    );
+    assert_eq!(
+        frames.right_drawer_shell_frame,
+        Some(UiFrame::new(972.0, 40.0, 308.0, center_height))
+    );
+    assert_eq!(
+        frames.right_drawer_header_frame,
+        Some(UiFrame::new(972.0, 40.0, 273.0, 25.0))
+    );
+    assert_eq!(
+        frames.right_drawer_content_frame,
+        Some(UiFrame::new(972.0, 66.0, 273.0, center_height - 26.0))
+    );
+    assert_eq!(
+        frames.bottom_drawer_shell_frame,
+        Some(UiFrame::new(0.0, 532.0, 1280.0, 164.0))
+    );
+    assert_eq!(
+        frames.bottom_drawer_header_frame,
+        Some(UiFrame::new(0.0, 532.0, 1280.0, 25.0))
+    );
+    assert_eq!(
+        frames.bottom_drawer_content_frame,
+        Some(UiFrame::new(0.0, 558.0, 1280.0, 138.0))
     );
 }
 
@@ -162,4 +271,14 @@ fn builtin_floating_window_source_template_bridge_recomputes_surface_backed_fram
         bridge.source_frames().document_frame,
         Some(UiFrame::new(56.0, 40.0, 904.0, 476.0))
     );
+}
+
+fn surface_control_frame(surface: &zircon_ui::UiSurface, control_id: &str) -> Option<UiFrame> {
+    surface.tree.nodes.values().find_map(|node| {
+        node.template_metadata
+            .as_ref()
+            .and_then(|metadata| metadata.control_id.as_deref())
+            .filter(|candidate| *candidate == control_id)
+            .map(|_| node.layout_cache.frame)
+    })
 }

@@ -25,4 +25,3 @@ pub(super) fn config_file_path() -> PathBuf {
 
     PathBuf::from(".zircon-editor-config.json")
 }
-

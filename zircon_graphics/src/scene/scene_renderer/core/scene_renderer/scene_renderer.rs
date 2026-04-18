@@ -28,4 +28,8 @@ pub struct SceneRenderer {
     pub(in crate::scene::scene_renderer::core) last_virtual_geometry_indirect_args_buffer:
         Option<Arc<wgpu::Buffer>>,
     pub(in crate::scene::scene_renderer::core) last_virtual_geometry_indirect_args_count: u32,
+    pub(in crate::scene::scene_renderer::core) last_virtual_geometry_indirect_draw_refs_buffer:
+        Option<Arc<wgpu::Buffer>>,
+    pub(in crate::scene::scene_renderer::core) last_virtual_geometry_indirect_segments_buffer:
+        Option<Arc<wgpu::Buffer>>,
 }

@@ -1,4 +1,4 @@
-use super::super::virtual_geometry_runtime_state::VirtualGeometryRuntimeState;
+use super::super::VirtualGeometryRuntimeState;
 
 impl VirtualGeometryRuntimeState {
     pub(in crate::runtime::virtual_geometry::residency_management) fn clear_pending_request(

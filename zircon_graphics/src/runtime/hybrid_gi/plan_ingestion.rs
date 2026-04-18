@@ -1,7 +1,6 @@
 use crate::VisibilityHybridGiUpdatePlan;
 
-use super::hybrid_gi_probe_update_request::HybridGiProbeUpdateRequest;
-use super::hybrid_gi_runtime_state::HybridGiRuntimeState;
+use super::{HybridGiProbeUpdateRequest, HybridGiRuntimeState};
 
 impl HybridGiRuntimeState {
     pub(crate) fn ingest_plan(&mut self, generation: u64, plan: &VisibilityHybridGiUpdatePlan) {

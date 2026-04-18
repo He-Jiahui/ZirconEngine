@@ -1,4 +1,4 @@
-use super::super::hybrid_gi_runtime_state::HybridGiRuntimeState;
+use super::super::HybridGiRuntimeState;
 
 pub(super) fn complete_pending_probes(
     runtime: &mut HybridGiRuntimeState,

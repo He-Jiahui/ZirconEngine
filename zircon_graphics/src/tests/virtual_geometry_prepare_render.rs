@@ -5,10 +5,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use image::{ImageBuffer, ImageFormat, Rgba};
 use zircon_asset::{
-    AlphaMode, AssetReference, AssetUri, MaterialAsset, ProjectAssetManager, ProjectManifest,
-    ProjectPaths,
+    AlphaMode, AssetManager, AssetReference, AssetUri, MaterialAsset, ProjectAssetManager,
+    ProjectManifest, ProjectPaths,
 };
-use zircon_manager::AssetManager;
 use zircon_math::{Transform, UVec2, Vec3, Vec4};
 use zircon_resource::{MaterialMarker, ModelMarker, ResourceHandle};
 use zircon_scene::{
@@ -2325,6 +2324,183 @@ fn virtual_geometry_prepare_gpu_generated_indirect_args_change_when_page_id_chan
     assert!(
         page_301_args[0].0 > page_300_args[0].0 || page_301_args[0].1 < page_300_args[0].1,
         "expected page-owned indirect args to shift or trim the cluster raster span even when resident_slot is identical; page300={page_300_args:?}, page301={page_301_args:?}"
+    );
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn virtual_geometry_prepare_cluster_raster_output_changes_when_page_id_changes_inside_same_resident_slot(
+) {
+    let root =
+        unique_temp_project_root("graphics_virtual_geometry_page_owned_cluster_raster_output");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths.ensure_layout().unwrap();
+    ProjectManifest::new(
+        "GraphicsVirtualGeometryPageOwnedClusterRasterOutput",
+        AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+        1,
+    )
+    .save(paths.manifest_path())
+    .unwrap();
+
+    write_flat_color_wgsl(
+        paths.assets_root().join("shaders").join("flat_green.wgsl"),
+        [0.08, 0.95, 0.08],
+    );
+    write_solid_png(
+        paths.assets_root().join("textures").join("white.png"),
+        [255, 255, 255, 255],
+    );
+    write_tiled_quad_obj(paths.assets_root().join("models").join("tiled_quad.obj"));
+    write_material(
+        paths
+            .assets_root()
+            .join("materials")
+            .join("flat_green.material.toml"),
+        "res://shaders/flat_green.wgsl",
+        "res://textures/white.png",
+    );
+
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    asset_manager
+        .open_project(root.to_string_lossy().as_ref())
+        .unwrap();
+    let mut project = zircon_asset::ProjectManager::open(&root).unwrap();
+    project.scan_and_import().unwrap();
+
+    let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/tiled_quad.obj");
+    let green_material = resource_handle::<MaterialMarker>(
+        &asset_manager,
+        "res://materials/flat_green.material.toml",
+    );
+    let viewport_size = UVec2::new(160, 120);
+    let extract = build_single_entity_extract_with_clusters(
+        viewport_size,
+        model,
+        green_material,
+        vec![RenderVirtualGeometryCluster {
+            entity: 2,
+            cluster_id: 2,
+            page_id: 300,
+            lod_level: 0,
+            parent_cluster_id: None,
+            bounds_center: Vec3::ZERO,
+            bounds_radius: 1.0,
+            screen_space_error: 1.0,
+        }],
+        vec![RenderVirtualGeometryPage {
+            page_id: 300,
+            resident: true,
+            size_bytes: 4096,
+        }],
+    );
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(
+            &extract,
+            &RenderPipelineCompileOptions::default()
+                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
+                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
+                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
+                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
+                .with_feature_disabled(BuiltinRenderFeature::Bloom)
+                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
+                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
+                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
+                .with_feature_disabled(BuiltinRenderFeature::Particle)
+                .with_async_compute(false),
+        )
+        .unwrap();
+
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let page_300 = renderer
+        .render_frame_with_pipeline(
+            &EditorOrRuntimeFrame::from_extract(extract.clone(), viewport_size)
+                .with_virtual_geometry_prepare(Some(VirtualGeometryPrepareFrame {
+                    visible_entities: vec![2],
+                    visible_clusters: vec![VirtualGeometryPrepareCluster {
+                        entity: 2,
+                        cluster_id: 2,
+                        page_id: 300,
+                        lod_level: 0,
+                        resident_slot: Some(7),
+                        state: VirtualGeometryPrepareClusterState::Resident,
+                    }],
+                    cluster_draw_segments: vec![draw_segment_with_span(
+                        2,
+                        2,
+                        300,
+                        Some(7),
+                        0,
+                        1,
+                        1,
+                        0,
+                        VirtualGeometryPrepareClusterState::Resident,
+                    )],
+                    resident_pages: vec![VirtualGeometryPreparePage {
+                        page_id: 300,
+                        slot: 7,
+                        size_bytes: 4096,
+                    }],
+                    pending_page_requests: Vec::new(),
+                    available_slots: Vec::new(),
+                    evictable_pages: Vec::new(),
+                })),
+            &compiled,
+            None,
+        )
+        .unwrap();
+    let page_301 = renderer
+        .render_frame_with_pipeline(
+            &EditorOrRuntimeFrame::from_extract(extract, viewport_size)
+                .with_virtual_geometry_prepare(Some(VirtualGeometryPrepareFrame {
+                    visible_entities: vec![2],
+                    visible_clusters: vec![VirtualGeometryPrepareCluster {
+                        entity: 2,
+                        cluster_id: 2,
+                        page_id: 301,
+                        lod_level: 0,
+                        resident_slot: Some(7),
+                        state: VirtualGeometryPrepareClusterState::Resident,
+                    }],
+                    cluster_draw_segments: vec![draw_segment_with_span(
+                        2,
+                        2,
+                        301,
+                        Some(7),
+                        0,
+                        1,
+                        1,
+                        0,
+                        VirtualGeometryPrepareClusterState::Resident,
+                    )],
+                    resident_pages: vec![VirtualGeometryPreparePage {
+                        page_id: 301,
+                        slot: 7,
+                        size_bytes: 4096,
+                    }],
+                    pending_page_requests: Vec::new(),
+                    available_slots: Vec::new(),
+                    evictable_pages: Vec::new(),
+                })),
+            &compiled,
+            None,
+        )
+        .unwrap();
+
+    let page_300_left_green = average_half_channel(&page_300.rgba, viewport_size, 1, Half::Left);
+    let page_301_left_green = average_half_channel(&page_301.rgba, viewport_size, 1, Half::Left);
+    let page_300_coverage = count_non_background_pixels(&page_300.rgba);
+    let page_301_coverage = count_non_background_pixels(&page_301.rgba);
+
+    assert_ne!(
+        page_300.rgba, page_301.rgba,
+        "expected page-owned unified indirect submission truth to change cluster raster output, not just GPU indirect args"
+    );
+    assert!(
+        (page_300_left_green - page_301_left_green).abs() > 0.45
+            || page_300_coverage.abs_diff(page_301_coverage) > 96,
+        "expected page-owned submission offset to materially shift cluster raster coverage or balance; page300_left={page_300_left_green:.2}, page301_left={page_301_left_green:.2}, page300_coverage={page_300_coverage}, page301_coverage={page_301_coverage}"
     );
 
     let _ = fs::remove_dir_all(root);

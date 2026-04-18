@@ -1,23 +1,30 @@
+use std::fs;
+
 use thiserror::Error;
 use zircon_editor_ui::{
     EditorComponentCatalog, EditorComponentDescriptor, EditorTemplateAdapter, EditorTemplateError,
     EditorTemplateRegistry, EditorUiBinding, EditorUiControlService,
 };
-use zircon_ui::{UiSurface, UiTemplateLoader, UiTemplateSurfaceBuilder, UiTreeId};
+use zircon_ui::{
+    UiAssetDocument, UiAssetError, UiAssetLoader, UiSurface, UiTemplateLoader,
+    UiTemplateSurfaceBuilder, UiTreeId,
+};
 
 use crate::host::template_runtime::{
     SlintUiHostAdapter, SlintUiHostModel, SlintUiHostProjection, SlintUiProjection,
 };
 
 use super::{
-    build_session::load_builtin_workbench_shell,
+    build_session::load_builtin_host_templates,
     projection::{build_host_model, build_host_model_with_surface, project_document},
 };
 
-#[derive(Debug, Error, PartialEq, Eq)]
+#[derive(Debug, Error, PartialEq)]
 pub enum EditorUiHostRuntimeError {
     #[error(transparent)]
     Template(#[from] EditorTemplateError),
+    #[error(transparent)]
+    UiAsset(#[from] UiAssetError),
     #[error(transparent)]
     UiTemplate(#[from] zircon_ui::UiTemplateError),
     #[error(transparent)]
@@ -33,7 +40,7 @@ pub struct EditorUiHostRuntime {
     pub(super) component_catalog: EditorComponentCatalog,
     pub(super) template_registry: EditorTemplateRegistry,
     pub(super) template_adapter: EditorTemplateAdapter,
-    pub(super) builtin_workbench_loaded: bool,
+    pub(super) builtin_host_templates_loaded: bool,
 }
 
 impl EditorUiHostRuntime {
@@ -55,10 +62,43 @@ impl EditorUiHostRuntime {
         document_id: impl Into<String>,
         path: impl AsRef<std::path::Path>,
     ) -> Result<(), EditorUiHostRuntimeError> {
-        let document = UiTemplateLoader::load_toml_file(path)?;
+        self.register_document_file(document_id, path)
+    }
+
+    pub fn register_asset_document(
+        &mut self,
+        document_id: impl Into<String>,
+        document: UiAssetDocument,
+    ) -> Result<(), EditorUiHostRuntimeError> {
+        self.template_registry
+            .register_asset_document(document_id, document)
+            .map_err(EditorUiHostRuntimeError::from)
+    }
+
+    pub fn register_document_source(
+        &mut self,
+        document_id: impl Into<String>,
+        source: &str,
+    ) -> Result<(), EditorUiHostRuntimeError> {
+        let document_id = document_id.into();
+        if let Ok(document) = UiAssetLoader::load_toml_str(source) {
+            return self.register_asset_document(document_id, document);
+        }
+
+        let document = UiTemplateLoader::load_toml_str(source)?;
         self.template_registry
             .register_document(document_id, document)
             .map_err(EditorUiHostRuntimeError::from)
+    }
+
+    pub fn register_document_file(
+        &mut self,
+        document_id: impl Into<String>,
+        path: impl AsRef<std::path::Path>,
+    ) -> Result<(), EditorUiHostRuntimeError> {
+        let source =
+            fs::read_to_string(path).map_err(|error| UiAssetError::Io(error.to_string()))?;
+        self.register_document_source(document_id, &source)
     }
 
     pub fn register_binding(
@@ -71,8 +111,12 @@ impl EditorUiHostRuntime {
             .map_err(EditorUiHostRuntimeError::from)
     }
 
+    pub fn load_builtin_host_templates(&mut self) -> Result<(), EditorUiHostRuntimeError> {
+        load_builtin_host_templates(self)
+    }
+
     pub fn load_builtin_workbench_shell(&mut self) -> Result<(), EditorUiHostRuntimeError> {
-        load_builtin_workbench_shell(self)
+        self.load_builtin_host_templates()
     }
 
     pub fn project_document(

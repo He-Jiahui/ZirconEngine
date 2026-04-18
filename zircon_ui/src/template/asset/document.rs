@@ -171,7 +171,7 @@ pub struct UiActionRef {
     pub payload: BTreeMap<String, Value>,
 }
 
-#[derive(Clone, Debug, Error, PartialEq)]
+#[derive(Clone, Debug, Error, PartialEq, Eq)]
 pub enum UiAssetError {
     #[error("failed to parse ui asset document: {0}")]
     ParseToml(String),

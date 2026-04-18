@@ -1,13 +1,12 @@
 use std::cell::Cell;
 use std::rc::Rc;
 
-use crate::host::slint_host::WorkbenchShell;
 use crate::host::slint_host::floating_window_projection::build_floating_window_projection_bundle;
+use crate::host::slint_host::UiHostWindow;
 use crate::{
-    DocumentNode, FloatingWindowLayout, MainPageId, NativeWindowHostState, ShellFrame, ShellSizePx,
-    TabStackLayout, ViewDescriptorId, ViewHost, ViewInstance, ViewInstanceId,
-    WorkbenchChromeMetrics, WorkbenchViewModel, compute_workbench_shell_geometry,
-    default_preview_fixture,
+    compute_workbench_shell_geometry, default_preview_fixture, DocumentNode, FloatingWindowLayout,
+    MainPageId, NativeWindowHostState, ShellFrame, ShellSizePx, TabStackLayout, ViewDescriptorId,
+    ViewHost, ViewInstance, ViewInstanceId, WorkbenchChromeMetrics, WorkbenchViewModel,
 };
 use slint::{ComponentHandle, PhysicalSize};
 
@@ -39,7 +38,7 @@ fn floating_preview_fixture(window_id: &MainPageId) -> crate::PreviewFixture {
 fn workbench_shell_window_can_resize_and_toggle_maximize() {
     i_slint_backend_testing::init_no_event_loop();
 
-    let ui = WorkbenchShell::new().expect("workbench shell should instantiate");
+    let ui = UiHostWindow::new().expect("workbench shell should instantiate");
     ui.show()
         .expect("workbench shell should show in test backend");
 
@@ -312,7 +311,7 @@ fn child_window_callback_wiring_tracks_source_window_for_pane_interactions() {
 
     assert!(
         helpers.contains(
-            "fn resolve_callback_source_window_id(ui: &WorkbenchShell) -> Option<MainPageId>"
+            "fn resolve_callback_source_window_id(ui: &UiHostWindow) -> Option<MainPageId>"
         ),
         "child callback source helper should resolve the originating native window id"
     );

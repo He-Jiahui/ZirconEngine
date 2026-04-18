@@ -8,8 +8,8 @@ use zircon_module::{EngineModule, ModuleDescriptor};
 pub use module::{
     module_descriptor, InputConfig, INPUT_DRIVER_NAME, INPUT_MANAGER_NAME, INPUT_MODULE_NAME,
 };
-pub use zircon_input_protocol::{InputButton, InputEvent, InputEventRecord, InputSnapshot};
 pub use runtime::{DefaultInputManager, InputDriver};
+pub use zircon_input_protocol::{InputButton, InputEvent, InputEventRecord, InputSnapshot};
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct InputModule;

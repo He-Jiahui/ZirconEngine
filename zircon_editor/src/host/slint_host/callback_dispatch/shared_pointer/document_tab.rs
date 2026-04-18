@@ -11,8 +11,9 @@ use crate::host::slint_host::{
 use crate::{LayoutCommand, ViewInstanceId};
 
 use super::super::{
-    BuiltinWorkbenchTemplateBridge, dispatch_builtin_workbench_document_tab_activation,
+    dispatch_builtin_workbench_document_tab_activation,
     dispatch_builtin_workbench_document_tab_close, dispatch_layout_command,
+    BuiltinWorkbenchTemplateBridge,
 };
 
 #[derive(Debug, Clone, PartialEq)]

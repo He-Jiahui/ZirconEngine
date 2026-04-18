@@ -13,4 +13,8 @@ pub(super) struct GpuPendingProbeInput {
     pub(super) parent_probe_id: u32,
     pub(super) resident_ancestor_probe_id: u32,
     pub(super) resident_ancestor_depth: u32,
+    pub(super) resident_secondary_ancestor_probe_id: u32,
+    pub(super) resident_secondary_ancestor_depth: u32,
+    pub(super) resident_tertiary_ancestor_probe_id: u32,
+    pub(super) resident_tertiary_ancestor_depth: u32,
 }

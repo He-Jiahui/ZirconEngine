@@ -2,9 +2,7 @@
 
 use std::sync::{Arc, Mutex};
 
-use zircon_manager::WorldHandle;
-
-use crate::world::World;
+use crate::{world::World, WorldHandle};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum LevelLifecycleState {

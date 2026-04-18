@@ -53,7 +53,7 @@ impl EditorManager {
             .map(Some)
     }
 
-    pub(super) fn restore_ui_asset_editor_instance(
+    pub(crate) fn restore_ui_asset_editor_instance(
         &self,
         instance: &ViewInstance,
     ) -> Result<(), EditorError> {

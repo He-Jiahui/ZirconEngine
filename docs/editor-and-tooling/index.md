@@ -123,7 +123,7 @@ doc_type: category-index
 - tab drag/drop、split hotzone、exclusive page / float zone 目标解析
 - 目录式项目根、默认 scene 和 `.zircon/editor-workspace.json` sidecar 持久化
 - `ResourceLocator` / typed handle 驱动的 editor 导入与 `LevelSystem` runtime 绑定
-- editor host 通过 `AssetManager + ResourceManager + EditorAssetManager` façade 读取项目与资源状态，并在宿主层统一解析 ready typed handle
+- editor host 通过 asset/resource-owned `AssetManager + ResourceManager + EditorAssetManager` 合同读取项目与资源状态，并在宿主层统一解析 ready typed handle
 - 项目级最近布局和用户级默认布局/preset 持久化
 - `zircon_ui` 共享 layout/tree/hit-test/surface 基础，以及 editor workbench 对共享约束求解器和几何类型的复用
 - 节点创建、删除、重命名、改父子层级

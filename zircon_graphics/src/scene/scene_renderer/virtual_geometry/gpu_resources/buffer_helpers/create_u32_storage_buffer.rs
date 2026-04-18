@@ -1,6 +1,6 @@
 use wgpu::util::DeviceExt;
 
-pub(super) fn create_u32_storage_buffer(
+pub(in crate::scene::scene_renderer::virtual_geometry::gpu_resources) fn create_u32_storage_buffer(
     device: &wgpu::Device,
     label: &'static str,
     contents: &[u32],

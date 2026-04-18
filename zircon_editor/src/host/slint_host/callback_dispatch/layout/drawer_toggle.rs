@@ -5,8 +5,8 @@ use crate::host::slint_host::event_bridge::SlintDispatchEffects;
 use crate::{ActivityDrawerMode, LayoutCommand, ViewInstanceId};
 
 use super::super::{
-    BuiltinWorkbenchTemplateBridge,
     common::{merge_effects, parse_activity_drawer_slot},
+    BuiltinWorkbenchTemplateBridge,
 };
 use super::dispatch_layout_command;
 

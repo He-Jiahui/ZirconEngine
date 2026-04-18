@@ -11,6 +11,7 @@ use super::{
     visibility_instance_upload_plan::VisibilityInstanceUploadPlan,
     visibility_particle_upload_plan::VisibilityParticleUploadPlan,
     visibility_virtual_geometry_cluster::VisibilityVirtualGeometryCluster,
+    visibility_virtual_geometry_draw_segment::VisibilityVirtualGeometryDrawSegment,
     visibility_virtual_geometry_feedback::VisibilityVirtualGeometryFeedback,
     visibility_virtual_geometry_page_upload_plan::VisibilityVirtualGeometryPageUploadPlan,
 };
@@ -35,6 +36,7 @@ pub struct VisibilityContext {
     pub hybrid_gi_update_plan: VisibilityHybridGiUpdatePlan,
     pub hybrid_gi_feedback: VisibilityHybridGiFeedback,
     pub virtual_geometry_visible_clusters: Vec<VisibilityVirtualGeometryCluster>,
+    pub virtual_geometry_draw_segments: Vec<VisibilityVirtualGeometryDrawSegment>,
     pub virtual_geometry_page_upload_plan: VisibilityVirtualGeometryPageUploadPlan,
     pub virtual_geometry_feedback: VisibilityVirtualGeometryFeedback,
     pub gpu_instancing_candidates: Vec<VisibilityBatch>,

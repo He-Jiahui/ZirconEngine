@@ -1,5 +1,7 @@
 use crate::editing::ui_asset::{
-    UiAssetEditorCommand, UiAssetEditorSession, UiAssetEditorTreeEdit, UiAssetEditorTreeEditKind,
+    UiAssetEditorCommand, UiAssetEditorExternalEffect, UiAssetEditorSession,
+    UiAssetEditorSessionError, UiAssetEditorTreeEdit, UiAssetEditorTreeEditKind,
+    UiAssetEditorUndoExternalEffects,
 };
 use crate::{
     UiAssetEditorMode, UiAssetEditorRoute, UiAssetEditorUndoStack, UiAssetPreviewPreset,
@@ -320,6 +322,114 @@ kind = "native"
 type = "Button"
 control_id = "Button"
 props = { text = "Scroll" }
+"##;
+
+const HORIZONTAL_BOX_LAYOUT_ASSET_TOML: &str = r##"
+[asset]
+kind = "layout"
+id = "editor.test.horizontal_box_layout"
+version = 1
+display_name = "Horizontal Box Layout"
+
+[root]
+node = "root"
+
+[nodes.root]
+kind = "native"
+type = "HorizontalBox"
+control_id = "Root"
+layout = { container = { kind = "HorizontalBox", gap = 10 } }
+children = [{ child = "left" }, { child = "right" }]
+
+[nodes.left]
+kind = "native"
+type = "Label"
+control_id = "Left"
+props = { text = "Left" }
+
+[nodes.right]
+kind = "native"
+type = "Label"
+control_id = "Right"
+props = { text = "Right" }
+"##;
+
+const VERTICAL_BOX_LAYOUT_ASSET_TOML: &str = r##"
+[asset]
+kind = "layout"
+id = "editor.test.vertical_box_layout"
+version = 1
+display_name = "Vertical Box Layout"
+
+[root]
+node = "root"
+
+[nodes.root]
+kind = "native"
+type = "VerticalBox"
+control_id = "Root"
+layout = { container = { kind = "VerticalBox", gap = 12 } }
+children = [{ child = "top" }, { child = "bottom" }]
+
+[nodes.top]
+kind = "native"
+type = "Label"
+control_id = "Top"
+props = { text = "Top" }
+
+[nodes.bottom]
+kind = "native"
+type = "Label"
+control_id = "Bottom"
+props = { text = "Bottom" }
+"##;
+
+const HORIZONTAL_LINEAR_SLOT_LAYOUT_ASSET_TOML: &str = r##"
+[asset]
+kind = "layout"
+id = "editor.test.horizontal_linear_slot_layout"
+version = 1
+display_name = "Horizontal Linear Slot Layout"
+
+[root]
+node = "root"
+
+[nodes.root]
+kind = "native"
+type = "HorizontalBox"
+control_id = "Root"
+layout = { container = { kind = "HorizontalBox", gap = 10 } }
+children = [{ child = "fill", slot = { layout = { width = { preferred = 120, weight = 3, stretch = "Stretch" }, height = { preferred = 40, weight = 2, stretch = "Fixed" } } } }]
+
+[nodes.fill]
+kind = "native"
+type = "Label"
+control_id = "Fill"
+props = { text = "Fill" }
+"##;
+
+const VERTICAL_LINEAR_SLOT_LAYOUT_ASSET_TOML: &str = r##"
+[asset]
+kind = "layout"
+id = "editor.test.vertical_linear_slot_layout"
+version = 1
+display_name = "Vertical Linear Slot Layout"
+
+[root]
+node = "root"
+
+[nodes.root]
+kind = "native"
+type = "VerticalBox"
+control_id = "Root"
+layout = { container = { kind = "VerticalBox", gap = 12 } }
+children = [{ child = "fill", slot = { layout = { width = { preferred = 88, weight = 4, stretch = "Stretch" }, height = { preferred = 64, weight = 5, stretch = "Fixed" } } } }]
+
+[nodes.fill]
+kind = "native"
+type = "Label"
+control_id = "Fill"
+props = { text = "Fill" }
 "##;
 
 const BINDING_AUTHORING_LAYOUT_ASSET_TOML: &str = r##"
@@ -1625,6 +1735,46 @@ fn ui_asset_editor_session_projects_parent_specific_slot_and_layout_semantics() 
             "clip = true".to_string()
         ]
     );
+
+    let horizontal_route = UiAssetEditorRoute::new(
+        "asset://ui/tests/horizontal-box-layout.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Design,
+    );
+    let horizontal_session = UiAssetEditorSession::from_source(
+        horizontal_route,
+        HORIZONTAL_BOX_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("horizontal session");
+    let horizontal = horizontal_session.pane_presentation();
+    assert_eq!(horizontal.inspector_layout_kind, "HorizontalBox");
+    assert_eq!(horizontal.inspector_layout_semantic_title, "Linear Layout");
+    assert_eq!(horizontal.inspector_layout_box_gap, "10");
+    assert_eq!(
+        horizontal.inspector_layout_semantic_items,
+        vec!["container.gap = 10".to_string()]
+    );
+
+    let vertical_route = UiAssetEditorRoute::new(
+        "asset://ui/tests/vertical-box-layout.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Design,
+    );
+    let vertical_session = UiAssetEditorSession::from_source(
+        vertical_route,
+        VERTICAL_BOX_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("vertical session");
+    let vertical = vertical_session.pane_presentation();
+    assert_eq!(vertical.inspector_layout_kind, "VerticalBox");
+    assert_eq!(vertical.inspector_layout_semantic_title, "Linear Layout");
+    assert_eq!(vertical.inspector_layout_box_gap, "12");
+    assert_eq!(
+        vertical.inspector_layout_semantic_items,
+        vec!["container.gap = 12".to_string()]
+    );
 }
 
 #[test]
@@ -1735,9 +1885,168 @@ fn ui_asset_editor_session_updates_parent_specific_slot_and_layout_semantics() {
         UiAssetLoader::load_toml_str(scroll_session.source_buffer().text()).expect("document");
     let scroll_root = scroll_document.nodes.get("root").expect("scroll root");
     assert_eq!(
-        layout_value(scroll_root.layout.as_ref(), &["container", "scrollbar_visibility"])
-            .and_then(toml::Value::as_str),
+        layout_value(
+            scroll_root.layout.as_ref(),
+            &["container", "scrollbar_visibility"]
+        )
+        .and_then(toml::Value::as_str),
         Some("Auto")
+    );
+
+    let horizontal_route = UiAssetEditorRoute::new(
+        "asset://ui/tests/horizontal-box-layout.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Design,
+    );
+    let mut horizontal_session = UiAssetEditorSession::from_source(
+        horizontal_route,
+        HORIZONTAL_BOX_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("horizontal session");
+    assert!(horizontal_session
+        .set_selected_layout_semantic_field("container.gap", "18")
+        .expect("update horizontal box gap"));
+    let horizontal_document =
+        UiAssetLoader::load_toml_str(horizontal_session.source_buffer().text()).expect("document");
+    let horizontal_root = horizontal_document
+        .nodes
+        .get("root")
+        .expect("horizontal root");
+    assert_eq!(
+        layout_value(horizontal_root.layout.as_ref(), &["container", "gap"])
+            .and_then(toml::Value::as_integer),
+        Some(18)
+    );
+    assert_eq!(
+        horizontal_session
+            .pane_presentation()
+            .inspector_layout_box_gap,
+        "18"
+    );
+
+    let vertical_route = UiAssetEditorRoute::new(
+        "asset://ui/tests/vertical-box-layout.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Design,
+    );
+    let mut vertical_session = UiAssetEditorSession::from_source(
+        vertical_route,
+        VERTICAL_BOX_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("vertical session");
+    assert!(vertical_session
+        .set_selected_layout_semantic_field("container.gap", "20")
+        .expect("update vertical box gap"));
+    let vertical_document =
+        UiAssetLoader::load_toml_str(vertical_session.source_buffer().text()).expect("document");
+    let vertical_root = vertical_document.nodes.get("root").expect("vertical root");
+    assert_eq!(
+        layout_value(vertical_root.layout.as_ref(), &["container", "gap"])
+            .and_then(toml::Value::as_integer),
+        Some(20)
+    );
+    assert_eq!(
+        vertical_session
+            .pane_presentation()
+            .inspector_layout_box_gap,
+        "20"
+    );
+}
+
+#[test]
+fn ui_asset_editor_session_projects_linear_slot_typed_fields() {
+    let horizontal_route = UiAssetEditorRoute::new(
+        "asset://ui/tests/horizontal-linear-slot.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Design,
+    );
+    let mut horizontal_session = UiAssetEditorSession::from_source(
+        horizontal_route,
+        HORIZONTAL_LINEAR_SLOT_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("horizontal session");
+    horizontal_session
+        .select_hierarchy_index(1)
+        .expect("select horizontal linear child");
+
+    let horizontal = horizontal_session.pane_presentation();
+    assert_eq!(horizontal.inspector_slot_kind, "HorizontalBox");
+    assert_eq!(horizontal.inspector_slot_semantic_title, "Linear Slot");
+    assert_eq!(horizontal.inspector_slot_linear_main_weight, "3");
+    assert_eq!(horizontal.inspector_slot_linear_main_stretch, "Stretch");
+    assert_eq!(horizontal.inspector_slot_linear_cross_weight, "2");
+    assert_eq!(horizontal.inspector_slot_linear_cross_stretch, "Fixed");
+
+    let vertical_route = UiAssetEditorRoute::new(
+        "asset://ui/tests/vertical-linear-slot.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Design,
+    );
+    let mut vertical_session = UiAssetEditorSession::from_source(
+        vertical_route,
+        VERTICAL_LINEAR_SLOT_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("vertical session");
+    vertical_session
+        .select_hierarchy_index(1)
+        .expect("select vertical linear child");
+
+    let vertical = vertical_session.pane_presentation();
+    assert_eq!(vertical.inspector_slot_kind, "VerticalBox");
+    assert_eq!(vertical.inspector_slot_semantic_title, "Linear Slot");
+    assert_eq!(vertical.inspector_slot_linear_main_weight, "5");
+    assert_eq!(vertical.inspector_slot_linear_main_stretch, "Fixed");
+    assert_eq!(vertical.inspector_slot_linear_cross_weight, "4");
+    assert_eq!(vertical.inspector_slot_linear_cross_stretch, "Stretch");
+}
+
+#[test]
+fn ui_asset_editor_session_updates_linear_slot_typed_fields() {
+    let route = UiAssetEditorRoute::new(
+        "asset://ui/tests/horizontal-linear-slot.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Design,
+    );
+    let mut session = UiAssetEditorSession::from_source(
+        route,
+        HORIZONTAL_LINEAR_SLOT_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("session");
+    session
+        .select_hierarchy_index(1)
+        .expect("select horizontal linear child");
+
+    assert!(session
+        .set_selected_slot_semantic_field("layout.width.weight", "6")
+        .expect("update main-axis weight"));
+    assert!(session
+        .set_selected_slot_semantic_field("layout.height.stretch", "\"Stretch\"")
+        .expect("update cross-axis stretch"));
+
+    let updated = session.pane_presentation();
+    assert_eq!(updated.inspector_slot_linear_main_weight, "6");
+    assert_eq!(updated.inspector_slot_linear_cross_stretch, "Stretch");
+
+    let document = UiAssetLoader::load_toml_str(session.source_buffer().text()).expect("document");
+    let child_mount = document.nodes["root"]
+        .children
+        .iter()
+        .find(|child_mount| child_mount.child == "fill")
+        .expect("fill child mount");
+    assert_eq!(
+        slot_value(&child_mount.slot, &["layout", "width", "weight"])
+            .and_then(toml::Value::as_integer),
+        Some(6)
+    );
+    assert_eq!(
+        slot_value(&child_mount.slot, &["layout", "height", "stretch"])
+            .and_then(toml::Value::as_str),
+        Some("Stretch")
     );
 }
 
@@ -1768,7 +2077,10 @@ fn ui_asset_editor_session_projects_structured_binding_inspector_fields() {
     assert_eq!(pane.inspector_binding_id, "SaveButton/onClick");
     assert_eq!(pane.inspector_binding_event, "onClick");
     assert_eq!(pane.inspector_binding_route, "MenuAction.SaveProject");
-    assert_eq!(pane.inspector_binding_route_target, "MenuAction.SaveProject");
+    assert_eq!(
+        pane.inspector_binding_route_target,
+        "MenuAction.SaveProject"
+    );
     assert_eq!(pane.inspector_binding_action_target, "");
 }
 
@@ -1805,7 +2117,10 @@ fn ui_asset_editor_session_updates_selected_binding_inspector_fields() {
     assert_eq!(updated.inspector_binding_id, "SaveButton/onHover");
     assert_eq!(updated.inspector_binding_event, "onHover");
     assert_eq!(updated.inspector_binding_route, "MenuAction.HighlightSave");
-    assert_eq!(updated.inspector_binding_route_target, "MenuAction.HighlightSave");
+    assert_eq!(
+        updated.inspector_binding_route_target,
+        "MenuAction.HighlightSave"
+    );
     assert_eq!(updated.inspector_binding_action_target, "");
 
     let document = UiAssetLoader::load_toml_str(session.source_buffer().text()).expect("document");
@@ -1853,7 +2168,10 @@ fn ui_asset_editor_session_projects_structured_binding_action_and_payload_fields
         ]
     );
     assert_eq!(pane.inspector_binding_route, "MenuAction.SaveProject");
-    assert_eq!(pane.inspector_binding_route_target, "MenuAction.SaveProject");
+    assert_eq!(
+        pane.inspector_binding_route_target,
+        "MenuAction.SaveProject"
+    );
     assert_eq!(pane.inspector_binding_action_target, "");
     assert_eq!(
         pane.inspector_binding_payload_items,
@@ -1909,7 +2227,10 @@ fn ui_asset_editor_session_updates_structured_binding_action_and_payload_fields(
     assert_eq!(updated.inspector_binding_action_kind_selected_index, 2);
     assert_eq!(updated.inspector_binding_route, "EditorActions.SaveProject");
     assert_eq!(updated.inspector_binding_route_target, "");
-    assert_eq!(updated.inspector_binding_action_target, "EditorActions.SaveProject");
+    assert_eq!(
+        updated.inspector_binding_action_target,
+        "EditorActions.SaveProject"
+    );
     assert_eq!(
         updated.inspector_binding_payload_items,
         vec![
@@ -2033,6 +2354,325 @@ fn ui_asset_editor_session_selects_same_node_from_source_outline_projection() {
         pane.preview_selected_index
     );
     assert_eq!(roundtripped.source_selected_block_label, "[nodes.button]");
+}
+
+#[test]
+fn ui_asset_editor_session_selects_same_node_from_source_line_inside_block() {
+    let route = UiAssetEditorRoute::new(
+        "asset://ui/tests/style-authoring.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Split,
+    );
+    let mut session = UiAssetEditorSession::from_source(
+        route,
+        STYLE_AUTHORING_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("session");
+
+    session
+        .select_hierarchy_index(1)
+        .expect("select button from hierarchy");
+    let selected_line = session.pane_presentation().source_selected_line;
+    assert!(selected_line > 0);
+
+    session
+        .select_hierarchy_index(0)
+        .expect("select root from hierarchy");
+    session
+        .select_source_line((selected_line + 1) as usize)
+        .expect("select node from source line");
+
+    let pane = session.pane_presentation();
+    assert_eq!(pane.inspector_selected_node_id, "button");
+    assert_eq!(pane.hierarchy_selected_index, 1);
+    assert_eq!(pane.source_selected_block_label, "[nodes.button]");
+}
+
+#[test]
+fn ui_asset_editor_session_selects_same_node_from_source_byte_offset_inside_block() {
+    let route = UiAssetEditorRoute::new(
+        "asset://ui/tests/style-authoring.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Split,
+    );
+    let mut session = UiAssetEditorSession::from_source(
+        route,
+        STYLE_AUTHORING_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("session");
+
+    session
+        .select_hierarchy_index(1)
+        .expect("select button from hierarchy");
+    let selected_line = session.pane_presentation().source_selected_line;
+    assert!(selected_line > 0);
+    let byte_offset =
+        byte_offset_for_line(session.source_buffer().text(), (selected_line + 1) as usize);
+
+    session
+        .select_hierarchy_index(0)
+        .expect("select root from hierarchy");
+    assert!(session
+        .select_source_byte_offset(byte_offset)
+        .expect("select node from source byte offset"));
+
+    let pane = session.pane_presentation();
+    assert_eq!(pane.inspector_selected_node_id, "button");
+    assert_eq!(pane.hierarchy_selected_index, 1);
+    assert_eq!(pane.source_selected_block_label, "[nodes.button]");
+}
+
+#[test]
+fn ui_asset_editor_session_ignores_source_byte_offset_outside_node_blocks() {
+    let route = UiAssetEditorRoute::new(
+        "asset://ui/tests/style-authoring.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Split,
+    );
+    let mut session = UiAssetEditorSession::from_source(
+        route,
+        STYLE_AUTHORING_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("session");
+
+    session
+        .select_hierarchy_index(1)
+        .expect("select button from hierarchy");
+
+    assert!(!session
+        .select_source_byte_offset(0)
+        .expect("offset outside node block should no-op"));
+
+    let pane = session.pane_presentation();
+    assert_eq!(pane.inspector_selected_node_id, "button");
+    assert_eq!(pane.hierarchy_selected_index, 1);
+    assert_eq!(pane.source_selected_block_label, "[nodes.button]");
+}
+
+#[test]
+fn ui_asset_editor_session_rejects_source_line_outside_node_blocks() {
+    let route = UiAssetEditorRoute::new(
+        "asset://ui/tests/style-authoring.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Split,
+    );
+    let mut session = UiAssetEditorSession::from_source(
+        route,
+        STYLE_AUTHORING_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("session");
+
+    let error = session
+        .select_source_line(1)
+        .expect_err("source line outside any node block should fail");
+
+    assert!(
+        matches!(
+            error,
+            UiAssetEditorSessionError::InvalidSelectionIndex { index: 1 }
+        ),
+        "unexpected error: {error}"
+    );
+}
+
+#[test]
+fn ui_asset_editor_session_tracks_source_cursor_line_inside_selected_block() {
+    let route = UiAssetEditorRoute::new(
+        "asset://ui/tests/style-authoring.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Split,
+    );
+    let mut session = UiAssetEditorSession::from_source(
+        route,
+        STYLE_AUTHORING_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("session");
+
+    session
+        .select_hierarchy_index(1)
+        .expect("select button from hierarchy");
+    let block_line = session.pane_presentation().source_selected_line as usize;
+    let target_line = block_line + 2;
+    let byte_offset = byte_offset_for_line(session.source_buffer().text(), target_line);
+
+    session
+        .select_hierarchy_index(0)
+        .expect("select root from hierarchy");
+    assert!(session
+        .select_source_byte_offset(byte_offset)
+        .expect("select source byte offset"));
+
+    let pane = session.pane_presentation();
+    assert_eq!(pane.inspector_selected_node_id, "button");
+    assert_eq!(pane.source_selected_block_label, "[nodes.button]");
+    assert_eq!(pane.source_selected_line, target_line as i32);
+}
+
+#[test]
+fn ui_asset_editor_session_preserves_source_cursor_line_through_valid_source_roundtrip() {
+    let route = UiAssetEditorRoute::new(
+        "asset://ui/tests/style-authoring.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Split,
+    );
+    let mut session = UiAssetEditorSession::from_source(
+        route,
+        STYLE_AUTHORING_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("session");
+
+    session
+        .select_hierarchy_index(1)
+        .expect("select button from hierarchy");
+    let block_line = session.pane_presentation().source_selected_line as usize;
+    let target_line = block_line + 2;
+    let byte_offset = byte_offset_for_line(session.source_buffer().text(), target_line);
+
+    session
+        .select_hierarchy_index(0)
+        .expect("select root from hierarchy");
+    session
+        .select_source_byte_offset(byte_offset)
+        .expect("select source byte offset");
+
+    let valid_source =
+        session
+            .source_buffer()
+            .text()
+            .replacen("[nodes.button]\n", "\n[nodes.button]\n", 1);
+    session
+        .apply_command(UiAssetEditorCommand::edit_source(valid_source))
+        .expect("apply valid source edit");
+
+    let pane = session.pane_presentation();
+    assert_eq!(pane.inspector_selected_node_id, "button");
+    assert_eq!(pane.source_selected_block_label, "[nodes.button]");
+    assert_eq!(pane.source_selected_line, target_line as i32 + 1);
+    assert!(pane.source_selected_excerpt.contains("[nodes.button]"));
+}
+
+#[test]
+fn ui_asset_editor_session_undo_restores_source_cursor_line_within_selected_block() {
+    let route = UiAssetEditorRoute::new(
+        "asset://ui/tests/style-authoring.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Split,
+    );
+    let mut session = UiAssetEditorSession::from_source(
+        route,
+        STYLE_AUTHORING_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("session");
+    let palette_index = session
+        .pane_presentation()
+        .palette_items
+        .iter()
+        .position(|item| item == "Native / Button")
+        .expect("button palette item");
+
+    session
+        .select_hierarchy_index(1)
+        .expect("select button from hierarchy");
+    let block_line = session.pane_presentation().source_selected_line as usize;
+    let target_line = block_line + 2;
+    let byte_offset = byte_offset_for_line(session.source_buffer().text(), target_line);
+    session
+        .select_source_byte_offset(byte_offset)
+        .expect("select source byte offset");
+    assert_eq!(
+        session.pane_presentation().source_selected_line,
+        target_line as i32
+    );
+
+    assert!(session
+        .select_palette_index(palette_index)
+        .expect("select palette item"));
+    assert!(session
+        .insert_selected_palette_item_after_selection()
+        .expect("insert button after selection"));
+    assert_eq!(
+        session.pane_presentation().inspector_selected_node_id,
+        "button_2"
+    );
+
+    assert!(session.undo().expect("undo tree edit"));
+    let pane = session.pane_presentation();
+    assert_eq!(pane.inspector_selected_node_id, "button");
+    assert_eq!(pane.source_selected_block_label, "[nodes.button]");
+    assert_eq!(pane.source_selected_line, target_line as i32);
+}
+
+#[test]
+fn ui_asset_editor_session_falls_back_to_last_valid_source_selection_when_source_is_invalid() {
+    let route = UiAssetEditorRoute::new(
+        "asset://ui/tests/style-authoring.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Split,
+    );
+    let mut session = UiAssetEditorSession::from_source(
+        route,
+        STYLE_AUTHORING_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("session");
+
+    session
+        .select_hierarchy_index(1)
+        .expect("select button from hierarchy");
+    let block_line = session.pane_presentation().source_selected_line as usize;
+    let target_line = block_line + 2;
+    let byte_offset = byte_offset_for_line(session.source_buffer().text(), target_line);
+
+    session
+        .select_hierarchy_index(0)
+        .expect("select root from hierarchy");
+    session
+        .select_source_byte_offset(byte_offset)
+        .expect("select source byte offset");
+
+    let invalid_source =
+        session
+            .source_buffer()
+            .text()
+            .replacen("[nodes.button]", "[nodes.button", 1);
+    session
+        .apply_command(UiAssetEditorCommand::edit_source(invalid_source))
+        .expect("apply invalid source edit");
+
+    let pane = session.pane_presentation();
+    assert_eq!(pane.inspector_selected_node_id, "button");
+    assert_eq!(pane.source_selected_block_label, "[nodes.button]");
+    assert_eq!(pane.source_selected_line, target_line as i32);
+    assert!(pane.source_selected_excerpt.contains("[nodes.button]"));
+    assert!(pane.source_roundtrip_status.contains("last valid snapshot"));
+    assert!(pane
+        .source_outline_items
+        .iter()
+        .any(|entry| entry.contains("[nodes.button]")));
+    assert!(pane.source_outline_selected_index >= 0);
+}
+
+fn byte_offset_for_line(source: &str, line: usize) -> usize {
+    if line <= 1 {
+        return 0;
+    }
+    let mut current_line = 1usize;
+    for (index, byte) in source.bytes().enumerate() {
+        if byte == b'\n' {
+            current_line += 1;
+            if current_line == line {
+                return index + 1;
+            }
+        }
+    }
+    source.len()
 }
 
 #[test]
@@ -2276,13 +2916,21 @@ fn ui_asset_editor_undo_stack_replays_document_diffs_for_tree_edits() {
         }),
         SIMPLE_LAYOUT_ASSET_TOML.to_string(),
         UiDesignerSelectionModel::default(),
+        Default::default(),
         Some(before_document.clone()),
         STYLE_AUTHORING_LAYOUT_ASSET_TOML.to_string(),
         UiDesignerSelectionModel::default(),
+        Default::default(),
         Some(after_document.clone()),
+        UiAssetEditorUndoExternalEffects::default(),
     );
 
     let undone = undo_stack.undo().expect("undo replay");
+    let mut undone_source = STYLE_AUTHORING_LAYOUT_ASSET_TOML.to_string();
+    assert!(undone
+        .apply_to_source(&mut undone_source)
+        .expect("apply undo source diff"));
+    assert_eq!(undone_source, SIMPLE_LAYOUT_ASSET_TOML);
     let mut undone_document = after_document.clone();
     assert!(undone
         .apply_to_document(&mut undone_document)
@@ -2290,6 +2938,11 @@ fn ui_asset_editor_undo_stack_replays_document_diffs_for_tree_edits() {
     assert_eq!(undone_document, before_document);
 
     let redone = undo_stack.redo().expect("redo replay");
+    let mut redone_source = SIMPLE_LAYOUT_ASSET_TOML.to_string();
+    assert!(redone
+        .apply_to_source(&mut redone_source)
+        .expect("apply redo source diff"));
+    assert_eq!(redone_source, STYLE_AUTHORING_LAYOUT_ASSET_TOML);
     let mut redone_document = before_document.clone();
     assert!(redone
         .apply_to_document(&mut redone_document)
@@ -2298,24 +2951,37 @@ fn ui_asset_editor_undo_stack_replays_document_diffs_for_tree_edits() {
 }
 
 #[test]
-fn ui_asset_editor_undo_stack_keeps_source_only_snapshots_for_source_edits() {
+fn ui_asset_editor_undo_stack_keeps_source_only_replays_for_source_edits() {
     let mut undo_stack = UiAssetEditorUndoStack::default();
     undo_stack.push_edit(
         "Source Edit",
         None,
         SIMPLE_LAYOUT_ASSET_TOML.to_string(),
         UiDesignerSelectionModel::default(),
+        Default::default(),
         None,
         STYLED_LAYOUT_ASSET_TOML.to_string(),
         UiDesignerSelectionModel::default(),
+        Default::default(),
         None,
+        UiAssetEditorUndoExternalEffects::default(),
     );
 
     let undone = undo_stack.undo().expect("undo snapshot");
     assert!(undone.document.is_none());
+    let mut undone_source = STYLED_LAYOUT_ASSET_TOML.to_string();
+    assert!(undone
+        .apply_to_source(&mut undone_source)
+        .expect("apply undo source replay"));
+    assert_eq!(undone_source, SIMPLE_LAYOUT_ASSET_TOML);
 
     let redone = undo_stack.redo().expect("redo snapshot");
     assert!(redone.document.is_none());
+    let mut redone_source = SIMPLE_LAYOUT_ASSET_TOML.to_string();
+    assert!(redone
+        .apply_to_source(&mut redone_source)
+        .expect("apply redo source replay"));
+    assert_eq!(redone_source, STYLED_LAYOUT_ASSET_TOML);
 }
 
 #[test]
@@ -2948,6 +3614,12 @@ fn ui_asset_editor_session_promotes_selected_local_component_to_external_widget_
             document_id: "ui.widgets.save_button".to_string(),
         })
     );
+    assert_eq!(
+        session.next_undo_external_effect(),
+        Some(UiAssetEditorExternalEffect::RemoveAssetSource {
+            asset_id: "res://ui/widgets/save_button.ui.toml".to_string(),
+        })
+    );
 
     assert_eq!(promoted_widget.asset.kind, UiAssetKind::Widget);
     assert_eq!(promoted_widget.asset.id, "ui.widgets.save_button");
@@ -3004,6 +3676,14 @@ fn ui_asset_editor_session_promotes_selected_local_component_to_external_widget_
             asset_id: "res://ui/widgets/save_button.ui.toml".to_string(),
             component_name: "SaveButton".to_string(),
             document_id: "ui.widgets.save_button".to_string(),
+        })
+    );
+    assert_eq!(
+        session.next_redo_external_effect(),
+        Some(UiAssetEditorExternalEffect::UpsertAssetSource {
+            asset_id: "res://ui/widgets/save_button.ui.toml".to_string(),
+            source: toml::to_string_pretty(&promoted_widget)
+                .expect("serialize promoted widget document"),
         })
     );
     let undone =

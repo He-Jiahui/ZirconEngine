@@ -1,0 +1,4 @@
+mod shared_texture_offscreen_renderer;
+mod shared_texture_offscreen_renderer_render;
+
+pub(in crate::service) use shared_texture_offscreen_renderer::SharedTextureOffscreenRenderer;

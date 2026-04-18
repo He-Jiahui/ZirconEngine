@@ -6,7 +6,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use zircon_asset::UiWidgetAsset;
 use zircon_core::CoreRuntime;
-use zircon_foundation::{module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME};
+use zircon_foundation::{
+    module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
+};
 use zircon_manager::resolve_config_manager;
 use zircon_scene::DefaultLevelManager;
 use zircon_ui::UiAssetLoader;
@@ -34,6 +36,22 @@ fn unique_temp_dir(prefix: &str) -> PathBuf {
         .unwrap()
         .as_nanos();
     std::env::temp_dir().join(format!("{prefix}_{unique}"))
+}
+
+fn byte_offset_for_line(source: &str, line: usize) -> usize {
+    if line <= 1 {
+        return 0;
+    }
+    let mut current_line = 1usize;
+    for (index, byte) in source.bytes().enumerate() {
+        if byte == b'\n' {
+            current_line += 1;
+            if current_line == line {
+                return index + 1;
+            }
+        }
+    }
+    source.len()
 }
 
 const SIMPLE_UI_LAYOUT_ASSET: &str = r#"
@@ -1003,6 +1021,65 @@ fn editor_manager_runs_ui_asset_style_authoring_actions() {
             .expect("saved reflection")
             .source_dirty
     );
+
+    std::env::remove_var("ZIRCON_EDITOR_CONFIG_PATH");
+    let _ = fs::remove_file(path);
+    let _ = fs::remove_dir_all(ui_asset_path.parent().unwrap());
+}
+
+#[test]
+fn editor_manager_selects_ui_asset_nodes_from_source_byte_offsets() {
+    let _guard = env_lock().lock().unwrap();
+    let path = unique_temp_path("zircon_editor_ui_asset_source_byte_offset");
+    let ui_asset_path =
+        unique_temp_dir("zircon_editor_ui_asset_source_byte_offset_file").join("style.ui.toml");
+    fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
+    fs::write(&ui_asset_path, STYLE_UI_LAYOUT_ASSET).unwrap();
+
+    let runtime = editor_runtime_with_config_path(&path);
+    let manager = runtime
+        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+        .unwrap();
+
+    let instance_id = manager
+        .open_ui_asset_editor(&ui_asset_path, Some(crate::UiAssetEditorMode::Split))
+        .expect("ui asset editor should open");
+    manager
+        .select_ui_asset_editor_hierarchy_index(&instance_id, 1)
+        .expect("select button from hierarchy");
+    let selected_line = manager
+        .ui_asset_editor_pane_presentation(&instance_id)
+        .expect("button pane")
+        .source_selected_line;
+    assert!(selected_line > 0);
+    let byte_offset = {
+        let pane = manager
+            .ui_asset_editor_pane_presentation(&instance_id)
+            .expect("pane presentation");
+        byte_offset_for_line(&pane.source_text, (selected_line + 1) as usize)
+    };
+
+    manager
+        .select_ui_asset_editor_hierarchy_index(&instance_id, 0)
+        .expect("select root from hierarchy");
+    assert!(manager
+        .select_ui_asset_editor_source_byte_offset(&instance_id, byte_offset)
+        .expect("select source byte offset"));
+
+    let pane = manager
+        .ui_asset_editor_pane_presentation(&instance_id)
+        .expect("selected pane");
+    assert_eq!(pane.inspector_selected_node_id, "button");
+    assert_eq!(pane.hierarchy_selected_index, 1);
+
+    assert!(!manager
+        .select_ui_asset_editor_source_byte_offset(&instance_id, 0)
+        .expect("header offset should no-op"));
+    let unchanged = manager
+        .ui_asset_editor_pane_presentation(&instance_id)
+        .expect("unchanged pane");
+    assert_eq!(unchanged.inspector_selected_node_id, "button");
+    assert_eq!(unchanged.hierarchy_selected_index, 1);
 
     std::env::remove_var("ZIRCON_EDITOR_CONFIG_PATH");
     let _ = fs::remove_file(path);
@@ -2501,6 +2578,34 @@ fn editor_manager_promotes_selected_ui_asset_component_to_external_widget_asset(
         .iter()
         .any(|reference| { reference == "res://ui/widgets/save_button.ui.toml#SaveButton" }));
     assert!(!document.components.contains_key("SaveButton"));
+
+    assert!(manager
+        .undo_ui_asset_editor(&instance_id)
+        .expect("undo promote selected component"));
+    assert!(!widget_path.exists());
+    let undone = manager
+        .ui_asset_editor_pane_presentation(&instance_id)
+        .expect("pane after undo promote");
+    assert!(!undone.can_open_reference);
+    assert!(undone.can_promote_to_external_widget);
+    assert!(!undone
+        .palette_items
+        .iter()
+        .any(|item| item == "Reference / SaveButton"));
+
+    assert!(manager
+        .redo_ui_asset_editor(&instance_id)
+        .expect("redo promote selected component"));
+    assert!(widget_path.exists());
+    let redone = manager
+        .ui_asset_editor_pane_presentation(&instance_id)
+        .expect("pane after redo promote");
+    assert!(redone.can_open_reference);
+    assert!(!redone.can_promote_to_external_widget);
+    let redone_widget_source = fs::read_to_string(&widget_path).expect("redone widget file");
+    let redone_widget =
+        UiWidgetAsset::from_toml_str(&redone_widget_source).expect("redone widget asset");
+    assert_eq!(redone_widget.document.asset.id, "ui.widgets.save_button");
 
     let opened = manager
         .open_ui_asset_editor_selected_reference(&instance_id)

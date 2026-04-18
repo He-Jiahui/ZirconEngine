@@ -41,15 +41,16 @@ pub(crate) use template_bridge::{
     BuiltinAssetSurfaceTemplateBridge, BuiltinFloatingWindowSourceFrames,
     BuiltinFloatingWindowSourceTemplateBridge, BuiltinInspectorSurfaceTemplateBridge,
     BuiltinPaneSurfaceTemplateBridge, BuiltinViewportToolbarTemplateBridge,
-    BuiltinWelcomeSurfaceTemplateBridge, BuiltinWorkbenchRootShellFrames,
-    BuiltinWorkbenchTemplateBridge,
-};
-pub(crate) use viewport::{
-    SharedViewportPointerBridge, dispatch_viewport_event, dispatch_viewport_pointer_event,
-    dispatch_viewport_toolbar_pointer_route, viewport_event_from_command,
+    BuiltinWelcomeSurfaceTemplateBridge, BuiltinWorkbenchDrawerSourceTemplateBridge,
+    BuiltinWorkbenchRootShellFrames, BuiltinWorkbenchTemplateBridge,
 };
 #[cfg(test)]
 pub(crate) use viewport::{dispatch_builtin_viewport_toolbar_control, dispatch_viewport_command};
+pub(crate) use viewport::{
+    dispatch_viewport_event, dispatch_viewport_pointer_event,
+    dispatch_viewport_toolbar_pointer_route, viewport_event_from_command,
+    SharedViewportPointerBridge,
+};
 pub(crate) use welcome::dispatch_builtin_welcome_surface_control;
 pub(crate) use workbench::dispatch_workbench_menu_action_with_template_fallback;
 #[cfg(test)]

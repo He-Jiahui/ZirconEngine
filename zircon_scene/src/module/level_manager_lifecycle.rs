@@ -2,10 +2,8 @@ use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::sync::Mutex;
 
-use zircon_manager::WorldHandle;
-
 use super::DefaultLevelManager;
-use crate::{LevelMetadata, LevelSystem, World};
+use crate::{LevelMetadata, LevelSystem, World, WorldHandle};
 
 impl DefaultLevelManager {
     pub fn create_default_level(&self) -> LevelSystem {

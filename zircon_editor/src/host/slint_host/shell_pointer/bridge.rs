@@ -8,7 +8,7 @@ use zircon_ui::{
 use crate::host::slint_host::callback_dispatch::BuiltinWorkbenchRootShellFrames;
 use crate::host::slint_host::drawer_resize::WorkbenchResizeTargetGroup;
 use crate::host::slint_host::floating_window_projection::{
-    FloatingWindowProjectionBundle, build_floating_window_projection_bundle_from_windows,
+    build_floating_window_projection_bundle_from_windows, FloatingWindowProjectionBundle,
 };
 use crate::host::slint_host::tab_drag::WorkbenchDragTargetGroup;
 use crate::{
@@ -18,7 +18,7 @@ use crate::{
 
 use super::drag_surface::build_drag_surface;
 use super::resize_surface::{build_resize_surface, update_resize_surface};
-use super::route::{WorkbenchShellPointerRoute, drag_route_from_node, resize_group_from_dispatch};
+use super::route::{drag_route_from_node, resize_group_from_dispatch, WorkbenchShellPointerRoute};
 
 pub(crate) struct WorkbenchShellPointerBridge {
     drag_surface: UiSurface,

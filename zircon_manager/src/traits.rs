@@ -1,11 +1,10 @@
 use serde_json::Value;
 use zircon_core::{ChannelReceiver, CoreError, EngineEvent};
 use zircon_input_protocol::{InputEvent, InputEventRecord, InputSnapshot};
+use zircon_resource::{ResourceEvent, ResourceRecord};
+use zircon_scene_protocol::{LevelSummary, WorldHandle};
 
-use crate::{
-    AssetChangeRecord, AssetPipelineInfo, AssetStatusRecord, LevelSummary, ProjectInfo,
-    RenderingBackendInfo, ResourceChangeRecord, ResourceStatusRecord, WorldHandle,
-};
+use crate::RenderingBackendInfo;
 
 pub trait RenderingManager: Send + Sync {
     fn backend_info(&self) -> RenderingBackendInfo;
@@ -24,23 +23,12 @@ pub trait LevelManager: Send + Sync {
     ) -> Result<(), CoreError>;
 }
 
-pub trait AssetManager: Send + Sync {
-    fn pipeline_info(&self) -> AssetPipelineInfo;
-    fn open_project(&self, root_path: &str) -> Result<ProjectInfo, CoreError>;
-    fn current_project(&self) -> Option<ProjectInfo>;
-    fn asset_status(&self, uri: &str) -> Option<AssetStatusRecord>;
-    fn list_assets(&self) -> Vec<AssetStatusRecord>;
-    fn subscribe_asset_changes(&self) -> ChannelReceiver<AssetChangeRecord>;
-    fn import_asset(&self, uri: &str) -> Result<Option<AssetStatusRecord>, CoreError>;
-    fn reimport_all(&self) -> Result<Vec<AssetStatusRecord>, CoreError>;
-}
-
 pub trait ResourceManager: Send + Sync {
     fn resolve_resource_id(&self, locator: &str) -> Option<String>;
-    fn resource_status(&self, locator: &str) -> Option<ResourceStatusRecord>;
-    fn list_resources(&self) -> Vec<ResourceStatusRecord>;
+    fn resource_status(&self, locator: &str) -> Option<ResourceRecord>;
+    fn list_resources(&self) -> Vec<ResourceRecord>;
     fn resource_revision(&self, locator: &str) -> Option<u64>;
-    fn subscribe_resource_changes(&self) -> ChannelReceiver<ResourceChangeRecord>;
+    fn subscribe_resource_changes(&self) -> ChannelReceiver<ResourceEvent>;
 }
 
 pub trait InputManager: Send + Sync {

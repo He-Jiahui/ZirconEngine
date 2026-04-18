@@ -1329,6 +1329,10 @@ export component UiAssetEditorPane inherits Rectangle {
     in property <string> inspector_slot_semantic_path;
     in property <string> inspector_slot_semantic_value;
     in property <string> inspector_slot_kind;
+    in property <string> inspector_slot_linear_main_weight;
+    in property <string> inspector_slot_linear_main_stretch;
+    in property <string> inspector_slot_linear_cross_weight;
+    in property <string> inspector_slot_linear_cross_stretch;
     in property <string> inspector_slot_overlay_anchor_x;
     in property <string> inspector_slot_overlay_anchor_y;
     in property <string> inspector_slot_overlay_pivot_x;
@@ -1350,6 +1354,7 @@ export component UiAssetEditorPane inherits Rectangle {
     in property <string> inspector_layout_semantic_path;
     in property <string> inspector_layout_semantic_value;
     in property <string> inspector_layout_kind;
+    in property <string> inspector_layout_box_gap;
     in property <string> inspector_layout_scroll_axis;
     in property <string> inspector_layout_scroll_gap;
     in property <string> inspector_layout_scrollbar_visibility;
@@ -1446,6 +1451,7 @@ export component UiAssetEditorPane inherits Rectangle {
     callback preview_selected(item_index: int);
     callback preview_activated(item_index: int);
     callback source_outline_selected(item_index: int);
+    callback source_cursor_changed(byte_offset: int);
     callback preview_mock_selected(item_index: int);
     callback preview_mock_action(action_id: string, value: string);
     callback binding_selected(item_index: int);
@@ -2041,17 +2047,33 @@ export component UiAssetEditorPane inherits Rectangle {
                         }
                     }
 
-                    TextEdit {
+                    Rectangle {
                         x: 10px;
                         y: 298px;
                         width: parent.width - 20px;
                         height: max(120px, parent.height - 348px);
-                        text: root.source_text;
-                        enabled: true;
-                        font-size: 10px;
-                        font-family: "JetBrains Mono, Cascadia Mono, Consolas";
-                        wrap: word-wrap;
-                        edited(value) => { root.source_edited(value); }
+                        clip: true;
+                        border-radius: 4px;
+                        border-width: 1px;
+                        border-color: palette.border_soft;
+                        background: #00000018;
+
+                        TextInput {
+                            x: 8px;
+                            y: 8px;
+                            width: max(parent.width - 16px, self.preferred-width);
+                            height: max(parent.height - 16px, self.preferred-height);
+                            text: root.source_text;
+                            enabled: true;
+                            read-only: false;
+                            single-line: false;
+                            font-size: 10px;
+                            font-family: "JetBrains Mono, Cascadia Mono, Consolas";
+                            color: palette.text;
+                            wrap: word-wrap;
+                            cursor-position-changed(_cursor_position) => { root.source_cursor_changed(self.cursor-position_byte-offset); }
+                            edited => { root.source_edited(self.text); }
+                        }
                     }
 
                     Text {
@@ -2434,6 +2456,93 @@ export component UiAssetEditorPane inherits Rectangle {
                                 }
                             }
 
+                            if root.inspector_slot_kind == "HorizontalBox" || root.inspector_slot_kind == "VerticalBox": Text {
+                                text: "Linear Slot";
+                                color: palette.text;
+                                font-size: 10px;
+                                font-weight: 600;
+                            }
+
+                            if root.inspector_slot_kind == "HorizontalBox" || root.inspector_slot_kind == "VerticalBox": Rectangle {
+                                width: parent.width;
+                                height: 22px;
+                                background: transparent;
+                                Text { x: 0px; y: 4px; width: 58px; text: "Main Wgt"; color: palette.text_dim; font-size: 10px; }
+                                CompactField {
+                                    x: 62px; y: 0px; width: parent.width - 62px;
+                                    text: root.inspector_slot_linear_main_weight;
+                                    placeholder: root.inspector_slot_kind == "HorizontalBox" ? "layout.width.weight" : "layout.height.weight";
+                                    enabled: root.inspector_parent_node_id != "";
+                                    edited(value) => {
+                                        if (root.inspector_slot_kind == "HorizontalBox") {
+                                            root.inspector_widget_action("slot.linear.width_weight.set", value);
+                                        } else {
+                                            root.inspector_widget_action("slot.linear.height_weight.set", value);
+                                        }
+                                    }
+                                }
+                            }
+
+                            if root.inspector_slot_kind == "HorizontalBox" || root.inspector_slot_kind == "VerticalBox": Rectangle {
+                                width: parent.width;
+                                height: 22px;
+                                background: transparent;
+                                Text { x: 0px; y: 4px; width: 58px; text: "Main Str"; color: palette.text_dim; font-size: 10px; }
+                                CompactField {
+                                    x: 62px; y: 0px; width: parent.width - 62px;
+                                    text: root.inspector_slot_linear_main_stretch;
+                                    placeholder: root.inspector_slot_kind == "HorizontalBox" ? "layout.width.stretch" : "layout.height.stretch";
+                                    enabled: root.inspector_parent_node_id != "";
+                                    edited(value) => {
+                                        if (root.inspector_slot_kind == "HorizontalBox") {
+                                            root.inspector_widget_action("slot.linear.width_stretch.set", value);
+                                        } else {
+                                            root.inspector_widget_action("slot.linear.height_stretch.set", value);
+                                        }
+                                    }
+                                }
+                            }
+
+                            if root.inspector_slot_kind == "HorizontalBox" || root.inspector_slot_kind == "VerticalBox": Rectangle {
+                                width: parent.width;
+                                height: 22px;
+                                background: transparent;
+                                Text { x: 0px; y: 4px; width: 58px; text: "Cross Wgt"; color: palette.text_dim; font-size: 10px; }
+                                CompactField {
+                                    x: 62px; y: 0px; width: parent.width - 62px;
+                                    text: root.inspector_slot_linear_cross_weight;
+                                    placeholder: root.inspector_slot_kind == "HorizontalBox" ? "layout.height.weight" : "layout.width.weight";
+                                    enabled: root.inspector_parent_node_id != "";
+                                    edited(value) => {
+                                        if (root.inspector_slot_kind == "HorizontalBox") {
+                                            root.inspector_widget_action("slot.linear.height_weight.set", value);
+                                        } else {
+                                            root.inspector_widget_action("slot.linear.width_weight.set", value);
+                                        }
+                                    }
+                                }
+                            }
+
+                            if root.inspector_slot_kind == "HorizontalBox" || root.inspector_slot_kind == "VerticalBox": Rectangle {
+                                width: parent.width;
+                                height: 22px;
+                                background: transparent;
+                                Text { x: 0px; y: 4px; width: 58px; text: "Cross Str"; color: palette.text_dim; font-size: 10px; }
+                                CompactField {
+                                    x: 62px; y: 0px; width: parent.width - 62px;
+                                    text: root.inspector_slot_linear_cross_stretch;
+                                    placeholder: root.inspector_slot_kind == "HorizontalBox" ? "layout.height.stretch" : "layout.width.stretch";
+                                    enabled: root.inspector_parent_node_id != "";
+                                    edited(value) => {
+                                        if (root.inspector_slot_kind == "HorizontalBox") {
+                                            root.inspector_widget_action("slot.linear.height_stretch.set", value);
+                                        } else {
+                                            root.inspector_widget_action("slot.linear.width_stretch.set", value);
+                                        }
+                                    }
+                                }
+                            }
+
                             if root.inspector_slot_kind == "Overlay": Text {
                                 text: "Overlay Slot";
                                 color: palette.text;
@@ -2654,6 +2763,38 @@ export component UiAssetEditorPane inherits Rectangle {
                                 }
                             }
 
+                            if root.inspector_layout_kind == "HorizontalBox" || root.inspector_layout_kind == "VerticalBox": Text {
+                                text: "Linear Layout";
+                                color: palette.text;
+                                font-size: 10px;
+                                font-weight: 600;
+                            }
+
+                            if root.inspector_layout_kind == "HorizontalBox" || root.inspector_layout_kind == "VerticalBox": Rectangle {
+                                width: parent.width;
+                                height: 22px;
+                                background: transparent;
+
+                                Text {
+                                    x: 0px;
+                                    y: 4px;
+                                    width: 58px;
+                                    text: "Gap";
+                                    color: palette.text_dim;
+                                    font-size: 10px;
+                                }
+
+                                CompactField {
+                                    x: 62px;
+                                    y: 0px;
+                                    width: parent.width - 62px;
+                                    text: root.inspector_layout_box_gap;
+                                    placeholder: "container.gap";
+                                    enabled: root.inspector_selected_node_id != "";
+                                    edited(value) => { root.inspector_widget_action("layout.box.gap.set", value); }
+                                }
+                            }
+
                             if root.inspector_layout_kind == "ScrollableBox": Text {
                                 text: "Scrollable Layout";
                                 color: palette.text;
@@ -2796,6 +2937,33 @@ export component UiAssetEditorPane inherits Rectangle {
                                 selected_index: root.inspector_binding_action_kind_selected_index;
                                 accent: #7cc6b9;
                                 item_selected(item_index) => { root.binding_action_kind_selected(item_index); }
+                            }
+
+                            Rectangle {
+                                width: parent.width;
+                                height: 18px;
+                                background: transparent;
+
+                                Text {
+                                    x: 0px;
+                                    y: 3px;
+                                    width: parent.width;
+                                    text: root.inspector_binding_action_kind_selected_index == 2 ? "Binding Target" : "Route";
+                                    color: palette.text_dim;
+                                    font-size: 10px;
+                                    overflow: elide;
+                                }
+                            }
+
+                            CompactField {
+                                width: parent.width;
+                                text: root.inspector_binding_route;
+                                placeholder:
+                                    root.inspector_binding_action_kind_selected_index == 2 ?
+                                    "EditorActions.SaveProject" :
+                                    "MenuAction.SaveProject";
+                                enabled: root.inspector_can_edit_binding;
+                                edited(value) => { root.inspector_widget_action("binding.route.set", value); }
                             }
 
                             if root.inspector_binding_action_kind_selected_index != 2: Rectangle {
@@ -3409,6 +3577,48 @@ export component UiAssetEditorPane inherits Rectangle {
         width: parent.width;
         height: parent.height;
         mouse-cursor: MouseCursor.grabbing;
+        drag_focus := FocusScope {
+            x: 0px;
+            y: 0px;
+            width: 0px;
+            height: 0px;
+            enabled: true;
+            key-pressed(event) => {
+                if (event.text == Key.LeftArrow || event.text == Key.UpArrow) {
+                    root.action("palette.target.previous");
+                    return accept;
+                }
+                if (
+                    event.text == Key.RightArrow
+                    || event.text == Key.DownArrow
+                    || event.text == Key.Tab
+                    ) {
+                    root.action("palette.target.next");
+                    return accept;
+                }
+                if (event.text == Key.Return || event.text == "\n") {
+                    if (root.palette_target_chooser_active) {
+                        root.palette_target_confirm();
+                        return accept;
+                    }
+                    if (root.palette_drag_target_action != "") {
+                        root.palette_drag_dropped();
+                    }
+                    return accept;
+                }
+                if (event.text == Key.Escape) {
+                    if (root.palette_target_chooser_active) {
+                        root.palette_target_cancel();
+                    } else {
+                        root.palette_drag_cancelled();
+                        root.palette_drag_active = false;
+                        root.palette_drag_source_index = -1;
+                    }
+                    return accept;
+                }
+                reject
+            }
+        }
         moved => {
             root.palette_drag_pointer_x = self.mouse-x / 1px;
             root.palette_drag_pointer_y = self.mouse-y / 1px;
@@ -3452,6 +3662,36 @@ export component UiAssetEditorPane inherits Rectangle {
         width: 248px;
         height: min(224px, max(118px, 68px + root.palette_drag_candidate_items.length * 22px));
         background: transparent;
+        chooser_focus := FocusScope {
+            x: 0px;
+            y: 0px;
+            width: 0px;
+            height: 0px;
+            enabled: root.palette_target_chooser_active && !root.palette_drag_active;
+            key-pressed(event) => {
+                if (event.text == Key.LeftArrow || event.text == Key.UpArrow) {
+                    root.action("palette.target.previous");
+                    return accept;
+                }
+                if (
+                    event.text == Key.RightArrow
+                    || event.text == Key.DownArrow
+                    || event.text == Key.Tab
+                    ) {
+                    root.action("palette.target.next");
+                    return accept;
+                }
+                if (event.text == Key.Return || event.text == "\n") {
+                    root.palette_target_confirm();
+                    return accept;
+                }
+                if (event.text == Key.Escape) {
+                    root.palette_target_cancel();
+                    return accept;
+                }
+                reject
+            }
+        }
 
         UiAssetSelectableSection {
             x: 0px;
@@ -3493,7 +3733,10 @@ export component UiAssetEditorPane inherits Rectangle {
             Text {
                 width: parent.width - 120px;
                 y: 4px;
-                text: "Tab / arrows cycle  Enter apply  Esc cancel";
+                text:
+                    root.palette_target_chooser_active ?
+                    "Sticky target chooser  Tab/arrows cycle  Enter apply" :
+                    "Tab / arrows cycle  Enter apply  Esc cancel";
                 color: palette.text_dim;
                 font-size: 9px;
                 overflow: elide;

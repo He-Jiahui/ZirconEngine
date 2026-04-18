@@ -3,8 +3,7 @@ use zircon_asset::{
     EditorAssetCatalogRecord, EditorAssetCatalogSnapshotRecord, EditorAssetDetailsRecord,
     EditorAssetFolderRecord,
 };
-use zircon_manager::ResourceStatusRecord;
-use zircon_resource::ResourceKind;
+use zircon_resource::{ResourceKind, ResourceRecord, ResourceState};
 
 use crate::snapshot::{
     AssetFolderSnapshot, AssetItemSnapshot, AssetReferenceSnapshot, AssetSelectionSnapshot,
@@ -18,7 +17,7 @@ pub struct AssetWorkspaceState {
     selected_folder_id: String,
     selected_asset_uuid: Option<String>,
     selected_details: Option<EditorAssetDetailsRecord>,
-    resources_by_locator: HashMap<String, ResourceStatusRecord>,
+    resources_by_locator: HashMap<String, ResourceRecord>,
     search_query: String,
     kind_filter: Option<ResourceKind>,
     activity_view_mode: AssetViewMode,
@@ -66,10 +65,10 @@ impl AssetWorkspaceState {
         self.selected_details = details;
     }
 
-    pub fn sync_resources(&mut self, resources: Vec<ResourceStatusRecord>) {
+    pub fn sync_resources(&mut self, resources: Vec<ResourceRecord>) {
         self.resources_by_locator = resources
             .into_iter()
-            .map(|resource| (resource.locator.clone(), resource))
+            .map(|resource| (resource.primary_locator.to_string(), resource))
             .collect();
     }
 
@@ -275,7 +274,7 @@ impl AssetWorkspaceState {
                 .and_then(|details| details.editor_adapter.clone())
                 .unwrap_or_default(),
             diagnostics: asset.diagnostics.clone(),
-            resource_state: resource.map(|resource| resource.state),
+            resource_state: resource_state(resource),
             resource_revision: resource.map(|resource| resource.revision),
             references: details
                 .map(|details| {
@@ -311,10 +310,14 @@ impl AssetWorkspaceState {
             dirty: asset.dirty,
             diagnostics: asset.diagnostics.clone(),
             selected: self.selected_asset_uuid.as_deref() == Some(asset.uuid.as_str()),
-            resource_state: resource.map(|resource| resource.state),
+            resource_state: resource_state(resource),
             resource_revision: resource.map(|resource| resource.revision),
         }
     }
+}
+
+fn resource_state(resource: Option<&ResourceRecord>) -> Option<ResourceState> {
+    resource.map(|resource| resource.state)
 }
 
 fn build_folder_tree(

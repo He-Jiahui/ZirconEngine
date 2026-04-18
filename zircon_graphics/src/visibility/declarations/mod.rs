@@ -14,6 +14,7 @@ mod visibility_hybrid_gi_update_plan;
 mod visibility_instance_upload_plan;
 mod visibility_particle_upload_plan;
 mod visibility_virtual_geometry_cluster;
+mod visibility_virtual_geometry_draw_segment;
 mod visibility_virtual_geometry_feedback;
 mod visibility_virtual_geometry_page_upload_plan;
 
@@ -33,5 +34,6 @@ pub use visibility_hybrid_gi_update_plan::VisibilityHybridGiUpdatePlan;
 pub use visibility_instance_upload_plan::VisibilityInstanceUploadPlan;
 pub use visibility_particle_upload_plan::VisibilityParticleUploadPlan;
 pub use visibility_virtual_geometry_cluster::VisibilityVirtualGeometryCluster;
+pub use visibility_virtual_geometry_draw_segment::VisibilityVirtualGeometryDrawSegment;
 pub use visibility_virtual_geometry_feedback::VisibilityVirtualGeometryFeedback;
 pub use visibility_virtual_geometry_page_upload_plan::VisibilityVirtualGeometryPageUploadPlan;

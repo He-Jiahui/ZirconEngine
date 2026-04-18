@@ -5,7 +5,7 @@ related_code:
   - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_resources/execute_prepare/trace_region_inputs.rs
   - zircon_graphics/src/scene/scene_renderer/hybrid_gi/shaders/update_completion.wgsl
   - zircon_graphics/src/visibility/planning/build_hybrid_gi_plan/build.rs
-  - zircon_graphics/src/visibility/planning/build_hybrid_gi_plan/refine_visible_probe_frontier.rs
+- zircon_graphics/src/visibility/planning/build_hybrid_gi_plan/frontier/refine_visible_probe_frontier.rs
   - zircon_graphics/src/tests/hybrid_gi_gpu.rs
   - zircon_graphics/src/tests/hybrid_gi_visibility.rs
 implementation_files:
@@ -14,7 +14,7 @@ implementation_files:
   - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_resources/execute_prepare/trace_region_inputs.rs
   - zircon_graphics/src/scene/scene_renderer/hybrid_gi/shaders/update_completion.wgsl
   - zircon_graphics/src/visibility/planning/build_hybrid_gi_plan/build.rs
-  - zircon_graphics/src/visibility/planning/build_hybrid_gi_plan/refine_visible_probe_frontier.rs
+- zircon_graphics/src/visibility/planning/build_hybrid_gi_plan/frontier/refine_visible_probe_frontier.rs
   - zircon_graphics/src/tests/hybrid_gi_gpu.rs
   - zircon_graphics/src/tests/hybrid_gi_visibility.rs
 plan_sources:

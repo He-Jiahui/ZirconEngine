@@ -1,5 +1,5 @@
-use super::virtual_geometry_runtime_snapshot::VirtualGeometryRuntimeSnapshot;
-use super::virtual_geometry_runtime_state::VirtualGeometryRuntimeState;
+use super::declarations::VirtualGeometryRuntimeSnapshot;
+use super::VirtualGeometryRuntimeState;
 
 impl VirtualGeometryRuntimeState {
     pub(crate) fn snapshot(&self) -> VirtualGeometryRuntimeSnapshot {

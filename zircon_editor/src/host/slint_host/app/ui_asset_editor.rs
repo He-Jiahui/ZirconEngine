@@ -458,6 +458,26 @@ impl SlintEditorHost {
         }
     }
 
+    pub(super) fn dispatch_ui_asset_source_cursor_changed(
+        &mut self,
+        instance_id: &str,
+        byte_offset: i32,
+    ) {
+        self.focus_callback_source_window();
+        let instance_id = ViewInstanceId::new(instance_id);
+        match self
+            .editor_manager
+            .select_ui_asset_editor_source_byte_offset(&instance_id, byte_offset.max(0) as usize)
+        {
+            Ok(changed) => {
+                if changed {
+                    self.presentation_dirty = true;
+                }
+            }
+            Err(error) => self.set_status_line(error.to_string()),
+        }
+    }
+
     pub(super) fn dispatch_ui_asset_palette_selected(
         &mut self,
         instance_id: &str,
@@ -815,6 +835,10 @@ impl SlintEditorHost {
 
 fn slot_semantic_action_path(action_id: &str) -> Option<&'static str> {
     match action_id {
+        "slot.linear.width_weight.set" => Some("layout.width.weight"),
+        "slot.linear.width_stretch.set" => Some("layout.width.stretch"),
+        "slot.linear.height_weight.set" => Some("layout.height.weight"),
+        "slot.linear.height_stretch.set" => Some("layout.height.stretch"),
         "slot.overlay.anchor_x.set" => Some("layout.anchor.x"),
         "slot.overlay.anchor_y.set" => Some("layout.anchor.y"),
         "slot.overlay.pivot_x.set" => Some("layout.pivot.x"),
@@ -834,6 +858,7 @@ fn slot_semantic_action_path(action_id: &str) -> Option<&'static str> {
 
 fn layout_semantic_action_path(action_id: &str) -> Option<&'static str> {
     match action_id {
+        "layout.box.gap.set" => Some("container.gap"),
         "layout.scroll.axis.set" => Some("container.axis"),
         "layout.scroll.gap.set" => Some("container.gap"),
         "layout.scroll.scrollbar_visibility.set" => Some("container.scrollbar_visibility"),
@@ -843,5 +868,38 @@ fn layout_semantic_action_path(action_id: &str) -> Option<&'static str> {
         "layout.scroll.virtualization.overscan.set" => Some("container.virtualization.overscan"),
         "layout.scroll.clip.set" => Some("clip"),
         _ => None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{layout_semantic_action_path, slot_semantic_action_path};
+
+    #[test]
+    fn layout_semantic_action_path_maps_linear_box_gap_action() {
+        assert_eq!(
+            layout_semantic_action_path("layout.box.gap.set"),
+            Some("container.gap")
+        );
+    }
+
+    #[test]
+    fn slot_semantic_action_path_maps_linear_slot_actions() {
+        assert_eq!(
+            slot_semantic_action_path("slot.linear.width_weight.set"),
+            Some("layout.width.weight")
+        );
+        assert_eq!(
+            slot_semantic_action_path("slot.linear.width_stretch.set"),
+            Some("layout.width.stretch")
+        );
+        assert_eq!(
+            slot_semantic_action_path("slot.linear.height_weight.set"),
+            Some("layout.height.weight")
+        );
+        assert_eq!(
+            slot_semantic_action_path("slot.linear.height_stretch.set"),
+            Some("layout.height.stretch")
+        );
     }
 }

@@ -5,11 +5,10 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use image::{ImageBuffer, ImageFormat, Rgba};
 use zircon_asset::{
-    AlphaMode, AssetReference, AssetUri, MaterialAsset, ProjectAssetManager, ProjectManifest,
-    ProjectPaths, SceneAsset, SceneCameraAsset, SceneEntityAsset, SceneMeshInstanceAsset,
-    SceneMobilityAsset, TransformAsset,
+    AlphaMode, AssetManager, AssetReference, AssetUri, MaterialAsset, ProjectAssetManager,
+    ProjectManifest, ProjectPaths, SceneAsset, SceneCameraAsset, SceneEntityAsset,
+    SceneMeshInstanceAsset, SceneMobilityAsset, TransformAsset,
 };
-use zircon_manager::AssetManager;
 use zircon_math::{Transform, UVec2, Vec3, Vec4};
 use zircon_render_server::{
     RenderPipelineHandle, RenderQualityProfile, RenderServer, RenderViewportDescriptor,

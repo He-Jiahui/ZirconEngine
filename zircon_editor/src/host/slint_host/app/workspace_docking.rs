@@ -1,4 +1,8 @@
 use super::*;
+use crate::host::slint_host::root_shell_projection::{
+    resolve_root_bottom_region_frame, resolve_root_left_region_frame,
+    resolve_root_right_region_frame,
+};
 use crate::host::slint_host::tab_drag::resolve_workbench_tab_drop_route_with_root_frames;
 
 const WORKBENCH_POINTER_DOWN: i32 = 0;
@@ -115,7 +119,19 @@ impl SlintEditorHost {
         let Some(geometry) = self.shell_geometry.as_ref() else {
             return;
         };
-        let frame = geometry.region_frame(region);
+        let root_shell_frames = self.template_bridge.root_shell_frames();
+        let frame = match region {
+            ShellRegionId::Left => {
+                resolve_root_left_region_frame(geometry, Some(&root_shell_frames))
+            }
+            ShellRegionId::Right => {
+                resolve_root_right_region_frame(geometry, Some(&root_shell_frames))
+            }
+            ShellRegionId::Bottom => {
+                resolve_root_bottom_region_frame(geometry, Some(&root_shell_frames))
+            }
+            ShellRegionId::Document => geometry.region_frame(region),
+        };
         let base_preferred = match region {
             ShellRegionId::Bottom => frame.height,
             ShellRegionId::Left | ShellRegionId::Right | ShellRegionId::Document => frame.width,

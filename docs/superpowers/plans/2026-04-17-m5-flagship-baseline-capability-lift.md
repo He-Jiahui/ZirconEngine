@@ -1,8 +1,8 @@
 ---
 related_code:
-  - zircon_graphics/src/runtime/server/capability_summary.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/update_stats.rs
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_virtual_geometry.rs
+  - zircon_graphics/src/runtime/server/capability_summary/mod.rs
+  - zircon_graphics/src/runtime/server/submit_frame_extract/update_stats/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_virtual_geometry/mod.rs
   - zircon_graphics/src/tests/render_server_bridge.rs
   - zircon_render_server/src/types.rs
   - zircon_render_server/src/tests.rs
@@ -10,9 +10,9 @@ related_code:
   - docs/assets-and-rendering/index.md
   - docs/superpowers/plans/2026-04-16-m5-flagship-capability-slots.md
 implementation_files:
-  - zircon_graphics/src/runtime/server/capability_summary.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/update_stats.rs
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_virtual_geometry.rs
+  - zircon_graphics/src/runtime/server/capability_summary/mod.rs
+  - zircon_graphics/src/runtime/server/submit_frame_extract/update_stats/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_virtual_geometry/mod.rs
   - zircon_graphics/src/tests/render_server_bridge.rs
   - zircon_render_server/src/types.rs
   - zircon_render_server/src/tests.rs

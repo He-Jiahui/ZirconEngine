@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{AssetReference, ImportedAsset, ResourceId};
+use crate::{AssetId, AssetReference, ImportedAsset};
 
 pub(super) fn direct_references(imported: &ImportedAsset) -> Vec<AssetReference> {
     let mut references = Vec::new();
@@ -43,9 +43,9 @@ pub(super) fn direct_references(imported: &ImportedAsset) -> Vec<AssetReference>
 }
 
 fn dedup_references(references: Vec<AssetReference>) -> Vec<AssetReference> {
-    let mut seen = HashMap::<ResourceId, AssetReference>::new();
+    let mut seen = HashMap::<AssetId, AssetReference>::new();
     for reference in references {
-        let id = ResourceId::from_asset_uuid_label(reference.uuid, reference.locator.label());
+        let id = AssetId::from_asset_uuid_label(reference.uuid, reference.locator.label());
         seen.entry(id).or_insert(reference);
     }
     let mut deduped = seen.into_values().collect::<Vec<_>>();

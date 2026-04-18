@@ -67,6 +67,8 @@ dkms.conf
 /CMakeSettings.json
 /.notes
 /.codex
+/.codex_tmp
+
 /.worktrees
 .vscode-test-web
 .vscode-test-smoke

@@ -31,7 +31,12 @@ fn input_protocol_types_live_in_input_subsystem() {
         "runtime entry should import input protocol types from zircon_input instead of zircon_manager"
     );
 
-    for forbidden in ["InputButton", "InputEvent", "InputEventRecord", "InputSnapshot"] {
+    for forbidden in [
+        "InputButton",
+        "InputEvent",
+        "InputEventRecord",
+        "InputSnapshot",
+    ] {
         assert!(
             !manager_lib_source.contains(forbidden),
             "zircon_manager lib.rs should not re-export {forbidden} after input protocol migration"

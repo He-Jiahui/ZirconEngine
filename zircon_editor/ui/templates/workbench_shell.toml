@@ -1,12 +1,12 @@
 version = 1
 
 [root]
-template = "WorkbenchShell"
+template = "UiHostWindow"
 slots = { menu_bar = [{ template = "MenuBar" }], activity_rail = [{ template = "ActivityRail" }], document_host = [{ template = "DocumentHost" }], status_bar = [{ template = "StatusBar" }] }
 
-[components.WorkbenchShell]
+[components.UiHostWindow]
 slots = { menu_bar = { required = true }, activity_rail = { required = true }, document_host = { required = true }, status_bar = { required = true } }
-root = { component = "WorkbenchShell", control_id = "WorkbenchShellRoot", bindings = [{ id = "WorkbenchShell/ActivateMainPage", event = "Change", route = "DockCommand.ActivateMainPage" }], attributes = { layout = { container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, clip = true } }, children = [
+root = { component = "UiHostWindow", control_id = "UiHostWindowRoot", bindings = [{ id = "UiHostWindow/ActivateMainPage", event = "Change", route = "DockCommand.ActivateMainPage" }], attributes = { layout = { container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, clip = true } }, children = [
     { component = "VerticalBox", control_id = "WorkbenchScaffold", attributes = { layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, clip = true } }, children = [
         { slot = "menu_bar" },
         { component = "HorizontalBox", control_id = "WorkbenchBody", attributes = { layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } } }, children = [{ slot = "activity_rail" }, { slot = "document_host" }] },

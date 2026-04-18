@@ -7,11 +7,12 @@ mod components;
 mod level_system;
 mod module;
 mod render_extract;
-mod serializer;
 mod semantics;
+mod serializer;
 mod world;
 
 use zircon_module::{EngineModule, ModuleDescriptor};
+pub use zircon_scene_protocol::{LevelSummary, WorldHandle};
 
 pub use components::{
     aspect_ratio_from_viewport_size, default_render_layer_mask, default_viewport_aspect_ratio,
@@ -41,8 +42,8 @@ pub use render_extract::{
     RenderExtractContext, RenderExtractProducer, RenderFrameExtract, RenderViewExtract,
     RenderWorldSnapshotHandle, VisibilityInput, VisibilityRenderableInput,
 };
-pub use serializer::SceneAssetSerializer;
 pub use semantics::{ComponentData, EntityIdentity, RuntimeObject, RuntimeSystem};
+pub use serializer::SceneAssetSerializer;
 pub use world::{SceneProjectError, World};
 
 pub type Scene = World;

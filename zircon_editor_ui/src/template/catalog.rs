@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use zircon_ui::{UiEventKind, UiTemplateError};
+use zircon_ui::{UiAssetError, UiEventKind, UiTemplateError};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EditorComponentDescriptor {
@@ -47,6 +47,8 @@ pub enum EditorTemplateError {
     },
     #[error(transparent)]
     Template(#[from] UiTemplateError),
+    #[error(transparent)]
+    Asset(#[from] UiAssetError),
 }
 
 #[derive(Default)]

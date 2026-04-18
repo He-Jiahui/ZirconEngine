@@ -1,5 +1,5 @@
-use super::super::super::WorkbenchChromeMetrics;
 use super::super::super::constraints::fixed_zero_constraints;
+use super::super::super::WorkbenchChromeMetrics;
 use super::super::super::{AxisConstraint, PaneConstraints, ShellRegionId, StretchMode};
 
 pub(super) fn collapsed_region_constraints(

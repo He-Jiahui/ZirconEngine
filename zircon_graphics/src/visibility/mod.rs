@@ -9,5 +9,6 @@ pub use declarations::{
     VisibilityHistoryEntry, VisibilityHistorySnapshot, VisibilityHybridGiFeedback,
     VisibilityHybridGiProbe, VisibilityHybridGiUpdatePlan, VisibilityInstanceUploadPlan,
     VisibilityParticleUploadPlan, VisibilityVirtualGeometryCluster,
-    VisibilityVirtualGeometryFeedback, VisibilityVirtualGeometryPageUploadPlan,
+    VisibilityVirtualGeometryDrawSegment, VisibilityVirtualGeometryFeedback,
+    VisibilityVirtualGeometryPageUploadPlan,
 };

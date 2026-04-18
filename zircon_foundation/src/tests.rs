@@ -66,7 +66,9 @@ fn config_manager_persists_values_to_disk() {
 
     let second_runtime = CoreRuntime::new();
     second_runtime.register_module(module_descriptor()).unwrap();
-    second_runtime.activate_module(FOUNDATION_MODULE_NAME).unwrap();
+    second_runtime
+        .activate_module(FOUNDATION_MODULE_NAME)
+        .unwrap();
     let second_config = second_runtime
         .handle()
         .resolve_manager::<zircon_manager::ConfigManagerHandle>(CONFIG_MANAGER_NAME)
@@ -84,6 +86,9 @@ fn config_manager_persists_values_to_disk() {
 
 #[test]
 fn public_manager_services_use_foundation_module_registry_names() {
-    assert_eq!(CONFIG_MANAGER_NAME, "FoundationModule.Manager.ConfigManager");
+    assert_eq!(
+        CONFIG_MANAGER_NAME,
+        "FoundationModule.Manager.ConfigManager"
+    );
     assert_eq!(EVENT_MANAGER_NAME, "FoundationModule.Manager.EventManager");
 }

@@ -2,11 +2,8 @@ use crossbeam_channel::RecvTimeoutError;
 use std::fs;
 use std::time::{Duration, Instant};
 
-use zircon_manager::{
-    AssetChangeKind as FacadeAssetChangeKind, AssetManager, ResourceChangeKind, ResourceManager,
-    ResourceStateRecord,
-};
-use zircon_resource::ResourceKind;
+use zircon_manager::ResourceManager;
+use zircon_resource::{ResourceEventKind, ResourceKind, ResourceState, RuntimeResourceState};
 
 use crate::tests::project::unique_temp_project_root;
 use crate::tests::support::{
@@ -14,8 +11,8 @@ use crate::tests::support::{
     write_valid_wgsl,
 };
 use crate::{
-    AssetUri, MaterialAsset, ProjectAssetManager, ProjectManifest, ProjectPaths,
-    RuntimeResourceState,
+    AssetChangeKind, AssetManager, AssetUri, MaterialAsset, ProjectAssetManager, ProjectManifest,
+    ProjectPaths,
 };
 
 #[test]
@@ -81,8 +78,8 @@ fn asset_manager_opens_project_reports_assets_and_publishes_changes() {
     );
 
     let change = changes.recv_timeout(Duration::from_secs(1)).unwrap();
-    assert_eq!(change.kind, FacadeAssetChangeKind::Added);
-    assert!(change.uri.starts_with("res://"));
+    assert_eq!(change.kind, AssetChangeKind::Added);
+    assert!(change.uri.to_string().starts_with("res://"));
 
     let _ = fs::remove_dir_all(root);
 }
@@ -125,8 +122,8 @@ fn asset_manager_watcher_reimports_modified_assets() {
     let mut modified = None;
     for _ in 0..10 {
         if let Ok(change) = changes.recv_timeout(Duration::from_secs(1)) {
-            if change.kind == FacadeAssetChangeKind::Modified
-                && change.uri == "res://materials/grid.material.toml"
+            if change.kind == AssetChangeKind::Modified
+                && change.uri.to_string() == "res://materials/grid.material.toml"
             {
                 modified = Some(change);
                 break;
@@ -182,17 +179,17 @@ fn resource_server_reports_resource_records_for_project_assets() {
         .resource_status("res://models/triangle.obj")
         .expect("model resource status");
     assert_eq!(status.kind, ResourceKind::Model);
-    assert_eq!(status.state, ResourceStateRecord::Ready);
+    assert_eq!(status.state, ResourceState::Ready);
     assert_eq!(status.revision, 1);
     assert!(status
         .artifact_locator
-        .as_deref()
-        .is_some_and(|uri| uri.starts_with("lib://")));
+        .as_ref()
+        .is_some_and(|uri| uri.to_string().starts_with("lib://")));
     assert!(status.dependency_ids.is_empty());
     assert!(status.diagnostics.is_empty());
     assert_eq!(
         manager.resolve_resource_id("res://models/triangle.obj"),
-        Some(status.id.clone())
+        Some(status.id.to_string())
     );
     assert_eq!(
         manager.resource_revision("res://models/triangle.obj"),
@@ -203,19 +200,19 @@ fn resource_server_reports_resource_records_for_project_assets() {
     assert!(
         resources
             .iter()
-            .any(|record| record.locator == "builtin://shader/pbr.wgsl"),
+            .any(|record| record.primary_locator.to_string() == "builtin://shader/pbr.wgsl"),
         "builtin resources should be visible through ResourceManager"
     );
     assert!(
-        resources
-            .iter()
-            .any(|record| record.locator == "builtin://editor/icons/albums-outline.svg"),
+        resources.iter().any(|record| {
+            record.primary_locator.to_string() == "builtin://editor/icons/albums-outline.svg"
+        }),
         "editor builtin icon resources should be visible through ResourceManager"
     );
     assert!(
         resources
             .iter()
-            .any(|record| record.locator == "res://models/triangle.obj"),
+            .any(|record| record.primary_locator.to_string() == "res://models/triangle.obj"),
         "project resources should be visible through ResourceManager"
     );
 
@@ -283,7 +280,7 @@ fn resource_server_reimport_bumps_revision_and_publishes_updated_event() {
     let next_status = manager
         .resource_status("res://materials/grid.material.toml")
         .expect("material resource status");
-    assert_eq!(next_status.state, ResourceStateRecord::Ready);
+    assert_eq!(next_status.state, ResourceState::Ready);
     assert!(next_status.revision > baseline_revision);
 
     let deadline = Instant::now() + Duration::from_secs(5);
@@ -292,8 +289,10 @@ fn resource_server_reimport_bumps_revision_and_publishes_updated_event() {
         let remaining = deadline.saturating_duration_since(Instant::now());
         if let Ok(event) = resource_changes.recv_timeout(remaining.min(Duration::from_millis(250)))
         {
-            if event.kind == ResourceChangeKind::Updated
-                && event.locator.as_deref() == Some("res://materials/grid.material.toml")
+            if event.kind == ResourceEventKind::Updated
+                && event.locator.as_ref().is_some_and(|locator| {
+                    locator.to_string() == "res://materials/grid.material.toml"
+                })
             {
                 updated = Some(event);
                 break;
@@ -413,7 +412,7 @@ fn watcher_ignores_meta_sidecar_updates_for_revision_tracking() {
         let remaining = deadline.saturating_duration_since(Instant::now());
         match asset_changes.recv_timeout(remaining.min(Duration::from_millis(100))) {
             Ok(change) => {
-                if change.uri == "res://materials/grid.material.toml" {
+                if change.uri.to_string() == "res://materials/grid.material.toml" {
                     saw_material_change = true;
                     break;
                 }
@@ -487,8 +486,8 @@ fn watcher_reimports_modified_asset_once_without_revision_loop() {
         let remaining = deadline.saturating_duration_since(Instant::now());
         match asset_changes.recv_timeout(remaining.min(Duration::from_millis(150))) {
             Ok(change) => {
-                if change.kind == FacadeAssetChangeKind::Modified
-                    && change.uri == "res://materials/grid.material.toml"
+                if change.kind == AssetChangeKind::Modified
+                    && change.uri.to_string() == "res://materials/grid.material.toml"
                 {
                     material_changes += 1;
                 }

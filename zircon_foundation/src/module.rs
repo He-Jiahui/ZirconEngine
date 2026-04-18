@@ -1,8 +1,7 @@
 use std::sync::Arc;
 
 use zircon_core::{
-    DriverDescriptor, ManagerDescriptor, ModuleDescriptor, ServiceKind, ServiceObject,
-    StartupMode,
+    DriverDescriptor, ManagerDescriptor, ModuleDescriptor, ServiceKind, ServiceObject, StartupMode,
 };
 use zircon_manager::{ConfigManagerHandle, EventManagerHandle};
 use zircon_module::{factory, qualified_name};
@@ -31,7 +30,11 @@ pub fn module_descriptor() -> ModuleDescriptor {
         factory(|_| Ok(Arc::new(EventDriver) as ServiceObject)),
     ))
     .with_manager(ManagerDescriptor::new(
-        qualified_name(FOUNDATION_MODULE_NAME, ServiceKind::Manager, "ConfigManager"),
+        qualified_name(
+            FOUNDATION_MODULE_NAME,
+            ServiceKind::Manager,
+            "ConfigManager",
+        ),
         StartupMode::Immediate,
         Vec::new(),
         factory(|core| {

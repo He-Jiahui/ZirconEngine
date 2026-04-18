@@ -12,6 +12,8 @@ use super::pending_mesh_draw::{
 
 pub(super) struct SharedIndirectArgsBuffer {
     pub(super) buffer: Arc<wgpu::Buffer>,
+    pub(super) draw_ref_buffer: Arc<wgpu::Buffer>,
+    pub(super) segment_buffer: Arc<wgpu::Buffer>,
     pub(super) segment_count: u32,
 }
 
@@ -45,8 +47,8 @@ pub(super) fn build_shared_indirect_args_buffer(
         return None;
     }
 
-    let segment_buffer = segment_buffer(device, &segment_inputs);
-    let draw_ref_buffer = draw_ref_buffer(device, &draw_refs);
+    let segment_buffer = Arc::new(segment_buffer(device, &segment_inputs));
+    let draw_ref_buffer = Arc::new(draw_ref_buffer(device, &draw_refs));
     let output_buffer = Arc::new(device.create_buffer(&wgpu::BufferDescriptor {
         label: Some("zircon-vg-indirect-args"),
         size: (draw_refs.len() * std::mem::size_of::<IndexedIndirectArgs>()) as u64,
@@ -85,6 +87,8 @@ pub(super) fn build_shared_indirect_args_buffer(
 
     Some(SharedIndirectArgsBuffer {
         buffer: output_buffer,
+        draw_ref_buffer,
+        segment_buffer,
         segment_count: segment_inputs.len() as u32,
     })
 }
@@ -96,7 +100,7 @@ fn segment_buffer(
     device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
         label: Some("zircon-vg-indirect-segments"),
         contents: bytemuck::cast_slice(segment_inputs),
-        usage: wgpu::BufferUsages::STORAGE,
+        usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC,
     })
 }
 
@@ -107,6 +111,6 @@ fn draw_ref_buffer(
     device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
         label: Some("zircon-vg-indirect-draw-refs"),
         contents: bytemuck::cast_slice(draw_refs),
-        usage: wgpu::BufferUsages::STORAGE,
+        usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC,
     })
 }

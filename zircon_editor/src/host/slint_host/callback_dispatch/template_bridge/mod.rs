@@ -5,6 +5,7 @@ mod pane_surface;
 mod viewport_toolbar;
 mod welcome_surface;
 mod workbench;
+mod workbench_drawer_source;
 
 use std::collections::BTreeMap;
 
@@ -24,6 +25,7 @@ pub(crate) use pane_surface::BuiltinPaneSurfaceTemplateBridge;
 pub(crate) use viewport_toolbar::BuiltinViewportToolbarTemplateBridge;
 pub(crate) use welcome_surface::BuiltinWelcomeSurfaceTemplateBridge;
 pub(crate) use workbench::{BuiltinWorkbenchRootShellFrames, BuiltinWorkbenchTemplateBridge};
+pub(crate) use workbench_drawer_source::BuiltinWorkbenchDrawerSourceTemplateBridge;
 
 fn build_bindings_by_id(projection: &SlintUiProjection) -> BTreeMap<String, EditorUiBinding> {
     projection
@@ -53,7 +55,7 @@ fn project_builtin_surface(
     document_id: &str,
 ) -> Result<(BTreeMap<String, EditorUiBinding>, SlintUiHostProjection), EditorUiHostRuntimeError> {
     let mut runtime = EditorUiHostRuntime::default();
-    runtime.load_builtin_workbench_shell()?;
+    runtime.load_builtin_host_templates()?;
 
     let mut projection = runtime.project_document(document_id)?;
     let mut route_service = EditorUiControlService::default();
@@ -68,7 +70,7 @@ fn load_builtin_runtime_projection(
     document_id: &str,
 ) -> Result<(EditorUiHostRuntime, SlintUiProjection), EditorUiHostRuntimeError> {
     let mut runtime = EditorUiHostRuntime::default();
-    runtime.load_builtin_workbench_shell()?;
+    runtime.load_builtin_host_templates()?;
 
     let mut projection = runtime.project_document(document_id)?;
     let mut route_service = EditorUiControlService::default();

@@ -1,7 +1,7 @@
-use zircon_asset::{EditorAssetChangeKind, EditorAssetChangeRecord};
-use zircon_manager::{
-    AssetChangeKind, AssetChangeRecord, ResourceChangeKind, ResourceChangeRecord,
+use zircon_asset::{
+    AssetChange, AssetChangeKind, AssetUri, EditorAssetChange, EditorAssetChangeKind,
 };
+use zircon_resource::{ResourceEvent, ResourceEventKind, ResourceId, ResourceLocator};
 
 use crate::host::slint_host::{plan_asset_backend_refresh, AssetBackendRefreshPlan};
 
@@ -18,7 +18,7 @@ fn preview_change_only_syncs_catalog_without_touching_runtime_resources() {
         Some("11111111-1111-1111-1111-111111111111"),
         None,
         &[],
-        &[EditorAssetChangeRecord {
+        &[EditorAssetChange {
             kind: EditorAssetChangeKind::PreviewChanged,
             catalog_revision: 4,
             uuid: Some("11111111-1111-1111-1111-111111111111".to_string()),
@@ -43,7 +43,7 @@ fn catalog_change_refreshes_details_and_visible_previews_without_resource_sync()
         Some("11111111-1111-1111-1111-111111111111"),
         None,
         &[],
-        &[EditorAssetChangeRecord {
+        &[EditorAssetChange {
             kind: EditorAssetChangeKind::CatalogChanged,
             catalog_revision: 5,
             uuid: None,
@@ -69,16 +69,18 @@ fn default_scene_resource_change_requests_reload_and_runtime_sync() {
     let plan = plan_asset_backend_refresh(
         None,
         Some("res://scenes/main.scene.toml"),
-        &[AssetChangeRecord {
+        &[AssetChange {
             kind: AssetChangeKind::Modified,
-            uri: "res://scenes/main.scene.toml".to_string(),
+            uri: AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
             previous_uri: None,
         }],
         &[],
-        &[ResourceChangeRecord {
-            kind: ResourceChangeKind::Updated,
-            id: "resource::scene".to_string(),
-            locator: Some("res://scenes/main.scene.toml".to_string()),
+        &[ResourceEvent {
+            kind: ResourceEventKind::Updated,
+            id: ResourceId::from_locator(
+                &ResourceLocator::parse("res://scenes/main.scene.toml").unwrap(),
+            ),
+            locator: Some(ResourceLocator::parse("res://scenes/main.scene.toml").unwrap()),
             previous_locator: None,
             revision: 9,
         }],

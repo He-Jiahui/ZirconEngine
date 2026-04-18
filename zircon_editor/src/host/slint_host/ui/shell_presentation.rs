@@ -1,9 +1,9 @@
-use super::asset_surface_presentation::{AssetSurfacePresentation, asset_surface_presentation};
+use super::asset_surface_presentation::{asset_surface_presentation, AssetSurfacePresentation};
 use super::floating_windows::collect_floating_windows;
 use super::model_rc::model_rc;
 use super::pane_projection::{document_pane, side_pane};
 use super::project_overview::project_overview_data;
-use super::welcome_presentation::{WelcomePresentation, welcome_presentation};
+use super::welcome_presentation::{welcome_presentation, WelcomePresentation};
 use super::workbench_tabs::{
     collect_tabs, document_tab_data, drawer_extent, host_tab_data, side_expanded,
 };

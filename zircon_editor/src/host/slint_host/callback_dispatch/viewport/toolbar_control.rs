@@ -3,7 +3,7 @@ use zircon_ui::UiBindingValue;
 use crate::editor_event::EditorEventRuntime;
 use crate::host::slint_host::event_bridge::SlintDispatchEffects;
 
-use super::super::{BuiltinViewportToolbarTemplateBridge, common::dispatch_editor_binding};
+use super::super::{common::dispatch_editor_binding, BuiltinViewportToolbarTemplateBridge};
 
 pub(crate) fn dispatch_builtin_viewport_toolbar_control(
     runtime: &EditorEventRuntime,

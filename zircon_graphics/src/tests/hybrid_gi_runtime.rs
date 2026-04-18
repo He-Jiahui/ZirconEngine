@@ -430,6 +430,87 @@ fn hybrid_gi_runtime_state_applies_gpu_cache_snapshot_as_residency_truth() {
     );
 }
 
+#[test]
+fn hybrid_gi_runtime_state_drops_stale_scene_probes_and_pending_updates_when_extract_shrinks() {
+    let mut state = HybridGiRuntimeState::default();
+    let initial_extract = RenderHybridGiExtract {
+        probe_budget: 3,
+        tracing_budget: 1,
+        probes: vec![
+            probe(100, true, 96),
+            probe(200, false, 64),
+            probe(300, true, 48),
+        ],
+        trace_regions: vec![trace_region(40)],
+    };
+
+    state.register_extract(Some(&initial_extract));
+    state.ingest_plan(
+        12,
+        &VisibilityHybridGiUpdatePlan {
+            resident_probe_ids: vec![100, 300],
+            requested_probe_ids: vec![200],
+            dirty_requested_probe_ids: vec![200],
+            scheduled_trace_region_ids: vec![40],
+            evictable_probe_ids: vec![300],
+        },
+    );
+    state.complete_gpu_updates(
+        [200],
+        [40],
+        &[
+            (100, [192, 144, 96]),
+            (200, [96, 144, 192]),
+            (300, [48, 64, 80]),
+        ],
+        &[300],
+    );
+
+    let shrunk_extract = RenderHybridGiExtract {
+        probe_budget: 1,
+        tracing_budget: 1,
+        probes: vec![probe(100, true, 96)],
+        trace_regions: vec![trace_region(50)],
+    };
+
+    state.register_extract(Some(&shrunk_extract));
+
+    assert_eq!(state.probe_slot(100), Some(0));
+    assert_eq!(state.probe_slot(200), None);
+    assert_eq!(state.probe_slot(300), None);
+    assert_eq!(
+        state.probe_residency(200),
+        None,
+        "expected runtime host state to purge removed scene probes instead of keeping stale pending/resident entries alive"
+    );
+    assert_eq!(
+        state.probe_residency(300),
+        None,
+        "expected runtime host state to evict removed resident probes when the extract no longer contains their lineage"
+    );
+    assert_eq!(
+        state.pending_updates(),
+        Vec::<HybridGiProbeUpdateRequest>::new(),
+        "expected removed scene probes to drop out of the pending update queue"
+    );
+    assert_eq!(state.scheduled_trace_regions(), Vec::<u32>::new());
+    assert_eq!(state.evictable_probes(), Vec::<u32>::new());
+    assert_eq!(
+        state.build_prepare_frame(),
+        HybridGiPrepareFrame {
+            resident_probes: vec![HybridGiPrepareProbe {
+                probe_id: 100,
+                slot: 0,
+                ray_budget: 96,
+                irradiance_rgb: [192, 144, 96],
+            }],
+            pending_updates: Vec::new(),
+            scheduled_trace_region_ids: Vec::new(),
+            evictable_probe_ids: Vec::new(),
+        }
+    );
+}
+
 fn probe(probe_id: u32, resident: bool, ray_budget: u32) -> RenderHybridGiProbe {
     RenderHybridGiProbe {
         entity: 1,

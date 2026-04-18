@@ -4,6 +4,9 @@ use toml::Value;
 use zircon_ui::{UiAssetDocument, UiComponentDefinition, UiNodeDefinition};
 
 use super::{
+    flow_slots::{flow_slot_for_hover, flow_slot_target_overlays, flow_slot_targets},
+    grid_slots::{grid_slot_for_hover, grid_slot_target_overlays, grid_slot_targets},
+    overlay_slots::{overlay_slot_for_hover, overlay_slot_target_overlays, overlay_slot_targets},
     preview_projection::UiAssetPreviewProjection,
     tree_editing::{
         insert_palette_item_with_placement, PaletteInsertMode, UiAssetPaletteEntry,
@@ -12,7 +15,7 @@ use super::{
 };
 
 #[derive(Clone, Debug, PartialEq)]
-pub(super) struct UiAssetPaletteInsertPlan {
+pub(crate) struct UiAssetPaletteInsertPlan {
     pub node_id: String,
     pub mode: PaletteInsertMode,
     pub label: String,
@@ -20,7 +23,7 @@ pub(super) struct UiAssetPaletteInsertPlan {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(super) struct UiAssetPaletteDragTarget {
+pub(crate) struct UiAssetPaletteDragTarget {
     pub preview_index: Option<usize>,
     pub plan: UiAssetPaletteInsertPlan,
     pub key: String,
@@ -28,9 +31,10 @@ pub(super) struct UiAssetPaletteDragTarget {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(super) struct UiAssetPaletteDragResolution {
+pub(crate) struct UiAssetPaletteDragResolution {
     pub candidates: Vec<UiAssetPaletteDragTarget>,
     pub selected_index: usize,
+    pub requires_confirmation: bool,
 }
 
 impl UiAssetPaletteDragResolution {
@@ -40,7 +44,7 @@ impl UiAssetPaletteDragResolution {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub(super) struct UiAssetPaletteSlotTargetOverlay {
+pub(crate) struct UiAssetPaletteSlotTargetOverlay {
     pub label: String,
     pub detail: String,
     pub x: f32,
@@ -50,7 +54,7 @@ pub(super) struct UiAssetPaletteSlotTargetOverlay {
     pub selected: bool,
 }
 
-pub(super) fn can_insert_palette_item_for_node(
+pub(crate) fn can_insert_palette_item_for_node(
     document: &UiAssetDocument,
     palette_entry: &UiAssetPaletteEntry,
     node_id: &str,
@@ -61,7 +65,7 @@ pub(super) fn can_insert_palette_item_for_node(
         .is_some()
 }
 
-pub(super) fn build_palette_insert_plan(
+pub(crate) fn build_palette_insert_plan(
     document: &UiAssetDocument,
     palette_entry: &UiAssetPaletteEntry,
     node_id: &str,
@@ -122,7 +126,7 @@ fn finalize_palette_insert_plan(
     .map(|_| plan)
 }
 
-pub(super) fn resolve_palette_drag_target(
+pub(crate) fn resolve_palette_drag_target(
     document: &UiAssetDocument,
     palette_entry: &UiAssetPaletteEntry,
     widget_imports: &BTreeMap<String, UiAssetDocument>,
@@ -257,6 +261,7 @@ fn build_palette_drag_resolution(
             plan,
         }],
         selected_index: 0,
+        requires_confirmation: false,
     })
 }
 
@@ -285,6 +290,11 @@ fn build_component_palette_drag_resolution(
         return None;
     }
 
+    let available = targets
+        .iter()
+        .map(|target| target.mount.clone())
+        .collect::<Vec<_>>();
+    let requires_confirmation = component_slots_require_confirmation(&available);
     let mut candidates = Vec::new();
     for target in targets {
         let plan = finalize_palette_insert_plan(
@@ -312,15 +322,16 @@ fn build_component_palette_drag_resolution(
     let selected_index = selected_mount
         .as_deref()
         .and_then(|mount| {
-            candidates.iter().position(|candidate| {
-                candidate.plan.placement.mount.as_deref() == Some(mount)
-            })
+            candidates
+                .iter()
+                .position(|candidate| candidate.plan.placement.mount.as_deref() == Some(mount))
         })
         .unwrap_or(0);
 
     Some(UiAssetPaletteDragResolution {
         candidates,
         selected_index,
+        requires_confirmation,
     })
 }
 
@@ -374,10 +385,11 @@ fn build_native_palette_drag_resolution(
     Some(UiAssetPaletteDragResolution {
         candidates,
         selected_index,
+        requires_confirmation: false,
     })
 }
 
-pub(super) fn build_palette_drag_slot_target_overlays(
+pub(crate) fn build_palette_drag_slot_target_overlays(
     document: &UiAssetDocument,
     drag_target: &UiAssetPaletteDragTarget,
     widget_imports: &BTreeMap<String, UiAssetDocument>,
@@ -413,25 +425,32 @@ pub(super) fn build_palette_drag_slot_target_overlays(
 }
 
 #[derive(Clone, Copy, Debug)]
-struct UiAssetPaletteTargetFrame {
-    x: f32,
-    y: f32,
-    width: f32,
-    height: f32,
+pub(crate) struct UiAssetPaletteTargetFrame {
+    pub(crate) x: f32,
+    pub(crate) y: f32,
+    pub(crate) width: f32,
+    pub(crate) height: f32,
 }
 
 #[derive(Clone, Copy, Debug)]
-pub(super) struct UiAssetPaletteHoverContext {
-    x: f32,
-    y: f32,
-    width: f32,
-    height: f32,
-    surface_x: f32,
-    surface_y: f32,
+pub(crate) struct UiAssetPaletteHoverContext {
+    pub(crate) x: f32,
+    pub(crate) y: f32,
+    pub(crate) width: f32,
+    pub(crate) height: f32,
+    pub(crate) surface_x: f32,
+    pub(crate) surface_y: f32,
 }
 
 impl UiAssetPaletteHoverContext {
-    fn new(x: f32, y: f32, width: f32, height: f32, surface_x: f32, surface_y: f32) -> Self {
+    pub(crate) fn new(
+        x: f32,
+        y: f32,
+        width: f32,
+        height: f32,
+        surface_x: f32,
+        surface_y: f32,
+    ) -> Self {
         Self {
             x,
             y,
@@ -442,18 +461,18 @@ impl UiAssetPaletteHoverContext {
         }
     }
 
-    fn contains_point(&self) -> bool {
+    pub(crate) fn contains_point(&self) -> bool {
         self.surface_x >= self.x
             && self.surface_x <= self.x + self.width.max(0.0)
             && self.surface_y >= self.y
             && self.surface_y <= self.y + self.height.max(0.0)
     }
 
-    fn normalized_x(&self) -> f32 {
+    pub(crate) fn normalized_x(&self) -> f32 {
         normalized_axis(self.surface_x, self.x, self.width)
     }
 
-    fn normalized_y(&self) -> f32 {
+    pub(crate) fn normalized_y(&self) -> f32 {
         normalized_axis(self.surface_y, self.y, self.height)
     }
 }
@@ -747,6 +766,17 @@ fn contains_slot_semantics(slots: &[String], semantics: &[&str]) -> bool {
     })
 }
 
+fn component_slots_require_confirmation(slots: &[String]) -> bool {
+    slots.len() > 1
+        && !contains_slot_semantics(
+            slots,
+            &[
+                "leading", "left", "start", "trailing", "right", "end", "header", "top", "body",
+                "content", "center", "main", "default", "footer", "bottom",
+            ],
+        )
+}
+
 fn find_slot_by_semantics(slots: &[String], semantics: &[&str]) -> Option<String> {
     slots
         .iter()
@@ -806,320 +836,14 @@ fn native_container_kind<'a>(node: &'a UiNodeDefinition) -> Option<&'a str> {
 }
 
 #[derive(Clone, Debug)]
-struct UiAssetPaletteNativeSlotTarget {
-    label: String,
-    detail: String,
-    slot: BTreeMap<String, Value>,
-    x: f32,
-    y: f32,
-    width: f32,
-    height: f32,
-}
-
-fn overlay_slot_target_overlays(
-    frame: UiAssetPaletteTargetFrame,
-    selected_slot: &BTreeMap<String, Value>,
-) -> Vec<UiAssetPaletteSlotTargetOverlay> {
-    let selected_anchor = overlay_slot_anchor(selected_slot);
-    overlay_slot_targets(UiAssetPaletteHoverContext {
-        x: frame.x,
-        y: frame.y,
-        width: frame.width,
-        height: frame.height,
-        surface_x: frame.x + frame.width * 0.5,
-        surface_y: frame.y + frame.height * 0.5,
-    })
-    .into_iter()
-    .map(|target| UiAssetPaletteSlotTargetOverlay {
-        label: target.label,
-        detail: target.detail,
-        x: target.x,
-        y: target.y,
-        width: target.width,
-        height: target.height,
-        selected: overlay_slot_anchor(&target.slot) == selected_anchor,
-    })
-    .collect()
-}
-
-fn overlay_slot_anchor(slot: &BTreeMap<String, Value>) -> Option<(f32, f32)> {
-    Some((
-        slot_table_numeric_value(slot.get("layout")?, &["anchor", "x"])?,
-        slot_table_numeric_value(slot.get("layout")?, &["anchor", "y"])?,
-    ))
-}
-
-fn overlay_slot_for_hover(hover: UiAssetPaletteHoverContext) -> BTreeMap<String, Value> {
-    let anchor_x = quantized_anchor(hover.normalized_x());
-    let anchor_y = quantized_anchor(hover.normalized_y());
-    overlay_slot_for_anchor(
-        hover.x,
-        hover.y,
-        hover.width,
-        hover.height,
-        hover.surface_x,
-        hover.surface_y,
-        anchor_x,
-        anchor_y,
-    )
-}
-
-fn overlay_slot_for_anchor(
-    frame_x: f32,
-    frame_y: f32,
-    frame_width: f32,
-    frame_height: f32,
-    surface_x: f32,
-    surface_y: f32,
-    anchor_x: f32,
-    anchor_y: f32,
-) -> BTreeMap<String, Value> {
-    let position_x = round_position(surface_x - (frame_x + frame_width * anchor_x));
-    let position_y = round_position(surface_y - (frame_y + frame_height * anchor_y));
-    let mut slot = BTreeMap::new();
-    let _ = slot.insert(
-        "layout".to_string(),
-        table_value(&[
-            (
-                "anchor",
-                table_value(&[
-                    ("x", Value::Float(anchor_x as f64)),
-                    ("y", Value::Float(anchor_y as f64)),
-                ]),
-            ),
-            (
-                "pivot",
-                table_value(&[
-                    ("x", Value::Float(anchor_x as f64)),
-                    ("y", Value::Float(anchor_y as f64)),
-                ]),
-            ),
-            (
-                "position",
-                table_value(&[
-                    ("x", numeric_value(position_x)),
-                    ("y", numeric_value(position_y)),
-                ]),
-            ),
-        ]),
-    );
-    slot
-}
-
-fn overlay_slot_targets(hover: UiAssetPaletteHoverContext) -> Vec<UiAssetPaletteNativeSlotTarget> {
-    let names = [
-        ["Top Left", "Top", "Top Right"],
-        ["Left", "Center", "Right"],
-        ["Bottom Left", "Bottom", "Bottom Right"],
-    ];
-    let mut targets = Vec::new();
-    for row in 0..3 {
-        for column in 0..3 {
-            let anchor_x = [0.0, 0.5, 1.0][column];
-            let anchor_y = [0.0, 0.5, 1.0][row];
-            targets.push(UiAssetPaletteNativeSlotTarget {
-                label: names[row][column].to_string(),
-                detail: format!("anchor {}, {}", anchor_x, anchor_y),
-                slot: overlay_slot_for_anchor(
-                    hover.x,
-                    hover.y,
-                    hover.width,
-                    hover.height,
-                    hover.surface_x,
-                    hover.surface_y,
-                    anchor_x,
-                    anchor_y,
-                ),
-                x: hover.x + hover.width * column as f32 / 3.0,
-                y: hover.y + hover.height * row as f32 / 3.0,
-                width: hover.width / 3.0,
-                height: hover.height / 3.0,
-            });
-        }
-    }
-    targets
-}
-
-fn grid_slot_target_overlays(
-    node: &UiNodeDefinition,
-    frame: UiAssetPaletteTargetFrame,
-    selected_slot: &BTreeMap<String, Value>,
-) -> Vec<UiAssetPaletteSlotTargetOverlay> {
-    let selected_row = selected_slot.get("row").and_then(Value::as_integer);
-    let selected_column = selected_slot.get("column").and_then(Value::as_integer);
-    grid_slot_targets(
-        node,
-        UiAssetPaletteHoverContext {
-            x: frame.x,
-            y: frame.y,
-            width: frame.width,
-            height: frame.height,
-            surface_x: frame.x + frame.width * 0.5,
-            surface_y: frame.y + frame.height * 0.5,
-        },
-    )
-    .into_iter()
-    .map(|target| UiAssetPaletteSlotTargetOverlay {
-        label: target.label,
-        detail: target.detail,
-        x: target.x,
-        y: target.y,
-        width: target.width,
-        height: target.height,
-        selected: target.slot.get("row").and_then(Value::as_integer) == selected_row
-            && target.slot.get("column").and_then(Value::as_integer) == selected_column,
-    })
-    .collect()
-}
-
-fn grid_slot_for_hover(
-    node: &UiNodeDefinition,
-    hover: UiAssetPaletteHoverContext,
-) -> BTreeMap<String, Value> {
-    let columns = estimated_grid_axis(node, "column", "column_span").max(2);
-    let rows = estimated_grid_axis(node, "row", "row_span").max(2);
-    let column = ((hover.normalized_x() * columns as f32).floor() as i64).min(columns - 1);
-    let row = ((hover.normalized_y() * rows as f32).floor() as i64).min(rows - 1);
-    BTreeMap::from([
-        ("row".to_string(), Value::Integer(row)),
-        ("column".to_string(), Value::Integer(column)),
-    ])
-}
-
-fn grid_slot_targets(
-    node: &UiNodeDefinition,
-    hover: UiAssetPaletteHoverContext,
-) -> Vec<UiAssetPaletteNativeSlotTarget> {
-    let columns = estimated_grid_axis(node, "column", "column_span").max(2) as usize;
-    let rows = estimated_grid_axis(node, "row", "row_span").max(2) as usize;
-    let mut targets = Vec::new();
-    for row in 0..rows {
-        for column in 0..columns {
-            targets.push(UiAssetPaletteNativeSlotTarget {
-                label: format!("R{row} C{column}"),
-                detail: format!("row {row}, column {column}"),
-                slot: BTreeMap::from([
-                    ("row".to_string(), Value::Integer(row as i64)),
-                    ("column".to_string(), Value::Integer(column as i64)),
-                ]),
-                x: hover.x + hover.width * column as f32 / columns as f32,
-                y: hover.y + hover.height * row as f32 / rows as f32,
-                width: hover.width / columns as f32,
-                height: hover.height / rows as f32,
-            });
-        }
-    }
-    targets
-}
-
-fn estimated_grid_axis(node: &UiNodeDefinition, key: &str, span_key: &str) -> i64 {
-    node.children
-        .iter()
-        .filter_map(|child| {
-            let value = child.slot.get(key)?.as_integer()?;
-            let span = child
-                .slot
-                .get(span_key)
-                .and_then(Value::as_integer)
-                .unwrap_or(1);
-            Some(value + span)
-        })
-        .max()
-        .unwrap_or(1)
-}
-
-fn flow_slot_target_overlays(
-    frame: UiAssetPaletteTargetFrame,
-    selected_slot: &BTreeMap<String, Value>,
-) -> Vec<UiAssetPaletteSlotTargetOverlay> {
-    let selected_break_before = selected_slot
-        .get("break_before")
-        .and_then(Value::as_bool)
-        .unwrap_or(false);
-    let selected_alignment = selected_slot
-        .get("alignment")
-        .and_then(Value::as_str)
-        .unwrap_or("Center");
-    flow_slot_targets(UiAssetPaletteHoverContext {
-        x: frame.x,
-        y: frame.y,
-        width: frame.width,
-        height: frame.height,
-        surface_x: frame.x + frame.width * 0.5,
-        surface_y: frame.y + frame.height * 0.5,
-    })
-    .into_iter()
-    .map(|target| UiAssetPaletteSlotTargetOverlay {
-        label: target.label,
-        detail: target.detail,
-        x: target.x,
-        y: target.y,
-        width: target.width,
-        height: target.height,
-        selected: target
-            .slot
-            .get("break_before")
-            .and_then(Value::as_bool)
-            .unwrap_or(false)
-            == selected_break_before
-            && target
-                .slot
-                .get("alignment")
-                .and_then(Value::as_str)
-                .unwrap_or("Center")
-                == selected_alignment,
-    })
-    .collect()
-}
-
-fn flow_slot_for_hover(hover: UiAssetPaletteHoverContext) -> BTreeMap<String, Value> {
-    let alignment = if hover.normalized_x() <= 0.33 {
-        "Start"
-    } else if hover.normalized_x() >= 0.66 {
-        "End"
-    } else {
-        "Center"
-    };
-    BTreeMap::from([
-        (
-            "break_before".to_string(),
-            Value::Boolean(hover.normalized_y() >= 0.5),
-        ),
-        (
-            "alignment".to_string(),
-            Value::String(alignment.to_string()),
-        ),
-    ])
-}
-
-fn flow_slot_targets(hover: UiAssetPaletteHoverContext) -> Vec<UiAssetPaletteNativeSlotTarget> {
-    let alignments = ["Start", "Center", "End"];
-    let mut targets = Vec::new();
-    for row in 0..2 {
-        for (column, alignment) in alignments.iter().enumerate() {
-            let break_before = row == 1;
-            targets.push(UiAssetPaletteNativeSlotTarget {
-                label: if break_before {
-                    format!("Break {alignment}")
-                } else {
-                    (*alignment).to_string()
-                },
-                detail: format!("break_before={break_before}, alignment={alignment}"),
-                slot: BTreeMap::from([
-                    ("break_before".to_string(), Value::Boolean(break_before)),
-                    (
-                        "alignment".to_string(),
-                        Value::String((*alignment).to_string()),
-                    ),
-                ]),
-                x: hover.x + hover.width * column as f32 / alignments.len() as f32,
-                y: hover.y + hover.height * row as f32 / 2.0,
-                width: hover.width / alignments.len() as f32,
-                height: hover.height / 2.0,
-            });
-        }
-    }
-    targets
+pub(crate) struct UiAssetPaletteNativeSlotTarget {
+    pub(crate) label: String,
+    pub(crate) detail: String,
+    pub(crate) slot: BTreeMap<String, Value>,
+    pub(crate) x: f32,
+    pub(crate) y: f32,
+    pub(crate) width: f32,
+    pub(crate) height: f32,
 }
 
 fn normalized_axis(position: f32, origin: f32, extent: f32) -> f32 {
@@ -1130,7 +854,7 @@ fn normalized_axis(position: f32, origin: f32, extent: f32) -> f32 {
     }
 }
 
-fn quantized_anchor(value: f32) -> f32 {
+pub(crate) fn quantized_anchor(value: f32) -> f32 {
     if value <= 0.33 {
         0.0
     } else if value >= 0.66 {
@@ -1140,11 +864,11 @@ fn quantized_anchor(value: f32) -> f32 {
     }
 }
 
-fn round_position(value: f32) -> f64 {
+pub(crate) fn round_position(value: f32) -> f64 {
     (value.round() * 100.0).round() as f64 / 100.0
 }
 
-fn numeric_value(value: f64) -> Value {
+pub(crate) fn numeric_value(value: f64) -> Value {
     if value.fract().abs() <= f64::EPSILON {
         Value::Integer(value as i64)
     } else {
@@ -1152,7 +876,7 @@ fn numeric_value(value: f64) -> Value {
     }
 }
 
-fn slot_table_numeric_value(value: &Value, path: &[&str]) -> Option<f32> {
+pub(crate) fn slot_table_numeric_value(value: &Value, path: &[&str]) -> Option<f32> {
     let (segment, rest) = path.split_first()?;
     let table = value.as_table()?;
     let next = table.get(*segment)?;
@@ -1205,7 +929,7 @@ fn title_case_identifier(value: &str) -> String {
     }
 }
 
-fn table_value(entries: &[(&str, Value)]) -> Value {
+pub(crate) fn table_value(entries: &[(&str, Value)]) -> Value {
     Value::Table(
         entries
             .iter()

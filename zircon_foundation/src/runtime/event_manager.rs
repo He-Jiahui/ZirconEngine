@@ -22,4 +22,3 @@ impl EventManager for DefaultEventManager {
         self.core.subscribe_events(topic.to_string())
     }
 }
-

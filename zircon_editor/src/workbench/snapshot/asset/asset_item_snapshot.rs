@@ -1,5 +1,4 @@
-use zircon_manager::ResourceStateRecord;
-use zircon_resource::ResourceKind;
+use zircon_resource::{ResourceKind, ResourceState};
 
 #[derive(Clone, Debug)]
 pub struct AssetItemSnapshot {
@@ -13,6 +12,6 @@ pub struct AssetItemSnapshot {
     pub dirty: bool,
     pub diagnostics: Vec<String>,
     pub selected: bool,
-    pub resource_state: Option<ResourceStateRecord>,
+    pub resource_state: Option<ResourceState>,
     pub resource_revision: Option<u64>,
 }

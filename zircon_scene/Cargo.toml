@@ -16,3 +16,4 @@ zircon_math = { path = "../zircon_math" }
 zircon_module = { path = "../zircon_module" }
 zircon_resource = { path = "../zircon_resource" }
 zircon_manager = { path = "../zircon_manager" }
+zircon_scene_protocol = { path = "../zircon_scene_protocol" }

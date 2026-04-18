@@ -5,7 +5,7 @@ use crate::tests::support::{
     write_checker_png, write_default_material, write_default_scene, write_triangle_obj,
     write_valid_wgsl,
 };
-use crate::{AssetMetaDocument, AssetUri, ImportedAsset, ProjectManager, ResourceId};
+use crate::{AssetId, AssetMetaDocument, AssetUri, ImportedAsset, ProjectManager};
 
 #[test]
 fn project_manager_scans_assets_imports_library_and_loads_artifacts() {
@@ -78,7 +78,7 @@ fn project_manager_scans_assets_imports_library_and_loads_artifacts() {
     );
     assert_eq!(
         model_record.id(),
-        ResourceId::from_asset_uuid_label(model_meta.asset_uuid, None)
+        AssetId::from_asset_uuid_label(model_meta.asset_uuid, None)
     );
 
     let _ = fs::remove_dir_all(root);

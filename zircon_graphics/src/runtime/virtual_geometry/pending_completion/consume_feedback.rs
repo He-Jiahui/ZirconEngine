@@ -1,6 +1,6 @@
 use crate::VisibilityVirtualGeometryFeedback;
 
-use super::super::virtual_geometry_runtime_state::VirtualGeometryRuntimeState;
+use super::super::VirtualGeometryRuntimeState;
 
 impl VirtualGeometryRuntimeState {
     pub(crate) fn consume_feedback(&mut self, feedback: &VisibilityVirtualGeometryFeedback) {

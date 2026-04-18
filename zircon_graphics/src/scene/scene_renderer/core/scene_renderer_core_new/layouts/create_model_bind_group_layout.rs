@@ -1,4 +1,6 @@
-pub(super) fn create_model_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+pub(in crate::scene::scene_renderer::core::scene_renderer_core_new) fn create_model_bind_group_layout(
+    device: &wgpu::Device,
+) -> wgpu::BindGroupLayout {
     device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
         label: Some("zircon-model-layout"),
         entries: &[wgpu::BindGroupLayoutEntry {

@@ -4,7 +4,7 @@ use zircon_core::ModuleDescriptor;
 use zircon_module::EngineModule;
 
 use super::super::entry_profile::EntryProfile;
-use super::{builtin_registry::builtin_modules, editor_modules::editor_modules, runtime_modules::runtime_modules};
+use super::{editor_modules::editor_modules, runtime_modules::runtime_modules};
 
 #[derive(Clone, Debug)]
 pub struct BuiltinEntryModuleSet {
@@ -26,6 +26,9 @@ impl BuiltinEntryModuleSet {
     }
 
     pub fn descriptors(&self) -> Vec<ModuleDescriptor> {
-        self.modules.iter().map(|module| module.descriptor()).collect()
+        self.modules
+            .iter()
+            .map(|module| module.descriptor())
+            .collect()
     }
 }

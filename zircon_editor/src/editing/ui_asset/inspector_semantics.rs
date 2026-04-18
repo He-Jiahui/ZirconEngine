@@ -7,7 +7,7 @@ use zircon_ui::{UiAssetDocument, UiChildMount, UiNodeDefinition};
 use super::style_rule_declarations::parse_declaration_literal;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub(super) struct UiAssetInspectorSemanticEntry {
+pub(crate) struct UiAssetInspectorSemanticEntry {
     pub path: String,
     pub literal: String,
 }
@@ -19,14 +19,18 @@ impl UiAssetInspectorSemanticEntry {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub(super) struct UiAssetInspectorSemanticGroup {
+pub(crate) struct UiAssetInspectorSemanticGroup {
     pub title: String,
     pub entries: Vec<UiAssetInspectorSemanticEntry>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub(super) struct UiAssetStructuredSlotSemanticFields {
+pub(crate) struct UiAssetStructuredSlotSemanticFields {
     pub kind: String,
+    pub linear_main_weight: String,
+    pub linear_main_stretch: String,
+    pub linear_cross_weight: String,
+    pub linear_cross_stretch: String,
     pub overlay_anchor_x: String,
     pub overlay_anchor_y: String,
     pub overlay_pivot_x: String,
@@ -43,8 +47,9 @@ pub(super) struct UiAssetStructuredSlotSemanticFields {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub(super) struct UiAssetStructuredLayoutSemanticFields {
+pub(crate) struct UiAssetStructuredLayoutSemanticFields {
     pub kind: String,
+    pub box_gap: String,
     pub scroll_axis: String,
     pub scroll_gap: String,
     pub scrollbar_visibility: String,
@@ -53,7 +58,7 @@ pub(super) struct UiAssetStructuredLayoutSemanticFields {
     pub clip: String,
 }
 
-pub(super) fn build_slot_semantic_group(
+pub(crate) fn build_slot_semantic_group(
     document: &UiAssetDocument,
     selection: &UiDesignerSelectionModel,
 ) -> UiAssetInspectorSemanticGroup {
@@ -64,6 +69,9 @@ pub(super) fn build_slot_semantic_group(
         return UiAssetInspectorSemanticGroup::default();
     };
     match semantic_parent_kind(parent).as_deref() {
+        Some("HorizontalBox") | Some("VerticalBox") => {
+            semantic_group("Linear Slot", &child_mount.slot, LINEAR_SLOT_PATHS)
+        }
         Some("Overlay") => semantic_group("Overlay Slot", &child_mount.slot, OVERLAY_SLOT_PATHS),
         Some("GridBox") => semantic_group("Grid Slot", &child_mount.slot, GRID_SLOT_PATHS),
         Some("FlowBox") => semantic_group("Flow Slot", &child_mount.slot, FLOW_SLOT_PATHS),
@@ -71,7 +79,7 @@ pub(super) fn build_slot_semantic_group(
     }
 }
 
-pub(super) fn build_layout_semantic_group(
+pub(crate) fn build_layout_semantic_group(
     document: &UiAssetDocument,
     selection: &UiDesignerSelectionModel,
 ) -> UiAssetInspectorSemanticGroup {
@@ -82,6 +90,9 @@ pub(super) fn build_layout_semantic_group(
         return UiAssetInspectorSemanticGroup::default();
     };
     match semantic_node_kind(node).as_deref() {
+        Some("HorizontalBox") | Some("VerticalBox") => {
+            semantic_group("Linear Layout", layout, LINEAR_LAYOUT_PATHS)
+        }
         Some("ScrollableBox") => {
             semantic_group("Scrollable Layout", layout, SCROLLABLE_LAYOUT_PATHS)
         }
@@ -89,7 +100,7 @@ pub(super) fn build_layout_semantic_group(
     }
 }
 
-pub(super) fn build_structured_slot_semantic_fields(
+pub(crate) fn build_structured_slot_semantic_fields(
     document: &UiAssetDocument,
     selection: &UiDesignerSelectionModel,
 ) -> UiAssetStructuredSlotSemanticFields {
@@ -101,6 +112,51 @@ pub(super) fn build_structured_slot_semantic_fields(
     };
 
     match semantic_parent_kind(parent).as_deref() {
+        Some("HorizontalBox") => UiAssetStructuredSlotSemanticFields {
+            kind: "HorizontalBox".to_string(),
+            linear_main_weight: value_map_display_literal(&child_mount.slot, "layout.width.weight")
+                .unwrap_or_default(),
+            linear_main_stretch: value_map_string_literal(
+                &child_mount.slot,
+                "layout.width.stretch",
+            )
+            .unwrap_or_default(),
+            linear_cross_weight: value_map_display_literal(
+                &child_mount.slot,
+                "layout.height.weight",
+            )
+            .unwrap_or_default(),
+            linear_cross_stretch: value_map_string_literal(
+                &child_mount.slot,
+                "layout.height.stretch",
+            )
+            .unwrap_or_default(),
+            ..UiAssetStructuredSlotSemanticFields::default()
+        },
+        Some("VerticalBox") => UiAssetStructuredSlotSemanticFields {
+            kind: "VerticalBox".to_string(),
+            linear_main_weight: value_map_display_literal(
+                &child_mount.slot,
+                "layout.height.weight",
+            )
+            .unwrap_or_default(),
+            linear_main_stretch: value_map_string_literal(
+                &child_mount.slot,
+                "layout.height.stretch",
+            )
+            .unwrap_or_default(),
+            linear_cross_weight: value_map_display_literal(
+                &child_mount.slot,
+                "layout.width.weight",
+            )
+            .unwrap_or_default(),
+            linear_cross_stretch: value_map_string_literal(
+                &child_mount.slot,
+                "layout.width.stretch",
+            )
+            .unwrap_or_default(),
+            ..UiAssetStructuredSlotSemanticFields::default()
+        },
         Some("Overlay") => UiAssetStructuredSlotSemanticFields {
             kind: "Overlay".to_string(),
             overlay_anchor_x: value_map_display_literal(&child_mount.slot, "layout.anchor.x")
@@ -141,7 +197,7 @@ pub(super) fn build_structured_slot_semantic_fields(
     }
 }
 
-pub(super) fn build_structured_layout_semantic_fields(
+pub(crate) fn build_structured_layout_semantic_fields(
     document: &UiAssetDocument,
     selection: &UiDesignerSelectionModel,
 ) -> UiAssetStructuredLayoutSemanticFields {
@@ -153,12 +209,26 @@ pub(super) fn build_structured_layout_semantic_fields(
     };
 
     match semantic_node_kind(node).as_deref() {
+        Some("HorizontalBox") => UiAssetStructuredLayoutSemanticFields {
+            kind: "HorizontalBox".to_string(),
+            box_gap: value_map_display_literal(layout, "container.gap").unwrap_or_default(),
+            ..UiAssetStructuredLayoutSemanticFields::default()
+        },
+        Some("VerticalBox") => UiAssetStructuredLayoutSemanticFields {
+            kind: "VerticalBox".to_string(),
+            box_gap: value_map_display_literal(layout, "container.gap").unwrap_or_default(),
+            ..UiAssetStructuredLayoutSemanticFields::default()
+        },
         Some("ScrollableBox") => UiAssetStructuredLayoutSemanticFields {
             kind: "ScrollableBox".to_string(),
+            box_gap: String::new(),
             scroll_axis: value_map_display_literal(layout, "container.axis").unwrap_or_default(),
             scroll_gap: value_map_display_literal(layout, "container.gap").unwrap_or_default(),
-            scrollbar_visibility: value_map_display_literal(layout, "container.scrollbar_visibility")
-                .unwrap_or_default(),
+            scrollbar_visibility: value_map_display_literal(
+                layout,
+                "container.scrollbar_visibility",
+            )
+            .unwrap_or_default(),
             virtualization_item_extent: value_map_display_literal(
                 layout,
                 "container.virtualization.item_extent",
@@ -175,7 +245,7 @@ pub(super) fn build_structured_layout_semantic_fields(
     }
 }
 
-pub(super) fn reconcile_selected_semantic_path(
+pub(crate) fn reconcile_selected_semantic_path(
     entries: &[UiAssetInspectorSemanticEntry],
     current: Option<&str>,
 ) -> Option<String> {
@@ -184,7 +254,7 @@ pub(super) fn reconcile_selected_semantic_path(
         .map(str::to_string)
 }
 
-pub(super) fn set_selected_slot_semantic_value(
+pub(crate) fn set_selected_slot_semantic_value(
     document: &mut UiAssetDocument,
     selection: &UiDesignerSelectionModel,
     path: &str,
@@ -196,7 +266,7 @@ pub(super) fn set_selected_slot_semantic_value(
     set_value_in_map(&mut child_mount.slot, path, literal)
 }
 
-pub(super) fn delete_selected_slot_semantic(
+pub(crate) fn delete_selected_slot_semantic(
     document: &mut UiAssetDocument,
     selection: &UiDesignerSelectionModel,
     path: &str,
@@ -207,7 +277,7 @@ pub(super) fn delete_selected_slot_semantic(
     remove_value_in_map(&mut child_mount.slot, path)
 }
 
-pub(super) fn set_selected_layout_semantic_value(
+pub(crate) fn set_selected_layout_semantic_value(
     document: &mut UiAssetDocument,
     selection: &UiDesignerSelectionModel,
     path: &str,
@@ -245,7 +315,7 @@ pub(super) fn set_selected_layout_semantic_value(
     }
 }
 
-pub(super) fn delete_selected_layout_semantic(
+pub(crate) fn delete_selected_layout_semantic(
     document: &mut UiAssetDocument,
     selection: &UiDesignerSelectionModel,
     path: &str,
@@ -276,6 +346,15 @@ const OVERLAY_SLOT_PATHS: &[&str] = &[
 const GRID_SLOT_PATHS: &[&str] = &["row", "column", "row_span", "column_span"];
 
 const FLOW_SLOT_PATHS: &[&str] = &["break_before", "alignment"];
+
+const LINEAR_SLOT_PATHS: &[&str] = &[
+    "layout.width.weight",
+    "layout.width.stretch",
+    "layout.height.weight",
+    "layout.height.stretch",
+];
+
+const LINEAR_LAYOUT_PATHS: &[&str] = &["container.gap"];
 
 const SCROLLABLE_LAYOUT_PATHS: &[&str] = &[
     "container.axis",
@@ -365,6 +444,13 @@ fn value_map_literal(values: &BTreeMap<String, Value>, path: &str) -> Option<Str
 
 fn value_map_display_literal(values: &BTreeMap<String, Value>, path: &str) -> Option<String> {
     value_map_value(values, path).map(display_literal)
+}
+
+fn value_map_string_literal(values: &BTreeMap<String, Value>, path: &str) -> Option<String> {
+    value_map_value(values, path).map(|value| match value {
+        Value::String(value) => value.clone(),
+        other => display_literal(other),
+    })
 }
 
 fn value_map_value<'a>(values: &'a BTreeMap<String, Value>, path: &str) -> Option<&'a Value> {

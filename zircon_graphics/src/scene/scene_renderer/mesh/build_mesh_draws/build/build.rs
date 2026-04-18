@@ -11,6 +11,8 @@ use super::extend_pending_draws_for_mesh_instance::extend_pending_draws_for_mesh
 pub(crate) struct BuiltMeshDraws {
     pub(crate) draws: Vec<MeshDraw>,
     pub(crate) indirect_segment_count: u32,
+    pub(crate) indirect_draw_ref_buffer: Option<std::sync::Arc<wgpu::Buffer>>,
+    pub(crate) indirect_segment_buffer: Option<std::sync::Arc<wgpu::Buffer>>,
 }
 
 pub(crate) fn build_mesh_draws(
@@ -48,6 +50,12 @@ pub(crate) fn build_mesh_draws(
         .as_ref()
         .map(|shared| shared.segment_count)
         .unwrap_or(0);
+    let indirect_draw_ref_buffer = shared_indirect_args_buffer
+        .as_ref()
+        .map(|shared| std::sync::Arc::clone(&shared.draw_ref_buffer));
+    let indirect_segment_buffer = shared_indirect_args_buffer
+        .as_ref()
+        .map(|shared| std::sync::Arc::clone(&shared.segment_buffer));
     let shared_indirect_args_buffer = shared_indirect_args_buffer.map(|shared| shared.buffer);
     let indirect_args_stride = std::mem::size_of::<IndexedIndirectArgs>() as u64;
 
@@ -72,5 +80,7 @@ pub(crate) fn build_mesh_draws(
             })
             .collect(),
         indirect_segment_count,
+        indirect_draw_ref_buffer,
+        indirect_segment_buffer,
     }
 }

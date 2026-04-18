@@ -17,6 +17,12 @@ related_code:
   - zircon_ui/src/tests/template.rs
   - zircon_editor_ui/src/template/mod.rs
   - zircon_editor_ui/src/template/registry.rs
+  - zircon_editor/src/host/template_runtime/mod.rs
+  - zircon_editor/src/host/template_runtime/builtin/mod.rs
+  - zircon_editor/src/host/template_runtime/builtin/template_documents.rs
+  - zircon_editor/src/host/template_runtime/builtin/component_descriptors.rs
+  - zircon_editor/src/host/template_runtime/runtime/build_session.rs
+  - zircon_editor/src/host/template_runtime/runtime/runtime_host.rs
   - zircon_editor/ui/templates/workbench_shell.toml
 implementation_files:
   - zircon_ui/src/lib.rs
@@ -33,6 +39,12 @@ implementation_files:
   - zircon_ui/src/tree/mod.rs
   - zircon_ui/src/tree/node/mod.rs
   - zircon_ui/src/surface.rs
+  - zircon_editor/src/host/template_runtime/mod.rs
+  - zircon_editor/src/host/template_runtime/builtin/mod.rs
+  - zircon_editor/src/host/template_runtime/builtin/template_documents.rs
+  - zircon_editor/src/host/template_runtime/builtin/component_descriptors.rs
+  - zircon_editor/src/host/template_runtime/runtime/build_session.rs
+  - zircon_editor/src/host/template_runtime/runtime/runtime_host.rs
 plan_sources:
   - user: 2026-04-15 按自定义 TOML 描述文件运行时构建 Slint 树并严格服从 Shared Layout 契约
   - user: 2026-04-15 PLEASE IMPLEMENT THIS PLAN
@@ -298,3 +310,14 @@ root = { component = "UiHostToolbar", children = [
 - 或者在 `zircon_editor` 里直接把 WorkbenchLayout/ViewModel 拼成另一套 host-only 树
 
 现在 `zircon_ui::template` 已经先把文档、slot、binding 命名、运行时实例展开，以及 shared tree 的第一段桥接统一下来。后续无论是 runtime UI 还是 editor shell，都必须从同一份模板真源继续向 shared layout 求解和宿主投影层推进。
+
+## Builtin Root Document Identity
+
+`zircon_editor` 这一轮又把 shared template runtime 的 builtin root 文档身份往 generic host 边界推进了一步：
+
+- builtin root host 模板现在以 `ui.host_window` 作为首选 `document_id`
+- 旧的 `workbench.shell` 仍作为兼容 alias 同时注册到同一份 [`workbench_shell.toml`](/E:/Git/ZirconEngine/zircon_editor/ui/templates/workbench_shell.toml)
+- `UiHostWindow` 相关 component descriptor 也同步改成指向 `ui.host_window`
+- `EditorUiHostRuntime` 新增 generic `load_builtin_host_templates()`，把“加载一组 builtin host template”与“加载 workbench shell”两个概念拆开
+
+这样 shared template runtime 对外暴露的默认 root 入口已经不再是 workbench 业务名；workbench 只剩兼容标签，而不是 builtin host root 的唯一 canonical identity。后续继续做 `Generic host boundary` 时，就可以在不改 shared runtime 主入口命名的前提下，逐步削掉 `workbench.slint` 和 builtin projection 里的业务壳结构。

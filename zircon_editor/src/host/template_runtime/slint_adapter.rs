@@ -25,6 +25,7 @@ impl SlintUiHostComponentKind {
     pub fn from_component(component: &str) -> Self {
         match component {
             "WorkbenchShell" => Self::Root,
+            "UiHostWindow" => Self::Root,
             "UiHostToolbar" => Self::Toolbar,
             "UiHostIconButton" => Self::IconButton,
             "ActivityRail" => Self::ActivityRail,

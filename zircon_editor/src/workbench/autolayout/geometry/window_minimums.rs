@@ -1,6 +1,6 @@
-use super::super::WorkbenchChromeMetrics;
 use super::super::constraints::aggregate_row_constraints;
 use super::super::region_state::RegionState;
+use super::super::WorkbenchChromeMetrics;
 
 pub(super) fn compute_window_min_width(
     left: RegionState,

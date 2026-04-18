@@ -100,9 +100,9 @@ pub(crate) fn builtin_template_bindings() -> BTreeMap<String, EditorUiBinding> {
             ),
         ),
         (
-            "WorkbenchShell/ActivateMainPage".to_string(),
+            "UiHostWindow/ActivateMainPage".to_string(),
             EditorUiBinding::new(
-                "WorkbenchShell",
+                "UiHostWindow",
                 "ActivateMainPage",
                 EditorUiEventKind::Change,
                 EditorUiBindingPayload::dock_command(DockCommand::ActivateMainPage {

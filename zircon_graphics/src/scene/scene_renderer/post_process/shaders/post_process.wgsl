@@ -17,6 +17,7 @@ struct ReflectionProbe {
 struct HybridGiProbe {
     screen_uv_and_radius: vec4<f32>,
     irradiance_and_intensity: vec4<f32>,
+    hierarchy_irradiance_rgb_and_weight: vec4<f32>,
     hierarchy_rt_lighting_rgb_and_weight: vec4<f32>,
 };
 
@@ -150,6 +151,13 @@ fn fs_main(@builtin(position) position: vec4<f32>) -> @location(0) vec4<f32> {
                 rt_lighting_weight = rt_lighting_weight + rt_support;
             }
             var probe_irradiance = probe.irradiance_and_intensity.rgb;
+            if (probe.hierarchy_irradiance_rgb_and_weight.w > 0.0) {
+                let hierarchy_irradiance = probe.hierarchy_irradiance_rgb_and_weight.rgb;
+                let hierarchy_irradiance_mix =
+                    clamp(probe.hierarchy_irradiance_rgb_and_weight.w, 0.0, 0.75);
+                probe_irradiance =
+                    mix(probe_irradiance, hierarchy_irradiance, hierarchy_irradiance_mix);
+            }
             if (rt_lighting_weight > 0.0) {
                 let rt_lighting_tint = rt_lighting_sum / rt_lighting_weight;
                 let rt_mix = clamp(rt_lighting_weight * 0.45, 0.0, 0.65);

@@ -146,7 +146,7 @@ zircon_graphics/src/scene/scene_renderer/overlay/mod.rs
 zircon_graphics/src/scene/scene_renderer/overlay/
   viewport_icon_source.rs
   empty_viewport_icon_source.rs
-  viewport_overlay_renderer.rs
+  viewport_overlay_renderer/mod.rs
   prepared_overlay_buffers.rs
   prepared_scene_gizmo_pass.rs
   prepared_icon_draw.rs
@@ -425,7 +425,7 @@ zircon_graphics/src/scene/scene_renderer/overlay/
 - Modify: `zircon_graphics/src/scene/scene_renderer/overlay/mod.rs`
 - Create: `zircon_graphics/src/scene/scene_renderer/overlay/icon_source/viewport_icon_source.rs`
 - Create: `zircon_graphics/src/scene/scene_renderer/overlay/icon_source/empty_viewport_icon_source.rs`
-- Create: `zircon_graphics/src/scene/scene_renderer/overlay/viewport_overlay_renderer.rs`
+- Create: `zircon_graphics/src/scene/scene_renderer/overlay/viewport_overlay_renderer/mod.rs`
 - Create: `zircon_graphics/src/scene/scene_renderer/overlay/prepared/prepared_overlay_buffers.rs`
 - Create: `zircon_graphics/src/scene/scene_renderer/overlay/prepared/prepared_scene_gizmo_pass.rs`
 - Create: `zircon_graphics/src/scene/scene_renderer/overlay/prepared/prepared_icon_draw.rs`
@@ -471,7 +471,7 @@ zircon_graphics/src/scene/scene_renderer/overlay/
 - Create: `zircon_graphics/src/scene/scene_renderer/overlay/shaders/icon.wgsl`
 - Create: `zircon_graphics/src/scene/scene_renderer/overlay/shaders/sky.wgsl`
 - Modify: `zircon_graphics/src/scene/scene_renderer/overlay/passes/scene_gizmo_pass/mod.rs`
-- Modify: `zircon_graphics/src/scene/scene_renderer/overlay/viewport_overlay_renderer.rs`
+- Modify: `zircon_graphics/src/scene/scene_renderer/overlay/viewport_overlay_renderer/mod.rs`
 - Test: `zircon_graphics/src/tests/scene_overlay.rs`
 - Test: `zircon_graphics/src/tests/project_render.rs`
 - Test: `zircon_graphics/src/tests/pipeline_compile.rs`

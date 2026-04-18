@@ -1,4 +1,4 @@
-use super::super::virtual_geometry_runtime_state::VirtualGeometryRuntimeState;
+use super::super::VirtualGeometryRuntimeState;
 
 impl VirtualGeometryRuntimeState {
     pub(in crate::runtime::virtual_geometry) fn promote_to_resident_in_slot(

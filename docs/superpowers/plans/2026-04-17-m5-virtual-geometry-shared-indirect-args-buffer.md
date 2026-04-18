@@ -2,13 +2,13 @@
 related_code:
   - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/build/mod.rs
   - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/create_mesh_draw.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh/mesh_draw.rs
+  - zircon_graphics/src/scene/scene_renderer/mesh/mesh_draw/mesh_draw.rs
   - zircon_graphics/src/scene/scene_renderer/overlay/passes/base_scene_pass.rs
   - zircon_graphics/src/scene/scene_renderer/prepass/normal_prepass_pipeline/record.rs
-  - zircon_graphics/src/scene/scene_renderer/deferred/deferred_scene_resources_record_gbuffer_geometry.rs
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render.rs
+  - zircon_graphics/src/scene/scene_renderer/deferred/deferred_scene_resources/record_gbuffer_geometry.rs
+  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_render_with_pipeline/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_virtual_geometry.rs
+  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_virtual_geometry/mod.rs
   - zircon_graphics/src/runtime/server/submit_frame_extract/update_stats/mod.rs
   - zircon_render_server/src/types.rs
   - zircon_graphics/src/tests/virtual_geometry_prepare_render.rs
@@ -16,13 +16,13 @@ related_code:
 implementation_files:
   - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/build/mod.rs
   - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/create_mesh_draw.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh/mesh_draw.rs
+  - zircon_graphics/src/scene/scene_renderer/mesh/mesh_draw/mesh_draw.rs
   - zircon_graphics/src/scene/scene_renderer/overlay/passes/base_scene_pass.rs
   - zircon_graphics/src/scene/scene_renderer/prepass/normal_prepass_pipeline/record.rs
-  - zircon_graphics/src/scene/scene_renderer/deferred/deferred_scene_resources_record_gbuffer_geometry.rs
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render.rs
+  - zircon_graphics/src/scene/scene_renderer/deferred/deferred_scene_resources/record_gbuffer_geometry.rs
+  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_render_with_pipeline/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_virtual_geometry.rs
+  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_virtual_geometry/mod.rs
   - zircon_graphics/src/runtime/server/submit_frame_extract/update_stats/mod.rs
   - zircon_render_server/src/types.rs
 plan_sources:

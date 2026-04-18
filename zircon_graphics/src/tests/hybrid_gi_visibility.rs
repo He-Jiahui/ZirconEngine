@@ -348,6 +348,212 @@ fn visibility_context_keeps_hybrid_gi_parent_probe_visible_while_requesting_nonr
 }
 
 #[test]
+fn visibility_context_requests_nonresident_hybrid_gi_descendant_supported_by_trace_regions() {
+    let mut world = World::new();
+    remove_default_meshes(&mut world);
+
+    let mesh = world.spawn_mesh_node(
+        model_handle("res://models/hybrid_gi.obj"),
+        material_handle("res://materials/hybrid_gi.material.toml"),
+    );
+    world
+        .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
+        .expect("mesh transform should update");
+
+    let mut extract = world.to_render_frame_extract();
+    extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
+        probe_budget: 1,
+        tracing_budget: 1,
+        probes: vec![
+            hybrid_probe(mesh, 10, true, Vec3::new(0.3, 0.0, 0.0), 96),
+            hybrid_probe_with_parent(mesh, 20, false, Vec3::new(0.12, 0.0, 0.0), 80, 10),
+            hybrid_probe_with_parent(mesh, 30, false, Vec3::new(0.02, 0.0, 0.0), 128, 20),
+        ],
+        trace_regions: vec![hybrid_trace_region(mesh, 40, Vec3::ZERO, 8.0)],
+    });
+
+    let context = VisibilityContext::from(&extract);
+
+    assert_eq!(
+        context.hybrid_gi_active_probes,
+        vec![VisibilityHybridGiProbe {
+            entity: mesh,
+            probe_id: 10,
+            resident: true,
+            ray_budget: 96,
+        }]
+    );
+    assert_eq!(
+        context.hybrid_gi_update_plan,
+        VisibilityHybridGiUpdatePlan {
+            resident_probe_ids: vec![10],
+            requested_probe_ids: vec![30],
+            dirty_requested_probe_ids: vec![30],
+            scheduled_trace_region_ids: vec![40],
+            evictable_probe_ids: Vec::new(),
+        }
+    );
+    assert_eq!(
+        context.hybrid_gi_feedback,
+        VisibilityHybridGiFeedback {
+            active_probe_ids: vec![10],
+            requested_probe_ids: vec![30],
+            scheduled_trace_region_ids: vec![40],
+            evictable_probe_ids: Vec::new(),
+        }
+    );
+}
+
+#[test]
+fn visibility_context_prefers_deeper_nonresident_hybrid_gi_descendant_when_trace_support_ties() {
+    let mut world = World::new();
+    remove_default_meshes(&mut world);
+
+    let mesh = world.spawn_mesh_node(
+        model_handle("res://models/hybrid_gi.obj"),
+        material_handle("res://materials/hybrid_gi.material.toml"),
+    );
+    world
+        .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
+        .expect("mesh transform should update");
+
+    let mut extract = world.to_render_frame_extract();
+    extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
+        probe_budget: 1,
+        tracing_budget: 1,
+        probes: vec![
+            hybrid_probe(mesh, 10, true, Vec3::new(0.3, 0.0, 0.0), 96),
+            hybrid_probe_with_parent(mesh, 20, false, Vec3::new(0.05, 0.0, 0.0), 128, 10),
+            hybrid_probe_with_parent(mesh, 30, false, Vec3::new(0.05, 0.0, 0.0), 64, 20),
+        ],
+        trace_regions: vec![hybrid_trace_region(mesh, 40, Vec3::ZERO, 8.0)],
+    });
+
+    let context = VisibilityContext::from(&extract);
+
+    assert_eq!(
+        context.hybrid_gi_update_plan,
+        VisibilityHybridGiUpdatePlan {
+            resident_probe_ids: vec![10],
+            requested_probe_ids: vec![30],
+            dirty_requested_probe_ids: vec![30],
+            scheduled_trace_region_ids: vec![40],
+            evictable_probe_ids: Vec::new(),
+        }
+    );
+    assert_eq!(
+        context.hybrid_gi_feedback,
+        VisibilityHybridGiFeedback {
+            active_probe_ids: vec![10],
+            requested_probe_ids: vec![30],
+            scheduled_trace_region_ids: vec![40],
+            evictable_probe_ids: Vec::new(),
+        }
+    );
+}
+
+#[test]
+fn visibility_context_prefers_nonresident_hybrid_gi_descendant_supported_by_ancestor_trace_lineage()
+{
+    let mut world = World::new();
+    remove_default_meshes(&mut world);
+
+    let mesh = world.spawn_mesh_node(
+        model_handle("res://models/hybrid_gi.obj"),
+        material_handle("res://materials/hybrid_gi.material.toml"),
+    );
+    world
+        .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
+        .expect("mesh transform should update");
+
+    let mut extract = world.to_render_frame_extract();
+    extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
+        probe_budget: 1,
+        tracing_budget: 1,
+        probes: vec![
+            hybrid_probe(mesh, 10, true, Vec3::new(0.32, 0.0, 0.0), 96),
+            hybrid_probe_with_parent(mesh, 20, false, Vec3::new(0.03, 0.0, 0.0), 96, 10),
+            hybrid_probe_with_parent(mesh, 30, false, Vec3::new(0.22, 0.0, 0.0), 112, 20),
+            hybrid_probe(mesh, 40, false, Vec3::new(0.1, 0.0, 0.0), 128),
+        ],
+        trace_regions: vec![hybrid_trace_region(mesh, 40, Vec3::ZERO, 8.0)],
+    });
+
+    let context = VisibilityContext::from(&extract);
+
+    assert_eq!(
+        context.hybrid_gi_update_plan,
+        VisibilityHybridGiUpdatePlan {
+            resident_probe_ids: vec![10],
+            requested_probe_ids: vec![30],
+            dirty_requested_probe_ids: vec![30],
+            scheduled_trace_region_ids: vec![40],
+            evictable_probe_ids: Vec::new(),
+        }
+    );
+    assert_eq!(
+        context.hybrid_gi_feedback,
+        VisibilityHybridGiFeedback {
+            active_probe_ids: vec![40, 10],
+            requested_probe_ids: vec![30],
+            scheduled_trace_region_ids: vec![40],
+            evictable_probe_ids: Vec::new(),
+        }
+    );
+}
+
+#[test]
+fn visibility_context_spreads_hybrid_gi_probe_budget_across_active_lineages_before_second_descendant_request(
+) {
+    let mut world = World::new();
+    remove_default_meshes(&mut world);
+
+    let mesh = world.spawn_mesh_node(
+        model_handle("res://models/hybrid_gi.obj"),
+        material_handle("res://materials/hybrid_gi.material.toml"),
+    );
+    world
+        .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
+        .expect("mesh transform should update");
+
+    let mut extract = world.to_render_frame_extract();
+    extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
+        probe_budget: 2,
+        tracing_budget: 1,
+        probes: vec![
+            hybrid_probe(mesh, 10, true, Vec3::new(0.32, 0.0, 0.0), 96),
+            hybrid_probe_with_parent(mesh, 20, false, Vec3::new(0.08, 0.0, 0.0), 112, 10),
+            hybrid_probe_with_parent(mesh, 30, false, Vec3::new(0.02, 0.0, 0.0), 128, 20),
+            hybrid_probe(mesh, 40, true, Vec3::new(-0.32, 0.0, 0.0), 96),
+            hybrid_probe_with_parent(mesh, 50, false, Vec3::new(-0.08, 0.0, 0.0), 104, 40),
+        ],
+        trace_regions: vec![hybrid_trace_region(mesh, 60, Vec3::ZERO, 8.0)],
+    });
+
+    let context = VisibilityContext::from(&extract);
+
+    assert_eq!(
+        context.hybrid_gi_update_plan,
+        VisibilityHybridGiUpdatePlan {
+            resident_probe_ids: vec![10, 40],
+            requested_probe_ids: vec![30, 50],
+            dirty_requested_probe_ids: vec![30, 50],
+            scheduled_trace_region_ids: vec![60],
+            evictable_probe_ids: Vec::new(),
+        }
+    );
+    assert_eq!(
+        context.hybrid_gi_feedback,
+        VisibilityHybridGiFeedback {
+            active_probe_ids: vec![10, 40],
+            requested_probe_ids: vec![30, 50],
+            scheduled_trace_region_ids: vec![60],
+            evictable_probe_ids: Vec::new(),
+        }
+    );
+}
+
+#[test]
 fn visibility_context_holds_resident_hybrid_gi_child_probe_one_frame_when_frontier_merges_back_to_parent(
 ) {
     let mut world = World::new();
@@ -428,7 +634,7 @@ fn visibility_context_holds_resident_hybrid_gi_child_probe_one_frame_when_fronti
             active_probe_ids: vec![10],
             requested_probe_ids: vec![30],
             scheduled_trace_region_ids: vec![40],
-            evictable_probe_ids: vec![20],
+            evictable_probe_ids: Vec::new(),
         }
     );
     assert_eq!(
@@ -438,7 +644,83 @@ fn visibility_context_holds_resident_hybrid_gi_child_probe_one_frame_when_fronti
             requested_probe_ids: vec![30],
             dirty_requested_probe_ids: Vec::new(),
             scheduled_trace_region_ids: vec![40],
-            evictable_probe_ids: vec![20],
+            evictable_probe_ids: Vec::new(),
+        }
+    );
+}
+
+#[test]
+fn visibility_context_keeps_resident_hybrid_gi_descendant_probe_hot_while_ancestor_request_remains_pending(
+) {
+    let mut world = World::new();
+    remove_default_meshes(&mut world);
+
+    let mesh = world.spawn_mesh_node(
+        model_handle("res://models/hybrid_gi.obj"),
+        material_handle("res://materials/hybrid_gi.material.toml"),
+    );
+    world
+        .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
+        .expect("mesh transform should update");
+
+    let mut previous_extract = world.to_render_frame_extract();
+    previous_extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
+        probe_budget: 3,
+        tracing_budget: 1,
+        probes: vec![
+            hybrid_probe(mesh, 10, true, Vec3::ZERO, 128),
+            hybrid_probe_with_parent(mesh, 20, true, Vec3::new(0.08, 0.0, 0.0), 96, 10),
+            hybrid_probe_with_parent(mesh, 30, true, Vec3::new(0.14, 0.0, 0.0), 80, 20),
+        ],
+        trace_regions: vec![hybrid_trace_region(mesh, 40, Vec3::ZERO, 8.0)],
+    });
+    let previous_context = VisibilityContext::from(&previous_extract);
+
+    assert_eq!(
+        previous_context.hybrid_gi_feedback.active_probe_ids,
+        vec![30],
+        "expected the fully resident frame to refine onto the deepest probe frontier before testing pending-ancestor hysteresis"
+    );
+
+    let mut current_extract = world.to_render_frame_extract();
+    current_extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
+        probe_budget: 3,
+        tracing_budget: 1,
+        probes: vec![
+            hybrid_probe(mesh, 10, true, Vec3::ZERO, 128),
+            hybrid_probe_with_parent(mesh, 20, false, Vec3::new(0.08, 0.0, 0.0), 96, 10),
+            hybrid_probe_with_parent(mesh, 30, true, Vec3::new(0.14, 0.0, 0.0), 80, 20),
+        ],
+        trace_regions: vec![hybrid_trace_region(mesh, 40, Vec3::ZERO, 8.0)],
+    });
+
+    let held_context = VisibilityContext::from_extract_with_history(
+        &current_extract,
+        Some(&previous_context.history_snapshot),
+    );
+    let settled_context = VisibilityContext::from_extract_with_history(
+        &current_extract,
+        Some(&held_context.history_snapshot),
+    );
+
+    assert_eq!(
+        settled_context.hybrid_gi_feedback,
+        VisibilityHybridGiFeedback {
+            active_probe_ids: vec![10],
+            requested_probe_ids: vec![20],
+            scheduled_trace_region_ids: vec![40],
+            evictable_probe_ids: Vec::new(),
+        },
+        "expected the still-resident descendant probe to stay hot while its nonresident ancestor request remains pending, instead of becoming evictable on the second collapsed frame"
+    );
+    assert_eq!(
+        settled_context.hybrid_gi_update_plan,
+        VisibilityHybridGiUpdatePlan {
+            resident_probe_ids: vec![10, 30],
+            requested_probe_ids: vec![20],
+            dirty_requested_probe_ids: Vec::new(),
+            scheduled_trace_region_ids: vec![40],
+            evictable_probe_ids: Vec::new(),
         }
     );
 }

@@ -1,6 +1,5 @@
 use zircon_ui::UiPoint;
 
-use crate::LayoutCommand;
 use crate::editor_event::EditorEventRuntime;
 use crate::host::slint_host::{
     event_bridge::SlintDispatchEffects,
@@ -9,10 +8,11 @@ use crate::host::slint_host::{
         WorkbenchHostPagePointerRoute,
     },
 };
+use crate::LayoutCommand;
 
 use super::super::{
-    BuiltinWorkbenchTemplateBridge, dispatch_builtin_workbench_host_page_activation,
-    dispatch_layout_command,
+    dispatch_builtin_workbench_host_page_activation, dispatch_layout_command,
+    BuiltinWorkbenchTemplateBridge,
 };
 
 #[derive(Debug, Clone, PartialEq)]

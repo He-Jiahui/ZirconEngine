@@ -1,4 +1,4 @@
-use super::super::virtual_geometry_runtime_state::VirtualGeometryRuntimeState;
+use super::super::VirtualGeometryRuntimeState;
 
 pub(super) fn available_slots(state: &VirtualGeometryRuntimeState) -> Vec<u32> {
     let available_slot_capacity = state.page_budget.saturating_sub(state.resident_slots.len());

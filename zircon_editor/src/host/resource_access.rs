@@ -1,5 +1,8 @@
-use zircon_manager::{ResourceManager, ResourceStateRecord};
-use zircon_resource::{ResourceHandle, ResourceId, ResourceKind, ResourceLocator, ResourceMarker};
+use zircon_manager::ResourceManager;
+use zircon_resource::{
+    ResourceDiagnostic, ResourceHandle, ResourceKind, ResourceLocator, ResourceMarker,
+    ResourceRecord, ResourceState,
+};
 
 pub(crate) fn resolve_ready_handle<TMarker>(
     resource_server: &(impl ResourceManager + ?Sized),
@@ -8,7 +11,7 @@ pub(crate) fn resolve_ready_handle<TMarker>(
 where
     TMarker: ResourceMarker,
 {
-    let status = resource_server
+    let status: ResourceRecord = resource_server
         .resource_status(&locator.to_string())
         .ok_or_else(|| format!("resource {locator} is missing from the resource registry"))?;
 
@@ -20,11 +23,12 @@ where
         ));
     }
 
-    if status.state != ResourceStateRecord::Ready {
-        let diagnostics = if status.diagnostics.is_empty() {
+    if status.state != ResourceState::Ready {
+        let diagnostics = render_diagnostics(&status.diagnostics);
+        let diagnostics = if diagnostics.is_empty() {
             String::new()
         } else {
-            format!(": {}", status.diagnostics.join("; "))
+            format!(": {diagnostics}")
         };
         return Err(format!(
             "resource {locator} is not ready ({:?}){diagnostics}",
@@ -32,13 +36,7 @@ where
         ));
     }
 
-    let id = status.id.parse::<ResourceId>().map_err(|error| {
-        format!(
-            "resource {locator} returned invalid id {}: {error}",
-            status.id
-        )
-    })?;
-    Ok(ResourceHandle::new(id))
+    Ok(ResourceHandle::new(status.id))
 }
 
 fn record_kind_matches<TMarker: ResourceMarker>(kind: ResourceKind) -> bool {
@@ -56,4 +54,12 @@ fn resource_kind_name(kind: ResourceKind) -> &'static str {
         ResourceKind::UiWidget => "UiWidget",
         ResourceKind::UiStyle => "UiStyle",
     }
+}
+
+fn render_diagnostics(diagnostics: &[ResourceDiagnostic]) -> String {
+    diagnostics
+        .iter()
+        .map(|diagnostic| diagnostic.message.as_str())
+        .collect::<Vec<_>>()
+        .join("; ")
 }

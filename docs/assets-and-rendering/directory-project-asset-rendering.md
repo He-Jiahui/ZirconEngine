@@ -12,6 +12,20 @@ related_code:
   - zircon_asset/src/project/meta.rs
   - zircon_asset/src/project/paths.rs
   - zircon_asset/src/project/manager.rs
+  - zircon_asset/src/project/manager/open.rs
+  - zircon_asset/src/project/manager/scan_and_import.rs
+  - zircon_asset/src/project/manager/registry_access.rs
+  - zircon_asset/src/project/manager/asset_lookup.rs
+  - zircon_asset/src/project/manager/artifact_access.rs
+  - zircon_asset/src/project/manager/source_path_for_uri.rs
+  - zircon_asset/src/project/manager/source_uri_for_path.rs
+  - zircon_asset/src/project/manager/collect_files.rs
+  - zircon_asset/src/project/manager/asset_kind.rs
+  - zircon_asset/src/project/manager/hash_bytes.rs
+  - zircon_asset/src/project/manager/source_mtime_unix_ms.rs
+  - zircon_asset/src/project/manager/meta_path_for_source.rs
+  - zircon_asset/src/project/manager/is_meta_sidecar.rs
+  - zircon_asset/src/project/manager/load_or_create_meta.rs
   - zircon_asset/src/editor/api.rs
   - zircon_asset/src/editor/catalog.rs
   - zircon_asset/src/editor/records.rs
@@ -20,20 +34,70 @@ related_code:
   - zircon_asset/src/editor/manager.rs
   - zircon_asset/src/editor/resolver.rs
   - zircon_asset/src/pipeline/manager.rs
-  - zircon_asset/src/pipeline/manager/asset_io_driver.rs
-  - zircon_asset/src/pipeline/manager/project_asset_manager.rs
-  - zircon_asset/src/pipeline/manager/project_asset_manager_construction.rs
-  - zircon_asset/src/pipeline/manager/project_asset_manager_loading.rs
-  - zircon_asset/src/pipeline/manager/project_asset_manager_runtime.rs
-  - zircon_asset/src/pipeline/manager/asset_manager_facade.rs
-  - zircon_asset/src/pipeline/manager/resource_manager_facade.rs
-  - zircon_asset/src/pipeline/manager/resource_sync.rs
-  - zircon_asset/src/pipeline/manager/records.rs
-  - zircon_asset/src/pipeline/manager/builtins.rs
-  - zircon_asset/src/pipeline/manager/module_descriptor.rs
-  - zircon_asset/src/pipeline/manager/service_names.rs
-  - zircon_asset/src/pipeline/manager/errors.rs
+  - zircon_asset/src/pipeline/manager/asset_manager/mod.rs
+  - zircon_asset/src/pipeline/manager/asset_manager/asset_manager.rs
+  - zircon_asset/src/pipeline/manager/asset_manager/asset_manager_handle.rs
+  - zircon_asset/src/pipeline/manager/asset_manager/resolve_asset_manager.rs
+  - zircon_asset/src/pipeline/manager/driver/mod.rs
+  - zircon_asset/src/pipeline/manager/driver/asset_io_driver.rs
+  - zircon_asset/src/pipeline/manager/project_asset_manager/mod.rs
+  - zircon_asset/src/pipeline/manager/project_asset_manager/project_asset_manager.rs
+  - zircon_asset/src/pipeline/manager/project_asset_manager/construction.rs
+  - zircon_asset/src/pipeline/manager/project_asset_manager/loading/mod.rs
+  - zircon_asset/src/pipeline/manager/project_asset_manager/loading/load_imported_asset.rs
+  - zircon_asset/src/pipeline/manager/project_asset_manager/loading/load_asset.rs
+  - zircon_asset/src/pipeline/manager/project_asset_manager/loading/acquire_asset.rs
+  - zircon_asset/src/pipeline/manager/project_asset_manager/loading/load_typed.rs
+  - zircon_asset/src/pipeline/manager/project_asset_manager/loading/acquire_typed.rs
+  - zircon_asset/src/pipeline/manager/project_asset_manager/loading/ensure_resident.rs
+  - zircon_asset/src/pipeline/manager/project_asset_manager/runtime.rs
+  - zircon_asset/src/pipeline/manager/facades/mod.rs
+  - zircon_asset/src/pipeline/manager/facades/asset_manager_facade.rs
+  - zircon_asset/src/pipeline/manager/facades/resource_manager_facade.rs
+  - zircon_asset/src/pipeline/manager/resource_sync/mod.rs
+  - zircon_asset/src/pipeline/manager/resource_sync/project_locators.rs
+  - zircon_asset/src/pipeline/manager/resource_sync/clear_removed_project_resources.rs
+  - zircon_asset/src/pipeline/manager/resource_sync/register_project_resource.rs
+  - zircon_asset/src/pipeline/manager/resource_sync/store_runtime_payload.rs
+  - zircon_asset/src/pipeline/manager/records/mod.rs
+  - zircon_asset/src/pipeline/manager/records/asset_pipeline_info.rs
+  - zircon_asset/src/pipeline/manager/records/project_info.rs
+  - zircon_asset/src/pipeline/manager/records/asset_status_record.rs
+  - zircon_asset/src/pipeline/manager/records/project_info_from_project.rs
+  - zircon_asset/src/pipeline/manager/records/status_record.rs
+  - zircon_asset/src/pipeline/manager/records/metadata_import_state.rs
+  - zircon_asset/src/pipeline/manager/builtins/mod.rs
+  - zircon_asset/src/pipeline/manager/registration/mod.rs
+  - zircon_asset/src/pipeline/manager/registration/module_descriptor.rs
+  - zircon_asset/src/pipeline/manager/registration/service_names.rs
+  - zircon_asset/src/pipeline/manager/errors/mod.rs
+  - zircon_asset/src/pipeline/manager/errors/asset_error.rs
+  - zircon_asset/src/pipeline/manager/errors/asset_error_message.rs
+  - zircon_asset/src/formats/mod.rs
+  - zircon_asset/src/formats/obj/mod.rs
+  - zircon_asset/src/formats/obj/decode_obj_file.rs
+  - zircon_asset/src/formats/obj/obj_vertex_key.rs
+  - zircon_asset/src/formats/obj/parsed_obj_vertex.rs
+  - zircon_asset/src/formats/obj/parse_obj_scalar.rs
+  - zircon_asset/src/formats/obj/parse_obj_face_vertex.rs
+  - zircon_asset/src/formats/obj/resolve_obj_index.rs
   - zircon_asset/src/watch.rs
+  - zircon_asset/src/watch/asset_change.rs
+  - zircon_asset/src/watch/asset_change_kind.rs
+  - zircon_asset/src/watch/asset_change_new.rs
+  - zircon_asset/src/watch/asset_watch_event.rs
+  - zircon_asset/src/watch/asset_watcher.rs
+  - zircon_asset/src/watch/default.rs
+  - zircon_asset/src/watch/spawn.rs
+  - zircon_asset/src/watch/fold_events.rs
+  - zircon_asset/src/watch/drop_impl.rs
+  - zircon_asset/src/watch/watch_loop.rs
+  - zircon_asset/src/watch/map_notify_event.rs
+  - zircon_asset/src/watch/watched_asset_uri_for_path.rs
+  - zircon_asset/src/watch/asset_uri_for_path.rs
+  - zircon_asset/src/watch/watch_io_error.rs
+  - zircon_asset/src/watch/is_meta_sidecar.rs
+  - zircon_asset/src/watch/recommended_watcher.rs
   - zircon_asset/src/assets/material.rs
   - zircon_asset/src/assets/scene.rs
   - zircon_manager/src/lib.rs
@@ -92,6 +156,20 @@ implementation_files:
   - zircon_asset/src/project/meta.rs
   - zircon_asset/src/project/paths.rs
   - zircon_asset/src/project/manager.rs
+  - zircon_asset/src/project/manager/open.rs
+  - zircon_asset/src/project/manager/scan_and_import.rs
+  - zircon_asset/src/project/manager/registry_access.rs
+  - zircon_asset/src/project/manager/asset_lookup.rs
+  - zircon_asset/src/project/manager/artifact_access.rs
+  - zircon_asset/src/project/manager/source_path_for_uri.rs
+  - zircon_asset/src/project/manager/source_uri_for_path.rs
+  - zircon_asset/src/project/manager/collect_files.rs
+  - zircon_asset/src/project/manager/asset_kind.rs
+  - zircon_asset/src/project/manager/hash_bytes.rs
+  - zircon_asset/src/project/manager/source_mtime_unix_ms.rs
+  - zircon_asset/src/project/manager/meta_path_for_source.rs
+  - zircon_asset/src/project/manager/is_meta_sidecar.rs
+  - zircon_asset/src/project/manager/load_or_create_meta.rs
   - zircon_asset/src/editor/api.rs
   - zircon_asset/src/editor/catalog.rs
   - zircon_asset/src/editor/records.rs
@@ -100,20 +178,70 @@ implementation_files:
   - zircon_asset/src/editor/manager.rs
   - zircon_asset/src/editor/resolver.rs
   - zircon_asset/src/pipeline/manager.rs
-  - zircon_asset/src/pipeline/manager/asset_io_driver.rs
-  - zircon_asset/src/pipeline/manager/project_asset_manager.rs
-  - zircon_asset/src/pipeline/manager/project_asset_manager_construction.rs
-  - zircon_asset/src/pipeline/manager/project_asset_manager_loading.rs
-  - zircon_asset/src/pipeline/manager/project_asset_manager_runtime.rs
-  - zircon_asset/src/pipeline/manager/asset_manager_facade.rs
-  - zircon_asset/src/pipeline/manager/resource_manager_facade.rs
-  - zircon_asset/src/pipeline/manager/resource_sync.rs
-  - zircon_asset/src/pipeline/manager/records.rs
-  - zircon_asset/src/pipeline/manager/builtins.rs
-  - zircon_asset/src/pipeline/manager/module_descriptor.rs
-  - zircon_asset/src/pipeline/manager/service_names.rs
-  - zircon_asset/src/pipeline/manager/errors.rs
+  - zircon_asset/src/pipeline/manager/asset_manager/mod.rs
+  - zircon_asset/src/pipeline/manager/asset_manager/asset_manager.rs
+  - zircon_asset/src/pipeline/manager/asset_manager/asset_manager_handle.rs
+  - zircon_asset/src/pipeline/manager/asset_manager/resolve_asset_manager.rs
+  - zircon_asset/src/pipeline/manager/driver/mod.rs
+  - zircon_asset/src/pipeline/manager/driver/asset_io_driver.rs
+  - zircon_asset/src/pipeline/manager/project_asset_manager/mod.rs
+  - zircon_asset/src/pipeline/manager/project_asset_manager/project_asset_manager.rs
+  - zircon_asset/src/pipeline/manager/project_asset_manager/construction.rs
+  - zircon_asset/src/pipeline/manager/project_asset_manager/loading/mod.rs
+  - zircon_asset/src/pipeline/manager/project_asset_manager/loading/load_imported_asset.rs
+  - zircon_asset/src/pipeline/manager/project_asset_manager/loading/load_asset.rs
+  - zircon_asset/src/pipeline/manager/project_asset_manager/loading/acquire_asset.rs
+  - zircon_asset/src/pipeline/manager/project_asset_manager/loading/load_typed.rs
+  - zircon_asset/src/pipeline/manager/project_asset_manager/loading/acquire_typed.rs
+  - zircon_asset/src/pipeline/manager/project_asset_manager/loading/ensure_resident.rs
+  - zircon_asset/src/pipeline/manager/project_asset_manager/runtime.rs
+  - zircon_asset/src/pipeline/manager/facades/mod.rs
+  - zircon_asset/src/pipeline/manager/facades/asset_manager_facade.rs
+  - zircon_asset/src/pipeline/manager/facades/resource_manager_facade.rs
+  - zircon_asset/src/pipeline/manager/resource_sync/mod.rs
+  - zircon_asset/src/pipeline/manager/resource_sync/project_locators.rs
+  - zircon_asset/src/pipeline/manager/resource_sync/clear_removed_project_resources.rs
+  - zircon_asset/src/pipeline/manager/resource_sync/register_project_resource.rs
+  - zircon_asset/src/pipeline/manager/resource_sync/store_runtime_payload.rs
+  - zircon_asset/src/pipeline/manager/records/mod.rs
+  - zircon_asset/src/pipeline/manager/records/asset_pipeline_info.rs
+  - zircon_asset/src/pipeline/manager/records/project_info.rs
+  - zircon_asset/src/pipeline/manager/records/asset_status_record.rs
+  - zircon_asset/src/pipeline/manager/records/project_info_from_project.rs
+  - zircon_asset/src/pipeline/manager/records/status_record.rs
+  - zircon_asset/src/pipeline/manager/records/metadata_import_state.rs
+  - zircon_asset/src/pipeline/manager/builtins/mod.rs
+  - zircon_asset/src/pipeline/manager/registration/mod.rs
+  - zircon_asset/src/pipeline/manager/registration/module_descriptor.rs
+  - zircon_asset/src/pipeline/manager/registration/service_names.rs
+  - zircon_asset/src/pipeline/manager/errors/mod.rs
+  - zircon_asset/src/pipeline/manager/errors/asset_error.rs
+  - zircon_asset/src/pipeline/manager/errors/asset_error_message.rs
+  - zircon_asset/src/formats/mod.rs
+  - zircon_asset/src/formats/obj/mod.rs
+  - zircon_asset/src/formats/obj/decode_obj_file.rs
+  - zircon_asset/src/formats/obj/obj_vertex_key.rs
+  - zircon_asset/src/formats/obj/parsed_obj_vertex.rs
+  - zircon_asset/src/formats/obj/parse_obj_scalar.rs
+  - zircon_asset/src/formats/obj/parse_obj_face_vertex.rs
+  - zircon_asset/src/formats/obj/resolve_obj_index.rs
   - zircon_asset/src/watch.rs
+  - zircon_asset/src/watch/asset_change.rs
+  - zircon_asset/src/watch/asset_change_kind.rs
+  - zircon_asset/src/watch/asset_change_new.rs
+  - zircon_asset/src/watch/asset_watch_event.rs
+  - zircon_asset/src/watch/asset_watcher.rs
+  - zircon_asset/src/watch/default.rs
+  - zircon_asset/src/watch/spawn.rs
+  - zircon_asset/src/watch/fold_events.rs
+  - zircon_asset/src/watch/drop_impl.rs
+  - zircon_asset/src/watch/watch_loop.rs
+  - zircon_asset/src/watch/map_notify_event.rs
+  - zircon_asset/src/watch/watched_asset_uri_for_path.rs
+  - zircon_asset/src/watch/asset_uri_for_path.rs
+  - zircon_asset/src/watch/watch_io_error.rs
+  - zircon_asset/src/watch/is_meta_sidecar.rs
+  - zircon_asset/src/watch/recommended_watcher.rs
   - zircon_scene/src/components.rs
   - zircon_scene/src/world/world.rs
   - zircon_scene/src/world/bootstrap.rs
@@ -200,6 +328,7 @@ doc_type: module-detail
 - `zircon_resource` 定义跨 crate 的 locator、typed handle、record、state、event 和 manager 契约
 - `zircon_asset::AssetManager` 负责 runtime resident 资源生命周期
 - `zircon_asset::DefaultEditorAssetManager` 负责 editor catalog/meta/reference/preview 生命周期，并由 `zircon_asset` 自己公开 `EditorAssetManager` / records / resolver
+- `zircon_scene_protocol::{WorldHandle, LevelSummary}` 现在作为 `LevelManager` 的 scene 协议面，不再挂在 `zircon_manager`
 - `zircon_scene::World` 运行时只持 typed handle，不再持路径语义
 - `zircon_scene::LevelSystem` 托管运行中的 world、metadata 和子系统生命周期
 - `zircon_graphics` 按 `ResourceId + revision` 准备 GPU 资源
@@ -253,6 +382,8 @@ doc_type: module-detail
 - 把导入物写到 `library/`
 - 生成 `ResourceRecord` 元数据和 `AssetUuid` 驱动的 `ResourceId`
 
+实现上，`zircon_asset/src/project/manager.rs` 现在只保留 `ProjectManager` 结构定义与子模块声明；`open`、`scan_and_import`、registry/lookup、artifact 访问和本地文件/meta helper 全部下沉到 `zircon_asset/src/project/manager/` 子树，避免 project root manager 继续堆叠 importer 与文件系统逻辑。
+
 sidecar meta 文件当前固定为 `foo.ext.meta.toml`，至少记录：
 
 - `asset_uuid`
@@ -280,6 +411,8 @@ sidecar meta 文件当前固定为 `foo.ext.meta.toml`，至少记录：
 `AssetManager` 继续负责项目打开、重导入、watch 生命周期。  
 `ResourceManager` 负责 locator 解析、resource status/revision 查询和资源事件订阅。  
 `EditorAssetManager` 负责 catalog、引用图和 preview 刷新；它的 trait、records、resolver、handle 和 service-name 现在都归 `zircon_asset`，不再经过 `zircon_manager` façade。
+
+实现上，`zircon_asset/src/pipeline/manager/project_asset_manager/loading/` 现在只保留 runtime asset loading 这一层，并进一步拆成 imported-asset dispatch、typed load、typed acquire 和 resident restore 四个家族；`zircon_asset/src/formats/obj/` 也已拆成 decode、vertex declaration、face/scalar parse 与 index normalize 叶子，避免继续把 OBJ 语法细节堆在单文件里。
 
 ## Scene Runtime
 
@@ -366,7 +499,7 @@ UI 侧不再消费 `asset_entries: Vec<String>` 这类降级模型，也不再�
 
 1. `AssetManager::open_project` 打开并扫描 project
 2. editor 读取 manifest 默认 scene locator
-3. `LevelManager` 通过 `SceneAssetSerializer` 和 locator 实例化 `LevelSystem`，其中持有 ECS `World`
+3. `LevelManager` 通过 `SceneAssetSerializer` 和 locator 实例化 `LevelSystem`，并以 `zircon_scene_protocol::WorldHandle` / `LevelSummary` 暴露 scene 协议面
 4. editor host 通过 `AssetManager` 读项目生命周期，通过 `EditorAssetManager` 读 folder tree/detail/reference/preview，通过 `ResourceManager` 读 ready 状态和 revision
 5. viewport render service 只在 GPU bridge 边界拿到 façade 或 helper，避免把资源实现细节继续扩散到宿主编辑逻辑
 
@@ -375,9 +508,11 @@ UI 侧不再消费 `asset_entries: Vec<String>` 这类降级模型，也不再�
 1. watcher 折叠 `assets/` 文件事件
 2. `AssetManager` 重新导入并更新 `ResourceRecord.revision`
 3. `EditorAssetManager` 同步 catalog/details/reference/preview 状态，`ResourceManager` 保留 runtime revision/state
-4. `zircon_editor::host::resource_access` 只负责把 `ResourceStatusRecord` 解析成 ready typed handle，不再承担 UI 列表组装
+4. `zircon_editor::host::resource_access` 只负责把 `ResourceRecord` 解析成 ready typed handle，不再承担 UI 列表组装
 5. editor 收到 change record 后重建 `AssetWorkspaceSnapshot`，并在需要时重置 viewport render service
 6. 新 render service 按最新 revision 重建 prepared GPU 资源
+
+实现上，`zircon_asset/src/watch.rs` 现在只保留 change/event/watcher 的结构导出；watcher 线程生命周期、notify 事件折叠、rename 映射、URI/path 解析与 meta-sidecar 过滤全部下沉到 `zircon_asset/src/watch/` 子树，避免 crate 根层 watcher 入口继续混装 runtime 与文件系统细节。
 
 ## Editor Builtin Assets And Revision Stability
 
@@ -401,7 +536,7 @@ asset workspace 现在明确拆成两条链：
   - Slint host 只做局部 `asset_details()` 查询或 `request_preview_refresh()`，不再顺手调用 `sync_asset_workspace()`
 - 后端真实数据变化
   - `EditorAssetChangeRecord::{CatalogChanged, PreviewChanged, ReferenceChanged}`
-  - `ResourceChangeRecord::{Added, Updated, Removed, Renamed, ReloadFailed}`
+  - `ResourceEvent { kind: ResourceEventKind::{Added, Updated, Removed, Renamed, ReloadFailed}, .. }`
   - 这些后台事件才允许触发 catalog/resource snapshot 重同步，必要时重载默认 scene
 
 这样 editor UI 不再把“我改了一个搜索词”误当成“runtime/resource 发生了真实变化”。

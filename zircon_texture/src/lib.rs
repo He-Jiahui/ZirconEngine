@@ -1,8 +1,15 @@
-//! Texture module skeleton wired into the core runtime.
+//! Texture module scaffold with explicit core service descriptors.
 
-use zircon_module::{stub_module_descriptor, EngineModule, ModuleDescriptor};
+use std::sync::Arc;
+
+use zircon_module::{
+    dependency_on, factory, qualified_name, DriverDescriptor, EngineModule, ManagerDescriptor,
+    ModuleDescriptor, ServiceKind, StartupMode,
+};
 
 pub const TEXTURE_MODULE_NAME: &str = "TextureModule";
+pub const TEXTURE_DRIVER_NAME: &str = "TextureModule.Driver.TextureDriver";
+pub const TEXTURE_MANAGER_NAME: &str = "TextureModule.Manager.TextureManager";
 
 #[derive(Clone, Debug, Default)]
 pub struct TextureConfig {
@@ -12,13 +19,33 @@ pub struct TextureConfig {
 #[derive(Clone, Copy, Debug, Default)]
 pub struct TextureModule;
 
+#[derive(Clone, Debug, Default)]
+pub struct TextureDriver;
+
+#[derive(Clone, Debug, Default)]
+pub struct TextureManager;
+
 pub fn module_descriptor() -> ModuleDescriptor {
-    stub_module_descriptor(
+    ModuleDescriptor::new(
         TEXTURE_MODULE_NAME,
         "Texture formats, conversion, and upload prep",
-        "TextureDriver",
-        "TextureManager",
     )
+    .with_driver(DriverDescriptor::new(
+        qualified_name(TEXTURE_MODULE_NAME, ServiceKind::Driver, "TextureDriver"),
+        StartupMode::Immediate,
+        Vec::new(),
+        factory(|_| Ok(Arc::new(TextureDriver::default()) as _)),
+    ))
+    .with_manager(ManagerDescriptor::new(
+        qualified_name(TEXTURE_MODULE_NAME, ServiceKind::Manager, "TextureManager"),
+        StartupMode::Lazy,
+        vec![dependency_on(
+            TEXTURE_MODULE_NAME,
+            ServiceKind::Driver,
+            "TextureDriver",
+        )],
+        factory(|_| Ok(Arc::new(TextureManager::default()) as _)),
+    ))
 }
 
 impl EngineModule for TextureModule {

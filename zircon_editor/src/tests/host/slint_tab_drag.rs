@@ -1,14 +1,16 @@
 use std::collections::BTreeMap;
 
 use crate::host::slint_host::callback_dispatch::BuiltinWorkbenchRootShellFrames;
+use crate::host::slint_host::floating_window_projection::FloatingWindowProjectionBundle;
 use crate::host::slint_host::shell_pointer::WorkbenchShellPointerRoute;
 use crate::host::slint_host::tab_drag::{
-    ResolvedTabDrop, ResolvedWorkbenchTabDropRoute, ResolvedWorkbenchTabDropTarget,
-    WorkbenchDragTargetGroup, document_edge_group_key, drop_host_for_group, drop_host_for_tab,
-    estimate_dock_tab_width, estimate_document_tab_width, floating_window_edge_group_key,
-    floating_window_group_key, resolve_tab_drop, resolve_workbench_drag_target_group,
+    document_edge_group_key, drop_host_for_group, drop_host_for_tab, estimate_dock_tab_width,
+    estimate_document_tab_width, floating_window_edge_group_key, floating_window_group_key,
+    resolve_tab_drop, resolve_workbench_drag_target_group,
     resolve_workbench_drag_target_group_with_root_frames, resolve_workbench_tab_drop_route,
     resolve_workbench_tab_drop_route_with_root_frames, workbench_shell_pointer_route_group_key,
+    ResolvedTabDrop, ResolvedWorkbenchTabDropRoute, ResolvedWorkbenchTabDropTarget,
+    WorkbenchDragTargetGroup,
 };
 use crate::{
     ActivityDrawerLayout, ActivityDrawerMode, ActivityDrawerSlot, DockEdge, DocumentNode,
@@ -543,8 +545,8 @@ fn resolve_workbench_tab_drop_route_maps_document_edge_to_create_split_on_active
 }
 
 #[test]
-fn resolved_workbench_tab_drop_route_snapshot_matches_shared_pointer_and_group_key_for_document_edge()
- {
+fn resolved_workbench_tab_drop_route_snapshot_matches_shared_pointer_and_group_key_for_document_edge(
+) {
     let layout = WorkbenchLayout {
         active_main_page: MainPageId::workbench(),
         main_pages: vec![workbench_page(MainPageId::workbench())],
@@ -823,8 +825,8 @@ fn resolve_workbench_tab_drop_route_accepts_floating_window_group_fallback_key()
 }
 
 #[test]
-fn resolved_workbench_tab_drop_route_snapshot_matches_shared_pointer_and_group_key_for_floating_window()
- {
+fn resolved_workbench_tab_drop_route_snapshot_matches_shared_pointer_and_group_key_for_floating_window(
+) {
     let floating_window_id = MainPageId::new("window:prefab");
     let layout = WorkbenchLayout {
         active_main_page: MainPageId::workbench(),
@@ -1083,8 +1085,8 @@ fn shared_shell_pointer_route_reports_document_edge_before_document_group() {
 }
 
 #[test]
-fn shared_shell_pointer_route_uses_shared_root_projection_document_bounds_when_drawers_are_collapsed()
- {
+fn shared_shell_pointer_route_uses_shared_root_projection_document_bounds_when_drawers_are_collapsed(
+) {
     let geometry = WorkbenchShellGeometry {
         window_min_width: 0.0,
         window_min_height: 0.0,
@@ -1143,8 +1145,8 @@ fn shared_shell_pointer_route_uses_shared_root_projection_document_bounds_when_d
 }
 
 #[test]
-fn resolve_workbench_tab_drop_route_uses_shared_root_projection_tab_strip_when_drawers_are_collapsed()
- {
+fn resolve_workbench_tab_drop_route_uses_shared_root_projection_tab_strip_when_drawers_are_collapsed(
+) {
     let layout = WorkbenchLayout {
         active_main_page: MainPageId::workbench(),
         main_pages: vec![workbench_page(MainPageId::workbench())],
@@ -1255,8 +1257,8 @@ fn resolve_workbench_tab_drop_route_uses_shared_root_projection_tab_strip_when_d
 }
 
 #[test]
-fn resolve_workbench_tab_drop_route_uses_shared_root_projection_right_tab_strip_when_visible_drawer_geometry_is_stale()
- {
+fn resolve_workbench_tab_drop_route_uses_shared_root_projection_right_tab_strip_when_visible_drawer_geometry_is_stale(
+) {
     let layout = WorkbenchLayout {
         active_main_page: MainPageId::workbench(),
         main_pages: vec![workbench_page(MainPageId::workbench())],
@@ -1388,8 +1390,8 @@ fn resolve_workbench_tab_drop_route_uses_shared_root_projection_right_tab_strip_
 }
 
 #[test]
-fn resolve_workbench_tab_drop_route_uses_shared_root_projection_bottom_tab_strip_when_visible_drawer_geometry_is_stale()
- {
+fn resolve_workbench_tab_drop_route_uses_shared_root_projection_bottom_tab_strip_when_visible_drawer_geometry_is_stale(
+) {
     let layout = WorkbenchLayout {
         active_main_page: MainPageId::workbench(),
         main_pages: vec![workbench_page(MainPageId::workbench())],
@@ -1580,6 +1582,43 @@ fn shared_shell_pointer_route_reports_floating_window_attach_from_shared_surface
 }
 
 #[test]
+fn shared_shell_pointer_route_does_not_fall_back_to_legacy_geometry_when_projection_bundle_is_explicitly_provided_but_missing_window(
+) {
+    let window_id = MainPageId::new("window:preview");
+    let mut geometry = shell_geometry(
+        ShellFrame::new(1120.0, 50.0, 320.0, 738.0),
+        ShellFrame::new(34.0, 50.0, 1086.0, 738.0),
+        ShellFrame::new(0.0, 788.0, 1440.0, 92.0),
+    );
+    geometry.floating_window_frames.insert(
+        window_id.clone(),
+        ShellFrame::new(420.0, 180.0, 360.0, 240.0),
+    );
+    let floating_windows = vec![floating_window(
+        window_id.clone(),
+        "Preview Popout",
+        Vec::new(),
+        None,
+    )];
+    let mut bridge = WorkbenchShellPointerBridge::new();
+    let empty_bundle = FloatingWindowProjectionBundle::default();
+    bridge.update_layout_with_root_shell_frames(
+        UiSize::new(1440.0, 900.0),
+        &geometry,
+        false,
+        &floating_windows,
+        None,
+        Some(&empty_bundle),
+    );
+
+    assert_eq!(
+        bridge.drag_route_at(UiPoint::new(600.0, 300.0)),
+        None,
+        "once a floating-window projection bundle is supplied, drag routing should not revive stale geometry frames"
+    );
+}
+
+#[test]
 fn shared_shell_pointer_route_prefers_native_window_host_bounds_for_floating_attach_surface() {
     let window_id = MainPageId::new("window:preview");
     let mut geometry = shell_geometry(
@@ -1659,8 +1698,8 @@ fn shared_shell_pointer_route_reports_floating_window_edge_from_shared_surface()
 }
 
 #[test]
-fn shared_drag_target_route_prefers_right_over_bottom_in_overlap_when_pointer_is_closer_to_right_edge()
- {
+fn shared_drag_target_route_prefers_right_over_bottom_in_overlap_when_pointer_is_closer_to_right_edge(
+) {
     let geometry = shell_geometry(
         ShellFrame::new(1348.0, 50.0, 0.0, 666.0),
         ShellFrame::new(34.0, 50.0, 1314.0, 666.0),
@@ -1679,8 +1718,8 @@ fn shared_drag_target_route_prefers_right_over_bottom_in_overlap_when_pointer_is
 }
 
 #[test]
-fn shared_drag_target_route_prefers_bottom_over_right_in_overlap_when_pointer_is_closer_to_bottom_edge()
- {
+fn shared_drag_target_route_prefers_bottom_over_right_in_overlap_when_pointer_is_closer_to_bottom_edge(
+) {
     let geometry = shell_geometry(
         ShellFrame::new(1348.0, 50.0, 0.0, 666.0),
         ShellFrame::new(34.0, 50.0, 1314.0, 666.0),
@@ -1718,8 +1757,8 @@ fn shared_drag_target_route_returns_document_inside_document_region() {
 }
 
 #[test]
-fn resolve_workbench_drag_target_group_with_root_frames_uses_shared_root_projection_document_bounds_when_drawers_are_collapsed()
- {
+fn resolve_workbench_drag_target_group_with_root_frames_uses_shared_root_projection_document_bounds_when_drawers_are_collapsed(
+) {
     let geometry = WorkbenchShellGeometry {
         window_min_width: 0.0,
         window_min_height: 0.0,
@@ -1770,6 +1809,53 @@ fn resolve_workbench_drag_target_group_with_root_frames_uses_shared_root_project
             Some(&root_projection),
         ),
         Some(WorkbenchDragTargetGroup::Document)
+    );
+}
+
+#[test]
+fn resolve_workbench_drag_target_group_with_root_frames_prefers_shared_left_drawer_shell_width_when_legacy_geometry_is_stale(
+) {
+    let geometry = WorkbenchShellGeometry {
+        window_min_width: 0.0,
+        window_min_height: 0.0,
+        center_band_frame: ShellFrame::new(0.0, 50.0, 1440.0, 650.0),
+        status_bar_frame: ShellFrame::new(0.0, 700.0, 1440.0, 20.0),
+        region_frames: BTreeMap::from([
+            (ShellRegionId::Left, ShellFrame::new(0.0, 50.0, 24.0, 650.0)),
+            (
+                ShellRegionId::Document,
+                ShellFrame::new(24.0, 50.0, 1416.0, 650.0),
+            ),
+            (
+                ShellRegionId::Right,
+                ShellFrame::new(1440.0, 50.0, 0.0, 650.0),
+            ),
+            (
+                ShellRegionId::Bottom,
+                ShellFrame::new(0.0, 700.0, 1440.0, 0.0),
+            ),
+        ]),
+        splitter_frames: BTreeMap::new(),
+        floating_window_frames: BTreeMap::new(),
+        viewport_content_frame: ShellFrame::default(),
+    };
+    let root_projection = BuiltinWorkbenchRootShellFrames {
+        workbench_body_frame: Some(UiFrame::new(0.0, 40.0, 1440.0, 656.0)),
+        left_drawer_shell_frame: Some(UiFrame::new(0.0, 40.0, 312.0, 656.0)),
+        document_host_frame: Some(UiFrame::new(313.0, 40.0, 1127.0, 656.0)),
+        status_bar_frame: Some(UiFrame::new(0.0, 696.0, 1440.0, 24.0)),
+        ..BuiltinWorkbenchRootShellFrames::default()
+    };
+
+    assert_eq!(
+        resolve_workbench_drag_target_group_with_root_frames(
+            UiSize::new(1440.0, 720.0),
+            &geometry,
+            true,
+            UiPoint::new(180.0, 240.0),
+            Some(&root_projection),
+        ),
+        Some(WorkbenchDragTargetGroup::Left)
     );
 }
 

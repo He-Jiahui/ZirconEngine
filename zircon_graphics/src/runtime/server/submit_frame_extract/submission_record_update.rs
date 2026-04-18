@@ -13,6 +13,9 @@ pub(super) struct VirtualGeometryStatSnapshot {
     pub(super) page_table_entry_count: usize,
     pub(super) resident_page_count: usize,
     pub(super) pending_request_count: usize,
+    pub(super) completed_page_count: usize,
+    pub(super) indirect_draw_count: usize,
+    pub(super) indirect_segment_count: usize,
 }
 
 pub(super) struct SubmissionRecordUpdate {

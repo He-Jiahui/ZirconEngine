@@ -199,6 +199,490 @@ fn hybrid_gi_gpu_completion_readback_inherits_ancestor_trace_rt_lighting_through
     );
 }
 
+#[test]
+fn hybrid_gi_gpu_completion_readback_blends_farther_resident_ancestor_radiance_beyond_nearest_resident_parent(
+) {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let viewport_size = UVec2::new(96, 64);
+    let prepare = HybridGiPrepareFrame {
+        resident_probes: vec![
+            HybridGiPrepareProbe {
+                probe_id: 100,
+                slot: 0,
+                ray_budget: 96,
+                irradiance_rgb: [255, 64, 32],
+            },
+            HybridGiPrepareProbe {
+                probe_id: 200,
+                slot: 1,
+                ray_budget: 96,
+                irradiance_rgb: [40, 96, 255],
+            },
+        ],
+        pending_updates: vec![HybridGiPrepareUpdateRequest {
+            probe_id: 500,
+            ray_budget: 128,
+            generation: 37,
+        }],
+        scheduled_trace_region_ids: vec![40],
+        evictable_probe_ids: Vec::new(),
+    };
+
+    let flat = render_hybrid_gi_gpu_readback(
+        &mut renderer,
+        viewport_size,
+        build_extract(
+            viewport_size,
+            4,
+            1,
+            vec![
+                probe(100, true, 96, Vec3::new(-0.18, 0.0, 0.0), 1.0),
+                probe(200, true, 96, Vec3::new(-0.06, 0.0, 0.0), 1.0),
+                probe(500, false, 128, Vec3::ZERO, 1.0),
+            ],
+            vec![trace_region_with_rt_lighting(
+                40,
+                Vec3::ZERO,
+                1.0,
+                0.95,
+                [144, 144, 144],
+            )],
+        ),
+        prepare.clone(),
+    );
+    let hierarchical = render_hybrid_gi_gpu_readback(
+        &mut renderer,
+        viewport_size,
+        build_extract(
+            viewport_size,
+            4,
+            1,
+            vec![
+                probe(100, true, 96, Vec3::new(-0.18, 0.0, 0.0), 1.0),
+                probe_with_parent(200, 100, true, 96, Vec3::new(-0.06, 0.0, 0.0), 1.0),
+                probe_with_parent(300, 200, false, 96, Vec3::new(-0.02, 0.0, 0.0), 1.0),
+                probe_with_parent(500, 300, false, 128, Vec3::ZERO, 1.0),
+            ],
+            vec![trace_region_with_rt_lighting(
+                40,
+                Vec3::ZERO,
+                1.0,
+                0.95,
+                [144, 144, 144],
+            )],
+        ),
+        prepare,
+    );
+    let flat_rgb = flat
+        .iter()
+        .find(|(probe_id, _)| *probe_id == 500)
+        .map(|(_, rgb)| *rgb)
+        .expect("flat pending probe irradiance");
+    let hierarchical_rgb = hierarchical
+        .iter()
+        .find(|(probe_id, _)| *probe_id == 500)
+        .map(|(_, rgb)| *rgb)
+        .expect("hierarchical pending probe irradiance");
+    let flat_chroma = i16::from(flat_rgb[0]) - i16::from(flat_rgb[2]);
+    let hierarchical_chroma = i16::from(hierarchical_rgb[0]) - i16::from(hierarchical_rgb[2]);
+
+    assert!(
+        hierarchical_chroma > flat_chroma + 12,
+        "expected pending probe radiance gather to pull additional warm energy from a farther resident ancestor instead of only favoring the nearest resident parent; flat={flat_rgb:?}, hierarchical={hierarchical_rgb:?}"
+    );
+}
+
+#[test]
+fn hybrid_gi_gpu_completion_readback_inherits_farther_resident_ancestor_trace_rt_lighting_beyond_nearest_resident_parent(
+) {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let viewport_size = UVec2::new(96, 64);
+    let prepare = HybridGiPrepareFrame {
+        resident_probes: vec![
+            HybridGiPrepareProbe {
+                probe_id: 100,
+                slot: 0,
+                ray_budget: 96,
+                irradiance_rgb: [160, 160, 160],
+            },
+            HybridGiPrepareProbe {
+                probe_id: 200,
+                slot: 1,
+                ray_budget: 96,
+                irradiance_rgb: [160, 160, 160],
+            },
+        ],
+        pending_updates: vec![HybridGiPrepareUpdateRequest {
+            probe_id: 500,
+            ray_budget: 128,
+            generation: 38,
+        }],
+        scheduled_trace_region_ids: vec![40, 50],
+        evictable_probe_ids: Vec::new(),
+    };
+
+    let flat = render_hybrid_gi_gpu_readback(
+        &mut renderer,
+        viewport_size,
+        build_extract(
+            viewport_size,
+            4,
+            1,
+            vec![
+                probe(100, true, 96, Vec3::new(-1.2, 0.0, 0.0), 0.2),
+                probe(200, true, 96, Vec3::new(-0.1, 0.0, 0.0), 0.18),
+                probe(500, false, 128, Vec3::ZERO, 0.25),
+            ],
+            vec![
+                trace_region_with_rt_lighting(40, Vec3::ZERO, 0.25, 0.9, [144, 144, 144]),
+                trace_region_with_rt_lighting(
+                    50,
+                    Vec3::new(-1.2, 0.0, 0.0),
+                    0.05,
+                    0.95,
+                    [255, 64, 32],
+                ),
+            ],
+        ),
+        prepare.clone(),
+    );
+    let hierarchical = render_hybrid_gi_gpu_readback(
+        &mut renderer,
+        viewport_size,
+        build_extract(
+            viewport_size,
+            4,
+            1,
+            vec![
+                probe(100, true, 96, Vec3::new(-1.2, 0.0, 0.0), 0.2),
+                probe_with_parent(200, 100, true, 96, Vec3::new(-0.1, 0.0, 0.0), 0.18),
+                probe_with_parent(300, 200, false, 96, Vec3::new(-0.04, 0.0, 0.0), 0.8),
+                probe_with_parent(500, 300, false, 128, Vec3::ZERO, 0.25),
+            ],
+            vec![
+                trace_region_with_rt_lighting(40, Vec3::ZERO, 0.25, 0.9, [144, 144, 144]),
+                trace_region_with_rt_lighting(
+                    50,
+                    Vec3::new(-1.2, 0.0, 0.0),
+                    0.05,
+                    0.95,
+                    [255, 64, 32],
+                ),
+            ],
+        ),
+        prepare,
+    );
+    let flat_rgb = flat
+        .iter()
+        .find(|(probe_id, _)| *probe_id == 500)
+        .map(|(_, rgb)| *rgb)
+        .expect("flat pending probe irradiance");
+    let hierarchical_rgb = hierarchical
+        .iter()
+        .find(|(probe_id, _)| *probe_id == 500)
+        .map(|(_, rgb)| *rgb)
+        .expect("hierarchical pending probe irradiance");
+
+    assert!(
+        hierarchical_rgb[0] > flat_rgb[0] + 8,
+        "expected pending probe RT-lighting continuation to reach a farther resident ancestor when the nearest resident parent only sees the local neutral trace; flat={flat_rgb:?}, hierarchical={hierarchical_rgb:?}"
+    );
+}
+
+#[test]
+fn hybrid_gi_gpu_completion_readback_inherits_third_resident_ancestor_trace_rt_lighting() {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let viewport_size = UVec2::new(96, 64);
+    let prepare = HybridGiPrepareFrame {
+        resident_probes: vec![
+            HybridGiPrepareProbe {
+                probe_id: 100,
+                slot: 0,
+                ray_budget: 96,
+                irradiance_rgb: [160, 160, 160],
+            },
+            HybridGiPrepareProbe {
+                probe_id: 200,
+                slot: 1,
+                ray_budget: 96,
+                irradiance_rgb: [160, 160, 160],
+            },
+            HybridGiPrepareProbe {
+                probe_id: 300,
+                slot: 2,
+                ray_budget: 96,
+                irradiance_rgb: [160, 160, 160],
+            },
+        ],
+        pending_updates: vec![HybridGiPrepareUpdateRequest {
+            probe_id: 700,
+            ray_budget: 128,
+            generation: 41,
+        }],
+        scheduled_trace_region_ids: vec![40, 50],
+        evictable_probe_ids: Vec::new(),
+    };
+
+    let flat = render_hybrid_gi_gpu_readback(
+        &mut renderer,
+        viewport_size,
+        build_extract(
+            viewport_size,
+            5,
+            2,
+            vec![
+                probe(100, true, 96, Vec3::new(-1.4, 0.0, 0.0), 0.18),
+                probe(200, true, 96, Vec3::new(-0.55, 0.0, 0.0), 0.18),
+                probe(300, true, 96, Vec3::new(-0.1, 0.0, 0.0), 0.18),
+                probe(700, false, 128, Vec3::ZERO, 0.25),
+            ],
+            vec![
+                trace_region_with_rt_lighting(40, Vec3::ZERO, 0.25, 0.9, [144, 144, 144]),
+                trace_region_with_rt_lighting(
+                    50,
+                    Vec3::new(-1.4, 0.0, 0.0),
+                    0.05,
+                    0.95,
+                    [255, 64, 32],
+                ),
+            ],
+        ),
+        prepare.clone(),
+    );
+    let hierarchical = render_hybrid_gi_gpu_readback(
+        &mut renderer,
+        viewport_size,
+        build_extract(
+            viewport_size,
+            5,
+            2,
+            vec![
+                probe(100, true, 96, Vec3::new(-1.4, 0.0, 0.0), 0.18),
+                probe_with_parent(200, 100, true, 96, Vec3::new(-0.55, 0.0, 0.0), 0.18),
+                probe_with_parent(300, 200, true, 96, Vec3::new(-0.1, 0.0, 0.0), 0.18),
+                probe_with_parent(500, 300, false, 96, Vec3::new(-0.03, 0.0, 0.0), 0.8),
+                probe_with_parent(700, 500, false, 128, Vec3::ZERO, 0.25),
+            ],
+            vec![
+                trace_region_with_rt_lighting(40, Vec3::ZERO, 0.25, 0.9, [144, 144, 144]),
+                trace_region_with_rt_lighting(
+                    50,
+                    Vec3::new(-1.4, 0.0, 0.0),
+                    0.05,
+                    0.95,
+                    [255, 64, 32],
+                ),
+            ],
+        ),
+        prepare,
+    );
+    let flat_rgb = flat
+        .iter()
+        .find(|(probe_id, _)| *probe_id == 700)
+        .map(|(_, rgb)| *rgb)
+        .expect("flat pending probe irradiance");
+    let hierarchical_rgb = hierarchical
+        .iter()
+        .find(|(probe_id, _)| *probe_id == 700)
+        .map(|(_, rgb)| *rgb)
+        .expect("hierarchical pending probe irradiance");
+
+    assert!(
+        hierarchical_rgb[0] > flat_rgb[0] + 8,
+        "expected pending probe RT-lighting continuation to reach a third resident ancestor when the nearer resident ancestors only see the local neutral trace; flat={flat_rgb:?}, hierarchical={hierarchical_rgb:?}"
+    );
+}
+
+#[test]
+fn hybrid_gi_gpu_completion_readback_gathers_third_resident_ancestor_radiance() {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let viewport_size = UVec2::new(96, 64);
+    let prepare = HybridGiPrepareFrame {
+        resident_probes: vec![
+            HybridGiPrepareProbe {
+                probe_id: 100,
+                slot: 0,
+                ray_budget: 96,
+                irradiance_rgb: [255, 64, 32],
+            },
+            HybridGiPrepareProbe {
+                probe_id: 200,
+                slot: 1,
+                ray_budget: 96,
+                irradiance_rgb: [160, 160, 160],
+            },
+            HybridGiPrepareProbe {
+                probe_id: 300,
+                slot: 2,
+                ray_budget: 96,
+                irradiance_rgb: [160, 160, 160],
+            },
+        ],
+        pending_updates: vec![HybridGiPrepareUpdateRequest {
+            probe_id: 700,
+            ray_budget: 128,
+            generation: 42,
+        }],
+        scheduled_trace_region_ids: vec![40],
+        evictable_probe_ids: Vec::new(),
+    };
+
+    let flat = render_hybrid_gi_gpu_readback(
+        &mut renderer,
+        viewport_size,
+        build_extract(
+            viewport_size,
+            5,
+            1,
+            vec![
+                probe(100, true, 96, Vec3::new(-1.4, 0.0, 0.0), 0.18),
+                probe(200, true, 96, Vec3::new(-0.55, 0.0, 0.0), 0.18),
+                probe(300, true, 96, Vec3::new(-0.1, 0.0, 0.0), 0.18),
+                probe(700, false, 128, Vec3::ZERO, 0.12),
+            ],
+            vec![trace_region_with_rt_lighting(
+                40,
+                Vec3::ZERO,
+                0.12,
+                0.9,
+                [144, 144, 144],
+            )],
+        ),
+        prepare.clone(),
+    );
+    let hierarchical = render_hybrid_gi_gpu_readback(
+        &mut renderer,
+        viewport_size,
+        build_extract(
+            viewport_size,
+            5,
+            1,
+            vec![
+                probe(100, true, 96, Vec3::new(-1.4, 0.0, 0.0), 0.18),
+                probe_with_parent(200, 100, true, 96, Vec3::new(-0.55, 0.0, 0.0), 0.18),
+                probe_with_parent(300, 200, true, 96, Vec3::new(-0.1, 0.0, 0.0), 0.18),
+                probe_with_parent(500, 300, false, 96, Vec3::new(-0.03, 0.0, 0.0), 0.8),
+                probe_with_parent(700, 500, false, 128, Vec3::ZERO, 0.12),
+            ],
+            vec![trace_region_with_rt_lighting(
+                40,
+                Vec3::ZERO,
+                0.12,
+                0.9,
+                [144, 144, 144],
+            )],
+        ),
+        prepare,
+    );
+    let flat_rgb = flat
+        .iter()
+        .find(|(probe_id, _)| *probe_id == 700)
+        .map(|(_, rgb)| *rgb)
+        .expect("flat pending probe irradiance");
+    let hierarchical_rgb = hierarchical
+        .iter()
+        .find(|(probe_id, _)| *probe_id == 700)
+        .map(|(_, rgb)| *rgb)
+        .expect("hierarchical pending probe irradiance");
+    let flat_chroma = i16::from(flat_rgb[0]) - i16::from(flat_rgb[2]);
+    let hierarchical_chroma = i16::from(hierarchical_rgb[0]) - i16::from(hierarchical_rgb[2]);
+
+    assert!(
+        hierarchical_chroma > flat_chroma + 10,
+        "expected pending probe lineage gather to reach a third resident ancestor when the nearer resident ancestors stay neutral; flat={flat_rgb:?}, hierarchical={hierarchical_rgb:?}"
+    );
+}
+
+#[test]
+fn hybrid_gi_gpu_completion_readback_inherits_primary_resident_ancestor_radiance_without_spatial_overlap(
+) {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let viewport_size = UVec2::new(96, 64);
+    let extract = build_extract(
+        viewport_size,
+        2,
+        1,
+        vec![
+            probe(200, true, 96, Vec3::new(-1.4, 0.0, 0.0), 0.2),
+            probe_with_parent(250, 200, false, 96, Vec3::new(-0.45, 0.0, 0.0), 0.2),
+            probe_with_parent(300, 250, false, 128, Vec3::ZERO, 0.2),
+        ],
+        vec![trace_region_with_rt_lighting(
+            40,
+            Vec3::ZERO,
+            0.2,
+            0.9,
+            [144, 144, 144],
+        )],
+    );
+
+    let warm_ancestor = render_hybrid_gi_gpu_readback(
+        &mut renderer,
+        viewport_size,
+        extract.clone(),
+        HybridGiPrepareFrame {
+            resident_probes: vec![HybridGiPrepareProbe {
+                probe_id: 200,
+                slot: 0,
+                ray_budget: 96,
+                irradiance_rgb: [255, 64, 32],
+            }],
+            pending_updates: vec![HybridGiPrepareUpdateRequest {
+                probe_id: 300,
+                ray_budget: 128,
+                generation: 39,
+            }],
+            scheduled_trace_region_ids: vec![40],
+            evictable_probe_ids: Vec::new(),
+        },
+    );
+    let cool_ancestor = render_hybrid_gi_gpu_readback(
+        &mut renderer,
+        viewport_size,
+        extract,
+        HybridGiPrepareFrame {
+            resident_probes: vec![HybridGiPrepareProbe {
+                probe_id: 200,
+                slot: 0,
+                ray_budget: 96,
+                irradiance_rgb: [32, 96, 255],
+            }],
+            pending_updates: vec![HybridGiPrepareUpdateRequest {
+                probe_id: 300,
+                ray_budget: 128,
+                generation: 40,
+            }],
+            scheduled_trace_region_ids: vec![40],
+            evictable_probe_ids: Vec::new(),
+        },
+    );
+
+    let warm_ancestor_rgb = warm_ancestor
+        .iter()
+        .find(|(probe_id, _)| *probe_id == 300)
+        .map(|(_, rgb)| *rgb)
+        .expect("warm primary ancestor pending probe irradiance");
+    let cool_ancestor_rgb = cool_ancestor
+        .iter()
+        .find(|(probe_id, _)| *probe_id == 300)
+        .map(|(_, rgb)| *rgb)
+        .expect("cool primary ancestor pending probe irradiance");
+
+    assert!(
+        warm_ancestor_rgb[0] > cool_ancestor_rgb[0] + 12,
+        "expected hierarchy-only gather to inherit more red from the warm primary resident ancestor even when the ancestor is too far for direct spatial overlap; warm={warm_ancestor_rgb:?}, cool={cool_ancestor_rgb:?}"
+    );
+    assert!(
+        cool_ancestor_rgb[2] > warm_ancestor_rgb[2] + 12,
+        "expected hierarchy-only gather to inherit more blue from the cool primary resident ancestor even when the ancestor is too far for direct spatial overlap; warm={warm_ancestor_rgb:?}, cool={cool_ancestor_rgb:?}"
+    );
+}
+
 fn render_hybrid_gi_gpu_readback(
     renderer: &mut SceneRenderer,
     viewport_size: UVec2,

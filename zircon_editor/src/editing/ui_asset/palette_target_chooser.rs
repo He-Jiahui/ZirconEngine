@@ -1,4 +1,6 @@
-use super::palette_drop::{UiAssetPaletteDragResolution, UiAssetPaletteDragTarget};
+use crate::editing::ui_asset::tree::palette_drop::{
+    UiAssetPaletteDragResolution, UiAssetPaletteDragTarget,
+};
 
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct UiAssetPaletteTargetChooser {
@@ -41,7 +43,11 @@ impl UiAssetPaletteTargetChooser {
     }
 
     pub fn arm_sticky(&mut self) -> bool {
-        if self.sticky || self.resolution.candidates.len() <= 1 {
+        if self.sticky
+            || self.manual_selection
+            || !self.resolution.requires_confirmation
+            || self.resolution.candidates.len() <= 1
+        {
             return false;
         }
         self.sticky = true;
@@ -66,26 +72,26 @@ pub(super) fn reconcile_palette_target_chooser(
     previous: Option<&UiAssetPaletteTargetChooser>,
     mut next_resolution: Option<UiAssetPaletteDragResolution>,
 ) -> Option<UiAssetPaletteTargetChooser> {
+    if let Some(previous) = previous {
+        if previous.sticky() {
+            let Some(next_resolution_ref) = next_resolution.as_mut() else {
+                return Some(previous.clone());
+            };
+            if !same_candidate_set(previous.resolution(), next_resolution_ref) {
+                return Some(previous.clone());
+            }
+        }
+    }
+
     let mut next_manual_selection = false;
     if let (Some(previous), Some(next_resolution_ref)) = (previous, next_resolution.as_mut()) {
-        if previous.manual_selection()
-            && previous.resolution().candidates.len() == next_resolution_ref.candidates.len()
-            && previous
-                .resolution()
-                .candidates
-                .iter()
-                .zip(next_resolution_ref.candidates.iter())
-                .all(|(left, right)| {
-                    left.preview_index == right.preview_index
-                        && left.plan.node_id == right.plan.node_id
-                        && left.plan.mode == right.plan.mode
-                        && left.key == right.key
-                        && left.detail == right.detail
-                })
+        if same_candidate_set(previous.resolution(), next_resolution_ref)
+            && previous.manual_selection()
         {
             if let Some(previous_target) = previous.selected_target() {
                 if let Some(index) = next_resolution_ref.candidates.iter().position(|candidate| {
-                    candidate.key == previous_target.key && candidate.detail == previous_target.detail
+                    candidate.key == previous_target.key
+                        && candidate.detail == previous_target.detail
                 }) {
                     next_resolution_ref.selected_index = index;
                     next_manual_selection = true;
@@ -94,9 +100,32 @@ pub(super) fn reconcile_palette_target_chooser(
         }
     }
 
-    next_resolution.map(|resolution| UiAssetPaletteTargetChooser::new(
-        resolution,
-        next_manual_selection,
-        false,
-    ))
+    next_resolution.map(|resolution| {
+        UiAssetPaletteTargetChooser::new(
+            resolution,
+            next_manual_selection,
+            previous
+                .map(UiAssetPaletteTargetChooser::sticky)
+                .unwrap_or(false),
+        )
+    })
+}
+
+fn same_candidate_set(
+    left: &UiAssetPaletteDragResolution,
+    right: &UiAssetPaletteDragResolution,
+) -> bool {
+    left.candidates.len() == right.candidates.len()
+        && left
+            .candidates
+            .iter()
+            .zip(right.candidates.iter())
+            .all(|(left, right)| {
+                left.preview_index == right.preview_index
+                    && left.plan.node_id == right.plan.node_id
+                    && left.plan.mode == right.plan.mode
+                    && left.plan.placement == right.plan.placement
+                    && left.key == right.key
+                    && left.detail == right.detail
+            })
 }

@@ -5,7 +5,7 @@ use slint::{CloseRequestResponse, ComponentHandle, PhysicalPosition, PhysicalSiz
 use crate::host::slint_host::floating_window_projection::FloatingWindowProjectionBundle;
 use crate::{MainPageId, WorkbenchViewModel};
 
-use super::{FrameRect, WorkbenchShell};
+use super::{FrameRect, UiHostWindow};
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct NativeFloatingWindowTarget {
@@ -16,7 +16,7 @@ pub(crate) struct NativeFloatingWindowTarget {
 
 #[derive(Default)]
 pub(crate) struct NativeWindowPresenterStore {
-    windows: BTreeMap<MainPageId, WorkbenchShell>,
+    windows: BTreeMap<MainPageId, UiHostWindow>,
 }
 
 pub(crate) fn collect_native_floating_window_targets(
@@ -44,7 +44,7 @@ pub(crate) fn collect_native_floating_window_targets(
 }
 
 pub(crate) fn configure_native_floating_window_presentation(
-    ui: &WorkbenchShell,
+    ui: &UiHostWindow,
     target: &NativeFloatingWindowTarget,
 ) {
     ui.set_native_floating_window_mode(true);
@@ -74,8 +74,8 @@ impl NativeWindowPresenterStore {
         mut apply: F,
     ) -> Result<(), PlatformError>
     where
-        C: FnMut(&WorkbenchShell, &NativeFloatingWindowTarget),
-        F: FnMut(&WorkbenchShell, &NativeFloatingWindowTarget),
+        C: FnMut(&UiHostWindow, &NativeFloatingWindowTarget),
+        F: FnMut(&UiHostWindow, &NativeFloatingWindowTarget),
     {
         let target_ids = targets
             .iter()
@@ -95,7 +95,7 @@ impl NativeWindowPresenterStore {
 
         for target in targets {
             if !self.windows.contains_key(&target.window_id) {
-                let window = WorkbenchShell::new()?;
+                let window = UiHostWindow::new()?;
                 window
                     .window()
                     .on_close_requested(|| CloseRequestResponse::KeepWindowShown);
@@ -119,7 +119,7 @@ impl NativeWindowPresenterStore {
     }
 
     #[cfg(test)]
-    pub(crate) fn window(&self, window_id: &MainPageId) -> Option<WorkbenchShell> {
+    pub(crate) fn window(&self, window_id: &MainPageId) -> Option<UiHostWindow> {
         self.windows
             .get(window_id)
             .map(ComponentHandle::clone_strong)

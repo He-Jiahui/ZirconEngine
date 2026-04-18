@@ -1,7 +1,6 @@
 use zircon_editor_ui::ViewportCommand;
-use zircon_manager::ResourceStateRecord;
 use zircon_math::{UVec2, Vec2};
-use zircon_resource::ResourceKind;
+use zircon_resource::{ResourceKind, ResourceState};
 use zircon_scene::DefaultLevelManager;
 
 use super::asset_workspace::{sample_catalog, sample_material_details, sample_resource_status};
@@ -18,13 +17,13 @@ fn editor_state_snapshot_projects_structured_asset_workspace() {
             "res://materials/grid.material.toml",
             ResourceKind::Material,
             4,
-            ResourceStateRecord::Ready,
+            ResourceState::Ready,
         ),
         sample_resource_status(
             "res://scenes/main.scene.toml",
             ResourceKind::Scene,
             7,
-            ResourceStateRecord::Reloading,
+            ResourceState::Reloading,
         ),
     ]);
     state.select_asset_folder("res://materials");

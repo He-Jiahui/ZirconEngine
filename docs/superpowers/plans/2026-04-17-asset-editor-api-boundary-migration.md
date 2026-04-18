@@ -64,8 +64,8 @@ zircon_asset/src/editor/
 - Create: `zircon_asset/src/editor/resolver.rs`
 - Modify: `zircon_asset/src/editor/manager.rs`
 - Modify: `zircon_asset/src/lib.rs`
-- Modify: `zircon_asset/src/pipeline/manager/module_descriptor.rs`
-- Modify: `zircon_asset/src/pipeline/manager/service_names.rs`
+- Modify: `zircon_asset/src/pipeline/manager/registration/module_descriptor.rs`
+- Modify: `zircon_asset/src/pipeline/manager/registration/service_names.rs`
 
 - [ ] 在 `zircon_asset::editor` 下创建 trait、records、resolver/handle 模块
 - [ ] 让 `DefaultEditorAssetManager` 实现本地 `EditorAssetManager` trait

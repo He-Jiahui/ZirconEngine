@@ -123,7 +123,10 @@ impl EngineDriver for DriverContract {}
 impl EngineManager for ManagerContract {}
 impl EnginePlugin for PluginContract {}
 
-pub fn driver_contract(owner_module: impl Into<String>, descriptor: &DriverDescriptor) -> DriverContract {
+pub fn driver_contract(
+    owner_module: impl Into<String>,
+    descriptor: &DriverDescriptor,
+) -> DriverContract {
     DriverContract(ServiceContract::new(
         owner_module,
         descriptor.name.clone(),
@@ -146,7 +149,10 @@ pub fn manager_contract(
     ))
 }
 
-pub fn plugin_contract(owner_module: impl Into<String>, descriptor: &PluginDescriptor) -> PluginContract {
+pub fn plugin_contract(
+    owner_module: impl Into<String>,
+    descriptor: &PluginDescriptor,
+) -> PluginContract {
     PluginContract(ServiceContract::new(
         owner_module,
         descriptor.name.clone(),

@@ -10,8 +10,8 @@ use crate::{
         VirtualGeometryPrepareIndirectDraw, VirtualGeometryPreparePage,
         VirtualGeometryPrepareRequest,
     },
-    VisibilityVirtualGeometryCluster, VisibilityVirtualGeometryFeedback,
-    VisibilityVirtualGeometryPageUploadPlan,
+    VisibilityVirtualGeometryCluster, VisibilityVirtualGeometryDrawSegment,
+    VisibilityVirtualGeometryFeedback, VisibilityVirtualGeometryPageUploadPlan,
 };
 
 #[test]
@@ -324,6 +324,91 @@ fn virtual_geometry_runtime_state_builds_visibility_owned_compacted_draw_segment
 }
 
 #[test]
+fn virtual_geometry_runtime_state_preserves_visibility_owned_draw_segments_across_parent_lineages()
+{
+    let mut state = VirtualGeometryRuntimeState::default();
+    let extract = RenderVirtualGeometryExtract {
+        cluster_budget: 5,
+        page_budget: 1,
+        clusters: Vec::new(),
+        pages: vec![page(400, true, 4096)],
+    };
+
+    state.register_extract(Some(&extract));
+    state.ingest_plan(
+        7,
+        &VisibilityVirtualGeometryPageUploadPlan {
+            resident_pages: vec![400],
+            requested_pages: Vec::new(),
+            dirty_requested_pages: Vec::new(),
+            evictable_pages: Vec::new(),
+        },
+    );
+
+    let prepare = state.build_prepare_frame_with_segments(
+        &[cluster(10, 40, 400, 3, 5), cluster(10, 50, 400, 4, 5)],
+        &[
+            visibility_draw_segment(10, 40, 400, 3, 1, 5, 2),
+            visibility_draw_segment(10, 50, 400, 4, 1, 5, 2),
+        ],
+    );
+
+    assert_eq!(
+        prepare.cluster_draw_segments,
+        vec![
+            VirtualGeometryPrepareDrawSegment {
+                entity: 10,
+                cluster_id: 40,
+                page_id: 400,
+                resident_slot: Some(0),
+                cluster_ordinal: 3,
+                cluster_span_count: 1,
+                cluster_count: 5,
+                lod_level: 2,
+                state: VirtualGeometryPrepareClusterState::Resident,
+            },
+            VirtualGeometryPrepareDrawSegment {
+                entity: 10,
+                cluster_id: 50,
+                page_id: 400,
+                resident_slot: Some(0),
+                cluster_ordinal: 4,
+                cluster_span_count: 1,
+                cluster_count: 5,
+                lod_level: 2,
+                state: VirtualGeometryPrepareClusterState::Resident,
+            },
+        ],
+        "expected runtime prepare to preserve visibility-owned lineage segment boundaries instead of compacting same-page resident clusters back into one segment"
+    );
+    assert_eq!(
+        prepare.unified_indirect_draws(),
+        vec![
+            VirtualGeometryPrepareIndirectDraw {
+                entity: 10,
+                page_id: 400,
+                cluster_start_ordinal: 3,
+                cluster_span_count: 1,
+                cluster_total_count: 5,
+                lod_level: 2,
+                resident_slot: Some(0),
+                state: VirtualGeometryPrepareClusterState::Resident,
+            },
+            VirtualGeometryPrepareIndirectDraw {
+                entity: 10,
+                page_id: 400,
+                cluster_start_ordinal: 4,
+                cluster_span_count: 1,
+                cluster_total_count: 5,
+                lod_level: 2,
+                resident_slot: Some(0),
+                state: VirtualGeometryPrepareClusterState::Resident,
+            },
+        ]
+    );
+}
+
+#[test]
 fn virtual_geometry_prepare_frame_preserves_explicit_draw_segment_boundaries_in_unified_indirect_draws(
 ) {
     let prepare = VirtualGeometryPrepareFrame {
@@ -561,6 +646,52 @@ fn virtual_geometry_runtime_state_applies_gpu_completed_pages_with_evictable_slo
 }
 
 #[test]
+fn virtual_geometry_runtime_state_rejects_gpu_slot_recycling_when_current_evictable_set_withdraws_page(
+) {
+    let mut state = VirtualGeometryRuntimeState::default();
+    let extract = RenderVirtualGeometryExtract {
+        cluster_budget: 2,
+        page_budget: 2,
+        clusters: Vec::new(),
+        pages: vec![
+            page(200, true, 2048),
+            page(300, false, 4096),
+            page(500, true, 1024),
+        ],
+    };
+
+    state.register_extract(Some(&extract));
+    state.ingest_plan(
+        7,
+        &VisibilityVirtualGeometryPageUploadPlan {
+            resident_pages: vec![200, 500],
+            requested_pages: vec![300],
+            dirty_requested_pages: vec![300],
+            evictable_pages: vec![500],
+        },
+    );
+
+    state.complete_gpu_uploads_with_slots([(300, 1)], &[]);
+
+    assert_eq!(state.page_slot(200), Some(0));
+    assert_eq!(state.page_slot(500), Some(1));
+    assert_eq!(state.page_slot(300), None);
+    assert_eq!(
+        state.page_residency(300),
+        Some(VirtualGeometryPageResidencyState::PendingUpload)
+    );
+    assert_eq!(
+        state.pending_requests(),
+        vec![VirtualGeometryPageRequest {
+            page_id: 300,
+            size_bytes: 4096,
+            generation: 7,
+        }],
+        "expected runtime residency completion to obey the current visibility-owned evictable set instead of recycling a slot from stale runtime state"
+    );
+}
+
+#[test]
 fn virtual_geometry_runtime_state_applies_gpu_assigned_free_slots_before_evictable_recycling() {
     let mut state = VirtualGeometryRuntimeState::default();
     let extract = RenderVirtualGeometryExtract {
@@ -685,6 +816,80 @@ fn virtual_geometry_runtime_state_applies_gpu_page_table_snapshot_as_residency_t
     );
 }
 
+#[test]
+fn virtual_geometry_runtime_state_drops_stale_scene_pages_and_pending_requests_when_extract_shrinks(
+) {
+    let mut state = VirtualGeometryRuntimeState::default();
+    let initial_extract = RenderVirtualGeometryExtract {
+        cluster_budget: 3,
+        page_budget: 3,
+        clusters: Vec::new(),
+        pages: vec![
+            page(100, true, 2048),
+            page(200, false, 4096),
+            page(300, true, 1024),
+        ],
+    };
+
+    state.register_extract(Some(&initial_extract));
+    state.ingest_plan(
+        11,
+        &VisibilityVirtualGeometryPageUploadPlan {
+            resident_pages: vec![100, 300],
+            requested_pages: vec![200],
+            dirty_requested_pages: vec![200],
+            evictable_pages: vec![300],
+        },
+    );
+    state.complete_gpu_uploads_with_slots([(200, 2)], &[300]);
+
+    let shrunk_extract = RenderVirtualGeometryExtract {
+        cluster_budget: 1,
+        page_budget: 1,
+        clusters: Vec::new(),
+        pages: vec![page(100, true, 2048)],
+    };
+
+    state.register_extract(Some(&shrunk_extract));
+
+    assert_eq!(state.page_slot(100), Some(0));
+    assert_eq!(state.page_slot(200), None);
+    assert_eq!(state.page_slot(300), None);
+    assert_eq!(
+        state.page_residency(200),
+        None,
+        "expected runtime residency state to purge removed scene pages instead of keeping stale resident uploads alive"
+    );
+    assert_eq!(
+        state.page_residency(300),
+        None,
+        "expected runtime residency state to evict removed resident pages when the extract shrinks"
+    );
+    assert_eq!(
+        state.pending_requests(),
+        Vec::<VirtualGeometryPageRequest>::new(),
+        "expected removed pages to disappear from the pending uploader queue"
+    );
+    assert_eq!(state.evictable_pages(), Vec::<u32>::new());
+
+    let prepare = state.build_prepare_frame(&[
+        cluster(10, 1, 100, 0, 1),
+        cluster(20, 2, 200, 1, 2),
+        cluster(30, 3, 300, 2, 3),
+    ]);
+    assert_eq!(
+        prepare.resident_pages,
+        vec![VirtualGeometryPreparePage {
+            page_id: 100,
+            slot: 0,
+            size_bytes: 2048,
+        }]
+    );
+    assert_eq!(prepare.pending_page_requests, Vec::new());
+    assert_eq!(prepare.available_slots, Vec::<u32>::new());
+    assert_eq!(prepare.evictable_pages, Vec::new());
+}
+
 fn page(page_id: u32, resident: bool, size_bytes: u64) -> RenderVirtualGeometryPage {
     RenderVirtualGeometryPage {
         page_id,
@@ -708,5 +913,25 @@ fn cluster(
         cluster_ordinal,
         cluster_count,
         resident: page_id == 200,
+    }
+}
+
+fn visibility_draw_segment(
+    entity: u64,
+    cluster_id: u32,
+    page_id: u32,
+    cluster_ordinal: u32,
+    cluster_span_count: u32,
+    cluster_count: u32,
+    lod_level: u8,
+) -> VisibilityVirtualGeometryDrawSegment {
+    VisibilityVirtualGeometryDrawSegment {
+        entity,
+        cluster_id,
+        page_id,
+        cluster_ordinal,
+        cluster_span_count,
+        cluster_count,
+        lod_level,
     }
 }

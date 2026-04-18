@@ -6,12 +6,14 @@ use zircon_resource::ResourceLocator;
 
 use super::level_display_name::display_name_for_level;
 use super::DefaultLevelManager;
-use crate::{LevelMetadata, LevelSystem, SceneAssetSerializer, SceneProjectError, World};
+use crate::{
+    LevelMetadata, LevelSystem, SceneAssetSerializer, SceneProjectError, World, WorldHandle,
+};
 
 impl DefaultLevelManager {
     pub fn save_world(
         &self,
-        handle: zircon_manager::WorldHandle,
+        handle: WorldHandle,
         path: impl AsRef<Path>,
     ) -> Result<(), SceneProjectError> {
         let level = self.level(handle).ok_or_else(|| {
@@ -43,7 +45,7 @@ impl DefaultLevelManager {
 
     pub fn save_level(
         &self,
-        handle: zircon_manager::WorldHandle,
+        handle: WorldHandle,
         project: &ProjectManager,
         uri: &ResourceLocator,
     ) -> Result<(), SceneProjectError> {

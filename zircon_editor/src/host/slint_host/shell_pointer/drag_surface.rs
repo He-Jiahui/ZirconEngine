@@ -8,23 +8,25 @@ use zircon_ui::{
 
 use crate::host::slint_host::callback_dispatch::BuiltinWorkbenchRootShellFrames;
 use crate::host::slint_host::floating_window_projection::{
-    FloatingWindowProjectionBundle, resolve_floating_window_outer_frame,
+    resolve_floating_window_outer_frame, FloatingWindowProjectionBundle,
 };
 use crate::host::slint_host::root_shell_projection::{
-    resolve_root_center_band_frame, resolve_root_document_region_frame,
-    resolve_root_status_bar_frame,
+    resolve_root_bottom_region_frame, resolve_root_center_band_frame,
+    resolve_root_document_region_frame, resolve_root_left_region_frame,
+    resolve_root_right_region_frame, resolve_root_status_bar_frame,
 };
 use crate::host::slint_host::tab_drag::WorkbenchDragTargetGroup;
-use crate::{DockEdge, FloatingWindowModel, ShellRegionId, ShellSizePx, WorkbenchShellGeometry};
+use crate::{DockEdge, FloatingWindowModel, ShellSizePx, WorkbenchShellGeometry};
 
 use super::common::{base_target_state, clamp_frame_to_root, frame_if_visible, update_target_node};
 use super::drag_frames::DragTargetFrames;
 use super::effects::{document_edge_effect, edge_effect_in_frame, side_target_effect};
 use super::node_ids::{
-    DOCUMENT_EDGE_BOTTOM_NODE_ID, DOCUMENT_EDGE_LEFT_NODE_ID, DOCUMENT_EDGE_RIGHT_NODE_ID,
-    DOCUMENT_EDGE_TOP_NODE_ID, DRAG_POINTER_ROOT_NODE_ID, DRAG_TARGET_BOTTOM_NODE_ID,
-    DRAG_TARGET_DOCUMENT_NODE_ID, DRAG_TARGET_LEFT_NODE_ID, DRAG_TARGET_RIGHT_NODE_ID,
     floating_window_attach_node_id, floating_window_edge_node_id,
+    floating_window_projection_exclusion_node_id, DOCUMENT_EDGE_BOTTOM_NODE_ID,
+    DOCUMENT_EDGE_LEFT_NODE_ID, DOCUMENT_EDGE_RIGHT_NODE_ID, DOCUMENT_EDGE_TOP_NODE_ID,
+    DRAG_POINTER_ROOT_NODE_ID, DRAG_TARGET_BOTTOM_NODE_ID, DRAG_TARGET_DOCUMENT_NODE_ID,
+    DRAG_TARGET_LEFT_NODE_ID, DRAG_TARGET_RIGHT_NODE_ID,
 };
 use super::route::WorkbenchShellPointerRoute;
 
@@ -117,6 +119,10 @@ pub(super) fn build_drag_surface(
     let resolved_status_bar_frame = resolve_root_status_bar_frame(geometry, shared_root_frames);
     let resolved_document_region_frame =
         resolve_root_document_region_frame(geometry, shared_root_frames);
+    let resolved_left_region_frame = resolve_root_left_region_frame(geometry, shared_root_frames);
+    let resolved_right_region_frame = resolve_root_right_region_frame(geometry, shared_root_frames);
+    let resolved_bottom_region_frame =
+        resolve_root_bottom_region_frame(geometry, shared_root_frames);
     let overlay_top = resolved_center_band_frame.y.max(0.0);
     let overlay_bottom = resolved_status_bar_frame
         .y
@@ -124,16 +130,9 @@ pub(super) fn build_drag_surface(
         .max(overlay_top);
     let overlay_height = (overlay_bottom - overlay_top).max(0.0);
 
-    let left_width = geometry
-        .region_frame(ShellRegionId::Left)
-        .width
-        .max(MIN_SIDE_DROP_EXTENT);
-    let right_width = geometry
-        .region_frame(ShellRegionId::Right)
-        .width
-        .max(MIN_SIDE_DROP_EXTENT);
-    let bottom_height = geometry
-        .region_frame(ShellRegionId::Bottom)
+    let left_width = resolved_left_region_frame.width.max(MIN_SIDE_DROP_EXTENT);
+    let right_width = resolved_right_region_frame.width.max(MIN_SIDE_DROP_EXTENT);
+    let bottom_height = resolved_bottom_region_frame
         .height
         .max(MIN_BOTTOM_DROP_EXTENT);
 
@@ -296,14 +295,41 @@ pub(super) fn build_drag_surface(
     );
 
     for (index, window) in floating_windows.iter().enumerate() {
-        let frame = frame_if_visible(clamp_frame_to_root(
-            floating_window_projection_bundle
-                .and_then(|bundle| bundle.outer_frame(&window.window_id))
-                .unwrap_or_else(|| {
-                    resolve_floating_window_outer_frame(geometry, &window.window_id)
-                }),
-            root_frame,
-        ));
+        let floating_frame = if let Some(bundle) = floating_window_projection_bundle {
+            let Some(floating_frame) = bundle.outer_frame(&window.window_id) else {
+                if let Some(exclusion_frame) = frame_if_visible(clamp_frame_to_root(
+                    resolve_floating_window_outer_frame(geometry, &window.window_id),
+                    root_frame,
+                )) {
+                    let exclusion_id = floating_window_projection_exclusion_node_id(index);
+                    surface
+                        .tree
+                        .insert_child(
+                            DRAG_POINTER_ROOT_NODE_ID,
+                            UiTreeNode::new(
+                                exclusion_id,
+                                UiNodePath::new(format!(
+                                    "editor.workbench.shell_pointer/floating/{}/projection_exclusion",
+                                    window.window_id.0
+                                )),
+                            )
+                            .with_z_index(99 + index as i32 * 10)
+                            .with_input_policy(UiInputPolicy::Receive)
+                            .with_state_flags(base_target_state(true)),
+                        )
+                        .expect("drag pointer root must exist");
+                    update_target_node(&mut surface, exclusion_id, Some(exclusion_frame));
+                    drag_dispatcher.register(exclusion_id, UiPointerEventKind::Move, |_context| {
+                        UiPointerDispatchEffect::handled()
+                    });
+                }
+                continue;
+            };
+            floating_frame
+        } else {
+            resolve_floating_window_outer_frame(geometry, &window.window_id)
+        };
+        let frame = frame_if_visible(clamp_frame_to_root(floating_frame, root_frame));
         let Some(frame) = frame else {
             continue;
         };

@@ -1,5 +1,5 @@
-use super::*;
-use zircon_asset::EditorAssetChangeKind;
+use zircon_asset::{AssetChange, EditorAssetChange, EditorAssetChangeKind};
+use zircon_resource::ResourceEvent;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(crate) struct AssetBackendRefreshPlan {
@@ -15,9 +15,9 @@ pub(crate) struct AssetBackendRefreshPlan {
 pub(crate) fn plan_asset_backend_refresh(
     selected_asset_uuid: Option<&str>,
     default_scene_uri: Option<&str>,
-    asset_changes: &[AssetChangeRecord],
-    editor_changes: &[EditorAssetChangeRecord],
-    resource_changes: &[ResourceChangeRecord],
+    asset_changes: &[AssetChange],
+    editor_changes: &[EditorAssetChange],
+    resource_changes: &[ResourceEvent],
 ) -> AssetBackendRefreshPlan {
     let mut plan = AssetBackendRefreshPlan::default();
 
@@ -59,10 +59,16 @@ pub(crate) fn plan_asset_backend_refresh(
     if let Some(default_scene_uri) = default_scene_uri {
         let default_scene_changed = asset_changes
             .iter()
-            .any(|change| change.uri == default_scene_uri)
+            .any(|change| change.uri.to_string() == default_scene_uri)
             || resource_changes.iter().any(|change| {
-                change.locator.as_deref() == Some(default_scene_uri)
-                    || change.previous_locator.as_deref() == Some(default_scene_uri)
+                change
+                    .locator
+                    .as_ref()
+                    .is_some_and(|locator| locator.to_string() == default_scene_uri)
+                    || change
+                        .previous_locator
+                        .as_ref()
+                        .is_some_and(|locator| locator.to_string() == default_scene_uri)
             });
         if default_scene_changed {
             plan.reload_default_scene = true;

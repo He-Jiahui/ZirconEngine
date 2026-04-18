@@ -364,6 +364,18 @@ pub(super) fn pane_from_tab(
         ui_asset_inspector_slot_semantic_path: ui_asset_pane.inspector_slot_semantic_path.into(),
         ui_asset_inspector_slot_semantic_value: ui_asset_pane.inspector_slot_semantic_value.into(),
         ui_asset_inspector_slot_kind: ui_asset_pane.inspector_slot_kind.into(),
+        ui_asset_inspector_slot_linear_main_weight: ui_asset_pane
+            .inspector_slot_linear_main_weight
+            .into(),
+        ui_asset_inspector_slot_linear_main_stretch: ui_asset_pane
+            .inspector_slot_linear_main_stretch
+            .into(),
+        ui_asset_inspector_slot_linear_cross_weight: ui_asset_pane
+            .inspector_slot_linear_cross_weight
+            .into(),
+        ui_asset_inspector_slot_linear_cross_stretch: ui_asset_pane
+            .inspector_slot_linear_cross_stretch
+            .into(),
         ui_asset_inspector_slot_overlay_anchor_x: ui_asset_pane
             .inspector_slot_overlay_anchor_x
             .into(),
@@ -394,9 +406,7 @@ pub(super) fn pane_from_tab(
         ui_asset_inspector_slot_flow_break_before: ui_asset_pane
             .inspector_slot_flow_break_before
             .into(),
-        ui_asset_inspector_slot_flow_alignment: ui_asset_pane
-            .inspector_slot_flow_alignment
-            .into(),
+        ui_asset_inspector_slot_flow_alignment: ui_asset_pane.inspector_slot_flow_alignment.into(),
         ui_asset_inspector_layout_width_preferred: ui_asset_pane
             .inspector_layout_width_preferred
             .into(),
@@ -422,6 +432,7 @@ pub(super) fn pane_from_tab(
             .inspector_layout_semantic_value
             .into(),
         ui_asset_inspector_layout_kind: ui_asset_pane.inspector_layout_kind.into(),
+        ui_asset_inspector_layout_box_gap: ui_asset_pane.inspector_layout_box_gap.into(),
         ui_asset_inspector_layout_scroll_axis: ui_asset_pane.inspector_layout_scroll_axis.into(),
         ui_asset_inspector_layout_scroll_gap: ui_asset_pane.inspector_layout_scroll_gap.into(),
         ui_asset_inspector_layout_scrollbar_visibility: ui_asset_pane
@@ -683,6 +694,10 @@ pub(super) fn blank_pane() -> PaneData {
         ui_asset_inspector_slot_semantic_path: SharedString::default(),
         ui_asset_inspector_slot_semantic_value: SharedString::default(),
         ui_asset_inspector_slot_kind: SharedString::default(),
+        ui_asset_inspector_slot_linear_main_weight: SharedString::default(),
+        ui_asset_inspector_slot_linear_main_stretch: SharedString::default(),
+        ui_asset_inspector_slot_linear_cross_weight: SharedString::default(),
+        ui_asset_inspector_slot_linear_cross_stretch: SharedString::default(),
         ui_asset_inspector_slot_overlay_anchor_x: SharedString::default(),
         ui_asset_inspector_slot_overlay_anchor_y: SharedString::default(),
         ui_asset_inspector_slot_overlay_pivot_x: SharedString::default(),
@@ -704,6 +719,7 @@ pub(super) fn blank_pane() -> PaneData {
         ui_asset_inspector_layout_semantic_path: SharedString::default(),
         ui_asset_inspector_layout_semantic_value: SharedString::default(),
         ui_asset_inspector_layout_kind: SharedString::default(),
+        ui_asset_inspector_layout_box_gap: SharedString::default(),
         ui_asset_inspector_layout_scroll_axis: SharedString::default(),
         ui_asset_inspector_layout_scroll_gap: SharedString::default(),
         ui_asset_inspector_layout_scrollbar_visibility: SharedString::default(),

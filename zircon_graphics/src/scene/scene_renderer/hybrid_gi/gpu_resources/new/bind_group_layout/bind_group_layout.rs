@@ -1,4 +1,6 @@
-pub(super) fn bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+pub(in crate::scene::scene_renderer::hybrid_gi::gpu_resources::new) fn bind_group_layout(
+    device: &wgpu::Device,
+) -> wgpu::BindGroupLayout {
     device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
         label: Some("zircon-hybrid-gi-completion-bind-group-layout"),
         entries: &[

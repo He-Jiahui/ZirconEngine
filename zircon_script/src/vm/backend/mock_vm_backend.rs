@@ -1,4 +1,7 @@
-use crate::{HostRegistry, VmBackend, VmError, VmPluginInstance, VmPluginManifest, VmPluginPackage, VmStateBlob};
+use crate::{
+    HostRegistry, VmBackend, VmError, VmPluginInstance, VmPluginManifest, VmPluginPackage,
+    VmStateBlob,
+};
 
 #[derive(Debug, Default)]
 pub struct MockVmBackend;

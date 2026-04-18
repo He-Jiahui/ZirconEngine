@@ -1,6 +1,6 @@
 use crate::types::HybridGiPrepareFrame;
 
-use super::super::hybrid_gi_runtime_state::HybridGiRuntimeState;
+use super::super::HybridGiRuntimeState;
 use super::collect_pending_updates::collect_pending_updates;
 use super::collect_resident_probes::collect_resident_probes;
 

@@ -5,8 +5,7 @@ use std::rc::Rc;
 
 use slint::{Image, ModelRc, SharedString, VecModel};
 use zircon_editor_ui::{EditorUiBinding, EditorUiBindingPayload};
-use zircon_manager::ResourceStateRecord;
-use zircon_resource::ResourceKind;
+use zircon_resource::{ResourceKind, ResourceState};
 
 use crate::layout::ActivityDrawerSlot;
 use crate::snapshot::{
@@ -24,7 +23,7 @@ use super::{
     AssetFolderData, AssetItemData, AssetReferenceData, AssetSelectionData, BreadcrumbData,
     FloatingWindowData, FrameRect, NewProjectFormData, PaneData, ProjectOverviewData,
     RecentProjectData, SceneNodeData, SceneViewportChromeData, TabData, UiAssetCanvasNodeData,
-    UiAssetCanvasSlotTargetData, WelcomePaneData, WorkbenchShell,
+    UiAssetCanvasSlotTargetData, UiHostWindow, WelcomePaneData,
 };
 
 mod apply_presentation;

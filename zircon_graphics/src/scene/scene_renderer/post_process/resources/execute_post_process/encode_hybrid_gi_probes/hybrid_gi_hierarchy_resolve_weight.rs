@@ -4,8 +4,12 @@ use zircon_scene::RenderHybridGiProbe;
 
 use crate::types::EditorOrRuntimeFrame;
 
+use super::hybrid_gi_budget_weight::hybrid_gi_budget_weight;
+
 const CHILD_SPECIFICITY_BOOST: f32 = 0.3;
 const RESIDENT_CHILD_ATTENUATION: f32 = 0.78;
+const FARTHER_ANCESTOR_BUDGET_FALLOFF: f32 = 0.72;
+const FARTHER_ANCESTOR_BUDGET_SCALE: f32 = 0.6;
 
 pub(super) fn hybrid_gi_hierarchy_resolve_weight(
     frame: &EditorOrRuntimeFrame,
@@ -15,17 +19,21 @@ pub(super) fn hybrid_gi_hierarchy_resolve_weight(
         return 1.0;
     };
 
-    let resident_probe_ids = frame
+    let resident_prepare_by_id = frame
         .hybrid_gi_prepare
         .as_ref()
         .map(|prepare| {
             prepare
                 .resident_probes
                 .iter()
-                .map(|probe| probe.probe_id)
-                .collect::<BTreeSet<_>>()
+                .map(|probe| (probe.probe_id, probe))
+                .collect::<BTreeMap<_, _>>()
         })
         .unwrap_or_default();
+    let resident_probe_ids = resident_prepare_by_id
+        .keys()
+        .copied()
+        .collect::<BTreeSet<_>>();
     if resident_probe_ids.is_empty() {
         return 1.0;
     }
@@ -40,6 +48,11 @@ pub(super) fn hybrid_gi_hierarchy_resolve_weight(
         resident_descendant_count(&probes_by_id, &resident_probe_ids, source.probe_id);
     let resident_parent_depth =
         resident_parent_depth(&probes_by_id, &resident_probe_ids, source.probe_id);
+    let farther_ancestor_budget_support = farther_resident_ancestor_budget_support(
+        &probes_by_id,
+        &resident_prepare_by_id,
+        source.probe_id,
+    );
 
     let specificity_weight = 1.0 + resident_parent_depth as f32 * CHILD_SPECIFICITY_BOOST;
     let attenuation_weight = if resident_child_count == 0 {
@@ -47,7 +60,9 @@ pub(super) fn hybrid_gi_hierarchy_resolve_weight(
     } else {
         RESIDENT_CHILD_ATTENUATION.powi(resident_child_count as i32)
     };
-    (specificity_weight * attenuation_weight).clamp(0.25, 2.0)
+    let lineage_budget_weight =
+        1.0 + farther_ancestor_budget_support * FARTHER_ANCESTOR_BUDGET_SCALE;
+    (specificity_weight * attenuation_weight * lineage_budget_weight).clamp(0.25, 2.5)
 }
 
 fn resident_descendant_count(
@@ -103,4 +118,40 @@ fn resident_parent_depth(
     }
 
     depth
+}
+
+fn farther_resident_ancestor_budget_support<'a>(
+    probes_by_id: &BTreeMap<u32, RenderHybridGiProbe>,
+    resident_prepare_by_id: &BTreeMap<u32, &'a crate::types::HybridGiPrepareProbe>,
+    probe_id: u32,
+) -> f32 {
+    let mut current_probe_id = probe_id;
+    let mut resident_ancestor_count = 0usize;
+    let mut total_support = 0.0_f32;
+    let mut visited_probe_ids = BTreeSet::from([probe_id]);
+
+    loop {
+        let Some(parent_probe_id) = probes_by_id
+            .get(&current_probe_id)
+            .and_then(|probe| probe.parent_probe_id)
+        else {
+            break;
+        };
+        if !visited_probe_ids.insert(parent_probe_id) {
+            break;
+        }
+        if let Some(ancestor_prepare) = resident_prepare_by_id.get(&parent_probe_id) {
+            resident_ancestor_count += 1;
+            if resident_ancestor_count > 1 {
+                let farther_ancestor_depth = resident_ancestor_count - 2;
+                total_support += FARTHER_ANCESTOR_BUDGET_FALLOFF
+                    .powi(farther_ancestor_depth as i32)
+                    * hybrid_gi_budget_weight(ancestor_prepare.ray_budget);
+            }
+        }
+
+        current_probe_id = parent_probe_id;
+    }
+
+    total_support.clamp(0.0, 1.5)
 }

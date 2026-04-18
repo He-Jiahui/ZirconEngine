@@ -1,6 +1,4 @@
-use super::super::{
-    BuiltinEngineEntry, EngineEntry, EntryProfile, EntryRunMode,
-};
+use super::super::{BuiltinEngineEntry, EngineEntry, EntryProfile, EntryRunMode};
 
 #[test]
 fn builtin_engine_entry_reports_run_mode_and_owned_modules() {

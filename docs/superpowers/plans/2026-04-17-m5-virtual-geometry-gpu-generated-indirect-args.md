@@ -1,23 +1,23 @@
 ---
 related_code:
-  - zircon_graphics/src/scene/scene_renderer/mesh/virtual_geometry_indirect_args_gpu_resources.rs
+  - zircon_graphics/src/scene/scene_renderer/mesh/virtual_geometry_indirect_args_gpu_resources/virtual_geometry_indirect_args_gpu_resources.rs
   - zircon_graphics/src/scene/scene_renderer/mesh/shaders/virtual_geometry_indirect_args.wgsl
   - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/build/build.rs
   - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/build/build_shared_indirect_args_buffer.rs
   - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs
   - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/build/pending_mesh_draw.rs
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render.rs
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_virtual_geometry.rs
+  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_virtual_geometry/mod.rs
   - zircon_graphics/src/tests/virtual_geometry_prepare_render.rs
 implementation_files:
-  - zircon_graphics/src/scene/scene_renderer/mesh/virtual_geometry_indirect_args_gpu_resources.rs
+  - zircon_graphics/src/scene/scene_renderer/mesh/virtual_geometry_indirect_args_gpu_resources/virtual_geometry_indirect_args_gpu_resources.rs
   - zircon_graphics/src/scene/scene_renderer/mesh/shaders/virtual_geometry_indirect_args.wgsl
   - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/build/build.rs
   - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/build/build_shared_indirect_args_buffer.rs
   - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs
   - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/build/pending_mesh_draw.rs
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render.rs
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_virtual_geometry.rs
+  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_virtual_geometry/mod.rs
 plan_sources:
   - user: 2026-04-17 continue the next M5 chain without waiting for confirmation
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md

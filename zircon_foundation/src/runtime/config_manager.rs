@@ -71,4 +71,3 @@ impl ConfigManager for DefaultConfigManager {
         self.core.load_config_value(key)
     }
 }
-

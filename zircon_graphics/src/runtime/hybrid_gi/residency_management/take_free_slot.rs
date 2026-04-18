@@ -1,4 +1,4 @@
-use super::super::hybrid_gi_runtime_state::HybridGiRuntimeState;
+use super::super::HybridGiRuntimeState;
 
 impl HybridGiRuntimeState {
     pub(in crate::runtime::hybrid_gi::residency_management) fn take_free_slot(

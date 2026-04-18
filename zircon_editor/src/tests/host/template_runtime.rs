@@ -1,11 +1,103 @@
 use toml::Value;
 use zircon_editor_ui::EditorUiControlService;
-use zircon_ui::{UiEventKind, UiFrame, UiInputPolicy, UiSize};
+use zircon_ui::{
+    UiAssetKind, UiEventKind, UiFrame, UiInputPolicy, UiLegacyTemplateAdapter, UiSize,
+    UiTemplateLoader,
+};
 
 use crate::{
+    host::template_runtime::{UI_HOST_WINDOW_DOCUMENT_ID, WORKBENCH_SHELL_DOCUMENT_ID},
     EditorUiCompatibilityHarness, EditorUiHostRuntime, SlintUiHostAdapter,
-    SlintUiHostComponentKind, SlintUiHostValue,
+    SlintUiHostComponentKind, SlintUiHostValue, UiAssetEditorMode, UiAssetEditorRoute,
+    UiAssetEditorSession,
 };
+
+const ASSET_WORKBENCH_DOCUMENT_TOML: &str = r##"
+[asset]
+kind = "layout"
+id = "editor.workbench.asset"
+version = 1
+display_name = "Editor Workbench Asset"
+
+[root]
+node = "root"
+
+[nodes.root]
+kind = "component"
+component = "UiHostWindow"
+children = [
+  { child = "menu_bar_root", mount = "menu_bar" },
+  { child = "status_bar_root", mount = "status_bar" },
+]
+
+[nodes.menu_bar_root]
+kind = "component"
+component = "MenuBar"
+
+[nodes.status_bar_root]
+kind = "native"
+type = "StatusBar"
+control_id = "StatusBarRoot"
+
+[components.UiHostWindow]
+root = "workbench_shell_root"
+
+[components.UiHostWindow.slots.menu_bar]
+required = true
+
+[components.UiHostWindow.slots.status_bar]
+required = true
+
+[components.MenuBar]
+root = "menu_bar_component_root"
+
+[nodes.workbench_shell_root]
+kind = "native"
+type = "UiHostWindow"
+children = [
+  { child = "workbench_shell_menu_bar_slot", mount = "menu_bar" },
+  { child = "workbench_shell_status_bar_slot", mount = "status_bar" },
+]
+
+[nodes.workbench_shell_menu_bar_slot]
+kind = "slot"
+slot_name = "menu_bar"
+
+[nodes.workbench_shell_status_bar_slot]
+kind = "slot"
+slot_name = "status_bar"
+
+[nodes.menu_bar_component_root]
+kind = "native"
+type = "UiHostToolbar"
+children = [
+  { child = "open_project" },
+  { child = "save_project" },
+]
+
+[nodes.open_project]
+kind = "native"
+type = "UiHostIconButton"
+control_id = "OpenProject"
+bindings = [{ id = "WorkbenchMenuBar/OpenProject", event = "Click", route = "MenuAction.OpenProject" }]
+
+[nodes.save_project]
+kind = "native"
+type = "UiHostIconButton"
+control_id = "SaveProject"
+bindings = [{ id = "WorkbenchMenuBar/SaveProject", event = "Click", route = "MenuAction.SaveProject" }]
+"##;
+
+const SIMPLE_LEGACY_TEMPLATE_TOML: &str = r#"
+version = 1
+
+[root]
+component = "VerticalBox"
+control_id = "LegacyRoot"
+children = [
+  { component = "Button", control_id = "OpenProject", bindings = [{ id = "Legacy/OpenProject", event = "Click", route = "MenuAction.OpenProject" }], attributes = { text = "Open" } }
+]
+"#;
 
 #[test]
 fn editor_ui_host_runtime_projects_builtin_workbench_template_into_slint_projection() {
@@ -14,16 +106,18 @@ fn editor_ui_host_runtime_projects_builtin_workbench_template_into_slint_project
 
     assert_eq!(
         runtime
-            .component_descriptor("WorkbenchShell")
+            .component_descriptor("UiHostWindow")
             .unwrap()
             .binding_namespace,
-        "WorkbenchShell"
+        "UiHostWindow"
     );
 
-    let projection = runtime.project_document("workbench.shell").unwrap();
+    let projection = runtime
+        .project_document(UI_HOST_WINDOW_DOCUMENT_ID)
+        .unwrap();
 
-    assert_eq!(projection.document_id, "workbench.shell");
-    assert_eq!(projection.root.component, "WorkbenchShell");
+    assert_eq!(projection.document_id, UI_HOST_WINDOW_DOCUMENT_ID);
+    assert_eq!(projection.root.component, "UiHostWindow");
     assert_eq!(
         projection
             .root
@@ -42,6 +136,99 @@ fn editor_ui_host_runtime_projects_builtin_workbench_template_into_slint_project
     assert_eq!(open_project.binding.path().event_kind, UiEventKind::Click);
     assert_eq!(open_project.binding.path().view_id, "WorkbenchMenuBar");
     assert_eq!(open_project.binding.path().control_id, "OpenProject");
+}
+
+#[test]
+fn editor_ui_host_runtime_keeps_legacy_workbench_shell_document_alias() {
+    let mut runtime = EditorUiHostRuntime::default();
+    runtime.load_builtin_host_templates().unwrap();
+
+    let projection = runtime
+        .project_document(WORKBENCH_SHELL_DOCUMENT_ID)
+        .unwrap();
+    assert_eq!(projection.document_id, WORKBENCH_SHELL_DOCUMENT_ID);
+    assert_eq!(projection.root.component, "UiHostWindow");
+
+    let surface = runtime
+        .build_shared_surface(WORKBENCH_SHELL_DOCUMENT_ID)
+        .unwrap();
+    assert_eq!(
+        surface.tree.tree_id.0,
+        format!("template.{WORKBENCH_SHELL_DOCUMENT_ID}")
+    );
+}
+
+#[test]
+fn editor_ui_host_runtime_projects_asset_document_source_into_slint_projection() {
+    let mut runtime = EditorUiHostRuntime::default();
+    runtime
+        .register_document_source("workbench.shell.asset", ASSET_WORKBENCH_DOCUMENT_TOML)
+        .unwrap();
+    runtime
+        .register_binding(
+            "WorkbenchMenuBar/OpenProject",
+            zircon_editor_ui::EditorUiBinding::new(
+                "WorkbenchMenuBar",
+                "OpenProject",
+                zircon_editor_ui::EditorUiEventKind::Click,
+                zircon_editor_ui::EditorUiBindingPayload::menu_action("OpenProject"),
+            ),
+        )
+        .unwrap();
+    runtime
+        .register_binding(
+            "WorkbenchMenuBar/SaveProject",
+            zircon_editor_ui::EditorUiBinding::new(
+                "WorkbenchMenuBar",
+                "SaveProject",
+                zircon_editor_ui::EditorUiEventKind::Click,
+                zircon_editor_ui::EditorUiBindingPayload::menu_action("SaveProject"),
+            ),
+        )
+        .unwrap();
+
+    let projection = runtime.project_document("workbench.shell.asset").unwrap();
+
+    assert_eq!(projection.document_id, "workbench.shell.asset");
+    assert_eq!(projection.root.component, "UiHostWindow");
+    assert_eq!(
+        projection
+            .root
+            .children
+            .iter()
+            .map(|node| node.component.as_str())
+            .collect::<Vec<_>>(),
+        vec!["UiHostToolbar", "StatusBar"]
+    );
+}
+
+#[test]
+fn generated_legacy_template_asset_source_opens_in_ui_asset_editor_session() {
+    let document = UiTemplateLoader::load_toml_str(SIMPLE_LEGACY_TEMPLATE_TOML).unwrap();
+    let source = UiLegacyTemplateAdapter::layout_source(
+        "generated.legacy",
+        "Generated Legacy Layout",
+        &document,
+    )
+    .unwrap();
+    let route = UiAssetEditorRoute::new(
+        "generated.legacy.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Design,
+    );
+
+    let session =
+        UiAssetEditorSession::from_source(route, source, UiSize::new(1280.0, 720.0)).unwrap();
+
+    assert!(session.diagnostics().is_empty());
+    assert_eq!(
+        session
+            .reflection_model()
+            .selection
+            .primary_node_id
+            .as_deref(),
+        Some("root")
+    );
 }
 
 #[test]
@@ -326,7 +513,9 @@ fn editor_ui_host_runtime_projects_builtin_inspector_surface_template_into_slint
 fn editor_ui_host_runtime_registers_projection_bindings_as_route_stubs() {
     let mut runtime = EditorUiHostRuntime::default();
     runtime.load_builtin_workbench_shell().unwrap();
-    let mut projection = runtime.project_document("workbench.shell").unwrap();
+    let mut projection = runtime
+        .project_document(UI_HOST_WINDOW_DOCUMENT_ID)
+        .unwrap();
     let mut service = EditorUiControlService::default();
 
     runtime
@@ -347,14 +536,16 @@ fn editor_ui_host_runtime_registers_projection_bindings_as_route_stubs() {
 fn editor_ui_compatibility_harness_captures_projection_shape_for_parity_checks() {
     let mut runtime = EditorUiHostRuntime::default();
     runtime.load_builtin_workbench_shell().unwrap();
-    let projection = runtime.project_document("workbench.shell").unwrap();
+    let projection = runtime
+        .project_document(UI_HOST_WINDOW_DOCUMENT_ID)
+        .unwrap();
 
     let snapshot = EditorUiCompatibilityHarness::capture_projection_snapshot(&projection);
 
     assert_eq!(
         snapshot.components,
         vec![
-            "WorkbenchShell",
+            "UiHostWindow",
             "VerticalBox",
             "UiHostToolbar",
             "UiHostIconButton",
@@ -394,7 +585,9 @@ fn editor_ui_compatibility_harness_captures_projection_shape_for_parity_checks()
 fn editor_ui_host_runtime_builds_host_node_model_with_routes_and_attributes() {
     let mut runtime = EditorUiHostRuntime::default();
     runtime.load_builtin_workbench_shell().unwrap();
-    let mut projection = runtime.project_document("workbench.shell").unwrap();
+    let mut projection = runtime
+        .project_document(UI_HOST_WINDOW_DOCUMENT_ID)
+        .unwrap();
     let mut service = EditorUiControlService::default();
     runtime
         .register_projection_routes(&mut service, &mut projection)
@@ -402,7 +595,7 @@ fn editor_ui_host_runtime_builds_host_node_model_with_routes_and_attributes() {
 
     let host_model = runtime.build_host_model(&projection).unwrap();
 
-    assert_eq!(host_model.document_id, "workbench.shell");
+    assert_eq!(host_model.document_id, UI_HOST_WINDOW_DOCUMENT_ID);
     assert_eq!(
         host_model
             .nodes
@@ -410,7 +603,7 @@ fn editor_ui_host_runtime_builds_host_node_model_with_routes_and_attributes() {
             .map(|node| node.component.as_str())
             .collect::<Vec<_>>(),
         vec![
-            "WorkbenchShell",
+            "UiHostWindow",
             "VerticalBox",
             "UiHostToolbar",
             "UiHostIconButton",
@@ -488,7 +681,9 @@ fn editor_ui_host_runtime_builds_host_node_model_with_routes_and_attributes() {
 fn editor_ui_compatibility_harness_captures_host_model_routes_and_attributes() {
     let mut runtime = EditorUiHostRuntime::default();
     runtime.load_builtin_workbench_shell().unwrap();
-    let mut projection = runtime.project_document("workbench.shell").unwrap();
+    let mut projection = runtime
+        .project_document(UI_HOST_WINDOW_DOCUMENT_ID)
+        .unwrap();
     let mut service = EditorUiControlService::default();
     runtime
         .register_projection_routes(&mut service, &mut projection)
@@ -519,7 +714,9 @@ fn editor_ui_compatibility_harness_captures_host_model_routes_and_attributes() {
 fn slint_ui_host_adapter_builds_generic_projection_from_host_model() {
     let mut runtime = EditorUiHostRuntime::default();
     runtime.load_builtin_workbench_shell().unwrap();
-    let mut projection = runtime.project_document("workbench.shell").unwrap();
+    let mut projection = runtime
+        .project_document(UI_HOST_WINDOW_DOCUMENT_ID)
+        .unwrap();
     let mut service = EditorUiControlService::default();
     runtime
         .register_projection_routes(&mut service, &mut projection)
@@ -528,7 +725,7 @@ fn slint_ui_host_adapter_builds_generic_projection_from_host_model() {
 
     let slint_projection = SlintUiHostAdapter::build_projection(&host_model);
 
-    assert_eq!(slint_projection.document_id, "workbench.shell");
+    assert_eq!(slint_projection.document_id, UI_HOST_WINDOW_DOCUMENT_ID);
     assert_eq!(
         slint_projection
             .nodes
@@ -603,7 +800,9 @@ fn slint_ui_host_adapter_builds_generic_projection_from_host_model() {
 fn editor_ui_host_runtime_builds_slint_host_projection_and_snapshot() {
     let mut runtime = EditorUiHostRuntime::default();
     runtime.load_builtin_workbench_shell().unwrap();
-    let mut projection = runtime.project_document("workbench.shell").unwrap();
+    let mut projection = runtime
+        .project_document(UI_HOST_WINDOW_DOCUMENT_ID)
+        .unwrap();
     let mut service = EditorUiControlService::default();
     runtime
         .register_projection_routes(&mut service, &mut projection)
@@ -637,12 +836,20 @@ fn editor_ui_host_runtime_builds_shared_surface_for_builtin_template() {
     let mut runtime = EditorUiHostRuntime::default();
     runtime.load_builtin_workbench_shell().unwrap();
 
-    let surface = runtime.build_shared_surface("workbench.shell").unwrap();
+    let surface = runtime
+        .build_shared_surface(UI_HOST_WINDOW_DOCUMENT_ID)
+        .unwrap();
 
-    assert_eq!(surface.tree.tree_id.0, "template.workbench.shell");
+    assert_eq!(
+        surface.tree.tree_id.0,
+        format!("template.{UI_HOST_WINDOW_DOCUMENT_ID}")
+    );
     assert_eq!(surface.tree.roots.len(), 1);
     assert_eq!(surface.tree.nodes.len(), 26);
-    assert_eq!(surface.render_extract.tree_id.0, "template.workbench.shell");
+    assert_eq!(
+        surface.render_extract.tree_id.0,
+        format!("template.{UI_HOST_WINDOW_DOCUMENT_ID}")
+    );
     assert_eq!(surface.render_extract.list.commands.len(), 26);
 
     let open_project = surface
@@ -673,13 +880,15 @@ fn editor_ui_host_runtime_builds_shared_surface_for_builtin_template() {
 fn editor_ui_compatibility_harness_captures_shared_surface_snapshot() {
     let mut runtime = EditorUiHostRuntime::default();
     runtime.load_builtin_workbench_shell().unwrap();
-    let surface = runtime.build_shared_surface("workbench.shell").unwrap();
+    let surface = runtime
+        .build_shared_surface(UI_HOST_WINDOW_DOCUMENT_ID)
+        .unwrap();
 
     let snapshot = EditorUiCompatibilityHarness::capture_shared_surface_snapshot(&surface);
 
     assert!(snapshot
         .surface_nodes
-        .contains(&"root|WorkbenchShell|WorkbenchShellRoot".to_string()));
+        .contains(&"root|UiHostWindow|UiHostWindowRoot".to_string()));
     assert!(snapshot.surface_nodes.contains(
         &"root/WorkbenchScaffold_0/WorkbenchMenuBarRoot_0/OpenProject_0|UiHostIconButton|OpenProject"
             .to_string()
@@ -696,19 +905,23 @@ fn editor_ui_compatibility_harness_captures_shared_surface_snapshot() {
         .contains(&"WorkbenchMenuBar/OpenProject".to_string()));
     assert!(snapshot
         .binding_ids
-        .contains(&"WorkbenchShell/ActivateMainPage".to_string()));
+        .contains(&"UiHostWindow/ActivateMainPage".to_string()));
 }
 
 #[test]
 fn editor_ui_host_runtime_builds_laid_out_host_model_from_shared_surface_authority() {
     let mut runtime = EditorUiHostRuntime::default();
     runtime.load_builtin_workbench_shell().unwrap();
-    let mut projection = runtime.project_document("workbench.shell").unwrap();
+    let mut projection = runtime
+        .project_document(UI_HOST_WINDOW_DOCUMENT_ID)
+        .unwrap();
     let mut service = EditorUiControlService::default();
     runtime
         .register_projection_routes(&mut service, &mut projection)
         .unwrap();
-    let mut surface = runtime.build_shared_surface("workbench.shell").unwrap();
+    let mut surface = runtime
+        .build_shared_surface(UI_HOST_WINDOW_DOCUMENT_ID)
+        .unwrap();
     surface.compute_layout(UiSize::new(1280.0, 720.0)).unwrap();
 
     let host_model = runtime
@@ -760,12 +973,16 @@ fn editor_ui_compatibility_harness_captures_shared_layout_frames_from_surface_an
 {
     let mut runtime = EditorUiHostRuntime::default();
     runtime.load_builtin_workbench_shell().unwrap();
-    let mut projection = runtime.project_document("workbench.shell").unwrap();
+    let mut projection = runtime
+        .project_document(UI_HOST_WINDOW_DOCUMENT_ID)
+        .unwrap();
     let mut service = EditorUiControlService::default();
     runtime
         .register_projection_routes(&mut service, &mut projection)
         .unwrap();
-    let mut surface = runtime.build_shared_surface("workbench.shell").unwrap();
+    let mut surface = runtime
+        .build_shared_surface(UI_HOST_WINDOW_DOCUMENT_ID)
+        .unwrap();
     surface.compute_layout(UiSize::new(1280.0, 720.0)).unwrap();
     let host_model = runtime
         .build_host_model_with_surface(&projection, &surface)

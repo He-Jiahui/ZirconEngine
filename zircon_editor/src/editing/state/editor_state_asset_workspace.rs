@@ -1,6 +1,5 @@
 use zircon_asset::{EditorAssetCatalogSnapshotRecord, EditorAssetDetailsRecord};
-use zircon_manager::ResourceStatusRecord;
-use zircon_resource::ResourceKind;
+use zircon_resource::{ResourceKind, ResourceRecord};
 
 use crate::snapshot::{AssetUtilityTab, AssetViewMode};
 
@@ -15,7 +14,7 @@ impl EditorState {
         self.asset_workspace.sync_selected_details(details);
     }
 
-    pub fn sync_asset_resources(&mut self, resources: Vec<ResourceStatusRecord>) {
+    pub fn sync_asset_resources(&mut self, resources: Vec<ResourceRecord>) {
         self.asset_workspace.sync_resources(resources);
     }
 

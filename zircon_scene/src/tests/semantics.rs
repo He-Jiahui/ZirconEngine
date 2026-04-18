@@ -1,6 +1,4 @@
-use crate::{
-    ComponentData, DefaultLevelManager, EntityIdentity, RuntimeObject, RuntimeSystem,
-};
+use crate::{ComponentData, DefaultLevelManager, EntityIdentity, RuntimeObject, RuntimeSystem};
 
 #[derive(Clone, Debug)]
 struct DemoComponent;

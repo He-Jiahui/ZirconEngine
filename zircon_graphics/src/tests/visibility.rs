@@ -7,8 +7,8 @@ use zircon_scene::{
 
 use crate::{
     VisibilityBatchKey, VisibilityBvhUpdateStrategy, VisibilityContext, VisibilityDrawCommand,
-    VisibilityVirtualGeometryCluster, VisibilityVirtualGeometryFeedback,
-    VisibilityVirtualGeometryPageUploadPlan,
+    VisibilityVirtualGeometryCluster, VisibilityVirtualGeometryDrawSegment,
+    VisibilityVirtualGeometryFeedback, VisibilityVirtualGeometryPageUploadPlan,
 };
 
 #[test]
@@ -951,8 +951,190 @@ fn visibility_context_holds_resident_child_page_one_frame_when_frontier_merges_b
             resident_pages: vec![100, 200],
             requested_pages: vec![300],
             dirty_requested_pages: Vec::new(),
+            evictable_pages: Vec::new(),
+        }
+    );
+    assert_eq!(
+        settled_context.virtual_geometry_feedback,
+        VisibilityVirtualGeometryFeedback {
+            visible_cluster_ids: vec![10],
+            requested_pages: vec![300],
+            evictable_pages: Vec::new(),
+        }
+    );
+}
+
+#[test]
+fn visibility_context_requests_nonresident_ancestor_page_and_holds_descendants_when_frontier_collapses_multiple_levels(
+) {
+    let mut world = World::new();
+    remove_default_meshes(&mut world);
+
+    let mesh = world.spawn_mesh_node(
+        model_handle("res://models/virtual_geometry.obj"),
+        material_handle("res://materials/virtual_geometry.material.toml"),
+    );
+    world
+        .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
+        .expect("mesh transform should update");
+
+    let mut previous_extract = world.to_render_frame_extract();
+    previous_extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
+        cluster_budget: 2,
+        page_budget: 3,
+        clusters: vec![
+            virtual_cluster(mesh, 10, 100, 0, None, Vec3::ZERO, 12.0),
+            virtual_cluster(mesh, 20, 200, 1, Some(10), Vec3::new(0.1, 0.0, 0.0), 9.0),
+            virtual_cluster(mesh, 30, 300, 1, Some(10), Vec3::new(-0.1, 0.0, 0.0), 8.0),
+            virtual_cluster(mesh, 40, 400, 2, Some(20), Vec3::new(0.16, 0.0, 0.0), 6.5),
+            virtual_cluster(mesh, 50, 500, 2, Some(30), Vec3::new(-0.16, 0.0, 0.0), 5.5),
+        ],
+        pages: vec![
+            virtual_page(100, true),
+            virtual_page(200, true),
+            virtual_page(300, true),
+            virtual_page(400, true),
+            virtual_page(500, true),
+        ],
+    });
+    let previous_context = VisibilityContext::from(&previous_extract);
+
+    assert_eq!(
+        previous_context.virtual_geometry_feedback.visible_cluster_ids,
+        vec![40, 50],
+        "expected the fully resident previous frame to refine all the way to the grandchild frontier before testing multi-level merge-back"
+    );
+
+    let mut current_extract = world.to_render_frame_extract();
+    current_extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
+        cluster_budget: 2,
+        page_budget: 3,
+        clusters: vec![
+            virtual_cluster(mesh, 10, 100, 0, None, Vec3::ZERO, 12.0),
+            virtual_cluster(mesh, 20, 200, 1, Some(10), Vec3::new(0.1, 0.0, 0.0), 9.0),
+            virtual_cluster(mesh, 30, 300, 1, Some(10), Vec3::new(-0.1, 0.0, 0.0), 8.0),
+            virtual_cluster(mesh, 40, 400, 2, Some(20), Vec3::new(0.16, 0.0, 0.0), 6.5),
+            virtual_cluster(mesh, 50, 500, 2, Some(30), Vec3::new(-0.16, 0.0, 0.0), 5.5),
+        ],
+        pages: vec![
+            virtual_page(100, true),
+            virtual_page(200, true),
+            virtual_page(300, false),
+            virtual_page(400, true),
+            virtual_page(500, true),
+        ],
+    });
+
+    let context = VisibilityContext::from_extract_with_history(
+        &current_extract,
+        Some(&previous_context.history_snapshot),
+    );
+
+    assert_eq!(
+        context.virtual_geometry_visible_clusters,
+        vec![VisibilityVirtualGeometryCluster {
+            entity: mesh,
+            cluster_id: 10,
+            page_id: 100,
+            lod_level: 0,
+            cluster_ordinal: 0,
+            cluster_count: 5,
+            resident: true,
+        }]
+    );
+    assert_eq!(
+        context.virtual_geometry_page_upload_plan,
+        VisibilityVirtualGeometryPageUploadPlan {
+            resident_pages: vec![100, 200, 400, 500],
+            requested_pages: vec![300],
+            dirty_requested_pages: vec![300],
+            evictable_pages: vec![200],
+        },
+        "expected multi-level frontier collapse to request the missing ancestor page and keep previously active resident descendants out of the first evictable set"
+    );
+    assert_eq!(
+        context.virtual_geometry_feedback,
+        VisibilityVirtualGeometryFeedback {
+            visible_cluster_ids: vec![10],
+            requested_pages: vec![300],
             evictable_pages: vec![200],
         }
+    );
+}
+
+#[test]
+fn visibility_context_keeps_resident_grandchild_pages_hot_while_multi_level_cascade_request_remains_pending(
+) {
+    let mut world = World::new();
+    remove_default_meshes(&mut world);
+
+    let mesh = world.spawn_mesh_node(
+        model_handle("res://models/virtual_geometry.obj"),
+        material_handle("res://materials/virtual_geometry.material.toml"),
+    );
+    world
+        .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
+        .expect("mesh transform should update");
+
+    let mut previous_extract = world.to_render_frame_extract();
+    previous_extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
+        cluster_budget: 2,
+        page_budget: 3,
+        clusters: vec![
+            virtual_cluster(mesh, 10, 100, 0, None, Vec3::ZERO, 12.0),
+            virtual_cluster(mesh, 20, 200, 1, Some(10), Vec3::new(0.1, 0.0, 0.0), 9.0),
+            virtual_cluster(mesh, 30, 300, 1, Some(10), Vec3::new(-0.1, 0.0, 0.0), 8.0),
+            virtual_cluster(mesh, 40, 400, 2, Some(20), Vec3::new(0.16, 0.0, 0.0), 6.5),
+            virtual_cluster(mesh, 50, 500, 2, Some(30), Vec3::new(-0.16, 0.0, 0.0), 5.5),
+        ],
+        pages: vec![
+            virtual_page(100, true),
+            virtual_page(200, true),
+            virtual_page(300, true),
+            virtual_page(400, true),
+            virtual_page(500, true),
+        ],
+    });
+    let previous_context = VisibilityContext::from(&previous_extract);
+
+    let mut current_extract = world.to_render_frame_extract();
+    current_extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
+        cluster_budget: 2,
+        page_budget: 3,
+        clusters: vec![
+            virtual_cluster(mesh, 10, 100, 0, None, Vec3::ZERO, 12.0),
+            virtual_cluster(mesh, 20, 200, 1, Some(10), Vec3::new(0.1, 0.0, 0.0), 9.0),
+            virtual_cluster(mesh, 30, 300, 1, Some(10), Vec3::new(-0.1, 0.0, 0.0), 8.0),
+            virtual_cluster(mesh, 40, 400, 2, Some(20), Vec3::new(0.16, 0.0, 0.0), 6.5),
+            virtual_cluster(mesh, 50, 500, 2, Some(30), Vec3::new(-0.16, 0.0, 0.0), 5.5),
+        ],
+        pages: vec![
+            virtual_page(100, true),
+            virtual_page(200, true),
+            virtual_page(300, false),
+            virtual_page(400, true),
+            virtual_page(500, true),
+        ],
+    });
+
+    let held_context = VisibilityContext::from_extract_with_history(
+        &current_extract,
+        Some(&previous_context.history_snapshot),
+    );
+    let settled_context = VisibilityContext::from_extract_with_history(
+        &current_extract,
+        Some(&held_context.history_snapshot),
+    );
+
+    assert_eq!(
+        settled_context.virtual_geometry_page_upload_plan,
+        VisibilityVirtualGeometryPageUploadPlan {
+            resident_pages: vec![100, 200, 400, 500],
+            requested_pages: vec![300],
+            dirty_requested_pages: Vec::new(),
+            evictable_pages: vec![200],
+        },
+        "expected deeper split-merge hysteresis to keep resident grandchild pages hot while the ancestor cascade request is still pending, instead of exposing them to eviction on the second collapsed frame"
     );
     assert_eq!(
         settled_context.virtual_geometry_feedback,
@@ -961,6 +1143,90 @@ fn visibility_context_holds_resident_child_page_one_frame_when_frontier_merges_b
             requested_pages: vec![300],
             evictable_pages: vec![200],
         }
+    );
+}
+
+#[test]
+fn visibility_context_splits_virtual_geometry_draw_segments_across_parent_lineages_even_when_page_matches(
+) {
+    let mut world = World::new();
+    remove_default_meshes(&mut world);
+
+    let mesh = world.spawn_mesh_node(
+        model_handle("res://models/virtual_geometry.obj"),
+        material_handle("res://materials/virtual_geometry.material.toml"),
+    );
+    world
+        .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
+        .expect("mesh transform should update");
+
+    let mut extract = world.to_render_frame_extract();
+    extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
+        cluster_budget: 2,
+        page_budget: 2,
+        clusters: vec![
+            virtual_cluster(mesh, 10, 100, 0, None, Vec3::ZERO, 12.0),
+            virtual_cluster(mesh, 20, 200, 1, Some(10), Vec3::new(0.1, 0.0, 0.0), 9.0),
+            virtual_cluster(mesh, 30, 300, 1, Some(10), Vec3::new(-0.1, 0.0, 0.0), 8.0),
+            virtual_cluster(mesh, 40, 400, 2, Some(20), Vec3::new(0.16, 0.0, 0.0), 6.5),
+            virtual_cluster(mesh, 50, 400, 2, Some(30), Vec3::new(-0.16, 0.0, 0.0), 5.5),
+        ],
+        pages: vec![
+            virtual_page(100, true),
+            virtual_page(200, true),
+            virtual_page(300, true),
+            virtual_page(400, true),
+        ],
+    });
+
+    let context = VisibilityContext::from(&extract);
+
+    assert_eq!(
+        context.virtual_geometry_visible_clusters,
+        vec![
+            VisibilityVirtualGeometryCluster {
+                entity: mesh,
+                cluster_id: 40,
+                page_id: 400,
+                lod_level: 2,
+                cluster_ordinal: 3,
+                cluster_count: 5,
+                resident: true,
+            },
+            VisibilityVirtualGeometryCluster {
+                entity: mesh,
+                cluster_id: 50,
+                page_id: 400,
+                lod_level: 2,
+                cluster_ordinal: 4,
+                cluster_count: 5,
+                resident: true,
+            },
+        ]
+    );
+    assert_eq!(
+        context.virtual_geometry_draw_segments,
+        vec![
+            VisibilityVirtualGeometryDrawSegment {
+                entity: mesh,
+                cluster_id: 40,
+                page_id: 400,
+                cluster_ordinal: 3,
+                cluster_span_count: 1,
+                cluster_count: 5,
+                lod_level: 2,
+            },
+            VisibilityVirtualGeometryDrawSegment {
+                entity: mesh,
+                cluster_id: 50,
+                page_id: 400,
+                cluster_ordinal: 4,
+                cluster_span_count: 1,
+                cluster_count: 5,
+                lod_level: 2,
+            },
+        ],
+        "expected visibility-owned unified indirect boundaries to stay split across different parent lineages even when the refined clusters share one resident page"
     );
 }
 

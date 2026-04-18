@@ -6,8 +6,8 @@ use crate::host::slint_host::floating_window_projection::{
 use zircon_ui::UiSize;
 
 #[test]
-fn child_window_hierarchy_pointer_move_prefers_projected_floating_window_content_frame_over_outer_window_frame()
- {
+fn child_window_hierarchy_pointer_move_prefers_projected_floating_window_content_frame_over_outer_window_frame(
+) {
     let _guard = lock_env();
 
     let harness =
@@ -40,6 +40,42 @@ fn child_window_hierarchy_pointer_move_prefers_projected_floating_window_content
 }
 
 #[test]
+fn child_window_hierarchy_pointer_falls_back_to_native_window_bounds_when_projection_bundle_is_missing(
+) {
+    let _guard = lock_env();
+
+    let harness =
+        ChildWindowHostHarness::new("zircon_slint_child_window_floating_content_native_fallback");
+    let child = harness.detach_view_to_child_window("editor.hierarchy#1", "window:hierarchy");
+    let native_bounds = child.get_native_window_bounds();
+    let expected_size = {
+        let mut host = harness.host.borrow_mut();
+        let window_id = MainPageId::new("window:hierarchy");
+        host.floating_window_projection_bundle = FloatingWindowProjectionBundle::default();
+        host.shell_geometry
+            .as_mut()
+            .expect("child window host should have shell geometry")
+            .floating_window_frames
+            .insert(window_id, ShellFrame::new(18.0, 22.0, 96.0, 64.0));
+        UiSize::new(
+            native_bounds.width.max(0.0),
+            (native_bounds.height
+                - host.chrome_metrics.document_header_height
+                - host.chrome_metrics.separator_thickness)
+                .max(0.0),
+        )
+    };
+
+    child.invoke_hierarchy_pointer_moved(24.0, 24.0, 0.0, 0.0);
+
+    let host = harness.host.borrow();
+    assert_eq!(
+        host.hierarchy_pointer_size, expected_size,
+        "child-window fallback should derive content size from native window bounds once the cached projection bundle is missing"
+    );
+}
+
+#[test]
 fn child_window_host_recompute_caches_floating_window_projection_bundle_for_detached_window() {
     let _guard = lock_env();
 
@@ -63,9 +99,6 @@ fn child_window_host_recompute_caches_floating_window_projection_bundle_for_deta
     let expected_outer_frame = resolve_floating_window_projection_base_outer_frame(
         &model.floating_windows[window_index],
         window_index,
-        host.shell_geometry
-            .as_ref()
-            .expect("child window host should have shell geometry"),
         resolve_floating_window_projection_shared_source(
             &host.floating_window_source_bridge.source_frames(),
         ),

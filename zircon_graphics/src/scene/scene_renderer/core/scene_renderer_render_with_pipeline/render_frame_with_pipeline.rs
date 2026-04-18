@@ -40,6 +40,8 @@ impl SceneRenderer {
             indirect_segment_count,
             indirect_args_buffer,
             indirect_args_count,
+            indirect_draw_ref_buffer,
+            indirect_segment_buffer,
         ) = {
             let (history_textures, history_available) = prepare_history_textures(
                 &self.backend.device,
@@ -70,6 +72,8 @@ impl SceneRenderer {
             indirect_segment_count,
             indirect_args_buffer,
             indirect_args_count,
+            indirect_draw_ref_buffer,
+            indirect_segment_buffer,
         )?;
         self.generation += 1;
 

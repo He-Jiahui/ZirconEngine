@@ -3,13 +3,13 @@ mod profile_bootstrap;
 
 #[test]
 fn runtime_sources_route_preview_through_render_server_without_wgpu_surface_bindings() {
-    let lib_source = include_str!("../lib.rs");
+    let lib_source = include_str!("../../lib.rs");
     let production_lib_source = lib_source
         .split("\n#[cfg(test)]")
         .next()
         .unwrap_or(lib_source);
-    let presenter_source = include_str!("../runtime_presenter.rs");
-    let manifest = include_str!("../../Cargo.toml");
+    let presenter_source = include_str!("../../runtime_presenter.rs");
+    let manifest = include_str!("../../../Cargo.toml");
 
     assert!(
         presenter_source.contains("resolve_render_server"),
@@ -54,8 +54,8 @@ fn runtime_sources_route_preview_through_render_server_without_wgpu_surface_bind
 #[test]
 fn runtime_viewport_interaction_is_private_to_entry_camera_controller() {
     let runtime_app_source = include_str!("../runtime_entry_app/mod.rs");
-    let runtime_construct_source = include_str!("runtime_entry_app/construct.rs");
-    let runtime_handler_source = include_str!("runtime_entry_app/application_handler.rs");
+    let runtime_construct_source = include_str!("../runtime_entry_app/construct.rs");
+    let runtime_handler_source = include_str!("../runtime_entry_app/application_handler.rs");
 
     assert!(
         runtime_app_source.contains("mod camera_controller;"),
@@ -82,7 +82,7 @@ fn runtime_viewport_interaction_is_private_to_entry_camera_controller() {
 
 #[test]
 fn runtime_input_protocol_is_owned_by_input_subsystem() {
-    let runtime_handler_source = include_str!("runtime_entry_app/application_handler.rs");
+    let runtime_handler_source = include_str!("../runtime_entry_app/application_handler.rs");
 
     assert!(
         runtime_handler_source.contains("use zircon_input::{InputButton, InputEvent};"),
@@ -107,6 +107,8 @@ fn entry_subsystem_is_split_into_module_sets_run_modes_and_runtime_app_tree() {
         "entry_runner/headless.rs",
         "module_set/mod.rs",
         "module_set/builtin_registry.rs",
+        "module_set/builtin_registry/core_modules.rs",
+        "module_set/builtin_registry/feature_modules.rs",
         "module_set/profile_sets.rs",
         "module_set/editor_modules.rs",
         "module_set/runtime_modules.rs",

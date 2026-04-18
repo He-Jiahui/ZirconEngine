@@ -1,6 +1,6 @@
 use crate::types::VirtualGeometryPreparePage;
 
-use super::super::virtual_geometry_runtime_state::VirtualGeometryRuntimeState;
+use super::super::VirtualGeometryRuntimeState;
 
 pub(super) fn resident_pages(
     state: &VirtualGeometryRuntimeState,

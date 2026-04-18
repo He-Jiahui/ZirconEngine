@@ -1,6 +1,4 @@
-use super::hybrid_gi_probe_residency_state::HybridGiProbeResidencyState;
-use super::hybrid_gi_probe_update_request::HybridGiProbeUpdateRequest;
-use super::hybrid_gi_runtime_state::HybridGiRuntimeState;
+use super::{HybridGiProbeResidencyState, HybridGiProbeUpdateRequest, HybridGiRuntimeState};
 
 impl HybridGiRuntimeState {
     pub(crate) fn probe_slot(&self, probe_id: u32) -> Option<u32> {

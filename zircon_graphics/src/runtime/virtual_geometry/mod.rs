@@ -1,3 +1,4 @@
+mod declarations;
 mod extract_registration;
 mod pending_completion;
 mod plan_ingestion;
@@ -6,14 +7,8 @@ mod residency_management;
 mod snapshot;
 #[cfg(test)]
 mod test_accessors;
-mod virtual_geometry_page_request;
-#[cfg(test)]
-mod virtual_geometry_page_residency_state;
-mod virtual_geometry_runtime_snapshot;
-mod virtual_geometry_runtime_state;
 
+pub(crate) use declarations::VirtualGeometryPageRequest;
 #[cfg(test)]
-pub(crate) use virtual_geometry_page_request::VirtualGeometryPageRequest;
-#[cfg(test)]
-pub(crate) use virtual_geometry_page_residency_state::VirtualGeometryPageResidencyState;
-pub(crate) use virtual_geometry_runtime_state::VirtualGeometryRuntimeState;
+pub(crate) use declarations::VirtualGeometryPageResidencyState;
+pub(crate) use declarations::VirtualGeometryRuntimeState;

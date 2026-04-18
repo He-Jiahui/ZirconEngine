@@ -1,4 +1,4 @@
-use super::super::hybrid_gi_runtime_state::HybridGiRuntimeState;
+use super::super::HybridGiRuntimeState;
 
 impl HybridGiRuntimeState {
     pub(in crate::runtime::hybrid_gi) fn promote_to_resident(&mut self, probe_id: u32) {

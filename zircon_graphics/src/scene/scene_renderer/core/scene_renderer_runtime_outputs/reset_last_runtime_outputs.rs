@@ -10,4 +10,6 @@ pub(in crate::scene::scene_renderer::core) fn reset_last_runtime_outputs(
     renderer.last_virtual_geometry_indirect_segment_count = 0;
     renderer.last_virtual_geometry_indirect_args_buffer = None;
     renderer.last_virtual_geometry_indirect_args_count = 0;
+    renderer.last_virtual_geometry_indirect_draw_refs_buffer = None;
+    renderer.last_virtual_geometry_indirect_segments_buffer = None;
 }

@@ -1,10 +1,11 @@
 use zircon_asset::ProjectManager;
 use zircon_core::CoreError;
-use zircon_manager::{LevelManager as LevelManagerFacade, LevelSummary, WorldHandle};
+use zircon_manager::LevelManager as LevelManagerFacade;
 use zircon_resource::ResourceLocator;
 
 use super::core_error::scene_core_error;
 use super::DefaultLevelManager;
+use crate::{LevelSummary, WorldHandle};
 
 impl LevelManagerFacade for DefaultLevelManager {
     fn create_default_level_handle(&self) -> WorldHandle {

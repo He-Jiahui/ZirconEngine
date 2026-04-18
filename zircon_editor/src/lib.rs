@@ -14,10 +14,11 @@ pub(crate) use workbench::{autolayout, layout, project, snapshot, view};
 pub use editing::intent::EditorIntent;
 pub use editing::state::EditorState;
 pub use editing::ui_asset::{
-    UiAssetDragDropPolicy, UiAssetEditorCommand, UiAssetEditorPanePresentation,
-    UiAssetEditorPreviewCanvasNode, UiAssetEditorSession, UiAssetEditorSessionError,
-    UiAssetEditorTreeEdit, UiAssetEditorTreeEditKind, UiAssetEditorUndoStack, UiAssetPreviewHost,
-    UiAssetSourceBuffer,
+    UiAssetDragDropPolicy, UiAssetEditorCommand, UiAssetEditorExternalEffect,
+    UiAssetEditorPanePresentation, UiAssetEditorPreviewCanvasNode, UiAssetEditorSession,
+    UiAssetEditorSessionError, UiAssetEditorSourceCursorSnapshot, UiAssetEditorTreeEdit,
+    UiAssetEditorTreeEditKind, UiAssetEditorUndoExternalEffects, UiAssetEditorUndoStack,
+    UiAssetPreviewHost, UiAssetSourceBuffer,
 };
 pub use editing::viewport::{GizmoAxis, ViewportFeedback, ViewportInput, ViewportState};
 pub use editor_event::{

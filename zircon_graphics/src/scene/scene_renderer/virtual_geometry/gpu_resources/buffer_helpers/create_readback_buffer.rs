@@ -1,6 +1,6 @@
 use super::buffer_size_for_words;
 
-pub(super) fn create_readback_buffer(
+pub(in crate::scene::scene_renderer::virtual_geometry::gpu_resources) fn create_readback_buffer(
     device: &wgpu::Device,
     label: &'static str,
     word_count: usize,

@@ -1,6 +1,9 @@
 use super::*;
 use crate::host::slint_host::callback_dispatch::dispatch_builtin_floating_window_focus_for_source;
-use crate::host::slint_host::floating_window_projection::resolve_floating_window_content_frame;
+use crate::host::slint_host::floating_window_projection::{
+    resolve_floating_window_projection_content_frame,
+    resolve_floating_window_projection_shared_source, resolve_native_floating_window_host_frame,
+};
 use crate::{ActivityDrawerSlot, MainPageId, ShellFrame};
 
 pub(crate) fn asset_surface_visible(
@@ -70,7 +73,7 @@ pub(crate) fn compute_window_menu_popup_height(
     content_height.min(available_height)
 }
 
-pub(crate) fn resolve_callback_source_window_id(ui: &WorkbenchShell) -> Option<MainPageId> {
+pub(crate) fn resolve_callback_source_window_id(ui: &UiHostWindow) -> Option<MainPageId> {
     if !ui.get_native_floating_window_mode() {
         return None;
     }
@@ -153,6 +156,35 @@ fn asset_surface_kind(surface_mode: &str) -> Option<ViewContentKind> {
 }
 
 impl SlintEditorHost {
+    pub(super) fn resolve_floating_window_content_frame_for_window(
+        &self,
+        window_id: &MainPageId,
+    ) -> Option<ShellFrame> {
+        self.floating_window_projection_bundle
+            .content_frame(window_id)
+            .or_else(|| {
+                let chrome = self.runtime.chrome_snapshot();
+                let model = WorkbenchViewModel::build(&chrome);
+                let window_index = model
+                    .floating_windows
+                    .iter()
+                    .position(|window| &window.window_id == window_id)?;
+                let shared_source = resolve_floating_window_projection_shared_source(
+                    &self.floating_window_source_bridge.source_frames(),
+                );
+                let native_window_hosts = self.editor_manager.native_window_hosts();
+                let host_frame =
+                    resolve_native_floating_window_host_frame(&native_window_hosts, window_id);
+                Some(resolve_floating_window_projection_content_frame(
+                    &model.floating_windows[window_index],
+                    window_index,
+                    shared_source,
+                    &self.chrome_metrics,
+                    host_frame,
+                ))
+            })
+    }
+
     pub(super) fn with_callback_source_window<T>(
         &mut self,
         source_window_id: Option<MainPageId>,
@@ -209,23 +241,14 @@ impl SlintEditorHost {
     }
 
     fn resolve_host_frame_backed_size_for_kind(&self, kind: ViewContentKind) -> Option<UiSize> {
-        let geometry = self.shell_geometry.as_ref()?;
-        let root_shell_frames = self.template_bridge.root_shell_frames();
-
         if let Some(window_id) = self.callback_source_window.as_ref() {
             return self
-                .floating_window_projection_bundle
-                .content_frame(window_id)
-                .and_then(frame_size)
-                .or_else(|| {
-                    frame_size(resolve_floating_window_content_frame(
-                        geometry,
-                        &self.chrome_metrics,
-                        window_id,
-                    ))
-                });
+                .resolve_floating_window_content_frame_for_window(window_id)
+                .and_then(frame_size);
         }
 
+        let geometry = self.shell_geometry.as_ref()?;
+        let root_shell_frames = self.template_bridge.root_shell_frames();
         let workbench = &self.runtime.chrome_snapshot().workbench;
         if let Some(region) = active_drawer_region_for_kind(workbench, kind) {
             return root_shell_frames
@@ -356,14 +379,14 @@ fn asset_uri_from_relative_path(relative: impl AsRef<Path>) -> Result<ResourceLo
 #[cfg(test)]
 mod tests {
     use super::resolve_callback_source_window_id;
+    use crate::host::slint_host::UiHostWindow;
     use crate::MainPageId;
-    use crate::host::slint_host::WorkbenchShell;
 
     #[test]
     fn resolve_callback_source_window_id_returns_none_for_root_shell() {
         i_slint_backend_testing::init_no_event_loop();
 
-        let ui = WorkbenchShell::new().expect("workbench shell should instantiate");
+        let ui = UiHostWindow::new().expect("workbench shell should instantiate");
         assert_eq!(resolve_callback_source_window_id(&ui), None);
     }
 
@@ -371,7 +394,7 @@ mod tests {
     fn resolve_callback_source_window_id_reads_native_child_window_identity() {
         i_slint_backend_testing::init_no_event_loop();
 
-        let ui = WorkbenchShell::new().expect("workbench shell should instantiate");
+        let ui = UiHostWindow::new().expect("workbench shell should instantiate");
         ui.set_native_floating_window_mode(true);
         ui.set_native_floating_window_id("window:native-preview".into());
 

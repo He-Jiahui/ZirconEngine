@@ -1,6 +1,6 @@
-use super::virtual_geometry_page_request::VirtualGeometryPageRequest;
-use super::virtual_geometry_page_residency_state::VirtualGeometryPageResidencyState;
-use super::virtual_geometry_runtime_state::VirtualGeometryRuntimeState;
+use super::{
+    VirtualGeometryPageRequest, VirtualGeometryPageResidencyState, VirtualGeometryRuntimeState,
+};
 
 impl VirtualGeometryRuntimeState {
     pub(crate) fn page_slot(&self, page_id: u32) -> Option<u32> {

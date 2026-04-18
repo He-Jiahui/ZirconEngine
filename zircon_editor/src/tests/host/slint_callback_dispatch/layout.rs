@@ -178,11 +178,11 @@ fn builtin_workbench_host_page_activation_dispatches_activate_main_page_from_tem
 
     let workbench_shell = bridge
         .host_projection()
-        .node_by_control_id("WorkbenchShellRoot")
+        .node_by_control_id("UiHostWindowRoot")
         .expect("workbench shell control should exist in builtin template projection");
     assert!(workbench_shell.routes.iter().any(|route| {
         route.event_kind == UiEventKind::Change
-            && route.binding_id == "WorkbenchShell/ActivateMainPage"
+            && route.binding_id == "UiHostWindow/ActivateMainPage"
     }));
 
     let effects =

@@ -1,6 +1,9 @@
 ---
 related_code:
-  - zircon_scene/src/components.rs
+  - zircon_scene/src/components/mod.rs
+  - zircon_scene/src/components/viewport.rs
+  - zircon_scene/src/components/render_extract.rs
+  - zircon_scene/src/components/gizmo.rs
   - zircon_scene/src/world/render.rs
   - zircon_graphics/src/scene/mod.rs
   - zircon_graphics/src/scene/resources/mod.rs
@@ -9,6 +12,9 @@ related_code:
   - zircon_graphics/src/scene/scene_renderer/mesh/mod.rs
   - zircon_graphics/src/scene/scene_renderer/overlay/mod.rs
   - zircon_graphics/src/scene/scene_renderer/overlay/viewport_overlay_renderer/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/overlay/viewport_overlay_renderer/record/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/overlay/viewport_overlay_renderer/record/scene_content/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/overlay/viewport_overlay_renderer/record/overlays/mod.rs
   - zircon_graphics/src/scene/scene_renderer/overlay/passes/mod.rs
   - zircon_graphics/src/scene/scene_renderer/overlay/passes/scene_gizmo_pass/mod.rs
   - zircon_graphics/src/scene/scene_renderer/overlay/icons/viewport_icon_atlas/mod.rs
@@ -28,7 +34,7 @@ related_code:
   - zircon_editor/src/editing/viewport/projection.rs
   - zircon_editor/src/host/slint_host/app.rs
   - zircon_editor/src/host/slint_host/ui.rs
-- zircon_editor/src/host/slint_host/viewport/mod.rs
+  - zircon_editor/src/host/slint_host/viewport/mod.rs
   - zircon_editor/src/host/binding_dispatch/mod.rs
   - zircon_editor/src/editor_event/types.rs
   - zircon_editor/src/editor_event/runtime.rs
@@ -41,7 +47,10 @@ related_code:
   - zircon_editor/src/tests/host/binding_dispatch.rs
   - zircon_editor/src/tests/editing/viewport.rs
 implementation_files:
-  - zircon_scene/src/components.rs
+  - zircon_scene/src/components/mod.rs
+  - zircon_scene/src/components/viewport.rs
+  - zircon_scene/src/components/render_extract.rs
+  - zircon_scene/src/components/gizmo.rs
   - zircon_scene/src/world/render.rs
   - zircon_graphics/src/scene/mod.rs
   - zircon_graphics/src/scene/resources/mod.rs
@@ -50,6 +59,9 @@ implementation_files:
   - zircon_graphics/src/scene/scene_renderer/mesh/mod.rs
   - zircon_graphics/src/scene/scene_renderer/overlay/mod.rs
   - zircon_graphics/src/scene/scene_renderer/overlay/viewport_overlay_renderer/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/overlay/viewport_overlay_renderer/record/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/overlay/viewport_overlay_renderer/record/scene_content/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/overlay/viewport_overlay_renderer/record/overlays/mod.rs
   - zircon_graphics/src/scene/scene_renderer/overlay/passes/mod.rs
   - zircon_graphics/src/scene/scene_renderer/overlay/passes/scene_gizmo_pass/mod.rs
   - zircon_graphics/src/scene/scene_renderer/overlay/icons/viewport_icon_atlas/mod.rs
@@ -67,7 +79,7 @@ implementation_files:
   - zircon_editor/src/editing/viewport/projection.rs
   - zircon_editor/src/host/slint_host/app.rs
   - zircon_editor/src/host/slint_host/ui.rs
-- zircon_editor/src/host/slint_host/viewport/mod.rs
+  - zircon_editor/src/host/slint_host/viewport/mod.rs
   - zircon_editor/src/host/binding_dispatch/mod.rs
   - zircon_editor/src/editor_event/types.rs
   - zircon_editor/src/editor_event/runtime.rs
@@ -120,13 +132,16 @@ doc_type: module-detail
 
 ## Related Files
 
-- `zircon_scene/src/components.rs`
+- `zircon_scene/src/components/mod.rs`
+- `zircon_scene/src/components/viewport.rs`
+- `zircon_scene/src/components/render_extract.rs`
+- `zircon_scene/src/components/gizmo.rs`
 - `zircon_scene/src/world/render.rs`
 - `zircon_graphics/src/scene/resources/mod.rs`
 - `zircon_graphics/src/scene/scene_renderer/core/mod.rs`
 - `zircon_graphics/src/scene/scene_renderer/mesh/mod.rs`
 - `zircon_graphics/src/scene/scene_renderer/overlay/mod.rs`
-- `zircon_graphics/src/scene/scene_renderer/overlay/viewport_overlay_renderer.rs`
+- `zircon_graphics/src/scene/scene_renderer/overlay/viewport_overlay_renderer/mod.rs`
 - `zircon_graphics/src/scene/scene_renderer/overlay/passes/*.rs`
 - `zircon_graphics/src/scene/scene_renderer/overlay/icons/*.rs`
 - `zircon_graphics/src/scene/scene_renderer/overlay/shaders/*.wgsl`
@@ -169,6 +184,12 @@ doc_type: module-detail
 - `scene`: 基础几何、灯光、当前 viewport camera snapshot
 - `overlays`: selection highlight、selection anchor、grid、scene gizmo、handle、display mode
 - `preview`: lighting/skybox override 与 fallback sky 策略
+
+这些 packet 类型不再堆在单个 `zircon_scene/src/components.rs`；当前目录树固定为：
+
+- `components/viewport.rs`: camera snapshot、viewport settings、extract request、aspect ratio helper
+- `components/render_extract.rs`: geometry/light/postprocess extract 与 `SceneViewportRenderPacket`
+- `components/gizmo.rs`: overlay payload、gizmo provider contract、registry
 
 `World::build_viewport_render_packet(...)` 负责 scene 侧抽取：
 
@@ -308,7 +329,7 @@ Scene 视图里的 orbit/pan/zoom、orthographic size、方向对齐都属于 ed
 - `core/mod.rs`: renderer 生命周期入口，具体 core/history/target/render 行为继续下沉到 `core/*`
 - `mesh.rs`: mesh draw 抽取与 pipeline cache
 - `overlay.rs`: 纯结构入口，只保留 `mod/pub use`
-- `viewport_overlay_renderer.rs`: `ViewportOverlayRenderer` façade、buffer 准备、pass orchestration
+- `viewport_overlay_renderer/mod.rs`: `ViewportOverlayRenderer` façade，`record/scene_content/` 与 `record/overlays/` 负责分域录制，buffer 准备和 pass orchestration 继续保持子树分层
 - `overlay/passes/*.rs`: 每个 render pass 各自单文件
 - `overlay/icons/*.rs`: atlas / sprite / slot / entry 分层
 - `primitives/mod.rs` + `primitives/*`: selection / wireframe / grid / gizmo / handle 顶点构建按声明、buffer、geometry helper、feature builder 继续拆分

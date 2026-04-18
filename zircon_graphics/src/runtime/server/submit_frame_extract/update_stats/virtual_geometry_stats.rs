@@ -27,10 +27,14 @@ pub(super) fn update_virtual_geometry_stats(
         record_update.virtual_geometry_stats.resident_page_count;
     state.stats.last_virtual_geometry_pending_request_count =
         record_update.virtual_geometry_stats.pending_request_count;
+    state.stats.last_virtual_geometry_completed_page_count =
+        record_update.virtual_geometry_stats.completed_page_count;
     state.stats.last_virtual_geometry_indirect_draw_count =
-        state.renderer.last_virtual_geometry_indirect_draw_count() as usize;
+        record_update.virtual_geometry_stats.indirect_draw_count;
     state.stats.last_virtual_geometry_indirect_buffer_count =
         state.renderer.last_virtual_geometry_indirect_buffer_count() as usize;
+    state.stats.last_virtual_geometry_indirect_segment_count =
+        record_update.virtual_geometry_stats.indirect_segment_count;
 }
 
 pub(super) fn reset_virtual_geometry_stats(state: &mut RenderServerState) {
@@ -40,6 +44,8 @@ pub(super) fn reset_virtual_geometry_stats(state: &mut RenderServerState) {
     state.stats.last_virtual_geometry_page_table_entry_count = 0;
     state.stats.last_virtual_geometry_resident_page_count = 0;
     state.stats.last_virtual_geometry_pending_request_count = 0;
+    state.stats.last_virtual_geometry_completed_page_count = 0;
     state.stats.last_virtual_geometry_indirect_draw_count = 0;
     state.stats.last_virtual_geometry_indirect_buffer_count = 0;
+    state.stats.last_virtual_geometry_indirect_segment_count = 0;
 }

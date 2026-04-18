@@ -32,11 +32,7 @@ impl EditorManager {
         self.window_host_manager.lock().unwrap().states()
     }
 
-    pub fn sync_native_window_projection_bounds(
-        &self,
-        window_id: &MainPageId,
-        bounds: [f32; 4],
-    ) {
+    pub fn sync_native_window_projection_bounds(&self, window_id: &MainPageId, bounds: [f32; 4]) {
         self.window_host_manager
             .lock()
             .unwrap()

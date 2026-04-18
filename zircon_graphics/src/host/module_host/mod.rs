@@ -1,31 +1,16 @@
-mod create_render_server;
-mod create_render_service;
-mod create_render_service_with_icon_source;
-mod create_runtime_preview_renderer;
-mod create_shared_texture_render_service;
-mod create_shared_texture_render_service_with_icon_source;
-mod graphics_core_error;
-mod manager_backend_info;
-mod manager_create_runtime_preview_renderer;
-mod manager_spawn_render_service;
-mod manager_spawn_render_service_with_icon_source;
-mod manager_spawn_shared_texture_render_service;
-mod manager_spawn_shared_texture_render_service_with_icon_source;
-mod module_descriptor;
-mod resolve_project_asset_manager;
-mod service_names;
-mod wgpu_driver;
-mod wgpu_rendering_manager;
+mod create;
+mod driver;
+mod module_registration;
+mod rendering_manager;
 
-pub use create_render_server::create_render_server;
-pub use create_render_service::create_render_service;
-pub use create_render_service_with_icon_source::create_render_service_with_icon_source;
-pub use create_runtime_preview_renderer::create_runtime_preview_renderer;
-pub use create_shared_texture_render_service::create_shared_texture_render_service;
-pub use create_shared_texture_render_service_with_icon_source::create_shared_texture_render_service_with_icon_source;
-pub use module_descriptor::module_descriptor;
-pub use service_names::{
-    GRAPHICS_MODULE_NAME, RENDERING_MANAGER_NAME, RENDER_SERVER_NAME, WGPU_DRIVER_NAME,
+pub use create::{
+    create_render_server, create_render_service, create_render_service_with_icon_source,
+    create_runtime_preview_renderer, create_shared_texture_render_service,
+    create_shared_texture_render_service_with_icon_source,
 };
-pub use wgpu_driver::WgpuDriver;
-pub use wgpu_rendering_manager::WgpuRenderingManager;
+pub use driver::WgpuDriver;
+pub use module_registration::{
+    module_descriptor, GRAPHICS_MODULE_NAME, RENDERING_MANAGER_NAME, RENDER_SERVER_NAME,
+    WGPU_DRIVER_NAME,
+};
+pub use rendering_manager::WgpuRenderingManager;

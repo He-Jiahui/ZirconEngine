@@ -1,9 +1,8 @@
 use crossbeam_channel::unbounded;
-use zircon_manager::{
-    ResourceChangeRecord, ResourceManager, ResourceStateRecord, ResourceStatusRecord,
-};
+use zircon_manager::ResourceManager;
 use zircon_resource::{
-    MaterialMarker, ModelMarker, ResourceHandle, ResourceId, ResourceKind, ResourceLocator,
+    MaterialMarker, ModelMarker, ResourceDiagnostic, ResourceEvent, ResourceHandle, ResourceId,
+    ResourceKind, ResourceLocator, ResourceRecord, ResourceState,
 };
 
 #[test]
@@ -13,7 +12,7 @@ fn resolve_ready_handle_returns_typed_handle_from_resource_server() {
     let server = FakeResourceServer::new(vec![status(
         &locator.to_string(),
         ResourceKind::Model,
-        ResourceStateRecord::Ready,
+        ResourceState::Ready,
     )]);
 
     let handle =
@@ -26,15 +25,20 @@ fn resolve_ready_handle_returns_typed_handle_from_resource_server() {
 #[test]
 fn resolve_ready_handle_surfaces_non_ready_state_and_diagnostics() {
     let locator = ResourceLocator::parse("res://materials/default.material.toml").unwrap();
-    let server = FakeResourceServer::new(vec![ResourceStatusRecord {
-        id: ResourceId::from_locator(&locator).to_string(),
-        locator: locator.to_string(),
+    let server = FakeResourceServer::new(vec![ResourceRecord {
+        id: ResourceId::from_locator(&locator),
         kind: ResourceKind::Material,
-        artifact_locator: Some("lib://materials/default.material.bin".to_string()),
+        primary_locator: locator.clone(),
+        artifact_locator: Some(
+            ResourceLocator::parse("lib://materials/default.material.bin").unwrap(),
+        ),
         revision: 2,
-        state: ResourceStateRecord::Error,
+        state: ResourceState::Error,
         dependency_ids: Vec::new(),
-        diagnostics: vec!["shader compile failed".to_string()],
+        diagnostics: vec![ResourceDiagnostic::error("shader compile failed")],
+        source_hash: String::new(),
+        importer_version: 0,
+        config_hash: String::new(),
     }]);
 
     let error =
@@ -48,11 +52,11 @@ fn resolve_ready_handle_surfaces_non_ready_state_and_diagnostics() {
 
 #[derive(Clone, Debug)]
 struct FakeResourceServer {
-    records: Vec<ResourceStatusRecord>,
+    records: Vec<ResourceRecord>,
 }
 
 impl FakeResourceServer {
-    fn new(records: Vec<ResourceStatusRecord>) -> Self {
+    fn new(records: Vec<ResourceRecord>) -> Self {
         Self { records }
     }
 }
@@ -61,44 +65,47 @@ impl ResourceManager for FakeResourceServer {
     fn resolve_resource_id(&self, locator: &str) -> Option<String> {
         self.records
             .iter()
-            .find(|record| record.locator == locator)
-            .map(|record| record.id.clone())
+            .find(|record| record.primary_locator.to_string() == locator)
+            .map(|record| record.id.to_string())
     }
 
-    fn resource_status(&self, locator: &str) -> Option<ResourceStatusRecord> {
+    fn resource_status(&self, locator: &str) -> Option<ResourceRecord> {
         self.records
             .iter()
-            .find(|record| record.locator == locator)
+            .find(|record| record.primary_locator.to_string() == locator)
             .cloned()
     }
 
-    fn list_resources(&self) -> Vec<ResourceStatusRecord> {
+    fn list_resources(&self) -> Vec<ResourceRecord> {
         self.records.clone()
     }
 
     fn resource_revision(&self, locator: &str) -> Option<u64> {
         self.records
             .iter()
-            .find(|record| record.locator == locator)
+            .find(|record| record.primary_locator.to_string() == locator)
             .map(|record| record.revision)
     }
 
-    fn subscribe_resource_changes(&self) -> zircon_core::ChannelReceiver<ResourceChangeRecord> {
+    fn subscribe_resource_changes(&self) -> zircon_core::ChannelReceiver<ResourceEvent> {
         let (_sender, receiver) = unbounded();
         receiver
     }
 }
 
-fn status(locator: &str, kind: ResourceKind, state: ResourceStateRecord) -> ResourceStatusRecord {
+fn status(locator: &str, kind: ResourceKind, state: ResourceState) -> ResourceRecord {
     let locator = ResourceLocator::parse(locator).unwrap();
-    ResourceStatusRecord {
-        id: ResourceId::from_locator(&locator).to_string(),
-        locator: locator.to_string(),
+    ResourceRecord {
+        id: ResourceId::from_locator(&locator),
         kind,
+        primary_locator: locator,
         artifact_locator: None,
         revision: 1,
         state,
         dependency_ids: Vec::new(),
         diagnostics: Vec::new(),
+        source_hash: String::new(),
+        importer_version: 0,
+        config_hash: String::new(),
     }
 }

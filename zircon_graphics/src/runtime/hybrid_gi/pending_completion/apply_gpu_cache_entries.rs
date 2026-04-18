@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use super::super::hybrid_gi_runtime_state::HybridGiRuntimeState;
+use super::super::HybridGiRuntimeState;
 
 impl HybridGiRuntimeState {
     pub(crate) fn apply_gpu_cache_entries(&mut self, cache_entries: &[(u32, u32)]) {

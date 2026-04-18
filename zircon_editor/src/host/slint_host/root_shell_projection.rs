@@ -26,7 +26,7 @@ pub(crate) fn resolve_root_document_region_frame(
     geometry: &WorkbenchShellGeometry,
     shared_root_frames: Option<&BuiltinWorkbenchRootShellFrames>,
 ) -> ShellFrame {
-    if has_visible_drawer_regions(geometry) {
+    if has_visible_drawer_regions(geometry, shared_root_frames) {
         return resolve_root_visible_drawer_document_region_frame(geometry, shared_root_frames);
     }
 
@@ -62,7 +62,7 @@ pub(crate) fn resolve_root_activity_rail_frame(
     metrics: &WorkbenchChromeMetrics,
     shared_root_frames: Option<&BuiltinWorkbenchRootShellFrames>,
 ) -> ShellFrame {
-    if has_visible_drawer_regions(geometry) {
+    if has_visible_drawer_regions(geometry, shared_root_frames) {
         return activity_rail_frame_from_region(
             resolve_root_left_region_frame(geometry, shared_root_frames),
             metrics,
@@ -80,7 +80,7 @@ pub(crate) fn resolve_root_document_tabs_frame(
     metrics: &WorkbenchChromeMetrics,
     shared_root_frames: Option<&BuiltinWorkbenchRootShellFrames>,
 ) -> ShellFrame {
-    if has_visible_drawer_regions(geometry) {
+    if has_visible_drawer_regions(geometry, shared_root_frames) {
         let document = resolve_root_document_region_frame(geometry, shared_root_frames);
         return ShellFrame::new(
             document.x,
@@ -115,7 +115,7 @@ pub(crate) fn resolve_root_viewport_content_frame(
         0.0
     };
 
-    if has_visible_drawer_regions(geometry) {
+    if has_visible_drawer_regions(geometry, shared_root_frames) {
         let document = resolve_root_document_region_frame(geometry, shared_root_frames);
         return ShellFrame::new(
             document.x,
@@ -138,7 +138,21 @@ pub(crate) fn resolve_root_viewport_content_frame(
         .unwrap_or(geometry.viewport_content_frame)
 }
 
-pub(crate) fn has_visible_drawer_regions(geometry: &WorkbenchShellGeometry) -> bool {
+pub(crate) fn has_visible_drawer_regions(
+    geometry: &WorkbenchShellGeometry,
+    shared_root_frames: Option<&BuiltinWorkbenchRootShellFrames>,
+) -> bool {
+    if [
+        ShellRegionId::Left,
+        ShellRegionId::Right,
+        ShellRegionId::Bottom,
+    ]
+    .into_iter()
+    .any(|region| shared_visible_drawer_shell_frame(shared_root_frames, region).is_some())
+    {
+        return true;
+    }
+
     [
         ShellRegionId::Left,
         ShellRegionId::Right,
@@ -179,17 +193,13 @@ fn resolve_root_visible_drawer_region_frame(
     shared_root_frames: Option<&BuiltinWorkbenchRootShellFrames>,
     region: ShellRegionId,
 ) -> ShellFrame {
+    if let Some(frame) = shared_visible_drawer_shell_frame(shared_root_frames, region) {
+        return frame;
+    }
+
     let legacy_frame = geometry.region_frame(region);
     if legacy_frame.width <= f32::EPSILON || legacy_frame.height <= f32::EPSILON {
         return legacy_frame;
-    }
-
-    if let Some(frame) = shared_root_frames
-        .and_then(|frames| frames.drawer_shell_frame(region))
-        .map(shell_frame)
-        .filter(|frame| frame_is_visible(*frame))
-    {
-        return frame;
     }
 
     shared_root_body_frame(shared_root_frames)
@@ -197,7 +207,9 @@ fn resolve_root_visible_drawer_region_frame(
             let separator = WorkbenchChromeMetrics::default()
                 .separator_thickness
                 .max(0.0);
-            let bottom = geometry.region_frame(ShellRegionId::Bottom);
+            let bottom =
+                shared_visible_drawer_shell_frame(shared_root_frames, ShellRegionId::Bottom)
+                    .unwrap_or_else(|| geometry.region_frame(ShellRegionId::Bottom));
             let bottom_separator = if frame_is_visible(bottom) {
                 separator
             } else {
@@ -238,21 +250,13 @@ fn resolve_root_visible_drawer_document_region_frame(
 
     shared_root_body_frame(shared_root_frames)
         .map(|body| {
-            let left = shared_root_frames
-                .and_then(|frames| frames.drawer_shell_frame(ShellRegionId::Left))
-                .map(shell_frame)
-                .filter(|frame| frame_is_visible(*frame))
+            let left = shared_visible_drawer_shell_frame(shared_root_frames, ShellRegionId::Left)
                 .unwrap_or_else(|| geometry.region_frame(ShellRegionId::Left));
-            let right = shared_root_frames
-                .and_then(|frames| frames.drawer_shell_frame(ShellRegionId::Right))
-                .map(shell_frame)
-                .filter(|frame| frame_is_visible(*frame))
+            let right = shared_visible_drawer_shell_frame(shared_root_frames, ShellRegionId::Right)
                 .unwrap_or_else(|| geometry.region_frame(ShellRegionId::Right));
-            let bottom = shared_root_frames
-                .and_then(|frames| frames.drawer_shell_frame(ShellRegionId::Bottom))
-                .map(shell_frame)
-                .filter(|frame| frame_is_visible(*frame))
-                .unwrap_or_else(|| geometry.region_frame(ShellRegionId::Bottom));
+            let bottom =
+                shared_visible_drawer_shell_frame(shared_root_frames, ShellRegionId::Bottom)
+                    .unwrap_or_else(|| geometry.region_frame(ShellRegionId::Bottom));
             let left_visible = frame_is_visible(left);
             let right_visible = frame_is_visible(right);
             let bottom_visible = frame_is_visible(bottom);
@@ -278,6 +282,16 @@ fn shared_root_body_frame(
     shared_root_frames
         .and_then(|frames| frames.workbench_body_frame)
         .map(shell_frame)
+}
+
+fn shared_visible_drawer_shell_frame(
+    shared_root_frames: Option<&BuiltinWorkbenchRootShellFrames>,
+    region: ShellRegionId,
+) -> Option<ShellFrame> {
+    shared_root_frames
+        .and_then(|frames| frames.drawer_shell_frame(region))
+        .map(shell_frame)
+        .filter(|frame| frame_is_visible(*frame))
 }
 
 fn frame_is_visible(frame: ShellFrame) -> bool {

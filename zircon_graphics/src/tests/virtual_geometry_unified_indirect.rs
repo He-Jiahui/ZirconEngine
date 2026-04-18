@@ -5,10 +5,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use image::{ImageBuffer, ImageFormat, Rgba};
 use zircon_asset::{
-    AlphaMode, AssetReference, AssetUri, MaterialAsset, ProjectAssetManager, ProjectManifest,
-    ProjectPaths,
+    AlphaMode, AssetManager, AssetReference, AssetUri, MaterialAsset, ProjectAssetManager,
+    ProjectManifest, ProjectPaths,
 };
-use zircon_manager::AssetManager;
 use zircon_math::{Transform, UVec2, Vec3, Vec4};
 use zircon_resource::{MaterialMarker, ModelMarker, ResourceHandle};
 use zircon_scene::{
@@ -156,6 +155,16 @@ fn virtual_geometry_prepare_uses_one_visibility_owned_indirect_segment_across_mu
             .len(),
         2,
         "expected the unified segment to still produce one indirect args record per primitive draw"
+    );
+    assert_eq!(
+        renderer.read_last_virtual_geometry_indirect_segments().unwrap(),
+        vec![(0, 1, 1, 300, 1, VirtualGeometryPrepareClusterState::Resident)],
+        "expected the actual GPU-submitted indirect segment buffer to preserve the visibility-owned segment contract instead of only preserving it in prepare-time projections"
+    );
+    assert_eq!(
+        renderer.read_last_virtual_geometry_indirect_draw_refs().unwrap(),
+        vec![(3, 0), (3, 0)],
+        "expected the actual GPU-submitted draw-ref buffer to keep both primitive draws mapped onto the same visibility-owned segment instead of only preserving the segment truth"
     );
 
     let _ = fs::remove_dir_all(root);

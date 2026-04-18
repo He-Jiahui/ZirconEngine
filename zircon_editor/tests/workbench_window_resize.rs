@@ -6,9 +6,8 @@ use slint::{ComponentHandle, PhysicalSize};
 fn workbench_shell_window_can_resize_and_toggle_maximize() {
     i_slint_backend_testing::init_no_event_loop();
 
-    let ui = WorkbenchShell::new().expect("workbench shell should instantiate");
-    ui.show()
-        .expect("workbench shell should show in test backend");
+    let ui = UiHostWindow::new().expect("host window should instantiate");
+    ui.show().expect("host window should show in test backend");
 
     let initial = ui.window().size();
     assert!(initial.width > 0);

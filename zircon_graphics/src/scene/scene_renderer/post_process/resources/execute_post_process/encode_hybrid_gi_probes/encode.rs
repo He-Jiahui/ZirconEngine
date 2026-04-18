@@ -7,6 +7,7 @@ use super::super::super::super::constants::MAX_HYBRID_GI_PROBES;
 use super::super::super::super::hybrid_gi_probe_gpu::GpuHybridGiProbe;
 use super::count_scheduled_trace_regions::count_scheduled_trace_regions;
 use super::encode_hybrid_gi_probe_screen_data::encode_hybrid_gi_probe_screen_data;
+use super::hybrid_gi_hierarchy_irradiance::hybrid_gi_hierarchy_irradiance;
 use super::hybrid_gi_hierarchy_resolve_weight::hybrid_gi_hierarchy_resolve_weight;
 use super::hybrid_gi_hierarchy_rt_lighting::hybrid_gi_hierarchy_rt_lighting;
 
@@ -27,21 +28,23 @@ pub(in super::super) fn encode_hybrid_gi_probes(
 
     let mut count = 0;
     for probe in prepare.resident_probes.iter().take(MAX_HYBRID_GI_PROBES) {
-        let (screen_data, hierarchy_weight, hierarchy_rt_lighting) = hybrid_gi_extract
-            .and_then(|extract| {
-                extract
-                    .probes
-                    .iter()
-                    .find(|candidate| candidate.probe_id == probe.probe_id)
-            })
-            .map(|source| {
-                (
-                    encode_hybrid_gi_probe_screen_data(&frame.extract, viewport_size, source),
-                    hybrid_gi_hierarchy_resolve_weight(frame, source),
-                    hybrid_gi_hierarchy_rt_lighting(frame, source),
-                )
-            })
-            .unwrap_or(([0.5, 0.5, 1.0, 1.0], 1.0, [0.0; 4]));
+        let (screen_data, hierarchy_weight, hierarchy_irradiance, hierarchy_rt_lighting) =
+            hybrid_gi_extract
+                .and_then(|extract| {
+                    extract
+                        .probes
+                        .iter()
+                        .find(|candidate| candidate.probe_id == probe.probe_id)
+                })
+                .map(|source| {
+                    (
+                        encode_hybrid_gi_probe_screen_data(&frame.extract, viewport_size, source),
+                        hybrid_gi_hierarchy_resolve_weight(frame, source),
+                        hybrid_gi_hierarchy_irradiance(frame, source),
+                        hybrid_gi_hierarchy_rt_lighting(frame, source),
+                    )
+                })
+                .unwrap_or(([0.5, 0.5, 1.0, 1.0], 1.0, [0.0; 4], [0.0; 4]));
         probes[count] = GpuHybridGiProbe {
             screen_uv_and_radius: screen_data,
             irradiance_and_intensity: [
@@ -50,6 +53,7 @@ pub(in super::super) fn encode_hybrid_gi_probes(
                 probe.irradiance_rgb[2] as f32 / 255.0,
                 hierarchy_weight,
             ],
+            hierarchy_irradiance_rgb_and_weight: hierarchy_irradiance,
             hierarchy_rt_lighting_rgb_and_weight: hierarchy_rt_lighting,
         };
         count += 1;

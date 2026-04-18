@@ -1,6 +1,6 @@
-use crate::ShellFrame;
 use crate::layout::MainPageId;
 use crate::view::ViewInstanceId;
+use crate::ShellFrame;
 
 use super::document_tab_model::DocumentTabModel;
 

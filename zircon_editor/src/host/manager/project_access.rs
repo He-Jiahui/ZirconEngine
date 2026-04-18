@@ -1,7 +1,8 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use zircon_manager::{AssetManager, ConfigManager, ManagerResolver};
+use zircon_asset::{resolve_asset_manager, AssetManager};
+use zircon_manager::{ConfigManager, ManagerResolver};
 use zircon_scene::{DefaultLevelManager, LevelMetadata, Scene, DEFAULT_LEVEL_MANAGER_NAME};
 
 use crate::project::{project_root_path, EditorProjectDocument};
@@ -53,9 +54,7 @@ impl EditorManager {
     }
 
     pub(super) fn asset_manager(&self) -> Result<Arc<dyn AssetManager>, EditorError> {
-        ManagerResolver::new(self.core.clone())
-            .asset()
-            .map_err(|error| EditorError::Project(error.to_string()))
+        resolve_asset_manager(&self.core).map_err(|error| EditorError::Project(error.to_string()))
     }
 
     pub(super) fn current_project_root(&self) -> Result<Option<PathBuf>, EditorError> {

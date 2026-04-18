@@ -4,9 +4,9 @@ use zircon_ui::UiFrame;
 
 use crate::host::slint_host::callback_dispatch::BuiltinFloatingWindowSourceFrames;
 use crate::{
+    autolayout::{clamp_floating_window_frame, default_floating_window_frame},
     FloatingWindowModel, MainPageId, NativeWindowHostState, ShellFrame, WorkbenchChromeMetrics,
     WorkbenchShellGeometry, WorkbenchViewModel,
-    autolayout::{clamp_floating_window_frame, default_floating_window_frame},
 };
 
 const EPSILON: f32 = 0.001;
@@ -55,10 +55,9 @@ pub(crate) fn build_floating_window_projection_bundle(
     metrics: &WorkbenchChromeMetrics,
     native_window_hosts: &[NativeWindowHostState],
 ) -> FloatingWindowProjectionBundle {
-    build_floating_window_projection_bundle_with_shared_source(
-        model,
+    build_floating_window_projection_bundle_from_windows(
+        &model.floating_windows,
         geometry,
-        None,
         metrics,
         native_window_hosts,
     )
@@ -66,14 +65,12 @@ pub(crate) fn build_floating_window_projection_bundle(
 
 pub(crate) fn build_floating_window_projection_bundle_with_shared_source(
     model: &WorkbenchViewModel,
-    geometry: &WorkbenchShellGeometry,
     shared_source: Option<FloatingWindowProjectionSharedSource>,
     metrics: &WorkbenchChromeMetrics,
     native_window_hosts: &[NativeWindowHostState],
 ) -> FloatingWindowProjectionBundle {
     build_floating_window_projection_bundle_from_windows_with_shared_source(
         &model.floating_windows,
-        geometry,
         shared_source,
         metrics,
         native_window_hosts,
@@ -86,18 +83,56 @@ pub(crate) fn build_floating_window_projection_bundle_from_windows(
     metrics: &WorkbenchChromeMetrics,
     native_window_hosts: &[NativeWindowHostState],
 ) -> FloatingWindowProjectionBundle {
-    build_floating_window_projection_bundle_from_windows_with_shared_source(
-        floating_windows,
-        geometry,
-        None,
-        metrics,
-        native_window_hosts,
-    )
+    let frames_by_window_id = floating_windows
+        .iter()
+        .map(|window| {
+            let native_host_present = native_window_hosts
+                .iter()
+                .any(|host| host.window_id == window.window_id);
+            let host_frame =
+                resolve_native_floating_window_host_frame(native_window_hosts, &window.window_id);
+            let outer_frame = resolve_floating_window_outer_frame_with_host_frame(
+                geometry,
+                &window.window_id,
+                host_frame,
+            );
+            let tab_strip_frame = ShellFrame::new(
+                outer_frame.x,
+                outer_frame.y,
+                outer_frame.width.max(0.0),
+                metrics.document_header_height.max(0.0),
+            );
+            let content_frame = ShellFrame::new(
+                outer_frame.x,
+                outer_frame.y
+                    + metrics.document_header_height.max(0.0)
+                    + metrics.separator_thickness.max(0.0),
+                outer_frame.width.max(0.0),
+                (outer_frame.height
+                    - metrics.document_header_height.max(0.0)
+                    - metrics.separator_thickness.max(0.0))
+                .max(0.0),
+            );
+            (
+                window.window_id.clone(),
+                FloatingWindowProjectionFrames {
+                    outer_frame,
+                    tab_strip_frame,
+                    content_frame,
+                    host_frame,
+                    native_host_present,
+                },
+            )
+        })
+        .collect();
+
+    FloatingWindowProjectionBundle {
+        frames_by_window_id,
+    }
 }
 
 pub(crate) fn build_floating_window_projection_bundle_from_windows_with_shared_source(
     floating_windows: &[FloatingWindowModel],
-    geometry: &WorkbenchShellGeometry,
     shared_source: Option<FloatingWindowProjectionSharedSource>,
     metrics: &WorkbenchChromeMetrics,
     native_window_hosts: &[NativeWindowHostState],
@@ -114,7 +149,6 @@ pub(crate) fn build_floating_window_projection_bundle_from_windows_with_shared_s
             let outer_frame = resolve_floating_window_projected_outer_frame_with_host_frame(
                 window,
                 window_index,
-                geometry,
                 shared_source,
                 host_frame,
             );
@@ -171,7 +205,6 @@ pub(crate) fn resolve_floating_window_projection_shared_source(
 pub(crate) fn resolve_floating_window_projection_base_outer_frame(
     window: &FloatingWindowModel,
     window_index: usize,
-    geometry: &WorkbenchShellGeometry,
     shared_source: Option<FloatingWindowProjectionSharedSource>,
 ) -> ShellFrame {
     resolve_floating_window_outer_frame_from_shared_source(
@@ -179,7 +212,30 @@ pub(crate) fn resolve_floating_window_projection_base_outer_frame(
         window_index,
         shared_source,
     )
-    .unwrap_or_else(|| geometry.floating_window_frame(&window.window_id))
+    .unwrap_or_else(|| valid_requested_frame(window.requested_frame).unwrap_or_default())
+}
+
+pub(crate) fn resolve_floating_window_projection_content_frame(
+    window: &FloatingWindowModel,
+    window_index: usize,
+    shared_source: Option<FloatingWindowProjectionSharedSource>,
+    metrics: &WorkbenchChromeMetrics,
+    host_frame: Option<ShellFrame>,
+) -> ShellFrame {
+    let outer_frame = resolve_floating_window_projected_outer_frame_with_host_frame(
+        window,
+        window_index,
+        shared_source,
+        host_frame,
+    );
+    let header_height = metrics.document_header_height.max(0.0);
+    let separator_height = metrics.separator_thickness.max(0.0);
+    ShellFrame::new(
+        outer_frame.x,
+        outer_frame.y + header_height + separator_height,
+        outer_frame.width.max(0.0),
+        (outer_frame.height - header_height - separator_height).max(0.0),
+    )
 }
 
 pub(crate) fn resolve_native_floating_window_host_frame(
@@ -221,19 +277,13 @@ pub(crate) fn resolve_floating_window_outer_frame_with_host_frame(
 fn resolve_floating_window_projected_outer_frame_with_host_frame(
     window: &FloatingWindowModel,
     window_index: usize,
-    geometry: &WorkbenchShellGeometry,
     shared_source: Option<FloatingWindowProjectionSharedSource>,
     host_frame: Option<ShellFrame>,
 ) -> ShellFrame {
     if let Some(host_frame) = host_frame.filter(|frame| frame.width > 0.0 && frame.height > 0.0) {
         return host_frame;
     }
-    resolve_floating_window_projection_base_outer_frame(
-        window,
-        window_index,
-        geometry,
-        shared_source,
-    )
+    resolve_floating_window_projection_base_outer_frame(window, window_index, shared_source)
 }
 
 fn resolve_floating_window_outer_frame_from_shared_source(
@@ -242,7 +292,7 @@ fn resolve_floating_window_outer_frame_from_shared_source(
     shared_source: Option<FloatingWindowProjectionSharedSource>,
 ) -> Option<ShellFrame> {
     let shared_source = shared_source?;
-    let requested_frame = if requested_frame.width > EPSILON && requested_frame.height > EPSILON {
+    let requested_frame = if let Some(requested_frame) = valid_requested_frame(requested_frame) {
         requested_frame
     } else {
         default_floating_window_frame(
@@ -255,6 +305,10 @@ fn resolve_floating_window_outer_frame_from_shared_source(
         requested_frame,
         shared_source.center_band_frame,
     ))
+}
+
+fn valid_requested_frame(frame: ShellFrame) -> Option<ShellFrame> {
+    (frame.width > EPSILON && frame.height > EPSILON).then_some(frame)
 }
 
 fn shell_frame_from_ui_frame(frame: UiFrame) -> ShellFrame {
@@ -324,14 +378,14 @@ mod tests {
     };
 
     use super::{
-        FloatingWindowProjectionFrames, FloatingWindowProjectionSharedSource,
         build_floating_window_projection_bundle,
-        build_floating_window_projection_bundle_with_shared_source,
+        build_floating_window_projection_bundle_with_shared_source, default_floating_window_frame,
         resolve_floating_window_content_frame,
         resolve_floating_window_content_frame_with_host_frame, resolve_floating_window_outer_frame,
         resolve_floating_window_outer_frame_with_host_frame,
         resolve_floating_window_tab_strip_frame,
-        resolve_floating_window_tab_strip_frame_with_host_frame,
+        resolve_floating_window_tab_strip_frame_with_host_frame, FloatingWindowProjectionFrames,
+        FloatingWindowProjectionSharedSource,
     };
 
     #[test]
@@ -514,19 +568,11 @@ mod tests {
     }
 
     #[test]
-    fn build_floating_window_projection_bundle_prefers_shared_projection_source_over_stale_geometry()
-     {
+    fn build_floating_window_projection_bundle_prefers_shared_projection_source_over_stale_geometry(
+    ) {
         let window_id = MainPageId::new("window:bundle-shared-source");
         let metrics = WorkbenchChromeMetrics::default();
         let requested_frame = ShellFrame::new(1040.0, 188.0, 640.0, 420.0);
-        let mut geometry = WorkbenchShellGeometry {
-            floating_window_frames: BTreeMap::new(),
-            ..Default::default()
-        };
-        geometry.floating_window_frames.insert(
-            window_id.clone(),
-            ShellFrame::new(120.0, 84.0, 320.0, 200.0),
-        );
         let shared_source = FloatingWindowProjectionSharedSource {
             document_frame: ShellFrame::new(240.0, 96.0, 1120.0, 720.0),
             center_band_frame: ShellFrame::new(0.0, 80.0, 1440.0, 760.0),
@@ -534,7 +580,6 @@ mod tests {
 
         let bundle = build_floating_window_projection_bundle_with_shared_source(
             &floating_window_projection_model(window_id.clone(), requested_frame),
-            &geometry,
             Some(shared_source),
             &metrics,
             &[],
@@ -559,7 +604,56 @@ mod tests {
                 host_frame: None,
                 native_host_present: false,
             }),
-            "shared floating-window projection source should outrank stale geometry when host bounds are absent"
+            "shared floating-window projection source should clamp the requested frame without any geometry fallback"
+        );
+    }
+
+    #[test]
+    fn build_floating_window_projection_bundle_uses_shared_default_frame_when_requested_frame_is_missing(
+    ) {
+        let window_id = MainPageId::new("window:bundle-shared-default");
+        let metrics = WorkbenchChromeMetrics::default();
+        let shared_source = FloatingWindowProjectionSharedSource {
+            document_frame: ShellFrame::new(240.0, 96.0, 1120.0, 720.0),
+            center_band_frame: ShellFrame::new(0.0, 80.0, 1440.0, 760.0),
+        };
+        let expected_outer_frame = default_floating_window_frame(
+            0,
+            shared_source.document_frame,
+            shared_source.center_band_frame,
+        );
+
+        let bundle = build_floating_window_projection_bundle_with_shared_source(
+            &floating_window_projection_model(window_id.clone(), ShellFrame::default()),
+            Some(shared_source),
+            &metrics,
+            &[],
+        );
+
+        assert_eq!(
+            bundle.frames(&window_id),
+            Some(&FloatingWindowProjectionFrames {
+                outer_frame: expected_outer_frame,
+                tab_strip_frame: ShellFrame::new(
+                    expected_outer_frame.x,
+                    expected_outer_frame.y,
+                    expected_outer_frame.width,
+                    metrics.document_header_height,
+                ),
+                content_frame: ShellFrame::new(
+                    expected_outer_frame.x,
+                    expected_outer_frame.y
+                        + metrics.document_header_height
+                        + metrics.separator_thickness,
+                    expected_outer_frame.width,
+                    expected_outer_frame.height
+                        - metrics.document_header_height
+                        - metrics.separator_thickness,
+                ),
+                host_frame: None,
+                native_host_present: false,
+            }),
+            "missing requested frames should now be synthesized from shared source rather than legacy geometry"
         );
     }
 

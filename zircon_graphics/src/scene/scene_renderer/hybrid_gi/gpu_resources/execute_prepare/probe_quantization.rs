@@ -5,6 +5,7 @@ use zircon_scene::{RenderHybridGiExtract, RenderHybridGiProbe};
 use super::super::seed_quantization::{quantized_positive, quantized_signed};
 
 pub(super) const NO_PARENT_PROBE_ID: u32 = u32::MAX;
+const RESIDENT_ANCESTOR_SLOTS: usize = 3;
 
 pub(super) fn pack_rgb8(rgb: [u8; 3]) -> u32 {
     u32::from(rgb[0]) | (u32::from(rgb[1]) << 8) | (u32::from(rgb[2]) << 16)
@@ -40,32 +41,39 @@ pub(super) fn probe_parent_probe_id(extract: Option<&RenderHybridGiExtract>, pro
         .unwrap_or(NO_PARENT_PROBE_ID)
 }
 
-pub(super) fn probe_resident_ancestor(
+pub(super) fn probe_resident_ancestors(
     extract: Option<&RenderHybridGiExtract>,
     resident_probe_ids: &BTreeSet<u32>,
     probe_id: u32,
-) -> (u32, u32) {
+) -> [(u32, u32); RESIDENT_ANCESTOR_SLOTS] {
     if resident_probe_ids.is_empty() {
-        return (NO_PARENT_PROBE_ID, 0);
+        return [(NO_PARENT_PROBE_ID, 0); RESIDENT_ANCESTOR_SLOTS];
     }
 
     let mut current_probe_id = probe_id;
     let mut resident_ancestor_depth = 0_u32;
+    let mut resident_ancestors = [(NO_PARENT_PROBE_ID, 0); RESIDENT_ANCESTOR_SLOTS];
+    let mut resident_ancestor_count = 0usize;
     let mut visited_probe_ids = BTreeSet::from([probe_id]);
 
     loop {
         let Some(parent_probe_id) =
             probe_from_extract(extract, current_probe_id).and_then(|probe| probe.parent_probe_id)
         else {
-            return (NO_PARENT_PROBE_ID, 0);
+            return resident_ancestors;
         };
         if !visited_probe_ids.insert(parent_probe_id) {
-            return (NO_PARENT_PROBE_ID, 0);
+            return resident_ancestors;
         }
 
         resident_ancestor_depth = resident_ancestor_depth.saturating_add(1);
         if resident_probe_ids.contains(&parent_probe_id) {
-            return (parent_probe_id, resident_ancestor_depth);
+            resident_ancestors[resident_ancestor_count] =
+                (parent_probe_id, resident_ancestor_depth);
+            resident_ancestor_count += 1;
+            if resident_ancestor_count == resident_ancestors.len() {
+                return resident_ancestors;
+            }
         }
         current_probe_id = parent_probe_id;
     }

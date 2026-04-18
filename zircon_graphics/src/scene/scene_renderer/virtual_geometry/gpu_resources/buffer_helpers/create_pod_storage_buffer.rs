@@ -1,7 +1,9 @@
 use bytemuck::{Pod, Zeroable};
 use wgpu::util::DeviceExt;
 
-pub(super) fn create_pod_storage_buffer<T: Pod + Zeroable>(
+pub(in crate::scene::scene_renderer::virtual_geometry::gpu_resources) fn create_pod_storage_buffer<
+    T: Pod + Zeroable,
+>(
     device: &wgpu::Device,
     label: &'static str,
     contents: &[T],

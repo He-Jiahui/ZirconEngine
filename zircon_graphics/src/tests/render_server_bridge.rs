@@ -275,9 +275,15 @@ fn headless_wgpu_server_exposes_current_m5_flagship_baselines_without_rt_capabil
     assert_eq!(stats.last_virtual_geometry_page_table_entry_count, 2);
     assert_eq!(stats.last_virtual_geometry_resident_page_count, 2);
     assert_eq!(stats.last_virtual_geometry_pending_request_count, 0);
+    assert_eq!(stats.last_virtual_geometry_completed_page_count, 1);
     assert!(
         stats.last_virtual_geometry_indirect_draw_count >= 1,
         "expected VG-enabled server submission to record at least one indirect raster draw"
+    );
+    assert_eq!(
+        stats.last_virtual_geometry_indirect_segment_count,
+        stats.last_virtual_geometry_indirect_draw_count,
+        "expected prepare-owned VG segments to remain the authoritative indirect submission count until explicit GPU compaction changes that contract"
     );
     assert!(
         stats.last_virtual_geometry_indirect_buffer_count >= 1,
@@ -297,11 +303,66 @@ fn headless_wgpu_server_exposes_current_m5_flagship_baselines_without_rt_capabil
     assert_eq!(stats.last_hybrid_gi_scheduled_trace_region_count, 1);
 }
 
+#[test]
+fn render_server_drops_stale_flagship_runtime_state_when_extract_removes_vg_and_hybrid_gi_payload()
+{
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let server = WgpuRenderServer::new(asset_manager).unwrap();
+    let viewport = server
+        .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
+        .unwrap();
+    server
+        .set_quality_profile(
+            viewport,
+            RenderQualityProfile::new("flagship")
+                .with_virtual_geometry(true)
+                .with_hybrid_global_illumination(true),
+        )
+        .unwrap();
+
+    server
+        .submit_frame_extract(viewport, flagship_extract())
+        .unwrap();
+    let active_stats = server.query_stats().unwrap();
+    assert_eq!(active_stats.last_virtual_geometry_page_table_entry_count, 2);
+    assert_eq!(active_stats.last_hybrid_gi_cache_entry_count, 1);
+
+    server
+        .submit_frame_extract(viewport, empty_flagship_extract())
+        .unwrap();
+    let cleared_stats = server.query_stats().unwrap();
+
+    assert_eq!(cleared_stats.last_virtual_geometry_visible_cluster_count, 0);
+    assert_eq!(cleared_stats.last_virtual_geometry_requested_page_count, 0);
+    assert_eq!(cleared_stats.last_virtual_geometry_dirty_page_count, 0);
+    assert_eq!(
+        cleared_stats.last_virtual_geometry_page_table_entry_count,
+        0
+    );
+    assert_eq!(cleared_stats.last_virtual_geometry_resident_page_count, 0);
+    assert_eq!(cleared_stats.last_virtual_geometry_pending_request_count, 0);
+    assert_eq!(cleared_stats.last_virtual_geometry_completed_page_count, 0);
+    assert_eq!(cleared_stats.last_hybrid_gi_active_probe_count, 0);
+    assert_eq!(cleared_stats.last_hybrid_gi_requested_probe_count, 0);
+    assert_eq!(cleared_stats.last_hybrid_gi_dirty_probe_count, 0);
+    assert_eq!(cleared_stats.last_hybrid_gi_cache_entry_count, 0);
+    assert_eq!(cleared_stats.last_hybrid_gi_resident_probe_count, 0);
+    assert_eq!(cleared_stats.last_hybrid_gi_pending_update_count, 0);
+    assert_eq!(cleared_stats.last_hybrid_gi_scheduled_trace_region_count, 0);
+}
+
 fn test_extract() -> RenderFrameExtract {
     RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(1),
         World::new().to_render_snapshot(),
     )
+}
+
+fn empty_flagship_extract() -> RenderFrameExtract {
+    let world = World::new();
+    let mut extract = world.to_render_frame_extract();
+    extract.apply_viewport_size(UVec2::new(320, 240));
+    extract
 }
 
 fn flagship_extract() -> RenderFrameExtract {

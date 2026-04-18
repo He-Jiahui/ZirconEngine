@@ -2,8 +2,8 @@ use std::collections::{BTreeMap, HashMap};
 
 use crate::AssetUriScheme;
 
-use super::default_editor_asset_manager::EditorAssetState;
 use super::super::EditorAssetFolderRecord;
+use super::default_editor_asset_manager::EditorAssetState;
 
 #[derive(Clone, Debug, Default)]
 struct FolderBuilder {
@@ -61,7 +61,9 @@ pub(super) fn build_folder_records(state: &EditorAssetState) -> Vec<EditorAssetF
             parent_id = folder_id;
         }
         if let Some(folder) = folders.get_mut(&parent_id) {
-            folder.direct_asset_uuids.push(record.asset_uuid.to_string());
+            folder
+                .direct_asset_uuids
+                .push(record.asset_uuid.to_string());
             folder.recursive_asset_count += 1;
         }
     }

@@ -62,7 +62,7 @@ impl UiBindingActionKind {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub(super) struct UiAssetBindingInspectorFields {
+pub(crate) struct UiAssetBindingInspectorFields {
     pub items: Vec<String>,
     pub selected_index: i32,
     pub binding_id: String,
@@ -106,7 +106,7 @@ impl Default for UiAssetBindingInspectorFields {
     }
 }
 
-pub(super) fn build_binding_fields(
+pub(crate) fn build_binding_fields(
     document: &UiAssetDocument,
     selection: &UiDesignerSelectionModel,
     selected_index: Option<usize>,
@@ -172,7 +172,7 @@ pub(super) fn build_binding_fields(
     fields
 }
 
-pub(super) fn reconcile_selected_binding_index(
+pub(crate) fn reconcile_selected_binding_index(
     document: &UiAssetDocument,
     selection: &UiDesignerSelectionModel,
     current: Option<usize>,
@@ -181,7 +181,7 @@ pub(super) fn reconcile_selected_binding_index(
         .and_then(|node| selected_binding_index_for_node(node, current))
 }
 
-pub(super) fn reconcile_selected_binding_payload_key(
+pub(crate) fn reconcile_selected_binding_payload_key(
     document: &UiAssetDocument,
     selection: &UiDesignerSelectionModel,
     selected_index: Option<usize>,
@@ -193,7 +193,7 @@ pub(super) fn reconcile_selected_binding_payload_key(
     selected_payload_key_for_binding(binding, current)
 }
 
-pub(super) fn add_default_binding(
+pub(crate) fn add_default_binding(
     document: &mut UiAssetDocument,
     selection: &UiDesignerSelectionModel,
 ) -> Option<usize> {
@@ -209,7 +209,7 @@ pub(super) fn add_default_binding(
     Some(next_index)
 }
 
-pub(super) fn delete_selected_binding(
+pub(crate) fn delete_selected_binding(
     document: &mut UiAssetDocument,
     selection: &UiDesignerSelectionModel,
     selected_index: Option<usize>,
@@ -227,7 +227,7 @@ pub(super) fn delete_selected_binding(
     true
 }
 
-pub(super) fn set_selected_binding_id(
+pub(crate) fn set_selected_binding_id(
     document: &mut UiAssetDocument,
     selection: &UiDesignerSelectionModel,
     selected_index: Option<usize>,
@@ -251,7 +251,7 @@ pub(super) fn set_selected_binding_id(
     true
 }
 
-pub(super) fn set_selected_binding_event(
+pub(crate) fn set_selected_binding_event(
     document: &mut UiAssetDocument,
     selection: &UiDesignerSelectionModel,
     selected_index: Option<usize>,
@@ -271,7 +271,7 @@ pub(super) fn set_selected_binding_event(
     Ok(true)
 }
 
-pub(super) fn set_selected_binding_action_kind(
+pub(crate) fn set_selected_binding_action_kind(
     document: &mut UiAssetDocument,
     selection: &UiDesignerSelectionModel,
     selected_index: Option<usize>,
@@ -297,7 +297,7 @@ pub(super) fn set_selected_binding_action_kind(
     *binding != previous
 }
 
-pub(super) fn set_selected_binding_route(
+pub(crate) fn set_selected_binding_route(
     document: &mut UiAssetDocument,
     selection: &UiDesignerSelectionModel,
     selected_index: Option<usize>,
@@ -313,7 +313,7 @@ pub(super) fn set_selected_binding_route(
     set_selected_binding_route_target(document, selection, selected_index, value)
 }
 
-pub(super) fn set_selected_binding_route_target(
+pub(crate) fn set_selected_binding_route_target(
     document: &mut UiAssetDocument,
     selection: &UiDesignerSelectionModel,
     selected_index: Option<usize>,
@@ -335,7 +335,7 @@ pub(super) fn set_selected_binding_route_target(
     *binding != previous
 }
 
-pub(super) fn set_selected_binding_action_target(
+pub(crate) fn set_selected_binding_action_target(
     document: &mut UiAssetDocument,
     selection: &UiDesignerSelectionModel,
     selected_index: Option<usize>,
@@ -357,7 +357,7 @@ pub(super) fn set_selected_binding_action_target(
     *binding != previous
 }
 
-pub(super) fn upsert_selected_binding_payload(
+pub(crate) fn upsert_selected_binding_payload(
     document: &mut UiAssetDocument,
     selection: &UiDesignerSelectionModel,
     selected_index: Option<usize>,
@@ -385,7 +385,7 @@ pub(super) fn upsert_selected_binding_payload(
     true
 }
 
-pub(super) fn delete_selected_binding_payload(
+pub(crate) fn delete_selected_binding_payload(
     document: &mut UiAssetDocument,
     selection: &UiDesignerSelectionModel,
     selected_index: Option<usize>,
@@ -527,7 +527,12 @@ fn binding_route_target(binding: &UiBindingRef) -> String {
     binding
         .route
         .clone()
-        .or_else(|| binding.action.as_ref().and_then(|action| action.route.clone()))
+        .or_else(|| {
+            binding
+                .action
+                .as_ref()
+                .and_then(|action| action.route.clone())
+        })
         .unwrap_or_default()
 }
 

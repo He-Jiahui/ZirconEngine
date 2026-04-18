@@ -50,7 +50,8 @@ pub use visibility::{
     VisibilityHistoryEntry, VisibilityHistorySnapshot, VisibilityHybridGiFeedback,
     VisibilityHybridGiProbe, VisibilityHybridGiUpdatePlan, VisibilityInstanceUploadPlan,
     VisibilityParticleUploadPlan, VisibilityVirtualGeometryCluster,
-    VisibilityVirtualGeometryFeedback, VisibilityVirtualGeometryPageUploadPlan,
+    VisibilityVirtualGeometryDrawSegment, VisibilityVirtualGeometryFeedback,
+    VisibilityVirtualGeometryPageUploadPlan,
 };
 
 #[derive(Clone, Copy, Debug, Default)]

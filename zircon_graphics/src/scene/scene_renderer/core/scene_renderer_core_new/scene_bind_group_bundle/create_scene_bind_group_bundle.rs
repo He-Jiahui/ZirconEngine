@@ -1,7 +1,9 @@
 use super::super::super::super::primitives::SceneUniform;
 use super::scene_bind_group_bundle::SceneBindGroupBundle;
 
-pub(super) fn create_scene_bind_group_bundle(device: &wgpu::Device) -> SceneBindGroupBundle {
+pub(in crate::scene::scene_renderer::core::scene_renderer_core_new) fn create_scene_bind_group_bundle(
+    device: &wgpu::Device,
+) -> SceneBindGroupBundle {
     let layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
         label: Some("zircon-scene-layout"),
         entries: &[wgpu::BindGroupLayoutEntry {

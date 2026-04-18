@@ -1,6 +1,8 @@
+use std::collections::BTreeSet;
+
 use zircon_scene::RenderHybridGiExtract;
 
-use super::hybrid_gi_runtime_state::HybridGiRuntimeState;
+use super::HybridGiRuntimeState;
 
 impl HybridGiRuntimeState {
     pub(crate) fn register_extract(&mut self, extract: Option<&RenderHybridGiExtract>) {
@@ -8,9 +10,32 @@ impl HybridGiRuntimeState {
         self.scheduled_trace_regions.clear();
 
         let Some(extract) = extract else {
-            self.probe_budget = 0;
+            *self = Self::default();
             return;
         };
+
+        let live_probe_ids = extract
+            .probes
+            .iter()
+            .map(|probe| probe.probe_id)
+            .collect::<BTreeSet<_>>();
+        let stale_resident_probe_ids = self
+            .resident_slots
+            .keys()
+            .copied()
+            .filter(|probe_id| !live_probe_ids.contains(probe_id))
+            .collect::<Vec<_>>();
+        for probe_id in stale_resident_probe_ids {
+            self.evict_one([probe_id]);
+        }
+        self.pending_probes
+            .retain(|probe_id| live_probe_ids.contains(probe_id));
+        self.pending_updates
+            .retain(|update| live_probe_ids.contains(&update.probe_id));
+        self.probe_ray_budgets
+            .retain(|probe_id, _| live_probe_ids.contains(probe_id));
+        self.probe_irradiance_rgb
+            .retain(|probe_id, _| live_probe_ids.contains(probe_id));
 
         self.probe_budget = (extract.probe_budget as usize)
             .max(extract.probes.iter().filter(|probe| probe.resident).count());

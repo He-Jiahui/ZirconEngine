@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use super::super::CapabilitySet;
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct VmPluginManifest {

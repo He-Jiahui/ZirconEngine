@@ -1,5 +1,4 @@
-use zircon_manager::ResourceStateRecord;
-use zircon_resource::ResourceKind;
+use zircon_resource::{ResourceKind, ResourceState};
 
 use super::AssetReferenceSnapshot;
 
@@ -13,7 +12,7 @@ pub struct AssetSelectionSnapshot {
     pub meta_path: String,
     pub adapter_key: String,
     pub diagnostics: Vec<String>,
-    pub resource_state: Option<ResourceStateRecord>,
+    pub resource_state: Option<ResourceState>,
     pub resource_revision: Option<u64>,
     pub references: Vec<AssetReferenceSnapshot>,
     pub used_by: Vec<AssetReferenceSnapshot>,

@@ -7,7 +7,7 @@ related_code:
   - zircon_scene/src/components.rs
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_hybrid_gi.rs
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_render_with_pipeline.rs
+  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_render_with_pipeline/mod.rs
   - zircon_graphics/src/scene/scene_renderer/hybrid_gi/mod.rs
   - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_readback/mod.rs
   - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_resources/mod.rs
@@ -23,7 +23,7 @@ implementation_files:
   - zircon_graphics/src/runtime/server/submit_frame_extract/update_stats/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_hybrid_gi.rs
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_render_with_pipeline.rs
+  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_render_with_pipeline/mod.rs
   - zircon_graphics/src/scene/scene_renderer/hybrid_gi/mod.rs
   - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_readback/mod.rs
   - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_resources/mod.rs

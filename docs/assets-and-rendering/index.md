@@ -8,8 +8,32 @@ related_code:
   - zircon_asset/src/project/manifest.rs
   - zircon_asset/src/project/paths.rs
   - zircon_asset/src/project/manager.rs
+  - zircon_asset/src/project/manager/open.rs
+  - zircon_asset/src/project/manager/scan_and_import.rs
+  - zircon_asset/src/project/manager/asset_lookup.rs
+  - zircon_asset/src/project/manager/artifact_access.rs
+  - zircon_asset/src/project/manager/source_path_for_uri.rs
+  - zircon_asset/src/pipeline/manager/project_asset_manager/mod.rs
+  - zircon_asset/src/pipeline/manager/project_asset_manager/loading/mod.rs
+  - zircon_asset/src/pipeline/manager/project_asset_manager/loading/load_imported_asset.rs
+  - zircon_asset/src/pipeline/manager/project_asset_manager/loading/load_asset.rs
+  - zircon_asset/src/pipeline/manager/project_asset_manager/loading/acquire_asset.rs
+  - zircon_asset/src/pipeline/manager/project_asset_manager/loading/ensure_resident.rs
   - zircon_asset/src/pipeline/manager.rs
+  - zircon_asset/src/formats/mod.rs
+  - zircon_asset/src/formats/obj/mod.rs
+  - zircon_asset/src/formats/obj/decode_obj_file.rs
+  - zircon_asset/src/formats/obj/parse_obj_face_vertex.rs
+  - zircon_asset/src/formats/obj/resolve_obj_index.rs
   - zircon_asset/src/watch.rs
+  - zircon_asset/src/watch/asset_change.rs
+  - zircon_asset/src/watch/asset_change_kind.rs
+  - zircon_asset/src/watch/asset_watch_event.rs
+  - zircon_asset/src/watch/asset_watcher.rs
+  - zircon_asset/src/watch/spawn.rs
+  - zircon_asset/src/watch/fold_events.rs
+  - zircon_asset/src/watch/watch_loop.rs
+  - zircon_asset/src/watch/map_notify_event.rs
   - zircon_manager/src/lib.rs
   - zircon_scene/src/components.rs
   - zircon_scene/src/world/bootstrap.rs
@@ -27,21 +51,23 @@ related_code:
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_new/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_target/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_virtual_geometry/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_virtual_geometry/last_state/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/target_extent/mod.rs
   - zircon_graphics/src/scene/scene_renderer/deferred/mod.rs
   - zircon_graphics/src/scene/scene_renderer/mesh/mod.rs
   - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/mod.rs
   - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/build/mod.rs
-- zircon_graphics/src/scene/scene_renderer/mesh/virtual_geometry_indirect_args_gpu_resources/virtual_geometry_indirect_args_gpu_resources.rs
+  - zircon_graphics/src/scene/scene_renderer/mesh/virtual_geometry_indirect_args_gpu_resources/virtual_geometry_indirect_args_gpu_resources.rs
   - zircon_graphics/src/scene/scene_renderer/mesh/shaders/virtual_geometry_indirect_args.wgsl
-- zircon_graphics/src/scene/scene_renderer/mesh/mesh_draw/mesh_draw.rs
+  - zircon_graphics/src/scene/scene_renderer/mesh/mesh_draw/mesh_draw.rs
   - zircon_graphics/src/scene/scene_renderer/particle/mod.rs
   - zircon_graphics/src/scene/scene_renderer/overlay/mod.rs
   - zircon_graphics/src/scene/scene_renderer/overlay/viewport_overlay_renderer/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/overlay/viewport_overlay_renderer/record/mod.rs
   - zircon_graphics/src/scene/scene_renderer/overlay/passes/base_scene_pass.rs
   - zircon_graphics/src/scene/scene_renderer/overlay/passes/mod.rs
   - zircon_graphics/src/scene/scene_renderer/prepass/normal_prepass_pipeline/record.rs
-- zircon_graphics/src/scene/scene_renderer/deferred/deferred_scene_resources/record_gbuffer_geometry.rs
+  - zircon_graphics/src/scene/scene_renderer/deferred/deferred_scene_resources/record_gbuffer_geometry.rs
   - zircon_graphics/src/scene/scene_renderer/overlay/icons/viewport_icon_atlas/mod.rs
   - zircon_graphics/src/scene/scene_renderer/primitives/mod.rs
   - zircon_graphics/src/service/mod.rs
@@ -49,11 +75,15 @@ related_code:
   - zircon_graphics/src/runtime/mod.rs
   - zircon_graphics/src/runtime/offline_bake/mod.rs
   - zircon_graphics/src/runtime/hybrid_gi/mod.rs
+  - zircon_graphics/src/runtime/hybrid_gi/declarations/mod.rs
   - zircon_graphics/src/runtime/hybrid_gi/pending_completion/mod.rs
   - zircon_graphics/src/runtime/hybrid_gi/prepare_frame/mod.rs
   - zircon_graphics/src/runtime/hybrid_gi/residency_management/mod.rs
   - zircon_graphics/src/runtime/virtual_geometry/mod.rs
+  - zircon_graphics/src/runtime/virtual_geometry/declarations/mod.rs
   - zircon_graphics/src/runtime/virtual_geometry/prepare_frame/mod.rs
+  - zircon_graphics/src/runtime/virtual_geometry/prepare_frame/build_prepare_frame.rs
+  - zircon_graphics/src/runtime/virtual_geometry/prepare_frame/prepare_visible_clusters.rs
   - zircon_graphics/src/runtime/virtual_geometry/pending_completion/mod.rs
   - zircon_graphics/src/runtime/virtual_geometry/residency_management/mod.rs
   - zircon_graphics/src/backend/render_backend/read_buffer_u32s.rs
@@ -75,6 +105,7 @@ related_code:
   - zircon_graphics/src/runtime/server/submit_frame_extract/mod.rs
   - zircon_graphics/src/runtime/server/submit_frame_extract/build_frame_submission_context/mod.rs
   - zircon_graphics/src/runtime/server/submit_frame_extract/prepare_runtime_submission/mod.rs
+  - zircon_graphics/src/runtime/server/submit_frame_extract/prepare_runtime_submission/virtual_geometry/build_virtual_geometry_prepare.rs
   - zircon_graphics/src/runtime/server/submit_frame_extract/record_submission/mod.rs
   - zircon_graphics/src/runtime/server/submit_frame_extract/submit/mod.rs
   - zircon_graphics/src/runtime/server/submit_frame_extract/update_stats/mod.rs
@@ -115,8 +146,8 @@ related_code:
   - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/mod.rs
   - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/execute_prepare/mod.rs
   - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/execute_prepare/execute/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/gpu_pending_request_input.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/virtual_geometry_uploader_params.rs
+  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/gpu_pending_request_input/gpu_pending_request_input.rs
+  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/virtual_geometry_uploader_params/virtual_geometry_uploader_params.rs
   - zircon_graphics/src/scene/scene_renderer/virtual_geometry/shaders/uploader.wgsl
   - zircon_graphics/src/pipeline/mod.rs
   - zircon_graphics/src/feature/mod.rs
@@ -129,6 +160,7 @@ related_code:
   - zircon_graphics/src/visibility/declarations/visibility_hybrid_gi_probe.rs
   - zircon_graphics/src/visibility/declarations/visibility_hybrid_gi_feedback.rs
   - zircon_graphics/src/visibility/declarations/visibility_hybrid_gi_update_plan.rs
+  - zircon_graphics/src/visibility/declarations/visibility_virtual_geometry_draw_segment.rs
   - zircon_graphics/src/visibility/planning/build_hybrid_gi_plan/mod.rs
   - zircon_graphics/src/extract/mod.rs
   - zircon_rhi/src/lib.rs
@@ -150,8 +182,32 @@ implementation_files:
   - zircon_asset/src/project/manifest.rs
   - zircon_asset/src/project/paths.rs
   - zircon_asset/src/project/manager.rs
+  - zircon_asset/src/project/manager/open.rs
+  - zircon_asset/src/project/manager/scan_and_import.rs
+  - zircon_asset/src/project/manager/asset_lookup.rs
+  - zircon_asset/src/project/manager/artifact_access.rs
+  - zircon_asset/src/project/manager/source_path_for_uri.rs
+  - zircon_asset/src/pipeline/manager/project_asset_manager/mod.rs
+  - zircon_asset/src/pipeline/manager/project_asset_manager/loading/mod.rs
+  - zircon_asset/src/pipeline/manager/project_asset_manager/loading/load_imported_asset.rs
+  - zircon_asset/src/pipeline/manager/project_asset_manager/loading/load_asset.rs
+  - zircon_asset/src/pipeline/manager/project_asset_manager/loading/acquire_asset.rs
+  - zircon_asset/src/pipeline/manager/project_asset_manager/loading/ensure_resident.rs
   - zircon_asset/src/pipeline/manager.rs
+  - zircon_asset/src/formats/mod.rs
+  - zircon_asset/src/formats/obj/mod.rs
+  - zircon_asset/src/formats/obj/decode_obj_file.rs
+  - zircon_asset/src/formats/obj/parse_obj_face_vertex.rs
+  - zircon_asset/src/formats/obj/resolve_obj_index.rs
   - zircon_asset/src/watch.rs
+  - zircon_asset/src/watch/asset_change.rs
+  - zircon_asset/src/watch/asset_change_kind.rs
+  - zircon_asset/src/watch/asset_watch_event.rs
+  - zircon_asset/src/watch/asset_watcher.rs
+  - zircon_asset/src/watch/spawn.rs
+  - zircon_asset/src/watch/fold_events.rs
+  - zircon_asset/src/watch/watch_loop.rs
+  - zircon_asset/src/watch/map_notify_event.rs
   - zircon_manager/src/lib.rs
   - zircon_scene/src/components.rs
   - zircon_scene/src/world/bootstrap.rs
@@ -169,30 +225,36 @@ implementation_files:
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_new/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_target/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_virtual_geometry/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_virtual_geometry/last_state/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/target_extent/mod.rs
   - zircon_graphics/src/scene/scene_renderer/deferred/mod.rs
   - zircon_graphics/src/scene/scene_renderer/mesh/mod.rs
   - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/mod.rs
   - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/build/mod.rs
-- zircon_graphics/src/scene/scene_renderer/mesh/mesh_draw/mesh_draw.rs
+  - zircon_graphics/src/scene/scene_renderer/mesh/mesh_draw/mesh_draw.rs
   - zircon_graphics/src/scene/scene_renderer/particle/mod.rs
   - zircon_graphics/src/scene/scene_renderer/overlay/mod.rs
   - zircon_graphics/src/scene/scene_renderer/overlay/viewport_overlay_renderer/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/overlay/viewport_overlay_renderer/record/mod.rs
   - zircon_graphics/src/scene/scene_renderer/overlay/passes/base_scene_pass.rs
   - zircon_graphics/src/scene/scene_renderer/overlay/passes/mod.rs
   - zircon_graphics/src/scene/scene_renderer/prepass/normal_prepass_pipeline/record.rs
-- zircon_graphics/src/scene/scene_renderer/deferred/deferred_scene_resources/record_gbuffer_geometry.rs
+  - zircon_graphics/src/scene/scene_renderer/deferred/deferred_scene_resources/record_gbuffer_geometry.rs
   - zircon_graphics/src/scene/scene_renderer/overlay/icons/viewport_icon_atlas/mod.rs
   - zircon_graphics/src/scene/scene_renderer/primitives/mod.rs
   - zircon_graphics/src/types/mod.rs
   - zircon_graphics/src/runtime/mod.rs
   - zircon_graphics/src/runtime/offline_bake/mod.rs
   - zircon_graphics/src/runtime/hybrid_gi/mod.rs
+  - zircon_graphics/src/runtime/hybrid_gi/declarations/mod.rs
   - zircon_graphics/src/runtime/hybrid_gi/pending_completion/mod.rs
   - zircon_graphics/src/runtime/hybrid_gi/prepare_frame/mod.rs
   - zircon_graphics/src/runtime/hybrid_gi/residency_management/mod.rs
   - zircon_graphics/src/runtime/virtual_geometry/mod.rs
+  - zircon_graphics/src/runtime/virtual_geometry/declarations/mod.rs
   - zircon_graphics/src/runtime/virtual_geometry/prepare_frame/mod.rs
+  - zircon_graphics/src/runtime/virtual_geometry/prepare_frame/build_prepare_frame.rs
+  - zircon_graphics/src/runtime/virtual_geometry/prepare_frame/prepare_visible_clusters.rs
   - zircon_graphics/src/runtime/virtual_geometry/pending_completion/mod.rs
   - zircon_graphics/src/runtime/virtual_geometry/residency_management/mod.rs
   - zircon_graphics/src/backend/render_backend/read_buffer_u32s.rs
@@ -214,6 +276,7 @@ implementation_files:
   - zircon_graphics/src/runtime/server/submit_frame_extract/mod.rs
   - zircon_graphics/src/runtime/server/submit_frame_extract/build_frame_submission_context/mod.rs
   - zircon_graphics/src/runtime/server/submit_frame_extract/prepare_runtime_submission/mod.rs
+  - zircon_graphics/src/runtime/server/submit_frame_extract/prepare_runtime_submission/virtual_geometry/build_virtual_geometry_prepare.rs
   - zircon_graphics/src/runtime/server/submit_frame_extract/record_submission/mod.rs
   - zircon_graphics/src/runtime/server/submit_frame_extract/submit/mod.rs
   - zircon_graphics/src/runtime/server/submit_frame_extract/update_stats/mod.rs
@@ -254,8 +317,8 @@ implementation_files:
   - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/mod.rs
   - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/execute_prepare/mod.rs
   - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/execute_prepare/execute/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/gpu_pending_request_input.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/virtual_geometry_uploader_params.rs
+  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/gpu_pending_request_input/gpu_pending_request_input.rs
+  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/virtual_geometry_uploader_params/virtual_geometry_uploader_params.rs
   - zircon_graphics/src/scene/scene_renderer/virtual_geometry/shaders/uploader.wgsl
   - zircon_graphics/src/pipeline/mod.rs
   - zircon_graphics/src/feature/mod.rs
@@ -268,6 +331,7 @@ implementation_files:
   - zircon_graphics/src/visibility/declarations/visibility_hybrid_gi_probe.rs
   - zircon_graphics/src/visibility/declarations/visibility_hybrid_gi_feedback.rs
   - zircon_graphics/src/visibility/declarations/visibility_hybrid_gi_update_plan.rs
+  - zircon_graphics/src/visibility/declarations/visibility_virtual_geometry_draw_segment.rs
   - zircon_graphics/src/visibility/planning/build_hybrid_gi_plan/mod.rs
   - zircon_graphics/src/extract/mod.rs
   - zircon_rhi/src/lib.rs
@@ -392,12 +456,26 @@ doc_type: category-index
 - [M5 Virtual Geometry Split Hysteresis](../superpowers/plans/2026-04-17-m5-virtual-geometry-split-hysteresis.md): `Virtual Geometry` 如何在 children page 刚完成上传的过渡帧保留 coarse parent 一帧，并同步保护新 resident child page 不被立即标记成 `evictable`。
 - [M5 Virtual Geometry Page-Aware Indirect Ownership](../superpowers/plans/2026-04-18-m5-virtual-geometry-page-aware-indirect-ownership.md): `Virtual Geometry` 如何把 `page_id` 保留进 unified indirect draw compaction 边界，确保不同 resident page 即使暂时共享同一 slot 也不会被错误压成同一条 indirect draw。
 - [M5 Virtual Geometry Prepare-Owned Unified Indirect Boundaries](../superpowers/plans/2026-04-18-m5-virtual-geometry-prepare-owned-unified-indirect-boundaries.md): `Virtual Geometry` 如何把 unified indirect ownership 真正下沉到 `cluster_draw_segments`，让 renderer 只消费 prepare snapshot 而不再二次 regroup。
+- [M5 Virtual Geometry Visibility-Owned Lineage Segment Boundaries](../superpowers/plans/2026-04-18-m5-virtual-geometry-visibility-owned-lineage-segments.md): `Virtual Geometry` 如何把 unified indirect segment authority 继续从 runtime prepare 下沉到 visibility planning，并在同 page frontier 上按 parent lineage 保留独立 segment 边界。
 - [M5 Virtual Geometry Page-Owned Cluster Raster Consumption](../superpowers/plans/2026-04-18-m5-virtual-geometry-page-owned-cluster-raster-consumption.md): `Virtual Geometry` 如何把 `page_id` 从 indirect ownership 边界继续推进到真实 GPU indirect args，让不同 resident page 即使共享同一 slot 也会消费不同的 cluster-raster 子范围。
+- [M5 Virtual Geometry Runtime-Owned Stats Closure](../superpowers/plans/2026-04-18-m5-virtual-geometry-runtime-owned-stats-closure.md): `Virtual Geometry` 如何把 prepare-owned indirect authority 与 GPU uploader completion truth 继续推到 `RenderStats`，让 façade 直接看见 completed page 与 indirect segment 规模。
 - [M5 Virtual Geometry Merge Hysteresis](../superpowers/plans/2026-04-18-m5-virtual-geometry-merge-hysteresis.md): `Virtual Geometry` 如何在真正 split 到 resident children 的下一拍里继续保护 coarse parent，不让它在 split 落地帧立刻进入 `evictable_pages`。
 - [M5 Virtual Geometry Merge-Back Child Hysteresis](../superpowers/plans/2026-04-18-m5-virtual-geometry-merge-back-child-hysteresis.md): `Virtual Geometry` 如何在 frontier 从 children 回退到 parent 的当帧继续保护仍 resident 的 child page，不让它立刻进入 `evictable_pages`。
+- [M5 Virtual Geometry Current Evictable Slot Recycling Guard](../superpowers/plans/2026-04-18-m5-virtual-geometry-current-evictable-slot-recycling-guard.md): `Virtual Geometry` 如何让 runtime residency completion 只信当前帧 `evictable_pages` 真值，避免 stale runtime state 在 merge-back / cascade 保护撤回后继续抢 slot。
+- [M5 Virtual Geometry GPU Submission Segment Readback](../superpowers/plans/2026-04-18-m5-virtual-geometry-gpu-submission-segment-readback.md): `Virtual Geometry` 如何把 visibility-owned unified indirect authority 继续推进到真实 GPU submission buffer，并让测试直接回读 indirect segment truth。
+- [M5 Virtual Geometry Draw-Ref Readback](../superpowers/plans/2026-04-18-m5-virtual-geometry-draw-ref-readback.md): `Virtual Geometry` 如何继续把 unified indirect authority 从 segment truth 推到真实 draw-ref submission 映射，让测试直接断言每条 indirect draw 实际引用的 segment。
+- [M5 Virtual Geometry Pending-Cascade Descendant Hold](../superpowers/plans/2026-04-18-m5-virtual-geometry-pending-cascade-descendant-hold.md): `Virtual Geometry` 如何让 multi-level collapse 在 ancestor request 仍然 pending 时继续保热更深 resident descendants，而不是在第二个 collapsed frame 就把它们放回 `evictable_pages`。
 - [M5 Hybrid GI RT Lighting And Screen-Probe Hierarchy](../superpowers/plans/2026-04-18-m5-hybrid-gi-rt-lighting-screen-probe-hierarchy.md): `Hybrid GI` 如何把 trace region 的 `rt_lighting_rgb` 接进 GPU completion，并让 probe active/request frontier 开始支持 `parent_probe_id` 驱动的最小 hierarchy refine。
 - [M5 Hybrid GI Hierarchy-Aware Radiance Gather](../superpowers/plans/2026-04-18-m5-hybrid-gi-hierarchy-aware-radiance-gather.md): `Hybrid GI` 如何把 `parent_probe_id` 继续下沉到 GPU resident/pending probe 输入，让 hierarchy 关系真实改变 radiance-cache gather。
 - [M5 Hybrid GI Hierarchy-Gap Resolve And RT Inheritance](../superpowers/plans/2026-04-18-m5-hybrid-gi-hierarchy-gap-resolve-and-rt-inheritance.md): `Hybrid GI` 如何让 resolve 在 nonresident hierarchy gap 上继续保留 ancestor/descendant lineage，并让 child probe 继承 ancestor trace-region 的 RT tint。
+- [M5 Hybrid GI GPU Hierarchy Completion Continuation](../superpowers/plans/2026-04-18-m5-hybrid-gi-gpu-hierarchy-completion-continuation.md): `Hybrid GI` 如何把最近 resident ancestor 继续下沉到 pending probe GPU completion，让 hierarchy-gap gather 与 ancestor RT-lighting continuation 真正进入 radiance-cache update，而不再只停在 resolve。
+- [M5 Hybrid GI Descendant Request Frontier](../superpowers/plans/2026-04-18-m5-hybrid-gi-descendant-request-frontier.md): `Hybrid GI` 如何让 resident frontier 不再只请求 direct child，而是继续追 visible nonresident descendants，并在 trace support 打平或主要落在 ancestor chain 上时继续偏向更深 descendant，让更深 screen-probe hierarchy 真正进入 request/update 主链。
+- [M5 Hybrid GI Multi-Ancestor Completion Continuation](../superpowers/plans/2026-04-18-m5-hybrid-gi-multi-ancestor-completion-continuation.md): `Hybrid GI` 如何把 pending probe 的 GPU completion 从“只认最近 resident ancestor”推进到“两级 resident ancestor continuation”，让更远 resident ancestor 的 radiance / traced tint 真正进入 pending probe update。
+- [M5 Hybrid GI Third Resident Ancestor Continuation](../superpowers/plans/2026-04-18-m5-hybrid-gi-third-resident-ancestor-continuation.md): `Hybrid GI` 如何把 pending probe 的 GPU completion 从“两级 resident ancestor continuation”继续推进到三级 resident lineage，让更深层 radiance gather / RT tint inheritance 进入 scene-driven update。
+- [M5 Hybrid GI Primary-Lineage Gather And Lineage Budgeting](../superpowers/plans/2026-04-18-m5-hybrid-gi-primary-lineage-gather-and-lineage-budgeting.md): `Hybrid GI` 如何补上 pending probe 对 primary resident ancestor 的 lineage-only radiance gather，以及在多个 active lineages 竞争有限 `probe_budget` 时先做 lineage-fair 的首轮 descendant request 分配。
+- [M5 Hybrid GI Farther-Ancestor Budget-Weighted Resolve](../superpowers/plans/2026-04-18-m5-hybrid-gi-farther-ancestor-budget-weighted-resolve.md): `Hybrid GI` 如何让更远 resident ancestor 的 budget/support 也真实改变 child probe 的最终 resolve 强度，而不再只追加颜色 continuation。
+- [M5 Hybrid GI Pending-Ancestor Descendant Hold](../superpowers/plans/2026-04-18-m5-hybrid-gi-pending-ancestor-descendant-hold.md): `Hybrid GI` 如何让 pending hierarchy request 挂起期间继续保热更深 resident descendant probe，而不是在 runtime-host cache policy 上提前把它们放回 `evictable_probe_ids`。
+- [M5 Runtime Scene Authority Prune](../superpowers/plans/2026-04-18-m5-runtime-scene-authority-prune.md): `Hybrid GI / Virtual Geometry` 如何在 runtime host 接收新 extract 时主动裁掉已经离开场景的 stale probe/page，避免旧缓存继续污染下一帧 residency truth。
 - [M5 Flagship Baseline Capability Lift](../superpowers/plans/2026-04-17-m5-flagship-baseline-capability-lift.md): `RenderServer` 如何把已落地的 `Virtual Geometry / Hybrid GI` baseline 从“保守 capability gate 关闭”提升为 pure `wgpu` baseline 可显式启用，同时继续保持 RT/AS 路径关闭。
 
 ## Current Scope
@@ -415,9 +493,11 @@ doc_type: category-index
 - `zircon_rhi` / `zircon_rhi_wgpu` / `zircon_render_graph` / `zircon_render_server` 的基础渲染边界，以及 `RenderFrameExtract` 与旧 `RenderSceneSnapshot` 的过渡桥
 - `zircon_graphics` 通过 `RenderServer` 路径执行真实的 `final color / scene color / bloom / gbuffer albedo / normal / AO / history / clustered-light buffer / reflection-probe buffer` 中间资源链，而不是只停在 compile skeleton；built-in deferred 已经会把 opaque geometry 改走固定材质解码和 deferred lighting，剩余的 `bloom / color grading / baked lighting / reflection probes / particle rendering / offline bake` 也已经沿同一条 runtime path 接通
 - `Virtual Geometry / Hybrid GI` 的第一段 capability-slot 边界：extract placeholder、quality/profile toggle、history slot、feature descriptor、explicit compile opt-in、render-server capability/stats 可观测性，以及 pure `wgpu` baseline 下对当前非 RT 实现的能力映射
-- `Virtual Geometry` 的 preprocess + runtime host + GPU completion + hierarchy refine baseline：cluster/page 数据合同、cluster-level frustum filtering、budgeted page request planning、跨帧 dirty request 历史、viewport 级 page table/residency/request sink host、带显式 `cluster_draw_segments + available_slots` 的 frame-local prepare snapshot、prepare-driven mesh fallback filtering、resident/pending cluster streaming 状态驱动的 cluster-slice fallback consumption、renderer-local indirect raster baseline、frame-shared indirect args buffer + per-draw offset 消费、compute-generated indirect args、slot-aware cluster-raster consumption、page-owned cluster-raster consumption、feedback-driven residency progression、renderer-local `wgpu` uploader/readback completion source、`size_bytes` 驱动的 streaming/reclaimable byte arbitration、GPU-assigned `completed_page_assignments(page_id, slot)` 回写、post-upload page-table snapshot readback、resident-slot-aware fallback raster consumption，以及把 streaming target frontier 与 resident-gated render frontier 显式拆开的 streaming-aware hierarchy refine；当前 `cluster_draw_segments` 已经被固定成 unified indirect 的最终 ownership authority，renderer 只做 page/slot fallback 投影而不再二次 regroup；split/merge 稳定层则同时覆盖 upload-completion split hold、split 落地帧 coarse-parent hold，以及 frontier merge-back 当帧的 resident child-page hold，用来避免 coarse/child page 在切换边界上立刻进入 `evictable_pages`；与此同时 unified indirect draw contract 已经保留 `page_id` 边界，而高 resident-slot 路径下的 GPU indirect args 现在还会继续把 `page_id` 映射成不同的实际 raster 子范围
+- `Virtual Geometry` 的 preprocess + runtime host + GPU completion + hierarchy refine baseline：cluster/page 数据合同、cluster-level frustum filtering、budgeted page request planning、跨帧 dirty request 历史、viewport 级 page table/residency/request sink host、带显式 `cluster_draw_segments + available_slots` 的 frame-local prepare snapshot、prepare-driven mesh fallback filtering、resident/pending cluster streaming 状态驱动的 cluster-slice fallback consumption、renderer-local indirect raster baseline、frame-shared indirect args buffer + per-draw offset 消费、compute-generated indirect args、slot-aware cluster-raster consumption、page-owned cluster-raster consumption、feedback-driven residency progression、renderer-local `wgpu` uploader/readback completion source、`size_bytes` 驱动的 streaming/reclaimable byte arbitration、GPU-assigned `completed_page_assignments(page_id, slot)` 回写、post-upload page-table snapshot readback、resident-slot-aware fallback raster consumption，以及把 streaming target frontier 与 resident-gated render frontier 显式拆开的 streaming-aware hierarchy refine；当前 `cluster_draw_segments` 已经被固定成 unified indirect 的最终 ownership authority，renderer 只做 page/slot fallback 投影而不再二次 regroup；最新一层 visibility 还会额外输出 `VisibilityVirtualGeometryDrawSegment`，并在同 page frontier 上按 parent lineage 保留独立 unified-indirect segment 边界，再由 runtime prepare 直接消费这份 visibility-owned contract；renderer last-state 现在还会直接保留并回读真实 GPU-submitted indirect segment buffer与 draw-ref buffer，因此 unified-indirect regressions 不再只验证 prepare projection，而会验证真实 submission truth 与每条 draw 的最终 segment 映射；split/merge 稳定层则同时覆盖 upload-completion split hold、split 落地帧 coarse-parent hold、frontier merge-back 当帧的 resident child-page hold，以及 multi-level frontier collapse 时对缺失 ancestor page 的优先 request 与 resident descendants 的持续保热，只要 ancestor cascade request 仍然 pending，就不会在第二个 collapsed frame 把 deepest hot descendants 提前放回 `evictable_pages`；当前 runtime host 在 extract 收缩或 feature 关闭时也会主动裁掉已经离开场景的 stale page，不再把旧 page-table / pending-request truth 带进下一帧；当前 GPU completion slot recycling 也已经只信当前帧 `evictable_pages` 真值，不会再因为 runtime 内部旧状态把刚被 merge-back / cascade 保护撤回的 resident page 误回收；与此同时 unified indirect draw contract 已经保留 `page_id` 边界，而高 resident-slot 路径下的 GPU indirect args 现在还会继续把 `page_id` 映射成不同的实际 raster 子范围
 - 当前这些运行时/消费层入口也已经继续下沉：`submit_frame_extract/` 里的 `build_frame_submission_context/`、`prepare_runtime_submission/`、`submit/`、`record_submission/`、`update_stats/`，`runtime/virtual_geometry/{prepare_frame,pending_completion,residency_management}/`，`runtime/hybrid_gi/{prepare_frame,pending_completion,residency_management}/`，`scene_renderer/core/{scene_renderer_render,scene_renderer_render_with_pipeline,scene_renderer_runtime_outputs}/`，以及 `mesh/build_mesh_draws/build/` 现在都已经是 root-only wiring + helper 子模块，不再由单文件同时承担 context、prepare、submit、record、stats、completion、slot bookkeeping 与 render-output bookkeeping。
-- `Hybrid GI` 的 preprocess + runtime host + GPU completion + radiance-cache lighting resolve baseline：probe/trace region 数据合同、probe frustum filtering、budgeted probe request 与 trace schedule、跨帧 dirty probe request 历史、viewport 级 probe cache/residency/update host、feedback-driven probe residency / trace schedule progression、renderer-local probe update / trace completion + trace-region-localized irradiance readback source、resident probe history 驱动的 temporal radiance-cache update、multi-region radiance gather 的归一化权重 blend、scene directional-light tint / intensity 驱动的 GPU radiance seed、trace-region-local `rt_lighting_rgb` override、`parent_probe_id` 驱动的 screen-probe hierarchy frontier、no-trace 帧的 history-preserving / pending-black 规则、host-side 默认 irradiance bootstrap 清理，以及 GPU-produced resident probe irradiance 配合 scheduled trace region screen projection 的 localized post-process lighting resolve；trace region 现在还会在 resolve 阶段按 screen-space support 直接偏向附近 probe，而不是只做全局亮度 boost，同时 newly resident probe 与 merge-back child probe 都会获得一帧 eviction hysteresis，GPU completion 也已把 `parent_probe_id` 继续压到 resident/pending probe 输入，对 direct parent/child radiance gather 做 hierarchy-aware weighting；最新一层 resolve 还把 hierarchy 权重扩展到了带 nonresident 中间层的 ancestor/descendant lineage，并且会把 ancestor 命中的 trace-region RT tint 预编码成 per-probe inherited lighting baseline，再交给 shader 和本地 trace support 合并
+- `Hybrid GI` 的 preprocess + runtime host + GPU completion + radiance-cache lighting resolve baseline：probe/trace region 数据合同、probe frustum filtering、budgeted probe request 与 trace schedule、跨帧 dirty probe request 历史、viewport 级 probe cache/residency/update host、feedback-driven probe residency / trace schedule progression、renderer-local probe update / trace completion + trace-region-localized irradiance readback source、resident probe history 驱动的 temporal radiance-cache update、multi-region radiance gather 的归一化权重 blend、scene directional-light tint / intensity 驱动的 GPU radiance seed、trace-region-local `rt_lighting_rgb` override、`parent_probe_id` 驱动的 screen-probe hierarchy frontier、no-trace 帧的 history-preserving / pending-black 规则、host-side 默认 irradiance bootstrap 清理，以及 GPU-produced resident probe irradiance 配合 scheduled trace region screen projection 的 localized post-process lighting resolve；active resident frontier 现在还不再只会请求 direct child，而是会继续追 visible nonresident descendants，并在 trace support 打平或主要落在 ancestor chain 上时继续偏向更深 descendant，让更深层 probe 直接进入 request/update 主链；trace region 也会在 resolve 阶段按 screen-space support 直接偏向附近 probe，而不是只做全局亮度 boost，同时 newly resident probe 与 merge-back child probe 都会获得一帧 eviction hysteresis；最新一层 hierarchy cache policy 还会在 pending ancestor request 继续挂起时，持续保热该 frontier 下最深的 resident hidden descendant probe，不再在第二个 collapsed frame 就把它们重新丢回 `evictable_probe_ids`；与此同时 runtime host 在 extract 收缩或 feature 关闭时也会主动裁掉已经离开场景的 stale probe、pending update 与 irradiance cache，避免旧 hierarchy 分支继续污染下一帧 probe truth；GPU completion 也已把 `parent_probe_id` 继续压到 resident/pending probe 输入，对 direct parent/child radiance gather 做 hierarchy-aware weighting；最新一层 completion 现在已经会为 pending probe 编码三级 resident ancestor id/depth，在 nonresident hierarchy gap 上继续保留 gather boost，并把更远 resident ancestor 的 radiance history 与 traced tint 作为显式 lineage continuation 混进 pending probe update；对应的 resolve 侧也已把 hierarchy 权重扩展到带 nonresident 中间层的 ancestor/descendant lineage，并把 ancestor 命中的 trace-region RT tint 预编码成 per-probe inherited lighting baseline，再交给 shader 和本地 trace support 合并
+- `Hybrid GI` 的最新 hierarchy continuity 还额外补上了三层：其一，pending probe 在只有 lineage、没有 spatial overlap 的情况下，也会继续继承 primary resident ancestor 的 radiance，而不再退化回局部 neutral trace；其二，request budgeting 现在会先把首轮 descendant request 分摊到不同 active lineages，再进入同一 lineage 的第二轮 refine，避免单条 lineage 连续吞掉全部 `probe_budget`；其三，post-process resolve 现在也会把 “beyond-nearest resident ancestor” 的 irradiance continuation 编进 resident probe payload，让更远 ancestor 的 radiance 不再只停在 GPU completion/readback，而会真实改变最终 GI resolve 颜色
+- `zircon_graphics` 的 folder-backed helper 可见性边界：`scene_renderer_core_new`、`hybrid_gi::gpu_resources::new` 与 `virtual_geometry::gpu_resources` 当前都改成 subtree-scoped `pub(in crate::scene::scene_renderer::...)` helper 可见性，保证 construct / execute 子树在继续模块化拆分后仍然 compile-safe，同时不扩大 `RenderServer` 或 feature/runtime 对外 API。
 - editor 打开目录项目、导入模型、保存默认 level、通过 `ResourceManager` 读取资源树并在 watcher 变化后重建 viewport extract，并通过 `RenderServer` 驱动 editor/runtime viewport 输出
 
 尚未覆盖的高阶内容仍包括完整 metallic-roughness 扩展材质模型、FBX/ASTC/PVRTexTool 真正导入链、`RenderingManager` 向纯兼容桥的最终收束，以及 GPU-driven visibility 的真实 visibility-owned indirect/occlusion/BVH 执行层、`Virtual Geometry` 的更深层 unified indirect / cluster raster / split-merge 路径、`Hybrid GI` 更完整的 screen-probe hierarchy / RT hybrid lighting 路径。

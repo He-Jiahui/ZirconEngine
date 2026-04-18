@@ -15,6 +15,8 @@ pub(in crate::scene::scene_renderer::core) fn store_last_runtime_outputs(
     indirect_segment_count: u32,
     indirect_args_buffer: Option<Arc<wgpu::Buffer>>,
     indirect_args_count: u32,
+    indirect_draw_ref_buffer: Option<Arc<wgpu::Buffer>>,
+    indirect_segment_buffer: Option<Arc<wgpu::Buffer>>,
 ) -> Result<(), GraphicsError> {
     renderer.last_hybrid_gi_gpu_readback = hybrid_gi_gpu_readback
         .map(|pending| pending.collect(&renderer.backend.device))
@@ -27,5 +29,7 @@ pub(in crate::scene::scene_renderer::core) fn store_last_runtime_outputs(
     renderer.last_virtual_geometry_indirect_segment_count = indirect_segment_count;
     renderer.last_virtual_geometry_indirect_args_buffer = indirect_args_buffer;
     renderer.last_virtual_geometry_indirect_args_count = indirect_args_count;
+    renderer.last_virtual_geometry_indirect_draw_refs_buffer = indirect_draw_ref_buffer;
+    renderer.last_virtual_geometry_indirect_segments_buffer = indirect_segment_buffer;
     Ok(())
 }

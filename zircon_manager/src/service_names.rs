@@ -1,4 +1,3 @@
-pub const ASSET_MANAGER_NAME: &str = "AssetModule.Manager.AssetManager";
 pub const RESOURCE_MANAGER_NAME: &str = "AssetModule.Manager.ResourceManager";
 pub const INPUT_MANAGER_NAME: &str = "InputModule.Manager.InputManager";
 pub const CONFIG_MANAGER_NAME: &str = "FoundationModule.Manager.ConfigManager";

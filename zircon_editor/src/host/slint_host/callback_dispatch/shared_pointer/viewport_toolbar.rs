@@ -6,7 +6,7 @@ use crate::host::slint_host::{
     viewport_toolbar_pointer::{ViewportToolbarPointerBridge, ViewportToolbarPointerDispatch},
 };
 
-use super::super::{BuiltinViewportToolbarTemplateBridge, dispatch_viewport_toolbar_pointer_route};
+use super::super::{dispatch_viewport_toolbar_pointer_route, BuiltinViewportToolbarTemplateBridge};
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct SharedViewportToolbarPointerClickDispatch {

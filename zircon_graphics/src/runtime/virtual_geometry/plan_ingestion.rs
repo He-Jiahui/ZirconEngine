@@ -1,7 +1,6 @@
 use crate::VisibilityVirtualGeometryPageUploadPlan;
 
-use super::virtual_geometry_page_request::VirtualGeometryPageRequest;
-use super::virtual_geometry_runtime_state::VirtualGeometryRuntimeState;
+use super::{VirtualGeometryPageRequest, VirtualGeometryRuntimeState};
 
 impl VirtualGeometryRuntimeState {
     pub(crate) fn ingest_plan(

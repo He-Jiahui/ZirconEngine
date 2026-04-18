@@ -23,14 +23,15 @@ pub use assets::{
 };
 pub use editor::{
     resolve_editor_asset_manager, AssetCatalogRecord, DefaultEditorAssetManager,
-    EditorAssetCatalogRecord, EditorAssetCatalogSnapshotRecord, EditorAssetChangeKind,
-    EditorAssetChangeRecord, EditorAssetDetailsRecord, EditorAssetFolderRecord, EditorAssetManager,
-    EditorAssetManagerHandle, EditorAssetReferenceRecord, PreviewArtifactKey, PreviewCache,
-    PreviewScheduler, ReferenceGraph,
+    EditorAssetCatalogRecord, EditorAssetCatalogSnapshotRecord, EditorAssetChange,
+    EditorAssetChangeKind, EditorAssetChangeRecord, EditorAssetDetailsRecord,
+    EditorAssetFolderRecord, EditorAssetManager, EditorAssetManagerHandle,
+    EditorAssetReferenceRecord, PreviewArtifactKey, PreviewCache, PreviewScheduler, ReferenceGraph,
 };
 pub use importer::{AssetImportError, AssetImporter};
 pub use pipeline::manager::{
-    module_descriptor, AssetIoDriver, ProjectAssetManager, ASSET_IO_DRIVER_NAME,
+    module_descriptor, resolve_asset_manager, AssetIoDriver, AssetManager, AssetManagerHandle,
+    AssetPipelineInfo, AssetStatusRecord, ProjectAssetManager, ProjectInfo, ASSET_IO_DRIVER_NAME,
     ASSET_MANAGER_NAME, ASSET_MODULE_NAME, EDITOR_ASSET_MANAGER_NAME, PROJECT_ASSET_MANAGER_NAME,
     RESOURCE_MANAGER_NAME,
 };
@@ -42,23 +43,16 @@ pub use pipeline::worker_pool::AssetWorkerPool;
 pub use project::{AssetMetaDocument, PreviewState};
 pub use project::{ProjectManager, ProjectManifest, ProjectPaths};
 pub use watch::{AssetChange, AssetChangeKind, AssetWatchEvent, AssetWatcher};
-pub use zircon_resource::{
-    AssetReference, AssetUuid, MaterialMarker, ModelMarker, ResourceData, ResourceDiagnostic,
-    ResourceDiagnosticSeverity, ResourceEvent, ResourceEventKind, ResourceHandle, ResourceId,
-    ResourceInspectorAdapterKey, ResourceIo, ResourceIoError, ResourceKind, ResourceLease,
-    ResourceLocator, ResourceLocatorError, ResourceManager, ResourceMarker, ResourceRecord,
-    ResourceRegistry, ResourceRuntimeInfo, ResourceScheme, ResourceState, ResourceTypeDescriptor,
-    RuntimeResourceState, SceneMarker, ShaderMarker, TextureMarker, UiLayoutMarker, UiStyleMarker,
-    UiWidgetMarker, UntypedResourceHandle,
-};
 
-pub type AssetId = ResourceId;
-pub type AssetKind = ResourceKind;
-pub type AssetMetadata = ResourceRecord;
-pub type AssetRegistry = ResourceRegistry;
-pub type AssetUri = ResourceLocator;
-pub type AssetUriError = ResourceLocatorError;
-pub type AssetUriScheme = ResourceScheme;
+pub type AssetId = zircon_resource::ResourceId;
+pub type AssetKind = zircon_resource::ResourceKind;
+pub type AssetMetadata = zircon_resource::ResourceRecord;
+pub type AssetReference = zircon_resource::AssetReference;
+pub type AssetRegistry = zircon_resource::ResourceRegistry;
+pub type AssetUri = zircon_resource::ResourceLocator;
+pub type AssetUriError = zircon_resource::ResourceLocatorError;
+pub type AssetUriScheme = zircon_resource::ResourceScheme;
+pub type AssetUuid = zircon_resource::AssetUuid;
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct AssetModule;

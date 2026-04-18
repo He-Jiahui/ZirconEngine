@@ -1,10 +1,10 @@
 ---
 related_code:
   - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh/mesh_draw.rs
+  - zircon_graphics/src/scene/scene_renderer/mesh/mesh_draw/mesh_draw.rs
   - zircon_graphics/src/scene/scene_renderer/overlay/passes/base_scene_pass.rs
   - zircon_graphics/src/scene/scene_renderer/prepass/normal_prepass_pipeline/record.rs
-  - zircon_graphics/src/scene/scene_renderer/deferred/deferred_scene_resources_record_gbuffer_geometry.rs
+  - zircon_graphics/src/scene/scene_renderer/deferred/deferred_scene_resources/record_gbuffer_geometry.rs
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_new/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_render/mod.rs
@@ -16,10 +16,10 @@ related_code:
   - docs/assets-and-rendering/srp-rhi-render-server-architecture.md
 implementation_files:
   - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh/mesh_draw.rs
+  - zircon_graphics/src/scene/scene_renderer/mesh/mesh_draw/mesh_draw.rs
   - zircon_graphics/src/scene/scene_renderer/overlay/passes/base_scene_pass.rs
   - zircon_graphics/src/scene/scene_renderer/prepass/normal_prepass_pipeline/record.rs
-  - zircon_graphics/src/scene/scene_renderer/deferred/deferred_scene_resources_record_gbuffer_geometry.rs
+  - zircon_graphics/src/scene/scene_renderer/deferred/deferred_scene_resources/record_gbuffer_geometry.rs
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_new/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_render/mod.rs

@@ -7,9 +7,9 @@ related_code:
   - zircon_graphics/src/runtime/server/submit_frame_extract/gpu_completion.rs
   - zircon_graphics/src/runtime/server/submit_frame_extract/record_submission.rs
   - zircon_graphics/src/runtime/server/submit_frame_extract/submit.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_readback.rs
+  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_readback/mod.rs
   - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/execute_prepare/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/virtual_geometry_uploader_params.rs
+  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/virtual_geometry_uploader_params/virtual_geometry_uploader_params.rs
   - zircon_graphics/src/scene/scene_renderer/virtual_geometry/shaders/uploader.wgsl
   - zircon_graphics/src/tests/virtual_geometry_gpu.rs
   - zircon_graphics/src/tests/virtual_geometry_runtime.rs
@@ -22,9 +22,9 @@ implementation_files:
   - zircon_graphics/src/runtime/server/submit_frame_extract/gpu_completion.rs
   - zircon_graphics/src/runtime/server/submit_frame_extract/record_submission.rs
   - zircon_graphics/src/runtime/server/submit_frame_extract/submit.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_readback.rs
+  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_readback/mod.rs
   - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/execute_prepare/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/virtual_geometry_uploader_params.rs
+  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/virtual_geometry_uploader_params/virtual_geometry_uploader_params.rs
   - zircon_graphics/src/scene/scene_renderer/virtual_geometry/shaders/uploader.wgsl
 plan_sources:
   - user: 2026-04-17 continue the remaining M5 milestones without waiting for confirmation
