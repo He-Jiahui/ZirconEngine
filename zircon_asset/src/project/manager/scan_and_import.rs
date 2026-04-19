@@ -1,7 +1,10 @@
 use std::collections::HashMap;
 use std::fs;
 
-use crate::{AssetId, AssetImportError, AssetMetadata, AssetRegistry, PreviewState};
+use zircon_resource::{ResourceRecord, ResourceRegistry};
+
+use crate::project::PreviewState;
+use crate::{AssetId, AssetImportError};
 
 use super::{
     asset_kind::asset_kind, collect_files::collect_files, hash_bytes::hash_bytes,
@@ -12,12 +15,12 @@ use super::{
 const IMPORTER_VERSION: u32 = 1;
 
 impl ProjectManager {
-    pub fn scan_and_import(&mut self) -> Result<Vec<AssetMetadata>, AssetImportError> {
+    pub fn scan_and_import(&mut self) -> Result<Vec<ResourceRecord>, AssetImportError> {
         let mut files = Vec::new();
         collect_files(self.paths.assets_root(), &mut files)?;
         files.sort();
 
-        let mut registry = AssetRegistry::default();
+        let mut registry = ResourceRegistry::default();
         let mut asset_ids_by_uuid = HashMap::new();
         let mut asset_uuids_by_id = HashMap::new();
         let mut imported = Vec::with_capacity(files.len());
@@ -48,10 +51,10 @@ impl ProjectManager {
             let asset_id = AssetId::from_asset_uuid_label(meta.asset_uuid, uri.label());
             let artifact_uri = self.artifact_store.write(
                 &self.paths,
-                &AssetMetadata::new(asset_id, kind, uri.clone()),
+                &ResourceRecord::new(asset_id, kind, uri.clone()),
                 &imported_asset,
             )?;
-            let metadata = AssetMetadata::new(asset_id, kind, uri)
+            let metadata = ResourceRecord::new(asset_id, kind, uri)
                 .with_source_hash(source_hash)
                 .with_importer_version(IMPORTER_VERSION)
                 .with_config_hash("")

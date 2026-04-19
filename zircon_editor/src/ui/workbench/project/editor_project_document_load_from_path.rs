@@ -1,5 +1,6 @@
-use zircon_asset::ProjectManager;
-use zircon_scene::{Scene, SceneProjectError};
+use zircon_asset::project::ProjectManager;
+use zircon_scene::world::SceneProjectError;
+use zircon_scene::Scene;
 
 use super::editor_project_document::EditorProjectDocument;
 use super::editor_workspace_persistence::load_editor_workspace;

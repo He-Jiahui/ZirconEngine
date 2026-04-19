@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use bytemuck::{Pod, Zeroable};
 use zircon_math::Vec4;
-use zircon_scene::EntityId;
+use zircon_framework::scene::EntityId;
 
 use super::super::virtual_geometry_cluster_raster_draw::VirtualGeometryClusterRasterDraw;
 use crate::types::VirtualGeometryPrepareClusterState;
@@ -21,6 +21,7 @@ pub(super) struct PendingMeshDraw {
 #[derive(Clone, Copy, Debug)]
 pub(super) struct VirtualGeometryIndirectDrawRef {
     pub(super) mesh_index_count: u32,
+    pub(super) mesh_signature: u64,
     pub(super) segment_key: VirtualGeometryIndirectSegmentKey,
 }
 
@@ -51,6 +52,9 @@ pub(super) struct VirtualGeometryIndirectSegmentInput {
     pub(super) lineage_depth: u32,
     pub(super) lod_level: u32,
     pub(super) frontier_rank: u32,
+    pub(super) submission_index: u32,
+    pub(super) entity_lo: u32,
+    pub(super) entity_hi: u32,
 }
 
 #[repr(C)]
@@ -58,50 +62,39 @@ pub(super) struct VirtualGeometryIndirectSegmentInput {
 pub(super) struct VirtualGeometryIndirectDrawRefInput {
     pub(super) mesh_index_count: u32,
     pub(super) segment_index: u32,
-}
-
-pub(super) fn full_mesh_indirect_draw_ref(
-    entity: EntityId,
-    mesh_index_count: u32,
-) -> VirtualGeometryIndirectDrawRef {
-    VirtualGeometryIndirectDrawRef {
-        mesh_index_count,
-        segment_key: VirtualGeometryIndirectSegmentKey {
-            submission_index: 0,
-            entity,
-            page_id: 0,
-            cluster_start_ordinal: 0,
-            cluster_span_count: 1,
-            cluster_total_count: 1,
-            lineage_depth: 0,
-            lod_level: 0,
-            frontier_rank: 0,
-            submission_slot: Some(0),
-            state: encode_cluster_state(VirtualGeometryPrepareClusterState::Resident),
-        },
-    }
+    pub(super) segment_draw_ref_count: u32,
+    pub(super) submission_token: u32,
 }
 
 pub(super) fn indirect_draw_ref_for_cluster_draw(
     entity: EntityId,
     mesh_index_count: u32,
+    mesh_signature: u64,
     cluster_draw: VirtualGeometryClusterRasterDraw,
 ) -> VirtualGeometryIndirectDrawRef {
     VirtualGeometryIndirectDrawRef {
         mesh_index_count,
-        segment_key: VirtualGeometryIndirectSegmentKey {
-            submission_index: cluster_draw.submission_index,
-            entity,
-            page_id: cluster_draw.page_id,
-            cluster_start_ordinal: cluster_draw.entity_cluster_start_ordinal as u32,
-            cluster_span_count: cluster_draw.entity_cluster_span_count.max(1) as u32,
-            cluster_total_count: cluster_draw.entity_cluster_total_count.max(1) as u32,
-            lineage_depth: cluster_draw.lineage_depth,
-            lod_level: cluster_draw.lod_level,
-            frontier_rank: cluster_draw.frontier_rank,
-            submission_slot: cluster_draw.submission_slot,
-            state: encode_cluster_state(cluster_draw.state),
-        },
+        mesh_signature,
+        segment_key: segment_key_for_cluster_draw(entity, cluster_draw),
+    }
+}
+
+pub(super) fn segment_key_for_cluster_draw(
+    entity: EntityId,
+    cluster_draw: VirtualGeometryClusterRasterDraw,
+) -> VirtualGeometryIndirectSegmentKey {
+    VirtualGeometryIndirectSegmentKey {
+        submission_index: cluster_draw.submission_index,
+        entity,
+        page_id: cluster_draw.page_id,
+        cluster_start_ordinal: cluster_draw.entity_cluster_start_ordinal as u32,
+        cluster_span_count: cluster_draw.entity_cluster_span_count.max(1) as u32,
+        cluster_total_count: cluster_draw.entity_cluster_total_count.max(1) as u32,
+        lineage_depth: cluster_draw.lineage_depth,
+        lod_level: cluster_draw.lod_level,
+        frontier_rank: cluster_draw.frontier_rank,
+        submission_slot: cluster_draw.submission_slot,
+        state: encode_cluster_state(cluster_draw.state),
     }
 }
 
@@ -118,16 +111,23 @@ pub(super) fn segment_input(
         lineage_depth: segment_key.lineage_depth,
         lod_level: u32::from(segment_key.lod_level),
         frontier_rank: segment_key.frontier_rank,
+        submission_index: segment_key.submission_index,
+        entity_lo: segment_key.entity as u32,
+        entity_hi: (segment_key.entity >> 32) as u32,
     }
 }
 
 pub(super) fn draw_ref_input(
-    draw_ref: VirtualGeometryIndirectDrawRef,
+    mesh_index_count: u32,
     segment_index: u32,
+    segment_draw_ref_count: u32,
+    submission_token: u32,
 ) -> VirtualGeometryIndirectDrawRefInput {
     VirtualGeometryIndirectDrawRefInput {
-        mesh_index_count: draw_ref.mesh_index_count,
+        mesh_index_count,
         segment_index,
+        segment_draw_ref_count,
+        submission_token,
     }
 }
 
@@ -138,3 +138,4 @@ fn encode_cluster_state(state: VirtualGeometryPrepareClusterState) -> u32 {
         VirtualGeometryPrepareClusterState::Missing => 2,
     }
 }
+

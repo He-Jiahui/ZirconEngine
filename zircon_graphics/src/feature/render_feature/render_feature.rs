@@ -1,5 +1,5 @@
+use zircon_framework::render::RenderFrameExtract;
 use zircon_render_graph::RenderGraphBuilder;
-use zircon_scene::RenderFrameExtract;
 
 use crate::feature::RenderFeatureDescriptor;
 

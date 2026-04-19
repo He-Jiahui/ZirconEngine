@@ -2,6 +2,7 @@ use super::super::frame_submission_context::FrameSubmissionContext;
 use super::super::gpu_completion::VirtualGeometryGpuCompletion;
 use super::super::prepared_runtime_submission::PreparedRuntimeSubmission;
 use super::super::submission_record_update::VirtualGeometryStatSnapshot;
+use crate::runtime::virtual_geometry::normalized_page_table_entries;
 use crate::types::VirtualGeometryPrepareClusterState;
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -92,8 +93,8 @@ fn confirmed_virtual_geometry_completion(
     previous_slot_owners: impl IntoIterator<Item = (u32, u32)>,
     previous_pending_pages: impl IntoIterator<Item = u32>,
 ) -> VirtualGeometryGpuCompletion {
-    let page_table_slot_by_page = completion
-        .page_table_entries
+    let page_table_entries = normalized_page_table_entries(&completion.page_table_entries);
+    let page_table_slot_by_page = page_table_entries
         .iter()
         .copied()
         .collect::<BTreeMap<u32, u32>>();
@@ -103,14 +104,12 @@ fn confirmed_virtual_geometry_completion(
         .copied()
         .collect::<BTreeSet<_>>();
     let previous_page_by_slot = previous_slot_owners.into_iter().collect::<BTreeMap<_, _>>();
-    let completed_page_assignments = completion
-        .page_table_entries
+    let completed_page_assignments = page_table_entries
         .iter()
         .filter(|(page_id, _slot)| previous_pending_pages.contains(page_id))
         .copied()
         .collect::<Vec<_>>();
-    let completed_page_replacements = completion
-        .page_table_entries
+    let completed_page_replacements = page_table_entries
         .iter()
         .filter(|(page_id, _slot)| previous_pending_pages.contains(page_id))
         .filter_map(|(page_id, _reported_slot)| {
@@ -122,7 +121,7 @@ fn confirmed_virtual_geometry_completion(
         .collect::<Vec<_>>();
 
     VirtualGeometryGpuCompletion {
-        page_table_entries: completion.page_table_entries.clone(),
+        page_table_entries,
         completed_page_assignments,
         completed_page_replacements,
     }
@@ -130,9 +129,11 @@ fn confirmed_virtual_geometry_completion(
 
 #[cfg(test)]
 mod tests {
-    use zircon_framework::render::RenderPipelineHandle;
+    use zircon_framework::render::{
+        RenderPipelineHandle, RenderVirtualGeometryExtract, RenderVirtualGeometryPage,
+    };
     use zircon_math::UVec2;
-    use zircon_scene::{RenderVirtualGeometryExtract, RenderVirtualGeometryPage, World};
+    use zircon_scene::world::World;
 
     use crate::{
         runtime::render_framework::submit_frame_extract::{
@@ -197,8 +198,8 @@ mod tests {
     }
 
     #[test]
-    fn gpu_completion_path_keeps_request_pending_when_page_table_truth_rejects_completed_assignment()
-    {
+    fn gpu_completion_path_keeps_request_pending_when_page_table_truth_rejects_completed_assignment(
+    ) {
         let context = frame_submission_context(VisibilityVirtualGeometryFeedback {
             visible_cluster_ids: Vec::new(),
             requested_pages: vec![700],
@@ -388,6 +389,51 @@ mod tests {
         assert_eq!(
             stats.replaced_page_count, 1,
             "expected replacement pressure to be reconstructed from the confirmed slot owner that disappeared from the final page table, even without raw replacement readback"
+        );
+    }
+
+    #[test]
+    fn confirmed_virtual_geometry_completion_normalizes_reassigned_page_table_truth_before_runtime_apply(
+    ) {
+        let confirmed = confirmed_virtual_geometry_completion(
+            &VirtualGeometryGpuCompletion {
+                page_table_entries: vec![(200, 0), (300, 1), (700, 1), (300, 2)],
+                completed_page_assignments: vec![(700, 1)],
+                completed_page_replacements: Vec::new(),
+            },
+            [(0, 200), (1, 300)],
+            [700],
+        );
+
+        assert_eq!(
+            confirmed.page_table_entries,
+            vec![(200, 0), (700, 1), (300, 2)],
+            "expected confirmed completion to normalize raw page-table readback into the final last-writer slot ownership so runtime apply does not lose a resident page that moved to a new slot in the same GPU snapshot"
+        );
+        assert_eq!(
+            confirmed.completed_page_assignments,
+            vec![(700, 1)],
+            "expected normalized page-table truth to keep the pending page completion while ignoring stale intermediate ownership for the page that was later reassigned"
+        );
+    }
+
+    #[test]
+    fn confirmed_virtual_geometry_completion_deduplicates_replacement_truth_after_page_table_normalization(
+    ) {
+        let confirmed = confirmed_virtual_geometry_completion(
+            &VirtualGeometryGpuCompletion {
+                page_table_entries: vec![(200, 0), (700, 1), (700, 2)],
+                completed_page_assignments: vec![(700, 1), (700, 2)],
+                completed_page_replacements: vec![(700, 300), (700, 400)],
+            },
+            [(0, 200), (1, 300), (2, 400)],
+            [700],
+        );
+
+        assert_eq!(
+            confirmed.completed_page_replacements,
+            vec![(700, 400)],
+            "expected normalized page-table truth to count replacement pressure once for the final surviving slot owner instead of duplicating replacement stats for stale intermediate entries of the same pending page"
         );
     }
 

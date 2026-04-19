@@ -1,5 +1,6 @@
 use super::{UiTree, UiTreeError};
-use crate::{UiNavigationEventKind, UiNodeId};
+use crate::event_ui::UiNodeId;
+use crate::UiNavigationEventKind;
 
 impl UiTree {
     pub(crate) fn first_focusable_in_route(

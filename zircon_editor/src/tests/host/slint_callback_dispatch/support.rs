@@ -1,3 +1,4 @@
+pub(super) use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
 pub(super) use crate::ui::slint_host::callback_dispatch::{
     dispatch_asset_item_selection, dispatch_asset_search, dispatch_builtin_asset_surface_control,
     dispatch_builtin_floating_window_focus, dispatch_builtin_floating_window_focus_for_source,
@@ -19,18 +20,18 @@ pub(super) use crate::ui::slint_host::tab_drag::{
     ResolvedTabDrop, ResolvedWorkbenchTabDropRoute, ResolvedWorkbenchTabDropTarget,
     WorkbenchDragTargetGroup,
 };
-pub(super) use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
+pub(super) use crate::ui::{
+    EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind, ViewportCommand, WelcomeCommand,
+};
 pub(super) use crate::{
     dispatch_welcome_binding, ActivityDrawerMode, ActivityDrawerSlot, EditorAssetEvent,
     EditorEvent, EditorViewportEvent, InspectorFieldChange, LayoutCommand, MainPageId, SplitAxis,
     SplitPlacement, ViewHost, ViewInstanceId, WelcomeHostEvent, WorkspaceTarget,
 };
-pub(super) use crate::ui::{
-    EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind, ViewportCommand, WelcomeCommand,
-};
-pub(super) use zircon_scene::{
+pub(super) use zircon_framework::render::{
     DisplayMode, GridMode, ProjectionMode, SceneViewportTool, ViewOrientation,
 };
 pub(super) use zircon_ui::{
-    UiEventKind, UiFrame, UiPoint, UiPointerButton, UiPointerEvent, UiPointerEventKind, UiSize,
+    binding::UiEventKind, dispatch::UiPointerEvent, UiFrame, UiPoint, UiPointerButton,
+    UiPointerEventKind, UiSize,
 };

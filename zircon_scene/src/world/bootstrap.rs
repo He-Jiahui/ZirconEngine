@@ -4,11 +4,11 @@ use zircon_math::{Quat, Transform, Vec3};
 use zircon_resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
 
 use super::World;
-use crate::components::{
-    default_render_layer_mask, ActiveInHierarchy, ActiveSelf, CameraComponent, DirectionalLight,
-    Hierarchy, LocalTransform, MeshRenderer, Mobility, Name, NodeKind, RenderLayerMask, Schedule,
-};
 use crate::EntityId;
+use crate::components::{
+    ActiveInHierarchy, ActiveSelf, CameraComponent, DirectionalLight, Hierarchy, LocalTransform,
+    MeshRenderer, Mobility, Name, NodeKind, RenderLayerMask, Schedule, default_render_layer_mask,
+};
 
 impl World {
     pub(crate) fn empty() -> Self {

@@ -37,7 +37,7 @@ doc_type: module-detail
 
 ## Purpose
 
-`zircon_editor` 不再把整个 ECS 世界直接塞进 undo/redo 快照，而是通过 `EditorCommand` 把一次编辑收束为可应用、可撤销、可重做的命令对象。这样 editor UI 可以保持 Slint 宿主职责，只负责维护草稿字段和触发 intent；真正的世界修改则统一通过命令层进入 `zircon_scene::LevelSystem` 所托管的 `World`。
+`zircon_editor` 不再把整个 ECS 世界直接塞进 undo/redo 快照，而是通过 `EditorCommand` 把一次编辑收束为可应用、可撤销、可重做的命令对象。这样 editor UI 可以保持 Slint 宿主职责，只负责维护草稿字段和触发 intent；真正的世界修改则统一通过命令层进入 `zircon_runtime::scene::LevelSystem` 所托管的 `zircon_scene::Scene`。
 
 这一设计直接服务当前路线图里的两个目标：
 
@@ -119,7 +119,7 @@ doc_type: module-detail
 
 ### 为什么约束放在 `World` 而不是只放在 UI
 
-UI 层可以隐藏非法操作，但真正的边界必须在 `zircon_scene::World` 守住。当前至少有三个强约束必须由世界层保证：
+UI 层可以隐藏非法操作，但真正的边界必须在 `zircon_scene::Scene` 守住。当前至少有三个强约束必须由世界层保证：
 
 - 不允许删除最后一个 camera
 - 不允许把节点设成自己的父节点

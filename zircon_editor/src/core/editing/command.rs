@@ -2,7 +2,8 @@
 
 use zircon_math::Transform;
 use zircon_resource::{MaterialMarker, ModelMarker, ResourceHandle};
-use zircon_scene::{NodeId, NodeKind, NodeRecord, Scene};
+use zircon_scene::components::{NodeKind, NodeRecord};
+use zircon_scene::{NodeId, Scene};
 
 #[derive(Clone, Debug)]
 pub(crate) enum EditorCommand {
@@ -49,10 +50,7 @@ impl EditorCommand {
         node_id: NodeId,
         name: String,
     ) -> Result<Option<Self>, String> {
-        Ok(
-            UpdateNodeCommand::capture_name(scene, selected, node_id, name)?
-                .map(Self::UpdateNode),
-        )
+        Ok(UpdateNodeCommand::capture_name(scene, selected, node_id, name)?.map(Self::UpdateNode))
     }
 
     pub(crate) fn set_parent(

@@ -1,4 +1,4 @@
-use zircon_ui::{UiBindingValue, UiEventKind, UiPoint};
+use zircon_ui::{binding::UiBindingValue, binding::UiEventKind, UiPoint};
 
 use crate::ui::slint_host::welcome_recent_pointer::{
     WelcomeRecentPointerAction, WelcomeRecentPointerBridge, WelcomeRecentPointerDispatch,

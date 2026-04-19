@@ -1,8 +1,10 @@
 use std::collections::HashMap;
 
-use crate::{
-    ArtifactStore, AssetId, AssetImporter, AssetRegistry, AssetUuid, ProjectManifest, ProjectPaths,
-};
+use zircon_resource::ResourceRegistry;
+
+use crate::{ArtifactStore, AssetId, AssetImporter, AssetUuid};
+
+use super::{ProjectManifest, ProjectPaths};
 
 mod artifact_access;
 mod asset_kind;
@@ -23,7 +25,7 @@ mod source_uri_for_path;
 pub struct ProjectManager {
     paths: ProjectPaths,
     manifest: ProjectManifest,
-    registry: AssetRegistry,
+    registry: ResourceRegistry,
     asset_ids_by_uuid: HashMap<AssetUuid, AssetId>,
     asset_uuids_by_id: HashMap<AssetId, AssetUuid>,
     importer: AssetImporter,

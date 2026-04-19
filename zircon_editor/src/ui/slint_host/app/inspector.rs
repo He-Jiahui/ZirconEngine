@@ -101,8 +101,4 @@ impl SlintEditorHost {
 
         self.apply_dispatch_result(result);
     }
-
-    pub(super) fn apply_inspector_changes(&mut self) {
-        self.dispatch_inspector_control_clicked("ApplyBatchButton");
-    }
 }

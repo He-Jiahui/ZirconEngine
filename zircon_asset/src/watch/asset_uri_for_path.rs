@@ -1,14 +1,20 @@
 use std::path::Path;
 
-use crate::{AssetUri, AssetUriError};
+use zircon_resource::ResourceLocatorError;
+
+use crate::AssetUri;
 
 pub(super) fn asset_uri_for_path(
     assets_root: &Path,
     path: &Path,
-) -> Result<AssetUri, AssetUriError> {
+) -> Result<AssetUri, ResourceLocatorError> {
     let relative = match path.strip_prefix(assets_root) {
         Ok(relative) => relative,
-        Err(_) => return Err(AssetUriError::EscapeAttempt(path.display().to_string())),
+        Err(_) => {
+            return Err(ResourceLocatorError::EscapeAttempt(
+                path.display().to_string(),
+            ))
+        }
     };
     let normalized = relative
         .components()

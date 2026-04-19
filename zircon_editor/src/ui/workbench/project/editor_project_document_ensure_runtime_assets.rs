@@ -1,7 +1,7 @@
 use std::ffi::OsStr;
 
-use zircon_asset::{ProjectManifest, ProjectPaths};
-use zircon_scene::SceneProjectError;
+use zircon_asset::project::{ProjectManifest, ProjectPaths};
+use zircon_scene::world::SceneProjectError;
 
 use super::constants::{DEFAULT_CUBE_OBJ, DEFAULT_PBR_WGSL, DEFAULT_SCENE_URI};
 use super::editor_project_document::EditorProjectDocument;

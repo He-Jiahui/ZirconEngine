@@ -1,8 +1,9 @@
 use std::collections::BTreeMap;
 
 use zircon_ui::{
-    UiAxis, UiContainerKind, UiFrame, UiInputPolicy, UiNodePath, UiPointerDispatcher,
-    UiScrollState, UiScrollableBoxConfig, UiScrollbarVisibility, UiSurface, UiTreeId, UiTreeNode,
+    dispatch::UiPointerDispatcher, event_ui::UiNodePath, event_ui::UiTreeId, UiAxis,
+    UiContainerKind, UiFrame, UiInputPolicy, UiScrollState, UiScrollableBoxConfig,
+    UiScrollbarVisibility, UiSurface, UiTreeNode,
 };
 
 use super::constants::{

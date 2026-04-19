@@ -3,9 +3,14 @@ use crate::types::GraphicsError;
 pub(super) fn request_device(
     adapter: &wgpu::Adapter,
 ) -> Result<(wgpu::Device, wgpu::Queue), GraphicsError> {
+    let mut requested_features = wgpu::Features::empty();
+    let adapter_features = adapter.features();
+    if adapter_features.contains(wgpu::Features::INDIRECT_FIRST_INSTANCE) {
+        requested_features |= wgpu::Features::INDIRECT_FIRST_INSTANCE;
+    }
     pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor {
         label: Some("zircon-device"),
-        required_features: wgpu::Features::empty(),
+        required_features: requested_features,
         required_limits: wgpu::Limits::default(),
         memory_hints: wgpu::MemoryHints::Performance,
         trace: wgpu::Trace::Off,

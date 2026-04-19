@@ -1,4 +1,5 @@
-use zircon_asset::{AssetChange, EditorAssetChange, EditorAssetChangeKind};
+use zircon_asset::editor::{EditorAssetChange, EditorAssetChangeKind};
+use zircon_asset::watch::AssetChange;
 use zircon_resource::ResourceEvent;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]

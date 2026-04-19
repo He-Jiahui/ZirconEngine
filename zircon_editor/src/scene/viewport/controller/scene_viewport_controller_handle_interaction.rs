@@ -1,5 +1,6 @@
+use zircon_framework::render::{HandleOverlayExtract, ViewportCameraSnapshot};
 use zircon_math::Vec2;
-use zircon_scene::{HandleOverlayExtract, Scene, ViewportCameraSnapshot};
+use zircon_scene::Scene;
 
 use crate::GizmoAxis;
 
@@ -22,17 +23,14 @@ impl SceneViewportController {
         axis: GizmoAxis,
     ) -> bool {
         let camera = self.current_camera(scene);
-        let Some(session) =
-            self.handles
-                .begin_drag(
-                    scene,
-                    self.selected_node(),
-                    &self.state.settings,
-                    &camera,
-                    cursor,
-                    axis,
-                )
-        else {
+        let Some(session) = self.handles.begin_drag(
+            scene,
+            self.selected_node(),
+            &self.state.settings,
+            &camera,
+            cursor,
+            axis,
+        ) else {
             return false;
         };
 
@@ -45,6 +43,6 @@ impl SceneViewportController {
         let Some(ViewportDragSession::Handle { session }) = self.state.drag.take() else {
             return;
         };
-        let _ = self.handles.end_drag(session);
+        self.handles.end_drag(session);
     }
 }

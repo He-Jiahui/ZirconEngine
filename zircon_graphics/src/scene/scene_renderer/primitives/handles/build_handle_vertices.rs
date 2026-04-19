@@ -1,4 +1,4 @@
-use zircon_scene::HandleElementExtract;
+use zircon_framework::render::HandleElementExtract;
 
 use crate::scene::scene_renderer::primitives::LineVertex;
 use crate::types::EditorOrRuntimeFrame;

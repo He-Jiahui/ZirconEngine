@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use zircon_ui::{UiFrame, UiPoint, UiPointerDispatchEffect};
+use zircon_ui::{dispatch::UiPointerDispatchEffect, UiFrame, UiPoint};
 
 use crate::ui::slint_host::tab_drag::WorkbenchDragTargetGroup;
 use crate::DockEdge;

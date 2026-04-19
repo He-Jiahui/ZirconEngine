@@ -1,6 +1,7 @@
-use zircon_framework::render::RenderPipelineHandle;
+use zircon_framework::render::{
+    RenderHybridGiExtract, RenderPipelineHandle, RenderVirtualGeometryExtract,
+};
 use zircon_math::UVec2;
-use zircon_scene::{RenderHybridGiExtract, RenderVirtualGeometryExtract};
 
 use crate::{
     runtime::{HybridGiRuntimeState, VirtualGeometryRuntimeState},

@@ -1,8 +1,8 @@
-use serde_json::Value;
 use crate::ui::{
     EditorActivityHost, EditorActivityKind, EditorActivityReflection,
     EditorFloatingWindowReflectionModel,
 };
+use serde_json::Value;
 
 use crate::snapshot::{DocumentWorkspaceSnapshot, FloatingWindowSnapshot, ViewTabSnapshot};
 use crate::view::ViewKind;

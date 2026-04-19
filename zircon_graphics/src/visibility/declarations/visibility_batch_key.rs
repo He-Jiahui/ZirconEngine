@@ -1,5 +1,5 @@
 use zircon_resource::ResourceId;
-use zircon_scene::Mobility;
+use zircon_framework::scene::Mobility;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct VisibilityBatchKey {
@@ -8,3 +8,4 @@ pub struct VisibilityBatchKey {
     pub model_id: ResourceId,
     pub mobility: Mobility,
 }
+

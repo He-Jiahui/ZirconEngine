@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use zircon_scene::RenderHybridGiExtract;
+use zircon_framework::render::RenderHybridGiExtract;
 
 use super::HybridGiRuntimeState;
 
@@ -13,6 +13,7 @@ impl HybridGiRuntimeState {
     pub(crate) fn register_extract(&mut self, extract: Option<&RenderHybridGiExtract>) {
         self.evictable_probes.clear();
         self.scheduled_trace_regions.clear();
+        self.current_requested_probe_ids.clear();
 
         let Some(extract) = extract else {
             *self = Self::default();
@@ -37,6 +38,8 @@ impl HybridGiRuntimeState {
             .retain(|probe_id| live_probe_ids.contains(probe_id));
         self.pending_updates
             .retain(|update| live_probe_ids.contains(&update.probe_id));
+        self.current_requested_probe_ids
+            .retain(|probe_id| live_probe_ids.contains(probe_id));
         self.probe_parent_probes
             .retain(|probe_id, parent_probe_id| {
                 live_probe_ids.contains(probe_id) && live_probe_ids.contains(parent_probe_id)
@@ -48,6 +51,10 @@ impl HybridGiRuntimeState {
         self.probe_irradiance_rgb
             .retain(|probe_id, _| live_probe_ids.contains(probe_id));
         self.probe_rt_lighting_rgb
+            .retain(|probe_id, _| live_probe_ids.contains(probe_id));
+        self.recent_lineage_trace_support_q8
+            .retain(|probe_id, _| live_probe_ids.contains(probe_id));
+        self.recent_requested_lineage_support_q8
             .retain(|probe_id, _| live_probe_ids.contains(probe_id));
         let live_trace_region_ids = extract
             .trace_regions

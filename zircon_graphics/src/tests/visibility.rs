@@ -1,9 +1,10 @@
+use zircon_framework::render::{
+    RenderVirtualGeometryCluster, RenderVirtualGeometryExtract, RenderVirtualGeometryPage,
+};
 use zircon_math::{Transform, Vec3};
 use zircon_resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
-use zircon_scene::{
-    Mobility, RenderVirtualGeometryCluster, RenderVirtualGeometryExtract,
-    RenderVirtualGeometryPage, World,
-};
+use zircon_scene::components::Mobility;
+use zircon_scene::world::World;
 
 use crate::{
     VisibilityBatchKey, VisibilityBvhUpdateStrategy, VisibilityContext, VisibilityDrawCommand,

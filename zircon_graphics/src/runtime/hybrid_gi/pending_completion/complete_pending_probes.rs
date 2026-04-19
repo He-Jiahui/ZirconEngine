@@ -9,11 +9,17 @@ pub(super) fn complete_pending_probes(
         return;
     }
 
-    let requested_probe_ids = probe_ids
-        .into_iter()
-        .filter(|probe_id| runtime.pending_probes.contains(probe_id))
-        .take(runtime.probe_budget)
-        .collect::<Vec<_>>();
+    let mut requested_probe_ids = Vec::new();
+    let mut seen_probe_ids = std::collections::BTreeSet::new();
+    for probe_id in probe_ids {
+        if !runtime.pending_probes.contains(&probe_id) || !seen_probe_ids.insert(probe_id) {
+            continue;
+        }
+        requested_probe_ids.push(probe_id);
+        if requested_probe_ids.len() >= runtime.probe_budget {
+            break;
+        }
+    }
 
     for probe_id in requested_probe_ids {
         while runtime.resident_slots.len() >= runtime.probe_budget {
@@ -26,6 +32,7 @@ pub(super) fn complete_pending_probes(
         }
 
         runtime.promote_to_resident(probe_id);
+        runtime.current_requested_probe_ids.remove(&probe_id);
     }
 
     runtime

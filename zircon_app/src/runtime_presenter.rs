@@ -5,12 +5,11 @@ use softbuffer::{Context, Surface};
 use winit::window::Window;
 use zircon_core::{CoreError, CoreHandle};
 use zircon_framework::render::{
-    CapturedFrame, RenderFramework, RenderFrameworkError, RenderPipelineHandle,
-    RenderQualityProfile, RenderStats, RenderViewportDescriptor, RenderViewportHandle,
+    CapturedFrame, RenderFrameExtract, RenderFramework, RenderFrameworkError,
+    RenderViewportDescriptor, RenderViewportHandle,
 };
 use zircon_manager::resolve_render_framework;
 use zircon_math::UVec2;
-use zircon_runtime::scene::RenderFrameExtract;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct ActiveViewport {
@@ -162,13 +161,16 @@ mod tests {
     use std::collections::HashMap;
     use std::sync::{Arc, Mutex};
 
+    use zircon_framework::render::{
+        RenderFrameExtract, RenderPipelineHandle, RenderQualityProfile, RenderStats,
+        RenderWorldSnapshotHandle,
+    };
     use zircon_math::UVec2;
-    use zircon_runtime::scene::{RenderFrameExtract, RenderWorldSnapshotHandle, World};
+    use zircon_runtime::scene::world::World;
 
     use super::{
         CapturedFrame, RenderFramework, RenderFrameworkError, RenderFrameworkRuntimeBridge,
-        RenderPipelineHandle, RenderQualityProfile, RenderStats, RenderViewportDescriptor,
-        RenderViewportHandle,
+        RenderViewportDescriptor, RenderViewportHandle,
     };
 
     #[test]

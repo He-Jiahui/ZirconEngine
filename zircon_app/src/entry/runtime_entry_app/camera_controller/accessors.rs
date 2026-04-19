@@ -13,6 +13,7 @@ impl RuntimeCameraController {
         self.orbit_target = target;
     }
 
+    #[cfg(test)]
     pub(in crate::entry::runtime_entry_app) fn orbit_target(&self) -> Vec3 {
         self.orbit_target
     }

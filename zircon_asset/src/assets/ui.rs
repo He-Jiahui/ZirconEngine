@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use zircon_resource::{AssetReference, ResourceLocator};
-use zircon_ui::{UiAssetDocument, UiAssetKind, UiAssetLoader};
+use zircon_ui::{UiAssetDocument, UiAssetKind, template::UiAssetLoader};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(transparent)]
@@ -95,3 +95,4 @@ fn parse_typed(
     }
     Ok(parsed)
 }
+

@@ -1,5 +1,5 @@
 use super::{UiTree, UiTreeError};
-use crate::UiNodeId;
+use crate::event_ui::UiNodeId;
 
 impl UiTree {
     pub fn bubble_route(&self, node_id: UiNodeId) -> Result<Vec<UiNodeId>, UiTreeError> {

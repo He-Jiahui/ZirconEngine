@@ -1,4 +1,4 @@
-use zircon_ui::UiPointerEvent;
+use zircon_ui::dispatch::UiPointerEvent;
 
 use super::workbench_menu_pointer_bridge::WorkbenchMenuPointerBridge;
 use super::workbench_menu_pointer_target::WorkbenchMenuPointerTarget;

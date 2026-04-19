@@ -1,4 +1,4 @@
-use zircon_ui::{UiPointerDispatcher, UiSurface, UiTreeId};
+use zircon_ui::{dispatch::UiPointerDispatcher, event_ui::UiTreeId, UiSurface};
 
 use super::{
     workbench_document_tab_pointer_bridge::WorkbenchDocumentTabPointerBridge,

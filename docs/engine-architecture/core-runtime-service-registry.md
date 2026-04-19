@@ -57,7 +57,7 @@ plan_sources:
   - .codex/plans/全系统重构方案.md
 tests:
   - cargo test -p zircon_core -p zircon_manager --locked --verbose
-  - cargo test -p zircon_core -p zircon_resource -p zircon_manager -p zircon_ui -p zircon_module -p zircon_input -p zircon_math --offline --verbose
+  - cargo test -p zircon_core -p zircon_resource -p zircon_manager -p zircon_ui -p zircon_module -p zircon_runtime -p zircon_math --offline --verbose
 doc_type: module-detail
 ---
 
@@ -153,6 +153,6 @@ doc_type: module-detail
 这轮重构后的验证证据：
 
 - `cargo test -p zircon_core -p zircon_manager --locked --verbose`
-- `cargo test -p zircon_core -p zircon_resource -p zircon_manager -p zircon_ui -p zircon_module -p zircon_input -p zircon_math --offline --verbose`
+- `cargo test -p zircon_core -p zircon_resource -p zircon_manager -p zircon_ui -p zircon_module -p zircon_runtime -p zircon_math --offline --verbose`
 
 其中第二条命令使用 `--offline`，因为当前工作区存在现有 `Cargo.toml/Cargo.lock` 变更，`--locked` 会被整个 workspace 的 lock 更新需求拦住；但本轮改动涉及的 crates 已完成离线编译和测试闭环。

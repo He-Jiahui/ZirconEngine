@@ -1,17 +1,18 @@
 use std::sync::Arc;
 
-use zircon_asset::ProjectAssetManager;
+use zircon_asset::pipeline::manager::ProjectAssetManager;
+use zircon_framework::render::{
+    RenderDirectionalLightSnapshot, RenderFrameExtract, RenderHybridGiExtract, RenderHybridGiProbe,
+    RenderHybridGiTraceRegion, RenderSceneSnapshot, RenderWorldSnapshotHandle,
+};
 use zircon_math::UVec2;
 use zircon_math::Vec3;
-use zircon_scene::{
-    RenderDirectionalLightSnapshot, RenderFrameExtract, RenderHybridGiExtract, RenderHybridGiProbe,
-    RenderHybridGiTraceRegion, RenderSceneSnapshot, RenderWorldSnapshotHandle, World,
-};
+use zircon_scene::world::World;
 
 use crate::{
     types::{
         EditorOrRuntimeFrame, HybridGiPrepareFrame, HybridGiPrepareProbe,
-        HybridGiPrepareUpdateRequest,
+        HybridGiPrepareUpdateRequest, HybridGiResolveRuntime,
     },
     BuiltinRenderFeature, RenderPipelineAsset, RenderPipelineCompileOptions, SceneRenderer,
 };
@@ -372,6 +373,94 @@ fn hybrid_gi_gpu_completion_readback_without_scheduled_trace_regions_keeps_resid
         readback,
         vec![(200, [220, 96, 48]), (300, [0, 0, 0])],
         "expected Hybrid GI GPU updates to depend on scheduled trace regions: without any trace work, resident probes should keep previous history and pending probes should not synthesize new radiance"
+    );
+}
+
+#[test]
+fn hybrid_gi_gpu_trace_lighting_readback_uses_runtime_hierarchy_rt_lighting_after_schedule_clears(
+) {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let viewport_size = UVec2::new(96, 64);
+    let extract = build_extract(
+        viewport_size,
+        1,
+        1,
+        vec![probe_with_parent(
+            200,
+            100,
+            true,
+            128,
+            Vec3::new(0.0, 0.0, 0.0),
+            0.85,
+        )],
+        vec![trace_region(40, Vec3::new(0.0, 0.0, 0.0), 0.8, 0.9)],
+    );
+    let prepare = HybridGiPrepareFrame {
+        resident_probes: vec![HybridGiPrepareProbe {
+            probe_id: 200,
+            slot: 0,
+            ray_budget: 128,
+            irradiance_rgb: [96, 96, 96],
+        }],
+        pending_updates: Vec::new(),
+        scheduled_trace_region_ids: Vec::new(),
+        evictable_probe_ids: Vec::new(),
+    };
+
+    let warm = render_hybrid_gi_gpu_trace_lighting_readback_with_runtime(
+        &mut renderer,
+        viewport_size,
+        extract.clone(),
+        prepare.clone(),
+        Some(HybridGiResolveRuntime {
+            probe_hierarchy_resolve_weight_q8: std::collections::BTreeMap::from([(
+                200,
+                HybridGiResolveRuntime::pack_resolve_weight_q8(1.85),
+            )]),
+            probe_hierarchy_rt_lighting_rgb_and_weight: std::collections::BTreeMap::from([(
+                200,
+                HybridGiResolveRuntime::pack_rgb_and_weight([0.95, 0.32, 0.12], 0.6),
+            )]),
+            ..Default::default()
+        }),
+    );
+    let cool = render_hybrid_gi_gpu_trace_lighting_readback_with_runtime(
+        &mut renderer,
+        viewport_size,
+        extract,
+        prepare,
+        Some(HybridGiResolveRuntime {
+            probe_hierarchy_resolve_weight_q8: std::collections::BTreeMap::from([(
+                200,
+                HybridGiResolveRuntime::pack_resolve_weight_q8(1.85),
+            )]),
+            probe_hierarchy_rt_lighting_rgb_and_weight: std::collections::BTreeMap::from([(
+                200,
+                HybridGiResolveRuntime::pack_rgb_and_weight([0.12, 0.32, 0.95], 0.6),
+            )]),
+            ..Default::default()
+        }),
+    );
+
+    let warm_trace = warm
+        .iter()
+        .find(|(probe_id, _)| *probe_id == 200)
+        .map(|(_, rgb)| *rgb)
+        .expect("warm trace-lighting probe");
+    let cool_trace = cool
+        .iter()
+        .find(|(probe_id, _)| *probe_id == 200)
+        .map(|(_, rgb)| *rgb)
+        .expect("cool trace-lighting probe");
+
+    assert!(
+        warm_trace[0] > cool_trace[0] + 20,
+        "expected GPU prepare to keep consuming warm hierarchy RT-lighting continuation from runtime after the current trace schedule clears, instead of collapsing to the same flat source; warm_trace={warm_trace:?}, cool_trace={cool_trace:?}"
+    );
+    assert!(
+        cool_trace[2] > warm_trace[2] + 20,
+        "expected GPU prepare to keep consuming cool hierarchy RT-lighting continuation from runtime after the current trace schedule clears, instead of collapsing to the same flat source; warm_trace={warm_trace:?}, cool_trace={cool_trace:?}"
     );
 }
 
@@ -1007,6 +1096,40 @@ fn render_hybrid_gi_gpu_readback(
     extract: RenderFrameExtract,
     prepare: HybridGiPrepareFrame,
 ) -> Vec<(u32, [u8; 3])> {
+    render_hybrid_gi_gpu_full_readback_with_runtime(
+        renderer,
+        viewport_size,
+        extract,
+        prepare,
+        None,
+    )
+    .0
+}
+
+fn render_hybrid_gi_gpu_trace_lighting_readback_with_runtime(
+    renderer: &mut SceneRenderer,
+    viewport_size: UVec2,
+    extract: RenderFrameExtract,
+    prepare: HybridGiPrepareFrame,
+    runtime: Option<HybridGiResolveRuntime>,
+) -> Vec<(u32, [u8; 3])> {
+    render_hybrid_gi_gpu_full_readback_with_runtime(
+        renderer,
+        viewport_size,
+        extract,
+        prepare,
+        runtime,
+    )
+    .1
+}
+
+fn render_hybrid_gi_gpu_full_readback_with_runtime(
+    renderer: &mut SceneRenderer,
+    viewport_size: UVec2,
+    extract: RenderFrameExtract,
+    prepare: HybridGiPrepareFrame,
+    runtime: Option<HybridGiResolveRuntime>,
+) -> (Vec<(u32, [u8; 3])>, Vec<(u32, [u8; 3])>) {
     let compiled = RenderPipelineAsset::default_forward_plus()
         .compile_with_options(
             &extract,
@@ -1028,16 +1151,17 @@ fn render_hybrid_gi_gpu_readback(
     renderer
         .render_frame_with_pipeline(
             &EditorOrRuntimeFrame::from_extract(extract, viewport_size)
-                .with_hybrid_gi_prepare(Some(prepare)),
+                .with_hybrid_gi_prepare(Some(prepare))
+                .with_hybrid_gi_resolve_runtime(runtime),
             &compiled,
             None,
         )
         .unwrap();
 
-    renderer
+    let readback = renderer
         .take_last_hybrid_gi_gpu_readback()
-        .expect("expected hybrid gi GPU readback")
-        .probe_irradiance_rgb
+        .expect("expected hybrid gi GPU readback");
+    (readback.probe_irradiance_rgb, readback.probe_trace_lighting_rgb)
 }
 
 fn expected_gpu_irradiance(

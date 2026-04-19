@@ -1,5 +1,4 @@
-use zircon_framework::render::RenderFrameworkError;
-use zircon_scene::RenderFrameExtract;
+use zircon_framework::render::{RenderFrameExtract, RenderFrameworkError};
 
 use crate::CompiledRenderPipeline;
 

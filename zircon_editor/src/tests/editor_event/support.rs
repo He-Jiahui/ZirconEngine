@@ -4,11 +4,11 @@ use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use zircon_core::CoreRuntime;
-use zircon_foundation::{
+use zircon_math::UVec2;
+use zircon_runtime::foundation::{
     module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
 };
-use zircon_math::UVec2;
-use zircon_scene::DefaultLevelManager;
+use zircon_runtime::scene::DefaultLevelManager;
 
 use crate::{module, EditorEventRuntime, EditorManager, EditorState, EDITOR_MANAGER_NAME};
 
@@ -39,11 +39,11 @@ impl EventRuntimeHarness {
         let core = CoreRuntime::new();
         core.register_module(foundation_module_descriptor())
             .unwrap();
-        core.register_module(zircon_asset::module_descriptor())
+        core.register_module(zircon_runtime::asset::module_descriptor())
             .unwrap();
         core.register_module(module::module_descriptor()).unwrap();
         core.activate_module(FOUNDATION_MODULE_NAME).unwrap();
-        core.activate_module(zircon_asset::ASSET_MODULE_NAME)
+        core.activate_module(zircon_runtime::asset::ASSET_MODULE_NAME)
             .unwrap();
         core.activate_module(module::EDITOR_MODULE_NAME).unwrap();
 

@@ -1,6 +1,7 @@
 use std::path::Path;
 
-use crate::{AssetImportError, ProjectManager};
+use crate::project::ProjectManager;
+use crate::AssetImportError;
 
 use super::DefaultEditorAssetManager;
 

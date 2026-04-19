@@ -8,8 +8,9 @@ use crate::{
     EditorWorkbenchReflectionModel,
 };
 use zircon_ui::{
-    UiBindingCall, UiBindingValue, UiControlRequest, UiControlResponse, UiEventBinding,
-    UiEventKind, UiEventPath, UiNodePath, UiTreeId,
+    binding::UiBindingCall, binding::UiBindingValue, binding::UiEventBinding, binding::UiEventKind,
+    binding::UiEventPath, event_ui::UiControlRequest, event_ui::UiControlResponse,
+    event_ui::UiNodePath, event_ui::UiTreeId,
 };
 
 #[test]

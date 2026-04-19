@@ -4,14 +4,14 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use zircon_asset::{UiStyleAsset, UiWidgetAsset};
+use zircon_asset::assets::{UiStyleAsset, UiWidgetAsset};
 use zircon_core::CoreRuntime;
-use zircon_foundation::{
+use zircon_manager::resolve_config_manager;
+use zircon_runtime::foundation::{
     module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
 };
-use zircon_manager::resolve_config_manager;
-use zircon_scene::DefaultLevelManager;
-use zircon_ui::UiAssetLoader;
+use zircon_runtime::scene::DefaultLevelManager;
+use zircon_ui::template::UiAssetLoader;
 
 use crate::layout::{MainHostPageLayout, MainPageId, WorkbenchLayout};
 use crate::module::module_descriptor;
@@ -193,7 +193,36 @@ children = [{ child = "button" }]
 kind = "native"
 type = "Button"
 control_id = "SaveButton"
-props = { text = "Save", checked = false, mode = "Full", icon = "asset://ui/icons/save.png" }
+props = { text = "Save", checked = false, count = 3, mode = "Full", icon = "asset://ui/icons/save.png", items = ["Save", "Publish"], metadata = { state = "Ready", enabled = true }, text_expr = "=preview.save_label" }
+"##;
+
+const DEEP_MOCK_PREVIEW_UI_LAYOUT_ASSET: &str = r##"
+[asset]
+kind = "layout"
+id = "editor.tests.asset.deep_mock_preview"
+version = 1
+display_name = "Deep Mock Preview UI Asset"
+
+[root]
+node = "root"
+
+[nodes.root]
+kind = "native"
+type = "VerticalBox"
+control_id = "Root"
+children = [{ child = "status" }, { child = "button" }]
+
+[nodes.status]
+kind = "native"
+type = "Label"
+control_id = "StatusLabel"
+props = { context = { dialog = { title = "Ready", steps = [{ label = "Plan" }, { label = "Dirty" }] } } }
+
+[nodes.button]
+kind = "native"
+type = "Button"
+control_id = "SaveButton"
+props = { text = "Save", text_expr = "=StatusLabel.context.dialog.steps[1].label" }
 "##;
 
 const TREE_REPARENT_UI_LAYOUT_ASSET: &str = r##"
@@ -297,6 +326,36 @@ props = { text = "Save" }
 bindings = [{ id = "SaveButton/onClick", event = "Click", route = "MenuAction.SaveProject", action = { route = "MenuAction.SaveProject", payload = { confirm = true, mode = "full" } } }]
 "##;
 
+const CONTEXTUAL_BINDING_SUGGESTION_UI_LAYOUT_ASSET: &str = r##"
+[asset]
+kind = "layout"
+id = "editor.tests.asset.contextual_binding_suggestion"
+version = 1
+display_name = "Contextual Binding Suggestion UI Asset"
+
+[root]
+node = "root"
+
+[nodes.root]
+kind = "native"
+type = "VerticalBox"
+control_id = "Root"
+children = [{ child = "status" }, { child = "button" }]
+
+[nodes.status]
+kind = "native"
+type = "Label"
+control_id = "StatusLabel"
+props = { text = "Ready" }
+
+[nodes.button]
+kind = "native"
+type = "Button"
+control_id = "SaveButton"
+props = { text = "Save" }
+bindings = [{ id = "SaveButton/onClick", event = "Click", route = "Route.Form.ValueChanged" }]
+"##;
+
 fn env_lock() -> &'static Mutex<()> {
     crate::tests::support::env_lock()
 }
@@ -308,12 +367,12 @@ fn editor_runtime_with_config_path(path: &std::path::Path) -> CoreRuntime {
         .register_module(foundation_module_descriptor())
         .unwrap();
     runtime
-        .register_module(zircon_asset::module_descriptor())
+        .register_module(zircon_runtime::asset::module_descriptor())
         .unwrap();
     runtime.register_module(module_descriptor()).unwrap();
     runtime.activate_module(FOUNDATION_MODULE_NAME).unwrap();
     runtime
-        .activate_module(zircon_asset::ASSET_MODULE_NAME)
+        .activate_module(zircon_runtime::asset::ASSET_MODULE_NAME)
         .unwrap();
     runtime.activate_module(module::EDITOR_MODULE_NAME).unwrap();
     runtime
@@ -874,6 +933,80 @@ fn editor_manager_runs_ui_asset_mock_preview_actions_without_dirtying_source() {
 }
 
 #[test]
+fn editor_manager_runs_ui_asset_nested_mock_preview_actions_without_dirtying_source() {
+    let _guard = env_lock().lock().unwrap();
+    let path = unique_temp_path("zircon_editor_asset_nested_mock_preview");
+    let ui_asset_path =
+        unique_temp_dir("zircon_editor_asset_nested_mock_preview_file").join("layout.ui.toml");
+    fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
+    fs::write(&ui_asset_path, MOCK_PREVIEW_UI_LAYOUT_ASSET).unwrap();
+
+    let runtime = editor_runtime_with_config_path(&path);
+    let manager = runtime
+        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+        .unwrap();
+
+    let instance_id = manager
+        .open_ui_asset_editor(&ui_asset_path, Some(crate::UiAssetEditorMode::Preview))
+        .expect("ui asset editor should open");
+    manager
+        .select_ui_asset_editor_hierarchy_index(&instance_id, 1)
+        .expect("select button");
+
+    let initial = manager
+        .ui_asset_editor_pane_presentation(&instance_id)
+        .expect("initial pane");
+    let items_index = initial
+        .preview_mock_items
+        .iter()
+        .position(|item| item.starts_with("items [Collection]"))
+        .expect("items preview entry");
+    manager
+        .select_ui_asset_editor_preview_mock_property(&instance_id, items_index)
+        .expect("select collection preview property");
+    manager
+        .select_ui_asset_editor_preview_mock_nested_entry(&instance_id, 1)
+        .expect("select nested entry");
+    manager
+        .set_ui_asset_editor_selected_preview_mock_nested_value(&instance_id, "Ship")
+        .expect("set nested value");
+    manager
+        .upsert_ui_asset_editor_selected_preview_mock_nested_entry(&instance_id, "2", "\"Archive\"")
+        .expect("append nested entry");
+    manager
+        .select_ui_asset_editor_preview_mock_nested_entry(&instance_id, 0)
+        .expect("reselect first nested entry");
+    manager
+        .delete_ui_asset_editor_selected_preview_mock_nested_entry(&instance_id)
+        .expect("delete first nested entry");
+
+    let updated = manager
+        .ui_asset_editor_pane_presentation(&instance_id)
+        .expect("updated pane");
+    assert_eq!(updated.preview_mock_kind, "Collection");
+    assert_eq!(updated.preview_mock_value, "[\"Ship\", \"Archive\"]");
+    assert_eq!(
+        updated.preview_mock_nested_items,
+        vec![
+            "[0] [Text] = Ship".to_string(),
+            "[1] [Text] = Archive".to_string(),
+        ]
+    );
+    assert_eq!(updated.preview_mock_nested_selected_index, 0);
+    assert_eq!(updated.preview_mock_nested_key, "0");
+    assert_eq!(updated.preview_mock_nested_value, "Ship");
+    assert_eq!(
+        updated.preview_state_graph_items,
+        vec!["SaveButton.items = [\"Ship\", \"Archive\"]".to_string()]
+    );
+    assert!(!updated.source_dirty);
+
+    std::env::remove_var("ZIRCON_EDITOR_CONFIG_PATH");
+    let _ = fs::remove_file(path);
+    let _ = fs::remove_dir_all(ui_asset_path.parent().unwrap());
+}
+
+#[test]
 fn editor_manager_resolves_ui_asset_imports_and_interactive_session_commands() {
     let _guard = env_lock().lock().unwrap();
     let path = unique_temp_path("zircon_editor_asset_imports");
@@ -1136,6 +1269,125 @@ fn editor_manager_selects_ui_asset_nodes_from_source_byte_offsets() {
         .expect("unchanged pane");
     assert_eq!(unchanged.inspector_selected_node_id, "button");
     assert_eq!(unchanged.hierarchy_selected_index, 1);
+
+    std::env::remove_var("ZIRCON_EDITOR_CONFIG_PATH");
+    let _ = fs::remove_file(path);
+    let _ = fs::remove_dir_all(ui_asset_path.parent().unwrap());
+}
+
+#[test]
+fn editor_manager_runs_ui_asset_preview_mock_suggestion_actions_relative_to_selected_container() {
+    let _guard = env_lock().lock().unwrap();
+    let path = unique_temp_path("zircon_editor_asset_mock_preview_suggestion");
+    let ui_asset_path =
+        unique_temp_dir("zircon_editor_asset_mock_preview_suggestion_file").join("layout.ui.toml");
+    fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
+    fs::write(&ui_asset_path, DEEP_MOCK_PREVIEW_UI_LAYOUT_ASSET).unwrap();
+
+    let runtime = editor_runtime_with_config_path(&path);
+    let manager = runtime
+        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+        .unwrap();
+    let instance_id = manager
+        .open_ui_asset_editor(&ui_asset_path, Some(crate::UiAssetEditorMode::Design))
+        .expect("ui asset editor should open");
+
+    let initial = manager
+        .ui_asset_editor_pane_presentation(&instance_id)
+        .expect("initial pane");
+    let status_subject_index = initial
+        .preview_mock_subject_items
+        .iter()
+        .position(|item| item.contains("StatusLabel"))
+        .expect("status subject");
+    manager
+        .select_ui_asset_editor_preview_mock_subject(&instance_id, status_subject_index)
+        .expect("select status subject");
+    let context_index = manager
+        .ui_asset_editor_pane_presentation(&instance_id)
+        .expect("context pane")
+        .preview_mock_items
+        .iter()
+        .position(|item| item.contains("context [Object]"))
+        .expect("context property");
+    manager
+        .select_ui_asset_editor_preview_mock_property(&instance_id, context_index)
+        .expect("select context property");
+
+    let initial_context_pane = manager
+        .ui_asset_editor_pane_presentation(&instance_id)
+        .expect("context pane");
+    assert_eq!(
+        initial_context_pane.preview_mock_suggestion_items,
+        vec![
+            "[0] = { label = \"Plan\" }".to_string(),
+            "[1] = { label = \"Dirty\" }".to_string(),
+            "[n] = { label = \"Plan\" }".to_string(),
+        ]
+    );
+
+    let dialog_index = initial_context_pane
+        .preview_mock_nested_items
+        .iter()
+        .position(|item| item.contains("dialog [Object]"))
+        .expect("dialog nested entry");
+    manager
+        .select_ui_asset_editor_preview_mock_nested_entry(&instance_id, dialog_index)
+        .expect("select dialog nested entry");
+    let dialog_pane = manager
+        .ui_asset_editor_pane_presentation(&instance_id)
+        .expect("dialog pane");
+    assert_eq!(
+        dialog_pane.preview_mock_suggestion_items,
+        vec![
+            "steps = [{ label = \"Plan\" }, { label = \"Dirty\" }]".to_string(),
+            "title = \"Ready\"".to_string(),
+        ]
+    );
+
+    let steps_index = dialog_pane
+        .preview_mock_nested_items
+        .iter()
+        .position(|item| item.contains("dialog.steps [Collection]"))
+        .expect("dialog.steps nested entry");
+    manager
+        .select_ui_asset_editor_preview_mock_nested_entry(&instance_id, steps_index)
+        .expect("select dialog.steps nested entry");
+    let steps_pane = manager
+        .ui_asset_editor_pane_presentation(&instance_id)
+        .expect("steps pane");
+    assert_eq!(
+        steps_pane.preview_mock_suggestion_items,
+        vec![
+            "[0] = { label = \"Plan\" }".to_string(),
+            "[1] = { label = \"Dirty\" }".to_string(),
+            "[n] = { label = \"Plan\" }".to_string(),
+        ]
+    );
+
+    assert!(manager
+        .apply_ui_asset_editor_selected_preview_mock_suggestion(&instance_id, 2)
+        .expect("apply preview mock suggestion"));
+    let updated = manager
+        .ui_asset_editor_pane_presentation(&instance_id)
+        .expect("updated pane");
+    assert!(updated
+        .preview_mock_nested_items
+        .iter()
+        .any(|item| item.contains("dialog.steps[2] [Object] = { label = \"Plan\" }")));
+    assert_eq!(updated.preview_mock_nested_key, "dialog.steps[2]");
+    assert_eq!(updated.preview_mock_nested_value, "{ label = \"Plan\" }");
+    assert_eq!(
+        updated.preview_mock_suggestion_items,
+        vec!["label = \"Plan\"".to_string()]
+    );
+    assert!(updated
+        .preview_state_graph_items
+        .contains(
+            &"StatusLabel.context = { dialog = { steps = [{ label = \"Plan\" }, { label = \"Dirty\" }, { label = \"Plan\" }], title = \"Ready\" } }"
+                .to_string()
+        ));
+    assert!(!updated.source_dirty);
 
     std::env::remove_var("ZIRCON_EDITOR_CONFIG_PATH");
     let _ = fs::remove_file(path);
@@ -1814,6 +2066,306 @@ fn editor_manager_runs_ui_asset_structured_binding_inspector_actions() {
 }
 
 #[test]
+fn editor_manager_runs_ui_asset_relative_nested_binding_payload_actions() {
+    let _guard = env_lock().lock().unwrap();
+    let path = unique_temp_path("zircon_editor_asset_relative_nested_binding_payload");
+    let ui_asset_path = unique_temp_dir("zircon_editor_asset_relative_nested_binding_payload_file")
+        .join("relative-binding.ui.toml");
+    fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
+    fs::write(&ui_asset_path, STRUCTURED_BINDING_UI_LAYOUT_ASSET).unwrap();
+
+    let runtime = editor_runtime_with_config_path(&path);
+    let manager = runtime
+        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+        .unwrap();
+
+    let instance_id = manager
+        .open_ui_asset_editor(&ui_asset_path, None)
+        .expect("ui asset editor should open");
+    manager
+        .select_ui_asset_editor_hierarchy_index(&instance_id, 1)
+        .expect("select binding target");
+    manager
+        .upsert_ui_asset_editor_selected_binding_payload(&instance_id, "context", "{}")
+        .expect("upsert root context payload");
+
+    let context_index = manager
+        .ui_asset_editor_pane_presentation(&instance_id)
+        .expect("pane after context insert")
+        .inspector_binding_payload_items
+        .iter()
+        .position(|item| item.contains("context = {}"))
+        .expect("context payload index");
+    manager
+        .select_ui_asset_editor_binding_payload(&instance_id, context_index)
+        .expect("select context payload");
+    manager
+        .upsert_ui_asset_editor_selected_binding_payload(&instance_id, "dialog.title", "\"Dialog\"")
+        .expect("upsert relative object payload");
+
+    let context_index = manager
+        .ui_asset_editor_pane_presentation(&instance_id)
+        .expect("pane after dialog insert")
+        .inspector_binding_payload_items
+        .iter()
+        .position(|item| item.contains("context = { dialog = { title = \"Dialog\" } }"))
+        .expect("updated context payload index");
+    manager
+        .select_ui_asset_editor_binding_payload(&instance_id, context_index)
+        .expect("reselect updated context payload");
+    manager
+        .upsert_ui_asset_editor_selected_binding_payload(&instance_id, "steps", "[]")
+        .expect("upsert steps payload");
+
+    let steps_index = manager
+        .ui_asset_editor_pane_presentation(&instance_id)
+        .expect("pane after steps insert")
+        .inspector_binding_payload_items
+        .iter()
+        .position(|item| item.contains("context.steps = []"))
+        .expect("steps payload index");
+    manager
+        .select_ui_asset_editor_binding_payload(&instance_id, steps_index)
+        .expect("select steps payload");
+    manager
+        .upsert_ui_asset_editor_selected_binding_payload(&instance_id, "0.label", "\"Queued\"")
+        .expect("upsert relative collection payload");
+
+    let pane = manager
+        .ui_asset_editor_pane_presentation(&instance_id)
+        .expect("updated pane");
+    assert!(pane
+        .inspector_binding_payload_items
+        .iter()
+        .any(|item| item.contains("context.dialog.title = \"Dialog\"")));
+    assert!(pane
+        .inspector_binding_payload_items
+        .iter()
+        .any(|item| item.contains("context.steps[0].label = \"Queued\"")));
+    assert_eq!(
+        pane.inspector_binding_payload_key,
+        "context.steps[0].label".to_string()
+    );
+    assert_eq!(
+        pane.inspector_binding_payload_value,
+        "\"Queued\"".to_string()
+    );
+    assert!(pane.source_dirty);
+
+    let saved = manager
+        .save_ui_asset_editor(&instance_id)
+        .expect("save ui asset editor");
+    let document = UiAssetLoader::load_toml_str(&saved).expect("saved ui asset document");
+    let button = document.nodes.get("button").expect("button node");
+    let action = button.bindings[0].action.as_ref().expect("binding action");
+    let context = action
+        .payload
+        .get("context")
+        .and_then(toml::Value::as_table)
+        .expect("context payload");
+    let dialog = context
+        .get("dialog")
+        .and_then(toml::Value::as_table)
+        .expect("dialog payload");
+    assert_eq!(
+        dialog.get("title").and_then(toml::Value::as_str),
+        Some("Dialog")
+    );
+    let steps = context
+        .get("steps")
+        .and_then(toml::Value::as_array)
+        .expect("steps payload");
+    assert_eq!(steps.len(), 1);
+    assert_eq!(
+        steps[0]
+            .as_table()
+            .and_then(|step| step.get("label"))
+            .and_then(toml::Value::as_str),
+        Some("Queued")
+    );
+
+    std::env::remove_var("ZIRCON_EDITOR_CONFIG_PATH");
+    let _ = fs::remove_file(path);
+    let _ = fs::remove_dir_all(ui_asset_path.parent().unwrap());
+}
+
+#[test]
+fn editor_manager_runs_ui_asset_binding_payload_suggestion_actions() {
+    let _guard = env_lock().lock().unwrap();
+    let path = unique_temp_path("zircon_editor_asset_binding_payload_suggestion");
+    let ui_asset_path = unique_temp_dir("zircon_editor_asset_binding_payload_suggestion_file")
+        .join("layout.ui.toml");
+    fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
+    fs::write(&ui_asset_path, STRUCTURED_BINDING_UI_LAYOUT_ASSET).unwrap();
+
+    let runtime = editor_runtime_with_config_path(&path);
+    let manager = runtime
+        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+        .unwrap();
+
+    let instance_id = manager
+        .open_ui_asset_editor(&ui_asset_path, Some(crate::UiAssetEditorMode::Design))
+        .expect("ui asset editor should open");
+    manager
+        .select_ui_asset_editor_hierarchy_index(&instance_id, 1)
+        .expect("select button");
+
+    let initial = manager
+        .ui_asset_editor_pane_presentation(&instance_id)
+        .expect("initial pane");
+    assert_eq!(
+        initial.inspector_binding_payload_suggestion_items,
+        vec![
+            "confirm = true".to_string(),
+            "channel = \"toolbar\"".to_string(),
+            "source = \"ui.click\"".to_string(),
+        ]
+    );
+
+    manager
+        .apply_ui_asset_editor_selected_binding_payload_suggestion(&instance_id, 2)
+        .expect("apply binding payload suggestion");
+
+    let updated = manager
+        .ui_asset_editor_pane_presentation(&instance_id)
+        .expect("updated pane");
+    assert_eq!(
+        updated.inspector_binding_payload_items,
+        vec![
+            "confirm = true".to_string(),
+            "mode = \"full\"".to_string(),
+            "source = \"ui.click\"".to_string(),
+        ]
+    );
+    assert!(updated.source_dirty);
+
+    std::env::remove_var("ZIRCON_EDITOR_CONFIG_PATH");
+    let _ = fs::remove_file(path);
+    let _ = fs::remove_dir_all(ui_asset_path.parent().unwrap());
+}
+
+#[test]
+fn editor_manager_runs_ui_asset_binding_payload_suggestions_relative_to_selected_container() {
+    let _guard = env_lock().lock().unwrap();
+    let path = unique_temp_path("zircon_editor_asset_binding_payload_relative_suggestion");
+    let ui_asset_path =
+        unique_temp_dir("zircon_editor_asset_binding_payload_relative_suggestion_file")
+            .join("layout.ui.toml");
+    fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
+    fs::write(
+        &ui_asset_path,
+        CONTEXTUAL_BINDING_SUGGESTION_UI_LAYOUT_ASSET,
+    )
+    .unwrap();
+
+    let runtime = editor_runtime_with_config_path(&path);
+    let manager = runtime
+        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+        .unwrap();
+
+    let instance_id = manager
+        .open_ui_asset_editor(&ui_asset_path, Some(crate::UiAssetEditorMode::Design))
+        .expect("ui asset editor should open");
+    manager
+        .select_ui_asset_editor_hierarchy_index(&instance_id, 2)
+        .expect("select button");
+
+    let initial = manager
+        .ui_asset_editor_pane_presentation(&instance_id)
+        .expect("initial pane");
+    assert_eq!(
+        initial.inspector_binding_payload_suggestion_items,
+        vec![
+            "value = \"preview\"".to_string(),
+            "committed = true".to_string(),
+            "fields = [\"title\"]".to_string(),
+            "context = { source = \"ui.click\", subject = \"field\" }".to_string(),
+        ]
+    );
+
+    manager
+        .upsert_ui_asset_editor_selected_binding_payload(&instance_id, "context", "{}")
+        .expect("upsert context payload");
+    let context_index = manager
+        .ui_asset_editor_pane_presentation(&instance_id)
+        .expect("pane after context insert")
+        .inspector_binding_payload_items
+        .iter()
+        .position(|item| item.contains("context = {}"))
+        .expect("context payload");
+    manager
+        .select_ui_asset_editor_binding_payload(&instance_id, context_index)
+        .expect("select context payload");
+
+    let context_pane = manager
+        .ui_asset_editor_pane_presentation(&instance_id)
+        .expect("pane after context select");
+    assert_eq!(
+        context_pane.inspector_binding_payload_suggestion_items,
+        vec![
+            "source = \"ui.click\"".to_string(),
+            "subject = \"field\"".to_string(),
+        ]
+    );
+
+    manager
+        .apply_ui_asset_editor_selected_binding_payload_suggestion(&instance_id, 1)
+        .expect("apply contextual object suggestion");
+    let after_object = manager
+        .ui_asset_editor_pane_presentation(&instance_id)
+        .expect("pane after contextual object apply");
+    assert!(after_object
+        .inspector_binding_payload_items
+        .iter()
+        .any(|item| item.contains("context.subject = \"field\"")));
+    assert_eq!(
+        after_object.inspector_binding_payload_key,
+        "context.subject".to_string()
+    );
+
+    manager
+        .upsert_ui_asset_editor_selected_binding_payload(&instance_id, "fields", "[]")
+        .expect("upsert fields payload");
+    let fields_index = manager
+        .ui_asset_editor_pane_presentation(&instance_id)
+        .expect("pane after fields insert")
+        .inspector_binding_payload_items
+        .iter()
+        .position(|item| item.contains("fields = []"))
+        .expect("fields payload");
+    manager
+        .select_ui_asset_editor_binding_payload(&instance_id, fields_index)
+        .expect("select fields payload");
+
+    let fields_pane = manager
+        .ui_asset_editor_pane_presentation(&instance_id)
+        .expect("pane after fields select");
+    assert_eq!(
+        fields_pane.inspector_binding_payload_suggestion_items,
+        vec!["[0] = \"title\"".to_string(), "[1] = \"title\"".to_string()]
+    );
+
+    manager
+        .apply_ui_asset_editor_selected_binding_payload_suggestion(&instance_id, 0)
+        .expect("apply contextual collection suggestion");
+    let after_collection = manager
+        .ui_asset_editor_pane_presentation(&instance_id)
+        .expect("pane after contextual collection apply");
+    assert!(after_collection
+        .inspector_binding_payload_items
+        .iter()
+        .any(|item| item.contains("fields[0] = \"title\"")));
+    assert_eq!(
+        after_collection.inspector_binding_payload_key,
+        "fields[0]".to_string()
+    );
+
+    std::env::remove_var("ZIRCON_EDITOR_CONFIG_PATH");
+    let _ = fs::remove_file(path);
+    let _ = fs::remove_dir_all(ui_asset_path.parent().unwrap());
+}
+
+#[test]
 fn editor_manager_runs_ui_asset_palette_and_tree_authoring_actions() {
     let _guard = env_lock().lock().unwrap();
     let path = unique_temp_path("zircon_editor_asset_tree_authoring");
@@ -2449,7 +3001,7 @@ style_overrides = { self = { text = { color = "#ffffff" } }, slot = { padding = 
         .expect("save ui asset editor");
     let document = UiAssetLoader::load_toml_str(&saved).expect("saved ui asset document");
     let button = document.nodes.get("button").expect("button node");
-    assert_eq!(button.kind, zircon_ui::UiNodeDefinitionKind::Reference);
+    assert_eq!(button.kind, zircon_ui::template::UiNodeDefinitionKind::Reference);
     assert_eq!(
         button.component_ref.as_deref(),
         Some("res://ui/widgets/toolbar_button.ui.toml#ToolbarButton")
@@ -2623,7 +3175,7 @@ fn editor_manager_promotes_selected_ui_asset_component_to_external_widget_asset(
         .expect("save ui asset editor");
     let document = UiAssetLoader::load_toml_str(&saved).expect("saved ui asset document");
     let button = document.nodes.get("button").expect("button node");
-    assert_eq!(button.kind, zircon_ui::UiNodeDefinitionKind::Reference);
+    assert_eq!(button.kind, zircon_ui::template::UiNodeDefinitionKind::Reference);
     assert_eq!(
         button.component_ref.as_deref(),
         Some("res://ui/widgets/save_button.ui.toml#SaveButton")
@@ -3358,3 +3910,5 @@ fn editor_manager_ui_asset_sessions_are_split_by_host_orchestration_behaviors() 
         );
     }
 }
+
+

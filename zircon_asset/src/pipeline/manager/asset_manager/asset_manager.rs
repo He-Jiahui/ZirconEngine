@@ -1,6 +1,7 @@
 use zircon_core::{ChannelReceiver, CoreError};
 
-use crate::{AssetChange, AssetPipelineInfo, AssetStatusRecord, ProjectInfo};
+use crate::watch::AssetChange;
+use crate::{AssetPipelineInfo, AssetStatusRecord, ProjectInfo};
 
 pub trait AssetManager: Send + Sync {
     fn pipeline_info(&self) -> AssetPipelineInfo;

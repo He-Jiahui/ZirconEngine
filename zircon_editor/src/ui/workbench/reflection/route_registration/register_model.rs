@@ -36,6 +36,6 @@ pub fn register_workbench_reflection_routes(
 fn register_menu_route(
     service: &mut EditorUiControlService,
     binding: EditorUiBinding,
-) -> zircon_ui::UiRouteId {
+) -> zircon_ui::event_ui::UiRouteId {
     register_stub_route(service, binding)
 }

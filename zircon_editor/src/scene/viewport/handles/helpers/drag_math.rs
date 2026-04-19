@@ -1,5 +1,5 @@
+use zircon_framework::render::ViewportCameraSnapshot;
 use zircon_math::{UVec2, Vec2, Vec3};
-use zircon_scene::ViewportCameraSnapshot;
 
 use crate::scene::viewport::projection::project_point;
 
@@ -20,11 +20,7 @@ pub(in crate::scene::viewport::handles) fn projected_axis_delta(
     Some((current_cursor - start_cursor).dot(direction))
 }
 
-pub(in crate::scene::viewport::handles) fn maybe_snap(
-    value: f32,
-    enabled: bool,
-    step: f32,
-) -> f32 {
+pub(in crate::scene::viewport::handles) fn maybe_snap(value: f32, enabled: bool, step: f32) -> f32 {
     if enabled && step > f32::EPSILON {
         (value / step).round() * step
     } else {

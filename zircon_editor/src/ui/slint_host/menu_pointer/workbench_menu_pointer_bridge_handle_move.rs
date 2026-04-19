@@ -1,4 +1,4 @@
-use zircon_ui::{UiPoint, UiPointerEvent, UiPointerEventKind};
+use zircon_ui::{dispatch::UiPointerEvent, UiPoint, UiPointerEventKind};
 
 use super::route_conversion::to_public_route;
 use super::workbench_menu_pointer_bridge::WorkbenchMenuPointerBridge;

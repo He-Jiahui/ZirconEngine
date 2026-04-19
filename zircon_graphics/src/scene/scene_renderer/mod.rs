@@ -14,7 +14,7 @@ mod virtual_geometry;
 pub use core::SceneRenderer;
 pub use overlay::ViewportIconSource;
 
-pub(crate) use core::{create_depth_texture, SceneRendererCore, OFFSCREEN_FORMAT};
+pub(crate) use core::{create_depth_texture, OFFSCREEN_FORMAT};
 pub(crate) use deferred::GBUFFER_ALBEDO_FORMAT;
 pub(crate) use hybrid_gi::{HybridGiGpuPendingReadback, HybridGiGpuReadback};
 #[cfg(test)]

@@ -27,7 +27,7 @@ tests:
   - cargo test -p zircon_render_server --lib --locked
   - cargo test -p zircon_graphics render_server_bridge --locked
   - cargo test -p zircon_graphics --lib --locked
-  - cargo test -p zircon_entry runtime_sources_route_preview_through_render_server_without_wgpu_surface_bindings --locked
+  - cargo test -p zircon_app runtime_sources_route_preview_through_render_server_without_wgpu_surface_bindings --locked
   - ./.codex/skills/zircon-dev/scripts/validate-matrix.ps1 -Package zircon_graphics
 doc_type: milestone-detail
 ---
@@ -76,7 +76,7 @@ doc_type: milestone-detail
   - 证明 headless `wgpu` 在显式旗舰 profile 和带 payload 的 extract 下，会把 `virtual_geometry` 与 `global_illumination` 写入 `last_effective_features`，并产出非零 VG/GI runtime 统计。
 - `cargo test -p zircon_graphics --lib --locked`
   - 证明 capability lift 与新增 façade stats 没有破坏现有 M4/M5 renderer 回归。
-- `cargo test -p zircon_entry runtime_sources_route_preview_through_render_server_without_wgpu_surface_bindings --locked`
+- `cargo test -p zircon_app runtime_sources_route_preview_through_render_server_without_wgpu_surface_bindings --locked`
   - 证明 entry/runtime 侧继续只通过 `RenderServer` 消费渲染输出。
 - `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_graphics`
   - 证明 `zircon_graphics` 包级 build/test 维持绿色。

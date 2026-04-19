@@ -1,8 +1,7 @@
+use zircon_framework::render::{HandleOverlayExtract, OverlayAxis, SceneViewportTool};
 use zircon_math::Transform;
-use zircon_scene::{HandleOverlayExtract, OverlayAxis, SceneViewportTool};
 
 use crate::scene::viewport::handles::{
-    handle_commit::HandleCommit,
     handle_drag_context::HandleDragContext,
     handle_drag_session::HandleDragSession,
     handle_pick_context::HandlePickContext,
@@ -99,14 +98,5 @@ impl HandleTool for MoveHandleTool {
         })
     }
 
-    fn end_drag(&self, session: HandleDragSession) -> Option<HandleCommit> {
-        let HandleDragSession::Move(session) = session else {
-            return None;
-        };
-        Some(HandleCommit {
-            node_id: session.node_id,
-            tool: self.tool(),
-            initial_transform: session.initial_transform,
-        })
-    }
+    fn end_drag(&self, _session: HandleDragSession) {}
 }

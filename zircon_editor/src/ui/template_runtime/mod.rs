@@ -5,6 +5,7 @@ mod model;
 mod runtime;
 mod slint_adapter;
 
+#[cfg(test)]
 pub(crate) use builtin::UI_HOST_WINDOW_DOCUMENT_ID;
 #[cfg(test)]
 pub(crate) use builtin::WORKBENCH_SHELL_DOCUMENT_ID;

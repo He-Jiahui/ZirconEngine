@@ -74,11 +74,12 @@ pub(crate) fn compute_window_menu_popup_height(
 }
 
 pub(crate) fn resolve_callback_source_window_id(ui: &UiHostWindow) -> Option<MainPageId> {
-    if !ui.get_native_floating_window_mode() {
+    let host_shell = ui.get_host_shell();
+    if !host_shell.native_floating_window_mode {
         return None;
     }
 
-    let window_id = ui.get_native_floating_window_id().to_string();
+    let window_id = host_shell.native_floating_window_id.to_string();
     if window_id.trim().is_empty() {
         None
     } else {
@@ -392,8 +393,10 @@ mod tests {
         i_slint_backend_testing::init_no_event_loop();
 
         let ui = UiHostWindow::new().expect("workbench shell should instantiate");
-        ui.set_native_floating_window_mode(true);
-        ui.set_native_floating_window_id("window:native-preview".into());
+        let mut host_shell = ui.get_host_shell();
+        host_shell.native_floating_window_mode = true;
+        host_shell.native_floating_window_id = "window:native-preview".into();
+        ui.set_host_shell(host_shell);
 
         assert_eq!(
             resolve_callback_source_window_id(&ui),

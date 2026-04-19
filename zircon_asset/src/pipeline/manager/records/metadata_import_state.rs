@@ -1,8 +1,6 @@
-use zircon_resource::ResourceState;
+use zircon_resource::{ResourceRecord, ResourceState};
 
-use crate::AssetMetadata;
-
-pub(super) fn metadata_import_state(metadata: &AssetMetadata) -> ResourceState {
+pub(super) fn metadata_import_state(metadata: &ResourceRecord) -> ResourceState {
     if metadata.artifact_locator().is_some() {
         ResourceState::Ready
     } else {

@@ -1,5 +1,6 @@
 use zircon_math::{UVec2, Vec2};
-use zircon_runtime::scene::{NodeKind, World};
+use zircon_runtime::scene::components::NodeKind;
+use zircon_runtime::scene::world::World;
 
 use super::RuntimeCameraController;
 

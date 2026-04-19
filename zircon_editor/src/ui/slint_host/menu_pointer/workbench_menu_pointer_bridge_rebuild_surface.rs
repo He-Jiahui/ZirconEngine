@@ -1,9 +1,9 @@
 use std::collections::BTreeMap;
 
 use zircon_ui::{
-    UiAxis, UiContainerKind, UiFrame, UiInputPolicy, UiNodePath, UiPointerDispatcher,
-    UiPointerEventKind, UiScrollState, UiScrollableBoxConfig, UiScrollbarVisibility, UiSurface,
-    UiTreeId, UiTreeNode,
+    dispatch::UiPointerDispatcher, event_ui::UiNodePath, event_ui::UiTreeId, UiAxis,
+    UiContainerKind, UiFrame, UiInputPolicy, UiPointerEventKind, UiScrollState,
+    UiScrollableBoxConfig, UiScrollbarVisibility, UiSurface, UiTreeNode,
 };
 
 use super::constants::{
@@ -66,10 +66,10 @@ impl WorkbenchMenuPointerBridge {
                 )
                 .expect("menu pointer root must exist");
             dispatcher.register(DISMISS_NODE_ID, UiPointerEventKind::Move, |_context| {
-                zircon_ui::UiPointerDispatchEffect::handled()
+                zircon_ui::dispatch::UiPointerDispatchEffect::handled()
             });
             dispatcher.register(DISMISS_NODE_ID, UiPointerEventKind::Down, |_context| {
-                zircon_ui::UiPointerDispatchEffect::handled()
+                zircon_ui::dispatch::UiPointerDispatchEffect::handled()
             });
             targets.insert(DISMISS_NODE_ID, WorkbenchMenuPointerTarget::DismissOverlay);
 

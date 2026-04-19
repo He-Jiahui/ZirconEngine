@@ -2,7 +2,8 @@ use std::ops::Range;
 
 use bytemuck::{Pod, Zeroable};
 use wgpu::util::DeviceExt;
-use zircon_ui::{UiFrame, UiRenderCommand, UiRenderCommandKind};
+use zircon_ui::surface::{UiRenderCommand, UiRenderCommandKind};
+use zircon_ui::UiFrame;
 
 use crate::types::EditorOrRuntimeFrame;
 

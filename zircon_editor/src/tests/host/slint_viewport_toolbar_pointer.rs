@@ -1,3 +1,4 @@
+use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
 use crate::ui::slint_host::callback_dispatch::{
     dispatch_shared_viewport_toolbar_pointer_click, BuiltinViewportToolbarTemplateBridge,
 };
@@ -5,9 +6,8 @@ use crate::ui::slint_host::viewport_toolbar_pointer::{
     build_viewport_toolbar_pointer_layout, ViewportToolbarPointerBridge,
     ViewportToolbarPointerRoute,
 };
-use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
 use crate::{EditorEvent, EditorViewportEvent};
-use zircon_scene::DisplayMode;
+use zircon_framework::render::DisplayMode;
 use zircon_ui::{UiPoint, UiSize};
 
 #[test]
@@ -128,6 +128,10 @@ fn shared_viewport_toolbar_pointer_click_falls_back_to_surface_projection_when_c
 #[test]
 fn shared_viewport_toolbar_surface_replaces_legacy_direct_click_routes() {
     let workbench = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/ui/workbench.slint"));
+    let pane_surface = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/ui/workbench/pane_surface.slint"
+    ));
     let chrome = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/ui/workbench/chrome.slint"
@@ -196,7 +200,7 @@ fn shared_viewport_toolbar_surface_replaces_legacy_direct_click_routes() {
         "pointer_clicked(x, y) =>",
     ] {
         assert!(
-            workbench.contains(needle) || chrome.contains(needle),
+            pane_surface.contains(needle) || chrome.contains(needle),
             "viewport toolbar shared pointer hook `{needle}` is missing"
         );
     }
@@ -214,8 +218,7 @@ fn shared_viewport_toolbar_surface_replaces_legacy_direct_click_routes() {
     }
 
     assert!(
-        app.contains("ui.on_viewport_toolbar_pointer_clicked(")
-            || wiring.contains("ui.on_viewport_toolbar_pointer_clicked("),
-        "slint host app must register shared viewport toolbar callback"
+        wiring.contains("pane_surface_host.on_viewport_toolbar_pointer_clicked("),
+        "slint host app must register shared viewport toolbar callback through PaneSurfaceHostContext"
     );
 }

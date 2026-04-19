@@ -1,9 +1,12 @@
-use serde_json::json;
 use crate::ui::{
     ActivityViewDescriptor, ActivityWindowDescriptor, EditorUiControlService,
     EditorUiReflectionAdapter,
 };
-use zircon_ui::{UiNodeDescriptor, UiPropertyDescriptor, UiReflectionSnapshot, UiValueType};
+use serde_json::json;
+use zircon_ui::{
+    event_ui::UiNodeDescriptor, event_ui::UiPropertyDescriptor, event_ui::UiReflectionSnapshot,
+    event_ui::UiValueType,
+};
 
 use crate::core::editor_event::EditorTransientUiState;
 use crate::{

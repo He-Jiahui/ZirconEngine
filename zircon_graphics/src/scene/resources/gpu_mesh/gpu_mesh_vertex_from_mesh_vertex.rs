@@ -1,4 +1,4 @@
-use zircon_asset::MeshVertex;
+use zircon_asset::pipeline::types::MeshVertex;
 
 use super::gpu_mesh_vertex::GpuMeshVertex;
 

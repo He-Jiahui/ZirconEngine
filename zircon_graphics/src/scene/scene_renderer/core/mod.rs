@@ -21,4 +21,3 @@ pub use scene_renderer::SceneRenderer;
 
 pub(crate) use constants::{DEPTH_FORMAT, OFFSCREEN_FORMAT};
 pub(crate) use create_depth_texture::create_depth_texture;
-pub(crate) use scene_renderer_core::SceneRendererCore;

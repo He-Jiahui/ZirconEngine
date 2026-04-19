@@ -1881,6 +1881,14 @@ fn shared_drag_target_route_disables_empty_tool_regions_when_drawers_are_hidden(
 #[test]
 fn shared_drag_capture_surface_replaces_legacy_direct_drop_callback_abi() {
     let workbench = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/ui/workbench.slint"));
+    let host_context = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/ui/workbench/host_context.slint"
+    ));
+    let host_components = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/ui/workbench/host_components.slint"
+    ));
     let wiring = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/src/ui/slint_host/app/callback_wiring.rs"
@@ -1910,16 +1918,18 @@ fn shared_drag_capture_surface_replaces_legacy_direct_drop_callback_abi() {
 
     for needle in [
         "callback workbench_drag_pointer_event(kind: int, x: float, y: float);",
-        "root.workbench_drag_pointer_event(",
+        "WorkbenchHostContext.workbench_drag_pointer_event(",
     ] {
         assert!(
-            workbench.contains(needle),
+            workbench.contains(needle)
+                || host_context.contains(needle)
+                || host_components.contains(needle),
             "workbench shell is missing shared drag pointer hook `{needle}`"
         );
     }
 
     assert!(
-        wiring.contains("ui.on_workbench_drag_pointer_event("),
+        wiring.contains("host_shell.on_workbench_drag_pointer_event("),
         "slint host callback wiring must register shared drag pointer callback"
     );
     assert!(

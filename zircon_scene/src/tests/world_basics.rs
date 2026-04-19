@@ -3,7 +3,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use zircon_math::{Transform, Vec3};
 
-use crate::{NodeKind, SystemStage, World};
+use crate::{NodeKind, SystemStage, world::World};
 
 use super::support::{material_handle, model_handle};
 
@@ -13,7 +13,9 @@ fn world_bootstraps_with_renderable_defaults() {
     let snapshot = world.to_render_snapshot();
 
     assert!(!snapshot.scene.meshes.is_empty());
-    assert!(snapshot.overlays.grid.is_some());
+    assert!(snapshot.overlays.grid.is_none());
+    assert!(snapshot.overlays.selection.is_empty());
+    assert!(snapshot.overlays.scene_gizmos.is_empty());
     assert_eq!(
         world.schedule().stages.last(),
         Some(&SystemStage::RenderExtract)

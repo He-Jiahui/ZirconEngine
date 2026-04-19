@@ -1,4 +1,4 @@
-use zircon_scene::{RenderColorGradingSettings, RenderFrameExtract};
+use zircon_framework::render::{RenderColorGradingSettings, RenderFrameExtract};
 
 use super::super::super::super::super::scene_runtime_feature_flags::SceneRuntimeFeatureFlags;
 

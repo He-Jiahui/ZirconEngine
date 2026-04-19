@@ -4,24 +4,24 @@ use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use image::{ImageBuffer, ImageFormat, Rgba};
-use zircon_asset::{
-    AlphaMode, AssetManager, AssetReference, AssetUri, MaterialAsset, ProjectAssetManager,
-    ProjectManifest, ProjectPaths, SceneAsset, SceneCameraAsset, SceneEntityAsset,
+use zircon_asset::assets::{
+    AlphaMode, MaterialAsset, SceneAsset, SceneCameraAsset, SceneEntityAsset,
     SceneMeshInstanceAsset, SceneMobilityAsset, TransformAsset,
 };
+use zircon_asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
+use zircon_asset::pipeline::manager::{AssetManager, ProjectAssetManager};
+use zircon_asset::{AssetReference, AssetUri};
 use zircon_framework::render::{
-    RenderFramework, RenderPipelineHandle, RenderQualityProfile, RenderViewportDescriptor,
-    RenderViewportHandle,
+    DisplayMode, FallbackSkyboxKind, PreviewEnvironmentExtract, ProjectionMode,
+    RenderDirectionalLightSnapshot, RenderFrameExtract, RenderFramework, RenderMeshSnapshot,
+    RenderOverlayExtract, RenderPipelineHandle, RenderQualityProfile, RenderSceneGeometryExtract,
+    RenderSceneSnapshot, RenderViewportDescriptor, RenderViewportHandle, RenderWorldSnapshotHandle,
+    SceneViewportExtractRequest, ViewportCameraSnapshot, ViewportRenderSettings,
 };
 use zircon_math::{Transform, UVec2, Vec3, Vec4};
 use zircon_resource::{MaterialMarker, ModelMarker, ResourceHandle};
-use zircon_scene::{
-    default_render_layer_mask, DefaultLevelManager, DisplayMode, FallbackSkyboxKind, Mobility,
-    PreviewEnvironmentExtract, ProjectionMode, RenderDirectionalLightSnapshot, RenderFrameExtract,
-    RenderMeshSnapshot, RenderOverlayExtract, RenderSceneGeometryExtract, RenderSceneSnapshot,
-    RenderWorldSnapshotHandle, SceneViewportExtractRequest, SceneViewportSettings,
-    ViewportCameraSnapshot,
-};
+use zircon_scene::components::{default_render_layer_mask, Mobility};
+use zircon_scene::world::World;
 
 use crate::{runtime::WgpuRenderFramework, SceneRenderer};
 
@@ -57,25 +57,15 @@ fn directory_project_scene_renders_non_background_frame_with_gizmo_overlay() {
     asset_manager
         .open_project(root.to_string_lossy().as_ref())
         .unwrap();
-    let level_manager = DefaultLevelManager::default();
     let scene_uri = AssetUri::parse("res://scenes/main.scene.toml").unwrap();
-    let mut project = zircon_asset::ProjectManager::open(&root).unwrap();
+    let mut project = ProjectManager::open(&root).unwrap();
     project.scan_and_import().unwrap();
-    let level = level_manager.load_level(&project, &scene_uri).unwrap();
-    let snapshot = level.with_world(|world| {
-        let mesh = world
-            .nodes()
-            .iter()
-            .find(|node| node.mesh.is_some())
-            .map(|node| node.id)
-            .unwrap();
-        world.build_viewport_render_packet(&SceneViewportExtractRequest {
-            settings: SceneViewportSettings::default(),
-            selection: vec![mesh],
-            active_camera_override: None,
-            camera: None,
-            viewport_size: Some(UVec2::new(320, 240)),
-        })
+    let world = World::load_scene_from_uri(&project, &scene_uri).unwrap();
+    let snapshot = world.build_viewport_render_packet(&SceneViewportExtractRequest {
+        settings: ViewportRenderSettings::default(),
+        active_camera_override: None,
+        camera: None,
+        viewport_size: Some(UVec2::new(320, 240)),
     });
 
     let mut renderer = SceneRenderer::new(asset_manager).unwrap();
@@ -123,13 +113,12 @@ fn directory_project_material_shader_drives_pipeline_color_output() {
     asset_manager
         .open_project(root.to_string_lossy().as_ref())
         .unwrap();
-    let level_manager = DefaultLevelManager::default();
     let scene_uri = AssetUri::parse("res://scenes/main.scene.toml").unwrap();
-    let mut project = zircon_asset::ProjectManager::open(&root).unwrap();
+    let mut project = ProjectManager::open(&root).unwrap();
     project.scan_and_import().unwrap();
-    let level = level_manager.load_level(&project, &scene_uri).unwrap();
+    let world = World::load_scene_from_uri(&project, &scene_uri).unwrap();
 
-    let mut snapshot = level.snapshot().to_render_snapshot();
+    let mut snapshot = world.to_render_snapshot();
     snapshot.overlays = RenderOverlayExtract {
         display_mode: DisplayMode::Shaded,
         ..RenderOverlayExtract::default()
@@ -188,15 +177,14 @@ fn wire_only_mode_reduces_filled_surface_pixels() {
     asset_manager
         .open_project(root.to_string_lossy().as_ref())
         .unwrap();
-    let level_manager = DefaultLevelManager::default();
     let scene_uri = AssetUri::parse("res://scenes/main.scene.toml").unwrap();
-    let mut project = zircon_asset::ProjectManager::open(&root).unwrap();
+    let mut project = ProjectManager::open(&root).unwrap();
     project.scan_and_import().unwrap();
-    let level = level_manager.load_level(&project, &scene_uri).unwrap();
+    let world = World::load_scene_from_uri(&project, &scene_uri).unwrap();
 
-    let mut shaded = level.snapshot().to_render_snapshot();
+    let mut shaded = world.to_render_snapshot();
     shaded.preview.skybox_enabled = false;
-    shaded.preview.fallback_skybox = zircon_scene::FallbackSkyboxKind::None;
+    shaded.preview.fallback_skybox = FallbackSkyboxKind::None;
     shaded.overlays = RenderOverlayExtract {
         display_mode: DisplayMode::Shaded,
         ..RenderOverlayExtract::default()
@@ -271,7 +259,7 @@ fn history_resolve_blends_previous_scene_color_when_enabled() {
     asset_manager
         .open_project(root.to_string_lossy().as_ref())
         .unwrap();
-    let mut project = zircon_asset::ProjectManager::open(&root).unwrap();
+    let mut project = ProjectManager::open(&root).unwrap();
     project.scan_and_import().unwrap();
 
     let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/quad.obj");
@@ -405,7 +393,7 @@ fn ssao_quality_profile_darkens_scene_when_enabled() {
     asset_manager
         .open_project(root.to_string_lossy().as_ref())
         .unwrap();
-    let mut project = zircon_asset::ProjectManager::open(&root).unwrap();
+    let mut project = ProjectManager::open(&root).unwrap();
     project.scan_and_import().unwrap();
 
     let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/quad.obj");
@@ -508,7 +496,7 @@ fn clustered_lighting_quality_profile_applies_runtime_tile_lighting() {
     asset_manager
         .open_project(root.to_string_lossy().as_ref())
         .unwrap();
-    let mut project = zircon_asset::ProjectManager::open(&root).unwrap();
+    let mut project = ProjectManager::open(&root).unwrap();
     project.scan_and_import().unwrap();
 
     let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/quad.obj");
@@ -612,7 +600,7 @@ fn deferred_pipeline_uses_gbuffer_material_path_instead_of_forward_shader_path()
     asset_manager
         .open_project(root.to_string_lossy().as_ref())
         .unwrap();
-    let mut project = zircon_asset::ProjectManager::open(&root).unwrap();
+    let mut project = ProjectManager::open(&root).unwrap();
     project.scan_and_import().unwrap();
 
     let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/quad.obj");

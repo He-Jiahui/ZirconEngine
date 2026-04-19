@@ -1,4 +1,5 @@
-use crate::{UiAssetDocument, UiAssetError, UiTemplateNode};
+use crate::template::UiTemplateNode;
+use crate::{UiAssetDocument, template::UiAssetError};
 
 use super::style_apply::{apply_styles_to_tree, build_style_plan};
 use super::ui_document_compiler::{CompilationArtifacts, ResolvedStyleSheet, UiDocumentCompiler};

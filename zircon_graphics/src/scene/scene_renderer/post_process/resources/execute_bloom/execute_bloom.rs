@@ -1,5 +1,5 @@
+use zircon_framework::render::RenderBloomSettings;
 use zircon_math::UVec2;
-use zircon_scene::RenderBloomSettings;
 
 use super::super::super::bloom_params::BloomParams;
 use super::super::super::clear_render_target::clear_render_target;

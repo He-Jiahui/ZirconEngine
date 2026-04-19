@@ -1,4 +1,4 @@
-use zircon_scene::DisplayMode;
+use zircon_framework::render::DisplayMode;
 
 use crate::scene::resources::ResourceStreamer;
 use crate::scene::scene_renderer::mesh::{MeshDraw, MeshPipelineCache};

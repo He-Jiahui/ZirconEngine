@@ -1,4 +1,4 @@
-use zircon_scene::EntityId;
+use zircon_framework::scene::EntityId;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct VisibilityVirtualGeometryCluster {
@@ -10,3 +10,4 @@ pub struct VisibilityVirtualGeometryCluster {
     pub cluster_count: u32,
     pub resident: bool,
 }
+

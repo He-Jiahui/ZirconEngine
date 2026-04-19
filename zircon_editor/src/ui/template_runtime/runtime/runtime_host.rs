@@ -1,14 +1,15 @@
 use std::fs;
 
-use thiserror::Error;
 use crate::ui::{
     EditorComponentCatalog, EditorComponentDescriptor, EditorTemplateAdapter, EditorTemplateError,
     EditorTemplateRegistry, EditorUiBinding, EditorUiControlService,
 };
-use zircon_ui::{
-    UiAssetDocument, UiAssetError, UiAssetLoader, UiSurface, UiTemplateLoader,
-    UiTemplateSurfaceBuilder, UiTreeId,
+use thiserror::Error;
+use zircon_ui::template::{
+    UiAssetError, UiAssetLoader, UiTemplateBuildError, UiTemplateError, UiTemplateLoader,
+    UiTemplateSurfaceBuilder,
 };
+use zircon_ui::{UiAssetDocument, UiSurface, event_ui::UiTreeId};
 
 use crate::ui::template_runtime::{
     SlintUiHostAdapter, SlintUiHostModel, SlintUiHostProjection, SlintUiProjection,
@@ -26,9 +27,9 @@ pub enum EditorUiHostRuntimeError {
     #[error(transparent)]
     UiAsset(#[from] UiAssetError),
     #[error(transparent)]
-    UiTemplate(#[from] zircon_ui::UiTemplateError),
+    UiTemplate(#[from] UiTemplateError),
     #[error(transparent)]
-    UiTemplateBuild(#[from] zircon_ui::UiTemplateBuildError),
+    UiTemplateBuild(#[from] UiTemplateBuildError),
     #[error("slint projection is missing binding {binding_id}")]
     MissingProjectionBinding { binding_id: String },
     #[error("shared surface node {node_path} is missing template metadata")]

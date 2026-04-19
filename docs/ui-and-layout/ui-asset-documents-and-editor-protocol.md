@@ -36,10 +36,17 @@ related_code:
   - zircon_editor/src/tests/ui/template.rs
   - zircon_editor/src/core/editing/ui_asset/mod.rs
   - zircon_editor/src/core/editing/ui_asset/binding_inspector.rs
+  - zircon_editor/src/core/editing/ui_asset/binding/schema_projection.rs
+  - zircon_editor/src/core/editing/ui_asset/document_diff.rs
   - zircon_editor/src/core/editing/ui_asset/inspector_fields.rs
+  - zircon_editor/src/core/editing/ui_asset/replay_workspace.rs
+  - zircon_editor/src/core/editing/ui_asset/value_path.rs
   - zircon_editor/src/core/editing/ui_asset/session.rs
   - zircon_editor/src/core/editing/ui_asset/preview_host.rs
+  - zircon_editor/src/core/editing/ui_asset/preview/mock_expression.rs
+  - zircon_editor/src/core/editing/ui_asset/preview/mock_value_resolution.rs
   - zircon_editor/src/core/editing/ui_asset/style/theme_authoring.rs
+  - zircon_editor/src/core/editing/ui_asset/style/theme_compare.rs
   - zircon_editor/src/core/editing/ui_asset/style_rule_declarations.rs
   - zircon_editor/src/core/host/manager/project_access.rs
   - zircon_editor/src/core/host/manager/ui_asset_promotion.rs
@@ -52,6 +59,8 @@ related_code:
   - zircon_editor/src/ui/slint_host/app/callback_wiring.rs
   - zircon_editor/src/ui/slint_host/ui/pane_projection.rs
   - zircon_editor/ui/workbench.slint
+  - zircon_editor/ui/workbench/host_scaffold.slint
+  - zircon_editor/ui/workbench/host_surface.slint
   - zircon_editor/ui/workbench/panes.slint
   - zircon_editor/src/tests/editing/ui_asset.rs
   - zircon_editor/src/tests/editing/ui_asset_theme_authoring.rs
@@ -92,10 +101,17 @@ implementation_files:
   - zircon_editor/src/ui/ui_asset_editor.rs
   - zircon_editor/src/core/editing/ui_asset/mod.rs
   - zircon_editor/src/core/editing/ui_asset/binding_inspector.rs
+  - zircon_editor/src/core/editing/ui_asset/binding/schema_projection.rs
+  - zircon_editor/src/core/editing/ui_asset/document_diff.rs
   - zircon_editor/src/core/editing/ui_asset/inspector_fields.rs
+  - zircon_editor/src/core/editing/ui_asset/replay_workspace.rs
+  - zircon_editor/src/core/editing/ui_asset/value_path.rs
   - zircon_editor/src/core/editing/ui_asset/session.rs
   - zircon_editor/src/core/editing/ui_asset/preview_host.rs
+  - zircon_editor/src/core/editing/ui_asset/preview/mock_expression.rs
+  - zircon_editor/src/core/editing/ui_asset/preview/mock_value_resolution.rs
   - zircon_editor/src/core/editing/ui_asset/style/theme_authoring.rs
+  - zircon_editor/src/core/editing/ui_asset/style/theme_compare.rs
   - zircon_editor/src/core/editing/ui_asset/style_rule_declarations.rs
   - zircon_editor/src/core/host/manager/project_access.rs
   - zircon_editor/src/core/host/manager/ui_asset_promotion.rs
@@ -108,6 +124,8 @@ implementation_files:
   - zircon_editor/src/ui/slint_host/app/callback_wiring.rs
   - zircon_editor/src/ui/slint_host/ui/pane_projection.rs
   - zircon_editor/ui/workbench.slint
+  - zircon_editor/ui/workbench/host_scaffold.slint
+  - zircon_editor/ui/workbench/host_surface.slint
   - zircon_editor/ui/workbench/panes.slint
 plan_sources:
   - user: 2026-04-16 增加 activityWindow 界面作为 UI 编辑布局工具并把 UI Layout 资产化
@@ -115,6 +133,7 @@ plan_sources:
   - user: 2026-04-16 继续把完整 zircon_editor 宿主实现补完
   - user: 2026-04-17 继续扫描明显错包模块并按方案2把 editor asset API 从 zircon_manager 迁回 zircon_asset
   - user: 2026-04-18 实现计划，生成的toml要求能够可视化编辑（提供了editor UI的编辑器）
+  - user: 2026-04-19 把 inverse-command 继续推进到 replay backend，并补 richer preview mock / bindings schema、theme tooling、迁移与自举
   - .codex/plans/编辑器 .slint 去真源 Runtime UI 可用 Cutover 路线图.md
   - docs/superpowers/plans/2026-04-17-asset-editor-api-boundary-migration.md
   - .codex/plans/布局系统.md
@@ -123,10 +142,14 @@ tests:
   - zircon_ui/src/tests/asset.rs
   - zircon_editor/src/tests/ui/activity.rs
   - zircon_editor/src/tests/ui/template.rs
+  - zircon_editor/src/tests/ui/ui_asset_editor.rs
   - zircon_editor/src/tests/editing/ui_asset.rs
+  - zircon_editor/src/tests/editing/ui_asset_preview_binding_authoring.rs
+  - zircon_editor/src/tests/editing/ui_asset_replay.rs
   - zircon_editor/src/tests/host/template_runtime.rs
   - zircon_editor/src/tests/host/manager.rs
   - zircon_editor/tests/workbench_slint_shell.rs
+  - zircon_editor/tests/workbench_slint_ui_asset_theme_shell.rs
   - zircon_asset/src/tests/assets/ui.rs
   - zircon_asset/src/tests/editor/manager.rs
   - cargo check -p zircon_editor --lib --locked
@@ -152,6 +175,14 @@ tests:
   - cargo test -p zircon_editor --lib --locked editor_manager_runs_ui_asset_slot_inspector_editing_actions
   - cargo test -p zircon_editor --test workbench_slint_shell --locked ui_asset_editor_pane_declares_widget_inspector_editing_controls_and_callback
   - cargo test -p zircon_editor --test workbench_slint_shell --locked ui_asset_editor_pane_declares_slot_inspector_editing_controls
+  - TMP=D:\codex-temp TEMP=D:\codex-temp CARGO_TARGET_DIR=D:\codex-ui-asset-editor-next CARGO_INCREMENTAL=0 cargo test -p zircon_editor --lib --locked --offline ui_asset_editor_session_evaluates_function_preview_expressions_and_binding_payload_previews -- --nocapture
+  - TMP=D:\codex-temp TEMP=D:\codex-temp CARGO_TARGET_DIR=D:\codex-ui-asset-editor-next CARGO_INCREMENTAL=0 cargo test -p zircon_editor --lib --locked --offline ui_asset_editor_session_projects_cross_asset_theme_rule_cascade_activity -- --nocapture
+  - TMP=D:\codex-temp TEMP=D:\codex-temp CARGO_TARGET_DIR=D:\codex-ui-asset-editor-next CARGO_INCREMENTAL=0 cargo test -p zircon_editor --lib --locked --offline ui_asset_editor_session_theme_refactor_uses_style_rule_vector_replay_commands -- --nocapture
+  - TMP=D:\codex-temp TEMP=D:\codex-temp CARGO_TARGET_DIR=D:\codex-ui-asset-editor-next CARGO_INCREMENTAL=0 cargo test -p zircon_editor --lib --locked --offline ui_asset_editor_additional_editor_preview_state_lab_asset_compiles_and_opens -- --nocapture
+  - TMP=D:\codex-temp TEMP=D:\codex-temp CARGO_TARGET_DIR=D:\codex-ui-asset-editor-next CARGO_INCREMENTAL=0 cargo test -p zircon_editor --lib --locked --offline ui_asset_editor_runtime_quest_log_dialog_asset_opens_as_shared_runtime_preview_session -- --nocapture
+  - TMP=D:\codex-temp TEMP=D:\codex-temp CARGO_TARGET_DIR=D:\codex-ui-asset-editor-next CARGO_INCREMENTAL=0 cargo test -p zircon_editor --lib --locked --offline ui_asset_ -- --nocapture
+  - TMP=D:\codex-temp TEMP=D:\codex-temp CARGO_TARGET_DIR=D:\codex-ui-asset-editor-next CARGO_INCREMENTAL=0 cargo test -p zircon_editor --lib --locked --offline -- --test-threads=1
+  - TMP=D:\codex-temp TEMP=D:\codex-temp CARGO_TARGET_DIR=D:\codex-ui-asset-editor-next CARGO_INCREMENTAL=0 cargo test -p zircon_editor --test workbench_slint_shell --locked --offline -- --nocapture
   - cargo test -p zircon_ui --lib --locked tests::asset
   - cargo test -p zircon_ui --lib --locked
   - cargo test -p zircon_editor --lib --locked tests::ui::activity
@@ -173,7 +204,7 @@ doc_type: module-detail
 - `zircon_ui` 提供正式 `layout/widget/style` AST、legacy adapter、selector stylesheet、component/reference/slot 编译器，以及到 `UiSurface` 的桥接
 - `zircon_asset` 把 `.ui.toml` 正式注册为 `UiLayout` / `UiWidget` / `UiStyle` 三种资产，并把 `imports` 转成 editor catalog/reference graph 能消费的依赖
 - `zircon_editor::ui` 提供 `editor.ui_asset` window descriptor、route、mode、selection 和 style inspector reflection types
-- `zircon_editor` 已经具备真实 `UiAssetEditorSession`、source roundtrip、基于 `source diff + document diff` 的 undo/redo、preview host、recursive import hydration，以及 Slint pane callback 接线；其中 `UiAssetDocumentDiff` 已推进到 node/component + child-mount-list 字段级 patch，并开始携带第一批 host-side external effect rollback 元数据
+- `zircon_editor` 已经具备真实 `UiAssetEditorSession`、source roundtrip、基于 `source diff + document diff` 的 undo/redo、preview host、recursive import hydration，以及 Slint pane callback 接线；其中 `UiAssetDocumentDiff` 已推进到 node/component + child-mount-list + stylesheet/rule vector 字段级 patch，并开始携带第一批 host-side external effect rollback 元数据，`UiAssetEditorUndoStack` 也开始把显式 `UiAssetEditorInverseTreeEdit` 写进 command-log 元数据
 
 也就是说，当前仓库已经完成了“shared UI asset model -> project asset pipeline -> editor host session -> Slint pane”这一条首个可编辑闭环；真正还未完成的是更高层的可视化拖拽 authoring，而不是基础宿主接线。
 
@@ -192,9 +223,16 @@ doc_type: module-detail
 - `UiComponentDefinition`
 - `UiComponentParamSchema`
 - `UiNamedSlotSchema`
+- `UiStyleScope`
+- `UiSelector`
+- `UiSelectorToken`
 - `UiStyleSheet`
 - `UiStyleRule`
 - `UiStyleDeclarationBlock`
+
+这组 asset-side schema / selector / stylesheet 类型现在统一经 `zircon_ui::template::*` 暴露；`zircon_ui` crate root 不再继续平铺 `UiComponentDefinition` / `UiComponentParamSchema` / `UiNamedSlotSchema` / `UiStyleScope` / `UiSelector` / `UiSelectorToken`，避免 shared asset model 和 selector parser model 继续从 root-surface 泄漏。
+
+同一轮里，template document/binding model 也已经统一收回 `zircon_ui::template::{UiActionRef, UiBindingRef, UiComponentTemplate, UiSlotTemplate}`；`zircon_editor` 的 binding inspector / document diff / template adapter 不再从 `zircon_ui` crate root 取这组 shared template model。
 
 源码权威格式已经切到 `.ui.toml` 风格的 TOML 结构：
 
@@ -235,7 +273,7 @@ doc_type: module-detail
 
 `compile(&UiAssetDocument)` 的当前固定输出是 `UiCompiledDocument`，它内部已经包含：
 
-1. reference/component/slot 展开后的 `UiTemplateInstance`
+1. reference/component/slot 展开后的 `zircon_ui::template::UiTemplateInstance`
 2. 经过 stylesheet + inline override 求值后的属性树
 3. 原始 `asset` header，便于宿主继续识别 `layout/widget/style`
 
@@ -243,7 +281,7 @@ doc_type: module-detail
 
 当前已实现的实例语义包括：
 
-- `native` 节点直接落成 `UiTemplateNode.component`
+- `native` 节点直接落成 `zircon_ui::template::UiTemplateNode.component`
 - `component` 节点调用当前文档内的本地 `components.*`
 - `reference` 节点调用注册过的外部 `widget` 资产组件
 - `slot` 节点在编译期用调用方提供的 `mount` 内容替换
@@ -251,7 +289,7 @@ doc_type: module-detail
 - 文档或被引用资产的 `tokens` 支持 `$token_name` 常量替换
 - reference/component 根实例可以覆盖 `control_id`、追加 `classes`、增加 `style_overrides`
 
-这一步把“React 式组件参数 + Unreal named slot”压成现有 shared runtime 能消费的 `UiTemplateNode` 树，而没有重新起一套并行宿主树。
+这一步把“React 式组件参数 + Unreal named slot”压成现有 shared runtime 能消费的 `zircon_ui::template::UiTemplateNode` 树，而没有重新起一套并行宿主树。
 
 ## Style And Layout Bridge
 
@@ -281,7 +319,7 @@ V1 样式系统已经能处理：
 
 现有 shared layout solver 只有一套 `UiTreeNode.constraints/anchor/pivot/position` 真源，所以 `slot.*` 不能再被丢掉。当前桥接采取了最小过渡策略：
 
-- `UiTemplateNodeMetadata` 保存原始 `slot_attributes`
+- `zircon_ui::tree::UiTemplateNodeMetadata` 保存原始 `slot_attributes`
 - `template/bridge/layout_contract.rs` 在读取 layout 时合并 `attributes.layout` 和 `slot_attributes.layout`
 - 对线性容器先按“交叉轴优先吃 slot，主轴保留 self”的策略落到当前 solver
 - `UiTemplateSurfaceBuilder::build_surface_from_compiled_document(...)` 允许新资产编译结果直接走现有 `UiSurface` 构建
@@ -315,9 +353,16 @@ V1 样式系统已经能处理：
 
 - 选择集合统一走 `UiAssetStringSelectionData`
 - source / preview mock / theme / style / inspector / palette drag 各自进入独立 detail DTO
-- `workbench.slint` 只负责 `pane: root.pane.ui_asset` 和通用 callback 边界，不再逐项 forward 扁平字段
+- [`workbench.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench.slint) 只负责 `pane: root.pane.ui_asset` 所在的 root/bootstrap 边界，并把 `PaneSurfaceHostContext` generic callback seam 重新导出给 Rust；不再逐项 forward 扁平字段
+- [`host_scaffold.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_scaffold.slint) 现在已经进一步收成 mode switch；剩余 menu/drawer/document/floating 主壳组合则上提到 [`host_surface.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_surface.slint)，而 `PaneSurface` host contract 继续通过共享 global 收口，不再在每个壳实例里铺一整片 property/callback glue
 
 这意味着结构化 stylesheet / inspector / palette-drag 继续建立在同一个 `UiAssetDocument` + canonical TOML roundtrip 上，但 Slint host ABI 已经从“每个面单独一条 callback”升级为“grouped DTO + generic event”。
+
+进一步地，`panes.slint` 内部最容易继续泄漏 control-specific glue 的 canvas seam 也已经继续 grouped 化：
+
+- `UiAssetCanvasSurface` 现在直接消费 `UiAssetPreviewCanvasData`、`UiAssetStringSelectionData`、`UiAssetActionStateData` 和 `UiAssetCanvasDragProjectionData`
+- palette 外拖预览不再通过一串 `external_drag_*` 和 `can_*` 标量 property 接线，而是统一走 `external_drag` / `action_state` 两块 DTO
+- 这让 preview canvas、slot target overlay 和 contextual authoring actions 继续维持 shared projection + generic detail event 的同一条 host ABI，而不是在 pane 内部重新长出一套 control-specific 标量 contract
 
 ## Asset Registration And Host Handoff
 
@@ -336,6 +381,10 @@ V1 样式系统已经能处理：
 - `ui_asset_sessions.rs` 会在 open / restore / source update / undo / redo / save 后重新递归 hydration widget/style imports
 - source roundtrip 现在还显式维护 `source_cursor_byte_offset` 和按 `node_id + line_offset` 表示的 cursor anchor；因此 source panel、source outline、Hierarchy 与 preview/canvas 能共享同一条 block-level 选中语义，而不是各自维护游离的行号状态
 - invalid-source fallback 也已经固定成“last-valid document selection + current-source cursor remap”语义：preview/inspector 继续使用最后一个有效文档，但 source panel 里的 cursor 会按当前非法文本位置重映射，避免一旦 parse 失败就把用户的编辑位置打回 block 起点
+- undo backend 现在已经有两层结构化状态：
+  - `UiAssetEditorUndoTransition` 继续作为实际执行后端，负责 source replace-diff + document diff + selection/cursor/theme-source snapshot 回放
+  - `UiAssetEditorInverseTreeEdit` 作为 command-log 元数据被写入 stack entry，已经覆盖 `InsertPaletteItem`、`UnwrapNode`、`ReparentNode(outdent)`、`ConvertToReference`、`ExtractComponent`、`PromoteToExternalWidget` 这些此前只能弱推导甚至无法表达的逆向动作
+- `UiAssetDocumentDiff` 对 stylesheet 的恢复也不再停在整向量替换：当 stylesheet id 稳定且 selector 仍可唯一识别时，session 会优先合成 `InsertStyleRule` / `RemoveStyleRule` / `MoveStyleRule` 这类可执行 rule-vector replay；只有 selector 不再安全唯一或整张表结构失真时，才回退到 `ReplaceStyleSheet`
 - `UiAssetEditorSession` 现在还支持：
   - `create_rule_from_selection()`
   - `extract_inline_overrides_to_rule()`
@@ -392,6 +441,8 @@ V1 样式系统已经能处理：
 - `panes.slint` 现在还会投影本地 `style_rule_items`，提供 `Rules` 列表、selector 输入框，以及 `Apply` / `Delete` 动作
 - `panes.slint` 现在还会投影本地 `style_token_items`，提供 `Tokens` 列表、`token-name` / `token-value` 输入框，以及 `Apply` / `Delete` 动作
 - Theme panel 现在会把 local/imported theme source 汇总成 `theme_source_items`，并在选中 local source 时把 token/rule 列表继续投影到现有本地 token/rule 编辑器
+- Theme panel 现在还会额外投影 `theme_compare_items` 与 cascade inspector：它们会把 token/rule 的 `shared` / `inherited` / `local-only` / `shadowed` / `overrides imported` 状态和真正生效的 `active` / `shadowed` rule 链一起展示出来，给 detach / clone / merge preview / refactor 一个更高层的 diff 视角
+- helper 层现在也开始直接消费 compare 结果：选中 imported theme source 后，session 除了 `Detach` / `Clone` / `Adopt imported ...` 之外，还会投影 compare-driven 的批量 helper，用于一次性 adopt diff entries 或 prune 与 selected source 完全重复的本地 token/rule
 - local theme 的 `Promote` 已经不再是固定目标的一键动作；pane 现在会额外投影 `theme_promote_asset_id`、`theme_promote_document_id`、`theme_promote_display_name` 三个 draft 字段，宿主会用它们决定最终落盘的 style asset 路径、document id 和显示名
 - imported theme source 仍然可以直接 `Open` 源 style asset；local theme 则可以先改 draft 再 `Promote`，manager 会在写文件前按目标路径做 suffix 去重，而不是把 draft 原样覆盖成冲突文件
 - `dispatch_ui_asset_action(...)` 会把这些动作映射到 manager/session，而不是再走 source 文本手写编辑
@@ -401,7 +452,7 @@ V1 样式系统已经能处理：
   - `style_rule_declaration` -> `style.rule.declaration.select` / `style.rule.declaration.upsert` / `style.rule.declaration.delete`
   - `style_token` -> `style.token.select` / `style.token.upsert` / `style.token.delete`
   - `preview_mock` -> mock preview value/clear
-  - `binding_payload` -> payload upsert/delete
+- `binding_payload` -> payload upsert/delete，以及基于当前选中 object/collection payload 的相对结构化编辑
   - `inspector_widget` -> widget / slot / layout / binding / promote / theme draft 字段编辑
   映射到 manager/session 的本地编辑 API
 - `UiAssetSourceTextInput` 现在已经成为 source pane 的显式包装层；宿主投影的 `source_cursor_byte_offset` 会通过 Slint 的 `set-selection-offsets(...)` 进入真实 source editor，而不再只是一个只读 projection 字段
@@ -409,6 +460,9 @@ V1 样式系统已经能处理：
 - 节点自身的公共 layout 约束也已经进入同一条编辑链路：`layout.width.preferred`、`layout.height.preferred`，以及 `HorizontalBox` / `VerticalBox` 的 `layout.container.gap`
 - parent-specific slot/layout 结构化字段已经扩到 `Overlay/Grid/Flow/ScrollableBox` 与线性容器：`anchor/pivot/position/z_index`、`row/column/span`、`break_before/alignment`、`scroll axis/gap/scrollbar_visibility`、`box gap`
 - 共享 `bindings` 已经被投影成宿主 Inspector 的可选列表，支持绑定项选择、`Add Click`、删除，以及 `id/event/action kind/route target/action target/payload` 结构化编辑
+- `binding payload` 的后端不再只接受全局 dotted path 字符串；当当前选中项是 object/collection payload 时，session 现在可以按容器上下文执行相对 key upsert 和 collection append，这让现有 inspector 在不新增第二套 payload tree widget 的情况下，也能开始走 schema-aware collection/object authoring
+- collection payload suggestion 的 append 位也已经稳定化：当当前 payload collection 为空但 schema/template 已知时，session 会按 `max(current_len, template_len)` 继续生成 append 候选，避免把模板索引和 append 索引都折叠成重复的 `[0]`
+- preview mock / binding schema 现在也不再停留在简单字面量覆盖：session 会把 object / collection schema、bracket path、跨节点 preview state graph，以及 `concat(...)`、`coalesce(...)`、`count(...)` / `len(...)`、`first(...)`、`last(...)`、`join(...)`、`eq(...)`、`if(...)` 的轻量表达式求值结果一起投影到 pane，用同一条 preview/mock 状态链驱动 binding payload preview
 - 这些 Inspector 字段现在继续复用同一个 `ui_asset_detail_event(instance_id, "inspector_widget", action_id, item_index, primary, secondary)` callback；Slint 只上传 `detail_id + action_id`，manager/session 再决定它是 widget、slot、layout、binding、promote draft 还是 theme draft 字段，binding / semantic / payload 列表选中则统一走 `ui_asset_collection_event(...)`
 - slot 数值字段会在 session 层做 numeric literal 校验；空字符串表示删掉对应 leaf，非法输入不会被悄悄降格成字符串 TOML
 - 规则创建默认从当前选中节点生成 selector；优先使用 `#control_id`，否则退回类型 + class 组合
@@ -420,6 +474,7 @@ V1 样式系统已经能处理：
 - declaration 编辑支持把 `set.self` / `set.slot` 的嵌套 table 改写成 leaf path，并在删除后自动回收空 table，保持 canonical TOML 稳定
 - 本地 token 删除后会自动把选中项回退到仍然存在的相邻 token；裸字符串输入如 `#223344` 会自动按 TOML string literal 落盘，而 `12` 这类值会保持数值 token
 - 多命名 slot / 低语义 slot 的 palette drop 现在不再只靠语义猜测；宿主会先投影显式 slot target overlays，并在歧义场景下进入 sticky/manual chooser，允许用户在 drop 后继续 cycle/apply 目标
+- 共享 UI asset 迁移样例也继续扩大了：editor 侧除了 bootstrap/editor widget 资产外，又新增了 `preview_state_lab.ui.toml`；runtime 侧则新增了 `quest_log_dialog.ui.toml`，两者都已经能通过同一条 `UiAssetEditorSession -> UiDocumentCompiler -> preview host` 主链打开与预览
 
 ## Validation Evidence
 
@@ -505,8 +560,42 @@ V1 样式系统已经能处理：
 - sticky/manual chooser、typed parent-specific slot/layout 与 structured bindings 不只是局部测试可过，而是已经回到 `zircon_editor --lib` / `workbench_slint_shell` 的更大面回归基线
 - token 编辑对裸字符串字面量的容错回退已经恢复，像 `#223344` 这类主题 token 输入不会再把 style editor 打成假失败
 - `UiAssetDocumentDiff` 的 node/component 字段级 patch 已经有回归覆盖，像只改 `control_id` 或 `style_scope` 的编辑不再通过整节点/整组件替换把无关 props、children、params、slots 一起冲掉；child-mount 列表变化也开始按稳定 `child id` 回放，而不是粗暴整列表覆盖
+- `UiAssetDocumentDiff` 已经进一步覆盖 stylesheet/rule vector 局部 patch，所以只修改一条 rule 时，未触及的 stylesheet/rule 上的额外内容不会被 undo/redo 顺手抹掉
 - `Promote To External Widget` 已经进入第一批宿主副作用回放：undo 会删除生成的外部 widget 资产文件，redo 会按记录的 canonical source 重建它
+- `UiAssetEditorUndoStack` 的 command-log 元数据已经从“查询时有限推导”收敛成“entry 写入时显式记录”：新增测试覆盖了 insert/remove、unwrap/wrap、outdent -> into_previous、reference restore、component inline restore、external widget restore 这些逆向语义
 - 当前环境下默认并行 `cargo test -p zircon_editor --lib` 仍可能被共享锁/构建噪声污染，因此可靠基线以独立 `D:` target 目录上的单线程全量 lib 结果为准
+
+这轮进一步把 replay / preview / theme / 迁移收口后的新增证据是：
+
+- `TMP=D:\codex-temp TEMP=D:\codex-temp CARGO_TARGET_DIR=D:\codex-ui-asset-editor-next CARGO_INCREMENTAL=0 cargo test -p zircon_editor --lib --locked --offline ui_asset_editor_session_evaluates_function_preview_expressions_and_binding_payload_previews -- --nocapture`
+  - 当前结果：`1 passed; 0 failed`
+- `TMP=D:\codex-temp TEMP=D:\codex-temp CARGO_TARGET_DIR=D:\codex-ui-asset-editor-next CARGO_INCREMENTAL=0 cargo test -p zircon_editor --lib --offline ui_asset_editor_session_upserts_binding_payload_entries_relative_to_selected_container -- --nocapture`
+  - 当前结果：`1 passed; 0 failed`
+- `TMP=D:\codex-temp TEMP=D:\codex-temp CARGO_TARGET_DIR=D:\codex-ui-asset-editor-next CARGO_INCREMENTAL=0 cargo test -p zircon_editor --lib --locked --offline ui_asset_editor_session_projects_cross_asset_theme_rule_cascade_activity -- --nocapture`
+  - 当前结果：`1 passed; 0 failed`
+- `TMP=D:\codex-temp TEMP=D:\codex-temp CARGO_TARGET_DIR=D:\codex-ui-asset-editor-next CARGO_INCREMENTAL=0 cargo test -p zircon_editor --lib --locked --offline ui_asset_editor_session_theme_refactor_uses_style_rule_vector_replay_commands -- --nocapture`
+  - 当前结果：`1 passed; 0 failed`
+- `TMP=D:\codex-temp TEMP=D:\codex-temp CARGO_TARGET_DIR=D:\codex-ui-asset-editor-next CARGO_INCREMENTAL=0 cargo test -p zircon_editor --lib --locked --offline ui_asset_editor_additional_editor_preview_state_lab_asset_compiles_and_opens -- --nocapture`
+  - 当前结果：`1 passed; 0 failed`
+- `TMP=D:\codex-temp TEMP=D:\codex-temp CARGO_TARGET_DIR=D:\codex-ui-asset-editor-next CARGO_INCREMENTAL=0 cargo test -p zircon_editor --lib --locked --offline ui_asset_editor_runtime_quest_log_dialog_asset_opens_as_shared_runtime_preview_session -- --nocapture`
+  - 当前结果：`1 passed; 0 failed`
+- `TMP=D:\codex-temp TEMP=D:\codex-temp CARGO_TARGET_DIR=D:\codex-ui-asset-editor-next CARGO_INCREMENTAL=0 cargo test -p zircon_editor --lib --locked --offline ui_asset_ -- --nocapture`
+  - 当前结果：`181 passed; 0 failed`
+- `TMP=D:\codex-temp TEMP=D:\codex-temp CARGO_TARGET_DIR=D:\codex-ui-asset-editor-next CARGO_INCREMENTAL=0 cargo test -p zircon_editor --lib --locked --offline -- --test-threads=1`
+  - 当前结果：`563 passed; 0 failed`
+- `TMP=D:\codex-temp TEMP=D:\codex-temp CARGO_TARGET_DIR=D:\codex-ui-asset-editor-next CARGO_INCREMENTAL=0 cargo test -p zircon_editor --test workbench_slint_shell --locked --offline -- --nocapture`
+  - 当前结果：`55 passed; 0 failed`
+
+本轮 command-log / stylesheet diff 收口后的新增验证是：
+
+- `TMP=D:\codex-temp TEMP=D:\codex-temp CARGO_TARGET_DIR=D:\codex-ui-asset-editor-undo-red CARGO_INCREMENTAL=0 cargo test -p zircon_editor --lib --locked --offline ui_asset_editor_session_tracks_explicit_inverse_tree_edits -- --nocapture`
+  - 当前结果：`3 passed; 0 failed`
+- `TMP=D:\codex-temp TEMP=D:\codex-temp CARGO_TARGET_DIR=D:\codex-ui-asset-editor-undo-red CARGO_INCREMENTAL=0 cargo test -p zircon_editor --lib --locked --offline stylesheet_diff_preserves_unrelated_existing_rules_when_one_rule_changes -- --nocapture`
+  - 当前结果：`1 passed; 0 failed`
+- `TMP=D:\codex-temp TEMP=D:\codex-temp CARGO_TARGET_DIR=D:\codex-ui-asset-editor-undo-red CARGO_INCREMENTAL=0 cargo test -p zircon_editor --lib --locked --offline ui_asset_editor_ -- --nocapture`
+  - 当前结果：`100 passed; 0 failed`
+- `TMP=D:\codex-temp TEMP=D:\codex-temp CARGO_TARGET_DIR=D:\codex-ui-asset-editor-undo-red CARGO_INCREMENTAL=0 cargo check -p zircon_editor --lib --locked --offline`
+  - 当前结果：`finished dev profile without errors`
 
 本轮 source cursor / source roundtrip 体验补完后，验证面又继续扩大到相邻 crate：
 
@@ -532,8 +621,28 @@ V1 样式系统已经能处理：
 
 当前剩下的工作已经从“先把资产和宿主接起来”变成“补高层 authoring 体验”：
 
-- Stylesheet rule body 的更高层结构化编辑；当前已经有 theme source 概览、promote draft、imported theme detach/clone、本地 theme layer merge preview，以及跨 asset 级联 matched-rule/token inspector，但还没有 rule-body 向导、主题差异比对和批量 theme refactor
-- 更细粒度的 inverse-command 执行后端；当前 `UiAssetDocumentDiff` 已经具备 node/component + child-list patch，promote 也已具备第一批跨文件回滚，但 stylesheet rule vector、更广泛的 tree operation inverse execution 与复合副作用日志还没有进入真正的 inverse command-log
-- Preview mock / binding authoring 现在已经扩到 expression / collection / object 和跨节点 state graph 摘要，但仍缺少真正的 schema-aware preview editor、表达式求值和交互联动
+- Stylesheet rule body 的更高层结构化编辑；当前已经有 theme source 概览、promote draft、imported theme detach/clone、本地 theme layer merge preview、跨 asset 级联 matched-rule/token inspector、theme compare / batch refactor，以及按 token/rule 逐条采纳 imported theme body 的 helper，但还缺 compare-cascade 联动、多规则批处理和更可视化的 rule-body authoring 向导
+- 更细粒度的 inverse-command 执行后端；当前 `UiAssetDocumentDiff` 已经具备 node/component + child-list patch，promote 也已具备第一批跨文件回滚，stylesheet rule vector 也开始进入可执行 replay，但更广泛的 tree operation inverse execution 与复合副作用日志还没有进入真正的 inverse command-log
+- Preview mock / binding authoring 现在已经扩到 expression / collection / object、跨节点 state graph 摘要，以及 `concat/coalesce/count/len/first/last/join/eq/if` 这一批轻量函数；binding payload 也已经开始支持基于当前选中 object/collection 的相对结构化编辑，但仍缺少完整的 schema-aware preview tree editor、更高层的表达式组合能力和交互联动
 - runtime/editor 对更多现有 screen/window 的正式迁移，以及 `UI Asset Editor` 自举
 - 仍需要把这套 UI 资产链路扩到更多现有 runtime HUD、editor ActivityWindow 和 builtin shell asset，以便真正完成 editor/runtime 的 shared-asset cutover，而不是只在 editor host 的主链示范上成立
+
+## Latest Evidence Addendum
+
+这一轮继续补上的两条高层 authoring 证据是：
+
+- preview mock suggestion 流已经能基于当前选中的 nested object/collection 容器投影并应用结构化建议，而不再只支持手敲结构值：
+  - `TMP=D:\codex-temp TEMP=D:\codex-temp CARGO_TARGET_DIR=D:\codex-ui-asset-editor-next5 CARGO_INCREMENTAL=0 cargo test -p zircon_editor --lib --locked --offline ui_asset_editor_session_projects_preview_mock_suggestions_relative_to_selected_nested_container_and_applies_them -- --nocapture`
+  - `TMP=D:\codex-temp TEMP=D:\codex-temp CARGO_TARGET_DIR=D:\codex-ui-asset-editor-next5 CARGO_INCREMENTAL=0 cargo test -p zircon_editor --lib --locked --offline editor_manager_runs_ui_asset_preview_mock_suggestion_actions_relative_to_selected_container -- --nocapture`
+  - `TMP=D:\codex-temp TEMP=D:\codex-temp CARGO_TARGET_DIR=D:\codex-ui-asset-editor-next5 CARGO_INCREMENTAL=0 cargo test -p zircon_editor --test workbench_slint_shell --locked --offline ui_asset_editor_pane_declares_preview_mock_suggestion_controls_and_callback -- --nocapture`
+- theme tooling 已经越过 whole-theme detach/clone，新增了逐条 rule-body / token adoption helper：
+  - `TMP=D:\codex-temp TEMP=D:\codex-temp CARGO_TARGET_DIR=D:\codex-ui-asset-editor-next5 CARGO_INCREMENTAL=0 cargo test -p zircon_editor --lib --locked --offline ui_asset_editor_session_adopts_imported_theme_rule_body_helper_items -- --nocapture`
+  - `TMP=D:\codex-temp TEMP=D:\codex-temp CARGO_TARGET_DIR=D:\codex-ui-asset-editor-next5 CARGO_INCREMENTAL=0 cargo test -p zircon_editor --lib --locked --offline editor_manager_applies_theme_rule_body_helper_items_for_imported_sources -- --nocapture`
+  - `TMP=D:\codex-temp TEMP=D:\codex-temp CARGO_TARGET_DIR=D:\codex-ui-asset-editor-next5 CARGO_INCREMENTAL=0 cargo test -p zircon_editor --lib --locked --offline theme_ -- --nocapture`
+  - `TMP=D:\codex-temp TEMP=D:\codex-temp CARGO_TARGET_DIR=D:\codex-ui-asset-editor-next5 CARGO_INCREMENTAL=0 cargo test -p zircon_editor --lib --locked --offline -- --test-threads=1`
+  - `TMP=D:\codex-temp TEMP=D:\codex-temp CARGO_TARGET_DIR=D:\codex-ui-asset-editor-next5 CARGO_INCREMENTAL=0 cargo test -p zircon_editor --test workbench_slint_ui_asset_theme_shell --locked --offline -- --nocapture`
+
+为了跑通这批验证，还顺手收敛了两条 support-layer 漂移：
+
+- `zircon_editor/ui/workbench/host_surface.slint` 现在已经统一走 `HostMenuChrome.menu_state` 与结构化 `drag_state` / `overlay_data`，不再混用旧的散列 host-shell property
+- `zircon_runtime/src/ui/runtime_ui/runtime_ui_manager.rs` 与 `zircon_runtime/src/ui/runtime_ui/runtime_ui_manager_error.rs` 已显式改成从 `zircon_ui::template` 导入 `UiTemplateSurfaceBuilder` / `UiTemplateBuildError`

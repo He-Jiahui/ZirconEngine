@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use zircon_ui::{UiNodeId, UiPointerDispatcher, UiSurface};
+use zircon_ui::{dispatch::UiPointerDispatcher, event_ui::UiNodeId, UiSurface};
 
 use super::workbench_menu_pointer_layout::WorkbenchMenuPointerLayout;
 use super::workbench_menu_pointer_state::WorkbenchMenuPointerState;

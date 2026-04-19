@@ -14,8 +14,4 @@ pub use asset_manager::{resolve_asset_manager, AssetManager, AssetManagerHandle}
 pub use driver::AssetIoDriver;
 pub use project_asset_manager::ProjectAssetManager;
 pub use records::{AssetPipelineInfo, AssetStatusRecord, ProjectInfo};
-pub use registration::module_descriptor;
-pub use registration::{
-    ASSET_IO_DRIVER_NAME, ASSET_MANAGER_NAME, ASSET_MODULE_NAME, EDITOR_ASSET_MANAGER_NAME,
-    PROJECT_ASSET_MANAGER_NAME, RESOURCE_MANAGER_NAME,
-};
+pub use registration::{ASSET_MANAGER_NAME, EDITOR_ASSET_MANAGER_NAME, PROJECT_ASSET_MANAGER_NAME};

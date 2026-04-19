@@ -1,4 +1,4 @@
-use zircon_asset::{EditorAssetCatalogSnapshotRecord, EditorAssetDetailsRecord};
+use zircon_asset::editor::{EditorAssetCatalogSnapshotRecord, EditorAssetDetailsRecord};
 use zircon_resource::{ResourceKind, ResourceRecord};
 
 use crate::snapshot::{AssetUtilityTab, AssetViewMode};

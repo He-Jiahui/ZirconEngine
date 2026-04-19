@@ -1,6 +1,6 @@
-use zircon_scene::{RenderDirectionalLightSnapshot, RenderHybridGiExtract};
+use zircon_framework::render::{RenderDirectionalLightSnapshot, RenderHybridGiExtract};
 
-use crate::types::{GraphicsError, HybridGiPrepareFrame};
+use crate::types::{GraphicsError, HybridGiPrepareFrame, HybridGiResolveRuntime};
 
 use super::super::super::super::HybridGiGpuPendingReadback;
 use super::super::super::HybridGiGpuResources;
@@ -18,6 +18,7 @@ impl HybridGiGpuResources {
         queue: &wgpu::Queue,
         encoder: &mut wgpu::CommandEncoder,
         prepare: Option<&HybridGiPrepareFrame>,
+        resolve_runtime: Option<&HybridGiResolveRuntime>,
         extract: Option<&RenderHybridGiExtract>,
         directional_lights: &[RenderDirectionalLightSnapshot],
         probe_budget: Option<u32>,
@@ -27,7 +28,7 @@ impl HybridGiGpuResources {
             return Ok(None);
         };
 
-        let inputs = collect_inputs(prepare, extract);
+        let inputs = collect_inputs(prepare, resolve_runtime, extract);
         let buffers = create_buffers(device, encoder, &inputs);
         queue_params(
             self,

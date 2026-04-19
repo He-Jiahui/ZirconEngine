@@ -1,4 +1,4 @@
-use zircon_ui::{UiBindingCall, UiBindingValue};
+use zircon_ui::{binding::UiBindingCall, binding::UiBindingValue};
 
 use crate::ui::binding::{
     AssetCommand, DockCommand, DraftCommand, SelectionCommand, ViewportCommand, WelcomeCommand,

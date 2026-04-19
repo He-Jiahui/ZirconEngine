@@ -8,13 +8,12 @@ impl VirtualGeometryRuntimeState {
         generation: u64,
         plan: &VisibilityVirtualGeometryPageUploadPlan,
     ) {
-        self.current_requested_page_order = plan
-            .requested_pages
-            .iter()
-            .copied()
-            .enumerate()
-            .map(|(order, page_id)| (page_id, order))
-            .collect();
+        self.current_requested_page_order.clear();
+        for (order, page_id) in plan.requested_pages.iter().copied().enumerate() {
+            self.current_requested_page_order
+                .entry(page_id)
+                .or_insert(order);
+        }
 
         for &page_id in &plan.resident_pages {
             self.promote_to_resident(page_id);

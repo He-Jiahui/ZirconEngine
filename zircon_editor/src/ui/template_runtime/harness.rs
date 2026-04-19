@@ -1,7 +1,9 @@
 use toml::Value;
 use zircon_ui::UiSurface;
 
+#[cfg(test)]
 use crate::core::editor_event::EditorEventJournal;
+#[cfg(test)]
 use crate::ui::slint_host::tab_drag::ResolvedWorkbenchTabDropRoute;
 
 use super::{SlintUiHostModel, SlintUiHostProjection, SlintUiNodeProjection, SlintUiProjection};
@@ -231,6 +233,7 @@ impl EditorUiCompatibilityHarness {
         snapshot
     }
 
+    #[cfg(test)]
     pub(crate) fn capture_event_journal_delta_snapshot(
         journal: &EditorEventJournal,
         baseline_records: usize,
@@ -249,6 +252,7 @@ impl EditorUiCompatibilityHarness {
         snapshot
     }
 
+    #[cfg(test)]
     pub(crate) fn capture_resolved_tab_drop_route_snapshot(
         route: &ResolvedWorkbenchTabDropRoute,
     ) -> EditorUiCompatibilitySnapshot {
@@ -345,6 +349,7 @@ fn render_number(value: f32) -> String {
     }
 }
 
+#[cfg(test)]
 fn render_path(path: &[usize]) -> String {
     if path.is_empty() {
         String::new()

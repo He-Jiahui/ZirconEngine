@@ -1,4 +1,4 @@
-use crate::UiTemplateNode;
+use crate::template::UiTemplateNode;
 
 pub(super) fn child_segment(node: &UiTemplateNode, index: usize) -> String {
     let raw = node

@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-use zircon_scene::RenderVirtualGeometryCluster;
+use zircon_framework::render::RenderVirtualGeometryCluster;
 
 pub(in crate::visibility::planning::build_virtual_geometry_plan) fn virtual_geometry_cluster_sort_key(
     left: &RenderVirtualGeometryCluster,

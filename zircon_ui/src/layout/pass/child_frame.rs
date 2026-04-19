@@ -1,10 +1,11 @@
-use crate::{UiAxis, UiFrame, UiTree, UiTreeError};
+use crate::tree::UiTreeError;
+use crate::{UiAxis, UiFrame, UiTree};
 
 use super::axis::{arranged_axis_extent, stacked_axis_extent};
 
 pub(crate) fn free_child_frame(
     tree: &UiTree,
-    node_id: crate::UiNodeId,
+    node_id: crate::event_ui::UiNodeId,
     parent_frame: UiFrame,
 ) -> Result<UiFrame, UiTreeError> {
     let node = tree
@@ -31,7 +32,7 @@ pub(crate) fn free_child_frame(
 
 pub(crate) fn linear_child_frame(
     tree: &UiTree,
-    node_id: crate::UiNodeId,
+    node_id: crate::event_ui::UiNodeId,
     parent_frame: UiFrame,
     axis: UiAxis,
     start: f32,
@@ -68,7 +69,7 @@ pub(crate) fn linear_child_frame(
 
 pub(crate) fn scrollable_child_frame(
     tree: &UiTree,
-    node_id: crate::UiNodeId,
+    node_id: crate::event_ui::UiNodeId,
     parent_frame: UiFrame,
     axis: UiAxis,
     start: f32,

@@ -1,4 +1,4 @@
-use zircon_ui::UiRenderExtract;
+use zircon_ui::surface::UiRenderExtract;
 
 use super::editor_or_runtime_frame::EditorOrRuntimeFrame;
 

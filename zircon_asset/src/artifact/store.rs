@@ -1,10 +1,10 @@
 use std::fs;
 use std::path::PathBuf;
 
-use crate::{
-    AssetImportError, AssetKind, AssetMetadata, AssetUri, AssetUriScheme, ImportedAsset,
-    ProjectPaths,
-};
+use zircon_resource::{ResourceRecord, ResourceScheme};
+
+use crate::project::ProjectPaths;
+use crate::{AssetImportError, AssetKind, AssetUri, ImportedAsset};
 
 #[derive(Clone, Debug, Default)]
 pub struct ArtifactStore;
@@ -13,7 +13,7 @@ impl ArtifactStore {
     pub fn write(
         &self,
         paths: &ProjectPaths,
-        metadata: &AssetMetadata,
+        metadata: &ResourceRecord,
         asset: &ImportedAsset,
     ) -> Result<AssetUri, AssetImportError> {
         let relative_path = format!(
@@ -46,7 +46,7 @@ fn resolve_library_path(
     paths: &ProjectPaths,
     artifact_uri: &AssetUri,
 ) -> Result<PathBuf, AssetImportError> {
-    if artifact_uri.scheme() != AssetUriScheme::Library {
+    if artifact_uri.scheme() != ResourceScheme::Library {
         return Err(AssetImportError::UnsupportedFormat(format!(
             "artifact uri must use lib:// scheme: {artifact_uri}"
         )));

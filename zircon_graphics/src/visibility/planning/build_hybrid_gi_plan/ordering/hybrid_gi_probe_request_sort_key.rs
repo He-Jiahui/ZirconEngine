@@ -3,7 +3,7 @@ use std::{
     collections::{BTreeMap, BTreeSet},
 };
 
-use zircon_scene::{RenderHybridGiProbe, RenderHybridGiTraceRegion};
+use zircon_framework::render::{RenderHybridGiProbe, RenderHybridGiTraceRegion};
 
 const ANCESTOR_TRACE_SUPPORT_FALLOFF: f32 = 0.78;
 const MIN_TRACE_SUPPORT_REACH: f32 = 0.0001;
@@ -13,6 +13,7 @@ pub(in crate::visibility::planning::build_hybrid_gi_plan) fn hybrid_gi_probe_req
     right: &RenderHybridGiProbe,
     scheduled_trace_regions: &[RenderHybridGiTraceRegion],
     probes_by_id: &BTreeMap<u32, RenderHybridGiProbe>,
+    previous_requested_probe_ids: &BTreeSet<u32>,
 ) -> Ordering {
     probe_trace_support_score(right, scheduled_trace_regions, probes_by_id)
         .total_cmp(&probe_trace_support_score(
@@ -20,6 +21,11 @@ pub(in crate::visibility::planning::build_hybrid_gi_plan) fn hybrid_gi_probe_req
             scheduled_trace_regions,
             probes_by_id,
         ))
+        .then_with(|| {
+            previous_requested_probe_ids
+                .contains(&right.probe_id)
+                .cmp(&previous_requested_probe_ids.contains(&left.probe_id))
+        })
         .then_with(|| {
             probe_hierarchy_depth(right, probes_by_id)
                 .cmp(&probe_hierarchy_depth(left, probes_by_id))

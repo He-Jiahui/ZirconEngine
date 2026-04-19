@@ -1,5 +1,5 @@
 use crate::GizmoAxis;
-use zircon_scene::OverlayAxis;
+use zircon_framework::render::OverlayAxis;
 
 pub(in crate::scene::viewport::pointer) fn gizmo_axis(axis: OverlayAxis) -> GizmoAxis {
     match axis {

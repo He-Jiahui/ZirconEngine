@@ -11,7 +11,9 @@ pub(super) fn build_virtual_geometry_cluster_raster_draws(
     let Some(prepare) = frame.virtual_geometry_prepare.as_ref() else {
         return draws;
     };
-    for (submission_index, indirect_draw) in prepare.unified_indirect_draws().into_iter().enumerate() {
+    for (submission_index, indirect_draw) in
+        prepare.unified_indirect_draws().into_iter().enumerate()
+    {
         draws
             .entry(indirect_draw.entity)
             .or_default()

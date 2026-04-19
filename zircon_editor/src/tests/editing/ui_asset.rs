@@ -1,13 +1,13 @@
 use crate::core::editing::ui_asset::{
-    UiAssetEditorCommand, UiAssetEditorExternalEffect, UiAssetEditorSession,
-    UiAssetEditorSessionError, UiAssetEditorTreeEdit, UiAssetEditorTreeEditKind,
-    UiAssetEditorUndoExternalEffects,
+    UiAssetEditorCommand, UiAssetEditorExternalEffect, UiAssetEditorInverseTreeEdit,
+    UiAssetEditorSession, UiAssetEditorSessionError, UiAssetEditorTreeEdit,
+    UiAssetEditorTreeEditKind, UiAssetEditorUndoExternalEffects,
 };
 use crate::{
     UiAssetEditorMode, UiAssetEditorRoute, UiAssetEditorUndoStack, UiAssetPreviewPreset,
     UiDesignerSelectionModel, UiSize,
 };
-use zircon_ui::{UiAssetKind, UiAssetLoader};
+use zircon_ui::{UiAssetKind, template::UiAssetLoader};
 
 const SIMPLE_LAYOUT_ASSET_TOML: &str = r#"
 [asset]
@@ -932,7 +932,11 @@ fn ui_asset_editor_session_supports_cross_node_preview_mock_subjects_without_cha
         .select_hierarchy_index(2)
         .expect("select button from hierarchy");
     assert_eq!(
-        session.reflection_model().selection.primary_node_id.as_deref(),
+        session
+            .reflection_model()
+            .selection
+            .primary_node_id
+            .as_deref(),
         Some("button")
     );
 
@@ -963,7 +967,11 @@ fn ui_asset_editor_session_supports_cross_node_preview_mock_subjects_without_cha
         Some("Save")
     );
     assert_eq!(
-        session.reflection_model().selection.primary_node_id.as_deref(),
+        session
+            .reflection_model()
+            .selection
+            .primary_node_id
+            .as_deref(),
         Some("button")
     );
     assert_eq!(session.source_buffer().text(), original_source);
@@ -1058,6 +1066,146 @@ fn ui_asset_editor_session_projects_rich_preview_mock_kinds_and_state_graph() {
             "SaveButton.items = [\"Save\", \"Ship\"]".to_string(),
             "StatusLabel.text = Dirty".to_string(),
         ]
+    );
+}
+
+#[test]
+fn ui_asset_editor_session_edits_preview_mock_collection_entries_structurally() {
+    let route = UiAssetEditorRoute::new(
+        "asset://ui/tests/rich-preview.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Preview,
+    );
+    let mut session = UiAssetEditorSession::from_source(
+        route,
+        RICH_PREVIEW_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("session");
+
+    session
+        .select_hierarchy_index(2)
+        .expect("select button from hierarchy");
+    let items_index = session
+        .pane_presentation()
+        .preview_mock_items
+        .iter()
+        .position(|item| item.starts_with("items [Collection]"))
+        .expect("items preview entry");
+    session
+        .select_preview_mock_property(items_index)
+        .expect("select collection preview property");
+
+    let initial = session.pane_presentation();
+    assert_eq!(
+        initial.preview_mock_nested_items,
+        vec![
+            "[0] [Text] = Save".to_string(),
+            "[1] [Text] = Publish".to_string(),
+        ]
+    );
+    assert_eq!(initial.preview_mock_nested_selected_index, 0);
+    assert_eq!(initial.preview_mock_nested_key, "0");
+    assert_eq!(initial.preview_mock_nested_kind, "Text");
+    assert_eq!(initial.preview_mock_nested_value, "Save");
+
+    assert!(session
+        .select_preview_mock_nested_entry(1)
+        .expect("select collection nested entry"));
+    assert!(session
+        .set_selected_preview_mock_nested_value("Ship")
+        .expect("set selected collection entry"));
+    assert!(session
+        .upsert_selected_preview_mock_nested_entry("2", "\"Archive\"")
+        .expect("append collection entry"));
+    assert!(session
+        .select_preview_mock_nested_entry(0)
+        .expect("reselect collection entry"));
+    assert!(session
+        .delete_selected_preview_mock_nested_entry()
+        .expect("delete selected collection entry"));
+
+    let updated = session.pane_presentation();
+    assert_eq!(updated.preview_mock_value, "[\"Ship\", \"Archive\"]");
+    assert_eq!(
+        updated.preview_mock_nested_items,
+        vec![
+            "[0] [Text] = Ship".to_string(),
+            "[1] [Text] = Archive".to_string(),
+        ]
+    );
+    assert_eq!(
+        updated.preview_state_graph_items,
+        vec!["SaveButton.items = [\"Ship\", \"Archive\"]".to_string()]
+    );
+}
+
+#[test]
+fn ui_asset_editor_session_edits_preview_mock_object_entries_structurally() {
+    let route = UiAssetEditorRoute::new(
+        "asset://ui/tests/rich-preview.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Preview,
+    );
+    let mut session = UiAssetEditorSession::from_source(
+        route,
+        RICH_PREVIEW_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("session");
+
+    session
+        .select_hierarchy_index(2)
+        .expect("select button from hierarchy");
+    let metadata_index = session
+        .pane_presentation()
+        .preview_mock_items
+        .iter()
+        .position(|item| item.starts_with("metadata [Object]"))
+        .expect("metadata preview entry");
+    session
+        .select_preview_mock_property(metadata_index)
+        .expect("select object preview property");
+
+    let initial = session.pane_presentation();
+    assert_eq!(
+        initial.preview_mock_nested_items,
+        vec![
+            "enabled [Bool] = true".to_string(),
+            "state [Text] = Ready".to_string(),
+        ]
+    );
+
+    assert!(session
+        .select_preview_mock_nested_entry(1)
+        .expect("select object nested entry"));
+    assert!(session
+        .set_selected_preview_mock_nested_value("Dirty")
+        .expect("set selected object entry"));
+    assert!(session
+        .upsert_selected_preview_mock_nested_entry("count", "4")
+        .expect("add object nested entry"));
+    assert!(session
+        .select_preview_mock_nested_entry(0)
+        .expect("reselect object nested entry"));
+    assert!(session
+        .delete_selected_preview_mock_nested_entry()
+        .expect("delete object nested entry"));
+
+    let updated = session.pane_presentation();
+    assert_eq!(
+        updated.preview_mock_nested_items,
+        vec![
+            "count [Number] = 4".to_string(),
+            "state [Text] = Dirty".to_string(),
+        ]
+    );
+    assert!(updated.preview_mock_value.contains("count = 4"));
+    assert!(updated.preview_mock_value.contains("state = \"Dirty\""));
+    assert!(!updated.preview_mock_value.contains("enabled"));
+    assert_eq!(
+        updated.preview_state_graph_items,
+        vec!["SaveButton.metadata = { count = 4, state = \"Dirty\" }".to_string()]
     );
 }
 
@@ -2459,6 +2607,62 @@ fn ui_asset_editor_session_updates_structured_binding_action_and_payload_fields(
 }
 
 #[test]
+fn ui_asset_editor_session_projects_binding_payload_schema_suggestions_and_applies_them() {
+    let route = UiAssetEditorRoute::new(
+        "asset://ui/tests/structured-binding-authoring.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Design,
+    );
+    let mut session = UiAssetEditorSession::from_source(
+        route,
+        STRUCTURED_BINDING_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("session");
+
+    session
+        .select_hierarchy_index(1)
+        .expect("select button from hierarchy");
+
+    let initial = session.pane_presentation();
+    assert_eq!(
+        initial.inspector_binding_payload_suggestion_items,
+        vec![
+            "confirm = true".to_string(),
+            "channel = \"toolbar\"".to_string(),
+            "source = \"ui.click\"".to_string(),
+        ]
+    );
+
+    assert!(session
+        .apply_selected_binding_payload_suggestion(2)
+        .expect("apply binding payload suggestion"));
+
+    let updated = session.pane_presentation();
+    assert_eq!(
+        updated.inspector_binding_payload_items,
+        vec![
+            "confirm = true".to_string(),
+            "mode = \"full\"".to_string(),
+            "source = \"ui.click\"".to_string(),
+        ]
+    );
+
+    assert!(session
+        .select_binding_event_option(10)
+        .expect("select scroll event"));
+    let scroll = session.pane_presentation();
+    assert_eq!(
+        scroll.inspector_binding_payload_suggestion_items,
+        vec![
+            "axis = \"vertical\"".to_string(),
+            "delta = 1".to_string(),
+            "source = \"ui.scroll\"".to_string(),
+        ]
+    );
+}
+
+#[test]
 fn ui_asset_editor_session_projects_selection_indices_source_summary_and_canvas_frames() {
     let route = UiAssetEditorRoute::new(
         "asset://ui/tests/style-authoring.ui.toml",
@@ -2856,7 +3060,8 @@ fn ui_asset_editor_session_falls_back_to_last_valid_source_selection_when_source
         .expect("apply invalid source edit");
 
     let pane = session.pane_presentation();
-    let expected_invalid_cursor_offset = byte_offset_for_line(session.source_buffer().text(), target_line);
+    let expected_invalid_cursor_offset =
+        byte_offset_for_line(session.source_buffer().text(), target_line);
     assert_eq!(pane.inspector_selected_node_id, "button");
     assert_eq!(pane.source_selected_block_label, "[nodes.button]");
     assert_eq!(pane.source_selected_line, target_line as i32);
@@ -3128,6 +3333,7 @@ fn ui_asset_editor_undo_stack_replays_document_diffs_for_tree_edits() {
             palette_item_label: "Native / Button".to_string(),
             insert_mode: "child".to_string(),
         }),
+        None,
         SIMPLE_LAYOUT_ASSET_TOML.to_string(),
         UiDesignerSelectionModel::default(),
         Default::default(),
@@ -3175,6 +3381,7 @@ fn ui_asset_editor_undo_stack_tracks_inverse_tree_edits_for_command_log_entries(
             node_id: "button".to_string(),
             direction: "Down".to_string(),
         }),
+        None,
         SIMPLE_LAYOUT_ASSET_TOML.to_string(),
         UiDesignerSelectionModel::single("button"),
         Default::default(),
@@ -3191,7 +3398,7 @@ fn ui_asset_editor_undo_stack_tracks_inverse_tree_edits_for_command_log_entries(
     assert_eq!(undo_stack.next_undo_label().as_deref(), Some("Move Node"));
     assert_eq!(
         undo_stack.next_undo_inverse_tree_edit(),
-        Some(UiAssetEditorTreeEdit::MoveNode {
+        Some(UiAssetEditorInverseTreeEdit::MoveNode {
             node_id: "button".to_string(),
             direction: "Up".to_string(),
         })
@@ -3201,9 +3408,226 @@ fn ui_asset_editor_undo_stack_tracks_inverse_tree_edits_for_command_log_entries(
     assert_eq!(undo_stack.next_redo_label().as_deref(), Some("Move Node"));
     assert_eq!(
         undo_stack.next_redo_inverse_tree_edit(),
-        Some(UiAssetEditorTreeEdit::MoveNode {
+        Some(UiAssetEditorInverseTreeEdit::MoveNode {
             node_id: "button".to_string(),
             direction: "Up".to_string(),
+        })
+    );
+}
+
+#[test]
+fn ui_asset_editor_session_tracks_explicit_inverse_tree_edits_for_insert_and_unwrap() {
+    let insert_route = UiAssetEditorRoute::new(
+        "asset://ui/tests/simple-layout.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Design,
+    );
+    let mut insert_session = UiAssetEditorSession::from_source(
+        insert_route,
+        SIMPLE_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("insert session");
+    let palette_index = insert_session
+        .pane_presentation()
+        .palette_items
+        .iter()
+        .position(|item| item == "Native / Button")
+        .expect("button palette item");
+    insert_session
+        .select_hierarchy_index(0)
+        .expect("select root from hierarchy");
+    assert!(insert_session
+        .select_palette_index(palette_index)
+        .expect("select button palette item"));
+    assert!(insert_session
+        .insert_selected_palette_item_as_child()
+        .expect("insert button as child"));
+    assert_eq!(
+        insert_session.next_undo_inverse_tree_edit(),
+        Some(UiAssetEditorInverseTreeEdit::RemoveNode {
+            node_id: "button".to_string(),
+            parent_node_id: Some("root".to_string()),
+        })
+    );
+    assert!(insert_session.undo().expect("undo insert"));
+    assert_eq!(
+        insert_session.next_redo_inverse_tree_edit(),
+        Some(UiAssetEditorInverseTreeEdit::RemoveNode {
+            node_id: "button".to_string(),
+            parent_node_id: Some("root".to_string()),
+        })
+    );
+
+    let unwrap_route = UiAssetEditorRoute::new(
+        "asset://ui/tests/style-authoring.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Design,
+    );
+    let mut unwrap_session = UiAssetEditorSession::from_source(
+        unwrap_route,
+        STYLE_AUTHORING_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("unwrap session");
+    unwrap_session
+        .select_hierarchy_index(1)
+        .expect("select button from hierarchy");
+    assert!(unwrap_session
+        .wrap_selected_node_with("VerticalBox")
+        .expect("wrap selected node"));
+    let wrapper_id = unwrap_session
+        .pane_presentation()
+        .inspector_selected_node_id;
+    assert!(unwrap_session
+        .unwrap_selected_node()
+        .expect("unwrap selected wrapper"));
+    assert_eq!(
+        unwrap_session.next_undo_inverse_tree_edit(),
+        Some(UiAssetEditorInverseTreeEdit::WrapNode {
+            node_id: "button".to_string(),
+            wrapper_node_id: wrapper_id,
+            wrapper_widget_type: "VerticalBox".to_string(),
+        })
+    );
+}
+
+#[test]
+fn ui_asset_editor_session_tracks_explicit_inverse_tree_edits_for_reparent_and_reference_conversion(
+) {
+    let reparent_route = UiAssetEditorRoute::new(
+        "asset://ui/tests/tree-reparent.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Design,
+    );
+    let mut reparent_session = UiAssetEditorSession::from_source(
+        reparent_route,
+        TREE_REPARENT_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("reparent session");
+    reparent_session
+        .select_hierarchy_index(3)
+        .expect("select loose node from hierarchy");
+    assert!(reparent_session
+        .reparent_selected_node_into_previous()
+        .expect("reparent into previous sibling container"));
+    assert!(reparent_session
+        .reparent_selected_node_outdent()
+        .expect("outdent node"));
+    assert_eq!(
+        reparent_session.next_undo_inverse_tree_edit(),
+        Some(UiAssetEditorInverseTreeEdit::ReparentNode {
+            node_id: "loose".to_string(),
+            parent_node_id: Some("group_a".to_string()),
+            direction: "into_previous".to_string(),
+        })
+    );
+
+    let convert_route = UiAssetEditorRoute::new(
+        "asset://ui/tests/style-authoring.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Design,
+    );
+    let mut convert_session = UiAssetEditorSession::from_source(
+        convert_route,
+        STYLE_AUTHORING_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("convert session");
+    let imported_widget = UiAssetLoader::load_toml_str(PARAMETERIZED_IMPORTED_WIDGET_ASSET_TOML)
+        .expect("parameterized imported widget");
+    let reference = "asset://ui/common/toolbar_button.ui#ToolbarButton";
+    convert_session
+        .register_widget_import(reference, imported_widget)
+        .expect("register widget import");
+    let palette_index = convert_session
+        .pane_presentation()
+        .palette_items
+        .iter()
+        .position(|item| item == "Reference / ToolbarButton")
+        .expect("toolbar reference palette item");
+    convert_session
+        .select_hierarchy_index(1)
+        .expect("select button from hierarchy");
+    assert!(convert_session
+        .select_palette_index(palette_index)
+        .expect("select toolbar reference palette item"));
+    assert!(convert_session
+        .convert_selected_node_to_reference()
+        .expect("convert selected node to reference"));
+    assert_eq!(
+        convert_session.next_undo_inverse_tree_edit(),
+        Some(UiAssetEditorInverseTreeEdit::RestoreNodeDefinition {
+            node_id: "button".to_string(),
+            kind: zircon_ui::template::UiNodeDefinitionKind::Native,
+            widget_type: Some("Button".to_string()),
+            component: None,
+            component_ref: None,
+        })
+    );
+}
+
+#[test]
+fn ui_asset_editor_session_tracks_explicit_inverse_tree_edits_for_extract_and_promote() {
+    let extract_route = UiAssetEditorRoute::new(
+        "asset://ui/tests/style-authoring.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Design,
+    );
+    let mut extract_session = UiAssetEditorSession::from_source(
+        extract_route,
+        STYLE_AUTHORING_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("extract session");
+    extract_session
+        .select_hierarchy_index(1)
+        .expect("select button from hierarchy");
+    assert!(extract_session
+        .extract_selected_node_to_component()
+        .expect("extract selected node to component"));
+    assert_eq!(
+        extract_session.next_undo_inverse_tree_edit(),
+        Some(UiAssetEditorInverseTreeEdit::InlineExtractedComponent {
+            node_id: "button".to_string(),
+            component_name: "SaveButton".to_string(),
+            component_root_id: "savebutton_root".to_string(),
+        })
+    );
+
+    let promote_route = UiAssetEditorRoute::new(
+        "asset://ui/tests/style-authoring.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Design,
+    );
+    let mut promote_session = UiAssetEditorSession::from_source(
+        promote_route,
+        STYLE_AUTHORING_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("promote session");
+    promote_session
+        .select_hierarchy_index(1)
+        .expect("select button from hierarchy");
+    assert!(promote_session
+        .extract_selected_node_to_component()
+        .expect("extract selected node to component"));
+    assert!(promote_session
+        .promote_selected_component_to_external_widget(
+            "res://ui/widgets/save_button.ui.toml",
+            "SaveButton",
+            "ui.widgets.save_button",
+        )
+        .expect("promote selected component")
+        .is_some());
+    assert_eq!(
+        promote_session.next_undo_inverse_tree_edit(),
+        Some(UiAssetEditorInverseTreeEdit::RestorePromotedComponent {
+            source_component_name: "SaveButton".to_string(),
+            asset_id: "res://ui/widgets/save_button.ui.toml".to_string(),
+            component_name: "SaveButton".to_string(),
+            document_id: "ui.widgets.save_button".to_string(),
         })
     );
 }
@@ -3216,6 +3640,7 @@ fn ui_asset_editor_undo_stack_tracks_composite_external_effect_vectors() {
         Some(UiAssetEditorTreeEdit::Generic {
             kind: UiAssetEditorTreeEditKind::DocumentEdit,
         }),
+        None,
         SIMPLE_LAYOUT_ASSET_TOML.to_string(),
         UiDesignerSelectionModel::default(),
         Default::default(),
@@ -3233,15 +3658,17 @@ fn ui_asset_editor_undo_stack_tracks_composite_external_effect_vectors() {
                 },
                 UiAssetEditorExternalEffect::UpsertAssetSource {
                     asset_id: "res://ui/theme/editor_local.ui.toml".to_string(),
-                    source: "[asset]\nkind = \"style\"\nid = \"ui.theme.editor_local\"\nversion = 1\n"
-                        .to_string(),
+                    source:
+                        "[asset]\nkind = \"style\"\nid = \"ui.theme.editor_local\"\nversion = 1\n"
+                            .to_string(),
                 },
             ],
             redo: vec![
                 UiAssetEditorExternalEffect::UpsertAssetSource {
                     asset_id: "res://ui/theme/editor_base.ui.toml".to_string(),
-                    source: "[asset]\nkind = \"style\"\nid = \"ui.theme.editor_base\"\nversion = 1\n"
-                        .to_string(),
+                    source:
+                        "[asset]\nkind = \"style\"\nid = \"ui.theme.editor_base\"\nversion = 1\n"
+                            .to_string(),
                 },
                 UiAssetEditorExternalEffect::RemoveAssetSource {
                     asset_id: "res://ui/theme/editor_local.ui.toml".to_string(),
@@ -3258,9 +3685,8 @@ fn ui_asset_editor_undo_stack_tracks_composite_external_effect_vectors() {
             },
             UiAssetEditorExternalEffect::UpsertAssetSource {
                 asset_id: "res://ui/theme/editor_local.ui.toml".to_string(),
-                source:
-                    "[asset]\nkind = \"style\"\nid = \"ui.theme.editor_local\"\nversion = 1\n"
-                        .to_string(),
+                source: "[asset]\nkind = \"style\"\nid = \"ui.theme.editor_local\"\nversion = 1\n"
+                    .to_string(),
             },
         ]
     );
@@ -3271,9 +3697,8 @@ fn ui_asset_editor_undo_stack_tracks_composite_external_effect_vectors() {
         vec![
             UiAssetEditorExternalEffect::UpsertAssetSource {
                 asset_id: "res://ui/theme/editor_base.ui.toml".to_string(),
-                source:
-                    "[asset]\nkind = \"style\"\nid = \"ui.theme.editor_base\"\nversion = 1\n"
-                        .to_string(),
+                source: "[asset]\nkind = \"style\"\nid = \"ui.theme.editor_base\"\nversion = 1\n"
+                    .to_string(),
             },
             UiAssetEditorExternalEffect::RemoveAssetSource {
                 asset_id: "res://ui/theme/editor_local.ui.toml".to_string(),
@@ -3287,6 +3712,7 @@ fn ui_asset_editor_undo_stack_keeps_source_only_replays_for_source_edits() {
     let mut undo_stack = UiAssetEditorUndoStack::default();
     undo_stack.push_edit(
         "Source Edit",
+        None,
         None,
         SIMPLE_LAYOUT_ASSET_TOML.to_string(),
         UiDesignerSelectionModel::default(),
@@ -3407,7 +3833,7 @@ fn ui_asset_editor_session_creates_reference_nodes_from_imported_widget_palette_
     let reference_node = document
         .nodes
         .values()
-        .find(|node| node.kind == zircon_ui::UiNodeDefinitionKind::Reference)
+        .find(|node| node.kind == zircon_ui::template::UiNodeDefinitionKind::Reference)
         .expect("reference node");
     assert_eq!(reference_node.component_ref.as_deref(), Some(reference));
 }
@@ -3711,7 +4137,7 @@ fn ui_asset_editor_session_converts_selected_node_to_reference_from_palette_sele
     let converted =
         UiAssetLoader::load_toml_str(session.source_buffer().text()).expect("converted document");
     let button = converted.nodes.get("button").expect("button node");
-    assert_eq!(button.kind, zircon_ui::UiNodeDefinitionKind::Reference);
+    assert_eq!(button.kind, zircon_ui::template::UiNodeDefinitionKind::Reference);
     assert_eq!(button.component_ref.as_deref(), Some(reference));
     assert_eq!(button.control_id.as_deref(), Some("SaveButton"));
     assert_eq!(button.classes, vec!["primary".to_string()]);
@@ -3737,7 +4163,7 @@ fn ui_asset_editor_session_converts_selected_node_to_reference_from_palette_sele
     let undone =
         UiAssetLoader::load_toml_str(session.source_buffer().text()).expect("undone document");
     let button = undone.nodes.get("button").expect("button node");
-    assert_eq!(button.kind, zircon_ui::UiNodeDefinitionKind::Native);
+    assert_eq!(button.kind, zircon_ui::template::UiNodeDefinitionKind::Native);
     assert_eq!(button.widget_type.as_deref(), Some("Button"));
     assert_eq!(
         button.props.get("text").and_then(toml::Value::as_str),
@@ -3788,7 +4214,7 @@ fn ui_asset_editor_session_extracts_selected_node_into_local_component() {
         .get("SaveButton")
         .expect("new local component");
     let instance = extracted.nodes.get("button").expect("component instance");
-    assert_eq!(instance.kind, zircon_ui::UiNodeDefinitionKind::Component);
+    assert_eq!(instance.kind, zircon_ui::template::UiNodeDefinitionKind::Component);
     assert_eq!(instance.component.as_deref(), Some("SaveButton"));
     assert_eq!(instance.control_id.as_deref(), Some("SaveButton"));
     assert_eq!(instance.classes, vec!["primary".to_string()]);
@@ -3802,7 +4228,7 @@ fn ui_asset_editor_session_extracts_selected_node_into_local_component() {
         .nodes
         .get(&component.root)
         .expect("extracted component root");
-    assert_eq!(component_root.kind, zircon_ui::UiNodeDefinitionKind::Native);
+    assert_eq!(component_root.kind, zircon_ui::template::UiNodeDefinitionKind::Native);
     assert_eq!(component_root.widget_type.as_deref(), Some("Button"));
     assert_eq!(component_root.control_id.as_deref(), Some("SaveButton"));
     assert_eq!(component_root.classes, vec!["primary".to_string()]);
@@ -3981,7 +4407,7 @@ fn ui_asset_editor_session_promotes_selected_local_component_to_external_widget_
         .iter()
         .any(|reference| { reference == "res://ui/widgets/save_button.ui.toml#SaveButton" }));
     let button = promoted.nodes.get("button").expect("button node");
-    assert_eq!(button.kind, zircon_ui::UiNodeDefinitionKind::Reference);
+    assert_eq!(button.kind, zircon_ui::template::UiNodeDefinitionKind::Reference);
     assert_eq!(
         button.component_ref.as_deref(),
         Some("res://ui/widgets/save_button.ui.toml#SaveButton")
@@ -4212,3 +4638,5 @@ fn ui_asset_editor_subsystem_is_grouped_by_domain_folders() {
         );
     }
 }
+
+

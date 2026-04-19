@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use zircon_ui::UiNodePath;
+use zircon_ui::event_ui::UiNodePath;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ActivityDrawerSlotPreference {

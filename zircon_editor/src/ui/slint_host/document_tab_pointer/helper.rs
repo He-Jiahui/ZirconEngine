@@ -1,4 +1,4 @@
-use zircon_ui::{UiFrame, UiNodeId, UiStateFlags};
+use zircon_ui::{event_ui::UiNodeId, event_ui::UiStateFlags, UiFrame};
 
 use super::constants::{
     CLOSEABLE_TAB_MIN_WIDTH, CLOSE_NODE_ID_BASE, TAB_MIN_WIDTH, TAB_NODE_ID_BASE,

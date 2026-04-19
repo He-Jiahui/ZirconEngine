@@ -47,15 +47,17 @@ pub(crate) fn configure_native_floating_window_presentation(
     ui: &UiHostWindow,
     target: &NativeFloatingWindowTarget,
 ) {
-    ui.set_native_floating_window_mode(true);
-    ui.set_native_floating_window_id(target.window_id.0.clone().into());
-    ui.set_native_window_title(target.title.clone().into());
-    ui.set_native_window_bounds(FrameRect {
+    let mut host_shell = ui.get_host_shell();
+    host_shell.native_floating_window_mode = true;
+    host_shell.native_floating_window_id = target.window_id.0.clone().into();
+    host_shell.native_window_title = target.title.clone().into();
+    host_shell.native_window_bounds = FrameRect {
         x: target.bounds[0],
         y: target.bounds[1],
         width: target.bounds[2],
         height: target.bounds[3],
-    });
+    };
+    ui.set_host_shell(host_shell);
     ui.window().set_position(PhysicalPosition::new(
         target.bounds[0].round() as i32,
         target.bounds[1].round() as i32,

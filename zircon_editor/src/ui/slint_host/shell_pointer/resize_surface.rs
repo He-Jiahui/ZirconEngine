@@ -1,6 +1,8 @@
 use zircon_ui::{
-    UiFrame, UiInputPolicy, UiNodePath, UiPointerDispatchEffect, UiPointerDispatcher,
-    UiPointerEventKind, UiSurface, UiTreeId, UiTreeNode,
+    dispatch::{UiPointerDispatchEffect, UiPointerDispatcher},
+    event_ui::UiNodePath,
+    event_ui::UiTreeId,
+    UiFrame, UiInputPolicy, UiPointerEventKind, UiSurface, UiTreeNode,
 };
 
 use crate::{ShellRegionId, ShellSizePx, WorkbenchShellGeometry};

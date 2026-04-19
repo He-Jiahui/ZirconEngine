@@ -1,10 +1,11 @@
 use std::collections::HashMap;
 use std::path::Path;
 
-use crate::{
-    ArtifactStore, AssetImportError, AssetImporter, AssetRegistry, ProjectManifest, ProjectPaths,
-};
+use zircon_resource::ResourceRegistry;
 
+use crate::{ArtifactStore, AssetImportError, AssetImporter};
+
+use super::super::{ProjectManifest, ProjectPaths};
 use super::ProjectManager;
 
 impl ProjectManager {
@@ -15,7 +16,7 @@ impl ProjectManager {
         Ok(Self {
             paths,
             manifest,
-            registry: AssetRegistry::default(),
+            registry: ResourceRegistry::default(),
             asset_ids_by_uuid: HashMap::new(),
             asset_uuids_by_id: HashMap::new(),
             importer: AssetImporter::default(),

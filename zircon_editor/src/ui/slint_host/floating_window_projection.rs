@@ -5,9 +5,11 @@ use zircon_ui::UiFrame;
 use crate::ui::slint_host::callback_dispatch::BuiltinFloatingWindowSourceFrames;
 use crate::{
     autolayout::{clamp_floating_window_frame, default_floating_window_frame},
-    FloatingWindowModel, MainPageId, NativeWindowHostState, ShellFrame, ShellRegionId,
-    WorkbenchChromeMetrics, WorkbenchShellGeometry, WorkbenchViewModel,
+    FloatingWindowModel, MainPageId, NativeWindowHostState, ShellFrame, WorkbenchChromeMetrics,
+    WorkbenchViewModel,
 };
+#[cfg(test)]
+use crate::{ShellRegionId, WorkbenchShellGeometry};
 
 const EPSILON: f32 = 0.001;
 
@@ -134,6 +136,7 @@ pub(crate) fn resolve_floating_window_projection_shared_source(
     })
 }
 
+#[cfg(test)]
 pub(crate) fn floating_window_projection_shared_source_from_geometry(
     geometry: &WorkbenchShellGeometry,
 ) -> Option<FloatingWindowProjectionSharedSource> {
@@ -204,6 +207,7 @@ pub(crate) fn resolve_native_floating_window_host_frame(
         })
 }
 
+#[cfg(test)]
 pub(crate) fn build_floating_window_projection_bundle(
     model: &WorkbenchViewModel,
     geometry: &WorkbenchShellGeometry,
@@ -233,6 +237,7 @@ pub(crate) fn build_floating_window_projection_bundle_from_windows(
     )
 }
 
+#[cfg(test)]
 fn build_floating_window_projection_bundle_from_windows_with_geometry(
     floating_windows: &[FloatingWindowModel],
     geometry: &WorkbenchShellGeometry,

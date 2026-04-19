@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::UiEventKind;
+use crate::binding::UiEventKind;
 
 use super::UiRouteId;
 

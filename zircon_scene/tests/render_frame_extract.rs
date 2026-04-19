@@ -1,5 +1,7 @@
+use zircon_framework::render::{RenderFrameExtract, RenderWorldSnapshotHandle};
 use zircon_resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
-use zircon_scene::{Mobility, RenderFrameExtract, RenderWorldSnapshotHandle, World};
+use zircon_scene::components::Mobility;
+use zircon_scene::world::World;
 
 #[test]
 fn render_frame_extract_adapter_preserves_legacy_snapshot_content() {

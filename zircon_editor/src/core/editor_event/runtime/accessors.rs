@@ -1,6 +1,7 @@
-use zircon_asset::{EditorAssetCatalogSnapshotRecord, EditorAssetDetailsRecord};
+use zircon_asset::editor::{EditorAssetCatalogSnapshotRecord, EditorAssetDetailsRecord};
+use zircon_framework::render::{RenderFrameExtract, RenderSceneSnapshot};
 use zircon_resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceRecord};
-use zircon_scene::LevelSystem;
+use zircon_runtime::scene::LevelSystem;
 
 use crate::core::editor_event::{
     EditorEvent, EditorEventEnvelope, EditorEventJournal, EditorEventRecord, EditorEventSource,
@@ -43,11 +44,11 @@ impl EditorEventRuntime {
             .unwrap_or_default()
     }
 
-    pub fn render_snapshot(&self) -> Option<zircon_scene::RenderSceneSnapshot> {
+    pub fn render_snapshot(&self) -> Option<RenderSceneSnapshot> {
         self.inner.lock().unwrap().state.render_snapshot()
     }
 
-    pub fn render_frame_extract(&self) -> Option<zircon_scene::RenderFrameExtract> {
+    pub fn render_frame_extract(&self) -> Option<RenderFrameExtract> {
         self.inner.lock().unwrap().state.render_frame_extract()
     }
 

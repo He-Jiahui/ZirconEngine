@@ -1,6 +1,6 @@
 use bytemuck::Zeroable;
+use zircon_framework::render::RenderFrameExtract;
 use zircon_math::UVec2;
-use zircon_scene::RenderFrameExtract;
 
 use super::super::super::super::constants::MAX_REFLECTION_PROBES;
 use super::super::super::super::reflection_probe_gpu::GpuReflectionProbe;

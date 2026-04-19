@@ -1,5 +1,5 @@
+use zircon_framework::render::{OverlayBillboardIcon, ViewportIconId};
 use zircon_math::Vec3;
-use zircon_scene::{OverlayBillboardIcon, ViewportIconId};
 
 use crate::scene::scene_renderer::primitives::LineVertex;
 

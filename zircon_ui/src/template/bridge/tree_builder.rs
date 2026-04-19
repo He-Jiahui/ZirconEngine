@@ -1,7 +1,7 @@
-use crate::{
-    UiNodeId, UiNodePath, UiScrollState, UiTemplateInstance, UiTemplateNode,
-    UiTemplateNodeMetadata, UiTree, UiTreeId, UiTreeNode,
-};
+use crate::template::{UiTemplateInstance, UiTemplateNode};
+use crate::tree::UiTemplateNodeMetadata;
+use crate::event_ui::{UiNodeId, UiNodePath, UiTreeId};
+use crate::{UiScrollState, UiTree, UiTreeNode};
 
 use super::build_error::UiTemplateBuildError;
 use super::child_segment::child_segment;

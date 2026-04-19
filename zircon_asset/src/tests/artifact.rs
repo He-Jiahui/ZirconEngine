@@ -1,4 +1,4 @@
-use crate::LibraryCacheKey;
+use crate::artifact::LibraryCacheKey;
 
 #[test]
 fn library_cache_key_changes_when_inputs_change() {

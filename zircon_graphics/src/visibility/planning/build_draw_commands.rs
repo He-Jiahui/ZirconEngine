@@ -1,4 +1,4 @@
-use zircon_scene::EntityId;
+use zircon_framework::scene::EntityId;
 
 use super::super::declarations::{VisibilityBatch, VisibilityDrawCommand};
 
@@ -23,3 +23,4 @@ pub(crate) fn build_draw_commands(
 
     (visible_instances, draw_commands)
 }
+

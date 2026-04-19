@@ -1,4 +1,4 @@
-use zircon_ui::UiNodeId;
+use zircon_ui::event_ui::UiNodeId;
 
 use super::constants::{LEFT_BUTTON_NODE_ID_BASE, RIGHT_BUTTON_NODE_ID_BASE};
 use super::workbench_activity_rail_pointer_side::WorkbenchActivityRailPointerSide;

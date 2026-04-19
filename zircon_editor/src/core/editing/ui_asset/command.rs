@@ -1,4 +1,13 @@
+use std::collections::BTreeMap;
+
 use crate::ui::UiDesignerSelectionModel;
+use toml::Value;
+use zircon_ui::template::{
+    UiAssetRoot, UiBindingRef, UiComponentDefinition, UiNodeDefinition, UiNodeDefinitionKind,
+};
+use zircon_ui::{
+    template::UiStyleRule, template::UiStyleSheet,
+};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UiAssetEditorTreeEditKind {
@@ -59,6 +68,148 @@ pub enum UiAssetEditorTreeEdit {
     },
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum UiAssetEditorInverseTreeEdit {
+    RemoveNode {
+        node_id: String,
+        parent_node_id: Option<String>,
+    },
+    MoveNode {
+        node_id: String,
+        direction: String,
+    },
+    ReparentNode {
+        node_id: String,
+        parent_node_id: Option<String>,
+        direction: String,
+    },
+    WrapNode {
+        node_id: String,
+        wrapper_node_id: String,
+        wrapper_widget_type: String,
+    },
+    UnwrapNode {
+        wrapper_node_id: String,
+        child_node_id: String,
+    },
+    RestoreNodeDefinition {
+        node_id: String,
+        kind: UiNodeDefinitionKind,
+        widget_type: Option<String>,
+        component: Option<String>,
+        component_ref: Option<String>,
+    },
+    InlineExtractedComponent {
+        node_id: String,
+        component_name: String,
+        component_root_id: String,
+    },
+    RestorePromotedComponent {
+        source_component_name: String,
+        asset_id: String,
+        component_name: String,
+        document_id: String,
+    },
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum UiAssetEditorDocumentReplayCommand {
+    SetWidgetImports {
+        references: Vec<String>,
+    },
+    SetRoot {
+        root: Option<UiAssetRoot>,
+    },
+    UpsertNode {
+        node_id: String,
+        node: UiNodeDefinition,
+    },
+    RemoveNode {
+        node_id: String,
+    },
+    UpsertComponent {
+        component_name: String,
+        component: UiComponentDefinition,
+    },
+    RemoveComponent {
+        component_name: String,
+    },
+    SetNodeBindings {
+        node_id: String,
+        bindings: Vec<UiBindingRef>,
+    },
+    SetStyleImports {
+        references: Vec<String>,
+    },
+    InsertStyleImport {
+        index: usize,
+        reference: String,
+    },
+    RemoveStyleImport {
+        index: usize,
+        reference: String,
+    },
+    MoveStyleImport {
+        from_index: usize,
+        to_index: usize,
+        reference: String,
+    },
+    SetStyleTokens {
+        tokens: BTreeMap<String, Value>,
+    },
+    UpsertStyleToken {
+        token_name: String,
+        value: Value,
+    },
+    RemoveStyleToken {
+        token_name: String,
+    },
+    SetStyleSheets {
+        stylesheets: Vec<UiStyleSheet>,
+    },
+    InsertStyleSheet {
+        index: usize,
+        stylesheet_id: String,
+        stylesheet: Option<UiStyleSheet>,
+    },
+    RemoveStyleSheet {
+        index: usize,
+        stylesheet_id: String,
+    },
+    ReplaceStyleSheet {
+        index: usize,
+        stylesheet_id: String,
+        stylesheet: UiStyleSheet,
+    },
+    MoveStyleSheet {
+        from_index: usize,
+        to_index: usize,
+        stylesheet_id: String,
+    },
+    InsertStyleRule {
+        stylesheet_index: usize,
+        index: usize,
+        selector: String,
+        rule: Option<UiStyleRule>,
+    },
+    RemoveStyleRule {
+        stylesheet_index: usize,
+        index: usize,
+        selector: String,
+    },
+    MoveStyleRule {
+        stylesheet_index: usize,
+        from_index: usize,
+        to_index: usize,
+    },
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct UiAssetEditorDocumentReplayBundle {
+    pub undo: Vec<UiAssetEditorDocumentReplayCommand>,
+    pub redo: Vec<UiAssetEditorDocumentReplayCommand>,
+}
+
 impl UiAssetEditorTreeEdit {
     pub fn generic(kind: UiAssetEditorTreeEditKind) -> Self {
         Self::Generic { kind }
@@ -81,7 +232,7 @@ impl UiAssetEditorTreeEdit {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum UiAssetEditorCommand {
     EditSource {
         next_source: String,
@@ -91,6 +242,7 @@ pub enum UiAssetEditorCommand {
         label: String,
         next_source: String,
         next_selection: Option<UiDesignerSelectionModel>,
+        document_replay: Option<UiAssetEditorDocumentReplayBundle>,
     },
 }
 
@@ -119,6 +271,7 @@ impl UiAssetEditorCommand {
             label: label.into(),
             next_source: next_source.into(),
             next_selection: None,
+            document_replay: None,
         }
     }
 
@@ -147,7 +300,18 @@ impl UiAssetEditorCommand {
             label: label.into(),
             next_source: next_source.into(),
             next_selection: Some(next_selection),
+            document_replay: None,
         }
+    }
+
+    pub fn with_document_replay(mut self, replay: UiAssetEditorDocumentReplayBundle) -> Self {
+        if let Self::TreeEdit {
+            document_replay, ..
+        } = &mut self
+        {
+            *document_replay = Some(replay);
+        }
+        self
     }
 
     pub fn next_source(&self) -> &str {
@@ -174,6 +338,15 @@ impl UiAssetEditorCommand {
         match self {
             Self::EditSource { .. } => None,
             Self::TreeEdit { edit, .. } => Some(edit),
+        }
+    }
+
+    pub fn document_replay(&self) -> Option<&UiAssetEditorDocumentReplayBundle> {
+        match self {
+            Self::EditSource { .. } => None,
+            Self::TreeEdit {
+                document_replay, ..
+            } => document_replay.as_ref(),
         }
     }
 

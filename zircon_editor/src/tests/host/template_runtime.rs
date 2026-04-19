@@ -1,9 +1,7 @@
-use toml::Value;
 use crate::ui::EditorUiControlService;
-use zircon_ui::{
-    UiAssetKind, UiEventKind, UiFrame, UiInputPolicy, UiLegacyTemplateAdapter, UiSize,
-    UiTemplateLoader,
-};
+use toml::Value;
+use zircon_ui::template::{UiLegacyTemplateAdapter, UiTemplateLoader};
+use zircon_ui::{binding::UiEventKind, UiAssetKind, UiFrame, UiInputPolicy, UiSize};
 
 use crate::{
     ui::template_runtime::{UI_HOST_WINDOW_DOCUMENT_ID, WORKBENCH_SHELL_DOCUMENT_ID},

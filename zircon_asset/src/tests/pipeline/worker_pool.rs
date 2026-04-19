@@ -1,4 +1,5 @@
-use crate::{AssetRequest, AssetWorkerPool, CpuAssetPayload, TextureSource};
+use crate::pipeline::types::{AssetRequest, CpuAssetPayload, TextureSource};
+use crate::pipeline::worker_pool::AssetWorkerPool;
 
 #[test]
 fn worker_pool_completes_builtin_texture_requests() {

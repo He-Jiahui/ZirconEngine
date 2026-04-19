@@ -1,8 +1,8 @@
+use crate::ui::{DockCommand, EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind};
 use serde_json::json;
 use std::fs;
-use crate::ui::{DockCommand, EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind};
-use zircon_scene::NodeKind;
-use zircon_ui::{UiControlRequest, UiControlResponse, UiNodePath};
+use zircon_scene::components::NodeKind;
+use zircon_ui::{event_ui::UiControlRequest, event_ui::UiControlResponse, event_ui::UiNodePath};
 
 use crate::core::editor_event::{
     host_adapter, EditorEventReplay, EditorEventSource, EditorEventTransient,

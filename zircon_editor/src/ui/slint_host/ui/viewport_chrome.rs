@@ -1,4 +1,8 @@
 use super::*;
+use zircon_framework::render::{
+    DisplayMode, GridMode, ProjectionMode, SceneViewportSettings, SceneViewportTool,
+    TransformSpace, ViewOrientation,
+};
 
 pub(super) fn blank_viewport_chrome() -> SceneViewportChromeData {
     SceneViewportChromeData {
@@ -20,9 +24,7 @@ pub(super) fn blank_viewport_chrome() -> SceneViewportChromeData {
     }
 }
 
-pub(super) fn scene_viewport_chrome(
-    settings: &zircon_scene::SceneViewportSettings,
-) -> SceneViewportChromeData {
+pub(super) fn scene_viewport_chrome(settings: &SceneViewportSettings) -> SceneViewportChromeData {
     SceneViewportChromeData {
         tool: scene_tool_label(settings.tool).into(),
         transform_space: transform_space_label(settings.transform_space).into(),
@@ -42,54 +44,54 @@ pub(super) fn scene_viewport_chrome(
     }
 }
 
-fn scene_tool_label(tool: zircon_scene::SceneViewportTool) -> &'static str {
+fn scene_tool_label(tool: SceneViewportTool) -> &'static str {
     match tool {
-        zircon_scene::SceneViewportTool::Drag => "Drag",
-        zircon_scene::SceneViewportTool::Move => "Move",
-        zircon_scene::SceneViewportTool::Rotate => "Rotate",
-        zircon_scene::SceneViewportTool::Scale => "Scale",
+        SceneViewportTool::Drag => "Drag",
+        SceneViewportTool::Move => "Move",
+        SceneViewportTool::Rotate => "Rotate",
+        SceneViewportTool::Scale => "Scale",
     }
 }
 
-fn transform_space_label(space: zircon_scene::TransformSpace) -> &'static str {
+fn transform_space_label(space: TransformSpace) -> &'static str {
     match space {
-        zircon_scene::TransformSpace::Local => "Local",
-        zircon_scene::TransformSpace::Global => "Global",
+        TransformSpace::Local => "Local",
+        TransformSpace::Global => "Global",
     }
 }
 
-fn projection_mode_label(mode: zircon_scene::ProjectionMode) -> &'static str {
+fn projection_mode_label(mode: ProjectionMode) -> &'static str {
     match mode {
-        zircon_scene::ProjectionMode::Perspective => "Perspective",
-        zircon_scene::ProjectionMode::Orthographic => "Orthographic",
+        ProjectionMode::Perspective => "Perspective",
+        ProjectionMode::Orthographic => "Orthographic",
     }
 }
 
-fn view_orientation_label(orientation: zircon_scene::ViewOrientation) -> &'static str {
+fn view_orientation_label(orientation: ViewOrientation) -> &'static str {
     match orientation {
-        zircon_scene::ViewOrientation::User => "User",
-        zircon_scene::ViewOrientation::PosX => "PosX",
-        zircon_scene::ViewOrientation::NegX => "NegX",
-        zircon_scene::ViewOrientation::PosY => "PosY",
-        zircon_scene::ViewOrientation::NegY => "NegY",
-        zircon_scene::ViewOrientation::PosZ => "PosZ",
-        zircon_scene::ViewOrientation::NegZ => "NegZ",
+        ViewOrientation::User => "User",
+        ViewOrientation::PosX => "PosX",
+        ViewOrientation::NegX => "NegX",
+        ViewOrientation::PosY => "PosY",
+        ViewOrientation::NegY => "NegY",
+        ViewOrientation::PosZ => "PosZ",
+        ViewOrientation::NegZ => "NegZ",
     }
 }
 
-fn display_mode_label(mode: zircon_scene::DisplayMode) -> &'static str {
+fn display_mode_label(mode: DisplayMode) -> &'static str {
     match mode {
-        zircon_scene::DisplayMode::Shaded => "Shaded",
-        zircon_scene::DisplayMode::WireOverlay => "WireOverlay",
-        zircon_scene::DisplayMode::WireOnly => "WireOnly",
+        DisplayMode::Shaded => "Shaded",
+        DisplayMode::WireOverlay => "WireOverlay",
+        DisplayMode::WireOnly => "WireOnly",
     }
 }
 
-fn grid_mode_label(mode: zircon_scene::GridMode) -> &'static str {
+fn grid_mode_label(mode: GridMode) -> &'static str {
     match mode {
-        zircon_scene::GridMode::Hidden => "Hidden",
-        zircon_scene::GridMode::VisibleNoSnap => "VisibleNoSnap",
-        zircon_scene::GridMode::VisibleAndSnap => "VisibleAndSnap",
+        GridMode::Hidden => "Hidden",
+        GridMode::VisibleNoSnap => "VisibleNoSnap",
+        GridMode::VisibleAndSnap => "VisibleAndSnap",
     }
 }
 

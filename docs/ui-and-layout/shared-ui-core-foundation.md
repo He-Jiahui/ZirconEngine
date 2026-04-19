@@ -387,8 +387,8 @@ doc_type: module-detail
 
 - `UiTree`
 - `UiTreeNode`
-- `UiDirtyFlags`
-- `UiLayoutCache`
+- `zircon_ui::tree::UiDirtyFlags`
+- `zircon_ui::tree::UiLayoutCache`
 - `UiInputPolicy`
 
 当前实现先把 retained tree 的基础骨架定下来：
@@ -396,7 +396,7 @@ doc_type: module-detail
 - 节点拥有 parent/children、可见性和 pointer 能力状态
 - dirty 传播沿父链向上冒泡
 - 当父节点 `LayoutBoundary` 不是 `ContentDriven` 时停止布局失效传播
-- `UiLayoutCache` 现在承载 `desired_size`、`frame`、`clip_frame`、`content_size` 和 `virtual_window`
+- `zircon_ui::tree::UiLayoutCache` 现在承载 `desired_size`、`frame`、`clip_frame`、`content_size` 和 `virtual_window`
 - `set_scroll_offset(...)` 只会把 scrollable 节点自身标成 `layout/hit_test/render/input` dirty
 - 当 visible window 跨项变化时，还会额外标记 `visible_range`
 
@@ -404,8 +404,8 @@ doc_type: module-detail
 
 ### 4. Hit Test Semantics
 
-- `UiHitTestIndex`
-- `UiHitTestResult`
+- `zircon_ui::tree::UiHitTestIndex`
+- `zircon_ui::tree::UiHitTestResult`
 
 当前命中语义固定为：
 
@@ -510,7 +510,7 @@ surface 仍然是共享汇总点：
 
 当前抽取仍然保持“一条可见 retained node 对应一条 render command”的形状，原因是 editor preview 和后续 renderer 都还需要稳定的 node identity。区别在于没有直接视觉载荷的节点现在会变成 `Group` 命令，而不是继续被当成“只有 frame 的旧式几何条目”。
 
-shared visual payload 当前直接从 `UiTemplateNodeMetadata.attributes` 解析：
+shared visual payload 当前直接从 `zircon_ui::tree::UiTemplateNodeMetadata.attributes` 解析：
 
 - `background` / `foreground` / `border`
 - `text` 或 `label`
@@ -519,7 +519,7 @@ shared visual payload 当前直接从 `UiTemplateNodeMetadata.attributes` 解析
 
 这让 `.ui.toml` 里已经经过样式解析的属性，能够直接沉到 shared surface 的视觉抽取出口；editor preview、后续 runtime renderer 和 screenshot/golden harness 都不需要再各自重读模板 source 才知道节点要画什么。
 
-与之对应，`UiDirtyFlags` 现在也显式保留 `text` 位，开始把 layout/style/text/render 脏域拆开，而不是继续把所有视觉变化都挤回一个粗粒度 render flag。
+与之对应，`zircon_ui::tree::UiDirtyFlags` 现在也显式保留 `text` 位，开始把 layout/style/text/render 脏域拆开，而不是继续把所有视觉变化都挤回一个粗粒度 render flag。
 
 ## Editor Integration Boundary
 

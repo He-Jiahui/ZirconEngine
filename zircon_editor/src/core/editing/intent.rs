@@ -1,6 +1,7 @@
 //! High-level user intents applied to editor state.
 
-use zircon_scene::{NodeId, NodeKind};
+use zircon_scene::components::NodeKind;
+use zircon_scene::NodeId;
 
 #[derive(Clone, Debug)]
 pub enum EditorIntent {

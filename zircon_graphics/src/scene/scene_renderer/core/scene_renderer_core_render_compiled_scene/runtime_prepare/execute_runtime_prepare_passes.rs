@@ -22,6 +22,7 @@ impl SceneRendererCore {
             queue,
             encoder,
             frame.hybrid_gi_prepare.as_ref(),
+            frame.hybrid_gi_resolve_runtime.as_ref(),
             frame.extract.lighting.hybrid_global_illumination.as_ref(),
             &frame.extract.lighting.directional_lights,
             frame

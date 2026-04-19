@@ -1,18 +1,20 @@
 use std::fs;
 
+use crate::project::{ProjectManager, ProjectManifest, ProjectPaths};
+use crate::project::AssetMetaDocument;
 use crate::tests::project::unique_temp_project_root;
 use crate::tests::support::{
     write_checker_png, write_default_material, write_default_scene, write_triangle_obj,
     write_valid_wgsl,
 };
-use crate::{AssetId, AssetMetaDocument, AssetUri, ImportedAsset, ProjectManager};
+use crate::{AssetId, AssetUri, ImportedAsset};
 
 #[test]
 fn project_manager_scans_assets_imports_library_and_loads_artifacts() {
     let root = unique_temp_project_root("project_manager");
-    let paths = crate::ProjectPaths::from_root(&root).unwrap();
+    let paths = ProjectPaths::from_root(&root).unwrap();
     paths.ensure_layout().unwrap();
-    crate::ProjectManifest::new(
+    ProjectManifest::new(
         "Sandbox",
         AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
         1,

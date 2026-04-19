@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use toml::Value;
-use zircon_ui::{UiEventKind, UiFrame, UiRouteId};
+use zircon_ui::{binding::UiEventKind, event_ui::UiRouteId, UiFrame};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct SlintUiHostBindingProjection {

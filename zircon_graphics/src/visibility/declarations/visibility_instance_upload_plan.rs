@@ -1,4 +1,4 @@
-use zircon_scene::EntityId;
+use zircon_framework::scene::EntityId;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct VisibilityInstanceUploadPlan {
@@ -6,3 +6,4 @@ pub struct VisibilityInstanceUploadPlan {
     pub dynamic_instance_entities: Vec<EntityId>,
     pub dirty_dynamic_entities: Vec<EntityId>,
 }
+

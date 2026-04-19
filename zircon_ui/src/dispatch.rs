@@ -6,7 +6,9 @@ use serde::{Deserialize, Serialize};
 use crate::surface::{
     UiNavigationEventKind, UiNavigationRoute, UiPointerButton, UiPointerEventKind, UiPointerRoute,
 };
-use crate::{UiNodeId, UiTree, UiTreeError};
+use crate::tree::UiTreeError;
+use crate::event_ui::UiNodeId;
+use crate::UiTree;
 
 type PointerHandler =
     Arc<dyn Fn(&UiPointerDispatchContext) -> UiPointerDispatchEffect + Send + Sync + 'static>;

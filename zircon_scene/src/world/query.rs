@@ -1,8 +1,8 @@
 use zircon_math::{Mat4, Transform};
 
 use super::World;
-use crate::components::{Mobility, SceneNode, Schedule};
 use crate::EntityId;
+use crate::components::{Mobility, SceneNode, Schedule};
 
 impl World {
     pub fn schedule(&self) -> &Schedule {

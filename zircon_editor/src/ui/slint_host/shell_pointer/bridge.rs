@@ -1,8 +1,9 @@
 use std::collections::BTreeMap;
 
 use zircon_ui::{
-    UiNodeId, UiPoint, UiPointerButton, UiPointerDispatcher, UiPointerEvent, UiPointerEventKind,
-    UiSurface,
+    dispatch::{UiPointerDispatcher, UiPointerEvent},
+    event_ui::UiNodeId,
+    UiPoint, UiPointerButton, UiPointerEventKind, UiSurface,
 };
 
 use crate::ui::slint_host::callback_dispatch::BuiltinWorkbenchRootShellFrames;
@@ -11,10 +12,9 @@ use crate::ui::slint_host::drawer_resize::WorkbenchResizeTargetGroup;
 use crate::ui::slint_host::floating_window_projection::build_floating_window_projection_bundle_from_windows;
 use crate::ui::slint_host::floating_window_projection::FloatingWindowProjectionBundle;
 use crate::ui::slint_host::tab_drag::WorkbenchDragTargetGroup;
-use crate::{
-    FloatingWindowModel, NativeWindowHostState, ShellSizePx, WorkbenchChromeMetrics,
-    WorkbenchShellGeometry,
-};
+use crate::{FloatingWindowModel, ShellSizePx, WorkbenchShellGeometry};
+#[cfg(test)]
+use crate::{NativeWindowHostState, WorkbenchChromeMetrics};
 
 use super::drag_surface::build_drag_surface;
 use super::resize_surface::{build_resize_surface, update_resize_surface};

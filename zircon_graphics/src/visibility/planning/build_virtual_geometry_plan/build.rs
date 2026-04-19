@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use zircon_scene::{
+use zircon_framework::render::{
     RenderVirtualGeometryCluster, RenderVirtualGeometryExtract, ViewportCameraSnapshot,
 };
 

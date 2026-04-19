@@ -1,10 +1,9 @@
-use zircon_resource::ResourceState;
+use zircon_resource::{ResourceRecord, ResourceState};
 
 use super::{metadata_import_state::metadata_import_state, AssetStatusRecord};
-use crate::AssetMetadata;
 
 pub(in crate::pipeline::manager) fn build_status_record(
-    metadata: &AssetMetadata,
+    metadata: &ResourceRecord,
 ) -> AssetStatusRecord {
     AssetStatusRecord {
         id: metadata.id().to_string(),

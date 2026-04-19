@@ -1,4 +1,4 @@
-use zircon_ui::{UiFrame, UiPoint, UiPointerEvent, UiPointerEventKind};
+use zircon_ui::{dispatch::UiPointerEvent, UiFrame, UiPoint, UiPointerEventKind};
 
 use super::active_viewport_toolbar_control::ActiveViewportToolbarControl;
 use super::route_for_control::route_for_control;

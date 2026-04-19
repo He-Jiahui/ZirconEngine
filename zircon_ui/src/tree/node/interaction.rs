@@ -1,5 +1,6 @@
 use super::{UiInputPolicy, UiTree, UiTreeError};
-use crate::{UiNodeId, UiPoint};
+use crate::event_ui::UiNodeId;
+use crate::UiPoint;
 
 impl UiTree {
     pub(crate) fn effective_input_policy(

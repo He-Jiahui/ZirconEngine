@@ -1,4 +1,7 @@
-use zircon_ui::{UiFrame, UiNodeId, UiNodePath, UiStateFlags, UiSurface, UiTreeId, UiTreeNode};
+use zircon_ui::{
+    event_ui::UiNodeId, event_ui::UiNodePath, event_ui::UiStateFlags, event_ui::UiTreeId, UiFrame,
+    UiSurface, UiTreeNode,
+};
 
 use super::super::constants::{VIEWPORT_SURFACE_NODE_ID, VIEWPORT_SURFACE_ROOT_ID};
 

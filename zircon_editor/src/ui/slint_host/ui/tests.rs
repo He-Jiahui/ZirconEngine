@@ -14,7 +14,7 @@ use crate::{
     EditorChromeSnapshot, EditorUiCompatibilityHarness, FloatingWindowLayout, MainPageId,
     TabStackLayout, ViewHost, ViewInstance, ViewInstanceId, WorkbenchViewModel,
 };
-use zircon_scene::{
+use zircon_framework::render::{
     DisplayMode, GridMode, ProjectionMode, SceneViewportTool, TransformSpace, ViewOrientation,
 };
 use zircon_ui::UiSize;
@@ -79,25 +79,26 @@ fn apply_presentation_uses_shared_root_projection_frames_when_drawers_are_collap
         &floating_window_projection_bundle,
     );
 
-    let center_band = ui.get_center_band_frame();
+    let host_layout = ui.get_host_layout();
+    let center_band = host_layout.center_band_frame;
     assert_eq!(center_band.x, 0.0);
     assert_eq!(center_band.y, 40.0);
     assert_eq!(center_band.width, 1280.0);
     assert_eq!(center_band.height, 656.0);
 
-    let document_region = ui.get_document_region_frame();
+    let document_region = host_layout.document_region_frame;
     assert_eq!(document_region.x, 56.0);
     assert_eq!(document_region.y, 40.0);
     assert_eq!(document_region.width, 1224.0);
     assert_eq!(document_region.height, 656.0);
 
-    let status_bar = ui.get_status_bar_frame();
+    let status_bar = host_layout.status_bar_frame;
     assert_eq!(status_bar.x, 0.0);
     assert_eq!(status_bar.y, 696.0);
     assert_eq!(status_bar.width, 1280.0);
     assert_eq!(status_bar.height, 24.0);
 
-    let viewport_content = ui.get_viewport_content_frame();
+    let viewport_content = host_layout.viewport_content_frame;
     assert_eq!(viewport_content.x, 56.0);
     assert_eq!(viewport_content.y, 100.0);
     assert_eq!(viewport_content.width, 1224.0);
@@ -177,25 +178,26 @@ fn apply_presentation_prefers_shared_root_projection_for_visible_drawer_document
         &floating_window_projection_bundle,
     );
 
-    let center_band = ui.get_center_band_frame();
+    let host_layout = ui.get_host_layout();
+    let center_band = host_layout.center_band_frame;
     assert_eq!(center_band.x, 0.0);
     assert_eq!(center_band.y, 40.0);
     assert_eq!(center_band.width, 1280.0);
     assert_eq!(center_band.height, 656.0);
 
-    let document_region = ui.get_document_region_frame();
+    let document_region = host_layout.document_region_frame;
     assert_eq!(document_region.x, expected_document_frame.x);
     assert_eq!(document_region.y, expected_document_frame.y);
     assert_eq!(document_region.width, expected_document_frame.width);
     assert_eq!(document_region.height, expected_document_frame.height);
 
-    let status_bar = ui.get_status_bar_frame();
+    let status_bar = host_layout.status_bar_frame;
     assert_eq!(status_bar.x, 0.0);
     assert_eq!(status_bar.y, 696.0);
     assert_eq!(status_bar.width, 1280.0);
     assert_eq!(status_bar.height, 24.0);
 
-    let viewport_content = ui.get_viewport_content_frame();
+    let viewport_content = host_layout.viewport_content_frame;
     assert_eq!(viewport_content.x, expected_viewport_frame.x);
     assert_eq!(viewport_content.y, expected_viewport_frame.y);
     assert_eq!(viewport_content.width, expected_viewport_frame.width);
@@ -262,13 +264,14 @@ fn apply_presentation_prefers_shared_root_projection_for_visible_drawer_region_p
         &floating_window_projection_bundle,
     );
 
-    let left_region = ui.get_left_region_frame();
+    let host_layout = ui.get_host_layout();
+    let left_region = host_layout.left_region_frame;
     assert_eq!(left_region.x, shell_frame.x);
     assert_eq!(left_region.y, body_frame.y);
     assert_eq!(left_region.width, left_geometry.width);
     assert_eq!(left_region.height, expected_center_height);
 
-    let right_region = ui.get_right_region_frame();
+    let right_region = host_layout.right_region_frame;
     assert_eq!(
         right_region.x,
         shell_frame.x + shell_frame.width - right_geometry.width
@@ -277,7 +280,7 @@ fn apply_presentation_prefers_shared_root_projection_for_visible_drawer_region_p
     assert_eq!(right_region.width, right_geometry.width);
     assert_eq!(right_region.height, expected_center_height);
 
-    let bottom_region = ui.get_bottom_region_frame();
+    let bottom_region = host_layout.bottom_region_frame;
     assert_eq!(bottom_region.x, shell_frame.x);
     assert_eq!(
         bottom_region.y,
@@ -351,8 +354,9 @@ fn apply_presentation_prefers_shared_root_projection_for_visible_drawer_region_e
         &floating_window_projection_bundle,
     );
 
+    let host_layout = ui.get_host_layout();
     assert_eq!(
-        ui.get_left_region_frame(),
+        host_layout.left_region_frame,
         crate::ui::slint_host::FrameRect {
             x: projection_frames.left_drawer_shell_frame.unwrap().x,
             y: projection_frames.left_drawer_shell_frame.unwrap().y,
@@ -361,7 +365,7 @@ fn apply_presentation_prefers_shared_root_projection_for_visible_drawer_region_e
         }
     );
     assert_eq!(
-        ui.get_right_region_frame(),
+        host_layout.right_region_frame,
         crate::ui::slint_host::FrameRect {
             x: projection_frames.right_drawer_shell_frame.unwrap().x,
             y: projection_frames.right_drawer_shell_frame.unwrap().y,
@@ -370,7 +374,7 @@ fn apply_presentation_prefers_shared_root_projection_for_visible_drawer_region_e
         }
     );
     assert_eq!(
-        ui.get_bottom_region_frame(),
+        host_layout.bottom_region_frame,
         crate::ui::slint_host::FrameRect {
             x: projection_frames.bottom_drawer_shell_frame.unwrap().x,
             y: projection_frames.bottom_drawer_shell_frame.unwrap().y,
@@ -436,8 +440,9 @@ fn apply_presentation_prefers_shared_visible_drawer_projection_when_legacy_geome
         &floating_window_projection_bundle,
     );
 
+    let host_layout = ui.get_host_layout();
     assert_eq!(
-        ui.get_left_region_frame(),
+        host_layout.left_region_frame,
         crate::ui::slint_host::FrameRect {
             x: projection_frames.left_drawer_shell_frame.unwrap().x,
             y: projection_frames.left_drawer_shell_frame.unwrap().y,
@@ -446,7 +451,7 @@ fn apply_presentation_prefers_shared_visible_drawer_projection_when_legacy_geome
         }
     );
     assert_eq!(
-        ui.get_right_region_frame(),
+        host_layout.right_region_frame,
         crate::ui::slint_host::FrameRect {
             x: projection_frames.right_drawer_shell_frame.unwrap().x,
             y: projection_frames.right_drawer_shell_frame.unwrap().y,
@@ -455,7 +460,7 @@ fn apply_presentation_prefers_shared_visible_drawer_projection_when_legacy_geome
         }
     );
     assert_eq!(
-        ui.get_bottom_region_frame(),
+        host_layout.bottom_region_frame,
         crate::ui::slint_host::FrameRect {
             x: projection_frames.bottom_drawer_shell_frame.unwrap().x,
             y: projection_frames.bottom_drawer_shell_frame.unwrap().y,
@@ -464,7 +469,7 @@ fn apply_presentation_prefers_shared_visible_drawer_projection_when_legacy_geome
         }
     );
     assert_eq!(
-        ui.get_document_region_frame(),
+        host_layout.document_region_frame,
         crate::ui::slint_host::FrameRect {
             x: 313.0,
             y: 40.0,
@@ -473,7 +478,7 @@ fn apply_presentation_prefers_shared_visible_drawer_projection_when_legacy_geome
         }
     );
     assert_eq!(
-        ui.get_viewport_content_frame(),
+        host_layout.viewport_content_frame,
         crate::ui::slint_host::FrameRect {
             x: 313.0,
             y: 68.0,

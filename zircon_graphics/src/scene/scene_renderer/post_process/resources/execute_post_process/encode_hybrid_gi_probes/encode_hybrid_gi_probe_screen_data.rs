@@ -1,5 +1,5 @@
+use zircon_framework::render::{ProjectionMode, RenderFrameExtract, RenderHybridGiProbe};
 use zircon_math::UVec2;
-use zircon_scene::{ProjectionMode, RenderFrameExtract, RenderHybridGiProbe};
 
 use super::super::camera_matrices::view_projection;
 use super::hybrid_gi_budget_weight::hybrid_gi_budget_weight;

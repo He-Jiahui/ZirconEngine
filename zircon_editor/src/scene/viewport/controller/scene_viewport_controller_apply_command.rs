@@ -1,5 +1,5 @@
-use crate::ViewportFeedback;
 use crate::ui::ViewportCommand;
+use crate::ViewportFeedback;
 use zircon_scene::Scene;
 
 use super::SceneViewportController;

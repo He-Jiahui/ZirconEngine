@@ -38,6 +38,10 @@ impl SlintEditorHost {
                 .editor_manager
                 .clone_ui_asset_editor_selected_theme_source_to_local(&instance_id)
                 .map(|_| ()),
+            "theme.local.prune_duplicates" => self
+                .editor_manager
+                .prune_ui_asset_editor_duplicate_local_theme_overrides(&instance_id)
+                .map(|_| ()),
             "preview.preset.editor_docked" => self
                 .editor_manager
                 .set_ui_asset_editor_preview_preset(
@@ -242,7 +246,12 @@ impl SlintEditorHost {
             "slot" => self.handle_ui_asset_slot_detail(instance_id, action_id, primary),
             "layout" => self.handle_ui_asset_layout_detail(instance_id, action_id, primary),
             "binding" => self.handle_ui_asset_binding_detail(instance_id, action_id, primary),
-            "theme_source" => self.handle_ui_asset_theme_source_detail(instance_id, action_id, primary),
+            "theme_source" => self.handle_ui_asset_theme_source_detail(
+                instance_id,
+                action_id,
+                item_index,
+                primary,
+            ),
             "style_rule" => {
                 self.handle_ui_asset_style_rule_detail(instance_id, action_id, item_index, primary)
             }
@@ -253,15 +262,48 @@ impl SlintEditorHost {
                 primary,
                 secondary,
             ),
-            "style_token" => {
-                self.handle_ui_asset_style_token_detail(instance_id, action_id, item_index, primary, secondary)
-            }
+            "style_token" => self.handle_ui_asset_style_token_detail(
+                instance_id,
+                action_id,
+                item_index,
+                primary,
+                secondary,
+            ),
             "preview_mock" => {
                 self.handle_ui_asset_preview_mock_detail(instance_id, action_id, primary)
             }
-            "binding_payload" => {
-                self.handle_ui_asset_binding_payload_detail(instance_id, action_id, primary, secondary)
-            }
+            "preview_mock_nested" => self.handle_ui_asset_preview_mock_nested_detail(
+                instance_id,
+                action_id,
+                primary,
+                secondary,
+            ),
+            "preview_mock_suggestion" => self.handle_ui_asset_preview_mock_suggestion_detail(
+                instance_id,
+                action_id,
+                item_index,
+            ),
+            "binding_payload" => self.handle_ui_asset_binding_payload_detail(
+                instance_id,
+                action_id,
+                primary,
+                secondary,
+            ),
+            "binding_payload_suggestion" => self.handle_ui_asset_binding_payload_suggestion_detail(
+                instance_id,
+                action_id,
+                item_index,
+            ),
+            "binding_route_suggestion" => self.handle_ui_asset_binding_route_suggestion_detail(
+                instance_id,
+                action_id,
+                item_index,
+            ),
+            "binding_action_suggestion" => self.handle_ui_asset_binding_action_suggestion_detail(
+                instance_id,
+                action_id,
+                item_index,
+            ),
             other => {
                 self.focus_callback_source_window();
                 self.set_status_line(format!("Unknown UI asset detail event {other}:{action_id}"));
@@ -269,12 +311,7 @@ impl SlintEditorHost {
         }
     }
 
-    fn handle_ui_asset_widget_detail(
-        &mut self,
-        instance_id: &str,
-        action_id: &str,
-        value: &str,
-    ) {
+    fn handle_ui_asset_widget_detail(&mut self, instance_id: &str, action_id: &str, value: &str) {
         self.focus_callback_source_window();
         let instance_id = ViewInstanceId::new(instance_id);
         let result = match action_id {
@@ -320,9 +357,7 @@ impl SlintEditorHost {
                 .set_ui_asset_editor_selected_promote_widget_document_id(&instance_id, value)
                 .map(|_| ()),
             other => {
-                self.set_status_line(format!(
-                    "Unknown UI asset widget promote action {other}"
-                ));
+                self.set_status_line(format!("Unknown UI asset widget promote action {other}"));
                 return;
             }
         };
@@ -333,12 +368,7 @@ impl SlintEditorHost {
         }
     }
 
-    fn handle_ui_asset_slot_detail(
-        &mut self,
-        instance_id: &str,
-        action_id: &str,
-        value: &str,
-    ) {
+    fn handle_ui_asset_slot_detail(&mut self, instance_id: &str, action_id: &str, value: &str) {
         self.focus_callback_source_window();
         let instance_id = ViewInstanceId::new(instance_id);
         let result = match action_id {
@@ -384,12 +414,7 @@ impl SlintEditorHost {
         }
     }
 
-    fn handle_ui_asset_layout_detail(
-        &mut self,
-        instance_id: &str,
-        action_id: &str,
-        value: &str,
-    ) {
+    fn handle_ui_asset_layout_detail(&mut self, instance_id: &str, action_id: &str, value: &str) {
         self.focus_callback_source_window();
         let instance_id = ViewInstanceId::new(instance_id);
         let result = match action_id {
@@ -431,12 +456,7 @@ impl SlintEditorHost {
         }
     }
 
-    fn handle_ui_asset_binding_detail(
-        &mut self,
-        instance_id: &str,
-        action_id: &str,
-        value: &str,
-    ) {
+    fn handle_ui_asset_binding_detail(&mut self, instance_id: &str, action_id: &str, value: &str) {
         self.focus_callback_source_window();
         let instance_id = ViewInstanceId::new(instance_id);
         let result = match action_id {
@@ -484,6 +504,7 @@ impl SlintEditorHost {
         &mut self,
         instance_id: &str,
         action_id: &str,
+        item_index: i32,
         value: &str,
     ) {
         self.focus_callback_source_window();
@@ -500,6 +521,17 @@ impl SlintEditorHost {
             "theme.promote.display_name.set" => self
                 .editor_manager
                 .set_ui_asset_editor_promote_theme_display_name(&instance_id, value)
+                .map(|_| ()),
+            "theme.rule_helper.apply" => self
+                .editor_manager
+                .apply_ui_asset_editor_theme_rule_helper_item(
+                    &instance_id,
+                    item_index.max(0) as usize,
+                )
+                .map(|_| ()),
+            "theme.refactor.apply" => self
+                .editor_manager
+                .apply_ui_asset_editor_theme_refactor_item(&instance_id, item_index.max(0) as usize)
                 .map(|_| ()),
             other => {
                 self.set_status_line(format!("Unknown UI asset theme source action {other}"));
@@ -534,6 +566,14 @@ impl SlintEditorHost {
             "style.rule.delete" => self
                 .editor_manager
                 .delete_ui_asset_editor_selected_stylesheet_rule(&instance_id)
+                .map(|_| ()),
+            "style.rule.move_up" => self
+                .editor_manager
+                .move_ui_asset_editor_selected_stylesheet_rule_up(&instance_id)
+                .map(|_| ()),
+            "style.rule.move_down" => self
+                .editor_manager
+                .move_ui_asset_editor_selected_stylesheet_rule_down(&instance_id)
                 .map(|_| ()),
             other => {
                 self.set_status_line(format!("Unknown UI asset style rule action {other}"));
@@ -590,9 +630,17 @@ impl SlintEditorHost {
                 .editor_manager
                 .select_ui_asset_editor_source_outline_index(&instance_id, item_index)
                 .map(|_| ()),
+            ("preview_mock_subject", "selected") => self
+                .editor_manager
+                .select_ui_asset_editor_preview_mock_subject(&instance_id, item_index)
+                .map(|_| ()),
             ("preview_mock", "selected") => self
                 .editor_manager
                 .select_ui_asset_editor_preview_mock_property(&instance_id, item_index)
+                .map(|_| ()),
+            ("preview_mock_nested", "selected") => self
+                .editor_manager
+                .select_ui_asset_editor_preview_mock_nested_entry(&instance_id, item_index)
                 .map(|_| ()),
             ("binding", "selected") => self
                 .editor_manager
@@ -837,6 +885,46 @@ impl SlintEditorHost {
         }
     }
 
+    fn handle_ui_asset_preview_mock_nested_detail(
+        &mut self,
+        instance_id: &str,
+        action_id: &str,
+        nested_key: &str,
+        nested_value: &str,
+    ) {
+        self.focus_callback_source_window();
+        let instance_id = ViewInstanceId::new(instance_id);
+        let result = match action_id {
+            "preview.mock.nested.value.set" => self
+                .editor_manager
+                .set_ui_asset_editor_selected_preview_mock_nested_value(&instance_id, nested_key)
+                .map(|_| ()),
+            "preview.mock.nested.upsert" => self
+                .editor_manager
+                .upsert_ui_asset_editor_selected_preview_mock_nested_entry(
+                    &instance_id,
+                    nested_key,
+                    nested_value,
+                )
+                .map(|_| ()),
+            "preview.mock.nested.delete" => self
+                .editor_manager
+                .delete_ui_asset_editor_selected_preview_mock_nested_entry(&instance_id)
+                .map(|_| ()),
+            other => {
+                self.set_status_line(format!(
+                    "Unknown UI asset preview mock nested action {other}"
+                ));
+                return;
+            }
+        };
+
+        match result {
+            Ok(()) => self.presentation_dirty = true,
+            Err(error) => self.set_status_line(error.to_string()),
+        }
+    }
+
     fn handle_ui_asset_binding_payload_detail(
         &mut self,
         instance_id: &str,
@@ -861,6 +949,126 @@ impl SlintEditorHost {
                 .map(|_| ()),
             other => {
                 self.set_status_line(format!("Unknown UI asset binding payload action {other}"));
+                return;
+            }
+        };
+
+        match result {
+            Ok(()) => self.presentation_dirty = true,
+            Err(error) => self.set_status_line(error.to_string()),
+        }
+    }
+
+    fn handle_ui_asset_preview_mock_suggestion_detail(
+        &mut self,
+        instance_id: &str,
+        action_id: &str,
+        item_index: i32,
+    ) {
+        self.focus_callback_source_window();
+        let instance_id = ViewInstanceId::new(instance_id);
+        let result = match action_id {
+            "preview.mock.suggestion.apply" => self
+                .editor_manager
+                .apply_ui_asset_editor_selected_preview_mock_suggestion(
+                    &instance_id,
+                    item_index.max(0) as usize,
+                )
+                .map(|_| ()),
+            other => {
+                self.set_status_line(format!(
+                    "Unknown UI asset preview mock suggestion action {other}"
+                ));
+                return;
+            }
+        };
+
+        match result {
+            Ok(()) => self.presentation_dirty = true,
+            Err(error) => self.set_status_line(error.to_string()),
+        }
+    }
+
+    fn handle_ui_asset_binding_payload_suggestion_detail(
+        &mut self,
+        instance_id: &str,
+        action_id: &str,
+        item_index: i32,
+    ) {
+        self.focus_callback_source_window();
+        let instance_id = ViewInstanceId::new(instance_id);
+        let result = match action_id {
+            "binding.payload.suggestion.apply" => self
+                .editor_manager
+                .apply_ui_asset_editor_selected_binding_payload_suggestion(
+                    &instance_id,
+                    item_index.max(0) as usize,
+                )
+                .map(|_| ()),
+            other => {
+                self.set_status_line(format!(
+                    "Unknown UI asset binding payload suggestion action {other}"
+                ));
+                return;
+            }
+        };
+
+        match result {
+            Ok(()) => self.presentation_dirty = true,
+            Err(error) => self.set_status_line(error.to_string()),
+        }
+    }
+
+    fn handle_ui_asset_binding_route_suggestion_detail(
+        &mut self,
+        instance_id: &str,
+        action_id: &str,
+        item_index: i32,
+    ) {
+        self.focus_callback_source_window();
+        let instance_id = ViewInstanceId::new(instance_id);
+        let result = match action_id {
+            "binding.route.suggestion.apply" => self
+                .editor_manager
+                .apply_ui_asset_editor_selected_binding_route_suggestion(
+                    &instance_id,
+                    item_index.max(0) as usize,
+                )
+                .map(|_| ()),
+            other => {
+                self.set_status_line(format!(
+                    "Unknown UI asset binding route suggestion action {other}"
+                ));
+                return;
+            }
+        };
+
+        match result {
+            Ok(()) => self.presentation_dirty = true,
+            Err(error) => self.set_status_line(error.to_string()),
+        }
+    }
+
+    fn handle_ui_asset_binding_action_suggestion_detail(
+        &mut self,
+        instance_id: &str,
+        action_id: &str,
+        item_index: i32,
+    ) {
+        self.focus_callback_source_window();
+        let instance_id = ViewInstanceId::new(instance_id);
+        let result = match action_id {
+            "binding.action.suggestion.apply" => self
+                .editor_manager
+                .apply_ui_asset_editor_selected_binding_action_suggestion(
+                    &instance_id,
+                    item_index.max(0) as usize,
+                )
+                .map(|_| ()),
+            other => {
+                self.set_status_line(format!(
+                    "Unknown UI asset binding action suggestion action {other}"
+                ));
                 return;
             }
         };

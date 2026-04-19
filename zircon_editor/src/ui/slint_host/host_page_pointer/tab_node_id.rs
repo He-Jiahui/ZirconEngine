@@ -1,4 +1,4 @@
-use zircon_ui::UiNodeId;
+use zircon_ui::event_ui::UiNodeId;
 
 use super::constants::TAB_NODE_ID_BASE;
 

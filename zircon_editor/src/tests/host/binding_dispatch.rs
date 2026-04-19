@@ -2,11 +2,11 @@ use crate::ui::{
     AssetCommand, DockCommand, EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind,
     InspectorFieldChange, SelectionCommand, ViewportCommand, WelcomeCommand,
 };
-use zircon_math::UVec2;
-use zircon_scene::{
+use zircon_framework::render::{
     DisplayMode, GridMode, ProjectionMode, SceneViewportTool, TransformSpace, ViewOrientation,
 };
-use zircon_ui::UiBindingValue;
+use zircon_math::UVec2;
+use zircon_ui::binding::UiBindingValue;
 
 use crate::{
     apply_inspector_binding, apply_selection_binding, apply_viewport_binding,
@@ -333,10 +333,7 @@ fn selection_binding_dispatches_and_applies_scene_node_selection() {
         SelectionHostEvent::SelectSceneNode { node_id: cube }
     );
     assert!(apply_selection_binding(&mut state, &binding).unwrap());
-    assert_eq!(
-        state.viewport_controller.selected_node(),
-        Some(cube)
-    );
+    assert_eq!(state.viewport_controller.selected_node(), Some(cube));
 }
 
 #[test]
@@ -440,7 +437,9 @@ fn welcome_open_recent_binding_dispatches_into_typed_host_event() {
 
 mod support {
     use zircon_math::UVec2;
-    use zircon_scene::{DefaultLevelManager, NodeId, NodeKind};
+    use zircon_runtime::scene::DefaultLevelManager;
+    use zircon_scene::components::NodeKind;
+    use zircon_scene::NodeId;
 
     use crate::EditorState;
 

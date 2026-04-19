@@ -1,5 +1,5 @@
+use zircon_framework::render::ViewportCameraSnapshot;
 use zircon_math::Vec3;
-use zircon_scene::ViewportCameraSnapshot;
 
 pub(super) fn reflection_probe_radius(
     _camera: &ViewportCameraSnapshot,

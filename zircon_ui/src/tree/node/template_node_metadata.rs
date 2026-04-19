@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 use toml::Value;
 
-use crate::UiBindingRef;
+use crate::template::UiBindingRef;
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct UiTemplateNodeMetadata {

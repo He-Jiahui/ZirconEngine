@@ -1,9 +1,9 @@
 use std::fs;
 
-use zircon_asset::{AssetUri, ImportedAsset, ProjectManager};
-use zircon_framework::scene::LevelManager;
+use zircon_asset::AssetUri;
 
-use crate::{DefaultLevelManager, NodeKind, World};
+use crate::components::NodeKind;
+use crate::world::World;
 
 use super::support::{
     create_test_project, project_material_handle, project_model_handle, unique_temp_project_root,
@@ -81,37 +81,13 @@ fn render_extract_keeps_asset_bound_meshes_without_editor_selection_overlay() {
         project_material_handle(&project, "res://materials/grid.material.toml")
     );
     assert!(extract.overlays.selection.is_empty());
-    assert!(extract
-        .scene
-        .meshes
-        .iter()
-        .any(|mesh| mesh.node_id == mesh_node));
-
-    let _ = fs::remove_dir_all(root);
-}
-
-#[test]
-fn level_manager_instantiates_and_saves_scene_assets() {
-    let root = unique_temp_project_root("scene_manager");
-    let project = create_test_project(&root);
-    let manager = DefaultLevelManager::default();
-    let scene_uri = AssetUri::parse("res://scenes/main.scene.toml").unwrap();
-
-    let level = manager.load_level(&project, &scene_uri).unwrap();
-    let summary = manager.level_summary(level.handle()).unwrap();
-    assert!(summary.entity_count >= 2);
-
-    let saved_uri = AssetUri::parse("res://scenes/saved.scene.toml").unwrap();
-    manager
-        .save_level(level.handle(), &project, &saved_uri)
-        .unwrap();
-
-    let mut reloaded_project = ProjectManager::open(&root).unwrap();
-    reloaded_project.scan_and_import().unwrap();
-    let ImportedAsset::Scene(scene) = reloaded_project.load_artifact(&saved_uri).unwrap() else {
-        panic!("saved scene did not reimport as scene asset");
-    };
-    assert_eq!(scene.entities.len(), 3);
+    assert!(
+        extract
+            .scene
+            .meshes
+            .iter()
+            .any(|mesh| mesh.node_id == mesh_node)
+    );
 
     let _ = fs::remove_dir_all(root);
 }

@@ -1,8 +1,7 @@
 use std::path::PathBuf;
 
-use crate::{
-    AssetCatalogRecord, AssetImportError, PreviewArtifactKey, PreviewCache, ProjectManager,
-};
+use crate::project::ProjectManager;
+use crate::{AssetCatalogRecord, AssetImportError, PreviewArtifactKey, PreviewCache};
 
 use super::preview_palette::preview_palette;
 

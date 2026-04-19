@@ -1,4 +1,5 @@
-use zircon_scene::{LevelSystem, Scene};
+use zircon_runtime::scene::LevelSystem;
+use zircon_scene::Scene;
 
 use crate::ui::workbench::startup::{EditorSessionMode, WelcomePaneSnapshot};
 

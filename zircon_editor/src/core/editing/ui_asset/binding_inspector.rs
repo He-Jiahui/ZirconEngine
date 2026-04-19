@@ -1,13 +1,22 @@
 use std::collections::BTreeMap;
 use std::str::FromStr;
 
-use toml::Value;
-use crate::ui::UiDesignerSelectionModel;
-use zircon_ui::{
-    UiActionRef, UiAssetDocument, UiBindingRef, UiEventKind, UiNodeDefinition, UiNodeDefinitionKind,
+use crate::core::editing::ui_asset::preview::preview_mock::UiAssetPreviewMockState;
+use crate::core::editing::ui_asset::value_path::{
+    get_value_at_path, parse_value_path, set_value_at_path, UiAssetTomlPathSegment,
 };
+use crate::ui::UiDesignerSelectionModel;
+use toml::Value;
+use zircon_ui::template::{UiActionRef, UiBindingRef};
+use zircon_ui::{UiAssetDocument, binding::UiEventKind};
+use zircon_ui::template::{UiNodeDefinition, UiNodeDefinitionKind};
 
 use super::style_rule_declarations::parse_declaration_literal;
+
+#[path = "binding/payload_suggestions.rs"]
+mod payload_suggestions;
+#[path = "binding/schema_projection.rs"]
+mod schema_projection;
 
 const BINDING_EVENT_ORDER: &[UiEventKind] = &[
     UiEventKind::Click,
@@ -72,12 +81,16 @@ pub(crate) struct UiAssetBindingInspectorFields {
     pub binding_route: String,
     pub binding_route_target: String,
     pub binding_action_target: String,
+    pub binding_route_suggestion_items: Vec<String>,
+    pub binding_action_suggestion_items: Vec<String>,
     pub binding_action_kind_items: Vec<String>,
     pub binding_action_kind_selected_index: i32,
     pub binding_payload_items: Vec<String>,
     pub binding_payload_selected_index: i32,
     pub binding_payload_key: String,
     pub binding_payload_value: String,
+    pub binding_payload_suggestion_items: Vec<String>,
+    pub binding_schema_items: Vec<String>,
     pub can_edit: bool,
     pub can_delete: bool,
 }
@@ -94,12 +107,16 @@ impl Default for UiAssetBindingInspectorFields {
             binding_route: String::new(),
             binding_route_target: String::new(),
             binding_action_target: String::new(),
+            binding_route_suggestion_items: Vec::new(),
+            binding_action_suggestion_items: Vec::new(),
             binding_action_kind_items: UiBindingActionKind::all_labels(),
             binding_action_kind_selected_index: -1,
             binding_payload_items: Vec::new(),
             binding_payload_selected_index: -1,
             binding_payload_key: String::new(),
             binding_payload_value: String::new(),
+            binding_payload_suggestion_items: Vec::new(),
+            binding_schema_items: Vec::new(),
             can_edit: false,
             can_delete: false,
         }
@@ -109,6 +126,7 @@ impl Default for UiAssetBindingInspectorFields {
 pub(crate) fn build_binding_fields(
     document: &UiAssetDocument,
     selection: &UiDesignerSelectionModel,
+    preview_mock_state: &UiAssetPreviewMockState,
     selected_index: Option<usize>,
     selected_payload_key: Option<&str>,
 ) -> UiAssetBindingInspectorFields {
@@ -137,7 +155,7 @@ pub(crate) fn build_binding_fields(
     };
 
     let payload_key = selected_payload_key_for_binding(binding, selected_payload_key);
-    let payload_entries = binding_payload_entries(binding);
+    let payload_entries = binding_payload_item_entries(binding);
     let selected_payload = payload_key
         .as_deref()
         .and_then(|key| {
@@ -155,11 +173,19 @@ pub(crate) fn build_binding_fields(
     fields.binding_route = binding_action_target(binding);
     fields.binding_route_target = binding_route_target(binding);
     fields.binding_action_target = binding_action_specific_target(binding);
+    fields.binding_route_suggestion_items = binding_route_suggestions(node, binding);
+    fields.binding_action_suggestion_items = binding_action_suggestions(node, binding);
     fields.binding_action_kind_selected_index = binding_action_kind(binding) as i32;
     fields.binding_payload_items = payload_entries
         .iter()
-        .map(|(key, value)| format!("{key} = {}", value.to_string()))
+        .map(|(key, value)| format!("{key} = {}", value))
         .collect();
+    fields.binding_payload_suggestion_items =
+        binding_payload_suggestions(binding, payload_key.as_deref())
+            .into_iter()
+            .map(|(key, value)| format!("{key} = {}", value.to_string()))
+            .collect();
+    fields.binding_schema_items = binding_schema_items(binding);
     fields.binding_payload_selected_index = selected_payload
         .map(|(index, _)| index as i32)
         .unwrap_or(-1);
@@ -169,6 +195,12 @@ pub(crate) fn build_binding_fields(
     fields.binding_payload_value = selected_payload
         .map(|(_, (_, value))| value.to_string())
         .unwrap_or_default();
+    fields.binding_schema_items = schema_projection::build_binding_schema_items(
+        document,
+        selection.primary_node_id.as_deref().unwrap_or_default(),
+        preview_mock_state,
+        binding,
+    );
     fields
 }
 
@@ -361,28 +393,38 @@ pub(crate) fn upsert_selected_binding_payload(
     document: &mut UiAssetDocument,
     selection: &UiDesignerSelectionModel,
     selected_index: Option<usize>,
+    selected_payload_key: Option<&str>,
     payload_key: &str,
     value_literal: &str,
-) -> bool {
+) -> Option<String> {
     let Some(binding) =
         selected_binding_mut(document, selection, selected_index.unwrap_or(usize::MAX))
     else {
-        return false;
+        return None;
     };
-    let Some(payload_key) = normalized_payload_key(payload_key) else {
-        return false;
+    let Some((resolved_payload_key, path)) =
+        resolve_binding_payload_upsert_path(binding, selected_payload_key, payload_key)
+    else {
+        return None;
     };
     let Some(value) = parse_declaration_literal(value_literal) else {
-        return false;
+        return None;
     };
 
-    let action = ensure_binding_action_for_payload(binding);
-    if action.payload.get(&payload_key) == Some(&value) {
-        return false;
+    let mut payload_root = binding_payload_root_value(binding);
+    if get_value_at_path(&payload_root, &path) == Some(&value) {
+        return None;
     }
-    let _ = action.payload.insert(payload_key, value);
+    if set_value_at_path(&mut payload_root, &path, Some(value)).is_err() {
+        return None;
+    }
+    let Some(table) = payload_root.as_table() else {
+        return None;
+    };
+    let action = ensure_binding_action_for_payload(binding);
+    action.payload = table.clone().into_iter().collect();
     compact_binding_action(binding);
-    true
+    Some(resolved_payload_key)
 }
 
 pub(crate) fn delete_selected_binding_payload(
@@ -399,14 +441,102 @@ pub(crate) fn delete_selected_binding_payload(
     let Some(selected_payload_key) = selected_payload_key else {
         return false;
     };
+    let Some(path) = parse_value_path(selected_payload_key) else {
+        return false;
+    };
+    let mut payload_root = binding_payload_root_value(binding);
+    if set_value_at_path(&mut payload_root, &path, None).is_err() {
+        return false;
+    }
+    let Some(table) = payload_root.as_table() else {
+        return false;
+    };
     let Some(action) = binding.action.as_mut() else {
         return false;
     };
-    let removed = action.payload.remove(selected_payload_key).is_some();
+    let removed = action.payload != table.clone().into_iter().collect();
+    action.payload = table.clone().into_iter().collect();
     if removed {
         compact_binding_action(binding);
     }
     removed
+}
+
+pub(crate) fn apply_selected_binding_payload_suggestion(
+    document: &mut UiAssetDocument,
+    selection: &UiDesignerSelectionModel,
+    selected_index: Option<usize>,
+    selected_payload_key: Option<&str>,
+    suggestion_index: usize,
+) -> Option<String> {
+    let binding = selected_node(document, selection)
+        .and_then(|node| selected_binding_index_for_node(node, selected_index))
+        .and_then(|index| selected_node(document, selection)?.bindings.get(index))
+        .cloned();
+    let Some((payload_key, payload_value)) = binding
+        .as_ref()
+        .map(|binding| binding_payload_suggestions(binding, selected_payload_key))
+        .and_then(|suggestions| suggestions.get(suggestion_index).cloned())
+    else {
+        return None;
+    };
+
+    upsert_selected_binding_payload(
+        document,
+        selection,
+        selected_index,
+        selected_payload_key,
+        &payload_key,
+        &payload_value.to_string(),
+    )
+}
+
+pub(crate) fn apply_selected_binding_route_suggestion(
+    document: &mut UiAssetDocument,
+    selection: &UiDesignerSelectionModel,
+    selected_index: Option<usize>,
+    suggestion_index: usize,
+) -> bool {
+    let Some(node) = selected_node(document, selection) else {
+        return false;
+    };
+    let Some(index) = selected_binding_index_for_node(node, selected_index) else {
+        return false;
+    };
+    let Some(binding) = node.bindings.get(index) else {
+        return false;
+    };
+    let Some(target) = binding_route_suggestions(node, binding)
+        .get(suggestion_index)
+        .cloned()
+    else {
+        return false;
+    };
+    set_selected_binding_route_target(document, selection, selected_index, &target)
+}
+
+pub(crate) fn apply_selected_binding_action_suggestion(
+    document: &mut UiAssetDocument,
+    selection: &UiDesignerSelectionModel,
+    selected_index: Option<usize>,
+    suggestion_index: usize,
+) -> bool {
+    let Some(node) = selected_node(document, selection) else {
+        return false;
+    };
+    let Some(index) = selected_binding_index_for_node(node, selected_index) else {
+        return false;
+    };
+    let Some(binding) = node.bindings.get(index) else {
+        return false;
+    };
+    let Some(target) = binding_action_suggestions(node, binding)
+        .get(suggestion_index)
+        .cloned()
+    else {
+        return false;
+    };
+    set_selected_binding_action_target(document, selection, selected_index, &target)
 }
 
 fn selected_node<'a>(
@@ -566,18 +696,522 @@ fn binding_payload_entries(binding: &UiBindingRef) -> Vec<(String, Value)> {
         .unwrap_or_default()
 }
 
+fn binding_payload_item_entries(binding: &UiBindingRef) -> Vec<(String, Value)> {
+    let payload_root = binding_payload_root_value(binding);
+    let mut entries = Vec::new();
+    collect_binding_payload_item_entries(&payload_root, None, &mut entries);
+    entries
+}
+
+fn binding_payload_suggestions(
+    binding: &UiBindingRef,
+    selected_payload_key: Option<&str>,
+) -> Vec<(String, Value)> {
+    let root_suggestions = binding_root_payload_suggestions(binding);
+    let current_payload_root = binding_payload_root_value(binding);
+    payload_suggestions::contextual_binding_payload_suggestions(
+        root_suggestions.as_slice(),
+        &current_payload_root,
+        selected_payload_key,
+    )
+    .unwrap_or(root_suggestions)
+}
+
+fn binding_root_payload_suggestions(binding: &UiBindingRef) -> Vec<(String, Value)> {
+    if let Some(target_specific) = binding_target_payload_suggestions(binding) {
+        return target_specific;
+    }
+
+    match binding.event {
+        UiEventKind::Click
+        | UiEventKind::DoubleClick
+        | UiEventKind::Press
+        | UiEventKind::Release
+        | UiEventKind::Submit => vec![
+            ("confirm".to_string(), Value::Boolean(true)),
+            ("channel".to_string(), Value::String("toolbar".to_string())),
+            (
+                "source".to_string(),
+                Value::String(event_source_tag(binding.event)),
+            ),
+        ],
+        UiEventKind::Change => vec![
+            ("value".to_string(), Value::String("preview".to_string())),
+            ("committed".to_string(), Value::Boolean(true)),
+            (
+                "source".to_string(),
+                Value::String(event_source_tag(binding.event)),
+            ),
+        ],
+        UiEventKind::Toggle => vec![
+            ("checked".to_string(), Value::Boolean(true)),
+            (
+                "source".to_string(),
+                Value::String(event_source_tag(binding.event)),
+            ),
+        ],
+        UiEventKind::Scroll => vec![
+            ("axis".to_string(), Value::String("vertical".to_string())),
+            ("delta".to_string(), Value::Integer(1)),
+            (
+                "source".to_string(),
+                Value::String(event_source_tag(binding.event)),
+            ),
+        ],
+        UiEventKind::DragBegin | UiEventKind::DragUpdate | UiEventKind::DragEnd => vec![
+            ("axis".to_string(), Value::String("x".to_string())),
+            ("delta".to_string(), Value::Integer(0)),
+            (
+                "source".to_string(),
+                Value::String(event_source_tag(binding.event)),
+            ),
+        ],
+        _ => vec![(
+            "source".to_string(),
+            Value::String(event_source_tag(binding.event)),
+        )],
+    }
+}
+
+fn binding_schema_items(binding: &UiBindingRef) -> Vec<String> {
+    let mut items = vec![format!("event [UiEvent] = {}", binding.event.native_name())];
+    match binding_action_kind(binding) {
+        UiBindingActionKind::Route => {
+            items.push(format!(
+                "route.target [Route] = {}",
+                binding_route_target(binding)
+            ));
+        }
+        UiBindingActionKind::Action => {
+            items.push(format!(
+                "action.target [EditorAction] = {}",
+                binding_action_specific_target(binding)
+            ));
+        }
+        UiBindingActionKind::None => {
+            items.push("action.kind [None]".to_string());
+        }
+    }
+    for (key, value) in binding_schema_payload_entries(binding) {
+        items.push(format!(
+            "payload.{key} [{}] default = {}",
+            binding_value_kind_label(&value),
+            binding_schema_value_literal(&value)
+        ));
+    }
+    items
+}
+
+fn binding_schema_payload_entries(binding: &UiBindingRef) -> Vec<(String, Value)> {
+    if binding_action_kind(binding) == UiBindingActionKind::Action {
+        let action_target = binding_action_specific_target(binding);
+        if action_target.contains("SaveProject") {
+            return vec![
+                ("confirm".to_string(), Value::Boolean(true)),
+                (
+                    "source".to_string(),
+                    Value::String(event_source_tag(binding.event)),
+                ),
+            ];
+        }
+    }
+    binding_root_payload_suggestions(binding)
+}
+
+fn binding_target_payload_suggestions(binding: &UiBindingRef) -> Option<Vec<(String, Value)>> {
+    match binding_action_kind(binding) {
+        UiBindingActionKind::Route => {
+            let route_target = binding_route_target(binding);
+            if route_target.contains("Selection.Changed") {
+                return Some(vec![
+                    (
+                        "primary".to_string(),
+                        Value::String("SelectedNode".to_string()),
+                    ),
+                    (
+                        "selection_ids".to_string(),
+                        Value::Array(vec![Value::String("SelectedNode".to_string())]),
+                    ),
+                    (
+                        "context".to_string(),
+                        toml::Value::Table(
+                            [
+                                ("additive".to_string(), Value::Boolean(false)),
+                                ("source".to_string(), Value::String("hierarchy".to_string())),
+                            ]
+                            .into_iter()
+                            .collect(),
+                        ),
+                    ),
+                ]);
+            }
+            if route_target.contains("Form.ValueChanged") {
+                return Some(vec![
+                    ("value".to_string(), Value::String("preview".to_string())),
+                    ("committed".to_string(), Value::Boolean(true)),
+                    (
+                        "fields".to_string(),
+                        Value::Array(vec![Value::String("title".to_string())]),
+                    ),
+                    (
+                        "context".to_string(),
+                        toml::Value::Table(
+                            [
+                                (
+                                    "source".to_string(),
+                                    Value::String(event_source_tag(binding.event)),
+                                ),
+                                ("subject".to_string(), Value::String("field".to_string())),
+                            ]
+                            .into_iter()
+                            .collect(),
+                        ),
+                    ),
+                ]);
+            }
+        }
+        UiBindingActionKind::Action => {
+            let action_target = binding_action_specific_target(binding);
+            if action_target.contains("ToggleVisibility") {
+                return Some(vec![
+                    ("checked".to_string(), Value::Boolean(true)),
+                    (
+                        "selection_ids".to_string(),
+                        Value::Array(vec![Value::String("SelectedNode".to_string())]),
+                    ),
+                    (
+                        "context".to_string(),
+                        toml::Value::Table(
+                            [
+                                ("scope".to_string(), Value::String("selection".to_string())),
+                                (
+                                    "source".to_string(),
+                                    Value::String(event_source_tag(binding.event)),
+                                ),
+                            ]
+                            .into_iter()
+                            .collect(),
+                        ),
+                    ),
+                ]);
+            }
+        }
+        UiBindingActionKind::None => {}
+    }
+
+    None
+}
+
+fn binding_value_kind_label(value: &Value) -> &'static str {
+    match value {
+        Value::String(text) if text.trim_start().starts_with('=') => "Expression",
+        Value::Boolean(_) => "Bool",
+        Value::Integer(_) | Value::Float(_) => "Number",
+        Value::Array(_) => "Collection",
+        Value::Table(_) => "Object",
+        _ => "Text",
+    }
+}
+
+fn binding_schema_value_literal(value: &Value) -> String {
+    match value {
+        Value::String(text) => Value::String(text.clone()).to_string(),
+        _ => value.to_string(),
+    }
+}
+
+fn binding_route_suggestions(node: &UiNodeDefinition, binding: &UiBindingRef) -> Vec<String> {
+    let mut suggestions = Vec::new();
+    let keywords = binding_keywords(node);
+    if binding_event_supports_keyword_shortcuts(binding.event) && is_save_like(&keywords) {
+        suggestions.push("MenuAction.SaveProject".to_string());
+    }
+    match binding.event {
+        UiEventKind::Click | UiEventKind::DoubleClick | UiEventKind::Submit => {
+            suggestions.push("MenuAction.OpenProject".to_string());
+            suggestions.push("MenuAction.SaveLayout".to_string());
+            suggestions.push(format!("Route.{}", binding_route_slug(node, binding)));
+        }
+        UiEventKind::Change => {
+            suggestions.push("Route.Selection.Changed".to_string());
+            suggestions.push("Route.Form.ValueChanged".to_string());
+        }
+        UiEventKind::Toggle => {
+            suggestions.push("Route.Toggle.Changed".to_string());
+            suggestions.push("Route.Panel.VisibilityChanged".to_string());
+        }
+        _ => {
+            suggestions.push(format!("Route.{}", binding_route_slug(node, binding)));
+        }
+    }
+    dedupe_suggestions(suggestions)
+}
+
+fn binding_action_suggestions(node: &UiNodeDefinition, binding: &UiBindingRef) -> Vec<String> {
+    let mut suggestions = Vec::new();
+    let keywords = binding_keywords(node);
+    if binding_event_supports_keyword_shortcuts(binding.event) && is_save_like(&keywords) {
+        suggestions.push("EditorAction.SaveProject".to_string());
+    }
+    match binding.event {
+        UiEventKind::Click | UiEventKind::DoubleClick | UiEventKind::Submit => {
+            suggestions.push("EditorAction.OpenAssetBrowser".to_string());
+            suggestions.push("EditorAction.FocusSelection".to_string());
+        }
+        UiEventKind::Change => {
+            suggestions.push("EditorAction.RefreshPreview".to_string());
+            suggestions.push("EditorAction.ApplyInspector".to_string());
+        }
+        UiEventKind::Toggle => {
+            suggestions.push("EditorAction.ToggleVisibility".to_string());
+            suggestions.push("EditorAction.ToggleSelectionState".to_string());
+        }
+        _ => {
+            suggestions.push(format!(
+                "EditorAction.{}",
+                binding_route_slug(node, binding)
+            ));
+        }
+    }
+    dedupe_suggestions(suggestions)
+}
+
+fn binding_keywords(node: &UiNodeDefinition) -> String {
+    let control_id = node.control_id.as_deref().unwrap_or_default();
+    let text = node
+        .props
+        .get("text")
+        .and_then(Value::as_str)
+        .unwrap_or_default();
+    format!("{control_id} {text}").to_ascii_lowercase()
+}
+
+fn is_save_like(keywords: &str) -> bool {
+    keywords.contains("save")
+}
+
+fn binding_event_supports_keyword_shortcuts(event: UiEventKind) -> bool {
+    matches!(
+        event,
+        UiEventKind::Click | UiEventKind::DoubleClick | UiEventKind::Submit
+    )
+}
+
+fn binding_route_slug(node: &UiNodeDefinition, binding: &UiBindingRef) -> String {
+    let base = node
+        .control_id
+        .as_deref()
+        .or_else(|| node.component.as_deref())
+        .unwrap_or("Binding");
+    format!(
+        "{}{}",
+        sanitize_identifier(base),
+        sanitize_identifier(binding.event.native_name())
+    )
+}
+
+fn sanitize_identifier(value: &str) -> String {
+    let mut normalized = String::new();
+    let mut capitalize_next = true;
+    for ch in value.chars() {
+        if ch.is_ascii_alphanumeric() {
+            if capitalize_next {
+                normalized.push(ch.to_ascii_uppercase());
+                capitalize_next = false;
+            } else {
+                normalized.push(ch);
+            }
+        } else {
+            capitalize_next = true;
+        }
+    }
+    if normalized.is_empty() {
+        "Binding".to_string()
+    } else {
+        normalized
+    }
+}
+
+fn dedupe_suggestions(items: Vec<String>) -> Vec<String> {
+    let mut seen = std::collections::BTreeSet::new();
+    items
+        .into_iter()
+        .filter(|item| seen.insert(item.clone()))
+        .collect()
+}
+
+fn event_source_tag(event: UiEventKind) -> String {
+    event
+        .native_name()
+        .strip_prefix("on")
+        .map(|name| format!("ui.{}", name.to_ascii_lowercase()))
+        .unwrap_or_else(|| "ui.event".to_string())
+}
+
 fn selected_payload_key_for_binding(
     binding: &UiBindingRef,
     current: Option<&str>,
 ) -> Option<String> {
-    let payload = binding.action.as_ref().map(|action| &action.payload)?;
+    let payload = binding_payload_item_entries(binding);
     if payload.is_empty() {
         return None;
     }
     current
-        .filter(|key| payload.contains_key(*key))
+        .filter(|key| payload.iter().any(|(path, _)| path == key))
         .map(str::to_string)
-        .or_else(|| payload.keys().next().cloned())
+        .or_else(|| payload.first().map(|(path, _)| path.clone()))
+}
+
+fn binding_payload_root_value(binding: &UiBindingRef) -> Value {
+    Value::Table(
+        binding
+            .action
+            .as_ref()
+            .map(|action| action.payload.clone().into_iter().collect())
+            .unwrap_or_default(),
+    )
+}
+
+fn resolve_binding_payload_upsert_path(
+    binding: &UiBindingRef,
+    selected_payload_key: Option<&str>,
+    payload_key: &str,
+) -> Option<(String, Vec<UiAssetTomlPathSegment>)> {
+    let trimmed = payload_key.trim();
+    let payload_root = binding_payload_root_value(binding);
+
+    if let Some(selected_payload_key) = selected_payload_key.and_then(normalized_payload_key) {
+        if let Some(selected_path) = parse_value_path(&selected_payload_key) {
+            if let Some(selected_value) = get_value_at_path(&payload_root, &selected_path) {
+                if let Some(resolved) = resolve_relative_binding_payload_upsert_path(
+                    selected_value,
+                    &selected_path,
+                    &selected_payload_key,
+                    trimmed,
+                ) {
+                    return Some(resolved);
+                }
+            }
+        }
+    }
+
+    let normalized_payload_key = normalized_payload_key(trimmed)?;
+    let path = parse_value_path(&normalized_payload_key)?;
+    Some((normalized_payload_key, path))
+}
+
+fn resolve_relative_binding_payload_upsert_path(
+    selected_value: &Value,
+    selected_path: &[UiAssetTomlPathSegment],
+    selected_payload_key: &str,
+    payload_key: &str,
+) -> Option<(String, Vec<UiAssetTomlPathSegment>)> {
+    if payload_key_anchors_selected_path(selected_payload_key, payload_key) {
+        return None;
+    }
+
+    match selected_value {
+        Value::Table(_) => {
+            let relative_key = normalized_payload_key(payload_key)?;
+            let relative_path = parse_value_path(&relative_key)?;
+            let mut path = selected_path.to_vec();
+            path.extend(relative_path);
+            Some((join_payload_key(selected_payload_key, &relative_key), path))
+        }
+        Value::Array(items) if payload_key.trim().is_empty() => {
+            let mut path = selected_path.to_vec();
+            path.push(UiAssetTomlPathSegment::Index(items.len()));
+            Some((format!("{selected_payload_key}[{}]", items.len()), path))
+        }
+        Value::Array(_) => {
+            let (relative_key, relative_path) =
+                parse_relative_collection_payload_path(payload_key)?;
+            let mut path = selected_path.to_vec();
+            path.extend(relative_path);
+            Some((join_payload_key(selected_payload_key, &relative_key), path))
+        }
+        _ => None,
+    }
+}
+
+fn payload_key_anchors_selected_path(selected_payload_key: &str, payload_key: &str) -> bool {
+    let trimmed = payload_key.trim();
+    trimmed == selected_payload_key
+        || trimmed
+            .strip_prefix(selected_payload_key)
+            .is_some_and(|rest| rest.starts_with('.') || rest.starts_with('['))
+}
+
+fn join_payload_key(selected_payload_key: &str, relative_key: &str) -> String {
+    if relative_key.starts_with('[') {
+        format!("{selected_payload_key}{relative_key}")
+    } else {
+        format!("{selected_payload_key}.{relative_key}")
+    }
+}
+
+fn parse_relative_collection_payload_path(
+    payload_key: &str,
+) -> Option<(String, Vec<UiAssetTomlPathSegment>)> {
+    let trimmed = payload_key.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+    if trimmed.starts_with('[') {
+        return Some((trimmed.to_string(), parse_value_path(trimmed)?));
+    }
+
+    let digit_end = trimmed
+        .char_indices()
+        .take_while(|(_, ch)| ch.is_ascii_digit())
+        .last()
+        .map(|(index, ch)| index + ch.len_utf8())?;
+    let index = trimmed[..digit_end].parse::<usize>().ok()?;
+    let remainder = &trimmed[digit_end..];
+    let normalized = if remainder.is_empty() {
+        format!("[{index}]")
+    } else if remainder.starts_with('.') || remainder.starts_with('[') {
+        format!("[{index}]{}", remainder)
+    } else {
+        return None;
+    };
+    Some((normalized.clone(), parse_value_path(&normalized)?))
+}
+
+fn collect_binding_payload_item_entries(
+    value: &Value,
+    prefix: Option<&str>,
+    entries: &mut Vec<(String, Value)>,
+) {
+    if let Some(prefix) = prefix {
+        entries.push((prefix.to_string(), value.clone()));
+    }
+    match value {
+        Value::Array(items) => {
+            for (index, item) in items.iter().enumerate() {
+                let path = match prefix {
+                    Some(prefix) => format!("{prefix}[{index}]"),
+                    None => format!("[{index}]"),
+                };
+                collect_binding_payload_item_entries(item, Some(path.as_str()), entries);
+            }
+        }
+        Value::Table(table) => {
+            let mut keys = table.keys().cloned().collect::<Vec<_>>();
+            keys.sort();
+            for key in keys {
+                let Some(item) = table.get(&key) else {
+                    continue;
+                };
+                let path = match prefix {
+                    Some(prefix) => format!("{prefix}.{key}"),
+                    None => key.clone(),
+                };
+                collect_binding_payload_item_entries(item, Some(path.as_str()), entries);
+            }
+        }
+        _ => {}
+    }
 }
 
 fn apply_binding_action_state(

@@ -189,6 +189,44 @@ impl EditorManager {
         Ok(changed)
     }
 
+    pub fn apply_ui_asset_editor_selected_binding_route_suggestion(
+        &self,
+        instance_id: &ViewInstanceId,
+        index: usize,
+    ) -> Result<bool, EditorError> {
+        self.ensure_ui_asset_editor_session(instance_id)?;
+        let mut sessions = self.ui_asset_sessions.lock().unwrap();
+        let entry = sessions.get_mut(instance_id).ok_or_else(|| {
+            EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
+        })?;
+        let changed = entry
+            .session
+            .apply_selected_binding_route_suggestion(index)
+            .map_err(|error| EditorError::UiAsset(error.to_string()))?;
+        drop(sessions);
+        self.sync_ui_asset_editor_instance(instance_id)?;
+        Ok(changed)
+    }
+
+    pub fn apply_ui_asset_editor_selected_binding_action_suggestion(
+        &self,
+        instance_id: &ViewInstanceId,
+        index: usize,
+    ) -> Result<bool, EditorError> {
+        self.ensure_ui_asset_editor_session(instance_id)?;
+        let mut sessions = self.ui_asset_sessions.lock().unwrap();
+        let entry = sessions.get_mut(instance_id).ok_or_else(|| {
+            EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
+        })?;
+        let changed = entry
+            .session
+            .apply_selected_binding_action_suggestion(index)
+            .map_err(|error| EditorError::UiAsset(error.to_string()))?;
+        drop(sessions);
+        self.sync_ui_asset_editor_instance(instance_id)?;
+        Ok(changed)
+    }
+
     pub fn select_ui_asset_editor_binding_payload(
         &self,
         instance_id: &ViewInstanceId,
@@ -240,6 +278,25 @@ impl EditorManager {
         let changed = entry
             .session
             .delete_selected_binding_payload()
+            .map_err(|error| EditorError::UiAsset(error.to_string()))?;
+        drop(sessions);
+        self.sync_ui_asset_editor_instance(instance_id)?;
+        Ok(changed)
+    }
+
+    pub fn apply_ui_asset_editor_selected_binding_payload_suggestion(
+        &self,
+        instance_id: &ViewInstanceId,
+        index: usize,
+    ) -> Result<bool, EditorError> {
+        self.ensure_ui_asset_editor_session(instance_id)?;
+        let mut sessions = self.ui_asset_sessions.lock().unwrap();
+        let entry = sessions.get_mut(instance_id).ok_or_else(|| {
+            EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
+        })?;
+        let changed = entry
+            .session
+            .apply_selected_binding_payload_suggestion(index)
             .map_err(|error| EditorError::UiAsset(error.to_string()))?;
         drop(sessions);
         self.sync_ui_asset_editor_instance(instance_id)?;

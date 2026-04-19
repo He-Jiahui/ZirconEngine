@@ -1,14 +1,16 @@
 use zircon_math::{Transform, Vec3};
-use zircon_scene::{Mobility, NodeKind, World};
+use zircon_scene::components::{Mobility, NodeKind};
+use zircon_scene::world::World;
 
 use std::fs;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use zircon_asset::{
-    AssetUri, ProjectManager, ProjectManifest, ProjectPaths, SceneAsset, SceneCameraAsset,
-    SceneEntityAsset, SceneMobilityAsset, TransformAsset,
+use zircon_asset::assets::{
+    SceneAsset, SceneCameraAsset, SceneEntityAsset, SceneMobilityAsset, TransformAsset,
 };
+use zircon_asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
+use zircon_asset::AssetUri;
 
 #[test]
 fn spawned_entities_start_with_runtime_foundation_defaults() {

@@ -5,8 +5,8 @@ use std::sync::Arc;
 use zircon_core::{
     DriverDescriptor, ManagerDescriptor, ModuleDescriptor, ServiceKind, ServiceObject, StartupMode,
 };
-use zircon_foundation::FOUNDATION_MODULE_NAME;
 use zircon_module::{dependency_on, factory, qualified_name};
+use zircon_runtime::foundation::FOUNDATION_MODULE_NAME;
 
 use crate::manager::EditorManager;
 

@@ -1,6 +1,8 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use zircon_scene::{RenderHybridGiExtract, ViewportCameraSnapshot};
+use zircon_framework::render::{
+    RenderHybridGiExtract, RenderHybridGiProbe, RenderHybridGiTraceRegion, ViewportCameraSnapshot,
+};
 
 use super::super::super::declarations::{
     VisibilityHistorySnapshot, VisibilityHybridGiFeedback, VisibilityHybridGiProbe,
@@ -92,6 +94,15 @@ pub(crate) fn build_hybrid_gi_plan(
                 map
             },
         );
+    let previous_requested_probe_ids = previous
+        .map(|history| {
+            history
+                .hybrid_gi_requested_probes
+                .iter()
+                .copied()
+                .collect::<BTreeSet<_>>()
+        })
+        .unwrap_or_default();
 
     let requested_probe_groups = active_probes
         .iter()
@@ -107,6 +118,7 @@ pub(crate) fn build_hybrid_gi_plan(
                     right,
                     &scheduled_trace_regions,
                     &visible_probes_by_id,
+                    &previous_requested_probe_ids,
                 )
             });
             group
@@ -117,20 +129,12 @@ pub(crate) fn build_hybrid_gi_plan(
         &requested_probe_groups,
         &scheduled_trace_regions,
         &visible_probes_by_id,
+        &previous_requested_probe_ids,
     );
     let requested_probe_ids = unique_probe_ids(
         requested_probes.iter().map(|probe| probe.probe_id),
         extract.probe_budget as usize,
     );
-    let previous_requested_probe_ids = previous
-        .map(|history| {
-            history
-                .hybrid_gi_requested_probes
-                .iter()
-                .copied()
-                .collect::<BTreeSet<_>>()
-        })
-        .unwrap_or_default();
     let previous_active_probe_ids = previous
         .map(|history| {
             history
@@ -225,9 +229,9 @@ pub(crate) fn build_hybrid_gi_plan(
 }
 
 fn collect_nonresident_descendants(
-    children_by_parent: &BTreeMap<u32, Vec<zircon_scene::RenderHybridGiProbe>>,
+    children_by_parent: &BTreeMap<u32, Vec<RenderHybridGiProbe>>,
     root_probe_id: u32,
-) -> Vec<zircon_scene::RenderHybridGiProbe> {
+) -> Vec<RenderHybridGiProbe> {
     let mut descendants = Vec::new();
     let mut visited_probe_ids = BTreeSet::new();
     let mut stack = children_by_parent
@@ -251,10 +255,11 @@ fn collect_nonresident_descendants(
 }
 
 fn interleave_requested_probe_groups(
-    requested_probe_groups: &[Vec<zircon_scene::RenderHybridGiProbe>],
-    scheduled_trace_regions: &[zircon_scene::RenderHybridGiTraceRegion],
-    visible_probes_by_id: &BTreeMap<u32, zircon_scene::RenderHybridGiProbe>,
-) -> Vec<zircon_scene::RenderHybridGiProbe> {
+    requested_probe_groups: &[Vec<RenderHybridGiProbe>],
+    scheduled_trace_regions: &[RenderHybridGiTraceRegion],
+    visible_probes_by_id: &BTreeMap<u32, RenderHybridGiProbe>,
+    previous_requested_probe_ids: &BTreeSet<u32>,
+) -> Vec<RenderHybridGiProbe> {
     let mut requested_probes = Vec::new();
     let mut round_index = 0usize;
 
@@ -272,6 +277,7 @@ fn interleave_requested_probe_groups(
                 right,
                 scheduled_trace_regions,
                 visible_probes_by_id,
+                previous_requested_probe_ids,
             )
         });
         requested_probes.extend(round);
@@ -283,7 +289,7 @@ fn interleave_requested_probe_groups(
 
 fn requested_frontier_probe_ids(
     requested_probe_ids: &[u32],
-    visible_probes_by_id: &BTreeMap<u32, zircon_scene::RenderHybridGiProbe>,
+    visible_probes_by_id: &BTreeMap<u32, RenderHybridGiProbe>,
     active_probe_set: &BTreeSet<u32>,
 ) -> BTreeSet<u32> {
     requested_probe_ids
@@ -296,7 +302,7 @@ fn requested_frontier_probe_ids(
 
 fn visible_frontier_probe_id_for_probe(
     probe_id: u32,
-    visible_probes_by_id: &BTreeMap<u32, zircon_scene::RenderHybridGiProbe>,
+    visible_probes_by_id: &BTreeMap<u32, RenderHybridGiProbe>,
     active_probe_set: &BTreeSet<u32>,
 ) -> Option<u32> {
     let mut current_probe_id = probe_id;
@@ -323,7 +329,7 @@ fn visible_frontier_probe_id_for_probe(
 
 fn has_hidden_resident_descendant_probe(
     probe_id: u32,
-    children_by_parent: &BTreeMap<u32, Vec<zircon_scene::RenderHybridGiProbe>>,
+    children_by_parent: &BTreeMap<u32, Vec<RenderHybridGiProbe>>,
     active_probe_set: &BTreeSet<u32>,
 ) -> bool {
     let mut visited_probe_ids = BTreeSet::new();

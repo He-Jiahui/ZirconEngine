@@ -1,10 +1,10 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use zircon_asset::{resolve_asset_manager, AssetManager};
+use zircon_asset::pipeline::manager::{resolve_asset_manager, AssetManager};
 use zircon_framework::foundation::ConfigManager;
 use zircon_manager::ManagerResolver;
-use zircon_scene::{DefaultLevelManager, LevelMetadata, Scene, DEFAULT_LEVEL_MANAGER_NAME};
+use zircon_runtime::scene::{DefaultLevelManager, LevelMetadata, DEFAULT_LEVEL_MANAGER_NAME};
 
 use crate::project::{project_root_path, EditorProjectDocument};
 
@@ -25,7 +25,11 @@ impl EditorManager {
             .map_err(|error| EditorError::Project(error.to_string()))
     }
 
-    pub fn save_project(&self, path: impl AsRef<Path>, world: &Scene) -> Result<(), EditorError> {
+    pub fn save_project(
+        &self,
+        path: impl AsRef<Path>,
+        world: &zircon_runtime::scene::Scene,
+    ) -> Result<(), EditorError> {
         let workspace = self.project_workspace();
         let root =
             project_root_path(&path).map_err(|error| EditorError::Project(error.to_string()))?;
@@ -39,8 +43,8 @@ impl EditorManager {
 
     pub fn create_runtime_level(
         &self,
-        scene: Scene,
-    ) -> Result<zircon_scene::LevelSystem, EditorError> {
+        scene: zircon_runtime::scene::Scene,
+    ) -> Result<zircon_runtime::scene::LevelSystem, EditorError> {
         let manager = self
             .core
             .resolve_manager::<DefaultLevelManager>(DEFAULT_LEVEL_MANAGER_NAME)

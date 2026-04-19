@@ -80,7 +80,10 @@ pub(super) fn parse_asset_kind_filter(kind: Option<&str>) -> Result<Option<Resou
     }
 }
 
-pub(in crate::core::editor_event::runtime) fn event_result_value(revision: u64, changed: bool) -> Value {
+pub(in crate::core::editor_event::runtime) fn event_result_value(
+    revision: u64,
+    changed: bool,
+) -> Value {
     json!({
         "revision": revision,
         "changed": changed,

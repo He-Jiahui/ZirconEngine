@@ -1,10 +1,11 @@
 use zircon_resource::ResourceManager;
+use zircon_resource::ResourceRecord;
 
-use crate::{AssetMetadata, ImportedAsset};
+use crate::ImportedAsset;
 
 pub(in crate::pipeline::manager) fn register_project_resource(
     resource_manager: &ResourceManager,
-    metadata: AssetMetadata,
+    metadata: ResourceRecord,
     imported: ImportedAsset,
 ) {
     match imported {

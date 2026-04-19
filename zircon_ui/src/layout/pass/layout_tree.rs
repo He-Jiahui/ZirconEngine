@@ -1,4 +1,5 @@
-use crate::{UiFrame, UiSize, UiTree, UiTreeError};
+use crate::tree::UiTreeError;
+use crate::{UiFrame, UiSize, UiTree};
 
 use super::arrange::arrange_node;
 use super::measure::measure_node;

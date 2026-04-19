@@ -1,4 +1,4 @@
-use zircon_scene::ViewportIconId;
+use zircon_framework::render::ViewportIconId;
 
 pub trait ViewportIconSource: Send + Sync + 'static {
     fn bytes(&self, id: ViewportIconId) -> Option<&'static [u8]>;

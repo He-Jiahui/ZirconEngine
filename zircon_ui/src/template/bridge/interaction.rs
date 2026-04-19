@@ -1,4 +1,6 @@
-use crate::{UiInputPolicy, UiStateFlags, UiTemplateNode};
+use crate::template::UiTemplateNode;
+use crate::event_ui::UiStateFlags;
+use crate::UiInputPolicy;
 
 pub(super) fn infer_interaction(node: &UiTemplateNode) -> (UiStateFlags, UiInputPolicy) {
     let is_interactive = !node.bindings.is_empty()

@@ -1,4 +1,6 @@
+mod boundary;
 mod hybrid_gi_gpu;
+mod hybrid_gi_gpu_runtime_source;
 mod hybrid_gi_gpu_hierarchy;
 mod hybrid_gi_resolve_render;
 mod hybrid_gi_runtime;
@@ -8,13 +10,13 @@ mod m5_flagship_slots;
 mod pipeline_compile;
 mod project_render;
 mod render_framework_bridge;
-#[cfg(feature = "runtime-ui-integration-tests")]
-mod runtime_ui_integration;
 mod scene_overlay;
+mod virtual_geometry_args_source_authority;
 mod virtual_geometry_frontier_runtime;
 mod virtual_geometry_gpu;
 mod virtual_geometry_prepare_render;
 mod virtual_geometry_runtime;
 mod virtual_geometry_submission_authority;
+mod virtual_geometry_submission_execution_order;
 mod virtual_geometry_unified_indirect;
 mod visibility;

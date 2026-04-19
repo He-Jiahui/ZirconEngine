@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use zircon_asset::{ProjectManifest, ProjectPaths};
+use zircon_asset::project::{ProjectManifest, ProjectPaths};
 
 use crate::project::EditorProjectDocument;
 use crate::ui::workbench::startup::RecentProjectValidation;

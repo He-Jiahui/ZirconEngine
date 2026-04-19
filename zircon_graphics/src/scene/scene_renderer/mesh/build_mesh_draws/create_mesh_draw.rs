@@ -6,7 +6,7 @@ use zircon_math::{RenderVec4, Vec4};
 use crate::scene::resources::{GpuMeshResource, GpuTextureResource, PipelineKey};
 
 use super::super::super::primitives::{render_vec4_or, ModelUniform};
-use super::super::mesh_draw::MeshDraw;
+use super::super::mesh_draw::{MeshDraw, VirtualGeometrySubmissionDetail};
 
 pub(super) fn create_mesh_draw(
     device: &wgpu::Device,
@@ -20,6 +20,7 @@ pub(super) fn create_mesh_draw(
     draw_index_count: u32,
     indirect_args_buffer: Option<Arc<wgpu::Buffer>>,
     indirect_args_offset: u64,
+    virtual_geometry_submission_detail: Option<VirtualGeometrySubmissionDetail>,
 ) -> MeshDraw {
     let model_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
         label: Some("zircon-model-buffer"),
@@ -44,6 +45,9 @@ pub(super) fn create_mesh_draw(
         draw_index_count,
         indirect_args_buffer,
         indirect_args_offset,
+        virtual_geometry_submission_key: virtual_geometry_submission_detail
+            .map(|detail| (detail.entity, detail.page_id)),
+        virtual_geometry_submission_detail,
         texture,
         pipeline_key,
         model_buffer,

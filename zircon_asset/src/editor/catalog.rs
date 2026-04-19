@@ -1,8 +1,7 @@
 use std::path::PathBuf;
 
-use crate::{
-    AssetId, AssetKind, AssetMetaDocument, AssetReference, AssetUri, AssetUuid, PreviewState,
-};
+use crate::project::{AssetMetaDocument, PreviewState};
+use crate::{AssetId, AssetKind, AssetReference, AssetUri, AssetUuid};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct AssetCatalogRecord {

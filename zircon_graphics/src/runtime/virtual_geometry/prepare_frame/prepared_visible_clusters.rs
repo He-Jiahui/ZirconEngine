@@ -1,4 +1,4 @@
-use zircon_scene::EntityId;
+use zircon_framework::scene::EntityId;
 
 use crate::types::{VirtualGeometryPrepareCluster, VirtualGeometryPrepareDrawSegment};
 

@@ -2,8 +2,11 @@ use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
 
 use zircon_ui::{
-    UiFrame, UiInputPolicy, UiNodeId, UiNodePath, UiPointerDispatchEffect, UiPointerDispatcher,
-    UiPointerEventKind, UiSurface, UiTreeId, UiTreeNode,
+    dispatch::{UiPointerDispatchEffect, UiPointerDispatcher},
+    event_ui::UiNodeId,
+    event_ui::UiNodePath,
+    event_ui::UiTreeId,
+    UiFrame, UiInputPolicy, UiPointerEventKind, UiSurface, UiTreeNode,
 };
 
 use crate::ui::slint_host::callback_dispatch::BuiltinWorkbenchRootShellFrames;
@@ -20,11 +23,11 @@ use super::common::{base_target_state, clamp_frame_to_root, frame_if_visible, up
 use super::drag_frames::DragTargetFrames;
 use super::effects::{document_edge_effect, edge_effect_in_frame, side_target_effect};
 use super::node_ids::{
-    floating_window_attach_node_id, floating_window_edge_node_id, DOCUMENT_EDGE_BOTTOM_NODE_ID,
+    floating_window_attach_node_id, floating_window_edge_node_id,
+    floating_window_projection_exclusion_node_id, DOCUMENT_EDGE_BOTTOM_NODE_ID,
     DOCUMENT_EDGE_LEFT_NODE_ID, DOCUMENT_EDGE_RIGHT_NODE_ID, DOCUMENT_EDGE_TOP_NODE_ID,
     DRAG_POINTER_ROOT_NODE_ID, DRAG_TARGET_BOTTOM_NODE_ID, DRAG_TARGET_DOCUMENT_NODE_ID,
     DRAG_TARGET_LEFT_NODE_ID, DRAG_TARGET_RIGHT_NODE_ID,
-    floating_window_projection_exclusion_node_id,
 };
 use super::route::WorkbenchShellPointerRoute;
 
@@ -300,7 +303,8 @@ pub(super) fn build_drag_surface(
                     .is_none()
                     .then_some(geometry.floating_window_frame(&window.window_id))
             });
-        let frame = projected_frame.and_then(|frame| frame_if_visible(clamp_frame_to_root(frame, root_frame)));
+        let frame = projected_frame
+            .and_then(|frame| frame_if_visible(clamp_frame_to_root(frame, root_frame)));
         let exclusion_frame = if floating_window_projection_bundle.is_some() && frame.is_none() {
             frame_if_visible(clamp_frame_to_root(
                 geometry.floating_window_frame(&window.window_id),

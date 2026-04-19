@@ -1,6 +1,6 @@
+use zircon_framework::render::{RenderFrameExtract, RenderSceneSnapshot};
 use zircon_math::UVec2;
-use zircon_scene::{RenderFrameExtract, RenderSceneSnapshot};
-use zircon_ui::UiRenderExtract;
+use zircon_ui::surface::UiRenderExtract;
 
 use super::hybrid_gi_prepare::HybridGiPrepareFrame;
 use super::hybrid_gi_resolve_runtime::HybridGiResolveRuntime;

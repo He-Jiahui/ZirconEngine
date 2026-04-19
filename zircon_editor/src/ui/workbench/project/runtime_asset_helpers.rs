@@ -1,9 +1,11 @@
 use std::fs;
 use std::path::PathBuf;
 
-use zircon_asset::{AlphaMode, AssetImportError, AssetReference, MaterialAsset};
+use zircon_asset::assets::{AlphaMode, MaterialAsset};
+use zircon_asset::importer::AssetImportError;
+use zircon_asset::AssetReference;
 use zircon_resource::ResourceLocator;
-use zircon_scene::SceneProjectError;
+use zircon_scene::world::SceneProjectError;
 
 use super::constants::DEFAULT_SHADER_URI;
 
@@ -51,6 +53,8 @@ pub(in crate::ui::workbench::project) fn parse_asset_uri(
         .map_err(|error| SceneProjectError::Asset(AssetImportError::from(error)))
 }
 
-pub(in crate::ui::workbench::project) fn invalid_data(message: impl Into<String>) -> std::io::Error {
+pub(in crate::ui::workbench::project) fn invalid_data(
+    message: impl Into<String>,
+) -> std::io::Error {
     std::io::Error::new(std::io::ErrorKind::InvalidData, message.into())
 }

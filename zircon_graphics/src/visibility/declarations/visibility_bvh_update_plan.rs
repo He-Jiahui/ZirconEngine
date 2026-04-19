@@ -1,4 +1,4 @@
-use zircon_scene::EntityId;
+use zircon_framework::scene::EntityId;
 
 use super::visibility_bvh_update_strategy::VisibilityBvhUpdateStrategy;
 
@@ -9,3 +9,4 @@ pub struct VisibilityBvhUpdatePlan {
     pub updated_entities: Vec<EntityId>,
     pub removed_entities: Vec<EntityId>,
 }
+

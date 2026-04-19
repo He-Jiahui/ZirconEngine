@@ -1,4 +1,4 @@
-use zircon_ui::UiNodeId;
+use zircon_ui::event_ui::UiNodeId;
 
 pub(super) const ROOT_NODE_ID: UiNodeId = UiNodeId::new(1);
 pub(super) const LEFT_STRIP_NODE_ID: UiNodeId = UiNodeId::new(10);

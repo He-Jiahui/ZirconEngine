@@ -1,4 +1,4 @@
-use crate::{UiComponentTemplate, UiTemplateDocument, UiTemplateError, UiTemplateNode};
+use super::{UiComponentTemplate, UiTemplateDocument, UiTemplateError, UiTemplateNode};
 
 #[derive(Default)]
 pub struct UiTemplateValidator;

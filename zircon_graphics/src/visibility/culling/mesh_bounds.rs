@@ -1,5 +1,5 @@
 use super::super::declarations::VisibilityBounds;
-use zircon_scene::RenderMeshSnapshot;
+use zircon_framework::render::RenderMeshSnapshot;
 
 pub(crate) fn mesh_bounds(mesh: &RenderMeshSnapshot) -> VisibilityBounds {
     VisibilityBounds {

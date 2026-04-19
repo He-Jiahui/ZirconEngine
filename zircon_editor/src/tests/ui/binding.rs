@@ -3,10 +3,10 @@ use crate::{
     EditorUiEventKind, EditorUiRouter, InspectorFieldChange, SelectionCommand, ViewportCommand,
     WelcomeCommand,
 };
-use zircon_scene::{
+use zircon_framework::render::{
     DisplayMode, GridMode, ProjectionMode, SceneViewportTool, TransformSpace, ViewOrientation,
 };
-use zircon_ui::UiBindingValue;
+use zircon_ui::binding::UiBindingValue;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 enum MockEditorCommand {

@@ -1,5 +1,5 @@
+use zircon_framework::render::{ProjectionMode, RenderMeshSnapshot, ViewportCameraSnapshot};
 use zircon_math::view_matrix;
-use zircon_scene::{ProjectionMode, RenderMeshSnapshot, ViewportCameraSnapshot};
 
 use super::{
     mesh_bounds::mesh_bounds, orthographic_visible::orthographic_visible,

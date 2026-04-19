@@ -1,6 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
-use zircon_scene::{Mobility, RenderFrameExtract};
+use zircon_framework::render::RenderFrameExtract;
+use zircon_framework::scene::Mobility;
 
 use super::super::super::culling::{
     is_mesh_visible::is_mesh_visible, mesh_bounds::mesh_bounds,
@@ -90,3 +91,4 @@ pub(super) fn collect_batching_result(value: &RenderFrameExtract) -> BatchingRes
         history_entries,
     }
 }
+

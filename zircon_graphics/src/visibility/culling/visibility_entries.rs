@@ -1,4 +1,4 @@
-use zircon_scene::{RenderFrameExtract, VisibilityRenderableInput};
+use zircon_framework::render::{RenderFrameExtract, VisibilityRenderableInput};
 
 pub(crate) fn visibility_entries(extract: &RenderFrameExtract) -> Vec<VisibilityRenderableInput> {
     if !extract.visibility.renderables.is_empty() {

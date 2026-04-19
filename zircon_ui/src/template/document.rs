@@ -3,7 +3,9 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::{UiActionRef, UiEventKind};
+use crate::binding::UiEventKind;
+
+use super::UiActionRef;
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct UiTemplateDocument {

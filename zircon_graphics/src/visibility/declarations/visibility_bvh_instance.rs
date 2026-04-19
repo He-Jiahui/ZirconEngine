@@ -1,4 +1,4 @@
-use zircon_scene::EntityId;
+use zircon_framework::scene::EntityId;
 
 use super::{visibility_batch_key::VisibilityBatchKey, visibility_bounds::VisibilityBounds};
 
@@ -8,3 +8,4 @@ pub struct VisibilityBvhInstance {
     pub key: VisibilityBatchKey,
     pub bounds: VisibilityBounds,
 }
+

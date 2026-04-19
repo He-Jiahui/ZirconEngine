@@ -5,6 +5,7 @@ mod pending_completion;
 mod plan_ingestion;
 mod prepare_frame;
 mod residency_management;
+mod scene_trace_support;
 mod snapshot;
 #[cfg(test)]
 mod test_accessors;

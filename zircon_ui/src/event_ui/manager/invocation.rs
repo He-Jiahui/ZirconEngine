@@ -1,4 +1,4 @@
-use crate::{UiBindingValue, UiEventBinding};
+use crate::binding::{UiBindingValue, UiEventBinding};
 
 use super::super::{
     UiControlRequest, UiControlResponse, UiInvocationContext, UiInvocationError,

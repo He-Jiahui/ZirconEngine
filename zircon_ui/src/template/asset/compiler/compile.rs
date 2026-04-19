@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 
-use crate::{UiAssetDocument, UiAssetError, UiTemplateInstance};
+use crate::template::UiTemplateInstance;
+use crate::{UiAssetDocument, template::UiAssetError};
 
 use super::shape_validator::validate_document_shape;
 use super::ui_document_compiler::{CompilationArtifacts, UiCompiledDocument, UiDocumentCompiler};

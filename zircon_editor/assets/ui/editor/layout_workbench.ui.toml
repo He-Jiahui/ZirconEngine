@@ -1,0 +1,105 @@
+[asset]
+kind = "layout"
+id = "editor.layout_workbench"
+version = 1
+display_name = "Layout Workbench"
+
+[imports]
+widgets = [
+  "res://ui/editor/editor_widgets.ui.toml#EditorToolbar",
+  "res://ui/editor/editor_widgets.ui.toml#EditorToolbarButton",
+  "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard",
+]
+styles = ["res://ui/theme/editor_base.ui.toml"]
+
+[root]
+node = "layout_workbench_root"
+
+[nodes.layout_workbench_root]
+kind = "native"
+type = "VerticalBox"
+control_id = "LayoutWorkbenchRoot"
+classes = ["editor-shell"]
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox", gap = 10.0 } }
+children = [
+  { child = "toolbar" },
+  { child = "content" },
+]
+
+[nodes.toolbar]
+kind = "reference"
+component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorToolbar"
+control_id = "LayoutWorkbenchToolbar"
+children = [
+  { child = "new_canvas_button", mount = "actions" },
+  { child = "promote_button", mount = "actions" },
+]
+
+[nodes.new_canvas_button]
+kind = "reference"
+component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorToolbarButton"
+control_id = "NewCanvas"
+classes = ["toolbar-primary"]
+params = { label = "New Canvas", icon = "add-outline" }
+
+[nodes.promote_button]
+kind = "reference"
+component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorToolbarButton"
+control_id = "PromoteLayout"
+params = { label = "Promote", icon = "share-outline" }
+
+[nodes.content]
+kind = "native"
+type = "HorizontalBox"
+control_id = "LayoutWorkbenchContent"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "HorizontalBox", gap = 10.0 } }
+children = [
+  { child = "outline_panel", slot = { layout = { width = { min = 220.0, preferred = 240.0, max = 280.0, stretch = "Fixed" } } } },
+  { child = "canvas_panel" },
+  { child = "semantics_panel", slot = { layout = { width = { min = 260.0, preferred = 280.0, max = 340.0, stretch = "Fixed" } } } },
+]
+
+[nodes.outline_panel]
+kind = "reference"
+component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard"
+control_id = "LayoutOutlinePanel"
+params = { title = "Outline" }
+children = [
+  { child = "outline_label", mount = "content" },
+]
+
+[nodes.outline_label]
+kind = "native"
+type = "Label"
+control_id = "LayoutOutlineLabel"
+props = { text = "Pages, components, reusable layout patterns" }
+
+[nodes.canvas_panel]
+kind = "reference"
+component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard"
+control_id = "LayoutCanvasPanel"
+params = { title = "Canvas" }
+children = [
+  { child = "canvas_label", mount = "content" },
+]
+
+[nodes.canvas_label]
+kind = "native"
+type = "Label"
+control_id = "LayoutCanvasLabel"
+props = { text = "Auto layout guides, overlay anchors, drop overlays" }
+
+[nodes.semantics_panel]
+kind = "reference"
+component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard"
+control_id = "LayoutSemanticsPanel"
+params = { title = "Semantics" }
+children = [
+  { child = "semantics_label", mount = "content" },
+]
+
+[nodes.semantics_label]
+kind = "native"
+type = "Label"
+control_id = "LayoutSemanticsLabel"
+props = { text = "Slot inspector, layout contract, binding context" }

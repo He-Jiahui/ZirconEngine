@@ -1,0 +1,1700 @@
+import { DockTabButton, MenuBarButton, MenuItemRow, Palette, RailButton, ShellIcon, TabChip } from "chrome.slint";
+import { PaneSurface, PaneData } from "pane_surface.slint";
+import { PaneSurfaceHostContext } from "pane_surface.slint";
+import { WorkbenchHostContext } from "host_context.slint";
+
+export struct TabData {
+    id: string,
+    slot: string,
+    title: string,
+    icon_key: string,
+    active: bool,
+    closeable: bool,
+}
+
+export struct FrameRect {
+    x: float,
+    y: float,
+    width: float,
+    height: float,
+}
+
+export struct HostWindowShellData {
+    project_path: string,
+    status_secondary: string,
+    viewport_label: string,
+    drawers_visible: bool,
+    left_expanded: bool,
+    right_expanded: bool,
+    bottom_expanded: bool,
+    save_project_enabled: bool,
+    undo_enabled: bool,
+    redo_enabled: bool,
+    preset_names: [string],
+    active_preset_name: string,
+    shell_min_width_px: float,
+    shell_min_height_px: float,
+    native_floating_window_mode: bool,
+    native_floating_window_id: string,
+    native_window_title: string,
+    native_window_bounds: FrameRect,
+}
+
+export struct HostWindowLayoutData {
+    center_band_frame: FrameRect,
+    status_bar_frame: FrameRect,
+    left_region_frame: FrameRect,
+    document_region_frame: FrameRect,
+    right_region_frame: FrameRect,
+    bottom_region_frame: FrameRect,
+    left_splitter_frame: FrameRect,
+    right_splitter_frame: FrameRect,
+    bottom_splitter_frame: FrameRect,
+    viewport_content_frame: FrameRect,
+}
+
+export struct FloatingWindowData {
+    window_id: string,
+    title: string,
+    frame: FrameRect,
+    target_group: string,
+    left_edge_target_group: string,
+    right_edge_target_group: string,
+    top_edge_target_group: string,
+    bottom_edge_target_group: string,
+    focus_target_id: string,
+    tabs: [TabData],
+    active_pane: PaneData,
+}
+
+export struct HostWindowSurfaceData {
+    host_tabs: [TabData],
+    left_tabs: [TabData],
+    right_tabs: [TabData],
+    bottom_tabs: [TabData],
+    document_tabs: [TabData],
+    floating_windows: [FloatingWindowData],
+    left_pane: PaneData,
+    right_pane: PaneData,
+    bottom_pane: PaneData,
+    document_pane: PaneData,
+}
+
+export struct HostTabDragOverlayData {
+    left_drop_enabled: bool,
+    right_drop_enabled: bool,
+    bottom_drop_enabled: bool,
+    left_drop_width_px: float,
+    right_drop_width_px: float,
+    bottom_drop_height_px: float,
+    main_content_y_px: float,
+    main_content_height_px: float,
+    document_zone_x_px: float,
+    document_zone_width_px: float,
+    bottom_drop_top_px: float,
+    drag_overlay_bottom_px: float,
+}
+
+export struct HostMenuChromeData {
+    outer_margin_px: float,
+    top_bar_height_px: float,
+    save_project_enabled: bool,
+    undo_enabled: bool,
+    redo_enabled: bool,
+    delete_enabled: bool,
+    preset_names: [string],
+    active_preset_name: string,
+    resolved_preset_name: string,
+}
+
+export struct HostPageChromeData {
+    top_bar_height_px: float,
+    host_bar_height_px: float,
+    tabs: [TabData],
+    project_path: string,
+}
+
+export struct HostStatusBarData {
+    status_bar_frame: FrameRect,
+    status_primary: string,
+    status_secondary: string,
+    viewport_label: string,
+}
+
+export struct HostResizeLayerData {
+    left_splitter_frame: FrameRect,
+    right_splitter_frame: FrameRect,
+    bottom_splitter_frame: FrameRect,
+}
+
+export struct HostSideDockSurfaceData {
+    region_frame: FrameRect,
+    surface_key: string,
+    rail_before_panel: bool,
+    tabs: [TabData],
+    pane: PaneData,
+    rail_width_px: float,
+    panel_width_px: float,
+    panel_header_height_px: float,
+    tab_origin_x_px: float,
+    tab_origin_y_px: float,
+}
+
+export struct HostDocumentDockSurfaceData {
+    region_frame: FrameRect,
+    surface_key: string,
+    tabs: [TabData],
+    pane: PaneData,
+    header_height_px: float,
+    tab_origin_x_px: float,
+    tab_origin_y_px: float,
+}
+
+export struct HostBottomDockSurfaceData {
+    region_frame: FrameRect,
+    surface_key: string,
+    tabs: [TabData],
+    pane: PaneData,
+    expanded: bool,
+    header_height_px: float,
+    tab_origin_x_px: float,
+    tab_origin_y_px: float,
+}
+
+export struct HostFloatingWindowLayerData {
+    floating_windows: [FloatingWindowData],
+    header_height_px: float,
+}
+
+export struct HostWorkbenchSurfaceMetricsData {
+    outer_margin_px: float,
+    rail_width_px: float,
+    top_bar_height_px: float,
+    host_bar_height_px: float,
+    panel_header_height_px: float,
+    document_header_height_px: float,
+}
+
+export struct HostWorkbenchSurfaceOrchestrationData {
+    left_rail_width_px: float,
+    right_rail_width_px: float,
+    left_stack_width_px: float,
+    right_stack_width_px: float,
+    left_panel_width_px: float,
+    right_panel_width_px: float,
+    bottom_panel_height_px: float,
+    main_content_y_px: float,
+    document_zone_x_px: float,
+    right_stack_x_px: float,
+    bottom_panel_y_px: float,
+    left_tab_origin_x_px: float,
+    left_tab_origin_y_px: float,
+    document_tab_origin_x_px: float,
+    document_tab_origin_y_px: float,
+    right_tab_origin_x_px: float,
+    right_tab_origin_y_px: float,
+    bottom_tab_origin_x_px: float,
+    bottom_tab_origin_y_px: float,
+}
+
+export struct HostNativeFloatingWindowSurfaceData {
+    floating_windows: [FloatingWindowData],
+    native_floating_window_id: string,
+    native_window_bounds: FrameRect,
+    header_height_px: float,
+}
+
+export component HostMenuChrome inherits Rectangle {
+    in property <HostMenuChromeData> menu_data: {
+        outer_margin_px: 0.0,
+        top_bar_height_px: 25.0,
+        save_project_enabled: false,
+        undo_enabled: false,
+        redo_enabled: false,
+        delete_enabled: false,
+        preset_names: [],
+        active_preset_name: "",
+        resolved_preset_name: "rider",
+    };
+    out property <FrameRect> file_menu_button_frame: {
+        x: top_bar.x / 1px + menu_button_row.x / 1px + file_menu_button.x / 1px,
+        y: top_bar.y / 1px + menu_button_row.y / 1px,
+        width: file_menu_button.width / 1px,
+        height: file_menu_button.height / 1px,
+    };
+    out property <FrameRect> edit_menu_button_frame: {
+        x: top_bar.x / 1px + menu_button_row.x / 1px + edit_menu_button.x / 1px,
+        y: top_bar.y / 1px + menu_button_row.y / 1px,
+        width: edit_menu_button.width / 1px,
+        height: edit_menu_button.height / 1px,
+    };
+    out property <FrameRect> selection_menu_button_frame: {
+        x: top_bar.x / 1px + menu_button_row.x / 1px + selection_menu_button.x / 1px,
+        y: top_bar.y / 1px + menu_button_row.y / 1px,
+        width: selection_menu_button.width / 1px,
+        height: selection_menu_button.height / 1px,
+    };
+    out property <FrameRect> view_menu_button_frame: {
+        x: top_bar.x / 1px + menu_button_row.x / 1px + view_menu_button.x / 1px,
+        y: top_bar.y / 1px + menu_button_row.y / 1px,
+        width: view_menu_button.width / 1px,
+        height: view_menu_button.height / 1px,
+    };
+    out property <FrameRect> window_menu_button_frame: {
+        x: top_bar.x / 1px + menu_button_row.x / 1px + window_menu_button.x / 1px,
+        y: top_bar.y / 1px + menu_button_row.y / 1px,
+        width: window_menu_button.width / 1px,
+        height: window_menu_button.height / 1px,
+    };
+    out property <FrameRect> help_menu_button_frame: {
+        x: top_bar.x / 1px + menu_button_row.x / 1px + help_menu_button.x / 1px,
+        y: top_bar.y / 1px + menu_button_row.y / 1px,
+        width: help_menu_button.width / 1px,
+        height: help_menu_button.height / 1px,
+    };
+    palette := Palette {}
+    background: transparent;
+
+    top_bar := Rectangle {
+        x: root.menu_data.outer_margin_px * 1px;
+        y: root.menu_data.outer_margin_px * 1px;
+        width: parent.width - root.menu_data.outer_margin_px * 2px;
+        height: root.menu_data.top_bar_height_px * 1px;
+        background: palette.chrome_bg;
+
+        menu_button_row := HorizontalLayout {
+            x: 8px;
+            y: 1px;
+            spacing: 2px;
+
+            file_menu_button := MenuBarButton { label: "File"; active: WorkbenchHostContext.menu_state.open_menu_index == 0; hovered: WorkbenchHostContext.menu_state.hovered_menu_index == 0; interactive: false; }
+            edit_menu_button := MenuBarButton { label: "Edit"; active: WorkbenchHostContext.menu_state.open_menu_index == 1; hovered: WorkbenchHostContext.menu_state.hovered_menu_index == 1; interactive: false; }
+            selection_menu_button := MenuBarButton { label: "Selection"; active: WorkbenchHostContext.menu_state.open_menu_index == 2; hovered: WorkbenchHostContext.menu_state.hovered_menu_index == 2; interactive: false; }
+            view_menu_button := MenuBarButton { label: "View"; active: WorkbenchHostContext.menu_state.open_menu_index == 3; hovered: WorkbenchHostContext.menu_state.hovered_menu_index == 3; interactive: false; }
+            window_menu_button := MenuBarButton { label: "Window"; active: WorkbenchHostContext.menu_state.open_menu_index == 4; hovered: WorkbenchHostContext.menu_state.hovered_menu_index == 4; interactive: false; }
+            help_menu_button := MenuBarButton { label: "Help"; active: WorkbenchHostContext.menu_state.open_menu_index == 5; hovered: WorkbenchHostContext.menu_state.hovered_menu_index == 5; interactive: false; }
+        }
+
+        if WorkbenchHostContext.menu_state.open_menu_index == -1: TouchArea {
+            x: 0px;
+            y: 0px;
+            width: parent.width;
+            height: parent.height;
+            clicked => {
+                WorkbenchHostContext.menu_pointer_clicked(
+                    top_bar.x / 1px + self.mouse-x / 1px,
+                    top_bar.y / 1px + self.mouse-y / 1px,
+                );
+            }
+        }
+    }
+
+    Rectangle {
+        x: root.menu_data.outer_margin_px * 1px;
+        y: (root.menu_data.outer_margin_px + root.menu_data.top_bar_height_px) * 1px;
+        width: parent.width - root.menu_data.outer_margin_px * 2px;
+        height: 1px;
+        background: palette.border;
+    }
+
+    if WorkbenchHostContext.menu_state.open_menu_index == 0: Rectangle {
+        x: root.file_menu_button_frame.x * 1px;
+        y: (root.file_menu_button_frame.y + root.file_menu_button_frame.height + 3) * 1px;
+        width: 208px;
+        height: 146px;
+        border-radius: 8px;
+        background: palette.panel_bg;
+        border-width: 1px;
+        border-color: palette.border;
+        VerticalLayout {
+            x: 6px;
+            y: 6px;
+            width: parent.width - 12px;
+            spacing: 2px;
+            MenuItemRow { label: "Open Project"; shortcut: "Ctrl+O"; hovered: WorkbenchHostContext.menu_state.hovered_menu_item_index == 0; interactive: false; }
+            MenuItemRow { label: "Save Project"; shortcut: "Ctrl+S"; enabled: root.menu_data.save_project_enabled; hovered: WorkbenchHostContext.menu_state.hovered_menu_item_index == 1; interactive: false; }
+            MenuItemRow { label: "Save Layout"; shortcut: ""; hovered: WorkbenchHostContext.menu_state.hovered_menu_item_index == 2; interactive: false; }
+            MenuItemRow { label: "Reset Layout"; shortcut: ""; hovered: WorkbenchHostContext.menu_state.hovered_menu_item_index == 3; interactive: false; }
+            MenuItemRow { label: "Recent Projects"; shortcut: ""; enabled: false; hovered: WorkbenchHostContext.menu_state.hovered_menu_item_index == 4; interactive: false; }
+        }
+    }
+
+    if WorkbenchHostContext.menu_state.open_menu_index == 1: Rectangle {
+        x: root.edit_menu_button_frame.x * 1px;
+        y: (root.edit_menu_button_frame.y + root.edit_menu_button_frame.height + 3) * 1px;
+        width: 186px;
+        height: 66px;
+        border-radius: 8px;
+        background: palette.panel_bg;
+        border-width: 1px;
+        border-color: palette.border;
+        VerticalLayout {
+            x: 6px;
+            y: 6px;
+            width: parent.width - 12px;
+            spacing: 2px;
+            MenuItemRow { label: "Undo"; shortcut: "Ctrl+Z"; enabled: root.menu_data.undo_enabled; hovered: WorkbenchHostContext.menu_state.hovered_menu_item_index == 0; interactive: false; }
+            MenuItemRow { label: "Redo"; shortcut: "Ctrl+Shift+Z"; enabled: root.menu_data.redo_enabled; hovered: WorkbenchHostContext.menu_state.hovered_menu_item_index == 1; interactive: false; }
+        }
+    }
+
+    if WorkbenchHostContext.menu_state.open_menu_index == 2: Rectangle {
+        x: root.selection_menu_button_frame.x * 1px;
+        y: (root.selection_menu_button_frame.y + root.selection_menu_button_frame.height + 3) * 1px;
+        width: 218px;
+        height: 118px;
+        border-radius: 8px;
+        background: palette.panel_bg;
+        border-width: 1px;
+        border-color: palette.border;
+        VerticalLayout {
+            x: 6px;
+            y: 6px;
+            width: parent.width - 12px;
+            spacing: 2px;
+            MenuItemRow { label: "Create Cube"; shortcut: ""; hovered: WorkbenchHostContext.menu_state.hovered_menu_item_index == 0; interactive: false; }
+            MenuItemRow { label: "Create Camera"; shortcut: ""; hovered: WorkbenchHostContext.menu_state.hovered_menu_item_index == 1; interactive: false; }
+            MenuItemRow { label: "Create Directional Light"; shortcut: ""; hovered: WorkbenchHostContext.menu_state.hovered_menu_item_index == 2; interactive: false; }
+            MenuItemRow { label: "Delete Selection"; shortcut: "Delete"; enabled: root.menu_data.delete_enabled; hovered: WorkbenchHostContext.menu_state.hovered_menu_item_index == 3; interactive: false; }
+        }
+    }
+
+    if WorkbenchHostContext.menu_state.open_menu_index == 3: Rectangle {
+        x: root.view_menu_button_frame.x * 1px;
+        y: (root.view_menu_button_frame.y + root.view_menu_button_frame.height + 3) * 1px;
+        width: 198px;
+        height: 234px;
+        border-radius: 8px;
+        background: palette.panel_bg;
+        border-width: 1px;
+        border-color: palette.border;
+        VerticalLayout {
+            x: 6px;
+            y: 6px;
+            width: parent.width - 12px;
+            spacing: 2px;
+            MenuItemRow { label: "Project"; shortcut: ""; hovered: WorkbenchHostContext.menu_state.hovered_menu_item_index == 0; interactive: false; }
+            MenuItemRow { label: "Hierarchy"; shortcut: ""; hovered: WorkbenchHostContext.menu_state.hovered_menu_item_index == 1; interactive: false; }
+            MenuItemRow { label: "Inspector"; shortcut: ""; hovered: WorkbenchHostContext.menu_state.hovered_menu_item_index == 2; interactive: false; }
+            MenuItemRow { label: "Scene"; shortcut: ""; hovered: WorkbenchHostContext.menu_state.hovered_menu_item_index == 3; interactive: false; }
+            MenuItemRow { label: "Game"; shortcut: ""; hovered: WorkbenchHostContext.menu_state.hovered_menu_item_index == 4; interactive: false; }
+            MenuItemRow { label: "Assets"; shortcut: ""; hovered: WorkbenchHostContext.menu_state.hovered_menu_item_index == 5; interactive: false; }
+            MenuItemRow { label: "Console"; shortcut: ""; hovered: WorkbenchHostContext.menu_state.hovered_menu_item_index == 6; interactive: false; }
+            MenuItemRow { label: "Prefab Editor"; shortcut: ""; hovered: WorkbenchHostContext.menu_state.hovered_menu_item_index == 7; interactive: false; }
+        }
+    }
+
+    if WorkbenchHostContext.menu_state.open_menu_index == 4: Rectangle {
+        x: root.window_menu_button_frame.x * 1px;
+        y: (root.window_menu_button_frame.y + root.window_menu_button_frame.height + 3) * 1px;
+        width: 224px;
+        height: WorkbenchHostContext.menu_state.window_menu_popup_height_px * 1px;
+        border-radius: 8px;
+        background: palette.panel_bg;
+        border-width: 1px;
+        border-color: palette.border;
+        clip: true;
+        VerticalLayout {
+            x: 6px;
+            y: 6px - WorkbenchHostContext.menu_state.window_menu_scroll_px * 1px;
+            width: parent.width - 12px;
+            spacing: 2px;
+            MenuItemRow { label: "Save Preset Asset"; shortcut: root.menu_data.resolved_preset_name; hovered: WorkbenchHostContext.menu_state.hovered_menu_item_index == 0; interactive: false; }
+            MenuItemRow { label: "Reset Layout"; shortcut: ""; hovered: WorkbenchHostContext.menu_state.hovered_menu_item_index == 1; interactive: false; }
+            for preset[index] in root.menu_data.preset_names: MenuItemRow {
+                label: preset;
+                shortcut: preset == root.menu_data.active_preset_name ? "active" : "";
+                hovered: WorkbenchHostContext.menu_state.hovered_menu_item_index == index + 2;
+                interactive: false;
+            }
+        }
+    }
+
+    if WorkbenchHostContext.menu_state.open_menu_index == 5: Rectangle {
+        x: root.help_menu_button_frame.x * 1px;
+        y: (root.help_menu_button_frame.y + root.help_menu_button_frame.height + 3) * 1px;
+        width: 194px;
+        height: 38px;
+        border-radius: 8px;
+        background: palette.panel_bg;
+        border-width: 1px;
+        border-color: palette.border;
+        VerticalLayout {
+            x: 6px;
+            y: 6px;
+            width: parent.width - 12px;
+            spacing: 2px;
+            MenuItemRow { label: "Workbench Guide"; shortcut: ""; hovered: WorkbenchHostContext.menu_state.hovered_menu_item_index == 0; interactive: false; }
+        }
+    }
+
+    if WorkbenchHostContext.menu_state.open_menu_index != -1: TouchArea {
+        x: 0px;
+        y: 0px;
+        width: parent.width;
+        height: parent.height;
+        moved => {
+            WorkbenchHostContext.menu_pointer_moved(self.mouse-x / 1px, self.mouse-y / 1px);
+        }
+        clicked => {
+            WorkbenchHostContext.menu_pointer_clicked(self.mouse-x / 1px, self.mouse-y / 1px);
+        }
+        scroll-event(event) => {
+            WorkbenchHostContext.menu_pointer_scrolled(
+                self.mouse-x / 1px,
+                self.mouse-y / 1px,
+                event.delta_y / 1px,
+            );
+            accept
+        }
+    }
+}
+
+export component HostPageChrome inherits Rectangle {
+    in property <HostPageChromeData> page_data: {
+        top_bar_height_px: 25.0,
+        host_bar_height_px: 24.0,
+        tabs: [],
+        project_path: "",
+    };
+    palette := Palette {}
+    background: transparent;
+
+    Rectangle {
+        x: 0px;
+        y: root.page_data.top_bar_height_px * 1px + 1px;
+        width: parent.width;
+        height: root.page_data.host_bar_height_px * 1px;
+        background: palette.chrome_bg;
+
+        HorizontalLayout {
+            x: 8px;
+            y: 1px;
+            spacing: 4px;
+
+            for page[index] in root.page_data.tabs: DockTabButton {
+                label: page.title;
+                icon_key: page.icon_key;
+                active: page.active;
+                pointer_pressed(x, y) => {
+                    WorkbenchHostContext.host_page_pointer_clicked(
+                        index,
+                        8.0 + self.x / 1px,
+                        self.width / 1px,
+                        8.0 + self.x / 1px + x,
+                        1.0 + self.y / 1px + y,
+                    );
+                }
+            }
+        }
+
+        Text {
+            x: parent.width - 292px;
+            y: 5px;
+            width: 280px;
+            horizontal-alignment: right;
+            text: root.page_data.project_path != "" ? root.page_data.project_path : "No project open";
+            color: palette.text_dim;
+            font-size: 9px;
+            overflow: elide;
+        }
+    }
+}
+
+export component HostStatusBar inherits Rectangle {
+    in property <HostStatusBarData> status_data: {
+        status_bar_frame: { x: 0.0, y: 0.0, width: 0.0, height: 0.0 },
+        status_primary: "",
+        status_secondary: "",
+        viewport_label: "",
+    };
+    palette := Palette {}
+    background: transparent;
+
+    Rectangle {
+        x: 0px;
+        y: root.status_data.status_bar_frame.y * 1px - 1px;
+        width: parent.width;
+        height: 1px;
+        background: palette.border;
+    }
+
+    status_bar_zone := Rectangle {
+        x: root.status_data.status_bar_frame.x * 1px;
+        y: root.status_data.status_bar_frame.y * 1px;
+        width: root.status_data.status_bar_frame.width * 1px;
+        height: root.status_data.status_bar_frame.height * 1px;
+        background: palette.chrome_bg;
+
+        Text {
+            x: 12px;
+            y: 4px;
+            width: parent.width * 0.55;
+            text: root.status_data.status_primary;
+            color: palette.text_muted;
+            font-size: 10px;
+            overflow: elide;
+        }
+
+        if root.status_data.status_secondary != "": Text {
+            x: parent.width - 224px;
+            y: 4px;
+            width: 96px;
+            horizontal-alignment: right;
+            text: root.status_data.status_secondary;
+            color: palette.text_dim;
+            font-size: 10px;
+            overflow: elide;
+        }
+
+        Text {
+            x: parent.width - 118px;
+            y: 4px;
+            width: 104px;
+            horizontal-alignment: right;
+            text: root.status_data.viewport_label;
+            color: palette.text_dim;
+            font-size: 10px;
+            overflow: elide;
+        }
+    }
+}
+
+export component HostTabDragOverlay inherits Rectangle {
+    in property <HostTabDragOverlayData> overlay_data: {
+        left_drop_enabled: false,
+        right_drop_enabled: false,
+        bottom_drop_enabled: false,
+        left_drop_width_px: 0.0,
+        right_drop_width_px: 0.0,
+        bottom_drop_height_px: 0.0,
+        main_content_y_px: 0.0,
+        main_content_height_px: 0.0,
+        document_zone_x_px: 0.0,
+        document_zone_width_px: 0.0,
+        bottom_drop_top_px: 0.0,
+        drag_overlay_bottom_px: 0.0,
+    };
+    palette := Palette {}
+    x: 0px;
+    y: 0px;
+    background: transparent;
+    visible: WorkbenchHostContext.drag_state.drag_active;
+    property <string> drag_target_label:
+        WorkbenchHostContext.drag_state.active_drag_target_group == "left" ? "Dock Left" :
+        WorkbenchHostContext.drag_state.active_drag_target_group == "right" ? "Dock Right" :
+        WorkbenchHostContext.drag_state.active_drag_target_group == "bottom" ? "Dock Bottom" :
+        WorkbenchHostContext.drag_state.active_drag_target_group == "document-left" ? "Split Left" :
+        WorkbenchHostContext.drag_state.active_drag_target_group == "document-right" ? "Split Right" :
+        WorkbenchHostContext.drag_state.active_drag_target_group == "document-top" ? "Split Top" :
+        WorkbenchHostContext.drag_state.active_drag_target_group == "document-bottom" ? "Split Bottom" :
+        WorkbenchHostContext.drag_state.active_drag_target_group == "document" ? "Dock Document" :
+        "Drag Tab";
+
+    property <bool> document_drop_active:
+        WorkbenchHostContext.drag_state.active_drag_target_group == "document" ||
+        WorkbenchHostContext.drag_state.active_drag_target_group == "document-left" ||
+        WorkbenchHostContext.drag_state.active_drag_target_group == "document-right" ||
+        WorkbenchHostContext.drag_state.active_drag_target_group == "document-top" ||
+        WorkbenchHostContext.drag_state.active_drag_target_group == "document-bottom";
+    property <bool> document_left_drop_active: WorkbenchHostContext.drag_state.active_drag_target_group == "document-left";
+    property <bool> document_right_drop_active: WorkbenchHostContext.drag_state.active_drag_target_group == "document-right";
+    property <bool> document_top_drop_active: WorkbenchHostContext.drag_state.active_drag_target_group == "document-top";
+    property <bool> document_bottom_drop_active: WorkbenchHostContext.drag_state.active_drag_target_group == "document-bottom";
+
+    drag_capture := TouchArea {
+        width: parent.width;
+        height: parent.height;
+        mouse-cursor: MouseCursor.grabbing;
+        moved => {
+            WorkbenchHostContext.drag_state = {
+                active_drag_target_group: WorkbenchHostContext.drag_state.active_drag_target_group,
+                drag_active: WorkbenchHostContext.drag_state.drag_active,
+                drag_tab_id: WorkbenchHostContext.drag_state.drag_tab_id,
+                drag_tab_title: WorkbenchHostContext.drag_state.drag_tab_title,
+                drag_tab_icon_key: WorkbenchHostContext.drag_state.drag_tab_icon_key,
+                drag_source_group: WorkbenchHostContext.drag_state.drag_source_group,
+                drag_pointer_x: self.mouse-x / 1px,
+                drag_pointer_y: self.mouse-y / 1px,
+            };
+            WorkbenchHostContext.workbench_drag_pointer_event(
+                1,
+                WorkbenchHostContext.drag_state.drag_pointer_x,
+                WorkbenchHostContext.drag_state.drag_pointer_y,
+            );
+        }
+        pointer-event(event) => {
+            if (event.button == PointerEventButton.left && event.kind == PointerEventKind.up) {
+                WorkbenchHostContext.drag_state = {
+                    active_drag_target_group: WorkbenchHostContext.drag_state.active_drag_target_group,
+                    drag_active: WorkbenchHostContext.drag_state.drag_active,
+                    drag_tab_id: WorkbenchHostContext.drag_state.drag_tab_id,
+                    drag_tab_title: WorkbenchHostContext.drag_state.drag_tab_title,
+                    drag_tab_icon_key: WorkbenchHostContext.drag_state.drag_tab_icon_key,
+                    drag_source_group: WorkbenchHostContext.drag_state.drag_source_group,
+                    drag_pointer_x: self.mouse-x / 1px,
+                    drag_pointer_y: self.mouse-y / 1px,
+                };
+                WorkbenchHostContext.workbench_drag_pointer_event(
+                    2,
+                    WorkbenchHostContext.drag_state.drag_pointer_x,
+                    WorkbenchHostContext.drag_state.drag_pointer_y,
+                );
+                WorkbenchHostContext.drag_state = {
+                    active_drag_target_group: "",
+                    drag_active: false,
+                    drag_tab_id: "",
+                    drag_tab_title: "",
+                    drag_tab_icon_key: "",
+                    drag_source_group: "",
+                    drag_pointer_x: 0.0,
+                    drag_pointer_y: 0.0,
+                };
+            }
+        }
+    }
+
+    if root.overlay_data.left_drop_enabled: Rectangle {
+        x: 8px;
+        y: root.overlay_data.main_content_y_px * 1px + 8px;
+        width: root.overlay_data.left_drop_width_px * 1px - 16px;
+        height: root.overlay_data.main_content_height_px * 1px - 16px;
+        border-radius: 6px;
+        border-width: 1px;
+        border-color: WorkbenchHostContext.drag_state.active_drag_target_group == "left" ? palette.accent : palette.border_soft;
+        background: WorkbenchHostContext.drag_state.active_drag_target_group == "left" ? #2c527933 : #17191d22;
+        opacity: WorkbenchHostContext.drag_state.active_drag_target_group == "left" ? 1.0 : 0.78;
+        animate opacity { duration: 60ms; }
+
+        Text {
+            x: 12px;
+            y: 12px;
+            text: "Dock Left";
+            color: WorkbenchHostContext.drag_state.active_drag_target_group == "left" ? palette.text : palette.text_dim;
+            font-size: 10px;
+            font-weight: 600;
+        }
+    }
+
+    Rectangle {
+        x: root.overlay_data.document_zone_x_px * 1px + 8px;
+        y: root.overlay_data.main_content_y_px * 1px + 8px;
+        width: max(root.overlay_data.document_zone_width_px * 1px - 16px, 80px);
+        height: root.overlay_data.main_content_height_px * 1px - 16px;
+        border-radius: 8px;
+        border-width: 1px;
+        border-color: root.document_drop_active ? palette.accent : palette.border_soft;
+        background: root.document_drop_active ? #2c527933 : #17191d11;
+        opacity: root.document_drop_active ? 1.0 : 0.7;
+        animate opacity { duration: 60ms; }
+
+        Text {
+            x: 12px;
+            y: 12px;
+            text: "Dock Document";
+            color: root.document_drop_active ? palette.text : palette.text_dim;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        if root.document_left_drop_active: Rectangle {
+            x: 12px;
+            y: 34px;
+            width: min(max(72px, parent.width * 0.22), parent.width * 0.45);
+            height: max(parent.height - 68px, 56px);
+            border-radius: 6px;
+            border-width: 1px;
+            border-color: palette.accent;
+            background: #2c527955;
+
+            Text {
+                x: 10px;
+                y: 10px;
+                text: "Split Left";
+                color: palette.text;
+                font-size: 10px;
+                font-weight: 600;
+            }
+        }
+
+        if root.document_right_drop_active: Rectangle {
+            x: parent.width - self.width - 12px;
+            y: 34px;
+            width: min(max(72px, parent.width * 0.22), parent.width * 0.45);
+            height: max(parent.height - 68px, 56px);
+            border-radius: 6px;
+            border-width: 1px;
+            border-color: palette.accent;
+            background: #2c527955;
+
+            Text {
+                x: parent.width - self.preferred-width - 10px;
+                y: 10px;
+                text: "Split Right";
+                color: palette.text;
+                font-size: 10px;
+                font-weight: 600;
+            }
+        }
+
+        if root.document_top_drop_active: Rectangle {
+            x: 12px;
+            y: 34px;
+            width: max(parent.width - 24px, 56px);
+            height: min(max(54px, parent.height * 0.18), parent.height * 0.38);
+            border-radius: 6px;
+            border-width: 1px;
+            border-color: palette.accent;
+            background: #2c527955;
+
+            Text {
+                x: 10px;
+                y: 10px;
+                text: "Split Top";
+                color: palette.text;
+                font-size: 10px;
+                font-weight: 600;
+            }
+        }
+
+        if root.document_bottom_drop_active: Rectangle {
+            x: 12px;
+            y: parent.height - self.height - 12px;
+            width: max(parent.width - 24px, 56px);
+            height: min(max(54px, parent.height * 0.18), parent.height * 0.38);
+            border-radius: 6px;
+            border-width: 1px;
+            border-color: palette.accent;
+            background: #2c527955;
+
+            Text {
+                x: 10px;
+                y: 10px;
+                text: "Split Bottom";
+                color: palette.text;
+                font-size: 10px;
+                font-weight: 600;
+            }
+        }
+    }
+
+    if root.overlay_data.right_drop_enabled: Rectangle {
+        x: parent.width - root.overlay_data.right_drop_width_px * 1px + 8px;
+        y: root.overlay_data.main_content_y_px * 1px + 8px;
+        width: root.overlay_data.right_drop_width_px * 1px - 16px;
+        height: root.overlay_data.main_content_height_px * 1px - 16px;
+        border-radius: 6px;
+        border-width: 1px;
+        border-color: WorkbenchHostContext.drag_state.active_drag_target_group == "right" ? palette.accent : palette.border_soft;
+        background: WorkbenchHostContext.drag_state.active_drag_target_group == "right" ? #2c527933 : #17191d22;
+        opacity: WorkbenchHostContext.drag_state.active_drag_target_group == "right" ? 1.0 : 0.78;
+        animate opacity { duration: 60ms; }
+
+        Text {
+            x: parent.width - self.preferred-width - 12px;
+            y: 12px;
+            text: "Dock Right";
+            color: WorkbenchHostContext.drag_state.active_drag_target_group == "right" ? palette.text : palette.text_dim;
+            font-size: 10px;
+            font-weight: 600;
+        }
+    }
+
+    if root.overlay_data.bottom_drop_enabled: Rectangle {
+        x: 8px;
+        y: root.overlay_data.bottom_drop_top_px * 1px + 8px;
+        width: parent.width - 16px;
+        height: root.overlay_data.bottom_drop_height_px * 1px - 16px;
+        border-radius: 6px;
+        border-width: 1px;
+        border-color: WorkbenchHostContext.drag_state.active_drag_target_group == "bottom" ? palette.accent : palette.border_soft;
+        background: WorkbenchHostContext.drag_state.active_drag_target_group == "bottom" ? #2c527933 : #17191d22;
+        opacity: WorkbenchHostContext.drag_state.active_drag_target_group == "bottom" ? 1.0 : 0.78;
+        animate opacity { duration: 60ms; }
+
+        Text {
+            x: 12px;
+            y: 12px;
+            text: "Dock Bottom";
+            color: WorkbenchHostContext.drag_state.active_drag_target_group == "bottom" ? palette.text : palette.text_dim;
+            font-size: 10px;
+            font-weight: 600;
+        }
+    }
+
+    drag_preview := Rectangle {
+        width: min(max(188px, drag_preview_title.preferred-width + 126px), 360px);
+        height: 44px;
+        x: clamp(WorkbenchHostContext.drag_state.drag_pointer_x * 1px + 18px, 12px, parent.width - self.width - 12px);
+        y: clamp(
+            WorkbenchHostContext.drag_state.drag_pointer_y * 1px - self.height - 14px,
+            root.overlay_data.main_content_y_px * 1px + 12px,
+            root.overlay_data.drag_overlay_bottom_px * 1px - self.height - 12px
+        );
+        border-radius: 7px;
+        border-width: 1px;
+        border-color: WorkbenchHostContext.drag_state.active_drag_target_group != "" ? palette.accent : palette.border_soft;
+        background: WorkbenchHostContext.drag_state.active_drag_target_group != "" ? #16202cf4 : #1b1e24f4;
+        opacity: 0.99;
+
+        Rectangle {
+            width: 4px;
+            height: parent.height;
+            border-radius: 7px;
+            background: WorkbenchHostContext.drag_state.active_drag_target_group != "" ? palette.accent : palette.border;
+        }
+
+        ShellIcon {
+            width: 14px;
+            height: 14px;
+            x: 14px;
+            y: 13px;
+            icon_key: WorkbenchHostContext.drag_state.drag_tab_icon_key != "" ? WorkbenchHostContext.drag_state.drag_tab_icon_key : "project";
+            icon_color: palette.text;
+        }
+
+        drag_preview_title := Text {
+            x: 36px;
+            y: 7px;
+            width: parent.width - 146px;
+            text: WorkbenchHostContext.drag_state.drag_tab_title != "" ? WorkbenchHostContext.drag_state.drag_tab_title : root.drag_target_label;
+            color: palette.text;
+            font-size: 11px;
+            font-weight: 600;
+            overflow: elide;
+        }
+
+        Text {
+            x: 36px;
+            y: 24px;
+            width: parent.width - 146px;
+            text: WorkbenchHostContext.drag_state.active_drag_target_group != "" ? "Release to dock" : "Drag to dock or reorder";
+            color: WorkbenchHostContext.drag_state.active_drag_target_group != "" ? palette.accent : palette.text_dim;
+            font-size: 9px;
+            overflow: elide;
+        }
+
+        drag_target_badge := Rectangle {
+            x: parent.width - self.width - 10px;
+            y: 10px;
+            width: min(max(72px, badge_text.preferred-width + 18px), 132px);
+            height: 22px;
+            border-radius: 11px;
+            border-width: 1px;
+            border-color: WorkbenchHostContext.drag_state.active_drag_target_group != "" ? palette.accent : palette.border_soft;
+            background: WorkbenchHostContext.drag_state.active_drag_target_group != "" ? #2c527944 : #20242b;
+
+            badge_text := Text {
+                width: parent.width;
+                height: parent.height;
+                text: root.drag_target_label != "" ? root.drag_target_label : "Move Tab";
+                color: WorkbenchHostContext.drag_state.active_drag_target_group != "" ? palette.text : palette.text_dim;
+                font-size: 9px;
+                font-weight: 600;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+        }
+    }
+}
+
+export component HostResizeLayer inherits Rectangle {
+    in property <HostResizeLayerData> resize_data: {
+        left_splitter_frame: { x: 0.0, y: 0.0, width: 0.0, height: 0.0 },
+        right_splitter_frame: { x: 0.0, y: 0.0, width: 0.0, height: 0.0 },
+        bottom_splitter_frame: { x: 0.0, y: 0.0, width: 0.0, height: 0.0 },
+    };
+    palette := Palette {}
+    x: 0px;
+    y: 0px;
+    background: transparent;
+
+    if root.resize_data.left_splitter_frame.width > 0.0: left_splitter := Rectangle {
+        x: root.resize_data.left_splitter_frame.x * 1px;
+        y: root.resize_data.left_splitter_frame.y * 1px;
+        width: root.resize_data.left_splitter_frame.width * 1px;
+        height: root.resize_data.left_splitter_frame.height * 1px;
+        background: transparent;
+
+        Rectangle {
+            x: (parent.width - 1px) / 2;
+            width: 1px;
+            height: parent.height;
+            background: WorkbenchHostContext.resize_state.resize_active && WorkbenchHostContext.resize_state.resize_group == "left" ? palette.accent : palette.border_soft;
+            opacity: left_splitter_touch.has-hover || (WorkbenchHostContext.resize_state.resize_active && WorkbenchHostContext.resize_state.resize_group == "left") ? 1.0 : 0.0;
+        }
+
+        left_splitter_touch := TouchArea {
+            width: parent.width;
+            height: parent.height;
+            mouse-cursor: ew-resize;
+            pointer-event(event) => {
+                if (event.button == PointerEventButton.left && event.kind == PointerEventKind.down) {
+                    WorkbenchHostContext.resize_state = {
+                        resize_active: true,
+                        resize_group: "left",
+                    };
+                    WorkbenchHostContext.workbench_resize_pointer_event(
+                        0,
+                        (left_splitter.x + self.mouse-x) / 1px,
+                        (left_splitter.y + self.mouse-y) / 1px,
+                    );
+                }
+            }
+        }
+    }
+
+    if root.resize_data.right_splitter_frame.width > 0.0: right_splitter := Rectangle {
+        x: root.resize_data.right_splitter_frame.x * 1px;
+        y: root.resize_data.right_splitter_frame.y * 1px;
+        width: root.resize_data.right_splitter_frame.width * 1px;
+        height: root.resize_data.right_splitter_frame.height * 1px;
+        background: transparent;
+
+        Rectangle {
+            x: (parent.width - 1px) / 2;
+            width: 1px;
+            height: parent.height;
+            background: WorkbenchHostContext.resize_state.resize_active && WorkbenchHostContext.resize_state.resize_group == "right" ? palette.accent : palette.border_soft;
+            opacity: right_splitter_touch.has-hover || (WorkbenchHostContext.resize_state.resize_active && WorkbenchHostContext.resize_state.resize_group == "right") ? 1.0 : 0.0;
+        }
+
+        right_splitter_touch := TouchArea {
+            width: parent.width;
+            height: parent.height;
+            mouse-cursor: ew-resize;
+            pointer-event(event) => {
+                if (event.button == PointerEventButton.left && event.kind == PointerEventKind.down) {
+                    WorkbenchHostContext.resize_state = {
+                        resize_active: true,
+                        resize_group: "right",
+                    };
+                    WorkbenchHostContext.workbench_resize_pointer_event(
+                        0,
+                        (right_splitter.x + self.mouse-x) / 1px,
+                        (right_splitter.y + self.mouse-y) / 1px,
+                    );
+                }
+            }
+        }
+    }
+
+    if root.resize_data.bottom_splitter_frame.height > 0.0: bottom_splitter := Rectangle {
+        x: root.resize_data.bottom_splitter_frame.x * 1px;
+        y: root.resize_data.bottom_splitter_frame.y * 1px;
+        width: root.resize_data.bottom_splitter_frame.width * 1px;
+        height: root.resize_data.bottom_splitter_frame.height * 1px;
+        background: transparent;
+
+        Rectangle {
+            y: (parent.height - 1px) / 2;
+            width: parent.width;
+            height: 1px;
+            background: WorkbenchHostContext.resize_state.resize_active && WorkbenchHostContext.resize_state.resize_group == "bottom" ? palette.accent : palette.border_soft;
+            opacity: bottom_splitter_touch.has-hover || (WorkbenchHostContext.resize_state.resize_active && WorkbenchHostContext.resize_state.resize_group == "bottom") ? 1.0 : 0.0;
+        }
+
+        bottom_splitter_touch := TouchArea {
+            width: parent.width;
+            height: parent.height;
+            mouse-cursor: ns-resize;
+            pointer-event(event) => {
+                if (event.button == PointerEventButton.left && event.kind == PointerEventKind.down) {
+                    WorkbenchHostContext.resize_state = {
+                        resize_active: true,
+                        resize_group: "bottom",
+                    };
+                    WorkbenchHostContext.workbench_resize_pointer_event(
+                        0,
+                        (bottom_splitter.x + self.mouse-x) / 1px,
+                        (bottom_splitter.y + self.mouse-y) / 1px,
+                    );
+                }
+            }
+        }
+    }
+
+    if WorkbenchHostContext.resize_state.resize_active: TouchArea {
+        x: 0px;
+        y: 0px;
+        width: parent.width;
+        height: parent.height;
+        mouse-cursor: WorkbenchHostContext.resize_state.resize_group == "bottom" ? ns-resize : ew-resize;
+        moved => {
+            WorkbenchHostContext.workbench_resize_pointer_event(1, self.mouse-x / 1px, self.mouse-y / 1px);
+        }
+        pointer-event(event) => {
+            if (event.button == PointerEventButton.left && event.kind == PointerEventKind.up) {
+                WorkbenchHostContext.workbench_resize_pointer_event(2, self.mouse-x / 1px, self.mouse-y / 1px);
+                WorkbenchHostContext.resize_state = {
+                    resize_active: false,
+                    resize_group: "",
+                };
+            }
+        }
+    }
+}
+
+export component HostSideDockSurface inherits Rectangle {
+    in property <HostSideDockSurfaceData> surface_data;
+    palette := Palette {}
+    property <bool> show_panel: root.surface_data.panel_width_px > 0.0;
+    x: root.surface_data.region_frame.x * 1px;
+    y: root.surface_data.region_frame.y * 1px;
+    width: root.surface_data.region_frame.width * 1px;
+    height: root.surface_data.region_frame.height * 1px;
+    background: transparent;
+    clip: true;
+
+    HorizontalLayout {
+        spacing: 0px;
+
+        if root.surface_data.rail_before_panel: Rectangle {
+            width: root.surface_data.rail_width_px * 1px;
+            background: palette.rail_bg;
+
+            VerticalLayout {
+                x: 3px;
+                y: 6px;
+                spacing: 2px;
+                for tab in root.surface_data.tabs: RailButton {
+                    icon_key: tab.icon_key;
+                    active: tab.active;
+                    pointer_pressed(x, y) => {
+                        WorkbenchHostContext.activity_rail_pointer_clicked(
+                            root.surface_data.surface_key,
+                            self.x / 1px + x,
+                            self.y / 1px + y,
+                        );
+                    }
+                }
+            }
+        }
+
+        if root.surface_data.rail_before_panel && root.show_panel: Rectangle {
+            width: 1px;
+            background: palette.border_soft;
+        }
+
+        if root.show_panel: Rectangle {
+            width: root.surface_data.panel_width_px * 1px;
+            background: palette.panel_bg;
+
+            VerticalLayout {
+                spacing: 0px;
+
+                Rectangle {
+                    height: root.surface_data.panel_header_height_px * 1px;
+                    background: palette.chrome_bg;
+
+                    HorizontalLayout {
+                        x: 6px;
+                        y: 2px;
+                        spacing: 4px;
+                        for tab[index] in root.surface_data.tabs: DockTabButton {
+                            label: tab.title;
+                            icon_key: tab.icon_key;
+                            active: tab.active;
+                            drag_enabled: true;
+                            drag_origin_x: (root.surface_data.tab_origin_x_px * 1px + self.x) / 1px;
+                            drag_origin_y: (root.surface_data.tab_origin_y_px * 1px + self.y) / 1px;
+                            pointer_clicked(x, y) => {
+                                WorkbenchHostContext.drawer_header_pointer_clicked(
+                                    root.surface_data.surface_key,
+                                    index,
+                                    6.0 + self.x / 1px,
+                                    self.width / 1px,
+                                    6.0 + self.x / 1px + x,
+                                    2.0 + self.y / 1px + y,
+                                );
+                            }
+                            drag_started(x, y) => {
+                                WorkbenchHostContext.drag_state = {
+                                    active_drag_target_group: WorkbenchHostContext.drag_state.active_drag_target_group,
+                                    drag_active: true,
+                                    drag_tab_id: tab.id,
+                                    drag_tab_title: tab.title,
+                                    drag_tab_icon_key: tab.icon_key,
+                                    drag_source_group: root.surface_data.surface_key,
+                                    drag_pointer_x: x,
+                                    drag_pointer_y: y,
+                                };
+                                WorkbenchHostContext.workbench_drag_pointer_event(
+                                    1,
+                                    WorkbenchHostContext.drag_state.drag_pointer_x,
+                                    WorkbenchHostContext.drag_state.drag_pointer_y,
+                                );
+                            }
+                            drag_moved(x, y) => {
+                                if (WorkbenchHostContext.drag_state.drag_tab_id == tab.id) {
+                                    WorkbenchHostContext.drag_state = {
+                                        active_drag_target_group: WorkbenchHostContext.drag_state.active_drag_target_group,
+                                        drag_active: WorkbenchHostContext.drag_state.drag_active,
+                                        drag_tab_id: WorkbenchHostContext.drag_state.drag_tab_id,
+                                        drag_tab_title: WorkbenchHostContext.drag_state.drag_tab_title,
+                                        drag_tab_icon_key: WorkbenchHostContext.drag_state.drag_tab_icon_key,
+                                        drag_source_group: WorkbenchHostContext.drag_state.drag_source_group,
+                                        drag_pointer_x: x,
+                                        drag_pointer_y: y,
+                                    };
+                                    WorkbenchHostContext.workbench_drag_pointer_event(
+                                        1,
+                                        WorkbenchHostContext.drag_state.drag_pointer_x,
+                                        WorkbenchHostContext.drag_state.drag_pointer_y,
+                                    );
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Rectangle { height: 1px; background: palette.border_soft; }
+
+                PaneSurface {
+                    width: parent.width;
+                    height: parent.height - root.surface_data.panel_header_height_px * 1px - 1px;
+                    pane: root.surface_data.pane;
+                    show_header: false;
+                    compact_empty: true;
+                    asset_control_changed(source, control_id, value) => { PaneSurfaceHostContext.asset_control_changed(source, control_id, value); }
+                    asset_control_clicked(source, control_id) => { PaneSurfaceHostContext.asset_control_clicked(source, control_id); }
+                    welcome_control_changed(control_id, value) => { PaneSurfaceHostContext.welcome_control_changed(control_id, value); }
+                    welcome_control_clicked(control_id) => { PaneSurfaceHostContext.welcome_control_clicked(control_id); }
+                    viewport_toolbar_pointer_clicked(surface_key, control_id, control_x, control_y, control_width, control_height, point_x, point_y) => { PaneSurfaceHostContext.viewport_toolbar_pointer_clicked(surface_key, control_id, control_x, control_y, control_width, control_height, point_x, point_y); }
+                }
+            }
+        }
+
+        if !root.surface_data.rail_before_panel && root.show_panel: Rectangle {
+            width: 1px;
+            background: palette.border_soft;
+        }
+
+        if !root.surface_data.rail_before_panel: Rectangle {
+            width: root.surface_data.rail_width_px * 1px;
+            background: palette.rail_bg;
+
+            VerticalLayout {
+                x: 3px;
+                y: 6px;
+                spacing: 2px;
+                for tab in root.surface_data.tabs: RailButton {
+                    icon_key: tab.icon_key;
+                    active: tab.active;
+                    pointer_pressed(x, y) => {
+                        WorkbenchHostContext.activity_rail_pointer_clicked(
+                            root.surface_data.surface_key,
+                            self.x / 1px + x,
+                            self.y / 1px + y,
+                        );
+                    }
+                }
+            }
+        }
+    }
+}
+
+export component HostDocumentDockSurface inherits Rectangle {
+    in property <HostDocumentDockSurfaceData> surface_data;
+    palette := Palette {}
+    x: root.surface_data.region_frame.x * 1px;
+    y: root.surface_data.region_frame.y * 1px;
+    width: root.surface_data.region_frame.width * 1px;
+    height: root.surface_data.region_frame.height * 1px;
+    background: palette.panel_bg;
+    clip: true;
+
+    VerticalLayout {
+        spacing: 0px;
+
+        Rectangle {
+            height: root.surface_data.header_height_px * 1px;
+            background: palette.tab_bg;
+
+            HorizontalLayout {
+                x: 8px;
+                y: 1px;
+                spacing: 2px;
+                for tab[index] in root.surface_data.tabs: TabChip {
+                    label: tab.title;
+                    icon_key: tab.icon_key;
+                    active: tab.active;
+                    closeable: tab.closeable;
+                    drag_origin_x: (root.surface_data.tab_origin_x_px * 1px + self.x) / 1px;
+                    drag_origin_y: (root.surface_data.tab_origin_y_px * 1px + self.y) / 1px;
+                    pointer_clicked(x, y) => {
+                        WorkbenchHostContext.document_tab_pointer_clicked(
+                            root.surface_data.surface_key,
+                            index,
+                            8.0 + self.x / 1px,
+                            self.width / 1px,
+                            8.0 + self.x / 1px + x,
+                            1.0 + self.y / 1px + y,
+                        );
+                    }
+                    close_pointer_clicked(x, y) => {
+                        WorkbenchHostContext.document_tab_close_pointer_clicked(
+                            root.surface_data.surface_key,
+                            index,
+                            8.0 + self.x / 1px,
+                            self.width / 1px,
+                            8.0 + self.x / 1px + self.width / 1px - 24.0 + x,
+                            1.0 + self.y / 1px + 7.0 + y,
+                        );
+                    }
+                    drag_started(x, y) => {
+                        WorkbenchHostContext.drag_state = {
+                            active_drag_target_group: WorkbenchHostContext.drag_state.active_drag_target_group,
+                            drag_active: true,
+                            drag_tab_id: tab.id,
+                            drag_tab_title: tab.title,
+                            drag_tab_icon_key: tab.icon_key,
+                            drag_source_group: root.surface_data.surface_key,
+                            drag_pointer_x: x,
+                            drag_pointer_y: y,
+                        };
+                        WorkbenchHostContext.workbench_drag_pointer_event(
+                            1,
+                            WorkbenchHostContext.drag_state.drag_pointer_x,
+                            WorkbenchHostContext.drag_state.drag_pointer_y,
+                        );
+                    }
+                    drag_moved(x, y) => {
+                        if (WorkbenchHostContext.drag_state.drag_tab_id == tab.id) {
+                            WorkbenchHostContext.drag_state = {
+                                active_drag_target_group: WorkbenchHostContext.drag_state.active_drag_target_group,
+                                drag_active: WorkbenchHostContext.drag_state.drag_active,
+                                drag_tab_id: WorkbenchHostContext.drag_state.drag_tab_id,
+                                drag_tab_title: WorkbenchHostContext.drag_state.drag_tab_title,
+                                drag_tab_icon_key: WorkbenchHostContext.drag_state.drag_tab_icon_key,
+                                drag_source_group: WorkbenchHostContext.drag_state.drag_source_group,
+                                drag_pointer_x: x,
+                                drag_pointer_y: y,
+                            };
+                            WorkbenchHostContext.workbench_drag_pointer_event(
+                                1,
+                                WorkbenchHostContext.drag_state.drag_pointer_x,
+                                WorkbenchHostContext.drag_state.drag_pointer_y,
+                            );
+                        }
+                    }
+                }
+            }
+
+            Text {
+                x: parent.width - 144px;
+                y: 9px;
+                width: 132px;
+                horizontal-alignment: right;
+                text: root.surface_data.pane.subtitle;
+                color: palette.text_dim;
+                font-size: 10px;
+                overflow: elide;
+            }
+        }
+
+        Rectangle { height: 1px; background: palette.border_soft; }
+
+        PaneSurface {
+            width: parent.width;
+            height: parent.height - root.surface_data.header_height_px * 1px - 1px;
+            pane: root.surface_data.pane;
+            show_header: false;
+            compact_empty: false;
+            asset_control_changed(source, control_id, value) => { PaneSurfaceHostContext.asset_control_changed(source, control_id, value); }
+            asset_control_clicked(source, control_id) => { PaneSurfaceHostContext.asset_control_clicked(source, control_id); }
+            welcome_control_changed(control_id, value) => { PaneSurfaceHostContext.welcome_control_changed(control_id, value); }
+            welcome_control_clicked(control_id) => { PaneSurfaceHostContext.welcome_control_clicked(control_id); }
+            viewport_toolbar_pointer_clicked(surface_key, control_id, control_x, control_y, control_width, control_height, point_x, point_y) => { PaneSurfaceHostContext.viewport_toolbar_pointer_clicked(surface_key, control_id, control_x, control_y, control_width, control_height, point_x, point_y); }
+        }
+    }
+}
+
+export component HostBottomDockSurface inherits Rectangle {
+    in property <HostBottomDockSurfaceData> surface_data;
+    palette := Palette {}
+    x: root.surface_data.region_frame.x * 1px;
+    y: root.surface_data.region_frame.y * 1px;
+    width: root.surface_data.region_frame.width * 1px;
+    height: root.surface_data.region_frame.height * 1px;
+    background: palette.panel_bg;
+    clip: true;
+
+    VerticalLayout {
+        spacing: 0px;
+
+        Rectangle {
+            height: root.surface_data.header_height_px * 1px;
+            background: palette.chrome_bg;
+
+            HorizontalLayout {
+                x: 6px;
+                y: 2px;
+                spacing: 4px;
+
+                for tab[index] in root.surface_data.tabs: DockTabButton {
+                    label: tab.title;
+                    icon_key: tab.icon_key;
+                    active: tab.active;
+                    drag_enabled: true;
+                    drag_origin_x: (root.surface_data.tab_origin_x_px * 1px + self.x) / 1px;
+                    drag_origin_y: (root.surface_data.tab_origin_y_px * 1px + self.y) / 1px;
+                    pointer_clicked(x, y) => {
+                        WorkbenchHostContext.drawer_header_pointer_clicked(
+                            root.surface_data.surface_key,
+                            index,
+                            6.0 + self.x / 1px,
+                            self.width / 1px,
+                            6.0 + self.x / 1px + x,
+                            2.0 + self.y / 1px + y,
+                        );
+                    }
+                    drag_started(x, y) => {
+                        WorkbenchHostContext.drag_state = {
+                            active_drag_target_group: WorkbenchHostContext.drag_state.active_drag_target_group,
+                            drag_active: true,
+                            drag_tab_id: tab.id,
+                            drag_tab_title: tab.title,
+                            drag_tab_icon_key: tab.icon_key,
+                            drag_source_group: root.surface_data.surface_key,
+                            drag_pointer_x: x,
+                            drag_pointer_y: y,
+                        };
+                        WorkbenchHostContext.workbench_drag_pointer_event(
+                            1,
+                            WorkbenchHostContext.drag_state.drag_pointer_x,
+                            WorkbenchHostContext.drag_state.drag_pointer_y,
+                        );
+                    }
+                    drag_moved(x, y) => {
+                        if (WorkbenchHostContext.drag_state.drag_tab_id == tab.id) {
+                            WorkbenchHostContext.drag_state = {
+                                active_drag_target_group: WorkbenchHostContext.drag_state.active_drag_target_group,
+                                drag_active: WorkbenchHostContext.drag_state.drag_active,
+                                drag_tab_id: WorkbenchHostContext.drag_state.drag_tab_id,
+                                drag_tab_title: WorkbenchHostContext.drag_state.drag_tab_title,
+                                drag_tab_icon_key: WorkbenchHostContext.drag_state.drag_tab_icon_key,
+                                drag_source_group: WorkbenchHostContext.drag_state.drag_source_group,
+                                drag_pointer_x: x,
+                                drag_pointer_y: y,
+                            };
+                            WorkbenchHostContext.workbench_drag_pointer_event(
+                                1,
+                                WorkbenchHostContext.drag_state.drag_pointer_x,
+                                WorkbenchHostContext.drag_state.drag_pointer_y,
+                            );
+                        }
+                    }
+                }
+            }
+        }
+
+        if root.surface_data.expanded: Rectangle { height: 1px; background: palette.border_soft; }
+
+        if root.surface_data.expanded: PaneSurface {
+            width: parent.width;
+            height: parent.height - root.surface_data.header_height_px * 1px - 1px;
+            pane: root.surface_data.pane;
+            show_header: false;
+            compact_empty: true;
+            asset_control_changed(source, control_id, value) => { PaneSurfaceHostContext.asset_control_changed(source, control_id, value); }
+            asset_control_clicked(source, control_id) => { PaneSurfaceHostContext.asset_control_clicked(source, control_id); }
+            welcome_control_changed(control_id, value) => { PaneSurfaceHostContext.welcome_control_changed(control_id, value); }
+            welcome_control_clicked(control_id) => { PaneSurfaceHostContext.welcome_control_clicked(control_id); }
+            viewport_toolbar_pointer_clicked(surface_key, control_id, control_x, control_y, control_width, control_height, point_x, point_y) => { PaneSurfaceHostContext.viewport_toolbar_pointer_clicked(surface_key, control_id, control_x, control_y, control_width, control_height, point_x, point_y); }
+        }
+    }
+}
+
+export component HostFloatingWindowLayer inherits Rectangle {
+    in property <HostFloatingWindowLayerData> layer_data;
+    palette := Palette {}
+    background: transparent;
+
+    for window[index] in root.layer_data.floating_windows: floating_window_card := Rectangle {
+        property <bool> attach_drop_active: WorkbenchHostContext.drag_state.active_drag_target_group == window.target_group;
+        property <bool> left_edge_drop_active: WorkbenchHostContext.drag_state.active_drag_target_group == window.left_edge_target_group;
+        property <bool> right_edge_drop_active: WorkbenchHostContext.drag_state.active_drag_target_group == window.right_edge_target_group;
+        property <bool> top_edge_drop_active: WorkbenchHostContext.drag_state.active_drag_target_group == window.top_edge_target_group;
+        property <bool> bottom_edge_drop_active: WorkbenchHostContext.drag_state.active_drag_target_group == window.bottom_edge_target_group;
+        property <bool> any_drop_active:
+            attach_drop_active ||
+            left_edge_drop_active ||
+            right_edge_drop_active ||
+            top_edge_drop_active ||
+            bottom_edge_drop_active;
+        x: window.frame.x * 1px;
+        y: window.frame.y * 1px;
+        width: window.frame.width * 1px;
+        height: window.frame.height * 1px;
+        border-radius: 8px;
+        border-width: 1px;
+        border-color: any_drop_active ? palette.accent : palette.border_soft;
+        background: any_drop_active ? #223448f0 : #20242be8;
+        clip: true;
+
+        Rectangle {
+            width: parent.width;
+            height: parent.height;
+            border-radius: 8px;
+            background: transparent;
+
+            VerticalLayout {
+                spacing: 0px;
+
+                Rectangle {
+                    height: root.layer_data.header_height_px * 1px;
+                    background: palette.chrome_bg;
+
+                    header_touch := TouchArea {
+                        x: max(parent.width - 170px, floating_tabs_row.x + floating_tabs_row.width + 8px);
+                        width: max(parent.width - self.x, 0px);
+                        height: parent.height;
+                        clicked => {
+                            WorkbenchHostContext.floating_window_header_pointer_clicked(
+                                floating_window_card.x / 1px + self.x / 1px + self.mouse-x / 1px,
+                                floating_window_card.y / 1px + self.mouse-y / 1px,
+                            );
+                        }
+                    }
+
+                    floating_tabs_row := HorizontalLayout {
+                        x: 8px;
+                        y: 1px;
+                        spacing: 2px;
+                        for tab[index] in window.tabs: TabChip {
+                            label: tab.title;
+                            icon_key: tab.icon_key;
+                            active: tab.active;
+                            closeable: tab.closeable;
+                            drag_origin_x: (floating_window_card.x + floating_tabs_row.x + self.x) / 1px;
+                            drag_origin_y: (floating_window_card.y + floating_tabs_row.y + self.y) / 1px;
+                            pointer_clicked(x, y) => {
+                                WorkbenchHostContext.document_tab_pointer_clicked(
+                                    window.window_id,
+                                    index,
+                                    8.0 + self.x / 1px,
+                                    self.width / 1px,
+                                    8.0 + self.x / 1px + x,
+                                    1.0 + self.y / 1px + y,
+                                );
+                            }
+                            close_pointer_clicked(x, y) => {
+                                WorkbenchHostContext.document_tab_close_pointer_clicked(
+                                    window.window_id,
+                                    index,
+                                    8.0 + self.x / 1px,
+                                    self.width / 1px,
+                                    8.0 + self.x / 1px + self.width / 1px - 24.0 + x,
+                                    1.0 + self.y / 1px + 7.0 + y,
+                                );
+                            }
+                            drag_started(x, y) => {
+                                WorkbenchHostContext.drag_state = {
+                                    active_drag_target_group: WorkbenchHostContext.drag_state.active_drag_target_group,
+                                    drag_active: true,
+                                    drag_tab_id: tab.id,
+                                    drag_tab_title: tab.title,
+                                    drag_tab_icon_key: tab.icon_key,
+                                    drag_source_group: window.window_id,
+                                    drag_pointer_x: x,
+                                    drag_pointer_y: y,
+                                };
+                                WorkbenchHostContext.workbench_drag_pointer_event(
+                                    1,
+                                    WorkbenchHostContext.drag_state.drag_pointer_x,
+                                    WorkbenchHostContext.drag_state.drag_pointer_y,
+                                );
+                            }
+                            drag_moved(x, y) => {
+                                if (WorkbenchHostContext.drag_state.drag_tab_id == tab.id) {
+                                    WorkbenchHostContext.drag_state = {
+                                        active_drag_target_group: WorkbenchHostContext.drag_state.active_drag_target_group,
+                                        drag_active: WorkbenchHostContext.drag_state.drag_active,
+                                        drag_tab_id: WorkbenchHostContext.drag_state.drag_tab_id,
+                                        drag_tab_title: WorkbenchHostContext.drag_state.drag_tab_title,
+                                        drag_tab_icon_key: WorkbenchHostContext.drag_state.drag_tab_icon_key,
+                                        drag_source_group: WorkbenchHostContext.drag_state.drag_source_group,
+                                        drag_pointer_x: x,
+                                        drag_pointer_y: y,
+                                    };
+                                    WorkbenchHostContext.workbench_drag_pointer_event(
+                                        1,
+                                        WorkbenchHostContext.drag_state.drag_pointer_x,
+                                        WorkbenchHostContext.drag_state.drag_pointer_y,
+                                    );
+                                }
+                            }
+                        }
+                    }
+
+                    Text {
+                        x: parent.width - 170px;
+                        y: 9px;
+                        width: 158px;
+                        horizontal-alignment: right;
+                        text: window.title;
+                        color: palette.text_dim;
+                        font-size: 10px;
+                        overflow: elide;
+                    }
+                }
+
+                Rectangle { height: 1px; background: palette.border_soft; }
+
+                PaneSurface {
+                    width: parent.width;
+                    height: parent.height - root.layer_data.header_height_px * 1px - 1px;
+                    pane: window.active_pane;
+                    show_header: false;
+                    compact_empty: false;
+                    asset_control_changed(source, control_id, value) => { PaneSurfaceHostContext.asset_control_changed(source, control_id, value); }
+                    asset_control_clicked(source, control_id) => { PaneSurfaceHostContext.asset_control_clicked(source, control_id); }
+                    welcome_control_changed(control_id, value) => { PaneSurfaceHostContext.welcome_control_changed(control_id, value); }
+                    welcome_control_clicked(control_id) => { PaneSurfaceHostContext.welcome_control_clicked(control_id); }
+                    viewport_toolbar_pointer_clicked(surface_key, control_id, control_x, control_y, control_width, control_height, point_x, point_y) => { PaneSurfaceHostContext.viewport_toolbar_pointer_clicked(surface_key, control_id, control_x, control_y, control_width, control_height, point_x, point_y); }
+                }
+            }
+
+            if left_edge_drop_active: Rectangle {
+                x: 12px;
+                y: 34px;
+                width: min(max(72px, parent.width * 0.24), parent.width * 0.45);
+                height: max(parent.height - 68px, 56px);
+                border-radius: 6px;
+                border-width: 1px;
+                border-color: palette.accent;
+                background: #2c527955;
+            }
+
+            if right_edge_drop_active: Rectangle {
+                x: parent.width - self.width - 12px;
+                y: 34px;
+                width: min(max(72px, parent.width * 0.24), parent.width * 0.45);
+                height: max(parent.height - 68px, 56px);
+                border-radius: 6px;
+                border-width: 1px;
+                border-color: palette.accent;
+                background: #2c527955;
+            }
+
+            if top_edge_drop_active: Rectangle {
+                x: 12px;
+                y: 34px;
+                width: max(parent.width - 24px, 56px);
+                height: min(max(54px, parent.height * 0.2), parent.height * 0.4);
+                border-radius: 6px;
+                border-width: 1px;
+                border-color: palette.accent;
+                background: #2c527955;
+            }
+
+            if bottom_edge_drop_active: Rectangle {
+                x: 12px;
+                y: parent.height - self.height - 12px;
+                width: max(parent.width - 24px, 56px);
+                height: min(max(54px, parent.height * 0.2), parent.height * 0.4);
+                border-radius: 6px;
+                border-width: 1px;
+                border-color: palette.accent;
+                background: #2c527955;
+            }
+        }
+    }
+}
+
+export component HostNativeFloatingWindowSurface inherits Rectangle {
+    in property <HostNativeFloatingWindowSurfaceData> surface_data;
+    palette := Palette {}
+    background: palette.shell_bg;
+
+    for window[index] in root.surface_data.floating_windows: Rectangle {
+        visible: window.window_id == root.surface_data.native_floating_window_id;
+        x: 0px;
+        y: 0px;
+        width: parent.width;
+        height: parent.height;
+        background: #20242be8;
+        clip: true;
+
+        VerticalLayout {
+            spacing: 0px;
+
+            Rectangle {
+                height: root.surface_data.header_height_px * 1px;
+                background: palette.chrome_bg;
+
+                native_header_touch := TouchArea {
+                    x: max(parent.width - 170px, native_floating_tabs_row.x + native_floating_tabs_row.width + 8px);
+                    width: max(parent.width - self.x, 0px);
+                    height: parent.height;
+                    clicked => {
+                        WorkbenchHostContext.floating_window_header_pointer_clicked(
+                            root.surface_data.native_window_bounds.x + self.x / 1px + self.mouse-x / 1px,
+                            root.surface_data.native_window_bounds.y + self.mouse-y / 1px,
+                        );
+                    }
+                }
+
+                native_floating_tabs_row := HorizontalLayout {
+                    x: 8px;
+                    y: 1px;
+                    spacing: 2px;
+                    for tab[index] in window.tabs: TabChip {
+                        label: tab.title;
+                        icon_key: tab.icon_key;
+                        active: tab.active;
+                        closeable: tab.closeable;
+                        drag_enabled: false;
+                        pointer_clicked(x, y) => {
+                            WorkbenchHostContext.document_tab_pointer_clicked(
+                                window.window_id,
+                                index,
+                                8.0 + self.x / 1px,
+                                self.width / 1px,
+                                8.0 + self.x / 1px + x,
+                                1.0 + self.y / 1px + y,
+                            );
+                        }
+                        close_pointer_clicked(x, y) => {
+                            WorkbenchHostContext.document_tab_close_pointer_clicked(
+                                window.window_id,
+                                index,
+                                8.0 + self.x / 1px,
+                                self.width / 1px,
+                                8.0 + self.x / 1px + self.width / 1px - 24.0 + x,
+                                1.0 + self.y / 1px + 7.0 + y,
+                            );
+                        }
+                    }
+                }
+
+                Text {
+                    x: parent.width - 170px;
+                    y: 9px;
+                    width: 158px;
+                    horizontal-alignment: right;
+                    text: window.title;
+                    color: palette.text_dim;
+                    font-size: 10px;
+                    overflow: elide;
+                }
+            }
+
+            Rectangle { height: 1px; background: palette.border_soft; }
+
+            PaneSurface {
+                width: parent.width;
+                height: parent.height - root.surface_data.header_height_px * 1px - 1px;
+                pane: window.active_pane;
+                show_header: false;
+                compact_empty: false;
+                asset_control_changed(source, control_id, value) => { PaneSurfaceHostContext.asset_control_changed(source, control_id, value); }
+                asset_control_clicked(source, control_id) => { PaneSurfaceHostContext.asset_control_clicked(source, control_id); }
+                welcome_control_changed(control_id, value) => { PaneSurfaceHostContext.welcome_control_changed(control_id, value); }
+                welcome_control_clicked(control_id) => { PaneSurfaceHostContext.welcome_control_clicked(control_id); }
+                viewport_toolbar_pointer_clicked(surface_key, control_id, control_x, control_y, control_width, control_height, point_x, point_y) => { PaneSurfaceHostContext.viewport_toolbar_pointer_clicked(surface_key, control_id, control_x, control_y, control_width, control_height, point_x, point_y); }
+            }
+        }
+    }
+}

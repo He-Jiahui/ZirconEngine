@@ -1,4 +1,4 @@
-use zircon_scene::OverlayWireShape;
+use zircon_framework::render::OverlayWireShape;
 
 use crate::scene::scene_renderer::primitives::LineVertex;
 

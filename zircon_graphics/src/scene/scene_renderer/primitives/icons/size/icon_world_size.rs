@@ -1,4 +1,4 @@
-use zircon_scene::OverlayBillboardIcon;
+use zircon_framework::render::OverlayBillboardIcon;
 
 pub(in crate::scene::scene_renderer::primitives) fn icon_world_size(
     icon: &OverlayBillboardIcon,

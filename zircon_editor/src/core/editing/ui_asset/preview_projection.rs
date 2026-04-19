@@ -1,5 +1,6 @@
 use crate::ui::UiDesignerSelectionModel;
-use zircon_ui::{UiAssetDocument, UiTemplateNodeMetadata};
+use zircon_ui::tree::UiTemplateNodeMetadata;
+use zircon_ui::UiAssetDocument;
 
 use super::preview_host::UiAssetPreviewHost;
 
@@ -147,7 +148,7 @@ fn preview_item_component_label(
     }
 }
 
-fn node_component_label(node: &zircon_ui::UiNodeDefinition) -> Option<String> {
+fn node_component_label(node: &zircon_ui::template::UiNodeDefinition) -> Option<String> {
     node.component_ref
         .as_deref()
         .and_then(|reference| reference.split_once('#').map(|(_, component)| component))
@@ -161,3 +162,4 @@ fn node_id_by_control_id(document: &UiAssetDocument, control_id: &str) -> Option
         (node.control_id.as_deref() == Some(control_id)).then(|| node_id.clone())
     })
 }
+

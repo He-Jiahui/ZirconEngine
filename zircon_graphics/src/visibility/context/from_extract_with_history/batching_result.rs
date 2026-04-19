@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use zircon_scene::EntityId;
+use zircon_framework::scene::EntityId;
 
 use super::super::super::declarations::{
     VisibilityBatch, VisibilityBvhInstance, VisibilityHistoryEntry,
@@ -17,3 +17,4 @@ pub(super) struct BatchingResult {
     pub(super) bvh_instances: Vec<VisibilityBvhInstance>,
     pub(super) history_entries: Vec<VisibilityHistoryEntry>,
 }
+

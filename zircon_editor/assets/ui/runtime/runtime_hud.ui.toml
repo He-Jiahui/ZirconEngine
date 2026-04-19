@@ -1,0 +1,104 @@
+[asset]
+kind = "layout"
+id = "runtime.sample_hud"
+version = 1
+display_name = "Runtime HUD"
+
+[root]
+node = "hud_root"
+
+[nodes.hud_root]
+kind = "native"
+type = "VerticalBox"
+control_id = "RuntimeHudRoot"
+classes = ["hud-root"]
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox", gap = 8.0 } }
+children = [
+  { child = "status_row" },
+  { child = "score_panel" },
+  { child = "actions_row" },
+]
+
+[nodes.status_row]
+kind = "native"
+type = "HorizontalBox"
+control_id = "HudStatusRow"
+classes = ["hud-row"]
+layout = { width = { stretch = "Stretch" }, container = { kind = "HorizontalBox", gap = 12.0 } }
+children = [
+  { child = "mission_label" },
+  { child = "ammo_label" },
+]
+
+[nodes.mission_label]
+kind = "native"
+type = "Label"
+control_id = "MissionStatus"
+classes = ["hud-title"]
+props = { text = "Mission: Relay Tower" }
+
+[nodes.ammo_label]
+kind = "native"
+type = "Label"
+control_id = "AmmoStatus"
+classes = ["hud-meta"]
+props = { text = "Ammo 42 / 90" }
+
+[nodes.score_panel]
+kind = "native"
+type = "Label"
+control_id = "ScoreLabel"
+classes = ["hud-score"]
+props = { text = "Score 12850" }
+
+[nodes.actions_row]
+kind = "native"
+type = "HorizontalBox"
+control_id = "HudActionsRow"
+classes = ["hud-row"]
+layout = { width = { stretch = "Stretch" }, container = { kind = "HorizontalBox", gap = 10.0 } }
+children = [
+  { child = "use_button" },
+  { child = "inventory_button" },
+]
+
+[nodes.use_button]
+kind = "native"
+type = "Button"
+control_id = "UseAction"
+classes = ["hud-button", "hud-button-primary"]
+props = { text = "Use" }
+
+[nodes.inventory_button]
+kind = "native"
+type = "Button"
+control_id = "InventoryAction"
+classes = ["hud-button"]
+props = { text = "Inventory" }
+
+[[stylesheets]]
+id = "runtime_hud"
+
+[[stylesheets.rules]]
+selector = ".hud-root"
+set = { self = { background = { color = "#111621" } } }
+
+[[stylesheets.rules]]
+selector = ".hud-title"
+set = { self = { text = "#f3f6ff" } }
+
+[[stylesheets.rules]]
+selector = ".hud-meta"
+set = { self = { text = "#9fb0d0" } }
+
+[[stylesheets.rules]]
+selector = ".hud-score"
+set = { self = { text = "#7be2c2" } }
+
+[[stylesheets.rules]]
+selector = "Button.hud-button"
+set = { self = { background = { color = "#1b2536" }, text = "#dfe6f7" } }
+
+[[stylesheets.rules]]
+selector = "Button.hud-button-primary"
+set = { self = { background = { color = "#2e5caa" } } }

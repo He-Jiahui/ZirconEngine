@@ -1,11 +1,11 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+use crate::EntityId;
 use crate::components::{
     ActiveInHierarchy, ActiveSelf, CameraComponent, DirectionalLight, Hierarchy, LocalTransform,
     MeshRenderer, Mobility, Name, NodeKind, RenderLayerMask, SceneNode, Schedule, WorldMatrix,
 };
-use crate::EntityId;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct World {

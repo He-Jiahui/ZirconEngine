@@ -5,7 +5,7 @@ use zircon_manager::{
     resolve_rendering_manager, ManagerResolver,
 };
 use zircon_runtime::{
-    asset::resolve_asset_manager,
+    asset::pipeline::manager::resolve_asset_manager,
     input::{InputButton, InputEvent},
     scene::create_default_level,
 };

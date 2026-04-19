@@ -1,5 +1,8 @@
 ---
 related_code:
+  - zircon_runtime/src/ui/mod.rs
+  - zircon_runtime/src/ui/module.rs
+  - zircon_ui/src/lib.rs
   - zircon_ui/src/binding/mod.rs
   - zircon_ui/src/binding/model/mod.rs
   - zircon_ui/src/binding/model/event_path.rs
@@ -40,6 +43,9 @@ related_code:
   - zircon_ui/src/tree/node/interaction.rs
   - zircon_ui/src/tree/node/focus.rs
 implementation_files:
+  - zircon_runtime/src/ui/mod.rs
+  - zircon_runtime/src/ui/module.rs
+  - zircon_ui/src/lib.rs
   - zircon_ui/src/binding/model/mod.rs
   - zircon_ui/src/event_ui/manager/mod.rs
   - zircon_ui/src/layout/pass/mod.rs
@@ -49,8 +55,11 @@ plan_sources:
   - user: 2026-04-16 全部积极拆分并按模块边界持续重构所有脚本
   - .codex/plans/全系统重构方案.md
 tests:
+  - cargo test -p zircon_runtime ui_module_registration_is_absorbed_into_runtime_ui_surface --locked --offline --target-dir target/codex-shared-b -- --nocapture
+  - cargo test -p zircon_runtime --locked --offline --target-dir target/codex-shared-b -- --nocapture
   - cargo test -p zircon_ui --offline --verbose
-  - cargo test -p zircon_core -p zircon_resource -p zircon_manager -p zircon_ui -p zircon_module -p zircon_input -p zircon_math --offline --verbose
+  - cargo test -p zircon_ui --locked --offline --target-dir target/codex-shared-b -- --nocapture
+  - cargo test -p zircon_core -p zircon_resource -p zircon_manager -p zircon_ui -p zircon_module -p zircon_runtime -p zircon_math --offline --verbose
 doc_type: module-detail
 ---
 
@@ -58,7 +67,25 @@ doc_type: module-detail
 
 ## Purpose
 
-这份文档只记录一件事：`zircon_ui` 内部哪些原本混合职责的单文件，已经被强制拆成 folder-backed subtree，以及这些子树现在分别承担什么职责。
+这份文档记录两件边界变化：
+
+- `zircon_ui` 内部哪些原本混合职责的单文件，已经被强制拆成 folder-backed subtree，以及这些子树现在分别承担什么职责。
+- `UiModule` / `UiConfig` / `module_descriptor()` 这层 runtime 模块注册面已经从 `zircon_ui` root 收到 `zircon_runtime::ui`，以避免 `zircon_graphics`、`zircon_asset` 这类仍直接依赖 UI DTO 的 crate 反向把 `zircon_runtime` 拉进依赖环。
+
+## Root Ownership
+
+当前 crate 边界已经调整为：
+
+- `zircon_runtime/src/ui/mod.rs` + `zircon_runtime/src/ui/module.rs`
+  - 持有 `UiModule`、`UiConfig`、`UI_MODULE_NAME` 与 `module_descriptor()`
+  - `zircon_runtime::builtin_runtime_modules()` 通过这里注册 runtime UI 模块
+- `zircon_ui/src/lib.rs`
+  - 不再导出 module owner
+  - 继续暴露 binding、event_ui、layout、template、tree 等共享 UI 实现与 DTO surface
+- `zircon_ui/src/module/*.rs`
+  - 已删除；这层 runtime module wiring 不再留在实现 crate 内
+
+这样处理的目的不是把 `zircon_ui` 物理并入 runtime，而是先把“模块注册所有权”收束到 `zircon_runtime`，同时保留 `zircon_ui` 作为 `editor/graphics/asset` 仍可直接引用的共享类型与实现 crate。
 
 ## Binding Model
 
@@ -173,6 +200,7 @@ doc_type: module-detail
 
 这一轮之后，`zircon_ui` 相关模块保持以下约束：
 
+- runtime module registration 只放在 `zircon_runtime::ui`，不再回流到 `zircon_ui` root
 - `mod.rs` 只负责 `mod` / `pub use`
 - 顶层声明一个文件一个类型
 - parser、builder、dispatch、diff、scroll、focus 这类行为族单独成文件

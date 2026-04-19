@@ -1,4 +1,4 @@
-use zircon_scene::SceneViewportTool;
+use zircon_framework::render::SceneViewportTool;
 
 use super::handle_drag_session::HandleDragSession;
 

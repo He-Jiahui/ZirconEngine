@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use serde_json::Value;
 
-use crate::UiEventBinding;
+use crate::binding::UiEventBinding;
 
 use super::super::{UiInvocationContext, UiInvocationError, UiRouteId};
 use super::route_entry::RouteEntry;

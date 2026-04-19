@@ -1,4 +1,8 @@
-use zircon_ui::{UiNodeId, UiPointerDispatchEffect, UiPointerDispatcher, UiPointerEventKind};
+use zircon_ui::{
+    dispatch::{UiPointerDispatchEffect, UiPointerDispatcher},
+    event_ui::UiNodeId,
+    UiPointerEventKind,
+};
 
 pub(in crate::ui::slint_host::welcome_recent_pointer) fn register_handled_pointer_node(
     dispatcher: &mut UiPointerDispatcher,

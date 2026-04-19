@@ -1,7 +1,8 @@
 use std::path::Path;
 
 use crate::watch::watched_asset_uri_for_path;
-use crate::{AssetChange, AssetChangeKind, AssetUri, AssetWatchEvent, AssetWatcher};
+use crate::watch::{AssetChange, AssetChangeKind, AssetWatchEvent, AssetWatcher};
+use crate::AssetUri;
 
 #[test]
 fn watcher_folds_redundant_events_into_latest_change_set() {

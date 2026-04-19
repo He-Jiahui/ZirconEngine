@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use zircon_ui::UiBindingValue;
+use zircon_ui::binding::UiBindingValue;
 
 pub fn inspector_field_control_id(field_id: &str) -> Option<&'static str> {
     match field_id {

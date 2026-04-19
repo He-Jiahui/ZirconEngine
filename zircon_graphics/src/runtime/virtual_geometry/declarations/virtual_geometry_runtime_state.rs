@@ -9,6 +9,7 @@ pub(crate) struct VirtualGeometryRuntimeState {
     pub(in crate::runtime::virtual_geometry) page_parent_pages: BTreeMap<u32, u32>,
     pub(in crate::runtime::virtual_geometry) current_requested_page_order: BTreeMap<u32, usize>,
     pub(in crate::runtime::virtual_geometry) current_hot_resident_pages: BTreeSet<u32>,
+    pub(in crate::runtime::virtual_geometry) recent_hot_resident_pages: BTreeSet<u32>,
     pub(in crate::runtime::virtual_geometry) resident_slots: BTreeMap<u32, u32>,
     pub(in crate::runtime::virtual_geometry) pending_requests: Vec<VirtualGeometryPageRequest>,
     pub(in crate::runtime::virtual_geometry) pending_pages: BTreeSet<u32>,

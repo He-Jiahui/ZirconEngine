@@ -1,4 +1,4 @@
-use zircon_scene::OverlayLineSegment;
+use zircon_framework::render::OverlayLineSegment;
 
 use crate::scene::scene_renderer::primitives::LineVertex;
 

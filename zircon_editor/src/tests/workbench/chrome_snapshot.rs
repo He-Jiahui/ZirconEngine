@@ -10,12 +10,12 @@ use crate::snapshot::{
     AssetWorkspaceSnapshot, DocumentWorkspaceSnapshot, EditorChromeSnapshot, EditorDataSnapshot,
     MainPageSnapshot, ProjectOverviewSnapshot,
 };
+use crate::ui::workbench::startup::{EditorSessionMode, WelcomePaneSnapshot};
 use crate::view::{
     PreferredHost, ViewDescriptor, ViewDescriptorId, ViewHost, ViewInstance, ViewInstanceId,
     ViewKind,
 };
-use crate::ui::workbench::startup::{EditorSessionMode, WelcomePaneSnapshot};
-use zircon_scene::{
+use zircon_framework::render::{
     DisplayMode, GridMode, ProjectionMode, SceneViewportSettings, SceneViewportTool,
     TransformSpace, ViewOrientation,
 };

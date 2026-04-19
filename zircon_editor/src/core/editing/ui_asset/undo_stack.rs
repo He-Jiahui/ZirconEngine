@@ -1,13 +1,57 @@
+use std::collections::BTreeMap;
+
 use crate::ui::UiDesignerSelectionModel;
 use zircon_ui::UiAssetDocument;
 
-use super::command::{UiAssetEditorTreeEdit, UiAssetEditorTreeEditKind};
+use super::command::{
+    UiAssetEditorDocumentReplayBundle, UiAssetEditorDocumentReplayCommand,
+    UiAssetEditorInverseTreeEdit, UiAssetEditorTreeEdit, UiAssetEditorTreeEditKind,
+};
 use super::document_diff::UiAssetDocumentDiff;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum UiAssetEditorExternalEffect {
     UpsertAssetSource { asset_id: String, source: String },
+    RestoreAssetSource { asset_id: String, source: String },
     RemoveAssetSource { asset_id: String },
+}
+
+impl UiAssetEditorExternalEffect {
+    pub fn apply_to_asset_sources(&self, asset_sources: &mut BTreeMap<String, String>) -> bool {
+        match self {
+            Self::UpsertAssetSource { asset_id, source }
+            | Self::RestoreAssetSource { asset_id, source } => {
+                apply_asset_source(asset_sources, asset_id, source)
+            }
+            Self::RemoveAssetSource { asset_id } => asset_sources.remove(asset_id).is_some(),
+        }
+    }
+}
+
+fn apply_asset_source(
+    asset_sources: &mut BTreeMap<String, String>,
+    asset_id: &str,
+    source: &str,
+) -> bool {
+    if asset_sources
+        .get(asset_id)
+        .is_some_and(|existing| existing == source)
+    {
+        return false;
+    }
+    asset_sources.insert(asset_id.to_string(), source.to_string());
+    true
+}
+
+pub fn apply_external_effects_to_asset_sources(
+    asset_sources: &mut BTreeMap<String, String>,
+    effects: &[UiAssetEditorExternalEffect],
+) -> bool {
+    let mut changed = false;
+    for effect in effects {
+        changed |= effect.apply_to_asset_sources(asset_sources);
+    }
+    changed
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -29,6 +73,7 @@ pub struct UiAssetEditorUndoTransition {
     pub source_cursor: UiAssetEditorSourceCursorSnapshot,
     pub selected_theme_source_key: Option<String>,
     pub document: Option<UiAssetEditorUndoDocumentReplay>,
+    pub document_commands: Vec<UiAssetEditorDocumentReplayCommand>,
     pub external_effects: Vec<UiAssetEditorExternalEffect>,
     source: UiAssetEditorSourceReplay,
 }
@@ -39,10 +84,19 @@ impl UiAssetEditorUndoTransition {
     }
 
     pub fn apply_to_document(&self, document: &mut UiAssetDocument) -> Result<bool, &'static str> {
-        self.document
+        let mut changed = false;
+        if !self.document_commands.is_empty() {
+            for command in &self.document_commands {
+                changed |= apply_document_replay_command(document, command)?;
+            }
+            return Ok(changed);
+        }
+        changed |= self
+            .document
             .as_ref()
             .map(|replay| replay.apply_to_document(document))
-            .unwrap_or(Ok(false))
+            .unwrap_or(Ok(false))?;
+        Ok(changed)
     }
 }
 
@@ -106,6 +160,7 @@ impl UiAssetEditorUndoDocumentReplay {
 struct SourceEditEntry {
     label: String,
     tree_edit: Option<UiAssetEditorTreeEdit>,
+    inverse_tree_edit: Option<UiAssetEditorInverseTreeEdit>,
     undo: UiAssetEditorUndoTransition,
     redo: UiAssetEditorUndoTransition,
 }
@@ -116,11 +171,18 @@ pub struct UiAssetEditorUndoStack {
     redo_stack: Vec<SourceEditEntry>,
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct UiAssetEditorUndoReplayRecord {
+    pub label: String,
+    pub transition: UiAssetEditorUndoTransition,
+}
+
 impl UiAssetEditorUndoStack {
     pub fn push_edit(
         &mut self,
         label: impl Into<String>,
         tree_edit: Option<UiAssetEditorTreeEdit>,
+        document_replay: Option<UiAssetEditorDocumentReplayBundle>,
         before_source: String,
         before_selection: UiDesignerSelectionModel,
         before_source_cursor: UiAssetEditorSourceCursorSnapshot,
@@ -133,9 +195,20 @@ impl UiAssetEditorUndoStack {
         after_document: Option<UiAssetDocument>,
         external_effects: UiAssetEditorUndoExternalEffects,
     ) {
+        let inverse_tree_edit = match (
+            tree_edit.as_ref(),
+            before_document.as_ref(),
+            after_document.as_ref(),
+        ) {
+            (Some(tree_edit), Some(before_document), Some(after_document)) => {
+                build_inverse_tree_edit(tree_edit, before_document, after_document)
+            }
+            _ => None,
+        };
         self.undo_stack.push(SourceEditEntry {
             label: label.into(),
             tree_edit,
+            inverse_tree_edit,
             undo: UiAssetEditorUndoTransition {
                 selection: before_selection,
                 source_cursor: before_source_cursor,
@@ -146,6 +219,10 @@ impl UiAssetEditorUndoStack {
                     ),
                     _ => None,
                 },
+                document_commands: document_replay
+                    .as_ref()
+                    .map(|replay| replay.undo.clone())
+                    .unwrap_or_default(),
                 external_effects: external_effects.undo,
                 source: UiAssetEditorSourceReplay::between(&after_source, &before_source),
             },
@@ -159,6 +236,10 @@ impl UiAssetEditorUndoStack {
                     ),
                     _ => None,
                 },
+                document_commands: document_replay
+                    .as_ref()
+                    .map(|replay| replay.redo.clone())
+                    .unwrap_or_default(),
                 external_effects: external_effects.redo,
                 source: UiAssetEditorSourceReplay::between(&before_source, &after_source),
             },
@@ -167,17 +248,31 @@ impl UiAssetEditorUndoStack {
     }
 
     pub fn undo(&mut self) -> Option<UiAssetEditorUndoTransition> {
-        let entry = self.undo_stack.pop()?;
-        let snapshot = entry.undo.clone();
-        self.redo_stack.push(entry);
-        Some(snapshot)
+        self.undo_record().map(|record| record.transition)
     }
 
     pub fn redo(&mut self) -> Option<UiAssetEditorUndoTransition> {
+        self.redo_record().map(|record| record.transition)
+    }
+
+    pub fn undo_record(&mut self) -> Option<UiAssetEditorUndoReplayRecord> {
+        let entry = self.undo_stack.pop()?;
+        let record = UiAssetEditorUndoReplayRecord {
+            label: entry.label.clone(),
+            transition: entry.undo.clone(),
+        };
+        self.redo_stack.push(entry);
+        Some(record)
+    }
+
+    pub fn redo_record(&mut self) -> Option<UiAssetEditorUndoReplayRecord> {
         let entry = self.redo_stack.pop()?;
-        let snapshot = entry.redo.clone();
+        let record = UiAssetEditorUndoReplayRecord {
+            label: entry.label.clone(),
+            transition: entry.redo.clone(),
+        };
         self.undo_stack.push(entry);
-        Some(snapshot)
+        Some(record)
     }
 
     pub fn can_undo(&self) -> bool {
@@ -220,18 +315,16 @@ impl UiAssetEditorUndoStack {
             .and_then(|entry| entry.tree_edit.clone())
     }
 
-    pub fn next_undo_inverse_tree_edit(&self) -> Option<UiAssetEditorTreeEdit> {
+    pub fn next_undo_inverse_tree_edit(&self) -> Option<UiAssetEditorInverseTreeEdit> {
         self.undo_stack
             .last()
-            .and_then(|entry| entry.tree_edit.as_ref())
-            .and_then(inverse_tree_edit)
+            .and_then(|entry| entry.inverse_tree_edit.clone())
     }
 
-    pub fn next_redo_inverse_tree_edit(&self) -> Option<UiAssetEditorTreeEdit> {
+    pub fn next_redo_inverse_tree_edit(&self) -> Option<UiAssetEditorInverseTreeEdit> {
         self.redo_stack
             .last()
-            .and_then(|entry| entry.tree_edit.as_ref())
-            .and_then(inverse_tree_edit)
+            .and_then(|entry| entry.inverse_tree_edit.clone())
     }
 
     pub fn next_undo_external_effect(&self) -> Option<UiAssetEditorExternalEffect> {
@@ -249,6 +342,20 @@ impl UiAssetEditorUndoStack {
             .unwrap_or_default()
     }
 
+    pub fn next_undo_document_replay_commands(&self) -> Vec<UiAssetEditorDocumentReplayCommand> {
+        self.undo_stack
+            .last()
+            .map(|entry| entry.undo.document_commands.clone())
+            .unwrap_or_default()
+    }
+
+    pub fn next_redo_document_replay_commands(&self) -> Vec<UiAssetEditorDocumentReplayCommand> {
+        self.redo_stack
+            .last()
+            .map(|entry| entry.redo.document_commands.clone())
+            .unwrap_or_default()
+    }
+
     pub fn next_redo_external_effects(&self) -> Vec<UiAssetEditorExternalEffect> {
         self.redo_stack
             .last()
@@ -257,30 +364,357 @@ impl UiAssetEditorUndoStack {
     }
 }
 
-fn inverse_tree_edit(edit: &UiAssetEditorTreeEdit) -> Option<UiAssetEditorTreeEdit> {
+fn apply_document_replay_command(
+    document: &mut UiAssetDocument,
+    command: &UiAssetEditorDocumentReplayCommand,
+) -> Result<bool, &'static str> {
+    match command {
+        UiAssetEditorDocumentReplayCommand::SetWidgetImports { references } => {
+            if document.imports.widgets == *references {
+                return Ok(false);
+            }
+            document.imports.widgets = references.clone();
+            Ok(true)
+        }
+        UiAssetEditorDocumentReplayCommand::SetRoot { root } => {
+            if document.root == *root {
+                return Ok(false);
+            }
+            document.root = root.clone();
+            Ok(true)
+        }
+        UiAssetEditorDocumentReplayCommand::UpsertNode { node_id, node } => {
+            if document
+                .nodes
+                .get(node_id)
+                .is_some_and(|existing| existing == node)
+            {
+                return Ok(false);
+            }
+            document.nodes.insert(node_id.clone(), node.clone());
+            Ok(true)
+        }
+        UiAssetEditorDocumentReplayCommand::RemoveNode { node_id } => {
+            Ok(document.nodes.remove(node_id).is_some())
+        }
+        UiAssetEditorDocumentReplayCommand::UpsertComponent {
+            component_name,
+            component,
+        } => {
+            if document
+                .components
+                .get(component_name)
+                .is_some_and(|existing| existing == component)
+            {
+                return Ok(false);
+            }
+            document
+                .components
+                .insert(component_name.clone(), component.clone());
+            Ok(true)
+        }
+        UiAssetEditorDocumentReplayCommand::RemoveComponent { component_name } => {
+            Ok(document.components.remove(component_name).is_some())
+        }
+        UiAssetEditorDocumentReplayCommand::SetNodeBindings { node_id, bindings } => {
+            let Some(node) = document.nodes.get_mut(node_id) else {
+                return Ok(false);
+            };
+            if node.bindings == *bindings {
+                return Ok(false);
+            }
+            node.bindings = bindings.clone();
+            Ok(true)
+        }
+        UiAssetEditorDocumentReplayCommand::SetStyleImports { references } => {
+            if document.imports.styles == *references {
+                return Ok(false);
+            }
+            document.imports.styles = references.clone();
+            Ok(true)
+        }
+        UiAssetEditorDocumentReplayCommand::InsertStyleImport { index, reference } => {
+            let insert_index = (*index).min(document.imports.styles.len());
+            if document
+                .imports
+                .styles
+                .get(insert_index)
+                .is_some_and(|existing| existing == reference)
+            {
+                return Ok(false);
+            }
+            document.imports.styles.insert(insert_index, reference.clone());
+            Ok(true)
+        }
+        UiAssetEditorDocumentReplayCommand::RemoveStyleImport { index, reference } => {
+            if *index >= document.imports.styles.len() {
+                return Ok(false);
+            }
+            if document.imports.styles[*index] != *reference {
+                return Err("invalid style import replay");
+            }
+            let _ = document.imports.styles.remove(*index);
+            Ok(true)
+        }
+        UiAssetEditorDocumentReplayCommand::MoveStyleImport {
+            from_index,
+            to_index,
+            reference,
+        } => {
+            if *from_index >= document.imports.styles.len()
+                || *to_index >= document.imports.styles.len()
+            {
+                return Ok(false);
+            }
+            if from_index == to_index {
+                return Ok(false);
+            }
+            if document.imports.styles[*from_index] != *reference {
+                return Err("invalid style import replay");
+            }
+            let import = document.imports.styles.remove(*from_index);
+            document.imports.styles.insert(*to_index, import);
+            Ok(true)
+        }
+        UiAssetEditorDocumentReplayCommand::SetStyleTokens { tokens } => {
+            if document.tokens == *tokens {
+                return Ok(false);
+            }
+            document.tokens = tokens.clone();
+            Ok(true)
+        }
+        UiAssetEditorDocumentReplayCommand::UpsertStyleToken { token_name, value } => {
+            if document.tokens.get(token_name) == Some(value) {
+                return Ok(false);
+            }
+            document.tokens.insert(token_name.clone(), value.clone());
+            Ok(true)
+        }
+        UiAssetEditorDocumentReplayCommand::RemoveStyleToken { token_name } => {
+            Ok(document.tokens.remove(token_name).is_some())
+        }
+        UiAssetEditorDocumentReplayCommand::SetStyleSheets { stylesheets } => {
+            if document.stylesheets == *stylesheets {
+                return Ok(false);
+            }
+            document.stylesheets = stylesheets.clone();
+            Ok(true)
+        }
+        UiAssetEditorDocumentReplayCommand::InsertStyleSheet {
+            index,
+            stylesheet_id,
+            stylesheet,
+        } => {
+            let Some(stylesheet) = stylesheet.clone().or_else(|| {
+                Some(zircon_ui::template::UiStyleSheet {
+                    id: stylesheet_id.clone(),
+                    rules: Vec::new(),
+                })
+            }) else {
+                return Err("invalid stylesheet replay");
+            };
+            let insert_index = (*index).min(document.stylesheets.len());
+            if document
+                .stylesheets
+                .get(insert_index)
+                .is_some_and(|existing| existing.id == stylesheet.id)
+            {
+                return Ok(false);
+            }
+            document.stylesheets.insert(insert_index, stylesheet);
+            Ok(true)
+        }
+        UiAssetEditorDocumentReplayCommand::RemoveStyleSheet {
+            index,
+            stylesheet_id,
+        } => {
+            if *index >= document.stylesheets.len() {
+                return Ok(false);
+            }
+            if document.stylesheets[*index].id != *stylesheet_id {
+                return Err("invalid stylesheet replay");
+            }
+            let _ = document.stylesheets.remove(*index);
+            Ok(true)
+        }
+        UiAssetEditorDocumentReplayCommand::ReplaceStyleSheet {
+            index,
+            stylesheet_id,
+            stylesheet,
+        } => {
+            let Some(existing) = document.stylesheets.get_mut(*index) else {
+                return Ok(false);
+            };
+            if existing.id != *stylesheet_id {
+                return Err("invalid stylesheet replay");
+            }
+            if *existing == *stylesheet {
+                return Ok(false);
+            }
+            *existing = stylesheet.clone();
+            Ok(true)
+        }
+        UiAssetEditorDocumentReplayCommand::MoveStyleSheet {
+            from_index,
+            to_index,
+            stylesheet_id,
+        } => {
+            if *from_index >= document.stylesheets.len() || *to_index >= document.stylesheets.len()
+            {
+                return Ok(false);
+            }
+            if from_index == to_index {
+                return Ok(false);
+            }
+            if document.stylesheets[*from_index].id != *stylesheet_id {
+                return Err("invalid stylesheet replay");
+            }
+            let stylesheet = document.stylesheets.remove(*from_index);
+            document.stylesheets.insert(*to_index, stylesheet);
+            Ok(true)
+        }
+        UiAssetEditorDocumentReplayCommand::InsertStyleRule {
+            stylesheet_index,
+            index,
+            rule,
+            ..
+        } => {
+            let Some(stylesheet) = document.stylesheets.get_mut(*stylesheet_index) else {
+                return Ok(false);
+            };
+            let Some(rule) = rule.clone() else {
+                return Err("invalid style rule replay");
+            };
+            let insert_index = (*index).min(stylesheet.rules.len());
+            if stylesheet
+                .rules
+                .get(insert_index)
+                .is_some_and(|existing| *existing == rule)
+            {
+                return Ok(false);
+            }
+            stylesheet.rules.insert(insert_index, rule);
+            Ok(true)
+        }
+        UiAssetEditorDocumentReplayCommand::RemoveStyleRule {
+            stylesheet_index,
+            index,
+            selector,
+        } => {
+            let Some(stylesheet) = document.stylesheets.get_mut(*stylesheet_index) else {
+                return Ok(false);
+            };
+            if *index >= stylesheet.rules.len() {
+                return Ok(false);
+            }
+            if stylesheet.rules[*index].selector != *selector {
+                return Err("invalid style rule replay");
+            }
+            let _ = stylesheet.rules.remove(*index);
+            Ok(true)
+        }
+        UiAssetEditorDocumentReplayCommand::MoveStyleRule {
+            stylesheet_index,
+            from_index,
+            to_index,
+        } => {
+            let Some(stylesheet) = document.stylesheets.get_mut(*stylesheet_index) else {
+                return Ok(false);
+            };
+            if *from_index >= stylesheet.rules.len() || *to_index >= stylesheet.rules.len() {
+                return Ok(false);
+            }
+            if from_index == to_index {
+                return Ok(false);
+            }
+            let rule = stylesheet.rules.remove(*from_index);
+            stylesheet.rules.insert(*to_index, rule);
+            Ok(true)
+        }
+    }
+}
+
+fn build_inverse_tree_edit(
+    edit: &UiAssetEditorTreeEdit,
+    before_document: &UiAssetDocument,
+    after_document: &UiAssetDocument,
+) -> Option<UiAssetEditorInverseTreeEdit> {
     match edit {
         UiAssetEditorTreeEdit::MoveNode { node_id, direction } => {
-            Some(UiAssetEditorTreeEdit::MoveNode {
+            Some(UiAssetEditorInverseTreeEdit::MoveNode {
                 node_id: node_id.clone(),
                 direction: inverse_move_direction(direction)?,
             })
         }
-        UiAssetEditorTreeEdit::ReparentNode {
+        UiAssetEditorTreeEdit::InsertPaletteItem {
             node_id,
             parent_node_id,
-            direction,
-        } => Some(UiAssetEditorTreeEdit::ReparentNode {
+            ..
+        } => Some(UiAssetEditorInverseTreeEdit::RemoveNode {
             node_id: node_id.clone(),
             parent_node_id: parent_node_id.clone(),
-            direction: inverse_reparent_direction(direction)?,
+        }),
+        UiAssetEditorTreeEdit::ReparentNode {
+            node_id, direction, ..
+        } => Some(UiAssetEditorInverseTreeEdit::ReparentNode {
+            node_id: node_id.clone(),
+            parent_node_id: child_parent_id(before_document, node_id),
+            direction: inverse_reparent_direction(
+                direction,
+                before_document,
+                after_document,
+                node_id,
+            )?,
         }),
         UiAssetEditorTreeEdit::WrapNode {
             node_id,
             wrapper_node_id,
             ..
-        } => Some(UiAssetEditorTreeEdit::UnwrapNode {
+        } => Some(UiAssetEditorInverseTreeEdit::UnwrapNode {
             wrapper_node_id: wrapper_node_id.clone(),
             child_node_id: node_id.clone(),
+        }),
+        UiAssetEditorTreeEdit::UnwrapNode {
+            wrapper_node_id,
+            child_node_id,
+        } => Some(UiAssetEditorInverseTreeEdit::WrapNode {
+            node_id: child_node_id.clone(),
+            wrapper_node_id: wrapper_node_id.clone(),
+            wrapper_widget_type: before_document
+                .nodes
+                .get(wrapper_node_id)?
+                .widget_type
+                .clone()?,
+        }),
+        UiAssetEditorTreeEdit::ConvertToReference { node_id, .. } => {
+            let node = before_document.nodes.get(node_id)?;
+            Some(UiAssetEditorInverseTreeEdit::RestoreNodeDefinition {
+                node_id: node_id.clone(),
+                kind: node.kind,
+                widget_type: node.widget_type.clone(),
+                component: node.component.clone(),
+                component_ref: node.component_ref.clone(),
+            })
+        }
+        UiAssetEditorTreeEdit::ExtractComponent {
+            node_id,
+            component_name,
+            component_root_id,
+        } => Some(UiAssetEditorInverseTreeEdit::InlineExtractedComponent {
+            node_id: node_id.clone(),
+            component_name: component_name.clone(),
+            component_root_id: component_root_id.clone(),
+        }),
+        UiAssetEditorTreeEdit::PromoteToExternalWidget {
+            source_component_name,
+            asset_id,
+            component_name,
+            document_id,
+        } => Some(UiAssetEditorInverseTreeEdit::RestorePromotedComponent {
+            source_component_name: source_component_name.clone(),
+            asset_id: asset_id.clone(),
+            component_name: component_name.clone(),
+            document_id: document_id.clone(),
         }),
         _ => None,
     }
@@ -294,12 +728,43 @@ fn inverse_move_direction(direction: &str) -> Option<String> {
     }
 }
 
-fn inverse_reparent_direction(direction: &str) -> Option<String> {
+fn inverse_reparent_direction(
+    direction: &str,
+    before_document: &UiAssetDocument,
+    after_document: &UiAssetDocument,
+    node_id: &str,
+) -> Option<String> {
     match direction.to_ascii_lowercase().as_str() {
         "into_previous" | "into_next" => {
             Some(preserve_direction_case(direction, "Outdent", "outdent"))
         }
+        "outdent" => inverse_outdent_direction(before_document, after_document, node_id).map(
+            |direction_label| {
+                preserve_direction_case(direction, direction_label.0, direction_label.1)
+            },
+        ),
         _ => None,
+    }
+}
+
+fn inverse_outdent_direction<'a>(
+    before_document: &UiAssetDocument,
+    after_document: &UiAssetDocument,
+    node_id: &str,
+) -> Option<(&'a str, &'a str)> {
+    let original_parent_id = child_parent_id(before_document, node_id)?;
+    let (after_parent_id, after_child_index) = child_index_in_parent(after_document, node_id)?;
+    let after_parent = after_document.nodes.get(&after_parent_id)?;
+    if after_child_index > 0
+        && after_parent.children[after_child_index - 1].child == original_parent_id
+    {
+        Some(("IntoPrevious", "into_previous"))
+    } else if after_child_index + 1 < after_parent.children.len()
+        && after_parent.children[after_child_index + 1].child == original_parent_id
+    {
+        Some(("IntoNext", "into_next"))
+    } else {
+        None
     }
 }
 
@@ -314,6 +779,19 @@ fn preserve_direction_case(direction: &str, title_case: &str, lower_case: &str) 
     } else {
         lower_case.to_string()
     }
+}
+
+fn child_parent_id(document: &UiAssetDocument, child_id: &str) -> Option<String> {
+    child_index_in_parent(document, child_id).map(|(parent_id, _)| parent_id)
+}
+
+fn child_index_in_parent(document: &UiAssetDocument, child_id: &str) -> Option<(String, usize)> {
+    document.nodes.iter().find_map(|(parent_id, node)| {
+        node.children
+            .iter()
+            .position(|child| child.child == child_id)
+            .map(|index| (parent_id.clone(), index))
+    })
 }
 
 fn common_prefix_len(left: &str, right: &str) -> usize {
@@ -332,3 +810,4 @@ fn common_suffix_len(left: &str, right: &str) -> usize {
         .map(|(character, _)| character.len_utf8())
         .sum()
 }
+

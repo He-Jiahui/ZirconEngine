@@ -7,28 +7,27 @@ impl EditorManager {
         let entry = sessions.get_mut(instance_id).ok_or_else(|| {
             EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
         })?;
-        let external_effects = entry.session.next_undo_external_effects();
-        let changed = entry
+        let replay = entry
             .session
-            .undo()
+            .undo_replay()
             .map_err(|error| EditorError::UiAsset(error.to_string()))?;
         drop(sessions);
-        if changed {
-            if !external_effects.is_empty() {
+        if replay.changed {
+            if !replay.external_effects.is_empty() {
                 let project_root = self.current_project_root()?.ok_or_else(|| {
                     EditorError::UiAsset(
                         "cannot apply ui asset undo side effects without an open project"
                             .to_string(),
                     )
                 })?;
-                for effect in &external_effects {
+                for effect in &replay.external_effects {
                     self.apply_ui_asset_editor_external_effect(&project_root, effect)?;
                 }
             }
             self.hydrate_ui_asset_editor_imports(instance_id)?;
             self.sync_ui_asset_editor_instance(instance_id)?;
         }
-        Ok(changed)
+        Ok(replay.changed)
     }
 
     pub fn redo_ui_asset_editor(&self, instance_id: &ViewInstanceId) -> Result<bool, EditorError> {
@@ -37,28 +36,27 @@ impl EditorManager {
         let entry = sessions.get_mut(instance_id).ok_or_else(|| {
             EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
         })?;
-        let external_effects = entry.session.next_redo_external_effects();
-        let changed = entry
+        let replay = entry
             .session
-            .redo()
+            .redo_replay()
             .map_err(|error| EditorError::UiAsset(error.to_string()))?;
         drop(sessions);
-        if changed {
-            if !external_effects.is_empty() {
+        if replay.changed {
+            if !replay.external_effects.is_empty() {
                 let project_root = self.current_project_root()?.ok_or_else(|| {
                     EditorError::UiAsset(
                         "cannot apply ui asset redo side effects without an open project"
                             .to_string(),
                     )
                 })?;
-                for effect in &external_effects {
+                for effect in &replay.external_effects {
                     self.apply_ui_asset_editor_external_effect(&project_root, effect)?;
                 }
             }
             self.hydrate_ui_asset_editor_imports(instance_id)?;
             self.sync_ui_asset_editor_instance(instance_id)?;
         }
-        Ok(changed)
+        Ok(replay.changed)
     }
 
     pub fn set_ui_asset_editor_mode(

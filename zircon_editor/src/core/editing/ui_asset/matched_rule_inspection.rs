@@ -1,7 +1,8 @@
 use std::collections::BTreeMap;
 
 use crate::ui::UiMatchedStyleRuleReflection;
-use zircon_ui::{UiAssetDocument, UiNodeDefinition, UiStyleSheet};
+use zircon_ui::{UiAssetDocument, template::UiStyleSheet};
+use zircon_ui::template::UiNodeDefinition;
 
 use super::style_rule_declarations::{declaration_entries, UiStyleRuleDeclarationEntry};
 

@@ -1,4 +1,4 @@
-use zircon_ui::UiNodeId;
+use zircon_ui::event_ui::UiNodeId;
 
 pub(in crate::ui::slint_host::menu_pointer) const ROOT_NODE_ID: UiNodeId = UiNodeId::new(1);
 pub(in crate::ui::slint_host::menu_pointer) const DISMISS_NODE_ID: UiNodeId = UiNodeId::new(2);

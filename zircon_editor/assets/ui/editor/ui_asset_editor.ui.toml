@@ -6,6 +6,7 @@ display_name = "UI Asset Editor"
 
 [imports]
 widgets = [
+  "res://ui/editor/editor_widgets.ui.toml#EditorToolbar",
   "res://ui/editor/editor_widgets.ui.toml#EditorToolbarButton",
   "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard",
 ]
@@ -23,17 +24,16 @@ layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, co
 children = [
   { child = "toolbar" },
   { child = "body" },
+  { child = "footer_row" },
 ]
 
 [nodes.toolbar]
-kind = "native"
-type = "HorizontalBox"
+kind = "reference"
+component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorToolbar"
 control_id = "UiAssetEditorToolbar"
-classes = ["toolbar"]
-layout = { width = { stretch = "Stretch" }, height = { min = 40.0, preferred = 40.0, max = 40.0, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 8.0 } }
 children = [
-  { child = "save_button" },
-  { child = "preview_button" },
+  { child = "save_button", mount = "actions" },
+  { child = "preview_button", mount = "actions" },
 ]
 
 [nodes.save_button]
@@ -55,10 +55,44 @@ type = "HorizontalBox"
 control_id = "UiAssetEditorBody"
 layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "HorizontalBox", gap = 10.0 } }
 children = [
+  { child = "palette_panel", slot = { layout = { width = { min = 180.0, preferred = 220.0, max = 260.0, stretch = "Fixed" } } } },
   { child = "hierarchy_panel", slot = { layout = { width = { min = 220.0, preferred = 220.0, max = 260.0, stretch = "Fixed" } } } },
   { child = "designer_panel" },
   { child = "inspector_panel", slot = { layout = { width = { min = 260.0, preferred = 260.0, max = 320.0, stretch = "Fixed" } } } },
 ]
+
+[nodes.footer_row]
+kind = "native"
+type = "HorizontalBox"
+control_id = "UiAssetEditorFooterRow"
+layout = { width = { stretch = "Stretch" }, height = { min = 180.0, preferred = 220.0, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 10.0 } }
+children = [
+  { child = "source_panel" },
+  { child = "stylesheet_panel" },
+  { child = "preview_panel" },
+]
+
+[nodes.palette_panel]
+kind = "reference"
+component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard"
+control_id = "PalettePanel"
+params = { title = "Palette" }
+children = [
+  { child = "palette_label", mount = "content" },
+  { child = "palette_groups_label", mount = "content" },
+]
+
+[nodes.palette_label]
+kind = "native"
+type = "Label"
+control_id = "PaletteLabel"
+props = { text = "Native Widgets, Components, References" }
+
+[nodes.palette_groups_label]
+kind = "native"
+type = "Label"
+control_id = "PaletteGroupsLabel"
+props = { text = "Patterns, Named Slots, External Widgets" }
 
 [nodes.hierarchy_panel]
 kind = "reference"
@@ -67,6 +101,7 @@ control_id = "HierarchyPanel"
 params = { title = "Hierarchy" }
 children = [
   { child = "hierarchy_label", mount = "content" },
+  { child = "hierarchy_slots_label", mount = "content" },
 ]
 
 [nodes.hierarchy_label]
@@ -75,6 +110,12 @@ type = "Label"
 control_id = "HierarchyLabel"
 props = { text = "Widget Tree" }
 
+[nodes.hierarchy_slots_label]
+kind = "native"
+type = "Label"
+control_id = "HierarchySlotsLabel"
+props = { text = "Slots, Mounts, Component Boundaries" }
+
 [nodes.designer_panel]
 kind = "reference"
 component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard"
@@ -82,6 +123,7 @@ control_id = "DesignerPanel"
 params = { title = "Designer" }
 children = [
   { child = "designer_label", mount = "content" },
+  { child = "designer_overlay_label", mount = "content" },
 ]
 
 [nodes.designer_label]
@@ -90,6 +132,12 @@ type = "Label"
 control_id = "DesignerLabel"
 props = { text = "Designer Surface" }
 
+[nodes.designer_overlay_label]
+kind = "native"
+type = "Label"
+control_id = "DesignerOverlayLabel"
+props = { text = "Selection Overlay, Slot Targets, Sticky Picker" }
+
 [nodes.inspector_panel]
 kind = "reference"
 component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard"
@@ -97,6 +145,8 @@ control_id = "InspectorPanel"
 params = { title = "Inspector" }
 children = [
   { child = "inspector_label", mount = "content" },
+  { child = "inspector_bindings_label", mount = "content" },
+  { child = "command_log_label", mount = "content" },
 ]
 
 [nodes.inspector_label]
@@ -104,3 +154,95 @@ kind = "native"
 type = "Label"
 control_id = "InspectorLabel"
 props = { text = "Selection Details" }
+
+[nodes.inspector_bindings_label]
+kind = "native"
+type = "Label"
+control_id = "InspectorBindingsLabel"
+props = { text = "Widget, Slot, Layout, Style, Bindings" }
+
+[nodes.command_log_label]
+kind = "native"
+type = "Label"
+control_id = "CommandLogLabel"
+props = { text = "Executable Replay, Undo Command Log, Cross-Asset Effects" }
+
+[nodes.source_panel]
+kind = "reference"
+component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard"
+control_id = "SourcePanel"
+params = { title = "Source" }
+children = [
+  { child = "source_label", mount = "content" },
+  { child = "source_outline_label", mount = "content" },
+]
+
+[nodes.source_label]
+kind = "native"
+type = "Label"
+control_id = "SourceLabel"
+props = { text = "Canonical TOML Source Buffer" }
+
+[nodes.source_outline_label]
+kind = "native"
+type = "Label"
+control_id = "SourceOutlineLabel"
+props = { text = "Split Sync, Outline Jump, Roundtrip Diagnostics" }
+
+[nodes.stylesheet_panel]
+kind = "reference"
+component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard"
+control_id = "StylesheetPanel"
+params = { title = "Stylesheet" }
+children = [
+  { child = "stylesheet_label", mount = "content" },
+  { child = "theme_tools_label", mount = "content" },
+  { child = "theme_cascade_helper_label", mount = "content" },
+]
+
+[nodes.stylesheet_label]
+kind = "native"
+type = "Label"
+control_id = "StylesheetLabel"
+props = { text = "Cascade, Selectors, Rule Diff" }
+
+[nodes.theme_tools_label]
+kind = "native"
+type = "Label"
+control_id = "ThemeToolsLabel"
+props = { text = "Theme Compare, Helper Actions, Cascade Inspector" }
+
+[nodes.theme_cascade_helper_label]
+kind = "native"
+type = "Label"
+control_id = "ThemeCascadeHelperLabel"
+props = { text = "Active Cascade Adopt, Multi-Rule Sync, Theme-Wide Authoring" }
+
+[nodes.preview_panel]
+kind = "reference"
+component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard"
+control_id = "PreviewPanel"
+params = { title = "Preview" }
+children = [
+  { child = "preview_label", mount = "content" },
+  { child = "preview_graph_label", mount = "content" },
+  { child = "preview_binding_schema_label", mount = "content" },
+]
+
+[nodes.preview_label]
+kind = "native"
+type = "Label"
+control_id = "PreviewLabel"
+props = { text = "Surface Preset, Mock State, Interaction Graph" }
+
+[nodes.preview_graph_label]
+kind = "native"
+type = "Label"
+control_id = "PreviewGraphLabel"
+props = { text = "Preview State Graph, Binding Graph, Expression Trace" }
+
+[nodes.preview_binding_schema_label]
+kind = "native"
+type = "Label"
+control_id = "PreviewBindingSchemaLabel"
+props = { text = "Accessor Expressions, Schema Payload Authoring, Interaction Links" }

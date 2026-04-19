@@ -1,9 +1,9 @@
 use std::fs;
 
+use crate::project::{ProjectManager, ProjectManifest, ProjectPaths};
 use crate::tests::project::unique_temp_project_root;
 use crate::{
-    AssetImporter, AssetKind, AssetUri, ImportedAsset, ProjectManager, ProjectManifest,
-    ProjectPaths, UiLayoutAsset, UiStyleAsset, UiWidgetAsset,
+    AssetImporter, AssetKind, AssetUri, ImportedAsset, UiLayoutAsset, UiStyleAsset, UiWidgetAsset,
 };
 
 const LAYOUT_UI_TOML: &str = r#"

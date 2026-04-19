@@ -2,7 +2,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 
 use crate::{EditorError, EditorManager};
-use zircon_ui::{UiAssetDocument, UiAssetKind, UiAssetLoader};
+use zircon_ui::{UiAssetDocument, UiAssetKind, template::UiAssetLoader};
 
 use super::super::project_access::normalize_ui_asset_asset_id;
 
@@ -63,3 +63,4 @@ impl EditorManager {
         Ok(())
     }
 }
+

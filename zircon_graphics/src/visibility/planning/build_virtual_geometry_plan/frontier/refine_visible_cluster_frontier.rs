@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use zircon_scene::RenderVirtualGeometryCluster;
+use zircon_framework::render::RenderVirtualGeometryCluster;
 
 use super::super::ordering::virtual_geometry_cluster_sort_key;
 

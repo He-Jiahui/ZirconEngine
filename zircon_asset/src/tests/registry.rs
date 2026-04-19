@@ -1,13 +1,15 @@
-use crate::{AssetId, AssetKind, AssetMetadata, AssetRegistry, AssetUri};
+use zircon_resource::{ResourceRecord, ResourceRegistry};
+
+use crate::{AssetId, AssetKind, AssetUri};
 
 #[test]
 fn asset_registry_tracks_add_update_delete_and_rename() {
-    let mut registry = AssetRegistry::default();
+    let mut registry = ResourceRegistry::default();
     let original_uri = AssetUri::parse("res://materials/grid.material.toml").unwrap();
     let renamed_uri = AssetUri::parse("res://materials/grid_renamed.material.toml").unwrap();
     let asset_id = AssetId::new();
 
-    let original = AssetMetadata::new(asset_id, AssetKind::Material, original_uri.clone())
+    let original = ResourceRecord::new(asset_id, AssetKind::Material, original_uri.clone())
         .with_source_hash("source-a")
         .with_importer_version(1)
         .with_config_hash("config-a");
@@ -16,7 +18,7 @@ fn asset_registry_tracks_add_update_delete_and_rename() {
     assert_eq!(registry.get(asset_id).unwrap(), &original);
     assert_eq!(registry.get_by_locator(&original_uri).unwrap(), &original);
 
-    let updated = AssetMetadata::new(asset_id, AssetKind::Material, original_uri.clone())
+    let updated = ResourceRecord::new(asset_id, AssetKind::Material, original_uri.clone())
         .with_source_hash("source-b")
         .with_importer_version(1)
         .with_config_hash("config-a");

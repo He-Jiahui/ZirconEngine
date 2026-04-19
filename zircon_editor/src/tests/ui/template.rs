@@ -3,7 +3,8 @@ use crate::{
     EditorTemplateRegistry, EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind,
 };
 use std::path::PathBuf;
-use zircon_ui::{UiAssetLoader, UiEventKind, UiTemplateLoader};
+use zircon_ui::template::UiTemplateLoader;
+use zircon_ui::{binding::UiEventKind, template::UiAssetLoader};
 
 const EDITOR_WORKBENCH_TEMPLATE_TOML: &str = r#"
 version = 1
@@ -289,3 +290,4 @@ fn editor_repository_workbench_template_file_loads_and_instantiates() {
         Some("DocumentHost")
     );
 }
+

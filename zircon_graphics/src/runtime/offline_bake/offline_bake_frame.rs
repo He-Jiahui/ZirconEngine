@@ -1,5 +1,7 @@
+use zircon_framework::render::{
+    RenderBakedLightingExtract, RenderFrameExtract, RenderReflectionProbeSnapshot,
+};
 use zircon_math::Vec3;
-use zircon_scene::{RenderBakedLightingExtract, RenderFrameExtract, RenderReflectionProbeSnapshot};
 
 use super::offline_bake_output::OfflineBakeOutput;
 use super::offline_bake_settings::OfflineBakeSettings;

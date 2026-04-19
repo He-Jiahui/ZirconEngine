@@ -7,7 +7,7 @@ use zircon_editor::{
     module_descriptor, EditorManager, MainPageId, NativeWindowHostState, ProjectEditorWorkspace,
     ViewDescriptorId, ViewHost, ViewInstance, ViewInstanceId, WorkbenchLayout, EDITOR_MANAGER_NAME,
 };
-use zircon_foundation::{
+use zircon_runtime::foundation::{
     module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
 };
 use zircon_manager::resolve_config_manager;
@@ -32,12 +32,12 @@ fn editor_runtime_with_config_path(path: &std::path::Path) -> CoreRuntime {
         .register_module(foundation_module_descriptor())
         .unwrap();
     runtime
-        .register_module(zircon_asset::module_descriptor())
+        .register_module(zircon_runtime::asset::module_descriptor())
         .unwrap();
     runtime.register_module(module_descriptor()).unwrap();
     runtime.activate_module(FOUNDATION_MODULE_NAME).unwrap();
     runtime
-        .activate_module(zircon_asset::ASSET_MODULE_NAME)
+        .activate_module(zircon_runtime::asset::ASSET_MODULE_NAME)
         .unwrap();
     runtime
         .activate_module(zircon_editor::EDITOR_MODULE_NAME)

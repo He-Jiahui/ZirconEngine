@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-use zircon_scene::RenderHybridGiTraceRegion;
+use zircon_framework::render::RenderHybridGiTraceRegion;
 
 pub(in crate::visibility::planning::build_hybrid_gi_plan) fn hybrid_gi_trace_region_sort_key(
     left: &RenderHybridGiTraceRegion,

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use zircon_asset::ProjectAssetManager;
+use zircon_asset::pipeline::manager::ProjectAssetManager;
 
 use crate::types::GraphicsError;
 

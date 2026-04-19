@@ -35,6 +35,11 @@ pub(crate) struct HybridGiRuntimeState {
     pub(in crate::runtime::hybrid_gi) pending_updates: Vec<HybridGiProbeUpdateRequest>,
     pub(in crate::runtime::hybrid_gi) pending_probes: BTreeSet<u32>,
     pub(in crate::runtime::hybrid_gi) scheduled_trace_regions: Vec<u32>,
+    pub(in crate::runtime::hybrid_gi) current_requested_probe_ids: BTreeSet<u32>,
+    pub(in crate::runtime::hybrid_gi) recent_lineage_trace_support_q8:
+        BTreeMap<u32, u16>,
+    pub(in crate::runtime::hybrid_gi) recent_requested_lineage_support_q8:
+        BTreeMap<u32, u16>,
     pub(in crate::runtime::hybrid_gi) evictable_probes: Vec<u32>,
     pub(in crate::runtime::hybrid_gi) free_slots: BTreeSet<u32>,
     pub(in crate::runtime::hybrid_gi) next_slot: u32,

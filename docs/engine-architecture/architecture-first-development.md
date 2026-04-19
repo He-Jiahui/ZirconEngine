@@ -1,23 +1,23 @@
 ---
 related_code:
-  - zircon_entry/src/lib.rs
+  - zircon_app/src/lib.rs
   - zircon_core/src/lib.rs
   - zircon_module/src/lib.rs
   - zircon_manager/src/lib.rs
-  - zircon_foundation/src/lib.rs
+  - zircon_runtime/src/foundation/mod.rs
   - zircon_scene/src/lib.rs
   - zircon_editor/src/lib.rs
-  - zircon_script/src/lib.rs
+  - zircon_runtime/src/script/mod.rs
   - zircon_graphics/src/lib.rs
 implementation_files:
-  - zircon_entry/src/lib.rs
+  - zircon_app/src/lib.rs
   - zircon_core/src/lib.rs
   - zircon_module/src/lib.rs
   - zircon_manager/src/lib.rs
-  - zircon_foundation/src/lib.rs
+  - zircon_runtime/src/foundation/mod.rs
   - zircon_scene/src/lib.rs
   - zircon_editor/src/lib.rs
-  - zircon_script/src/lib.rs
+  - zircon_runtime/src/script/mod.rs
   - zircon_graphics/src/lib.rs
 plan_sources:
   - user: 2026-04-13 将架构优先规则保留到 docs 下面用于生产项目 wiki
@@ -27,7 +27,7 @@ tests:
   - zircon_core/src/lib.rs
   - zircon_scene/src/lib.rs
   - zircon_editor/src/lib.rs
-  - zircon_script/src/lib.rs
+  - zircon_runtime/src/script/mod.rs
 doc_type: module-detail
 ---
 
@@ -44,14 +44,14 @@ doc_type: module-detail
 
 ## Related Files
 
-- `zircon_entry/src/lib.rs`
+- `zircon_app/src/lib.rs`
 - `zircon_core/src/lib.rs`
 - `zircon_module/src/lib.rs`
 - `zircon_manager/src/lib.rs`
-- `zircon_foundation/src/lib.rs`
+- `zircon_runtime/src/foundation/mod.rs`
 - `zircon_scene/src/lib.rs`
 - `zircon_editor/src/lib.rs`
-- `zircon_script/src/lib.rs`
+- `zircon_runtime/src/script/mod.rs`
 - `zircon_graphics/src/lib.rs`
 
 ## Architecture Baseline
@@ -62,21 +62,21 @@ doc_type: module-detail
 
 运行时主干固定为：
 
-`zircon_entry -> zircon_core -> zircon_module/zircon_manager -> zircon_foundation + subsystem modules`
+`zircon_app -> zircon_core -> zircon_module/zircon_manager -> zircon_runtime + subsystem modules`
 
 这条主干的含义是：
 
-- `zircon_entry` 只负责 entry profile 选择、内建模块注册、shell 启动和主循环接通
+- `zircon_app` 只负责 entry profile 选择、内建模块注册、shell 启动和主循环接通
 - `zircon_core` 负责进程级唯一 `CoreRuntime`、生命周期、依赖排序、事件、配置和调度
 - `zircon_module` 负责模块、驱动器、管理器、插件 descriptor 和上下文
 - `zircon_manager` 负责稳定 façade、trait、resolver 和 handle surface
-- `zircon_foundation` 负责 config/event 这类进程级内建 runtime services 的具体模块实现
+- `zircon_runtime` 负责吸收 foundation/input/platform 等高层运行时模块实现，并继续向外提供具体模块 owner
 - 具体领域能力由 `zircon_*` 子系统模块实现，并通过 core/module/manager 模型接入
 
 ### ECS Authority
 
-- `zircon_scene::World` 只是 ECS 数据与调度容器
-- `zircon_scene::LevelSystem` 才是运行中的系统实例层，子系统严格挂在它下面
+- `zircon_scene::Scene` 只是 ECS 数据与调度容器
+- `zircon_runtime::scene::LevelSystem` 才是运行中的系统实例层，子系统严格挂在它下面
 - Scene tree、editor hierarchy、render extract 都是派生视图，不是权威运行时模型
 - `SystemStage` 与调度阶段是运行时执行单元，不再允许把场景节点对象本身当作行为宿主
 
@@ -274,4 +274,4 @@ doc_type: module-detail
 ## Open Issues or Follow-up
 
 - 后续可以继续拆分本目录，分别补 `core-runtime-lifecycle.md`、`manager-facade-contracts.md`、`level-runtime-world.md`、`vm-plugin-host-contract.md`
-- 当 `zircon_core`、`zircon_module`、`zircon_manager`、`zircon_foundation`、`zircon_entry`、`zircon_scene`、`zircon_script` 稳定后，应把这里的全局规则细化成每个子系统的叶子文档
+- 当 `zircon_core`、`zircon_module`、`zircon_manager`、`zircon_runtime`、`zircon_app`、`zircon_scene`、`zircon_runtime::script` 稳定后，应把这里的全局规则细化成每个子系统的叶子文档

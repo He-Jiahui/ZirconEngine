@@ -1,5 +1,5 @@
+use zircon_framework::render::RenderFrameExtract;
 use zircon_math::UVec2;
-use zircon_scene::RenderFrameExtract;
 
 use super::super::super::super::super::scene_post_process_resources::ScenePostProcessResources;
 use super::super::super::encode_reflection_probes::encode_reflection_probes;

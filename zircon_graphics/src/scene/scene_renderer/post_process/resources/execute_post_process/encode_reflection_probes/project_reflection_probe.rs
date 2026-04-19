@@ -1,5 +1,5 @@
+use zircon_framework::render::{RenderReflectionProbeSnapshot, ViewportCameraSnapshot};
 use zircon_math::{Mat4, Vec3};
-use zircon_scene::{RenderReflectionProbeSnapshot, ViewportCameraSnapshot};
 
 use super::super::super::super::reflection_probe_gpu::GpuReflectionProbe;
 use super::reflection_probe_radius::reflection_probe_radius;

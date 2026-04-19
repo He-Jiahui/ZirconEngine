@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use zircon_scene::Mobility;
+use zircon_framework::scene::Mobility;
 
 use super::super::declarations::{
     VisibilityBvhInstance, VisibilityBvhUpdatePlan, VisibilityBvhUpdateStrategy,
@@ -47,3 +47,4 @@ pub(crate) fn build_instance_upload_plan(
         dirty_dynamic_entities,
     }
 }
+

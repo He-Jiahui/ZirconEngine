@@ -1,4 +1,4 @@
-use zircon_asset::MaterialAsset;
+use zircon_asset::assets::MaterialAsset;
 use zircon_resource::ResourceId;
 
 use super::ResourceStreamer;

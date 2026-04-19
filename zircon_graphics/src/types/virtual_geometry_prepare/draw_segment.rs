@@ -1,4 +1,4 @@
-use zircon_scene::EntityId;
+use zircon_framework::scene::EntityId;
 
 use super::VirtualGeometryPrepareClusterState;
 
@@ -15,3 +15,4 @@ pub(crate) struct VirtualGeometryPrepareDrawSegment {
     pub(crate) lod_level: u8,
     pub(crate) state: VirtualGeometryPrepareClusterState,
 }
+

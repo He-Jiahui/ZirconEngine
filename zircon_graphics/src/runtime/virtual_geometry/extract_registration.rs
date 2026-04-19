@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use zircon_scene::{RenderVirtualGeometryCluster, RenderVirtualGeometryExtract};
+use zircon_framework::render::{RenderVirtualGeometryCluster, RenderVirtualGeometryExtract};
 
 use super::VirtualGeometryRuntimeState;
 
@@ -34,6 +34,8 @@ impl VirtualGeometryRuntimeState {
         self.current_requested_page_order
             .retain(|page_id, _| live_page_ids.contains(page_id));
         self.current_hot_resident_pages
+            .retain(|page_id| live_page_ids.contains(page_id));
+        self.recent_hot_resident_pages
             .retain(|page_id| live_page_ids.contains(page_id));
         self.page_sizes
             .retain(|page_id, _| live_page_ids.contains(page_id));

@@ -1,4 +1,4 @@
-use zircon_scene::DisplayMode;
+use zircon_framework::render::DisplayMode;
 
 use crate::scene::scene_renderer::overlay::begin_line_pass;
 use crate::types::EditorOrRuntimeFrame;

@@ -3,7 +3,8 @@ use std::collections::HashSet;
 use zircon_resource::ResourceManager;
 
 use super::project_locators;
-use crate::{AssetUri, ProjectManager};
+use crate::project::ProjectManager;
+use crate::AssetUri;
 
 pub(in crate::pipeline::manager) fn clear_removed_project_resources(
     resource_manager: &ResourceManager,

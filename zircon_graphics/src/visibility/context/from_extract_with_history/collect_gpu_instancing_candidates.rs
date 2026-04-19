@@ -1,4 +1,4 @@
-use zircon_scene::Mobility;
+use zircon_framework::scene::Mobility;
 
 use super::super::super::declarations::VisibilityBatch;
 
@@ -11,3 +11,4 @@ pub(super) fn collect_gpu_instancing_candidates(
         .cloned()
         .collect()
 }
+

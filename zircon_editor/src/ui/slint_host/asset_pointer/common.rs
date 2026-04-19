@@ -1,5 +1,8 @@
 use zircon_ui::{
-    UiNodeId, UiPointerDispatchEffect, UiPointerDispatcher, UiPointerEventKind, UiStateFlags,
+    dispatch::{UiPointerDispatchEffect, UiPointerDispatcher},
+    event_ui::UiNodeId,
+    event_ui::UiStateFlags,
+    UiPointerEventKind,
 };
 
 pub(super) const ROOT_NODE_ID: UiNodeId = UiNodeId::new(1);

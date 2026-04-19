@@ -1,6 +1,8 @@
 use std::collections::BTreeMap;
 
-use zircon_ui::{UiInputPolicy, UiPointerDispatcher, UiSurface, UiTreeId, UiTreeNode};
+use zircon_ui::{
+    dispatch::UiPointerDispatcher, event_ui::UiTreeId, UiInputPolicy, UiSurface, UiTreeNode,
+};
 
 use super::base_state::base_state;
 use super::constants::{
@@ -21,7 +23,7 @@ impl WorkbenchHostPagePointerBridge {
         surface.tree.insert_root(
             UiTreeNode::new(
                 ROOT_NODE_ID,
-                zircon_ui::UiNodePath::new("editor.host_page.root"),
+                zircon_ui::event_ui::UiNodePath::new("editor.host_page.root"),
             )
             .with_frame(root_frame(&self.layout))
             .with_state_flags(base_state(false)),
@@ -32,7 +34,7 @@ impl WorkbenchHostPagePointerBridge {
                 ROOT_NODE_ID,
                 UiTreeNode::new(
                     STRIP_NODE_ID,
-                    zircon_ui::UiNodePath::new("editor.host_page.strip"),
+                    zircon_ui::event_ui::UiNodePath::new("editor.host_page.strip"),
                 )
                 .with_frame(self.layout.strip_frame)
                 .with_z_index(10)
@@ -61,7 +63,9 @@ impl WorkbenchHostPagePointerBridge {
                     STRIP_NODE_ID,
                     UiTreeNode::new(
                         node_id,
-                        zircon_ui::UiNodePath::new(format!("editor.host_page/tab_{item_index}")),
+                        zircon_ui::event_ui::UiNodePath::new(format!(
+                            "editor.host_page/tab_{item_index}"
+                        )),
                     )
                     .with_frame(frame)
                     .with_z_index(20 + item_index as i32)

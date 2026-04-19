@@ -1,4 +1,4 @@
-use zircon_ui::{UiPointerDispatcher, UiSurface, UiTreeId};
+use zircon_ui::{dispatch::UiPointerDispatcher, event_ui::UiTreeId, UiSurface};
 
 use super::workbench_menu_pointer_bridge::WorkbenchMenuPointerBridge;
 use super::workbench_menu_pointer_layout::WorkbenchMenuPointerLayout;

@@ -1,5 +1,5 @@
 use thiserror::Error;
-use zircon_ui::UiBindingParseError;
+use zircon_ui::binding::UiBindingParseError;
 
 #[derive(Debug, Error)]
 pub enum EditorUiBindingError {

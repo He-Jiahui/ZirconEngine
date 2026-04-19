@@ -1,4 +1,4 @@
-use zircon_scene::EntityId;
+use zircon_framework::scene::EntityId;
 
 use super::VirtualGeometryPrepareClusterState;
 
@@ -16,3 +16,4 @@ pub(crate) struct VirtualGeometryPrepareIndirectDraw {
     pub(crate) submission_slot: Option<u32>,
     pub(crate) state: VirtualGeometryPrepareClusterState,
 }
+

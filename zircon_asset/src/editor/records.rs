@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use zircon_resource::ResourceKind;
 
-use crate::PreviewState;
+use crate::project::PreviewState;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EditorAssetFolderRecord {

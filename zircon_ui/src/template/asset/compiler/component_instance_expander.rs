@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use toml::Value;
 
-use crate::{
+use crate::template::{
     UiAssetDocument, UiAssetError, UiAssetKind, UiChildMount, UiComponentDefinition,
     UiNodeDefinition, UiTemplateNode,
 };

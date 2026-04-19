@@ -2,11 +2,12 @@ use std::collections::BTreeMap;
 
 use toml::Value;
 
-use crate::{
+use crate::template::{
     UiAssetDocument, UiAssetError, UiAssetHeader, UiAssetKind, UiAssetRoot, UiChildMount,
     UiComponentDefinition, UiNamedSlotSchema, UiNodeDefinition, UiNodeDefinitionKind,
-    UiStyleDeclarationBlock, UiTemplateDocument, UiTemplateNode,
+    UiStyleDeclarationBlock,
 };
+use crate::template::{UiTemplateDocument, UiTemplateNode};
 
 #[derive(Default)]
 pub struct UiLegacyTemplateAdapter;

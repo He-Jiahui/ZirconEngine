@@ -4,19 +4,19 @@ use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use image::{ImageBuffer, ImageFormat, Rgba};
-use zircon_asset::{
-    AlphaMode, AssetManager, AssetReference, AssetUri, MaterialAsset, ProjectAssetManager,
-    ProjectManifest, ProjectPaths,
-};
-use zircon_math::{Transform, UVec2, Vec3, Vec4};
-use zircon_resource::{MaterialMarker, ModelMarker, ResourceHandle};
-use zircon_scene::{
-    default_render_layer_mask, DisplayMode, FallbackSkyboxKind, Mobility,
-    PreviewEnvironmentExtract, ProjectionMode, RenderFrameExtract, RenderMeshSnapshot,
-    RenderOverlayExtract, RenderSceneGeometryExtract, RenderSceneSnapshot,
+use zircon_asset::assets::{AlphaMode, MaterialAsset};
+use zircon_asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
+use zircon_asset::pipeline::manager::{AssetManager, ProjectAssetManager};
+use zircon_asset::{AssetReference, AssetUri};
+use zircon_framework::render::{
+    DisplayMode, FallbackSkyboxKind, PreviewEnvironmentExtract, ProjectionMode, RenderFrameExtract,
+    RenderMeshSnapshot, RenderOverlayExtract, RenderSceneGeometryExtract, RenderSceneSnapshot,
     RenderVirtualGeometryCluster, RenderVirtualGeometryExtract, RenderVirtualGeometryPage,
     RenderWorldSnapshotHandle, ViewportCameraSnapshot,
 };
+use zircon_math::{Transform, UVec2, Vec3, Vec4};
+use zircon_resource::{MaterialMarker, ModelMarker, ResourceHandle};
+use zircon_scene::components::{default_render_layer_mask, Mobility};
 
 use crate::{
     types::{
@@ -63,7 +63,7 @@ fn virtual_geometry_unified_indirect_uses_fallback_recycle_slot_authority_for_su
     asset_manager
         .open_project(root.to_string_lossy().as_ref())
         .unwrap();
-    let mut project = zircon_asset::ProjectManager::open(&root).unwrap();
+    let mut project = ProjectManager::open(&root).unwrap();
     project.scan_and_import().unwrap();
 
     let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/tiled_quad.obj");
@@ -209,6 +209,194 @@ fn virtual_geometry_unified_indirect_uses_fallback_recycle_slot_authority_for_su
 }
 
 #[test]
+fn virtual_geometry_segment_buffer_keeps_prepare_owned_segments_when_some_entities_do_not_emit_pending_draws(
+) {
+    let root = unique_temp_project_root("graphics_virtual_geometry_prepare_owned_segments");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths.ensure_layout().unwrap();
+    ProjectManifest::new(
+        "GraphicsVirtualGeometryPrepareOwnedSegments",
+        AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+        1,
+    )
+    .save(paths.manifest_path())
+    .unwrap();
+
+    write_flat_color_wgsl(
+        paths.assets_root().join("shaders").join("flat_green.wgsl"),
+        [0.08, 0.95, 0.08],
+    );
+    write_solid_png(
+        paths.assets_root().join("textures").join("white.png"),
+        [255, 255, 255, 255],
+    );
+    write_quad_obj(paths.assets_root().join("models").join("quad.obj"));
+    write_material(
+        paths
+            .assets_root()
+            .join("materials")
+            .join("flat_green.material.toml"),
+        "res://shaders/flat_green.wgsl",
+        "res://textures/white.png",
+    );
+
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    asset_manager
+        .open_project(root.to_string_lossy().as_ref())
+        .unwrap();
+    let mut project = ProjectManager::open(&root).unwrap();
+    project.scan_and_import().unwrap();
+
+    let valid_model = resource_handle::<ModelMarker>(&asset_manager, "res://models/quad.obj");
+    let green_material = resource_handle::<MaterialMarker>(
+        &asset_manager,
+        "res://materials/flat_green.material.toml",
+    );
+    let viewport_size = UVec2::new(160, 120);
+    let extract = build_dual_entity_extract_with_clusters(
+        viewport_size,
+        (2, valid_model),
+        (3, valid_model),
+        green_material,
+        vec![cluster(2, 20, 300, 0), cluster(3, 30, 301, 0)],
+        vec![page(300, true), page(301, true)],
+    );
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(
+            &extract,
+            &RenderPipelineCompileOptions::default()
+                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
+                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
+                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
+                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
+                .with_feature_disabled(BuiltinRenderFeature::Bloom)
+                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
+                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
+                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
+                .with_feature_disabled(BuiltinRenderFeature::Particle)
+                .with_async_compute(false),
+        )
+        .unwrap();
+
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    renderer
+        .render_frame_with_pipeline(
+            &EditorOrRuntimeFrame::from_extract(extract, viewport_size)
+                .with_virtual_geometry_prepare(Some(VirtualGeometryPrepareFrame {
+                    visible_entities: vec![2],
+                    visible_clusters: vec![
+                        VirtualGeometryPrepareCluster {
+                            entity: 2,
+                            cluster_id: 20,
+                            page_id: 300,
+                            lod_level: 0,
+                            resident_slot: Some(1),
+                            state: VirtualGeometryPrepareClusterState::Resident,
+                        },
+                        VirtualGeometryPrepareCluster {
+                            entity: 3,
+                            cluster_id: 30,
+                            page_id: 301,
+                            lod_level: 0,
+                            resident_slot: Some(2),
+                            state: VirtualGeometryPrepareClusterState::Resident,
+                        },
+                    ],
+                    cluster_draw_segments: vec![
+                        crate::types::VirtualGeometryPrepareDrawSegment {
+                            entity: 2,
+                            cluster_id: 20,
+                            page_id: 300,
+                            resident_slot: Some(1),
+                            cluster_ordinal: 0,
+                            cluster_span_count: 1,
+                            cluster_count: 1,
+                            lineage_depth: 0,
+                            lod_level: 0,
+                            state: VirtualGeometryPrepareClusterState::Resident,
+                        },
+                        crate::types::VirtualGeometryPrepareDrawSegment {
+                            entity: 3,
+                            cluster_id: 30,
+                            page_id: 301,
+                            resident_slot: Some(2),
+                            cluster_ordinal: 0,
+                            cluster_span_count: 1,
+                            cluster_count: 1,
+                            lineage_depth: 0,
+                            lod_level: 0,
+                            state: VirtualGeometryPrepareClusterState::Resident,
+                        },
+                    ],
+                    resident_pages: vec![
+                        VirtualGeometryPreparePage {
+                            page_id: 300,
+                            slot: 1,
+                            size_bytes: 4096,
+                        },
+                        VirtualGeometryPreparePage {
+                            page_id: 301,
+                            slot: 2,
+                            size_bytes: 4096,
+                        },
+                    ],
+                    pending_page_requests: Vec::new(),
+                    available_slots: Vec::new(),
+                    evictable_pages: Vec::new(),
+                })),
+            &compiled,
+            None,
+        )
+        .unwrap();
+
+    assert_eq!(
+        renderer.last_virtual_geometry_indirect_segment_count(),
+        2,
+        "expected the shared indirect segment buffer to keep both prepare-owned visibility segments even when only one entity can emit a pending mesh draw"
+    );
+    assert_eq!(
+        renderer.read_last_virtual_geometry_indirect_segments().unwrap(),
+        vec![
+            (
+                0,
+                1,
+                1,
+                300,
+                1,
+                VirtualGeometryPrepareClusterState::Resident,
+                0,
+                0,
+                0,
+            ),
+            (
+                0,
+                1,
+                1,
+                301,
+                2,
+                VirtualGeometryPrepareClusterState::Resident,
+                0,
+                0,
+                0,
+            ),
+        ],
+        "expected segment authority to come from prepare-owned visibility truth instead of only the subset of entities that happened to build renderer pending draws"
+    );
+    assert_eq!(
+        renderer.last_virtual_geometry_indirect_draw_count(),
+        1,
+        "expected only the drawable entity to submit a mesh draw even while shared args source authority continues moving up to prepare-owned visibility truth"
+    );
+    assert_eq!(
+        renderer.read_last_virtual_geometry_indirect_draw_refs().unwrap(),
+        vec![(6, 0), (6, 1)],
+        "expected the shared draw-ref buffer to retain one prepare-owned record per visibility-owned segment, even though only one entity still emitted an actual mesh draw this frame"
+    );
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn virtual_geometry_prepare_cluster_raster_output_changes_when_fallback_slot_authority_changes() {
     let root = unique_temp_project_root("graphics_virtual_geometry_fallback_slot_raster");
     let paths = ProjectPaths::from_root(&root).unwrap();
@@ -243,7 +431,7 @@ fn virtual_geometry_prepare_cluster_raster_output_changes_when_fallback_slot_aut
     asset_manager
         .open_project(root.to_string_lossy().as_ref())
         .unwrap();
-    let mut project = zircon_asset::ProjectManager::open(&root).unwrap();
+    let mut project = ProjectManager::open(&root).unwrap();
     project.scan_and_import().unwrap();
 
     let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/tiled_quad.obj");
@@ -387,7 +575,7 @@ fn virtual_geometry_indirect_args_buffer_order_follows_fallback_slot_submission_
     asset_manager
         .open_project(root.to_string_lossy().as_ref())
         .unwrap();
-    let mut project = zircon_asset::ProjectManager::open(&root).unwrap();
+    let mut project = ProjectManager::open(&root).unwrap();
     project.scan_and_import().unwrap();
 
     let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/tiled_quad.obj");
@@ -695,6 +883,80 @@ fn build_single_entity_extract_with_clusters(
     extract
 }
 
+fn build_dual_entity_extract_with_clusters(
+    viewport_size: UVec2,
+    first_mesh: (u64, ResourceHandle<ModelMarker>),
+    second_mesh: (u64, ResourceHandle<ModelMarker>),
+    material: ResourceHandle<MaterialMarker>,
+    clusters: Vec<RenderVirtualGeometryCluster>,
+    pages: Vec<RenderVirtualGeometryPage>,
+) -> RenderFrameExtract {
+    let mut camera = ViewportCameraSnapshot {
+        transform: Transform {
+            translation: Vec3::new(0.0, 0.0, 4.0),
+            ..Transform::default()
+        },
+        projection_mode: ProjectionMode::Orthographic,
+        ortho_size: 1.2,
+        ..ViewportCameraSnapshot::default()
+    };
+    camera.apply_viewport_size(viewport_size);
+
+    let snapshot = RenderSceneSnapshot {
+        scene: RenderSceneGeometryExtract {
+            camera,
+            meshes: vec![
+                RenderMeshSnapshot {
+                    node_id: first_mesh.0,
+                    transform: Transform {
+                        translation: Vec3::new(-0.45, 0.0, 0.0),
+                        scale: Vec3::new(0.4, 0.4, 1.0),
+                        ..Transform::default()
+                    },
+                    model: first_mesh.1,
+                    material,
+                    tint: Vec4::ONE,
+                    mobility: Mobility::Dynamic,
+                    render_layer_mask: default_render_layer_mask(),
+                },
+                RenderMeshSnapshot {
+                    node_id: second_mesh.0,
+                    transform: Transform {
+                        translation: Vec3::new(0.45, 0.0, 0.0),
+                        scale: Vec3::new(0.4, 0.4, 1.0),
+                        ..Transform::default()
+                    },
+                    model: second_mesh.1,
+                    material,
+                    tint: Vec4::ONE,
+                    mobility: Mobility::Dynamic,
+                    render_layer_mask: default_render_layer_mask(),
+                },
+            ],
+            lights: Vec::new(),
+        },
+        overlays: RenderOverlayExtract {
+            display_mode: DisplayMode::Shaded,
+            ..RenderOverlayExtract::default()
+        },
+        preview: PreviewEnvironmentExtract {
+            lighting_enabled: false,
+            skybox_enabled: false,
+            fallback_skybox: FallbackSkyboxKind::None,
+            clear_color: Vec4::ZERO,
+        },
+    };
+    let mut extract =
+        RenderFrameExtract::from_snapshot(RenderWorldSnapshotHandle::new(1), snapshot);
+    extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
+        cluster_budget: clusters.len() as u32,
+        page_budget: pages.len() as u32,
+        clusters,
+        pages,
+    });
+    extract
+}
+
 fn write_flat_color_wgsl(path: PathBuf, color: [f32; 3]) {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).unwrap();
@@ -794,6 +1056,17 @@ f 4/4/1 8/8/1 7/7/1
 f 5/5/1 6/6/1 9/9/1
 f 5/5/1 9/9/1 8/8/1
 ",
+    )
+    .unwrap();
+}
+
+fn write_quad_obj(path: PathBuf) {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).unwrap();
+    }
+    fs::write(
+        path,
+        "v -1.0 -1.0 0.0\nv 1.0 -1.0 0.0\nv 1.0 1.0 0.0\nv -1.0 1.0 0.0\nvt 0.0 0.0\nvt 1.0 0.0\nvt 1.0 1.0\nvt 0.0 1.0\nvn 0.0 0.0 1.0\nf 1/1/1 2/2/1 3/3/1\nf 1/1/1 3/3/1 4/4/1\n",
     )
     .unwrap();
 }

@@ -18,11 +18,19 @@ impl EditorState {
     }
 
     pub fn apply_inspector_changes(&mut self) -> Result<bool, String> {
-        let selected = self.viewport_controller.selected_node().and_then(|node_id| {
-            self.world
-                .try_with_world(|scene| scene.find_node(node_id).cloned().map(|node| (node_id, node)))
-                .flatten()
-        });
+        let selected = self
+            .viewport_controller
+            .selected_node()
+            .and_then(|node_id| {
+                self.world
+                    .try_with_world(|scene| {
+                        scene
+                            .find_node(node_id)
+                            .cloned()
+                            .map(|node| (node_id, node))
+                    })
+                    .flatten()
+            });
         let Some((node_id, current)) = selected else {
             return Err("Nothing selected".to_string());
         };
@@ -87,17 +95,20 @@ impl EditorState {
     }
 
     pub(crate) fn sync_selection_state(&mut self) {
-        let selected_state = self.viewport_controller.selected_node().and_then(|selected| {
-            self.world
-                .try_with_world(|scene| {
-                    scene.find_node(selected).map(|node| NodeEditState {
-                        name: node.name.clone(),
-                        parent: node.parent,
-                        transform: node.transform,
+        let selected_state = self
+            .viewport_controller
+            .selected_node()
+            .and_then(|selected| {
+                self.world
+                    .try_with_world(|scene| {
+                        scene.find_node(selected).map(|node| NodeEditState {
+                            name: node.name.clone(),
+                            parent: node.parent,
+                            transform: node.transform,
+                        })
                     })
-                })
-                .flatten()
-        });
+                    .flatten()
+            });
         if let Some(node) = selected_state {
             let translation = node.transform.translation;
             self.name_field = node.name;

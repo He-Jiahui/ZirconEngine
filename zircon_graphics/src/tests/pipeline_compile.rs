@@ -1,5 +1,6 @@
+use zircon_framework::render::{RenderFrameExtract, RenderWorldSnapshotHandle};
 use zircon_render_graph::QueueLane;
-use zircon_scene::{RenderFrameExtract, RenderWorldSnapshotHandle, World};
+use zircon_scene::world::World;
 
 use crate::{
     BuiltinRenderFeature, FrameHistoryAccess, FrameHistoryBinding, FrameHistorySlot,

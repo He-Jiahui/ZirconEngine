@@ -1,4 +1,4 @@
-use crate::{UiAssetDocument, UiAssetError, UiAssetKind};
+use crate::{UiAssetDocument, UiAssetKind, template::UiAssetError};
 
 pub(super) fn validate_document_shape(document: &UiAssetDocument) -> Result<(), UiAssetError> {
     match document.asset.kind {

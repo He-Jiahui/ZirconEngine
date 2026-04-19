@@ -1,5 +1,5 @@
-use zircon_math::UVec2;
 use zircon_framework::render::RenderViewportHandle;
+use zircon_math::UVec2;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) struct ActiveViewport {

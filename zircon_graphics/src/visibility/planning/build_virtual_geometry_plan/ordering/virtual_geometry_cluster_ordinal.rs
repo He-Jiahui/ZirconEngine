@@ -1,4 +1,4 @@
-use zircon_scene::{RenderVirtualGeometryCluster, RenderVirtualGeometryExtract};
+use zircon_framework::render::{RenderVirtualGeometryCluster, RenderVirtualGeometryExtract};
 
 pub(in crate::visibility::planning::build_virtual_geometry_plan) fn virtual_geometry_cluster_ordinal(
     extract: &RenderVirtualGeometryExtract,

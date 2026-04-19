@@ -1,4 +1,4 @@
-use zircon_scene::EntityId;
+use zircon_framework::scene::EntityId;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct VisibilityVirtualGeometryDrawSegment {
@@ -11,3 +11,4 @@ pub struct VisibilityVirtualGeometryDrawSegment {
     pub lineage_depth: u32,
     pub lod_level: u8,
 }
+

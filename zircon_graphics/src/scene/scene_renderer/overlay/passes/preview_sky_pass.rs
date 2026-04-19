@@ -1,4 +1,4 @@
-use zircon_scene::FallbackSkyboxKind;
+use zircon_framework::render::FallbackSkyboxKind;
 
 use crate::types::EditorOrRuntimeFrame;
 

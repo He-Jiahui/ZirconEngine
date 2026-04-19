@@ -1,10 +1,11 @@
-use crate::{DesiredSize, UiAxis, UiContainerKind, UiSize, UiTree, UiTreeError};
+use crate::tree::UiTreeError;
+use crate::{DesiredSize, UiAxis, UiContainerKind, UiSize, UiTree};
 
 use super::axis::desired_axis;
 
 pub(crate) fn measure_node(
     tree: &mut UiTree,
-    node_id: crate::UiNodeId,
+    node_id: crate::event_ui::UiNodeId,
 ) -> Result<DesiredSize, UiTreeError> {
     let (children, layout_boundary, constraints, container) = {
         let node = tree

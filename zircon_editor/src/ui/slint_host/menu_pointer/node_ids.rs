@@ -1,4 +1,4 @@
-use zircon_ui::UiNodeId;
+use zircon_ui::event_ui::UiNodeId;
 
 use super::constants::{MENU_BUTTON_NODE_ID_BASE, MENU_ITEM_NODE_ID_BASE};
 

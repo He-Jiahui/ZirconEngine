@@ -1,3 +1,4 @@
+use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
 use crate::ui::slint_host::callback_dispatch::{
     dispatch_shared_drawer_header_pointer_click, BuiltinWorkbenchTemplateBridge,
 };
@@ -6,7 +7,6 @@ use crate::ui::slint_host::drawer_header_pointer::{
     WorkbenchDrawerHeaderPointerItem, WorkbenchDrawerHeaderPointerLayout,
     WorkbenchDrawerHeaderPointerRoute, WorkbenchDrawerHeaderPointerSurface,
 };
-use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
 use crate::{
     compute_workbench_shell_geometry, ActivityDrawerMode, ActivityDrawerSlot, EditorEvent,
     LayoutCommand, ShellSizePx, WorkbenchChromeMetrics, WorkbenchViewModel,
@@ -176,9 +176,17 @@ fn shared_drawer_header_pointer_layout_prefers_shared_root_projection_for_visibl
 #[test]
 fn shared_drawer_header_surfaces_replace_legacy_direct_click_routes() {
     let workbench = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/ui/workbench.slint"));
+    let host_context = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/ui/workbench/host_context.slint"
+    ));
     let chrome = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/ui/workbench/chrome.slint"
+    ));
+    let host_components = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/ui/workbench/host_components.slint"
     ));
     let app = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
@@ -198,7 +206,10 @@ fn shared_drawer_header_surfaces_replace_legacy_direct_click_routes() {
         "pointer_clicked(x, y) =>",
     ] {
         assert!(
-            workbench.contains(needle) || chrome.contains(needle),
+            workbench.contains(needle)
+                || host_context.contains(needle)
+                || chrome.contains(needle)
+                || host_components.contains(needle),
             "drawer header shared pointer hook `{needle}` is missing"
         );
     }
@@ -207,8 +218,8 @@ fn shared_drawer_header_surfaces_replace_legacy_direct_click_routes() {
         "slint host app should no longer register direct drawer toggle callback"
     );
     assert!(
-        app.contains("ui.on_drawer_header_pointer_clicked(")
-            || wiring.contains("ui.on_drawer_header_pointer_clicked("),
+        app.contains("host_shell.on_drawer_header_pointer_clicked(")
+            || wiring.contains("host_shell.on_drawer_header_pointer_clicked("),
         "slint host app must register shared drawer header callback"
     );
 }

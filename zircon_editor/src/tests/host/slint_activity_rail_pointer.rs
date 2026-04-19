@@ -1,3 +1,4 @@
+use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
 use crate::ui::slint_host::activity_rail_pointer::{
     build_workbench_activity_rail_pointer_layout, WorkbenchActivityRailPointerBridge,
     WorkbenchActivityRailPointerItem, WorkbenchActivityRailPointerLayout,
@@ -6,7 +7,6 @@ use crate::ui::slint_host::activity_rail_pointer::{
 use crate::ui::slint_host::callback_dispatch::{
     dispatch_shared_activity_rail_pointer_click, BuiltinWorkbenchTemplateBridge,
 };
-use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
 use crate::{
     compute_workbench_shell_geometry, EditorEvent, LayoutCommand, ShellSizePx,
     WorkbenchChromeMetrics, WorkbenchViewModel,
@@ -237,6 +237,10 @@ fn shared_activity_rail_pointer_layout_prefers_shared_visible_drawer_regions_whe
 #[test]
 fn shared_activity_rail_surfaces_replace_legacy_direct_click_routes() {
     let workbench = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/ui/workbench.slint"));
+    let host_context = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/ui/workbench/host_context.slint"
+    ));
     let app = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/src/ui/slint_host/app.rs"
@@ -259,14 +263,14 @@ fn shared_activity_rail_surfaces_replace_legacy_direct_click_routes() {
         "activity_rail_pointer_clicked(",
     ] {
         assert!(
-            workbench.contains(needle),
+            workbench.contains(needle) || host_context.contains(needle),
             "workbench shell is missing shared activity rail pointer hook `{needle}`"
         );
     }
 
     assert!(
-        app.contains("ui.on_activity_rail_pointer_clicked(")
-            || wiring.contains("ui.on_activity_rail_pointer_clicked("),
+        app.contains("host_shell.on_activity_rail_pointer_clicked(")
+            || wiring.contains("host_shell.on_activity_rail_pointer_clicked("),
         "slint host app must register shared activity rail pointer clicks"
     );
 }

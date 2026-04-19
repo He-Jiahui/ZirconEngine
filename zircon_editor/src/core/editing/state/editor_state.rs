@@ -1,8 +1,7 @@
 use crate::core::editing::asset_workspace::AssetWorkspaceState;
-use crate::scene::viewport::SceneViewportController;
 use crate::history::EditorHistory;
+use crate::scene::viewport::SceneViewportController;
 use crate::ui::workbench::startup::{EditorSessionMode, WelcomePaneSnapshot};
-use zircon_scene::NodeId;
 
 use super::editor_world_slot::EditorWorldSlot;
 
@@ -25,10 +24,6 @@ pub struct EditorState {
 }
 
 impl EditorState {
-    pub(crate) fn selected_node(&self) -> Option<NodeId> {
-        self.viewport_controller.selected_node()
-    }
-
     pub(crate) fn clear_selected_node(&mut self) {
         self.viewport_controller.set_selected_node(None);
     }

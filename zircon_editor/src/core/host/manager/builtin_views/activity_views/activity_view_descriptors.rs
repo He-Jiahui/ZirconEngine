@@ -8,7 +8,8 @@ use super::inspector_view_descriptor::inspector_view_descriptor;
 use super::project_view_descriptor::project_view_descriptor;
 use super::scene_view_descriptor::scene_view_descriptor;
 
-pub(in crate::core::host::manager::builtin_views) fn activity_view_descriptors() -> Vec<ViewDescriptor> {
+pub(in crate::core::host::manager::builtin_views) fn activity_view_descriptors(
+) -> Vec<ViewDescriptor> {
     vec![
         project_view_descriptor(),
         hierarchy_view_descriptor(),

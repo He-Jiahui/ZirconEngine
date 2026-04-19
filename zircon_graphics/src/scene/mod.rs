@@ -4,11 +4,10 @@ mod resources;
 #[path = "scene_renderer/mod.rs"]
 mod scene_renderer;
 
-pub(crate) use resources::ResourceStreamer;
 #[cfg(test)]
 pub(crate) use scene_renderer::ViewportOverlayRenderer;
 pub(crate) use scene_renderer::{
     cluster_buffer_bytes_for_size, cluster_dimensions_for_size, create_depth_texture,
-    SceneRendererCore, GBUFFER_ALBEDO_FORMAT, NORMAL_FORMAT, OFFSCREEN_FORMAT,
+    GBUFFER_ALBEDO_FORMAT, NORMAL_FORMAT, OFFSCREEN_FORMAT,
 };
 pub use scene_renderer::{SceneRenderer, ViewportIconSource};

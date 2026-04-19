@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use toml::{map::Map, Value};
 
-use crate::UiNodeDefinition;
+use crate::template::UiNodeDefinition;
 
 pub(super) fn build_attribute_map(
     node: &UiNodeDefinition,

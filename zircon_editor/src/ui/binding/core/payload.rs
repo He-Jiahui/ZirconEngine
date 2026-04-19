@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use zircon_ui::UiBindingCall;
+use zircon_ui::binding::UiBindingCall;
 
 use crate::ui::binding::{
     AssetCommand, DockCommand, DraftCommand, SelectionCommand, ViewportCommand, WelcomeCommand,

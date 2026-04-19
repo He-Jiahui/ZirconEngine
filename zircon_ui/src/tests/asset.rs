@@ -1,9 +1,12 @@
 use toml::Value;
 
-use crate::{
-    UiAssetKind, UiAssetLoader, UiDocumentCompiler, UiLegacyTemplateAdapter, UiRenderCommandKind,
-    UiSize, UiTemplateLoader, UiTemplateSurfaceBuilder, UiTreeId, UiVisualAssetRef,
+use crate::surface::{UiRenderCommandKind, UiVisualAssetRef};
+use crate::template::{
+    UiAssetLoader, UiDocumentCompiler, UiLegacyTemplateAdapter, UiTemplateLoader,
+    UiTemplateSurfaceBuilder,
 };
+use crate::event_ui::UiTreeId;
+use crate::{UiAssetKind, UiSize};
 
 const IMPORTED_BUTTON_ASSET_TOML: &str = r##"
 [asset]

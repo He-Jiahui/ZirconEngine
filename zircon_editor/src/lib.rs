@@ -13,12 +13,14 @@ pub(crate) use ui::workbench::{autolayout, layout, project, snapshot, view};
 pub use core::editing::intent::EditorIntent;
 pub use core::editing::state::EditorState;
 pub use core::editing::ui_asset::{
-    UiAssetDragDropPolicy, UiAssetEditorCommand, UiAssetEditorExternalEffect,
-    UiAssetEditorPanePresentation, UiAssetEditorPreviewCanvasNode,
-    UiAssetEditorPreviewCanvasSlotTarget, UiAssetEditorSession, UiAssetEditorSessionError,
+    apply_external_effects_to_asset_sources, UiAssetDragDropPolicy, UiAssetEditorCommand,
+    UiAssetEditorDocumentReplayBundle, UiAssetEditorDocumentReplayCommand,
+    UiAssetEditorExternalEffect, UiAssetEditorPanePresentation, UiAssetEditorPreviewCanvasNode,
+    UiAssetEditorPreviewCanvasSlotTarget, UiAssetEditorReplayResult, UiAssetEditorReplayWorkspace,
+    UiAssetEditorReplayWorkspaceResult, UiAssetEditorSession, UiAssetEditorSessionError,
     UiAssetEditorSourceCursorSnapshot, UiAssetEditorTreeEdit, UiAssetEditorTreeEditKind,
-    UiAssetEditorUndoExternalEffects, UiAssetEditorUndoStack, UiAssetPreviewHost,
-    UiAssetSourceBuffer,
+    UiAssetEditorUndoExternalEffects, UiAssetEditorUndoReplayRecord, UiAssetEditorUndoStack,
+    UiAssetEditorUndoTransition, UiAssetPreviewHost, UiAssetSourceBuffer,
 };
 pub use core::editor_event::{
     EditorAssetEvent, EditorAssetSurface, EditorAssetUtilityTab, EditorAssetViewMode,
@@ -26,6 +28,11 @@ pub use core::editor_event::{
     EditorEventId, EditorEventJournal, EditorEventRecord, EditorEventReplay, EditorEventResult,
     EditorEventRuntime, EditorEventSequence, EditorEventSource, EditorEventTransient,
     EditorEventUndoPolicy, EditorInspectorEvent, EditorTransientUiState, EditorViewportEvent,
+};
+pub use core::host::manager::{EditorError, EditorManager, NativeWindowHostState};
+pub use core::host::module::{
+    module_descriptor, EditorHostDriver, EDITOR_HOST_DRIVER_NAME, EDITOR_MANAGER_NAME,
+    EDITOR_MODULE_NAME,
 };
 pub use scene::viewport::{GizmoAxis, ViewportFeedback, ViewportInput, ViewportState};
 pub use ui::binding_dispatch::{
@@ -36,15 +43,8 @@ pub use ui::binding_dispatch::{
     DraftHostEvent, EditorBindingDispatchError, InspectorBindingBatch, SelectionHostEvent,
     WelcomeHostEvent,
 };
-pub use core::host::manager::{EditorError, EditorManager, NativeWindowHostState};
-pub use core::host::module::{
-    module_descriptor, EditorHostDriver, EDITOR_HOST_DRIVER_NAME, EDITOR_MANAGER_NAME,
-    EDITOR_MODULE_NAME,
-};
 pub use ui::slint_host::run_editor;
-pub use ui::slint_host::tab_drag::{
-    resolve_workbench_drag_target_group, WorkbenchDragTargetGroup,
-};
+pub use ui::slint_host::tab_drag::{resolve_workbench_drag_target_group, WorkbenchDragTargetGroup};
 pub use ui::template_runtime::{
     EditorUiCompatibilityHarness, EditorUiCompatibilitySnapshot, EditorUiHostRuntime,
     EditorUiHostRuntimeError, SlintUiBindingProjection, SlintUiHostAdapter,
@@ -98,25 +98,23 @@ pub use ui::workbench::view::{
     ViewInstanceId, ViewKind, ViewRegistry,
 };
 pub use ui::{
-    inspector_field_control_id, ActivityDrawerSlotPreference, ActivityViewDescriptor,
-    ActivityWindowDescriptor, AssetCommand, DockCommand, DraftCommand, EditorActivityHost,
-    EditorActivityKind, EditorActivityReflection, EditorComponentCatalog,
+    inspector_field_control_id, ui_asset_editor_window_descriptor, ActivityDrawerSlotPreference,
+    ActivityViewDescriptor, ActivityWindowDescriptor, AssetCommand, DockCommand, DraftCommand,
+    EditorActivityHost, EditorActivityKind, EditorActivityReflection, EditorComponentCatalog,
     EditorComponentDescriptor, EditorDrawerReflectionModel, EditorFloatingWindowReflectionModel,
     EditorHostPageReflectionModel, EditorMenuItemReflectionModel, EditorTemplateAdapter,
     EditorTemplateError, EditorTemplateRegistry, EditorUiBinding, EditorUiBindingPayload,
     EditorUiControlService, EditorUiError, EditorUiEventKind, EditorUiReflectionAdapter,
     EditorUiRouter, EditorWorkbenchReflectionModel, InspectorFieldChange, SelectionCommand,
-    UiAssetEditorMode, UiAssetEditorReflectionModel, UiAssetEditorRoute,
-    UiAssetPreviewPreset, UiDesignerSelectionModel, UiMatchedStyleRuleReflection,
-    UiStyleInspectorReflectionModel, ViewportCommand, WelcomeCommand,
-    UI_ASSET_EDITOR_BOOTSTRAP_LAYOUT_ASSET_ID,
+    UiAssetEditorMode, UiAssetEditorReflectionModel, UiAssetEditorRoute, UiAssetPreviewPreset,
+    UiDesignerSelectionModel, UiMatchedStyleRuleReflection, UiStyleInspectorReflectionModel,
+    ViewportCommand, WelcomeCommand, UI_ASSET_EDITOR_BOOTSTRAP_LAYOUT_ASSET_ID,
     UI_ASSET_EDITOR_BOOTSTRAP_LAYOUT_DOCUMENT_ID, UI_ASSET_EDITOR_BOOTSTRAP_STYLE_ASSET_ID,
-    UI_ASSET_EDITOR_BOOTSTRAP_WIDGET_ASSET_ID,
-    UI_ASSET_EDITOR_BOOTSTRAP_WIDGET_BUTTON_REFERENCE,
-    UI_ASSET_EDITOR_BOOTSTRAP_WIDGET_SECTION_CARD_REFERENCE, UI_ASSET_EDITOR_WINDOW_ID,
-    ui_asset_editor_window_descriptor,
+    UI_ASSET_EDITOR_BOOTSTRAP_WIDGET_ASSET_ID, UI_ASSET_EDITOR_BOOTSTRAP_WIDGET_BUTTON_REFERENCE,
+    UI_ASSET_EDITOR_BOOTSTRAP_WIDGET_SECTION_CARD_REFERENCE,
+    UI_ASSET_EDITOR_BOOTSTRAP_WIDGET_TOOLBAR_REFERENCE, UI_ASSET_EDITOR_WINDOW_ID,
 };
-pub use zircon_ui::UiBindingValue;
+pub use zircon_ui::binding::UiBindingValue;
 pub use zircon_ui::UiSize;
 
 #[derive(Clone, Copy, Debug, Default)]

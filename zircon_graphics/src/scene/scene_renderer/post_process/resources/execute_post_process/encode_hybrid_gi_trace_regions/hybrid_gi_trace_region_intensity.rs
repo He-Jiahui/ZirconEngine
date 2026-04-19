@@ -1,4 +1,4 @@
-use zircon_scene::RenderHybridGiTraceRegion;
+use zircon_framework::render::RenderHybridGiTraceRegion;
 
 pub(super) fn hybrid_gi_trace_region_intensity(
     region: &RenderHybridGiTraceRegion,

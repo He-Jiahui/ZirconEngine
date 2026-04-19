@@ -19,3 +19,4 @@ mod slint_tab_drag;
 mod slint_viewport_toolbar_pointer;
 mod slint_window;
 mod template_runtime;
+mod ui_asset_editor_theme_tooling;

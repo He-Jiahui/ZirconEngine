@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use zircon_module::EngineModule;
 
-use crate::{asset, foundation, graphics, input, platform, scene, script, ui};
+use crate::{asset, extensions, foundation, graphics, input, platform, scene, script, ui};
 
 pub fn builtin_runtime_modules() -> Vec<Arc<dyn EngineModule>> {
     let mut modules: Vec<Arc<dyn EngineModule>> = vec![
@@ -22,12 +22,12 @@ pub fn builtin_runtime_modules() -> Vec<Arc<dyn EngineModule>> {
 
 fn runtime_extension_modules() -> Vec<Arc<dyn EngineModule>> {
     vec![
-        Arc::new(zircon_physics::PhysicsModule),
-        Arc::new(zircon_sound::SoundModule),
-        Arc::new(zircon_texture::TextureModule),
-        Arc::new(zircon_net::NetModule),
-        Arc::new(zircon_navigation::NavigationModule),
-        Arc::new(zircon_particles::ParticlesModule),
-        Arc::new(zircon_animation::AnimationModule),
+        Arc::new(extensions::physics::PhysicsModule),
+        Arc::new(extensions::sound::SoundModule),
+        Arc::new(extensions::texture::TextureModule),
+        Arc::new(extensions::net::NetModule),
+        Arc::new(extensions::navigation::NavigationModule),
+        Arc::new(extensions::particles::ParticlesModule),
+        Arc::new(extensions::animation::AnimationModule),
     ]
 }

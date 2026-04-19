@@ -3,12 +3,12 @@ use crate::scene::viewport::pointer::{
     ViewportRenderablePickCandidate,
 };
 use crate::GizmoAxis;
-use zircon_math::{perspective, view_matrix, Transform, UVec2, Vec2, Vec3, Vec4};
-use zircon_scene::{
+use zircon_framework::render::{
     HandleElementExtract, HandleOverlayExtract, OverlayAxis, OverlayPickShape, ProjectionMode,
     SceneGizmoKind, SceneGizmoOverlayExtract, SceneViewportTool, TransformSpace,
     ViewportCameraSnapshot,
 };
+use zircon_math::{perspective, view_matrix, Transform, UVec2, Vec2, Vec3, Vec4};
 use zircon_ui::UiPoint;
 
 #[test]

@@ -1,5 +1,5 @@
-use crate::view::ViewDescriptorId;
 use crate::ui::workbench::event::menu_action_binding;
+use crate::view::ViewDescriptorId;
 
 use super::super::menu_action::MenuAction;
 use super::super::menu_item_model::MenuItemModel;

@@ -1,5 +1,6 @@
-use crate::{AssetRegistry, ProjectManifest, ProjectPaths};
+use zircon_resource::ResourceRegistry;
 
+use super::super::{ProjectManifest, ProjectPaths};
 use super::ProjectManager;
 
 impl ProjectManager {
@@ -11,7 +12,7 @@ impl ProjectManager {
         &self.paths
     }
 
-    pub fn registry(&self) -> &AssetRegistry {
+    pub fn registry(&self) -> &ResourceRegistry {
         &self.registry
     }
 }

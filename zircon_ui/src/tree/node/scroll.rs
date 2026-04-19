@@ -1,5 +1,6 @@
 use super::{UiTree, UiTreeError};
-use crate::{UiNodeId, UiScrollState};
+use crate::event_ui::UiNodeId;
+use crate::UiScrollState;
 
 impl UiTree {
     pub fn set_scroll_offset(

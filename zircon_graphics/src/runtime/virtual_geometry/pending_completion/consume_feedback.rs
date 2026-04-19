@@ -7,6 +7,9 @@ impl VirtualGeometryRuntimeState {
         &mut self,
         feedback: &VisibilityVirtualGeometryFeedback,
     ) {
+        self.recent_hot_resident_pages = self.current_hot_resident_pages.clone();
+        self.recent_hot_resident_pages
+            .retain(|page_id| self.resident_slots.contains_key(page_id));
         self.current_hot_resident_pages = feedback
             .hot_resident_pages
             .iter()
@@ -22,6 +25,8 @@ impl VirtualGeometryRuntimeState {
             &feedback.evictable_pages,
         );
         self.current_hot_resident_pages
+            .retain(|page_id| self.resident_slots.contains_key(page_id));
+        self.recent_hot_resident_pages
             .retain(|page_id| self.resident_slots.contains_key(page_id));
     }
 }

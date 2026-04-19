@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 
+use crate::project::ProjectManager;
 use crate::{
-    AssetCatalogRecord, AssetUri, AssetUuid, PreviewCache, PreviewScheduler, ProjectManager,
-    ReferenceGraph,
+    AssetCatalogRecord, AssetUri, AssetUuid, PreviewCache, PreviewScheduler, ReferenceGraph,
 };
 
 #[derive(Clone, Debug, Default)]

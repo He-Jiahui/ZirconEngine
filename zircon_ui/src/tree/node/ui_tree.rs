@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{UiNodeId, UiTreeId};
+use crate::event_ui::{UiNodeId, UiTreeId};
 
 use super::UiTreeNode;
 

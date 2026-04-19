@@ -1,4 +1,5 @@
 use super::super::VirtualGeometryRuntimeState;
+use std::collections::BTreeSet;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 enum PageRelation {
@@ -31,14 +32,16 @@ impl VirtualGeometryRuntimeState {
             let active_request_distance = active_request_lineage_priority
                 .map(|(_request_order, lineage_distance)| u32::MAX - lineage_distance)
                 .unwrap_or_default();
-            let hot_frontier_group = u8::from(self.current_hot_resident_pages.contains(page_id));
+            let hot_frontier_group = u8::from(self.page_or_lineage_is_hot(*page_id));
+            let relation_distance_order =
+                descendant_frontier_distance_order(relation, lineage_distance, hot_frontier_group);
             (
                 relation_order,
-                u32::MAX - lineage_distance,
                 active_request_group,
-                active_request_order,
-                active_request_distance,
                 hot_frontier_group,
+                active_request_order,
+                relation_distance_order,
+                active_request_distance,
                 *page_id,
             )
         });
@@ -99,4 +102,73 @@ impl VirtualGeometryRuntimeState {
 
         None
     }
+
+    pub(in crate::runtime::virtual_geometry) fn page_or_lineage_is_hot(
+        &self,
+        page_id: u32,
+    ) -> bool {
+        if self.page_is_frontier_hot(page_id) {
+            return true;
+        }
+
+        let mut current_page_id = page_id;
+        while let Some(parent_page_id) = self.page_parent_pages.get(&current_page_id).copied() {
+            if self.page_is_frontier_hot(parent_page_id) {
+                return true;
+            }
+            current_page_id = parent_page_id;
+        }
+
+        let mut stack = self
+            .page_parent_pages
+            .iter()
+            .filter_map(|(&candidate_page_id, &parent_page_id)| {
+                (parent_page_id == page_id).then_some(candidate_page_id)
+            })
+            .collect::<Vec<_>>();
+        let mut visited_page_ids = BTreeSet::new();
+
+        while let Some(candidate_page_id) = stack.pop() {
+            if !visited_page_ids.insert(candidate_page_id) {
+                continue;
+            }
+            if self.page_is_frontier_hot(candidate_page_id) {
+                return true;
+            }
+            stack.extend(self.page_parent_pages.iter().filter_map(
+                |(&descendant_page_id, &parent_page_id)| {
+                    (parent_page_id == candidate_page_id).then_some(descendant_page_id)
+                },
+            ));
+        }
+
+        false
+    }
+
+    pub(in crate::runtime::virtual_geometry) fn page_is_frontier_hot(&self, page_id: u32) -> bool {
+        self.current_hot_resident_pages.contains(&page_id)
+            || self.recent_hot_resident_pages.contains(&page_id)
+    }
+
+    pub(in crate::runtime::virtual_geometry) fn frontier_hot_resident_pages(
+        &self,
+    ) -> BTreeSet<u32> {
+        self.current_hot_resident_pages
+            .iter()
+            .chain(self.recent_hot_resident_pages.iter())
+            .copied()
+            .collect()
+    }
+}
+
+fn descendant_frontier_distance_order(
+    relation: PageRelation,
+    lineage_distance: u32,
+    hot_frontier_group: u8,
+) -> u32 {
+    if matches!(relation, PageRelation::Descendant) && hot_frontier_group != 0 {
+        return lineage_distance;
+    }
+
+    u32::MAX - lineage_distance
 }

@@ -1,241 +1,33 @@
-import { AssetFolderData, AssetItemData, AssetReferenceData, AssetSelectionData, ProjectOverviewData } from "workbench/assets.slint";
-import { WorkbenchHostScaffold, TabData, BreadcrumbData, FrameRect, FloatingWindowData } from "workbench/host_scaffold.slint";
-import { SceneNodeData } from "workbench/panes.slint";
-import { PaneData } from "workbench/pane_surface.slint";
-import { RecentProjectData, WelcomePaneData } from "workbench/welcome.slint";
+import { WorkbenchHostContext } from "workbench/host_context.slint";
+import { WorkbenchHostScaffold } from "workbench/host_scaffold.slint";
+import { HostWindowShellData, HostWindowLayoutData, HostWindowSurfaceData } from "workbench/host_components.slint";
+import { PaneSurfaceHostContext } from "workbench/pane_surface.slint";
+
+export { WorkbenchHostContext } from "workbench/host_context.slint";
+export { PaneSurfaceHostContext } from "workbench/pane_surface.slint";
 
 export component UiHostWindow inherits Window {
-    in property <[TabData]> host_tabs <=> host.host_tabs;
-    in property <[BreadcrumbData]> breadcrumbs <=> host.breadcrumbs;
-    in property <[TabData]> left_tabs <=> host.left_tabs;
-    in property <[TabData]> right_tabs <=> host.right_tabs;
-    in property <[TabData]> bottom_tabs <=> host.bottom_tabs;
-    in property <[TabData]> document_tabs <=> host.document_tabs;
-    in property <[FloatingWindowData]> floating_windows <=> host.floating_windows;
-    in property <PaneData> left_pane <=> host.left_pane;
-    in property <PaneData> right_pane <=> host.right_pane;
-    in property <PaneData> bottom_pane <=> host.bottom_pane;
-    in property <PaneData> document_pane <=> host.document_pane;
-    in property <WelcomePaneData> welcome_pane <=> host.welcome_pane;
-    in property <[RecentProjectData]> recent_projects <=> host.recent_projects;
-    in property <int> hovered_welcome_recent_index <=> host.hovered_welcome_recent_index;
-    in property <int> hovered_welcome_recent_action <=> host.hovered_welcome_recent_action;
-    in property <float> welcome_recent_scroll_px <=> host.welcome_recent_scroll_px;
-    in property <[SceneNodeData]> hierarchy_nodes <=> host.hierarchy_nodes;
-    in property <int> hovered_hierarchy_index <=> host.hovered_hierarchy_index;
-    in property <float> hierarchy_scroll_px <=> host.hierarchy_scroll_px;
-    in property <ProjectOverviewData> project_overview <=> host.project_overview;
-    in property <[AssetFolderData]> activity_asset_tree_folders <=> host.activity_asset_tree_folders;
-    in property <[AssetFolderData]> activity_asset_content_folders <=> host.activity_asset_content_folders;
-    in property <[AssetItemData]> activity_asset_content_items <=> host.activity_asset_content_items;
-    in property <AssetSelectionData> activity_asset_selection <=> host.activity_asset_selection;
-    in property <[AssetReferenceData]> activity_asset_references <=> host.activity_asset_references;
-    in property <[AssetReferenceData]> activity_asset_used_by <=> host.activity_asset_used_by;
-    in property <string> activity_asset_search_query <=> host.activity_asset_search_query;
-    in property <string> activity_asset_kind_filter <=> host.activity_asset_kind_filter;
-    in property <string> activity_asset_view_mode <=> host.activity_asset_view_mode;
-    in property <string> activity_asset_utility_tab <=> host.activity_asset_utility_tab;
-    in property <int> activity_asset_tree_hovered_index <=> host.activity_asset_tree_hovered_index;
-    in property <float> activity_asset_tree_scroll_px <=> host.activity_asset_tree_scroll_px;
-    in property <int> activity_asset_content_hovered_index <=> host.activity_asset_content_hovered_index;
-    in property <float> activity_asset_content_scroll_px <=> host.activity_asset_content_scroll_px;
-    in property <int> activity_asset_references_hovered_index <=> host.activity_asset_references_hovered_index;
-    in property <float> activity_asset_references_scroll_px <=> host.activity_asset_references_scroll_px;
-    in property <int> activity_asset_used_by_hovered_index <=> host.activity_asset_used_by_hovered_index;
-    in property <float> activity_asset_used_by_scroll_px <=> host.activity_asset_used_by_scroll_px;
-    in property <[AssetFolderData]> browser_asset_tree_folders <=> host.browser_asset_tree_folders;
-    in property <[AssetFolderData]> browser_asset_content_folders <=> host.browser_asset_content_folders;
-    in property <[AssetItemData]> browser_asset_content_items <=> host.browser_asset_content_items;
-    in property <AssetSelectionData> browser_asset_selection <=> host.browser_asset_selection;
-    in property <[AssetReferenceData]> browser_asset_references <=> host.browser_asset_references;
-    in property <[AssetReferenceData]> browser_asset_used_by <=> host.browser_asset_used_by;
-    in property <string> browser_asset_search_query <=> host.browser_asset_search_query;
-    in property <string> browser_asset_kind_filter <=> host.browser_asset_kind_filter;
-    in property <string> browser_asset_view_mode <=> host.browser_asset_view_mode;
-    in property <string> browser_asset_utility_tab <=> host.browser_asset_utility_tab;
-    in property <int> browser_asset_tree_hovered_index <=> host.browser_asset_tree_hovered_index;
-    in property <float> browser_asset_tree_scroll_px <=> host.browser_asset_tree_scroll_px;
-    in property <int> browser_asset_content_hovered_index <=> host.browser_asset_content_hovered_index;
-    in property <float> browser_asset_content_scroll_px <=> host.browser_asset_content_scroll_px;
-    in property <int> browser_asset_references_hovered_index <=> host.browser_asset_references_hovered_index;
-    in property <float> browser_asset_references_scroll_px <=> host.browser_asset_references_scroll_px;
-    in property <int> browser_asset_used_by_hovered_index <=> host.browser_asset_used_by_hovered_index;
-    in property <float> browser_asset_used_by_scroll_px <=> host.browser_asset_used_by_scroll_px;
-    in property <float> browser_asset_details_scroll_px <=> host.browser_asset_details_scroll_px;
-    in property <image> viewport_image <=> host.viewport_image;
-    in property <string> project_path <=> host.project_path;
-    in property <string> status_primary <=> host.status_primary;
-    in property <string> status_secondary <=> host.status_secondary;
-    in property <string> viewport_label <=> host.viewport_label;
-    in property <bool> drawers_visible <=> host.drawers_visible;
-    in property <bool> left_expanded <=> host.left_expanded;
-    in property <bool> right_expanded <=> host.right_expanded;
-    in property <bool> bottom_expanded <=> host.bottom_expanded;
-    in property <bool> save_project_enabled <=> host.save_project_enabled;
-    in property <bool> undo_enabled <=> host.undo_enabled;
-    in property <bool> redo_enabled <=> host.redo_enabled;
-    in property <bool> delete_enabled <=> host.delete_enabled;
-    in property <string> inspector_name <=> host.inspector_name;
-    in property <string> inspector_parent <=> host.inspector_parent;
-    in property <string> inspector_x <=> host.inspector_x;
-    in property <string> inspector_y <=> host.inspector_y;
-    in property <string> inspector_z <=> host.inspector_z;
-    in property <float> inspector_scroll_px <=> host.inspector_scroll_px;
-    in property <string> mesh_import_path <=> host.mesh_import_path;
-    in property <float> console_scroll_px <=> host.console_scroll_px;
-    in property <[string]> preset_names <=> host.preset_names;
-    in property <string> active_preset_name <=> host.active_preset_name;
-    in property <float> shell_min_width_px <=> host.shell_min_width_px;
-    in property <float> shell_min_height_px <=> host.shell_min_height_px;
-    in property <bool> native_floating_window_mode <=> host.native_floating_window_mode;
-    in property <string> native_floating_window_id <=> host.native_floating_window_id;
-    in property <string> native_window_title <=> host.native_window_title;
-    in property <FrameRect> native_window_bounds <=> host.native_window_bounds;
-    in property <FrameRect> center_band_frame <=> host.center_band_frame;
-    in property <FrameRect> status_bar_frame <=> host.status_bar_frame;
-    in property <FrameRect> left_region_frame <=> host.left_region_frame;
-    in property <FrameRect> document_region_frame <=> host.document_region_frame;
-    in property <FrameRect> right_region_frame <=> host.right_region_frame;
-    in property <FrameRect> bottom_region_frame <=> host.bottom_region_frame;
-    in property <FrameRect> left_splitter_frame <=> host.left_splitter_frame;
-    in property <FrameRect> right_splitter_frame <=> host.right_splitter_frame;
-    in property <FrameRect> bottom_splitter_frame <=> host.bottom_splitter_frame;
-    in property <FrameRect> viewport_content_frame <=> host.viewport_content_frame;
-    in property <string> resolved_preset_name <=> host.resolved_preset_name;
-    in-out property <int> open_menu_index <=> host.open_menu_index;
-    in-out property <int> hovered_menu_index <=> host.hovered_menu_index;
-    in-out property <int> hovered_menu_item_index <=> host.hovered_menu_item_index;
-    in-out property <float> window_menu_scroll_px <=> host.window_menu_scroll_px;
-    in-out property <float> window_menu_popup_height_px <=> host.window_menu_popup_height_px;
+    in property <HostWindowSurfaceData> host_surface_data <=> host.host_surface_data;
+    in property <HostWindowShellData> host_shell <=> host.host_shell;
+    in property <HostWindowLayoutData> host_layout <=> host.host_layout;
     out property <float> shell_width_px <=> host.shell_width_px;
     out property <float> shell_height_px <=> host.shell_height_px;
     out property <float> viewport_width <=> host.viewport_width;
     out property <float> viewport_height <=> host.viewport_height;
-    in-out property <string> active_drag_target_group <=> host.active_drag_target_group;
-    in-out property <bool> drag_active <=> host.drag_active;
-    in-out property <string> drag_tab_id <=> host.drag_tab_id;
-    in-out property <string> drag_tab_title <=> host.drag_tab_title;
-    in-out property <string> drag_tab_icon_key <=> host.drag_tab_icon_key;
-    in-out property <string> drag_source_group <=> host.drag_source_group;
-    in-out property <float> drag_pointer_x <=> host.drag_pointer_x;
-    in-out property <float> drag_pointer_y <=> host.drag_pointer_y;
-
-    callback pane_surface_control_clicked(control_id: string, action_id: string);
-    callback menu_pointer_clicked(x: float, y: float);
-    callback menu_pointer_moved(x: float, y: float);
-    callback menu_pointer_scrolled(x: float, y: float, delta: float);
-    callback activity_rail_pointer_clicked(side: string, x: float, y: float);
-    callback host_page_pointer_clicked(tab_index: int, tab_x: float, tab_width: float, point_x: float, point_y: float);
-    callback drawer_header_pointer_clicked(surface_key: string, tab_index: int, tab_x: float, tab_width: float, point_x: float, point_y: float);
-    callback document_tab_pointer_clicked(surface_key: string, tab_index: int, tab_x: float, tab_width: float, point_x: float, point_y: float);
-    callback document_tab_close_pointer_clicked(surface_key: string, tab_index: int, tab_x: float, tab_width: float, point_x: float, point_y: float);
-    callback floating_window_header_pointer_clicked(x: float, y: float);
-    callback workbench_drag_pointer_event(kind: int, x: float, y: float);
-    callback workbench_resize_pointer_event(kind: int, x: float, y: float);
-    callback hierarchy_pointer_clicked(x: float, y: float, width: float, height: float);
-    callback hierarchy_pointer_moved(x: float, y: float, width: float, height: float);
-    callback hierarchy_pointer_scrolled(x: float, y: float, delta: float, width: float, height: float);
-    callback console_pointer_scrolled(x: float, y: float, delta: float, width: float, height: float);
-    callback inspector_pointer_scrolled(x: float, y: float, delta: float, width: float, height: float);
-    callback inspector_control_changed(control_id: string, value: string);
-    callback inspector_control_clicked(control_id: string);
-    callback mesh_import_path_edited(value: string);
-    callback asset_control_changed(source: string, control_id: string, value: string);
-    callback asset_control_clicked(source: string, control_id: string);
-    callback asset_tree_pointer_clicked(surface_mode: string, x: float, y: float, width: float, height: float);
-    callback asset_tree_pointer_moved(surface_mode: string, x: float, y: float, width: float, height: float);
-    callback asset_tree_pointer_scrolled(surface_mode: string, x: float, y: float, delta: float, width: float, height: float);
-    callback asset_content_pointer_clicked(surface_mode: string, x: float, y: float, width: float, height: float);
-    callback asset_content_pointer_moved(surface_mode: string, x: float, y: float, width: float, height: float);
-    callback asset_content_pointer_scrolled(surface_mode: string, x: float, y: float, delta: float, width: float, height: float);
-    callback asset_reference_pointer_clicked(surface_mode: string, list_kind: string, x: float, y: float, width: float, height: float);
-    callback asset_reference_pointer_moved(surface_mode: string, list_kind: string, x: float, y: float, width: float, height: float);
-    callback asset_reference_pointer_scrolled(surface_mode: string, list_kind: string, x: float, y: float, delta: float, width: float, height: float);
-    callback browser_asset_details_pointer_scrolled(x: float, y: float, delta: float, width: float, height: float);
-    callback welcome_control_changed(control_id: string, value: string);
-    callback welcome_control_clicked(control_id: string);
-    callback welcome_recent_pointer_clicked(x: float, y: float, width: float, height: float);
-    callback welcome_recent_pointer_moved(x: float, y: float, width: float, height: float);
-    callback welcome_recent_pointer_scrolled(x: float, y: float, delta: float, width: float, height: float);
-    callback viewport_pointer_event(kind: int, button: int, x: float, y: float, delta: float);
-    callback viewport_toolbar_pointer_clicked(surface_key: string, control_id: string, control_x: float, control_y: float, control_width: float, control_height: float, point_x: float, point_y: float);
-    callback ui_asset_action(instance_id: string, action_id: string);
-    callback ui_asset_style_class_action(instance_id: string, action_id: string, class_name: string);
-    callback ui_asset_detail_event(instance_id: string, detail_id: string, action_id: string, item_index: int, primary: string, secondary: string);
-    callback ui_asset_collection_event(instance_id: string, collection_id: string, event_kind: string, item_index: int);
-    callback ui_asset_source_edited(instance_id: string, value: string);
-    callback ui_asset_source_cursor_changed(instance_id: string, byte_offset: int);
-    callback ui_asset_palette_drag_hover(instance_id: string, surface_x: float, surface_y: float);
-    callback ui_asset_palette_drag_drop(instance_id: string);
-    callback ui_asset_palette_drag_cancel(instance_id: string);
-    callback ui_asset_palette_target_confirm(instance_id: string);
-    callback ui_asset_palette_target_cancel(instance_id: string);
-
     preferred-width: 1600px;
     preferred-height: 980px;
-    min-width: root.shell_min_width_px * 1px;
-    min-height: root.shell_min_height_px * 1px;
+    min-width: root.host_shell.shell_min_width_px * 1px;
+    min-height: root.host_shell.shell_min_height_px * 1px;
     max-width: 16777215px;
     max-height: 16777215px;
     no-frame: false;
     resize-border-width: 8px;
-    title: root.native_window_title != "" ? root.native_window_title : "Zircon Editor";
+    title: root.host_shell.native_window_title != "" ? root.host_shell.native_window_title : "Zircon Editor";
     background: #1f232a;
     default-font-family: "JetBrains Sans, Segoe UI, Microsoft YaHei UI, Noto Sans";
 
     host := WorkbenchHostScaffold {
         width: root.width;
         height: root.height;
-
-        pane_surface_control_clicked(control_id, action_id) => { root.pane_surface_control_clicked(control_id, action_id); }
-        menu_pointer_clicked(x, y) => { root.menu_pointer_clicked(x, y); }
-        menu_pointer_moved(x, y) => { root.menu_pointer_moved(x, y); }
-        menu_pointer_scrolled(x, y, delta) => { root.menu_pointer_scrolled(x, y, delta); }
-        activity_rail_pointer_clicked(side, x, y) => { root.activity_rail_pointer_clicked(side, x, y); }
-        host_page_pointer_clicked(tab_index, tab_x, tab_width, point_x, point_y) => { root.host_page_pointer_clicked(tab_index, tab_x, tab_width, point_x, point_y); }
-        drawer_header_pointer_clicked(surface_key, tab_index, tab_x, tab_width, point_x, point_y) => { root.drawer_header_pointer_clicked(surface_key, tab_index, tab_x, tab_width, point_x, point_y); }
-        document_tab_pointer_clicked(surface_key, tab_index, tab_x, tab_width, point_x, point_y) => { root.document_tab_pointer_clicked(surface_key, tab_index, tab_x, tab_width, point_x, point_y); }
-        document_tab_close_pointer_clicked(surface_key, tab_index, tab_x, tab_width, point_x, point_y) => { root.document_tab_close_pointer_clicked(surface_key, tab_index, tab_x, tab_width, point_x, point_y); }
-        floating_window_header_pointer_clicked(x, y) => { root.floating_window_header_pointer_clicked(x, y); }
-        workbench_drag_pointer_event(kind, x, y) => { root.workbench_drag_pointer_event(kind, x, y); }
-        workbench_resize_pointer_event(kind, x, y) => { root.workbench_resize_pointer_event(kind, x, y); }
-        hierarchy_pointer_clicked(x, y, width, height) => { root.hierarchy_pointer_clicked(x, y, width, height); }
-        hierarchy_pointer_moved(x, y, width, height) => { root.hierarchy_pointer_moved(x, y, width, height); }
-        hierarchy_pointer_scrolled(x, y, delta, width, height) => { root.hierarchy_pointer_scrolled(x, y, delta, width, height); }
-        console_pointer_scrolled(x, y, delta, width, height) => { root.console_pointer_scrolled(x, y, delta, width, height); }
-        inspector_pointer_scrolled(x, y, delta, width, height) => { root.inspector_pointer_scrolled(x, y, delta, width, height); }
-        inspector_control_changed(control_id, value) => { root.inspector_control_changed(control_id, value); }
-        inspector_control_clicked(control_id) => { root.inspector_control_clicked(control_id); }
-        mesh_import_path_edited(value) => { root.mesh_import_path_edited(value); }
-        asset_control_changed(source, control_id, value) => { root.asset_control_changed(source, control_id, value); }
-        asset_control_clicked(source, control_id) => { root.asset_control_clicked(source, control_id); }
-        asset_tree_pointer_clicked(surface_mode, x, y, width, height) => { root.asset_tree_pointer_clicked(surface_mode, x, y, width, height); }
-        asset_tree_pointer_moved(surface_mode, x, y, width, height) => { root.asset_tree_pointer_moved(surface_mode, x, y, width, height); }
-        asset_tree_pointer_scrolled(surface_mode, x, y, delta, width, height) => { root.asset_tree_pointer_scrolled(surface_mode, x, y, delta, width, height); }
-        asset_content_pointer_clicked(surface_mode, x, y, width, height) => { root.asset_content_pointer_clicked(surface_mode, x, y, width, height); }
-        asset_content_pointer_moved(surface_mode, x, y, width, height) => { root.asset_content_pointer_moved(surface_mode, x, y, width, height); }
-        asset_content_pointer_scrolled(surface_mode, x, y, delta, width, height) => { root.asset_content_pointer_scrolled(surface_mode, x, y, delta, width, height); }
-        asset_reference_pointer_clicked(surface_mode, list_kind, x, y, width, height) => { root.asset_reference_pointer_clicked(surface_mode, list_kind, x, y, width, height); }
-        asset_reference_pointer_moved(surface_mode, list_kind, x, y, width, height) => { root.asset_reference_pointer_moved(surface_mode, list_kind, x, y, width, height); }
-        asset_reference_pointer_scrolled(surface_mode, list_kind, x, y, delta, width, height) => { root.asset_reference_pointer_scrolled(surface_mode, list_kind, x, y, delta, width, height); }
-        browser_asset_details_pointer_scrolled(x, y, delta, width, height) => { root.browser_asset_details_pointer_scrolled(x, y, delta, width, height); }
-        welcome_control_changed(control_id, value) => { root.welcome_control_changed(control_id, value); }
-        welcome_control_clicked(control_id) => { root.welcome_control_clicked(control_id); }
-        welcome_recent_pointer_clicked(x, y, width, height) => { root.welcome_recent_pointer_clicked(x, y, width, height); }
-        welcome_recent_pointer_moved(x, y, width, height) => { root.welcome_recent_pointer_moved(x, y, width, height); }
-        welcome_recent_pointer_scrolled(x, y, delta, width, height) => { root.welcome_recent_pointer_scrolled(x, y, delta, width, height); }
-        viewport_pointer_event(kind, button, x, y, delta) => { root.viewport_pointer_event(kind, button, x, y, delta); }
-        viewport_toolbar_pointer_clicked(surface_key, control_id, control_x, control_y, control_width, control_height, point_x, point_y) => { root.viewport_toolbar_pointer_clicked(surface_key, control_id, control_x, control_y, control_width, control_height, point_x, point_y); }
-        ui_asset_action(instance_id, action_id) => { root.ui_asset_action(instance_id, action_id); }
-        ui_asset_style_class_action(instance_id, action_id, class_name) => { root.ui_asset_style_class_action(instance_id, action_id, class_name); }
-        ui_asset_detail_event(instance_id, detail_id, action_id, item_index, primary, secondary) => { root.ui_asset_detail_event(instance_id, detail_id, action_id, item_index, primary, secondary); }
-        ui_asset_collection_event(instance_id, collection_id, event_kind, item_index) => { root.ui_asset_collection_event(instance_id, collection_id, event_kind, item_index); }
-        ui_asset_source_edited(instance_id, value) => { root.ui_asset_source_edited(instance_id, value); }
-        ui_asset_source_cursor_changed(instance_id, byte_offset) => { root.ui_asset_source_cursor_changed(instance_id, byte_offset); }
-        ui_asset_palette_drag_hover(instance_id, surface_x, surface_y) => { root.ui_asset_palette_drag_hover(instance_id, surface_x, surface_y); }
-        ui_asset_palette_drag_drop(instance_id) => { root.ui_asset_palette_drag_drop(instance_id); }
-        ui_asset_palette_drag_cancel(instance_id) => { root.ui_asset_palette_drag_cancel(instance_id); }
-        ui_asset_palette_target_confirm(instance_id) => { root.ui_asset_palette_target_confirm(instance_id); }
-        ui_asset_palette_target_cancel(instance_id) => { root.ui_asset_palette_target_cancel(instance_id); }
     }
 }

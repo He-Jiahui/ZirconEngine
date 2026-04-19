@@ -1,6 +1,0 @@
-mod shared_texture_render_service;
-mod shared_texture_render_service_drop;
-mod shared_texture_render_service_frame_io;
-mod shared_texture_render_service_spawn;
-
-pub use shared_texture_render_service::SharedTextureRenderService;

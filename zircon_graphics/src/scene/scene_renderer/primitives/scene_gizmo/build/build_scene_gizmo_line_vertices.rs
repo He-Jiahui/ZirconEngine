@@ -1,4 +1,4 @@
-use zircon_scene::ViewportIconId;
+use zircon_framework::render::ViewportIconId;
 
 use crate::scene::scene_renderer::primitives::LineVertex;
 use crate::types::EditorOrRuntimeFrame;

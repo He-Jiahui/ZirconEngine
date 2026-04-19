@@ -1,4 +1,4 @@
-use zircon_ui::{UiPoint, UiPointerEvent, UiPointerEventKind};
+use zircon_ui::{dispatch::UiPointerEvent, UiPoint, UiPointerEventKind};
 
 use super::constants::VIEWPORT_NODE_ID;
 use super::route_conversion::to_public_route;

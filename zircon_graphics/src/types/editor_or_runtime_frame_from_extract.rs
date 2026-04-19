@@ -1,5 +1,5 @@
+use zircon_framework::render::RenderFrameExtract;
 use zircon_math::UVec2;
-use zircon_scene::RenderFrameExtract;
 
 use super::editor_or_runtime_frame::EditorOrRuntimeFrame;
 

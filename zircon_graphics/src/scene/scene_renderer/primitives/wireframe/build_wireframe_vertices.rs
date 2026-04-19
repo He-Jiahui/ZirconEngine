@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
+use zircon_framework::render::DisplayMode;
 use zircon_math::Vec4;
-use zircon_scene::DisplayMode;
 
 use crate::scene::resources::ResourceStreamer;
 use crate::scene::scene_renderer::primitives::LineVertex;

@@ -1,5 +1,5 @@
+use zircon_framework::render::ViewportCameraSnapshot;
 use zircon_math::{UVec2, Vec2, Vec3};
-use zircon_scene::ViewportCameraSnapshot;
 
 use crate::scene::viewport::projection::projected_point;
 

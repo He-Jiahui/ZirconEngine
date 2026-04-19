@@ -4,9 +4,11 @@ use zircon_framework::render::{
     PreviewEnvironmentExtract, RenderOverlayExtract, RenderSceneSnapshot, SceneGizmoKind,
     SceneGizmoOverlayExtract, SceneViewportExtractRequest, SceneViewportSettings,
     SelectionAnchorExtract, SelectionHighlightExtract, ViewportCameraSnapshot, ViewportIconId,
+    ViewportRenderSettings,
 };
 use zircon_math::{Real, UVec2, Vec4};
-use zircon_scene::{NodeKind, Scene};
+use zircon_scene::components::NodeKind;
+use zircon_scene::Scene;
 
 const SCENE_CLEAR_COLOR: Vec4 = Vec4::new(0.09, 0.11, 0.14, 1.0);
 const SELECTION_TINT: Vec4 = Vec4::new(1.0, 0.92, 0.55, 0.18);
@@ -23,8 +25,7 @@ pub(in crate::scene::viewport) fn build_render_packet(
     handles: Vec<HandleOverlayExtract>,
 ) -> RenderSceneSnapshot {
     let mut packet = scene.build_viewport_render_packet(&SceneViewportExtractRequest {
-        settings: settings.clone(),
-        selection: Vec::new(),
+        settings: ViewportRenderSettings::from(settings),
         active_camera_override: None,
         camera: Some(camera.clone()),
         viewport_size: Some(viewport_size),
@@ -121,12 +122,14 @@ fn build_selection_anchors(
                 .is_some_and(|node| node.mesh.is_none())
         })
         .filter_map(|owner| {
-            scene.world_transform(owner).map(|transform| SelectionAnchorExtract {
-                owner,
-                position: transform.translation,
-                size: 0.12,
-                color: ANCHOR_COLOR,
-            })
+            scene
+                .world_transform(owner)
+                .map(|transform| SelectionAnchorExtract {
+                    owner,
+                    position: transform.translation,
+                    size: 0.12,
+                    color: ANCHOR_COLOR,
+                })
         })
         .collect()
 }

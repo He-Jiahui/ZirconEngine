@@ -1,5 +1,7 @@
 use crate::project::EditorProjectDocument;
-use crate::ui::workbench::startup::{EditorSessionMode, EditorStartupSessionDocument, NewProjectDraft};
+use crate::ui::workbench::startup::{
+    EditorSessionMode, EditorStartupSessionDocument, NewProjectDraft,
+};
 
 use super::super::editor_error::EditorError;
 use super::super::editor_manager::EditorManager;

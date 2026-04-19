@@ -1,0 +1,85 @@
+[asset]
+kind = "layout"
+id = "editor.preview_state_lab"
+version = 1
+display_name = "Preview State Lab"
+
+[imports]
+widgets = [
+  "res://ui/editor/editor_widgets.ui.toml#EditorToolbar",
+  "res://ui/editor/editor_widgets.ui.toml#EditorToolbarButton",
+  "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard",
+]
+styles = ["res://ui/theme/editor_base.ui.toml"]
+
+[root]
+node = "preview_state_lab_root"
+
+[nodes.preview_state_lab_root]
+kind = "native"
+type = "VerticalBox"
+control_id = "PreviewStateLabRoot"
+classes = ["editor-shell"]
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox", gap = 10.0 } }
+children = [
+  { child = "toolbar" },
+  { child = "content" },
+]
+
+[nodes.toolbar]
+kind = "reference"
+component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorToolbar"
+control_id = "PreviewStateLabToolbar"
+children = [
+  { child = "run_preview_button", mount = "actions" },
+  { child = "reset_preview_button", mount = "actions" },
+]
+
+[nodes.run_preview_button]
+kind = "reference"
+component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorToolbarButton"
+control_id = "RunPreview"
+classes = ["toolbar-primary"]
+params = { label = "Run Preview", icon = "play-outline" }
+
+[nodes.reset_preview_button]
+kind = "reference"
+component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorToolbarButton"
+control_id = "ResetPreview"
+params = { label = "Reset State", icon = "refresh-outline" }
+
+[nodes.content]
+kind = "native"
+type = "HorizontalBox"
+control_id = "PreviewStateLabContent"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "HorizontalBox", gap = 10.0 } }
+children = [
+  { child = "scenario_panel", slot = { layout = { width = { min = 260.0, preferred = 300.0, max = 360.0, stretch = "Fixed" } } } },
+  { child = "graph_panel" },
+]
+
+[nodes.scenario_panel]
+kind = "reference"
+component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard"
+control_id = "PreviewScenarioPanel"
+params = { title = "Preview Scenarios" }
+children = [{ child = "scenario_label", mount = "content" }]
+
+[nodes.scenario_label]
+kind = "native"
+type = "Label"
+control_id = "PreviewScenarioLabel"
+props = { text = "Mock state presets, collection feeds, expression probes" }
+
+[nodes.graph_panel]
+kind = "reference"
+component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard"
+control_id = "PreviewGraphPanel"
+params = { title = "State Graph" }
+children = [{ child = "graph_label", mount = "content" }]
+
+[nodes.graph_label]
+kind = "native"
+type = "Label"
+control_id = "PreviewGraphLabel"
+props = { text = "Cross-node dependencies, binding payload previews, event routes" }

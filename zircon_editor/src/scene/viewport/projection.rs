@@ -1,5 +1,5 @@
+use zircon_framework::render::{ProjectionMode, ViewportCameraSnapshot};
 use zircon_math::{UVec2, Vec2, Vec3};
-use zircon_scene::{ProjectionMode, ViewportCameraSnapshot};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(crate) struct ScreenProjection {

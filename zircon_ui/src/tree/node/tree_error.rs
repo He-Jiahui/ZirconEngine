@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use crate::UiNodeId;
+use crate::event_ui::UiNodeId;
 
 #[derive(Clone, Debug, Error, PartialEq, Eq)]
 pub enum UiTreeError {

@@ -1,3 +1,4 @@
+use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
 use crate::ui::slint_host::asset_pointer::{
     AssetContentListPointerBridge, AssetContentListPointerLayout, AssetFolderTreePointerBridge,
     AssetFolderTreePointerLayout, AssetListPointerState, AssetListViewMode,
@@ -10,14 +11,13 @@ use crate::ui::slint_host::callback_dispatch::{
     dispatch_shared_asset_reference_pointer_click, dispatch_shared_asset_tree_pointer_click,
     BuiltinAssetSurfaceTemplateBridge,
 };
-use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
 use crate::{EditorAssetEvent, EditorEvent};
-use zircon_asset::{
+use zircon_asset::editor::{
     EditorAssetCatalogRecord, EditorAssetCatalogSnapshotRecord, EditorAssetFolderRecord,
-    PreviewState,
 };
+use zircon_asset::project::PreviewState;
 use zircon_resource::ResourceKind;
-use zircon_ui::{UiBindingValue, UiEventKind, UiPoint, UiSize};
+use zircon_ui::{binding::UiBindingValue, binding::UiEventKind, UiPoint, UiSize};
 
 #[test]
 fn shared_asset_tree_pointer_bridge_scrolls_and_dispatches_folder_selection() {
@@ -363,8 +363,8 @@ fn asset_surface_controls_use_generic_template_callbacks_instead_of_legacy_busin
     }
 
     for needle in [
-        "ui.on_asset_control_changed(",
-        "ui.on_asset_control_clicked(",
+        "pane_surface_host.on_asset_control_changed(",
+        "pane_surface_host.on_asset_control_clicked(",
     ] {
         assert!(
             wiring.contains(needle),

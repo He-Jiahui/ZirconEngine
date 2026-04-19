@@ -39,9 +39,10 @@ pub(crate) fn build_theme_summary(
     selected_key: Option<&str>,
 ) -> UiAssetThemeSummary {
     let entries = theme_source_entries(document, imported_styles);
-    let selected_index = reconcile_selected_theme_source_key(document, imported_styles, selected_key)
-        .and_then(|key| entries.iter().position(|entry| entry.key == key))
-        .or_else(|| (!entries.is_empty()).then_some(0));
+    let selected_index =
+        reconcile_selected_theme_source_key(document, imported_styles, selected_key)
+            .and_then(|key| entries.iter().position(|entry| entry.key == key))
+            .or_else(|| (!entries.is_empty()).then_some(0));
     let Some(selected_index) = selected_index else {
         return UiAssetThemeSummary {
             can_promote_local: can_promote_local_theme_to_external_style_asset(document),

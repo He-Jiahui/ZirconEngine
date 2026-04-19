@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use zircon_scene::{
+use zircon_framework::render::{
     DisplayMode, GridMode, ProjectionMode, SceneViewportTool, TransformSpace, ViewOrientation,
 };
 

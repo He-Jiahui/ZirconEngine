@@ -1,6 +1,5 @@
-use zircon_framework::render::{RenderFrameworkError, RenderViewportHandle};
-use zircon_scene::RenderFrameExtract;
-use zircon_ui::{UiRenderCommandKind, UiRenderExtract};
+use zircon_framework::render::{RenderFrameExtract, RenderFrameworkError, RenderViewportHandle};
+use zircon_ui::surface::{UiRenderCommandKind, UiRenderExtract};
 
 use crate::VisibilityContext;
 

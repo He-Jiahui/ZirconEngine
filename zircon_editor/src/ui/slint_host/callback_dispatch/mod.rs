@@ -37,12 +37,14 @@ pub(crate) use shared_pointer::{
     dispatch_shared_host_page_pointer_click, dispatch_shared_menu_pointer_click,
     dispatch_shared_viewport_toolbar_pointer_click, dispatch_shared_welcome_recent_pointer_click,
 };
+#[cfg(test)]
+pub(crate) use template_bridge::BuiltinWorkbenchDrawerSourceTemplateBridge;
 pub(crate) use template_bridge::{
     BuiltinAssetSurfaceTemplateBridge, BuiltinFloatingWindowSourceFrames,
     BuiltinFloatingWindowSourceTemplateBridge, BuiltinInspectorSurfaceTemplateBridge,
     BuiltinPaneSurfaceTemplateBridge, BuiltinViewportToolbarTemplateBridge,
-    BuiltinWelcomeSurfaceTemplateBridge, BuiltinWorkbenchDrawerSourceTemplateBridge,
-    BuiltinWorkbenchRootShellFrames, BuiltinWorkbenchTemplateBridge,
+    BuiltinWelcomeSurfaceTemplateBridge, BuiltinWorkbenchRootShellFrames,
+    BuiltinWorkbenchTemplateBridge,
 };
 #[cfg(test)]
 pub(crate) use viewport::{dispatch_builtin_viewport_toolbar_control, dispatch_viewport_command};

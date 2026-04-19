@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
+use zircon_framework::render::RenderFrameExtract;
 use zircon_render_graph::RenderGraphBuilder;
-use zircon_scene::RenderFrameExtract;
 
 use crate::extract::{FrameHistoryAccess, FrameHistoryBinding, FrameHistorySlot};
 use crate::pipeline::declarations::{

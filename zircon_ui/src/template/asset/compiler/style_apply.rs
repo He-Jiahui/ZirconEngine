@@ -2,7 +2,8 @@ use std::collections::BTreeMap;
 
 use toml::Value;
 
-use crate::{UiAssetError, UiSelector, UiStyleDeclarationBlock, UiTemplateNode};
+use crate::template::UiTemplateNode;
+use crate::template::{UiAssetError, UiSelector, UiStyleDeclarationBlock};
 
 use super::super::style::UiSelectorMatchNode;
 use super::ui_document_compiler::ResolvedStyleSheet;

@@ -1,0 +1,105 @@
+[asset]
+kind = "layout"
+id = "editor.binding_browser"
+version = 1
+display_name = "Binding Browser"
+
+[imports]
+widgets = [
+  "res://ui/editor/editor_widgets.ui.toml#EditorToolbar",
+  "res://ui/editor/editor_widgets.ui.toml#EditorToolbarButton",
+  "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard",
+]
+styles = ["res://ui/theme/editor_base.ui.toml"]
+
+[root]
+node = "binding_browser_root"
+
+[nodes.binding_browser_root]
+kind = "native"
+type = "VerticalBox"
+control_id = "BindingBrowserRoot"
+classes = ["editor-shell"]
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox", gap = 10.0 } }
+children = [
+  { child = "toolbar" },
+  { child = "content" },
+]
+
+[nodes.toolbar]
+kind = "reference"
+component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorToolbar"
+control_id = "BindingBrowserToolbar"
+children = [
+  { child = "add_binding_button", mount = "actions" },
+  { child = "preview_graph_button", mount = "actions" },
+]
+
+[nodes.add_binding_button]
+kind = "reference"
+component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorToolbarButton"
+control_id = "AddBinding"
+classes = ["toolbar-primary"]
+params = { label = "Add Binding", icon = "add-outline" }
+
+[nodes.preview_graph_button]
+kind = "reference"
+component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorToolbarButton"
+control_id = "PreviewGraph"
+params = { label = "Preview Graph", icon = "git-network-outline" }
+
+[nodes.content]
+kind = "native"
+type = "HorizontalBox"
+control_id = "BindingBrowserContent"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "HorizontalBox", gap = 10.0 } }
+children = [
+  { child = "binding_list_panel", slot = { layout = { width = { min = 240.0, preferred = 260.0, max = 320.0, stretch = "Fixed" } } } },
+  { child = "payload_panel" },
+  { child = "preview_graph_panel", slot = { layout = { width = { min = 280.0, preferred = 320.0, max = 360.0, stretch = "Fixed" } } } },
+]
+
+[nodes.binding_list_panel]
+kind = "reference"
+component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard"
+control_id = "BindingListPanel"
+params = { title = "Bindings" }
+children = [
+  { child = "binding_list_label", mount = "content" },
+]
+
+[nodes.binding_list_label]
+kind = "native"
+type = "Label"
+control_id = "BindingListLabel"
+props = { text = "Click, Change, Toggle bindings" }
+
+[nodes.payload_panel]
+kind = "reference"
+component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard"
+control_id = "BindingPayloadPanel"
+params = { title = "Payload Schema" }
+children = [
+  { child = "payload_label", mount = "content" },
+]
+
+[nodes.payload_label]
+kind = "native"
+type = "Label"
+control_id = "BindingPayloadLabel"
+props = { text = "Structured payload fields, defaults, preview values" }
+
+[nodes.preview_graph_panel]
+kind = "reference"
+component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard"
+control_id = "BindingPreviewGraphPanel"
+params = { title = "Preview Graph" }
+children = [
+  { child = "preview_graph_label", mount = "content" },
+]
+
+[nodes.preview_graph_label]
+kind = "native"
+type = "Label"
+control_id = "BindingPreviewGraphLabel"
+props = { text = "Cross-node interaction edges and expression previews" }

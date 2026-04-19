@@ -1,10 +1,13 @@
 ---
 related_code:
+  - zircon_scene/src/lib.rs
   - zircon_scene/src/components/mod.rs
-  - zircon_scene/src/components/viewport.rs
-  - zircon_scene/src/components/render_extract.rs
-  - zircon_scene/src/components/gizmo.rs
+  - zircon_framework/src/render/camera.rs
+  - zircon_framework/src/render/frame_extract.rs
+  - zircon_framework/src/render/overlay.rs
+  - zircon_framework/src/render/scene_extract.rs
   - zircon_scene/src/world/render.rs
+  - zircon_editor/src/scene/viewport/render_packet.rs
   - zircon_graphics/src/scene/mod.rs
   - zircon_graphics/src/scene/resources/mod.rs
   - zircon_graphics/src/scene/scene_renderer/mod.rs
@@ -22,6 +25,8 @@ related_code:
   - zircon_graphics/src/scene/scene_renderer/primitives/mod.rs
   - zircon_graphics/src/tests/project_render.rs
   - zircon_graphics/src/tests/scene_overlay.rs
+  - zircon_scene/tests/render_frame_extract.rs
+  - zircon_scene/tests/viewport_packet.rs
   - zircon_editor/build.rs
   - zircon_editor/src/builtin_assets.rs
   - zircon_editor/src/ui/binding/mod.rs
@@ -47,11 +52,14 @@ related_code:
   - zircon_editor/src/tests/host/binding_dispatch.rs
   - zircon_editor/src/tests/editing/viewport.rs
 implementation_files:
+  - zircon_scene/src/lib.rs
   - zircon_scene/src/components/mod.rs
-  - zircon_scene/src/components/viewport.rs
-  - zircon_scene/src/components/render_extract.rs
-  - zircon_scene/src/components/gizmo.rs
+  - zircon_framework/src/render/camera.rs
+  - zircon_framework/src/render/frame_extract.rs
+  - zircon_framework/src/render/overlay.rs
+  - zircon_framework/src/render/scene_extract.rs
   - zircon_scene/src/world/render.rs
+  - zircon_editor/src/scene/viewport/render_packet.rs
   - zircon_graphics/src/scene/mod.rs
   - zircon_graphics/src/scene/resources/mod.rs
   - zircon_graphics/src/scene/scene_renderer/mod.rs
@@ -68,6 +76,8 @@ implementation_files:
   - zircon_graphics/src/scene/scene_renderer/overlay/shaders/icon.wgsl
   - zircon_graphics/src/scene/scene_renderer/primitives/mod.rs
   - zircon_graphics/src/tests/scene_overlay.rs
+  - zircon_scene/tests/render_frame_extract.rs
+  - zircon_scene/tests/viewport_packet.rs
   - zircon_editor/build.rs
   - zircon_editor/src/builtin_assets.rs
   - zircon_editor/src/ui/binding/mod.rs
@@ -93,6 +103,7 @@ plan_sources:
   - user: 2026-04-15 Scene Viewport Gizmos/Handle/Overlay 规范化方案
   - user: 2026-04-15 Section 1-4 最终规格与 proposed_plan 收束
   - user: 2026-04-15 PLEASE IMPLEMENT THIS PLAN
+  - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
 tests:
   - zircon_scene/tests/viewport_packet.rs
   - zircon_graphics/src/tests/project_render.rs
@@ -115,6 +126,11 @@ tests:
   - cargo test -p zircon_editor --lib editing::state -- --nocapture
   - cargo test -p zircon_editor --lib scene_document_pane_projects_viewport_toolbar_state -- --nocapture
   - cargo test -p zircon_editor --lib typed_viewport_command_dispatch_updates_render_packet_without_pointer_bridge -- --nocapture
+  - cargo check -p zircon_editor --lib --locked --target-dir target/codex-shared-b
+  - cargo test -p zircon_editor --lib --no-run --locked --target-dir target/codex-shared-b
+  - cargo test -p zircon_editor --lib viewport --locked --target-dir target/codex-shared-b
+  - cargo test -p zircon_graphics --lib project_render --locked --target-dir target/codex-shared-b
+  - cargo check --workspace --locked --target-dir target/codex-shared-b
 doc_type: module-detail
 ---
 
@@ -124,8 +140,8 @@ doc_type: module-detail
 
 这组改动把 Scene 视图从“基础场景 + 零散 gizmo 特判”推进到分层 packet 模式：
 
-- `zircon_editor` 负责 viewport 状态、typed command、editor-owned camera/handle 交互。
-- `zircon_scene` 负责把场景世界抽成中立 render packet，包括 selection highlight、scene gizmo、grid、preview 环境。
+- `zircon_editor` 负责 viewport 状态、typed command、editor-owned camera/handle 交互，以及 selection/grid/gizmo/handle overlay 组装。
+- `zircon_scene` 负责把运行时世界抽成基础 scene/preview packet，不生成 editor-owned overlay。
 - `zircon_graphics` 只消费 packet，把 sky/base/outline/wireframe/grid/gizmo/handle 叠层渲染出来。
 
 目标不是补一个临时 Camera/Light 图标，而是固定 Scene 视图后续继续长功能时的边界。
@@ -133,10 +149,9 @@ doc_type: module-detail
 ## Related Files
 
 - `zircon_scene/src/components/mod.rs`
-- `zircon_scene/src/components/viewport.rs`
-- `zircon_scene/src/components/render_extract.rs`
-- `zircon_scene/src/components/gizmo.rs`
+- `zircon_framework/src/render/camera.rs`
 - `zircon_scene/src/world/render.rs`
+- `zircon_editor/src/scene/viewport/render_packet.rs`
 - `zircon_graphics/src/scene/resources/mod.rs`
 - `zircon_graphics/src/scene/scene_renderer/core/mod.rs`
 - `zircon_graphics/src/scene/scene_renderer/mesh/mod.rs`
@@ -175,6 +190,14 @@ doc_type: module-detail
 - preview lighting / skybox
 - gizmos enabled
 
+2026-04-19 的 boundary cutover 进一步固定了导入边界：`SceneViewportSettings`、`SceneViewportExtractRequest`、`SceneViewportTool`、`TransformSpace`、`ViewOrientation`、`GridMode` 这组 editor authoring / viewport request 类型现在统一从 `zircon_framework::render` 直接导入，`zircon_scene` 根 crate 不再替它们做转发 re-export。
+
+同日继续往 runtime/editor 边界再压一层之后，`SceneViewportExtractRequest` 也不再直接携带 selection。它现在只吃中性的 `ViewportRenderSettings + active_camera_override + camera + viewport_size`；`projection_mode / display_mode / preview_lighting / preview_skybox` 这四项通过 `ViewportRenderSettings` 从 editor state 投影出来，而 tool/grid/selection/gizmo 仍留在 editor authoring 状态里。
+
+同一轮继续推进到 graphics 侧之后，`DisplayMode`、`ProjectionMode`、`ViewportCameraSnapshot`、`RenderFrameExtract`、`RenderSceneSnapshot`、`ViewportIconId`、`OverlayBillboardIcon`、`OverlayLineSegment`、`OverlayWireShape`、`HandleElementExtract` 等剩余 render/overlay DTO 也已经全部由 `zircon_framework::render` 直接提供；`zircon_graphics` 生产代码里的 scene 语义入口也已切到 `zircon_framework::scene`，`zircon_scene` 在 graphics crate 内只剩 tests fixture 依赖。
+
+继续收尾到 `zircon_scene` 自身之后，`SceneGizmoKind`、`OverlayWireShape`、`RenderFrameExtract`、`RenderWorldSnapshotHandle` 这批 crate-local tests 先前还在通过 `zircon_scene` 根级入口取值的 render 类型也已经切到 `zircon_framework::render`；`zircon_scene/src/lib.rs` 不再保留这组 framework-owned render re-export。
+
 `ViewportCommand` 不再只有 pointer 输入；toolbar、右上角方向、显示切换、snap、preview、Gizmos 开关都走同一套 typed payload。
 
 ### Scene Packet Layout
@@ -185,24 +208,32 @@ doc_type: module-detail
 - `overlays`: selection highlight、selection anchor、grid、scene gizmo、handle、display mode
 - `preview`: lighting/skybox override 与 fallback sky 策略
 
-这些 packet 类型不再堆在单个 `zircon_scene/src/components.rs`；当前目录树固定为：
+这些 packet 类型不再堆在 `zircon_scene` 的历史组件文件里；当前目录树固定为：
 
-- `components/viewport.rs`: camera snapshot、viewport settings、extract request、aspect ratio helper
-- `components/render_extract.rs`: geometry/light/postprocess extract 与 `SceneViewportRenderPacket`
-- `components/gizmo.rs`: overlay payload、gizmo provider contract、registry
+- `framework/render/camera.rs`: camera snapshot、viewport settings、extract request、aspect ratio helper
+- `framework/render/scene_extract.rs`: geometry/light/preview extract 与 `SceneViewportRenderPacket`
+- `framework/render/overlay.rs`: overlay DTO 与 pick/icon/handle packet 契约
+- `zircon_editor/src/scene/viewport/render_packet.rs`: editor-owned selection/grid/gizmo/handle overlay 组装
 
-`World::build_viewport_render_packet(...)` 负责 scene 侧抽取：
+本轮之后，`World::build_viewport_render_packet(...)` 仍然消费 `SceneViewportExtractRequest`，但它只负责 runtime-owned 的基础 scene extract；scene/editor/graphics 的调用点也已经不再经由 `zircon_scene` 根级入口旁路这些契约类型。
 
-- renderable selection -> `SelectionHighlightExtract`
-- gizmos off + selected non-renderable -> `SelectionAnchorExtract`
-- camera / directional light -> provider-driven `SceneGizmoOverlayExtract`
-- grid / preview override -> packet 化，不留在 renderer 内部状态
+具体到 renderer 内部，`scene_renderer/overlay/**`、`primitives/**`、`post_process/**`、`visibility/**`、`runtime/render_framework/**` 与 `src/tests/**` 这一整条 graphics 消费链现在都只看 `zircon_framework::render` 的中性 packet/overlay DTO；这把 gizmo/icon/pick/camera/display mode ownership 彻底压回 framework layer，而不是继续藏在 `zircon_scene` 根 crate 的 re-export 里。
+
+`World::build_viewport_render_packet(...)` 现在只负责 scene 侧基础抽取：
+
+- runtime camera snapshot
+- mesh / light geometry extract
+- preview lighting / skybox packet
+- display mode 透传到 render overlay packet
+
+selection highlight / selection anchor / grid / scene gizmo / handle overlay 已经全部转到 `zircon_editor::scene::viewport::render_packet` 这一层基于 runtime world + editor state 再组装，不再由 runtime world 直接生成。
 
 ### Handle And Scene Gizmo Split
 
 Scene gizmo 和 handle 现在是物理分层：
 
-- scene gizmo: `zircon_scene::SceneGizmoRegistry`，首批 provider 为 `Camera` 和 `DirectionalLight`
+- scene gizmo DTO: `zircon_framework::render::SceneGizmoOverlayExtract`
+- scene gizmo 生成: `zircon_editor::scene::viewport::render_packet`
 - handle: `zircon_editor::editing::viewport::HandleToolRegistry`
 
 行为边界固定为：
@@ -393,9 +424,9 @@ viewport scene gizmo icon 现在有了独立的 builtin icon source 管线：
 `EditorState::render_snapshot()` 的职责现在是：
 
 1. 让 `SceneViewportController` 准备 viewport camera snapshot
-2. 以 `SceneViewportSettings + selection + camera override` 构造 `SceneViewportExtractRequest`
-3. 调用 `World::build_viewport_render_packet(...)`
-4. 由 `HandleToolRegistry` 填充 `packet.overlays.handles`
+2. 从 `SceneViewportSettings` 投影出 `ViewportRenderSettings`，连同 camera override / viewport size 构造 `SceneViewportExtractRequest`
+3. 调用 `World::build_viewport_render_packet(...)` 取得基础 scene packet
+4. 在 editor 层补齐 selection / grid / scene gizmo / handle overlay
 
 ### Slint Viewport Render Attachment
 
@@ -440,6 +471,10 @@ viewport scene gizmo icon 现在有了独立的 builtin icon source 管线：
   - renderable selection highlight
   - camera / directional light scene gizmo extraction
   - grid / preview / gizmo visibility packet mapping
+  - 当前已切成 runtime-owned 断言：`cargo test -p zircon_scene --test viewport_packet --locked --target-dir target/codex-shared-b` 通过，并固定 runtime world 不再生成 selection / grid / scene gizmo overlay，只保留基础 preview / display packet
+- `zircon_scene/tests/render_frame_extract.rs`
+  - 已改为直接从 `zircon_framework::render` 导入 `RenderFrameExtract` / `RenderWorldSnapshotHandle`
+  - `cargo test -p zircon_scene --test render_frame_extract --locked --target-dir target/codex-shared-b` 通过
 
 ### Graphics
 
@@ -447,6 +482,10 @@ viewport scene gizmo icon 现在有了独立的 builtin icon source 管线：
   - scene + gizmo overlay 出图
   - shader pipeline color 输出
   - `WireOnly` 抑制 shaded fill
+- `cargo check -p zircon_graphics --lib --locked --target-dir target/codex-shared-b`
+  - 当前 graphics import ownership cutover 编译通过
+- `cargo test -p zircon_graphics --lib project_render --locked --target-dir target/codex-shared-b`
+  - 当前 project render baseline 在直接消费 `zircon_framework::render` 后仍保持 7 个断言通过
 - `zircon_graphics/src/tests/scene_overlay.rs`
   - `ViewportOverlayRenderer` pass 顺序固定为规格要求的 7 段
 
@@ -469,6 +508,14 @@ viewport scene gizmo icon 现在有了独立的 builtin icon source 管线：
   - viewport gizmo builtin icon manifest 同时暴露 camera / directional light 两种 icon bytes
 - `zircon_editor/src/ui/slint_host/ui.rs`
   - Scene document pane 会投影 viewport toolbar/right-top 状态到 `PaneData.viewport`
+
+最新验证证据：
+
+- `cargo check -p zircon_editor --lib --locked --target-dir target/codex-shared-b`
+- `cargo test -p zircon_editor --lib --no-run --locked --target-dir target/codex-shared-b`
+- `cargo test -p zircon_editor --lib viewport --locked --target-dir target/codex-shared-b`
+- `cargo test -p zircon_graphics --lib project_render --locked --target-dir target/codex-shared-b`
+- `cargo check --workspace --locked --target-dir target/codex-shared-b`
 
 ## Plan Sources
 

@@ -71,6 +71,25 @@ pub enum FallbackSkyboxKind {
     ProceduralGradient,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ViewportRenderSettings {
+    pub projection_mode: ProjectionMode,
+    pub display_mode: DisplayMode,
+    pub preview_lighting: bool,
+    pub preview_skybox: bool,
+}
+
+impl Default for ViewportRenderSettings {
+    fn default() -> Self {
+        Self {
+            projection_mode: ProjectionMode::Perspective,
+            display_mode: DisplayMode::Shaded,
+            preview_lighting: true,
+            preview_skybox: true,
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SceneViewportSettings {
     pub tool: SceneViewportTool,
@@ -106,6 +125,28 @@ impl Default for SceneViewportSettings {
     }
 }
 
+impl From<SceneViewportSettings> for ViewportRenderSettings {
+    fn from(value: SceneViewportSettings) -> Self {
+        Self {
+            projection_mode: value.projection_mode,
+            display_mode: value.display_mode,
+            preview_lighting: value.preview_lighting,
+            preview_skybox: value.preview_skybox,
+        }
+    }
+}
+
+impl From<&SceneViewportSettings> for ViewportRenderSettings {
+    fn from(value: &SceneViewportSettings) -> Self {
+        Self {
+            projection_mode: value.projection_mode,
+            display_mode: value.display_mode,
+            preview_lighting: value.preview_lighting,
+            preview_skybox: value.preview_skybox,
+        }
+    }
+}
+
 impl Default for ViewportCameraSnapshot {
     fn default() -> Self {
         Self {
@@ -122,8 +163,7 @@ impl Default for ViewportCameraSnapshot {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct SceneViewportExtractRequest {
-    pub settings: SceneViewportSettings,
-    pub selection: Vec<EntityId>,
+    pub settings: ViewportRenderSettings,
     pub active_camera_override: Option<EntityId>,
     pub camera: Option<ViewportCameraSnapshot>,
     pub viewport_size: Option<UVec2>,

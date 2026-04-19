@@ -27,9 +27,7 @@ impl VirtualGeometryRuntimeState {
 
     pub(crate) fn apply_evictions(&mut self, page_ids: impl IntoIterator<Item = u32>) {
         for page_id in page_ids {
-            if let Some(slot) = self.resident_slots.remove(&page_id) {
-                self.free_slots.insert(slot);
-            }
+            self.evict_page(page_id);
         }
         self.evictable_pages
             .retain(|page_id| self.resident_slots.contains_key(page_id));

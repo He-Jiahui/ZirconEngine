@@ -1,0 +1,105 @@
+[asset]
+kind = "layout"
+id = "editor.theme_browser"
+version = 1
+display_name = "Theme Browser"
+
+[imports]
+widgets = [
+  "res://ui/editor/editor_widgets.ui.toml#EditorToolbar",
+  "res://ui/editor/editor_widgets.ui.toml#EditorToolbarButton",
+  "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard",
+]
+styles = ["res://ui/theme/editor_base.ui.toml"]
+
+[root]
+node = "theme_browser_root"
+
+[nodes.theme_browser_root]
+kind = "native"
+type = "VerticalBox"
+control_id = "ThemeBrowserRoot"
+classes = ["editor-shell"]
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox", gap = 10.0 } }
+children = [
+  { child = "toolbar" },
+  { child = "content" },
+]
+
+[nodes.toolbar]
+kind = "reference"
+component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorToolbar"
+control_id = "ThemeBrowserToolbar"
+children = [
+  { child = "new_theme_button", mount = "actions" },
+  { child = "detach_theme_button", mount = "actions" },
+]
+
+[nodes.new_theme_button]
+kind = "reference"
+component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorToolbarButton"
+control_id = "CreateTheme"
+classes = ["toolbar-primary"]
+params = { label = "New Theme", icon = "add-outline" }
+
+[nodes.detach_theme_button]
+kind = "reference"
+component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorToolbarButton"
+control_id = "DetachTheme"
+params = { label = "Detach Import", icon = "git-branch-outline" }
+
+[nodes.content]
+kind = "native"
+type = "HorizontalBox"
+control_id = "ThemeBrowserContent"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "HorizontalBox", gap = 10.0 } }
+children = [
+  { child = "theme_sources_panel", slot = { layout = { width = { min = 240.0, preferred = 260.0, max = 320.0, stretch = "Fixed" } } } },
+  { child = "compare_panel" },
+  { child = "merge_preview_panel", slot = { layout = { width = { min = 280.0, preferred = 320.0, max = 360.0, stretch = "Fixed" } } } },
+]
+
+[nodes.theme_sources_panel]
+kind = "reference"
+component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard"
+control_id = "ThemeSourcesPanel"
+params = { title = "Theme Sources" }
+children = [
+  { child = "theme_sources_label", mount = "content" },
+]
+
+[nodes.theme_sources_label]
+kind = "native"
+type = "Label"
+control_id = "ThemeSourcesLabel"
+props = { text = "Local Theme, editor_base.ui.toml, docking.ui.toml" }
+
+[nodes.compare_panel]
+kind = "reference"
+component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard"
+control_id = "ThemeComparePanel"
+params = { title = "Compare" }
+children = [
+  { child = "compare_label", mount = "content" },
+]
+
+[nodes.compare_label]
+kind = "native"
+type = "Label"
+control_id = "ThemeCompareLabel"
+props = { text = "Overrides, inherited tokens, rule diffs" }
+
+[nodes.merge_preview_panel]
+kind = "reference"
+component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard"
+control_id = "ThemeMergePreviewPanel"
+params = { title = "Merge Preview" }
+children = [
+  { child = "merge_preview_label", mount = "content" },
+]
+
+[nodes.merge_preview_label]
+kind = "native"
+type = "Label"
+control_id = "ThemeMergePreviewLabel"
+props = { text = "Detach / Clone imported themes into the local layer" }

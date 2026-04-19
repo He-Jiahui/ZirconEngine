@@ -1,4 +1,4 @@
-use zircon_scene::{RenderBakedLightingExtract, RenderFrameExtract};
+use zircon_framework::render::{RenderBakedLightingExtract, RenderFrameExtract};
 
 use super::super::super::super::super::scene_runtime_feature_flags::SceneRuntimeFeatureFlags;
 

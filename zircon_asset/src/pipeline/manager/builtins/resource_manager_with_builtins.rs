@@ -1,6 +1,7 @@
 use zircon_resource::ResourceManager;
+use zircon_resource::ResourceRecord;
 
-use crate::{AssetId, AssetKind, AssetMetadata};
+use crate::{AssetId, AssetKind};
 
 use super::super::resource_sync::register_project_resource;
 use super::builtin_resources;
@@ -20,7 +21,7 @@ pub(in crate::pipeline::manager) fn resource_manager_with_builtins() -> Resource
             crate::ImportedAsset::UiWidget(_) => AssetKind::UiWidget,
             crate::ImportedAsset::UiStyle(_) => AssetKind::UiStyle,
         };
-        let record = AssetMetadata::new(AssetId::from_locator(&locator), kind, locator);
+        let record = ResourceRecord::new(AssetId::from_locator(&locator), kind, locator);
         register_project_resource(&manager, record, asset);
     }
 

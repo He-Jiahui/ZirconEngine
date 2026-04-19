@@ -1,10 +1,10 @@
 use std::collections::{HashMap, HashSet};
 
-use zircon_math::{transform_to_mat4, Mat4, Transform};
+use zircon_math::{Mat4, Transform, transform_to_mat4};
 
 use super::World;
-use crate::components::{ActiveInHierarchy, NodeKind, NodeRecord, SceneNode, WorldMatrix};
 use crate::EntityId;
+use crate::components::{ActiveInHierarchy, NodeKind, NodeRecord, SceneNode, WorldMatrix};
 
 impl World {
     pub(super) fn ordinal_for(&self, kind: NodeKind) -> usize {

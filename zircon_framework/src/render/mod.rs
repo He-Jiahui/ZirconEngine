@@ -16,7 +16,7 @@ pub use camera::{
     aspect_ratio_from_viewport_size, default_viewport_aspect_ratio, DisplayMode,
     FallbackSkyboxKind, GridMode, ProjectionMode, SceneViewportExtractRequest,
     SceneViewportSettings, SceneViewportTool, TransformSpace, ViewOrientation,
-    ViewportCameraSnapshot,
+    ViewportCameraSnapshot, ViewportRenderSettings,
 };
 pub use frame_extract::{
     DebugOverlayExtract, GeometryExtract, LightingExtract, ParticleExtract, PostProcessExtract,

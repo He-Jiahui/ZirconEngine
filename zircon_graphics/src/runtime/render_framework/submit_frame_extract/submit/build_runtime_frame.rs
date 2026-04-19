@@ -1,4 +1,4 @@
-use zircon_scene::RenderFrameExtract;
+use zircon_framework::render::RenderFrameExtract;
 
 use crate::EditorOrRuntimeFrame;
 

@@ -1,4 +1,4 @@
-use zircon_ui::{UiPointerDispatcher, UiSurface, UiTreeId};
+use zircon_ui::{dispatch::UiPointerDispatcher, event_ui::UiTreeId, UiSurface};
 
 use super::scroll_surface_pointer_bridge::ScrollSurfacePointerBridge;
 use super::scroll_surface_pointer_layout::ScrollSurfacePointerLayout;

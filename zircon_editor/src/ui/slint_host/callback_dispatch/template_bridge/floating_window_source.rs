@@ -1,4 +1,5 @@
 use thiserror::Error;
+use zircon_ui::tree::UiTreeError;
 use zircon_ui::{UiFrame, UiSize, UiSurface};
 
 use crate::ui::slint_host::callback_dispatch::constants::BUILTIN_FLOATING_WINDOW_SOURCE_DOCUMENT_ID;
@@ -12,7 +13,7 @@ pub(crate) enum BuiltinFloatingWindowSourceTemplateBridgeError {
     #[error(transparent)]
     HostRuntime(#[from] EditorUiHostRuntimeError),
     #[error(transparent)]
-    Layout(#[from] zircon_ui::UiTreeError),
+    Layout(#[from] UiTreeError),
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]

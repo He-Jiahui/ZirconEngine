@@ -8,11 +8,16 @@ struct VirtualGeometryIndirectSegmentInput {
     lineage_depth: u32,
     lod_level: u32,
     frontier_rank: u32,
+    submission_index: u32,
+    entity_lo: u32,
+    entity_hi: u32,
 };
 
 struct VirtualGeometryIndirectDrawRefInput {
     mesh_index_count: u32,
     segment_index: u32,
+    segment_draw_ref_count: u32,
+    submission_token: u32,
 };
 
 struct IndexedIndirectArgs {
@@ -35,6 +40,10 @@ struct OutputBuffer {
     values: array<IndexedIndirectArgs>,
 };
 
+struct SubmissionDebugBuffer {
+    values: array<u32>,
+};
+
 @group(0) @binding(0)
 var<storage, read> segment_buffer: SegmentBuffer;
 
@@ -43,6 +52,9 @@ var<storage, read> draw_ref_buffer: DrawRefBuffer;
 
 @group(0) @binding(2)
 var<storage, read_write> output_buffer: OutputBuffer;
+
+@group(0) @binding(3)
+var<storage, read_write> submission_debug_buffer: SubmissionDebugBuffer;
 
 fn visible_triangle_count_for_state(segment_triangle_count: u32, state: u32) -> u32 {
     if (segment_triangle_count == 0u) {
@@ -146,6 +158,43 @@ fn pending_submission_slot_cluster_offset(
     return min(visible_triangle_count - 1u, submission_slot & 1u);
 }
 
+fn submission_index_cluster_offset(
+    visible_triangle_count: u32,
+    submission_index: u32,
+    cluster_total_count: u32,
+) -> u32 {
+    if (visible_triangle_count <= 1u || submission_index == 0u || cluster_total_count <= 2u) {
+        return 0u;
+    }
+
+    return min(
+        visible_triangle_count - 1u,
+        min(submission_index, cluster_total_count - 2u),
+    );
+}
+
+fn draw_ref_compaction_cluster_offset(
+    visible_triangle_count: u32,
+    draw_ref_rank: u32,
+    segment_draw_ref_count: u32,
+) -> u32 {
+    if (visible_triangle_count <= 1u) {
+        return 0u;
+    }
+
+    if (segment_draw_ref_count <= 1u) {
+        return 0u;
+    }
+    if (draw_ref_rank == 0u) {
+        return 0u;
+    }
+
+    return min(
+        visible_triangle_count - 1u,
+        min(draw_ref_rank, segment_draw_ref_count - 1u),
+    );
+}
+
 @compute @workgroup_size(64, 1, 1)
 fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     let index = global_id.x;
@@ -158,6 +207,7 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     let triangle_count = draw_ref.mesh_index_count / 3u;
     var first_index = 0u;
     var index_count = draw_ref.mesh_index_count;
+    let draw_ref_rank = draw_ref.submission_token & 0xffffu;
 
     if (triangle_count > 0u) {
         let segment_count = max(1u, min(segment.cluster_total_count, triangle_count));
@@ -219,12 +269,34 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
             segment.submission_slot,
             segment.state,
         );
+        let submission_index_offset = submission_index_cluster_offset(
+            submission_remaining_triangle_count - pending_submission_offset,
+            segment.submission_index,
+            segment.cluster_total_count,
+        );
+        let draw_ref_remaining_triangle_count =
+            submission_remaining_triangle_count
+                - pending_submission_offset
+                - submission_index_offset;
+        let draw_ref_compaction_offset = draw_ref_compaction_cluster_offset(
+            draw_ref_remaining_triangle_count,
+            draw_ref_rank,
+            draw_ref.segment_draw_ref_count,
+        );
         first_index =
-            (start_triangle + resident_trim + page_offset + lineage_offset + pending_submission_offset)
+            (
+                start_triangle
+                + resident_trim
+                + page_offset
+                + lineage_offset
+                + pending_submission_offset
+                + submission_index_offset
+                + draw_ref_compaction_offset
+            )
                 * 3u;
         index_count =
             visible_triangle_count_for_state(
-                submission_remaining_triangle_count - pending_submission_offset,
+                draw_ref_remaining_triangle_count - draw_ref_compaction_offset,
                 segment.state,
             ) * 3u;
     }
@@ -234,6 +306,7 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
         1u,
         first_index,
         0,
-        0u,
+        draw_ref.submission_token,
     );
+    submission_debug_buffer.values[index] = draw_ref.submission_token;
 }

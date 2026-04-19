@@ -11,6 +11,8 @@ pub(super) struct GpuPendingProbeInput {
     pub(super) position_y_q: u32,
     pub(super) position_z_q: u32,
     pub(super) radius_q: u32,
+    pub(super) runtime_hierarchy_irradiance_rgb: u32,
+    pub(super) runtime_hierarchy_irradiance_weight_q: u32,
     pub(super) lineage_trace_lighting_rgb: u32,
     pub(super) parent_probe_id: u32,
     pub(super) resident_ancestor_probe_id: u32,

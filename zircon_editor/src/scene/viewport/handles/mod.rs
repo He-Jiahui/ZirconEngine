@@ -1,7 +1,6 @@
 mod constants;
 mod handle_basis;
 mod handle_build_context;
-mod handle_commit;
 mod handle_drag_context;
 mod handle_drag_session;
 mod handle_drag_session_node_id;

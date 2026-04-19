@@ -3,11 +3,14 @@ use super::viewport_chrome::{blank_viewport_chrome, scene_viewport_chrome};
 use super::workbench_tabs::drawer_slot_key;
 use super::*;
 use crate::ui::slint_host::{
-    UiAssetEditorPaneData, UiAssetInspectorBindingData, UiAssetInspectorLayoutData,
+    UiAssetActionStateData, UiAssetCollectionPanelData, UiAssetEditorPaneData,
+    UiAssetInspectorBindingData, UiAssetInspectorLayoutData, UiAssetInspectorPanelData,
     UiAssetInspectorSemanticData, UiAssetInspectorSlotData, UiAssetInspectorWidgetData,
-    UiAssetMatchedStyleRuleData, UiAssetPaletteDragData, UiAssetPreviewMockData,
-    UiAssetSourceDetailData, UiAssetStringSelectionData, UiAssetStyleRuleData,
-    UiAssetStyleRuleDeclarationData, UiAssetStyleTokenData, UiAssetThemeSourceData,
+    UiAssetMatchedStyleRuleData, UiAssetPaletteDragData, UiAssetPaneHeaderData,
+    UiAssetPreviewCanvasData, UiAssetPreviewMockData, UiAssetPreviewPanelData,
+    UiAssetSourceDetailData, UiAssetSourcePanelData, UiAssetStringSelectionData,
+    UiAssetStylePanelData, UiAssetStyleRuleData, UiAssetStyleRuleDeclarationData,
+    UiAssetStyleStateData, UiAssetStyleTokenData, UiAssetThemeSourceData,
 };
 
 pub(super) fn side_pane(
@@ -171,7 +174,6 @@ pub(super) fn pane_from_tab(
         show_toolbar,
         viewport,
         ui_asset: ui_asset_pane_data(ui_asset_pane),
-
     }
 }
 
@@ -230,7 +232,8 @@ fn ui_asset_canvas_nodes(
     items: Vec<crate::UiAssetEditorPreviewCanvasNode>,
 ) -> slint::ModelRc<UiAssetCanvasNodeData> {
     model_rc(
-        items.into_iter()
+        items
+            .into_iter()
             .map(|item| UiAssetCanvasNodeData {
                 node_id: item.node_id.into(),
                 label: item.label.into(),
@@ -251,7 +254,8 @@ fn ui_asset_canvas_slot_targets(
     items: Vec<crate::UiAssetEditorPreviewCanvasSlotTarget>,
 ) -> slint::ModelRc<UiAssetCanvasSlotTargetData> {
     model_rc(
-        items.into_iter()
+        items
+            .into_iter()
             .map(|item| UiAssetCanvasSlotTargetData {
                 label: item.label.into(),
                 detail: item.detail.into(),
@@ -265,76 +269,106 @@ fn ui_asset_canvas_slot_targets(
     )
 }
 
-fn ui_asset_pane_data(ui_asset_pane: crate::UiAssetEditorPanePresentation) -> UiAssetEditorPaneData {
+fn ui_asset_pane_data(
+    ui_asset_pane: crate::UiAssetEditorPanePresentation,
+) -> UiAssetEditorPaneData {
     UiAssetEditorPaneData {
-        asset_id: ui_asset_pane.asset_id.into(),
-        mode: ui_asset_pane.mode.into(),
-        status: ui_asset_pane.last_error.into(),
-        selection: ui_asset_pane.selection_summary.into(),
-        source_text: ui_asset_pane.source_text.into(),
-        preview_preset: ui_asset_pane.preview_preset.into(),
-        preview_summary: ui_asset_pane.preview_summary.into(),
-        can_save: ui_asset_pane.can_save,
-        can_undo: ui_asset_pane.can_undo,
-        can_redo: ui_asset_pane.can_redo,
-        can_insert_child: ui_asset_pane.can_insert_child,
-        can_insert_after: ui_asset_pane.can_insert_after,
-        can_move_up: ui_asset_pane.can_move_up,
-        can_move_down: ui_asset_pane.can_move_down,
-        can_reparent_into_previous: ui_asset_pane.can_reparent_into_previous,
-        can_reparent_into_next: ui_asset_pane.can_reparent_into_next,
-        can_reparent_outdent: ui_asset_pane.can_reparent_outdent,
-        can_open_reference: ui_asset_pane.can_open_reference,
-        can_convert_to_reference: ui_asset_pane.can_convert_to_reference,
-        can_extract_component: ui_asset_pane.can_extract_component,
-        can_promote_to_external_widget: ui_asset_pane.can_promote_to_external_widget,
-        can_wrap_in_vertical_box: ui_asset_pane.can_wrap_in_vertical_box,
-        can_unwrap: ui_asset_pane.can_unwrap,
-        can_create_rule: ui_asset_pane.can_create_rule,
-        can_extract_rule: ui_asset_pane.can_extract_rule,
-        preview_available: ui_asset_pane.preview_available,
-        state_hover: ui_asset_pane.style_state_hover,
-        state_focus: ui_asset_pane.style_state_focus,
-        state_pressed: ui_asset_pane.style_state_pressed,
-        state_disabled: ui_asset_pane.style_state_disabled,
-        state_selected: ui_asset_pane.style_state_selected,
-        palette_collection: ui_asset_string_selection(
-            ui_asset_pane.palette_items,
-            ui_asset_pane.palette_selected_index,
-        ),
-        hierarchy_collection: ui_asset_string_selection(
-            ui_asset_pane.hierarchy_items,
-            ui_asset_pane.hierarchy_selected_index,
-        ),
-        preview_collection: ui_asset_string_selection(
-            ui_asset_pane.preview_items,
-            ui_asset_pane.preview_selected_index,
-        ),
-        source_detail: UiAssetSourceDetailData {
-            block_label: ui_asset_pane.source_selected_block_label.into(),
-            selected_line: ui_asset_pane.source_selected_line,
-            cursor_byte_offset: ui_asset_pane.source_cursor_byte_offset,
-            selected_excerpt: ui_asset_pane.source_selected_excerpt.into(),
-            roundtrip_status: ui_asset_pane.source_roundtrip_status.into(),
-            outline: ui_asset_string_selection(
-                ui_asset_pane.source_outline_items,
-                ui_asset_pane.source_outline_selected_index,
+        header: UiAssetPaneHeaderData {
+            asset_id: ui_asset_pane.asset_id.into(),
+            mode: ui_asset_pane.mode.into(),
+            status: ui_asset_pane.last_error.into(),
+            selection: ui_asset_pane.selection_summary.into(),
+        },
+        actions: UiAssetActionStateData {
+            can_save: ui_asset_pane.can_save,
+            can_undo: ui_asset_pane.can_undo,
+            can_redo: ui_asset_pane.can_redo,
+            can_insert_child: ui_asset_pane.can_insert_child,
+            can_insert_after: ui_asset_pane.can_insert_after,
+            can_move_up: ui_asset_pane.can_move_up,
+            can_move_down: ui_asset_pane.can_move_down,
+            can_reparent_into_previous: ui_asset_pane.can_reparent_into_previous,
+            can_reparent_into_next: ui_asset_pane.can_reparent_into_next,
+            can_reparent_outdent: ui_asset_pane.can_reparent_outdent,
+            can_open_reference: ui_asset_pane.can_open_reference,
+            can_convert_to_reference: ui_asset_pane.can_convert_to_reference,
+            can_extract_component: ui_asset_pane.can_extract_component,
+            can_promote_to_external_widget: ui_asset_pane.can_promote_to_external_widget,
+            can_wrap_in_vertical_box: ui_asset_pane.can_wrap_in_vertical_box,
+            can_unwrap: ui_asset_pane.can_unwrap,
+            can_create_rule: ui_asset_pane.can_create_rule,
+            can_extract_rule: ui_asset_pane.can_extract_rule,
+        },
+        collections: UiAssetCollectionPanelData {
+            palette: ui_asset_string_selection(
+                ui_asset_pane.palette_items,
+                ui_asset_pane.palette_selected_index,
+            ),
+            hierarchy: ui_asset_string_selection(
+                ui_asset_pane.hierarchy_items,
+                ui_asset_pane.hierarchy_selected_index,
+            ),
+            preview: ui_asset_string_selection(
+                ui_asset_pane.preview_items,
+                ui_asset_pane.preview_selected_index,
             ),
         },
-        preview_surface_width: ui_asset_pane.preview_surface_width,
-        preview_surface_height: ui_asset_pane.preview_surface_height,
-        preview_canvas_items: ui_asset_canvas_nodes(ui_asset_pane.preview_canvas_items),
-        preview_mock: UiAssetPreviewMockData {
-            collection: ui_asset_string_selection(
-                ui_asset_pane.preview_mock_items,
-                ui_asset_pane.preview_mock_selected_index,
-            ),
-            property: ui_asset_pane.preview_mock_property.into(),
-            kind: ui_asset_pane.preview_mock_kind.into(),
-            value: ui_asset_pane.preview_mock_value.into(),
-            state_graph_items: shared_string_list(ui_asset_pane.preview_state_graph_items),
-            can_edit: ui_asset_pane.preview_mock_can_edit,
-            can_clear: ui_asset_pane.preview_mock_can_clear,
+        source: UiAssetSourcePanelData {
+            text: ui_asset_pane.source_text.into(),
+            detail: UiAssetSourceDetailData {
+                block_label: ui_asset_pane.source_selected_block_label.into(),
+                selected_line: ui_asset_pane.source_selected_line,
+                cursor_byte_offset: ui_asset_pane.source_cursor_byte_offset,
+                selected_excerpt: ui_asset_pane.source_selected_excerpt.into(),
+                roundtrip_status: ui_asset_pane.source_roundtrip_status.into(),
+                outline: ui_asset_string_selection(
+                    ui_asset_pane.source_outline_items,
+                    ui_asset_pane.source_outline_selected_index,
+                ),
+            },
+        },
+        preview: UiAssetPreviewPanelData {
+            preset: ui_asset_pane.preview_preset.into(),
+            summary: ui_asset_pane.preview_summary.into(),
+            available: ui_asset_pane.preview_available,
+            canvas: UiAssetPreviewCanvasData {
+                width: ui_asset_pane.preview_surface_width,
+                height: ui_asset_pane.preview_surface_height,
+                items: ui_asset_canvas_nodes(ui_asset_pane.preview_canvas_items),
+            },
+            mock: UiAssetPreviewMockData {
+                subject_collection: ui_asset_string_selection(
+                    ui_asset_pane.preview_mock_subject_items,
+                    ui_asset_pane.preview_mock_subject_selected_index,
+                ),
+                subject_node_id: ui_asset_pane.preview_mock_subject_node_id.into(),
+                collection: ui_asset_string_selection(
+                    ui_asset_pane.preview_mock_items,
+                    ui_asset_pane.preview_mock_selected_index,
+                ),
+                property: ui_asset_pane.preview_mock_property.into(),
+                kind: ui_asset_pane.preview_mock_kind.into(),
+                value: ui_asset_pane.preview_mock_value.into(),
+                expression_result: ui_asset_pane.preview_mock_expression_result.into(),
+                nested_collection: ui_asset_string_selection(
+                    ui_asset_pane.preview_mock_nested_items,
+                    ui_asset_pane.preview_mock_nested_selected_index,
+                ),
+                nested_key: ui_asset_pane.preview_mock_nested_key.into(),
+                nested_kind: ui_asset_pane.preview_mock_nested_kind.into(),
+                nested_value: ui_asset_pane.preview_mock_nested_value.into(),
+                suggestion_collection: ui_asset_string_selection(
+                    ui_asset_pane.preview_mock_suggestion_items,
+                    -1,
+                ),
+                schema_items: shared_string_list(ui_asset_pane.preview_mock_schema_items),
+                state_graph_items: shared_string_list(ui_asset_pane.preview_state_graph_items),
+                can_edit: ui_asset_pane.preview_mock_can_edit,
+                can_clear: ui_asset_pane.preview_mock_can_clear,
+                nested_can_edit: ui_asset_pane.preview_mock_nested_can_edit,
+                nested_can_add: ui_asset_pane.preview_mock_nested_can_add,
+                nested_can_delete: ui_asset_pane.preview_mock_nested_can_delete,
+            },
         },
         palette_drag: UiAssetPaletteDragData {
             target_preview_index: ui_asset_pane.palette_drag_target_preview_index,
@@ -347,170 +381,201 @@ fn ui_asset_pane_data(ui_asset_pane: crate::UiAssetEditorPanePresentation) -> Ui
             candidate_selected_index: ui_asset_pane.palette_drag_candidate_selected_index,
             target_chooser_active: ui_asset_pane.palette_target_chooser_active,
         },
-        theme_source: UiAssetThemeSourceData {
-            collection: ui_asset_string_selection(
-                ui_asset_pane.theme_source_items,
-                ui_asset_pane.theme_source_selected_index,
-            ),
-            selected_source_reference: ui_asset_pane.theme_selected_source_reference.into(),
-            selected_source_kind: ui_asset_pane.theme_selected_source_kind.into(),
-            selected_source_token_count: ui_asset_pane.theme_selected_source_token_count,
-            selected_source_rule_count: ui_asset_pane.theme_selected_source_rule_count,
-            selected_source_available: ui_asset_pane.theme_selected_source_available,
-            can_promote_local: ui_asset_pane.theme_can_promote_local,
-            selected_source_token_items: shared_string_list(
-                ui_asset_pane.theme_selected_source_token_items,
-            ),
-            selected_source_rule_items: shared_string_list(
-                ui_asset_pane.theme_selected_source_rule_items,
-            ),
-            cascade_layer_items: shared_string_list(ui_asset_pane.theme_cascade_layer_items),
-            cascade_token_items: shared_string_list(ui_asset_pane.theme_cascade_token_items),
-            cascade_rule_items: shared_string_list(ui_asset_pane.theme_cascade_rule_items),
-            merge_preview_items: shared_string_list(ui_asset_pane.theme_merge_preview_items),
-            promote_asset_id: ui_asset_pane.theme_promote_asset_id.into(),
-            promote_document_id: ui_asset_pane.theme_promote_document_id.into(),
-            promote_display_name: ui_asset_pane.theme_promote_display_name.into(),
-            can_edit_promote_draft: ui_asset_pane.theme_can_edit_promote_draft,
-        },
-        style_class_items: shared_string_list(ui_asset_pane.style_class_items),
-        style_rule: UiAssetStyleRuleData {
-            items: shared_string_list(ui_asset_pane.style_rule_items),
-            selected_index: ui_asset_pane.style_rule_selected_index,
-            selected_selector: ui_asset_pane.style_selected_rule_selector.into(),
-            can_edit: ui_asset_pane.style_can_edit_rule,
-            can_delete: ui_asset_pane.style_can_delete_rule,
-        },
-        matched_style_rule: UiAssetMatchedStyleRuleData {
-            collection: ui_asset_string_selection(
-                ui_asset_pane.style_matched_rule_items,
-                ui_asset_pane.style_matched_rule_selected_index,
-            ),
-            selected_origin: ui_asset_pane.style_selected_matched_rule_origin.into(),
-            selected_selector: ui_asset_pane.style_selected_matched_rule_selector.into(),
-            selected_specificity: ui_asset_pane.style_selected_matched_rule_specificity,
-            selected_source_order: ui_asset_pane.style_selected_matched_rule_source_order,
-            selected_declaration_items: shared_string_list(
-                ui_asset_pane.style_selected_matched_rule_declaration_items,
-            ),
-        },
-        style_rule_declaration: UiAssetStyleRuleDeclarationData {
-            items: shared_string_list(ui_asset_pane.style_rule_declaration_items),
-            selected_index: ui_asset_pane.style_rule_declaration_selected_index,
-            selected_path: ui_asset_pane.style_selected_rule_declaration_path.into(),
-            selected_value: ui_asset_pane.style_selected_rule_declaration_value.into(),
-            can_edit: ui_asset_pane.style_can_edit_rule_declaration,
-            can_delete: ui_asset_pane.style_can_delete_rule_declaration,
-        },
-        style_token: UiAssetStyleTokenData {
-            items: shared_string_list(ui_asset_pane.style_token_items),
-            selected_index: ui_asset_pane.style_token_selected_index,
-            selected_name: ui_asset_pane.style_selected_token_name.into(),
-            selected_value: ui_asset_pane.style_selected_token_value.into(),
-            can_edit: ui_asset_pane.style_can_edit_token,
-            can_delete: ui_asset_pane.style_can_delete_token,
-        },
-        inspector_widget: UiAssetInspectorWidgetData {
-            selected_node_id: ui_asset_pane.inspector_selected_node_id.into(),
-            parent_node_id: ui_asset_pane.inspector_parent_node_id.into(),
-            mount: ui_asset_pane.inspector_mount.into(),
-            widget_kind: ui_asset_pane.inspector_widget_kind.into(),
-            widget_label: ui_asset_pane.inspector_widget_label.into(),
-            control_id: ui_asset_pane.inspector_control_id.into(),
-            text_prop: ui_asset_pane.inspector_text_prop.into(),
-            can_edit_control_id: ui_asset_pane.inspector_can_edit_control_id,
-            can_edit_text_prop: ui_asset_pane.inspector_can_edit_text_prop,
-            promote_asset_id: ui_asset_pane.inspector_promote_asset_id.into(),
-            promote_component_name: ui_asset_pane.inspector_promote_component_name.into(),
-            promote_document_id: ui_asset_pane.inspector_promote_document_id.into(),
-            can_edit_promote_draft: ui_asset_pane.inspector_can_edit_promote_draft,
-            items: shared_string_list(ui_asset_pane.inspector_items),
-        },
-        inspector_slot: UiAssetInspectorSlotData {
-            padding: ui_asset_pane.inspector_slot_padding.into(),
-            width_preferred: ui_asset_pane.inspector_slot_width_preferred.into(),
-            height_preferred: ui_asset_pane.inspector_slot_height_preferred.into(),
-            semantic: UiAssetInspectorSemanticData {
-                title: ui_asset_pane.inspector_slot_semantic_title.into(),
-                collection: ui_asset_string_selection(
-                    ui_asset_pane.inspector_slot_semantic_items,
-                    ui_asset_pane.inspector_slot_semantic_selected_index,
-                ),
-                path: ui_asset_pane.inspector_slot_semantic_path.into(),
-                value: ui_asset_pane.inspector_slot_semantic_value.into(),
+        style: UiAssetStylePanelData {
+            states: UiAssetStyleStateData {
+                hover: ui_asset_pane.style_state_hover,
+                focus: ui_asset_pane.style_state_focus,
+                pressed: ui_asset_pane.style_state_pressed,
+                disabled: ui_asset_pane.style_state_disabled,
+                selected: ui_asset_pane.style_state_selected,
             },
-            kind: ui_asset_pane.inspector_slot_kind.into(),
-            linear_main_weight: ui_asset_pane.inspector_slot_linear_main_weight.into(),
-            linear_main_stretch: ui_asset_pane.inspector_slot_linear_main_stretch.into(),
-            linear_cross_weight: ui_asset_pane.inspector_slot_linear_cross_weight.into(),
-            linear_cross_stretch: ui_asset_pane.inspector_slot_linear_cross_stretch.into(),
-            overlay_anchor_x: ui_asset_pane.inspector_slot_overlay_anchor_x.into(),
-            overlay_anchor_y: ui_asset_pane.inspector_slot_overlay_anchor_y.into(),
-            overlay_pivot_x: ui_asset_pane.inspector_slot_overlay_pivot_x.into(),
-            overlay_pivot_y: ui_asset_pane.inspector_slot_overlay_pivot_y.into(),
-            overlay_position_x: ui_asset_pane.inspector_slot_overlay_position_x.into(),
-            overlay_position_y: ui_asset_pane.inspector_slot_overlay_position_y.into(),
-            overlay_z_index: ui_asset_pane.inspector_slot_overlay_z_index.into(),
-            grid_row: ui_asset_pane.inspector_slot_grid_row.into(),
-            grid_column: ui_asset_pane.inspector_slot_grid_column.into(),
-            grid_row_span: ui_asset_pane.inspector_slot_grid_row_span.into(),
-            grid_column_span: ui_asset_pane.inspector_slot_grid_column_span.into(),
-            flow_break_before: ui_asset_pane.inspector_slot_flow_break_before.into(),
-            flow_alignment: ui_asset_pane.inspector_slot_flow_alignment.into(),
-        },
-        inspector_layout: UiAssetInspectorLayoutData {
-            width_preferred: ui_asset_pane.inspector_layout_width_preferred.into(),
-            height_preferred: ui_asset_pane.inspector_layout_height_preferred.into(),
-            semantic: UiAssetInspectorSemanticData {
-                title: ui_asset_pane.inspector_layout_semantic_title.into(),
+            class_items: shared_string_list(ui_asset_pane.style_class_items),
+            theme_source: UiAssetThemeSourceData {
                 collection: ui_asset_string_selection(
-                    ui_asset_pane.inspector_layout_semantic_items,
-                    ui_asset_pane.inspector_layout_semantic_selected_index,
+                    ui_asset_pane.theme_source_items,
+                    ui_asset_pane.theme_source_selected_index,
                 ),
-                path: ui_asset_pane.inspector_layout_semantic_path.into(),
-                value: ui_asset_pane.inspector_layout_semantic_value.into(),
+                selected_source_reference: ui_asset_pane.theme_selected_source_reference.into(),
+                selected_source_kind: ui_asset_pane.theme_selected_source_kind.into(),
+                selected_source_token_count: ui_asset_pane.theme_selected_source_token_count,
+                selected_source_rule_count: ui_asset_pane.theme_selected_source_rule_count,
+                selected_source_available: ui_asset_pane.theme_selected_source_available,
+                can_promote_local: ui_asset_pane.theme_can_promote_local,
+                selected_source_token_items: shared_string_list(
+                    ui_asset_pane.theme_selected_source_token_items,
+                ),
+                selected_source_rule_items: shared_string_list(
+                    ui_asset_pane.theme_selected_source_rule_items,
+                ),
+                cascade_layer_items: shared_string_list(ui_asset_pane.theme_cascade_layer_items),
+                cascade_token_items: shared_string_list(ui_asset_pane.theme_cascade_token_items),
+                cascade_rule_items: shared_string_list(ui_asset_pane.theme_cascade_rule_items),
+                compare_items: shared_string_list(ui_asset_pane.theme_compare_items),
+                merge_preview_items: shared_string_list(ui_asset_pane.theme_merge_preview_items),
+                rule_helper_items: shared_string_list(ui_asset_pane.theme_rule_helper_items),
+                refactor_items: shared_string_list(ui_asset_pane.theme_refactor_items),
+                promote_asset_id: ui_asset_pane.theme_promote_asset_id.into(),
+                promote_document_id: ui_asset_pane.theme_promote_document_id.into(),
+                promote_display_name: ui_asset_pane.theme_promote_display_name.into(),
+                can_edit_promote_draft: ui_asset_pane.theme_can_edit_promote_draft,
+                can_prune_duplicate_local_overrides: ui_asset_pane
+                    .theme_can_prune_duplicate_local_overrides,
             },
-            kind: ui_asset_pane.inspector_layout_kind.into(),
-            box_gap: ui_asset_pane.inspector_layout_box_gap.into(),
-            scroll_axis: ui_asset_pane.inspector_layout_scroll_axis.into(),
-            scroll_gap: ui_asset_pane.inspector_layout_scroll_gap.into(),
-            scrollbar_visibility: ui_asset_pane.inspector_layout_scrollbar_visibility.into(),
-            virtualization_item_extent: ui_asset_pane
-                .inspector_layout_virtualization_item_extent
-                .into(),
-            virtualization_overscan: ui_asset_pane
-                .inspector_layout_virtualization_overscan
-                .into(),
-            clip: ui_asset_pane.inspector_layout_clip.into(),
+            rule: UiAssetStyleRuleData {
+                items: shared_string_list(ui_asset_pane.style_rule_items),
+                selected_index: ui_asset_pane.style_rule_selected_index,
+                selected_selector: ui_asset_pane.style_selected_rule_selector.into(),
+                can_edit: ui_asset_pane.style_can_edit_rule,
+                can_delete: ui_asset_pane.style_can_delete_rule,
+            },
+            matched_rule: UiAssetMatchedStyleRuleData {
+                collection: ui_asset_string_selection(
+                    ui_asset_pane.style_matched_rule_items,
+                    ui_asset_pane.style_matched_rule_selected_index,
+                ),
+                selected_origin: ui_asset_pane.style_selected_matched_rule_origin.into(),
+                selected_selector: ui_asset_pane.style_selected_matched_rule_selector.into(),
+                selected_specificity: ui_asset_pane.style_selected_matched_rule_specificity,
+                selected_source_order: ui_asset_pane.style_selected_matched_rule_source_order,
+                selected_declaration_items: shared_string_list(
+                    ui_asset_pane.style_selected_matched_rule_declaration_items,
+                ),
+            },
+            rule_declaration: UiAssetStyleRuleDeclarationData {
+                items: shared_string_list(ui_asset_pane.style_rule_declaration_items),
+                selected_index: ui_asset_pane.style_rule_declaration_selected_index,
+                selected_path: ui_asset_pane.style_selected_rule_declaration_path.into(),
+                selected_value: ui_asset_pane.style_selected_rule_declaration_value.into(),
+                can_edit: ui_asset_pane.style_can_edit_rule_declaration,
+                can_delete: ui_asset_pane.style_can_delete_rule_declaration,
+            },
+            token: UiAssetStyleTokenData {
+                items: shared_string_list(ui_asset_pane.style_token_items),
+                selected_index: ui_asset_pane.style_token_selected_index,
+                selected_name: ui_asset_pane.style_selected_token_name.into(),
+                selected_value: ui_asset_pane.style_selected_token_value.into(),
+                can_edit: ui_asset_pane.style_can_edit_token,
+                can_delete: ui_asset_pane.style_can_delete_token,
+            },
+            can_create_rule: ui_asset_pane.can_create_rule,
+            can_extract_rule: ui_asset_pane.can_extract_rule,
+            stylesheet_items: shared_string_list(ui_asset_pane.stylesheet_items),
         },
-        inspector_binding: UiAssetInspectorBindingData {
-            collection: ui_asset_string_selection(
-                ui_asset_pane.inspector_binding_items,
-                ui_asset_pane.inspector_binding_selected_index,
-            ),
-            binding_id: ui_asset_pane.inspector_binding_id.into(),
-            binding_event: ui_asset_pane.inspector_binding_event.into(),
-            event_collection: ui_asset_string_selection(
-                ui_asset_pane.inspector_binding_event_items,
-                ui_asset_pane.inspector_binding_event_selected_index,
-            ),
-            binding_route: ui_asset_pane.inspector_binding_route.into(),
-            binding_route_target: ui_asset_pane.inspector_binding_route_target.into(),
-            binding_action_target: ui_asset_pane.inspector_binding_action_target.into(),
-            action_kind_collection: ui_asset_string_selection(
-                ui_asset_pane.inspector_binding_action_kind_items,
-                ui_asset_pane.inspector_binding_action_kind_selected_index,
-            ),
-            payload_collection: ui_asset_string_selection(
-                ui_asset_pane.inspector_binding_payload_items,
-                ui_asset_pane.inspector_binding_payload_selected_index,
-            ),
-            payload_key: ui_asset_pane.inspector_binding_payload_key.into(),
-            payload_value: ui_asset_pane.inspector_binding_payload_value.into(),
-            can_edit: ui_asset_pane.inspector_can_edit_binding,
-            can_delete: ui_asset_pane.inspector_can_delete_binding,
+        inspector: UiAssetInspectorPanelData {
+            widget: UiAssetInspectorWidgetData {
+                selected_node_id: ui_asset_pane.inspector_selected_node_id.into(),
+                parent_node_id: ui_asset_pane.inspector_parent_node_id.into(),
+                mount: ui_asset_pane.inspector_mount.into(),
+                widget_kind: ui_asset_pane.inspector_widget_kind.into(),
+                widget_label: ui_asset_pane.inspector_widget_label.into(),
+                control_id: ui_asset_pane.inspector_control_id.into(),
+                text_prop: ui_asset_pane.inspector_text_prop.into(),
+                can_edit_control_id: ui_asset_pane.inspector_can_edit_control_id,
+                can_edit_text_prop: ui_asset_pane.inspector_can_edit_text_prop,
+                promote_asset_id: ui_asset_pane.inspector_promote_asset_id.into(),
+                promote_component_name: ui_asset_pane.inspector_promote_component_name.into(),
+                promote_document_id: ui_asset_pane.inspector_promote_document_id.into(),
+                can_edit_promote_draft: ui_asset_pane.inspector_can_edit_promote_draft,
+                items: shared_string_list(ui_asset_pane.inspector_items),
+            },
+            slot: UiAssetInspectorSlotData {
+                padding: ui_asset_pane.inspector_slot_padding.into(),
+                width_preferred: ui_asset_pane.inspector_slot_width_preferred.into(),
+                height_preferred: ui_asset_pane.inspector_slot_height_preferred.into(),
+                semantic: UiAssetInspectorSemanticData {
+                    title: ui_asset_pane.inspector_slot_semantic_title.into(),
+                    collection: ui_asset_string_selection(
+                        ui_asset_pane.inspector_slot_semantic_items,
+                        ui_asset_pane.inspector_slot_semantic_selected_index,
+                    ),
+                    path: ui_asset_pane.inspector_slot_semantic_path.into(),
+                    value: ui_asset_pane.inspector_slot_semantic_value.into(),
+                },
+                kind: ui_asset_pane.inspector_slot_kind.into(),
+                linear_main_weight: ui_asset_pane.inspector_slot_linear_main_weight.into(),
+                linear_main_stretch: ui_asset_pane.inspector_slot_linear_main_stretch.into(),
+                linear_cross_weight: ui_asset_pane.inspector_slot_linear_cross_weight.into(),
+                linear_cross_stretch: ui_asset_pane.inspector_slot_linear_cross_stretch.into(),
+                overlay_anchor_x: ui_asset_pane.inspector_slot_overlay_anchor_x.into(),
+                overlay_anchor_y: ui_asset_pane.inspector_slot_overlay_anchor_y.into(),
+                overlay_pivot_x: ui_asset_pane.inspector_slot_overlay_pivot_x.into(),
+                overlay_pivot_y: ui_asset_pane.inspector_slot_overlay_pivot_y.into(),
+                overlay_position_x: ui_asset_pane.inspector_slot_overlay_position_x.into(),
+                overlay_position_y: ui_asset_pane.inspector_slot_overlay_position_y.into(),
+                overlay_z_index: ui_asset_pane.inspector_slot_overlay_z_index.into(),
+                grid_row: ui_asset_pane.inspector_slot_grid_row.into(),
+                grid_column: ui_asset_pane.inspector_slot_grid_column.into(),
+                grid_row_span: ui_asset_pane.inspector_slot_grid_row_span.into(),
+                grid_column_span: ui_asset_pane.inspector_slot_grid_column_span.into(),
+                flow_break_before: ui_asset_pane.inspector_slot_flow_break_before.into(),
+                flow_alignment: ui_asset_pane.inspector_slot_flow_alignment.into(),
+            },
+            layout: UiAssetInspectorLayoutData {
+                width_preferred: ui_asset_pane.inspector_layout_width_preferred.into(),
+                height_preferred: ui_asset_pane.inspector_layout_height_preferred.into(),
+                semantic: UiAssetInspectorSemanticData {
+                    title: ui_asset_pane.inspector_layout_semantic_title.into(),
+                    collection: ui_asset_string_selection(
+                        ui_asset_pane.inspector_layout_semantic_items,
+                        ui_asset_pane.inspector_layout_semantic_selected_index,
+                    ),
+                    path: ui_asset_pane.inspector_layout_semantic_path.into(),
+                    value: ui_asset_pane.inspector_layout_semantic_value.into(),
+                },
+                kind: ui_asset_pane.inspector_layout_kind.into(),
+                box_gap: ui_asset_pane.inspector_layout_box_gap.into(),
+                scroll_axis: ui_asset_pane.inspector_layout_scroll_axis.into(),
+                scroll_gap: ui_asset_pane.inspector_layout_scroll_gap.into(),
+                scrollbar_visibility: ui_asset_pane.inspector_layout_scrollbar_visibility.into(),
+                virtualization_item_extent: ui_asset_pane
+                    .inspector_layout_virtualization_item_extent
+                    .into(),
+                virtualization_overscan: ui_asset_pane
+                    .inspector_layout_virtualization_overscan
+                    .into(),
+                clip: ui_asset_pane.inspector_layout_clip.into(),
+            },
+            binding: UiAssetInspectorBindingData {
+                collection: ui_asset_string_selection(
+                    ui_asset_pane.inspector_binding_items,
+                    ui_asset_pane.inspector_binding_selected_index,
+                ),
+                binding_id: ui_asset_pane.inspector_binding_id.into(),
+                binding_event: ui_asset_pane.inspector_binding_event.into(),
+                event_collection: ui_asset_string_selection(
+                    ui_asset_pane.inspector_binding_event_items,
+                    ui_asset_pane.inspector_binding_event_selected_index,
+                ),
+                binding_route: ui_asset_pane.inspector_binding_route.into(),
+                binding_route_target: ui_asset_pane.inspector_binding_route_target.into(),
+                binding_action_target: ui_asset_pane.inspector_binding_action_target.into(),
+                route_suggestion_collection: ui_asset_string_selection(
+                    ui_asset_pane.inspector_binding_route_suggestion_items,
+                    -1,
+                ),
+                action_suggestion_collection: ui_asset_string_selection(
+                    ui_asset_pane.inspector_binding_action_suggestion_items,
+                    -1,
+                ),
+                action_kind_collection: ui_asset_string_selection(
+                    ui_asset_pane.inspector_binding_action_kind_items,
+                    ui_asset_pane.inspector_binding_action_kind_selected_index,
+                ),
+                payload_collection: ui_asset_string_selection(
+                    ui_asset_pane.inspector_binding_payload_items,
+                    ui_asset_pane.inspector_binding_payload_selected_index,
+                ),
+                payload_suggestion_collection: ui_asset_string_selection(
+                    ui_asset_pane.inspector_binding_payload_suggestion_items,
+                    -1,
+                ),
+                payload_key: ui_asset_pane.inspector_binding_payload_key.into(),
+                payload_value: ui_asset_pane.inspector_binding_payload_value.into(),
+                schema_items: shared_string_list(ui_asset_pane.inspector_binding_schema_items),
+                can_edit: ui_asset_pane.inspector_can_edit_binding,
+                can_delete: ui_asset_pane.inspector_can_delete_binding,
+            },
         },
-        stylesheet_items: shared_string_list(ui_asset_pane.stylesheet_items),
     }
 }
 
@@ -534,7 +599,6 @@ pub(super) fn blank_pane() -> PaneData {
         show_toolbar: false,
         viewport: blank_viewport_chrome(),
         ui_asset: ui_asset_pane_data(crate::UiAssetEditorPanePresentation::default()),
-
     }
 }
 
@@ -674,4 +738,3 @@ fn find_in_workspace<'a>(
             .find(|tab| tab.instance_id.0.as_str() == instance_id),
     }
 }
-

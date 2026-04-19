@@ -1,3 +1,4 @@
+use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
 use crate::ui::slint_host::callback_dispatch::{
     dispatch_shared_hierarchy_pointer_click, dispatch_shared_welcome_recent_pointer_click,
     BuiltinWelcomeSurfaceTemplateBridge,
@@ -9,7 +10,6 @@ use crate::ui::slint_host::welcome_recent_pointer::{
     WelcomeRecentPointerAction, WelcomeRecentPointerBridge, WelcomeRecentPointerLayout,
     WelcomeRecentPointerRoute, WelcomeRecentPointerState,
 };
-use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
 use crate::{EditorEvent, SelectionHostEvent, WelcomeHostEvent};
 use zircon_ui::{UiPoint, UiSize};
 
@@ -205,6 +205,10 @@ fn shared_list_surfaces_do_not_expose_legacy_direct_callback_routes() {
 #[test]
 fn welcome_surface_controls_use_generic_template_callbacks_instead_of_legacy_business_abi() {
     let workbench = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/ui/workbench.slint"));
+    let pane_surface = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/ui/workbench/pane_surface.slint"
+    ));
     let welcome = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/ui/workbench/welcome.slint"
@@ -265,8 +269,8 @@ fn welcome_surface_controls_use_generic_template_callbacks_instead_of_legacy_bus
         "control_clicked(control_id) => { root.welcome_control_clicked(control_id); }",
     ] {
         assert!(
-            workbench.contains(needle),
-            "workbench shell is missing generic welcome control route `{needle}`"
+            pane_surface.contains(needle),
+            "pane surface catalog is missing generic welcome control route `{needle}`"
         );
     }
 
@@ -285,8 +289,8 @@ fn welcome_surface_controls_use_generic_template_callbacks_instead_of_legacy_bus
     }
 
     for needle in [
-        "ui.on_welcome_control_changed(",
-        "ui.on_welcome_control_clicked(",
+        "pane_surface_host.on_welcome_control_changed(",
+        "pane_surface_host.on_welcome_control_clicked(",
     ] {
         assert!(
             wiring.contains(needle),
@@ -337,18 +341,18 @@ fn pane_surface_actions_use_generic_template_callbacks_instead_of_legacy_menu_ac
     }
 
     for needle in [
-        "callback pane_surface_control_clicked(control_id: string, action_id: string);",
-        "surface_control_clicked(control_id, action_id) => { root.pane_surface_control_clicked(control_id, action_id); }",
+        "export { PaneSurfaceHostContext } from \"workbench/pane_surface.slint\";",
+        "PaneSurfaceHostContext.surface_control_clicked(\"TriggerAction\", action_id);",
+        "PaneSurfaceHostContext.surface_control_clicked(control_id, action_id);",
     ] {
         assert!(
-            workbench.contains(needle),
+            workbench.contains(needle) || pane_surface.contains(needle),
             "workbench shell is missing generic pane-surface control route `{needle}`"
         );
     }
 
     for needle in [
-        "callback surface_control_clicked(control_id: string, action_id: string);",
-        "trigger_action(action_id) => { root.surface_control_clicked(\"TriggerAction\", action_id); }",
+        "trigger_action(action_id) => { PaneSurfaceHostContext.surface_control_clicked(\"TriggerAction\", action_id); }",
         "clicked => { root.surface_control_clicked(\"TriggerAction\", \"OpenView.editor.assets\"); }",
     ] {
         let found =
@@ -360,8 +364,12 @@ fn pane_surface_actions_use_generic_template_callbacks_instead_of_legacy_menu_ac
     }
 
     assert!(
-        wiring.contains("ui.on_pane_surface_control_clicked("),
-        "slint host wiring is missing generic pane-surface control callback"
+        wiring.contains("let pane_surface_host = ui.global::<PaneSurfaceHostContext>();"),
+        "slint host wiring must access the exported PaneSurfaceHostContext global"
+    );
+    assert!(
+        wiring.contains("pane_surface_host.on_surface_control_clicked("),
+        "slint host wiring is missing generic pane-surface control global callback"
     );
 }
 

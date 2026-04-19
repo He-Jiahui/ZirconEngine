@@ -1,7 +1,8 @@
 use crate::ui::EditorUiBinding;
 use zircon_ui::{
-    UiControlRequest, UiControlResponse, UiEventBinding, UiInvocationError, UiInvocationResult,
-    UiNodePath, UiRouteId,
+    binding::UiEventBinding, event_ui::UiControlRequest, event_ui::UiControlResponse,
+    event_ui::UiInvocationError, event_ui::UiInvocationResult, event_ui::UiNodePath,
+    event_ui::UiRouteId,
 };
 
 use crate::core::editor_event::EditorEventSource;
@@ -52,7 +53,7 @@ impl EditorEventRuntime {
     fn invoke_route(
         &self,
         route_id: UiRouteId,
-        arguments: Vec<zircon_ui::UiBindingValue>,
+        arguments: Vec<zircon_ui::binding::UiBindingValue>,
     ) -> UiInvocationResult {
         let binding = {
             let inner = self.inner.lock().unwrap();
@@ -98,7 +99,7 @@ impl EditorEventRuntime {
         &self,
         node_path: UiNodePath,
         action_id: String,
-        arguments: Vec<zircon_ui::UiBindingValue>,
+        arguments: Vec<zircon_ui::binding::UiBindingValue>,
     ) -> UiInvocationResult {
         let route_id = {
             let inner = self.inner.lock().unwrap();

@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet};
 
-use zircon_scene::RenderVirtualGeometryCluster;
+use zircon_framework::render::RenderVirtualGeometryCluster;
 
 #[derive(Clone, Copy, Debug)]
 struct PagePriority {

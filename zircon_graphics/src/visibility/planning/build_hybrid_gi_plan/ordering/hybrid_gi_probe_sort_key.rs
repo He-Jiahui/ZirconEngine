@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-use zircon_scene::RenderHybridGiProbe;
+use zircon_framework::render::RenderHybridGiProbe;
 
 pub(in crate::visibility::planning::build_hybrid_gi_plan) fn hybrid_gi_probe_sort_key(
     left: &RenderHybridGiProbe,

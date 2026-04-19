@@ -9,12 +9,12 @@ related_code:
   - zircon_editor/src/scene/viewport/interaction/viewport_feedback.rs
   - zircon_editor/src/scene/viewport/interaction/viewport_state.rs
   - zircon_editor/src/core/editor_event/runtime/accessors.rs
-  - zircon_entry/src/entry/runtime_entry_app.rs
-  - zircon_entry/src/entry/runtime_entry_app/application_handler.rs
-  - zircon_entry/src/entry/runtime_entry_app/construct.rs
-  - zircon_entry/src/entry/runtime_entry_app/camera_controller/mod.rs
-  - zircon_entry/src/entry/runtime_entry_app/camera_controller/accessors.rs
-  - zircon_entry/src/entry/runtime_entry_app/camera_controller/tests.rs
+  - zircon_app/src/entry/runtime_entry_app.rs
+  - zircon_app/src/entry/runtime_entry_app/application_handler.rs
+  - zircon_app/src/entry/runtime_entry_app/construct.rs
+  - zircon_app/src/entry/runtime_entry_app/camera_controller/mod.rs
+  - zircon_app/src/entry/runtime_entry_app/camera_controller/accessors.rs
+  - zircon_app/src/entry/runtime_entry_app/camera_controller/tests.rs
   - zircon_graphics/src/lib.rs
   - zircon_graphics/src/types/editor_or_runtime_frame.rs
   - zircon_graphics/src/types/editor_or_runtime_frame_from_extract.rs
@@ -28,16 +28,16 @@ implementation_files:
   - zircon_editor/src/scene/viewport/interaction/viewport_input.rs
   - zircon_editor/src/scene/viewport/interaction/viewport_feedback.rs
   - zircon_editor/src/scene/viewport/interaction/viewport_state.rs
-  - zircon_entry/src/entry/runtime_entry_app.rs
-  - zircon_entry/src/entry/runtime_entry_app/application_handler.rs
-  - zircon_entry/src/entry/runtime_entry_app/construct.rs
-  - zircon_entry/src/entry/runtime_entry_app/camera_controller/mod.rs
-  - zircon_entry/src/entry/runtime_entry_app/camera_controller/accessors.rs
-  - zircon_entry/src/entry/runtime_entry_app/camera_controller/new.rs
-  - zircon_entry/src/entry/runtime_entry_app/camera_controller/resize.rs
-  - zircon_entry/src/entry/runtime_entry_app/camera_controller/orbit.rs
-  - zircon_entry/src/entry/runtime_entry_app/camera_controller/pan.rs
-  - zircon_entry/src/entry/runtime_entry_app/camera_controller/zoom.rs
+  - zircon_app/src/entry/runtime_entry_app.rs
+  - zircon_app/src/entry/runtime_entry_app/application_handler.rs
+  - zircon_app/src/entry/runtime_entry_app/construct.rs
+  - zircon_app/src/entry/runtime_entry_app/camera_controller/mod.rs
+  - zircon_app/src/entry/runtime_entry_app/camera_controller/accessors.rs
+  - zircon_app/src/entry/runtime_entry_app/camera_controller/new.rs
+  - zircon_app/src/entry/runtime_entry_app/camera_controller/resize.rs
+  - zircon_app/src/entry/runtime_entry_app/camera_controller/orbit.rs
+  - zircon_app/src/entry/runtime_entry_app/camera_controller/pan.rs
+  - zircon_app/src/entry/runtime_entry_app/camera_controller/zoom.rs
   - zircon_graphics/src/lib.rs
   - zircon_graphics/src/types/editor_or_runtime_frame.rs
   - zircon_graphics/src/types/editor_or_runtime_frame_from_extract.rs
@@ -48,8 +48,8 @@ plan_sources:
   - user: 2026-04-17 PLEASE IMPLEMENT THIS PLAN
 tests:
   - zircon_editor/src/tests/host/render_server_boundary.rs
-  - zircon_entry/src/entry/tests.rs
-  - zircon_entry/src/entry/runtime_entry_app/camera_controller/tests.rs
+  - zircon_app/src/entry/tests.rs
+  - zircon_app/src/entry/runtime_entry_app/camera_controller/tests.rs
   - zircon_graphics/src/tests/project_render.rs
   - zircon_graphics/src/tests/hybrid_gi_gpu.rs
   - zircon_graphics/src/tests/hybrid_gi_resolve_render.rs
@@ -85,7 +85,7 @@ doc_type: module-detail
 
 ## Runtime Preview
 
-- `zircon_entry` 不再复用 editor viewport controller，而是在 `entry/runtime_entry_app/camera_controller/` 下持有 crate-private `RuntimeCameraController`。
+- `zircon_app` 不再复用 editor viewport controller，而是在 `entry/runtime_entry_app/camera_controller/` 下持有 crate-private `RuntimeCameraController`。
 - runtime 控制器只实现 `resize / orbit / pan / zoom / orbit target sync`，不再依赖 `GizmoAxis` 或任何对象编辑语义。
 - runtime 左键拖拽现在是显式 no-op；选中节点的 transform 不会再被 runtime preview 隐式修改。
 - 为适配当前 `winit 0.31.0-beta.2` / `softbuffer` 接口，runtime 窗口与 presenter 也同步切到了 `dyn Window` + `SurfaceResized` / `PointerMoved` / `PointerButton` 事件模型。

@@ -1,5 +1,5 @@
+use zircon_framework::render::{HandleElementExtract, ViewportCameraSnapshot};
 use zircon_math::UVec2;
-use zircon_scene::{HandleElementExtract, ViewportCameraSnapshot};
 
 use crate::scene::viewport::pointer::constants::{HANDLE_PICK_THRESHOLD_PX, HANDLE_PRIORITY};
 use crate::scene::viewport::pointer::precision::{PrecisionCandidate, PrecisionShape};

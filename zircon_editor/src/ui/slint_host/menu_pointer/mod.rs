@@ -27,5 +27,6 @@ pub(crate) use build_workbench_menu_pointer_layout::build_workbench_menu_pointer
 pub(crate) use workbench_menu_pointer_bridge::WorkbenchMenuPointerBridge;
 pub(crate) use workbench_menu_pointer_dispatch::WorkbenchMenuPointerDispatch;
 pub(crate) use workbench_menu_pointer_layout::WorkbenchMenuPointerLayout;
+#[cfg(test)]
 pub(crate) use workbench_menu_pointer_route::WorkbenchMenuPointerRoute;
 pub(crate) use workbench_menu_pointer_state::WorkbenchMenuPointerState;

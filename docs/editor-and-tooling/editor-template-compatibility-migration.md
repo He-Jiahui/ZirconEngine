@@ -473,7 +473,7 @@ adapter 当前只做一件事：把 shared `UiBindingRef` 解析为 typed `Edito
 
 - `build_shared_surface(document_id)`
 
-它会直接把模板文档实例化之后交给 `zircon_ui::UiTemplateSurfaceBuilder`，产出带模板元数据的 shared `UiSurface`。因此 editor runtime 现在已经不是只会“模板 -> host projection”，而是已经具备：
+它会直接把模板文档实例化之后交给 `zircon_ui::template::UiTemplateSurfaceBuilder`，产出带模板元数据的 shared `UiSurface`。因此 editor runtime 现在已经不是只会“模板 -> host projection”，而是已经具备：
 
 - 模板 -> shared surface
 - 模板 -> host-neutral projection
@@ -794,7 +794,7 @@ Slint 上传 strip-local pointer 事实与必要的几何输入
 - [`binding_dispatch/mod.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/binding_dispatch/mod.rs) 通过 `asset/` 子模块集中解析 `surface/view_mode/utility_tab`
 - [`callback_dispatch/mod.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/callback_dispatch/mod.rs) 新增 `BuiltinAssetSurfaceTemplateBridge`
 - [`app/assets.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/app/assets.rs) 现在只保留 `control_id -> UiEventKind + template arguments` 的翻译，而不再保留 `update_asset_search(...)` / `open_asset_browser()` 这类业务 helper
-- [`app/callback_wiring.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/app/callback_wiring.rs) 的 asset 宿主注册现在只剩 `ui.on_asset_control_changed(...)` 和 `ui.on_asset_control_clicked(...)`
+- [`app/callback_wiring.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/app/callback_wiring.rs) 的 asset 宿主注册现在只剩 `pane_surface_host.on_asset_control_changed(...)` 和 `pane_surface_host.on_asset_control_clicked(...)`，asset generic callback 不再回挂 root `UiHostWindow`
 
 因此现在真实宿主链路已经从：
 

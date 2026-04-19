@@ -1,7 +1,7 @@
-use zircon_scene::{
+use zircon_framework::render::{
     DisplayMode, GridMode, ProjectionMode, SceneViewportTool, TransformSpace, ViewOrientation,
 };
-use zircon_ui::{UiBindingCall, UiBindingValue};
+use zircon_ui::{binding::UiBindingCall, binding::UiBindingValue};
 
 use super::ViewportCommand;
 use crate::ui::binding::core::{

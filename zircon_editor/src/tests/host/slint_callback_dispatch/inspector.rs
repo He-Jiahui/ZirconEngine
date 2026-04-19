@@ -53,9 +53,9 @@ fn builtin_inspector_surface_name_field_matches_direct_binding_dispatch() {
         "NameField",
         UiEventKind::Change,
         vec![
-            zircon_ui::UiBindingValue::string("entity://selected"),
-            zircon_ui::UiBindingValue::string("name"),
-            zircon_ui::UiBindingValue::string("Draft Cube"),
+            zircon_ui::binding::UiBindingValue::string("entity://selected"),
+            zircon_ui::binding::UiBindingValue::string("name"),
+            zircon_ui::binding::UiBindingValue::string("Draft Cube"),
         ],
     )
     .expect("templated inspector name control should resolve")
@@ -114,10 +114,13 @@ fn builtin_inspector_surface_apply_batch_matches_direct_batch_dispatch() {
     let _guard = env_lock().lock().unwrap();
 
     let batch = vec![
-        InspectorFieldChange::new("name", zircon_ui::UiBindingValue::string("Batch Cube")),
+        InspectorFieldChange::new(
+            "name",
+            zircon_ui::binding::UiBindingValue::string("Batch Cube"),
+        ),
         InspectorFieldChange::new(
             "transform.translation.x",
-            zircon_ui::UiBindingValue::string("4.0"),
+            zircon_ui::binding::UiBindingValue::string("4.0"),
         ),
     ];
 
@@ -146,15 +149,15 @@ fn builtin_inspector_surface_apply_batch_matches_direct_batch_dispatch() {
         "ApplyBatchButton",
         UiEventKind::Click,
         vec![
-            zircon_ui::UiBindingValue::string("entity://selected"),
-            zircon_ui::UiBindingValue::array(vec![
-                zircon_ui::UiBindingValue::array(vec![
-                    zircon_ui::UiBindingValue::string("name"),
-                    zircon_ui::UiBindingValue::string("Batch Cube"),
+            zircon_ui::binding::UiBindingValue::string("entity://selected"),
+            zircon_ui::binding::UiBindingValue::array(vec![
+                zircon_ui::binding::UiBindingValue::array(vec![
+                    zircon_ui::binding::UiBindingValue::string("name"),
+                    zircon_ui::binding::UiBindingValue::string("Batch Cube"),
                 ]),
-                zircon_ui::UiBindingValue::array(vec![
-                    zircon_ui::UiBindingValue::string("transform.translation.x"),
-                    zircon_ui::UiBindingValue::string("4.0"),
+                zircon_ui::binding::UiBindingValue::array(vec![
+                    zircon_ui::binding::UiBindingValue::string("transform.translation.x"),
+                    zircon_ui::binding::UiBindingValue::string("4.0"),
                 ]),
             ]),
         ],

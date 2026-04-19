@@ -5,13 +5,15 @@ use std::rc::Rc;
 use std::sync::{Mutex, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use crate::ui::slint_host::{PaneSurfaceHostContext, WorkbenchHostContext};
 use slint::{ComponentHandle, PhysicalSize};
 use zircon_core::CoreRuntime;
-use zircon_foundation::{
+use zircon_framework::render::{DisplayMode, ViewOrientation};
+use zircon_math::UVec2;
+use zircon_runtime::foundation::{
     module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
 };
-use zircon_math::UVec2;
-use zircon_scene::{DefaultLevelManager, DisplayMode, ViewOrientation};
+use zircon_runtime::scene::DefaultLevelManager;
 mod floating_window_projection;
 
 use super::*;
@@ -29,6 +31,14 @@ struct ChildWindowHostHarness {
     root_ui: UiHostWindow,
 }
 
+fn pane_surface_host(ui: &UiHostWindow) -> PaneSurfaceHostContext<'_> {
+    ui.global::<PaneSurfaceHostContext>()
+}
+
+fn host_context(ui: &UiHostWindow) -> WorkbenchHostContext<'_> {
+    ui.global::<WorkbenchHostContext>()
+}
+
 impl ChildWindowHostHarness {
     fn new(prefix: &str) -> Self {
         i_slint_backend_testing::init_no_event_loop();
@@ -38,11 +48,11 @@ impl ChildWindowHostHarness {
         let core = CoreRuntime::new();
         core.register_module(foundation_module_descriptor())
             .unwrap();
-        core.register_module(zircon_asset::module_descriptor())
+        core.register_module(zircon_runtime::asset::module_descriptor())
             .unwrap();
         core.register_module(module::module_descriptor()).unwrap();
         core.activate_module(FOUNDATION_MODULE_NAME).unwrap();
-        core.activate_module(zircon_asset::ASSET_MODULE_NAME)
+        core.activate_module(zircon_runtime::asset::ASSET_MODULE_NAME)
             .unwrap();
         core.activate_module(module::EDITOR_MODULE_NAME).unwrap();
         std::env::remove_var("ZIRCON_EDITOR_CONFIG_PATH");
@@ -234,7 +244,7 @@ fn child_window_viewport_pointer_event_focuses_source_window_before_runtime_disp
     let child = harness.detach_view_to_child_window("editor.scene#1", "window:scene");
     let baseline = harness.journal_len();
 
-    child.invoke_viewport_pointer_event(0, 1, 24.0, 32.0, 0.0);
+    pane_surface_host(&child).invoke_viewport_pointer_event(0, 1, 24.0, 32.0, 0.0);
 
     assert_eq!(
         harness.delta_events_since(baseline),
@@ -262,7 +272,8 @@ fn child_window_asset_control_focuses_source_window_before_runtime_dispatch() {
     let child = harness.detach_view_to_child_window("editor.assets#1", "window:assets");
     let baseline = harness.journal_len();
 
-    child.invoke_asset_control_clicked("activity".into(), "OpenAssetBrowser".into());
+    pane_surface_host(&child)
+        .invoke_asset_control_clicked("activity".into(), "OpenAssetBrowser".into());
 
     assert_eq!(
         harness.delta_events_since(baseline),
@@ -290,7 +301,8 @@ fn child_window_inspector_control_focuses_source_window_before_runtime_dispatch(
     let child = harness.detach_view_to_child_window("editor.inspector#1", "window:inspector");
     let baseline = harness.journal_len();
 
-    child.invoke_inspector_control_changed("NameField".into(), "Draft Cube".into());
+    pane_surface_host(&child)
+        .invoke_inspector_control_changed("NameField".into(), "Draft Cube".into());
 
     assert_eq!(
         harness.delta_events_since(baseline),
@@ -357,7 +369,7 @@ fn child_window_asset_tree_scroll_focuses_source_window_before_shared_scroll_dis
     assert_child_window_focus_tracks_asset_scroll(
         "zircon_slint_child_window_asset_tree_scroll",
         |child| {
-            child.invoke_asset_tree_pointer_scrolled(
+            pane_surface_host(child).invoke_asset_tree_pointer_scrolled(
                 "activity".into(),
                 32.0,
                 84.0,
@@ -376,7 +388,7 @@ fn child_window_asset_content_scroll_focuses_source_window_before_shared_scroll_
     assert_child_window_focus_tracks_asset_scroll(
         "zircon_slint_child_window_asset_content_scroll",
         |child| {
-            child.invoke_asset_content_pointer_scrolled(
+            pane_surface_host(child).invoke_asset_content_pointer_scrolled(
                 "activity".into(),
                 72.0,
                 120.0,
@@ -395,7 +407,7 @@ fn child_window_asset_reference_scroll_focuses_source_window_before_shared_scrol
     assert_child_window_focus_tracks_asset_scroll(
         "zircon_slint_child_window_asset_reference_scroll",
         |child| {
-            child.invoke_asset_reference_pointer_scrolled(
+            pane_surface_host(child).invoke_asset_reference_pointer_scrolled(
                 "activity".into(),
                 "references".into(),
                 72.0,
@@ -415,8 +427,8 @@ fn root_menu_pointer_click_dispatches_shared_menu_action_in_real_host() {
     let harness = ChildWindowHostHarness::new("zircon_slint_root_menu_dispatch");
     let baseline = harness.journal_len();
 
-    harness.root_ui.invoke_menu_pointer_clicked(20.0, 12.0);
-    harness.root_ui.invoke_menu_pointer_clicked(60.0, 126.0);
+    host_context(&harness.root_ui).invoke_menu_pointer_clicked(20.0, 12.0);
+    host_context(&harness.root_ui).invoke_menu_pointer_clicked(60.0, 126.0);
 
     let host = harness.host.borrow();
     assert_eq!(host.menu_pointer_state.open_menu_index, None);
@@ -454,9 +466,7 @@ fn root_menu_popup_scroll_and_dismiss_flow_through_shared_pointer_bridge_in_real
     };
 
     let baseline = harness.journal_len();
-    harness
-        .root_ui
-        .invoke_menu_pointer_clicked(click_x, click_y);
+    host_context(&harness.root_ui).invoke_menu_pointer_clicked(click_x, click_y);
 
     let (popup_scroll_x, popup_scroll_y, dismiss_x, dismiss_y) = {
         let host = harness.host.borrow();
@@ -480,9 +490,11 @@ fn root_menu_popup_scroll_and_dismiss_flow_through_shared_pointer_bridge_in_real
         )
     };
 
-    harness
-        .root_ui
-        .invoke_menu_pointer_scrolled(popup_scroll_x, popup_scroll_y, 96.0);
+    host_context(&harness.root_ui).invoke_menu_pointer_scrolled(
+        popup_scroll_x,
+        popup_scroll_y,
+        96.0,
+    );
 
     {
         let host = harness.host.borrow();
@@ -490,9 +502,7 @@ fn root_menu_popup_scroll_and_dismiss_flow_through_shared_pointer_bridge_in_real
         assert!(host.menu_pointer_state.popup_scroll_offset > 0.0);
     }
 
-    harness
-        .root_ui
-        .invoke_menu_pointer_clicked(dismiss_x, dismiss_y);
+    host_context(&harness.root_ui).invoke_menu_pointer_clicked(dismiss_x, dismiss_y);
 
     let host = harness.host.borrow();
     assert_eq!(host.menu_pointer_state.open_menu_index, None);
@@ -507,7 +517,7 @@ fn root_viewport_toolbar_pointer_click_uses_projection_fallback_in_real_host() {
     let harness = ChildWindowHostHarness::new("zircon_slint_root_viewport_toolbar_projection");
     let baseline = harness.journal_len();
 
-    harness.root_ui.invoke_viewport_toolbar_pointer_clicked(
+    pane_surface_host(&harness.root_ui).invoke_viewport_toolbar_pointer_clicked(
         "editor.scene#1".into(),
         "display.cycle".into(),
         0.0,
@@ -573,7 +583,7 @@ fn root_viewport_toolbar_pointer_click_prefers_shared_projection_surface_width_o
     };
     let baseline = harness.journal_len();
 
-    harness.root_ui.invoke_viewport_toolbar_pointer_clicked(
+    pane_surface_host(&harness.root_ui).invoke_viewport_toolbar_pointer_clicked(
         "editor.scene#1".into(),
         "align.neg_z".into(),
         0.0,
@@ -696,7 +706,7 @@ fn root_document_tab_pointer_click_prefers_shared_projection_surface_width_over_
     };
     let baseline = harness.journal_len();
 
-    harness.root_ui.invoke_document_tab_pointer_clicked(
+    host_context(&harness.root_ui).invoke_document_tab_pointer_clicked(
         "main".into(),
         tab_index,
         tab_x,
@@ -738,8 +748,7 @@ fn root_host_page_pointer_click_prefers_shared_projection_shell_width_over_metri
     };
     let baseline = harness.journal_len();
 
-    harness
-        .root_ui
+    host_context(&harness.root_ui)
         .invoke_host_page_pointer_clicked(0, tab_x, tab_width, point_x, point_y);
 
     assert_eq!(
@@ -791,9 +800,11 @@ fn root_activity_rail_pointer_click_prefers_shared_projection_surface_when_left_
     };
     let baseline = harness.journal_len();
 
-    harness
-        .root_ui
-        .invoke_activity_rail_pointer_clicked("left".into(), point_x, point_y);
+    host_context(&harness.root_ui).invoke_activity_rail_pointer_clicked(
+        "left".into(),
+        point_x,
+        point_y,
+    );
 
     assert_eq!(
         harness.delta_events_since(baseline),
@@ -852,7 +863,7 @@ fn root_host_viewport_size_matches_presented_viewport_content_frame_when_drawers
     let _guard = lock_env();
 
     let harness = ChildWindowHostHarness::new("zircon_slint_root_viewport_size_alignment");
-    let viewport_frame = harness.root_ui.get_viewport_content_frame();
+    let viewport_frame = harness.root_ui.get_host_layout().viewport_content_frame;
     let host = harness.host.borrow();
 
     assert_eq!(
@@ -965,6 +976,7 @@ fn root_welcome_recent_pointer_click_uses_projection_fallback_in_real_host() {
 
     harness
         .root_ui
+        .global::<PaneSurfaceHostContext>()
         .invoke_welcome_recent_pointer_clicked(160.0, 204.0, 0.0, 0.0);
 
     let host = harness.host.borrow();
@@ -995,6 +1007,7 @@ fn root_welcome_recent_pointer_move_prefers_cached_size_over_projection_fallback
 
     harness
         .root_ui
+        .global::<PaneSurfaceHostContext>()
         .invoke_welcome_recent_pointer_moved(160.0, 204.0, 0.0, 0.0);
 
     let host = harness.host.borrow();
@@ -1014,6 +1027,7 @@ fn root_welcome_recent_pointer_scroll_prefers_cached_size_over_projection_fallba
 
     harness
         .root_ui
+        .global::<PaneSurfaceHostContext>()
         .invoke_welcome_recent_pointer_scrolled(160.0, 204.0, 24.0, 0.0, 0.0);
 
     let host = harness.host.borrow();
@@ -1030,6 +1044,7 @@ fn root_hierarchy_pointer_move_uses_region_frame_fallback_in_real_host() {
 
     harness
         .root_ui
+        .global::<PaneSurfaceHostContext>()
         .invoke_hierarchy_pointer_moved(80.0, 40.0, 0.0, 0.0);
 
     let host = harness.host.borrow();
@@ -1072,6 +1087,7 @@ fn root_hierarchy_pointer_move_prefers_shared_drawer_content_projection_over_sta
 
     harness
         .root_ui
+        .global::<PaneSurfaceHostContext>()
         .invoke_hierarchy_pointer_moved(80.0, 40.0, 0.0, 0.0);
 
     let host = harness.host.borrow();
@@ -1091,6 +1107,7 @@ fn root_console_pointer_scroll_uses_region_frame_fallback_in_real_host() {
 
     harness
         .root_ui
+        .global::<PaneSurfaceHostContext>()
         .invoke_console_pointer_scrolled(24.0, 24.0, 48.0, 0.0, 0.0);
 
     let host = harness.host.borrow();
@@ -1132,6 +1149,7 @@ fn root_console_pointer_scroll_prefers_shared_drawer_content_projection_over_sta
 
     harness
         .root_ui
+        .global::<PaneSurfaceHostContext>()
         .invoke_console_pointer_scrolled(24.0, 24.0, 48.0, 0.0, 0.0);
 
     let host = harness.host.borrow();
@@ -1151,6 +1169,7 @@ fn root_inspector_pointer_scroll_uses_region_frame_fallback_in_real_host() {
 
     harness
         .root_ui
+        .global::<PaneSurfaceHostContext>()
         .invoke_inspector_pointer_scrolled(24.0, 24.0, 48.0, 0.0, 0.0);
 
     let host = harness.host.borrow();
@@ -1167,6 +1186,7 @@ fn root_asset_browser_details_scroll_uses_region_frame_fallback_in_real_host() {
 
     harness
         .root_ui
+        .global::<PaneSurfaceHostContext>()
         .invoke_browser_asset_details_pointer_scrolled(24.0, 24.0, 48.0, 0.0, 0.0);
 
     let host = harness.host.borrow();
@@ -1184,6 +1204,7 @@ fn root_activity_asset_tree_move_uses_region_frame_fallback_in_real_host() {
 
     harness
         .root_ui
+        .global::<PaneSurfaceHostContext>()
         .invoke_asset_tree_pointer_moved("activity".into(), 48.0, 72.0, 0.0, 0.0);
 
     let host = harness.host.borrow();
@@ -1200,6 +1221,7 @@ fn root_browser_asset_tree_move_uses_region_frame_fallback_in_real_host() {
 
     harness
         .root_ui
+        .global::<PaneSurfaceHostContext>()
         .invoke_asset_tree_pointer_moved("browser".into(), 48.0, 72.0, 0.0, 0.0);
 
     let host = harness.host.borrow();
@@ -1218,6 +1240,7 @@ fn root_activity_asset_content_move_uses_region_frame_fallback_in_real_host() {
 
     harness
         .root_ui
+        .global::<PaneSurfaceHostContext>()
         .invoke_asset_content_pointer_moved("activity".into(), 96.0, 96.0, 0.0, 0.0);
 
     let host = harness.host.borrow();
@@ -1234,6 +1257,7 @@ fn root_browser_asset_content_move_uses_region_frame_fallback_in_real_host() {
 
     harness
         .root_ui
+        .global::<PaneSurfaceHostContext>()
         .invoke_asset_content_pointer_moved("browser".into(), 96.0, 96.0, 0.0, 0.0);
 
     let host = harness.host.borrow();
@@ -1250,7 +1274,7 @@ fn root_activity_asset_reference_move_uses_region_frame_fallback_in_real_host() 
     harness.activate_workbench_page();
     harness.activate_drawer_tab(ActivityDrawerSlot::LeftTop, "editor.assets#1");
 
-    harness.root_ui.invoke_asset_reference_pointer_moved(
+    pane_surface_host(&harness.root_ui).invoke_asset_reference_pointer_moved(
         "activity".into(),
         "references".into(),
         96.0,
@@ -1272,7 +1296,7 @@ fn root_browser_asset_reference_move_uses_region_frame_fallback_in_real_host() {
         ChildWindowHostHarness::new("zircon_slint_root_browser_asset_reference_projection");
     let _asset_browser = harness.open_view("editor.asset_browser");
 
-    harness.root_ui.invoke_asset_reference_pointer_moved(
+    pane_surface_host(&harness.root_ui).invoke_asset_reference_pointer_moved(
         "browser".into(),
         "references".into(),
         96.0,
@@ -1294,7 +1318,14 @@ fn child_window_document_tab_pointer_event_dispatches_focus_view_and_tracks_wind
     let child = harness.detach_view_to_child_window("editor.assets#1", "window:assets");
     let baseline = harness.journal_len();
 
-    child.invoke_document_tab_pointer_clicked("window:assets".into(), 0, 8.0, 120.0, 40.0, 16.0);
+    host_context(&child).invoke_document_tab_pointer_clicked(
+        "window:assets".into(),
+        0,
+        8.0,
+        120.0,
+        40.0,
+        16.0,
+    );
 
     assert_eq!(
         harness.delta_events_since(baseline),
@@ -1320,7 +1351,7 @@ fn child_window_document_tab_close_pointer_event_dispatches_close_view_and_keeps
     let child = harness.detach_view_to_child_window(asset_browser.0.as_str(), "window:browser");
     let baseline = harness.journal_len();
 
-    child.invoke_document_tab_close_pointer_clicked(
+    host_context(&child).invoke_document_tab_close_pointer_clicked(
         "window:browser".into(),
         0,
         8.0,
@@ -1346,10 +1377,10 @@ fn child_window_header_pointer_event_dispatches_focus_view_and_tracks_window_foc
 
     let harness = ChildWindowHostHarness::new("zircon_slint_child_window_header_dispatch");
     let child = harness.detach_view_to_child_window("editor.scene#1", "window:scene");
-    let bounds = child.get_native_window_bounds();
+    let bounds = child.get_host_shell().native_window_bounds;
     let baseline = harness.journal_len();
 
-    child.invoke_floating_window_header_pointer_clicked(
+    host_context(&child).invoke_floating_window_header_pointer_clicked(
         bounds.x + bounds.width - 40.0,
         bounds.y + 20.0,
     );

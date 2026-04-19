@@ -67,6 +67,25 @@ impl EditorManager {
         Ok(changed)
     }
 
+    pub fn select_ui_asset_editor_preview_mock_subject(
+        &self,
+        instance_id: &ViewInstanceId,
+        index: usize,
+    ) -> Result<bool, EditorError> {
+        self.ensure_ui_asset_editor_session(instance_id)?;
+        let mut sessions = self.ui_asset_sessions.lock().unwrap();
+        let entry = sessions.get_mut(instance_id).ok_or_else(|| {
+            EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
+        })?;
+        let changed = entry
+            .session
+            .select_preview_mock_subject(index)
+            .map_err(|error| EditorError::UiAsset(error.to_string()))?;
+        drop(sessions);
+        self.sync_ui_asset_editor_instance(instance_id)?;
+        Ok(changed)
+    }
+
     pub fn set_ui_asset_editor_selected_preview_mock_value(
         &self,
         instance_id: &ViewInstanceId,
@@ -80,6 +99,101 @@ impl EditorManager {
         let changed = entry
             .session
             .set_selected_preview_mock_value(value.as_ref())
+            .map_err(|error| EditorError::UiAsset(error.to_string()))?;
+        drop(sessions);
+        self.sync_ui_asset_editor_instance(instance_id)?;
+        Ok(changed)
+    }
+
+    pub fn select_ui_asset_editor_preview_mock_nested_entry(
+        &self,
+        instance_id: &ViewInstanceId,
+        index: usize,
+    ) -> Result<bool, EditorError> {
+        self.ensure_ui_asset_editor_session(instance_id)?;
+        let mut sessions = self.ui_asset_sessions.lock().unwrap();
+        let entry = sessions.get_mut(instance_id).ok_or_else(|| {
+            EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
+        })?;
+        let changed = entry
+            .session
+            .select_preview_mock_nested_entry(index)
+            .map_err(|error| EditorError::UiAsset(error.to_string()))?;
+        drop(sessions);
+        self.sync_ui_asset_editor_instance(instance_id)?;
+        Ok(changed)
+    }
+
+    pub fn set_ui_asset_editor_selected_preview_mock_nested_value(
+        &self,
+        instance_id: &ViewInstanceId,
+        value: impl AsRef<str>,
+    ) -> Result<bool, EditorError> {
+        self.ensure_ui_asset_editor_session(instance_id)?;
+        let mut sessions = self.ui_asset_sessions.lock().unwrap();
+        let entry = sessions.get_mut(instance_id).ok_or_else(|| {
+            EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
+        })?;
+        let changed = entry
+            .session
+            .set_selected_preview_mock_nested_value(value.as_ref())
+            .map_err(|error| EditorError::UiAsset(error.to_string()))?;
+        drop(sessions);
+        self.sync_ui_asset_editor_instance(instance_id)?;
+        Ok(changed)
+    }
+
+    pub fn upsert_ui_asset_editor_selected_preview_mock_nested_entry(
+        &self,
+        instance_id: &ViewInstanceId,
+        key: impl AsRef<str>,
+        value_literal: impl AsRef<str>,
+    ) -> Result<bool, EditorError> {
+        self.ensure_ui_asset_editor_session(instance_id)?;
+        let mut sessions = self.ui_asset_sessions.lock().unwrap();
+        let entry = sessions.get_mut(instance_id).ok_or_else(|| {
+            EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
+        })?;
+        let changed = entry
+            .session
+            .upsert_selected_preview_mock_nested_entry(key.as_ref(), value_literal.as_ref())
+            .map_err(|error| EditorError::UiAsset(error.to_string()))?;
+        drop(sessions);
+        self.sync_ui_asset_editor_instance(instance_id)?;
+        Ok(changed)
+    }
+
+    pub fn apply_ui_asset_editor_selected_preview_mock_suggestion(
+        &self,
+        instance_id: &ViewInstanceId,
+        index: usize,
+    ) -> Result<bool, EditorError> {
+        self.ensure_ui_asset_editor_session(instance_id)?;
+        let mut sessions = self.ui_asset_sessions.lock().unwrap();
+        let entry = sessions.get_mut(instance_id).ok_or_else(|| {
+            EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
+        })?;
+        let changed = entry
+            .session
+            .apply_selected_preview_mock_suggestion(index)
+            .map_err(|error| EditorError::UiAsset(error.to_string()))?;
+        drop(sessions);
+        self.sync_ui_asset_editor_instance(instance_id)?;
+        Ok(changed)
+    }
+
+    pub fn delete_ui_asset_editor_selected_preview_mock_nested_entry(
+        &self,
+        instance_id: &ViewInstanceId,
+    ) -> Result<bool, EditorError> {
+        self.ensure_ui_asset_editor_session(instance_id)?;
+        let mut sessions = self.ui_asset_sessions.lock().unwrap();
+        let entry = sessions.get_mut(instance_id).ok_or_else(|| {
+            EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
+        })?;
+        let changed = entry
+            .session
+            .delete_selected_preview_mock_nested_entry()
             .map_err(|error| EditorError::UiAsset(error.to_string()))?;
         drop(sessions);
         self.sync_ui_asset_editor_instance(instance_id)?;

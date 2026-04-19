@@ -4,7 +4,6 @@ use crate::types::HybridGiPrepareUpdateRequest;
 
 use super::super::HybridGiRuntimeState;
 
-const ANCESTOR_TRACE_SUPPORT_FALLOFF: f32 = 0.78;
 const TRACE_SUPPORT_SORT_SCALE: f32 = 1024.0;
 
 pub(super) fn collect_pending_updates(
@@ -103,54 +102,5 @@ fn lineage_trace_support_sort_key(runtime: &HybridGiRuntimeState, probe_id: u32)
 }
 
 fn lineage_trace_support_score(runtime: &HybridGiRuntimeState, probe_id: u32) -> f32 {
-    let mut total_support = 0.0_f32;
-    let mut lineage_weight = 1.0_f32;
-    let mut current_probe_id = probe_id;
-    let mut visited_probe_ids = vec![probe_id];
-
-    loop {
-        total_support +=
-            single_probe_trace_support_score(runtime, current_probe_id) * lineage_weight;
-        let Some(parent_probe_id) = runtime.probe_parent_probes.get(&current_probe_id).copied()
-        else {
-            break;
-        };
-        if visited_probe_ids.contains(&parent_probe_id) {
-            break;
-        }
-        visited_probe_ids.push(parent_probe_id);
-        lineage_weight *= ANCESTOR_TRACE_SUPPORT_FALLOFF;
-        current_probe_id = parent_probe_id;
-    }
-
-    total_support
-}
-
-fn single_probe_trace_support_score(runtime: &HybridGiRuntimeState, probe_id: u32) -> f32 {
-    let Some(probe) = runtime.probe_scene_data.get(&probe_id) else {
-        return 0.0;
-    };
-
-    runtime
-        .scheduled_trace_regions
-        .iter()
-        .filter_map(|region_id| runtime.trace_region_scene_data.get(region_id))
-        .map(|region| {
-            let reach = probe.radius_q.saturating_add(region.radius_q).max(1) as f32;
-            let max_distance = (reach * 3.0).max(1.0);
-            let distance_to_region = abs_diff_u32(probe.position_x_q, region.center_x_q)
-                + abs_diff_u32(probe.position_y_q, region.center_y_q)
-                + abs_diff_u32(probe.position_z_q, region.center_z_q);
-            if distance_to_region >= max_distance {
-                return 0.0;
-            }
-
-            let proximity = 1.0 - distance_to_region / max_distance;
-            proximity * proximity * (region.coverage_q.min(255) as f32 / 128.0)
-        })
-        .sum()
-}
-
-fn abs_diff_u32(left: u32, right: u32) -> f32 {
-    left.abs_diff(right) as f32
+    runtime.effective_lineage_trace_support_score(probe_id)
 }

@@ -1,4 +1,4 @@
-use zircon_ui::{UiBindingValue, UiEventKind, UiPoint};
+use zircon_ui::{binding::UiBindingValue, binding::UiEventKind, UiPoint};
 
 use crate::core::editor_event::EditorEventRuntime;
 use crate::ui::slint_host::{

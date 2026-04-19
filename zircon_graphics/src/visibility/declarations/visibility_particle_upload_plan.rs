@@ -1,4 +1,4 @@
-use zircon_scene::EntityId;
+use zircon_framework::scene::EntityId;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct VisibilityParticleUploadPlan {
@@ -6,3 +6,4 @@ pub struct VisibilityParticleUploadPlan {
     pub dirty_emitters: Vec<EntityId>,
     pub removed_emitters: Vec<EntityId>,
 }
+

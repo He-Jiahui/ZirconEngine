@@ -1,4 +1,4 @@
-use crate::UiEventBinding;
+use crate::binding::UiEventBinding;
 
 use super::super::UiRouteId;
 use super::route_handler::RouteHandler;

@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use toml::Value;
 
-use crate::{UiBindingRef, UiTemplateError};
+use crate::template::{UiBindingRef, UiTemplateError};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]

@@ -1,4 +1,4 @@
-use zircon_scene::EntityId;
+use zircon_framework::scene::EntityId;
 
 use super::visibility_batch_key::VisibilityBatchKey;
 
@@ -7,3 +7,4 @@ pub struct VisibilityBatch {
     pub key: VisibilityBatchKey,
     pub entities: Vec<EntityId>,
 }
+

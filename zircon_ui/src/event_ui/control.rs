@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use thiserror::Error;
 
-use crate::{UiBindingValue, UiEventBinding};
+use crate::binding::{UiBindingValue, UiEventBinding};
 
 use super::{
     UiNodeDescriptor, UiNodePath, UiPropertyDescriptor, UiReflectionDiff, UiReflectionSnapshot,

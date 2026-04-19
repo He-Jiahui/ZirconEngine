@@ -68,7 +68,7 @@ related_code:
   - zircon_asset/src/pipeline/manager/records/metadata_import_state.rs
   - zircon_asset/src/pipeline/manager/builtins/mod.rs
   - zircon_asset/src/pipeline/manager/registration/mod.rs
-  - zircon_asset/src/pipeline/manager/registration/module_descriptor.rs
+  - zircon_runtime/src/asset/module.rs
   - zircon_asset/src/pipeline/manager/registration/service_names.rs
   - zircon_asset/src/pipeline/manager/errors/mod.rs
   - zircon_asset/src/pipeline/manager/errors/asset_error.rs
@@ -102,22 +102,20 @@ related_code:
   - zircon_asset/src/assets/scene.rs
   - zircon_manager/src/lib.rs
   - zircon_manager/src/service_names.rs
-  - zircon_scene/src/components.rs
+  - zircon_scene/src/components/mod.rs
   - zircon_scene/src/world/world.rs
   - zircon_scene/src/world/bootstrap.rs
   - zircon_scene/src/world/project_io.rs
-  - zircon_scene/src/level_system.rs
-  - zircon_scene/src/module.rs
-  - zircon_scene/src/module/default_level_manager.rs
-  - zircon_scene/src/module/level_manager_lifecycle.rs
-  - zircon_scene/src/module/level_manager_project_io.rs
-  - zircon_scene/src/module/level_manager_facade.rs
-  - zircon_scene/src/module/manager_access.rs
-  - zircon_scene/src/module/module_descriptor.rs
-  - zircon_scene/src/module/service_names.rs
-  - zircon_scene/src/module/world_driver.rs
-  - zircon_scene/src/module/level_display_name.rs
-  - zircon_scene/src/module/core_error.rs
+  - zircon_runtime/src/scene/mod.rs
+  - zircon_runtime/src/scene/level_system.rs
+  - zircon_runtime/src/scene/module/mod.rs
+  - zircon_runtime/src/scene/module/default_level_manager.rs
+  - zircon_runtime/src/scene/module/level_manager_lifecycle.rs
+  - zircon_runtime/src/scene/module/level_manager_project_io.rs
+  - zircon_runtime/src/scene/module/level_manager_facade.rs
+  - zircon_runtime/src/scene/module/world_driver.rs
+  - zircon_runtime/src/scene/module/level_display_name.rs
+  - zircon_runtime/src/scene/module/core_error.rs
   - zircon_graphics/src/scene/resources/mod.rs
   - zircon_graphics/src/scene/scene_renderer/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/mod.rs
@@ -242,24 +240,22 @@ implementation_files:
   - zircon_asset/src/watch/watch_io_error.rs
   - zircon_asset/src/watch/is_meta_sidecar.rs
   - zircon_asset/src/watch/recommended_watcher.rs
-  - zircon_scene/src/components.rs
+  - zircon_scene/src/components/mod.rs
   - zircon_scene/src/world/world.rs
   - zircon_scene/src/world/bootstrap.rs
   - zircon_scene/src/world/project_io.rs
   - zircon_manager/src/lib.rs
   - zircon_manager/src/service_names.rs
-  - zircon_scene/src/level_system.rs
-  - zircon_scene/src/module.rs
-  - zircon_scene/src/module/default_level_manager.rs
-  - zircon_scene/src/module/level_manager_lifecycle.rs
-  - zircon_scene/src/module/level_manager_project_io.rs
-  - zircon_scene/src/module/level_manager_facade.rs
-  - zircon_scene/src/module/manager_access.rs
-  - zircon_scene/src/module/module_descriptor.rs
-  - zircon_scene/src/module/service_names.rs
-  - zircon_scene/src/module/world_driver.rs
-  - zircon_scene/src/module/level_display_name.rs
-  - zircon_scene/src/module/core_error.rs
+  - zircon_runtime/src/scene/mod.rs
+  - zircon_runtime/src/scene/level_system.rs
+  - zircon_runtime/src/scene/module/mod.rs
+  - zircon_runtime/src/scene/module/default_level_manager.rs
+  - zircon_runtime/src/scene/module/level_manager_lifecycle.rs
+  - zircon_runtime/src/scene/module/level_manager_project_io.rs
+  - zircon_runtime/src/scene/module/level_manager_facade.rs
+  - zircon_runtime/src/scene/module/world_driver.rs
+  - zircon_runtime/src/scene/module/level_display_name.rs
+  - zircon_runtime/src/scene/module/core_error.rs
   - zircon_graphics/src/scene/resources/mod.rs
   - zircon_graphics/src/scene/scene_renderer/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/mod.rs
@@ -326,13 +322,13 @@ doc_type: module-detail
 这一轮实现把主链替换为“目录式项目 + 资源抽象层 + UUID/meta 持久化 + runtime lease/refcount + revision 驱动 prepare/cache + editor catalog/reference/preview”模型：
 
 - `zircon_resource` 定义跨 crate 的 locator、typed handle、record、state、event 和 manager 契约
-- `zircon_asset::AssetManager` 负责 runtime resident 资源生命周期
-- `zircon_asset::DefaultEditorAssetManager` 负责 editor catalog/meta/reference/preview 生命周期，并由 `zircon_asset` 自己公开 `EditorAssetManager` / records / resolver
+- `zircon_asset::pipeline::manager::AssetManager` 负责 runtime resident 资源生命周期
+- `zircon_asset::editor::DefaultEditorAssetManager` 负责 editor catalog/meta/reference/preview 生命周期，并由 `zircon_asset::editor` 自己公开 `EditorAssetManager` / records / resolver
 - `zircon_scene_protocol::{WorldHandle, LevelSummary}` 现在作为 `LevelManager` 的 scene 协议面，不再挂在 `zircon_manager`
-- `zircon_scene::World` 运行时只持 typed handle，不再持路径语义
-- `zircon_scene::LevelSystem` 托管运行中的 world、metadata 和子系统生命周期
+- `zircon_scene::Scene` 运行时只持 typed handle，不再持路径语义
+- `zircon_runtime::scene::LevelSystem` 托管运行中的 world、metadata 和子系统生命周期
 - `zircon_graphics` 按 `ResourceId + revision` 准备 GPU 资源
-- `zircon_editor` 通过 `AssetManager + ResourceManager + zircon_asset::EditorAssetManager` 消费这些层
+- `zircon_editor` 通过 `AssetManager + ResourceManager + zircon_asset::editor::EditorAssetManager` 消费这些层
 
 目标不是先堆更多 importer 分支，而是先把“project -> resource -> scene -> render -> editor”变成统一的框架主链。
 
@@ -383,6 +379,8 @@ doc_type: module-detail
 - 生成 `ResourceRecord` 元数据和 `AssetUuid` 驱动的 `ResourceId`
 
 实现上，`zircon_asset/src/project/manager.rs` 现在只保留 `ProjectManager` 结构定义与子模块声明；`open`、`scan_and_import`、registry/lookup、artifact 访问和本地文件/meta helper 全部下沉到 `zircon_asset/src/project/manager/` 子树，避免 project root manager 继续堆叠 importer 与文件系统逻辑。
+
+当前 public surface 也已经跟随收束：workspace 调用点统一通过 `zircon_asset::project::{ProjectManager, ProjectManifest, ProjectPaths}` 访问目录式项目 API，不再从 `zircon_asset` 根 crate 平铺拿这组三元组。
 
 sidecar meta 文件当前固定为 `foo.ext.meta.toml`，至少记录：
 
@@ -584,14 +582,16 @@ asset workspace 现在明确拆成两条链：
   - editor catalog 构建
   - 直接引用图
   - preview dirty / visible refresh / meta 回写
-- `zircon_scene/src/lib.rs`
+- `zircon_scene/src/tests/asset_scene.rs`
   - `LevelManager` 创建/加载/保存 `LevelSystem`
   - `SceneAssetSerializer` 的 locator/handle roundtrip
-  - level load/save 与 gizmo overlay
+- `zircon_scene/tests/viewport_packet.rs`
+  - runtime world viewport packet 只保留基础 scene/preview packet
+  - selection anchor / handle / grid / scene gizmo overlay 不再由 runtime world 直接生成
 - `zircon_graphics/src/tests/project_render.rs`
   - headless project render
   - shader 驱动颜色回归
-  - gizmo overlay 非空帧断言
+  - editor-composed gizmo overlay 非空帧断言
 - `zircon_editor/src/tests/workbench/project.rs`
   - editor project/workspace roundtrip
 - `zircon_editor/src/tests/editing/state.rs`

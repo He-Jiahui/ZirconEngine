@@ -1,4 +1,4 @@
-use zircon_ui::{UiFrame, UiNodeId, UiStateFlags};
+use zircon_ui::{event_ui::UiNodeId, event_ui::UiStateFlags, UiFrame};
 
 use super::constants::{
     BUTTON_HEIGHT, BUTTON_WIDTH, ITEM_GAP, ITEM_HEIGHT, ITEM_NODE_ID_BASE,
@@ -17,9 +17,7 @@ pub(in crate::ui::slint_host::welcome_recent_pointer) fn viewport_frame(
     UiFrame::new(VIEWPORT_X, VIEWPORT_Y, viewport_width, viewport_height)
 }
 
-pub(in crate::ui::slint_host::welcome_recent_pointer) fn content_height(
-    item_count: usize,
-) -> f32 {
+pub(in crate::ui::slint_host::welcome_recent_pointer) fn content_height(item_count: usize) -> f32 {
     if item_count == 0 {
         0.0
     } else {

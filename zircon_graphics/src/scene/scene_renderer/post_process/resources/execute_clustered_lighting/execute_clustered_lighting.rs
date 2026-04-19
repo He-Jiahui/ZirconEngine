@@ -1,6 +1,6 @@
 use bytemuck::Zeroable;
+use zircon_framework::render::RenderDirectionalLightSnapshot;
 use zircon_math::UVec2;
-use zircon_scene::RenderDirectionalLightSnapshot;
 
 use super::super::super::cluster_params::ClusterParams;
 use super::super::super::clustered_directional_light::ClusteredDirectionalLight;

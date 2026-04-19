@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
 
 use crate::ui::EditorUiBindingPayload;
+use zircon_framework::render::SceneViewportSettings;
 use zircon_math::UVec2;
-use zircon_scene::SceneViewportSettings;
 
 use crate::layout::{
     ActivityDrawerLayout, ActivityDrawerMode, ActivityDrawerSlot, DocumentNode,

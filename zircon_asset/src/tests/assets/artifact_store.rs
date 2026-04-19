@@ -1,15 +1,18 @@
+use zircon_resource::ResourceRecord;
+
 use std::fs;
 
+use crate::project::ProjectPaths;
 use crate::tests::project::unique_temp_project_root;
 use crate::{
-    AlphaMode, ArtifactStore, AssetId, AssetKind, AssetMetadata, AssetReference, AssetUri,
-    ImportedAsset, MaterialAsset,
+    AlphaMode, ArtifactStore, AssetId, AssetKind, AssetReference, AssetUri, ImportedAsset,
+    MaterialAsset,
 };
 
 #[test]
 fn artifact_store_roundtrips_material_assets_in_library() {
     let root = unique_temp_project_root("artifact_store");
-    let paths = crate::ProjectPaths::from_root(&root).unwrap();
+    let paths = ProjectPaths::from_root(&root).unwrap();
     paths.ensure_layout().unwrap();
 
     let material = MaterialAsset {
@@ -27,7 +30,7 @@ fn artifact_store_roundtrips_material_assets_in_library() {
         alpha_mode: AlphaMode::Opaque,
         double_sided: false,
     };
-    let metadata = AssetMetadata::new(
+    let metadata = ResourceRecord::new(
         AssetId::new(),
         AssetKind::Material,
         AssetUri::parse("res://materials/grid.material.toml").unwrap(),

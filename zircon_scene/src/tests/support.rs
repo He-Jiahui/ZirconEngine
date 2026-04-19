@@ -3,14 +3,15 @@ use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use image::{ImageBuffer, ImageFormat, Rgba};
-use zircon_asset::{
-    AlphaMode, AssetReference, AssetUri, MaterialAsset, ProjectManager, ProjectManifest,
-    ProjectPaths, SceneAsset, SceneCameraAsset, SceneEntityAsset, SceneMeshInstanceAsset,
-    SceneMobilityAsset, TransformAsset,
+use zircon_asset::assets::{
+    AlphaMode, MaterialAsset, SceneAsset, SceneCameraAsset, SceneEntityAsset,
+    SceneMeshInstanceAsset, SceneMobilityAsset, TransformAsset,
 };
+use zircon_asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
+use zircon_asset::{AssetReference, AssetUri};
 use zircon_resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
 
-use crate::default_render_layer_mask;
+use crate::components::default_render_layer_mask;
 
 pub(super) fn model_handle(label: &str) -> ResourceHandle<ModelMarker> {
     ResourceHandle::new(ResourceId::from_stable_label(label))

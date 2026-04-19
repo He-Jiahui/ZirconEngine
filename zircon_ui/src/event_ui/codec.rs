@@ -1,4 +1,4 @@
-use crate::{UiBindingParseError, UiEventBinding};
+use crate::binding::{UiBindingParseError, UiEventBinding};
 
 #[derive(Clone, Debug, Default)]
 pub struct UiBindingCodec;

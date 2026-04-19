@@ -1,8 +1,8 @@
 use zircon_math::Transform;
 
 use super::World;
-use crate::components::{Mobility, NodeRecord};
 use crate::EntityId;
+use crate::components::{Mobility, NodeRecord};
 
 impl World {
     pub fn remove_entity(&mut self, entity: EntityId) -> bool {

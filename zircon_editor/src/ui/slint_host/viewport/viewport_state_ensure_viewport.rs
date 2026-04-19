@@ -1,7 +1,7 @@
-use zircon_math::UVec2;
 use zircon_framework::render::{
     RenderFrameworkError, RenderViewportDescriptor, RenderViewportHandle,
 };
+use zircon_math::UVec2;
 
 use super::active_viewport::ActiveViewport;
 use super::viewport_state::ViewportState;

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use zircon_scene::ViewportIconId;
+use zircon_framework::render::ViewportIconId;
 
 use super::super::super::ViewportIconSource;
 use super::super::{icon_entry::IconEntry, icon_slot::icon_slot};

@@ -6,7 +6,7 @@ use super::super::super::super::mesh::{
     MeshPipelineCache, VirtualGeometryIndirectArgsGpuResources,
 };
 use super::super::super::super::overlay::{
-    EmptyViewportIconSource, ViewportIconSource, ViewportOverlayRenderer,
+    ViewportIconSource, ViewportOverlayRenderer,
 };
 use super::super::super::super::particle::ParticleRenderer;
 use super::super::super::super::post_process::ScenePostProcessResources;
@@ -18,19 +18,6 @@ use super::super::layouts::{create_model_bind_group_layout, create_texture_bind_
 use super::super::scene_bind_group_bundle::create_scene_bind_group_bundle;
 
 impl SceneRendererCore {
-    pub(crate) fn new(
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        target_format: wgpu::TextureFormat,
-    ) -> Self {
-        Self::new_with_icon_source(
-            device,
-            queue,
-            target_format,
-            Arc::new(EmptyViewportIconSource),
-        )
-    }
-
     pub(crate) fn new_with_icon_source(
         device: &wgpu::Device,
         queue: &wgpu::Queue,

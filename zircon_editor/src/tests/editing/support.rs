@@ -1,5 +1,7 @@
 use zircon_math::UVec2;
-use zircon_scene::{DefaultLevelManager, NodeId, NodeKind};
+use zircon_runtime::scene::DefaultLevelManager;
+use zircon_scene::components::NodeKind;
+use zircon_scene::NodeId;
 
 use crate::EditorState;
 

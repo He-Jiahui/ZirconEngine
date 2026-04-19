@@ -1,4 +1,4 @@
-use zircon_scene::RenderHybridGiExtract;
+use zircon_framework::render::RenderHybridGiExtract;
 
 use crate::types::HybridGiPrepareFrame;
 

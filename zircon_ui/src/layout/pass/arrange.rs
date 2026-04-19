@@ -1,6 +1,5 @@
-use crate::{
-    UiAxis, UiContainerKind, UiFrame, UiScrollState, UiTree, UiTreeError, UiVirtualListWindow,
-};
+use crate::tree::UiTreeError;
+use crate::{UiAxis, UiContainerKind, UiFrame, UiScrollState, UiTree, UiVirtualListWindow};
 
 use super::axis::{frame_axis_extent, resolve_linear_child_main_extents, size_axis_extent};
 use super::child_frame::{free_child_frame, linear_child_frame, scrollable_child_frame};
@@ -8,7 +7,7 @@ use super::clip::resolve_clip_frame;
 
 pub(crate) fn arrange_node(
     tree: &mut UiTree,
-    node_id: crate::UiNodeId,
+    node_id: crate::event_ui::UiNodeId,
     frame: UiFrame,
     inherited_clip: Option<UiFrame>,
 ) -> Result<(), UiTreeError> {
@@ -81,7 +80,7 @@ pub(crate) fn arrange_node(
 
 fn arrange_linear_children(
     tree: &mut UiTree,
-    children: &[crate::UiNodeId],
+    children: &[crate::event_ui::UiNodeId],
     frame: UiFrame,
     inherited_clip: Option<UiFrame>,
     axis: UiAxis,
@@ -109,8 +108,8 @@ fn arrange_linear_children(
 
 fn arrange_scrollable_children(
     tree: &mut UiTree,
-    node_id: crate::UiNodeId,
-    children: &[crate::UiNodeId],
+    node_id: crate::event_ui::UiNodeId,
+    children: &[crate::event_ui::UiNodeId],
     frame: UiFrame,
     inherited_clip: Option<UiFrame>,
     config: crate::UiScrollableBoxConfig,
@@ -165,7 +164,7 @@ fn arrange_scrollable_children(
 
 fn child_positions(
     tree: &UiTree,
-    children: &[crate::UiNodeId],
+    children: &[crate::event_ui::UiNodeId],
     axis: UiAxis,
     gap: f32,
 ) -> Result<Vec<f32>, UiTreeError> {
@@ -185,7 +184,10 @@ fn child_positions(
     Ok(positions)
 }
 
-fn hide_subtree_layout(tree: &mut UiTree, node_id: crate::UiNodeId) -> Result<(), UiTreeError> {
+fn hide_subtree_layout(
+    tree: &mut UiTree,
+    node_id: crate::event_ui::UiNodeId,
+) -> Result<(), UiTreeError> {
     let children = {
         let node = tree
             .node_mut(node_id)

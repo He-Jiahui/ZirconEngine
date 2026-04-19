@@ -1,4 +1,4 @@
-use zircon_ui::UiPointerEvent;
+use zircon_ui::dispatch::UiPointerEvent;
 
 use super::{
     workbench_document_tab_pointer_bridge::WorkbenchDocumentTabPointerBridge,

@@ -1,4 +1,7 @@
-use zircon_ui::{UiActionDescriptor, UiEventKind, UiParameterDescriptor, UiValueType};
+use zircon_ui::{
+    binding::UiEventKind, event_ui::UiActionDescriptor, event_ui::UiParameterDescriptor,
+    event_ui::UiValueType,
+};
 
 pub(super) fn inspector_actions() -> Vec<UiActionDescriptor> {
     vec![

@@ -1,4 +1,4 @@
-use zircon_ui::{UiPoint, UiPointerEvent, UiPointerEventKind};
+use zircon_ui::{dispatch::UiPointerEvent, UiPoint, UiPointerEventKind};
 
 use super::hierarchy_pointer_bridge::HierarchyPointerBridge;
 use super::hierarchy_pointer_dispatch::HierarchyPointerDispatch;

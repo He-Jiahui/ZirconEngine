@@ -1,10 +1,11 @@
 use std::collections::BTreeMap;
 
-use thiserror::Error;
 use crate::ui::{DockCommand, EditorUiBinding, EditorUiBindingPayload};
+use thiserror::Error;
+use zircon_ui::tree::UiTreeError;
 use zircon_ui::{
-    Anchor, AxisConstraint, BoxConstraints, Pivot, Position, StretchMode, UiBindingValue,
-    UiEventKind, UiFrame, UiSize, UiSurface,
+    binding::UiBindingValue, binding::UiEventKind, Anchor, AxisConstraint, BoxConstraints, Pivot,
+    Position, StretchMode, UiFrame, UiSize, UiSurface,
 };
 
 use crate::ui::slint_host::callback_dispatch::constants::{
@@ -40,7 +41,7 @@ pub(crate) enum BuiltinWorkbenchTemplateBridgeError {
     #[error(transparent)]
     DrawerSource(#[from] BuiltinWorkbenchDrawerSourceTemplateBridgeError),
     #[error(transparent)]
-    Layout(#[from] zircon_ui::UiTreeError),
+    Layout(#[from] UiTreeError),
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
@@ -120,6 +121,7 @@ impl BuiltinWorkbenchTemplateBridge {
         })
     }
 
+    #[cfg(test)]
     pub(crate) fn recompute_layout(
         &mut self,
         shell_size: UiSize,
@@ -287,7 +289,10 @@ fn surface_control_frame(surface: &UiSurface, control_id: &str) -> Option<UiFram
         .map(|node| node.layout_cache.frame)
 }
 
-fn surface_control_node_id(surface: &UiSurface, control_id: &str) -> Option<zircon_ui::UiNodeId> {
+fn surface_control_node_id(
+    surface: &UiSurface,
+    control_id: &str,
+) -> Option<zircon_ui::event_ui::UiNodeId> {
     surface.tree.nodes.values().find_map(|node| {
         node.template_metadata
             .as_ref()

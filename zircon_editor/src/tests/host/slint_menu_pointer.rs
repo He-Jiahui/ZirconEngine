@@ -376,6 +376,14 @@ fn shared_menu_pointer_layout_sync_replaces_direct_slint_menu_button_frame_gette
 #[test]
 fn shared_menu_popup_presentation_drops_host_menu_button_frame_setters() {
     let workbench = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/ui/workbench.slint"));
+    let scaffold = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/ui/workbench/host_scaffold.slint"
+    ));
+    let host_components = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/ui/workbench/host_components.slint"
+    ));
     let pointer_layout = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/src/ui/slint_host/app/pointer_layout.rs"
@@ -404,8 +412,8 @@ fn shared_menu_popup_presentation_drops_host_menu_button_frame_setters() {
         "x: root.help_menu_button_frame.x * 1px;",
     ] {
         assert!(
-            workbench.contains(projected_anchor),
-            "menu popup presentation is missing shared projected anchor `{projected_anchor}`"
+            host_components.contains(projected_anchor),
+            "host menu chrome is missing shared projected anchor `{projected_anchor}`"
         );
     }
 
@@ -432,8 +440,8 @@ fn shared_menu_popup_presentation_drops_host_menu_button_frame_setters() {
         "help_menu_button_frame <=> host.help_menu_button_frame",
     ] {
         assert!(
-            !workbench.contains(removed_binding),
-            "menu popup presentation should not keep root/host frame binding `{removed_binding}`"
+            !workbench.contains(removed_binding) && !scaffold.contains(removed_binding),
+            "menu popup presentation should not keep root/scaffold frame binding `{removed_binding}`"
         );
     }
 }

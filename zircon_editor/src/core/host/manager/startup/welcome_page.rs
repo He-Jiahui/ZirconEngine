@@ -1,6 +1,6 @@
 use crate::layout::{LayoutCommand, MainPageId};
-use crate::view::{ViewDescriptorId, ViewHost, ViewInstanceId};
 use crate::ui::workbench::startup::{WELCOME_DESCRIPTOR_ID, WELCOME_INSTANCE_ID, WELCOME_PAGE_ID};
+use crate::view::{ViewDescriptorId, ViewHost, ViewInstanceId};
 
 use super::super::editor_error::EditorError;
 use super::super::editor_manager::EditorManager;

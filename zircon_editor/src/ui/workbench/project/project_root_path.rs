@@ -1,7 +1,7 @@
 use std::ffi::OsStr;
 use std::path::PathBuf;
 
-use zircon_scene::SceneProjectError;
+use zircon_scene::world::SceneProjectError;
 
 pub(crate) fn project_root_path(
     path: impl AsRef<std::path::Path>,

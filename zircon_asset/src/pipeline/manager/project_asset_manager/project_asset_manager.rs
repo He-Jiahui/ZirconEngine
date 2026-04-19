@@ -3,10 +3,9 @@ use std::sync::{Arc, Mutex, RwLock};
 use zircon_core::ChannelSender;
 use zircon_resource::ResourceManager;
 
-use crate::{
-    AssetChange, AssetWatcher, DefaultEditorAssetManager as EditorAssetManagerService,
-    ProjectManager,
-};
+use crate::project::ProjectManager;
+use crate::watch::{AssetChange, AssetWatcher};
+use crate::DefaultEditorAssetManager as EditorAssetManagerService;
 
 #[derive(Clone)]
 pub struct ProjectAssetManager {

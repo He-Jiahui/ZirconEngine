@@ -1,14 +1,16 @@
 use std::fs;
 use std::time::Duration;
 
+use crate::project::{ProjectManifest, ProjectPaths};
+use crate::project::{AssetMetaDocument, PreviewState};
 use crate::tests::project::unique_temp_project_root;
 use crate::tests::support::{
     write_checker_png, write_default_material, write_default_scene, write_triangle_obj,
     write_valid_wgsl,
 };
 use crate::{
-    AssetMetaDocument, AssetUri, DefaultEditorAssetManager, EditorAssetChangeKind,
-    EditorAssetManager as EditorAssetManagerFacade, PreviewState, ProjectManifest, ProjectPaths,
+    AssetUri, DefaultEditorAssetManager, EditorAssetChangeKind,
+    EditorAssetManager as EditorAssetManagerFacade,
 };
 use zircon_resource::ResourceKind;
 

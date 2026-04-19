@@ -1,5 +1,6 @@
+use zircon_framework::render::{ProjectionMode, ViewOrientation, ViewportCameraSnapshot};
 use zircon_math::{Transform, UVec2, Vec3};
-use zircon_scene::{ProjectionMode, Scene, ViewOrientation, ViewportCameraSnapshot};
+use zircon_scene::Scene;
 
 use crate::ViewportState;
 

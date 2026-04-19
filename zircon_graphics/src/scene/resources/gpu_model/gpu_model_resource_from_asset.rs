@@ -9,7 +9,7 @@ impl GpuModelResource {
     pub(crate) fn from_asset(
         device: &wgpu::Device,
         id: ResourceId,
-        asset: zircon_asset::ModelAsset,
+        asset: zircon_asset::assets::ModelAsset,
     ) -> Self {
         Self {
             id,

@@ -1,8 +1,9 @@
 use std::collections::BTreeMap;
 
-use thiserror::Error;
 use crate::ui::EditorUiBinding;
-use zircon_ui::{UiEventKind, UiFrame, UiSize};
+use thiserror::Error;
+use zircon_ui::tree::UiTreeError;
+use zircon_ui::{binding::UiEventKind, UiFrame, UiSize};
 
 use crate::ui::slint_host::callback_dispatch::constants::BUILTIN_VIEWPORT_TOOLBAR_DOCUMENT_ID;
 use crate::ui::template_runtime::{
@@ -16,7 +17,7 @@ pub(crate) enum BuiltinViewportToolbarTemplateBridgeError {
     #[error(transparent)]
     HostRuntime(#[from] EditorUiHostRuntimeError),
     #[error(transparent)]
-    Layout(#[from] zircon_ui::UiTreeError),
+    Layout(#[from] UiTreeError),
 }
 
 pub(crate) struct BuiltinViewportToolbarTemplateBridge {

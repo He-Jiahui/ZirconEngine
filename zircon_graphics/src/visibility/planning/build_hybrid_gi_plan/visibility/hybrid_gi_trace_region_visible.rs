@@ -1,4 +1,4 @@
-use zircon_scene::{RenderHybridGiTraceRegion, ViewportCameraSnapshot};
+use zircon_framework::render::{RenderHybridGiTraceRegion, ViewportCameraSnapshot};
 
 use super::sphere_visible::sphere_visible;
 

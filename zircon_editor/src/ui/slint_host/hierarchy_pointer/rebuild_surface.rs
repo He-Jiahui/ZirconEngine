@@ -1,8 +1,9 @@
 use std::collections::BTreeMap;
 
 use zircon_ui::{
-    UiAxis, UiContainerKind, UiFrame, UiInputPolicy, UiPointerDispatcher, UiScrollState,
-    UiScrollableBoxConfig, UiScrollbarVisibility, UiSurface, UiTreeId, UiTreeNode,
+    dispatch::UiPointerDispatcher, event_ui::UiTreeId, UiAxis, UiContainerKind, UiFrame,
+    UiInputPolicy, UiScrollState, UiScrollableBoxConfig, UiScrollbarVisibility, UiSurface,
+    UiTreeNode,
 };
 
 use super::base_state::base_state;
@@ -25,7 +26,7 @@ impl HierarchyPointerBridge {
         surface.tree.insert_root(
             UiTreeNode::new(
                 ROOT_NODE_ID,
-                zircon_ui::UiNodePath::new("editor.hierarchy.root"),
+                zircon_ui::event_ui::UiNodePath::new("editor.hierarchy.root"),
             )
             .with_frame(UiFrame::new(
                 0.0,
@@ -43,7 +44,7 @@ impl HierarchyPointerBridge {
                 ROOT_NODE_ID,
                 UiTreeNode::new(
                     VIEWPORT_NODE_ID,
-                    zircon_ui::UiNodePath::new("editor.hierarchy.viewport"),
+                    zircon_ui::event_ui::UiNodePath::new("editor.hierarchy.viewport"),
                 )
                 .with_frame(viewport)
                 .with_z_index(10)
@@ -75,7 +76,9 @@ impl HierarchyPointerBridge {
                     VIEWPORT_NODE_ID,
                     UiTreeNode::new(
                         item_node_id,
-                        zircon_ui::UiNodePath::new(format!("editor.hierarchy/item_{item_index}")),
+                        zircon_ui::event_ui::UiNodePath::new(format!(
+                            "editor.hierarchy/item_{item_index}"
+                        )),
                     )
                     .with_frame(UiFrame::new(
                         ROW_X,

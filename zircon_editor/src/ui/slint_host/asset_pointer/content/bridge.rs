@@ -1,9 +1,12 @@
 use std::collections::BTreeMap;
 
 use zircon_ui::{
-    UiAxis, UiContainerKind, UiInputPolicy, UiNodeId, UiNodePath, UiPoint, UiPointerDispatcher,
-    UiPointerEvent, UiPointerEventKind, UiScrollState, UiScrollableBoxConfig,
-    UiScrollbarVisibility, UiSurface, UiTreeId, UiTreeNode,
+    dispatch::{UiPointerDispatcher, UiPointerEvent},
+    event_ui::UiNodeId,
+    event_ui::UiNodePath,
+    event_ui::UiTreeId,
+    UiAxis, UiContainerKind, UiInputPolicy, UiPoint, UiPointerEventKind, UiScrollState,
+    UiScrollableBoxConfig, UiScrollbarVisibility, UiSurface, UiTreeNode,
 };
 
 use super::dispatch::AssetContentListPointerDispatch;

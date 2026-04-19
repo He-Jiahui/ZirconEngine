@@ -1,4 +1,4 @@
-use zircon_scene::{RenderBakedLightingExtract, RenderReflectionProbeSnapshot};
+use zircon_framework::render::{RenderBakedLightingExtract, RenderReflectionProbeSnapshot};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct OfflineBakeOutput {

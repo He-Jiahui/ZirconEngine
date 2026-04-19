@@ -1,6 +1,8 @@
 use std::collections::BTreeSet;
 
-use zircon_scene::{RenderHybridGiExtract, RenderHybridGiProbe, RenderHybridGiTraceRegion};
+use zircon_framework::render::{
+    RenderHybridGiExtract, RenderHybridGiProbe, RenderHybridGiTraceRegion,
+};
 
 use super::super::seed_quantization::{quantized_positive, quantized_signed};
 

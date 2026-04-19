@@ -5,7 +5,8 @@ use crate::ui::slint_host::floating_window_projection::{
     resolve_floating_window_projection_shared_source, FloatingWindowProjectionBundle,
 };
 use crate::ui::slint_host::root_shell_projection::resolve_root_viewport_content_frame;
-use zircon_asset::{resolve_asset_manager, resolve_editor_asset_manager};
+use zircon_asset::editor::resolve_editor_asset_manager;
+use zircon_asset::pipeline::manager::resolve_asset_manager;
 
 impl SlintEditorHost {
     pub(super) fn new(core: CoreHandle, ui: UiHostWindow) -> Result<Self, Box<dyn Error>> {
@@ -146,7 +147,9 @@ impl SlintEditorHost {
         }
 
         if let Some(image) = self.viewport.poll_image() {
-            self.ui.set_viewport_image(image);
+            self.ui
+                .global::<crate::ui::slint_host::PaneSurfaceHostContext>()
+                .set_viewport_image(image);
         }
         if let Some(error) = self.viewport.take_error() {
             self.set_status_line(error);

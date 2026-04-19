@@ -1,4 +1,6 @@
-use zircon_ui::{UiCompiledDocument, UiSize, UiSurface, UiTemplateSurfaceBuilder, UiTreeId};
+use zircon_ui::template::UiCompiledDocument;
+use zircon_ui::template::UiTemplateSurfaceBuilder;
+use zircon_ui::{event_ui::UiTreeId, UiSize, UiSurface};
 
 use super::session::UiAssetEditorSessionError;
 

@@ -20,7 +20,13 @@ mod viewport;
 pub(crate) mod viewport_toolbar_pointer;
 pub(crate) mod welcome_recent_pointer;
 
-slint::include_modules!();
+mod generated {
+    #![allow(dead_code)]
+
+    slint::include_modules!();
+}
+
+pub(crate) use generated::*;
 
 #[cfg(test)]
 pub(crate) use app::backend_refresh::{plan_asset_backend_refresh, AssetBackendRefreshPlan};

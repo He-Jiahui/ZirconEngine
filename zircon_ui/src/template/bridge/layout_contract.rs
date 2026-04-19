@@ -1,8 +1,7 @@
 use toml::Value;
 
-use crate::{
-    Anchor, LayoutBoundary, Pivot, Position, UiContainerKind, UiInputPolicy, UiTemplateNode,
-};
+use crate::template::UiTemplateNode;
+use crate::{Anchor, LayoutBoundary, Pivot, Position, UiContainerKind, UiInputPolicy};
 
 use super::build_error::UiTemplateBuildError;
 use super::parsers::{

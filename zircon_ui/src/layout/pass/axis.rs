@@ -1,11 +1,10 @@
-use crate::{
-    solve_axis_constraints, AxisConstraint, LayoutBoundary, StretchMode, UiAxis, UiFrame, UiSize,
-    UiTree, UiTreeError,
-};
+use crate::layout::solve_axis_constraints;
+use crate::tree::UiTreeError;
+use crate::{AxisConstraint, LayoutBoundary, StretchMode, UiAxis, UiFrame, UiSize, UiTree};
 
 pub(crate) fn resolve_linear_child_main_extents(
     tree: &UiTree,
-    children: &[crate::UiNodeId],
+    children: &[crate::event_ui::UiNodeId],
     axis: UiAxis,
     available_extent: f32,
     gap: f32,

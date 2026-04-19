@@ -1,5 +1,5 @@
+use zircon_framework::render::ViewportCameraSnapshot;
 use zircon_math::{Real, Vec3};
-use zircon_scene::ViewportCameraSnapshot;
 
 pub(crate) fn perspective_visible(
     view_position: Vec3,

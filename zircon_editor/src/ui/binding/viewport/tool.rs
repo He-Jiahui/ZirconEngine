@@ -1,4 +1,4 @@
-use zircon_scene::SceneViewportTool;
+use zircon_framework::render::SceneViewportTool;
 
 pub(crate) fn symbol(tool: SceneViewportTool) -> &'static str {
     match tool {

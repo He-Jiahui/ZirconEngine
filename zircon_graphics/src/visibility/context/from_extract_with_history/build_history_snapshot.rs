@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use zircon_scene::RenderFrameExtract;
+use zircon_framework::render::RenderFrameExtract;
 
 use super::super::super::declarations::{VisibilityHistoryEntry, VisibilityHistorySnapshot};
 

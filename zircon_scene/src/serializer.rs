@@ -1,6 +1,7 @@
 //! Scene asset serializer boundary between `SceneAsset` and `World`.
 
-use zircon_asset::{ProjectManager, SceneAsset};
+use zircon_asset::assets::SceneAsset;
+use zircon_asset::project::ProjectManager;
 use zircon_resource::ResourceLocator;
 
 use crate::world::{SceneProjectError, World};

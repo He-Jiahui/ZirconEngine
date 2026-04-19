@@ -2,6 +2,7 @@
 
 pub mod asset;
 mod builtin;
+pub mod extensions;
 pub mod foundation;
 pub mod graphics;
 pub mod input;

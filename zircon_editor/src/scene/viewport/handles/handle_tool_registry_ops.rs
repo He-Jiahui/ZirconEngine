@@ -1,13 +1,14 @@
 use crate::GizmoAxis;
-use zircon_math::{Transform, UVec2, Vec2};
-use zircon_scene::{
-    HandleOverlayExtract, Scene, SceneViewportSettings, SceneViewportTool, ViewportCameraSnapshot,
+use zircon_framework::render::{
+    HandleOverlayExtract, SceneViewportSettings, SceneViewportTool, ViewportCameraSnapshot,
 };
+use zircon_math::{Transform, UVec2, Vec2};
+use zircon_scene::Scene;
 
 use super::{
-    handle_commit::HandleCommit, handle_drag_context::HandleDragContext,
-    handle_drag_session::HandleDragSession, handle_pick_context::HandlePickContext,
-    handle_tool::HandleTool, handle_tool_registry::HandleToolRegistry,
+    handle_drag_context::HandleDragContext, handle_drag_session::HandleDragSession,
+    handle_pick_context::HandlePickContext, handle_tool::HandleTool,
+    handle_tool_registry::HandleToolRegistry,
 };
 
 impl HandleToolRegistry {
@@ -70,8 +71,10 @@ impl HandleToolRegistry {
         )
     }
 
-    pub(crate) fn end_drag(&self, session: HandleDragSession) -> Option<HandleCommit> {
-        self.tool(session.tool())?.end_drag(session)
+    pub(crate) fn end_drag(&self, session: HandleDragSession) {
+        if let Some(tool) = self.tool(session.tool()) {
+            tool.end_drag(session);
+        }
     }
 
     fn tool(&self, tool: SceneViewportTool) -> Option<&dyn HandleTool> {

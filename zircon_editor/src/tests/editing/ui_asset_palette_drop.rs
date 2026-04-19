@@ -1,6 +1,6 @@
 use crate::core::editing::ui_asset::UiAssetEditorSession;
 use crate::{UiAssetEditorMode, UiAssetEditorRoute, UiSize};
-use zircon_ui::{UiAssetKind, UiAssetLoader};
+use zircon_ui::{UiAssetKind, template::UiAssetLoader};
 
 const GRID_DROP_LAYOUT_ASSET_TOML: &str = r##"
 [asset]
@@ -1024,3 +1024,4 @@ fn numeric_slot_value(
         .as_float()
         .or_else(|| current.as_integer().map(|value| value as f64))
 }
+

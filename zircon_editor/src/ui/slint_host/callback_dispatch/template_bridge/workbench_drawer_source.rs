@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 
 use thiserror::Error;
+use zircon_ui::tree::UiTreeError;
 use zircon_ui::{AxisConstraint, StretchMode, UiFrame, UiSize, UiSurface};
 
 use crate::ui::slint_host::callback_dispatch::constants::BUILTIN_WORKBENCH_DRAWER_SOURCE_DOCUMENT_ID;
@@ -29,7 +30,7 @@ pub(crate) enum BuiltinWorkbenchDrawerSourceTemplateBridgeError {
     #[error(transparent)]
     HostRuntime(#[from] EditorUiHostRuntimeError),
     #[error(transparent)]
-    Layout(#[from] zircon_ui::UiTreeError),
+    Layout(#[from] UiTreeError),
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
@@ -123,6 +124,7 @@ impl BuiltinWorkbenchDrawerSourceTemplateBridge {
         Ok(Self { runtime, surface })
     }
 
+    #[cfg(test)]
     pub(crate) fn recompute_layout(
         &mut self,
         shell_size: UiSize,
@@ -329,7 +331,10 @@ fn surface_control_frame(surface: &UiSurface, control_id: &str) -> Option<UiFram
         .map(|node| node.layout_cache.frame)
 }
 
-fn surface_control_node_id(surface: &UiSurface, control_id: &str) -> Option<zircon_ui::UiNodeId> {
+fn surface_control_node_id(
+    surface: &UiSurface,
+    control_id: &str,
+) -> Option<zircon_ui::event_ui::UiNodeId> {
     surface.tree.nodes.values().find_map(|node| {
         node.template_metadata
             .as_ref()

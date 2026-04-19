@@ -1,8 +1,10 @@
 use std::collections::BTreeMap;
 
-use toml::{map::Map, Value};
 use crate::ui::UiDesignerSelectionModel;
-use zircon_ui::{UiAssetDocument, UiChildMount, UiNodeDefinition};
+use toml::{map::Map, Value};
+use zircon_ui::template::UiChildMount;
+use zircon_ui::UiAssetDocument;
+use zircon_ui::template::UiNodeDefinition;
 
 use super::style_rule_declarations::parse_declaration_literal;
 

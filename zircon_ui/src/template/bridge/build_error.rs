@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use crate::UiTreeError;
+use crate::tree::UiTreeError;
 
 #[derive(Clone, Debug, Error, PartialEq, Eq)]
 pub enum UiTemplateBuildError {

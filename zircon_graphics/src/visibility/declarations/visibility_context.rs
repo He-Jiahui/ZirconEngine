@@ -1,4 +1,4 @@
-use zircon_scene::EntityId;
+use zircon_framework::scene::EntityId;
 
 use super::{
     visibility_batch::VisibilityBatch, visibility_bvh_instance::VisibilityBvhInstance,
@@ -41,3 +41,4 @@ pub struct VisibilityContext {
     pub virtual_geometry_feedback: VisibilityVirtualGeometryFeedback,
     pub gpu_instancing_candidates: Vec<VisibilityBatch>,
 }
+

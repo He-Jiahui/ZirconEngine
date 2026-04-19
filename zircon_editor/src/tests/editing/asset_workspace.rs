@@ -1,7 +1,8 @@
-use zircon_asset::{
+use zircon_asset::editor::{
     EditorAssetCatalogRecord, EditorAssetCatalogSnapshotRecord, EditorAssetDetailsRecord,
-    EditorAssetFolderRecord, EditorAssetReferenceRecord, PreviewState,
+    EditorAssetFolderRecord, EditorAssetReferenceRecord,
 };
+use zircon_asset::project::PreviewState;
 use zircon_resource::{ResourceId, ResourceKind, ResourceLocator, ResourceRecord, ResourceState};
 
 use crate::core::editing::asset_workspace::AssetWorkspaceState;

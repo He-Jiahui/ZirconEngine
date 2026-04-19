@@ -1,5 +1,5 @@
+use zircon_framework::render::{DisplayMode, RenderMeshSnapshot};
 use zircon_math::{RenderMat4, Vec4};
-use zircon_scene::{DisplayMode, RenderMeshSnapshot};
 
 use crate::types::EditorOrRuntimeFrame;
 
@@ -9,7 +9,7 @@ use super::super::raster_draws_for_mesh::raster_draws_for_mesh;
 use super::super::virtual_geometry_cluster_streaming_tint::virtual_geometry_cluster_streaming_tint;
 use super::mesh_draw_build_context::MeshDrawBuildContext;
 use super::pending_mesh_draw::{
-    full_mesh_indirect_draw_ref, indirect_draw_ref_for_cluster_draw, PendingMeshDraw,
+    indirect_draw_ref_for_cluster_draw, PendingMeshDraw,
 };
 
 pub(super) fn extend_pending_draws_for_mesh_instance(
@@ -67,24 +67,16 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
                         indirect_draw_ref: Some(indirect_draw_ref_for_cluster_draw(
                             mesh_instance.node_id,
                             mesh.index_count,
+                            mesh.indirect_order_signature,
                             *cluster_draw,
                         )),
                     });
                 }
             } else {
-                pending_draws.push(PendingMeshDraw {
-                    mesh: mesh.clone(),
-                    texture: texture.clone(),
-                    pipeline_key: pipeline_key.clone(),
-                    model_matrix,
-                    draw_tint: base_tint,
-                    first_index: 0,
-                    draw_index_count: 0,
-                    indirect_draw_ref: Some(full_mesh_indirect_draw_ref(
-                        mesh_instance.node_id,
-                        mesh.index_count,
-                    )),
-                });
+                // Under the prepare-owned VG path, "no cluster draws" is authoritative:
+                // the entity collapsed out of unified indirect submission, so renderer-side
+                // mesh build must not resurrect a private full-mesh fallback draw.
+                continue;
             }
         } else {
             let raster_draws =

@@ -4,6 +4,7 @@ use crate::ui::slint_host::root_shell_projection::{
     resolve_root_right_region_frame,
 };
 use crate::ui::slint_host::tab_drag::resolve_workbench_tab_drop_route_with_root_frames;
+use crate::ui::slint_host::WorkbenchHostContext;
 use crate::ShellFrame;
 
 const WORKBENCH_POINTER_DOWN: i32 = 0;
@@ -59,14 +60,19 @@ impl SlintEditorHost {
             .drag_route_at(UiPoint::new(x, y))
             .and_then(|route| workbench_shell_pointer_route_group_key(&route))
             .unwrap_or_default();
-        self.ui.set_active_drag_target_group(value.into());
+        let host_shell = self.ui.global::<WorkbenchHostContext>();
+        let mut drag_state = host_shell.get_drag_state();
+        drag_state.active_drag_target_group = value.into();
+        host_shell.set_drag_state(drag_state);
     }
 
     fn dispatch_drag_drop_from_pointer(&mut self, x: f32, y: f32) {
         self.sync_drag_target_group(x, y);
 
-        let tab_id = self.ui.get_drag_tab_id().to_string();
-        let target_group = self.ui.get_active_drag_target_group().to_string();
+        let host_shell = self.ui.global::<WorkbenchHostContext>();
+        let drag_state = host_shell.get_drag_state();
+        let tab_id = drag_state.drag_tab_id.to_string();
+        let target_group = drag_state.active_drag_target_group.to_string();
         if tab_id.is_empty() || target_group.is_empty() {
             return;
         }

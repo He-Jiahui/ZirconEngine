@@ -1,4 +1,4 @@
-use zircon_ui::{UiFrame, UiPoint, UiPointerEvent, UiPointerEventKind};
+use zircon_ui::{dispatch::UiPointerEvent, UiFrame, UiPoint, UiPointerEventKind};
 
 use super::constants::{STRIP_Y, TAB_HEIGHT, TAB_MIN_WIDTH};
 use super::to_public_route::to_public_route;

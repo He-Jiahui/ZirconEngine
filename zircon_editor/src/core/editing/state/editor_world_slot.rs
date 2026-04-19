@@ -1,4 +1,5 @@
-use zircon_scene::{LevelSystem, Scene};
+use zircon_runtime::scene::LevelSystem;
+use zircon_scene::Scene;
 
 #[derive(Debug, Default)]
 pub struct EditorWorldSlot {

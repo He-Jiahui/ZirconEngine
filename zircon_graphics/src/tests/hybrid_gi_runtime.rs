@@ -1,4 +1,6 @@
-use zircon_scene::{RenderHybridGiExtract, RenderHybridGiProbe, RenderHybridGiTraceRegion};
+use zircon_framework::render::{
+    RenderHybridGiExtract, RenderHybridGiProbe, RenderHybridGiTraceRegion,
+};
 
 use crate::{
     runtime::{HybridGiProbeResidencyState, HybridGiProbeUpdateRequest, HybridGiRuntimeState},
@@ -436,6 +438,111 @@ fn hybrid_gi_runtime_state_applies_gpu_cache_snapshot_as_residency_truth() {
 }
 
 #[test]
+fn hybrid_gi_runtime_state_ignores_duplicate_gpu_cache_entries_after_first_unique_probe(
+) {
+    let mut state = HybridGiRuntimeState::default();
+    let extract = RenderHybridGiExtract {
+        probe_budget: 3,
+        tracing_budget: 1,
+        probes: vec![
+            probe(100, true, 64),
+            probe(200, false, 128),
+            probe(300, false, 96),
+            probe(500, true, 32),
+        ],
+        trace_regions: vec![trace_region(40)],
+    };
+
+    state.register_extract(Some(&extract));
+    state.ingest_plan(
+        14,
+        &VisibilityHybridGiUpdatePlan {
+            resident_probe_ids: vec![100, 500],
+            requested_probe_ids: vec![200, 300],
+            dirty_requested_probe_ids: vec![200, 300],
+            scheduled_trace_region_ids: vec![40],
+            evictable_probe_ids: vec![500],
+        },
+    );
+
+    state.apply_gpu_cache_entries(&[(100, 0), (200, 2), (200, 1), (300, 1)]);
+
+    assert_eq!(state.probe_slot(100), Some(0));
+    assert_eq!(
+        state.probe_slot(200),
+        Some(2),
+        "expected Hybrid GI runtime cache truth to keep the first unique cache entry for probe 200 instead of letting a later duplicate cache entry migrate the already-confirmed probe into a new slot"
+    );
+    assert_eq!(
+        state.probe_slot(300),
+        Some(1),
+        "expected later unique cache entries to keep their authoritative slot after duplicate entries for an earlier probe id are ignored"
+    );
+    assert_eq!(
+        state.probe_slot(500),
+        None,
+        "expected the later unique cache entry to recycle the stale resident probe instead of being blocked by a duplicate cache entry for an already-confirmed probe"
+    );
+    assert_eq!(
+        state.pending_updates(),
+        Vec::<HybridGiProbeUpdateRequest>::new(),
+        "expected duplicate GPU cache entries to stop leaving later unique pending probes stranded in the runtime update queue"
+    );
+}
+
+#[test]
+fn hybrid_gi_runtime_state_keeps_processing_later_unique_feedback_probe_completions_after_leading_duplicate_requests(
+) {
+    let mut state = HybridGiRuntimeState::default();
+    let extract = RenderHybridGiExtract {
+        probe_budget: 2,
+        tracing_budget: 1,
+        probes: vec![
+            probe(100, true, 64),
+            probe(200, false, 128),
+            probe(300, false, 96),
+        ],
+        trace_regions: vec![trace_region(40)],
+    };
+
+    state.register_extract(Some(&extract));
+    state.ingest_plan(
+        15,
+        &VisibilityHybridGiUpdatePlan {
+            resident_probe_ids: vec![100],
+            requested_probe_ids: vec![200, 300],
+            dirty_requested_probe_ids: vec![200, 300],
+            scheduled_trace_region_ids: vec![40],
+            evictable_probe_ids: vec![100],
+        },
+    );
+
+    state.consume_feedback(&VisibilityHybridGiFeedback {
+        active_probe_ids: vec![200, 300],
+        requested_probe_ids: vec![200, 200, 300],
+        scheduled_trace_region_ids: vec![40],
+        evictable_probe_ids: vec![100],
+    });
+
+    assert_eq!(
+        state.probe_slot(100),
+        None,
+        "expected Hybrid GI feedback completion to spend the one eviction on the later unique probe instead of wasting it on a duplicate request id"
+    );
+    assert_eq!(state.probe_slot(200), Some(1));
+    assert_eq!(
+        state.probe_slot(300),
+        Some(0),
+        "expected feedback-driven probe completion to keep processing later unique requested probes after leading duplicate ids instead of truncating at probe_budget before deduplication"
+    );
+    assert_eq!(
+        state.pending_updates(),
+        Vec::<HybridGiProbeUpdateRequest>::new(),
+        "expected duplicate feedback request ids to stop leaving later unique pending probes stranded in the runtime queue"
+    );
+}
+
+#[test]
 fn hybrid_gi_runtime_state_drops_stale_scene_probes_and_pending_updates_when_extract_shrinks() {
     let mut state = HybridGiRuntimeState::default();
     let initial_extract = RenderHybridGiExtract {
@@ -830,6 +937,699 @@ fn hybrid_gi_runtime_state_strengthens_resolve_weight_when_trace_schedule_suppor
     assert!(
         hierarchical_weight > flat_weight + 0.05,
         "expected runtime-host resolve weighting to strengthen when the current scheduled trace work still supports the probe lineage instead of leaving that scene-driven weighting entirely outside runtime resolve inputs; flat_weight={flat_weight:.3}, hierarchical_weight={hierarchical_weight:.3}"
+    );
+}
+
+#[test]
+fn hybrid_gi_runtime_state_strengthens_parent_resolve_weight_when_descendant_trace_schedule_supports_merge_back(
+) {
+    let supported_extract = RenderHybridGiExtract {
+        probe_budget: 2,
+        tracing_budget: 1,
+        probes: vec![
+            RenderHybridGiProbe {
+                radius: 0.08,
+                ..probe_at(100, true, 96, zircon_math::Vec3::ZERO)
+            },
+            RenderHybridGiProbe {
+                radius: 0.08,
+                ..probe_with_parent_at(
+                    200,
+                    true,
+                    96,
+                    100,
+                    zircon_math::Vec3::new(-0.8, 0.0, 0.0),
+                )
+            },
+        ],
+        trace_regions: vec![RenderHybridGiTraceRegion {
+            bounds_radius: 0.05,
+            ..trace_region_at(40, zircon_math::Vec3::new(-0.8, 0.0, 0.0))
+        }],
+    };
+    let flat_extract = RenderHybridGiExtract {
+        trace_regions: vec![trace_region_at(40, zircon_math::Vec3::new(2.4, 0.0, 0.0))],
+        ..supported_extract.clone()
+    };
+
+    let mut supported = HybridGiRuntimeState::default();
+    supported.register_extract(Some(&supported_extract));
+    supported.ingest_plan(
+        83,
+        &VisibilityHybridGiUpdatePlan {
+            resident_probe_ids: vec![100, 200],
+            requested_probe_ids: Vec::new(),
+            dirty_requested_probe_ids: Vec::new(),
+            scheduled_trace_region_ids: vec![40],
+            evictable_probe_ids: Vec::new(),
+        },
+    );
+
+    let mut flat = HybridGiRuntimeState::default();
+    flat.register_extract(Some(&flat_extract));
+    flat.ingest_plan(
+        83,
+        &VisibilityHybridGiUpdatePlan {
+            resident_probe_ids: vec![100, 200],
+            requested_probe_ids: Vec::new(),
+            dirty_requested_probe_ids: Vec::new(),
+            scheduled_trace_region_ids: vec![40],
+            evictable_probe_ids: Vec::new(),
+        },
+    );
+
+    let supported_weight = supported
+        .build_resolve_runtime()
+        .hierarchy_resolve_weight(100)
+        .expect("supported parent resolve weight");
+    let flat_weight = flat
+        .build_resolve_runtime()
+        .hierarchy_resolve_weight(100)
+        .expect("flat parent resolve weight");
+
+    assert!(
+        supported_weight > flat_weight + 0.04,
+        "expected merge-back parent resolve weighting to strengthen when a scheduled trace region still supports a resident child probe, instead of only counting scene-driven support that lands directly on the parent probe; flat_weight={flat_weight:.3}, supported_weight={supported_weight:.3}"
+    );
+}
+
+#[test]
+fn hybrid_gi_runtime_state_builds_parent_descendant_rt_continuation_after_child_trace_schedule_clears(
+) {
+    let supported_extract = RenderHybridGiExtract {
+        probe_budget: 2,
+        tracing_budget: 1,
+        probes: vec![
+            RenderHybridGiProbe {
+                radius: 0.08,
+                ..probe_at(100, true, 96, zircon_math::Vec3::ZERO)
+            },
+            RenderHybridGiProbe {
+                radius: 0.08,
+                ..probe_with_parent_at(
+                    200,
+                    true,
+                    96,
+                    100,
+                    zircon_math::Vec3::new(-0.8, 0.0, 0.0),
+                )
+            },
+        ],
+        trace_regions: vec![RenderHybridGiTraceRegion {
+            bounds_radius: 0.05,
+            ..trace_region_at(40, zircon_math::Vec3::new(-0.8, 0.0, 0.0))
+        }],
+    };
+    let flat_extract = RenderHybridGiExtract {
+        trace_regions: vec![trace_region_at(40, zircon_math::Vec3::new(2.4, 0.0, 0.0))],
+        ..supported_extract.clone()
+    };
+
+    let mut supported_warm = HybridGiRuntimeState::default();
+    supported_warm.register_extract(Some(&supported_extract));
+    supported_warm.ingest_plan(
+        84,
+        &VisibilityHybridGiUpdatePlan {
+            resident_probe_ids: vec![100, 200],
+            requested_probe_ids: Vec::new(),
+            dirty_requested_probe_ids: Vec::new(),
+            scheduled_trace_region_ids: vec![40],
+            evictable_probe_ids: Vec::new(),
+        },
+    );
+    supported_warm.complete_gpu_updates([], [40], &[], &[(200, [240, 96, 48])], &[]);
+    supported_warm.ingest_plan(
+        85,
+        &VisibilityHybridGiUpdatePlan {
+            resident_probe_ids: vec![100, 200],
+            requested_probe_ids: Vec::new(),
+            dirty_requested_probe_ids: Vec::new(),
+            scheduled_trace_region_ids: Vec::new(),
+            evictable_probe_ids: Vec::new(),
+        },
+    );
+
+    let mut supported_cool = HybridGiRuntimeState::default();
+    supported_cool.register_extract(Some(&supported_extract));
+    supported_cool.ingest_plan(
+        84,
+        &VisibilityHybridGiUpdatePlan {
+            resident_probe_ids: vec![100, 200],
+            requested_probe_ids: Vec::new(),
+            dirty_requested_probe_ids: Vec::new(),
+            scheduled_trace_region_ids: vec![40],
+            evictable_probe_ids: Vec::new(),
+        },
+    );
+    supported_cool.complete_gpu_updates([], [40], &[], &[(200, [48, 96, 240])], &[]);
+    supported_cool.ingest_plan(
+        85,
+        &VisibilityHybridGiUpdatePlan {
+            resident_probe_ids: vec![100, 200],
+            requested_probe_ids: Vec::new(),
+            dirty_requested_probe_ids: Vec::new(),
+            scheduled_trace_region_ids: Vec::new(),
+            evictable_probe_ids: Vec::new(),
+        },
+    );
+
+    let mut flat = HybridGiRuntimeState::default();
+    flat.register_extract(Some(&flat_extract));
+    flat.ingest_plan(
+        84,
+        &VisibilityHybridGiUpdatePlan {
+            resident_probe_ids: vec![100, 200],
+            requested_probe_ids: Vec::new(),
+            dirty_requested_probe_ids: Vec::new(),
+            scheduled_trace_region_ids: vec![40],
+            evictable_probe_ids: Vec::new(),
+        },
+    );
+    flat.complete_gpu_updates([], [40], &[], &[(200, [240, 96, 48])], &[]);
+    flat.ingest_plan(
+        85,
+        &VisibilityHybridGiUpdatePlan {
+            resident_probe_ids: vec![100, 200],
+            requested_probe_ids: Vec::new(),
+            dirty_requested_probe_ids: Vec::new(),
+            scheduled_trace_region_ids: Vec::new(),
+            evictable_probe_ids: Vec::new(),
+        },
+    );
+
+    let supported_warm_runtime = supported_warm.build_resolve_runtime();
+    let supported_cool_runtime = supported_cool.build_resolve_runtime();
+    let flat_runtime = flat.build_resolve_runtime();
+    let supported_warm_parent_rt = supported_warm_runtime
+        .hierarchy_rt_lighting(100)
+        .unwrap_or([0.0, 0.0, 0.0, 0.0]);
+    let supported_cool_parent_rt = supported_cool_runtime
+        .hierarchy_rt_lighting(100)
+        .unwrap_or([0.0, 0.0, 0.0, 0.0]);
+    let flat_parent_rt = flat_runtime
+        .hierarchy_rt_lighting(100)
+        .unwrap_or([0.0, 0.0, 0.0, 0.0]);
+
+    assert!(
+        supported_warm_parent_rt[3] > flat_parent_rt[3] + 0.015,
+        "expected merge-back parent runtime resolve inputs to keep descendant RT-lighting continuation for one more frame after the child trace schedule clears, instead of dropping the parent back to the same flat no-support path; flat_parent_rt={flat_parent_rt:?}, supported_warm_parent_rt={supported_warm_parent_rt:?}"
+    );
+    assert!(
+        supported_warm_parent_rt[0] > supported_cool_parent_rt[0] + 0.2,
+        "expected merge-back parent runtime resolve inputs to retain warm descendant RT-lighting color after the child trace schedule clears, instead of flattening warm/cool child history into the same parent continuation; supported_warm_parent_rt={supported_warm_parent_rt:?}, supported_cool_parent_rt={supported_cool_parent_rt:?}"
+    );
+    assert!(
+        supported_cool_parent_rt[2] > supported_warm_parent_rt[2] + 0.2,
+        "expected merge-back parent runtime resolve inputs to retain cool descendant RT-lighting color after the child trace schedule clears, instead of flattening warm/cool child history into the same parent continuation; supported_warm_parent_rt={supported_warm_parent_rt:?}, supported_cool_parent_rt={supported_cool_parent_rt:?}"
+    );
+}
+
+#[test]
+fn hybrid_gi_runtime_state_deduplicates_scheduled_trace_region_ids_before_lineage_support_scoring(
+) {
+    let extract = RenderHybridGiExtract {
+        probe_budget: 2,
+        tracing_budget: 1,
+        probes: vec![
+            probe_at(100, true, 96, zircon_math::Vec3::new(-0.8, 0.0, 0.0)),
+            probe_with_parent_at(200, false, 80, 100, zircon_math::Vec3::ZERO),
+        ],
+        trace_regions: vec![trace_region_at(40, zircon_math::Vec3::new(-0.8, 0.0, 0.0))],
+    };
+
+    let mut unique = HybridGiRuntimeState::default();
+    unique.register_extract(Some(&extract));
+    unique.ingest_plan(
+        71,
+        &VisibilityHybridGiUpdatePlan {
+            resident_probe_ids: vec![100],
+            requested_probe_ids: vec![200],
+            dirty_requested_probe_ids: vec![200],
+            scheduled_trace_region_ids: vec![40],
+            evictable_probe_ids: Vec::new(),
+        },
+    );
+
+    let mut duplicated = HybridGiRuntimeState::default();
+    duplicated.register_extract(Some(&extract));
+    duplicated.ingest_plan(
+        71,
+        &VisibilityHybridGiUpdatePlan {
+            resident_probe_ids: vec![100],
+            requested_probe_ids: vec![200],
+            dirty_requested_probe_ids: vec![200],
+            scheduled_trace_region_ids: vec![40, 40],
+            evictable_probe_ids: Vec::new(),
+        },
+    );
+
+    let unique_weight = unique
+        .build_resolve_runtime()
+        .hierarchy_resolve_weight(200)
+        .expect("unique trace schedule weight");
+    let duplicated_weight = duplicated
+        .build_resolve_runtime()
+        .hierarchy_resolve_weight(200)
+        .expect("duplicated trace schedule weight");
+
+    assert!(
+        (duplicated_weight - unique_weight).abs() <= 0.001,
+        "expected duplicate scheduled trace-region ids to be ignored before scene-driven lineage support scoring instead of artificially inflating runtime resolve weight; unique_weight={unique_weight:.3}, duplicated_weight={duplicated_weight:.3}"
+    );
+}
+
+#[test]
+fn hybrid_gi_runtime_state_keeps_recent_lineage_trace_support_for_pending_probe_order_after_schedule_clears(
+) {
+    let extract = RenderHybridGiExtract {
+        probe_budget: 3,
+        tracing_budget: 1,
+        probes: vec![
+            probe_at(100, true, 96, zircon_math::Vec3::new(-0.8, 0.0, 0.0)),
+            probe_with_parent_at(200, false, 72, 100, zircon_math::Vec3::ZERO),
+            probe_at(300, false, 80, zircon_math::Vec3::new(0.85, 0.0, 0.0)),
+        ],
+        trace_regions: vec![trace_region_at(40, zircon_math::Vec3::new(-0.8, 0.0, 0.0))],
+    };
+    let mut state = HybridGiRuntimeState::default();
+    state.register_extract(Some(&extract));
+    state.ingest_plan(
+        58,
+        &VisibilityHybridGiUpdatePlan {
+            resident_probe_ids: vec![100],
+            requested_probe_ids: vec![200, 300],
+            dirty_requested_probe_ids: vec![200, 300],
+            scheduled_trace_region_ids: vec![40],
+            evictable_probe_ids: Vec::new(),
+        },
+    );
+
+    state.ingest_plan(
+        59,
+        &VisibilityHybridGiUpdatePlan {
+            resident_probe_ids: vec![100],
+            requested_probe_ids: vec![200, 300],
+            dirty_requested_probe_ids: Vec::new(),
+            scheduled_trace_region_ids: Vec::new(),
+            evictable_probe_ids: Vec::new(),
+        },
+    );
+
+    let prepare = state.build_prepare_frame();
+    assert_eq!(
+        prepare.pending_updates,
+        vec![
+            HybridGiPrepareUpdateRequest {
+                probe_id: 200,
+                ray_budget: 72,
+                generation: 58,
+            },
+            HybridGiPrepareUpdateRequest {
+                probe_id: 300,
+                ray_budget: 80,
+                generation: 58,
+            },
+        ],
+        "expected runtime prepare to keep prioritizing the hierarchy-supported child probe for one more frame after the trace schedule clears, instead of immediately falling back to flat root-first ordering and losing scene-driven probe-request continuation"
+    );
+}
+
+#[test]
+fn hybrid_gi_runtime_state_keeps_recent_lineage_trace_support_in_resolve_runtime_after_schedule_clears(
+) {
+    let supported_extract = RenderHybridGiExtract {
+        probe_budget: 2,
+        tracing_budget: 1,
+        probes: vec![
+            probe_at(100, true, 96, zircon_math::Vec3::new(-0.8, 0.0, 0.0)),
+            probe_with_parent_at(200, true, 96, 100, zircon_math::Vec3::ZERO),
+        ],
+        trace_regions: vec![trace_region_at(40, zircon_math::Vec3::new(-0.8, 0.0, 0.0))],
+    };
+    let flat_extract = RenderHybridGiExtract {
+        trace_regions: vec![trace_region_at(40, zircon_math::Vec3::new(2.4, 0.0, 0.0))],
+        ..supported_extract.clone()
+    };
+
+    let mut supported = HybridGiRuntimeState::default();
+    supported.register_extract(Some(&supported_extract));
+    supported.ingest_plan(
+        60,
+        &VisibilityHybridGiUpdatePlan {
+            resident_probe_ids: vec![100, 200],
+            requested_probe_ids: Vec::new(),
+            dirty_requested_probe_ids: Vec::new(),
+            scheduled_trace_region_ids: vec![40],
+            evictable_probe_ids: Vec::new(),
+        },
+    );
+    supported.complete_gpu_updates(
+        [],
+        [40],
+        &[(100, [144, 120, 96]), (200, [120, 120, 120])],
+        &[(100, [240, 96, 48]), (200, [176, 112, 72])],
+        &[],
+    );
+    supported.ingest_plan(
+        61,
+        &VisibilityHybridGiUpdatePlan {
+            resident_probe_ids: vec![100, 200],
+            requested_probe_ids: Vec::new(),
+            dirty_requested_probe_ids: Vec::new(),
+            scheduled_trace_region_ids: Vec::new(),
+            evictable_probe_ids: Vec::new(),
+        },
+    );
+
+    let mut flat = HybridGiRuntimeState::default();
+    flat.register_extract(Some(&flat_extract));
+    flat.ingest_plan(
+        60,
+        &VisibilityHybridGiUpdatePlan {
+            resident_probe_ids: vec![100, 200],
+            requested_probe_ids: Vec::new(),
+            dirty_requested_probe_ids: Vec::new(),
+            scheduled_trace_region_ids: vec![40],
+            evictable_probe_ids: Vec::new(),
+        },
+    );
+    flat.complete_gpu_updates(
+        [],
+        [40],
+        &[(100, [144, 120, 96]), (200, [120, 120, 120])],
+        &[(100, [240, 96, 48]), (200, [176, 112, 72])],
+        &[],
+    );
+    flat.ingest_plan(
+        61,
+        &VisibilityHybridGiUpdatePlan {
+            resident_probe_ids: vec![100, 200],
+            requested_probe_ids: Vec::new(),
+            dirty_requested_probe_ids: Vec::new(),
+            scheduled_trace_region_ids: Vec::new(),
+            evictable_probe_ids: Vec::new(),
+        },
+    );
+
+    let supported_runtime = supported.build_resolve_runtime();
+    let flat_runtime = flat.build_resolve_runtime();
+    let supported_weight = supported_runtime
+        .hierarchy_resolve_weight(200)
+        .expect("supported hierarchy resolve weight");
+    let flat_weight = flat_runtime
+        .hierarchy_resolve_weight(200)
+        .expect("flat hierarchy resolve weight");
+    let supported_rt_weight = supported_runtime
+        .hierarchy_rt_lighting(200)
+        .expect("supported hierarchy rt lighting")[3];
+    let flat_rt_weight = flat_runtime
+        .hierarchy_rt_lighting(200)
+        .expect("flat hierarchy rt lighting")[3];
+
+    assert!(
+        supported_weight > flat_weight + 0.04,
+        "expected runtime-host resolve weighting to retain recent scene-driven lineage support for one more frame after the trace schedule clears, instead of collapsing immediately to the same flat hierarchy weight; flat_weight={flat_weight:.3}, supported_weight={supported_weight:.3}"
+    );
+    assert!(
+        supported_rt_weight > flat_rt_weight + 0.02,
+        "expected hierarchy RT-lighting continuation to preserve stronger scene-driven support after the trace schedule clears, instead of immediately matching the flat no-support runtime path; flat_rt_weight={flat_rt_weight:.3}, supported_rt_weight={supported_rt_weight:.3}"
+    );
+}
+
+#[test]
+fn hybrid_gi_runtime_state_builds_pending_probe_hierarchy_rt_continuation_after_schedule_clears()
+{
+    let supported_extract = RenderHybridGiExtract {
+        probe_budget: 2,
+        tracing_budget: 1,
+        probes: vec![
+            probe_at(100, true, 96, zircon_math::Vec3::new(-0.8, 0.0, 0.0)),
+            probe_with_parent_at(200, false, 88, 100, zircon_math::Vec3::ZERO),
+        ],
+        trace_regions: vec![trace_region_at(40, zircon_math::Vec3::new(-0.8, 0.0, 0.0))],
+    };
+    let flat_extract = RenderHybridGiExtract {
+        trace_regions: vec![trace_region_at(40, zircon_math::Vec3::new(2.4, 0.0, 0.0))],
+        ..supported_extract.clone()
+    };
+
+    let mut supported = HybridGiRuntimeState::default();
+    supported.register_extract(Some(&supported_extract));
+    supported.ingest_plan(
+        62,
+        &VisibilityHybridGiUpdatePlan {
+            resident_probe_ids: vec![100],
+            requested_probe_ids: vec![200],
+            dirty_requested_probe_ids: vec![200],
+            scheduled_trace_region_ids: vec![40],
+            evictable_probe_ids: Vec::new(),
+        },
+    );
+    supported.complete_gpu_updates(
+        [],
+        [40],
+        &[(100, [144, 120, 96])],
+        &[(100, [240, 96, 48])],
+        &[],
+    );
+    supported.ingest_plan(
+        63,
+        &VisibilityHybridGiUpdatePlan {
+            resident_probe_ids: vec![100],
+            requested_probe_ids: vec![200],
+            dirty_requested_probe_ids: Vec::new(),
+            scheduled_trace_region_ids: Vec::new(),
+            evictable_probe_ids: Vec::new(),
+        },
+    );
+
+    let mut flat = HybridGiRuntimeState::default();
+    flat.register_extract(Some(&flat_extract));
+    flat.ingest_plan(
+        62,
+        &VisibilityHybridGiUpdatePlan {
+            resident_probe_ids: vec![100],
+            requested_probe_ids: vec![200],
+            dirty_requested_probe_ids: vec![200],
+            scheduled_trace_region_ids: vec![40],
+            evictable_probe_ids: Vec::new(),
+        },
+    );
+    flat.complete_gpu_updates(
+        [],
+        [40],
+        &[(100, [144, 120, 96])],
+        &[(100, [240, 96, 48])],
+        &[],
+    );
+    flat.ingest_plan(
+        63,
+        &VisibilityHybridGiUpdatePlan {
+            resident_probe_ids: vec![100],
+            requested_probe_ids: vec![200],
+            dirty_requested_probe_ids: Vec::new(),
+            scheduled_trace_region_ids: Vec::new(),
+            evictable_probe_ids: Vec::new(),
+        },
+    );
+
+    let supported_runtime = supported.build_resolve_runtime();
+    let flat_runtime = flat.build_resolve_runtime();
+    let supported_rt_weight = supported_runtime
+        .hierarchy_rt_lighting(200)
+        .expect("supported pending hierarchy rt lighting")[3];
+    let flat_rt_weight = flat_runtime
+        .hierarchy_rt_lighting(200)
+        .expect("flat pending hierarchy rt lighting")[3];
+    let supported_resolve_weight = supported_runtime
+        .hierarchy_resolve_weight(200)
+        .expect("supported pending hierarchy resolve weight");
+    let flat_resolve_weight = flat_runtime
+        .hierarchy_resolve_weight(200)
+        .expect("flat pending hierarchy resolve weight");
+
+    assert!(
+        supported_rt_weight > flat_rt_weight + 0.002,
+        "expected runtime-host resolve inputs to keep hierarchy RT-lighting continuation for pending probes after the trace schedule clears instead of dropping pending probes from the runtime source map; flat_rt_weight={flat_rt_weight:.3}, supported_rt_weight={supported_rt_weight:.3}"
+    );
+    assert!(
+        supported_resolve_weight > flat_resolve_weight + 0.03,
+        "expected runtime-host resolve inputs to keep hierarchy resolve weighting for pending probes after the trace schedule clears instead of emitting only resident entries; flat_resolve_weight={flat_resolve_weight:.3}, supported_resolve_weight={supported_resolve_weight:.3}"
+    );
+}
+
+#[test]
+fn hybrid_gi_runtime_state_uses_requested_lineage_support_in_runtime_resolve_without_trace_schedule(
+) {
+    let extract = RenderHybridGiExtract {
+        probe_budget: 2,
+        tracing_budget: 0,
+        probes: vec![
+            probe(100, true, 64),
+            probe_with_parent(200, false, 96, 100),
+        ],
+        trace_regions: Vec::new(),
+    };
+
+    let mut requested = HybridGiRuntimeState::default();
+    requested.register_extract(Some(&extract));
+    requested.complete_gpu_updates(
+        [],
+        [],
+        &[],
+        &[(100, [220, 80, 32])],
+        &[],
+    );
+    requested.ingest_plan(
+        64,
+        &VisibilityHybridGiUpdatePlan {
+            resident_probe_ids: Vec::new(),
+            requested_probe_ids: vec![200],
+            dirty_requested_probe_ids: vec![200],
+            scheduled_trace_region_ids: Vec::new(),
+            evictable_probe_ids: Vec::new(),
+        },
+    );
+
+    let mut flat = HybridGiRuntimeState::default();
+    flat.register_extract(Some(&extract));
+    flat.complete_gpu_updates(
+        [],
+        [],
+        &[],
+        &[(100, [220, 80, 32])],
+        &[],
+    );
+    flat.ingest_plan(
+        64,
+        &VisibilityHybridGiUpdatePlan {
+            resident_probe_ids: Vec::new(),
+            requested_probe_ids: Vec::new(),
+            dirty_requested_probe_ids: vec![200],
+            scheduled_trace_region_ids: Vec::new(),
+            evictable_probe_ids: Vec::new(),
+        },
+    );
+
+    let requested_runtime = requested.build_resolve_runtime();
+    let flat_runtime = flat.build_resolve_runtime();
+    let requested_resolve_weight = requested_runtime
+        .hierarchy_resolve_weight(200)
+        .expect("requested hierarchy resolve weight");
+    let flat_resolve_weight = flat_runtime
+        .hierarchy_resolve_weight(200)
+        .expect("flat hierarchy resolve weight");
+    let requested_rt_weight = requested_runtime
+        .hierarchy_rt_lighting(200)
+        .expect("requested hierarchy rt lighting")[3];
+    let flat_rt_weight = flat_runtime
+        .hierarchy_rt_lighting(200)
+        .expect("flat hierarchy rt lighting")[3];
+
+    assert!(
+        requested_resolve_weight > flat_resolve_weight + 0.08,
+        "expected runtime-host resolve inputs to strengthen a still-requested screen-probe lineage even when no current trace schedule exists, instead of collapsing requested hierarchy continuation down to the same flat pending-probe weight; flat_resolve_weight={flat_resolve_weight:.3}, requested_resolve_weight={requested_resolve_weight:.3}"
+    );
+    assert!(
+        requested_rt_weight > flat_rt_weight + 0.015,
+        "expected requested screen-probe lineage support to keep RT-lighting continuation alive in runtime resolve inputs without a current trace schedule, instead of leaving the requested pending probe on the same zero-support path as an unrelated flat probe; flat_rt_weight={flat_rt_weight:.3}, requested_rt_weight={requested_rt_weight:.3}"
+    );
+}
+
+#[test]
+fn hybrid_gi_runtime_state_keeps_recent_requested_lineage_support_after_request_clears() {
+    let extract = RenderHybridGiExtract {
+        probe_budget: 2,
+        tracing_budget: 0,
+        probes: vec![
+            probe(100, true, 64),
+            probe_with_parent(200, false, 96, 100),
+        ],
+        trace_regions: Vec::new(),
+    };
+
+    let mut supported = HybridGiRuntimeState::default();
+    supported.register_extract(Some(&extract));
+    supported.complete_gpu_updates(
+        [],
+        [],
+        &[],
+        &[(100, [220, 80, 32])],
+        &[],
+    );
+    supported.ingest_plan(
+        65,
+        &VisibilityHybridGiUpdatePlan {
+            resident_probe_ids: Vec::new(),
+            requested_probe_ids: vec![200],
+            dirty_requested_probe_ids: vec![200],
+            scheduled_trace_region_ids: Vec::new(),
+            evictable_probe_ids: Vec::new(),
+        },
+    );
+    supported.ingest_plan(
+        66,
+        &VisibilityHybridGiUpdatePlan {
+            resident_probe_ids: Vec::new(),
+            requested_probe_ids: Vec::new(),
+            dirty_requested_probe_ids: Vec::new(),
+            scheduled_trace_region_ids: Vec::new(),
+            evictable_probe_ids: Vec::new(),
+        },
+    );
+
+    let mut flat = HybridGiRuntimeState::default();
+    flat.register_extract(Some(&extract));
+    flat.complete_gpu_updates(
+        [],
+        [],
+        &[],
+        &[(100, [220, 80, 32])],
+        &[],
+    );
+    flat.ingest_plan(
+        65,
+        &VisibilityHybridGiUpdatePlan {
+            resident_probe_ids: Vec::new(),
+            requested_probe_ids: Vec::new(),
+            dirty_requested_probe_ids: vec![200],
+            scheduled_trace_region_ids: Vec::new(),
+            evictable_probe_ids: Vec::new(),
+        },
+    );
+    flat.ingest_plan(
+        66,
+        &VisibilityHybridGiUpdatePlan {
+            resident_probe_ids: Vec::new(),
+            requested_probe_ids: Vec::new(),
+            dirty_requested_probe_ids: Vec::new(),
+            scheduled_trace_region_ids: Vec::new(),
+            evictable_probe_ids: Vec::new(),
+        },
+    );
+
+    let supported_runtime = supported.build_resolve_runtime();
+    let flat_runtime = flat.build_resolve_runtime();
+    let supported_resolve_weight = supported_runtime
+        .hierarchy_resolve_weight(200)
+        .expect("supported hierarchy resolve weight");
+    let flat_resolve_weight = flat_runtime
+        .hierarchy_resolve_weight(200)
+        .expect("flat hierarchy resolve weight");
+    let supported_rt_weight = supported_runtime
+        .hierarchy_rt_lighting(200)
+        .expect("supported hierarchy rt lighting")[3];
+    let flat_rt_weight = flat_runtime
+        .hierarchy_rt_lighting(200)
+        .expect("flat hierarchy rt lighting")[3];
+
+    assert!(
+        supported_resolve_weight > flat_resolve_weight + 0.04,
+        "expected runtime-host resolve inputs to preserve one more frame of requested-lineage hierarchy support after the current request clears, instead of immediately collapsing pending probe weighting to the same flat no-request path; flat_resolve_weight={flat_resolve_weight:.3}, supported_resolve_weight={supported_resolve_weight:.3}"
+    );
+    assert!(
+        supported_rt_weight > flat_rt_weight + 0.015,
+        "expected requested-lineage history to keep hierarchy RT-lighting continuation alive for one more frame after the request clears, instead of immediately erasing the runtime/GPU source distinction; flat_rt_weight={flat_rt_weight:.3}, supported_rt_weight={supported_rt_weight:.3}"
     );
 }
 

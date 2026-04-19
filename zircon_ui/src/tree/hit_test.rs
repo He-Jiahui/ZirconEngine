@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{UiNodeId, UiPoint, UiTree};
+use crate::event_ui::UiNodeId;
+use crate::{UiPoint, UiTree};
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UiHitTestResult {

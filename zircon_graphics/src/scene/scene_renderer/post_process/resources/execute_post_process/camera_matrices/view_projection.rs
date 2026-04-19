@@ -1,5 +1,5 @@
+use zircon_framework::render::{ProjectionMode, ViewportCameraSnapshot};
 use zircon_math::{view_matrix, Mat4, UVec2};
-use zircon_scene::{ProjectionMode, ViewportCameraSnapshot};
 
 use super::orthographic_projection::orthographic_projection;
 use super::perspective_projection::perspective_projection;

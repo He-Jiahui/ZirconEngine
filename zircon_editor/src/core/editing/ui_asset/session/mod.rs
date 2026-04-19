@@ -6,7 +6,7 @@ use super::{
     source::{source_buffer, source_sync},
     style::{
         inspector_fields, inspector_semantics, style_rule_declarations, theme_authoring,
-        theme_cascade_inspection, theme_summary,
+        theme_cascade_inspection, theme_compare, theme_summary,
     },
     tree::{palette_drop, tree_editing},
     undo_stack,
@@ -18,4 +18,6 @@ pub(crate) mod session_state;
 pub(crate) mod style_inspection;
 pub(crate) mod ui_asset_editor_session;
 
-pub use ui_asset_editor_session::{UiAssetEditorSession, UiAssetEditorSessionError};
+pub use ui_asset_editor_session::{
+    UiAssetEditorReplayResult, UiAssetEditorSession, UiAssetEditorSessionError,
+};

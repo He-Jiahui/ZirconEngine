@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use zircon_asset::{
+use zircon_asset::editor::{
     EditorAssetCatalogRecord, EditorAssetCatalogSnapshotRecord, EditorAssetDetailsRecord,
     EditorAssetFolderRecord,
 };
@@ -422,7 +422,7 @@ fn asset_matches_filters(
 }
 
 fn reference_snapshot(
-    reference: &zircon_asset::EditorAssetReferenceRecord,
+    reference: &zircon_asset::editor::EditorAssetReferenceRecord,
 ) -> AssetReferenceSnapshot {
     AssetReferenceSnapshot {
         uuid: reference.uuid.clone(),

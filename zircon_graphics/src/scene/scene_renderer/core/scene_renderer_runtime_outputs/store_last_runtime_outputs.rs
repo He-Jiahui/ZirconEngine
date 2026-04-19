@@ -13,8 +13,12 @@ pub(in crate::scene::scene_renderer::core) fn store_last_runtime_outputs(
     indirect_draw_count: u32,
     indirect_buffer_count: u32,
     indirect_segment_count: u32,
+    indirect_draw_submission_order: Vec<(u64, u32)>,
+    indirect_draw_submission_records: Vec<(u64, u32, u64, usize)>,
+    indirect_draw_submission_token_records: Vec<(u64, u32, u32, u32, usize)>,
     indirect_args_buffer: Option<Arc<wgpu::Buffer>>,
     indirect_args_count: u32,
+    indirect_submission_buffer: Option<Arc<wgpu::Buffer>>,
     indirect_draw_ref_buffer: Option<Arc<wgpu::Buffer>>,
     indirect_segment_buffer: Option<Arc<wgpu::Buffer>>,
 ) -> Result<(), GraphicsError> {
@@ -27,8 +31,13 @@ pub(in crate::scene::scene_renderer::core) fn store_last_runtime_outputs(
     renderer.last_virtual_geometry_indirect_draw_count = indirect_draw_count;
     renderer.last_virtual_geometry_indirect_buffer_count = indirect_buffer_count;
     renderer.last_virtual_geometry_indirect_segment_count = indirect_segment_count;
+    renderer.last_virtual_geometry_mesh_draw_submission_order = indirect_draw_submission_order;
+    renderer.last_virtual_geometry_mesh_draw_submission_records = indirect_draw_submission_records;
+    renderer.last_virtual_geometry_mesh_draw_submission_token_records =
+        indirect_draw_submission_token_records;
     renderer.last_virtual_geometry_indirect_args_buffer = indirect_args_buffer;
     renderer.last_virtual_geometry_indirect_args_count = indirect_args_count;
+    renderer.last_virtual_geometry_indirect_submission_buffer = indirect_submission_buffer;
     renderer.last_virtual_geometry_indirect_draw_refs_buffer = indirect_draw_ref_buffer;
     renderer.last_virtual_geometry_indirect_segments_buffer = indirect_segment_buffer;
     Ok(())

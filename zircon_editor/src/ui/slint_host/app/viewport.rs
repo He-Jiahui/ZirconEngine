@@ -4,7 +4,7 @@ use crate::ui::slint_host::root_shell_projection::{
     resolve_root_right_region_frame, resolve_root_viewport_content_frame,
 };
 use crate::{ActivityDrawerSlot, ViewHost};
-use zircon_ui::{UiPointerButton, UiPointerEvent, UiPointerEventKind};
+use zircon_ui::{dispatch::UiPointerEvent, UiPointerButton, UiPointerEventKind};
 
 const VIEWPORT_POINTER_DOWN: i32 = 0;
 const VIEWPORT_POINTER_MOVE: i32 = 1;

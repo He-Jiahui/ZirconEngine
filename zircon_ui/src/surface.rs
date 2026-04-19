@@ -1,11 +1,14 @@
 use serde::{Deserialize, Serialize};
 use toml::Value;
 
-use crate::{
-    compute_layout_tree, UiFrame, UiHitTestIndex, UiHitTestResult, UiNavigationDispatchResult,
-    UiNavigationDispatcher, UiNodeId, UiPoint, UiPointerDispatchResult, UiPointerDispatcher,
-    UiPointerEvent, UiSize, UiTemplateNodeMetadata, UiTree, UiTreeError, UiTreeId,
+use crate::dispatch::{
+    UiNavigationDispatchResult, UiNavigationDispatcher, UiPointerDispatchResult,
+    UiPointerDispatcher, UiPointerEvent,
 };
+use crate::event_ui::{UiNodeId, UiTreeId};
+use crate::layout::compute_layout_tree;
+use crate::tree::{UiHitTestIndex, UiHitTestResult, UiTemplateNodeMetadata, UiTreeError};
+use crate::{UiFrame, UiPoint, UiSize, UiTree};
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UiFocusState {

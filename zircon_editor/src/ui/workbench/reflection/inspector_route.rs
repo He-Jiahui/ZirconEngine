@@ -1,7 +1,7 @@
 use crate::ui::{
     EditorActivityReflection, EditorUiBinding, EditorUiBindingPayload, EditorUiControlService,
 };
-use zircon_ui::UiEventKind;
+use zircon_ui::binding::UiEventKind;
 
 use super::name_mapping::binding_view_id;
 use super::route_registration::register_stub_route;
@@ -10,9 +10,12 @@ pub(super) fn register_inspector_route(
     service: &mut EditorUiControlService,
     activity: &EditorActivityReflection,
     event_kind: UiEventKind,
-) -> Option<zircon_ui::UiRouteId> {
-    let path =
-        zircon_ui::UiEventPath::new(binding_view_id(activity), "ApplyBatchButton", event_kind);
+) -> Option<zircon_ui::event_ui::UiRouteId> {
+    let path = zircon_ui::binding::UiEventPath::new(
+        binding_view_id(activity),
+        "ApplyBatchButton",
+        event_kind,
+    );
     let default_subject = "entity://selected".to_string();
     let registration_binding = EditorUiBinding::new(
         path.view_id.clone(),

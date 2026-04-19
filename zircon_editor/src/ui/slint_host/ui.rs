@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::rc::Rc;
 
-use slint::{Image, ModelRc, SharedString, VecModel};
 use crate::ui::{EditorUiBinding, EditorUiBindingPayload};
+use slint::{Image, ModelRc, SharedString, VecModel};
 use zircon_resource::{ResourceKind, ResourceState};
 
 use crate::layout::ActivityDrawerSlot;
@@ -20,10 +20,11 @@ use crate::{ShellFrame, ShellRegionId, WorkbenchShellGeometry};
 
 use super::tab_drag::{floating_window_edge_group_key, floating_window_group_key};
 use super::{
-    AssetFolderData, AssetItemData, AssetReferenceData, AssetSelectionData, BreadcrumbData,
-    FloatingWindowData, FrameRect, NewProjectFormData, PaneData, ProjectOverviewData,
-    RecentProjectData, SceneNodeData, SceneViewportChromeData, TabData, UiAssetCanvasNodeData,
-    UiAssetCanvasSlotTargetData, UiHostWindow, WelcomePaneData,
+    AssetFolderData, AssetItemData, AssetReferenceData, AssetSelectionData, FloatingWindowData,
+    FrameRect, HostWindowLayoutData, HostWindowShellData, HostWindowSurfaceData,
+    NewProjectFormData, PaneData, ProjectOverviewData, RecentProjectData, SceneNodeData,
+    SceneViewportChromeData, TabData, UiAssetCanvasNodeData, UiAssetCanvasSlotTargetData,
+    UiHostWindow, WelcomePaneData,
 };
 
 mod apply_presentation;

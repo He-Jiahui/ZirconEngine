@@ -10,27 +10,31 @@ const FARTHER_ANCESTOR_BUDGET_FALLOFF: f32 = 0.72;
 const FARTHER_ANCESTOR_BUDGET_SCALE: f32 = 0.6;
 const FARTHER_ANCESTOR_IRRADIANCE_INHERITANCE_FALLOFF: f32 = 0.72;
 const IRRADIANCE_INHERITANCE_WEIGHT_SCALE: f32 = 0.5;
+const DIRECT_LINEAGE_IRRADIANCE_WEIGHT_SCALE: f32 = 0.45;
+const DESCENDANT_LINEAGE_IRRADIANCE_FALLOFF: f32 = 0.84;
 const ANCESTOR_TRACE_INHERITANCE_FALLOFF: f32 = 0.72;
 const TRACE_INHERITANCE_WEIGHT_SCALE: f32 = 0.45;
-const SCENE_TRACE_SUPPORT_FALLOFF: f32 = 0.78;
+const DIRECT_LINEAGE_TRACE_WEIGHT_SCALE: f32 = 0.45;
+const DESCENDANT_LINEAGE_TRACE_FALLOFF: f32 = 0.84;
+const STANDALONE_DIRECT_TRACE_WEIGHT_SCALE: f32 = 0.35;
 const SCENE_TRACE_RESOLVE_SCALE: f32 = 0.35;
 const SCENE_TRACE_RT_SCALE: f32 = 0.25;
 
 impl HybridGiRuntimeState {
     pub(crate) fn build_resolve_runtime(&self) -> HybridGiResolveRuntime {
-        let resident_probe_ids = self.resident_slots.keys().copied().collect::<Vec<_>>();
+        let tracked_probe_ids = self.tracked_runtime_probe_ids();
 
         HybridGiResolveRuntime {
             probe_rt_lighting_rgb: self
                 .probe_rt_lighting_rgb
                 .iter()
                 .filter_map(|(&probe_id, &rt_lighting_rgb)| {
-                    self.resident_slots
-                        .contains_key(&probe_id)
+                    tracked_probe_ids
+                        .contains(&probe_id)
                         .then_some((probe_id, rt_lighting_rgb))
                 })
                 .collect::<BTreeMap<_, _>>(),
-            probe_hierarchy_resolve_weight_q8: resident_probe_ids
+            probe_hierarchy_resolve_weight_q8: tracked_probe_ids
                 .iter()
                 .map(|&probe_id| {
                     (
@@ -41,14 +45,14 @@ impl HybridGiRuntimeState {
                     )
                 })
                 .collect(),
-            probe_hierarchy_irradiance_rgb_and_weight: resident_probe_ids
+            probe_hierarchy_irradiance_rgb_and_weight: tracked_probe_ids
                 .iter()
                 .filter_map(|&probe_id| {
                     self.runtime_hierarchy_irradiance(probe_id)
                         .map(|encoded| (probe_id, encoded))
                 })
                 .collect(),
-            probe_hierarchy_rt_lighting_rgb_and_weight: resident_probe_ids
+            probe_hierarchy_rt_lighting_rgb_and_weight: tracked_probe_ids
                 .iter()
                 .filter_map(|&probe_id| {
                     self.runtime_hierarchy_rt_lighting(probe_id)
@@ -58,12 +62,36 @@ impl HybridGiRuntimeState {
         }
     }
 
+    fn tracked_runtime_probe_ids(&self) -> Vec<u32> {
+        let seed_probe_ids = self.resident_slots
+            .keys()
+            .copied()
+            .chain(self.pending_probes.iter().copied())
+            .chain(self.pending_updates.iter().map(|update| update.probe_id))
+            .chain(self.current_requested_probe_ids.iter().copied())
+            .collect::<BTreeSet<_>>()
+            ;
+        let mut tracked_probe_ids = seed_probe_ids.clone();
+        for probe_id in seed_probe_ids {
+            let mut current_probe_id = probe_id;
+            let mut visited_probe_ids = BTreeSet::from([probe_id]);
+            while let Some(parent_probe_id) = self.probe_parent_probes.get(&current_probe_id).copied() {
+                if !visited_probe_ids.insert(parent_probe_id) {
+                    break;
+                }
+                tracked_probe_ids.insert(parent_probe_id);
+                current_probe_id = parent_probe_id;
+            }
+        }
+        tracked_probe_ids.into_iter().collect()
+    }
+
     fn runtime_hierarchy_resolve_weight(&self, probe_id: u32) -> f32 {
         let resident_child_count = self.resident_descendant_count(probe_id);
         let resident_parent_depth = self.resident_parent_depth(probe_id);
         let farther_ancestor_budget_support =
             self.farther_resident_ancestor_budget_support(probe_id);
-        let scene_trace_support = self.scene_trace_lineage_support(probe_id);
+        let scene_trace_support = self.effective_lineage_trace_support_score(probe_id).clamp(0.0, 1.5);
 
         let specificity_weight = 1.0 + resident_parent_depth as f32 * CHILD_SPECIFICITY_BOOST;
         let attenuation_weight = if resident_child_count == 0 {
@@ -119,7 +147,9 @@ impl HybridGiRuntimeState {
         }
 
         if total_support <= f32::EPSILON {
-            return None;
+            return self
+                .direct_lineage_irradiance_fallback(probe_id)
+                .or_else(|| self.descendant_lineage_irradiance_fallback(probe_id));
         }
 
         Some(HybridGiResolveRuntime::pack_rgb_and_weight(
@@ -138,8 +168,11 @@ impl HybridGiRuntimeState {
         let mut current_probe_id = probe_id;
         let mut ancestor_depth = 0usize;
         let mut visited_probe_ids = BTreeSet::from([probe_id]);
-        let scene_trace_weight =
-            1.0 + self.scene_trace_lineage_support(probe_id) * SCENE_TRACE_RT_SCALE;
+        let scene_trace_weight = 1.0
+            + self
+                .effective_lineage_trace_support_score(probe_id)
+                .clamp(0.0, 1.5)
+                * SCENE_TRACE_RT_SCALE;
 
         while let Some(parent_probe_id) = self.probe_parent_probes.get(&current_probe_id).copied() {
             if !visited_probe_ids.insert(parent_probe_id) {
@@ -179,7 +212,9 @@ impl HybridGiRuntimeState {
         }
 
         if total_support <= f32::EPSILON {
-            return None;
+            return self
+                .direct_lineage_rt_lighting_fallback(probe_id)
+                .or_else(|| self.descendant_lineage_rt_lighting_fallback(probe_id));
         }
 
         Some(HybridGiResolveRuntime::pack_rgb_and_weight(
@@ -189,6 +224,304 @@ impl HybridGiRuntimeState {
                 weighted_rgb[2] / total_support,
             ],
             (total_support * TRACE_INHERITANCE_WEIGHT_SCALE).clamp(0.0, 0.75),
+        ))
+    }
+
+    fn direct_lineage_irradiance_fallback(&self, probe_id: u32) -> Option<[u8; 4]> {
+        if self.resident_slots.contains_key(&probe_id) {
+            return None;
+        }
+
+        let direct_lineage_support = self
+            .effective_lineage_trace_support_score(probe_id)
+            .clamp(0.0, 1.5);
+        if direct_lineage_support <= f32::EPSILON {
+            return self.standalone_direct_rt_lighting_fallback(probe_id);
+        }
+
+        let mut weighted_rgb = [0.0_f32; 3];
+        let mut total_support = 0.0_f32;
+
+        if let Some(direct_irradiance_rgb) = self.probe_irradiance_rgb.get(&probe_id).copied() {
+            weighted_rgb[0] += direct_irradiance_rgb[0] as f32 / 255.0 * direct_lineage_support;
+            weighted_rgb[1] += direct_irradiance_rgb[1] as f32 / 255.0 * direct_lineage_support;
+            weighted_rgb[2] += direct_irradiance_rgb[2] as f32 / 255.0 * direct_lineage_support;
+            total_support += direct_lineage_support;
+        }
+
+        let mut current_probe_id = probe_id;
+        let mut ancestor_depth = 0usize;
+        let mut visited_probe_ids = BTreeSet::from([probe_id]);
+        while let Some(parent_probe_id) = self.probe_parent_probes.get(&current_probe_id).copied() {
+            if !visited_probe_ids.insert(parent_probe_id) {
+                break;
+            }
+            if let Some(ancestor_irradiance_rgb) =
+                self.probe_irradiance_rgb.get(&parent_probe_id).copied()
+            {
+                let ancestor_support = direct_lineage_support
+                    * FARTHER_ANCESTOR_IRRADIANCE_INHERITANCE_FALLOFF.powi(ancestor_depth as i32)
+                    * budget_weight(
+                        self.probe_ray_budgets
+                            .get(&parent_probe_id)
+                            .copied()
+                            .unwrap_or_default(),
+                    );
+                if ancestor_support > f32::EPSILON {
+                    weighted_rgb[0] += ancestor_irradiance_rgb[0] as f32 / 255.0 * ancestor_support;
+                    weighted_rgb[1] += ancestor_irradiance_rgb[1] as f32 / 255.0 * ancestor_support;
+                    weighted_rgb[2] += ancestor_irradiance_rgb[2] as f32 / 255.0 * ancestor_support;
+                    total_support += ancestor_support;
+                }
+            }
+            ancestor_depth += 1;
+            current_probe_id = parent_probe_id;
+        }
+
+        if total_support <= f32::EPSILON {
+            return None;
+        }
+
+        Some(HybridGiResolveRuntime::pack_rgb_and_weight(
+            [
+                weighted_rgb[0] / total_support,
+                weighted_rgb[1] / total_support,
+                weighted_rgb[2] / total_support,
+            ],
+            (total_support * DIRECT_LINEAGE_IRRADIANCE_WEIGHT_SCALE).clamp(0.0, 0.75),
+        ))
+    }
+
+    fn direct_lineage_rt_lighting_fallback(&self, probe_id: u32) -> Option<[u8; 4]> {
+        if self.resident_slots.contains_key(&probe_id) {
+            return None;
+        }
+
+        let direct_lineage_support = self
+            .effective_lineage_trace_support_score(probe_id)
+            .clamp(0.0, 1.5);
+        if direct_lineage_support <= f32::EPSILON {
+            return None;
+        }
+
+        let mut weighted_rgb = [0.0_f32; 3];
+        let mut total_support = 0.0_f32;
+
+        if let Some(direct_rt_lighting_rgb) = self.probe_rt_lighting_rgb.get(&probe_id).copied() {
+            let direct_support = direct_lineage_support
+                * budget_weight(
+                    self.probe_ray_budgets
+                        .get(&probe_id)
+                        .copied()
+                        .unwrap_or_default(),
+                )
+                * runtime_rgb_intensity(direct_rt_lighting_rgb);
+            if direct_support > f32::EPSILON {
+                weighted_rgb[0] += direct_rt_lighting_rgb[0] as f32 / 255.0 * direct_support;
+                weighted_rgb[1] += direct_rt_lighting_rgb[1] as f32 / 255.0 * direct_support;
+                weighted_rgb[2] += direct_rt_lighting_rgb[2] as f32 / 255.0 * direct_support;
+                total_support += direct_support;
+            }
+        }
+
+        let mut current_probe_id = probe_id;
+        let mut ancestor_depth = 0usize;
+        let mut visited_probe_ids = BTreeSet::from([probe_id]);
+        while let Some(parent_probe_id) = self.probe_parent_probes.get(&current_probe_id).copied() {
+            if !visited_probe_ids.insert(parent_probe_id) {
+                break;
+            }
+            if let Some(ancestor_rt_lighting_rgb) =
+                self.probe_rt_lighting_rgb.get(&parent_probe_id).copied()
+            {
+                let ancestor_support = direct_lineage_support
+                    * ANCESTOR_TRACE_INHERITANCE_FALLOFF.powi(ancestor_depth as i32)
+                    * budget_weight(
+                        self.probe_ray_budgets
+                            .get(&parent_probe_id)
+                            .copied()
+                            .unwrap_or_default(),
+                    )
+                    * runtime_rgb_intensity(ancestor_rt_lighting_rgb);
+                if ancestor_support > f32::EPSILON {
+                    weighted_rgb[0] += ancestor_rt_lighting_rgb[0] as f32 / 255.0 * ancestor_support;
+                    weighted_rgb[1] += ancestor_rt_lighting_rgb[1] as f32 / 255.0 * ancestor_support;
+                    weighted_rgb[2] += ancestor_rt_lighting_rgb[2] as f32 / 255.0 * ancestor_support;
+                    total_support += ancestor_support;
+                }
+            }
+            ancestor_depth += 1;
+            current_probe_id = parent_probe_id;
+        }
+
+        if total_support <= f32::EPSILON {
+            return None;
+        }
+
+        Some(HybridGiResolveRuntime::pack_rgb_and_weight(
+            [
+                weighted_rgb[0] / total_support,
+                weighted_rgb[1] / total_support,
+                weighted_rgb[2] / total_support,
+            ],
+            (total_support * DIRECT_LINEAGE_TRACE_WEIGHT_SCALE).clamp(0.0, 0.75),
+        ))
+    }
+
+    fn standalone_direct_rt_lighting_fallback(&self, probe_id: u32) -> Option<[u8; 4]> {
+        if self.resident_slots.contains_key(&probe_id) || self.probe_parent_probes.contains_key(&probe_id) {
+            return None;
+        }
+
+        let direct_rt_lighting_rgb = self.probe_rt_lighting_rgb.get(&probe_id).copied()?;
+        let support = budget_weight(
+            self.probe_ray_budgets
+                .get(&probe_id)
+                .copied()
+                .unwrap_or_default(),
+        ) * runtime_rgb_intensity(direct_rt_lighting_rgb);
+        if support <= f32::EPSILON {
+            return None;
+        }
+
+        Some(HybridGiResolveRuntime::pack_rgb_and_weight(
+            [
+                direct_rt_lighting_rgb[0] as f32 / 255.0,
+                direct_rt_lighting_rgb[1] as f32 / 255.0,
+                direct_rt_lighting_rgb[2] as f32 / 255.0,
+            ],
+            (support * STANDALONE_DIRECT_TRACE_WEIGHT_SCALE).clamp(0.05, 0.45),
+        ))
+    }
+
+    fn descendant_lineage_irradiance_fallback(&self, probe_id: u32) -> Option<[u8; 4]> {
+        let lineage_support = self
+            .effective_lineage_trace_support_score(probe_id)
+            .clamp(0.0, 1.5);
+        if lineage_support <= f32::EPSILON {
+            return None;
+        }
+
+        let mut weighted_rgb = [0.0_f32; 3];
+        let mut total_support = 0.0_f32;
+        let mut stack = self
+            .probe_parent_probes
+            .iter()
+            .filter_map(|(&candidate_probe_id, &parent_probe_id)| {
+                (parent_probe_id == probe_id).then_some((candidate_probe_id, 1usize))
+            })
+            .collect::<Vec<_>>();
+        let mut visited_probe_ids = BTreeSet::new();
+
+        while let Some((candidate_probe_id, depth)) = stack.pop() {
+            if !visited_probe_ids.insert(candidate_probe_id) {
+                continue;
+            }
+
+            if let Some(descendant_irradiance_rgb) =
+                self.probe_irradiance_rgb.get(&candidate_probe_id).copied()
+            {
+                let support = lineage_support
+                    * DESCENDANT_LINEAGE_IRRADIANCE_FALLOFF.powi((depth - 1) as i32)
+                    * budget_weight(
+                        self.probe_ray_budgets
+                            .get(&candidate_probe_id)
+                            .copied()
+                            .unwrap_or_default(),
+                    );
+                if support > f32::EPSILON {
+                    weighted_rgb[0] += descendant_irradiance_rgb[0] as f32 / 255.0 * support;
+                    weighted_rgb[1] += descendant_irradiance_rgb[1] as f32 / 255.0 * support;
+                    weighted_rgb[2] += descendant_irradiance_rgb[2] as f32 / 255.0 * support;
+                    total_support += support;
+                }
+            }
+
+            stack.extend(self.probe_parent_probes.iter().filter_map(
+                |(&grandchild_probe_id, &parent_probe_id)| {
+                    (parent_probe_id == candidate_probe_id)
+                        .then_some((grandchild_probe_id, depth + 1))
+                },
+            ));
+        }
+
+        if total_support <= f32::EPSILON {
+            return None;
+        }
+
+        Some(HybridGiResolveRuntime::pack_rgb_and_weight(
+            [
+                weighted_rgb[0] / total_support,
+                weighted_rgb[1] / total_support,
+                weighted_rgb[2] / total_support,
+            ],
+            (total_support * DIRECT_LINEAGE_IRRADIANCE_WEIGHT_SCALE).clamp(0.0, 0.75),
+        ))
+    }
+
+    fn descendant_lineage_rt_lighting_fallback(&self, probe_id: u32) -> Option<[u8; 4]> {
+        let lineage_support = self
+            .effective_lineage_trace_support_score(probe_id)
+            .clamp(0.0, 1.5);
+        if lineage_support <= f32::EPSILON {
+            return None;
+        }
+
+        let mut weighted_rgb = [0.0_f32; 3];
+        let mut total_support = 0.0_f32;
+        let mut stack = self
+            .probe_parent_probes
+            .iter()
+            .filter_map(|(&candidate_probe_id, &parent_probe_id)| {
+                (parent_probe_id == probe_id).then_some((candidate_probe_id, 1usize))
+            })
+            .collect::<Vec<_>>();
+        let mut visited_probe_ids = BTreeSet::new();
+
+        while let Some((candidate_probe_id, depth)) = stack.pop() {
+            if !visited_probe_ids.insert(candidate_probe_id) {
+                continue;
+            }
+
+            if let Some(descendant_rt_lighting_rgb) =
+                self.probe_rt_lighting_rgb.get(&candidate_probe_id).copied()
+            {
+                let support = lineage_support
+                    * DESCENDANT_LINEAGE_TRACE_FALLOFF.powi((depth - 1) as i32)
+                    * budget_weight(
+                        self.probe_ray_budgets
+                            .get(&candidate_probe_id)
+                            .copied()
+                            .unwrap_or_default(),
+                    )
+                    * runtime_rgb_intensity(descendant_rt_lighting_rgb);
+                if support > f32::EPSILON {
+                    weighted_rgb[0] += descendant_rt_lighting_rgb[0] as f32 / 255.0 * support;
+                    weighted_rgb[1] += descendant_rt_lighting_rgb[1] as f32 / 255.0 * support;
+                    weighted_rgb[2] += descendant_rt_lighting_rgb[2] as f32 / 255.0 * support;
+                    total_support += support;
+                }
+            }
+
+            stack.extend(self.probe_parent_probes.iter().filter_map(
+                |(&grandchild_probe_id, &parent_probe_id)| {
+                    (parent_probe_id == candidate_probe_id)
+                        .then_some((grandchild_probe_id, depth + 1))
+                },
+            ));
+        }
+
+        if total_support <= f32::EPSILON {
+            return None;
+        }
+
+        Some(HybridGiResolveRuntime::pack_rgb_and_weight(
+            [
+                weighted_rgb[0] / total_support,
+                weighted_rgb[1] / total_support,
+                weighted_rgb[2] / total_support,
+            ],
+            (total_support * DIRECT_LINEAGE_TRACE_WEIGHT_SCALE).clamp(0.0, 0.75),
         ))
     }
 
@@ -262,53 +595,6 @@ impl HybridGiRuntimeState {
         }
 
         total_support.clamp(0.0, 1.5)
-    }
-
-    fn scene_trace_lineage_support(&self, probe_id: u32) -> f32 {
-        let mut total_support = 0.0_f32;
-        let mut lineage_weight = 1.0_f32;
-        let mut current_probe_id = probe_id;
-        let mut visited_probe_ids = BTreeSet::from([probe_id]);
-
-        loop {
-            total_support +=
-                self.single_probe_scene_trace_support(current_probe_id) * lineage_weight;
-            let Some(parent_probe_id) = self.probe_parent_probes.get(&current_probe_id).copied()
-            else {
-                break;
-            };
-            if !visited_probe_ids.insert(parent_probe_id) {
-                break;
-            }
-            lineage_weight *= SCENE_TRACE_SUPPORT_FALLOFF;
-            current_probe_id = parent_probe_id;
-        }
-
-        total_support.clamp(0.0, 1.5)
-    }
-
-    fn single_probe_scene_trace_support(&self, probe_id: u32) -> f32 {
-        let Some(probe) = self.probe_scene_data.get(&probe_id) else {
-            return 0.0;
-        };
-
-        self.scheduled_trace_regions
-            .iter()
-            .filter_map(|region_id| self.trace_region_scene_data.get(region_id))
-            .map(|region| {
-                let reach = probe.radius_q.saturating_add(region.radius_q).max(1) as f32;
-                let max_distance = (reach * 3.0).max(1.0);
-                let distance_to_region = probe.position_x_q.abs_diff(region.center_x_q) as f32
-                    + probe.position_y_q.abs_diff(region.center_y_q) as f32
-                    + probe.position_z_q.abs_diff(region.center_z_q) as f32;
-                if distance_to_region >= max_distance {
-                    return 0.0;
-                }
-
-                let proximity = 1.0 - distance_to_region / max_distance;
-                proximity * proximity * (region.coverage_q.min(255) as f32 / 128.0)
-            })
-            .sum()
     }
 }
 

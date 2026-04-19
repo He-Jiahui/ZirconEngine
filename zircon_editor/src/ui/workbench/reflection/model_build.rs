@@ -2,7 +2,7 @@ use crate::ui::{
     EditorActivityHost, EditorDrawerReflectionModel, EditorHostPageReflectionModel,
     EditorMenuItemReflectionModel, EditorWorkbenchReflectionModel,
 };
-use zircon_ui::UiTreeId;
+use zircon_ui::event_ui::UiTreeId;
 
 use crate::snapshot::{EditorChromeSnapshot, MainPageSnapshot};
 use crate::WorkbenchViewModel;

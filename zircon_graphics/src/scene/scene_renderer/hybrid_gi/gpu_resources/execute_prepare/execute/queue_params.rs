@@ -1,4 +1,4 @@
-use zircon_scene::RenderDirectionalLightSnapshot;
+use zircon_framework::render::RenderDirectionalLightSnapshot;
 
 use crate::types::HybridGiPrepareFrame;
 

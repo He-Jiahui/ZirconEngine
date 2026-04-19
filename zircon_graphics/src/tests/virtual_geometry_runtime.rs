@@ -1,4 +1,6 @@
-use zircon_scene::{RenderVirtualGeometryExtract, RenderVirtualGeometryPage};
+use zircon_framework::render::{
+    RenderVirtualGeometryCluster, RenderVirtualGeometryExtract, RenderVirtualGeometryPage,
+};
 
 use crate::{
     runtime::{
@@ -124,6 +126,70 @@ fn virtual_geometry_runtime_state_deduplicates_requests_and_reuses_evicted_slots
     assert_eq!(snapshot.page_table_entry_count, 2);
     assert_eq!(snapshot.resident_page_count, 2);
     assert_eq!(snapshot.pending_request_count, 0);
+}
+
+#[test]
+fn virtual_geometry_runtime_test_evictions_clear_frontier_truth_before_later_reconnect_prepare() {
+    let mut state = VirtualGeometryRuntimeState::default();
+    let extract = RenderVirtualGeometryExtract {
+        cluster_budget: 4,
+        page_budget: 2,
+        clusters: vec![
+            render_cluster(20, 200, None),
+            render_cluster(30, 300, None),
+            render_cluster(70, 700, None),
+            render_cluster(80, 800, Some(20)),
+        ],
+        pages: vec![
+            page(200, false, 2_048),
+            page(300, true, 2_048),
+            page(700, false, 2_048),
+            page(800, true, 2_048),
+        ],
+    };
+
+    state.register_extract(Some(&extract));
+    state.ingest_plan(
+        9,
+        &VisibilityVirtualGeometryPageUploadPlan {
+            resident_pages: vec![300, 800],
+            requested_pages: vec![200],
+            dirty_requested_pages: vec![200],
+            evictable_pages: vec![800, 300],
+        },
+    );
+    state.refresh_hot_resident_pages(&VisibilityVirtualGeometryFeedback {
+        visible_cluster_ids: vec![80],
+        requested_pages: vec![200],
+        evictable_pages: vec![800, 300],
+        hot_resident_pages: vec![800],
+    });
+    state.apply_evictions([800]);
+    state.fulfill_requests([200]);
+    state.ingest_plan(
+        10,
+        &VisibilityVirtualGeometryPageUploadPlan {
+            resident_pages: vec![200, 300],
+            requested_pages: vec![700],
+            dirty_requested_pages: vec![700],
+            evictable_pages: vec![200, 300],
+        },
+    );
+
+    let prepare = state.build_prepare_frame(&[]);
+
+    assert_eq!(
+        prepare.pending_page_requests,
+        vec![VirtualGeometryPrepareRequest {
+            page_id: 700,
+            size_bytes: 2_048,
+            generation: 10,
+            frontier_rank: 0,
+            assigned_slot: Some(1),
+            recycled_page_id: Some(200),
+        }],
+        "expected test-side eviction helpers to clear hot-frontier truth through the same runtime eviction path, so later reconnect prepare plans do not inherit stale descendant heat from pages that are already gone"
+    );
 }
 
 #[test]
@@ -917,6 +983,172 @@ fn virtual_geometry_runtime_state_consumes_explicit_gpu_replacement_truth_before
 }
 
 #[test]
+fn virtual_geometry_runtime_state_keeps_processing_later_valid_gpu_completions_after_leading_stale_slot_assignments(
+) {
+    let mut state = VirtualGeometryRuntimeState::default();
+    let extract = RenderVirtualGeometryExtract {
+        cluster_budget: 4,
+        page_budget: 2,
+        clusters: Vec::new(),
+        pages: vec![
+            page(100, true, 2_048),
+            page(200, false, 2_048),
+            page(300, false, 2_048),
+            page(400, false, 2_048),
+        ],
+    };
+
+    state.register_extract(Some(&extract));
+    state.ingest_plan(
+        92,
+        &VisibilityVirtualGeometryPageUploadPlan {
+            resident_pages: vec![100],
+            requested_pages: vec![200, 300, 400],
+            dirty_requested_pages: vec![200, 300, 400],
+            evictable_pages: Vec::new(),
+        },
+    );
+
+    state.complete_gpu_uploads_with_slots([(200, 0), (300, 0), (400, 1)], &[]);
+
+    assert_eq!(state.page_slot(100), Some(0));
+    assert_eq!(
+        state.page_slot(200),
+        None,
+        "expected stale GPU completion targeting an occupied non-evictable slot to be ignored"
+    );
+    assert_eq!(
+        state.page_slot(300),
+        None,
+        "expected multiple leading stale completions to stay pending instead of consuming the runtime completion budget"
+    );
+    assert_eq!(
+        state.page_slot(400),
+        Some(1),
+        "expected runtime completion to keep processing later valid GPU completions after leading stale slot assignments, instead of truncating at page_budget before slot validation"
+    );
+    assert_eq!(
+        state.pending_requests(),
+        vec![
+            VirtualGeometryPageRequest {
+                page_id: 200,
+                size_bytes: 2_048,
+                generation: 92,
+            },
+            VirtualGeometryPageRequest {
+                page_id: 300,
+                size_bytes: 2_048,
+                generation: 92,
+            },
+        ],
+        "expected only the stale completions to remain pending once the later valid completion is accepted"
+    );
+}
+
+#[test]
+fn virtual_geometry_runtime_state_ignores_duplicate_gpu_page_assignments_after_first_unique_completion(
+) {
+    let mut state = VirtualGeometryRuntimeState::default();
+    let extract = RenderVirtualGeometryExtract {
+        cluster_budget: 4,
+        page_budget: 3,
+        clusters: Vec::new(),
+        pages: vec![
+            page(100, true, 2_048),
+            page(200, false, 2_048),
+            page(300, false, 2_048),
+            page(500, true, 2_048),
+        ],
+    };
+
+    state.register_extract(Some(&extract));
+    state.ingest_plan(
+        93,
+        &VisibilityVirtualGeometryPageUploadPlan {
+            resident_pages: vec![100, 500],
+            requested_pages: vec![200, 300],
+            dirty_requested_pages: vec![200, 300],
+            evictable_pages: vec![500],
+        },
+    );
+
+    state.complete_gpu_uploads_with_slots([(200, 2), (200, 1), (300, 1)], &[500]);
+
+    assert_eq!(state.page_slot(100), Some(0));
+    assert_eq!(
+        state.page_slot(200),
+        Some(2),
+        "expected the runtime GPU-completion path to keep the first unique slot assignment for page 200 instead of letting a later duplicate completion migrate the already-completed page into a new slot"
+    );
+    assert_eq!(
+        state.page_slot(300),
+        Some(1),
+        "expected later unique GPU completions to keep using the remaining authoritative slot after duplicate assignments for an earlier page id are ignored"
+    );
+    assert_eq!(
+        state.page_slot(500),
+        None,
+        "expected the later unique completion to recycle the current evictable resident slot instead of being blocked by a duplicate completion for an already-resident page"
+    );
+    assert_eq!(
+        state.pending_requests(),
+        Vec::<VirtualGeometryPageRequest>::new(),
+        "expected duplicate GPU page assignments to stop leaving later unique pending pages stranded in the runtime queue"
+    );
+}
+
+#[test]
+fn virtual_geometry_runtime_state_keeps_processing_later_unique_feedback_completions_after_leading_duplicate_requested_pages(
+) {
+    let mut state = VirtualGeometryRuntimeState::default();
+    let extract = RenderVirtualGeometryExtract {
+        cluster_budget: 4,
+        page_budget: 2,
+        clusters: Vec::new(),
+        pages: vec![
+            page(100, true, 2_048),
+            page(200, false, 2_048),
+            page(300, false, 2_048),
+        ],
+    };
+
+    state.register_extract(Some(&extract));
+    state.ingest_plan(
+        93,
+        &VisibilityVirtualGeometryPageUploadPlan {
+            resident_pages: vec![100],
+            requested_pages: vec![200, 300],
+            dirty_requested_pages: vec![200, 300],
+            evictable_pages: vec![100],
+        },
+    );
+
+    state.consume_feedback(&VisibilityVirtualGeometryFeedback {
+        visible_cluster_ids: Vec::new(),
+        requested_pages: vec![200, 200, 300],
+        evictable_pages: vec![100],
+        hot_resident_pages: Vec::new(),
+    });
+
+    assert_eq!(
+        state.page_slot(100),
+        None,
+        "expected the runtime feedback-completion path to spend the eviction only on the later unique requested page instead of wasting it on a duplicate request id"
+    );
+    assert_eq!(state.page_slot(200), Some(1));
+    assert_eq!(
+        state.page_slot(300),
+        Some(0),
+        "expected feedback completion to keep processing later unique pending pages after leading duplicate request ids instead of truncating at page_budget before deduplication"
+    );
+    assert_eq!(
+        state.pending_requests(),
+        Vec::<VirtualGeometryPageRequest>::new(),
+        "expected duplicate feedback request ids to stop leaving later unique pending pages stranded in the runtime queue"
+    );
+}
+
+#[test]
 fn virtual_geometry_runtime_state_applies_gpu_page_table_snapshot_as_residency_truth() {
     let mut state = VirtualGeometryRuntimeState::default();
     let extract = RenderVirtualGeometryExtract {
@@ -997,6 +1229,58 @@ fn virtual_geometry_runtime_state_applies_gpu_page_table_snapshot_as_residency_t
             assigned_slot: Some(2),
             recycled_page_id: None,
         }]
+    );
+}
+
+#[test]
+fn virtual_geometry_runtime_state_ignores_duplicate_gpu_page_table_entries_after_first_unique_page(
+) {
+    let mut state = VirtualGeometryRuntimeState::default();
+    let extract = RenderVirtualGeometryExtract {
+        cluster_budget: 4,
+        page_budget: 3,
+        clusters: Vec::new(),
+        pages: vec![
+            page(100, true, 2_048),
+            page(200, false, 2_048),
+            page(300, false, 2_048),
+            page(500, true, 2_048),
+        ],
+    };
+
+    state.register_extract(Some(&extract));
+    state.ingest_plan(
+        94,
+        &VisibilityVirtualGeometryPageUploadPlan {
+            resident_pages: vec![100, 500],
+            requested_pages: vec![200, 300],
+            dirty_requested_pages: vec![200, 300],
+            evictable_pages: vec![500],
+        },
+    );
+
+    state.apply_gpu_page_table_entries(&[(100, 0), (200, 2), (200, 1), (300, 1)]);
+
+    assert_eq!(state.page_slot(100), Some(0));
+    assert_eq!(
+        state.page_slot(200),
+        Some(2),
+        "expected the final GPU page-table snapshot to keep the first unique resident slot for page 200 instead of letting a later duplicate table entry migrate the already-confirmed page"
+    );
+    assert_eq!(
+        state.page_slot(300),
+        Some(1),
+        "expected later unique page-table entries to keep their authoritative slot after duplicate entries for an earlier page id are ignored"
+    );
+    assert_eq!(
+        state.page_slot(500),
+        None,
+        "expected the later unique page-table entry to replace the stale resident page instead of being blocked by a duplicate table entry for an already-confirmed page"
+    );
+    assert_eq!(
+        state.pending_requests(),
+        Vec::<VirtualGeometryPageRequest>::new(),
+        "expected duplicate GPU page-table entries to stop leaving later unique pages stranded in the runtime pending queue"
     );
 }
 
@@ -1549,8 +1833,8 @@ fn render_cluster(
     cluster_id: u32,
     page_id: u32,
     parent_cluster_id: Option<u32>,
-) -> zircon_scene::RenderVirtualGeometryCluster {
-    zircon_scene::RenderVirtualGeometryCluster {
+) -> RenderVirtualGeometryCluster {
+    RenderVirtualGeometryCluster {
         entity: 10,
         cluster_id,
         page_id,

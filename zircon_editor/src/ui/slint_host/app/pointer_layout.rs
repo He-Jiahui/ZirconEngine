@@ -1,6 +1,7 @@
 use super::*;
 use crate::ui::slint_host::floating_window_projection::FloatingWindowProjectionBundle;
 use crate::ui::slint_host::menu_pointer::build_workbench_menu_pointer_layout;
+use crate::ui::slint_host::{HostMenuStateData, PaneSurfaceHostContext, WorkbenchHostContext};
 
 impl SlintEditorHost {
     pub(super) fn sync_menu_pointer_layout(
@@ -24,28 +25,30 @@ impl SlintEditorHost {
     }
 
     pub(super) fn apply_menu_pointer_state_to_ui(&self) {
-        self.ui.set_open_menu_index(
-            self.menu_pointer_state
+        let host_shell = self.ui.global::<WorkbenchHostContext>();
+        host_shell.set_menu_state(HostMenuStateData {
+            open_menu_index: self
+                .menu_pointer_state
                 .open_menu_index
                 .map(|index| index as i32)
                 .unwrap_or(-1),
-        );
-        self.ui.set_hovered_menu_index(
-            self.menu_pointer_state
+            hovered_menu_index: self
+                .menu_pointer_state
                 .hovered_menu_index
                 .map(|index| index as i32)
                 .unwrap_or(-1),
-        );
-        self.ui.set_hovered_menu_item_index(
-            self.menu_pointer_state
+            hovered_menu_item_index: self
+                .menu_pointer_state
                 .hovered_item_index
                 .map(|index| index as i32)
                 .unwrap_or(-1),
-        );
-        self.ui
-            .set_window_menu_scroll_px(self.menu_pointer_state.popup_scroll_offset);
-        self.ui
-            .set_window_menu_popup_height_px(self.menu_pointer_layout.window_popup_height);
+            window_menu_scroll_px: self.menu_pointer_state.popup_scroll_offset,
+            window_menu_popup_height_px: self.menu_pointer_layout.window_popup_height,
+        });
+    }
+
+    fn pane_surface_host(&self) -> PaneSurfaceHostContext<'_> {
+        self.ui.global::<PaneSurfaceHostContext>()
     }
 
     pub(super) fn sync_activity_rail_pointer_layout(
@@ -146,15 +149,16 @@ impl SlintEditorHost {
     }
 
     pub(super) fn apply_welcome_recent_pointer_state_to_ui(&self) {
-        self.ui
+        let pane_surface_host = self.pane_surface_host();
+        pane_surface_host
             .set_welcome_recent_scroll_px(self.welcome_recent_pointer_state.scroll_offset);
-        self.ui.set_hovered_welcome_recent_index(
+        pane_surface_host.set_hovered_welcome_recent_index(
             self.welcome_recent_pointer_state
                 .hovered_item_index
                 .map(|index| index as i32)
                 .unwrap_or(-1),
         );
-        self.ui.set_hovered_welcome_recent_action(
+        pane_surface_host.set_hovered_welcome_recent_action(
             match self.welcome_recent_pointer_state.hovered_action {
                 Some(WelcomeRecentPointerAction::Open) => 0,
                 Some(WelcomeRecentPointerAction::Remove) => 1,
@@ -184,9 +188,9 @@ impl SlintEditorHost {
     }
 
     pub(super) fn apply_hierarchy_pointer_state_to_ui(&self) {
-        self.ui
-            .set_hierarchy_scroll_px(self.hierarchy_pointer_state.scroll_offset);
-        self.ui.set_hovered_hierarchy_index(
+        let pane_surface_host = self.pane_surface_host();
+        pane_surface_host.set_hierarchy_scroll_px(self.hierarchy_pointer_state.scroll_offset);
+        pane_surface_host.set_hovered_hierarchy_index(
             self.hierarchy_pointer_state
                 .hovered_item_index
                 .map(|index| index as i32)
@@ -215,7 +219,7 @@ impl SlintEditorHost {
     }
 
     pub(super) fn apply_console_pointer_state_to_ui(&self) {
-        self.ui
+        self.pane_surface_host()
             .set_console_scroll_px(self.console_scroll_surface.scroll_offset());
     }
 
@@ -232,7 +236,7 @@ impl SlintEditorHost {
     }
 
     pub(super) fn apply_inspector_pointer_state_to_ui(&self) {
-        self.ui
+        self.pane_surface_host()
             .set_inspector_scroll_px(self.inspector_scroll_surface.scroll_offset());
     }
 
@@ -254,9 +258,10 @@ impl SlintEditorHost {
     }
 
     pub(super) fn apply_browser_asset_details_pointer_state_to_ui(&self) {
-        self.ui.set_browser_asset_details_scroll_px(
-            self.browser_asset_details_scroll_surface.scroll_offset(),
-        );
+        self.pane_surface_host()
+            .set_browser_asset_details_scroll_px(
+                self.browser_asset_details_scroll_surface.scroll_offset(),
+            );
     }
 
     pub(super) fn sync_asset_pointer_layouts(&mut self, chrome: &crate::EditorChromeSnapshot) {
@@ -303,6 +308,7 @@ impl SlintEditorHost {
         let Some(surface) = self.asset_surface_pointer_state(surface_mode) else {
             return;
         };
+        let pane_surface_host = self.pane_surface_host();
 
         let tree_hovered = surface
             .tree_state
@@ -329,38 +335,32 @@ impl SlintEditorHost {
 
         match surface_mode {
             "activity" => {
-                self.ui.set_activity_asset_tree_hovered_index(tree_hovered);
-                self.ui
+                pane_surface_host.set_activity_asset_tree_hovered_index(tree_hovered);
+                pane_surface_host
                     .set_activity_asset_tree_scroll_px(surface.tree_state.scroll_offset);
-                self.ui
-                    .set_activity_asset_content_hovered_index(content_hovered);
-                self.ui
+                pane_surface_host.set_activity_asset_content_hovered_index(content_hovered);
+                pane_surface_host
                     .set_activity_asset_content_scroll_px(surface.content_state.scroll_offset);
-                self.ui
-                    .set_activity_asset_references_hovered_index(references_hovered);
-                self.ui.set_activity_asset_references_scroll_px(
+                pane_surface_host.set_activity_asset_references_hovered_index(references_hovered);
+                pane_surface_host.set_activity_asset_references_scroll_px(
                     surface.references.state.scroll_offset,
                 );
-                self.ui
-                    .set_activity_asset_used_by_hovered_index(used_by_hovered);
-                self.ui
+                pane_surface_host.set_activity_asset_used_by_hovered_index(used_by_hovered);
+                pane_surface_host
                     .set_activity_asset_used_by_scroll_px(surface.used_by.state.scroll_offset);
             }
             "browser" => {
-                self.ui.set_browser_asset_tree_hovered_index(tree_hovered);
-                self.ui
+                pane_surface_host.set_browser_asset_tree_hovered_index(tree_hovered);
+                pane_surface_host
                     .set_browser_asset_tree_scroll_px(surface.tree_state.scroll_offset);
-                self.ui
-                    .set_browser_asset_content_hovered_index(content_hovered);
-                self.ui
+                pane_surface_host.set_browser_asset_content_hovered_index(content_hovered);
+                pane_surface_host
                     .set_browser_asset_content_scroll_px(surface.content_state.scroll_offset);
-                self.ui
-                    .set_browser_asset_references_hovered_index(references_hovered);
-                self.ui
+                pane_surface_host.set_browser_asset_references_hovered_index(references_hovered);
+                pane_surface_host
                     .set_browser_asset_references_scroll_px(surface.references.state.scroll_offset);
-                self.ui
-                    .set_browser_asset_used_by_hovered_index(used_by_hovered);
-                self.ui
+                pane_surface_host.set_browser_asset_used_by_hovered_index(used_by_hovered);
+                pane_surface_host
                     .set_browser_asset_used_by_scroll_px(surface.used_by.state.scroll_offset);
             }
             _ => {}

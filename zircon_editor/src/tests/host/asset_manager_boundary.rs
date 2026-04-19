@@ -7,32 +7,32 @@ fn editor_asset_boundary_lives_in_asset_crate() {
     let accessors_source = include_str!("../../core/editor_event/runtime/accessors.rs");
 
     assert!(
-        app_source.contains("use zircon_asset::{"),
-        "editor app should import editor asset API from zircon_asset"
+        app_source.contains("use zircon_asset::editor::{"),
+        "editor app should import editor asset API from zircon_asset::editor"
     );
     assert!(
         app_source.contains("EditorAssetChange"),
-        "editor app should use asset-owned EditorAssetChange alias"
+        "editor app should use editor asset change DTO from zircon_asset::editor"
     );
     assert!(
-        app_source.contains("AssetManager"),
-        "editor app should use asset-owned AssetManager"
+        app_source.contains("use zircon_asset::pipeline::manager::AssetManager;"),
+        "editor app should use runtime asset manager via zircon_asset::pipeline::manager"
     );
     assert!(
-        asset_workspace_source.contains("use zircon_asset::{"),
-        "asset workspace state should import editor asset catalog types from zircon_asset"
+        asset_workspace_source.contains("use zircon_asset::editor::{"),
+        "asset workspace state should import editor asset catalog types from zircon_asset::editor"
     );
     assert!(
-        accessors_source.contains("use zircon_asset::{"),
-        "editor event runtime accessors should import editor asset snapshot types from zircon_asset"
+        accessors_source.contains("use zircon_asset::editor::{"),
+        "editor event runtime accessors should import editor asset snapshot types from zircon_asset::editor"
     );
     assert!(
-        host_lifecycle_source.contains("resolve_editor_asset_manager"),
-        "editor host lifecycle should resolve the editor asset server through zircon_asset"
+        host_lifecycle_source.contains("use zircon_asset::editor::resolve_editor_asset_manager;"),
+        "editor host lifecycle should resolve the editor asset server through zircon_asset::editor"
     );
     assert!(
-        host_lifecycle_source.contains("resolve_asset_manager"),
-        "editor host lifecycle should resolve the generic asset server through zircon_asset"
+        host_lifecycle_source.contains("use zircon_asset::pipeline::manager::resolve_asset_manager;"),
+        "editor host lifecycle should resolve the generic asset server through zircon_asset::pipeline::manager"
     );
     assert!(
         !host_lifecycle_source.contains("resolver.editor_asset()?"),
@@ -43,8 +43,8 @@ fn editor_asset_boundary_lives_in_asset_crate() {
         "editor host lifecycle should not resolve generic asset API from zircon_manager::ManagerResolver"
     );
     assert!(
-        project_access_source.contains("resolve_asset_manager"),
-        "editor manager project access should resolve the asset server through zircon_asset"
+        project_access_source.contains("use zircon_asset::pipeline::manager::{resolve_asset_manager, AssetManager};"),
+        "editor manager project access should resolve the asset server through zircon_asset::pipeline::manager"
     );
 }
 
@@ -72,7 +72,7 @@ fn editor_host_uses_asset_owned_asset_change_stream() {
     ] {
         assert!(
             source.contains("AssetChange"),
-            "editor host sources should use zircon_asset::AssetChange after asset boundary cleanup"
+            "editor host sources should use zircon_asset::watch::AssetChange after asset boundary cleanup"
         );
     }
 }
@@ -117,8 +117,7 @@ fn editor_asset_workspace_uses_canonical_resource_state() {
         include_str!("../../core/editing/state/editor_state_asset_workspace.rs");
     let accessors_source = include_str!("../../core/editor_event/runtime/accessors.rs");
     let resource_access_source = include_str!("../../core/host/resource_access.rs");
-    let asset_surface_source =
-        include_str!("../../ui/slint_host/ui/asset_surface_presentation.rs");
+    let asset_surface_source = include_str!("../../ui/slint_host/ui/asset_surface_presentation.rs");
     let asset_item_snapshot_source =
         include_str!("../../ui/workbench/snapshot/asset/asset_item_snapshot.rs");
     let asset_selection_snapshot_source =

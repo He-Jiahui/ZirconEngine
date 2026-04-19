@@ -46,13 +46,25 @@ export struct UiAssetSourceDetailData {
 }
 
 export struct UiAssetPreviewMockData {
+    subject_collection: UiAssetStringSelectionData,
+    subject_node_id: string,
     collection: UiAssetStringSelectionData,
     property: string,
     kind: string,
     value: string,
+    expression_result: string,
+    nested_collection: UiAssetStringSelectionData,
+    nested_key: string,
+    nested_kind: string,
+    nested_value: string,
+    suggestion_collection: UiAssetStringSelectionData,
+    schema_items: [string],
     state_graph_items: [string],
     can_edit: bool,
     can_clear: bool,
+    nested_can_edit: bool,
+    nested_can_add: bool,
+    nested_can_delete: bool,
 }
 
 export struct UiAssetThemeSourceData {
@@ -68,11 +80,15 @@ export struct UiAssetThemeSourceData {
     cascade_layer_items: [string],
     cascade_token_items: [string],
     cascade_rule_items: [string],
+    compare_items: [string],
     merge_preview_items: [string],
+    rule_helper_items: [string],
+    refactor_items: [string],
     promote_asset_id: string,
     promote_document_id: string,
     promote_display_name: string,
     can_edit_promote_draft: bool,
+    can_prune_duplicate_local_overrides: bool,
 }
 
 export struct UiAssetStyleRuleData {
@@ -164,10 +180,14 @@ export struct UiAssetInspectorBindingData {
     binding_route: string,
     binding_route_target: string,
     binding_action_target: string,
+    route_suggestion_collection: UiAssetStringSelectionData,
+    action_suggestion_collection: UiAssetStringSelectionData,
     action_kind_collection: UiAssetStringSelectionData,
     payload_collection: UiAssetStringSelectionData,
+    payload_suggestion_collection: UiAssetStringSelectionData,
     payload_key: string,
     payload_value: string,
+    schema_items: [string],
     can_edit: bool,
     can_delete: bool,
 }
@@ -242,6 +262,16 @@ export struct UiAssetPreviewCanvasData {
     width: float,
     height: float,
     items: [UiAssetCanvasNodeData],
+}
+
+export struct UiAssetCanvasDragProjectionData {
+    active: bool,
+    pointer_x: float,
+    pointer_y: float,
+    target_index: int,
+    target_action: string,
+    target_label: string,
+    slot_target_items: [UiAssetCanvasSlotTargetData],
 }
 
 export struct UiAssetPreviewPanelData {
@@ -426,31 +456,11 @@ component UiAssetSelectableSection inherits Rectangle {
 }
 
 component UiAssetCanvasSurface inherits Rectangle {
-    in property <[UiAssetCanvasNodeData]> items;
-    in property <float> surface_width: 0.0;
-    in property <float> surface_height: 0.0;
-    in property <int> selected_index: -1;
+    in property <UiAssetPreviewCanvasData> canvas;
+    in property <UiAssetStringSelectionData> selection;
     in property <bool> palette_has_selection: false;
-    in property <bool> can_insert_child: false;
-    in property <bool> can_insert_after: false;
-    in property <bool> can_move_up: false;
-    in property <bool> can_move_down: false;
-    in property <bool> can_reparent_into_previous: false;
-    in property <bool> can_reparent_into_next: false;
-    in property <bool> can_reparent_outdent: false;
-    in property <bool> can_open_reference: false;
-    in property <bool> can_convert_to_reference: false;
-    in property <bool> can_extract_component: false;
-    in property <bool> can_promote_to_external_widget: false;
-    in property <bool> can_wrap_in_vertical_box: false;
-    in property <bool> can_unwrap: false;
-    in property <bool> external_drag_active: false;
-    in property <int> external_drag_target_index: -1;
-    in property <string> external_drag_target_action;
-    in property <string> external_drag_target_label;
-    in property <[UiAssetCanvasSlotTargetData]> external_slot_target_items;
-    in property <float> external_drag_pointer_x: 0.0;
-    in property <float> external_drag_pointer_y: 0.0;
+    in property <UiAssetActionStateData> action_state;
+    in property <UiAssetCanvasDragProjectionData> external_drag;
     callback item_selected(item_index: int);
     callback item_activated(item_index: int);
     callback action_requested(action_id: string);
@@ -462,8 +472,8 @@ component UiAssetCanvasSurface inherits Rectangle {
     border-color: palette.border_soft;
     clip: true;
 
-    property <float> safe_surface_width: root.surface_width > 1.0 ? root.surface_width : 1.0;
-    property <float> safe_surface_height: root.surface_height > 1.0 ? root.surface_height : 1.0;
+    property <float> safe_surface_width: root.canvas.width > 1.0 ? root.canvas.width : 1.0;
+    property <float> safe_surface_height: root.canvas.height > 1.0 ? root.canvas.height : 1.0;
     property <float> available_width: max(root.width / 1px - 24.0, 1.0);
     property <float> available_height: max(root.height / 1px - 24.0, 1.0);
     property <float> scale:
@@ -486,39 +496,39 @@ component UiAssetCanvasSurface inherits Rectangle {
     property <float> drag_pointer_x: 0.0;
     property <float> drag_pointer_y: 0.0;
     property <int> overlay_index:
-        root.drag_source_index >= 0 && root.drag_source_index < root.items.length && (root.drag_pressed || root.drag_active) ? root.drag_source_index :
-        root.selected_index >= 0 && root.selected_index < root.items.length ? root.selected_index : -1;
+        root.drag_source_index >= 0 && root.drag_source_index < root.canvas.items.length && (root.drag_pressed || root.drag_active) ? root.drag_source_index :
+        root.selection.selected_index >= 0 && root.selection.selected_index < root.canvas.items.length ? root.selection.selected_index : -1;
     property <float> overlay_frame_x:
-        root.overlay_index >= 0 ? root.surface_offset_x + root.items[root.overlay_index].x * root.scale : 0.0;
+        root.overlay_index >= 0 ? root.surface_offset_x + root.canvas.items[root.overlay_index].x * root.scale : 0.0;
     property <float> overlay_frame_y:
-        root.overlay_index >= 0 ? root.surface_offset_y + root.items[root.overlay_index].y * root.scale : 0.0;
+        root.overlay_index >= 0 ? root.surface_offset_y + root.canvas.items[root.overlay_index].y * root.scale : 0.0;
     property <float> overlay_frame_width:
-        root.overlay_index >= 0 ? max(root.items[root.overlay_index].width * root.scale, 2.0) : 0.0;
+        root.overlay_index >= 0 ? max(root.canvas.items[root.overlay_index].width * root.scale, 2.0) : 0.0;
     property <float> overlay_frame_height:
-        root.overlay_index >= 0 ? max(root.items[root.overlay_index].height * root.scale, 2.0) : 0.0;
+        root.overlay_index >= 0 ? max(root.canvas.items[root.overlay_index].height * root.scale, 2.0) : 0.0;
     property <string> drag_target_action:
         !root.drag_active ? "" :
-        root.can_insert_child
+        root.action_state.can_insert_child
             && root.drag_pointer_x >= root.overlay_frame_x
             && root.drag_pointer_x <= root.overlay_frame_x + root.overlay_frame_width
             && root.drag_pointer_y >= root.overlay_frame_y
             && root.drag_pointer_y <= root.overlay_frame_y + root.overlay_frame_height ? "palette.insert.child" :
-        root.can_insert_after
+        root.action_state.can_insert_after
             && root.drag_pointer_x >= root.overlay_frame_x
             && root.drag_pointer_x <= root.overlay_frame_x + root.overlay_frame_width
             && root.drag_pointer_y >= root.overlay_frame_y + root.overlay_frame_height + 4.0
             && root.drag_pointer_y <= root.overlay_frame_y + root.overlay_frame_height + 4.0 + root.target_pad_thickness ? "palette.insert.after" :
-        root.can_reparent_into_previous
+        root.action_state.can_reparent_into_previous
             && root.drag_pointer_x >= max(root.overlay_frame_x - root.target_pad_thickness - 4.0, 4.0)
             && root.drag_pointer_x <= max(root.overlay_frame_x - 4.0, 4.0)
             && root.drag_pointer_y >= root.overlay_frame_y
             && root.drag_pointer_y <= root.overlay_frame_y + root.overlay_frame_height ? "canvas.reparent.into_previous" :
-        root.can_reparent_into_next
+        root.action_state.can_reparent_into_next
             && root.drag_pointer_x >= min(root.overlay_frame_x + root.overlay_frame_width + 4.0, root.width / 1px - root.target_pad_thickness - 4.0)
             && root.drag_pointer_x <= min(root.overlay_frame_x + root.overlay_frame_width + root.target_pad_thickness + 4.0, root.width / 1px - 4.0)
             && root.drag_pointer_y >= root.overlay_frame_y
             && root.drag_pointer_y <= root.overlay_frame_y + root.overlay_frame_height ? "canvas.reparent.into_next" :
-        root.can_reparent_outdent
+        root.action_state.can_reparent_outdent
             && root.drag_pointer_x >= root.overlay_frame_x
             && root.drag_pointer_x <= root.overlay_frame_x + root.overlay_frame_width
             && root.drag_pointer_y >= max(root.overlay_frame_y - root.target_pad_thickness - 4.0, 4.0)
@@ -543,7 +553,7 @@ component UiAssetCanvasSurface inherits Rectangle {
         background: #12161c;
     }
 
-    if root.items.length == 0: Text {
+    if root.canvas.items.length == 0: Text {
         x: 10px;
         y: 10px;
         text: "No preview frames";
@@ -551,32 +561,32 @@ component UiAssetCanvasSurface inherits Rectangle {
         font-size: 10px;
     }
 
-    for item[index] in root.items: frame_rect := Rectangle {
+    for item[index] in root.canvas.items: frame_rect := Rectangle {
         x: root.surface_offset_x * 1px + item.x * root.scale * 1px;
         y: root.surface_offset_y * 1px + item.y * root.scale * 1px;
         width: max(item.width * root.scale * 1px, 2px);
         height: max(item.height * root.scale * 1px, 2px);
         property <bool> external_target_active:
-            root.external_drag_active && root.external_drag_target_index == index;
+            root.external_drag.active && root.external_drag.target_index == index;
         property <bool> external_child_target_active:
             self.external_target_active
-            && root.external_drag_target_action == "palette.insert.child"
-            && root.external_slot_target_items.length == 0;
+            && root.external_drag.target_action == "palette.insert.child"
+            && root.external_drag.slot_target_items.length == 0;
         property <bool> external_after_target_active:
-            self.external_target_active && root.external_drag_target_action == "palette.insert.after";
+            self.external_target_active && root.external_drag.target_action == "palette.insert.after";
         border-radius: 3px;
         border-width:
             self.external_target_active ? 2px :
-            index == root.selected_index || item.selected ? 2px :
+            index == root.selection.selected_index || item.selected ? 2px :
             1px;
         border-color:
             self.external_target_active ? #53c98a :
-            index == root.selected_index || item.selected ? #ffd479 :
+            index == root.selection.selected_index || item.selected ? #ffd479 :
             frame_touch.has-hover ? #9ec1ff :
             #7f8b9b;
         background:
             self.external_target_active ? #53c98a22 :
-            index == root.selected_index || item.selected ? #ffd47922 :
+            index == root.selection.selected_index || item.selected ? #ffd47922 :
             frame_touch.has-hover ? #8ab7ff16 :
             #ffffff08;
         clip: true;
@@ -587,7 +597,7 @@ component UiAssetCanvasSurface inherits Rectangle {
             y: 3px;
             width: parent.width - 8px;
             text: item.label;
-            color: index == root.selected_index || item.selected ? #fff3d6 : #d7dce4;
+            color: index == root.selection.selected_index || item.selected ? #fff3d6 : #d7dce4;
             font-size: 9px;
             font-weight: 600;
             overflow: elide;
@@ -608,7 +618,7 @@ component UiAssetCanvasSurface inherits Rectangle {
                 x: 6px;
                 y: 4px;
                 width: parent.width - 12px;
-                text: root.external_drag_target_label;
+                text: root.external_drag.target_label;
                 color: #dff8e8;
                 font-size: 8px;
                 font-weight: 700;
@@ -679,10 +689,10 @@ component UiAssetCanvasSurface inherits Rectangle {
         }
     }
 
-    for target[index] in root.external_slot_target_items: external_slot_target := Rectangle {
+    for target[index] in root.external_drag.slot_target_items: external_slot_target := Rectangle {
         visible:
-            root.external_drag_active
-            && root.external_drag_target_action == "palette.insert.child";
+            root.external_drag.active
+            && root.external_drag.target_action == "palette.insert.child";
         x: root.surface_offset_x * 1px + target.x * root.scale * 1px;
         y: root.surface_offset_y * 1px + target.y * root.scale * 1px;
         width: max(target.width * root.scale * 1px, 10px);
@@ -705,11 +715,11 @@ component UiAssetCanvasSurface inherits Rectangle {
         }
     }
 
-    for item[index] in root.items: drop_after_overlay := Rectangle {
+    for item[index] in root.canvas.items: drop_after_overlay := Rectangle {
         visible:
-            root.external_drag_active
-            && root.external_drag_target_index == index
-            && root.external_drag_target_action == "palette.insert.after";
+            root.external_drag.active
+            && root.external_drag.target_index == index
+            && root.external_drag.target_action == "palette.insert.after";
         x: root.surface_offset_x * 1px + item.x * root.scale * 1px + 4px;
         y: root.surface_offset_y * 1px + (item.y + item.height) * root.scale * 1px + 6px;
         width: max(item.width * root.scale * 1px - 8px, 44px);
@@ -723,7 +733,7 @@ component UiAssetCanvasSurface inherits Rectangle {
             x: 8px;
             y: 4px;
             width: parent.width - 16px;
-            text: root.external_drag_target_label;
+            text: root.external_drag.target_label;
             color: #dff8e8;
             font-size: 8px;
             font-weight: 700;
@@ -759,29 +769,29 @@ component UiAssetCanvasSurface inherits Rectangle {
         }
     }
 
-    if root.external_drag_active: external_drag_overlay := Rectangle {
-        x: min(max(root.external_drag_pointer_x * 1px + 12px, 8px), max(root.width - self.width - 8px, 8px));
-        y: min(max(root.external_drag_pointer_y * 1px - self.height - 12px, 8px), max(root.height - self.height - 8px, 8px));
+    if root.external_drag.active: external_drag_overlay := Rectangle {
+        x: min(max(root.external_drag.pointer_x * 1px + 12px, 8px), max(root.width - self.width - 8px, 8px));
+        y: min(max(root.external_drag.pointer_y * 1px - self.height - 12px, 8px), max(root.height - self.height - 8px, 8px));
         width: 122px;
         height: 24px;
         border-radius: 4px;
         border-width: 1px;
-        border-color: root.external_drag_target_label != "" ? #53c98a88 : #7f8b9b88;
-        background: root.external_drag_target_label != "" ? #0f1a13ee : #10161eea;
+        border-color: root.external_drag.target_label != "" ? #53c98a88 : #7f8b9b88;
+        background: root.external_drag.target_label != "" ? #0f1a13ee : #10161eea;
 
         Text {
             x: 8px;
             y: 5px;
             width: parent.width - 16px;
-            text: root.external_drag_target_label != "" ? root.external_drag_target_label : "Drop On Canvas";
-            color: root.external_drag_target_label != "" ? #dff8e8 : #d7dce4;
+            text: root.external_drag.target_label != "" ? root.external_drag.target_label : "Drop On Canvas";
+            color: root.external_drag.target_label != "" ? #dff8e8 : #d7dce4;
             font-size: 9px;
             font-weight: 700;
             overflow: elide;
         }
     }
 
-    if root.overlay_index >= 0 && root.can_insert_child: insert_child_target := Rectangle {
+    if root.overlay_index >= 0 && root.action_state.can_insert_child: insert_child_target := Rectangle {
         x: root.overlay_frame_x * 1px;
         y: root.overlay_frame_y * 1px;
         width: root.overlay_frame_width * 1px;
@@ -807,7 +817,7 @@ component UiAssetCanvasSurface inherits Rectangle {
         }
     }
 
-    if root.overlay_index >= 0 && root.can_insert_after: insert_after_target := Rectangle {
+    if root.overlay_index >= 0 && root.action_state.can_insert_after: insert_after_target := Rectangle {
         x: root.overlay_frame_x * 1px;
         y: (root.overlay_frame_y + root.overlay_frame_height + 4.0) * 1px;
         width: root.overlay_frame_width * 1px;
@@ -833,7 +843,7 @@ component UiAssetCanvasSurface inherits Rectangle {
         }
     }
 
-    if root.overlay_index >= 0 && root.can_reparent_into_previous: reparent_prev_target := Rectangle {
+    if root.overlay_index >= 0 && root.action_state.can_reparent_into_previous: reparent_prev_target := Rectangle {
         x: max(root.overlay_frame_x - root.target_pad_thickness - 4.0, 4.0) * 1px;
         y: root.overlay_frame_y * 1px;
         width: root.target_pad_thickness * 1px;
@@ -859,7 +869,7 @@ component UiAssetCanvasSurface inherits Rectangle {
         }
     }
 
-    if root.overlay_index >= 0 && root.can_reparent_into_next: reparent_next_target := Rectangle {
+    if root.overlay_index >= 0 && root.action_state.can_reparent_into_next: reparent_next_target := Rectangle {
         x: min(root.overlay_frame_x + root.overlay_frame_width + 4.0, root.width / 1px - root.target_pad_thickness - 4.0) * 1px;
         y: root.overlay_frame_y * 1px;
         width: root.target_pad_thickness * 1px;
@@ -885,7 +895,7 @@ component UiAssetCanvasSurface inherits Rectangle {
         }
     }
 
-    if root.overlay_index >= 0 && root.can_reparent_outdent: outdent_target := Rectangle {
+    if root.overlay_index >= 0 && root.action_state.can_reparent_outdent: outdent_target := Rectangle {
         x: root.overlay_frame_x * 1px;
         y: max(root.overlay_frame_y - root.target_pad_thickness - 4.0, 4.0) * 1px;
         width: root.overlay_frame_width * 1px;
@@ -929,7 +939,7 @@ component UiAssetCanvasSurface inherits Rectangle {
             spacing: 4px;
 
             Text {
-                text: root.items[root.overlay_index].label + " • " + root.items[root.overlay_index].kind;
+                text: root.canvas.items[root.overlay_index].label + " • " + root.canvas.items[root.overlay_index].kind;
                 color: #fff3d6;
                 font-size: 9px;
                 font-weight: 700;
@@ -943,32 +953,32 @@ component UiAssetCanvasSurface inherits Rectangle {
                 ShellButton {
                     width: 52px;
                     label: "Add In";
-                    enabled: root.can_insert_child;
-                    active: root.can_insert_child;
+                    enabled: root.action_state.can_insert_child;
+                    active: root.action_state.can_insert_child;
                     clicked => { root.action_requested("palette.insert.child"); }
                 }
 
                 ShellButton {
                     width: 66px;
                     label: "Add After";
-                    enabled: root.can_insert_after;
-                    active: root.can_insert_after;
+                    enabled: root.action_state.can_insert_after;
+                    active: root.action_state.can_insert_after;
                     clicked => { root.action_requested("palette.insert.after"); }
                 }
 
                 ShellButton {
                     width: 36px;
                     label: "Up";
-                    enabled: root.can_move_up;
-                    active: root.can_move_up;
+                    enabled: root.action_state.can_move_up;
+                    active: root.action_state.can_move_up;
                     clicked => { root.action_requested("canvas.move.up"); }
                 }
 
                 ShellButton {
                     width: 46px;
                     label: "Down";
-                    enabled: root.can_move_down;
-                    active: root.can_move_down;
+                    enabled: root.action_state.can_move_down;
+                    active: root.action_state.can_move_down;
                     clicked => { root.action_requested("canvas.move.down"); }
                 }
             }
@@ -980,40 +990,40 @@ component UiAssetCanvasSurface inherits Rectangle {
                 ShellButton {
                     width: 44px;
                     label: "Prev";
-                    enabled: root.can_reparent_into_previous;
-                    active: root.can_reparent_into_previous;
+                    enabled: root.action_state.can_reparent_into_previous;
+                    active: root.action_state.can_reparent_into_previous;
                     clicked => { root.action_requested("canvas.reparent.into_previous"); }
                 }
 
                 ShellButton {
                     width: 44px;
                     label: "Next";
-                    enabled: root.can_reparent_into_next;
-                    active: root.can_reparent_into_next;
+                    enabled: root.action_state.can_reparent_into_next;
+                    active: root.action_state.can_reparent_into_next;
                     clicked => { root.action_requested("canvas.reparent.into_next"); }
                 }
 
                 ShellButton {
                     width: 40px;
                     label: "Out";
-                    enabled: root.can_reparent_outdent;
-                    active: root.can_reparent_outdent;
+                    enabled: root.action_state.can_reparent_outdent;
+                    active: root.action_state.can_reparent_outdent;
                     clicked => { root.action_requested("canvas.reparent.outdent"); }
                 }
 
                 ShellButton {
                     width: 50px;
                     label: "Wrap";
-                    enabled: root.can_wrap_in_vertical_box;
-                    active: root.can_wrap_in_vertical_box;
+                    enabled: root.action_state.can_wrap_in_vertical_box;
+                    active: root.action_state.can_wrap_in_vertical_box;
                     clicked => { root.action_requested("canvas.wrap.vertical_box"); }
                 }
 
                 ShellButton {
                     width: 58px;
                     label: "Unwrap";
-                    enabled: root.can_unwrap;
-                    active: root.can_unwrap;
+                    enabled: root.action_state.can_unwrap;
+                    active: root.action_state.can_unwrap;
                     clicked => { root.action_requested("canvas.unwrap"); }
                 }
             }
@@ -1025,32 +1035,32 @@ component UiAssetCanvasSurface inherits Rectangle {
                 ShellButton {
                     width: 48px;
                     label: "Open";
-                    enabled: root.can_open_reference;
-                    active: root.can_open_reference;
+                    enabled: root.action_state.can_open_reference;
+                    active: root.action_state.can_open_reference;
                     clicked => { root.action_requested("reference.open"); }
                 }
 
                 ShellButton {
                     width: 54px;
                     label: "To Ref";
-                    enabled: root.can_convert_to_reference;
-                    active: root.can_convert_to_reference;
+                    enabled: root.action_state.can_convert_to_reference;
+                    active: root.action_state.can_convert_to_reference;
                     clicked => { root.action_requested("canvas.convert.reference"); }
                 }
 
                 ShellButton {
                     width: 58px;
                     label: "Extract";
-                    enabled: root.can_extract_component;
-                    active: root.can_extract_component;
+                    enabled: root.action_state.can_extract_component;
+                    active: root.action_state.can_extract_component;
                     clicked => { root.action_requested("canvas.extract.component"); }
                 }
 
                 ShellButton {
                     width: 64px;
                     label: "Promote";
-                    enabled: root.can_promote_to_external_widget;
-                    active: root.can_promote_to_external_widget;
+                    enabled: root.action_state.can_promote_to_external_widget;
+                    active: root.action_state.can_promote_to_external_widget;
                     clicked => { root.action_requested("canvas.promote.widget"); }
                 }
             }
@@ -1061,8 +1071,8 @@ component UiAssetCanvasSurface inherits Rectangle {
         x: 10px;
         y: parent.height - 18px;
         text:
-            root.surface_width > 0.0 && root.surface_height > 0.0 ?
-            root.surface_width + " x " + root.surface_height + " • " + root.items.length + " draw nodes" :
+            root.canvas.width > 0.0 && root.canvas.height > 0.0 ?
+            root.canvas.width + " x " + root.canvas.height + " • " + root.canvas.items.length + " draw nodes" :
             "";
         color: palette.text_dim;
         font-size: 9px;
@@ -1544,7 +1554,6 @@ component UiAssetSourceTextInput inherits TextInput {
 
 export component UiAssetEditorPane inherits Rectangle {
     in property <UiAssetEditorPaneData> pane;
-    property <[string]> stylesheet_items: root.pane.stylesheet_items;
     callback action(action_id: string);
     callback style_class_action(action_id: string, class_name: string);
     callback detail_event(detail_id: string, action_id: string, item_index: int, primary: string, secondary: string);
@@ -1553,8 +1562,8 @@ export component UiAssetEditorPane inherits Rectangle {
     in-out property <float> palette_drag_pointer_x: 0.0;
     in-out property <float> palette_drag_pointer_y: 0.0;
     property <string> palette_drag_label:
-        root.palette_drag_source_index >= 0 && root.palette_drag_source_index < root.palette_collection.items.length ?
-        root.palette_collection.items[root.palette_drag_source_index] :
+        root.palette_drag_source_index >= 0 && root.palette_drag_source_index < root.collections.palette.items.length ?
+        root.collections.palette.items[root.palette_drag_source_index] :
         "";
     callback source_edited(value: string);
     callback palette_drag_hovered(surface_x: float, surface_y: float);
@@ -1564,21 +1573,13 @@ export component UiAssetEditorPane inherits Rectangle {
     callback palette_target_confirm();
     callback palette_target_cancel();
     callback source_cursor_changed(byte_offset: int);
-    property <UiAssetStringSelectionData> palette_collection: root.pane.palette_collection;
-    property <UiAssetStringSelectionData> hierarchy_collection: root.pane.hierarchy_collection;
-    property <UiAssetStringSelectionData> preview_collection: root.pane.preview_collection;
-    property <UiAssetSourceDetailData> source_detail: root.pane.source_detail;
-    property <UiAssetPreviewMockData> preview_mock: root.pane.preview_mock;
-    property <UiAssetInspectorWidgetData> inspector_widget: root.pane.inspector_widget;
-    property <UiAssetInspectorSlotData> inspector_slot: root.pane.inspector_slot;
-    property <UiAssetInspectorLayoutData> inspector_layout: root.pane.inspector_layout;
-    property <UiAssetInspectorBindingData> inspector_binding: root.pane.inspector_binding;
-    property <UiAssetThemeSourceData> theme_source: root.pane.theme_source;
-    property <[string]> style_class_items: root.pane.style_class_items;
-    property <UiAssetStyleRuleData> style_rule: root.pane.style_rule;
-    property <UiAssetMatchedStyleRuleData> matched_style_rule: root.pane.matched_style_rule;
-    property <UiAssetStyleRuleDeclarationData> style_rule_declaration: root.pane.style_rule_declaration;
-    property <UiAssetStyleTokenData> style_token: root.pane.style_token;
+    property <UiAssetPaneHeaderData> header: root.pane.header;
+    property <UiAssetActionStateData> actions: root.pane.actions;
+    property <UiAssetCollectionPanelData> collections: root.pane.collections;
+    property <UiAssetSourcePanelData> source_panel: root.pane.source;
+    property <UiAssetPreviewPanelData> preview_panel: root.pane.preview;
+    property <UiAssetInspectorPanelData> inspector_panel: root.pane.inspector;
+    property <UiAssetStylePanelData> style_panel: root.pane.style;
     property <UiAssetPaletteDragData> palette_drag_projection: root.pane.palette_drag;
     palette := Palette {}
     property <string> style_class_draft: "";
@@ -1588,6 +1589,8 @@ export component UiAssetEditorPane inherits Rectangle {
     property <string> style_token_name_draft: "";
     property <string> style_token_value_draft: "";
     property <string> preview_mock_value_draft: "";
+    property <string> preview_mock_nested_key_draft: "";
+    property <string> preview_mock_nested_value_draft: "";
     property <string> binding_payload_key_draft: "";
     property <string> binding_payload_value_draft: "";
     drag_focus_host := FocusScope {
@@ -1648,7 +1651,7 @@ export component UiAssetEditorPane inherits Rectangle {
         Text {
             x: 10px;
             y: 6px;
-            text: root.pane.asset_id != "" ? root.pane.asset_id : root.pane.mode;
+            text: root.header.asset_id != "" ? root.header.asset_id : root.header.mode;
             color: palette.text;
             font-size: 10px;
             overflow: elide;
@@ -1659,9 +1662,9 @@ export component UiAssetEditorPane inherits Rectangle {
             y: 16px;
             width: parent.width - 20px;
             text:
-                root.pane.status != "" ?
-                root.pane.mode + " • " + root.pane.selection + " • " + root.pane.status :
-                root.pane.mode + " • " + root.pane.selection;
+                root.header.status != "" ?
+                root.header.mode + " • " + root.header.selection + " • " + root.header.status :
+                root.header.mode + " • " + root.header.selection;
             color: palette.text_dim;
             font-size: 9px;
             overflow: elide;
@@ -1676,25 +1679,25 @@ export component UiAssetEditorPane inherits Rectangle {
             ShellButton {
                 width: 56px;
                 label: "Design";
-                active: root.pane.mode == "Design";
+                active: root.header.mode == "Design";
                 clicked => { root.action("mode.design"); }
             }
             ShellButton {
                 width: 52px;
                 label: "Split";
-                active: root.pane.mode == "Split";
+                active: root.header.mode == "Split";
                 clicked => { root.action("mode.split"); }
             }
             ShellButton {
                 width: 56px;
                 label: "Source";
-                active: root.pane.mode == "Source";
+                active: root.header.mode == "Source";
                 clicked => { root.action("mode.source"); }
             }
             ShellButton {
                 width: 60px;
                 label: "Preview";
-                active: root.pane.mode == "Preview";
+                active: root.header.mode == "Preview";
                 clicked => { root.action("mode.preview"); }
             }
 
@@ -1703,25 +1706,25 @@ export component UiAssetEditorPane inherits Rectangle {
             ShellButton {
                 width: 58px;
                 label: "Docked";
-                active: root.pane.preview_preset == "Editor Docked";
+                active: root.preview_panel.preset == "Editor Docked";
                 clicked => { root.action("preview.preset.editor_docked"); }
             }
             ShellButton {
                 width: 50px;
                 label: "Float";
-                active: root.pane.preview_preset == "Editor Floating";
+                active: root.preview_panel.preset == "Editor Floating";
                 clicked => { root.action("preview.preset.editor_floating"); }
             }
             ShellButton {
                 width: 44px;
                 label: "HUD";
-                active: root.pane.preview_preset == "Game HUD";
+                active: root.preview_panel.preset == "Game HUD";
                 clicked => { root.action("preview.preset.game_hud"); }
             }
             ShellButton {
                 width: 58px;
                 label: "Dialog";
-                active: root.pane.preview_preset == "Dialog";
+                active: root.preview_panel.preset == "Dialog";
                 clicked => { root.action("preview.preset.dialog"); }
             }
 
@@ -1730,25 +1733,25 @@ export component UiAssetEditorPane inherits Rectangle {
             ShellButton {
                 width: 46px;
                 label: "Save";
-                enabled: root.pane.can_save;
-                active: root.pane.can_save;
+                enabled: root.actions.can_save;
+                active: root.actions.can_save;
                 clicked => { root.action("save"); }
             }
             ShellButton {
                 width: 48px;
                 label: "Undo";
-                enabled: root.pane.can_undo;
+                enabled: root.actions.can_undo;
                 clicked => { root.action("undo"); }
             }
             ShellButton {
                 width: 48px;
                 label: "Redo";
-                enabled: root.pane.can_redo;
+                enabled: root.actions.can_redo;
                 clicked => { root.action("redo"); }
             }
 
             Text {
-                text: root.pane.preview_available ? root.pane.preview_summary : "Preview unavailable";
+                text: root.preview_panel.available ? root.preview_panel.summary : "Preview unavailable";
                 color: palette.text_dim;
                 font-size: 9px;
                 vertical-alignment: center;
@@ -1777,8 +1780,8 @@ export component UiAssetEditorPane inherits Rectangle {
                 palette_section := UiAssetSelectableSection {
                     height: parent.height * 0.42;
                     title: "Palette";
-                    items: root.palette_collection.items;
-                    selected_index: root.palette_collection.selected_index;
+                    items: root.collections.palette.items;
+                    selected_index: root.collections.palette.selected_index;
                     accent: #9dc07c;
                     drag_enabled: true;
                     item_selected(item_index) => { root.collection_event("palette", "selected", item_index); }
@@ -1795,8 +1798,8 @@ export component UiAssetEditorPane inherits Rectangle {
                 UiAssetSelectableSection {
                     height: parent.height * 0.58 - 8px;
                     title: "Hierarchy";
-                    items: root.hierarchy_collection.items;
-                    selected_index: root.hierarchy_collection.selected_index;
+                    items: root.collections.hierarchy.items;
+                    selected_index: root.collections.hierarchy.selected_index;
                     accent: #7aa2e3;
                     item_selected(item_index) => { root.collection_event("hierarchy", "selected", item_index); }
                     item_activated(item_index) => { root.collection_event("hierarchy", "activated", item_index); }
@@ -1834,7 +1837,7 @@ export component UiAssetEditorPane inherits Rectangle {
                     Text {
                         x: parent.width - self.preferred-width - 10px;
                         y: 8px;
-                        text: root.pane.preview_summary;
+                        text: root.preview_panel.summary;
                         color: palette.text_dim;
                         font-size: 9px;
                     }
@@ -1844,31 +1847,19 @@ export component UiAssetEditorPane inherits Rectangle {
                         y: 28px;
                         width: parent.width - 20px;
                         height: max(92px, parent.height - 126px);
-                        items: root.pane.preview_canvas_items;
-                        surface_width: root.pane.preview_surface_width;
-                        surface_height: root.pane.preview_surface_height;
-                        selected_index: root.preview_collection.selected_index;
-                        palette_has_selection: root.palette_collection.selected_index >= 0;
-                        can_insert_child: root.pane.can_insert_child;
-                        can_insert_after: root.pane.can_insert_after;
-                        can_move_up: root.pane.can_move_up;
-                        can_move_down: root.pane.can_move_down;
-                        can_reparent_into_previous: root.pane.can_reparent_into_previous;
-                        can_reparent_into_next: root.pane.can_reparent_into_next;
-                        can_reparent_outdent: root.pane.can_reparent_outdent;
-                        can_open_reference: root.pane.can_open_reference;
-                        can_convert_to_reference: root.pane.can_convert_to_reference;
-                        can_extract_component: root.pane.can_extract_component;
-                        can_promote_to_external_widget: root.pane.can_promote_to_external_widget;
-                        can_wrap_in_vertical_box: root.pane.can_wrap_in_vertical_box;
-                        can_unwrap: root.pane.can_unwrap;
-                        external_drag_active: root.palette_drag_active;
-                        external_drag_target_index: root.palette_drag_projection.target_preview_index;
-                        external_drag_target_action: root.palette_drag_projection.target_action;
-                        external_drag_target_label: root.palette_drag_projection.target_label;
-                        external_slot_target_items: root.palette_drag_projection.slot_target_items;
-                        external_drag_pointer_x: root.palette_drag_pointer_x - preview_canvas.x / 1px;
-                        external_drag_pointer_y: root.palette_drag_pointer_y - preview_canvas.y / 1px;
+                        canvas: root.preview_panel.canvas;
+                        selection: root.collections.preview;
+                        palette_has_selection: root.collections.palette.selected_index >= 0;
+                        action_state: root.actions;
+                        external_drag: {
+                            active: root.palette_drag_active,
+                            pointer_x: root.palette_drag_pointer_x - preview_canvas.x / 1px,
+                            pointer_y: root.palette_drag_pointer_y - preview_canvas.y / 1px,
+                            target_index: root.palette_drag_projection.target_preview_index,
+                            target_action: root.palette_drag_projection.target_action,
+                            target_label: root.palette_drag_projection.target_label,
+                            slot_target_items: root.palette_drag_projection.slot_target_items,
+                        };
                         item_selected(item_index) => { root.collection_event("preview", "selected", item_index); }
                         item_activated(item_index) => { root.collection_event("preview", "activated", item_index); }
                         action_requested(action_id) => { root.action(action_id); }
@@ -1880,8 +1871,8 @@ export component UiAssetEditorPane inherits Rectangle {
                         width: parent.width - 20px;
                         height: 80px;
                         title: "Render Stack";
-                        items: root.preview_collection.items;
-                        selected_index: root.preview_collection.selected_index;
+                        items: root.collections.preview.items;
+                        selected_index: root.collections.preview.selected_index;
                         accent: #e0aa5e;
                         item_selected(item_index) => { root.collection_event("preview", "selected", item_index); }
                         item_activated(item_index) => { root.collection_event("preview", "activated", item_index); }
@@ -1908,32 +1899,32 @@ export component UiAssetEditorPane inherits Rectangle {
                             ShellButton {
                                 width: 56px;
                                 label: "Add In";
-                enabled: root.pane.can_insert_child;
-                active: root.pane.can_insert_child;
+                enabled: root.actions.can_insert_child;
+                active: root.actions.can_insert_child;
                                 clicked => { root.action("palette.insert.child"); }
                             }
 
                             ShellButton {
                                 width: 68px;
                                 label: "Add After";
-                enabled: root.pane.can_insert_after;
-                active: root.pane.can_insert_after;
+                enabled: root.actions.can_insert_after;
+                active: root.actions.can_insert_after;
                                 clicked => { root.action("palette.insert.after"); }
                             }
 
                             ShellButton {
                                 width: 44px;
                                 label: "Up";
-                enabled: root.pane.can_move_up;
-                active: root.pane.can_move_up;
+                enabled: root.actions.can_move_up;
+                active: root.actions.can_move_up;
                                 clicked => { root.action("canvas.move.up"); }
                             }
 
                             ShellButton {
                                 width: 56px;
                                 label: "Down";
-                enabled: root.pane.can_move_down;
-                active: root.pane.can_move_down;
+                enabled: root.actions.can_move_down;
+                active: root.actions.can_move_down;
                                 clicked => { root.action("canvas.move.down"); }
                             }
                         }
@@ -1945,24 +1936,24 @@ export component UiAssetEditorPane inherits Rectangle {
                             ShellButton {
                                 width: 84px;
                                 label: "Into Prev";
-                enabled: root.pane.can_reparent_into_previous;
-                active: root.pane.can_reparent_into_previous;
+                enabled: root.actions.can_reparent_into_previous;
+                active: root.actions.can_reparent_into_previous;
                                 clicked => { root.action("canvas.reparent.into_previous"); }
                             }
 
                             ShellButton {
                                 width: 78px;
                                 label: "Into Next";
-                enabled: root.pane.can_reparent_into_next;
-                active: root.pane.can_reparent_into_next;
+                enabled: root.actions.can_reparent_into_next;
+                active: root.actions.can_reparent_into_next;
                                 clicked => { root.action("canvas.reparent.into_next"); }
                             }
 
                             ShellButton {
                                 width: 64px;
                                 label: "Outdent";
-                enabled: root.pane.can_reparent_outdent;
-                active: root.pane.can_reparent_outdent;
+                enabled: root.actions.can_reparent_outdent;
+                active: root.actions.can_reparent_outdent;
                                 clicked => { root.action("canvas.reparent.outdent"); }
                             }
 
@@ -1975,48 +1966,48 @@ export component UiAssetEditorPane inherits Rectangle {
                             ShellButton {
                                 width: 74px;
                                 label: "Open Ref";
-                enabled: root.pane.can_open_reference;
-                active: root.pane.can_open_reference;
+                enabled: root.actions.can_open_reference;
+                active: root.actions.can_open_reference;
                                 clicked => { root.action("reference.open"); }
                             }
 
                             ShellButton {
                                 width: 58px;
                                 label: "To Ref";
-                enabled: root.pane.can_convert_to_reference;
-                active: root.pane.can_convert_to_reference;
+                enabled: root.actions.can_convert_to_reference;
+                active: root.actions.can_convert_to_reference;
                                 clicked => { root.action("canvas.convert.reference"); }
                             }
 
                             ShellButton {
                                 width: 64px;
                                 label: "Extract";
-                enabled: root.pane.can_extract_component;
-                active: root.pane.can_extract_component;
+                enabled: root.actions.can_extract_component;
+                active: root.actions.can_extract_component;
                                 clicked => { root.action("canvas.extract.component"); }
                             }
 
                             ShellButton {
                                 width: 70px;
                                 label: "Promote";
-                enabled: root.pane.can_promote_to_external_widget;
-                active: root.pane.can_promote_to_external_widget;
+                enabled: root.actions.can_promote_to_external_widget;
+                active: root.actions.can_promote_to_external_widget;
                                 clicked => { root.action("canvas.promote.widget"); }
                             }
 
                             ShellButton {
                                 width: 82px;
                                 label: "Wrap VBox";
-                enabled: root.pane.can_wrap_in_vertical_box;
-                active: root.pane.can_wrap_in_vertical_box;
+                enabled: root.actions.can_wrap_in_vertical_box;
+                active: root.actions.can_wrap_in_vertical_box;
                                 clicked => { root.action("canvas.wrap.vertical_box"); }
                             }
 
                             ShellButton {
                                 width: 58px;
                                 label: "Unwrap";
-                enabled: root.pane.can_unwrap;
-                active: root.pane.can_unwrap;
+                enabled: root.actions.can_unwrap;
+                active: root.actions.can_unwrap;
                                 clicked => { root.action("canvas.unwrap"); }
                             }
                         }
@@ -2057,7 +2048,7 @@ export component UiAssetEditorPane inherits Rectangle {
                             spacing: 2px;
 
                             Text {
-                                text: root.source_detail.block_label != "" ? root.source_detail.block_label : "No source block";
+                                text: root.source_panel.detail.block_label != "" ? root.source_panel.detail.block_label : "No source block";
                                 color: palette.text;
                                 font-size: 10px;
                                 font-weight: 600;
@@ -2065,13 +2056,13 @@ export component UiAssetEditorPane inherits Rectangle {
                             }
 
                             Text {
-                                text: root.source_detail.selected_line >= 0 ? "line " + root.source_detail.selected_line : "";
+                                text: root.source_panel.detail.selected_line >= 0 ? "line " + root.source_panel.detail.selected_line : "";
                                 color: palette.text_dim;
                                 font-size: 9px;
                             }
 
                             Text {
-                                text: root.source_detail.roundtrip_status;
+                                text: root.source_panel.detail.roundtrip_status;
                                 color: palette.text_muted;
                                 font-size: 9px;
                                 wrap: word-wrap;
@@ -2085,8 +2076,8 @@ export component UiAssetEditorPane inherits Rectangle {
                         width: parent.width - 20px;
                         height: 72px;
                         title: "Source Outline";
-                        items: root.source_detail.outline.items;
-                        selected_index: root.source_detail.outline.selected_index;
+                        items: root.source_panel.detail.outline.items;
+                        selected_index: root.source_panel.detail.outline.selected_index;
                         accent: #d8d28a;
                         item_selected(item_index) => { root.collection_event("source_outline", "selected", item_index); }
                     }
@@ -2096,13 +2087,13 @@ export component UiAssetEditorPane inherits Rectangle {
                         y: 170px;
                         width: parent.width - 20px;
                         height: 72px;
-                        title: "Mock Preview";
-                        items: root.preview_mock.collection.items;
-                        selected_index: root.preview_mock.collection.selected_index;
+                        title: "Mock Subjects";
+                        items: root.preview_panel.mock.subject_collection.items;
+                        selected_index: root.preview_panel.mock.subject_collection.selected_index;
                         accent: #c98fe3;
                         item_selected(item_index) => {
-                            root.collection_event("preview_mock", "selected", item_index);
-                            root.preview_mock_value_draft = root.preview_mock.value;
+                            root.collection_event("preview_mock_subject", "selected", item_index);
+                            root.preview_mock_value_draft = "";
                         }
                     }
 
@@ -2110,7 +2101,7 @@ export component UiAssetEditorPane inherits Rectangle {
                         x: 10px;
                         y: 248px;
                         width: 88px;
-                        text: root.preview_mock.property;
+                        text: root.preview_panel.mock.property;
                         color: palette.text;
                         font-size: 9px;
                         font-weight: 600;
@@ -2120,7 +2111,7 @@ export component UiAssetEditorPane inherits Rectangle {
                         x: 102px;
                         y: 248px;
                         width: parent.width - 112px;
-                        text: root.preview_mock.kind;
+                        text: root.preview_panel.mock.kind;
                         color: palette.text_dim;
                         font-size: 9px;
                         horizontal-alignment: right;
@@ -2134,8 +2125,8 @@ export component UiAssetEditorPane inherits Rectangle {
                         text:
                             root.preview_mock_value_draft != "" ?
                             root.preview_mock_value_draft :
-                            root.preview_mock.value;
-                        enabled: root.preview_mock.can_edit;
+                            root.preview_panel.mock.value;
+                        enabled: root.preview_panel.mock.can_edit;
                         font-size: 9px;
                         font-family: "JetBrains Mono, Cascadia Mono, Consolas";
                         edited(value) => { root.preview_mock_value_draft = value; }
@@ -2146,9 +2137,9 @@ export component UiAssetEditorPane inherits Rectangle {
                         y: 262px;
                         width: 56px;
                         label: "Apply";
-                        enabled: root.preview_mock.can_edit;
+                        enabled: root.preview_panel.mock.can_edit;
                         clicked => {
-                            root.detail_event("preview_mock", "preview.mock.value.set", root.preview_mock.collection.selected_index, root.preview_mock_value_draft != "" ? root.preview_mock_value_draft : root.preview_mock.value, "");
+                            root.detail_event("preview_mock", "preview.mock.value.set", root.preview_panel.mock.collection.selected_index, root.preview_mock_value_draft != "" ? root.preview_mock_value_draft : root.preview_panel.mock.value, "");
                             root.preview_mock_value_draft = "";
                         }
                     }
@@ -2158,11 +2149,21 @@ export component UiAssetEditorPane inherits Rectangle {
                         y: 262px;
                         width: 58px;
                         label: "Clear";
-                        enabled: root.preview_mock.can_clear;
+                        enabled: root.preview_panel.mock.can_clear;
                         clicked => {
-                            root.detail_event("preview_mock", "preview.mock.clear", root.preview_mock.collection.selected_index, "", "");
+                            root.detail_event("preview_mock", "preview.mock.clear", root.preview_panel.mock.collection.selected_index, "", "");
                             root.preview_mock_value_draft = "";
                         }
+                    }
+
+                    Text {
+                        x: 10px;
+                        y: 292px;
+                        width: parent.width - 20px;
+                        text: root.preview_panel.mock.expression_result;
+                        color: palette.text_muted;
+                        font-size: 8px;
+                        overflow: elide;
                     }
 
                     UiAssetSelectableSection {
@@ -2170,17 +2171,145 @@ export component UiAssetEditorPane inherits Rectangle {
                         y: 298px;
                         width: parent.width - 20px;
                         height: 72px;
+                        title: "Mock Suggestions";
+                        items: root.preview_panel.mock.suggestion_collection.items;
+                        selected_index: root.preview_panel.mock.suggestion_collection.selected_index;
+                        accent: #c98fe3;
+                        item_selected(item_index) => {
+                            root.detail_event("preview_mock_suggestion", "preview.mock.suggestion.apply", item_index, "", "");
+                        }
+                    }
+
+                    UiAssetSelectableSection {
+                        x: 10px;
+                        y: 376px;
+                        width: parent.width - 20px;
+                        height: 72px;
+                        title: "Mock Schema";
+                        items: root.preview_panel.mock.schema_items;
+                        selected_index: -1;
+                        accent: #c98fe3;
+                    }
+
+                    UiAssetSelectableSection {
+                        x: 10px;
+                        y: 454px;
+                        width: parent.width - 20px;
+                        height: 92px;
+                        title: "Nested Mock Entries";
+                        items: root.preview_panel.mock.nested_collection.items;
+                        selected_index: root.preview_panel.mock.nested_collection.selected_index;
+                        accent: #c98fe3;
+                        item_selected(item_index) => {
+                            root.collection_event("preview_mock_nested", "selected", item_index);
+                            root.preview_mock_nested_key_draft = root.preview_panel.mock.nested_key;
+                            root.preview_mock_nested_value_draft = root.preview_panel.mock.nested_value;
+                        }
+                    }
+
+                    Text {
+                        x: 10px;
+                        y: 552px;
+                        width: 88px;
+                        text: root.preview_panel.mock.nested_key;
+                        color: palette.text;
+                        font-size: 9px;
+                        font-weight: 600;
+                    }
+
+                    Text {
+                        x: 102px;
+                        y: 552px;
+                        width: parent.width - 112px;
+                        text: root.preview_panel.mock.nested_kind;
+                        color: palette.text_dim;
+                        font-size: 9px;
+                        horizontal-alignment: right;
+                    }
+
+                    CompactField {
+                        x: 10px;
+                        y: 566px;
+                        width: parent.width - 20px;
+                        text:
+                            root.preview_mock_nested_key_draft != "" ?
+                            root.preview_mock_nested_key_draft :
+                            root.preview_panel.mock.nested_key;
+                        placeholder: "nested key";
+                        enabled: root.preview_panel.mock.nested_can_add;
+                        edited(value) => { root.preview_mock_nested_key_draft = value; }
+                    }
+
+                    CompactField {
+                        x: 10px;
+                        y: 594px;
+                        width: parent.width - 20px;
+                        text:
+                            root.preview_mock_nested_value_draft != "" ?
+                            root.preview_mock_nested_value_draft :
+                            root.preview_panel.mock.nested_value;
+                        placeholder: "nested value";
+                        enabled: root.preview_panel.mock.nested_can_edit || root.preview_panel.mock.nested_can_add;
+                        edited(value) => { root.preview_mock_nested_value_draft = value; }
+                    }
+
+                    HorizontalLayout {
+                        x: 10px;
+                        y: 624px;
+                        width: parent.width - 20px;
+                        spacing: 4px;
+
+                        ShellButton {
+                            width: 56px;
+                            label: "Apply";
+                            enabled: root.preview_panel.mock.nested_can_edit;
+                            active: root.preview_panel.mock.nested_can_edit;
+                            clicked => {
+                                root.detail_event("preview_mock_nested", "preview.mock.nested.value.set", root.preview_panel.mock.nested_collection.selected_index, root.preview_mock_nested_value_draft != "" ? root.preview_mock_nested_value_draft : root.preview_panel.mock.nested_value, "");
+                                root.preview_mock_nested_value_draft = "";
+                            }
+                        }
+
+                        ShellButton {
+                            width: 48px;
+                            label: "Add";
+                            enabled: root.preview_panel.mock.nested_can_add;
+                            active: root.preview_panel.mock.nested_can_add;
+                            clicked => {
+                                root.detail_event("preview_mock_nested", "preview.mock.nested.upsert", root.preview_panel.mock.nested_collection.selected_index, root.preview_mock_nested_key_draft != "" ? root.preview_mock_nested_key_draft : root.preview_panel.mock.nested_key, root.preview_mock_nested_value_draft != "" ? root.preview_mock_nested_value_draft : root.preview_panel.mock.nested_value);
+                                root.preview_mock_nested_key_draft = "";
+                                root.preview_mock_nested_value_draft = "";
+                            }
+                        }
+
+                        ShellButton {
+                            width: 58px;
+                            label: "Delete";
+                            enabled: root.preview_panel.mock.nested_can_delete;
+                            clicked => {
+                                root.detail_event("preview_mock_nested", "preview.mock.nested.delete", root.preview_panel.mock.nested_collection.selected_index, "", "");
+                                root.preview_mock_nested_key_draft = "";
+                                root.preview_mock_nested_value_draft = "";
+                            }
+                        }
+                    }
+
+                    UiAssetSelectableSection {
+                        x: 10px;
+                        y: 656px;
+                        width: parent.width - 20px;
+                        height: 72px;
                         title: "Preview State Graph";
-                        items: root.preview_mock.state_graph_items;
+                        items: root.preview_panel.mock.state_graph_items;
                         selected_index: -1;
                         accent: #c98fe3;
                     }
 
                     Rectangle {
                         x: 10px;
-                        y: 376px;
+                        y: 734px;
                         width: parent.width - 20px;
-                        height: max(120px, parent.height - 426px);
+                        height: max(120px, parent.height - 706px);
                         clip: true;
                         border-radius: 4px;
                         border-width: 1px;
@@ -2192,8 +2321,8 @@ export component UiAssetEditorPane inherits Rectangle {
                             y: 8px;
                             width: max(parent.width - 16px, self.preferred-width);
                             height: max(parent.height - 16px, self.preferred-height);
-            text: root.pane.source_text;
-                            desired_cursor_byte_offset: root.source_detail.cursor_byte_offset;
+            text: root.source_panel.text;
+                            desired_cursor_byte_offset: root.source_panel.detail.cursor_byte_offset;
                             enabled: true;
                             read-only: false;
                             single-line: false;
@@ -2210,7 +2339,7 @@ export component UiAssetEditorPane inherits Rectangle {
                         x: 10px;
                         y: parent.height - 42px;
                         width: parent.width - 20px;
-                        text: root.source_detail.selected_excerpt;
+                        text: root.source_panel.detail.selected_excerpt;
                         color: palette.text_dim;
                         font-size: 9px;
                         wrap: word-wrap;
@@ -2284,7 +2413,7 @@ export component UiAssetEditorPane inherits Rectangle {
                                     x: 56px;
                                     y: 3px;
                                     width: parent.width - 56px;
-                                    text: root.inspector_widget.selected_node_id != "" ? root.inspector_widget.selected_node_id : "No selection";
+                                    text: root.inspector_panel.widget.selected_node_id != "" ? root.inspector_panel.widget.selected_node_id : "No selection";
                                     color: palette.text_muted;
                                     font-size: 10px;
                                     overflow: elide;
@@ -2310,8 +2439,8 @@ export component UiAssetEditorPane inherits Rectangle {
                                     y: 3px;
                                     width: parent.width - 56px;
                                     text:
-                                        root.inspector_widget.widget_label != "" ?
-                                        root.inspector_widget.widget_kind + " • " + root.inspector_widget.widget_label :
+                                        root.inspector_panel.widget.widget_label != "" ?
+                                        root.inspector_panel.widget.widget_kind + " • " + root.inspector_panel.widget.widget_label :
                                         "";
                                     color: palette.text_muted;
                                     font-size: 10px;
@@ -2338,8 +2467,8 @@ export component UiAssetEditorPane inherits Rectangle {
                                     y: 3px;
                                     width: parent.width - 56px;
                                     text:
-                                        root.inspector_widget.parent_node_id != "" ?
-                                        (root.inspector_widget.mount != "" ? root.inspector_widget.parent_node_id + " • " + root.inspector_widget.mount : root.inspector_widget.parent_node_id) :
+                                        root.inspector_panel.widget.parent_node_id != "" ?
+                                        (root.inspector_panel.widget.mount != "" ? root.inspector_panel.widget.parent_node_id + " • " + root.inspector_panel.widget.mount : root.inspector_panel.widget.parent_node_id) :
                                         "";
                                     color: palette.text_muted;
                                     font-size: 10px;
@@ -2365,9 +2494,9 @@ export component UiAssetEditorPane inherits Rectangle {
                                     x: 62px;
                                     y: 0px;
                                     width: parent.width - 62px;
-                                    text: root.inspector_widget.control_id;
+                                    text: root.inspector_panel.widget.control_id;
                                     placeholder: "control-id";
-                                    enabled: root.inspector_widget.can_edit_control_id;
+                                    enabled: root.inspector_panel.widget.can_edit_control_id;
                 edited(value) => { root.detail_event("widget", "widget.control_id.set", -1, value, ""); }
                                 }
                             }
@@ -2390,9 +2519,9 @@ export component UiAssetEditorPane inherits Rectangle {
                                     x: 62px;
                                     y: 0px;
                                     width: parent.width - 62px;
-                                    text: root.inspector_widget.text_prop;
+                                    text: root.inspector_panel.widget.text_prop;
                                     placeholder: "props.text";
-                                    enabled: root.inspector_widget.can_edit_text_prop;
+                                    enabled: root.inspector_panel.widget.can_edit_text_prop;
                 edited(value) => { root.detail_event("widget", "widget.text.set", -1, value, ""); }
                                 }
                             }
@@ -2422,9 +2551,9 @@ export component UiAssetEditorPane inherits Rectangle {
                                     x: 62px;
                                     y: 0px;
                                     width: parent.width - 62px;
-                                    text: root.inspector_widget.promote_asset_id;
+                                    text: root.inspector_panel.widget.promote_asset_id;
                                     placeholder: "res://ui/widgets/widget.ui.toml";
-                                    enabled: root.inspector_widget.can_edit_promote_draft;
+                                    enabled: root.inspector_panel.widget.can_edit_promote_draft;
                 edited(value) => { root.detail_event("widget_promote", "promote.asset_id.set", -1, value, ""); }
                                 }
                             }
@@ -2447,9 +2576,9 @@ export component UiAssetEditorPane inherits Rectangle {
                                     x: 62px;
                                     y: 0px;
                                     width: parent.width - 62px;
-                                    text: root.inspector_widget.promote_component_name;
+                                    text: root.inspector_panel.widget.promote_component_name;
                                     placeholder: "ComponentName";
-                                    enabled: root.inspector_widget.can_edit_promote_draft;
+                                    enabled: root.inspector_panel.widget.can_edit_promote_draft;
                 edited(value) => { root.detail_event("widget_promote", "promote.component_name.set", -1, value, ""); }
                                 }
                             }
@@ -2472,9 +2601,9 @@ export component UiAssetEditorPane inherits Rectangle {
                                     x: 62px;
                                     y: 0px;
                                     width: parent.width - 62px;
-                                    text: root.inspector_widget.promote_document_id;
+                                    text: root.inspector_panel.widget.promote_document_id;
                                     placeholder: "ui.widgets.widget";
-                                    enabled: root.inspector_widget.can_edit_promote_draft;
+                                    enabled: root.inspector_panel.widget.can_edit_promote_draft;
                 edited(value) => { root.detail_event("widget_promote", "promote.document_id.set", -1, value, ""); }
                                 }
                             }
@@ -2504,9 +2633,9 @@ export component UiAssetEditorPane inherits Rectangle {
                                     x: 62px;
                                     y: 0px;
                                     width: parent.width - 62px;
-                                    text: root.inspector_widget.mount;
+                                    text: root.inspector_panel.widget.mount;
                                     placeholder: "slot mount";
-                                    enabled: root.inspector_widget.parent_node_id != "";
+                                    enabled: root.inspector_panel.widget.parent_node_id != "";
                 edited(value) => { root.detail_event("slot", "slot.mount.set", -1, value, ""); }
                                 }
                             }
@@ -2529,9 +2658,9 @@ export component UiAssetEditorPane inherits Rectangle {
                                     x: 62px;
                                     y: 0px;
                                     width: parent.width - 62px;
-                                    text: root.inspector_slot.padding;
+                                    text: root.inspector_panel.slot.padding;
                                     placeholder: "slot.padding";
-                                    enabled: root.inspector_widget.parent_node_id != "";
+                                    enabled: root.inspector_panel.widget.parent_node_id != "";
                 edited(value) => { root.detail_event("slot", "slot.padding.set", -1, value, ""); }
                                 }
                             }
@@ -2554,9 +2683,9 @@ export component UiAssetEditorPane inherits Rectangle {
                                     x: 62px;
                                     y: 0px;
                                     width: parent.width - 62px;
-                                    text: root.inspector_slot.width_preferred;
+                                    text: root.inspector_panel.slot.width_preferred;
                                     placeholder: "slot.layout.width.preferred";
-                                    enabled: root.inspector_widget.parent_node_id != "";
+                                    enabled: root.inspector_panel.widget.parent_node_id != "";
                 edited(value) => { root.detail_event("slot", "slot.layout.width.preferred.set", -1, value, ""); }
                                 }
                             }
@@ -2579,32 +2708,32 @@ export component UiAssetEditorPane inherits Rectangle {
                                     x: 62px;
                                     y: 0px;
                                     width: parent.width - 62px;
-                                    text: root.inspector_slot.height_preferred;
+                                    text: root.inspector_panel.slot.height_preferred;
                                     placeholder: "slot.layout.height.preferred";
-                                    enabled: root.inspector_widget.parent_node_id != "";
+                                    enabled: root.inspector_panel.widget.parent_node_id != "";
                 edited(value) => { root.detail_event("slot", "slot.layout.height.preferred.set", -1, value, ""); }
                                 }
                             }
 
-                            if root.inspector_slot.kind == "HorizontalBox" || root.inspector_slot.kind == "VerticalBox": Text {
+                            if root.inspector_panel.slot.kind == "HorizontalBox" || root.inspector_panel.slot.kind == "VerticalBox": Text {
                                 text: "Linear Slot";
                                 color: palette.text;
                                 font-size: 10px;
                                 font-weight: 600;
                             }
 
-                            if root.inspector_slot.kind == "HorizontalBox" || root.inspector_slot.kind == "VerticalBox": Rectangle {
+                            if root.inspector_panel.slot.kind == "HorizontalBox" || root.inspector_panel.slot.kind == "VerticalBox": Rectangle {
                                 width: parent.width;
                                 height: 22px;
                                 background: transparent;
                                 Text { x: 0px; y: 4px; width: 58px; text: "Main Wgt"; color: palette.text_dim; font-size: 10px; }
                                 CompactField {
                                     x: 62px; y: 0px; width: parent.width - 62px;
-                                    text: root.inspector_slot.linear_main_weight;
-                                    placeholder: root.inspector_slot.kind == "HorizontalBox" ? "layout.width.weight" : "layout.height.weight";
-                                    enabled: root.inspector_widget.parent_node_id != "";
+                                    text: root.inspector_panel.slot.linear_main_weight;
+                                    placeholder: root.inspector_panel.slot.kind == "HorizontalBox" ? "layout.width.weight" : "layout.height.weight";
+                                    enabled: root.inspector_panel.widget.parent_node_id != "";
                                     edited(value) => {
-                                        if (root.inspector_slot.kind == "HorizontalBox") {
+                                        if (root.inspector_panel.slot.kind == "HorizontalBox") {
                     root.detail_event("slot", "slot.linear.width_weight.set", -1, value, "");
                                         } else {
                     root.detail_event("slot", "slot.linear.height_weight.set", -1, value, "");
@@ -2613,18 +2742,18 @@ export component UiAssetEditorPane inherits Rectangle {
                                 }
                             }
 
-                            if root.inspector_slot.kind == "HorizontalBox" || root.inspector_slot.kind == "VerticalBox": Rectangle {
+                            if root.inspector_panel.slot.kind == "HorizontalBox" || root.inspector_panel.slot.kind == "VerticalBox": Rectangle {
                                 width: parent.width;
                                 height: 22px;
                                 background: transparent;
                                 Text { x: 0px; y: 4px; width: 58px; text: "Main Str"; color: palette.text_dim; font-size: 10px; }
                                 CompactField {
                                     x: 62px; y: 0px; width: parent.width - 62px;
-                                    text: root.inspector_slot.linear_main_stretch;
-                                    placeholder: root.inspector_slot.kind == "HorizontalBox" ? "layout.width.stretch" : "layout.height.stretch";
-                                    enabled: root.inspector_widget.parent_node_id != "";
+                                    text: root.inspector_panel.slot.linear_main_stretch;
+                                    placeholder: root.inspector_panel.slot.kind == "HorizontalBox" ? "layout.width.stretch" : "layout.height.stretch";
+                                    enabled: root.inspector_panel.widget.parent_node_id != "";
                                     edited(value) => {
-                                        if (root.inspector_slot.kind == "HorizontalBox") {
+                                        if (root.inspector_panel.slot.kind == "HorizontalBox") {
                     root.detail_event("slot", "slot.linear.width_stretch.set", -1, value, "");
                                         } else {
                     root.detail_event("slot", "slot.linear.height_stretch.set", -1, value, "");
@@ -2633,18 +2762,18 @@ export component UiAssetEditorPane inherits Rectangle {
                                 }
                             }
 
-                            if root.inspector_slot.kind == "HorizontalBox" || root.inspector_slot.kind == "VerticalBox": Rectangle {
+                            if root.inspector_panel.slot.kind == "HorizontalBox" || root.inspector_panel.slot.kind == "VerticalBox": Rectangle {
                                 width: parent.width;
                                 height: 22px;
                                 background: transparent;
                                 Text { x: 0px; y: 4px; width: 58px; text: "Cross Wgt"; color: palette.text_dim; font-size: 10px; }
                                 CompactField {
                                     x: 62px; y: 0px; width: parent.width - 62px;
-                                    text: root.inspector_slot.linear_cross_weight;
-                                    placeholder: root.inspector_slot.kind == "HorizontalBox" ? "layout.height.weight" : "layout.width.weight";
-                                    enabled: root.inspector_widget.parent_node_id != "";
+                                    text: root.inspector_panel.slot.linear_cross_weight;
+                                    placeholder: root.inspector_panel.slot.kind == "HorizontalBox" ? "layout.height.weight" : "layout.width.weight";
+                                    enabled: root.inspector_panel.widget.parent_node_id != "";
                                     edited(value) => {
-                                        if (root.inspector_slot.kind == "HorizontalBox") {
+                                        if (root.inspector_panel.slot.kind == "HorizontalBox") {
                     root.detail_event("slot", "slot.linear.height_weight.set", -1, value, "");
                                         } else {
                     root.detail_event("slot", "slot.linear.width_weight.set", -1, value, "");
@@ -2653,18 +2782,18 @@ export component UiAssetEditorPane inherits Rectangle {
                                 }
                             }
 
-                            if root.inspector_slot.kind == "HorizontalBox" || root.inspector_slot.kind == "VerticalBox": Rectangle {
+                            if root.inspector_panel.slot.kind == "HorizontalBox" || root.inspector_panel.slot.kind == "VerticalBox": Rectangle {
                                 width: parent.width;
                                 height: 22px;
                                 background: transparent;
                                 Text { x: 0px; y: 4px; width: 58px; text: "Cross Str"; color: palette.text_dim; font-size: 10px; }
                                 CompactField {
                                     x: 62px; y: 0px; width: parent.width - 62px;
-                                    text: root.inspector_slot.linear_cross_stretch;
-                                    placeholder: root.inspector_slot.kind == "HorizontalBox" ? "layout.height.stretch" : "layout.width.stretch";
-                                    enabled: root.inspector_widget.parent_node_id != "";
+                                    text: root.inspector_panel.slot.linear_cross_stretch;
+                                    placeholder: root.inspector_panel.slot.kind == "HorizontalBox" ? "layout.height.stretch" : "layout.width.stretch";
+                                    enabled: root.inspector_panel.widget.parent_node_id != "";
                                     edited(value) => {
-                                        if (root.inspector_slot.kind == "HorizontalBox") {
+                                        if (root.inspector_panel.slot.kind == "HorizontalBox") {
                     root.detail_event("slot", "slot.linear.height_stretch.set", -1, value, "");
                                         } else {
                     root.detail_event("slot", "slot.linear.width_stretch.set", -1, value, "");
@@ -2673,131 +2802,131 @@ export component UiAssetEditorPane inherits Rectangle {
                                 }
                             }
 
-                            if root.inspector_slot.kind == "Overlay": Text {
+                            if root.inspector_panel.slot.kind == "Overlay": Text {
                                 text: "Overlay Slot";
                                 color: palette.text;
                                 font-size: 10px;
                                 font-weight: 600;
                             }
 
-                            if root.inspector_slot.kind == "Overlay": Rectangle {
+                            if root.inspector_panel.slot.kind == "Overlay": Rectangle {
                                 width: parent.width;
                                 height: 22px;
                                 background: transparent;
                                 Text { x: 0px; y: 4px; width: 58px; text: "Anchor X"; color: palette.text_dim; font-size: 10px; }
                                 CompactField {
                                     x: 62px; y: 0px; width: parent.width - 62px;
-                                    text: root.inspector_slot.overlay_anchor_x;
+                                    text: root.inspector_panel.slot.overlay_anchor_x;
                                     placeholder: "layout.anchor.x";
-                                    enabled: root.inspector_widget.parent_node_id != "";
+                                    enabled: root.inspector_panel.widget.parent_node_id != "";
                 edited(value) => { root.detail_event("slot", "slot.overlay.anchor_x.set", -1, value, ""); }
                                 }
                             }
 
-                            if root.inspector_slot.kind == "Overlay": Rectangle {
+                            if root.inspector_panel.slot.kind == "Overlay": Rectangle {
                                 width: parent.width; height: 22px; background: transparent;
                                 Text { x: 0px; y: 4px; width: 58px; text: "Anchor Y"; color: palette.text_dim; font-size: 10px; }
-                CompactField { x: 62px; y: 0px; width: parent.width - 62px; text: root.inspector_slot.overlay_anchor_y; placeholder: "layout.anchor.y"; enabled: root.inspector_widget.parent_node_id != ""; edited(value) => { root.detail_event("slot", "slot.overlay.anchor_y.set", -1, value, ""); } }
+                CompactField { x: 62px; y: 0px; width: parent.width - 62px; text: root.inspector_panel.slot.overlay_anchor_y; placeholder: "layout.anchor.y"; enabled: root.inspector_panel.widget.parent_node_id != ""; edited(value) => { root.detail_event("slot", "slot.overlay.anchor_y.set", -1, value, ""); } }
                             }
 
-                            if root.inspector_slot.kind == "Overlay": Rectangle {
+                            if root.inspector_panel.slot.kind == "Overlay": Rectangle {
                                 width: parent.width; height: 22px; background: transparent;
                                 Text { x: 0px; y: 4px; width: 58px; text: "Pivot X"; color: palette.text_dim; font-size: 10px; }
-                CompactField { x: 62px; y: 0px; width: parent.width - 62px; text: root.inspector_slot.overlay_pivot_x; placeholder: "layout.pivot.x"; enabled: root.inspector_widget.parent_node_id != ""; edited(value) => { root.detail_event("slot", "slot.overlay.pivot_x.set", -1, value, ""); } }
+                CompactField { x: 62px; y: 0px; width: parent.width - 62px; text: root.inspector_panel.slot.overlay_pivot_x; placeholder: "layout.pivot.x"; enabled: root.inspector_panel.widget.parent_node_id != ""; edited(value) => { root.detail_event("slot", "slot.overlay.pivot_x.set", -1, value, ""); } }
                             }
 
-                            if root.inspector_slot.kind == "Overlay": Rectangle {
+                            if root.inspector_panel.slot.kind == "Overlay": Rectangle {
                                 width: parent.width; height: 22px; background: transparent;
                                 Text { x: 0px; y: 4px; width: 58px; text: "Pivot Y"; color: palette.text_dim; font-size: 10px; }
-                CompactField { x: 62px; y: 0px; width: parent.width - 62px; text: root.inspector_slot.overlay_pivot_y; placeholder: "layout.pivot.y"; enabled: root.inspector_widget.parent_node_id != ""; edited(value) => { root.detail_event("slot", "slot.overlay.pivot_y.set", -1, value, ""); } }
+                CompactField { x: 62px; y: 0px; width: parent.width - 62px; text: root.inspector_panel.slot.overlay_pivot_y; placeholder: "layout.pivot.y"; enabled: root.inspector_panel.widget.parent_node_id != ""; edited(value) => { root.detail_event("slot", "slot.overlay.pivot_y.set", -1, value, ""); } }
                             }
 
-                            if root.inspector_slot.kind == "Overlay": Rectangle {
+                            if root.inspector_panel.slot.kind == "Overlay": Rectangle {
                                 width: parent.width; height: 22px; background: transparent;
                                 Text { x: 0px; y: 4px; width: 58px; text: "Pos X"; color: palette.text_dim; font-size: 10px; }
-                CompactField { x: 62px; y: 0px; width: parent.width - 62px; text: root.inspector_slot.overlay_position_x; placeholder: "layout.position.x"; enabled: root.inspector_widget.parent_node_id != ""; edited(value) => { root.detail_event("slot", "slot.overlay.position_x.set", -1, value, ""); } }
+                CompactField { x: 62px; y: 0px; width: parent.width - 62px; text: root.inspector_panel.slot.overlay_position_x; placeholder: "layout.position.x"; enabled: root.inspector_panel.widget.parent_node_id != ""; edited(value) => { root.detail_event("slot", "slot.overlay.position_x.set", -1, value, ""); } }
                             }
 
-                            if root.inspector_slot.kind == "Overlay": Rectangle {
+                            if root.inspector_panel.slot.kind == "Overlay": Rectangle {
                                 width: parent.width; height: 22px; background: transparent;
                                 Text { x: 0px; y: 4px; width: 58px; text: "Pos Y"; color: palette.text_dim; font-size: 10px; }
-                CompactField { x: 62px; y: 0px; width: parent.width - 62px; text: root.inspector_slot.overlay_position_y; placeholder: "layout.position.y"; enabled: root.inspector_widget.parent_node_id != ""; edited(value) => { root.detail_event("slot", "slot.overlay.position_y.set", -1, value, ""); } }
+                CompactField { x: 62px; y: 0px; width: parent.width - 62px; text: root.inspector_panel.slot.overlay_position_y; placeholder: "layout.position.y"; enabled: root.inspector_panel.widget.parent_node_id != ""; edited(value) => { root.detail_event("slot", "slot.overlay.position_y.set", -1, value, ""); } }
                             }
 
-                            if root.inspector_slot.kind == "Overlay": Rectangle {
+                            if root.inspector_panel.slot.kind == "Overlay": Rectangle {
                                 width: parent.width; height: 22px; background: transparent;
                                 Text { x: 0px; y: 4px; width: 58px; text: "Z"; color: palette.text_dim; font-size: 10px; }
-                CompactField { x: 62px; y: 0px; width: parent.width - 62px; text: root.inspector_slot.overlay_z_index; placeholder: "layout.z_index"; enabled: root.inspector_widget.parent_node_id != ""; edited(value) => { root.detail_event("slot", "slot.overlay.z_index.set", -1, value, ""); } }
+                CompactField { x: 62px; y: 0px; width: parent.width - 62px; text: root.inspector_panel.slot.overlay_z_index; placeholder: "layout.z_index"; enabled: root.inspector_panel.widget.parent_node_id != ""; edited(value) => { root.detail_event("slot", "slot.overlay.z_index.set", -1, value, ""); } }
                             }
 
-                            if root.inspector_slot.kind == "Grid": Text {
+                            if root.inspector_panel.slot.kind == "Grid": Text {
                                 text: "Grid Slot";
                                 color: palette.text;
                                 font-size: 10px;
                                 font-weight: 600;
                             }
 
-                            if root.inspector_slot.kind == "Grid": Rectangle {
+                            if root.inspector_panel.slot.kind == "Grid": Rectangle {
                                 width: parent.width; height: 22px; background: transparent;
                                 Text { x: 0px; y: 4px; width: 58px; text: "Row"; color: palette.text_dim; font-size: 10px; }
-                CompactField { x: 62px; y: 0px; width: parent.width - 62px; text: root.inspector_slot.grid_row; placeholder: "row"; enabled: root.inspector_widget.parent_node_id != ""; edited(value) => { root.detail_event("slot", "slot.grid.row.set", -1, value, ""); } }
+                CompactField { x: 62px; y: 0px; width: parent.width - 62px; text: root.inspector_panel.slot.grid_row; placeholder: "row"; enabled: root.inspector_panel.widget.parent_node_id != ""; edited(value) => { root.detail_event("slot", "slot.grid.row.set", -1, value, ""); } }
                             }
 
-                            if root.inspector_slot.kind == "Grid": Rectangle {
+                            if root.inspector_panel.slot.kind == "Grid": Rectangle {
                                 width: parent.width; height: 22px; background: transparent;
                                 Text { x: 0px; y: 4px; width: 58px; text: "Column"; color: palette.text_dim; font-size: 10px; }
-                CompactField { x: 62px; y: 0px; width: parent.width - 62px; text: root.inspector_slot.grid_column; placeholder: "column"; enabled: root.inspector_widget.parent_node_id != ""; edited(value) => { root.detail_event("slot", "slot.grid.column.set", -1, value, ""); } }
+                CompactField { x: 62px; y: 0px; width: parent.width - 62px; text: root.inspector_panel.slot.grid_column; placeholder: "column"; enabled: root.inspector_panel.widget.parent_node_id != ""; edited(value) => { root.detail_event("slot", "slot.grid.column.set", -1, value, ""); } }
                             }
 
-                            if root.inspector_slot.kind == "Grid": Rectangle {
+                            if root.inspector_panel.slot.kind == "Grid": Rectangle {
                                 width: parent.width; height: 22px; background: transparent;
                                 Text { x: 0px; y: 4px; width: 58px; text: "Row Span"; color: palette.text_dim; font-size: 10px; }
-                CompactField { x: 62px; y: 0px; width: parent.width - 62px; text: root.inspector_slot.grid_row_span; placeholder: "row_span"; enabled: root.inspector_widget.parent_node_id != ""; edited(value) => { root.detail_event("slot", "slot.grid.row_span.set", -1, value, ""); } }
+                CompactField { x: 62px; y: 0px; width: parent.width - 62px; text: root.inspector_panel.slot.grid_row_span; placeholder: "row_span"; enabled: root.inspector_panel.widget.parent_node_id != ""; edited(value) => { root.detail_event("slot", "slot.grid.row_span.set", -1, value, ""); } }
                             }
 
-                            if root.inspector_slot.kind == "Grid": Rectangle {
+                            if root.inspector_panel.slot.kind == "Grid": Rectangle {
                                 width: parent.width; height: 22px; background: transparent;
                                 Text { x: 0px; y: 4px; width: 58px; text: "Col Span"; color: palette.text_dim; font-size: 10px; }
-                CompactField { x: 62px; y: 0px; width: parent.width - 62px; text: root.inspector_slot.grid_column_span; placeholder: "column_span"; enabled: root.inspector_widget.parent_node_id != ""; edited(value) => { root.detail_event("slot", "slot.grid.column_span.set", -1, value, ""); } }
+                CompactField { x: 62px; y: 0px; width: parent.width - 62px; text: root.inspector_panel.slot.grid_column_span; placeholder: "column_span"; enabled: root.inspector_panel.widget.parent_node_id != ""; edited(value) => { root.detail_event("slot", "slot.grid.column_span.set", -1, value, ""); } }
                             }
 
-                            if root.inspector_slot.kind == "Flow": Text {
+                            if root.inspector_panel.slot.kind == "Flow": Text {
                                 text: "Flow Slot";
                                 color: palette.text;
                                 font-size: 10px;
                                 font-weight: 600;
                             }
 
-                            if root.inspector_slot.kind == "Flow": Rectangle {
+                            if root.inspector_panel.slot.kind == "Flow": Rectangle {
                                 width: parent.width; height: 22px; background: transparent;
                                 Text { x: 0px; y: 4px; width: 58px; text: "Break"; color: palette.text_dim; font-size: 10px; }
-                CompactField { x: 62px; y: 0px; width: parent.width - 62px; text: root.inspector_slot.flow_break_before; placeholder: "break_before"; enabled: root.inspector_widget.parent_node_id != ""; edited(value) => { root.detail_event("slot", "slot.flow.break_before.set", -1, value, ""); } }
+                CompactField { x: 62px; y: 0px; width: parent.width - 62px; text: root.inspector_panel.slot.flow_break_before; placeholder: "break_before"; enabled: root.inspector_panel.widget.parent_node_id != ""; edited(value) => { root.detail_event("slot", "slot.flow.break_before.set", -1, value, ""); } }
                             }
 
-                            if root.inspector_slot.kind == "Flow": Rectangle {
+                            if root.inspector_panel.slot.kind == "Flow": Rectangle {
                                 width: parent.width; height: 22px; background: transparent;
                                 Text { x: 0px; y: 4px; width: 58px; text: "Align"; color: palette.text_dim; font-size: 10px; }
-                CompactField { x: 62px; y: 0px; width: parent.width - 62px; text: root.inspector_slot.flow_alignment; placeholder: "alignment"; enabled: root.inspector_widget.parent_node_id != ""; edited(value) => { root.detail_event("slot", "slot.flow.alignment.set", -1, value, ""); } }
+                CompactField { x: 62px; y: 0px; width: parent.width - 62px; text: root.inspector_panel.slot.flow_alignment; placeholder: "alignment"; enabled: root.inspector_panel.widget.parent_node_id != ""; edited(value) => { root.detail_event("slot", "slot.flow.alignment.set", -1, value, ""); } }
                             }
 
-                            if root.inspector_slot.semantic.title != "": Text {
-                                text: root.inspector_slot.semantic.title;
+                            if root.inspector_panel.slot.semantic.title != "": Text {
+                                text: root.inspector_panel.slot.semantic.title;
                                 color: palette.text;
                                 font-size: 10px;
                                 font-weight: 600;
                             }
 
-                            if root.inspector_slot.semantic.title != "": UiAssetSelectableSection {
+                            if root.inspector_panel.slot.semantic.title != "": UiAssetSelectableSection {
                                 width: parent.width;
                                 height: 92px;
-                                title: root.inspector_slot.semantic.title;
-                                items: root.inspector_slot.semantic.collection.items;
-                                selected_index: root.inspector_slot.semantic.collection.selected_index;
+                                title: root.inspector_panel.slot.semantic.title;
+                                items: root.inspector_panel.slot.semantic.collection.items;
+                                selected_index: root.inspector_panel.slot.semantic.collection.selected_index;
                                 accent: #6ec0d5;
                                 item_selected(item_index) => { root.collection_event("slot_semantic", "selected", item_index); }
                             }
 
-                            if root.inspector_slot.semantic.title != "": Rectangle {
+                            if root.inspector_panel.slot.semantic.title != "": Rectangle {
                                 width: parent.width;
                                 height: 18px;
                                 background: transparent;
@@ -2807,8 +2936,8 @@ export component UiAssetEditorPane inherits Rectangle {
                                     y: 3px;
                                     width: parent.width;
                                     text:
-                                        root.inspector_slot.semantic.path != "" ?
-                                        root.inspector_slot.semantic.path :
+                                        root.inspector_panel.slot.semantic.path != "" ?
+                                        root.inspector_panel.slot.semantic.path :
                                         "Select slot semantic";
                                     color: palette.text_dim;
                                     font-size: 10px;
@@ -2816,22 +2945,22 @@ export component UiAssetEditorPane inherits Rectangle {
                                 }
                             }
 
-                            if root.inspector_slot.semantic.title != "": CompactField {
+                            if root.inspector_panel.slot.semantic.title != "": CompactField {
                                 width: parent.width;
-                                text: root.inspector_slot.semantic.value;
-                                placeholder: root.inspector_slot.semantic.path;
-                                enabled: root.inspector_slot.semantic.collection.selected_index >= 0;
+                                text: root.inspector_panel.slot.semantic.value;
+                                placeholder: root.inspector_panel.slot.semantic.path;
+                                enabled: root.inspector_panel.slot.semantic.collection.selected_index >= 0;
                 edited(value) => { root.detail_event("slot", "slot.semantic.value.set", -1, value, ""); }
                             }
 
-                            if root.inspector_slot.semantic.title != "": HorizontalLayout {
+                            if root.inspector_panel.slot.semantic.title != "": HorizontalLayout {
                                 width: parent.width;
                                 spacing: 4px;
 
                                 ShellButton {
                                     width: 52px;
                                     label: "Clear";
-                                    enabled: root.inspector_slot.semantic.collection.selected_index >= 0;
+                                    enabled: root.inspector_panel.slot.semantic.collection.selected_index >= 0;
                 clicked => { root.detail_event("slot", "slot.semantic.delete", -1, "", ""); }
                                 }
                             }
@@ -2861,9 +2990,9 @@ export component UiAssetEditorPane inherits Rectangle {
                                     x: 62px;
                                     y: 0px;
                                     width: parent.width - 62px;
-                                    text: root.inspector_layout.width_preferred;
+                                    text: root.inspector_panel.layout.width_preferred;
                                     placeholder: "layout.width.preferred";
-                                    enabled: root.inspector_widget.selected_node_id != "";
+                                    enabled: root.inspector_panel.widget.selected_node_id != "";
                 edited(value) => { root.detail_event("layout", "layout.width.preferred.set", -1, value, ""); }
                                 }
                             }
@@ -2886,21 +3015,21 @@ export component UiAssetEditorPane inherits Rectangle {
                                     x: 62px;
                                     y: 0px;
                                     width: parent.width - 62px;
-                                    text: root.inspector_layout.height_preferred;
+                                    text: root.inspector_panel.layout.height_preferred;
                                     placeholder: "layout.height.preferred";
-                                    enabled: root.inspector_widget.selected_node_id != "";
+                                    enabled: root.inspector_panel.widget.selected_node_id != "";
                 edited(value) => { root.detail_event("layout", "layout.height.preferred.set", -1, value, ""); }
                                 }
                             }
 
-                            if root.inspector_layout.kind == "HorizontalBox" || root.inspector_layout.kind == "VerticalBox": Text {
+                            if root.inspector_panel.layout.kind == "HorizontalBox" || root.inspector_panel.layout.kind == "VerticalBox": Text {
                                 text: "Linear Layout";
                                 color: palette.text;
                                 font-size: 10px;
                                 font-weight: 600;
                             }
 
-                            if root.inspector_layout.kind == "HorizontalBox" || root.inspector_layout.kind == "VerticalBox": Rectangle {
+                            if root.inspector_panel.layout.kind == "HorizontalBox" || root.inspector_panel.layout.kind == "VerticalBox": Rectangle {
                                 width: parent.width;
                                 height: 22px;
                                 background: transparent;
@@ -2918,74 +3047,74 @@ export component UiAssetEditorPane inherits Rectangle {
                                     x: 62px;
                                     y: 0px;
                                     width: parent.width - 62px;
-                                    text: root.inspector_layout.box_gap;
+                                    text: root.inspector_panel.layout.box_gap;
                                     placeholder: "container.gap";
-                                    enabled: root.inspector_widget.selected_node_id != "";
+                                    enabled: root.inspector_panel.widget.selected_node_id != "";
                 edited(value) => { root.detail_event("layout", "layout.box.gap.set", -1, value, ""); }
                                 }
                             }
 
-                            if root.inspector_layout.kind == "ScrollableBox": Text {
+                            if root.inspector_panel.layout.kind == "ScrollableBox": Text {
                                 text: "Scrollable Layout";
                                 color: palette.text;
                                 font-size: 10px;
                                 font-weight: 600;
                             }
 
-                            if root.inspector_layout.kind == "ScrollableBox": Rectangle {
+                            if root.inspector_panel.layout.kind == "ScrollableBox": Rectangle {
                                 width: parent.width; height: 22px; background: transparent;
                                 Text { x: 0px; y: 4px; width: 58px; text: "Axis"; color: palette.text_dim; font-size: 10px; }
-                CompactField { x: 62px; y: 0px; width: parent.width - 62px; text: root.inspector_layout.scroll_axis; placeholder: "container.axis"; enabled: root.inspector_widget.selected_node_id != ""; edited(value) => { root.detail_event("layout", "layout.scroll.axis.set", -1, value, ""); } }
+                CompactField { x: 62px; y: 0px; width: parent.width - 62px; text: root.inspector_panel.layout.scroll_axis; placeholder: "container.axis"; enabled: root.inspector_panel.widget.selected_node_id != ""; edited(value) => { root.detail_event("layout", "layout.scroll.axis.set", -1, value, ""); } }
                             }
 
-                            if root.inspector_layout.kind == "ScrollableBox": Rectangle {
+                            if root.inspector_panel.layout.kind == "ScrollableBox": Rectangle {
                                 width: parent.width; height: 22px; background: transparent;
                                 Text { x: 0px; y: 4px; width: 58px; text: "Gap"; color: palette.text_dim; font-size: 10px; }
-                CompactField { x: 62px; y: 0px; width: parent.width - 62px; text: root.inspector_layout.scroll_gap; placeholder: "container.gap"; enabled: root.inspector_widget.selected_node_id != ""; edited(value) => { root.detail_event("layout", "layout.scroll.gap.set", -1, value, ""); } }
+                CompactField { x: 62px; y: 0px; width: parent.width - 62px; text: root.inspector_panel.layout.scroll_gap; placeholder: "container.gap"; enabled: root.inspector_panel.widget.selected_node_id != ""; edited(value) => { root.detail_event("layout", "layout.scroll.gap.set", -1, value, ""); } }
                             }
 
-                            if root.inspector_layout.kind == "ScrollableBox": Rectangle {
+                            if root.inspector_panel.layout.kind == "ScrollableBox": Rectangle {
                                 width: parent.width; height: 22px; background: transparent;
                                 Text { x: 0px; y: 4px; width: 58px; text: "Bar"; color: palette.text_dim; font-size: 10px; }
-                CompactField { x: 62px; y: 0px; width: parent.width - 62px; text: root.inspector_layout.scrollbar_visibility; placeholder: "container.scrollbar_visibility"; enabled: root.inspector_widget.selected_node_id != ""; edited(value) => { root.detail_event("layout", "layout.scroll.scrollbar_visibility.set", -1, value, ""); } }
+                CompactField { x: 62px; y: 0px; width: parent.width - 62px; text: root.inspector_panel.layout.scrollbar_visibility; placeholder: "container.scrollbar_visibility"; enabled: root.inspector_panel.widget.selected_node_id != ""; edited(value) => { root.detail_event("layout", "layout.scroll.scrollbar_visibility.set", -1, value, ""); } }
                             }
 
-                            if root.inspector_layout.kind == "ScrollableBox": Rectangle {
+                            if root.inspector_panel.layout.kind == "ScrollableBox": Rectangle {
                                 width: parent.width; height: 22px; background: transparent;
                                 Text { x: 0px; y: 4px; width: 58px; text: "Extent"; color: palette.text_dim; font-size: 10px; }
-                CompactField { x: 62px; y: 0px; width: parent.width - 62px; text: root.inspector_layout.virtualization_item_extent; placeholder: "container.virtualization.item_extent"; enabled: root.inspector_widget.selected_node_id != ""; edited(value) => { root.detail_event("layout", "layout.scroll.virtualization.item_extent.set", -1, value, ""); } }
+                CompactField { x: 62px; y: 0px; width: parent.width - 62px; text: root.inspector_panel.layout.virtualization_item_extent; placeholder: "container.virtualization.item_extent"; enabled: root.inspector_panel.widget.selected_node_id != ""; edited(value) => { root.detail_event("layout", "layout.scroll.virtualization.item_extent.set", -1, value, ""); } }
                             }
 
-                            if root.inspector_layout.kind == "ScrollableBox": Rectangle {
+                            if root.inspector_panel.layout.kind == "ScrollableBox": Rectangle {
                                 width: parent.width; height: 22px; background: transparent;
                                 Text { x: 0px; y: 4px; width: 58px; text: "Over"; color: palette.text_dim; font-size: 10px; }
-                CompactField { x: 62px; y: 0px; width: parent.width - 62px; text: root.inspector_layout.virtualization_overscan; placeholder: "container.virtualization.overscan"; enabled: root.inspector_widget.selected_node_id != ""; edited(value) => { root.detail_event("layout", "layout.scroll.virtualization.overscan.set", -1, value, ""); } }
+                CompactField { x: 62px; y: 0px; width: parent.width - 62px; text: root.inspector_panel.layout.virtualization_overscan; placeholder: "container.virtualization.overscan"; enabled: root.inspector_panel.widget.selected_node_id != ""; edited(value) => { root.detail_event("layout", "layout.scroll.virtualization.overscan.set", -1, value, ""); } }
                             }
 
-                            if root.inspector_layout.kind == "ScrollableBox": Rectangle {
+                            if root.inspector_panel.layout.kind == "ScrollableBox": Rectangle {
                                 width: parent.width; height: 22px; background: transparent;
                                 Text { x: 0px; y: 4px; width: 58px; text: "Clip"; color: palette.text_dim; font-size: 10px; }
-                CompactField { x: 62px; y: 0px; width: parent.width - 62px; text: root.inspector_layout.clip; placeholder: "clip"; enabled: root.inspector_widget.selected_node_id != ""; edited(value) => { root.detail_event("layout", "layout.scroll.clip.set", -1, value, ""); } }
+                CompactField { x: 62px; y: 0px; width: parent.width - 62px; text: root.inspector_panel.layout.clip; placeholder: "clip"; enabled: root.inspector_panel.widget.selected_node_id != ""; edited(value) => { root.detail_event("layout", "layout.scroll.clip.set", -1, value, ""); } }
                             }
 
-                            if root.inspector_layout.semantic.title != "": Text {
-                                text: root.inspector_layout.semantic.title;
+                            if root.inspector_panel.layout.semantic.title != "": Text {
+                                text: root.inspector_panel.layout.semantic.title;
                                 color: palette.text;
                                 font-size: 10px;
                                 font-weight: 600;
                             }
 
-                            if root.inspector_layout.semantic.title != "": UiAssetSelectableSection {
+                            if root.inspector_panel.layout.semantic.title != "": UiAssetSelectableSection {
                                 width: parent.width;
                                 height: 92px;
-                                title: root.inspector_layout.semantic.title;
-                                items: root.inspector_layout.semantic.collection.items;
-                                selected_index: root.inspector_layout.semantic.collection.selected_index;
+                                title: root.inspector_panel.layout.semantic.title;
+                                items: root.inspector_panel.layout.semantic.collection.items;
+                                selected_index: root.inspector_panel.layout.semantic.collection.selected_index;
                                 accent: #d7a86b;
                                 item_selected(item_index) => { root.collection_event("layout_semantic", "selected", item_index); }
                             }
 
-                            if root.inspector_layout.semantic.title != "": Rectangle {
+                            if root.inspector_panel.layout.semantic.title != "": Rectangle {
                                 width: parent.width;
                                 height: 18px;
                                 background: transparent;
@@ -2995,8 +3124,8 @@ export component UiAssetEditorPane inherits Rectangle {
                                     y: 3px;
                                     width: parent.width;
                                     text:
-                                        root.inspector_layout.semantic.path != "" ?
-                                        root.inspector_layout.semantic.path :
+                                        root.inspector_panel.layout.semantic.path != "" ?
+                                        root.inspector_panel.layout.semantic.path :
                                         "Select layout semantic";
                                     color: palette.text_dim;
                                     font-size: 10px;
@@ -3004,22 +3133,22 @@ export component UiAssetEditorPane inherits Rectangle {
                                 }
                             }
 
-                            if root.inspector_layout.semantic.title != "": CompactField {
+                            if root.inspector_panel.layout.semantic.title != "": CompactField {
                                 width: parent.width;
-                                text: root.inspector_layout.semantic.value;
-                                placeholder: root.inspector_layout.semantic.path;
-                                enabled: root.inspector_layout.semantic.collection.selected_index >= 0;
+                                text: root.inspector_panel.layout.semantic.value;
+                                placeholder: root.inspector_panel.layout.semantic.path;
+                                enabled: root.inspector_panel.layout.semantic.collection.selected_index >= 0;
                 edited(value) => { root.detail_event("layout", "layout.semantic.value.set", -1, value, ""); }
                             }
 
-                            if root.inspector_layout.semantic.title != "": HorizontalLayout {
+                            if root.inspector_panel.layout.semantic.title != "": HorizontalLayout {
                                 width: parent.width;
                                 spacing: 4px;
 
                                 ShellButton {
                                     width: 52px;
                                     label: "Clear";
-                                    enabled: root.inspector_layout.semantic.collection.selected_index >= 0;
+                                    enabled: root.inspector_panel.layout.semantic.collection.selected_index >= 0;
                 clicked => { root.detail_event("layout", "layout.semantic.delete", -1, "", ""); }
                                 }
                             }
@@ -3035,17 +3164,17 @@ export component UiAssetEditorPane inherits Rectangle {
                                 width: parent.width;
                                 height: 104px;
                                 title: "Bindings";
-                                items: root.inspector_binding.collection.items;
-                                selected_index: root.inspector_binding.collection.selected_index;
+                                items: root.inspector_panel.binding.collection.items;
+                                selected_index: root.inspector_panel.binding.collection.selected_index;
                                 accent: #7cc6b9;
                                 item_selected(item_index) => { root.collection_event("binding", "selected", item_index); }
                             }
 
                             CompactField {
                                 width: parent.width;
-                                text: root.inspector_binding.binding_id;
+                                text: root.inspector_panel.binding.binding_id;
                                 placeholder: "binding id";
-                                enabled: root.inspector_binding.can_edit;
+                                enabled: root.inspector_panel.binding.can_edit;
                 edited(value) => { root.detail_event("binding", "binding.id.set", -1, value, ""); }
                             }
 
@@ -3053,8 +3182,8 @@ export component UiAssetEditorPane inherits Rectangle {
                                 width: parent.width;
                                 height: 86px;
                                 title: "Event";
-                                items: root.inspector_binding.event_collection.items;
-                                selected_index: root.inspector_binding.event_collection.selected_index;
+                                items: root.inspector_panel.binding.event_collection.items;
+                                selected_index: root.inspector_panel.binding.event_collection.selected_index;
                                 accent: #7cc6b9;
                                 item_selected(item_index) => { root.collection_event("binding_event", "selected", item_index); }
                             }
@@ -3063,8 +3192,8 @@ export component UiAssetEditorPane inherits Rectangle {
                                 width: parent.width;
                                 height: 68px;
                                 title: "Action Kind";
-                                items: root.inspector_binding.action_kind_collection.items;
-                                selected_index: root.inspector_binding.action_kind_collection.selected_index;
+                                items: root.inspector_panel.binding.action_kind_collection.items;
+                                selected_index: root.inspector_panel.binding.action_kind_collection.selected_index;
                                 accent: #7cc6b9;
                                 item_selected(item_index) => { root.collection_event("binding_action_kind", "selected", item_index); }
                             }
@@ -3078,7 +3207,7 @@ export component UiAssetEditorPane inherits Rectangle {
                                     x: 0px;
                                     y: 3px;
                                     width: parent.width;
-                                    text: root.inspector_binding.action_kind_collection.selected_index == 2 ? "Binding Target" : "Route";
+                                    text: root.inspector_panel.binding.action_kind_collection.selected_index == 2 ? "Binding Target" : "Route";
                                     color: palette.text_dim;
                                     font-size: 10px;
                                     overflow: elide;
@@ -3087,16 +3216,16 @@ export component UiAssetEditorPane inherits Rectangle {
 
                             CompactField {
                                 width: parent.width;
-                                text: root.inspector_binding.binding_route;
+                                text: root.inspector_panel.binding.binding_route;
                                 placeholder:
-                                    root.inspector_binding.action_kind_collection.selected_index == 2 ?
+                                    root.inspector_panel.binding.action_kind_collection.selected_index == 2 ?
                                     "EditorActions.SaveProject" :
                                     "MenuAction.SaveProject";
-                                enabled: root.inspector_binding.can_edit;
+                                enabled: root.inspector_panel.binding.can_edit;
                 edited(value) => { root.detail_event("binding", "binding.route.set", -1, value, ""); }
                             }
 
-                            if root.inspector_binding.action_kind_collection.selected_index != 2: Rectangle {
+                            if root.inspector_panel.binding.action_kind_collection.selected_index != 2: Rectangle {
                                 width: parent.width;
                                 height: 18px;
                                 background: transparent;
@@ -3112,15 +3241,15 @@ export component UiAssetEditorPane inherits Rectangle {
                                 }
                             }
 
-                            if root.inspector_binding.action_kind_collection.selected_index != 2: CompactField {
+                            if root.inspector_panel.binding.action_kind_collection.selected_index != 2: CompactField {
                                 width: parent.width;
-                                text: root.inspector_binding.binding_route_target;
+                                text: root.inspector_panel.binding.binding_route_target;
                                 placeholder: "MenuAction.SaveProject";
-                                enabled: root.inspector_binding.can_edit;
+                                enabled: root.inspector_panel.binding.can_edit;
                 edited(value) => { root.detail_event("binding", "binding.route_target.set", -1, value, ""); }
                             }
 
-                            if root.inspector_binding.action_kind_collection.selected_index == 2: Rectangle {
+                            if root.inspector_panel.binding.action_kind_collection.selected_index == 2: Rectangle {
                                 width: parent.width;
                                 height: 18px;
                                 background: transparent;
@@ -3136,25 +3265,58 @@ export component UiAssetEditorPane inherits Rectangle {
                                 }
                             }
 
-                            if root.inspector_binding.action_kind_collection.selected_index == 2: CompactField {
+                            if root.inspector_panel.binding.action_kind_collection.selected_index == 2: CompactField {
                                 width: parent.width;
-                                text: root.inspector_binding.binding_action_target;
+                                text: root.inspector_panel.binding.binding_action_target;
                                 placeholder: "EditorActions.SaveProject";
-                                enabled: root.inspector_binding.can_edit;
+                                enabled: root.inspector_panel.binding.can_edit;
                 edited(value) => { root.detail_event("binding", "binding.action_target.set", -1, value, ""); }
+                            }
+
+                            UiAssetSelectableSection {
+                                width: parent.width;
+                                height: 72px;
+                                title: "Route Suggestions";
+                                items: root.inspector_panel.binding.route_suggestion_collection.items;
+                                selected_index: root.inspector_panel.binding.route_suggestion_collection.selected_index;
+                                accent: #7cc6b9;
+                                item_selected(item_index) => {
+                                    root.detail_event("binding_route_suggestion", "binding.route.suggestion.apply", item_index, "", "");
+                                }
+                            }
+
+                            UiAssetSelectableSection {
+                                width: parent.width;
+                                height: 72px;
+                                title: "Action Suggestions";
+                                items: root.inspector_panel.binding.action_suggestion_collection.items;
+                                selected_index: root.inspector_panel.binding.action_suggestion_collection.selected_index;
+                                accent: #7cc6b9;
+                                item_selected(item_index) => {
+                                    root.detail_event("binding_action_suggestion", "binding.action.suggestion.apply", item_index, "", "");
+                                }
+                            }
+
+                            UiAssetSelectableSection {
+                                width: parent.width;
+                                height: 86px;
+                                title: "Binding Schema";
+                                items: root.inspector_panel.binding.schema_items;
+                                selected_index: -1;
+                                accent: #7cc6b9;
                             }
 
                             UiAssetSelectableSection {
                                 width: parent.width;
                                 height: 104px;
                                 title: "Payload";
-                                items: root.inspector_binding.payload_collection.items;
-                                selected_index: root.inspector_binding.payload_collection.selected_index;
+                                items: root.inspector_panel.binding.payload_collection.items;
+                                selected_index: root.inspector_panel.binding.payload_collection.selected_index;
                                 accent: #7cc6b9;
                                 item_selected(item_index) => {
                                     root.collection_event("binding_payload", "selected", item_index);
-                                    root.binding_payload_key_draft = root.inspector_binding.payload_key;
-                                    root.binding_payload_value_draft = root.inspector_binding.payload_value;
+                                    root.binding_payload_key_draft = root.inspector_panel.binding.payload_key;
+                                    root.binding_payload_value_draft = root.inspector_panel.binding.payload_value;
                                 }
                             }
 
@@ -3163,9 +3325,9 @@ export component UiAssetEditorPane inherits Rectangle {
                                 text:
                                     root.binding_payload_key_draft != "" ?
                                     root.binding_payload_key_draft :
-                                    root.inspector_binding.payload_key;
+                                    root.inspector_panel.binding.payload_key;
                                 placeholder: "payload key";
-                                enabled: root.inspector_binding.can_edit;
+                                enabled: root.inspector_panel.binding.can_edit;
                                 edited(value) => { root.binding_payload_key_draft = value; }
                             }
 
@@ -3174,9 +3336,9 @@ export component UiAssetEditorPane inherits Rectangle {
                                 text:
                                     root.binding_payload_value_draft != "" ?
                                     root.binding_payload_value_draft :
-                                    root.inspector_binding.payload_value;
+                                    root.inspector_panel.binding.payload_value;
                                 placeholder: "payload value";
-                                enabled: root.inspector_binding.can_edit;
+                                enabled: root.inspector_panel.binding.can_edit;
                                 edited(value) => { root.binding_payload_value_draft = value; }
                             }
 
@@ -3187,16 +3349,30 @@ export component UiAssetEditorPane inherits Rectangle {
                                 ShellButton {
                                     width: 64px;
                                     label: "Add Click";
-                                    enabled: root.inspector_widget.selected_node_id != "";
-                                    active: root.inspector_widget.selected_node_id != "";
+                                    enabled: root.inspector_panel.widget.selected_node_id != "";
+                                    active: root.inspector_panel.widget.selected_node_id != "";
                 clicked => { root.detail_event("binding", "binding.add", -1, "", ""); }
                                 }
 
                                 ShellButton {
                                     width: 52px;
                                     label: "Delete";
-                                    enabled: root.inspector_binding.can_delete;
+                                    enabled: root.inspector_panel.binding.can_delete;
                 clicked => { root.detail_event("binding", "binding.delete", -1, "", ""); }
+                                }
+                            }
+
+                            UiAssetSelectableSection {
+                                width: parent.width;
+                                height: 86px;
+                                title: "Payload Suggestions";
+                                items: root.inspector_panel.binding.payload_suggestion_collection.items;
+                                selected_index: root.inspector_panel.binding.payload_suggestion_collection.selected_index;
+                                accent: #7cc6b9;
+                                item_selected(item_index) => {
+                                    root.detail_event("binding_payload_suggestion", "binding.payload.suggestion.apply", item_index, "", "");
+                                    root.binding_payload_key_draft = "";
+                                    root.binding_payload_value_draft = "";
                                 }
                             }
 
@@ -3208,13 +3384,13 @@ export component UiAssetEditorPane inherits Rectangle {
                                     width: 48px;
                                     label: "Upsert";
                                     enabled:
-                                        root.inspector_binding.can_edit &&
-                                        ((root.binding_payload_key_draft != "" ? root.binding_payload_key_draft : root.inspector_binding.payload_key) != "");
+                                        root.inspector_panel.binding.can_edit &&
+                                        ((root.binding_payload_key_draft != "" ? root.binding_payload_key_draft : root.inspector_panel.binding.payload_key) != "");
                                     active:
-                                        root.inspector_binding.can_edit &&
-                                        ((root.binding_payload_key_draft != "" ? root.binding_payload_key_draft : root.inspector_binding.payload_key) != "");
+                                        root.inspector_panel.binding.can_edit &&
+                                        ((root.binding_payload_key_draft != "" ? root.binding_payload_key_draft : root.inspector_panel.binding.payload_key) != "");
                                     clicked => {
-                                        root.detail_event("binding_payload", "binding.payload.upsert", root.inspector_binding.payload_collection.selected_index, root.binding_payload_key_draft != "" ? root.binding_payload_key_draft : root.inspector_binding.payload_key, root.binding_payload_value_draft != "" ? root.binding_payload_value_draft : root.inspector_binding.payload_value);
+                                        root.detail_event("binding_payload", "binding.payload.upsert", root.inspector_panel.binding.payload_collection.selected_index, root.binding_payload_key_draft != "" ? root.binding_payload_key_draft : root.inspector_panel.binding.payload_key, root.binding_payload_value_draft != "" ? root.binding_payload_value_draft : root.inspector_panel.binding.payload_value);
                                         root.binding_payload_key_draft = "";
                                         root.binding_payload_value_draft = "";
                                     }
@@ -3223,9 +3399,9 @@ export component UiAssetEditorPane inherits Rectangle {
                                 ShellButton {
                                     width: 56px;
                                     label: "Delete";
-                                    enabled: root.inspector_binding.payload_collection.selected_index >= 0;
+                                    enabled: root.inspector_panel.binding.payload_collection.selected_index >= 0;
                                     clicked => {
-                                        root.detail_event("binding_payload", "binding.payload.delete", root.inspector_binding.payload_collection.selected_index, "", "");
+                                        root.detail_event("binding_payload", "binding.payload.delete", root.inspector_panel.binding.payload_collection.selected_index, "", "");
                                         root.binding_payload_key_draft = "";
                                         root.binding_payload_value_draft = "";
                                     }
@@ -3238,13 +3414,13 @@ export component UiAssetEditorPane inherits Rectangle {
                                 background: palette.border_soft;
                             }
 
-                            if root.inspector_widget.items.length == 0: Text {
+                            if root.inspector_panel.widget.items.length == 0: Text {
                                 text: "No inspector summary entries";
                                 color: palette.text_dim;
                                 font-size: 10px;
                             }
 
-                            for item in root.inspector_widget.items: Text {
+                            for item in root.inspector_panel.widget.items: Text {
                                 text: item;
                                 color: palette.text_muted;
                                 font-size: 10px;
@@ -3280,8 +3456,8 @@ export component UiAssetEditorPane inherits Rectangle {
                         ShellButton {
                             width: 42px;
                             label: "Rule";
-                enabled: root.pane.can_create_rule;
-                active: root.pane.can_create_rule;
+                enabled: root.style_panel.can_create_rule;
+                active: root.style_panel.can_create_rule;
                             clicked => {
                                 root.style_rule_selector_draft = "";
                                 root.action("style.rule.create");
@@ -3291,8 +3467,8 @@ export component UiAssetEditorPane inherits Rectangle {
                         ShellButton {
                             width: 58px;
                             label: "Extract";
-                enabled: root.pane.can_extract_rule;
-                active: root.pane.can_extract_rule;
+                enabled: root.style_panel.can_extract_rule;
+                active: root.style_panel.can_extract_rule;
                             clicked => {
                                 root.style_rule_selector_draft = "";
                                 root.action("style.rule.extract_inline");
@@ -3309,21 +3485,21 @@ export component UiAssetEditorPane inherits Rectangle {
                         ShellButton {
                             width: 46px;
                             label: "Hover";
-                active: root.pane.state_hover;
+                active: root.style_panel.states.hover;
                             clicked => { root.action("style.state.hover"); }
                         }
 
                         ShellButton {
                             width: 46px;
                             label: "Focus";
-                active: root.pane.state_focus;
+                active: root.style_panel.states.focus;
                             clicked => { root.action("style.state.focus"); }
                         }
 
                         ShellButton {
                             width: 60px;
                             label: "Pressed";
-                active: root.pane.state_pressed;
+                active: root.style_panel.states.pressed;
                             clicked => { root.action("style.state.pressed"); }
                         }
                     }
@@ -3337,14 +3513,14 @@ export component UiAssetEditorPane inherits Rectangle {
                         ShellButton {
                             width: 62px;
                             label: "Disabled";
-                active: root.pane.state_disabled;
+                active: root.style_panel.states.disabled;
                             clicked => { root.action("style.state.disabled"); }
                         }
 
                         ShellButton {
                             width: 58px;
                             label: "Selected";
-                active: root.pane.state_selected;
+                active: root.style_panel.states.selected;
                             clicked => { root.action("style.state.selected"); }
                         }
                     }
@@ -3374,8 +3550,8 @@ export component UiAssetEditorPane inherits Rectangle {
                                 width: parent.width;
                                 height: 104px;
                                 title: "Theme Sources";
-                                items: root.theme_source.collection.items;
-                                selected_index: root.theme_source.collection.selected_index;
+                                items: root.style_panel.theme_source.collection.items;
+                                selected_index: root.style_panel.theme_source.collection.selected_index;
                                 accent: #d8ba79;
                                 item_selected(item_index) => {
                                     root.action("theme.source.select." + item_index);
@@ -3402,7 +3578,7 @@ export component UiAssetEditorPane inherits Rectangle {
                                     spacing: 3px;
 
                                     Text {
-                                        text: root.theme_source.selected_source_kind != "" ? root.theme_source.selected_source_kind + " Theme" : "No theme source selected";
+                                        text: root.style_panel.theme_source.selected_source_kind != "" ? root.style_panel.theme_source.selected_source_kind + " Theme" : "No theme source selected";
                                         color: palette.text;
                                         font-size: 10px;
                                         font-weight: 600;
@@ -3410,22 +3586,22 @@ export component UiAssetEditorPane inherits Rectangle {
                                     }
 
                                     Text {
-                                        text: root.theme_source.selected_source_reference;
+                                        text: root.style_panel.theme_source.selected_source_reference;
                                         color: palette.text_muted;
                                         font-size: 10px;
                                         wrap: word-wrap;
                                     }
 
                                     Text {
-                                        text: root.theme_source.selected_source_kind != "" ? root.theme_source.selected_source_token_count + " tokens • " + root.theme_source.selected_source_rule_count + " rules" : "";
+                                        text: root.style_panel.theme_source.selected_source_kind != "" ? root.style_panel.theme_source.selected_source_token_count + " tokens • " + root.style_panel.theme_source.selected_source_rule_count + " rules" : "";
                                         color: palette.text_dim;
                                         font-size: 10px;
                                         wrap: word-wrap;
                                     }
 
                                     Text {
-                                        text: root.theme_source.selected_source_kind != "" ? (root.theme_source.selected_source_available ? "available" : "missing import") : "";
-                                        color: root.theme_source.selected_source_available ? palette.text_dim : #d69f7e;
+                                        text: root.style_panel.theme_source.selected_source_kind != "" ? (root.style_panel.theme_source.selected_source_available ? "available" : "missing import") : "";
+                                        color: root.style_panel.theme_source.selected_source_available ? palette.text_dim : #d69f7e;
                                         font-size: 10px;
                                         wrap: word-wrap;
                                     }
@@ -3437,32 +3613,32 @@ export component UiAssetEditorPane inherits Rectangle {
                                         ShellButton {
                                             width: 48px;
                                             label: "Open";
-                                            enabled: root.theme_source.selected_source_kind == "Imported" && root.theme_source.selected_source_available;
-                                            active: root.theme_source.selected_source_kind == "Imported" && root.theme_source.selected_source_available;
+                                            enabled: root.style_panel.theme_source.selected_source_kind == "Imported" && root.style_panel.theme_source.selected_source_available;
+                                            active: root.style_panel.theme_source.selected_source_kind == "Imported" && root.style_panel.theme_source.selected_source_available;
                                             clicked => { root.action("theme.source.open"); }
                                         }
 
                                         ShellButton {
                                             width: 58px;
                                             label: "Detach";
-                                            enabled: root.theme_source.selected_source_kind == "Imported" && root.theme_source.selected_source_available;
-                                            active: root.theme_source.selected_source_kind == "Imported" && root.theme_source.selected_source_available;
+                                            enabled: root.style_panel.theme_source.selected_source_kind == "Imported" && root.style_panel.theme_source.selected_source_available;
+                                            active: root.style_panel.theme_source.selected_source_kind == "Imported" && root.style_panel.theme_source.selected_source_available;
                                             clicked => { root.action("theme.source.detach_local"); }
                                         }
 
                                         ShellButton {
                                             width: 52px;
                                             label: "Clone";
-                                            enabled: root.theme_source.selected_source_kind == "Imported" && root.theme_source.selected_source_available;
-                                            active: root.theme_source.selected_source_kind == "Imported" && root.theme_source.selected_source_available;
+                                            enabled: root.style_panel.theme_source.selected_source_kind == "Imported" && root.style_panel.theme_source.selected_source_available;
+                                            active: root.style_panel.theme_source.selected_source_kind == "Imported" && root.style_panel.theme_source.selected_source_available;
                                             clicked => { root.action("theme.source.clone_local"); }
                                         }
 
                                         ShellButton {
                                             width: 68px;
                                             label: "Promote";
-                                            enabled: root.theme_source.selected_source_kind == "Local" && root.theme_source.can_promote_local;
-                                            active: root.theme_source.selected_source_kind == "Local" && root.theme_source.can_promote_local;
+                                            enabled: root.style_panel.theme_source.selected_source_kind == "Local" && root.style_panel.theme_source.can_promote_local;
+                                            active: root.style_panel.theme_source.selected_source_kind == "Local" && root.style_panel.theme_source.can_promote_local;
                                             clicked => { root.action("theme.local.promote"); }
                                         }
                                     }
@@ -3492,9 +3668,9 @@ export component UiAssetEditorPane inherits Rectangle {
                                             x: 62px;
                                             y: 0px;
                                             width: parent.width - 62px;
-                                            text: root.theme_source.promote_asset_id;
+                                            text: root.style_panel.theme_source.promote_asset_id;
                                             placeholder: "res://ui/themes/theme.ui.toml";
-                                            enabled: root.theme_source.can_edit_promote_draft;
+                                            enabled: root.style_panel.theme_source.can_edit_promote_draft;
                                             edited(value) => { root.detail_event("theme_source", "theme.promote.asset_id.set", -1, value, ""); }
                                         }
                                     }
@@ -3517,9 +3693,9 @@ export component UiAssetEditorPane inherits Rectangle {
                                             x: 62px;
                                             y: 0px;
                                             width: parent.width - 62px;
-                                            text: root.theme_source.promote_document_id;
+                                            text: root.style_panel.theme_source.promote_document_id;
                                             placeholder: "ui.theme.editor_theme";
-                                            enabled: root.theme_source.can_edit_promote_draft;
+                                            enabled: root.style_panel.theme_source.can_edit_promote_draft;
                                             edited(value) => { root.detail_event("theme_source", "theme.promote.document_id.set", -1, value, ""); }
                                         }
                                     }
@@ -3542,9 +3718,9 @@ export component UiAssetEditorPane inherits Rectangle {
                                             x: 62px;
                                             y: 0px;
                                             width: parent.width - 62px;
-                                            text: root.theme_source.promote_display_name;
+                                            text: root.style_panel.theme_source.promote_display_name;
                                             placeholder: "Editor Theme";
-                                            enabled: root.theme_source.can_edit_promote_draft;
+                                            enabled: root.style_panel.theme_source.can_edit_promote_draft;
                                             edited(value) => { root.detail_event("theme_source", "theme.promote.display_name.set", -1, value, ""); }
                                         }
                                     }
@@ -3555,11 +3731,11 @@ export component UiAssetEditorPane inherits Rectangle {
                                 width: parent.width;
                                 height: 92px;
                                 title: "Theme Tokens";
-                                items: root.theme_source.selected_source_token_items;
-                                selected_index: root.theme_source.selected_source_kind == "Local" ? root.style_token.selected_index : -1;
+                                items: root.style_panel.theme_source.selected_source_token_items;
+                                selected_index: root.style_panel.theme_source.selected_source_kind == "Local" ? root.style_panel.token.selected_index : -1;
                                 accent: #d8ba79;
                                 item_selected(item_index) => {
-                                    if (root.theme_source.selected_source_kind == "Local") {
+                                    if (root.style_panel.theme_source.selected_source_kind == "Local") {
                                         root.detail_event("style_token", "style.token.select", item_index, "", "");
                                     }
                                 }
@@ -3569,11 +3745,11 @@ export component UiAssetEditorPane inherits Rectangle {
                                 width: parent.width;
                                 height: 92px;
                                 title: "Theme Rules";
-                                items: root.theme_source.selected_source_rule_items;
-                                selected_index: root.theme_source.selected_source_kind == "Local" ? root.style_rule.selected_index : -1;
+                                items: root.style_panel.theme_source.selected_source_rule_items;
+                                selected_index: root.style_panel.theme_source.selected_source_kind == "Local" ? root.style_panel.rule.selected_index : -1;
                                 accent: #d8ba79;
                                 item_selected(item_index) => {
-                                    if (root.theme_source.selected_source_kind == "Local") {
+                                    if (root.style_panel.theme_source.selected_source_kind == "Local") {
                                         root.detail_event("style_rule", "style.rule.select", item_index, "", "");
                                     }
                                 }
@@ -3583,7 +3759,7 @@ export component UiAssetEditorPane inherits Rectangle {
                                 width: parent.width;
                                 height: 76px;
                                 title: "Cascade Layers";
-                                items: root.theme_source.cascade_layer_items;
+                                items: root.style_panel.theme_source.cascade_layer_items;
                                 selected_index: -1;
                                 accent: #d8ba79;
                             }
@@ -3592,7 +3768,7 @@ export component UiAssetEditorPane inherits Rectangle {
                                 width: parent.width;
                                 height: 92px;
                                 title: "Cascade Tokens";
-                                items: root.theme_source.cascade_token_items;
+                                items: root.style_panel.theme_source.cascade_token_items;
                                 selected_index: -1;
                                 accent: #d8ba79;
                             }
@@ -3601,7 +3777,16 @@ export component UiAssetEditorPane inherits Rectangle {
                                 width: parent.width;
                                 height: 92px;
                                 title: "Cascade Rules";
-                                items: root.theme_source.cascade_rule_items;
+                                items: root.style_panel.theme_source.cascade_rule_items;
+                                selected_index: -1;
+                                accent: #d8ba79;
+                            }
+
+                            UiAssetSelectableSection {
+                                width: parent.width;
+                                height: 108px;
+                                title: "Theme Compare";
+                                items: root.style_panel.theme_source.compare_items;
                                 selected_index: -1;
                                 accent: #d8ba79;
                             }
@@ -3610,9 +3795,41 @@ export component UiAssetEditorPane inherits Rectangle {
                                 width: parent.width;
                                 height: 124px;
                                 title: "Merge Preview";
-                                items: root.theme_source.merge_preview_items;
+                                items: root.style_panel.theme_source.merge_preview_items;
                                 selected_index: -1;
                                 accent: #d8ba79;
+                            }
+
+                            UiAssetSelectableSection {
+                                width: parent.width;
+                                height: 92px;
+                                title: "Rule Helpers";
+                                items: root.style_panel.theme_source.rule_helper_items;
+                                selected_index: -1;
+                                accent: #d8ba79;
+                                item_activated(item_index) => {
+                                    root.detail_event("theme_source", "theme.rule_helper.apply", item_index, "", "");
+                                }
+                            }
+
+                            UiAssetSelectableSection {
+                                width: parent.width;
+                                height: 92px;
+                                title: "Batch Refactor";
+                                items: root.style_panel.theme_source.refactor_items;
+                                selected_index: -1;
+                                accent: #d8ba79;
+                                item_activated(item_index) => {
+                                    root.detail_event("theme_source", "theme.refactor.apply", item_index, "", "");
+                                }
+                            }
+
+                            ShellButton {
+                                width: 116px;
+                                label: "Prune Duplicates";
+                                enabled: root.style_panel.theme_source.can_prune_duplicate_local_overrides;
+                                active: root.style_panel.theme_source.can_prune_duplicate_local_overrides;
+                                clicked => { root.action("theme.local.prune_duplicates"); }
                             }
 
                             Rectangle {
@@ -3628,13 +3845,13 @@ export component UiAssetEditorPane inherits Rectangle {
                                 font-weight: 600;
                             }
 
-                            if root.style_class_items.length == 0: Text {
+                            if root.style_panel.class_items.length == 0: Text {
                                 text: "No classes on selection";
                                 color: palette.text_dim;
                                 font-size: 10px;
                             }
 
-                            for class_name in root.style_class_items: Text {
+                            for class_name in root.style_panel.class_items: Text {
                                 text: "." + class_name;
                                 color: palette.text_muted;
                                 font-size: 10px;
@@ -3684,13 +3901,13 @@ export component UiAssetEditorPane inherits Rectangle {
                                 width: parent.width;
                                 height: 118px;
                                 title: "Tokens";
-                                items: root.style_token.items;
-                                selected_index: root.style_token.selected_index;
+                                items: root.style_panel.token.items;
+                                selected_index: root.style_panel.token.selected_index;
                                 accent: #8dc8c1;
                                 item_selected(item_index) => {
                                     root.detail_event("style_token", "style.token.select", item_index, "", "");
-                                    root.style_token_name_draft = root.style_token.selected_name;
-                                    root.style_token_value_draft = root.style_token.selected_value;
+                                    root.style_token_name_draft = root.style_panel.token.selected_name;
+                                    root.style_token_value_draft = root.style_panel.token.selected_value;
                                 }
                             }
 
@@ -3699,7 +3916,7 @@ export component UiAssetEditorPane inherits Rectangle {
                                 text:
                                     root.style_token_name_draft != "" ?
                                     root.style_token_name_draft :
-                                    root.style_token.selected_name;
+                                    root.style_panel.token.selected_name;
                                 placeholder: "token-name";
                                 edited(value) => { root.style_token_name_draft = value; }
                             }
@@ -3709,7 +3926,7 @@ export component UiAssetEditorPane inherits Rectangle {
                                 text:
                                     root.style_token_value_draft != "" ?
                                     root.style_token_value_draft :
-                                    root.style_token.selected_value;
+                                    root.style_panel.token.selected_value;
                                 placeholder: "token-value";
                                 edited(value) => { root.style_token_value_draft = value; }
                             }
@@ -3721,10 +3938,10 @@ export component UiAssetEditorPane inherits Rectangle {
                                 ShellButton {
                                     width: 48px;
                                     label: "Apply";
-                                    enabled: root.style_token_name_draft != "" || root.style_token.selected_name != "";
-                                    active: root.style_token_name_draft != "" || root.style_token.selected_name != "";
+                                    enabled: root.style_token_name_draft != "" || root.style_panel.token.selected_name != "";
+                                    active: root.style_token_name_draft != "" || root.style_panel.token.selected_name != "";
                                     clicked => {
-                                        root.detail_event("style_token", "style.token.upsert", root.style_token.selected_index, root.style_token_name_draft != "" ? root.style_token_name_draft : root.style_token.selected_name, root.style_token_value_draft != "" ? root.style_token_value_draft : root.style_token.selected_value);
+                                        root.detail_event("style_token", "style.token.upsert", root.style_panel.token.selected_index, root.style_token_name_draft != "" ? root.style_token_name_draft : root.style_panel.token.selected_name, root.style_token_value_draft != "" ? root.style_token_value_draft : root.style_panel.token.selected_value);
                                         root.style_token_name_draft = "";
                                         root.style_token_value_draft = "";
                                     }
@@ -3733,9 +3950,9 @@ export component UiAssetEditorPane inherits Rectangle {
                                 ShellButton {
                                     width: 56px;
                                     label: "Delete";
-                                    enabled: root.style_token.can_delete;
+                                    enabled: root.style_panel.token.can_delete;
                                     clicked => {
-                                        root.detail_event("style_token", "style.token.delete", root.style_token.selected_index, "", "");
+                                        root.detail_event("style_token", "style.token.delete", root.style_panel.token.selected_index, "", "");
                                         root.style_token_name_draft = "";
                                         root.style_token_value_draft = "";
                                     }
@@ -3752,11 +3969,11 @@ export component UiAssetEditorPane inherits Rectangle {
                                 width: parent.width;
                                 height: 126px;
                                 title: "Rules";
-                                items: root.style_rule.items;
-                                selected_index: root.style_rule.selected_index;
+                                items: root.style_panel.rule.items;
+                                selected_index: root.style_panel.rule.selected_index;
                                 accent: #8dc8c1;
                                 item_selected(item_index) => {
-                                    root.style_rule_selector_draft = root.style_rule.items[item_index];
+                                    root.style_rule_selector_draft = root.style_panel.rule.items[item_index];
                                     root.detail_event("style_rule", "style.rule.select", item_index, "", "");
                                 }
                             }
@@ -3766,9 +3983,9 @@ export component UiAssetEditorPane inherits Rectangle {
                                 text:
                                     root.style_rule_selector_draft != "" ?
                                     root.style_rule_selector_draft :
-                                    root.style_rule.selected_selector;
+                                    root.style_panel.rule.selected_selector;
                                 placeholder: "selector";
-                                enabled: root.style_rule.can_edit;
+                                enabled: root.style_panel.rule.can_edit;
                                 edited(value) => { root.style_rule_selector_draft = value; }
                             }
 
@@ -3779,10 +3996,10 @@ export component UiAssetEditorPane inherits Rectangle {
                                 ShellButton {
                                     width: 48px;
                                     label: "Apply";
-                                    enabled: root.style_rule.can_edit && (root.style_rule_selector_draft != "" || root.style_rule.selected_selector != "");
-                                    active: root.style_rule.can_edit && (root.style_rule_selector_draft != "" || root.style_rule.selected_selector != "");
+                                    enabled: root.style_panel.rule.can_edit && (root.style_rule_selector_draft != "" || root.style_panel.rule.selected_selector != "");
+                                    active: root.style_panel.rule.can_edit && (root.style_rule_selector_draft != "" || root.style_panel.rule.selected_selector != "");
                                     clicked => {
-                                        root.detail_event("style_rule", "style.rule.rename", root.style_rule.selected_index, root.style_rule_selector_draft != "" ? root.style_rule_selector_draft : root.style_rule.selected_selector, "");
+                                        root.detail_event("style_rule", "style.rule.rename", root.style_panel.rule.selected_index, root.style_rule_selector_draft != "" ? root.style_rule_selector_draft : root.style_panel.rule.selected_selector, "");
                                         root.style_rule_selector_draft = "";
                                     }
                                 }
@@ -3790,11 +4007,29 @@ export component UiAssetEditorPane inherits Rectangle {
                                 ShellButton {
                                     width: 56px;
                                     label: "Delete";
-                                    enabled: root.style_rule.can_delete;
+                                    enabled: root.style_panel.rule.can_delete;
                                     clicked => {
-                                        root.detail_event("style_rule", "style.rule.delete", root.style_rule.selected_index, "", "");
+                                        root.detail_event("style_rule", "style.rule.delete", root.style_panel.rule.selected_index, "", "");
                                         root.style_rule_selector_draft = "";
                                       }
+                                  }
+
+                                  ShellButton {
+                                    width: 36px;
+                                    label: "Up";
+                                    enabled: root.style_panel.rule.can_edit && root.style_panel.rule.selected_index > 0;
+                                    clicked => {
+                                        root.detail_event("style_rule", "style.rule.move_up", root.style_panel.rule.selected_index, "", "");
+                                    }
+                                  }
+
+                                  ShellButton {
+                                    width: 46px;
+                                    label: "Down";
+                                    enabled: root.style_panel.rule.can_edit && root.style_panel.rule.selected_index >= 0 && root.style_panel.rule.selected_index + 1 < root.style_panel.rule.items.length;
+                                    clicked => {
+                                        root.detail_event("style_rule", "style.rule.move_down", root.style_panel.rule.selected_index, "", "");
+                                    }
                                   }
                               }
 
@@ -3808,13 +4043,13 @@ export component UiAssetEditorPane inherits Rectangle {
                                   width: parent.width;
                                   height: 126px;
                                   title: "Declarations";
-                                  items: root.style_rule_declaration.items;
-                                  selected_index: root.style_rule_declaration.selected_index;
+                                  items: root.style_panel.rule_declaration.items;
+                                  selected_index: root.style_panel.rule_declaration.selected_index;
                                   accent: #8dc8c1;
                                   item_selected(item_index) => {
                                       root.detail_event("style_rule_declaration", "style.rule.declaration.select", item_index, "", "");
-                                      root.style_rule_declaration_path_draft = root.style_rule_declaration.selected_path;
-                                      root.style_rule_declaration_value_draft = root.style_rule_declaration.selected_value;
+                                      root.style_rule_declaration_path_draft = root.style_panel.rule_declaration.selected_path;
+                                      root.style_rule_declaration_value_draft = root.style_panel.rule_declaration.selected_value;
                                   }
                               }
 
@@ -3823,9 +4058,9 @@ export component UiAssetEditorPane inherits Rectangle {
                                   text:
                                       root.style_rule_declaration_path_draft != "" ?
                                       root.style_rule_declaration_path_draft :
-                                      root.style_rule_declaration.selected_path;
+                                      root.style_panel.rule_declaration.selected_path;
                                   placeholder: "self.background.color";
-                                  enabled: root.style_rule_declaration.can_edit;
+                                  enabled: root.style_panel.rule_declaration.can_edit;
                                   edited(value) => { root.style_rule_declaration_path_draft = value; }
                               }
 
@@ -3834,9 +4069,9 @@ export component UiAssetEditorPane inherits Rectangle {
                                   text:
                                       root.style_rule_declaration_value_draft != "" ?
                                       root.style_rule_declaration_value_draft :
-                                      root.style_rule_declaration.selected_value;
+                                      root.style_panel.rule_declaration.selected_value;
                                   placeholder: "value";
-                                  enabled: root.style_rule_declaration.can_edit;
+                                  enabled: root.style_panel.rule_declaration.can_edit;
                                   edited(value) => { root.style_rule_declaration_value_draft = value; }
                               }
 
@@ -3847,10 +4082,10 @@ export component UiAssetEditorPane inherits Rectangle {
                                   ShellButton {
                                       width: 48px;
                                       label: "Apply";
-                                      enabled: root.style_rule_declaration.can_edit;
-                                      active: root.style_rule_declaration.can_edit;
+                                      enabled: root.style_panel.rule_declaration.can_edit;
+                                      active: root.style_panel.rule_declaration.can_edit;
                                       clicked => {
-                                          root.detail_event("style_rule_declaration", "style.rule.declaration.upsert", root.style_rule_declaration.selected_index, root.style_rule_declaration_path_draft != "" ? root.style_rule_declaration_path_draft : root.style_rule_declaration.selected_path, root.style_rule_declaration_value_draft != "" ? root.style_rule_declaration_value_draft : root.style_rule_declaration.selected_value);
+                                          root.detail_event("style_rule_declaration", "style.rule.declaration.upsert", root.style_panel.rule_declaration.selected_index, root.style_rule_declaration_path_draft != "" ? root.style_rule_declaration_path_draft : root.style_panel.rule_declaration.selected_path, root.style_rule_declaration_value_draft != "" ? root.style_rule_declaration_value_draft : root.style_panel.rule_declaration.selected_value);
                                           root.style_rule_declaration_path_draft = "";
                                           root.style_rule_declaration_value_draft = "";
                                       }
@@ -3859,9 +4094,9 @@ export component UiAssetEditorPane inherits Rectangle {
                                   ShellButton {
                                       width: 56px;
                                       label: "Delete";
-                                      enabled: root.style_rule_declaration.can_delete;
+                                      enabled: root.style_panel.rule_declaration.can_delete;
                                       clicked => {
-                                          root.detail_event("style_rule_declaration", "style.rule.declaration.delete", root.style_rule_declaration.selected_index, "", "");
+                                          root.detail_event("style_rule_declaration", "style.rule.declaration.delete", root.style_panel.rule_declaration.selected_index, "", "");
                                           root.style_rule_declaration_path_draft = "";
                                           root.style_rule_declaration_value_draft = "";
                                       }
@@ -3878,8 +4113,8 @@ export component UiAssetEditorPane inherits Rectangle {
                                   width: parent.width;
                                   height: 126px;
                                   title: "Matched Rules";
-                                  items: root.matched_style_rule.collection.items;
-                                  selected_index: root.matched_style_rule.collection.selected_index;
+                                  items: root.style_panel.matched_rule.collection.items;
+                                  selected_index: root.style_panel.matched_rule.collection.selected_index;
                                   accent: #8dc8c1;
                                   item_selected(item_index) => {
                                       root.collection_event("matched_style_rule", "selected", item_index);
@@ -3902,7 +4137,7 @@ export component UiAssetEditorPane inherits Rectangle {
                                       spacing: 3px;
 
                                       Text {
-                                          text: root.matched_style_rule.selected_origin != "" ? root.matched_style_rule.selected_origin : "No matched rule selected";
+                                          text: root.style_panel.matched_rule.selected_origin != "" ? root.style_panel.matched_rule.selected_origin : "No matched rule selected";
                                           color: palette.text;
                                           font-size: 10px;
                                           font-weight: 600;
@@ -3910,20 +4145,20 @@ export component UiAssetEditorPane inherits Rectangle {
                                       }
 
                                       Text {
-                                          text: root.matched_style_rule.selected_selector;
+                                          text: root.style_panel.matched_rule.selected_selector;
                                           color: palette.text_muted;
                                           font-size: 10px;
                                           wrap: word-wrap;
                                       }
 
                                       Text {
-                                          text: root.matched_style_rule.selected_specificity >= 0 ? "specificity " + root.matched_style_rule.selected_specificity + " • order " + root.matched_style_rule.selected_source_order : "";
+                                          text: root.style_panel.matched_rule.selected_specificity >= 0 ? "specificity " + root.style_panel.matched_rule.selected_specificity + " • order " + root.style_panel.matched_rule.selected_source_order : "";
                                           color: palette.text_dim;
                                           font-size: 10px;
                                           wrap: word-wrap;
                                       }
 
-                                      for item in root.matched_style_rule.selected_declaration_items: Text {
+                                      for item in root.style_panel.matched_rule.selected_declaration_items: Text {
                                           text: item;
                                           color: palette.text_muted;
                                           font-size: 10px;
@@ -3932,13 +4167,13 @@ export component UiAssetEditorPane inherits Rectangle {
                                   }
                               }
 
-                              if root.stylesheet_items.length == 0: Text {
+                              if root.style_panel.stylesheet_items.length == 0: Text {
                                   text: "No stylesheet entries";
                                   color: palette.text_dim;
                                   font-size: 10px;
                             }
 
-                            for item in root.stylesheet_items: Text {
+                            for item in root.style_panel.stylesheet_items: Text {
                                 text: item;
                                 color: palette.text_muted;
                                 font-size: 10px;

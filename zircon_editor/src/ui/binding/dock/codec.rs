@@ -1,7 +1,9 @@
-use zircon_ui::{UiBindingCall, UiBindingValue};
+use zircon_ui::{binding::UiBindingCall, binding::UiBindingValue};
 
 use super::DockCommand;
-use crate::ui::binding::core::{required_f32_argument, required_string_argument, EditorUiBindingError};
+use crate::ui::binding::core::{
+    required_f32_argument, required_string_argument, EditorUiBindingError,
+};
 
 impl DockCommand {
     pub(crate) fn to_call(&self) -> UiBindingCall {

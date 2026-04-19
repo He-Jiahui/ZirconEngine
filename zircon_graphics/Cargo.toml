@@ -5,9 +5,6 @@ edition.workspace = true
 license.workspace = true
 description = "Rendering device and draw submission (Godot rendering core / Fyrox graphics-adjacent)."
 
-[features]
-runtime-ui-integration-tests = []
-
 [dependencies]
 bytemuck.workspace = true
 crossbeam-channel.workspace = true
@@ -28,6 +25,8 @@ zircon_render_graph = { path = "../zircon_render_graph" }
 zircon_rhi = { path = "../zircon_rhi" }
 zircon_rhi_wgpu = { path = "../zircon_rhi_wgpu" }
 zircon_resource = { path = "../zircon_resource" }
-zircon_scene = { path = "../zircon_scene" }
 zircon_manager = { path = "../zircon_manager" }
 zircon_ui = { path = "../zircon_ui" }
+
+[dev-dependencies]
+zircon_scene = { path = "../zircon_scene" }

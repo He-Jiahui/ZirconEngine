@@ -1,11 +1,12 @@
 use std::sync::Arc;
 
-use zircon_asset::ProjectAssetManager;
-use zircon_math::UVec2;
-use zircon_scene::{
+use zircon_asset::pipeline::manager::ProjectAssetManager;
+use zircon_framework::render::{
     RenderFrameExtract, RenderSceneSnapshot, RenderVirtualGeometryExtract,
-    RenderVirtualGeometryPage, RenderWorldSnapshotHandle, World,
+    RenderVirtualGeometryPage, RenderWorldSnapshotHandle,
 };
+use zircon_math::UVec2;
+use zircon_scene::world::World;
 
 use crate::{
     types::{

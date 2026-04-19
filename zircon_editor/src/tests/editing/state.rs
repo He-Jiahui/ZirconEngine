@@ -1,7 +1,10 @@
 use crate::ui::ViewportCommand;
+use zircon_framework::render::{
+    HandleElementExtract, OverlayAxis, ProjectionMode, SceneViewportTool, ViewportCameraSnapshot,
+};
 use zircon_math::{UVec2, Vec2};
 use zircon_resource::{ResourceKind, ResourceState};
-use zircon_scene::DefaultLevelManager;
+use zircon_runtime::scene::DefaultLevelManager;
 
 use super::asset_workspace::{sample_catalog, sample_material_details, sample_resource_status};
 use super::support::{cube_and_camera, cube_id, test_state};
@@ -113,9 +116,7 @@ fn drag_tool_click_selects_renderable_without_handle_overlay() {
         .apply_intent(crate::EditorIntent::SelectNode(camera))
         .unwrap();
 
-    let _ = state.apply_viewport_command(&ViewportCommand::SetTool(
-        zircon_scene::SceneViewportTool::Drag,
-    ));
+    let _ = state.apply_viewport_command(&ViewportCommand::SetTool(SceneViewportTool::Drag));
 
     let cursor = project_entity_cursor(&state, cube, zircon_math::Vec3::new(0.55, 0.0, 0.0));
     let _ = state.apply_viewport_command(&ViewportCommand::LeftPressed {
@@ -124,10 +125,7 @@ fn drag_tool_click_selects_renderable_without_handle_overlay() {
     });
     let _ = state.apply_viewport_command(&ViewportCommand::LeftReleased);
 
-    assert_eq!(
-        state.viewport_controller.selected_node(),
-        Some(cube)
-    );
+    assert_eq!(state.viewport_controller.selected_node(), Some(cube));
     assert!(state.render_snapshot().unwrap().overlays.handles.is_empty());
 }
 
@@ -138,7 +136,12 @@ fn viewport_clicking_light_gizmo_selects_light_node() {
         scene
             .nodes()
             .iter()
-            .find(|node| matches!(node.kind, zircon_scene::NodeKind::DirectionalLight))
+            .find(|node| {
+                matches!(
+                    node.kind,
+                    zircon_scene::components::NodeKind::DirectionalLight
+                )
+            })
             .map(|node| node.id)
             .expect("directional light")
     });
@@ -166,10 +169,7 @@ fn viewport_clicking_light_gizmo_selects_light_node() {
     });
     let _ = state.apply_viewport_command(&ViewportCommand::LeftReleased);
 
-    assert_eq!(
-        state.viewport_controller.selected_node(),
-        Some(light)
-    );
+    assert_eq!(state.viewport_controller.selected_node(), Some(light));
 }
 
 #[test]
@@ -190,9 +190,7 @@ fn viewport_handle_drag_collapses_into_single_undoable_command() {
         .world
         .with_world(|scene| scene.find_node(cube).unwrap().transform);
 
-    let _ = state.apply_viewport_command(&ViewportCommand::SetTool(
-        zircon_scene::SceneViewportTool::Move,
-    ));
+    let _ = state.apply_viewport_command(&ViewportCommand::SetTool(SceneViewportTool::Move));
 
     let (press, release) = move_handle_drag_cursor_pair(&state, cube);
     let _ = state.apply_viewport_command(&ViewportCommand::LeftPressed {
@@ -260,9 +258,9 @@ fn move_handle_drag_cursor_pair(state: &EditorState, cube: u64) -> (Vec2, Vec2) 
         .elements
         .iter()
         .find_map(|element| match element {
-            zircon_scene::HandleElementExtract::AxisLine {
+            HandleElementExtract::AxisLine {
                 axis, start, end, ..
-            } if *axis == zircon_scene::OverlayAxis::X => Some((*start, *end)),
+            } if *axis == OverlayAxis::X => Some((*start, *end)),
             _ => None,
         })
         .expect("x axis handle");
@@ -278,16 +276,16 @@ fn move_handle_drag_cursor_pair(state: &EditorState, cube: u64) -> (Vec2, Vec2) 
 }
 
 fn project_world_position(
-    camera: &zircon_scene::ViewportCameraSnapshot,
+    camera: &ViewportCameraSnapshot,
     viewport: UVec2,
     world: zircon_math::Vec3,
 ) -> Option<Vec2> {
     let aspect = viewport.x as f32 / viewport.y.max(1) as f32;
     let projection = match camera.projection_mode {
-        zircon_scene::ProjectionMode::Perspective => {
+        ProjectionMode::Perspective => {
             zircon_math::perspective(camera.fov_y_radians, aspect, camera.z_near, camera.z_far)
         }
-        zircon_scene::ProjectionMode::Orthographic => {
+        ProjectionMode::Orthographic => {
             let half_height = camera.ortho_size.max(0.01);
             let half_width = half_height * aspect.max(0.001);
             zircon_math::Mat4::orthographic_rh(

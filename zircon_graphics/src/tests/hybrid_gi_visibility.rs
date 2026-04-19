@@ -1,6 +1,9 @@
+use zircon_framework::render::{
+    RenderHybridGiExtract, RenderHybridGiProbe, RenderHybridGiTraceRegion,
+};
 use zircon_math::{Transform, Vec3};
 use zircon_resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
-use zircon_scene::{RenderHybridGiExtract, RenderHybridGiProbe, RenderHybridGiTraceRegion, World};
+use zircon_scene::world::World;
 
 use crate::{
     VisibilityContext, VisibilityHybridGiFeedback, VisibilityHybridGiProbe,
@@ -200,6 +203,86 @@ fn visibility_context_prioritizes_hybrid_gi_probe_requests_supported_by_schedule
             scheduled_trace_region_ids: vec![40],
             evictable_probe_ids: Vec::new(),
         }
+    );
+}
+
+#[test]
+fn visibility_context_prefers_previously_requested_hybrid_gi_lineage_when_trace_schedule_clears() {
+    let mut world = World::new();
+    remove_default_meshes(&mut world);
+
+    let mesh = world.spawn_mesh_node(
+        model_handle("res://models/hybrid_gi.obj"),
+        material_handle("res://materials/hybrid_gi.material.toml"),
+    );
+    world
+        .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
+        .expect("mesh transform should update");
+
+    let mut previous_extract = world.to_render_frame_extract();
+    previous_extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
+        probe_budget: 1,
+        tracing_budget: 1,
+        probes: vec![
+            hybrid_probe(mesh, 10, true, Vec3::new(-2.0, 0.0, 0.0), 96),
+            hybrid_probe_with_parent(mesh, 30, false, Vec3::new(-1.8, 0.0, 0.0), 96, 10),
+            hybrid_probe(mesh, 40, true, Vec3::new(2.0, 0.0, 0.0), 96),
+            hybrid_probe_with_parent(mesh, 60, false, Vec3::new(2.2, 0.0, 0.0), 96, 40),
+        ],
+        trace_regions: vec![hybrid_trace_region(mesh, 80, Vec3::new(2.1, 0.0, 0.0), 8.0)],
+    });
+    let previous_context = VisibilityContext::from(&previous_extract);
+    assert_eq!(
+        previous_context.history_snapshot.hybrid_gi_requested_probes,
+        vec![60],
+        "expected the warm frame to pick the right-hand lineage before testing history-driven request continuation"
+    );
+
+    let mut current_extract = world.to_render_frame_extract();
+    current_extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
+        probe_budget: 1,
+        tracing_budget: 0,
+        probes: vec![
+            hybrid_probe(mesh, 10, true, Vec3::new(-2.0, 0.0, 0.0), 96),
+            hybrid_probe_with_parent(mesh, 30, false, Vec3::new(-1.8, 0.0, 0.0), 96, 10),
+            hybrid_probe(mesh, 40, true, Vec3::new(2.0, 0.0, 0.0), 96),
+            hybrid_probe_with_parent(mesh, 60, false, Vec3::new(2.2, 0.0, 0.0), 96, 40),
+        ],
+        trace_regions: Vec::new(),
+    });
+
+    let without_history = VisibilityContext::from(&current_extract);
+    assert_eq!(
+        without_history.hybrid_gi_update_plan.requested_probe_ids,
+        vec![30],
+        "expected the no-history fallback to collapse back onto the lower-id lineage once the current trace schedule disappears"
+    );
+
+    let context = VisibilityContext::from_extract_with_history(
+        &current_extract,
+        Some(&previous_context.history_snapshot),
+    );
+
+    assert_eq!(
+        context.hybrid_gi_update_plan,
+        VisibilityHybridGiUpdatePlan {
+            resident_probe_ids: vec![10, 40],
+            requested_probe_ids: vec![60],
+            dirty_requested_probe_ids: Vec::new(),
+            scheduled_trace_region_ids: Vec::new(),
+            evictable_probe_ids: Vec::new(),
+        },
+        "expected a previously requested screen-probe lineage to keep ownership for one more frame after the current trace schedule clears, instead of immediately flipping to an unrelated lineage on probe-id tie-breaks"
+    );
+    assert_eq!(
+        context.hybrid_gi_feedback,
+        VisibilityHybridGiFeedback {
+            active_probe_ids: vec![10, 40],
+            requested_probe_ids: vec![60],
+            scheduled_trace_region_ids: Vec::new(),
+            evictable_probe_ids: Vec::new(),
+        },
+        "expected feedback/history to publish the continued requested lineage so runtime-host gather/request remains scene-driven even through a temporary trace-schedule gap"
     );
 }
 

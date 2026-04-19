@@ -35,6 +35,8 @@ pub(super) fn update_virtual_geometry_stats(
         state.renderer.last_virtual_geometry_indirect_draw_count() as usize;
     state.stats.last_virtual_geometry_indirect_buffer_count =
         state.renderer.last_virtual_geometry_indirect_buffer_count() as usize;
+    state.stats.last_virtual_geometry_indirect_args_count =
+        state.renderer.last_virtual_geometry_indirect_args_count() as usize;
     state.stats.last_virtual_geometry_indirect_segment_count = state
         .renderer
         .last_virtual_geometry_indirect_segment_count()
@@ -52,5 +54,6 @@ pub(super) fn reset_virtual_geometry_stats(state: &mut RenderFrameworkState) {
     state.stats.last_virtual_geometry_replaced_page_count = 0;
     state.stats.last_virtual_geometry_indirect_draw_count = 0;
     state.stats.last_virtual_geometry_indirect_buffer_count = 0;
+    state.stats.last_virtual_geometry_indirect_args_count = 0;
     state.stats.last_virtual_geometry_indirect_segment_count = 0;
 }

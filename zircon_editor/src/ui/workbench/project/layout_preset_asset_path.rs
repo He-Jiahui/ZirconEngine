@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 
-use zircon_asset::ProjectPaths;
-use zircon_scene::SceneProjectError;
+use zircon_asset::project::ProjectPaths;
+use zircon_scene::world::SceneProjectError;
 
 use super::constants::{EDITOR_LAYOUT_PRESET_DIR, EDITOR_LAYOUT_PRESET_SUFFIX};
 

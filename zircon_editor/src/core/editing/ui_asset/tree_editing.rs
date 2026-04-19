@@ -1,11 +1,12 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use toml::Value;
 use crate::ui::UiDesignerSelectionModel;
-use zircon_ui::{
-    UiAssetDocument, UiChildMount, UiComponentDefinition, UiNodeDefinition, UiNodeDefinitionKind,
-    UiStyleDeclarationBlock,
+use toml::Value;
+use zircon_ui::template::{
+    UiChildMount, UiComponentDefinition, UiNodeDefinition, UiNodeDefinitionKind,
+    UiStyleDeclarationBlock, UiStyleScope,
 };
+use zircon_ui::UiAssetDocument;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum PaletteInsertMode {
@@ -189,7 +190,7 @@ pub(crate) fn extract_selected_node_to_component(
         component_name.clone(),
         UiComponentDefinition {
             root: component_root_id,
-            style_scope: zircon_ui::UiStyleScope::Closed,
+            style_scope: UiStyleScope::Closed,
             params: BTreeMap::new(),
             slots: BTreeMap::new(),
         },

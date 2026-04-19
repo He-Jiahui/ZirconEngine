@@ -1,5 +1,6 @@
 use crate::ui::UiAssetPreviewPreset;
-use zircon_ui::{UiAssetDocument, UiAssetKind, UiCompiledDocument, UiDocumentCompiler, UiSize};
+use zircon_ui::template::{UiCompiledDocument, UiDocumentCompiler};
+use zircon_ui::{UiAssetDocument, UiAssetKind, UiSize};
 
 use super::super::preview::preview_host::UiAssetPreviewHost;
 use super::session_state::UiAssetCompilerImports;

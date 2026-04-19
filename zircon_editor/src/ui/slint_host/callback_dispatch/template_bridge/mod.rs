@@ -10,7 +10,7 @@ mod workbench_drawer_source;
 use std::collections::BTreeMap;
 
 use crate::ui::{EditorUiBinding, EditorUiControlService};
-use zircon_ui::UiEventKind;
+use zircon_ui::binding::UiEventKind;
 
 use crate::ui::template_runtime::{
     EditorUiHostRuntime, EditorUiHostRuntimeError, SlintUiHostProjection, SlintUiProjection,

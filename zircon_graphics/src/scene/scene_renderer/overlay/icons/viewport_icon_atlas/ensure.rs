@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use zircon_scene::ViewportIconId;
+use zircon_framework::render::ViewportIconId;
 
 use crate::types::GraphicsError;
 

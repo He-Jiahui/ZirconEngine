@@ -1,8 +1,8 @@
 use super::{UiTree, UiTreeError, UiTreeNode};
-use crate::UiNodeId;
+use crate::event_ui::UiNodeId;
 
 impl UiTree {
-    pub fn new(tree_id: crate::UiTreeId) -> Self {
+    pub fn new(tree_id: crate::event_ui::UiTreeId) -> Self {
         Self {
             tree_id,
             roots: Vec::new(),

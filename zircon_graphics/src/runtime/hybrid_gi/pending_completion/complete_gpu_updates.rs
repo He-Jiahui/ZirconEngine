@@ -17,7 +17,10 @@ impl HybridGiRuntimeState {
             self.probe_rt_lighting_rgb
                 .insert(*probe_id, *trace_lighting_rgb);
         }
-        self.scheduled_trace_regions = trace_region_ids.into_iter().collect();
+        self.current_requested_probe_ids
+            .retain(|probe_id| self.pending_probes.contains(probe_id));
+        self.assign_scheduled_trace_regions(trace_region_ids);
+        self.refresh_recent_lineage_trace_support();
         complete_pending_probes(self, probe_ids, evictable_probe_ids);
     }
 }

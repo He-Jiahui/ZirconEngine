@@ -4,23 +4,21 @@ use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use image::{ImageBuffer, ImageFormat, Rgba};
-use zircon_asset::{
-    AlphaMode, AssetManager, AssetReference, AssetUri, MaterialAsset, ProjectAssetManager,
-    ProjectManifest, ProjectPaths,
-};
+use zircon_asset::assets::{AlphaMode, MaterialAsset};
+use zircon_asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
+use zircon_asset::pipeline::manager::{AssetManager, ProjectAssetManager};
+use zircon_asset::{AssetReference, AssetUri};
 use zircon_framework::render::{
-    RenderFramework, RenderPipelineHandle, RenderQualityProfile, RenderViewportDescriptor,
-    RenderViewportHandle,
+    DisplayMode, FallbackSkyboxKind, PreviewEnvironmentExtract, ProjectionMode,
+    RenderBloomSettings, RenderColorGradingSettings, RenderDirectionalLightSnapshot,
+    RenderFrameExtract, RenderFramework, RenderMeshSnapshot, RenderOverlayExtract,
+    RenderParticleSpriteSnapshot, RenderPipelineHandle, RenderQualityProfile,
+    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderViewportDescriptor,
+    RenderViewportHandle, RenderWorldSnapshotHandle, ViewportCameraSnapshot,
 };
 use zircon_math::{Transform, UVec2, Vec3, Vec4};
 use zircon_resource::{MaterialMarker, ModelMarker, ResourceHandle};
-use zircon_scene::{
-    default_render_layer_mask, DisplayMode, FallbackSkyboxKind, Mobility, ProjectionMode,
-    RenderBloomSettings, RenderColorGradingSettings, RenderDirectionalLightSnapshot,
-    RenderFrameExtract, RenderMeshSnapshot, RenderOverlayExtract, RenderParticleSpriteSnapshot,
-    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderWorldSnapshotHandle,
-    ViewportCameraSnapshot,
-};
+use zircon_scene::components::{default_render_layer_mask, Mobility};
 
 use crate::{offline_bake_frame, runtime::WgpuRenderFramework, OfflineBakeSettings};
 
@@ -286,7 +284,7 @@ impl RenderFixture {
         asset_manager
             .open_project(root.to_string_lossy().as_ref())
             .unwrap();
-        let mut project = zircon_asset::ProjectManager::open(&root).unwrap();
+    let mut project = ProjectManager::open(&root).unwrap();
         project.scan_and_import().unwrap();
 
         let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/quad.obj");
@@ -383,7 +381,7 @@ fn build_snapshot(
             display_mode: DisplayMode::Shaded,
             ..RenderOverlayExtract::default()
         },
-        preview: zircon_scene::PreviewEnvironmentExtract {
+        preview: PreviewEnvironmentExtract {
             lighting_enabled: false,
             skybox_enabled: false,
             fallback_skybox: FallbackSkyboxKind::None,

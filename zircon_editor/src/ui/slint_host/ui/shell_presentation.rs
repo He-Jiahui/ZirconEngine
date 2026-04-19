@@ -9,33 +9,14 @@ use super::*;
 use crate::ui::slint_host::floating_window_projection::FloatingWindowProjectionBundle;
 
 pub(super) struct ShellPresentation {
-    pub host_tabs: ModelRc<TabData>,
-    pub breadcrumbs: ModelRc<BreadcrumbData>,
-    pub left_tabs: ModelRc<TabData>,
-    pub right_tabs: ModelRc<TabData>,
-    pub bottom_tabs: ModelRc<TabData>,
-    pub document_tabs: ModelRc<TabData>,
-    pub floating_windows: ModelRc<FloatingWindowData>,
-    pub left_pane: PaneData,
-    pub right_pane: PaneData,
-    pub bottom_pane: PaneData,
-    pub document_pane: PaneData,
+    pub host_surface_data: HostWindowSurfaceData,
     pub welcome: WelcomePresentation,
     pub hierarchy_nodes: ModelRc<SceneNodeData>,
     pub project_overview: ProjectOverviewData,
     pub activity: AssetSurfacePresentation,
     pub browser: AssetSurfacePresentation,
-    pub project_path: SharedString,
+    pub host_shell: HostWindowShellData,
     pub status_primary: SharedString,
-    pub status_secondary: SharedString,
-    pub viewport_label: SharedString,
-    pub drawers_visible: bool,
-    pub left_expanded: bool,
-    pub right_expanded: bool,
-    pub bottom_expanded: bool,
-    pub save_project_enabled: bool,
-    pub undo_enabled: bool,
-    pub redo_enabled: bool,
     pub delete_enabled: bool,
     pub inspector_name: SharedString,
     pub inspector_parent: SharedString,
@@ -43,8 +24,6 @@ pub(super) struct ShellPresentation {
     pub inspector_y: SharedString,
     pub inspector_z: SharedString,
     pub mesh_import_path: SharedString,
-    pub preset_names: ModelRc<SharedString>,
-    pub active_preset_name: SharedString,
 }
 
 impl ShellPresentation {
@@ -97,62 +76,63 @@ impl ShellPresentation {
         let activity = asset_surface_presentation(&chrome.asset_activity);
         let browser = asset_surface_presentation(&chrome.asset_browser);
         let welcome = welcome_presentation(&chrome.welcome);
+        let preset_names = model_rc(
+            preset_names
+                .iter()
+                .cloned()
+                .map(SharedString::from)
+                .collect(),
+        );
 
         Self {
-            host_tabs: model_rc(
-                model
-                    .host_strip
-                    .pages
-                    .iter()
-                    .map(|page| host_tab_data(page, &model.host_strip.active_page))
-                    .collect(),
-            ),
-            breadcrumbs: model_rc(
-                model
-                    .host_strip
-                    .breadcrumbs
-                    .iter()
-                    .map(|crumb| BreadcrumbData {
-                        label: crumb.label.clone().into(),
-                    })
-                    .collect(),
-            ),
-            left_tabs: model_rc(left_tabs),
-            right_tabs: model_rc(right_tabs),
-            bottom_tabs: model_rc(bottom_tabs),
-            document_tabs: model_rc(model.document_tabs.iter().map(document_tab_data).collect()),
-            floating_windows: model_rc(collect_floating_windows(
-                model,
-                chrome,
-                geometry,
-                ui_asset_panes,
-                floating_window_projection_bundle,
-            )),
-            left_pane: side_pane(
-                model,
-                chrome,
-                &[ActivityDrawerSlot::LeftTop, ActivityDrawerSlot::LeftBottom],
-                ui_asset_panes,
-            ),
-            right_pane: side_pane(
-                model,
-                chrome,
-                &[
-                    ActivityDrawerSlot::RightTop,
-                    ActivityDrawerSlot::RightBottom,
-                ],
-                ui_asset_panes,
-            ),
-            bottom_pane: side_pane(
-                model,
-                chrome,
-                &[
-                    ActivityDrawerSlot::BottomLeft,
-                    ActivityDrawerSlot::BottomRight,
-                ],
-                ui_asset_panes,
-            ),
-            document_pane: document_pane(model, chrome, ui_asset_panes),
+            host_surface_data: HostWindowSurfaceData {
+                host_tabs: model_rc(
+                    model
+                        .host_strip
+                        .pages
+                        .iter()
+                        .map(|page| host_tab_data(page, &model.host_strip.active_page))
+                        .collect(),
+                ),
+                left_tabs: model_rc(left_tabs),
+                right_tabs: model_rc(right_tabs),
+                bottom_tabs: model_rc(bottom_tabs),
+                document_tabs: model_rc(
+                    model.document_tabs.iter().map(document_tab_data).collect(),
+                ),
+                floating_windows: model_rc(collect_floating_windows(
+                    model,
+                    chrome,
+                    geometry,
+                    ui_asset_panes,
+                    floating_window_projection_bundle,
+                )),
+                left_pane: side_pane(
+                    model,
+                    chrome,
+                    &[ActivityDrawerSlot::LeftTop, ActivityDrawerSlot::LeftBottom],
+                    ui_asset_panes,
+                ),
+                right_pane: side_pane(
+                    model,
+                    chrome,
+                    &[
+                        ActivityDrawerSlot::RightTop,
+                        ActivityDrawerSlot::RightBottom,
+                    ],
+                    ui_asset_panes,
+                ),
+                bottom_pane: side_pane(
+                    model,
+                    chrome,
+                    &[
+                        ActivityDrawerSlot::BottomLeft,
+                        ActivityDrawerSlot::BottomRight,
+                    ],
+                    ui_asset_panes,
+                ),
+                document_pane: document_pane(model, chrome, ui_asset_panes),
+            },
             welcome,
             hierarchy_nodes: model_rc(
                 chrome
@@ -169,22 +149,37 @@ impl ShellPresentation {
             project_overview: project_overview_data(&chrome.project_overview),
             activity,
             browser,
-            project_path: chrome.project_path.clone().into(),
+            host_shell: HostWindowShellData {
+                project_path: chrome.project_path.clone().into(),
+                status_secondary: model
+                    .status_bar
+                    .secondary_text
+                    .clone()
+                    .unwrap_or_default()
+                    .into(),
+                viewport_label: model.status_bar.viewport_label.clone().into(),
+                drawers_visible: model.drawer_ring.visible,
+                left_expanded,
+                right_expanded,
+                bottom_expanded,
+                save_project_enabled: chrome.project_open,
+                undo_enabled: chrome.can_undo,
+                redo_enabled: chrome.can_redo,
+                preset_names,
+                active_preset_name: active_preset_name.unwrap_or_default().into(),
+                shell_min_width_px: geometry.window_min_width,
+                shell_min_height_px: geometry.window_min_height,
+                native_floating_window_mode: false,
+                native_floating_window_id: "".into(),
+                native_window_title: "Zircon Editor".into(),
+                native_window_bounds: FrameRect {
+                    x: 0.0,
+                    y: 0.0,
+                    width: 0.0,
+                    height: 0.0,
+                },
+            },
             status_primary: chrome.status_line.clone().into(),
-            status_secondary: model
-                .status_bar
-                .secondary_text
-                .clone()
-                .unwrap_or_default()
-                .into(),
-            viewport_label: model.status_bar.viewport_label.clone().into(),
-            drawers_visible: model.drawer_ring.visible,
-            left_expanded,
-            right_expanded,
-            bottom_expanded,
-            save_project_enabled: chrome.project_open,
-            undo_enabled: chrome.can_undo,
-            redo_enabled: chrome.can_redo,
             delete_enabled: chrome.inspector.is_some(),
             inspector_name: chrome
                 .inspector
@@ -217,14 +212,6 @@ impl ShellPresentation {
                 .unwrap_or_default()
                 .into(),
             mesh_import_path: chrome.mesh_import_path.clone().into(),
-            preset_names: model_rc(
-                preset_names
-                    .iter()
-                    .cloned()
-                    .map(SharedString::from)
-                    .collect(),
-            ),
-            active_preset_name: active_preset_name.unwrap_or_default().into(),
         }
     }
 }

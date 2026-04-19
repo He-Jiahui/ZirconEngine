@@ -1,5 +1,5 @@
 use crate::ui::{DraftCommand, EditorUiBinding, EditorUiBindingPayload};
-use zircon_ui::UiBindingValue;
+use zircon_ui::binding::UiBindingValue;
 
 use crate::apply_draft_binding;
 use crate::core::editor_event::{EditorDraftEvent, EditorEventEffect};

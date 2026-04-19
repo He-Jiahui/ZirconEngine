@@ -1,6 +1,7 @@
 use std::fs;
 
-use crate::{AssetUri, ProjectManifest, ProjectPaths};
+use crate::project::{ProjectManifest, ProjectPaths};
+use crate::AssetUri;
 
 use super::unique_temp_project_root;
 

@@ -1,12 +1,13 @@
-use zircon_math::Vec4;
-
-use super::World;
-use crate::components::{
-    aspect_ratio_from_viewport_size, default_render_layer_mask, default_viewport_aspect_ratio,
+use zircon_framework::render::{
     FallbackSkyboxKind, PreviewEnvironmentExtract, RenderDirectionalLightSnapshot,
     RenderMeshSnapshot, RenderOverlayExtract, RenderSceneGeometryExtract, RenderSceneSnapshot,
     SceneViewportExtractRequest, SceneViewportRenderPacket, ViewportCameraSnapshot,
+    ViewportRenderSettings, aspect_ratio_from_viewport_size, default_viewport_aspect_ratio,
 };
+use zircon_math::Vec4;
+
+use super::World;
+use crate::components::default_render_layer_mask;
 
 const SCENE_CLEAR_COLOR: Vec4 = Vec4::new(0.09, 0.11, 0.14, 1.0);
 
@@ -17,8 +18,7 @@ impl World {
 
     pub fn to_render_extract(&self) -> SceneViewportRenderPacket {
         let request = SceneViewportExtractRequest {
-            settings: crate::SceneViewportSettings::default(),
-            selection: Vec::new(),
+            settings: ViewportRenderSettings::default(),
             active_camera_override: None,
             camera: None,
             viewport_size: None,

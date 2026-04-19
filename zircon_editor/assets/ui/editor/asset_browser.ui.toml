@@ -1,0 +1,105 @@
+[asset]
+kind = "layout"
+id = "editor.asset_browser"
+version = 1
+display_name = "Asset Browser"
+
+[imports]
+widgets = [
+  "res://ui/editor/editor_widgets.ui.toml#EditorToolbar",
+  "res://ui/editor/editor_widgets.ui.toml#EditorToolbarButton",
+  "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard",
+]
+styles = ["res://ui/theme/editor_base.ui.toml"]
+
+[root]
+node = "asset_browser_root"
+
+[nodes.asset_browser_root]
+kind = "native"
+type = "VerticalBox"
+control_id = "AssetBrowserRoot"
+classes = ["editor-shell"]
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox", gap = 10.0 } }
+children = [
+  { child = "toolbar" },
+  { child = "content" },
+]
+
+[nodes.toolbar]
+kind = "reference"
+component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorToolbar"
+control_id = "AssetBrowserToolbar"
+children = [
+  { child = "import_button", mount = "actions" },
+  { child = "locate_button", mount = "actions" },
+]
+
+[nodes.import_button]
+kind = "reference"
+component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorToolbarButton"
+control_id = "ImportAsset"
+classes = ["toolbar-primary"]
+params = { label = "Import", icon = "folder-open-outline" }
+
+[nodes.locate_button]
+kind = "reference"
+component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorToolbarButton"
+control_id = "LocateAsset"
+params = { label = "Locate", icon = "scan-outline" }
+
+[nodes.content]
+kind = "native"
+type = "HorizontalBox"
+control_id = "AssetBrowserContent"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "HorizontalBox", gap = 10.0 } }
+children = [
+  { child = "tree_panel", slot = { layout = { width = { min = 220.0, preferred = 220.0, max = 260.0, stretch = "Fixed" } } } },
+  { child = "grid_panel" },
+  { child = "details_panel", slot = { layout = { width = { min = 260.0, preferred = 280.0, max = 340.0, stretch = "Fixed" } } } },
+]
+
+[nodes.tree_panel]
+kind = "reference"
+component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard"
+control_id = "AssetTreePanel"
+params = { title = "Folders" }
+children = [
+  { child = "tree_label", mount = "content" },
+]
+
+[nodes.tree_label]
+kind = "native"
+type = "Label"
+control_id = "AssetTreeLabel"
+props = { text = "Project / UI / Theme" }
+
+[nodes.grid_panel]
+kind = "reference"
+component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard"
+control_id = "AssetGridPanel"
+params = { title = "Assets" }
+children = [
+  { child = "grid_label", mount = "content" },
+]
+
+[nodes.grid_label]
+kind = "native"
+type = "Label"
+control_id = "AssetGridLabel"
+props = { text = "asset_browser.ui.toml, runtime_hud.ui.toml" }
+
+[nodes.details_panel]
+kind = "reference"
+component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard"
+control_id = "AssetDetailsPanel"
+params = { title = "Details" }
+children = [
+  { child = "details_label", mount = "content" },
+]
+
+[nodes.details_label]
+kind = "native"
+type = "Label"
+control_id = "AssetDetailsLabel"
+props = { text = "Selected Asset Metadata" }

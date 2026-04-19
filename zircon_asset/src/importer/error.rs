@@ -1,13 +1,13 @@
 use thiserror::Error;
 
-use crate::AssetUriError;
+use zircon_resource::ResourceLocatorError;
 
 #[derive(Debug, Error)]
 pub enum AssetImportError {
     #[error("asset I/O failed: {0}")]
     Io(#[from] std::io::Error),
     #[error("asset uri error: {0}")]
-    Uri(#[from] AssetUriError),
+    Uri(#[from] ResourceLocatorError),
     #[error("asset parse failed: {0}")]
     Parse(String),
     #[error("unsupported asset format: {0}")]

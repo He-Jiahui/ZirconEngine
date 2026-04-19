@@ -1,6 +1,7 @@
 use std::path::Path;
 
-use crate::{AssetImportError, AssetKind, AssetMetaDocument, AssetUri, AssetUuid};
+use crate::project::AssetMetaDocument;
+use crate::{AssetImportError, AssetKind, AssetUri, AssetUuid};
 
 pub(super) fn load_or_create_meta(
     meta_path: &Path,

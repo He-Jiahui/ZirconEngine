@@ -1,4 +1,4 @@
-use zircon_scene::EntityId;
+use zircon_framework::scene::EntityId;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct VisibilityHybridGiProbe {
@@ -7,3 +7,4 @@ pub struct VisibilityHybridGiProbe {
     pub resident: bool,
     pub ray_budget: u32,
 }
+

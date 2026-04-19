@@ -1,6 +1,6 @@
-use zircon_asset::{
-    AssetChange, AssetChangeKind, AssetUri, EditorAssetChange, EditorAssetChangeKind,
-};
+use zircon_asset::editor::{EditorAssetChange, EditorAssetChangeKind};
+use zircon_asset::watch::{AssetChange, AssetChangeKind};
+use zircon_asset::AssetUri;
 use zircon_resource::{ResourceEvent, ResourceEventKind, ResourceId, ResourceLocator};
 
 use crate::ui::slint_host::{plan_asset_backend_refresh, AssetBackendRefreshPlan};

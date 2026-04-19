@@ -1,4 +1,4 @@
-use zircon_scene::EntityId;
+use zircon_framework::scene::EntityId;
 
 use super::visibility_history_entry::VisibilityHistoryEntry;
 
@@ -11,3 +11,4 @@ pub struct VisibilityHistorySnapshot {
     pub virtual_geometry_visible_cluster_ids: Vec<u32>,
     pub virtual_geometry_requested_pages: Vec<u32>,
 }
+

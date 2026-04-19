@@ -19,6 +19,8 @@ struct ResidentProbeInput {
     position_z_q: u32,
     radius_q: u32,
     previous_irradiance_rgb: u32,
+    runtime_hierarchy_irradiance_rgb: u32,
+    runtime_hierarchy_irradiance_weight_q: u32,
     lineage_trace_lighting_rgb: u32,
     parent_probe_id: u32,
     resident_ancestor_probe_id: u32,
@@ -40,6 +42,8 @@ struct PendingProbeInput {
     position_y_q: u32,
     position_z_q: u32,
     radius_q: u32,
+    runtime_hierarchy_irradiance_rgb: u32,
+    runtime_hierarchy_irradiance_weight_q: u32,
     lineage_trace_lighting_rgb: u32,
     parent_probe_id: u32,
     resident_ancestor_probe_id: u32,
@@ -666,6 +670,67 @@ fn combine_traced_and_gathered_rgb(
     return temporal_update_rgb(traced_packed, gathered_packed, gather_weight);
 }
 
+fn apply_runtime_hierarchy_irradiance_continuation(
+    gathered_packed: u32,
+    runtime_hierarchy_irradiance_rgb: u32,
+    runtime_hierarchy_irradiance_weight_q: u32,
+    lineage_trace_support_q: u32,
+    ray_budget: u32,
+) -> u32 {
+    if (runtime_hierarchy_irradiance_rgb == 0u || runtime_hierarchy_irradiance_weight_q == 0u) {
+        return gathered_packed;
+    }
+
+    if (gathered_packed == 0u) {
+        return runtime_hierarchy_irradiance_rgb;
+    }
+
+    let continuation_weight = min(
+        224u,
+        24u
+            + min(runtime_hierarchy_irradiance_weight_q, 192u) / 2u
+            + min(ray_budget, 160u) / 3u
+            + min(lineage_trace_support_q, 128u) / 3u,
+    );
+    return temporal_update_rgb(
+        gathered_packed,
+        runtime_hierarchy_irradiance_rgb,
+        continuation_weight,
+    );
+}
+
+fn combine_traced_and_gathered_with_runtime_hierarchy_fallback(
+    traced_packed: u32,
+    gathered_packed: u32,
+    runtime_hierarchy_irradiance_rgb: u32,
+    runtime_hierarchy_irradiance_weight_q: u32,
+    lineage_trace_support_q: u32,
+    ray_budget: u32,
+) -> u32 {
+    let continued_gathered = apply_runtime_hierarchy_irradiance_continuation(
+        gathered_packed,
+        runtime_hierarchy_irradiance_rgb,
+        runtime_hierarchy_irradiance_weight_q,
+        lineage_trace_support_q,
+        ray_budget,
+    );
+    if (traced_packed == 0u) {
+        return select(
+            0u,
+            continued_gathered,
+            runtime_hierarchy_irradiance_rgb != 0u
+                && runtime_hierarchy_irradiance_weight_q != 0u,
+        );
+    }
+
+    return combine_traced_and_gathered_rgb(
+        traced_packed,
+        continued_gathered,
+        lineage_trace_support_q,
+        ray_budget,
+    );
+}
+
 @compute @workgroup_size(64, 1, 1)
 fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     let index = global_id.x;
@@ -721,9 +786,11 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
             probe.radius_q,
             probe.ray_budget,
         );
-        let contribution = combine_traced_and_gathered_rgb(
+        let contribution = combine_traced_and_gathered_with_runtime_hierarchy_fallback(
             continued_traced,
             gathered,
+            probe.runtime_hierarchy_irradiance_rgb,
+            probe.runtime_hierarchy_irradiance_weight_q,
             probe.lineage_trace_support_q,
             probe.ray_budget,
         );
@@ -785,9 +852,12 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
             probe.ray_budget,
         );
         probe_irradiance_updates[entry_offset] = probe.probe_id;
-        probe_irradiance_updates[entry_offset + 1u] = combine_traced_and_gathered_rgb(
+        probe_irradiance_updates[entry_offset + 1u] =
+            combine_traced_and_gathered_with_runtime_hierarchy_fallback(
             continued_traced,
             gathered,
+            probe.runtime_hierarchy_irradiance_rgb,
+            probe.runtime_hierarchy_irradiance_weight_q,
             probe.lineage_trace_support_q,
             probe.ray_budget,
         );

@@ -1,4 +1,4 @@
-use zircon_ui::UiBindingValue;
+use zircon_ui::binding::UiBindingValue;
 
 use super::super::error::EditorBindingDispatchError;
 

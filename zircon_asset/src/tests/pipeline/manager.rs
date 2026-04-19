@@ -5,15 +5,14 @@ use std::time::{Duration, Instant};
 use zircon_framework::asset::ResourceManager;
 use zircon_resource::{ResourceEventKind, ResourceKind, ResourceState, RuntimeResourceState};
 
+use crate::project::{ProjectManifest, ProjectPaths};
 use crate::tests::project::unique_temp_project_root;
 use crate::tests::support::{
     write_checker_png, write_default_material, write_default_scene, write_triangle_obj,
     write_valid_wgsl,
 };
-use crate::{
-    AssetChangeKind, AssetManager, AssetUri, MaterialAsset, ProjectAssetManager, ProjectManifest,
-    ProjectPaths,
-};
+use crate::watch::AssetChangeKind;
+use crate::{AssetManager, AssetUri, MaterialAsset, ProjectAssetManager};
 
 #[test]
 fn asset_manager_opens_project_reports_assets_and_publishes_changes() {

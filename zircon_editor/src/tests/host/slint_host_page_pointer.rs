@@ -1,3 +1,4 @@
+use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
 use crate::ui::slint_host::callback_dispatch::{
     dispatch_shared_host_page_pointer_click, BuiltinWorkbenchTemplateBridge,
 };
@@ -5,7 +6,6 @@ use crate::ui::slint_host::host_page_pointer::{
     build_workbench_host_page_pointer_layout, WorkbenchHostPagePointerBridge,
     WorkbenchHostPagePointerItem, WorkbenchHostPagePointerLayout, WorkbenchHostPagePointerRoute,
 };
-use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
 use crate::{EditorEvent, LayoutCommand, MainPageId, WorkbenchChromeMetrics};
 use zircon_ui::{UiFrame, UiPoint, UiSize};
 
@@ -122,6 +122,10 @@ fn shared_host_page_pointer_layout_prefers_shared_host_strip_frame_over_shell_me
 #[test]
 fn shared_host_page_surface_replaces_legacy_direct_click_route() {
     let workbench = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/ui/workbench.slint"));
+    let host_context = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/ui/workbench/host_context.slint"
+    ));
     let chrome = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/ui/workbench/chrome.slint"
@@ -140,7 +144,8 @@ fn shared_host_page_surface_replaces_legacy_direct_click_route() {
         "workbench shell still exposes legacy direct host page callback"
     );
     assert!(
-        workbench.contains("callback host_page_pointer_clicked("),
+        workbench.contains("callback host_page_pointer_clicked(")
+            || host_context.contains("callback host_page_pointer_clicked("),
         "workbench shell must expose shared host page pointer callback"
     );
     assert!(
@@ -152,8 +157,8 @@ fn shared_host_page_surface_replaces_legacy_direct_click_route() {
         "slint host app should no longer register direct host page activation callback"
     );
     assert!(
-        app.contains("ui.on_host_page_pointer_clicked(")
-            || wiring.contains("ui.on_host_page_pointer_clicked("),
+        app.contains("host_shell.on_host_page_pointer_clicked(")
+            || wiring.contains("host_shell.on_host_page_pointer_clicked("),
         "slint host app must register shared host page pointer callback"
     );
 }

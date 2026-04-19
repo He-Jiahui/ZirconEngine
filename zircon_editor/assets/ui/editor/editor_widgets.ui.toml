@@ -11,6 +11,14 @@ node = "section_card_root"
 root = "toolbar_button_root"
 style_scope = "closed"
 
+[components.EditorToolbar]
+root = "toolbar_root"
+style_scope = "open"
+
+[components.EditorToolbar.slots.actions]
+required = true
+multiple = true
+
 [components.EditorToolbarButton.params.label]
 type = "string"
 default = "Action"
@@ -37,6 +45,19 @@ type = "Button"
 classes = ["toolbar-button"]
 props = { text = "$param.label", icon = "$param.icon" }
 layout = { width = { min = 112.0, preferred = 112.0, max = 144.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.toolbar_root]
+kind = "native"
+type = "HorizontalBox"
+classes = ["toolbar"]
+layout = { width = { stretch = "Stretch" }, height = { min = 40.0, preferred = 40.0, max = 40.0, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 8.0 } }
+children = [
+  { child = "toolbar_actions" },
+]
+
+[nodes.toolbar_actions]
+kind = "slot"
+slot_name = "actions"
 
 [nodes.section_card_root]
 kind = "native"

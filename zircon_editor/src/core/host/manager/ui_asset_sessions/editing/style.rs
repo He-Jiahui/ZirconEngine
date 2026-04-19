@@ -62,6 +62,120 @@ impl EditorManager {
         Ok(changed)
     }
 
+    pub fn prune_ui_asset_editor_duplicate_local_theme_overrides(
+        &self,
+        instance_id: &ViewInstanceId,
+    ) -> Result<bool, EditorError> {
+        self.ensure_ui_asset_editor_session(instance_id)?;
+        let mut sessions = self.ui_asset_sessions.lock().unwrap();
+        let entry = sessions.get_mut(instance_id).ok_or_else(|| {
+            EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
+        })?;
+        let changed = entry
+            .session
+            .prune_duplicate_local_theme_overrides()
+            .map_err(|error| EditorError::UiAsset(error.to_string()))?;
+        drop(sessions);
+        self.sync_ui_asset_editor_instance(instance_id)?;
+        Ok(changed)
+    }
+
+    pub fn apply_ui_asset_editor_all_theme_refactors(
+        &self,
+        instance_id: &ViewInstanceId,
+    ) -> Result<bool, EditorError> {
+        self.ensure_ui_asset_editor_session(instance_id)?;
+        let mut sessions = self.ui_asset_sessions.lock().unwrap();
+        let entry = sessions.get_mut(instance_id).ok_or_else(|| {
+            EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
+        })?;
+        let changed = entry
+            .session
+            .apply_all_theme_refactors()
+            .map_err(|error| EditorError::UiAsset(error.to_string()))?;
+        drop(sessions);
+        self.sync_ui_asset_editor_instance(instance_id)?;
+        Ok(changed)
+    }
+
+    pub fn apply_ui_asset_editor_theme_rule_helper_item(
+        &self,
+        instance_id: &ViewInstanceId,
+        index: usize,
+    ) -> Result<bool, EditorError> {
+        self.ensure_ui_asset_editor_session(instance_id)?;
+        let helper_action = {
+            let sessions = self.ui_asset_sessions.lock().unwrap();
+            let entry = sessions.get(instance_id).ok_or_else(|| {
+                EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
+            })?;
+            entry.session.theme_rule_helper_action(index)
+        }
+        .ok_or_else(|| EditorError::UiAsset(format!("invalid theme helper index {index}")))?;
+
+        let changed = match helper_action {
+            crate::core::editing::ui_asset::UiAssetThemeRuleHelperAction::PromoteLocalTheme => {
+                self.promote_ui_asset_editor_local_theme_to_external_style_asset(instance_id)?
+            }
+            crate::core::editing::ui_asset::UiAssetThemeRuleHelperAction::DetachImportedThemeToLocal { .. } => {
+                self.detach_ui_asset_editor_selected_theme_source_to_local(instance_id)?
+            }
+            crate::core::editing::ui_asset::UiAssetThemeRuleHelperAction::CloneImportedThemeToLocal { .. } => {
+                self.clone_ui_asset_editor_selected_theme_source_to_local(instance_id)?
+            }
+            crate::core::editing::ui_asset::UiAssetThemeRuleHelperAction::AdoptActiveCascadeTokens { .. }
+            | crate::core::editing::ui_asset::UiAssetThemeRuleHelperAction::AdoptActiveCascadeRules { .. }
+            | crate::core::editing::ui_asset::UiAssetThemeRuleHelperAction::AdoptActiveCascadeChanges { .. }
+            | crate::core::editing::ui_asset::UiAssetThemeRuleHelperAction::AdoptActiveCascadeToken { .. }
+            | crate::core::editing::ui_asset::UiAssetThemeRuleHelperAction::AdoptActiveCascadeRule { .. }
+            | crate::core::editing::ui_asset::UiAssetThemeRuleHelperAction::AdoptComparedImportedDiffs { .. }
+            | crate::core::editing::ui_asset::UiAssetThemeRuleHelperAction::PruneSharedComparedEntries { .. }
+            | crate::core::editing::ui_asset::UiAssetThemeRuleHelperAction::AdoptAllImportedTokens { .. }
+            | crate::core::editing::ui_asset::UiAssetThemeRuleHelperAction::AdoptAllImportedRules { .. }
+            | crate::core::editing::ui_asset::UiAssetThemeRuleHelperAction::AdoptAllImportedChanges { .. }
+            | crate::core::editing::ui_asset::UiAssetThemeRuleHelperAction::AdoptImportedToken { .. }
+            | crate::core::editing::ui_asset::UiAssetThemeRuleHelperAction::AdoptImportedRule { .. } => {
+                let mut sessions = self.ui_asset_sessions.lock().unwrap();
+                let entry = sessions.get_mut(instance_id).ok_or_else(|| {
+                    EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
+                })?;
+                let changed = entry
+                    .session
+                    .apply_theme_rule_helper_item(index)
+                    .map_err(|error| EditorError::UiAsset(error.to_string()))?;
+                drop(sessions);
+                self.sync_ui_asset_editor_instance(instance_id)?;
+                changed
+            }
+            crate::core::editing::ui_asset::UiAssetThemeRuleHelperAction::ApplyAllThemeRefactors { .. } => {
+                self.apply_ui_asset_editor_all_theme_refactors(instance_id)?
+            }
+            crate::core::editing::ui_asset::UiAssetThemeRuleHelperAction::PruneDuplicateLocalOverrides => {
+                self.prune_ui_asset_editor_duplicate_local_theme_overrides(instance_id)?
+            }
+        };
+        Ok(changed)
+    }
+
+    pub fn apply_ui_asset_editor_theme_refactor_item(
+        &self,
+        instance_id: &ViewInstanceId,
+        index: usize,
+    ) -> Result<bool, EditorError> {
+        self.ensure_ui_asset_editor_session(instance_id)?;
+        let mut sessions = self.ui_asset_sessions.lock().unwrap();
+        let entry = sessions.get_mut(instance_id).ok_or_else(|| {
+            EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
+        })?;
+        let changed = entry
+            .session
+            .apply_theme_refactor_item(index)
+            .map_err(|error| EditorError::UiAsset(error.to_string()))?;
+        drop(sessions);
+        self.sync_ui_asset_editor_instance(instance_id)?;
+        Ok(changed)
+    }
+
     pub fn set_ui_asset_editor_promote_theme_asset_id(
         &self,
         instance_id: &ViewInstanceId,
@@ -282,6 +396,42 @@ impl EditorManager {
         let changed = entry
             .session
             .select_stylesheet_rule(index)
+            .map_err(|error| EditorError::UiAsset(error.to_string()))?;
+        drop(sessions);
+        self.sync_ui_asset_editor_instance(instance_id)?;
+        Ok(changed)
+    }
+
+    pub fn move_ui_asset_editor_selected_stylesheet_rule_up(
+        &self,
+        instance_id: &ViewInstanceId,
+    ) -> Result<bool, EditorError> {
+        self.ensure_ui_asset_editor_session(instance_id)?;
+        let mut sessions = self.ui_asset_sessions.lock().unwrap();
+        let entry = sessions.get_mut(instance_id).ok_or_else(|| {
+            EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
+        })?;
+        let changed = entry
+            .session
+            .move_selected_stylesheet_rule_up()
+            .map_err(|error| EditorError::UiAsset(error.to_string()))?;
+        drop(sessions);
+        self.sync_ui_asset_editor_instance(instance_id)?;
+        Ok(changed)
+    }
+
+    pub fn move_ui_asset_editor_selected_stylesheet_rule_down(
+        &self,
+        instance_id: &ViewInstanceId,
+    ) -> Result<bool, EditorError> {
+        self.ensure_ui_asset_editor_session(instance_id)?;
+        let mut sessions = self.ui_asset_sessions.lock().unwrap();
+        let entry = sessions.get_mut(instance_id).ok_or_else(|| {
+            EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
+        })?;
+        let changed = entry
+            .session
+            .move_selected_stylesheet_rule_down()
             .map_err(|error| EditorError::UiAsset(error.to_string()))?;
         drop(sessions);
         self.sync_ui_asset_editor_instance(instance_id)?;

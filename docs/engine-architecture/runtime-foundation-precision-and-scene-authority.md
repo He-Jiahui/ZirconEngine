@@ -7,21 +7,20 @@ related_code:
   - zircon_scene/src/components/mod.rs
   - zircon_scene/src/components/scene.rs
   - zircon_scene/src/components/schedule.rs
-  - zircon_scene/src/components/viewport.rs
-  - zircon_scene/src/components/render_extract.rs
-  - zircon_scene/src/components/gizmo.rs
+  - zircon_framework/src/render/camera.rs
+  - zircon_framework/src/render/scene_extract.rs
+  - zircon_editor/src/scene/viewport/render_packet.rs
   - zircon_scene/src/lib.rs
-  - zircon_scene/src/module.rs
-  - zircon_scene/src/module/core_error.rs
-  - zircon_scene/src/module/default_level_manager.rs
-  - zircon_scene/src/module/level_display_name.rs
-  - zircon_scene/src/module/level_manager_facade.rs
-  - zircon_scene/src/module/level_manager_lifecycle.rs
-  - zircon_scene/src/module/level_manager_project_io.rs
-  - zircon_scene/src/module/manager_access.rs
-  - zircon_scene/src/module/module_descriptor.rs
-  - zircon_scene/src/module/service_names.rs
-  - zircon_scene/src/module/world_driver.rs
+  - zircon_runtime/src/scene/mod.rs
+  - zircon_runtime/src/scene/level_system.rs
+  - zircon_runtime/src/scene/module/mod.rs
+  - zircon_runtime/src/scene/module/core_error.rs
+  - zircon_runtime/src/scene/module/default_level_manager.rs
+  - zircon_runtime/src/scene/module/level_display_name.rs
+  - zircon_runtime/src/scene/module/level_manager_facade.rs
+  - zircon_runtime/src/scene/module/level_manager_lifecycle.rs
+  - zircon_runtime/src/scene/module/level_manager_project_io.rs
+  - zircon_runtime/src/scene/module/world_driver.rs
   - zircon_scene/src/world.rs
   - zircon_scene/src/world/world.rs
   - zircon_scene/src/world/bootstrap.rs
@@ -46,20 +45,19 @@ implementation_files:
   - zircon_scene/src/components/mod.rs
   - zircon_scene/src/components/scene.rs
   - zircon_scene/src/components/schedule.rs
-  - zircon_scene/src/components/viewport.rs
-  - zircon_scene/src/components/render_extract.rs
-  - zircon_scene/src/components/gizmo.rs
-  - zircon_scene/src/module.rs
-  - zircon_scene/src/module/core_error.rs
-  - zircon_scene/src/module/default_level_manager.rs
-  - zircon_scene/src/module/level_display_name.rs
-  - zircon_scene/src/module/level_manager_facade.rs
-  - zircon_scene/src/module/level_manager_lifecycle.rs
-  - zircon_scene/src/module/level_manager_project_io.rs
-  - zircon_scene/src/module/manager_access.rs
-  - zircon_scene/src/module/module_descriptor.rs
-  - zircon_scene/src/module/service_names.rs
-  - zircon_scene/src/module/world_driver.rs
+  - zircon_framework/src/render/camera.rs
+  - zircon_framework/src/render/scene_extract.rs
+  - zircon_editor/src/scene/viewport/render_packet.rs
+  - zircon_runtime/src/scene/mod.rs
+  - zircon_runtime/src/scene/level_system.rs
+  - zircon_runtime/src/scene/module/mod.rs
+  - zircon_runtime/src/scene/module/core_error.rs
+  - zircon_runtime/src/scene/module/default_level_manager.rs
+  - zircon_runtime/src/scene/module/level_display_name.rs
+  - zircon_runtime/src/scene/module/level_manager_facade.rs
+  - zircon_runtime/src/scene/module/level_manager_lifecycle.rs
+  - zircon_runtime/src/scene/module/level_manager_project_io.rs
+  - zircon_runtime/src/scene/module/world_driver.rs
   - zircon_scene/src/world.rs
   - zircon_scene/src/world/world.rs
   - zircon_scene/src/world/bootstrap.rs
@@ -102,7 +100,7 @@ doc_type: module-detail
 这份文档定义 `runtime foundation` 首里程碑的最终约束：
 
 - `zircon_math` 成为唯一精度 seam
-- `zircon_scene::World` 以 local authoring state + derived runtime state 为权威
+- `zircon_scene::Scene` 以 local authoring state + derived runtime state 为权威
 - `zircon_asset` 只持久化 authoring/runtime 输入态，不持久化派生态
 - `zircon_graphics` 明确承担 `runtime precision -> render precision` 的降级边界
 
@@ -126,7 +124,7 @@ doc_type: module-detail
 
 ## Scene Runtime Authority
 
-`zircon_scene::World` 现在把运行时 authority 固定为下列组件集合：
+`zircon_scene::world::World` 现在把运行时 authority 固定为下列组件集合：
 
 - `LocalTransform`
 - `WorldMatrix`
@@ -157,8 +155,8 @@ doc_type: module-detail
 为了让这套 authority 在工程规模继续扩大时不再退化成单文件实现，当前代码树还新增了两个边界约束：
 
 - `zircon_scene/src/world.rs` 现在只作为 world 子系统入口；`World` 结构定义独立放到 `zircon_scene/src/world/world.rs`
-- `zircon_scene/src/module.rs` 现在只作为 scene module 导出层；`DefaultLevelManager` 生命周期、project I/O、facade 适配和 descriptor 组装拆到 `zircon_scene/src/module/`
-- `zircon_scene/src/components/` 现在按 `schedule`、`scene`、`viewport`、`render_extract`、`gizmo` 分域；`mod.rs` 只保留 re-export，不再让 `components.rs` 继续充当 ECS + viewport + render extract + gizmo 的声明仓库
+- `zircon_runtime/src/scene/mod.rs` 现在只作为 runtime scene 吸收层导出层；`LevelSystem`、`DefaultLevelManager` 生命周期、project I/O、facade 适配和 world driver 组装拆到 `zircon_runtime/src/scene/` 与 `zircon_runtime/src/scene/module/`
+- `zircon_scene/src/components/` 现在只保留 `schedule`、`scene` 与 scene-domain `Mobility`；viewport request/render packet/overlay DTO 已经固定分别归 `zircon_framework::render` 与 `zircon_editor::scene::viewport::render_packet`
 
 ## Compatibility Layer
 

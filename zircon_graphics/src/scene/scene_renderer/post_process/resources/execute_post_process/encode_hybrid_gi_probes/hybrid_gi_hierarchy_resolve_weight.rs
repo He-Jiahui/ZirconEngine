@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use zircon_scene::RenderHybridGiProbe;
+use zircon_framework::render::RenderHybridGiProbe;
 
 use crate::types::EditorOrRuntimeFrame;
 

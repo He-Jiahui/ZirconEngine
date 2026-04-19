@@ -16,15 +16,11 @@ members = [
     "zircon_ui",
     "zircon_asset",
     "zircon_scene",
-    "zircon_platform",
     "zircon_editor",
     "zircon_manager",
-    "zircon_foundation",
     "zircon_module",
-    "zircon_script",
     "zircon_animation",
     "zircon_net",
-    "zircon_input",
     "zircon_navigation",
     "zircon_particles",
 ]
@@ -51,7 +47,7 @@ slint = { version = "1.16.0", default-features = false, features = ["std", "back
 slint-build = "1.16.0"
 tobj = "4.0.3"
 thiserror = "2.0.18"
-toml = "1.1.2+spec-1.1.0"
+toml = "1.1.2"
 tracing = "0.1.44"
 uuid = { version = "1.23.1", features = ["v4", "serde"] }
 wgpu = "29.0.1"

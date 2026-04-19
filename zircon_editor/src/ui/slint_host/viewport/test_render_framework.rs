@@ -1,8 +1,7 @@
 use zircon_framework::render::{
-    CapturedFrame, RenderFramework, RenderFrameworkError, RenderPipelineHandle,
+    CapturedFrame, RenderFrameExtract, RenderFramework, RenderFrameworkError, RenderPipelineHandle,
     RenderQualityProfile, RenderStats, RenderViewportDescriptor, RenderViewportHandle,
 };
-use zircon_scene::RenderFrameExtract;
 
 pub(super) struct TestRenderFramework;
 
@@ -37,10 +36,7 @@ impl RenderFramework for TestRenderFramework {
         Ok(())
     }
 
-    fn reload_pipeline(
-        &self,
-        _pipeline: RenderPipelineHandle,
-    ) -> Result<(), RenderFrameworkError> {
+    fn reload_pipeline(&self, _pipeline: RenderPipelineHandle) -> Result<(), RenderFrameworkError> {
         Ok(())
     }
 

@@ -1,6 +1,8 @@
 use crate::ui::EditorUiBinding;
 
-use crate::core::editor_event::{EditorEvent, EditorEventEnvelope, EditorEventRecord, EditorEventSource};
+use crate::core::editor_event::{
+    EditorEvent, EditorEventEnvelope, EditorEventRecord, EditorEventSource,
+};
 
 pub trait EditorEventDispatcher {
     fn dispatch_envelope(&self, envelope: EditorEventEnvelope)

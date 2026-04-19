@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 
+use toml::Value;
 use zircon_ui::UiAssetDocument;
 
 use super::theme_authoring::can_promote_local_theme_to_external_style_asset;
@@ -37,6 +38,14 @@ impl UiAssetThemeCascadeLayerKind {
 struct UiAssetThemeTokenDefinition {
     source: String,
     value: String,
+}
+
+#[derive(Clone, Debug)]
+struct UiAssetThemeRuleDefinition {
+    selector: String,
+    source: String,
+    stylesheet_id: String,
+    declarations: String,
 }
 
 pub(crate) fn build_theme_cascade_inspection(
@@ -101,7 +110,10 @@ fn theme_layer_summary(layer: &UiAssetThemeCascadeLayer<'_>, document: &UiAssetD
     let rule_count = total_rule_count(document);
     match layer.kind {
         UiAssetThemeCascadeLayerKind::Imported => {
-            format!("{reference} • {token_count} tokens • {rule_count} rules", reference = layer.reference)
+            format!(
+                "{reference} • {token_count} tokens • {rule_count} rules",
+                reference = layer.reference
+            )
         }
         UiAssetThemeCascadeLayerKind::Local => format!("{token_count} tokens • {rule_count} rules"),
     }
@@ -149,6 +161,7 @@ fn cascade_token_items(layers: &[UiAssetThemeCascadeLayer<'_>]) -> Vec<String> {
 
 fn cascade_rule_items(layers: &[UiAssetThemeCascadeLayer<'_>]) -> Vec<String> {
     let mut items = Vec::new();
+    let mut rules_by_selector = BTreeMap::<String, Vec<UiAssetThemeRuleDefinition>>::new();
     let mut order = 1usize;
     for layer in layers {
         let Some(document) = layer.document else {
@@ -171,8 +184,41 @@ fn cascade_rule_items(layers: &[UiAssetThemeCascadeLayer<'_>]) -> Vec<String> {
                     }
                 };
                 items.push(item);
+                rules_by_selector
+                    .entry(rule.selector.clone())
+                    .or_default()
+                    .push(UiAssetThemeRuleDefinition {
+                        selector: rule.selector.clone(),
+                        source: match layer.kind {
+                            UiAssetThemeCascadeLayerKind::Imported => layer.reference.to_string(),
+                            UiAssetThemeCascadeLayerKind::Local => "Local".to_string(),
+                        },
+                        stylesheet_id: stylesheet_label.to_string(),
+                        declarations: format_rule_block(&rule.set),
+                    });
                 order += 1;
             }
+        }
+    }
+    for definitions in rules_by_selector.into_values() {
+        let Some((active, shadowed)) = definitions.split_last() else {
+            continue;
+        };
+        if shadowed.is_empty() {
+            continue;
+        }
+        items.push(format!(
+            "active • rule • {} • {} • {} • {}",
+            active.selector, active.source, active.stylesheet_id, active.declarations
+        ));
+        for definition in shadowed.iter().rev() {
+            items.push(format!(
+                "shadowed • rule • {} • {} • {} • {}",
+                definition.selector,
+                definition.source,
+                definition.stylesheet_id,
+                definition.declarations
+            ));
         }
     }
     items
@@ -185,3 +231,31 @@ fn total_rule_count(document: &UiAssetDocument) -> usize {
         .map(|stylesheet| stylesheet.rules.len())
         .sum()
 }
+
+fn format_rule_block(block: &zircon_ui::template::UiStyleDeclarationBlock) -> String {
+    let mut entries = Vec::new();
+    for (key, value) in &block.self_values {
+        push_rule_block_value(&mut entries, format!("self.{key}"), value);
+    }
+    for (key, value) in &block.slot {
+        push_rule_block_value(&mut entries, format!("slot.{key}"), value);
+    }
+    entries.sort();
+    if entries.is_empty() {
+        "<empty>".to_string()
+    } else {
+        entries.join("; ")
+    }
+}
+
+fn push_rule_block_value(entries: &mut Vec<String>, path: String, value: &Value) {
+    match value {
+        Value::Table(table) => {
+            for (key, nested) in table {
+                push_rule_block_value(entries, format!("{path}.{key}"), nested);
+            }
+        }
+        _ => entries.push(format!("{path} = {}", value)),
+    }
+}
+

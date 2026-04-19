@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use zircon_asset::ProjectAssetManager;
+use zircon_asset::pipeline::manager::ProjectAssetManager;
 
 use crate::types::GraphicsError;
 
@@ -42,8 +42,12 @@ impl SceneRenderer {
             last_virtual_geometry_indirect_draw_count: 0,
             last_virtual_geometry_indirect_buffer_count: 0,
             last_virtual_geometry_indirect_segment_count: 0,
+            last_virtual_geometry_mesh_draw_submission_order: Vec::new(),
+            last_virtual_geometry_mesh_draw_submission_records: Vec::new(),
+            last_virtual_geometry_mesh_draw_submission_token_records: Vec::new(),
             last_virtual_geometry_indirect_args_buffer: None,
             last_virtual_geometry_indirect_args_count: 0,
+            last_virtual_geometry_indirect_submission_buffer: None,
             last_virtual_geometry_indirect_draw_refs_buffer: None,
             last_virtual_geometry_indirect_segments_buffer: None,
         })

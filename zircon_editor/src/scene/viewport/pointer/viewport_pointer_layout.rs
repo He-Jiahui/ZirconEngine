@@ -1,5 +1,7 @@
+use zircon_framework::render::{
+    HandleOverlayExtract, SceneGizmoOverlayExtract, ViewportCameraSnapshot,
+};
 use zircon_math::UVec2;
-use zircon_scene::{HandleOverlayExtract, SceneGizmoOverlayExtract, ViewportCameraSnapshot};
 
 use super::viewport_renderable_pick_candidate::ViewportRenderablePickCandidate;
 

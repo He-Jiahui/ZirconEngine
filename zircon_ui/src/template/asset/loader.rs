@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::Path;
 
-use crate::{UiAssetDocument, UiAssetError};
+use crate::{UiAssetDocument, template::UiAssetError};
 
 #[derive(Default)]
 pub struct UiAssetLoader;

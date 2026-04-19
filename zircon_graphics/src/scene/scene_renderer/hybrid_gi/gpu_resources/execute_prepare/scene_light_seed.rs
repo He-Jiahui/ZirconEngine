@@ -1,5 +1,5 @@
+use zircon_framework::render::RenderDirectionalLightSnapshot;
 use zircon_math::Vec3;
-use zircon_scene::RenderDirectionalLightSnapshot;
 
 pub(super) struct SceneLightSeed {
     pub(super) packed_rgb: u32,

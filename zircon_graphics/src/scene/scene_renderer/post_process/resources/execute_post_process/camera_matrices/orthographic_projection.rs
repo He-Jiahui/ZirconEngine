@@ -1,5 +1,5 @@
+use zircon_framework::render::ViewportCameraSnapshot;
 use zircon_math::Mat4;
-use zircon_scene::ViewportCameraSnapshot;
 
 pub(super) fn orthographic_projection(camera: &ViewportCameraSnapshot, aspect: f32) -> Mat4 {
     let half_height = camera.ortho_size.max(0.01);

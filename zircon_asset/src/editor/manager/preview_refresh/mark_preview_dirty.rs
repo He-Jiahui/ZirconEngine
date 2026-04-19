@@ -1,4 +1,5 @@
-use crate::{AssetCatalogRecord, AssetImportError, AssetUuid, PreviewState};
+use crate::project::PreviewState;
+use crate::{AssetCatalogRecord, AssetImportError, AssetUuid};
 
 use super::super::super::{EditorAssetChangeKind, EditorAssetChangeRecord};
 use super::super::default_editor_asset_manager::DefaultEditorAssetManager;

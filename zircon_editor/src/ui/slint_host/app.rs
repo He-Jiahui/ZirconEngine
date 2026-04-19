@@ -8,10 +8,10 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use slint::{ComponentHandle, Timer, TimerMode};
-use zircon_asset::{
-    AssetChange, AssetManager, EditorAssetChange, EditorAssetManager as EditorAssetManagerFacade,
-    ProjectManager, ProjectPaths,
-};
+use zircon_asset::editor::{EditorAssetChange, EditorAssetManager as EditorAssetManagerFacade};
+use zircon_asset::pipeline::manager::AssetManager;
+use zircon_asset::project::{ProjectManager, ProjectPaths};
+use zircon_asset::watch::AssetChange;
 use zircon_core::{ChannelReceiver, CoreHandle};
 use zircon_framework::asset::ResourceManager;
 use zircon_manager::ManagerResolver;
@@ -20,7 +20,7 @@ use zircon_resource::{
     MaterialMarker, ModelMarker, ResourceEvent, ResourceHandle, ResourceLocator,
 };
 use zircon_scene::Scene;
-use zircon_ui::{UiBindingValue, UiEventKind, UiFrame, UiPoint, UiSize};
+use zircon_ui::{binding::UiBindingValue, binding::UiEventKind, UiFrame, UiPoint, UiSize};
 
 use crate::core::editor_event::{EditorEventRuntime, EditorViewportEvent};
 use crate::core::host::resource_access::resolve_ready_handle;

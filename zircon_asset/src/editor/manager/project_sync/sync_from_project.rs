@@ -1,8 +1,10 @@
 use std::collections::HashMap;
 
+use crate::project::ProjectManager;
+use crate::project::{AssetMetaDocument, PreviewState};
 use crate::{
-    AssetCatalogRecord, AssetImportError, AssetMetaDocument, PreviewArtifactKey, PreviewCache,
-    PreviewScheduler, PreviewState, ProjectManager, ReferenceGraph,
+    AssetCatalogRecord, AssetImportError, PreviewArtifactKey, PreviewCache, PreviewScheduler,
+    ReferenceGraph,
 };
 
 use super::super::super::{EditorAssetChangeKind, EditorAssetChangeRecord};

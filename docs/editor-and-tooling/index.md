@@ -72,7 +72,7 @@ doc_type: category-index
 
 - `zircon_editor` 如何把 Slint 宿主组织成 workbench shell
 - 布局、view registry、项目 workspace 和配置持久化如何协同
-- UI 草稿态如何转换成命令，并在 `zircon_scene::LevelSystem` 所托管的 `World` 上安全执行与 undo/redo
+- UI 草稿态如何转换成命令，并在 `zircon_runtime::scene::LevelSystem` 所托管的 `zircon_scene::Scene` 上安全执行与 undo/redo
 
 ## Documents
 
@@ -81,7 +81,7 @@ doc_type: category-index
 - [Scene Viewport Gizmo, Handle, And Overlay Pipeline](./scene-viewport-gizmo-handle-overlays.md): Scene 视图的 typed viewport settings、scene render packet、scene gizmo provider、handle overlay、wireframe/preview/grid 分层与测试口径。
 - [Viewport Interaction Boundary Split](./viewport-interaction-boundary-split.md): `zircon_editor` / `zircon_graphics` / `zircon_app` 的 viewport ownership 重分配，editor-owned interaction types、runtime-private camera controller，以及 graphics 仅保留 render framework/overlay 职责。
 - [Crate Boundary Audit Round 2](./crate-boundary-audit-round-2.md): 第二轮更严格的错包审计规则、`zircon_graphics` 红测根因、已通过的边界项，以及下一批最强迁移候选。
-- [UI Binding And Reflection Architecture](./ui-binding-reflection-architecture.md): `zircon_ui` / `zircon_editor::ui` / `zircon_input` 边界，nativeBinding、反射树、REPL/网络操控与 headless 回放架构。
+- [UI Binding And Reflection Architecture](./ui-binding-reflection-architecture.md): `zircon_ui` / `zircon_editor::ui` / `zircon_runtime::input` 边界，nativeBinding、反射树、REPL/网络操控与 headless 回放架构。
 - [Editor Template Compatibility Migration](./editor-template-compatibility-migration.md): `zircon_editor::ui` 的 editor-only template catalog/registry/adapter，如何把 shared `UiBindingRef` 收口到 typed `EditorUiBinding`，以及后续把 TOML 模板实例接到 Slint host 的迁移顺序。
 - [UI Asset Editor Host Session](./ui-asset-editor-host-session.md): `zircon_editor` 的 `UiAssetEditorSession`、recursive import hydration、canonical source save、Slint pane callbacks，以及 `zircon_asset` 对 `.ui.toml` 三类正式资产的注册与 catalog 接入。
 - [UI And Layout / UI Asset Documents And Editor Protocol](../ui-and-layout/ui-asset-documents-and-editor-protocol.md): `zircon_ui::template::asset` 的 `layout/widget/style` 编译链、selector stylesheet、legacy adapter、slot-aware shared bridge，以及 shared asset model 如何移交给 editor asset pipeline 和 host session。

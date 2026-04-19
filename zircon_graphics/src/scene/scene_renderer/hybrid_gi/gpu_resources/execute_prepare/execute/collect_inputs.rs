@@ -1,6 +1,6 @@
-use zircon_scene::RenderHybridGiExtract;
+use zircon_framework::render::RenderHybridGiExtract;
 
-use crate::types::HybridGiPrepareFrame;
+use crate::types::{HybridGiPrepareFrame, HybridGiResolveRuntime};
 
 use super::super::pending_probe_inputs::pending_probe_inputs;
 use super::super::resident_probe_inputs::resident_probe_inputs;
@@ -9,6 +9,7 @@ use super::hybrid_gi_prepare_execution_inputs::HybridGiPrepareExecutionInputs;
 
 pub(super) fn collect_inputs(
     prepare: &HybridGiPrepareFrame,
+    resolve_runtime: Option<&HybridGiResolveRuntime>,
     extract: Option<&RenderHybridGiExtract>,
 ) -> HybridGiPrepareExecutionInputs {
     let cache_entries = prepare
@@ -16,8 +17,8 @@ pub(super) fn collect_inputs(
         .iter()
         .map(|probe| [probe.probe_id, probe.slot])
         .collect::<Vec<_>>();
-    let resident_probe_inputs = resident_probe_inputs(prepare, extract);
-    let pending_probe_inputs = pending_probe_inputs(prepare, extract);
+    let resident_probe_inputs = resident_probe_inputs(prepare, resolve_runtime, extract);
+    let pending_probe_inputs = pending_probe_inputs(prepare, resolve_runtime, extract);
     let trace_region_inputs = trace_region_inputs(prepare, extract);
 
     HybridGiPrepareExecutionInputs {

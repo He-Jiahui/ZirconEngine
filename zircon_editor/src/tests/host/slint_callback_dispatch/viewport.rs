@@ -12,7 +12,7 @@ fn builtin_viewport_toolbar_set_tool_dispatches_dynamic_binding_from_template() 
         &bridge,
         "SetTool",
         UiEventKind::Change,
-        vec![zircon_ui::UiBindingValue::string("Scale")],
+        vec![zircon_ui::binding::UiBindingValue::string("Scale")],
     )
     .expect("viewport toolbar control should resolve through template bridge")
     .unwrap();
@@ -79,7 +79,7 @@ fn builtin_viewport_toolbar_set_tool_matches_legacy_viewport_command_dispatch() 
         &bridge,
         "SetTool",
         UiEventKind::Change,
-        vec![zircon_ui::UiBindingValue::string("Scale")],
+        vec![zircon_ui::binding::UiBindingValue::string("Scale")],
     )
     .expect("templated viewport tool control should resolve")
     .unwrap();
@@ -260,8 +260,9 @@ fn shared_viewport_surface_replaces_legacy_direct_pointer_callback_abi() {
     }
 
     assert!(
-        workbench.contains("callback viewport_pointer_event("),
-        "workbench shell must expose unified shared viewport pointer callback"
+        workbench
+            .contains("export { PaneSurfaceHostContext } from \"workbench/pane_surface.slint\";"),
+        "workbench shell must re-export the shared PaneSurfaceHostContext global"
     );
 
     for needle in [
@@ -281,8 +282,8 @@ fn shared_viewport_surface_replaces_legacy_direct_pointer_callback_abi() {
     }
 
     assert!(
-        wiring.contains("ui.on_viewport_pointer_event("),
-        "slint host wiring must register unified shared viewport callback"
+        wiring.contains("pane_surface_host.on_viewport_pointer_event("),
+        "slint host wiring must register unified shared viewport callback on the exported global"
     );
 
     for needle in [

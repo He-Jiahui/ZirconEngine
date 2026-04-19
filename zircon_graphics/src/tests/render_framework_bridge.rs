@@ -1,16 +1,15 @@
 use std::sync::Arc;
 
-use zircon_asset::ProjectAssetManager;
+use zircon_asset::pipeline::manager::ProjectAssetManager;
 use zircon_framework::render::{
-    FrameHistoryHandle, RenderFramework, RenderFrameworkError, RenderPipelineHandle,
+    FrameHistoryHandle, RenderFrameExtract, RenderFramework, RenderFrameworkError,
+    RenderHybridGiExtract, RenderHybridGiProbe, RenderHybridGiTraceRegion, RenderPipelineHandle,
     RenderQualityProfile, RenderViewportDescriptor, RenderViewportHandle,
+    RenderVirtualGeometryCluster, RenderVirtualGeometryExtract, RenderVirtualGeometryPage,
+    RenderWorldSnapshotHandle,
 };
 use zircon_math::{UVec2, Vec3};
-use zircon_scene::{
-    RenderFrameExtract, RenderHybridGiExtract, RenderHybridGiProbe, RenderHybridGiTraceRegion,
-    RenderVirtualGeometryCluster, RenderVirtualGeometryExtract, RenderVirtualGeometryPage,
-    RenderWorldSnapshotHandle, World,
-};
+use zircon_scene::world::World;
 
 use crate::runtime::WgpuRenderFramework;
 

@@ -8,7 +8,9 @@ use super::super::resource_sync::{clear_removed_project_resources, project_locat
 use super::super::{
     AssetManager as AssetManagerFacade, AssetPipelineInfo, AssetStatusRecord, ProjectInfo,
 };
-use crate::{AssetChange, AssetChangeKind, AssetUri, ProjectManager};
+use crate::project::ProjectManager;
+use crate::watch::{AssetChange, AssetChangeKind};
+use crate::AssetUri;
 
 impl AssetManagerFacade for ProjectAssetManager {
     fn pipeline_info(&self) -> AssetPipelineInfo {

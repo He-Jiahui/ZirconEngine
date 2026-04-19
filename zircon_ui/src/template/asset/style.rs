@@ -1,4 +1,4 @@
-use crate::UiAssetError;
+use crate::template::UiAssetError;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct UiSelector {

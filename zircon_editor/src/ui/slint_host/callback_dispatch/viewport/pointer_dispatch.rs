@@ -1,6 +1,6 @@
 use zircon_ui::{
-    UiPointerDispatchEffect, UiPointerDispatcher, UiPointerEvent, UiPointerEventKind,
-    UiPointerRoute,
+    dispatch::{UiPointerDispatchEffect, UiPointerDispatcher, UiPointerEvent},
+    UiPointerEventKind, UiPointerRoute,
 };
 
 use crate::core::editor_event::{EditorEventRuntime, EditorViewportEvent};

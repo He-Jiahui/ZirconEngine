@@ -1,10 +1,11 @@
 use serde_json::json;
 
-use crate::{
-    UiActionDescriptor, UiBindingCall, UiBindingValue, UiControlResponse, UiEventBinding,
-    UiEventKind, UiEventManager, UiEventPath, UiInvocationError, UiInvocationRequest,
-    UiNodeDescriptor, UiNodeId, UiNodePath, UiNotification, UiParameterDescriptor,
-    UiPropertyDescriptor, UiReflectionSnapshot, UiStateFlags, UiTreeId, UiValueType,
+use crate::binding::{UiBindingCall, UiBindingValue, UiEventBinding, UiEventKind, UiEventPath};
+use crate::event_ui::{
+    UiActionDescriptor, UiControlResponse, UiEventManager, UiInvocationError,
+    UiInvocationRequest, UiNodeDescriptor, UiNodeId, UiNodePath, UiNotification,
+    UiParameterDescriptor, UiPropertyDescriptor, UiReflectionSnapshot, UiStateFlags, UiTreeId,
+    UiValueType,
 };
 
 #[test]

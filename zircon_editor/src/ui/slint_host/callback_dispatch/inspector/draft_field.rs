@@ -1,7 +1,7 @@
 use crate::ui::{
     inspector_field_control_id, DraftCommand, EditorUiBinding, EditorUiBindingPayload,
 };
-use zircon_ui::UiBindingValue;
+use zircon_ui::binding::UiBindingValue;
 
 use crate::core::editor_event::EditorEventRuntime;
 use crate::ui::slint_host::event_bridge::SlintDispatchEffects;

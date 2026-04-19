@@ -1,4 +1,4 @@
-use zircon_ui::UiNodeId;
+use zircon_ui::event_ui::UiNodeId;
 
 pub(in crate::ui::slint_host::welcome_recent_pointer) const ROOT_NODE_ID: UiNodeId =
     UiNodeId::new(1);
@@ -6,8 +6,7 @@ pub(in crate::ui::slint_host::welcome_recent_pointer) const VIEWPORT_NODE_ID: Ui
     UiNodeId::new(2);
 pub(in crate::ui::slint_host::welcome_recent_pointer) const ITEM_NODE_ID_BASE: u64 = 100;
 pub(in crate::ui::slint_host::welcome_recent_pointer) const OPEN_BUTTON_NODE_ID_BASE: u64 = 1000;
-pub(in crate::ui::slint_host::welcome_recent_pointer) const REMOVE_BUTTON_NODE_ID_BASE: u64 =
-    2000;
+pub(in crate::ui::slint_host::welcome_recent_pointer) const REMOVE_BUTTON_NODE_ID_BASE: u64 = 2000;
 
 pub(in crate::ui::slint_host::welcome_recent_pointer) const OUTER_MARGIN: f32 = 18.0;
 pub(in crate::ui::slint_host::welcome_recent_pointer) const OUTER_VERTICAL_MARGIN: f32 = 18.0;

@@ -1,5 +1,5 @@
+use zircon_framework::render::ProjectionMode;
 use zircon_math::{view_matrix, Mat4, Real, RenderMat4, RenderVec3};
-use zircon_scene::ProjectionMode;
 
 use crate::types::EditorOrRuntimeFrame;
 

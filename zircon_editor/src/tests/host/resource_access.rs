@@ -41,9 +41,10 @@ fn resolve_ready_handle_surfaces_non_ready_state_and_diagnostics() {
         config_hash: String::new(),
     }]);
 
-    let error =
-        crate::core::host::resource_access::resolve_ready_handle::<MaterialMarker>(&server, &locator)
-            .expect_err("error state should be rejected");
+    let error = crate::core::host::resource_access::resolve_ready_handle::<MaterialMarker>(
+        &server, &locator,
+    )
+    .expect_err("error state should be rejected");
 
     assert!(error.contains("res://materials/default.material.toml"));
     assert!(error.contains("Error"));

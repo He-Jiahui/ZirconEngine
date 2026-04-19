@@ -1,4 +1,4 @@
-use zircon_ui::{UiFrame, UiInputPolicy, UiNodeId, UiStateFlags, UiSurface};
+use zircon_ui::{event_ui::UiNodeId, event_ui::UiStateFlags, UiFrame, UiInputPolicy, UiSurface};
 
 pub(super) fn base_target_state(interactive: bool) -> UiStateFlags {
     UiStateFlags {

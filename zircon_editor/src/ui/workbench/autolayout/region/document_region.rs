@@ -2,8 +2,8 @@ use std::collections::{BTreeMap, HashMap};
 
 use crate::layout::WorkbenchLayout;
 use crate::snapshot::ViewContentKind;
-use crate::view::{ViewDescriptor, ViewDescriptorId};
 use crate::ui::workbench::model::WorkbenchViewModel;
+use crate::view::{ViewDescriptor, ViewDescriptorId};
 
 use super::super::active_tab::active_document_tab;
 use super::super::constraints::{

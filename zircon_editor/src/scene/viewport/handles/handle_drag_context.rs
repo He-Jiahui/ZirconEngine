@@ -1,5 +1,5 @@
+use zircon_framework::render::ViewportCameraSnapshot;
 use zircon_math::{UVec2, Vec2};
-use zircon_scene::ViewportCameraSnapshot;
 
 #[derive(Clone, Debug)]
 pub(crate) struct HandleDragContext<'a> {

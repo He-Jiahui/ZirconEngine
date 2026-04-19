@@ -1,4 +1,4 @@
-use zircon_scene::ViewportIconId;
+use zircon_framework::render::ViewportIconId;
 
 pub(super) fn icon_slot(id: ViewportIconId) -> usize {
     match id {

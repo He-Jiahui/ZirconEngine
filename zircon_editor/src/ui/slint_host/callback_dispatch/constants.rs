@@ -1,4 +1,4 @@
-use zircon_ui::UiNodeId;
+use zircon_ui::event_ui::UiNodeId;
 
 pub(crate) const VIEWPORT_SURFACE_ROOT_ID: UiNodeId = UiNodeId::new(1);
 pub(crate) const VIEWPORT_SURFACE_NODE_ID: UiNodeId = UiNodeId::new(2);

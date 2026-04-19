@@ -27,7 +27,17 @@ impl HybridGiRuntimeState {
             });
         }
 
-        self.scheduled_trace_regions = plan.scheduled_trace_region_ids.clone();
+        self.current_requested_probe_ids = plan
+            .requested_probe_ids
+            .iter()
+            .copied()
+            .filter(|probe_id| {
+                self.probe_scene_data.contains_key(probe_id)
+                    && !self.resident_slots.contains_key(probe_id)
+            })
+            .collect();
+        self.assign_scheduled_trace_regions(plan.scheduled_trace_region_ids.iter().copied());
+        self.refresh_recent_lineage_trace_support();
         self.evictable_probes = plan
             .evictable_probe_ids
             .iter()

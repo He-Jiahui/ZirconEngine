@@ -1,5 +1,5 @@
 use super::{UiTree, UiTreeError};
-use crate::UiNodeId;
+use crate::event_ui::UiNodeId;
 
 impl UiTree {
     pub(crate) fn draw_order(&self) -> Vec<UiNodeId> {

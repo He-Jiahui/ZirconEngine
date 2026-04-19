@@ -1,4 +1,4 @@
-use zircon_ui::UiPointerEvent;
+use zircon_ui::dispatch::UiPointerEvent;
 
 use super::workbench_host_page_pointer_bridge::WorkbenchHostPagePointerBridge;
 use super::workbench_host_page_pointer_target::WorkbenchHostPagePointerTarget;

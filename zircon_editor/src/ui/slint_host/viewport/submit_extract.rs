@@ -1,6 +1,5 @@
+use zircon_framework::render::{RenderFrameExtract, RenderFrameworkError};
 use zircon_math::UVec2;
-use zircon_framework::render::RenderFrameworkError;
-use zircon_scene::RenderFrameExtract;
 
 use super::slint_viewport_controller::SlintViewportController;
 

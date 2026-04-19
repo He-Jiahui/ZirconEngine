@@ -2,8 +2,8 @@ use std::collections::{BTreeMap, HashMap};
 
 use crate::layout::{ActivityDrawerSlot, WorkbenchLayout};
 use crate::snapshot::EditorChromeSnapshot;
-use crate::view::ViewDescriptor;
 use crate::ui::workbench::model::WorkbenchViewModel;
+use crate::view::ViewDescriptor;
 
 use super::super::region::{build_document_region_state, build_tool_region_state};
 use super::super::{ShellFrame, ShellRegionId, ShellSizePx};

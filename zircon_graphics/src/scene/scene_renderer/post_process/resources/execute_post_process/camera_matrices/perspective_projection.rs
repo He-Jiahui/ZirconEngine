@@ -1,5 +1,5 @@
+use zircon_framework::render::ViewportCameraSnapshot;
 use zircon_math::Mat4;
-use zircon_scene::ViewportCameraSnapshot;
 
 pub(super) fn perspective_projection(camera: &ViewportCameraSnapshot, aspect: f32) -> Mat4 {
     Mat4::perspective_rh(

@@ -1,4 +1,4 @@
-use zircon_scene::EntityId;
+use zircon_framework::scene::EntityId;
 
 use super::VirtualGeometryPrepareClusterState;
 
@@ -11,3 +11,4 @@ pub(crate) struct VirtualGeometryPrepareCluster {
     pub(crate) resident_slot: Option<u32>,
     pub(crate) state: VirtualGeometryPrepareClusterState,
 }
+

@@ -2,11 +2,11 @@ use serde_json::Value;
 
 use crate::default_constraints_for_content;
 use crate::layout::MainPageId;
+use crate::ui::workbench::startup::{WELCOME_DESCRIPTOR_ID, WELCOME_INSTANCE_ID, WELCOME_PAGE_ID};
 use crate::view::{
     PreferredHost, ViewDescriptor, ViewDescriptorId, ViewHost, ViewInstance, ViewInstanceId,
     ViewKind,
 };
-use crate::ui::workbench::startup::{WELCOME_DESCRIPTOR_ID, WELCOME_INSTANCE_ID, WELCOME_PAGE_ID};
 use crate::ViewContentKind;
 
 pub(crate) fn welcome_view_descriptor() -> ViewDescriptor {

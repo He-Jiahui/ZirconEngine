@@ -1,19 +1,24 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use crate::ui::{
     UiAssetEditorMode, UiAssetEditorReflectionModel, UiAssetEditorRoute, UiAssetPreviewPreset,
     UiDesignerSelectionModel, UiStyleInspectorReflectionModel,
 };
 use thiserror::Error;
-use zircon_ui::{
-    UiAssetDocument, UiAssetError, UiAssetKind, UiAssetLoader, UiCompiledDocument, UiSize,
-    UiStyleDeclarationBlock, UiStyleRule, UiStyleSheet, UiTemplateBuildError, UiTreeError,
+use zircon_ui::template::{
+    UiAssetError, UiAssetLoader, UiCompiledDocument, UiStyleDeclarationBlock, UiStyleRule,
+    UiStyleSheet, UiTemplateBuildError,
 };
+use zircon_ui::tree::UiTreeError;
+use zircon_ui::{UiAssetDocument, UiAssetKind, UiSize};
 
 use super::{
     binding_inspector::{
-        add_default_binding, build_binding_fields,
-        delete_selected_binding as delete_selected_binding_field,
+        add_default_binding,
+        apply_selected_binding_action_suggestion as apply_selected_binding_action_suggestion_field,
+        apply_selected_binding_payload_suggestion as apply_selected_binding_payload_suggestion_field,
+        apply_selected_binding_route_suggestion as apply_selected_binding_route_suggestion_field,
+        build_binding_fields, delete_selected_binding as delete_selected_binding_field,
         delete_selected_binding_payload as delete_selected_binding_payload_field,
         reconcile_selected_binding_index, reconcile_selected_binding_payload_key,
         set_selected_binding_action_kind as set_selected_binding_action_kind_field,
@@ -24,7 +29,11 @@ use super::{
         set_selected_binding_route_target as set_selected_binding_route_target_field,
         upsert_selected_binding_payload as upsert_selected_binding_payload_field,
     },
-    command::{UiAssetEditorCommand, UiAssetEditorTreeEdit, UiAssetEditorTreeEditKind},
+    command::{
+        UiAssetEditorCommand, UiAssetEditorDocumentReplayBundle,
+        UiAssetEditorDocumentReplayCommand, UiAssetEditorInverseTreeEdit, UiAssetEditorTreeEdit,
+        UiAssetEditorTreeEditKind,
+    },
     hierarchy_projection::{
         build_hierarchy_items, build_inspector_items, hierarchy_node_ids, selected_hierarchy_index,
         selection_for_node, selection_summary,
@@ -59,10 +68,19 @@ use super::{
     preview_compile::{compile_preview, current_preview_size, preview_size_for_preset},
     preview_host::UiAssetPreviewHost,
     preview_mock::{
-        apply_preview_mock_overrides, build_preview_mock_fields,
-        build_preview_state_graph_items, clear_selected_preview_mock_value,
-        reconcile_preview_mock_state, select_preview_mock_property,
-        select_preview_mock_subject_node, set_selected_preview_mock_value, UiAssetPreviewMockState,
+        apply_preview_mock_overrides,
+        apply_selected_preview_mock_suggestion as apply_selected_preview_mock_suggestion_field,
+        build_preview_mock_fields, build_preview_state_graph_items,
+        clear_selected_preview_mock_value,
+        delete_selected_preview_mock_nested_entry as delete_selected_preview_mock_nested_entry_field,
+        reconcile_preview_mock_state,
+        select_preview_mock_nested_entry as select_preview_mock_nested_entry_field,
+        select_preview_mock_property, select_preview_mock_subject,
+        select_preview_mock_subject_node,
+        set_selected_preview_mock_nested_value as set_selected_preview_mock_nested_value_field,
+        set_selected_preview_mock_value,
+        upsert_selected_preview_mock_nested_entry as upsert_selected_preview_mock_nested_entry_field,
+        UiAssetPreviewMockState,
     },
     preview_projection::{build_preview_projection, preview_node_id_for_index},
     promote_widget::{
@@ -94,18 +112,26 @@ use super::{
         UiStyleRuleDeclarationPath,
     },
     theme_authoring::{
-        build_imported_theme_local_merge_preview,
-        can_promote_local_theme_to_external_style_asset, clone_imported_theme_to_local_theme_layer,
-        default_external_style_draft,
-        detach_imported_theme_to_local_theme_layer,
+        adopt_active_cascade_rule, adopt_active_cascade_rules, adopt_active_cascade_token,
+        adopt_active_cascade_tokens, adopt_all_active_cascade_changes,
+        adopt_all_imported_theme_changes, adopt_imported_theme_compare_diffs,
+        adopt_imported_theme_rule, adopt_imported_theme_rules, adopt_imported_theme_token,
+        adopt_imported_theme_tokens, apply_theme_refactor_action,
+        build_imported_theme_local_merge_preview, build_theme_refactor_items,
+        build_theme_rule_helper_items, can_promote_local_theme_to_external_style_asset,
+        can_prune_duplicate_local_theme_overrides, clone_imported_theme_to_local_theme_layer,
+        default_external_style_draft, detach_imported_theme_to_local_theme_layer,
         promote_local_theme_to_external_style_asset as tree_promote_local_theme_to_external_style_asset,
-        UiAssetExternalStyleDraft,
+        prune_duplicate_local_theme_overrides, prune_imported_theme_compare_duplicates,
+        theme_refactor_actions, theme_rule_helper_actions, UiAssetExternalStyleDraft,
+        UiAssetThemeRefactorAction, UiAssetThemeRuleHelperAction,
     },
+    theme_cascade_inspection::build_theme_cascade_inspection,
+    theme_compare::build_theme_compare_items,
     theme_summary::{
         build_theme_source_details, build_theme_summary, reconcile_selected_theme_source_key,
         select_theme_source_key,
     },
-    theme_cascade_inspection::build_theme_cascade_inspection,
     tree_editing::{
         build_palette_entries, can_convert_selected_node_to_reference,
         can_extract_selected_node_to_component,
@@ -162,6 +188,13 @@ pub enum UiAssetEditorSessionError {
     InvalidBindingEvent { value: String },
     #[error("ui asset preview mock value is invalid: {message}")]
     InvalidPreviewMockValue { message: String },
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct UiAssetEditorReplayResult {
+    pub changed: bool,
+    pub label: String,
+    pub external_effects: Vec<UiAssetEditorExternalEffect>,
 }
 
 pub struct UiAssetEditorSession {
@@ -358,11 +391,11 @@ impl UiAssetEditorSession {
         self.undo_stack.next_redo_tree_edit()
     }
 
-    pub fn next_undo_inverse_tree_edit(&self) -> Option<UiAssetEditorTreeEdit> {
+    pub fn next_undo_inverse_tree_edit(&self) -> Option<UiAssetEditorInverseTreeEdit> {
         self.undo_stack.next_undo_inverse_tree_edit()
     }
 
-    pub fn next_redo_inverse_tree_edit(&self) -> Option<UiAssetEditorTreeEdit> {
+    pub fn next_redo_inverse_tree_edit(&self) -> Option<UiAssetEditorInverseTreeEdit> {
         self.undo_stack.next_redo_inverse_tree_edit()
     }
 
@@ -380,6 +413,14 @@ impl UiAssetEditorSession {
 
     pub fn next_redo_external_effects(&self) -> Vec<UiAssetEditorExternalEffect> {
         self.undo_stack.next_redo_external_effects()
+    }
+
+    pub fn next_undo_document_replay_commands(&self) -> Vec<UiAssetEditorDocumentReplayCommand> {
+        self.undo_stack.next_undo_document_replay_commands()
+    }
+
+    pub fn next_redo_document_replay_commands(&self) -> Vec<UiAssetEditorDocumentReplayCommand> {
+        self.undo_stack.next_redo_document_replay_commands()
     }
 
     pub fn reflection_model(&self) -> UiAssetEditorReflectionModel {
@@ -481,6 +522,7 @@ impl UiAssetEditorSession {
         let binding_fields = build_binding_fields(
             &self.last_valid_document,
             &self.selection,
+            &self.preview_mock_state,
             self.selected_binding_index,
             self.selected_binding_payload_key.as_deref(),
         );
@@ -581,18 +623,33 @@ impl UiAssetEditorSession {
             &self.last_valid_document,
             &self.compiler_imports.styles,
         );
+        let theme_compare_items = build_theme_compare_items(
+            &self.last_valid_document,
+            &self.compiler_imports.styles,
+            self.selected_theme_source_key.as_deref(),
+        );
+        let theme_rule_helper_items = build_theme_rule_helper_items(
+            &self.last_valid_document,
+            &self.compiler_imports.styles,
+            self.selected_theme_source_key.as_deref(),
+        );
+        let theme_refactor_items =
+            build_theme_refactor_items(&self.last_valid_document, &self.compiler_imports.styles);
         let theme_merge_preview_items = self
             .selected_theme_source_key
             .as_deref()
             .filter(|key| *key != "local")
             .and_then(|reference| {
-                self.compiler_imports.styles.get(reference).map(|imported_style| {
-                    build_imported_theme_local_merge_preview(
-                        &self.last_valid_document,
-                        reference,
-                        imported_style,
-                    )
-                })
+                self.compiler_imports
+                    .styles
+                    .get(reference)
+                    .map(|imported_style| {
+                        build_imported_theme_local_merge_preview(
+                            &self.last_valid_document,
+                            reference,
+                            imported_style,
+                        )
+                    })
             })
             .unwrap_or_default();
         let can_create_rule =
@@ -806,7 +863,10 @@ impl UiAssetEditorSession {
             theme_cascade_layer_items: theme_cascade.layer_items,
             theme_cascade_token_items: theme_cascade.token_items,
             theme_cascade_rule_items: theme_cascade.rule_items,
+            theme_compare_items,
             theme_merge_preview_items,
+            theme_rule_helper_items,
+            theme_refactor_items,
             theme_promote_asset_id: theme_promote_draft
                 .as_ref()
                 .map(|draft| draft.asset_id.clone())
@@ -820,6 +880,10 @@ impl UiAssetEditorSession {
                 .map(|draft| draft.display_name.clone())
                 .unwrap_or_default(),
             theme_can_edit_promote_draft: can_edit_theme_promote_draft,
+            theme_can_prune_duplicate_local_overrides: can_prune_duplicate_local_theme_overrides(
+                &self.last_valid_document,
+                &self.compiler_imports.styles,
+            ),
             last_error: reflection.last_error.clone().unwrap_or_default(),
             selection_summary: selection_summary(&reflection.selection),
             source_text: self.source_buffer.text().to_string(),
@@ -852,14 +916,28 @@ impl UiAssetEditorSession {
                     selected: item.selected,
                 })
                 .collect(),
+            preview_mock_subject_items: preview_mock_fields.subject_items,
+            preview_mock_subject_selected_index: preview_mock_fields.subject_selected_index,
+            preview_mock_subject_node_id: preview_mock_fields.subject_node_id,
             preview_mock_items: preview_mock_fields.items,
             preview_mock_selected_index: preview_mock_fields.selected_index,
             preview_mock_property: preview_mock_fields.property,
             preview_mock_kind: preview_mock_fields.kind,
             preview_mock_value: preview_mock_fields.value,
+            preview_mock_expression_result: preview_mock_fields.expression_result,
+            preview_mock_nested_items: preview_mock_fields.nested_items,
+            preview_mock_nested_selected_index: preview_mock_fields.nested_selected_index,
+            preview_mock_nested_key: preview_mock_fields.nested_key,
+            preview_mock_nested_kind: preview_mock_fields.nested_kind,
+            preview_mock_nested_value: preview_mock_fields.nested_value,
+            preview_mock_suggestion_items: preview_mock_fields.suggestion_items,
+            preview_mock_schema_items: preview_mock_fields.schema_items,
             preview_state_graph_items,
             preview_mock_can_edit: preview_mock_fields.can_edit,
             preview_mock_can_clear: preview_mock_fields.can_clear,
+            preview_mock_nested_can_edit: preview_mock_fields.nested_can_edit,
+            preview_mock_nested_can_add: preview_mock_fields.nested_can_add,
+            preview_mock_nested_can_delete: preview_mock_fields.nested_can_delete,
             preview_summary,
             palette_selected_index: self
                 .selected_palette_index
@@ -966,6 +1044,9 @@ impl UiAssetEditorSession {
             inspector_binding_route: binding_fields.binding_route,
             inspector_binding_route_target: binding_fields.binding_route_target,
             inspector_binding_action_target: binding_fields.binding_action_target,
+            inspector_binding_route_suggestion_items: binding_fields.binding_route_suggestion_items,
+            inspector_binding_action_suggestion_items: binding_fields
+                .binding_action_suggestion_items,
             inspector_binding_action_kind_items: binding_fields.binding_action_kind_items,
             inspector_binding_action_kind_selected_index: binding_fields
                 .binding_action_kind_selected_index,
@@ -973,6 +1054,9 @@ impl UiAssetEditorSession {
             inspector_binding_payload_selected_index: binding_fields.binding_payload_selected_index,
             inspector_binding_payload_key: binding_fields.binding_payload_key,
             inspector_binding_payload_value: binding_fields.binding_payload_value,
+            inspector_binding_payload_suggestion_items: binding_fields
+                .binding_payload_suggestion_items,
+            inspector_binding_schema_items: binding_fields.binding_schema_items,
             inspector_can_edit_binding: self.diagnostics.is_empty() && binding_fields.can_edit,
             inspector_can_delete_binding: self.diagnostics.is_empty() && binding_fields.can_delete,
             inspector_widget_kind: inspector_fields.widget_kind,
@@ -1135,6 +1219,21 @@ impl UiAssetEditorSession {
         Ok(changed)
     }
 
+    pub fn select_preview_mock_nested_entry(
+        &mut self,
+        index: usize,
+    ) -> Result<bool, UiAssetEditorSessionError> {
+        let Some(changed) = select_preview_mock_nested_entry_field(
+            &self.last_valid_document,
+            &self.selection,
+            &mut self.preview_mock_state,
+            index,
+        ) else {
+            return Err(UiAssetEditorSessionError::InvalidSelectionIndex { index });
+        };
+        Ok(changed)
+    }
+
     pub fn select_preview_mock_subject_node(
         &mut self,
         node_id: impl AsRef<str>,
@@ -1145,6 +1244,21 @@ impl UiAssetEditorSession {
             &mut self.preview_mock_state,
             node_id.as_ref(),
         ))
+    }
+
+    pub fn select_preview_mock_subject(
+        &mut self,
+        index: usize,
+    ) -> Result<bool, UiAssetEditorSessionError> {
+        let Some(changed) = select_preview_mock_subject(
+            &self.last_valid_document,
+            &self.selection,
+            &mut self.preview_mock_state,
+            index,
+        ) else {
+            return Err(UiAssetEditorSessionError::InvalidSelectionIndex { index });
+        };
+        Ok(changed)
     }
 
     pub fn select_theme_source(&mut self, index: usize) -> Result<bool, UiAssetEditorSessionError> {
@@ -1169,6 +1283,82 @@ impl UiAssetEditorSession {
             &self.selection,
             &mut self.preview_mock_state,
             value.as_ref(),
+        )
+        .map_err(|message| UiAssetEditorSessionError::InvalidPreviewMockValue { message })?;
+        if !changed {
+            return Ok(false);
+        }
+        self.rebuild_preview_snapshot()?;
+        Ok(true)
+    }
+
+    pub fn set_selected_preview_mock_nested_value(
+        &mut self,
+        value: impl AsRef<str>,
+    ) -> Result<bool, UiAssetEditorSessionError> {
+        let changed = set_selected_preview_mock_nested_value_field(
+            &self.last_valid_document,
+            &self.selection,
+            &mut self.preview_mock_state,
+            value.as_ref(),
+        )
+        .map_err(|message| UiAssetEditorSessionError::InvalidPreviewMockValue { message })?;
+        if !changed {
+            return Ok(false);
+        }
+        self.rebuild_preview_snapshot()?;
+        Ok(true)
+    }
+
+    pub fn upsert_selected_preview_mock_nested_entry(
+        &mut self,
+        key: impl AsRef<str>,
+        value_literal: impl AsRef<str>,
+    ) -> Result<bool, UiAssetEditorSessionError> {
+        let changed = upsert_selected_preview_mock_nested_entry_field(
+            &self.last_valid_document,
+            &self.selection,
+            &mut self.preview_mock_state,
+            key.as_ref(),
+            value_literal.as_ref(),
+        )
+        .map_err(|message| UiAssetEditorSessionError::InvalidPreviewMockValue { message })?;
+        if !changed {
+            return Ok(false);
+        }
+        self.rebuild_preview_snapshot()?;
+        Ok(true)
+    }
+
+    pub fn apply_selected_preview_mock_suggestion(
+        &mut self,
+        index: usize,
+    ) -> Result<bool, UiAssetEditorSessionError> {
+        let before_state = self.preview_mock_state.clone();
+        let Some(_) = apply_selected_preview_mock_suggestion_field(
+            &self.last_valid_document,
+            &self.selection,
+            &mut self.preview_mock_state,
+            index,
+        )
+        .map_err(|message| UiAssetEditorSessionError::InvalidPreviewMockValue { message })?
+        else {
+            return Err(UiAssetEditorSessionError::InvalidSelectionIndex { index });
+        };
+        if before_state == self.preview_mock_state {
+            return Ok(false);
+        }
+        self.rebuild_preview_snapshot()?;
+        Ok(true)
+    }
+
+    pub fn delete_selected_preview_mock_nested_entry(
+        &mut self,
+    ) -> Result<bool, UiAssetEditorSessionError> {
+        let changed = delete_selected_preview_mock_nested_entry_field(
+            &self.last_valid_document,
+            &self.selection,
+            &mut self.preview_mock_state,
         )
         .map_err(|message| UiAssetEditorSessionError::InvalidPreviewMockValue { message })?;
         if !changed {
@@ -1369,7 +1559,7 @@ impl UiAssetEditorSession {
     pub fn selected_reference_asset_id(&self) -> Option<String> {
         let node_id = self.selection.primary_node_id.as_deref()?;
         let node = self.last_valid_document.nodes.get(node_id)?;
-        if node.kind != zircon_ui::UiNodeDefinitionKind::Reference {
+        if node.kind != zircon_ui::template::UiNodeDefinitionKind::Reference {
             return None;
         }
         node.component_ref
@@ -1404,23 +1594,23 @@ impl UiAssetEditorSession {
         if selected_key == "local" {
             return Ok(false);
         }
-        let Some(imported_style_document) = self.compiler_imports.styles.get(&selected_key).cloned() else {
+        let Some(imported_style_document) =
+            self.compiler_imports.styles.get(&selected_key).cloned()
+        else {
             return Ok(false);
         };
 
         let mut document = self.last_valid_document.clone();
-        if !detach_imported_theme_to_local_theme_layer(&mut document, &selected_key, &imported_style_document) {
+        if !detach_imported_theme_to_local_theme_layer(
+            &mut document,
+            &selected_key,
+            &imported_style_document,
+        ) {
             return Ok(false);
         }
 
-        self.apply_command_with_effects(
-            UiAssetEditorCommand::tree_edit(
-                UiAssetEditorTreeEditKind::DocumentEdit,
-                "Detach Imported Theme",
-                serialize_document(&document)?,
-            ),
-            UiAssetEditorUndoExternalEffects::default(),
-        )?;
+        let replay = theme_document_replay_bundle(&self.last_valid_document, &document);
+        self.apply_document_edit_with_label_and_replay(document, "Detach Imported Theme", replay)?;
         Ok(true)
     }
 
@@ -1438,23 +1628,408 @@ impl UiAssetEditorSession {
         if selected_key == "local" {
             return Ok(false);
         }
-        let Some(imported_style_document) = self.compiler_imports.styles.get(&selected_key).cloned() else {
+        let Some(imported_style_document) =
+            self.compiler_imports.styles.get(&selected_key).cloned()
+        else {
             return Ok(false);
         };
 
         let mut document = self.last_valid_document.clone();
-        if !clone_imported_theme_to_local_theme_layer(&mut document, &selected_key, &imported_style_document) {
+        if !clone_imported_theme_to_local_theme_layer(
+            &mut document,
+            &selected_key,
+            &imported_style_document,
+        ) {
             return Ok(false);
         }
 
+        let replay = theme_document_replay_bundle(&self.last_valid_document, &document);
         self.apply_command_with_effects_and_theme_source(
             UiAssetEditorCommand::tree_edit(
                 UiAssetEditorTreeEditKind::DocumentEdit,
                 "Clone Imported Theme",
                 serialize_document(&document)?,
-            ),
+            )
+            .with_document_replay(replay),
             UiAssetEditorUndoExternalEffects::default(),
             Some("local".to_string()),
+        )?;
+        Ok(true)
+    }
+
+    pub(crate) fn theme_rule_helper_action(
+        &self,
+        index: usize,
+    ) -> Option<UiAssetThemeRuleHelperAction> {
+        theme_rule_helper_actions(
+            &self.last_valid_document,
+            &self.compiler_imports.styles,
+            self.selected_theme_source_key.as_deref(),
+        )
+        .get(index)
+        .cloned()
+    }
+
+    pub fn apply_theme_rule_helper_item(
+        &mut self,
+        index: usize,
+    ) -> Result<bool, UiAssetEditorSessionError> {
+        let Some(action) = self.theme_rule_helper_action(index) else {
+            return Err(UiAssetEditorSessionError::InvalidSelectionIndex { index });
+        };
+        match action {
+            UiAssetThemeRuleHelperAction::PromoteLocalTheme => {
+                let Some(draft) = self.selected_promote_theme_draft() else {
+                    return Ok(false);
+                };
+                self.promote_local_theme_to_external_style_asset(
+                    &draft.asset_id,
+                    &draft.document_id,
+                    &draft.display_name,
+                )
+                .map(|changed| changed.is_some())
+            }
+            UiAssetThemeRuleHelperAction::AdoptActiveCascadeTokens { .. } => {
+                self.adopt_active_cascade_tokens()
+            }
+            UiAssetThemeRuleHelperAction::AdoptActiveCascadeRules { .. } => {
+                self.adopt_active_cascade_rules()
+            }
+            UiAssetThemeRuleHelperAction::AdoptActiveCascadeChanges { .. } => {
+                self.adopt_all_active_cascade_changes()
+            }
+            UiAssetThemeRuleHelperAction::AdoptActiveCascadeToken { token_name, .. } => {
+                self.adopt_active_cascade_token(&token_name)
+            }
+            UiAssetThemeRuleHelperAction::AdoptActiveCascadeRule {
+                stylesheet_id,
+                selector,
+                ..
+            } => self.adopt_active_cascade_rule(&stylesheet_id, &selector),
+            UiAssetThemeRuleHelperAction::DetachImportedThemeToLocal { .. } => {
+                self.detach_selected_theme_source_to_local()
+            }
+            UiAssetThemeRuleHelperAction::CloneImportedThemeToLocal { .. } => {
+                self.clone_selected_theme_source_to_local()
+            }
+            UiAssetThemeRuleHelperAction::AdoptComparedImportedDiffs { reference, .. } => {
+                self.adopt_imported_theme_compare_diffs(&reference)
+            }
+            UiAssetThemeRuleHelperAction::PruneSharedComparedEntries { reference, .. } => {
+                self.prune_imported_theme_compare_duplicates(&reference)
+            }
+            UiAssetThemeRuleHelperAction::AdoptAllImportedTokens { reference, .. } => {
+                self.adopt_imported_theme_tokens(&reference)
+            }
+            UiAssetThemeRuleHelperAction::AdoptAllImportedRules { reference, .. } => {
+                self.adopt_imported_theme_rules(&reference)
+            }
+            UiAssetThemeRuleHelperAction::AdoptAllImportedChanges { reference, .. } => {
+                self.adopt_all_imported_theme_changes(&reference)
+            }
+            UiAssetThemeRuleHelperAction::AdoptImportedToken {
+                reference,
+                token_name,
+                ..
+            } => self.adopt_imported_theme_token(&reference, &token_name),
+            UiAssetThemeRuleHelperAction::AdoptImportedRule {
+                reference,
+                stylesheet_id,
+                selector,
+            } => self.adopt_imported_theme_rule(&reference, &stylesheet_id, &selector),
+            UiAssetThemeRuleHelperAction::ApplyAllThemeRefactors { .. } => {
+                self.apply_all_theme_refactors()
+            }
+            UiAssetThemeRuleHelperAction::PruneDuplicateLocalOverrides => {
+                self.prune_duplicate_local_theme_overrides()
+            }
+        }
+    }
+
+    pub(crate) fn theme_refactor_action(&self, index: usize) -> Option<UiAssetThemeRefactorAction> {
+        theme_refactor_actions(&self.last_valid_document, &self.compiler_imports.styles)
+            .get(index)
+            .cloned()
+    }
+
+    pub fn apply_theme_refactor_item(
+        &mut self,
+        index: usize,
+    ) -> Result<bool, UiAssetEditorSessionError> {
+        self.ensure_editable_source()?;
+        let Some(action) = self.theme_refactor_action(index) else {
+            return Err(UiAssetEditorSessionError::InvalidSelectionIndex { index });
+        };
+        let mut document = self.last_valid_document.clone();
+        if !apply_theme_refactor_action(&mut document, &action) {
+            return Ok(false);
+        }
+        let replay = theme_document_replay_bundle(&self.last_valid_document, &document);
+        self.apply_document_edit_with_label_and_replay(document, "Apply Theme Refactor", replay)?;
+        Ok(true)
+    }
+
+    pub fn apply_all_theme_refactors(&mut self) -> Result<bool, UiAssetEditorSessionError> {
+        self.ensure_editable_source()?;
+        let actions =
+            theme_refactor_actions(&self.last_valid_document, &self.compiler_imports.styles);
+        if actions.is_empty() {
+            return Ok(false);
+        }
+        let mut document = self.last_valid_document.clone();
+        let mut changed = false;
+        for action in &actions {
+            changed |= apply_theme_refactor_action(&mut document, action);
+        }
+        if !changed {
+            return Ok(false);
+        }
+        let replay = theme_document_replay_bundle(&self.last_valid_document, &document);
+        self.apply_document_edit_with_label_and_replay(
+            document,
+            "Apply All Theme Refactors",
+            replay,
+        )?;
+        Ok(true)
+    }
+
+    fn adopt_imported_theme_token(
+        &mut self,
+        reference: &str,
+        token_name: &str,
+    ) -> Result<bool, UiAssetEditorSessionError> {
+        self.ensure_editable_source()?;
+        let mut document = self.last_valid_document.clone();
+        if !adopt_imported_theme_token(
+            &mut document,
+            &self.compiler_imports.styles,
+            reference,
+            token_name,
+        ) {
+            return Ok(false);
+        }
+        let replay = theme_document_replay_bundle(&self.last_valid_document, &document);
+        self.apply_document_edit_with_label_and_replay(
+            document,
+            "Adopt Imported Theme Token",
+            replay,
+        )?;
+        Ok(true)
+    }
+
+    fn adopt_active_cascade_token(
+        &mut self,
+        token_name: &str,
+    ) -> Result<bool, UiAssetEditorSessionError> {
+        self.ensure_editable_source()?;
+        let mut document = self.last_valid_document.clone();
+        if !adopt_active_cascade_token(&mut document, &self.compiler_imports.styles, token_name) {
+            return Ok(false);
+        }
+        let replay = theme_document_replay_bundle(&self.last_valid_document, &document);
+        self.apply_document_edit_with_label_and_replay(
+            document,
+            "Adopt Active Cascade Theme Token",
+            replay,
+        )?;
+        Ok(true)
+    }
+
+    fn adopt_imported_theme_tokens(
+        &mut self,
+        reference: &str,
+    ) -> Result<bool, UiAssetEditorSessionError> {
+        self.ensure_editable_source()?;
+        let mut document = self.last_valid_document.clone();
+        if adopt_imported_theme_tokens(&mut document, &self.compiler_imports.styles, reference) == 0
+        {
+            return Ok(false);
+        }
+        let replay = theme_document_replay_bundle(&self.last_valid_document, &document);
+        self.apply_document_edit_with_label_and_replay(
+            document,
+            "Adopt Imported Theme Tokens",
+            replay,
+        )?;
+        Ok(true)
+    }
+
+    fn adopt_imported_theme_compare_diffs(
+        &mut self,
+        reference: &str,
+    ) -> Result<bool, UiAssetEditorSessionError> {
+        self.ensure_editable_source()?;
+        let mut document = self.last_valid_document.clone();
+        if adopt_imported_theme_compare_diffs(
+            &mut document,
+            &self.compiler_imports.styles,
+            reference,
+        ) == 0
+        {
+            return Ok(false);
+        }
+        let replay = theme_document_replay_bundle(&self.last_valid_document, &document);
+        self.apply_document_edit_with_label_and_replay(
+            document,
+            "Adopt Imported Theme Compare Diffs",
+            replay,
+        )?;
+        Ok(true)
+    }
+
+    fn prune_imported_theme_compare_duplicates(
+        &mut self,
+        reference: &str,
+    ) -> Result<bool, UiAssetEditorSessionError> {
+        self.ensure_editable_source()?;
+        let mut document = self.last_valid_document.clone();
+        if prune_imported_theme_compare_duplicates(
+            &mut document,
+            &self.compiler_imports.styles,
+            reference,
+        ) == 0
+        {
+            return Ok(false);
+        }
+        let replay = theme_document_replay_bundle(&self.last_valid_document, &document);
+        self.apply_document_edit_with_label_and_replay(
+            document,
+            "Prune Imported Theme Compare Duplicates",
+            replay,
+        )?;
+        Ok(true)
+    }
+
+    fn adopt_active_cascade_tokens(&mut self) -> Result<bool, UiAssetEditorSessionError> {
+        self.ensure_editable_source()?;
+        let mut document = self.last_valid_document.clone();
+        if adopt_active_cascade_tokens(&mut document, &self.compiler_imports.styles) == 0 {
+            return Ok(false);
+        }
+        let replay = theme_document_replay_bundle(&self.last_valid_document, &document);
+        self.apply_document_edit_with_label_and_replay(
+            document,
+            "Adopt Active Cascade Theme Tokens",
+            replay,
+        )?;
+        Ok(true)
+    }
+
+    fn adopt_imported_theme_rule(
+        &mut self,
+        reference: &str,
+        stylesheet_id: &str,
+        selector: &str,
+    ) -> Result<bool, UiAssetEditorSessionError> {
+        self.ensure_editable_source()?;
+        let mut document = self.last_valid_document.clone();
+        if !adopt_imported_theme_rule(
+            &mut document,
+            &self.compiler_imports.styles,
+            reference,
+            stylesheet_id,
+            selector,
+        ) {
+            return Ok(false);
+        }
+        let replay = theme_document_replay_bundle(&self.last_valid_document, &document);
+        self.apply_document_edit_with_label_and_replay(
+            document,
+            "Adopt Imported Theme Rule",
+            replay,
+        )?;
+        Ok(true)
+    }
+
+    fn adopt_active_cascade_rule(
+        &mut self,
+        stylesheet_id: &str,
+        selector: &str,
+    ) -> Result<bool, UiAssetEditorSessionError> {
+        self.ensure_editable_source()?;
+        let mut document = self.last_valid_document.clone();
+        if !adopt_active_cascade_rule(
+            &mut document,
+            &self.compiler_imports.styles,
+            stylesheet_id,
+            selector,
+        ) {
+            return Ok(false);
+        }
+        let replay = theme_document_replay_bundle(&self.last_valid_document, &document);
+        self.apply_document_edit_with_label_and_replay(
+            document,
+            "Adopt Active Cascade Theme Rule",
+            replay,
+        )?;
+        Ok(true)
+    }
+
+    fn adopt_imported_theme_rules(
+        &mut self,
+        reference: &str,
+    ) -> Result<bool, UiAssetEditorSessionError> {
+        self.ensure_editable_source()?;
+        let mut document = self.last_valid_document.clone();
+        if adopt_imported_theme_rules(&mut document, &self.compiler_imports.styles, reference) == 0
+        {
+            return Ok(false);
+        }
+        let replay = theme_document_replay_bundle(&self.last_valid_document, &document);
+        self.apply_document_edit_with_label_and_replay(
+            document,
+            "Adopt Imported Theme Rules",
+            replay,
+        )?;
+        Ok(true)
+    }
+
+    fn adopt_active_cascade_rules(&mut self) -> Result<bool, UiAssetEditorSessionError> {
+        self.ensure_editable_source()?;
+        let mut document = self.last_valid_document.clone();
+        if adopt_active_cascade_rules(&mut document, &self.compiler_imports.styles) == 0 {
+            return Ok(false);
+        }
+        let replay = theme_document_replay_bundle(&self.last_valid_document, &document);
+        self.apply_document_edit_with_label_and_replay(
+            document,
+            "Adopt Active Cascade Theme Rules",
+            replay,
+        )?;
+        Ok(true)
+    }
+
+    fn adopt_all_imported_theme_changes(
+        &mut self,
+        reference: &str,
+    ) -> Result<bool, UiAssetEditorSessionError> {
+        self.ensure_editable_source()?;
+        let mut document = self.last_valid_document.clone();
+        if adopt_all_imported_theme_changes(&mut document, &self.compiler_imports.styles, reference)
+            == 0
+        {
+            return Ok(false);
+        }
+        let replay = theme_document_replay_bundle(&self.last_valid_document, &document);
+        self.apply_document_edit_with_label_and_replay(
+            document,
+            "Adopt Imported Theme Changes",
+            replay,
+        )?;
+        Ok(true)
+    }
+
+    fn adopt_all_active_cascade_changes(&mut self) -> Result<bool, UiAssetEditorSessionError> {
+        self.ensure_editable_source()?;
+        let mut document = self.last_valid_document.clone();
+        if adopt_all_active_cascade_changes(&mut document, &self.compiler_imports.styles) == 0 {
+            return Ok(false);
+        }
+        let replay = theme_document_replay_bundle(&self.last_valid_document, &document);
+        self.apply_document_edit_with_label_and_replay(
+            document,
+            "Adopt Active Cascade Theme Changes",
+            replay,
         )?;
         Ok(true)
     }
@@ -1680,6 +2255,7 @@ impl UiAssetEditorSession {
             return Ok(None);
         };
         let mut document = self.last_valid_document.clone();
+        let previous_widget_source = self.existing_external_widget_source(widget_asset_id)?;
         let Some(widget_document) = tree_promote_selected_component_to_external_widget(
             &mut document,
             &self.selection,
@@ -1714,9 +2290,10 @@ impl UiAssetEditorSession {
                 selection,
             ),
             UiAssetEditorUndoExternalEffects {
-                undo: vec![UiAssetEditorExternalEffect::RemoveAssetSource {
-                    asset_id: widget_asset_id.to_string(),
-                }],
+                undo: restore_or_remove_external_asset_source(
+                    widget_asset_id,
+                    previous_widget_source,
+                ),
                 redo: vec![UiAssetEditorExternalEffect::UpsertAssetSource {
                     asset_id: widget_asset_id.to_string(),
                     source: widget_source,
@@ -1734,6 +2311,7 @@ impl UiAssetEditorSession {
     ) -> Result<Option<UiAssetDocument>, UiAssetEditorSessionError> {
         self.ensure_editable_source()?;
         let mut document = self.last_valid_document.clone();
+        let previous_style_source = self.existing_external_style_source(style_asset_id)?;
         let Some(style_document) = tree_promote_local_theme_to_external_style_asset(
             &mut document,
             style_asset_id,
@@ -1748,16 +2326,19 @@ impl UiAssetEditorSession {
             .compiler_imports
             .styles
             .insert(style_asset_id.to_string(), style_document.clone());
+        let replay = theme_document_replay_bundle(&self.last_valid_document, &document);
         self.apply_command_with_effects(
             UiAssetEditorCommand::tree_edit(
                 UiAssetEditorTreeEditKind::DocumentEdit,
                 "Promote Local Theme",
                 serialize_document(&document)?,
-            ),
+            )
+            .with_document_replay(replay),
             UiAssetEditorUndoExternalEffects {
-                undo: vec![UiAssetEditorExternalEffect::RemoveAssetSource {
-                    asset_id: style_asset_id.to_string(),
-                }],
+                undo: restore_or_remove_external_asset_source(
+                    style_asset_id,
+                    previous_style_source,
+                ),
                 redo: vec![UiAssetEditorExternalEffect::UpsertAssetSource {
                     asset_id: style_asset_id.to_string(),
                     source: style_source,
@@ -1765,6 +2346,23 @@ impl UiAssetEditorSession {
             },
         )?;
         Ok(Some(style_document))
+    }
+
+    pub fn prune_duplicate_local_theme_overrides(
+        &mut self,
+    ) -> Result<bool, UiAssetEditorSessionError> {
+        self.ensure_editable_source()?;
+        let mut document = self.last_valid_document.clone();
+        if !prune_duplicate_local_theme_overrides(&mut document, &self.compiler_imports.styles) {
+            return Ok(false);
+        }
+        let replay = theme_document_replay_bundle(&self.last_valid_document, &document);
+        self.apply_document_edit_with_label_and_replay(
+            document,
+            "Prune Duplicate Local Theme Overrides",
+            replay,
+        )?;
+        Ok(true)
     }
 
     pub fn move_selected_node_up(&mut self) -> Result<bool, UiAssetEditorSessionError> {
@@ -1855,13 +2453,29 @@ impl UiAssetEditorSession {
         }
 
         let mut document = self.last_valid_document.clone();
-        editable_stylesheet(&mut document).rules.push(UiStyleRule {
+        let stylesheet_index = if document.stylesheets.is_empty() {
+            0
+        } else {
+            document.stylesheets.len() - 1
+        };
+        let rule = UiStyleRule {
             selector,
             set: UiStyleDeclarationBlock::default(),
-        });
+        };
+        let rule_index = editable_stylesheet(&mut document).rules.len();
+        editable_stylesheet(&mut document).rules.push(rule.clone());
         self.selected_style_rule_index = local_style_rule_entries(&document).len().checked_sub(1);
         self.selected_style_rule_declaration_path = None;
-        self.apply_document_edit(document)?;
+        self.apply_document_edit_with_label_and_replay(
+            document,
+            "Create Stylesheet Rule",
+            style_rule_insert_replay_bundle(
+                &self.last_valid_document,
+                stylesheet_index,
+                rule_index,
+                rule,
+            ),
+        )?;
         Ok(true)
     }
 
@@ -1884,13 +2498,29 @@ impl UiAssetEditorSession {
         }
 
         let overrides = std::mem::take(&mut node.style_overrides);
-        editable_stylesheet(&mut document).rules.push(UiStyleRule {
+        let stylesheet_index = if document.stylesheets.is_empty() {
+            0
+        } else {
+            document.stylesheets.len() - 1
+        };
+        let rule = UiStyleRule {
             selector,
             set: overrides,
-        });
+        };
+        let rule_index = editable_stylesheet(&mut document).rules.len();
+        editable_stylesheet(&mut document).rules.push(rule.clone());
         self.selected_style_rule_index = local_style_rule_entries(&document).len().checked_sub(1);
         self.selected_style_rule_declaration_path = None;
-        self.apply_document_edit(document)?;
+        self.apply_document_edit_with_label_and_replay(
+            document,
+            "Extract Inline Overrides",
+            style_rule_insert_replay_bundle(
+                &self.last_valid_document,
+                stylesheet_index,
+                rule_index,
+                rule,
+            ),
+        )?;
         Ok(true)
     }
 
@@ -2238,6 +2868,7 @@ impl UiAssetEditorSession {
         let binding_fields = build_binding_fields(
             &self.last_valid_document,
             &self.selection,
+            &self.preview_mock_state,
             self.selected_binding_index,
             self.selected_binding_payload_key.as_deref(),
         );
@@ -2263,7 +2894,7 @@ impl UiAssetEditorSession {
         };
         self.selected_binding_index = Some(next_index);
         self.selected_binding_payload_key = None;
-        self.apply_document_edit(document)?;
+        self.apply_binding_document_edit_with_label(document, "Binding Add")?;
         Ok(true)
     }
 
@@ -2277,7 +2908,7 @@ impl UiAssetEditorSession {
         ) {
             return Ok(false);
         }
-        self.apply_document_edit(document)?;
+        self.apply_binding_document_edit_with_label(document, "Binding Delete")?;
         Ok(true)
     }
 
@@ -2295,7 +2926,7 @@ impl UiAssetEditorSession {
         ) {
             return Ok(false);
         }
-        self.apply_document_edit(document)?;
+        self.apply_binding_document_edit_with_label(document, "Binding Id Edit")?;
         Ok(true)
     }
 
@@ -2306,6 +2937,7 @@ impl UiAssetEditorSession {
         let binding_fields = build_binding_fields(
             &self.last_valid_document,
             &self.selection,
+            &self.preview_mock_state,
             self.selected_binding_index,
             self.selected_binding_payload_key.as_deref(),
         );
@@ -2334,7 +2966,7 @@ impl UiAssetEditorSession {
         if !changed {
             return Ok(false);
         }
-        self.apply_document_edit(document)?;
+        self.apply_binding_document_edit_with_label(document, "Binding Event Edit")?;
         Ok(true)
     }
 
@@ -2345,6 +2977,7 @@ impl UiAssetEditorSession {
         let binding_fields = build_binding_fields(
             &self.last_valid_document,
             &self.selection,
+            &self.preview_mock_state,
             self.selected_binding_index,
             self.selected_binding_payload_key.as_deref(),
         );
@@ -2361,7 +2994,7 @@ impl UiAssetEditorSession {
         ) {
             return Ok(false);
         }
-        self.apply_document_edit_with_label(document, "Binding Action Kind Edit")?;
+        self.apply_binding_document_edit_with_label(document, "Binding Action Kind Edit")?;
         Ok(true)
     }
 
@@ -2379,7 +3012,7 @@ impl UiAssetEditorSession {
         ) {
             return Ok(false);
         }
-        self.apply_document_edit(document)?;
+        self.apply_binding_document_edit_with_label(document, "Binding Route Edit")?;
         Ok(true)
     }
 
@@ -2397,7 +3030,7 @@ impl UiAssetEditorSession {
         ) {
             return Ok(false);
         }
-        self.apply_document_edit_with_label(document, "Binding Route Target Edit")?;
+        self.apply_binding_document_edit_with_label(document, "Binding Route Target Edit")?;
         Ok(true)
     }
 
@@ -2415,7 +3048,63 @@ impl UiAssetEditorSession {
         ) {
             return Ok(false);
         }
-        self.apply_document_edit_with_label(document, "Binding Action Target Edit")?;
+        self.apply_binding_document_edit_with_label(document, "Binding Action Target Edit")?;
+        Ok(true)
+    }
+
+    pub fn apply_selected_binding_route_suggestion(
+        &mut self,
+        index: usize,
+    ) -> Result<bool, UiAssetEditorSessionError> {
+        self.ensure_editable_source()?;
+        let binding_fields = build_binding_fields(
+            &self.last_valid_document,
+            &self.selection,
+            &self.preview_mock_state,
+            self.selected_binding_index,
+            self.selected_binding_payload_key.as_deref(),
+        );
+        if index >= binding_fields.binding_route_suggestion_items.len() {
+            return Err(UiAssetEditorSessionError::InvalidSelectionIndex { index });
+        }
+        let mut document = self.last_valid_document.clone();
+        if !apply_selected_binding_route_suggestion_field(
+            &mut document,
+            &self.selection,
+            self.selected_binding_index,
+            index,
+        ) {
+            return Ok(false);
+        }
+        self.apply_binding_document_edit_with_label(document, "Binding Route Suggestion Apply")?;
+        Ok(true)
+    }
+
+    pub fn apply_selected_binding_action_suggestion(
+        &mut self,
+        index: usize,
+    ) -> Result<bool, UiAssetEditorSessionError> {
+        self.ensure_editable_source()?;
+        let binding_fields = build_binding_fields(
+            &self.last_valid_document,
+            &self.selection,
+            &self.preview_mock_state,
+            self.selected_binding_index,
+            self.selected_binding_payload_key.as_deref(),
+        );
+        if index >= binding_fields.binding_action_suggestion_items.len() {
+            return Err(UiAssetEditorSessionError::InvalidSelectionIndex { index });
+        }
+        let mut document = self.last_valid_document.clone();
+        if !apply_selected_binding_action_suggestion_field(
+            &mut document,
+            &self.selection,
+            self.selected_binding_index,
+            index,
+        ) {
+            return Ok(false);
+        }
+        self.apply_binding_document_edit_with_label(document, "Binding Action Suggestion Apply")?;
         Ok(true)
     }
 
@@ -2426,6 +3115,7 @@ impl UiAssetEditorSession {
         let binding_fields = build_binding_fields(
             &self.last_valid_document,
             &self.selection,
+            &self.preview_mock_state,
             self.selected_binding_index,
             self.selected_binding_payload_key.as_deref(),
         );
@@ -2446,19 +3136,19 @@ impl UiAssetEditorSession {
         value_literal: impl AsRef<str>,
     ) -> Result<bool, UiAssetEditorSessionError> {
         self.ensure_editable_source()?;
-        let payload_key = payload_key.as_ref();
         let mut document = self.last_valid_document.clone();
-        if !upsert_selected_binding_payload_field(
+        let Some(resolved_payload_key) = upsert_selected_binding_payload_field(
             &mut document,
             &self.selection,
             self.selected_binding_index,
-            payload_key,
+            self.selected_binding_payload_key.as_deref(),
+            payload_key.as_ref(),
             value_literal.as_ref(),
-        ) {
+        ) else {
             return Ok(false);
-        }
-        self.selected_binding_payload_key = Some(payload_key.trim().to_string());
-        self.apply_document_edit_with_label(document, "Binding Payload Upsert")?;
+        };
+        self.selected_binding_payload_key = Some(resolved_payload_key);
+        self.apply_binding_document_edit_with_label(document, "Binding Payload Upsert")?;
         Ok(true)
     }
 
@@ -2473,7 +3163,37 @@ impl UiAssetEditorSession {
         ) {
             return Ok(false);
         }
-        self.apply_document_edit_with_label(document, "Binding Payload Delete")?;
+        self.apply_binding_document_edit_with_label(document, "Binding Payload Delete")?;
+        Ok(true)
+    }
+
+    pub fn apply_selected_binding_payload_suggestion(
+        &mut self,
+        index: usize,
+    ) -> Result<bool, UiAssetEditorSessionError> {
+        self.ensure_editable_source()?;
+        let binding_fields = build_binding_fields(
+            &self.last_valid_document,
+            &self.selection,
+            &self.preview_mock_state,
+            self.selected_binding_index,
+            self.selected_binding_payload_key.as_deref(),
+        );
+        if index >= binding_fields.binding_payload_suggestion_items.len() {
+            return Err(UiAssetEditorSessionError::InvalidSelectionIndex { index });
+        }
+        let mut document = self.last_valid_document.clone();
+        let Some(resolved_payload_key) = apply_selected_binding_payload_suggestion_field(
+            &mut document,
+            &self.selection,
+            self.selected_binding_index,
+            self.selected_binding_payload_key.as_deref(),
+            index,
+        ) else {
+            return Ok(false);
+        };
+        self.selected_binding_payload_key = Some(resolved_payload_key);
+        self.apply_binding_document_edit_with_label(document, "Binding Payload Suggestion Apply")?;
         Ok(true)
     }
 
@@ -2521,7 +3241,8 @@ impl UiAssetEditorSession {
             return Ok(true);
         }
         self.selected_style_token_name = Some(token_name);
-        self.apply_document_edit(document)?;
+        let replay = theme_document_replay_bundle(&self.last_valid_document, &document);
+        self.apply_document_edit_with_label_and_replay(document, "Upsert Style Token", replay)?;
         Ok(true)
     }
 
@@ -2555,7 +3276,8 @@ impl UiAssetEditorSession {
                     .clone(),
             )
         };
-        self.apply_document_edit(document)?;
+        let replay = theme_document_replay_bundle(&self.last_valid_document, &document);
+        self.apply_document_edit_with_label_and_replay(document, "Delete Style Token", replay)?;
         Ok(true)
     }
 
@@ -2573,6 +3295,16 @@ impl UiAssetEditorSession {
         self.selected_style_rule_index = Some(index);
         self.selected_style_rule_declaration_path = None;
         Ok(changed)
+    }
+
+    pub fn move_selected_stylesheet_rule_up(&mut self) -> Result<bool, UiAssetEditorSessionError> {
+        self.move_selected_stylesheet_rule(-1)
+    }
+
+    pub fn move_selected_stylesheet_rule_down(
+        &mut self,
+    ) -> Result<bool, UiAssetEditorSessionError> {
+        self.move_selected_stylesheet_rule(1)
     }
 
     pub fn select_matched_style_rule(
@@ -2749,11 +3481,49 @@ impl UiAssetEditorSession {
         if entry.rule_index >= rules.len() {
             return Err(UiAssetEditorSessionError::InvalidStyleRuleIndex { index });
         }
-        let _ = rules.remove(entry.rule_index);
+        let removed_rule = rules.remove(entry.rule_index);
         let remaining = local_style_rule_entries(&document).len();
         self.selected_style_rule_index = (remaining > 0).then(|| index.min(remaining - 1));
         self.selected_style_rule_declaration_path = None;
-        self.apply_document_edit(document)?;
+        self.apply_document_edit_with_label_and_replay(
+            document,
+            "Delete Stylesheet Rule",
+            style_rule_remove_replay_bundle(entry.stylesheet_index, entry.rule_index, removed_rule),
+        )?;
+        Ok(true)
+    }
+
+    fn move_selected_stylesheet_rule(
+        &mut self,
+        delta: isize,
+    ) -> Result<bool, UiAssetEditorSessionError> {
+        self.ensure_editable_source()?;
+        let Some(index) = self.selected_style_rule_index else {
+            return Ok(false);
+        };
+        let mut document = self.last_valid_document.clone();
+        let Some(entry) = local_style_rule_entries(&document).get(index).cloned() else {
+            return Err(UiAssetEditorSessionError::InvalidStyleRuleIndex { index });
+        };
+        let rules = &mut document.stylesheets[entry.stylesheet_index].rules;
+        let next_rule_index = entry.rule_index as isize + delta;
+        if next_rule_index < 0 || next_rule_index >= rules.len() as isize {
+            return Ok(false);
+        }
+        let from_index = entry.rule_index;
+        let to_index = next_rule_index as usize;
+        rules.swap(entry.rule_index, next_rule_index as usize);
+        self.selected_style_rule_index = Some((index as isize + delta) as usize);
+        self.selected_style_rule_declaration_path = None;
+        self.apply_document_edit_with_label_and_replay(
+            document,
+            if delta < 0 {
+                "Move Stylesheet Rule Up"
+            } else {
+                "Move Stylesheet Rule Down"
+            },
+            style_rule_move_replay_bundle(entry.stylesheet_index, from_index, to_index),
+        )?;
         Ok(true)
     }
 
@@ -2826,6 +3596,7 @@ impl UiAssetEditorSession {
         let before_source_cursor = self.source_cursor_snapshot();
         let before_selected_theme_source_key = self.selected_theme_source_key.clone();
         let tree_edit = command.structured_tree_edit().cloned();
+        let document_replay = command.document_replay().cloned();
         let before_document = tree_edit.as_ref().map(|_| self.last_valid_document.clone());
         self.source_buffer
             .replace(command.next_source().to_string());
@@ -2851,6 +3622,7 @@ impl UiAssetEditorSession {
             self.undo_stack.push_edit(
                 command.label().to_string(),
                 tree_edit,
+                document_replay,
                 before_source,
                 before_selection,
                 before_source_cursor,
@@ -2906,20 +3678,70 @@ impl UiAssetEditorSession {
         Ok(())
     }
 
-    pub fn undo(&mut self) -> Result<bool, UiAssetEditorSessionError> {
-        let Some(transition) = self.undo_stack.undo() else {
-            return Ok(false);
+    pub fn undo_replay(&mut self) -> Result<UiAssetEditorReplayResult, UiAssetEditorSessionError> {
+        let Some(record) = self.undo_stack.undo_record() else {
+            return Ok(UiAssetEditorReplayResult::default());
         };
-        self.apply_undo_transition(transition)?;
-        Ok(true)
+        let changed = self.apply_undo_transition(record.transition.clone())?;
+        Ok(UiAssetEditorReplayResult {
+            changed,
+            label: record.label,
+            external_effects: record.transition.external_effects,
+        })
+    }
+
+    pub fn undo(&mut self) -> Result<bool, UiAssetEditorSessionError> {
+        self.undo_replay().map(|result| result.changed)
+    }
+
+    pub fn redo_replay(&mut self) -> Result<UiAssetEditorReplayResult, UiAssetEditorSessionError> {
+        let Some(record) = self.undo_stack.redo_record() else {
+            return Ok(UiAssetEditorReplayResult::default());
+        };
+        let changed = self.apply_undo_transition(record.transition.clone())?;
+        Ok(UiAssetEditorReplayResult {
+            changed,
+            label: record.label,
+            external_effects: record.transition.external_effects,
+        })
     }
 
     pub fn redo(&mut self) -> Result<bool, UiAssetEditorSessionError> {
-        let Some(transition) = self.undo_stack.redo() else {
-            return Ok(false);
-        };
-        self.apply_undo_transition(transition)?;
-        Ok(true)
+        self.redo_replay().map(|result| result.changed)
+    }
+
+    fn existing_external_widget_source(
+        &self,
+        asset_id: &str,
+    ) -> Result<Option<String>, UiAssetEditorSessionError> {
+        self.existing_external_asset_source(
+            asset_id,
+            self.compiler_imports
+                .widgets
+                .iter()
+                .find_map(|(reference, document)| {
+                    (reference_asset_id(reference) == asset_id).then_some(document)
+                }),
+        )
+    }
+
+    fn existing_external_style_source(
+        &self,
+        asset_id: &str,
+    ) -> Result<Option<String>, UiAssetEditorSessionError> {
+        self.existing_external_asset_source(asset_id, self.compiler_imports.styles.get(asset_id))
+    }
+
+    fn existing_external_asset_source(
+        &self,
+        asset_id: &str,
+        imported_document: Option<&UiAssetDocument>,
+    ) -> Result<Option<String>, UiAssetEditorSessionError> {
+        if self.route.asset_id == asset_id {
+            return Ok(Some(self.last_valid_source_text.clone()));
+        }
+
+        imported_document.map(serialize_document).transpose()
     }
 
     pub fn register_widget_import(
@@ -3142,12 +3964,22 @@ impl UiAssetEditorSession {
         edit: UiAssetEditorTreeEdit,
         label: &str,
     ) -> Result<(), UiAssetEditorSessionError> {
+        let replay = tree_document_replay_bundle(&self.last_valid_document, &document);
+        self.apply_document_edit_with_tree_edit_and_replay(document, edit, label, replay)
+    }
+
+    fn apply_document_edit_with_tree_edit_and_replay(
+        &mut self,
+        document: UiAssetDocument,
+        edit: UiAssetEditorTreeEdit,
+        label: &str,
+        replay: UiAssetEditorDocumentReplayBundle,
+    ) -> Result<(), UiAssetEditorSessionError> {
         let next_source = serialize_document(&document)?;
-        self.apply_command(UiAssetEditorCommand::tree_edit_structured(
-            edit,
-            label,
-            next_source,
-        ))?;
+        self.apply_command(
+            UiAssetEditorCommand::tree_edit_structured(edit, label, next_source)
+                .with_document_replay(replay),
+        )?;
         Ok(())
     }
 
@@ -3159,6 +3991,32 @@ impl UiAssetEditorSession {
         self.apply_document_edit_with_kind(document, UiAssetEditorTreeEditKind::DocumentEdit, label)
     }
 
+    fn apply_document_edit_with_label_and_replay(
+        &mut self,
+        document: UiAssetDocument,
+        label: &str,
+        replay: UiAssetEditorDocumentReplayBundle,
+    ) -> Result<(), UiAssetEditorSessionError> {
+        self.apply_document_edit_with_tree_edit_and_replay(
+            document,
+            UiAssetEditorTreeEdit::generic(UiAssetEditorTreeEditKind::DocumentEdit),
+            label,
+            replay,
+        )
+    }
+
+    fn apply_binding_document_edit_with_label(
+        &mut self,
+        document: UiAssetDocument,
+        label: &str,
+    ) -> Result<(), UiAssetEditorSessionError> {
+        let Some(node_id) = self.selection.primary_node_id.clone() else {
+            return self.apply_document_edit_with_label(document, label);
+        };
+        let replay = binding_document_replay_bundle(&self.last_valid_document, &document, &node_id);
+        self.apply_document_edit_with_label_and_replay(document, label, replay)
+    }
+
     fn apply_document_edit_with_tree_edit_and_selection(
         &mut self,
         document: UiAssetDocument,
@@ -3166,48 +4024,50 @@ impl UiAssetEditorSession {
         label: &str,
         selection: UiDesignerSelectionModel,
     ) -> Result<(), UiAssetEditorSessionError> {
+        let replay = tree_document_replay_bundle(&self.last_valid_document, &document);
         let next_source = serialize_document(&document)?;
-        self.apply_command(UiAssetEditorCommand::tree_edit_structured_with_selection(
-            edit,
-            label,
-            next_source,
-            selection,
-        ))?;
+        self.apply_command(
+            UiAssetEditorCommand::tree_edit_structured_with_selection(
+                edit,
+                label,
+                next_source,
+                selection,
+            )
+            .with_document_replay(replay),
+        )?;
         Ok(())
     }
 
     fn apply_undo_transition(
         &mut self,
         transition: super::undo_stack::UiAssetEditorUndoTransition,
-    ) -> Result<(), UiAssetEditorSessionError> {
+    ) -> Result<bool, UiAssetEditorSessionError> {
         let mut source = self.source_buffer.text().to_string();
-        let _ = transition
+        let source_changed = transition
             .apply_to_source(&mut source)
+            .map_err(|_| UiAssetEditorSessionError::InvalidSourceBuffer)?;
+        let mut replay_document = self.last_valid_document.clone();
+        let document_changed = transition
+            .apply_to_document(&mut replay_document)
             .map_err(|_| UiAssetEditorSessionError::InvalidSourceBuffer)?;
         let super::undo_stack::UiAssetEditorUndoTransition {
             selection,
             source_cursor,
             selected_theme_source_key,
-            document,
             ..
         } = transition;
         self.selection = selection;
         self.selected_theme_source_key = selected_theme_source_key;
-        if let Some(document_replay) = document {
-            let mut document = self.last_valid_document.clone();
-            let _ = document_replay
-                .apply_to_document(&mut document)
-                .map_err(|_| UiAssetEditorSessionError::InvalidSourceBuffer)?;
-            self.source_buffer.replace(source);
-            self.restore_source_cursor_snapshot(&source_cursor);
-            self.apply_valid_document(document)?;
-        } else {
-            self.source_buffer.replace(source);
-            self.restore_source_cursor_snapshot(&source_cursor);
-            self.revalidate()?;
+        self.source_buffer.replace(source);
+        self.restore_source_cursor_snapshot(&source_cursor);
+        if document_changed {
+            self.apply_valid_document(replay_document)?;
+            self.clear_palette_drag_state();
+            return Ok(source_changed || document_changed);
         }
+        self.revalidate()?;
         self.clear_palette_drag_state();
-        Ok(())
+        Ok(source_changed)
     }
 
     fn set_source_cursor_to_selected_node_start(&mut self) {
@@ -3731,11 +4591,554 @@ fn editable_stylesheet(document: &mut UiAssetDocument) -> &mut UiStyleSheet {
         .expect("style sheet should exist after initialization")
 }
 
+fn style_rule_insert_replay_bundle(
+    before_document: &UiAssetDocument,
+    stylesheet_index: usize,
+    rule_index: usize,
+    rule: UiStyleRule,
+) -> UiAssetEditorDocumentReplayBundle {
+    if before_document.stylesheets.is_empty() {
+        let stylesheet = UiStyleSheet {
+            id: "local_editor_rules".to_string(),
+            rules: vec![rule],
+        };
+        return UiAssetEditorDocumentReplayBundle {
+            undo: vec![UiAssetEditorDocumentReplayCommand::RemoveStyleSheet {
+                index: stylesheet_index,
+                stylesheet_id: stylesheet.id.clone(),
+            }],
+            redo: vec![UiAssetEditorDocumentReplayCommand::InsertStyleSheet {
+                index: stylesheet_index,
+                stylesheet_id: stylesheet.id.clone(),
+                stylesheet: Some(stylesheet),
+            }],
+        };
+    }
+
+    UiAssetEditorDocumentReplayBundle {
+        undo: vec![UiAssetEditorDocumentReplayCommand::RemoveStyleRule {
+            stylesheet_index,
+            index: rule_index,
+            selector: rule.selector.clone(),
+        }],
+        redo: vec![UiAssetEditorDocumentReplayCommand::InsertStyleRule {
+            stylesheet_index,
+            index: rule_index,
+            selector: rule.selector.clone(),
+            rule: Some(rule),
+        }],
+    }
+}
+
+fn style_rule_remove_replay_bundle(
+    stylesheet_index: usize,
+    rule_index: usize,
+    rule: UiStyleRule,
+) -> UiAssetEditorDocumentReplayBundle {
+    UiAssetEditorDocumentReplayBundle {
+        undo: vec![UiAssetEditorDocumentReplayCommand::InsertStyleRule {
+            stylesheet_index,
+            index: rule_index,
+            selector: rule.selector.clone(),
+            rule: Some(rule.clone()),
+        }],
+        redo: vec![UiAssetEditorDocumentReplayCommand::RemoveStyleRule {
+            stylesheet_index,
+            index: rule_index,
+            selector: rule.selector,
+        }],
+    }
+}
+
+fn style_rule_move_replay_bundle(
+    stylesheet_index: usize,
+    from_index: usize,
+    to_index: usize,
+) -> UiAssetEditorDocumentReplayBundle {
+    UiAssetEditorDocumentReplayBundle {
+        undo: vec![UiAssetEditorDocumentReplayCommand::MoveStyleRule {
+            stylesheet_index,
+            from_index: to_index,
+            to_index: from_index,
+        }],
+        redo: vec![UiAssetEditorDocumentReplayCommand::MoveStyleRule {
+            stylesheet_index,
+            from_index,
+            to_index,
+        }],
+    }
+}
+
+fn tree_document_replay_bundle(
+    before_document: &UiAssetDocument,
+    after_document: &UiAssetDocument,
+) -> UiAssetEditorDocumentReplayBundle {
+    UiAssetEditorDocumentReplayBundle {
+        undo: tree_document_replay_commands(after_document, before_document),
+        redo: tree_document_replay_commands(before_document, after_document),
+    }
+}
+
+fn tree_document_replay_commands(
+    current: &UiAssetDocument,
+    target: &UiAssetDocument,
+) -> Vec<UiAssetEditorDocumentReplayCommand> {
+    let mut commands = Vec::new();
+    if current.imports.widgets != target.imports.widgets {
+        commands.push(UiAssetEditorDocumentReplayCommand::SetWidgetImports {
+            references: target.imports.widgets.clone(),
+        });
+    }
+    commands.extend(upsert_component_replay_commands(
+        &current.components,
+        &target.components,
+    ));
+    commands.extend(upsert_node_replay_commands(&current.nodes, &target.nodes));
+    if current.root != target.root {
+        commands.push(UiAssetEditorDocumentReplayCommand::SetRoot {
+            root: target.root.clone(),
+        });
+    }
+    commands.extend(remove_component_replay_commands(
+        &current.components,
+        &target.components,
+    ));
+    commands.extend(remove_node_replay_commands(&current.nodes, &target.nodes));
+    commands
+}
+
+fn upsert_node_replay_commands(
+    current: &BTreeMap<String, zircon_ui::template::UiNodeDefinition>,
+    target: &BTreeMap<String, zircon_ui::template::UiNodeDefinition>,
+) -> Vec<UiAssetEditorDocumentReplayCommand> {
+    target
+        .iter()
+        .filter_map(|(node_id, node)| {
+            (current.get(node_id) != Some(node)).then(|| {
+                UiAssetEditorDocumentReplayCommand::UpsertNode {
+                    node_id: node_id.clone(),
+                    node: node.clone(),
+                }
+            })
+        })
+        .collect()
+}
+
+fn remove_node_replay_commands(
+    current: &BTreeMap<String, zircon_ui::template::UiNodeDefinition>,
+    target: &BTreeMap<String, zircon_ui::template::UiNodeDefinition>,
+) -> Vec<UiAssetEditorDocumentReplayCommand> {
+    current
+        .keys()
+        .filter(|node_id| !target.contains_key(*node_id))
+        .map(|node_id| UiAssetEditorDocumentReplayCommand::RemoveNode {
+            node_id: node_id.clone(),
+        })
+        .collect()
+}
+
+fn upsert_component_replay_commands(
+    current: &BTreeMap<String, zircon_ui::template::UiComponentDefinition>,
+    target: &BTreeMap<String, zircon_ui::template::UiComponentDefinition>,
+) -> Vec<UiAssetEditorDocumentReplayCommand> {
+    target
+        .iter()
+        .filter_map(|(component_name, component)| {
+            (current.get(component_name) != Some(component)).then(|| {
+                UiAssetEditorDocumentReplayCommand::UpsertComponent {
+                    component_name: component_name.clone(),
+                    component: component.clone(),
+                }
+            })
+        })
+        .collect()
+}
+
+fn remove_component_replay_commands(
+    current: &BTreeMap<String, zircon_ui::template::UiComponentDefinition>,
+    target: &BTreeMap<String, zircon_ui::template::UiComponentDefinition>,
+) -> Vec<UiAssetEditorDocumentReplayCommand> {
+    current
+        .keys()
+        .filter(|component_name| !target.contains_key(*component_name))
+        .map(
+            |component_name| UiAssetEditorDocumentReplayCommand::RemoveComponent {
+                component_name: component_name.clone(),
+            },
+        )
+        .collect()
+}
+
+fn binding_document_replay_bundle(
+    before_document: &UiAssetDocument,
+    after_document: &UiAssetDocument,
+    node_id: &str,
+) -> UiAssetEditorDocumentReplayBundle {
+    UiAssetEditorDocumentReplayBundle {
+        undo: binding_document_replay_commands(after_document, before_document, node_id),
+        redo: binding_document_replay_commands(before_document, after_document, node_id),
+    }
+}
+
+fn binding_document_replay_commands(
+    current: &UiAssetDocument,
+    target: &UiAssetDocument,
+    node_id: &str,
+) -> Vec<UiAssetEditorDocumentReplayCommand> {
+    let current_bindings = current
+        .nodes
+        .get(node_id)
+        .map(|node| node.bindings.clone())
+        .unwrap_or_default();
+    let target_bindings = target
+        .nodes
+        .get(node_id)
+        .map(|node| node.bindings.clone())
+        .unwrap_or_default();
+    if current_bindings == target_bindings {
+        return Vec::new();
+    }
+    vec![UiAssetEditorDocumentReplayCommand::SetNodeBindings {
+        node_id: node_id.to_string(),
+        bindings: target_bindings,
+    }]
+}
+
+fn theme_document_replay_bundle(
+    before_document: &UiAssetDocument,
+    after_document: &UiAssetDocument,
+) -> UiAssetEditorDocumentReplayBundle {
+    UiAssetEditorDocumentReplayBundle {
+        undo: theme_document_replay_commands(after_document, before_document),
+        redo: theme_document_replay_commands(before_document, after_document),
+    }
+}
+
+fn theme_document_replay_commands(
+    current: &UiAssetDocument,
+    target: &UiAssetDocument,
+) -> Vec<UiAssetEditorDocumentReplayCommand> {
+    let mut commands = Vec::new();
+    commands.extend(build_style_import_replay_commands(
+        &current.imports.styles,
+        &target.imports.styles,
+    ));
+    commands.extend(build_style_token_replay_commands(
+        &current.tokens,
+        &target.tokens,
+    ));
+    commands.extend(build_stylesheet_replay_commands(
+        &current.stylesheets,
+        &target.stylesheets,
+    ));
+    commands
+}
+
+fn build_style_import_replay_commands(
+    current: &[String],
+    target: &[String],
+) -> Vec<UiAssetEditorDocumentReplayCommand> {
+    if current == target {
+        return Vec::new();
+    }
+    if has_duplicate_string_entries(current) || has_duplicate_string_entries(target) {
+        return vec![UiAssetEditorDocumentReplayCommand::SetStyleImports {
+            references: target.to_vec(),
+        }];
+    }
+
+    let target_entries = target.iter().cloned().collect::<BTreeSet<_>>();
+    let mut working = current.to_vec();
+    let mut commands = Vec::new();
+
+    for index in (0..working.len()).rev() {
+        if target_entries.contains(&working[index]) {
+            continue;
+        }
+        let reference = working.remove(index);
+        commands.push(UiAssetEditorDocumentReplayCommand::RemoveStyleImport {
+            index,
+            reference,
+        });
+    }
+
+    for (target_index, target_reference) in target.iter().enumerate() {
+        match working.iter().position(|reference| reference == target_reference) {
+            Some(current_index) => {
+                if current_index != target_index {
+                    let moved = working.remove(current_index);
+                    working.insert(target_index, moved);
+                    commands.push(UiAssetEditorDocumentReplayCommand::MoveStyleImport {
+                        from_index: current_index,
+                        to_index: target_index,
+                        reference: target_reference.clone(),
+                    });
+                }
+            }
+            None => {
+                working.insert(target_index, target_reference.clone());
+                commands.push(UiAssetEditorDocumentReplayCommand::InsertStyleImport {
+                    index: target_index,
+                    reference: target_reference.clone(),
+                });
+            }
+        }
+    }
+
+    if working != target {
+        return vec![UiAssetEditorDocumentReplayCommand::SetStyleImports {
+            references: target.to_vec(),
+        }];
+    }
+
+    commands
+}
+
+fn build_style_token_replay_commands(
+    current: &BTreeMap<String, toml::Value>,
+    target: &BTreeMap<String, toml::Value>,
+) -> Vec<UiAssetEditorDocumentReplayCommand> {
+    if current == target {
+        return Vec::new();
+    }
+
+    let mut commands = Vec::new();
+    for token_name in current.keys().rev() {
+        if target.contains_key(token_name) {
+            continue;
+        }
+        commands.push(UiAssetEditorDocumentReplayCommand::RemoveStyleToken {
+            token_name: token_name.clone(),
+        });
+    }
+
+    for (token_name, target_value) in target {
+        if current.get(token_name) == Some(target_value) {
+            continue;
+        }
+        commands.push(UiAssetEditorDocumentReplayCommand::UpsertStyleToken {
+            token_name: token_name.clone(),
+            value: target_value.clone(),
+        });
+    }
+
+    commands
+}
+
+fn build_stylesheet_replay_commands(
+    current: &[UiStyleSheet],
+    target: &[UiStyleSheet],
+) -> Vec<UiAssetEditorDocumentReplayCommand> {
+    if current == target {
+        return Vec::new();
+    }
+    if has_duplicate_stylesheet_ids(current) || has_duplicate_stylesheet_ids(target) {
+        return vec![UiAssetEditorDocumentReplayCommand::SetStyleSheets {
+            stylesheets: target.to_vec(),
+        }];
+    }
+
+    let target_ids = target
+        .iter()
+        .map(|stylesheet| stylesheet.id.clone())
+        .collect::<BTreeSet<_>>();
+    let mut working = current.to_vec();
+    let mut commands = Vec::new();
+
+    for index in (0..working.len()).rev() {
+        if target_ids.contains(working[index].id.as_str()) {
+            continue;
+        }
+        let stylesheet_id = working[index].id.clone();
+        let _ = working.remove(index);
+        commands.push(UiAssetEditorDocumentReplayCommand::RemoveStyleSheet {
+            index,
+            stylesheet_id,
+        });
+    }
+
+    for (target_index, target_stylesheet) in target.iter().enumerate() {
+        let current_index = working
+            .iter()
+            .position(|stylesheet| stylesheet.id == target_stylesheet.id);
+        match current_index {
+            Some(current_index) => {
+                if current_index != target_index {
+                    let moved = working.remove(current_index);
+                    working.insert(target_index, moved);
+                    commands.push(UiAssetEditorDocumentReplayCommand::MoveStyleSheet {
+                        from_index: current_index,
+                        to_index: target_index,
+                        stylesheet_id: target_stylesheet.id.clone(),
+                    });
+                }
+                if working
+                    .get(target_index)
+                    .is_some_and(|stylesheet| stylesheet != target_stylesheet)
+                {
+                    if let Some(rule_commands) = build_style_rule_replay_commands(
+                        target_index,
+                        &working[target_index].rules,
+                        &target_stylesheet.rules,
+                    ) {
+                        working[target_index].rules = target_stylesheet.rules.clone();
+                        commands.extend(rule_commands);
+                    } else {
+                        working[target_index] = target_stylesheet.clone();
+                        commands.push(UiAssetEditorDocumentReplayCommand::ReplaceStyleSheet {
+                            index: target_index,
+                            stylesheet_id: target_stylesheet.id.clone(),
+                            stylesheet: target_stylesheet.clone(),
+                        });
+                    }
+                }
+            }
+            None => {
+                working.insert(target_index, target_stylesheet.clone());
+                commands.push(UiAssetEditorDocumentReplayCommand::InsertStyleSheet {
+                    index: target_index,
+                    stylesheet_id: target_stylesheet.id.clone(),
+                    stylesheet: Some(target_stylesheet.clone()),
+                });
+            }
+        }
+    }
+
+    if working != target {
+        return vec![UiAssetEditorDocumentReplayCommand::SetStyleSheets {
+            stylesheets: target.to_vec(),
+        }];
+    }
+
+    commands
+}
+
+fn build_style_rule_replay_commands(
+    stylesheet_index: usize,
+    current: &[UiStyleRule],
+    target: &[UiStyleRule],
+) -> Option<Vec<UiAssetEditorDocumentReplayCommand>> {
+    if current == target {
+        return Some(Vec::new());
+    }
+    if has_duplicate_rule_selectors(current) || has_duplicate_rule_selectors(target) {
+        return None;
+    }
+
+    let target_selectors = target
+        .iter()
+        .map(|rule| rule.selector.clone())
+        .collect::<BTreeSet<_>>();
+    let mut working = current.to_vec();
+    let mut commands = Vec::new();
+
+    for index in (0..working.len()).rev() {
+        if target_selectors.contains(working[index].selector.as_str()) {
+            continue;
+        }
+        let selector = working[index].selector.clone();
+        let _ = working.remove(index);
+        commands.push(UiAssetEditorDocumentReplayCommand::RemoveStyleRule {
+            stylesheet_index,
+            index,
+            selector,
+        });
+    }
+
+    for (target_index, target_rule) in target.iter().enumerate() {
+        let current_index = working
+            .iter()
+            .position(|rule| rule.selector == target_rule.selector);
+        match current_index {
+            Some(current_index) => {
+                if current_index != target_index {
+                    let moved = working.remove(current_index);
+                    working.insert(target_index, moved);
+                    commands.push(UiAssetEditorDocumentReplayCommand::MoveStyleRule {
+                        stylesheet_index,
+                        from_index: current_index,
+                        to_index: target_index,
+                    });
+                }
+                if working
+                    .get(target_index)
+                    .is_some_and(|rule| rule != target_rule)
+                {
+                    let selector = target_rule.selector.clone();
+                    let _ = working.remove(target_index);
+                    commands.push(UiAssetEditorDocumentReplayCommand::RemoveStyleRule {
+                        stylesheet_index,
+                        index: target_index,
+                        selector: selector.clone(),
+                    });
+                    working.insert(target_index, target_rule.clone());
+                    commands.push(UiAssetEditorDocumentReplayCommand::InsertStyleRule {
+                        stylesheet_index,
+                        index: target_index,
+                        selector,
+                        rule: Some(target_rule.clone()),
+                    });
+                }
+            }
+            None => {
+                working.insert(target_index, target_rule.clone());
+                commands.push(UiAssetEditorDocumentReplayCommand::InsertStyleRule {
+                    stylesheet_index,
+                    index: target_index,
+                    selector: target_rule.selector.clone(),
+                    rule: Some(target_rule.clone()),
+                });
+            }
+        }
+    }
+
+    (working == target).then_some(commands)
+}
+
+fn has_duplicate_stylesheet_ids(stylesheets: &[UiStyleSheet]) -> bool {
+    let mut seen = BTreeSet::new();
+    stylesheets
+        .iter()
+        .map(|stylesheet| stylesheet.id.as_str())
+        .any(|stylesheet_id| !seen.insert(stylesheet_id))
+}
+
+fn has_duplicate_rule_selectors(rules: &[UiStyleRule]) -> bool {
+    let mut seen = BTreeSet::new();
+    rules
+        .iter()
+        .map(|rule| rule.selector.as_str())
+        .any(|selector| !seen.insert(selector))
+}
+
+fn has_duplicate_string_entries(entries: &[String]) -> bool {
+    let mut seen = BTreeSet::new();
+    entries
+        .iter()
+        .map(String::as_str)
+        .any(|entry| !seen.insert(entry))
+}
+
 fn reference_asset_id(reference: &str) -> &str {
     reference
         .split_once('#')
         .map(|(asset_id, _)| asset_id)
         .unwrap_or(reference)
+}
+
+fn restore_or_remove_external_asset_source(
+    asset_id: &str,
+    previous_source: Option<String>,
+) -> Vec<UiAssetEditorExternalEffect> {
+    match previous_source {
+        Some(source) => vec![UiAssetEditorExternalEffect::RestoreAssetSource {
+            asset_id: asset_id.to_string(),
+            source,
+        }],
+        None => vec![UiAssetEditorExternalEffect::RemoveAssetSource {
+            asset_id: asset_id.to_string(),
+        }],
+    }
 }
 
 fn preview_summary(preview_host: Option<&UiAssetPreviewHost>) -> String {
@@ -3749,3 +5152,4 @@ fn preview_summary(preview_host: Option<&UiAssetPreviewHost>) -> String {
         preview_host.preview_size().height
     )
 }
+

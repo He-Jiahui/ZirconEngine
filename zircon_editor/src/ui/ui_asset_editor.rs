@@ -12,12 +12,13 @@ pub const UI_ASSET_EDITOR_BOOTSTRAP_LAYOUT_ASSET_ID: &str =
 pub const UI_ASSET_EDITOR_BOOTSTRAP_LAYOUT_DOCUMENT_ID: &str = "editor.ui_asset_editor";
 pub const UI_ASSET_EDITOR_BOOTSTRAP_WIDGET_ASSET_ID: &str =
     "res://ui/editor/editor_widgets.ui.toml";
+pub const UI_ASSET_EDITOR_BOOTSTRAP_WIDGET_TOOLBAR_REFERENCE: &str =
+    "res://ui/editor/editor_widgets.ui.toml#EditorToolbar";
 pub const UI_ASSET_EDITOR_BOOTSTRAP_WIDGET_BUTTON_REFERENCE: &str =
     "res://ui/editor/editor_widgets.ui.toml#EditorToolbarButton";
 pub const UI_ASSET_EDITOR_BOOTSTRAP_WIDGET_SECTION_CARD_REFERENCE: &str =
     "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard";
-pub const UI_ASSET_EDITOR_BOOTSTRAP_STYLE_ASSET_ID: &str =
-    "res://ui/theme/editor_base.ui.toml";
+pub const UI_ASSET_EDITOR_BOOTSTRAP_STYLE_ASSET_ID: &str = "res://ui/theme/editor_base.ui.toml";
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum UiAssetEditorMode {

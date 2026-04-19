@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use zircon_ui::UiEventPath;
+use zircon_ui::binding::UiEventPath;
 
 use super::Handler;
 

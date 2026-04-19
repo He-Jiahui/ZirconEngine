@@ -1,4 +1,4 @@
-use zircon_asset::TextureAsset;
+use zircon_asset::assets::TextureAsset;
 use zircon_resource::ResourceId;
 
 use super::GpuTextureResource;

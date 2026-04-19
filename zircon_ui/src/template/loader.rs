@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::Path;
 
-use crate::{UiTemplateDocument, UiTemplateError};
+use super::{UiTemplateDocument, UiTemplateError};
 
 #[derive(Default)]
 pub struct UiTemplateLoader;

@@ -5,7 +5,8 @@ use zircon_core::CoreError;
 use super::super::errors::{asset_error, asset_error_message};
 use super::super::resource_sync::register_project_resource;
 use super::ProjectAssetManager;
-use crate::{AssetChange, AssetWatcher, ProjectManager};
+use crate::project::ProjectManager;
+use crate::watch::{AssetChange, AssetWatcher};
 
 impl ProjectAssetManager {
     pub(in crate::pipeline::manager) fn project_read(

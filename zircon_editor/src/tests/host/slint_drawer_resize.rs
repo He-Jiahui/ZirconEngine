@@ -5,10 +5,10 @@ use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use zircon_core::CoreRuntime;
-use zircon_foundation::{
+use zircon_manager::resolve_config_manager;
+use zircon_runtime::foundation::{
     module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
 };
-use zircon_manager::resolve_config_manager;
 
 use crate::ui::slint_host::drawer_resize::{
     apply_resize_to_group, resolve_workbench_resize_target_group, WorkbenchResizeTargetGroup,
@@ -42,14 +42,14 @@ fn editor_runtime_with_config_path(path: &Path) -> CoreRuntime {
         .register_module(foundation_module_descriptor())
         .unwrap();
     runtime
-        .register_module(zircon_asset::module_descriptor())
+        .register_module(zircon_runtime::asset::module_descriptor())
         .unwrap();
     runtime
         .register_module(crate::module::module_descriptor())
         .unwrap();
     runtime.activate_module(FOUNDATION_MODULE_NAME).unwrap();
     runtime
-        .activate_module(zircon_asset::ASSET_MODULE_NAME)
+        .activate_module(zircon_runtime::asset::ASSET_MODULE_NAME)
         .unwrap();
     runtime
         .activate_module(crate::module::EDITOR_MODULE_NAME)
@@ -333,6 +333,14 @@ fn unified_shell_pointer_bridge_keeps_resize_route_captured_until_pointer_up() {
 #[test]
 fn shared_resize_surface_replaces_legacy_direct_resize_callback_abi() {
     let workbench = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/ui/workbench.slint"));
+    let host_context = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/ui/workbench/host_context.slint"
+    ));
+    let host_components = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/ui/workbench/host_components.slint"
+    ));
     let wiring = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/src/ui/slint_host/app/callback_wiring.rs"
@@ -366,16 +374,18 @@ fn shared_resize_surface_replaces_legacy_direct_resize_callback_abi() {
 
     for needle in [
         "callback workbench_resize_pointer_event(kind: int, x: float, y: float);",
-        "root.workbench_resize_pointer_event(",
+        "WorkbenchHostContext.workbench_resize_pointer_event(",
     ] {
         assert!(
-            workbench.contains(needle),
+            workbench.contains(needle)
+                || host_context.contains(needle)
+                || host_components.contains(needle),
             "workbench shell is missing shared resize pointer hook `{needle}`"
         );
     }
 
     assert!(
-        wiring.contains("ui.on_workbench_resize_pointer_event("),
+        wiring.contains("host_shell.on_workbench_resize_pointer_event("),
         "slint host callback wiring must register shared resize pointer callback"
     );
     assert!(

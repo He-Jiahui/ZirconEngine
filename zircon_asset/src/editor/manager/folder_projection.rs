@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, HashMap};
 
-use crate::AssetUriScheme;
+use zircon_resource::ResourceScheme;
 
 use super::super::EditorAssetFolderRecord;
 use super::default_editor_asset_manager::EditorAssetState;
@@ -30,7 +30,7 @@ pub(super) fn build_folder_records(state: &EditorAssetState) -> Vec<EditorAssetF
     for record in state
         .catalog_by_uuid
         .values()
-        .filter(|record| record.locator.scheme() == AssetUriScheme::Res)
+        .filter(|record| record.locator.scheme() == ResourceScheme::Res)
     {
         let path_segments = record.locator.path().split('/').collect::<Vec<_>>();
         let folder_segments = if path_segments.len() > 1 {

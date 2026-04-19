@@ -1,11 +1,12 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use toml::Value;
-use zircon_ui::{
-    UiAssetDocument, UiAssetHeader, UiAssetImports, UiAssetRoot, UiBindingRef, UiChildMount,
+use zircon_ui::template::{UiAssetHeader, UiAssetImports, UiAssetRoot, UiBindingRef, UiChildMount};
+use zircon_ui::template::{
     UiComponentDefinition, UiComponentParamSchema, UiNamedSlotSchema, UiNodeDefinition,
-    UiNodeDefinitionKind, UiStyleDeclarationBlock, UiStyleScope, UiStyleSheet,
+    UiNodeDefinitionKind, UiStyleDeclarationBlock, UiStyleRule, UiStyleScope, UiStyleSheet,
 };
+use zircon_ui::UiAssetDocument;
 
 #[derive(Clone, Debug, PartialEq)]
 struct UiAssetMapPatch<V> {
@@ -18,6 +19,46 @@ struct UiAssetStructuredMapPatch<V, D> {
     key: String,
     next: Option<V>,
     diff: Option<D>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+struct UiAssetIndexedVecPatch<V, D> {
+    index: usize,
+    next: V,
+    diff: Option<D>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+enum UiAssetKeyedVecOp<V, D> {
+    Insert {
+        index: usize,
+        value: V,
+    },
+    Remove {
+        key: String,
+    },
+    Move {
+        key: String,
+        index: usize,
+    },
+    Patch {
+        key: String,
+        next: V,
+        diff: Option<D>,
+    },
+}
+
+#[derive(Clone, Debug, PartialEq)]
+enum UiAssetIndexedVecDiff<V, D> {
+    Replace(Vec<V>),
+    Patch {
+        patches: Vec<UiAssetIndexedVecPatch<V, D>>,
+        target: Vec<V>,
+    },
+    Keyed {
+        operations: Vec<UiAssetKeyedVecOp<V, D>>,
+        target: Vec<V>,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -51,6 +92,66 @@ impl UiStyleDeclarationBlockDiff {
         let mut changed = false;
         changed |= apply_map_patches(&mut block.self_values, &self.self_values);
         changed |= apply_map_patches(&mut block.slot, &self.slot);
+        changed
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+struct UiStyleRuleDiff {
+    selector: Option<String>,
+    set: Option<UiStyleDeclarationBlockDiff>,
+}
+
+impl UiStyleRuleDiff {
+    fn between(current: &UiStyleRule, target: &UiStyleRule) -> Option<Self> {
+        let diff = Self {
+            selector: scalar_patch(&current.selector, &target.selector),
+            set: UiStyleDeclarationBlockDiff::between(&current.set, &target.set),
+        };
+        (diff.selector.is_some() || diff.set.is_some()).then_some(diff)
+    }
+
+    fn apply_to(&self, rule: &mut UiStyleRule) -> bool {
+        let mut changed = false;
+        changed |= apply_scalar_patch(&mut rule.selector, &self.selector);
+        if let Some(set) = &self.set {
+            changed |= set.apply_to(&mut rule.set);
+        }
+        changed
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+struct UiStyleSheetDiff {
+    id: Option<String>,
+    rules: Option<UiAssetIndexedVecDiff<UiStyleRule, UiStyleRuleDiff>>,
+}
+
+impl UiStyleSheetDiff {
+    fn between(current: &UiStyleSheet, target: &UiStyleSheet) -> Option<Self> {
+        let diff = Self {
+            id: scalar_patch(&current.id, &target.id),
+            rules: keyed_vec_diff(
+                &current.rules,
+                &target.rules,
+                |rule| normalized_key(&rule.selector),
+                UiStyleRuleDiff::between,
+            ),
+        };
+        (diff.id.is_some() || diff.rules.is_some()).then_some(diff)
+    }
+
+    fn apply_to(&self, stylesheet: &mut UiStyleSheet) -> bool {
+        let mut changed = false;
+        changed |= apply_scalar_patch(&mut stylesheet.id, &self.id);
+        if let Some(rules) = &self.rules {
+            changed |= apply_indexed_vec_diff(
+                &mut stylesheet.rules,
+                rules,
+                |rule| normalized_key(&rule.selector),
+                |diff, rule| diff.apply_to(rule),
+            );
+        }
         changed
     }
 }
@@ -268,7 +369,7 @@ pub(super) struct UiAssetDocumentDiff {
     tokens: Vec<UiAssetMapPatch<Value>>,
     nodes: Vec<UiAssetStructuredMapPatch<UiNodeDefinition, UiNodeDefinitionDiff>>,
     components: Vec<UiAssetStructuredMapPatch<UiComponentDefinition, UiComponentDefinitionDiff>>,
-    stylesheets: Option<Vec<UiStyleSheet>>,
+    stylesheets: Option<UiAssetIndexedVecDiff<UiStyleSheet, UiStyleSheetDiff>>,
 }
 
 impl UiAssetDocumentDiff {
@@ -288,8 +389,12 @@ impl UiAssetDocumentDiff {
                 &target.components,
                 UiComponentDefinitionDiff::between,
             ),
-            stylesheets: (current.stylesheets != target.stylesheets)
-                .then(|| target.stylesheets.clone()),
+            stylesheets: keyed_vec_diff(
+                &current.stylesheets,
+                &target.stylesheets,
+                |sheet| normalized_key(&sheet.id),
+                UiStyleSheetDiff::between,
+            ),
         }
     }
 
@@ -324,10 +429,12 @@ impl UiAssetDocumentDiff {
             |diff, component| diff.apply_to(component),
         );
         if let Some(stylesheets) = &self.stylesheets {
-            if document.stylesheets != *stylesheets {
-                document.stylesheets = stylesheets.clone();
-                changed = true;
-            }
+            changed |= apply_indexed_vec_diff(
+                &mut document.stylesheets,
+                stylesheets,
+                |sheet| normalized_key(&sheet.id),
+                |diff, sheet| diff.apply_to(sheet),
+            );
         }
 
         changed
@@ -353,6 +460,105 @@ fn map_patches<V: Clone + PartialEq>(
             })
         })
         .collect()
+}
+
+fn indexed_vec_diff<V: Clone + PartialEq, D>(
+    current: &[V],
+    target: &[V],
+    diff_between: impl Fn(&V, &V) -> Option<D>,
+) -> Option<UiAssetIndexedVecDiff<V, D>> {
+    if current == target {
+        return None;
+    }
+    if current.len() != target.len() {
+        return Some(UiAssetIndexedVecDiff::Replace(target.to_vec()));
+    }
+    Some(UiAssetIndexedVecDiff::Patch {
+        patches: current
+            .iter()
+            .zip(target.iter())
+            .enumerate()
+            .filter_map(|(index, (current_item, target_item))| {
+                (current_item != target_item).then(|| UiAssetIndexedVecPatch {
+                    index,
+                    next: target_item.clone(),
+                    diff: diff_between(current_item, target_item),
+                })
+            })
+            .collect(),
+        target: target.to_vec(),
+    })
+}
+
+fn keyed_vec_diff<V: Clone + PartialEq, D>(
+    current: &[V],
+    target: &[V],
+    key_of: impl Fn(&V) -> Option<String>,
+    diff_between: impl Fn(&V, &V) -> Option<D>,
+) -> Option<UiAssetIndexedVecDiff<V, D>> {
+    if current == target {
+        return None;
+    }
+    let Some(mut working_keys) = unique_keys(current, &key_of) else {
+        return indexed_vec_diff(current, target, diff_between);
+    };
+    let Some(target_keys) = unique_keys(target, &key_of) else {
+        return Some(UiAssetIndexedVecDiff::Replace(target.to_vec()));
+    };
+
+    let mut working_values = current.to_vec();
+    let mut operations = Vec::new();
+
+    for (target_index, target_item) in target.iter().enumerate() {
+        let target_key = &target_keys[target_index];
+        match working_keys
+            .iter()
+            .position(|existing_key| existing_key == target_key)
+        {
+            Some(current_index) => {
+                if current_index != target_index {
+                    let moved_key = working_keys.remove(current_index);
+                    let moved_value = working_values.remove(current_index);
+                    let insert_index = target_index.min(working_keys.len());
+                    working_keys.insert(insert_index, moved_key.clone());
+                    working_values.insert(insert_index, moved_value);
+                    operations.push(UiAssetKeyedVecOp::Move {
+                        key: moved_key,
+                        index: insert_index,
+                    });
+                }
+                if working_values[target_index] != *target_item {
+                    let diff = diff_between(&working_values[target_index], target_item);
+                    working_values[target_index] = target_item.clone();
+                    operations.push(UiAssetKeyedVecOp::Patch {
+                        key: target_key.clone(),
+                        next: target_item.clone(),
+                        diff,
+                    });
+                }
+            }
+            None => {
+                let insert_index = target_index.min(working_keys.len());
+                working_keys.insert(insert_index, target_key.clone());
+                working_values.insert(insert_index, target_item.clone());
+                operations.push(UiAssetKeyedVecOp::Insert {
+                    index: insert_index,
+                    value: target_item.clone(),
+                });
+            }
+        }
+    }
+
+    while working_keys.len() > target_keys.len() {
+        let key = working_keys.pop().expect("working key");
+        let _ = working_values.pop();
+        operations.push(UiAssetKeyedVecOp::Remove { key });
+    }
+
+    Some(UiAssetIndexedVecDiff::Keyed {
+        operations,
+        target: target.to_vec(),
+    })
 }
 
 fn structured_map_patches<V: Clone + PartialEq, D>(
@@ -387,6 +593,135 @@ fn structured_map_patches<V: Clone + PartialEq, D>(
             _ => None,
         })
         .collect()
+}
+
+fn apply_indexed_vec_diff<V: Clone + PartialEq, D>(
+    values: &mut Vec<V>,
+    diff: &UiAssetIndexedVecDiff<V, D>,
+    key_of: impl Fn(&V) -> Option<String>,
+    apply_nested_diff: impl Fn(&D, &mut V) -> bool,
+) -> bool {
+    match diff {
+        UiAssetIndexedVecDiff::Replace(next) => {
+            if values != next {
+                *values = next.clone();
+                true
+            } else {
+                false
+            }
+        }
+        UiAssetIndexedVecDiff::Patch { patches, target } => {
+            if values.len() != target.len() {
+                if values != target {
+                    *values = target.clone();
+                    return true;
+                }
+                return false;
+            }
+            let mut changed = false;
+            for patch in patches {
+                let Some(item) = values.get_mut(patch.index) else {
+                    if values != target {
+                        *values = target.clone();
+                        return true;
+                    }
+                    return false;
+                };
+                changed |= match &patch.diff {
+                    Some(diff) => apply_nested_diff(diff, item),
+                    None if item != &patch.next => {
+                        *item = patch.next.clone();
+                        true
+                    }
+                    None => false,
+                };
+            }
+            changed
+        }
+        UiAssetIndexedVecDiff::Keyed { operations, target } => {
+            let mut changed = false;
+            for operation in operations {
+                match operation {
+                    UiAssetKeyedVecOp::Insert { index, value } => {
+                        let insert_index = (*index).min(values.len());
+                        values.insert(insert_index, value.clone());
+                        changed = true;
+                    }
+                    UiAssetKeyedVecOp::Remove { key } => {
+                        let Some(index) = values
+                            .iter()
+                            .position(|item| key_of(item).as_deref() == Some(key.as_str()))
+                        else {
+                            if values != target {
+                                *values = target.clone();
+                                return true;
+                            }
+                            return false;
+                        };
+                        values.remove(index);
+                        changed = true;
+                    }
+                    UiAssetKeyedVecOp::Move { key, index } => {
+                        let Some(current_index) = values
+                            .iter()
+                            .position(|item| key_of(item).as_deref() == Some(key.as_str()))
+                        else {
+                            if values != target {
+                                *values = target.clone();
+                                return true;
+                            }
+                            return false;
+                        };
+                        let moved_value = values.remove(current_index);
+                        let insert_index = (*index).min(values.len());
+                        let move_changed = current_index != insert_index;
+                        values.insert(insert_index, moved_value);
+                        changed |= move_changed;
+                    }
+                    UiAssetKeyedVecOp::Patch { key, next, diff } => {
+                        let Some(current_index) = values
+                            .iter()
+                            .position(|item| key_of(item).as_deref() == Some(key.as_str()))
+                        else {
+                            if values != target {
+                                *values = target.clone();
+                                return true;
+                            }
+                            return false;
+                        };
+                        let item = &mut values[current_index];
+                        changed |= match diff {
+                            Some(diff) => apply_nested_diff(diff, item),
+                            None if item != next => {
+                                *item = next.clone();
+                                true
+                            }
+                            None => false,
+                        };
+                    }
+                }
+            }
+            changed
+        }
+    }
+}
+
+fn unique_keys<V>(items: &[V], key_of: impl Fn(&V) -> Option<String>) -> Option<Vec<String>> {
+    let mut seen = BTreeSet::new();
+    let mut keys = Vec::with_capacity(items.len());
+    for item in items {
+        let key = key_of(item)?;
+        if !seen.insert(key.clone()) {
+            return None;
+        }
+        keys.push(key);
+    }
+    Some(keys)
+}
+
+fn normalized_key(value: &str) -> Option<String> {
+    let trimmed = value.trim();
+    (!trimmed.is_empty()).then(|| trimmed.to_string())
 }
 
 fn apply_map_patches<V: Clone + PartialEq>(
@@ -546,10 +881,10 @@ fn apply_optional_map_patch<V: Clone + PartialEq>(
 mod tests {
     use std::collections::BTreeMap;
 
-    use zircon_ui::{
-        UiAssetKind, UiChildMount, UiComponentParamSchema, UiNamedSlotSchema, UiNodeDefinitionKind,
-        UiStyleScope,
+    use zircon_ui::template::{
+        UiChildMount, UiComponentParamSchema, UiNamedSlotSchema, UiStyleScope,
     };
+    use zircon_ui::{UiAssetKind, template::UiNodeDefinitionKind};
 
     use super::*;
 
@@ -745,6 +1080,164 @@ mod tests {
         );
     }
 
+    #[test]
+    fn stylesheet_diff_preserves_unrelated_existing_rules_when_one_rule_changes() {
+        let before = stylesheet_diff_fixture_document();
+        let mut after = before.clone();
+        after.stylesheets[0].rules[0].selector = ".toolbar > Button.primary".to_string();
+        after.stylesheets[0].rules[0].set.self_values.insert(
+            "background.color".to_string(),
+            Value::String("#4488ff".to_string()),
+        );
+
+        let diff = UiAssetDocumentDiff::between(&before, &after);
+
+        let mut diverged = before.clone();
+        diverged.stylesheets[1].rules[0].selector = ".secondary:hover".to_string();
+        diverged.stylesheets[1].rules[1].set.self_values.insert(
+            "text.color".to_string(),
+            Value::String("#999999".to_string()),
+        );
+
+        assert!(diff.apply_to(&mut diverged));
+
+        assert_eq!(
+            diverged.stylesheets[0].rules[0].selector,
+            ".toolbar > Button.primary"
+        );
+        assert_eq!(
+            diverged.stylesheets[0].rules[0]
+                .set
+                .self_values
+                .get("background.color"),
+            Some(&Value::String("#4488ff".to_string()))
+        );
+        assert_eq!(
+            diverged.stylesheets[1].rules[0].selector,
+            ".secondary:hover"
+        );
+        assert_eq!(
+            diverged.stylesheets[1].rules[1]
+                .set
+                .self_values
+                .get("text.color"),
+            Some(&Value::String("#999999".to_string()))
+        );
+    }
+
+    #[test]
+    fn stylesheet_diff_preserves_unrelated_existing_stylesheets_when_sheets_reorder_insert_and_remove(
+    ) {
+        let before = stylesheet_diff_fixture_document();
+        let mut after = before.clone();
+        after.stylesheets[1].rules[0].selector = ".secondary:focus".to_string();
+        after.stylesheets = vec![
+            after.stylesheets[1].clone(),
+            UiStyleSheet {
+                id: "palette".to_string(),
+                rules: vec![UiStyleRule {
+                    selector: "#palette_panel".to_string(),
+                    set: UiStyleDeclarationBlock {
+                        self_values: BTreeMap::from([(
+                            "background.color".to_string(),
+                            Value::String("#171717".to_string()),
+                        )]),
+                        slot: BTreeMap::new(),
+                    },
+                }],
+            },
+        ];
+
+        let diff = UiAssetDocumentDiff::between(&before, &after);
+
+        let mut diverged = before.clone();
+        diverged.stylesheets[1].rules[1]
+            .set
+            .self_values
+            .insert("margin".to_string(), Value::Integer(4));
+        diverged.stylesheets[0].rules[0].selector = ".toolbar > Button:pressed".to_string();
+
+        assert!(diff.apply_to(&mut diverged));
+
+        assert_eq!(
+            diverged
+                .stylesheets
+                .iter()
+                .map(|sheet| sheet.id.as_str())
+                .collect::<Vec<_>>(),
+            vec!["inspector", "palette"]
+        );
+        assert_eq!(
+            diverged.stylesheets[0].rules[0].selector,
+            ".secondary:focus"
+        );
+        assert_eq!(
+            diverged.stylesheets[0].rules[1]
+                .set
+                .self_values
+                .get("margin"),
+            Some(&Value::Integer(4))
+        );
+        assert_eq!(
+            diverged.stylesheets[1].rules[0]
+                .set
+                .self_values
+                .get("background.color"),
+            Some(&Value::String("#171717".to_string()))
+        );
+    }
+
+    #[test]
+    fn stylesheet_diff_preserves_unrelated_existing_rules_when_rules_reorder_insert_and_remove() {
+        let before = stylesheet_diff_fixture_document();
+        let mut after = before.clone();
+        let hover_rule = after.stylesheets[0].rules[1].clone();
+        after.stylesheets[0].rules = vec![
+            hover_rule,
+            UiStyleRule {
+                selector: ".toolbar > Button.primary".to_string(),
+                set: UiStyleDeclarationBlock {
+                    self_values: BTreeMap::from([(
+                        "background.color".to_string(),
+                        Value::String("#3355aa".to_string()),
+                    )]),
+                    slot: BTreeMap::new(),
+                },
+            },
+        ];
+
+        let diff = UiAssetDocumentDiff::between(&before, &after);
+
+        let mut diverged = before.clone();
+        diverged.stylesheets[0].rules[1]
+            .set
+            .self_values
+            .insert("font.weight".to_string(), Value::String("bold".to_string()));
+        diverged.stylesheets[0].rules[0].set.self_values.insert(
+            "border.color".to_string(),
+            Value::String("#111111".to_string()),
+        );
+
+        assert!(diff.apply_to(&mut diverged));
+
+        let rules = &diverged.stylesheets[0].rules;
+        assert_eq!(
+            rules
+                .iter()
+                .map(|rule| rule.selector.as_str())
+                .collect::<Vec<_>>(),
+            vec![".toolbar > Button:hover", ".toolbar > Button.primary"]
+        );
+        assert_eq!(
+            rules[0].set.self_values.get("font.weight"),
+            Some(&Value::String("bold".to_string()))
+        );
+        assert_eq!(
+            rules[1].set.self_values.get("background.color"),
+            Some(&Value::String("#3355aa".to_string()))
+        );
+    }
+
     fn node_diff_fixture_document() -> UiAssetDocument {
         UiAssetDocument {
             asset: UiAssetHeader {
@@ -846,4 +1339,73 @@ mod tests {
             stylesheets: Vec::new(),
         }
     }
+
+    fn stylesheet_diff_fixture_document() -> UiAssetDocument {
+        UiAssetDocument {
+            asset: UiAssetHeader {
+                kind: UiAssetKind::Layout,
+                id: "editor.test.stylesheet_diff".to_string(),
+                version: 1,
+                display_name: "Stylesheet Diff".to_string(),
+            },
+            imports: UiAssetImports::default(),
+            tokens: BTreeMap::new(),
+            root: None,
+            nodes: BTreeMap::new(),
+            components: BTreeMap::new(),
+            stylesheets: vec![
+                UiStyleSheet {
+                    id: "editor_shell".to_string(),
+                    rules: vec![
+                        zircon_ui::template::UiStyleRule {
+                            selector: ".toolbar > Button".to_string(),
+                            set: UiStyleDeclarationBlock {
+                                self_values: BTreeMap::from([(
+                                    "background.color".to_string(),
+                                    Value::String("#223344".to_string()),
+                                )]),
+                                slot: BTreeMap::new(),
+                            },
+                        },
+                        zircon_ui::template::UiStyleRule {
+                            selector: ".toolbar > Button:hover".to_string(),
+                            set: UiStyleDeclarationBlock {
+                                self_values: BTreeMap::from([(
+                                    "text.color".to_string(),
+                                    Value::String("#ffffff".to_string()),
+                                )]),
+                                slot: BTreeMap::new(),
+                            },
+                        },
+                    ],
+                },
+                UiStyleSheet {
+                    id: "inspector".to_string(),
+                    rules: vec![
+                        zircon_ui::template::UiStyleRule {
+                            selector: ".secondary".to_string(),
+                            set: UiStyleDeclarationBlock {
+                                self_values: BTreeMap::from([(
+                                    "background.color".to_string(),
+                                    Value::String("#101010".to_string()),
+                                )]),
+                                slot: BTreeMap::new(),
+                            },
+                        },
+                        zircon_ui::template::UiStyleRule {
+                            selector: "#inspector_panel".to_string(),
+                            set: UiStyleDeclarationBlock {
+                                self_values: BTreeMap::from([(
+                                    "padding".to_string(),
+                                    Value::Integer(12),
+                                )]),
+                                slot: BTreeMap::new(),
+                            },
+                        },
+                    ],
+                },
+            ],
+        }
+    }
 }
+

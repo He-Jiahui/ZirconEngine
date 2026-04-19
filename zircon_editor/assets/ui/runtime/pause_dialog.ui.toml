@@ -1,0 +1,103 @@
+[asset]
+kind = "layout"
+id = "runtime.pause_dialog"
+version = 1
+display_name = "Pause Dialog"
+
+[root]
+node = "pause_dialog_root"
+
+[nodes.pause_dialog_root]
+kind = "native"
+type = "Overlay"
+control_id = "PauseDialogRoot"
+classes = ["dialog-root"]
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "Overlay" } }
+children = [
+  { child = "backdrop" },
+  { child = "dialog", slot = { layout = { anchor = { x = 0.5, y = 0.5 }, pivot = { x = 0.5, y = 0.5 }, position = { x = 0.0, y = 0.0 }, z_index = 10 } } },
+]
+
+[nodes.backdrop]
+kind = "native"
+type = "Canvas"
+control_id = "PauseBackdrop"
+classes = ["dialog-backdrop"]
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.dialog]
+kind = "native"
+type = "VerticalBox"
+control_id = "PauseDialogCard"
+classes = ["dialog-card"]
+layout = { width = { min = 320.0, preferred = 360.0, max = 420.0, stretch = "Fixed" }, container = { kind = "VerticalBox", gap = 12.0 } }
+children = [
+  { child = "title" },
+  { child = "message" },
+  { child = "actions" },
+]
+
+[nodes.title]
+kind = "native"
+type = "Label"
+control_id = "PauseTitle"
+classes = ["dialog-title"]
+props = { text = "Paused" }
+
+[nodes.message]
+kind = "native"
+type = "Label"
+control_id = "PauseMessage"
+classes = ["dialog-message"]
+props = { text = "Resume the mission or return to the command room." }
+
+[nodes.actions]
+kind = "native"
+type = "HorizontalBox"
+control_id = "PauseActions"
+layout = { width = { stretch = "Stretch" }, container = { kind = "HorizontalBox", gap = 10.0 } }
+children = [
+  { child = "resume_button" },
+  { child = "quit_button" },
+]
+
+[nodes.resume_button]
+kind = "native"
+type = "Button"
+control_id = "ResumeAction"
+classes = ["dialog-button", "dialog-button-primary"]
+props = { text = "Resume" }
+
+[nodes.quit_button]
+kind = "native"
+type = "Button"
+control_id = "QuitAction"
+classes = ["dialog-button"]
+props = { text = "Quit To Menu" }
+
+[[stylesheets]]
+id = "pause_dialog"
+
+[[stylesheets.rules]]
+selector = ".dialog-backdrop"
+set = { self = { background = { color = "#111621cc" } } }
+
+[[stylesheets.rules]]
+selector = ".dialog-card"
+set = { self = { background = { color = "#202737" } } }
+
+[[stylesheets.rules]]
+selector = ".dialog-title"
+set = { self = { text = "#eef3ff" } }
+
+[[stylesheets.rules]]
+selector = ".dialog-message"
+set = { self = { text = "#aab7d4" } }
+
+[[stylesheets.rules]]
+selector = "Button.dialog-button"
+set = { self = { background = { color = "#293349" }, text = "#f1f5ff" } }
+
+[[stylesheets.rules]]
+selector = "Button.dialog-button-primary"
+set = { self = { background = { color = "#4d89ff" } } }

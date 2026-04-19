@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use zircon_asset::ProjectManifest;
+use zircon_asset::project::ProjectManifest;
 use zircon_scene::Scene;
 
 use super::project_editor_workspace::ProjectEditorWorkspace;

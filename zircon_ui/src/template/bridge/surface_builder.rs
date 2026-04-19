@@ -1,4 +1,7 @@
-use crate::{UiCompiledDocument, UiSurface, UiTemplateInstance, UiTreeId};
+use crate::template::UiCompiledDocument;
+use crate::template::UiTemplateInstance;
+use crate::event_ui::UiTreeId;
+use crate::UiSurface;
 
 use super::build_error::UiTemplateBuildError;
 use super::tree_builder::UiTemplateTreeBuilder;

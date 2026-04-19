@@ -5,7 +5,7 @@ use crate::view::{ViewDescriptorId, ViewInstanceId};
 use crate::{
     EditorError, EditorManager, UiAssetEditorMode, UiAssetEditorRoute, UiAssetEditorSession,
 };
-use zircon_ui::UiAssetLoader;
+use zircon_ui::template::UiAssetLoader;
 
 use super::super::project_access::normalize_ui_asset_asset_id;
 use super::{preview_size_for_preset, UiAssetWorkspaceEntry, UI_ASSET_EDITOR_DESCRIPTOR_ID};
@@ -50,3 +50,4 @@ impl EditorManager {
         Ok(instance_id)
     }
 }
+

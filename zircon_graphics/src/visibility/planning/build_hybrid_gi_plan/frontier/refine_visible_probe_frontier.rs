@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use zircon_scene::RenderHybridGiProbe;
+use zircon_framework::render::RenderHybridGiProbe;
 
 use super::super::ordering::hybrid_gi_probe_sort_key;
 

@@ -1,6 +1,6 @@
 use super::World;
-use crate::components::{ActiveSelf, Hierarchy, LocalTransform, Name, NodeRecord, RenderLayerMask};
 use crate::EntityId;
+use crate::components::{ActiveSelf, Hierarchy, LocalTransform, Name, NodeRecord, RenderLayerMask};
 
 impl World {
     pub fn node_record(&self, entity: EntityId) -> Option<NodeRecord> {

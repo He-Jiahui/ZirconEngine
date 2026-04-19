@@ -1,8 +1,7 @@
 use zircon_framework::render::{
-    CapturedFrame, RenderFramework, RenderFrameworkError, RenderPipelineHandle,
+    CapturedFrame, RenderFrameExtract, RenderFramework, RenderFrameworkError, RenderPipelineHandle,
     RenderQualityProfile, RenderStats, RenderViewportDescriptor, RenderViewportHandle,
 };
-use zircon_scene::RenderFrameExtract;
 
 use super::super::capture_frame::capture_frame;
 use super::super::create_viewport::create_viewport;

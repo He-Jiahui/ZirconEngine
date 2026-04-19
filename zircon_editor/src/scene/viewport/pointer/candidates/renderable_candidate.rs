@@ -1,5 +1,5 @@
+use zircon_framework::render::ViewportCameraSnapshot;
 use zircon_math::UVec2;
-use zircon_scene::ViewportCameraSnapshot;
 
 use crate::scene::viewport::pointer::constants::{
     RENDERABLE_PICK_MIN_RADIUS_PX, RENDERABLE_PRIORITY,

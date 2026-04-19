@@ -7,9 +7,8 @@ fn asset_manager_api_boundary_lives_in_zircon_asset() {
         include_str!("../../pipeline/manager/asset_manager/asset_manager.rs");
     let pipeline_resolver_source =
         include_str!("../../pipeline/manager/asset_manager/resolve_asset_manager.rs");
-    let module_descriptor_source =
-        include_str!("../../pipeline/manager/registration/module_descriptor.rs");
-    let service_names_source = include_str!("../../pipeline/manager/registration/service_names.rs");
+    let runtime_asset_module_source =
+        include_str!("../../../../zircon_runtime/src/asset/module.rs");
     let manager_lib_source = include_str!("../../../../zircon_manager/src/lib.rs");
     let manager_resolver_source = include_str!("../../../../zircon_manager/src/resolver.rs");
 
@@ -40,20 +39,10 @@ fn asset_manager_api_boundary_lives_in_zircon_asset() {
         );
     }
 
-    for required in [
-        "AssetManager",
-        "AssetManagerHandle",
-        "resolve_asset_manager",
-        "AssetPipelineInfo",
-        "AssetStatusRecord",
-        "ProjectInfo",
-        "ASSET_MANAGER_NAME",
-    ] {
-        assert!(
-            lib_source.contains(required),
-            "zircon_asset root should publicly export `{required}`"
-        );
-    }
+    assert!(
+        lib_source.contains("pub mod pipeline;"),
+        "zircon_asset root should expose the pipeline namespace directly"
+    );
 
     assert!(
         asset_manager_trait_source
@@ -66,17 +55,21 @@ fn asset_manager_api_boundary_lives_in_zircon_asset() {
         "asset manager resolver should resolve the asset-owned handle"
     );
     assert!(
-        module_descriptor_source.contains("AssetManagerHandle::new"),
-        "asset module descriptor should register the public asset manager with the asset-owned handle"
+        runtime_asset_module_source.contains("AssetManagerHandle::new"),
+        "runtime asset module descriptor should register the public asset manager with the asset-owned handle"
     );
     assert!(
-        !module_descriptor_source
+        !runtime_asset_module_source
             .contains("use zircon_manager::{AssetManagerHandle, ResourceManagerHandle};"),
-        "asset module descriptor should not import AssetManagerHandle from zircon_manager"
+        "runtime asset module descriptor should not import AssetManagerHandle from zircon_manager"
     );
     assert!(
-        !service_names_source.contains("zircon_manager::ASSET_MANAGER_NAME"),
-        "asset service names should not source ASSET_MANAGER_NAME from zircon_manager"
+        !runtime_asset_module_source.contains("zircon_manager::ASSET_MANAGER_NAME"),
+        "runtime asset module registration should not source ASSET_MANAGER_NAME from zircon_manager"
+    );
+    assert!(
+        !lib_source.contains("pub struct AssetModule"),
+        "zircon_asset root should stop owning AssetModule after runtime absorption"
     );
 
     for source in [manager_lib_source, manager_resolver_source] {
@@ -91,9 +84,8 @@ fn asset_manager_api_boundary_lives_in_zircon_asset() {
 fn editor_asset_api_boundary_lives_in_zircon_asset() {
     let lib_source = include_str!("../../lib.rs");
     let editor_mod_source = include_str!("../../editor/mod.rs");
-    let module_descriptor_source =
-        include_str!("../../pipeline/manager/registration/module_descriptor.rs");
-    let service_names_source = include_str!("../../pipeline/manager/registration/service_names.rs");
+    let runtime_asset_module_source =
+        include_str!("../../../../zircon_runtime/src/asset/module.rs");
 
     for required in [
         "mod api;",
@@ -111,37 +103,24 @@ fn editor_asset_api_boundary_lives_in_zircon_asset() {
         );
     }
 
-    for required in [
-        "EditorAssetCatalogRecord",
-        "EditorAssetCatalogSnapshotRecord",
-        "EditorAssetChangeKind",
-        "EditorAssetChangeRecord",
-        "EditorAssetDetailsRecord",
-        "EditorAssetFolderRecord",
-        "EditorAssetManager",
-        "EditorAssetManagerHandle",
-        "resolve_editor_asset_manager",
-        "EDITOR_ASSET_MANAGER_NAME",
-    ] {
-        assert!(
-            lib_source.contains(required),
-            "zircon_asset root should publicly export `{required}`"
-        );
-    }
+    assert!(
+        lib_source.contains("pub mod editor;"),
+        "zircon_asset root should expose the editor namespace directly"
+    );
 
     assert!(
-        module_descriptor_source.contains("EditorAssetManagerHandle::new"),
-        "asset module descriptor should register the public editor asset manager with the asset-owned handle"
+        runtime_asset_module_source.contains("EditorAssetManagerHandle::new"),
+        "runtime asset module descriptor should register the public editor asset manager with the asset-owned handle"
     );
     assert!(
-        !module_descriptor_source.contains(
+        !runtime_asset_module_source.contains(
             "use zircon_manager::{AssetManagerHandle, EditorAssetManagerHandle, ResourceManagerHandle};"
         ),
-        "asset module descriptor should not import EditorAssetManagerHandle from zircon_manager"
+        "runtime asset module descriptor should not import EditorAssetManagerHandle from zircon_manager"
     );
     assert!(
-        !service_names_source.contains("zircon_manager::EDITOR_ASSET_MANAGER_NAME"),
-        "asset service names should not source EDITOR_ASSET_MANAGER_NAME from zircon_manager"
+        !runtime_asset_module_source.contains("zircon_manager::EDITOR_ASSET_MANAGER_NAME"),
+        "runtime asset module registration should not source EDITOR_ASSET_MANAGER_NAME from zircon_manager"
     );
 }
 
@@ -195,8 +174,9 @@ fn resource_state_protocol_lives_in_resource_crate() {
     let manager_lib_source = include_str!("../../../../zircon_manager/src/lib.rs");
 
     assert!(
-        pipeline_metadata_import_state_source.contains("use zircon_resource::ResourceState;"),
-        "pipeline manager record helpers should import zircon_resource::ResourceState"
+        pipeline_metadata_import_state_source.contains("zircon_resource")
+            && pipeline_metadata_import_state_source.contains("ResourceState"),
+        "pipeline manager record helpers should source ResourceState from zircon_resource"
     );
     for source in [
         pipeline_status_record_source,
@@ -259,7 +239,11 @@ fn resource_change_protocol_lives_in_resource_crate() {
     let manager_lib_source = include_str!("../../../../zircon_manager/src/lib.rs");
     let manager_resolver_source = include_str!("../../../../zircon_manager/src/resolver.rs");
 
-    for source in [resource_manager_facade_source, manager_lib_source, manager_resolver_source] {
+    for source in [
+        resource_manager_facade_source,
+        manager_lib_source,
+        manager_resolver_source,
+    ] {
         assert!(
             !source.contains("ResourceChangeRecord"),
             "resource change boundary should not depend on zircon_manager::ResourceChangeRecord after canonical ResourceEvent migration"
@@ -292,17 +276,25 @@ fn asset_root_keeps_only_asset_named_resource_aliases() {
     for required in [
         "pub type AssetId = zircon_resource::ResourceId;",
         "pub type AssetKind = zircon_resource::ResourceKind;",
-        "pub type AssetMetadata = zircon_resource::ResourceRecord;",
-        "pub type AssetRegistry = zircon_resource::ResourceRegistry;",
         "pub type AssetReference = zircon_resource::AssetReference;",
         "pub type AssetUuid = zircon_resource::AssetUuid;",
         "pub type AssetUri = zircon_resource::ResourceLocator;",
-        "pub type AssetUriError = zircon_resource::ResourceLocatorError;",
-        "pub type AssetUriScheme = zircon_resource::ResourceScheme;",
     ] {
         assert!(
             lib_source.contains(required),
             "zircon_asset root should preserve asset semantic alias `{required}`"
+        );
+    }
+
+    for forbidden in [
+        "pub type AssetMetadata = zircon_resource::ResourceRecord;",
+        "pub type AssetRegistry = zircon_resource::ResourceRegistry;",
+        "pub type AssetUriError = zircon_resource::ResourceLocatorError;",
+        "pub type AssetUriScheme = zircon_resource::ResourceScheme;",
+    ] {
+        assert!(
+            !lib_source.contains(forbidden),
+            "zircon_asset root should stop re-exporting raw resource helper alias `{forbidden}`"
         );
     }
 
@@ -319,6 +311,132 @@ fn asset_root_keeps_only_asset_named_resource_aliases() {
         assert!(
             !lib_source.contains(forbidden),
             "zircon_asset root should not publicly re-export raw zircon_resource type `{forbidden}`"
+        );
+    }
+}
+
+#[test]
+fn asset_project_api_moves_under_project_module_namespace() {
+    let lib_source = include_str!("../../lib.rs");
+    let project_mod_source = include_str!("../../project/mod.rs");
+
+    assert!(
+        lib_source.contains("pub mod project;"),
+        "zircon_asset root should expose the project namespace directly"
+    );
+
+    for required in [
+        "pub use manager::ProjectManager;",
+        "pub use manifest::ProjectManifest;",
+        "pub use paths::ProjectPaths;",
+    ] {
+        assert!(
+            project_mod_source.contains(required),
+            "zircon_asset::project should own `{required}`"
+        );
+    }
+
+    for forbidden in [
+        "pub use project::{AssetMetaDocument, PreviewState, ProjectManager, ProjectManifest, ProjectPaths};",
+        "pub use project::{ProjectManager, ProjectManifest, ProjectPaths};",
+    ] {
+        assert!(
+            !lib_source.contains(forbidden),
+            "zircon_asset root should stop flattening project API surface `{forbidden}`"
+        );
+    }
+}
+
+#[test]
+fn asset_project_meta_api_moves_under_project_module_namespace() {
+    let lib_source = include_str!("../../lib.rs");
+    let project_mod_source = include_str!("../../project/mod.rs");
+
+    for required in [
+        "pub use meta::{AssetMetaDocument, PreviewState};",
+        "AssetMetaDocument",
+        "PreviewState",
+    ] {
+        assert!(
+            project_mod_source.contains(required),
+            "zircon_asset::project should own `{required}`"
+        );
+    }
+
+    for forbidden in [
+        "pub use project::{AssetMetaDocument, PreviewState};",
+    ] {
+        assert!(
+            !lib_source.contains(forbidden),
+            "zircon_asset root should stop flattening project meta surface `{forbidden}`"
+        );
+    }
+}
+
+#[test]
+fn asset_watch_api_moves_under_watch_module_namespace() {
+    let lib_source = include_str!("../../lib.rs");
+    let watch_mod_source = include_str!("../../watch.rs");
+
+    assert!(
+        lib_source.contains("pub mod watch;"),
+        "zircon_asset root should expose the watch namespace directly"
+    );
+
+    for required in [
+        "pub use asset_change::AssetChange;",
+        "pub use asset_change_kind::AssetChangeKind;",
+        "pub use asset_watch_event::AssetWatchEvent;",
+        "pub use asset_watcher::AssetWatcher;",
+    ] {
+        assert!(
+            watch_mod_source.contains(required),
+            "zircon_asset::watch should own `{required}`"
+        );
+    }
+
+    for forbidden in [
+        "pub use watch::{AssetChange, AssetChangeKind, AssetWatchEvent, AssetWatcher};",
+        "AssetChange, AssetChangeKind, AssetWatchEvent, AssetWatcher",
+    ] {
+        assert!(
+            !lib_source.contains(forbidden),
+            "zircon_asset root should stop flattening watch surface `{forbidden}`"
+        );
+    }
+}
+
+#[test]
+fn asset_root_promotes_structured_namespaces_over_flat_exports() {
+    let lib_source = include_str!("../../lib.rs");
+
+    for required in [
+        "pub mod artifact;",
+        "pub mod assets;",
+        "pub mod editor;",
+        "pub mod importer;",
+        "pub mod pipeline;",
+        "pub mod project;",
+        "pub mod watch;",
+    ] {
+        assert!(
+            lib_source.contains(required),
+            "zircon_asset root should expose namespace `{required}`"
+        );
+    }
+
+    for forbidden in [
+        "pub use artifact::{ArtifactStore, LibraryCacheKey};",
+        "pub use assets::{",
+        "pub use editor::{",
+        "pub use importer::{AssetImportError, AssetImporter};",
+        "pub use pipeline::manager::{",
+        "pub use pipeline::types::{",
+        "pub use pipeline::worker_pool::AssetWorkerPool;",
+    ] {
+        assert!(
+            !lib_source.contains(forbidden),
+            "zircon_asset root should stop flattening namespace-owned surface `{forbidden}`"
         );
     }
 }

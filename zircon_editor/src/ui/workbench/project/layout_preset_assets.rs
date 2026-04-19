@@ -1,8 +1,8 @@
 use std::fs;
 use std::path::PathBuf;
 
-use zircon_asset::ProjectPaths;
-use zircon_scene::SceneProjectError;
+use zircon_asset::project::ProjectPaths;
+use zircon_scene::world::SceneProjectError;
 
 use super::constants::{EDITOR_LAYOUT_PRESET_FORMAT_VERSION, EDITOR_LAYOUT_PRESET_SUFFIX};
 use super::layout_preset_asset_document::LayoutPresetAssetDocument;

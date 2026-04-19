@@ -1,5 +1,5 @@
 use super::{UiTree, UiTreeError};
-use crate::UiNodeId;
+use crate::event_ui::UiNodeId;
 
 impl UiTree {
     pub fn mark_layout_dirty(&mut self, node_id: UiNodeId) -> Result<(), UiTreeError> {

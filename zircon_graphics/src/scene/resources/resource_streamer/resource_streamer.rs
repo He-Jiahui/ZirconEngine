@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use zircon_asset::ProjectAssetManager;
+use zircon_asset::pipeline::manager::ProjectAssetManager;
 use zircon_resource::ResourceId;
 
 use super::super::prepared::{PreparedMaterial, PreparedModel, PreparedShader, PreparedTexture};

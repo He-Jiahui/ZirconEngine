@@ -1,3 +1,4 @@
+use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
 use crate::ui::slint_host::callback_dispatch::{
     dispatch_builtin_asset_surface_control, dispatch_shared_document_tab_close_pointer_click,
     dispatch_shared_document_tab_pointer_click, BuiltinAssetSurfaceTemplateBridge,
@@ -9,14 +10,13 @@ use crate::ui::slint_host::document_tab_pointer::{
     WorkbenchDocumentTabPointerRoute, WorkbenchDocumentTabPointerSurface,
 };
 use crate::ui::slint_host::floating_window_projection::build_floating_window_projection_bundle;
-use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
 use crate::{
     compute_workbench_shell_geometry, default_preview_fixture, DocumentNode, EditorEvent,
     FloatingWindowLayout, LayoutCommand, MainPageId, NativeWindowHostState, ShellFrame,
     ShellSizePx, TabStackLayout, ViewDescriptorId, ViewHost, ViewInstance, ViewInstanceId,
     WorkbenchChromeMetrics, WorkbenchViewModel,
 };
-use zircon_ui::{UiEventKind, UiFrame, UiPoint, UiSize};
+use zircon_ui::{binding::UiEventKind, UiFrame, UiPoint, UiSize};
 
 #[test]
 fn shared_document_tab_pointer_bridge_routes_main_and_floating_tab_targets() {
@@ -200,9 +200,17 @@ fn shared_document_tab_close_pointer_click_dispatches_close_view_through_runtime
 #[test]
 fn shared_document_tab_surfaces_replace_legacy_direct_click_routes() {
     let workbench = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/ui/workbench.slint"));
+    let host_context = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/ui/workbench/host_context.slint"
+    ));
     let chrome = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/ui/workbench/chrome.slint"
+    ));
+    let host_components = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/ui/workbench/host_components.slint"
     ));
     let app = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
@@ -230,7 +238,10 @@ fn shared_document_tab_surfaces_replace_legacy_direct_click_routes() {
         "close_pointer_clicked(x, y) =>",
     ] {
         assert!(
-            workbench.contains(needle) || chrome.contains(needle),
+            workbench.contains(needle)
+                || host_context.contains(needle)
+                || chrome.contains(needle)
+                || host_components.contains(needle),
             "document tab shared pointer hook `{needle}` is missing"
         );
     }
@@ -243,8 +254,8 @@ fn shared_document_tab_surfaces_replace_legacy_direct_click_routes() {
     }
 
     for needle in [
-        "ui.on_document_tab_pointer_clicked(",
-        "ui.on_document_tab_close_pointer_clicked(",
+        "host_shell.on_document_tab_pointer_clicked(",
+        "host_shell.on_document_tab_close_pointer_clicked(",
     ] {
         assert!(
             app.contains(needle) || wiring.contains(needle),

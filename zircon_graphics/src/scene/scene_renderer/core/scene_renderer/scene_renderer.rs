@@ -25,9 +25,18 @@ pub struct SceneRenderer {
     pub(in crate::scene::scene_renderer::core) last_virtual_geometry_indirect_draw_count: u32,
     pub(in crate::scene::scene_renderer::core) last_virtual_geometry_indirect_buffer_count: u32,
     pub(in crate::scene::scene_renderer::core) last_virtual_geometry_indirect_segment_count: u32,
+    pub(in crate::scene::scene_renderer::core) last_virtual_geometry_mesh_draw_submission_order:
+        Vec<(u64, u32)>,
+    pub(in crate::scene::scene_renderer::core) last_virtual_geometry_mesh_draw_submission_records:
+        Vec<(u64, u32, u64, usize)>,
+    pub(in crate::scene::scene_renderer::core)
+        last_virtual_geometry_mesh_draw_submission_token_records:
+            Vec<(u64, u32, u32, u32, usize)>,
     pub(in crate::scene::scene_renderer::core) last_virtual_geometry_indirect_args_buffer:
         Option<Arc<wgpu::Buffer>>,
     pub(in crate::scene::scene_renderer::core) last_virtual_geometry_indirect_args_count: u32,
+    pub(in crate::scene::scene_renderer::core) last_virtual_geometry_indirect_submission_buffer:
+        Option<Arc<wgpu::Buffer>>,
     pub(in crate::scene::scene_renderer::core) last_virtual_geometry_indirect_draw_refs_buffer:
         Option<Arc<wgpu::Buffer>>,
     pub(in crate::scene::scene_renderer::core) last_virtual_geometry_indirect_segments_buffer:

@@ -3,11 +3,13 @@ use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use zircon_asset::{
-    AssetImportError, AssetReference, ImportedAsset, ProjectManager, SceneAsset,
-    SceneDirectionalLightAsset, SceneEntityAsset, SceneMeshInstanceAsset, SceneMobilityAsset,
-    TransformAsset,
+use zircon_asset::AssetReference;
+use zircon_asset::assets::{
+    ImportedAsset, SceneAsset, SceneDirectionalLightAsset, SceneEntityAsset,
+    SceneMeshInstanceAsset, SceneMobilityAsset, TransformAsset,
 };
+use zircon_asset::importer::AssetImportError;
+use zircon_asset::project::ProjectManager;
 use zircon_resource::{
     MaterialMarker, ModelMarker, ResourceHandle, ResourceId, ResourceLocator, ResourceScheme,
 };
@@ -157,11 +159,13 @@ impl World {
                         Mobility::Dynamic => SceneMobilityAsset::Dynamic,
                         Mobility::Static => SceneMobilityAsset::Static,
                     },
-                    camera: record.camera.map(|camera| zircon_asset::SceneCameraAsset {
-                        fov_y_radians: camera.fov_y_radians,
-                        z_near: camera.z_near,
-                        z_far: camera.z_far,
-                    }),
+                    camera: record
+                        .camera
+                        .map(|camera| zircon_asset::assets::SceneCameraAsset {
+                            fov_y_radians: camera.fov_y_radians,
+                            z_near: camera.z_near,
+                            z_far: camera.z_far,
+                        }),
                     mesh,
                     directional_light: record.directional_light.map(|light| {
                         SceneDirectionalLightAsset {

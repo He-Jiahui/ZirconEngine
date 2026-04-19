@@ -77,7 +77,7 @@ doc_type: milestone-detail
 
 ## 非目标
 
-- 不在这轮同时收敛 `zircon_entry`、`zircon_scene`、`zircon_render_server` 命名漂移。
+- 不在这轮同时收敛 `zircon_app`、`zircon_scene`、`zircon_render_server` 命名漂移。
 - 不在这轮接入外部真实 VM 执行器。
 - 不顺带改 editor 产品行为或 UI 交互设计。
 

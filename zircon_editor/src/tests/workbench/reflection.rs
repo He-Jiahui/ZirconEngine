@@ -1,10 +1,13 @@
 use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
+use crate::ui::{EditorUiControlService, EditorUiReflectionAdapter};
 use crate::{
     activity_descriptors_from_views, build_workbench_reflection_model, default_preview_fixture,
     register_workbench_reflection_routes, WorkbenchViewModel,
 };
-use crate::ui::{EditorUiControlService, EditorUiReflectionAdapter};
-use zircon_ui::{UiBindingValue, UiControlRequest, UiControlResponse, UiNodePath};
+use zircon_ui::{
+    binding::UiBindingValue, event_ui::UiControlRequest, event_ui::UiControlResponse,
+    event_ui::UiNodePath,
+};
 
 #[test]
 fn workbench_reflection_model_projects_menu_and_activity_descriptors() {

@@ -1,4 +1,5 @@
-use zircon_scene::{RenderSceneSnapshot, Scene};
+use zircon_framework::render::RenderSceneSnapshot;
+use zircon_scene::Scene;
 
 use super::SceneViewportController;
 use crate::scene::viewport::render_packet::build_render_packet;

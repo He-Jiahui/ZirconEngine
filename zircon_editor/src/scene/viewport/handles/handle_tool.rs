@@ -1,11 +1,10 @@
 use crate::GizmoAxis;
+use zircon_framework::render::{HandleOverlayExtract, SceneViewportTool};
 use zircon_math::Transform;
-use zircon_scene::{HandleOverlayExtract, SceneViewportTool};
 
 use super::{
-    handle_build_context::HandleBuildContext, handle_commit::HandleCommit,
-    handle_drag_context::HandleDragContext, handle_drag_session::HandleDragSession,
-    handle_pick_context::HandlePickContext,
+    handle_build_context::HandleBuildContext, handle_drag_context::HandleDragContext,
+    handle_drag_session::HandleDragSession, handle_pick_context::HandlePickContext,
 };
 
 pub(crate) trait HandleTool {
@@ -18,5 +17,5 @@ pub(crate) trait HandleTool {
         session: &mut HandleDragSession,
         ctx: &HandleDragContext<'_>,
     ) -> Option<Transform>;
-    fn end_drag(&self, session: HandleDragSession) -> Option<HandleCommit>;
+    fn end_drag(&self, session: HandleDragSession);
 }

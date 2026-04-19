@@ -1,4 +1,4 @@
-use zircon_asset::AlphaMode;
+use zircon_asset::assets::AlphaMode;
 use zircon_math::Vec4;
 use zircon_resource::{MaterialMarker, ResourceHandle};
 

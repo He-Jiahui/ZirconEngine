@@ -4,32 +4,107 @@ use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use image::{ImageBuffer, ImageFormat, Rgba};
-use zircon_asset::{
-    AlphaMode, AssetManager, AssetReference, AssetUri, MaterialAsset, ProjectAssetManager,
-    ProjectManifest, ProjectPaths,
-};
-use zircon_framework::render::{RenderFramework, RenderQualityProfile, RenderViewportDescriptor};
-use zircon_math::{Transform, UVec2, Vec3, Vec4};
-use zircon_resource::{MaterialMarker, ModelMarker, ResourceHandle};
-use zircon_scene::{
-    default_render_layer_mask, DisplayMode, FallbackSkyboxKind, Mobility,
-    PreviewEnvironmentExtract, ProjectionMode, RenderFrameExtract, RenderMeshSnapshot,
-    RenderOverlayExtract, RenderSceneGeometryExtract, RenderSceneSnapshot,
+use zircon_asset::assets::{AlphaMode, MaterialAsset};
+use zircon_asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
+use zircon_asset::pipeline::manager::{AssetManager, ProjectAssetManager};
+use zircon_asset::{AssetReference, AssetUri};
+use zircon_framework::render::{
+    DisplayMode, FallbackSkyboxKind, PreviewEnvironmentExtract, ProjectionMode, RenderFrameExtract,
+    RenderFramework, RenderMeshSnapshot, RenderOverlayExtract, RenderQualityProfile,
+    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderViewportDescriptor,
     RenderVirtualGeometryCluster, RenderVirtualGeometryExtract, RenderVirtualGeometryPage,
     RenderWorldSnapshotHandle, ViewportCameraSnapshot,
 };
+use zircon_math::{Transform, UVec2, Vec3, Vec4};
+use zircon_resource::{MaterialMarker, ModelMarker, ResourceHandle};
+use zircon_scene::components::{default_render_layer_mask, Mobility};
 
 use crate::{
     runtime::WgpuRenderFramework,
     types::{
         EditorOrRuntimeFrame, VirtualGeometryPrepareCluster, VirtualGeometryPrepareClusterState,
-        VirtualGeometryPrepareFrame, VirtualGeometryPreparePage,
+        VirtualGeometryPrepareFrame, VirtualGeometryPrepareIndirectDraw,
+        VirtualGeometryPreparePage, VirtualGeometryPrepareRequest,
     },
     BuiltinRenderFeature, RenderPipelineAsset, RenderPipelineCompileOptions, SceneRenderer,
 };
 
 #[test]
-fn virtual_geometry_prepare_uses_one_visibility_owned_indirect_segment_across_multi_primitive_model(
+fn virtual_geometry_unified_indirect_synthesizes_fallback_cluster_slices_when_segments_are_absent() {
+    let frame = VirtualGeometryPrepareFrame {
+        visible_entities: vec![2],
+        visible_clusters: vec![
+            VirtualGeometryPrepareCluster {
+                entity: 2,
+                cluster_id: 20,
+                page_id: 300,
+                lod_level: 0,
+                resident_slot: Some(2),
+                state: VirtualGeometryPrepareClusterState::Resident,
+            },
+            VirtualGeometryPrepareCluster {
+                entity: 2,
+                cluster_id: 21,
+                page_id: 301,
+                lod_level: 0,
+                resident_slot: None,
+                state: VirtualGeometryPrepareClusterState::PendingUpload,
+            },
+        ],
+        cluster_draw_segments: Vec::new(),
+        resident_pages: vec![VirtualGeometryPreparePage {
+            page_id: 300,
+            slot: 2,
+            size_bytes: 4096,
+        }],
+        pending_page_requests: vec![VirtualGeometryPrepareRequest {
+            page_id: 301,
+            size_bytes: 4096,
+            generation: 1,
+            frontier_rank: 0,
+            assigned_slot: Some(1),
+            recycled_page_id: None,
+        }],
+        available_slots: Vec::new(),
+        evictable_pages: Vec::new(),
+    };
+
+    assert_eq!(
+        frame.unified_indirect_draws(),
+        vec![
+            VirtualGeometryPrepareIndirectDraw {
+                entity: 2,
+                page_id: 301,
+                cluster_start_ordinal: 1,
+                cluster_span_count: 1,
+                cluster_total_count: 2,
+                lineage_depth: 0,
+                lod_level: 0,
+                frontier_rank: 0,
+                resident_slot: None,
+                submission_slot: Some(1),
+                state: VirtualGeometryPrepareClusterState::PendingUpload,
+            },
+            VirtualGeometryPrepareIndirectDraw {
+                entity: 2,
+                page_id: 300,
+                cluster_start_ordinal: 0,
+                cluster_span_count: 1,
+                cluster_total_count: 2,
+                lineage_depth: 0,
+                lod_level: 0,
+                frontier_rank: 0,
+                resident_slot: Some(2),
+                submission_slot: Some(2),
+                state: VirtualGeometryPrepareClusterState::Resident,
+            },
+        ],
+        "expected unified indirect ownership itself to synthesize per-cluster fallback slices from visible clusters while preserving entity-local cluster ordinals even after authoritative submission ordering reorders the resulting draws"
+    );
+}
+
+#[test]
+fn virtual_geometry_prepare_keeps_one_visibility_owned_segment_but_distinct_gpu_args_for_multi_primitive_model(
 ) {
     let root = unique_temp_project_root("graphics_virtual_geometry_unified_indirect");
     let paths = ProjectPaths::from_root(&root).unwrap();
@@ -69,7 +144,7 @@ fn virtual_geometry_prepare_uses_one_visibility_owned_indirect_segment_across_mu
     asset_manager
         .open_project(root.to_string_lossy().as_ref())
         .unwrap();
-    let mut project = zircon_asset::ProjectManager::open(&root).unwrap();
+    let mut project = ProjectManager::open(&root).unwrap();
     project.scan_and_import().unwrap();
 
     let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/double_triangle.gltf");
@@ -152,12 +227,16 @@ fn virtual_geometry_prepare_uses_one_visibility_owned_indirect_segment_across_mu
         "expected both primitive draws to reference one visibility-owned indirect segment instead of duplicating the same segment per draw"
     );
     assert_eq!(
+        renderer.read_last_virtual_geometry_indirect_args().unwrap(),
+        vec![(0, 3), (0, 3)],
+        "expected repeated primitive draws to keep distinct GPU indirect args records even when they share one visibility-owned segment, so repeated submission no longer relies on CPU-only ordering residue"
+    );
+    assert_eq!(
         renderer
-            .read_last_virtual_geometry_indirect_args()
-            .unwrap()
-            .len(),
-        1,
-        "expected identical primitive draws to collapse onto one visibility-owned indirect args record instead of duplicating the same args per primitive"
+            .read_last_virtual_geometry_indirect_args_with_instances()
+            .unwrap(),
+        vec![(0, 3, 0), (0, 3, 1)],
+        "expected repeated primitive draws on the same visibility-owned segment to keep distinct first_instance submission tokens instead of collapsing back onto one shared args record"
     );
     assert_eq!(
         renderer.read_last_virtual_geometry_indirect_segments().unwrap(),
@@ -176,8 +255,617 @@ fn virtual_geometry_prepare_uses_one_visibility_owned_indirect_segment_across_mu
     );
     assert_eq!(
         renderer.read_last_virtual_geometry_indirect_draw_refs().unwrap(),
-        vec![(3, 0)],
-        "expected the actual GPU-submitted draw-ref buffer to collapse duplicate primitive records once the visibility-owned segment truth is shared"
+        vec![(3, 0), (3, 0)],
+        "expected the actual GPU-submitted draw-ref buffer to preserve one record per repeated primitive draw even while the visibility-owned segment truth remains shared"
+    );
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn virtual_geometry_unified_indirect_propagates_multi_primitive_draw_ref_compaction_into_gpu_args()
+{
+    let root = unique_temp_project_root("graphics_virtual_geometry_multi_primitive_compaction");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths.ensure_layout().unwrap();
+    ProjectManifest::new(
+        "GraphicsVirtualGeometryMultiPrimitiveCompaction",
+        AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+        1,
+    )
+    .save(paths.manifest_path())
+    .unwrap();
+
+    write_flat_color_wgsl(
+        paths.assets_root().join("shaders").join("flat_green.wgsl"),
+        [0.08, 0.95, 0.08],
+    );
+    write_solid_png(
+        paths.assets_root().join("textures").join("white.png"),
+        [255, 255, 255, 255],
+    );
+    write_triangle_quad_gltf(paths.assets_root().join("models").join("triangle_quad.gltf"));
+    write_material(
+        paths
+            .assets_root()
+            .join("materials")
+            .join("flat_green.material.toml"),
+        "res://shaders/flat_green.wgsl",
+        "res://textures/white.png",
+    );
+
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    asset_manager
+        .open_project(root.to_string_lossy().as_ref())
+        .unwrap();
+    let mut project = ProjectManager::open(&root).unwrap();
+    project.scan_and_import().unwrap();
+
+    let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/triangle_quad.gltf");
+    let green_material = resource_handle::<MaterialMarker>(
+        &asset_manager,
+        "res://materials/flat_green.material.toml",
+    );
+    let viewport_size = UVec2::new(160, 120);
+    let extract = build_single_entity_extract(viewport_size, model, green_material);
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(
+            &extract,
+            &RenderPipelineCompileOptions::default()
+                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
+                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
+                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
+                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
+                .with_feature_disabled(BuiltinRenderFeature::Bloom)
+                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
+                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
+                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
+                .with_feature_disabled(BuiltinRenderFeature::Particle)
+                .with_async_compute(false),
+        )
+        .unwrap();
+
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    renderer
+        .render_frame_with_pipeline(
+            &EditorOrRuntimeFrame::from_extract(extract, viewport_size)
+                .with_virtual_geometry_prepare(Some(VirtualGeometryPrepareFrame {
+                    visible_entities: vec![2],
+                    visible_clusters: vec![VirtualGeometryPrepareCluster {
+                        entity: 2,
+                        cluster_id: 2,
+                        page_id: 300,
+                        lod_level: 0,
+                        resident_slot: Some(1),
+                        state: VirtualGeometryPrepareClusterState::Resident,
+                    }],
+                    cluster_draw_segments: vec![crate::types::VirtualGeometryPrepareDrawSegment {
+                        entity: 2,
+                        cluster_id: 2,
+                        page_id: 300,
+                        resident_slot: Some(1),
+                        cluster_ordinal: 0,
+                        cluster_span_count: 1,
+                        cluster_count: 1,
+                        lineage_depth: 0,
+                        lod_level: 0,
+                        state: VirtualGeometryPrepareClusterState::Resident,
+                    }],
+                    resident_pages: vec![VirtualGeometryPreparePage {
+                        page_id: 300,
+                        slot: 1,
+                        size_bytes: 4096,
+                    }],
+                    pending_page_requests: Vec::new(),
+                    available_slots: Vec::new(),
+                    evictable_pages: Vec::new(),
+                })),
+            &compiled,
+            None,
+        )
+        .unwrap();
+
+    assert_eq!(
+        renderer.last_virtual_geometry_indirect_segment_count(),
+        1,
+        "expected the multi-primitive compaction case to stay on one visibility-owned segment"
+    );
+    assert_eq!(
+        renderer.read_last_virtual_geometry_indirect_draw_refs().unwrap(),
+        vec![(3, 0), (6, 0)],
+        "expected the actual GPU-submitted draw-ref buffer to keep two distinct primitive records that still point at the same visibility-owned segment"
+    );
+    assert_eq!(
+        renderer.read_last_virtual_geometry_indirect_args().unwrap(),
+        vec![(0, 3), (3, 3)],
+        "expected later draw-refs that survive shared indirect compaction on the same visibility-owned segment to shift their real GPU-generated args by compaction rank instead of reusing the segment-level first_index verbatim"
+    );
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn virtual_geometry_renderer_submission_records_preserve_draw_level_tokens_for_repeated_primitives(
+) {
+    let root = unique_temp_project_root("graphics_virtual_geometry_submission_record_tokens");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths.ensure_layout().unwrap();
+    ProjectManifest::new(
+        "GraphicsVirtualGeometrySubmissionRecordTokens",
+        AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+        1,
+    )
+    .save(paths.manifest_path())
+    .unwrap();
+
+    write_flat_color_wgsl(
+        paths.assets_root().join("shaders").join("flat_green.wgsl"),
+        [0.08, 0.95, 0.08],
+    );
+    write_solid_png(
+        paths.assets_root().join("textures").join("white.png"),
+        [255, 255, 255, 255],
+    );
+    write_two_primitive_gltf(
+        paths
+            .assets_root()
+            .join("models")
+            .join("double_triangle.gltf"),
+    );
+    write_material(
+        paths
+            .assets_root()
+            .join("materials")
+            .join("flat_green.material.toml"),
+        "res://shaders/flat_green.wgsl",
+        "res://textures/white.png",
+    );
+
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    asset_manager
+        .open_project(root.to_string_lossy().as_ref())
+        .unwrap();
+    let mut project = ProjectManager::open(&root).unwrap();
+    project.scan_and_import().unwrap();
+
+    let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/double_triangle.gltf");
+    let green_material = resource_handle::<MaterialMarker>(
+        &asset_manager,
+        "res://materials/flat_green.material.toml",
+    );
+    let viewport_size = UVec2::new(160, 120);
+    let extract = build_single_entity_extract(viewport_size, model, green_material);
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(
+            &extract,
+            &RenderPipelineCompileOptions::default()
+                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
+                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
+                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
+                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
+                .with_feature_disabled(BuiltinRenderFeature::Bloom)
+                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
+                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
+                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
+                .with_feature_disabled(BuiltinRenderFeature::Particle)
+                .with_async_compute(false),
+        )
+        .unwrap();
+
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    renderer
+        .render_frame_with_pipeline(
+            &EditorOrRuntimeFrame::from_extract(extract, viewport_size)
+                .with_virtual_geometry_prepare(Some(VirtualGeometryPrepareFrame {
+                    visible_entities: vec![2],
+                    visible_clusters: vec![VirtualGeometryPrepareCluster {
+                        entity: 2,
+                        cluster_id: 2,
+                        page_id: 300,
+                        lod_level: 0,
+                        resident_slot: Some(1),
+                        state: VirtualGeometryPrepareClusterState::Resident,
+                    }],
+                    cluster_draw_segments: vec![crate::types::VirtualGeometryPrepareDrawSegment {
+                        entity: 2,
+                        cluster_id: 2,
+                        page_id: 300,
+                        resident_slot: Some(1),
+                        cluster_ordinal: 0,
+                        cluster_span_count: 1,
+                        cluster_count: 1,
+                        lineage_depth: 0,
+                        lod_level: 0,
+                        state: VirtualGeometryPrepareClusterState::Resident,
+                    }],
+                    resident_pages: vec![VirtualGeometryPreparePage {
+                        page_id: 300,
+                        slot: 1,
+                        size_bytes: 4096,
+                    }],
+                    pending_page_requests: Vec::new(),
+                    available_slots: Vec::new(),
+                    evictable_pages: Vec::new(),
+                })),
+            &compiled,
+            None,
+        )
+        .unwrap();
+
+    assert_eq!(
+        renderer
+            .read_last_virtual_geometry_mesh_draw_submission_records_with_tokens()
+            .unwrap(),
+        vec![(2, 300, 0, 0), (2, 300, 0, 1)],
+        "expected renderer-side submission records to preserve repeated primitive draw-level submission tokens after unified-indirect compaction, instead of collapsing renderer observability back to coarse (entity,page) truth"
+    );
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn virtual_geometry_renderer_submission_records_keep_draw_level_tokens_without_gpu_submission_buffer(
+) {
+    let root =
+        unique_temp_project_root("graphics_virtual_geometry_submission_record_tokens_direct");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths.ensure_layout().unwrap();
+    ProjectManifest::new(
+        "GraphicsVirtualGeometrySubmissionRecordTokensDirect",
+        AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+        1,
+    )
+    .save(paths.manifest_path())
+    .unwrap();
+
+    write_flat_color_wgsl(
+        paths.assets_root().join("shaders").join("flat_green.wgsl"),
+        [0.08, 0.95, 0.08],
+    );
+    write_solid_png(
+        paths.assets_root().join("textures").join("white.png"),
+        [255, 255, 255, 255],
+    );
+    write_two_primitive_gltf(
+        paths
+            .assets_root()
+            .join("models")
+            .join("double_triangle.gltf"),
+    );
+    write_material(
+        paths
+            .assets_root()
+            .join("materials")
+            .join("flat_green.material.toml"),
+        "res://shaders/flat_green.wgsl",
+        "res://textures/white.png",
+    );
+
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    asset_manager
+        .open_project(root.to_string_lossy().as_ref())
+        .unwrap();
+    let mut project = ProjectManager::open(&root).unwrap();
+    project.scan_and_import().unwrap();
+
+    let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/double_triangle.gltf");
+    let green_material = resource_handle::<MaterialMarker>(
+        &asset_manager,
+        "res://materials/flat_green.material.toml",
+    );
+    let viewport_size = UVec2::new(160, 120);
+    let extract = build_single_entity_extract(viewport_size, model, green_material);
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(
+            &extract,
+            &RenderPipelineCompileOptions::default()
+                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
+                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
+                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
+                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
+                .with_feature_disabled(BuiltinRenderFeature::Bloom)
+                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
+                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
+                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
+                .with_feature_disabled(BuiltinRenderFeature::Particle)
+                .with_async_compute(false),
+        )
+        .unwrap();
+
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    renderer
+        .render_frame_with_pipeline(
+            &EditorOrRuntimeFrame::from_extract(extract, viewport_size)
+                .with_virtual_geometry_prepare(Some(VirtualGeometryPrepareFrame {
+                    visible_entities: vec![2],
+                    visible_clusters: vec![VirtualGeometryPrepareCluster {
+                        entity: 2,
+                        cluster_id: 2,
+                        page_id: 300,
+                        lod_level: 0,
+                        resident_slot: Some(1),
+                        state: VirtualGeometryPrepareClusterState::Resident,
+                    }],
+                    cluster_draw_segments: vec![crate::types::VirtualGeometryPrepareDrawSegment {
+                        entity: 2,
+                        cluster_id: 2,
+                        page_id: 300,
+                        resident_slot: Some(1),
+                        cluster_ordinal: 0,
+                        cluster_span_count: 1,
+                        cluster_count: 1,
+                        lineage_depth: 0,
+                        lod_level: 0,
+                        state: VirtualGeometryPrepareClusterState::Resident,
+                    }],
+                    resident_pages: vec![VirtualGeometryPreparePage {
+                        page_id: 300,
+                        slot: 1,
+                        size_bytes: 4096,
+                    }],
+                    pending_page_requests: Vec::new(),
+                    available_slots: Vec::new(),
+                    evictable_pages: Vec::new(),
+                })),
+            &compiled,
+            None,
+        )
+        .unwrap();
+
+    renderer.drop_last_virtual_geometry_indirect_submission_buffer_for_test();
+
+    assert_eq!(
+        renderer
+            .read_last_virtual_geometry_mesh_draw_submission_records_with_tokens()
+            .unwrap(),
+        vec![(2, 300, 0, 0), (2, 300, 0, 1)],
+        "expected renderer-side draw-level submission records to remain available even after the GPU submission-token buffer is gone, instead of collapsing renderer authority back to buffer-only observability"
+    );
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn virtual_geometry_renderer_submission_records_fall_back_to_gpu_generated_indirect_args_tokens_when_debug_channels_are_missing(
+) {
+    let root =
+        unique_temp_project_root("graphics_virtual_geometry_submission_record_tokens_args_only");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths.ensure_layout().unwrap();
+    ProjectManifest::new(
+        "GraphicsVirtualGeometrySubmissionRecordTokensArgsOnly",
+        AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+        1,
+    )
+    .save(paths.manifest_path())
+    .unwrap();
+
+    write_flat_color_wgsl(
+        paths.assets_root().join("shaders").join("flat_green.wgsl"),
+        [0.08, 0.95, 0.08],
+    );
+    write_solid_png(
+        paths.assets_root().join("textures").join("white.png"),
+        [255, 255, 255, 255],
+    );
+    write_two_primitive_gltf(
+        paths
+            .assets_root()
+            .join("models")
+            .join("double_triangle.gltf"),
+    );
+    write_material(
+        paths
+            .assets_root()
+            .join("materials")
+            .join("flat_green.material.toml"),
+        "res://shaders/flat_green.wgsl",
+        "res://textures/white.png",
+    );
+
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    asset_manager
+        .open_project(root.to_string_lossy().as_ref())
+        .unwrap();
+    let mut project = ProjectManager::open(&root).unwrap();
+    project.scan_and_import().unwrap();
+
+    let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/double_triangle.gltf");
+    let green_material = resource_handle::<MaterialMarker>(
+        &asset_manager,
+        "res://materials/flat_green.material.toml",
+    );
+    let viewport_size = UVec2::new(160, 120);
+    let extract = build_single_entity_extract(viewport_size, model, green_material);
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(
+            &extract,
+            &RenderPipelineCompileOptions::default()
+                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
+                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
+                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
+                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
+                .with_feature_disabled(BuiltinRenderFeature::Bloom)
+                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
+                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
+                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
+                .with_feature_disabled(BuiltinRenderFeature::Particle)
+                .with_async_compute(false),
+        )
+        .unwrap();
+
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    renderer
+        .render_frame_with_pipeline(
+            &EditorOrRuntimeFrame::from_extract(extract, viewport_size)
+                .with_virtual_geometry_prepare(Some(VirtualGeometryPrepareFrame {
+                    visible_entities: vec![2],
+                    visible_clusters: vec![VirtualGeometryPrepareCluster {
+                        entity: 2,
+                        cluster_id: 2,
+                        page_id: 300,
+                        lod_level: 0,
+                        resident_slot: Some(1),
+                        state: VirtualGeometryPrepareClusterState::Resident,
+                    }],
+                    cluster_draw_segments: vec![crate::types::VirtualGeometryPrepareDrawSegment {
+                        entity: 2,
+                        cluster_id: 2,
+                        page_id: 300,
+                        resident_slot: Some(1),
+                        cluster_ordinal: 0,
+                        cluster_span_count: 1,
+                        cluster_count: 1,
+                        lineage_depth: 0,
+                        lod_level: 0,
+                        state: VirtualGeometryPrepareClusterState::Resident,
+                    }],
+                    resident_pages: vec![VirtualGeometryPreparePage {
+                        page_id: 300,
+                        slot: 1,
+                        size_bytes: 4096,
+                    }],
+                    pending_page_requests: Vec::new(),
+                    available_slots: Vec::new(),
+                    evictable_pages: Vec::new(),
+                })),
+            &compiled,
+            None,
+        )
+        .unwrap();
+
+    renderer.drop_last_virtual_geometry_indirect_submission_buffer_for_test();
+    renderer.drop_last_virtual_geometry_mesh_draw_submission_token_records_for_test();
+
+    assert_eq!(
+        renderer
+            .read_last_virtual_geometry_mesh_draw_submission_records_with_tokens()
+            .unwrap(),
+        vec![(2, 300, 0, 0), (2, 300, 0, 1)],
+        "expected renderer-side submission observability to reconstruct draw-level tokens directly from the real GPU-generated indirect args first_instance values once the dedicated debug submission channels are gone, instead of collapsing back to no token truth"
+    );
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn virtual_geometry_unified_indirect_reconstructs_submission_records_from_gpu_authority_when_cpu_records_are_gone(
+) {
+    let root = unique_temp_project_root("graphics_virtual_geometry_gpu_authority_submission_records");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths.ensure_layout().unwrap();
+    ProjectManifest::new(
+        "GraphicsVirtualGeometryGpuAuthoritySubmissionRecords",
+        AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+        1,
+    )
+    .save(paths.manifest_path())
+    .unwrap();
+
+    write_flat_color_wgsl(
+        paths.assets_root().join("shaders").join("flat_green.wgsl"),
+        [0.08, 0.95, 0.08],
+    );
+    write_solid_png(
+        paths.assets_root().join("textures").join("white.png"),
+        [255, 255, 255, 255],
+    );
+    write_two_primitive_gltf(
+        paths
+            .assets_root()
+            .join("models")
+            .join("double_triangle.gltf"),
+    );
+    write_material(
+        paths
+            .assets_root()
+            .join("materials")
+            .join("flat_green.material.toml"),
+        "res://shaders/flat_green.wgsl",
+        "res://textures/white.png",
+    );
+
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    asset_manager
+        .open_project(root.to_string_lossy().as_ref())
+        .unwrap();
+    let mut project = ProjectManager::open(&root).unwrap();
+    project.scan_and_import().unwrap();
+
+    let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/double_triangle.gltf");
+    let material = resource_handle::<MaterialMarker>(
+        &asset_manager,
+        "res://materials/flat_green.material.toml",
+    );
+    let viewport_size = UVec2::new(160, 120);
+    let extract = build_single_entity_extract(viewport_size, model, material);
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(
+            &extract,
+            &RenderPipelineCompileOptions::default()
+                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
+                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
+                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
+                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
+                .with_feature_disabled(BuiltinRenderFeature::Bloom)
+                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
+                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
+                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
+                .with_feature_disabled(BuiltinRenderFeature::Particle)
+                .with_async_compute(false),
+        )
+        .unwrap();
+
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    renderer
+        .render_frame_with_pipeline(
+            &EditorOrRuntimeFrame::from_extract(extract, viewport_size)
+                .with_virtual_geometry_prepare(Some(VirtualGeometryPrepareFrame {
+                    visible_entities: vec![2],
+                    visible_clusters: vec![VirtualGeometryPrepareCluster {
+                        entity: 2,
+                        cluster_id: 2,
+                        page_id: 300,
+                        lod_level: 0,
+                        resident_slot: Some(1),
+                        state: VirtualGeometryPrepareClusterState::Resident,
+                    }],
+                    cluster_draw_segments: vec![crate::types::VirtualGeometryPrepareDrawSegment {
+                        entity: 2,
+                        cluster_id: 2,
+                        page_id: 300,
+                        resident_slot: Some(1),
+                        cluster_ordinal: 0,
+                        cluster_span_count: 1,
+                        cluster_count: 1,
+                        lineage_depth: 0,
+                        lod_level: 0,
+                        state: VirtualGeometryPrepareClusterState::Resident,
+                    }],
+                    resident_pages: vec![VirtualGeometryPreparePage {
+                        page_id: 300,
+                        slot: 1,
+                        size_bytes: 4096,
+                    }],
+                    pending_page_requests: Vec::new(),
+                    available_slots: Vec::new(),
+                    evictable_pages: Vec::new(),
+                })),
+            &compiled,
+            None,
+        )
+        .unwrap();
+
+    renderer.drop_last_virtual_geometry_indirect_submission_buffer_for_test();
+    renderer.drop_last_virtual_geometry_mesh_draw_submission_token_records_for_test();
+    renderer.drop_last_virtual_geometry_mesh_draw_submission_records_for_test();
+
+    assert_eq!(
+        renderer
+            .read_last_virtual_geometry_mesh_draw_submission_records_with_tokens()
+            .unwrap(),
+        vec![(2, 300, 0, 0), (2, 300, 0, 1)],
+        "expected renderer-side submission observability to reconstruct draw-level tokens and entity/page ownership directly from GPU args+draw-ref+segment truth once the CPU-side submission records are gone, instead of collapsing back to no visibility-owned authority"
     );
 
     let _ = fs::remove_dir_all(root);
@@ -218,7 +906,7 @@ fn virtual_geometry_unified_indirect_keeps_lineage_depth_in_gpu_submission_and_i
     asset_manager
         .open_project(root.to_string_lossy().as_ref())
         .unwrap();
-    let mut project = zircon_asset::ProjectManager::open(&root).unwrap();
+    let mut project = ProjectManager::open(&root).unwrap();
     project.scan_and_import().unwrap();
 
     let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/quad.obj");
@@ -388,7 +1076,7 @@ fn virtual_geometry_unified_indirect_keeps_pending_request_frontier_rank_in_gpu_
     asset_manager
         .open_project(root.to_string_lossy().as_ref())
         .unwrap();
-    let mut project = zircon_asset::ProjectManager::open(&root).unwrap();
+    let mut project = ProjectManager::open(&root).unwrap();
     project.scan_and_import().unwrap();
 
     let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/tiled_quad.obj");
@@ -602,7 +1290,7 @@ fn render_framework_stats_follow_actual_virtual_geometry_gpu_submission_for_mult
     asset_manager
         .open_project(root.to_string_lossy().as_ref())
         .unwrap();
-    let mut project = zircon_asset::ProjectManager::open(&root).unwrap();
+    let mut project = ProjectManager::open(&root).unwrap();
     project.scan_and_import().unwrap();
 
     let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/double_triangle.gltf");
@@ -647,6 +1335,11 @@ fn render_framework_stats_follow_actual_virtual_geometry_gpu_submission_for_mult
         stats.last_virtual_geometry_indirect_segment_count,
         1,
         "expected render-server stats to keep the visibility-owned segment count distinct from the real per-primitive GPU draw count"
+    );
+    assert_eq!(
+        stats.last_virtual_geometry_indirect_args_count,
+        2,
+        "expected render-server stats to expose the real per-primitive GPU indirect args count once repeated primitive draws stop collapsing back onto one CPU-compacted args record"
     );
     assert_eq!(
         stats.last_virtual_geometry_indirect_buffer_count,
@@ -789,6 +1482,84 @@ fn write_two_primitive_gltf(path: PathBuf) {
     {{"bufferView":1,"componentType":5125,"count":3,"type":"SCALAR","min":[0],"max":[2]}},
     {{"bufferView":2,"componentType":5126,"count":3,"type":"VEC3","min":[0.0,-1.0,0.0],"max":[1.0,1.0,0.0]}},
     {{"bufferView":3,"componentType":5125,"count":3,"type":"SCALAR","min":[0],"max":[2]}}
+  ],
+  "meshes": [
+    {{
+      "primitives": [
+        {{"attributes":{{"POSITION":0}},"indices":1}},
+        {{"attributes":{{"POSITION":2}},"indices":3}}
+      ]
+    }}
+  ],
+  "nodes": [
+    {{"mesh": 0}}
+  ],
+  "scenes": [
+    {{"nodes": [0]}}
+  ],
+  "scene": 0
+}}"#,
+        binary.len()
+    );
+    fs::write(path, gltf).unwrap();
+}
+
+fn write_triangle_quad_gltf(path: PathBuf) {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).unwrap();
+    }
+
+    let mut binary = Vec::new();
+    for value in [
+        -1.0f32, -1.0, 0.0, //
+        0.0, 1.0, 0.0, //
+        -1.0, 1.0, 0.0,
+    ] {
+        binary.extend_from_slice(&value.to_le_bytes());
+    }
+    for index in [0u32, 1, 2] {
+        binary.extend_from_slice(&index.to_le_bytes());
+    }
+    for value in [
+        0.0f32, -1.0, 0.0, //
+        1.0, -1.0, 0.0, //
+        1.0, 1.0, 0.0, //
+        0.0, 1.0, 0.0,
+    ] {
+        binary.extend_from_slice(&value.to_le_bytes());
+    }
+    for index in [0u32, 1, 2, 0, 2, 3] {
+        binary.extend_from_slice(&index.to_le_bytes());
+    }
+
+    let buffer_path = path
+        .ancestors()
+        .nth(3)
+        .expect("gltf path should live under <root>/assets/models")
+        .join(".generated")
+        .join("triangle_quad.bin");
+    if let Some(parent) = buffer_path.parent() {
+        fs::create_dir_all(parent).unwrap();
+    }
+    fs::write(&buffer_path, &binary).unwrap();
+
+    let gltf = format!(
+        r#"{{
+  "asset": {{"version": "2.0"}},
+  "buffers": [
+    {{"uri": "../../.generated/triangle_quad.bin", "byteLength": {}}}
+  ],
+  "bufferViews": [
+    {{"buffer":0,"byteOffset":0,"byteLength":36,"target":34962}},
+    {{"buffer":0,"byteOffset":36,"byteLength":12,"target":34963}},
+    {{"buffer":0,"byteOffset":48,"byteLength":48,"target":34962}},
+    {{"buffer":0,"byteOffset":96,"byteLength":24,"target":34963}}
+  ],
+  "accessors": [
+    {{"bufferView":0,"componentType":5126,"count":3,"type":"VEC3","min":[-1.0,-1.0,0.0],"max":[0.0,1.0,0.0]}},
+    {{"bufferView":1,"componentType":5125,"count":3,"type":"SCALAR","min":[0],"max":[2]}},
+    {{"bufferView":2,"componentType":5126,"count":4,"type":"VEC3","min":[0.0,-1.0,0.0],"max":[1.0,1.0,0.0]}},
+    {{"bufferView":3,"componentType":5125,"count":6,"type":"SCALAR","min":[0],"max":[3]}}
   ],
   "meshes": [
     {{

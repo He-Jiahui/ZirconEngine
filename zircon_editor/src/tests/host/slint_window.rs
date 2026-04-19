@@ -2,7 +2,7 @@ use std::cell::Cell;
 use std::rc::Rc;
 
 use crate::ui::slint_host::floating_window_projection::build_floating_window_projection_bundle;
-use crate::ui::slint_host::UiHostWindow;
+use crate::ui::slint_host::{UiHostWindow, WorkbenchHostContext};
 use crate::{
     compute_workbench_shell_geometry, default_preview_fixture, DocumentNode, FloatingWindowLayout,
     MainPageId, NativeWindowHostState, ShellFrame, ShellSizePx, TabStackLayout, ViewDescriptorId,
@@ -129,14 +129,15 @@ fn native_window_presenter_store_creates_updates_and_hides_secondary_windows() {
     let window = presenters
         .window(&window_id)
         .expect("native window should exist after first sync");
+    let initial_shell = window.get_host_shell();
     assert!(window.window().is_visible());
-    assert!(window.get_native_floating_window_mode());
+    assert!(initial_shell.native_floating_window_mode);
     assert_eq!(
-        window.get_native_floating_window_id(),
+        initial_shell.native_floating_window_id,
         "window:native-preview"
     );
-    assert_eq!(window.get_native_window_title(), "Native Preview");
-    let initial_bounds = window.get_native_window_bounds();
+    assert_eq!(initial_shell.native_window_title, "Native Preview");
+    let initial_bounds = initial_shell.native_window_bounds;
     assert_eq!(initial_bounds.x, 120.0);
     assert_eq!(initial_bounds.y, 80.0);
     assert_eq!(initial_bounds.width, 640.0);
@@ -159,8 +160,9 @@ fn native_window_presenter_store_creates_updates_and_hides_secondary_windows() {
         .expect("updated native window sync should succeed");
 
     assert_eq!(presenters.window_ids(), vec![window_id.clone()]);
-    assert_eq!(window.get_native_window_title(), "Native Preview Updated");
-    let updated_bounds = window.get_native_window_bounds();
+    let updated_shell = window.get_host_shell();
+    assert_eq!(updated_shell.native_window_title, "Native Preview Updated");
+    let updated_bounds = updated_shell.native_window_bounds;
     assert_eq!(updated_bounds.x, 160.0);
     assert_eq!(updated_bounds.y, 110.0);
     assert_eq!(updated_bounds.width, 720.0);
@@ -199,9 +201,10 @@ fn native_window_presenter_store_runs_child_window_creation_hook_for_callback_wi
             &[target.clone()],
             |ui, _target| {
                 let callback_hits = callback_hits.clone();
-                ui.on_menu_pointer_clicked(move |_x, _y| {
-                    callback_hits.set(callback_hits.get() + 1);
-                });
+                ui.global::<WorkbenchHostContext>()
+                    .on_menu_pointer_clicked(move |_x, _y| {
+                        callback_hits.set(callback_hits.get() + 1);
+                    });
             },
             |ui, target| {
                 crate::ui::slint_host::configure_native_floating_window_presentation(ui, target);
@@ -212,28 +215,96 @@ fn native_window_presenter_store_runs_child_window_creation_hook_for_callback_wi
     let window = presenters
         .window(&window_id)
         .expect("native window should exist after sync");
-    window.invoke_menu_pointer_clicked(18.0, 24.0);
+    window
+        .global::<WorkbenchHostContext>()
+        .invoke_menu_pointer_clicked(18.0, 24.0);
 
     assert_eq!(callback_hits.get(), 1);
 }
 
 #[test]
 fn native_floating_window_mode_forwards_tabs_header_and_pane_callbacks_to_root() {
-    let workbench = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/ui/workbench.slint"));
-    let native_start = workbench
-        .find("if root.native_floating_window_mode: Rectangle {")
-        .expect("native floating window block should exist");
-    let native_mode = &workbench[native_start..];
+    let scaffold = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/ui/workbench/host_scaffold.slint"
+    ));
+    let host_surface = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/ui/workbench/host_surface.slint"
+    ));
+    let host_components = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/ui/workbench/host_components.slint"
+    ));
+    let pane_surface = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/ui/workbench/pane_surface.slint"
+    ));
+    assert!(
+        scaffold.contains("if root.host_shell.native_floating_window_mode: HostNativeWorkbenchWindowSurface {"),
+        "host scaffold should delegate native floating window chrome to HostNativeWorkbenchWindowSurface"
+    );
+    let native_wrapper_start = host_surface
+        .find("export component HostNativeWorkbenchWindowSurface inherits Rectangle {")
+        .expect("native floating wrapper should exist");
+    let native_wrapper = &host_surface[native_wrapper_start..];
+    let native_start = host_components
+        .find("export component HostNativeFloatingWindowSurface inherits Rectangle {")
+        .expect("native floating window component should exist");
+    let native_mode = &host_components[native_start..];
+
+    for needle in [
+        "HostNativeFloatingWindowSurface {",
+        "surface_data: root.native_floating_surface_data;",
+    ] {
+        assert!(
+            native_wrapper.contains(needle),
+            "native floating wrapper is missing host-context forwarding `{needle}`"
+        );
+    }
+    for removed_wrapper_forwarder in [
+        "WorkbenchHostContext.document_tab_pointer_clicked(",
+        "WorkbenchHostContext.document_tab_close_pointer_clicked(",
+        "WorkbenchHostContext.floating_window_header_pointer_clicked(",
+    ] {
+        assert!(
+            !native_wrapper.contains(removed_wrapper_forwarder),
+            "native floating wrapper should stop forwarding behavior `{removed_wrapper_forwarder}`"
+        );
+    }
 
     for needle in [
         "closeable: tab.closeable;",
         "pointer_clicked(x, y) => {",
         "close_pointer_clicked(x, y) => {",
+        "WorkbenchHostContext.document_tab_pointer_clicked(",
+        "WorkbenchHostContext.document_tab_close_pointer_clicked(",
+        "WorkbenchHostContext.floating_window_header_pointer_clicked(",
+        "root.surface_data.native_window_bounds.x + self.x / 1px + self.mouse-x / 1px",
+        "root.surface_data.native_window_bounds.y + self.mouse-y / 1px",
+        "PaneSurface {",
+    ] {
+        assert!(
+            native_mode.contains(needle),
+            "native floating window mode is missing shared tab/header host behavior `{needle}`"
+        );
+    }
+
+    assert!(
+        !native_mode.contains("closeable: false;"),
+        "native floating window mode should not hardcode tabs as non-closeable"
+    );
+    for removed_local_forwarder in [
         "root.document_tab_pointer_clicked(",
         "root.document_tab_close_pointer_clicked(",
         "root.floating_window_header_pointer_clicked(",
-        "root.native_window_bounds.x + self.x / 1px + self.mouse-x / 1px",
-        "root.native_window_bounds.y + self.mouse-y / 1px",
+    ] {
+        assert!(
+            !native_mode.contains(removed_local_forwarder),
+            "native floating window mode should stop using local forwarding callback `{removed_local_forwarder}`"
+        );
+    }
+    for removed_forwarder in [
         "surface_control_clicked(control_id, action_id) => { root.pane_surface_control_clicked(control_id, action_id); }",
         "asset_tree_pointer_clicked(surface_mode, x, y, width, height) => { root.asset_tree_pointer_clicked(surface_mode, x, y, width, height); }",
         "hierarchy_pointer_scrolled(x, y, delta, width, height) => { root.hierarchy_pointer_scrolled(x, y, delta, width, height); }",
@@ -243,15 +314,23 @@ fn native_floating_window_mode_forwards_tabs_header_and_pane_callbacks_to_root()
         "ui_asset_action(instance_id, action_id) => { root.ui_asset_action(instance_id, action_id); }",
     ] {
         assert!(
-            native_mode.contains(needle),
-            "native floating window mode is missing shared callback forwarding `{needle}`"
+            !native_mode.contains(removed_forwarder),
+            "native floating window mode should not keep legacy pane callback forwarding `{removed_forwarder}`"
         );
     }
-
-    assert!(
-        !native_mode.contains("closeable: false;"),
-        "native floating window mode should not hardcode tabs as non-closeable"
-    );
+    for global_route in [
+        "surface_control_clicked(control_id, action_id) => { PaneSurfaceHostContext.surface_control_clicked(control_id, action_id); }",
+        "tree_pointer_clicked(x, y, width, height) => { PaneSurfaceHostContext.asset_tree_pointer_clicked(",
+        "pointer_scrolled(x, y, delta, width, height) => { PaneSurfaceHostContext.hierarchy_pointer_scrolled(x, y, delta, width, height); }",
+        "pointer_scrolled(x, y, delta, width, height) => { PaneSurfaceHostContext.console_pointer_scrolled(x, y, delta, width, height); }",
+        "PaneSurfaceHostContext.viewport_pointer_event(",
+        "action(action_id) => { PaneSurfaceHostContext.ui_asset_action(root.pane.id, action_id); }",
+    ] {
+        assert!(
+            pane_surface.contains(global_route),
+            "PaneSurface should route native floating pane interactions through PaneSurfaceHostContext via `{global_route}`"
+        );
+    }
 }
 
 #[test]
@@ -318,8 +397,8 @@ fn child_window_callback_wiring_tracks_source_window_for_pane_interactions() {
     for needle in [
         "resolve_callback_source_window_id(&source_ui)",
         ".with_callback_source_window(",
-        "ui.on_ui_asset_collection_event(",
-        "ui.on_ui_asset_detail_event(",
+        "pane_surface_host.on_ui_asset_collection_event(",
+        "pane_surface_host.on_ui_asset_detail_event(",
     ] {
         assert!(
             wiring.contains(needle),
@@ -383,8 +462,8 @@ fn ui_asset_editor_host_genericizes_collection_event_dispatch() {
     ));
 
     assert!(
-        wiring.contains("ui.on_ui_asset_collection_event("),
-        "callback wiring should converge root-level UI asset selection callbacks into a generic collection event hook"
+        wiring.contains("pane_surface_host.on_ui_asset_collection_event("),
+        "callback wiring should converge PaneSurfaceHostContext UI asset selection callbacks into a generic collection event hook"
     );
 
     for legacy_wiring in [
@@ -474,8 +553,8 @@ fn ui_asset_editor_host_genericizes_detail_event_dispatch() {
     ));
 
     assert!(
-        wiring.contains("ui.on_ui_asset_detail_event("),
-        "callback wiring should converge UI asset detail callbacks into a generic detail event hook"
+        wiring.contains("pane_surface_host.on_ui_asset_detail_event("),
+        "callback wiring should converge PaneSurfaceHostContext UI asset detail callbacks into a generic detail event hook"
     );
 
     for legacy_wiring in [
@@ -513,6 +592,10 @@ fn ui_asset_editor_host_genericizes_detail_event_dispatch() {
 
     for manager_call in [
         ".set_ui_asset_editor_selected_widget_control_id(",
+        ".set_ui_asset_editor_selected_promote_widget_asset_id(",
+        ".set_ui_asset_editor_selected_slot_mount(",
+        ".set_ui_asset_editor_selected_layout_width_preferred(",
+        ".set_ui_asset_editor_selected_binding_id(",
         ".rename_ui_asset_editor_selected_stylesheet_rule(",
         ".upsert_ui_asset_editor_selected_style_rule_declaration(",
         ".upsert_ui_asset_editor_style_token(",
@@ -522,6 +605,19 @@ fn ui_asset_editor_host_genericizes_detail_event_dispatch() {
         assert!(
             ui_asset_editor.contains(manager_call),
             "generic detail dispatch should still route through `{manager_call}`"
+        );
+    }
+
+    for detail_id in [
+        "\"widget\" => self.handle_ui_asset_widget_detail(",
+        "\"widget_promote\" =>",
+        "\"slot\" => self.handle_ui_asset_slot_detail(",
+        "\"layout\" => self.handle_ui_asset_layout_detail(",
+        "\"binding\" => self.handle_ui_asset_binding_detail(",
+    ] {
+        assert!(
+            ui_asset_editor.contains(detail_id),
+            "generic detail dispatch should include split detail route `{detail_id}`"
         );
     }
 }

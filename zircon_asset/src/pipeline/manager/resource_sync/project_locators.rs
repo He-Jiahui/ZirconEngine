@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
-use crate::{AssetUri, ProjectManager};
+use crate::project::ProjectManager;
+use crate::AssetUri;
 
 pub(in crate::pipeline::manager) fn project_locators(
     project: &ProjectManager,

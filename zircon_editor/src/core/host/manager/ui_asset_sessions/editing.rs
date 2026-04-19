@@ -15,7 +15,7 @@ use crate::{
     EditorError, EditorManager, UiAssetEditorCommand, UiAssetEditorExternalEffect,
     UiAssetEditorMode, UiAssetEditorSession, UiAssetPreviewPreset, UiSize, ViewContentKind,
 };
-use zircon_asset::{UiStyleAsset, UiWidgetAsset};
+use zircon_asset::assets::{UiStyleAsset, UiWidgetAsset};
 
 use super::super::project_access::normalize_ui_asset_asset_id;
 use super::super::ui_asset_promotion::{
@@ -55,7 +55,8 @@ impl EditorManager {
         effect: &UiAssetEditorExternalEffect,
     ) -> Result<(), EditorError> {
         match effect {
-            UiAssetEditorExternalEffect::UpsertAssetSource { asset_id, source } => {
+            UiAssetEditorExternalEffect::UpsertAssetSource { asset_id, source }
+            | UiAssetEditorExternalEffect::RestoreAssetSource { asset_id, source } => {
                 let source_path = ui_asset_effect_source_path(project_root, asset_id);
                 if let Some(parent) = source_path.parent() {
                     fs::create_dir_all(parent)

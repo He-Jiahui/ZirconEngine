@@ -158,17 +158,6 @@ pub(crate) fn resolve_root_viewport_content_frame(
         .unwrap_or_default()
 }
 
-pub(crate) fn has_visible_drawer_regions(
-    geometry: &WorkbenchShellGeometry,
-    shared_root_frames: Option<&BuiltinWorkbenchRootShellFrames>,
-) -> bool {
-    let layout_frames = resolve_root_layout_frames(geometry, shared_root_frames);
-    layout_frames.has_visible_drawers
-        || [layout_frames.left, layout_frames.right, layout_frames.bottom]
-            .into_iter()
-            .any(frame_is_visible)
-}
-
 fn shell_frame(frame: UiFrame) -> ShellFrame {
     ShellFrame::new(frame.x, frame.y, frame.width, frame.height)
 }
@@ -322,7 +311,12 @@ fn derive_layout_frames_from_geometry_with_shared_root(
         }
     };
     let shell_frame = shared_root_shell_frame(shared_root_frames).unwrap_or_else(|| {
-        ShellFrame::new(body_frame.x, body_frame.y, body_frame.width, body_frame.height)
+        ShellFrame::new(
+            body_frame.x,
+            body_frame.y,
+            body_frame.width,
+            body_frame.height,
+        )
     });
     let center_height = (body_frame.height
         - if bottom_visible {
@@ -392,8 +386,14 @@ fn derive_document_frame_from_drawer_layout(
     bottom: ShellFrame,
 ) -> Option<ShellFrame> {
     let body_frame = body_frame?;
-    let shell_frame =
-        shell_frame.unwrap_or_else(|| ShellFrame::new(body_frame.x, body_frame.y, body_frame.width, body_frame.height));
+    let shell_frame = shell_frame.unwrap_or_else(|| {
+        ShellFrame::new(
+            body_frame.x,
+            body_frame.y,
+            body_frame.width,
+            body_frame.height,
+        )
+    });
     let metrics = WorkbenchChromeMetrics::default();
     let separator = metrics.separator_thickness.max(0.0);
     let left_visible = frame_is_visible(left);
@@ -432,7 +432,10 @@ fn derive_document_frame_from_drawer_layout(
     ))
 }
 
-fn root_geometry_region_frame(geometry: &WorkbenchShellGeometry, region: ShellRegionId) -> ShellFrame {
+fn root_geometry_region_frame(
+    geometry: &WorkbenchShellGeometry,
+    region: ShellRegionId,
+) -> ShellFrame {
     let WorkbenchShellGeometry { region_frames, .. } = geometry;
     region_frames.get(&region).copied().unwrap_or_default()
 }

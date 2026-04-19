@@ -15,14 +15,13 @@ thiserror.workspace = true
 toml.workspace = true
 zircon_asset = { path = "../zircon_asset" }
 zircon_core = { path = "../zircon_core" }
-zircon_foundation = { path = "../zircon_foundation" }
 zircon_framework = { path = "../zircon_framework" }
-zircon_input = { path = "../zircon_input" }
 zircon_math = { path = "../zircon_math" }
 zircon_module = { path = "../zircon_module" }
 zircon_resource = { path = "../zircon_resource" }
 zircon_scene = { path = "../zircon_scene" }
 zircon_manager = { path = "../zircon_manager" }
+zircon_runtime = { path = "../zircon_runtime" }
 zircon_ui = { path = "../zircon_ui" }
 
 [build-dependencies]

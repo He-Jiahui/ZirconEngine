@@ -1,6 +1,6 @@
 use crate::ViewportState;
+use zircon_framework::render::SceneViewportSettings;
 use zircon_math::{UVec2, Vec3};
-use zircon_scene::SceneViewportSettings;
 
 use super::{scene_viewport_state::SceneViewportState, viewport_hover_state::ViewportHoverState};
 

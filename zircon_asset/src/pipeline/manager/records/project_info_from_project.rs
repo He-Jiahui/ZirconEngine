@@ -1,5 +1,5 @@
 use super::ProjectInfo;
-use crate::ProjectManager;
+use crate::project::ProjectManager;
 
 pub(in crate::pipeline::manager) fn build_project_info(project: &ProjectManager) -> ProjectInfo {
     ProjectInfo {

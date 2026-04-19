@@ -1,7 +1,7 @@
-use crate::{ViewportFeedback, ViewportInput};
 use crate::ui::ViewportCommand;
+use crate::{ViewportFeedback, ViewportInput};
+use zircon_framework::render::SceneViewportSettings;
 use zircon_math::UVec2;
-use zircon_scene::SceneViewportSettings;
 
 use super::editor_state::EditorState;
 

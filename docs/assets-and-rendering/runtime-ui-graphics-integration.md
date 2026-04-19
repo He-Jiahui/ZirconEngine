@@ -1,17 +1,19 @@
 ---
 related_code:
   - zircon_framework/src/render/backend_types.rs
-  - zircon_graphics/Cargo.toml
+  - zircon_runtime/Cargo.toml
+  - zircon_runtime/src/ui/mod.rs
+  - zircon_runtime/src/ui/runtime_ui/mod.rs
+  - zircon_runtime/src/ui/runtime_ui/runtime_ui_fixture.rs
+  - zircon_runtime/src/ui/runtime_ui/runtime_ui_manager.rs
+  - zircon_runtime/src/ui/runtime_ui/runtime_ui_manager_error.rs
+  - zircon_runtime/src/ui/runtime_ui/fixtures/hud_overlay.ui.toml
+  - zircon_runtime/src/ui/runtime_ui/fixtures/pause_menu.ui.toml
+  - zircon_runtime/src/ui/runtime_ui/fixtures/settings_dialog.ui.toml
+  - zircon_runtime/src/ui/runtime_ui/fixtures/inventory_list.ui.toml
+  - zircon_runtime/src/tests.rs
   - zircon_graphics/src/lib.rs
   - zircon_graphics/src/runtime/mod.rs
-  - zircon_graphics/src/runtime/ui/mod.rs
-  - zircon_graphics/src/runtime/ui/runtime_ui_fixture.rs
-  - zircon_graphics/src/runtime/ui/runtime_ui_manager.rs
-  - zircon_graphics/src/runtime/ui/runtime_ui_manager_error.rs
-  - zircon_graphics/src/runtime/ui/fixtures/hud_overlay.ui.toml
-  - zircon_graphics/src/runtime/ui/fixtures/pause_menu.ui.toml
-  - zircon_graphics/src/runtime/ui/fixtures/settings_dialog.ui.toml
-  - zircon_graphics/src/runtime/ui/fixtures/inventory_list.ui.toml
   - zircon_graphics/src/runtime/render_framework/mod.rs
   - zircon_graphics/src/runtime/render_framework/submit_runtime_frame.rs
   - zircon_graphics/src/runtime/render_framework/submit_frame_extract/mod.rs
@@ -31,20 +33,21 @@ related_code:
   - zircon_graphics/src/scene/scene_renderer/ui/new.rs
   - zircon_graphics/src/scene/scene_renderer/ui/render.rs
   - zircon_graphics/src/scene/scene_renderer/ui/shaders/screen_space_ui.wgsl
-  - zircon_graphics/src/tests/runtime_ui_integration.rs
 implementation_files:
   - zircon_framework/src/render/backend_types.rs
-  - zircon_graphics/Cargo.toml
+  - zircon_runtime/Cargo.toml
+  - zircon_runtime/src/ui/mod.rs
+  - zircon_runtime/src/ui/runtime_ui/mod.rs
+  - zircon_runtime/src/ui/runtime_ui/runtime_ui_fixture.rs
+  - zircon_runtime/src/ui/runtime_ui/runtime_ui_manager.rs
+  - zircon_runtime/src/ui/runtime_ui/runtime_ui_manager_error.rs
+  - zircon_runtime/src/ui/runtime_ui/fixtures/hud_overlay.ui.toml
+  - zircon_runtime/src/ui/runtime_ui/fixtures/pause_menu.ui.toml
+  - zircon_runtime/src/ui/runtime_ui/fixtures/settings_dialog.ui.toml
+  - zircon_runtime/src/ui/runtime_ui/fixtures/inventory_list.ui.toml
+  - zircon_runtime/src/tests.rs
   - zircon_graphics/src/lib.rs
   - zircon_graphics/src/runtime/mod.rs
-  - zircon_graphics/src/runtime/ui/mod.rs
-  - zircon_graphics/src/runtime/ui/runtime_ui_fixture.rs
-  - zircon_graphics/src/runtime/ui/runtime_ui_manager.rs
-  - zircon_graphics/src/runtime/ui/runtime_ui_manager_error.rs
-  - zircon_graphics/src/runtime/ui/fixtures/hud_overlay.ui.toml
-  - zircon_graphics/src/runtime/ui/fixtures/pause_menu.ui.toml
-  - zircon_graphics/src/runtime/ui/fixtures/settings_dialog.ui.toml
-  - zircon_graphics/src/runtime/ui/fixtures/inventory_list.ui.toml
   - zircon_graphics/src/runtime/render_framework/mod.rs
   - zircon_graphics/src/runtime/render_framework/submit_runtime_frame.rs
   - zircon_graphics/src/runtime/render_framework/submit_frame_extract/mod.rs
@@ -68,12 +71,13 @@ plan_sources:
   - user: 2026-04-18 下一步可以直接进入 Graphics/runtime integration
   - .codex/plans/编辑器 .slint 去真源 Runtime UI 可用 Cutover 路线图.md
 tests:
-  - zircon_graphics/src/tests/runtime_ui_integration.rs
-  - cargo test -p zircon_graphics --lib --locked --features runtime-ui-integration-tests runtime_ui_manager_builds_all_builtin_fixtures_into_shared_surfaces -- --nocapture
-  - cargo test -p zircon_graphics --lib --locked --features runtime-ui-integration-tests render_framework_submits_runtime_ui_frames_and_renders_pause_menu_panels -- --nocapture
-  - cargo test -p zircon_graphics --lib --locked --features runtime-ui-integration-tests render_framework_reports_clipped_ui_commands_for_inventory_fixture -- --nocapture
-  - cargo test -p zircon_graphics --lib --locked --features runtime-ui-integration-tests
-  - cargo test -p zircon_framework --lib --locked
+  - zircon_runtime/src/tests.rs
+  - cargo test -p zircon_runtime --lib --target-dir target/codex-shared-b runtime_ui_manager_builds_all_builtin_fixtures_into_shared_surfaces
+  - cargo test -p zircon_runtime --lib --features runtime-ui-integration-tests --target-dir target/codex-shared-b render_framework_submits_runtime_ui_frames_and_renders_pause_menu_panels
+  - cargo test -p zircon_runtime --lib --features runtime-ui-integration-tests --target-dir target/codex-shared-b render_framework_reports_clipped_ui_commands_for_inventory_fixture
+  - cargo test -p zircon_runtime --lib --features runtime-ui-integration-tests --target-dir target/codex-shared-b --no-run
+  - cargo test -p zircon_graphics boundary --target-dir target/codex-shared-b
+  - cargo check --workspace --target-dir target/codex-shared-b
 doc_type: module-detail
 ---
 
@@ -81,11 +85,11 @@ doc_type: module-detail
 
 ## Purpose
 
-这一步把 `Runtime visual contract` 真正接到了 `zircon_graphics` 的运行时提交流水里，不再停留在 `zircon_ui::UiRenderExtract` 只存在于 shared core 的状态。完成后，运行时 UI 的最短闭环固定为：
+这一步把 `Runtime visual contract` 真正接到了 `zircon_graphics` 的运行时提交流水里，不再停留在 `zircon_ui::surface::UiRenderExtract` 只存在于 shared core 的状态。完成后，运行时 UI 的最短闭环固定为：
 
 1. `.ui.toml` 资产定义结构、布局和视觉字段。
-2. `RuntimeUiManager` 通过 `UiAssetLoader -> UiDocumentCompiler -> UiTemplateSurfaceBuilder` 构建 shared `UiSurface`。
-3. `RuntimeUiManager::build_frame()` 生成带 `UiRenderExtract` 的 `EditorOrRuntimeFrame`。
+2. `zircon_runtime::ui::RuntimeUiManager` 通过 `UiAssetLoader -> UiDocumentCompiler -> zircon_ui::template::UiTemplateSurfaceBuilder` 构建 shared `UiSurface`。
+3. `zircon_runtime::ui::RuntimeUiManager::build_frame()` 生成带 `UiRenderExtract` 的 `EditorOrRuntimeFrame`。
 4. `WgpuRenderFramework::submit_runtime_frame(...)` 复用既有 render framework 状态机，把 UI 和 scene/GI/VG payload 一起送进 `SceneRenderer`。
 5. `ScreenSpaceUiRenderer` 在 scene overlays 之后追加 screen-space UI pass，把 shared draw list 画到最终颜色目标。
 
@@ -93,7 +97,7 @@ doc_type: module-detail
 
 ## Runtime Fixture Assets
 
-运行时内建 fixture 现在都落成真实的 `.ui.toml` 文件，路径在 `zircon_graphics/src/runtime/ui/fixtures/`：
+运行时内建 fixture 现在都落成真实的 `.ui.toml` 文件，路径在 `zircon_runtime/src/ui/runtime_ui/fixtures/`：
 
 - `hud_overlay.ui.toml`
 - `pause_menu.ui.toml`
@@ -105,11 +109,11 @@ doc_type: module-detail
 - 它们可以继续被现有 UI asset editor 读取和可视化编辑，不会因为 graphics 接入又引入一套只给测试看的私有构造 DSL。
 - 这四个 fixture 正好对应 roadmap 里的 runtime 验收样本，后续做 screenshot golden、route golden、输入回放时可以直接复用同一份资产。
 
-`RuntimeUiFixture` 只负责把 fixture 名称映射到稳定 `asset_id` 和源码文本；真正的解析、编译和 surface 构建全部仍交给 `zircon_ui` 的 shared template/runtime 链路。
+`RuntimeUiFixture` 只负责把 fixture 名称映射到稳定 `asset_id` 和源码文本；真正的解析、编译和 surface 构建全部仍交给 `zircon_ui` 的 shared template/runtime 链路。它现在和 `RuntimeUiManager` 一起由 `zircon_runtime::ui` 持有，不再挂在 `zircon_graphics` crate 根上。
 
 ## Runtime UI Manager
 
-`RuntimeUiManager` 的职责被刻意压小，只做 runtime-host 最基础的三件事：
+`zircon_runtime::ui::RuntimeUiManager` 的职责被刻意压小，只做 runtime-host 最基础的三件事：
 
 - 持有 `viewport_size`
 - 加载一个 builtin fixture 并构建 `UiSurface`
@@ -205,13 +209,14 @@ record 顺序固定为：
 
 ## Validation Evidence
 
-本轮已经跑过并通过以下验证：
+这轮把 runtime UI host 从 `zircon_graphics` 物理迁到 `zircon_runtime::ui` 之后，已经重新跑过并通过以下验证：
 
-- `cargo test -p zircon_graphics --lib --locked --features runtime-ui-integration-tests runtime_ui_manager_builds_all_builtin_fixtures_into_shared_surfaces -- --nocapture`
-- `cargo test -p zircon_graphics --lib --locked --features runtime-ui-integration-tests render_framework_submits_runtime_ui_frames_and_renders_pause_menu_panels -- --nocapture`
-- `cargo test -p zircon_graphics --lib --locked --features runtime-ui-integration-tests render_framework_reports_clipped_ui_commands_for_inventory_fixture -- --nocapture`
-- `cargo test -p zircon_graphics --lib --locked --features runtime-ui-integration-tests`
-- `cargo test -p zircon_framework --lib --locked`
+- `cargo test -p zircon_runtime --lib --target-dir target/codex-shared-b runtime_ui_manager_builds_all_builtin_fixtures_into_shared_surfaces`
+- `cargo test -p zircon_runtime --lib --features runtime-ui-integration-tests --target-dir target/codex-shared-b render_framework_submits_runtime_ui_frames_and_renders_pause_menu_panels`
+- `cargo test -p zircon_runtime --lib --features runtime-ui-integration-tests --target-dir target/codex-shared-b render_framework_reports_clipped_ui_commands_for_inventory_fixture`
+- `cargo test -p zircon_runtime --lib --features runtime-ui-integration-tests --target-dir target/codex-shared-b --no-run`
+- `cargo test -p zircon_graphics boundary --target-dir target/codex-shared-b`
+- `cargo check --workspace --target-dir target/codex-shared-b`
 
 这里的 focused assertions 不只检查“函数可调用”，还检查了三类真实结果：
 
@@ -219,4 +224,4 @@ record 顺序固定为：
 - render framework stats 会报告 UI command/quad/clip 数量
 - headless capture 在暂停菜单场景下会出现可见中心对话框亮区，而不是只有背景清屏
 
-这意味着 `Graphics/runtime integration` 已经从“API 存在”推进到了“shared runtime UI 能通过 graphics pass 真正出图并可验证”。
+这意味着 `Graphics/runtime integration` 当前不再依赖 `zircon_graphics` 自己持有 runtime host helper；shared runtime UI 现在经由 `zircon_runtime::ui` 生成 frame，再通过 graphics pass 真正出图并可验证。

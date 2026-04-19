@@ -1,9 +1,11 @@
 use std::error::Error;
 
 use zircon_core::CoreHandle;
+use zircon_framework::render::RenderFrameExtract;
 use zircon_manager::ManagerResolver;
 use zircon_math::{UVec2, Vec2};
-use zircon_runtime::scene::{create_default_level, NodeKind, RenderFrameExtract};
+use zircon_runtime::scene::components::NodeKind;
+use zircon_runtime::scene::create_default_level;
 
 use super::{camera_controller::RuntimeCameraController, RuntimeEntryApp};
 use crate::runtime_presenter::RenderFrameworkRuntimeBridge;

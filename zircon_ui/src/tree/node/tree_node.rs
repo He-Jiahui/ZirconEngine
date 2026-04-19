@@ -1,9 +1,10 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    Anchor, BoxConstraints, LayoutBoundary, Pivot, Position, UiContainerKind, UiFrame, UiNodeId,
-    UiNodePath, UiScrollState, UiStateFlags,
+    Anchor, BoxConstraints, LayoutBoundary, Pivot, Position, UiContainerKind, UiFrame,
+    UiScrollState,
 };
+use crate::event_ui::{UiNodeId, UiNodePath, UiStateFlags};
 
 use super::{UiDirtyFlags, UiInputPolicy, UiLayoutCache, UiTemplateNodeMetadata};
 

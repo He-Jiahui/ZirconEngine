@@ -1,4 +1,4 @@
-use zircon_ui::{UiBindingCall, UiBindingValue};
+use zircon_ui::{binding::UiBindingCall, binding::UiBindingValue};
 
 use super::SelectionCommand;
 use crate::ui::binding::core::EditorUiBindingError;

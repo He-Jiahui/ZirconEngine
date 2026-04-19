@@ -1,5 +1,5 @@
+use zircon_framework::render::RenderSceneSnapshot;
 use zircon_math::UVec2;
-use zircon_scene::RenderSceneSnapshot;
 
 use crate::types::{EditorOrRuntimeFrame, GraphicsError, ViewportFrame};
 

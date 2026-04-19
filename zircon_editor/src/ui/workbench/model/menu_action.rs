@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use zircon_scene::NodeKind;
+use zircon_scene::components::NodeKind;
 
 use crate::view::ViewDescriptorId;
 

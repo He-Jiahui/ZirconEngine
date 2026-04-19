@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-use zircon_asset::ProjectAssetManager;
+use zircon_asset::pipeline::manager::ProjectAssetManager;
 use zircon_rhi::RenderDevice;
 use zircon_rhi_wgpu::WgpuRenderDevice;
 

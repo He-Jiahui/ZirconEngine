@@ -1,7 +1,6 @@
-use zircon_ui::UiNodeId;
+use zircon_ui::event_ui::UiNodeId;
 
-pub(in crate::ui::slint_host::document_tab_pointer) const ROOT_NODE_ID: UiNodeId =
-    UiNodeId::new(1);
+pub(in crate::ui::slint_host::document_tab_pointer) const ROOT_NODE_ID: UiNodeId = UiNodeId::new(1);
 pub(in crate::ui::slint_host::document_tab_pointer) const SURFACE_NODE_ID_BASE: u64 = 10;
 pub(in crate::ui::slint_host::document_tab_pointer) const TAB_NODE_ID_BASE: u64 = 100;
 pub(in crate::ui::slint_host::document_tab_pointer) const CLOSE_NODE_ID_BASE: u64 = 10_000;

@@ -48,7 +48,7 @@ fn child_window_hierarchy_pointer_move_prefers_projected_floating_window_content
         )
     };
 
-    child.invoke_hierarchy_pointer_moved(24.0, 24.0, 0.0, 0.0);
+    pane_surface_host(&child).invoke_hierarchy_pointer_moved(24.0, 24.0, 0.0, 0.0);
 
     let host = harness.host.borrow();
     assert_eq!(
@@ -65,7 +65,7 @@ fn child_window_hierarchy_pointer_falls_back_to_native_window_bounds_when_projec
     let harness =
         ChildWindowHostHarness::new("zircon_slint_child_window_floating_content_native_fallback");
     let child = harness.detach_view_to_child_window("editor.hierarchy#1", "window:hierarchy");
-    let native_bounds = child.get_native_window_bounds();
+    let native_bounds = child.get_host_shell().native_window_bounds;
     let expected_size = {
         let mut host = harness.host.borrow_mut();
         let window_id = MainPageId::new("window:hierarchy");
@@ -84,7 +84,7 @@ fn child_window_hierarchy_pointer_falls_back_to_native_window_bounds_when_projec
         )
     };
 
-    child.invoke_hierarchy_pointer_moved(24.0, 24.0, 0.0, 0.0);
+    pane_surface_host(&child).invoke_hierarchy_pointer_moved(24.0, 24.0, 0.0, 0.0);
 
     let host = harness.host.borrow();
     assert_eq!(

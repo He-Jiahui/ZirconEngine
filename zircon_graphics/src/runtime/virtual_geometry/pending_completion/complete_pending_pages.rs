@@ -10,13 +10,20 @@ impl VirtualGeometryRuntimeState {
             return;
         }
 
-        let requested_pages = page_ids
-            .into_iter()
-            .filter(|page_id| self.pending_pages.contains(page_id))
-            .take(self.page_budget)
-            .collect::<Vec<_>>();
+        let mut requested_pages = Vec::new();
+        let mut seen_page_ids = std::collections::BTreeSet::new();
+        for page_id in page_ids {
+            if !self.pending_pages.contains(&page_id) || !seen_page_ids.insert(page_id) {
+                continue;
+            }
+            requested_pages.push(page_id);
+            if requested_pages.len() >= self.page_budget {
+                break;
+            }
+        }
 
         for page_id in requested_pages {
+            let inherits_hot_frontier = self.page_or_lineage_is_hot(page_id);
             while self.resident_slots.len() >= self.page_budget {
                 if !self
                     .evict_one(self.ordered_evictable_pages_for_target(page_id, evictable_pages))
@@ -28,6 +35,9 @@ impl VirtualGeometryRuntimeState {
             }
 
             self.promote_to_resident(page_id);
+            if inherits_hot_frontier {
+                self.current_hot_resident_pages.insert(page_id);
+            }
         }
 
         self.evictable_pages

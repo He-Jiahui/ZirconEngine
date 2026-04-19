@@ -7948,26 +7948,14 @@ dependencies = [
  "toml 1.1.2+spec-1.1.0",
  "zircon_asset",
  "zircon_core",
- "zircon_foundation",
  "zircon_framework",
- "zircon_input",
  "zircon_manager",
  "zircon_math",
  "zircon_module",
  "zircon_resource",
+ "zircon_runtime",
  "zircon_scene",
  "zircon_ui",
-]
-
-[[package]]
-name = "zircon_foundation"
-version = "0.1.0"
-dependencies = [
- "serde_json",
- "zircon_core",
- "zircon_framework",
- "zircon_manager",
- "zircon_module",
 ]
 
 [[package]]
@@ -8008,17 +7996,6 @@ dependencies = [
  "zircon_rhi_wgpu",
  "zircon_scene",
  "zircon_ui",
-]
-
-[[package]]
-name = "zircon_input"
-version = "0.1.0"
-dependencies = [
- "winit 0.31.0-beta.2",
- "zircon_core",
- "zircon_framework",
- "zircon_manager",
- "zircon_module",
 ]
 
 [[package]]
@@ -8080,14 +8057,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "zircon_platform"
-version = "0.1.0"
-dependencies = [
- "winit 0.31.0-beta.2",
- "zircon_module",
-]
-
-[[package]]
 name = "zircon_render_graph"
 version = "0.1.0"
 dependencies = [
@@ -8125,19 +8094,26 @@ dependencies = [
 name = "zircon_runtime"
 version = "0.1.0"
 dependencies = [
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+ "toml 1.1.2+spec-1.1.0",
+ "wgpu 29.0.1",
+ "winit 0.31.0-beta.2",
  "zircon_animation",
  "zircon_asset",
- "zircon_foundation",
+ "zircon_core",
+ "zircon_framework",
  "zircon_graphics",
- "zircon_input",
+ "zircon_manager",
+ "zircon_math",
  "zircon_module",
  "zircon_navigation",
  "zircon_net",
  "zircon_particles",
  "zircon_physics",
- "zircon_platform",
+ "zircon_resource",
  "zircon_scene",
- "zircon_script",
  "zircon_sound",
  "zircon_texture",
  "zircon_ui",
@@ -8152,24 +8128,9 @@ dependencies = [
  "serde_json",
  "thiserror 2.0.18",
  "zircon_asset",
- "zircon_core",
  "zircon_framework",
- "zircon_manager",
  "zircon_math",
- "zircon_module",
  "zircon_resource",
-]
-
-[[package]]
-name = "zircon_script"
-version = "0.1.0"
-dependencies = [
- "serde",
- "serde_json",
- "thiserror 2.0.18",
- "toml 1.1.2+spec-1.1.0",
- "zircon_core",
- "zircon_module",
 ]
 
 [[package]]

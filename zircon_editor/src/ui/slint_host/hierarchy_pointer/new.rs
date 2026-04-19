@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use zircon_ui::{UiPointerDispatcher, UiSurface, UiTreeId};
+use zircon_ui::{dispatch::UiPointerDispatcher, event_ui::UiTreeId, UiSurface};
 
 use super::hierarchy_pointer_bridge::HierarchyPointerBridge;
 use super::hierarchy_pointer_layout::HierarchyPointerLayout;

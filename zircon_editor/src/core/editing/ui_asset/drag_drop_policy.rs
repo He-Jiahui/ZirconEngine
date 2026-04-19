@@ -1,4 +1,5 @@
-use zircon_ui::{UiAssetKind, UiNodeDefinitionKind};
+use zircon_ui::UiAssetKind;
+use zircon_ui::template::UiNodeDefinitionKind;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct UiAssetDragDropPolicy;

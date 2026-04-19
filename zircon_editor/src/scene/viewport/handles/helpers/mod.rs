@@ -16,6 +16,4 @@ pub(in crate::scene::viewport::handles) use overlay_builders::{
 pub(in crate::scene::viewport::handles) use rotation_delta::{
     global_rotation_delta, local_rotation_delta,
 };
-pub(in crate::scene::viewport::handles) use selection::{
-    begin_transform_session, selected_basis,
-};
+pub(in crate::scene::viewport::handles) use selection::{begin_transform_session, selected_basis};
