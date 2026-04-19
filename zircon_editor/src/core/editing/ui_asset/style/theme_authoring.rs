@@ -1,10 +1,9 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use toml::Value;
-use zircon_ui::template::{UiAssetHeader, UiAssetImports};
-use zircon_ui::{
-    UiAssetDocument, UiAssetKind, template::UiStyleDeclarationBlock, template::UiStyleRule,
-    template::UiStyleSheet,
+use zircon_runtime::ui::template::{
+    UiAssetDocument, UiAssetHeader, UiAssetImports, UiAssetKind, UiStyleDeclarationBlock,
+    UiStyleRule, UiStyleSheet,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]

@@ -1,5 +1,5 @@
 use crate::ViewportState;
-use zircon_framework::render::{
+use crate::scene::viewport::{
     RenderFrameExtract, RenderSceneSnapshot, RenderWorldSnapshotHandle,
 };
 

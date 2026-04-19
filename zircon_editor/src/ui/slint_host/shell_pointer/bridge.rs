@@ -1,9 +1,12 @@
 use std::collections::BTreeMap;
 
-use zircon_ui::{
+use zircon_runtime::ui::{
     dispatch::{UiPointerDispatcher, UiPointerEvent},
     event_ui::UiNodeId,
-    UiPoint, UiPointerButton, UiPointerEventKind, UiSurface,
+    layout::UiPoint,
+    surface::UiPointerButton,
+    surface::UiPointerEventKind,
+    surface::UiSurface,
 };
 
 use crate::ui::slint_host::callback_dispatch::BuiltinWorkbenchRootShellFrames;

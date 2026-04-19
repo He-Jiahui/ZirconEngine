@@ -1,5 +1,5 @@
-use zircon_framework::render::{SceneViewportSettings, ViewportCameraSnapshot};
-use zircon_scene::Scene;
+use crate::scene::viewport::{SceneViewportSettings, ViewportCameraSnapshot};
+use zircon_runtime::scene::Scene;
 
 #[derive(Clone, Debug)]
 pub(crate) struct HandleBuildContext<'a> {

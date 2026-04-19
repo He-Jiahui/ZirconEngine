@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
-use zircon_asset::{project::ProjectManager, AssetUri};
-use zircon_core::{
+use crate::asset::{project::ProjectManager, AssetUri};
+use crate::core::{
     CoreError, CoreHandle, DriverDescriptor, ManagerDescriptor, ModuleDescriptor, ServiceKind,
     ServiceObject, StartupMode,
 };
-use zircon_manager::LevelManagerHandle;
-use zircon_module::{dependency_on, factory, qualified_name, EngineModule};
+use crate::core::manager::LevelManagerHandle;
+use crate::engine_module::{dependency_on, factory, qualified_name, EngineModule};
 
 mod core_error;
 mod default_level_manager;
@@ -24,7 +24,7 @@ pub use world_driver::WorldDriver;
 pub const SCENE_MODULE_NAME: &str = "SceneModule";
 pub const WORLD_DRIVER_NAME: &str = "SceneModule.Driver.WorldDriver";
 pub const DEFAULT_LEVEL_MANAGER_NAME: &str = "SceneModule.Manager.DefaultLevelManager";
-pub const LEVEL_MANAGER_NAME: &str = zircon_manager::LEVEL_MANAGER_NAME;
+pub const LEVEL_MANAGER_NAME: &str = crate::core::manager::LEVEL_MANAGER_NAME;
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct SceneModule;

@@ -1,4 +1,4 @@
-use zircon_ui::event_ui::UiStateFlags;
+use zircon_runtime::ui::event_ui::UiStateFlags;
 
 pub(super) fn base_state(interactive: bool) -> UiStateFlags {
     UiStateFlags {

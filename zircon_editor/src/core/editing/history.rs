@@ -1,7 +1,7 @@
 //! Undoable command stack for scene edits.
 
-use zircon_math::Transform;
-use zircon_scene::{NodeId, Scene};
+use zircon_runtime::core::math::Transform;
+use zircon_runtime::scene::{NodeId, Scene};
 
 use crate::command::{EditorCommand, NodeEditState, UpdateNodeCommand};
 use crate::module::HISTORY_LIMIT;

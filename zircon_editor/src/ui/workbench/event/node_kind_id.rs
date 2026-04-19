@@ -1,4 +1,4 @@
-use zircon_scene::components::NodeKind;
+use zircon_runtime::scene::components::NodeKind;
 
 pub(super) fn node_kind_id(kind: &NodeKind) -> &'static str {
     match kind {

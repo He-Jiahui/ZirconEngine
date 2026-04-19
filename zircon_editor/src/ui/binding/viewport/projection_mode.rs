@@ -1,4 +1,4 @@
-use zircon_framework::render::ProjectionMode;
+use crate::scene::viewport::ProjectionMode;
 
 pub(crate) fn symbol(mode: ProjectionMode) -> &'static str {
     match mode {

@@ -1,4 +1,4 @@
-use zircon_ui::binding::UiBindingValue;
+use zircon_runtime::ui::binding::UiBindingValue;
 
 use crate::{dispatch_welcome_binding, WelcomeHostEvent};
 
@@ -7,7 +7,7 @@ use super::super::BuiltinWelcomeSurfaceTemplateBridge;
 pub(crate) fn dispatch_builtin_welcome_surface_control(
     bridge: &BuiltinWelcomeSurfaceTemplateBridge,
     control_id: &str,
-    event_kind: zircon_ui::binding::UiEventKind,
+    event_kind: zircon_runtime::ui::binding::UiEventKind,
     arguments: Vec<UiBindingValue>,
 ) -> Option<Result<WelcomeHostEvent, String>> {
     let binding = match bridge.binding_for_control(control_id, event_kind) {

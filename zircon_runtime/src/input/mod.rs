@@ -3,13 +3,13 @@
 mod module;
 mod runtime;
 
-use zircon_module::{EngineModule, ModuleDescriptor};
+use crate::engine_module::{EngineModule, ModuleDescriptor};
 
 pub use module::{
     module_descriptor, InputConfig, INPUT_DRIVER_NAME, INPUT_MANAGER_NAME, INPUT_MODULE_NAME,
 };
 pub use runtime::{DefaultInputManager, InputDriver};
-pub use zircon_framework::input::{InputButton, InputEvent, InputEventRecord, InputSnapshot};
+pub use crate::core::framework::input::{InputButton, InputEvent, InputEventRecord, InputSnapshot};
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct InputModule;

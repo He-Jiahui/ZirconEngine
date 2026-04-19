@@ -5,12 +5,12 @@ use crate::ui::{
     UiDesignerSelectionModel, UiStyleInspectorReflectionModel,
 };
 use thiserror::Error;
-use zircon_ui::template::{
+use zircon_runtime::ui::template::{
     UiAssetError, UiAssetLoader, UiCompiledDocument, UiStyleDeclarationBlock, UiStyleRule,
     UiStyleSheet, UiTemplateBuildError,
 };
-use zircon_ui::tree::UiTreeError;
-use zircon_ui::{UiAssetDocument, UiAssetKind, UiSize};
+use zircon_runtime::ui::tree::UiTreeError;
+use zircon_runtime::ui::{layout::UiSize, template::UiAssetDocument, template::UiAssetKind};
 
 use super::{
     binding_inspector::{
@@ -1559,7 +1559,7 @@ impl UiAssetEditorSession {
     pub fn selected_reference_asset_id(&self) -> Option<String> {
         let node_id = self.selection.primary_node_id.as_deref()?;
         let node = self.last_valid_document.nodes.get(node_id)?;
-        if node.kind != zircon_ui::template::UiNodeDefinitionKind::Reference {
+        if node.kind != zircon_runtime::ui::template::UiNodeDefinitionKind::Reference {
             return None;
         }
         node.component_ref
@@ -2277,6 +2277,7 @@ impl UiAssetEditorSession {
             .widgets
             .insert(widget_reference, widget_document.clone());
         let selection = selection_for_node(&document, &node_id);
+        let replay = tree_document_replay_bundle(&self.last_valid_document, &document);
         self.apply_command_with_effects(
             UiAssetEditorCommand::tree_edit_structured_with_selection(
                 UiAssetEditorTreeEdit::PromoteToExternalWidget {
@@ -2288,7 +2289,8 @@ impl UiAssetEditorSession {
                 "Promote To External Widget",
                 serialize_document(&document)?,
                 selection,
-            ),
+            )
+            .with_document_replay(replay),
             UiAssetEditorUndoExternalEffects {
                 undo: restore_or_remove_external_asset_source(
                     widget_asset_id,
@@ -4684,11 +4686,10 @@ fn tree_document_replay_commands(
     target: &UiAssetDocument,
 ) -> Vec<UiAssetEditorDocumentReplayCommand> {
     let mut commands = Vec::new();
-    if current.imports.widgets != target.imports.widgets {
-        commands.push(UiAssetEditorDocumentReplayCommand::SetWidgetImports {
-            references: target.imports.widgets.clone(),
-        });
-    }
+    commands.extend(build_widget_import_replay_commands(
+        &current.imports.widgets,
+        &target.imports.widgets,
+    ));
     commands.extend(upsert_component_replay_commands(
         &current.components,
         &target.components,
@@ -4707,9 +4708,69 @@ fn tree_document_replay_commands(
     commands
 }
 
+fn build_widget_import_replay_commands(
+    current: &[String],
+    target: &[String],
+) -> Vec<UiAssetEditorDocumentReplayCommand> {
+    if current == target {
+        return Vec::new();
+    }
+    if has_duplicate_string_entries(current) || has_duplicate_string_entries(target) {
+        return vec![UiAssetEditorDocumentReplayCommand::SetWidgetImports {
+            references: target.to_vec(),
+        }];
+    }
+
+    let target_entries = target.iter().cloned().collect::<BTreeSet<_>>();
+    let mut working = current.to_vec();
+    let mut commands = Vec::new();
+
+    for index in (0..working.len()).rev() {
+        if target_entries.contains(&working[index]) {
+            continue;
+        }
+        let reference = working.remove(index);
+        commands.push(UiAssetEditorDocumentReplayCommand::RemoveWidgetImport { index, reference });
+    }
+
+    for (target_index, target_reference) in target.iter().enumerate() {
+        match working
+            .iter()
+            .position(|reference| reference == target_reference)
+        {
+            Some(current_index) => {
+                if current_index != target_index {
+                    let moved = working.remove(current_index);
+                    working.insert(target_index, moved);
+                    commands.push(UiAssetEditorDocumentReplayCommand::MoveWidgetImport {
+                        from_index: current_index,
+                        to_index: target_index,
+                        reference: target_reference.clone(),
+                    });
+                }
+            }
+            None => {
+                working.insert(target_index, target_reference.clone());
+                commands.push(UiAssetEditorDocumentReplayCommand::InsertWidgetImport {
+                    index: target_index,
+                    reference: target_reference.clone(),
+                });
+            }
+        }
+    }
+
+    if working != target {
+        return vec![UiAssetEditorDocumentReplayCommand::SetWidgetImports {
+            references: target.to_vec(),
+        }];
+    }
+
+    commands
+}
+
 fn upsert_node_replay_commands(
-    current: &BTreeMap<String, zircon_ui::template::UiNodeDefinition>,
-    target: &BTreeMap<String, zircon_ui::template::UiNodeDefinition>,
+    current: &BTreeMap<String, zircon_runtime::ui::template::UiNodeDefinition>,
+    target: &BTreeMap<String, zircon_runtime::ui::template::UiNodeDefinition>,
 ) -> Vec<UiAssetEditorDocumentReplayCommand> {
     target
         .iter()
@@ -4725,8 +4786,8 @@ fn upsert_node_replay_commands(
 }
 
 fn remove_node_replay_commands(
-    current: &BTreeMap<String, zircon_ui::template::UiNodeDefinition>,
-    target: &BTreeMap<String, zircon_ui::template::UiNodeDefinition>,
+    current: &BTreeMap<String, zircon_runtime::ui::template::UiNodeDefinition>,
+    target: &BTreeMap<String, zircon_runtime::ui::template::UiNodeDefinition>,
 ) -> Vec<UiAssetEditorDocumentReplayCommand> {
     current
         .keys()
@@ -4738,8 +4799,8 @@ fn remove_node_replay_commands(
 }
 
 fn upsert_component_replay_commands(
-    current: &BTreeMap<String, zircon_ui::template::UiComponentDefinition>,
-    target: &BTreeMap<String, zircon_ui::template::UiComponentDefinition>,
+    current: &BTreeMap<String, zircon_runtime::ui::template::UiComponentDefinition>,
+    target: &BTreeMap<String, zircon_runtime::ui::template::UiComponentDefinition>,
 ) -> Vec<UiAssetEditorDocumentReplayCommand> {
     target
         .iter()
@@ -4755,8 +4816,8 @@ fn upsert_component_replay_commands(
 }
 
 fn remove_component_replay_commands(
-    current: &BTreeMap<String, zircon_ui::template::UiComponentDefinition>,
-    target: &BTreeMap<String, zircon_ui::template::UiComponentDefinition>,
+    current: &BTreeMap<String, zircon_runtime::ui::template::UiComponentDefinition>,
+    target: &BTreeMap<String, zircon_runtime::ui::template::UiComponentDefinition>,
 ) -> Vec<UiAssetEditorDocumentReplayCommand> {
     current
         .keys()
@@ -4856,14 +4917,14 @@ fn build_style_import_replay_commands(
             continue;
         }
         let reference = working.remove(index);
-        commands.push(UiAssetEditorDocumentReplayCommand::RemoveStyleImport {
-            index,
-            reference,
-        });
+        commands.push(UiAssetEditorDocumentReplayCommand::RemoveStyleImport { index, reference });
     }
 
     for (target_index, target_reference) in target.iter().enumerate() {
-        match working.iter().position(|reference| reference == target_reference) {
+        match working
+            .iter()
+            .position(|reference| reference == target_reference)
+        {
             Some(current_index) => {
                 if current_index != target_index {
                     let moved = working.remove(current_index);
@@ -5152,4 +5213,3 @@ fn preview_summary(preview_host: Option<&UiAssetPreviewHost>) -> String {
         preview_host.preview_size().height
     )
 }
-

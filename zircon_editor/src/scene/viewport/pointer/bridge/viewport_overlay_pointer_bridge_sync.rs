@@ -1,8 +1,8 @@
-use zircon_framework::render::{
+use crate::scene::viewport::{
     HandleOverlayExtract, SceneViewportSettings, ViewportCameraSnapshot,
 };
-use zircon_math::UVec2;
-use zircon_scene::Scene;
+use zircon_runtime::core::math::UVec2;
+use zircon_runtime::scene::Scene;
 
 use crate::scene::viewport::pointer::{
     candidates::{renderable_candidates, scene_gizmo_candidates},

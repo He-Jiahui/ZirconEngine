@@ -89,7 +89,7 @@ fn runtime_input_protocol_is_owned_by_input_subsystem() {
         "runtime window event handling should import input protocol types through zircon_runtime"
     );
     assert!(
-        !runtime_handler_source.contains("use zircon_manager::{InputButton, InputEvent};"),
+        !runtime_handler_source.contains("use zircon_runtime::core::manager::{InputButton, InputEvent};"),
         "runtime window event handling should not import input protocol types from zircon_manager"
     );
 }

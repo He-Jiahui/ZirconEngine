@@ -1,5 +1,5 @@
 use crate::ui::{UiAssetEditorReflectionModel, UiDesignerSelectionModel};
-use zircon_ui::UiAssetDocument;
+use zircon_runtime::ui::template::UiAssetDocument;
 
 pub(super) fn selection_summary(selection: &UiDesignerSelectionModel) -> String {
     let primary = selection

@@ -4,8 +4,8 @@ use winit::application::ApplicationHandler;
 use winit::event::{ElementState, MouseButton, MouseScrollDelta, WindowEvent};
 use winit::event_loop::ActiveEventLoop;
 use winit::window::{Window, WindowAttributes, WindowId};
+use zircon_runtime::core::math::{UVec2, Vec2};
 use zircon_runtime::input::{InputButton, InputEvent};
-use zircon_math::{UVec2, Vec2};
 
 use super::RuntimeEntryApp;
 use crate::runtime_presenter::SoftbufferRuntimePresenter;

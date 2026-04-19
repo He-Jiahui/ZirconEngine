@@ -1,4 +1,4 @@
-use zircon_math::Vec2;
+use zircon_runtime::core::math::Vec2;
 
 #[derive(Clone, Debug)]
 pub(in crate::scene::viewport::pointer) enum PrecisionShape {

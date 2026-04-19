@@ -1,7 +1,7 @@
-use zircon_framework::render::{
+use crate::scene::viewport::{
     SceneGizmoOverlayExtract, SceneViewportSettings, ViewportCameraSnapshot,
 };
-use zircon_scene::Scene;
+use zircon_runtime::scene::Scene;
 
 use crate::scene::viewport::render_packet::build_scene_gizmos;
 

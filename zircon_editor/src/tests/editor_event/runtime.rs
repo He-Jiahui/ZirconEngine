@@ -1,11 +1,14 @@
 use crate::ui::{DockCommand, EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind};
 use serde_json::json;
 use std::fs;
-use zircon_scene::components::NodeKind;
-use zircon_ui::{event_ui::UiControlRequest, event_ui::UiControlResponse, event_ui::UiNodePath};
+use zircon_runtime::core::resource::ResourceKind;
+use zircon_runtime::scene::components::NodeKind;
+use zircon_runtime::ui::{
+    event_ui::UiControlRequest, event_ui::UiControlResponse, event_ui::UiNodePath,
+};
 
 use crate::core::editor_event::{
-    host_adapter, EditorEventReplay, EditorEventSource, EditorEventTransient,
+    host_adapter, EditorAssetEvent, EditorEventReplay, EditorEventSource, EditorEventTransient,
 };
 use crate::{menu_action_binding, EditorEvent, LayoutCommand, MenuAction, WorkbenchLayout};
 
@@ -495,4 +498,93 @@ props = { text = "Runtime" }
         .any(|instance| instance.descriptor_id == crate::ViewDescriptorId::new("editor.ui_asset")));
 
     let _ = fs::remove_file(ui_asset_path);
+}
+
+#[test]
+fn workbench_menu_open_ui_asset_opens_ui_asset_editor_for_shared_asset() {
+    let _guard = env_lock().lock().unwrap();
+
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_menu_open_ui_asset");
+    let ui_asset_path = std::env::temp_dir().join("zircon_editor_event_menu_open_ui_asset.ui.toml");
+    fs::write(
+        &ui_asset_path,
+        r#"
+[asset]
+kind = "layout"
+id = "editor.tests.menu_ui_asset"
+version = 1
+display_name = "Menu UI Asset"
+
+[root]
+node = "root"
+
+[nodes.root]
+kind = "native"
+type = "Label"
+props = { text = "Menu" }
+"#,
+    )
+    .unwrap();
+
+    let record = runtime
+        .runtime
+        .dispatch_event(
+            EditorEventSource::Headless,
+            EditorEvent::Asset(EditorAssetEvent::OpenAsset {
+                asset_path: ui_asset_path.to_string_lossy().into_owned(),
+            }),
+        )
+        .expect("menu open ui asset");
+
+    assert_eq!(
+        record.event,
+        EditorEvent::Asset(EditorAssetEvent::OpenAsset {
+            asset_path: ui_asset_path.to_string_lossy().into_owned(),
+        })
+    );
+    assert!(record
+        .effects
+        .contains(&crate::EditorEventEffect::LayoutChanged));
+    assert!(runtime
+        .runtime
+        .current_view_instances()
+        .into_iter()
+        .any(|instance| instance.descriptor_id == crate::ViewDescriptorId::new("editor.ui_asset")));
+
+    let _ = fs::remove_file(ui_asset_path);
+}
+
+#[test]
+fn asset_kind_filter_event_accepts_physics_and_animation_asset_kinds() {
+    let _guard = env_lock().lock().unwrap();
+
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_asset_kind_filters");
+    for (kind, expected) in [
+        ("PhysicsMaterial", ResourceKind::PhysicsMaterial),
+        ("AnimationSequence", ResourceKind::AnimationSequence),
+        ("AnimationGraph", ResourceKind::AnimationGraph),
+        ("AnimationStateMachine", ResourceKind::AnimationStateMachine),
+    ] {
+        let record = runtime
+            .runtime
+            .dispatch_event(
+                EditorEventSource::Headless,
+                EditorEvent::Asset(EditorAssetEvent::SetKindFilter {
+                    kind: Some(kind.to_string()),
+                }),
+            )
+            .expect("asset kind filter event");
+
+        assert_eq!(
+            runtime.runtime.editor_snapshot().asset_activity.kind_filter,
+            Some(expected)
+        );
+        assert_eq!(
+            runtime.runtime.editor_snapshot().asset_browser.kind_filter,
+            Some(expected)
+        );
+        assert!(record
+            .effects
+            .contains(&crate::EditorEventEffect::PresentationChanged));
+    }
 }

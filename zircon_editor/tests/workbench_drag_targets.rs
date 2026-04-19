@@ -4,7 +4,7 @@ use zircon_editor::{
     resolve_workbench_drag_target_group, ShellFrame, ShellRegionId, ShellSizePx,
     WorkbenchDragTargetGroup, WorkbenchShellGeometry,
 };
-use zircon_ui::UiPoint;
+use zircon_runtime::ui::layout::UiPoint;
 
 fn shell_geometry(
     right_region: ShellFrame,

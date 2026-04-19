@@ -68,7 +68,7 @@ pub(crate) fn build_workbench_drawer_header_pointer_layout(
 fn build_surface_for_region(
     key: &str,
     region: ShellRegionId,
-    region_frame: zircon_ui::UiFrame,
+    region_frame: zircon_runtime::ui::layout::UiFrame,
     model: &WorkbenchViewModel,
     slots: &[crate::ActivityDrawerSlot],
     metrics: &WorkbenchChromeMetrics,

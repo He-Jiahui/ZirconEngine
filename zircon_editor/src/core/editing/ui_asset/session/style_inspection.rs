@@ -1,7 +1,7 @@
 use crate::ui::{UiDesignerSelectionModel, UiStyleInspectorReflectionModel};
 use serde_json::Value as JsonValue;
 use toml::Value;
-use zircon_ui::UiAssetDocument;
+use zircon_runtime::ui::template::UiAssetDocument;
 
 use super::super::style::{
     matched_rule_inspection::{
@@ -263,7 +263,7 @@ pub(super) fn pseudo_state_active(
         .any(|entry| entry == state)
 }
 
-fn selector_for_node(node: &zircon_ui::template::UiNodeDefinition) -> String {
+fn selector_for_node(node: &zircon_runtime::ui::template::UiNodeDefinition) -> String {
     if let Some(control_id) = node.control_id.as_deref() {
         return format!("#{control_id}");
     }
@@ -279,4 +279,3 @@ fn selector_for_node(node: &zircon_ui::template::UiNodeDefinition) -> String {
 fn toml_value_to_json(value: &Value) -> JsonValue {
     serde_json::to_value(value).unwrap_or(JsonValue::Null)
 }
-

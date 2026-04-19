@@ -6,7 +6,7 @@ use crate::{ActivityDrawerSlot, LayoutCommand, ShellRegionId};
 #[cfg(test)]
 use crate::{ShellSizePx, WorkbenchShellGeometry};
 #[cfg(test)]
-use zircon_ui::UiPoint;
+use zircon_runtime::ui::layout::UiPoint;
 
 #[cfg(test)]
 use super::shell_pointer::WorkbenchShellPointerBridge;

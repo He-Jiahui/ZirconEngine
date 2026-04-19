@@ -1,7 +1,7 @@
 use crate::{ViewportFeedback, ViewportInput};
-use zircon_framework::render::SceneViewportTool;
-use zircon_math::Vec2;
-use zircon_scene::Scene;
+use crate::scene::viewport::SceneViewportTool;
+use zircon_runtime::core::math::Vec2;
+use zircon_runtime::scene::Scene;
 
 use crate::scene::viewport::pointer::ViewportPointerRoute;
 

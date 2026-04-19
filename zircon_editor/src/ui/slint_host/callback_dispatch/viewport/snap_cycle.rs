@@ -1,4 +1,4 @@
-use zircon_framework::render::{DisplayMode, GridMode};
+use crate::scene::viewport::{DisplayMode, GridMode};
 
 pub(in crate::ui::slint_host::callback_dispatch::viewport) fn next_display_mode_name(
     mode: DisplayMode,

@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use crate::ui::UiDesignerSelectionModel;
-use zircon_ui::UiAssetDocument;
+use zircon_runtime::ui::template::UiAssetDocument;
 
 use super::command::{
     UiAssetEditorDocumentReplayBundle, UiAssetEditorDocumentReplayCommand,
@@ -84,18 +84,21 @@ impl UiAssetEditorUndoTransition {
     }
 
     pub fn apply_to_document(&self, document: &mut UiAssetDocument) -> Result<bool, &'static str> {
+        let original_document = document.clone();
         let mut changed = false;
         if !self.document_commands.is_empty() {
             for command in &self.document_commands {
                 changed |= apply_document_replay_command(document, command)?;
             }
-            return Ok(changed);
         }
-        changed |= self
-            .document
-            .as_ref()
-            .map(|replay| replay.apply_to_document(document))
-            .unwrap_or(Ok(false))?;
+        if let Some(replay) = self.document.as_ref() {
+            let mut target_document = original_document;
+            let _ = replay.apply_to_document(&mut target_document)?;
+            if *document != target_document {
+                *document = target_document;
+                changed = true;
+            }
+        }
         Ok(changed)
     }
 }
@@ -178,6 +181,10 @@ pub struct UiAssetEditorUndoReplayRecord {
 }
 
 impl UiAssetEditorUndoStack {
+    fn preview_redo_entry(&self) -> Option<&SourceEditEntry> {
+        self.redo_stack.last().or_else(|| self.undo_stack.last())
+    }
+
     pub fn push_edit(
         &mut self,
         label: impl Into<String>,
@@ -288,7 +295,7 @@ impl UiAssetEditorUndoStack {
     }
 
     pub fn next_redo_label(&self) -> Option<String> {
-        self.redo_stack.last().map(|entry| entry.label.clone())
+        self.preview_redo_entry().map(|entry| entry.label.clone())
     }
 
     pub fn next_undo_tree_edit_kind(&self) -> Option<UiAssetEditorTreeEditKind> {
@@ -298,8 +305,7 @@ impl UiAssetEditorUndoStack {
     }
 
     pub fn next_redo_tree_edit_kind(&self) -> Option<UiAssetEditorTreeEditKind> {
-        self.redo_stack
-            .last()
+        self.preview_redo_entry()
             .and_then(|entry| entry.tree_edit.as_ref().map(UiAssetEditorTreeEdit::kind))
     }
 
@@ -310,8 +316,7 @@ impl UiAssetEditorUndoStack {
     }
 
     pub fn next_redo_tree_edit(&self) -> Option<UiAssetEditorTreeEdit> {
-        self.redo_stack
-            .last()
+        self.preview_redo_entry()
             .and_then(|entry| entry.tree_edit.clone())
     }
 
@@ -322,8 +327,7 @@ impl UiAssetEditorUndoStack {
     }
 
     pub fn next_redo_inverse_tree_edit(&self) -> Option<UiAssetEditorInverseTreeEdit> {
-        self.redo_stack
-            .last()
+        self.preview_redo_entry()
             .and_then(|entry| entry.inverse_tree_edit.clone())
     }
 
@@ -350,15 +354,13 @@ impl UiAssetEditorUndoStack {
     }
 
     pub fn next_redo_document_replay_commands(&self) -> Vec<UiAssetEditorDocumentReplayCommand> {
-        self.redo_stack
-            .last()
+        self.preview_redo_entry()
             .map(|entry| entry.redo.document_commands.clone())
             .unwrap_or_default()
     }
 
     pub fn next_redo_external_effects(&self) -> Vec<UiAssetEditorExternalEffect> {
-        self.redo_stack
-            .last()
+        self.preview_redo_entry()
             .map(|entry| entry.redo.external_effects.clone())
             .unwrap_or_default()
     }
@@ -374,6 +376,52 @@ fn apply_document_replay_command(
                 return Ok(false);
             }
             document.imports.widgets = references.clone();
+            Ok(true)
+        }
+        UiAssetEditorDocumentReplayCommand::InsertWidgetImport { index, reference } => {
+            let insert_index = (*index).min(document.imports.widgets.len());
+            if document
+                .imports
+                .widgets
+                .get(insert_index)
+                .is_some_and(|existing| existing == reference)
+            {
+                return Ok(false);
+            }
+            document
+                .imports
+                .widgets
+                .insert(insert_index, reference.clone());
+            Ok(true)
+        }
+        UiAssetEditorDocumentReplayCommand::RemoveWidgetImport { index, reference } => {
+            if *index >= document.imports.widgets.len() {
+                return Ok(false);
+            }
+            if document.imports.widgets[*index] != *reference {
+                return Err("invalid widget import replay");
+            }
+            let _ = document.imports.widgets.remove(*index);
+            Ok(true)
+        }
+        UiAssetEditorDocumentReplayCommand::MoveWidgetImport {
+            from_index,
+            to_index,
+            reference,
+        } => {
+            if *from_index >= document.imports.widgets.len()
+                || *to_index >= document.imports.widgets.len()
+            {
+                return Ok(false);
+            }
+            if from_index == to_index {
+                return Ok(false);
+            }
+            if document.imports.widgets[*from_index] != *reference {
+                return Err("invalid widget import replay");
+            }
+            let widget_import = document.imports.widgets.remove(*from_index);
+            document.imports.widgets.insert(*to_index, widget_import);
             Ok(true)
         }
         UiAssetEditorDocumentReplayCommand::SetRoot { root } => {
@@ -443,7 +491,10 @@ fn apply_document_replay_command(
             {
                 return Ok(false);
             }
-            document.imports.styles.insert(insert_index, reference.clone());
+            document
+                .imports
+                .styles
+                .insert(insert_index, reference.clone());
             Ok(true)
         }
         UiAssetEditorDocumentReplayCommand::RemoveStyleImport { index, reference } => {
@@ -506,7 +557,7 @@ fn apply_document_replay_command(
             stylesheet,
         } => {
             let Some(stylesheet) = stylesheet.clone().or_else(|| {
-                Some(zircon_ui::template::UiStyleSheet {
+                Some(zircon_runtime::ui::template::UiStyleSheet {
                     id: stylesheet_id.clone(),
                     rules: Vec::new(),
                 })
@@ -810,4 +861,3 @@ fn common_suffix_len(left: &str, right: &str) -> usize {
         .map(|(character, _)| character.len_utf8())
         .sum()
 }
-

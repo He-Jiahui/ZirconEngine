@@ -1,4 +1,4 @@
-use zircon_scene::components::NodeKind;
+use zircon_runtime::scene::components::NodeKind;
 
 pub(super) fn node_kind_from_id(value: &str) -> Option<NodeKind> {
     match value {

@@ -20,7 +20,7 @@ related_code:
   - zircon_editor/ui/workbench.slint
   - zircon_editor/ui/workbench/chrome.slint
   - zircon_scene/src/lib.rs
-  - zircon_scene/src/world.rs
+  - zircon_scene/src/world/mod.rs
 implementation_files:
   - zircon_editor/src/ui/slint_host/app.rs
   - zircon_editor/src/core/host/resource_access.rs
@@ -37,7 +37,7 @@ implementation_files:
   - zircon_editor/src/ui/workbench/view/mod.rs
   - zircon_editor/ui/workbench.slint
   - zircon_editor/ui/workbench/chrome.slint
-  - zircon_scene/src/world.rs
+  - zircon_scene/src/world/mod.rs
 plan_sources:
   - user: 2026-04-12 扩展 editor 命令系统到删除节点、改父子层级、重命名和 inspector 字段批量提交
   - user: 2026-04-12 实现 Zircon Editor Workbench Shell V1
@@ -113,7 +113,7 @@ doc_type: category-index
 - `zircon_graphics/src/scene/scene_renderer/overlay/mod.rs`
 - `zircon_editor/ui/workbench.slint`
 - `zircon_editor/ui/workbench/chrome.slint`
-- `zircon_scene/src/world.rs`
+- `zircon_scene/src/world/mod.rs`
 
 ## Current Scope
 

@@ -22,7 +22,7 @@ fn builtin_pane_surface_trigger_action_matches_legacy_menu_action_dispatch() {
         &bridge,
         "TriggerAction",
         UiEventKind::Click,
-        vec![zircon_ui::binding::UiBindingValue::string("CreateScene")],
+        vec![zircon_runtime::ui::binding::UiBindingValue::string("CreateScene")],
     )
     .expect("templated pane surface action should resolve")
     .unwrap();

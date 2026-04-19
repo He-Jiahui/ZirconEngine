@@ -1,4 +1,4 @@
-use zircon_ui::UiFrame;
+use zircon_runtime::ui::layout::UiFrame;
 
 use super::constants::{STRIP_Y, TAB_HEIGHT, TAB_MIN_WIDTH};
 use super::workbench_drawer_header_pointer_bridge::WorkbenchDrawerHeaderPointerBridge;

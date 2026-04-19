@@ -1,5 +1,5 @@
-use zircon_math::Vec2;
-use zircon_ui::UiFrame;
+use zircon_runtime::core::math::Vec2;
+use zircon_runtime::ui::layout::UiFrame;
 
 pub(in crate::scene::viewport::pointer) fn frame_from_points(
     points: &[Vec2],

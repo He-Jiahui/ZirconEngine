@@ -1,4 +1,4 @@
-use zircon_scene::Scene;
+use zircon_runtime::scene::Scene;
 
 use crate::scene::viewport::pointer::viewport_renderable_pick_candidate::ViewportRenderablePickCandidate;
 

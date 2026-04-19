@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use toml::Value;
-use zircon_ui::{binding::UiEventKind, event_ui::UiRouteId, UiFrame};
+use zircon_runtime::ui::{binding::UiEventKind, event_ui::UiRouteId, layout::UiFrame};
 
 use super::SlintUiHostModel;
 

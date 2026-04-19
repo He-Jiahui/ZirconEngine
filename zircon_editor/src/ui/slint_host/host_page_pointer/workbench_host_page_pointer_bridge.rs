@@ -1,6 +1,8 @@
 use std::collections::BTreeMap;
 
-use zircon_ui::{dispatch::UiPointerDispatcher, event_ui::UiNodeId, UiFrame, UiSurface};
+use zircon_runtime::ui::{
+    dispatch::UiPointerDispatcher, event_ui::UiNodeId, layout::UiFrame, surface::UiSurface,
+};
 
 use super::workbench_host_page_pointer_layout::WorkbenchHostPagePointerLayout;
 use super::workbench_host_page_pointer_target::WorkbenchHostPagePointerTarget;

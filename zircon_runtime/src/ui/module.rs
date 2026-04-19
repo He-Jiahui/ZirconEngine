@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
-use zircon_core::{
+use crate::ui::event_ui::UiEventManager;
+use crate::core::{
     DriverDescriptor, ManagerDescriptor, ModuleDescriptor, ServiceKind, ServiceObject, StartupMode,
 };
-use zircon_module::{dependency_on, factory, qualified_name, EngineModule};
-use zircon_ui::event_ui::UiEventManager;
+use crate::engine_module::{dependency_on, factory, qualified_name, EngineModule};
 
 pub const UI_MODULE_NAME: &str = "UiModule";
 pub const UI_RUNTIME_DRIVER_NAME: &str = "UiModule.Driver.UiRuntimeDriver";

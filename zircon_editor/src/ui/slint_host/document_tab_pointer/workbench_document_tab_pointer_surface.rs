@@ -1,4 +1,4 @@
-use zircon_ui::UiFrame;
+use zircon_runtime::ui::layout::UiFrame;
 
 use super::workbench_document_tab_pointer_item::WorkbenchDocumentTabPointerItem;
 

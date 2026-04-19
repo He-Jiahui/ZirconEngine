@@ -1,8 +1,8 @@
-import { HostWindowShellData, HostWindowLayoutData, HostWindowSurfaceData } from "host_components.slint";
-import { HostWorkbenchWindowSurface, HostNativeWorkbenchWindowSurface } from "host_surface.slint";
+import { HostWindowShellData, HostWindowLayoutData, HostWindowBootstrapData, HostNativeFloatingWindowSurfaceData } from "host_components.slint";
+import { HostWorkbenchWindowSceneData } from "host_scene.slint";
+import { HostWorkbenchWindowSurfaceHost } from "host_surface.slint";
 
 export component WorkbenchHostScaffold inherits Rectangle {
-    in property <HostWindowSurfaceData> host_surface_data;
     in property <HostWindowShellData> host_shell: {
         project_path: "",
         status_secondary: "",
@@ -35,24 +35,18 @@ export component WorkbenchHostScaffold inherits Rectangle {
         bottom_splitter_frame: { x: 0.0, y: 0.0, width: 0.0, height: 0.0 },
         viewport_content_frame: { x: 0.0, y: 0.0, width: 0.0, height: 0.0 },
     };
-    out property <float> shell_width_px: root.width / 1px;
-    out property <float> shell_height_px: root.height / 1px;
-    out property <float> viewport_width: root.host_layout.viewport_content_frame.width;
-    out property <float> viewport_height: root.host_layout.viewport_content_frame.height;
-    
-    if !root.host_shell.native_floating_window_mode: HostWorkbenchWindowSurface {
-        width: parent.width;
-        height: parent.height;
-        host_surface_data: root.host_surface_data;
-        host_shell: root.host_shell;
-        host_layout: root.host_layout;
-    }
+    in property <HostWorkbenchWindowSceneData> workbench_scene_data;
+    in property <HostNativeFloatingWindowSurfaceData> native_floating_surface_data;
+    out property <HostWindowBootstrapData> host_window_bootstrap: {
+        shell_frame: { x: 0.0, y: 0.0, width: root.width / 1px, height: root.height / 1px },
+        viewport_content_frame: root.host_layout.viewport_content_frame,
+    };
 
-    if root.host_shell.native_floating_window_mode: HostNativeWorkbenchWindowSurface {
+    HostWorkbenchWindowSurfaceHost {
         width: parent.width;
         height: parent.height;
-        host_surface_data: root.host_surface_data;
         host_shell: root.host_shell;
+        workbench_scene_data: root.workbench_scene_data;
+        native_floating_surface_data: root.native_floating_surface_data;
     }
 }
-

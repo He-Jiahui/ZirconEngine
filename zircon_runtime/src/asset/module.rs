@@ -1,22 +1,17 @@
 use std::sync::Arc;
 
-use zircon_asset::editor::{
-    DefaultEditorAssetManager as EditorAssetManagerService, EditorAssetManagerHandle,
-};
-use zircon_asset::pipeline::manager::{AssetIoDriver, AssetManagerHandle, ProjectAssetManager};
-use zircon_core::{
+use crate::asset::pipeline::manager::{AssetIoDriver, AssetManagerHandle, ProjectAssetManager};
+use crate::core::{
     DriverDescriptor, ManagerDescriptor, ModuleDescriptor, ServiceKind, ServiceObject, StartupMode,
 };
-use zircon_manager::ResourceManagerHandle;
-use zircon_module::{dependency_on, factory, qualified_name, EngineModule};
+use crate::core::manager::ResourceManagerHandle;
+use crate::engine_module::{dependency_on, factory, qualified_name, EngineModule};
 
 pub const ASSET_MODULE_NAME: &str = "AssetModule";
 pub const ASSET_IO_DRIVER_NAME: &str = "AssetModule.Driver.AssetIoDriver";
 pub const PROJECT_ASSET_MANAGER_NAME: &str = "AssetModule.Manager.ProjectAssetManager";
 pub const ASSET_MANAGER_NAME: &str = "AssetModule.Manager.AssetManager";
-pub const RESOURCE_MANAGER_NAME: &str = zircon_manager::RESOURCE_MANAGER_NAME;
-const DEFAULT_EDITOR_ASSET_MANAGER_NAME: &str = "AssetModule.Manager.DefaultEditorAssetManager";
-pub const EDITOR_ASSET_MANAGER_NAME: &str = "AssetModule.Manager.EditorAssetManager";
+pub const RESOURCE_MANAGER_NAME: &str = crate::core::manager::RESOURCE_MANAGER_NAME;
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct AssetModule;
@@ -36,30 +31,13 @@ pub fn module_descriptor() -> ModuleDescriptor {
         qualified_name(
             ASSET_MODULE_NAME,
             ServiceKind::Manager,
-            "DefaultEditorAssetManager",
-        ),
-        StartupMode::Immediate,
-        Vec::new(),
-        factory(|_| Ok(Arc::new(EditorAssetManagerService::default()) as ServiceObject)),
-    ))
-    .with_manager(ManagerDescriptor::new(
-        qualified_name(
-            ASSET_MODULE_NAME,
-            ServiceKind::Manager,
             "ProjectAssetManager",
         ),
         StartupMode::Immediate,
-        vec![dependency_on(
-            ASSET_MODULE_NAME,
-            ServiceKind::Manager,
-            "DefaultEditorAssetManager",
-        )],
-        factory(|core| {
-            let editor_asset_manager = core
-                .resolve_manager::<EditorAssetManagerService>(DEFAULT_EDITOR_ASSET_MANAGER_NAME)?;
-            Ok(Arc::new(ProjectAssetManager::with_editor_asset_manager(
+        Vec::new(),
+        factory(|_| {
+            Ok(Arc::new(ProjectAssetManager::new(
                 std::thread::available_parallelism().map_or(2, |n| n.get().max(2) - 1),
-                editor_asset_manager,
             )) as ServiceObject)
         }),
     ))
@@ -89,24 +67,6 @@ pub fn module_descriptor() -> ModuleDescriptor {
             let manager =
                 core.resolve_manager::<ProjectAssetManager>(PROJECT_ASSET_MANAGER_NAME)?;
             Ok(Arc::new(ResourceManagerHandle::new(manager)) as ServiceObject)
-        }),
-    ))
-    .with_manager(ManagerDescriptor::new(
-        qualified_name(
-            ASSET_MODULE_NAME,
-            ServiceKind::Manager,
-            "EditorAssetManager",
-        ),
-        StartupMode::Immediate,
-        vec![dependency_on(
-            ASSET_MODULE_NAME,
-            ServiceKind::Manager,
-            "DefaultEditorAssetManager",
-        )],
-        factory(|core| {
-            let manager = core
-                .resolve_manager::<EditorAssetManagerService>(DEFAULT_EDITOR_ASSET_MANAGER_NAME)?;
-            Ok(Arc::new(EditorAssetManagerHandle::new(manager)) as ServiceObject)
         }),
     ))
 }

@@ -1,6 +1,6 @@
-use zircon_math::UVec2;
+use zircon_runtime::core::math::UVec2;
 use zircon_runtime::scene::LevelSystem;
-use zircon_scene::components::NodeKind;
+use zircon_runtime::scene::components::NodeKind;
 
 use crate::core::editing::asset_workspace::AssetWorkspaceState;
 use crate::core::editing::history::EditorHistory;

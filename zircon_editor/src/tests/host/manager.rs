@@ -4,14 +4,14 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use zircon_asset::assets::{UiStyleAsset, UiWidgetAsset};
-use zircon_core::CoreRuntime;
-use zircon_manager::resolve_config_manager;
+use zircon_runtime::asset::assets::{UiStyleAsset, UiWidgetAsset};
+use zircon_runtime::core::CoreRuntime;
+use zircon_runtime::core::manager::resolve_config_manager;
 use zircon_runtime::foundation::{
     module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
 };
 use zircon_runtime::scene::DefaultLevelManager;
-use zircon_ui::template::UiAssetLoader;
+use zircon_runtime::ui::template::UiAssetLoader;
 
 use crate::layout::{MainHostPageLayout, MainPageId, WorkbenchLayout};
 use crate::module::module_descriptor;
@@ -2599,7 +2599,10 @@ control_id = "ToolbarHost"
         .expect("reference reflection");
     assert_eq!(reflection.route.asset_id, "res://ui/widgets/button.ui.toml");
     assert_eq!(reflection.display_name, "Toolbar Button");
-    assert_eq!(reflection.route.asset_kind, zircon_ui::UiAssetKind::Widget);
+    assert_eq!(
+        reflection.route.asset_kind,
+        zircon_runtime::ui::template::UiAssetKind::Widget
+    );
 
     std::env::remove_var("ZIRCON_EDITOR_CONFIG_PATH");
     let _ = fs::remove_file(path);
@@ -2700,7 +2703,10 @@ control_id = "ToolbarHost"
         .expect("reference reflection");
     assert_eq!(reflection.route.asset_id, "res://ui/widgets/button.ui.toml");
     assert_eq!(reflection.display_name, "Toolbar Button");
-    assert_eq!(reflection.route.asset_kind, zircon_ui::UiAssetKind::Widget);
+    assert_eq!(
+        reflection.route.asset_kind,
+        zircon_runtime::ui::template::UiAssetKind::Widget
+    );
 
     std::env::remove_var("ZIRCON_EDITOR_CONFIG_PATH");
     let _ = fs::remove_file(path);
@@ -2808,7 +2814,10 @@ control_id = "ToolbarHost"
         .expect("reference reflection");
     assert_eq!(reflection.route.asset_id, "res://ui/widgets/button.ui.toml");
     assert_eq!(reflection.display_name, "Toolbar Button");
-    assert_eq!(reflection.route.asset_kind, zircon_ui::UiAssetKind::Widget);
+    assert_eq!(
+        reflection.route.asset_kind,
+        zircon_runtime::ui::template::UiAssetKind::Widget
+    );
 
     std::env::remove_var("ZIRCON_EDITOR_CONFIG_PATH");
     let _ = fs::remove_file(path);
@@ -3001,7 +3010,10 @@ style_overrides = { self = { text = { color = "#ffffff" } }, slot = { padding = 
         .expect("save ui asset editor");
     let document = UiAssetLoader::load_toml_str(&saved).expect("saved ui asset document");
     let button = document.nodes.get("button").expect("button node");
-    assert_eq!(button.kind, zircon_ui::template::UiNodeDefinitionKind::Reference);
+    assert_eq!(
+        button.kind,
+        zircon_runtime::ui::template::UiNodeDefinitionKind::Reference
+    );
     assert_eq!(
         button.component_ref.as_deref(),
         Some("res://ui/widgets/toolbar_button.ui.toml#ToolbarButton")
@@ -3175,7 +3187,10 @@ fn editor_manager_promotes_selected_ui_asset_component_to_external_widget_asset(
         .expect("save ui asset editor");
     let document = UiAssetLoader::load_toml_str(&saved).expect("saved ui asset document");
     let button = document.nodes.get("button").expect("button node");
-    assert_eq!(button.kind, zircon_ui::template::UiNodeDefinitionKind::Reference);
+    assert_eq!(
+        button.kind,
+        zircon_runtime::ui::template::UiNodeDefinitionKind::Reference
+    );
     assert_eq!(
         button.component_ref.as_deref(),
         Some("res://ui/widgets/save_button.ui.toml#SaveButton")
@@ -3323,7 +3338,10 @@ fn editor_manager_promotes_local_theme_to_external_style_asset_and_opens_selecte
         reflection.route.asset_id,
         "res://ui/themes/editor_theme.ui.toml"
     );
-    assert_eq!(reflection.route.asset_kind, zircon_ui::UiAssetKind::Style);
+    assert_eq!(
+        reflection.route.asset_kind,
+        zircon_runtime::ui::template::UiAssetKind::Style
+    );
 
     assert!(manager
         .undo_ui_asset_editor(&instance_id)
@@ -3910,5 +3928,3 @@ fn editor_manager_ui_asset_sessions_are_split_by_host_orchestration_behaviors() 
         );
     }
 }
-
-

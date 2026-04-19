@@ -1,4 +1,4 @@
-use zircon_ui::{
+use zircon_runtime::ui::{
     binding::UiEventKind, event_ui::UiActionDescriptor, event_ui::UiParameterDescriptor,
     event_ui::UiValueType,
 };

@@ -1,5 +1,5 @@
 use slint::{Image, Rgba8Pixel, SharedPixelBuffer};
-use zircon_framework::render::CapturedFrame;
+use crate::scene::viewport::CapturedFrame;
 
 pub(super) fn import_frame_image(frame: &CapturedFrame) -> Result<(u64, Image), String> {
     if frame.width == 0 || frame.height == 0 {

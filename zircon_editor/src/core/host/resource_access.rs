@@ -1,5 +1,5 @@
-use zircon_framework::asset::ResourceManager;
-use zircon_resource::{
+use zircon_runtime::core::framework::asset::ResourceManager;
+use zircon_runtime::core::resource::{
     ResourceDiagnostic, ResourceHandle, ResourceKind, ResourceLocator, ResourceMarker,
     ResourceRecord, ResourceState,
 };
@@ -47,9 +47,15 @@ fn resource_kind_name(kind: ResourceKind) -> &'static str {
     match kind {
         ResourceKind::Model => "Model",
         ResourceKind::Material => "Material",
+        ResourceKind::PhysicsMaterial => "PhysicsMaterial",
         ResourceKind::Texture => "Texture",
         ResourceKind::Shader => "Shader",
         ResourceKind::Scene => "Scene",
+        ResourceKind::AnimationSkeleton => "AnimationSkeleton",
+        ResourceKind::AnimationClip => "AnimationClip",
+        ResourceKind::AnimationSequence => "AnimationSequence",
+        ResourceKind::AnimationGraph => "AnimationGraph",
+        ResourceKind::AnimationStateMachine => "AnimationStateMachine",
         ResourceKind::UiLayout => "UiLayout",
         ResourceKind::UiWidget => "UiWidget",
         ResourceKind::UiStyle => "UiStyle",

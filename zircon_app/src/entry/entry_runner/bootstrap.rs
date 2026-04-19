@@ -1,4 +1,4 @@
-use zircon_core::{CoreError, CoreHandle};
+use zircon_runtime::core::{CoreError, CoreHandle};
 
 use crate::entry::{BuiltinEngineEntry, EngineEntry, EntryConfig};
 

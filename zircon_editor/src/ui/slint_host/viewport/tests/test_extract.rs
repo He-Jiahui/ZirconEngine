@@ -1,5 +1,5 @@
-use zircon_framework::render::{RenderFrameExtract, RenderWorldSnapshotHandle};
-use zircon_scene::world::World;
+use crate::scene::viewport::{RenderFrameExtract, RenderWorldSnapshotHandle};
+use zircon_runtime::scene::world::World;
 
 pub(super) fn test_extract() -> RenderFrameExtract {
     RenderFrameExtract::from_snapshot(

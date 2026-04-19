@@ -1,4 +1,4 @@
-use zircon_framework::render::TransformSpace;
+use crate::scene::viewport::TransformSpace;
 
 pub(crate) fn symbol(space: TransformSpace) -> &'static str {
     match space {

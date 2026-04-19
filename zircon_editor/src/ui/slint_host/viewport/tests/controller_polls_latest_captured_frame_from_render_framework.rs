@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use zircon_math::UVec2;
+use zircon_runtime::core::math::UVec2;
 
 use super::super::SlintViewportController;
 use super::fake_render_framework::FakeRenderFramework;

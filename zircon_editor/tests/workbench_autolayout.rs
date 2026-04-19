@@ -4,7 +4,7 @@ use zircon_editor::{
     ShellSizePx, StretchMode, TabStackLayout, ViewInstanceId, WorkbenchChromeMetrics,
     WorkbenchViewModel,
 };
-use zircon_ui::BoxConstraints;
+use zircon_runtime::ui::layout::BoxConstraints;
 
 fn stretch_constraint(min: f32, preferred: f32, priority: i32, weight: f32) -> AxisConstraint {
     AxisConstraint {

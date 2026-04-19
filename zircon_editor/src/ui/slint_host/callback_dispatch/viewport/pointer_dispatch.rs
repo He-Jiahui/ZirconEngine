@@ -1,6 +1,6 @@
-use zircon_ui::{
+use zircon_runtime::ui::{
     dispatch::{UiPointerDispatchEffect, UiPointerDispatcher, UiPointerEvent},
-    UiPointerEventKind, UiPointerRoute,
+    surface::{UiPointerButton, UiPointerEventKind, UiPointerRoute},
 };
 
 use crate::core::editor_event::{EditorEventRuntime, EditorViewportEvent};
@@ -61,23 +61,23 @@ fn viewport_pointer_dispatcher() -> UiPointerDispatcher {
 fn map_pointer_route_to_viewport_event(route: &UiPointerRoute) -> Option<EditorViewportEvent> {
     match route.kind {
         UiPointerEventKind::Down => match route.button? {
-            zircon_ui::UiPointerButton::Primary => Some(EditorViewportEvent::LeftPressed {
+            UiPointerButton::Primary => Some(EditorViewportEvent::LeftPressed {
                 x: route.point.x,
                 y: route.point.y,
             }),
-            zircon_ui::UiPointerButton::Secondary => Some(EditorViewportEvent::RightPressed {
+            UiPointerButton::Secondary => Some(EditorViewportEvent::RightPressed {
                 x: route.point.x,
                 y: route.point.y,
             }),
-            zircon_ui::UiPointerButton::Middle => Some(EditorViewportEvent::MiddlePressed {
+            UiPointerButton::Middle => Some(EditorViewportEvent::MiddlePressed {
                 x: route.point.x,
                 y: route.point.y,
             }),
         },
         UiPointerEventKind::Up => match route.button? {
-            zircon_ui::UiPointerButton::Primary => Some(EditorViewportEvent::LeftReleased),
-            zircon_ui::UiPointerButton::Secondary => Some(EditorViewportEvent::RightReleased),
-            zircon_ui::UiPointerButton::Middle => Some(EditorViewportEvent::MiddleReleased),
+            UiPointerButton::Primary => Some(EditorViewportEvent::LeftReleased),
+            UiPointerButton::Secondary => Some(EditorViewportEvent::RightReleased),
+            UiPointerButton::Middle => Some(EditorViewportEvent::MiddleReleased),
         },
         UiPointerEventKind::Move => Some(EditorViewportEvent::PointerMoved {
             x: route.point.x,

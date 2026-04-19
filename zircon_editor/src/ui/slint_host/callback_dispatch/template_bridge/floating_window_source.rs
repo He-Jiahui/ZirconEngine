@@ -1,6 +1,6 @@
 use thiserror::Error;
-use zircon_ui::tree::UiTreeError;
-use zircon_ui::{UiFrame, UiSize, UiSurface};
+use zircon_runtime::ui::tree::UiTreeError;
+use zircon_runtime::ui::{layout::UiFrame, layout::UiSize, surface::UiSurface};
 
 use crate::ui::slint_host::callback_dispatch::constants::BUILTIN_FLOATING_WINDOW_SOURCE_DOCUMENT_ID;
 use crate::ui::template_runtime::{EditorUiHostRuntime, EditorUiHostRuntimeError};

@@ -1,9 +1,9 @@
 use crate::GizmoAxis;
-use zircon_framework::render::{
+use crate::scene::viewport::{
     HandleOverlayExtract, SceneViewportSettings, SceneViewportTool, ViewportCameraSnapshot,
 };
-use zircon_math::{Transform, UVec2, Vec2};
-use zircon_scene::Scene;
+use zircon_runtime::core::math::{Transform, UVec2, Vec2};
+use zircon_runtime::scene::Scene;
 
 use super::{
     handle_drag_context::HandleDragContext, handle_drag_session::HandleDragSession,

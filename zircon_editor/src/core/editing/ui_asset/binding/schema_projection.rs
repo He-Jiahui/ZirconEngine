@@ -4,7 +4,7 @@ use crate::core::editing::ui_asset::preview::preview_mock::{
     format_preview_mock_inline_value, resolve_preview_mock_value_preview, UiAssetPreviewMockState,
 };
 use toml::Value;
-use zircon_ui::{template::UiBindingRef, UiAssetDocument};
+use zircon_runtime::ui::template::{UiAssetDocument, UiBindingRef};
 
 pub(super) fn build_binding_schema_items(
     document: &UiAssetDocument,

@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 use std::sync::Mutex;
 
-use zircon_framework::render::{
+use crate::scene::viewport::{
     CapturedFrame, RenderFrameExtract, RenderFramework, RenderFrameworkError, RenderPipelineHandle,
     RenderQualityProfile, RenderStats, RenderViewportDescriptor, RenderViewportHandle,
 };
-use zircon_math::UVec2;
+use zircon_runtime::core::math::UVec2;
 
 #[derive(Default)]
 pub(super) struct FakeRenderFramework {

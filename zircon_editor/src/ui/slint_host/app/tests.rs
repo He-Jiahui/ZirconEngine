@@ -7,9 +7,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::ui::slint_host::{PaneSurfaceHostContext, WorkbenchHostContext};
 use slint::{ComponentHandle, PhysicalSize};
-use zircon_core::CoreRuntime;
-use zircon_framework::render::{DisplayMode, ViewOrientation};
-use zircon_math::UVec2;
+use zircon_runtime::core::CoreRuntime;
+use crate::scene::viewport::{DisplayMode, ViewOrientation};
+use zircon_runtime::core::math::UVec2;
 use zircon_runtime::foundation::{
     module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
 };

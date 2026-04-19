@@ -1,4 +1,4 @@
-use zircon_ui::{dispatch::UiPointerEvent, UiPoint, UiPointerEventKind};
+use zircon_runtime::ui::{dispatch::UiPointerEvent, layout::UiPoint, surface::UiPointerEventKind};
 
 use super::constants::{POPUP_NODE_ID, WINDOW_MENU_INDEX};
 use super::route_conversion::to_public_route;

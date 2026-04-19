@@ -1,5 +1,5 @@
 use crate::ui::{ActivityViewDescriptor, ActivityWindowDescriptor};
-use zircon_ui::event_ui::UiNodePath;
+use zircon_runtime::ui::event_ui::UiNodePath;
 
 use crate::view::{DockPolicy, PreferredHost, ViewDescriptor, ViewKind};
 

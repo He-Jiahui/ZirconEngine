@@ -1,4 +1,4 @@
-use zircon_resource::ResourceKind;
+use zircon_runtime::core::resource::ResourceKind;
 
 #[derive(Clone, Debug, Default)]
 pub struct AssetReferenceSnapshot {

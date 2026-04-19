@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use zircon_ui::template::{UiBindingRef, UiTemplateInstance};
+use zircon_runtime::ui::template::{UiBindingRef, UiTemplateInstance};
 
 use crate::{EditorTemplateError, EditorUiBinding};
 

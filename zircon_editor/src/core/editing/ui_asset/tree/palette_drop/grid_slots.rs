@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use toml::Value;
-use zircon_ui::template::UiNodeDefinition;
+use zircon_runtime::ui::template::UiNodeDefinition;
 
 use super::resolution::{
     UiAssetPaletteHoverContext, UiAssetPaletteNativeSlotTarget, UiAssetPaletteSlotTargetOverlay,

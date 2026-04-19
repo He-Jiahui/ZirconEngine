@@ -1,6 +1,6 @@
-use zircon_framework::render::{ProjectionMode, ViewOrientation};
-use zircon_math::{Transform, Vec3};
-use zircon_scene::Scene;
+use crate::scene::viewport::{ProjectionMode, ViewOrientation};
+use zircon_runtime::core::math::{Transform, Vec3};
+use zircon_runtime::scene::Scene;
 
 use super::SceneViewportController;
 

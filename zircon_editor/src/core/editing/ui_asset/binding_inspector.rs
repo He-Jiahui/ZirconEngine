@@ -7,9 +7,9 @@ use crate::core::editing::ui_asset::value_path::{
 };
 use crate::ui::UiDesignerSelectionModel;
 use toml::Value;
-use zircon_ui::template::{UiActionRef, UiBindingRef};
-use zircon_ui::{UiAssetDocument, binding::UiEventKind};
-use zircon_ui::template::{UiNodeDefinition, UiNodeDefinitionKind};
+use zircon_runtime::ui::template::{UiActionRef, UiBindingRef};
+use zircon_runtime::ui::template::{UiNodeDefinition, UiNodeDefinitionKind};
+use zircon_runtime::ui::{binding::UiEventKind, template::UiAssetDocument};
 
 use super::style_rule_declarations::parse_declaration_literal;
 

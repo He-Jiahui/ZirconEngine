@@ -50,10 +50,11 @@ fn workbench_shell_window_can_resize_and_toggle_maximize() {
         .set_size(PhysicalSize::new(initial.width + 120, initial.height + 80));
 
     let resized = ui.window().size();
+    let bootstrap = ui.get_host_window_bootstrap();
     assert_eq!(resized.width, initial.width + 120);
     assert_eq!(resized.height, initial.height + 80);
-    assert_eq!(ui.get_shell_width_px(), resized.width as f32);
-    assert_eq!(ui.get_shell_height_px(), resized.height as f32);
+    assert_eq!(bootstrap.shell_frame.width, resized.width as f32);
+    assert_eq!(bootstrap.shell_frame.height, resized.height as f32);
 
     assert!(!ui.window().is_maximized());
     ui.window().set_maximized(true);
@@ -241,8 +242,8 @@ fn native_floating_window_mode_forwards_tabs_header_and_pane_callbacks_to_root()
         "/ui/workbench/pane_surface.slint"
     ));
     assert!(
-        scaffold.contains("if root.host_shell.native_floating_window_mode: HostNativeWorkbenchWindowSurface {"),
-        "host scaffold should delegate native floating window chrome to HostNativeWorkbenchWindowSurface"
+        scaffold.contains("HostWorkbenchWindowSurfaceHost {"),
+        "host scaffold should delegate window chrome switching to HostWorkbenchWindowSurfaceHost"
     );
     let native_wrapper_start = host_surface
         .find("export component HostNativeWorkbenchWindowSurface inherits Rectangle {")
@@ -255,7 +256,7 @@ fn native_floating_window_mode_forwards_tabs_header_and_pane_callbacks_to_root()
 
     for needle in [
         "HostNativeFloatingWindowSurface {",
-        "surface_data: root.native_floating_surface_data;",
+        "surface_data: root.surface_data;",
     ] {
         assert!(
             native_wrapper.contains(needle),

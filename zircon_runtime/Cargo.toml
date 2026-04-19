@@ -7,28 +7,30 @@ description = "Runtime absorption layer for high-level engine subsystems."
 
 [features]
 runtime-ui-integration-tests = []
+jolt = []
 
 [dependencies]
-zircon_asset = { path = "../zircon_asset" }
-zircon_animation = { path = "../zircon_animation" }
+bincode.workspace = true
+bytemuck.workspace = true
+crossbeam-channel.workspace = true
+crossbeam-utils = "0.8.21"
+glam.workspace = true
+gltf.workspace = true
+image.workspace = true
+naga.workspace = true
+notify.workspace = true
+pollster.workspace = true
+raw-window-handle = "0.6.2"
+rayon = "1.11.0"
+ron = "0.12.1"
 serde.workspace = true
 serde_json = "1.0.149"
+tobj.workspace = true
 thiserror.workspace = true
 toml.workspace = true
+tracing.workspace = true
+uuid.workspace = true
 wgpu.workspace = true
 winit.workspace = true
-zircon_core = { path = "../zircon_core" }
-zircon_framework = { path = "../zircon_framework" }
-zircon_graphics = { path = "../zircon_graphics" }
-zircon_manager = { path = "../zircon_manager" }
-zircon_module = { path = "../zircon_module" }
-zircon_math = { path = "../zircon_math" }
-zircon_navigation = { path = "../zircon_navigation" }
-zircon_net = { path = "../zircon_net" }
-zircon_particles = { path = "../zircon_particles" }
-zircon_physics = { path = "../zircon_physics" }
-zircon_resource = { path = "../zircon_resource" }
-zircon_scene = { path = "../zircon_scene" }
-zircon_sound = { path = "../zircon_sound" }
-zircon_texture = { path = "../zircon_texture" }
-zircon_ui = { path = "../zircon_ui" }
+libloading = "0.9.0"
+zstd = "0.13.3"

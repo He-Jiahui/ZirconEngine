@@ -7,7 +7,7 @@ related_code:
   - zircon_resource/src/manager.rs
   - zircon_asset/src/project/manifest.rs
   - zircon_asset/src/project/paths.rs
-  - zircon_asset/src/project/manager.rs
+  - zircon_asset/src/project/manager/mod.rs
   - zircon_asset/src/project/manager/open.rs
   - zircon_asset/src/project/manager/scan_and_import.rs
   - zircon_asset/src/project/manager/asset_lookup.rs
@@ -20,13 +20,13 @@ related_code:
   - zircon_asset/src/pipeline/manager/project_asset_manager/loading/load_asset.rs
   - zircon_asset/src/pipeline/manager/project_asset_manager/loading/acquire_asset.rs
   - zircon_asset/src/pipeline/manager/project_asset_manager/loading/ensure_resident.rs
-  - zircon_asset/src/pipeline/manager.rs
+  - zircon_asset/src/pipeline/manager/mod.rs
   - zircon_asset/src/formats/mod.rs
   - zircon_asset/src/formats/obj/mod.rs
   - zircon_asset/src/formats/obj/decode_obj_file.rs
   - zircon_asset/src/formats/obj/parse_obj_face_vertex.rs
   - zircon_asset/src/formats/obj/resolve_obj_index.rs
-  - zircon_asset/src/watch.rs
+  - zircon_asset/src/watch/mod.rs
   - zircon_asset/src/watch/asset_change.rs
   - zircon_asset/src/watch/asset_change_kind.rs
   - zircon_asset/src/watch/asset_watch_event.rs
@@ -171,7 +171,7 @@ related_code:
   - zircon_rhi_wgpu/src/lib.rs
   - zircon_render_graph/src/lib.rs
   - zircon_framework/src/lib.rs
-  - zircon_scene/src/render_extract.rs
+  - zircon_scene/src/render_extract/mod.rs
   - zircon_editor/src/workbench/project/mod.rs
   - zircon_editor/src/host/app.rs
   - zircon_editor/src/host/slint_host/app.rs
@@ -185,7 +185,7 @@ implementation_files:
   - zircon_resource/src/manager.rs
   - zircon_asset/src/project/manifest.rs
   - zircon_asset/src/project/paths.rs
-  - zircon_asset/src/project/manager.rs
+  - zircon_asset/src/project/manager/mod.rs
   - zircon_asset/src/project/manager/open.rs
   - zircon_asset/src/project/manager/scan_and_import.rs
   - zircon_asset/src/project/manager/asset_lookup.rs
@@ -197,13 +197,13 @@ implementation_files:
   - zircon_asset/src/pipeline/manager/project_asset_manager/loading/load_asset.rs
   - zircon_asset/src/pipeline/manager/project_asset_manager/loading/acquire_asset.rs
   - zircon_asset/src/pipeline/manager/project_asset_manager/loading/ensure_resident.rs
-  - zircon_asset/src/pipeline/manager.rs
+  - zircon_asset/src/pipeline/manager/mod.rs
   - zircon_asset/src/formats/mod.rs
   - zircon_asset/src/formats/obj/mod.rs
   - zircon_asset/src/formats/obj/decode_obj_file.rs
   - zircon_asset/src/formats/obj/parse_obj_face_vertex.rs
   - zircon_asset/src/formats/obj/resolve_obj_index.rs
-  - zircon_asset/src/watch.rs
+  - zircon_asset/src/watch/mod.rs
   - zircon_asset/src/watch/asset_change.rs
   - zircon_asset/src/watch/asset_change_kind.rs
   - zircon_asset/src/watch/asset_watch_event.rs
@@ -345,7 +345,7 @@ implementation_files:
   - zircon_rhi_wgpu/src/lib.rs
   - zircon_render_graph/src/lib.rs
   - zircon_framework/src/lib.rs
-  - zircon_scene/src/render_extract.rs
+  - zircon_scene/src/render_extract/mod.rs
   - zircon_editor/src/workbench/project/mod.rs
   - zircon_editor/src/host/app.rs
   - zircon_editor/src/host/slint_host/app.rs
@@ -444,6 +444,7 @@ doc_type: category-index
 ## Documents
 
 - [Directory Project Asset Rendering](./directory-project-asset-rendering.md): `zircon_resource` locator/handle/state 契约，`Project/assets` 与 `Project/library` 的职责，`res://`/`lib://`/`builtin://`/`mem://` 统一来源，`AssetManager`/`ResourceManager`/asset-owned `EditorAssetManager`、`SceneAssetSerializer`、`LevelManager -> LevelSystem -> World` 与 graphics revision cache 的自动刷新路径。
+- [Runtime Physics And Animation Assets](./runtime-physics-animation-assets.md): `PhysicsMaterial` 与五类 `.zranim` 动画资产如何被 `zircon_runtime::asset` 导入、持久化、建立引用图，并进入 editor catalog/filter surface。
 - [Render Framework Architecture](./render-framework-architecture.md): `zircon_rhi`、`zircon_rhi_wgpu`、`zircon_render_graph`、`zircon_framework` 的基础边界，`RenderFrameExtract` 的新公共面，以及 `zircon_graphics` 当前已经迁移到 `runtime/render_framework/` 的 façade/runtime 实现现实；同时记录 M4 已经真正落地的 deferred、clustered lighting、SSAO、history、bloom、color grading、reflection probe、baked lighting、particle 与 offline bake baseline，以及 M5 的 `Virtual Geometry / Hybrid GI` capability-slot 边界。
 - [Editor And Tooling / Viewport Interaction Boundary Split](../editor-and-tooling/viewport-interaction-boundary-split.md): 记录 `zircon_graphics` 把 viewport controller/input/feedback/state 交回 `zircon_editor` 与 `zircon_app` 之后的新责任边界，避免把 editor/runtime 交互语义重新混回渲染层。
 - [M5 Virtual Geometry Prepare Consumption Plan](../superpowers/plans/2026-04-16-m5-virtual-geometry-prepare-consumption.md): `VirtualGeometryRuntimeState` 如何生成带 `cluster_draw_segments` 的 frame-local prepare snapshot，`build_virtual_geometry_plan(...)` 如何从完整 cluster 集导出稳定 ordinal/count，`submit_frame_extract(...)` 如何在 render 前挂接它，以及当前 mesh fallback 如何只消费 prepare 提供的 segment 合同。
@@ -551,6 +552,7 @@ doc_type: category-index
 - `zircon-project.toml` + `assets/` + `library/` 的目录式项目根
 - `res://` / `lib://` / `builtin://` / `mem://` 的统一资源来源模型
 - PNG/JPEG、WGSL、TOML material、TOML scene、OBJ、glTF/GLB 的导入与 library artifact 持久化
+- `PhysicsMaterial` 与 `Animation{Skeleton, Clip, Sequence, Graph, StateMachine}` 的 source/import/artifact/editor surface
 - `SceneAssetSerializer` 驱动的 `SceneAsset <-> World` 转换，以及 `LevelSystem` 对运行中 world 的托管
 - `MeshRenderer`/`RenderExtract` 基于 `ResourceHandle<ModelMarker/MaterialMarker>` 的渲染输入
 - `zircon_graphics` 基于 `ResourceId + revision` 的 prepare/cache 与 WGSL shader / pipeline 选择，并把 `scene/resources/`、`scene/scene_renderer/core/`、`scene/scene_renderer/post_process/`、`runtime/render_framework/submit_frame_extract/`、`runtime/{virtual_geometry,hybrid_gi}/` 的 prepare/completion/residency 管线继续收口成 root-only wiring + folder-backed 子模块

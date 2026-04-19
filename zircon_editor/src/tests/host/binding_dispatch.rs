@@ -2,11 +2,12 @@ use crate::ui::{
     AssetCommand, DockCommand, EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind,
     InspectorFieldChange, SelectionCommand, ViewportCommand, WelcomeCommand,
 };
-use zircon_framework::render::{
+use zircon_runtime::core::framework::animation::AnimationTrackPath;
+use crate::scene::viewport::{
     DisplayMode, GridMode, ProjectionMode, SceneViewportTool, TransformSpace, ViewOrientation,
 };
-use zircon_math::UVec2;
-use zircon_ui::binding::UiBindingValue;
+use zircon_runtime::core::math::UVec2;
+use zircon_runtime::ui::binding::UiBindingValue;
 
 use crate::{
     apply_inspector_binding, apply_selection_binding, apply_viewport_binding,
@@ -40,12 +41,12 @@ fn inspector_binding_applies_batch_changes_to_editor_state() {
     );
 
     assert!(apply_inspector_binding(&mut state, &binding).unwrap());
-    state.world.with_world(|scene: &zircon_scene::Scene| {
+    state.world.with_world(|scene: &zircon_runtime::scene::Scene| {
         let node = scene.find_node(cube).unwrap();
         assert_eq!(node.name, "Bound Cube");
         assert_eq!(
             node.transform.translation,
-            zircon_math::Vec3::new(4.0, 5.0, 6.0)
+            zircon_runtime::core::math::Vec3::new(4.0, 5.0, 6.0)
         );
     });
 }
@@ -303,13 +304,13 @@ fn animation_binding_dispatches_into_host_event() {
         "AnimationClipEditorView",
         "AddFrameButton",
         EditorUiEventKind::Click,
-        EditorUiBindingPayload::position_of_track_and_frame("root/child:transform", 24),
+        EditorUiBindingPayload::position_of_track_and_frame("root/child:transform.translation", 24),
     );
 
     assert_eq!(
         dispatch_animation_binding(&binding).unwrap(),
         AnimationHostEvent::AddFrame {
-            track_path: "root/child:transform".to_string(),
+            track_path: AnimationTrackPath::parse("root/child:transform.translation").unwrap(),
             frame: 24,
         }
     );
@@ -436,10 +437,10 @@ fn welcome_open_recent_binding_dispatches_into_typed_host_event() {
 }
 
 mod support {
-    use zircon_math::UVec2;
+    use zircon_runtime::core::math::UVec2;
     use zircon_runtime::scene::DefaultLevelManager;
-    use zircon_scene::components::NodeKind;
-    use zircon_scene::NodeId;
+    use zircon_runtime::scene::components::NodeKind;
+    use zircon_runtime::scene::NodeId;
 
     use crate::EditorState;
 

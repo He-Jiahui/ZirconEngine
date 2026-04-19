@@ -47,9 +47,7 @@ fn ui_asset_editor_theme_panel_declares_open_promote_and_local_detail_selection_
     ));
 
     assert!(theme_struct_block.contains("can_promote_local: bool,"));
-    assert!(pane_block.contains(
-        "property <UiAssetStylePanelData> style_panel: root.pane.style;"
-    ));
+    assert!(pane_block.contains("property <UiAssetStylePanelData> style_panel: root.pane.style;"));
 }
 
 #[test]
@@ -78,9 +76,7 @@ fn ui_asset_editor_theme_panel_declares_promote_draft_controls() {
     assert!(theme_struct_block.contains("promote_document_id: string,"));
     assert!(theme_struct_block.contains("promote_display_name: string,"));
     assert!(theme_struct_block.contains("can_edit_promote_draft: bool,"));
-    assert!(pane_block.contains(
-        "property <UiAssetStylePanelData> style_panel: root.pane.style;"
-    ));
+    assert!(pane_block.contains("property <UiAssetStylePanelData> style_panel: root.pane.style;"));
 }
 
 #[test]
@@ -96,14 +92,10 @@ fn ui_asset_editor_theme_panel_declares_detach_imported_theme_control() {
     assert!(panes.contains(
         "enabled: root.style_panel.theme_source.selected_source_kind == \"Imported\" && root.style_panel.theme_source.selected_source_available;"
     ));
-    assert!(panes.contains(
-        "clicked => { root.action(\"theme.source.detach_local\"); }"
-    ));
+    assert!(panes.contains("clicked => { root.action(\"theme.source.detach_local\"); }"));
 
     assert!(source.contains("callback ui_asset_action(instance_id: string, action_id: string);"));
-    assert!(pane_block.contains(
-        "property <UiAssetStylePanelData> style_panel: root.pane.style;"
-    ));
+    assert!(pane_block.contains("property <UiAssetStylePanelData> style_panel: root.pane.style;"));
 }
 
 #[test]
@@ -111,9 +103,7 @@ fn ui_asset_editor_theme_panel_declares_clone_imported_theme_control() {
     let panes = panes_source();
 
     assert!(panes.contains("label: \"Clone\";"));
-    assert!(panes.contains(
-        "clicked => { root.action(\"theme.source.clone_local\"); }"
-    ));
+    assert!(panes.contains("clicked => { root.action(\"theme.source.clone_local\"); }"));
     assert!(panes.contains(
         "enabled: root.style_panel.theme_source.selected_source_kind == \"Imported\" && root.style_panel.theme_source.selected_source_available;"
     ));
@@ -131,9 +121,7 @@ fn ui_asset_editor_theme_panel_declares_cascade_inspection_controls() {
     assert!(theme_struct_block.contains("cascade_layer_items: [string],"));
     assert!(theme_struct_block.contains("cascade_token_items: [string],"));
     assert!(theme_struct_block.contains("cascade_rule_items: [string],"));
-    assert!(pane_block.contains(
-        "property <UiAssetStylePanelData> style_panel: root.pane.style;"
-    ));
+    assert!(pane_block.contains("property <UiAssetStylePanelData> style_panel: root.pane.style;"));
     assert!(panes.contains("title: \"Cascade Layers\";"));
     assert!(panes.contains("items: root.style_panel.theme_source.cascade_layer_items;"));
     assert!(panes.contains("title: \"Cascade Tokens\";"));
@@ -152,9 +140,7 @@ fn ui_asset_editor_theme_panel_declares_local_merge_preview_controls() {
     let theme_struct_block = block_after(&panes, "export struct UiAssetThemeSourceData {");
 
     assert!(theme_struct_block.contains("merge_preview_items: [string],"));
-    assert!(pane_block.contains(
-        "property <UiAssetStylePanelData> style_panel: root.pane.style;"
-    ));
+    assert!(pane_block.contains("property <UiAssetStylePanelData> style_panel: root.pane.style;"));
     assert!(panes.contains("title: \"Merge Preview\";"));
     assert!(panes.contains("items: root.style_panel.theme_source.merge_preview_items;"));
 }
@@ -169,9 +155,7 @@ fn ui_asset_editor_theme_panel_declares_compare_inspection_controls() {
     let theme_struct_block = block_after(&panes, "export struct UiAssetThemeSourceData {");
 
     assert!(theme_struct_block.contains("compare_items: [string],"));
-    assert!(pane_block.contains(
-        "property <UiAssetStylePanelData> style_panel: root.pane.style;"
-    ));
+    assert!(pane_block.contains("property <UiAssetStylePanelData> style_panel: root.pane.style;"));
     assert!(panes.contains("title: \"Theme Compare\";"));
     assert!(panes.contains("items: root.style_panel.theme_source.compare_items;"));
 }
@@ -188,9 +172,7 @@ fn ui_asset_editor_theme_panel_declares_rule_helper_and_refactor_controls() {
     assert!(theme_struct_block.contains("rule_helper_items: [string],"));
     assert!(theme_struct_block.contains("refactor_items: [string],"));
     assert!(theme_struct_block.contains("can_prune_duplicate_local_overrides: bool,"));
-    assert!(pane_block.contains(
-        "property <UiAssetStylePanelData> style_panel: root.pane.style;"
-    ));
+    assert!(pane_block.contains("property <UiAssetStylePanelData> style_panel: root.pane.style;"));
     assert!(panes.contains("title: \"Rule Helpers\";"));
     assert!(panes.contains("items: root.style_panel.theme_source.rule_helper_items;"));
     assert!(panes.contains(

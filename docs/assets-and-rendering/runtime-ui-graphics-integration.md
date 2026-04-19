@@ -11,7 +11,7 @@ related_code:
   - zircon_runtime/src/ui/runtime_ui/fixtures/pause_menu.ui.toml
   - zircon_runtime/src/ui/runtime_ui/fixtures/settings_dialog.ui.toml
   - zircon_runtime/src/ui/runtime_ui/fixtures/inventory_list.ui.toml
-  - zircon_runtime/src/tests.rs
+  - zircon_runtime/src/tests/mod.rs
   - zircon_graphics/src/lib.rs
   - zircon_graphics/src/runtime/mod.rs
   - zircon_graphics/src/runtime/render_framework/mod.rs
@@ -45,7 +45,7 @@ implementation_files:
   - zircon_runtime/src/ui/runtime_ui/fixtures/pause_menu.ui.toml
   - zircon_runtime/src/ui/runtime_ui/fixtures/settings_dialog.ui.toml
   - zircon_runtime/src/ui/runtime_ui/fixtures/inventory_list.ui.toml
-  - zircon_runtime/src/tests.rs
+  - zircon_runtime/src/tests/mod.rs
   - zircon_graphics/src/lib.rs
   - zircon_graphics/src/runtime/mod.rs
   - zircon_graphics/src/runtime/render_framework/mod.rs
@@ -71,7 +71,7 @@ plan_sources:
   - user: 2026-04-18 下一步可以直接进入 Graphics/runtime integration
   - .codex/plans/编辑器 .slint 去真源 Runtime UI 可用 Cutover 路线图.md
 tests:
-  - zircon_runtime/src/tests.rs
+  - zircon_runtime/src/tests/mod.rs
   - cargo test -p zircon_runtime --lib --target-dir target/codex-shared-b runtime_ui_manager_builds_all_builtin_fixtures_into_shared_surfaces
   - cargo test -p zircon_runtime --lib --features runtime-ui-integration-tests --target-dir target/codex-shared-b render_framework_submits_runtime_ui_frames_and_renders_pause_menu_panels
   - cargo test -p zircon_runtime --lib --features runtime-ui-integration-tests --target-dir target/codex-shared-b render_framework_reports_clipped_ui_commands_for_inventory_fixture

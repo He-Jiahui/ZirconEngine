@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
-use zircon_core::{
+use crate::core::{
     DriverDescriptor, ManagerDescriptor, ModuleDescriptor, ServiceKind, ServiceObject, StartupMode,
 };
-use zircon_manager::{ConfigManagerHandle, EventManagerHandle};
-use zircon_module::{factory, qualified_name};
+use crate::core::manager::{ConfigManagerHandle, EventManagerHandle};
+use crate::engine_module::{factory, qualified_name};
 
 use super::{ConfigDriver, DefaultConfigManager, DefaultEventManager, EventDriver};
 

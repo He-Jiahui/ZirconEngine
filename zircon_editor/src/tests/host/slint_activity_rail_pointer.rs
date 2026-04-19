@@ -11,7 +11,7 @@ use crate::{
     compute_workbench_shell_geometry, EditorEvent, LayoutCommand, ShellSizePx,
     WorkbenchChromeMetrics, WorkbenchViewModel,
 };
-use zircon_ui::{UiFrame, UiPoint, UiSize};
+use zircon_runtime::ui::{layout::UiFrame, layout::UiPoint, layout::UiSize};
 
 #[test]
 fn shared_activity_rail_pointer_bridge_routes_left_and_right_button_hits() {

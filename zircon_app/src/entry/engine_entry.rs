@@ -1,8 +1,8 @@
 use std::fmt;
 use std::sync::Arc;
 
-use zircon_core::{CoreError, CoreHandle, CoreRuntime, ModuleDescriptor};
-use zircon_module::EngineModule;
+use zircon_runtime::core::{CoreError, CoreHandle, CoreRuntime, ModuleDescriptor};
+use zircon_runtime::engine_module::EngineModule;
 
 use super::{builtin_modules::builtin_modules_for_profile, EntryProfile};
 

@@ -1,4 +1,4 @@
-use zircon_ui::UiFrame;
+use zircon_runtime::ui::layout::UiFrame;
 
 use super::scroll_surface_pointer_layout::ScrollSurfacePointerLayout;
 

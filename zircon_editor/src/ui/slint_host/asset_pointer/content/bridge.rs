@@ -1,12 +1,20 @@
 use std::collections::BTreeMap;
 
-use zircon_ui::{
+use zircon_runtime::ui::{
     dispatch::{UiPointerDispatcher, UiPointerEvent},
     event_ui::UiNodeId,
     event_ui::UiNodePath,
     event_ui::UiTreeId,
-    UiAxis, UiContainerKind, UiInputPolicy, UiPoint, UiPointerEventKind, UiScrollState,
-    UiScrollableBoxConfig, UiScrollbarVisibility, UiSurface, UiTreeNode,
+    layout::UiAxis,
+    layout::UiContainerKind,
+    layout::UiPoint,
+    layout::UiScrollState,
+    layout::UiScrollableBoxConfig,
+    layout::UiScrollbarVisibility,
+    surface::UiPointerEventKind,
+    surface::UiSurface,
+    tree::UiInputPolicy,
+    tree::UiTreeNode,
 };
 
 use super::dispatch::AssetContentListPointerDispatch;
@@ -126,7 +134,7 @@ impl AssetContentListPointerBridge {
 
         surface.tree.insert_root(
             UiTreeNode::new(ROOT_NODE_ID, UiNodePath::new("editor.asset_content.root"))
-                .with_frame(zircon_ui::UiFrame::new(
+                .with_frame(zircon_runtime::ui::layout::UiFrame::new(
                     0.0,
                     0.0,
                     self.layout.pane_size.width.max(0.0),
@@ -183,7 +191,9 @@ impl AssetContentListPointerBridge {
                         node_id,
                         UiNodePath::new(format!("editor.asset_content/folder_{folder_index}")),
                     )
-                    .with_frame(zircon_ui::UiFrame::new(ROW_X, row_y, row_width, row_height))
+                    .with_frame(zircon_runtime::ui::layout::UiFrame::new(
+                        ROW_X, row_y, row_width, row_height,
+                    ))
                     .with_z_index(20 + row_index as i32)
                     .with_input_policy(UiInputPolicy::Receive)
                     .with_state_flags(base_state(true)),
@@ -213,7 +223,9 @@ impl AssetContentListPointerBridge {
                         node_id,
                         UiNodePath::new(format!("editor.asset_content/item_{item_index}")),
                     )
-                    .with_frame(zircon_ui::UiFrame::new(ROW_X, row_y, row_width, row_height))
+                    .with_frame(zircon_runtime::ui::layout::UiFrame::new(
+                        ROW_X, row_y, row_width, row_height,
+                    ))
                     .with_z_index(20 + row_index as i32)
                     .with_input_policy(UiInputPolicy::Receive)
                     .with_state_flags(base_state(true)),

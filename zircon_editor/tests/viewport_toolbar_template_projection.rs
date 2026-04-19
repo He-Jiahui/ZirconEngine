@@ -1,6 +1,6 @@
-use zircon_editor::{EditorUiHostRuntime, UiSize};
 use zircon_editor::EditorUiControlService;
-use zircon_ui::UiFrame;
+use zircon_editor::{EditorUiHostRuntime, UiSize};
+use zircon_runtime::ui::layout::UiFrame;
 
 #[test]
 fn viewport_toolbar_template_projects_surface_backed_group_frames() {

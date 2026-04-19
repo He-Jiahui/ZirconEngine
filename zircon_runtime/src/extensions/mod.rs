@@ -1,19 +1,17 @@
 //! Optional extension module registration surfaces absorbed into the runtime layer.
 
-pub mod animation;
 pub mod navigation;
 pub mod net;
 pub mod particles;
-pub mod physics;
 pub mod sound;
 pub mod texture;
 
 use std::sync::Arc;
 
-use zircon_core::{
+use crate::core::{
     DriverDescriptor, ManagerDescriptor, ModuleDescriptor, ServiceKind, ServiceObject, StartupMode,
 };
-use zircon_module::{dependency_on, factory, qualified_name};
+use crate::engine_module::{dependency_on, factory, qualified_name};
 
 fn module_descriptor_with_driver_and_manager<D, M>(
     module_name: &'static str,

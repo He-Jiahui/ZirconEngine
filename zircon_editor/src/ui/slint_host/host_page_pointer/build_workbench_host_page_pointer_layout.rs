@@ -1,4 +1,4 @@
-use zircon_ui::UiFrame;
+use zircon_runtime::ui::layout::UiFrame;
 
 use crate::ui::slint_host::callback_dispatch::BuiltinWorkbenchRootShellFrames;
 use crate::{WorkbenchChromeMetrics, WorkbenchViewModel};

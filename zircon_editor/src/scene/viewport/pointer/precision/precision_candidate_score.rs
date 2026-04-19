@@ -1,4 +1,4 @@
-use zircon_math::Vec2;
+use zircon_runtime::core::math::Vec2;
 
 use super::{CandidateScore, PrecisionCandidate};
 

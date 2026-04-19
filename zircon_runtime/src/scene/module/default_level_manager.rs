@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::sync::atomic::AtomicU64;
 use std::sync::Mutex;
 
-use zircon_framework::scene::WorldHandle;
+use crate::core::framework::scene::WorldHandle;
 
 use crate::scene::LevelSystem;
 

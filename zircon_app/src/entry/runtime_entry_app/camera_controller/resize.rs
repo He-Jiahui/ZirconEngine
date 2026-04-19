@@ -1,4 +1,4 @@
-use zircon_math::UVec2;
+use zircon_runtime::core::math::UVec2;
 
 use super::runtime_camera_controller::RuntimeCameraController;
 

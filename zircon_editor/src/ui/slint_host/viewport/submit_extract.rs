@@ -1,5 +1,5 @@
-use zircon_framework::render::{RenderFrameExtract, RenderFrameworkError};
-use zircon_math::UVec2;
+use crate::scene::viewport::{RenderFrameExtract, RenderFrameworkError};
+use zircon_runtime::core::math::UVec2;
 
 use super::slint_viewport_controller::SlintViewportController;
 

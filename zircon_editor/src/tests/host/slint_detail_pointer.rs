@@ -5,7 +5,7 @@ use crate::ui::slint_host::detail_pointer::{
 };
 use crate::ui::slint_host::scroll_surface_host::ScrollSurfaceHostState;
 use crate::ui::workbench::snapshot::AssetSelectionSnapshot;
-use zircon_ui::{UiPoint, UiSize};
+use zircon_runtime::ui::{layout::UiPoint, layout::UiSize};
 
 #[test]
 fn shared_console_scroll_surface_bridge_uses_shared_scroll_state() {

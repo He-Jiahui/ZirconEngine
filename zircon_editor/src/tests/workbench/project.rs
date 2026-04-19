@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 use std::fs;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use zircon_asset::project::ProjectPaths;
+use zircon_runtime::asset::project::ProjectPaths;
 use zircon_runtime::scene::DefaultLevelManager;
 
 use crate::{

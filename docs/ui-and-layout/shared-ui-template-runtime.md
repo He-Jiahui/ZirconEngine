@@ -13,7 +13,7 @@ related_code:
   - zircon_ui/src/template/instance.rs
   - zircon_ui/src/tree/mod.rs
   - zircon_ui/src/tree/node/mod.rs
-  - zircon_ui/src/surface.rs
+  - zircon_ui/src/surface/mod.rs
   - zircon_ui/src/tests/template.rs
   - zircon_ui/src/tests/asset.rs
   - zircon_editor/src/ui/template/mod.rs
@@ -39,7 +39,7 @@ implementation_files:
   - zircon_ui/src/template/instance.rs
   - zircon_ui/src/tree/mod.rs
   - zircon_ui/src/tree/node/mod.rs
-  - zircon_ui/src/surface.rs
+  - zircon_ui/src/surface/mod.rs
   - zircon_editor/src/ui/template_runtime/mod.rs
   - zircon_editor/src/ui/template_runtime/builtin/mod.rs
   - zircon_editor/src/ui/template_runtime/builtin/template_documents.rs

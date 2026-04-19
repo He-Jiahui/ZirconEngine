@@ -3,7 +3,7 @@ use crate::ui::slint_host::floating_window_projection::{
     resolve_floating_window_projection_base_outer_frame,
     resolve_floating_window_projection_shared_source,
 };
-use zircon_ui::UiSize;
+use zircon_runtime::ui::layout::UiSize;
 
 #[test]
 fn floating_window_drag_surface_drops_geometry_outer_frame_fallback() {

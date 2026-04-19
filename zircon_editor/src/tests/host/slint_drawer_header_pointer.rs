@@ -11,7 +11,7 @@ use crate::{
     compute_workbench_shell_geometry, ActivityDrawerMode, ActivityDrawerSlot, EditorEvent,
     LayoutCommand, ShellSizePx, WorkbenchChromeMetrics, WorkbenchViewModel,
 };
-use zircon_ui::{UiFrame, UiPoint, UiSize};
+use zircon_runtime::ui::{layout::UiFrame, layout::UiPoint, layout::UiSize};
 
 #[test]
 fn shared_drawer_header_pointer_bridge_routes_group_tabs_from_shared_hit_test() {

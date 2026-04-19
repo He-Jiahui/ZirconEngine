@@ -1,6 +1,6 @@
 use crossbeam_channel::unbounded;
-use zircon_framework::asset::ResourceManager;
-use zircon_resource::{
+use zircon_runtime::core::framework::asset::ResourceManager;
+use zircon_runtime::core::resource::{
     MaterialMarker, ModelMarker, ResourceDiagnostic, ResourceEvent, ResourceHandle, ResourceId,
     ResourceKind, ResourceLocator, ResourceRecord, ResourceState,
 };
@@ -88,7 +88,7 @@ impl ResourceManager for FakeResourceServer {
             .map(|record| record.revision)
     }
 
-    fn subscribe_resource_changes(&self) -> zircon_core::ChannelReceiver<ResourceEvent> {
+    fn subscribe_resource_changes(&self) -> zircon_runtime::core::ChannelReceiver<ResourceEvent> {
         let (_sender, receiver) = unbounded();
         receiver
     }

@@ -1,6 +1,6 @@
 use crate::ui::slint_host::callback_dispatch::BuiltinWorkbenchRootShellFrames;
 use crate::{ShellFrame, ShellRegionId, WorkbenchChromeMetrics, WorkbenchShellGeometry};
-use zircon_ui::UiFrame;
+use zircon_runtime::ui::layout::UiFrame;
 
 pub(crate) fn resolve_root_center_band_frame(
     geometry: &WorkbenchShellGeometry,

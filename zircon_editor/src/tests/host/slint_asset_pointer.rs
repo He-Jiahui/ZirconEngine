@@ -12,12 +12,12 @@ use crate::ui::slint_host::callback_dispatch::{
     BuiltinAssetSurfaceTemplateBridge,
 };
 use crate::{EditorAssetEvent, EditorEvent};
-use zircon_asset::editor::{
+use crate::core::host::asset_editor::{
     EditorAssetCatalogRecord, EditorAssetCatalogSnapshotRecord, EditorAssetFolderRecord,
 };
-use zircon_asset::project::PreviewState;
-use zircon_resource::ResourceKind;
-use zircon_ui::{binding::UiBindingValue, binding::UiEventKind, UiPoint, UiSize};
+use zircon_runtime::asset::project::PreviewState;
+use zircon_runtime::core::resource::ResourceKind;
+use zircon_runtime::ui::{binding::UiBindingValue, binding::UiEventKind, layout::UiPoint, layout::UiSize};
 
 #[test]
 fn shared_asset_tree_pointer_bridge_scrolls_and_dispatches_folder_selection() {

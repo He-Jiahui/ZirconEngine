@@ -1,14 +1,17 @@
-//! Editor-only UI contracts, Slint host runtime, and workbench projection.
+//! Editor-only UI contracts, reusable widget/layout composition, Slint host runtime,
+//! and workbench projection.
 
 mod activity;
 pub(crate) mod binding;
 pub(crate) mod binding_dispatch;
 mod control;
+pub(crate) mod layouts;
 mod reflection;
 pub(crate) mod slint_host;
 pub(crate) mod template;
 pub(crate) mod template_runtime;
 mod ui_asset_editor;
+pub(crate) mod widgets;
 pub(crate) mod workbench;
 
 pub use activity::{

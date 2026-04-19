@@ -1,7 +1,6 @@
 use zircon_editor::{EditorManager, EDITOR_MANAGER_NAME};
-use zircon_manager::{
-    resolve_config_manager, resolve_event_manager, resolve_input_manager,
-    resolve_render_framework,
+use zircon_runtime::core::manager::{
+    resolve_config_manager, resolve_event_manager, resolve_input_manager, resolve_render_framework,
     resolve_rendering_manager, ManagerResolver,
 };
 use zircon_runtime::{

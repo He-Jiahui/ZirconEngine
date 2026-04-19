@@ -1,5 +1,5 @@
-use zircon_framework::render::{ProjectionMode, ViewOrientation};
-use zircon_math::{Transform, Vec2, Vec3};
+use crate::scene::viewport::{ProjectionMode, ViewOrientation};
+use zircon_runtime::core::math::{Transform, Vec2, Vec3};
 
 use super::{constants::MIN_CAMERA_DISTANCE, SceneViewportController};
 

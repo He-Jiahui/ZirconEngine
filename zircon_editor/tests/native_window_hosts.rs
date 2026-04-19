@@ -2,15 +2,15 @@ use std::fs;
 use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use zircon_core::CoreRuntime;
+use zircon_runtime::core::CoreRuntime;
 use zircon_editor::{
     module_descriptor, EditorManager, MainPageId, NativeWindowHostState, ProjectEditorWorkspace,
     ViewDescriptorId, ViewHost, ViewInstance, ViewInstanceId, WorkbenchLayout, EDITOR_MANAGER_NAME,
 };
+use zircon_runtime::core::manager::resolve_config_manager;
 use zircon_runtime::foundation::{
     module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
 };
-use zircon_manager::resolve_config_manager;
 
 fn env_lock() -> &'static Mutex<()> {
     static ENV_LOCK: Mutex<()> = Mutex::new(());

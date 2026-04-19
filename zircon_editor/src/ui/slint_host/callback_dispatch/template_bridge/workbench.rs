@@ -2,10 +2,11 @@ use std::collections::BTreeMap;
 
 use crate::ui::{DockCommand, EditorUiBinding, EditorUiBindingPayload};
 use thiserror::Error;
-use zircon_ui::tree::UiTreeError;
-use zircon_ui::{
-    binding::UiBindingValue, binding::UiEventKind, Anchor, AxisConstraint, BoxConstraints, Pivot,
-    Position, StretchMode, UiFrame, UiSize, UiSurface,
+use zircon_runtime::ui::layout::{AxisConstraint, StretchMode};
+use zircon_runtime::ui::tree::UiTreeError;
+use zircon_runtime::ui::{
+    binding::UiBindingValue, binding::UiEventKind, layout::Anchor, layout::BoxConstraints,
+    layout::Pivot, layout::Position, layout::UiFrame, layout::UiSize, surface::UiSurface,
 };
 
 use crate::ui::slint_host::callback_dispatch::constants::{
@@ -292,7 +293,7 @@ fn surface_control_frame(surface: &UiSurface, control_id: &str) -> Option<UiFram
 fn surface_control_node_id(
     surface: &UiSurface,
     control_id: &str,
-) -> Option<zircon_ui::event_ui::UiNodeId> {
+) -> Option<zircon_runtime::ui::event_ui::UiNodeId> {
     surface.tree.nodes.values().find_map(|node| {
         node.template_metadata
             .as_ref()

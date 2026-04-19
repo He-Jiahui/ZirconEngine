@@ -1,4 +1,4 @@
-use zircon_resource::ResourceKind;
+use zircon_runtime::core::resource::ResourceKind;
 
 use super::{
     AssetFolderSnapshot, AssetItemSnapshot, AssetSelectionSnapshot, AssetSurfaceMode,

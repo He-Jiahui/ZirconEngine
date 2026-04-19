@@ -1,12 +1,12 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use toml::Value;
-use zircon_ui::template::{UiAssetHeader, UiAssetImports, UiAssetRoot, UiBindingRef, UiChildMount};
-use zircon_ui::template::{
+use zircon_runtime::ui::template::UiAssetDocument;
+use zircon_runtime::ui::template::{UiAssetHeader, UiAssetImports, UiAssetRoot, UiBindingRef, UiChildMount};
+use zircon_runtime::ui::template::{
     UiComponentDefinition, UiComponentParamSchema, UiNamedSlotSchema, UiNodeDefinition,
     UiNodeDefinitionKind, UiStyleDeclarationBlock, UiStyleRule, UiStyleScope, UiStyleSheet,
 };
-use zircon_ui::UiAssetDocument;
 
 #[derive(Clone, Debug, PartialEq)]
 struct UiAssetMapPatch<V> {
@@ -881,10 +881,10 @@ fn apply_optional_map_patch<V: Clone + PartialEq>(
 mod tests {
     use std::collections::BTreeMap;
 
-    use zircon_ui::template::{
+    use zircon_runtime::ui::template::{
         UiChildMount, UiComponentParamSchema, UiNamedSlotSchema, UiStyleScope,
     };
-    use zircon_ui::{UiAssetKind, template::UiNodeDefinitionKind};
+    use zircon_runtime::ui::{template::UiAssetKind, template::UiNodeDefinitionKind};
 
     use super::*;
 
@@ -1357,7 +1357,7 @@ mod tests {
                 UiStyleSheet {
                     id: "editor_shell".to_string(),
                     rules: vec![
-                        zircon_ui::template::UiStyleRule {
+                        zircon_runtime::ui::template::UiStyleRule {
                             selector: ".toolbar > Button".to_string(),
                             set: UiStyleDeclarationBlock {
                                 self_values: BTreeMap::from([(
@@ -1367,7 +1367,7 @@ mod tests {
                                 slot: BTreeMap::new(),
                             },
                         },
-                        zircon_ui::template::UiStyleRule {
+                        zircon_runtime::ui::template::UiStyleRule {
                             selector: ".toolbar > Button:hover".to_string(),
                             set: UiStyleDeclarationBlock {
                                 self_values: BTreeMap::from([(
@@ -1382,7 +1382,7 @@ mod tests {
                 UiStyleSheet {
                     id: "inspector".to_string(),
                     rules: vec![
-                        zircon_ui::template::UiStyleRule {
+                        zircon_runtime::ui::template::UiStyleRule {
                             selector: ".secondary".to_string(),
                             set: UiStyleDeclarationBlock {
                                 self_values: BTreeMap::from([(
@@ -1392,7 +1392,7 @@ mod tests {
                                 slot: BTreeMap::new(),
                             },
                         },
-                        zircon_ui::template::UiStyleRule {
+                        zircon_runtime::ui::template::UiStyleRule {
                             selector: "#inspector_panel".to_string(),
                             set: UiStyleDeclarationBlock {
                                 self_values: BTreeMap::from([(
@@ -1408,4 +1408,3 @@ mod tests {
         }
     }
 }
-

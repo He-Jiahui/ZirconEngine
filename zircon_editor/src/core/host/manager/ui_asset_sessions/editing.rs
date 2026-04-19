@@ -15,7 +15,7 @@ use crate::{
     EditorError, EditorManager, UiAssetEditorCommand, UiAssetEditorExternalEffect,
     UiAssetEditorMode, UiAssetEditorSession, UiAssetPreviewPreset, UiSize, ViewContentKind,
 };
-use zircon_asset::assets::{UiStyleAsset, UiWidgetAsset};
+use zircon_runtime::asset::assets::{UiStyleAsset, UiWidgetAsset};
 
 use super::super::project_access::normalize_ui_asset_asset_id;
 use super::super::ui_asset_promotion::{

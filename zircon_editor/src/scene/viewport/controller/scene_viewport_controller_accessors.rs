@@ -1,6 +1,6 @@
 use crate::{GizmoAxis, ViewportState};
-use zircon_framework::render::SceneViewportSettings;
-use zircon_math::Vec3;
+use crate::scene::viewport::SceneViewportSettings;
+use zircon_runtime::core::math::Vec3;
 
 use super::SceneViewportController;
 

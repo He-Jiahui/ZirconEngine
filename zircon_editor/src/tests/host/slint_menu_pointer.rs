@@ -7,7 +7,7 @@ use crate::ui::slint_host::menu_pointer::{
     WorkbenchMenuPointerRoute, WorkbenchMenuPointerState,
 };
 use crate::{EditorEvent, LayoutCommand, MenuAction};
-use zircon_ui::{UiFrame, UiPoint, UiSize};
+use zircon_runtime::ui::{layout::UiFrame, layout::UiPoint, layout::UiSize};
 
 #[test]
 fn shared_menu_pointer_bridge_opens_and_closes_top_level_menu_from_shared_hit_test() {

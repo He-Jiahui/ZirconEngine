@@ -10,7 +10,7 @@ fn builtin_welcome_surface_project_name_dispatches_dynamic_host_event_from_templ
         &bridge,
         "ProjectNameEdited",
         UiEventKind::Change,
-        vec![zircon_ui::binding::UiBindingValue::string("Sandbox")],
+        vec![zircon_runtime::ui::binding::UiBindingValue::string("Sandbox")],
     )
     .expect("welcome surface control should resolve through template bridge")
     .unwrap();
@@ -32,7 +32,7 @@ fn builtin_welcome_surface_project_name_matches_direct_binding_dispatch() {
         &bridge,
         "ProjectNameEdited",
         UiEventKind::Change,
-        vec![zircon_ui::binding::UiBindingValue::string("Sandbox")],
+        vec![zircon_runtime::ui::binding::UiBindingValue::string("Sandbox")],
     )
     .expect("welcome surface control should resolve through template bridge")
     .unwrap();
@@ -60,7 +60,7 @@ fn builtin_welcome_surface_open_recent_dispatches_dynamic_host_event_from_templa
         &bridge,
         "OpenRecentProject",
         UiEventKind::Click,
-        vec![zircon_ui::binding::UiBindingValue::string(
+        vec![zircon_runtime::ui::binding::UiBindingValue::string(
             "E:/Projects/Sandbox",
         )],
     )
@@ -84,7 +84,7 @@ fn builtin_welcome_surface_open_recent_matches_direct_binding_dispatch() {
         &bridge,
         "OpenRecentProject",
         UiEventKind::Click,
-        vec![zircon_ui::binding::UiBindingValue::string(
+        vec![zircon_runtime::ui::binding::UiBindingValue::string(
             "E:/Projects/Sandbox",
         )],
     )

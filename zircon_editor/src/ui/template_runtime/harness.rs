@@ -1,5 +1,5 @@
 use toml::Value;
-use zircon_ui::UiSurface;
+use zircon_runtime::ui::surface::UiSurface;
 
 #[cfg(test)]
 use crate::core::editor_event::EditorEventJournal;
@@ -320,7 +320,7 @@ fn render_toml_value(value: &Value) -> String {
     }
 }
 
-fn render_frame(frame: zircon_ui::UiFrame) -> String {
+fn render_frame(frame: zircon_runtime::ui::layout::UiFrame) -> String {
     render_frame_values(frame.x, frame.y, frame.width, frame.height)
 }
 

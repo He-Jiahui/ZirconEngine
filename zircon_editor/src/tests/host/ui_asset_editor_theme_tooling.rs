@@ -3,12 +3,12 @@ use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use toml::Value;
-use zircon_core::CoreRuntime;
+use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::foundation::{
     module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
 };
 use zircon_runtime::scene::DefaultLevelManager;
-use zircon_ui::template::UiAssetLoader;
+use zircon_runtime::ui::template::UiAssetLoader;
 
 use crate::module::module_descriptor;
 use crate::project::EditorProjectDocument;

@@ -1,4 +1,4 @@
-use zircon_framework::render::ViewOrientation;
+use crate::scene::viewport::ViewOrientation;
 
 pub(crate) fn symbol(orientation: ViewOrientation) -> &'static str {
     match orientation {

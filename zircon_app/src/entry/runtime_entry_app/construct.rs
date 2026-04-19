@@ -1,9 +1,9 @@
 use std::error::Error;
 
-use zircon_core::CoreHandle;
-use zircon_framework::render::RenderFrameExtract;
-use zircon_manager::ManagerResolver;
-use zircon_math::{UVec2, Vec2};
+use zircon_runtime::core::CoreHandle;
+use zircon_runtime::core::framework::render::RenderFrameExtract;
+use zircon_runtime::core::manager::ManagerResolver;
+use zircon_runtime::core::math::{UVec2, Vec2};
 use zircon_runtime::scene::components::NodeKind;
 use zircon_runtime::scene::create_default_level;
 

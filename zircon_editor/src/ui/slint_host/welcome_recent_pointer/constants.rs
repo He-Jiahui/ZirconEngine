@@ -1,4 +1,4 @@
-use zircon_ui::event_ui::UiNodeId;
+use zircon_runtime::ui::event_ui::UiNodeId;
 
 pub(in crate::ui::slint_host::welcome_recent_pointer) const ROOT_NODE_ID: UiNodeId =
     UiNodeId::new(1);

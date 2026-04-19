@@ -4,8 +4,8 @@ use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use zircon_core::{CoreError, CoreHandle};
-use zircon_framework::foundation::ConfigManager;
+use crate::core::{CoreError, CoreHandle};
+use crate::core::framework::foundation::ConfigManager;
 
 use super::config_path::config_file_path;
 

@@ -1,9 +1,9 @@
 use std::fs;
 use std::path::Path;
 
-use zircon_asset::project::ProjectManager;
-use zircon_framework::scene::WorldHandle;
-use zircon_resource::ResourceLocator;
+use crate::asset::project::ProjectManager;
+use crate::core::framework::scene::WorldHandle;
+use crate::core::resource::ResourceLocator;
 
 use super::level_display_name::display_name_for_level;
 use super::DefaultLevelManager;

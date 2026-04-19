@@ -7,7 +7,7 @@ pub(crate) fn dispatch_builtin_workbench_control(
     runtime: &EditorEventRuntime,
     bridge: &BuiltinWorkbenchTemplateBridge,
     control_id: &str,
-    event_kind: zircon_ui::binding::UiEventKind,
+    event_kind: zircon_runtime::ui::binding::UiEventKind,
 ) -> Option<Result<SlintDispatchEffects, String>> {
     let binding = bridge.binding_for_control(control_id, event_kind)?.clone();
     Some(dispatch_editor_binding(runtime, binding))
@@ -22,6 +22,6 @@ pub(crate) fn dispatch_builtin_workbench_menu_action(
         runtime,
         bridge,
         action,
-        zircon_ui::binding::UiEventKind::Click,
+        zircon_runtime::ui::binding::UiEventKind::Click,
     )
 }

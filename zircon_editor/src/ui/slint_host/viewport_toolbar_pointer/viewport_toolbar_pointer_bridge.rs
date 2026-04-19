@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use zircon_ui::{dispatch::UiPointerDispatcher, event_ui::UiNodeId, UiSurface};
+use zircon_runtime::ui::{dispatch::UiPointerDispatcher, event_ui::UiNodeId, surface::UiSurface};
 
 use super::active_viewport_toolbar_control::ActiveViewportToolbarControl;
 use super::viewport_toolbar_pointer_layout::ViewportToolbarPointerLayout;

@@ -1,4 +1,4 @@
-use zircon_math::{UVec2, Vec2};
+use zircon_runtime::core::math::{UVec2, Vec2};
 use zircon_runtime::scene::components::NodeKind;
 use zircon_runtime::scene::world::World;
 
@@ -104,7 +104,7 @@ fn test_scene_with_selected_cube() -> (World, u64) {
     (scene, selected)
 }
 
-fn test_selection_translation(scene: &World, selected: u64) -> zircon_math::Vec3 {
+fn test_selection_translation(scene: &World, selected: u64) -> zircon_runtime::core::math::Vec3 {
     scene
         .find_node(selected)
         .expect("selected node")

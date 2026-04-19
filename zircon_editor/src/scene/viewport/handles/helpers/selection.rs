@@ -1,5 +1,5 @@
 use crate::GizmoAxis;
-use zircon_framework::render::GridMode;
+use crate::scene::viewport::GridMode;
 
 use crate::scene::viewport::handles::{
     handle_basis::HandleBasis, handle_build_context::HandleBuildContext,

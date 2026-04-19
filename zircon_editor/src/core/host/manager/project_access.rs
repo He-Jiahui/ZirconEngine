@@ -1,11 +1,12 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use zircon_asset::pipeline::manager::{resolve_asset_manager, AssetManager};
-use zircon_framework::foundation::ConfigManager;
-use zircon_manager::ManagerResolver;
+use zircon_runtime::asset::pipeline::manager::{resolve_asset_manager, AssetManager};
+use zircon_runtime::core::framework::foundation::ConfigManager;
+use zircon_runtime::core::manager::ManagerResolver;
 use zircon_runtime::scene::{DefaultLevelManager, LevelMetadata, DEFAULT_LEVEL_MANAGER_NAME};
 
+use crate::core::host::asset_editor::{resolve_editor_asset_manager, EditorAssetManager};
 use crate::project::{project_root_path, EditorProjectDocument};
 
 use super::editor_error::EditorError;
@@ -20,6 +21,9 @@ impl EditorManager {
             project_root_path(&path).map_err(|error| EditorError::Project(error.to_string()))?;
         self.asset_manager()?
             .open_project(root.to_string_lossy().as_ref())
+            .map_err(|error| EditorError::Project(error.to_string()))?;
+        self.editor_asset_manager()?
+            .refresh_from_runtime_project()
             .map_err(|error| EditorError::Project(error.to_string()))?;
         EditorProjectDocument::load_from_path(&path)
             .map_err(|error| EditorError::Project(error.to_string()))
@@ -38,6 +42,9 @@ impl EditorManager {
         self.asset_manager()?
             .open_project(root.to_string_lossy().as_ref())
             .map(|_| ())
+            .map_err(|error| EditorError::Project(error.to_string()))?;
+        self.editor_asset_manager()?
+            .refresh_from_runtime_project()
             .map_err(|error| EditorError::Project(error.to_string()))
     }
 
@@ -60,6 +67,11 @@ impl EditorManager {
 
     pub(super) fn asset_manager(&self) -> Result<Arc<dyn AssetManager>, EditorError> {
         resolve_asset_manager(&self.core).map_err(|error| EditorError::Project(error.to_string()))
+    }
+
+    pub(super) fn editor_asset_manager(&self) -> Result<Arc<dyn EditorAssetManager>, EditorError> {
+        resolve_editor_asset_manager(&self.core)
+            .map_err(|error| EditorError::Project(error.to_string()))
     }
 
     pub(super) fn current_project_root(&self) -> Result<Option<PathBuf>, EditorError> {

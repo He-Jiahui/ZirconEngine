@@ -1,4 +1,4 @@
-use zircon_ui::UiSize;
+use zircon_runtime::ui::layout::UiSize;
 
 use crate::ui::slint_host::asset_pointer::AssetListViewMode;
 

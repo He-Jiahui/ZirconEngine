@@ -1,5 +1,5 @@
-use zircon_framework::render::{HandleElementExtract, OverlayAxis};
-use zircon_math::Vec3;
+use crate::scene::viewport::{HandleElementExtract, OverlayAxis};
+use zircon_runtime::core::math::Vec3;
 
 use crate::scene::viewport::handles::{constants::CENTER_COLOR, handle_basis::HandleBasis};
 

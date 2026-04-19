@@ -3,7 +3,7 @@ use crate::ui::{
     EditorUiReflectionAdapter,
 };
 use serde_json::json;
-use zircon_ui::{
+use zircon_runtime::ui::{
     event_ui::UiNodeDescriptor, event_ui::UiPropertyDescriptor, event_ui::UiReflectionSnapshot,
     event_ui::UiValueType,
 };

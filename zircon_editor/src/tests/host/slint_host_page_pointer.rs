@@ -7,7 +7,7 @@ use crate::ui::slint_host::host_page_pointer::{
     WorkbenchHostPagePointerItem, WorkbenchHostPagePointerLayout, WorkbenchHostPagePointerRoute,
 };
 use crate::{EditorEvent, LayoutCommand, MainPageId, WorkbenchChromeMetrics};
-use zircon_ui::{UiFrame, UiPoint, UiSize};
+use zircon_runtime::ui::{layout::UiFrame, layout::UiPoint, layout::UiSize};
 
 #[test]
 fn shared_host_page_pointer_bridge_routes_tabs_from_shared_hit_test() {

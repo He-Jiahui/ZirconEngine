@@ -3,13 +3,13 @@ use std::sync::Arc;
 
 use softbuffer::{Context, Surface};
 use winit::window::Window;
-use zircon_core::{CoreError, CoreHandle};
-use zircon_framework::render::{
+use zircon_runtime::core::{CoreError, CoreHandle};
+use zircon_runtime::core::framework::render::{
     CapturedFrame, RenderFrameExtract, RenderFramework, RenderFrameworkError,
     RenderViewportDescriptor, RenderViewportHandle,
 };
-use zircon_manager::resolve_render_framework;
-use zircon_math::UVec2;
+use zircon_runtime::core::manager::resolve_render_framework;
+use zircon_runtime::core::math::UVec2;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct ActiveViewport {
@@ -44,7 +44,8 @@ impl RenderFrameworkRuntimeBridge {
     ) -> Result<Option<CapturedFrame>, RenderFrameworkError> {
         let viewport = self.ensure_viewport(size)?;
         extract.apply_viewport_size(size);
-        self.render_framework.submit_frame_extract(viewport, extract)?;
+        self.render_framework
+            .submit_frame_extract(viewport, extract)?;
         let Some(frame) = self.render_framework.capture_frame(viewport)? else {
             return Ok(None);
         };
@@ -161,11 +162,11 @@ mod tests {
     use std::collections::HashMap;
     use std::sync::{Arc, Mutex};
 
-    use zircon_framework::render::{
+    use zircon_runtime::core::framework::render::{
         RenderFrameExtract, RenderPipelineHandle, RenderQualityProfile, RenderStats,
         RenderWorldSnapshotHandle,
     };
-    use zircon_math::UVec2;
+    use zircon_runtime::core::math::UVec2;
     use zircon_runtime::scene::world::World;
 
     use super::{

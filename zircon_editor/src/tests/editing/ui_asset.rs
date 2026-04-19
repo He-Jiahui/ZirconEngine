@@ -7,7 +7,7 @@ use crate::{
     UiAssetEditorMode, UiAssetEditorRoute, UiAssetEditorUndoStack, UiAssetPreviewPreset,
     UiDesignerSelectionModel, UiSize,
 };
-use zircon_ui::{UiAssetKind, template::UiAssetLoader};
+use zircon_runtime::ui::{template::UiAssetKind, template::UiAssetLoader};
 
 const SIMPLE_LAYOUT_ASSET_TOML: &str = r#"
 [asset]
@@ -3560,7 +3560,7 @@ fn ui_asset_editor_session_tracks_explicit_inverse_tree_edits_for_reparent_and_r
         convert_session.next_undo_inverse_tree_edit(),
         Some(UiAssetEditorInverseTreeEdit::RestoreNodeDefinition {
             node_id: "button".to_string(),
-            kind: zircon_ui::template::UiNodeDefinitionKind::Native,
+            kind: zircon_runtime::ui::template::UiNodeDefinitionKind::Native,
             widget_type: Some("Button".to_string()),
             component: None,
             component_ref: None,
@@ -3833,7 +3833,7 @@ fn ui_asset_editor_session_creates_reference_nodes_from_imported_widget_palette_
     let reference_node = document
         .nodes
         .values()
-        .find(|node| node.kind == zircon_ui::template::UiNodeDefinitionKind::Reference)
+        .find(|node| node.kind == zircon_runtime::ui::template::UiNodeDefinitionKind::Reference)
         .expect("reference node");
     assert_eq!(reference_node.component_ref.as_deref(), Some(reference));
 }
@@ -4137,7 +4137,10 @@ fn ui_asset_editor_session_converts_selected_node_to_reference_from_palette_sele
     let converted =
         UiAssetLoader::load_toml_str(session.source_buffer().text()).expect("converted document");
     let button = converted.nodes.get("button").expect("button node");
-    assert_eq!(button.kind, zircon_ui::template::UiNodeDefinitionKind::Reference);
+    assert_eq!(
+        button.kind,
+        zircon_runtime::ui::template::UiNodeDefinitionKind::Reference
+    );
     assert_eq!(button.component_ref.as_deref(), Some(reference));
     assert_eq!(button.control_id.as_deref(), Some("SaveButton"));
     assert_eq!(button.classes, vec!["primary".to_string()]);
@@ -4163,7 +4166,10 @@ fn ui_asset_editor_session_converts_selected_node_to_reference_from_palette_sele
     let undone =
         UiAssetLoader::load_toml_str(session.source_buffer().text()).expect("undone document");
     let button = undone.nodes.get("button").expect("button node");
-    assert_eq!(button.kind, zircon_ui::template::UiNodeDefinitionKind::Native);
+    assert_eq!(
+        button.kind,
+        zircon_runtime::ui::template::UiNodeDefinitionKind::Native
+    );
     assert_eq!(button.widget_type.as_deref(), Some("Button"));
     assert_eq!(
         button.props.get("text").and_then(toml::Value::as_str),
@@ -4214,7 +4220,10 @@ fn ui_asset_editor_session_extracts_selected_node_into_local_component() {
         .get("SaveButton")
         .expect("new local component");
     let instance = extracted.nodes.get("button").expect("component instance");
-    assert_eq!(instance.kind, zircon_ui::template::UiNodeDefinitionKind::Component);
+    assert_eq!(
+        instance.kind,
+        zircon_runtime::ui::template::UiNodeDefinitionKind::Component
+    );
     assert_eq!(instance.component.as_deref(), Some("SaveButton"));
     assert_eq!(instance.control_id.as_deref(), Some("SaveButton"));
     assert_eq!(instance.classes, vec!["primary".to_string()]);
@@ -4228,7 +4237,10 @@ fn ui_asset_editor_session_extracts_selected_node_into_local_component() {
         .nodes
         .get(&component.root)
         .expect("extracted component root");
-    assert_eq!(component_root.kind, zircon_ui::template::UiNodeDefinitionKind::Native);
+    assert_eq!(
+        component_root.kind,
+        zircon_runtime::ui::template::UiNodeDefinitionKind::Native
+    );
     assert_eq!(component_root.widget_type.as_deref(), Some("Button"));
     assert_eq!(component_root.control_id.as_deref(), Some("SaveButton"));
     assert_eq!(component_root.classes, vec!["primary".to_string()]);
@@ -4407,7 +4419,10 @@ fn ui_asset_editor_session_promotes_selected_local_component_to_external_widget_
         .iter()
         .any(|reference| { reference == "res://ui/widgets/save_button.ui.toml#SaveButton" }));
     let button = promoted.nodes.get("button").expect("button node");
-    assert_eq!(button.kind, zircon_ui::template::UiNodeDefinitionKind::Reference);
+    assert_eq!(
+        button.kind,
+        zircon_runtime::ui::template::UiNodeDefinitionKind::Reference
+    );
     assert_eq!(
         button.component_ref.as_deref(),
         Some("res://ui/widgets/save_button.ui.toml#SaveButton")
@@ -4530,7 +4545,10 @@ fn ui_asset_editor_session_promotes_local_theme_to_external_style_asset_and_link
     );
 }
 
-fn selected_text<'a>(surface: &'a zircon_ui::UiSurface, control_id: &str) -> Option<&'a str> {
+fn selected_text<'a>(
+    surface: &'a zircon_runtime::ui::surface::UiSurface,
+    control_id: &str,
+) -> Option<&'a str> {
     surface
         .tree
         .nodes
@@ -4546,7 +4564,7 @@ fn selected_text<'a>(surface: &'a zircon_ui::UiSurface, control_id: &str) -> Opt
         .and_then(|value| value.as_str())
 }
 
-fn preview_has_control_id(surface: &zircon_ui::UiSurface, control_id: &str) -> bool {
+fn preview_has_control_id(surface: &zircon_runtime::ui::surface::UiSurface, control_id: &str) -> bool {
     surface.tree.nodes.values().any(|node| {
         node.template_metadata
             .as_ref()
@@ -4638,5 +4656,3 @@ fn ui_asset_editor_subsystem_is_grouped_by_domain_folders() {
         );
     }
 }
-
-

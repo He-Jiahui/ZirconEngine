@@ -1,4 +1,4 @@
-use zircon_ui::binding::UiBindingValue;
+use zircon_runtime::ui::binding::UiBindingValue;
 
 use super::{EditorUiBindingError, InspectorFieldChange};
 

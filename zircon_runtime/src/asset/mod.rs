@@ -1,15 +1,57 @@
-//! Runtime asset module registration absorbed into the runtime layer.
+//! Runtime asset subsystem: loading and pipeline runtime support (absorbed from legacy `zircon_asset`).
 
 mod module;
 
 pub use module::{
     module_descriptor, AssetModule, ASSET_IO_DRIVER_NAME, ASSET_MANAGER_NAME, ASSET_MODULE_NAME,
-    EDITOR_ASSET_MANAGER_NAME, PROJECT_ASSET_MANAGER_NAME, RESOURCE_MANAGER_NAME,
+    PROJECT_ASSET_MANAGER_NAME, RESOURCE_MANAGER_NAME,
 };
-pub use zircon_asset::artifact;
-pub use zircon_asset::assets;
-pub use zircon_asset::editor;
-pub use zircon_asset::importer;
-pub use zircon_asset::pipeline;
-pub use zircon_asset::project;
-pub use zircon_asset::watch;
+
+pub mod artifact;
+pub mod assets;
+mod formats;
+pub mod importer;
+mod load;
+pub mod pipeline;
+pub mod project;
+pub mod watch;
+
+#[allow(unused_imports)]
+pub(crate) use artifact::{ArtifactStore, LibraryCacheKey};
+pub use assets::{
+    AlphaMode, AnimationChannelAsset, AnimationChannelKeyAsset, AnimationChannelValueAsset,
+    AnimationClipAsset, AnimationClipBoneTrackAsset, AnimationConditionOperatorAsset,
+    AnimationGraphAsset, AnimationGraphNodeAsset, AnimationGraphParameterAsset,
+    AnimationInterpolationAsset, AnimationSequenceAsset, AnimationSequenceBindingAsset,
+    AnimationSequenceTrackAsset, AnimationSkeletonAsset, AnimationSkeletonBoneAsset,
+    AnimationStateAsset, AnimationStateMachineAsset, AnimationStateTransitionAsset,
+    AnimationTransitionConditionAsset, ImportedAsset, MaterialAsset, ModelAsset,
+    ModelPrimitiveAsset, PhysicsMaterialAsset, SceneAsset, SceneCameraAsset,
+    SceneDirectionalLightAsset, SceneEntityAsset, SceneMeshInstanceAsset, SceneMobilityAsset,
+    ShaderAsset, TextureAsset, TransformAsset, UiAssetDocumentError, UiLayoutAsset,
+    UiStyleAsset, UiWidgetAsset,
+};
+pub use importer::{AssetImportError, AssetImporter};
+pub use pipeline::manager::{
+    resolve_asset_manager, AssetIoDriver, AssetManager, AssetManagerHandle, AssetPipelineInfo,
+    AssetStatusRecord, ProjectAssetManager, ProjectInfo,
+};
+#[allow(unused_imports)]
+pub(crate) use pipeline::types::{
+    AssetRequest, CpuAssetPayload, CpuMeshPayload, CpuTexturePayload, MeshSource, MeshVertex,
+    TextureSource,
+};
+pub(crate) use pipeline::{types, worker_pool};
+#[allow(unused_imports)]
+pub(crate) use project::{
+    AssetMetaDocument, PreviewState, ProjectManager, ProjectManifest, ProjectPaths,
+};
+
+pub type AssetId = crate::core::resource::ResourceId;
+pub type AssetKind = crate::core::resource::ResourceKind;
+pub type AssetReference = crate::core::resource::AssetReference;
+pub type AssetUri = crate::core::resource::ResourceLocator;
+pub type AssetUuid = crate::core::resource::AssetUuid;
+
+#[cfg(test)]
+mod tests;

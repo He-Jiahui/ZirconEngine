@@ -1,4 +1,4 @@
-use zircon_scene::NodeId;
+use zircon_runtime::scene::NodeId;
 
 use super::super::error::EditorBindingDispatchError;
 use crate::EditorState;

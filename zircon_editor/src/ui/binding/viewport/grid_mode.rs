@@ -1,4 +1,4 @@
-use zircon_framework::render::GridMode;
+use crate::scene::viewport::GridMode;
 
 pub(crate) fn symbol(mode: GridMode) -> &'static str {
     match mode {

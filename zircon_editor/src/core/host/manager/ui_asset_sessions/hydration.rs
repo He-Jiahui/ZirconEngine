@@ -2,7 +2,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use crate::view::ViewInstanceId;
 use crate::{EditorError, EditorManager};
-use zircon_ui::UiAssetDocument;
+use zircon_runtime::ui::template::UiAssetDocument;
 
 impl EditorManager {
     pub(super) fn hydrate_ui_asset_editor_imports(
@@ -22,7 +22,7 @@ impl EditorManager {
         for reference in widget_refs {
             self.collect_ui_asset_import_document(
                 &reference,
-                zircon_ui::UiAssetKind::Widget,
+                zircon_runtime::ui::template::UiAssetKind::Widget,
                 &mut widget_docs,
                 &mut style_docs,
                 &mut visited,
@@ -31,7 +31,7 @@ impl EditorManager {
         for reference in style_refs {
             self.collect_ui_asset_import_document(
                 &reference,
-                zircon_ui::UiAssetKind::Style,
+                zircon_runtime::ui::template::UiAssetKind::Style,
                 &mut widget_docs,
                 &mut style_docs,
                 &mut visited,

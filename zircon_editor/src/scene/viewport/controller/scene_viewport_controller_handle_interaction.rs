@@ -1,6 +1,6 @@
-use zircon_framework::render::{HandleOverlayExtract, ViewportCameraSnapshot};
-use zircon_math::Vec2;
-use zircon_scene::Scene;
+use crate::scene::viewport::{HandleOverlayExtract, ViewportCameraSnapshot};
+use zircon_runtime::core::math::Vec2;
+use zircon_runtime::scene::Scene;
 
 use crate::GizmoAxis;
 

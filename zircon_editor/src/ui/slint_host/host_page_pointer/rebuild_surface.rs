@@ -1,7 +1,8 @@
 use std::collections::BTreeMap;
 
-use zircon_ui::{
-    dispatch::UiPointerDispatcher, event_ui::UiTreeId, UiInputPolicy, UiSurface, UiTreeNode,
+use zircon_runtime::ui::{
+    dispatch::UiPointerDispatcher, event_ui::UiTreeId, surface::UiSurface, tree::UiInputPolicy,
+    tree::UiTreeNode,
 };
 
 use super::base_state::base_state;
@@ -23,7 +24,7 @@ impl WorkbenchHostPagePointerBridge {
         surface.tree.insert_root(
             UiTreeNode::new(
                 ROOT_NODE_ID,
-                zircon_ui::event_ui::UiNodePath::new("editor.host_page.root"),
+                zircon_runtime::ui::event_ui::UiNodePath::new("editor.host_page.root"),
             )
             .with_frame(root_frame(&self.layout))
             .with_state_flags(base_state(false)),
@@ -34,7 +35,7 @@ impl WorkbenchHostPagePointerBridge {
                 ROOT_NODE_ID,
                 UiTreeNode::new(
                     STRIP_NODE_ID,
-                    zircon_ui::event_ui::UiNodePath::new("editor.host_page.strip"),
+                    zircon_runtime::ui::event_ui::UiNodePath::new("editor.host_page.strip"),
                 )
                 .with_frame(self.layout.strip_frame)
                 .with_z_index(10)
@@ -50,7 +51,7 @@ impl WorkbenchHostPagePointerBridge {
                 .measured_frames
                 .get(item_index)
                 .and_then(|frame| *frame)
-                .unwrap_or(zircon_ui::UiFrame::new(
+                .unwrap_or(zircon_runtime::ui::layout::UiFrame::new(
                     next_x,
                     self.layout.strip_frame.y + STRIP_Y,
                     TAB_MIN_WIDTH,
@@ -63,7 +64,7 @@ impl WorkbenchHostPagePointerBridge {
                     STRIP_NODE_ID,
                     UiTreeNode::new(
                         node_id,
-                        zircon_ui::event_ui::UiNodePath::new(format!(
+                        zircon_runtime::ui::event_ui::UiNodePath::new(format!(
                             "editor.host_page/tab_{item_index}"
                         )),
                     )

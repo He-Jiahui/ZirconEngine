@@ -1,4 +1,4 @@
-use zircon_scene::NodeId;
+use zircon_runtime::scene::NodeId;
 
 #[derive(Clone, Debug)]
 pub struct SceneEntry {

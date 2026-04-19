@@ -1,9 +1,9 @@
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 use crate::ui::UiDesignerSelectionModel;
-use zircon_ui::template::{UiAssetHeader, UiAssetRoot};
-use zircon_ui::{UiAssetDocument, UiAssetKind};
-use zircon_ui::template::{UiNodeDefinition, UiNodeDefinitionKind};
+use zircon_runtime::ui::template::{UiAssetDocument, UiAssetKind};
+use zircon_runtime::ui::template::{UiAssetHeader, UiAssetRoot};
+use zircon_runtime::ui::template::{UiNodeDefinition, UiNodeDefinitionKind};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct UiAssetExternalWidgetDraft {

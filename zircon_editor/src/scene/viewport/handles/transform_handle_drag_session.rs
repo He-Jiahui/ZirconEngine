@@ -1,6 +1,6 @@
 use crate::GizmoAxis;
-use zircon_framework::render::TransformSpace;
-use zircon_math::{Transform, Vec2};
+use crate::scene::viewport::TransformSpace;
+use zircon_runtime::core::math::{Transform, Vec2};
 
 use super::handle_basis::HandleBasis;
 

@@ -1,4 +1,4 @@
-use zircon_ui::UiFrame;
+use zircon_runtime::ui::layout::UiFrame;
 
 use super::workbench_activity_rail_pointer_item::WorkbenchActivityRailPointerItem;
 

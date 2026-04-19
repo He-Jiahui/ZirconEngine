@@ -3,10 +3,10 @@ use crate::{
     EditorUiEventKind, EditorUiRouter, InspectorFieldChange, SelectionCommand, ViewportCommand,
     WelcomeCommand,
 };
-use zircon_framework::render::{
+use crate::scene::viewport::{
     DisplayMode, GridMode, ProjectionMode, SceneViewportTool, TransformSpace, ViewOrientation,
 };
-use zircon_ui::binding::UiBindingValue;
+use zircon_runtime::ui::binding::UiBindingValue;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 enum MockEditorCommand {
@@ -19,12 +19,12 @@ fn animation_clip_binding_formats_as_stable_native_binding() {
         "AnimationClipEditorView",
         "AddFrameButton",
         EditorUiEventKind::Click,
-        EditorUiBindingPayload::position_of_track_and_frame("root/child:transform", 24),
+        EditorUiBindingPayload::position_of_track_and_frame("root/child:transform.translation", 24),
     );
 
     assert_eq!(
         binding.native_binding(),
-        r#"AnimationClipEditorView/AddFrameButton:onClick(PositionOfTrackAndFrame("root/child:transform",24))"#
+        r#"AnimationClipEditorView/AddFrameButton:onClick(PositionOfTrackAndFrame("root/child:transform.translation",24))"#
     );
     assert_eq!(
         EditorUiBinding::parse_native_binding(&binding.native_binding()).unwrap(),
@@ -38,7 +38,7 @@ fn editor_ui_router_dispatches_animation_binding_headlessly() {
         "AnimationClipEditorView",
         "AddFrameButton",
         EditorUiEventKind::Click,
-        EditorUiBindingPayload::position_of_track_and_frame("root/child:transform", 24),
+        EditorUiBindingPayload::position_of_track_and_frame("root/child:transform.translation", 24),
     );
     let mut router = EditorUiRouter::<MockEditorCommand>::default();
     router.register_exact(binding.path().clone(), |binding| match binding.payload() {
@@ -54,10 +54,37 @@ fn editor_ui_router_dispatches_animation_binding_headlessly() {
     assert_eq!(
         router.dispatch(&binding),
         vec![MockEditorCommand::AddAnimationFrame {
-            track_path: "root/child:transform".to_string(),
+            track_path: "root/child:transform.translation".to_string(),
             frame: 24,
         }]
     );
+}
+
+#[test]
+fn animation_binding_payload_uses_shared_framework_track_path() {
+    let crate_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let payload_source = std::fs::read_to_string(crate_root.join("src/ui/binding/core/payload.rs"))
+        .unwrap_or_default();
+    let payload_codec_source =
+        std::fs::read_to_string(crate_root.join("src/ui/binding/core/payload_codec.rs"))
+            .unwrap_or_default();
+    let dispatch_source =
+        std::fs::read_to_string(crate_root.join("src/ui/binding_dispatch/animation/dispatch.rs"))
+            .unwrap_or_default();
+    let event_source = std::fs::read_to_string(
+        crate_root.join("src/ui/binding_dispatch/animation/animation_host_event.rs"),
+    )
+    .unwrap_or_default();
+
+    for required in ["AnimationTrackPath", "zircon_runtime::core::framework::animation"] {
+        assert!(
+            payload_source.contains(required)
+                || payload_codec_source.contains(required)
+                || dispatch_source.contains(required)
+                || event_source.contains(required),
+            "editor animation binding should route through shared framework track path `{required}`"
+        );
+    }
 }
 
 #[test]

@@ -3,7 +3,7 @@
 mod module;
 mod runtime;
 
-use zircon_module::{EngineModule, ModuleDescriptor};
+use crate::engine_module::{EngineModule, ModuleDescriptor};
 
 pub use module::{
     module_descriptor, CONFIG_DRIVER_NAME, EVENT_DRIVER_NAME, FOUNDATION_MODULE_NAME,

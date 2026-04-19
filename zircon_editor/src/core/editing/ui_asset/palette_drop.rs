@@ -1,9 +1,9 @@
 use std::collections::BTreeMap;
 
 use toml::Value;
-use zircon_ui::template::UiComponentDefinition;
-use zircon_ui::UiAssetDocument;
-use zircon_ui::template::UiNodeDefinition;
+use zircon_runtime::ui::template::UiAssetDocument;
+use zircon_runtime::ui::template::UiComponentDefinition;
+use zircon_runtime::ui::template::UiNodeDefinition;
 
 use super::{
     flow_slots::{flow_slot_for_hover, flow_slot_target_overlays, flow_slot_targets},
@@ -741,7 +741,7 @@ fn component_definition_for_node<'a>(
 
 fn available_component_slots(
     component: &UiComponentDefinition,
-    children: &[zircon_ui::template::UiChildMount],
+    children: &[zircon_runtime::ui::template::UiChildMount],
 ) -> Vec<String> {
     let mut counts = BTreeMap::<String, usize>::new();
     for child in children {

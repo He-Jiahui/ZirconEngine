@@ -1,7 +1,7 @@
 use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use zircon_framework::input::InputManager as InputManagerFacade;
+use crate::core::framework::input::InputManager as InputManagerFacade;
 
 use crate::input::{InputEvent, InputEventRecord, InputSnapshot};
 

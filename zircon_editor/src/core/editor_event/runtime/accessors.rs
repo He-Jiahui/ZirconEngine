@@ -1,11 +1,11 @@
-use zircon_asset::editor::{EditorAssetCatalogSnapshotRecord, EditorAssetDetailsRecord};
-use zircon_framework::render::{RenderFrameExtract, RenderSceneSnapshot};
-use zircon_resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceRecord};
+use crate::scene::viewport::{RenderFrameExtract, RenderSceneSnapshot};
+use zircon_runtime::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceRecord};
 use zircon_runtime::scene::LevelSystem;
 
 use crate::core::editor_event::{
     EditorEvent, EditorEventEnvelope, EditorEventJournal, EditorEventRecord, EditorEventSource,
 };
+use crate::core::host::asset_editor::{EditorAssetCatalogSnapshotRecord, EditorAssetDetailsRecord};
 use crate::ui::workbench::startup::{EditorSessionMode, WelcomePaneSnapshot};
 use crate::{EditorChromeSnapshot, EditorDataSnapshot, ViewDescriptor};
 

@@ -5,7 +5,7 @@ mod tests {
     use std::sync::Arc;
     use std::time::{SystemTime, UNIX_EPOCH};
 
-    use zircon_core::CoreRuntime;
+    use crate::core::CoreRuntime;
 
     use super::super::{
         backend::MockVmBackend, module_descriptor, CapabilitySet, HostRegistry,
@@ -127,7 +127,7 @@ mod tests {
             .iter()
             .find(|plugin| plugin.name.as_str() == VM_PLUGIN_RUNTIME_NAME)
             .expect("vm plugin runtime descriptor");
-        assert_eq!(plugin.startup_mode, zircon_core::StartupMode::Immediate);
+        assert_eq!(plugin.startup_mode, crate::core::StartupMode::Immediate);
         assert!(plugin
             .dependencies
             .iter()
@@ -177,17 +177,16 @@ mod tests {
     #[test]
     fn vm_plugin_protocol_types_live_in_script_subsystem() {
         let runtime_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-        let manager_root = runtime_root.join("../zircon_manager");
+        let manager_root = runtime_root.join("src/core/manager");
         let script_mod_source = include_str!("../mod.rs");
         let vm_mod_source = include_str!("mod.rs");
         let manifest_source = include_str!("plugin/vm_plugin_manifest.rs");
         let host_registry_source = include_str!("host/host_registry.rs");
         let package_discovery_source = include_str!("plugin/vm_plugin_package_discovery.rs");
         let hot_reload_source = include_str!("runtime/hot_reload_coordinator.rs");
-        let manager_lib_source = include_str!("../../../../zircon_manager/src/lib.rs");
-        let manager_handles_source =
-            std::fs::read_to_string(manager_root.join("src/handles.rs")).unwrap_or_default();
-        let manager_records_root = manager_root.join("src/records");
+        let manager_mod_source = include_str!("../../core/manager/mod.rs");
+        let manager_resolver_source = include_str!("../../core/manager/resolver.rs");
+        let manager_records_root = manager_root.join("records");
 
         for required in ["CapabilitySet", "HostHandle", "PluginSlotId"] {
             assert!(
@@ -203,28 +202,28 @@ mod tests {
             hot_reload_source,
         ] {
             assert!(
-                !source.contains("use zircon_manager::"),
+                !source.contains("use crate::core::manager::"),
                 "vm runtime files should not source script protocol types from zircon_manager"
             );
         }
 
         for forbidden in ["CapabilitySet", "HostHandle", "PluginSlotId"] {
             assert!(
-                !manager_lib_source.contains(forbidden),
-                "zircon_manager lib.rs should not re-export {forbidden} after vm plugin boundary cleanup"
+                !manager_mod_source.contains(forbidden),
+                "core manager mod.rs should not re-export {forbidden} after vm plugin boundary cleanup"
+            );
+            assert!(
+                !manager_resolver_source.contains(forbidden),
+                "core manager resolver should not re-export {forbidden} after vm plugin boundary cleanup"
             );
         }
         assert!(
-            !manager_handles_source.contains("define_handle!(PluginSlotId);"),
-            "zircon_manager handles should not define PluginSlotId after vm plugin boundary cleanup"
-        );
-        assert!(
-            !manager_handles_source.contains("define_handle!(HostHandle);"),
-            "zircon_manager handles should not define HostHandle after vm plugin boundary cleanup"
+            !runtime_root.join("src/manager").exists(),
+            "runtime root should not keep a legacy manager module after vm plugin boundary cleanup"
         );
         assert!(
             !manager_records_root.exists(),
-            "zircon_manager should delete src/records after vm plugin boundary cleanup"
+            "core manager should not grow a records subtree after vm plugin boundary cleanup"
         );
     }
 

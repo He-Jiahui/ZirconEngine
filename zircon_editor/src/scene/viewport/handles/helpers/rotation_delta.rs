@@ -1,5 +1,5 @@
 use crate::GizmoAxis;
-use zircon_math::Quat;
+use zircon_runtime::core::math::Quat;
 
 use super::{global_axis, local_axis};
 

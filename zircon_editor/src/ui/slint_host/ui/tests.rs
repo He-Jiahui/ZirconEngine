@@ -2,8 +2,7 @@ use slint::{ComponentHandle, Model};
 use std::collections::BTreeMap;
 
 use super::apply_presentation;
-use super::floating_windows::collect_floating_windows;
-use super::pane_projection::document_pane;
+use crate::ui::layouts::windows::workbench_host_window::{collect_floating_windows, document_pane};
 use crate::ui::slint_host::callback_dispatch::BuiltinWorkbenchTemplateBridge;
 use crate::ui::slint_host::floating_window_projection::{
     build_floating_window_projection_bundle, FloatingWindowProjectionBundle,
@@ -14,10 +13,10 @@ use crate::{
     EditorChromeSnapshot, EditorUiCompatibilityHarness, FloatingWindowLayout, MainPageId,
     TabStackLayout, ViewHost, ViewInstance, ViewInstanceId, WorkbenchViewModel,
 };
-use zircon_framework::render::{
+use crate::scene::viewport::{
     DisplayMode, GridMode, ProjectionMode, SceneViewportTool, TransformSpace, ViewOrientation,
 };
-use zircon_ui::UiSize;
+use zircon_runtime::ui::layout::UiSize;
 
 fn root_shell_fixture() -> (
     crate::PreviewFixture,

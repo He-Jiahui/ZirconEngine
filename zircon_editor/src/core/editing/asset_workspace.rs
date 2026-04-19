@@ -1,9 +1,10 @@
 use std::collections::HashMap;
-use zircon_asset::editor::{
+
+use crate::core::host::asset_editor::{
     EditorAssetCatalogRecord, EditorAssetCatalogSnapshotRecord, EditorAssetDetailsRecord,
     EditorAssetFolderRecord,
 };
-use zircon_resource::{ResourceKind, ResourceRecord, ResourceState};
+use zircon_runtime::core::resource::{ResourceKind, ResourceRecord, ResourceState};
 
 use crate::snapshot::{
     AssetFolderSnapshot, AssetItemSnapshot, AssetReferenceSnapshot, AssetSelectionSnapshot,
@@ -422,7 +423,7 @@ fn asset_matches_filters(
 }
 
 fn reference_snapshot(
-    reference: &zircon_asset::editor::EditorAssetReferenceRecord,
+    reference: &crate::core::host::asset_editor::EditorAssetReferenceRecord,
 ) -> AssetReferenceSnapshot {
     AssetReferenceSnapshot {
         uuid: reference.uuid.clone(),

@@ -1,4 +1,4 @@
-use zircon_math::Vec3;
+use zircon_runtime::core::math::Vec3;
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct ViewportRenderablePickCandidate {

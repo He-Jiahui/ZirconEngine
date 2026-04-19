@@ -1,4 +1,4 @@
-use zircon_scene::NodeId;
+use zircon_runtime::scene::NodeId;
 
 use crate::core::editor_event::{host_adapter, EditorEventRuntime};
 use crate::ui::slint_host::event_bridge::SlintDispatchEffects;

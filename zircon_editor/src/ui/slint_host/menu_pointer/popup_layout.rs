@@ -1,4 +1,4 @@
-use zircon_ui::UiFrame;
+use zircon_runtime::ui::layout::UiFrame;
 
 use super::constants::{
     POPUP_PADDING, POPUP_ROW_GAP, POPUP_ROW_HEIGHT, POPUP_WIDTHS, WINDOW_MENU_INDEX,

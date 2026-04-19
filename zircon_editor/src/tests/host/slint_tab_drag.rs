@@ -21,7 +21,7 @@ use crate::{
     TabStackLayout, ToolWindowStackModel, ViewContentKind, ViewDescriptorId, ViewHost,
     ViewInstanceId, WorkbenchLayout, WorkbenchShellGeometry, WorkbenchViewModel, WorkspaceTarget,
 };
-use zircon_ui::{UiFrame, UiPoint, UiSize};
+use zircon_runtime::ui::{layout::UiFrame, layout::UiPoint, layout::UiSize};
 
 use crate::ui::slint_host::shell_pointer::WorkbenchShellPointerBridge;
 

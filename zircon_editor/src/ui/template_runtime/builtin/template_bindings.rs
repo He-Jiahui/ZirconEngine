@@ -4,10 +4,10 @@ use crate::ui::{
     AssetCommand, DockCommand, DraftCommand, EditorUiBinding, EditorUiBindingPayload,
     EditorUiEventKind, InspectorFieldChange, ViewportCommand, WelcomeCommand,
 };
-use zircon_framework::render::{
+use crate::scene::viewport::{
     DisplayMode, GridMode, ProjectionMode, SceneViewportTool, TransformSpace, ViewOrientation,
 };
-use zircon_ui::binding::UiBindingValue;
+use zircon_runtime::ui::binding::UiBindingValue;
 
 const DYNAMIC_DOCUMENT_TAB_INSTANCE_ID: &str = "$document_tab_instance";
 const DYNAMIC_MAIN_PAGE_ID: &str = "$main_page_id";

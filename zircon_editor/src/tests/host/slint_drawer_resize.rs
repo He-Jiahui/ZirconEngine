@@ -4,8 +4,8 @@ use std::path::Path;
 use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use zircon_core::CoreRuntime;
-use zircon_manager::resolve_config_manager;
+use zircon_runtime::core::CoreRuntime;
+use zircon_runtime::core::manager::resolve_config_manager;
 use zircon_runtime::foundation::{
     module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
 };
@@ -21,7 +21,7 @@ use crate::{
     ActivityDrawerSlot, EditorManager, ShellFrame, ShellRegionId, ShellSizePx,
     WorkbenchShellGeometry, EDITOR_MANAGER_NAME,
 };
-use zircon_ui::UiPoint;
+use zircon_runtime::ui::layout::UiPoint;
 
 fn unique_temp_path(prefix: &str) -> std::path::PathBuf {
     let unique = SystemTime::now()

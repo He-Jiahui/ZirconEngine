@@ -28,10 +28,10 @@ pub(super) use crate::{
     EditorEvent, EditorViewportEvent, InspectorFieldChange, LayoutCommand, MainPageId, SplitAxis,
     SplitPlacement, ViewHost, ViewInstanceId, WelcomeHostEvent, WorkspaceTarget,
 };
-pub(super) use zircon_framework::render::{
+pub(super) use crate::scene::viewport::{
     DisplayMode, GridMode, ProjectionMode, SceneViewportTool, ViewOrientation,
 };
-pub(super) use zircon_ui::{
-    binding::UiEventKind, dispatch::UiPointerEvent, UiFrame, UiPoint, UiPointerButton,
-    UiPointerEventKind, UiSize,
+pub(super) use zircon_runtime::ui::{
+    binding::UiEventKind, dispatch::UiPointerEvent, layout::UiFrame, layout::UiPoint,
+    layout::UiSize, surface::UiPointerButton, surface::UiPointerEventKind,
 };

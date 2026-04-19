@@ -1,4 +1,4 @@
-use zircon_resource::{ResourceKind, ResourceState};
+use zircon_runtime::core::resource::{ResourceKind, ResourceState};
 
 use super::AssetReferenceSnapshot;
 

@@ -1,4 +1,4 @@
-use zircon_ui::UiFrame;
+use zircon_runtime::ui::layout::UiFrame;
 
 use super::workbench_drawer_header_pointer_item::WorkbenchDrawerHeaderPointerItem;
 

@@ -16,13 +16,25 @@ fn host_surface_source() -> String {
     fs::read_to_string(path).expect("host_surface.slint should be readable")
 }
 
+fn host_surface_contract_source() -> String {
+    let path =
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("ui/workbench/host_surface_contract.slint");
+    fs::read_to_string(path).expect("host_surface_contract.slint should be readable")
+}
+
+fn host_scene_source() -> String {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("ui/workbench/host_scene.slint");
+    fs::read_to_string(path).expect("host_scene.slint should be readable")
+}
+
 fn host_components_source() -> String {
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("ui/workbench/host_components.slint");
     fs::read_to_string(path).expect("host_components.slint should be readable")
 }
 
 fn host_interaction_source() -> String {
-    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("ui/workbench/host_interaction.slint");
+    let path =
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("ui/workbench/host_interaction.slint");
     fs::read_to_string(path).expect("host_interaction.slint should be readable")
 }
 
@@ -33,10 +45,12 @@ fn host_context_source() -> String {
 
 fn shell_source() -> String {
     format!(
-        "{}\n{}\n{}\n{}\n{}\n{}",
+        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
         root_shell_source(),
         host_scaffold_source(),
         host_surface_source(),
+        host_surface_contract_source(),
+        host_scene_source(),
         host_components_source(),
         host_interaction_source(),
         host_context_source()
@@ -115,16 +129,16 @@ fn shell_regions_bind_absolute_anchors_from_solver_frames() {
     let source = shell_source();
 
     let center_band = block_after(&source, "main_content_zone := Rectangle {");
-    assert!(center_band.contains("x: root.host_layout.center_band_frame.x * 1px;"));
-    assert!(center_band.contains("y: root.host_layout.center_band_frame.y * 1px;"));
-    assert!(center_band.contains("width: root.host_layout.center_band_frame.width * 1px;"));
-    assert!(center_band.contains("height: root.host_layout.center_band_frame.height * 1px;"));
+    assert!(center_band.contains("x: root.scene_data.layout.center_band_frame.x * 1px;"));
+    assert!(center_band.contains("y: root.scene_data.layout.center_band_frame.y * 1px;"));
+    assert!(center_band.contains("width: root.scene_data.layout.center_band_frame.width * 1px;"));
+    assert!(center_band.contains("height: root.scene_data.layout.center_band_frame.height * 1px;"));
 
     let right_region = block_after(
         &source,
-        "if root.surface_orchestration_data.right_stack_width_px > 0.0: HostSideDockSurface {",
+        "if root.scene_data.orchestration.right_stack_width_px > 0.0: HostSideDockSurface {",
     );
-    assert!(right_region.contains("surface_data: root.right_dock_data;"));
+    assert!(right_region.contains("surface_data: root.scene_data.right_dock;"));
 
     let side_dock_surface = scoped_block_after(
         &source,
@@ -137,9 +151,9 @@ fn shell_regions_bind_absolute_anchors_from_solver_frames() {
 
     let bottom_region = block_after(
         &source,
-        "if root.surface_orchestration_data.bottom_panel_height_px > 0.0: HostBottomDockSurface {",
+        "if root.scene_data.orchestration.bottom_panel_height_px > 0.0: HostBottomDockSurface {",
     );
-    assert!(bottom_region.contains("surface_data: root.bottom_dock_data;"));
+    assert!(bottom_region.contains("surface_data: root.scene_data.bottom_dock;"));
 
     let bottom_dock_surface = scoped_block_after(
         &source,
@@ -151,7 +165,7 @@ fn shell_regions_bind_absolute_anchors_from_solver_frames() {
     assert!(bottom_dock_surface.contains("height: root.surface_data.region_frame.height * 1px;"));
 
     let resize_layer = block_after(&source, "HostResizeLayer {");
-    assert!(resize_layer.contains("resize_data: root.resize_layer_data;"));
+    assert!(resize_layer.contains("resize_data: root.scene_data.resize_layer;"));
     assert!(!resize_layer.contains("resize_state <=> WorkbenchHostContext.resize_state;"));
 
     let resize_layer_component = scoped_block_after(
@@ -160,16 +174,23 @@ fn shell_regions_bind_absolute_anchors_from_solver_frames() {
     );
     assert!(resize_layer_component.contains("x: root.resize_data.left_splitter_frame.x * 1px;"));
     assert!(resize_layer_component.contains("y: root.resize_data.left_splitter_frame.y * 1px;"));
-    assert!(resize_layer_component.contains("width: root.resize_data.left_splitter_frame.width * 1px;"));
-    assert!(resize_layer_component.contains("height: root.resize_data.left_splitter_frame.height * 1px;"));
+    assert!(
+        resize_layer_component.contains("width: root.resize_data.left_splitter_frame.width * 1px;")
+    );
+    assert!(resize_layer_component
+        .contains("height: root.resize_data.left_splitter_frame.height * 1px;"));
     assert!(resize_layer_component.contains("x: root.resize_data.right_splitter_frame.x * 1px;"));
     assert!(resize_layer_component.contains("y: root.resize_data.right_splitter_frame.y * 1px;"));
-    assert!(resize_layer_component.contains("width: root.resize_data.right_splitter_frame.width * 1px;"));
-    assert!(resize_layer_component.contains("height: root.resize_data.right_splitter_frame.height * 1px;"));
+    assert!(resize_layer_component
+        .contains("width: root.resize_data.right_splitter_frame.width * 1px;"));
+    assert!(resize_layer_component
+        .contains("height: root.resize_data.right_splitter_frame.height * 1px;"));
     assert!(resize_layer_component.contains("x: root.resize_data.bottom_splitter_frame.x * 1px;"));
     assert!(resize_layer_component.contains("y: root.resize_data.bottom_splitter_frame.y * 1px;"));
-    assert!(resize_layer_component.contains("width: root.resize_data.bottom_splitter_frame.width * 1px;"));
-    assert!(resize_layer_component.contains("height: root.resize_data.bottom_splitter_frame.height * 1px;"));
+    assert!(resize_layer_component
+        .contains("width: root.resize_data.bottom_splitter_frame.width * 1px;"));
+    assert!(resize_layer_component
+        .contains("height: root.resize_data.bottom_splitter_frame.height * 1px;"));
     assert!(resize_layer_component.contains("WorkbenchHostContext.resize_state.resize_active"));
     assert!(resize_layer_component.contains("WorkbenchHostContext.resize_state.resize_group"));
 
@@ -211,6 +232,8 @@ fn workbench_shell_extracts_business_pane_surface_catalog_out_of_root_file() {
     let source = root_shell_source();
     let scaffold = host_scaffold_source();
     let host_surface = host_surface_source();
+    let host_surface_contract = host_surface_contract_source();
+    let host_scene = host_scene_source();
     let host_components = host_components_source();
     let host_context = host_context_source();
     let pane_surface = pane_surface_source();
@@ -226,8 +249,10 @@ fn workbench_shell_extracts_business_pane_surface_catalog_out_of_root_file() {
         source.contains("import { WorkbenchHostScaffold } from \"workbench/host_scaffold.slint\";")
     );
     assert!(source.contains(
-        "import { HostWindowShellData, HostWindowLayoutData, HostWindowSurfaceData } from \"workbench/host_components.slint\";"
+        "import { HostWindowShellData, HostWindowLayoutData, HostWindowBootstrapData, HostNativeFloatingWindowSurfaceData } from \"workbench/host_components.slint\";"
     ));
+    assert!(source
+        .contains("import { HostWorkbenchWindowSceneData } from \"workbench/host_scene.slint\";"));
     assert!(
         source.contains("import { PaneSurfaceHostContext } from \"workbench/pane_surface.slint\";")
     );
@@ -274,11 +299,17 @@ fn workbench_shell_extracts_business_pane_surface_catalog_out_of_root_file() {
         "import { RecentProjectData, WelcomePaneData } from \"workbench/welcome.slint\";"
     ));
     assert!(!source.contains("in property <[BreadcrumbData]> breadcrumbs <=> host.breadcrumbs;"));
-    assert!(source.contains(
-        "in property <HostWindowSurfaceData> host_surface_data <=> host.host_surface_data;"
-    ));
     assert!(source.contains("in property <HostWindowShellData> host_shell <=> host.host_shell;"));
     assert!(source.contains("in property <HostWindowLayoutData> host_layout <=> host.host_layout;"));
+    assert!(source.contains(
+        "in property <HostWorkbenchWindowSceneData> workbench_scene_data <=> host.workbench_scene_data;"
+    ));
+    assert!(source.contains(
+        "in property <HostNativeFloatingWindowSurfaceData> native_floating_surface_data <=> host.native_floating_surface_data;"
+    ));
+    assert!(source.contains(
+        "out property <HostWindowBootstrapData> host_window_bootstrap <=> host.host_window_bootstrap;"
+    ));
     for removed_root_host_proxy in [
         "in property <[TabData]> host_tabs <=> host.host_tabs;",
         "in property <[TabData]> left_tabs <=> host.left_tabs;",
@@ -318,6 +349,10 @@ fn workbench_shell_extracts_business_pane_surface_catalog_out_of_root_file() {
         "in property <FrameRect> right_splitter_frame <=> host.right_splitter_frame;",
         "in property <FrameRect> bottom_splitter_frame <=> host.bottom_splitter_frame;",
         "in property <FrameRect> viewport_content_frame <=> host.viewport_content_frame;",
+        "out property <float> shell_width_px <=> host.shell_width_px;",
+        "out property <float> shell_height_px <=> host.shell_height_px;",
+        "out property <float> viewport_width <=> host.viewport_width;",
+        "out property <float> viewport_height <=> host.viewport_height;",
     ] {
         assert!(
             !source.contains(removed_root_host_proxy),
@@ -378,11 +413,13 @@ fn workbench_shell_extracts_business_pane_surface_catalog_out_of_root_file() {
     }
 
     assert!(scaffold.contains(
-        "import { HostWindowShellData, HostWindowLayoutData, HostWindowSurfaceData } from \"host_components.slint\";"
+        "import { HostWindowShellData, HostWindowLayoutData, HostWindowBootstrapData, HostNativeFloatingWindowSurfaceData } from \"host_components.slint\";"
     ));
-    assert!(scaffold.contains(
-        "import { HostWorkbenchWindowSurface, HostNativeWorkbenchWindowSurface } from \"host_surface.slint\";"
-    ));
+    assert!(scaffold
+        .contains("import { HostWorkbenchWindowSceneData } from \"host_scene.slint\";"));
+    assert!(
+        scaffold.contains("import { HostWorkbenchWindowSurfaceHost } from \"host_surface.slint\";")
+    );
     assert!(scaffold.contains("export component WorkbenchHostScaffold inherits Rectangle {"));
     assert!(!scaffold.contains("import { WorkbenchHostContext } from \"host_context.slint\";"));
     assert!(!scaffold.contains(
@@ -396,9 +433,12 @@ fn workbench_shell_extracts_business_pane_surface_catalog_out_of_root_file() {
         .contains("in property <string> status_primary <=> PaneSurfaceHostContext.status_text;"));
     assert!(!scaffold
         .contains("in property <bool> delete_enabled <=> PaneSurfaceHostContext.delete_enabled;"));
-    assert!(scaffold.contains("in property <HostWindowSurfaceData> host_surface_data;"));
     assert!(scaffold.contains("in property <HostWindowShellData> host_shell: {"));
     assert!(scaffold.contains("in property <HostWindowLayoutData> host_layout: {"));
+    assert!(scaffold.contains("in property <HostWorkbenchWindowSceneData> workbench_scene_data;"));
+    assert!(scaffold
+        .contains("in property <HostNativeFloatingWindowSurfaceData> native_floating_surface_data;"));
+    assert!(scaffold.contains("out property <HostWindowBootstrapData> host_window_bootstrap: {"));
     for removed_scaffold_abi in [
         "in-out property <int> open_menu_index",
         "in-out property <int> hovered_menu_index",
@@ -472,13 +512,21 @@ fn workbench_shell_extracts_business_pane_surface_catalog_out_of_root_file() {
     assert!(!scaffold.contains("WorkbenchHostContext.menu_pointer_clicked("));
     assert!(!scaffold.contains("WorkbenchHostContext.document_tab_pointer_clicked("));
     assert!(!scaffold.contains("if WorkbenchHostContext.drag_active: HostTabDragOverlay {"));
-    assert!(scaffold
-        .contains("if !root.host_shell.native_floating_window_mode: HostWorkbenchWindowSurface {"));
+    assert!(!scaffold.contains("if !root.host_shell.native_floating_window_mode:"));
+    assert!(!scaffold.contains("if root.host_shell.native_floating_window_mode:"));
+    assert!(!scaffold.contains("out property <float> shell_width_px:"));
+    assert!(!scaffold.contains("out property <float> shell_height_px:"));
+    assert!(!scaffold.contains("out property <float> viewport_width:"));
+    assert!(!scaffold.contains("out property <float> viewport_height:"));
+    assert!(scaffold.contains("HostWorkbenchWindowSurfaceHost {"));
+    assert!(scaffold.contains("host_shell: root.host_shell;"));
+    assert!(scaffold.contains("workbench_scene_data: root.workbench_scene_data;"));
     assert!(scaffold.contains(
-        "if root.host_shell.native_floating_window_mode: HostNativeWorkbenchWindowSurface {"
+        "native_floating_surface_data: root.native_floating_surface_data;"
     ));
-    assert!(scaffold.contains("host_surface_data: root.host_surface_data;"));
     for removed_scaffold_surface_proxy in [
+        "host_surface_data: root.host_surface_data;",
+        "host_layout: root.host_layout;",
         "host_tabs: root.host_surface_data.host_tabs;",
         "left_tabs: root.host_surface_data.left_tabs;",
         "right_tabs: root.host_surface_data.right_tabs;",
@@ -498,16 +546,26 @@ fn workbench_shell_extracts_business_pane_surface_catalog_out_of_root_file() {
     assert!(!scaffold.contains("welcome_pane: root.welcome_pane;"));
     assert!(!scaffold.contains("mesh_import_path: root.mesh_import_path;"));
 
-    assert!(host_surface.contains("import { PaneSurfaceHostContext } from \"pane_surface.slint\";"));
+    assert!(host_surface.contains(
+        "import { HostWorkbenchWindowSceneData, HostWorkbenchWindowScene } from \"host_scene.slint\";"
+    ));
+    assert!(host_surface.contains(
+        "import { HostWorkbenchWindowSurfaceContract } from \"host_surface_contract.slint\";"
+    ));
+    assert!(host_surface
+        .contains("export component HostWorkbenchWindowSurfaceHost inherits Rectangle {"));
     assert!(
         host_surface.contains("export component HostWorkbenchWindowSurface inherits Rectangle {")
     );
     assert!(host_surface
         .contains("export component HostNativeWorkbenchWindowSurface inherits Rectangle {"));
-    assert!(host_surface.contains("in property <HostWindowSurfaceData> host_surface_data;"));
     assert!(host_surface.contains("in property <HostWindowShellData> host_shell: {"));
-    assert!(host_surface.contains("in property <HostWindowLayoutData> host_layout: {"));
+    assert!(host_surface.contains("in property <HostWorkbenchWindowSceneData> workbench_scene_data;"));
+    assert!(host_surface
+        .contains("in property <HostNativeFloatingWindowSurfaceData> native_floating_surface_data;"));
     for removed_host_surface_passthrough in [
+        "in property <HostWindowSurfaceData> host_surface_data;",
+        "in property <HostWindowLayoutData> host_layout: {",
         "in property <[TabData]> host_tabs:",
         "in property <[TabData]> left_tabs:",
         "in property <[TabData]> right_tabs:",
@@ -524,31 +582,69 @@ fn workbench_shell_extracts_business_pane_surface_catalog_out_of_root_file() {
             "host_surface should not reopen grouped surface payload `{removed_host_surface_passthrough}`"
         );
     }
-    assert!(host_surface.contains("page_data: root.page_chrome_data;"));
-    assert!(host_surface.contains("surface_data: root.document_dock_data;"));
-    assert!(host_surface.contains("layer_data: root.floating_layer_data;"));
-    assert!(host_surface.contains("status_data: root.status_bar_data;"));
-    assert!(host_surface.contains("resize_data: root.resize_layer_data;"));
-    assert!(host_surface.contains("HostMenuChrome {"));
-    assert!(host_surface.contains("HostPageChrome {"));
-    assert!(host_surface.contains("HostDocumentDockSurface {"));
-    assert!(host_surface.contains("HostSideDockSurface {"));
-    assert!(host_surface.contains("HostBottomDockSurface {"));
-    assert!(host_surface.contains("HostStatusBar {"));
-    assert!(host_surface.contains("HostResizeLayer {"));
-    assert!(host_surface.contains("HostFloatingWindowLayer {"));
+    assert!(host_surface.contains("contract := HostWorkbenchWindowSurfaceContract {"));
+    assert!(host_surface.contains("HostWorkbenchWindowScene {"));
+    assert!(host_surface.contains("scene_data: contract.workbench_scene_data;"));
     assert!(host_surface.contains("HostNativeFloatingWindowSurface {"));
+    assert!(host_surface.contains("surface_data: contract.native_floating_surface_data;"));
     assert!(!host_surface.contains("import { WorkbenchHostContext } from \"host_context.slint\";"));
     assert!(!host_surface.contains("WorkbenchHostContext.menu_pointer_clicked("));
     assert!(!host_surface.contains("WorkbenchHostContext.document_tab_pointer_clicked("));
-    assert!(!host_surface.contains("if WorkbenchHostContext.drag_state.drag_active: HostTabDragOverlay {"));
+    assert!(!host_surface
+        .contains("if WorkbenchHostContext.drag_state.drag_active: HostTabDragOverlay {"));
+    assert!(!host_surface.contains("HostMenuChrome {"));
+    assert!(!host_surface.contains("HostPageChrome {"));
+    assert!(!host_surface.contains("HostDocumentDockSurface {"));
+    assert!(!host_surface.contains("HostSideDockSurface {"));
+    assert!(!host_surface.contains("HostBottomDockSurface {"));
+    assert!(!host_surface.contains("HostStatusBar {"));
+    assert!(!host_surface.contains("HostResizeLayer {"));
+    assert!(!host_surface.contains("HostFloatingWindowLayer {"));
+    assert!(host_surface_contract.contains(
+        "import { HostNativeFloatingWindowSurfaceData } from \"host_components.slint\";"
+    ));
+    assert!(host_surface_contract
+        .contains("import { HostWorkbenchWindowSceneData } from \"host_scene.slint\";"));
+    assert!(host_surface_contract
+        .contains("in property <HostWorkbenchWindowSceneData> workbench_scene_data;"));
+    assert!(host_surface_contract.contains(
+        "in property <HostNativeFloatingWindowSurfaceData> native_floating_surface_data;"
+    ));
+    assert!(host_surface_contract.contains("width: 0px;"));
+    assert!(host_surface_contract.contains("height: 0px;"));
+    for removed_contract_derivation in [
+        "import { PaneSurfaceHostContext } from \"pane_surface.slint\";",
+        "property <HostMenuChromeData> menu_chrome_data: {",
+        "property <HostSideDockSurfaceData> left_dock_data: {",
+        "property <HostDocumentDockSurfaceData> document_dock_data: {",
+        "property <HostBottomDockSurfaceData> bottom_dock_data: {",
+        "property <HostFloatingWindowLayerData> floating_layer_data: {",
+        "out property <HostWorkbenchWindowSceneData> workbench_scene_data: {",
+    ] {
+        assert!(
+            !host_surface_contract.contains(removed_contract_derivation),
+            "host_surface_contract should stay a thin DTO pass-through and drop `{removed_contract_derivation}`"
+        );
+    }
+
+    assert!(host_scene.contains("export struct HostWorkbenchWindowSceneData {"));
+    assert!(host_scene.contains("export component HostWorkbenchWindowScene inherits Rectangle {"));
+    assert!(host_scene.contains("host_menu := HostMenuChrome {"));
+    assert!(host_scene.contains("HostPageChrome {"));
+    assert!(host_scene.contains("HostDocumentDockSurface {"));
+    assert!(host_scene.contains("HostSideDockSurface {"));
+    assert!(host_scene.contains("HostBottomDockSurface {"));
+    assert!(host_scene.contains("HostStatusBar {"));
+    assert!(host_scene.contains("HostResizeLayer {"));
+    assert!(host_scene.contains("HostFloatingWindowLayer {"));
+    assert!(host_scene.contains("HostTabDragOverlay {"));
 
     assert!(
         host_components.contains("import { PaneSurface, PaneData } from \"pane_surface.slint\";")
     );
-    assert!(host_components.contains(
-        "import { WorkbenchHostContext } from \"host_context.slint\";"
-    ));
+    assert!(
+        host_components.contains("import { WorkbenchHostContext } from \"host_context.slint\";")
+    );
     assert!(host_components.contains("export struct HostWindowShellData {"));
     assert!(host_components.contains("export struct HostWindowLayoutData {"));
     assert!(host_components.contains("export struct HostWindowSurfaceData {"));
@@ -679,9 +775,8 @@ fn shell_drag_targets_allow_empty_tool_regions() {
     assert!(!root.contains("in-out property <HostDragStateData> drag_state: {"));
     assert!(!source.contains("property <string> drag_target_group:"));
     let host_surface = host_surface_source();
-    assert!(!host_surface.contains(
-        "if WorkbenchHostContext.drag_state.drag_active: HostTabDragOverlay {"
-    ));
+    assert!(!host_surface
+        .contains("if WorkbenchHostContext.drag_state.drag_active: HostTabDragOverlay {"));
     let host_components = host_components_source();
     assert!(host_components.contains("visible: WorkbenchHostContext.drag_state.drag_active;"));
 
@@ -691,9 +786,8 @@ fn shell_drag_targets_allow_empty_tool_regions() {
     );
     assert!(drag_overlay.contains("if root.overlay_data.left_drop_enabled: Rectangle {"));
     assert!(drag_overlay.contains("if root.overlay_data.right_drop_enabled: Rectangle {"));
-    assert!(drag_overlay.contains(
-        "x: parent.width - root.overlay_data.right_drop_width_px * 1px + 8px;"
-    ));
+    assert!(drag_overlay
+        .contains("x: parent.width - root.overlay_data.right_drop_width_px * 1px + 8px;"));
     assert!(drag_overlay.contains("if root.overlay_data.bottom_drop_enabled: Rectangle {"));
     assert!(drag_overlay.contains("WorkbenchHostContext.workbench_drag_pointer_event("));
     assert!(drag_overlay.contains("WorkbenchHostContext.drag_state.drag_pointer_x,"));
@@ -725,7 +819,8 @@ fn drag_overlay_uses_pointer_following_ghost_preview_instead_of_centered_banner(
     assert!(source.contains("drag_preview := Rectangle {"));
     assert!(source.contains("x: clamp(WorkbenchHostContext.drag_state.drag_pointer_x * 1px"));
     assert!(source.contains("y: clamp("));
-    assert!(source.contains("WorkbenchHostContext.drag_state.drag_pointer_y * 1px - self.height - 14px"));
+    assert!(source
+        .contains("WorkbenchHostContext.drag_state.drag_pointer_y * 1px - self.height - 14px"));
     assert!(!source.contains("animate x { duration: 42ms; }"));
     assert!(!source.contains("animate y { duration: 42ms; }"));
     assert!(!source.contains("x: (parent.width - 220px) / 2;"));
@@ -791,7 +886,9 @@ fn menu_popups_anchor_to_actual_menu_buttons_instead_of_hardcoded_offsets() {
 fn menu_popups_use_local_top_bar_y_without_double_counting_outer_margin() {
     let source = shell_source();
 
-    assert!(source.contains("top_bar_height_px: root.surface_metrics.top_bar_height_px,"));
+    assert!(source.contains(
+        "y: (root.menu_data.outer_margin_px + root.menu_data.top_bar_height_px) * 1px;"
+    ));
     assert!(!source.contains("property <length> popup_y:"));
     assert!(!source
         .contains("property <length> popup_y: root.outer_margin + root.top_bar_height + 1px;"));
@@ -884,7 +981,8 @@ fn drag_overlay_uses_grabbing_cursor_and_target_badge_for_clearer_feedback() {
 
     let preview = block_after(&source, "drag_preview := Rectangle {");
     assert!(preview.contains("drag_target_badge := Rectangle {"));
-    assert!(preview.contains("text: root.drag_target_label != \"\" ? root.drag_target_label : \"Move Tab\";"));
+    assert!(preview
+        .contains("text: root.drag_target_label != \"\" ? root.drag_target_label : \"Move Tab\";"));
 }
 
 #[test]
@@ -908,15 +1006,23 @@ fn drag_overlay_declares_document_edge_target_keys_and_highlights() {
         &source,
         "export component HostTabDragOverlay inherits Rectangle {",
     );
-    assert!(drag_overlay.contains("WorkbenchHostContext.drag_state.active_drag_target_group == \"document-left\""));
-    assert!(drag_overlay.contains("WorkbenchHostContext.drag_state.active_drag_target_group == \"document-right\""));
-    assert!(drag_overlay.contains("WorkbenchHostContext.drag_state.active_drag_target_group == \"document-top\""));
-    assert!(drag_overlay.contains("WorkbenchHostContext.drag_state.active_drag_target_group == \"document-bottom\""));
+    assert!(drag_overlay
+        .contains("WorkbenchHostContext.drag_state.active_drag_target_group == \"document-left\""));
+    assert!(drag_overlay.contains(
+        "WorkbenchHostContext.drag_state.active_drag_target_group == \"document-right\""
+    ));
+    assert!(drag_overlay
+        .contains("WorkbenchHostContext.drag_state.active_drag_target_group == \"document-top\""));
+    assert!(drag_overlay.contains(
+        "WorkbenchHostContext.drag_state.active_drag_target_group == \"document-bottom\""
+    ));
 }
 
 #[test]
 fn host_surface_groups_host_surface_interaction_and_layout_payloads() {
     let host_surface = host_surface_source();
+    let host_surface_contract = host_surface_contract_source();
+    let host_scene = host_scene_source();
     let host_components = host_components_source();
     let host_interaction = host_interaction_source();
     let host_context = host_context_source();
@@ -950,15 +1056,9 @@ fn host_surface_groups_host_surface_interaction_and_layout_payloads() {
         );
     }
 
-    assert!(host_context.contains(
-        "in-out property <HostMenuStateData> menu_state: {"
-    ));
-    assert!(host_context.contains(
-        "in-out property <HostDragStateData> drag_state: {"
-    ));
-    assert!(host_context.contains(
-        "in-out property <HostResizeStateData> resize_state: {"
-    ));
+    assert!(host_context.contains("in-out property <HostMenuStateData> menu_state: {"));
+    assert!(host_context.contains("in-out property <HostDragStateData> drag_state: {"));
+    assert!(host_context.contains("in-out property <HostResizeStateData> resize_state: {"));
     assert!(host_context.contains(
         "import { HostDragStateData, HostMenuStateData, HostResizeStateData } from \"host_interaction.slint\";"
     ));
@@ -986,16 +1086,15 @@ fn host_surface_groups_host_surface_interaction_and_layout_payloads() {
         );
     }
 
-    assert!(host_surface.contains("menu_data: root.menu_chrome_data;"));
-    assert!(host_surface.contains("page_data: root.page_chrome_data;"));
-    assert!(host_surface.contains("status_data: root.status_bar_data;"));
-    assert!(host_surface.contains("resize_data: root.resize_layer_data;"));
-    assert!(host_surface.contains("overlay_data: root.drag_overlay_data;"));
-    assert!(host_surface.contains("property <HostSideDockSurfaceData> left_dock_data: {"));
-    assert!(host_surface.contains("property <HostDocumentDockSurfaceData> document_dock_data: {"));
-    assert!(host_surface.contains("property <HostSideDockSurfaceData> right_dock_data: {"));
-    assert!(host_surface.contains("property <HostBottomDockSurfaceData> bottom_dock_data: {"));
-    assert!(host_surface.contains("property <HostFloatingWindowLayerData> floating_layer_data: {"));
+    assert!(host_surface.contains(
+        "import { HostWorkbenchWindowSceneData, HostWorkbenchWindowScene } from \"host_scene.slint\";"
+    ));
+    assert!(host_surface.contains(
+        "import { HostWorkbenchWindowSurfaceContract } from \"host_surface_contract.slint\";"
+    ));
+    assert!(host_surface.contains("contract := HostWorkbenchWindowSurfaceContract {"));
+    assert!(host_surface.contains("HostWorkbenchWindowScene {"));
+    assert!(host_surface.contains("scene_data: contract.workbench_scene_data;"));
     assert!(!host_surface.contains("import { WorkbenchHostContext } from \"host_context.slint\";"));
     for removed_host_surface_forwarding in [
         "menu_state: WorkbenchHostContext.menu_state;",
@@ -1018,7 +1117,45 @@ fn host_surface_groups_host_surface_interaction_and_layout_payloads() {
         );
     }
 
-    let host_menu = scoped_block_after(&host_surface, "host_menu := HostMenuChrome {");
+    assert!(host_surface_contract.contains(
+        "import { HostNativeFloatingWindowSurfaceData } from \"host_components.slint\";"
+    ));
+    assert!(host_surface_contract
+        .contains("import { HostWorkbenchWindowSceneData } from \"host_scene.slint\";"));
+    assert!(host_surface_contract
+        .contains("in property <HostWorkbenchWindowSceneData> workbench_scene_data;"));
+    assert!(host_surface_contract.contains(
+        "in property <HostNativeFloatingWindowSurfaceData> native_floating_surface_data;"
+    ));
+    assert!(host_surface_contract.contains("width: 0px;"));
+    assert!(host_surface_contract.contains("height: 0px;"));
+    for removed_contract_derivation in [
+        "property <HostMenuChromeData> menu_chrome_data: {",
+        "menu_chrome: root.menu_chrome_data,",
+        "page_chrome: root.page_chrome_data,",
+        "status_bar: root.status_bar_data,",
+        "resize_layer: root.resize_layer_data,",
+        "drag_overlay: root.drag_overlay_data,",
+        "property <HostSideDockSurfaceData> left_dock_data: {",
+        "property <HostDocumentDockSurfaceData> document_dock_data: {",
+        "property <HostSideDockSurfaceData> right_dock_data: {",
+        "property <HostBottomDockSurfaceData> bottom_dock_data: {",
+        "property <HostFloatingWindowLayerData> floating_layer_data: {",
+        "out property <HostWorkbenchWindowSceneData> workbench_scene_data: {",
+    ] {
+        assert!(
+            !host_surface_contract.contains(removed_contract_derivation),
+            "host_surface_contract should no longer derive grouped scene payload `{removed_contract_derivation}`"
+        );
+    }
+
+    assert!(host_scene.contains("host_menu := HostMenuChrome {"));
+    assert!(host_scene.contains("page_data: root.scene_data.page_chrome;"));
+    assert!(host_scene.contains("status_data: root.scene_data.status_bar;"));
+    assert!(host_scene.contains("resize_data: root.scene_data.resize_layer;"));
+    assert!(host_scene.contains("overlay_data: root.scene_data.drag_overlay;"));
+
+    let host_menu = scoped_block_after(&host_scene, "host_menu := HostMenuChrome {");
     for removed_host_menu_scalar in [
         "outer_margin: root.outer_margin;",
         "top_bar_height: root.top_bar_height;",
@@ -1041,7 +1178,7 @@ fn host_surface_groups_host_surface_interaction_and_layout_payloads() {
         );
     }
 
-    let host_page = scoped_block_after(&host_surface, "HostPageChrome {");
+    let host_page = scoped_block_after(&host_scene, "HostPageChrome {");
     for removed_host_page_scalar in [
         "top_bar_height: root.top_bar_height;",
         "host_bar_height: root.host_bar_height;",
@@ -1054,7 +1191,7 @@ fn host_surface_groups_host_surface_interaction_and_layout_payloads() {
         );
     }
 
-    let host_status_bar = scoped_block_after(&host_surface, "HostStatusBar {");
+    let host_status_bar = scoped_block_after(&host_scene, "HostStatusBar {");
     for removed_status_scalar in [
         "status_bar_frame: root.host_layout.status_bar_frame;",
         "status_primary: PaneSurfaceHostContext.status_text;",
@@ -1067,7 +1204,7 @@ fn host_surface_groups_host_surface_interaction_and_layout_payloads() {
         );
     }
 
-    let host_resize_layer = scoped_block_after(&host_surface, "HostResizeLayer {");
+    let host_resize_layer = scoped_block_after(&host_scene, "HostResizeLayer {");
     for removed_resize_scalar in [
         "left_splitter_frame: root.host_layout.left_splitter_frame;",
         "right_splitter_frame: root.host_layout.right_splitter_frame;",
@@ -1081,10 +1218,7 @@ fn host_surface_groups_host_surface_interaction_and_layout_payloads() {
         );
     }
 
-    let drag_overlay = scoped_block_after(
-        &host_surface,
-        "HostTabDragOverlay {",
-    );
+    let drag_overlay = scoped_block_after(&host_scene, "HostTabDragOverlay {");
     for removed_drag_overlay_scalar in [
         "drag_active <=> WorkbenchHostContext.drag_active;",
         "drag_tab_id <=> WorkbenchHostContext.drag_tab_id;",
@@ -1114,10 +1248,10 @@ fn host_surface_groups_host_surface_interaction_and_layout_payloads() {
     }
 
     let left_dock_surface = scoped_block_after(
-        &host_surface,
-        "if root.surface_orchestration_data.left_stack_width_px > 0.0: HostSideDockSurface {",
+        &host_scene,
+        "if root.scene_data.orchestration.left_stack_width_px > 0.0: HostSideDockSurface {",
     );
-    assert!(left_dock_surface.contains("surface_data: root.left_dock_data;"));
+    assert!(left_dock_surface.contains("surface_data: root.scene_data.left_dock;"));
     for removed_left_surface_forwarder in [
         "drag_state <=> WorkbenchHostContext.drag_state;",
         "activity_rail_pointer_clicked(side, x, y) => {",
@@ -1147,8 +1281,8 @@ fn host_surface_groups_host_surface_interaction_and_layout_payloads() {
         );
     }
 
-    let document_dock_surface = scoped_block_after(&host_surface, "HostDocumentDockSurface {");
-    assert!(document_dock_surface.contains("surface_data: root.document_dock_data;"));
+    let document_dock_surface = scoped_block_after(&host_scene, "HostDocumentDockSurface {");
+    assert!(document_dock_surface.contains("surface_data: root.scene_data.document_dock;"));
     for removed_document_surface_forwarder in [
         "drag_state <=> WorkbenchHostContext.drag_state;",
         "document_tab_pointer_clicked(surface_key, tab_index, tab_x, tab_width, point_x, point_y) => {",
@@ -1175,10 +1309,10 @@ fn host_surface_groups_host_surface_interaction_and_layout_payloads() {
     }
 
     let right_dock_surface = scoped_block_after(
-        &host_surface,
-        "if root.surface_orchestration_data.right_stack_width_px > 0.0: HostSideDockSurface {",
+        &host_scene,
+        "if root.scene_data.orchestration.right_stack_width_px > 0.0: HostSideDockSurface {",
     );
-    assert!(right_dock_surface.contains("surface_data: root.right_dock_data;"));
+    assert!(right_dock_surface.contains("surface_data: root.scene_data.right_dock;"));
     for removed_right_surface_forwarder in [
         "drag_state <=> WorkbenchHostContext.drag_state;",
         "activity_rail_pointer_clicked(side, x, y) => {",
@@ -1209,10 +1343,10 @@ fn host_surface_groups_host_surface_interaction_and_layout_payloads() {
     }
 
     let bottom_dock_surface = scoped_block_after(
-        &host_surface,
-        "if root.surface_orchestration_data.bottom_panel_height_px > 0.0: HostBottomDockSurface {",
+        &host_scene,
+        "if root.scene_data.orchestration.bottom_panel_height_px > 0.0: HostBottomDockSurface {",
     );
-    assert!(bottom_dock_surface.contains("surface_data: root.bottom_dock_data;"));
+    assert!(bottom_dock_surface.contains("surface_data: root.scene_data.bottom_dock;"));
     for removed_bottom_surface_forwarder in [
         "drag_state <=> WorkbenchHostContext.drag_state;",
         "drawer_header_pointer_clicked(surface_key, tab_index, tab_x, tab_width, point_x, point_y) => {",
@@ -1238,8 +1372,8 @@ fn host_surface_groups_host_surface_interaction_and_layout_payloads() {
         );
     }
 
-    let floating_window_layer = scoped_block_after(&host_surface, "HostFloatingWindowLayer {");
-    assert!(floating_window_layer.contains("layer_data: root.floating_layer_data;"));
+    let floating_window_layer = scoped_block_after(&host_scene, "HostFloatingWindowLayer {");
+    assert!(floating_window_layer.contains("layer_data: root.scene_data.floating_layer;"));
     for removed_floating_layer_forwarder in [
         "drag_state <=> WorkbenchHostContext.drag_state;",
         "document_tab_pointer_clicked(surface_key, tab_index, tab_x, tab_width, point_x, point_y) => {",
@@ -1262,9 +1396,9 @@ fn host_surface_groups_host_surface_interaction_and_layout_payloads() {
         );
     }
 
-    assert!(host_components.contains(
-        "import { WorkbenchHostContext } from \"host_context.slint\";"
-    ));
+    assert!(
+        host_components.contains("import { WorkbenchHostContext } from \"host_context.slint\";")
+    );
     assert!(host_components.contains("in property <HostMenuChromeData> menu_data: {"));
     assert!(host_components.contains("in property <HostPageChromeData> page_data: {"));
     assert!(host_components.contains("in property <HostStatusBarData> status_data: {"));
@@ -1280,7 +1414,9 @@ fn host_surface_groups_host_surface_interaction_and_layout_payloads() {
         &host_components,
         "export component HostTabDragOverlay inherits Rectangle {",
     );
-    assert!(host_tab_drag_overlay.contains("WorkbenchHostContext.drag_state.active_drag_target_group"));
+    assert!(
+        host_tab_drag_overlay.contains("WorkbenchHostContext.drag_state.active_drag_target_group")
+    );
     assert!(host_tab_drag_overlay.contains("WorkbenchHostContext.workbench_drag_pointer_event("));
     let host_resize_layer = scoped_block_after(
         &host_components,
@@ -1308,7 +1444,9 @@ fn host_surface_groups_host_surface_interaction_and_layout_payloads() {
     assert!(host_side_dock_surface.contains("WorkbenchHostContext.activity_rail_pointer_clicked("));
     assert!(host_side_dock_surface.contains("WorkbenchHostContext.drawer_header_pointer_clicked("));
     assert!(host_side_dock_surface.contains("WorkbenchHostContext.workbench_drag_pointer_event("));
-    assert!(host_side_dock_surface.contains("WorkbenchHostContext.drag_state.drag_tab_id == tab.id"));
+    assert!(
+        host_side_dock_surface.contains("WorkbenchHostContext.drag_state.drag_tab_id == tab.id")
+    );
     for removed_side_dock_scalar in [
         "in property <FrameRect> region_frame: { x: 0.0, y: 0.0, width: 0.0, height: 0.0 };",
         "in property <string> surface_key;",
@@ -1331,17 +1469,24 @@ fn host_surface_groups_host_surface_interaction_and_layout_payloads() {
         &host_components,
         "export component HostDocumentDockSurface inherits Rectangle {",
     );
-    assert!(host_document_dock_surface.contains(
-        "in property <HostDocumentDockSurfaceData> surface_data;"
-    ));
-    assert!(!host_document_dock_surface.contains("in-out property <HostDragStateData> drag_state: {"));
+    assert!(host_document_dock_surface
+        .contains("in property <HostDocumentDockSurfaceData> surface_data;"));
+    assert!(
+        !host_document_dock_surface.contains("in-out property <HostDragStateData> drag_state: {")
+    );
     assert!(!host_document_dock_surface.contains("callback document_tab_pointer_clicked("));
     assert!(!host_document_dock_surface.contains("callback document_tab_close_pointer_clicked("));
     assert!(!host_document_dock_surface.contains("callback workbench_drag_pointer_event("));
-    assert!(host_document_dock_surface.contains("WorkbenchHostContext.document_tab_pointer_clicked("));
-    assert!(host_document_dock_surface.contains("WorkbenchHostContext.document_tab_close_pointer_clicked("));
-    assert!(host_document_dock_surface.contains("WorkbenchHostContext.workbench_drag_pointer_event("));
-    assert!(host_document_dock_surface.contains("WorkbenchHostContext.drag_state.drag_tab_id == tab.id"));
+    assert!(
+        host_document_dock_surface.contains("WorkbenchHostContext.document_tab_pointer_clicked(")
+    );
+    assert!(host_document_dock_surface
+        .contains("WorkbenchHostContext.document_tab_close_pointer_clicked("));
+    assert!(
+        host_document_dock_surface.contains("WorkbenchHostContext.workbench_drag_pointer_event(")
+    );
+    assert!(host_document_dock_surface
+        .contains("WorkbenchHostContext.drag_state.drag_tab_id == tab.id"));
     for removed_document_dock_scalar in [
         "in property <FrameRect> region_frame: { x: 0.0, y: 0.0, width: 0.0, height: 0.0 };",
         "in property <[TabData]> tabs;",
@@ -1360,13 +1505,19 @@ fn host_surface_groups_host_surface_interaction_and_layout_payloads() {
         &host_components,
         "export component HostBottomDockSurface inherits Rectangle {",
     );
-    assert!(host_bottom_dock_surface.contains("in property <HostBottomDockSurfaceData> surface_data;"));
+    assert!(
+        host_bottom_dock_surface.contains("in property <HostBottomDockSurfaceData> surface_data;")
+    );
     assert!(!host_bottom_dock_surface.contains("in-out property <HostDragStateData> drag_state: {"));
     assert!(!host_bottom_dock_surface.contains("callback drawer_header_pointer_clicked("));
     assert!(!host_bottom_dock_surface.contains("callback workbench_drag_pointer_event("));
-    assert!(host_bottom_dock_surface.contains("WorkbenchHostContext.drawer_header_pointer_clicked("));
+    assert!(
+        host_bottom_dock_surface.contains("WorkbenchHostContext.drawer_header_pointer_clicked(")
+    );
     assert!(host_bottom_dock_surface.contains("WorkbenchHostContext.workbench_drag_pointer_event("));
-    assert!(host_bottom_dock_surface.contains("WorkbenchHostContext.drag_state.drag_tab_id == tab.id"));
+    assert!(
+        host_bottom_dock_surface.contains("WorkbenchHostContext.drag_state.drag_tab_id == tab.id")
+    );
     for removed_bottom_dock_scalar in [
         "in property <FrameRect> region_frame: { x: 0.0, y: 0.0, width: 0.0, height: 0.0 };",
         "in property <[TabData]> tabs;",
@@ -1386,19 +1537,30 @@ fn host_surface_groups_host_surface_interaction_and_layout_payloads() {
         &host_components,
         "export component HostFloatingWindowLayer inherits Rectangle {",
     );
-    assert!(host_floating_window_layer.contains(
-        "in property <HostFloatingWindowLayerData> layer_data;"
-    ));
-    assert!(!host_floating_window_layer.contains("in-out property <HostDragStateData> drag_state: {"));
+    assert!(host_floating_window_layer
+        .contains("in property <HostFloatingWindowLayerData> layer_data;"));
+    assert!(
+        !host_floating_window_layer.contains("in-out property <HostDragStateData> drag_state: {")
+    );
     assert!(!host_floating_window_layer.contains("callback document_tab_pointer_clicked("));
     assert!(!host_floating_window_layer.contains("callback document_tab_close_pointer_clicked("));
-    assert!(!host_floating_window_layer.contains("callback floating_window_header_pointer_clicked("));
+    assert!(
+        !host_floating_window_layer.contains("callback floating_window_header_pointer_clicked(")
+    );
     assert!(!host_floating_window_layer.contains("callback workbench_drag_pointer_event("));
-    assert!(host_floating_window_layer.contains("WorkbenchHostContext.document_tab_pointer_clicked("));
-    assert!(host_floating_window_layer.contains("WorkbenchHostContext.document_tab_close_pointer_clicked("));
-    assert!(host_floating_window_layer.contains("WorkbenchHostContext.floating_window_header_pointer_clicked("));
-    assert!(host_floating_window_layer.contains("WorkbenchHostContext.workbench_drag_pointer_event("));
-    assert!(host_floating_window_layer.contains("WorkbenchHostContext.drag_state.active_drag_target_group == window.target_group"));
+    assert!(
+        host_floating_window_layer.contains("WorkbenchHostContext.document_tab_pointer_clicked(")
+    );
+    assert!(host_floating_window_layer
+        .contains("WorkbenchHostContext.document_tab_close_pointer_clicked("));
+    assert!(host_floating_window_layer
+        .contains("WorkbenchHostContext.floating_window_header_pointer_clicked("));
+    assert!(
+        host_floating_window_layer.contains("WorkbenchHostContext.workbench_drag_pointer_event(")
+    );
+    assert!(host_floating_window_layer.contains(
+        "WorkbenchHostContext.drag_state.active_drag_target_group == window.target_group"
+    ));
     for removed_floating_window_scalar in [
         "in property <[FloatingWindowData]> floating_windows;",
         "in property <length> header_height: 31px;",
@@ -1506,6 +1668,8 @@ fn host_surface_groups_host_surface_interaction_and_layout_payloads() {
 #[test]
 fn host_surface_groups_orchestration_metrics_and_native_floating_payloads() {
     let host_surface = host_surface_source();
+    let host_surface_contract = host_surface_contract_source();
+    let host_scene = host_scene_source();
     let host_components = host_components_source();
 
     for grouped_struct in [
@@ -1519,14 +1683,15 @@ fn host_surface_groups_orchestration_metrics_and_native_floating_payloads() {
         );
     }
 
-    assert!(host_surface.contains(
-        "property <HostWorkbenchSurfaceMetricsData> surface_metrics: {"
+    assert!(host_surface_contract.contains(
+        "import { HostNativeFloatingWindowSurfaceData } from \"host_components.slint\";"
     ));
-    assert!(host_surface.contains(
-        "property <HostWorkbenchSurfaceOrchestrationData> surface_orchestration_data: {"
-    ));
-    assert!(host_surface.contains(
-        "property <HostNativeFloatingWindowSurfaceData> native_floating_surface_data: {"
+    assert!(host_surface_contract
+        .contains("import { HostWorkbenchWindowSceneData } from \"host_scene.slint\";"));
+    assert!(host_surface_contract
+        .contains("in property <HostWorkbenchWindowSceneData> workbench_scene_data;"));
+    assert!(host_surface_contract.contains(
+        "in property <HostNativeFloatingWindowSurfaceData> native_floating_surface_data;"
     ));
     for removed_host_surface_length_property in [
         "property <length> outer_margin: 0px;",
@@ -1556,8 +1721,8 @@ fn host_surface_groups_orchestration_metrics_and_native_floating_payloads() {
         "property <length> bottom_tab_origin_y:",
     ] {
         assert!(
-            !host_surface.contains(removed_host_surface_length_property),
-            "host_surface should drop root orchestration scalar `{removed_host_surface_length_property}`"
+            !host_surface_contract.contains(removed_host_surface_length_property),
+            "host surface contract should drop root orchestration scalar `{removed_host_surface_length_property}`"
         );
     }
     for removed_host_surface_scalar_binding in [
@@ -1578,31 +1743,35 @@ fn host_surface_groups_orchestration_metrics_and_native_floating_payloads() {
         "header_height: root.header_height;",
     ] {
         assert!(
-            !host_surface.contains(removed_host_surface_scalar_binding),
-            "host_surface should stop binding native/orchestration scalar `{removed_host_surface_scalar_binding}`"
+            !host_surface_contract.contains(removed_host_surface_scalar_binding),
+            "host surface contract should stop binding native/orchestration scalar `{removed_host_surface_scalar_binding}`"
         );
     }
     for expected_grouped_usage in [
-        "outer_margin_px: root.surface_metrics.outer_margin_px,",
-        "top_bar_height_px: root.surface_metrics.top_bar_height_px,",
-        "host_bar_height_px: root.surface_metrics.host_bar_height_px,",
-        "rail_width_px: root.surface_orchestration_data.left_rail_width_px,",
-        "panel_width_px: root.surface_orchestration_data.left_panel_width_px,",
-        "header_height_px: root.surface_metrics.document_header_height_px,",
-        "x: root.surface_metrics.outer_margin_px * 1px;",
-        "surface_data: root.native_floating_surface_data;",
+        "metrics: HostWorkbenchSurfaceMetricsData,",
+        "orchestration: HostWorkbenchSurfaceOrchestrationData,",
+        "x: root.scene_data.metrics.outer_margin_px * 1px;",
+        "menu_data: root.scene_data.menu_chrome;",
+        "page_data: root.scene_data.page_chrome;",
+        "if root.scene_data.orchestration.left_stack_width_px > 0.0: HostSideDockSurface {",
+        "if root.scene_data.orchestration.right_stack_width_px > 0.0: HostSideDockSurface {",
+        "if root.scene_data.orchestration.bottom_panel_height_px > 0.0: HostBottomDockSurface {",
+        "workbench_scene_data: root.workbench_scene_data;",
+        "native_floating_surface_data: root.native_floating_surface_data;",
+        "surface_data: contract.native_floating_surface_data;",
     ] {
         assert!(
-            host_surface.contains(expected_grouped_usage),
-            "host_surface should use grouped orchestration/native data via `{expected_grouped_usage}`"
+            host_surface_contract.contains(expected_grouped_usage)
+                || host_surface.contains(expected_grouped_usage)
+                || host_scene.contains(expected_grouped_usage),
+            "host surface split should use grouped orchestration/native data via `{expected_grouped_usage}`"
         );
     }
+    assert!(host_scene.contains("x: root.scene_data.metrics.outer_margin_px * 1px;"));
 
-    let native_host_surface = scoped_block_after(
-        &host_surface,
-        "HostNativeFloatingWindowSurface {",
-    );
-    assert!(native_host_surface.contains("surface_data: root.native_floating_surface_data;"));
+    let native_host_surface =
+        scoped_block_after(&host_surface, "HostNativeFloatingWindowSurface {");
+    assert!(native_host_surface.contains("surface_data: root.surface_data;"));
     for removed_native_host_scalar in [
         "floating_windows: root.host_surface_data.floating_windows;",
         "native_floating_window_id: root.host_shell.native_floating_window_id;",
@@ -1619,9 +1788,8 @@ fn host_surface_groups_orchestration_metrics_and_native_floating_payloads() {
         &host_components,
         "export component HostNativeFloatingWindowSurface inherits Rectangle {",
     );
-    assert!(host_native_floating_window_surface.contains(
-        "in property <HostNativeFloatingWindowSurfaceData> surface_data;"
-    ));
+    assert!(host_native_floating_window_surface
+        .contains("in property <HostNativeFloatingWindowSurfaceData> surface_data;"));
     for removed_native_component_scalar in [
         "in property <[FloatingWindowData]> floating_windows;",
         "in property <string> native_floating_window_id;",
@@ -1665,7 +1833,9 @@ fn floating_window_overlay_declares_projection_input_and_pane_surface_host() {
     assert!(floating_overlay.contains("close_pointer_clicked(x, y) => {"));
     assert!(floating_overlay.contains("WorkbenchHostContext.document_tab_close_pointer_clicked("));
     assert!(floating_overlay.contains("header_touch := TouchArea {"));
-    assert!(floating_overlay.contains("WorkbenchHostContext.floating_window_header_pointer_clicked("));
+    assert!(
+        floating_overlay.contains("WorkbenchHostContext.floating_window_header_pointer_clicked(")
+    );
     assert!(floating_overlay.contains("pane: window.active_pane;"));
 }
 
@@ -2174,9 +2344,8 @@ fn ui_asset_editor_pane_declares_preview_mock_suggestion_controls_and_callback()
     assert!(preview_struct_block.contains("suggestion_collection: UiAssetStringSelectionData,"));
     assert!(panes.contains("title: \"Mock Suggestions\";"));
     assert!(panes.contains("items: root.preview_panel.mock.suggestion_collection.items;"));
-    assert!(panes.contains(
-        "selected_index: root.preview_panel.mock.suggestion_collection.selected_index;"
-    ));
+    assert!(panes
+        .contains("selected_index: root.preview_panel.mock.suggestion_collection.selected_index;"));
     assert!(panes.contains(
         "root.detail_event(\"preview_mock_suggestion\", \"preview.mock.suggestion.apply\", item_index, \"\", \"\");"
     ));

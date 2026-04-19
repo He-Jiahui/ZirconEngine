@@ -1,4 +1,4 @@
-use zircon_resource::ResourceLocator;
+use crate::core::resource::ResourceLocator;
 
 pub(super) fn display_name_for_level(uri: &ResourceLocator) -> Option<String> {
     let source = uri.label().unwrap_or(uri.path());
@@ -7,7 +7,7 @@ pub(super) fn display_name_for_level(uri: &ResourceLocator) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
-    use zircon_resource::ResourceLocator;
+    use crate::core::resource::ResourceLocator;
 
     use super::display_name_for_level;
 

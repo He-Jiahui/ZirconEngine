@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use zircon_framework::render::{RenderViewportDescriptor, RenderViewportHandle};
-use zircon_math::UVec2;
+use crate::scene::viewport::{RenderViewportDescriptor, RenderViewportHandle};
+use zircon_runtime::core::math::UVec2;
 
 use super::super::SlintViewportController;
 use super::fake_render_framework::FakeRenderFramework;

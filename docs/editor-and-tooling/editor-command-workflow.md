@@ -10,7 +10,7 @@ related_code:
   - zircon_editor/src/ui/workbench/project/mod.rs
   - zircon_editor/src/ui/workbench/snapshot/mod.rs
   - zircon_scene/src/lib.rs
-  - zircon_scene/src/world.rs
+  - zircon_scene/src/world/mod.rs
 implementation_files:
   - zircon_editor/src/ui/slint_host/app.rs
   - zircon_editor/src/core/editing/command.rs
@@ -19,7 +19,7 @@ implementation_files:
   - zircon_editor/src/core/editing/state/mod.rs
   - zircon_editor/src/ui/workbench/project/mod.rs
   - zircon_editor/src/ui/workbench/snapshot/mod.rs
-  - zircon_scene/src/world.rs
+  - zircon_scene/src/world/mod.rs
 plan_sources:
   - user: 2026-04-12 扩展 editor 命令系统到删除节点、改父子层级、重命名和 inspector 字段批量提交
   - user: 2026-04-12 将 undo/redo 从整世界快照推进到真正的 EditorCommand/UndoableStack 命令化实现
@@ -53,7 +53,7 @@ doc_type: module-detail
 - `zircon_editor/src/core/host/manager.rs`: 提供布局、view registry、项目 workspace 的 editor 域协调入口
 - `zircon_editor/src/ui/workbench/project/mod.rs`: editor project/workspace sidecar 与 level 文档桥接
 - `zircon_editor/src/ui/workbench/snapshot/mod.rs`: workbench 与资产面板投影快照
-- `zircon_scene/src/world.rs`: 世界层约束，如最后一个 camera 不可删、层级不可成环
+- `zircon_scene/src/world/mod.rs`: 世界层约束，如最后一个 camera 不可删、层级不可成环
 
 ## Behavior Model
 

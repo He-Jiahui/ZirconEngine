@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use toml::Value;
-use zircon_ui::UiAssetDocument;
+use zircon_runtime::ui::template::UiAssetDocument;
 
 use super::theme_authoring::can_promote_local_theme_to_external_style_asset;
 
@@ -232,7 +232,7 @@ fn total_rule_count(document: &UiAssetDocument) -> usize {
         .sum()
 }
 
-fn format_rule_block(block: &zircon_ui::template::UiStyleDeclarationBlock) -> String {
+fn format_rule_block(block: &zircon_runtime::ui::template::UiStyleDeclarationBlock) -> String {
     let mut entries = Vec::new();
     for (key, value) in &block.self_values {
         push_rule_block_value(&mut entries, format!("self.{key}"), value);
@@ -258,4 +258,3 @@ fn push_rule_block_value(entries: &mut Vec<String>, path: String, value: &Value)
         _ => entries.push(format!("{path} = {}", value)),
     }
 }
-

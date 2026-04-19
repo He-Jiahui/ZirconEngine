@@ -1,4 +1,4 @@
-use zircon_ui::{UiFrame, UiSize};
+use zircon_runtime::ui::{layout::UiFrame, layout::UiSize};
 
 use crate::ui::slint_host::app::compute_window_menu_popup_height;
 use crate::ui::slint_host::callback_dispatch::BuiltinWorkbenchRootShellFrames;

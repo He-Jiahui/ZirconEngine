@@ -1,4 +1,4 @@
-use zircon_ui::UiPoint;
+use zircon_runtime::ui::layout::UiPoint;
 
 use super::workbench_activity_rail_pointer_bridge::WorkbenchActivityRailPointerBridge;
 use super::workbench_activity_rail_pointer_side::WorkbenchActivityRailPointerSide;

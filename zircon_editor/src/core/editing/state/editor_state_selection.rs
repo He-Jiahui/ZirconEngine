@@ -1,5 +1,5 @@
-use zircon_math::Transform;
-use zircon_resource::{MaterialMarker, ModelMarker, ResourceHandle};
+use zircon_runtime::core::math::Transform;
+use zircon_runtime::core::resource::{MaterialMarker, ModelMarker, ResourceHandle};
 
 use crate::command::{EditorCommand, NodeEditState};
 
@@ -45,7 +45,7 @@ impl EditorState {
             return Err("Transform fields must be valid numbers".to_string());
         };
         let transform = Transform {
-            translation: zircon_math::Vec3::new(x, y, z),
+            translation: zircon_runtime::core::math::Vec3::new(x, y, z),
             ..current.transform
         };
         let selected = self.viewport_controller.selected_node();

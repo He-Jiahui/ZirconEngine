@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use zircon_math::UVec2;
+use zircon_runtime::core::math::UVec2;
 
 use crate::layout::{
     ActivityDrawerLayout, ActivityDrawerMode, ActivityDrawerSlot, DocumentNode, MainHostPageLayout,
@@ -15,7 +15,7 @@ use crate::view::{
     PreferredHost, ViewDescriptor, ViewDescriptorId, ViewHost, ViewInstance, ViewInstanceId,
     ViewKind,
 };
-use zircon_framework::render::{
+use crate::scene::viewport::{
     DisplayMode, GridMode, ProjectionMode, SceneViewportSettings, SceneViewportTool,
     TransformSpace, ViewOrientation,
 };

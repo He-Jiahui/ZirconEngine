@@ -1,11 +1,9 @@
-//! Runtime scene module registration absorbed into the runtime layer.
+//! Runtime scene: level orchestration plus ECS world (absorbed from legacy `zircon_scene`).
 
 mod level_system;
-#[path = "module/mod.rs"]
+mod level_system_render_extract;
 mod module;
-mod render_extract;
-#[path = "semantics.rs"]
-mod runtime_semantics;
+mod runtime_level_traits;
 
 pub use level_system::{LevelLifecycleState, LevelMetadata, LevelSystem};
 pub use module::{
@@ -13,12 +11,23 @@ pub use module::{
     WorldDriver, DEFAULT_LEVEL_MANAGER_NAME, LEVEL_MANAGER_NAME, SCENE_MODULE_NAME,
     WORLD_DRIVER_NAME,
 };
-pub use runtime_semantics::{RuntimeObject, RuntimeSystem};
-pub use zircon_scene::components;
-pub use zircon_scene::semantics;
-pub use zircon_scene::serializer;
-pub use zircon_scene::world;
-pub type Scene = zircon_scene::world::World;
+pub use runtime_level_traits::{RuntimeObject, RuntimeSystem};
+
+pub type EntityId = u64;
+pub type NodeId = EntityId;
+
+pub mod components;
+mod render_extract;
+pub mod semantics;
+pub mod serializer;
+pub mod world;
+
+#[allow(unused_imports)]
+pub(crate) use components::{
+    default_render_layer_mask, Mobility, NodeKind, NodeRecord, Schedule, SystemStage,
+};
+
+pub type Scene = world::World;
 
 #[cfg(test)]
 mod tests;

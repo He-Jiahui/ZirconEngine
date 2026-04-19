@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use zircon_ui::{dispatch::UiPointerDispatcher, UiSurface};
+use zircon_runtime::ui::{dispatch::UiPointerDispatcher, surface::UiSurface};
 
 use crate::scene::viewport::pointer::{
     precision::SharedResolutionState, viewport_pointer_layout::ViewportPointerLayout,

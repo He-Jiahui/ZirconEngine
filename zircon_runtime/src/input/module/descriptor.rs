@@ -1,16 +1,16 @@
 use std::sync::Arc;
 
-use zircon_core::{
+use crate::core::{
     DriverDescriptor, ManagerDescriptor, ModuleDescriptor, ServiceKind, ServiceObject, StartupMode,
 };
-use zircon_manager::InputManagerHandle;
-use zircon_module::{factory, qualified_name};
+use crate::core::manager::InputManagerHandle;
+use crate::engine_module::{factory, qualified_name};
 
 use super::super::runtime::{DefaultInputManager, InputDriver};
 
 pub const INPUT_MODULE_NAME: &str = "InputModule";
 pub const INPUT_DRIVER_NAME: &str = "InputModule.Driver.InputDriver";
-pub const INPUT_MANAGER_NAME: &str = zircon_manager::INPUT_MANAGER_NAME;
+pub const INPUT_MANAGER_NAME: &str = crate::core::manager::INPUT_MANAGER_NAME;
 
 pub fn module_descriptor() -> ModuleDescriptor {
     ModuleDescriptor::new(

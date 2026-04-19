@@ -8,21 +8,25 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use slint::{ComponentHandle, Timer, TimerMode};
-use zircon_asset::editor::{EditorAssetChange, EditorAssetManager as EditorAssetManagerFacade};
-use zircon_asset::pipeline::manager::AssetManager;
-use zircon_asset::project::{ProjectManager, ProjectPaths};
-use zircon_asset::watch::AssetChange;
-use zircon_core::{ChannelReceiver, CoreHandle};
-use zircon_framework::asset::ResourceManager;
-use zircon_manager::ManagerResolver;
-use zircon_math::UVec2;
-use zircon_resource::{
+use zircon_runtime::asset::pipeline::manager::AssetManager;
+use zircon_runtime::asset::project::{ProjectManager, ProjectPaths};
+use zircon_runtime::asset::watch::AssetChange;
+use zircon_runtime::core::{ChannelReceiver, CoreHandle};
+use zircon_runtime::core::framework::asset::ResourceManager;
+use zircon_runtime::core::manager::ManagerResolver;
+use zircon_runtime::core::math::UVec2;
+use zircon_runtime::core::resource::{
     MaterialMarker, ModelMarker, ResourceEvent, ResourceHandle, ResourceLocator,
 };
-use zircon_scene::Scene;
-use zircon_ui::{binding::UiBindingValue, binding::UiEventKind, UiFrame, UiPoint, UiSize};
+use zircon_runtime::scene::Scene;
+use zircon_runtime::ui::{
+    binding::UiBindingValue, binding::UiEventKind, layout::UiFrame, layout::UiPoint, layout::UiSize,
+};
 
 use crate::core::editor_event::{EditorEventRuntime, EditorViewportEvent};
+use crate::core::host::asset_editor::{
+    EditorAssetChange, EditorAssetManager as EditorAssetManagerFacade,
+};
 use crate::core::host::resource_access::resolve_ready_handle;
 use crate::paths::canonical_model_source_path;
 use crate::project::EditorProjectDocument;

@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use zircon_framework::render::SceneViewportSettings;
+use crate::scene::viewport::SceneViewportSettings;
 
 use super::{PreviewGizmoAxis, PreviewInspector, PreviewSceneEntry};
 

@@ -1,4 +1,4 @@
-use zircon_module::{EngineModule, ModuleDescriptor};
+use crate::engine_module::{EngineModule, ModuleDescriptor};
 
 use super::module_descriptor;
 use crate::script::SCRIPT_MODULE_NAME;

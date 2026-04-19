@@ -1,5 +1,5 @@
-use zircon_framework::render::{HandleOverlayExtract, OverlayAxis, SceneViewportTool};
-use zircon_math::Transform;
+use crate::scene::viewport::{HandleOverlayExtract, OverlayAxis, SceneViewportTool};
+use zircon_runtime::core::math::Transform;
 
 use crate::scene::viewport::handles::{
     handle_drag_context::HandleDragContext,
@@ -49,8 +49,6 @@ impl HandleTool for ScaleHandleTool {
         elements.push(center_anchor(&basis));
         Some(HandleOverlayExtract {
             owner: selected,
-            tool: self.tool(),
-            space: ctx.settings.transform_space,
             origin: basis.origin,
             elements,
         })

@@ -1,6 +1,6 @@
-use zircon_asset::editor::{EditorAssetCatalogSnapshotRecord, EditorAssetDetailsRecord};
-use zircon_resource::{ResourceKind, ResourceRecord};
+use zircon_runtime::core::resource::{ResourceKind, ResourceRecord};
 
+use crate::core::host::asset_editor::{EditorAssetCatalogSnapshotRecord, EditorAssetDetailsRecord};
 use crate::snapshot::{AssetUtilityTab, AssetViewMode};
 
 use super::editor_state::EditorState;

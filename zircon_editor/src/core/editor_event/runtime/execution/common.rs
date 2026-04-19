@@ -1,5 +1,5 @@
 use serde_json::{json, Value};
-use zircon_resource::ResourceKind;
+use zircon_runtime::core::resource::ResourceKind;
 
 use crate::core::editor_event::EditorEventEffect;
 use crate::{EditorIntent, ViewDescriptorId};
@@ -74,8 +74,17 @@ pub(super) fn parse_asset_kind_filter(kind: Option<&str>) -> Result<Option<Resou
         "Texture" => Ok(Some(ResourceKind::Texture)),
         "Shader" => Ok(Some(ResourceKind::Shader)),
         "Material" => Ok(Some(ResourceKind::Material)),
+        "PhysicsMaterial" => Ok(Some(ResourceKind::PhysicsMaterial)),
         "Scene" => Ok(Some(ResourceKind::Scene)),
         "Model" => Ok(Some(ResourceKind::Model)),
+        "AnimationSkeleton" => Ok(Some(ResourceKind::AnimationSkeleton)),
+        "AnimationClip" => Ok(Some(ResourceKind::AnimationClip)),
+        "AnimationSequence" => Ok(Some(ResourceKind::AnimationSequence)),
+        "AnimationGraph" => Ok(Some(ResourceKind::AnimationGraph)),
+        "AnimationStateMachine" => Ok(Some(ResourceKind::AnimationStateMachine)),
+        "UiLayout" => Ok(Some(ResourceKind::UiLayout)),
+        "UiWidget" => Ok(Some(ResourceKind::UiWidget)),
+        "UiStyle" => Ok(Some(ResourceKind::UiStyle)),
         other => Err(format!("unknown asset kind filter {other}")),
     }
 }

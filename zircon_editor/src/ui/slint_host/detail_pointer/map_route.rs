@@ -1,4 +1,4 @@
-use zircon_ui::event_ui::UiNodeId;
+use zircon_runtime::ui::event_ui::UiNodeId;
 
 use super::bridge_constants::VIEWPORT_NODE_ID;
 use super::scroll_surface_pointer_route::ScrollSurfacePointerRoute;

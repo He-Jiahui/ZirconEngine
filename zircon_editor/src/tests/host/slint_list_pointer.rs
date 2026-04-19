@@ -11,7 +11,7 @@ use crate::ui::slint_host::welcome_recent_pointer::{
     WelcomeRecentPointerRoute, WelcomeRecentPointerState,
 };
 use crate::{EditorEvent, SelectionHostEvent, WelcomeHostEvent};
-use zircon_ui::{UiPoint, UiSize};
+use zircon_runtime::ui::{layout::UiPoint, layout::UiSize};
 
 #[test]
 fn shared_welcome_recent_pointer_bridge_scrolls_and_dispatches_remove_action() {

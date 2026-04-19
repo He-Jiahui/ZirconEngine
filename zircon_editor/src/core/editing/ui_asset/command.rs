@@ -2,12 +2,10 @@ use std::collections::BTreeMap;
 
 use crate::ui::UiDesignerSelectionModel;
 use toml::Value;
-use zircon_ui::template::{
+use zircon_runtime::ui::template::{
     UiAssetRoot, UiBindingRef, UiComponentDefinition, UiNodeDefinition, UiNodeDefinitionKind,
 };
-use zircon_ui::{
-    template::UiStyleRule, template::UiStyleSheet,
-};
+use zircon_runtime::ui::{template::UiStyleRule, template::UiStyleSheet};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UiAssetEditorTreeEditKind {
@@ -116,6 +114,19 @@ pub enum UiAssetEditorInverseTreeEdit {
 pub enum UiAssetEditorDocumentReplayCommand {
     SetWidgetImports {
         references: Vec<String>,
+    },
+    InsertWidgetImport {
+        index: usize,
+        reference: String,
+    },
+    RemoveWidgetImport {
+        index: usize,
+        reference: String,
+    },
+    MoveWidgetImport {
+        from_index: usize,
+        to_index: usize,
+        reference: String,
     },
     SetRoot {
         root: Option<UiAssetRoot>,

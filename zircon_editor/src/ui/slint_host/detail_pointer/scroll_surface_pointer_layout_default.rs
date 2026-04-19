@@ -1,4 +1,4 @@
-use zircon_ui::UiSize;
+use zircon_runtime::ui::layout::UiSize;
 
 use super::scroll_surface_pointer_layout::ScrollSurfacePointerLayout;
 

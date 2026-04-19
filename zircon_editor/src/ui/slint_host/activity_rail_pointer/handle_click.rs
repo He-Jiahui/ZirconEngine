@@ -1,4 +1,4 @@
-use zircon_ui::{dispatch::UiPointerEvent, UiPoint, UiPointerEventKind};
+use zircon_runtime::ui::{dispatch::UiPointerEvent, layout::UiPoint, surface::UiPointerEventKind};
 
 use super::to_public_route::to_public_route;
 use super::workbench_activity_rail_pointer_bridge::WorkbenchActivityRailPointerBridge;

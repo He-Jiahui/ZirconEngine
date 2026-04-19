@@ -9,7 +9,7 @@ use super::super::viewport_route::register_viewport_route;
 pub(super) fn register_action_route(
     service: &mut EditorUiControlService,
     activity_meta: &EditorActivityReflection,
-    action: &mut zircon_ui::event_ui::UiActionDescriptor,
+    action: &mut zircon_runtime::ui::event_ui::UiActionDescriptor,
 ) {
     if action.route_id.is_some() {
         action.callable_from_remote = true;

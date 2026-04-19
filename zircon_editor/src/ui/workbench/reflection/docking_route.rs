@@ -2,7 +2,7 @@ use crate::ui::{
     DockCommand, EditorActivityReflection, EditorUiBinding, EditorUiBindingPayload,
     EditorUiControlService,
 };
-use zircon_ui::binding::UiEventKind;
+use zircon_runtime::ui::binding::UiEventKind;
 
 use super::name_mapping::binding_view_id;
 use super::route_registration::register_stub_route;
@@ -12,14 +12,14 @@ pub(super) fn register_docking_route(
     activity: &EditorActivityReflection,
     action_id: &str,
     event_kind: UiEventKind,
-) -> Option<zircon_ui::event_ui::UiRouteId> {
+) -> Option<zircon_runtime::ui::event_ui::UiRouteId> {
     let view_id = binding_view_id(activity);
     let control_id = match action_id {
         "focus_view" => "FocusViewButton",
         "detach_to_window" => "DetachViewButton",
         _ => return None,
     };
-    let path = zircon_ui::binding::UiEventPath::new(view_id, control_id, event_kind);
+    let path = zircon_runtime::ui::binding::UiEventPath::new(view_id, control_id, event_kind);
     let default_command = default_dock_command(activity, action_id)?;
     let registration_binding = EditorUiBinding::new(
         path.view_id.clone(),

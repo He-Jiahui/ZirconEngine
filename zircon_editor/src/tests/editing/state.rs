@@ -1,9 +1,9 @@
 use crate::ui::ViewportCommand;
-use zircon_framework::render::{
+use crate::scene::viewport::{
     HandleElementExtract, OverlayAxis, ProjectionMode, SceneViewportTool, ViewportCameraSnapshot,
 };
-use zircon_math::{UVec2, Vec2};
-use zircon_resource::{ResourceKind, ResourceState};
+use zircon_runtime::core::math::{UVec2, Vec2};
+use zircon_runtime::core::resource::{ResourceKind, ResourceState};
 use zircon_runtime::scene::DefaultLevelManager;
 
 use super::asset_workspace::{sample_catalog, sample_material_details, sample_resource_status};
@@ -118,7 +118,7 @@ fn drag_tool_click_selects_renderable_without_handle_overlay() {
 
     let _ = state.apply_viewport_command(&ViewportCommand::SetTool(SceneViewportTool::Drag));
 
-    let cursor = project_entity_cursor(&state, cube, zircon_math::Vec3::new(0.55, 0.0, 0.0));
+    let cursor = project_entity_cursor(&state, cube, zircon_runtime::core::math::Vec3::new(0.55, 0.0, 0.0));
     let _ = state.apply_viewport_command(&ViewportCommand::LeftPressed {
         x: cursor.x,
         y: cursor.y,
@@ -139,7 +139,7 @@ fn viewport_clicking_light_gizmo_selects_light_node() {
             .find(|node| {
                 matches!(
                     node.kind,
-                    zircon_scene::components::NodeKind::DirectionalLight
+                    zircon_runtime::scene::components::NodeKind::DirectionalLight
                 )
             })
             .map(|node| node.id)
@@ -233,7 +233,7 @@ fn viewport_handle_drag_collapses_into_single_undoable_command() {
     );
 }
 
-fn project_entity_cursor(state: &EditorState, entity: u64, offset: zircon_math::Vec3) -> Vec2 {
+fn project_entity_cursor(state: &EditorState, entity: u64, offset: zircon_runtime::core::math::Vec3) -> Vec2 {
     let packet = state.render_snapshot().expect("render packet");
     let transform = state
         .world
@@ -278,17 +278,17 @@ fn move_handle_drag_cursor_pair(state: &EditorState, cube: u64) -> (Vec2, Vec2) 
 fn project_world_position(
     camera: &ViewportCameraSnapshot,
     viewport: UVec2,
-    world: zircon_math::Vec3,
+    world: zircon_runtime::core::math::Vec3,
 ) -> Option<Vec2> {
     let aspect = viewport.x as f32 / viewport.y.max(1) as f32;
     let projection = match camera.projection_mode {
         ProjectionMode::Perspective => {
-            zircon_math::perspective(camera.fov_y_radians, aspect, camera.z_near, camera.z_far)
+            zircon_runtime::core::math::perspective(camera.fov_y_radians, aspect, camera.z_near, camera.z_far)
         }
         ProjectionMode::Orthographic => {
             let half_height = camera.ortho_size.max(0.01);
             let half_width = half_height * aspect.max(0.001);
-            zircon_math::Mat4::orthographic_rh(
+            zircon_runtime::core::math::Mat4::orthographic_rh(
                 -half_width,
                 half_width,
                 -half_height,
@@ -298,7 +298,7 @@ fn project_world_position(
             )
         }
     };
-    let clip = projection * zircon_math::view_matrix(camera.transform) * world.extend(1.0);
+    let clip = projection * zircon_runtime::core::math::view_matrix(camera.transform) * world.extend(1.0);
     if clip.w <= f32::EPSILON {
         return None;
     }

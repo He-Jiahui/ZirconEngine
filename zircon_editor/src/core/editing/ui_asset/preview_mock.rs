@@ -5,7 +5,7 @@ use crate::core::editing::ui_asset::value_path::{
 };
 use crate::ui::UiDesignerSelectionModel;
 use toml::Value;
-use zircon_ui::UiAssetDocument;
+use zircon_runtime::ui::template::UiAssetDocument;
 
 #[path = "preview/mock_expression.rs"]
 mod mock_expression;
@@ -182,9 +182,14 @@ pub(crate) fn build_preview_mock_fields(
         nested_items: nested_entries
             .iter()
             .map(|entry| {
+                let display_key = if selected.display_key == selected.key {
+                    entry.display_key.clone()
+                } else {
+                    qualified_preview_mock_nested_display_key(&selected.display_key, &entry.key)
+                };
                 format!(
                     "{} [{}] = {}",
-                    entry.display_key,
+                    display_key,
                     entry.kind.label(),
                     preview_mock_literal(&entry.value)
                 )
@@ -964,7 +969,7 @@ fn preview_mock_inline_literal(value: &Value) -> String {
 }
 
 fn preview_mock_display_key(
-    node: &zircon_ui::template::UiNodeDefinition,
+    node: &zircon_runtime::ui::template::UiNodeDefinition,
     node_id: &str,
     key: &str,
     qualify: bool,
@@ -974,6 +979,32 @@ fn preview_mock_display_key(
     }
     let subject = node.control_id.as_deref().unwrap_or(node_id);
     format!("{subject}.{key}")
+}
+
+fn qualified_preview_mock_nested_display_key(base: &str, nested_key: &str) -> String {
+    if nested_key.is_empty() {
+        return base.to_string();
+    }
+
+    let mut relative = nested_key.to_string();
+    if relative
+        .chars()
+        .next()
+        .is_some_and(|ch| ch.is_ascii_digit())
+    {
+        let digit_end = relative
+            .char_indices()
+            .take_while(|(_, ch)| ch.is_ascii_digit())
+            .last()
+            .map(|(index, ch)| index + ch.len_utf8())
+            .unwrap_or(0);
+        let rest = relative.split_off(digit_end);
+        relative = format!("[{}]{rest}", &nested_key[..digit_end]);
+    } else if !relative.starts_with('[') && !relative.starts_with('.') {
+        relative.insert(0, '.');
+    }
+
+    format!("{base}{relative}")
 }
 
 fn preview_mock_sort_key(key: &str, kind: UiAssetPreviewMockKind) -> (u8, String) {
@@ -1151,4 +1182,3 @@ fn preview_nested_path_segments(
         _ => Err("preview mock property does not support nested entries".to_string()),
     }
 }
-

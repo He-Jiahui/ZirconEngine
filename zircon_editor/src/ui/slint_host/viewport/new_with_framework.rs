@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use zircon_framework::render::RenderFramework;
+use crate::scene::viewport::RenderFramework;
 
 use super::slint_viewport_controller::SlintViewportController;
 use super::viewport_state::ViewportState;

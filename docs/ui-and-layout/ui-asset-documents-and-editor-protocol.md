@@ -19,7 +19,7 @@ related_code:
   - zircon_asset/src/importer/service/mod.rs
   - zircon_asset/src/importer/service/import_from_source.rs
   - zircon_asset/src/importer/service/import_ui_asset.rs
-  - zircon_asset/src/project/manager.rs
+  - zircon_asset/src/project/manager/mod.rs
   - zircon_asset/src/project/manager/scan_and_import.rs
   - zircon_asset/src/project/manager/asset_kind.rs
   - zircon_asset/src/project/manager/source_uri_for_path.rs
@@ -62,6 +62,8 @@ related_code:
   - zircon_editor/ui/workbench/host_scaffold.slint
   - zircon_editor/ui/workbench/host_surface.slint
   - zircon_editor/ui/workbench/panes.slint
+  - zircon_runtime/src/scene/mod.rs
+  - zircon_runtime/src/scene/semantics.rs
   - zircon_editor/src/tests/editing/ui_asset.rs
   - zircon_editor/src/tests/editing/ui_asset_theme_authoring.rs
   - zircon_editor/src/tests/host/template_runtime.rs
@@ -86,7 +88,7 @@ implementation_files:
   - zircon_asset/src/importer/service/mod.rs
   - zircon_asset/src/importer/service/import_from_source.rs
   - zircon_asset/src/importer/service/import_ui_asset.rs
-  - zircon_asset/src/project/manager.rs
+  - zircon_asset/src/project/manager/mod.rs
   - zircon_asset/src/project/manager/scan_and_import.rs
   - zircon_asset/src/project/manager/asset_kind.rs
   - zircon_asset/src/project/manager/source_uri_for_path.rs
@@ -127,6 +129,8 @@ implementation_files:
   - zircon_editor/ui/workbench/host_scaffold.slint
   - zircon_editor/ui/workbench/host_surface.slint
   - zircon_editor/ui/workbench/panes.slint
+  - zircon_runtime/src/scene/mod.rs
+  - zircon_runtime/src/scene/semantics.rs
 plan_sources:
   - user: 2026-04-16 增加 activityWindow 界面作为 UI 编辑布局工具并把 UI Layout 资产化
   - user: 2026-04-16 PLEASE IMPLEMENT THIS PLAN
@@ -646,3 +650,27 @@ V1 样式系统已经能处理：
 
 - `zircon_editor/ui/workbench/host_surface.slint` 现在已经统一走 `HostMenuChrome.menu_state` 与结构化 `drag_state` / `overlay_data`，不再混用旧的散列 host-shell property
 - `zircon_runtime/src/ui/runtime_ui/runtime_ui_manager.rs` 与 `zircon_runtime/src/ui/runtime_ui/runtime_ui_manager_error.rs` 已显式改成从 `zircon_ui::template` 导入 `UiTemplateSurfaceBuilder` / `UiTemplateBuildError`
+
+这一轮继续把 replay backend、preview/mock schema、theme tooling、迁移与自举收口后的新增结果是：
+
+- `UiAssetEditorUndoStack` 现在会把最新 edit 的 redo replay / external effects 直接暴露给 session，而不是只有真正 `undo()` 之后才能看到 redo 侧命令。这让 widget promotion、theme promotion、stylesheet vector 操作都能在 command-log 视图里同步展示正反向可执行 replay。
+- `UiAssetEditorUndoTransition::apply_to_document(...)` 也从“有 document commands 就完全跳过 AST diff”调整成了“双阶段回放”：先跑显式 `Insert/Remove/Move/Set*` document commands，再用 `UiAssetEditorUndoDocumentReplay` 从原始文档计算目标态；只有命令结果未完整到达目标文档时才回落到目标态替换。这样 cross-file stylesheet insert/vector replay 不再需要 source-text fallback，同时也避免把已经完整执行的 stylesheet insert 再重复应用一遍。
+- preview mock nested authoring 现在补上了真正的 schema-aware 层级显示策略：如果当前 preview subject 就是 hierarchy 选中的节点，nested object/collection tree 保持 `enabled`、`[1]` 这种相对 key；如果当前 authoring 目标来自跨节点 preview subject 或深层 schema 跳转，则同一套 nested tree 自动显示为 `StatusLabel.context.dialog.steps[1].label` 这类限定路径，保证 schema-target 选择与 nested tree 编辑共享同一套定位模型。
+- higher-level theme tooling 现在已经不只是 detach/clone/import compare。session 与 host manager 回归同时覆盖了 compare item selection、theme-wide helper/refactor、rule-body adoption helper、cross-asset cascade inspector、local theme layer merge preview，因此 imported theme detach/clone、local merge、multi-rule helper authoring 已进入正式协议面。
+- runtime/editor window migration 与 self-hosting 也继续推进到 shared `.ui.toml` 真入口：editor 侧的 asset browser、binding browser、theme browser、layout workbench、preview state lab，以及 runtime 侧的 HUD / inventory / pause / quest log / settings dialog 都已经能通过同一条 `UiAssetEditorSession -> UiDocumentCompiler -> preview host` 链路打开；UI Asset Editor 自身的 bootstrap layout/style/widget 资产也已经进入 crate 回归。
+- 为了让新的 `CARGO_TARGET_DIR` 验证稳定，`zircon_runtime/src/scene/mod.rs` 现在重新显式绑定现有 `semantics.rs`，避免 editor host 集成验证被无关 runtime 模块路径漂移阻断。
+
+这批收口后的最新验证证据是：
+
+- `TMP=D:\codex-temp-next TEMP=D:\codex-temp-next CARGO_TARGET_DIR=D:\codex-ui-asset-editor-next7 CARGO_INCREMENTAL=0 cargo test -p zircon_editor --lib --locked --offline ui_asset_editor_session_widget_promotion_emits_executable_widget_import_replay_commands -- --nocapture`
+  - 当前结果：`1 passed; 0 failed`
+- `TMP=D:\codex-temp-next TEMP=D:\codex-temp-next CARGO_TARGET_DIR=D:\codex-ui-asset-editor-next7 CARGO_INCREMENTAL=0 cargo test -p zircon_editor --lib --locked --offline ui_asset_editor_session_edits_preview_mock_object_entries_structurally -- --nocapture`
+  - 当前结果：`1 passed; 0 failed`
+- `TMP=D:\codex-temp-next TEMP=D:\codex-temp-next CARGO_TARGET_DIR=D:\codex-ui-asset-editor-next7 CARGO_INCREMENTAL=0 cargo test -p zircon_editor --lib --locked --offline ui_asset_editor_session_edits_preview_mock_collection_entries_structurally -- --nocapture`
+  - 当前结果：`1 passed; 0 failed`
+- `TMP=D:\codex-temp-next TEMP=D:\codex-temp-next CARGO_TARGET_DIR=D:\codex-ui-asset-editor-next7 CARGO_INCREMENTAL=0 cargo test -p zircon_editor --lib --locked --offline ui_asset_editor_replay_workspace_applies_stylesheet_insert_and_cross_file_effects -- --nocapture`
+  - 当前结果：`1 passed; 0 failed`
+- `TMP=D:\codex-temp-next TEMP=D:\codex-temp-next CARGO_TARGET_DIR=D:\codex-ui-asset-editor-next7 CARGO_INCREMENTAL=0 cargo test -p zircon_editor --lib --locked --offline`
+  - 当前结果：`593 passed; 0 failed`
+- `TMP=D:\codex-temp-next TEMP=D:\codex-temp-next CARGO_TARGET_DIR=D:\codex-ui-asset-editor-next7 CARGO_INCREMENTAL=0 cargo test -p zircon_editor --test workbench_slint_shell --locked --offline`
+  - 当前结果：`58 passed; 0 failed`

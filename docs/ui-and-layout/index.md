@@ -15,10 +15,10 @@ related_code:
   - zircon_ui/src/layout/pass/mod.rs
   - zircon_ui/src/layout/scroll.rs
   - zircon_ui/src/layout/virtualization.rs
-  - zircon_ui/src/dispatch.rs
+  - zircon_ui/src/dispatch/mod.rs
   - zircon_ui/src/tree/node/mod.rs
   - zircon_ui/src/tree/hit_test.rs
-  - zircon_ui/src/surface.rs
+  - zircon_ui/src/surface/mod.rs
   - zircon_editor/src/ui/ui_asset_editor.rs
   - zircon_editor/src/ui/workbench/autolayout/mod.rs
   - zircon_editor/src/ui/slint_host/tab_drag.rs
@@ -39,10 +39,10 @@ implementation_files:
   - zircon_ui/src/layout/pass/mod.rs
   - zircon_ui/src/layout/scroll.rs
   - zircon_ui/src/layout/virtualization.rs
-  - zircon_ui/src/dispatch.rs
+  - zircon_ui/src/dispatch/mod.rs
   - zircon_ui/src/tree/node/mod.rs
   - zircon_ui/src/tree/hit_test.rs
-  - zircon_ui/src/surface.rs
+  - zircon_ui/src/surface/mod.rs
   - zircon_editor/src/ui/ui_asset_editor.rs
   - zircon_editor/src/ui/workbench/autolayout/mod.rs
   - zircon_editor/src/ui/slint_host/tab_drag.rs
@@ -100,10 +100,10 @@ doc_type: category-index
 - `zircon_ui/src/layout/scroll.rs`
 - `zircon_ui/src/layout/virtualization.rs`
 - `zircon_ui/src/template/asset/mod.rs`
-- `zircon_ui/src/dispatch.rs`
+- `zircon_ui/src/dispatch/mod.rs`
 - `zircon_ui/src/tree/node/mod.rs`
 - `zircon_ui/src/tree/hit_test.rs`
-- `zircon_ui/src/surface.rs`
+- `zircon_ui/src/surface/mod.rs`
 - `zircon_editor/src/ui/workbench/autolayout/mod.rs`
 
 ## Current Scope

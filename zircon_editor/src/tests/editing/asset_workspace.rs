@@ -1,9 +1,9 @@
-use zircon_asset::editor::{
+use zircon_runtime::core::resource::{ResourceId, ResourceKind, ResourceLocator, ResourceRecord, ResourceState};
+use crate::core::host::asset_editor::{
     EditorAssetCatalogRecord, EditorAssetCatalogSnapshotRecord, EditorAssetDetailsRecord,
     EditorAssetFolderRecord, EditorAssetReferenceRecord,
 };
-use zircon_asset::project::PreviewState;
-use zircon_resource::{ResourceId, ResourceKind, ResourceLocator, ResourceRecord, ResourceState};
+use zircon_runtime::asset::project::PreviewState;
 
 use crate::core::editing::asset_workspace::AssetWorkspaceState;
 use crate::snapshot::{AssetSurfaceMode, AssetUtilityTab, AssetViewMode};
@@ -80,6 +80,40 @@ fn asset_workspace_reference_navigation_relocates_selection() {
     );
 }
 
+#[test]
+fn asset_workspace_filters_physics_and_animation_asset_kinds() {
+    let mut workspace = AssetWorkspaceState::default();
+    workspace.sync_catalog(sample_catalog());
+
+    workspace.select_folder("res://animation");
+    workspace.set_kind_filter(Some(ResourceKind::AnimationSequence));
+    let animation_snapshot = workspace.build_snapshot(AssetSurfaceMode::Activity);
+
+    assert_eq!(animation_snapshot.visible_assets.len(), 1);
+    assert_eq!(
+        animation_snapshot.visible_assets[0].locator,
+        "res://animation/hero.sequence.zranim"
+    );
+    assert_eq!(
+        animation_snapshot.visible_assets[0].kind,
+        ResourceKind::AnimationSequence
+    );
+
+    workspace.select_folder("res://physics/materials");
+    workspace.set_kind_filter(Some(ResourceKind::PhysicsMaterial));
+    let physics_snapshot = workspace.build_snapshot(AssetSurfaceMode::Activity);
+
+    assert_eq!(physics_snapshot.visible_assets.len(), 1);
+    assert_eq!(
+        physics_snapshot.visible_assets[0].locator,
+        "res://physics/materials/default.physics_material.toml"
+    );
+    assert_eq!(
+        physics_snapshot.visible_assets[0].kind,
+        ResourceKind::PhysicsMaterial
+    );
+}
+
 pub(super) fn sample_catalog() -> EditorAssetCatalogSnapshotRecord {
     EditorAssetCatalogSnapshotRecord {
         project_name: "Sandbox".to_string(),
@@ -98,9 +132,11 @@ pub(super) fn sample_catalog() -> EditorAssetCatalogSnapshotRecord {
                     "res://materials".to_string(),
                     "res://scenes".to_string(),
                     "res://textures".to_string(),
+                    "res://animation".to_string(),
+                    "res://physics".to_string(),
                 ],
                 direct_asset_uuids: Vec::new(),
-                recursive_asset_count: 3,
+                recursive_asset_count: 5,
             },
             EditorAssetFolderRecord {
                 folder_id: "res://materials".to_string(),
@@ -127,6 +163,33 @@ pub(super) fn sample_catalog() -> EditorAssetCatalogSnapshotRecord {
                 display_name: "textures".to_string(),
                 child_folder_ids: Vec::new(),
                 direct_asset_uuids: vec!["33333333-3333-3333-3333-333333333333".to_string()],
+                recursive_asset_count: 1,
+            },
+            EditorAssetFolderRecord {
+                folder_id: "res://animation".to_string(),
+                parent_folder_id: Some("res://".to_string()),
+                locator_prefix: "res://animation".to_string(),
+                display_name: "animation".to_string(),
+                child_folder_ids: Vec::new(),
+                direct_asset_uuids: vec!["44444444-4444-4444-4444-444444444444".to_string()],
+                recursive_asset_count: 1,
+            },
+            EditorAssetFolderRecord {
+                folder_id: "res://physics".to_string(),
+                parent_folder_id: Some("res://".to_string()),
+                locator_prefix: "res://physics".to_string(),
+                display_name: "physics".to_string(),
+                child_folder_ids: vec!["res://physics/materials".to_string()],
+                direct_asset_uuids: Vec::new(),
+                recursive_asset_count: 1,
+            },
+            EditorAssetFolderRecord {
+                folder_id: "res://physics/materials".to_string(),
+                parent_folder_id: Some("res://physics".to_string()),
+                locator_prefix: "res://physics/materials".to_string(),
+                display_name: "materials".to_string(),
+                child_folder_ids: Vec::new(),
+                direct_asset_uuids: vec!["55555555-5555-5555-5555-555555555555".to_string()],
                 recursive_asset_count: 1,
             },
         ],
@@ -178,6 +241,44 @@ pub(super) fn sample_catalog() -> EditorAssetCatalogSnapshotRecord {
                 preview_artifact_path: "E:/Sandbox/library/editor-previews/checker.png".to_string(),
                 source_mtime_unix_ms: 30,
                 source_hash: "tex".to_string(),
+                dirty: false,
+                diagnostics: Vec::new(),
+                direct_reference_uuids: Vec::new(),
+            },
+            EditorAssetCatalogRecord {
+                uuid: "44444444-4444-4444-4444-444444444444".to_string(),
+                id: "dddddddd-dddd-dddd-dddd-dddddddddddd".to_string(),
+                locator: "res://animation/hero.sequence.zranim".to_string(),
+                kind: ResourceKind::AnimationSequence,
+                display_name: "hero.sequence".to_string(),
+                file_name: "hero.sequence.zranim".to_string(),
+                extension: "zranim".to_string(),
+                preview_state: PreviewState::Dirty,
+                meta_path: "E:/Sandbox/assets/animation/hero.sequence.zranim.meta.toml".to_string(),
+                preview_artifact_path: "E:/Sandbox/library/editor-previews/hero-sequence.png"
+                    .to_string(),
+                source_mtime_unix_ms: 40,
+                source_hash: "anim-seq".to_string(),
+                dirty: true,
+                diagnostics: vec!["sequence preview pending".to_string()],
+                direct_reference_uuids: Vec::new(),
+            },
+            EditorAssetCatalogRecord {
+                uuid: "55555555-5555-5555-5555-555555555555".to_string(),
+                id: "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee".to_string(),
+                locator: "res://physics/materials/default.physics_material.toml".to_string(),
+                kind: ResourceKind::PhysicsMaterial,
+                display_name: "default.physics_material".to_string(),
+                file_name: "default.physics_material.toml".to_string(),
+                extension: "toml".to_string(),
+                preview_state: PreviewState::Ready,
+                meta_path:
+                    "E:/Sandbox/assets/physics/materials/default.physics_material.toml.meta.toml"
+                        .to_string(),
+                preview_artifact_path: "E:/Sandbox/library/editor-previews/default-physics.png"
+                    .to_string(),
+                source_mtime_unix_ms: 50,
+                source_hash: "phys".to_string(),
                 dirty: false,
                 diagnostics: Vec::new(),
                 direct_reference_uuids: Vec::new(),

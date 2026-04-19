@@ -1,7 +1,7 @@
 //! High-level user intents applied to editor state.
 
-use zircon_scene::components::NodeKind;
-use zircon_scene::NodeId;
+use zircon_runtime::scene::components::NodeKind;
+use zircon_runtime::scene::NodeId;
 
 #[derive(Clone, Debug)]
 pub enum EditorIntent {
@@ -10,7 +10,7 @@ pub enum EditorIntent {
     SelectNode(NodeId),
     RenameNode(NodeId, String),
     SetParent(NodeId, Option<NodeId>),
-    SetTransform(NodeId, zircon_math::Transform),
+    SetTransform(NodeId, zircon_runtime::core::math::Transform),
     ApplyInspectorChanges,
     BeginGizmoDrag,
     DragGizmo,

@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
 
-use zircon_ui::{
+use zircon_runtime::ui::{
     dispatch::UiPointerDispatcher, event_ui::UiNodeId, event_ui::UiNodePath, event_ui::UiTreeId,
-    UiInputPolicy, UiSurface, UiTreeNode,
+    surface::UiSurface, tree::UiInputPolicy, tree::UiTreeNode,
 };
 
 use super::constants::{
@@ -54,7 +54,7 @@ impl WorkbenchDocumentTabPointerBridge {
                     .get(item_index)
                     .and_then(|frame| *frame)
                     .unwrap_or_else(|| {
-                        zircon_ui::UiFrame::new(
+                        zircon_runtime::ui::layout::UiFrame::new(
                             next_x,
                             surface_layout.strip_frame.y + STRIP_Y,
                             tab_min_width(surface_layout, item_index),
@@ -103,7 +103,7 @@ impl WorkbenchDocumentTabPointerBridge {
                                     surface_layout.key
                                 )),
                             )
-                            .with_frame(zircon_ui::UiFrame::new(
+                            .with_frame(zircon_runtime::ui::layout::UiFrame::new(
                                 frame.x + frame.width - CLOSE_X_OFFSET,
                                 frame.y + CLOSE_Y_OFFSET,
                                 CLOSE_EXTENT,

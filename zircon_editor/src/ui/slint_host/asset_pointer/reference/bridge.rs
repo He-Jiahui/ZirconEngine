@@ -1,12 +1,20 @@
 use std::collections::BTreeMap;
 
-use zircon_ui::{
+use zircon_runtime::ui::{
     dispatch::{UiPointerDispatcher, UiPointerEvent},
     event_ui::UiNodeId,
     event_ui::UiNodePath,
     event_ui::UiTreeId,
-    UiAxis, UiContainerKind, UiInputPolicy, UiPoint, UiPointerEventKind, UiScrollState,
-    UiScrollableBoxConfig, UiScrollbarVisibility, UiSurface, UiTreeNode,
+    layout::UiAxis,
+    layout::UiContainerKind,
+    layout::UiPoint,
+    layout::UiScrollState,
+    layout::UiScrollableBoxConfig,
+    layout::UiScrollbarVisibility,
+    surface::UiPointerEventKind,
+    surface::UiSurface,
+    tree::UiInputPolicy,
+    tree::UiTreeNode,
 };
 
 use super::dispatch::AssetReferenceListPointerDispatch;
@@ -124,7 +132,7 @@ impl AssetReferenceListPointerBridge {
 
         surface.tree.insert_root(
             UiTreeNode::new(ROOT_NODE_ID, UiNodePath::new("editor.asset_reference.root"))
-                .with_frame(zircon_ui::UiFrame::new(
+                .with_frame(zircon_runtime::ui::layout::UiFrame::new(
                     0.0,
                     0.0,
                     self.layout.pane_size.width.max(0.0),
@@ -183,7 +191,7 @@ impl AssetReferenceListPointerBridge {
                         node_id,
                         UiNodePath::new(format!("editor.asset_reference/item_{row_index}")),
                     )
-                    .with_frame(zircon_ui::UiFrame::new(
+                    .with_frame(zircon_runtime::ui::layout::UiFrame::new(
                         0.0,
                         viewport_y() + row_index as f32 * (ROW_HEIGHT + ROW_GAP)
                             - self.state.scroll_offset,

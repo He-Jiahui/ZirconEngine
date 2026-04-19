@@ -18,7 +18,7 @@ related_code:
   - zircon_scene_protocol/src/level_summary.rs
   - zircon_scene/src/lib.rs
   - zircon_scene/src/level_system.rs
-  - zircon_scene/src/render_extract.rs
+  - zircon_scene/src/render_extract/mod.rs
   - zircon_scene/src/module/default_level_manager.rs
   - zircon_scene/src/module/level_manager_facade.rs
   - zircon_scene/src/module/level_manager_lifecycle.rs
@@ -64,7 +64,7 @@ related_code:
   - zircon_runtime/src/asset/mod.rs
   - zircon_runtime/src/asset/module.rs
   - zircon_runtime/src/scene/mod.rs
-  - zircon_runtime/src/scene/module.rs
+  - zircon_runtime/src/scene/module/mod.rs
   - zircon_runtime/src/graphics/host/module_host/rendering_manager/manager_backend_info.rs
   - zircon_editor/src/core/editing/asset_workspace.rs
   - zircon_editor/src/core/editing/state/editor_state_asset_workspace.rs
@@ -102,7 +102,7 @@ implementation_files:
   - zircon_scene/Cargo.toml
   - zircon_scene/src/lib.rs
   - zircon_scene/src/level_system.rs
-  - zircon_scene/src/render_extract.rs
+  - zircon_scene/src/render_extract/mod.rs
   - zircon_scene/src/module/default_level_manager.rs
   - zircon_scene/src/module/level_manager_facade.rs
   - zircon_scene/src/module/level_manager_lifecycle.rs
@@ -141,7 +141,7 @@ implementation_files:
   - zircon_runtime/src/asset/mod.rs
   - zircon_runtime/src/asset/module.rs
   - zircon_runtime/src/scene/mod.rs
-  - zircon_runtime/src/scene/module.rs
+  - zircon_runtime/src/scene/module/mod.rs
   - zircon_runtime/src/graphics/host/module_host/rendering_manager/manager_backend_info.rs
   - zircon_app/src/entry/runtime_entry_app/application_handler.rs
   - zircon_editor/src/core/editing/asset_workspace.rs
@@ -159,6 +159,7 @@ implementation_files:
   - zircon_resource/src/record/resource_event.rs
   - zircon_resource/src/record/resource_event_kind.rs
 plan_sources:
+  - user: 2026-04-19 先根据Runtime吸收层 Editor吸收的规则迁移，外部目录干净化
   - user: 2026-04-18 直接转去处理 zircon_graphics 红测，再开一轮更严格的包边界审计标准
   - user: 2026-04-18 按审计文档里的顺序处理 AssetRecordKind 和 PreviewStateRecord 这组边界收口
   - user: 2026-04-18 继续严格包边界审计，就需要重新找新的“证据充分”候选，而不是再回头动这两组
@@ -211,6 +212,9 @@ tests:
   - cargo test -p zircon_ui --locked --offline --target-dir target/codex-shared-b template_binding_model_api_moves_under_template_namespace -- --nocapture
   - cargo test -p zircon_runtime --locked --offline --target-dir target/codex-shared-b runtime_asset_surface_keeps_project_and_watch_under_namespaces -- --nocapture
   - cargo test -p zircon_runtime --locked --offline --target-dir target/codex-shared-b runtime_ui_surface_keeps_template_and_layout_specialists_under_namespaces -- --nocapture
+  - git grep -n "zircon_asset::\\|zircon_scene::\\|zircon_ui::\\|zircon_runtime/crates/zircon_" -- ':(exclude)zircon_asset' ':(exclude)zircon_scene' ':(exclude)zircon_ui'
+  - cargo test -p zircon_runtime --lib --offline
+  - cargo test -p zircon_editor --lib --offline
   - cargo test -p zircon_asset --locked --offline --target-dir target/codex-shared-b -- --nocapture
   - cargo test -p zircon_ui --locked --offline --target-dir target/codex-shared-b -- --nocapture
   - cargo test -p zircon_scene --locked --offline --target-dir target/codex-shared-b -- --nocapture
@@ -422,7 +426,7 @@ doc_type: module-detail
 因此这批最终不是只搬 DTO，而是整条协议线一起迁回 `zircon_asset`：
 
 - 新增 [zircon_asset/src/pipeline/manager/asset_manager/mod.rs](../../zircon_asset/src/pipeline/manager/asset_manager/mod.rs)，并把 trait/handle/resolver 继续下沉到 [zircon_asset/src/pipeline/manager/asset_manager/asset_manager.rs](../../zircon_asset/src/pipeline/manager/asset_manager/asset_manager.rs)、[zircon_asset/src/pipeline/manager/asset_manager/asset_manager_handle.rs](../../zircon_asset/src/pipeline/manager/asset_manager/asset_manager_handle.rs) 与 [zircon_asset/src/pipeline/manager/asset_manager/resolve_asset_manager.rs](../../zircon_asset/src/pipeline/manager/asset_manager/resolve_asset_manager.rs)
-- [zircon_asset/src/pipeline/manager.rs](../../zircon_asset/src/pipeline/manager.rs) 与 [zircon_asset/src/lib.rs](../../zircon_asset/src/lib.rs) 现在直接拥有 `AssetManager`、`AssetManagerHandle`、`resolve_asset_manager`、`AssetPipelineInfo` 与 `ProjectInfo`
+- [zircon_asset/src/pipeline/manager/mod.rs](../../zircon_asset/src/pipeline/manager/mod.rs) 与 [zircon_asset/src/lib.rs](../../zircon_asset/src/lib.rs) 现在直接拥有 `AssetManager`、`AssetManagerHandle`、`resolve_asset_manager`、`AssetPipelineInfo` 与 `ProjectInfo`
 - [zircon_runtime/src/asset/mod.rs](../../zircon_runtime/src/asset/mod.rs) 与 [zircon_runtime/src/asset/module.rs](../../zircon_runtime/src/asset/module.rs) 继续持有 `AssetModule`、`ASSET_MODULE_NAME`、`ASSET_MANAGER_NAME`、`RESOURCE_MANAGER_NAME`、`PROJECT_ASSET_MANAGER_NAME` 与 `EDITOR_ASSET_MANAGER_NAME`
 - [zircon_asset/src/pipeline/manager/facades/asset_manager_facade.rs](../../zircon_asset/src/pipeline/manager/facades/asset_manager_facade.rs) 的 `subscribe_asset_changes()` 已统一返回 `ChannelReceiver<zircon_asset::watch::AssetChange>`
 - `zircon_manager` 已删除 `AssetManager` trait、asset/project records、handle、resolver 和 service-name surface；旧的 [zircon_manager/src/records/asset.rs](../../zircon_manager/src/records/asset.rs) 与 [zircon_manager/src/records/project.rs](../../zircon_manager/src/records/project.rs) 已删除
@@ -439,7 +443,7 @@ doc_type: module-detail
 它们的问题和上一轮 `InputButton` / `InputEvent` 很像：
 
 1. 这组类型只服务 `LevelManager` 协议与 `zircon_scene` 运行时实现
-2. 当前真实生产/消费面只在 [zircon_scene/src/module/default_level_manager.rs](../../zircon_scene/src/module/default_level_manager.rs)、[zircon_scene/src/module/level_manager_facade.rs](../../zircon_scene/src/module/level_manager_facade.rs)、[zircon_scene/src/level_system.rs](../../zircon_scene/src/level_system.rs) 与 [zircon_scene/src/render_extract.rs](../../zircon_scene/src/render_extract.rs)
+2. 当前真实生产/消费面只在 [zircon_scene/src/module/default_level_manager.rs](../../zircon_scene/src/module/default_level_manager.rs)、[zircon_scene/src/module/level_manager_facade.rs](../../zircon_scene/src/module/level_manager_facade.rs)、[zircon_scene/src/level_system.rs](../../zircon_scene/src/level_system.rs) 与 [zircon_scene/src/render_extract/mod.rs](../../zircon_scene/src/render_extract/mod.rs)
 3. `zircon_manager` 只是顺手持有了 scene 专属 handle 和 summary，本身并不是这组协议的实现 owner
 
 但它们不能直接迁到 `zircon_scene`，否则会形成依赖环：
@@ -459,7 +463,7 @@ doc_type: module-detail
 
 同一轮 runtime absorption 又继续推进了 scene/asset module-registration owner：
 
-- [zircon_runtime/src/scene/mod.rs](../../zircon_runtime/src/scene/mod.rs) 与 [zircon_runtime/src/scene/module.rs](../../zircon_runtime/src/scene/module.rs) 现在持有 `SceneModule`、`SCENE_MODULE_NAME`、`DEFAULT_LEVEL_MANAGER_NAME`、`LEVEL_MANAGER_NAME`、`create_default_level()` 与 `load_level_asset()`
+- [zircon_runtime/src/scene/mod.rs](../../zircon_runtime/src/scene/mod.rs) 与 [zircon_runtime/src/scene/module/mod.rs](../../zircon_runtime/src/scene/module/mod.rs) 现在持有 `SceneModule`、`SCENE_MODULE_NAME`、`DEFAULT_LEVEL_MANAGER_NAME`、`LEVEL_MANAGER_NAME`、`create_default_level()` 与 `load_level_asset()`
 - [zircon_runtime/src/asset/mod.rs](../../zircon_runtime/src/asset/mod.rs) 与 [zircon_runtime/src/asset/module.rs](../../zircon_runtime/src/asset/module.rs) 现在持有 `AssetModule`、`module_descriptor()` 与整组 asset/resource manager service names
 - [zircon_scene/src/lib.rs](../../zircon_scene/src/lib.rs) 与 [zircon_asset/src/lib.rs](../../zircon_asset/src/lib.rs) 则继续收窄到 world authority / asset API 本体，不再把 module owner、service-name 和 bootstrap helper 混在领域 root surface
 
@@ -506,7 +510,7 @@ doc_type: module-detail
 - 这轮对 workspace 和 `docs/` 的源码扫描里，没有发现任何 `zircon_asset::ResourceLocator`、`zircon_asset::ResourceKind`、`zircon_asset::ResourceRecord`、`zircon_asset::ResourceManager` 等 raw resource 外部消费面；后续补扫确认 `zircon_asset::AssetReference` 仍被 scene/editor/graphics 测试与 helper 代码当作 asset 语义别名消费，因此它应保留为 asset-named alias，而不是与 raw resource surface 一起删除
 - 相反，当前实际代码已经直接使用 canonical owner：
   - [zircon_asset/src/assets/ui.rs](../../zircon_asset/src/assets/ui.rs) 直接从 `zircon_resource` 取 `AssetReference` / `ResourceLocator`
-  - [zircon_scene/src/serializer.rs](../../zircon_scene/src/serializer.rs) 与 scene module 子树直接从 `zircon_resource` 取 `ResourceLocator`
+  - [zircon_scene/src/serializer/mod.rs](../../zircon_scene/src/serializer/mod.rs) 与 scene module 子树直接从 `zircon_resource` 取 `ResourceLocator`
   - `zircon_editor` / `zircon_app` 当前也没有通过 `zircon_asset` 根去拿任何 raw resource 类型
 
 这符合一条新的高证据模式：
@@ -566,6 +570,23 @@ doc_type: module-detail
 
 这样 `zircon_manager` 继续保留 façade record/trait 本身，但不再重复拥有 asset/editor 展示语义，也不再错误持有输入子系统、资源子系统或 scene 子系统的专属协议模型。
 
+## 2026-04-19 Runtime/Editor Absorption Cleanup
+
+这轮补的是 owner cutover 后留下的“外部目录不干净”问题，而不是继续往上叠功能。
+
+- `zircon_runtime/src/asset/tests/editor/manager.rs`、`zircon_runtime/src/scene/tests/component_structure.rs`、`zircon_runtime/src/ui/tests/asset.rs` 已切到 absorbed subtree 的真实根路径，边界测试不再继续引用旧的 `src/editor/manager`、`src/components`、`src/template/asset/compiler`
+- `zircon_runtime/src/ui/mod.rs` 的 runtime UI host re-export 文本已重新对齐，`runtime_ui_host_surface_is_absorbed_into_runtime_ui_surface` 重新回到绿色
+- `zircon_runtime/src/graphics/**` owner tree 已恢复到 runtime 目录，`graphics_module_host_is_absorbed_into_runtime_graphics_surface` 与 `graphics_runtime_host_no_longer_owns_legacy_preview_or_render_service_wiring` 重新转绿
+- 针对工作树的代码级扫描已经看不到新的 `zircon_asset::`、`zircon_scene::`、`zircon_ui::` 实际消费点；这些旧 owner 名称现在主要只剩在历史文档，而不是编译链路
+- `cargo test -p zircon_runtime --lib --offline` 当前结果是 `175 passed / 6 failed`，剩余 6 个失败全部集中在 animation binary asset 的 bincode 解析链，不属于这轮 Runtime/Editor 吸收边界
+- `cargo test -p zircon_editor --lib --offline` 当前结果是 `596 passed / 0 failed`，证明 editor 侧已经稳定消费 absorbed runtime asset/scene/ui surface
+
+仍然明确未完成的 blocker 是 graphics public owner cutover：
+
+- `zircon_app/src/entry/builtin_modules.rs` 仍从 `zircon_graphics::GraphicsModule` 取 owner type
+- `zircon_graphics/src/lib.rs` 仍通过 graphics-side helper path 暴露 `GraphicsModule`
+- 这不是单纯的导出写法问题，而是当前 `zircon_graphics` core 仍直接依赖 absorbed runtime asset/ui/scene types；在这条依赖方向没有继续拆开前，不能把 graphics public owner 线硬切回 `zircon_runtime` crate root 而不引入新循环
+
 ## Remaining Tasks
 
 当前已经从候选里划掉的批次包括：
@@ -580,11 +601,12 @@ doc_type: module-detail
 
 继续往下做时，当前剩余 TODO tasks 是：
 
-1. `RenderingBackendInfo` 目前已有充分 keep 证据；后续只需在 `RenderingManager` façade 真正删除或出现第二实现时再重开审计。
-2. 继续细分 `zircon_ui` watchlist；当前已经先把 legacy template compat 链收回 `zircon_ui::template::*`，下一步若要再升级，先要证明 `UiTemplateDocument` / `UiTemplateLoader` / `UiLegacyTemplateAdapter` 已经脱离 `zircon_ui` 自己的 validator/instance/surface runtime。
-3. 持续扫 live `docs/` 中对旧 asset/scene owner 的残留描述；当前仓库没有 `docs/source/` 目录，因此文档清扫目标以总览型文档为准。
-4. `zircon_asset` 根级 raw-resource foreign re-export、project flatten 与 watch flatten 已完成，`zircon_runtime::{asset,ui}` 也已经回到 namespace-first surface；在 binding / event_ui 这两簇收口闭环后，下一批更合理的非热区候选转向 `zircon_ui` 其它仍高扇出的 root surface，以及 repo 内仍假定 runtime world 会生成 editor overlay 的残留测试/文档。
-5. 在不碰 `zircon_editor` / `zircon_graphics` 热区的前提下，继续找新的“证据充分”候选；除这条 root-surface 泄漏外，本轮还没有发现新的高证据错包。
+1. 继续拆开 `zircon_graphics -> zircon_runtime` 的 asset/ui/scene 直接依赖，完成 graphics public owner cutover，让 `GraphicsModule` 真正从 graphics root 回到 `zircon_runtime::graphics`。
+2. `RenderingBackendInfo` 目前已有充分 keep 证据；后续只需在 `RenderingManager` façade 真正删除或出现第二实现时再重开审计。
+3. 继续细分 `zircon_ui` watchlist；当前已经先把 legacy template compat 链收回 `zircon_ui::template::*`，下一步若要再升级，先要证明 `UiTemplateDocument` / `UiTemplateLoader` / `UiLegacyTemplateAdapter` 已经脱离 `zircon_ui` 自己的 validator/instance/surface runtime。
+4. 持续扫 live `docs/` 中对旧 asset/scene owner 的残留描述；当前仓库没有 `docs/source/` 目录，因此文档清扫目标以总览型文档为准。
+5. `zircon_asset` 根级 raw-resource foreign re-export、project flatten 与 watch flatten 已完成，`zircon_runtime::{asset,ui}` 也已经回到 namespace-first surface；在 binding / event_ui 这两簇收口闭环后，下一批更合理的非热区候选转向 `zircon_ui` 其它仍高扇出的 root surface，以及 repo 内仍假定 runtime world 会生成 editor overlay 的残留测试/文档。
+6. 在不碰 `zircon_editor` / `zircon_graphics` 热区的前提下，继续找新的“证据充分”候选；除这条 root-surface 泄漏外，本轮还没有发现新的高证据错包。
 
 ## Validation
 
@@ -633,6 +655,9 @@ doc_type: module-detail
 - `cargo test -p zircon_ui --locked --offline --target-dir target/codex-shared-b legacy_template_compat_api_moves_under_template_namespace -- --nocapture`
 - `cargo test -p zircon_runtime --locked --offline --target-dir target/codex-shared-b runtime_asset_surface_keeps_project_and_watch_under_namespaces -- --nocapture`
 - `cargo test -p zircon_runtime --locked --offline --target-dir target/codex-shared-b runtime_ui_surface_keeps_template_and_layout_specialists_under_namespaces -- --nocapture`
+- `git grep -n "zircon_asset::\|zircon_scene::\|zircon_ui::\|zircon_runtime/crates/zircon_" -- ':(exclude)zircon_asset' ':(exclude)zircon_scene' ':(exclude)zircon_ui'`
+- `cargo test -p zircon_runtime --lib --offline`
+- `cargo test -p zircon_editor --lib --offline`
 - `cargo test -p zircon_asset --locked --offline --target-dir target/codex-shared-b -- --nocapture`
 - `cargo test -p zircon_ui --locked --offline --target-dir target/codex-shared-b -- --nocapture`
 - `cargo test -p zircon_scene --locked --offline --target-dir target/codex-shared-b -- --nocapture`

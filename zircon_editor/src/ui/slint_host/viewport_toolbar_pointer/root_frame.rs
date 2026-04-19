@@ -1,4 +1,4 @@
-use zircon_ui::UiFrame;
+use zircon_runtime::ui::layout::UiFrame;
 
 use super::viewport_toolbar_pointer_layout::ViewportToolbarPointerLayout;
 

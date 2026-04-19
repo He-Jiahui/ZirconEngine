@@ -1,9 +1,9 @@
 use std::fs;
 use std::path::PathBuf;
 
-use zircon_asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
-use zircon_scene::world::SceneProjectError;
-use zircon_scene::Scene;
+use zircon_runtime::asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
+use zircon_runtime::scene::world::SceneProjectError;
+use zircon_runtime::scene::Scene;
 
 use super::constants::DEFAULT_SCENE_URI;
 use super::editor_project_document::EditorProjectDocument;

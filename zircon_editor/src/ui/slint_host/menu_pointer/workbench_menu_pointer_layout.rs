@@ -1,4 +1,4 @@
-use zircon_ui::UiFrame;
+use zircon_runtime::ui::layout::UiFrame;
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct WorkbenchMenuPointerLayout {

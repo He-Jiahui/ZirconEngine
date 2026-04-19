@@ -7,8 +7,8 @@ use crate::ui::slint_host::viewport_toolbar_pointer::{
     ViewportToolbarPointerRoute,
 };
 use crate::{EditorEvent, EditorViewportEvent};
-use zircon_framework::render::DisplayMode;
-use zircon_ui::{UiPoint, UiSize};
+use crate::scene::viewport::DisplayMode;
+use zircon_runtime::ui::{layout::UiPoint, layout::UiSize};
 
 #[test]
 fn shared_viewport_toolbar_pointer_bridge_routes_controls_from_shared_hit_test() {

@@ -5,7 +5,7 @@ use crate::{
     EditorError, EditorManager, UiAssetEditorMode, UiAssetEditorPanePresentation,
     UiAssetEditorReflectionModel, UiAssetEditorRoute, UiAssetEditorSession,
 };
-use zircon_ui::template::UiAssetLoader;
+use zircon_runtime::ui::template::UiAssetLoader;
 
 use super::{preview_size_for_preset, UiAssetWorkspaceEntry};
 
@@ -138,4 +138,3 @@ impl EditorManager {
         self.restore_ui_asset_editor_instance(&instance)
     }
 }
-

@@ -5,11 +5,11 @@ use crate::ui::{
     EditorTemplateRegistry, EditorUiBinding, EditorUiControlService,
 };
 use thiserror::Error;
-use zircon_ui::template::{
+use zircon_runtime::ui::template::{
     UiAssetError, UiAssetLoader, UiTemplateBuildError, UiTemplateError, UiTemplateLoader,
     UiTemplateSurfaceBuilder,
 };
-use zircon_ui::{UiAssetDocument, UiSurface, event_ui::UiTreeId};
+use zircon_runtime::ui::{event_ui::UiTreeId, surface::UiSurface, template::UiAssetDocument};
 
 use crate::ui::template_runtime::{
     SlintUiHostAdapter, SlintUiHostModel, SlintUiHostProjection, SlintUiProjection,

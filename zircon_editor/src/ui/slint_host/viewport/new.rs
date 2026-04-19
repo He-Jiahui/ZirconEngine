@@ -1,5 +1,5 @@
-use zircon_core::{CoreError, CoreHandle};
-use zircon_manager::resolve_render_framework;
+use zircon_runtime::core::{CoreError, CoreHandle};
+use zircon_runtime::core::manager::resolve_render_framework;
 
 use super::slint_viewport_controller::SlintViewportController;
 

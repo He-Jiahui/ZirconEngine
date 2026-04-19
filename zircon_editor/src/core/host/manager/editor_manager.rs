@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 use std::sync::Mutex;
 
-use zircon_core::CoreHandle;
+use zircon_runtime::core::CoreHandle;
 
 use crate::layout::LayoutManager;
 use crate::view::ViewRegistry;

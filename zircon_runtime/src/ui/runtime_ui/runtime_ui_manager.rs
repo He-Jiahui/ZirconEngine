@@ -1,14 +1,13 @@
-use zircon_framework::render::{
+use crate::ui::template::{UiAssetLoader, UiDocumentCompiler, UiTemplateSurfaceBuilder};
+use crate::ui::{event_ui::UiTreeId, layout::UiSize, surface::UiSurface};
+use crate::core::framework::render::{
     FallbackSkyboxKind, PreviewEnvironmentExtract, RenderFrameExtract, RenderOverlayExtract,
     RenderSceneGeometryExtract, RenderSceneSnapshot, RenderWorldSnapshotHandle,
     ViewportCameraSnapshot,
 };
-use zircon_math::UVec2;
-use zircon_ui::template::{UiAssetLoader, UiDocumentCompiler, UiTemplateSurfaceBuilder};
-use zircon_ui::{UiSize, UiSurface, event_ui::UiTreeId};
+use crate::core::math::UVec2;
 
-use zircon_graphics::EditorOrRuntimeFrame;
-
+use super::public_frame::PublicRuntimeFrame;
 use super::runtime_ui_fixture::RuntimeUiFixture;
 use super::runtime_ui_manager_error::RuntimeUiManagerError;
 
@@ -53,13 +52,16 @@ impl RuntimeUiManager {
         &self.surface
     }
 
-    pub fn build_frame(&self) -> EditorOrRuntimeFrame {
+    pub fn build_frame(&self) -> PublicRuntimeFrame {
         let extract = RenderFrameExtract::from_snapshot(
             RenderWorldSnapshotHandle::new(0),
             empty_scene_snapshot(self.viewport_size),
         );
-        EditorOrRuntimeFrame::from_extract(extract, self.viewport_size)
-            .with_ui(Some(self.surface.render_extract.clone()))
+        PublicRuntimeFrame {
+            extract,
+            viewport_size: self.viewport_size,
+            ui: Some(self.surface.render_extract.clone()),
+        }
     }
 
     pub fn active_fixture(&self) -> Option<RuntimeUiFixture> {
@@ -82,7 +84,7 @@ fn empty_scene_snapshot(viewport_size: UVec2) -> RenderSceneSnapshot {
             lighting_enabled: false,
             skybox_enabled: false,
             fallback_skybox: FallbackSkyboxKind::None,
-            clear_color: zircon_math::Vec4::new(0.02, 0.02, 0.03, 1.0),
+            clear_color: crate::core::math::Vec4::new(0.02, 0.02, 0.03, 1.0),
         },
     }
 }

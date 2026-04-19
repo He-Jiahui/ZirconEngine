@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use zircon_ui::UiAssetKind;
+use zircon_runtime::ui::template::UiAssetKind;
 
 use crate::ActivityWindowDescriptor;
 

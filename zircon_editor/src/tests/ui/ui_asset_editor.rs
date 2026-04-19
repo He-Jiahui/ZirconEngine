@@ -9,9 +9,9 @@ use crate::{
     UI_ASSET_EDITOR_BOOTSTRAP_WIDGET_SECTION_CARD_REFERENCE,
     UI_ASSET_EDITOR_BOOTSTRAP_WIDGET_TOOLBAR_REFERENCE,
 };
-use zircon_ui::template::UiDocumentCompiler;
-use zircon_ui::{UiAssetKind, UiSize, template::UiAssetLoader};
-use zircon_ui::template::UiNodeDefinitionKind;
+use zircon_runtime::ui::template::UiDocumentCompiler;
+use zircon_runtime::ui::template::UiNodeDefinitionKind;
+use zircon_runtime::ui::{layout::UiSize, template::UiAssetKind, template::UiAssetLoader};
 
 const UI_ASSET_EDITOR_BOOTSTRAP_LAYOUT_TOML: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -888,4 +888,3 @@ fn ui_asset_editor_runtime_quest_log_dialog_asset_opens_as_shared_runtime_previe
         .iter()
         .any(|item| item.label == "QuestLogDialogRoot"));
 }
-

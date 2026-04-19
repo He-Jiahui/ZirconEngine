@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
 
-use zircon_ui::{
-    dispatch::UiPointerDispatcher, event_ui::UiNodeId, event_ui::UiNodePath, UiFrame,
-    UiInputPolicy, UiSurface, UiTreeNode,
+use zircon_runtime::ui::{
+    dispatch::UiPointerDispatcher, event_ui::UiNodeId, event_ui::UiNodePath, layout::UiFrame,
+    surface::UiSurface, tree::UiInputPolicy, tree::UiTreeNode,
 };
 
 use super::base_state::base_state;

@@ -1,8 +1,8 @@
-use zircon_ui::{
+use zircon_runtime::ui::{
     dispatch::{UiPointerDispatchEffect, UiPointerDispatcher},
     event_ui::UiNodeId,
     event_ui::UiStateFlags,
-    UiPointerEventKind,
+    surface::UiPointerEventKind,
 };
 
 pub(super) const ROOT_NODE_ID: UiNodeId = UiNodeId::new(1);

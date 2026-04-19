@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use crate::ui::EditorUiBinding;
 use thiserror::Error;
-use zircon_ui::binding::UiEventKind;
+use zircon_runtime::ui::binding::UiEventKind;
 
 use crate::ui::slint_host::callback_dispatch::constants::BUILTIN_PANE_SURFACE_DOCUMENT_ID;
 use crate::ui::template_runtime::{EditorUiHostRuntimeError, SlintUiHostProjection};

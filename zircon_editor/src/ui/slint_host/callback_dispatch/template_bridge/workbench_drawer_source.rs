@@ -1,8 +1,9 @@
 use std::collections::BTreeMap;
 
 use thiserror::Error;
-use zircon_ui::tree::UiTreeError;
-use zircon_ui::{AxisConstraint, StretchMode, UiFrame, UiSize, UiSurface};
+use zircon_runtime::ui::layout::{AxisConstraint, StretchMode};
+use zircon_runtime::ui::tree::UiTreeError;
+use zircon_runtime::ui::{layout::UiFrame, layout::UiSize, surface::UiSurface};
 
 use crate::ui::slint_host::callback_dispatch::constants::BUILTIN_WORKBENCH_DRAWER_SOURCE_DOCUMENT_ID;
 use crate::ui::template_runtime::{EditorUiHostRuntime, EditorUiHostRuntimeError};
@@ -334,7 +335,7 @@ fn surface_control_frame(surface: &UiSurface, control_id: &str) -> Option<UiFram
 fn surface_control_node_id(
     surface: &UiSurface,
     control_id: &str,
-) -> Option<zircon_ui::event_ui::UiNodeId> {
+) -> Option<zircon_runtime::ui::event_ui::UiNodeId> {
     surface.tree.nodes.values().find_map(|node| {
         node.template_metadata
             .as_ref()

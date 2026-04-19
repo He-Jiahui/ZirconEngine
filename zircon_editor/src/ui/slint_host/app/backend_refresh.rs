@@ -1,6 +1,7 @@
-use zircon_asset::editor::{EditorAssetChange, EditorAssetChangeKind};
-use zircon_asset::watch::AssetChange;
-use zircon_resource::ResourceEvent;
+use zircon_runtime::asset::watch::AssetChange;
+use zircon_runtime::core::resource::ResourceEvent;
+
+use crate::core::host::asset_editor::{EditorAssetChange, EditorAssetChangeKind};
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(crate) struct AssetBackendRefreshPlan {

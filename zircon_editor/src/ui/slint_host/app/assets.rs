@@ -7,6 +7,11 @@ impl SlintEditorHost {
         while let Ok(change) = self.asset_change_events.try_recv() {
             changes.push(change);
         }
+        if !changes.is_empty() {
+            self.editor_asset_server
+                .refresh_from_runtime_project()
+                .map_err(|error| error.to_string())?;
+        }
         let mut editor_changes = Vec::new();
         while let Ok(change) = self.editor_asset_change_events.try_recv() {
             editor_changes.push(change);
@@ -127,6 +132,7 @@ impl SlintEditorHost {
     }
 
     pub(super) fn sync_asset_workspace(&mut self) {
+        let _ = self.editor_asset_server.refresh_from_runtime_project();
         self.sync_asset_catalog();
         self.sync_asset_resources();
         self.refresh_selected_asset_details();

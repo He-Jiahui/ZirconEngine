@@ -273,7 +273,10 @@ fn builtin_floating_window_source_template_bridge_recomputes_surface_backed_fram
     );
 }
 
-fn surface_control_frame(surface: &zircon_ui::UiSurface, control_id: &str) -> Option<UiFrame> {
+fn surface_control_frame(
+    surface: &zircon_runtime::ui::surface::UiSurface,
+    control_id: &str,
+) -> Option<UiFrame> {
     surface.tree.nodes.values().find_map(|node| {
         node.template_metadata
             .as_ref()

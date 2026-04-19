@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
-use zircon_math::Vec2;
-use zircon_ui::{event_ui::UiNodeId, UiPoint};
+use zircon_runtime::core::math::Vec2;
+use zircon_runtime::ui::{event_ui::UiNodeId, layout::UiPoint};
 
 use crate::scene::viewport::pointer::{
     precision::{CandidateScore, PrecisionCandidate},

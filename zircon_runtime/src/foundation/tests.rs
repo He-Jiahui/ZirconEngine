@@ -2,8 +2,8 @@ use std::sync::{Mutex, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde_json::json;
-use zircon_core::CoreRuntime;
-use zircon_manager::{
+use crate::core::CoreRuntime;
+use crate::core::manager::{
     resolve_config_manager, ManagerResolver, CONFIG_MANAGER_NAME, EVENT_MANAGER_NAME,
 };
 
@@ -71,7 +71,7 @@ fn config_manager_persists_values_to_disk() {
         .unwrap();
     let second_config = second_runtime
         .handle()
-        .resolve_manager::<zircon_manager::ConfigManagerHandle>(CONFIG_MANAGER_NAME)
+        .resolve_manager::<crate::core::manager::ConfigManagerHandle>(CONFIG_MANAGER_NAME)
         .unwrap()
         .shared();
 

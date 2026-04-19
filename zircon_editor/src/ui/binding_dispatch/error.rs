@@ -4,6 +4,8 @@ use thiserror::Error;
 pub enum EditorBindingDispatchError {
     #[error("unsupported editor binding payload")]
     UnsupportedPayload,
+    #[error("invalid animation track path {0}")]
+    InvalidAnimationTrackPath(String),
     #[error("invalid subject path {0}")]
     InvalidSubjectPath(String),
     #[error("unsupported inspector field {0}")]

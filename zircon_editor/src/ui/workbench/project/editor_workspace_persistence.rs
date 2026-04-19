@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::Path;
 
-use zircon_scene::world::SceneProjectError;
+use zircon_runtime::scene::world::SceneProjectError;
 
 use super::constants::EDITOR_PROJECT_FORMAT_VERSION;
 use super::editor_workspace_document::EditorWorkspaceDocument;

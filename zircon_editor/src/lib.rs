@@ -4,10 +4,10 @@ mod core;
 mod scene;
 mod ui;
 
-use zircon_module::{EngineModule, ModuleDescriptor};
+use zircon_runtime::engine_module::{EngineModule, ModuleDescriptor};
 
 pub(crate) use core::editing::{command, history, intent, paths};
-pub(crate) use core::host::{manager, module};
+pub(crate) use core::host::module;
 pub(crate) use ui::workbench::{autolayout, layout, project, snapshot, view};
 
 pub use core::editing::intent::EditorIntent;
@@ -29,12 +29,22 @@ pub use core::editor_event::{
     EditorEventRuntime, EditorEventSequence, EditorEventSource, EditorEventTransient,
     EditorEventUndoPolicy, EditorInspectorEvent, EditorTransientUiState, EditorViewportEvent,
 };
+pub use core::host::asset_editor::{
+    resolve_editor_asset_manager, AssetCatalogRecord, DefaultEditorAssetManager,
+    EditorAssetCatalogRecord, EditorAssetCatalogSnapshotRecord, EditorAssetChange,
+    EditorAssetChangeKind, EditorAssetChangeRecord, EditorAssetDetailsRecord,
+    EditorAssetFolderRecord, EditorAssetManager, EditorAssetManagerHandle,
+    EditorAssetReferenceRecord, PreviewArtifactKey, PreviewCache, PreviewScheduler, ReferenceGraph,
+};
 pub use core::host::manager::{EditorError, EditorManager, NativeWindowHostState};
 pub use core::host::module::{
-    module_descriptor, EditorHostDriver, EDITOR_HOST_DRIVER_NAME, EDITOR_MANAGER_NAME,
-    EDITOR_MODULE_NAME,
+    module_descriptor, EditorHostDriver, EDITOR_ASSET_MANAGER_NAME, EDITOR_HOST_DRIVER_NAME,
+    EDITOR_MANAGER_NAME, EDITOR_MODULE_NAME,
 };
-pub use scene::viewport::{GizmoAxis, ViewportFeedback, ViewportInput, ViewportState};
+pub use scene::viewport::{
+    GizmoAxis, GridMode, SceneViewportSettings, SceneViewportTool, TransformSpace,
+    ViewOrientation, ViewportFeedback, ViewportInput, ViewportState,
+};
 pub use ui::binding_dispatch::{
     apply_draft_binding, apply_inspector_binding, apply_selection_binding, apply_viewport_binding,
     dispatch_animation_binding, dispatch_asset_binding, dispatch_docking_binding,
@@ -114,8 +124,8 @@ pub use ui::{
     UI_ASSET_EDITOR_BOOTSTRAP_WIDGET_SECTION_CARD_REFERENCE,
     UI_ASSET_EDITOR_BOOTSTRAP_WIDGET_TOOLBAR_REFERENCE, UI_ASSET_EDITOR_WINDOW_ID,
 };
-pub use zircon_ui::binding::UiBindingValue;
-pub use zircon_ui::UiSize;
+pub use zircon_runtime::ui::binding::UiBindingValue;
+pub use zircon_runtime::ui::layout::UiSize;
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct EditorModule;

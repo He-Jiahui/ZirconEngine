@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use toml::Value;
-use zircon_ui::{UiAssetDocument, template::UiStyleDeclarationBlock};
+use zircon_runtime::ui::template::{UiAssetDocument, UiStyleDeclarationBlock};
 
 use super::theme_authoring::can_promote_local_theme_to_external_style_asset;
 

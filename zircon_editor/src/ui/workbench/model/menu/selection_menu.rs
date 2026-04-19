@@ -1,4 +1,4 @@
-use zircon_scene::components::NodeKind;
+use zircon_runtime::scene::components::NodeKind;
 
 use crate::snapshot::EditorChromeSnapshot;
 use crate::ui::workbench::event::menu_action_binding;

@@ -7,10 +7,11 @@ use crate::{
     UiAssetEditorSourceCursorSnapshot, UiAssetEditorUndoExternalEffects, UiAssetEditorUndoStack,
     UiDesignerSelectionModel,
 };
-use zircon_ui::template::{UiActionRef, UiBindingRef};
-use zircon_ui::{
-    binding::UiEventKind, template::UiAssetLoader, template::UiNodeDefinitionKind, UiAssetKind,
-    UiSize, template::UiStyleDeclarationBlock, template::UiStyleRule, template::UiStyleSheet,
+use zircon_runtime::ui::template::{UiActionRef, UiBindingRef};
+use zircon_runtime::ui::{
+    binding::UiEventKind, layout::UiSize, template::UiAssetKind, template::UiAssetLoader,
+    template::UiNodeDefinitionKind, template::UiStyleDeclarationBlock, template::UiStyleRule,
+    template::UiStyleSheet,
 };
 
 const LOCAL_THEME_LAYOUT_ASSET_TOML: &str = r##"
@@ -287,8 +288,8 @@ fn ui_asset_editor_session_undo_and_redo_replay_style_rule_reorders() {
     let reordered = session
         .canonical_source()
         .expect("canonical reordered source");
-    let reordered_document = UiAssetLoader::load_toml_str(&reordered)
-        .expect("parse reordered stylesheet source");
+    let reordered_document =
+        UiAssetLoader::load_toml_str(&reordered).expect("parse reordered stylesheet source");
     assert_eq!(
         reordered_document.stylesheets[0]
             .rules
@@ -516,6 +517,56 @@ fn ui_asset_editor_session_theme_promotion_emits_executable_theme_replay_command
             },
         ]
     );
+}
+
+#[test]
+fn ui_asset_editor_session_widget_promotion_emits_executable_widget_import_replay_commands() {
+    let route = UiAssetEditorRoute::new(
+        "res://ui/tests/replay_widget_promote.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Design,
+    );
+    let mut session = UiAssetEditorSession::from_source(
+        route,
+        WIDGET_PROMOTE_REPLAY_LAYOUT_ASSET_TOML,
+        UiSize::new(960.0, 540.0),
+    )
+    .expect("replay widget promote session");
+
+    session
+        .select_hierarchy_index(1)
+        .expect("select button node");
+    assert!(session
+        .extract_selected_node_to_component()
+        .expect("extract button into component"));
+    assert!(session
+        .promote_selected_component_to_external_widget(
+            "res://ui/widgets/save_button.ui.toml",
+            "SaveButton",
+            "ui.widgets.save_button",
+        )
+        .expect("promote selected component")
+        .is_some());
+
+    let undo_commands = session.next_undo_document_replay_commands();
+    assert!(undo_commands.iter().any(|command| {
+        matches!(
+            command,
+            UiAssetEditorDocumentReplayCommand::RemoveWidgetImport { index, reference }
+                if *index == 0
+                    && reference == "res://ui/widgets/save_button.ui.toml#SaveButton"
+        )
+    }));
+
+    let redo_commands = session.next_redo_document_replay_commands();
+    assert!(redo_commands.iter().any(|command| {
+        matches!(
+            command,
+            UiAssetEditorDocumentReplayCommand::InsertWidgetImport { index, reference }
+                if *index == 0
+                    && reference == "res://ui/widgets/save_button.ui.toml#SaveButton"
+        )
+    }));
 }
 
 #[test]

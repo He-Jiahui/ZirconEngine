@@ -1,6 +1,6 @@
 use crate::{UiAssetEditorMode, UiAssetEditorRoute, UiAssetEditorSession};
 use toml::Value;
-use zircon_ui::{UiAssetKind, UiSize, template::UiAssetLoader};
+use zircon_runtime::ui::{layout::UiSize, template::UiAssetKind, template::UiAssetLoader};
 
 const THEME_SUMMARY_LAYOUT_ASSET_TOML: &str = r##"
 [asset]
@@ -840,6 +840,45 @@ fn ui_asset_editor_session_projects_theme_compare_items_for_selected_imported_so
 }
 
 #[test]
+fn ui_asset_editor_session_projects_selected_theme_compare_detail_items() {
+    let route = UiAssetEditorRoute::new(
+        "res://ui/tests/theme-summary.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Design,
+    );
+    let imported_theme =
+        UiAssetLoader::load_toml_str(IMPORTED_THEME_COLLISION_ASSET_TOML).expect("imported theme");
+    let mut session = UiAssetEditorSession::from_source(
+        route,
+        THEME_SUMMARY_LAYOUT_ASSET_TOML,
+        UiSize::new(960.0, 540.0),
+    )
+    .expect("theme summary session");
+
+    session
+        .register_style_import("res://ui/theme/shared_theme.ui.toml", imported_theme)
+        .expect("register imported theme");
+    assert!(session
+        .select_theme_source(1)
+        .expect("select imported theme source"));
+
+    let compare_index = session
+        .pane_presentation()
+        .theme_compare_items
+        .iter()
+        .position(|item| item.contains("shadowed by local • token • accent"))
+        .expect("compare token item");
+    let pane = session.pane_presentation();
+    let selected = pane
+        .theme_compare_items
+        .get(compare_index)
+        .expect("selected compare item");
+    assert!(selected.contains("shadowed by local"));
+    assert!(selected.contains("token"));
+    assert!(selected.contains("accent"));
+}
+
+#[test]
 fn ui_asset_editor_session_applies_theme_rule_helper_items_for_selected_imports() {
     let route = UiAssetEditorRoute::new(
         "res://ui/tests/theme-summary.ui.toml",
@@ -1322,4 +1361,3 @@ fn ui_asset_editor_session_theme_compare_uses_active_imported_cascade_values() {
             .to_string(),
     ));
 }
-

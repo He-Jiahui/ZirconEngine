@@ -3,8 +3,8 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use zircon_core::CoreRuntime;
-use zircon_math::UVec2;
+use zircon_runtime::core::CoreRuntime;
+use zircon_runtime::core::math::UVec2;
 use zircon_runtime::foundation::{
     module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
 };

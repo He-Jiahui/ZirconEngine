@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use crate::ui::UiDesignerSelectionModel;
-use zircon_ui::{UiAssetDocument, UiAssetKind};
+use zircon_runtime::ui::template::{UiAssetDocument, UiAssetKind};
 
 use super::hierarchy_projection::{parent_for_node, selection_for_node};
 use super::UiAssetEditorSessionError;

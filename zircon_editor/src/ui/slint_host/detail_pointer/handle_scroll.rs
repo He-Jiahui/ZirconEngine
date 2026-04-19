@@ -1,4 +1,4 @@
-use zircon_ui::{dispatch::UiPointerEvent, UiPoint, UiPointerEventKind};
+use zircon_runtime::ui::{dispatch::UiPointerEvent, layout::UiPoint, surface::UiPointerEventKind};
 
 use super::bridge_constants::VIEWPORT_NODE_ID;
 use super::map_route::map_route;

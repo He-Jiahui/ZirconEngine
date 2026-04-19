@@ -1,12 +1,12 @@
 use super::*;
+use crate::core::host::asset_editor::resolve_editor_asset_manager;
 use crate::ui::slint_host::floating_window_projection::{
     build_floating_window_projection_bundle_with_shared_source,
     resolve_floating_window_projection_base_outer_frame,
     resolve_floating_window_projection_shared_source, FloatingWindowProjectionBundle,
 };
 use crate::ui::slint_host::root_shell_projection::resolve_root_viewport_content_frame;
-use zircon_asset::editor::resolve_editor_asset_manager;
-use zircon_asset::pipeline::manager::resolve_asset_manager;
+use zircon_runtime::asset::pipeline::manager::resolve_asset_manager;
 
 impl SlintEditorHost {
     pub(super) fn new(core: CoreHandle, ui: UiHostWindow) -> Result<Self, Box<dyn Error>> {
@@ -36,9 +36,10 @@ impl SlintEditorHost {
         let startup_session = editor_manager.resolve_startup_session()?;
         let state =
             resolve_startup_state(editor_manager.as_ref(), &startup_session, viewport_size)?;
+        let bootstrap = ui.get_host_window_bootstrap();
         let shell_size = ShellSizePx::new(
-            ui.get_shell_width_px().max(1.0),
-            ui.get_shell_height_px().max(1.0),
+            bootstrap.shell_frame.width.max(1.0),
+            bootstrap.shell_frame.height.max(1.0),
         );
         let template_bridge = callback_dispatch::BuiltinWorkbenchTemplateBridge::new(UiSize::new(
             shell_size.width,
@@ -166,9 +167,10 @@ impl SlintEditorHost {
     }
 
     pub(super) fn sync_shell_size(&mut self) {
+        let bootstrap = self.ui.get_host_window_bootstrap();
         let next = ShellSizePx::new(
-            self.ui.get_shell_width_px().max(1.0),
-            self.ui.get_shell_height_px().max(1.0),
+            bootstrap.shell_frame.width.max(1.0),
+            bootstrap.shell_frame.height.max(1.0),
         );
         if (next.width - self.shell_size.width).abs() <= 0.5
             && (next.height - self.shell_size.height).abs() <= 0.5

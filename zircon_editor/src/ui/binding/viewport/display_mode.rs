@@ -1,4 +1,4 @@
-use zircon_framework::render::DisplayMode;
+use crate::scene::viewport::DisplayMode;
 
 pub(crate) fn symbol(mode: DisplayMode) -> &'static str {
     match mode {

@@ -1,5 +1,5 @@
 use crate::ui::{EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind};
-use zircon_scene::NodeId;
+use zircon_runtime::scene::NodeId;
 
 use crate::{dispatch_workbench_binding, LayoutCommand};
 

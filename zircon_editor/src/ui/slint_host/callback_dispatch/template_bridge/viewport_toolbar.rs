@@ -2,8 +2,8 @@ use std::collections::BTreeMap;
 
 use crate::ui::EditorUiBinding;
 use thiserror::Error;
-use zircon_ui::tree::UiTreeError;
-use zircon_ui::{binding::UiEventKind, UiFrame, UiSize};
+use zircon_runtime::ui::tree::UiTreeError;
+use zircon_runtime::ui::{binding::UiEventKind, layout::UiFrame, layout::UiSize};
 
 use crate::ui::slint_host::callback_dispatch::constants::BUILTIN_VIEWPORT_TOOLBAR_DOCUMENT_ID;
 use crate::ui::template_runtime::{

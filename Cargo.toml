@@ -1,31 +1,11 @@
 [workspace]
 members = [
-    "zircon_framework",
     "zircon_app",
     "zircon_runtime",
-    "zircon_core",
-    "zircon_math",
-    "zircon_resource",
-    "zircon_rhi",
-    "zircon_rhi_wgpu",
-    "zircon_render_graph",
-    "zircon_graphics",
-    "zircon_physics",
-    "zircon_sound",
-    "zircon_texture",
-    "zircon_ui",
-    "zircon_asset",
-    "zircon_scene",
     "zircon_editor",
-    "zircon_manager",
-    "zircon_module",
-    "zircon_animation",
-    "zircon_net",
-    "zircon_navigation",
-    "zircon_particles",
 ]
 resolver = "2"
-default-members = ["zircon_core", "zircon_math"]
+default-members = ["zircon_runtime"]
 
 [workspace.package]
 version = "0.1.0"
@@ -34,6 +14,7 @@ license = "MIT OR Apache-2.0"
 
 # 仅多 crate 共用的版本；其余依赖写在各 zircon_* 的 Cargo.toml 中。
 [workspace.dependencies]
+bincode = "1.3.3"
 bytemuck = { version = "1.25.0", features = ["derive"] }
 crossbeam-channel = "0.5.15"
 glam = { version = "0.32.1", features = ["serde"] }

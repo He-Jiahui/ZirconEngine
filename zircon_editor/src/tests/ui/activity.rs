@@ -1,7 +1,7 @@
 use crate::{
     ui_asset_editor_window_descriptor, UiAssetEditorMode, UiAssetEditorRoute, UiAssetPreviewPreset,
 };
-use zircon_ui::{event_ui::UiNodePath, UiAssetKind};
+use zircon_runtime::ui::{event_ui::UiNodePath, template::UiAssetKind};
 
 #[test]
 fn ui_asset_editor_window_descriptor_matches_shared_asset_editor_contract() {

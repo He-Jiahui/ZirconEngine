@@ -1,50 +1,69 @@
 #[test]
-fn editor_asset_boundary_lives_in_asset_crate() {
+fn editor_asset_boundary_lives_in_editor_crate() {
     let app_source = include_str!("../../ui/slint_host/app.rs");
     let host_lifecycle_source = include_str!("../../ui/slint_host/app/host_lifecycle.rs");
     let project_access_source = include_str!("../../core/host/manager/project_access.rs");
     let asset_workspace_source = include_str!("../../core/editing/asset_workspace.rs");
     let accessors_source = include_str!("../../core/editor_event/runtime/accessors.rs");
+    let runtime_asset_root_source = include_str!("../../../../zircon_runtime/src/asset/mod.rs");
+    let runtime_asset_module_source =
+        include_str!("../../../../zircon_runtime/src/asset/module.rs");
 
     assert!(
-        app_source.contains("use zircon_asset::editor::{"),
-        "editor app should import editor asset API from zircon_asset::editor"
+        app_source.contains("use crate::core::host::asset_editor::{"),
+        "editor app should import editor asset API from crate::core::host::asset_editor"
     );
     assert!(
         app_source.contains("EditorAssetChange"),
-        "editor app should use editor asset change DTO from zircon_asset::editor"
+        "editor app should use editor-owned asset change DTOs"
     );
     assert!(
-        app_source.contains("use zircon_asset::pipeline::manager::AssetManager;"),
-        "editor app should use runtime asset manager via zircon_asset::pipeline::manager"
+        app_source.contains("use zircon_runtime::asset::pipeline::manager::AssetManager;"),
+        "editor app should use runtime asset manager via zircon_runtime::asset::pipeline::manager"
     );
     assert!(
-        asset_workspace_source.contains("use zircon_asset::editor::{"),
-        "asset workspace state should import editor asset catalog types from zircon_asset::editor"
+        asset_workspace_source.contains("use crate::core::host::asset_editor::{"),
+        "asset workspace state should import editor asset catalog types from crate::core::host::asset_editor"
     );
     assert!(
-        accessors_source.contains("use zircon_asset::editor::{"),
-        "editor event runtime accessors should import editor asset snapshot types from zircon_asset::editor"
+        accessors_source.contains("use crate::core::host::asset_editor::{"),
+        "editor event runtime accessors should import editor asset snapshot types from crate::core::host::asset_editor"
     );
     assert!(
-        host_lifecycle_source.contains("use zircon_asset::editor::resolve_editor_asset_manager;"),
-        "editor host lifecycle should resolve the editor asset server through zircon_asset::editor"
+        host_lifecycle_source.contains("use crate::core::host::asset_editor::resolve_editor_asset_manager;"),
+        "editor host lifecycle should resolve the editor asset server through crate::core::host::asset_editor"
     );
     assert!(
-        host_lifecycle_source.contains("use zircon_asset::pipeline::manager::resolve_asset_manager;"),
-        "editor host lifecycle should resolve the generic asset server through zircon_asset::pipeline::manager"
+        host_lifecycle_source.contains("use zircon_runtime::asset::pipeline::manager::resolve_asset_manager;"),
+        "editor host lifecycle should resolve the generic asset server through zircon_runtime::asset::pipeline::manager"
     );
     assert!(
         !host_lifecycle_source.contains("resolver.editor_asset()?"),
-        "editor host lifecycle should not resolve editor asset API from zircon_manager::ManagerResolver"
+        "editor host lifecycle should not resolve editor asset API from zircon_runtime::core::manager::ManagerResolver"
     );
     assert!(
         !host_lifecycle_source.contains("resolver.asset()?"),
-        "editor host lifecycle should not resolve generic asset API from zircon_manager::ManagerResolver"
+        "editor host lifecycle should not resolve generic asset API from zircon_runtime::core::manager::ManagerResolver"
     );
     assert!(
-        project_access_source.contains("use zircon_asset::pipeline::manager::{resolve_asset_manager, AssetManager};"),
-        "editor manager project access should resolve the asset server through zircon_asset::pipeline::manager"
+        project_access_source.contains("use zircon_runtime::asset::pipeline::manager::{resolve_asset_manager, AssetManager};"),
+        "editor manager project access should resolve the asset server through zircon_runtime::asset::pipeline::manager"
+    );
+    assert!(
+        !runtime_asset_root_source.contains("pub mod editor;"),
+        "runtime asset root should no longer expose an editor namespace"
+    );
+    assert!(
+        !runtime_asset_root_source.contains("pub(crate) use editor::{"),
+        "runtime asset root should no longer re-export editor asset implementation"
+    );
+    assert!(
+        !runtime_asset_module_source.contains("DefaultEditorAssetManager"),
+        "runtime asset module should not register editor asset managers"
+    );
+    assert!(
+        !runtime_asset_module_source.contains("EditorAssetManagerHandle"),
+        "runtime asset module should not expose editor asset handles"
     );
 }
 
@@ -61,7 +80,7 @@ fn editor_host_uses_asset_owned_asset_change_stream() {
     ] {
         assert!(
             !source.contains("AssetChangeRecord"),
-            "editor host sources should not depend on zircon_manager::AssetChangeRecord after asset boundary cleanup"
+            "editor host sources should not depend on zircon_runtime::core::manager::AssetChangeRecord after asset boundary cleanup"
         );
     }
 
@@ -72,7 +91,7 @@ fn editor_host_uses_asset_owned_asset_change_stream() {
     ] {
         assert!(
             source.contains("AssetChange"),
-            "editor host sources should use zircon_asset::watch::AssetChange after asset boundary cleanup"
+            "editor host sources should use zircon_runtime::asset::watch::AssetChange after asset boundary cleanup"
         );
     }
 }
@@ -105,7 +124,7 @@ fn editor_asset_workspace_uses_canonical_resource_kind() {
     ] {
         assert!(
             !source.contains("AssetRecordKind"),
-            "editor asset workspace sources should use zircon_resource::ResourceKind instead of zircon_manager::AssetRecordKind"
+            "editor asset workspace sources should use zircon_runtime::core::resource::ResourceKind instead of zircon_runtime::core::manager::AssetRecordKind"
         );
     }
 }
@@ -117,7 +136,7 @@ fn editor_asset_workspace_uses_canonical_resource_state() {
         include_str!("../../core/editing/state/editor_state_asset_workspace.rs");
     let accessors_source = include_str!("../../core/editor_event/runtime/accessors.rs");
     let resource_access_source = include_str!("../../core/host/resource_access.rs");
-    let asset_surface_source = include_str!("../../ui/slint_host/ui/asset_surface_presentation.rs");
+    let asset_surface_source = include_str!("../../ui/layouts/views/asset_surface_presentation.rs");
     let asset_item_snapshot_source =
         include_str!("../../ui/workbench/snapshot/asset/asset_item_snapshot.rs");
     let asset_selection_snapshot_source =
@@ -134,7 +153,7 @@ fn editor_asset_workspace_uses_canonical_resource_state() {
     ] {
         assert!(
             !source.contains("ResourceStateRecord"),
-            "editor asset workspace sources should use zircon_resource::ResourceState instead of zircon_manager::ResourceStateRecord"
+            "editor asset workspace sources should use zircon_runtime::core::resource::ResourceState instead of zircon_runtime::core::manager::ResourceStateRecord"
         );
     }
 
@@ -146,7 +165,7 @@ fn editor_asset_workspace_uses_canonical_resource_state() {
     ] {
         assert!(
             source.contains("ResourceState"),
-            "editor asset workspace sources should refer to zircon_resource::ResourceState"
+            "editor asset workspace sources should refer to zircon_runtime::core::resource::ResourceState"
         );
     }
 }
@@ -169,14 +188,14 @@ fn editor_asset_workspace_uses_canonical_resource_record() {
     ] {
         assert!(
             !source.contains("ResourceStatusRecord"),
-            "editor sources should not depend on zircon_manager::ResourceStatusRecord after canonical ResourceRecord migration"
+            "editor sources should not depend on zircon_runtime::core::manager::ResourceStatusRecord after canonical ResourceRecord migration"
         );
     }
 
     for source in [asset_workspace_source, resource_access_test_source] {
         assert!(
             source.contains("ResourceRecord"),
-            "editor sources should use zircon_resource::ResourceRecord after canonical ResourceRecord migration"
+            "editor sources should use zircon_runtime::core::resource::ResourceRecord after canonical ResourceRecord migration"
         );
     }
 }
@@ -196,11 +215,11 @@ fn editor_host_uses_canonical_resource_event() {
     ] {
         assert!(
             !source.contains("ResourceChangeRecord"),
-            "editor host sources should not depend on zircon_manager::ResourceChangeRecord after canonical ResourceEvent migration"
+            "editor host sources should not depend on zircon_runtime::core::manager::ResourceChangeRecord after canonical ResourceEvent migration"
         );
         assert!(
             !source.contains("ResourceChangeKind"),
-            "editor host sources should not depend on zircon_manager::ResourceChangeKind after canonical ResourceEvent migration"
+            "editor host sources should not depend on zircon_runtime::core::manager::ResourceChangeKind after canonical ResourceEvent migration"
         );
     }
 
@@ -211,7 +230,7 @@ fn editor_host_uses_canonical_resource_event() {
     ] {
         assert!(
             source.contains("ResourceEvent"),
-            "editor host sources should use zircon_resource::ResourceEvent after canonical ResourceEvent migration"
+            "editor host sources should use zircon_runtime::core::resource::ResourceEvent after canonical ResourceEvent migration"
         );
     }
 }

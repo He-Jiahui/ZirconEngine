@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use zircon_ui::{dispatch::UiPointerDispatcher, event_ui::UiNodeId, UiSurface};
+use zircon_runtime::ui::{dispatch::UiPointerDispatcher, event_ui::UiNodeId, surface::UiSurface};
 
 use super::workbench_activity_rail_pointer_layout::WorkbenchActivityRailPointerLayout;
 use super::workbench_activity_rail_pointer_target::WorkbenchActivityRailPointerTarget;

@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use zircon_ui::{dispatch::UiPointerDispatcher, UiSurface};
+use zircon_runtime::ui::{dispatch::UiPointerDispatcher, surface::UiSurface};
 
 use super::hierarchy_pointer_layout::HierarchyPointerLayout;
 use super::hierarchy_pointer_state::HierarchyPointerState;
@@ -12,5 +12,5 @@ pub(crate) struct HierarchyPointerBridge {
     pub(super) state: HierarchyPointerState,
     pub(super) surface: UiSurface,
     pub(super) dispatcher: UiPointerDispatcher,
-    pub(super) targets: BTreeMap<zircon_ui::event_ui::UiNodeId, HierarchyPointerTarget>,
+    pub(super) targets: BTreeMap<zircon_runtime::ui::event_ui::UiNodeId, HierarchyPointerTarget>,
 }

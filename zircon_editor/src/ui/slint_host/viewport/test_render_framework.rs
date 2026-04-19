@@ -1,4 +1,4 @@
-use zircon_framework::render::{
+use crate::scene::viewport::{
     CapturedFrame, RenderFrameExtract, RenderFramework, RenderFrameworkError, RenderPipelineHandle,
     RenderQualityProfile, RenderStats, RenderViewportDescriptor, RenderViewportHandle,
 };

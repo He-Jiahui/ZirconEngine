@@ -16,7 +16,7 @@ use crate::{
     ShellSizePx, TabStackLayout, ViewDescriptorId, ViewHost, ViewInstance, ViewInstanceId,
     WorkbenchChromeMetrics, WorkbenchViewModel,
 };
-use zircon_ui::{binding::UiEventKind, UiFrame, UiPoint, UiSize};
+use zircon_runtime::ui::{binding::UiEventKind, layout::UiFrame, layout::UiPoint, layout::UiSize};
 
 #[test]
 fn shared_document_tab_pointer_bridge_routes_main_and_floating_tab_targets() {

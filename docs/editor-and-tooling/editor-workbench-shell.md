@@ -5,7 +5,7 @@ related_code:
   - zircon_ui/src/layout/geometry.rs
   - zircon_ui/src/tree/node/mod.rs
   - zircon_ui/src/tree/hit_test.rs
-  - zircon_ui/src/surface.rs
+  - zircon_ui/src/surface/mod.rs
   - zircon_editor/src/ui/workbench/autolayout/mod.rs
   - zircon_editor/src/scene/viewport/controller/mod.rs
   - zircon_editor/src/scene/viewport/pointer/mod.rs
@@ -58,7 +58,7 @@ related_code:
   - zircon_editor/src/ui/slint_host/tab_drag.rs
   - zircon_editor/src/ui/slint_host/ui.rs
   - zircon_editor/src/ui/slint_host/ui/apply_presentation.rs
-  - zircon_editor/src/ui/slint_host/ui/floating_windows.rs
+  - zircon_editor/src/ui/layouts/windows/workbench_host_window/floating_windows.rs
   - zircon_editor/src/ui/slint_host/ui/tests.rs
   - zircon_editor/ui/templates/floating_window_source.toml
 - zircon_editor/src/ui/slint_host/viewport/mod.rs
@@ -86,6 +86,8 @@ related_code:
   - zircon_editor/ui/workbench.slint
   - zircon_editor/ui/workbench/host_scaffold.slint
   - zircon_editor/ui/workbench/host_surface.slint
+  - zircon_editor/ui/workbench/host_surface_contract.slint
+  - zircon_editor/ui/workbench/host_scene.slint
   - zircon_editor/ui/workbench/host_components.slint
   - zircon_editor/ui/workbench/host_context.slint
   - zircon_editor/ui/workbench/pane_surface.slint
@@ -122,7 +124,7 @@ implementation_files:
   - zircon_ui/src/layout/geometry.rs
   - zircon_ui/src/tree/node/mod.rs
   - zircon_ui/src/tree/hit_test.rs
-  - zircon_ui/src/surface.rs
+  - zircon_ui/src/surface/mod.rs
   - zircon_editor/src/core/editing/state/mod.rs
   - zircon_editor/src/ui/workbench/autolayout/mod.rs
   - zircon_editor/src/ui/slint_host/app.rs
@@ -168,7 +170,7 @@ implementation_files:
   - zircon_editor/src/ui/slint_host/tab_drag.rs
   - zircon_editor/src/ui/slint_host/ui.rs
   - zircon_editor/src/ui/slint_host/ui/apply_presentation.rs
-  - zircon_editor/src/ui/slint_host/ui/floating_windows.rs
+  - zircon_editor/src/ui/layouts/windows/workbench_host_window/floating_windows.rs
 - zircon_editor/src/ui/slint_host/viewport/mod.rs
   - zircon_editor/src/ui/workbench/project/mod.rs
   - zircon_editor/src/ui/workbench/startup/mod.rs
@@ -176,6 +178,8 @@ implementation_files:
   - zircon_editor/ui/workbench.slint
   - zircon_editor/ui/workbench/host_scaffold.slint
   - zircon_editor/ui/workbench/host_surface.slint
+  - zircon_editor/ui/workbench/host_surface_contract.slint
+  - zircon_editor/ui/workbench/host_scene.slint
   - zircon_editor/ui/workbench/host_components.slint
   - zircon_editor/ui/workbench/host_context.slint
   - zircon_editor/ui/workbench/pane_surface.slint
@@ -262,6 +266,7 @@ tests:
   - zircon_editor/src/tests/host/slint_builtin_assets.rs
   - zircon_editor/src/tests/editing/ui_asset.rs
   - zircon_editor/tests/workbench_slint_shell.rs
+  - zircon_editor/tests/workbench_window_resize.rs
   - zircon_editor/src/ui/slint_host/ui.rs
   - zircon_editor/src/ui/slint_host/ui/tests.rs
   - zircon_editor/src/tests/host/slint_callback_dispatch/template_bridge.rs
@@ -290,6 +295,7 @@ tests:
   - cargo test -p zircon_editor --test native_window_hosts --locked -- --nocapture
   - cargo test -p zircon_editor --lib slint_window --locked -- --nocapture
   - cargo check -p zircon_graphics --lib --locked
+  - cargo check -p zircon_graphics --lib --offline
   - cargo check -p zircon_editor --lib --locked
   - cargo check -p zircon_editor --lib --offline
   - cargo test -p zircon_asset -p zircon_manager --locked
@@ -306,6 +312,7 @@ tests:
   - cargo test -p zircon_editor --lib slint_drawer_header_pointer --offline -- --nocapture
   - cargo test -p zircon_editor --lib slint_ --offline -- --nocapture
   - cargo test -p zircon_editor --test workbench_slint_shell --offline -- --nocapture
+  - cargo test -p zircon_editor --test workbench_window_resize --offline -- --nocapture
   - cargo test -p zircon_editor --lib uses_region_frame_fallback_in_real_host --locked -- --nocapture
   - cargo test -p zircon_editor --lib --locked ui_asset_editor_
   - cargo test -p zircon_editor --lib --locked editor_manager_runs_ui_asset_
@@ -332,14 +339,15 @@ doc_type: module-detail
 最新一轮 cutover 已经把 root Slint 文件切成真正的 bootstrap 边界：
 
 - [`workbench.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench.slint) 现在只导出通用 `UiHostWindow`，负责窗口属性、重新导出 [`WorkbenchHostContext`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_context.slint) 与 `PaneSurfaceHostContext` 两条 generic/global seam，并单点挂载 `WorkbenchHostScaffold`
-- [`host_scaffold.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_scaffold.slint) 这一轮又继续变薄：它现在基本只剩 root host property 承接、main/native mode switch，以及把两种窗口模式分别委托给高层 host surface wrapper
-- 新增的 [`host_surface.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_surface.slint) 承接了更高层的主壳组合：main workbench shell 与 native floating window shell 的高层 surface 现在都在这里统一编排，并直接对接 `WorkbenchHostContext` / `PaneSurfaceHostContext`
+- [`host_scaffold.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_scaffold.slint) 这一轮又继续变薄：它现在只剩 root host property 承接、grouped [`HostWindowBootstrapData`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_components.slint) 产出，以及把窗口 surface 整包委托给高层 wrapper
+- [`host_surface.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_surface.slint) 也继续压薄成真正的 orchestrator：它现在只负责接入 [`host_surface_contract.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_surface_contract.slint) 并在 main/native path 之间选用对应 surface wrapper
 - [`host_components.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_components.slint) 则继续保留较低层的 menu chrome、host page bar、document/side/bottom dock、status bar、splitter/resize layer、tab drag overlay，以及 floating-window chrome；这些原来散落在 root/scaffold 里的 host shell 块现在都进入独立 catalog
 - 最新这轮又把 root/scaffold/surface 之间原先散装透传的 shell chrome + layout geometry ABI 收成两个 grouped DTO：[`HostWindowShellData`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_components.slint) 和 [`HostWindowLayoutData`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_components.slint)
 - 再下一刀把 tab/pane/floating-window collection 也并进 [`HostWindowSurfaceData`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_components.slint)：[`host_scaffold.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_scaffold.slint) 不再把 `host_tabs/left_tabs/document_pane/floating_windows` 逐项 fan-out 给 child surface，而是整包下传 `host_surface_data`
 - 最新这一刀继续把 host interaction/layout seam 再收成 grouped DTO：[`HostMenuStateData`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_components.slint)、[`HostDragStateData`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_components.slint) 和 [`HostTabDragOverlayData`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_components.slint) 取代了原来散落在 [`WorkbenchHostContext`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_context.slint) 与 `host_surface.slint` 里的 menu hover/open/scroll、drag session、drop overlay scalar property
 - [`HostMenuChrome`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_components.slint)、[`HostSideDockSurface`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_components.slint)、[`HostDocumentDockSurface`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_components.slint)、[`HostBottomDockSurface`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_components.slint)、[`HostFloatingWindowLayer`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_components.slint) 与 [`HostTabDragOverlay`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_components.slint) 现在直接消费这些 grouped contract；`host_surface.slint` 不再逐项 fan-out `open_menu_index/drag_tab_id/drag_pointer_x/left_drop_width/...`
 - 最新继续把高层 shell chrome / status / splitter capture 的 surface ABI 也压成 grouped DTO：[`HostMenuChromeData`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_components.slint)、[`HostPageChromeData`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_components.slint)、[`HostStatusBarData`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_components.slint)、[`HostResizeStateData`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_components.slint) 和 [`HostResizeLayerData`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_components.slint) 现在把 menu chrome、host page、status bar、resize overlay 这几块从一串 scalar/property alias 收成 surface-local contract
+- 最新这一刀又把 `host_surface.slint` 自己继续压薄了一层：新增 [`host_scene.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_scene.slint) 统一承接 menu/page/document/side/bottom/status/resize/drag/floating 这些主壳 scene 组合；`host_surface.slint` 现在只保留 grouped DTO 组装与 main/native variant 选择，不再直接内联 leaf host catalog
 - [`WorkbenchHostContext`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_context.slint) 现已同时持有 `menu_state`、`drag_state`、`resize_state` 三个 grouped interaction state；[`HostResizeLayer`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_components.slint) 不再在 `host_surface.slint` 本地保留 `resize_active/resize_group` 两个散装状态
 - [`app/pointer_layout.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/app/pointer_layout.rs) 现在一次性写入 `WorkbenchHostContext.menu_state`，[`app/workspace_docking.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/app/workspace_docking.rs) 则统一读写 `WorkbenchHostContext.drag_state`；drag-target 更新和 drop dispatch 不再依赖散装 `set_active_drag_target_group()/get_drag_tab_id()` 这一组标量 ABI
 - 顺手清掉了一条完全未消费的主壳残留 payload：`breadcrumbs` 已从 root/scaffold/presentation/host component DTO 退出，不再占着 bootstrap ABI
@@ -367,8 +375,10 @@ generic host boundary 最近几刀继续把主壳分层成 `host_scaffold.slint 
 - 同一条线上，`host_surface.slint` 现在也不再直接给 menu/page/status/resize layer 逐项喂 `top_bar_height/project_path/status_secondary/left_splitter_frame/resize_group` 这类细碎 ABI，而是统一组装 `menu_chrome_data/page_chrome_data/status_bar_data/resize_layer_data`
 - 最新这轮继续把 `side/document/bottom/floating` 四块 host surface 的细碎布局输入收成 [`HostSideDockSurfaceData`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_components.slint)、[`HostDocumentDockSurfaceData`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_components.slint)、[`HostBottomDockSurfaceData`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_components.slint) 和 [`HostFloatingWindowLayerData`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_components.slint)；[`host_surface.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_surface.slint) 现在只组装 `left/right/document/bottom/floating` 五份 surface DTO，再交给 [`HostSideDockSurface`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_components.slint)、[`HostDocumentDockSurface`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_components.slint)、[`HostBottomDockSurface`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_components.slint) 和 [`HostFloatingWindowLayer`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_components.slint)
 - 这一刀继续往 `host_surface.slint` 内部压 root-level orchestration 常量和 native floating scalar ABI：固定 outer/top-bar/header 尺寸现在先收成 [`HostWorkbenchSurfaceMetricsData`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_components.slint)，left/right/bottom/document 的派生布局与 tab origin 收成 [`HostWorkbenchSurfaceOrchestrationData`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_components.slint)，native floating child shell 则统一吃 [`HostNativeFloatingWindowSurfaceData`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_components.slint)
-- [`HostNativeWorkbenchWindowSurface`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_surface.slint) 现在只组装 `native_floating_surface_data` 并把它整包传给 [`HostNativeFloatingWindowSurface`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_components.slint)；native wrapper 不再直接把 `floating_windows/native_floating_window_id/native_window_bounds/header_height` 四个 scalar/collection 再展开一次
-- 这意味着 `host_scaffold.slint` 现在更接近纯 mode switch，而 `host_surface.slint` 成为显式的 host surface orchestration 层；低层 visual/input catalog 仍由 `host_components.slint` 持有
+- 最新又把这整块 derived surface state 从 [`host_surface.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_surface.slint) 下推进新增的 [`host_surface_contract.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_surface_contract.slint)：`surface_metrics`、`surface_orchestration_data`、`menu/page/status/resize/drag` DTO、`left/right/document/bottom/floating` surface DTO、`workbench_scene_data` 和 `native_floating_surface_data` 现在都在 contract 层统一产出
+- [`host_surface.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_surface.slint) 本体因此进一步变成薄 orchestrator：它只保留 [`HostWorkbenchWindowSurfaceHost`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_surface.slint) 这层 wrapper、接入 [`HostWorkbenchWindowSurfaceContract`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_surface_contract.slint)，然后在 main/native path 之间选择 [`HostWorkbenchWindowSurface`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_surface.slint) 或 [`HostNativeWorkbenchWindowSurface`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_surface.slint)
+- [`HostWorkbenchWindowSurface`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_surface.slint) 现在只消费 [`HostWorkbenchWindowSceneData`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_scene.slint)，[`HostNativeWorkbenchWindowSurface`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_surface.slint) 只消费 [`HostNativeFloatingWindowSurfaceData`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_components.slint)；wrapper 已不再直接把 `floating_windows/native_floating_window_id/native_window_bounds/header_height` 这类 scalar/collection 再展开一次
+- [`host_scaffold.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_scaffold.slint) 也不再保留 main/native 分支和 `shell_width_px/viewport_width` 这组标量输出，而是只产出 grouped [`HostWindowBootstrapData`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_components.slint) 并整包挂接 [`HostWorkbenchWindowSurfaceHost`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_surface.slint)
 - [`workbench_slint_shell.rs`](/E:/Git/ZirconEngine/zircon_editor/tests/workbench_slint_shell.rs) 也同步把这条边界锁成源码守卫：scaffold 不能再把 `DockTabButton` host page loop、`status_bar_zone`、`left/right/bottom splitter`、`resize_active` touch capture 或原始 drag overlay block 拉回本体
 - 同一份 [`workbench_slint_shell.rs`](/E:/Git/ZirconEngine/zircon_editor/tests/workbench_slint_shell.rs) 现已继续要求 `host_surface.slint` 以 `surface_data/layer_data` 绑定上述 grouped DTO，防止后续把 `region_frame/tabs/pane/header_height/floating_windows` 这类逐字段 fan-out 拉回 orchestration 层
 - 同一份源码守卫现在也额外要求 `host_surface.slint` 只能通过 `surface_metrics/surface_orchestration_data/native_floating_surface_data` 这三份 grouped payload 组装 orchestration/native path，防止把 `outer_margin/top_bar_height/left_stack_width/native_window_bounds` 这类 root scalar ABI 再引回去
@@ -376,14 +386,14 @@ generic host boundary 最近几刀继续把主壳分层成 `host_scaffold.slint 
 当前这条 slice 的直接结果是：
 
 - `workbench.slint` 已经进一步逼近纯 root bootstrap，不再充当 pane-state setter/getter 中转层
-- `host_scaffold.slint` 已经进一步收成窗口模式切换层
-- `host_surface.slint` 开始承接高层 host surface orchestration
+- `host_scaffold.slint` 已经进一步收成 bootstrap DTO 层
+- `host_surface.slint` 现在只保留薄 wrapper/orchestrator，真正的派生 surface state 已经下推到 `host_surface_contract.slint`
 - `host_components.slint` 更明确地成为较低层 generic host catalog
-- root/scaffold/surface 之间的主壳状态与几何输入已经收成 grouped host DTO，而不是几十个分散 setter/getter
+- root/scaffold/surface 之间的主壳状态、窗口 bootstrap 与派生 surface state 已经收成 grouped host DTO，而不是几十个分散 setter/getter
 
 但 cutover 还没完成；剩下的主要不是这些显式壳块，而是：
 
-- `host_surface.slint` 仍持有较大的 workbench-specific orchestration / derived layout block
+- `host_scaffold.slint` / `host_surface.slint` 之上仍有一层 workbench-specific window ABI 命名和 wrapper 层次，generic host surface 还没完全抽象成更统一的 surface bundle
 - 更大面的 business `PaneSurface` 映射和 pane kind 分支仍未完全退出宿主层
 - [`panes.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/panes.slint) 里的 `UiAssetEditorPane` 内部 draft/property schema 仍需要继续 grouped DTO 收口
 
@@ -1188,7 +1198,9 @@ HTML 原型使用 fixture-shaped data 渲染 builtin preset，并提供 `Project
 当前运行时宿主已经切到 Slint：
 
 - `zircon_editor/src/ui/slint_host/app.rs` 负责启动 shell、绑定菜单/标签/选择/视口事件
-- `zircon_editor/src/ui/slint_host/ui.rs` 把 `WorkbenchViewModel` 投影成 Slint 属性模型
+- `zircon_editor/src/ui/slint_host/ui.rs` 现在只保留 Slint adapter 边界；`apply_presentation.rs` 负责把 grouped host DTO 写回 generated globals/setters
+- `zircon_editor/src/ui/layouts/windows/workbench_host_window/` 负责把 `WorkbenchViewModel + chrome snapshot` 组合成窗口级 presentation
+- `zircon_editor/src/ui/widgets/common/tabs.rs` 负责 tab strip 的可复用控件投影
 - `zircon_editor/src/ui/slint_host/viewport/mod.rs` 负责把共享 `wgpu` 纹理导入到 Slint `Image`
 - `zircon_editor/ui/workbench.slint` 与 `zircon_editor/ui/workbench/chrome.slint` 提供 JetBrains-like shell chrome 与 pane surface
 
@@ -1215,7 +1227,11 @@ asset workspace 在 host 内的刷新边界也已经收紧：
 
 - `cargo test -p zircon_editor --test workbench_slint_shell --offline -- --nocapture`
 - `cargo test -p zircon_editor --lib slint_window --offline -- --nocapture`
+- `cargo test -p zircon_editor --lib slint_tab_drag --offline -- --nocapture`
+- `cargo test -p zircon_editor --lib slint_drawer_resize --offline -- --nocapture`
 - `cargo test -p zircon_editor --lib apply_presentation_ --offline -- --nocapture`
+- `cargo test -p zircon_editor --test workbench_window_resize --offline -- --nocapture`
+- `cargo check -p zircon_graphics --lib --offline`
 - `cargo test -p zircon_editor --lib --locked ui_asset_editor_`
 - `cargo test -p zircon_editor --lib --locked editor_manager_runs_ui_asset_`
 - `cargo test -p zircon_editor --lib --locked editor_manager_restores_ui_asset_tree_selection_across_undo_and_redo`
@@ -1250,7 +1266,7 @@ asset workspace 在 host 内的刷新边界也已经收紧：
 - native-mode [`workbench.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench.slint) 现在把 floating document tab activate/close、header focus click 走 `WorkbenchHostContext`，而 `PaneSurface` 的 pointer/scroll/control/ui-asset 回调继续走 `PaneSurfaceHostContext`；child shell 不再自己声明这组 workbench-specific root callback ABI
 - 这一条 native-mode seam 最近又继续 generic 化：[`host_surface.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_surface.slint) 现在先组装 `native_floating_surface_data`，再交给 [`HostNativeFloatingWindowSurface`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_components.slint)；tab strip/header touch/pane body 不再从 wrapper 直接消费 `native_window_bounds/header_height/floating_windows` 这些 scalar ABI
   - [`slint_window.rs`](/E:/Git/ZirconEngine/zircon_editor/src/tests/host/slint_window.rs) 现在额外锁住 presenter creation hook 和 native-mode callback forwarding 契约
-  - [`floating_window_projection.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/floating_window_projection.rs) 现在统一导出 floating-window `outer/tab/content` frame，并且会优先吃 non-zero native host bounds；[`ui/floating_windows.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/ui/floating_windows.rs)、[`document_tab_pointer/build_workbench_document_tab_pointer_layout.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/document_tab_pointer/build_workbench_document_tab_pointer_layout.rs)、[`shell_pointer/drag_surface.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/shell_pointer/drag_surface.rs)、[`app/native_windows.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/app/native_windows.rs)、[`app/viewport.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/app/viewport.rs) 和 [`app/helpers.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/app/helpers.rs) 不再各自重新决定“geometry 还是 host bounds”
+  - [`floating_window_projection.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/floating_window_projection.rs) 现在统一导出 floating-window `outer/tab/content` frame，并且会优先吃 non-zero native host bounds；[`floating_windows.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/layouts/windows/workbench_host_window/floating_windows.rs)、[`document_tab_pointer/build_workbench_document_tab_pointer_layout.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/document_tab_pointer/build_workbench_document_tab_pointer_layout.rs)、[`shell_pointer/drag_surface.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/shell_pointer/drag_surface.rs)、[`app/native_windows.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/app/native_windows.rs)、[`app/viewport.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/app/viewport.rs) 和 [`app/helpers.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/app/helpers.rs) 不再各自重新决定“geometry 还是 host bounds”
   - [`app/callback_wiring.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/app/callback_wiring.rs) 现在也会给 child-window 的 `hierarchy/asset tree/content/reference` move 回调加上 `with_callback_source_window(...)`，所以 hover/move 零尺寸 callback 终于能和 click/scroll 一样回收到 projected floating-window content frame
   - 这轮新增 focused regressions `floating_window_projection_prefers_host_bounds_when_present`、`shared_document_tab_pointer_layout_prefers_native_window_host_bounds_for_floating_strip` 和 `shared_shell_pointer_route_prefers_native_window_host_bounds_for_floating_attach_surface`，把 presenter target、floating tab strip、drag attach surface 三条 consumer 统一锁到同一份 host-bounds-aware projection
 - Slint pointer-driven left/right/bottom splitter resize
@@ -1298,7 +1314,7 @@ root shell 当前又减少了一层 visible-drawer 混合权威：
   - `FloatingWindowProjectionBundle`
   - `build_floating_window_projection_bundle(...)`
 - [`app/host_lifecycle.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/app/host_lifecycle.rs) 会在 root host 重算时一次性构建这份 bundle，并缓存到 `SlintEditorHost::floating_window_projection_bundle`
-- [`document_tab_pointer/build_workbench_document_tab_pointer_layout.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/document_tab_pointer/build_workbench_document_tab_pointer_layout.rs)、[`shell_pointer/drag_surface.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/shell_pointer/drag_surface.rs)、[`ui/floating_windows.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/ui/floating_windows.rs)、[`app/helpers.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/app/helpers.rs)、[`app/viewport.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/app/viewport.rs) 和 [`app/native_windows.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/app/native_windows.rs) 现在优先只吃这份 bundle；旧 helper 只保留 defensive fallback，不再是生产路径的第一真源
+- [`document_tab_pointer/build_workbench_document_tab_pointer_layout.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/document_tab_pointer/build_workbench_document_tab_pointer_layout.rs)、[`shell_pointer/drag_surface.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/shell_pointer/drag_surface.rs)、[`floating_windows.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/layouts/windows/workbench_host_window/floating_windows.rs)、[`app/helpers.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/app/helpers.rs)、[`app/viewport.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/app/viewport.rs) 和 [`app/native_windows.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/app/native_windows.rs) 现在优先只吃这份 bundle；旧 helper 只保留 defensive fallback，不再是生产路径的第一真源
 - real-host 回归 [`app/tests/floating_window_projection.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/app/tests/floating_window_projection.rs) 已经锁住 “detach child window 后 host recompute 确实缓存 bundle entry” 这条 seam，避免后续又退回 per-consumer stitching
 
 这一步的结果是：floating-window mixed-authority seam 已经从 “每个 consumer 自己合并 geometry / host bounds” 收窄成 “host 重算时统一产出 bundle，但 bundle 的 outer authority 仍来自 editor-owned layout geometry 与 native host bookkeeping”。下一条才是把这个 outer authority 再继续推进到更纯的 shared projection producer。

@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use zircon_asset::project::ProjectPaths;
+use zircon_runtime::asset::project::ProjectPaths;
 
 use super::new_project_draft::NewProjectDraft;
 

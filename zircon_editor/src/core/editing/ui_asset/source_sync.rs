@@ -1,5 +1,5 @@
 use crate::ui::UiDesignerSelectionModel;
-use zircon_ui::UiAssetDocument;
+use zircon_runtime::ui::template::UiAssetDocument;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(crate) struct UiAssetSourceSelectionSummary {

@@ -1,11 +1,11 @@
 use std::fs;
 use std::path::PathBuf;
 
-use zircon_asset::assets::{AlphaMode, MaterialAsset};
-use zircon_asset::importer::AssetImportError;
-use zircon_asset::AssetReference;
-use zircon_resource::ResourceLocator;
-use zircon_scene::world::SceneProjectError;
+use zircon_runtime::asset::assets::{AlphaMode, MaterialAsset};
+use zircon_runtime::asset::importer::AssetImportError;
+use zircon_runtime::asset::AssetReference;
+use zircon_runtime::core::resource::ResourceLocator;
+use zircon_runtime::scene::world::SceneProjectError;
 
 use super::constants::DEFAULT_SHADER_URI;
 

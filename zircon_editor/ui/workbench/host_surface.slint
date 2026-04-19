@@ -1,278 +1,28 @@
-import { Palette } from "chrome.slint";
-import { HostWindowShellData, HostWindowLayoutData, HostWindowSurfaceData, HostMenuChromeData, HostPageChromeData, HostStatusBarData, HostResizeLayerData, HostTabDragOverlayData, HostSideDockSurfaceData, HostDocumentDockSurfaceData, HostBottomDockSurfaceData, HostFloatingWindowLayerData, HostWorkbenchSurfaceMetricsData, HostWorkbenchSurfaceOrchestrationData, HostNativeFloatingWindowSurfaceData, HostMenuChrome, HostPageChrome, HostDocumentDockSurface, HostSideDockSurface, HostBottomDockSurface, HostStatusBar, HostResizeLayer, HostFloatingWindowLayer, HostNativeFloatingWindowSurface, HostTabDragOverlay } from "host_components.slint";
-import { PaneSurfaceHostContext } from "pane_surface.slint";
+import { HostWindowShellData, HostNativeFloatingWindowSurfaceData, HostNativeFloatingWindowSurface } from "host_components.slint";
+import { HostWorkbenchWindowSceneData, HostWorkbenchWindowScene } from "host_scene.slint";
+import { HostWorkbenchWindowSurfaceContract } from "host_surface_contract.slint";
 
 export component HostWorkbenchWindowSurface inherits Rectangle {
-    in property <HostWindowSurfaceData> host_surface_data;
-    in property <HostWindowShellData> host_shell: {
-        project_path: "",
-        status_secondary: "",
-        viewport_label: "",
-        drawers_visible: false,
-        left_expanded: false,
-        right_expanded: false,
-        bottom_expanded: false,
-        save_project_enabled: false,
-        undo_enabled: false,
-        redo_enabled: false,
-        preset_names: [],
-        active_preset_name: "",
-        shell_min_width_px: 0.0,
-        shell_min_height_px: 0.0,
-        native_floating_window_mode: false,
-        native_floating_window_id: "",
-        native_window_title: "Zircon Editor",
-        native_window_bounds: { x: 0.0, y: 0.0, width: 0.0, height: 0.0 },
-    };
-    in property <HostWindowLayoutData> host_layout: {
-        center_band_frame: { x: 0.0, y: 0.0, width: 0.0, height: 0.0 },
-        status_bar_frame: { x: 0.0, y: 0.0, width: 0.0, height: 0.0 },
-        left_region_frame: { x: 0.0, y: 0.0, width: 0.0, height: 0.0 },
-        document_region_frame: { x: 0.0, y: 0.0, width: 0.0, height: 0.0 },
-        right_region_frame: { x: 0.0, y: 0.0, width: 0.0, height: 0.0 },
-        bottom_region_frame: { x: 0.0, y: 0.0, width: 0.0, height: 0.0 },
-        left_splitter_frame: { x: 0.0, y: 0.0, width: 0.0, height: 0.0 },
-        right_splitter_frame: { x: 0.0, y: 0.0, width: 0.0, height: 0.0 },
-        bottom_splitter_frame: { x: 0.0, y: 0.0, width: 0.0, height: 0.0 },
-        viewport_content_frame: { x: 0.0, y: 0.0, width: 0.0, height: 0.0 },
-    };
-    property <string> resolved_preset_name: root.host_shell.active_preset_name != "" ? root.host_shell.active_preset_name : "rider";
-    palette := Palette {}
-    background: palette.shell_bg;
+    in property <HostWorkbenchWindowSceneData> scene_data;
 
-    property <HostWorkbenchSurfaceMetricsData> surface_metrics: {
-        outer_margin_px: 0.0,
-        rail_width_px: 34.0,
-        top_bar_height_px: 25.0,
-        host_bar_height_px: 24.0,
-        panel_header_height_px: 25.0,
-        document_header_height_px: 31.0,
-    };
-    property <HostWorkbenchSurfaceOrchestrationData> surface_orchestration_data: {
-        left_rail_width_px: root.host_layout.left_region_frame.width > 0.0 && root.host_surface_data.left_tabs.length > 0 ? root.surface_metrics.rail_width_px : 0.0,
-        right_rail_width_px: root.host_layout.right_region_frame.width > 0.0 && root.host_surface_data.right_tabs.length > 0 ? root.surface_metrics.rail_width_px : 0.0,
-        left_stack_width_px: root.host_layout.left_region_frame.width,
-        right_stack_width_px: root.host_layout.right_region_frame.width,
-        left_panel_width_px:
-            root.host_shell.left_expanded &&
-            root.host_layout.left_region_frame.width >
-                (root.host_layout.left_region_frame.width > 0.0 && root.host_surface_data.left_tabs.length > 0
-                    ? root.surface_metrics.rail_width_px
-                    : 0.0)
-                ? root.host_layout.left_region_frame.width -
-                    (root.host_layout.left_region_frame.width > 0.0 && root.host_surface_data.left_tabs.length > 0
-                        ? root.surface_metrics.rail_width_px
-                        : 0.0)
-                : 0.0,
-        right_panel_width_px:
-            root.host_shell.right_expanded &&
-            root.host_layout.right_region_frame.width >
-                (root.host_layout.right_region_frame.width > 0.0 && root.host_surface_data.right_tabs.length > 0
-                    ? root.surface_metrics.rail_width_px
-                    : 0.0)
-                ? root.host_layout.right_region_frame.width -
-                    (root.host_layout.right_region_frame.width > 0.0 && root.host_surface_data.right_tabs.length > 0
-                        ? root.surface_metrics.rail_width_px
-                        : 0.0)
-                : 0.0,
-        bottom_panel_height_px: root.host_layout.bottom_region_frame.height,
-        main_content_y_px: root.host_layout.center_band_frame.y,
-        document_zone_x_px: root.host_layout.document_region_frame.x,
-        right_stack_x_px: root.host_layout.right_region_frame.x,
-        bottom_panel_y_px: root.host_layout.bottom_region_frame.y,
-        left_tab_origin_x_px:
-            (root.host_layout.left_region_frame.width > 0.0 && root.host_surface_data.left_tabs.length > 0
-                ? root.surface_metrics.rail_width_px
-                : 0.0) +
-            (root.host_shell.left_expanded &&
-                root.host_layout.left_region_frame.width >
-                    (root.host_layout.left_region_frame.width > 0.0 && root.host_surface_data.left_tabs.length > 0
-                        ? root.surface_metrics.rail_width_px
-                        : 0.0)
-                ? 1.0
-                : 0.0) +
-            6.0,
-        left_tab_origin_y_px: root.host_layout.center_band_frame.y + 2.0,
-        document_tab_origin_x_px: root.host_layout.document_region_frame.x + 8.0,
-        document_tab_origin_y_px: root.host_layout.center_band_frame.y + 1.0,
-        right_tab_origin_x_px: root.host_layout.right_region_frame.x + 6.0,
-        right_tab_origin_y_px: root.host_layout.center_band_frame.y + 2.0,
-        bottom_tab_origin_x_px: 6.0,
-        bottom_tab_origin_y_px: root.host_layout.bottom_region_frame.y + 2.0,
-    };
-    property <HostMenuChromeData> menu_chrome_data: {
-        outer_margin_px: root.surface_metrics.outer_margin_px,
-        top_bar_height_px: root.surface_metrics.top_bar_height_px,
-        save_project_enabled: root.host_shell.save_project_enabled,
-        undo_enabled: root.host_shell.undo_enabled,
-        redo_enabled: root.host_shell.redo_enabled,
-        delete_enabled: PaneSurfaceHostContext.delete_enabled,
-        preset_names: root.host_shell.preset_names,
-        active_preset_name: root.host_shell.active_preset_name,
-        resolved_preset_name: root.resolved_preset_name,
-    };
-    property <HostPageChromeData> page_chrome_data: {
-        top_bar_height_px: root.surface_metrics.top_bar_height_px,
-        host_bar_height_px: root.surface_metrics.host_bar_height_px,
-        tabs: root.host_surface_data.host_tabs,
-        project_path: root.host_shell.project_path,
-    };
-    property <HostStatusBarData> status_bar_data: {
-        status_bar_frame: root.host_layout.status_bar_frame,
-        status_primary: PaneSurfaceHostContext.status_text,
-        status_secondary: root.host_shell.status_secondary,
-        viewport_label: root.host_shell.viewport_label,
-    };
-    property <HostResizeLayerData> resize_layer_data: {
-        left_splitter_frame: root.host_layout.left_splitter_frame,
-        right_splitter_frame: root.host_layout.right_splitter_frame,
-        bottom_splitter_frame: root.host_layout.bottom_splitter_frame,
-    };
-    property <HostTabDragOverlayData> drag_overlay_data: {
-        left_drop_enabled: root.host_shell.drawers_visible,
-        right_drop_enabled: root.host_shell.drawers_visible,
-        bottom_drop_enabled: root.host_shell.drawers_visible,
-        left_drop_width_px: max(root.surface_orchestration_data.left_stack_width_px, 92.0),
-        right_drop_width_px: max(root.surface_orchestration_data.right_stack_width_px, 92.0),
-        bottom_drop_height_px: max(root.surface_orchestration_data.bottom_panel_height_px, 92.0),
-        main_content_y_px: root.surface_orchestration_data.main_content_y_px,
-        main_content_height_px: root.host_layout.center_band_frame.height,
-        document_zone_x_px: root.surface_orchestration_data.document_zone_x_px,
-        document_zone_width_px: root.host_layout.document_region_frame.width,
-        bottom_drop_top_px: root.host_layout.status_bar_frame.y - max(root.surface_orchestration_data.bottom_panel_height_px, 92.0),
-        drag_overlay_bottom_px: root.host_layout.status_bar_frame.y,
-    };
-    property <HostSideDockSurfaceData> left_dock_data: {
-        region_frame: root.host_layout.left_region_frame,
-        surface_key: "left",
-        rail_before_panel: true,
-        tabs: root.host_surface_data.left_tabs,
-        pane: root.host_surface_data.left_pane,
-        rail_width_px: root.surface_orchestration_data.left_rail_width_px,
-        panel_width_px: root.surface_orchestration_data.left_panel_width_px,
-        panel_header_height_px: root.surface_metrics.panel_header_height_px,
-        tab_origin_x_px: root.surface_orchestration_data.left_tab_origin_x_px,
-        tab_origin_y_px: root.surface_orchestration_data.left_tab_origin_y_px,
-    };
-    property <HostDocumentDockSurfaceData> document_dock_data: {
-        region_frame: root.host_layout.document_region_frame,
-        surface_key: "document",
-        tabs: root.host_surface_data.document_tabs,
-        pane: root.host_surface_data.document_pane,
-        header_height_px: root.surface_metrics.document_header_height_px,
-        tab_origin_x_px: root.surface_orchestration_data.document_tab_origin_x_px,
-        tab_origin_y_px: root.surface_orchestration_data.document_tab_origin_y_px,
-    };
-    property <HostSideDockSurfaceData> right_dock_data: {
-        region_frame: root.host_layout.right_region_frame,
-        surface_key: "right",
-        rail_before_panel: false,
-        tabs: root.host_surface_data.right_tabs,
-        pane: root.host_surface_data.right_pane,
-        rail_width_px: root.surface_orchestration_data.right_rail_width_px,
-        panel_width_px: root.surface_orchestration_data.right_panel_width_px,
-        panel_header_height_px: root.surface_metrics.panel_header_height_px,
-        tab_origin_x_px: root.surface_orchestration_data.right_tab_origin_x_px,
-        tab_origin_y_px: root.surface_orchestration_data.right_tab_origin_y_px,
-    };
-    property <HostBottomDockSurfaceData> bottom_dock_data: {
-        region_frame: root.host_layout.bottom_region_frame,
-        surface_key: "bottom",
-        tabs: root.host_surface_data.bottom_tabs,
-        pane: root.host_surface_data.bottom_pane,
-        expanded: root.host_shell.bottom_expanded,
-        header_height_px: root.surface_metrics.panel_header_height_px,
-        tab_origin_x_px: root.surface_orchestration_data.bottom_tab_origin_x_px,
-        tab_origin_y_px: root.surface_orchestration_data.bottom_tab_origin_y_px,
-    };
-    property <HostFloatingWindowLayerData> floating_layer_data: {
-        floating_windows: root.host_surface_data.floating_windows,
-        header_height_px: root.surface_metrics.document_header_height_px,
-    };
-
-    host_menu := HostMenuChrome {
+    HostWorkbenchWindowScene {
         width: parent.width;
         height: parent.height;
-        menu_data: root.menu_chrome_data;
-    }
-
-    Rectangle {
-        x: root.surface_metrics.outer_margin_px * 1px;
-        y: root.surface_metrics.outer_margin_px * 1px;
-        width: parent.width - root.surface_metrics.outer_margin_px * 2px;
-        height: parent.height - root.surface_metrics.outer_margin_px * 2px;
-        background: palette.chrome_bg;
-        border-width: 0px;
-        border-color: palette.border;
-        border-radius: 0px;
-        clip: true;
-
-        HostPageChrome {
-            width: parent.width;
-            height: parent.height;
-            page_data: root.page_chrome_data;
-        }
-
-        Rectangle {
-            x: 0px;
-            y: root.host_layout.center_band_frame.y * 1px - 1px;
-            width: parent.width;
-            height: 1px;
-            background: palette.border;
-        }
-
-        main_content_zone := Rectangle {
-            x: root.host_layout.center_band_frame.x * 1px;
-            y: root.host_layout.center_band_frame.y * 1px;
-            width: root.host_layout.center_band_frame.width * 1px;
-            height: root.host_layout.center_band_frame.height * 1px;
-            background: palette.panel_bg;
-        }
-
-        if root.surface_orchestration_data.left_stack_width_px > 0.0: HostSideDockSurface {
-            surface_data: root.left_dock_data;
-        }
-
-        HostDocumentDockSurface {
-            surface_data: root.document_dock_data;
-        }
-
-        if root.surface_orchestration_data.right_stack_width_px > 0.0: HostSideDockSurface {
-            surface_data: root.right_dock_data;
-        }
-
-        if root.surface_orchestration_data.bottom_panel_height_px > 0.0: HostBottomDockSurface {
-            surface_data: root.bottom_dock_data;
-        }
-
-        HostStatusBar {
-            width: parent.width;
-            height: parent.height;
-            status_data: root.status_bar_data;
-        }
-    }
-
-    HostResizeLayer {
-        width: parent.width;
-        height: parent.height;
-        resize_data: root.resize_layer_data;
-    }
-
-    HostFloatingWindowLayer {
-        width: parent.width;
-        height: parent.height;
-        layer_data: root.floating_layer_data;
-    }
-
-    HostTabDragOverlay {
-        width: parent.width;
-        height: parent.height;
-        overlay_data: root.drag_overlay_data;
+        scene_data: root.scene_data;
     }
 }
 
 export component HostNativeWorkbenchWindowSurface inherits Rectangle {
-    in property <HostWindowSurfaceData> host_surface_data;
+    in property <HostNativeFloatingWindowSurfaceData> surface_data;
+
+    HostNativeFloatingWindowSurface {
+        width: parent.width;
+        height: parent.height;
+        surface_data: root.surface_data;
+    }
+}
+
+export component HostWorkbenchWindowSurfaceHost inherits Rectangle {
     in property <HostWindowShellData> host_shell: {
         project_path: "",
         status_secondary: "",
@@ -293,24 +43,23 @@ export component HostNativeWorkbenchWindowSurface inherits Rectangle {
         native_window_title: "Zircon Editor",
         native_window_bounds: { x: 0.0, y: 0.0, width: 0.0, height: 0.0 },
     };
-    property <HostWorkbenchSurfaceMetricsData> surface_metrics: {
-        outer_margin_px: 0.0,
-        rail_width_px: 34.0,
-        top_bar_height_px: 25.0,
-        host_bar_height_px: 24.0,
-        panel_header_height_px: 25.0,
-        document_header_height_px: 31.0,
-    };
-    property <HostNativeFloatingWindowSurfaceData> native_floating_surface_data: {
-        floating_windows: root.host_surface_data.floating_windows,
-        native_floating_window_id: root.host_shell.native_floating_window_id,
-        native_window_bounds: root.host_shell.native_window_bounds,
-        header_height_px: root.surface_metrics.document_header_height_px,
-    };
+    in property <HostWorkbenchWindowSceneData> workbench_scene_data;
+    in property <HostNativeFloatingWindowSurfaceData> native_floating_surface_data;
 
-    HostNativeFloatingWindowSurface {
+    contract := HostWorkbenchWindowSurfaceContract {
+        workbench_scene_data: root.workbench_scene_data;
+        native_floating_surface_data: root.native_floating_surface_data;
+    }
+
+    if !root.host_shell.native_floating_window_mode: HostWorkbenchWindowSurface {
         width: parent.width;
         height: parent.height;
-        surface_data: root.native_floating_surface_data;
+        scene_data: contract.workbench_scene_data;
+    }
+
+    if root.host_shell.native_floating_window_mode: HostNativeWorkbenchWindowSurface {
+        width: parent.width;
+        height: parent.height;
+        surface_data: contract.native_floating_surface_data;
     }
 }

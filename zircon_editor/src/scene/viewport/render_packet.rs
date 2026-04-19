@@ -1,14 +1,13 @@
-use zircon_framework::render::{
+use crate::scene::viewport::{
     DisplayMode, FallbackSkyboxKind, GridMode, GridOverlayExtract, HandleOverlayExtract,
     OverlayBillboardIcon, OverlayLineSegment, OverlayPickShape, OverlayWireShape,
     PreviewEnvironmentExtract, RenderOverlayExtract, RenderSceneSnapshot, SceneGizmoKind,
     SceneGizmoOverlayExtract, SceneViewportExtractRequest, SceneViewportSettings,
     SelectionAnchorExtract, SelectionHighlightExtract, ViewportCameraSnapshot, ViewportIconId,
-    ViewportRenderSettings,
 };
-use zircon_math::{Real, UVec2, Vec4};
-use zircon_scene::components::NodeKind;
-use zircon_scene::Scene;
+use zircon_runtime::core::math::{Real, UVec2, Vec4};
+use zircon_runtime::scene::components::NodeKind;
+use zircon_runtime::scene::Scene;
 
 const SCENE_CLEAR_COLOR: Vec4 = Vec4::new(0.09, 0.11, 0.14, 1.0);
 const SELECTION_TINT: Vec4 = Vec4::new(1.0, 0.92, 0.55, 0.18);
@@ -25,7 +24,7 @@ pub(in crate::scene::viewport) fn build_render_packet(
     handles: Vec<HandleOverlayExtract>,
 ) -> RenderSceneSnapshot {
     let mut packet = scene.build_viewport_render_packet(&SceneViewportExtractRequest {
-        settings: ViewportRenderSettings::from(settings),
+        settings: settings.render_settings(),
         active_camera_override: None,
         camera: Some(camera.clone()),
         viewport_size: Some(viewport_size),

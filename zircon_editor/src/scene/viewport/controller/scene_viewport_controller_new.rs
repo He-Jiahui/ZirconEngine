@@ -1,4 +1,4 @@
-use zircon_math::UVec2;
+use zircon_runtime::core::math::UVec2;
 
 use crate::scene::viewport::handles::HandleToolRegistry;
 use crate::scene::viewport::pointer::ViewportOverlayPointerBridge;

@@ -8,10 +8,10 @@ related_code:
   - zircon_ui/src/layout/pass/mod.rs
   - zircon_ui/src/layout/scroll.rs
   - zircon_ui/src/layout/virtualization.rs
-  - zircon_ui/src/dispatch.rs
+  - zircon_ui/src/dispatch/mod.rs
   - zircon_ui/src/tree/node/mod.rs
   - zircon_ui/src/tree/hit_test.rs
-  - zircon_ui/src/surface.rs
+  - zircon_ui/src/surface/mod.rs
   - zircon_editor/src/ui/binding/mod.rs
   - zircon_editor/src/ui/binding/asset/mod.rs
   - zircon_editor/src/ui/binding/dock/mod.rs
@@ -84,10 +84,10 @@ implementation_files:
   - zircon_ui/src/layout/pass/mod.rs
   - zircon_ui/src/layout/scroll.rs
   - zircon_ui/src/layout/virtualization.rs
-  - zircon_ui/src/dispatch.rs
+  - zircon_ui/src/dispatch/mod.rs
   - zircon_ui/src/tree/node/mod.rs
   - zircon_ui/src/tree/hit_test.rs
-  - zircon_ui/src/surface.rs
+  - zircon_ui/src/surface/mod.rs
   - zircon_editor/src/ui/binding/mod.rs
   - zircon_editor/src/ui/binding/dock/command.rs
   - zircon_editor/src/ui/binding/dock/codec.rs
