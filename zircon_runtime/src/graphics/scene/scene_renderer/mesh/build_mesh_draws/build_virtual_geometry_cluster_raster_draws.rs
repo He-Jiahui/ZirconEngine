@@ -1,36 +1,26 @@
 use std::collections::HashMap;
 
-use crate::graphics::types::EditorOrRuntimeFrame;
-
-use super::virtual_geometry_cluster_raster_draw::VirtualGeometryClusterRasterDraw;
+use crate::graphics::types::{
+    cluster_raster_draws_from_selections, ViewportRenderFrame, VirtualGeometryClusterRasterDraw,
+};
 
 pub(super) fn build_virtual_geometry_cluster_raster_draws(
-    frame: &EditorOrRuntimeFrame,
+    frame: &ViewportRenderFrame,
 ) -> HashMap<u64, Vec<VirtualGeometryClusterRasterDraw>> {
-    let mut draws = HashMap::new();
-    let Some(prepare) = frame.virtual_geometry_prepare.as_ref() else {
-        return draws;
-    };
-    for (submission_index, indirect_draw) in
-        prepare.unified_indirect_draws().into_iter().enumerate()
-    {
-        draws
-            .entry(indirect_draw.entity)
-            .or_default()
-            .push(VirtualGeometryClusterRasterDraw {
-                submission_index: submission_index as u32,
-                page_id: indirect_draw.page_id,
-                entity_cluster_start_ordinal: indirect_draw.cluster_start_ordinal as usize,
-                entity_cluster_span_count: indirect_draw.cluster_span_count as usize,
-                entity_cluster_total_count: indirect_draw.cluster_total_count as usize,
-                lineage_depth: indirect_draw.lineage_depth,
-                lod_level: indirect_draw.lod_level,
-                frontier_rank: indirect_draw.frontier_rank,
-                resident_slot: indirect_draw.resident_slot,
-                submission_slot: indirect_draw.submission_slot,
-                state: indirect_draw.state,
-            });
+    if let Some(selections) = frame.virtual_geometry_cluster_selections.as_ref() {
+        return cluster_raster_draws_from_selections(selections);
     }
 
-    draws
+    frame
+        .virtual_geometry_prepare
+        .as_ref()
+        .and_then(|prepare| {
+            frame
+                .extract
+                .geometry
+                .virtual_geometry
+                .as_ref()
+                .map(|extract| prepare.cluster_raster_draws(extract))
+        })
+        .unwrap_or_default()
 }

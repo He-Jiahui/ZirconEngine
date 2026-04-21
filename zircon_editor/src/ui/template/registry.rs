@@ -1,36 +1,16 @@
 use std::collections::BTreeMap;
 
-use zircon_runtime::ui::template::UiAssetDocument;
 use zircon_runtime::ui::template::UiTemplateInstance;
-use zircon_runtime::ui::template::{UiCompiledDocument, UiDocumentCompiler, UiTemplateDocument};
+use zircon_runtime::ui::template::{UiAssetDocument, UiCompiledDocument, UiDocumentCompiler};
 
-use crate::EditorTemplateError;
-
-enum EditorTemplateSource {
-    Template(UiTemplateDocument),
-    Compiled(UiCompiledDocument),
-}
+use crate::ui::template::EditorTemplateError;
 
 #[derive(Default)]
 pub struct EditorTemplateRegistry {
-    documents: BTreeMap<String, EditorTemplateSource>,
+    documents: BTreeMap<String, UiCompiledDocument>,
 }
 
 impl EditorTemplateRegistry {
-    pub fn register_document(
-        &mut self,
-        document_id: impl Into<String>,
-        document: UiTemplateDocument,
-    ) -> Result<(), EditorTemplateError> {
-        let document_id = document_id.into();
-        if self.documents.contains_key(&document_id) {
-            return Err(EditorTemplateError::DuplicateDocument { document_id });
-        }
-        self.documents
-            .insert(document_id, EditorTemplateSource::Template(document));
-        Ok(())
-    }
-
     pub fn register_asset_document(
         &mut self,
         document_id: impl Into<String>,
@@ -49,16 +29,8 @@ impl EditorTemplateRegistry {
         if self.documents.contains_key(&document_id) {
             return Err(EditorTemplateError::DuplicateDocument { document_id });
         }
-        self.documents
-            .insert(document_id, EditorTemplateSource::Compiled(document));
+        self.documents.insert(document_id, document);
         Ok(())
-    }
-
-    pub fn document(&self, document_id: &str) -> Option<&UiTemplateDocument> {
-        match self.documents.get(document_id) {
-            Some(EditorTemplateSource::Template(document)) => Some(document),
-            Some(EditorTemplateSource::Compiled(_)) | None => None,
-        }
     }
 
     pub fn instantiate(
@@ -70,13 +42,6 @@ impl EditorTemplateRegistry {
                 document_id: document_id.to_string(),
             }
         })?;
-        match document {
-            EditorTemplateSource::Template(document) => {
-                UiTemplateInstance::from_document(&document).map_err(EditorTemplateError::from)
-            }
-            EditorTemplateSource::Compiled(document) => {
-                Ok(document.clone().into_template_instance())
-            }
-        }
+        Ok(document.clone().into_template_instance())
     }
 }

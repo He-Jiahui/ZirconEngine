@@ -18,6 +18,16 @@ impl World {
         self.cameras.remove(&entity);
         self.mesh_renderers.remove(&entity);
         self.directional_lights.remove(&entity);
+        self.point_lights.remove(&entity);
+        self.spot_lights.remove(&entity);
+        self.rigid_bodies.remove(&entity);
+        self.colliders.remove(&entity);
+        self.joints.remove(&entity);
+        self.animation_skeletons.remove(&entity);
+        self.animation_players.remove(&entity);
+        self.animation_sequence_players.remove(&entity);
+        self.animation_graph_players.remove(&entity);
+        self.animation_state_machine_players.remove(&entity);
         self.active_self.remove(&entity);
         self.active_in_hierarchy.remove(&entity);
         self.render_layer_masks.remove(&entity);

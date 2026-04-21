@@ -1,6 +1,6 @@
 use crate::ui::ActivityDrawerSlotPreference;
 
-use crate::layout::ActivityDrawerSlot;
+use crate::ui::workbench::layout::ActivityDrawerSlot;
 
 pub(super) fn drawer_slot_preference(slot: ActivityDrawerSlot) -> ActivityDrawerSlotPreference {
     match slot {

@@ -1,5 +1,5 @@
-use crate::ui::{EditorUiBinding, ViewportCommand};
-use crate::ViewportFeedback;
+use crate::scene::viewport::ViewportFeedback;
+use crate::ui::binding::{EditorUiBinding, ViewportCommand};
 
 use super::super::error::EditorBindingDispatchError;
 use super::dispatch::dispatch_viewport_binding;

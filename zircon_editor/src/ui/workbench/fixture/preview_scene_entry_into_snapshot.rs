@@ -1,4 +1,4 @@
-use crate::snapshot::SceneEntry;
+use crate::ui::workbench::snapshot::SceneEntry;
 
 use super::PreviewSceneEntry;
 

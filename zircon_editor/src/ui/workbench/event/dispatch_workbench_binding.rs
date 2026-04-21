@@ -1,4 +1,4 @@
-use crate::ui::{EditorUiBinding, EditorUiBindingPayload};
+use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload};
 
 use super::menu_action_from_id::menu_action_from_id;
 use super::{WorkbenchHostEvent, WorkbenchHostEventError};

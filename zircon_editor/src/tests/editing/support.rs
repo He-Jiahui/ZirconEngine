@@ -1,9 +1,9 @@
 use zircon_runtime::core::math::UVec2;
-use zircon_runtime::scene::DefaultLevelManager;
 use zircon_runtime::scene::components::NodeKind;
+use zircon_runtime::scene::DefaultLevelManager;
 use zircon_runtime::scene::NodeId;
 
-use crate::EditorState;
+use crate::ui::workbench::state::EditorState;
 
 pub(super) fn test_state() -> EditorState {
     let manager = DefaultLevelManager::default();

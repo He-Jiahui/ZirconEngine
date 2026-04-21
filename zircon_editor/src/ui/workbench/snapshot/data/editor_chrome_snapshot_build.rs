@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, HashMap};
 
-use crate::layout::{MainHostPageLayout, WorkbenchLayout};
-use crate::view::{ViewDescriptor, ViewDescriptorId, ViewInstance, ViewInstanceId};
+use crate::ui::workbench::layout::{MainHostPageLayout, WorkbenchLayout};
+use crate::ui::workbench::view::{ViewDescriptor, ViewDescriptorId, ViewInstance, ViewInstanceId};
 
 use super::super::workbench::{
     resolve_document_workspace, resolve_view_tab, ActivityDrawerSnapshot, FloatingWindowSnapshot,
@@ -60,7 +60,7 @@ fn build_drawers(
     layout: &WorkbenchLayout,
     instances: &HashMap<ViewInstanceId, ViewInstance>,
     descriptors: &HashMap<ViewDescriptorId, ViewDescriptor>,
-) -> BTreeMap<crate::layout::ActivityDrawerSlot, ActivityDrawerSnapshot> {
+) -> BTreeMap<crate::ui::workbench::layout::ActivityDrawerSlot, ActivityDrawerSnapshot> {
     layout
         .drawers
         .iter()

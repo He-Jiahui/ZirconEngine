@@ -2,7 +2,8 @@ use zircon_runtime::ui::layout::UiPoint;
 
 use crate::ui::slint_host::callback_dispatch::BuiltinWorkbenchRootShellFrames;
 use crate::ui::slint_host::shell_pointer::WorkbenchShellPointerBridge;
-use crate::{ShellSizePx, WorkbenchShellGeometry};
+use crate::ui::workbench::autolayout::ShellSizePx;
+use crate::ui::workbench::autolayout::WorkbenchShellGeometry;
 
 use super::group::WorkbenchDragTargetGroup;
 

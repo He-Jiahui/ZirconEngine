@@ -1,9 +1,14 @@
-use zircon_editor::{
-    compute_workbench_shell_geometry, default_preview_fixture, solve_axis_constraints,
-    AxisConstraint, DocumentNode, FloatingWindowLayout, MainPageId, ShellFrame, ShellRegionId,
-    ShellSizePx, StretchMode, TabStackLayout, ViewInstanceId, WorkbenchChromeMetrics,
-    WorkbenchViewModel,
+use zircon_editor::ui::workbench::autolayout::{
+    compute_workbench_shell_geometry, solve_axis_constraints, AxisConstraint, ShellFrame,
+    ShellRegionId, ShellSizePx, StretchMode, WorkbenchChromeMetrics,
 };
+use zircon_editor::ui::workbench::fixture::default_preview_fixture;
+use zircon_editor::ui::workbench::layout::{
+    DocumentNode, FloatingWindowLayout, MainPageId, TabStackLayout,
+};
+use zircon_editor::ui::workbench::model::WorkbenchViewModel;
+use zircon_editor::ui::workbench::snapshot::ViewContentKind;
+use zircon_editor::ui::workbench::view::ViewInstanceId;
 use zircon_runtime::ui::layout::BoxConstraints;
 
 fn stretch_constraint(min: f32, preferred: f32, priority: i32, weight: f32) -> AxisConstraint {
@@ -176,8 +181,9 @@ fn editor_default_constraints_are_shared_box_constraints() {
         constraints
     }
 
-    let constraints =
-        zircon_editor::default_constraints_for_content(zircon_editor::ViewContentKind::Scene);
+    let constraints = zircon_editor::ui::workbench::autolayout::default_constraints_for_content(
+        ViewContentKind::Scene,
+    );
     let shared = accepts_shared_constraints(constraints);
 
     assert!(shared.width.preferred >= 960.0);

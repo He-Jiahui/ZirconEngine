@@ -1,4 +1,4 @@
-use crate::snapshot::ViewContentKind;
+use crate::ui::workbench::snapshot::ViewContentKind;
 
 use super::super::{PaneConstraints, ShellRegionId};
 use super::axis_factory::stretch_axis;
@@ -43,7 +43,9 @@ pub fn default_constraints_for_content(kind: ViewContentKind) -> PaneConstraints
         },
         ViewContentKind::Assets
         | ViewContentKind::AssetBrowser
-        | ViewContentKind::UiAssetEditor => PaneConstraints {
+        | ViewContentKind::UiAssetEditor
+        | ViewContentKind::AnimationSequenceEditor
+        | ViewContentKind::AnimationGraphEditor => PaneConstraints {
             width: stretch_axis(420.0, 720.0, 80, 2.0),
             height: stretch_axis(260.0, 480.0, 80, 2.0),
         },

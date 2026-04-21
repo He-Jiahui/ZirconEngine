@@ -3,7 +3,7 @@ use slint::ModelRc;
 use crate::ui::layouts::common::model_rc;
 use crate::ui::slint_host::{NewProjectFormData, RecentProjectData, WelcomePaneData};
 use crate::ui::workbench::startup::RecentProjectValidation;
-use crate::WelcomePaneSnapshot;
+use crate::ui::workbench::startup::WelcomePaneSnapshot;
 
 pub(crate) struct WelcomePresentation {
     pub pane: WelcomePaneData,

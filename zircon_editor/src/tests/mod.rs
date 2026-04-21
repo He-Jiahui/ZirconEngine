@@ -1,6 +1,6 @@
 mod editing;
 mod editor_event;
 mod host;
-mod support;
+pub(crate) mod support;
 mod ui;
 mod workbench;

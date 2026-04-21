@@ -1,4 +1,5 @@
-use crate::ui::{EditorUiBinding, EditorUiControlService};
+use crate::ui::binding::EditorUiBinding;
+use crate::ui::control::EditorUiControlService;
 
 pub(crate) fn register_stub_route(
     service: &mut EditorUiControlService,

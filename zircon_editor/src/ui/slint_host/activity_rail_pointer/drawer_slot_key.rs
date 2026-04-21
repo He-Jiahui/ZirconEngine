@@ -1,4 +1,4 @@
-use crate::ActivityDrawerSlot;
+use crate::ui::workbench::layout::ActivityDrawerSlot;
 
 pub(super) fn drawer_slot_key(slot: ActivityDrawerSlot) -> &'static str {
     match slot {

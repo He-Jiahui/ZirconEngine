@@ -2,20 +2,31 @@ use std::fs;
 use std::path::Path;
 
 use crate::asset::assets::{
-    ImportedAsset, SceneAsset, SceneDirectionalLightAsset, SceneEntityAsset,
-    SceneMeshInstanceAsset, SceneMobilityAsset, TransformAsset,
+    ImportedAsset, SceneAnimationGraphPlayerAsset, SceneAnimationPlayerAsset,
+    SceneAnimationSequencePlayerAsset, SceneAnimationSkeletonAsset,
+    SceneAnimationStateMachinePlayerAsset, SceneAsset, SceneColliderAsset, SceneColliderShapeAsset,
+    SceneDirectionalLightAsset, SceneEntityAsset, SceneJointAsset, SceneJointKindAsset,
+    SceneMeshInstanceAsset, SceneMobilityAsset, ScenePointLightAsset, SceneRigidBodyAsset,
+    SceneRigidBodyTypeAsset, SceneSpotLightAsset, TransformAsset,
 };
 use crate::asset::importer::AssetImportError;
 use crate::asset::project::ProjectManager;
 use crate::asset::AssetReference;
+use crate::core::resource::{
+    AnimationClipMarker, AnimationGraphMarker, AnimationSequenceMarker, AnimationSkeletonMarker,
+    AnimationStateMachineMarker, MaterialMarker, ModelMarker, PhysicsMaterialMarker,
+    ResourceHandle, ResourceId, ResourceLocator, ResourceMarker, ResourceScheme,
+};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use crate::core::resource::{
-    MaterialMarker, ModelMarker, ResourceHandle, ResourceId, ResourceLocator, ResourceScheme,
-};
 
 use super::World;
-use crate::scene::components::{Mobility, NodeKind, Schedule};
+use crate::scene::components::{
+    AnimationGraphPlayerComponent, AnimationPlayerComponent, AnimationSequencePlayerComponent,
+    AnimationSkeletonComponent, AnimationStateMachinePlayerComponent, ColliderComponent,
+    ColliderShape, JointComponent, JointKind, Mobility, NodeKind, PointLight, RigidBodyComponent,
+    RigidBodyType, Schedule, SpotLight,
+};
 
 const PROJECT_FORMAT_VERSION: u32 = 2;
 const BUILTIN_CUBE: &str = "builtin://cube";
@@ -65,6 +76,10 @@ impl World {
                 NodeKind::Camera
             } else if entity.directional_light.is_some() {
                 NodeKind::DirectionalLight
+            } else if entity.point_light.is_some() {
+                NodeKind::PointLight
+            } else if entity.spot_light.is_some() {
+                NodeKind::SpotLight
             } else if entity
                 .mesh
                 .as_ref()
@@ -91,7 +106,9 @@ impl World {
                     kind,
                     parent: entity.parent,
                     transform: crate::core::math::Transform {
-                        translation: crate::core::math::Vec3::from_array(entity.transform.translation),
+                        translation: crate::core::math::Vec3::from_array(
+                            entity.transform.translation,
+                        ),
                         rotation: crate::core::math::Quat::from_array(entity.transform.rotation),
                         scale: crate::core::math::Vec3::from_array(entity.transform.scale),
                     },
@@ -110,12 +127,123 @@ impl World {
                             intensity: light.intensity,
                         }
                     }),
+                    point_light: entity.point_light.clone().map(|light| PointLight {
+                        color: crate::core::math::Vec3::from_array(light.color),
+                        intensity: light.intensity,
+                        range: light.range,
+                    }),
+                    spot_light: entity.spot_light.clone().map(|light| SpotLight {
+                        direction: crate::core::math::Vec3::from_array(light.direction),
+                        color: crate::core::math::Vec3::from_array(light.color),
+                        intensity: light.intensity,
+                        range: light.range,
+                        inner_angle_radians: light.inner_angle_radians,
+                        outer_angle_radians: light.outer_angle_radians,
+                    }),
                     active: entity.active,
                     render_layer_mask: entity.render_layer_mask,
                     mobility: match entity.mobility {
                         SceneMobilityAsset::Dynamic => Mobility::Dynamic,
                         SceneMobilityAsset::Static => Mobility::Static,
                     },
+                    rigid_body: entity
+                        .rigid_body
+                        .clone()
+                        .map(|rigid_body| RigidBodyComponent {
+                            body_type: match rigid_body.body_type {
+                                SceneRigidBodyTypeAsset::Static => RigidBodyType::Static,
+                                SceneRigidBodyTypeAsset::Dynamic => RigidBodyType::Dynamic,
+                                SceneRigidBodyTypeAsset::Kinematic => RigidBodyType::Kinematic,
+                            },
+                            mass: rigid_body.mass,
+                            linear_damping: rigid_body.linear_damping,
+                            angular_damping: rigid_body.angular_damping,
+                            gravity_scale: rigid_body.gravity_scale,
+                            can_sleep: rigid_body.can_sleep,
+                            lock_translation: rigid_body.lock_translation,
+                            lock_rotation: rigid_body.lock_rotation,
+                        }),
+                    collider: entity.collider.clone().map(|collider| ColliderComponent {
+                        shape: collider_shape_from_asset(collider.shape),
+                        sensor: collider.sensor,
+                        layer: collider.layer,
+                        collision_group: collider.collision_group,
+                        collision_mask: collider.collision_mask,
+                        material: collider.material.as_ref().map(|reference| {
+                            handle_for_reference::<PhysicsMaterialMarker>(project, reference)
+                        }),
+                        material_override: collider.material_override,
+                        local_transform: transform_from_asset(collider.local_transform),
+                    }),
+                    joint: entity.joint.clone().map(|joint| JointComponent {
+                        joint_type: match joint.joint_type {
+                            SceneJointKindAsset::Fixed => JointKind::Fixed,
+                            SceneJointKindAsset::Distance => JointKind::Distance,
+                            SceneJointKindAsset::Hinge => JointKind::Hinge,
+                        },
+                        connected_entity: joint.connected_entity,
+                        anchor: crate::core::math::Vec3::from_array(joint.anchor),
+                        axis: crate::core::math::Vec3::from_array(joint.axis),
+                        limits: joint.limits,
+                        collide_connected: joint.collide_connected,
+                    }),
+                    animation_skeleton: entity.animation_skeleton.clone().map(
+                        |animation_skeleton| AnimationSkeletonComponent {
+                            skeleton: handle_for_reference::<AnimationSkeletonMarker>(
+                                project,
+                                &animation_skeleton.skeleton,
+                            ),
+                        },
+                    ),
+                    animation_player: entity.animation_player.clone().map(|animation_player| {
+                        AnimationPlayerComponent {
+                            clip: handle_for_reference::<AnimationClipMarker>(
+                                project,
+                                &animation_player.clip,
+                            ),
+                            playback_speed: animation_player.playback_speed,
+                            time_seconds: animation_player.time_seconds,
+                            weight: animation_player.weight,
+                            looping: animation_player.looping,
+                            playing: animation_player.playing,
+                        }
+                    }),
+                    animation_sequence_player: entity.animation_sequence_player.clone().map(
+                        |animation_sequence_player| AnimationSequencePlayerComponent {
+                            sequence: handle_for_reference::<AnimationSequenceMarker>(
+                                project,
+                                &animation_sequence_player.sequence,
+                            ),
+                            playback_speed: animation_sequence_player.playback_speed,
+                            time_seconds: animation_sequence_player.time_seconds,
+                            looping: animation_sequence_player.looping,
+                            playing: animation_sequence_player.playing,
+                        },
+                    ),
+                    animation_graph_player: entity.animation_graph_player.clone().map(
+                        |animation_graph_player| AnimationGraphPlayerComponent {
+                            graph: handle_for_reference::<AnimationGraphMarker>(
+                                project,
+                                &animation_graph_player.graph,
+                            ),
+                            parameters: animation_graph_player.parameters,
+                            playing: animation_graph_player.playing,
+                        },
+                    ),
+                    animation_state_machine_player: entity
+                        .animation_state_machine_player
+                        .clone()
+                        .map(|animation_state_machine_player| {
+                            AnimationStateMachinePlayerComponent {
+                                state_machine: handle_for_reference::<AnimationStateMachineMarker>(
+                                    project,
+                                    &animation_state_machine_player.state_machine,
+                                ),
+                                parameters: animation_state_machine_player.parameters,
+                                active_state: animation_state_machine_player.active_state,
+                                playing: animation_state_machine_player.playing,
+                            }
+                        }),
                 })
                 .map_err(SceneProjectError::SceneAsset)?;
         }
@@ -174,6 +302,153 @@ impl World {
                             intensity: light.intensity,
                         }
                     }),
+                    point_light: record.point_light.map(|light| ScenePointLightAsset {
+                        color: light.color.to_array(),
+                        intensity: light.intensity,
+                        range: light.range,
+                    }),
+                    spot_light: record.spot_light.map(|light| SceneSpotLightAsset {
+                        direction: light.direction.to_array(),
+                        color: light.color.to_array(),
+                        intensity: light.intensity,
+                        range: light.range,
+                        inner_angle_radians: light.inner_angle_radians,
+                        outer_angle_radians: light.outer_angle_radians,
+                    }),
+                    rigid_body: record.rigid_body.map(|rigid_body| SceneRigidBodyAsset {
+                        body_type: match rigid_body.body_type {
+                            RigidBodyType::Static => SceneRigidBodyTypeAsset::Static,
+                            RigidBodyType::Dynamic => SceneRigidBodyTypeAsset::Dynamic,
+                            RigidBodyType::Kinematic => SceneRigidBodyTypeAsset::Kinematic,
+                        },
+                        mass: rigid_body.mass,
+                        linear_damping: rigid_body.linear_damping,
+                        angular_damping: rigid_body.angular_damping,
+                        gravity_scale: rigid_body.gravity_scale,
+                        can_sleep: rigid_body.can_sleep,
+                        lock_translation: rigid_body.lock_translation,
+                        lock_rotation: rigid_body.lock_rotation,
+                    }),
+                    collider: record
+                        .collider
+                        .map(|collider| {
+                            Ok::<SceneColliderAsset, SceneProjectError>(SceneColliderAsset {
+                                shape: collider_shape_to_asset(collider.shape),
+                                sensor: collider.sensor,
+                                layer: collider.layer,
+                                collision_group: collider.collision_group,
+                                collision_mask: collider.collision_mask,
+                                material: collider
+                                    .material
+                                    .map(|material| {
+                                        reference_for_handle(
+                                            project,
+                                            material.id(),
+                                            "physics material",
+                                        )
+                                    })
+                                    .transpose()?,
+                                material_override: collider.material_override,
+                                local_transform: transform_to_asset(collider.local_transform),
+                            })
+                        })
+                        .transpose()?,
+                    joint: record.joint.map(|joint| SceneJointAsset {
+                        joint_type: match joint.joint_type {
+                            JointKind::Fixed => SceneJointKindAsset::Fixed,
+                            JointKind::Distance => SceneJointKindAsset::Distance,
+                            JointKind::Hinge => SceneJointKindAsset::Hinge,
+                        },
+                        connected_entity: joint.connected_entity,
+                        anchor: joint.anchor.to_array(),
+                        axis: joint.axis.to_array(),
+                        limits: joint.limits,
+                        collide_connected: joint.collide_connected,
+                    }),
+                    animation_skeleton: record
+                        .animation_skeleton
+                        .map(|animation_skeleton| {
+                            Ok::<SceneAnimationSkeletonAsset, SceneProjectError>(
+                                SceneAnimationSkeletonAsset {
+                                    skeleton: reference_for_handle(
+                                        project,
+                                        animation_skeleton.skeleton.id(),
+                                        "animation skeleton",
+                                    )?,
+                                },
+                            )
+                        })
+                        .transpose()?,
+                    animation_player: record
+                        .animation_player
+                        .map(|animation_player| {
+                            Ok::<SceneAnimationPlayerAsset, SceneProjectError>(
+                                SceneAnimationPlayerAsset {
+                                    clip: reference_for_handle(
+                                        project,
+                                        animation_player.clip.id(),
+                                        "animation clip",
+                                    )?,
+                                    playback_speed: animation_player.playback_speed,
+                                    time_seconds: animation_player.time_seconds,
+                                    weight: animation_player.weight,
+                                    looping: animation_player.looping,
+                                    playing: animation_player.playing,
+                                },
+                            )
+                        })
+                        .transpose()?,
+                    animation_sequence_player: record
+                        .animation_sequence_player
+                        .map(|animation_sequence_player| {
+                            Ok::<SceneAnimationSequencePlayerAsset, SceneProjectError>(
+                                SceneAnimationSequencePlayerAsset {
+                                    sequence: reference_for_handle(
+                                        project,
+                                        animation_sequence_player.sequence.id(),
+                                        "animation sequence",
+                                    )?,
+                                    playback_speed: animation_sequence_player.playback_speed,
+                                    time_seconds: animation_sequence_player.time_seconds,
+                                    looping: animation_sequence_player.looping,
+                                    playing: animation_sequence_player.playing,
+                                },
+                            )
+                        })
+                        .transpose()?,
+                    animation_graph_player: record
+                        .animation_graph_player
+                        .map(|animation_graph_player| {
+                            Ok::<SceneAnimationGraphPlayerAsset, SceneProjectError>(
+                                SceneAnimationGraphPlayerAsset {
+                                    graph: reference_for_handle(
+                                        project,
+                                        animation_graph_player.graph.id(),
+                                        "animation graph",
+                                    )?,
+                                    parameters: animation_graph_player.parameters,
+                                    playing: animation_graph_player.playing,
+                                },
+                            )
+                        })
+                        .transpose()?,
+                    animation_state_machine_player: record
+                        .animation_state_machine_player
+                        .map(|animation_state_machine_player| {
+                            Ok::<SceneAnimationStateMachinePlayerAsset, SceneProjectError>(
+                                SceneAnimationStateMachinePlayerAsset {
+                                    state_machine: reference_for_handle(
+                                        project,
+                                        animation_state_machine_player.state_machine.id(),
+                                        "animation state machine",
+                                    )?,
+                                    parameters: animation_state_machine_player.parameters,
+                                    active_state: animation_state_machine_player.active_state,
+                                    playing: animation_state_machine_player.playing,
+                                },
+                            )
+                        })
+                        .transpose()?,
                 })
             })
             .collect::<Result<Vec<_>, SceneProjectError>>()?;
@@ -212,6 +487,10 @@ impl World {
                     NodeKind::Camera
                 } else if self.directional_lights.contains_key(entity) {
                     NodeKind::DirectionalLight
+                } else if self.point_lights.contains_key(entity) {
+                    NodeKind::PointLight
+                } else if self.spot_lights.contains_key(entity) {
+                    NodeKind::SpotLight
                 } else if self.mesh_renderers.contains_key(entity) {
                     let is_cube = self.mesh_renderers.get(entity).is_some_and(|mesh| {
                         mesh.model.id() == ResourceId::from_stable_label(BUILTIN_CUBE)
@@ -282,6 +561,22 @@ fn material_handle_for_reference(
         })
 }
 
+fn handle_for_reference<T: ResourceMarker>(
+    project: &ProjectManager,
+    reference: &AssetReference,
+) -> ResourceHandle<T> {
+    let locator = &reference.locator;
+    if locator.scheme() == ResourceScheme::Builtin {
+        return ResourceHandle::new(ResourceId::from_locator(locator));
+    }
+
+    project
+        .asset_id_for_uuid(reference.uuid)
+        .or_else(|| project.asset_id_for_uri(locator))
+        .map(ResourceHandle::new)
+        .unwrap_or_else(|| ResourceHandle::new(ResourceId::from_locator(locator)))
+}
+
 fn reference_for_model_handle(
     project: &ProjectManager,
     handle: ResourceHandle<ModelMarker>,
@@ -294,6 +589,54 @@ fn reference_for_material_handle(
     handle: ResourceHandle<MaterialMarker>,
 ) -> Result<AssetReference, SceneProjectError> {
     reference_for_handle(project, handle.id(), "material")
+}
+
+fn transform_from_asset(transform: TransformAsset) -> crate::core::math::Transform {
+    crate::core::math::Transform {
+        translation: crate::core::math::Vec3::from_array(transform.translation),
+        rotation: crate::core::math::Quat::from_array(transform.rotation),
+        scale: crate::core::math::Vec3::from_array(transform.scale),
+    }
+}
+
+fn transform_to_asset(transform: crate::core::math::Transform) -> TransformAsset {
+    TransformAsset {
+        translation: transform.translation.to_array(),
+        rotation: transform.rotation.to_array(),
+        scale: transform.scale.to_array(),
+    }
+}
+
+fn collider_shape_from_asset(shape: SceneColliderShapeAsset) -> ColliderShape {
+    match shape {
+        SceneColliderShapeAsset::Box { half_extents } => ColliderShape::Box {
+            half_extents: crate::core::math::Vec3::from_array(half_extents),
+        },
+        SceneColliderShapeAsset::Sphere { radius } => ColliderShape::Sphere { radius },
+        SceneColliderShapeAsset::Capsule {
+            radius,
+            half_height,
+        } => ColliderShape::Capsule {
+            radius,
+            half_height,
+        },
+    }
+}
+
+fn collider_shape_to_asset(shape: ColliderShape) -> SceneColliderShapeAsset {
+    match shape {
+        ColliderShape::Box { half_extents } => SceneColliderShapeAsset::Box {
+            half_extents: half_extents.to_array(),
+        },
+        ColliderShape::Sphere { radius } => SceneColliderShapeAsset::Sphere { radius },
+        ColliderShape::Capsule {
+            radius,
+            half_height,
+        } => SceneColliderShapeAsset::Capsule {
+            radius,
+            half_height,
+        },
+    }
 }
 
 fn reference_for_handle(

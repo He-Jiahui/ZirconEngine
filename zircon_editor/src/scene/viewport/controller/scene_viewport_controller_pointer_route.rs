@@ -1,4 +1,4 @@
-use crate::GizmoAxis;
+use crate::scene::viewport::GizmoAxis;
 use crate::scene::viewport::ViewportCameraSnapshot;
 use zircon_runtime::core::math::Vec2;
 use zircon_runtime::scene::Scene;

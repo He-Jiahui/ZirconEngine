@@ -1,13 +1,14 @@
 use std::fs;
 
-use crate::ui::{
+use crate::ui::binding::EditorUiBinding;
+use crate::ui::control::EditorUiControlService;
+use crate::ui::template::{
     EditorComponentCatalog, EditorComponentDescriptor, EditorTemplateAdapter, EditorTemplateError,
-    EditorTemplateRegistry, EditorUiBinding, EditorUiControlService,
+    EditorTemplateRegistry,
 };
 use thiserror::Error;
 use zircon_runtime::ui::template::{
-    UiAssetError, UiAssetLoader, UiTemplateBuildError, UiTemplateError, UiTemplateLoader,
-    UiTemplateSurfaceBuilder,
+    UiAssetError, UiAssetLoader, UiTemplateBuildError, UiTemplateSurfaceBuilder,
 };
 use zircon_runtime::ui::{event_ui::UiTreeId, surface::UiSurface, template::UiAssetDocument};
 
@@ -27,8 +28,6 @@ pub enum EditorUiHostRuntimeError {
     #[error(transparent)]
     UiAsset(#[from] UiAssetError),
     #[error(transparent)]
-    UiTemplate(#[from] UiTemplateError),
-    #[error(transparent)]
     UiTemplateBuild(#[from] UiTemplateBuildError),
     #[error("slint projection is missing binding {binding_id}")]
     MissingProjectionBinding { binding_id: String },
@@ -42,6 +41,19 @@ pub struct EditorUiHostRuntime {
     pub(super) template_registry: EditorTemplateRegistry,
     pub(super) template_adapter: EditorTemplateAdapter,
     pub(super) builtin_host_templates_loaded: bool,
+}
+
+fn parse_ui_asset_document_source(source: &str) -> Result<UiAssetDocument, UiAssetError> {
+    UiAssetLoader::load_toml_str(source).or_else(|error| {
+        #[cfg(test)]
+        {
+            crate::tests::support::load_test_ui_asset(source).or(Err(error))
+        }
+        #[cfg(not(test))]
+        {
+            Err(error)
+        }
+    })
 }
 
 impl EditorUiHostRuntime {
@@ -82,14 +94,8 @@ impl EditorUiHostRuntime {
         source: &str,
     ) -> Result<(), EditorUiHostRuntimeError> {
         let document_id = document_id.into();
-        if let Ok(document) = UiAssetLoader::load_toml_str(source) {
-            return self.register_asset_document(document_id, document);
-        }
-
-        let document = UiTemplateLoader::load_toml_str(source)?;
-        self.template_registry
-            .register_document(document_id, document)
-            .map_err(EditorUiHostRuntimeError::from)
+        let document = parse_ui_asset_document_source(source)?;
+        self.register_asset_document(document_id, document)
     }
 
     pub fn register_document_file(

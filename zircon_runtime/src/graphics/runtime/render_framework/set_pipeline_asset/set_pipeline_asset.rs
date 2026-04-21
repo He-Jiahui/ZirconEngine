@@ -1,4 +1,6 @@
-use crate::core::framework::render::{RenderFrameworkError, RenderPipelineHandle, RenderViewportHandle};
+use crate::core::framework::render::{
+    RenderFrameworkError, RenderPipelineHandle, RenderViewportHandle,
+};
 
 use super::super::wgpu_render_framework::WgpuRenderFramework;
 

@@ -1,0 +1,9 @@
+import { HostWindowLayoutData, HostWindowShellData, HostNativeFloatingWindowSurfaceData } from "host_components.slint";
+import { HostWorkbenchWindowSceneData } from "host_scene.slint";
+
+export struct HostWindowPresentationData {
+    host_shell: HostWindowShellData,
+    host_layout: HostWindowLayoutData,
+    workbench_scene_data: HostWorkbenchWindowSceneData,
+    native_floating_surface_data: HostNativeFloatingWindowSurfaceData,
+}

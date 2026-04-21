@@ -1,6 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use super::hybrid_gi_probe_update_request::HybridGiProbeUpdateRequest;
+use crate::graphics::runtime::hybrid_gi::scene_representation::HybridGiSceneRepresentation;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(in crate::graphics::runtime::hybrid_gi) struct HybridGiRuntimeProbeSceneData {
@@ -20,8 +21,9 @@ pub(in crate::graphics::runtime::hybrid_gi) struct HybridGiRuntimeTraceRegionSce
     pub(in crate::graphics::runtime::hybrid_gi) rt_lighting_rgb: [u8; 3],
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub(crate) struct HybridGiRuntimeState {
+    pub(in crate::graphics::runtime::hybrid_gi) scene_representation: HybridGiSceneRepresentation,
     pub(in crate::graphics::runtime::hybrid_gi) probe_budget: usize,
     pub(in crate::graphics::runtime::hybrid_gi) probe_parent_probes: BTreeMap<u32, u32>,
     pub(in crate::graphics::runtime::hybrid_gi) probe_ray_budgets: BTreeMap<u32, u32>,
@@ -37,7 +39,8 @@ pub(crate) struct HybridGiRuntimeState {
     pub(in crate::graphics::runtime::hybrid_gi) scheduled_trace_regions: Vec<u32>,
     pub(in crate::graphics::runtime::hybrid_gi) current_requested_probe_ids: BTreeSet<u32>,
     pub(in crate::graphics::runtime::hybrid_gi) recent_lineage_trace_support_q8: BTreeMap<u32, u16>,
-    pub(in crate::graphics::runtime::hybrid_gi) recent_requested_lineage_support_q8: BTreeMap<u32, u16>,
+    pub(in crate::graphics::runtime::hybrid_gi) recent_requested_lineage_support_q8:
+        BTreeMap<u32, u16>,
     pub(in crate::graphics::runtime::hybrid_gi) evictable_probes: Vec<u32>,
     pub(in crate::graphics::runtime::hybrid_gi) free_slots: BTreeSet<u32>,
     pub(in crate::graphics::runtime::hybrid_gi) next_slot: u32,

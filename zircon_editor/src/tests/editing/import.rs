@@ -1,7 +1,7 @@
 use zircon_runtime::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
 use zircon_runtime::scene::components::NodeKind;
 
-use crate::EditorIntent;
+use crate::core::editing::intent::EditorIntent;
 
 use super::support::test_state;
 

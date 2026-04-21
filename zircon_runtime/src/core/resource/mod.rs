@@ -26,16 +26,13 @@ pub use locator::{ResourceLocator, ResourceLocatorError, ResourceScheme};
 pub use manager::ResourceManager;
 pub use marker::{
     AnimationClipMarker, AnimationGraphMarker, AnimationSequenceMarker, AnimationSkeletonMarker,
-    AnimationStateMachineMarker, MaterialMarker, ModelMarker, PhysicsMaterialMarker, ResourceKind,
-    ResourceMarker, SceneMarker, ShaderMarker, TextureMarker, UiLayoutMarker, UiStyleMarker,
-    UiWidgetMarker,
+    AnimationStateMachineMarker, FontMarker, MaterialMarker, ModelMarker, PhysicsMaterialMarker,
+    ResourceKind, ResourceMarker, SceneMarker, ShaderMarker, SoundMarker, TextureMarker,
+    UiLayoutMarker, UiStyleMarker, UiWidgetMarker,
 };
 pub use record::{ResourceEvent, ResourceEventKind, ResourceRecord};
 pub use registry::ResourceRegistry;
-pub use runtime::{
-    Resource, ResourceInspectorAdapterKey, ResourceRuntimeInfo, ResourceTypeDescriptor,
-    RuntimeResourceState,
-};
+pub use runtime::{Resource, ResourceRuntimeInfo, RuntimeResourceState};
 pub use state::ResourceState;
 
 #[cfg(test)]

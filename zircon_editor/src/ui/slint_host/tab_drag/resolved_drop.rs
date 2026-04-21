@@ -1,4 +1,8 @@
-use crate::{SplitAxis, SplitPlacement, TabInsertionAnchor, ViewHost, WorkspaceTarget};
+use crate::ui::workbench::layout::SplitAxis;
+use crate::ui::workbench::layout::SplitPlacement;
+use crate::ui::workbench::layout::TabInsertionAnchor;
+use crate::ui::workbench::layout::WorkspaceTarget;
+use crate::ui::workbench::view::ViewHost;
 
 use super::group::WorkbenchDragTargetGroup;
 

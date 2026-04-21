@@ -1,6 +1,7 @@
 use slint::CloseRequestResponse;
 
-use crate::{LayoutCommand, MainPageId};
+use crate::ui::workbench::layout::LayoutCommand;
+use crate::ui::workbench::layout::MainPageId;
 
 use super::*;
 

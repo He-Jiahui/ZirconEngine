@@ -1,4 +1,4 @@
-use crate::snapshot::{EditorChromeSnapshot, MainPageSnapshot};
+use crate::ui::workbench::snapshot::{EditorChromeSnapshot, MainPageSnapshot};
 
 use super::super::host_page_tab_model::HostPageTabModel;
 use super::super::main_host_strip_model::MainHostStripModel;

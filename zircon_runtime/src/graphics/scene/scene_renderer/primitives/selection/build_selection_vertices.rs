@@ -3,12 +3,12 @@ use crate::core::math::Vec4;
 
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::primitives::LineVertex;
-use crate::graphics::types::EditorOrRuntimeFrame;
+use crate::graphics::types::ViewportRenderFrame;
 
 use super::super::line_geometry::{append_bounding_box_vertices, append_cross};
 
 pub(crate) fn build_selection_vertices(
-    frame: &EditorOrRuntimeFrame,
+    frame: &ViewportRenderFrame,
     streamer: &ResourceStreamer,
 ) -> Vec<LineVertex> {
     let mut vertices = Vec::new();

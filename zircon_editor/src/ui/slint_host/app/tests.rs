@@ -5,11 +5,28 @@ use std::rc::Rc;
 use std::sync::{Mutex, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::ui::slint_host::{PaneSurfaceHostContext, WorkbenchHostContext};
-use slint::{ComponentHandle, PhysicalSize};
-use zircon_runtime::core::CoreRuntime;
+use crate::core::editor_event::{
+    ActivityDrawerMode as EventActivityDrawerMode, ActivityDrawerSlot as EventActivityDrawerSlot,
+    EditorAssetEvent, EditorDraftEvent, EditorEvent, EditorEventRuntime, EditorViewportEvent,
+    LayoutCommand as EventLayoutCommand, MainPageId as EventMainPageId, MenuAction,
+    ViewInstanceId as EventViewInstanceId,
+};
 use crate::scene::viewport::{DisplayMode, ViewOrientation};
+use crate::ui::host::module::{self, EDITOR_MANAGER_NAME};
+use crate::ui::host::EditorManager;
+use crate::ui::slint_host::{PaneSurfaceHostContext, WorkbenchHostContext};
+use crate::ui::workbench::autolayout::ShellFrame;
+use crate::ui::workbench::layout::{
+    ActivityDrawerMode, ActivityDrawerSlot, LayoutCommand, MainPageId,
+};
+use crate::ui::workbench::startup::{
+    EditorSessionMode, RecentProjectEntry, RecentProjectValidation,
+};
+use crate::ui::workbench::state::EditorState;
+use crate::ui::workbench::view::{ViewDescriptorId, ViewInstanceId};
+use slint::{ComponentHandle, PhysicalSize};
 use zircon_runtime::core::math::UVec2;
+use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::foundation::{
     module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
 };
@@ -17,12 +34,6 @@ use zircon_runtime::scene::DefaultLevelManager;
 mod floating_window_projection;
 
 use super::*;
-use crate::{
-    module, ActivityDrawerMode, ActivityDrawerSlot, EditorAssetEvent, EditorDraftEvent,
-    EditorEvent, EditorEventRuntime, EditorManager, EditorSessionMode, EditorState,
-    EditorViewportEvent, LayoutCommand, MainPageId, MenuAction, RecentProjectEntry,
-    RecentProjectValidation, ShellFrame, ViewDescriptorId, ViewInstanceId, EDITOR_MANAGER_NAME,
-};
 
 struct ChildWindowHostHarness {
     _core: CoreRuntime,
@@ -44,7 +55,7 @@ impl ChildWindowHostHarness {
         i_slint_backend_testing::init_no_event_loop();
 
         let config_path = unique_temp_path(prefix);
-        std::env::set_var("ZIRCON_EDITOR_CONFIG_PATH", &config_path);
+        std::env::set_var("ZIRCON_CONFIG_PATH", &config_path);
         let core = CoreRuntime::new();
         core.register_module(foundation_module_descriptor())
             .unwrap();
@@ -55,7 +66,7 @@ impl ChildWindowHostHarness {
         core.activate_module(zircon_runtime::asset::ASSET_MODULE_NAME)
             .unwrap();
         core.activate_module(module::EDITOR_MODULE_NAME).unwrap();
-        std::env::remove_var("ZIRCON_EDITOR_CONFIG_PATH");
+        std::env::remove_var("ZIRCON_CONFIG_PATH");
 
         let root_ui = UiHostWindow::new().expect("root workbench shell should instantiate");
         root_ui
@@ -249,8 +260,8 @@ fn child_window_viewport_pointer_event_focuses_source_window_before_runtime_disp
     assert_eq!(
         harness.delta_events_since(baseline),
         vec![
-            EditorEvent::Layout(LayoutCommand::FocusView {
-                instance_id: ViewInstanceId::new("editor.scene#1"),
+            EditorEvent::Layout(EventLayoutCommand::FocusView {
+                instance_id: EventViewInstanceId::new("editor.scene#1"),
             }),
             EditorEvent::Viewport(EditorViewportEvent::LeftPressed { x: 24.0, y: 32.0 }),
         ]
@@ -278,8 +289,8 @@ fn child_window_asset_control_focuses_source_window_before_runtime_dispatch() {
     assert_eq!(
         harness.delta_events_since(baseline),
         vec![
-            EditorEvent::Layout(LayoutCommand::FocusView {
-                instance_id: ViewInstanceId::new("editor.assets#1"),
+            EditorEvent::Layout(EventLayoutCommand::FocusView {
+                instance_id: EventViewInstanceId::new("editor.assets#1"),
             }),
             EditorEvent::Asset(EditorAssetEvent::OpenAssetBrowser),
         ]
@@ -307,8 +318,8 @@ fn child_window_inspector_control_focuses_source_window_before_runtime_dispatch(
     assert_eq!(
         harness.delta_events_since(baseline),
         vec![
-            EditorEvent::Layout(LayoutCommand::FocusView {
-                instance_id: ViewInstanceId::new("editor.inspector#1"),
+            EditorEvent::Layout(EventLayoutCommand::FocusView {
+                instance_id: EventViewInstanceId::new("editor.inspector#1"),
             }),
             EditorEvent::Draft(EditorDraftEvent::SetInspectorField {
                 subject_path: "entity://selected".to_string(),
@@ -349,8 +360,8 @@ fn assert_child_window_focus_tracks_asset_scroll(
 
     assert_eq!(
         harness.delta_events_since(baseline),
-        vec![EditorEvent::Layout(LayoutCommand::FocusView {
-            instance_id: ViewInstanceId::new("editor.assets#1"),
+        vec![EditorEvent::Layout(EventLayoutCommand::FocusView {
+            instance_id: EventViewInstanceId::new("editor.assets#1"),
         })]
     );
 
@@ -717,8 +728,8 @@ fn root_document_tab_pointer_click_prefers_shared_projection_surface_width_over_
 
     assert_eq!(
         harness.delta_events_since(baseline),
-        vec![EditorEvent::Layout(LayoutCommand::FocusView {
-            instance_id: expected_instance,
+        vec![EditorEvent::Layout(EventLayoutCommand::FocusView {
+            instance_id: EventViewInstanceId::new(expected_instance.0.clone()),
         })]
     );
 }
@@ -753,8 +764,8 @@ fn root_host_page_pointer_click_prefers_shared_projection_shell_width_over_metri
 
     assert_eq!(
         harness.delta_events_since(baseline),
-        vec![EditorEvent::Layout(LayoutCommand::ActivateMainPage {
-            page_id: MainPageId::workbench(),
+        vec![EditorEvent::Layout(EventLayoutCommand::ActivateMainPage {
+            page_id: EventMainPageId::workbench(),
         })]
     );
 }
@@ -808,9 +819,9 @@ fn root_activity_rail_pointer_click_prefers_shared_projection_surface_when_left_
 
     assert_eq!(
         harness.delta_events_since(baseline),
-        vec![EditorEvent::Layout(LayoutCommand::SetDrawerMode {
-            slot: ActivityDrawerSlot::LeftTop,
-            mode: ActivityDrawerMode::Collapsed,
+        vec![EditorEvent::Layout(EventLayoutCommand::SetDrawerMode {
+            slot: EventActivityDrawerSlot::LeftTop,
+            mode: EventActivityDrawerMode::Collapsed,
         })]
     );
 }
@@ -863,7 +874,11 @@ fn root_host_viewport_size_matches_presented_viewport_content_frame_when_drawers
     let _guard = lock_env();
 
     let harness = ChildWindowHostHarness::new("zircon_slint_root_viewport_size_alignment");
-    let viewport_frame = harness.root_ui.get_host_layout().viewport_content_frame;
+    let viewport_frame = harness
+        .root_ui
+        .get_host_presentation()
+        .host_layout
+        .viewport_content_frame;
     let host = harness.host.borrow();
 
     assert_eq!(
@@ -1329,8 +1344,8 @@ fn child_window_document_tab_pointer_event_dispatches_focus_view_and_tracks_wind
 
     assert_eq!(
         harness.delta_events_since(baseline),
-        vec![EditorEvent::Layout(LayoutCommand::FocusView {
-            instance_id: ViewInstanceId::new("editor.assets#1"),
+        vec![EditorEvent::Layout(EventLayoutCommand::FocusView {
+            instance_id: EventViewInstanceId::new("editor.assets#1"),
         })]
     );
 
@@ -1362,8 +1377,8 @@ fn child_window_document_tab_close_pointer_event_dispatches_close_view_and_keeps
 
     assert_eq!(
         harness.delta_events_since(baseline),
-        vec![EditorEvent::Layout(LayoutCommand::CloseView {
-            instance_id: asset_browser,
+        vec![EditorEvent::Layout(EventLayoutCommand::CloseView {
+            instance_id: EventViewInstanceId::new(asset_browser.0.clone()),
         })]
     );
 
@@ -1377,7 +1392,10 @@ fn child_window_header_pointer_event_dispatches_focus_view_and_tracks_window_foc
 
     let harness = ChildWindowHostHarness::new("zircon_slint_child_window_header_dispatch");
     let child = harness.detach_view_to_child_window("editor.scene#1", "window:scene");
-    let bounds = child.get_host_shell().native_window_bounds;
+    let bounds = child
+        .get_host_presentation()
+        .host_shell
+        .native_window_bounds;
     let baseline = harness.journal_len();
 
     host_context(&child).invoke_floating_window_header_pointer_clicked(
@@ -1387,8 +1405,8 @@ fn child_window_header_pointer_event_dispatches_focus_view_and_tracks_window_foc
 
     assert_eq!(
         harness.delta_events_since(baseline),
-        vec![EditorEvent::Layout(LayoutCommand::FocusView {
-            instance_id: ViewInstanceId::new("editor.scene#1"),
+        vec![EditorEvent::Layout(EventLayoutCommand::FocusView {
+            instance_id: EventViewInstanceId::new("editor.scene#1"),
         })]
     );
 

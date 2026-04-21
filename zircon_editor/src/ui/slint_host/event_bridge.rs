@@ -1,5 +1,6 @@
-use crate::core::editor_event::{EditorEventEffect, EditorEventRecord};
-use crate::{EditorEvent, LayoutCommand, MenuAction};
+use crate::core::editor_event::{
+    EditorEvent, EditorEventEffect, EditorEventRecord, LayoutCommand, MenuAction,
+};
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(crate) struct SlintDispatchEffects {

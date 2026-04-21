@@ -3,7 +3,6 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use image::{ImageBuffer, ImageFormat, Rgba};
 use crate::asset::assets::{AlphaMode, MaterialAsset};
 use crate::asset::pipeline::manager::{AssetManager, ProjectAssetManager};
 use crate::asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
@@ -11,16 +10,17 @@ use crate::asset::{AssetReference, AssetUri};
 use crate::core::framework::render::{
     DisplayMode, FallbackSkyboxKind, PreviewEnvironmentExtract, ProjectionMode, RenderFrameExtract,
     RenderMeshSnapshot, RenderOverlayExtract, RenderSceneGeometryExtract, RenderSceneSnapshot,
-    RenderVirtualGeometryCluster, RenderVirtualGeometryExtract, RenderVirtualGeometryPage,
-    RenderWorldSnapshotHandle, ViewportCameraSnapshot,
+    RenderVirtualGeometryCluster, RenderVirtualGeometryExtract, RenderVirtualGeometryInstance,
+    RenderVirtualGeometryPage, RenderWorldSnapshotHandle, ViewportCameraSnapshot,
 };
 use crate::core::math::{Transform, UVec2, Vec3, Vec4};
 use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle};
 use crate::scene::components::{default_render_layer_mask, Mobility};
+use image::{ImageBuffer, ImageFormat, Rgba};
 
 use crate::{
     types::{
-        EditorOrRuntimeFrame, VirtualGeometryPrepareCluster, VirtualGeometryPrepareClusterState,
+        ViewportRenderFrame, VirtualGeometryPrepareCluster, VirtualGeometryPrepareClusterState,
         VirtualGeometryPrepareDrawSegment, VirtualGeometryPrepareFrame, VirtualGeometryPreparePage,
     },
     BuiltinRenderFeature, RenderPipelineAsset, RenderPipelineCompileOptions, SceneRenderer,
@@ -111,7 +111,7 @@ fn virtual_geometry_transparent_submission_order_follows_visibility_owned_indire
     let mut renderer = SceneRenderer::new(asset_manager).unwrap();
     let red_dominant_frame = renderer
         .render_frame_with_pipeline(
-            &EditorOrRuntimeFrame::from_extract(extract.clone(), viewport_size)
+            &ViewportRenderFrame::from_extract(extract.clone(), viewport_size)
                 .with_virtual_geometry_prepare(Some(prepare_frame((2, 2), (3, 1)))),
             &compiled,
             None,
@@ -124,7 +124,7 @@ fn virtual_geometry_transparent_submission_order_follows_visibility_owned_indire
 
     let blue_dominant_frame = renderer
         .render_frame_with_pipeline(
-            &EditorOrRuntimeFrame::from_extract(extract, viewport_size)
+            &ViewportRenderFrame::from_extract(extract, viewport_size)
                 .with_virtual_geometry_prepare(Some(prepare_frame((2, 1), (3, 2)))),
             &compiled,
             None,
@@ -291,7 +291,7 @@ fn virtual_geometry_transparent_fallback_submission_order_follows_prepare_owned_
     let mut renderer = SceneRenderer::new(asset_manager).unwrap();
     let red_dominant_frame = renderer
         .render_frame_with_pipeline(
-            &EditorOrRuntimeFrame::from_extract(extract.clone(), viewport_size)
+            &ViewportRenderFrame::from_extract(extract.clone(), viewport_size)
                 .with_virtual_geometry_prepare(Some(prepare_frame_without_segments(
                     (2, 2),
                     (3, 1),
@@ -307,7 +307,7 @@ fn virtual_geometry_transparent_fallback_submission_order_follows_prepare_owned_
 
     let blue_dominant_frame = renderer
         .render_frame_with_pipeline(
-            &EditorOrRuntimeFrame::from_extract(extract, viewport_size)
+            &ViewportRenderFrame::from_extract(extract, viewport_size)
                 .with_virtual_geometry_prepare(Some(prepare_frame_without_segments(
                     (2, 1),
                     (3, 2),
@@ -464,7 +464,7 @@ fn virtual_geometry_gpu_generated_args_expose_visibility_owned_submission_index_
     let mut renderer = SceneRenderer::new(asset_manager).unwrap();
     renderer
         .render_frame_with_pipeline(
-            &EditorOrRuntimeFrame::from_extract(extract, viewport_size)
+            &ViewportRenderFrame::from_extract(extract, viewport_size)
                 .with_virtual_geometry_prepare(Some(prepare_frame((2, 2), (3, 1)))),
             &compiled,
             None,
@@ -558,33 +558,35 @@ fn virtual_geometry_renderer_mesh_draw_submission_order_tracks_visibility_owned_
     let mut renderer = SceneRenderer::new(asset_manager).unwrap();
     renderer
         .render_frame_with_pipeline(
-            &EditorOrRuntimeFrame::from_extract(extract.clone(), viewport_size)
+            &ViewportRenderFrame::from_extract(extract.clone(), viewport_size)
                 .with_virtual_geometry_prepare(Some(prepare_frame((2, 2), (3, 1)))),
             &compiled,
             None,
         )
         .unwrap();
-    let red_dominant_order = renderer.read_last_virtual_geometry_mesh_draw_submission_order();
+    let red_dominant_order =
+        renderer.read_last_virtual_geometry_mesh_draw_submission_order_with_instances();
 
     renderer
         .render_frame_with_pipeline(
-            &EditorOrRuntimeFrame::from_extract(extract, viewport_size)
+            &ViewportRenderFrame::from_extract(extract, viewport_size)
                 .with_virtual_geometry_prepare(Some(prepare_frame((2, 1), (3, 2)))),
             &compiled,
             None,
         )
         .unwrap();
-    let blue_dominant_order = renderer.read_last_virtual_geometry_mesh_draw_submission_order();
+    let blue_dominant_order =
+        renderer.read_last_virtual_geometry_mesh_draw_submission_order_with_instances();
 
     assert_eq!(
         red_dominant_order,
-        vec![(3, 301), (2, 300)],
-        "expected renderer-side mesh draw submission to publish the same visibility-owned unified indirect order as the underlying segment source when entity 3 owns the earlier authoritative slot"
+        vec![(Some(1), 3, 301), (Some(0), 2, 300)],
+        "expected renderer-side mesh draw submission order to preserve per-instance ownership alongside the same visibility-owned unified indirect order when entity 3 owns the earlier authoritative slot"
     );
     assert_eq!(
         blue_dominant_order,
-        vec![(2, 300), (3, 301)],
-        "expected renderer-side mesh draw submission order to flip with the same visibility-owned unified indirect authority instead of staying on fixed CPU mesh insertion order"
+        vec![(Some(0), 2, 300), (Some(1), 3, 301)],
+        "expected renderer-side mesh draw submission order to flip with the same visibility-owned unified indirect authority while keeping the matching instance ownership instead of staying on fixed CPU mesh insertion order"
     );
 
     let _ = fs::remove_dir_all(root);
@@ -592,6 +594,8 @@ fn virtual_geometry_renderer_mesh_draw_submission_order_tracks_visibility_owned_
 
 #[test]
 fn virtual_geometry_deferred_execution_source_tracks_actual_scene_pass_submission_order() {
+    const INDIRECT_ARGS_STRIDE_BYTES: u64 = (std::mem::size_of::<u32>() as u64) * 5;
+
     let root =
         unique_temp_project_root("graphics_virtual_geometry_deferred_execution_source_order");
     let paths = ProjectPaths::from_root(&root).unwrap();
@@ -680,13 +684,18 @@ fn virtual_geometry_deferred_execution_source_tracks_actual_scene_pass_submissio
     let mut renderer = SceneRenderer::new(asset_manager).unwrap();
     renderer
         .render_frame_with_pipeline(
-            &EditorOrRuntimeFrame::from_extract(extract, viewport_size)
+            &ViewportRenderFrame::from_extract(extract, viewport_size)
                 .with_virtual_geometry_prepare(Some(prepare_frame((2, 1), (3, 2)))),
             &compiled,
             None,
         )
         .unwrap();
 
+    assert_eq!(
+        renderer.read_last_virtual_geometry_execution_indirect_offsets(),
+        vec![0, INDIRECT_ARGS_STRIDE_BYTES],
+        "expected the actual deferred scene-pass draws to consume a compact execution-owned indirect args source instead of keeping shared visibility-slot offsets"
+    );
     assert_eq!(
         renderer
             .read_last_virtual_geometry_indirect_execution_draw_ref_indices()
@@ -800,7 +809,7 @@ fn virtual_geometry_deferred_execution_records_survive_without_shared_indirect_b
     let mut renderer = SceneRenderer::new(asset_manager).unwrap();
     renderer
         .render_frame_with_pipeline(
-            &EditorOrRuntimeFrame::from_extract(extract, viewport_size)
+            &ViewportRenderFrame::from_extract(extract, viewport_size)
                 .with_virtual_geometry_prepare(Some(prepare_frame((2, 1), (3, 2)))),
             &compiled,
             None,
@@ -826,8 +835,180 @@ fn virtual_geometry_deferred_execution_records_survive_without_shared_indirect_b
 }
 
 #[test]
-fn virtual_geometry_execution_records_recover_draw_ref_indices_when_execution_index_buffer_is_gone(
-) {
+fn virtual_geometry_execution_segments_survive_without_shared_segment_and_draw_ref_buffers() {
+    let root =
+        unique_temp_project_root("graphics_virtual_geometry_execution_segments_records_only");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths.ensure_layout().unwrap();
+    ProjectManifest::new(
+        "GraphicsVirtualGeometryExecutionSegmentsRecordsOnly",
+        AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+        1,
+    )
+    .save(paths.manifest_path())
+    .unwrap();
+
+    write_flat_color_wgsl(
+        paths.assets_root().join("shaders").join("flat_color.wgsl"),
+        [1.0, 1.0, 1.0],
+    );
+    write_solid_png(
+        paths.assets_root().join("textures").join("white.png"),
+        [255, 255, 255, 255],
+    );
+    write_quad_obj(paths.assets_root().join("models").join("quad.obj"));
+    write_material(
+        paths
+            .assets_root()
+            .join("materials")
+            .join("transparent_red.material.toml"),
+        "ExecutionSegmentsTransparentRed",
+        "res://shaders/flat_color.wgsl",
+        "res://textures/white.png",
+        [1.0, 0.0, 0.0, 0.65],
+        AlphaMode::Blend,
+    );
+    write_material(
+        paths
+            .assets_root()
+            .join("materials")
+            .join("opaque_white.material.toml"),
+        "ExecutionSegmentsOpaqueWhite",
+        "res://shaders/flat_color.wgsl",
+        "res://textures/white.png",
+        [1.0, 1.0, 1.0, 1.0],
+        AlphaMode::Opaque,
+    );
+
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    asset_manager
+        .open_project(root.to_string_lossy().as_ref())
+        .unwrap();
+    let mut project = ProjectManager::open(&root).unwrap();
+    project.scan_and_import().unwrap();
+
+    let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/quad.obj");
+    let transparent_material = resource_handle::<MaterialMarker>(
+        &asset_manager,
+        "res://materials/transparent_red.material.toml",
+    );
+    let opaque_material = resource_handle::<MaterialMarker>(
+        &asset_manager,
+        "res://materials/opaque_white.material.toml",
+    );
+    let viewport_size = UVec2::new(160, 120);
+    let extract = build_overlapping_extract(
+        viewport_size,
+        model,
+        [(2, transparent_material), (3, opaque_material)],
+        vec![cluster(2, 20, 300), cluster(3, 30, 301)],
+        vec![page(300), page(301)],
+    );
+    let compiled = RenderPipelineAsset::default_deferred()
+        .compile_with_options(
+            &extract,
+            &RenderPipelineCompileOptions::default()
+                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
+                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
+                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
+                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
+                .with_feature_disabled(BuiltinRenderFeature::Bloom)
+                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
+                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
+                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
+                .with_feature_disabled(BuiltinRenderFeature::Particle)
+                .with_async_compute(false),
+        )
+        .unwrap();
+
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    renderer
+        .render_frame_with_pipeline(
+            &ViewportRenderFrame::from_extract(extract, viewport_size)
+                .with_virtual_geometry_prepare(Some(prepare_frame((2, 1), (3, 2)))),
+            &compiled,
+            None,
+        )
+        .unwrap();
+
+    renderer.drop_last_virtual_geometry_indirect_submission_buffer_for_test();
+    renderer.drop_last_virtual_geometry_mesh_draw_submission_token_records_for_test();
+    renderer.drop_last_virtual_geometry_mesh_draw_submission_records_for_test();
+    renderer.drop_last_virtual_geometry_indirect_args_buffer_for_test();
+    renderer.drop_last_virtual_geometry_indirect_draw_refs_buffer_for_test();
+    renderer.drop_last_virtual_geometry_indirect_segments_buffer_for_test();
+
+    let execution_segments = renderer
+        .read_last_virtual_geometry_indirect_execution_segments_with_entities()
+        .unwrap();
+    assert_eq!(
+        execution_segments
+            .iter()
+            .map(|segment| {
+                (
+                    segment.instance_index,
+                    (
+                        segment.entity,
+                        segment.cluster_start_ordinal,
+                        segment.cluster_span_count,
+                        segment.cluster_total_count,
+                        segment.page_id,
+                        segment.submission_slot,
+                        segment.state,
+                        segment.lineage_depth,
+                        segment.lod_level,
+                        segment.frontier_rank,
+                        segment.submission_index,
+                        segment.draw_ref_rank,
+                    ),
+                )
+            })
+            .collect::<Vec<_>>(),
+        vec![
+            (
+                Some(1),
+                (
+                    3,
+                    0,
+                    1,
+                    1,
+                    301,
+                    2,
+                    VirtualGeometryPrepareClusterState::Resident,
+                    0,
+                    0,
+                    0,
+                    1,
+                    0,
+                ),
+            ),
+            (
+                Some(0),
+                (
+                    2,
+                    0,
+                    1,
+                    1,
+                    300,
+                    1,
+                    VirtualGeometryPrepareClusterState::Resident,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                ),
+            ),
+        ],
+        "expected actual executed cluster-raster segment truth to survive on the deeper execution-record source with per-instance ownership intact even after shared segment and draw-ref buffers are gone"
+    );
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn virtual_geometry_execution_records_recover_draw_ref_indices_when_execution_index_buffer_is_gone()
+{
     let root =
         unique_temp_project_root("graphics_virtual_geometry_execution_records_recover_indices");
     let paths = ProjectPaths::from_root(&root).unwrap();
@@ -916,7 +1097,7 @@ fn virtual_geometry_execution_records_recover_draw_ref_indices_when_execution_in
     let mut renderer = SceneRenderer::new(asset_manager).unwrap();
     renderer
         .render_frame_with_pipeline(
-            &EditorOrRuntimeFrame::from_extract(extract, viewport_size)
+            &ViewportRenderFrame::from_extract(extract, viewport_size)
                 .with_virtual_geometry_prepare(Some(prepare_frame((2, 1), (3, 2)))),
             &compiled,
             None,
@@ -931,6 +1112,546 @@ fn virtual_geometry_execution_records_recover_draw_ref_indices_when_execution_in
             .unwrap(),
         vec![1, 0],
         "expected the deeper execution-record source to reconstruct actual submitted draw-ref indices even when the dedicated execution index buffer is gone"
+    );
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn virtual_geometry_submission_records_survive_with_execution_indices_and_gpu_authority_buffer_only(
+) {
+    let root =
+        unique_temp_project_root("graphics_virtual_geometry_gpu_authority_submission_records");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths.ensure_layout().unwrap();
+    ProjectManifest::new(
+        "GraphicsVirtualGeometryGpuAuthoritySubmissionRecords",
+        AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+        1,
+    )
+    .save(paths.manifest_path())
+    .unwrap();
+
+    write_flat_color_wgsl(
+        paths.assets_root().join("shaders").join("flat_color.wgsl"),
+        [1.0, 1.0, 1.0],
+    );
+    write_solid_png(
+        paths.assets_root().join("textures").join("white.png"),
+        [255, 255, 255, 255],
+    );
+    write_quad_obj(paths.assets_root().join("models").join("quad.obj"));
+    write_material(
+        paths
+            .assets_root()
+            .join("materials")
+            .join("transparent_red.material.toml"),
+        "GpuAuthorityTransparentRed",
+        "res://shaders/flat_color.wgsl",
+        "res://textures/white.png",
+        [1.0, 0.0, 0.0, 0.65],
+        AlphaMode::Blend,
+    );
+    write_material(
+        paths
+            .assets_root()
+            .join("materials")
+            .join("opaque_white.material.toml"),
+        "GpuAuthorityOpaqueWhite",
+        "res://shaders/flat_color.wgsl",
+        "res://textures/white.png",
+        [1.0, 1.0, 1.0, 1.0],
+        AlphaMode::Opaque,
+    );
+
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    asset_manager
+        .open_project(root.to_string_lossy().as_ref())
+        .unwrap();
+    let mut project = ProjectManager::open(&root).unwrap();
+    project.scan_and_import().unwrap();
+
+    let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/quad.obj");
+    let transparent_material = resource_handle::<MaterialMarker>(
+        &asset_manager,
+        "res://materials/transparent_red.material.toml",
+    );
+    let opaque_material = resource_handle::<MaterialMarker>(
+        &asset_manager,
+        "res://materials/opaque_white.material.toml",
+    );
+    let viewport_size = UVec2::new(160, 120);
+    let extract = build_overlapping_extract(
+        viewport_size,
+        model,
+        [(2, transparent_material), (3, opaque_material)],
+        vec![cluster(2, 20, 300), cluster(3, 30, 301)],
+        vec![page(300), page(301)],
+    );
+    let compiled = RenderPipelineAsset::default_deferred()
+        .compile_with_options(
+            &extract,
+            &RenderPipelineCompileOptions::default()
+                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
+                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
+                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
+                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
+                .with_feature_disabled(BuiltinRenderFeature::Bloom)
+                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
+                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
+                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
+                .with_feature_disabled(BuiltinRenderFeature::Particle)
+                .with_async_compute(false),
+        )
+        .unwrap();
+
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    renderer
+        .render_frame_with_pipeline(
+            &ViewportRenderFrame::from_extract(extract, viewport_size)
+                .with_virtual_geometry_prepare(Some(prepare_frame((2, 1), (3, 2)))),
+            &compiled,
+            None,
+        )
+        .unwrap();
+
+    renderer.drop_last_virtual_geometry_mesh_draw_submission_token_records_for_test();
+    renderer.drop_last_virtual_geometry_mesh_draw_submission_records_for_test();
+    renderer.drop_last_virtual_geometry_indirect_execution_records_buffer_for_test();
+    renderer.drop_last_virtual_geometry_indirect_submission_buffer_for_test();
+    renderer.drop_last_virtual_geometry_indirect_args_buffer_for_test();
+    renderer.drop_last_virtual_geometry_indirect_draw_refs_buffer_for_test();
+    renderer.drop_last_virtual_geometry_indirect_segments_buffer_for_test();
+
+    assert_eq!(
+        renderer
+            .read_last_virtual_geometry_mesh_draw_submission_records_with_instances()
+            .unwrap(),
+        vec![(Some(1), 3, 301, 1, 0), (Some(0), 2, 300, 0, 0)],
+        "expected actual submission records to survive on a GPU-generated authority source with the same per-instance ownership once CPU submission records, execution records, indirect args, submission tokens, draw-ref buffer, and segment buffer are all gone"
+    );
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn virtual_geometry_shared_indirect_segments_preserve_instance_index_for_submission_fallback() {
+    let root = unique_temp_project_root(
+        "graphics_virtual_geometry_shared_indirect_segments_with_instances",
+    );
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths.ensure_layout().unwrap();
+    ProjectManifest::new(
+        "GraphicsVirtualGeometrySharedIndirectSegmentsWithInstances",
+        AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+        1,
+    )
+    .save(paths.manifest_path())
+    .unwrap();
+
+    write_flat_color_wgsl(
+        paths.assets_root().join("shaders").join("flat_color.wgsl"),
+        [1.0, 1.0, 1.0],
+    );
+    write_solid_png(
+        paths.assets_root().join("textures").join("white.png"),
+        [255, 255, 255, 255],
+    );
+    write_quad_obj(paths.assets_root().join("models").join("quad.obj"));
+    write_material(
+        paths
+            .assets_root()
+            .join("materials")
+            .join("white.material.toml"),
+        "SharedSegmentsInstanceIndexWhite",
+        "res://shaders/flat_color.wgsl",
+        "res://textures/white.png",
+        [1.0, 1.0, 1.0, 1.0],
+        AlphaMode::Opaque,
+    );
+
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    asset_manager
+        .open_project(root.to_string_lossy().as_ref())
+        .unwrap();
+    let mut project = ProjectManager::open(&root).unwrap();
+    project.scan_and_import().unwrap();
+
+    let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/quad.obj");
+    let material =
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/white.material.toml");
+    let viewport_size = UVec2::new(160, 120);
+    let extract = build_overlapping_extract(
+        viewport_size,
+        model,
+        [(2, material.clone()), (3, material)],
+        vec![cluster(2, 20, 300), cluster(3, 30, 301)],
+        vec![page(300), page(301)],
+    );
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(
+            &extract,
+            &RenderPipelineCompileOptions::default()
+                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
+                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
+                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
+                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
+                .with_feature_disabled(BuiltinRenderFeature::Bloom)
+                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
+                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
+                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
+                .with_feature_disabled(BuiltinRenderFeature::Particle)
+                .with_async_compute(false),
+        )
+        .unwrap();
+
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    renderer
+        .render_frame_with_pipeline(
+            &ViewportRenderFrame::from_extract(extract, viewport_size)
+                .with_virtual_geometry_prepare(Some(prepare_frame((2, 1), (3, 2)))),
+            &compiled,
+            None,
+        )
+        .unwrap();
+
+    renderer.drop_last_virtual_geometry_mesh_draw_submission_token_records_for_test();
+    renderer.drop_last_virtual_geometry_mesh_draw_submission_records_for_test();
+    renderer.drop_last_virtual_geometry_indirect_execution_records_buffer_for_test();
+    renderer.drop_last_virtual_geometry_indirect_execution_submission_buffer_for_test();
+    renderer.drop_last_virtual_geometry_indirect_execution_args_buffer_for_test();
+    renderer.drop_last_virtual_geometry_indirect_execution_authority_buffer_for_test();
+    renderer.drop_last_virtual_geometry_indirect_authority_buffer_for_test();
+
+    assert_eq!(
+        renderer
+            .read_last_virtual_geometry_indirect_segments_with_instances()
+            .unwrap(),
+        vec![
+            (
+                Some(0),
+                2,
+                0,
+                1,
+                1,
+                300,
+                1,
+                VirtualGeometryPrepareClusterState::Resident,
+                0,
+                0,
+                0,
+                0,
+            ),
+            (
+                Some(1),
+                3,
+                0,
+                1,
+                1,
+                301,
+                2,
+                VirtualGeometryPrepareClusterState::Resident,
+                0,
+                0,
+                0,
+                1,
+            ),
+        ],
+        "expected shared indirect segment readback itself to preserve per-instance ownership so later fallback helpers do not have to collapse back to entity-only tuples"
+    );
+    assert_eq!(
+        renderer
+            .read_last_virtual_geometry_mesh_draw_submission_records_with_instances()
+            .unwrap(),
+        vec![(Some(0), 2, 300, 0, 0), (Some(1), 3, 301, 1, 0)],
+        "expected submission-record fallback to reuse shared segment instance ownership once execution authority, execution args, and CPU mirrors are all gone"
+    );
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn virtual_geometry_execution_records_survive_with_execution_indices_and_gpu_authority_buffer_only()
+{
+    let root =
+        unique_temp_project_root("graphics_virtual_geometry_gpu_authority_execution_records");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths.ensure_layout().unwrap();
+    ProjectManifest::new(
+        "GraphicsVirtualGeometryGpuAuthorityExecutionRecords",
+        AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+        1,
+    )
+    .save(paths.manifest_path())
+    .unwrap();
+
+    write_flat_color_wgsl(
+        paths.assets_root().join("shaders").join("flat_color.wgsl"),
+        [1.0, 1.0, 1.0],
+    );
+    write_solid_png(
+        paths.assets_root().join("textures").join("white.png"),
+        [255, 255, 255, 255],
+    );
+    write_quad_obj(paths.assets_root().join("models").join("quad.obj"));
+    write_material(
+        paths
+            .assets_root()
+            .join("materials")
+            .join("transparent_red.material.toml"),
+        "GpuAuthorityExecTransparentRed",
+        "res://shaders/flat_color.wgsl",
+        "res://textures/white.png",
+        [1.0, 0.0, 0.0, 0.65],
+        AlphaMode::Blend,
+    );
+    write_material(
+        paths
+            .assets_root()
+            .join("materials")
+            .join("opaque_white.material.toml"),
+        "GpuAuthorityExecOpaqueWhite",
+        "res://shaders/flat_color.wgsl",
+        "res://textures/white.png",
+        [1.0, 1.0, 1.0, 1.0],
+        AlphaMode::Opaque,
+    );
+
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    asset_manager
+        .open_project(root.to_string_lossy().as_ref())
+        .unwrap();
+    let mut project = ProjectManager::open(&root).unwrap();
+    project.scan_and_import().unwrap();
+
+    let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/quad.obj");
+    let transparent_material = resource_handle::<MaterialMarker>(
+        &asset_manager,
+        "res://materials/transparent_red.material.toml",
+    );
+    let opaque_material = resource_handle::<MaterialMarker>(
+        &asset_manager,
+        "res://materials/opaque_white.material.toml",
+    );
+    let viewport_size = UVec2::new(160, 120);
+    let extract = build_overlapping_extract(
+        viewport_size,
+        model,
+        [(2, transparent_material), (3, opaque_material)],
+        vec![cluster(2, 20, 300), cluster(3, 30, 301)],
+        vec![page(300), page(301)],
+    );
+    let compiled = RenderPipelineAsset::default_deferred()
+        .compile_with_options(
+            &extract,
+            &RenderPipelineCompileOptions::default()
+                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
+                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
+                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
+                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
+                .with_feature_disabled(BuiltinRenderFeature::Bloom)
+                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
+                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
+                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
+                .with_feature_disabled(BuiltinRenderFeature::Particle)
+                .with_async_compute(false),
+        )
+        .unwrap();
+
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    renderer
+        .render_frame_with_pipeline(
+            &ViewportRenderFrame::from_extract(extract, viewport_size)
+                .with_virtual_geometry_prepare(Some(prepare_frame((2, 1), (3, 2)))),
+            &compiled,
+            None,
+        )
+        .unwrap();
+
+    renderer.drop_last_virtual_geometry_indirect_execution_records_buffer_for_test();
+    renderer.drop_last_virtual_geometry_indirect_submission_buffer_for_test();
+    renderer.drop_last_virtual_geometry_indirect_args_buffer_for_test();
+    renderer.drop_last_virtual_geometry_indirect_draw_refs_buffer_for_test();
+    renderer.drop_last_virtual_geometry_indirect_segments_buffer_for_test();
+
+    assert_eq!(
+        renderer
+            .read_last_virtual_geometry_indirect_execution_records()
+            .unwrap(),
+        vec![(1, 3, 301, 1, 0), (0, 2, 300, 0, 0)],
+        "expected actual execution records to survive on execution indices + GPU authority alone once the host-built execution records buffer and older shared indirect buffers are gone"
+    );
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn virtual_geometry_execution_segments_survive_with_execution_indices_and_gpu_authority_buffer_only(
+) {
+    let root =
+        unique_temp_project_root("graphics_virtual_geometry_gpu_authority_execution_segments");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths.ensure_layout().unwrap();
+    ProjectManifest::new(
+        "GraphicsVirtualGeometryGpuAuthorityExecutionSegments",
+        AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+        1,
+    )
+    .save(paths.manifest_path())
+    .unwrap();
+
+    write_flat_color_wgsl(
+        paths.assets_root().join("shaders").join("flat_color.wgsl"),
+        [1.0, 1.0, 1.0],
+    );
+    write_solid_png(
+        paths.assets_root().join("textures").join("white.png"),
+        [255, 255, 255, 255],
+    );
+    write_quad_obj(paths.assets_root().join("models").join("quad.obj"));
+    write_material(
+        paths
+            .assets_root()
+            .join("materials")
+            .join("transparent_red.material.toml"),
+        "GpuAuthoritySegTransparentRed",
+        "res://shaders/flat_color.wgsl",
+        "res://textures/white.png",
+        [1.0, 0.0, 0.0, 0.65],
+        AlphaMode::Blend,
+    );
+    write_material(
+        paths
+            .assets_root()
+            .join("materials")
+            .join("opaque_white.material.toml"),
+        "GpuAuthoritySegOpaqueWhite",
+        "res://shaders/flat_color.wgsl",
+        "res://textures/white.png",
+        [1.0, 1.0, 1.0, 1.0],
+        AlphaMode::Opaque,
+    );
+
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    asset_manager
+        .open_project(root.to_string_lossy().as_ref())
+        .unwrap();
+    let mut project = ProjectManager::open(&root).unwrap();
+    project.scan_and_import().unwrap();
+
+    let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/quad.obj");
+    let transparent_material = resource_handle::<MaterialMarker>(
+        &asset_manager,
+        "res://materials/transparent_red.material.toml",
+    );
+    let opaque_material = resource_handle::<MaterialMarker>(
+        &asset_manager,
+        "res://materials/opaque_white.material.toml",
+    );
+    let viewport_size = UVec2::new(160, 120);
+    let extract = build_overlapping_extract(
+        viewport_size,
+        model,
+        [(2, transparent_material), (3, opaque_material)],
+        vec![cluster(2, 20, 300), cluster(3, 30, 301)],
+        vec![page(300), page(301)],
+    );
+    let compiled = RenderPipelineAsset::default_deferred()
+        .compile_with_options(
+            &extract,
+            &RenderPipelineCompileOptions::default()
+                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
+                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
+                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
+                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
+                .with_feature_disabled(BuiltinRenderFeature::Bloom)
+                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
+                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
+                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
+                .with_feature_disabled(BuiltinRenderFeature::Particle)
+                .with_async_compute(false),
+        )
+        .unwrap();
+
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    renderer
+        .render_frame_with_pipeline(
+            &ViewportRenderFrame::from_extract(extract, viewport_size)
+                .with_virtual_geometry_prepare(Some(prepare_frame((2, 1), (3, 2)))),
+            &compiled,
+            None,
+        )
+        .unwrap();
+
+    renderer.drop_last_virtual_geometry_indirect_execution_records_buffer_for_test();
+    renderer.drop_last_virtual_geometry_indirect_submission_buffer_for_test();
+    renderer.drop_last_virtual_geometry_indirect_args_buffer_for_test();
+    renderer.drop_last_virtual_geometry_indirect_draw_refs_buffer_for_test();
+    renderer.drop_last_virtual_geometry_indirect_segments_buffer_for_test();
+
+    let execution_segments = renderer
+        .read_last_virtual_geometry_indirect_execution_segments_with_entities()
+        .unwrap();
+    assert_eq!(
+        execution_segments
+            .iter()
+            .map(|segment| {
+                (
+                    segment.instance_index,
+                    (
+                        segment.entity,
+                        segment.cluster_start_ordinal,
+                        segment.cluster_span_count,
+                        segment.cluster_total_count,
+                        segment.page_id,
+                        segment.submission_slot,
+                        segment.state,
+                        segment.lineage_depth,
+                        segment.lod_level,
+                        segment.frontier_rank,
+                        segment.submission_index,
+                        segment.draw_ref_rank,
+                    ),
+                )
+            })
+            .collect::<Vec<_>>(),
+        vec![
+            (
+                Some(1),
+                (
+                    3,
+                    0,
+                    1,
+                    1,
+                    301,
+                    2,
+                    VirtualGeometryPrepareClusterState::Resident,
+                    0,
+                    0,
+                    0,
+                    1,
+                    0,
+                ),
+            ),
+            (
+                Some(0),
+                (
+                    2,
+                    0,
+                    1,
+                    1,
+                    300,
+                    1,
+                    VirtualGeometryPrepareClusterState::Resident,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                ),
+            ),
+        ],
+        "expected actual execution segments to survive on execution indices + GPU authority alone with the same per-instance ownership that the execution snapshot already exposes"
     );
 
     let _ = fs::remove_dir_all(root);
@@ -993,7 +1714,9 @@ fn build_overlapping_extract(
                     render_layer_mask: default_render_layer_mask(),
                 },
             ],
-            lights: Vec::new(),
+            directional_lights: Vec::new(),
+            point_lights: Vec::new(),
+            spot_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract {
             display_mode: DisplayMode::Shaded,
@@ -1005,6 +1728,7 @@ fn build_overlapping_extract(
             fallback_skybox: FallbackSkyboxKind::None,
             clear_color: Vec4::ZERO,
         },
+        virtual_geometry_debug: None,
     };
     let mut extract =
         RenderFrameExtract::from_snapshot(RenderWorldSnapshotHandle::new(1), snapshot);
@@ -1013,6 +1737,39 @@ fn build_overlapping_extract(
         page_budget: pages.len() as u32,
         clusters,
         pages,
+        instances: vec![
+            RenderVirtualGeometryInstance {
+                entity: materials[0].0,
+                source_model: None,
+                transform: Transform {
+                    translation: Vec3::ZERO,
+                    scale: Vec3::new(0.8, 0.8, 1.0),
+                    ..Transform::default()
+                },
+                cluster_offset: 0,
+                cluster_count: 1,
+                page_offset: 0,
+                page_count: 1,
+                mesh_name: Some("SubmissionExecutionOrderMesh0".to_string()),
+                source_hint: Some("graphics-test".to_string()),
+            },
+            RenderVirtualGeometryInstance {
+                entity: materials[1].0,
+                source_model: None,
+                transform: Transform {
+                    translation: Vec3::ZERO,
+                    scale: Vec3::new(0.8, 0.8, 1.0),
+                    ..Transform::default()
+                },
+                cluster_offset: 1,
+                cluster_count: 1,
+                page_offset: 1,
+                page_count: 1,
+                mesh_name: Some("SubmissionExecutionOrderMesh1".to_string()),
+                source_hint: Some("graphics-test".to_string()),
+            },
+        ],
+        debug: Default::default(),
     });
     extract
 }

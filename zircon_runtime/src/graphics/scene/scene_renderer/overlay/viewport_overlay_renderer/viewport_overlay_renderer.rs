@@ -12,15 +12,18 @@ pub(crate) struct ViewportOverlayRenderer {
         SelectionOutlinePass,
     pub(in crate::graphics::scene::scene_renderer::overlay::viewport_overlay_renderer) wireframe:
         WireframePass,
-    pub(in crate::graphics::scene::scene_renderer::overlay::viewport_overlay_renderer) grid: GridPass,
+    pub(in crate::graphics::scene::scene_renderer::overlay::viewport_overlay_renderer) grid:
+        GridPass,
     pub(in crate::graphics::scene::scene_renderer::overlay::viewport_overlay_renderer) scene_gizmo:
         SceneGizmoPass,
-    pub(in crate::graphics::scene::scene_renderer::overlay::viewport_overlay_renderer) handle: HandlePass,
+    pub(in crate::graphics::scene::scene_renderer::overlay::viewport_overlay_renderer) handle:
+        HandlePass,
     pub(in crate::graphics::scene::scene_renderer::overlay::viewport_overlay_renderer) line_pipeline:
         wgpu::RenderPipeline,
     pub(in crate::graphics::scene::scene_renderer::overlay::viewport_overlay_renderer) sky_pipeline:
         wgpu::RenderPipeline,
     pub(in crate::graphics::scene::scene_renderer::overlay::viewport_overlay_renderer) grid_vertex_buffer:
         wgpu::Buffer,
-    pub(in crate::graphics::scene::scene_renderer::overlay::viewport_overlay_renderer) grid_vertex_count: u32,
+    pub(in crate::graphics::scene::scene_renderer::overlay::viewport_overlay_renderer) grid_vertex_count:
+        u32,
 }

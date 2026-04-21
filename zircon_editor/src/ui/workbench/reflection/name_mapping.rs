@@ -1,7 +1,7 @@
 use crate::ui::EditorActivityReflection;
 
-use crate::layout::ActivityDrawerSlot;
-use crate::snapshot::ViewContentKind;
+use crate::ui::workbench::layout::ActivityDrawerSlot;
+use crate::ui::workbench::snapshot::ViewContentKind;
 
 pub(super) fn binding_view_id(activity: &EditorActivityReflection) -> String {
     match activity.descriptor_id.as_str() {
@@ -46,6 +46,8 @@ pub(super) fn content_kind_name(kind: ViewContentKind) -> &'static str {
         ViewContentKind::PrefabEditor => "prefab_editor",
         ViewContentKind::AssetBrowser => "asset_browser",
         ViewContentKind::UiAssetEditor => "ui_asset_editor",
+        ViewContentKind::AnimationSequenceEditor => "animation_sequence_editor",
+        ViewContentKind::AnimationGraphEditor => "animation_graph_editor",
         ViewContentKind::Placeholder => "placeholder",
     }
 }

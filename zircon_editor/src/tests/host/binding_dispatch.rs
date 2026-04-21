@@ -1,28 +1,31 @@
-use crate::ui::{
-    AssetCommand, DockCommand, EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind,
-    InspectorFieldChange, SelectionCommand, ViewportCommand, WelcomeCommand,
+use crate::core::editing::intent::EditorIntent;
+use crate::core::editor_event::{
+    ActivityDrawerMode, ActivityDrawerSlot, EditorAssetSurface, EditorAssetUtilityTab,
+    EditorAssetViewMode, InspectorFieldChange, LayoutCommand, MainPageId, SelectionHostEvent,
+    ViewHost, ViewInstanceId,
 };
-use zircon_runtime::core::framework::animation::AnimationTrackPath;
 use crate::scene::viewport::{
     DisplayMode, GridMode, ProjectionMode, SceneViewportTool, TransformSpace, ViewOrientation,
 };
-use zircon_runtime::core::math::UVec2;
-use zircon_runtime::ui::binding::UiBindingValue;
-
-use crate::{
+use crate::ui::binding::{
+    AnimationCommand, AssetCommand, DockCommand, EditorUiBinding, EditorUiBindingPayload,
+    EditorUiEventKind, SelectionCommand, ViewportCommand, WelcomeCommand,
+};
+use crate::ui::binding_dispatch::{
     apply_inspector_binding, apply_selection_binding, apply_viewport_binding,
     dispatch_animation_binding, dispatch_asset_binding, dispatch_docking_binding,
     dispatch_selection_binding, dispatch_welcome_binding, AnimationHostEvent, AssetHostEvent,
-    LayoutCommand, SelectionHostEvent, WelcomeHostEvent,
+    WelcomeHostEvent,
 };
+use zircon_runtime::core::framework::animation::AnimationTrackPath;
+use zircon_runtime::core::math::UVec2;
+use zircon_runtime::ui::binding::UiBindingValue;
 
 #[test]
 fn inspector_binding_applies_batch_changes_to_editor_state() {
     let mut state = support::test_state();
     let cube = support::cube_id(&state);
-    state
-        .apply_intent(crate::EditorIntent::SelectNode(cube))
-        .unwrap();
+    state.apply_intent(EditorIntent::SelectNode(cube)).unwrap();
 
     let binding = EditorUiBinding::new(
         "InspectorView",
@@ -41,14 +44,16 @@ fn inspector_binding_applies_batch_changes_to_editor_state() {
     );
 
     assert!(apply_inspector_binding(&mut state, &binding).unwrap());
-    state.world.with_world(|scene: &zircon_runtime::scene::Scene| {
-        let node = scene.find_node(cube).unwrap();
-        assert_eq!(node.name, "Bound Cube");
-        assert_eq!(
-            node.transform.translation,
-            zircon_runtime::core::math::Vec3::new(4.0, 5.0, 6.0)
-        );
-    });
+    state
+        .world
+        .with_world(|scene: &zircon_runtime::scene::Scene| {
+            let node = scene.find_node(cube).unwrap();
+            assert_eq!(node.name, "Bound Cube");
+            assert_eq!(
+                node.transform.translation,
+                zircon_runtime::core::math::Vec3::new(4.0, 5.0, 6.0)
+            );
+        });
 }
 
 #[test]
@@ -66,8 +71,8 @@ fn docking_binding_dispatches_into_layout_command() {
     assert_eq!(
         dispatch_docking_binding(&binding).unwrap(),
         LayoutCommand::SetDrawerMode {
-            slot: crate::ActivityDrawerSlot::LeftTop,
-            mode: crate::ActivityDrawerMode::AutoHide,
+            slot: ActivityDrawerSlot::LeftTop,
+            mode: ActivityDrawerMode::AutoHide,
         }
     );
 }
@@ -122,8 +127,8 @@ fn docking_attach_binding_dispatches_into_layout_command() {
     assert_eq!(
         dispatch_docking_binding(&drawer_binding).unwrap(),
         LayoutCommand::AttachView {
-            instance_id: crate::ViewInstanceId::new("editor.project#1"),
-            target: crate::ViewHost::Drawer(crate::ActivityDrawerSlot::RightTop),
+            instance_id: ViewInstanceId::new("editor.project#1"),
+            target: ViewHost::Drawer(ActivityDrawerSlot::RightTop),
             anchor: None,
         }
     );
@@ -141,8 +146,8 @@ fn docking_attach_binding_dispatches_into_layout_command() {
     assert_eq!(
         dispatch_docking_binding(&document_binding).unwrap(),
         LayoutCommand::AttachView {
-            instance_id: crate::ViewInstanceId::new("editor.project#1"),
-            target: crate::ViewHost::Document(crate::MainPageId::workbench(), Vec::new()),
+            instance_id: ViewInstanceId::new("editor.project#1"),
+            target: ViewHost::Document(MainPageId::workbench(), Vec::new()),
             anchor: None,
         }
     );
@@ -214,10 +219,12 @@ fn viewport_binding_applies_toolbar_commands_to_scene_viewport_state() {
 #[test]
 fn viewport_toggle_bindings_flow_into_render_packet() {
     let mut state = support::test_state();
-    let camera = state.world.with_world(|scene| scene.active_camera());
+    let camera = state
+        .world
+        .with_world(|scene: &zircon_runtime::scene::Scene| scene.active_camera());
 
     state
-        .apply_intent(crate::EditorIntent::SelectNode(camera))
+        .apply_intent(EditorIntent::SelectNode(camera))
         .unwrap();
 
     for command in [
@@ -251,9 +258,11 @@ fn viewport_toggle_bindings_flow_into_render_packet() {
 #[test]
 fn gizmos_toggle_keeps_transform_handles_for_selected_camera() {
     let mut state = support::test_state();
-    let camera = state.world.with_world(|scene| scene.active_camera());
+    let camera = state
+        .world
+        .with_world(|scene: &zircon_runtime::scene::Scene| scene.active_camera());
     state
-        .apply_intent(crate::EditorIntent::SelectNode(camera))
+        .apply_intent(EditorIntent::SelectNode(camera))
         .unwrap();
 
     for command in [
@@ -280,9 +289,7 @@ fn gizmos_toggle_keeps_transform_handles_for_selected_camera() {
 fn drag_tool_keeps_renderable_highlight_without_handles() {
     let mut state = support::test_state();
     let cube = support::cube_id(&state);
-    state
-        .apply_intent(crate::EditorIntent::SelectNode(cube))
-        .unwrap();
+    state.apply_intent(EditorIntent::SelectNode(cube)).unwrap();
 
     let binding = EditorUiBinding::new(
         "SceneView",
@@ -304,14 +311,172 @@ fn animation_binding_dispatches_into_host_event() {
         "AnimationClipEditorView",
         "AddFrameButton",
         EditorUiEventKind::Click,
-        EditorUiBindingPayload::position_of_track_and_frame("root/child:transform.translation", 24),
+        EditorUiBindingPayload::add_animation_key("root/child:transform.translation", 24),
     );
 
     assert_eq!(
         dispatch_animation_binding(&binding).unwrap(),
-        AnimationHostEvent::AddFrame {
+        AnimationHostEvent::AddKey {
             track_path: AnimationTrackPath::parse("root/child:transform.translation").unwrap(),
             frame: 24,
+        }
+    );
+}
+
+#[test]
+fn animation_track_lifecycle_and_playback_bindings_dispatch_into_host_events() {
+    let create_track = EditorUiBinding::new(
+        "AnimationSequenceEditorView",
+        "CreateTrackButton",
+        EditorUiEventKind::Click,
+        EditorUiBindingPayload::animation_command(AnimationCommand::CreateTrack {
+            track_path: "root/child:AnimationPlayer.weight".to_string(),
+        }),
+    );
+    assert_eq!(
+        dispatch_animation_binding(&create_track).unwrap(),
+        AnimationHostEvent::CreateTrack {
+            track_path: AnimationTrackPath::parse("root/child:AnimationPlayer.weight").unwrap(),
+        }
+    );
+
+    let rebind = EditorUiBinding::new(
+        "AnimationSequenceEditorView",
+        "RebindTrackButton",
+        EditorUiEventKind::Click,
+        EditorUiBindingPayload::animation_command(AnimationCommand::RebindTrack {
+            from_track_path: "root/child:Transform.translation".to_string(),
+            to_track_path: "root/child:AnimationPlayer.weight".to_string(),
+        }),
+    );
+    assert_eq!(
+        dispatch_animation_binding(&rebind).unwrap(),
+        AnimationHostEvent::RebindTrack {
+            from_track_path: AnimationTrackPath::parse("root/child:Transform.translation").unwrap(),
+            to_track_path: AnimationTrackPath::parse("root/child:AnimationPlayer.weight").unwrap(),
+        }
+    );
+
+    let playback = EditorUiBinding::new(
+        "AnimationSequenceEditorView",
+        "PlaybackToggle",
+        EditorUiEventKind::Click,
+        EditorUiBindingPayload::animation_command(AnimationCommand::SetPlayback {
+            playing: true,
+            looping: false,
+            speed: 1.25,
+        }),
+    );
+    assert_eq!(
+        dispatch_animation_binding(&playback).unwrap(),
+        AnimationHostEvent::SetPlayback {
+            playing: true,
+            looping: false,
+            speed: 1.25,
+        }
+    );
+}
+
+#[test]
+fn animation_timeline_graph_and_state_machine_bindings_dispatch_into_host_events() {
+    let timeline_range = EditorUiBinding::new(
+        "AnimationSequenceEditorView",
+        "TimelineRange",
+        EditorUiEventKind::Change,
+        EditorUiBindingPayload::animation_command(AnimationCommand::SetTimelineRange {
+            start_frame: 12,
+            end_frame: 96,
+        }),
+    );
+    assert_eq!(
+        dispatch_animation_binding(&timeline_range).unwrap(),
+        AnimationHostEvent::SetTimelineRange {
+            start_frame: 12,
+            end_frame: 96,
+        }
+    );
+
+    let timeline_selection = EditorUiBinding::new(
+        "AnimationSequenceEditorView",
+        "TimelineSelection",
+        EditorUiEventKind::Change,
+        EditorUiBindingPayload::animation_command(AnimationCommand::SelectTimelineSpan {
+            track_path: "Root/Hero:Transform.translation".to_string(),
+            start_frame: 24,
+            end_frame: 48,
+        }),
+    );
+    assert_eq!(
+        dispatch_animation_binding(&timeline_selection).unwrap(),
+        AnimationHostEvent::SelectTimelineSpan {
+            track_path: AnimationTrackPath::parse("Root/Hero:Transform.translation").unwrap(),
+            start_frame: 24,
+            end_frame: 48,
+        }
+    );
+
+    let graph_node = EditorUiBinding::new(
+        "AnimationGraphEditorView",
+        "AddBlendNode",
+        EditorUiEventKind::Click,
+        EditorUiBindingPayload::animation_command(AnimationCommand::AddGraphNode {
+            graph_path: "res://animation/hero.graph.zranim".to_string(),
+            node_id: "blend_walk_run".to_string(),
+            node_kind: "blend".to_string(),
+        }),
+    );
+    assert_eq!(
+        dispatch_animation_binding(&graph_node).unwrap(),
+        AnimationHostEvent::AddGraphNode {
+            graph_path: "res://animation/hero.graph.zranim".to_string(),
+            node_id: "blend_walk_run".to_string(),
+            node_kind: "blend".to_string(),
+        }
+    );
+
+    let state_transition = EditorUiBinding::new(
+        "AnimationGraphEditorView",
+        "CreateTransition",
+        EditorUiEventKind::Click,
+        EditorUiBindingPayload::animation_command(AnimationCommand::CreateTransition {
+            state_machine_path: "res://animation/hero.state_machine.zranim".to_string(),
+            from_state: "Idle".to_string(),
+            to_state: "Run".to_string(),
+            duration_frames: 8,
+        }),
+    );
+    assert_eq!(
+        dispatch_animation_binding(&state_transition).unwrap(),
+        AnimationHostEvent::CreateTransition {
+            state_machine_path: "res://animation/hero.state_machine.zranim".to_string(),
+            from_state: "Idle".to_string(),
+            to_state: "Run".to_string(),
+            duration_frames: 8,
+        }
+    );
+
+    let condition = EditorUiBinding::new(
+        "AnimationGraphEditorView",
+        "TransitionCondition",
+        EditorUiEventKind::Change,
+        EditorUiBindingPayload::animation_command(AnimationCommand::SetTransitionCondition {
+            state_machine_path: "res://animation/hero.state_machine.zranim".to_string(),
+            from_state: "Idle".to_string(),
+            to_state: "Run".to_string(),
+            parameter_name: "speed".to_string(),
+            operator: "greater_equal".to_string(),
+            value_literal: "1.0".to_string(),
+        }),
+    );
+    assert_eq!(
+        dispatch_animation_binding(&condition).unwrap(),
+        AnimationHostEvent::SetTransitionCondition {
+            state_machine_path: "res://animation/hero.state_machine.zranim".to_string(),
+            from_state: "Idle".to_string(),
+            to_state: "Run".to_string(),
+            parameter_name: "speed".to_string(),
+            operator: "greater_equal".to_string(),
+            value_literal: "1.0".to_string(),
         }
     );
 }
@@ -371,8 +536,8 @@ fn asset_view_mode_binding_dispatches_into_typed_host_event() {
     assert_eq!(
         dispatch_asset_binding(&binding).unwrap(),
         AssetHostEvent::SetViewMode {
-            surface: crate::EditorAssetSurface::Browser,
-            view_mode: crate::EditorAssetViewMode::Thumbnail,
+            surface: EditorAssetSurface::Browser,
+            view_mode: EditorAssetViewMode::Thumbnail,
         }
     );
 }
@@ -392,8 +557,8 @@ fn asset_utility_tab_binding_dispatches_into_typed_host_event() {
     assert_eq!(
         dispatch_asset_binding(&binding).unwrap(),
         AssetHostEvent::SetUtilityTab {
-            surface: crate::EditorAssetSurface::Browser,
-            tab: crate::EditorAssetUtilityTab::Metadata,
+            surface: EditorAssetSurface::Browser,
+            tab: EditorAssetUtilityTab::Metadata,
         }
     );
 }
@@ -437,12 +602,11 @@ fn welcome_open_recent_binding_dispatches_into_typed_host_event() {
 }
 
 mod support {
+    use crate::ui::workbench::state::EditorState;
     use zircon_runtime::core::math::UVec2;
-    use zircon_runtime::scene::DefaultLevelManager;
     use zircon_runtime::scene::components::NodeKind;
+    use zircon_runtime::scene::DefaultLevelManager;
     use zircon_runtime::scene::NodeId;
-
-    use crate::EditorState;
 
     pub fn test_state() -> EditorState {
         let manager = DefaultLevelManager::default();
@@ -450,13 +614,15 @@ mod support {
     }
 
     pub fn cube_id(state: &EditorState) -> NodeId {
-        state.world.with_world(|scene| {
-            scene
-                .nodes()
-                .iter()
-                .find(|node| matches!(node.kind, NodeKind::Cube))
-                .map(|node| node.id)
-                .unwrap()
-        })
+        state
+            .world
+            .with_world(|scene: &zircon_runtime::scene::Scene| {
+                scene
+                    .nodes()
+                    .iter()
+                    .find(|node| matches!(node.kind, NodeKind::Cube))
+                    .map(|node| node.id)
+                    .unwrap()
+            })
     }
 }

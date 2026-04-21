@@ -1,4 +1,4 @@
-use crate::layout::{ActivityDrawerMode, ActivityDrawerSlot};
+use crate::ui::workbench::layout::{ActivityDrawerMode, ActivityDrawerSlot};
 use crate::ui::workbench::model::{DocumentTabModel, PaneTabModel, WorkbenchViewModel};
 
 pub(super) fn active_tool_tab<'a>(

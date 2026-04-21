@@ -3,7 +3,6 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use image::{ImageBuffer, ImageFormat, Rgba};
 use crate::asset::assets::{
     AlphaMode, MaterialAsset, SceneAsset, SceneCameraAsset, SceneEntityAsset,
     SceneMeshInstanceAsset, SceneMobilityAsset, TransformAsset,
@@ -22,6 +21,7 @@ use crate::core::math::{Transform, UVec2, Vec3, Vec4};
 use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle};
 use crate::scene::components::{default_render_layer_mask, Mobility};
 use crate::scene::world::World;
+use image::{ImageBuffer, ImageFormat, Rgba};
 
 use crate::{runtime::WgpuRenderFramework, SceneRenderer};
 
@@ -66,6 +66,7 @@ fn directory_project_scene_renders_non_background_frame_with_gizmo_overlay() {
         active_camera_override: None,
         camera: None,
         viewport_size: Some(UVec2::new(320, 240)),
+        virtual_geometry_debug: None,
     });
 
     let mut renderer = SceneRenderer::new(asset_manager).unwrap();
@@ -939,6 +940,16 @@ fn write_scene(path: PathBuf, material_uri: &str) {
                 }),
                 mesh: None,
                 directional_light: None,
+                point_light: None,
+                spot_light: None,
+                rigid_body: None,
+                collider: None,
+                joint: None,
+                animation_skeleton: None,
+                animation_player: None,
+                animation_sequence_player: None,
+                animation_graph_player: None,
+                animation_state_machine_player: None,
             },
             SceneEntityAsset {
                 entity: 2,
@@ -958,6 +969,16 @@ fn write_scene(path: PathBuf, material_uri: &str) {
                     material: asset_reference(material_uri),
                 }),
                 directional_light: None,
+                point_light: None,
+                spot_light: None,
+                rigid_body: None,
+                collider: None,
+                joint: None,
+                animation_skeleton: None,
+                animation_player: None,
+                animation_sequence_player: None,
+                animation_graph_player: None,
+                animation_state_machine_player: None,
             },
         ],
     };
@@ -995,7 +1016,9 @@ fn build_snapshot(
         scene: RenderSceneGeometryExtract {
             camera,
             meshes,
-            lights,
+            directional_lights: lights,
+            point_lights: Vec::new(),
+            spot_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract::default(),
         preview: PreviewEnvironmentExtract {
@@ -1004,6 +1027,7 @@ fn build_snapshot(
             fallback_skybox: FallbackSkyboxKind::None,
             clear_color: Vec4::ZERO,
         },
+        virtual_geometry_debug: None,
     }
 }
 

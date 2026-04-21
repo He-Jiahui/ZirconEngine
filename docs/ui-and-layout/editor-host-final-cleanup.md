@@ -14,8 +14,9 @@ related_code:
   - zircon_editor/src/ui/slint_host/ui/apply_presentation.rs
   - zircon_editor/src/ui/slint_host/ui/shell_presentation.rs
   - zircon_editor/src/ui/slint_host/ui/workbench_tabs.rs
-  - zircon_editor/src/tests/host/slint_window.rs
-  - zircon_editor/src/tests/host/slint_menu_pointer.rs
+  - zircon_editor/src/tests/host/slint_window/ui_asset_editor.rs
+  - zircon_editor/src/tests/host/slint_menu_pointer/layout.rs
+  - zircon_editor/src/tests/host/slint_menu_pointer/surface_contract.rs
   - zircon_editor/src/ui/slint_host/app/tests/floating_window_projection.rs
   - zircon_editor/tests/workbench_slint_shell.rs
   - zircon_editor/ui/workbench/panes.slint
@@ -44,8 +45,9 @@ plan_sources:
   - user: 2026-04-18 pane 内部更细的 property/callback schema 继续 generic 化，以及更大面的 generic host boundary
   - .codex/plans/编辑器 .slint 去真源 Runtime UI 可用 Cutover 路线图.md
 tests:
-  - zircon_editor/src/tests/host/slint_window.rs
-  - zircon_editor/src/tests/host/slint_menu_pointer.rs
+  - zircon_editor/src/tests/host/slint_window/ui_asset_editor.rs
+  - zircon_editor/src/tests/host/slint_menu_pointer/layout.rs
+  - zircon_editor/src/tests/host/slint_menu_pointer/surface_contract.rs
   - zircon_editor/src/ui/slint_host/app/tests/floating_window_projection.rs
   - zircon_editor/tests/workbench_slint_shell.rs
   - cargo check -p zircon_editor --lib --locked

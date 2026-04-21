@@ -1,0 +1,56 @@
+import { AnimationEditorPaneData } from "animation_editor_pane.slint";
+import { SceneNodeData } from "panes.slint";
+import { UiAssetEditorPaneData } from "ui_asset_editor_data.slint";
+
+export struct ProjectOverviewData {
+    project_name: string,
+    project_root: string,
+    assets_root: string,
+    library_root: string,
+    default_scene_uri: string,
+    catalog_revision: string,
+    folder_count: string,
+    asset_count: string,
+}
+
+export { SceneNodeData } from "panes.slint";
+
+export struct SceneViewportChromeData {
+    tool: string,
+    transform_space: string,
+    projection_mode: string,
+    view_orientation: string,
+    display_mode: string,
+    grid_mode: string,
+    gizmos_enabled: bool,
+    preview_lighting: bool,
+    preview_skybox: bool,
+    translate_snap: float,
+    rotate_snap_deg: float,
+    scale_snap: float,
+    translate_snap_label: string,
+    rotate_snap_label: string,
+    scale_snap_label: string,
+}
+
+export struct PaneData {
+    id: string,
+    slot: string,
+    kind: string,
+    title: string,
+    icon_key: string,
+    subtitle: string,
+    info: string,
+    show_empty: bool,
+    empty_title: string,
+    empty_body: string,
+    primary_action_label: string,
+    primary_action_id: string,
+    secondary_action_label: string,
+    secondary_action_id: string,
+    secondary_hint: string,
+    show_toolbar: bool,
+    viewport: SceneViewportChromeData,
+    ui_asset: UiAssetEditorPaneData,
+    animation: AnimationEditorPaneData,
+}

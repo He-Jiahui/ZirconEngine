@@ -1,5 +1,7 @@
-use crate::snapshot::{DocumentWorkspaceSnapshot, EditorChromeSnapshot, MainPageSnapshot};
-use crate::MainPageId;
+use crate::ui::workbench::layout::MainPageId;
+use crate::ui::workbench::snapshot::{
+    DocumentWorkspaceSnapshot, EditorChromeSnapshot, MainPageSnapshot,
+};
 
 use super::page_access::page_id;
 

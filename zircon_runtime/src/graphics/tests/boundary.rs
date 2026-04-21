@@ -29,8 +29,10 @@ fn graphics_root_no_longer_exports_legacy_preview_or_render_service_surface() {
 fn graphics_root_no_longer_exports_runtime_ui_host_surface() {
     let graphics_mod_source =
         include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/graphics/mod.rs"));
-    let runtime_mod_source =
-        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/graphics/runtime/mod.rs"));
+    let runtime_mod_source = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/graphics/runtime/mod.rs"
+    ));
 
     for forbidden in [
         "RuntimeUiFixture",

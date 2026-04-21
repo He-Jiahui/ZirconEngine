@@ -45,7 +45,7 @@ impl UiDocumentCompiler {
             let mount_name = child.mount.clone().unwrap_or_default();
             let expanded = self.expand_node(
                 caller_document,
-                &child.child,
+                &child.node,
                 caller_tokens,
                 params,
                 None,

@@ -1,4 +1,7 @@
-use crate::core::framework::render::{RenderFrameExtract, RenderFrameworkError, RenderViewportHandle};
+use crate::core::framework::render::{
+    RenderFrameExtract, RenderFrameworkError, RenderViewportHandle,
+};
+use crate::ui::surface::UiRenderExtract;
 
 use super::super::super::render_framework_backend_error::render_framework_backend_error;
 use super::super::super::wgpu_render_framework::WgpuRenderFramework;
@@ -16,12 +19,21 @@ pub(in crate::graphics::runtime::render_framework) fn submit_frame_extract(
     viewport: RenderViewportHandle,
     extract: RenderFrameExtract,
 ) -> Result<(), RenderFrameworkError> {
-    let context = build_frame_submission_context(server, viewport, &extract, None)?;
+    submit_frame_extract_with_ui(server, viewport, extract, None)
+}
+
+pub(in crate::graphics::runtime::render_framework) fn submit_frame_extract_with_ui(
+    server: &WgpuRenderFramework,
+    viewport: RenderViewportHandle,
+    extract: RenderFrameExtract,
+    ui: Option<UiRenderExtract>,
+) -> Result<(), RenderFrameworkError> {
+    let context = build_frame_submission_context(server, viewport, &extract, ui.as_ref())?;
     let prepared = prepare_runtime_submission(&context);
 
     let mut state = server.state.lock().unwrap();
     let resolved_history = resolve_history_handle(&mut state, viewport, &context);
-    let runtime_frame = build_runtime_frame(extract, &context, &prepared);
+    let runtime_frame = build_runtime_frame(extract, ui, &context, &prepared);
     let frame = state
         .renderer
         .render_frame_with_pipeline(

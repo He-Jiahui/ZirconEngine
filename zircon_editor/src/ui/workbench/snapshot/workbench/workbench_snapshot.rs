@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::layout::{ActivityDrawerSlot, MainPageId};
+use crate::ui::workbench::layout::{ActivityDrawerSlot, MainPageId};
 
 use super::{ActivityDrawerSnapshot, FloatingWindowSnapshot, MainPageSnapshot};
 

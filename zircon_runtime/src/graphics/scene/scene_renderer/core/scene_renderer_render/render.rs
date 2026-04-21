@@ -1,7 +1,7 @@
 use crate::core::framework::render::RenderSceneSnapshot;
 use crate::core::math::UVec2;
 
-use crate::graphics::types::{EditorOrRuntimeFrame, GraphicsError, ViewportFrame};
+use crate::graphics::types::{GraphicsError, ViewportFrame, ViewportRenderFrame};
 
 use super::super::scene_renderer::SceneRenderer;
 
@@ -11,9 +11,6 @@ impl SceneRenderer {
         snapshot: RenderSceneSnapshot,
         viewport_size: impl Into<UVec2>,
     ) -> Result<ViewportFrame, GraphicsError> {
-        self.render_frame(&EditorOrRuntimeFrame::from_snapshot(
-            snapshot,
-            viewport_size,
-        ))
+        self.render_frame(&ViewportRenderFrame::from_snapshot(snapshot, viewport_size))
     }
 }

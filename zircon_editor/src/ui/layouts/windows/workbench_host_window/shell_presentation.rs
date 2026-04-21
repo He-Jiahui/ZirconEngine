@@ -33,7 +33,14 @@ impl ShellPresentation {
         geometry: &WorkbenchShellGeometry,
         preset_names: &[String],
         active_preset_name: Option<&str>,
-        ui_asset_panes: &std::collections::BTreeMap<String, crate::UiAssetEditorPanePresentation>,
+        ui_asset_panes: &std::collections::BTreeMap<
+            String,
+            crate::ui::asset_editor::UiAssetEditorPanePresentation,
+        >,
+        animation_panes: &std::collections::BTreeMap<
+            String,
+            crate::ui::animation_editor::AnimationEditorPanePresentation,
+        >,
         floating_window_projection_bundle: &FloatingWindowProjectionBundle,
     ) -> Self {
         let left_tabs = collect_tabs(
@@ -105,6 +112,7 @@ impl ShellPresentation {
                     chrome,
                     geometry,
                     ui_asset_panes,
+                    animation_panes,
                     floating_window_projection_bundle,
                 )),
                 left_pane: side_pane(
@@ -112,6 +120,7 @@ impl ShellPresentation {
                     chrome,
                     &[ActivityDrawerSlot::LeftTop, ActivityDrawerSlot::LeftBottom],
                     ui_asset_panes,
+                    animation_panes,
                 ),
                 right_pane: side_pane(
                     model,
@@ -121,6 +130,7 @@ impl ShellPresentation {
                         ActivityDrawerSlot::RightBottom,
                     ],
                     ui_asset_panes,
+                    animation_panes,
                 ),
                 bottom_pane: side_pane(
                     model,
@@ -130,8 +140,9 @@ impl ShellPresentation {
                         ActivityDrawerSlot::BottomRight,
                     ],
                     ui_asset_panes,
+                    animation_panes,
                 ),
-                document_pane: document_pane(model, chrome, ui_asset_panes),
+                document_pane: document_pane(model, chrome, ui_asset_panes, animation_panes),
             },
             welcome,
             hierarchy_nodes: model_rc(

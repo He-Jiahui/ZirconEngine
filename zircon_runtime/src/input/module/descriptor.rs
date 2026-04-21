@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
+use crate::core::manager::InputManagerHandle;
 use crate::core::{
     DriverDescriptor, ManagerDescriptor, ModuleDescriptor, ServiceKind, ServiceObject, StartupMode,
 };
-use crate::core::manager::InputManagerHandle;
 use crate::engine_module::{factory, qualified_name};
 
 use super::super::runtime::{DefaultInputManager, InputDriver};

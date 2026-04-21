@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 
-use crate::core::resource::{ResourceDiagnostic, ResourceId, ResourceKind, ResourceLocator, ResourceState};
+use crate::core::resource::{
+    ResourceDiagnostic, ResourceId, ResourceKind, ResourceLocator, ResourceState,
+};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ResourceRecord {

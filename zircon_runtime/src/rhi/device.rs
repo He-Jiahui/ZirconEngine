@@ -1,4 +1,4 @@
-use crate::{RenderBackendCaps, RenderQueueClass};
+use super::capabilities::{RenderBackendCaps, RenderQueueClass};
 
 pub trait CommandList: Send {
     fn queue_class(&self) -> RenderQueueClass;

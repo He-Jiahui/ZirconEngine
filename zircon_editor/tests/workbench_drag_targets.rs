@@ -1,8 +1,10 @@
 use std::collections::BTreeMap;
 
-use zircon_editor::{
-    resolve_workbench_drag_target_group, ShellFrame, ShellRegionId, ShellSizePx,
-    WorkbenchDragTargetGroup, WorkbenchShellGeometry,
+use zircon_editor::ui::slint_host::tab_drag::{
+    resolve_workbench_drag_target_group, WorkbenchDragTargetGroup,
+};
+use zircon_editor::ui::workbench::autolayout::{
+    ShellFrame, ShellRegionId, ShellSizePx, WorkbenchShellGeometry,
 };
 use zircon_runtime::ui::layout::UiPoint;
 

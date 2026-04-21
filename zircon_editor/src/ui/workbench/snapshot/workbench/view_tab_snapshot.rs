@@ -1,6 +1,6 @@
 use serde_json::Value;
 
-use crate::view::{ViewDescriptorId, ViewHost, ViewInstanceId, ViewKind};
+use crate::ui::workbench::view::{ViewDescriptorId, ViewHost, ViewInstanceId, ViewKind};
 
 use super::ViewContentKind;
 

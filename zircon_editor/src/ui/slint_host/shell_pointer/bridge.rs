@@ -9,15 +9,19 @@ use zircon_runtime::ui::{
     surface::UiSurface,
 };
 
+#[cfg(test)]
+use crate::ui::host::NativeWindowHostState;
 use crate::ui::slint_host::callback_dispatch::BuiltinWorkbenchRootShellFrames;
 use crate::ui::slint_host::drawer_resize::WorkbenchResizeTargetGroup;
 #[cfg(test)]
 use crate::ui::slint_host::floating_window_projection::build_floating_window_projection_bundle_from_windows;
 use crate::ui::slint_host::floating_window_projection::FloatingWindowProjectionBundle;
 use crate::ui::slint_host::tab_drag::WorkbenchDragTargetGroup;
-use crate::{FloatingWindowModel, ShellSizePx, WorkbenchShellGeometry};
+use crate::ui::workbench::autolayout::ShellSizePx;
 #[cfg(test)]
-use crate::{NativeWindowHostState, WorkbenchChromeMetrics};
+use crate::ui::workbench::autolayout::WorkbenchChromeMetrics;
+use crate::ui::workbench::autolayout::WorkbenchShellGeometry;
+use crate::ui::workbench::model::FloatingWindowModel;
 
 use super::drag_surface::build_drag_surface;
 use super::resize_surface::{build_resize_surface, update_resize_surface};

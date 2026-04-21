@@ -1,5 +1,7 @@
-use crate::ui::{EditorActivityReflection, EditorUiControlService};
+use crate::ui::control::EditorUiControlService;
+use crate::ui::EditorActivityReflection;
 
+use super::super::animation_route::register_animation_route;
 use super::super::asset_route::register_asset_route;
 use super::super::docking_route::register_docking_route;
 use super::super::draft_route::register_draft_route;
@@ -18,6 +20,12 @@ pub(super) fn register_action_route(
 
     let route_id = match action.action_id.as_str() {
         "focus_view" | "detach_to_window" => register_docking_route(
+            service,
+            activity_meta,
+            action.action_id.as_str(),
+            action.event_kind,
+        ),
+        "create_animation_track" => register_animation_route(
             service,
             activity_meta,
             action.action_id.as_str(),

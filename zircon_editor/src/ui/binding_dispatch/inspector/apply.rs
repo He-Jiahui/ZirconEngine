@@ -1,11 +1,12 @@
-use crate::ui::EditorUiBinding;
+use crate::ui::binding::EditorUiBinding;
 use zircon_runtime::ui::binding::UiBindingValue;
 
 use super::super::error::EditorBindingDispatchError;
 use super::dispatch::dispatch_inspector_binding;
 use super::field_value::{binding_value_to_string, parent_binding_value_to_string};
 use super::subject_path::resolve_subject_path;
-use crate::{EditorIntent, EditorState};
+use crate::core::editing::intent::EditorIntent;
+use crate::ui::workbench::state::EditorState;
 
 pub fn apply_inspector_binding(
     state: &mut EditorState,

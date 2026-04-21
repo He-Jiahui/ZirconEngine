@@ -1,4 +1,4 @@
-use crate::snapshot::{DocumentWorkspaceSnapshot, ViewTabSnapshot};
+use crate::ui::workbench::snapshot::{DocumentWorkspaceSnapshot, ViewTabSnapshot};
 
 pub(super) fn active_view_in_workspace(
     workspace: &DocumentWorkspaceSnapshot,

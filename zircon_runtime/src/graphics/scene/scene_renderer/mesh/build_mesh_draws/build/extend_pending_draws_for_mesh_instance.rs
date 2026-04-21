@@ -1,7 +1,7 @@
 use crate::core::framework::render::{DisplayMode, RenderMeshSnapshot};
 use crate::core::math::{RenderMat4, Vec4};
 
-use crate::graphics::types::EditorOrRuntimeFrame;
+use crate::graphics::types::ViewportRenderFrame;
 
 use super::super::super::super::super::resources::{default_pipeline_key, ResourceStreamer};
 use super::super::super::super::primitives::render_mat4_or;
@@ -13,7 +13,7 @@ use super::pending_mesh_draw::{indirect_draw_ref_for_cluster_draw, PendingMeshDr
 pub(super) fn extend_pending_draws_for_mesh_instance(
     pending_draws: &mut Vec<PendingMeshDraw>,
     streamer: &ResourceStreamer,
-    frame: &EditorOrRuntimeFrame,
+    frame: &ViewportRenderFrame,
     build_context: &MeshDrawBuildContext,
     mesh_instance: &RenderMeshSnapshot,
 ) {

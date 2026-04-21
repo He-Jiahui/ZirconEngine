@@ -1,4 +1,4 @@
-use crate::ui::{EditorUiBinding, EditorUiBindingPayload, WelcomeCommand};
+use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload, WelcomeCommand};
 
 use super::super::error::EditorBindingDispatchError;
 use super::welcome_host_event::WelcomeHostEvent;

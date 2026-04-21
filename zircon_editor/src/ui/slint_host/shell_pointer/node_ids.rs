@@ -1,4 +1,4 @@
-use crate::DockEdge;
+use crate::ui::workbench::layout::DockEdge;
 use zircon_runtime::ui::event_ui::UiNodeId;
 
 pub(super) const DRAG_POINTER_ROOT_NODE_ID: UiNodeId = UiNodeId::new(1);

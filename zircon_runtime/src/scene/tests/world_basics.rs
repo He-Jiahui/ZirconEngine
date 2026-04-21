@@ -1,6 +1,7 @@
 use std::fs;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use crate::core::framework::scene::{ComponentPropertyPath, ScenePropertyValue};
 use crate::core::math::{Transform, Vec3};
 
 use crate::scene::{world::World, NodeKind, SystemStage};
@@ -15,10 +16,18 @@ fn world_bootstraps_with_renderable_defaults() {
     assert!(!snapshot.scene.meshes.is_empty());
     assert!(snapshot.overlays.grid.is_none());
     assert!(snapshot.overlays.selection.is_empty());
+    assert!(snapshot.overlays.selection_anchors.is_empty());
+    assert!(snapshot.overlays.handles.is_empty());
     assert!(snapshot.overlays.scene_gizmos.is_empty());
     assert_eq!(
-        world.schedule().stages.last(),
-        Some(&SystemStage::RenderExtract)
+        world.schedule().stages,
+        vec![
+            SystemStage::PreUpdate,
+            SystemStage::FixedUpdate,
+            SystemStage::Update,
+            SystemStage::LateUpdate,
+            SystemStage::RenderExtract,
+        ]
     );
 }
 
@@ -145,4 +154,112 @@ fn set_parent_checked_rejects_hierarchy_cycles() {
     assert!(error.contains("cycle"));
     assert_eq!(world.find_node(parent).unwrap().parent, None);
     assert_eq!(world.find_node(child).unwrap().parent, Some(parent));
+}
+
+#[test]
+fn render_extract_separates_directional_point_and_spot_lights() {
+    let mut world = World::new();
+    let point = world.spawn_node(NodeKind::PointLight);
+    let spot = world.spawn_node(NodeKind::SpotLight);
+
+    world
+        .update_transform(point, Transform::from_translation(Vec3::new(3.0, 4.0, 5.0)))
+        .unwrap();
+    world
+        .update_transform(spot, Transform::from_translation(Vec3::new(-2.0, 6.0, 1.5)))
+        .unwrap();
+
+    world
+        .set_property(
+            point,
+            &ComponentPropertyPath::parse("PointLight.color").unwrap(),
+            ScenePropertyValue::Vec3([0.2, 0.4, 0.8]),
+        )
+        .unwrap();
+    world
+        .set_property(
+            point,
+            &ComponentPropertyPath::parse("PointLight.intensity").unwrap(),
+            ScenePropertyValue::Scalar(6.5),
+        )
+        .unwrap();
+    world
+        .set_property(
+            point,
+            &ComponentPropertyPath::parse("PointLight.range").unwrap(),
+            ScenePropertyValue::Scalar(9.0),
+        )
+        .unwrap();
+
+    world
+        .set_property(
+            spot,
+            &ComponentPropertyPath::parse("SpotLight.direction").unwrap(),
+            ScenePropertyValue::Vec3([0.0, -1.0, 0.25]),
+        )
+        .unwrap();
+    world
+        .set_property(
+            spot,
+            &ComponentPropertyPath::parse("SpotLight.color").unwrap(),
+            ScenePropertyValue::Vec3([1.0, 0.8, 0.3]),
+        )
+        .unwrap();
+    world
+        .set_property(
+            spot,
+            &ComponentPropertyPath::parse("SpotLight.intensity").unwrap(),
+            ScenePropertyValue::Scalar(12.0),
+        )
+        .unwrap();
+    world
+        .set_property(
+            spot,
+            &ComponentPropertyPath::parse("SpotLight.range").unwrap(),
+            ScenePropertyValue::Scalar(15.0),
+        )
+        .unwrap();
+    world
+        .set_property(
+            spot,
+            &ComponentPropertyPath::parse("SpotLight.inner_angle_radians").unwrap(),
+            ScenePropertyValue::Scalar(0.35),
+        )
+        .unwrap();
+    world
+        .set_property(
+            spot,
+            &ComponentPropertyPath::parse("SpotLight.outer_angle_radians").unwrap(),
+            ScenePropertyValue::Scalar(0.65),
+        )
+        .unwrap();
+
+    let snapshot = world.to_render_extract();
+
+    assert_eq!(snapshot.scene.directional_lights.len(), 1);
+
+    let point_light = snapshot
+        .scene
+        .point_lights
+        .iter()
+        .find(|light| light.node_id == point)
+        .unwrap();
+    assert_eq!(point_light.position, Vec3::new(3.0, 4.0, 5.0));
+    assert_eq!(point_light.color, Vec3::new(0.2, 0.4, 0.8));
+    assert_eq!(point_light.intensity, 6.5);
+    assert_eq!(point_light.range, 9.0);
+
+    let spot_light = snapshot
+        .scene
+        .spot_lights
+        .iter()
+        .find(|light| light.node_id == spot)
+        .unwrap();
+    assert_eq!(spot_light.position, Vec3::new(-2.0, 6.0, 1.5));
+    assert_eq!(spot_light.direction, Vec3::new(0.0, -1.0, 0.25));
+    assert_eq!(spot_light.color, Vec3::new(1.0, 0.8, 0.3));
+    assert_eq!(spot_light.intensity, 12.0);
+    assert_eq!(spot_light.range, 15.0);
+    assert_eq!(spot_light.inner_angle_radians, 0.35);
+    assert_eq!(spot_light.outer_angle_radians, 0.65);
 }

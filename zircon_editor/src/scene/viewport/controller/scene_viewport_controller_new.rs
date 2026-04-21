@@ -1,7 +1,7 @@
 use zircon_runtime::core::math::UVec2;
 
 use crate::scene::viewport::handles::HandleToolRegistry;
-use crate::scene::viewport::pointer::ViewportOverlayPointerBridge;
+use crate::scene::viewport::pointer::ViewportOverlayPointerRouter;
 
 use super::{scene_viewport_state::SceneViewportState, SceneViewportController};
 
@@ -10,7 +10,7 @@ impl SceneViewportController {
         Self {
             state: SceneViewportState::new(viewport_size),
             handles: HandleToolRegistry::default(),
-            pointer_bridge: ViewportOverlayPointerBridge::new(),
+            pointer_bridge: ViewportOverlayPointerRouter::new(),
         }
     }
 }

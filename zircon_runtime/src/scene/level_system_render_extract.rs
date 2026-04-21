@@ -1,4 +1,6 @@
-use crate::core::framework::render::{RenderExtractContext, RenderExtractProducer, RenderFrameExtract};
+use crate::core::framework::render::{
+    RenderExtractContext, RenderExtractProducer, RenderFrameExtract,
+};
 
 use crate::scene::LevelSystem;
 

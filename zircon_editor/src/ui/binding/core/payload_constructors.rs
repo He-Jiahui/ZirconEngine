@@ -1,15 +1,21 @@
+use crate::core::editor_event::InspectorFieldChange;
 use crate::ui::binding::{
-    AssetCommand, DockCommand, DraftCommand, SelectionCommand, ViewportCommand, WelcomeCommand,
+    AnimationCommand, AssetCommand, DockCommand, DraftCommand, SelectionCommand, ViewportCommand,
+    WelcomeCommand,
 };
 
-use super::{EditorUiBindingPayload, InspectorFieldChange};
+use super::EditorUiBindingPayload;
 
 impl EditorUiBindingPayload {
-    pub fn position_of_track_and_frame(track_path: impl Into<String>, frame: u32) -> Self {
-        Self::PositionOfTrackAndFrame {
+    pub fn animation_command(command: AnimationCommand) -> Self {
+        Self::AnimationCommand(command)
+    }
+
+    pub fn add_animation_key(track_path: impl Into<String>, frame: u32) -> Self {
+        Self::AnimationCommand(AnimationCommand::AddKey {
             track_path: track_path.into(),
             frame,
-        }
+        })
     }
 
     pub fn menu_action(action_id: impl Into<String>) -> Self {

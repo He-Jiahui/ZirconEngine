@@ -25,6 +25,8 @@ impl VirtualGeometryGpuPendingReadback {
             completed_page_ids,
             completed_page_assignments,
             completed_page_replacements,
+            visbuffer64_clear_value: 0,
+            visbuffer64_entries: Vec::new(),
         })
     }
 }

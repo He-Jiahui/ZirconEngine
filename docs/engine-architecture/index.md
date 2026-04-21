@@ -83,7 +83,11 @@ doc_type: category-index
 - [Architecture-First Development](./architecture-first-development.md): `zircon_app -> zircon_core -> zircon_module/zircon_manager -> zircon_runtime + subsystem modules` 主干、ECS 运行时世界、manager façade、runtime absorption 模块、`LevelManager -> LevelSystem -> World` 分层、VM 插件边界、架构优先设计流程、主流引擎对齐要求和实现红线。
 - [Core Runtime Service Registry](./core-runtime-service-registry.md): `zircon_core::runtime` 的目录化边界，公开导出层、descriptor 子树、`CoreHandle` 行为文件、内部状态层，以及后续继续扩展 service registry 时必须遵守的模块纪律。
 - [Runtime Interface Convergence](./runtime-interface-convergence.md): `EngineEntry`、`EngineModule`、`EngineService`、ECS 语义合同、内建 module owner 收敛、`zircon_runtime::extensions` 对可选扩展注册面的吸收、结构审计 skill，以及当前 `converged/skeleton/needs-refactor` 诊断基线。
+- [Runtime Network Extension](./runtime-network-extension.md): `core::framework::net` 的中性 socket/message-loop 合同、`core::manager` 上的 `NetManager` façade、`extensions::net` 的 `std::net::UdpSocket` loopback MVP，以及 `M2` 网络子系统的最小完成线。
+- [Runtime Sound Extension](./runtime-sound-extension.md): `core::framework::sound` 的最小 clip/playback/mix 合同、asset 管线里的 `.wav -> SoundAsset` 支撑、`core::manager` 上的 `SoundManager` façade，以及 `extensions::sound` 的 `software-mixer` MVP。
 - [Runtime Foundation Precision And Scene Authority](./runtime-foundation-precision-and-scene-authority.md): `zircon_math` 精度 seam、`zircon_scene` 的 `LocalTransform + WorldMatrix + ActiveSelf/ActiveInHierarchy + RenderLayerMask + Mobility` authority、scene asset 的默认化新字段，以及 `zircon_graphics` 的 runtime-to-render downcast 边界。
+- [Workspace Ownership Cutover Map](./workspace-ownership-cutover-map.md): workspace hard-cutover 的旧 owner -> 新 owner 权威映射，以及删旧、收根、去兼容层时必须遵守的 owner 依据。
+- [Workspace Root Rules And Hard Cutover](./workspace-root-rules-and-hard-cutover.md): 固定三包形态、root file 红线、hard-cutover 删除规则，以及 crate root/public surface 的长期标准。
 
 ## Current Scope
 
@@ -91,9 +95,11 @@ doc_type: category-index
 
 - 以 [全系统重构方案](../../.codex/plans/全系统重构方案.md) 为默认权威路线图的全局架构基线
 - `EntryRunner`、`CoreRuntime`、模块 descriptor、manager façade、`zircon_runtime` 吸收的 foundation/input/platform/script 实现目录与 asset/scene/graphics/ui/optional-extensions module-registration surface、`LevelManager -> LevelSystem -> World`、editor host、VM plugin 的职责分层
+- `M2` optional extensions 里的 `net` / `sound` 最小可用闭环，其中 `net` 负责 socket/message-loop MVP，`sound` 负责 `.wav` asset import + clip playback + software mix MVP
 - `EngineEntry`、`EngineModule`、`EngineService` 与 `RuntimeObject/RuntimeSystem/EntityIdentity/ComponentData` 这组接口家族和语义合同
 - `CoreRuntime` service registry 的文件级边界和 `runtime/mod.rs` 只做导出层的结构纪律
 - `zircon_math -> zircon_scene -> zircon_asset -> zircon_graphics` 这条 runtime foundation 的精度与派生态边界
+- workspace hard-cutover 之后 `zircon_app` / `zircon_runtime` / `zircon_editor` 的固定 owner 形态与 root file 纪律
 - “先抽象框架，后写功能实现”的工程规则
 - “先检查是否和主流引擎模式对齐，过于简单时优先深化架构设计”的设计规则
 - 跨 crate 功能接入时对 sibling `zircon_*` crates 的一致性要求

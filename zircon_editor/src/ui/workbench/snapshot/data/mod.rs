@@ -1,6 +1,7 @@
 mod editor_chrome_snapshot;
 mod editor_chrome_snapshot_build;
 mod editor_data_snapshot;
+mod editor_state_snapshot_build;
 mod inspector_snapshot;
 mod project_overview_snapshot;
 mod scene_entry;

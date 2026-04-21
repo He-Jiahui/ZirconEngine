@@ -15,6 +15,8 @@ pub(in crate::asset::pipeline::manager) fn resource_manager_with_builtins() -> R
             crate::asset::ImportedAsset::Texture(_) => AssetKind::Texture,
             crate::asset::ImportedAsset::Shader(_) => AssetKind::Shader,
             crate::asset::ImportedAsset::Material(_) => AssetKind::Material,
+            crate::asset::ImportedAsset::Sound(_) => AssetKind::Sound,
+            crate::asset::ImportedAsset::Font(_) => AssetKind::Font,
             crate::asset::ImportedAsset::Scene(_) => AssetKind::Scene,
             crate::asset::ImportedAsset::Model(_) => AssetKind::Model,
             crate::asset::ImportedAsset::UiLayout(_) => AssetKind::UiLayout,
@@ -25,7 +27,9 @@ pub(in crate::asset::pipeline::manager) fn resource_manager_with_builtins() -> R
             crate::asset::ImportedAsset::AnimationClip(_) => AssetKind::AnimationClip,
             crate::asset::ImportedAsset::AnimationSequence(_) => AssetKind::AnimationSequence,
             crate::asset::ImportedAsset::AnimationGraph(_) => AssetKind::AnimationGraph,
-            crate::asset::ImportedAsset::AnimationStateMachine(_) => AssetKind::AnimationStateMachine,
+            crate::asset::ImportedAsset::AnimationStateMachine(_) => {
+                AssetKind::AnimationStateMachine
+            }
         };
         let record = ResourceRecord::new(AssetId::from_locator(&locator), kind, locator);
         register_project_resource(&manager, record, asset);

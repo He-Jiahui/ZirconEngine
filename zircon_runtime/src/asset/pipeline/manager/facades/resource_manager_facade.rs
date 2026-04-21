@@ -1,6 +1,6 @@
-use crate::core::ChannelReceiver;
 use crate::core::framework::asset::ResourceManager as ResourceManagerFacade;
 use crate::core::resource::{ResourceEvent, ResourceRecord};
+use crate::core::ChannelReceiver;
 
 use super::super::project_asset_manager::ProjectAssetManager;
 use crate::asset::AssetUri;

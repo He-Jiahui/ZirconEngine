@@ -1,4 +1,4 @@
-use crate::snapshot::EditorChromeSnapshot;
+use crate::ui::workbench::snapshot::EditorChromeSnapshot;
 
 use super::super::status_bar_model::StatusBarModel;
 

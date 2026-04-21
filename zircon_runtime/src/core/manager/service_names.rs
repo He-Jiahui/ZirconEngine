@@ -5,5 +5,7 @@ pub const EVENT_MANAGER_NAME: &str = "FoundationModule.Manager.EventManager";
 pub const RENDERING_MANAGER_NAME: &str = "GraphicsModule.Manager.RenderingManager";
 pub const RENDER_FRAMEWORK_NAME: &str = "GraphicsModule.Manager.RenderFramework";
 pub const LEVEL_MANAGER_NAME: &str = "SceneModule.Manager.LevelManager";
+pub const NET_MANAGER_NAME: &str = "NetModule.Manager.NetManager";
 pub const PHYSICS_MANAGER_NAME: &str = "PhysicsModule.Manager.PhysicsManager";
 pub const ANIMATION_MANAGER_NAME: &str = "AnimationModule.Manager.AnimationManager";
+pub const SOUND_MANAGER_NAME: &str = "SoundModule.Manager.SoundManager";

@@ -6,7 +6,7 @@ use crate::ui::slint_host::{HostMenuStateData, PaneSurfaceHostContext, Workbench
 impl SlintEditorHost {
     pub(super) fn sync_menu_pointer_layout(
         &mut self,
-        chrome: &crate::EditorChromeSnapshot,
+        chrome: &crate::ui::workbench::snapshot::EditorChromeSnapshot,
         preset_names: &[String],
     ) {
         let root_shell_frames = self.template_bridge.root_shell_frames();
@@ -110,7 +110,7 @@ impl SlintEditorHost {
 
     pub(super) fn sync_welcome_recent_pointer_layout(
         &mut self,
-        welcome: &crate::WelcomePaneSnapshot,
+        welcome: &crate::ui::workbench::startup::WelcomePaneSnapshot,
     ) {
         let pane_size = self
             .resolve_welcome_recent_pointer_size()
@@ -167,7 +167,10 @@ impl SlintEditorHost {
         );
     }
 
-    pub(super) fn sync_hierarchy_pointer_layout(&mut self, scene_entries: &[crate::SceneEntry]) {
+    pub(super) fn sync_hierarchy_pointer_layout(
+        &mut self,
+        scene_entries: &[crate::ui::workbench::snapshot::SceneEntry],
+    ) {
         if self.hierarchy_pointer_size.width <= 0.0 || self.hierarchy_pointer_size.height <= 0.0 {
             self.apply_hierarchy_pointer_state_to_ui();
             return;
@@ -198,13 +201,19 @@ impl SlintEditorHost {
         );
     }
 
-    pub(super) fn sync_detail_pointer_layouts(&mut self, chrome: &crate::EditorChromeSnapshot) {
+    pub(super) fn sync_detail_pointer_layouts(
+        &mut self,
+        chrome: &crate::ui::workbench::snapshot::EditorChromeSnapshot,
+    ) {
         self.sync_console_pointer_layout(chrome);
         self.sync_inspector_pointer_layout();
         self.sync_browser_asset_details_pointer_layout(&chrome.asset_browser);
     }
 
-    pub(super) fn sync_console_pointer_layout(&mut self, chrome: &crate::EditorChromeSnapshot) {
+    pub(super) fn sync_console_pointer_layout(
+        &mut self,
+        chrome: &crate::ui::workbench::snapshot::EditorChromeSnapshot,
+    ) {
         if !self.console_scroll_surface.has_size() {
             self.apply_console_pointer_state_to_ui();
             return;
@@ -264,7 +273,10 @@ impl SlintEditorHost {
             );
     }
 
-    pub(super) fn sync_asset_pointer_layouts(&mut self, chrome: &crate::EditorChromeSnapshot) {
+    pub(super) fn sync_asset_pointer_layouts(
+        &mut self,
+        chrome: &crate::ui::workbench::snapshot::EditorChromeSnapshot,
+    ) {
         self.sync_asset_pointer_layout("activity", &chrome.asset_activity);
         self.sync_asset_pointer_layout("browser", &chrome.asset_browser);
     }

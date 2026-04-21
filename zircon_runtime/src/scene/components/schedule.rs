@@ -19,9 +19,9 @@ impl Default for Schedule {
         Self {
             stages: vec![
                 SystemStage::PreUpdate,
+                SystemStage::FixedUpdate,
                 SystemStage::Update,
                 SystemStage::LateUpdate,
-                SystemStage::FixedUpdate,
                 SystemStage::RenderExtract,
             ],
         }

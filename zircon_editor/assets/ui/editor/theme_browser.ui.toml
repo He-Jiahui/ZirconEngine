@@ -1,3 +1,5 @@
+stylesheets = []
+
 [asset]
 kind = "layout"
 id = "editor.theme_browser"
@@ -6,100 +8,276 @@ display_name = "Theme Browser"
 
 [imports]
 widgets = [
-  "res://ui/editor/editor_widgets.ui.toml#EditorToolbar",
-  "res://ui/editor/editor_widgets.ui.toml#EditorToolbarButton",
-  "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard",
+    "res://ui/editor/editor_widgets.ui.toml#EditorToolbar",
+    "res://ui/editor/editor_widgets.ui.toml#EditorToolbarButton",
+    "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard",
 ]
 styles = ["res://ui/theme/editor_base.ui.toml"]
 
-[root]
-node = "theme_browser_root"
+[tokens]
 
-[nodes.theme_browser_root]
+[root]
+node_id = "theme_browser_root"
 kind = "native"
 type = "VerticalBox"
 control_id = "ThemeBrowserRoot"
 classes = ["editor-shell"]
-layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox", gap = 10.0 } }
-children = [
-  { child = "toolbar" },
-  { child = "content" },
-]
+bindings = []
 
-[nodes.toolbar]
+[root.params]
+
+[root.props]
+
+[root.layout.container]
+gap = 10.0
+kind = "VerticalBox"
+
+[root.layout.height]
+stretch = "Stretch"
+
+[root.layout.width]
+stretch = "Stretch"
+
+[root.style_overrides.self]
+
+[root.style_overrides.slot]
+
+[[root.children]]
+
+[root.children.slot]
+
+[root.children.node]
+node_id = "toolbar"
 kind = "reference"
 component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorToolbar"
 control_id = "ThemeBrowserToolbar"
-children = [
-  { child = "new_theme_button", mount = "actions" },
-  { child = "detach_theme_button", mount = "actions" },
-]
+classes = []
+bindings = []
 
-[nodes.new_theme_button]
+[root.children.node.params]
+
+[root.children.node.props]
+
+[root.children.node.style_overrides.self]
+
+[root.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+mount = "actions"
+
+[root.children.node.children.slot]
+
+[root.children.node.children.node]
+node_id = "new_theme_button"
 kind = "reference"
 component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorToolbarButton"
 control_id = "CreateTheme"
 classes = ["toolbar-primary"]
-params = { label = "New Theme", icon = "add-outline" }
+bindings = []
+children = []
 
-[nodes.detach_theme_button]
+[root.children.node.children.node.params]
+icon = "add-outline"
+label = "New Theme"
+
+[root.children.node.children.node.props]
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+mount = "actions"
+
+[root.children.node.children.slot]
+
+[root.children.node.children.node]
+node_id = "detach_theme_button"
 kind = "reference"
 component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorToolbarButton"
 control_id = "DetachTheme"
-params = { label = "Detach Import", icon = "git-branch-outline" }
+classes = []
+bindings = []
+children = []
 
-[nodes.content]
+[root.children.node.children.node.params]
+icon = "git-branch-outline"
+label = "Detach Import"
+
+[root.children.node.children.node.props]
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children]]
+
+[root.children.slot]
+
+[root.children.node]
+node_id = "content"
 kind = "native"
 type = "HorizontalBox"
 control_id = "ThemeBrowserContent"
-layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "HorizontalBox", gap = 10.0 } }
-children = [
-  { child = "theme_sources_panel", slot = { layout = { width = { min = 240.0, preferred = 260.0, max = 320.0, stretch = "Fixed" } } } },
-  { child = "compare_panel" },
-  { child = "merge_preview_panel", slot = { layout = { width = { min = 280.0, preferred = 320.0, max = 360.0, stretch = "Fixed" } } } },
-]
+classes = []
+bindings = []
 
-[nodes.theme_sources_panel]
+[root.children.node.params]
+
+[root.children.node.props]
+
+[root.children.node.layout.container]
+gap = 10.0
+kind = "HorizontalBox"
+
+[root.children.node.layout.height]
+stretch = "Stretch"
+
+[root.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.style_overrides.self]
+
+[root.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+
+[root.children.node.children.slot.layout.width]
+max = 320.0
+min = 240.0
+preferred = 260.0
+stretch = "Fixed"
+
+[root.children.node.children.node]
+node_id = "theme_sources_panel"
 kind = "reference"
 component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard"
 control_id = "ThemeSourcesPanel"
-params = { title = "Theme Sources" }
-children = [
-  { child = "theme_sources_label", mount = "content" },
-]
+classes = []
+bindings = []
 
-[nodes.theme_sources_label]
+[root.children.node.children.node.params]
+title = "Theme Sources"
+
+[root.children.node.children.node.props]
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children]]
+mount = "content"
+
+[root.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node]
+node_id = "theme_sources_label"
 kind = "native"
 type = "Label"
 control_id = "ThemeSourcesLabel"
-props = { text = "Local Theme, editor_base.ui.toml, docking.ui.toml" }
+classes = []
+bindings = []
+children = []
 
-[nodes.compare_panel]
+[root.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.props]
+text = "Local Theme, editor_base.ui.toml, docking.ui.toml"
+
+[root.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+
+[root.children.node.children.slot]
+
+[root.children.node.children.node]
+node_id = "compare_panel"
 kind = "reference"
 component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard"
 control_id = "ThemeComparePanel"
-params = { title = "Compare" }
-children = [
-  { child = "compare_label", mount = "content" },
-]
+classes = []
+bindings = []
 
-[nodes.compare_label]
+[root.children.node.children.node.params]
+title = "Compare"
+
+[root.children.node.children.node.props]
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children]]
+mount = "content"
+
+[root.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node]
+node_id = "compare_label"
 kind = "native"
 type = "Label"
 control_id = "ThemeCompareLabel"
-props = { text = "Overrides, inherited tokens, rule diffs" }
+classes = []
+bindings = []
+children = []
 
-[nodes.merge_preview_panel]
+[root.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.props]
+text = "Overrides, inherited tokens, rule diffs"
+
+[root.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+
+[root.children.node.children.slot.layout.width]
+max = 360.0
+min = 280.0
+preferred = 320.0
+stretch = "Fixed"
+
+[root.children.node.children.node]
+node_id = "merge_preview_panel"
 kind = "reference"
 component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard"
 control_id = "ThemeMergePreviewPanel"
-params = { title = "Merge Preview" }
-children = [
-  { child = "merge_preview_label", mount = "content" },
-]
+classes = []
+bindings = []
 
-[nodes.merge_preview_label]
+[root.children.node.children.node.params]
+title = "Merge Preview"
+
+[root.children.node.children.node.props]
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children]]
+mount = "content"
+
+[root.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node]
+node_id = "merge_preview_label"
 kind = "native"
 type = "Label"
 control_id = "ThemeMergePreviewLabel"
-props = { text = "Detach / Clone imported themes into the local layer" }
+classes = []
+bindings = []
+children = []
+
+[root.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.props]
+text = "Detach / Clone imported themes into the local layer"
+
+[root.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.style_overrides.slot]
+
+[components]

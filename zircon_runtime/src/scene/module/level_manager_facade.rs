@@ -1,7 +1,9 @@
 use crate::asset::project::ProjectManager;
-use crate::core::CoreError;
-use crate::core::framework::scene::{LevelManager as LevelManagerFacade, LevelSummary, WorldHandle};
+use crate::core::framework::scene::{
+    LevelManager as LevelManagerFacade, LevelSummary, WorldHandle,
+};
 use crate::core::resource::ResourceLocator;
+use crate::core::CoreError;
 
 use super::core_error::scene_core_error;
 use super::DefaultLevelManager;

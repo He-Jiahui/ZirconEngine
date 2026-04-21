@@ -2,6 +2,7 @@ use crate::scene::viewport::{
     CapturedFrame, RenderFrameExtract, RenderFramework, RenderFrameworkError, RenderPipelineHandle,
     RenderQualityProfile, RenderStats, RenderViewportDescriptor, RenderViewportHandle,
 };
+use zircon_runtime::ui::surface::UiRenderExtract;
 
 pub(super) struct TestRenderFramework;
 
@@ -28,6 +29,15 @@ impl RenderFramework for TestRenderFramework {
         Ok(())
     }
 
+    fn submit_frame_extract_with_ui(
+        &self,
+        _viewport: RenderViewportHandle,
+        _extract: RenderFrameExtract,
+        _ui: Option<UiRenderExtract>,
+    ) -> Result<(), RenderFrameworkError> {
+        Ok(())
+    }
+
     fn set_pipeline_asset(
         &self,
         _viewport: RenderViewportHandle,
@@ -42,6 +52,15 @@ impl RenderFramework for TestRenderFramework {
 
     fn query_stats(&self) -> Result<RenderStats, RenderFrameworkError> {
         Ok(RenderStats::default())
+    }
+
+    fn query_virtual_geometry_debug_snapshot(
+        &self,
+    ) -> Result<
+        Option<zircon_runtime::core::framework::render::RenderVirtualGeometryDebugSnapshot>,
+        RenderFrameworkError,
+    > {
+        Ok(None)
     }
 
     fn capture_frame(

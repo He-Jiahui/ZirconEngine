@@ -1,4 +1,5 @@
-use super::super::model::MenuAction;
+use crate::core::editor_event::MenuAction;
+
 use super::node_kind_id::node_kind_id;
 
 pub(super) fn menu_action_id(action: &MenuAction) -> String {

@@ -1,5 +1,5 @@
 use crate::ui::slint_host::FrameRect;
-use crate::ShellFrame;
+use crate::ui::workbench::autolayout::ShellFrame;
 
 pub(crate) fn frame_rect(frame: ShellFrame) -> FrameRect {
     FrameRect {

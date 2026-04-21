@@ -5,6 +5,7 @@ mod framework;
 mod framework_error;
 mod overlay;
 mod scene_extract;
+mod virtual_geometry_debug_snapshot;
 
 pub use backend_types::{
     CapturedFrame, FrameHistoryHandle, RenderCapabilitySummary, RenderCommand,
@@ -33,10 +34,25 @@ pub use overlay::{
 pub use scene_extract::{
     PreviewEnvironmentExtract, RenderBakedLightingExtract, RenderBloomSettings,
     RenderColorGradingSettings, RenderDirectionalLightSnapshot, RenderExtractPacket,
-    RenderHybridGiExtract, RenderHybridGiProbe, RenderHybridGiTraceRegion, RenderMeshSnapshot,
-    RenderParticleSpriteSnapshot, RenderReflectionProbeSnapshot, RenderSceneGeometryExtract,
-    RenderSceneSnapshot, RenderVirtualGeometryCluster, RenderVirtualGeometryExtract,
-    RenderVirtualGeometryPage, SceneViewportRenderPacket,
+    RenderHybridGiDebugView, RenderHybridGiExtract, RenderHybridGiQuality, RenderMeshSnapshot,
+    RenderParticleSpriteSnapshot, RenderPointLightSnapshot, RenderReflectionProbeSnapshot,
+    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderSpotLightSnapshot,
+    RenderVirtualGeometryCluster, RenderVirtualGeometryDebugState, RenderVirtualGeometryExtract,
+    RenderVirtualGeometryInstance, RenderVirtualGeometryPage, SceneViewportRenderPacket,
+};
+pub(crate) use scene_extract::{RenderHybridGiProbe, RenderHybridGiTraceRegion};
+pub use virtual_geometry_debug_snapshot::{
+    RenderVirtualGeometryBvhVisualizationInstance, RenderVirtualGeometryBvhVisualizationNode,
+    RenderVirtualGeometryCpuReferenceInstance, RenderVirtualGeometryCpuReferenceLeafCluster,
+    RenderVirtualGeometryCpuReferenceNodeVisit,
+    RenderVirtualGeometryCpuReferencePageClusterMapEntry, RenderVirtualGeometryDebugSnapshot,
+    RenderVirtualGeometryExecutionSegment, RenderVirtualGeometryExecutionState,
+    RenderVirtualGeometryHardwareRasterizationRecord,
+    RenderVirtualGeometryHardwareRasterizationSource, RenderVirtualGeometryPageRequestInspection,
+    RenderVirtualGeometryResidentPageInspection, RenderVirtualGeometrySelectedCluster,
+    RenderVirtualGeometrySubmissionEntry, RenderVirtualGeometrySubmissionRecord,
+    RenderVirtualGeometryVisBuffer64Entry, RenderVirtualGeometryVisBuffer64Source,
+    RenderVirtualGeometryVisBufferMark,
 };
 
 pub trait RenderingManager: Send + Sync {

@@ -1,12 +1,14 @@
-use zircon_runtime::core::resource::{ResourceId, ResourceKind, ResourceLocator, ResourceRecord, ResourceState};
-use crate::core::host::asset_editor::{
+use crate::ui::host::editor_asset_manager::{
     EditorAssetCatalogRecord, EditorAssetCatalogSnapshotRecord, EditorAssetDetailsRecord,
     EditorAssetFolderRecord, EditorAssetReferenceRecord,
 };
 use zircon_runtime::asset::project::PreviewState;
+use zircon_runtime::core::resource::{
+    ResourceId, ResourceKind, ResourceLocator, ResourceRecord, ResourceState,
+};
 
-use crate::core::editing::asset_workspace::AssetWorkspaceState;
-use crate::snapshot::{AssetSurfaceMode, AssetUtilityTab, AssetViewMode};
+use crate::ui::workbench::project::AssetWorkspaceState;
+use crate::ui::workbench::snapshot::{AssetSurfaceMode, AssetUtilityTab, AssetViewMode};
 
 #[test]
 fn asset_workspace_builds_folder_tree_and_visible_content_from_catalog() {

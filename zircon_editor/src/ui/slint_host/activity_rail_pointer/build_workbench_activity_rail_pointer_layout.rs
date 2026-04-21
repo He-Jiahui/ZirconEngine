@@ -4,9 +4,9 @@ use crate::ui::slint_host::callback_dispatch::BuiltinWorkbenchRootShellFrames;
 use crate::ui::slint_host::root_shell_projection::{
     resolve_root_activity_rail_frame, resolve_root_right_region_frame,
 };
-use crate::{
-    ActivityDrawerSlot, WorkbenchChromeMetrics, WorkbenchShellGeometry, WorkbenchViewModel,
-};
+use crate::ui::workbench::autolayout::{WorkbenchChromeMetrics, WorkbenchShellGeometry};
+use crate::ui::workbench::layout::ActivityDrawerSlot;
+use crate::ui::workbench::model::WorkbenchViewModel;
 
 use super::collect_tabs::collect_tabs;
 use super::workbench_activity_rail_pointer_layout::WorkbenchActivityRailPointerLayout;

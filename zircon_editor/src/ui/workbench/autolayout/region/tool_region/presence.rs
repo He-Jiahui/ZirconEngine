@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::layout::{ActivityDrawerMode, ActivityDrawerSlot, WorkbenchLayout};
+use crate::ui::workbench::layout::{ActivityDrawerMode, ActivityDrawerSlot, WorkbenchLayout};
 use crate::ui::workbench::model::WorkbenchViewModel;
 
 use super::super::super::ShellRegionId;

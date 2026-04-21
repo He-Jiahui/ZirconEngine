@@ -1,4 +1,5 @@
-use crate::ui::{EditorUiBinding, EditorUiControlService};
+use crate::ui::binding::EditorUiBinding;
+use crate::ui::control::EditorUiControlService;
 
 use super::activity_routes::register_activity_routes;
 use super::stub_route::register_stub_route;

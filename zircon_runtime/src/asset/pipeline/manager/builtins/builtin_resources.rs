@@ -16,6 +16,7 @@ pub(in crate::asset::pipeline::manager) fn builtin_resources() -> Vec<(&'static 
                 primitives: vec![ModelPrimitiveAsset {
                     vertices: mesh.vertices.clone(),
                     indices: mesh.indices.clone(),
+                    virtual_geometry: None,
                 }],
             }),
         ),
@@ -26,6 +27,7 @@ pub(in crate::asset::pipeline::manager) fn builtin_resources() -> Vec<(&'static 
                 primitives: vec![ModelPrimitiveAsset {
                     vertices: mesh.vertices,
                     indices: mesh.indices,
+                    virtual_geometry: None,
                 }],
             }),
         ),

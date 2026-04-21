@@ -1,10 +1,11 @@
 use crate::core::editor_event::EditorEventRuntime;
 use crate::ui::slint_host::callback_dispatch;
 use crate::ui::slint_host::event_bridge::SlintDispatchEffects;
-use crate::{ActivityDrawerSlot, LayoutCommand, ShellRegionId};
+use crate::ui::workbench::autolayout::ShellRegionId;
+use crate::ui::workbench::layout::{ActivityDrawerSlot, LayoutCommand};
 
 #[cfg(test)]
-use crate::{ShellSizePx, WorkbenchShellGeometry};
+use crate::ui::workbench::autolayout::{ShellSizePx, WorkbenchShellGeometry};
 #[cfg(test)]
 use zircon_runtime::ui::layout::UiPoint;
 
@@ -40,7 +41,7 @@ pub(crate) fn resolve_workbench_resize_target_group(
 }
 
 #[cfg(test)]
-use crate::EditorManager;
+use crate::ui::host::EditorManager;
 
 #[cfg(test)]
 pub(crate) fn apply_resize_to_group(

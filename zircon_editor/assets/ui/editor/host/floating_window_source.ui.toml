@@ -1,0 +1,209 @@
+stylesheets = []
+
+[asset]
+kind = "layout"
+id = "editor.host.floating_window_source"
+version = 1
+display_name = "floating window source"
+
+[imports]
+widgets = []
+styles = []
+
+[tokens]
+
+[root]
+node_id = "root"
+kind = "component"
+component = "FloatingWindowSource"
+classes = []
+bindings = []
+children = []
+
+[root.params]
+
+[root.props]
+
+[root.style_overrides.self]
+
+[root.style_overrides.slot]
+
+[components.FloatingWindowSource]
+style_scope = "closed"
+
+[components.FloatingWindowSource.root]
+node_id = "component_FloatingWindowSource_root"
+kind = "native"
+type = "FloatingWindowSource"
+control_id = "FloatingWindowSourceRoot"
+classes = []
+bindings = []
+
+[components.FloatingWindowSource.root.params]
+
+[components.FloatingWindowSource.root.props]
+
+[components.FloatingWindowSource.root.layout.container]
+gap = 0.0
+kind = "VerticalBox"
+
+[components.FloatingWindowSource.root.layout.height]
+stretch = "Stretch"
+
+[components.FloatingWindowSource.root.layout.width]
+stretch = "Stretch"
+
+[components.FloatingWindowSource.root.style_overrides.self]
+
+[components.FloatingWindowSource.root.style_overrides.slot]
+
+[[components.FloatingWindowSource.root.children]]
+
+[components.FloatingWindowSource.root.children.slot]
+
+[components.FloatingWindowSource.root.children.node]
+node_id = "component_FloatingWindowSource_root_0"
+kind = "native"
+type = "Container"
+control_id = "FloatingWindowTopBarRoot"
+classes = []
+bindings = []
+children = []
+
+[components.FloatingWindowSource.root.children.node.params]
+
+[components.FloatingWindowSource.root.children.node.props]
+
+[components.FloatingWindowSource.root.children.node.layout.height]
+max = 40.0
+min = 40.0
+preferred = 40.0
+stretch = "Fixed"
+
+[components.FloatingWindowSource.root.children.node.layout.width]
+stretch = "Stretch"
+
+[components.FloatingWindowSource.root.children.node.style_overrides.self]
+
+[components.FloatingWindowSource.root.children.node.style_overrides.slot]
+
+[[components.FloatingWindowSource.root.children]]
+
+[components.FloatingWindowSource.root.children.slot]
+
+[components.FloatingWindowSource.root.children.node]
+node_id = "component_FloatingWindowSource_root_1"
+kind = "native"
+type = "HorizontalBox"
+control_id = "FloatingWindowCenterBandRoot"
+classes = []
+bindings = []
+
+[components.FloatingWindowSource.root.children.node.params]
+
+[components.FloatingWindowSource.root.children.node.props]
+
+[components.FloatingWindowSource.root.children.node.layout.container]
+gap = 0.0
+kind = "HorizontalBox"
+
+[components.FloatingWindowSource.root.children.node.layout.height]
+stretch = "Stretch"
+
+[components.FloatingWindowSource.root.children.node.layout.width]
+stretch = "Stretch"
+
+[components.FloatingWindowSource.root.children.node.style_overrides.self]
+
+[components.FloatingWindowSource.root.children.node.style_overrides.slot]
+
+[[components.FloatingWindowSource.root.children.node.children]]
+
+[components.FloatingWindowSource.root.children.node.children.slot]
+
+[components.FloatingWindowSource.root.children.node.children.node]
+node_id = "component_FloatingWindowSource_root_1_0"
+kind = "native"
+type = "Container"
+control_id = "FloatingWindowRailRoot"
+classes = []
+bindings = []
+children = []
+
+[components.FloatingWindowSource.root.children.node.children.node.params]
+
+[components.FloatingWindowSource.root.children.node.children.node.props]
+
+[components.FloatingWindowSource.root.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[components.FloatingWindowSource.root.children.node.children.node.layout.width]
+max = 56.0
+min = 56.0
+preferred = 56.0
+stretch = "Fixed"
+
+[components.FloatingWindowSource.root.children.node.children.node.style_overrides.self]
+
+[components.FloatingWindowSource.root.children.node.children.node.style_overrides.slot]
+
+[[components.FloatingWindowSource.root.children.node.children]]
+
+[components.FloatingWindowSource.root.children.node.children.slot]
+
+[components.FloatingWindowSource.root.children.node.children.node]
+node_id = "component_FloatingWindowSource_root_1_1"
+kind = "native"
+type = "Container"
+control_id = "FloatingWindowDocumentRoot"
+classes = []
+bindings = []
+children = []
+
+[components.FloatingWindowSource.root.children.node.children.node.params]
+
+[components.FloatingWindowSource.root.children.node.children.node.props]
+
+[components.FloatingWindowSource.root.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[components.FloatingWindowSource.root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[components.FloatingWindowSource.root.children.node.children.node.style_overrides.self]
+
+[components.FloatingWindowSource.root.children.node.children.node.style_overrides.slot]
+
+[[components.FloatingWindowSource.root.children]]
+
+[components.FloatingWindowSource.root.children.slot]
+
+[components.FloatingWindowSource.root.children.node]
+node_id = "component_FloatingWindowSource_root_2"
+kind = "native"
+type = "Container"
+control_id = "FloatingWindowStatusBarRoot"
+classes = []
+bindings = []
+children = []
+
+[components.FloatingWindowSource.root.children.node.params]
+
+[components.FloatingWindowSource.root.children.node.props]
+
+[components.FloatingWindowSource.root.children.node.layout.height]
+max = 24.0
+min = 24.0
+preferred = 24.0
+stretch = "Fixed"
+
+[components.FloatingWindowSource.root.children.node.layout.width]
+stretch = "Stretch"
+
+[components.FloatingWindowSource.root.children.node.style_overrides.self]
+
+[components.FloatingWindowSource.root.children.node.style_overrides.slot]
+
+[components.FloatingWindowSource.params]
+
+[components.FloatingWindowSource.slots]

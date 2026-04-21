@@ -20,40 +20,6 @@ pub enum RuntimeResourceState {
     Reloading,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct ResourceInspectorAdapterKey(String);
-
-impl ResourceInspectorAdapterKey {
-    pub fn new(value: impl Into<String>) -> Self {
-        Self(value.into())
-    }
-
-    pub fn as_str(&self) -> &str {
-        &self.0
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ResourceTypeDescriptor {
-    pub kind: ResourceKind,
-    pub inspector_adapter: ResourceInspectorAdapterKey,
-    pub extensions: Vec<String>,
-}
-
-impl ResourceTypeDescriptor {
-    pub fn new(
-        kind: ResourceKind,
-        inspector_adapter: ResourceInspectorAdapterKey,
-        extensions: Vec<String>,
-    ) -> Self {
-        Self {
-            kind,
-            inspector_adapter,
-            extensions,
-        }
-    }
-}
-
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ResourceRuntimeInfo {
     pub id: ResourceId,

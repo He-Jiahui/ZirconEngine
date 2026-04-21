@@ -19,6 +19,7 @@ struct HybridGiProbe {
     irradiance_and_intensity: vec4<f32>,
     hierarchy_irradiance_rgb_and_weight: vec4<f32>,
     hierarchy_rt_lighting_rgb_and_weight: vec4<f32>,
+    temporal_signature_and_padding: vec4<f32>,
 };
 
 struct HybridGiTraceRegion {
@@ -36,10 +37,25 @@ struct HybridGiTraceRegion {
 @group(0) @binding(6) var<storage, read> reflection_probe_buffer: array<ReflectionProbe>;
 @group(0) @binding(7) var<storage, read> hybrid_gi_probe_buffer: array<HybridGiProbe>;
 @group(0) @binding(8) var<storage, read> hybrid_gi_trace_region_buffer: array<HybridGiTraceRegion>;
+@group(0) @binding(9) var history_global_illumination_tex: texture_2d<f32>;
 
 struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
 };
+
+struct FragmentOutput {
+    @location(0) final_color: vec4<f32>,
+    @location(1) global_illumination: vec4<f32>,
+};
+
+const HYBRID_GI_HISTORY_SUPPORT_REUSE_START: f32 = 0.2;
+const HYBRID_GI_HISTORY_SUPPORT_REUSE_RANGE: f32 = 0.45;
+const HYBRID_GI_HISTORY_RESOLVE_WEIGHT_MIN: f32 = 0.25;
+const HYBRID_GI_HISTORY_RESOLVE_WEIGHT_RANGE: f32 = 2.25;
+const HYBRID_GI_HISTORY_CONFIDENCE_BLEND_BASE: f32 = 0.6;
+const HYBRID_GI_HISTORY_CONFIDENCE_BLEND_RANGE: f32 = 1.0;
+const HYBRID_GI_HISTORY_BLEND_MAX: f32 = 0.45;
+const HYBRID_GI_HISTORY_SIGNATURE_SCALE: f32 = 255.0;
 
 @vertex
 fn vs_main(@builtin(vertex_index) vertex_index: u32) -> VertexOutput {
@@ -68,7 +84,7 @@ fn apply_color_grading(color: vec3<f32>) -> vec3<f32> {
 }
 
 @fragment
-fn fs_main(@builtin(position) position: vec4<f32>) -> @location(0) vec4<f32> {
+fn fs_main(@builtin(position) position: vec4<f32>) -> FragmentOutput {
     let viewport_size = params.viewport_and_clusters.xy;
     let cluster_dims = params.viewport_and_clusters.zw;
     let coord = min(vec2<u32>(position.xy), viewport_size - vec2<u32>(1u, 1u));
@@ -115,6 +131,11 @@ fn fs_main(@builtin(position) position: vec4<f32>) -> @location(0) vec4<f32> {
         }
     }
 
+    var global_illumination_history = vec3<f32>(0.0);
+    var indirect_light = vec3<f32>(0.0);
+    var indirect_light_history_support = 0.0;
+    var indirect_light_history_confidence = 0.0;
+    var indirect_light_history_signature = 0.0;
     if (params.hybrid_gi_counts.x > 0u && params.hybrid_gi_color_and_intensity.w > 0.0) {
         var gi_light = vec3<f32>(0.0);
         for (var probe_index = 0u; probe_index < params.hybrid_gi_counts.x; probe_index = probe_index + 1u) {
@@ -122,6 +143,7 @@ fn fs_main(@builtin(position) position: vec4<f32>) -> @location(0) vec4<f32> {
             let probe_uv = probe.screen_uv_and_radius.xy;
             let probe_radius = max(probe.screen_uv_and_radius.z, 0.0001);
             let budget_weight = probe.screen_uv_and_radius.w;
+            let hierarchy_resolve_weight = probe.irradiance_and_intensity.w;
             let distance_to_probe = distance(uv, probe_uv);
             let falloff = max(1.0 - distance_to_probe / probe_radius, 0.0);
             var trace_support = 1.0;
@@ -163,15 +185,62 @@ fn fs_main(@builtin(position) position: vec4<f32>) -> @location(0) vec4<f32> {
                 let rt_mix = clamp(rt_lighting_weight * 0.45, 0.0, 0.65);
                 probe_irradiance = mix(probe_irradiance, rt_lighting_tint, rt_mix);
             }
+            let probe_history_support = falloff * falloff * budget_weight;
+            let probe_history_confidence =
+                clamp(
+                    (hierarchy_resolve_weight - HYBRID_GI_HISTORY_RESOLVE_WEIGHT_MIN)
+                    / HYBRID_GI_HISTORY_RESOLVE_WEIGHT_RANGE,
+                    0.0,
+                    1.0,
+                );
+            if (probe_history_support > indirect_light_history_support) {
+                indirect_light_history_signature = probe.temporal_signature_and_padding.x;
+                indirect_light_history_confidence = probe_history_confidence;
+            }
+            indirect_light_history_support =
+                max(indirect_light_history_support, probe_history_support);
             let probe_weight =
-                falloff * falloff * budget_weight * probe.irradiance_and_intensity.w * trace_support;
+                falloff * falloff * budget_weight * hierarchy_resolve_weight * trace_support;
             gi_light = gi_light + probe_irradiance * probe_weight;
         }
 
         let probe_count = max(f32(params.hybrid_gi_counts.x), 1.0);
-        let indirect_light =
+        indirect_light =
             (gi_light / probe_count)
             * params.hybrid_gi_color_and_intensity.w;
+        if (params.hybrid_gi_counts.z != 0u) {
+            let global_illumination_history_sample =
+                textureLoad(history_global_illumination_tex, coord_i32, 0);
+            global_illumination_history = global_illumination_history_sample.rgb;
+            let spatial_history_blend =
+                params.blends.x
+                * clamp(
+                    (indirect_light_history_support - HYBRID_GI_HISTORY_SUPPORT_REUSE_START)
+                    / HYBRID_GI_HISTORY_SUPPORT_REUSE_RANGE,
+                    0.0,
+                    1.0,
+                );
+            let current_signature_bucket =
+                round(clamp(indirect_light_history_signature, 0.0, 1.0) * HYBRID_GI_HISTORY_SIGNATURE_SCALE);
+            let history_signature_bucket =
+                round(clamp(global_illumination_history_sample.a, 0.0, 1.0) * HYBRID_GI_HISTORY_SIGNATURE_SCALE);
+            let signature_matches =
+                current_signature_bucket > 0.0
+                && history_signature_bucket > 0.0
+                && current_signature_bucket == history_signature_bucket;
+            let history_blend =
+                min(
+                    spatial_history_blend
+                    * (
+                        HYBRID_GI_HISTORY_CONFIDENCE_BLEND_BASE
+                        + indirect_light_history_confidence
+                            * HYBRID_GI_HISTORY_CONFIDENCE_BLEND_RANGE
+                    ),
+                    HYBRID_GI_HISTORY_BLEND_MAX,
+                )
+                * select(0.0, 1.0, signature_matches || history_signature_bucket == 0.0);
+            indirect_light = mix(indirect_light, global_illumination_history, history_blend);
+        }
         color = color + indirect_light;
     }
 
@@ -180,5 +249,8 @@ fn fs_main(@builtin(position) position: vec4<f32>) -> @location(0) vec4<f32> {
     }
 
     color = apply_color_grading(color);
-    return vec4<f32>(color, scene_color.a);
+    var output: FragmentOutput;
+    output.final_color = vec4<f32>(color, scene_color.a);
+    output.global_illumination = vec4<f32>(indirect_light, indirect_light_history_signature);
+    return output;
 }

@@ -1,11 +1,14 @@
 use std::ops::Range;
 
+use crate::ui::layout::UiFrame;
+use crate::ui::surface::{
+    UiRenderCommand, UiRenderCommandKind, UiRenderExtract, UiTextAlign, UiTextRenderMode,
+    UiTextWrap,
+};
 use bytemuck::{Pod, Zeroable};
 use wgpu::util::DeviceExt;
-use crate::ui::layout::UiFrame;
-use crate::ui::surface::{UiRenderCommand, UiRenderCommandKind};
 
-use crate::graphics::types::EditorOrRuntimeFrame;
+use crate::graphics::types::ViewportRenderFrame;
 
 use super::screen_space_ui_renderer::ScreenSpaceUiRenderer;
 
@@ -30,13 +33,30 @@ impl ScreenSpaceUiVertex {
 }
 
 struct PreparedScreenSpaceUi {
-    vertex_buffer: wgpu::Buffer,
+    vertex_buffer: Option<wgpu::Buffer>,
     draws: Vec<ScreenSpaceUiDraw>,
+    auto_texts: Vec<ScreenSpaceUiTextBatch>,
+    native_texts: Vec<ScreenSpaceUiTextBatch>,
+    sdf_texts: Vec<ScreenSpaceUiTextBatch>,
 }
 
 struct ScreenSpaceUiDraw {
     vertices: Range<u32>,
     scissor: ScreenSpaceUiScissor,
+}
+
+#[derive(Clone, Debug)]
+pub(super) struct ScreenSpaceUiTextBatch {
+    pub(super) text: String,
+    pub(super) frame: UiFrame,
+    pub(super) clip_frame: Option<UiFrame>,
+    pub(super) color: [f32; 4],
+    pub(super) font: Option<String>,
+    pub(super) font_family: Option<String>,
+    pub(super) font_size: f32,
+    pub(super) line_height: f32,
+    pub(super) text_align: UiTextAlign,
+    pub(super) wrap: UiTextWrap,
 }
 
 #[derive(Clone, Copy)]
@@ -49,15 +69,24 @@ struct ScreenSpaceUiScissor {
 
 impl ScreenSpaceUiRenderer {
     pub(crate) fn record(
-        &self,
+        &mut self,
         device: &wgpu::Device,
+        queue: &wgpu::Queue,
         encoder: &mut wgpu::CommandEncoder,
         color_view: &wgpu::TextureView,
-        frame: &EditorOrRuntimeFrame,
+        frame: &ViewportRenderFrame,
     ) {
         let Some(prepared) = prepare_screen_space_ui(device, frame) else {
             return;
         };
+        self.text_system.prepare(
+            device,
+            queue,
+            frame.viewport_size,
+            &prepared.auto_texts,
+            &prepared.native_texts,
+            &prepared.sdf_texts,
+        );
 
         let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("zircon-screen-space-ui-pass"),
@@ -76,7 +105,9 @@ impl ScreenSpaceUiRenderer {
             multiview_mask: None,
         });
         pass.set_pipeline(&self.pipeline);
-        pass.set_vertex_buffer(0, prepared.vertex_buffer.slice(..));
+        if let Some(vertex_buffer) = prepared.vertex_buffer.as_ref() {
+            pass.set_vertex_buffer(0, vertex_buffer.slice(..));
+        }
 
         for draw in &prepared.draws {
             pass.set_scissor_rect(
@@ -87,60 +118,99 @@ impl ScreenSpaceUiRenderer {
             );
             pass.draw(draw.vertices.clone(), 0..1);
         }
+        self.text_system.render(&mut pass);
     }
 }
 
 fn prepare_screen_space_ui(
     device: &wgpu::Device,
-    frame: &EditorOrRuntimeFrame,
+    frame: &ViewportRenderFrame,
 ) -> Option<PreparedScreenSpaceUi> {
     let extract = frame.ui.as_ref()?;
+    let plan = plan_screen_space_ui_batches(extract, frame.viewport_size);
+
+    if plan.draws.is_empty()
+        && plan.auto_texts.is_empty()
+        && plan.native_texts.is_empty()
+        && plan.sdf_texts.is_empty()
+    {
+        return None;
+    }
+
+    let vertex_buffer = (!plan.vertices.is_empty()).then(|| {
+        device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("zircon-screen-space-ui-vertices"),
+            contents: bytemuck::cast_slice(&plan.vertices),
+            usage: wgpu::BufferUsages::VERTEX,
+        })
+    });
+
+    Some(PreparedScreenSpaceUi {
+        vertex_buffer,
+        draws: plan.draws,
+        auto_texts: plan.auto_texts,
+        native_texts: plan.native_texts,
+        sdf_texts: plan.sdf_texts,
+    })
+}
+
+struct PlannedScreenSpaceUi {
+    vertices: Vec<ScreenSpaceUiVertex>,
+    draws: Vec<ScreenSpaceUiDraw>,
+    auto_texts: Vec<ScreenSpaceUiTextBatch>,
+    native_texts: Vec<ScreenSpaceUiTextBatch>,
+    sdf_texts: Vec<ScreenSpaceUiTextBatch>,
+}
+
+fn plan_screen_space_ui_batches(
+    extract: &UiRenderExtract,
+    viewport_size: crate::core::math::UVec2,
+) -> PlannedScreenSpaceUi {
     let viewport = UiFrame::new(
         0.0,
         0.0,
-        frame.viewport_size.x.max(1) as f32,
-        frame.viewport_size.y.max(1) as f32,
+        viewport_size.x.max(1) as f32,
+        viewport_size.y.max(1) as f32,
     );
     let full_scissor = ScreenSpaceUiScissor {
         x: 0,
         y: 0,
-        width: frame.viewport_size.x.max(1),
-        height: frame.viewport_size.y.max(1),
+        width: viewport_size.x.max(1),
+        height: viewport_size.y.max(1),
     };
 
-    let mut vertices = Vec::new();
-    let mut draws = Vec::new();
+    let mut plan = PlannedScreenSpaceUi {
+        vertices: Vec::new(),
+        draws: Vec::new(),
+        auto_texts: Vec::new(),
+        native_texts: Vec::new(),
+        sdf_texts: Vec::new(),
+    };
+
     for command in &extract.list.commands {
-        let start = vertices.len() as u32;
-        push_command_geometry(command, viewport, &mut vertices);
-        let end = vertices.len() as u32;
+        let start = plan.vertices.len() as u32;
+        plan_command_batches(command, viewport, &mut plan);
+        let end = plan.vertices.len() as u32;
         if end > start {
             let scissor = command
                 .clip_frame
                 .and_then(|clip| viewport.intersection(clip))
                 .and_then(frame_to_scissor)
                 .unwrap_or(full_scissor);
-            draws.push(ScreenSpaceUiDraw {
+            plan.draws.push(ScreenSpaceUiDraw {
                 vertices: start..end,
                 scissor,
             });
         }
     }
 
-    (!vertices.is_empty()).then(|| PreparedScreenSpaceUi {
-        vertex_buffer: device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("zircon-screen-space-ui-vertices"),
-            contents: bytemuck::cast_slice(&vertices),
-            usage: wgpu::BufferUsages::VERTEX,
-        }),
-        draws,
-    })
+    plan
 }
 
-fn push_command_geometry(
+fn plan_command_batches(
     command: &UiRenderCommand,
     viewport: UiFrame,
-    vertices: &mut Vec<ScreenSpaceUiVertex>,
+    plan: &mut PlannedScreenSpaceUi,
 ) {
     if command.opacity <= 0.0 {
         return;
@@ -151,59 +221,73 @@ fn push_command_geometry(
         None => return,
     };
 
-    match command.kind {
-        UiRenderCommandKind::Group => {}
-        UiRenderCommandKind::Quad => {
-            if let Some(color) = parse_color(
-                command.style.background_color.as_deref(),
-                [0.16, 0.19, 0.24, 1.0],
-                command.opacity,
-            ) {
-                push_rect(vertices, frame, color, viewport);
-            }
-            let border_width = command.style.border_width.max(0.0);
-            if border_width > 0.0 {
-                let color = parse_color(
-                    command.style.border_color.as_deref(),
-                    [0.85, 0.88, 0.92, 1.0],
-                    command.opacity,
-                )
-                .unwrap_or([0.85, 0.88, 0.92, command.opacity]);
-                push_border(vertices, frame, border_width, color, viewport);
-            }
+    if matches!(command.kind, UiRenderCommandKind::Quad)
+        || command.style.background_color.is_some()
+        || command.style.border_color.is_some()
+        || command.style.border_width > 0.0
+    {
+        if let Some(color) = parse_color(
+            command.style.background_color.as_deref(),
+            [0.16, 0.19, 0.24, 1.0],
+            command.opacity,
+        ) {
+            push_rect(&mut plan.vertices, frame, color, viewport);
         }
-        UiRenderCommandKind::Text => {
-            let band_height = frame.height.clamp(4.0, 12.0);
-            let inset = (frame.height * 0.2).min(10.0);
-            let band = UiFrame::new(
-                frame.x + inset,
-                frame.y + (frame.height - band_height) * 0.5,
-                (frame.width - inset * 2.0).max(4.0),
-                band_height,
-            );
+        let border_width = command.style.border_width.max(0.0);
+        if border_width > 0.0 {
             let color = parse_color(
-                command.style.foreground_color.as_deref(),
-                [0.96, 0.96, 0.96, 1.0],
+                command.style.border_color.as_deref(),
+                [0.85, 0.88, 0.92, 1.0],
                 command.opacity,
             )
-            .unwrap_or([0.96, 0.96, 0.96, command.opacity]);
-            push_rect(vertices, band, color, viewport);
+            .unwrap_or([0.85, 0.88, 0.92, command.opacity]);
+            push_border(&mut plan.vertices, frame, border_width, color, viewport);
         }
-        UiRenderCommandKind::Image => {
-            let extent = (frame.width.min(frame.height) * 0.68).max(8.0);
-            let icon = UiFrame::new(
-                frame.x + (frame.width - extent) * 0.5,
-                frame.y + (frame.height - extent) * 0.5,
-                extent,
-                extent,
-            );
-            let color = parse_color(
-                command.style.foreground_color.as_deref(),
-                [0.76, 0.88, 0.98, 1.0],
-                command.opacity,
-            )
-            .unwrap_or([0.76, 0.88, 0.98, command.opacity]);
-            push_rect(vertices, icon, color, viewport);
+    }
+
+    if command.image.is_some() || matches!(command.kind, UiRenderCommandKind::Image) {
+        let extent = (frame.width.min(frame.height) * 0.68).max(8.0);
+        let icon = UiFrame::new(
+            frame.x + (frame.width - extent) * 0.5,
+            frame.y + (frame.height - extent) * 0.5,
+            extent,
+            extent,
+        );
+        let color = parse_color(
+            command.style.foreground_color.as_deref(),
+            [0.76, 0.88, 0.98, 1.0],
+            command.opacity,
+        )
+        .unwrap_or([0.76, 0.88, 0.98, command.opacity]);
+        push_rect(&mut plan.vertices, icon, color, viewport);
+    }
+
+    if let Some(text) = command.text.as_ref().filter(|text| !text.is_empty()) {
+        let color = parse_color(
+            command.style.foreground_color.as_deref(),
+            [0.96, 0.96, 0.96, 1.0],
+            command.opacity,
+        )
+        .unwrap_or([0.96, 0.96, 0.96, command.opacity]);
+        let batch = ScreenSpaceUiTextBatch {
+            text: text.clone(),
+            frame,
+            clip_frame: command.clip_frame,
+            color,
+            font: command.style.font.clone(),
+            font_family: command.style.font_family.clone(),
+            font_size: command.style.font_size.max(1.0),
+            line_height: command
+                .style
+                .line_height
+                .max(command.style.font_size.max(1.0)),
+            text_align: command.style.text_align,
+            wrap: command.style.wrap,
+        };
+        match command.style.text_render_mode {
+            UiTextRenderMode::Auto => plan.auto_texts.push(batch),
+            UiTextRenderMode::Native => plan.native_texts.push(batch),
+            UiTextRenderMode::Sdf => plan.sdf_texts.push(batch),
         }
     }
 }
@@ -355,4 +439,120 @@ fn parse_hex_color(value: &str, opacity: f32) -> Option<[f32; 4]> {
 
 fn parse_hex_byte(value: &str) -> Option<u8> {
     u8::from_str_radix(value, 16).ok()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::math::UVec2;
+    use crate::ui::event_ui::{UiNodeId, UiTreeId};
+    use crate::ui::surface::{
+        UiRenderExtract, UiRenderList, UiTextAlign, UiTextRenderMode, UiTextWrap,
+    };
+
+    #[test]
+    fn screen_space_ui_plan_keeps_text_batches_for_quad_commands() {
+        let plan = plan_screen_space_ui_batches(
+            &UiRenderExtract {
+                tree_id: UiTreeId::new("runtime.ui"),
+                list: UiRenderList {
+                    commands: vec![UiRenderCommand {
+                        node_id: UiNodeId::new(1),
+                        kind: UiRenderCommandKind::Quad,
+                        frame: UiFrame::new(8.0, 12.0, 120.0, 36.0),
+                        clip_frame: None,
+                        z_index: 0,
+                        style: crate::ui::surface::UiResolvedStyle {
+                            background_color: Some("#112233".to_string()),
+                            foreground_color: Some("#ddeeff".to_string()),
+                            font_size: 18.0,
+                            line_height: 22.0,
+                            text_align: UiTextAlign::Center,
+                            wrap: UiTextWrap::Word,
+                            text_render_mode: UiTextRenderMode::Native,
+                            ..crate::ui::surface::UiResolvedStyle::default()
+                        },
+                        text: Some("Launch".to_string()),
+                        image: None,
+                        opacity: 1.0,
+                    }],
+                },
+            },
+            UVec2::new(200, 100),
+        );
+
+        assert_eq!(plan.draws.len(), 1);
+        assert_eq!(plan.native_texts.len(), 1);
+        assert!(plan.sdf_texts.is_empty());
+    }
+
+    #[test]
+    fn screen_space_ui_plan_routes_sdf_text_to_a_separate_batch() {
+        let plan = plan_screen_space_ui_batches(
+            &UiRenderExtract {
+                tree_id: UiTreeId::new("runtime.ui"),
+                list: UiRenderList {
+                    commands: vec![UiRenderCommand {
+                        node_id: UiNodeId::new(2),
+                        kind: UiRenderCommandKind::Text,
+                        frame: UiFrame::new(0.0, 0.0, 160.0, 48.0),
+                        clip_frame: None,
+                        z_index: 0,
+                        style: crate::ui::surface::UiResolvedStyle {
+                            foreground_color: Some("#ffffff".to_string()),
+                            font_size: 20.0,
+                            line_height: 24.0,
+                            text_align: UiTextAlign::Left,
+                            wrap: UiTextWrap::Word,
+                            text_render_mode: UiTextRenderMode::Sdf,
+                            ..crate::ui::surface::UiResolvedStyle::default()
+                        },
+                        text: Some("SDF".to_string()),
+                        image: None,
+                        opacity: 1.0,
+                    }],
+                },
+            },
+            UVec2::new(320, 180),
+        );
+
+        assert!(plan.native_texts.is_empty());
+        assert_eq!(plan.sdf_texts.len(), 1);
+    }
+
+    #[test]
+    fn screen_space_ui_plan_keeps_auto_text_in_a_separate_batch() {
+        let plan = plan_screen_space_ui_batches(
+            &UiRenderExtract {
+                tree_id: UiTreeId::new("runtime.ui"),
+                list: UiRenderList {
+                    commands: vec![UiRenderCommand {
+                        node_id: UiNodeId::new(3),
+                        kind: UiRenderCommandKind::Text,
+                        frame: UiFrame::new(4.0, 6.0, 144.0, 40.0),
+                        clip_frame: None,
+                        z_index: 0,
+                        style: crate::ui::surface::UiResolvedStyle {
+                            foreground_color: Some("#ffffff".to_string()),
+                            font: Some("res://fonts/default.font.toml".to_string()),
+                            font_size: 16.0,
+                            line_height: 20.0,
+                            text_align: UiTextAlign::Left,
+                            wrap: UiTextWrap::Word,
+                            text_render_mode: UiTextRenderMode::Auto,
+                            ..crate::ui::surface::UiResolvedStyle::default()
+                        },
+                        text: Some("Auto".to_string()),
+                        image: None,
+                        opacity: 1.0,
+                    }],
+                },
+            },
+            UVec2::new(320, 180),
+        );
+
+        assert!(plan.native_texts.is_empty());
+        assert!(plan.sdf_texts.is_empty());
+        assert_eq!(plan.auto_texts.len(), 1);
+    }
 }

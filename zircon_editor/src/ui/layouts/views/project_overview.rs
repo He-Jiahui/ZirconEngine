@@ -1,5 +1,5 @@
-use crate::snapshot::ProjectOverviewSnapshot;
 use crate::ui::slint_host::ProjectOverviewData;
+use crate::ui::workbench::snapshot::ProjectOverviewSnapshot;
 
 pub(crate) fn project_overview_data(snapshot: &ProjectOverviewSnapshot) -> ProjectOverviewData {
     ProjectOverviewData {

@@ -1,18 +1,20 @@
 mod asset;
-mod bridge;
+mod build;
 mod document;
 mod instance;
 mod loader;
 mod validate;
 
+#[cfg(test)]
+pub(crate) use asset::UiFlatAssetMigrationAdapter;
 pub use asset::{
     UiActionRef, UiAssetDocument, UiAssetError, UiAssetHeader, UiAssetImports, UiAssetKind,
-    UiAssetLoader, UiAssetRoot, UiChildMount, UiCompiledDocument, UiComponentDefinition,
+    UiAssetLoader, UiAssetNodeIter, UiChildMount, UiCompiledDocument, UiComponentDefinition,
     UiComponentParamSchema, UiDocumentCompiler, UiLegacyTemplateAdapter, UiNamedSlotSchema,
-    UiNodeDefinition, UiNodeDefinitionKind, UiSelector, UiSelectorToken, UiStyleDeclarationBlock,
-    UiStyleResolver, UiStyleRule, UiStyleScope, UiStyleSheet,
+    UiNodeDefinition, UiNodeDefinitionKind, UiNodeParent, UiSelector, UiSelectorToken,
+    UiStyleDeclarationBlock, UiStyleResolver, UiStyleRule, UiStyleScope, UiStyleSheet,
 };
-pub use bridge::{UiTemplateBuildError, UiTemplateSurfaceBuilder, UiTemplateTreeBuilder};
+pub use build::{UiTemplateBuildError, UiTemplateSurfaceBuilder, UiTemplateTreeBuilder};
 pub use document::{
     UiBindingRef, UiComponentTemplate, UiSlotTemplate, UiTemplateDocument, UiTemplateError,
     UiTemplateNode,

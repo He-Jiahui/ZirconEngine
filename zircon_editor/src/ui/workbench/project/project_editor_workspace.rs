@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-use crate::layout::{ActivityDrawerSlot, WorkbenchLayout};
-use crate::view::{ViewInstance, ViewInstanceId};
+use crate::ui::workbench::layout::{ActivityDrawerSlot, WorkbenchLayout};
+use crate::ui::workbench::view::{ViewInstance, ViewInstanceId};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ProjectEditorWorkspace {

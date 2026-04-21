@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::layout::{ActivityDrawerSlot, MainPageId};
+use crate::ui::workbench::layout::{ActivityDrawerSlot, MainPageId};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum ViewHost {

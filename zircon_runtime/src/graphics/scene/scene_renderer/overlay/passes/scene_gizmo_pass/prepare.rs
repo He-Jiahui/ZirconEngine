@@ -2,7 +2,7 @@ use crate::graphics::scene::scene_renderer::overlay::{PreparedIconDraw, Prepared
 use crate::graphics::scene::scene_renderer::primitives::{
     build_icon_buffer, build_icon_quad_vertices, build_line_buffer, build_scene_gizmo_line_vertices,
 };
-use crate::graphics::types::{EditorOrRuntimeFrame, GraphicsError};
+use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
 
 use super::scene_gizmo_pass::SceneGizmoPass;
 
@@ -12,7 +12,7 @@ impl SceneGizmoPass {
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         texture_layout: &wgpu::BindGroupLayout,
-        frame: &EditorOrRuntimeFrame,
+        frame: &ViewportRenderFrame,
     ) -> Result<PreparedSceneGizmoPass, GraphicsError> {
         let camera = &frame.scene.scene.camera;
         let camera_right = camera.transform.right();

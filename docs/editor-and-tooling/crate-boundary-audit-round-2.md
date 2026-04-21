@@ -49,10 +49,14 @@ related_code:
   - zircon_framework/src/input/input_snapshot.rs
   - zircon_runtime/src/input/module/descriptor.rs
   - zircon_runtime/src/input/mod.rs
+  - zircon_runtime/src/builtin/mod.rs
+  - zircon_runtime/src/graphics/mod.rs
   - zircon_runtime/src/input/runtime/default_input_manager.rs
   - zircon_runtime/src/input/runtime/input_state.rs
   - zircon_runtime/src/input/tests/boundary.rs
   - zircon_runtime/src/input/tests/input_manager.rs
+  - zircon_app/src/entry/builtin_modules.rs
+  - zircon_app/src/entry/tests/mod.rs
   - zircon_runtime/src/script/mod.rs
   - zircon_runtime/src/script/vm/mod.rs
   - zircon_runtime/src/script/vm/capability_set.rs
@@ -66,10 +70,10 @@ related_code:
   - zircon_runtime/src/scene/mod.rs
   - zircon_runtime/src/scene/module/mod.rs
   - zircon_runtime/src/graphics/host/module_host/rendering_manager/manager_backend_info.rs
-  - zircon_editor/src/core/editing/asset_workspace.rs
-  - zircon_editor/src/core/editing/state/editor_state_asset_workspace.rs
+  - zircon_editor/src/ui/workbench/project/asset_workspace_state.rs
+  - zircon_editor/src/ui/workbench/project/editor_state_asset_workspace.rs
   - zircon_editor/src/core/editor_event/runtime/execution/common.rs
-  - zircon_editor/src/core/host/resource_access.rs
+  - zircon_editor/src/ui/host/resource_access.rs
   - zircon_editor/src/ui/slint_host/app.rs
   - zircon_editor/src/ui/slint_host/app/backend_refresh.rs
   - zircon_editor/src/ui/slint_host/ui.rs
@@ -80,9 +84,9 @@ related_code:
   - zircon_editor/src/ui/workbench/snapshot/asset/asset_workspace_snapshot.rs
   - zircon_editor/src/tests/editing/asset_workspace.rs
   - zircon_editor/src/tests/editing/state.rs
-  - zircon_editor/src/tests/host/asset_manager_boundary.rs
-  - zircon_editor/src/tests/host/resource_access.rs
-  - zircon_editor/src/tests/host/slint_asset_refresh.rs
+  - zircon_editor/src/tests/host/asset_manager_boundary/mod.rs
+  - zircon_editor/src/tests/host/resource_access/mod.rs
+  - zircon_editor/src/tests/host/slint_asset_refresh/mod.rs
   - zircon_editor/src/tests/host/slint_asset_pointer.rs
   - zircon_app/src/entry/runtime_entry_app/application_handler.rs
   - zircon_app/src/entry/tests/mod.rs
@@ -144,10 +148,10 @@ implementation_files:
   - zircon_runtime/src/scene/module/mod.rs
   - zircon_runtime/src/graphics/host/module_host/rendering_manager/manager_backend_info.rs
   - zircon_app/src/entry/runtime_entry_app/application_handler.rs
-  - zircon_editor/src/core/editing/asset_workspace.rs
-  - zircon_editor/src/core/editing/state/editor_state_asset_workspace.rs
+  - zircon_editor/src/ui/workbench/project/asset_workspace_state.rs
+  - zircon_editor/src/ui/workbench/project/editor_state_asset_workspace.rs
   - zircon_editor/src/core/editor_event/runtime/execution/common.rs
-  - zircon_editor/src/core/host/resource_access.rs
+  - zircon_editor/src/ui/host/resource_access.rs
   - zircon_editor/src/ui/slint_host/app.rs
   - zircon_editor/src/ui/slint_host/app/backend_refresh.rs
   - zircon_editor/src/ui/slint_host/ui.rs
@@ -581,11 +585,13 @@ doc_type: module-detail
 - `cargo test -p zircon_runtime --lib --offline` 当前结果是 `175 passed / 6 failed`，剩余 6 个失败全部集中在 animation binary asset 的 bincode 解析链，不属于这轮 Runtime/Editor 吸收边界
 - `cargo test -p zircon_editor --lib --offline` 当前结果是 `596 passed / 0 failed`，证明 editor 侧已经稳定消费 absorbed runtime asset/scene/ui surface
 
-仍然明确未完成的 blocker 是 graphics public owner cutover：
+graphics public owner cutover 在入口侧已经继续收口：
 
-- `zircon_app/src/entry/builtin_modules.rs` 仍从 `zircon_graphics::GraphicsModule` 取 owner type
-- `zircon_graphics/src/lib.rs` 仍通过 graphics-side helper path 暴露 `GraphicsModule`
-- 这不是单纯的导出写法问题，而是当前 `zircon_graphics` core 仍直接依赖 absorbed runtime asset/ui/scene types；在这条依赖方向没有继续拆开前，不能把 graphics public owner 线硬切回 `zircon_runtime` crate root 而不引入新循环
+- `zircon_runtime::builtin_runtime_modules()` 现在直接持有 `GraphicsModule`
+- `zircon_app/src/entry/builtin_modules.rs` 不再手工插入 `GraphicsModule`
+- `asset -> graphics -> scene` 这段 builtin module 顺序现在完全由 runtime 持有，app 只保留 editor profile 附加模块
+
+当前继续需要观察的是更深层 graphics 内部 helper/public surface，而不是入口 bootstrap 的 owner 关系。
 
 ## Remaining Tasks
 
@@ -601,7 +607,7 @@ doc_type: module-detail
 
 继续往下做时，当前剩余 TODO tasks 是：
 
-1. 继续拆开 `zircon_graphics -> zircon_runtime` 的 asset/ui/scene 直接依赖，完成 graphics public owner cutover，让 `GraphicsModule` 真正从 graphics root 回到 `zircon_runtime::graphics`。
+1. 继续审计 runtime graphics 内部较深的 helper/public surface，确认 graphics owner cutover 在入口之外也没有遗留 root-surface 泄漏；`GraphicsModule` 本身已经稳定由 `zircon_runtime::graphics` 与 `zircon_runtime::builtin_runtime_modules()` 持有。
 2. `RenderingBackendInfo` 目前已有充分 keep 证据；后续只需在 `RenderingManager` façade 真正删除或出现第二实现时再重开审计。
 3. 继续细分 `zircon_ui` watchlist；当前已经先把 legacy template compat 链收回 `zircon_ui::template::*`，下一步若要再升级，先要证明 `UiTemplateDocument` / `UiTemplateLoader` / `UiLegacyTemplateAdapter` 已经脱离 `zircon_ui` 自己的 validator/instance/surface runtime。
 4. 持续扫 live `docs/` 中对旧 asset/scene owner 的残留描述；当前仓库没有 `docs/source/` 目录，因此文档清扫目标以总览型文档为准。

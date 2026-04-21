@@ -1,4 +1,4 @@
-use crate::GizmoAxis;
+use crate::scene::viewport::GizmoAxis;
 
 #[derive(Clone, Debug, Default)]
 pub(crate) struct ViewportHoverState {

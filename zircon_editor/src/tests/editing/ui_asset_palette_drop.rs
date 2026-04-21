@@ -1,6 +1,6 @@
-use crate::core::editing::ui_asset::UiAssetEditorSession;
-use crate::{UiAssetEditorMode, UiAssetEditorRoute, UiSize};
-use zircon_runtime::ui::{template::UiAssetKind, template::UiAssetLoader};
+use crate::ui::asset_editor::{UiAssetEditorMode, UiAssetEditorRoute, UiAssetEditorSession};
+use zircon_runtime::ui::layout::UiSize;
+use zircon_runtime::ui::template::UiAssetKind;
 
 const GRID_DROP_LAYOUT_ASSET_TOML: &str = r##"
 [asset]
@@ -247,10 +247,10 @@ fn ui_asset_editor_session_synthesizes_grid_slot_from_palette_drag_drop() {
         .drop_selected_palette_item_at_palette_drag_target()
         .expect("drop palette item into grid"));
 
-    let document = UiAssetLoader::load_toml_str(session.source_buffer().text()).expect("document");
+    let document = crate::tests::support::load_test_ui_asset(session.source_buffer().text())
+        .expect("document");
     let inserted_mount = document
-        .nodes
-        .get("root")
+        .node("root")
         .and_then(|node| node.children.last())
         .expect("inserted grid child mount");
     assert_eq!(
@@ -329,10 +329,10 @@ fn ui_asset_editor_session_synthesizes_overlay_slot_from_palette_drag_drop() {
         .drop_selected_palette_item_at_palette_drag_target()
         .expect("drop palette item into overlay"));
 
-    let document = UiAssetLoader::load_toml_str(session.source_buffer().text()).expect("document");
+    let document = crate::tests::support::load_test_ui_asset(session.source_buffer().text())
+        .expect("document");
     let inserted_mount = document
-        .nodes
-        .get("root")
+        .node("root")
         .and_then(|node| node.children.first())
         .expect("inserted overlay child mount");
     assert_eq!(
@@ -425,10 +425,10 @@ fn ui_asset_editor_session_synthesizes_flow_slot_from_palette_drag_drop() {
         .drop_selected_palette_item_at_palette_drag_target()
         .expect("drop palette item into flow"));
 
-    let document = UiAssetLoader::load_toml_str(session.source_buffer().text()).expect("document");
+    let document = crate::tests::support::load_test_ui_asset(session.source_buffer().text())
+        .expect("document");
     let inserted_mount = document
-        .nodes
-        .get("root")
+        .node("root")
         .and_then(|node| node.children.last())
         .expect("inserted flow child mount");
     assert_eq!(
@@ -499,8 +499,9 @@ fn ui_asset_editor_session_projects_explicit_named_slot_target_overlays_for_pale
         UiSize::new(640.0, 360.0),
     )
     .expect("external widget drop session");
-    let imported_widget = UiAssetLoader::load_toml_str(IMPORTED_TOOLBAR_SHELL_WIDGET_ASSET_TOML)
-        .expect("imported toolbar shell");
+    let imported_widget =
+        crate::tests::support::load_test_ui_asset(IMPORTED_TOOLBAR_SHELL_WIDGET_ASSET_TOML)
+            .expect("imported toolbar shell");
     external_session
         .register_widget_import(
             "asset://ui/common/toolbar_shell.ui#ToolbarShell",
@@ -566,10 +567,10 @@ fn ui_asset_editor_session_routes_palette_drop_into_local_component_mounts() {
         .drop_selected_palette_item_at_palette_drag_target()
         .expect("drop palette item into local component"));
 
-    let document = UiAssetLoader::load_toml_str(session.source_buffer().text()).expect("document");
+    let document = crate::tests::support::load_test_ui_asset(session.source_buffer().text())
+        .expect("document");
     let inserted_mount = document
-        .nodes
-        .get("card")
+        .node("card")
         .and_then(|node| node.children.first())
         .expect("inserted local component child mount");
     assert_eq!(inserted_mount.mount.as_deref(), Some("body"));
@@ -588,8 +589,9 @@ fn ui_asset_editor_session_routes_palette_drop_into_external_widget_named_slots(
         UiSize::new(640.0, 360.0),
     )
     .expect("external widget drop session");
-    let imported_widget = UiAssetLoader::load_toml_str(IMPORTED_TOOLBAR_SHELL_WIDGET_ASSET_TOML)
-        .expect("imported toolbar shell");
+    let imported_widget =
+        crate::tests::support::load_test_ui_asset(IMPORTED_TOOLBAR_SHELL_WIDGET_ASSET_TOML)
+            .expect("imported toolbar shell");
     session
         .register_widget_import(
             "asset://ui/common/toolbar_shell.ui#ToolbarShell",
@@ -613,10 +615,10 @@ fn ui_asset_editor_session_routes_palette_drop_into_external_widget_named_slots(
         .drop_selected_palette_item_at_palette_drag_target()
         .expect("drop palette item into external widget reference"));
 
-    let document = UiAssetLoader::load_toml_str(session.source_buffer().text()).expect("document");
+    let document = crate::tests::support::load_test_ui_asset(session.source_buffer().text())
+        .expect("document");
     let inserted_mount = document
-        .nodes
-        .get("toolbar")
+        .node("toolbar")
         .and_then(|node| node.children.first())
         .expect("inserted external widget child mount");
     assert_eq!(inserted_mount.mount.as_deref(), Some("trailing"));
@@ -674,10 +676,10 @@ fn ui_asset_editor_session_uses_explicit_slot_overlay_regions_for_low_semantic_c
         .confirm_palette_target_choice()
         .expect("confirm low semantic component target"));
 
-    let document = UiAssetLoader::load_toml_str(session.source_buffer().text()).expect("document");
+    let document = crate::tests::support::load_test_ui_asset(session.source_buffer().text())
+        .expect("document");
     let inserted_mount = document
-        .nodes
-        .get("host")
+        .node("host")
         .and_then(|node| node.children.first())
         .expect("inserted low semantic component child mount");
     assert_eq!(inserted_mount.mount.as_deref(), Some("slot_b"));
@@ -766,10 +768,10 @@ fn ui_asset_editor_session_drop_uses_cycled_palette_drag_target_candidate() {
         .drop_selected_palette_item_at_palette_drag_target()
         .expect("drop palette item into cycled low semantic component target"));
 
-    let document = UiAssetLoader::load_toml_str(session.source_buffer().text()).expect("document");
+    let document = crate::tests::support::load_test_ui_asset(session.source_buffer().text())
+        .expect("document");
     let inserted_mount = document
-        .nodes
-        .get("host")
+        .node("host")
         .and_then(|node| node.children.first())
         .expect("inserted low semantic component child mount");
     assert_eq!(inserted_mount.mount.as_deref(), Some("slot_c"));
@@ -858,10 +860,10 @@ fn ui_asset_editor_session_sticky_palette_target_chooser_selects_and_confirms_ca
     let confirmed = session.pane_presentation();
     assert!(!confirmed.palette_target_chooser_active);
 
-    let document = UiAssetLoader::load_toml_str(session.source_buffer().text()).expect("document");
+    let document = crate::tests::support::load_test_ui_asset(session.source_buffer().text())
+        .expect("document");
     let inserted_mount = document
-        .nodes
-        .get("host")
+        .node("host")
         .and_then(|node| node.children.first())
         .expect("inserted low semantic component child mount");
     assert_eq!(inserted_mount.mount.as_deref(), Some("slot_c"));
@@ -1003,7 +1005,7 @@ fn select_palette_entry(session: &mut UiAssetEditorSession, label: &str) {
 fn preview_frame(
     session: &UiAssetEditorSession,
     node_id: &str,
-) -> crate::core::editing::ui_asset::UiAssetEditorPreviewCanvasNode {
+) -> crate::ui::asset_editor::UiAssetEditorPreviewCanvasNode {
     session
         .pane_presentation()
         .preview_canvas_items

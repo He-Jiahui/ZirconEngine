@@ -1,52 +1,17 @@
-import { HostWindowShellData, HostWindowLayoutData, HostWindowBootstrapData, HostNativeFloatingWindowSurfaceData } from "host_components.slint";
-import { HostWorkbenchWindowSceneData } from "host_scene.slint";
+import { HostWindowBootstrapData } from "host_components.slint";
+import { HostWindowPresentationData } from "host_root.slint";
 import { HostWorkbenchWindowSurfaceHost } from "host_surface.slint";
 
 export component WorkbenchHostScaffold inherits Rectangle {
-    in property <HostWindowShellData> host_shell: {
-        project_path: "",
-        status_secondary: "",
-        viewport_label: "",
-        drawers_visible: false,
-        left_expanded: false,
-        right_expanded: false,
-        bottom_expanded: false,
-        save_project_enabled: false,
-        undo_enabled: false,
-        redo_enabled: false,
-        preset_names: [],
-        active_preset_name: "",
-        shell_min_width_px: 0.0,
-        shell_min_height_px: 0.0,
-        native_floating_window_mode: false,
-        native_floating_window_id: "",
-        native_window_title: "Zircon Editor",
-        native_window_bounds: { x: 0.0, y: 0.0, width: 0.0, height: 0.0 },
-    };
-    in property <HostWindowLayoutData> host_layout: {
-        center_band_frame: { x: 0.0, y: 0.0, width: 0.0, height: 0.0 },
-        status_bar_frame: { x: 0.0, y: 0.0, width: 0.0, height: 0.0 },
-        left_region_frame: { x: 0.0, y: 0.0, width: 0.0, height: 0.0 },
-        document_region_frame: { x: 0.0, y: 0.0, width: 0.0, height: 0.0 },
-        right_region_frame: { x: 0.0, y: 0.0, width: 0.0, height: 0.0 },
-        bottom_region_frame: { x: 0.0, y: 0.0, width: 0.0, height: 0.0 },
-        left_splitter_frame: { x: 0.0, y: 0.0, width: 0.0, height: 0.0 },
-        right_splitter_frame: { x: 0.0, y: 0.0, width: 0.0, height: 0.0 },
-        bottom_splitter_frame: { x: 0.0, y: 0.0, width: 0.0, height: 0.0 },
-        viewport_content_frame: { x: 0.0, y: 0.0, width: 0.0, height: 0.0 },
-    };
-    in property <HostWorkbenchWindowSceneData> workbench_scene_data;
-    in property <HostNativeFloatingWindowSurfaceData> native_floating_surface_data;
+    in property <HostWindowPresentationData> host_presentation;
     out property <HostWindowBootstrapData> host_window_bootstrap: {
         shell_frame: { x: 0.0, y: 0.0, width: root.width / 1px, height: root.height / 1px },
-        viewport_content_frame: root.host_layout.viewport_content_frame,
+        viewport_content_frame: root.host_presentation.host_layout.viewport_content_frame,
     };
 
     HostWorkbenchWindowSurfaceHost {
         width: parent.width;
         height: parent.height;
-        host_shell: root.host_shell;
-        workbench_scene_data: root.workbench_scene_data;
-        native_floating_surface_data: root.native_floating_surface_data;
+        host_presentation: root.host_presentation;
     }
 }

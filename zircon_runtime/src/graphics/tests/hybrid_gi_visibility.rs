@@ -25,6 +25,12 @@ fn visibility_context_builds_hybrid_gi_probe_and_trace_plan() {
 
     let mut extract = world.to_render_frame_extract();
     extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
         probe_budget: 1,
         tracing_budget: 1,
         probes: vec![
@@ -98,6 +104,12 @@ fn visibility_context_with_history_tracks_hybrid_gi_requested_probes() {
 
     let mut previous_extract = world.to_render_frame_extract();
     previous_extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
         probe_budget: 2,
         tracing_budget: 2,
         probes: vec![
@@ -113,6 +125,12 @@ fn visibility_context_with_history_tracks_hybrid_gi_requested_probes() {
 
     let mut current_extract = world.to_render_frame_extract();
     current_extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
         probe_budget: 2,
         tracing_budget: 2,
         probes: vec![
@@ -173,6 +191,12 @@ fn visibility_context_prioritizes_hybrid_gi_probe_requests_supported_by_schedule
 
     let mut extract = world.to_render_frame_extract();
     extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
         probe_budget: 1,
         tracing_budget: 1,
         probes: vec![
@@ -221,6 +245,12 @@ fn visibility_context_prefers_previously_requested_hybrid_gi_lineage_when_trace_
 
     let mut previous_extract = world.to_render_frame_extract();
     previous_extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
         probe_budget: 1,
         tracing_budget: 1,
         probes: vec![
@@ -240,6 +270,12 @@ fn visibility_context_prefers_previously_requested_hybrid_gi_lineage_when_trace_
 
     let mut current_extract = world.to_render_frame_extract();
     current_extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
         probe_budget: 1,
         tracing_budget: 0,
         probes: vec![
@@ -301,6 +337,12 @@ fn visibility_context_holds_newly_resident_hybrid_gi_probe_out_of_evictable_list
 
     let mut previous_extract = world.to_render_frame_extract();
     previous_extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
         probe_budget: 2,
         tracing_budget: 1,
         probes: vec![
@@ -313,6 +355,12 @@ fn visibility_context_holds_newly_resident_hybrid_gi_probe_out_of_evictable_list
 
     let mut current_extract = world.to_render_frame_extract();
     current_extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
         probe_budget: 2,
         tracing_budget: 1,
         probes: vec![
@@ -388,6 +436,12 @@ fn visibility_context_keeps_hybrid_gi_parent_probe_visible_while_requesting_nonr
 
     let mut extract = world.to_render_frame_extract();
     extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
         probe_budget: 2,
         tracing_budget: 1,
         probes: vec![
@@ -445,6 +499,12 @@ fn visibility_context_requests_nonresident_hybrid_gi_descendant_supported_by_tra
 
     let mut extract = world.to_render_frame_extract();
     extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
         probe_budget: 1,
         tracing_budget: 1,
         probes: vec![
@@ -502,6 +562,12 @@ fn visibility_context_prefers_deeper_nonresident_hybrid_gi_descendant_when_trace
 
     let mut extract = world.to_render_frame_extract();
     extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
         probe_budget: 1,
         tracing_budget: 1,
         probes: vec![
@@ -551,6 +617,12 @@ fn visibility_context_prefers_nonresident_hybrid_gi_descendant_supported_by_ance
 
     let mut extract = world.to_render_frame_extract();
     extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
         probe_budget: 1,
         tracing_budget: 1,
         probes: vec![
@@ -601,6 +673,12 @@ fn visibility_context_spreads_hybrid_gi_probe_budget_across_active_lineages_befo
 
     let mut extract = world.to_render_frame_extract();
     extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
         probe_budget: 2,
         tracing_budget: 1,
         probes: vec![
@@ -652,6 +730,12 @@ fn visibility_context_holds_resident_hybrid_gi_child_probe_one_frame_when_fronti
 
     let mut previous_extract = world.to_render_frame_extract();
     previous_extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
         probe_budget: 3,
         tracing_budget: 1,
         probes: vec![
@@ -671,6 +755,12 @@ fn visibility_context_holds_resident_hybrid_gi_child_probe_one_frame_when_fronti
 
     let mut current_extract = world.to_render_frame_extract();
     current_extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
         probe_budget: 3,
         tracing_budget: 1,
         probes: vec![
@@ -748,6 +838,12 @@ fn visibility_context_keeps_resident_hybrid_gi_descendant_probe_hot_while_ancest
 
     let mut previous_extract = world.to_render_frame_extract();
     previous_extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
         probe_budget: 3,
         tracing_budget: 1,
         probes: vec![
@@ -767,6 +863,12 @@ fn visibility_context_keeps_resident_hybrid_gi_descendant_probe_hot_while_ancest
 
     let mut current_extract = world.to_render_frame_extract();
     current_extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
         probe_budget: 3,
         tracing_budget: 1,
         probes: vec![

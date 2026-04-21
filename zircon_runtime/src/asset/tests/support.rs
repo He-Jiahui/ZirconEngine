@@ -1,10 +1,10 @@
 use std::fs;
 use std::path::PathBuf;
 
-use image::{ImageBuffer, ImageFormat, Rgba};
 use crate::core::framework::animation::AnimationParameterValue;
 use crate::core::framework::physics::{PhysicsCombineRule, PhysicsMaterialMetadata};
 use crate::core::framework::scene::{ComponentPropertyPath, EntityPath};
+use image::{ImageBuffer, ImageFormat, Rgba};
 
 use crate::asset::{
     AlphaMode, AnimationChannelAsset, AnimationChannelKeyAsset, AnimationChannelValueAsset,
@@ -14,7 +14,7 @@ use crate::asset::{
     AnimationSkeletonBoneAsset, AnimationStateAsset, AnimationStateMachineAsset,
     AnimationStateTransitionAsset, AnimationTransitionConditionAsset, AssetReference, AssetUri,
     MaterialAsset, PhysicsMaterialAsset, SceneAsset, SceneCameraAsset, SceneEntityAsset,
-    SceneMeshInstanceAsset, SceneMobilityAsset, TransformAsset,
+    SceneMeshInstanceAsset, SceneMobilityAsset, SoundAsset, TransformAsset,
 };
 
 pub(crate) fn write_valid_wgsl(path: PathBuf) {
@@ -74,6 +74,50 @@ f 1/1/1 2/2/1 3/3/1
     .unwrap();
 }
 
+pub(crate) fn sample_sound_asset(uri: &str) -> SoundAsset {
+    SoundAsset {
+        uri: AssetUri::parse(uri).unwrap(),
+        sample_rate_hz: 48_000,
+        channel_count: 1,
+        samples: vec![0.0, 0.5, -0.5, 32767.0 / 32768.0],
+    }
+}
+
+pub(crate) fn write_test_wav(path: PathBuf) {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).unwrap();
+    }
+
+    let sample_rate_hz = 48_000_u32;
+    let channel_count = 1_u16;
+    let bits_per_sample = 16_u16;
+    let block_align = channel_count * (bits_per_sample / 8);
+    let byte_rate = sample_rate_hz * block_align as u32;
+    let samples = [0_i16, 16_384_i16, -16_384_i16, 32_767_i16];
+    let data_size = (samples.len() * std::mem::size_of::<i16>()) as u32;
+    let riff_size = 36 + data_size;
+
+    let mut bytes = Vec::with_capacity((riff_size + 8) as usize);
+    bytes.extend_from_slice(b"RIFF");
+    bytes.extend_from_slice(&riff_size.to_le_bytes());
+    bytes.extend_from_slice(b"WAVE");
+    bytes.extend_from_slice(b"fmt ");
+    bytes.extend_from_slice(&16_u32.to_le_bytes());
+    bytes.extend_from_slice(&1_u16.to_le_bytes());
+    bytes.extend_from_slice(&channel_count.to_le_bytes());
+    bytes.extend_from_slice(&sample_rate_hz.to_le_bytes());
+    bytes.extend_from_slice(&byte_rate.to_le_bytes());
+    bytes.extend_from_slice(&block_align.to_le_bytes());
+    bytes.extend_from_slice(&bits_per_sample.to_le_bytes());
+    bytes.extend_from_slice(b"data");
+    bytes.extend_from_slice(&data_size.to_le_bytes());
+    for sample in samples {
+        bytes.extend_from_slice(&sample.to_le_bytes());
+    }
+
+    fs::write(path, bytes).unwrap();
+}
+
 pub(crate) fn write_default_material(path: PathBuf) {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).unwrap();
@@ -121,6 +165,16 @@ pub(crate) fn write_default_scene(path: PathBuf) {
                 }),
                 mesh: None,
                 directional_light: None,
+                point_light: None,
+                spot_light: None,
+                rigid_body: None,
+                collider: None,
+                joint: None,
+                animation_skeleton: None,
+                animation_player: None,
+                animation_sequence_player: None,
+                animation_graph_player: None,
+                animation_state_machine_player: None,
             },
             SceneEntityAsset {
                 entity: 2,
@@ -140,6 +194,16 @@ pub(crate) fn write_default_scene(path: PathBuf) {
                     material: asset_reference("res://materials/grid.material.toml"),
                 }),
                 directional_light: None,
+                point_light: None,
+                spot_light: None,
+                rigid_body: None,
+                collider: None,
+                joint: None,
+                animation_skeleton: None,
+                animation_player: None,
+                animation_sequence_player: None,
+                animation_graph_player: None,
+                animation_state_machine_player: None,
             },
         ],
     };

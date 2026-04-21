@@ -1,5 +1,5 @@
-use crate::layout::WorkspaceTarget;
-use crate::snapshot::{EditorChromeSnapshot, MainPageSnapshot};
+use crate::ui::workbench::layout::WorkspaceTarget;
+use crate::ui::workbench::snapshot::{EditorChromeSnapshot, MainPageSnapshot};
 
 use super::super::document_tab_model::DocumentTabModel;
 use super::super::empty_state::empty_state_for_tab;

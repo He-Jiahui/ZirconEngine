@@ -8,7 +8,7 @@ use zircon_runtime::ui::{
     event_ui::UiRouteId, event_ui::UiStateFlags, event_ui::UiTreeId, event_ui::UiValueType,
 };
 
-use crate::EditorUiBinding;
+use crate::ui::binding::EditorUiBinding;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum EditorActivityKind {

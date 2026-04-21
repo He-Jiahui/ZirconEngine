@@ -66,15 +66,9 @@ pub(crate) fn build_host_scene_data(
         left_drop_enabled: host_shell.drawers_visible,
         right_drop_enabled: host_shell.drawers_visible,
         bottom_drop_enabled: host_shell.drawers_visible,
-        left_drop_width_px: orchestration
-            .left_stack_width_px
-            .max(MIN_DROP_TARGET_PX),
-        right_drop_width_px: orchestration
-            .right_stack_width_px
-            .max(MIN_DROP_TARGET_PX),
-        bottom_drop_height_px: orchestration
-            .bottom_panel_height_px
-            .max(MIN_DROP_TARGET_PX),
+        left_drop_width_px: orchestration.left_stack_width_px.max(MIN_DROP_TARGET_PX),
+        right_drop_width_px: orchestration.right_stack_width_px.max(MIN_DROP_TARGET_PX),
+        bottom_drop_height_px: orchestration.bottom_panel_height_px.max(MIN_DROP_TARGET_PX),
         main_content_y_px: orchestration.main_content_y_px,
         main_content_height_px: host_layout.center_band_frame.height,
         document_zone_x_px: orchestration.document_zone_x_px,
@@ -193,13 +187,12 @@ fn surface_orchestration_data(
     };
     let left_stack_width_px = host_layout.left_region_frame.width;
     let right_stack_width_px = host_layout.right_region_frame.width;
-    let left_panel_width_px = if host_shell.left_expanded
-        && host_layout.left_region_frame.width > left_rail_width_px
-    {
-        host_layout.left_region_frame.width - left_rail_width_px
-    } else {
-        0.0
-    };
+    let left_panel_width_px =
+        if host_shell.left_expanded && host_layout.left_region_frame.width > left_rail_width_px {
+            host_layout.left_region_frame.width - left_rail_width_px
+        } else {
+            0.0
+        };
     let right_panel_width_px = if host_shell.right_expanded
         && host_layout.right_region_frame.width > right_rail_width_px
     {
@@ -220,7 +213,9 @@ fn surface_orchestration_data(
         document_zone_x_px: host_layout.document_region_frame.x,
         right_stack_x_px: host_layout.right_region_frame.x,
         bottom_panel_y_px: host_layout.bottom_region_frame.y,
-        left_tab_origin_x_px: left_rail_width_px + if left_panel_width_px > 0.0 { 1.0 } else { 0.0 } + 6.0,
+        left_tab_origin_x_px: left_rail_width_px
+            + if left_panel_width_px > 0.0 { 1.0 } else { 0.0 }
+            + 6.0,
         left_tab_origin_y_px: host_layout.center_band_frame.y + 2.0,
         document_tab_origin_x_px: host_layout.document_region_frame.x + 8.0,
         document_tab_origin_y_px: host_layout.center_band_frame.y + 1.0,

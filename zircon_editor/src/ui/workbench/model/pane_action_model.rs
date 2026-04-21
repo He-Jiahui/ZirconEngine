@@ -1,4 +1,4 @@
-use crate::ui::EditorUiBinding;
+use crate::ui::binding::EditorUiBinding;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct PaneActionModel {

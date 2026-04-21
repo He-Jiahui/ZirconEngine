@@ -1,9 +1,11 @@
 use crate::ui::slint_host::callback_dispatch::BuiltinWorkbenchRootShellFrames;
 use crate::ui::slint_host::shell_pointer::WorkbenchShellPointerRoute;
-use crate::{
-    DockEdge, MainPageId, SplitAxis, SplitPlacement, ViewHost, WorkbenchChromeMetrics,
-    WorkbenchLayout, WorkbenchShellGeometry, WorkbenchViewModel, WorkspaceTarget,
+use crate::ui::workbench::autolayout::{WorkbenchChromeMetrics, WorkbenchShellGeometry};
+use crate::ui::workbench::layout::{
+    DockEdge, MainPageId, SplitAxis, SplitPlacement, WorkbenchLayout, WorkspaceTarget,
 };
+use crate::ui::workbench::model::WorkbenchViewModel;
+use crate::ui::workbench::view::ViewHost;
 
 use super::drop_resolution::resolve_tab_drop_with_root_frames;
 use super::group::{

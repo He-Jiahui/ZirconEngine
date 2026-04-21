@@ -9,4 +9,6 @@ pub(in crate::graphics::scene::scene_renderer::post_process) struct GpuHybridGiP
         [f32; 4],
     pub(in crate::graphics::scene::scene_renderer::post_process) hierarchy_rt_lighting_rgb_and_weight:
         [f32; 4],
+    pub(in crate::graphics::scene::scene_renderer::post_process) temporal_signature_and_padding:
+        [f32; 4],
 }

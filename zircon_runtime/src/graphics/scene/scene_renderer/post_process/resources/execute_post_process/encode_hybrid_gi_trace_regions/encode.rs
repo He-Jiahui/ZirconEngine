@@ -1,7 +1,7 @@
-use bytemuck::Zeroable;
 use crate::core::math::UVec2;
+use bytemuck::Zeroable;
 
-use crate::graphics::types::EditorOrRuntimeFrame;
+use crate::graphics::types::ViewportRenderFrame;
 
 use super::super::super::super::constants::MAX_HYBRID_GI_TRACE_REGIONS;
 use super::super::super::super::hybrid_gi_trace_region_gpu::GpuHybridGiTraceRegion;
@@ -10,7 +10,7 @@ use super::hybrid_gi_trace_region_intensity::hybrid_gi_trace_region_intensity;
 use super::hybrid_gi_trace_region_rt_lighting::hybrid_gi_trace_region_rt_lighting;
 
 pub(in super::super) fn encode_hybrid_gi_trace_regions(
-    frame: &EditorOrRuntimeFrame,
+    frame: &ViewportRenderFrame,
     viewport_size: UVec2,
     enabled: bool,
 ) -> ([GpuHybridGiTraceRegion; MAX_HYBRID_GI_TRACE_REGIONS], u32) {

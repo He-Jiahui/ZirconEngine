@@ -1,9 +1,11 @@
+mod asset_workspace_state;
 mod constants;
 mod editor_project_document;
 mod editor_project_document_create_renderable_template;
 mod editor_project_document_ensure_runtime_assets;
 mod editor_project_document_load_from_path;
 mod editor_project_document_save_to_path;
+mod editor_state_asset_workspace;
 mod editor_workspace_document;
 mod editor_workspace_persistence;
 mod layout_preset_asset_document;
@@ -14,6 +16,7 @@ mod project_root_path;
 mod runtime_asset_helpers;
 mod workspace_document_path;
 
+pub(crate) use asset_workspace_state::AssetWorkspaceState;
 pub use editor_project_document::EditorProjectDocument;
 pub(crate) use layout_preset_assets::{
     list_layout_preset_assets, load_layout_preset_asset, save_layout_preset_asset,

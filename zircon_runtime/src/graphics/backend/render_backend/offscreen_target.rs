@@ -5,6 +5,9 @@ pub(crate) struct OffscreenTarget {
     pub(crate) final_color: wgpu::Texture,
     pub(crate) final_color_view: wgpu::TextureView,
     #[allow(dead_code)]
+    pub(crate) global_illumination: wgpu::Texture,
+    pub(crate) global_illumination_view: wgpu::TextureView,
+    #[allow(dead_code)]
     pub(crate) scene_color: wgpu::Texture,
     pub(crate) scene_color_view: wgpu::TextureView,
     #[allow(dead_code)]

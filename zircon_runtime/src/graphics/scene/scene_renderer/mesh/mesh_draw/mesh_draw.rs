@@ -2,12 +2,24 @@ use std::sync::Arc;
 
 use crate::graphics::scene::resources::{GpuMeshResource, GpuTextureResource, PipelineKey};
 
+use crate::graphics::types::VirtualGeometryPrepareClusterState;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct VirtualGeometrySubmissionDetail {
+    pub(crate) instance_index: Option<u32>,
     pub(crate) entity: u64,
     pub(crate) page_id: u32,
     pub(crate) submission_index: u32,
     pub(crate) draw_ref_rank: u32,
+    pub(crate) draw_ref_index: u32,
+    pub(crate) cluster_start_ordinal: u32,
+    pub(crate) cluster_span_count: u32,
+    pub(crate) cluster_total_count: u32,
+    pub(crate) submission_slot: Option<u32>,
+    pub(crate) state: VirtualGeometryPrepareClusterState,
+    pub(crate) lineage_depth: u32,
+    pub(crate) lod_level: u8,
+    pub(crate) frontier_rank: u32,
 }
 
 pub(crate) struct MeshDraw {

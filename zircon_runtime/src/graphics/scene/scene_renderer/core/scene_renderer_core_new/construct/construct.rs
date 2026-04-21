@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use crate::asset::ProjectAssetManager;
+
 use super::super::super::super::deferred::DeferredSceneResources;
 use super::super::super::super::hybrid_gi::HybridGiGpuResources;
 use super::super::super::super::mesh::{
@@ -17,6 +19,7 @@ use super::super::scene_bind_group_bundle::create_scene_bind_group_bundle;
 
 impl SceneRendererCore {
     pub(crate) fn new_with_icon_source(
+        asset_manager: Arc<ProjectAssetManager>,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         target_format: wgpu::TextureFormat,
@@ -55,7 +58,8 @@ impl SceneRendererCore {
             &texture_bind_group_layout,
             icon_source,
         );
-        let screen_space_ui_renderer = ScreenSpaceUiRenderer::new(device, target_format);
+        let screen_space_ui_renderer =
+            ScreenSpaceUiRenderer::new(asset_manager, device, queue, target_format);
         let hybrid_gi = HybridGiGpuResources::new(device);
         let virtual_geometry = VirtualGeometryGpuResources::new(device);
         let virtual_geometry_indirect_args = VirtualGeometryIndirectArgsGpuResources::new(device);

@@ -1,6 +1,6 @@
-use crate::graphics::types::VirtualGeometryPrepareClusterState;
-
-use super::virtual_geometry_cluster_raster_draw::VirtualGeometryClusterRasterDraw;
+use crate::graphics::types::{
+    VirtualGeometryClusterRasterDraw, VirtualGeometryPrepareClusterState,
+};
 
 pub(super) fn virtual_geometry_draw_range(
     mesh_index_count: u32,

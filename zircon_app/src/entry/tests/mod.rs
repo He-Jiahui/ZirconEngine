@@ -89,7 +89,8 @@ fn runtime_input_protocol_is_owned_by_input_subsystem() {
         "runtime window event handling should import input protocol types through zircon_runtime"
     );
     assert!(
-        !runtime_handler_source.contains("use zircon_runtime::core::manager::{InputButton, InputEvent};"),
+        !runtime_handler_source
+            .contains("use zircon_runtime::core::manager::{InputButton, InputEvent};"),
         "runtime window event handling should not import input protocol types from zircon_manager"
     );
 }
@@ -115,6 +116,25 @@ fn entry_subsystem_is_split_into_builtin_modules_run_modes_and_runtime_app_tree(
             root.join(relative).exists(),
             "expected entry module {relative} under {:?}",
             root
+        );
+    }
+}
+
+#[test]
+fn entry_uses_runtime_owned_builtin_module_list_without_manual_graphics_insertion() {
+    let builtin_modules_source = include_str!("../builtin_modules.rs");
+
+    assert!(
+        builtin_modules_source.contains("zircon_runtime::builtin_runtime_modules()"),
+        "entry bootstrap should still source runtime modules from zircon_runtime"
+    );
+    for forbidden in [
+        "use zircon_runtime::graphics::GraphicsModule;",
+        "modules.insert(4, Arc::new(GraphicsModule));",
+    ] {
+        assert!(
+            !builtin_modules_source.contains(forbidden),
+            "entry builtin module bootstrap should stop keeping runtime-owned graphics registration detail `{forbidden}`"
         );
     }
 }

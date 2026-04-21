@@ -23,6 +23,8 @@ impl World {
             camera: self.cameras.get(&entity).cloned(),
             mesh: self.mesh_renderers.get(&entity).cloned(),
             directional_light: self.directional_lights.get(&entity).cloned(),
+            point_light: self.point_lights.get(&entity).cloned(),
+            spot_light: self.spot_lights.get(&entity).cloned(),
             active: self.active_self.get(&entity).copied().unwrap_or_default().0,
             render_layer_mask: self
                 .render_layer_masks
@@ -31,6 +33,17 @@ impl World {
                 .unwrap_or_default()
                 .0,
             mobility: self.mobility.get(&entity).copied().unwrap_or_default(),
+            rigid_body: self.rigid_bodies.get(&entity).cloned(),
+            collider: self.colliders.get(&entity).cloned(),
+            joint: self.joints.get(&entity).cloned(),
+            animation_skeleton: self.animation_skeletons.get(&entity).cloned(),
+            animation_player: self.animation_players.get(&entity).cloned(),
+            animation_sequence_player: self.animation_sequence_players.get(&entity).cloned(),
+            animation_graph_player: self.animation_graph_players.get(&entity).cloned(),
+            animation_state_machine_player: self
+                .animation_state_machine_players
+                .get(&entity)
+                .cloned(),
         })
     }
 
@@ -71,6 +84,40 @@ impl World {
         }
         if let Some(directional_light) = record.directional_light {
             self.directional_lights.insert(record.id, directional_light);
+        }
+        if let Some(point_light) = record.point_light {
+            self.point_lights.insert(record.id, point_light);
+        }
+        if let Some(spot_light) = record.spot_light {
+            self.spot_lights.insert(record.id, spot_light);
+        }
+        if let Some(rigid_body) = record.rigid_body {
+            self.rigid_bodies.insert(record.id, rigid_body);
+        }
+        if let Some(collider) = record.collider {
+            self.colliders.insert(record.id, collider);
+        }
+        if let Some(joint) = record.joint {
+            self.joints.insert(record.id, joint);
+        }
+        if let Some(animation_skeleton) = record.animation_skeleton {
+            self.animation_skeletons
+                .insert(record.id, animation_skeleton);
+        }
+        if let Some(animation_player) = record.animation_player {
+            self.animation_players.insert(record.id, animation_player);
+        }
+        if let Some(animation_sequence_player) = record.animation_sequence_player {
+            self.animation_sequence_players
+                .insert(record.id, animation_sequence_player);
+        }
+        if let Some(animation_graph_player) = record.animation_graph_player {
+            self.animation_graph_players
+                .insert(record.id, animation_graph_player);
+        }
+        if let Some(animation_state_machine_player) = record.animation_state_machine_player {
+            self.animation_state_machine_players
+                .insert(record.id, animation_state_machine_player);
         }
 
         self.next_id = self.next_id.max(record.id + 1);

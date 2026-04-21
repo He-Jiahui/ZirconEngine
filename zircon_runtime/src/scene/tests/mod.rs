@@ -1,5 +1,7 @@
 mod asset_scene;
 mod component_structure;
+mod physics_animation_components;
+mod property_paths;
 mod semantics;
 mod support;
 mod world_basics;

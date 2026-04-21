@@ -1,4 +1,4 @@
-use crate::snapshot::{EditorChromeSnapshot, MainPageSnapshot, ViewContentKind};
+use crate::ui::workbench::snapshot::{EditorChromeSnapshot, MainPageSnapshot, ViewContentKind};
 
 use super::super::breadcrumb_model::BreadcrumbModel;
 use super::active_view::active_view_in_workspace;

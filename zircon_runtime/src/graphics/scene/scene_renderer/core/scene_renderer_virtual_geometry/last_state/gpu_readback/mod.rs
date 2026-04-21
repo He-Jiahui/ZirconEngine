@@ -1,7 +1,15 @@
+mod read_gpu_readback_visbuffer64;
+mod read_hardware_rasterization_records;
+mod read_hardware_rasterization_source;
 mod read_indirect_args;
+mod read_indirect_authority_records;
 mod read_indirect_draw_refs;
 mod read_indirect_execution_indices;
 mod read_indirect_execution_records;
+mod read_indirect_execution_segments;
 mod read_indirect_segments;
 mod read_indirect_submission_tokens;
+mod read_selected_clusters;
+mod read_visbuffer64_source;
+mod read_visbuffer64_words;
 mod take_gpu_readback;

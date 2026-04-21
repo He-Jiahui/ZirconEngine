@@ -5,11 +5,11 @@ use std::path::Path;
 use slint::{Image, ModelRc, SharedString};
 use zircon_runtime::core::resource::{ResourceKind, ResourceState};
 
-use crate::snapshot::{AssetUtilityTab, AssetViewMode, AssetWorkspaceSnapshot};
 use crate::ui::layouts::common::model_rc;
 use crate::ui::slint_host::{
     AssetFolderData, AssetItemData, AssetReferenceData, AssetSelectionData,
 };
+use crate::ui::workbench::snapshot::{AssetUtilityTab, AssetViewMode, AssetWorkspaceSnapshot};
 
 thread_local! {
     static PREVIEW_IMAGE_CACHE: RefCell<HashMap<String, Image>> = RefCell::new(HashMap::new());
@@ -149,7 +149,9 @@ pub(crate) fn asset_surface_presentation(
     }
 }
 
-fn reference_data(reference: &crate::snapshot::AssetReferenceSnapshot) -> AssetReferenceData {
+fn reference_data(
+    reference: &crate::ui::workbench::snapshot::AssetReferenceSnapshot,
+) -> AssetReferenceData {
     AssetReferenceData {
         uuid: reference.uuid.clone().into(),
         locator: reference.locator.clone().into(),
@@ -171,6 +173,8 @@ fn asset_kind_label(kind: ResourceKind) -> &'static str {
         ResourceKind::PhysicsMaterial => "PhysicsMaterial",
         ResourceKind::Scene => "Scene",
         ResourceKind::Model => "Model",
+        ResourceKind::Sound => "Sound",
+        ResourceKind::Font => "Font",
         ResourceKind::AnimationSkeleton => "AnimationSkeleton",
         ResourceKind::AnimationClip => "AnimationClip",
         ResourceKind::AnimationSequence => "AnimationSequence",
@@ -232,4 +236,15 @@ fn preview_image(path: &str, cache_key: &str) -> Image {
             .insert(cache_key.to_string(), loaded.clone());
         loaded
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::asset_kind_label;
+    use zircon_runtime::core::resource::ResourceKind;
+
+    #[test]
+    fn asset_surface_labels_font_assets() {
+        assert_eq!(asset_kind_label(ResourceKind::Font), "Font");
+    }
 }

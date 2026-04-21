@@ -1,5 +1,6 @@
 mod controller_creates_and_resizes_render_framework_viewports;
 mod controller_polls_latest_captured_frame_from_render_framework;
+mod controller_submits_shared_ui_overlay_through_render_framework;
 mod controller_updates_extract_camera_aspect_ratio_to_match_viewport_size;
 mod fake_render_framework;
 mod test_extract;

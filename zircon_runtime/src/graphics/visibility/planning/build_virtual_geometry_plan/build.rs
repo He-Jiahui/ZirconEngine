@@ -45,32 +45,33 @@ pub(crate) fn build_virtual_geometry_plan(
         .collect::<Vec<_>>();
     let resident_page_set = resident_pages.iter().copied().collect::<BTreeSet<_>>();
     let previous_visible_cluster_ids = previous
-        .map(|history| {
-            history
-                .virtual_geometry_visible_cluster_ids
-                .iter()
-                .copied()
-                .collect::<BTreeSet<_>>()
-        })
+        .map(|history| history.virtual_geometry_visible_cluster_ids.clone())
         .unwrap_or_default();
-    let previous_requested_page_ids = previous
-        .map(|history| {
-            history
-                .virtual_geometry_requested_pages
-                .iter()
-                .copied()
-                .collect::<BTreeSet<_>>()
-        })
-        .unwrap_or_default();
-
-    let candidate_visible_clusters = extract
-        .clusters
+    let previous_visible_cluster_id_set = previous_visible_cluster_ids
         .iter()
-        .filter(|cluster| visible_entities.contains(&cluster.entity))
+        .copied()
+        .collect::<BTreeSet<_>>();
+    let previous_requested_pages = previous
+        .map(|history| history.virtual_geometry_requested_pages.clone())
+        .unwrap_or_default();
+    let previous_requested_page_id_set = previous_requested_pages
+        .iter()
+        .copied()
+        .collect::<BTreeSet<_>>();
+
+    let eligible_clusters = eligible_virtual_geometry_clusters(extract, visible_entities);
+    let eligible_cluster_map = eligible_clusters
+        .iter()
+        .copied()
+        .map(|cluster| (cluster.cluster_id, cluster))
+        .collect::<BTreeMap<_, _>>();
+    let eligible_page_ids = eligible_virtual_geometry_page_ids(extract, visible_entities);
+    let candidate_visible_clusters = eligible_clusters
+        .iter()
         .filter(|cluster| cluster_visible(cluster, camera))
         .copied()
         .collect::<Vec<_>>();
-    let clusters_by_id = candidate_visible_clusters
+    let candidate_clusters_by_id = candidate_visible_clusters
         .iter()
         .copied()
         .map(|cluster| (cluster.cluster_id, cluster))
@@ -82,13 +83,21 @@ pub(crate) fn build_virtual_geometry_plan(
         None,
         None,
     );
-    let visible_clusters = refine_visible_cluster_frontier(
-        &candidate_visible_clusters,
-        extract.cluster_budget as usize,
-        Some(&resident_page_set),
-        Some(&previous_visible_cluster_ids),
-        Some(&previous_requested_page_ids),
-    );
+    let visible_clusters = if extract.debug.freeze_cull && previous.is_some() {
+        previous_visible_cluster_ids
+            .iter()
+            .filter_map(|cluster_id| eligible_cluster_map.get(cluster_id).copied())
+            .take(extract.cluster_budget as usize)
+            .collect::<Vec<_>>()
+    } else {
+        refine_visible_cluster_frontier(
+            &candidate_visible_clusters,
+            extract.cluster_budget as usize,
+            Some(&resident_page_set),
+            Some(&previous_visible_cluster_id_set),
+            Some(&previous_requested_page_id_set),
+        )
+    };
 
     let virtual_geometry_visible_clusters = visible_clusters
         .iter()
@@ -103,7 +112,7 @@ pub(crate) fn build_virtual_geometry_plan(
         })
         .collect::<Vec<_>>();
     let virtual_geometry_draw_segments =
-        build_visibility_owned_draw_segments(extract, &visible_clusters, &clusters_by_id);
+        build_visibility_owned_draw_segments(extract, &visible_clusters, &eligible_cluster_map);
     let visible_page_set = virtual_geometry_visible_clusters
         .iter()
         .map(|cluster| cluster.page_id)
@@ -113,14 +122,64 @@ pub(crate) fn build_virtual_geometry_plan(
         .map(|cluster| cluster.cluster_id)
         .collect::<BTreeSet<_>>();
 
+    if extract.debug.freeze_cull && previous.is_some() {
+        let requested_pages = previous_requested_pages
+            .iter()
+            .copied()
+            .filter(|page_id| eligible_page_ids.contains(page_id))
+            .filter(|page_id| !resident_page_set.contains(page_id))
+            .take(extract.page_budget as usize)
+            .collect::<Vec<_>>();
+        let requested_page_set = requested_pages.iter().copied().collect::<BTreeSet<_>>();
+        let evictable_pages = resident_pages
+            .iter()
+            .copied()
+            .filter(|page_id| !visible_page_set.contains(page_id))
+            .filter(|page_id| !requested_page_set.contains(page_id))
+            .collect::<Vec<_>>();
+        let hot_resident_pages = resident_pages
+            .iter()
+            .copied()
+            .filter(|page_id| !visible_page_set.contains(page_id))
+            .filter(|page_id| !evictable_pages.contains(page_id))
+            .collect::<Vec<_>>();
+        let history_visible_cluster_ids = virtual_geometry_visible_clusters
+            .iter()
+            .map(|cluster| cluster.cluster_id)
+            .collect::<Vec<_>>();
+
+        return (
+            virtual_geometry_visible_clusters,
+            virtual_geometry_draw_segments,
+            VisibilityVirtualGeometryPageUploadPlan {
+                resident_pages,
+                requested_pages: requested_pages.clone(),
+                dirty_requested_pages: requested_pages
+                    .iter()
+                    .copied()
+                    .filter(|page_id| !previous_requested_page_id_set.contains(page_id))
+                    .collect(),
+                evictable_pages: evictable_pages.clone(),
+            },
+            VisibilityVirtualGeometryFeedback {
+                visible_cluster_ids: history_visible_cluster_ids.clone(),
+                requested_pages: requested_pages.clone(),
+                evictable_pages,
+                hot_resident_pages,
+            },
+            requested_pages,
+            history_visible_cluster_ids,
+        );
+    }
+
     let hierarchy_cascade_requested_pages = candidate_visible_clusters
         .iter()
-        .filter(|cluster| previous_visible_cluster_ids.contains(&cluster.cluster_id))
+        .filter(|cluster| previous_visible_cluster_id_set.contains(&cluster.cluster_id))
         .filter(|cluster| !visible_cluster_id_set.contains(&cluster.cluster_id))
         .filter_map(|cluster| {
             highest_nonresident_ancestor_page_before_visible(
                 *cluster,
-                &clusters_by_id,
+                &candidate_clusters_by_id,
                 &resident_page_set,
                 &visible_cluster_id_set,
             )
@@ -128,7 +187,7 @@ pub(crate) fn build_virtual_geometry_plan(
         .collect::<BTreeSet<_>>()
         .into_iter()
         .collect::<Vec<_>>();
-    let continued_requested_pages = previous_requested_page_ids
+    let continued_requested_pages = previous_requested_pages
         .iter()
         .copied()
         .filter(|page_id| !resident_page_set.contains(page_id))
@@ -136,7 +195,7 @@ pub(crate) fn build_virtual_geometry_plan(
             requested_page_reaches_visible_frontier(
                 *page_id,
                 &candidate_visible_clusters,
-                &clusters_by_id,
+                &candidate_clusters_by_id,
                 &visible_cluster_id_set,
             )
         })
@@ -156,7 +215,7 @@ pub(crate) fn build_virtual_geometry_plan(
     let dirty_requested_pages = requested_pages
         .iter()
         .copied()
-        .filter(|page_id| !previous_requested_page_ids.contains(page_id))
+        .filter(|page_id| !previous_requested_page_id_set.contains(page_id))
         .collect::<Vec<_>>();
     let mut children_by_parent = BTreeMap::<u32, Vec<_>>::new();
     for cluster in candidate_visible_clusters.iter().copied() {
@@ -170,7 +229,7 @@ pub(crate) fn build_virtual_geometry_plan(
     let split_hold_protected_pages = candidate_visible_clusters
         .iter()
         .filter(|cluster| resident_page_set.contains(&cluster.page_id))
-        .filter(|cluster| previous_requested_page_ids.contains(&cluster.page_id))
+        .filter(|cluster| previous_requested_page_id_set.contains(&cluster.page_id))
         .filter(|cluster| {
             cluster.parent_cluster_id.is_some_and(|parent_cluster_id| {
                 visible_cluster_id_set.contains(&parent_cluster_id)
@@ -181,7 +240,7 @@ pub(crate) fn build_virtual_geometry_plan(
     let merge_hold_protected_pages = candidate_visible_clusters
         .iter()
         .filter(|cluster| resident_page_set.contains(&cluster.page_id))
-        .filter(|cluster| previous_visible_cluster_ids.contains(&cluster.cluster_id))
+        .filter(|cluster| previous_visible_cluster_id_set.contains(&cluster.cluster_id))
         .filter(|cluster| !visible_cluster_id_set.contains(&cluster.cluster_id))
         .filter(|cluster| {
             children_by_parent
@@ -198,20 +257,26 @@ pub(crate) fn build_virtual_geometry_plan(
     let merge_back_child_hold_protected_pages = candidate_visible_clusters
         .iter()
         .filter(|cluster| resident_page_set.contains(&cluster.page_id))
-        .filter(|cluster| previous_visible_cluster_ids.contains(&cluster.cluster_id))
+        .filter(|cluster| previous_visible_cluster_id_set.contains(&cluster.cluster_id))
         .filter(|cluster| !visible_cluster_id_set.contains(&cluster.cluster_id))
-        .filter(|cluster| has_visible_ancestor(**cluster, &clusters_by_id, &visible_cluster_id_set))
+        .filter(|cluster| {
+            has_visible_ancestor(
+                **cluster,
+                &candidate_clusters_by_id,
+                &visible_cluster_id_set,
+            )
+        })
         .map(|cluster| cluster.page_id)
         .collect::<BTreeSet<_>>();
     let requested_lineage_targets = requested_lineage_targets(
         &requested_pages,
         &candidate_visible_clusters,
-        &clusters_by_id,
+        &candidate_clusters_by_id,
         &visible_cluster_id_set,
     );
     let streaming_target_lineage_targets = streaming_target_lineage_targets(
         &streaming_target_clusters,
-        &clusters_by_id,
+        &candidate_clusters_by_id,
         &visible_cluster_id_set,
     );
     let requested_lineage_hold_protected_pages = candidate_visible_clusters
@@ -228,7 +293,7 @@ pub(crate) fn build_virtual_geometry_plan(
                         **cluster,
                         target_cluster,
                         frontier_cluster_id,
-                        &clusters_by_id,
+                        &candidate_clusters_by_id,
                     )
                 })
         })
@@ -271,10 +336,14 @@ pub(crate) fn build_virtual_geometry_plan(
             candidate_visible_clusters
                 .iter()
                 .filter(|cluster| resident_page_set.contains(&cluster.page_id))
-                .filter(|cluster| previous_visible_cluster_ids.contains(&cluster.cluster_id))
+                .filter(|cluster| previous_visible_cluster_id_set.contains(&cluster.cluster_id))
                 .filter(|cluster| !visible_cluster_id_set.contains(&cluster.cluster_id))
                 .filter(|cluster| {
-                    has_visible_ancestor(**cluster, &clusters_by_id, &visible_cluster_id_set)
+                    has_visible_ancestor(
+                        **cluster,
+                        &candidate_clusters_by_id,
+                        &visible_cluster_id_set,
+                    )
                 })
                 .map(|cluster| cluster.cluster_id)
                 .collect::<BTreeSet<_>>()
@@ -296,6 +365,79 @@ pub(crate) fn build_virtual_geometry_plan(
         requested_pages,
         history_visible_cluster_ids,
     )
+}
+
+fn eligible_virtual_geometry_clusters(
+    extract: &RenderVirtualGeometryExtract,
+    visible_entities: &BTreeSet<u64>,
+) -> Vec<RenderVirtualGeometryCluster> {
+    let mut clusters_by_id = BTreeMap::<u32, RenderVirtualGeometryCluster>::new();
+
+    if extract.instances.is_empty() {
+        for cluster in extract
+            .clusters
+            .iter()
+            .filter(|cluster| visible_entities.contains(&cluster.entity))
+            .filter(|cluster| forced_mip_allows_cluster(extract, cluster))
+        {
+            clusters_by_id.insert(cluster.cluster_id, *cluster);
+        }
+    } else {
+        for instance in extract
+            .instances
+            .iter()
+            .filter(|instance| visible_entities.contains(&instance.entity))
+        {
+            let start = instance.cluster_offset as usize;
+            let end = start.saturating_add(instance.cluster_count as usize);
+            for cluster in extract
+                .clusters
+                .get(start..end)
+                .into_iter()
+                .flatten()
+                .filter(|cluster| forced_mip_allows_cluster(extract, cluster))
+            {
+                clusters_by_id.insert(cluster.cluster_id, *cluster);
+            }
+        }
+    }
+
+    clusters_by_id.into_values().collect()
+}
+
+fn eligible_virtual_geometry_page_ids(
+    extract: &RenderVirtualGeometryExtract,
+    visible_entities: &BTreeSet<u64>,
+) -> BTreeSet<u32> {
+    if extract.instances.is_empty() {
+        return extract.pages.iter().map(|page| page.page_id).collect();
+    }
+
+    extract
+        .instances
+        .iter()
+        .filter(|instance| visible_entities.contains(&instance.entity))
+        .flat_map(|instance| {
+            let start = instance.page_offset as usize;
+            let end = start.saturating_add(instance.page_count as usize);
+            extract
+                .pages
+                .get(start..end)
+                .into_iter()
+                .flatten()
+                .map(|page| page.page_id)
+        })
+        .collect()
+}
+
+fn forced_mip_allows_cluster(
+    extract: &RenderVirtualGeometryExtract,
+    cluster: &RenderVirtualGeometryCluster,
+) -> bool {
+    extract
+        .debug
+        .forced_mip
+        .map_or(true, |forced_mip| forced_mip == cluster.lod_level)
 }
 
 fn build_visibility_owned_draw_segments(

@@ -3,7 +3,8 @@ mod runtime_ui_fixture;
 mod runtime_ui_manager;
 mod runtime_ui_manager_error;
 
-pub use public_frame::PublicRuntimeFrame;
-pub use runtime_ui_fixture::RuntimeUiFixture;
-pub use runtime_ui_manager::RuntimeUiManager;
-pub use runtime_ui_manager_error::RuntimeUiManagerError;
+pub(crate) use public_frame::PublicRuntimeFrame;
+#[cfg(test)]
+pub(crate) use runtime_ui_fixture::RuntimeUiFixture;
+#[cfg(test)]
+pub(crate) use runtime_ui_manager::RuntimeUiManager;

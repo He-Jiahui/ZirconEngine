@@ -1,0 +1,3 @@
+source = "FiraMono-subset.ttf"
+family = "Fira Mono"
+render_mode = "native"

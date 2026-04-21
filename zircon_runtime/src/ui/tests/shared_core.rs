@@ -4,7 +4,10 @@ use crate::ui::layout::{
     StretchMode,
 };
 use crate::ui::surface::UiFocusState;
-use crate::ui::surface::{UiRenderCommandKind, UiResolvedStyle, UiVisualAssetRef};
+use crate::ui::surface::{
+    UiRenderCommandKind, UiResolvedStyle, UiTextAlign, UiTextRenderMode, UiTextWrap,
+    UiVisualAssetRef,
+};
 use crate::ui::tree::{UiHitTestIndex, UiTemplateNodeMetadata};
 use crate::ui::{
     dispatch::{
@@ -14,16 +17,16 @@ use crate::ui::{
     layout::Anchor,
     layout::BoxConstraints,
     layout::DesiredSize,
-    layout::UiFrame,
-    layout::UiPoint,
-    layout::UiSize,
     layout::Pivot,
     layout::Position,
     layout::UiAxis,
     layout::UiContainerKind,
+    layout::UiFrame,
+    layout::UiPoint,
     layout::UiScrollState,
     layout::UiScrollableBoxConfig,
     layout::UiScrollbarVisibility,
+    layout::UiSize,
     layout::UiVirtualListConfig,
     layout::UiVirtualListWindow,
     surface::UiNavigationEventKind,
@@ -295,6 +298,13 @@ fn render_extract_carries_visual_contract_fields_for_visible_nodes() {
 text = "Launch"
 icon = "rocket-outline"
 opacity = 0.75
+font = "res://fonts/default.font.toml"
+font_family = "Fira Mono"
+font_size = 18.0
+line_height = 24.0
+text_align = "center"
+wrap = "word"
+text_render_mode = "sdf"
 
 [background]
 color = "#112233"
@@ -365,6 +375,13 @@ radius = 6.0
             border_color: Some("#334455".to_string()),
             border_width: 2.0,
             corner_radius: 6.0,
+            font: Some("res://fonts/default.font.toml".to_string()),
+            font_family: Some("Fira Mono".to_string()),
+            font_size: 18.0,
+            line_height: 24.0,
+            text_align: UiTextAlign::Center,
+            wrap: UiTextWrap::Word,
+            text_render_mode: UiTextRenderMode::Sdf,
         }
     );
 }

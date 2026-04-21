@@ -1,7 +1,7 @@
 use super::super::super::PreparedOverlayBuffers;
 use super::super::viewport_overlay_renderer::ViewportOverlayRenderer;
 use crate::graphics::scene::resources::ResourceStreamer;
-use crate::graphics::types::EditorOrRuntimeFrame;
+use crate::graphics::types::ViewportRenderFrame;
 
 impl ViewportOverlayRenderer {
     #[allow(clippy::too_many_arguments)]
@@ -15,7 +15,7 @@ impl ViewportOverlayRenderer {
         mesh_draws: &[super::super::super::super::mesh::MeshDraw],
         mesh_pipelines: &mut super::super::super::super::mesh::MeshPipelineCache,
         streamer: &ResourceStreamer,
-        frame: &EditorOrRuntimeFrame,
+        frame: &ViewportRenderFrame,
         prepared: &PreparedOverlayBuffers,
     ) {
         self.record_scene_content(

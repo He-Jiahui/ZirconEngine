@@ -1,110 +1,362 @@
+stylesheets = []
+
 [asset]
 kind = "layout"
 id = "runtime.settings_dialog"
 version = 1
 display_name = "Settings Dialog"
 
-[root]
-node = "settings_dialog_root"
+[imports]
+widgets = []
+styles = []
 
-[nodes.settings_dialog_root]
+[tokens]
+
+[root]
+node_id = "settings_dialog_root"
 kind = "native"
 type = "Overlay"
 control_id = "SettingsDialogRoot"
-layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "Overlay" } }
-children = [
-  { child = "backdrop" },
-  { child = "dialog_panel", slot = { anchor = { min = [0.5, 0.5], max = [0.5, 0.5] }, pivot = [0.5, 0.5], position = [0.0, 0.0] } },
-]
+classes = []
+bindings = []
 
-[nodes.backdrop]
+[root.params]
+
+[root.props]
+
+[root.layout.container]
+kind = "Overlay"
+
+[root.layout.height]
+stretch = "Stretch"
+
+[root.layout.width]
+stretch = "Stretch"
+
+[root.style_overrides.self]
+
+[root.style_overrides.slot]
+
+[[root.children]]
+
+[root.children.slot]
+
+[root.children.node]
+node_id = "backdrop"
 kind = "native"
 type = "Canvas"
 control_id = "SettingsBackdrop"
-props = { tint = "#99000000" }
-layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+classes = []
+bindings = []
+children = []
 
-[nodes.dialog_panel]
+[root.children.node.params]
+
+[root.children.node.props]
+tint = "#99000000"
+
+[root.children.node.layout.height]
+stretch = "Stretch"
+
+[root.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.style_overrides.self]
+
+[root.children.node.style_overrides.slot]
+
+[[root.children]]
+
+[root.children.slot]
+pivot = [
+    0.5,
+    0.5,
+]
+position = [
+    0.0,
+    0.0,
+]
+
+[root.children.slot.anchor]
+max = [
+    0.5,
+    0.5,
+]
+min = [
+    0.5,
+    0.5,
+]
+
+[root.children.node]
+node_id = "dialog_panel"
 kind = "native"
 type = "VerticalBox"
 control_id = "SettingsDialogPanel"
 classes = ["dialog-panel"]
-layout = { width = { min = 420.0, preferred = 480.0, max = 560.0, stretch = "Fixed" }, height = { min = 280.0, preferred = 320.0, stretch = "Fixed" }, container = { kind = "VerticalBox", gap = 12.0 } }
-children = [
-  { child = "title" },
-  { child = "graphics_row" },
-  { child = "audio_row" },
-  { child = "actions_row" },
-]
+bindings = []
 
-[nodes.title]
+[root.children.node.params]
+
+[root.children.node.props]
+
+[root.children.node.layout.container]
+gap = 12.0
+kind = "VerticalBox"
+
+[root.children.node.layout.height]
+min = 280.0
+preferred = 320.0
+stretch = "Fixed"
+
+[root.children.node.layout.width]
+max = 560.0
+min = 420.0
+preferred = 480.0
+stretch = "Fixed"
+
+[root.children.node.style_overrides.self]
+
+[root.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+
+[root.children.node.children.slot]
+
+[root.children.node.children.node]
+node_id = "title"
 kind = "native"
 type = "Label"
 control_id = "SettingsTitle"
-props = { text = "Settings" }
+classes = []
+bindings = []
+children = []
 
-[nodes.graphics_row]
+[root.children.node.children.node.params]
+
+[root.children.node.children.node.props]
+text = "Settings"
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+
+[root.children.node.children.slot]
+
+[root.children.node.children.node]
+node_id = "graphics_row"
 kind = "native"
 type = "HorizontalBox"
 control_id = "GraphicsRow"
-layout = { width = { stretch = "Stretch" }, container = { kind = "HorizontalBox", gap = 8.0 } }
-children = [
-  { child = "graphics_label", slot = { layout = { width = { min = 120.0, preferred = 160.0, stretch = "Fixed" } } } },
-  { child = "graphics_value" },
-]
+classes = []
+bindings = []
 
-[nodes.graphics_label]
+[root.children.node.children.node.params]
+
+[root.children.node.children.node.props]
+
+[root.children.node.children.node.layout.container]
+gap = 8.0
+kind = "HorizontalBox"
+
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children]]
+
+[root.children.node.children.node.children.slot.layout.width]
+min = 120.0
+preferred = 160.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node]
+node_id = "graphics_label"
 kind = "native"
 type = "Label"
 control_id = "GraphicsLabel"
-props = { text = "Graphics Quality" }
+classes = []
+bindings = []
+children = []
 
-[nodes.graphics_value]
+[root.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.props]
+text = "Graphics Quality"
+
+[root.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children]]
+
+[root.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node]
+node_id = "graphics_value"
 kind = "native"
 type = "Label"
 control_id = "GraphicsValue"
-props = { text = "High" }
+classes = []
+bindings = []
+children = []
 
-[nodes.audio_row]
+[root.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.props]
+text = "High"
+
+[root.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+
+[root.children.node.children.slot]
+
+[root.children.node.children.node]
+node_id = "audio_row"
 kind = "native"
 type = "HorizontalBox"
 control_id = "AudioRow"
-layout = { width = { stretch = "Stretch" }, container = { kind = "HorizontalBox", gap = 8.0 } }
-children = [
-  { child = "audio_label", slot = { layout = { width = { min = 120.0, preferred = 160.0, stretch = "Fixed" } } } },
-  { child = "audio_value" },
-]
+classes = []
+bindings = []
 
-[nodes.audio_label]
+[root.children.node.children.node.params]
+
+[root.children.node.children.node.props]
+
+[root.children.node.children.node.layout.container]
+gap = 8.0
+kind = "HorizontalBox"
+
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children]]
+
+[root.children.node.children.node.children.slot.layout.width]
+min = 120.0
+preferred = 160.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node]
+node_id = "audio_label"
 kind = "native"
 type = "Label"
 control_id = "AudioLabel"
-props = { text = "Master Volume" }
+classes = []
+bindings = []
+children = []
 
-[nodes.audio_value]
+[root.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.props]
+text = "Master Volume"
+
+[root.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children]]
+
+[root.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node]
+node_id = "audio_value"
 kind = "native"
 type = "Label"
 control_id = "AudioValue"
-props = { text = "80%" }
+classes = []
+bindings = []
+children = []
 
-[nodes.actions_row]
+[root.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.props]
+text = "80%"
+
+[root.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+
+[root.children.node.children.slot]
+
+[root.children.node.children.node]
+node_id = "actions_row"
 kind = "native"
 type = "HorizontalBox"
 control_id = "SettingsActionsRow"
-layout = { width = { stretch = "Stretch" }, container = { kind = "HorizontalBox", gap = 10.0 } }
-children = [
-  { child = "apply_button" },
-  { child = "close_button" },
-]
+classes = []
+bindings = []
 
-[nodes.apply_button]
+[root.children.node.children.node.params]
+
+[root.children.node.children.node.props]
+
+[root.children.node.children.node.layout.container]
+gap = 10.0
+kind = "HorizontalBox"
+
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children]]
+
+[root.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node]
+node_id = "apply_button"
 kind = "native"
 type = "Button"
 control_id = "ApplySettings"
-props = { text = "Apply" }
+classes = []
+bindings = []
+children = []
 
-[nodes.close_button]
+[root.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.props]
+text = "Apply"
+
+[root.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children]]
+
+[root.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node]
+node_id = "close_button"
 kind = "native"
 type = "Button"
 control_id = "CloseSettings"
-props = { text = "Close" }
+classes = []
+bindings = []
+children = []
+
+[root.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.props]
+text = "Close"
+
+[root.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.style_overrides.slot]
+
+[components]

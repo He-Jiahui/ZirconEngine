@@ -1,25 +1,26 @@
 use crate::scene::viewport::pointer::{
-    ViewportOverlayPointerBridge, ViewportPointerLayout, ViewportPointerRoute,
+    ViewportOverlayPointerRouter, ViewportPointerLayout, ViewportPointerRoute,
     ViewportRenderablePickCandidate,
 };
-use crate::GizmoAxis;
 use crate::scene::viewport::{
-    HandleElementExtract, HandleOverlayExtract, OverlayAxis, OverlayPickShape, ProjectionMode,
-    SceneGizmoKind, SceneGizmoOverlayExtract, ViewportCameraSnapshot,
+    GizmoAxis, GridMode, HandleElementExtract, HandleOverlayExtract, OverlayAxis, OverlayPickShape,
+    ProjectionMode, SceneGizmoKind, SceneGizmoOverlayExtract, SceneViewportController,
+    ViewportCameraSnapshot,
 };
 use zircon_runtime::core::math::{perspective, view_matrix, Transform, UVec2, Vec2, Vec3, Vec4};
+use zircon_runtime::scene::Scene;
 use zircon_runtime::ui::layout::UiPoint;
 
 #[test]
-fn viewport_overlay_pointer_bridge_prefers_handle_axis_over_renderable_candidate() {
+fn viewport_overlay_pointer_router_prefers_handle_axis_over_renderable_candidate() {
     let viewport = UVec2::new(1280, 720);
     let camera = test_camera();
     let start = Vec3::new(0.0, 0.0, 0.0);
     let end = Vec3::new(2.0, 0.0, 0.0);
     let cursor = projected_point(&camera, viewport, Vec3::new(1.0, 0.0, 0.0));
 
-    let mut bridge = ViewportOverlayPointerBridge::new();
-    bridge.sync(ViewportPointerLayout {
+    let mut router = ViewportOverlayPointerRouter::new();
+    router.sync(ViewportPointerLayout {
         viewport,
         camera: camera.clone(),
         handles: vec![HandleOverlayExtract {
@@ -41,7 +42,7 @@ fn viewport_overlay_pointer_bridge_prefers_handle_axis_over_renderable_candidate
         }],
     });
 
-    let dispatch = bridge
+    let dispatch = router
         .handle_move(UiPoint::new(cursor.x, cursor.y))
         .expect("shared viewport route should resolve handle hover");
     assert_eq!(
@@ -54,14 +55,14 @@ fn viewport_overlay_pointer_bridge_prefers_handle_axis_over_renderable_candidate
 }
 
 #[test]
-fn viewport_overlay_pointer_bridge_prefers_scene_gizmo_over_renderable_candidate() {
+fn viewport_overlay_pointer_router_prefers_scene_gizmo_over_renderable_candidate() {
     let viewport = UVec2::new(1280, 720);
     let camera = test_camera();
     let gizmo_center = Vec3::new(0.5, 0.0, 0.0);
     let cursor = projected_point(&camera, viewport, gizmo_center);
 
-    let mut bridge = ViewportOverlayPointerBridge::new();
-    bridge.sync(ViewportPointerLayout {
+    let mut router = ViewportOverlayPointerRouter::new();
+    router.sync(ViewportPointerLayout {
         viewport,
         camera: camera.clone(),
         handles: Vec::new(),
@@ -84,7 +85,7 @@ fn viewport_overlay_pointer_bridge_prefers_scene_gizmo_over_renderable_candidate
         }],
     });
 
-    let dispatch = bridge
+    let dispatch = router
         .handle_move(UiPoint::new(cursor.x, cursor.y))
         .expect("shared viewport route should resolve gizmo hover");
     assert_eq!(
@@ -94,13 +95,13 @@ fn viewport_overlay_pointer_bridge_prefers_scene_gizmo_over_renderable_candidate
 }
 
 #[test]
-fn viewport_overlay_pointer_bridge_resolves_renderable_when_no_overlay_hits() {
+fn viewport_overlay_pointer_router_resolves_renderable_when_no_overlay_hits() {
     let viewport = UVec2::new(1280, 720);
     let camera = test_camera();
     let cursor = projected_point(&camera, viewport, Vec3::new(-0.75, 0.1, 0.0));
 
-    let mut bridge = ViewportOverlayPointerBridge::new();
-    bridge.sync(ViewportPointerLayout {
+    let mut router = ViewportOverlayPointerRouter::new();
+    router.sync(ViewportPointerLayout {
         viewport,
         camera: camera.clone(),
         handles: Vec::new(),
@@ -112,13 +113,54 @@ fn viewport_overlay_pointer_bridge_resolves_renderable_when_no_overlay_hits() {
         }],
     });
 
-    let dispatch = bridge
+    let dispatch = router
         .handle_move(UiPoint::new(cursor.x, cursor.y))
         .expect("shared viewport route should resolve renderable hover");
     assert_eq!(
         dispatch.route,
         Some(ViewportPointerRoute::Renderable { owner: 13 })
     );
+}
+
+#[test]
+fn viewport_render_snapshot_keeps_authoring_overlay_and_preview_state_in_editor_only() {
+    let scene = Scene::new();
+    let selected = scene
+        .nodes()
+        .iter()
+        .find(|node| node.directional_light.is_some())
+        .unwrap()
+        .id;
+    let mut controller = SceneViewportController::new(UVec2::new(1280, 720));
+    controller.set_selected_node(Some(selected));
+
+    let authored = controller.build_render_snapshot(&scene);
+    assert_eq!(authored.overlays.selection.len(), 1);
+    assert!(authored.overlays.selection_anchors.is_empty());
+    assert!(authored.overlays.grid.is_some());
+    assert!(!authored.overlays.scene_gizmos.is_empty());
+    assert!(authored.preview.lighting_enabled);
+    assert!(authored.preview.skybox_enabled);
+
+    controller.settings_mut().gizmos_enabled = false;
+    controller.settings_mut().grid_mode = GridMode::Hidden;
+    controller.settings_mut().preview_lighting = false;
+    controller.settings_mut().preview_skybox = false;
+
+    let toggled = controller.build_render_snapshot(&scene);
+    assert_eq!(toggled.overlays.selection.len(), 1);
+    assert_eq!(toggled.overlays.selection_anchors.len(), 1);
+    assert!(toggled.overlays.grid.is_none());
+    assert!(toggled.overlays.scene_gizmos.is_empty());
+    assert!(!toggled.preview.lighting_enabled);
+    assert!(!toggled.preview.skybox_enabled);
+
+    let runtime_packet = scene.to_render_extract();
+    assert!(runtime_packet.overlays.selection.is_empty());
+    assert!(runtime_packet.overlays.selection_anchors.is_empty());
+    assert!(runtime_packet.overlays.handles.is_empty());
+    assert!(runtime_packet.overlays.scene_gizmos.is_empty());
+    assert!(runtime_packet.overlays.grid.is_none());
 }
 
 fn test_camera() -> ViewportCameraSnapshot {

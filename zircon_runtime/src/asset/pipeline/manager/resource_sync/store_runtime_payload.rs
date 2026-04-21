@@ -17,6 +17,12 @@ pub(in crate::asset::pipeline::manager) fn store_runtime_payload(
         ImportedAsset::Material(asset) => {
             resource_manager.store_payload(id, asset);
         }
+        ImportedAsset::Sound(asset) => {
+            resource_manager.store_payload(id, asset);
+        }
+        ImportedAsset::Font(asset) => {
+            resource_manager.store_payload(id, asset);
+        }
         ImportedAsset::Scene(asset) => {
             resource_manager.store_payload(id, asset);
         }

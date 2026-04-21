@@ -1,3 +1,5 @@
+stylesheets = []
+
 [asset]
 kind = "layout"
 id = "editor.ui_asset_editor"
@@ -6,243 +8,718 @@ display_name = "UI Asset Editor"
 
 [imports]
 widgets = [
-  "res://ui/editor/editor_widgets.ui.toml#EditorToolbar",
-  "res://ui/editor/editor_widgets.ui.toml#EditorToolbarButton",
-  "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard",
+    "res://ui/editor/editor_widgets.ui.toml#EditorToolbar",
+    "res://ui/editor/editor_widgets.ui.toml#EditorToolbarButton",
+    "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard",
 ]
 styles = ["res://ui/theme/editor_base.ui.toml"]
 
-[root]
-node = "editor_root"
+[tokens]
 
-[nodes.editor_root]
+[root]
+node_id = "editor_root"
 kind = "native"
 type = "VerticalBox"
 control_id = "UiAssetEditorRoot"
 classes = ["editor-shell"]
-layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox", gap = 10.0 } }
-children = [
-  { child = "toolbar" },
-  { child = "body" },
-  { child = "footer_row" },
-]
+bindings = []
 
-[nodes.toolbar]
+[root.params]
+
+[root.props]
+
+[root.layout.container]
+gap = 10.0
+kind = "VerticalBox"
+
+[root.layout.height]
+stretch = "Stretch"
+
+[root.layout.width]
+stretch = "Stretch"
+
+[root.style_overrides.self]
+
+[root.style_overrides.slot]
+
+[[root.children]]
+
+[root.children.slot]
+
+[root.children.node]
+node_id = "toolbar"
 kind = "reference"
 component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorToolbar"
 control_id = "UiAssetEditorToolbar"
-children = [
-  { child = "save_button", mount = "actions" },
-  { child = "preview_button", mount = "actions" },
-]
+classes = []
+bindings = []
 
-[nodes.save_button]
+[root.children.node.params]
+
+[root.children.node.props]
+
+[root.children.node.style_overrides.self]
+
+[root.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+mount = "actions"
+
+[root.children.node.children.slot]
+
+[root.children.node.children.node]
+node_id = "save_button"
 kind = "reference"
 component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorToolbarButton"
 control_id = "SaveAsset"
 classes = ["toolbar-primary"]
-params = { label = "Save Asset", icon = "albums-outline" }
+bindings = []
+children = []
 
-[nodes.preview_button]
+[root.children.node.children.node.params]
+icon = "albums-outline"
+label = "Save Asset"
+
+[root.children.node.children.node.props]
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+mount = "actions"
+
+[root.children.node.children.slot]
+
+[root.children.node.children.node]
+node_id = "preview_button"
 kind = "reference"
 component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorToolbarButton"
 control_id = "PreviewAsset"
-params = { label = "Preview", icon = "play-outline" }
+classes = []
+bindings = []
+children = []
 
-[nodes.body]
+[root.children.node.children.node.params]
+icon = "play-outline"
+label = "Preview"
+
+[root.children.node.children.node.props]
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children]]
+
+[root.children.slot]
+
+[root.children.node]
+node_id = "body"
 kind = "native"
 type = "HorizontalBox"
 control_id = "UiAssetEditorBody"
-layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "HorizontalBox", gap = 10.0 } }
-children = [
-  { child = "palette_panel", slot = { layout = { width = { min = 180.0, preferred = 220.0, max = 260.0, stretch = "Fixed" } } } },
-  { child = "hierarchy_panel", slot = { layout = { width = { min = 220.0, preferred = 220.0, max = 260.0, stretch = "Fixed" } } } },
-  { child = "designer_panel" },
-  { child = "inspector_panel", slot = { layout = { width = { min = 260.0, preferred = 260.0, max = 320.0, stretch = "Fixed" } } } },
-]
+classes = []
+bindings = []
 
-[nodes.footer_row]
-kind = "native"
-type = "HorizontalBox"
-control_id = "UiAssetEditorFooterRow"
-layout = { width = { stretch = "Stretch" }, height = { min = 180.0, preferred = 220.0, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 10.0 } }
-children = [
-  { child = "source_panel" },
-  { child = "stylesheet_panel" },
-  { child = "preview_panel" },
-]
+[root.children.node.params]
 
-[nodes.palette_panel]
+[root.children.node.props]
+
+[root.children.node.layout.container]
+gap = 10.0
+kind = "HorizontalBox"
+
+[root.children.node.layout.height]
+stretch = "Stretch"
+
+[root.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.style_overrides.self]
+
+[root.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+
+[root.children.node.children.slot.layout.width]
+max = 260.0
+min = 180.0
+preferred = 220.0
+stretch = "Fixed"
+
+[root.children.node.children.node]
+node_id = "palette_panel"
 kind = "reference"
 component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard"
 control_id = "PalettePanel"
-params = { title = "Palette" }
-children = [
-  { child = "palette_label", mount = "content" },
-  { child = "palette_groups_label", mount = "content" },
-]
+classes = []
+bindings = []
 
-[nodes.palette_label]
+[root.children.node.children.node.params]
+title = "Palette"
+
+[root.children.node.children.node.props]
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children]]
+mount = "content"
+
+[root.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node]
+node_id = "palette_label"
 kind = "native"
 type = "Label"
 control_id = "PaletteLabel"
-props = { text = "Native Widgets, Components, References" }
+classes = []
+bindings = []
+children = []
 
-[nodes.palette_groups_label]
+[root.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.props]
+text = "Native Widgets, Components, References"
+
+[root.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children]]
+mount = "content"
+
+[root.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node]
+node_id = "palette_groups_label"
 kind = "native"
 type = "Label"
 control_id = "PaletteGroupsLabel"
-props = { text = "Patterns, Named Slots, External Widgets" }
+classes = []
+bindings = []
+children = []
 
-[nodes.hierarchy_panel]
+[root.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.props]
+text = "Patterns, Named Slots, External Widgets"
+
+[root.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+
+[root.children.node.children.slot.layout.width]
+max = 260.0
+min = 220.0
+preferred = 220.0
+stretch = "Fixed"
+
+[root.children.node.children.node]
+node_id = "hierarchy_panel"
 kind = "reference"
 component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard"
 control_id = "HierarchyPanel"
-params = { title = "Hierarchy" }
-children = [
-  { child = "hierarchy_label", mount = "content" },
-  { child = "hierarchy_slots_label", mount = "content" },
-]
+classes = []
+bindings = []
 
-[nodes.hierarchy_label]
+[root.children.node.children.node.params]
+title = "Hierarchy"
+
+[root.children.node.children.node.props]
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children]]
+mount = "content"
+
+[root.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node]
+node_id = "hierarchy_label"
 kind = "native"
 type = "Label"
 control_id = "HierarchyLabel"
-props = { text = "Widget Tree" }
+classes = []
+bindings = []
+children = []
 
-[nodes.hierarchy_slots_label]
+[root.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.props]
+text = "Widget Tree"
+
+[root.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children]]
+mount = "content"
+
+[root.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node]
+node_id = "hierarchy_slots_label"
 kind = "native"
 type = "Label"
 control_id = "HierarchySlotsLabel"
-props = { text = "Slots, Mounts, Component Boundaries" }
+classes = []
+bindings = []
+children = []
 
-[nodes.designer_panel]
+[root.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.props]
+text = "Slots, Mounts, Component Boundaries"
+
+[root.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+
+[root.children.node.children.slot]
+
+[root.children.node.children.node]
+node_id = "designer_panel"
 kind = "reference"
 component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard"
 control_id = "DesignerPanel"
-params = { title = "Designer" }
-children = [
-  { child = "designer_label", mount = "content" },
-  { child = "designer_overlay_label", mount = "content" },
-]
+classes = []
+bindings = []
 
-[nodes.designer_label]
+[root.children.node.children.node.params]
+title = "Designer"
+
+[root.children.node.children.node.props]
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children]]
+mount = "content"
+
+[root.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node]
+node_id = "designer_label"
 kind = "native"
 type = "Label"
 control_id = "DesignerLabel"
-props = { text = "Designer Surface" }
+classes = []
+bindings = []
+children = []
 
-[nodes.designer_overlay_label]
+[root.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.props]
+text = "Designer Surface"
+
+[root.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children]]
+mount = "content"
+
+[root.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node]
+node_id = "designer_overlay_label"
 kind = "native"
 type = "Label"
 control_id = "DesignerOverlayLabel"
-props = { text = "Selection Overlay, Slot Targets, Sticky Picker" }
+classes = []
+bindings = []
+children = []
 
-[nodes.inspector_panel]
+[root.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.props]
+text = "Selection Overlay, Slot Targets, Sticky Picker"
+
+[root.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+
+[root.children.node.children.slot.layout.width]
+max = 320.0
+min = 260.0
+preferred = 260.0
+stretch = "Fixed"
+
+[root.children.node.children.node]
+node_id = "inspector_panel"
 kind = "reference"
 component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard"
 control_id = "InspectorPanel"
-params = { title = "Inspector" }
-children = [
-  { child = "inspector_label", mount = "content" },
-  { child = "inspector_bindings_label", mount = "content" },
-  { child = "command_log_label", mount = "content" },
-]
+classes = []
+bindings = []
 
-[nodes.inspector_label]
+[root.children.node.children.node.params]
+title = "Inspector"
+
+[root.children.node.children.node.props]
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children]]
+mount = "content"
+
+[root.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node]
+node_id = "inspector_label"
 kind = "native"
 type = "Label"
 control_id = "InspectorLabel"
-props = { text = "Selection Details" }
+classes = []
+bindings = []
+children = []
 
-[nodes.inspector_bindings_label]
+[root.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.props]
+text = "Selection Details"
+
+[root.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children]]
+mount = "content"
+
+[root.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node]
+node_id = "inspector_bindings_label"
 kind = "native"
 type = "Label"
 control_id = "InspectorBindingsLabel"
-props = { text = "Widget, Slot, Layout, Style, Bindings" }
+classes = []
+bindings = []
+children = []
 
-[nodes.command_log_label]
+[root.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.props]
+text = "Widget, Slot, Layout, Style, Bindings"
+
+[root.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children]]
+mount = "content"
+
+[root.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node]
+node_id = "command_log_label"
 kind = "native"
 type = "Label"
 control_id = "CommandLogLabel"
-props = { text = "Executable Replay, Undo Command Log, Cross-Asset Effects" }
+classes = []
+bindings = []
+children = []
 
-[nodes.source_panel]
+[root.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.props]
+text = "Executable Replay, Undo Command Log, Cross-Asset Effects"
+
+[root.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children]]
+
+[root.children.slot]
+
+[root.children.node]
+node_id = "footer_row"
+kind = "native"
+type = "HorizontalBox"
+control_id = "UiAssetEditorFooterRow"
+classes = []
+bindings = []
+
+[root.children.node.params]
+
+[root.children.node.props]
+
+[root.children.node.layout.container]
+gap = 10.0
+kind = "HorizontalBox"
+
+[root.children.node.layout.height]
+min = 180.0
+preferred = 220.0
+stretch = "Fixed"
+
+[root.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.style_overrides.self]
+
+[root.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+
+[root.children.node.children.slot]
+
+[root.children.node.children.node]
+node_id = "source_panel"
 kind = "reference"
 component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard"
 control_id = "SourcePanel"
-params = { title = "Source" }
-children = [
-  { child = "source_label", mount = "content" },
-  { child = "source_outline_label", mount = "content" },
-]
+classes = []
+bindings = []
 
-[nodes.source_label]
+[root.children.node.children.node.params]
+title = "Source"
+
+[root.children.node.children.node.props]
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children]]
+mount = "content"
+
+[root.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node]
+node_id = "source_label"
 kind = "native"
 type = "Label"
 control_id = "SourceLabel"
-props = { text = "Canonical TOML Source Buffer" }
+classes = []
+bindings = []
+children = []
 
-[nodes.source_outline_label]
+[root.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.props]
+text = "Canonical TOML Source Buffer"
+
+[root.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children]]
+mount = "content"
+
+[root.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node]
+node_id = "source_outline_label"
 kind = "native"
 type = "Label"
 control_id = "SourceOutlineLabel"
-props = { text = "Split Sync, Outline Jump, Roundtrip Diagnostics" }
+classes = []
+bindings = []
+children = []
 
-[nodes.stylesheet_panel]
+[root.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.props]
+text = "Split Sync, Outline Jump, Roundtrip Diagnostics"
+
+[root.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+
+[root.children.node.children.slot]
+
+[root.children.node.children.node]
+node_id = "stylesheet_panel"
 kind = "reference"
 component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard"
 control_id = "StylesheetPanel"
-params = { title = "Stylesheet" }
-children = [
-  { child = "stylesheet_label", mount = "content" },
-  { child = "theme_tools_label", mount = "content" },
-  { child = "theme_cascade_helper_label", mount = "content" },
-]
+classes = []
+bindings = []
 
-[nodes.stylesheet_label]
+[root.children.node.children.node.params]
+title = "Stylesheet"
+
+[root.children.node.children.node.props]
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children]]
+mount = "content"
+
+[root.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node]
+node_id = "stylesheet_label"
 kind = "native"
 type = "Label"
 control_id = "StylesheetLabel"
-props = { text = "Cascade, Selectors, Rule Diff" }
+classes = []
+bindings = []
+children = []
 
-[nodes.theme_tools_label]
+[root.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.props]
+text = "Cascade, Selectors, Rule Diff"
+
+[root.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children]]
+mount = "content"
+
+[root.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node]
+node_id = "theme_tools_label"
 kind = "native"
 type = "Label"
 control_id = "ThemeToolsLabel"
-props = { text = "Theme Compare, Helper Actions, Cascade Inspector" }
+classes = []
+bindings = []
+children = []
 
-[nodes.theme_cascade_helper_label]
+[root.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.props]
+text = "Theme Compare, Helper Actions, Cascade Inspector"
+
+[root.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children]]
+mount = "content"
+
+[root.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node]
+node_id = "theme_cascade_helper_label"
 kind = "native"
 type = "Label"
 control_id = "ThemeCascadeHelperLabel"
-props = { text = "Active Cascade Adopt, Multi-Rule Sync, Theme-Wide Authoring" }
+classes = []
+bindings = []
+children = []
 
-[nodes.preview_panel]
+[root.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.props]
+text = "Active Cascade Adopt, Multi-Rule Sync, Theme-Wide Authoring"
+
+[root.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+
+[root.children.node.children.slot]
+
+[root.children.node.children.node]
+node_id = "preview_panel"
 kind = "reference"
 component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard"
 control_id = "PreviewPanel"
-params = { title = "Preview" }
-children = [
-  { child = "preview_label", mount = "content" },
-  { child = "preview_graph_label", mount = "content" },
-  { child = "preview_binding_schema_label", mount = "content" },
-]
+classes = []
+bindings = []
 
-[nodes.preview_label]
+[root.children.node.children.node.params]
+title = "Preview"
+
+[root.children.node.children.node.props]
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children]]
+mount = "content"
+
+[root.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node]
+node_id = "preview_label"
 kind = "native"
 type = "Label"
 control_id = "PreviewLabel"
-props = { text = "Surface Preset, Mock State, Interaction Graph" }
+classes = []
+bindings = []
+children = []
 
-[nodes.preview_graph_label]
+[root.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.props]
+text = "Surface Preset, Mock State, Interaction Graph"
+
+[root.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children]]
+mount = "content"
+
+[root.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node]
+node_id = "preview_graph_label"
 kind = "native"
 type = "Label"
 control_id = "PreviewGraphLabel"
-props = { text = "Preview State Graph, Binding Graph, Expression Trace" }
+classes = []
+bindings = []
+children = []
 
-[nodes.preview_binding_schema_label]
+[root.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.props]
+text = "Preview State Graph, Binding Graph, Expression Trace"
+
+[root.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children]]
+mount = "content"
+
+[root.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node]
+node_id = "preview_binding_schema_label"
 kind = "native"
 type = "Label"
 control_id = "PreviewBindingSchemaLabel"
-props = { text = "Accessor Expressions, Schema Payload Authoring, Interaction Links" }
+classes = []
+bindings = []
+children = []
+
+[root.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.props]
+text = "Accessor Expressions, Schema Payload Authoring, Interaction Links"
+
+[root.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.style_overrides.slot]
+
+[components]

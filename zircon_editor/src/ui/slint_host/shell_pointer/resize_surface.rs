@@ -9,7 +9,9 @@ use zircon_runtime::ui::{
     tree::UiTreeNode,
 };
 
-use crate::{ShellRegionId, ShellSizePx, WorkbenchShellGeometry};
+use crate::ui::workbench::autolayout::ShellRegionId;
+use crate::ui::workbench::autolayout::ShellSizePx;
+use crate::ui::workbench::autolayout::WorkbenchShellGeometry;
 
 use super::common::{base_target_state, clamp_frame_to_root, frame_if_visible, update_target_node};
 use super::node_ids::{

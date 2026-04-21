@@ -1,8 +1,10 @@
-use crate::ui::{DockCommand, EditorUiBindingPayload};
+use crate::ui::binding::{DockCommand, EditorUiBindingPayload};
 
 use crate::core::editor_event::EditorEventRuntime;
 use crate::ui::slint_host::event_bridge::SlintDispatchEffects;
-use crate::{ActivityDrawerMode, LayoutCommand, ViewInstanceId};
+use crate::ui::workbench::layout::ActivityDrawerMode;
+use crate::ui::workbench::layout::LayoutCommand;
+use crate::ui::workbench::view::ViewInstanceId;
 
 use super::super::{
     common::{merge_effects, parse_activity_drawer_slot},

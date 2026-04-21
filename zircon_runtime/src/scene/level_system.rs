@@ -2,8 +2,8 @@
 
 use std::sync::{Arc, Mutex};
 
-use crate::scene::world::World;
 use crate::core::framework::scene::WorldHandle;
+use crate::scene::world::World;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum LevelLifecycleState {

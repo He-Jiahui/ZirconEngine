@@ -1,4 +1,4 @@
-use crate::GizmoAxis;
+use crate::scene::viewport::GizmoAxis;
 use crate::scene::viewport::TransformSpace;
 use zircon_runtime::core::math::{Transform, Vec2};
 

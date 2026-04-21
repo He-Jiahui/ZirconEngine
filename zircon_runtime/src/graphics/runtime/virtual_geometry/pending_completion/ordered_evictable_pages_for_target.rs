@@ -154,11 +154,6 @@ impl VirtualGeometryRuntimeState {
         self.page_or_lineage_is_hot_in(page_id, &frontier_hot_pages)
     }
 
-    pub(in crate::graphics::runtime::virtual_geometry) fn page_is_frontier_hot(&self, page_id: u32) -> bool {
-        self.current_hot_resident_pages.contains(&page_id)
-            || self.recent_hot_resident_pages.contains_key(&page_id)
-    }
-
     pub(in crate::graphics::runtime::virtual_geometry) fn frontier_hot_resident_pages(
         &self,
     ) -> BTreeSet<u32> {

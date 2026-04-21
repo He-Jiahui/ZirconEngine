@@ -1,7 +1,10 @@
 use super::super::VirtualGeometryRuntimeState;
 
 impl VirtualGeometryRuntimeState {
-    pub(in crate::graphics::runtime::virtual_geometry) fn promote_to_resident(&mut self, page_id: u32) {
+    pub(in crate::graphics::runtime::virtual_geometry) fn promote_to_resident(
+        &mut self,
+        page_id: u32,
+    ) {
         if self.resident_slots.contains_key(&page_id) {
             return;
         }

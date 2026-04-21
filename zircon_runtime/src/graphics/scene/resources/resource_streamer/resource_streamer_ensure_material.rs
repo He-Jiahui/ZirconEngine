@@ -1,5 +1,5 @@
 use crate::asset::assets::AlphaMode;
-use crate::core::math::Vec4;
+use crate::core::math::{Vec3, Vec4};
 use crate::core::resource::{MaterialMarker, ResourceHandle};
 
 use crate::graphics::types::GraphicsError;
@@ -29,8 +29,27 @@ impl ResourceStreamer {
             .asset_manager
             .load_material_asset(id)
             .map_err(|error| GraphicsError::Asset(error.to_string()))?;
-        let texture_id = self.resolve_texture_id(&material);
-        if let Some(texture_id) = texture_id {
+        let (alpha_blend, alpha_cutoff) = match &material.alpha_mode {
+            AlphaMode::Opaque => (false, None),
+            AlphaMode::Mask { cutoff } => (false, Some(*cutoff)),
+            AlphaMode::Blend => (true, None),
+        };
+        let base_color_texture = self.resolve_texture_id(material.base_color_texture.as_ref());
+        let normal_texture = self.resolve_texture_id(material.normal_texture.as_ref());
+        let metallic_roughness_texture =
+            self.resolve_texture_id(material.metallic_roughness_texture.as_ref());
+        let occlusion_texture = self.resolve_texture_id(material.occlusion_texture.as_ref());
+        let emissive_texture = self.resolve_texture_id(material.emissive_texture.as_ref());
+        for texture_id in [
+            base_color_texture,
+            normal_texture,
+            metallic_roughness_texture,
+            occlusion_texture,
+            emissive_texture,
+        ]
+        .into_iter()
+        .flatten()
+        {
             self.ensure_texture(device, queue, texture_layout, texture_id)?;
         }
         let (shader_id, shader_revision) = self.ensure_shader_source(&material.shader)?;
@@ -40,12 +59,22 @@ impl ResourceStreamer {
                 revision,
                 runtime: MaterialRuntime {
                     base_color: Vec4::from_array(material.base_color),
-                    base_color_texture: texture_id,
+                    emissive: Vec3::from_array(material.emissive),
+                    metallic: material.metallic,
+                    roughness: material.roughness,
+                    double_sided: material.double_sided,
+                    alpha_blend,
+                    alpha_cutoff,
+                    base_color_texture,
+                    normal_texture,
+                    metallic_roughness_texture,
+                    occlusion_texture,
+                    emissive_texture,
                     pipeline_key: PipelineKey {
                         shader_id,
                         shader_revision,
                         double_sided: material.double_sided,
-                        alpha_blend: matches!(material.alpha_mode, AlphaMode::Blend),
+                        alpha_blend,
                     },
                 },
             },

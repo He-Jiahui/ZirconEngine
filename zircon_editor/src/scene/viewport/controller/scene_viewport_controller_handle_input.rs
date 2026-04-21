@@ -1,5 +1,6 @@
-use crate::{ViewportFeedback, ViewportInput};
 use crate::scene::viewport::SceneViewportTool;
+use crate::scene::viewport::ViewportFeedback;
+use crate::scene::viewport::ViewportInput;
 use zircon_runtime::core::math::Vec2;
 use zircon_runtime::scene::Scene;
 

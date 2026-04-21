@@ -1,10 +1,10 @@
 use zircon_runtime::ui::{binding::UiBindingValue, binding::UiEventKind, layout::UiPoint};
 
+use crate::ui::binding_dispatch::WelcomeHostEvent;
 use crate::ui::slint_host::welcome_recent_pointer::{
     WelcomeRecentPointerAction, WelcomeRecentPointerBridge, WelcomeRecentPointerDispatch,
     WelcomeRecentPointerRoute,
 };
-use crate::WelcomeHostEvent;
 
 use super::super::{dispatch_builtin_welcome_surface_control, BuiltinWelcomeSurfaceTemplateBridge};
 

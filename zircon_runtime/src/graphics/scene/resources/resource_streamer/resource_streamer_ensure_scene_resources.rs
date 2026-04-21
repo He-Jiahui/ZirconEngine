@@ -1,4 +1,4 @@
-use crate::graphics::types::{EditorOrRuntimeFrame, GraphicsError};
+use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
 
 use super::ResourceStreamer;
 
@@ -8,7 +8,7 @@ impl ResourceStreamer {
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         texture_layout: &wgpu::BindGroupLayout,
-        frame: &EditorOrRuntimeFrame,
+        frame: &ViewportRenderFrame,
     ) -> Result<(), GraphicsError> {
         for mesh in &frame.scene.scene.meshes {
             self.ensure_model(device, mesh.model)?;

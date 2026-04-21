@@ -23,6 +23,8 @@ fn virtual_geometry_runtime_state_uses_current_visibility_request_order_for_pend
             page(800, false, 4_096),
             page(900, true, 1_024),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     };
 
     state.register_extract(Some(&extract));
@@ -88,6 +90,8 @@ fn virtual_geometry_runtime_state_keeps_first_unique_visibility_request_order_wh
             page(800, false, 4_096),
             page(900, true, 1_024),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     };
 
     state.register_extract(Some(&extract));
@@ -158,6 +162,8 @@ fn virtual_geometry_runtime_state_evicts_unrelated_pages_before_active_request_l
             page(700, false, 2_048),
             page(900, true, 1_024),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     };
 
     state.register_extract(Some(&extract));
@@ -209,6 +215,8 @@ fn virtual_geometry_runtime_state_evicts_later_active_request_lineage_before_ear
             page(600, true, 1_024),
             page(700, false, 2_048),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     };
 
     state.register_extract(Some(&extract));
@@ -260,6 +268,8 @@ fn virtual_geometry_runtime_state_keeps_hot_later_request_lineage_resident_while
             page(600, true, 1_024),
             page(700, false, 2_048),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     };
 
     state.register_extract(Some(&extract));
@@ -307,6 +317,8 @@ fn virtual_geometry_runtime_state_prefers_evicting_cold_page_before_recent_front
             page(300, true, 2_048),
             page(700, false, 2_048),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     };
 
     state.register_extract(Some(&extract));
@@ -349,6 +361,8 @@ fn virtual_geometry_runtime_state_carries_recent_frontier_hot_pages_into_next_pr
             page(300, true, 2_048),
             page(700, false, 4_096),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     };
 
     state.register_extract(Some(&extract));
@@ -411,6 +425,8 @@ fn virtual_geometry_runtime_state_keeps_hot_farther_descendant_resident_while_re
             page(400, true, 2_048),
             page(800, true, 2_048),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     };
 
     state.register_extract(Some(&extract));
@@ -461,6 +477,8 @@ fn virtual_geometry_runtime_state_keeps_deepest_hot_descendant_resident_when_sam
             page(400, true, 2_048),
             page(800, true, 2_048),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     };
 
     state.register_extract(Some(&extract));
@@ -511,6 +529,8 @@ fn virtual_geometry_runtime_state_cascades_hot_frontier_ancestor_truth_to_deeper
             page(400, true, 2_048),
             page(800, true, 2_048),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     };
 
     state.register_extract(Some(&extract));
@@ -561,6 +581,8 @@ fn virtual_geometry_runtime_state_carries_hot_frontier_truth_into_newly_complete
             page(400, true, 2_048),
             page(800, false, 2_048),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     };
 
     state.register_extract(Some(&extract));
@@ -628,6 +650,8 @@ fn virtual_geometry_runtime_state_carries_hot_descendant_frontier_truth_into_new
             page(500, false, 2_048),
             page(800, true, 2_048),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     };
 
     state.register_extract(Some(&extract));
@@ -693,6 +717,8 @@ fn virtual_geometry_runtime_state_carries_recent_hot_frontier_lineage_through_on
             page(400, true, 2_048),
             page(800, true, 2_048),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     };
 
     state.register_extract(Some(&extract));
@@ -771,6 +797,8 @@ fn virtual_geometry_runtime_state_carries_confirmed_hot_frontier_lineage_through
             page(400, true, 2_048),
             page(800, true, 2_048),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     };
 
     state.register_extract(Some(&extract));
@@ -864,6 +892,8 @@ fn virtual_geometry_runtime_state_drops_confirmed_hot_frontier_lineage_after_coo
             page(400, true, 2_048),
             page(800, true, 2_048),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     };
 
     state.register_extract(Some(&extract));
@@ -948,6 +978,8 @@ fn virtual_geometry_runtime_state_feedback_completion_carries_recent_frontier_tr
             page(600, false, 2_048),
             page(800, true, 2_048),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     };
 
     state.register_extract(Some(&extract));
@@ -1025,12 +1057,16 @@ fn virtual_geometry_runtime_state_drops_recent_hot_frontier_truth_when_page_leav
             page(300, true, 2_048),
             page(500, false, 2_048),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     };
     let extract_b = RenderVirtualGeometryExtract {
         cluster_budget: 2,
         page_budget: 1,
         clusters: vec![render_cluster(30, 300, None), render_cluster(50, 500, None)],
         pages: vec![page(300, true, 2_048), page(500, false, 2_048)],
+        instances: Vec::new(),
+        debug: Default::default(),
     };
     let extract_c = RenderVirtualGeometryExtract {
         cluster_budget: 3,
@@ -1045,6 +1081,8 @@ fn virtual_geometry_runtime_state_drops_recent_hot_frontier_truth_when_page_leav
             page(300, true, 2_048),
             page(500, false, 2_048),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     };
 
     state.register_extract(Some(&extract_a));
@@ -1128,6 +1166,8 @@ fn virtual_geometry_runtime_state_does_not_let_evicted_hot_descendant_bias_later
             page(700, false, 2_048),
             page(800, true, 2_048),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     };
 
     state.register_extract(Some(&extract));
@@ -1199,6 +1239,8 @@ fn virtual_geometry_runtime_state_does_not_let_later_batch_eviction_keep_hot_des
             page(700, false, 2_048),
             page(800, true, 2_048),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     };
 
     state.register_extract(Some(&extract));
@@ -1268,6 +1310,8 @@ fn virtual_geometry_runtime_state_does_not_let_removed_hot_descendant_bias_page_
             page(700, false, 2_048),
             page(800, true, 2_048),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     };
 
     state.register_extract(Some(&extract));
@@ -1332,6 +1376,8 @@ fn virtual_geometry_runtime_state_keeps_reassigned_page_table_owner_in_next_fron
             page(500, false, 2_048),
             page(700, false, 2_048),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     };
 
     state.register_extract(Some(&extract));

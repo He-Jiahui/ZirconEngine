@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex, RwLock};
 
-use crate::core::CoreError;
 use crate::core::resource::{ResourceManager, RuntimeResourceState};
+use crate::core::CoreError;
 
 use super::super::builtins::resource_manager_with_builtins;
 use super::super::errors::asset_error_message;

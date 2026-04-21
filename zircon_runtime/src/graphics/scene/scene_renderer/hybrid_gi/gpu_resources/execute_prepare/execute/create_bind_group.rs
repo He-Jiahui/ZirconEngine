@@ -28,18 +28,22 @@ pub(super) fn create_bind_group(
             },
             wgpu::BindGroupEntry {
                 binding: 4,
-                resource: buffers.completed_probe_buffer.as_entire_binding(),
+                resource: buffers.scene_prepare_descriptor_buffer.as_entire_binding(),
             },
             wgpu::BindGroupEntry {
                 binding: 5,
-                resource: buffers.completed_trace_buffer.as_entire_binding(),
+                resource: buffers.completed_probe_buffer.as_entire_binding(),
             },
             wgpu::BindGroupEntry {
                 binding: 6,
-                resource: buffers.irradiance_buffer.as_entire_binding(),
+                resource: buffers.completed_trace_buffer.as_entire_binding(),
             },
             wgpu::BindGroupEntry {
                 binding: 7,
+                resource: buffers.irradiance_buffer.as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: 8,
                 resource: buffers.trace_lighting_buffer.as_entire_binding(),
             },
         ],

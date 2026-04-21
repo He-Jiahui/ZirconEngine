@@ -1,4 +1,4 @@
-use crate::snapshot::MainPageSnapshot;
+use crate::ui::workbench::snapshot::MainPageSnapshot;
 
 use super::super::document_workspace_model::DocumentWorkspaceModel;
 

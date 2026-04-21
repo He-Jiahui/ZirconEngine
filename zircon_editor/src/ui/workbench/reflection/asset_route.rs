@@ -1,7 +1,6 @@
-use crate::ui::{
-    AssetCommand, EditorActivityReflection, EditorUiBinding, EditorUiBindingPayload,
-    EditorUiControlService,
-};
+use crate::ui::binding::{AssetCommand, EditorUiBinding, EditorUiBindingPayload};
+use crate::ui::control::EditorUiControlService;
+use crate::ui::EditorActivityReflection;
 use zircon_runtime::ui::binding::UiEventKind;
 
 use super::name_mapping::binding_view_id;
@@ -20,8 +19,11 @@ pub(super) fn register_asset_route(
         ),
         _ => return None,
     };
-    let path =
-        zircon_runtime::ui::binding::UiEventPath::new(binding_view_id(activity), control_id, event_kind);
+    let path = zircon_runtime::ui::binding::UiEventPath::new(
+        binding_view_id(activity),
+        control_id,
+        event_kind,
+    );
     let registration_binding = EditorUiBinding::new(
         path.view_id.clone(),
         path.control_id.clone(),

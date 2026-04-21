@@ -59,6 +59,8 @@ fn asset_kind_directory(kind: AssetKind) -> &'static str {
         AssetKind::Texture => "textures",
         AssetKind::Shader => "shaders",
         AssetKind::Material => "materials",
+        AssetKind::Sound => "sound",
+        AssetKind::Font => "fonts",
         AssetKind::PhysicsMaterial => "physics/materials",
         AssetKind::Scene => "scenes",
         AssetKind::Model => "models",
@@ -86,16 +88,14 @@ fn artifact_extension(kind: AssetKind) -> &'static str {
 
 fn serialize_asset(asset: &ImportedAsset) -> Result<Vec<u8>, AssetImportError> {
     match asset {
-        ImportedAsset::AnimationSkeleton(asset) => asset
-            .to_bytes()
-            .map_err(AssetImportError::Parse),
+        ImportedAsset::AnimationSkeleton(asset) => {
+            asset.to_bytes().map_err(AssetImportError::Parse)
+        }
         ImportedAsset::AnimationClip(asset) => asset.to_bytes().map_err(AssetImportError::Parse),
         ImportedAsset::AnimationSequence(asset) => {
             asset.to_bytes().map_err(AssetImportError::Parse)
         }
-        ImportedAsset::AnimationGraph(asset) => {
-            asset.to_bytes().map_err(AssetImportError::Parse)
-        }
+        ImportedAsset::AnimationGraph(asset) => asset.to_bytes().map_err(AssetImportError::Parse),
         ImportedAsset::AnimationStateMachine(asset) => {
             asset.to_bytes().map_err(AssetImportError::Parse)
         }
@@ -136,6 +136,8 @@ fn asset_kind_from_artifact_path(path: &str) -> Option<AssetKind> {
         ("shaders/", AssetKind::Shader),
         ("physics/materials/", AssetKind::PhysicsMaterial),
         ("materials/", AssetKind::Material),
+        ("sound/", AssetKind::Sound),
+        ("fonts/", AssetKind::Font),
         ("scenes/", AssetKind::Scene),
         ("models/", AssetKind::Model),
         ("animation/skeletons/", AssetKind::AnimationSkeleton),

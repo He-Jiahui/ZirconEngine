@@ -1,6 +1,8 @@
-import { HostWindowShellData, HostNativeFloatingWindowSurfaceData, HostNativeFloatingWindowSurface } from "host_components.slint";
+import { HostNativeFloatingWindowSurfaceData } from "host_components.slint";
+import { HostWindowPresentationData } from "host_root.slint";
 import { HostWorkbenchWindowSceneData, HostWorkbenchWindowScene } from "host_scene.slint";
 import { HostWorkbenchWindowSurfaceContract } from "host_surface_contract.slint";
+import { HostNativeFloatingWindowSurface } from "host_workbench_surfaces.slint";
 
 export component HostWorkbenchWindowSurface inherits Rectangle {
     in property <HostWorkbenchWindowSceneData> scene_data;
@@ -23,41 +25,19 @@ export component HostNativeWorkbenchWindowSurface inherits Rectangle {
 }
 
 export component HostWorkbenchWindowSurfaceHost inherits Rectangle {
-    in property <HostWindowShellData> host_shell: {
-        project_path: "",
-        status_secondary: "",
-        viewport_label: "",
-        drawers_visible: false,
-        left_expanded: false,
-        right_expanded: false,
-        bottom_expanded: false,
-        save_project_enabled: false,
-        undo_enabled: false,
-        redo_enabled: false,
-        preset_names: [],
-        active_preset_name: "",
-        shell_min_width_px: 0.0,
-        shell_min_height_px: 0.0,
-        native_floating_window_mode: false,
-        native_floating_window_id: "",
-        native_window_title: "Zircon Editor",
-        native_window_bounds: { x: 0.0, y: 0.0, width: 0.0, height: 0.0 },
-    };
-    in property <HostWorkbenchWindowSceneData> workbench_scene_data;
-    in property <HostNativeFloatingWindowSurfaceData> native_floating_surface_data;
+    in property <HostWindowPresentationData> host_presentation;
 
     contract := HostWorkbenchWindowSurfaceContract {
-        workbench_scene_data: root.workbench_scene_data;
-        native_floating_surface_data: root.native_floating_surface_data;
+        host_presentation: root.host_presentation;
     }
 
-    if !root.host_shell.native_floating_window_mode: HostWorkbenchWindowSurface {
+    if !root.host_presentation.host_shell.native_floating_window_mode: HostWorkbenchWindowSurface {
         width: parent.width;
         height: parent.height;
         scene_data: contract.workbench_scene_data;
     }
 
-    if root.host_shell.native_floating_window_mode: HostNativeWorkbenchWindowSurface {
+    if root.host_presentation.host_shell.native_floating_window_mode: HostNativeWorkbenchWindowSurface {
         width: parent.width;
         height: parent.height;
         surface_data: contract.native_floating_surface_data;

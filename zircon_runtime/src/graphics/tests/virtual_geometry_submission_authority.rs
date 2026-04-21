@@ -3,7 +3,6 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use image::{ImageBuffer, ImageFormat, Rgba};
 use crate::asset::assets::{AlphaMode, MaterialAsset};
 use crate::asset::pipeline::manager::{AssetManager, ProjectAssetManager};
 use crate::asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
@@ -17,10 +16,11 @@ use crate::core::framework::render::{
 use crate::core::math::{Transform, UVec2, Vec3, Vec4};
 use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle};
 use crate::scene::components::{default_render_layer_mask, Mobility};
+use image::{ImageBuffer, ImageFormat, Rgba};
 
 use crate::{
     types::{
-        EditorOrRuntimeFrame, VirtualGeometryPrepareCluster, VirtualGeometryPrepareClusterState,
+        ViewportRenderFrame, VirtualGeometryPrepareCluster, VirtualGeometryPrepareClusterState,
         VirtualGeometryPrepareDrawSegment, VirtualGeometryPrepareFrame, VirtualGeometryPreparePage,
         VirtualGeometryPrepareRequest,
     },
@@ -104,7 +104,7 @@ fn virtual_geometry_unified_indirect_uses_fallback_recycle_slot_authority_for_su
     let mut renderer = SceneRenderer::new(asset_manager).unwrap();
     renderer
         .render_frame_with_pipeline(
-            &EditorOrRuntimeFrame::from_extract(extract.clone(), viewport_size)
+            &ViewportRenderFrame::from_extract(extract.clone(), viewport_size)
                 .with_virtual_geometry_prepare(Some(dual_pending_prepare_frame(800, 400))),
             &compiled,
             None,
@@ -122,7 +122,7 @@ fn virtual_geometry_unified_indirect_uses_fallback_recycle_slot_authority_for_su
 
     renderer
         .render_frame_with_pipeline(
-            &EditorOrRuntimeFrame::from_extract(extract, viewport_size)
+            &ViewportRenderFrame::from_extract(extract, viewport_size)
                 .with_virtual_geometry_prepare(Some(dual_pending_prepare_frame(400, 800))),
             &compiled,
             None,
@@ -281,7 +281,7 @@ fn virtual_geometry_segment_buffer_keeps_prepare_owned_segments_when_some_entiti
     let mut renderer = SceneRenderer::new(asset_manager).unwrap();
     renderer
         .render_frame_with_pipeline(
-            &EditorOrRuntimeFrame::from_extract(extract, viewport_size)
+            &ViewportRenderFrame::from_extract(extract, viewport_size)
                 .with_virtual_geometry_prepare(Some(VirtualGeometryPrepareFrame {
                     visible_entities: vec![2],
                     visible_clusters: vec![
@@ -467,7 +467,7 @@ fn virtual_geometry_prepare_cluster_raster_output_changes_when_fallback_slot_aut
     let mut renderer = SceneRenderer::new(asset_manager).unwrap();
     let narrow_slot = renderer
         .render_frame_with_pipeline(
-            &EditorOrRuntimeFrame::from_extract(extract.clone(), viewport_size)
+            &ViewportRenderFrame::from_extract(extract.clone(), viewport_size)
                 .with_virtual_geometry_prepare(Some(single_pending_prepare_frame(400))),
             &compiled,
             None,
@@ -480,7 +480,7 @@ fn virtual_geometry_prepare_cluster_raster_output_changes_when_fallback_slot_aut
 
     let wide_slot = renderer
         .render_frame_with_pipeline(
-            &EditorOrRuntimeFrame::from_extract(extract, viewport_size)
+            &ViewportRenderFrame::from_extract(extract, viewport_size)
                 .with_virtual_geometry_prepare(Some(single_pending_prepare_frame(800))),
             &compiled,
             None,
@@ -616,7 +616,7 @@ fn virtual_geometry_indirect_args_buffer_order_follows_fallback_slot_submission_
     let mut renderer = SceneRenderer::new(asset_manager).unwrap();
     renderer
         .render_frame_with_pipeline(
-            &EditorOrRuntimeFrame::from_extract(extract.clone(), viewport_size)
+            &ViewportRenderFrame::from_extract(extract.clone(), viewport_size)
                 .with_virtual_geometry_prepare(Some(dual_pending_prepare_frame(800, 400))),
             &compiled,
             None,
@@ -626,7 +626,7 @@ fn virtual_geometry_indirect_args_buffer_order_follows_fallback_slot_submission_
 
     renderer
         .render_frame_with_pipeline(
-            &EditorOrRuntimeFrame::from_extract(extract, viewport_size)
+            &ViewportRenderFrame::from_extract(extract, viewport_size)
                 .with_virtual_geometry_prepare(Some(dual_pending_prepare_frame(400, 800))),
             &compiled,
             None,
@@ -859,7 +859,9 @@ fn build_single_entity_extract_with_clusters(
                 mobility: Mobility::Dynamic,
                 render_layer_mask: default_render_layer_mask(),
             }],
-            lights: Vec::new(),
+            directional_lights: Vec::new(),
+            point_lights: Vec::new(),
+            spot_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract {
             display_mode: DisplayMode::Shaded,
@@ -871,6 +873,7 @@ fn build_single_entity_extract_with_clusters(
             fallback_skybox: FallbackSkyboxKind::None,
             clear_color: Vec4::ZERO,
         },
+        virtual_geometry_debug: None,
     };
     let mut extract =
         RenderFrameExtract::from_snapshot(RenderWorldSnapshotHandle::new(1), snapshot);
@@ -879,6 +882,8 @@ fn build_single_entity_extract_with_clusters(
         page_budget: 2,
         clusters,
         pages,
+        instances: Vec::new(),
+        debug: Default::default(),
     });
     extract
 }
@@ -933,7 +938,9 @@ fn build_dual_entity_extract_with_clusters(
                     render_layer_mask: default_render_layer_mask(),
                 },
             ],
-            lights: Vec::new(),
+            directional_lights: Vec::new(),
+            point_lights: Vec::new(),
+            spot_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract {
             display_mode: DisplayMode::Shaded,
@@ -945,6 +952,7 @@ fn build_dual_entity_extract_with_clusters(
             fallback_skybox: FallbackSkyboxKind::None,
             clear_color: Vec4::ZERO,
         },
+        virtual_geometry_debug: None,
     };
     let mut extract =
         RenderFrameExtract::from_snapshot(RenderWorldSnapshotHandle::new(1), snapshot);
@@ -953,6 +961,8 @@ fn build_dual_entity_extract_with_clusters(
         page_budget: pages.len() as u32,
         clusters,
         pages,
+        instances: Vec::new(),
+        debug: Default::default(),
     });
     extract
 }

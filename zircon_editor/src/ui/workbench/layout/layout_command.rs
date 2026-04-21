@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{ViewHost, ViewInstanceId};
+use crate::ui::workbench::view::ViewHost;
+use crate::ui::workbench::view::ViewInstanceId;
 
 use super::{
     ActivityDrawerMode, ActivityDrawerSlot, MainPageId, SplitAxis, SplitPlacement,

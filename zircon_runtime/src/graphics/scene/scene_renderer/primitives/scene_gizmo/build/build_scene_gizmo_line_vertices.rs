@@ -1,13 +1,13 @@
 use crate::core::framework::render::ViewportIconId;
 
 use crate::graphics::scene::scene_renderer::primitives::LineVertex;
-use crate::graphics::types::EditorOrRuntimeFrame;
+use crate::graphics::types::ViewportRenderFrame;
 
 use super::super::super::line_geometry::push_line;
 use super::super::append::{append_icon_fallback_lines, append_wire_shape};
 
 pub(crate) fn build_scene_gizmo_line_vertices<F>(
-    frame: &EditorOrRuntimeFrame,
+    frame: &ViewportRenderFrame,
     has_icon_texture: F,
 ) -> Vec<LineVertex>
 where

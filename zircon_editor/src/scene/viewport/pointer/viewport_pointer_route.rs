@@ -1,4 +1,4 @@
-use crate::GizmoAxis;
+use crate::scene::viewport::GizmoAxis;
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) enum ViewportPointerRoute {

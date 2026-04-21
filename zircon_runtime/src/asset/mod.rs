@@ -25,11 +25,17 @@ pub use assets::{
     AnimationInterpolationAsset, AnimationSequenceAsset, AnimationSequenceBindingAsset,
     AnimationSequenceTrackAsset, AnimationSkeletonAsset, AnimationSkeletonBoneAsset,
     AnimationStateAsset, AnimationStateMachineAsset, AnimationStateTransitionAsset,
-    AnimationTransitionConditionAsset, ImportedAsset, MaterialAsset, ModelAsset,
-    ModelPrimitiveAsset, PhysicsMaterialAsset, SceneAsset, SceneCameraAsset,
-    SceneDirectionalLightAsset, SceneEntityAsset, SceneMeshInstanceAsset, SceneMobilityAsset,
-    ShaderAsset, TextureAsset, TransformAsset, UiAssetDocumentError, UiLayoutAsset,
-    UiStyleAsset, UiWidgetAsset,
+    AnimationTransitionConditionAsset, FontAsset, FontAssetError, ImportedAsset, MaterialAsset,
+    ModelAsset, ModelPrimitiveAsset, PhysicsMaterialAsset, SceneAnimationGraphPlayerAsset,
+    SceneAnimationPlayerAsset, SceneAnimationSequencePlayerAsset, SceneAnimationSkeletonAsset,
+    SceneAnimationStateMachinePlayerAsset, SceneAsset, SceneCameraAsset, SceneColliderAsset,
+    SceneColliderShapeAsset, SceneDirectionalLightAsset, SceneEntityAsset, SceneJointAsset,
+    SceneJointKindAsset, SceneMeshInstanceAsset, SceneMobilityAsset, ScenePointLightAsset,
+    SceneRigidBodyAsset, SceneRigidBodyTypeAsset, SceneSpotLightAsset, ShaderAsset, SoundAsset,
+    TextureAsset, TransformAsset, UiAssetDocumentError, UiLayoutAsset, UiStyleAsset, UiWidgetAsset,
+    VirtualGeometryAsset, VirtualGeometryClusterHeaderAsset, VirtualGeometryClusterPageHeaderAsset,
+    VirtualGeometryDebugMetadataAsset, VirtualGeometryHierarchyNodeAsset,
+    VirtualGeometryRootClusterRangeAsset,
 };
 pub use importer::{AssetImportError, AssetImporter};
 pub use pipeline::manager::{

@@ -1,7 +1,0 @@
-version = 1
-
-[root]
-template = "PaneSurfaceControls"
-
-[components.PaneSurfaceControls]
-root = { component = "PaneSurfaceControls", control_id = "TriggerAction", bindings = [{ id = "PaneSurface/TriggerAction", event = "Click", route = "MenuAction.OpenProject" }] }

@@ -1,9 +1,10 @@
-use crate::ui::EditorUiBinding;
+use crate::core::editing::intent::EditorIntent;
+use crate::core::editor_event::SelectionHostEvent;
+use crate::ui::binding::EditorUiBinding;
+use crate::ui::workbench::state::EditorState;
 
 use super::super::error::EditorBindingDispatchError;
 use super::dispatch::dispatch_selection_binding;
-use super::selection_host_event::SelectionHostEvent;
-use crate::{EditorIntent, EditorState};
 
 pub fn apply_selection_binding(
     state: &mut EditorState,

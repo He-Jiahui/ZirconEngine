@@ -1,5 +1,5 @@
-use bytemuck::{Pod, Zeroable};
 use crate::core::math::{RenderVec3, RenderVec4, Vec3, Vec4};
+use bytemuck::{Pod, Zeroable};
 
 use super::super::fallback::{render_vec3_or, render_vec4_or};
 

@@ -1,90 +1,27 @@
-//! Animation framework contracts (playback settings, track paths, parameters).
+//! Animation framework contracts for sequence, graph, state-machine, parameter, and pose evaluation.
 
-use serde::{Deserialize, Serialize};
-use std::fmt;
+mod graph_clip_instance;
+mod graph_evaluation;
+mod manager;
+mod parameter_map;
+mod parameter_value;
+mod playback_settings;
+mod pose_bone;
+mod pose_output;
+mod pose_source;
+mod state_machine_evaluation;
+mod track_path;
+mod track_path_error;
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum AnimationParameterValue {
-    Bool(bool),
-    Integer(i32),
-    Scalar(f32),
-    Vec2([f32; 2]),
-    Vec3([f32; 3]),
-    Vec4([f32; 4]),
-    Trigger,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct AnimationTrackPath {
-    raw: String,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct AnimationTrackPathError;
-
-impl fmt::Display for AnimationTrackPathError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str("invalid animation track path")
-    }
-}
-
-impl std::error::Error for AnimationTrackPathError {}
-
-impl AnimationTrackPath {
-    pub fn new(
-        entity_path: super::scene::EntityPath,
-        property_path: super::scene::ComponentPropertyPath,
-    ) -> Self {
-        Self {
-            raw: format!("{entity_path}:{property_path}"),
-        }
-    }
-
-    pub fn parse(raw: &str) -> Result<Self, AnimationTrackPathError> {
-        let (entity_path, property_path) = raw.split_once(':').ok_or(AnimationTrackPathError)?;
-        let entity_path = super::scene::EntityPath::parse(entity_path)
-            .map_err(|_| AnimationTrackPathError)?;
-        let property_path = super::scene::ComponentPropertyPath::parse(property_path)
-            .map_err(|_| AnimationTrackPathError)?;
-        Ok(Self {
-            raw: format!("{entity_path}:{property_path}"),
-        })
-    }
-
-    pub fn as_str(&self) -> &str {
-        &self.raw
-    }
-}
-
-impl fmt::Display for AnimationTrackPath {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.raw)
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct AnimationPlaybackSettings {
-    pub enabled: bool,
-    pub property_tracks: bool,
-    pub skeletal_clips: bool,
-    pub graphs: bool,
-    pub state_machines: bool,
-}
-
-impl Default for AnimationPlaybackSettings {
-    fn default() -> Self {
-        Self {
-            enabled: true,
-            property_tracks: true,
-            skeletal_clips: true,
-            graphs: true,
-            state_machines: true,
-        }
-    }
-}
-
-pub trait AnimationManager: Send + Sync {
-    fn playback_settings(&self) -> AnimationPlaybackSettings;
-    fn normalize_track_path(&self, path: &AnimationTrackPath) -> AnimationTrackPath;
-}
+pub use graph_clip_instance::AnimationGraphClipInstance;
+pub use graph_evaluation::AnimationGraphEvaluation;
+pub use manager::AnimationManager;
+pub use parameter_map::AnimationParameterMap;
+pub use parameter_value::AnimationParameterValue;
+pub use playback_settings::AnimationPlaybackSettings;
+pub use pose_bone::AnimationPoseBone;
+pub use pose_output::AnimationPoseOutput;
+pub use pose_source::AnimationPoseSource;
+pub use state_machine_evaluation::AnimationStateMachineEvaluation;
+pub use track_path::AnimationTrackPath;
+pub use track_path_error::AnimationTrackPathError;

@@ -2,24 +2,38 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use crate::core::framework::render::RenderHybridGiProbe;
 
-use crate::graphics::types::EditorOrRuntimeFrame;
+use crate::graphics::types::ViewportRenderFrame;
 
 use super::hybrid_gi_budget_weight::hybrid_gi_budget_weight;
+use super::runtime_parent_chain::{
+    gather_runtime_descendant_chain_weight, gather_runtime_parent_chain_weight,
+};
 
 const CHILD_SPECIFICITY_BOOST: f32 = 0.3;
 const RESIDENT_CHILD_ATTENUATION: f32 = 0.78;
 const FARTHER_ANCESTOR_BUDGET_FALLOFF: f32 = 0.72;
 const FARTHER_ANCESTOR_BUDGET_SCALE: f32 = 0.6;
+const RUNTIME_RESOLVE_BLEND_MIN: f32 = 0.25;
+const RUNTIME_RESOLVE_BLEND_RANGE: f32 = 2.5;
 
 pub(super) fn hybrid_gi_hierarchy_resolve_weight(
-    frame: &EditorOrRuntimeFrame,
+    frame: &ViewportRenderFrame,
     source: &RenderHybridGiProbe,
 ) -> f32 {
-    if let Some(runtime_weight) = frame
+    let exact_runtime_weight = frame
         .hybrid_gi_resolve_runtime
         .as_ref()
         .and_then(|runtime| runtime.hierarchy_resolve_weight(source.probe_id))
-    {
+        .filter(|runtime_weight| *runtime_weight > f32::EPSILON);
+    let inherited_runtime_weight = gather_runtime_parent_chain_weight(frame, source.probe_id)
+        .filter(|runtime_weight| *runtime_weight > f32::EPSILON);
+    let descendant_runtime_weight = gather_runtime_descendant_chain_weight(frame, source.probe_id)
+        .filter(|runtime_weight| *runtime_weight > f32::EPSILON);
+    if let Some(runtime_weight) = blend_runtime_lineage_resolve_weights(
+        exact_runtime_weight,
+        inherited_runtime_weight,
+        descendant_runtime_weight,
+    ) {
         return runtime_weight;
     }
 
@@ -71,6 +85,33 @@ pub(super) fn hybrid_gi_hierarchy_resolve_weight(
     let lineage_budget_weight =
         1.0 + farther_ancestor_budget_support * FARTHER_ANCESTOR_BUDGET_SCALE;
     (specificity_weight * attenuation_weight * lineage_budget_weight).clamp(0.25, 2.5)
+}
+
+fn blend_runtime_lineage_resolve_weights(
+    exact: Option<f32>,
+    inherited: Option<f32>,
+    descendant: Option<f32>,
+) -> Option<f32> {
+    let mut weighted_weight = 0.0_f32;
+    let mut total_support = 0.0_f32;
+    for weight in [exact, inherited, descendant].into_iter().flatten() {
+        let support = runtime_resolve_blend_support(weight);
+        if support <= f32::EPSILON {
+            continue;
+        }
+        weighted_weight += weight * support;
+        total_support += support;
+    }
+
+    if total_support <= f32::EPSILON {
+        return None;
+    }
+
+    Some((weighted_weight / total_support).clamp(0.25, 2.75))
+}
+
+fn runtime_resolve_blend_support(weight: f32) -> f32 {
+    ((weight - RUNTIME_RESOLVE_BLEND_MIN) / RUNTIME_RESOLVE_BLEND_RANGE).clamp(0.05, 1.0)
 }
 
 fn resident_descendant_count(
@@ -162,4 +203,90 @@ fn farther_resident_ancestor_budget_support<'a>(
     }
 
     total_support.clamp(0.0, 1.5)
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::BTreeMap;
+
+    use super::hybrid_gi_hierarchy_resolve_weight;
+    use crate::core::framework::render::{
+        FallbackSkyboxKind, PreviewEnvironmentExtract, RenderFrameExtract, RenderHybridGiExtract,
+        RenderHybridGiProbe, RenderOverlayExtract, RenderSceneGeometryExtract, RenderSceneSnapshot,
+        RenderWorldSnapshotHandle, ViewportCameraSnapshot,
+    };
+    use crate::core::math::{UVec2, Vec4};
+    use crate::graphics::types::{HybridGiResolveRuntime, ViewportRenderFrame};
+
+    #[test]
+    fn exact_runtime_resolve_weight_keeps_blending_with_descendant_continuation() {
+        let strong = hierarchy_resolve_weight_with_descendant(2.4);
+        let weak = hierarchy_resolve_weight_with_descendant(0.6);
+
+        assert!(
+            strong > weak + 0.25,
+            "expected exact runtime resolve weight to keep blending with descendant continuation instead of returning the parent value unchanged; strong={strong:.3}, weak={weak:.3}"
+        );
+    }
+
+    fn hierarchy_resolve_weight_with_descendant(descendant_weight: f32) -> f32 {
+        let parent_probe = RenderHybridGiProbe {
+            probe_id: 100,
+            resident: true,
+            ray_budget: 128,
+            ..Default::default()
+        };
+        let child_probe = RenderHybridGiProbe {
+            probe_id: 200,
+            parent_probe_id: Some(parent_probe.probe_id),
+            ray_budget: 88,
+            ..Default::default()
+        };
+
+        let snapshot = RenderSceneSnapshot {
+            scene: RenderSceneGeometryExtract {
+                camera: ViewportCameraSnapshot::default(),
+                meshes: Vec::new(),
+                directional_lights: Vec::new(),
+                point_lights: Vec::new(),
+                spot_lights: Vec::new(),
+            },
+            overlays: RenderOverlayExtract::default(),
+            preview: PreviewEnvironmentExtract {
+                lighting_enabled: true,
+                skybox_enabled: false,
+                fallback_skybox: FallbackSkyboxKind::None,
+                clear_color: Vec4::ZERO,
+            },
+            virtual_geometry_debug: None,
+        };
+        let mut extract =
+            RenderFrameExtract::from_snapshot(RenderWorldSnapshotHandle::new(1), snapshot);
+        extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
+            enabled: true,
+            probe_budget: 2,
+            trace_budget: 2,
+            card_budget: 2,
+            voxel_budget: 1,
+            probes: vec![parent_probe, child_probe],
+            ..Default::default()
+        });
+
+        let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(32, 32))
+            .with_hybrid_gi_resolve_runtime(Some(HybridGiResolveRuntime {
+                probe_hierarchy_resolve_weight_q8: BTreeMap::from([
+                    (
+                        parent_probe.probe_id,
+                        HybridGiResolveRuntime::pack_resolve_weight_q8(0.6),
+                    ),
+                    (
+                        child_probe.probe_id,
+                        HybridGiResolveRuntime::pack_resolve_weight_q8(descendant_weight),
+                    ),
+                ]),
+                ..Default::default()
+            }));
+
+        hybrid_gi_hierarchy_resolve_weight(&frame, &parent_probe)
+    }
 }

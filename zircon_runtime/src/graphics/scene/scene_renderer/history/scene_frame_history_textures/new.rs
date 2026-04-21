@@ -17,6 +17,18 @@ impl SceneFrameHistoryTextures {
             view_formats: &[],
         });
         let scene_color_view = scene_color.create_view(&wgpu::TextureViewDescriptor::default());
+        let global_illumination = device.create_texture(&wgpu::TextureDescriptor {
+            label: Some("zircon-history-global-illumination"),
+            size: texture_extent(size),
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: super::super::super::core::OFFSCREEN_FORMAT,
+            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+            view_formats: &[],
+        });
+        let global_illumination_view =
+            global_illumination.create_view(&wgpu::TextureViewDescriptor::default());
         let ambient_occlusion = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("zircon-history-ambient-occlusion"),
             size: texture_extent(size),
@@ -31,12 +43,15 @@ impl SceneFrameHistoryTextures {
             ambient_occlusion.create_view(&wgpu::TextureViewDescriptor::default());
 
         clear_texture(queue, &scene_color, size, &[0, 0, 0, 255]);
+        clear_texture(queue, &global_illumination, size, &[0, 0, 0, 255]);
         clear_texture(queue, &ambient_occlusion, size, &[255, 255, 255, 255]);
 
         Self {
             size,
             scene_color,
             scene_color_view,
+            global_illumination,
+            global_illumination_view,
             ambient_occlusion,
             ambient_occlusion_view,
         }

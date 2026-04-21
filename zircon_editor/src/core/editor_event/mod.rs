@@ -1,18 +1,24 @@
-pub mod host_adapter;
-
+mod inspector_field_change;
 mod journal;
 mod replay;
-mod runtime;
-mod transient;
+pub(crate) mod runtime;
+mod selection_host_event;
 mod types;
+mod workbench;
 
+pub use inspector_field_change::InspectorFieldChange;
 pub use journal::EditorEventJournal;
 pub use replay::EditorEventReplay;
 pub use runtime::{EditorEventDispatcher, EditorEventRuntime};
-pub use transient::EditorTransientUiState;
+pub use selection_host_event::SelectionHostEvent;
 pub use types::{
-    EditorAssetEvent, EditorAssetSurface, EditorAssetUtilityTab, EditorAssetViewMode,
-    EditorDraftEvent, EditorEvent, EditorEventEffect, EditorEventEnvelope, EditorEventId,
-    EditorEventRecord, EditorEventResult, EditorEventSequence, EditorEventSource,
+    EditorAnimationEvent, EditorAssetEvent, EditorAssetSurface, EditorAssetUtilityTab,
+    EditorAssetViewMode, EditorDraftEvent, EditorEvent, EditorEventEffect, EditorEventEnvelope,
+    EditorEventId, EditorEventRecord, EditorEventResult, EditorEventSequence, EditorEventSource,
     EditorEventTransient, EditorEventUndoPolicy, EditorInspectorEvent, EditorViewportEvent,
+};
+pub use workbench::{
+    ActivityDrawerMode, ActivityDrawerSlot, LayoutCommand, MainPageId, MenuAction, SplitAxis,
+    SplitPlacement, TabInsertionAnchor, TabInsertionSide, ViewDescriptorId, ViewHost,
+    ViewInstanceId, WorkspaceTarget,
 };

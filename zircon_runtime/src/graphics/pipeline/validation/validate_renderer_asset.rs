@@ -4,7 +4,9 @@ use crate::graphics::pipeline::declarations::RendererAsset;
 
 use super::stage_name::stage_name;
 
-pub(in crate::graphics::pipeline) fn validate_renderer_asset(renderer: &RendererAsset) -> Result<(), String> {
+pub(in crate::graphics::pipeline) fn validate_renderer_asset(
+    renderer: &RendererAsset,
+) -> Result<(), String> {
     if renderer.stages.is_empty() {
         return Err(format!(
             "renderer `{}` must declare at least one render stage",

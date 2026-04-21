@@ -9,6 +9,7 @@ struct VirtualGeometryIndirectSegmentInput {
     lod_level: u32,
     frontier_rank: u32,
     submission_index: u32,
+    instance_index: u32,
     entity_lo: u32,
     entity_hi: u32,
 };
@@ -44,6 +45,28 @@ struct SubmissionDebugBuffer {
     values: array<u32>,
 };
 
+struct SubmissionAuthorityRecord {
+    draw_ref_index: u32,
+    instance_index: u32,
+    cluster_start_ordinal: u32,
+    cluster_span_count: u32,
+    cluster_total_count: u32,
+    page_id: u32,
+    submission_slot: u32,
+    state: u32,
+    lineage_depth: u32,
+    lod_level: u32,
+    frontier_rank: u32,
+    submission_index: u32,
+    draw_ref_rank: u32,
+    entity_lo: u32,
+    entity_hi: u32,
+};
+
+struct SubmissionAuthorityBuffer {
+    values: array<SubmissionAuthorityRecord>,
+};
+
 @group(0) @binding(0)
 var<storage, read> segment_buffer: SegmentBuffer;
 
@@ -55,6 +78,9 @@ var<storage, read_write> output_buffer: OutputBuffer;
 
 @group(0) @binding(3)
 var<storage, read_write> submission_debug_buffer: SubmissionDebugBuffer;
+
+@group(0) @binding(4)
+var<storage, read_write> submission_authority_buffer: SubmissionAuthorityBuffer;
 
 fn visible_triangle_count_for_state(segment_triangle_count: u32, state: u32) -> u32 {
     if (segment_triangle_count == 0u) {
@@ -309,4 +335,21 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
         draw_ref.submission_token,
     );
     submission_debug_buffer.values[index] = draw_ref.submission_token;
+    submission_authority_buffer.values[index] = SubmissionAuthorityRecord(
+        index,
+        segment.instance_index,
+        segment.cluster_start_ordinal,
+        segment.cluster_span_count,
+        segment.cluster_total_count,
+        segment.page_id,
+        segment.submission_slot,
+        segment.state,
+        segment.lineage_depth,
+        segment.lod_level,
+        segment.frontier_rank,
+        segment.submission_index,
+        draw_ref_rank,
+        segment.entity_lo,
+        segment.entity_hi,
+    );
 }

@@ -1,4 +1,4 @@
-use crate::ui::{EditorUiBinding, EditorUiBindingPayload};
+use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload};
 
 use super::super::error::EditorBindingDispatchError;
 use super::inspector_binding_batch::InspectorBindingBatch;

@@ -4,11 +4,11 @@ use crate::asset::project::AssetMetaDocument;
 use crate::asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
 use crate::asset::tests::project::unique_temp_project_root;
 use crate::asset::tests::support::{
-    sample_animation_sequence_asset, sample_physics_material_asset, write_checker_png,
-    write_default_animation_clip, write_default_animation_graph, write_default_animation_sequence,
-    write_default_animation_skeleton, write_default_animation_state_machine,
-    write_default_material, write_default_physics_material, write_default_scene,
-    write_triangle_obj, write_valid_wgsl,
+    sample_animation_sequence_asset, sample_physics_material_asset, sample_sound_asset,
+    write_checker_png, write_default_animation_clip, write_default_animation_graph,
+    write_default_animation_sequence, write_default_animation_skeleton,
+    write_default_animation_state_machine, write_default_material, write_default_physics_material,
+    write_default_scene, write_test_wav, write_triangle_obj, write_valid_wgsl,
 };
 use crate::asset::{AssetId, AssetUri, ImportedAsset};
 
@@ -225,6 +225,43 @@ fn project_manager_imports_physics_and_animation_assets_into_runtime_library() {
         physics_meta.primary_locator,
         AssetUri::parse("res://physics/materials/default.physics_material.toml").unwrap()
     );
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn project_manager_imports_sound_assets_into_runtime_library() {
+    let root = unique_temp_project_root("project_manager_sound");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths.ensure_layout().unwrap();
+    ProjectManifest::new(
+        "Sandbox",
+        AssetUri::parse("res://audio/ping.wav").unwrap(),
+        1,
+    )
+    .save(paths.manifest_path())
+    .unwrap();
+
+    write_test_wav(paths.assets_root().join("audio").join("ping.wav"));
+
+    let mut manager = ProjectManager::open(&root).unwrap();
+    let imported = manager.scan_and_import().unwrap();
+
+    assert_eq!(imported.len(), 1);
+    assert!(manager
+        .registry()
+        .get_by_locator(&AssetUri::parse("res://audio/ping.wav").unwrap())
+        .is_some());
+
+    let sound = manager
+        .load_artifact(&AssetUri::parse("res://audio/ping.wav").unwrap())
+        .unwrap();
+
+    assert_eq!(
+        sound,
+        ImportedAsset::Sound(sample_sound_asset("res://audio/ping.wav"))
+    );
+    assert!(paths.library_root().join("sound").is_dir());
 
     let _ = fs::remove_dir_all(root);
 }

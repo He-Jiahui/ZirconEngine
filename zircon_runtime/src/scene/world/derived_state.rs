@@ -167,6 +167,22 @@ impl World {
                     camera: self.cameras.get(&entity).cloned(),
                     mesh: self.mesh_renderers.get(&entity).cloned(),
                     directional_light: self.directional_lights.get(&entity).cloned(),
+                    point_light: self.point_lights.get(&entity).cloned(),
+                    spot_light: self.spot_lights.get(&entity).cloned(),
+                    rigid_body: self.rigid_bodies.get(&entity).cloned(),
+                    collider: self.colliders.get(&entity).cloned(),
+                    joint: self.joints.get(&entity).cloned(),
+                    animation_skeleton: self.animation_skeletons.get(&entity).cloned(),
+                    animation_player: self.animation_players.get(&entity).cloned(),
+                    animation_sequence_player: self
+                        .animation_sequence_players
+                        .get(&entity)
+                        .cloned(),
+                    animation_graph_player: self.animation_graph_players.get(&entity).cloned(),
+                    animation_state_machine_player: self
+                        .animation_state_machine_players
+                        .get(&entity)
+                        .cloned(),
                 })
             })
             .collect();

@@ -32,7 +32,12 @@ pub(in super::super) fn build_post_process_params(
             u32::from(features.history_resolve_enabled && history_available),
             reflection_probe_count,
         ],
-        hybrid_gi_counts: [hybrid_gi_probe_count, scheduled_trace_region_count, 0, 0],
+        hybrid_gi_counts: [
+            hybrid_gi_probe_count,
+            scheduled_trace_region_count,
+            u32::from(features.hybrid_global_illumination_enabled && history_available),
+            0,
+        ],
         blends: [
             0.24,
             0.42,

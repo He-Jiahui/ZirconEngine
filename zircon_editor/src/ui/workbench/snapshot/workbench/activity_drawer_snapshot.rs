@@ -1,5 +1,5 @@
-use crate::layout::{ActivityDrawerMode, ActivityDrawerSlot};
-use crate::view::ViewInstanceId;
+use crate::ui::workbench::layout::{ActivityDrawerMode, ActivityDrawerSlot};
+use crate::ui::workbench::view::ViewInstanceId;
 
 use super::ViewTabSnapshot;
 

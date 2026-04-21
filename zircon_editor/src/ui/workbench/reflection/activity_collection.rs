@@ -4,8 +4,10 @@ use crate::ui::{
 };
 use serde_json::Value;
 
-use crate::snapshot::{DocumentWorkspaceSnapshot, FloatingWindowSnapshot, ViewTabSnapshot};
-use crate::view::ViewKind;
+use crate::ui::workbench::snapshot::{
+    DocumentWorkspaceSnapshot, FloatingWindowSnapshot, ViewTabSnapshot,
+};
+use crate::ui::workbench::view::ViewKind;
 
 use super::activity_actions::activity_actions_for_tab;
 use super::name_mapping::content_kind_name;

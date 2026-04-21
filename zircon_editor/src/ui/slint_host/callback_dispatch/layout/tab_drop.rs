@@ -3,7 +3,8 @@ use crate::ui::slint_host::{
     event_bridge::SlintDispatchEffects,
     tab_drag::{ResolvedWorkbenchTabDropRoute, ResolvedWorkbenchTabDropTarget},
 };
-use crate::{ActivityDrawerMode, LayoutCommand, ViewInstanceId};
+use crate::ui::workbench::layout::{ActivityDrawerMode, LayoutCommand};
+use crate::ui::workbench::view::{ViewHost, ViewInstanceId};
 
 use super::super::common::merge_effects;
 use super::dispatch_layout_command;
@@ -16,13 +17,15 @@ pub(crate) fn dispatch_tab_drop(
     match &route.target {
         ResolvedWorkbenchTabDropTarget::Attach(drop) => {
             let reopen_drawer_slot = match &drop.host {
-                crate::ViewHost::Drawer(slot) => runtime
-                    .current_layout()
-                    .drawers
-                    .get(slot)
-                    .and_then(|drawer| {
-                        (drawer.mode == ActivityDrawerMode::Collapsed).then_some(*slot)
-                    }),
+                ViewHost::Drawer(slot) => {
+                    runtime
+                        .current_layout()
+                        .drawers
+                        .get(slot)
+                        .and_then(|drawer| {
+                            (drawer.mode == ActivityDrawerMode::Collapsed).then_some(*slot)
+                        })
+                }
                 _ => None,
             };
 

@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::layout::MainPageId;
+use crate::ui::workbench::layout::MainPageId;
 
 use super::{ShellFrame, ShellRegionId};
 

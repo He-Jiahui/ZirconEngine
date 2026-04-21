@@ -44,10 +44,12 @@ impl VirtualGeometryRuntimeState {
         let displaced_resident_pages = assignments_by_first_unique_page
             .iter()
             .filter_map(|(page_id, slot)| {
-                self.resident_slots.iter().find_map(|(&resident_page_id, &resident_slot)| {
-                    (resident_slot == *slot && resident_page_id != *page_id)
-                        .then_some(resident_page_id)
-                })
+                self.resident_slots
+                    .iter()
+                    .find_map(|(&resident_page_id, &resident_slot)| {
+                        (resident_slot == *slot && resident_page_id != *page_id)
+                            .then_some(resident_page_id)
+                    })
             })
             .collect::<BTreeSet<_>>();
         let surviving_frontier_hot_pages = frontier_hot_pages
@@ -57,10 +59,13 @@ impl VirtualGeometryRuntimeState {
             .collect::<BTreeSet<_>>();
 
         for (page_id, slot) in assignments_by_first_unique_page {
-            let confirmed_replaced_page_id = replacement_by_page_id
-                .get(&page_id)
-                .copied()
-                .filter(|replaced_page_id| self.resident_slots.get(replaced_page_id).copied() == Some(slot));
+            let confirmed_replaced_page_id =
+                replacement_by_page_id
+                    .get(&page_id)
+                    .copied()
+                    .filter(|replaced_page_id| {
+                        self.resident_slots.get(replaced_page_id).copied() == Some(slot)
+                    });
             let inherits_hot_frontier = confirmed_replaced_page_id
                 .map(|replaced_page_id| frontier_hot_pages.contains(&replaced_page_id))
                 .unwrap_or(false)

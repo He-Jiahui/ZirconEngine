@@ -5,6 +5,7 @@ mod pending_completion;
 mod plan_ingestion;
 mod prepare_frame;
 mod residency_management;
+mod scene_representation;
 mod scene_trace_support;
 mod snapshot;
 #[cfg(test)]
@@ -14,3 +15,5 @@ mod test_accessors;
 pub(crate) use declarations::HybridGiProbeResidencyState;
 pub(crate) use declarations::HybridGiProbeUpdateRequest;
 pub(crate) use declarations::HybridGiRuntimeState;
+#[cfg(test)]
+pub(crate) use scene_representation::{HybridGiInputSet, HybridGiSceneRepresentation};

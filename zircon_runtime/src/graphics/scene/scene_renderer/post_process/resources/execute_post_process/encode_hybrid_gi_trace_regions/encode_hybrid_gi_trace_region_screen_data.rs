@@ -1,4 +1,6 @@
-use crate::core::framework::render::{ProjectionMode, RenderFrameExtract, RenderHybridGiTraceRegion};
+use crate::core::framework::render::{
+    ProjectionMode, RenderFrameExtract, RenderHybridGiTraceRegion,
+};
 use crate::core::math::UVec2;
 
 use super::super::camera_matrices::view_projection;

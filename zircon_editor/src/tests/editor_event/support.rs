@@ -3,14 +3,17 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::core::math::UVec2;
+use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::foundation::{
     module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
 };
 use zircon_runtime::scene::DefaultLevelManager;
 
-use crate::{module, EditorEventRuntime, EditorManager, EditorState, EDITOR_MANAGER_NAME};
+use crate::core::editor_event::EditorEventRuntime;
+use crate::ui::host::module::{self, EDITOR_MANAGER_NAME};
+use crate::ui::host::EditorManager;
+use crate::ui::workbench::state::EditorState;
 
 pub(crate) fn env_lock() -> &'static Mutex<()> {
     crate::tests::support::env_lock()
@@ -34,7 +37,7 @@ pub(crate) struct EventRuntimeHarness {
 impl EventRuntimeHarness {
     pub(crate) fn new(prefix: &str) -> Self {
         let config_path = unique_temp_path(prefix);
-        std::env::set_var("ZIRCON_EDITOR_CONFIG_PATH", &config_path);
+        std::env::set_var("ZIRCON_CONFIG_PATH", &config_path);
 
         let core = CoreRuntime::new();
         core.register_module(foundation_module_descriptor())
@@ -47,7 +50,7 @@ impl EventRuntimeHarness {
             .unwrap();
         core.activate_module(module::EDITOR_MODULE_NAME).unwrap();
 
-        std::env::remove_var("ZIRCON_EDITOR_CONFIG_PATH");
+        std::env::remove_var("ZIRCON_CONFIG_PATH");
 
         let state = EditorState::with_default_selection(
             DefaultLevelManager::default().create_default_level(),

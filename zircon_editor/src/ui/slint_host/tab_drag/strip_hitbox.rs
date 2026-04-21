@@ -4,11 +4,16 @@ use crate::ui::slint_host::root_shell_projection::{
     resolve_root_document_region_frame, resolve_root_left_region_frame,
     resolve_root_right_region_frame,
 };
-use crate::{
-    ActivityDrawerMode, ActivityDrawerSlot, DocumentTabModel, PaneTabModel, ShellRegionId,
-    TabInsertionAnchor, TabInsertionSide, ToolWindowStackModel, ViewHost, ViewInstanceId,
-    WorkbenchChromeMetrics, WorkbenchShellGeometry, WorkbenchViewModel, WorkspaceTarget,
+use crate::ui::workbench::autolayout::{
+    ShellRegionId, WorkbenchChromeMetrics, WorkbenchShellGeometry,
 };
+use crate::ui::workbench::layout::{
+    ActivityDrawerMode, ActivityDrawerSlot, TabInsertionAnchor, TabInsertionSide, WorkspaceTarget,
+};
+use crate::ui::workbench::model::{
+    DocumentTabModel, PaneTabModel, ToolWindowStackModel, WorkbenchViewModel,
+};
+use crate::ui::workbench::view::{ViewHost, ViewInstanceId};
 
 use super::resolved_drop::ResolvedTabDrop;
 use super::tab_width::{estimate_dock_tab_width, estimate_document_tab_width};

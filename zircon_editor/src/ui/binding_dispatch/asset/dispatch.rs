@@ -1,4 +1,4 @@
-use crate::ui::{AssetCommand, EditorUiBinding, EditorUiBindingPayload};
+use crate::ui::binding::{AssetCommand, EditorUiBinding, EditorUiBindingPayload};
 
 use super::super::error::EditorBindingDispatchError;
 use super::asset_host_event::AssetHostEvent;

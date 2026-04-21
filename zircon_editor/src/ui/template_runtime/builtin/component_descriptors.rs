@@ -1,4 +1,4 @@
-use crate::ui::EditorComponentDescriptor;
+use crate::ui::template::EditorComponentDescriptor;
 
 use super::{
     ASSET_SURFACE_DOCUMENT_ID, INSPECTOR_SURFACE_DOCUMENT_ID, PANE_SURFACE_DOCUMENT_ID,

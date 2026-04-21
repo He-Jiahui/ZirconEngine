@@ -8,6 +8,7 @@ pub(in super::super) fn create_bind_group(
     scene_color_view: &wgpu::TextureView,
     ao_view: &wgpu::TextureView,
     previous_scene_color_view: Option<&wgpu::TextureView>,
+    previous_global_illumination_view: Option<&wgpu::TextureView>,
     bloom_view: &wgpu::TextureView,
     cluster_buffer: &wgpu::Buffer,
 ) -> wgpu::BindGroup {
@@ -16,6 +17,7 @@ pub(in super::super) fn create_bind_group(
         scene_color_view,
         ao_view,
         previous_scene_color_view,
+        previous_global_illumination_view,
         bloom_view,
         cluster_buffer,
     );

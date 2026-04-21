@@ -11,21 +11,19 @@ use super::value_normalizer::compose_tokens;
 impl UiDocumentCompiler {
     pub fn compile(&self, document: &UiAssetDocument) -> Result<UiCompiledDocument, UiAssetError> {
         validate_document_shape(document)?;
-        let root_id = document
+        let root = document
             .root
             .as_ref()
             .ok_or_else(|| UiAssetError::InvalidDocument {
                 asset_id: document.asset.id.clone(),
                 detail: "layout/widget assets require a root node".to_string(),
-            })?
-            .node
-            .clone();
+            })?;
 
         let mut artifacts = CompilationArtifacts::default();
         let tokens = compose_tokens(&BTreeMap::new(), &document.tokens);
         let mut roots = self.expand_node(
             document,
-            &root_id,
+            root,
             &tokens,
             &BTreeMap::new(),
             None,

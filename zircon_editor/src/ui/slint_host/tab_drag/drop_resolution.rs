@@ -1,5 +1,8 @@
 use crate::ui::slint_host::callback_dispatch::BuiltinWorkbenchRootShellFrames;
-use crate::{WorkbenchChromeMetrics, WorkbenchLayout, WorkbenchShellGeometry, WorkbenchViewModel};
+use crate::ui::workbench::autolayout::WorkbenchChromeMetrics;
+use crate::ui::workbench::autolayout::WorkbenchShellGeometry;
+use crate::ui::workbench::layout::WorkbenchLayout;
+use crate::ui::workbench::model::WorkbenchViewModel;
 
 use super::host_resolution::drop_host_for_tab;
 use super::resolved_drop::ResolvedTabDrop;

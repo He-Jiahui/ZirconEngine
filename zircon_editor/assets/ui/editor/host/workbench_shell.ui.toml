@@ -1,0 +1,1173 @@
+stylesheets = []
+
+[asset]
+kind = "layout"
+id = "editor.host.workbench_shell"
+version = 1
+display_name = "workbench shell"
+
+[imports]
+widgets = []
+styles = []
+
+[tokens]
+
+[root]
+node_id = "root"
+kind = "component"
+component = "UiHostWindow"
+classes = []
+bindings = []
+
+[root.params]
+
+[root.props]
+
+[root.style_overrides.self]
+
+[root.style_overrides.slot]
+
+[[root.children]]
+mount = "activity_rail"
+
+[root.children.slot]
+
+[root.children.node]
+node_id = "root_activity_rail_0"
+kind = "component"
+component = "ActivityRail"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.params]
+
+[root.children.node.props]
+
+[root.children.node.style_overrides.self]
+
+[root.children.node.style_overrides.slot]
+
+[[root.children]]
+mount = "document_host"
+
+[root.children.slot]
+
+[root.children.node]
+node_id = "root_document_host_0"
+kind = "component"
+component = "DocumentHost"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.params]
+
+[root.children.node.props]
+
+[root.children.node.style_overrides.self]
+
+[root.children.node.style_overrides.slot]
+
+[[root.children]]
+mount = "menu_bar"
+
+[root.children.slot]
+
+[root.children.node]
+node_id = "root_menu_bar_0"
+kind = "component"
+component = "MenuBar"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.params]
+
+[root.children.node.props]
+
+[root.children.node.style_overrides.self]
+
+[root.children.node.style_overrides.slot]
+
+[[root.children]]
+mount = "status_bar"
+
+[root.children.slot]
+
+[root.children.node]
+node_id = "root_status_bar_0"
+kind = "component"
+component = "StatusBar"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.params]
+
+[root.children.node.props]
+
+[root.children.node.style_overrides.self]
+
+[root.children.node.style_overrides.slot]
+
+[components.ActivityRail]
+style_scope = "closed"
+
+[components.ActivityRail.root]
+node_id = "component_ActivityRail_root"
+kind = "native"
+type = "ActivityRail"
+control_id = "ActivityRailRoot"
+classes = []
+bindings = []
+
+[components.ActivityRail.root.params]
+
+[components.ActivityRail.root.props]
+
+[components.ActivityRail.root.layout]
+clip = true
+
+[components.ActivityRail.root.layout.container]
+gap = 8.0
+kind = "VerticalBox"
+
+[components.ActivityRail.root.layout.height]
+stretch = "Stretch"
+
+[components.ActivityRail.root.layout.width]
+max = 56.0
+min = 56.0
+preferred = 56.0
+stretch = "Fixed"
+
+[components.ActivityRail.root.style_overrides.self]
+
+[components.ActivityRail.root.style_overrides.slot]
+
+[[components.ActivityRail.root.children]]
+
+[components.ActivityRail.root.children.slot]
+
+[components.ActivityRail.root.children.node]
+node_id = "component_ActivityRail_root_0"
+kind = "native"
+type = "UiHostIconButton"
+control_id = "ProjectToggle"
+classes = []
+children = []
+
+[components.ActivityRail.root.children.node.params]
+
+[components.ActivityRail.root.children.node.props]
+icon = "albums-outline"
+label = "Project"
+
+[components.ActivityRail.root.children.node.layout.anchor]
+x = 0.5
+y = 0.0
+
+[components.ActivityRail.root.children.node.layout.height]
+max = 40.0
+min = 40.0
+preferred = 40.0
+stretch = "Fixed"
+
+[components.ActivityRail.root.children.node.layout.pivot]
+x = 0.5
+y = 0.0
+
+[components.ActivityRail.root.children.node.layout.width]
+max = 40.0
+min = 40.0
+preferred = 40.0
+stretch = "Fixed"
+
+[[components.ActivityRail.root.children.node.bindings]]
+id = "ActivityRail/ProjectToggle"
+event = "Click"
+route = "DockCommand.ActivateDrawerTab"
+
+[components.ActivityRail.root.children.node.style_overrides.self]
+
+[components.ActivityRail.root.children.node.style_overrides.slot]
+
+[[components.ActivityRail.root.children]]
+
+[components.ActivityRail.root.children.slot]
+
+[components.ActivityRail.root.children.node]
+node_id = "component_ActivityRail_root_1"
+kind = "native"
+type = "UiHostIconButton"
+control_id = "HierarchyToggle"
+classes = []
+children = []
+
+[components.ActivityRail.root.children.node.params]
+
+[components.ActivityRail.root.children.node.props]
+icon = "layers-outline"
+label = "Hierarchy"
+
+[components.ActivityRail.root.children.node.layout.anchor]
+x = 0.5
+y = 0.0
+
+[components.ActivityRail.root.children.node.layout.height]
+max = 40.0
+min = 40.0
+preferred = 40.0
+stretch = "Fixed"
+
+[components.ActivityRail.root.children.node.layout.pivot]
+x = 0.5
+y = 0.0
+
+[components.ActivityRail.root.children.node.layout.width]
+max = 40.0
+min = 40.0
+preferred = 40.0
+stretch = "Fixed"
+
+[[components.ActivityRail.root.children.node.bindings]]
+id = "ActivityRail/HierarchyToggle"
+event = "Click"
+route = "DockCommand.ActivateDrawerTab"
+
+[components.ActivityRail.root.children.node.style_overrides.self]
+
+[components.ActivityRail.root.children.node.style_overrides.slot]
+
+[[components.ActivityRail.root.children]]
+
+[components.ActivityRail.root.children.slot]
+
+[components.ActivityRail.root.children.node]
+node_id = "component_ActivityRail_root_2"
+kind = "native"
+type = "UiHostIconButton"
+control_id = "ConsoleToggle"
+classes = []
+children = []
+
+[components.ActivityRail.root.children.node.params]
+
+[components.ActivityRail.root.children.node.props]
+icon = "terminal-outline"
+label = "Console"
+
+[components.ActivityRail.root.children.node.layout.anchor]
+x = 0.5
+y = 0.0
+
+[components.ActivityRail.root.children.node.layout.height]
+max = 40.0
+min = 40.0
+preferred = 40.0
+stretch = "Fixed"
+
+[components.ActivityRail.root.children.node.layout.pivot]
+x = 0.5
+y = 0.0
+
+[components.ActivityRail.root.children.node.layout.width]
+max = 40.0
+min = 40.0
+preferred = 40.0
+stretch = "Fixed"
+
+[[components.ActivityRail.root.children.node.bindings]]
+id = "ActivityRail/ConsoleToggle"
+event = "Click"
+route = "DockCommand.ActivateDrawerTab"
+
+[components.ActivityRail.root.children.node.style_overrides.self]
+
+[components.ActivityRail.root.children.node.style_overrides.slot]
+
+[components.ActivityRail.params]
+
+[components.ActivityRail.slots]
+
+[components.DocumentHost]
+style_scope = "closed"
+
+[components.DocumentHost.root]
+node_id = "component_DocumentHost_root"
+kind = "native"
+type = "DocumentHost"
+control_id = "DocumentHostRoot"
+classes = []
+bindings = []
+
+[components.DocumentHost.root.params]
+
+[components.DocumentHost.root.props]
+
+[components.DocumentHost.root.layout]
+clip = true
+
+[components.DocumentHost.root.layout.container]
+gap = 0.0
+kind = "VerticalBox"
+
+[components.DocumentHost.root.layout.height]
+stretch = "Stretch"
+
+[components.DocumentHost.root.layout.width]
+stretch = "Stretch"
+
+[components.DocumentHost.root.style_overrides.self]
+
+[components.DocumentHost.root.style_overrides.slot]
+
+[[components.DocumentHost.root.children]]
+
+[components.DocumentHost.root.children.slot]
+
+[components.DocumentHost.root.children.node]
+node_id = "component_DocumentHost_root_0"
+kind = "native"
+type = "DocumentTabs"
+control_id = "DocumentTabsRoot"
+classes = []
+children = []
+
+[components.DocumentHost.root.children.node.params]
+
+[components.DocumentHost.root.children.node.props]
+
+[components.DocumentHost.root.children.node.layout.height]
+max = 32.0
+min = 32.0
+preferred = 32.0
+stretch = "Fixed"
+
+[components.DocumentHost.root.children.node.layout.width]
+stretch = "Stretch"
+
+[[components.DocumentHost.root.children.node.bindings]]
+id = "DocumentTabs/ActivateTab"
+event = "Change"
+route = "DockCommand.FocusView"
+
+[[components.DocumentHost.root.children.node.bindings]]
+id = "DocumentTabs/CloseTab"
+event = "Submit"
+route = "DockCommand.CloseView"
+
+[components.DocumentHost.root.children.node.style_overrides.self]
+
+[components.DocumentHost.root.children.node.style_overrides.slot]
+
+[[components.DocumentHost.root.children]]
+
+[components.DocumentHost.root.children.slot]
+
+[components.DocumentHost.root.children.node]
+node_id = "component_DocumentHost_root_1"
+kind = "native"
+type = "PaneSurface"
+control_id = "PaneSurfaceRoot"
+classes = []
+bindings = []
+children = []
+
+[components.DocumentHost.root.children.node.params]
+
+[components.DocumentHost.root.children.node.props]
+
+[components.DocumentHost.root.children.node.layout.height]
+stretch = "Stretch"
+
+[components.DocumentHost.root.children.node.layout.width]
+stretch = "Stretch"
+
+[components.DocumentHost.root.children.node.style_overrides.self]
+
+[components.DocumentHost.root.children.node.style_overrides.slot]
+
+[components.DocumentHost.params]
+
+[components.DocumentHost.slots]
+
+[components.MenuBar]
+style_scope = "closed"
+
+[components.MenuBar.root]
+node_id = "component_MenuBar_root"
+kind = "native"
+type = "UiHostToolbar"
+control_id = "WorkbenchMenuBarRoot"
+classes = []
+bindings = []
+
+[components.MenuBar.root.params]
+
+[components.MenuBar.root.props]
+
+[components.MenuBar.root.layout.container]
+gap = 8.0
+kind = "HorizontalBox"
+
+[components.MenuBar.root.layout.height]
+max = 40.0
+min = 40.0
+preferred = 40.0
+stretch = "Fixed"
+
+[components.MenuBar.root.layout.width]
+stretch = "Stretch"
+
+[components.MenuBar.root.style_overrides.self]
+
+[components.MenuBar.root.style_overrides.slot]
+
+[[components.MenuBar.root.children]]
+
+[components.MenuBar.root.children.slot]
+
+[components.MenuBar.root.children.node]
+node_id = "component_MenuBar_root_0"
+kind = "native"
+type = "UiHostIconButton"
+control_id = "OpenProject"
+classes = []
+children = []
+
+[components.MenuBar.root.children.node.params]
+
+[components.MenuBar.root.children.node.props]
+icon = "folder-open-outline"
+label = "Open"
+
+[components.MenuBar.root.children.node.layout.height]
+max = 32.0
+min = 32.0
+preferred = 32.0
+stretch = "Fixed"
+
+[components.MenuBar.root.children.node.layout.width]
+max = 120.0
+min = 120.0
+preferred = 120.0
+stretch = "Fixed"
+
+[[components.MenuBar.root.children.node.bindings]]
+id = "WorkbenchMenuBar/OpenProject"
+event = "Click"
+route = "MenuAction.OpenProject"
+
+[components.MenuBar.root.children.node.style_overrides.self]
+
+[components.MenuBar.root.children.node.style_overrides.slot]
+
+[[components.MenuBar.root.children]]
+
+[components.MenuBar.root.children.slot]
+
+[components.MenuBar.root.children.node]
+node_id = "component_MenuBar_root_1"
+kind = "native"
+type = "UiHostIconButton"
+control_id = "SaveProject"
+classes = []
+children = []
+
+[components.MenuBar.root.children.node.params]
+
+[components.MenuBar.root.children.node.props]
+icon = "save-outline"
+label = "Save"
+
+[components.MenuBar.root.children.node.layout.height]
+max = 32.0
+min = 32.0
+preferred = 32.0
+stretch = "Fixed"
+
+[components.MenuBar.root.children.node.layout.width]
+max = 120.0
+min = 120.0
+preferred = 120.0
+stretch = "Fixed"
+
+[[components.MenuBar.root.children.node.bindings]]
+id = "WorkbenchMenuBar/SaveProject"
+event = "Click"
+route = "MenuAction.SaveProject"
+
+[components.MenuBar.root.children.node.style_overrides.self]
+
+[components.MenuBar.root.children.node.style_overrides.slot]
+
+[[components.MenuBar.root.children]]
+
+[components.MenuBar.root.children.slot]
+
+[components.MenuBar.root.children.node]
+node_id = "component_MenuBar_root_2"
+kind = "native"
+type = "UiHostIconButton"
+control_id = "ResetLayout"
+classes = []
+children = []
+
+[components.MenuBar.root.children.node.params]
+
+[components.MenuBar.root.children.node.props]
+icon = "grid-outline"
+label = "Reset Layout"
+
+[components.MenuBar.root.children.node.layout.height]
+max = 32.0
+min = 32.0
+preferred = 32.0
+stretch = "Fixed"
+
+[components.MenuBar.root.children.node.layout.width]
+max = 120.0
+min = 120.0
+preferred = 120.0
+stretch = "Fixed"
+
+[[components.MenuBar.root.children.node.bindings]]
+id = "WorkbenchMenuBar/ResetLayout"
+event = "Click"
+route = "MenuAction.ResetLayout"
+
+[components.MenuBar.root.children.node.style_overrides.self]
+
+[components.MenuBar.root.children.node.style_overrides.slot]
+
+[components.MenuBar.params]
+
+[components.MenuBar.slots]
+
+[components.StatusBar]
+style_scope = "closed"
+
+[components.StatusBar.root]
+node_id = "component_StatusBar_root"
+kind = "native"
+type = "StatusBar"
+control_id = "StatusBarRoot"
+classes = []
+bindings = []
+
+[components.StatusBar.root.params]
+
+[components.StatusBar.root.props]
+
+[components.StatusBar.root.layout.container]
+gap = 0.0
+kind = "HorizontalBox"
+
+[components.StatusBar.root.layout.height]
+max = 24.0
+min = 24.0
+preferred = 24.0
+stretch = "Fixed"
+
+[components.StatusBar.root.layout.width]
+stretch = "Stretch"
+
+[components.StatusBar.root.style_overrides.self]
+
+[components.StatusBar.root.style_overrides.slot]
+
+[[components.StatusBar.root.children]]
+
+[components.StatusBar.root.children.slot]
+
+[components.StatusBar.root.children.node]
+node_id = "component_StatusBar_root_0"
+kind = "native"
+type = "UiHostLabel"
+control_id = "StatusText"
+classes = []
+bindings = []
+children = []
+
+[components.StatusBar.root.children.node.params]
+
+[components.StatusBar.root.children.node.props]
+text = "Ready"
+
+[components.StatusBar.root.children.node.layout.height]
+stretch = "Stretch"
+
+[components.StatusBar.root.children.node.layout.width]
+stretch = "Stretch"
+
+[components.StatusBar.root.children.node.style_overrides.self]
+
+[components.StatusBar.root.children.node.style_overrides.slot]
+
+[components.StatusBar.params]
+
+[components.StatusBar.slots]
+
+[components.UiHostWindow]
+style_scope = "closed"
+
+[components.UiHostWindow.root]
+node_id = "component_UiHostWindow_root"
+kind = "native"
+type = "UiHostWindow"
+control_id = "UiHostWindowRoot"
+classes = []
+
+[components.UiHostWindow.root.params]
+
+[components.UiHostWindow.root.props]
+
+[components.UiHostWindow.root.layout]
+clip = true
+
+[components.UiHostWindow.root.layout.container]
+kind = "Overlay"
+
+[components.UiHostWindow.root.layout.height]
+stretch = "Stretch"
+
+[components.UiHostWindow.root.layout.width]
+stretch = "Stretch"
+
+[[components.UiHostWindow.root.bindings]]
+id = "UiHostWindow/ActivateMainPage"
+event = "Change"
+route = "DockCommand.ActivateMainPage"
+
+[components.UiHostWindow.root.style_overrides.self]
+
+[components.UiHostWindow.root.style_overrides.slot]
+
+[[components.UiHostWindow.root.children]]
+
+[components.UiHostWindow.root.children.slot]
+
+[components.UiHostWindow.root.children.node]
+node_id = "component_UiHostWindow_root_0"
+kind = "native"
+type = "VerticalBox"
+control_id = "WorkbenchScaffold"
+classes = []
+bindings = []
+
+[components.UiHostWindow.root.children.node.params]
+
+[components.UiHostWindow.root.children.node.props]
+
+[components.UiHostWindow.root.children.node.layout]
+clip = true
+
+[components.UiHostWindow.root.children.node.layout.container]
+gap = 0.0
+kind = "VerticalBox"
+
+[components.UiHostWindow.root.children.node.layout.height]
+stretch = "Stretch"
+
+[components.UiHostWindow.root.children.node.layout.width]
+stretch = "Stretch"
+
+[components.UiHostWindow.root.children.node.style_overrides.self]
+
+[components.UiHostWindow.root.children.node.style_overrides.slot]
+
+[[components.UiHostWindow.root.children.node.children]]
+
+[components.UiHostWindow.root.children.node.children.slot]
+
+[components.UiHostWindow.root.children.node.children.node]
+node_id = "component_UiHostWindow_root_0_0"
+kind = "slot"
+slot_name = "menu_bar"
+classes = []
+bindings = []
+children = []
+
+[components.UiHostWindow.root.children.node.children.node.params]
+
+[components.UiHostWindow.root.children.node.children.node.props]
+
+[components.UiHostWindow.root.children.node.children.node.style_overrides.self]
+
+[components.UiHostWindow.root.children.node.children.node.style_overrides.slot]
+
+[[components.UiHostWindow.root.children.node.children]]
+
+[components.UiHostWindow.root.children.node.children.slot]
+
+[components.UiHostWindow.root.children.node.children.node]
+node_id = "component_UiHostWindow_root_0_1"
+kind = "native"
+type = "HorizontalBox"
+control_id = "WorkbenchBody"
+classes = []
+bindings = []
+
+[components.UiHostWindow.root.children.node.children.node.params]
+
+[components.UiHostWindow.root.children.node.children.node.props]
+
+[components.UiHostWindow.root.children.node.children.node.layout.container]
+gap = 0.0
+kind = "HorizontalBox"
+
+[components.UiHostWindow.root.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[components.UiHostWindow.root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[components.UiHostWindow.root.children.node.children.node.style_overrides.self]
+
+[components.UiHostWindow.root.children.node.children.node.style_overrides.slot]
+
+[[components.UiHostWindow.root.children.node.children.node.children]]
+
+[components.UiHostWindow.root.children.node.children.node.children.slot]
+
+[components.UiHostWindow.root.children.node.children.node.children.node]
+node_id = "component_UiHostWindow_root_0_1_0"
+kind = "slot"
+slot_name = "activity_rail"
+classes = []
+bindings = []
+children = []
+
+[components.UiHostWindow.root.children.node.children.node.children.node.params]
+
+[components.UiHostWindow.root.children.node.children.node.children.node.props]
+
+[components.UiHostWindow.root.children.node.children.node.children.node.style_overrides.self]
+
+[components.UiHostWindow.root.children.node.children.node.children.node.style_overrides.slot]
+
+[[components.UiHostWindow.root.children.node.children.node.children]]
+
+[components.UiHostWindow.root.children.node.children.node.children.slot]
+
+[components.UiHostWindow.root.children.node.children.node.children.node]
+node_id = "component_UiHostWindow_root_0_1_1"
+kind = "slot"
+slot_name = "document_host"
+classes = []
+bindings = []
+children = []
+
+[components.UiHostWindow.root.children.node.children.node.children.node.params]
+
+[components.UiHostWindow.root.children.node.children.node.children.node.props]
+
+[components.UiHostWindow.root.children.node.children.node.children.node.style_overrides.self]
+
+[components.UiHostWindow.root.children.node.children.node.children.node.style_overrides.slot]
+
+[[components.UiHostWindow.root.children.node.children]]
+
+[components.UiHostWindow.root.children.node.children.slot]
+
+[components.UiHostWindow.root.children.node.children.node]
+node_id = "component_UiHostWindow_root_0_2"
+kind = "slot"
+slot_name = "status_bar"
+classes = []
+bindings = []
+children = []
+
+[components.UiHostWindow.root.children.node.children.node.params]
+
+[components.UiHostWindow.root.children.node.children.node.props]
+
+[components.UiHostWindow.root.children.node.children.node.style_overrides.self]
+
+[components.UiHostWindow.root.children.node.children.node.style_overrides.slot]
+
+[[components.UiHostWindow.root.children]]
+
+[components.UiHostWindow.root.children.slot]
+
+[components.UiHostWindow.root.children.node]
+node_id = "component_UiHostWindow_root_1"
+kind = "native"
+type = "Container"
+control_id = "HostPageStripRoot"
+classes = []
+bindings = []
+children = []
+
+[components.UiHostWindow.root.children.node.params]
+
+[components.UiHostWindow.root.children.node.props]
+
+[components.UiHostWindow.root.children.node.layout]
+clip = true
+
+[components.UiHostWindow.root.children.node.layout.height]
+max = 0.0
+min = 0.0
+preferred = 0.0
+stretch = "Fixed"
+
+[components.UiHostWindow.root.children.node.layout.width]
+max = 0.0
+min = 0.0
+preferred = 0.0
+stretch = "Fixed"
+
+[components.UiHostWindow.root.children.node.style_overrides.self]
+
+[components.UiHostWindow.root.children.node.style_overrides.slot]
+
+[[components.UiHostWindow.root.children]]
+
+[components.UiHostWindow.root.children.slot]
+
+[components.UiHostWindow.root.children.node]
+node_id = "component_UiHostWindow_root_2"
+kind = "native"
+type = "Overlay"
+control_id = "LeftDrawerShellRoot"
+classes = []
+bindings = []
+
+[components.UiHostWindow.root.children.node.params]
+
+[components.UiHostWindow.root.children.node.props]
+
+[components.UiHostWindow.root.children.node.layout]
+clip = true
+
+[components.UiHostWindow.root.children.node.layout.container]
+kind = "Overlay"
+
+[components.UiHostWindow.root.children.node.layout.height]
+max = 0.0
+min = 0.0
+preferred = 0.0
+stretch = "Fixed"
+
+[components.UiHostWindow.root.children.node.layout.width]
+max = 0.0
+min = 0.0
+preferred = 0.0
+stretch = "Fixed"
+
+[components.UiHostWindow.root.children.node.style_overrides.self]
+
+[components.UiHostWindow.root.children.node.style_overrides.slot]
+
+[[components.UiHostWindow.root.children.node.children]]
+
+[components.UiHostWindow.root.children.node.children.slot]
+
+[components.UiHostWindow.root.children.node.children.node]
+node_id = "component_UiHostWindow_root_2_0"
+kind = "native"
+type = "Container"
+control_id = "LeftDrawerHeaderRoot"
+classes = []
+bindings = []
+children = []
+
+[components.UiHostWindow.root.children.node.children.node.params]
+
+[components.UiHostWindow.root.children.node.children.node.props]
+
+[components.UiHostWindow.root.children.node.children.node.layout]
+clip = true
+
+[components.UiHostWindow.root.children.node.children.node.layout.height]
+max = 25.0
+min = 25.0
+preferred = 25.0
+stretch = "Fixed"
+
+[components.UiHostWindow.root.children.node.children.node.layout.width]
+max = 0.0
+min = 0.0
+preferred = 0.0
+stretch = "Fixed"
+
+[components.UiHostWindow.root.children.node.children.node.style_overrides.self]
+
+[components.UiHostWindow.root.children.node.children.node.style_overrides.slot]
+
+[[components.UiHostWindow.root.children.node.children]]
+
+[components.UiHostWindow.root.children.node.children.slot]
+
+[components.UiHostWindow.root.children.node.children.node]
+node_id = "component_UiHostWindow_root_2_1"
+kind = "native"
+type = "Container"
+control_id = "LeftDrawerContentRoot"
+classes = []
+bindings = []
+children = []
+
+[components.UiHostWindow.root.children.node.children.node.params]
+
+[components.UiHostWindow.root.children.node.children.node.props]
+
+[components.UiHostWindow.root.children.node.children.node.layout]
+clip = true
+
+[components.UiHostWindow.root.children.node.children.node.layout.height]
+max = 0.0
+min = 0.0
+preferred = 0.0
+stretch = "Fixed"
+
+[components.UiHostWindow.root.children.node.children.node.layout.width]
+max = 0.0
+min = 0.0
+preferred = 0.0
+stretch = "Fixed"
+
+[components.UiHostWindow.root.children.node.children.node.style_overrides.self]
+
+[components.UiHostWindow.root.children.node.children.node.style_overrides.slot]
+
+[[components.UiHostWindow.root.children]]
+
+[components.UiHostWindow.root.children.slot]
+
+[components.UiHostWindow.root.children.node]
+node_id = "component_UiHostWindow_root_3"
+kind = "native"
+type = "Overlay"
+control_id = "RightDrawerShellRoot"
+classes = []
+bindings = []
+
+[components.UiHostWindow.root.children.node.params]
+
+[components.UiHostWindow.root.children.node.props]
+
+[components.UiHostWindow.root.children.node.layout]
+clip = true
+
+[components.UiHostWindow.root.children.node.layout.container]
+kind = "Overlay"
+
+[components.UiHostWindow.root.children.node.layout.height]
+max = 0.0
+min = 0.0
+preferred = 0.0
+stretch = "Fixed"
+
+[components.UiHostWindow.root.children.node.layout.width]
+max = 0.0
+min = 0.0
+preferred = 0.0
+stretch = "Fixed"
+
+[components.UiHostWindow.root.children.node.style_overrides.self]
+
+[components.UiHostWindow.root.children.node.style_overrides.slot]
+
+[[components.UiHostWindow.root.children.node.children]]
+
+[components.UiHostWindow.root.children.node.children.slot]
+
+[components.UiHostWindow.root.children.node.children.node]
+node_id = "component_UiHostWindow_root_3_0"
+kind = "native"
+type = "Container"
+control_id = "RightDrawerHeaderRoot"
+classes = []
+bindings = []
+children = []
+
+[components.UiHostWindow.root.children.node.children.node.params]
+
+[components.UiHostWindow.root.children.node.children.node.props]
+
+[components.UiHostWindow.root.children.node.children.node.layout]
+clip = true
+
+[components.UiHostWindow.root.children.node.children.node.layout.height]
+max = 25.0
+min = 25.0
+preferred = 25.0
+stretch = "Fixed"
+
+[components.UiHostWindow.root.children.node.children.node.layout.width]
+max = 0.0
+min = 0.0
+preferred = 0.0
+stretch = "Fixed"
+
+[components.UiHostWindow.root.children.node.children.node.style_overrides.self]
+
+[components.UiHostWindow.root.children.node.children.node.style_overrides.slot]
+
+[[components.UiHostWindow.root.children.node.children]]
+
+[components.UiHostWindow.root.children.node.children.slot]
+
+[components.UiHostWindow.root.children.node.children.node]
+node_id = "component_UiHostWindow_root_3_1"
+kind = "native"
+type = "Container"
+control_id = "RightDrawerContentRoot"
+classes = []
+bindings = []
+children = []
+
+[components.UiHostWindow.root.children.node.children.node.params]
+
+[components.UiHostWindow.root.children.node.children.node.props]
+
+[components.UiHostWindow.root.children.node.children.node.layout]
+clip = true
+
+[components.UiHostWindow.root.children.node.children.node.layout.height]
+max = 0.0
+min = 0.0
+preferred = 0.0
+stretch = "Fixed"
+
+[components.UiHostWindow.root.children.node.children.node.layout.width]
+max = 0.0
+min = 0.0
+preferred = 0.0
+stretch = "Fixed"
+
+[components.UiHostWindow.root.children.node.children.node.style_overrides.self]
+
+[components.UiHostWindow.root.children.node.children.node.style_overrides.slot]
+
+[[components.UiHostWindow.root.children]]
+
+[components.UiHostWindow.root.children.slot]
+
+[components.UiHostWindow.root.children.node]
+node_id = "component_UiHostWindow_root_4"
+kind = "native"
+type = "Overlay"
+control_id = "BottomDrawerShellRoot"
+classes = []
+bindings = []
+
+[components.UiHostWindow.root.children.node.params]
+
+[components.UiHostWindow.root.children.node.props]
+
+[components.UiHostWindow.root.children.node.layout]
+clip = true
+
+[components.UiHostWindow.root.children.node.layout.container]
+kind = "Overlay"
+
+[components.UiHostWindow.root.children.node.layout.height]
+max = 0.0
+min = 0.0
+preferred = 0.0
+stretch = "Fixed"
+
+[components.UiHostWindow.root.children.node.layout.width]
+max = 0.0
+min = 0.0
+preferred = 0.0
+stretch = "Fixed"
+
+[components.UiHostWindow.root.children.node.style_overrides.self]
+
+[components.UiHostWindow.root.children.node.style_overrides.slot]
+
+[[components.UiHostWindow.root.children.node.children]]
+
+[components.UiHostWindow.root.children.node.children.slot]
+
+[components.UiHostWindow.root.children.node.children.node]
+node_id = "component_UiHostWindow_root_4_0"
+kind = "native"
+type = "Container"
+control_id = "BottomDrawerHeaderRoot"
+classes = []
+bindings = []
+children = []
+
+[components.UiHostWindow.root.children.node.children.node.params]
+
+[components.UiHostWindow.root.children.node.children.node.props]
+
+[components.UiHostWindow.root.children.node.children.node.layout]
+clip = true
+
+[components.UiHostWindow.root.children.node.children.node.layout.height]
+max = 25.0
+min = 25.0
+preferred = 25.0
+stretch = "Fixed"
+
+[components.UiHostWindow.root.children.node.children.node.layout.width]
+max = 0.0
+min = 0.0
+preferred = 0.0
+stretch = "Fixed"
+
+[components.UiHostWindow.root.children.node.children.node.style_overrides.self]
+
+[components.UiHostWindow.root.children.node.children.node.style_overrides.slot]
+
+[[components.UiHostWindow.root.children.node.children]]
+
+[components.UiHostWindow.root.children.node.children.slot]
+
+[components.UiHostWindow.root.children.node.children.node]
+node_id = "component_UiHostWindow_root_4_1"
+kind = "native"
+type = "Container"
+control_id = "BottomDrawerContentRoot"
+classes = []
+bindings = []
+children = []
+
+[components.UiHostWindow.root.children.node.children.node.params]
+
+[components.UiHostWindow.root.children.node.children.node.props]
+
+[components.UiHostWindow.root.children.node.children.node.layout]
+clip = true
+
+[components.UiHostWindow.root.children.node.children.node.layout.height]
+max = 0.0
+min = 0.0
+preferred = 0.0
+stretch = "Fixed"
+
+[components.UiHostWindow.root.children.node.children.node.layout.width]
+max = 0.0
+min = 0.0
+preferred = 0.0
+stretch = "Fixed"
+
+[components.UiHostWindow.root.children.node.children.node.style_overrides.self]
+
+[components.UiHostWindow.root.children.node.children.node.style_overrides.slot]
+
+[components.UiHostWindow.params]
+
+[components.UiHostWindow.slots.activity_rail]
+required = true
+multiple = false
+
+[components.UiHostWindow.slots.document_host]
+required = true
+multiple = false
+
+[components.UiHostWindow.slots.menu_bar]
+required = true
+multiple = false
+
+[components.UiHostWindow.slots.status_bar]
+required = true
+multiple = false

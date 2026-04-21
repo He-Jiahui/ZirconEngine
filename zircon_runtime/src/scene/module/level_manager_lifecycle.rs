@@ -1,8 +1,8 @@
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex};
 
-use crate::scene::world::World;
 use crate::core::framework::scene::WorldHandle;
+use crate::scene::world::World;
 
 use super::DefaultLevelManager;
 use crate::scene::{LevelMetadata, LevelSystem};

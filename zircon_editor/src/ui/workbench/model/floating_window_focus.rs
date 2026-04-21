@@ -1,4 +1,4 @@
-use crate::view::ViewInstanceId;
+use crate::ui::workbench::view::ViewInstanceId;
 
 use super::document_tab_model::DocumentTabModel;
 use super::floating_window_model::FloatingWindowModel;

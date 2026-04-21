@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::ui::EditorUiBinding;
+use crate::ui::binding::EditorUiBinding;
 use toml::Value;
 use zircon_runtime::ui::event_ui::UiRouteId;
 

@@ -1,10 +1,13 @@
 use slint::SharedString;
 
-use crate::layout::ActivityDrawerSlot;
 use crate::ui::slint_host::TabData;
+use crate::ui::workbench::layout::ActivityDrawerSlot;
 use crate::ui::workbench::model::{DocumentTabModel, HostPageTabModel, WorkbenchViewModel};
 
-pub(crate) fn host_tab_data(page: &HostPageTabModel, active_page: &crate::MainPageId) -> TabData {
+pub(crate) fn host_tab_data(
+    page: &HostPageTabModel,
+    active_page: &crate::ui::workbench::layout::MainPageId,
+) -> TabData {
     TabData {
         id: page.id.0.clone().into(),
         slot: SharedString::default(),
@@ -53,7 +56,7 @@ pub(crate) fn side_expanded(model: &WorkbenchViewModel, slots: &[ActivityDrawerS
         .any(|stack| {
             stack.visible
                 && !stack.tabs.is_empty()
-                && stack.mode != crate::ActivityDrawerMode::Collapsed
+                && stack.mode != crate::ui::workbench::layout::ActivityDrawerMode::Collapsed
         })
 }
 

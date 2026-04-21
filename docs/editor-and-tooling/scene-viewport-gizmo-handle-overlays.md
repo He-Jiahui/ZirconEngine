@@ -30,7 +30,8 @@ related_code:
   - zircon_editor/build.rs
   - zircon_editor/src/builtin_assets.rs
   - zircon_editor/src/ui/binding/mod.rs
-  - zircon_editor/src/tests/ui/binding.rs
+  - zircon_editor/src/tests/ui/binding/mod.rs
+  - zircon_editor/src/tests/ui/binding/viewport.rs
   - zircon_editor/src/core/editing/state/mod.rs
   - zircon_editor/src/scene/viewport/mod.rs
   - zircon_editor/src/scene/viewport/controller/mod.rs
@@ -108,10 +109,11 @@ tests:
   - zircon_scene/tests/viewport_packet.rs
   - zircon_graphics/src/tests/project_render.rs
   - zircon_graphics/src/tests/scene_overlay.rs
-  - zircon_editor/src/tests/ui/binding.rs
+  - zircon_editor/src/tests/ui/binding/viewport.rs
   - zircon_editor/src/tests/host/binding_dispatch.rs
   - zircon_editor/src/tests/host/slint_builtin_assets.rs
-  - zircon_editor/src/tests/host/slint_callback_dispatch/viewport.rs
+  - zircon_editor/src/tests/host/slint_callback_dispatch/viewport/pointer_bridge.rs
+  - zircon_editor/src/tests/host/slint_callback_dispatch/viewport/typed_command.rs
   - zircon_editor/src/tests/editing/state.rs
   - zircon_editor/src/tests/editing/viewport.rs
   - zircon_editor/src/ui/slint_host/ui.rs
@@ -275,7 +277,7 @@ Scene gizmo 和 handle 现在是物理分层：
 - world-units-per-pixel 估算
 - 线段/圆环屏幕距离计算
 
-`zircon_editor/src/scene/viewport/pointer/mod.rs` 现在在这层之上建立 `ViewportOverlayPointerBridge`，把 viewport overlay 命中真源前移到 shared retained surface：
+`zircon_editor/src/scene/viewport/pointer/mod.rs` 现在在这层之上建立 `ViewportOverlayPointerRouter`，把 viewport overlay 命中真源前移到 shared retained surface：
 
 - bridge 会把 handle overlay、scene gizmo `pick_shapes` 和 renderable 候选先投成一棵最小 `UiSurface`
 - retained tree 里保留 root、viewport，以及每个 coarse candidate 的 frame 和 z-order
@@ -374,7 +376,7 @@ viewport scene gizmo icon 现在有了独立的 builtin icon source 管线：
 - `zircon_editor/build.rs` 生成 `viewport_gizmo_icon_manifest.rs`
 - `zircon_editor/src/builtin_assets.rs` 把 `ViewportIconId -> &'static [u8]` 固化成 typed source
 - `SlintViewportController` 在 attach renderer 时把 editor builtin source 注入 shared texture render service
-- `zircon_graphics` 的 `SceneGizmoPass` 通过 `ViewportIconSource` + `ViewportIconAtlas` 懒加载纹理 icon
+- `zircon_runtime::graphics` 的 `SceneGizmoPass` 通过 crate-private `ViewportIconSource` + `ViewportIconAtlas` 懒加载纹理 icon
 
 如果 icon source 缺失，graphics 仍会回退到线框 glyph，不会让 gizmo 图标完全消失；但 Scene editor 正常路径现在已经会优先走 editor builtin 资源，而不是继续把 Camera/Light 图标硬编码在 renderer 里。
 
@@ -430,7 +432,7 @@ viewport scene gizmo icon 现在有了独立的 builtin icon source 管线：
 
 ### Slint Viewport Render Attachment
 
-`zircon_editor/src/ui/slint_host/viewport/mod.rs` 现在不只是“拿到 device/queue 就开 shared texture service”。它会在 renderer attach 时显式注入 `BuiltinViewportIconSource`，这样 Scene viewport 实际运行路径也遵守了规格里要求的“editor builtin gizmo icon source -> graphics atlas/pass”，而不是只在文档里存在抽象接口。
+当前 `zircon_editor/src/ui/slint_host/viewport/**` 只负责消费 render framework 输出并导入 frame image；Scene viewport 的 gizmo overlay 只通过 render packet 里的 `ViewportIconId` 进入 graphics。真正的 icon bytes source 仍是 graphics 内部 seam，而不是 editor 对外可调用的 `BuiltinViewportIconSource` 注入 API；当没有绑定 icon source 时，renderer 会继续回退到线框 glyph。
 
 ### Graphics Pass Expectations
 
@@ -491,7 +493,7 @@ viewport scene gizmo icon 现在有了独立的 builtin icon source 管线：
 
 ### Editor UI / Editor Runtime
 
-- `zircon_editor/src/tests/ui/binding.rs`
+- `zircon_editor/src/tests/ui/binding/viewport.rs`
   - typed viewport toolbar command native binding roundtrip
 - `zircon_editor/src/tests/host/binding_dispatch.rs`
   - toolbar commands 更新 `SceneViewportSettings`
@@ -502,7 +504,7 @@ viewport scene gizmo icon 现在有了独立的 builtin icon source 管线：
   - `Drag` 模式点击 renderable 仍然会提交 selection
   - scene gizmo 点击会选中 non-renderable directional light
   - pointer-driven handle drag 会折叠成单条 undo/redo 命令
-- `zircon_editor/src/tests/host/slint_callback_dispatch.rs`
+- `zircon_editor/src/tests/host/slint_callback_dispatch/mod.rs`
   - typed `ViewportCommand` 不经过 pointer bridge 也能更新 render packet
 - `zircon_editor/src/tests/host/slint_builtin_assets.rs`
   - viewport gizmo builtin icon manifest 同时暴露 camera / directional light 两种 icon bytes

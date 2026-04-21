@@ -1,85 +1,20 @@
 mod animation_interface;
+mod config;
+mod module;
+mod sequence_runtime;
 mod service_types;
 
-use std::sync::Arc;
-
-use crate::core::{
-    DriverDescriptor, ManagerDescriptor, ModuleDescriptor, ServiceKind, ServiceObject, StartupMode,
-};
-use crate::core::manager::AnimationManagerHandle;
-use crate::engine_module::{dependency_on, factory, qualified_name, EngineModule};
-
 pub use animation_interface::AnimationInterface;
+pub use config::AnimationConfig;
+pub use module::{
+    module_descriptor, AnimationModule, ANIMATION_DRIVER_NAME, ANIMATION_MANAGER_NAME,
+    ANIMATION_MODULE_NAME, ANIMATION_PLAYBACK_CONFIG_KEY,
+};
+pub use sequence_runtime::{apply_sequence_to_world, AnimationSequenceApplyReport};
 pub use service_types::{AnimationDriver, DefaultAnimationManager};
 
-pub const ANIMATION_MODULE_NAME: &str = "AnimationModule";
-pub const ANIMATION_DRIVER_NAME: &str = "AnimationModule.Driver.AnimationDriver";
-const DEFAULT_ANIMATION_MANAGER_NAME: &str = "AnimationModule.Manager.DefaultAnimationManager";
-pub const ANIMATION_MANAGER_NAME: &str = crate::core::manager::ANIMATION_MANAGER_NAME;
+#[cfg(test)]
+pub(crate) use module::DEFAULT_ANIMATION_MANAGER_NAME;
 
-#[derive(Clone, Debug, Default)]
-pub struct AnimationConfig {
-    pub enabled: bool,
-}
-
-#[derive(Clone, Copy, Debug, Default)]
-pub struct AnimationModule;
-
-pub fn module_descriptor() -> ModuleDescriptor {
-    ModuleDescriptor::new(
-        ANIMATION_MODULE_NAME,
-        "Animation scheduling and clip playback",
-    )
-    .with_driver(DriverDescriptor::new(
-        qualified_name(
-            ANIMATION_MODULE_NAME,
-            ServiceKind::Driver,
-            "AnimationDriver",
-        ),
-        StartupMode::Immediate,
-        Vec::new(),
-        factory(|_| Ok(Arc::new(AnimationDriver) as ServiceObject)),
-    ))
-    .with_manager(ManagerDescriptor::new(
-        qualified_name(
-            ANIMATION_MODULE_NAME,
-            ServiceKind::Manager,
-            "DefaultAnimationManager",
-        ),
-        StartupMode::Immediate,
-        Vec::new(),
-        factory(|_| Ok(Arc::new(DefaultAnimationManager::default()) as ServiceObject)),
-    ))
-    .with_manager(ManagerDescriptor::new(
-        qualified_name(
-            ANIMATION_MODULE_NAME,
-            ServiceKind::Manager,
-            "AnimationManager",
-        ),
-        StartupMode::Immediate,
-        vec![dependency_on(
-            ANIMATION_MODULE_NAME,
-            ServiceKind::Manager,
-            "DefaultAnimationManager",
-        )],
-        factory(|core| {
-            let manager =
-                core.resolve_manager::<DefaultAnimationManager>(DEFAULT_ANIMATION_MANAGER_NAME)?;
-            Ok(Arc::new(AnimationManagerHandle::new(manager)) as ServiceObject)
-        }),
-    ))
-}
-
-impl EngineModule for AnimationModule {
-    fn module_name(&self) -> &'static str {
-        ANIMATION_MODULE_NAME
-    }
-
-    fn module_description(&self) -> &'static str {
-        "Animation scheduling and clip playback"
-    }
-
-    fn descriptor(&self) -> ModuleDescriptor {
-        module_descriptor()
-    }
-}
+#[cfg(test)]
+mod tests;

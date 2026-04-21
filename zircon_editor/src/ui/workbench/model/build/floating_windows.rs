@@ -1,5 +1,5 @@
-use crate::layout::WorkspaceTarget;
-use crate::snapshot::EditorChromeSnapshot;
+use crate::ui::workbench::layout::WorkspaceTarget;
+use crate::ui::workbench::snapshot::EditorChromeSnapshot;
 
 use super::super::document_tabs::workspace_tabs;
 use super::super::floating_window_model::FloatingWindowModel;

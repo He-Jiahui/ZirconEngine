@@ -21,7 +21,10 @@ impl RenderPipelineCompileOptions {
         self
     }
 
-    pub(in crate::graphics::pipeline) fn permits_feature(&self, feature: BuiltinRenderFeature) -> bool {
+    pub(in crate::graphics::pipeline) fn permits_feature(
+        &self,
+        feature: BuiltinRenderFeature,
+    ) -> bool {
         !self.disabled_features.contains(&feature)
             && (!feature.requires_explicit_opt_in() || self.enabled_features.contains(&feature))
     }

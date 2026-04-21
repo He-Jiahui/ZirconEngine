@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
 use crate::asset::{project::ProjectManager, AssetUri};
+use crate::core::manager::LevelManagerHandle;
 use crate::core::{
     CoreError, CoreHandle, DriverDescriptor, ManagerDescriptor, ModuleDescriptor, ServiceKind,
     ServiceObject, StartupMode,
 };
-use crate::core::manager::LevelManagerHandle;
 use crate::engine_module::{dependency_on, factory, qualified_name, EngineModule};
 
 mod core_error;

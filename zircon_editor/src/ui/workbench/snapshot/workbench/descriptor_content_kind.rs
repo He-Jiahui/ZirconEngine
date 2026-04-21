@@ -1,4 +1,4 @@
-use crate::view::ViewDescriptorId;
+use crate::ui::workbench::view::ViewDescriptorId;
 
 use super::ViewContentKind;
 
@@ -15,6 +15,8 @@ pub(super) fn descriptor_content_kind(descriptor_id: &ViewDescriptorId) -> ViewC
         "editor.prefab" => ViewContentKind::PrefabEditor,
         "editor.asset_browser" => ViewContentKind::AssetBrowser,
         "editor.ui_asset" => ViewContentKind::UiAssetEditor,
+        "editor.animation_sequence" => ViewContentKind::AnimationSequenceEditor,
+        "editor.animation_graph" => ViewContentKind::AnimationGraphEditor,
         _ => ViewContentKind::Placeholder,
     }
 }

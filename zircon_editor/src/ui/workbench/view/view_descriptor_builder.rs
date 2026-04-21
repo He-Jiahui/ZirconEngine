@@ -1,5 +1,5 @@
-use crate::autolayout::PaneConstraints;
-use crate::layout::ActivityDrawerSlot;
+use crate::ui::workbench::autolayout::PaneConstraints;
+use crate::ui::workbench::layout::ActivityDrawerSlot;
 
 use super::{DockPolicy, PreferredHost, ViewDescriptor};
 

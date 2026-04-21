@@ -1,16 +1,19 @@
 use crate::core::framework::render::{
     CapturedFrame, RenderFrameExtract, RenderFramework, RenderFrameworkError, RenderPipelineHandle,
     RenderQualityProfile, RenderStats, RenderViewportDescriptor, RenderViewportHandle,
+    RenderVirtualGeometryDebugSnapshot,
 };
+use crate::ui::surface::UiRenderExtract;
 
 use super::super::capture_frame::capture_frame;
 use super::super::create_viewport::create_viewport;
 use super::super::destroy_viewport::destroy_viewport;
 use super::super::query_stats::query_stats;
+use super::super::query_virtual_geometry_debug_snapshot::query_virtual_geometry_debug_snapshot;
 use super::super::reload_pipeline::reload_pipeline;
 use super::super::set_pipeline_asset::set_pipeline_asset;
 use super::super::set_quality_profile::set_quality_profile;
-use super::super::submit_frame_extract::submit_frame_extract;
+use super::super::submit_frame_extract::{submit_frame_extract, submit_frame_extract_with_ui};
 use super::super::wgpu_render_framework::WgpuRenderFramework;
 
 impl RenderFramework for WgpuRenderFramework {
@@ -33,6 +36,15 @@ impl RenderFramework for WgpuRenderFramework {
         submit_frame_extract(self, viewport, extract)
     }
 
+    fn submit_frame_extract_with_ui(
+        &self,
+        viewport: RenderViewportHandle,
+        extract: RenderFrameExtract,
+        ui: Option<UiRenderExtract>,
+    ) -> Result<(), RenderFrameworkError> {
+        submit_frame_extract_with_ui(self, viewport, extract, ui)
+    }
+
     fn set_pipeline_asset(
         &self,
         viewport: RenderViewportHandle,
@@ -47,6 +59,12 @@ impl RenderFramework for WgpuRenderFramework {
 
     fn query_stats(&self) -> Result<RenderStats, RenderFrameworkError> {
         query_stats(self)
+    }
+
+    fn query_virtual_geometry_debug_snapshot(
+        &self,
+    ) -> Result<Option<RenderVirtualGeometryDebugSnapshot>, RenderFrameworkError> {
+        query_virtual_geometry_debug_snapshot(self)
     }
 
     fn capture_frame(

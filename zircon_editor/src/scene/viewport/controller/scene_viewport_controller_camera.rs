@@ -2,7 +2,7 @@ use crate::scene::viewport::{ProjectionMode, ViewOrientation, ViewportCameraSnap
 use zircon_runtime::core::math::{Transform, UVec2, Vec3};
 use zircon_runtime::scene::Scene;
 
-use crate::ViewportState;
+use crate::scene::viewport::ViewportState;
 
 use super::{constants::MIN_CAMERA_DISTANCE, SceneViewportController};
 

@@ -1,4 +1,6 @@
-use crate::core::framework::render::{RenderingBackendInfo, RenderingManager as RenderingManagerFacade};
+use crate::core::framework::render::{
+    RenderingBackendInfo, RenderingManager as RenderingManagerFacade,
+};
 
 use super::wgpu_rendering_manager::WgpuRenderingManager;
 

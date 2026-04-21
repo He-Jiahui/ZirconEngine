@@ -6,6 +6,8 @@ pub(super) fn node_kind_from_id(value: &str) -> Option<NodeKind> {
         "Cube" => Some(NodeKind::Cube),
         "Mesh" => Some(NodeKind::Mesh),
         "DirectionalLight" => Some(NodeKind::DirectionalLight),
+        "PointLight" => Some(NodeKind::PointLight),
+        "SpotLight" => Some(NodeKind::SpotLight),
         _ => None,
     }
 }

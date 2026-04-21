@@ -3,16 +3,18 @@ use std::sync::Arc;
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::core::framework::render::{
     RenderDirectionalLightSnapshot, RenderFrameExtract, RenderHybridGiExtract, RenderHybridGiProbe,
-    RenderHybridGiTraceRegion, RenderSceneSnapshot, RenderWorldSnapshotHandle,
+    RenderHybridGiTraceRegion, RenderMeshSnapshot, RenderSceneSnapshot, RenderWorldSnapshotHandle,
 };
-use crate::core::math::UVec2;
-use crate::core::math::Vec3;
+use crate::core::framework::scene::Mobility;
+use crate::core::math::{Transform, UVec2, Vec3, Vec4};
+use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
 use crate::scene::world::World;
 
 use crate::{
     types::{
-        EditorOrRuntimeFrame, HybridGiPrepareFrame, HybridGiPrepareProbe,
-        HybridGiPrepareUpdateRequest, HybridGiResolveRuntime,
+        HybridGiPrepareCardCaptureRequest, HybridGiPrepareFrame, HybridGiPrepareProbe,
+        HybridGiPrepareUpdateRequest, HybridGiPrepareVoxelCell, HybridGiPrepareVoxelClipmap,
+        HybridGiResolveRuntime, HybridGiScenePrepareFrame, ViewportRenderFrame,
     },
     BuiltinRenderFeature, RenderPipelineAsset, RenderPipelineCompileOptions, SceneRenderer,
 };
@@ -56,7 +58,7 @@ fn hybrid_gi_gpu_completion_readback_reports_completed_probe_updates_and_traces(
 
     renderer
         .render_frame_with_pipeline(
-            &EditorOrRuntimeFrame::from_extract(extract, viewport_size).with_hybrid_gi_prepare(
+            &ViewportRenderFrame::from_extract(extract, viewport_size).with_hybrid_gi_prepare(
                 Some(HybridGiPrepareFrame {
                     resident_probes: vec![
                         HybridGiPrepareProbe {
@@ -182,7 +184,7 @@ fn hybrid_gi_gpu_completion_readback_respects_probe_budget_without_evictable_slo
 
     renderer
         .render_frame_with_pipeline(
-            &EditorOrRuntimeFrame::from_extract(extract, viewport_size).with_hybrid_gi_prepare(
+            &ViewportRenderFrame::from_extract(extract, viewport_size).with_hybrid_gi_prepare(
                 Some(HybridGiPrepareFrame {
                     resident_probes: vec![HybridGiPrepareProbe {
                         probe_id: 200,
@@ -977,6 +979,780 @@ fn hybrid_gi_gpu_completion_readback_prefers_hierarchy_parent_probe_radiance() {
     );
 }
 
+#[test]
+fn hybrid_gi_gpu_completion_readback_changes_when_scene_card_capture_requests_move_near_or_far_from_probe(
+) {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let viewport_size = UVec2::new(96, 64);
+    let extract = build_extract(
+        viewport_size,
+        1,
+        1,
+        vec![probe(200, true, 96, Vec3::ZERO, 0.85)],
+        vec![trace_region(40, Vec3::ZERO, 0.8, 0.9)],
+    );
+    let prepare = HybridGiPrepareFrame {
+        resident_probes: vec![HybridGiPrepareProbe {
+            probe_id: 200,
+            slot: 0,
+            ray_budget: 96,
+            irradiance_rgb: [96, 96, 96],
+        }],
+        pending_updates: Vec::new(),
+        scheduled_trace_region_ids: vec![40],
+        evictable_probe_ids: Vec::new(),
+    };
+
+    let near = render_hybrid_gi_gpu_readback_with_scene_prepare(
+        &mut renderer,
+        viewport_size,
+        extract.clone(),
+        prepare.clone(),
+        HybridGiScenePrepareFrame {
+            card_capture_requests: vec![HybridGiPrepareCardCaptureRequest {
+                card_id: 11,
+                page_id: 22,
+                atlas_slot_id: 3,
+                capture_slot_id: 4,
+                bounds_center: Vec3::new(0.05, 0.0, 0.0),
+                bounds_radius: 0.9,
+            }],
+            voxel_clipmaps: Vec::new(),
+            voxel_cells: Vec::new(),
+        },
+    );
+    let far = render_hybrid_gi_gpu_readback_with_scene_prepare(
+        &mut renderer,
+        viewport_size,
+        extract,
+        prepare,
+        HybridGiScenePrepareFrame {
+            card_capture_requests: vec![HybridGiPrepareCardCaptureRequest {
+                card_id: 11,
+                page_id: 22,
+                atlas_slot_id: 3,
+                capture_slot_id: 4,
+                bounds_center: Vec3::new(6.0, 6.0, 6.0),
+                bounds_radius: 0.9,
+            }],
+            voxel_clipmaps: Vec::new(),
+            voxel_cells: Vec::new(),
+        },
+    );
+
+    let near_luma = average_rgb_luma(
+        near.iter()
+            .find(|(probe_id, _)| *probe_id == 200)
+            .map(|(_, rgb)| *rgb)
+            .expect("near scene-card probe irradiance"),
+    );
+    let far_luma = average_rgb_luma(
+        far.iter()
+            .find(|(probe_id, _)| *probe_id == 200)
+            .map(|(_, rgb)| *rgb)
+            .expect("far scene-card probe irradiance"),
+    );
+
+    assert!(
+        near_luma > far_luma + 6.0,
+        "expected near scene card-capture descriptors to bias Hybrid GI irradiance more than far descriptors; near_luma={near_luma:.2}, far_luma={far_luma:.2}"
+    );
+}
+
+#[test]
+fn hybrid_gi_gpu_completion_readback_changes_when_scene_voxel_clipmaps_move_near_or_far_from_probe()
+{
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let viewport_size = UVec2::new(96, 64);
+    let extract = build_extract(
+        viewport_size,
+        1,
+        1,
+        vec![probe(200, true, 96, Vec3::ZERO, 0.85)],
+        vec![trace_region(40, Vec3::ZERO, 0.8, 0.9)],
+    );
+    let prepare = HybridGiPrepareFrame {
+        resident_probes: vec![HybridGiPrepareProbe {
+            probe_id: 200,
+            slot: 0,
+            ray_budget: 96,
+            irradiance_rgb: [96, 96, 96],
+        }],
+        pending_updates: Vec::new(),
+        scheduled_trace_region_ids: vec![40],
+        evictable_probe_ids: Vec::new(),
+    };
+
+    let near = render_hybrid_gi_gpu_readback_with_scene_prepare(
+        &mut renderer,
+        viewport_size,
+        extract.clone(),
+        prepare.clone(),
+        HybridGiScenePrepareFrame {
+            card_capture_requests: Vec::new(),
+            voxel_clipmaps: vec![HybridGiPrepareVoxelClipmap {
+                clipmap_id: 7,
+                center: Vec3::new(0.0, 0.0, 0.1),
+                half_extent: 4.0,
+            }],
+            voxel_cells: Vec::new(),
+        },
+    );
+    let far = render_hybrid_gi_gpu_readback_with_scene_prepare(
+        &mut renderer,
+        viewport_size,
+        extract,
+        prepare,
+        HybridGiScenePrepareFrame {
+            card_capture_requests: Vec::new(),
+            voxel_clipmaps: vec![HybridGiPrepareVoxelClipmap {
+                clipmap_id: 7,
+                center: Vec3::new(8.0, 8.0, 8.0),
+                half_extent: 4.0,
+            }],
+            voxel_cells: Vec::new(),
+        },
+    );
+
+    let near_luma = average_rgb_luma(
+        near.iter()
+            .find(|(probe_id, _)| *probe_id == 200)
+            .map(|(_, rgb)| *rgb)
+            .expect("near scene-voxel probe irradiance"),
+    );
+    let far_luma = average_rgb_luma(
+        far.iter()
+            .find(|(probe_id, _)| *probe_id == 200)
+            .map(|(_, rgb)| *rgb)
+            .expect("far scene-voxel probe irradiance"),
+    );
+
+    assert!(
+        near_luma > far_luma + 6.0,
+        "expected near scene voxel clipmaps to bias Hybrid GI irradiance more than far clipmaps; near_luma={near_luma:.2}, far_luma={far_luma:.2}"
+    );
+}
+
+#[test]
+fn hybrid_gi_gpu_completion_readback_changes_when_scene_voxel_cells_move_near_or_far_from_probe() {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let viewport_size = UVec2::new(96, 64);
+    let extract = build_extract(
+        viewport_size,
+        1,
+        1,
+        vec![probe(200, true, 96, Vec3::ZERO, 0.85)],
+        vec![trace_region(40, Vec3::ZERO, 0.8, 0.9)],
+    );
+    let prepare = HybridGiPrepareFrame {
+        resident_probes: vec![HybridGiPrepareProbe {
+            probe_id: 200,
+            slot: 0,
+            ray_budget: 96,
+            irradiance_rgb: [96, 96, 96],
+        }],
+        pending_updates: Vec::new(),
+        scheduled_trace_region_ids: vec![40],
+        evictable_probe_ids: Vec::new(),
+    };
+    let clipmap = HybridGiPrepareVoxelClipmap {
+        clipmap_id: 7,
+        center: Vec3::ZERO,
+        half_extent: 4.0,
+    };
+
+    let near = render_hybrid_gi_gpu_readback_with_scene_prepare(
+        &mut renderer,
+        viewport_size,
+        extract.clone(),
+        prepare.clone(),
+        HybridGiScenePrepareFrame {
+            card_capture_requests: Vec::new(),
+            voxel_clipmaps: vec![clipmap.clone()],
+            voxel_cells: vec![
+                HybridGiPrepareVoxelCell {
+                    clipmap_id: 7,
+                    cell_index: 21,
+                    occupancy_count: 4,
+                    dominant_card_id: 0,
+                    radiance_present: false,
+                    radiance_rgb: [0, 0, 0],
+                },
+                HybridGiPrepareVoxelCell {
+                    clipmap_id: 7,
+                    cell_index: 22,
+                    occupancy_count: 4,
+                    dominant_card_id: 0,
+                    radiance_present: false,
+                    radiance_rgb: [0, 0, 0],
+                },
+                HybridGiPrepareVoxelCell {
+                    clipmap_id: 7,
+                    cell_index: 25,
+                    occupancy_count: 4,
+                    dominant_card_id: 0,
+                    radiance_present: false,
+                    radiance_rgb: [0, 0, 0],
+                },
+                HybridGiPrepareVoxelCell {
+                    clipmap_id: 7,
+                    cell_index: 26,
+                    occupancy_count: 4,
+                    dominant_card_id: 0,
+                    radiance_present: false,
+                    radiance_rgb: [0, 0, 0],
+                },
+            ],
+        },
+    );
+    let far = render_hybrid_gi_gpu_readback_with_scene_prepare(
+        &mut renderer,
+        viewport_size,
+        extract,
+        prepare,
+        HybridGiScenePrepareFrame {
+            card_capture_requests: Vec::new(),
+            voxel_clipmaps: vec![clipmap],
+            voxel_cells: vec![
+                HybridGiPrepareVoxelCell {
+                    clipmap_id: 7,
+                    cell_index: 58,
+                    occupancy_count: 4,
+                    dominant_card_id: 0,
+                    radiance_present: false,
+                    radiance_rgb: [0, 0, 0],
+                },
+                HybridGiPrepareVoxelCell {
+                    clipmap_id: 7,
+                    cell_index: 59,
+                    occupancy_count: 4,
+                    dominant_card_id: 0,
+                    radiance_present: false,
+                    radiance_rgb: [0, 0, 0],
+                },
+                HybridGiPrepareVoxelCell {
+                    clipmap_id: 7,
+                    cell_index: 62,
+                    occupancy_count: 4,
+                    dominant_card_id: 0,
+                    radiance_present: false,
+                    radiance_rgb: [0, 0, 0],
+                },
+                HybridGiPrepareVoxelCell {
+                    clipmap_id: 7,
+                    cell_index: 63,
+                    occupancy_count: 4,
+                    dominant_card_id: 0,
+                    radiance_present: false,
+                    radiance_rgb: [0, 0, 0],
+                },
+            ],
+        },
+    );
+
+    let near_luma = average_rgb_luma(
+        near.iter()
+            .find(|(probe_id, _)| *probe_id == 200)
+            .map(|(_, rgb)| *rgb)
+            .expect("near scene-voxel-cell probe irradiance"),
+    );
+    let far_luma = average_rgb_luma(
+        far.iter()
+            .find(|(probe_id, _)| *probe_id == 200)
+            .map(|(_, rgb)| *rgb)
+            .expect("far scene-voxel-cell probe irradiance"),
+    );
+
+    assert!(
+        near_luma > far_luma + 6.0,
+        "expected near scene voxel cells to bias Hybrid GI irradiance more than far voxel cells when clipmap truth stays fixed; near_luma={near_luma:.2}, far_luma={far_luma:.2}"
+    );
+}
+
+#[test]
+fn hybrid_gi_gpu_completion_readback_changes_when_runtime_scene_voxel_radiance_changes_with_fixed_layout(
+) {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let viewport_size = UVec2::new(96, 64);
+    let extract = build_extract(
+        viewport_size,
+        1,
+        1,
+        vec![probe(200, true, 96, Vec3::ZERO, 0.85)],
+        vec![trace_region(40, Vec3::ZERO, 0.8, 0.9)],
+    );
+    let prepare = HybridGiPrepareFrame {
+        resident_probes: vec![HybridGiPrepareProbe {
+            probe_id: 200,
+            slot: 0,
+            ray_budget: 96,
+            irradiance_rgb: [96, 96, 96],
+        }],
+        pending_updates: Vec::new(),
+        scheduled_trace_region_ids: vec![40],
+        evictable_probe_ids: Vec::new(),
+    };
+    let clipmap = HybridGiPrepareVoxelClipmap {
+        clipmap_id: 7,
+        center: Vec3::ZERO,
+        half_extent: 4.0,
+    };
+    let voxel_layout = vec![
+        HybridGiPrepareVoxelCell {
+            clipmap_id: 7,
+            cell_index: 21,
+            occupancy_count: 4,
+            dominant_card_id: 0,
+            radiance_present: true,
+            radiance_rgb: [240, 96, 48],
+        },
+        HybridGiPrepareVoxelCell {
+            clipmap_id: 7,
+            cell_index: 22,
+            occupancy_count: 4,
+            dominant_card_id: 0,
+            radiance_present: true,
+            radiance_rgb: [240, 96, 48],
+        },
+        HybridGiPrepareVoxelCell {
+            clipmap_id: 7,
+            cell_index: 25,
+            occupancy_count: 4,
+            dominant_card_id: 0,
+            radiance_present: true,
+            radiance_rgb: [240, 96, 48],
+        },
+        HybridGiPrepareVoxelCell {
+            clipmap_id: 7,
+            cell_index: 26,
+            occupancy_count: 4,
+            dominant_card_id: 0,
+            radiance_present: true,
+            radiance_rgb: [240, 96, 48],
+        },
+    ];
+
+    let warm = render_hybrid_gi_gpu_readback_with_scene_prepare(
+        &mut renderer,
+        viewport_size,
+        extract.clone(),
+        prepare.clone(),
+        HybridGiScenePrepareFrame {
+            card_capture_requests: Vec::new(),
+            voxel_clipmaps: vec![clipmap],
+            voxel_cells: voxel_layout.clone(),
+        },
+    );
+    let cool = render_hybrid_gi_gpu_readback_with_scene_prepare(
+        &mut renderer,
+        viewport_size,
+        extract,
+        prepare,
+        HybridGiScenePrepareFrame {
+            card_capture_requests: Vec::new(),
+            voxel_clipmaps: vec![HybridGiPrepareVoxelClipmap {
+                clipmap_id: 7,
+                center: Vec3::ZERO,
+                half_extent: 4.0,
+            }],
+            voxel_cells: voxel_layout
+                .into_iter()
+                .map(|cell| HybridGiPrepareVoxelCell {
+                    radiance_rgb: [48, 112, 240],
+                    ..cell
+                })
+                .collect(),
+        },
+    );
+
+    assert_ne!(
+        warm, cool,
+        "expected Hybrid GI GPU irradiance updates to change when runtime scene voxel radiance changes while voxel layout stays fixed"
+    );
+}
+
+#[test]
+fn hybrid_gi_gpu_completion_readback_changes_when_runtime_scene_voxel_owner_changes_with_fixed_layout(
+) {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let viewport_size = UVec2::new(96, 64);
+    let extract = build_extract(
+        viewport_size,
+        1,
+        1,
+        vec![probe(200, true, 96, Vec3::ZERO, 0.85)],
+        vec![trace_region(40, Vec3::ZERO, 0.8, 0.9)],
+    );
+    let prepare = HybridGiPrepareFrame {
+        resident_probes: vec![HybridGiPrepareProbe {
+            probe_id: 200,
+            slot: 0,
+            ray_budget: 96,
+            irradiance_rgb: [96, 96, 96],
+        }],
+        pending_updates: Vec::new(),
+        scheduled_trace_region_ids: vec![40],
+        evictable_probe_ids: Vec::new(),
+    };
+    let clipmap = HybridGiPrepareVoxelClipmap {
+        clipmap_id: 7,
+        center: Vec3::ZERO,
+        half_extent: 4.0,
+    };
+    let voxel_layout = vec![
+        HybridGiPrepareVoxelCell {
+            clipmap_id: 7,
+            cell_index: 21,
+            occupancy_count: 4,
+            dominant_card_id: 11,
+            radiance_present: false,
+            radiance_rgb: [0, 0, 0],
+        },
+        HybridGiPrepareVoxelCell {
+            clipmap_id: 7,
+            cell_index: 22,
+            occupancy_count: 4,
+            dominant_card_id: 11,
+            radiance_present: false,
+            radiance_rgb: [0, 0, 0],
+        },
+        HybridGiPrepareVoxelCell {
+            clipmap_id: 7,
+            cell_index: 25,
+            occupancy_count: 4,
+            dominant_card_id: 11,
+            radiance_present: false,
+            radiance_rgb: [0, 0, 0],
+        },
+        HybridGiPrepareVoxelCell {
+            clipmap_id: 7,
+            cell_index: 26,
+            occupancy_count: 4,
+            dominant_card_id: 11,
+            radiance_present: false,
+            radiance_rgb: [0, 0, 0],
+        },
+    ];
+
+    let owner_a = render_hybrid_gi_gpu_readback_with_scene_prepare(
+        &mut renderer,
+        viewport_size,
+        extract.clone(),
+        prepare.clone(),
+        HybridGiScenePrepareFrame {
+            card_capture_requests: Vec::new(),
+            voxel_clipmaps: vec![clipmap],
+            voxel_cells: voxel_layout.clone(),
+        },
+    );
+    let owner_b = render_hybrid_gi_gpu_readback_with_scene_prepare(
+        &mut renderer,
+        viewport_size,
+        extract,
+        prepare,
+        HybridGiScenePrepareFrame {
+            card_capture_requests: Vec::new(),
+            voxel_clipmaps: vec![HybridGiPrepareVoxelClipmap {
+                clipmap_id: 7,
+                center: Vec3::ZERO,
+                half_extent: 4.0,
+            }],
+            voxel_cells: voxel_layout
+                .into_iter()
+                .map(|cell| HybridGiPrepareVoxelCell {
+                    dominant_card_id: 22,
+                    ..cell
+                })
+                .collect(),
+        },
+    );
+
+    assert_ne!(
+        owner_a, owner_b,
+        "expected Hybrid GI GPU irradiance updates to change when runtime scene voxel dominant owner changes while voxel layout and radiance stay fixed"
+    );
+}
+
+#[test]
+fn hybrid_gi_gpu_completion_readback_changes_when_runtime_scene_voxel_owner_matches_different_card_capture_seed_with_fixed_layout(
+) {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let viewport_size = UVec2::new(96, 64);
+    let extract = build_extract(
+        viewport_size,
+        1,
+        1,
+        vec![probe(200, true, 96, Vec3::ZERO, 0.85)],
+        vec![trace_region(40, Vec3::ZERO, 0.8, 0.9)],
+    );
+    let prepare = HybridGiPrepareFrame {
+        resident_probes: vec![HybridGiPrepareProbe {
+            probe_id: 200,
+            slot: 0,
+            ray_budget: 96,
+            irradiance_rgb: [96, 96, 96],
+        }],
+        pending_updates: Vec::new(),
+        scheduled_trace_region_ids: vec![40],
+        evictable_probe_ids: Vec::new(),
+    };
+    let clipmap = HybridGiPrepareVoxelClipmap {
+        clipmap_id: 7,
+        center: Vec3::ZERO,
+        half_extent: 4.0,
+    };
+    let voxel_layout = vec![
+        HybridGiPrepareVoxelCell {
+            clipmap_id: 7,
+            cell_index: 21,
+            occupancy_count: 4,
+            dominant_card_id: 11,
+            radiance_present: false,
+            radiance_rgb: [0, 0, 0],
+        },
+        HybridGiPrepareVoxelCell {
+            clipmap_id: 7,
+            cell_index: 22,
+            occupancy_count: 4,
+            dominant_card_id: 11,
+            radiance_present: false,
+            radiance_rgb: [0, 0, 0],
+        },
+        HybridGiPrepareVoxelCell {
+            clipmap_id: 7,
+            cell_index: 25,
+            occupancy_count: 4,
+            dominant_card_id: 11,
+            radiance_present: false,
+            radiance_rgb: [0, 0, 0],
+        },
+        HybridGiPrepareVoxelCell {
+            clipmap_id: 7,
+            cell_index: 26,
+            occupancy_count: 4,
+            dominant_card_id: 11,
+            radiance_present: false,
+            radiance_rgb: [0, 0, 0],
+        },
+    ];
+    let base_card_capture_request = HybridGiPrepareCardCaptureRequest {
+        card_id: 11,
+        page_id: 22,
+        atlas_slot_id: 3,
+        capture_slot_id: 4,
+        bounds_center: Vec3::new(20.0, 20.0, 20.0),
+        bounds_radius: 0.25,
+    };
+
+    let warm = render_hybrid_gi_gpu_readback_with_scene_prepare(
+        &mut renderer,
+        viewport_size,
+        extract.clone(),
+        prepare.clone(),
+        HybridGiScenePrepareFrame {
+            card_capture_requests: vec![base_card_capture_request.clone()],
+            voxel_clipmaps: vec![clipmap],
+            voxel_cells: voxel_layout.clone(),
+        },
+    );
+    let cool = render_hybrid_gi_gpu_readback_with_scene_prepare(
+        &mut renderer,
+        viewport_size,
+        extract,
+        prepare,
+        HybridGiScenePrepareFrame {
+            card_capture_requests: vec![HybridGiPrepareCardCaptureRequest {
+                capture_slot_id: 17,
+                ..base_card_capture_request
+            }],
+            voxel_clipmaps: vec![HybridGiPrepareVoxelClipmap {
+                clipmap_id: 7,
+                center: Vec3::ZERO,
+                half_extent: 4.0,
+            }],
+            voxel_cells: voxel_layout,
+        },
+    );
+
+    assert_ne!(
+        warm, cool,
+        "expected Hybrid GI GPU irradiance updates to change when runtime voxel owner matches a different scene card-capture seed while voxel layout, owner id, and radiance stay fixed"
+    );
+}
+
+#[test]
+fn hybrid_gi_gpu_completion_readback_preserves_explicit_black_runtime_voxel_radiance_with_fixed_layout(
+) {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let viewport_size = UVec2::new(96, 64);
+    let extract = build_extract(
+        viewport_size,
+        1,
+        1,
+        vec![probe(200, true, 96, Vec3::ZERO, 0.85)],
+        vec![trace_region(40, Vec3::ZERO, 0.8, 0.9)],
+    );
+    let prepare = HybridGiPrepareFrame {
+        resident_probes: vec![HybridGiPrepareProbe {
+            probe_id: 200,
+            slot: 0,
+            ray_budget: 96,
+            irradiance_rgb: [0, 0, 0],
+        }],
+        pending_updates: Vec::new(),
+        scheduled_trace_region_ids: vec![40],
+        evictable_probe_ids: Vec::new(),
+    };
+    let clipmap = HybridGiPrepareVoxelClipmap {
+        clipmap_id: 7,
+        center: Vec3::ZERO,
+        half_extent: 4.0,
+    };
+    let base_card_capture_request = HybridGiPrepareCardCaptureRequest {
+        card_id: 11,
+        page_id: 22,
+        atlas_slot_id: 3,
+        capture_slot_id: 4,
+        bounds_center: Vec3::new(20.0, 20.0, 20.0),
+        bounds_radius: 0.25,
+    };
+    let explicit_black = render_hybrid_gi_gpu_readback_with_scene_prepare(
+        &mut renderer,
+        viewport_size,
+        extract.clone(),
+        prepare.clone(),
+        HybridGiScenePrepareFrame {
+            card_capture_requests: vec![base_card_capture_request.clone()],
+            voxel_clipmaps: vec![clipmap],
+            voxel_cells: runtime_owner_voxel_cells_with_presence(true),
+        },
+    );
+    let absent = render_hybrid_gi_gpu_readback_with_scene_prepare(
+        &mut renderer,
+        viewport_size,
+        extract,
+        prepare,
+        HybridGiScenePrepareFrame {
+            card_capture_requests: vec![base_card_capture_request],
+            voxel_clipmaps: vec![HybridGiPrepareVoxelClipmap {
+                clipmap_id: 7,
+                center: Vec3::ZERO,
+                half_extent: 4.0,
+            }],
+            voxel_cells: runtime_owner_voxel_cells_with_presence(false),
+        },
+    );
+
+    let explicit_black_luma = average_rgb_luma(
+        explicit_black
+            .first()
+            .map(|(_, rgb)| *rgb)
+            .expect("expected probe irradiance readback"),
+    );
+    let absent_luma = average_rgb_luma(
+        absent
+            .first()
+            .map(|(_, rgb)| *rgb)
+            .expect("expected probe irradiance readback"),
+    );
+
+    assert!(
+        absent_luma > explicit_black_luma + 8.0,
+        "expected explicit-black runtime voxel radiance to stay authoritative through GPU completion instead of collapsing to owner-card fallback; explicit_black_luma={explicit_black_luma:.2}, absent_luma={absent_luma:.2}"
+    );
+}
+
+#[test]
+fn hybrid_gi_gpu_completion_readback_changes_when_scene_card_capture_material_seed_changes_with_fixed_layout(
+) {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let viewport_size = UVec2::new(96, 64);
+    let probes = vec![probe(200, true, 96, Vec3::ZERO, 0.85)];
+    let trace_regions = vec![trace_region(40, Vec3::ZERO, 0.8, 0.9)];
+    let lights = vec![directional_light(Vec3::ONE, 2.0)];
+    let default_material_extract = build_extract_with_scene_and_lights(
+        viewport_size,
+        1,
+        1,
+        probes.clone(),
+        trace_regions.clone(),
+        vec![mesh_with_material_and_tint(
+            11,
+            "builtin://material/default",
+            Vec4::ONE,
+        )],
+        lights.clone(),
+    );
+    let missing_material_extract = build_extract_with_scene_and_lights(
+        viewport_size,
+        1,
+        1,
+        probes,
+        trace_regions,
+        vec![mesh_with_material_and_tint(
+            11,
+            "builtin://missing-material",
+            Vec4::ONE,
+        )],
+        lights,
+    );
+    let prepare = HybridGiPrepareFrame {
+        resident_probes: vec![HybridGiPrepareProbe {
+            probe_id: 200,
+            slot: 0,
+            ray_budget: 96,
+            irradiance_rgb: [96, 96, 96],
+        }],
+        pending_updates: Vec::new(),
+        scheduled_trace_region_ids: vec![40],
+        evictable_probe_ids: Vec::new(),
+    };
+    let request = HybridGiPrepareCardCaptureRequest {
+        card_id: 11,
+        page_id: 22,
+        atlas_slot_id: 3,
+        capture_slot_id: 4,
+        bounds_center: Vec3::new(0.05, 0.0, 0.0),
+        bounds_radius: 0.9,
+    };
+
+    let default_material = render_hybrid_gi_gpu_readback_with_scene_prepare(
+        &mut renderer,
+        viewport_size,
+        default_material_extract,
+        prepare.clone(),
+        HybridGiScenePrepareFrame {
+            card_capture_requests: vec![request.clone()],
+            voxel_clipmaps: Vec::new(),
+            voxel_cells: Vec::new(),
+        },
+    );
+    let missing_material = render_hybrid_gi_gpu_readback_with_scene_prepare(
+        &mut renderer,
+        viewport_size,
+        missing_material_extract,
+        prepare,
+        HybridGiScenePrepareFrame {
+            card_capture_requests: vec![request],
+            voxel_clipmaps: Vec::new(),
+            voxel_cells: Vec::new(),
+        },
+    );
+
+    assert_ne!(
+        default_material, missing_material,
+        "expected Hybrid GI GPU irradiance updates to change when real scene card-capture material seed changes while request layout and scene card identity stay fixed"
+    );
+}
+
 fn build_extract(
     viewport_size: UVec2,
     probe_budget: u32,
@@ -1002,13 +1778,39 @@ fn build_extract_with_lights(
     trace_regions: Vec<RenderHybridGiTraceRegion>,
     directional_lights: Vec<RenderDirectionalLightSnapshot>,
 ) -> RenderFrameExtract {
+    build_extract_with_scene_and_lights(
+        viewport_size,
+        probe_budget,
+        tracing_budget,
+        probes,
+        trace_regions,
+        Vec::new(),
+        directional_lights,
+    )
+}
+
+fn build_extract_with_scene_and_lights(
+    viewport_size: UVec2,
+    probe_budget: u32,
+    tracing_budget: u32,
+    probes: Vec<RenderHybridGiProbe>,
+    trace_regions: Vec<RenderHybridGiTraceRegion>,
+    meshes: Vec<RenderMeshSnapshot>,
+    directional_lights: Vec<RenderDirectionalLightSnapshot>,
+) -> RenderFrameExtract {
     let mut snapshot: RenderSceneSnapshot = World::new().to_render_snapshot();
-    snapshot.scene.meshes.clear();
-    snapshot.scene.lights = directional_lights;
+    snapshot.scene.meshes = meshes;
+    snapshot.scene.directional_lights = directional_lights;
     let mut extract =
         RenderFrameExtract::from_snapshot(RenderWorldSnapshotHandle::new(1), snapshot);
     extract.apply_viewport_size(viewport_size);
     extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
         probe_budget,
         tracing_budget,
         probes,
@@ -1090,6 +1892,20 @@ fn directional_light(color: Vec3, intensity: f32) -> RenderDirectionalLightSnaps
     }
 }
 
+fn mesh_with_material_and_tint(node_id: u64, material_uri: &str, tint: Vec4) -> RenderMeshSnapshot {
+    RenderMeshSnapshot {
+        node_id,
+        transform: Transform::identity(),
+        model: ResourceHandle::<ModelMarker>::new(ResourceId::from_stable_label("builtin://cube")),
+        material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
+            material_uri,
+        )),
+        tint,
+        mobility: Mobility::Static,
+        render_layer_mask: u32::MAX,
+    }
+}
+
 fn render_hybrid_gi_gpu_readback(
     renderer: &mut SceneRenderer,
     viewport_size: UVec2,
@@ -1098,6 +1914,24 @@ fn render_hybrid_gi_gpu_readback(
 ) -> Vec<(u32, [u8; 3])> {
     render_hybrid_gi_gpu_full_readback_with_runtime(renderer, viewport_size, extract, prepare, None)
         .0
+}
+
+fn render_hybrid_gi_gpu_readback_with_scene_prepare(
+    renderer: &mut SceneRenderer,
+    viewport_size: UVec2,
+    extract: RenderFrameExtract,
+    prepare: HybridGiPrepareFrame,
+    scene_prepare: HybridGiScenePrepareFrame,
+) -> Vec<(u32, [u8; 3])> {
+    render_hybrid_gi_gpu_full_readback_with_runtime_and_scene_prepare(
+        renderer,
+        viewport_size,
+        extract,
+        prepare,
+        None,
+        Some(scene_prepare),
+    )
+    .0
 }
 
 fn render_hybrid_gi_gpu_trace_lighting_readback_with_runtime(
@@ -1124,6 +1958,24 @@ fn render_hybrid_gi_gpu_full_readback_with_runtime(
     prepare: HybridGiPrepareFrame,
     runtime: Option<HybridGiResolveRuntime>,
 ) -> (Vec<(u32, [u8; 3])>, Vec<(u32, [u8; 3])>) {
+    render_hybrid_gi_gpu_full_readback_with_runtime_and_scene_prepare(
+        renderer,
+        viewport_size,
+        extract,
+        prepare,
+        runtime,
+        None,
+    )
+}
+
+fn render_hybrid_gi_gpu_full_readback_with_runtime_and_scene_prepare(
+    renderer: &mut SceneRenderer,
+    viewport_size: UVec2,
+    extract: RenderFrameExtract,
+    prepare: HybridGiPrepareFrame,
+    runtime: Option<HybridGiResolveRuntime>,
+    scene_prepare: Option<HybridGiScenePrepareFrame>,
+) -> (Vec<(u32, [u8; 3])>, Vec<(u32, [u8; 3])>) {
     let compiled = RenderPipelineAsset::default_forward_plus()
         .compile_with_options(
             &extract,
@@ -1144,8 +1996,9 @@ fn render_hybrid_gi_gpu_full_readback_with_runtime(
 
     renderer
         .render_frame_with_pipeline(
-            &EditorOrRuntimeFrame::from_extract(extract, viewport_size)
+            &ViewportRenderFrame::from_extract(extract, viewport_size)
                 .with_hybrid_gi_prepare(Some(prepare))
+                .with_hybrid_gi_scene_prepare(scene_prepare)
                 .with_hybrid_gi_resolve_runtime(runtime),
             &compiled,
             None,
@@ -1360,4 +2213,20 @@ fn quantized_positive(value: f32, scale: f32) -> u32 {
 
 fn average_rgb_luma(rgb: [u8; 3]) -> f32 {
     (f32::from(rgb[0]) + f32::from(rgb[1]) + f32::from(rgb[2])) / 3.0
+}
+
+fn runtime_owner_voxel_cells_with_presence(
+    radiance_present: bool,
+) -> Vec<HybridGiPrepareVoxelCell> {
+    [21_u32, 22, 25, 26]
+        .into_iter()
+        .map(|cell_index| HybridGiPrepareVoxelCell {
+            clipmap_id: 7,
+            cell_index,
+            occupancy_count: 4,
+            dominant_card_id: 11,
+            radiance_present,
+            radiance_rgb: [0, 0, 0],
+        })
+        .collect()
 }

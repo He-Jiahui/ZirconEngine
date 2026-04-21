@@ -4,101 +4,257 @@ id = "runtime.sample_hud"
 version = 1
 display_name = "Runtime HUD"
 
-[root]
-node = "hud_root"
+[imports]
+widgets = []
+styles = []
 
-[nodes.hud_root]
+[tokens]
+
+[root]
+node_id = "hud_root"
 kind = "native"
 type = "VerticalBox"
 control_id = "RuntimeHudRoot"
 classes = ["hud-root"]
-layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox", gap = 8.0 } }
-children = [
-  { child = "status_row" },
-  { child = "score_panel" },
-  { child = "actions_row" },
-]
+bindings = []
 
-[nodes.status_row]
+[root.params]
+
+[root.props]
+
+[root.layout.container]
+gap = 8.0
+kind = "VerticalBox"
+
+[root.layout.height]
+stretch = "Stretch"
+
+[root.layout.width]
+stretch = "Stretch"
+
+[root.style_overrides.self]
+
+[root.style_overrides.slot]
+
+[[root.children]]
+
+[root.children.slot]
+
+[root.children.node]
+node_id = "status_row"
 kind = "native"
 type = "HorizontalBox"
 control_id = "HudStatusRow"
 classes = ["hud-row"]
-layout = { width = { stretch = "Stretch" }, container = { kind = "HorizontalBox", gap = 12.0 } }
-children = [
-  { child = "mission_label" },
-  { child = "ammo_label" },
-]
+bindings = []
 
-[nodes.mission_label]
+[root.children.node.params]
+
+[root.children.node.props]
+
+[root.children.node.layout.container]
+gap = 12.0
+kind = "HorizontalBox"
+
+[root.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.style_overrides.self]
+
+[root.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+
+[root.children.node.children.slot]
+
+[root.children.node.children.node]
+node_id = "mission_label"
 kind = "native"
 type = "Label"
 control_id = "MissionStatus"
 classes = ["hud-title"]
-props = { text = "Mission: Relay Tower" }
+bindings = []
+children = []
 
-[nodes.ammo_label]
+[root.children.node.children.node.params]
+
+[root.children.node.children.node.props]
+text = "Mission: Relay Tower"
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+
+[root.children.node.children.slot]
+
+[root.children.node.children.node]
+node_id = "ammo_label"
 kind = "native"
 type = "Label"
 control_id = "AmmoStatus"
 classes = ["hud-meta"]
-props = { text = "Ammo 42 / 90" }
+bindings = []
+children = []
 
-[nodes.score_panel]
+[root.children.node.children.node.params]
+
+[root.children.node.children.node.props]
+text = "Ammo 42 / 90"
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children]]
+
+[root.children.slot]
+
+[root.children.node]
+node_id = "score_panel"
 kind = "native"
 type = "Label"
 control_id = "ScoreLabel"
 classes = ["hud-score"]
-props = { text = "Score 12850" }
+bindings = []
+children = []
 
-[nodes.actions_row]
+[root.children.node.params]
+
+[root.children.node.props]
+text = "Score 12850"
+
+[root.children.node.style_overrides.self]
+
+[root.children.node.style_overrides.slot]
+
+[[root.children]]
+
+[root.children.slot]
+
+[root.children.node]
+node_id = "actions_row"
 kind = "native"
 type = "HorizontalBox"
 control_id = "HudActionsRow"
 classes = ["hud-row"]
-layout = { width = { stretch = "Stretch" }, container = { kind = "HorizontalBox", gap = 10.0 } }
-children = [
-  { child = "use_button" },
-  { child = "inventory_button" },
-]
+bindings = []
 
-[nodes.use_button]
+[root.children.node.params]
+
+[root.children.node.props]
+
+[root.children.node.layout.container]
+gap = 10.0
+kind = "HorizontalBox"
+
+[root.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.style_overrides.self]
+
+[root.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+
+[root.children.node.children.slot]
+
+[root.children.node.children.node]
+node_id = "use_button"
 kind = "native"
 type = "Button"
 control_id = "UseAction"
-classes = ["hud-button", "hud-button-primary"]
-props = { text = "Use" }
+classes = [
+    "hud-button",
+    "hud-button-primary",
+]
+bindings = []
+children = []
 
-[nodes.inventory_button]
+[root.children.node.children.node.params]
+
+[root.children.node.children.node.props]
+text = "Use"
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+
+[root.children.node.children.slot]
+
+[root.children.node.children.node]
+node_id = "inventory_button"
 kind = "native"
 type = "Button"
 control_id = "InventoryAction"
 classes = ["hud-button"]
-props = { text = "Inventory" }
+bindings = []
+children = []
+
+[root.children.node.children.node.params]
+
+[root.children.node.children.node.props]
+text = "Inventory"
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[components]
 
 [[stylesheets]]
 id = "runtime_hud"
 
 [[stylesheets.rules]]
 selector = ".hud-root"
-set = { self = { background = { color = "#111621" } } }
+
+[stylesheets.rules.set.self.background]
+color = "#111621"
+
+[stylesheets.rules.set.slot]
 
 [[stylesheets.rules]]
 selector = ".hud-title"
-set = { self = { text = "#f3f6ff" } }
+
+[stylesheets.rules.set.self]
+text = "#f3f6ff"
+
+[stylesheets.rules.set.slot]
 
 [[stylesheets.rules]]
 selector = ".hud-meta"
-set = { self = { text = "#9fb0d0" } }
+
+[stylesheets.rules.set.self]
+text = "#9fb0d0"
+
+[stylesheets.rules.set.slot]
 
 [[stylesheets.rules]]
 selector = ".hud-score"
-set = { self = { text = "#7be2c2" } }
+
+[stylesheets.rules.set.self]
+text = "#7be2c2"
+
+[stylesheets.rules.set.slot]
 
 [[stylesheets.rules]]
 selector = "Button.hud-button"
-set = { self = { background = { color = "#1b2536" }, text = "#dfe6f7" } }
+
+[stylesheets.rules.set.self]
+text = "#dfe6f7"
+
+[stylesheets.rules.set.self.background]
+color = "#1b2536"
+
+[stylesheets.rules.set.slot]
 
 [[stylesheets.rules]]
 selector = "Button.hud-button-primary"
-set = { self = { background = { color = "#2e5caa" } } }
+
+[stylesheets.rules.set.self.background]
+color = "#2e5caa"
+
+[stylesheets.rules.set.slot]

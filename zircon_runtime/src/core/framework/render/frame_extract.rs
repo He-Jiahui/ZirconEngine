@@ -6,7 +6,8 @@ use super::{
     DisplayMode, PreviewEnvironmentExtract, RenderBakedLightingExtract, RenderBloomSettings,
     RenderColorGradingSettings, RenderDirectionalLightSnapshot, RenderHybridGiExtract,
     RenderMeshSnapshot, RenderOverlayExtract, RenderParticleSpriteSnapshot,
-    RenderReflectionProbeSnapshot, RenderSceneGeometryExtract, RenderSceneSnapshot,
+    RenderPointLightSnapshot, RenderReflectionProbeSnapshot, RenderSceneGeometryExtract,
+    RenderSceneSnapshot, RenderSpotLightSnapshot, RenderVirtualGeometryDebugState,
     RenderVirtualGeometryExtract, SceneViewportExtractRequest, ViewportCameraSnapshot,
 };
 
@@ -54,11 +55,14 @@ pub struct RenderViewExtract {
 pub struct GeometryExtract {
     pub meshes: Vec<RenderMeshSnapshot>,
     pub virtual_geometry: Option<RenderVirtualGeometryExtract>,
+    pub virtual_geometry_debug: Option<RenderVirtualGeometryDebugState>,
 }
 
 #[derive(Clone, Debug, PartialEq, Default)]
 pub struct LightingExtract {
     pub directional_lights: Vec<RenderDirectionalLightSnapshot>,
+    pub point_lights: Vec<RenderPointLightSnapshot>,
+    pub spot_lights: Vec<RenderSpotLightSnapshot>,
     pub reflection_probes: Vec<RenderReflectionProbeSnapshot>,
     pub baked_lighting: Option<RenderBakedLightingExtract>,
     pub hybrid_global_illumination: Option<RenderHybridGiExtract>,
@@ -145,9 +149,12 @@ impl RenderFrameExtract {
             geometry: GeometryExtract {
                 meshes: snapshot.scene.meshes.clone(),
                 virtual_geometry: None,
+                virtual_geometry_debug: snapshot.virtual_geometry_debug,
             },
             lighting: LightingExtract {
-                directional_lights: snapshot.scene.lights.clone(),
+                directional_lights: snapshot.scene.directional_lights.clone(),
+                point_lights: snapshot.scene.point_lights.clone(),
+                spot_lights: snapshot.scene.spot_lights.clone(),
                 reflection_probes: Vec::new(),
                 baked_lighting: None,
                 hybrid_global_illumination: None,
@@ -176,10 +183,13 @@ impl RenderFrameExtract {
             scene: RenderSceneGeometryExtract {
                 camera: self.view.camera.clone(),
                 meshes: self.geometry.meshes.clone(),
-                lights: self.lighting.directional_lights.clone(),
+                directional_lights: self.lighting.directional_lights.clone(),
+                point_lights: self.lighting.point_lights.clone(),
+                spot_lights: self.lighting.spot_lights.clone(),
             },
             overlays: self.debug.overlays.clone(),
             preview: self.post_process.preview.clone(),
+            virtual_geometry_debug: self.geometry.virtual_geometry_debug,
         }
     }
 

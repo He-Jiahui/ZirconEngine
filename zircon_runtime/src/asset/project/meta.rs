@@ -24,8 +24,6 @@ pub struct AssetMetaDocument {
     #[serde(default)]
     pub import_settings: toml::Table,
     #[serde(default)]
-    pub editor_adapter: Option<String>,
-    #[serde(default)]
     pub source_mtime_unix_ms: u64,
     #[serde(default)]
     pub source_hash: String,
@@ -41,7 +39,6 @@ impl AssetMetaDocument {
             primary_locator,
             kind,
             import_settings: toml::Table::new(),
-            editor_adapter: None,
             source_mtime_unix_ms: 0,
             source_hash: String::new(),
             preview_state: PreviewState::Dirty,

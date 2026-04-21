@@ -46,11 +46,29 @@ fn input_protocol_types_live_in_runtime_input_surface() {
     }
 
     assert!(
-        manager_resolver_source.contains("crate::core::framework::input"),
+        manager_resolver_source.contains("input::InputManager"),
         "core manager resolver should source input manager contracts from crate::core::framework"
     );
     assert!(
         !runtime_root.join("src/manager").exists(),
         "runtime root should delete the legacy manager module after framework extraction"
     );
+}
+
+#[test]
+fn input_root_stays_structural_after_module_split() {
+    let input_mod_source = include_str!("../mod.rs");
+
+    for forbidden in [
+        "pub struct InputModule",
+        "impl EngineModule for InputModule",
+        "fn module_name(&self)",
+        "fn module_description(&self)",
+        "fn descriptor(&self)",
+    ] {
+        assert!(
+            !input_mod_source.contains(forbidden),
+            "expected input/mod.rs to stay structural after module split, found `{forbidden}`"
+        );
+    }
 }

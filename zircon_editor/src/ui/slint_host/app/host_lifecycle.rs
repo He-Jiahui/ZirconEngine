@@ -1,5 +1,5 @@
 use super::*;
-use crate::core::host::asset_editor::resolve_editor_asset_manager;
+use crate::ui::host::editor_asset_manager::resolve_editor_asset_manager;
 use crate::ui::slint_host::floating_window_projection::{
     build_floating_window_projection_bundle_with_shared_source,
     resolve_floating_window_projection_base_outer_frame,
@@ -139,8 +139,12 @@ impl SlintEditorHost {
         self.recompute_if_dirty();
 
         if self.render_dirty {
-            if let Some(extract) = self.runtime.render_frame_extract() {
-                if let Err(error) = self.viewport.submit_extract(extract, self.viewport_size) {
+            if let Some(submission) = self.runtime.render_frame_submission() {
+                if let Err(error) = self.viewport.submit_extract_with_ui(
+                    submission.extract,
+                    submission.ui,
+                    self.viewport_size,
+                ) {
                     self.set_status_line(format!("Viewport submit failed: {error}"));
                 }
             }
@@ -162,7 +166,7 @@ impl SlintEditorHost {
         self.recompute_if_dirty();
     }
 
-    pub(super) fn build_chrome(&self) -> crate::EditorChromeSnapshot {
+    pub(super) fn build_chrome(&self) -> crate::ui::workbench::snapshot::EditorChromeSnapshot {
         self.runtime.chrome_snapshot()
     }
 
@@ -282,6 +286,7 @@ impl SlintEditorHost {
 
         let preset_names = self.runtime.preset_names();
         let ui_asset_panes = self.collect_ui_asset_panes();
+        let animation_panes = self.collect_animation_editor_panes();
         apply_presentation(
             &self.ui,
             &model,
@@ -290,6 +295,7 @@ impl SlintEditorHost {
             &preset_names,
             self.active_layout_preset.as_deref(),
             &ui_asset_panes,
+            &animation_panes,
             Some(&root_shell_frames),
             &floating_window_projection_bundle,
         );
@@ -299,6 +305,7 @@ impl SlintEditorHost {
             &geometry,
             &preset_names,
             &ui_asset_panes,
+            &animation_panes,
             &floating_window_projection_bundle,
         );
         self.sync_menu_pointer_layout(&chrome, &preset_names);
@@ -313,7 +320,9 @@ impl SlintEditorHost {
         self.window_metrics_dirty = false;
     }
 
-    fn collect_ui_asset_panes(&self) -> BTreeMap<String, crate::UiAssetEditorPanePresentation> {
+    fn collect_ui_asset_panes(
+        &self,
+    ) -> BTreeMap<String, crate::ui::asset_editor::UiAssetEditorPanePresentation> {
         self.runtime
             .current_view_instances()
             .into_iter()
@@ -321,6 +330,27 @@ impl SlintEditorHost {
             .filter_map(|instance| {
                 self.editor_manager
                     .ui_asset_editor_pane_presentation(&instance.instance_id)
+                    .ok()
+                    .map(|presentation| (instance.instance_id.0, presentation))
+            })
+            .collect()
+    }
+
+    fn collect_animation_editor_panes(
+        &self,
+    ) -> BTreeMap<String, crate::ui::animation_editor::AnimationEditorPanePresentation> {
+        self.runtime
+            .current_view_instances()
+            .into_iter()
+            .filter(|instance| {
+                matches!(
+                    instance.descriptor_id.0.as_str(),
+                    "editor.animation_sequence" | "editor.animation_graph"
+                )
+            })
+            .filter_map(|instance| {
+                self.editor_manager
+                    .animation_editor_pane_presentation(&instance.instance_id)
                     .ok()
                     .map(|presentation| (instance.instance_id.0, presentation))
             })
@@ -391,10 +421,14 @@ impl SlintEditorHost {
     fn sync_native_window_presenters(
         &mut self,
         model: &WorkbenchViewModel,
-        chrome: &crate::EditorChromeSnapshot,
+        chrome: &crate::ui::workbench::snapshot::EditorChromeSnapshot,
         geometry: &WorkbenchShellGeometry,
         preset_names: &[String],
-        ui_asset_panes: &BTreeMap<String, crate::UiAssetEditorPanePresentation>,
+        ui_asset_panes: &BTreeMap<String, crate::ui::asset_editor::UiAssetEditorPanePresentation>,
+        animation_panes: &BTreeMap<
+            String,
+            crate::ui::animation_editor::AnimationEditorPanePresentation,
+        >,
         floating_window_projection_bundle: &FloatingWindowProjectionBundle,
     ) {
         let targets =
@@ -427,6 +461,7 @@ impl SlintEditorHost {
                     preset_names,
                     active_preset_name,
                     ui_asset_panes,
+                    animation_panes,
                     None,
                     floating_window_projection_bundle,
                 );

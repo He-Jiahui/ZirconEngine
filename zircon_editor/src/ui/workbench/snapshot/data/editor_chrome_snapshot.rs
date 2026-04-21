@@ -1,4 +1,4 @@
-use crate::GizmoAxis;
+use crate::scene::viewport::GizmoAxis;
 use crate::scene::viewport::SceneViewportSettings;
 use zircon_runtime::core::math::UVec2;
 

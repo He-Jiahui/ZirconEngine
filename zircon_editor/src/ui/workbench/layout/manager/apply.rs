@@ -1,4 +1,4 @@
-use crate::ShellFrame;
+use crate::ui::workbench::autolayout::ShellFrame;
 
 use super::super::{
     DocumentNode, FloatingWindowLayout, LayoutCommand, LayoutDiff, LayoutManager, SplitPlacement,

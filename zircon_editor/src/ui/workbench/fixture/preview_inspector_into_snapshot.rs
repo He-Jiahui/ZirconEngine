@@ -1,4 +1,4 @@
-use crate::snapshot::InspectorSnapshot;
+use crate::ui::workbench::snapshot::InspectorSnapshot;
 
 use super::PreviewInspector;
 

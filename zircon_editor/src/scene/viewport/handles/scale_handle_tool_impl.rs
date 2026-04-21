@@ -1,4 +1,4 @@
-use crate::scene::viewport::{HandleOverlayExtract, OverlayAxis, SceneViewportTool};
+use crate::scene::viewport::{HandleOverlayExtract, OverlayAxis};
 use zircon_runtime::core::math::Transform;
 
 use crate::scene::viewport::handles::{
@@ -12,13 +12,9 @@ use crate::scene::viewport::handles::{
     },
     scale_handle_tool::ScaleHandleTool,
 };
-use crate::GizmoAxis;
+use crate::scene::viewport::GizmoAxis;
 
 impl HandleTool for ScaleHandleTool {
-    fn tool(&self) -> SceneViewportTool {
-        SceneViewportTool::Scale
-    }
-
     fn build_overlay(
         &self,
         ctx: &crate::scene::viewport::handles::handle_build_context::HandleBuildContext<'_>,

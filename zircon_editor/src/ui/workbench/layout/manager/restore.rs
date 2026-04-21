@@ -1,4 +1,4 @@
-use crate::ProjectEditorWorkspace;
+use crate::ui::workbench::project::ProjectEditorWorkspace;
 
 use super::super::{LayoutManager, RestorePolicy, WorkbenchLayout};
 

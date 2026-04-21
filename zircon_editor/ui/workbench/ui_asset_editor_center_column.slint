@@ -1,0 +1,564 @@
+import { TextEdit } from "std-widgets.slint";
+import { Palette, ShellButton } from "chrome.slint";
+import { CompactField } from "pane_fields.slint";
+import { UiAssetActionStateData, UiAssetCollectionPanelData, UiAssetEditorPaneDraftData, UiAssetPaletteDragData, UiAssetPaletteDragSessionData, UiAssetPreviewPanelData, UiAssetSourcePanelData } from "ui_asset_editor_data.slint";
+import { UiAssetCanvasSurface, UiAssetSelectableSection, UiAssetSourceTextInput } from "ui_asset_editor_components.slint";
+
+export component UiAssetEditorCenterColumn inherits Rectangle {
+    in property <UiAssetActionStateData> actions;
+    in property <UiAssetCollectionPanelData> collections;
+    in property <UiAssetSourcePanelData> source_panel;
+    in property <UiAssetPreviewPanelData> preview_panel;
+    in property <UiAssetPaletteDragData> palette_drag_projection;
+    in property <UiAssetEditorPaneDraftData> draft_data;
+    in property <UiAssetPaletteDragSessionData> palette_drag_session;
+    callback action(action_id: string);
+    callback detail_event(detail_id: string, action_id: string, item_index: int, primary: string, secondary: string);
+    callback draft_value_changed(draft_id: string, value: string);
+    callback clear_draft(draft_id: string);
+    callback collection_event(collection_id: string, event_kind: string, item_index: int);
+    palette := Palette {}
+            background: transparent;
+
+            VerticalLayout {
+                width: parent.width;
+                height: parent.height;
+                spacing: 8px;
+
+                Rectangle {
+                    height: parent.height * 0.38;
+                    background: palette.panel_bg_soft;
+                    border-radius: 4px;
+                    border-width: 1px;
+                    border-color: palette.border_soft;
+                    clip: true;
+
+                    Text {
+                        x: 10px;
+                        y: 8px;
+                        text: "Designer Canvas";
+                        color: #e0aa5e;
+                        font-size: 11px;
+                        font-weight: 700;
+                    }
+
+                    Text {
+                        x: parent.width - self.preferred-width - 10px;
+                        y: 8px;
+                        text: root.preview_panel.summary;
+                        color: palette.text_dim;
+                        font-size: 9px;
+                    }
+
+                    preview_canvas := UiAssetCanvasSurface {
+                        x: 10px;
+                        y: 28px;
+                        width: parent.width - 20px;
+                        height: max(92px, parent.height - 126px);
+                        canvas: root.preview_panel.canvas;
+                        selection: root.collections.preview;
+                        palette_has_selection: root.collections.palette.selected_index >= 0;
+                        action_state: root.actions;
+                        external_drag: {
+                            active: root.palette_drag_session.active,
+                            pointer_x: root.palette_drag_session.pointer_x - preview_canvas.x / 1px,
+                            pointer_y: root.palette_drag_session.pointer_y - preview_canvas.y / 1px,
+                            target_index: root.palette_drag_projection.target_preview_index,
+                            target_action: root.palette_drag_projection.target_action,
+                            target_label: root.palette_drag_projection.target_label,
+                            slot_target_items: root.palette_drag_projection.slot_target_items,
+                        };
+                        item_selected(item_index) => { root.collection_event("preview", "selected", item_index); }
+                        item_activated(item_index) => { root.collection_event("preview", "activated", item_index); }
+                        action_requested(action_id) => { root.action(action_id); }
+                    }
+
+                    UiAssetSelectableSection {
+                        x: 10px;
+                        y: parent.height - 90px;
+                        width: parent.width - 20px;
+                        height: 80px;
+                        title: "Render Stack";
+                        items: root.collections.preview.items;
+                        selected_index: root.collections.preview.selected_index;
+                        accent: #e0aa5e;
+                        item_selected(item_index) => { root.collection_event("preview", "selected", item_index); }
+                        item_activated(item_index) => { root.collection_event("preview", "activated", item_index); }
+                    }
+                }
+
+                Rectangle {
+                    height: 54px;
+                    background: palette.panel_bg_soft;
+                    border-radius: 4px;
+                    border-width: 1px;
+                    border-color: palette.border_soft;
+
+                    VerticalLayout {
+                        x: 10px;
+                        y: 8px;
+                        width: parent.width - 20px;
+                        spacing: 4px;
+
+                        HorizontalLayout {
+                            width: parent.width;
+                            spacing: 4px;
+
+                            ShellButton {
+                                width: 56px;
+                                label: "Add In";
+                enabled: root.actions.can_insert_child;
+                active: root.actions.can_insert_child;
+                                clicked => { root.action("palette.insert.child"); }
+                            }
+
+                            ShellButton {
+                                width: 68px;
+                                label: "Add After";
+                enabled: root.actions.can_insert_after;
+                active: root.actions.can_insert_after;
+                                clicked => { root.action("palette.insert.after"); }
+                            }
+
+                            ShellButton {
+                                width: 44px;
+                                label: "Up";
+                enabled: root.actions.can_move_up;
+                active: root.actions.can_move_up;
+                                clicked => { root.action("canvas.move.up"); }
+                            }
+
+                            ShellButton {
+                                width: 56px;
+                                label: "Down";
+                enabled: root.actions.can_move_down;
+                active: root.actions.can_move_down;
+                                clicked => { root.action("canvas.move.down"); }
+                            }
+                        }
+
+                        HorizontalLayout {
+                            width: parent.width;
+                            spacing: 4px;
+
+                            ShellButton {
+                                width: 84px;
+                                label: "Into Prev";
+                enabled: root.actions.can_reparent_into_previous;
+                active: root.actions.can_reparent_into_previous;
+                                clicked => { root.action("canvas.reparent.into_previous"); }
+                            }
+
+                            ShellButton {
+                                width: 78px;
+                                label: "Into Next";
+                enabled: root.actions.can_reparent_into_next;
+                active: root.actions.can_reparent_into_next;
+                                clicked => { root.action("canvas.reparent.into_next"); }
+                            }
+
+                            ShellButton {
+                                width: 64px;
+                                label: "Outdent";
+                enabled: root.actions.can_reparent_outdent;
+                active: root.actions.can_reparent_outdent;
+                                clicked => { root.action("canvas.reparent.outdent"); }
+                            }
+
+                        }
+
+                        HorizontalLayout {
+                            width: parent.width;
+                            spacing: 4px;
+
+                            ShellButton {
+                                width: 74px;
+                                label: "Open Ref";
+                enabled: root.actions.can_open_reference;
+                active: root.actions.can_open_reference;
+                                clicked => { root.action("reference.open"); }
+                            }
+
+                            ShellButton {
+                                width: 58px;
+                                label: "To Ref";
+                enabled: root.actions.can_convert_to_reference;
+                active: root.actions.can_convert_to_reference;
+                                clicked => { root.action("canvas.convert.reference"); }
+                            }
+
+                            ShellButton {
+                                width: 64px;
+                                label: "Extract";
+                enabled: root.actions.can_extract_component;
+                active: root.actions.can_extract_component;
+                                clicked => { root.action("canvas.extract.component"); }
+                            }
+
+                            ShellButton {
+                                width: 70px;
+                                label: "Promote";
+                enabled: root.actions.can_promote_to_external_widget;
+                active: root.actions.can_promote_to_external_widget;
+                                clicked => { root.action("canvas.promote.widget"); }
+                            }
+
+                            ShellButton {
+                                width: 82px;
+                                label: "Wrap VBox";
+                enabled: root.actions.can_wrap_in_vertical_box;
+                active: root.actions.can_wrap_in_vertical_box;
+                                clicked => { root.action("canvas.wrap.vertical_box"); }
+                            }
+
+                            ShellButton {
+                                width: 58px;
+                                label: "Unwrap";
+                enabled: root.actions.can_unwrap;
+                active: root.actions.can_unwrap;
+                                clicked => { root.action("canvas.unwrap"); }
+                            }
+                        }
+                    }
+                }
+
+                Rectangle {
+                    height: parent.height * 0.62 - 62px;
+                    background: palette.panel_bg_soft;
+                    border-radius: 4px;
+                    border-width: 1px;
+                    border-color: palette.border_soft;
+                    clip: true;
+
+                    Text {
+                        x: 10px;
+                        y: 8px;
+                        text: "Source";
+                        color: #d8d28a;
+                        font-size: 11px;
+                        font-weight: 700;
+                    }
+
+                    Rectangle {
+                        x: 10px;
+                        y: 26px;
+                        width: parent.width - 20px;
+                        height: 58px;
+                        background: #ffffff05;
+                        border-radius: 4px;
+                        border-width: 1px;
+                        border-color: palette.border_soft;
+
+                        VerticalLayout {
+                            x: 8px;
+                            y: 6px;
+                            width: parent.width - 16px;
+                            spacing: 2px;
+
+                            Text {
+                                text: root.source_panel.detail.block_label != "" ? root.source_panel.detail.block_label : "No source block";
+                                color: palette.text;
+                                font-size: 10px;
+                                font-weight: 600;
+                                wrap: word-wrap;
+                            }
+
+                            Text {
+                                text: root.source_panel.detail.selected_line >= 0 ? "line " + root.source_panel.detail.selected_line : "";
+                                color: palette.text_dim;
+                                font-size: 9px;
+                            }
+
+                            Text {
+                                text: root.source_panel.detail.roundtrip_status;
+                                color: palette.text_muted;
+                                font-size: 9px;
+                                wrap: word-wrap;
+                            }
+                        }
+                    }
+
+                    UiAssetSelectableSection {
+                        x: 10px;
+                        y: 92px;
+                        width: parent.width - 20px;
+                        height: 72px;
+                        title: "Source Outline";
+                        items: root.source_panel.detail.outline.items;
+                        selected_index: root.source_panel.detail.outline.selected_index;
+                        accent: #d8d28a;
+                        item_selected(item_index) => { root.collection_event("source_outline", "selected", item_index); }
+                    }
+
+                    UiAssetSelectableSection {
+                        x: 10px;
+                        y: 170px;
+                        width: parent.width - 20px;
+                        height: 72px;
+                        title: "Mock Subjects";
+                        items: root.preview_panel.mock.subject_collection.items;
+                        selected_index: root.preview_panel.mock.subject_collection.selected_index;
+                        accent: #c98fe3;
+                        item_selected(item_index) => {
+                            root.collection_event("preview_mock_subject", "selected", item_index);
+                            root.clear_draft("preview.mock.value");
+                        }
+                    }
+
+                    Text {
+                        x: 10px;
+                        y: 248px;
+                        width: 88px;
+                        text: root.preview_panel.mock.property;
+                        color: palette.text;
+                        font-size: 9px;
+                        font-weight: 600;
+                    }
+
+                    Text {
+                        x: 102px;
+                        y: 248px;
+                        width: parent.width - 112px;
+                        text: root.preview_panel.mock.kind;
+                        color: palette.text_dim;
+                        font-size: 9px;
+                        horizontal-alignment: right;
+                    }
+
+                    TextEdit {
+                        x: 10px;
+                        y: 262px;
+                        width: parent.width - 148px;
+                        height: 28px;
+                        text:
+                            root.draft_data.preview.mock_value != "" ?
+                            root.draft_data.preview.mock_value :
+                            root.preview_panel.mock.value;
+                        enabled: root.preview_panel.mock.can_edit;
+                        font-size: 9px;
+                        font-family: "JetBrains Mono, Cascadia Mono, Consolas";
+                        edited(value) => { root.draft_value_changed("preview.mock.value", value); }
+                    }
+
+                    ShellButton {
+                        x: parent.width - 132px;
+                        y: 262px;
+                        width: 56px;
+                        label: "Apply";
+                        enabled: root.preview_panel.mock.can_edit;
+                        clicked => {
+                            root.detail_event("preview_mock", "preview.mock.value.set", root.preview_panel.mock.collection.selected_index, root.draft_data.preview.mock_value != "" ? root.draft_data.preview.mock_value : root.preview_panel.mock.value, "");
+                            root.clear_draft("preview.mock.value");
+                        }
+                    }
+
+                    ShellButton {
+                        x: parent.width - 68px;
+                        y: 262px;
+                        width: 58px;
+                        label: "Clear";
+                        enabled: root.preview_panel.mock.can_clear;
+                        clicked => {
+                            root.detail_event("preview_mock", "preview.mock.clear", root.preview_panel.mock.collection.selected_index, "", "");
+                            root.clear_draft("preview.mock.value");
+                        }
+                    }
+
+                    Text {
+                        x: 10px;
+                        y: 292px;
+                        width: parent.width - 20px;
+                        text: root.preview_panel.mock.expression_result;
+                        color: palette.text_muted;
+                        font-size: 8px;
+                        overflow: elide;
+                    }
+
+                    UiAssetSelectableSection {
+                        x: 10px;
+                        y: 298px;
+                        width: parent.width - 20px;
+                        height: 72px;
+                        title: "Mock Suggestions";
+                        items: root.preview_panel.mock.suggestion_collection.items;
+                        selected_index: root.preview_panel.mock.suggestion_collection.selected_index;
+                        accent: #c98fe3;
+                        item_selected(item_index) => {
+                            root.detail_event("preview_mock_suggestion", "preview.mock.suggestion.apply", item_index, "", "");
+                        }
+                    }
+
+                    UiAssetSelectableSection {
+                        x: 10px;
+                        y: 376px;
+                        width: parent.width - 20px;
+                        height: 72px;
+                        title: "Mock Schema";
+                        items: root.preview_panel.mock.schema_items;
+                        selected_index: -1;
+                        accent: #c98fe3;
+                    }
+
+                    UiAssetSelectableSection {
+                        x: 10px;
+                        y: 454px;
+                        width: parent.width - 20px;
+                        height: 92px;
+                        title: "Nested Mock Entries";
+                        items: root.preview_panel.mock.nested_collection.items;
+                        selected_index: root.preview_panel.mock.nested_collection.selected_index;
+                        accent: #c98fe3;
+                        item_selected(item_index) => {
+                            root.collection_event("preview_mock_nested", "selected", item_index);
+                            root.draft_value_changed("preview.mock.nested.key", root.preview_panel.mock.nested_key);
+                            root.draft_value_changed("preview.mock.nested.value", root.preview_panel.mock.nested_value);
+                        }
+                    }
+
+                    Text {
+                        x: 10px;
+                        y: 552px;
+                        width: 88px;
+                        text: root.preview_panel.mock.nested_key;
+                        color: palette.text;
+                        font-size: 9px;
+                        font-weight: 600;
+                    }
+
+                    Text {
+                        x: 102px;
+                        y: 552px;
+                        width: parent.width - 112px;
+                        text: root.preview_panel.mock.nested_kind;
+                        color: palette.text_dim;
+                        font-size: 9px;
+                        horizontal-alignment: right;
+                    }
+
+                    CompactField {
+                        x: 10px;
+                        y: 566px;
+                        width: parent.width - 20px;
+                        text:
+                            root.draft_data.preview.mock_nested_key != "" ?
+                            root.draft_data.preview.mock_nested_key :
+                            root.preview_panel.mock.nested_key;
+                        placeholder: "nested key";
+                        enabled: root.preview_panel.mock.nested_can_add;
+                        edited(value) => { root.draft_value_changed("preview.mock.nested.key", value); }
+                    }
+
+                    CompactField {
+                        x: 10px;
+                        y: 594px;
+                        width: parent.width - 20px;
+                        text:
+                            root.draft_data.preview.mock_nested_value != "" ?
+                            root.draft_data.preview.mock_nested_value :
+                            root.preview_panel.mock.nested_value;
+                        placeholder: "nested value";
+                        enabled: root.preview_panel.mock.nested_can_edit || root.preview_panel.mock.nested_can_add;
+                        edited(value) => { root.draft_value_changed("preview.mock.nested.value", value); }
+                    }
+
+                    HorizontalLayout {
+                        x: 10px;
+                        y: 624px;
+                        width: parent.width - 20px;
+                        spacing: 4px;
+
+                        ShellButton {
+                            width: 56px;
+                            label: "Apply";
+                            enabled: root.preview_panel.mock.nested_can_edit;
+                            active: root.preview_panel.mock.nested_can_edit;
+                            clicked => {
+                                root.detail_event("preview_mock_nested", "preview.mock.nested.value.set", root.preview_panel.mock.nested_collection.selected_index, root.draft_data.preview.mock_nested_value != "" ? root.draft_data.preview.mock_nested_value : root.preview_panel.mock.nested_value, "");
+                                root.clear_draft("preview.mock.nested.value");
+                            }
+                        }
+
+                        ShellButton {
+                            width: 48px;
+                            label: "Add";
+                            enabled: root.preview_panel.mock.nested_can_add;
+                            active: root.preview_panel.mock.nested_can_add;
+                            clicked => {
+                                root.detail_event("preview_mock_nested", "preview.mock.nested.upsert", root.preview_panel.mock.nested_collection.selected_index, root.draft_data.preview.mock_nested_key != "" ? root.draft_data.preview.mock_nested_key : root.preview_panel.mock.nested_key, root.draft_data.preview.mock_nested_value != "" ? root.draft_data.preview.mock_nested_value : root.preview_panel.mock.nested_value);
+                                root.clear_draft("preview.mock.nested.key");
+                                root.clear_draft("preview.mock.nested.value");
+                            }
+                        }
+
+                        ShellButton {
+                            width: 58px;
+                            label: "Delete";
+                            enabled: root.preview_panel.mock.nested_can_delete;
+                            clicked => {
+                                root.detail_event("preview_mock_nested", "preview.mock.nested.delete", root.preview_panel.mock.nested_collection.selected_index, "", "");
+                                root.clear_draft("preview.mock.nested.key");
+                                root.clear_draft("preview.mock.nested.value");
+                            }
+                        }
+                    }
+
+                    UiAssetSelectableSection {
+                        x: 10px;
+                        y: 656px;
+                        width: parent.width - 20px;
+                        height: 72px;
+                        title: "Preview State Graph";
+                        items: root.preview_panel.mock.state_graph_items;
+                        selected_index: -1;
+                        accent: #c98fe3;
+                    }
+
+                    Rectangle {
+                        x: 10px;
+                        y: 734px;
+                        width: parent.width - 20px;
+                        height: max(120px, parent.height - 706px);
+                        clip: true;
+                        border-radius: 4px;
+                        border-width: 1px;
+                        border-color: palette.border_soft;
+                        background: #00000018;
+
+                        UiAssetSourceTextInput {
+                            x: 8px;
+                            y: 8px;
+                            width: max(parent.width - 16px, self.preferred-width);
+                            height: max(parent.height - 16px, self.preferred-height);
+            text: root.source_panel.text;
+                            desired_cursor_byte_offset: root.source_panel.detail.cursor_byte_offset;
+                            enabled: true;
+                            read-only: false;
+                            single-line: false;
+                            font-size: 10px;
+                            font-family: "JetBrains Mono, Cascadia Mono, Consolas";
+                            color: palette.text;
+                            wrap: word-wrap;
+                            source_cursor_moved(byte_offset) => { root.detail_event("source", "source.cursor.set", byte_offset, "", ""); }
+                            source_text_edited(value) => { root.detail_event("source", "source.text.set", -1, value, ""); }
+                        }
+                    }
+
+                    Text {
+                        x: 10px;
+                        y: parent.height - 42px;
+                        width: parent.width - 20px;
+                        text: root.source_panel.detail.selected_excerpt;
+                        color: palette.text_dim;
+                        font-size: 9px;
+                        wrap: word-wrap;
+                    }
+                }
+            }
+    out property <float> preview_canvas_x_px: preview_canvas.x / 1px;
+    out property <float> preview_canvas_y_px: preview_canvas.y / 1px;
+    out property <float> preview_canvas_width_px: preview_canvas.width / 1px;
+    out property <float> preview_canvas_height_px: preview_canvas.height / 1px;
+    out property <float> preview_surface_origin_x_px: preview_canvas.surface_origin_x;
+    out property <float> preview_surface_origin_y_px: preview_canvas.surface_origin_y;
+    out property <float> preview_surface_scale: preview_canvas.surface_scale;
+}

@@ -1,6 +1,6 @@
-use crate::ui::{EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind};
+use crate::core::editor_event::MenuAction;
+use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind};
 
-use super::super::model::MenuAction;
 use super::constants::WORKBENCH_MENU_VIEW_ID;
 use super::menu_action_id::menu_action_id;
 

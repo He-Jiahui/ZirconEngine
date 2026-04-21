@@ -1,4 +1,4 @@
-use crate::ViewRegistry;
+use crate::ui::workbench::view::ViewRegistry;
 
 use super::super::{
     ActivityDrawerLayout, ActivityDrawerSlot, LayoutManager, LayoutNormalizationReport, MainPageId,

@@ -1,35 +1,157 @@
+stylesheets = []
+
 [asset]
 kind = "widget"
 id = "ui.editor.widgets"
 version = 1
 display_name = "Editor Widgets"
 
+[imports]
+widgets = []
+styles = []
+
+[tokens]
+
 [root]
-node = "section_card_root"
+node_id = "section_card_root"
+kind = "native"
+type = "VerticalBox"
+classes = [
+    "panel",
+    "section-card",
+]
+bindings = []
 
-[components.EditorToolbarButton]
-root = "toolbar_button_root"
-style_scope = "closed"
+[root.params]
 
-[components.EditorToolbar]
-root = "toolbar_root"
-style_scope = "open"
+[root.props]
 
-[components.EditorToolbar.slots.actions]
-required = true
-multiple = true
+[root.layout.container]
+gap = 8.0
+kind = "VerticalBox"
 
-[components.EditorToolbarButton.params.label]
-type = "string"
-default = "Action"
+[root.layout.height]
+stretch = "Stretch"
 
-[components.EditorToolbarButton.params.icon]
-type = "string"
-default = "ellipse-outline"
+[root.layout.width]
+stretch = "Stretch"
+
+[root.style_overrides.self]
+
+[root.style_overrides.slot]
+
+[[root.children]]
+
+[root.children.slot]
+
+[root.children.node]
+node_id = "section_title"
+kind = "native"
+type = "Label"
+classes = ["section-title"]
+bindings = []
+children = []
+
+[root.children.node.params]
+
+[root.children.node.props]
+text = "$param.title"
+
+[root.children.node.style_overrides.self]
+
+[root.children.node.style_overrides.slot]
+
+[[root.children]]
+
+[root.children.slot]
+
+[root.children.node]
+node_id = "section_content"
+kind = "slot"
+slot_name = "content"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.params]
+
+[root.children.node.props]
+
+[root.children.node.style_overrides.self]
+
+[root.children.node.style_overrides.slot]
 
 [components.EditorSectionCard]
-root = "section_card_root"
 style_scope = "open"
+
+[components.EditorSectionCard.root]
+node_id = "section_card_root"
+kind = "native"
+type = "VerticalBox"
+classes = [
+    "panel",
+    "section-card",
+]
+bindings = []
+
+[components.EditorSectionCard.root.params]
+
+[components.EditorSectionCard.root.props]
+
+[components.EditorSectionCard.root.layout.container]
+gap = 8.0
+kind = "VerticalBox"
+
+[components.EditorSectionCard.root.layout.height]
+stretch = "Stretch"
+
+[components.EditorSectionCard.root.layout.width]
+stretch = "Stretch"
+
+[components.EditorSectionCard.root.style_overrides.self]
+
+[components.EditorSectionCard.root.style_overrides.slot]
+
+[[components.EditorSectionCard.root.children]]
+
+[components.EditorSectionCard.root.children.slot]
+
+[components.EditorSectionCard.root.children.node]
+node_id = "section_title"
+kind = "native"
+type = "Label"
+classes = ["section-title"]
+bindings = []
+children = []
+
+[components.EditorSectionCard.root.children.node.params]
+
+[components.EditorSectionCard.root.children.node.props]
+text = "$param.title"
+
+[components.EditorSectionCard.root.children.node.style_overrides.self]
+
+[components.EditorSectionCard.root.children.node.style_overrides.slot]
+
+[[components.EditorSectionCard.root.children]]
+
+[components.EditorSectionCard.root.children.slot]
+
+[components.EditorSectionCard.root.children.node]
+node_id = "section_content"
+kind = "slot"
+slot_name = "content"
+classes = []
+bindings = []
+children = []
+
+[components.EditorSectionCard.root.children.node.params]
+
+[components.EditorSectionCard.root.children.node.props]
+
+[components.EditorSectionCard.root.children.node.style_overrides.self]
+
+[components.EditorSectionCard.root.children.node.style_overrides.slot]
 
 [components.EditorSectionCard.params.title]
 type = "string"
@@ -39,42 +161,102 @@ default = "Section"
 required = true
 multiple = true
 
-[nodes.toolbar_button_root]
-kind = "native"
-type = "Button"
-classes = ["toolbar-button"]
-props = { text = "$param.label", icon = "$param.icon" }
-layout = { width = { min = 112.0, preferred = 112.0, max = 144.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+[components.EditorToolbar]
+style_scope = "open"
 
-[nodes.toolbar_root]
+[components.EditorToolbar.root]
+node_id = "toolbar_root"
 kind = "native"
 type = "HorizontalBox"
 classes = ["toolbar"]
-layout = { width = { stretch = "Stretch" }, height = { min = 40.0, preferred = 40.0, max = 40.0, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 8.0 } }
-children = [
-  { child = "toolbar_actions" },
-]
+bindings = []
 
-[nodes.toolbar_actions]
+[components.EditorToolbar.root.params]
+
+[components.EditorToolbar.root.props]
+
+[components.EditorToolbar.root.layout.container]
+gap = 8.0
+kind = "HorizontalBox"
+
+[components.EditorToolbar.root.layout.height]
+max = 40.0
+min = 40.0
+preferred = 40.0
+stretch = "Fixed"
+
+[components.EditorToolbar.root.layout.width]
+stretch = "Stretch"
+
+[components.EditorToolbar.root.style_overrides.self]
+
+[components.EditorToolbar.root.style_overrides.slot]
+
+[[components.EditorToolbar.root.children]]
+
+[components.EditorToolbar.root.children.slot]
+
+[components.EditorToolbar.root.children.node]
+node_id = "toolbar_actions"
 kind = "slot"
 slot_name = "actions"
+classes = []
+bindings = []
+children = []
 
-[nodes.section_card_root]
+[components.EditorToolbar.root.children.node.params]
+
+[components.EditorToolbar.root.children.node.props]
+
+[components.EditorToolbar.root.children.node.style_overrides.self]
+
+[components.EditorToolbar.root.children.node.style_overrides.slot]
+
+[components.EditorToolbar.params]
+
+[components.EditorToolbar.slots.actions]
+required = true
+multiple = true
+
+[components.EditorToolbarButton]
+style_scope = "closed"
+
+[components.EditorToolbarButton.root]
+node_id = "toolbar_button_root"
 kind = "native"
-type = "VerticalBox"
-classes = ["panel", "section-card"]
-layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox", gap = 8.0 } }
-children = [
-  { child = "section_title" },
-  { child = "section_content" },
-]
+type = "Button"
+classes = ["toolbar-button"]
+bindings = []
+children = []
 
-[nodes.section_title]
-kind = "native"
-type = "Label"
-classes = ["section-title"]
-props = { text = "$param.title" }
+[components.EditorToolbarButton.root.params]
 
-[nodes.section_content]
-kind = "slot"
-slot_name = "content"
+[components.EditorToolbarButton.root.props]
+icon = "$param.icon"
+text = "$param.label"
+
+[components.EditorToolbarButton.root.layout.height]
+max = 30.0
+min = 30.0
+preferred = 30.0
+stretch = "Fixed"
+
+[components.EditorToolbarButton.root.layout.width]
+max = 144.0
+min = 112.0
+preferred = 112.0
+stretch = "Fixed"
+
+[components.EditorToolbarButton.root.style_overrides.self]
+
+[components.EditorToolbarButton.root.style_overrides.slot]
+
+[components.EditorToolbarButton.params.icon]
+type = "string"
+default = "ellipse-outline"
+
+[components.EditorToolbarButton.params.label]
+type = "string"
+default = "Action"
+
+[components.EditorToolbarButton.slots]

@@ -1,7 +1,7 @@
 use zircon_runtime::core::math::Vec3;
 use zircon_runtime::scene::Scene;
 
-use crate::scene::viewport::pointer::ViewportOverlayPointerBridge;
+use crate::scene::viewport::pointer::ViewportOverlayPointerRouter;
 
 use super::{viewport_hover_state::ViewportHoverState, SceneViewportController};
 
@@ -13,6 +13,6 @@ impl SceneViewportController {
             .unwrap_or(Vec3::ZERO);
         self.state.hover = ViewportHoverState::default();
         self.state.drag = None;
-        self.pointer_bridge = ViewportOverlayPointerBridge::new();
+        self.pointer_bridge = ViewportOverlayPointerRouter::new();
     }
 }

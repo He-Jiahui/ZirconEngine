@@ -1,5 +1,6 @@
 use super::*;
-use crate::ViewInstanceId;
+use crate::ui::asset_editor::{UiAssetEditorMode, UiAssetPreviewPreset};
+use crate::ui::workbench::view::ViewInstanceId;
 
 impl SlintEditorHost {
     pub(super) fn dispatch_ui_asset_action(&mut self, instance_id: &str, action_id: &str) {
@@ -46,29 +47,23 @@ impl SlintEditorHost {
                 .editor_manager
                 .set_ui_asset_editor_preview_preset(
                     &instance_id,
-                    crate::UiAssetPreviewPreset::EditorDocked,
+                    UiAssetPreviewPreset::EditorDocked,
                 )
                 .map(|_| ()),
             "preview.preset.editor_floating" => self
                 .editor_manager
                 .set_ui_asset_editor_preview_preset(
                     &instance_id,
-                    crate::UiAssetPreviewPreset::EditorFloating,
+                    UiAssetPreviewPreset::EditorFloating,
                 )
                 .map(|_| ()),
             "preview.preset.game_hud" => self
                 .editor_manager
-                .set_ui_asset_editor_preview_preset(
-                    &instance_id,
-                    crate::UiAssetPreviewPreset::GameHud,
-                )
+                .set_ui_asset_editor_preview_preset(&instance_id, UiAssetPreviewPreset::GameHud)
                 .map(|_| ()),
             "preview.preset.dialog" => self
                 .editor_manager
-                .set_ui_asset_editor_preview_preset(
-                    &instance_id,
-                    crate::UiAssetPreviewPreset::Dialog,
-                )
+                .set_ui_asset_editor_preview_preset(&instance_id, UiAssetPreviewPreset::Dialog)
                 .map(|_| ()),
             "style.rule.create" => self
                 .editor_manager
@@ -106,6 +101,14 @@ impl SlintEditorHost {
                 .editor_manager
                 .insert_ui_asset_editor_selected_palette_item_after_selection(&instance_id)
                 .map(|_| ()),
+            "palette.drag.drop" => self
+                .editor_manager
+                .drop_ui_asset_editor_selected_palette_item_at_drag_target(&instance_id)
+                .map(|_| ()),
+            "palette.drag.cancel" => self
+                .editor_manager
+                .clear_ui_asset_editor_palette_drag_target(&instance_id)
+                .map(|_| ()),
             "palette.target.previous" => self
                 .editor_manager
                 .cycle_ui_asset_editor_palette_drag_target_candidate_previous(&instance_id)
@@ -113,6 +116,14 @@ impl SlintEditorHost {
             "palette.target.next" => self
                 .editor_manager
                 .cycle_ui_asset_editor_palette_drag_target_candidate_next(&instance_id)
+                .map(|_| ()),
+            "palette.target.confirm" => self
+                .editor_manager
+                .confirm_ui_asset_editor_palette_target_choice(&instance_id)
+                .map(|_| ()),
+            "palette.target.cancel" => self
+                .editor_manager
+                .cancel_ui_asset_editor_palette_target_choice(&instance_id)
                 .map(|_| ()),
             "canvas.move.up" => self
                 .editor_manager
@@ -156,16 +167,16 @@ impl SlintEditorHost {
                 .map(|_| ()),
             "mode.design" => self
                 .editor_manager
-                .set_ui_asset_editor_mode(&instance_id, crate::UiAssetEditorMode::Design),
+                .set_ui_asset_editor_mode(&instance_id, UiAssetEditorMode::Design),
             "mode.split" => self
                 .editor_manager
-                .set_ui_asset_editor_mode(&instance_id, crate::UiAssetEditorMode::Split),
+                .set_ui_asset_editor_mode(&instance_id, UiAssetEditorMode::Split),
             "mode.source" => self
                 .editor_manager
-                .set_ui_asset_editor_mode(&instance_id, crate::UiAssetEditorMode::Source),
+                .set_ui_asset_editor_mode(&instance_id, UiAssetEditorMode::Source),
             "mode.preview" => self
                 .editor_manager
-                .set_ui_asset_editor_mode(&instance_id, crate::UiAssetEditorMode::Preview),
+                .set_ui_asset_editor_mode(&instance_id, UiAssetEditorMode::Preview),
             other if other.starts_with("theme.source.select.") => {
                 let index = other
                     .trim_start_matches("theme.source.select.")
@@ -200,35 +211,6 @@ impl SlintEditorHost {
         }
     }
 
-    pub(super) fn dispatch_ui_asset_style_class_action(
-        &mut self,
-        instance_id: &str,
-        action_id: &str,
-        class_name: &str,
-    ) {
-        self.focus_callback_source_window();
-        let instance_id = ViewInstanceId::new(instance_id);
-        let result = match action_id {
-            "style.class.add" => self
-                .editor_manager
-                .add_ui_asset_editor_class_to_selection(&instance_id, class_name)
-                .map(|_| ()),
-            "style.class.remove" => self
-                .editor_manager
-                .remove_ui_asset_editor_class_from_selection(&instance_id, class_name)
-                .map(|_| ()),
-            other => {
-                self.set_status_line(format!("Unknown UI asset style class action {other}"));
-                return;
-            }
-        };
-
-        match result {
-            Ok(()) => self.presentation_dirty = true,
-            Err(error) => self.set_status_line(error.to_string()),
-        }
-    }
-
     pub(super) fn dispatch_ui_asset_detail_event(
         &mut self,
         instance_id: &str,
@@ -239,6 +221,9 @@ impl SlintEditorHost {
         secondary: &str,
     ) {
         match detail_id {
+            "style_class" => {
+                self.handle_ui_asset_style_class_detail(instance_id, action_id, primary)
+            }
             "widget" => self.handle_ui_asset_widget_detail(instance_id, action_id, primary),
             "widget_promote" => {
                 self.handle_ui_asset_widget_promote_detail(instance_id, action_id, primary)
@@ -294,6 +279,12 @@ impl SlintEditorHost {
                 action_id,
                 item_index,
             ),
+            "palette_drag" => {
+                self.handle_ui_asset_palette_drag_detail(instance_id, action_id, primary, secondary)
+            }
+            "source" => {
+                self.handle_ui_asset_source_detail(instance_id, action_id, item_index, primary)
+            }
             "binding_route_suggestion" => self.handle_ui_asset_binding_route_suggestion_detail(
                 instance_id,
                 action_id,
@@ -308,6 +299,35 @@ impl SlintEditorHost {
                 self.focus_callback_source_window();
                 self.set_status_line(format!("Unknown UI asset detail event {other}:{action_id}"));
             }
+        }
+    }
+
+    fn handle_ui_asset_style_class_detail(
+        &mut self,
+        instance_id: &str,
+        action_id: &str,
+        class_name: &str,
+    ) {
+        self.focus_callback_source_window();
+        let instance_id = ViewInstanceId::new(instance_id);
+        let result = match action_id {
+            "style.class.add" => self
+                .editor_manager
+                .add_ui_asset_editor_class_to_selection(&instance_id, class_name)
+                .map(|_| ()),
+            "style.class.remove" => self
+                .editor_manager
+                .remove_ui_asset_editor_class_from_selection(&instance_id, class_name)
+                .map(|_| ()),
+            other => {
+                self.set_status_line(format!("Unknown UI asset style class action {other}"));
+                return;
+            }
+        };
+
+        match result {
+            Ok(()) => self.presentation_dirty = true,
+            Err(error) => self.set_status_line(error.to_string()),
         }
     }
 
@@ -759,100 +779,80 @@ impl SlintEditorHost {
         }
     }
 
-    pub(super) fn dispatch_ui_asset_source_edited(&mut self, instance_id: &str, value: &str) {
-        self.focus_callback_source_window();
-        let instance_id = ViewInstanceId::new(instance_id);
-        match self
-            .editor_manager
-            .update_ui_asset_editor_source(&instance_id, value.to_string())
-        {
-            Ok(()) => self.presentation_dirty = true,
-            Err(error) => self.set_status_line(error.to_string()),
-        }
-    }
-
-    pub(super) fn dispatch_ui_asset_source_cursor_changed(
+    fn handle_ui_asset_source_detail(
         &mut self,
         instance_id: &str,
-        byte_offset: i32,
+        action_id: &str,
+        item_index: i32,
+        value: &str,
     ) {
         self.focus_callback_source_window();
         let instance_id = ViewInstanceId::new(instance_id);
-        match self
-            .editor_manager
-            .select_ui_asset_editor_source_byte_offset(&instance_id, byte_offset.max(0) as usize)
-        {
-            Ok(changed) => {
-                if changed {
-                    self.presentation_dirty = true;
+        match action_id {
+            "source.text.set" => match self
+                .editor_manager
+                .update_ui_asset_editor_source(&instance_id, value.to_string())
+            {
+                Ok(()) => self.presentation_dirty = true,
+                Err(error) => self.set_status_line(error.to_string()),
+            },
+            "source.cursor.set" => match self
+                .editor_manager
+                .select_ui_asset_editor_source_byte_offset(&instance_id, item_index.max(0) as usize)
+            {
+                Ok(changed) => {
+                    if changed {
+                        self.presentation_dirty = true;
+                    }
+                }
+                Err(error) => self.set_status_line(error.to_string()),
+            },
+            other => {
+                self.set_status_line(format!("Unknown UI asset source action {other}"));
+            }
+        }
+    }
+
+    fn handle_ui_asset_palette_drag_detail(
+        &mut self,
+        instance_id: &str,
+        action_id: &str,
+        primary: &str,
+        secondary: &str,
+    ) {
+        self.focus_callback_source_window();
+        let instance_id = ViewInstanceId::new(instance_id);
+        match action_id {
+            "palette.drag.hover" => {
+                let surface_x = match primary.parse::<f32>() {
+                    Ok(value) => value,
+                    Err(error) => {
+                        self.set_status_line(format!(
+                            "Invalid UI asset palette drag hover x `{primary}`: {error}"
+                        ));
+                        return;
+                    }
+                };
+                let surface_y = match secondary.parse::<f32>() {
+                    Ok(value) => value,
+                    Err(error) => {
+                        self.set_status_line(format!(
+                            "Invalid UI asset palette drag hover y `{secondary}`: {error}"
+                        ));
+                        return;
+                    }
+                };
+                match self
+                    .editor_manager
+                    .update_ui_asset_editor_palette_drag_target(&instance_id, surface_x, surface_y)
+                {
+                    Ok(_) => self.presentation_dirty = true,
+                    Err(error) => self.set_status_line(error.to_string()),
                 }
             }
-            Err(error) => self.set_status_line(error.to_string()),
-        }
-    }
-
-    pub(super) fn dispatch_ui_asset_palette_drag_hover(
-        &mut self,
-        instance_id: &str,
-        surface_x: f32,
-        surface_y: f32,
-    ) {
-        self.focus_callback_source_window();
-        let instance_id = ViewInstanceId::new(instance_id);
-        match self
-            .editor_manager
-            .update_ui_asset_editor_palette_drag_target(&instance_id, surface_x, surface_y)
-        {
-            Ok(_) => self.presentation_dirty = true,
-            Err(error) => self.set_status_line(error.to_string()),
-        }
-    }
-
-    pub(super) fn dispatch_ui_asset_palette_drag_drop(&mut self, instance_id: &str) {
-        self.focus_callback_source_window();
-        let instance_id = ViewInstanceId::new(instance_id);
-        match self
-            .editor_manager
-            .drop_ui_asset_editor_selected_palette_item_at_drag_target(&instance_id)
-        {
-            Ok(_) => self.presentation_dirty = true,
-            Err(error) => self.set_status_line(error.to_string()),
-        }
-    }
-
-    pub(super) fn dispatch_ui_asset_palette_drag_cancel(&mut self, instance_id: &str) {
-        self.focus_callback_source_window();
-        let instance_id = ViewInstanceId::new(instance_id);
-        match self
-            .editor_manager
-            .clear_ui_asset_editor_palette_drag_target(&instance_id)
-        {
-            Ok(_) => self.presentation_dirty = true,
-            Err(error) => self.set_status_line(error.to_string()),
-        }
-    }
-
-    pub(super) fn dispatch_ui_asset_palette_target_confirm(&mut self, instance_id: &str) {
-        self.focus_callback_source_window();
-        let instance_id = ViewInstanceId::new(instance_id);
-        match self
-            .editor_manager
-            .confirm_ui_asset_editor_palette_target_choice(&instance_id)
-        {
-            Ok(_) => self.presentation_dirty = true,
-            Err(error) => self.set_status_line(error.to_string()),
-        }
-    }
-
-    pub(super) fn dispatch_ui_asset_palette_target_cancel(&mut self, instance_id: &str) {
-        self.focus_callback_source_window();
-        let instance_id = ViewInstanceId::new(instance_id);
-        match self
-            .editor_manager
-            .cancel_ui_asset_editor_palette_target_choice(&instance_id)
-        {
-            Ok(_) => self.presentation_dirty = true,
-            Err(error) => self.set_status_line(error.to_string()),
+            other => {
+                self.set_status_line(format!("Unknown UI asset palette drag action {other}"));
+            }
         }
     }
 

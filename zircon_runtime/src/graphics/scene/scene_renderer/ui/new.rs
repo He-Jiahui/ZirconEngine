@@ -1,10 +1,20 @@
+use std::sync::Arc;
+
+use crate::asset::ProjectAssetManager;
+
 use super::render::ScreenSpaceUiVertex;
 use super::screen_space_ui_renderer::ScreenSpaceUiRenderer;
+use super::text::ScreenSpaceUiTextSystem;
 
 const SCREEN_SPACE_UI_SHADER: &str = include_str!("shaders/screen_space_ui.wgsl");
 
 impl ScreenSpaceUiRenderer {
-    pub(crate) fn new(device: &wgpu::Device, target_format: wgpu::TextureFormat) -> Self {
+    pub(crate) fn new(
+        asset_manager: Arc<ProjectAssetManager>,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        target_format: wgpu::TextureFormat,
+    ) -> Self {
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("zircon-screen-space-ui-layout"),
             bind_group_layouts: &[],
@@ -47,7 +57,11 @@ impl ScreenSpaceUiRenderer {
             multiview_mask: None,
             cache: None,
         });
+        let text_system = ScreenSpaceUiTextSystem::new(asset_manager, device, queue, target_format);
 
-        Self { pipeline }
+        Self {
+            pipeline,
+            text_system,
+        }
     }
 }

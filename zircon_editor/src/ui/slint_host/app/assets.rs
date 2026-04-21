@@ -105,6 +105,14 @@ impl SlintEditorHost {
         self.asset_server
             .import_asset(&model_uri.to_string())
             .map_err(|error| error.to_string())?;
+        for derived_uri in derive_animation_assets_from_model_source(
+            paths.assets_root(),
+            std::path::Path::new(&display_path),
+        )? {
+            self.asset_server
+                .import_asset(&derived_uri.to_string())
+                .map_err(|error| error.to_string())?;
+        }
         let material_id = self.default_project_material_id()?;
         self.sync_asset_workspace();
         let model_id =

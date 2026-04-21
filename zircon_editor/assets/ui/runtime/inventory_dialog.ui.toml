@@ -4,120 +4,335 @@ id = "runtime.inventory_dialog"
 version = 1
 display_name = "Inventory Dialog"
 
-[root]
-node = "inventory_dialog_root"
+[imports]
+widgets = []
+styles = []
 
-[nodes.inventory_dialog_root]
+[tokens]
+
+[root]
+node_id = "inventory_dialog_root"
 kind = "native"
 type = "Overlay"
 control_id = "InventoryDialogRoot"
-layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "Overlay" } }
-children = [
-  { child = "backdrop" },
-  { child = "dialog_panel" },
-]
+classes = []
+bindings = []
 
-[nodes.backdrop]
+[root.params]
+
+[root.props]
+
+[root.layout.container]
+kind = "Overlay"
+
+[root.layout.height]
+stretch = "Stretch"
+
+[root.layout.width]
+stretch = "Stretch"
+
+[root.style_overrides.self]
+
+[root.style_overrides.slot]
+
+[[root.children]]
+
+[root.children.slot]
+
+[root.children.node]
+node_id = "backdrop"
 kind = "native"
 type = "Label"
 control_id = "InventoryBackdrop"
 classes = ["dialog-backdrop"]
-props = { text = "" }
+bindings = []
+children = []
 
-[nodes.dialog_panel]
+[root.children.node.params]
+
+[root.children.node.props]
+text = ""
+
+[root.children.node.style_overrides.self]
+
+[root.children.node.style_overrides.slot]
+
+[[root.children]]
+
+[root.children.slot]
+
+[root.children.node]
+node_id = "dialog_panel"
 kind = "native"
 type = "VerticalBox"
 control_id = "InventoryDialogPanel"
 classes = ["dialog-panel"]
-layout = { width = { min = 420.0, preferred = 520.0, max = 640.0, stretch = "Fixed" }, height = { min = 360.0, preferred = 420.0, max = 520.0, stretch = "Fixed" }, container = { kind = "VerticalBox", gap = 10.0 } }
-children = [
-  { child = "title_label" },
-  { child = "inventory_row" },
-  { child = "actions_row" },
-]
+bindings = []
 
-[nodes.title_label]
+[root.children.node.params]
+
+[root.children.node.props]
+
+[root.children.node.layout.container]
+gap = 10.0
+kind = "VerticalBox"
+
+[root.children.node.layout.height]
+max = 520.0
+min = 360.0
+preferred = 420.0
+stretch = "Fixed"
+
+[root.children.node.layout.width]
+max = 640.0
+min = 420.0
+preferred = 520.0
+stretch = "Fixed"
+
+[root.children.node.style_overrides.self]
+
+[root.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+
+[root.children.node.children.slot]
+
+[root.children.node.children.node]
+node_id = "title_label"
 kind = "native"
 type = "Label"
 control_id = "InventoryTitle"
 classes = ["dialog-title"]
-props = { text = "Inventory" }
+bindings = []
+children = []
 
-[nodes.inventory_row]
+[root.children.node.children.node.params]
+
+[root.children.node.children.node.props]
+text = "Inventory"
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+
+[root.children.node.children.slot]
+
+[root.children.node.children.node]
+node_id = "inventory_row"
 kind = "native"
 type = "HorizontalBox"
 control_id = "InventoryRow"
-layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "HorizontalBox", gap = 10.0 } }
-children = [
-  { child = "categories_label", slot = { layout = { width = { min = 140.0, preferred = 160.0, max = 200.0, stretch = "Fixed" } } } },
-  { child = "items_label" },
-]
+classes = []
+bindings = []
 
-[nodes.categories_label]
+[root.children.node.children.node.params]
+
+[root.children.node.children.node.props]
+
+[root.children.node.children.node.layout.container]
+gap = 10.0
+kind = "HorizontalBox"
+
+[root.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children]]
+
+[root.children.node.children.node.children.slot.layout.width]
+max = 200.0
+min = 140.0
+preferred = 160.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node]
+node_id = "categories_label"
 kind = "native"
 type = "Label"
 control_id = "InventoryCategories"
 classes = ["dialog-meta"]
-props = { text = "Weapons\nArmor\nConsumables" }
+bindings = []
+children = []
 
-[nodes.items_label]
+[root.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.props]
+text = """
+Weapons
+Armor
+Consumables"""
+
+[root.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children]]
+
+[root.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node]
+node_id = "items_label"
 kind = "native"
 type = "Label"
 control_id = "InventoryItems"
 classes = ["dialog-body"]
-props = { text = "Pulse Rifle\nRepair Kit\nField Beacon" }
+bindings = []
+children = []
 
-[nodes.actions_row]
+[root.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.props]
+text = """
+Pulse Rifle
+Repair Kit
+Field Beacon"""
+
+[root.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+
+[root.children.node.children.slot]
+
+[root.children.node.children.node]
+node_id = "actions_row"
 kind = "native"
 type = "HorizontalBox"
 control_id = "InventoryActions"
-layout = { width = { stretch = "Stretch" }, container = { kind = "HorizontalBox", gap = 10.0 } }
-children = [
-  { child = "equip_button" },
-  { child = "close_button" },
-]
+classes = []
+bindings = []
 
-[nodes.equip_button]
+[root.children.node.children.node.params]
+
+[root.children.node.children.node.props]
+
+[root.children.node.children.node.layout.container]
+gap = 10.0
+kind = "HorizontalBox"
+
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children]]
+
+[root.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node]
+node_id = "equip_button"
 kind = "native"
 type = "Button"
 control_id = "EquipItem"
-classes = ["dialog-button", "dialog-button-primary"]
-props = { text = "Equip" }
+classes = [
+    "dialog-button",
+    "dialog-button-primary",
+]
+bindings = []
+children = []
 
-[nodes.close_button]
+[root.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.props]
+text = "Equip"
+
+[root.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children]]
+
+[root.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node]
+node_id = "close_button"
 kind = "native"
 type = "Button"
 control_id = "CloseInventory"
 classes = ["dialog-button"]
-props = { text = "Close" }
+bindings = []
+children = []
+
+[root.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.props]
+text = "Close"
+
+[root.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.style_overrides.slot]
+
+[components]
 
 [[stylesheets]]
 id = "inventory_dialog"
 
 [[stylesheets.rules]]
 selector = ".dialog-backdrop"
-set = { self = { background = { color = "#0b1020" } } }
+
+[stylesheets.rules.set.self.background]
+color = "#0b1020"
+
+[stylesheets.rules.set.slot]
 
 [[stylesheets.rules]]
 selector = ".dialog-panel"
-set = { self = { background = { color = "#182132" } } }
+
+[stylesheets.rules.set.self.background]
+color = "#182132"
+
+[stylesheets.rules.set.slot]
 
 [[stylesheets.rules]]
 selector = ".dialog-title"
-set = { self = { text = "#f4f7ff" } }
+
+[stylesheets.rules.set.self]
+text = "#f4f7ff"
+
+[stylesheets.rules.set.slot]
 
 [[stylesheets.rules]]
 selector = ".dialog-meta"
-set = { self = { text = "#95a8c9" } }
+
+[stylesheets.rules.set.self]
+text = "#95a8c9"
+
+[stylesheets.rules.set.slot]
 
 [[stylesheets.rules]]
 selector = ".dialog-body"
-set = { self = { text = "#d7e0f2" } }
+
+[stylesheets.rules.set.self]
+text = "#d7e0f2"
+
+[stylesheets.rules.set.slot]
 
 [[stylesheets.rules]]
 selector = "Button.dialog-button"
-set = { self = { background = { color = "#24324b" }, text = "#e1e9f7" } }
+
+[stylesheets.rules.set.self]
+text = "#e1e9f7"
+
+[stylesheets.rules.set.self.background]
+color = "#24324b"
+
+[stylesheets.rules.set.slot]
 
 [[stylesheets.rules]]
 selector = "Button.dialog-button-primary"
-set = { self = { background = { color = "#2f5fb8" } } }
+
+[stylesheets.rules.set.self.background]
+color = "#2f5fb8"
+
+[stylesheets.rules.set.slot]

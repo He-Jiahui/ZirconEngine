@@ -1,0 +1,392 @@
+stylesheets = []
+
+[asset]
+kind = "layout"
+id = "runtime.ui.pause_menu"
+version = 1
+display_name = "Runtime Pause Menu"
+
+[imports]
+widgets = []
+styles = []
+
+[tokens]
+
+[root]
+node_id = "pause_root"
+kind = "native"
+type = "Overlay"
+control_id = "PauseMenuRoot"
+classes = []
+bindings = []
+
+[root.params]
+
+[root.props]
+
+[root.layout.container]
+kind = "Overlay"
+
+[root.layout.height]
+stretch = "Stretch"
+
+[root.layout.width]
+stretch = "Stretch"
+
+[root.style_overrides.self]
+
+[root.style_overrides.slot]
+
+[[root.children]]
+
+[root.children.slot]
+
+[root.children.node]
+node_id = "scrim"
+kind = "native"
+type = "Container"
+control_id = "PauseScrim"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.params]
+
+[root.children.node.props.background]
+color = "#10141dcc"
+
+[root.children.node.layout.height]
+stretch = "Stretch"
+
+[root.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.style_overrides.self]
+
+[root.children.node.style_overrides.slot]
+
+[[root.children]]
+
+[root.children.slot]
+
+[root.children.node]
+node_id = "dialog"
+kind = "native"
+type = "Container"
+control_id = "PauseDialog"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.params]
+
+[root.children.node.props]
+opacity = 0.96
+
+[root.children.node.props.background]
+color = "#b13d3d"
+
+[root.children.node.props.border]
+color = "#f6d2a6"
+radius = 18.0
+width = 3.0
+
+[root.children.node.layout.anchor]
+x = 0.5
+y = 0.5
+
+[root.children.node.layout.height]
+max = 320.0
+min = 320.0
+preferred = 320.0
+stretch = "Fixed"
+
+[root.children.node.layout.pivot]
+x = 0.5
+y = 0.5
+
+[root.children.node.layout.position]
+x = 0.0
+y = 0.0
+
+[root.children.node.layout.width]
+max = 420.0
+min = 420.0
+preferred = 420.0
+stretch = "Fixed"
+
+[root.children.node.style_overrides.self]
+
+[root.children.node.style_overrides.slot]
+
+[[root.children]]
+
+[root.children.slot]
+
+[root.children.node]
+node_id = "title"
+kind = "native"
+type = "Label"
+control_id = "PauseTitle"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.params]
+
+[root.children.node.props]
+text = "Paused"
+
+[root.children.node.props.foreground]
+color = "#fff4e0"
+
+[root.children.node.layout.anchor]
+x = 0.5
+y = 0.5
+
+[root.children.node.layout.height]
+max = 36.0
+min = 36.0
+preferred = 36.0
+stretch = "Fixed"
+
+[root.children.node.layout.pivot]
+x = 0.5
+y = 0.0
+
+[root.children.node.layout.position]
+x = 0.0
+y = -114.0
+
+[root.children.node.layout.width]
+max = 220.0
+min = 220.0
+preferred = 220.0
+stretch = "Fixed"
+
+[root.children.node.style_overrides.self]
+
+[root.children.node.style_overrides.slot]
+
+[[root.children]]
+
+[root.children.slot]
+
+[root.children.node]
+node_id = "resume_button"
+kind = "native"
+type = "Button"
+control_id = "ResumeButton"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.params]
+
+[root.children.node.props]
+text = "Resume Mission"
+
+[root.children.node.props.background]
+color = "#272c38"
+
+[root.children.node.props.border]
+color = "#f7d58d"
+radius = 10.0
+width = 1.0
+
+[root.children.node.props.foreground]
+color = "#fff7ea"
+
+[root.children.node.layout.anchor]
+x = 0.5
+y = 0.5
+
+[root.children.node.layout.height]
+max = 52.0
+min = 52.0
+preferred = 52.0
+stretch = "Fixed"
+
+[root.children.node.layout.pivot]
+x = 0.5
+y = 0.0
+
+[root.children.node.layout.position]
+x = 0.0
+y = -32.0
+
+[root.children.node.layout.width]
+max = 280.0
+min = 280.0
+preferred = 280.0
+stretch = "Fixed"
+
+[root.children.node.style_overrides.self]
+
+[root.children.node.style_overrides.slot]
+
+[[root.children]]
+
+[root.children.slot]
+
+[root.children.node]
+node_id = "settings_button"
+kind = "native"
+type = "Button"
+control_id = "SettingsButton"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.params]
+
+[root.children.node.props]
+text = "Settings"
+
+[root.children.node.props.background]
+color = "#272c38"
+
+[root.children.node.props.border]
+color = "#9ab3ce"
+radius = 10.0
+width = 1.0
+
+[root.children.node.props.foreground]
+color = "#eef3f7"
+
+[root.children.node.layout.anchor]
+x = 0.5
+y = 0.5
+
+[root.children.node.layout.height]
+max = 52.0
+min = 52.0
+preferred = 52.0
+stretch = "Fixed"
+
+[root.children.node.layout.pivot]
+x = 0.5
+y = 0.0
+
+[root.children.node.layout.position]
+x = 0.0
+y = 36.0
+
+[root.children.node.layout.width]
+max = 280.0
+min = 280.0
+preferred = 280.0
+stretch = "Fixed"
+
+[root.children.node.style_overrides.self]
+
+[root.children.node.style_overrides.slot]
+
+[[root.children]]
+
+[root.children.slot]
+
+[root.children.node]
+node_id = "quit_button"
+kind = "native"
+type = "Button"
+control_id = "QuitButton"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.params]
+
+[root.children.node.props]
+text = "Return To Title"
+
+[root.children.node.props.background]
+color = "#341f24"
+
+[root.children.node.props.border]
+color = "#ff9787"
+radius = 10.0
+width = 1.0
+
+[root.children.node.props.foreground]
+color = "#fff0ec"
+
+[root.children.node.layout.anchor]
+x = 0.5
+y = 0.5
+
+[root.children.node.layout.height]
+max = 52.0
+min = 52.0
+preferred = 52.0
+stretch = "Fixed"
+
+[root.children.node.layout.pivot]
+x = 0.5
+y = 0.0
+
+[root.children.node.layout.position]
+x = 0.0
+y = 104.0
+
+[root.children.node.layout.width]
+max = 280.0
+min = 280.0
+preferred = 280.0
+stretch = "Fixed"
+
+[root.children.node.style_overrides.self]
+
+[root.children.node.style_overrides.slot]
+
+[[root.children]]
+
+[root.children.slot]
+
+[root.children.node]
+node_id = "hint_label"
+kind = "native"
+type = "Label"
+control_id = "PauseHint"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.params]
+
+[root.children.node.props]
+opacity = 0.85
+text = "Press Esc to close"
+
+[root.children.node.props.foreground]
+color = "#f7dfc3"
+
+[root.children.node.layout.anchor]
+x = 0.5
+y = 0.5
+
+[root.children.node.layout.height]
+max = 24.0
+min = 24.0
+preferred = 24.0
+stretch = "Fixed"
+
+[root.children.node.layout.pivot]
+x = 0.5
+y = 0.0
+
+[root.children.node.layout.position]
+x = 0.0
+y = 188.0
+
+[root.children.node.layout.width]
+max = 240.0
+min = 240.0
+preferred = 240.0
+stretch = "Fixed"
+
+[root.children.node.style_overrides.self]
+
+[root.children.node.style_overrides.slot]
+
+[components]

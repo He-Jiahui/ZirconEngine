@@ -1,5 +1,5 @@
-use crate::snapshot::ViewContentKind;
-use crate::view::{ViewDescriptorId, ViewInstanceId};
+use crate::ui::workbench::snapshot::ViewContentKind;
+use crate::ui::workbench::view::{ViewDescriptorId, ViewInstanceId};
 
 use super::pane_empty_state_model::PaneEmptyStateModel;
 

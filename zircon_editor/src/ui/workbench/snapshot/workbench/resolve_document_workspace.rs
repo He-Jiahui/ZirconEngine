@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use crate::layout::DocumentNode;
-use crate::view::{ViewDescriptor, ViewDescriptorId, ViewInstance, ViewInstanceId};
+use crate::ui::workbench::layout::DocumentNode;
+use crate::ui::workbench::view::{ViewDescriptor, ViewDescriptorId, ViewInstance, ViewInstanceId};
 
 use super::{resolve_view_tab, DocumentWorkspaceSnapshot};
 

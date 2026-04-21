@@ -13,4 +13,4 @@ pub(crate) use gpu_model::GpuModelResource;
 pub(crate) use gpu_texture::GpuTextureResource;
 pub(crate) use pipeline::{default_pipeline_key, PipelineKey};
 pub(crate) use resource_streamer::ResourceStreamer;
-pub(crate) use runtime::MaterialRuntime;
+pub(crate) use runtime::{MaterialCaptureSeed, MaterialRuntime};

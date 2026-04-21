@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use crate::core::CoreHandle;
 use crate::core::framework::render::RenderFramework;
+use crate::core::CoreHandle;
 use crate::{GraphicsError, WgpuRenderFramework};
 
 use super::resolve_project_asset_manager::resolve_project_asset_manager;

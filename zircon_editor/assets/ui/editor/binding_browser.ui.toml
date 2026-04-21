@@ -1,3 +1,5 @@
+stylesheets = []
+
 [asset]
 kind = "layout"
 id = "editor.binding_browser"
@@ -6,100 +8,276 @@ display_name = "Binding Browser"
 
 [imports]
 widgets = [
-  "res://ui/editor/editor_widgets.ui.toml#EditorToolbar",
-  "res://ui/editor/editor_widgets.ui.toml#EditorToolbarButton",
-  "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard",
+    "res://ui/editor/editor_widgets.ui.toml#EditorToolbar",
+    "res://ui/editor/editor_widgets.ui.toml#EditorToolbarButton",
+    "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard",
 ]
 styles = ["res://ui/theme/editor_base.ui.toml"]
 
-[root]
-node = "binding_browser_root"
+[tokens]
 
-[nodes.binding_browser_root]
+[root]
+node_id = "binding_browser_root"
 kind = "native"
 type = "VerticalBox"
 control_id = "BindingBrowserRoot"
 classes = ["editor-shell"]
-layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox", gap = 10.0 } }
-children = [
-  { child = "toolbar" },
-  { child = "content" },
-]
+bindings = []
 
-[nodes.toolbar]
+[root.params]
+
+[root.props]
+
+[root.layout.container]
+gap = 10.0
+kind = "VerticalBox"
+
+[root.layout.height]
+stretch = "Stretch"
+
+[root.layout.width]
+stretch = "Stretch"
+
+[root.style_overrides.self]
+
+[root.style_overrides.slot]
+
+[[root.children]]
+
+[root.children.slot]
+
+[root.children.node]
+node_id = "toolbar"
 kind = "reference"
 component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorToolbar"
 control_id = "BindingBrowserToolbar"
-children = [
-  { child = "add_binding_button", mount = "actions" },
-  { child = "preview_graph_button", mount = "actions" },
-]
+classes = []
+bindings = []
 
-[nodes.add_binding_button]
+[root.children.node.params]
+
+[root.children.node.props]
+
+[root.children.node.style_overrides.self]
+
+[root.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+mount = "actions"
+
+[root.children.node.children.slot]
+
+[root.children.node.children.node]
+node_id = "add_binding_button"
 kind = "reference"
 component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorToolbarButton"
 control_id = "AddBinding"
 classes = ["toolbar-primary"]
-params = { label = "Add Binding", icon = "add-outline" }
+bindings = []
+children = []
 
-[nodes.preview_graph_button]
+[root.children.node.children.node.params]
+icon = "add-outline"
+label = "Add Binding"
+
+[root.children.node.children.node.props]
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+mount = "actions"
+
+[root.children.node.children.slot]
+
+[root.children.node.children.node]
+node_id = "preview_graph_button"
 kind = "reference"
 component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorToolbarButton"
 control_id = "PreviewGraph"
-params = { label = "Preview Graph", icon = "git-network-outline" }
+classes = []
+bindings = []
+children = []
 
-[nodes.content]
+[root.children.node.children.node.params]
+icon = "git-network-outline"
+label = "Preview Graph"
+
+[root.children.node.children.node.props]
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children]]
+
+[root.children.slot]
+
+[root.children.node]
+node_id = "content"
 kind = "native"
 type = "HorizontalBox"
 control_id = "BindingBrowserContent"
-layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "HorizontalBox", gap = 10.0 } }
-children = [
-  { child = "binding_list_panel", slot = { layout = { width = { min = 240.0, preferred = 260.0, max = 320.0, stretch = "Fixed" } } } },
-  { child = "payload_panel" },
-  { child = "preview_graph_panel", slot = { layout = { width = { min = 280.0, preferred = 320.0, max = 360.0, stretch = "Fixed" } } } },
-]
+classes = []
+bindings = []
 
-[nodes.binding_list_panel]
+[root.children.node.params]
+
+[root.children.node.props]
+
+[root.children.node.layout.container]
+gap = 10.0
+kind = "HorizontalBox"
+
+[root.children.node.layout.height]
+stretch = "Stretch"
+
+[root.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.style_overrides.self]
+
+[root.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+
+[root.children.node.children.slot.layout.width]
+max = 320.0
+min = 240.0
+preferred = 260.0
+stretch = "Fixed"
+
+[root.children.node.children.node]
+node_id = "binding_list_panel"
 kind = "reference"
 component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard"
 control_id = "BindingListPanel"
-params = { title = "Bindings" }
-children = [
-  { child = "binding_list_label", mount = "content" },
-]
+classes = []
+bindings = []
 
-[nodes.binding_list_label]
+[root.children.node.children.node.params]
+title = "Bindings"
+
+[root.children.node.children.node.props]
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children]]
+mount = "content"
+
+[root.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node]
+node_id = "binding_list_label"
 kind = "native"
 type = "Label"
 control_id = "BindingListLabel"
-props = { text = "Click, Change, Toggle bindings" }
+classes = []
+bindings = []
+children = []
 
-[nodes.payload_panel]
+[root.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.props]
+text = "Click, Change, Toggle bindings"
+
+[root.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+
+[root.children.node.children.slot]
+
+[root.children.node.children.node]
+node_id = "payload_panel"
 kind = "reference"
 component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard"
 control_id = "BindingPayloadPanel"
-params = { title = "Payload Schema" }
-children = [
-  { child = "payload_label", mount = "content" },
-]
+classes = []
+bindings = []
 
-[nodes.payload_label]
+[root.children.node.children.node.params]
+title = "Payload Schema"
+
+[root.children.node.children.node.props]
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children]]
+mount = "content"
+
+[root.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node]
+node_id = "payload_label"
 kind = "native"
 type = "Label"
 control_id = "BindingPayloadLabel"
-props = { text = "Structured payload fields, defaults, preview values" }
+classes = []
+bindings = []
+children = []
 
-[nodes.preview_graph_panel]
+[root.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.props]
+text = "Structured payload fields, defaults, preview values"
+
+[root.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+
+[root.children.node.children.slot.layout.width]
+max = 360.0
+min = 280.0
+preferred = 320.0
+stretch = "Fixed"
+
+[root.children.node.children.node]
+node_id = "preview_graph_panel"
 kind = "reference"
 component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard"
 control_id = "BindingPreviewGraphPanel"
-params = { title = "Preview Graph" }
-children = [
-  { child = "preview_graph_label", mount = "content" },
-]
+classes = []
+bindings = []
 
-[nodes.preview_graph_label]
+[root.children.node.children.node.params]
+title = "Preview Graph"
+
+[root.children.node.children.node.props]
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children]]
+mount = "content"
+
+[root.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node]
+node_id = "preview_graph_label"
 kind = "native"
 type = "Label"
 control_id = "BindingPreviewGraphLabel"
-props = { text = "Cross-node interaction edges and expression previews" }
+classes = []
+bindings = []
+children = []
+
+[root.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.props]
+text = "Cross-node interaction edges and expression previews"
+
+[root.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.style_overrides.slot]
+
+[components]

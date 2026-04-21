@@ -1,7 +1,7 @@
 use super::super::render_feature_descriptor::RenderFeatureDescriptor;
 
-pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descriptor() -> RenderFeatureDescriptor
-{
+pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descriptor(
+) -> RenderFeatureDescriptor {
     RenderFeatureDescriptor::new(
         "ray_tracing",
         vec![

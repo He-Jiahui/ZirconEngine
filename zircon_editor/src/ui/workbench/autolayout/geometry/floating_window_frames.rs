@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::layout::{MainPageId, WorkbenchLayout};
+use crate::ui::workbench::layout::{MainPageId, WorkbenchLayout};
 
 use super::super::floating_window::{clamp_floating_window_frame, default_floating_window_frame};
 use super::super::ShellFrame;

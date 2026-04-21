@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use crate::core::CoreHandle;
 use crate::asset::{pipeline::manager::ProjectAssetManager, PROJECT_ASSET_MANAGER_NAME};
+use crate::core::CoreHandle;
 
 use crate::graphics::GraphicsError;
 

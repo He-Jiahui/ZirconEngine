@@ -1,7 +1,6 @@
-use crate::ui::{
-    DockCommand, EditorActivityReflection, EditorUiBinding, EditorUiBindingPayload,
-    EditorUiControlService,
-};
+use crate::ui::binding::{DockCommand, EditorUiBinding, EditorUiBindingPayload};
+use crate::ui::control::EditorUiControlService;
+use crate::ui::EditorActivityReflection;
 use zircon_runtime::ui::binding::UiEventKind;
 
 use super::name_mapping::binding_view_id;

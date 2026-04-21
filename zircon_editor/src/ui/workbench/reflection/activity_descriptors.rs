@@ -1,7 +1,7 @@
 use crate::ui::{ActivityViewDescriptor, ActivityWindowDescriptor};
 use zircon_runtime::ui::event_ui::UiNodePath;
 
-use crate::view::{DockPolicy, PreferredHost, ViewDescriptor, ViewKind};
+use crate::ui::workbench::view::{DockPolicy, PreferredHost, ViewDescriptor, ViewKind};
 
 use super::drawer_slot_preference::drawer_slot_preference;
 

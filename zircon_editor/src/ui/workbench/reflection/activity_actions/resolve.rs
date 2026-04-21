@@ -1,6 +1,6 @@
 use zircon_runtime::ui::event_ui::UiActionDescriptor;
 
-use crate::snapshot::{ViewContentKind, ViewTabSnapshot};
+use crate::ui::workbench::snapshot::{ViewContentKind, ViewTabSnapshot};
 
 use super::asset_actions::asset_actions;
 use super::common_actions::common_tab_actions;

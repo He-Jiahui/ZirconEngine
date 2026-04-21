@@ -1,4 +1,4 @@
-use crate::layout::MainPageId;
+use crate::ui::workbench::layout::MainPageId;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct HostPageTabModel {

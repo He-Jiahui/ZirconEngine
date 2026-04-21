@@ -1,8 +1,7 @@
 use crate::core::math::Vec4;
-
-use crate::graphics::types::VirtualGeometryPrepareClusterState;
-
-use super::virtual_geometry_cluster_raster_draw::VirtualGeometryClusterRasterDraw;
+use crate::graphics::types::{
+    VirtualGeometryClusterRasterDraw, VirtualGeometryPrepareClusterState,
+};
 
 pub(super) fn virtual_geometry_cluster_streaming_tint(
     draw: VirtualGeometryClusterRasterDraw,

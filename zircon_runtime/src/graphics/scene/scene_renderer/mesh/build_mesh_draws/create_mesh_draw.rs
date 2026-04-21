@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use wgpu::util::DeviceExt;
 use crate::core::math::{RenderVec4, Vec4};
+use wgpu::util::DeviceExt;
 
 use crate::graphics::scene::resources::{GpuMeshResource, GpuTextureResource, PipelineKey};
 

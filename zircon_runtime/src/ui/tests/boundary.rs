@@ -1,3 +1,6 @@
+use std::fs;
+use std::path::{Path, PathBuf};
+
 #[test]
 fn legacy_template_compat_api_moves_under_template_namespace() {
     let lib_source = include_str!("../mod.rs");
@@ -196,14 +199,24 @@ fn template_asset_metadata_api_moves_under_template_namespace() {
     let lib_source = include_str!("../mod.rs");
     let template_mod_source = include_str!("../template/mod.rs");
 
-    for required in ["UiAssetHeader", "UiAssetImports", "UiAssetRoot"] {
+    for required in [
+        "UiAssetHeader",
+        "UiAssetImports",
+        "UiAssetNodeIter",
+        "UiNodeParent",
+    ] {
         assert!(
             template_mod_source.contains(required),
             "zircon_ui::template should own `{required}`"
         );
     }
 
-    for forbidden in ["UiAssetHeader", "UiAssetImports", "UiAssetRoot"] {
+    for forbidden in [
+        "UiAssetHeader",
+        "UiAssetImports",
+        "UiAssetNodeIter",
+        "UiNodeParent",
+    ] {
         assert!(
             !lib_source.contains(forbidden),
             "zircon_ui root should stop flattening template asset metadata `{forbidden}`"
@@ -680,4 +693,225 @@ fn event_ui_api_moves_under_event_ui_namespace() {
             "zircon_ui root should stop flattening event_ui specialist `{forbidden}`"
         );
     }
+}
+
+#[test]
+fn dispatch_root_stays_structural_after_folder_split() {
+    let dispatch_mod_source = include_str!("../dispatch/mod.rs");
+
+    for required in [
+        "mod navigation;",
+        "mod pointer;",
+        "UiNavigationDispatchContext",
+        "UiNavigationDispatchEffect",
+        "UiNavigationDispatchInvocation",
+        "UiNavigationDispatchResult",
+        "UiNavigationDispatcher",
+        "UiPointerDispatchContext",
+        "UiPointerDispatchEffect",
+        "UiPointerDispatchInvocation",
+        "UiPointerDispatchResult",
+        "UiPointerDispatcher",
+        "UiPointerEvent",
+    ] {
+        assert!(
+            dispatch_mod_source.contains(required),
+            "zircon_ui::dispatch root should keep the structural export `{required}`"
+        );
+    }
+
+    for forbidden in [
+        "impl UiPointerDispatcher",
+        "impl UiNavigationDispatcher",
+        "type PointerHandler",
+        "type NavigationHandler",
+    ] {
+        assert!(
+            !dispatch_mod_source.contains(forbidden),
+            "zircon_ui::dispatch root should not keep implementation detail `{forbidden}`"
+        );
+    }
+}
+
+#[test]
+fn surface_root_stays_structural_after_folder_split() {
+    let surface_mod_source = include_str!("../surface/mod.rs");
+
+    for required in [
+        "mod focus_state;",
+        "mod navigation;",
+        "mod navigation_state;",
+        "mod pointer;",
+        "mod render;",
+        "mod surface;",
+        "UiFocusState",
+        "UiNavigationEventKind",
+        "UiNavigationRoute",
+        "UiNavigationState",
+        "UiPointerButton",
+        "UiPointerEventKind",
+        "UiPointerRoute",
+        "UiRenderCommand",
+        "UiRenderCommandKind",
+        "UiRenderExtract",
+        "UiRenderList",
+        "UiResolvedStyle",
+        "UiVisualAssetRef",
+        "UiSurface",
+    ] {
+        assert!(
+            surface_mod_source.contains(required),
+            "zircon_ui::surface root should keep the structural export `{required}`"
+        );
+    }
+
+    for forbidden in [
+        "impl UiSurface",
+        "fn resolve_command_kind",
+        "struct UiNodeVisualData",
+        "fn diff_nodes",
+    ] {
+        assert!(
+            !surface_mod_source.contains(forbidden),
+            "zircon_ui::surface root should not keep implementation detail `{forbidden}`"
+        );
+    }
+}
+
+#[test]
+fn runtime_ui_entry_assets_do_not_live_under_src() {
+    let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let src_root = manifest_dir.join("src");
+    let offending = collect_ui_toml_files(&src_root);
+
+    assert!(
+        offending.is_empty(),
+        "production runtime ui entry assets must not live under `src/`: {}",
+        format_paths(&offending, manifest_dir)
+    );
+}
+
+#[test]
+fn legacy_runtime_fixture_source_directory_is_removed() {
+    let legacy_fixture_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/ui/runtime_ui/fixtures");
+    assert!(
+        !legacy_fixture_dir.exists(),
+        "runtime fixture source directory must stay removed after the assets/ cutover: {}",
+        legacy_fixture_dir.display()
+    );
+}
+
+#[test]
+fn runtime_fixture_assets_live_under_crate_assets() {
+    let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let fixture_root = manifest_dir.join("assets/ui/runtime/fixtures");
+    let actual_files = collect_ui_toml_files(&fixture_root);
+
+    let expected_files = vec![
+        PathBuf::from("assets/ui/runtime/fixtures/hud_overlay.ui.toml"),
+        PathBuf::from("assets/ui/runtime/fixtures/inventory_list.ui.toml"),
+        PathBuf::from("assets/ui/runtime/fixtures/pause_menu.ui.toml"),
+        PathBuf::from("assets/ui/runtime/fixtures/settings_dialog.ui.toml"),
+    ];
+
+    assert_eq!(
+        rel_paths(&actual_files, manifest_dir),
+        expected_files,
+        "runtime fixtures should live exclusively under crate assets/"
+    );
+}
+
+#[test]
+fn runtime_fixture_loader_stays_on_asset_paths() {
+    let fixture_source = fs::read_to_string(
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("src/ui/runtime_ui/runtime_ui_fixture.rs"),
+    )
+    .expect("runtime_ui_fixture.rs should be readable");
+
+    for required in [
+        "fn relative_asset_path",
+        "fn asset_path",
+        "Path::new(env!(\"CARGO_MANIFEST_DIR\"))",
+        ".join(\"assets\")",
+        ".join(self.relative_asset_path())",
+    ] {
+        assert!(
+            fixture_source.contains(required),
+            "runtime fixture loader should keep asset-path helper `{required}`"
+        );
+    }
+
+    for forbidden in ["fn source(", "include_str!"] {
+        assert!(
+            !fixture_source.contains(forbidden),
+            "runtime fixture loader should not keep source-embedded entry helper `{forbidden}`"
+        );
+    }
+}
+
+#[test]
+fn runtime_ui_manager_loads_fixture_documents_from_asset_files() {
+    let manager_source = fs::read_to_string(
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("src/ui/runtime_ui/runtime_ui_manager.rs"),
+    )
+    .expect("runtime_ui_manager.rs should be readable");
+
+    assert!(
+        manager_source.contains("UiAssetLoader::load_toml_file(fixture.asset_path())"),
+        "runtime ui manager should load fixture documents directly from asset files"
+    );
+
+    for forbidden in ["fixture.source()", "include_str!"] {
+        assert!(
+            !manager_source.contains(forbidden),
+            "runtime ui manager should not regress to embedded fixture source `{forbidden}`"
+        );
+    }
+}
+
+fn collect_ui_toml_files(root: &Path) -> Vec<PathBuf> {
+    let mut files = Vec::new();
+    collect_ui_toml_files_inner(root, &mut files);
+    files.sort();
+    files
+}
+
+fn collect_ui_toml_files_inner(root: &Path, files: &mut Vec<PathBuf>) {
+    let Ok(entries) = fs::read_dir(root) else {
+        return;
+    };
+
+    for entry in entries.filter_map(Result::ok) {
+        let path = entry.path();
+        if path.is_dir() {
+            collect_ui_toml_files_inner(&path, files);
+            continue;
+        }
+
+        if path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .is_some_and(|name| name.ends_with(".ui.toml"))
+        {
+            files.push(path);
+        }
+    }
+}
+
+fn rel_paths(paths: &[PathBuf], base: &Path) -> Vec<PathBuf> {
+    paths.iter().map(|path| relative_path(path, base)).collect()
+}
+
+fn format_paths(paths: &[PathBuf], base: &Path) -> String {
+    rel_paths(paths, base)
+        .into_iter()
+        .map(|path| path.display().to_string())
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+fn relative_path(path: &Path, base: &Path) -> PathBuf {
+    path.strip_prefix(base)
+        .expect("path should stay under the manifest dir")
+        .to_path_buf()
 }

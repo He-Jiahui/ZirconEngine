@@ -1,6 +1,6 @@
-use crate::{UiAssetEditorMode, UiAssetEditorRoute, UiAssetEditorSession};
+use crate::ui::asset_editor::{UiAssetEditorMode, UiAssetEditorRoute, UiAssetEditorSession};
 use toml::Value;
-use zircon_runtime::ui::{layout::UiSize, template::UiAssetKind, template::UiAssetLoader};
+use zircon_runtime::ui::{layout::UiSize, template::UiAssetKind};
 
 const THEME_SUMMARY_LAYOUT_ASSET_TOML: &str = r##"
 [asset]
@@ -216,8 +216,8 @@ fn ui_asset_editor_session_projects_theme_sources_and_selection() {
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
-    let imported_theme =
-        UiAssetLoader::load_toml_str(IMPORTED_THEME_ASSET_TOML).expect("imported theme");
+    let imported_theme = crate::tests::support::load_test_ui_asset(IMPORTED_THEME_ASSET_TOML)
+        .expect("imported theme");
     let mut session = UiAssetEditorSession::from_source(
         route,
         THEME_SUMMARY_LAYOUT_ASSET_TOML,
@@ -332,8 +332,8 @@ fn ui_asset_editor_session_resolves_selected_theme_source_asset_id_only_for_avai
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
-    let imported_theme =
-        UiAssetLoader::load_toml_str(IMPORTED_THEME_ASSET_TOML).expect("imported theme");
+    let imported_theme = crate::tests::support::load_test_ui_asset(IMPORTED_THEME_ASSET_TOML)
+        .expect("imported theme");
     let mut session = UiAssetEditorSession::from_source(
         route,
         THEME_SUMMARY_LAYOUT_ASSET_TOML,
@@ -425,8 +425,8 @@ fn ui_asset_editor_session_projects_local_cascade_theme_helpers_and_applies_them
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
-    let imported_theme =
-        UiAssetLoader::load_toml_str(IMPORTED_THEME_ASSET_TOML).expect("imported theme");
+    let imported_theme = crate::tests::support::load_test_ui_asset(IMPORTED_THEME_ASSET_TOML)
+        .expect("imported theme");
     let mut session = UiAssetEditorSession::from_source(
         route,
         THEME_SUMMARY_LAYOUT_ASSET_TOML,
@@ -464,7 +464,7 @@ fn ui_asset_editor_session_projects_local_cascade_theme_helpers_and_applies_them
         .apply_theme_rule_helper_item(helper_index)
         .expect("apply local cascade helper"));
 
-    let document = UiAssetLoader::load_toml_str(session.source_buffer().text())
+    let document = crate::tests::support::load_test_ui_asset(session.source_buffer().text())
         .expect("batch adopted local cascade source");
     assert_eq!(
         document.tokens.get("border"),
@@ -489,8 +489,9 @@ fn ui_asset_editor_session_detaches_selected_imported_theme_into_local_theme_lay
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
-    let imported_theme = UiAssetLoader::load_toml_str(IMPORTED_THEME_COLLISION_ASSET_TOML)
-        .expect("imported collision theme");
+    let imported_theme =
+        crate::tests::support::load_test_ui_asset(IMPORTED_THEME_COLLISION_ASSET_TOML)
+            .expect("imported collision theme");
     let mut session = UiAssetEditorSession::from_source(
         route,
         THEME_SUMMARY_LAYOUT_ASSET_TOML,
@@ -535,7 +536,7 @@ fn ui_asset_editor_session_detaches_selected_imported_theme_into_local_theme_lay
         vec!["Local Theme • 3 tokens • 2 rules".to_string()]
     );
 
-    let document = UiAssetLoader::load_toml_str(session.source_buffer().text())
+    let document = crate::tests::support::load_test_ui_asset(session.source_buffer().text())
         .expect("detached theme source");
     assert!(document.imports.styles.is_empty());
     assert_eq!(
@@ -578,8 +579,9 @@ fn ui_asset_editor_session_projects_theme_compare_rule_body_diffs() {
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
-    let imported_theme = UiAssetLoader::load_toml_str(IMPORTED_THEME_RULE_DIFF_ASSET_TOML)
-        .expect("imported diff theme");
+    let imported_theme =
+        crate::tests::support::load_test_ui_asset(IMPORTED_THEME_RULE_DIFF_ASSET_TOML)
+            .expect("imported diff theme");
     let mut session = UiAssetEditorSession::from_source(
         route,
         DUPLICATE_LOCAL_THEME_LAYOUT_ASSET_TOML,
@@ -630,8 +632,9 @@ fn ui_asset_editor_session_clones_selected_imported_theme_into_local_theme_layer
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
-    let imported_theme = UiAssetLoader::load_toml_str(IMPORTED_THEME_COLLISION_ASSET_TOML)
-        .expect("imported collision theme");
+    let imported_theme =
+        crate::tests::support::load_test_ui_asset(IMPORTED_THEME_COLLISION_ASSET_TOML)
+            .expect("imported collision theme");
     let mut session = UiAssetEditorSession::from_source(
         route,
         THEME_SUMMARY_LAYOUT_ASSET_TOML,
@@ -677,8 +680,8 @@ fn ui_asset_editor_session_clones_selected_imported_theme_into_local_theme_layer
         ]
     );
 
-    let document =
-        UiAssetLoader::load_toml_str(session.source_buffer().text()).expect("cloned theme source");
+    let document = crate::tests::support::load_test_ui_asset(session.source_buffer().text())
+        .expect("cloned theme source");
     assert_eq!(
         document.imports.styles,
         vec!["res://ui/theme/shared_theme.ui.toml".to_string()]
@@ -715,8 +718,9 @@ fn ui_asset_editor_session_projects_and_applies_redundant_imported_theme_refacto
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
-    let imported_theme = UiAssetLoader::load_toml_str(IMPORTED_THEME_COLLISION_ASSET_TOML)
-        .expect("imported collision theme");
+    let imported_theme =
+        crate::tests::support::load_test_ui_asset(IMPORTED_THEME_COLLISION_ASSET_TOML)
+            .expect("imported collision theme");
     let mut session = UiAssetEditorSession::from_source(
         route,
         THEME_SUMMARY_LAYOUT_ASSET_TOML,
@@ -745,7 +749,7 @@ fn ui_asset_editor_session_projects_and_applies_redundant_imported_theme_refacto
         .apply_theme_refactor_item(redundant_index)
         .expect("remove redundant imported theme"));
 
-    let document = UiAssetLoader::load_toml_str(session.source_buffer().text())
+    let document = crate::tests::support::load_test_ui_asset(session.source_buffer().text())
         .expect("cloned theme source without redundant import");
     assert!(document.imports.styles.is_empty());
     assert_eq!(
@@ -765,8 +769,9 @@ fn ui_asset_editor_session_projects_local_theme_layer_merge_preview_for_imported
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
-    let imported_theme = UiAssetLoader::load_toml_str(IMPORTED_THEME_MERGE_PREVIEW_ASSET_TOML)
-        .expect("imported merge preview theme");
+    let imported_theme =
+        crate::tests::support::load_test_ui_asset(IMPORTED_THEME_MERGE_PREVIEW_ASSET_TOML)
+            .expect("imported merge preview theme");
     let mut session = UiAssetEditorSession::from_source(
         route,
         THEME_SUMMARY_LAYOUT_ASSET_TOML,
@@ -809,8 +814,9 @@ fn ui_asset_editor_session_projects_theme_compare_items_for_selected_imported_so
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
-    let imported_theme = UiAssetLoader::load_toml_str(IMPORTED_THEME_COLLISION_ASSET_TOML)
-        .expect("imported collision theme");
+    let imported_theme =
+        crate::tests::support::load_test_ui_asset(IMPORTED_THEME_COLLISION_ASSET_TOML)
+            .expect("imported collision theme");
     let mut session = UiAssetEditorSession::from_source(
         route,
         THEME_SUMMARY_LAYOUT_ASSET_TOML,
@@ -847,7 +853,8 @@ fn ui_asset_editor_session_projects_selected_theme_compare_detail_items() {
         UiAssetEditorMode::Design,
     );
     let imported_theme =
-        UiAssetLoader::load_toml_str(IMPORTED_THEME_COLLISION_ASSET_TOML).expect("imported theme");
+        crate::tests::support::load_test_ui_asset(IMPORTED_THEME_COLLISION_ASSET_TOML)
+            .expect("imported theme");
     let mut session = UiAssetEditorSession::from_source(
         route,
         THEME_SUMMARY_LAYOUT_ASSET_TOML,
@@ -885,8 +892,9 @@ fn ui_asset_editor_session_applies_theme_rule_helper_items_for_selected_imports(
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
-    let imported_theme = UiAssetLoader::load_toml_str(IMPORTED_THEME_COLLISION_ASSET_TOML)
-        .expect("imported collision theme");
+    let imported_theme =
+        crate::tests::support::load_test_ui_asset(IMPORTED_THEME_COLLISION_ASSET_TOML)
+            .expect("imported collision theme");
     let mut session = UiAssetEditorSession::from_source(
         route,
         THEME_SUMMARY_LAYOUT_ASSET_TOML,
@@ -921,7 +929,7 @@ fn ui_asset_editor_session_applies_theme_rule_helper_items_for_selected_imports(
         .apply_theme_rule_helper_item(0)
         .expect("apply detach helper"));
 
-    let document = UiAssetLoader::load_toml_str(session.source_buffer().text())
+    let document = crate::tests::support::load_test_ui_asset(session.source_buffer().text())
         .expect("detached theme source");
     assert!(document.imports.styles.is_empty());
     assert!(document.tokens.contains_key("shared_theme_accent"));
@@ -942,8 +950,9 @@ fn ui_asset_editor_session_applies_compare_diff_theme_helper_for_selected_import
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
-    let imported_theme = UiAssetLoader::load_toml_str(IMPORTED_THEME_COLLISION_ASSET_TOML)
-        .expect("imported collision theme");
+    let imported_theme =
+        crate::tests::support::load_test_ui_asset(IMPORTED_THEME_COLLISION_ASSET_TOML)
+            .expect("imported collision theme");
     let mut session = UiAssetEditorSession::from_source(
         route,
         THEME_SUMMARY_LAYOUT_ASSET_TOML,
@@ -968,7 +977,7 @@ fn ui_asset_editor_session_applies_compare_diff_theme_helper_for_selected_import
         .apply_theme_rule_helper_item(helper_index)
         .expect("apply compare diff helper"));
 
-    let document = UiAssetLoader::load_toml_str(session.source_buffer().text())
+    let document = crate::tests::support::load_test_ui_asset(session.source_buffer().text())
         .expect("compare diff adopted theme source");
     assert_eq!(
         document.tokens.get("accent"),
@@ -1011,8 +1020,9 @@ fn ui_asset_editor_session_adopts_imported_theme_rule_body_helper_items() {
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
-    let imported_theme = UiAssetLoader::load_toml_str(IMPORTED_THEME_COLLISION_ASSET_TOML)
-        .expect("imported collision theme");
+    let imported_theme =
+        crate::tests::support::load_test_ui_asset(IMPORTED_THEME_COLLISION_ASSET_TOML)
+            .expect("imported collision theme");
     let mut session = UiAssetEditorSession::from_source(
         route,
         THEME_SUMMARY_LAYOUT_ASSET_TOML,
@@ -1037,8 +1047,8 @@ fn ui_asset_editor_session_adopts_imported_theme_rule_body_helper_items() {
         .apply_theme_rule_helper_item(token_helper_index)
         .expect("apply imported token helper"));
 
-    let token_document =
-        UiAssetLoader::load_toml_str(session.source_buffer().text()).expect("token helper source");
+    let token_document = crate::tests::support::load_test_ui_asset(session.source_buffer().text())
+        .expect("token helper source");
     assert_eq!(
         token_document.tokens.get("accent"),
         Some(&Value::String("#223344".to_string()))
@@ -1054,8 +1064,8 @@ fn ui_asset_editor_session_adopts_imported_theme_rule_body_helper_items() {
         .apply_theme_rule_helper_item(rule_helper_index)
         .expect("apply imported rule helper"));
 
-    let rule_document =
-        UiAssetLoader::load_toml_str(session.source_buffer().text()).expect("rule helper source");
+    let rule_document = crate::tests::support::load_test_ui_asset(session.source_buffer().text())
+        .expect("rule helper source");
     let button_rule = rule_document
         .stylesheets
         .iter()
@@ -1075,8 +1085,9 @@ fn ui_asset_editor_session_applies_theme_batch_adopt_helper_items() {
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
-    let imported_theme = UiAssetLoader::load_toml_str(IMPORTED_THEME_COLLISION_ASSET_TOML)
-        .expect("imported collision theme");
+    let imported_theme =
+        crate::tests::support::load_test_ui_asset(IMPORTED_THEME_COLLISION_ASSET_TOML)
+            .expect("imported collision theme");
     let mut session = UiAssetEditorSession::from_source(
         route,
         THEME_SUMMARY_LAYOUT_ASSET_TOML,
@@ -1101,7 +1112,7 @@ fn ui_asset_editor_session_applies_theme_batch_adopt_helper_items() {
         .apply_theme_rule_helper_item(helper_index)
         .expect("apply batch imported theme change helper"));
 
-    let document = UiAssetLoader::load_toml_str(session.source_buffer().text())
+    let document = crate::tests::support::load_test_ui_asset(session.source_buffer().text())
         .expect("batch adopted theme source");
     assert_eq!(
         document.tokens.get("accent"),
@@ -1144,8 +1155,9 @@ fn ui_asset_editor_session_prunes_selected_theme_compare_duplicates() {
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
-    let imported_theme = UiAssetLoader::load_toml_str(IMPORTED_THEME_COLLISION_ASSET_TOML)
-        .expect("imported duplicate theme");
+    let imported_theme =
+        crate::tests::support::load_test_ui_asset(IMPORTED_THEME_COLLISION_ASSET_TOML)
+            .expect("imported duplicate theme");
     let mut session = UiAssetEditorSession::from_source(
         route,
         DUPLICATE_LOCAL_THEME_LAYOUT_ASSET_TOML,
@@ -1170,7 +1182,7 @@ fn ui_asset_editor_session_prunes_selected_theme_compare_duplicates() {
         .apply_theme_rule_helper_item(helper_index)
         .expect("apply compare prune helper"));
 
-    let document = UiAssetLoader::load_toml_str(session.source_buffer().text())
+    let document = crate::tests::support::load_test_ui_asset(session.source_buffer().text())
         .expect("compare pruned theme source");
     assert!(document.tokens.is_empty());
     assert!(document.stylesheets.is_empty());
@@ -1187,8 +1199,9 @@ fn ui_asset_editor_session_applies_theme_refactor_items_individually() {
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
-    let imported_theme = UiAssetLoader::load_toml_str(IMPORTED_THEME_COLLISION_ASSET_TOML)
-        .expect("imported duplicate theme");
+    let imported_theme =
+        crate::tests::support::load_test_ui_asset(IMPORTED_THEME_COLLISION_ASSET_TOML)
+            .expect("imported duplicate theme");
     let mut session = UiAssetEditorSession::from_source(
         route,
         DUPLICATE_LOCAL_THEME_LAYOUT_ASSET_TOML,
@@ -1214,8 +1227,8 @@ fn ui_asset_editor_session_applies_theme_refactor_items_individually() {
     assert!(session
         .apply_theme_refactor_item(0)
         .expect("remove duplicate token"));
-    let after_token =
-        UiAssetLoader::load_toml_str(session.source_buffer().text()).expect("token pruned source");
+    let after_token = crate::tests::support::load_test_ui_asset(session.source_buffer().text())
+        .expect("token pruned source");
     assert!(!after_token.tokens.contains_key("accent"));
     assert!(after_token.tokens.contains_key("panel"));
     assert_eq!(after_token.stylesheets[0].rules.len(), 1);
@@ -1223,8 +1236,8 @@ fn ui_asset_editor_session_applies_theme_refactor_items_individually() {
     assert!(session
         .apply_theme_refactor_item(1)
         .expect("remove duplicate rule"));
-    let after_rule =
-        UiAssetLoader::load_toml_str(session.source_buffer().text()).expect("rule pruned source");
+    let after_rule = crate::tests::support::load_test_ui_asset(session.source_buffer().text())
+        .expect("rule pruned source");
     assert!(!after_rule.tokens.contains_key("accent"));
     assert!(after_rule.tokens.contains_key("panel"));
     assert!(after_rule.stylesheets.is_empty());
@@ -1237,8 +1250,9 @@ fn ui_asset_editor_session_applies_all_theme_refactors_from_helper() {
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
-    let imported_theme = UiAssetLoader::load_toml_str(IMPORTED_THEME_COLLISION_ASSET_TOML)
-        .expect("imported duplicate theme");
+    let imported_theme =
+        crate::tests::support::load_test_ui_asset(IMPORTED_THEME_COLLISION_ASSET_TOML)
+            .expect("imported duplicate theme");
     let mut session = UiAssetEditorSession::from_source(
         route,
         DUPLICATE_LOCAL_THEME_LAYOUT_ASSET_TOML,
@@ -1260,7 +1274,7 @@ fn ui_asset_editor_session_applies_all_theme_refactors_from_helper() {
         .apply_theme_rule_helper_item(helper_index)
         .expect("apply batch theme refactor helper"));
 
-    let document = UiAssetLoader::load_toml_str(session.source_buffer().text())
+    let document = crate::tests::support::load_test_ui_asset(session.source_buffer().text())
         .expect("batch refactored source");
     assert!(document.tokens.is_empty());
     assert!(document.stylesheets.is_empty());
@@ -1276,9 +1290,11 @@ fn ui_asset_editor_session_projects_cross_asset_theme_rule_cascade_activity() {
         UiAssetEditorMode::Design,
     );
     let imported_theme_a =
-        UiAssetLoader::load_toml_str(IMPORTED_THEME_CASCADE_A_ASSET_TOML).expect("theme a");
+        crate::tests::support::load_test_ui_asset(IMPORTED_THEME_CASCADE_A_ASSET_TOML)
+            .expect("theme a");
     let imported_theme_b =
-        UiAssetLoader::load_toml_str(IMPORTED_THEME_CASCADE_B_ASSET_TOML).expect("theme b");
+        crate::tests::support::load_test_ui_asset(IMPORTED_THEME_CASCADE_B_ASSET_TOML)
+            .expect("theme b");
     let mut session = UiAssetEditorSession::from_source(
         route,
         MULTI_IMPORTED_THEME_CASCADE_LAYOUT_ASSET_TOML,
@@ -1328,9 +1344,11 @@ fn ui_asset_editor_session_theme_compare_uses_active_imported_cascade_values() {
         UiAssetEditorMode::Design,
     );
     let imported_theme_a =
-        UiAssetLoader::load_toml_str(IMPORTED_THEME_CASCADE_A_ASSET_TOML).expect("theme a");
+        crate::tests::support::load_test_ui_asset(IMPORTED_THEME_CASCADE_A_ASSET_TOML)
+            .expect("theme a");
     let imported_theme_b =
-        UiAssetLoader::load_toml_str(IMPORTED_THEME_CASCADE_B_ASSET_TOML).expect("theme b");
+        crate::tests::support::load_test_ui_asset(IMPORTED_THEME_CASCADE_B_ASSET_TOML)
+            .expect("theme b");
     let mut session = UiAssetEditorSession::from_source(
         route,
         MULTI_IMPORTED_THEME_CASCADE_LAYOUT_ASSET_TOML,

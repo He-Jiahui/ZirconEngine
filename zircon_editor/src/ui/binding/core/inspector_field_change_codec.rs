@@ -1,6 +1,7 @@
+use crate::core::editor_event::InspectorFieldChange;
 use zircon_runtime::ui::binding::UiBindingValue;
 
-use super::{EditorUiBindingError, InspectorFieldChange};
+use super::EditorUiBindingError;
 
 impl InspectorFieldChange {
     pub fn new(field_id: impl Into<String>, value: UiBindingValue) -> Self {

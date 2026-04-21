@@ -1,4 +1,5 @@
-use crate::ui::{EditorActivityReflection, EditorUiControlService};
+use crate::ui::control::EditorUiControlService;
+use crate::ui::EditorActivityReflection;
 
 use super::action_route::register_action_route;
 

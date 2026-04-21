@@ -6,7 +6,7 @@ use crate::core::math::UVec2;
 use crate::ui::surface::UiRenderExtract;
 
 #[derive(Clone, Debug)]
-pub struct PublicRuntimeFrame {
+pub(crate) struct PublicRuntimeFrame {
     pub extract: RenderFrameExtract,
     pub viewport_size: UVec2,
     pub ui: Option<UiRenderExtract>,

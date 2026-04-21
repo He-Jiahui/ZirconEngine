@@ -1,6 +1,4 @@
-use crate::scene::viewport::{
-    HandleOverlayExtract, OverlayAxis, SceneViewportTool, TransformSpace,
-};
+use crate::scene::viewport::{HandleOverlayExtract, OverlayAxis, TransformSpace};
 use zircon_runtime::core::math::Transform;
 
 use crate::scene::viewport::handles::{
@@ -14,13 +12,9 @@ use crate::scene::viewport::handles::{
     },
     rotate_handle_tool::RotateHandleTool,
 };
-use crate::GizmoAxis;
+use crate::scene::viewport::GizmoAxis;
 
 impl HandleTool for RotateHandleTool {
-    fn tool(&self) -> SceneViewportTool {
-        SceneViewportTool::Rotate
-    }
-
     fn build_overlay(
         &self,
         ctx: &crate::scene::viewport::handles::handle_build_context::HandleBuildContext<'_>,

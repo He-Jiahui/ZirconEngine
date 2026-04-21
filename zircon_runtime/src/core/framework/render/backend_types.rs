@@ -1,6 +1,9 @@
 use crate::core::math::UVec2;
 
-use super::RenderFrameExtract;
+use super::{
+    RenderFrameExtract, RenderVirtualGeometryHardwareRasterizationSource,
+    RenderVirtualGeometryVisBuffer64Source,
+};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct RenderViewportHandle(u64);
@@ -236,8 +239,14 @@ pub struct RenderStats {
     pub last_ui_image_payload_count: usize,
     pub last_ui_clipped_command_count: usize,
     pub last_virtual_geometry_visible_cluster_count: usize,
+    pub last_virtual_geometry_instance_count: usize,
     pub last_virtual_geometry_requested_page_count: usize,
     pub last_virtual_geometry_dirty_page_count: usize,
+    pub last_virtual_geometry_forced_mip: Option<u8>,
+    pub last_virtual_geometry_freeze_cull: bool,
+    pub last_virtual_geometry_visualize_bvh: bool,
+    pub last_virtual_geometry_visualize_visbuffer: bool,
+    pub last_virtual_geometry_print_leaf_clusters: bool,
     pub last_virtual_geometry_page_table_entry_count: usize,
     pub last_virtual_geometry_resident_page_count: usize,
     pub last_virtual_geometry_pending_request_count: usize,
@@ -247,6 +256,17 @@ pub struct RenderStats {
     pub last_virtual_geometry_indirect_buffer_count: usize,
     pub last_virtual_geometry_indirect_args_count: usize,
     pub last_virtual_geometry_indirect_segment_count: usize,
+    pub last_virtual_geometry_execution_segment_count: usize,
+    pub last_virtual_geometry_execution_page_count: usize,
+    pub last_virtual_geometry_execution_resident_segment_count: usize,
+    pub last_virtual_geometry_execution_pending_segment_count: usize,
+    pub last_virtual_geometry_execution_missing_segment_count: usize,
+    pub last_virtual_geometry_execution_repeated_draw_count: usize,
+    pub last_virtual_geometry_visbuffer64_source: RenderVirtualGeometryVisBuffer64Source,
+    pub last_virtual_geometry_visbuffer64_entry_count: usize,
+    pub last_virtual_geometry_hardware_rasterization_source:
+        RenderVirtualGeometryHardwareRasterizationSource,
+    pub last_virtual_geometry_hardware_rasterization_record_count: usize,
     pub last_hybrid_gi_active_probe_count: usize,
     pub last_hybrid_gi_requested_probe_count: usize,
     pub last_hybrid_gi_dirty_probe_count: usize,
@@ -254,6 +274,15 @@ pub struct RenderStats {
     pub last_hybrid_gi_resident_probe_count: usize,
     pub last_hybrid_gi_pending_update_count: usize,
     pub last_hybrid_gi_scheduled_trace_region_count: usize,
+    pub last_hybrid_gi_scene_card_count: usize,
+    pub last_hybrid_gi_surface_cache_resident_page_count: usize,
+    pub last_hybrid_gi_surface_cache_dirty_page_count: usize,
+    pub last_hybrid_gi_surface_cache_feedback_card_count: usize,
+    pub last_hybrid_gi_surface_cache_capture_slot_count: usize,
+    pub last_hybrid_gi_surface_cache_invalidated_page_count: usize,
+    pub last_hybrid_gi_voxel_resident_clipmap_count: usize,
+    pub last_hybrid_gi_voxel_dirty_clipmap_count: usize,
+    pub last_hybrid_gi_voxel_invalidated_clipmap_count: usize,
     pub capabilities: RenderCapabilitySummary,
 }
 

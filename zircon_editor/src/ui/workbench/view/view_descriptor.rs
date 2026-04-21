@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::autolayout::PaneConstraints;
+use crate::ui::workbench::autolayout::PaneConstraints;
 
 use super::{DockPolicy, PreferredHost, ViewDescriptorId, ViewKind};
 
@@ -12,7 +12,7 @@ pub struct ViewDescriptor {
     pub icon_key: String,
     pub multi_instance: bool,
     pub dock_policy: DockPolicy,
-    pub preferred_drawer_slot: Option<crate::layout::ActivityDrawerSlot>,
+    pub preferred_drawer_slot: Option<crate::ui::workbench::layout::ActivityDrawerSlot>,
     pub preferred_host: PreferredHost,
     pub persistence_key_policy: String,
     #[serde(default)]

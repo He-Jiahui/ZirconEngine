@@ -1,7 +1,8 @@
-use bytemuck::Zeroable;
 use crate::core::math::UVec2;
+use bytemuck::Zeroable;
 
-use crate::graphics::types::EditorOrRuntimeFrame;
+use crate::graphics::scene::scene_renderer::HybridGiScenePrepareResourcesSnapshot;
+use crate::graphics::types::ViewportRenderFrame;
 
 use super::super::super::super::constants::MAX_HYBRID_GI_PROBES;
 use super::super::super::super::hybrid_gi_probe_gpu::GpuHybridGiProbe;
@@ -9,12 +10,14 @@ use super::count_scheduled_trace_regions::count_scheduled_trace_regions;
 use super::encode_hybrid_gi_probe_screen_data::encode_hybrid_gi_probe_screen_data;
 use super::hybrid_gi_hierarchy_irradiance::hybrid_gi_hierarchy_irradiance;
 use super::hybrid_gi_hierarchy_resolve_weight::hybrid_gi_hierarchy_resolve_weight;
-use super::hybrid_gi_hierarchy_rt_lighting::hybrid_gi_hierarchy_rt_lighting;
+use super::hybrid_gi_hierarchy_rt_lighting::hybrid_gi_hierarchy_rt_lighting_with_scene_prepare_resources;
+use super::hybrid_gi_temporal_signature::hybrid_gi_temporal_signature;
 
 pub(in super::super) fn encode_hybrid_gi_probes(
-    frame: &EditorOrRuntimeFrame,
+    frame: &ViewportRenderFrame,
     viewport_size: UVec2,
     enabled: bool,
+    scene_prepare_resources: Option<&HybridGiScenePrepareResourcesSnapshot>,
 ) -> ([GpuHybridGiProbe; MAX_HYBRID_GI_PROBES], u32, u32) {
     let mut probes = [GpuHybridGiProbe::zeroed(); MAX_HYBRID_GI_PROBES];
     if !enabled {
@@ -28,23 +31,31 @@ pub(in super::super) fn encode_hybrid_gi_probes(
 
     let mut count = 0;
     for probe in prepare.resident_probes.iter().take(MAX_HYBRID_GI_PROBES) {
-        let (screen_data, hierarchy_weight, hierarchy_irradiance, hierarchy_rt_lighting) =
-            hybrid_gi_extract
-                .and_then(|extract| {
-                    extract
-                        .probes
-                        .iter()
-                        .find(|candidate| candidate.probe_id == probe.probe_id)
-                })
-                .map(|source| {
-                    (
-                        encode_hybrid_gi_probe_screen_data(&frame.extract, viewport_size, source),
-                        hybrid_gi_hierarchy_resolve_weight(frame, source),
-                        hybrid_gi_hierarchy_irradiance(frame, source),
-                        hybrid_gi_hierarchy_rt_lighting(frame, source),
-                    )
-                })
-                .unwrap_or(([0.5, 0.5, 1.0, 1.0], 1.0, [0.0; 4], [0.0; 4]));
+        let source = hybrid_gi_extract.and_then(|extract| {
+            extract
+                .probes
+                .iter()
+                .find(|candidate| candidate.probe_id == probe.probe_id)
+        });
+        let (screen_data, hierarchy_weight, hierarchy_irradiance, hierarchy_rt_lighting) = source
+            .map(|source| {
+                (
+                    encode_hybrid_gi_probe_screen_data(&frame.extract, viewport_size, source),
+                    hybrid_gi_hierarchy_resolve_weight(frame, source),
+                    hybrid_gi_hierarchy_irradiance(frame, source),
+                    hybrid_gi_hierarchy_rt_lighting_with_scene_prepare_resources(
+                        frame,
+                        source,
+                        scene_prepare_resources,
+                    ),
+                )
+            })
+            .unwrap_or(([0.5, 0.5, 1.0, 1.0], 1.0, [0.0; 4], [0.0; 4]));
+        let temporal_signature = hybrid_gi_temporal_signature(
+            hybrid_gi_extract,
+            probe.probe_id,
+            source.and_then(|probe| probe.parent_probe_id),
+        );
         probes[count] = GpuHybridGiProbe {
             screen_uv_and_radius: screen_data,
             irradiance_and_intensity: [
@@ -55,6 +66,7 @@ pub(in super::super) fn encode_hybrid_gi_probes(
             ],
             hierarchy_irradiance_rgb_and_weight: hierarchy_irradiance,
             hierarchy_rt_lighting_rgb_and_weight: hierarchy_rt_lighting,
+            temporal_signature_and_padding: [temporal_signature, 0.0, 0.0, 0.0],
         };
         count += 1;
     }

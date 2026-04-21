@@ -23,18 +23,16 @@ pub use pipeline::{
 pub use runtime::{
     offline_bake_frame, OfflineBakeOutput, OfflineBakeSettings, WgpuRenderFramework,
 };
-#[cfg(test)]
-pub(crate) use scene::ViewportOverlayRenderer;
-pub use scene::{SceneRenderer, ViewportIconSource};
-pub use shader::{MaterialGraphAsset, ShaderGraphAsset, ShaderProgramAsset, ShaderVariantKey};
-pub use types::{
-    EditorOrRuntimeFrame, GpuResourceHandle, GraphicsError, ViewportFrame,
-    ViewportFrameTextureHandle,
-};
 pub use runtime_builtin_graphics::{
     module_descriptor as graphics_module_descriptor, GraphicsModule, GRAPHICS_MODULE_NAME,
-    RENDER_FRAMEWORK_NAME, RENDERING_MANAGER_NAME,
+    RENDERING_MANAGER_NAME, RENDER_FRAMEWORK_NAME,
 };
+pub use scene::SceneRenderer;
+#[cfg(test)]
+pub(crate) use scene::ViewportOverlayRenderer;
+pub use shader::{MaterialGraphAsset, ShaderGraphAsset, ShaderProgramAsset, ShaderVariantKey};
+pub(crate) use types::ViewportRenderFrame;
+pub use types::{GpuResourceHandle, GraphicsError, ViewportFrame, ViewportFrameTextureHandle};
 pub use visibility::{
     VisibilityBatch, VisibilityBatchKey, VisibilityBounds, VisibilityBvhInstance,
     VisibilityBvhUpdatePlan, VisibilityBvhUpdateStrategy, VisibilityContext, VisibilityDrawCommand,

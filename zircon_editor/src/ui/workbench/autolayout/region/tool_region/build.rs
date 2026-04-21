@@ -1,9 +1,9 @@
 use std::collections::{BTreeMap, HashMap};
 
-use crate::layout::{ActivityDrawerSlot, WorkbenchLayout};
-use crate::snapshot::ViewContentKind;
+use crate::ui::workbench::layout::{ActivityDrawerSlot, WorkbenchLayout};
 use crate::ui::workbench::model::WorkbenchViewModel;
-use crate::view::{ViewDescriptor, ViewDescriptorId};
+use crate::ui::workbench::snapshot::ViewContentKind;
+use crate::ui::workbench::view::{ViewDescriptor, ViewDescriptorId};
 
 use super::super::super::active_tab::active_tool_tab;
 use super::super::super::constraints::{

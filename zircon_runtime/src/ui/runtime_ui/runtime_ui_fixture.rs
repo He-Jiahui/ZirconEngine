@@ -1,5 +1,7 @@
+use std::path::{Path, PathBuf};
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum RuntimeUiFixture {
+pub(crate) enum RuntimeUiFixture {
     HudOverlay,
     PauseMenu,
     SettingsDialog,
@@ -16,12 +18,18 @@ impl RuntimeUiFixture {
         }
     }
 
-    pub(crate) fn source(self) -> &'static str {
+    pub(crate) fn relative_asset_path(self) -> &'static Path {
         match self {
-            Self::HudOverlay => include_str!("fixtures/hud_overlay.ui.toml"),
-            Self::PauseMenu => include_str!("fixtures/pause_menu.ui.toml"),
-            Self::SettingsDialog => include_str!("fixtures/settings_dialog.ui.toml"),
-            Self::InventoryList => include_str!("fixtures/inventory_list.ui.toml"),
+            Self::HudOverlay => Path::new("ui/runtime/fixtures/hud_overlay.ui.toml"),
+            Self::PauseMenu => Path::new("ui/runtime/fixtures/pause_menu.ui.toml"),
+            Self::SettingsDialog => Path::new("ui/runtime/fixtures/settings_dialog.ui.toml"),
+            Self::InventoryList => Path::new("ui/runtime/fixtures/inventory_list.ui.toml"),
         }
+    }
+
+    pub(crate) fn asset_path(self) -> PathBuf {
+        Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("assets")
+            .join(self.relative_asset_path())
     }
 }

@@ -1,4 +1,4 @@
-use crate::graphics::types::{EditorOrRuntimeFrame, GraphicsError};
+use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
 
 use super::super::super::super::resources::ResourceStreamer;
 use super::super::super::mesh::build_mesh_draws;
@@ -10,7 +10,7 @@ impl SceneRendererCore {
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         streamer: &ResourceStreamer,
-        frame: &EditorOrRuntimeFrame,
+        frame: &ViewportRenderFrame,
         color_view: &wgpu::TextureView,
         depth_view: &wgpu::TextureView,
     ) -> Result<(), GraphicsError> {
@@ -48,7 +48,7 @@ impl SceneRendererCore {
             &prepared_overlays,
         );
         self.screen_space_ui_renderer
-            .record(device, &mut encoder, color_view, frame);
+            .record(device, queue, &mut encoder, color_view, frame);
         queue.submit([encoder.finish()]);
         Ok(())
     }

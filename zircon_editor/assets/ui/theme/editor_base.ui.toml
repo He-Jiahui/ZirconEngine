@@ -4,31 +4,57 @@ id = "ui.theme.editor_base"
 version = 1
 display_name = "Editor Base"
 
+[imports]
+widgets = []
+styles = []
+
 [tokens]
-shell_bg = "#171a20"
-panel_bg = "#20252d"
 accent = "#4d89ff"
+panel_bg = "#20252d"
+shell_bg = "#171a20"
 title = "#eef3ff"
+
+[components]
 
 [[stylesheets]]
 id = "editor_base"
 
 [[stylesheets.rules]]
 selector = ".editor-shell"
-set = { self = { background = { color = "$shell_bg" } } }
+
+[stylesheets.rules.set.self.background]
+color = "$shell_bg"
+
+[stylesheets.rules.set.slot]
 
 [[stylesheets.rules]]
 selector = ".panel"
-set = { self = { background = { color = "$panel_bg" } } }
+
+[stylesheets.rules.set.self.background]
+color = "$panel_bg"
+
+[stylesheets.rules.set.slot]
 
 [[stylesheets.rules]]
 selector = ".section-title"
-set = { self = { text = "$title" } }
+
+[stylesheets.rules.set.self]
+text = "$title"
+
+[stylesheets.rules.set.slot]
 
 [[stylesheets.rules]]
 selector = ".toolbar > Button.toolbar-primary"
-set = { self = { background = { color = "$accent" } } }
+
+[stylesheets.rules.set.self.background]
+color = "$accent"
+
+[stylesheets.rules.set.slot]
 
 [[stylesheets.rules]]
 selector = "#DesignerLabel"
-set = { self = { text = "Canvas Preview" } }
+
+[stylesheets.rules.set.self]
+text = "Canvas Preview"
+
+[stylesheets.rules.set.slot]

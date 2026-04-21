@@ -24,7 +24,7 @@ naga = { version = "29.0.1", features = ["wgsl-in"] }
 notify = "9.0.0-rc.3"
 pollster = "0.4.0"
 serde = { version = "1.0.228", features = ["derive"] }
-slint = { version = "1.16.0", default-features = false, features = ["std", "backend-winit", "renderer-skia", "unstable-wgpu-27", "unstable-winit-030", "compat-1-2"] }
+slint = { version = "1.16.0", default-features = false, features = ["std", "backend-winit", "renderer-software", "unstable-winit-030", "compat-1-2"] }
 slint-build = "1.16.0"
 tobj = "4.0.3"
 thiserror = "2.0.18"

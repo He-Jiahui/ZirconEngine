@@ -1,5 +1,5 @@
-use crate::core::CoreError;
 use crate::core::resource::ResourceScheme;
+use crate::core::CoreError;
 
 use super::super::super::builtins::builtin_resources;
 use super::super::super::errors::{asset_error, asset_error_message};

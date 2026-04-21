@@ -1,7 +1,7 @@
-use crate::ui::ViewportCommand;
 use crate::scene::viewport::{
     DisplayMode, GridMode, ProjectionMode, SceneViewportTool, TransformSpace, ViewOrientation,
 };
+use crate::ui::binding::ViewportCommand;
 
 pub(super) fn default_viewport_command(action_id: &str) -> Option<ViewportCommand> {
     match action_id {

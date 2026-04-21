@@ -1,6 +1,6 @@
 use crate::core::math::Vec4;
+use crate::graphics::types::VirtualGeometryClusterRasterDraw;
 
-use super::virtual_geometry_cluster_raster_draw::VirtualGeometryClusterRasterDraw;
 use super::virtual_geometry_cluster_streaming_tint::virtual_geometry_cluster_streaming_tint;
 use super::virtual_geometry_draw_range::virtual_geometry_draw_range;
 

@@ -5,7 +5,7 @@ use crate::ui::slint_host::root_shell_projection::{
 };
 use crate::ui::slint_host::tab_drag::resolve_workbench_tab_drop_route_with_root_frames;
 use crate::ui::slint_host::WorkbenchHostContext;
-use crate::ShellFrame;
+use crate::ui::workbench::autolayout::ShellFrame;
 
 const WORKBENCH_POINTER_DOWN: i32 = 0;
 const WORKBENCH_POINTER_MOVE: i32 = 1;

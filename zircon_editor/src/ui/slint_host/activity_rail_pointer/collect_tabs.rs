@@ -1,4 +1,5 @@
-use crate::{ActivityDrawerSlot, WorkbenchViewModel};
+use crate::ui::workbench::layout::ActivityDrawerSlot;
+use crate::ui::workbench::model::WorkbenchViewModel;
 
 use super::drawer_slot_key::drawer_slot_key;
 use super::workbench_activity_rail_pointer_item::WorkbenchActivityRailPointerItem;

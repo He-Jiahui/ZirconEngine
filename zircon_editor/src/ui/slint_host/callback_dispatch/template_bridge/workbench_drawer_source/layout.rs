@@ -1,0 +1,244 @@
+use std::collections::BTreeMap;
+
+use zircon_runtime::ui::{
+    layout::{AxisConstraint, StretchMode, UiSize},
+    surface::UiSurface,
+};
+
+use crate::ui::slint_host::callback_dispatch::constants::BUILTIN_WORKBENCH_DRAWER_SOURCE_DOCUMENT_ID;
+use crate::ui::template_runtime::EditorUiHostRuntime;
+use crate::ui::workbench::autolayout::WorkbenchChromeMetrics;
+use crate::ui::workbench::layout::{ActivityDrawerMode, ActivityDrawerSlot};
+use crate::ui::workbench::model::WorkbenchViewModel;
+use crate::ui::workbench::snapshot::ActivityDrawerSnapshot;
+
+use super::control_ids::{
+    BOTTOM_DRAWER_OUTER_SEPARATOR_CONTROL_ID, BOTTOM_DRAWER_PANEL_CONTROL_ID,
+    BOTTOM_DRAWER_SHELL_CONTROL_ID, LEFT_DRAWER_PANEL_CONTROL_ID, LEFT_DRAWER_SHELL_CONTROL_ID,
+    RIGHT_DRAWER_PANEL_CONTROL_ID, RIGHT_DRAWER_SHELL_CONTROL_ID,
+};
+use super::error::BuiltinWorkbenchDrawerSourceTemplateBridgeError;
+
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+struct BuiltinWorkbenchDrawerRegionInput {
+    visible: bool,
+    extent: f32,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub(super) struct BuiltinWorkbenchDrawerLayoutInputs {
+    left: BuiltinWorkbenchDrawerRegionInput,
+    right: BuiltinWorkbenchDrawerRegionInput,
+    bottom: BuiltinWorkbenchDrawerRegionInput,
+}
+
+impl BuiltinWorkbenchDrawerLayoutInputs {
+    fn from_workbench_model(model: &WorkbenchViewModel, metrics: &WorkbenchChromeMetrics) -> Self {
+        Self {
+            left: drawer_region_input(
+                &model.drawer_ring.drawers,
+                &[ActivityDrawerSlot::LeftTop, ActivityDrawerSlot::LeftBottom],
+                metrics.rail_width,
+            ),
+            right: drawer_region_input(
+                &model.drawer_ring.drawers,
+                &[
+                    ActivityDrawerSlot::RightTop,
+                    ActivityDrawerSlot::RightBottom,
+                ],
+                metrics.rail_width,
+            ),
+            bottom: drawer_region_input(
+                &model.drawer_ring.drawers,
+                &[
+                    ActivityDrawerSlot::BottomLeft,
+                    ActivityDrawerSlot::BottomRight,
+                ],
+                metrics.panel_header_height,
+            ),
+        }
+    }
+}
+
+pub(super) fn default_drawer_layout_inputs() -> BuiltinWorkbenchDrawerLayoutInputs {
+    BuiltinWorkbenchDrawerLayoutInputs::default()
+}
+
+pub(super) fn drawer_layout_inputs_from_workbench_model(
+    model: &WorkbenchViewModel,
+    metrics: &WorkbenchChromeMetrics,
+) -> BuiltinWorkbenchDrawerLayoutInputs {
+    BuiltinWorkbenchDrawerLayoutInputs::from_workbench_model(model, metrics)
+}
+
+pub(super) fn build_builtin_workbench_drawer_source_surface(
+    runtime: &EditorUiHostRuntime,
+    shell_size: UiSize,
+    drawer_inputs: BuiltinWorkbenchDrawerLayoutInputs,
+    metrics: WorkbenchChromeMetrics,
+) -> Result<UiSurface, BuiltinWorkbenchDrawerSourceTemplateBridgeError> {
+    let mut surface = runtime.build_shared_surface(BUILTIN_WORKBENCH_DRAWER_SOURCE_DOCUMENT_ID)?;
+    apply_builtin_workbench_drawer_source_layout(&mut surface, drawer_inputs, metrics);
+    surface.compute_layout(shell_size)?;
+    Ok(surface)
+}
+
+fn apply_builtin_workbench_drawer_source_layout(
+    surface: &mut UiSurface,
+    drawer_inputs: BuiltinWorkbenchDrawerLayoutInputs,
+    metrics: WorkbenchChromeMetrics,
+) {
+    let rail_width = metrics.rail_width.max(0.0);
+    let header_height = metrics.panel_header_height.max(0.0);
+
+    apply_fixed_control_width(
+        surface,
+        LEFT_DRAWER_SHELL_CONTROL_ID,
+        resolved_drawer_shell_extent(drawer_inputs.left),
+    );
+    apply_fixed_control_width(
+        surface,
+        LEFT_DRAWER_PANEL_CONTROL_ID,
+        resolved_side_panel_extent(drawer_inputs.left, rail_width),
+    );
+    apply_fixed_control_width(
+        surface,
+        RIGHT_DRAWER_SHELL_CONTROL_ID,
+        resolved_drawer_shell_extent(drawer_inputs.right),
+    );
+    apply_fixed_control_width(
+        surface,
+        RIGHT_DRAWER_PANEL_CONTROL_ID,
+        resolved_side_panel_extent(drawer_inputs.right, rail_width),
+    );
+    apply_fixed_control_height(
+        surface,
+        BOTTOM_DRAWER_OUTER_SEPARATOR_CONTROL_ID,
+        resolved_drawer_separator_extent(drawer_inputs.bottom),
+    );
+    apply_fixed_control_height(
+        surface,
+        BOTTOM_DRAWER_SHELL_CONTROL_ID,
+        resolved_drawer_shell_extent(drawer_inputs.bottom),
+    );
+    apply_fixed_control_height(
+        surface,
+        BOTTOM_DRAWER_PANEL_CONTROL_ID,
+        resolved_bottom_panel_extent(drawer_inputs.bottom, header_height),
+    );
+}
+
+fn resolved_drawer_shell_extent(region: BuiltinWorkbenchDrawerRegionInput) -> f32 {
+    if region.visible {
+        region.extent.max(0.0)
+    } else {
+        0.0
+    }
+}
+
+fn resolved_side_panel_extent(region: BuiltinWorkbenchDrawerRegionInput, rail_width: f32) -> f32 {
+    if region.visible {
+        (region.extent - rail_width).max(0.0)
+    } else {
+        0.0
+    }
+}
+
+fn resolved_bottom_panel_extent(
+    region: BuiltinWorkbenchDrawerRegionInput,
+    header_height: f32,
+) -> f32 {
+    if region.visible {
+        (region.extent - header_height).max(0.0)
+    } else {
+        0.0
+    }
+}
+
+fn resolved_drawer_separator_extent(region: BuiltinWorkbenchDrawerRegionInput) -> f32 {
+    if region.visible {
+        1.0
+    } else {
+        0.0
+    }
+}
+
+fn drawer_region_input(
+    drawers: &BTreeMap<ActivityDrawerSlot, ActivityDrawerSnapshot>,
+    slots: &[ActivityDrawerSlot],
+    collapsed_extent: f32,
+) -> BuiltinWorkbenchDrawerRegionInput {
+    let mut visible = false;
+    let mut extent = 0.0_f32;
+
+    for slot in slots {
+        let Some(drawer) = drawers.get(slot) else {
+            continue;
+        };
+        if !drawer.visible || drawer.tabs.is_empty() {
+            continue;
+        }
+
+        visible = true;
+        let next_extent = match drawer.mode {
+            ActivityDrawerMode::Collapsed => collapsed_extent,
+            ActivityDrawerMode::Pinned | ActivityDrawerMode::AutoHide => {
+                drawer.extent.max(collapsed_extent)
+            }
+        };
+        extent = extent.max(next_extent);
+    }
+
+    BuiltinWorkbenchDrawerRegionInput {
+        visible,
+        extent: if visible { extent.max(0.0) } else { 0.0 },
+    }
+}
+
+fn surface_control_node_id(
+    surface: &UiSurface,
+    control_id: &str,
+) -> Option<zircon_runtime::ui::event_ui::UiNodeId> {
+    surface.tree.nodes.values().find_map(|node| {
+        node.template_metadata
+            .as_ref()
+            .and_then(|metadata| metadata.control_id.as_deref())
+            .filter(|candidate| *candidate == control_id)
+            .map(|_| node.node_id)
+    })
+}
+
+fn apply_fixed_control_width(surface: &mut UiSurface, control_id: &str, width: f32) {
+    let Some(node_id) = surface_control_node_id(surface, control_id) else {
+        return;
+    };
+    let Some(node) = surface.tree.node_mut(node_id) else {
+        return;
+    };
+
+    node.constraints.width = fixed_axis(width);
+    node.state_flags.visible = width > f32::EPSILON;
+}
+
+fn apply_fixed_control_height(surface: &mut UiSurface, control_id: &str, height: f32) {
+    let Some(node_id) = surface_control_node_id(surface, control_id) else {
+        return;
+    };
+    let Some(node) = surface.tree.node_mut(node_id) else {
+        return;
+    };
+
+    node.constraints.height = fixed_axis(height);
+    node.state_flags.visible = height > f32::EPSILON;
+}
+
+fn fixed_axis(size: f32) -> AxisConstraint {
+    AxisConstraint {
+        min: size.max(0.0),
+        max: size.max(0.0),
+        preferred: size.max(0.0),
+        priority: 100,
+        weight: 1.0,
+        stretch_mode: StretchMode::Fixed,
+    }
+}

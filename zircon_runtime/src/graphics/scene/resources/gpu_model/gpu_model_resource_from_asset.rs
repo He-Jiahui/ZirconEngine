@@ -9,13 +9,14 @@ impl GpuModelResource {
     pub(crate) fn from_asset(
         device: &wgpu::Device,
         id: ResourceId,
-        asset: crate::asset::assets::ModelAsset,
+        asset: &crate::asset::assets::ModelAsset,
     ) -> Self {
         Self {
             id,
             meshes: asset
                 .primitives
-                .into_iter()
+                .iter()
+                .cloned()
                 .map(|primitive| Arc::new(GpuMeshResource::from_asset(device, primitive)))
                 .collect(),
         }

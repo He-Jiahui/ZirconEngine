@@ -1,21 +1,23 @@
 use std::fmt;
 use std::sync::Arc;
 
-use crate::core::{CoreError, CoreHandle};
 use crate::core::framework::{
     animation::AnimationManager,
     asset::ResourceManager,
     foundation::{ConfigManager, EventManager},
     input::InputManager,
+    net::NetManager,
     physics::PhysicsManager,
     render::{RenderFramework, RenderingManager},
     scene::LevelManager,
+    sound::SoundManager,
 };
+use crate::core::{CoreError, CoreHandle};
 
 use super::{
     ANIMATION_MANAGER_NAME, CONFIG_MANAGER_NAME, EVENT_MANAGER_NAME, INPUT_MANAGER_NAME,
-    LEVEL_MANAGER_NAME, PHYSICS_MANAGER_NAME, RENDER_FRAMEWORK_NAME, RENDERING_MANAGER_NAME,
-    RESOURCE_MANAGER_NAME,
+    LEVEL_MANAGER_NAME, NET_MANAGER_NAME, PHYSICS_MANAGER_NAME, RENDERING_MANAGER_NAME,
+    RENDER_FRAMEWORK_NAME, RESOURCE_MANAGER_NAME, SOUND_MANAGER_NAME,
 };
 
 macro_rules! define_manager_holder {
@@ -119,6 +121,13 @@ define_manager_holder!(
     event
 );
 define_manager_holder!(
+    NetManagerHandle,
+    NetManager,
+    resolve_net_manager,
+    NET_MANAGER_NAME,
+    net
+);
+define_manager_holder!(
     PhysicsManagerHandle,
     PhysicsManager,
     resolve_physics_manager,
@@ -131,4 +140,11 @@ define_manager_holder!(
     resolve_animation_manager,
     ANIMATION_MANAGER_NAME,
     animation
+);
+define_manager_holder!(
+    SoundManagerHandle,
+    SoundManager,
+    resolve_sound_manager,
+    SOUND_MANAGER_NAME,
+    sound
 );

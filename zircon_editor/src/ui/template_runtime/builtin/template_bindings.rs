@@ -1,11 +1,12 @@
 use std::collections::BTreeMap;
 
-use crate::ui::{
-    AssetCommand, DockCommand, DraftCommand, EditorUiBinding, EditorUiBindingPayload,
-    EditorUiEventKind, InspectorFieldChange, ViewportCommand, WelcomeCommand,
-};
+use crate::core::editor_event::InspectorFieldChange;
 use crate::scene::viewport::{
     DisplayMode, GridMode, ProjectionMode, SceneViewportTool, TransformSpace, ViewOrientation,
+};
+use crate::ui::binding::{
+    AssetCommand, DockCommand, DraftCommand, EditorUiBinding, EditorUiBindingPayload,
+    EditorUiEventKind, ViewportCommand, WelcomeCommand,
 };
 use zircon_runtime::ui::binding::UiBindingValue;
 

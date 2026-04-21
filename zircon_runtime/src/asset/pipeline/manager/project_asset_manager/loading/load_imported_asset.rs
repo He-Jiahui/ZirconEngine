@@ -18,6 +18,8 @@ impl ProjectAssetManager {
         match kind {
             AssetKind::Model => self.load_model_asset(id).map(ImportedAsset::Model),
             AssetKind::Material => self.load_material_asset(id).map(ImportedAsset::Material),
+            AssetKind::Sound => self.load_sound_asset(id).map(ImportedAsset::Sound),
+            AssetKind::Font => self.load_font_asset(id).map(ImportedAsset::Font),
             AssetKind::PhysicsMaterial => self
                 .load_physics_material_asset(id)
                 .map(ImportedAsset::PhysicsMaterial),

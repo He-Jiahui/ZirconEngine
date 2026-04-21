@@ -2,7 +2,9 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{PaneConstraintOverride, ShellRegionId, ViewInstanceId};
+use crate::ui::workbench::autolayout::PaneConstraintOverride;
+use crate::ui::workbench::autolayout::ShellRegionId;
+use crate::ui::workbench::view::ViewInstanceId;
 
 use super::{
     ActivityDrawerLayout, ActivityDrawerSlot, FloatingWindowLayout, MainHostPageLayout, MainPageId,

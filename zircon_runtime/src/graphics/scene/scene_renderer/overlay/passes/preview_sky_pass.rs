@@ -1,6 +1,6 @@
 use crate::core::framework::render::FallbackSkyboxKind;
 
-use crate::graphics::types::EditorOrRuntimeFrame;
+use crate::graphics::types::ViewportRenderFrame;
 
 pub(crate) struct PreviewSkyPass;
 
@@ -12,7 +12,7 @@ impl PreviewSkyPass {
         depth_view: &wgpu::TextureView,
         scene_bind_group: &wgpu::BindGroup,
         sky_pipeline: &wgpu::RenderPipeline,
-        frame: &EditorOrRuntimeFrame,
+        frame: &ViewportRenderFrame,
     ) {
         let clear_color = frame.scene.preview.clear_color;
         let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {

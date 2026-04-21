@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
 use crate::asset::pipeline::manager::{AssetIoDriver, AssetManagerHandle, ProjectAssetManager};
+use crate::core::manager::ResourceManagerHandle;
 use crate::core::{
     DriverDescriptor, ManagerDescriptor, ModuleDescriptor, ServiceKind, ServiceObject, StartupMode,
 };
-use crate::core::manager::ResourceManagerHandle;
 use crate::engine_module::{dependency_on, factory, qualified_name, EngineModule};
 
 pub const ASSET_MODULE_NAME: &str = "AssetModule";

@@ -1,4 +1,4 @@
-use crate::ui::{DraftCommand, EditorUiBinding, EditorUiBindingPayload};
+use crate::ui::binding::{DraftCommand, EditorUiBinding, EditorUiBindingPayload};
 
 use super::super::error::EditorBindingDispatchError;
 use super::super::inspector::binding_value_to_string;

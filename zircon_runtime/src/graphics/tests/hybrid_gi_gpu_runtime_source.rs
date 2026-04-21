@@ -11,8 +11,8 @@ use crate::scene::world::World;
 use crate::{
     runtime::HybridGiRuntimeState,
     types::{
-        EditorOrRuntimeFrame, HybridGiPrepareFrame, HybridGiPrepareUpdateRequest,
-        HybridGiResolveRuntime,
+        HybridGiPrepareFrame, HybridGiPrepareUpdateRequest, HybridGiResolveRuntime,
+        ViewportRenderFrame,
     },
     BuiltinRenderFeature, RenderPipelineAsset, RenderPipelineCompileOptions, SceneRenderer,
 };
@@ -813,6 +813,12 @@ fn build_extract(
         RenderFrameExtract::from_snapshot(RenderWorldSnapshotHandle::new(1), snapshot);
     extract.apply_viewport_size(viewport_size);
     extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
         probe_budget,
         tracing_budget,
         probes,
@@ -912,7 +918,7 @@ fn render_hybrid_gi_gpu_trace_lighting_readback_with_runtime(
 
     renderer
         .render_frame_with_pipeline(
-            &EditorOrRuntimeFrame::from_extract(extract, viewport_size)
+            &ViewportRenderFrame::from_extract(extract, viewport_size)
                 .with_hybrid_gi_prepare(Some(prepare))
                 .with_hybrid_gi_resolve_runtime(runtime),
             &compiled,
@@ -953,7 +959,7 @@ fn render_hybrid_gi_gpu_irradiance_readback_with_runtime(
 
     renderer
         .render_frame_with_pipeline(
-            &EditorOrRuntimeFrame::from_extract(extract, viewport_size)
+            &ViewportRenderFrame::from_extract(extract, viewport_size)
                 .with_hybrid_gi_prepare(Some(prepare))
                 .with_hybrid_gi_resolve_runtime(runtime),
             &compiled,

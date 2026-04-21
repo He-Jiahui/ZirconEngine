@@ -4,100 +4,277 @@ id = "runtime.pause_dialog"
 version = 1
 display_name = "Pause Dialog"
 
-[root]
-node = "pause_dialog_root"
+[imports]
+widgets = []
+styles = []
 
-[nodes.pause_dialog_root]
+[tokens]
+
+[root]
+node_id = "pause_dialog_root"
 kind = "native"
 type = "Overlay"
 control_id = "PauseDialogRoot"
 classes = ["dialog-root"]
-layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "Overlay" } }
-children = [
-  { child = "backdrop" },
-  { child = "dialog", slot = { layout = { anchor = { x = 0.5, y = 0.5 }, pivot = { x = 0.5, y = 0.5 }, position = { x = 0.0, y = 0.0 }, z_index = 10 } } },
-]
+bindings = []
 
-[nodes.backdrop]
+[root.params]
+
+[root.props]
+
+[root.layout.container]
+kind = "Overlay"
+
+[root.layout.height]
+stretch = "Stretch"
+
+[root.layout.width]
+stretch = "Stretch"
+
+[root.style_overrides.self]
+
+[root.style_overrides.slot]
+
+[[root.children]]
+
+[root.children.slot]
+
+[root.children.node]
+node_id = "backdrop"
 kind = "native"
 type = "Canvas"
 control_id = "PauseBackdrop"
 classes = ["dialog-backdrop"]
-layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+bindings = []
+children = []
 
-[nodes.dialog]
+[root.children.node.params]
+
+[root.children.node.props]
+
+[root.children.node.layout.height]
+stretch = "Stretch"
+
+[root.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.style_overrides.self]
+
+[root.children.node.style_overrides.slot]
+
+[[root.children]]
+
+[root.children.slot.layout]
+z_index = 10
+
+[root.children.slot.layout.anchor]
+x = 0.5
+y = 0.5
+
+[root.children.slot.layout.pivot]
+x = 0.5
+y = 0.5
+
+[root.children.slot.layout.position]
+x = 0.0
+y = 0.0
+
+[root.children.node]
+node_id = "dialog"
 kind = "native"
 type = "VerticalBox"
 control_id = "PauseDialogCard"
 classes = ["dialog-card"]
-layout = { width = { min = 320.0, preferred = 360.0, max = 420.0, stretch = "Fixed" }, container = { kind = "VerticalBox", gap = 12.0 } }
-children = [
-  { child = "title" },
-  { child = "message" },
-  { child = "actions" },
-]
+bindings = []
 
-[nodes.title]
+[root.children.node.params]
+
+[root.children.node.props]
+
+[root.children.node.layout.container]
+gap = 12.0
+kind = "VerticalBox"
+
+[root.children.node.layout.width]
+max = 420.0
+min = 320.0
+preferred = 360.0
+stretch = "Fixed"
+
+[root.children.node.style_overrides.self]
+
+[root.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+
+[root.children.node.children.slot]
+
+[root.children.node.children.node]
+node_id = "title"
 kind = "native"
 type = "Label"
 control_id = "PauseTitle"
 classes = ["dialog-title"]
-props = { text = "Paused" }
+bindings = []
+children = []
 
-[nodes.message]
+[root.children.node.children.node.params]
+
+[root.children.node.children.node.props]
+text = "Paused"
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+
+[root.children.node.children.slot]
+
+[root.children.node.children.node]
+node_id = "message"
 kind = "native"
 type = "Label"
 control_id = "PauseMessage"
 classes = ["dialog-message"]
-props = { text = "Resume the mission or return to the command room." }
+bindings = []
+children = []
 
-[nodes.actions]
+[root.children.node.children.node.params]
+
+[root.children.node.children.node.props]
+text = "Resume the mission or return to the command room."
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+
+[root.children.node.children.slot]
+
+[root.children.node.children.node]
+node_id = "actions"
 kind = "native"
 type = "HorizontalBox"
 control_id = "PauseActions"
-layout = { width = { stretch = "Stretch" }, container = { kind = "HorizontalBox", gap = 10.0 } }
-children = [
-  { child = "resume_button" },
-  { child = "quit_button" },
-]
+classes = []
+bindings = []
 
-[nodes.resume_button]
+[root.children.node.children.node.params]
+
+[root.children.node.children.node.props]
+
+[root.children.node.children.node.layout.container]
+gap = 10.0
+kind = "HorizontalBox"
+
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children]]
+
+[root.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node]
+node_id = "resume_button"
 kind = "native"
 type = "Button"
 control_id = "ResumeAction"
-classes = ["dialog-button", "dialog-button-primary"]
-props = { text = "Resume" }
+classes = [
+    "dialog-button",
+    "dialog-button-primary",
+]
+bindings = []
+children = []
 
-[nodes.quit_button]
+[root.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.props]
+text = "Resume"
+
+[root.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children]]
+
+[root.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node]
+node_id = "quit_button"
 kind = "native"
 type = "Button"
 control_id = "QuitAction"
 classes = ["dialog-button"]
-props = { text = "Quit To Menu" }
+bindings = []
+children = []
+
+[root.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.props]
+text = "Quit To Menu"
+
+[root.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.style_overrides.slot]
+
+[components]
 
 [[stylesheets]]
 id = "pause_dialog"
 
 [[stylesheets.rules]]
 selector = ".dialog-backdrop"
-set = { self = { background = { color = "#111621cc" } } }
+
+[stylesheets.rules.set.self.background]
+color = "#111621cc"
+
+[stylesheets.rules.set.slot]
 
 [[stylesheets.rules]]
 selector = ".dialog-card"
-set = { self = { background = { color = "#202737" } } }
+
+[stylesheets.rules.set.self.background]
+color = "#202737"
+
+[stylesheets.rules.set.slot]
 
 [[stylesheets.rules]]
 selector = ".dialog-title"
-set = { self = { text = "#eef3ff" } }
+
+[stylesheets.rules.set.self]
+text = "#eef3ff"
+
+[stylesheets.rules.set.slot]
 
 [[stylesheets.rules]]
 selector = ".dialog-message"
-set = { self = { text = "#aab7d4" } }
+
+[stylesheets.rules.set.self]
+text = "#aab7d4"
+
+[stylesheets.rules.set.slot]
 
 [[stylesheets.rules]]
 selector = "Button.dialog-button"
-set = { self = { background = { color = "#293349" }, text = "#f1f5ff" } }
+
+[stylesheets.rules.set.self]
+text = "#f1f5ff"
+
+[stylesheets.rules.set.self.background]
+color = "#293349"
+
+[stylesheets.rules.set.slot]
 
 [[stylesheets.rules]]
 selector = "Button.dialog-button-primary"
-set = { self = { background = { color = "#4d89ff" } } }
+
+[stylesheets.rules.set.self.background]
+color = "#4d89ff"
+
+[stylesheets.rules.set.slot]

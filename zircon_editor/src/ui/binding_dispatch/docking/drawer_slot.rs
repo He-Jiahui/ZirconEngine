@@ -1,5 +1,5 @@
 use super::super::error::EditorBindingDispatchError;
-use crate::ActivityDrawerSlot;
+use crate::core::editor_event::ActivityDrawerSlot;
 
 pub(super) fn parse_drawer_slot(
     slot: &str,

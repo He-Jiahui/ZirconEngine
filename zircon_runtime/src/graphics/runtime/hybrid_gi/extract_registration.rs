@@ -1,6 +1,9 @@
 use std::collections::BTreeSet;
 
-use crate::core::framework::render::RenderHybridGiExtract;
+use crate::core::framework::render::{
+    RenderDirectionalLightSnapshot, RenderHybridGiExtract, RenderMeshSnapshot,
+    RenderPointLightSnapshot, RenderSpotLightSnapshot,
+};
 
 use super::HybridGiRuntimeState;
 
@@ -10,6 +13,25 @@ const POSITIVE_RADIUS_SCALE: f32 = 96.0;
 const POSITIVE_COVERAGE_SCALE: f32 = 128.0;
 
 impl HybridGiRuntimeState {
+    pub(crate) fn register_scene_extract(
+        &mut self,
+        extract: Option<&RenderHybridGiExtract>,
+        meshes: &[RenderMeshSnapshot],
+        directional_lights: &[RenderDirectionalLightSnapshot],
+        point_lights: &[RenderPointLightSnapshot],
+        spot_lights: &[RenderSpotLightSnapshot],
+    ) {
+        self.register_extract(extract);
+        if extract.is_some() {
+            self.scene_representation.synchronize_scene(
+                meshes,
+                directional_lights,
+                point_lights,
+                spot_lights,
+            );
+        }
+    }
+
     pub(crate) fn register_extract(&mut self, extract: Option<&RenderHybridGiExtract>) {
         self.evictable_probes.clear();
         self.scheduled_trace_regions.clear();
@@ -19,6 +41,8 @@ impl HybridGiRuntimeState {
             *self = Self::default();
             return;
         };
+
+        self.scene_representation.apply_extract(extract);
 
         let live_probe_ids = extract
             .probes

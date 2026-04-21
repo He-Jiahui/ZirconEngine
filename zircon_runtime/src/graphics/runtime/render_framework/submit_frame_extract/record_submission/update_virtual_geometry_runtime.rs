@@ -137,7 +137,7 @@ mod tests {
 
     use crate::{
         runtime::render_framework::submit_frame_extract::{
-            frame_submission_context::UiSubmissionStats,
+            frame_submission_context::{HybridGiSceneInputs, UiSubmissionStats},
             gpu_completion::VirtualGeometryGpuCompletion,
         },
         types::VirtualGeometryPrepareRequest,
@@ -273,6 +273,8 @@ mod tests {
                 page(300, true, 2048),
                 page(700, false, 4096),
             ],
+            instances: Vec::new(),
+            debug: Default::default(),
         }));
         runtime.ingest_plan(
             1,
@@ -286,6 +288,7 @@ mod tests {
         let mut prepared = PreparedRuntimeSubmission {
             hybrid_gi_runtime: None,
             hybrid_gi_prepare: None,
+            hybrid_gi_scene_prepare: None,
             hybrid_gi_resolve_runtime: None,
             hybrid_gi_evictable_probe_ids: Vec::new(),
             virtual_geometry_runtime: Some(runtime),
@@ -458,9 +461,12 @@ mod tests {
             hybrid_gi_enabled: false,
             virtual_geometry_enabled: true,
             hybrid_gi_extract: None,
+            hybrid_gi_scene_inputs: HybridGiSceneInputs::default(),
             hybrid_gi_update_plan: None,
             hybrid_gi_feedback: None,
             virtual_geometry_extract: None,
+            virtual_geometry_cpu_reference_instances: Vec::new(),
+            virtual_geometry_bvh_visualization_instances: Vec::new(),
             virtual_geometry_page_upload_plan: None,
             virtual_geometry_feedback: Some(feedback),
             predicted_generation: 2,
@@ -478,6 +484,8 @@ mod tests {
                 page(300, true, 2048),
                 page(700, false, 4096),
             ],
+            instances: Vec::new(),
+            debug: Default::default(),
         }));
         runtime.ingest_plan(
             1,
@@ -492,6 +500,7 @@ mod tests {
         PreparedRuntimeSubmission {
             hybrid_gi_runtime: None,
             hybrid_gi_prepare: None,
+            hybrid_gi_scene_prepare: None,
             hybrid_gi_resolve_runtime: None,
             hybrid_gi_evictable_probe_ids: Vec::new(),
             virtual_geometry_runtime: Some(runtime),

@@ -1,4 +1,4 @@
-use crate::layout::MainPageId;
+use crate::ui::workbench::layout::MainPageId;
 
 use super::breadcrumb_model::BreadcrumbModel;
 use super::host_page_tab_model::HostPageTabModel;

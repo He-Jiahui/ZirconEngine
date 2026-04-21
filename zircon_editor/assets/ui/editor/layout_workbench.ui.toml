@@ -1,3 +1,5 @@
+stylesheets = []
+
 [asset]
 kind = "layout"
 id = "editor.layout_workbench"
@@ -6,100 +8,276 @@ display_name = "Layout Workbench"
 
 [imports]
 widgets = [
-  "res://ui/editor/editor_widgets.ui.toml#EditorToolbar",
-  "res://ui/editor/editor_widgets.ui.toml#EditorToolbarButton",
-  "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard",
+    "res://ui/editor/editor_widgets.ui.toml#EditorToolbar",
+    "res://ui/editor/editor_widgets.ui.toml#EditorToolbarButton",
+    "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard",
 ]
 styles = ["res://ui/theme/editor_base.ui.toml"]
 
-[root]
-node = "layout_workbench_root"
+[tokens]
 
-[nodes.layout_workbench_root]
+[root]
+node_id = "layout_workbench_root"
 kind = "native"
 type = "VerticalBox"
 control_id = "LayoutWorkbenchRoot"
 classes = ["editor-shell"]
-layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox", gap = 10.0 } }
-children = [
-  { child = "toolbar" },
-  { child = "content" },
-]
+bindings = []
 
-[nodes.toolbar]
+[root.params]
+
+[root.props]
+
+[root.layout.container]
+gap = 10.0
+kind = "VerticalBox"
+
+[root.layout.height]
+stretch = "Stretch"
+
+[root.layout.width]
+stretch = "Stretch"
+
+[root.style_overrides.self]
+
+[root.style_overrides.slot]
+
+[[root.children]]
+
+[root.children.slot]
+
+[root.children.node]
+node_id = "toolbar"
 kind = "reference"
 component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorToolbar"
 control_id = "LayoutWorkbenchToolbar"
-children = [
-  { child = "new_canvas_button", mount = "actions" },
-  { child = "promote_button", mount = "actions" },
-]
+classes = []
+bindings = []
 
-[nodes.new_canvas_button]
+[root.children.node.params]
+
+[root.children.node.props]
+
+[root.children.node.style_overrides.self]
+
+[root.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+mount = "actions"
+
+[root.children.node.children.slot]
+
+[root.children.node.children.node]
+node_id = "new_canvas_button"
 kind = "reference"
 component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorToolbarButton"
 control_id = "NewCanvas"
 classes = ["toolbar-primary"]
-params = { label = "New Canvas", icon = "add-outline" }
+bindings = []
+children = []
 
-[nodes.promote_button]
+[root.children.node.children.node.params]
+icon = "add-outline"
+label = "New Canvas"
+
+[root.children.node.children.node.props]
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+mount = "actions"
+
+[root.children.node.children.slot]
+
+[root.children.node.children.node]
+node_id = "promote_button"
 kind = "reference"
 component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorToolbarButton"
 control_id = "PromoteLayout"
-params = { label = "Promote", icon = "share-outline" }
+classes = []
+bindings = []
+children = []
 
-[nodes.content]
+[root.children.node.children.node.params]
+icon = "share-outline"
+label = "Promote"
+
+[root.children.node.children.node.props]
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children]]
+
+[root.children.slot]
+
+[root.children.node]
+node_id = "content"
 kind = "native"
 type = "HorizontalBox"
 control_id = "LayoutWorkbenchContent"
-layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "HorizontalBox", gap = 10.0 } }
-children = [
-  { child = "outline_panel", slot = { layout = { width = { min = 220.0, preferred = 240.0, max = 280.0, stretch = "Fixed" } } } },
-  { child = "canvas_panel" },
-  { child = "semantics_panel", slot = { layout = { width = { min = 260.0, preferred = 280.0, max = 340.0, stretch = "Fixed" } } } },
-]
+classes = []
+bindings = []
 
-[nodes.outline_panel]
+[root.children.node.params]
+
+[root.children.node.props]
+
+[root.children.node.layout.container]
+gap = 10.0
+kind = "HorizontalBox"
+
+[root.children.node.layout.height]
+stretch = "Stretch"
+
+[root.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.style_overrides.self]
+
+[root.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+
+[root.children.node.children.slot.layout.width]
+max = 280.0
+min = 220.0
+preferred = 240.0
+stretch = "Fixed"
+
+[root.children.node.children.node]
+node_id = "outline_panel"
 kind = "reference"
 component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard"
 control_id = "LayoutOutlinePanel"
-params = { title = "Outline" }
-children = [
-  { child = "outline_label", mount = "content" },
-]
+classes = []
+bindings = []
 
-[nodes.outline_label]
+[root.children.node.children.node.params]
+title = "Outline"
+
+[root.children.node.children.node.props]
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children]]
+mount = "content"
+
+[root.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node]
+node_id = "outline_label"
 kind = "native"
 type = "Label"
 control_id = "LayoutOutlineLabel"
-props = { text = "Pages, components, reusable layout patterns" }
+classes = []
+bindings = []
+children = []
 
-[nodes.canvas_panel]
+[root.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.props]
+text = "Pages, components, reusable layout patterns"
+
+[root.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+
+[root.children.node.children.slot]
+
+[root.children.node.children.node]
+node_id = "canvas_panel"
 kind = "reference"
 component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard"
 control_id = "LayoutCanvasPanel"
-params = { title = "Canvas" }
-children = [
-  { child = "canvas_label", mount = "content" },
-]
+classes = []
+bindings = []
 
-[nodes.canvas_label]
+[root.children.node.children.node.params]
+title = "Canvas"
+
+[root.children.node.children.node.props]
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children]]
+mount = "content"
+
+[root.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node]
+node_id = "canvas_label"
 kind = "native"
 type = "Label"
 control_id = "LayoutCanvasLabel"
-props = { text = "Auto layout guides, overlay anchors, drop overlays" }
+classes = []
+bindings = []
+children = []
 
-[nodes.semantics_panel]
+[root.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.props]
+text = "Auto layout guides, overlay anchors, drop overlays"
+
+[root.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+
+[root.children.node.children.slot.layout.width]
+max = 340.0
+min = 260.0
+preferred = 280.0
+stretch = "Fixed"
+
+[root.children.node.children.node]
+node_id = "semantics_panel"
 kind = "reference"
 component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard"
 control_id = "LayoutSemanticsPanel"
-params = { title = "Semantics" }
-children = [
-  { child = "semantics_label", mount = "content" },
-]
+classes = []
+bindings = []
 
-[nodes.semantics_label]
+[root.children.node.children.node.params]
+title = "Semantics"
+
+[root.children.node.children.node.props]
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children]]
+mount = "content"
+
+[root.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node]
+node_id = "semantics_label"
 kind = "native"
 type = "Label"
 control_id = "LayoutSemanticsLabel"
-props = { text = "Slot inspector, layout contract, binding context" }
+classes = []
+bindings = []
+children = []
+
+[root.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.props]
+text = "Slot inspector, layout contract, binding context"
+
+[root.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.style_overrides.slot]
+
+[components]

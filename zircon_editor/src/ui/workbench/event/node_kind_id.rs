@@ -6,5 +6,7 @@ pub(super) fn node_kind_id(kind: &NodeKind) -> &'static str {
         NodeKind::Cube => "Cube",
         NodeKind::Mesh => "Mesh",
         NodeKind::DirectionalLight => "DirectionalLight",
+        NodeKind::PointLight => "PointLight",
+        NodeKind::SpotLight => "SpotLight",
     }
 }

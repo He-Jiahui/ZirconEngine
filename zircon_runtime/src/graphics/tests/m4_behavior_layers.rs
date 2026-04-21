@@ -3,7 +3,6 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use image::{ImageBuffer, ImageFormat, Rgba};
 use crate::asset::assets::{AlphaMode, MaterialAsset};
 use crate::asset::pipeline::manager::{AssetManager, ProjectAssetManager};
 use crate::asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
@@ -19,6 +18,7 @@ use crate::core::framework::render::{
 use crate::core::math::{Transform, UVec2, Vec3, Vec4};
 use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle};
 use crate::scene::components::{default_render_layer_mask, Mobility};
+use image::{ImageBuffer, ImageFormat, Rgba};
 
 use crate::graphics::{offline_bake_frame, OfflineBakeSettings, WgpuRenderFramework};
 
@@ -375,7 +375,9 @@ fn build_snapshot(
         scene: RenderSceneGeometryExtract {
             camera,
             meshes,
-            lights,
+            directional_lights: lights,
+            point_lights: Vec::new(),
+            spot_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract {
             display_mode: DisplayMode::Shaded,
@@ -387,6 +389,7 @@ fn build_snapshot(
             fallback_skybox: FallbackSkyboxKind::None,
             clear_color: Vec4::ZERO,
         },
+        virtual_geometry_debug: None,
     }
 }
 

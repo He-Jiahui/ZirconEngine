@@ -2,6 +2,9 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
+use crate::core::framework::render::{
+    RenderVirtualGeometryHardwareRasterizationSource, RenderVirtualGeometryVisBuffer64Source,
+};
 
 use crate::graphics::types::GraphicsError;
 
@@ -12,12 +15,13 @@ use super::super::scene_renderer::SceneRenderer;
 use super::super::scene_renderer_core::SceneRendererCore;
 
 impl SceneRenderer {
-    pub fn new_with_icon_source(
+    pub(crate) fn new_with_icon_source(
         asset_manager: Arc<ProjectAssetManager>,
         icon_source: Arc<dyn ViewportIconSource>,
     ) -> Result<Self, GraphicsError> {
         let backend = crate::graphics::backend::RenderBackend::new_offscreen()?;
         let core = SceneRendererCore::new_with_icon_source(
+            asset_manager.clone(),
             &backend.device,
             &backend.queue,
             OFFSCREEN_FORMAT,
@@ -39,19 +43,40 @@ impl SceneRenderer {
             generation: 0,
             last_hybrid_gi_gpu_readback: None,
             last_virtual_geometry_gpu_readback: None,
+            last_virtual_geometry_debug_snapshot: None,
             last_virtual_geometry_indirect_draw_count: 0,
             last_virtual_geometry_indirect_buffer_count: 0,
             last_virtual_geometry_indirect_segment_count: 0,
+            last_virtual_geometry_execution_segment_count: 0,
+            last_virtual_geometry_execution_page_count: 0,
+            last_virtual_geometry_execution_resident_segment_count: 0,
+            last_virtual_geometry_execution_pending_segment_count: 0,
+            last_virtual_geometry_execution_missing_segment_count: 0,
+            last_virtual_geometry_execution_repeated_draw_count: 0,
+            last_virtual_geometry_execution_indirect_offsets: Vec::new(),
             last_virtual_geometry_mesh_draw_submission_order: Vec::new(),
             last_virtual_geometry_mesh_draw_submission_records: Vec::new(),
             last_virtual_geometry_mesh_draw_submission_token_records: Vec::new(),
             last_virtual_geometry_indirect_args_buffer: None,
             last_virtual_geometry_indirect_args_count: 0,
             last_virtual_geometry_indirect_submission_buffer: None,
+            last_virtual_geometry_indirect_authority_buffer: None,
             last_virtual_geometry_indirect_draw_refs_buffer: None,
             last_virtual_geometry_indirect_segments_buffer: None,
-            last_virtual_geometry_indirect_execution_buffer: None,
-            last_virtual_geometry_indirect_execution_records_buffer: None,
+            last_virtual_geometry_indirect_execution_submission_buffer: None,
+            last_virtual_geometry_indirect_execution_args_buffer: None,
+            last_virtual_geometry_indirect_execution_authority_buffer: None,
+            last_virtual_geometry_selected_cluster_count: 0,
+            last_virtual_geometry_selected_cluster_buffer: None,
+            last_virtual_geometry_visbuffer64_clear_value: 0,
+            last_virtual_geometry_visbuffer64_source:
+                RenderVirtualGeometryVisBuffer64Source::Unavailable,
+            last_virtual_geometry_visbuffer64_entry_count: 0,
+            last_virtual_geometry_visbuffer64_buffer: None,
+            last_virtual_geometry_hardware_rasterization_record_count: 0,
+            last_virtual_geometry_hardware_rasterization_source:
+                RenderVirtualGeometryHardwareRasterizationSource::Unavailable,
+            last_virtual_geometry_hardware_rasterization_buffer: None,
         })
     }
 }

@@ -1,3 +1,5 @@
+stylesheets = []
+
 [asset]
 kind = "layout"
 id = "editor.asset_browser"
@@ -6,100 +8,276 @@ display_name = "Asset Browser"
 
 [imports]
 widgets = [
-  "res://ui/editor/editor_widgets.ui.toml#EditorToolbar",
-  "res://ui/editor/editor_widgets.ui.toml#EditorToolbarButton",
-  "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard",
+    "res://ui/editor/editor_widgets.ui.toml#EditorToolbar",
+    "res://ui/editor/editor_widgets.ui.toml#EditorToolbarButton",
+    "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard",
 ]
 styles = ["res://ui/theme/editor_base.ui.toml"]
 
-[root]
-node = "asset_browser_root"
+[tokens]
 
-[nodes.asset_browser_root]
+[root]
+node_id = "asset_browser_root"
 kind = "native"
 type = "VerticalBox"
 control_id = "AssetBrowserRoot"
 classes = ["editor-shell"]
-layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox", gap = 10.0 } }
-children = [
-  { child = "toolbar" },
-  { child = "content" },
-]
+bindings = []
 
-[nodes.toolbar]
+[root.params]
+
+[root.props]
+
+[root.layout.container]
+gap = 10.0
+kind = "VerticalBox"
+
+[root.layout.height]
+stretch = "Stretch"
+
+[root.layout.width]
+stretch = "Stretch"
+
+[root.style_overrides.self]
+
+[root.style_overrides.slot]
+
+[[root.children]]
+
+[root.children.slot]
+
+[root.children.node]
+node_id = "toolbar"
 kind = "reference"
 component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorToolbar"
 control_id = "AssetBrowserToolbar"
-children = [
-  { child = "import_button", mount = "actions" },
-  { child = "locate_button", mount = "actions" },
-]
+classes = []
+bindings = []
 
-[nodes.import_button]
+[root.children.node.params]
+
+[root.children.node.props]
+
+[root.children.node.style_overrides.self]
+
+[root.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+mount = "actions"
+
+[root.children.node.children.slot]
+
+[root.children.node.children.node]
+node_id = "import_button"
 kind = "reference"
 component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorToolbarButton"
 control_id = "ImportAsset"
 classes = ["toolbar-primary"]
-params = { label = "Import", icon = "folder-open-outline" }
+bindings = []
+children = []
 
-[nodes.locate_button]
+[root.children.node.children.node.params]
+icon = "folder-open-outline"
+label = "Import"
+
+[root.children.node.children.node.props]
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+mount = "actions"
+
+[root.children.node.children.slot]
+
+[root.children.node.children.node]
+node_id = "locate_button"
 kind = "reference"
 component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorToolbarButton"
 control_id = "LocateAsset"
-params = { label = "Locate", icon = "scan-outline" }
+classes = []
+bindings = []
+children = []
 
-[nodes.content]
+[root.children.node.children.node.params]
+icon = "scan-outline"
+label = "Locate"
+
+[root.children.node.children.node.props]
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children]]
+
+[root.children.slot]
+
+[root.children.node]
+node_id = "content"
 kind = "native"
 type = "HorizontalBox"
 control_id = "AssetBrowserContent"
-layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "HorizontalBox", gap = 10.0 } }
-children = [
-  { child = "tree_panel", slot = { layout = { width = { min = 220.0, preferred = 220.0, max = 260.0, stretch = "Fixed" } } } },
-  { child = "grid_panel" },
-  { child = "details_panel", slot = { layout = { width = { min = 260.0, preferred = 280.0, max = 340.0, stretch = "Fixed" } } } },
-]
+classes = []
+bindings = []
 
-[nodes.tree_panel]
+[root.children.node.params]
+
+[root.children.node.props]
+
+[root.children.node.layout.container]
+gap = 10.0
+kind = "HorizontalBox"
+
+[root.children.node.layout.height]
+stretch = "Stretch"
+
+[root.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.style_overrides.self]
+
+[root.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+
+[root.children.node.children.slot.layout.width]
+max = 260.0
+min = 220.0
+preferred = 220.0
+stretch = "Fixed"
+
+[root.children.node.children.node]
+node_id = "tree_panel"
 kind = "reference"
 component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard"
 control_id = "AssetTreePanel"
-params = { title = "Folders" }
-children = [
-  { child = "tree_label", mount = "content" },
-]
+classes = []
+bindings = []
 
-[nodes.tree_label]
+[root.children.node.children.node.params]
+title = "Folders"
+
+[root.children.node.children.node.props]
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children]]
+mount = "content"
+
+[root.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node]
+node_id = "tree_label"
 kind = "native"
 type = "Label"
 control_id = "AssetTreeLabel"
-props = { text = "Project / UI / Theme" }
+classes = []
+bindings = []
+children = []
 
-[nodes.grid_panel]
+[root.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.props]
+text = "Project / UI / Theme"
+
+[root.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+
+[root.children.node.children.slot]
+
+[root.children.node.children.node]
+node_id = "grid_panel"
 kind = "reference"
 component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard"
 control_id = "AssetGridPanel"
-params = { title = "Assets" }
-children = [
-  { child = "grid_label", mount = "content" },
-]
+classes = []
+bindings = []
 
-[nodes.grid_label]
+[root.children.node.children.node.params]
+title = "Assets"
+
+[root.children.node.children.node.props]
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children]]
+mount = "content"
+
+[root.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node]
+node_id = "grid_label"
 kind = "native"
 type = "Label"
 control_id = "AssetGridLabel"
-props = { text = "asset_browser.ui.toml, runtime_hud.ui.toml" }
+classes = []
+bindings = []
+children = []
 
-[nodes.details_panel]
+[root.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.props]
+text = "asset_browser.ui.toml, runtime_hud.ui.toml"
+
+[root.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+
+[root.children.node.children.slot.layout.width]
+max = 340.0
+min = 260.0
+preferred = 280.0
+stretch = "Fixed"
+
+[root.children.node.children.node]
+node_id = "details_panel"
 kind = "reference"
 component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard"
 control_id = "AssetDetailsPanel"
-params = { title = "Details" }
-children = [
-  { child = "details_label", mount = "content" },
-]
+classes = []
+bindings = []
 
-[nodes.details_label]
+[root.children.node.children.node.params]
+title = "Details"
+
+[root.children.node.children.node.props]
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children]]
+mount = "content"
+
+[root.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node]
+node_id = "details_label"
 kind = "native"
 type = "Label"
 control_id = "AssetDetailsLabel"
-props = { text = "Selected Asset Metadata" }
+classes = []
+bindings = []
+children = []
+
+[root.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.props]
+text = "Selected Asset Metadata"
+
+[root.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.style_overrides.slot]
+
+[components]

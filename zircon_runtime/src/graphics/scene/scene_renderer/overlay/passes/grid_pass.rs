@@ -1,5 +1,5 @@
 use crate::graphics::scene::scene_renderer::overlay::begin_line_pass;
-use crate::graphics::types::EditorOrRuntimeFrame;
+use crate::graphics::types::ViewportRenderFrame;
 
 pub(crate) struct GridPass;
 
@@ -13,7 +13,7 @@ impl GridPass {
         line_pipeline: &wgpu::RenderPipeline,
         grid_buffer: &wgpu::Buffer,
         grid_count: u32,
-        frame: &EditorOrRuntimeFrame,
+        frame: &ViewportRenderFrame,
     ) {
         if !frame
             .scene

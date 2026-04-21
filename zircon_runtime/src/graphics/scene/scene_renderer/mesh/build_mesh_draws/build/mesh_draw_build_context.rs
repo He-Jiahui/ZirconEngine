@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use super::super::virtual_geometry_cluster_raster_draw::VirtualGeometryClusterRasterDraw;
+use crate::graphics::types::VirtualGeometryClusterRasterDraw;
 
 pub(super) struct MeshDrawBuildContext {
     pub(super) selection: HashSet<u64>,

@@ -2,12 +2,18 @@ use std::fs;
 use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use zircon_runtime::core::CoreRuntime;
-use zircon_editor::{
-    module_descriptor, EditorManager, MainPageId, NativeWindowHostState, ProjectEditorWorkspace,
-    ViewDescriptorId, ViewHost, ViewInstance, ViewInstanceId, WorkbenchLayout, EDITOR_MANAGER_NAME,
+use zircon_editor::ui::host::{EditorManager, NativeWindowHostState};
+use zircon_editor::ui::workbench::autolayout::ShellFrame;
+use zircon_editor::ui::workbench::layout::{
+    DocumentNode, FloatingWindowLayout, MainPageId, TabStackLayout, WorkbenchLayout,
 };
+use zircon_editor::ui::workbench::project::ProjectEditorWorkspace;
+use zircon_editor::ui::workbench::view::{
+    ViewDescriptorId, ViewHost, ViewInstance, ViewInstanceId,
+};
+use zircon_editor::{module_descriptor, EDITOR_MANAGER_NAME};
 use zircon_runtime::core::manager::resolve_config_manager;
+use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::foundation::{
     module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
 };
@@ -108,18 +114,16 @@ fn applying_workspace_with_floating_window_syncs_native_window_bounds() {
         host: ViewHost::FloatingWindow(window_id.clone(), vec![]),
     };
     let mut layout = WorkbenchLayout::default();
-    layout
-        .floating_windows
-        .push(zircon_editor::FloatingWindowLayout {
-            window_id: window_id.clone(),
-            title: "Prefab".to_string(),
-            workspace: zircon_editor::DocumentNode::Tabs(zircon_editor::TabStackLayout {
-                tabs: vec![instance_id.clone()],
-                active_tab: Some(instance_id),
-            }),
-            focused_view: Some(ViewInstanceId::new("editor.prefab#restored")),
-            frame: zircon_editor::ShellFrame::new(120.0, 80.0, 640.0, 480.0),
-        });
+    layout.floating_windows.push(FloatingWindowLayout {
+        window_id: window_id.clone(),
+        title: "Prefab".to_string(),
+        workspace: DocumentNode::Tabs(TabStackLayout {
+            tabs: vec![instance_id.clone()],
+            active_tab: Some(instance_id),
+        }),
+        focused_view: Some(ViewInstanceId::new("editor.prefab#restored")),
+        frame: ShellFrame::new(120.0, 80.0, 640.0, 480.0),
+    });
     let workspace = ProjectEditorWorkspace {
         layout_version: 1,
         workbench: layout,

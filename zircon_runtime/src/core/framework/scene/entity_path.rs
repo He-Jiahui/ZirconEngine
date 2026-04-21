@@ -12,7 +12,9 @@ pub struct EntityPath {
 impl EntityPath {
     pub fn new(segments: Vec<String>) -> Result<Self, PathParseError> {
         if segments.is_empty() {
-            return Err(PathParseError::new("entity path must contain at least one segment"));
+            return Err(PathParseError::new(
+                "entity path must contain at least one segment",
+            ));
         }
         if segments.iter().any(|segment| segment.trim().is_empty()) {
             return Err(PathParseError::new(
@@ -66,7 +68,9 @@ impl ComponentPropertyPath {
     ) -> Result<Self, PathParseError> {
         let component = component.into();
         if component.trim().is_empty() {
-            return Err(PathParseError::new("component path must include a component name"));
+            return Err(PathParseError::new(
+                "component path must include a component name",
+            ));
         }
         if property_segments.is_empty() {
             return Err(PathParseError::new(
@@ -90,7 +94,10 @@ impl ComponentPropertyPath {
     }
 
     pub fn parse(path: &str) -> Result<Self, PathParseError> {
-        let mut segments = path.split('.').map(str::trim).filter(|segment| !segment.is_empty());
+        let mut segments = path
+            .split('.')
+            .map(str::trim)
+            .filter(|segment| !segment.is_empty());
         let component = segments.next().ok_or_else(|| {
             PathParseError::new("component property path must use `<component>.<property>` syntax")
         })?;

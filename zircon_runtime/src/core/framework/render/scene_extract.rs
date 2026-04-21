@@ -1,5 +1,5 @@
 use crate::core::math::{Real, Transform, Vec3, Vec4};
-use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle};
+use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
 
 use crate::core::framework::scene::{EntityId, Mobility};
 
@@ -22,6 +22,27 @@ pub struct RenderDirectionalLightSnapshot {
     pub direction: Vec3,
     pub color: Vec3,
     pub intensity: Real,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct RenderPointLightSnapshot {
+    pub node_id: EntityId,
+    pub position: Vec3,
+    pub color: Vec3,
+    pub intensity: Real,
+    pub range: Real,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct RenderSpotLightSnapshot {
+    pub node_id: EntityId,
+    pub position: Vec3,
+    pub direction: Vec3,
+    pub color: Vec3,
+    pub intensity: Real,
+    pub range: Real,
+    pub inner_angle_radians: Real,
+    pub outer_angle_radians: Real,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -140,12 +161,52 @@ impl Default for RenderVirtualGeometryPage {
     }
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct RenderVirtualGeometryDebugState {
+    pub forced_mip: Option<u8>,
+    pub freeze_cull: bool,
+    pub visualize_bvh: bool,
+    pub visualize_visbuffer: bool,
+    pub print_leaf_clusters: bool,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct RenderVirtualGeometryInstance {
+    pub entity: EntityId,
+    pub source_model: Option<ResourceId>,
+    pub transform: Transform,
+    pub cluster_offset: u32,
+    pub cluster_count: u32,
+    pub page_offset: u32,
+    pub page_count: u32,
+    pub mesh_name: Option<String>,
+    pub source_hint: Option<String>,
+}
+
+impl Default for RenderVirtualGeometryInstance {
+    fn default() -> Self {
+        Self {
+            entity: 0,
+            source_model: None,
+            transform: Transform::default(),
+            cluster_offset: 0,
+            cluster_count: 0,
+            page_offset: 0,
+            page_count: 0,
+            mesh_name: None,
+            source_hint: None,
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct RenderVirtualGeometryExtract {
     pub cluster_budget: u32,
     pub page_budget: u32,
     pub clusters: Vec<RenderVirtualGeometryCluster>,
     pub pages: Vec<RenderVirtualGeometryPage>,
+    pub instances: Vec<RenderVirtualGeometryInstance>,
+    pub debug: RenderVirtualGeometryDebugState,
 }
 
 impl Default for RenderVirtualGeometryExtract {
@@ -155,12 +216,42 @@ impl Default for RenderVirtualGeometryExtract {
             page_budget: 0,
             clusters: Vec::new(),
             pages: Vec::new(),
+            instances: Vec::new(),
+            debug: RenderVirtualGeometryDebugState::default(),
         }
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RenderHybridGiQuality {
+    Low,
+    Medium,
+    High,
+}
+
+impl Default for RenderHybridGiQuality {
+    fn default() -> Self {
+        Self::Medium
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RenderHybridGiDebugView {
+    None,
+    Cards,
+    SurfaceCache,
+    VoxelClipmap,
+    InputSet,
+}
+
+impl Default for RenderHybridGiDebugView {
+    fn default() -> Self {
+        Self::None
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct RenderHybridGiProbe {
+pub(crate) struct RenderHybridGiProbe {
     pub entity: EntityId,
     pub probe_id: u32,
     pub position: Vec3,
@@ -185,7 +276,7 @@ impl Default for RenderHybridGiProbe {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct RenderHybridGiTraceRegion {
+pub(crate) struct RenderHybridGiTraceRegion {
     pub entity: EntityId,
     pub region_id: u32,
     pub bounds_center: Vec3,
@@ -209,15 +300,27 @@ impl Default for RenderHybridGiTraceRegion {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct RenderHybridGiExtract {
-    pub probe_budget: u32,
-    pub tracing_budget: u32,
-    pub probes: Vec<RenderHybridGiProbe>,
-    pub trace_regions: Vec<RenderHybridGiTraceRegion>,
+    pub enabled: bool,
+    pub quality: RenderHybridGiQuality,
+    pub trace_budget: u32,
+    pub card_budget: u32,
+    pub voxel_budget: u32,
+    pub debug_view: RenderHybridGiDebugView,
+    pub(crate) probe_budget: u32,
+    pub(crate) tracing_budget: u32,
+    pub(crate) probes: Vec<RenderHybridGiProbe>,
+    pub(crate) trace_regions: Vec<RenderHybridGiTraceRegion>,
 }
 
 impl Default for RenderHybridGiExtract {
     fn default() -> Self {
         Self {
+            enabled: false,
+            quality: RenderHybridGiQuality::Medium,
+            trace_budget: 0,
+            card_budget: 0,
+            voxel_budget: 0,
+            debug_view: RenderHybridGiDebugView::None,
             probe_budget: 0,
             tracing_budget: 0,
             probes: Vec::new(),
@@ -259,7 +362,9 @@ pub struct PreviewEnvironmentExtract {
 pub struct RenderSceneGeometryExtract {
     pub camera: ViewportCameraSnapshot,
     pub meshes: Vec<RenderMeshSnapshot>,
-    pub lights: Vec<RenderDirectionalLightSnapshot>,
+    pub directional_lights: Vec<RenderDirectionalLightSnapshot>,
+    pub point_lights: Vec<RenderPointLightSnapshot>,
+    pub spot_lights: Vec<RenderSpotLightSnapshot>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -267,6 +372,7 @@ pub struct SceneViewportRenderPacket {
     pub scene: RenderSceneGeometryExtract,
     pub overlays: RenderOverlayExtract,
     pub preview: PreviewEnvironmentExtract,
+    pub virtual_geometry_debug: Option<RenderVirtualGeometryDebugState>,
 }
 
 pub type RenderExtractPacket = SceneViewportRenderPacket;

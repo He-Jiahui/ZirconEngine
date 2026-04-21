@@ -1,6 +1,7 @@
 use zircon_runtime::ui::layout::UiFrame;
 
-use crate::{WorkbenchChromeMetrics, WorkbenchViewModel};
+use crate::ui::workbench::autolayout::WorkbenchChromeMetrics;
+use crate::ui::workbench::model::WorkbenchViewModel;
 
 use super::drawer_slot_key::drawer_slot_key;
 use super::workbench_drawer_header_pointer_item::WorkbenchDrawerHeaderPointerItem;
@@ -10,7 +11,7 @@ pub(super) fn build_surface(
     key: &str,
     region_frame: UiFrame,
     model: &WorkbenchViewModel,
-    slots: &[crate::ActivityDrawerSlot],
+    slots: &[crate::ui::workbench::layout::ActivityDrawerSlot],
     metrics: &WorkbenchChromeMetrics,
     side_with_rail: bool,
 ) -> Option<WorkbenchDrawerHeaderPointerSurface> {

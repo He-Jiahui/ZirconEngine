@@ -1,57 +1,41 @@
-//! Physics framework contracts (backend selection, materials, simulation mode).
+//! Physics framework contracts for backend status, world stepping, queries, contacts, and scene sync.
 
-use serde::{Deserialize, Serialize};
+mod backend_state;
+mod backend_status;
+mod body_sync_state;
+mod body_type;
+mod collider_shape;
+mod collider_sync_state;
+mod combine_rule;
+mod contact_event;
+mod joint_sync_state;
+mod joint_type;
+mod manager;
+mod material_metadata;
+mod material_sync_state;
+mod ray_cast_hit;
+mod ray_cast_query;
+mod settings;
+mod simulation_mode;
+mod world_step_plan;
+mod world_sync_state;
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum PhysicsCombineRule {
-    #[default]
-    Average,
-    Minimum,
-    Maximum,
-    Multiply,
-}
-
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
-pub struct PhysicsMaterialMetadata {
-    pub static_friction: f32,
-    pub dynamic_friction: f32,
-    pub restitution: f32,
-    pub friction_combine: PhysicsCombineRule,
-    pub restitution_combine: PhysicsCombineRule,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum PhysicsSimulationMode {
-    Disabled,
-    Simulate,
-    QueryOnly,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct PhysicsSettings {
-    pub backend: String,
-    pub simulation_mode: PhysicsSimulationMode,
-    pub fixed_hz: u32,
-    pub max_substeps: u32,
-    pub layer_names: Vec<String>,
-}
-
-impl Default for PhysicsSettings {
-    fn default() -> Self {
-        Self {
-            backend: "unconfigured".to_string(),
-            simulation_mode: PhysicsSimulationMode::Disabled,
-            fixed_hz: 60,
-            max_substeps: 4,
-            layer_names: vec!["default".to_string()],
-        }
-    }
-}
-
-pub trait PhysicsManager: Send + Sync {
-    fn backend_name(&self) -> String;
-    fn settings(&self) -> PhysicsSettings;
-    fn default_material(&self) -> PhysicsMaterialMetadata;
-}
+pub use backend_state::PhysicsBackendState;
+pub use backend_status::PhysicsBackendStatus;
+pub use body_sync_state::PhysicsBodySyncState;
+pub use body_type::PhysicsBodyType;
+pub use collider_shape::PhysicsColliderShape;
+pub use collider_sync_state::PhysicsColliderSyncState;
+pub use combine_rule::PhysicsCombineRule;
+pub use contact_event::PhysicsContactEvent;
+pub use joint_sync_state::PhysicsJointSyncState;
+pub use joint_type::PhysicsJointType;
+pub use manager::PhysicsManager;
+pub use material_metadata::PhysicsMaterialMetadata;
+pub use material_sync_state::PhysicsMaterialSyncState;
+pub use ray_cast_hit::PhysicsRayCastHit;
+pub use ray_cast_query::PhysicsRayCastQuery;
+pub use settings::PhysicsSettings;
+pub use simulation_mode::PhysicsSimulationMode;
+pub use world_step_plan::PhysicsWorldStepPlan;
+pub use world_sync_state::PhysicsWorldSyncState;

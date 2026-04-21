@@ -1,6 +1,6 @@
-use bytemuck::Zeroable;
 use crate::core::framework::render::RenderFrameExtract;
 use crate::core::math::UVec2;
+use bytemuck::Zeroable;
 
 use super::super::super::super::constants::MAX_REFLECTION_PROBES;
 use super::super::super::super::reflection_probe_gpu::GpuReflectionProbe;

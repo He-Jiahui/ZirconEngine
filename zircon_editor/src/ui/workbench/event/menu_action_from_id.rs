@@ -1,6 +1,5 @@
-use crate::view::ViewDescriptorId;
+use crate::core::editor_event::{MenuAction, ViewDescriptorId};
 
-use super::super::model::MenuAction;
 use super::node_kind_from_id::node_kind_from_id;
 
 pub(super) fn menu_action_from_id(action_id: &str) -> Option<MenuAction> {

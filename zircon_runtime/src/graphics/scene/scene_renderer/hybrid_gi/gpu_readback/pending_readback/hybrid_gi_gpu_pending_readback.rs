@@ -1,3 +1,5 @@
+use crate::graphics::scene::scene_renderer::HybridGiScenePrepareResourcesSnapshot;
+
 pub(crate) struct HybridGiGpuPendingReadback {
     pub(super) cache_word_count: usize,
     pub(super) cache_buffer: wgpu::Buffer,
@@ -9,4 +11,19 @@ pub(crate) struct HybridGiGpuPendingReadback {
     pub(super) irradiance_buffer: wgpu::Buffer,
     pub(super) trace_lighting_word_count: usize,
     pub(super) trace_lighting_buffer: wgpu::Buffer,
+    pub(super) scene_prepare_resources: Option<HybridGiScenePrepareResourcesSnapshot>,
+    pub(super) _scene_prepare_atlas_texture: Option<wgpu::Texture>,
+    pub(super) _scene_prepare_atlas_view: Option<wgpu::TextureView>,
+    pub(super) _scene_prepare_atlas_upload_buffer: Option<wgpu::Buffer>,
+    pub(super) scene_prepare_atlas_slot_sample_buffers: Vec<(u32, wgpu::Buffer)>,
+    pub(super) _scene_prepare_capture_texture: Option<wgpu::Texture>,
+    pub(super) _scene_prepare_capture_views: Vec<wgpu::TextureView>,
+    pub(super) _scene_prepare_capture_upload_buffer: Option<wgpu::Buffer>,
+    pub(super) scene_prepare_capture_slot_sample_buffers: Vec<(u32, wgpu::Buffer)>,
+}
+
+impl HybridGiGpuPendingReadback {
+    pub(crate) fn scene_prepare_resources(&self) -> Option<&HybridGiScenePrepareResourcesSnapshot> {
+        self.scene_prepare_resources.as_ref()
+    }
 }

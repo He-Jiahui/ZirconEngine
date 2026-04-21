@@ -10,6 +10,12 @@ use crate::core::framework::render::{
 };
 use crate::core::math::{UVec2, Vec3};
 use crate::scene::world::World;
+use crate::ui::event_ui::{UiNodeId, UiTreeId};
+use crate::ui::layout::UiFrame;
+use crate::ui::surface::{
+    UiRenderCommand, UiRenderCommandKind, UiRenderExtract, UiRenderList, UiResolvedStyle,
+    UiTextAlign, UiTextRenderMode, UiTextWrap,
+};
 
 use crate::graphics::runtime::WgpuRenderFramework;
 
@@ -58,6 +64,28 @@ fn render_framework_uses_default_forward_plus_pipeline_when_viewport_has_no_expl
         Some(RenderPipelineHandle::new(1)),
         "submit should fall back to the default Forward+ pipeline asset"
     );
+}
+
+#[test]
+fn render_framework_tracks_text_payloads_submitted_with_shared_ui_extracts() {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let viewport = server
+        .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
+        .unwrap();
+
+    server
+        .submit_frame_extract_with_ui(
+            viewport,
+            test_extract(),
+            Some(test_ui_extract("Editor HUD")),
+        )
+        .unwrap();
+    let stats = server.query_stats().unwrap();
+
+    assert_eq!(stats.last_ui_command_count, 1);
+    assert_eq!(stats.last_ui_quad_count, 1);
+    assert_eq!(stats.last_ui_text_payload_count, 1);
 }
 
 #[test]
@@ -255,9 +283,23 @@ fn headless_wgpu_server_exposes_current_m5_flagship_baselines_without_rt_capabil
                 .with_hybrid_global_illumination(true),
         )
         .unwrap();
-    server
-        .submit_frame_extract(viewport, flagship_extract())
-        .unwrap();
+    let extract = flagship_extract();
+    let hybrid_gi = extract
+        .lighting
+        .hybrid_global_illumination
+        .as_ref()
+        .expect("flagship extract should include hybrid gi");
+    let expected_scene_card_count = extract.geometry.meshes.len();
+    let expected_surface_cache_resident_page_count =
+        expected_scene_card_count.min(hybrid_gi.card_budget as usize);
+    let expected_surface_cache_feedback_card_count =
+        expected_scene_card_count.saturating_sub(expected_surface_cache_resident_page_count);
+    let expected_voxel_resident_clipmap_count = if expected_scene_card_count == 0 {
+        0
+    } else {
+        hybrid_gi.voxel_budget as usize
+    };
+    server.submit_frame_extract(viewport, extract).unwrap();
     let stats = server.query_stats().unwrap();
 
     assert!(stats.capabilities.virtual_geometry_supported);
@@ -307,6 +349,36 @@ fn headless_wgpu_server_exposes_current_m5_flagship_baselines_without_rt_capabil
     assert_eq!(stats.last_hybrid_gi_resident_probe_count, 1);
     assert_eq!(stats.last_hybrid_gi_pending_update_count, 1);
     assert_eq!(stats.last_hybrid_gi_scheduled_trace_region_count, 1);
+    assert_eq!(
+        stats.last_hybrid_gi_scene_card_count,
+        expected_scene_card_count
+    );
+    assert_eq!(
+        stats.last_hybrid_gi_surface_cache_resident_page_count,
+        expected_surface_cache_resident_page_count
+    );
+    assert_eq!(
+        stats.last_hybrid_gi_surface_cache_dirty_page_count,
+        expected_surface_cache_resident_page_count
+    );
+    assert_eq!(
+        stats.last_hybrid_gi_surface_cache_feedback_card_count,
+        expected_surface_cache_feedback_card_count
+    );
+    assert_eq!(
+        stats.last_hybrid_gi_surface_cache_capture_slot_count,
+        expected_surface_cache_resident_page_count
+    );
+    assert_eq!(stats.last_hybrid_gi_surface_cache_invalidated_page_count, 0);
+    assert_eq!(
+        stats.last_hybrid_gi_voxel_resident_clipmap_count,
+        expected_voxel_resident_clipmap_count
+    );
+    assert_eq!(
+        stats.last_hybrid_gi_voxel_dirty_clipmap_count,
+        expected_voxel_resident_clipmap_count
+    );
+    assert_eq!(stats.last_hybrid_gi_voxel_invalidated_clipmap_count, 0);
 }
 
 #[test]
@@ -356,6 +428,33 @@ fn render_framework_drops_stale_flagship_runtime_state_when_extract_removes_vg_a
     assert_eq!(cleared_stats.last_hybrid_gi_resident_probe_count, 0);
     assert_eq!(cleared_stats.last_hybrid_gi_pending_update_count, 0);
     assert_eq!(cleared_stats.last_hybrid_gi_scheduled_trace_region_count, 0);
+    assert_eq!(cleared_stats.last_hybrid_gi_scene_card_count, 0);
+    assert_eq!(
+        cleared_stats.last_hybrid_gi_surface_cache_resident_page_count,
+        0
+    );
+    assert_eq!(
+        cleared_stats.last_hybrid_gi_surface_cache_dirty_page_count,
+        0
+    );
+    assert_eq!(
+        cleared_stats.last_hybrid_gi_surface_cache_feedback_card_count,
+        0
+    );
+    assert_eq!(
+        cleared_stats.last_hybrid_gi_surface_cache_capture_slot_count,
+        0
+    );
+    assert_eq!(
+        cleared_stats.last_hybrid_gi_surface_cache_invalidated_page_count,
+        0
+    );
+    assert_eq!(cleared_stats.last_hybrid_gi_voxel_resident_clipmap_count, 0);
+    assert_eq!(cleared_stats.last_hybrid_gi_voxel_dirty_clipmap_count, 0);
+    assert_eq!(
+        cleared_stats.last_hybrid_gi_voxel_invalidated_clipmap_count,
+        0
+    );
 }
 
 #[test]
@@ -419,6 +518,37 @@ fn test_extract() -> RenderFrameExtract {
         RenderWorldSnapshotHandle::new(1),
         World::new().to_render_snapshot(),
     )
+}
+
+fn test_ui_extract(text: &str) -> UiRenderExtract {
+    UiRenderExtract {
+        tree_id: UiTreeId::new("test.ui"),
+        list: UiRenderList {
+            commands: vec![UiRenderCommand {
+                node_id: UiNodeId::new(1),
+                kind: UiRenderCommandKind::Quad,
+                frame: UiFrame::new(8.0, 8.0, 180.0, 28.0),
+                clip_frame: None,
+                z_index: 0,
+                style: UiResolvedStyle {
+                    background_color: Some("#1b2330cc".to_string()),
+                    foreground_color: Some("#f5f7fb".to_string()),
+                    border_color: Some("#63b0ff88".to_string()),
+                    border_width: 1.0,
+                    font: Some("res://fonts/default.font.toml".to_string()),
+                    font_size: 14.0,
+                    line_height: 18.0,
+                    text_align: UiTextAlign::Center,
+                    wrap: UiTextWrap::None,
+                    text_render_mode: UiTextRenderMode::Auto,
+                    ..UiResolvedStyle::default()
+                },
+                text: Some(text.to_string()),
+                image: None,
+                opacity: 1.0,
+            }],
+        },
+    }
 }
 
 fn render_hybrid_gi_history_capture(
@@ -485,6 +615,12 @@ fn hybrid_gi_history_seed_extract(
     let mut extract = world.to_render_frame_extract();
     extract.apply_viewport_size(viewport_size);
     extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
         probe_budget: 2,
         tracing_budget: 1,
         probes: vec![
@@ -517,6 +653,12 @@ fn hybrid_gi_history_resolve_extract(viewport_size: UVec2) -> RenderFrameExtract
     let mut extract = world.to_render_frame_extract();
     extract.apply_viewport_size(viewport_size);
     extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
         probe_budget: 2,
         tracing_budget: 0,
         probes: vec![
@@ -555,8 +697,16 @@ fn flagship_extract() -> RenderFrameExtract {
             virtual_geometry_page(300, false),
             virtual_geometry_page(500, true),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     });
     extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 1,
+        voxel_budget: 2,
+        debug_view: Default::default(),
         probe_budget: 1,
         tracing_budget: 1,
         probes: vec![

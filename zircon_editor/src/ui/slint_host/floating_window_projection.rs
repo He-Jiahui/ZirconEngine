@@ -2,14 +2,15 @@ use std::collections::BTreeMap;
 
 use zircon_runtime::ui::layout::UiFrame;
 
+use crate::ui::host::NativeWindowHostState;
 use crate::ui::slint_host::callback_dispatch::BuiltinFloatingWindowSourceFrames;
-use crate::{
-    autolayout::{clamp_floating_window_frame, default_floating_window_frame},
-    FloatingWindowModel, MainPageId, NativeWindowHostState, ShellFrame, WorkbenchChromeMetrics,
-    WorkbenchViewModel,
+use crate::ui::workbench::autolayout::{
+    clamp_floating_window_frame, default_floating_window_frame, ShellFrame, WorkbenchChromeMetrics,
 };
 #[cfg(test)]
-use crate::{ShellRegionId, WorkbenchShellGeometry};
+use crate::ui::workbench::autolayout::{ShellRegionId, WorkbenchShellGeometry};
+use crate::ui::workbench::layout::MainPageId;
+use crate::ui::workbench::model::{FloatingWindowModel, WorkbenchViewModel};
 
 const EPSILON: f32 = 0.001;
 
@@ -439,11 +440,16 @@ pub(crate) fn resolve_floating_window_content_frame_with_host_frame(
 mod tests {
     use std::collections::BTreeMap;
 
-    use crate::{
-        DocumentWorkspaceSnapshot, DrawerRingModel, FloatingWindowModel, MainHostStripModel,
-        MainHostStripViewModel, MainPageId, MenuBarModel, NativeWindowHostState, ShellFrame,
-        StatusBarModel, WorkbenchChromeMetrics, WorkbenchShellGeometry, WorkbenchViewModel,
+    use crate::ui::host::NativeWindowHostState;
+    use crate::ui::workbench::autolayout::{
+        ShellFrame, WorkbenchChromeMetrics, WorkbenchShellGeometry,
     };
+    use crate::ui::workbench::layout::MainPageId;
+    use crate::ui::workbench::model::{
+        DocumentWorkspaceModel, DrawerRingModel, FloatingWindowModel, MainHostStripModel,
+        MainHostStripViewModel, MenuBarModel, StatusBarModel, WorkbenchViewModel,
+    };
+    use crate::ui::workbench::snapshot::DocumentWorkspaceSnapshot;
 
     use super::{
         build_floating_window_projection_bundle,
@@ -798,7 +804,7 @@ mod tests {
                 focused_view: None,
                 tabs: Vec::new(),
             }],
-            document: crate::DocumentWorkspaceModel::Workbench {
+            document: DocumentWorkspaceModel::Workbench {
                 page_id: MainPageId::workbench(),
                 title: "Workbench".to_string(),
                 workspace: DocumentWorkspaceSnapshot::Tabs {

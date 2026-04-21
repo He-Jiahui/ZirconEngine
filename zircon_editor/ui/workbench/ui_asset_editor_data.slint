@@ -1,0 +1,346 @@
+export struct UiAssetCanvasNodeData {
+    node_id: string,
+    label: string,
+    kind: string,
+    x: float,
+    y: float,
+    width: float,
+    height: float,
+    depth: int,
+    z_index: int,
+    selected: bool,
+}
+
+export struct UiAssetCanvasSlotTargetData {
+    label: string,
+    detail: string,
+    x: float,
+    y: float,
+    width: float,
+    height: float,
+    selected: bool,
+}
+
+export struct UiAssetStringSelectionData {
+    items: [string],
+    selected_index: int,
+}
+
+export struct UiAssetSourceDetailData {
+    block_label: string,
+    selected_line: int,
+    cursor_byte_offset: int,
+    selected_excerpt: string,
+    roundtrip_status: string,
+    outline: UiAssetStringSelectionData,
+}
+
+export struct UiAssetPreviewMockData {
+    subject_collection: UiAssetStringSelectionData,
+    subject_node_id: string,
+    collection: UiAssetStringSelectionData,
+    property: string,
+    kind: string,
+    value: string,
+    expression_result: string,
+    nested_collection: UiAssetStringSelectionData,
+    nested_key: string,
+    nested_kind: string,
+    nested_value: string,
+    suggestion_collection: UiAssetStringSelectionData,
+    schema_items: [string],
+    state_graph_items: [string],
+    can_edit: bool,
+    can_clear: bool,
+    nested_can_edit: bool,
+    nested_can_add: bool,
+    nested_can_delete: bool,
+}
+
+export struct UiAssetThemeSourceData {
+    collection: UiAssetStringSelectionData,
+    selected_source_reference: string,
+    selected_source_kind: string,
+    selected_source_token_count: int,
+    selected_source_rule_count: int,
+    selected_source_available: bool,
+    can_promote_local: bool,
+    selected_source_token_items: [string],
+    selected_source_rule_items: [string],
+    cascade_layer_items: [string],
+    cascade_token_items: [string],
+    cascade_rule_items: [string],
+    compare_items: [string],
+    merge_preview_items: [string],
+    rule_helper_items: [string],
+    refactor_items: [string],
+    promote_asset_id: string,
+    promote_document_id: string,
+    promote_display_name: string,
+    can_edit_promote_draft: bool,
+    can_prune_duplicate_local_overrides: bool,
+}
+
+export struct UiAssetStyleRuleData {
+    items: [string],
+    selected_index: int,
+    selected_selector: string,
+    can_edit: bool,
+    can_delete: bool,
+}
+
+export struct UiAssetMatchedStyleRuleData {
+    collection: UiAssetStringSelectionData,
+    selected_origin: string,
+    selected_selector: string,
+    selected_specificity: int,
+    selected_source_order: int,
+    selected_declaration_items: [string],
+}
+
+export struct UiAssetStyleRuleDeclarationData {
+    items: [string],
+    selected_index: int,
+    selected_path: string,
+    selected_value: string,
+    can_edit: bool,
+    can_delete: bool,
+}
+
+export struct UiAssetStyleTokenData {
+    items: [string],
+    selected_index: int,
+    selected_name: string,
+    selected_value: string,
+    can_edit: bool,
+    can_delete: bool,
+}
+
+export struct UiAssetInspectorSemanticData {
+    title: string,
+    collection: UiAssetStringSelectionData,
+    path: string,
+    value: string,
+}
+
+export struct UiAssetInspectorSlotData {
+    padding: string,
+    width_preferred: string,
+    height_preferred: string,
+    semantic: UiAssetInspectorSemanticData,
+    kind: string,
+    linear_main_weight: string,
+    linear_main_stretch: string,
+    linear_cross_weight: string,
+    linear_cross_stretch: string,
+    overlay_anchor_x: string,
+    overlay_anchor_y: string,
+    overlay_pivot_x: string,
+    overlay_pivot_y: string,
+    overlay_position_x: string,
+    overlay_position_y: string,
+    overlay_z_index: string,
+    grid_row: string,
+    grid_column: string,
+    grid_row_span: string,
+    grid_column_span: string,
+    flow_break_before: string,
+    flow_alignment: string,
+}
+
+export struct UiAssetInspectorLayoutData {
+    width_preferred: string,
+    height_preferred: string,
+    semantic: UiAssetInspectorSemanticData,
+    kind: string,
+    box_gap: string,
+    scroll_axis: string,
+    scroll_gap: string,
+    scrollbar_visibility: string,
+    virtualization_item_extent: string,
+    virtualization_overscan: string,
+    clip: string,
+}
+
+export struct UiAssetInspectorBindingData {
+    collection: UiAssetStringSelectionData,
+    binding_id: string,
+    binding_event: string,
+    event_collection: UiAssetStringSelectionData,
+    binding_route: string,
+    binding_route_target: string,
+    binding_action_target: string,
+    route_suggestion_collection: UiAssetStringSelectionData,
+    action_suggestion_collection: UiAssetStringSelectionData,
+    action_kind_collection: UiAssetStringSelectionData,
+    payload_collection: UiAssetStringSelectionData,
+    payload_suggestion_collection: UiAssetStringSelectionData,
+    payload_key: string,
+    payload_value: string,
+    schema_items: [string],
+    can_edit: bool,
+    can_delete: bool,
+}
+
+export struct UiAssetInspectorWidgetData {
+    selected_node_id: string,
+    parent_node_id: string,
+    mount: string,
+    widget_kind: string,
+    widget_label: string,
+    control_id: string,
+    text_prop: string,
+    can_edit_control_id: bool,
+    can_edit_text_prop: bool,
+    promote_asset_id: string,
+    promote_component_name: string,
+    promote_document_id: string,
+    can_edit_promote_draft: bool,
+    items: [string],
+}
+
+export struct UiAssetPaletteDragData {
+    target_preview_index: int,
+    target_action: string,
+    target_label: string,
+    slot_target_items: [UiAssetCanvasSlotTargetData],
+    candidate_items: [string],
+    candidate_selected_index: int,
+    target_chooser_active: bool,
+}
+
+export struct UiAssetPaneHeaderData {
+    asset_id: string,
+    mode: string,
+    status: string,
+    selection: string,
+}
+
+export struct UiAssetActionStateData {
+    can_save: bool,
+    can_undo: bool,
+    can_redo: bool,
+    can_insert_child: bool,
+    can_insert_after: bool,
+    can_move_up: bool,
+    can_move_down: bool,
+    can_reparent_into_previous: bool,
+    can_reparent_into_next: bool,
+    can_reparent_outdent: bool,
+    can_open_reference: bool,
+    can_convert_to_reference: bool,
+    can_extract_component: bool,
+    can_promote_to_external_widget: bool,
+    can_wrap_in_vertical_box: bool,
+    can_unwrap: bool,
+    can_create_rule: bool,
+    can_extract_rule: bool,
+}
+
+export struct UiAssetCollectionPanelData {
+    palette: UiAssetStringSelectionData,
+    hierarchy: UiAssetStringSelectionData,
+    preview: UiAssetStringSelectionData,
+}
+
+export struct UiAssetSourcePanelData {
+    text: string,
+    detail: UiAssetSourceDetailData,
+}
+
+export struct UiAssetPreviewCanvasData {
+    width: float,
+    height: float,
+    items: [UiAssetCanvasNodeData],
+}
+
+export struct UiAssetCanvasDragProjectionData {
+    active: bool,
+    pointer_x: float,
+    pointer_y: float,
+    target_index: int,
+    target_action: string,
+    target_label: string,
+    slot_target_items: [UiAssetCanvasSlotTargetData],
+}
+
+export struct UiAssetPreviewPanelData {
+    preset: string,
+    summary: string,
+    available: bool,
+    canvas: UiAssetPreviewCanvasData,
+    mock: UiAssetPreviewMockData,
+}
+
+export struct UiAssetStyleStateData {
+    hover: bool,
+    focus: bool,
+    pressed: bool,
+    disabled: bool,
+    selected: bool,
+}
+
+export struct UiAssetStylePanelData {
+    states: UiAssetStyleStateData,
+    class_items: [string],
+    theme_source: UiAssetThemeSourceData,
+    rule: UiAssetStyleRuleData,
+    matched_rule: UiAssetMatchedStyleRuleData,
+    rule_declaration: UiAssetStyleRuleDeclarationData,
+    token: UiAssetStyleTokenData,
+    can_create_rule: bool,
+    can_extract_rule: bool,
+    stylesheet_items: [string],
+}
+
+export struct UiAssetInspectorPanelData {
+    widget: UiAssetInspectorWidgetData,
+    slot: UiAssetInspectorSlotData,
+    layout: UiAssetInspectorLayoutData,
+    binding: UiAssetInspectorBindingData,
+}
+
+export struct UiAssetEditorPaneData {
+    header: UiAssetPaneHeaderData,
+    actions: UiAssetActionStateData,
+    collections: UiAssetCollectionPanelData,
+    source: UiAssetSourcePanelData,
+    preview: UiAssetPreviewPanelData,
+    palette_drag: UiAssetPaletteDragData,
+    style: UiAssetStylePanelData,
+    inspector: UiAssetInspectorPanelData,
+}
+
+export struct UiAssetStyleDraftData {
+    class_name: string,
+    rule_selector: string,
+    rule_declaration_path: string,
+    rule_declaration_value: string,
+    token_name: string,
+    token_value: string,
+}
+
+export struct UiAssetPreviewDraftData {
+    mock_value: string,
+    mock_nested_key: string,
+    mock_nested_value: string,
+}
+
+export struct UiAssetBindingDraftData {
+    payload_key: string,
+    payload_value: string,
+}
+
+export struct UiAssetEditorPaneDraftData {
+    style: UiAssetStyleDraftData,
+    preview: UiAssetPreviewDraftData,
+    binding: UiAssetBindingDraftData,
+}
+
+export struct UiAssetPaletteDragSessionData {
+    active: bool,
+    source_index: int,
+    pointer_x: float,
+    pointer_y: float,
+    label: string,
+}

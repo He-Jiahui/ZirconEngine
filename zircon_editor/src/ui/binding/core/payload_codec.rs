@@ -1,19 +1,17 @@
 use zircon_runtime::ui::{binding::UiBindingCall, binding::UiBindingValue};
 
+use crate::core::editor_event::InspectorFieldChange;
 use crate::ui::binding::{
-    AssetCommand, DockCommand, DraftCommand, SelectionCommand, ViewportCommand, WelcomeCommand,
+    AnimationCommand, AssetCommand, DockCommand, DraftCommand, SelectionCommand, ViewportCommand,
+    WelcomeCommand,
 };
 
-use super::{EditorUiBindingError, EditorUiBindingPayload, InspectorFieldChange};
+use super::{EditorUiBindingError, EditorUiBindingPayload};
 
 impl EditorUiBindingPayload {
     pub(crate) fn to_call(&self) -> UiBindingCall {
         match self {
-            Self::PositionOfTrackAndFrame { track_path, frame } => {
-                UiBindingCall::new("PositionOfTrackAndFrame")
-                    .with_argument(UiBindingValue::string(track_path))
-                    .with_argument(UiBindingValue::unsigned(*frame))
-            }
+            Self::AnimationCommand(command) => command.to_call(),
             Self::MenuAction { action_id } => {
                 UiBindingCall::new("MenuAction").with_argument(UiBindingValue::string(action_id))
             }
@@ -39,6 +37,9 @@ impl EditorUiBindingPayload {
     }
 
     pub(crate) fn from_call(call: UiBindingCall) -> Result<Self, EditorUiBindingError> {
+        if let Some(command) = AnimationCommand::from_call(call.clone())? {
+            return Ok(Self::AnimationCommand(command));
+        }
         if let Some(command) = SelectionCommand::from_call(call.clone())? {
             return Ok(Self::SelectionCommand(command));
         }
@@ -58,20 +59,6 @@ impl EditorUiBindingPayload {
             return Ok(Self::ViewportCommand(command));
         }
         match call.symbol.as_str() {
-            "PositionOfTrackAndFrame" => Ok(Self::PositionOfTrackAndFrame {
-                track_path: call
-                    .argument(0)
-                    .and_then(UiBindingValue::as_str)
-                    .ok_or(EditorUiBindingError::InvalidPayload(
-                        "PositionOfTrackAndFrame expects string track_path".to_string(),
-                    ))?
-                    .to_string(),
-                frame: call.argument(1).and_then(UiBindingValue::as_u32).ok_or(
-                    EditorUiBindingError::InvalidPayload(
-                        "PositionOfTrackAndFrame expects u32 frame".to_string(),
-                    ),
-                )?,
-            }),
             "MenuAction" => Ok(Self::MenuAction {
                 action_id: call
                     .argument(0)

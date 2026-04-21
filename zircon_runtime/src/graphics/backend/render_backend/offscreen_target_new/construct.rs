@@ -29,6 +29,15 @@ impl OffscreenTarget {
                 | wgpu::TextureUsages::TEXTURE_BINDING
                 | wgpu::TextureUsages::COPY_SRC,
         );
+        let global_illumination = create_texture_bundle(
+            device,
+            "zircon-offscreen-global-illumination",
+            size,
+            OFFSCREEN_FORMAT,
+            wgpu::TextureUsages::RENDER_ATTACHMENT
+                | wgpu::TextureUsages::TEXTURE_BINDING
+                | wgpu::TextureUsages::COPY_SRC,
+        );
         let bloom = create_texture_bundle(
             device,
             "zircon-offscreen-bloom",
@@ -72,6 +81,8 @@ impl OffscreenTarget {
             size,
             final_color: final_color.texture,
             final_color_view: final_color.view,
+            global_illumination: global_illumination.texture,
+            global_illumination_view: global_illumination.view,
             scene_color: scene_color.texture,
             scene_color_view: scene_color.view,
             bloom: bloom.texture,

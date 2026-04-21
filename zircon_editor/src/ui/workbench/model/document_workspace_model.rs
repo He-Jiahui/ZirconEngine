@@ -1,5 +1,5 @@
-use crate::layout::MainPageId;
-use crate::snapshot::{DocumentWorkspaceSnapshot, ViewTabSnapshot};
+use crate::ui::workbench::layout::MainPageId;
+use crate::ui::workbench::snapshot::{DocumentWorkspaceSnapshot, ViewTabSnapshot};
 
 #[derive(Clone, Debug)]
 pub enum DocumentWorkspaceModel {

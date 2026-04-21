@@ -5,6 +5,8 @@ pub(super) fn asset_kind(imported: &ImportedAsset) -> AssetKind {
         ImportedAsset::Texture(_) => AssetKind::Texture,
         ImportedAsset::Shader(_) => AssetKind::Shader,
         ImportedAsset::Material(_) => AssetKind::Material,
+        ImportedAsset::Sound(_) => AssetKind::Sound,
+        ImportedAsset::Font(_) => AssetKind::Font,
         ImportedAsset::Scene(_) => AssetKind::Scene,
         ImportedAsset::Model(_) => AssetKind::Model,
         ImportedAsset::UiLayout(_) => AssetKind::UiLayout,

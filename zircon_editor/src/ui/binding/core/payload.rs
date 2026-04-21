@@ -1,18 +1,15 @@
 use serde::{Deserialize, Serialize};
 use zircon_runtime::ui::binding::UiBindingCall;
 
+use crate::core::editor_event::InspectorFieldChange;
 use crate::ui::binding::{
-    AssetCommand, DockCommand, DraftCommand, SelectionCommand, ViewportCommand, WelcomeCommand,
+    AnimationCommand, AssetCommand, DockCommand, DraftCommand, SelectionCommand, ViewportCommand,
+    WelcomeCommand,
 };
-
-use super::InspectorFieldChange;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum EditorUiBindingPayload {
-    PositionOfTrackAndFrame {
-        track_path: String,
-        frame: u32,
-    },
+    AnimationCommand(AnimationCommand),
     MenuAction {
         action_id: String,
     },

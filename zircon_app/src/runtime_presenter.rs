@@ -3,13 +3,13 @@ use std::sync::Arc;
 
 use softbuffer::{Context, Surface};
 use winit::window::Window;
-use zircon_runtime::core::{CoreError, CoreHandle};
 use zircon_runtime::core::framework::render::{
     CapturedFrame, RenderFrameExtract, RenderFramework, RenderFrameworkError,
     RenderViewportDescriptor, RenderViewportHandle,
 };
 use zircon_runtime::core::manager::resolve_render_framework;
 use zircon_runtime::core::math::UVec2;
+use zircon_runtime::core::{CoreError, CoreHandle};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct ActiveViewport {
@@ -164,10 +164,11 @@ mod tests {
 
     use zircon_runtime::core::framework::render::{
         RenderFrameExtract, RenderPipelineHandle, RenderQualityProfile, RenderStats,
-        RenderWorldSnapshotHandle,
+        RenderVirtualGeometryDebugSnapshot, RenderWorldSnapshotHandle,
     };
     use zircon_runtime::core::math::UVec2;
     use zircon_runtime::scene::world::World;
+    use zircon_runtime::ui::surface::UiRenderExtract;
 
     use super::{
         CapturedFrame, RenderFramework, RenderFrameworkError, RenderFrameworkRuntimeBridge,
@@ -293,6 +294,15 @@ mod tests {
             Ok(())
         }
 
+        fn submit_frame_extract_with_ui(
+            &self,
+            viewport: RenderViewportHandle,
+            extract: RenderFrameExtract,
+            _ui: Option<UiRenderExtract>,
+        ) -> Result<(), RenderFrameworkError> {
+            self.submit_frame_extract(viewport, extract)
+        }
+
         fn set_pipeline_asset(
             &self,
             _viewport: RenderViewportHandle,
@@ -310,6 +320,12 @@ mod tests {
 
         fn query_stats(&self) -> Result<RenderStats, RenderFrameworkError> {
             Ok(RenderStats::default())
+        }
+
+        fn query_virtual_geometry_debug_snapshot(
+            &self,
+        ) -> Result<Option<RenderVirtualGeometryDebugSnapshot>, RenderFrameworkError> {
+            Ok(None)
         }
 
         fn capture_frame(

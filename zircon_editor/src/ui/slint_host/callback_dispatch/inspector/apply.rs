@@ -14,7 +14,7 @@ pub(crate) fn dispatch_inspector_apply(
         runtime,
         EditorEventEnvelope::new(
             EditorEventSource::Slint,
-            crate::EditorEvent::Inspector(event),
+            crate::core::editor_event::EditorEvent::Inspector(event),
         ),
     )
 }

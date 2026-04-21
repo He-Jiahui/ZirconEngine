@@ -1,83 +1,120 @@
 ---
 related_code:
-  - zircon_framework/src/render/backend_types.rs
-  - zircon_runtime/Cargo.toml
-  - zircon_runtime/src/ui/mod.rs
-  - zircon_runtime/src/ui/runtime_ui/mod.rs
+  - zircon_runtime/assets/fonts/default.font.toml
+  - zircon_runtime/assets/fonts/FiraMono-subset.ttf
+  - zircon_runtime/src/asset/assets/font.rs
+  - zircon_runtime/src/asset/assets/imported.rs
+  - zircon_runtime/src/asset/importer/ingest/import_font_asset.rs
+  - zircon_runtime/src/asset/importer/ingest/import_from_source.rs
+  - zircon_runtime/src/asset/project/manager/collect_files.rs
+  - zircon_runtime/src/asset/project/manager/asset_kind.rs
+  - zircon_runtime/src/asset/artifact/store.rs
+  - zircon_runtime/assets/ui/runtime/fixtures/hud_overlay.ui.toml
+  - zircon_runtime/assets/ui/runtime/fixtures/pause_menu.ui.toml
+  - zircon_runtime/assets/ui/runtime/fixtures/settings_dialog.ui.toml
+  - zircon_runtime/assets/ui/runtime/fixtures/inventory_list.ui.toml
+  - zircon_runtime/src/ui/surface/render/mod.rs
+  - zircon_runtime/src/ui/surface/render/resolve.rs
+  - zircon_runtime/src/ui/surface/render/resolved_style.rs
+  - zircon_runtime/src/ui/surface/render/typography.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/new.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/font_asset.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/screen_space_ui_renderer.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_new/construct/construct.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_new/new_with_icon_source.rs
+  - zircon_runtime/src/core/framework/render/framework.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit.rs
   - zircon_runtime/src/ui/runtime_ui/runtime_ui_fixture.rs
   - zircon_runtime/src/ui/runtime_ui/runtime_ui_manager.rs
   - zircon_runtime/src/ui/runtime_ui/runtime_ui_manager_error.rs
-  - zircon_runtime/src/ui/runtime_ui/fixtures/hud_overlay.ui.toml
-  - zircon_runtime/src/ui/runtime_ui/fixtures/pause_menu.ui.toml
-  - zircon_runtime/src/ui/runtime_ui/fixtures/settings_dialog.ui.toml
-  - zircon_runtime/src/ui/runtime_ui/fixtures/inventory_list.ui.toml
-  - zircon_runtime/src/tests/mod.rs
-  - zircon_graphics/src/lib.rs
-  - zircon_graphics/src/runtime/mod.rs
-  - zircon_graphics/src/runtime/render_framework/mod.rs
-  - zircon_graphics/src/runtime/render_framework/submit_runtime_frame.rs
-  - zircon_graphics/src/runtime/render_framework/submit_frame_extract/mod.rs
-  - zircon_graphics/src/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
-  - zircon_graphics/src/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
-  - zircon_graphics/src/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
-  - zircon_graphics/src/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs
-  - zircon_graphics/src/types/editor_or_runtime_frame.rs
-  - zircon_graphics/src/types/editor_or_runtime_frame_with_ui.rs
-  - zircon_graphics/src/scene/scene_renderer/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_core/scene_renderer_core.rs
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_core_new/construct/construct.rs
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_core_render_scene/render_scene.rs
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
-  - zircon_graphics/src/scene/scene_renderer/ui/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/ui/screen_space_ui_renderer.rs
-  - zircon_graphics/src/scene/scene_renderer/ui/new.rs
-  - zircon_graphics/src/scene/scene_renderer/ui/render.rs
-  - zircon_graphics/src/scene/scene_renderer/ui/shaders/screen_space_ui.wgsl
+  - zircon_runtime/src/tests/ui_boundary/assets.rs
+  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_build_runtime_overlay_ui.rs
+  - zircon_editor/src/ui/workbench/state/editor_state_render.rs
+  - zircon_editor/src/ui/slint_host/viewport/submit_extract.rs
+  - zircon_runtime/src/ui/template/asset/document.rs
+  - zircon_runtime/src/ui/template/asset/legacy.rs
+  - zircon_runtime/src/ui/tests/asset.rs
+  - zircon_runtime/src/tests/ui_boundary/mod.rs
+  - zircon_runtime/tests/font_asset_manifest_contract.rs
+  - zircon_runtime/tests/runtime_ui_text_render_contract.rs
 implementation_files:
-  - zircon_framework/src/render/backend_types.rs
-  - zircon_runtime/Cargo.toml
-  - zircon_runtime/src/ui/mod.rs
-  - zircon_runtime/src/ui/runtime_ui/mod.rs
+  - zircon_runtime/assets/fonts/default.font.toml
+  - zircon_runtime/assets/fonts/FiraMono-subset.ttf
+  - zircon_runtime/src/asset/assets/font.rs
+  - zircon_runtime/src/asset/assets/imported.rs
+  - zircon_runtime/src/asset/importer/ingest/import_font_asset.rs
+  - zircon_runtime/src/asset/importer/ingest/import_from_source.rs
+  - zircon_runtime/src/asset/project/manager/collect_files.rs
+  - zircon_runtime/src/asset/project/manager/asset_kind.rs
+  - zircon_runtime/src/asset/artifact/store.rs
+  - zircon_runtime/src/ui/surface/render/mod.rs
+  - zircon_runtime/src/ui/surface/render/resolve.rs
+  - zircon_runtime/src/ui/surface/render/resolved_style.rs
+  - zircon_runtime/src/ui/surface/render/typography.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/new.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/font_asset.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/screen_space_ui_renderer.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_new/construct/construct.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_new/new_with_icon_source.rs
+  - zircon_runtime/src/core/framework/render/framework.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit.rs
   - zircon_runtime/src/ui/runtime_ui/runtime_ui_fixture.rs
   - zircon_runtime/src/ui/runtime_ui/runtime_ui_manager.rs
   - zircon_runtime/src/ui/runtime_ui/runtime_ui_manager_error.rs
-  - zircon_runtime/src/ui/runtime_ui/fixtures/hud_overlay.ui.toml
-  - zircon_runtime/src/ui/runtime_ui/fixtures/pause_menu.ui.toml
-  - zircon_runtime/src/ui/runtime_ui/fixtures/settings_dialog.ui.toml
-  - zircon_runtime/src/ui/runtime_ui/fixtures/inventory_list.ui.toml
-  - zircon_runtime/src/tests/mod.rs
-  - zircon_graphics/src/lib.rs
-  - zircon_graphics/src/runtime/mod.rs
-  - zircon_graphics/src/runtime/render_framework/mod.rs
-  - zircon_graphics/src/runtime/render_framework/submit_runtime_frame.rs
-  - zircon_graphics/src/runtime/render_framework/submit_frame_extract/mod.rs
-  - zircon_graphics/src/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
-  - zircon_graphics/src/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
-  - zircon_graphics/src/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
-  - zircon_graphics/src/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs
-  - zircon_graphics/src/types/editor_or_runtime_frame.rs
-  - zircon_graphics/src/types/editor_or_runtime_frame_with_ui.rs
-  - zircon_graphics/src/scene/scene_renderer/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_core/scene_renderer_core.rs
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_core_new/construct/construct.rs
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_core_render_scene/render_scene.rs
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
-  - zircon_graphics/src/scene/scene_renderer/ui/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/ui/screen_space_ui_renderer.rs
-  - zircon_graphics/src/scene/scene_renderer/ui/new.rs
-  - zircon_graphics/src/scene/scene_renderer/ui/render.rs
-  - zircon_graphics/src/scene/scene_renderer/ui/shaders/screen_space_ui.wgsl
+  - zircon_runtime/src/tests/ui_boundary/assets.rs
+  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_build_runtime_overlay_ui.rs
+  - zircon_editor/src/ui/workbench/state/editor_state_render.rs
+  - zircon_editor/src/ui/slint_host/viewport/submit_extract.rs
+  - zircon_runtime/src/ui/template/asset/document.rs
+  - zircon_runtime/src/ui/template/asset/legacy.rs
+  - zircon_runtime/src/ui/tests/asset.rs
+  - zircon_runtime/src/tests/ui_boundary/mod.rs
+  - zircon_runtime/assets/ui/runtime/fixtures/hud_overlay.ui.toml
+  - zircon_runtime/assets/ui/runtime/fixtures/pause_menu.ui.toml
+  - zircon_runtime/assets/ui/runtime/fixtures/settings_dialog.ui.toml
+  - zircon_runtime/assets/ui/runtime/fixtures/inventory_list.ui.toml
+  - zircon_runtime/tests/font_asset_manifest_contract.rs
+  - zircon_runtime/tests/runtime_ui_text_render_contract.rs
 plan_sources:
-  - user: 2026-04-18 下一步可以直接进入 Graphics/runtime integration
+  - user: 2026-04-20 要求加载入口不允许放入src
+  - user: 2026-04-20 是指加载入口资源文件
+  - user: 2026-04-20 PLEASE IMPLEMENT THIS PLAN
+  - user: 2026-04-21 M1 主链收口与文本底座计划，runtime UI 文本改为 glyphon + wgpu，并保留 SDF/native 共存接口
+  - user: 2026-04-21 继续推进 M1，补齐默认字体资产归属与默认可用闭环
+  - user: 2026-04-21 继续推进 M1，把 .font.toml 接进正式 asset/resource/importer 主链，并让 UI loader 复用公共 FontAsset
+  - user: 2026-04-21 继续推进 M1，让项目内 res:// 字体资产通过 ProjectAssetManager 进入 runtime UI 文本链路
+  - .codex/plans/Zircon UI 资产化 Widget Editor 与共享 Layout.md
   - .codex/plans/编辑器 .slint 去真源 Runtime UI 可用 Cutover 路线图.md
 tests:
-  - zircon_runtime/src/tests/mod.rs
-  - cargo test -p zircon_runtime --lib --target-dir target/codex-shared-b runtime_ui_manager_builds_all_builtin_fixtures_into_shared_surfaces
-  - cargo test -p zircon_runtime --lib --features runtime-ui-integration-tests --target-dir target/codex-shared-b render_framework_submits_runtime_ui_frames_and_renders_pause_menu_panels
-  - cargo test -p zircon_runtime --lib --features runtime-ui-integration-tests --target-dir target/codex-shared-b render_framework_reports_clipped_ui_commands_for_inventory_fixture
-  - cargo test -p zircon_runtime --lib --features runtime-ui-integration-tests --target-dir target/codex-shared-b --no-run
-  - cargo test -p zircon_graphics boundary --target-dir target/codex-shared-b
-  - cargo check --workspace --target-dir target/codex-shared-b
+  - zircon_runtime/src/asset/tests/assets/font.rs
+  - zircon_runtime/src/ui/tests/asset.rs
+  - zircon_runtime/src/ui/tests/shared_core.rs
+  - zircon_runtime/src/tests/ui_boundary/mod.rs
+  - zircon_runtime/src/tests/ui_boundary/assets.rs
+  - zircon_runtime/src/graphics/tests/render_framework_bridge.rs
+  - zircon_editor/src/tests/editing/state.rs
+  - zircon_editor/src/ui/slint_host/viewport/tests/controller_submits_shared_ui_overlay_through_render_framework.rs
+  - cargo test -p zircon_runtime render_extract_carries_visual_contract_fields_for_visible_nodes
+  - cargo test -p zircon_runtime screen_space_ui_plan_keeps_text_batches_for_quad_commands
+  - cargo test -p zircon_runtime screen_space_ui_plan_routes_sdf_text_to_a_separate_batch
+  - cargo test -p zircon_runtime screen_space_ui_plan_keeps_auto_text_in_a_separate_batch
+  - cargo test -p zircon_runtime auto_text_mode_uses_font_asset_default_when_present
+  - cargo test -p zircon_runtime font_asset_ --locked
+  - cargo test -p zircon_runtime --test font_asset_manifest_contract project_font_manifest_resolves_through_project_asset_manager --locked
+  - cargo test -p zircon_runtime render_framework_tracks_text_payloads_submitted_with_shared_ui_extracts --locked
+  - cargo test -p zircon_runtime runtime_ui_manager_builds_all_builtin_fixtures_into_shared_surfaces --locked
+  - cargo test -p zircon_runtime production_ui_entry_assets_live_under_crate_assets_not_src --locked
+  - cargo test -p zircon_runtime default_runtime_font_manifest_stays_inside_runtime_assets --locked
+  - cargo test -p zircon_runtime --test font_asset_manifest_contract --locked
+  - cargo check -p zircon_runtime --locked --lib
+  - cargo test -p zircon_runtime ui_document_compiler_expands_imported_widget_references_and_applies_stylesheets --locked
+  - cargo check -p zircon_editor --lib --locked
 doc_type: module-detail
 ---
 
@@ -85,143 +122,262 @@ doc_type: module-detail
 
 ## Purpose
 
-这一步把 `Runtime visual contract` 真正接到了 `zircon_graphics` 的运行时提交流水里，不再停留在 `zircon_ui::surface::UiRenderExtract` 只存在于 shared core 的状态。完成后，运行时 UI 的最短闭环固定为：
+这份文档记录 runtime UI 在本轮 cutover 后的正式加载边界：
 
-1. `.ui.toml` 资产定义结构、布局和视觉字段。
-2. `zircon_runtime::ui::RuntimeUiManager` 通过 `UiAssetLoader -> UiDocumentCompiler -> zircon_ui::template::UiTemplateSurfaceBuilder` 构建 shared `UiSurface`。
-3. `zircon_runtime::ui::RuntimeUiManager::build_frame()` 生成带 `UiRenderExtract` 的 `EditorOrRuntimeFrame`。
-4. `WgpuRenderFramework::submit_runtime_frame(...)` 复用既有 render framework 状态机，把 UI 和 scene/GI/VG payload 一起送进 `SceneRenderer`。
-5. `ScreenSpaceUiRenderer` 在 scene overlays 之后追加 screen-space UI pass，把 shared draw list 画到最终颜色目标。
+- 运行时 builtin fixture 的入口资源已经迁出 `src/`
+- runtime 只从 crate `assets/` 读取生产 `.ui.toml` 入口
+- runtime/editor 共用 tree-shaped `.ui.toml` 和 shared loader/compiler
 
-这使得 runtime fixture 不再依赖 Slint preview 或 editor host 才能“看到 UI”。
+本篇强调的是“运行时入口资源位置”和“加载路径”。tree `.ui.toml` 本体协议见 [`UI Asset Documents And Editor Protocol`](../ui-and-layout/ui-asset-documents-and-editor-protocol.md)。
 
-## Runtime Fixture Assets
+## Production Entry Assets Must Live Under `assets/`
 
-运行时内建 fixture 现在都落成真实的 `.ui.toml` 文件，路径在 `zircon_runtime/src/ui/runtime_ui/fixtures/`：
+这轮新增了一条明确约束：正式加载入口资源文件不得放在任何 crate 的 `src/` 目录下。
+
+对 runtime UI 来说，直接变化是：
+
+- 旧位置：`zircon_runtime/src/ui/runtime_ui/fixtures/*.ui.toml`
+- 新位置：`zircon_runtime/assets/ui/runtime/fixtures/*.ui.toml`
+
+目前 builtin fixture 包括：
 
 - `hud_overlay.ui.toml`
 - `pause_menu.ui.toml`
 - `settings_dialog.ui.toml`
 - `inventory_list.ui.toml`
 
-这里故意没有把 fixture 写成 Rust 手工树，而是保留成 editor/runtime 共识的文本资产，原因有两个：
+editor 侧原有 `zircon_editor/assets/ui/...` 已经符合这个规则，因此本轮主要是把 runtime fixture 补齐到相同目录标准。
 
-- 它们可以继续被现有 UI asset editor 读取和可视化编辑，不会因为 graphics 接入又引入一套只给测试看的私有构造 DSL。
-- 这四个 fixture 正好对应 roadmap 里的 runtime 验收样本，后续做 screenshot golden、route golden、输入回放时可以直接复用同一份资产。
+## Runtime Fixture Contract
 
-`RuntimeUiFixture` 只负责把 fixture 名称映射到稳定 `asset_id` 和源码文本；真正的解析、编译和 surface 构建全部仍交给 `zircon_ui` 的 shared template/runtime 链路。它现在和 `RuntimeUiManager` 一起由 `zircon_runtime::ui` 持有，不再挂在 `zircon_graphics` crate 根上。
+[`RuntimeUiFixture`](../../zircon_runtime/src/ui/runtime_ui/runtime_ui_fixture.rs) 现在只保留和资源定位直接相关的三个接口：
 
-## Runtime UI Manager
+- `asset_id()`
+- `relative_asset_path()`
+- `asset_path()`
 
-`zircon_runtime::ui::RuntimeUiManager` 的职责被刻意压小，只做 runtime-host 最基础的三件事：
+旧的 `source()` 入口已经删除。runtime fixture 不再通过 `include_str!` 或 `src/fixtures` 的源码字符串进入系统。
 
-- 持有 `viewport_size`
-- 加载一个 builtin fixture 并构建 `UiSurface`
-- 把当前 `UiSurface.render_extract` 打包成 `EditorOrRuntimeFrame`
+这意味着 fixture 枚举现在只负责：
 
-它目前不承担字体 atlas、图片流送、文本输入、焦点策略或输入分发；这些仍属于后续 runtime host service 的继续扩展点。当前 manager 的作用是把 graphics/runtime integration 需要的最小 host boundary 先钉死：
+- 把逻辑枚举值映射到稳定 asset id
+- 把逻辑枚举值映射到 crate `assets/` 下的相对路径
 
-- runtime UI 的结构和视觉数据必须来自 shared `UiSurface`
-- graphics 只吃 `UiRenderExtract`
-- scene extract 仍保持为空场景快照，screen-space UI pass 不理解 editor-only docking/page/window 语义
+真正的内容读取、解析和编译都回到 shared UI 资产链路。
 
-`build_frame()` 使用空 `RenderSceneSnapshot` 加默认 camera/preview clear color，目的是让 HUD、暂停菜单、设置对话框这类 screen-space fixture 能在无 scene 内容时也稳定出图。
+## Shared Load Path
 
-## Frame Carrier And Render Framework Boundary
+[`RuntimeUiManager`](../../zircon_runtime/src/ui/runtime_ui/runtime_ui_manager.rs) 现在的正式加载路径是：
 
-`EditorOrRuntimeFrame` 新增了公开字段 `ui: Option<UiRenderExtract>`，并配套了 `with_ui(...)` builder。这样运行时 UI 不需要再修改 `RenderFramework` trait 或把 `zircon_ui` 依赖推回 `zircon_framework`；UI payload 只在 `zircon_graphics` 内部的 runtime frame carrier 上存在。
+1. `UiAssetLoader::load_toml_file(fixture.asset_path())`
+2. `UiDocumentCompiler::compile(&document)`
+3. `UiTemplateSurfaceBuilder::build_surface_from_compiled_document(...)`
+4. `surface.compute_layout(...)`
 
-在 render framework 内部：
+这里没有 runtime-only parser，也没有为 fixture 保留一条旧平面 authority 的兼容入口。
 
-- `WgpuRenderFramework` 新增 inherent 方法 `submit_runtime_frame(viewport, frame)`
-- 既有 `submit_frame_extract(...)` 保持不变，继续服务纯 scene extract 提交
-- `submit_runtime_frame(...)` 复用 `build_frame_submission_context(...)`、`prepare_runtime_submission(...)`、history 轮换、GPU completion 收集和 `update_stats(...)`
+runtime fixture 和 editor bootstrap 资产现在共享完全相同的文档解析与编译器，只在最后的宿主消费不同：
 
-差异只在一处：runtime frame 路径会保留调用者已经放进来的 `frame.ui`，再把 hybrid GI / virtual geometry 的 runtime prepare payload 叠回同一个 `EditorOrRuntimeFrame`，然后交给 `SceneRenderer::render_frame_with_pipeline(...)`。
+- editor 投影到 Slint host
+- runtime 把 `UiSurface.render_extract` 放进 runtime frame
 
-这条边界让 graphics/runtime integration 先局部闭环，而不需要在当前阶段扩张 `RenderFramework` trait 或引入一条新的跨 crate 公共 render command 协议。
+## Tree TOML Is Also The Runtime Fixture Authority
 
-## UI Stats
+运行时 fixture 已经全部迁成 tree-shaped `.ui.toml`。因此 runtime UI 现在同时满足两条规则：
 
-`RenderStats` 新增了 runtime UI 相关计数：
+- 资源位置规则：入口文件在 crate `assets/`
+- 资产格式规则：入口文件是 tree TOML，而不是旧平面 `root + nodes`
 
-- `last_ui_command_count`
-- `last_ui_quad_count`
-- `last_ui_text_payload_count`
-- `last_ui_image_payload_count`
-- `last_ui_clipped_command_count`
+`UiFlatAssetMigrationAdapter` 仍存在于 shared 模板层的 `#[cfg(test)]` 测试迁移边界，但它不属于 formal public template surface，也不参与 runtime fixture 的正式读取。
 
-这些值在 `build_frame_submission_context(...)` 阶段直接从 `UiRenderExtract` 统计，随后由 `update_base_stats(...)` 写回最终 stats。这样做有两个好处：
+## Runtime Frame Boundary
 
-- stats 不依赖 GPU readback 或 screenshot，对 headless 验证非常稳定。
-- 统计口径固定绑定 shared draw list，而不是 renderer 内部的临时分解结果。比如 border 可能在 GPU 侧拆成多个矩形，但 `last_ui_quad_count` 仍然反映 shared contract 里的 quad command 数量。
+资源目录 cutover 并没有改变 runtime UI 向 graphics 提交的公共语义。
 
-## Screen-Space UI Pass
+当前 runtime 侧仍然是：
 
-`SceneRendererCore` 现在拥有一个新的 `ScreenSpaceUiRenderer`，并在两条渲染路径里都接入：
+- `RuntimeUiManager` 持有当前 `UiSurface`
+- `build_frame()` 把 `surface.render_extract` 塞进 `PublicRuntimeFrame.ui`
+- render framework / scene renderer 继续消费这份 shared draw extract
 
-- `render_scene(...)`
-- `render_compiled_scene(...)`
+所以这轮变更的重点不是另起一套 runtime UI renderer，而是确保“进入 renderer 的 UI 数据”来自 crate `assets/` 下的正式 tree `.ui.toml` 文件，同时把文本子层从占位矩形升级到真正的字形绘制。
 
-record 顺序固定为：
+## Typography Contract
 
-1. scene/deferred/post-process
-2. existing overlay renderer
-3. screen-space UI renderer
+`zircon_runtime::ui::surface::render::UiResolvedStyle` 现在不再只有背景和边框字段，它已经补齐 runtime 文本底座要用到的最小 typography 合同：
 
-这保证 runtime UI 在最终颜色目标上显示为真正的后置屏幕空间层，不参与 scene depth，也不会被 editor overlay pass 的内部顺序反向覆盖。
+- `font`
+- `font_family`
+- `font_size`
+- `line_height`
+- `text_align`
+- `wrap`
+- `text_render_mode`
 
-当前 pass 采用一个最小但真实的 GPU 实现：
+这些字段由 `resolve.rs` 直接从模板 metadata 解析，允许 runtime fixture 和 editor-owned runtime-style overlay 走同一套样式入口。现阶段支持的直写键包括：
 
-- WGSL shader 只吃 position/color 顶点
-- CPU 侧把 shared `UiRenderCommand` 转成三角形顶点
-- quad/background/border 直接映射成实矩形
-- text/image 暂时走占位可见渲染，而不是完整字体 atlas / 纹理采样
-- `clip_frame` 通过 `set_scissor_rect(...)` 变成真实 scissor
+- `font = "res://fonts/default.font.toml"`
+- `font_family = "Fira Mono"`
+- `font_size = 18.0`
+- `line_height = 24.0`
+- `text_align = "center"`
+- `wrap = "word"`
+- `text_render_mode = "auto"` / `"native"` / `"sdf"`
 
-这不是最终 UI renderer 的终态，但它已经满足 roadmap 当前阶段要求：`zircon_graphics` 真正消费 shared visual draw list，而不是继续停留在“仅统计 frame geometry”。
+`[font]` table 也能承载相同语义，便于后续把字体资产、family、尺寸与 render mode 收到一处。
 
-## Current Deliberate Limitations
+## Glyphon Runtime Text Path
 
-这一步刻意没有把下面这些内容一并做完：
+M1 之后，screen-space UI renderer 不再把 `Text` 节点画成一条占位矩形带。当前链路已经变成：
 
-- 字体测量和真实 glyph atlas
-- 图片/图标纹理资产装载与采样
-- world-space UI
-- 复杂主题动画和富文本排版
+1. `UiSurface` 生成 shared `UiRenderExtract`
+2. `ScreenSpaceUiRenderer` 先做 screen-space batch plan
+3. 背景 / 边框 / image 继续走现有 quad 路径
+4. 文本命令拆进独立 text batch
+5. text batch 交给 glyphon + wgpu 路径准备 atlas / glyph buffer 并在同一 UI pass 里提交
 
-原因不是它们不重要，而是当前 slice 的完成门槛是先把 shared runtime visual contract 接上真实 graphics pass。为了不把里程碑又拖回大而散的“全功能 UI renderer”，这一版的 text/image 先以稳定可见占位图形落地，同时通过 stats 报告 text/image payload 数量，给下一步 atlas/texture 接入保留明确的技术边界。
+这样按钮、标签这类“同一个节点既有背景又有文本”的情况不会再丢文本；quad 和 text 已经是并行层，而不是互斥 kind。
 
-## Acceptance Fixtures
+当前实现还额外把 glyphon/cosmic-text 的 API 对齐固定在 renderer 内部边界上：
 
-四个 builtin fixture 的角色已经固定：
+- [`ScreenSpaceUiTextBatch`](../../zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs) 继续只是 screen-space renderer 子树里的 DTO，但字段已经收口成 `pub(super)`，只允许同一 `ui/` renderer 子系统在 batch planner 和 text backend 之间共享
+- [`text.rs`](../../zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs) 通过 `glyphon::cosmic_text::Align` 和 `Buffer::set_text(..., alignment)` 把 shared `UiTextAlign` 直接传进 glyphon，而不是再靠手动改写内部行布局状态
 
-- `HudOverlay`
-  - 验证常驻 HUD、角标、文本和 icon/image payload 能进入 runtime frame
-- `PauseMenu`
-  - 验证中心对话框、scrim、按钮面板和可见 screen-space footprint
-- `SettingsDialog`
-  - 验证多面板配置 UI 能以纯 TOML 资产落成 shared surface
-- `InventoryList`
-  - 验证 scrollable/virtualized list 的 clip/scissor 统计链路
+这能把本轮锁文件升级后暴露的 glyphon API 漂移控制在 renderer 局部，不需要改 shared `UiResolvedStyle`、`UiRenderExtract` 或 runtime fixture 资产格式。
 
-其中 `InventoryList` 的意义不是“目前已经完成完整虚拟化 renderer”，而是 runtime integration 这一步至少要证明 clipped draw command 会被保留并进入真实 graphics pass 的统计和 record 流程。
+## Native / SDF Coexistence
 
-## Validation Evidence
+M1 的完成线不是一次性做完整 SDF 文本系统，而是先把共存合同和运行时批次拆干净。
 
-这轮把 runtime UI host 从 `zircon_graphics` 物理迁到 `zircon_runtime::ui` 之后，已经重新跑过并通过以下验证：
+当前实现里：
 
-- `cargo test -p zircon_runtime --lib --target-dir target/codex-shared-b runtime_ui_manager_builds_all_builtin_fixtures_into_shared_surfaces`
-- `cargo test -p zircon_runtime --lib --features runtime-ui-integration-tests --target-dir target/codex-shared-b render_framework_submits_runtime_ui_frames_and_renders_pause_menu_panels`
-- `cargo test -p zircon_runtime --lib --features runtime-ui-integration-tests --target-dir target/codex-shared-b render_framework_reports_clipped_ui_commands_for_inventory_fixture`
-- `cargo test -p zircon_runtime --lib --features runtime-ui-integration-tests --target-dir target/codex-shared-b --no-run`
-- `cargo test -p zircon_graphics boundary --target-dir target/codex-shared-b`
-- `cargo check --workspace --target-dir target/codex-shared-b`
+- `UiTextRenderMode::Auto` 先进入独立 auto batch，再由 text backend 按字体资产默认值解析到 native 或 sdf
+- `UiTextRenderMode::Native` 直接进入 native text backend
+- `UiTextRenderMode::Sdf` 直接进入独立的 sdf text backend
+- 两条 backend 已经各自维护独立 text batch / atlas / renderer 槽位
 
-这里的 focused assertions 不只检查“函数可调用”，还检查了三类真实结果：
+这让 runtime/editor overlay 现在既能显式声明“这段文本属于 native 还是 sdf”，也能把默认策略下沉到字体资产，而不需要继续把两类策略混在同一条占位路径里。当前 `sdf` backend 仍复用 glyphon 栅格链路完成最小可用闭环；后续如果补专用 SDF atlas / shader，只需要替换 sdf backend，不必再改模板样式合同或 render extract 形状。
 
-- manager 能把四个 `.ui.toml` fixture 构造成 non-trivial shared `UiSurface`
-- render framework stats 会报告 UI command/quad/clip 数量
-- headless capture 在暂停菜单场景下会出现可见中心对话框亮区，而不是只有背景清屏
+这一轮还补了一条 capture 级回归：[runtime_ui_text_render_contract.rs](/E:/Git/ZirconEngine/zircon_runtime/tests/runtime_ui_text_render_contract.rs)。它不再只看 planner/batch 统计，而是直接通过 `RenderFramework::submit_frame_extract_with_ui(...) -> capture_frame(...)` 证明：
 
-这意味着 `Graphics/runtime integration` 当前不再依赖 `zircon_graphics` 自己持有 runtime host helper；shared runtime UI 现在经由 `zircon_runtime::ui` 生成 frame，再通过 graphics pass 真正出图并可验证。
+- `UiTextRenderMode::Native` 会产出真实 glyph footprint，而不是整块文本占位带
+- `UiTextRenderMode::Sdf` 也会沿同一条 runtime UI 提交链产出 glyph 像素
+- `clip_frame` 会继续约束文本采样区域，不会沿整条文本带泄漏
+- `wrap = "word"` 会把 glyph footprint 实际分配到多行，而不是仍然挤成单条占位带
+- `opacity` 会继续进入 glyph 颜色/采样链路，capture frame 上能看到稳定的可见变暗，而不是只停留在 shared command 元数据里
+- 同一个回归文件现在还额外覆盖正式模板资产链：`.ui.toml -> UiAssetLoader -> UiDocumentCompiler -> UiTemplateSurfaceBuilder -> UiSurface.render_extract -> RenderFramework capture_frame(...)`
+- 这意味着 template/surface 驱动的 runtime 文本也已经有最终像素证据，而不再只有手写 `UiRenderCommand` 和 editor HUD 提交路径的 capture 证明
+
+## Font Asset Entry
+
+为了不给 runtime UI 文本继续绑定系统字体或源码常量，这轮新增了最小字体资产入口：
+
+- `zircon_runtime/assets/fonts/default.font.toml`
+
+该 manifest 负责声明默认字体来源与 family。runtime renderer 会把 `res://fonts/*.font.toml` 解析成具体文件路径并在首次使用时加载，未显式指定时则回落到 `res://fonts/default.font.toml`。这条链路已经足够支撑：
+
+- runtime fixture 默认字体可用
+- 模板样式显式引用字体资产
+- editor-owned runtime overlay 与 runtime UI 共用同一套字体入口
+
+当前默认入口已经进一步收口成 runtime 自有资源：
+
+- `zircon_runtime/assets/fonts/default.font.toml` 现在直接引用同目录下的 `FiraMono-subset.ttf`
+- 默认字体不再依赖 `dev/bevy/...` 这类开发树相对路径
+- `default_runtime_font_manifest_stays_inside_runtime_assets` 会校验 manifest 解析后的真实源文件仍位于 `zircon_runtime/assets/` 内部
+
+这轮又把 manifest 解析本身收得更硬了一层：
+
+- [`font_asset.rs`](../../zircon_runtime/src/graphics/scene/scene_renderer/ui/font_asset.rs) 现在负责独立解析 `.font.toml`，不再把路径拼接逻辑散落在 text backend 内部
+- manifest 的 `source` 必须是相对路径，绝对路径会被直接拒绝
+- 对 `res://fonts/*.font.toml` 来说，`source` 解析后的真实文件必须仍位于 `zircon_runtime/assets/` 根内，不能用 `../` 逃逸到 crate 根或 `dev/` 外部树
+- 对外部绝对 manifest 路径来说，`source` 也只能落在 manifest 所在目录作用域内，不能借 manifest 继续跳到旁路目录
+
+M1 这里再补了一条最小默认策略：
+
+- 字体 manifest 可选声明 `render_mode = "native"` 或 `"sdf"`
+- `UiTextRenderMode::Auto` 会优先采用字体 manifest 的默认值
+- 如果字体 manifest 没写 `render_mode`，则稳定回落到 `Native`
+- 如果样式显式写了 `text_render_mode = "native"` / `"sdf"`，显式样式仍然覆盖字体默认值
+
+这条入口现在也不再只是 runtime UI renderer 的私有 TOML 约定，而是已经补进 runtime asset 主链：
+
+- [`FontAsset`](../../zircon_runtime/src/asset/assets/font.rs) 成为正式的最小字体资产语义模型，字段固定为 `source`、`family`、`render_mode`
+- `AssetImporter` 已经把 `.font.toml` 接到 [`ImportedAsset::Font`](../../zircon_runtime/src/asset/assets/imported.rs) 和 [`AssetKind::Font`](../../zircon_runtime/src/asset/project/manager/asset_kind.rs)
+- [`ArtifactStore`](../../zircon_runtime/src/asset/artifact/store.rs) 会把这类资产写入 `lib://fonts/*.json`，因此 project scan / artifact load / runtime resource registry 已经能稳定识别字体资产
+- [`font_asset.rs`](../../zircon_runtime/src/graphics/scene/scene_renderer/ui/font_asset.rs) 现在直接复用 `FontAsset::from_toml_str(...)`，并把 `render_mode` 以强类型 `UiTextRenderMode` 暴露给 text backend，不再保留一层裸字符串中转
+- [`ScreenSpaceUiTextSystem`](../../zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs) 和 renderer 构造链现在会接收 [`ProjectAssetManager`](../../zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_new/new_with_icon_source.rs)，因此 `res://fonts/*.font.toml` 会优先从当前打开项目的正式资产注册表里解析，再回退到 runtime crate 自带默认字体
+- [`collect_files.rs`](../../zircon_runtime/src/asset/project/manager/collect_files.rs) 现在会把 `.ttf`、`.otf`、`.woff`、`.woff2` 视为字体 manifest 的 source auxiliary，而不是 standalone project asset；这样项目把原始字体文件放进 `assets/fonts/` 时，不会再在 `scan_and_import()` 阶段直接炸成 unsupported format
+
+这让“允许显式引用字体资产”终于从“只对 runtime crate 自带默认字体成立”推进到了“项目自己的 `res://` 字体资产也能进入同一条 runtime text backend”。
+
+## Editor Viewport HUD Uses The Same Text Backend
+
+这轮 M1 不改 Slint workbench 主 UI，但已经把 editor viewport 的一条 authoring overlay 正式接进 runtime 文本底座：
+
+- `EditorState::render_frame_submission()` 现在除了 scene `RenderFrameExtract`，还会带一份可选 shared `UiRenderExtract`
+- `SceneViewportController::build_runtime_overlay_ui()` 生成右上角状态 HUD，文本内容来自 editor-owned viewport 状态，而不是 runtime world
+- `RenderFramework::submit_frame_extract_with_ui(...)` 把 scene extract 和 HUD 的 `UiRenderExtract` 一起交给 graphics
+- `ScreenSpaceUiRenderer` 因此会把这条 HUD 文本和 runtime fixture 文本一样送进 glyphon/native/sdf 批次分流，不需要再为 editor viewport 另起一条文本实现
+
+这就是 M1 里“runtime UI 与 editor viewport/runtime-style overlay 至少共享同一套 runtime 文本底座”的当前落地形态。Slint 继续负责 editor shell，本轮只把 viewport 内的 runtime-style HUD 接进 shared text backend。
+
+这条 editor 侧共用路径现在也已经有 capture 级证据，而不再只停留在“提交到了 render framework”：
+
+- [`render_frame_submission_hud_text_renders_through_runtime_glyph_capture`](/E:/Git/ZirconEngine/zircon_editor/src/tests/editing/state.rs) 直接拿 `EditorState::render_frame_submission()` 产出的 scene extract + HUD `UiRenderExtract` 走 `WgpuRenderFramework::submit_frame_extract_with_ui(...) -> capture_frame(...)`
+- 测试同时对比了“有字 HUD”和“去字但保留同背景/边框的 HUD”，因此能证明 capture 中新增的像素差异来自 glyph，而不是 HUD 背景 quad 本身
+- 这让 runtime fixture 文本和 editor viewport HUD 文本都落在同一条最终 glyph capture 证据链上
+
+## Guard Rails
+
+本轮额外补了源码守卫，避免后续又把生产入口资源偷偷放回 `src/`：
+
+- runtime fixture 必须能从 crate `assets/` 成功枚举和加载
+- `zircon_editor/src` 和 `zircon_runtime/src` 下都不允许继续出现生产 `.ui.toml` 入口资源
+
+这条守卫的意义是把目录规范变成测试约束，而不是只靠文档约定。
+
+## Acceptance Evidence
+
+直接覆盖这次 runtime cutover 的验证包括：
+
+- `cargo test -p zircon_runtime runtime_ui_manager_builds_all_builtin_fixtures_into_shared_surfaces --locked`
+  - 证明四个 builtin fixture 都能从新路径加载并构造成 shared `UiSurface`
+- `cargo test -p zircon_runtime render_extract_carries_visual_contract_fields_for_visible_nodes`
+  - 证明 template metadata 已经把 typography 字段解析进 shared `UiResolvedStyle`
+- `cargo test -p zircon_runtime screen_space_ui_plan_keeps_text_batches_for_quad_commands`
+  - 证明带背景的节点仍然会独立产出文本 batch，不再把 text 当成 quad-only 占位
+- `cargo test -p zircon_runtime screen_space_ui_plan_routes_sdf_text_to_a_separate_batch`
+  - 证明 `UiTextRenderMode::Sdf` 已经进入单独 backend 路由
+- `cargo test -p zircon_runtime screen_space_ui_plan_keeps_auto_text_in_a_separate_batch`
+  - 证明 `UiTextRenderMode::Auto` 不会在 planner 阶段被硬编码吞成 native，而是保留给 text backend 结合字体资产决策
+- `cargo test -p zircon_runtime auto_text_mode_uses_font_asset_default_when_present`
+  - 证明 `UiTextRenderMode::Auto` 会优先采用字体资产 manifest 的默认 render mode，并保留显式样式优先级
+- `cargo test -p zircon_runtime render_framework_tracks_text_payloads_submitted_with_shared_ui_extracts --locked`
+  - 证明 shared `UiRenderExtract` 通过 render framework 提交时，UI command/quad/text payload 统计都会落进 runtime submission stats，editor viewport HUD 和 runtime fixture 走的是同一条 screen-space UI 提交口
+- `cargo test -p zircon_runtime production_ui_entry_assets_live_under_crate_assets_not_src --locked`
+  - 证明生产入口 `.ui.toml` 没有回流到 `src/`
+- `cargo test -p zircon_runtime default_runtime_font_manifest_stays_inside_runtime_assets --locked`
+  - 证明默认字体 manifest 解析后的真实 TTF 仍位于 `zircon_runtime/assets/` 内部，而不是继续穿透到 `dev/` 开发树
+- `cargo test -p zircon_runtime --test font_asset_manifest_contract --locked`
+  - 证明 `.font.toml` 的 `source` 现在只接受作用域内的相对路径，既拒绝绝对路径，也拒绝从 `res://` 资产根逃逸
+- `cargo test -p zircon_runtime --test font_asset_manifest_contract project_font_manifest_resolves_through_project_asset_manager --locked`
+  - 证明当前打开项目里的 `res://fonts/project.font.toml` 会优先经 `ProjectAssetManager` 解析，并把 `project.ttf` 当成字体 source auxiliary，而不是把项目 scan 过程炸成 unsupported format
+- `cargo test -p zircon_runtime --test runtime_ui_text_render_contract --locked`
+  - 证明 runtime UI 文本在最终 capture frame 上已经是 glyph 输出而不是矩形占位，并同时覆盖 `Native`、`Sdf`、clip-bound glyph sampling、多行 wrap、opacity dimming，以及正式 `.ui.toml -> compiled surface -> render extract` 链上的 wrap/opacity glyph capture
+- `cargo test -p zircon_runtime ui_document_compiler_expands_imported_widget_references_and_applies_stylesheets --locked`
+  - 证明 runtime fixture 仍走 shared compiler，而不是 runtime-only 特例解析
+- `cargo check -p zircon_editor --lib --locked`
+  - 证明 editor viewport 的 runtime-style HUD 已经能编进正式 editor lib
+- `cargo test -p zircon_editor --lib controller_submits_shared_ui_overlay_through_render_framework --locked`
+  - 证明 viewport scene extract 与 shared HUD `UiRenderExtract` 已经通过正式宿主路径一起提交到 render framework
+- `cargo test -p zircon_editor --lib render_frame_submission_carries_editor_owned_viewport_text_overlay --locked`
+  - 证明 editor-owned viewport HUD 已经进入 `EditorState::render_frame_submission()`，而不是停留在测试桩或旁路拼装
+- `cargo test -p zircon_editor render_frame_submission_hud_text_renders_through_runtime_glyph_capture --locked`
+  - 证明 editor-owned viewport HUD 文本已经通过 shared runtime text backend 进入真实 glyph capture，而不只是落到 render framework 统计
+- `cargo test -p zircon_editor --lib --locked`
+  - 当前这条更宽的 editor lib 验证在邻域漂移下被阻塞，最新失败点不在 M1 HUD/text 这条链上；早先 host 测试树一度卡在 `asset_manager_boundary/mod.rs` 的 include 目标收敛与 `ui/animation_editor/session.rs` 的非穷尽匹配，但这两类局部漂移都不属于当前 HUD/text 链
+- `cargo test --workspace --locked`
+  - 当前全工作区验证同样仍被邻域 editor/hybrid-GI 漂移阻塞，因此 M1 这里记录的是 targeted boundary/text regressions 绿灯，而不是工作区全绿
+
+这些验证合起来，把“目录规则”“shared 加载链路”“字体/typography 合同”“native/sdf 批次分流”同时锁住。

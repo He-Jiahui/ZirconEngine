@@ -8,7 +8,7 @@ pub struct UiAssetLoader;
 
 impl UiAssetLoader {
     pub fn load_toml_str(input: &str) -> Result<UiAssetDocument, UiAssetError> {
-        toml::from_str(input).map_err(|error| UiAssetError::ParseToml(error.to_string()))
+        parse_tree_toml(input)
     }
 
     pub fn load_toml_file(path: impl AsRef<Path>) -> Result<UiAssetDocument, UiAssetError> {
@@ -16,4 +16,11 @@ impl UiAssetLoader {
             fs::read_to_string(path).map_err(|error| UiAssetError::Io(error.to_string()))?;
         Self::load_toml_str(&input)
     }
+}
+
+fn parse_tree_toml(input: &str) -> Result<UiAssetDocument, UiAssetError> {
+    let document: UiAssetDocument =
+        toml::from_str(input).map_err(|error| UiAssetError::ParseToml(error.to_string()))?;
+    document.validate_tree_authority()?;
+    Ok(document)
 }

@@ -1,7 +1,7 @@
 use zircon_runtime::ui::layout::UiFrame;
 
 use super::PrecisionShape;
-use crate::scene::viewport::pointer::bridge::frame_from_points;
+use crate::scene::viewport::pointer::overlay_router::frame_from_points;
 
 impl PrecisionShape {
     pub(in crate::scene::viewport::pointer) fn hit_frame(&self) -> Option<UiFrame> {

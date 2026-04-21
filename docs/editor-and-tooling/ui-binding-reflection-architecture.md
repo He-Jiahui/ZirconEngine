@@ -25,20 +25,35 @@ related_code:
   - zircon_editor/src/ui/binding/welcome/mod.rs
   - zircon_editor/src/ui/control.rs
   - zircon_editor/src/ui/reflection.rs
-  - zircon_editor/src/tests/ui/binding.rs
+  - zircon_editor/src/tests/ui/binding/mod.rs
+  - zircon_editor/src/tests/ui/binding/animation.rs
+  - zircon_editor/src/tests/ui/binding/asset_selection.rs
+  - zircon_editor/src/tests/ui/binding/dock_and_welcome.rs
+  - zircon_editor/src/tests/ui/binding/inspector_and_draft.rs
+  - zircon_editor/src/tests/ui/binding/viewport.rs
+  - zircon_editor/src/tests/ui/control/mod.rs
+  - zircon_editor/src/tests/ui/control/activity_descriptors.rs
+  - zircon_editor/src/tests/ui/control/reflection_projection.rs
   - zircon_editor/src/ui/workbench/autolayout/mod.rs
   - zircon_editor/src/core/editor_event/mod.rs
   - zircon_editor/src/core/editor_event/types.rs
   - zircon_editor/src/core/editor_event/runtime.rs
   - zircon_editor/src/core/editor_event/journal.rs
   - zircon_editor/src/core/editor_event/replay.rs
-  - zircon_editor/src/core/editor_event/transient.rs
-  - zircon_editor/src/core/editor_event/host_adapter.rs
+  - zircon_editor/src/core/editor_event/inspector_field_change.rs
+  - zircon_editor/src/core/editor_event/selection_host_event.rs
+  - zircon_editor/src/core/editor_event/workbench/mod.rs
+  - zircon_editor/src/core/editor_event/workbench/layout_command.rs
+  - zircon_editor/src/core/editor_event/workbench/menu_action.rs
+  - zircon_editor/src/core/editor_event/runtime/editor_event_runtime_inner.rs
   - zircon_editor/src/ui/binding_dispatch/mod.rs
+  - zircon_editor/src/ui/workbench/reflection/transient_ui_state.rs
+  - zircon_editor/src/ui/workbench/event/core_event_conversion.rs
   - zircon_editor/src/ui/slint_host/app.rs
   - zircon_editor/src/ui/slint_host/app/viewport.rs
   - zircon_editor/src/ui/slint_host/app/pane_surface_actions.rs
   - zircon_editor/src/ui/slint_host/callback_dispatch/mod.rs
+  - zircon_editor/src/ui/slint_host/callback_dispatch/workbench/menu_action.rs
   - zircon_editor/src/ui/slint_host/callback_dispatch/viewport/bridge.rs
   - zircon_editor/src/ui/slint_host/callback_dispatch/viewport/pointer_dispatch.rs
   - zircon_editor/src/ui/slint_host/callback_dispatch/pane/surface_control.rs
@@ -46,34 +61,36 @@ related_code:
   - zircon_editor/src/ui/slint_host/event_bridge.rs
   - zircon_editor/src/ui/slint_host/shell_pointer.rs
   - zircon_editor/src/ui/slint_host/tab_drag.rs
-- zircon_editor/src/ui/slint_host/viewport_toolbar_pointer/mod.rs
+  - zircon_editor/src/ui/slint_host/viewport_toolbar_pointer/mod.rs
   - zircon_editor/src/ui/slint_host/ui.rs
   - zircon_editor/src/lib.rs
-  - zircon_editor/src/core/host/manager.rs
-  - zircon_editor/src/core/host/manager/layout_hosts/mod.rs
-  - zircon_editor/src/core/host/manager/builtin_views/mod.rs
+  - zircon_editor/src/ui/host/mod.rs
+  - zircon_editor/src/ui/host/editor_manager.rs
+  - zircon_editor/src/ui/host/layout_hosts/mod.rs
+  - zircon_editor/src/ui/host/builtin_views/mod.rs
   - zircon_ui/src/template/document.rs
-  - zircon_editor/src/core/editing/ui_asset/session.rs
-  - zircon_editor/src/core/editing/ui_asset/source_sync.rs
-  - zircon_editor/src/core/editing/ui_asset/tree_editing.rs
-  - zircon_editor/src/core/editing/ui_asset/binding_inspector.rs
-  - zircon_editor/src/core/editing/ui_asset/inspector_semantics.rs
-  - zircon_editor/src/core/editing/ui_asset/command.rs
-  - zircon_editor/src/core/editing/ui_asset/undo_stack.rs
-  - zircon_editor/src/core/host/manager/ui_asset_sessions.rs
+  - zircon_editor/src/ui/asset_editor/mod.rs
+  - zircon_editor/src/ui/asset_editor/session/ui_asset_editor_session.rs
+  - zircon_editor/src/ui/asset_editor/source/source_sync.rs
+  - zircon_editor/src/ui/asset_editor/tree/tree_editing.rs
+  - zircon_editor/src/ui/asset_editor/binding/binding_inspector.rs
+  - zircon_editor/src/ui/asset_editor/style/inspector_semantics.rs
+  - zircon_editor/src/ui/asset_editor/command.rs
+  - zircon_editor/src/ui/asset_editor/undo_stack.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/mod.rs
   - zircon_editor/src/ui/slint_host/app/ui_asset_editor.rs
-  - zircon_editor/src/tests/editing/ui_asset.rs
-  - zircon_editor/src/tests/host/slint_window.rs
+  - zircon_editor/src/tests/editing/ui_asset/
+  - zircon_editor/src/tests/host/slint_window/callback_source_window.rs
   - zircon_editor/src/ui/workbench/event/mod.rs
   - zircon_editor/src/ui/workbench/model/mod.rs
   - zircon_editor/src/ui/workbench/project/mod.rs
   - zircon_editor/src/ui/workbench/reflection/mod.rs
   - zircon_editor/ui/workbench.slint
   - zircon_editor/ui/workbench/assets.slint
-  - zircon_editor/ui/templates/pane_surface_controls.toml
+  - zircon_editor/assets/ui/editor/host/pane_surface_controls.ui.toml
   - zircon_editor/ui/workbench/welcome.slint
-  - zircon_editor/ui/templates/asset_surface_controls.toml
-  - zircon_editor/ui/templates/startup_welcome_controls.toml
+  - zircon_editor/assets/ui/editor/host/asset_surface_controls.ui.toml
+  - zircon_editor/assets/ui/editor/host/startup_welcome_controls.ui.toml
   - zircon_editor/ui/workbench/chrome.slint
   - zircon_editor/ui/workbench/panes.slint
 implementation_files:
@@ -102,29 +119,38 @@ implementation_files:
   - zircon_editor/src/core/editor_event/runtime.rs
   - zircon_editor/src/core/editor_event/journal.rs
   - zircon_editor/src/core/editor_event/replay.rs
-  - zircon_editor/src/core/editor_event/transient.rs
-  - zircon_editor/src/core/editor_event/host_adapter.rs
+  - zircon_editor/src/core/editor_event/inspector_field_change.rs
+  - zircon_editor/src/core/editor_event/selection_host_event.rs
+  - zircon_editor/src/core/editor_event/workbench/mod.rs
+  - zircon_editor/src/core/editor_event/workbench/layout_command.rs
+  - zircon_editor/src/core/editor_event/workbench/menu_action.rs
+  - zircon_editor/src/core/editor_event/runtime/editor_event_runtime_inner.rs
   - zircon_editor/src/ui/binding_dispatch/mod.rs
+  - zircon_editor/src/ui/workbench/reflection/transient_ui_state.rs
+  - zircon_editor/src/ui/workbench/event/core_event_conversion.rs
   - zircon_editor/src/ui/slint_host/callback_dispatch/mod.rs
+  - zircon_editor/src/ui/slint_host/callback_dispatch/workbench/menu_action.rs
   - zircon_editor/src/ui/slint_host/app/viewport.rs
   - zircon_editor/src/ui/slint_host/app/pane_surface_actions.rs
   - zircon_editor/src/ui/slint_host/event_bridge.rs
   - zircon_editor/src/ui/slint_host/drawer_resize.rs
   - zircon_editor/src/ui/slint_host/shell_pointer.rs
   - zircon_editor/src/ui/slint_host/tab_drag.rs
-- zircon_editor/src/ui/slint_host/viewport_toolbar_pointer/mod.rs
+  - zircon_editor/src/ui/slint_host/viewport_toolbar_pointer/mod.rs
   - zircon_editor/src/lib.rs
-  - zircon_editor/src/core/host/manager.rs
-  - zircon_editor/src/core/host/manager/layout_hosts/mod.rs
-  - zircon_editor/src/core/host/manager/builtin_views/mod.rs
-  - zircon_editor/src/core/editing/ui_asset/session.rs
-  - zircon_editor/src/core/editing/ui_asset/source_sync.rs
-  - zircon_editor/src/core/editing/ui_asset/tree_editing.rs
-  - zircon_editor/src/core/editing/ui_asset/binding_inspector.rs
-  - zircon_editor/src/core/editing/ui_asset/inspector_semantics.rs
-  - zircon_editor/src/core/editing/ui_asset/command.rs
-  - zircon_editor/src/core/editing/ui_asset/undo_stack.rs
-  - zircon_editor/src/core/host/manager/ui_asset_sessions.rs
+  - zircon_editor/src/ui/host/mod.rs
+  - zircon_editor/src/ui/host/editor_manager.rs
+  - zircon_editor/src/ui/host/layout_hosts/mod.rs
+  - zircon_editor/src/ui/host/builtin_views/mod.rs
+  - zircon_editor/src/ui/asset_editor/mod.rs
+  - zircon_editor/src/ui/asset_editor/session/ui_asset_editor_session.rs
+  - zircon_editor/src/ui/asset_editor/source/source_sync.rs
+  - zircon_editor/src/ui/asset_editor/tree/tree_editing.rs
+  - zircon_editor/src/ui/asset_editor/binding/binding_inspector.rs
+  - zircon_editor/src/ui/asset_editor/style/inspector_semantics.rs
+  - zircon_editor/src/ui/asset_editor/command.rs
+  - zircon_editor/src/ui/asset_editor/undo_stack.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/mod.rs
   - zircon_editor/src/ui/slint_host/app/ui_asset_editor.rs
   - zircon_editor/src/ui/workbench/event/mod.rs
   - zircon_editor/src/ui/workbench/model/mod.rs
@@ -132,10 +158,10 @@ implementation_files:
   - zircon_editor/src/ui/workbench/reflection/mod.rs
   - zircon_editor/ui/workbench.slint
   - zircon_editor/ui/workbench/assets.slint
-  - zircon_editor/ui/templates/pane_surface_controls.toml
+  - zircon_editor/assets/ui/editor/host/pane_surface_controls.ui.toml
   - zircon_editor/ui/workbench/welcome.slint
-  - zircon_editor/ui/templates/asset_surface_controls.toml
-  - zircon_editor/ui/templates/startup_welcome_controls.toml
+  - zircon_editor/assets/ui/editor/host/asset_surface_controls.ui.toml
+  - zircon_editor/assets/ui/editor/host/startup_welcome_controls.ui.toml
   - zircon_editor/ui/workbench/chrome.slint
   - zircon_editor/ui/workbench/panes.slint
 plan_sources:
@@ -156,28 +182,43 @@ plan_sources:
   - user: 2026-04-17 Bindings Inspector 的下一版：事件枚举选择、action/payload 结构化编辑
   - user: 2026-04-17 Palette 到真实节点/引用节点创建的落地
   - user: 2026-04-17 结构化 undo/redo，从当前 source-text 级别继续往 tree-command 演进
+  - .codex/plans/Zircon UI 资产化 Widget Editor 与共享 Layout.md
+  - .codex/plans/编辑器 .slint 去真源 Runtime UI 可用 Cutover 路线图.md
+  - user: 2026-04-21 继续执行 zircon_editor UI 回迁 + 树形 TOML cutover，清理 core 中残余 UI owner
 tests:
   - zircon_ui/src/tests/shared_core.rs
   - zircon_editor/tests/workbench_autolayout.rs
-  - zircon_editor/src/tests/ui/binding.rs
+  - zircon_editor/src/tests/ui/binding/animation.rs
+  - zircon_editor/src/tests/ui/binding/asset_selection.rs
+  - zircon_editor/src/tests/ui/binding/dock_and_welcome.rs
+  - zircon_editor/src/tests/ui/binding/inspector_and_draft.rs
+  - zircon_editor/src/tests/ui/binding/viewport.rs
+  - zircon_editor/src/tests/ui/control/activity_descriptors.rs
+  - zircon_editor/src/tests/ui/control/reflection_projection.rs
   - zircon_editor/src/tests/host/binding_dispatch.rs
   - zircon_editor/src/tests/editor_event/runtime.rs
-  - zircon_editor/src/tests/host/slint_callback_dispatch.rs
-  - zircon_editor/src/tests/host/slint_callback_dispatch/viewport.rs
-  - zircon_editor/src/tests/host/slint_callback_dispatch/pane.rs
-  - zircon_editor/src/tests/host/slint_event_bridge.rs
-  - zircon_editor/src/tests/host/slint_viewport_toolbar_pointer.rs
-  - zircon_editor/src/tests/host/manager.rs
-  - zircon_editor/src/tests/editing/ui_asset.rs
-  - zircon_editor/src/tests/host/slint_window.rs
-  - zircon_editor/src/tests/host/slint_drawer_resize.rs
-  - zircon_editor/src/tests/host/slint_tab_drag.rs
+  - zircon_editor/src/tests/host/slint_callback_dispatch/mod.rs
+  - zircon_editor/src/tests/host/slint_callback_dispatch/viewport/toolbar_dispatch.rs
+  - zircon_editor/src/tests/host/slint_callback_dispatch/pane/trigger_action.rs
+  - zircon_editor/src/tests/host/slint_event_bridge/mod.rs
+  - zircon_editor/src/tests/host/slint_viewport_toolbar_pointer/mod.rs
+  - zircon_editor/src/tests/host/manager/mod.rs
+  - zircon_editor/src/tests/editing/ui_asset/
+  - zircon_editor/src/tests/host/slint_window/callback_source_window.rs
+  - zircon_editor/src/tests/host/slint_drawer_resize/mod.rs
+- zircon_editor/src/tests/host/slint_tab_drag/
   - zircon_editor/tests/workbench_drag_targets.rs
   - zircon_editor/tests/workbench_slint_shell.rs
-  - zircon_editor/src/tests/workbench/host_events.rs
-  - zircon_editor/src/tests/workbench/reflection.rs
+  - zircon_editor/src/tests/workbench/host_events/menu_binding.rs
+  - zircon_editor/src/tests/workbench/reflection/model_projection.rs
+  - zircon_editor/src/tests/workbench/reflection/remote_routes.rs
+  - zircon_editor/src/tests/workbench/reflection/action_dispatch.rs
+  - zircon_editor/src/tests/ui/boundary/editor_event_cutover.rs
   - cargo test -p zircon_editor --locked
   - cargo test -p zircon_editor --lib --locked
+  - cargo test -p zircon_editor editor_event_cutover --locked --quiet
+  - cargo test -p zircon_editor workbench_state_cutover --locked --quiet
+  - cargo check -p zircon_editor --locked --quiet
   - cargo test -p zircon_ui --lib --locked
   - cargo test -p zircon_ui --locked
   - cargo test -p zircon_ui --offline --verbose
@@ -343,7 +384,7 @@ viewport 外层原始输入现在也归到同一套协议思路里了，虽然�
 
 同一轮里，transient pane surface action 也进入了 template/runtime authority：
 
-- [`pane_surface_controls.toml`](/E:/Git/ZirconEngine/zircon_editor/ui/templates/pane_surface_controls.toml) 定义 builtin `PaneSurface/TriggerAction`
+- [`pane_surface_controls.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/host/pane_surface_controls.ui.toml) 定义 builtin `PaneSurface/TriggerAction`
 - [`callback_dispatch/pane/surface_control.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/callback_dispatch/pane/surface_control.rs) 用 `BuiltinPaneSurfaceTemplateBridge` 把 `control_id + action_id` 重组回 canonical `MenuAction`
 - [`workbench.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench.slint) 不再暴露 root `menu_action(action_id)` callback；Scene/Game empty-state 和 Project overview 的 `Open Assets` 现在只上传 generic `pane_surface_control_clicked(control_id, action_id)`
 
@@ -362,19 +403,28 @@ viewport 外层原始输入现在也归到同一套协议思路里了，虽然�
 
 `zircon_editor/src/core/editor_event/` 当前包含：
 
+- `inspector_field_change.rs`
+  - inspector batch/live-edit 用的结构化字段变更 DTO
+- `selection_host_event.rs`
+  - selection binding 的 typed host event DTO
+- `workbench/`
+  - canonical workbench event DTO family，包括 `MenuAction`、`LayoutCommand`、drawer/page/workspace/view identity 和 split/attach 元数据
 - `types.rs`
   - 定义 canonical `EditorEvent`、`EditorDraftEvent`、`EditorEventRecord`、`EditorEventResult`、`EditorEventUndoPolicy`
 - `runtime.rs`
   - `EditorEventRuntime` / `EditorEventDispatcher`
   - 统一拦截 `InvokeBinding`、`InvokeRoute`、`CallAction`
-- `transient.rs`
-  - hover / focus / pressed / drawer resize / drag projection
+- `runtime/editor_event_runtime_inner.rs`
+  - `EditorEventRuntime` 的私有 state container owner
+  - 持有 `EditorState`、`EditorManager`、transient projection、journal 和 control service
 - `journal.rs`
   - session-local event record 存储
 - `replay.rs`
   - recorded `EditorEvent` 重新走同一 dispatcher path
-- `host_adapter.rs`
-  - Slint / headless 输入到 normalized event envelope 的薄适配器
+
+transient hover/focus/pressed/drawer-resize 投影现在已经迁到 [`transient_ui_state.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/workbench/reflection/transient_ui_state.rs)，而 Slint workbench 菜单/动态 preset 的字符串归一化则由 [`callback_dispatch/workbench/menu_action.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/callback_dispatch/workbench/menu_action.rs) 持有，再通过 [`core_event_conversion.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/workbench/event/core_event_conversion.rs) 把 UI 内部 layout model 显式转换成 canonical `core::editor_event::workbench::*` DTO。
+
+`EditorEventRuntimeInner` 的声明 owner 这一轮也从 `ui/host` 收回到了 [`core/editor_event/runtime/editor_event_runtime_inner.rs`](/E:/Git/ZirconEngine/zircon_editor/src/core/editor_event/runtime/editor_event_runtime_inner.rs)。`ui/host` 现在只保留 bootstrap、dispatch、execution、reflection 这些行为模块，直接消费 core runtime inner，而不是继续拥有 runtime state declaration 本身。
 
 当前 canonical log record 固定保存：
 
@@ -398,6 +448,8 @@ viewport 外层原始输入现在也归到同一套协议思路里了，虽然�
 - `zircon_editor/src/ui/slint_host/callback_dispatch/mod.rs`
   - 把 raw Slint callback 输入收敛成 `EditorEventEnvelope` 或直接语义化 `LayoutCommand`
   - 统一走 `runtime.dispatch_envelope(...)`
+  - workbench menu/preset 字符串入口现在由 `callback_dispatch/workbench/menu_action.rs` 统一生成 canonical `core::editor_event::MenuAction` / `LayoutCommand`
+  - UI 内部 `ui::workbench::layout::LayoutCommand` 与 canonical `core::editor_event::LayoutCommand` 的边界转换固定在 `ui/workbench/event/core_event_conversion.rs`
   - viewport pointer/scroll 现在先经过 `SharedViewportPointerBridge` 的 shared `UiSurface + UiPointerDispatcher`，再映射成 `EditorViewportEvent`
   - `AssetSurface/*` 已经通过 builtin template bridge 直接落到 typed runtime dispatch
   - `WelcomeSurface/*` 已经通过 builtin template bridge 落到 typed `WelcomeHostEvent`，再由宿主执行 startup session 逻辑
@@ -551,8 +603,8 @@ rail click、drawer tab 激活、stack 展开/折叠都应继续走这条 typed 
 当前 runtime 里，Slint `Window` 菜单上的 preset 条目仍来自 legacy menu callback，因为 builtin template 还不会实例化每个动态 preset item；但字符串归一化已经不再停在 [`app.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/app.rs)。现在的真实链路是：
 
 - `dispatch_menu_action(...)`
-  -> [`host_adapter::slint_menu_action(...)`](/E:/Git/ZirconEngine/zircon_editor/src/core/editor_event/host_adapter.rs)
-  -> `EditorEvent::Layout(LayoutCommand::SavePreset/LoadPreset)`
+  -> [`slint_menu_action(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/callback_dispatch/workbench/menu_action.rs)
+  -> `EditorEvent::Layout(core::editor_event::LayoutCommand::SavePreset/LoadPreset)`
   -> `SlintDispatchEffects.active_layout_preset_name`
   -> 宿主只消费 effect，更新当前 preset 选择
 

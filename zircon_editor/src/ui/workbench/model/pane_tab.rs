@@ -1,4 +1,4 @@
-use crate::snapshot::{EditorChromeSnapshot, ViewContentKind, ViewTabSnapshot};
+use crate::ui::workbench::snapshot::{EditorChromeSnapshot, ViewContentKind, ViewTabSnapshot};
 
 use super::empty_state::empty_state_for_tab;
 use super::pane_tab_model::PaneTabModel;
@@ -26,6 +26,8 @@ pub(super) fn is_closeable_content_kind(kind: ViewContentKind) -> bool {
         ViewContentKind::PrefabEditor
             | ViewContentKind::AssetBrowser
             | ViewContentKind::UiAssetEditor
+            | ViewContentKind::AnimationSequenceEditor
+            | ViewContentKind::AnimationGraphEditor
             | ViewContentKind::Placeholder
     )
 }

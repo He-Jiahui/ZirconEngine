@@ -3,8 +3,9 @@
 use zircon_runtime::core::math::Transform;
 use zircon_runtime::scene::{NodeId, Scene};
 
-use crate::command::{EditorCommand, NodeEditState, UpdateNodeCommand};
-use crate::module::HISTORY_LIMIT;
+use crate::core::editing::command::{EditorCommand, NodeEditState, UpdateNodeCommand};
+
+const HISTORY_LIMIT: usize = 128;
 
 #[derive(Clone, Copy, Debug)]
 struct GizmoDragState {

@@ -1,6 +1,6 @@
 use crate::rhi::{CommandList, RenderBackendCaps, RenderDevice, RenderQueueClass};
 
-use crate::wgpu_backend_caps;
+use super::capabilities::wgpu_backend_caps;
 
 #[derive(Clone, Debug)]
 pub struct WgpuRenderDevice {

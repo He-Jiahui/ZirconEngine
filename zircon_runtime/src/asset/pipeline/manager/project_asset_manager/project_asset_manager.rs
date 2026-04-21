@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex, RwLock};
 
-use crate::core::ChannelSender;
 use crate::core::resource::ResourceManager;
+use crate::core::ChannelSender;
 
 use crate::asset::project::ProjectManager;
 use crate::asset::watch::{AssetChange, AssetWatcher};

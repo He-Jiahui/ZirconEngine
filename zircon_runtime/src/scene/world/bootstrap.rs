@@ -6,7 +6,8 @@ use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, Resourc
 use super::World;
 use crate::scene::components::{
     default_render_layer_mask, ActiveInHierarchy, ActiveSelf, CameraComponent, DirectionalLight,
-    Hierarchy, LocalTransform, MeshRenderer, Mobility, Name, NodeKind, RenderLayerMask, Schedule,
+    Hierarchy, LocalTransform, MeshRenderer, Mobility, Name, NodeKind, PointLight, RenderLayerMask,
+    Schedule, SpotLight,
 };
 use crate::scene::EntityId;
 
@@ -22,6 +23,16 @@ impl World {
             cameras: HashMap::new(),
             mesh_renderers: HashMap::new(),
             directional_lights: HashMap::new(),
+            point_lights: HashMap::new(),
+            spot_lights: HashMap::new(),
+            rigid_bodies: HashMap::new(),
+            colliders: HashMap::new(),
+            joints: HashMap::new(),
+            animation_skeletons: HashMap::new(),
+            animation_players: HashMap::new(),
+            animation_sequence_players: HashMap::new(),
+            animation_graph_players: HashMap::new(),
+            animation_state_machine_players: HashMap::new(),
             active_self: HashMap::new(),
             active_in_hierarchy: HashMap::new(),
             render_layer_masks: HashMap::new(),
@@ -94,6 +105,20 @@ impl World {
                 self.directional_lights
                     .insert(id, DirectionalLight::default());
             }
+            NodeKind::PointLight => {
+                let mut transform = Transform::default();
+                transform.translation = Vec3::new(0.0, 2.0, 0.0);
+                self.local_transforms
+                    .insert(id, LocalTransform { transform });
+                self.point_lights.insert(id, PointLight::default());
+            }
+            NodeKind::SpotLight => {
+                let mut transform = Transform::default();
+                transform.translation = Vec3::new(0.0, 4.0, 0.0);
+                self.local_transforms
+                    .insert(id, LocalTransform { transform });
+                self.spot_lights.insert(id, SpotLight::default());
+            }
         }
 
         self.rebuild_derived_state();
@@ -121,6 +146,8 @@ fn default_name(kind: &NodeKind, ordinal: usize) -> String {
         NodeKind::Cube => format!("Cube {ordinal}"),
         NodeKind::Mesh => format!("Mesh {ordinal}"),
         NodeKind::DirectionalLight => format!("Directional Light {ordinal}"),
+        NodeKind::PointLight => format!("Point Light {ordinal}"),
+        NodeKind::SpotLight => format!("Spot Light {ordinal}"),
     }
 }
 

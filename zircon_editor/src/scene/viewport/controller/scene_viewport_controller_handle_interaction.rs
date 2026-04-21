@@ -2,7 +2,7 @@ use crate::scene::viewport::{HandleOverlayExtract, ViewportCameraSnapshot};
 use zircon_runtime::core::math::Vec2;
 use zircon_runtime::scene::Scene;
 
-use crate::GizmoAxis;
+use crate::scene::viewport::GizmoAxis;
 
 use super::{viewport_drag_session::ViewportDragSession, SceneViewportController};
 

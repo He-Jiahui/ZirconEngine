@@ -1,5 +1,5 @@
-use crate::snapshot::MainPageSnapshot;
-use crate::MainPageId;
+use crate::ui::workbench::layout::MainPageId;
+use crate::ui::workbench::snapshot::MainPageSnapshot;
 
 use super::active_view::active_view_in_workspace;
 

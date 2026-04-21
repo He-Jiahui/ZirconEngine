@@ -428,7 +428,7 @@ tests:
   - cargo test -p zircon_graphics --lib --locked
   - cargo test -p zircon_graphics --locked
   - cargo test -p zircon_app --locked
-  - cargo test -p zircon_editor editor_viewport_sources_route_through_render_server_without_wgpu_preview_bindings --locked
+  - cargo test -p zircon_editor editor_viewport_sources_route_through_render_framework_without_wgpu_preview_bindings --locked
   - cargo check --workspace --locked
   - ./.codex/skills/zircon-dev/scripts/validate-matrix.ps1 -Package zircon_graphics
   - cargo test --workspace --locked
@@ -439,13 +439,19 @@ doc_type: category-index
 
 ## Purpose
 
-本目录记录目录式项目、资源抽象层、导入/监听、场景实例化、prepare/cache 渲染链路以及 editor 视口联动这条主链的实现约束。
+本目录记录目录式项目、资源抽象层、导入/监听、场景实例化、prepare/cache 渲染链路以及 editor 视口联动这条主链的实现约束，并补充 runtime hard-cutover 之后的 graphics public-surface 与 crate-assets 规则。
 
 ## Documents
 
 - [Directory Project Asset Rendering](./directory-project-asset-rendering.md): `zircon_resource` locator/handle/state 契约，`Project/assets` 与 `Project/library` 的职责，`res://`/`lib://`/`builtin://`/`mem://` 统一来源，`AssetManager`/`ResourceManager`/asset-owned `EditorAssetManager`、`SceneAssetSerializer`、`LevelManager -> LevelSystem -> World` 与 graphics revision cache 的自动刷新路径。
-- [Runtime Physics And Animation Assets](./runtime-physics-animation-assets.md): `PhysicsMaterial` 与五类 `.zranim` 动画资产如何被 `zircon_runtime::asset` 导入、持久化、建立引用图，并进入 editor catalog/filter surface。
+- [Runtime Physics And Animation Assets](./runtime-physics-animation-assets.md): `PhysicsMaterial`、五类 `.zranim` 动画资产，以及 `SceneAsset <-> World` 的 physics/animation 组件 roundtrip 如何一起收进 `zircon_runtime::{asset,scene}`。
 - [Render Framework Architecture](./render-framework-architecture.md): `zircon_rhi`、`zircon_rhi_wgpu`、`zircon_render_graph`、`zircon_framework` 的基础边界，`RenderFrameExtract` 的新公共面，以及 `zircon_graphics` 当前已经迁移到 `runtime/render_framework/` 的 façade/runtime 实现现实；同时记录 M4 已经真正落地的 deferred、clustered lighting、SSAO、history、bloom、color grading、reflection probe、baked lighting、particle 与 offline bake baseline，以及 M5 的 `Virtual Geometry / Hybrid GI` capability-slot 边界。
+- [Hybrid GI Lumen-Style Scene Representation](./hybrid-gi-lumen-scene-representation.md): 记录 `RenderSceneGeometryExtract` 的 split-light cutover、`RenderHybridGiExtract` 从 authored probes/trace-regions 收口为 settings/budget/debug payload，以及 `HybridGiSceneRepresentation / SurfaceCache / VoxelScene / InputSet` 的 milestone-1 内部状态骨架、`RenderStats` readback 面、`HybridGiScenePrepareFrame` 的 renderer seam、统一 `scene_prepare_descriptor_buffer` 和 shader 对 card-capture/voxel descriptors 的首轮真实消费，以及最新一层 runtime-owned `voxel_cells` occupancy/count contract 如何接管 scene-prepare 里的 coarse voxel residency authority。
+- [Runtime Surface And Assets Rules](./runtime-surface-and-assets-rules.md): `zircon_runtime` crate root、`graphics` root、runtime UI fixture 资源位置，以及 hard-cutover 后删除 `compat/service` 迁移味目录的长期规则。
+- [M5 Virtual Geometry Explicit Draw-Ref Index Authority](../superpowers/plans/2026-04-20-m5-virtual-geometry-explicit-draw-ref-index-authority.md): 记录当前吸收后的 `zircon_runtime/src/graphics/**` 路径里，shared layout / mesh draw / execution stats / last-state submission readback 如何统一改吃 explicit `draw_ref_index`，从而把 Virtual Geometry execution ownership 进一步从 `indirect_args_offset` residue 下沉到显式 draw-ref authority。
+- [M5 Virtual Geometry GPU Authority Submission Records](../superpowers/plans/2026-04-20-m5-virtual-geometry-gpu-authority-submission-records.md): 记录 compute-generated authority sidecar 如何让 Virtual Geometry deepest submission fallback 在 CPU records、execution records、indirect args、submission token、draw-ref/segment buffer 都缺失时，仍然依靠 actual execution indices + GPU authority buffer 恢复 submission records。
+- [M5 Virtual Geometry GPU Authority Execution Records](../superpowers/plans/2026-04-20-m5-virtual-geometry-gpu-authority-execution-records.md): 记录 GPU authority sidecar 如何继续扩成完整 execution template，并让 Virtual Geometry 的 execution records / execution segments 在 host-built execution record buffer 缺失时，仍然依靠 execution indices + GPU authority 恢复 actual execution subset。
+- [Runtime UI Graphics Integration](./runtime-ui-graphics-integration.md): runtime builtin fixture 的 tree `.ui.toml` 入口如何迁到 `zircon_runtime/assets/ui/runtime/fixtures/`，以及 runtime 继续通过 shared `UiAssetLoader -> UiDocumentCompiler -> UiTemplateSurfaceBuilder` 构建 `UiSurface` 并把结果送进 graphics frame。
 - [Editor And Tooling / Viewport Interaction Boundary Split](../editor-and-tooling/viewport-interaction-boundary-split.md): 记录 `zircon_graphics` 把 viewport controller/input/feedback/state 交回 `zircon_editor` 与 `zircon_app` 之后的新责任边界，避免把 editor/runtime 交互语义重新混回渲染层。
 - [M5 Virtual Geometry Prepare Consumption Plan](../superpowers/plans/2026-04-16-m5-virtual-geometry-prepare-consumption.md): `VirtualGeometryRuntimeState` 如何生成带 `cluster_draw_segments` 的 frame-local prepare snapshot，`build_virtual_geometry_plan(...)` 如何从完整 cluster 集导出稳定 ordinal/count，`submit_frame_extract(...)` 如何在 render 前挂接它，以及当前 mesh fallback 如何只消费 prepare 提供的 segment 合同。
 - [M5 Virtual Geometry Feedback Streaming Plan](../superpowers/plans/2026-04-16-m5-virtual-geometry-feedback-streaming.md): `VisibilityVirtualGeometryFeedback` 如何在帧后驱动 runtime host 消费 pending request、回收 evictable page，并把 residency 推进到下一帧 prepare snapshot。
@@ -517,6 +523,7 @@ doc_type: category-index
 - [M5 Virtual Geometry GPU-Generated Submission-Order Readback](../superpowers/plans/2026-04-19-m5-virtual-geometry-gpu-generated-submission-order-readback.md): `Virtual Geometry` 如何让 renderer last-state 在可能时优先从真实 GPU-generated submission token source 还原 draw order，减少 execution-order 观测对 CPU reconstruction 的依赖。
 - [M5 Virtual Geometry Pending Submission-Layout Authority](../superpowers/plans/2026-04-19-m5-virtual-geometry-pending-submission-layout-authority.md): `Virtual Geometry` 如何把 shared indirect 的 CPU 规划拆成显式 layout 层，并导出 `pending_draw_submission_orders`，让 mesh-build 先按 direct submission authority 排序，而不再只靠 compacted offset 反推。
 - [M5 Virtual Geometry Indirect Args Stats Closure](../superpowers/plans/2026-04-19-m5-virtual-geometry-indirect-args-stats-closure.md): `Virtual Geometry` 如何把 compacted `indirect_args_count` 从 renderer last-state 继续推到 `RenderStats`，让 façade 能直接观测 unified-indirect args cardinality。
+- [M5 Virtual Geometry Execution Stats Surface](../superpowers/plans/2026-04-20-m5-virtual-geometry-execution-stats-surface.md): `Virtual Geometry` 如何把 renderer last-state 里已经存在的 actual execution subset summary 继续推到 `RenderStats`，让 façade 能直接观测真实 execution segment/page/state/compaction 结果，而不再只看到 prepare-owned indirect totals。
 - [M5 Virtual Geometry Fallback Full-Mesh Cluster Authority](../superpowers/plans/2026-04-19-m5-virtual-geometry-fallback-full-mesh-cluster-authority.md): `Virtual Geometry` 如何让没有显式 `cluster_draw_segments` 的 full-mesh fallback 也直接继承 prepare `visible_clusters + pending_page_requests` 的 page/slot/state truth，并在 entity 内部选择最 authoritative cluster，而不再退回 renderer 默认 fallback key 或 extract 输入顺序。
 - [M5 Virtual Geometry Fallback Unified-Indirect Downshift](../superpowers/plans/2026-04-19-m5-virtual-geometry-fallback-unified-indirect-downshift.md): `Virtual Geometry` 如何把 missing-segment full-mesh fallback 的 per-cluster slices 继续前移到 `VirtualGeometryPrepareFrame::unified_indirect_draws()` 自身，让 `prepare -> cluster_raster_draws -> draw_ref / indirect args / submission` 共用同一份 authoritative fallback truth，而不再主要依赖 renderer 末端的 CPU fallback 扩展。
 - [M5 Virtual Geometry Mesh-Build Authority Convergence](../superpowers/plans/2026-04-19-m5-virtual-geometry-mesh-build-authority-convergence.md): `Virtual Geometry` 如何把 renderer mesh-build 里残留的 fallback bookkeeping 收敛到 `virtual_geometry_cluster_draws` 单一 authority，让 authoritative segment / draw-ref / pending-draw 只继续消费 prepare-owned cluster-raster truth。
@@ -551,6 +558,7 @@ doc_type: category-index
 - `zircon_resource` 作为跨 crate 资源基础层，统一 locator、typed handle、state、record、event、manager 契约
 - `zircon-project.toml` + `assets/` + `library/` 的目录式项目根
 - `res://` / `lib://` / `builtin://` / `mem://` 的统一资源来源模型
+- `zircon_runtime::graphics` 的窄公开面与 runtime 生产 `.ui.toml` 资源必须放在 crate `assets/` 的规则
 - PNG/JPEG、WGSL、TOML material、TOML scene、OBJ、glTF/GLB 的导入与 library artifact 持久化
 - `PhysicsMaterial` 与 `Animation{Skeleton, Clip, Sequence, Graph, StateMachine}` 的 source/import/artifact/editor surface
 - `SceneAssetSerializer` 驱动的 `SceneAsset <-> World` 转换，以及 `LevelSystem` 对运行中 world 的托管

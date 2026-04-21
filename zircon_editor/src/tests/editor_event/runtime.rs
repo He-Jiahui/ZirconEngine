@@ -1,6 +1,9 @@
-use crate::ui::{DockCommand, EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind};
+use crate::ui::binding::{
+    AnimationCommand, DockCommand, EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind,
+};
 use serde_json::json;
 use std::fs;
+use zircon_runtime::core::framework::animation::AnimationTrackPath;
 use zircon_runtime::core::resource::ResourceKind;
 use zircon_runtime::scene::components::NodeKind;
 use zircon_runtime::ui::{
@@ -8,9 +11,14 @@ use zircon_runtime::ui::{
 };
 
 use crate::core::editor_event::{
-    host_adapter, EditorAssetEvent, EditorEventReplay, EditorEventSource, EditorEventTransient,
+    EditorAnimationEvent, EditorAssetEvent, EditorEvent, EditorEventEffect, EditorEventReplay,
+    EditorEventSource, EditorEventTransient, LayoutCommand, MenuAction,
+    ViewDescriptorId as EventViewDescriptorId, ViewInstanceId as EventViewInstanceId,
 };
-use crate::{menu_action_binding, EditorEvent, LayoutCommand, MenuAction, WorkbenchLayout};
+use crate::ui::slint_host::callback_dispatch::slint_menu_action;
+use crate::ui::workbench::event::menu_action_binding;
+use crate::ui::workbench::layout::WorkbenchLayout;
+use crate::ui::workbench::view::ViewDescriptorId;
 
 use super::support::{env_lock, EventRuntimeHarness};
 
@@ -28,7 +36,7 @@ fn slint_adapter_binding_and_call_action_share_the_same_normalized_menu_event() 
 
     let slint_record = slint
         .runtime
-        .dispatch_envelope(host_adapter::slint_menu_action("CreateNode.Cube").unwrap())
+        .dispatch_envelope(slint_menu_action("CreateNode.Cube").unwrap())
         .unwrap();
     let binding_record = binding
         .runtime
@@ -88,7 +96,7 @@ fn serialized_journal_replays_editor_and_layout_state_through_the_same_runtime_p
     let source = EventRuntimeHarness::new("zircon_editor_event_replay_source");
     source
         .runtime
-        .dispatch_envelope(host_adapter::slint_menu_action("CreateNode.Cube").unwrap())
+        .dispatch_envelope(slint_menu_action("CreateNode.Cube").unwrap())
         .unwrap();
     source
         .runtime
@@ -238,10 +246,10 @@ fn open_project_menu_event_requests_welcome_surface_without_project_open_side_ef
     );
     assert!(record
         .effects
-        .contains(&crate::EditorEventEffect::PresentWelcomeRequested));
+        .contains(&EditorEventEffect::PresentWelcomeRequested));
     assert!(!record
         .effects
-        .contains(&crate::EditorEventEffect::ProjectOpenRequested));
+        .contains(&EditorEventEffect::ProjectOpenRequested));
     assert_eq!(
         runtime.runtime.editor_snapshot().status_line,
         "Open an existing project or create a renderable empty project."
@@ -250,8 +258,8 @@ fn open_project_menu_event_requests_welcome_surface_without_project_open_side_ef
 
 #[test]
 fn slint_preset_menu_actions_normalize_to_layout_events_with_expected_names() {
-    let save = host_adapter::slint_menu_action("SavePreset.rider").unwrap();
-    let load = host_adapter::slint_menu_action("LoadPreset.").unwrap();
+    let save = slint_menu_action("SavePreset.rider").unwrap();
+    let load = slint_menu_action("LoadPreset.").unwrap();
 
     assert_eq!(
         save.event,
@@ -301,10 +309,10 @@ fn scene_menu_actions_dispatch_through_runtime_and_only_update_status_line() {
     );
     assert!(!open_record
         .effects
-        .contains(&crate::EditorEventEffect::LayoutChanged));
+        .contains(&EditorEventEffect::LayoutChanged));
     assert!(!create_record
         .effects
-        .contains(&crate::EditorEventEffect::LayoutChanged));
+        .contains(&EditorEventEffect::LayoutChanged));
 }
 
 #[test]
@@ -316,7 +324,7 @@ fn close_view_layout_event_removes_the_view_instance_from_runtime_registry_state
         .runtime
         .dispatch_event(
             EditorEventSource::Headless,
-            EditorEvent::WorkbenchMenu(MenuAction::OpenView(crate::ViewDescriptorId::new(
+            EditorEvent::WorkbenchMenu(MenuAction::OpenView(EventViewDescriptorId::new(
                 "editor.asset_browser",
             ))),
         )
@@ -326,17 +334,15 @@ fn close_view_layout_event_removes_the_view_instance_from_runtime_registry_state
         .runtime
         .current_view_instances()
         .into_iter()
-        .find(|instance| {
-            instance.descriptor_id == crate::ViewDescriptorId::new("editor.asset_browser")
-        })
+        .find(|instance| instance.descriptor_id == ViewDescriptorId::new("editor.asset_browser"))
         .expect("asset browser view should open");
 
     runtime
         .runtime
         .dispatch_event(
             EditorEventSource::Headless,
-            EditorEvent::Layout(crate::LayoutCommand::CloseView {
-                instance_id: opened_instance.instance_id.clone(),
+            EditorEvent::Layout(LayoutCommand::CloseView {
+                instance_id: EventViewInstanceId::new(opened_instance.instance_id.0.clone()),
             }),
         )
         .unwrap();
@@ -377,13 +383,9 @@ fn draft_inspector_binding_normalizes_and_updates_live_snapshot() {
     );
     assert!(record
         .effects
-        .contains(&crate::EditorEventEffect::PresentationChanged));
-    assert!(!record
-        .effects
-        .contains(&crate::EditorEventEffect::RenderChanged));
-    assert!(!record
-        .effects
-        .contains(&crate::EditorEventEffect::LayoutChanged));
+        .contains(&EditorEventEffect::PresentationChanged));
+    assert!(!record.effects.contains(&EditorEventEffect::RenderChanged));
+    assert!(!record.effects.contains(&EditorEventEffect::LayoutChanged));
 }
 
 #[test]
@@ -407,13 +409,9 @@ fn draft_mesh_import_path_binding_normalizes_and_updates_live_snapshot() {
     );
     assert!(record
         .effects
-        .contains(&crate::EditorEventEffect::PresentationChanged));
-    assert!(!record
-        .effects
-        .contains(&crate::EditorEventEffect::RenderChanged));
-    assert!(!record
-        .effects
-        .contains(&crate::EditorEventEffect::LayoutChanged));
+        .contains(&EditorEventEffect::PresentationChanged));
+    assert!(!record.effects.contains(&EditorEventEffect::RenderChanged));
+    assert!(!record.effects.contains(&EditorEventEffect::LayoutChanged));
 }
 
 #[test]
@@ -433,17 +431,13 @@ fn asset_import_binding_normalizes_to_runtime_host_request() {
 
     assert_eq!(
         record.event,
-        EditorEvent::Asset(crate::EditorAssetEvent::ImportModel)
+        EditorEvent::Asset(EditorAssetEvent::ImportModel)
     );
     assert!(record
         .effects
-        .contains(&crate::EditorEventEffect::ImportModelRequested));
-    assert!(!record
-        .effects
-        .contains(&crate::EditorEventEffect::LayoutChanged));
-    assert!(!record
-        .effects
-        .contains(&crate::EditorEventEffect::RenderChanged));
+        .contains(&EditorEventEffect::ImportModelRequested));
+    assert!(!record.effects.contains(&EditorEventEffect::LayoutChanged));
+    assert!(!record.effects.contains(&EditorEventEffect::RenderChanged));
 }
 
 #[test]
@@ -476,7 +470,7 @@ props = { text = "Runtime" }
         .runtime
         .dispatch_event(
             EditorEventSource::Headless,
-            EditorEvent::Asset(crate::EditorAssetEvent::OpenAsset {
+            EditorEvent::Asset(EditorAssetEvent::OpenAsset {
                 asset_path: ui_asset_path.to_string_lossy().into_owned(),
             }),
         )
@@ -484,20 +478,98 @@ props = { text = "Runtime" }
 
     assert_eq!(
         record.event,
-        EditorEvent::Asset(crate::EditorAssetEvent::OpenAsset {
+        EditorEvent::Asset(EditorAssetEvent::OpenAsset {
             asset_path: ui_asset_path.to_string_lossy().into_owned(),
         })
     );
-    assert!(record
-        .effects
-        .contains(&crate::EditorEventEffect::LayoutChanged));
+    assert!(record.effects.contains(&EditorEventEffect::LayoutChanged));
     assert!(runtime
         .runtime
         .current_view_instances()
         .into_iter()
-        .any(|instance| instance.descriptor_id == crate::ViewDescriptorId::new("editor.ui_asset")));
+        .any(|instance| instance.descriptor_id == ViewDescriptorId::new("editor.ui_asset")));
 
     let _ = fs::remove_file(ui_asset_path);
+}
+
+#[test]
+fn animation_binding_without_active_sequence_editor_reports_ignored_status_line() {
+    let _guard = env_lock().lock().unwrap();
+
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_animation_binding");
+    let binding = EditorUiBinding::new(
+        "AnimationSequenceEditorView",
+        "CreateTrackButton",
+        EditorUiEventKind::Click,
+        EditorUiBindingPayload::animation_command(AnimationCommand::CreateTrack {
+            track_path: "Root/Hero:AnimationPlayer.weight".to_string(),
+        }),
+    );
+
+    let record = runtime
+        .runtime
+        .dispatch_binding(binding, EditorEventSource::Headless)
+        .expect("animation binding should dispatch through runtime");
+
+    assert_eq!(
+        record.event,
+        EditorEvent::Animation(EditorAnimationEvent::CreateTrack {
+            track_path: AnimationTrackPath::parse("Root/Hero:AnimationPlayer.weight").unwrap(),
+        })
+    );
+    assert!(record
+        .effects
+        .contains(&EditorEventEffect::PresentationChanged));
+    assert!(record
+        .effects
+        .contains(&EditorEventEffect::ReflectionChanged));
+    assert_eq!(
+        runtime.runtime.editor_snapshot().status_line,
+        "Ignored animation command because no active animation sequence editor"
+    );
+}
+
+#[test]
+fn animation_graph_and_state_machine_bindings_without_open_editor_report_ignored_status_line() {
+    let _guard = env_lock().lock().unwrap();
+
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_animation_graph_binding");
+    let binding = EditorUiBinding::new(
+        "AnimationGraphEditorView",
+        "CreateTransition",
+        EditorUiEventKind::Click,
+        EditorUiBindingPayload::animation_command(AnimationCommand::CreateTransition {
+            state_machine_path: "res://animation/hero.state_machine.zranim".to_string(),
+            from_state: "Idle".to_string(),
+            to_state: "Run".to_string(),
+            duration_frames: 8,
+        }),
+    );
+
+    let record = runtime
+        .runtime
+        .dispatch_binding(binding, EditorEventSource::Headless)
+        .expect("graph/state-machine animation binding should dispatch through runtime");
+
+    assert_eq!(
+        record.event,
+        EditorEvent::Animation(EditorAnimationEvent::CreateTransition {
+            state_machine_path: "res://animation/hero.state_machine.zranim".to_string(),
+            from_state: "Idle".to_string(),
+            to_state: "Run".to_string(),
+            duration_frames: 8,
+        })
+    );
+    assert!(record
+        .effects
+        .contains(&EditorEventEffect::PresentationChanged));
+    assert!(record
+        .effects
+        .contains(&EditorEventEffect::ReflectionChanged));
+    assert_eq!(
+        runtime.runtime.editor_snapshot().status_line,
+        "Ignored animation command because no active animation graph editor"
+    );
 }
 
 #[test]
@@ -542,16 +614,102 @@ props = { text = "Menu" }
             asset_path: ui_asset_path.to_string_lossy().into_owned(),
         })
     );
-    assert!(record
-        .effects
-        .contains(&crate::EditorEventEffect::LayoutChanged));
+    assert!(record.effects.contains(&EditorEventEffect::LayoutChanged));
     assert!(runtime
         .runtime
         .current_view_instances()
         .into_iter()
-        .any(|instance| instance.descriptor_id == crate::ViewDescriptorId::new("editor.ui_asset")));
+        .any(|instance| instance.descriptor_id == ViewDescriptorId::new("editor.ui_asset")));
 
     let _ = fs::remove_file(ui_asset_path);
+}
+
+#[test]
+fn asset_open_event_routes_animation_assets_to_animation_editor_views() {
+    let _guard = env_lock().lock().unwrap();
+
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_animation_asset_open");
+    let sequence_path =
+        std::env::temp_dir().join("zircon_editor_event_animation_asset_open.sequence.zranim");
+    let graph_path =
+        std::env::temp_dir().join("zircon_editor_event_animation_asset_open.graph.zranim");
+    let state_machine_path =
+        std::env::temp_dir().join("zircon_editor_event_animation_asset_open.state_machine.zranim");
+    fs::write(&sequence_path, b"").unwrap();
+    fs::write(&graph_path, b"").unwrap();
+    fs::write(&state_machine_path, b"").unwrap();
+
+    let sequence_record = runtime
+        .runtime
+        .dispatch_event(
+            EditorEventSource::Headless,
+            EditorEvent::Asset(EditorAssetEvent::OpenAsset {
+                asset_path: sequence_path.to_string_lossy().into_owned(),
+            }),
+        )
+        .expect("open animation sequence asset");
+    assert!(sequence_record
+        .effects
+        .contains(&EditorEventEffect::LayoutChanged));
+
+    let instances = runtime.runtime.current_view_instances();
+    let sequence_view = instances
+        .iter()
+        .find(|instance| {
+            instance.descriptor_id == ViewDescriptorId::new("editor.animation_sequence")
+        })
+        .expect("animation sequence view should open");
+    assert_eq!(
+        sequence_view.serializable_payload["path"],
+        json!(sequence_path.to_string_lossy().to_string())
+    );
+
+    runtime
+        .runtime
+        .dispatch_event(
+            EditorEventSource::Headless,
+            EditorEvent::Asset(EditorAssetEvent::OpenAsset {
+                asset_path: graph_path.to_string_lossy().into_owned(),
+            }),
+        )
+        .expect("open animation graph asset");
+    runtime
+        .runtime
+        .dispatch_event(
+            EditorEventSource::Headless,
+            EditorEvent::Asset(EditorAssetEvent::OpenAsset {
+                asset_path: state_machine_path.to_string_lossy().into_owned(),
+            }),
+        )
+        .expect("open animation state machine asset");
+
+    let graph_views = runtime
+        .runtime
+        .current_view_instances()
+        .into_iter()
+        .filter(|instance| {
+            instance.descriptor_id == ViewDescriptorId::new("editor.animation_graph")
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(graph_views.len(), 2);
+    assert!(graph_views.iter().any(|instance| {
+        instance.serializable_payload["path"] == json!(graph_path.to_string_lossy().to_string())
+    }));
+    assert!(graph_views.iter().any(|instance| {
+        instance.serializable_payload["path"]
+            == json!(state_machine_path.to_string_lossy().to_string())
+    }));
+    assert_eq!(
+        runtime.runtime.editor_snapshot().status_line,
+        format!(
+            "Opened animation graph editor for {}",
+            state_machine_path.to_string_lossy()
+        )
+    );
+
+    let _ = fs::remove_file(sequence_path);
+    let _ = fs::remove_file(graph_path);
+    let _ = fs::remove_file(state_machine_path);
 }
 
 #[test]
@@ -585,6 +743,6 @@ fn asset_kind_filter_event_accepts_physics_and_animation_asset_kinds() {
         );
         assert!(record
             .effects
-            .contains(&crate::EditorEventEffect::PresentationChanged));
+            .contains(&EditorEventEffect::PresentationChanged));
     }
 }

@@ -2,7 +2,6 @@ use std::cell::RefCell;
 use std::collections::{BTreeMap, BTreeSet};
 use std::error::Error;
 use std::fs;
-use std::path::Path;
 use std::rc::{Rc, Weak};
 use std::sync::Arc;
 use std::time::Duration;
@@ -11,32 +10,37 @@ use slint::{ComponentHandle, Timer, TimerMode};
 use zircon_runtime::asset::pipeline::manager::AssetManager;
 use zircon_runtime::asset::project::{ProjectManager, ProjectPaths};
 use zircon_runtime::asset::watch::AssetChange;
-use zircon_runtime::core::{ChannelReceiver, CoreHandle};
 use zircon_runtime::core::framework::asset::ResourceManager;
 use zircon_runtime::core::manager::ManagerResolver;
 use zircon_runtime::core::math::UVec2;
 use zircon_runtime::core::resource::{
     MaterialMarker, ModelMarker, ResourceEvent, ResourceHandle, ResourceLocator,
 };
+use zircon_runtime::core::{ChannelReceiver, CoreHandle};
 use zircon_runtime::scene::Scene;
 use zircon_runtime::ui::{
     binding::UiBindingValue, binding::UiEventKind, layout::UiFrame, layout::UiPoint, layout::UiSize,
 };
 
+use crate::core::editing::paths::canonical_model_source_path;
 use crate::core::editor_event::{EditorEventRuntime, EditorViewportEvent};
-use crate::core::host::asset_editor::{
+use crate::ui::binding_dispatch::WelcomeHostEvent;
+use crate::ui::host::editor_asset_manager::{
     EditorAssetChange, EditorAssetManager as EditorAssetManagerFacade,
 };
-use crate::core::host::resource_access::resolve_ready_handle;
-use crate::paths::canonical_model_source_path;
-use crate::project::EditorProjectDocument;
-use crate::snapshot::ViewContentKind;
-use crate::{
-    compute_workbench_shell_geometry, ActivityDrawerMode, EditorManager, EditorSessionMode,
-    EditorStartupSessionDocument, EditorState, MainPageId, ShellRegionId, ShellSizePx,
-    WelcomeHostEvent, WorkbenchChromeMetrics, WorkbenchShellGeometry, WorkbenchViewModel,
-    EDITOR_MANAGER_NAME,
+use crate::ui::host::module::EDITOR_MANAGER_NAME;
+use crate::ui::host::resource_access::resolve_ready_handle;
+use crate::ui::host::EditorManager;
+use crate::ui::workbench::autolayout::{
+    compute_workbench_shell_geometry, ShellRegionId, ShellSizePx, WorkbenchChromeMetrics,
+    WorkbenchShellGeometry,
 };
+use crate::ui::workbench::layout::{ActivityDrawerMode, MainPageId};
+use crate::ui::workbench::model::WorkbenchViewModel;
+use crate::ui::workbench::project::EditorProjectDocument;
+use crate::ui::workbench::snapshot::ViewContentKind;
+use crate::ui::workbench::startup::{EditorSessionMode, EditorStartupSessionDocument};
+use crate::ui::workbench::state::EditorState;
 
 use super::activity_rail_pointer::{
     build_workbench_activity_rail_pointer_layout, WorkbenchActivityRailPointerBridge,
@@ -112,7 +116,8 @@ mod workbench_pointer;
 mod workspace_docking;
 use callback_wiring::wire_callbacks;
 pub(super) use helpers::{
-    asset_surface_visible, compute_window_menu_popup_height, resolve_callback_source_window_id,
+    asset_surface_visible, compute_window_menu_popup_height,
+    derive_animation_assets_from_model_source, resolve_callback_source_window_id,
     shell_region_group_key, stage_model_source, viewport_size_from_frame,
 };
 #[cfg(test)]
@@ -125,7 +130,8 @@ pub(super) use startup::build_startup_state;
 
 pub fn run_editor(core: CoreHandle) -> Result<(), Box<dyn Error>> {
     slint::BackendSelector::new()
-        .require_wgpu_27(slint::wgpu_27::WGPUConfiguration::default())
+        .backend_name("winit".into())
+        .renderer_name("software".into())
         .select()?;
 
     let ui = UiHostWindow::new()?;

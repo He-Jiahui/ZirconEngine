@@ -1,0 +1,311 @@
+stylesheets = []
+
+[asset]
+kind = "layout"
+id = "editor.host.asset_surface_controls"
+version = 1
+display_name = "asset surface controls"
+
+[imports]
+widgets = []
+styles = []
+
+[tokens]
+
+[root]
+node_id = "root"
+kind = "component"
+component = "AssetSurfaceControls"
+classes = []
+bindings = []
+children = []
+
+[root.params]
+
+[root.props]
+
+[root.style_overrides.self]
+
+[root.style_overrides.slot]
+
+[components.AssetSurfaceControls]
+style_scope = "closed"
+
+[components.AssetSurfaceControls.root]
+node_id = "component_AssetSurfaceControls_root"
+kind = "native"
+type = "AssetSurfaceControls"
+classes = []
+bindings = []
+
+[components.AssetSurfaceControls.root.params]
+
+[components.AssetSurfaceControls.root.props]
+
+[components.AssetSurfaceControls.root.style_overrides.self]
+
+[components.AssetSurfaceControls.root.style_overrides.slot]
+
+[[components.AssetSurfaceControls.root.children]]
+
+[components.AssetSurfaceControls.root.children.slot]
+
+[components.AssetSurfaceControls.root.children.node]
+node_id = "component_AssetSurfaceControls_root_0"
+kind = "native"
+type = "UiHostIconButton"
+control_id = "SelectFolder"
+classes = []
+children = []
+
+[components.AssetSurfaceControls.root.children.node.params]
+
+[components.AssetSurfaceControls.root.children.node.props]
+label = "SelectFolder"
+
+[[components.AssetSurfaceControls.root.children.node.bindings]]
+id = "AssetSurface/SelectFolder"
+event = "Change"
+route = "AssetCommand.SelectFolder"
+
+[components.AssetSurfaceControls.root.children.node.style_overrides.self]
+
+[components.AssetSurfaceControls.root.children.node.style_overrides.slot]
+
+[[components.AssetSurfaceControls.root.children]]
+
+[components.AssetSurfaceControls.root.children.slot]
+
+[components.AssetSurfaceControls.root.children.node]
+node_id = "component_AssetSurfaceControls_root_1"
+kind = "native"
+type = "UiHostIconButton"
+control_id = "SelectItem"
+classes = []
+children = []
+
+[components.AssetSurfaceControls.root.children.node.params]
+
+[components.AssetSurfaceControls.root.children.node.props]
+label = "SelectItem"
+
+[[components.AssetSurfaceControls.root.children.node.bindings]]
+id = "AssetSurface/SelectItem"
+event = "Change"
+route = "AssetCommand.SelectItem"
+
+[components.AssetSurfaceControls.root.children.node.style_overrides.self]
+
+[components.AssetSurfaceControls.root.children.node.style_overrides.slot]
+
+[[components.AssetSurfaceControls.root.children]]
+
+[components.AssetSurfaceControls.root.children.slot]
+
+[components.AssetSurfaceControls.root.children.node]
+node_id = "component_AssetSurfaceControls_root_2"
+kind = "native"
+type = "UiHostIconButton"
+control_id = "SearchEdited"
+classes = []
+children = []
+
+[components.AssetSurfaceControls.root.children.node.params]
+
+[components.AssetSurfaceControls.root.children.node.props]
+label = "SearchEdited"
+
+[[components.AssetSurfaceControls.root.children.node.bindings]]
+id = "AssetSurface/SearchEdited"
+event = "Change"
+route = "AssetCommand.SetSearchQuery"
+
+[components.AssetSurfaceControls.root.children.node.style_overrides.self]
+
+[components.AssetSurfaceControls.root.children.node.style_overrides.slot]
+
+[[components.AssetSurfaceControls.root.children]]
+
+[components.AssetSurfaceControls.root.children.slot]
+
+[components.AssetSurfaceControls.root.children.node]
+node_id = "component_AssetSurfaceControls_root_3"
+kind = "native"
+type = "UiHostIconButton"
+control_id = "SetKindFilter"
+classes = []
+children = []
+
+[components.AssetSurfaceControls.root.children.node.params]
+
+[components.AssetSurfaceControls.root.children.node.props]
+label = "SetKindFilter"
+
+[[components.AssetSurfaceControls.root.children.node.bindings]]
+id = "AssetSurface/SetKindFilter"
+event = "Change"
+route = "AssetCommand.SetKindFilter"
+
+[components.AssetSurfaceControls.root.children.node.style_overrides.self]
+
+[components.AssetSurfaceControls.root.children.node.style_overrides.slot]
+
+[[components.AssetSurfaceControls.root.children]]
+
+[components.AssetSurfaceControls.root.children.slot]
+
+[components.AssetSurfaceControls.root.children.node]
+node_id = "component_AssetSurfaceControls_root_4"
+kind = "native"
+type = "UiHostIconButton"
+control_id = "SetViewMode"
+classes = []
+children = []
+
+[components.AssetSurfaceControls.root.children.node.params]
+
+[components.AssetSurfaceControls.root.children.node.props]
+label = "SetViewMode"
+
+[[components.AssetSurfaceControls.root.children.node.bindings]]
+id = "AssetSurface/SetViewMode"
+event = "Change"
+route = "AssetCommand.SetViewMode"
+
+[components.AssetSurfaceControls.root.children.node.style_overrides.self]
+
+[components.AssetSurfaceControls.root.children.node.style_overrides.slot]
+
+[[components.AssetSurfaceControls.root.children]]
+
+[components.AssetSurfaceControls.root.children.slot]
+
+[components.AssetSurfaceControls.root.children.node]
+node_id = "component_AssetSurfaceControls_root_5"
+kind = "native"
+type = "UiHostIconButton"
+control_id = "SetUtilityTab"
+classes = []
+children = []
+
+[components.AssetSurfaceControls.root.children.node.params]
+
+[components.AssetSurfaceControls.root.children.node.props]
+label = "SetUtilityTab"
+
+[[components.AssetSurfaceControls.root.children.node.bindings]]
+id = "AssetSurface/SetUtilityTab"
+event = "Change"
+route = "AssetCommand.SetUtilityTab"
+
+[components.AssetSurfaceControls.root.children.node.style_overrides.self]
+
+[components.AssetSurfaceControls.root.children.node.style_overrides.slot]
+
+[[components.AssetSurfaceControls.root.children]]
+
+[components.AssetSurfaceControls.root.children.slot]
+
+[components.AssetSurfaceControls.root.children.node]
+node_id = "component_AssetSurfaceControls_root_6"
+kind = "native"
+type = "UiHostIconButton"
+control_id = "ActivateReference"
+classes = []
+children = []
+
+[components.AssetSurfaceControls.root.children.node.params]
+
+[components.AssetSurfaceControls.root.children.node.props]
+label = "ActivateReference"
+
+[[components.AssetSurfaceControls.root.children.node.bindings]]
+id = "AssetSurface/ActivateReference"
+event = "Click"
+route = "AssetCommand.ActivateReference"
+
+[components.AssetSurfaceControls.root.children.node.style_overrides.self]
+
+[components.AssetSurfaceControls.root.children.node.style_overrides.slot]
+
+[[components.AssetSurfaceControls.root.children]]
+
+[components.AssetSurfaceControls.root.children.slot]
+
+[components.AssetSurfaceControls.root.children.node]
+node_id = "component_AssetSurfaceControls_root_7"
+kind = "native"
+type = "UiHostIconButton"
+control_id = "OpenAssetBrowser"
+classes = []
+children = []
+
+[components.AssetSurfaceControls.root.children.node.params]
+
+[components.AssetSurfaceControls.root.children.node.props]
+label = "OpenAssetBrowser"
+
+[[components.AssetSurfaceControls.root.children.node.bindings]]
+id = "AssetSurface/OpenAssetBrowser"
+event = "Click"
+route = "AssetCommand.OpenAssetBrowser"
+
+[components.AssetSurfaceControls.root.children.node.style_overrides.self]
+
+[components.AssetSurfaceControls.root.children.node.style_overrides.slot]
+
+[[components.AssetSurfaceControls.root.children]]
+
+[components.AssetSurfaceControls.root.children.slot]
+
+[components.AssetSurfaceControls.root.children.node]
+node_id = "component_AssetSurfaceControls_root_8"
+kind = "native"
+type = "UiHostIconButton"
+control_id = "LocateSelectedAsset"
+classes = []
+children = []
+
+[components.AssetSurfaceControls.root.children.node.params]
+
+[components.AssetSurfaceControls.root.children.node.props]
+label = "LocateSelectedAsset"
+
+[[components.AssetSurfaceControls.root.children.node.bindings]]
+id = "AssetSurface/LocateSelectedAsset"
+event = "Click"
+route = "AssetCommand.LocateSelectedAsset"
+
+[components.AssetSurfaceControls.root.children.node.style_overrides.self]
+
+[components.AssetSurfaceControls.root.children.node.style_overrides.slot]
+
+[[components.AssetSurfaceControls.root.children]]
+
+[components.AssetSurfaceControls.root.children.slot]
+
+[components.AssetSurfaceControls.root.children.node]
+node_id = "component_AssetSurfaceControls_root_9"
+kind = "native"
+type = "UiHostIconButton"
+control_id = "ImportModel"
+classes = []
+children = []
+
+[components.AssetSurfaceControls.root.children.node.params]
+
+[components.AssetSurfaceControls.root.children.node.props]
+label = "ImportModel"
+
+[[components.AssetSurfaceControls.root.children.node.bindings]]
+id = "AssetSurface/ImportModel"
+event = "Click"
+route = "AssetCommand.ImportModel"
+
+[components.AssetSurfaceControls.root.children.node.style_overrides.self]
+
+[components.AssetSurfaceControls.root.children.node.style_overrides.slot]
+
+[components.AssetSurfaceControls.params]
+
+[components.AssetSurfaceControls.slots]

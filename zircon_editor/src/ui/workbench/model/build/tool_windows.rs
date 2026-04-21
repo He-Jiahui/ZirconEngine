@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
-use crate::layout::ActivityDrawerSlot;
-use crate::snapshot::EditorChromeSnapshot;
+use crate::ui::workbench::layout::ActivityDrawerSlot;
+use crate::ui::workbench::snapshot::EditorChromeSnapshot;
 
 use super::super::pane_tab::pane_tab_model;
 use super::super::tool_window_stack_model::ToolWindowStackModel;

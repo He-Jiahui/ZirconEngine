@@ -1,7 +1,9 @@
 mod animation;
 mod artifact_store;
+mod font;
 mod importer;
 mod material;
+mod model;
 mod physics_material;
 mod scene;
 mod ui;

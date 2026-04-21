@@ -1,6 +1,7 @@
 use crate::core::math::UVec2;
 
-use crate::graphics::types::EditorOrRuntimeFrame;
+use crate::graphics::scene::scene_renderer::HybridGiScenePrepareResourcesSnapshot;
+use crate::graphics::types::ViewportRenderFrame;
 
 use super::super::super::super::super::scene_post_process_resources::ScenePostProcessResources;
 use super::super::super::super::super::scene_runtime_feature_flags::SceneRuntimeFeatureFlags;
@@ -23,11 +24,14 @@ impl ScenePostProcessResources {
         scene_color_view: &wgpu::TextureView,
         ao_view: &wgpu::TextureView,
         previous_scene_color_view: Option<&wgpu::TextureView>,
+        previous_global_illumination_view: Option<&wgpu::TextureView>,
         bloom_view: &wgpu::TextureView,
         final_color_view: &wgpu::TextureView,
+        global_illumination_view: &wgpu::TextureView,
         cluster_buffer: &wgpu::Buffer,
-        frame: &EditorOrRuntimeFrame,
+        frame: &ViewportRenderFrame,
         features: SceneRuntimeFeatureFlags,
+        hybrid_gi_scene_prepare_resources: Option<&HybridGiScenePrepareResourcesSnapshot>,
         history_available: bool,
     ) {
         let extract = &frame.extract;
@@ -44,6 +48,7 @@ impl ScenePostProcessResources {
             frame,
             viewport_size,
             features.hybrid_global_illumination_enabled,
+            hybrid_gi_scene_prepare_resources,
         );
         let params = build_post_process_params(
             viewport_size,
@@ -63,9 +68,16 @@ impl ScenePostProcessResources {
             scene_color_view,
             ao_view,
             previous_scene_color_view,
+            previous_global_illumination_view,
             bloom_view,
             cluster_buffer,
         );
-        record_pass(self, encoder, final_color_view, &bind_group);
+        record_pass(
+            self,
+            encoder,
+            final_color_view,
+            global_illumination_view,
+            &bind_group,
+        );
     }
 }

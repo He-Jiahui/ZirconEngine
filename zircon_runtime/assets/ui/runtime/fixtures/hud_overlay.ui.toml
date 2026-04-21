@@ -1,0 +1,253 @@
+stylesheets = []
+
+[asset]
+kind = "layout"
+id = "runtime.ui.hud_overlay"
+version = 1
+display_name = "Runtime HUD Overlay"
+
+[imports]
+widgets = []
+styles = []
+
+[tokens]
+
+[root]
+node_id = "hud_root"
+kind = "native"
+type = "Overlay"
+control_id = "HudRoot"
+classes = []
+bindings = []
+
+[root.params]
+
+[root.props]
+
+[root.layout.container]
+kind = "Overlay"
+
+[root.layout.height]
+stretch = "Stretch"
+
+[root.layout.width]
+stretch = "Stretch"
+
+[root.style_overrides.self]
+
+[root.style_overrides.slot]
+
+[[root.children]]
+
+[root.children.slot]
+
+[root.children.node]
+node_id = "health_panel"
+kind = "native"
+type = "Container"
+control_id = "HealthPanel"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.params]
+
+[root.children.node.props]
+text = "HP 87 / 100"
+
+[root.children.node.props.background]
+color = "#8e2f2f"
+
+[root.children.node.props.border]
+color = "#f4c37d"
+radius = 12.0
+width = 2.0
+
+[root.children.node.props.foreground]
+color = "#fff4de"
+
+[root.children.node.layout.anchor]
+x = 0.0
+y = 0.0
+
+[root.children.node.layout.height]
+max = 72.0
+min = 72.0
+preferred = 72.0
+stretch = "Fixed"
+
+[root.children.node.layout.pivot]
+x = 0.0
+y = 0.0
+
+[root.children.node.layout.position]
+x = 24.0
+y = 24.0
+
+[root.children.node.layout.width]
+max = 240.0
+min = 240.0
+preferred = 240.0
+stretch = "Fixed"
+
+[root.children.node.style_overrides.self]
+
+[root.children.node.style_overrides.slot]
+
+[[root.children]]
+
+[root.children.slot]
+
+[root.children.node]
+node_id = "quest_label"
+kind = "native"
+type = "Label"
+control_id = "QuestLabel"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.params]
+
+[root.children.node.props]
+opacity = 0.95
+text = "Reach the relay before sunrise"
+
+[root.children.node.props.foreground]
+color = "#f7f1d0"
+
+[root.children.node.layout.anchor]
+x = 1.0
+y = 0.0
+
+[root.children.node.layout.height]
+max = 28.0
+min = 28.0
+preferred = 28.0
+stretch = "Fixed"
+
+[root.children.node.layout.pivot]
+x = 1.0
+y = 0.0
+
+[root.children.node.layout.position]
+x = -28.0
+y = 28.0
+
+[root.children.node.layout.width]
+max = 260.0
+min = 260.0
+preferred = 260.0
+stretch = "Fixed"
+
+[root.children.node.style_overrides.self]
+
+[root.children.node.style_overrides.slot]
+
+[[root.children]]
+
+[root.children.slot]
+
+[root.children.node]
+node_id = "weapon_icon"
+kind = "native"
+type = "Icon"
+control_id = "WeaponIcon"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.params]
+
+[root.children.node.props]
+icon = "pulse-rifle"
+
+[root.children.node.props.foreground]
+color = "#d8eefc"
+
+[root.children.node.layout.anchor]
+x = 1.0
+y = 1.0
+
+[root.children.node.layout.height]
+max = 56.0
+min = 56.0
+preferred = 56.0
+stretch = "Fixed"
+
+[root.children.node.layout.pivot]
+x = 1.0
+y = 1.0
+
+[root.children.node.layout.position]
+x = -28.0
+y = -28.0
+
+[root.children.node.layout.width]
+max = 56.0
+min = 56.0
+preferred = 56.0
+stretch = "Fixed"
+
+[root.children.node.style_overrides.self]
+
+[root.children.node.style_overrides.slot]
+
+[[root.children]]
+
+[root.children.slot]
+
+[root.children.node]
+node_id = "ammo_panel"
+kind = "native"
+type = "Container"
+control_id = "AmmoPanel"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.params]
+
+[root.children.node.props]
+text = "24 / 120"
+
+[root.children.node.props.background]
+color = "#20384b"
+
+[root.children.node.props.border]
+color = "#6dc5ff"
+radius = 10.0
+width = 1.0
+
+[root.children.node.props.foreground]
+color = "#e6f5ff"
+
+[root.children.node.layout.anchor]
+x = 1.0
+y = 1.0
+
+[root.children.node.layout.height]
+max = 52.0
+min = 52.0
+preferred = 52.0
+stretch = "Fixed"
+
+[root.children.node.layout.pivot]
+x = 1.0
+y = 1.0
+
+[root.children.node.layout.position]
+x = -96.0
+y = -30.0
+
+[root.children.node.layout.width]
+max = 180.0
+min = 180.0
+preferred = 180.0
+stretch = "Fixed"
+
+[root.children.node.style_overrides.self]
+
+[root.children.node.style_overrides.slot]
+
+[components]

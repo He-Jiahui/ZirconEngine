@@ -28,6 +28,8 @@ fn virtual_geometry_runtime_state_tracks_page_table_and_request_sink() {
             page(300, false, 4096),
             page(500, true, 1024),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     };
 
     state.register_extract(Some(&extract));
@@ -84,6 +86,8 @@ fn virtual_geometry_runtime_state_deduplicates_requests_and_reuses_evicted_slots
             page(300, false, 4096),
             page(500, true, 1024),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     };
 
     state.register_extract(Some(&extract));
@@ -146,6 +150,8 @@ fn virtual_geometry_runtime_test_evictions_clear_frontier_truth_before_later_rec
             page(700, false, 2_048),
             page(800, true, 2_048),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     };
 
     state.register_extract(Some(&extract));
@@ -205,6 +211,8 @@ fn virtual_geometry_runtime_state_builds_prepare_frame_with_resident_pending_and
             page(300, false, 4096),
             page(400, false, 8192),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     };
 
     state.register_extract(Some(&extract));
@@ -321,6 +329,8 @@ fn virtual_geometry_runtime_state_builds_visibility_owned_compacted_draw_segment
         page_budget: 2,
         clusters: Vec::new(),
         pages: vec![page(200, true, 2048), page(300, false, 4096)],
+        instances: Vec::new(),
+        debug: Default::default(),
     };
 
     state.register_extract(Some(&extract));
@@ -411,6 +421,8 @@ fn virtual_geometry_runtime_state_preserves_visibility_owned_draw_segments_acros
         page_budget: 1,
         clusters: Vec::new(),
         pages: vec![page(400, true, 4096)],
+        instances: Vec::new(),
+        debug: Default::default(),
     };
 
     state.register_extract(Some(&extract));
@@ -699,6 +711,8 @@ fn virtual_geometry_runtime_state_consumes_feedback_and_promotes_requested_pages
             page(300, false, 4096),
             page(500, true, 1024),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     };
 
     state.register_extract(Some(&extract));
@@ -765,6 +779,8 @@ fn virtual_geometry_runtime_state_leaves_requests_pending_without_evictable_budg
         page_budget: 1,
         clusters: Vec::new(),
         pages: vec![page(200, true, 2048), page(300, false, 4096)],
+        instances: Vec::new(),
+        debug: Default::default(),
     };
 
     state.register_extract(Some(&extract));
@@ -813,6 +829,8 @@ fn virtual_geometry_runtime_state_applies_gpu_completed_pages_with_evictable_slo
             page(300, false, 4096),
             page(500, true, 1024),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     };
 
     state.register_extract(Some(&extract));
@@ -854,6 +872,8 @@ fn virtual_geometry_runtime_state_rejects_gpu_slot_recycling_when_current_evicta
             page(300, false, 4096),
             page(500, true, 1024),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     };
 
     state.register_extract(Some(&extract));
@@ -900,6 +920,8 @@ fn virtual_geometry_runtime_state_applies_gpu_assigned_free_slots_before_evictab
             page(500, true, 1024),
             page(600, false, 1024),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     };
 
     state.register_extract(Some(&extract));
@@ -949,6 +971,8 @@ fn virtual_geometry_runtime_state_consumes_explicit_gpu_replacement_truth_before
             page(400, true, 2048),
             page(800, true, 2048),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     };
 
     state.register_extract(Some(&extract));
@@ -1001,6 +1025,8 @@ fn virtual_geometry_runtime_state_does_not_inherit_hot_frontier_from_stale_gpu_r
             page(400, true, 2_048),
             page(700, false, 2_048),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     };
 
     state.register_extract(Some(&extract));
@@ -1061,6 +1087,8 @@ fn virtual_geometry_runtime_state_keeps_processing_later_valid_gpu_completions_a
             page(300, false, 2_048),
             page(400, false, 2_048),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     };
 
     state.register_extract(Some(&extract));
@@ -1124,6 +1152,8 @@ fn virtual_geometry_runtime_state_ignores_duplicate_gpu_page_assignments_after_f
             page(300, false, 2_048),
             page(500, true, 2_048),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     };
 
     state.register_extract(Some(&extract));
@@ -1175,6 +1205,8 @@ fn virtual_geometry_runtime_state_keeps_processing_later_unique_feedback_complet
             page(200, false, 2_048),
             page(300, false, 2_048),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     };
 
     state.register_extract(Some(&extract));
@@ -1226,6 +1258,8 @@ fn virtual_geometry_runtime_state_applies_gpu_page_table_snapshot_as_residency_t
             page(500, true, 1024),
             page(600, false, 1024),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     };
 
     state.register_extract(Some(&extract));
@@ -1311,6 +1345,8 @@ fn virtual_geometry_runtime_state_ignores_duplicate_gpu_page_table_entries_after
             page(300, false, 2_048),
             page(500, true, 2_048),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     };
 
     state.register_extract(Some(&extract));
@@ -1362,6 +1398,8 @@ fn virtual_geometry_runtime_state_drops_stale_scene_pages_and_pending_requests_w
             page(200, false, 4096),
             page(300, true, 1024),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     };
 
     state.register_extract(Some(&initial_extract));
@@ -1381,6 +1419,8 @@ fn virtual_geometry_runtime_state_drops_stale_scene_pages_and_pending_requests_w
         page_budget: 1,
         clusters: Vec::new(),
         pages: vec![page(100, true, 2048)],
+        instances: Vec::new(),
+        debug: Default::default(),
     };
 
     state.register_extract(Some(&shrunk_extract));
@@ -1440,6 +1480,8 @@ fn virtual_geometry_runtime_state_withholds_descendant_page_requests_while_ances
             page(200, false, 8192),
             page(300, false, 2048),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     };
 
     state.register_extract(Some(&extract));
@@ -1503,6 +1545,8 @@ fn virtual_geometry_runtime_state_prioritizes_pending_ancestor_pages_that_reconn
             page(400, true, 2048),
             page(800, false, 4096),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     };
 
     state.register_extract(Some(&extract));
@@ -1557,6 +1601,8 @@ fn virtual_geometry_runtime_state_prefers_evicting_unrelated_pages_before_target
             page(200, false, 4096),
             page(300, true, 1024),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     };
 
     state.register_extract(Some(&extract));
@@ -1606,6 +1652,8 @@ fn virtual_geometry_runtime_state_prefers_evicting_unrelated_pages_before_target
             page(400, true, 2048),
             page(800, true, 1024),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     };
 
     state.register_extract(Some(&extract));
@@ -1650,6 +1698,8 @@ fn virtual_geometry_runtime_state_prefers_evicting_farther_target_ancestors_befo
             page(300, true, 2048),
             page(400, false, 2048),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     };
 
     state.register_extract(Some(&extract));
@@ -1705,6 +1755,8 @@ fn virtual_geometry_runtime_state_prefers_evicting_farther_target_descendants_be
             page(400, true, 2048),
             page(800, true, 2048),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     };
 
     state.register_extract(Some(&extract));
@@ -1750,6 +1802,8 @@ fn virtual_geometry_runtime_state_builds_prepare_requests_with_explicit_frontier
             page(400, true, 2048),
             page(800, true, 2048),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     };
 
     state.register_extract(Some(&extract));
@@ -1801,6 +1855,8 @@ fn virtual_geometry_runtime_state_keeps_frontier_recycle_preference_for_later_re
             page(500, false, 2048),
             page(800, true, 2048),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     };
 
     state.register_extract(Some(&extract));

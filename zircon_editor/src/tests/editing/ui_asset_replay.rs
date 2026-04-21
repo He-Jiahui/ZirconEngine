@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::{
+use crate::ui::asset_editor::{
     apply_external_effects_to_asset_sources, UiAssetEditorDocumentReplayBundle,
     UiAssetEditorDocumentReplayCommand, UiAssetEditorExternalEffect, UiAssetEditorMode,
     UiAssetEditorReplayWorkspace, UiAssetEditorRoute, UiAssetEditorSession,
@@ -9,9 +9,8 @@ use crate::{
 };
 use zircon_runtime::ui::template::{UiActionRef, UiBindingRef};
 use zircon_runtime::ui::{
-    binding::UiEventKind, layout::UiSize, template::UiAssetKind, template::UiAssetLoader,
-    template::UiNodeDefinitionKind, template::UiStyleDeclarationBlock, template::UiStyleRule,
-    template::UiStyleSheet,
+    binding::UiEventKind, layout::UiSize, template::UiAssetKind, template::UiNodeDefinitionKind,
+    template::UiStyleDeclarationBlock, template::UiStyleRule, template::UiStyleSheet,
 };
 
 const LOCAL_THEME_LAYOUT_ASSET_TOML: &str = r##"
@@ -288,8 +287,8 @@ fn ui_asset_editor_session_undo_and_redo_replay_style_rule_reorders() {
     let reordered = session
         .canonical_source()
         .expect("canonical reordered source");
-    let reordered_document =
-        UiAssetLoader::load_toml_str(&reordered).expect("parse reordered stylesheet source");
+    let reordered_document = crate::tests::support::load_test_ui_asset(&reordered)
+        .expect("parse reordered stylesheet source");
     assert_eq!(
         reordered_document.stylesheets[0]
             .rules
@@ -305,7 +304,7 @@ fn ui_asset_editor_session_undo_and_redo_replay_style_rule_reorders() {
 
     let undone = session.undo_replay().expect("undo replay");
     assert!(undone.changed);
-    let undone_document = UiAssetLoader::load_toml_str(session.source_buffer().text())
+    let undone_document = crate::tests::support::load_test_ui_asset(session.source_buffer().text())
         .expect("parse undone stylesheet source");
     assert_eq!(
         undone_document.stylesheets[0]
@@ -322,7 +321,7 @@ fn ui_asset_editor_session_undo_and_redo_replay_style_rule_reorders() {
 
     let redone = session.redo_replay().expect("redo replay");
     assert!(redone.changed);
-    let redone_document = UiAssetLoader::load_toml_str(session.source_buffer().text())
+    let redone_document = crate::tests::support::load_test_ui_asset(session.source_buffer().text())
         .expect("parse redone stylesheet source");
     assert_eq!(
         redone_document.stylesheets[0]
@@ -571,7 +570,7 @@ fn ui_asset_editor_session_widget_promotion_emits_executable_widget_import_repla
 
 #[test]
 fn ui_asset_editor_external_effects_apply_to_asset_source_maps_in_order() {
-    let mut asset_sources = [
+    let mut asset_sources: BTreeMap<String, String> = [
         (
             "res://ui/theme/editor_base.ui.toml".to_string(),
             "[asset]\nid = \"ui.theme.editor_base\"\n".to_string(),
@@ -616,7 +615,7 @@ fn ui_asset_editor_external_effects_restore_previous_asset_source_when_replaying
     let asset_id = "res://ui/theme/editor_base.ui.toml".to_string();
     let previous_source = "[asset]\nid = \"ui.theme.editor_base\"\n".to_string();
     let overwritten_source = "[asset]\nid = \"ui.theme.editor_base.updated\"\n".to_string();
-    let mut asset_sources = [(asset_id.clone(), previous_source.clone())]
+    let mut asset_sources: BTreeMap<String, String> = [(asset_id.clone(), previous_source.clone())]
         .into_iter()
         .collect();
 
@@ -671,7 +670,7 @@ fn ui_asset_editor_session_replay_effects_can_rebuild_cross_file_asset_sources()
         .expect("promoted style document");
     let promoted_style_source =
         toml::to_string_pretty(&promoted_style).expect("serialize promoted style document");
-    let mut asset_sources = [(
+    let mut asset_sources: BTreeMap<String, String> = [(
         "res://ui/themes/replay_theme.ui.toml".to_string(),
         promoted_style_source.clone(),
     )]
@@ -710,8 +709,9 @@ fn ui_asset_editor_session_theme_promotion_restore_effects_reinstate_existing_ex
     )
     .expect("replay theme restore session");
 
-    let existing_document = UiAssetLoader::load_toml_str(EXISTING_EXTERNAL_STYLE_ASSET_TOML)
-        .expect("existing external style");
+    let existing_document =
+        crate::tests::support::load_test_ui_asset(EXISTING_EXTERNAL_STYLE_ASSET_TOML)
+            .expect("existing external style");
     let existing_source =
         toml::to_string_pretty(&existing_document).expect("serialize existing external style");
     session
@@ -746,7 +746,7 @@ fn ui_asset_editor_session_theme_promotion_restore_effects_reinstate_existing_ex
         }]
     );
 
-    let mut asset_sources = [(
+    let mut asset_sources: BTreeMap<String, String> = [(
         "res://ui/themes/replay_theme.ui.toml".to_string(),
         promoted_style_source.clone(),
     )]
@@ -782,8 +782,8 @@ fn ui_asset_editor_session_theme_promotion_restore_effects_reinstate_existing_ex
 #[test]
 fn ui_asset_editor_replay_workspace_applies_stylesheet_insert_and_cross_file_effects() {
     let before_source = STYLE_RULE_INSERT_REPLAY_LAYOUT_ASSET_TOML.to_string();
-    let before_document =
-        UiAssetLoader::load_toml_str(&before_source).expect("parse replay insert layout");
+    let before_document = crate::tests::support::load_test_ui_asset(&before_source)
+        .expect("parse replay insert layout");
     let inserted_stylesheet = UiStyleSheet {
         id: "local_editor_rules".to_string(),
         rules: vec![UiStyleRule {
@@ -903,8 +903,8 @@ fn ui_asset_editor_replay_workspace_applies_stylesheet_insert_and_cross_file_eff
 #[test]
 fn ui_asset_editor_replay_workspace_applies_style_rule_reorders_from_document_commands() {
     let before_source = STYLE_RULE_REPLAY_LAYOUT_ASSET_TOML.to_string();
-    let before_document =
-        UiAssetLoader::load_toml_str(&before_source).expect("parse replay rule reorder layout");
+    let before_document = crate::tests::support::load_test_ui_asset(&before_source)
+        .expect("parse replay rule reorder layout");
     let mut after_document = before_document.clone();
     let moved_rule = after_document.stylesheets[0].rules.remove(2);
     after_document.stylesheets[0].rules.insert(1, moved_rule);
@@ -1065,8 +1065,8 @@ set = { self = { text = "Footer" } }
 "##
     .trim_start()
     .to_string();
-    let before_document =
-        UiAssetLoader::load_toml_str(&before_source).expect("parse replay stylesheet vector");
+    let before_document = crate::tests::support::load_test_ui_asset(&before_source)
+        .expect("parse replay stylesheet vector");
     let mut after_document = before_document.clone();
     after_document.imports.styles = vec![
         "res://ui/theme/local.ui.toml".to_string(),
@@ -1315,8 +1315,9 @@ fn ui_asset_editor_session_widget_promotion_restore_effects_reinstate_existing_e
         .extract_selected_node_to_component()
         .expect("extract button into component"));
 
-    let existing_document = UiAssetLoader::load_toml_str(EXISTING_EXTERNAL_WIDGET_ASSET_TOML)
-        .expect("existing external widget");
+    let existing_document =
+        crate::tests::support::load_test_ui_asset(EXISTING_EXTERNAL_WIDGET_ASSET_TOML)
+            .expect("existing external widget");
     let existing_source =
         toml::to_string_pretty(&existing_document).expect("serialize existing external widget");
     session
@@ -1354,7 +1355,7 @@ fn ui_asset_editor_session_widget_promotion_restore_effects_reinstate_existing_e
         }]
     );
 
-    let mut asset_sources = [(
+    let mut asset_sources: BTreeMap<String, String> = [(
         "res://ui/widgets/save_button.ui.toml".to_string(),
         promoted_widget_source.clone(),
     )]
@@ -1394,8 +1395,9 @@ fn ui_asset_editor_session_theme_refactor_uses_style_rule_vector_replay_commands
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
-    let imported_theme = UiAssetLoader::load_toml_str(THEME_RULE_VECTOR_IMPORTED_THEME_ASSET_TOML)
-        .expect("imported theme");
+    let imported_theme =
+        crate::tests::support::load_test_ui_asset(THEME_RULE_VECTOR_IMPORTED_THEME_ASSET_TOML)
+            .expect("imported theme");
     let mut session = UiAssetEditorSession::from_source(
         route,
         THEME_RULE_VECTOR_REPLAY_LAYOUT_ASSET_TOML,
@@ -1535,7 +1537,7 @@ fn ui_asset_editor_session_tree_edits_use_executable_node_and_component_replay_c
             UiAssetEditorDocumentReplayCommand::UpsertNode { node_id, node }
                 if node_id == "root"
                     && node.children.len() == 1
-                    && node.children[0].child == "button"
+                    && node.children[0].node.node_id == "button"
         )
     }));
     assert!(wrap_undo_commands.iter().any(|command| {
@@ -1548,17 +1550,29 @@ fn ui_asset_editor_session_tree_edits_use_executable_node_and_component_replay_c
 
     assert!(wrap_session.undo().expect("undo wrapped node"));
     let wrapped_undo_document =
-        UiAssetLoader::load_toml_str(wrap_session.source_buffer().text()).expect("wrapped undo");
+        crate::tests::support::load_test_ui_asset(wrap_session.source_buffer().text())
+            .expect("wrapped undo");
     assert_eq!(
-        wrapped_undo_document.nodes["root"].children[0].child,
+        wrapped_undo_document
+            .node("root")
+            .expect("root node")
+            .children[0]
+            .node
+            .node_id,
         "button"
     );
 
     assert!(wrap_session.redo().expect("redo wrapped node"));
     let wrapped_redo_document =
-        UiAssetLoader::load_toml_str(wrap_session.source_buffer().text()).expect("wrapped redo");
+        crate::tests::support::load_test_ui_asset(wrap_session.source_buffer().text())
+            .expect("wrapped redo");
     assert_ne!(
-        wrapped_redo_document.nodes["root"].children[0].child,
+        wrapped_redo_document
+            .node("root")
+            .expect("root node")
+            .children[0]
+            .node
+            .node_id,
         "button"
     );
 
@@ -1600,10 +1614,13 @@ fn ui_asset_editor_session_tree_edits_use_executable_node_and_component_replay_c
 
     assert!(extract_session.undo().expect("undo extracted component"));
     let extracted_undo_document =
-        UiAssetLoader::load_toml_str(extract_session.source_buffer().text())
+        crate::tests::support::load_test_ui_asset(extract_session.source_buffer().text())
             .expect("extracted undo");
     assert_eq!(
-        extracted_undo_document.nodes["button"].kind,
+        extracted_undo_document
+            .node("button")
+            .expect("button node")
+            .kind,
         UiNodeDefinitionKind::Native
     );
     assert!(!extracted_undo_document
@@ -1612,10 +1629,13 @@ fn ui_asset_editor_session_tree_edits_use_executable_node_and_component_replay_c
 
     assert!(extract_session.redo().expect("redo extracted component"));
     let extracted_redo_document =
-        UiAssetLoader::load_toml_str(extract_session.source_buffer().text())
+        crate::tests::support::load_test_ui_asset(extract_session.source_buffer().text())
             .expect("extracted redo");
     assert_eq!(
-        extracted_redo_document.nodes["button"].kind,
+        extracted_redo_document
+            .node("button")
+            .expect("button node")
+            .kind,
         UiNodeDefinitionKind::Component
     );
     assert!(extracted_redo_document

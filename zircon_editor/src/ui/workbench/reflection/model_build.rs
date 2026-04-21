@@ -4,8 +4,8 @@ use crate::ui::{
 };
 use zircon_runtime::ui::event_ui::UiTreeId;
 
-use crate::snapshot::{EditorChromeSnapshot, MainPageSnapshot};
-use crate::WorkbenchViewModel;
+use crate::ui::workbench::model::WorkbenchViewModel;
+use crate::ui::workbench::snapshot::{EditorChromeSnapshot, MainPageSnapshot};
 
 use super::activity_collection::{
     activity_from_tab, collect_workspace_activities, floating_window_model,

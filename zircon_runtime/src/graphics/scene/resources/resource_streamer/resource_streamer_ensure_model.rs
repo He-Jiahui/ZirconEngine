@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::asset::ModelAsset;
 use crate::core::resource::{ModelMarker, ResourceHandle};
 
 use crate::graphics::types::GraphicsError;
@@ -27,8 +28,16 @@ impl ResourceStreamer {
             .asset_manager
             .load_model_asset(id)
             .map_err(|error| GraphicsError::Asset(error.to_string()))?;
-        let resource = Arc::new(GpuModelResource::from_asset(device, id, model));
-        self.models.insert(id, PreparedModel { revision, resource });
+        let asset = Arc::<ModelAsset>::new(model);
+        let resource = Arc::new(GpuModelResource::from_asset(device, id, asset.as_ref()));
+        self.models.insert(
+            id,
+            PreparedModel {
+                revision,
+                asset,
+                resource,
+            },
+        );
         Ok(())
     }
 }

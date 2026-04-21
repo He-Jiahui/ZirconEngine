@@ -1,6 +1,6 @@
+use crate::core::editor_event::MenuAction;
 use crate::ui::workbench::event::menu_action_binding;
 
-use super::super::menu_action::MenuAction;
 use super::super::pane_action_model::PaneActionModel;
 
 pub(super) fn open_project_action() -> PaneActionModel {

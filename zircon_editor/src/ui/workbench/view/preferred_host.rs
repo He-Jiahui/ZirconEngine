@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::layout::ActivityDrawerSlot;
+use crate::ui::workbench::layout::ActivityDrawerSlot;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PreferredHost {

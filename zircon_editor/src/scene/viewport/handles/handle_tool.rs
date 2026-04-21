@@ -1,5 +1,5 @@
-use crate::GizmoAxis;
-use crate::scene::viewport::{HandleOverlayExtract, SceneViewportTool};
+use crate::scene::viewport::GizmoAxis;
+use crate::scene::viewport::HandleOverlayExtract;
 use zircon_runtime::core::math::Transform;
 
 use super::{
@@ -8,7 +8,6 @@ use super::{
 };
 
 pub(crate) trait HandleTool {
-    fn tool(&self) -> SceneViewportTool;
     fn build_overlay(&self, ctx: &HandleBuildContext<'_>) -> Option<HandleOverlayExtract>;
     fn begin_drag(&self, ctx: &HandlePickContext<'_>, axis: GizmoAxis)
         -> Option<HandleDragSession>;

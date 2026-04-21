@@ -27,6 +27,15 @@ pub(super) fn update_hybrid_gi_runtime(
             resident_probe_count: snapshot.resident_probe_count,
             pending_update_count: snapshot.pending_update_count,
             scheduled_trace_region_count: snapshot.scheduled_trace_region_count,
+            scene_card_count: snapshot.scene_card_count,
+            surface_cache_resident_page_count: snapshot.surface_cache_resident_page_count,
+            surface_cache_dirty_page_count: snapshot.surface_cache_dirty_page_count,
+            surface_cache_feedback_card_count: snapshot.surface_cache_feedback_card_count,
+            surface_cache_capture_slot_count: snapshot.surface_cache_capture_slot_count,
+            surface_cache_invalidated_page_count: snapshot.surface_cache_invalidated_page_count,
+            voxel_resident_clipmap_count: snapshot.voxel_resident_clipmap_count,
+            voxel_dirty_clipmap_count: snapshot.voxel_dirty_clipmap_count,
+            voxel_invalidated_clipmap_count: snapshot.voxel_invalidated_clipmap_count,
         }
     } else {
         HybridGiStatSnapshot::default()

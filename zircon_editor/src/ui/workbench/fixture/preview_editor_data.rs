@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::scene::viewport::SceneViewportSettings;
+use serde::{Deserialize, Serialize};
 
 use super::{PreviewGizmoAxis, PreviewInspector, PreviewSceneEntry};
 

@@ -1,4 +1,5 @@
-use crate::{ViewDescriptor, ViewInstance, WorkbenchLayout};
+use crate::ui::workbench::layout::WorkbenchLayout;
+use crate::ui::workbench::view::{ViewDescriptor, ViewInstance};
 
 use super::constants::{
     DEFAULT_DESCRIPTORS_JSON, DEFAULT_EDITOR_DATA_JSON, DEFAULT_INSTANCES_JSON, DEFAULT_LAYOUT_JSON,

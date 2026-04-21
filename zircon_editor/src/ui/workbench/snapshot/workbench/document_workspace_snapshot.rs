@@ -1,5 +1,5 @@
-use crate::layout::SplitAxis;
-use crate::view::ViewInstanceId;
+use crate::ui::workbench::layout::SplitAxis;
+use crate::ui::workbench::view::ViewInstanceId;
 
 use super::ViewTabSnapshot;
 

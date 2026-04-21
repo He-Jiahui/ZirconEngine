@@ -452,20 +452,6 @@ pub(super) fn wire_callbacks(ui: &UiHostWindow, host: &Rc<RefCell<SlintEditorHos
 
     let weak = Rc::downgrade(host);
     let source_ui = ui.clone_strong();
-    pane_surface_host.on_ui_asset_style_class_action(
-        move |instance_id: SharedString, action_id: SharedString, class_name: SharedString| {
-            dispatch_with_callback_source(&weak, &source_ui, |host| {
-                host.dispatch_ui_asset_style_class_action(
-                    instance_id.as_str(),
-                    action_id.as_str(),
-                    class_name.as_str(),
-                );
-            });
-        },
-    );
-
-    let weak = Rc::downgrade(host);
-    let source_ui = ui.clone_strong();
     pane_surface_host.on_ui_asset_detail_event(
         move |instance_id: SharedString,
               detail_id: SharedString,
@@ -503,70 +489,4 @@ pub(super) fn wire_callbacks(ui: &UiHostWindow, host: &Rc<RefCell<SlintEditorHos
             });
         },
     );
-
-    let weak = Rc::downgrade(host);
-    let source_ui = ui.clone_strong();
-    pane_surface_host.on_ui_asset_source_edited(
-        move |instance_id: SharedString, value: SharedString| {
-            dispatch_with_callback_source(&weak, &source_ui, |host| {
-                host.dispatch_ui_asset_source_edited(instance_id.as_str(), value.as_str());
-            });
-        },
-    );
-
-    let weak = Rc::downgrade(host);
-    let source_ui = ui.clone_strong();
-    pane_surface_host.on_ui_asset_source_cursor_changed(
-        move |instance_id: SharedString, byte_offset| {
-            dispatch_with_callback_source(&weak, &source_ui, |host| {
-                host.dispatch_ui_asset_source_cursor_changed(instance_id.as_str(), byte_offset);
-            });
-        },
-    );
-
-    let weak = Rc::downgrade(host);
-    let source_ui = ui.clone_strong();
-    pane_surface_host.on_ui_asset_palette_drag_hover(
-        move |instance_id: SharedString, surface_x, surface_y| {
-            dispatch_with_callback_source(&weak, &source_ui, |host| {
-                host.dispatch_ui_asset_palette_drag_hover(
-                    instance_id.as_str(),
-                    surface_x,
-                    surface_y,
-                );
-            });
-        },
-    );
-
-    let weak = Rc::downgrade(host);
-    let source_ui = ui.clone_strong();
-    pane_surface_host.on_ui_asset_palette_drag_drop(move |instance_id: SharedString| {
-        dispatch_with_callback_source(&weak, &source_ui, |host| {
-            host.dispatch_ui_asset_palette_drag_drop(instance_id.as_str());
-        });
-    });
-
-    let weak = Rc::downgrade(host);
-    let source_ui = ui.clone_strong();
-    pane_surface_host.on_ui_asset_palette_drag_cancel(move |instance_id: SharedString| {
-        dispatch_with_callback_source(&weak, &source_ui, |host| {
-            host.dispatch_ui_asset_palette_drag_cancel(instance_id.as_str());
-        });
-    });
-
-    let weak = Rc::downgrade(host);
-    let source_ui = ui.clone_strong();
-    pane_surface_host.on_ui_asset_palette_target_confirm(move |instance_id: SharedString| {
-        dispatch_with_callback_source(&weak, &source_ui, |host| {
-            host.dispatch_ui_asset_palette_target_confirm(instance_id.as_str());
-        });
-    });
-
-    let weak = Rc::downgrade(host);
-    let source_ui = ui.clone_strong();
-    pane_surface_host.on_ui_asset_palette_target_cancel(move |instance_id: SharedString| {
-        dispatch_with_callback_source(&weak, &source_ui, |host| {
-            host.dispatch_ui_asset_palette_target_cancel(instance_id.as_str());
-        });
-    });
 }

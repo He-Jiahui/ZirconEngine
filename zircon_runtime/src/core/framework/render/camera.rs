@@ -1,7 +1,9 @@
-use serde::{Deserialize, Serialize};
 use crate::core::math::{Real, Transform, UVec2};
+use serde::{Deserialize, Serialize};
 
 use crate::core::framework::scene::EntityId;
+
+use super::RenderVirtualGeometryDebugState;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ViewportCameraSnapshot {
@@ -78,6 +80,7 @@ pub struct SceneViewportExtractRequest {
     pub active_camera_override: Option<EntityId>,
     pub camera: Option<ViewportCameraSnapshot>,
     pub viewport_size: Option<UVec2>,
+    pub virtual_geometry_debug: Option<RenderVirtualGeometryDebugState>,
 }
 
 pub const fn default_viewport_aspect_ratio() -> Real {

@@ -1,5 +1,5 @@
-use crate::core::ChannelReceiver;
 use crate::core::resource::{ResourceEvent, ResourceRecord};
+use crate::core::ChannelReceiver;
 
 pub trait ResourceManager: Send + Sync {
     fn resolve_resource_id(&self, locator: &str) -> Option<String>;

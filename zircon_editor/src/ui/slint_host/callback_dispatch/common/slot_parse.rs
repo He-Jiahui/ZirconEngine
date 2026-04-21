@@ -1,4 +1,4 @@
-use crate::ActivityDrawerSlot;
+use crate::ui::workbench::layout::ActivityDrawerSlot;
 
 pub(crate) fn parse_activity_drawer_slot(slot: &str) -> Result<ActivityDrawerSlot, String> {
     match slot {

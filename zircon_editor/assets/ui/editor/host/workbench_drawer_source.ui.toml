@@ -1,0 +1,1055 @@
+stylesheets = []
+
+[asset]
+kind = "layout"
+id = "editor.host.workbench_drawer_source"
+version = 1
+display_name = "workbench drawer source"
+
+[imports]
+widgets = []
+styles = []
+
+[tokens]
+
+[root]
+node_id = "root"
+kind = "component"
+component = "WorkbenchDrawerSource"
+classes = []
+bindings = []
+children = []
+
+[root.params]
+
+[root.props]
+
+[root.style_overrides.self]
+
+[root.style_overrides.slot]
+
+[components.BottomDrawerShell]
+style_scope = "closed"
+
+[components.BottomDrawerShell.root]
+node_id = "component_BottomDrawerShell_root"
+kind = "native"
+type = "VerticalBox"
+control_id = "BottomDrawerShellRoot"
+classes = []
+bindings = []
+
+[components.BottomDrawerShell.root.params]
+
+[components.BottomDrawerShell.root.props]
+
+[components.BottomDrawerShell.root.layout]
+clip = true
+
+[components.BottomDrawerShell.root.layout.container]
+gap = 0.0
+kind = "VerticalBox"
+
+[components.BottomDrawerShell.root.layout.height]
+max = 0.0
+min = 0.0
+preferred = 0.0
+stretch = "Fixed"
+
+[components.BottomDrawerShell.root.layout.width]
+stretch = "Stretch"
+
+[components.BottomDrawerShell.root.style_overrides.self]
+
+[components.BottomDrawerShell.root.style_overrides.slot]
+
+[[components.BottomDrawerShell.root.children]]
+
+[components.BottomDrawerShell.root.children.slot]
+
+[components.BottomDrawerShell.root.children.node]
+node_id = "component_BottomDrawerShell_root_0"
+kind = "native"
+type = "Container"
+control_id = "BottomDrawerHeaderRoot"
+classes = []
+bindings = []
+children = []
+
+[components.BottomDrawerShell.root.children.node.params]
+
+[components.BottomDrawerShell.root.children.node.props]
+
+[components.BottomDrawerShell.root.children.node.layout]
+clip = true
+
+[components.BottomDrawerShell.root.children.node.layout.height]
+max = 25.0
+min = 25.0
+preferred = 25.0
+stretch = "Fixed"
+
+[components.BottomDrawerShell.root.children.node.layout.width]
+stretch = "Stretch"
+
+[components.BottomDrawerShell.root.children.node.style_overrides.self]
+
+[components.BottomDrawerShell.root.children.node.style_overrides.slot]
+
+[[components.BottomDrawerShell.root.children]]
+
+[components.BottomDrawerShell.root.children.slot]
+
+[components.BottomDrawerShell.root.children.node]
+node_id = "component_BottomDrawerShell_root_1"
+kind = "native"
+type = "VerticalBox"
+control_id = "BottomDrawerPanelRoot"
+classes = []
+bindings = []
+
+[components.BottomDrawerShell.root.children.node.params]
+
+[components.BottomDrawerShell.root.children.node.props]
+
+[components.BottomDrawerShell.root.children.node.layout]
+clip = true
+
+[components.BottomDrawerShell.root.children.node.layout.container]
+gap = 0.0
+kind = "VerticalBox"
+
+[components.BottomDrawerShell.root.children.node.layout.height]
+max = 0.0
+min = 0.0
+preferred = 0.0
+stretch = "Fixed"
+
+[components.BottomDrawerShell.root.children.node.layout.width]
+stretch = "Stretch"
+
+[components.BottomDrawerShell.root.children.node.style_overrides.self]
+
+[components.BottomDrawerShell.root.children.node.style_overrides.slot]
+
+[[components.BottomDrawerShell.root.children.node.children]]
+
+[components.BottomDrawerShell.root.children.node.children.slot]
+
+[components.BottomDrawerShell.root.children.node.children.node]
+node_id = "component_BottomDrawerShell_root_1_0"
+kind = "native"
+type = "Container"
+control_id = "BottomDrawerSeparatorRoot"
+classes = []
+bindings = []
+children = []
+
+[components.BottomDrawerShell.root.children.node.children.node.params]
+
+[components.BottomDrawerShell.root.children.node.children.node.props]
+
+[components.BottomDrawerShell.root.children.node.children.node.layout.height]
+max = 1.0
+min = 1.0
+preferred = 1.0
+stretch = "Fixed"
+
+[components.BottomDrawerShell.root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[components.BottomDrawerShell.root.children.node.children.node.style_overrides.self]
+
+[components.BottomDrawerShell.root.children.node.children.node.style_overrides.slot]
+
+[[components.BottomDrawerShell.root.children.node.children]]
+
+[components.BottomDrawerShell.root.children.node.children.slot]
+
+[components.BottomDrawerShell.root.children.node.children.node]
+node_id = "component_BottomDrawerShell_root_1_1"
+kind = "native"
+type = "Container"
+control_id = "BottomDrawerContentRoot"
+classes = []
+bindings = []
+children = []
+
+[components.BottomDrawerShell.root.children.node.children.node.params]
+
+[components.BottomDrawerShell.root.children.node.children.node.props]
+
+[components.BottomDrawerShell.root.children.node.children.node.layout]
+clip = true
+
+[components.BottomDrawerShell.root.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[components.BottomDrawerShell.root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[components.BottomDrawerShell.root.children.node.children.node.style_overrides.self]
+
+[components.BottomDrawerShell.root.children.node.children.node.style_overrides.slot]
+
+[components.BottomDrawerShell.params]
+
+[components.BottomDrawerShell.slots]
+
+[components.LeftDrawerShell]
+style_scope = "closed"
+
+[components.LeftDrawerShell.root]
+node_id = "component_LeftDrawerShell_root"
+kind = "native"
+type = "HorizontalBox"
+control_id = "LeftDrawerShellRoot"
+classes = []
+bindings = []
+
+[components.LeftDrawerShell.root.params]
+
+[components.LeftDrawerShell.root.props]
+
+[components.LeftDrawerShell.root.layout]
+clip = true
+
+[components.LeftDrawerShell.root.layout.container]
+gap = 0.0
+kind = "HorizontalBox"
+
+[components.LeftDrawerShell.root.layout.height]
+stretch = "Stretch"
+
+[components.LeftDrawerShell.root.layout.width]
+max = 0.0
+min = 0.0
+preferred = 0.0
+stretch = "Fixed"
+
+[components.LeftDrawerShell.root.style_overrides.self]
+
+[components.LeftDrawerShell.root.style_overrides.slot]
+
+[[components.LeftDrawerShell.root.children]]
+
+[components.LeftDrawerShell.root.children.slot]
+
+[components.LeftDrawerShell.root.children.node]
+node_id = "component_LeftDrawerShell_root_0"
+kind = "native"
+type = "Container"
+control_id = "LeftDrawerRailRoot"
+classes = []
+bindings = []
+children = []
+
+[components.LeftDrawerShell.root.children.node.params]
+
+[components.LeftDrawerShell.root.children.node.props]
+
+[components.LeftDrawerShell.root.children.node.layout.height]
+stretch = "Stretch"
+
+[components.LeftDrawerShell.root.children.node.layout.width]
+max = 34.0
+min = 34.0
+preferred = 34.0
+stretch = "Fixed"
+
+[components.LeftDrawerShell.root.children.node.style_overrides.self]
+
+[components.LeftDrawerShell.root.children.node.style_overrides.slot]
+
+[[components.LeftDrawerShell.root.children]]
+
+[components.LeftDrawerShell.root.children.slot]
+
+[components.LeftDrawerShell.root.children.node]
+node_id = "component_LeftDrawerShell_root_1"
+kind = "native"
+type = "HorizontalBox"
+control_id = "LeftDrawerPanelRoot"
+classes = []
+bindings = []
+
+[components.LeftDrawerShell.root.children.node.params]
+
+[components.LeftDrawerShell.root.children.node.props]
+
+[components.LeftDrawerShell.root.children.node.layout]
+clip = true
+
+[components.LeftDrawerShell.root.children.node.layout.container]
+gap = 0.0
+kind = "HorizontalBox"
+
+[components.LeftDrawerShell.root.children.node.layout.height]
+stretch = "Stretch"
+
+[components.LeftDrawerShell.root.children.node.layout.width]
+max = 0.0
+min = 0.0
+preferred = 0.0
+stretch = "Fixed"
+
+[components.LeftDrawerShell.root.children.node.style_overrides.self]
+
+[components.LeftDrawerShell.root.children.node.style_overrides.slot]
+
+[[components.LeftDrawerShell.root.children.node.children]]
+
+[components.LeftDrawerShell.root.children.node.children.slot]
+
+[components.LeftDrawerShell.root.children.node.children.node]
+node_id = "component_LeftDrawerShell_root_1_0"
+kind = "native"
+type = "Container"
+control_id = "LeftDrawerSeparatorRoot"
+classes = []
+bindings = []
+children = []
+
+[components.LeftDrawerShell.root.children.node.children.node.params]
+
+[components.LeftDrawerShell.root.children.node.children.node.props]
+
+[components.LeftDrawerShell.root.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[components.LeftDrawerShell.root.children.node.children.node.layout.width]
+max = 1.0
+min = 1.0
+preferred = 1.0
+stretch = "Fixed"
+
+[components.LeftDrawerShell.root.children.node.children.node.style_overrides.self]
+
+[components.LeftDrawerShell.root.children.node.children.node.style_overrides.slot]
+
+[[components.LeftDrawerShell.root.children.node.children]]
+
+[components.LeftDrawerShell.root.children.node.children.slot]
+
+[components.LeftDrawerShell.root.children.node.children.node]
+node_id = "component_LeftDrawerShell_root_1_1"
+kind = "native"
+type = "VerticalBox"
+control_id = "LeftDrawerPanelColumnRoot"
+classes = []
+bindings = []
+
+[components.LeftDrawerShell.root.children.node.children.node.params]
+
+[components.LeftDrawerShell.root.children.node.children.node.props]
+
+[components.LeftDrawerShell.root.children.node.children.node.layout]
+clip = true
+
+[components.LeftDrawerShell.root.children.node.children.node.layout.container]
+gap = 0.0
+kind = "VerticalBox"
+
+[components.LeftDrawerShell.root.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[components.LeftDrawerShell.root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[components.LeftDrawerShell.root.children.node.children.node.style_overrides.self]
+
+[components.LeftDrawerShell.root.children.node.children.node.style_overrides.slot]
+
+[[components.LeftDrawerShell.root.children.node.children.node.children]]
+
+[components.LeftDrawerShell.root.children.node.children.node.children.slot]
+
+[components.LeftDrawerShell.root.children.node.children.node.children.node]
+node_id = "component_LeftDrawerShell_root_1_1_0"
+kind = "native"
+type = "Container"
+control_id = "LeftDrawerHeaderRoot"
+classes = []
+bindings = []
+children = []
+
+[components.LeftDrawerShell.root.children.node.children.node.children.node.params]
+
+[components.LeftDrawerShell.root.children.node.children.node.children.node.props]
+
+[components.LeftDrawerShell.root.children.node.children.node.children.node.layout]
+clip = true
+
+[components.LeftDrawerShell.root.children.node.children.node.children.node.layout.height]
+max = 25.0
+min = 25.0
+preferred = 25.0
+stretch = "Fixed"
+
+[components.LeftDrawerShell.root.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[components.LeftDrawerShell.root.children.node.children.node.children.node.style_overrides.self]
+
+[components.LeftDrawerShell.root.children.node.children.node.children.node.style_overrides.slot]
+
+[[components.LeftDrawerShell.root.children.node.children.node.children]]
+
+[components.LeftDrawerShell.root.children.node.children.node.children.slot]
+
+[components.LeftDrawerShell.root.children.node.children.node.children.node]
+node_id = "component_LeftDrawerShell_root_1_1_1"
+kind = "native"
+type = "VerticalBox"
+control_id = "LeftDrawerContentColumnRoot"
+classes = []
+bindings = []
+
+[components.LeftDrawerShell.root.children.node.children.node.children.node.params]
+
+[components.LeftDrawerShell.root.children.node.children.node.children.node.props]
+
+[components.LeftDrawerShell.root.children.node.children.node.children.node.layout]
+clip = true
+
+[components.LeftDrawerShell.root.children.node.children.node.children.node.layout.container]
+gap = 0.0
+kind = "VerticalBox"
+
+[components.LeftDrawerShell.root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[components.LeftDrawerShell.root.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[components.LeftDrawerShell.root.children.node.children.node.children.node.style_overrides.self]
+
+[components.LeftDrawerShell.root.children.node.children.node.children.node.style_overrides.slot]
+
+[[components.LeftDrawerShell.root.children.node.children.node.children.node.children]]
+
+[components.LeftDrawerShell.root.children.node.children.node.children.node.children.slot]
+
+[components.LeftDrawerShell.root.children.node.children.node.children.node.children.node]
+node_id = "component_LeftDrawerShell_root_1_1_1_0"
+kind = "native"
+type = "Container"
+control_id = "LeftDrawerContentSeparatorRoot"
+classes = []
+bindings = []
+children = []
+
+[components.LeftDrawerShell.root.children.node.children.node.children.node.children.node.params]
+
+[components.LeftDrawerShell.root.children.node.children.node.children.node.children.node.props]
+
+[components.LeftDrawerShell.root.children.node.children.node.children.node.children.node.layout.height]
+max = 1.0
+min = 1.0
+preferred = 1.0
+stretch = "Fixed"
+
+[components.LeftDrawerShell.root.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[components.LeftDrawerShell.root.children.node.children.node.children.node.children.node.style_overrides.self]
+
+[components.LeftDrawerShell.root.children.node.children.node.children.node.children.node.style_overrides.slot]
+
+[[components.LeftDrawerShell.root.children.node.children.node.children.node.children]]
+
+[components.LeftDrawerShell.root.children.node.children.node.children.node.children.slot]
+
+[components.LeftDrawerShell.root.children.node.children.node.children.node.children.node]
+node_id = "component_LeftDrawerShell_root_1_1_1_1"
+kind = "native"
+type = "Container"
+control_id = "LeftDrawerContentRoot"
+classes = []
+bindings = []
+children = []
+
+[components.LeftDrawerShell.root.children.node.children.node.children.node.children.node.params]
+
+[components.LeftDrawerShell.root.children.node.children.node.children.node.children.node.props]
+
+[components.LeftDrawerShell.root.children.node.children.node.children.node.children.node.layout]
+clip = true
+
+[components.LeftDrawerShell.root.children.node.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[components.LeftDrawerShell.root.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[components.LeftDrawerShell.root.children.node.children.node.children.node.children.node.style_overrides.self]
+
+[components.LeftDrawerShell.root.children.node.children.node.children.node.children.node.style_overrides.slot]
+
+[components.LeftDrawerShell.params]
+
+[components.LeftDrawerShell.slots]
+
+[components.RightDrawerShell]
+style_scope = "closed"
+
+[components.RightDrawerShell.root]
+node_id = "component_RightDrawerShell_root"
+kind = "native"
+type = "HorizontalBox"
+control_id = "RightDrawerShellRoot"
+classes = []
+bindings = []
+
+[components.RightDrawerShell.root.params]
+
+[components.RightDrawerShell.root.props]
+
+[components.RightDrawerShell.root.layout]
+clip = true
+
+[components.RightDrawerShell.root.layout.container]
+gap = 0.0
+kind = "HorizontalBox"
+
+[components.RightDrawerShell.root.layout.height]
+stretch = "Stretch"
+
+[components.RightDrawerShell.root.layout.width]
+max = 0.0
+min = 0.0
+preferred = 0.0
+stretch = "Fixed"
+
+[components.RightDrawerShell.root.style_overrides.self]
+
+[components.RightDrawerShell.root.style_overrides.slot]
+
+[[components.RightDrawerShell.root.children]]
+
+[components.RightDrawerShell.root.children.slot]
+
+[components.RightDrawerShell.root.children.node]
+node_id = "component_RightDrawerShell_root_0"
+kind = "native"
+type = "HorizontalBox"
+control_id = "RightDrawerPanelRoot"
+classes = []
+bindings = []
+
+[components.RightDrawerShell.root.children.node.params]
+
+[components.RightDrawerShell.root.children.node.props]
+
+[components.RightDrawerShell.root.children.node.layout]
+clip = true
+
+[components.RightDrawerShell.root.children.node.layout.container]
+gap = 0.0
+kind = "HorizontalBox"
+
+[components.RightDrawerShell.root.children.node.layout.height]
+stretch = "Stretch"
+
+[components.RightDrawerShell.root.children.node.layout.width]
+max = 0.0
+min = 0.0
+preferred = 0.0
+stretch = "Fixed"
+
+[components.RightDrawerShell.root.children.node.style_overrides.self]
+
+[components.RightDrawerShell.root.children.node.style_overrides.slot]
+
+[[components.RightDrawerShell.root.children.node.children]]
+
+[components.RightDrawerShell.root.children.node.children.slot]
+
+[components.RightDrawerShell.root.children.node.children.node]
+node_id = "component_RightDrawerShell_root_0_0"
+kind = "native"
+type = "VerticalBox"
+control_id = "RightDrawerPanelColumnRoot"
+classes = []
+bindings = []
+
+[components.RightDrawerShell.root.children.node.children.node.params]
+
+[components.RightDrawerShell.root.children.node.children.node.props]
+
+[components.RightDrawerShell.root.children.node.children.node.layout]
+clip = true
+
+[components.RightDrawerShell.root.children.node.children.node.layout.container]
+gap = 0.0
+kind = "VerticalBox"
+
+[components.RightDrawerShell.root.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[components.RightDrawerShell.root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[components.RightDrawerShell.root.children.node.children.node.style_overrides.self]
+
+[components.RightDrawerShell.root.children.node.children.node.style_overrides.slot]
+
+[[components.RightDrawerShell.root.children.node.children.node.children]]
+
+[components.RightDrawerShell.root.children.node.children.node.children.slot]
+
+[components.RightDrawerShell.root.children.node.children.node.children.node]
+node_id = "component_RightDrawerShell_root_0_0_0"
+kind = "native"
+type = "Container"
+control_id = "RightDrawerHeaderRoot"
+classes = []
+bindings = []
+children = []
+
+[components.RightDrawerShell.root.children.node.children.node.children.node.params]
+
+[components.RightDrawerShell.root.children.node.children.node.children.node.props]
+
+[components.RightDrawerShell.root.children.node.children.node.children.node.layout]
+clip = true
+
+[components.RightDrawerShell.root.children.node.children.node.children.node.layout.height]
+max = 25.0
+min = 25.0
+preferred = 25.0
+stretch = "Fixed"
+
+[components.RightDrawerShell.root.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[components.RightDrawerShell.root.children.node.children.node.children.node.style_overrides.self]
+
+[components.RightDrawerShell.root.children.node.children.node.children.node.style_overrides.slot]
+
+[[components.RightDrawerShell.root.children.node.children.node.children]]
+
+[components.RightDrawerShell.root.children.node.children.node.children.slot]
+
+[components.RightDrawerShell.root.children.node.children.node.children.node]
+node_id = "component_RightDrawerShell_root_0_0_1"
+kind = "native"
+type = "VerticalBox"
+control_id = "RightDrawerContentColumnRoot"
+classes = []
+bindings = []
+
+[components.RightDrawerShell.root.children.node.children.node.children.node.params]
+
+[components.RightDrawerShell.root.children.node.children.node.children.node.props]
+
+[components.RightDrawerShell.root.children.node.children.node.children.node.layout]
+clip = true
+
+[components.RightDrawerShell.root.children.node.children.node.children.node.layout.container]
+gap = 0.0
+kind = "VerticalBox"
+
+[components.RightDrawerShell.root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[components.RightDrawerShell.root.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[components.RightDrawerShell.root.children.node.children.node.children.node.style_overrides.self]
+
+[components.RightDrawerShell.root.children.node.children.node.children.node.style_overrides.slot]
+
+[[components.RightDrawerShell.root.children.node.children.node.children.node.children]]
+
+[components.RightDrawerShell.root.children.node.children.node.children.node.children.slot]
+
+[components.RightDrawerShell.root.children.node.children.node.children.node.children.node]
+node_id = "component_RightDrawerShell_root_0_0_1_0"
+kind = "native"
+type = "Container"
+control_id = "RightDrawerContentSeparatorRoot"
+classes = []
+bindings = []
+children = []
+
+[components.RightDrawerShell.root.children.node.children.node.children.node.children.node.params]
+
+[components.RightDrawerShell.root.children.node.children.node.children.node.children.node.props]
+
+[components.RightDrawerShell.root.children.node.children.node.children.node.children.node.layout.height]
+max = 1.0
+min = 1.0
+preferred = 1.0
+stretch = "Fixed"
+
+[components.RightDrawerShell.root.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[components.RightDrawerShell.root.children.node.children.node.children.node.children.node.style_overrides.self]
+
+[components.RightDrawerShell.root.children.node.children.node.children.node.children.node.style_overrides.slot]
+
+[[components.RightDrawerShell.root.children.node.children.node.children.node.children]]
+
+[components.RightDrawerShell.root.children.node.children.node.children.node.children.slot]
+
+[components.RightDrawerShell.root.children.node.children.node.children.node.children.node]
+node_id = "component_RightDrawerShell_root_0_0_1_1"
+kind = "native"
+type = "Container"
+control_id = "RightDrawerContentRoot"
+classes = []
+bindings = []
+children = []
+
+[components.RightDrawerShell.root.children.node.children.node.children.node.children.node.params]
+
+[components.RightDrawerShell.root.children.node.children.node.children.node.children.node.props]
+
+[components.RightDrawerShell.root.children.node.children.node.children.node.children.node.layout]
+clip = true
+
+[components.RightDrawerShell.root.children.node.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[components.RightDrawerShell.root.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[components.RightDrawerShell.root.children.node.children.node.children.node.children.node.style_overrides.self]
+
+[components.RightDrawerShell.root.children.node.children.node.children.node.children.node.style_overrides.slot]
+
+[[components.RightDrawerShell.root.children.node.children]]
+
+[components.RightDrawerShell.root.children.node.children.slot]
+
+[components.RightDrawerShell.root.children.node.children.node]
+node_id = "component_RightDrawerShell_root_0_1"
+kind = "native"
+type = "Container"
+control_id = "RightDrawerSeparatorRoot"
+classes = []
+bindings = []
+children = []
+
+[components.RightDrawerShell.root.children.node.children.node.params]
+
+[components.RightDrawerShell.root.children.node.children.node.props]
+
+[components.RightDrawerShell.root.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[components.RightDrawerShell.root.children.node.children.node.layout.width]
+max = 1.0
+min = 1.0
+preferred = 1.0
+stretch = "Fixed"
+
+[components.RightDrawerShell.root.children.node.children.node.style_overrides.self]
+
+[components.RightDrawerShell.root.children.node.children.node.style_overrides.slot]
+
+[[components.RightDrawerShell.root.children]]
+
+[components.RightDrawerShell.root.children.slot]
+
+[components.RightDrawerShell.root.children.node]
+node_id = "component_RightDrawerShell_root_1"
+kind = "native"
+type = "Container"
+control_id = "RightDrawerRailRoot"
+classes = []
+bindings = []
+children = []
+
+[components.RightDrawerShell.root.children.node.params]
+
+[components.RightDrawerShell.root.children.node.props]
+
+[components.RightDrawerShell.root.children.node.layout.height]
+stretch = "Stretch"
+
+[components.RightDrawerShell.root.children.node.layout.width]
+max = 34.0
+min = 34.0
+preferred = 34.0
+stretch = "Fixed"
+
+[components.RightDrawerShell.root.children.node.style_overrides.self]
+
+[components.RightDrawerShell.root.children.node.style_overrides.slot]
+
+[components.RightDrawerShell.params]
+
+[components.RightDrawerShell.slots]
+
+[components.WorkbenchDrawerSource]
+style_scope = "closed"
+
+[components.WorkbenchDrawerSource.root]
+node_id = "component_WorkbenchDrawerSource_root"
+kind = "native"
+type = "WorkbenchDrawerSource"
+control_id = "WorkbenchDrawerSourceRoot"
+classes = []
+bindings = []
+
+[components.WorkbenchDrawerSource.root.params]
+
+[components.WorkbenchDrawerSource.root.props]
+
+[components.WorkbenchDrawerSource.root.layout.container]
+gap = 0.0
+kind = "VerticalBox"
+
+[components.WorkbenchDrawerSource.root.layout.height]
+stretch = "Stretch"
+
+[components.WorkbenchDrawerSource.root.layout.width]
+stretch = "Stretch"
+
+[components.WorkbenchDrawerSource.root.style_overrides.self]
+
+[components.WorkbenchDrawerSource.root.style_overrides.slot]
+
+[[components.WorkbenchDrawerSource.root.children]]
+
+[components.WorkbenchDrawerSource.root.children.slot]
+
+[components.WorkbenchDrawerSource.root.children.node]
+node_id = "component_WorkbenchDrawerSource_root_0"
+kind = "native"
+type = "Container"
+control_id = "WorkbenchDrawerTopBarRoot"
+classes = []
+bindings = []
+children = []
+
+[components.WorkbenchDrawerSource.root.children.node.params]
+
+[components.WorkbenchDrawerSource.root.children.node.props]
+
+[components.WorkbenchDrawerSource.root.children.node.layout.height]
+max = 40.0
+min = 40.0
+preferred = 40.0
+stretch = "Fixed"
+
+[components.WorkbenchDrawerSource.root.children.node.layout.width]
+stretch = "Stretch"
+
+[components.WorkbenchDrawerSource.root.children.node.style_overrides.self]
+
+[components.WorkbenchDrawerSource.root.children.node.style_overrides.slot]
+
+[[components.WorkbenchDrawerSource.root.children]]
+
+[components.WorkbenchDrawerSource.root.children.slot]
+
+[components.WorkbenchDrawerSource.root.children.node]
+node_id = "component_WorkbenchDrawerSource_root_1"
+kind = "native"
+type = "VerticalBox"
+control_id = "WorkbenchDrawerBodyColumnRoot"
+classes = []
+bindings = []
+
+[components.WorkbenchDrawerSource.root.children.node.params]
+
+[components.WorkbenchDrawerSource.root.children.node.props]
+
+[components.WorkbenchDrawerSource.root.children.node.layout.container]
+gap = 0.0
+kind = "VerticalBox"
+
+[components.WorkbenchDrawerSource.root.children.node.layout.height]
+stretch = "Stretch"
+
+[components.WorkbenchDrawerSource.root.children.node.layout.width]
+stretch = "Stretch"
+
+[components.WorkbenchDrawerSource.root.children.node.style_overrides.self]
+
+[components.WorkbenchDrawerSource.root.children.node.style_overrides.slot]
+
+[[components.WorkbenchDrawerSource.root.children.node.children]]
+
+[components.WorkbenchDrawerSource.root.children.node.children.slot]
+
+[components.WorkbenchDrawerSource.root.children.node.children.node]
+node_id = "component_WorkbenchDrawerSource_root_1_0"
+kind = "native"
+type = "HorizontalBox"
+control_id = "WorkbenchDrawerCenterRowRoot"
+classes = []
+bindings = []
+
+[components.WorkbenchDrawerSource.root.children.node.children.node.params]
+
+[components.WorkbenchDrawerSource.root.children.node.children.node.props]
+
+[components.WorkbenchDrawerSource.root.children.node.children.node.layout.container]
+gap = 0.0
+kind = "HorizontalBox"
+
+[components.WorkbenchDrawerSource.root.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[components.WorkbenchDrawerSource.root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[components.WorkbenchDrawerSource.root.children.node.children.node.style_overrides.self]
+
+[components.WorkbenchDrawerSource.root.children.node.children.node.style_overrides.slot]
+
+[[components.WorkbenchDrawerSource.root.children.node.children.node.children]]
+
+[components.WorkbenchDrawerSource.root.children.node.children.node.children.slot]
+
+[components.WorkbenchDrawerSource.root.children.node.children.node.children.node]
+node_id = "component_WorkbenchDrawerSource_root_1_0_0"
+kind = "component"
+component = "LeftDrawerShell"
+classes = []
+bindings = []
+children = []
+
+[components.WorkbenchDrawerSource.root.children.node.children.node.children.node.params]
+
+[components.WorkbenchDrawerSource.root.children.node.children.node.children.node.props]
+
+[components.WorkbenchDrawerSource.root.children.node.children.node.children.node.style_overrides.self]
+
+[components.WorkbenchDrawerSource.root.children.node.children.node.children.node.style_overrides.slot]
+
+[[components.WorkbenchDrawerSource.root.children.node.children.node.children]]
+
+[components.WorkbenchDrawerSource.root.children.node.children.node.children.slot]
+
+[components.WorkbenchDrawerSource.root.children.node.children.node.children.node]
+node_id = "component_WorkbenchDrawerSource_root_1_0_1"
+kind = "native"
+type = "Container"
+control_id = "WorkbenchDrawerDocumentRoot"
+classes = []
+bindings = []
+children = []
+
+[components.WorkbenchDrawerSource.root.children.node.children.node.children.node.params]
+
+[components.WorkbenchDrawerSource.root.children.node.children.node.children.node.props]
+
+[components.WorkbenchDrawerSource.root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[components.WorkbenchDrawerSource.root.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[components.WorkbenchDrawerSource.root.children.node.children.node.children.node.style_overrides.self]
+
+[components.WorkbenchDrawerSource.root.children.node.children.node.children.node.style_overrides.slot]
+
+[[components.WorkbenchDrawerSource.root.children.node.children.node.children]]
+
+[components.WorkbenchDrawerSource.root.children.node.children.node.children.slot]
+
+[components.WorkbenchDrawerSource.root.children.node.children.node.children.node]
+node_id = "component_WorkbenchDrawerSource_root_1_0_2"
+kind = "component"
+component = "RightDrawerShell"
+classes = []
+bindings = []
+children = []
+
+[components.WorkbenchDrawerSource.root.children.node.children.node.children.node.params]
+
+[components.WorkbenchDrawerSource.root.children.node.children.node.children.node.props]
+
+[components.WorkbenchDrawerSource.root.children.node.children.node.children.node.style_overrides.self]
+
+[components.WorkbenchDrawerSource.root.children.node.children.node.children.node.style_overrides.slot]
+
+[[components.WorkbenchDrawerSource.root.children.node.children]]
+
+[components.WorkbenchDrawerSource.root.children.node.children.slot]
+
+[components.WorkbenchDrawerSource.root.children.node.children.node]
+node_id = "component_WorkbenchDrawerSource_root_1_1"
+kind = "native"
+type = "Container"
+control_id = "BottomDrawerOuterSeparatorRoot"
+classes = []
+bindings = []
+children = []
+
+[components.WorkbenchDrawerSource.root.children.node.children.node.params]
+
+[components.WorkbenchDrawerSource.root.children.node.children.node.props]
+
+[components.WorkbenchDrawerSource.root.children.node.children.node.layout.height]
+max = 0.0
+min = 0.0
+preferred = 0.0
+stretch = "Fixed"
+
+[components.WorkbenchDrawerSource.root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[components.WorkbenchDrawerSource.root.children.node.children.node.style_overrides.self]
+
+[components.WorkbenchDrawerSource.root.children.node.children.node.style_overrides.slot]
+
+[[components.WorkbenchDrawerSource.root.children.node.children]]
+
+[components.WorkbenchDrawerSource.root.children.node.children.slot]
+
+[components.WorkbenchDrawerSource.root.children.node.children.node]
+node_id = "component_WorkbenchDrawerSource_root_1_2"
+kind = "component"
+component = "BottomDrawerShell"
+classes = []
+bindings = []
+children = []
+
+[components.WorkbenchDrawerSource.root.children.node.children.node.params]
+
+[components.WorkbenchDrawerSource.root.children.node.children.node.props]
+
+[components.WorkbenchDrawerSource.root.children.node.children.node.style_overrides.self]
+
+[components.WorkbenchDrawerSource.root.children.node.children.node.style_overrides.slot]
+
+[[components.WorkbenchDrawerSource.root.children]]
+
+[components.WorkbenchDrawerSource.root.children.slot]
+
+[components.WorkbenchDrawerSource.root.children.node]
+node_id = "component_WorkbenchDrawerSource_root_2"
+kind = "native"
+type = "Container"
+control_id = "WorkbenchDrawerStatusBarRoot"
+classes = []
+bindings = []
+children = []
+
+[components.WorkbenchDrawerSource.root.children.node.params]
+
+[components.WorkbenchDrawerSource.root.children.node.props]
+
+[components.WorkbenchDrawerSource.root.children.node.layout.height]
+max = 24.0
+min = 24.0
+preferred = 24.0
+stretch = "Fixed"
+
+[components.WorkbenchDrawerSource.root.children.node.layout.width]
+stretch = "Stretch"
+
+[components.WorkbenchDrawerSource.root.children.node.style_overrides.self]
+
+[components.WorkbenchDrawerSource.root.children.node.style_overrides.slot]
+
+[components.WorkbenchDrawerSource.params]
+
+[components.WorkbenchDrawerSource.slots]

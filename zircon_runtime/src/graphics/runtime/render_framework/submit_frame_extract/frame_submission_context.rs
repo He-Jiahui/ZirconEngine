@@ -1,5 +1,8 @@
 use crate::core::framework::render::{
-    RenderHybridGiExtract, RenderPipelineHandle, RenderVirtualGeometryExtract,
+    RenderDirectionalLightSnapshot, RenderHybridGiExtract, RenderMeshSnapshot,
+    RenderPipelineHandle, RenderPointLightSnapshot, RenderSpotLightSnapshot,
+    RenderVirtualGeometryBvhVisualizationInstance, RenderVirtualGeometryCpuReferenceInstance,
+    RenderVirtualGeometryExtract,
 };
 use crate::core::math::UVec2;
 
@@ -19,6 +22,14 @@ pub(super) struct UiSubmissionStats {
     pub(super) clipped_command_count: usize,
 }
 
+#[derive(Clone, Debug, Default)]
+pub(super) struct HybridGiSceneInputs {
+    pub(super) meshes: Vec<RenderMeshSnapshot>,
+    pub(super) directional_lights: Vec<RenderDirectionalLightSnapshot>,
+    pub(super) point_lights: Vec<RenderPointLightSnapshot>,
+    pub(super) spot_lights: Vec<RenderSpotLightSnapshot>,
+}
+
 pub(super) struct FrameSubmissionContext {
     pub(super) size: UVec2,
     pub(super) pipeline_handle: RenderPipelineHandle,
@@ -31,9 +42,14 @@ pub(super) struct FrameSubmissionContext {
     pub(super) hybrid_gi_enabled: bool,
     pub(super) virtual_geometry_enabled: bool,
     pub(super) hybrid_gi_extract: Option<RenderHybridGiExtract>,
+    pub(super) hybrid_gi_scene_inputs: HybridGiSceneInputs,
     pub(super) hybrid_gi_update_plan: Option<VisibilityHybridGiUpdatePlan>,
     pub(super) hybrid_gi_feedback: Option<VisibilityHybridGiFeedback>,
     pub(super) virtual_geometry_extract: Option<RenderVirtualGeometryExtract>,
+    pub(super) virtual_geometry_cpu_reference_instances:
+        Vec<RenderVirtualGeometryCpuReferenceInstance>,
+    pub(super) virtual_geometry_bvh_visualization_instances:
+        Vec<RenderVirtualGeometryBvhVisualizationInstance>,
     pub(super) virtual_geometry_page_upload_plan: Option<VisibilityVirtualGeometryPageUploadPlan>,
     pub(super) virtual_geometry_feedback: Option<VisibilityVirtualGeometryFeedback>,
     pub(super) predicted_generation: u64,

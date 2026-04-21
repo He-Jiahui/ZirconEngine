@@ -1,11 +1,11 @@
 use crate::core::framework::render::HandleElementExtract;
 
 use crate::graphics::scene::scene_renderer::primitives::LineVertex;
-use crate::graphics::types::EditorOrRuntimeFrame;
+use crate::graphics::types::ViewportRenderFrame;
 
 use super::super::line_geometry::{append_arrow_head, append_cross, append_ring};
 
-pub(crate) fn build_handle_vertices(frame: &EditorOrRuntimeFrame) -> Vec<LineVertex> {
+pub(crate) fn build_handle_vertices(frame: &ViewportRenderFrame) -> Vec<LineVertex> {
     let mut vertices = Vec::new();
     let camera = &frame.scene.scene.camera;
     for handle in &frame.scene.overlays.handles {

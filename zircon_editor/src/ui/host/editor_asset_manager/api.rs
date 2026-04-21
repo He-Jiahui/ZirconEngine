@@ -1,0 +1,15 @@
+use zircon_runtime::core::{ChannelReceiver, CoreError};
+
+use super::{EditorAssetCatalogSnapshotRecord, EditorAssetChangeRecord, EditorAssetDetailsRecord};
+
+pub trait EditorAssetManager: Send + Sync {
+    fn refresh_from_runtime_project(&self) -> Result<(), CoreError>;
+    fn catalog_snapshot(&self) -> EditorAssetCatalogSnapshotRecord;
+    fn asset_details(&self, uuid: &str) -> Option<EditorAssetDetailsRecord>;
+    fn subscribe_editor_asset_changes(&self) -> ChannelReceiver<EditorAssetChangeRecord>;
+    fn request_preview_refresh(
+        &self,
+        uuid: &str,
+        visible: bool,
+    ) -> Result<Option<EditorAssetDetailsRecord>, CoreError>;
+}

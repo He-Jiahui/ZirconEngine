@@ -275,7 +275,7 @@ implementation_files:
   - zircon_editor/ui/workbench/chrome.slint
   - zircon_resource/src/id.rs
   - zircon_asset/src/tests/pipeline/manager.rs
-  - zircon_editor/src/tests/host/resource_access.rs
+  - zircon_editor/src/tests/host/resource_access/mod.rs
 plan_sources:
   - user: 2026-04-13 实现目录式 Project 资源抽象优先全链路替换计划
   - user: 2026-04-14 编辑器资源管理器 UI 真正接到 EditorAssetManager / EditorAssetServer
@@ -295,15 +295,17 @@ tests:
   - zircon_asset/src/tests/watcher.rs
   - zircon_scene/src/lib.rs
   - zircon_graphics/src/tests/project_render.rs
-  - zircon_editor/src/tests/workbench/project.rs
+  - zircon_editor/src/tests/workbench/project/document_roundtrip.rs
+  - zircon_editor/src/tests/workbench/project/renderable_template.rs
   - zircon_editor/src/tests/editing/state.rs
   - zircon_editor/src/tests/editing/import.rs
-  - zircon_editor/src/tests/host/asset_manager_boundary.rs
-  - zircon_editor/src/tests/host/resource_access.rs
-  - zircon_editor/src/tests/host/slint_callback_dispatch/asset.rs
-  - zircon_editor/src/tests/host/slint_callback_dispatch/layout.rs
-  - zircon_editor/src/tests/host/slint_event_bridge.rs
-  - zircon_editor/src/tests/host/slint_asset_refresh.rs
+  - zircon_editor/src/tests/host/asset_manager_boundary/mod.rs
+  - zircon_editor/src/tests/host/resource_access/mod.rs
+  - zircon_editor/src/tests/host/slint_callback_dispatch/asset/direct_dispatch.rs
+  - zircon_editor/src/tests/host/slint_callback_dispatch/asset/template_bridge.rs
+  - zircon_editor/src/tests/host/slint_callback_dispatch/layout/mod.rs
+  - zircon_editor/src/tests/host/slint_event_bridge/mod.rs
+  - zircon_editor/src/tests/host/slint_asset_refresh/mod.rs
   - zircon_editor/src/tests/host/slint_builtin_assets.rs
   - cargo test -p zircon_resource -p zircon_asset -p zircon_scene -p zircon_graphics -p zircon_editor
   - cargo test -p zircon_manager manager_public_surface_excludes_editor_asset_api --locked
@@ -592,14 +594,15 @@ asset workspace 现在明确拆成两条链：
   - headless project render
   - shader 驱动颜色回归
   - editor-composed gizmo overlay 非空帧断言
-- `zircon_editor/src/tests/workbench/project.rs`
+- `zircon_editor/src/tests/workbench/project/document_roundtrip.rs`
+- `zircon_editor/src/tests/workbench/project/renderable_template.rs`
   - editor project/workspace roundtrip
 - `zircon_editor/src/tests/editing/state.rs`
   - `EditorState` 将 catalog/detail/resource 同步为共享 `AssetWorkspaceSnapshot`
   - 资产引用跳转同时重定向 `Assets` 与 `AssetBrowser` 两个 surface
 - `zircon_editor/src/tests/editing/import.rs`
   - editor import command 在 typed handle 模型下仍可 undo
-- `zircon_editor/src/tests/host/resource_access.rs`
+- `zircon_editor/src/tests/host/resource_access/mod.rs`
   - host 侧按 `ResourceManager` 解析 ready typed handle
   - 非 ready 资源诊断透传
 

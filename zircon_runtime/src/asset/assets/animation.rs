@@ -1,9 +1,9 @@
 use serde::de::{DeserializeOwned, Error as DeError};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use crate::core::math::Real;
 use crate::core::framework::animation::{AnimationParameterValue, AnimationTrackPath};
 use crate::core::framework::scene::{ComponentPropertyPath, EntityPath};
+use crate::core::math::Real;
 
 use crate::asset::{AssetReference, AssetUri, AssetUuid};
 
@@ -26,6 +26,13 @@ struct AnimationBinaryDocument<T> {
     version: u32,
     kind: AnimationBinaryAssetKind,
     payload: T,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+struct AnimationBinaryHeader {
+    magic: [u8; 8],
+    version: u32,
+    kind: AnimationBinaryAssetKind,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -583,7 +590,7 @@ impl AnimationStateMachineAsset {
             AnimationBinaryAssetKind::StateMachine,
             bytes,
         )
-            .and_then(AnimationStateMachineAsset::try_from)
+        .and_then(AnimationStateMachineAsset::try_from)
     }
 
     pub fn to_bytes(&self) -> Result<Vec<u8>, String> {
@@ -611,24 +618,25 @@ fn decode_binary_asset<T>(kind: AnimationBinaryAssetKind, bytes: &[u8]) -> Resul
 where
     T: DeserializeOwned,
 {
-    let document: AnimationBinaryDocument<T> =
-        bincode::deserialize(bytes).map_err(|error| error.to_string())?;
+    let mut cursor = std::io::Cursor::new(bytes);
+    let header: AnimationBinaryHeader =
+        bincode::deserialize_from(&mut cursor).map_err(|error| error.to_string())?;
 
-    if document.magic != ANIMATION_BINARY_MAGIC {
+    if header.magic != ANIMATION_BINARY_MAGIC {
         return Err("invalid animation asset magic".to_string());
     }
-    if document.version != ANIMATION_BINARY_VERSION {
+    if header.version != ANIMATION_BINARY_VERSION {
         return Err(format!(
             "unsupported animation asset version {}",
-            document.version
+            header.version
         ));
     }
-    if document.kind != kind {
+    if header.kind != kind {
         return Err(format!(
             "animation asset kind mismatch: expected {:?}, found {:?}",
-            kind, document.kind
+            kind, header.kind
         ));
     }
 
-    Ok(document.payload)
+    bincode::deserialize_from(&mut cursor).map_err(|error| error.to_string())
 }

@@ -1,4 +1,4 @@
-use crate::ViewInstanceId;
+use crate::ui::workbench::view::ViewInstanceId;
 
 use super::super::{DocumentNode, LayoutManager, MainHostPageLayout, WorkbenchLayout};
 

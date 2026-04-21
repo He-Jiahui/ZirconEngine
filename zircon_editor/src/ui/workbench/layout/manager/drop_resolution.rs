@@ -1,4 +1,4 @@
-use crate::ViewHost;
+use crate::ui::workbench::view::ViewHost;
 
 use super::super::{
     DockEdge, DragPayload, DropTarget, HitTarget, LayoutManager, SplitAxis, SplitPlacement,

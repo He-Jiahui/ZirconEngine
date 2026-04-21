@@ -3,7 +3,7 @@ use crate::ui::tree::UiTreeError;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
-pub enum RuntimeUiManagerError {
+pub(crate) enum RuntimeUiManagerError {
     #[error(transparent)]
     Asset(#[from] UiAssetError),
     #[error(transparent)]

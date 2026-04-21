@@ -1,4 +1,4 @@
-use crate::snapshot::{EditorChromeSnapshot, MainPageSnapshot};
+use crate::ui::workbench::snapshot::{EditorChromeSnapshot, MainPageSnapshot};
 
 use super::super::document_tabs::document_tabs_for_page;
 use super::super::drawer_ring_model::DrawerRingModel;

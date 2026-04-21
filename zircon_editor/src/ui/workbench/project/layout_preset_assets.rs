@@ -8,7 +8,7 @@ use super::constants::{EDITOR_LAYOUT_PRESET_FORMAT_VERSION, EDITOR_LAYOUT_PRESET
 use super::layout_preset_asset_document::LayoutPresetAssetDocument;
 use super::layout_preset_asset_path::layout_preset_asset_path;
 use super::project_root_path::project_root_path;
-use crate::layout::WorkbenchLayout;
+use crate::ui::workbench::layout::WorkbenchLayout;
 
 pub(crate) fn save_layout_preset_asset(
     root: impl AsRef<std::path::Path>,

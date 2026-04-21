@@ -21,7 +21,10 @@ use crate::ui::slint_host::root_shell_projection::{
     resolve_root_right_region_frame, resolve_root_status_bar_frame,
 };
 use crate::ui::slint_host::tab_drag::WorkbenchDragTargetGroup;
-use crate::{DockEdge, FloatingWindowModel, ShellSizePx, WorkbenchShellGeometry};
+use crate::ui::workbench::autolayout::ShellSizePx;
+use crate::ui::workbench::autolayout::WorkbenchShellGeometry;
+use crate::ui::workbench::layout::DockEdge;
+use crate::ui::workbench::model::FloatingWindowModel;
 
 use super::common::{base_target_state, clamp_frame_to_root, frame_if_visible, update_target_node};
 use super::drag_frames::DragTargetFrames;

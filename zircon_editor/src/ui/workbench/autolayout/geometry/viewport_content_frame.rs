@@ -1,5 +1,5 @@
-use crate::snapshot::ViewContentKind;
 use crate::ui::workbench::model::WorkbenchViewModel;
+use crate::ui::workbench::snapshot::ViewContentKind;
 
 use super::super::active_tab::active_document_tab;
 use super::super::{ShellFrame, WorkbenchChromeMetrics};

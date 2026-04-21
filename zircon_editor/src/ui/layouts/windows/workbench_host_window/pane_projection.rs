@@ -2,8 +2,8 @@ use super::*;
 use crate::ui::layouts::common::model_rc;
 use crate::ui::layouts::views::{blank_viewport_chrome, scene_viewport_chrome};
 use crate::ui::slint_host::{
-    UiAssetActionStateData, UiAssetCollectionPanelData, UiAssetEditorPaneData,
-    UiAssetCanvasNodeData, UiAssetCanvasSlotTargetData,
+    AnimationEditorPaneData, UiAssetActionStateData, UiAssetCanvasNodeData,
+    UiAssetCanvasSlotTargetData, UiAssetCollectionPanelData, UiAssetEditorPaneData,
     UiAssetInspectorBindingData, UiAssetInspectorLayoutData, UiAssetInspectorPanelData,
     UiAssetInspectorSemanticData, UiAssetInspectorSlotData, UiAssetInspectorWidgetData,
     UiAssetMatchedStyleRuleData, UiAssetPaletteDragData, UiAssetPaneHeaderData,
@@ -18,13 +18,20 @@ pub(super) fn side_pane(
     model: &WorkbenchViewModel,
     chrome: &EditorChromeSnapshot,
     slots: &[ActivityDrawerSlot],
-    ui_asset_panes: &std::collections::BTreeMap<String, crate::UiAssetEditorPanePresentation>,
+    ui_asset_panes: &std::collections::BTreeMap<
+        String,
+        crate::ui::asset_editor::UiAssetEditorPanePresentation,
+    >,
+    animation_panes: &std::collections::BTreeMap<
+        String,
+        crate::ui::animation_editor::AnimationEditorPanePresentation,
+    >,
 ) -> PaneData {
     let stack = slots
         .iter()
         .filter_map(|slot| model.tool_windows.get(slot))
         .find(|stack| {
-            stack.mode != crate::ActivityDrawerMode::Collapsed
+            stack.mode != crate::ui::workbench::layout::ActivityDrawerMode::Collapsed
                 && stack.active_tab.is_some()
                 && !stack.tabs.is_empty()
         })
@@ -62,13 +69,21 @@ pub(super) fn side_pane(
         find_tab_snapshot(chrome, &tab.instance_id.0),
         chrome,
         ui_asset_panes.get(&tab.instance_id.0),
+        animation_panes.get(&tab.instance_id.0),
     )
 }
 
 pub(crate) fn document_pane(
     model: &WorkbenchViewModel,
     chrome: &EditorChromeSnapshot,
-    ui_asset_panes: &std::collections::BTreeMap<String, crate::UiAssetEditorPanePresentation>,
+    ui_asset_panes: &std::collections::BTreeMap<
+        String,
+        crate::ui::asset_editor::UiAssetEditorPanePresentation,
+    >,
+    animation_panes: &std::collections::BTreeMap<
+        String,
+        crate::ui::animation_editor::AnimationEditorPanePresentation,
+    >,
 ) -> PaneData {
     let tab = model
         .document_tabs
@@ -88,6 +103,7 @@ pub(crate) fn document_pane(
         find_tab_snapshot(chrome, &tab.instance_id.0),
         chrome,
         ui_asset_panes.get(&tab.instance_id.0),
+        animation_panes.get(&tab.instance_id.0),
     )
 }
 
@@ -100,7 +116,8 @@ pub(super) fn pane_from_tab(
     empty_state: Option<&PaneEmptyStateModel>,
     snapshot: Option<&ViewTabSnapshot>,
     chrome: &EditorChromeSnapshot,
-    ui_asset_pane: Option<&crate::UiAssetEditorPanePresentation>,
+    ui_asset_pane: Option<&crate::ui::asset_editor::UiAssetEditorPanePresentation>,
+    animation_pane: Option<&crate::ui::animation_editor::AnimationEditorPanePresentation>,
 ) -> PaneData {
     let (subtitle, info, show_toolbar) = pane_metadata(kind, snapshot, chrome);
     let viewport = match kind {
@@ -155,6 +172,7 @@ pub(super) fn pane_from_tab(
             )
         });
     let ui_asset_pane = ui_asset_pane.cloned().unwrap_or_default();
+    let animation_pane = animation_pane.cloned().unwrap_or_default();
 
     PaneData {
         id: instance_id.into(),
@@ -175,6 +193,7 @@ pub(super) fn pane_from_tab(
         show_toolbar,
         viewport,
         ui_asset: ui_asset_pane_data(ui_asset_pane),
+        animation: animation_pane_data(animation_pane),
     }
 }
 
@@ -230,7 +249,7 @@ fn ui_asset_string_selection(
 }
 
 fn ui_asset_canvas_nodes(
-    items: Vec<crate::UiAssetEditorPreviewCanvasNode>,
+    items: Vec<crate::ui::asset_editor::UiAssetEditorPreviewCanvasNode>,
 ) -> slint::ModelRc<UiAssetCanvasNodeData> {
     model_rc(
         items
@@ -252,7 +271,7 @@ fn ui_asset_canvas_nodes(
 }
 
 fn ui_asset_canvas_slot_targets(
-    items: Vec<crate::UiAssetEditorPreviewCanvasSlotTarget>,
+    items: Vec<crate::ui::asset_editor::UiAssetEditorPreviewCanvasSlotTarget>,
 ) -> slint::ModelRc<UiAssetCanvasSlotTargetData> {
     model_rc(
         items
@@ -271,7 +290,7 @@ fn ui_asset_canvas_slot_targets(
 }
 
 fn ui_asset_pane_data(
-    ui_asset_pane: crate::UiAssetEditorPanePresentation,
+    ui_asset_pane: crate::ui::asset_editor::UiAssetEditorPanePresentation,
 ) -> UiAssetEditorPaneData {
     UiAssetEditorPaneData {
         header: UiAssetPaneHeaderData {
@@ -580,6 +599,26 @@ fn ui_asset_pane_data(
     }
 }
 
+fn animation_pane_data(
+    animation_pane: crate::ui::animation_editor::AnimationEditorPanePresentation,
+) -> AnimationEditorPaneData {
+    AnimationEditorPaneData {
+        mode: animation_pane.mode.into(),
+        asset_path: animation_pane.asset_path.into(),
+        status: animation_pane.status.into(),
+        selection: animation_pane.selection_summary.into(),
+        current_frame: animation_pane.current_frame as i32,
+        timeline_start_frame: animation_pane.timeline_start_frame as i32,
+        timeline_end_frame: animation_pane.timeline_end_frame as i32,
+        playback_label: animation_pane.playback_label.into(),
+        track_items: shared_string_list(animation_pane.track_items),
+        parameter_items: shared_string_list(animation_pane.parameter_items),
+        node_items: shared_string_list(animation_pane.node_items),
+        state_items: shared_string_list(animation_pane.state_items),
+        transition_items: shared_string_list(animation_pane.transition_items),
+    }
+}
+
 pub(super) fn blank_pane() -> PaneData {
     PaneData {
         id: SharedString::default(),
@@ -599,7 +638,12 @@ pub(super) fn blank_pane() -> PaneData {
         secondary_hint: SharedString::default(),
         show_toolbar: false,
         viewport: blank_viewport_chrome(),
-        ui_asset: ui_asset_pane_data(crate::UiAssetEditorPanePresentation::default()),
+        ui_asset: ui_asset_pane_data(
+            crate::ui::asset_editor::UiAssetEditorPanePresentation::default(),
+        ),
+        animation: animation_pane_data(
+            crate::ui::animation_editor::AnimationEditorPanePresentation::default(),
+        ),
     }
 }
 
@@ -683,6 +727,16 @@ fn pane_metadata(
             "Live UI asset preview and source editing session".to_string(),
             false,
         ),
+        ViewContentKind::AnimationSequenceEditor => (
+            payload_path(snapshot).unwrap_or_else(|| "Animation Sequence".to_string()),
+            "Sequence timeline and property-track authoring".to_string(),
+            false,
+        ),
+        ViewContentKind::AnimationGraphEditor => (
+            payload_path(snapshot).unwrap_or_else(|| "Animation Graph".to_string()),
+            "Graph and state-machine authoring surface".to_string(),
+            false,
+        ),
         ViewContentKind::Placeholder => (
             "Missing View".to_string(),
             "This pane was restored from layout state but the descriptor is unavailable.".into(),
@@ -722,19 +776,23 @@ fn pane_kind_key(kind: ViewContentKind) -> &'static str {
         ViewContentKind::PrefabEditor => "PrefabEditor",
         ViewContentKind::AssetBrowser => "AssetBrowser",
         ViewContentKind::UiAssetEditor => "UiAssetEditor",
+        ViewContentKind::AnimationSequenceEditor => "AnimationSequenceEditor",
+        ViewContentKind::AnimationGraphEditor => "AnimationGraphEditor",
         ViewContentKind::Placeholder => "Placeholder",
     }
 }
 
 fn find_in_workspace<'a>(
-    workspace: &'a crate::DocumentWorkspaceSnapshot,
+    workspace: &'a crate::ui::workbench::snapshot::DocumentWorkspaceSnapshot,
     instance_id: &str,
 ) -> Option<&'a ViewTabSnapshot> {
     match workspace {
-        crate::DocumentWorkspaceSnapshot::Split { first, second, .. } => {
+        crate::ui::workbench::snapshot::DocumentWorkspaceSnapshot::Split {
+            first, second, ..
+        } => {
             find_in_workspace(first, instance_id).or_else(|| find_in_workspace(second, instance_id))
         }
-        crate::DocumentWorkspaceSnapshot::Tabs { tabs, .. } => tabs
+        crate::ui::workbench::snapshot::DocumentWorkspaceSnapshot::Tabs { tabs, .. } => tabs
             .iter()
             .find(|tab| tab.instance_id.0.as_str() == instance_id),
     }

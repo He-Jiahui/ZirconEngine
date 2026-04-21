@@ -1,13 +1,13 @@
 use crate::core::framework::render::ProjectionMode;
 use crate::core::math::{view_matrix, Mat4, Real, RenderMat4, RenderVec3};
 
-use crate::graphics::types::EditorOrRuntimeFrame;
+use crate::graphics::types::ViewportRenderFrame;
 
 use super::super::fallback::{render_mat4_or, render_vec3_or};
 use super::SceneUniform;
 
 impl SceneUniform {
-    pub(crate) fn from_frame(frame: &EditorOrRuntimeFrame, aspect: Real) -> Self {
+    pub(crate) fn from_frame(frame: &ViewportRenderFrame, aspect: Real) -> Self {
         let camera = &frame.scene.scene.camera;
         let projection = match camera.projection_mode {
             ProjectionMode::Perspective => Mat4::perspective_rh(
@@ -31,7 +31,7 @@ impl SceneUniform {
         };
         let view = view_matrix(camera.transform);
         let (light_dir, light_color, ambient_color) = if frame.scene.preview.lighting_enabled {
-            if let Some(light) = frame.scene.scene.lights.first() {
+            if let Some(light) = frame.scene.scene.directional_lights.first() {
                 (
                     render_vec3_or(
                         light.direction,

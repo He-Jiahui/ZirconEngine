@@ -1,17 +1,41 @@
 use std::sync::{Mutex, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use serde_json::json;
-use crate::core::CoreRuntime;
 use crate::core::manager::{
     resolve_config_manager, ManagerResolver, CONFIG_MANAGER_NAME, EVENT_MANAGER_NAME,
 };
+use crate::core::CoreRuntime;
+use serde_json::json;
 
 use crate::foundation::{module_descriptor, FOUNDATION_MODULE_NAME};
 
 fn env_lock() -> &'static Mutex<()> {
     static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
     LOCK.get_or_init(|| Mutex::new(()))
+}
+
+#[test]
+fn foundation_root_stays_structural_after_module_split() {
+    let source = std::fs::read_to_string(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("src")
+            .join("foundation")
+            .join("mod.rs"),
+    )
+    .expect("foundation mod source");
+
+    for forbidden in [
+        "pub struct FoundationModule",
+        "impl EngineModule for FoundationModule",
+        "fn module_name(&self)",
+        "fn module_description(&self)",
+        "fn descriptor(&self)",
+    ] {
+        assert!(
+            !source.contains(forbidden),
+            "expected foundation/mod.rs to stay structural after split, found `{forbidden}`"
+        );
+    }
 }
 
 #[test]
@@ -53,8 +77,8 @@ fn config_manager_persists_values_to_disk() {
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_nanos();
-    let path = std::env::temp_dir().join(format!("zircon_editor_config_{unique}.json"));
-    std::env::set_var("ZIRCON_EDITOR_CONFIG_PATH", &path);
+    let path = std::env::temp_dir().join(format!("zircon_config_{unique}.json"));
+    std::env::set_var("ZIRCON_CONFIG_PATH", &path);
 
     let runtime = CoreRuntime::new();
     runtime.register_module(module_descriptor()).unwrap();
@@ -80,7 +104,7 @@ fn config_manager_persists_values_to_disk() {
         Some(json!({"page": "main"}))
     );
 
-    std::env::remove_var("ZIRCON_EDITOR_CONFIG_PATH");
+    std::env::remove_var("ZIRCON_CONFIG_PATH");
     let _ = std::fs::remove_file(path);
 }
 

@@ -1,8 +1,9 @@
 use std::collections::VecDeque;
 
-use crate::{
-    CompiledRenderGraph, CompiledRenderPass, ExternalResource, PassFlags, QueueLane,
-    RenderGraphError, RenderPassId, TransientBuffer, TransientTexture,
+use super::error::RenderGraphError;
+use super::graph::{CompiledRenderGraph, CompiledRenderPass};
+use super::types::{
+    ExternalResource, PassFlags, QueueLane, RenderPassId, TransientBuffer, TransientTexture,
 };
 
 #[derive(Clone, Debug)]

@@ -3,7 +3,6 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use image::{ImageBuffer, ImageFormat, Rgba};
 use crate::asset::assets::{AlphaMode, MaterialAsset};
 use crate::asset::pipeline::manager::{AssetManager, ProjectAssetManager};
 use crate::asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
@@ -17,10 +16,11 @@ use crate::core::framework::render::{
 use crate::core::math::{Transform, UVec2, Vec3, Vec4};
 use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle};
 use crate::scene::components::{default_render_layer_mask, Mobility};
+use image::{ImageBuffer, ImageFormat, Rgba};
 
 use crate::{
     types::{
-        EditorOrRuntimeFrame, VirtualGeometryPrepareCluster, VirtualGeometryPrepareClusterState,
+        ViewportRenderFrame, VirtualGeometryPrepareCluster, VirtualGeometryPrepareClusterState,
         VirtualGeometryPrepareDrawSegment, VirtualGeometryPrepareFrame, VirtualGeometryPreparePage,
     },
     BuiltinRenderFeature, RenderPipelineAsset, RenderPipelineCompileOptions, SceneRenderer,
@@ -99,7 +99,7 @@ fn virtual_geometry_args_source_keeps_prepare_owned_draw_refs_when_some_entities
     let mut renderer = SceneRenderer::new(asset_manager).unwrap();
     renderer
         .render_frame_with_pipeline(
-            &EditorOrRuntimeFrame::from_extract(extract, viewport_size)
+            &ViewportRenderFrame::from_extract(extract, viewport_size)
                 .with_virtual_geometry_prepare(Some(VirtualGeometryPrepareFrame {
                     visible_entities: vec![2],
                     visible_clusters: vec![
@@ -237,7 +237,7 @@ fn virtual_geometry_gpu_submission_fallback_ignores_non_submitted_visibility_dra
     let mut renderer = SceneRenderer::new(asset_manager).unwrap();
     renderer
         .render_frame_with_pipeline(
-            &EditorOrRuntimeFrame::from_extract(extract, viewport_size)
+            &ViewportRenderFrame::from_extract(extract, viewport_size)
                 .with_virtual_geometry_prepare(Some(VirtualGeometryPrepareFrame {
                     visible_entities: vec![2],
                     visible_clusters: vec![
@@ -379,7 +379,7 @@ fn virtual_geometry_fallback_full_mesh_args_follow_prepare_cluster_state_when_se
     let mut renderer = SceneRenderer::new(asset_manager).unwrap();
     renderer
         .render_frame_with_pipeline(
-            &EditorOrRuntimeFrame::from_extract(extract, viewport_size)
+            &ViewportRenderFrame::from_extract(extract, viewport_size)
                 .with_virtual_geometry_prepare(Some(VirtualGeometryPrepareFrame {
                     visible_entities: vec![2, 3],
                     visible_clusters: vec![
@@ -406,14 +406,16 @@ fn virtual_geometry_fallback_full_mesh_args_follow_prepare_cluster_state_when_se
                         slot: 2,
                         size_bytes: 4096,
                     }],
-                    pending_page_requests: vec![crate::graphics::types::VirtualGeometryPrepareRequest {
-                        page_id: 301,
-                        size_bytes: 4096,
-                        generation: 1,
-                        frontier_rank: 0,
-                        assigned_slot: Some(1),
-                        recycled_page_id: None,
-                    }],
+                    pending_page_requests: vec![
+                        crate::graphics::types::VirtualGeometryPrepareRequest {
+                            page_id: 301,
+                            size_bytes: 4096,
+                            generation: 1,
+                            frontier_rank: 0,
+                            assigned_slot: Some(1),
+                            recycled_page_id: None,
+                        },
+                    ],
                     available_slots: Vec::new(),
                     evictable_pages: Vec::new(),
                 })),
@@ -536,7 +538,7 @@ fn virtual_geometry_fallback_clusters_without_segments_expand_into_visibility_ow
     let mut renderer = SceneRenderer::new(asset_manager).unwrap();
     renderer
         .render_frame_with_pipeline(
-            &EditorOrRuntimeFrame::from_extract(extract, viewport_size)
+            &ViewportRenderFrame::from_extract(extract, viewport_size)
                 .with_virtual_geometry_prepare(Some(VirtualGeometryPrepareFrame {
                     visible_entities: vec![2],
                     visible_clusters: vec![
@@ -563,14 +565,16 @@ fn virtual_geometry_fallback_clusters_without_segments_expand_into_visibility_ow
                         slot: 2,
                         size_bytes: 4096,
                     }],
-                    pending_page_requests: vec![crate::graphics::types::VirtualGeometryPrepareRequest {
-                        page_id: 301,
-                        size_bytes: 4096,
-                        generation: 3,
-                        frontier_rank: 0,
-                        assigned_slot: Some(1),
-                        recycled_page_id: None,
-                    }],
+                    pending_page_requests: vec![
+                        crate::graphics::types::VirtualGeometryPrepareRequest {
+                            page_id: 301,
+                            size_bytes: 4096,
+                            generation: 3,
+                            frontier_rank: 0,
+                            assigned_slot: Some(1),
+                            recycled_page_id: None,
+                        },
+                    ],
                     available_slots: Vec::new(),
                     evictable_pages: Vec::new(),
                 })),
@@ -693,7 +697,7 @@ fn virtual_geometry_mixed_explicit_and_fallback_entities_reuse_one_prepare_owned
     let mut renderer = SceneRenderer::new(asset_manager).unwrap();
     renderer
         .render_frame_with_pipeline(
-            &EditorOrRuntimeFrame::from_extract(extract, viewport_size)
+            &ViewportRenderFrame::from_extract(extract, viewport_size)
                 .with_virtual_geometry_prepare(Some(VirtualGeometryPrepareFrame {
                     visible_entities: vec![2, 3],
                     visible_clusters: vec![
@@ -866,7 +870,7 @@ fn virtual_geometry_missing_explicit_segments_do_not_resurrect_cpu_full_mesh_fal
     let mut renderer = SceneRenderer::new(asset_manager).unwrap();
     renderer
         .render_frame_with_pipeline(
-            &EditorOrRuntimeFrame::from_extract(extract, viewport_size)
+            &ViewportRenderFrame::from_extract(extract, viewport_size)
                 .with_virtual_geometry_prepare(Some(VirtualGeometryPrepareFrame {
                     visible_entities: vec![2, 3],
                     visible_clusters: vec![
@@ -1044,7 +1048,7 @@ fn virtual_geometry_missing_fallback_clusters_do_not_emit_zero_count_indirect_re
     let mut renderer = SceneRenderer::new(asset_manager).unwrap();
     renderer
         .render_frame_with_pipeline(
-            &EditorOrRuntimeFrame::from_extract(extract, viewport_size)
+            &ViewportRenderFrame::from_extract(extract, viewport_size)
                 .with_virtual_geometry_prepare(Some(VirtualGeometryPrepareFrame {
                     visible_entities: vec![2],
                     visible_clusters: vec![
@@ -1192,7 +1196,7 @@ fn virtual_geometry_partial_missing_fallback_clusters_keep_original_cluster_ordi
     let mut renderer = SceneRenderer::new(asset_manager).unwrap();
     renderer
         .render_frame_with_pipeline(
-            &EditorOrRuntimeFrame::from_extract(extract, viewport_size)
+            &ViewportRenderFrame::from_extract(extract, viewport_size)
                 .with_virtual_geometry_prepare(Some(VirtualGeometryPrepareFrame {
                     visible_entities: vec![2],
                     visible_clusters: vec![
@@ -1320,7 +1324,9 @@ fn build_dual_entity_extract_with_clusters(
                     render_layer_mask: default_render_layer_mask(),
                 },
             ],
-            lights: Vec::new(),
+            directional_lights: Vec::new(),
+            point_lights: Vec::new(),
+            spot_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract {
             display_mode: DisplayMode::Shaded,
@@ -1332,6 +1338,7 @@ fn build_dual_entity_extract_with_clusters(
             fallback_skybox: FallbackSkyboxKind::None,
             clear_color: Vec4::ZERO,
         },
+        virtual_geometry_debug: None,
     };
     let mut extract =
         RenderFrameExtract::from_snapshot(RenderWorldSnapshotHandle::new(1), snapshot);
@@ -1340,6 +1347,8 @@ fn build_dual_entity_extract_with_clusters(
         page_budget: pages.len() as u32,
         clusters,
         pages,
+        instances: Vec::new(),
+        debug: Default::default(),
     });
     extract
 }

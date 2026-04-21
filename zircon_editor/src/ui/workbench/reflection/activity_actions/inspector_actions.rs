@@ -22,5 +22,14 @@ pub(super) fn inspector_actions() -> Vec<UiActionDescriptor> {
         ))
         .with_parameter(UiParameterDescriptor::new("field_id", UiValueType::String))
         .with_parameter(UiParameterDescriptor::new("value", UiValueType::String)),
+        UiActionDescriptor::new(
+            "create_animation_track",
+            UiEventKind::Click,
+            "AnimationCommand.CreateTrack",
+        )
+        .with_parameter(UiParameterDescriptor::new(
+            "track_path",
+            UiValueType::String,
+        )),
     ]
 }

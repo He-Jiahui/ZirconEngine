@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::layout::ActivityDrawerSlot;
+use crate::ui::workbench::layout::ActivityDrawerSlot;
 
 use super::document_tab_model::DocumentTabModel;
 use super::document_workspace_model::DocumentWorkspaceModel;

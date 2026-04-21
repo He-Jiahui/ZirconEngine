@@ -1,5 +1,5 @@
 use crate::graphics::scene::scene_renderer::overlay::ViewportOverlayRenderer;
-use crate::graphics::types::EditorOrRuntimeFrame;
+use crate::graphics::types::ViewportRenderFrame;
 
 impl ViewportOverlayRenderer {
     pub(crate) fn record_preview_sky(
@@ -8,7 +8,7 @@ impl ViewportOverlayRenderer {
         color_view: &wgpu::TextureView,
         depth_view: &wgpu::TextureView,
         scene_bind_group: &wgpu::BindGroup,
-        frame: &EditorOrRuntimeFrame,
+        frame: &ViewportRenderFrame,
     ) {
         self.preview_sky.record(
             encoder,

@@ -4,7 +4,8 @@ use zircon_runtime::ui::{dispatch::UiPointerDispatchResult, event_ui::UiNodeId};
 
 use crate::ui::slint_host::drawer_resize::WorkbenchResizeTargetGroup;
 use crate::ui::slint_host::tab_drag::WorkbenchDragTargetGroup;
-use crate::{DockEdge, MainPageId};
+use crate::ui::workbench::layout::DockEdge;
+use crate::ui::workbench::layout::MainPageId;
 
 use super::node_ids::{
     DOCUMENT_EDGE_BOTTOM_NODE_ID, DOCUMENT_EDGE_LEFT_NODE_ID, DOCUMENT_EDGE_RIGHT_NODE_ID,

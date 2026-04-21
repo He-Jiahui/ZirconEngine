@@ -1,17 +1,451 @@
 use crate::core::framework::render::{
-    RenderHybridGiExtract, RenderHybridGiProbe, RenderHybridGiTraceRegion,
+    RenderDirectionalLightSnapshot, RenderHybridGiExtract, RenderHybridGiProbe,
+    RenderHybridGiTraceRegion, RenderMeshSnapshot,
 };
+use crate::core::framework::scene::Mobility;
+use crate::core::math::{Transform, Vec3, Vec4};
+use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
 
 use crate::{
     runtime::{HybridGiProbeResidencyState, HybridGiProbeUpdateRequest, HybridGiRuntimeState},
-    types::{HybridGiPrepareFrame, HybridGiPrepareProbe, HybridGiPrepareUpdateRequest},
+    types::{
+        HybridGiPrepareCardCaptureRequest, HybridGiPrepareFrame, HybridGiPrepareProbe,
+        HybridGiPrepareUpdateRequest, HybridGiPrepareVoxelCell, HybridGiPrepareVoxelClipmap,
+    },
     VisibilityHybridGiFeedback, VisibilityHybridGiUpdatePlan,
 };
+
+#[test]
+fn hybrid_gi_runtime_state_registers_scene_cards_from_mesh_extract() {
+    let mut state = HybridGiRuntimeState::default();
+    let extract = hybrid_gi_settings(2, 2);
+
+    state.register_scene_extract(
+        Some(&extract),
+        &[
+            mesh(11, "res://materials/a.mat"),
+            mesh(22, "res://materials/b.mat"),
+        ],
+        &[directional_light(100, 1.0)],
+        &[],
+        &[],
+    );
+
+    assert_eq!(state.scene_card_ids(), vec![11, 22]);
+    assert_eq!(state.scene_resident_page_ids(), vec![11, 22]);
+    assert_eq!(state.scene_dirty_page_ids(), vec![11, 22]);
+    assert_eq!(state.scene_invalidated_page_ids(), Vec::<u32>::new());
+    assert_eq!(state.scene_feedback_card_ids(), Vec::<u32>::new());
+    assert_eq!(state.scene_resident_clipmap_ids(), vec![0, 1]);
+    assert_eq!(state.scene_dirty_clipmap_ids(), vec![0, 1]);
+}
+
+#[test]
+fn hybrid_gi_runtime_state_builds_scene_clipmap_descriptors_from_mesh_bounds() {
+    let mut state = HybridGiRuntimeState::default();
+    let extract = hybrid_gi_settings(2, 2);
+
+    state.register_scene_extract(
+        Some(&extract),
+        &[
+            mesh_at(11, "res://materials/a.mat", Vec3::new(-4.0, 0.0, 0.0), 1.0),
+            mesh_at(22, "res://materials/b.mat", Vec3::new(4.0, 0.0, 0.0), 1.0),
+        ],
+        &[directional_light(100, 1.0)],
+        &[],
+        &[],
+    );
+
+    assert_eq!(
+        state.scene_clipmap_descriptors(),
+        vec![(0, [0.0, 0.0, 0.0], 5.0), (1, [0.0, 0.0, 0.0], 10.0),]
+    );
+}
+
+#[test]
+fn hybrid_gi_runtime_state_invalidates_scene_clipmap_descriptors_when_scene_clears() {
+    let mut state = HybridGiRuntimeState::default();
+    let extract = hybrid_gi_settings(2, 2);
+
+    state.register_scene_extract(
+        Some(&extract),
+        &[
+            mesh_at(11, "res://materials/a.mat", Vec3::new(-4.0, 0.0, 0.0), 1.0),
+            mesh_at(22, "res://materials/b.mat", Vec3::new(4.0, 0.0, 0.0), 1.0),
+        ],
+        &[directional_light(100, 1.0)],
+        &[],
+        &[],
+    );
+    state.register_scene_extract(Some(&extract), &[], &[], &[], &[]);
+
+    assert_eq!(
+        state.scene_clipmap_descriptors(),
+        Vec::<(u32, [f32; 3], f32)>::new()
+    );
+    assert_eq!(state.scene_invalidated_clipmap_ids(), vec![0, 1]);
+}
+
+#[test]
+fn hybrid_gi_runtime_state_snapshot_reports_scene_representation_counts() {
+    let mut state = HybridGiRuntimeState::default();
+    let extract = hybrid_gi_settings(2, 2);
+
+    state.register_scene_extract(
+        Some(&extract),
+        &[
+            mesh(11, "res://materials/a.mat"),
+            mesh(22, "res://materials/b.mat"),
+            mesh(33, "res://materials/c.mat"),
+        ],
+        &[directional_light(100, 1.0)],
+        &[],
+        &[],
+    );
+
+    let snapshot = state.snapshot();
+    assert_eq!(snapshot.cache_entry_count, 0);
+    assert_eq!(snapshot.resident_probe_count, 0);
+    assert_eq!(snapshot.pending_update_count, 0);
+    assert_eq!(snapshot.scheduled_trace_region_count, 0);
+    assert_eq!(snapshot.scene_card_count, 3);
+    assert_eq!(snapshot.surface_cache_resident_page_count, 2);
+    assert_eq!(snapshot.surface_cache_dirty_page_count, 2);
+    assert_eq!(snapshot.surface_cache_feedback_card_count, 1);
+    assert_eq!(snapshot.surface_cache_capture_slot_count, 2);
+    assert_eq!(snapshot.surface_cache_invalidated_page_count, 0);
+    assert_eq!(snapshot.voxel_resident_clipmap_count, 2);
+    assert_eq!(snapshot.voxel_dirty_clipmap_count, 2);
+    assert_eq!(snapshot.voxel_invalidated_clipmap_count, 0);
+}
+
+#[test]
+fn hybrid_gi_runtime_state_only_redirties_changed_cards_but_relights_all_resident_pages() {
+    let mut state = HybridGiRuntimeState::default();
+    let extract = hybrid_gi_settings(2, 2);
+    let base_meshes = [
+        mesh(11, "res://materials/a.mat"),
+        mesh(22, "res://materials/b.mat"),
+    ];
+
+    state.register_scene_extract(
+        Some(&extract),
+        &base_meshes,
+        &[directional_light(100, 1.0)],
+        &[],
+        &[],
+    );
+    state.register_scene_extract(
+        Some(&extract),
+        &[
+            mesh(11, "res://materials/a.mat"),
+            mesh(22, "res://materials/c.mat"),
+        ],
+        &[directional_light(100, 1.0)],
+        &[],
+        &[],
+    );
+
+    assert_eq!(state.scene_card_ids(), vec![11, 22]);
+    assert_eq!(state.scene_resident_page_ids(), vec![11, 22]);
+    assert_eq!(state.scene_dirty_page_ids(), vec![22]);
+    assert_eq!(state.scene_invalidated_page_ids(), Vec::<u32>::new());
+    assert_eq!(state.scene_dirty_clipmap_ids(), vec![0, 1]);
+
+    state.register_scene_extract(
+        Some(&extract),
+        &[
+            mesh(11, "res://materials/a.mat"),
+            mesh(22, "res://materials/c.mat"),
+        ],
+        &[directional_light(100, 2.0)],
+        &[],
+        &[],
+    );
+
+    assert_eq!(state.scene_resident_page_ids(), vec![11, 22]);
+    assert_eq!(state.scene_dirty_page_ids(), vec![11, 22]);
+    assert_eq!(state.scene_invalidated_page_ids(), Vec::<u32>::new());
+    assert_eq!(state.scene_dirty_clipmap_ids(), vec![0, 1]);
+}
+
+#[test]
+fn hybrid_gi_runtime_state_preserves_surface_cache_slots_across_dirtying_and_replacement() {
+    let mut state = HybridGiRuntimeState::default();
+    let extract = hybrid_gi_settings(2, 2);
+
+    state.register_scene_extract(
+        Some(&extract),
+        &[
+            mesh(11, "res://materials/a.mat"),
+            mesh(22, "res://materials/b.mat"),
+        ],
+        &[directional_light(100, 1.0)],
+        &[],
+        &[],
+    );
+    assert_eq!(state.scene_page_table_entries(), vec![(11, 0), (22, 1)]);
+    assert_eq!(state.scene_capture_slot_entries(), vec![(11, 0), (22, 1)]);
+
+    state.register_scene_extract(
+        Some(&extract),
+        &[
+            mesh(11, "res://materials/a.mat"),
+            mesh(22, "res://materials/c.mat"),
+        ],
+        &[directional_light(100, 1.0)],
+        &[],
+        &[],
+    );
+    assert_eq!(state.scene_page_table_entries(), vec![(11, 0), (22, 1)]);
+    assert_eq!(state.scene_capture_slot_entries(), vec![(22, 1)]);
+
+    state.register_scene_extract(
+        Some(&extract),
+        &[
+            mesh(22, "res://materials/c.mat"),
+            mesh(33, "res://materials/d.mat"),
+        ],
+        &[directional_light(100, 1.0)],
+        &[],
+        &[],
+    );
+    assert_eq!(state.scene_invalidated_page_ids(), vec![11]);
+    assert_eq!(state.scene_page_table_entries(), vec![(22, 1), (33, 0)]);
+    assert_eq!(state.scene_capture_slot_entries(), vec![(33, 0)]);
+}
+
+#[test]
+fn hybrid_gi_runtime_state_exposes_scene_card_capture_requests() {
+    let mut state = HybridGiRuntimeState::default();
+    let extract = hybrid_gi_settings(2, 2);
+
+    state.register_scene_extract(
+        Some(&extract),
+        &[
+            mesh_at(11, "res://materials/a.mat", Vec3::new(-1.0, 0.0, 0.0), 2.0),
+            mesh_at(22, "res://materials/b.mat", Vec3::new(3.0, 0.0, 0.0), 1.0),
+        ],
+        &[directional_light(100, 1.0)],
+        &[],
+        &[],
+    );
+
+    assert_eq!(
+        state.scene_card_capture_requests(),
+        vec![
+            (11, 11, 0, 0, [-1.0, 0.0, 0.0], 1.0),
+            (22, 22, 1, 1, [3.0, 0.0, 0.0], 0.5),
+        ]
+    );
+}
+
+#[test]
+fn hybrid_gi_runtime_state_builds_scene_prepare_frame_from_scene_representation() {
+    let mut state = HybridGiRuntimeState::default();
+    let extract = hybrid_gi_settings(2, 2);
+
+    state.register_scene_extract(
+        Some(&extract),
+        &[
+            mesh_at(11, "res://materials/a.mat", Vec3::new(-1.0, 0.0, 0.0), 2.0),
+            mesh_at(22, "res://materials/b.mat", Vec3::new(3.0, 0.0, 0.0), 1.0),
+        ],
+        &[directional_light(100, 1.0)],
+        &[],
+        &[],
+    );
+
+    let frame = state.build_scene_prepare_frame();
+    assert_eq!(
+        frame.card_capture_requests,
+        vec![
+            HybridGiPrepareCardCaptureRequest {
+                card_id: 11,
+                page_id: 11,
+                atlas_slot_id: 0,
+                capture_slot_id: 0,
+                bounds_center: Vec3::new(-1.0, 0.0, 0.0),
+                bounds_radius: 1.0,
+            },
+            HybridGiPrepareCardCaptureRequest {
+                card_id: 22,
+                page_id: 22,
+                atlas_slot_id: 1,
+                capture_slot_id: 1,
+                bounds_center: Vec3::new(3.0, 0.0, 0.0),
+                bounds_radius: 0.5,
+            },
+        ]
+    );
+    assert_eq!(
+        frame.voxel_clipmaps,
+        vec![
+            HybridGiPrepareVoxelClipmap {
+                clipmap_id: 0,
+                center: Vec3::new(0.75, 0.0, 0.0),
+                half_extent: 3.0,
+            },
+            HybridGiPrepareVoxelClipmap {
+                clipmap_id: 1,
+                center: Vec3::new(0.75, 0.0, 0.0),
+                half_extent: 6.0,
+            },
+        ]
+    );
+    assert_eq!(frame.voxel_cells.len(), 128);
+}
+
+#[test]
+fn hybrid_gi_runtime_state_builds_scene_prepare_voxel_cells_from_scene_representation() {
+    let mut state = HybridGiRuntimeState::default();
+    let extract = hybrid_gi_settings(2, 1);
+
+    state.register_scene_extract(
+        Some(&extract),
+        &[
+            mesh_at(11, "res://materials/a.mat", Vec3::new(-4.0, 0.0, 0.0), 1.0),
+            mesh_at(22, "res://materials/b.mat", Vec3::new(4.0, 0.0, 0.0), 1.0),
+        ],
+        &[directional_light(100, 1.0)],
+        &[],
+        &[],
+    );
+
+    let frame = state.build_scene_prepare_frame();
+    assert_eq!(
+        frame.voxel_clipmaps,
+        vec![HybridGiPrepareVoxelClipmap {
+            clipmap_id: 0,
+            center: Vec3::ZERO,
+            half_extent: 5.0,
+        }]
+    );
+    assert_eq!(frame.voxel_cells.len(), 64);
+    assert_eq!(
+        frame
+            .voxel_cells
+            .into_iter()
+            .filter(|cell| cell.occupancy_count > 0)
+            .collect::<Vec<_>>(),
+        vec![
+            HybridGiPrepareVoxelCell {
+                clipmap_id: 0,
+                cell_index: 20,
+                occupancy_count: 1,
+                dominant_card_id: 11,
+                radiance_present: true,
+                radiance_rgb: [99, 98, 97],
+            },
+            HybridGiPrepareVoxelCell {
+                clipmap_id: 0,
+                cell_index: 23,
+                occupancy_count: 1,
+                dominant_card_id: 22,
+                radiance_present: true,
+                radiance_rgb: [99, 98, 97],
+            },
+            HybridGiPrepareVoxelCell {
+                clipmap_id: 0,
+                cell_index: 24,
+                occupancy_count: 1,
+                dominant_card_id: 11,
+                radiance_present: true,
+                radiance_rgb: [99, 98, 97],
+            },
+            HybridGiPrepareVoxelCell {
+                clipmap_id: 0,
+                cell_index: 27,
+                occupancy_count: 1,
+                dominant_card_id: 22,
+                radiance_present: true,
+                radiance_rgb: [99, 98, 97],
+            },
+            HybridGiPrepareVoxelCell {
+                clipmap_id: 0,
+                cell_index: 36,
+                occupancy_count: 1,
+                dominant_card_id: 11,
+                radiance_present: true,
+                radiance_rgb: [99, 98, 97],
+            },
+            HybridGiPrepareVoxelCell {
+                clipmap_id: 0,
+                cell_index: 39,
+                occupancy_count: 1,
+                dominant_card_id: 22,
+                radiance_present: true,
+                radiance_rgb: [99, 98, 97],
+            },
+            HybridGiPrepareVoxelCell {
+                clipmap_id: 0,
+                cell_index: 40,
+                occupancy_count: 1,
+                dominant_card_id: 11,
+                radiance_present: true,
+                radiance_rgb: [99, 98, 97],
+            },
+            HybridGiPrepareVoxelCell {
+                clipmap_id: 0,
+                cell_index: 43,
+                occupancy_count: 1,
+                dominant_card_id: 22,
+                radiance_present: true,
+                radiance_rgb: [99, 98, 97],
+            },
+        ]
+    );
+}
+
+#[test]
+fn hybrid_gi_runtime_state_scene_prepare_frame_only_keeps_changed_capture_requests() {
+    let mut state = HybridGiRuntimeState::default();
+    let extract = hybrid_gi_settings(2, 2);
+
+    state.register_scene_extract(
+        Some(&extract),
+        &[
+            mesh_at(11, "res://materials/a.mat", Vec3::new(-1.0, 0.0, 0.0), 2.0),
+            mesh_at(22, "res://materials/b.mat", Vec3::new(3.0, 0.0, 0.0), 1.0),
+        ],
+        &[directional_light(100, 1.0)],
+        &[],
+        &[],
+    );
+    state.register_scene_extract(
+        Some(&extract),
+        &[
+            mesh_at(11, "res://materials/a.mat", Vec3::new(-1.0, 0.0, 0.0), 2.0),
+            mesh_at(22, "res://materials/b.mat", Vec3::new(4.0, 0.0, 0.0), 1.5),
+        ],
+        &[directional_light(100, 1.0)],
+        &[],
+        &[],
+    );
+
+    assert_eq!(
+        state.build_scene_prepare_frame().card_capture_requests,
+        vec![HybridGiPrepareCardCaptureRequest {
+            card_id: 22,
+            page_id: 22,
+            atlas_slot_id: 1,
+            capture_slot_id: 1,
+            bounds_center: Vec3::new(4.0, 0.0, 0.0),
+            bounds_radius: 0.75,
+        }]
+    );
+}
 
 #[test]
 fn hybrid_gi_runtime_state_tracks_cache_residency_pending_updates_and_trace_schedule() {
     let mut state = HybridGiRuntimeState::default();
     let extract = RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
         probe_budget: 2,
         tracing_budget: 1,
         probes: vec![
@@ -71,6 +505,12 @@ fn hybrid_gi_runtime_state_tracks_cache_residency_pending_updates_and_trace_sche
 fn hybrid_gi_runtime_state_deduplicates_probe_updates_and_reuses_evicted_slots() {
     let mut state = HybridGiRuntimeState::default();
     let extract = RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
         probe_budget: 2,
         tracing_budget: 1,
         probes: vec![
@@ -131,6 +571,12 @@ fn hybrid_gi_runtime_state_deduplicates_probe_updates_and_reuses_evicted_slots()
 fn hybrid_gi_runtime_state_builds_prepare_frame_without_host_bootstrap_irradiance() {
     let mut state = HybridGiRuntimeState::default();
     let extract = RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
         probe_budget: 2,
         tracing_budget: 2,
         probes: vec![
@@ -185,6 +631,12 @@ fn hybrid_gi_runtime_state_builds_prepare_frame_without_host_bootstrap_irradianc
 fn hybrid_gi_runtime_state_consumes_feedback_and_promotes_requested_probes() {
     let mut state = HybridGiRuntimeState::default();
     let extract = RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
         probe_budget: 2,
         tracing_budget: 1,
         probes: vec![
@@ -238,6 +690,12 @@ fn hybrid_gi_runtime_state_consumes_feedback_and_promotes_requested_probes() {
 fn hybrid_gi_runtime_state_leaves_updates_pending_without_evictable_budget() {
     let mut state = HybridGiRuntimeState::default();
     let extract = RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
         probe_budget: 1,
         tracing_budget: 1,
         probes: vec![probe(200, true, 64), probe(300, false, 128)],
@@ -284,6 +742,12 @@ fn hybrid_gi_runtime_state_leaves_updates_pending_without_evictable_budget() {
 fn hybrid_gi_runtime_state_applies_gpu_completed_updates_and_trace_schedule() {
     let mut state = HybridGiRuntimeState::default();
     let extract = RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
         probe_budget: 2,
         tracing_budget: 1,
         probes: vec![
@@ -362,6 +826,12 @@ fn hybrid_gi_runtime_state_applies_gpu_completed_updates_and_trace_schedule() {
 fn hybrid_gi_runtime_state_applies_gpu_cache_snapshot_as_residency_truth() {
     let mut state = HybridGiRuntimeState::default();
     let extract = RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
         probe_budget: 3,
         tracing_budget: 1,
         probes: vec![
@@ -441,6 +911,12 @@ fn hybrid_gi_runtime_state_applies_gpu_cache_snapshot_as_residency_truth() {
 fn hybrid_gi_runtime_state_ignores_duplicate_gpu_cache_entries_after_first_unique_probe() {
     let mut state = HybridGiRuntimeState::default();
     let extract = RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
         probe_budget: 3,
         tracing_budget: 1,
         probes: vec![
@@ -494,6 +970,12 @@ fn hybrid_gi_runtime_state_keeps_processing_later_unique_feedback_probe_completi
 ) {
     let mut state = HybridGiRuntimeState::default();
     let extract = RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
         probe_budget: 2,
         tracing_budget: 1,
         probes: vec![
@@ -545,6 +1027,12 @@ fn hybrid_gi_runtime_state_keeps_processing_later_unique_feedback_probe_completi
 fn hybrid_gi_runtime_state_drops_stale_scene_probes_and_pending_updates_when_extract_shrinks() {
     let mut state = HybridGiRuntimeState::default();
     let initial_extract = RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
         probe_budget: 3,
         tracing_budget: 1,
         probes: vec![
@@ -583,6 +1071,12 @@ fn hybrid_gi_runtime_state_drops_stale_scene_probes_and_pending_updates_when_ext
     );
 
     let shrunk_extract = RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
         probe_budget: 1,
         tracing_budget: 1,
         probes: vec![probe(100, true, 96)],
@@ -632,6 +1126,12 @@ fn hybrid_gi_runtime_state_withholds_descendant_probe_updates_while_ancestor_upd
 ) {
     let mut state = HybridGiRuntimeState::default();
     let extract = RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
         probe_budget: 2,
         tracing_budget: 1,
         probes: vec![
@@ -689,6 +1189,12 @@ fn hybrid_gi_runtime_state_withholds_descendant_probe_updates_while_ancestor_upd
 fn hybrid_gi_runtime_state_prioritizes_pending_ancestor_probes_that_reconnect_hot_descendants() {
     let mut state = HybridGiRuntimeState::default();
     let extract = RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
         probe_budget: 3,
         tracing_budget: 1,
         probes: vec![
@@ -735,6 +1241,12 @@ fn hybrid_gi_runtime_state_prioritizes_pending_ancestor_probes_that_reconnect_ho
 fn hybrid_gi_runtime_state_builds_resolve_runtime_from_gpu_trace_lighting_history() {
     let mut state = HybridGiRuntimeState::default();
     let extract = RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
         probe_budget: 2,
         tracing_budget: 1,
         probes: vec![
@@ -783,6 +1295,12 @@ fn hybrid_gi_runtime_state_builds_resolve_runtime_from_gpu_trace_lighting_histor
 fn hybrid_gi_runtime_state_builds_hierarchy_resolve_runtime_from_resident_lineage_history() {
     let mut state = HybridGiRuntimeState::default();
     let extract = RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
         probe_budget: 4,
         tracing_budget: 1,
         probes: vec![
@@ -838,11 +1356,23 @@ fn hybrid_gi_runtime_state_builds_hierarchy_resolve_runtime_from_resident_lineag
 fn hybrid_gi_runtime_state_prioritizes_pending_probe_with_stronger_lineage_trace_support() {
     let mut state = HybridGiRuntimeState::default();
     let extract = RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
         probe_budget: 3,
         tracing_budget: 2,
         probes: vec![
             probe_at(100, true, 96, crate::core::math::Vec3::new(-0.9, 0.0, 0.0)),
-            probe_with_parent_at(200, false, 72, 100, crate::core::math::Vec3::new(0.0, 0.0, 0.0)),
+            probe_with_parent_at(
+                200,
+                false,
+                72,
+                100,
+                crate::core::math::Vec3::new(0.0, 0.0, 0.0),
+            ),
             probe_at(300, false, 80, crate::core::math::Vec3::new(0.55, 0.0, 0.0)),
         ],
         trace_regions: vec![
@@ -885,16 +1415,34 @@ fn hybrid_gi_runtime_state_prioritizes_pending_probe_with_stronger_lineage_trace
 #[test]
 fn hybrid_gi_runtime_state_strengthens_resolve_weight_when_trace_schedule_supports_lineage() {
     let hierarchical_extract = RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
         probe_budget: 2,
         tracing_budget: 1,
         probes: vec![
             probe_at(100, true, 96, crate::core::math::Vec3::new(-0.8, 0.0, 0.0)),
             probe_with_parent_at(200, true, 96, 100, crate::core::math::Vec3::ZERO),
         ],
-        trace_regions: vec![trace_region_at(40, crate::core::math::Vec3::new(-0.8, 0.0, 0.0))],
+        trace_regions: vec![trace_region_at(
+            40,
+            crate::core::math::Vec3::new(-0.8, 0.0, 0.0),
+        )],
     };
     let flat_extract = RenderHybridGiExtract {
-        trace_regions: vec![trace_region_at(40, crate::core::math::Vec3::new(1.6, 0.0, 0.0))],
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
+        trace_regions: vec![trace_region_at(
+            40,
+            crate::core::math::Vec3::new(1.6, 0.0, 0.0),
+        )],
         ..hierarchical_extract.clone()
     };
 
@@ -943,6 +1491,12 @@ fn hybrid_gi_runtime_state_strengthens_resolve_weight_when_trace_schedule_suppor
 fn hybrid_gi_runtime_state_strengthens_parent_resolve_weight_when_descendant_trace_schedule_supports_merge_back(
 ) {
     let supported_extract = RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
         probe_budget: 2,
         tracing_budget: 1,
         probes: vec![
@@ -952,7 +1506,13 @@ fn hybrid_gi_runtime_state_strengthens_parent_resolve_weight_when_descendant_tra
             },
             RenderHybridGiProbe {
                 radius: 0.08,
-                ..probe_with_parent_at(200, true, 96, 100, crate::core::math::Vec3::new(-0.8, 0.0, 0.0))
+                ..probe_with_parent_at(
+                    200,
+                    true,
+                    96,
+                    100,
+                    crate::core::math::Vec3::new(-0.8, 0.0, 0.0),
+                )
             },
         ],
         trace_regions: vec![RenderHybridGiTraceRegion {
@@ -961,7 +1521,16 @@ fn hybrid_gi_runtime_state_strengthens_parent_resolve_weight_when_descendant_tra
         }],
     };
     let flat_extract = RenderHybridGiExtract {
-        trace_regions: vec![trace_region_at(40, crate::core::math::Vec3::new(2.4, 0.0, 0.0))],
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
+        trace_regions: vec![trace_region_at(
+            40,
+            crate::core::math::Vec3::new(2.4, 0.0, 0.0),
+        )],
         ..supported_extract.clone()
     };
 
@@ -1010,6 +1579,12 @@ fn hybrid_gi_runtime_state_strengthens_parent_resolve_weight_when_descendant_tra
 fn hybrid_gi_runtime_state_builds_parent_descendant_rt_continuation_after_child_trace_schedule_clears(
 ) {
     let supported_extract = RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
         probe_budget: 2,
         tracing_budget: 1,
         probes: vec![
@@ -1019,7 +1594,13 @@ fn hybrid_gi_runtime_state_builds_parent_descendant_rt_continuation_after_child_
             },
             RenderHybridGiProbe {
                 radius: 0.08,
-                ..probe_with_parent_at(200, true, 96, 100, crate::core::math::Vec3::new(-0.8, 0.0, 0.0))
+                ..probe_with_parent_at(
+                    200,
+                    true,
+                    96,
+                    100,
+                    crate::core::math::Vec3::new(-0.8, 0.0, 0.0),
+                )
             },
         ],
         trace_regions: vec![RenderHybridGiTraceRegion {
@@ -1028,7 +1609,16 @@ fn hybrid_gi_runtime_state_builds_parent_descendant_rt_continuation_after_child_
         }],
     };
     let flat_extract = RenderHybridGiExtract {
-        trace_regions: vec![trace_region_at(40, crate::core::math::Vec3::new(2.4, 0.0, 0.0))],
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
+        trace_regions: vec![trace_region_at(
+            40,
+            crate::core::math::Vec3::new(2.4, 0.0, 0.0),
+        )],
         ..supported_extract.clone()
     };
 
@@ -1135,13 +1725,22 @@ fn hybrid_gi_runtime_state_builds_parent_descendant_rt_continuation_after_child_
 fn hybrid_gi_runtime_state_deduplicates_scheduled_trace_region_ids_before_lineage_support_scoring()
 {
     let extract = RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
         probe_budget: 2,
         tracing_budget: 1,
         probes: vec![
             probe_at(100, true, 96, crate::core::math::Vec3::new(-0.8, 0.0, 0.0)),
             probe_with_parent_at(200, false, 80, 100, crate::core::math::Vec3::ZERO),
         ],
-        trace_regions: vec![trace_region_at(40, crate::core::math::Vec3::new(-0.8, 0.0, 0.0))],
+        trace_regions: vec![trace_region_at(
+            40,
+            crate::core::math::Vec3::new(-0.8, 0.0, 0.0),
+        )],
     };
 
     let mut unique = HybridGiRuntimeState::default();
@@ -1189,6 +1788,12 @@ fn hybrid_gi_runtime_state_deduplicates_scheduled_trace_region_ids_before_lineag
 fn hybrid_gi_runtime_state_keeps_recent_lineage_trace_support_for_pending_probe_order_after_schedule_clears(
 ) {
     let extract = RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
         probe_budget: 3,
         tracing_budget: 1,
         probes: vec![
@@ -1196,7 +1801,10 @@ fn hybrid_gi_runtime_state_keeps_recent_lineage_trace_support_for_pending_probe_
             probe_with_parent_at(200, false, 72, 100, crate::core::math::Vec3::ZERO),
             probe_at(300, false, 80, crate::core::math::Vec3::new(0.85, 0.0, 0.0)),
         ],
-        trace_regions: vec![trace_region_at(40, crate::core::math::Vec3::new(-0.8, 0.0, 0.0))],
+        trace_regions: vec![trace_region_at(
+            40,
+            crate::core::math::Vec3::new(-0.8, 0.0, 0.0),
+        )],
     };
     let mut state = HybridGiRuntimeState::default();
     state.register_extract(Some(&extract));
@@ -1245,16 +1853,34 @@ fn hybrid_gi_runtime_state_keeps_recent_lineage_trace_support_for_pending_probe_
 fn hybrid_gi_runtime_state_keeps_recent_lineage_trace_support_in_resolve_runtime_after_schedule_clears(
 ) {
     let supported_extract = RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
         probe_budget: 2,
         tracing_budget: 1,
         probes: vec![
             probe_at(100, true, 96, crate::core::math::Vec3::new(-0.8, 0.0, 0.0)),
             probe_with_parent_at(200, true, 96, 100, crate::core::math::Vec3::ZERO),
         ],
-        trace_regions: vec![trace_region_at(40, crate::core::math::Vec3::new(-0.8, 0.0, 0.0))],
+        trace_regions: vec![trace_region_at(
+            40,
+            crate::core::math::Vec3::new(-0.8, 0.0, 0.0),
+        )],
     };
     let flat_extract = RenderHybridGiExtract {
-        trace_regions: vec![trace_region_at(40, crate::core::math::Vec3::new(2.4, 0.0, 0.0))],
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
+        trace_regions: vec![trace_region_at(
+            40,
+            crate::core::math::Vec3::new(2.4, 0.0, 0.0),
+        )],
         ..supported_extract.clone()
     };
 
@@ -1346,16 +1972,34 @@ fn hybrid_gi_runtime_state_keeps_recent_lineage_trace_support_in_resolve_runtime
 #[test]
 fn hybrid_gi_runtime_state_builds_pending_probe_hierarchy_rt_continuation_after_schedule_clears() {
     let supported_extract = RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
         probe_budget: 2,
         tracing_budget: 1,
         probes: vec![
             probe_at(100, true, 96, crate::core::math::Vec3::new(-0.8, 0.0, 0.0)),
             probe_with_parent_at(200, false, 88, 100, crate::core::math::Vec3::ZERO),
         ],
-        trace_regions: vec![trace_region_at(40, crate::core::math::Vec3::new(-0.8, 0.0, 0.0))],
+        trace_regions: vec![trace_region_at(
+            40,
+            crate::core::math::Vec3::new(-0.8, 0.0, 0.0),
+        )],
     };
     let flat_extract = RenderHybridGiExtract {
-        trace_regions: vec![trace_region_at(40, crate::core::math::Vec3::new(2.4, 0.0, 0.0))],
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
+        trace_regions: vec![trace_region_at(
+            40,
+            crate::core::math::Vec3::new(2.4, 0.0, 0.0),
+        )],
         ..supported_extract.clone()
     };
 
@@ -1448,6 +2092,12 @@ fn hybrid_gi_runtime_state_builds_pending_probe_hierarchy_rt_continuation_after_
 fn hybrid_gi_runtime_state_uses_requested_lineage_support_in_runtime_resolve_without_trace_schedule(
 ) {
     let extract = RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
         probe_budget: 2,
         tracing_budget: 0,
         probes: vec![probe(100, true, 64), probe_with_parent(200, false, 96, 100)],
@@ -1510,6 +2160,12 @@ fn hybrid_gi_runtime_state_uses_requested_lineage_support_in_runtime_resolve_wit
 #[test]
 fn hybrid_gi_runtime_state_keeps_recent_requested_lineage_support_after_request_clears() {
     let extract = RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
         probe_budget: 2,
         tracing_budget: 0,
         probes: vec![probe(100, true, 64), probe_with_parent(200, false, 96, 100)],
@@ -1649,9 +2305,59 @@ fn trace_region(region_id: u32) -> RenderHybridGiTraceRegion {
     }
 }
 
-fn trace_region_at(region_id: u32, bounds_center: crate::core::math::Vec3) -> RenderHybridGiTraceRegion {
+fn trace_region_at(
+    region_id: u32,
+    bounds_center: crate::core::math::Vec3,
+) -> RenderHybridGiTraceRegion {
     RenderHybridGiTraceRegion {
         bounds_center,
         ..trace_region(region_id)
+    }
+}
+
+fn hybrid_gi_settings(card_budget: u32, voxel_budget: u32) -> RenderHybridGiExtract {
+    RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget,
+        voxel_budget,
+        debug_view: Default::default(),
+        probe_budget: 0,
+        tracing_budget: 0,
+        probes: Vec::new(),
+        trace_regions: Vec::new(),
+    }
+}
+
+fn mesh(entity: u64, material: &str) -> RenderMeshSnapshot {
+    mesh_at(entity, material, Vec3::ZERO, 1.0)
+}
+
+fn mesh_at(
+    entity: u64,
+    material: &str,
+    translation: Vec3,
+    uniform_scale: f32,
+) -> RenderMeshSnapshot {
+    RenderMeshSnapshot {
+        node_id: entity,
+        transform: Transform::from_translation(translation).with_scale(Vec3::splat(uniform_scale)),
+        model: ResourceHandle::<ModelMarker>::new(ResourceId::from_stable_label(
+            "res://models/card.obj",
+        )),
+        material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(material)),
+        tint: Vec4::ONE,
+        mobility: Mobility::Static,
+        render_layer_mask: u32::MAX,
+    }
+}
+
+fn directional_light(node_id: u64, intensity: f32) -> RenderDirectionalLightSnapshot {
+    RenderDirectionalLightSnapshot {
+        node_id,
+        direction: Vec3::new(-0.4, -1.0, -0.2),
+        color: Vec3::new(1.0, 0.95, 0.9),
+        intensity,
     }
 }

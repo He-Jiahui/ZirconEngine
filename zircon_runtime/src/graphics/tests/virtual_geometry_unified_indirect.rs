@@ -3,7 +3,6 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use image::{ImageBuffer, ImageFormat, Rgba};
 use crate::asset::assets::{AlphaMode, MaterialAsset};
 use crate::asset::pipeline::manager::{AssetManager, ProjectAssetManager};
 use crate::asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
@@ -18,11 +17,12 @@ use crate::core::framework::render::{
 use crate::core::math::{Transform, UVec2, Vec3, Vec4};
 use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle};
 use crate::scene::components::{default_render_layer_mask, Mobility};
+use image::{ImageBuffer, ImageFormat, Rgba};
 
 use crate::{
     runtime::WgpuRenderFramework,
     types::{
-        EditorOrRuntimeFrame, VirtualGeometryPrepareCluster, VirtualGeometryPrepareClusterState,
+        ViewportRenderFrame, VirtualGeometryPrepareCluster, VirtualGeometryPrepareClusterState,
         VirtualGeometryPrepareFrame, VirtualGeometryPrepareIndirectDraw,
         VirtualGeometryPreparePage, VirtualGeometryPrepareRequest,
     },
@@ -175,7 +175,7 @@ fn virtual_geometry_prepare_keeps_one_visibility_owned_segment_but_distinct_gpu_
     let mut renderer = SceneRenderer::new(asset_manager).unwrap();
     renderer
         .render_frame_with_pipeline(
-            &EditorOrRuntimeFrame::from_extract(extract, viewport_size)
+            &ViewportRenderFrame::from_extract(extract, viewport_size)
                 .with_virtual_geometry_prepare(Some(VirtualGeometryPrepareFrame {
                     visible_entities: vec![2],
                     visible_clusters: vec![VirtualGeometryPrepareCluster {
@@ -186,18 +186,20 @@ fn virtual_geometry_prepare_keeps_one_visibility_owned_segment_but_distinct_gpu_
                         resident_slot: Some(1),
                         state: VirtualGeometryPrepareClusterState::Resident,
                     }],
-                    cluster_draw_segments: vec![crate::graphics::types::VirtualGeometryPrepareDrawSegment {
-                        entity: 2,
-                        cluster_id: 2,
-                        page_id: 300,
-                        resident_slot: Some(1),
-                        cluster_ordinal: 0,
-                        cluster_span_count: 1,
-                        cluster_count: 1,
-                        lineage_depth: 0,
-                        lod_level: 0,
-                        state: VirtualGeometryPrepareClusterState::Resident,
-                    }],
+                    cluster_draw_segments: vec![
+                        crate::graphics::types::VirtualGeometryPrepareDrawSegment {
+                            entity: 2,
+                            cluster_id: 2,
+                            page_id: 300,
+                            resident_slot: Some(1),
+                            cluster_ordinal: 0,
+                            cluster_span_count: 1,
+                            cluster_count: 1,
+                            lineage_depth: 0,
+                            lod_level: 0,
+                            state: VirtualGeometryPrepareClusterState::Resident,
+                        },
+                    ],
                     resident_pages: vec![VirtualGeometryPreparePage {
                         page_id: 300,
                         slot: 1,
@@ -334,7 +336,7 @@ fn virtual_geometry_unified_indirect_propagates_multi_primitive_draw_ref_compact
     let mut renderer = SceneRenderer::new(asset_manager).unwrap();
     renderer
         .render_frame_with_pipeline(
-            &EditorOrRuntimeFrame::from_extract(extract, viewport_size)
+            &ViewportRenderFrame::from_extract(extract, viewport_size)
                 .with_virtual_geometry_prepare(Some(VirtualGeometryPrepareFrame {
                     visible_entities: vec![2],
                     visible_clusters: vec![VirtualGeometryPrepareCluster {
@@ -345,18 +347,20 @@ fn virtual_geometry_unified_indirect_propagates_multi_primitive_draw_ref_compact
                         resident_slot: Some(1),
                         state: VirtualGeometryPrepareClusterState::Resident,
                     }],
-                    cluster_draw_segments: vec![crate::graphics::types::VirtualGeometryPrepareDrawSegment {
-                        entity: 2,
-                        cluster_id: 2,
-                        page_id: 300,
-                        resident_slot: Some(1),
-                        cluster_ordinal: 0,
-                        cluster_span_count: 1,
-                        cluster_count: 1,
-                        lineage_depth: 0,
-                        lod_level: 0,
-                        state: VirtualGeometryPrepareClusterState::Resident,
-                    }],
+                    cluster_draw_segments: vec![
+                        crate::graphics::types::VirtualGeometryPrepareDrawSegment {
+                            entity: 2,
+                            cluster_id: 2,
+                            page_id: 300,
+                            resident_slot: Some(1),
+                            cluster_ordinal: 0,
+                            cluster_span_count: 1,
+                            cluster_count: 1,
+                            lineage_depth: 0,
+                            lod_level: 0,
+                            state: VirtualGeometryPrepareClusterState::Resident,
+                        },
+                    ],
                     resident_pages: vec![VirtualGeometryPreparePage {
                         page_id: 300,
                         slot: 1,
@@ -461,7 +465,7 @@ fn virtual_geometry_renderer_submission_records_preserve_draw_level_tokens_for_r
     let mut renderer = SceneRenderer::new(asset_manager).unwrap();
     renderer
         .render_frame_with_pipeline(
-            &EditorOrRuntimeFrame::from_extract(extract, viewport_size)
+            &ViewportRenderFrame::from_extract(extract, viewport_size)
                 .with_virtual_geometry_prepare(Some(VirtualGeometryPrepareFrame {
                     visible_entities: vec![2],
                     visible_clusters: vec![VirtualGeometryPrepareCluster {
@@ -472,18 +476,20 @@ fn virtual_geometry_renderer_submission_records_preserve_draw_level_tokens_for_r
                         resident_slot: Some(1),
                         state: VirtualGeometryPrepareClusterState::Resident,
                     }],
-                    cluster_draw_segments: vec![crate::graphics::types::VirtualGeometryPrepareDrawSegment {
-                        entity: 2,
-                        cluster_id: 2,
-                        page_id: 300,
-                        resident_slot: Some(1),
-                        cluster_ordinal: 0,
-                        cluster_span_count: 1,
-                        cluster_count: 1,
-                        lineage_depth: 0,
-                        lod_level: 0,
-                        state: VirtualGeometryPrepareClusterState::Resident,
-                    }],
+                    cluster_draw_segments: vec![
+                        crate::graphics::types::VirtualGeometryPrepareDrawSegment {
+                            entity: 2,
+                            cluster_id: 2,
+                            page_id: 300,
+                            resident_slot: Some(1),
+                            cluster_ordinal: 0,
+                            cluster_span_count: 1,
+                            cluster_count: 1,
+                            lineage_depth: 0,
+                            lod_level: 0,
+                            state: VirtualGeometryPrepareClusterState::Resident,
+                        },
+                    ],
                     resident_pages: vec![VirtualGeometryPreparePage {
                         page_id: 300,
                         slot: 1,
@@ -581,7 +587,7 @@ fn virtual_geometry_renderer_submission_records_keep_draw_level_tokens_without_g
     let mut renderer = SceneRenderer::new(asset_manager).unwrap();
     renderer
         .render_frame_with_pipeline(
-            &EditorOrRuntimeFrame::from_extract(extract, viewport_size)
+            &ViewportRenderFrame::from_extract(extract, viewport_size)
                 .with_virtual_geometry_prepare(Some(VirtualGeometryPrepareFrame {
                     visible_entities: vec![2],
                     visible_clusters: vec![VirtualGeometryPrepareCluster {
@@ -592,18 +598,20 @@ fn virtual_geometry_renderer_submission_records_keep_draw_level_tokens_without_g
                         resident_slot: Some(1),
                         state: VirtualGeometryPrepareClusterState::Resident,
                     }],
-                    cluster_draw_segments: vec![crate::graphics::types::VirtualGeometryPrepareDrawSegment {
-                        entity: 2,
-                        cluster_id: 2,
-                        page_id: 300,
-                        resident_slot: Some(1),
-                        cluster_ordinal: 0,
-                        cluster_span_count: 1,
-                        cluster_count: 1,
-                        lineage_depth: 0,
-                        lod_level: 0,
-                        state: VirtualGeometryPrepareClusterState::Resident,
-                    }],
+                    cluster_draw_segments: vec![
+                        crate::graphics::types::VirtualGeometryPrepareDrawSegment {
+                            entity: 2,
+                            cluster_id: 2,
+                            page_id: 300,
+                            resident_slot: Some(1),
+                            cluster_ordinal: 0,
+                            cluster_span_count: 1,
+                            cluster_count: 1,
+                            lineage_depth: 0,
+                            lod_level: 0,
+                            state: VirtualGeometryPrepareClusterState::Resident,
+                        },
+                    ],
                     resident_pages: vec![VirtualGeometryPreparePage {
                         page_id: 300,
                         slot: 1,
@@ -703,7 +711,7 @@ fn virtual_geometry_renderer_submission_records_fall_back_to_gpu_generated_indir
     let mut renderer = SceneRenderer::new(asset_manager).unwrap();
     renderer
         .render_frame_with_pipeline(
-            &EditorOrRuntimeFrame::from_extract(extract, viewport_size)
+            &ViewportRenderFrame::from_extract(extract, viewport_size)
                 .with_virtual_geometry_prepare(Some(VirtualGeometryPrepareFrame {
                     visible_entities: vec![2],
                     visible_clusters: vec![VirtualGeometryPrepareCluster {
@@ -714,18 +722,20 @@ fn virtual_geometry_renderer_submission_records_fall_back_to_gpu_generated_indir
                         resident_slot: Some(1),
                         state: VirtualGeometryPrepareClusterState::Resident,
                     }],
-                    cluster_draw_segments: vec![crate::graphics::types::VirtualGeometryPrepareDrawSegment {
-                        entity: 2,
-                        cluster_id: 2,
-                        page_id: 300,
-                        resident_slot: Some(1),
-                        cluster_ordinal: 0,
-                        cluster_span_count: 1,
-                        cluster_count: 1,
-                        lineage_depth: 0,
-                        lod_level: 0,
-                        state: VirtualGeometryPrepareClusterState::Resident,
-                    }],
+                    cluster_draw_segments: vec![
+                        crate::graphics::types::VirtualGeometryPrepareDrawSegment {
+                            entity: 2,
+                            cluster_id: 2,
+                            page_id: 300,
+                            resident_slot: Some(1),
+                            cluster_ordinal: 0,
+                            cluster_span_count: 1,
+                            cluster_count: 1,
+                            lineage_depth: 0,
+                            lod_level: 0,
+                            state: VirtualGeometryPrepareClusterState::Resident,
+                        },
+                    ],
                     resident_pages: vec![VirtualGeometryPreparePage {
                         page_id: 300,
                         slot: 1,
@@ -826,7 +836,7 @@ fn virtual_geometry_unified_indirect_reconstructs_submission_records_from_gpu_au
     let mut renderer = SceneRenderer::new(asset_manager).unwrap();
     renderer
         .render_frame_with_pipeline(
-            &EditorOrRuntimeFrame::from_extract(extract, viewport_size)
+            &ViewportRenderFrame::from_extract(extract, viewport_size)
                 .with_virtual_geometry_prepare(Some(VirtualGeometryPrepareFrame {
                     visible_entities: vec![2],
                     visible_clusters: vec![VirtualGeometryPrepareCluster {
@@ -837,18 +847,20 @@ fn virtual_geometry_unified_indirect_reconstructs_submission_records_from_gpu_au
                         resident_slot: Some(1),
                         state: VirtualGeometryPrepareClusterState::Resident,
                     }],
-                    cluster_draw_segments: vec![crate::graphics::types::VirtualGeometryPrepareDrawSegment {
-                        entity: 2,
-                        cluster_id: 2,
-                        page_id: 300,
-                        resident_slot: Some(1),
-                        cluster_ordinal: 0,
-                        cluster_span_count: 1,
-                        cluster_count: 1,
-                        lineage_depth: 0,
-                        lod_level: 0,
-                        state: VirtualGeometryPrepareClusterState::Resident,
-                    }],
+                    cluster_draw_segments: vec![
+                        crate::graphics::types::VirtualGeometryPrepareDrawSegment {
+                            entity: 2,
+                            cluster_id: 2,
+                            page_id: 300,
+                            resident_slot: Some(1),
+                            cluster_ordinal: 0,
+                            cluster_span_count: 1,
+                            cluster_count: 1,
+                            lineage_depth: 0,
+                            lod_level: 0,
+                            state: VirtualGeometryPrepareClusterState::Resident,
+                        },
+                    ],
                     resident_pages: vec![VirtualGeometryPreparePage {
                         page_id: 300,
                         slot: 1,
@@ -943,7 +955,7 @@ fn virtual_geometry_unified_indirect_keeps_lineage_depth_in_gpu_submission_and_i
     let mut renderer = SceneRenderer::new(asset_manager).unwrap();
     renderer
         .render_frame_with_pipeline(
-            &EditorOrRuntimeFrame::from_extract(extract.clone(), viewport_size)
+            &ViewportRenderFrame::from_extract(extract.clone(), viewport_size)
                 .with_virtual_geometry_prepare(Some(VirtualGeometryPrepareFrame {
                     visible_entities: vec![2],
                     visible_clusters: vec![VirtualGeometryPrepareCluster {
@@ -954,18 +966,20 @@ fn virtual_geometry_unified_indirect_keeps_lineage_depth_in_gpu_submission_and_i
                         resident_slot: Some(1),
                         state: VirtualGeometryPrepareClusterState::Resident,
                     }],
-                    cluster_draw_segments: vec![crate::graphics::types::VirtualGeometryPrepareDrawSegment {
-                        entity: 2,
-                        cluster_id: 2,
-                        page_id: 300,
-                        resident_slot: Some(1),
-                        cluster_ordinal: 0,
-                        cluster_span_count: 1,
-                        cluster_count: 1,
-                        lineage_depth: 0,
-                        lod_level: 0,
-                        state: VirtualGeometryPrepareClusterState::Resident,
-                    }],
+                    cluster_draw_segments: vec![
+                        crate::graphics::types::VirtualGeometryPrepareDrawSegment {
+                            entity: 2,
+                            cluster_id: 2,
+                            page_id: 300,
+                            resident_slot: Some(1),
+                            cluster_ordinal: 0,
+                            cluster_span_count: 1,
+                            cluster_count: 1,
+                            lineage_depth: 0,
+                            lod_level: 0,
+                            state: VirtualGeometryPrepareClusterState::Resident,
+                        },
+                    ],
                     resident_pages: vec![VirtualGeometryPreparePage {
                         page_id: 300,
                         slot: 1,
@@ -983,7 +997,7 @@ fn virtual_geometry_unified_indirect_keeps_lineage_depth_in_gpu_submission_and_i
 
     renderer
         .render_frame_with_pipeline(
-            &EditorOrRuntimeFrame::from_extract(extract, viewport_size)
+            &ViewportRenderFrame::from_extract(extract, viewport_size)
                 .with_virtual_geometry_prepare(Some(VirtualGeometryPrepareFrame {
                     visible_entities: vec![2],
                     visible_clusters: vec![VirtualGeometryPrepareCluster {
@@ -994,18 +1008,20 @@ fn virtual_geometry_unified_indirect_keeps_lineage_depth_in_gpu_submission_and_i
                         resident_slot: Some(1),
                         state: VirtualGeometryPrepareClusterState::Resident,
                     }],
-                    cluster_draw_segments: vec![crate::graphics::types::VirtualGeometryPrepareDrawSegment {
-                        entity: 2,
-                        cluster_id: 2,
-                        page_id: 300,
-                        resident_slot: Some(1),
-                        cluster_ordinal: 0,
-                        cluster_span_count: 1,
-                        cluster_count: 1,
-                        lineage_depth: 3,
-                        lod_level: 0,
-                        state: VirtualGeometryPrepareClusterState::Resident,
-                    }],
+                    cluster_draw_segments: vec![
+                        crate::graphics::types::VirtualGeometryPrepareDrawSegment {
+                            entity: 2,
+                            cluster_id: 2,
+                            page_id: 300,
+                            resident_slot: Some(1),
+                            cluster_ordinal: 0,
+                            cluster_span_count: 1,
+                            cluster_count: 1,
+                            lineage_depth: 3,
+                            lod_level: 0,
+                            state: VirtualGeometryPrepareClusterState::Resident,
+                        },
+                    ],
                     resident_pages: vec![VirtualGeometryPreparePage {
                         page_id: 300,
                         slot: 1,
@@ -1113,7 +1129,7 @@ fn virtual_geometry_unified_indirect_keeps_pending_request_frontier_rank_in_gpu_
     let mut renderer = SceneRenderer::new(asset_manager).unwrap();
     renderer
         .render_frame_with_pipeline(
-            &EditorOrRuntimeFrame::from_extract(extract.clone(), viewport_size)
+            &ViewportRenderFrame::from_extract(extract.clone(), viewport_size)
                 .with_virtual_geometry_prepare(Some(VirtualGeometryPrepareFrame {
                     visible_entities: vec![2],
                     visible_clusters: vec![VirtualGeometryPrepareCluster {
@@ -1124,27 +1140,31 @@ fn virtual_geometry_unified_indirect_keeps_pending_request_frontier_rank_in_gpu_
                         resident_slot: None,
                         state: VirtualGeometryPrepareClusterState::PendingUpload,
                     }],
-                    cluster_draw_segments: vec![crate::graphics::types::VirtualGeometryPrepareDrawSegment {
-                        entity: 2,
-                        cluster_id: 2,
-                        page_id: 300,
-                        resident_slot: None,
-                        cluster_ordinal: 0,
-                        cluster_span_count: 1,
-                        cluster_count: 1,
-                        lineage_depth: 0,
-                        lod_level: 0,
-                        state: VirtualGeometryPrepareClusterState::PendingUpload,
-                    }],
+                    cluster_draw_segments: vec![
+                        crate::graphics::types::VirtualGeometryPrepareDrawSegment {
+                            entity: 2,
+                            cluster_id: 2,
+                            page_id: 300,
+                            resident_slot: None,
+                            cluster_ordinal: 0,
+                            cluster_span_count: 1,
+                            cluster_count: 1,
+                            lineage_depth: 0,
+                            lod_level: 0,
+                            state: VirtualGeometryPrepareClusterState::PendingUpload,
+                        },
+                    ],
                     resident_pages: Vec::new(),
-                    pending_page_requests: vec![crate::graphics::types::VirtualGeometryPrepareRequest {
-                        page_id: 300,
-                        size_bytes: 4096,
-                        generation: 1,
-                        frontier_rank: 0,
-                        assigned_slot: None,
-                        recycled_page_id: None,
-                    }],
+                    pending_page_requests: vec![
+                        crate::graphics::types::VirtualGeometryPrepareRequest {
+                            page_id: 300,
+                            size_bytes: 4096,
+                            generation: 1,
+                            frontier_rank: 0,
+                            assigned_slot: None,
+                            recycled_page_id: None,
+                        },
+                    ],
                     available_slots: Vec::new(),
                     evictable_pages: Vec::new(),
                 })),
@@ -1159,7 +1179,7 @@ fn virtual_geometry_unified_indirect_keeps_pending_request_frontier_rank_in_gpu_
 
     renderer
         .render_frame_with_pipeline(
-            &EditorOrRuntimeFrame::from_extract(extract, viewport_size)
+            &ViewportRenderFrame::from_extract(extract, viewport_size)
                 .with_virtual_geometry_prepare(Some(VirtualGeometryPrepareFrame {
                     visible_entities: vec![2],
                     visible_clusters: vec![VirtualGeometryPrepareCluster {
@@ -1170,18 +1190,20 @@ fn virtual_geometry_unified_indirect_keeps_pending_request_frontier_rank_in_gpu_
                         resident_slot: None,
                         state: VirtualGeometryPrepareClusterState::PendingUpload,
                     }],
-                    cluster_draw_segments: vec![crate::graphics::types::VirtualGeometryPrepareDrawSegment {
-                        entity: 2,
-                        cluster_id: 2,
-                        page_id: 300,
-                        resident_slot: None,
-                        cluster_ordinal: 0,
-                        cluster_span_count: 1,
-                        cluster_count: 1,
-                        lineage_depth: 0,
-                        lod_level: 0,
-                        state: VirtualGeometryPrepareClusterState::PendingUpload,
-                    }],
+                    cluster_draw_segments: vec![
+                        crate::graphics::types::VirtualGeometryPrepareDrawSegment {
+                            entity: 2,
+                            cluster_id: 2,
+                            page_id: 300,
+                            resident_slot: None,
+                            cluster_ordinal: 0,
+                            cluster_span_count: 1,
+                            cluster_count: 1,
+                            lineage_depth: 0,
+                            lod_level: 0,
+                            state: VirtualGeometryPrepareClusterState::PendingUpload,
+                        },
+                    ],
                     resident_pages: Vec::new(),
                     pending_page_requests: vec![
                         crate::graphics::types::VirtualGeometryPrepareRequest {
@@ -1397,7 +1419,9 @@ fn build_single_entity_extract(
                 mobility: Mobility::Dynamic,
                 render_layer_mask: default_render_layer_mask(),
             }],
-            lights: Vec::new(),
+            directional_lights: Vec::new(),
+            point_lights: Vec::new(),
+            spot_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract {
             display_mode: DisplayMode::Shaded,
@@ -1409,6 +1433,7 @@ fn build_single_entity_extract(
             fallback_skybox: FallbackSkyboxKind::None,
             clear_color: Vec4::ZERO,
         },
+        virtual_geometry_debug: None,
     };
     let mut extract =
         RenderFrameExtract::from_snapshot(RenderWorldSnapshotHandle::new(1), snapshot);
@@ -1430,6 +1455,8 @@ fn build_single_entity_extract(
             resident: true,
             size_bytes: 4096,
         }],
+        instances: Vec::new(),
+        debug: Default::default(),
     });
     extract
 }

@@ -3,7 +3,11 @@ use crate::ui::slint_host::root_shell_projection::{
     resolve_root_bottom_region_frame, resolve_root_left_region_frame,
     resolve_root_right_region_frame,
 };
-use crate::{ShellRegionId, WorkbenchChromeMetrics, WorkbenchShellGeometry, WorkbenchViewModel};
+use crate::ui::workbench::autolayout::{
+    ShellRegionId, WorkbenchChromeMetrics, WorkbenchShellGeometry,
+};
+use crate::ui::workbench::layout::ActivityDrawerSlot;
+use crate::ui::workbench::model::WorkbenchViewModel;
 
 use super::build_surface::build_surface;
 use super::workbench_drawer_header_pointer_layout::WorkbenchDrawerHeaderPointerLayout;
@@ -21,10 +25,7 @@ pub(crate) fn build_workbench_drawer_header_pointer_layout(
         ShellRegionId::Left,
         resolve_root_left_region_frame(geometry, shared_root_frames),
         model,
-        &[
-            crate::ActivityDrawerSlot::LeftTop,
-            crate::ActivityDrawerSlot::LeftBottom,
-        ],
+        &[ActivityDrawerSlot::LeftTop, ActivityDrawerSlot::LeftBottom],
         metrics,
         true,
         shared_root_frames,
@@ -37,8 +38,8 @@ pub(crate) fn build_workbench_drawer_header_pointer_layout(
         resolve_root_right_region_frame(geometry, shared_root_frames),
         model,
         &[
-            crate::ActivityDrawerSlot::RightTop,
-            crate::ActivityDrawerSlot::RightBottom,
+            ActivityDrawerSlot::RightTop,
+            ActivityDrawerSlot::RightBottom,
         ],
         metrics,
         false,
@@ -52,8 +53,8 @@ pub(crate) fn build_workbench_drawer_header_pointer_layout(
         resolve_root_bottom_region_frame(geometry, shared_root_frames),
         model,
         &[
-            crate::ActivityDrawerSlot::BottomLeft,
-            crate::ActivityDrawerSlot::BottomRight,
+            ActivityDrawerSlot::BottomLeft,
+            ActivityDrawerSlot::BottomRight,
         ],
         metrics,
         false,
@@ -70,7 +71,7 @@ fn build_surface_for_region(
     region: ShellRegionId,
     region_frame: zircon_runtime::ui::layout::UiFrame,
     model: &WorkbenchViewModel,
-    slots: &[crate::ActivityDrawerSlot],
+    slots: &[crate::ui::workbench::layout::ActivityDrawerSlot],
     metrics: &WorkbenchChromeMetrics,
     side_with_rail: bool,
     shared_root_frames: Option<&BuiltinWorkbenchRootShellFrames>,

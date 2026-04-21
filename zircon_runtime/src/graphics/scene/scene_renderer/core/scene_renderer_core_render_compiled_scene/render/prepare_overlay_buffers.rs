@@ -1,6 +1,6 @@
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::overlay::PreparedOverlayBuffers;
-use crate::graphics::types::{EditorOrRuntimeFrame, GraphicsError};
+use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
 
 use super::super::super::scene_renderer_core::SceneRendererCore;
 
@@ -9,7 +9,7 @@ pub(super) fn prepare_overlay_buffers(
     device: &wgpu::Device,
     queue: &wgpu::Queue,
     streamer: &ResourceStreamer,
-    frame: &EditorOrRuntimeFrame,
+    frame: &ViewportRenderFrame,
 ) -> Result<PreparedOverlayBuffers, GraphicsError> {
     renderer.overlay_renderer.prepare_buffers(
         device,

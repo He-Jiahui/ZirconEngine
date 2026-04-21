@@ -8,38 +8,28 @@ pub(crate) const WELCOME_SURFACE_DOCUMENT_ID: &str = "startup.welcome_controls";
 pub(crate) const INSPECTOR_SURFACE_DOCUMENT_ID: &str = "inspector.surface_controls";
 pub(crate) const PANE_SURFACE_DOCUMENT_ID: &str = "pane.surface_controls";
 
-const UI_HOST_WINDOW_TEMPLATE: &str = include_str!(concat!(
-    env!("CARGO_MANIFEST_DIR"),
-    "/ui/templates/workbench_shell.toml"
-));
-const WORKBENCH_DRAWER_SOURCE_TEMPLATE: &str = include_str!(concat!(
-    env!("CARGO_MANIFEST_DIR"),
-    "/ui/templates/workbench_drawer_source.toml"
-));
-const FLOATING_WINDOW_SOURCE_TEMPLATE: &str = include_str!(concat!(
-    env!("CARGO_MANIFEST_DIR"),
-    "/ui/templates/floating_window_source.toml"
-));
-const SCENE_VIEWPORT_TOOLBAR_TEMPLATE: &str = include_str!(concat!(
-    env!("CARGO_MANIFEST_DIR"),
-    "/ui/templates/scene_viewport_toolbar.toml"
-));
-const ASSET_SURFACE_TEMPLATE: &str = include_str!(concat!(
-    env!("CARGO_MANIFEST_DIR"),
-    "/ui/templates/asset_surface_controls.toml"
-));
-const WELCOME_SURFACE_TEMPLATE: &str = include_str!(concat!(
-    env!("CARGO_MANIFEST_DIR"),
-    "/ui/templates/startup_welcome_controls.toml"
-));
-const INSPECTOR_SURFACE_TEMPLATE: &str = include_str!(concat!(
-    env!("CARGO_MANIFEST_DIR"),
-    "/ui/templates/inspector_surface_controls.toml"
-));
-const PANE_SURFACE_TEMPLATE: &str = include_str!(concat!(
-    env!("CARGO_MANIFEST_DIR"),
-    "/ui/templates/pane_surface_controls.toml"
-));
+macro_rules! builtin_host_template {
+    ($relative:literal) => {
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/assets/ui/editor/host/",
+            $relative
+        ))
+    };
+}
+
+const UI_HOST_WINDOW_TEMPLATE: &str = builtin_host_template!("workbench_shell.ui.toml");
+const WORKBENCH_DRAWER_SOURCE_TEMPLATE: &str =
+    builtin_host_template!("workbench_drawer_source.ui.toml");
+const FLOATING_WINDOW_SOURCE_TEMPLATE: &str =
+    builtin_host_template!("floating_window_source.ui.toml");
+const SCENE_VIEWPORT_TOOLBAR_TEMPLATE: &str =
+    builtin_host_template!("scene_viewport_toolbar.ui.toml");
+const ASSET_SURFACE_TEMPLATE: &str = builtin_host_template!("asset_surface_controls.ui.toml");
+const WELCOME_SURFACE_TEMPLATE: &str = builtin_host_template!("startup_welcome_controls.ui.toml");
+const INSPECTOR_SURFACE_TEMPLATE: &str =
+    builtin_host_template!("inspector_surface_controls.ui.toml");
+const PANE_SURFACE_TEMPLATE: &str = builtin_host_template!("pane_surface_controls.ui.toml");
 
 pub(crate) fn builtin_template_documents() -> [(&'static str, &'static str); 9] {
     [

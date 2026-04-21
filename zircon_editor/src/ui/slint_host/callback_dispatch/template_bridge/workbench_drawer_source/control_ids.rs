@@ -1,0 +1,13 @@
+pub(super) const LEFT_DRAWER_SHELL_CONTROL_ID: &str = "LeftDrawerShellRoot";
+pub(super) const LEFT_DRAWER_PANEL_CONTROL_ID: &str = "LeftDrawerPanelRoot";
+pub(super) const LEFT_DRAWER_HEADER_CONTROL_ID: &str = "LeftDrawerHeaderRoot";
+pub(super) const LEFT_DRAWER_CONTENT_CONTROL_ID: &str = "LeftDrawerContentRoot";
+pub(super) const RIGHT_DRAWER_SHELL_CONTROL_ID: &str = "RightDrawerShellRoot";
+pub(super) const RIGHT_DRAWER_PANEL_CONTROL_ID: &str = "RightDrawerPanelRoot";
+pub(super) const RIGHT_DRAWER_HEADER_CONTROL_ID: &str = "RightDrawerHeaderRoot";
+pub(super) const RIGHT_DRAWER_CONTENT_CONTROL_ID: &str = "RightDrawerContentRoot";
+pub(super) const BOTTOM_DRAWER_SHELL_CONTROL_ID: &str = "BottomDrawerShellRoot";
+pub(super) const BOTTOM_DRAWER_PANEL_CONTROL_ID: &str = "BottomDrawerPanelRoot";
+pub(super) const BOTTOM_DRAWER_OUTER_SEPARATOR_CONTROL_ID: &str = "BottomDrawerOuterSeparatorRoot";
+pub(super) const BOTTOM_DRAWER_HEADER_CONTROL_ID: &str = "BottomDrawerHeaderRoot";
+pub(super) const BOTTOM_DRAWER_CONTENT_CONTROL_ID: &str = "BottomDrawerContentRoot";

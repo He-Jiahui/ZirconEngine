@@ -67,7 +67,9 @@ impl SceneGizmoPass {
         Self {
             icon_pipeline,
             icon_sampler,
-            icon_atlas: crate::graphics::scene::scene_renderer::overlay::ViewportIconAtlas::new(icon_source),
+            icon_atlas: crate::graphics::scene::scene_renderer::overlay::ViewportIconAtlas::new(
+                icon_source,
+            ),
         }
     }
 }

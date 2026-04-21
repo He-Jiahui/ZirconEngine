@@ -7,7 +7,7 @@ impl SceneRendererCore {
     pub(crate) fn write_scene_uniform(
         &self,
         queue: &wgpu::Queue,
-        frame: &crate::graphics::types::EditorOrRuntimeFrame,
+        frame: &crate::graphics::types::ViewportRenderFrame,
     ) {
         let aspect = frame.viewport_size.x as Real / frame.viewport_size.y.max(1) as Real;
         let scene_uniform = SceneUniform::from_frame(frame, aspect);

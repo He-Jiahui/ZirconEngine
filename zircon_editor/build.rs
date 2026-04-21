@@ -1,12 +1,28 @@
 fn main() {
-    println!("cargo:rerun-if-changed=ui/workbench.slint");
-    println!("cargo:rerun-if-changed=ui/workbench");
-    println!("cargo:rerun-if-changed=ui/templates");
+    emit_rerun_if_changed_recursive("ui").expect("track slint sources recursively");
     let config = slint_build::CompilerConfiguration::new()
         .with_style("fluent".into())
         .embed_resources(slint_build::EmbedResourcesKind::EmbedFiles);
     slint_build::compile_with_config("ui/workbench.slint", config).expect("compile Slint UI");
     write_viewport_gizmo_icon_manifest().expect("generate viewport gizmo icon manifest");
+}
+
+fn emit_rerun_if_changed_recursive(root: &str) -> Result<(), Box<dyn std::error::Error>> {
+    visit_rerun_if_changed(&std::path::PathBuf::from(root))
+}
+
+fn visit_rerun_if_changed(path: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
+    println!("cargo:rerun-if-changed={}", path.display());
+    if !path.is_dir() {
+        return Ok(());
+    }
+
+    let mut entries = std::fs::read_dir(path)?.collect::<Result<Vec<_>, _>>()?;
+    entries.sort_by_key(|entry| entry.path());
+    for entry in entries {
+        visit_rerun_if_changed(&entry.path())?;
+    }
+    Ok(())
 }
 
 fn write_viewport_gizmo_icon_manifest() -> Result<(), Box<dyn std::error::Error>> {

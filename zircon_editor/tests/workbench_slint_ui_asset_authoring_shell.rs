@@ -1,9 +1,24 @@
 use std::fs;
 use std::path::PathBuf;
 
-fn panes_source() -> String {
-    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("ui/workbench/panes.slint");
-    fs::read_to_string(path).expect("panes.slint should be readable")
+fn ui_asset_editor_source() -> String {
+    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    [
+        "ui/workbench/pane_fields.slint",
+        "ui/workbench/ui_asset_editor_data.slint",
+        "ui/workbench/ui_asset_editor_components.slint",
+        "ui/workbench/ui_asset_editor_center_column.slint",
+        "ui/workbench/ui_asset_editor_inspector_panel.slint",
+        "ui/workbench/ui_asset_editor_stylesheet_panel.slint",
+        "ui/workbench/ui_asset_editor_pane.slint",
+    ]
+    .into_iter()
+    .map(|relative| {
+        fs::read_to_string(manifest_dir.join(relative))
+            .unwrap_or_else(|_| panic!("{relative} should be readable"))
+    })
+    .collect::<Vec<_>>()
+    .join("\n")
 }
 
 fn block_after<'a>(source: &'a str, marker: &str) -> &'a str {
@@ -15,7 +30,7 @@ fn block_after<'a>(source: &'a str, marker: &str) -> &'a str {
 
 #[test]
 fn ui_asset_editor_pane_declares_preview_mock_subject_and_expression_controls() {
-    let panes = panes_source();
+    let panes = ui_asset_editor_source();
     let pane_block = block_after(
         &panes,
         "export component UiAssetEditorPane inherits Rectangle {",
@@ -40,7 +55,7 @@ fn ui_asset_editor_pane_declares_preview_mock_subject_and_expression_controls() 
 
 #[test]
 fn ui_asset_editor_pane_declares_binding_target_suggestion_controls() {
-    let panes = panes_source();
+    let panes = ui_asset_editor_source();
     let pane_block = block_after(
         &panes,
         "export component UiAssetEditorPane inherits Rectangle {",

@@ -1,0 +1,57 @@
+stylesheets = []
+
+[asset]
+kind = "layout"
+id = "editor.host.pane_surface_controls"
+version = 1
+display_name = "pane surface controls"
+
+[imports]
+widgets = []
+styles = []
+
+[tokens]
+
+[root]
+node_id = "root"
+kind = "component"
+component = "PaneSurfaceControls"
+classes = []
+bindings = []
+children = []
+
+[root.params]
+
+[root.props]
+
+[root.style_overrides.self]
+
+[root.style_overrides.slot]
+
+[components.PaneSurfaceControls]
+style_scope = "closed"
+
+[components.PaneSurfaceControls.root]
+node_id = "component_PaneSurfaceControls_root"
+kind = "native"
+type = "PaneSurfaceControls"
+control_id = "TriggerAction"
+classes = []
+children = []
+
+[components.PaneSurfaceControls.root.params]
+
+[components.PaneSurfaceControls.root.props]
+
+[[components.PaneSurfaceControls.root.bindings]]
+id = "PaneSurface/TriggerAction"
+event = "Click"
+route = "MenuAction.OpenProject"
+
+[components.PaneSurfaceControls.root.style_overrides.self]
+
+[components.PaneSurfaceControls.root.style_overrides.slot]
+
+[components.PaneSurfaceControls.params]
+
+[components.PaneSurfaceControls.slots]

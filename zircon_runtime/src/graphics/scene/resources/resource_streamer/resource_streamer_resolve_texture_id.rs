@@ -1,11 +1,14 @@
-use crate::asset::assets::MaterialAsset;
+use crate::asset::AssetReference;
 use crate::core::resource::ResourceId;
 
 use super::ResourceStreamer;
 
 impl ResourceStreamer {
-    pub(crate) fn resolve_texture_id(&self, material: &MaterialAsset) -> Option<ResourceId> {
-        material.base_color_texture.as_ref().and_then(|reference| {
+    pub(crate) fn resolve_texture_id(
+        &self,
+        reference: Option<&AssetReference>,
+    ) -> Option<ResourceId> {
+        reference.and_then(|reference| {
             self.asset_manager
                 .resource_manager()
                 .registry()

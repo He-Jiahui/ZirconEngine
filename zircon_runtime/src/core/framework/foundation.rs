@@ -1,5 +1,5 @@
-use serde_json::Value;
 use crate::core::{ChannelReceiver, CoreError, EngineEvent};
+use serde_json::Value;
 
 pub trait ConfigManager: Send + Sync {
     fn set_value(&self, key: &str, value: Value) -> Result<(), CoreError>;

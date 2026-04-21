@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::layout::WorkbenchLayout;
+use crate::ui::workbench::layout::WorkbenchLayout;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub(in crate::ui::workbench::project) struct LayoutPresetAssetDocument {

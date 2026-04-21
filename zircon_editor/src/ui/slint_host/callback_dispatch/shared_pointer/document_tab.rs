@@ -8,7 +8,8 @@ use crate::ui::slint_host::{
     },
     event_bridge::SlintDispatchEffects,
 };
-use crate::{LayoutCommand, ViewInstanceId};
+use crate::ui::workbench::layout::LayoutCommand;
+use crate::ui::workbench::view::ViewInstanceId;
 
 use super::super::{
     dispatch_builtin_workbench_document_tab_activation,

@@ -10,8 +10,19 @@ pub(crate) use hybrid_gi::HybridGiProbeResidencyState;
 #[cfg(test)]
 pub(crate) use hybrid_gi::HybridGiProbeUpdateRequest;
 pub(crate) use hybrid_gi::HybridGiRuntimeState;
+#[cfg(test)]
+pub(crate) use hybrid_gi::{HybridGiInputSet, HybridGiSceneRepresentation};
 pub use offline_bake::{offline_bake_frame, OfflineBakeOutput, OfflineBakeSettings};
 pub use render_framework::WgpuRenderFramework;
 pub(crate) use virtual_geometry::VirtualGeometryRuntimeState;
+#[cfg(test)]
+pub(crate) use virtual_geometry::{
+    build_virtual_geometry_automatic_extract, resolve_virtual_geometry_extract,
+    VirtualGeometryAutomaticExtractInstance, VirtualGeometryCpuReferenceConfig,
+    VirtualGeometryCpuReferenceFrame, VirtualGeometryDebugConfig, VirtualGeometryExecutionMode,
+};
+pub(crate) use virtual_geometry::{
+    build_virtual_geometry_automatic_extract_from_meshes, VirtualGeometryAutomaticExtractOutput,
+};
 #[cfg(test)]
 pub(crate) use virtual_geometry::{VirtualGeometryPageRequest, VirtualGeometryPageResidencyState};

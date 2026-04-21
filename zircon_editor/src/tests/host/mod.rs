@@ -1,4 +1,7 @@
+mod animation_editor;
 mod asset_manager_boundary;
+mod asset_metadata;
+mod asset_references;
 mod binding_dispatch;
 mod manager;
 mod render_framework_boundary;

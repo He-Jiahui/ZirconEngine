@@ -13,10 +13,7 @@ pub use crate::core::{
 };
 
 pub use contexts::{module_context, plugin_context};
-pub use descriptors::{
-    dependency_on, qualified_name, stub_driver_descriptor, stub_manager_descriptor,
-    stub_module_descriptor, stub_plugin_descriptor, StubDriver, StubManager,
-};
+pub use descriptors::{dependency_on, qualified_name};
 pub use engine_module::EngineModule;
 pub use engine_service::{
     driver_contract, manager_contract, plugin_contract, DriverContract, EngineDriver,

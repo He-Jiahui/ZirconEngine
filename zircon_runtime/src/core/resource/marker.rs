@@ -11,6 +11,8 @@ pub enum ResourceKind {
     Texture,
     Shader,
     Scene,
+    Sound,
+    Font,
     PhysicsMaterial,
     AnimationSkeleton,
     AnimationClip,
@@ -36,6 +38,12 @@ pub struct ShaderMarker;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 pub struct SceneMarker;
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+pub struct SoundMarker;
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+pub struct FontMarker;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 pub struct UiLayoutMarker;
@@ -82,6 +90,14 @@ impl ResourceMarker for ShaderMarker {
 
 impl ResourceMarker for SceneMarker {
     const KIND: ResourceKind = ResourceKind::Scene;
+}
+
+impl ResourceMarker for SoundMarker {
+    const KIND: ResourceKind = ResourceKind::Sound;
+}
+
+impl ResourceMarker for FontMarker {
+    const KIND: ResourceKind = ResourceKind::Font;
 }
 
 impl ResourceMarker for UiLayoutMarker {

@@ -1,7 +1,7 @@
 use super::super::super::PreparedOverlayBuffers;
 use super::super::viewport_overlay_renderer::ViewportOverlayRenderer;
 use crate::graphics::scene::resources::ResourceStreamer;
-use crate::graphics::types::{EditorOrRuntimeFrame, GraphicsError};
+use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
 
 impl ViewportOverlayRenderer {
     pub(crate) fn prepare_buffers(
@@ -10,7 +10,7 @@ impl ViewportOverlayRenderer {
         queue: &wgpu::Queue,
         texture_layout: &wgpu::BindGroupLayout,
         streamer: &ResourceStreamer,
-        frame: &EditorOrRuntimeFrame,
+        frame: &ViewportRenderFrame,
     ) -> Result<PreparedOverlayBuffers, GraphicsError> {
         Ok(PreparedOverlayBuffers {
             selection_buffer: super::super::super::super::primitives::build_line_buffer(

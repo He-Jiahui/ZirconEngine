@@ -1,4 +1,4 @@
-use crate::ui::EditorUiBinding;
+use crate::ui::binding::EditorUiBinding;
 
 use super::super::error::EditorBindingDispatchError;
 use super::super::inspector::apply_inspector_draft_field;

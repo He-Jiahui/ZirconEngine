@@ -6,9 +6,10 @@ pub(super) fn bind_group_entries<'a>(
     scene_color_view: &'a wgpu::TextureView,
     ao_view: &'a wgpu::TextureView,
     previous_scene_color_view: Option<&'a wgpu::TextureView>,
+    previous_global_illumination_view: Option<&'a wgpu::TextureView>,
     bloom_view: &'a wgpu::TextureView,
     cluster_buffer: &'a wgpu::Buffer,
-) -> [wgpu::BindGroupEntry<'a>; 9] {
+) -> [wgpu::BindGroupEntry<'a>; 10] {
     [
         wgpu::BindGroupEntry {
             binding: 0,
@@ -47,6 +48,12 @@ pub(super) fn bind_group_entries<'a>(
         wgpu::BindGroupEntry {
             binding: 8,
             resource: resources.hybrid_gi_trace_region_buffer.as_entire_binding(),
+        },
+        wgpu::BindGroupEntry {
+            binding: 9,
+            resource: wgpu::BindingResource::TextureView(
+                previous_global_illumination_view.unwrap_or(&resources.black_texture_view),
+            ),
         },
     ]
 }

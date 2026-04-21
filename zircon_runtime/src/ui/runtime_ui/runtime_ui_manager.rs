@@ -1,17 +1,17 @@
-use crate::ui::template::{UiAssetLoader, UiDocumentCompiler, UiTemplateSurfaceBuilder};
-use crate::ui::{event_ui::UiTreeId, layout::UiSize, surface::UiSurface};
 use crate::core::framework::render::{
     FallbackSkyboxKind, PreviewEnvironmentExtract, RenderFrameExtract, RenderOverlayExtract,
     RenderSceneGeometryExtract, RenderSceneSnapshot, RenderWorldSnapshotHandle,
     ViewportCameraSnapshot,
 };
 use crate::core::math::UVec2;
+use crate::ui::template::{UiAssetLoader, UiDocumentCompiler, UiTemplateSurfaceBuilder};
+use crate::ui::{event_ui::UiTreeId, layout::UiSize, surface::UiSurface};
 
 use super::public_frame::PublicRuntimeFrame;
 use super::runtime_ui_fixture::RuntimeUiFixture;
 use super::runtime_ui_manager_error::RuntimeUiManagerError;
 
-pub struct RuntimeUiManager {
+pub(crate) struct RuntimeUiManager {
     viewport_size: UVec2,
     compiler: UiDocumentCompiler,
     surface: UiSurface,
@@ -19,7 +19,7 @@ pub struct RuntimeUiManager {
 }
 
 impl RuntimeUiManager {
-    pub fn new(viewport_size: UVec2) -> Self {
+    pub(crate) fn new(viewport_size: UVec2) -> Self {
         Self {
             viewport_size: UVec2::new(viewport_size.x.max(1), viewport_size.y.max(1)),
             compiler: UiDocumentCompiler::default(),
@@ -28,11 +28,11 @@ impl RuntimeUiManager {
         }
     }
 
-    pub fn load_builtin_fixture(
+    pub(crate) fn load_builtin_fixture(
         &mut self,
         fixture: RuntimeUiFixture,
     ) -> Result<(), RuntimeUiManagerError> {
-        let document = UiAssetLoader::load_toml_str(fixture.source())?;
+        let document = UiAssetLoader::load_toml_file(fixture.asset_path())?;
         let compiled = self.compiler.compile(&document)?;
         let mut surface = UiTemplateSurfaceBuilder::build_surface_from_compiled_document(
             UiTreeId::new(fixture.asset_id()),
@@ -48,11 +48,11 @@ impl RuntimeUiManager {
         Ok(())
     }
 
-    pub fn surface(&self) -> &UiSurface {
+    pub(crate) fn surface(&self) -> &UiSurface {
         &self.surface
     }
 
-    pub fn build_frame(&self) -> PublicRuntimeFrame {
+    pub(crate) fn build_frame(&self) -> PublicRuntimeFrame {
         let extract = RenderFrameExtract::from_snapshot(
             RenderWorldSnapshotHandle::new(0),
             empty_scene_snapshot(self.viewport_size),
@@ -64,7 +64,7 @@ impl RuntimeUiManager {
         }
     }
 
-    pub fn active_fixture(&self) -> Option<RuntimeUiFixture> {
+    pub(crate) fn active_fixture(&self) -> Option<RuntimeUiFixture> {
         self.active_fixture
     }
 }
@@ -77,7 +77,9 @@ fn empty_scene_snapshot(viewport_size: UVec2) -> RenderSceneSnapshot {
         scene: RenderSceneGeometryExtract {
             camera,
             meshes: Vec::new(),
-            lights: Vec::new(),
+            directional_lights: Vec::new(),
+            point_lights: Vec::new(),
+            spot_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract::default(),
         preview: PreviewEnvironmentExtract {
@@ -86,5 +88,6 @@ fn empty_scene_snapshot(viewport_size: UVec2) -> RenderSceneSnapshot {
             fallback_skybox: FallbackSkyboxKind::None,
             clear_color: crate::core::math::Vec4::new(0.02, 0.02, 0.03, 1.0),
         },
+        virtual_geometry_debug: None,
     }
 }

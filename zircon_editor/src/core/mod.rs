@@ -1,5 +1,4 @@
-//! Editor core state, commands, event runtime, and non-viewport host services.
+//! Editor core state, commands, and event runtime.
 
-pub(crate) mod editing;
+pub mod editing;
 pub mod editor_event;
-pub(crate) mod host;

@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 
-use crate::ui::{layout::DesiredSize, layout::UiFrame, layout::UiSize, layout::UiVirtualListWindow};
+use crate::ui::{
+    layout::DesiredSize, layout::UiFrame, layout::UiSize, layout::UiVirtualListWindow,
+};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct UiLayoutCache {

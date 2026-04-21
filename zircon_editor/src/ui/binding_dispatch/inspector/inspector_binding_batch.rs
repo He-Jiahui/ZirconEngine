@@ -1,4 +1,4 @@
-use crate::ui::InspectorFieldChange;
+use crate::core::editor_event::InspectorFieldChange;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

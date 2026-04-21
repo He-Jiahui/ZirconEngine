@@ -1,7 +1,7 @@
-use crate::ui::{EditorUiBinding, EditorUiBindingPayload, SelectionCommand};
+use crate::core::editor_event::SelectionHostEvent;
+use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload, SelectionCommand};
 
 use super::super::error::EditorBindingDispatchError;
-use super::selection_host_event::SelectionHostEvent;
 
 pub fn dispatch_selection_binding(
     binding: &EditorUiBinding,

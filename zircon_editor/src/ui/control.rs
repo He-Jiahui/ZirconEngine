@@ -9,7 +9,7 @@ use zircon_runtime::ui::{
     event_ui::UiRouteId, event_ui::UiSubscriptionId,
 };
 
-use crate::{ActivityViewDescriptor, ActivityWindowDescriptor};
+use crate::ui::activity::{ActivityViewDescriptor, ActivityWindowDescriptor};
 
 #[derive(Debug, Error)]
 pub enum EditorUiError {

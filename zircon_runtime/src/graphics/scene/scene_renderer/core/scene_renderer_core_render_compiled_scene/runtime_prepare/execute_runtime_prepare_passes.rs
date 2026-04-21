@@ -1,5 +1,8 @@
-use crate::graphics::scene::scene_renderer::{HybridGiGpuPendingReadback, VirtualGeometryGpuPendingReadback};
-use crate::graphics::types::{EditorOrRuntimeFrame, GraphicsError};
+use crate::graphics::scene::resources::ResourceStreamer;
+use crate::graphics::scene::scene_renderer::{
+    HybridGiGpuPendingReadback, VirtualGeometryGpuPendingReadback,
+};
+use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
 
 use super::super::super::scene_renderer_core::SceneRendererCore;
 
@@ -9,7 +12,8 @@ impl SceneRendererCore {
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         encoder: &mut wgpu::CommandEncoder,
-        frame: &EditorOrRuntimeFrame,
+        streamer: &ResourceStreamer,
+        frame: &ViewportRenderFrame,
     ) -> Result<
         (
             Option<HybridGiGpuPendingReadback>,
@@ -21,10 +25,15 @@ impl SceneRendererCore {
             device,
             queue,
             encoder,
+            streamer,
             frame.hybrid_gi_prepare.as_ref(),
+            frame.hybrid_gi_scene_prepare.as_ref(),
             frame.hybrid_gi_resolve_runtime.as_ref(),
             frame.extract.lighting.hybrid_global_illumination.as_ref(),
+            &frame.extract.geometry.meshes,
             &frame.extract.lighting.directional_lights,
+            &frame.extract.lighting.point_lights,
+            &frame.extract.lighting.spot_lights,
             frame
                 .extract
                 .lighting

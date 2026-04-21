@@ -1,37 +1,33 @@
 import { WorkbenchHostContext } from "workbench/host_context.slint";
 import { WorkbenchHostScaffold } from "workbench/host_scaffold.slint";
-import { HostWindowShellData, HostWindowLayoutData, HostWindowBootstrapData, HostNativeFloatingWindowSurfaceData } from "workbench/host_components.slint";
-import { HostWorkbenchWindowSceneData } from "workbench/host_scene.slint";
-import { PaneSurfaceHostContext } from "workbench/pane_surface.slint";
+import { HostWindowBootstrapData } from "workbench/host_components.slint";
+import { HostWindowPresentationData } from "workbench/host_root.slint";
 
 export { WorkbenchHostContext } from "workbench/host_context.slint";
-export { PaneSurfaceHostContext } from "workbench/pane_surface.slint";
+export { PaneSurfaceHostContext } from "workbench/pane_surface_host_context.slint";
 export { FrameRect, FloatingWindowData, HostWindowBootstrapData, HostWindowLayoutData, HostWindowShellData, HostWindowSurfaceData, HostNativeFloatingWindowSurfaceData } from "workbench/host_components.slint";
-export { PaneData } from "workbench/pane_surface.slint";
-export { ProjectOverviewData } from "workbench/assets.slint";
-export { SceneNodeData } from "workbench/panes.slint";
+export { HostWindowPresentationData } from "workbench/host_root.slint";
+export { PaneData, ProjectOverviewData, SceneNodeData } from "workbench/pane_data.slint";
 export { HostWorkbenchWindowSceneData } from "workbench/host_scene.slint";
 
 export component UiHostWindow inherits Window {
-    in property <HostWindowShellData> host_shell <=> host.host_shell;
-    in property <HostWindowLayoutData> host_layout <=> host.host_layout;
-    in property <HostWorkbenchWindowSceneData> workbench_scene_data <=> host.workbench_scene_data;
-    in property <HostNativeFloatingWindowSurfaceData> native_floating_surface_data <=> host.native_floating_surface_data;
+    in property <HostWindowPresentationData> host_presentation;
     out property <HostWindowBootstrapData> host_window_bootstrap <=> host.host_window_bootstrap;
     preferred-width: 1600px;
     preferred-height: 980px;
-    min-width: root.host_shell.shell_min_width_px * 1px;
-    min-height: root.host_shell.shell_min_height_px * 1px;
+    min-width: root.host_presentation.host_shell.shell_min_width_px * 1px;
+    min-height: root.host_presentation.host_shell.shell_min_height_px * 1px;
     max-width: 16777215px;
     max-height: 16777215px;
     no-frame: false;
     resize-border-width: 8px;
-    title: root.host_shell.native_window_title != "" ? root.host_shell.native_window_title : "Zircon Editor";
+    title: root.host_presentation.host_shell.native_window_title != "" ? root.host_presentation.host_shell.native_window_title : "Zircon Editor";
     background: #1f232a;
     default-font-family: "JetBrains Sans, Segoe UI, Microsoft YaHei UI, Noto Sans";
 
     host := WorkbenchHostScaffold {
         width: root.width;
         height: root.height;
+        host_presentation: root.host_presentation;
     }
 }

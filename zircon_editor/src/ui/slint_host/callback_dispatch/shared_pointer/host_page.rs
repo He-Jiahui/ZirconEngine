@@ -8,7 +8,7 @@ use crate::ui::slint_host::{
         WorkbenchHostPagePointerRoute,
     },
 };
-use crate::LayoutCommand;
+use crate::ui::workbench::layout::LayoutCommand;
 
 use super::super::{
     dispatch_builtin_workbench_host_page_activation, dispatch_layout_command,
@@ -39,7 +39,7 @@ pub(crate) fn dispatch_shared_host_page_pointer_click(
                 None => Some(dispatch_layout_command(
                     runtime,
                     LayoutCommand::ActivateMainPage {
-                        page_id: crate::MainPageId::new(page_id),
+                        page_id: crate::ui::workbench::layout::MainPageId::new(page_id),
                     },
                 )?),
             }

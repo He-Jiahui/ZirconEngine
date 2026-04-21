@@ -1,4 +1,8 @@
+use crate::core::editor_event::{EditorAssetEvent, EditorEvent};
 use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
+use crate::ui::host::editor_asset_manager::{
+    EditorAssetCatalogRecord, EditorAssetCatalogSnapshotRecord, EditorAssetFolderRecord,
+};
 use crate::ui::slint_host::asset_pointer::{
     AssetContentListPointerBridge, AssetContentListPointerLayout, AssetFolderTreePointerBridge,
     AssetFolderTreePointerLayout, AssetListPointerState, AssetListViewMode,
@@ -11,13 +15,11 @@ use crate::ui::slint_host::callback_dispatch::{
     dispatch_shared_asset_reference_pointer_click, dispatch_shared_asset_tree_pointer_click,
     BuiltinAssetSurfaceTemplateBridge,
 };
-use crate::{EditorAssetEvent, EditorEvent};
-use crate::core::host::asset_editor::{
-    EditorAssetCatalogRecord, EditorAssetCatalogSnapshotRecord, EditorAssetFolderRecord,
-};
 use zircon_runtime::asset::project::PreviewState;
 use zircon_runtime::core::resource::ResourceKind;
-use zircon_runtime::ui::{binding::UiBindingValue, binding::UiEventKind, layout::UiPoint, layout::UiSize};
+use zircon_runtime::ui::{
+    binding::UiBindingValue, binding::UiEventKind, layout::UiPoint, layout::UiSize,
+};
 
 #[test]
 fn shared_asset_tree_pointer_bridge_scrolls_and_dispatches_folder_selection() {
@@ -243,9 +245,21 @@ fn asset_surface_controls_use_generic_template_callbacks_instead_of_legacy_busin
         env!("CARGO_MANIFEST_DIR"),
         "/ui/workbench/pane_surface.slint"
     ));
+    let pane_content = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/ui/workbench/pane_content.slint"
+    ));
+    let pane_surface_host_context = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/ui/workbench/pane_surface_host_context.slint"
+    ));
     let assets = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/ui/workbench/assets.slint"
+    ));
+    let asset_panes = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/ui/workbench/asset_panes.slint"
     ));
     let wiring = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
@@ -255,7 +269,6 @@ fn asset_surface_controls_use_generic_template_callbacks_instead_of_legacy_busin
         env!("CARGO_MANIFEST_DIR"),
         "/src/ui/slint_host/app/assets.rs"
     ));
-    let workbench_shell_and_surface = [workbench, pane_surface].join("\n");
 
     for needle in [
         "callback asset_search_edited(",
@@ -276,6 +289,16 @@ fn asset_surface_controls_use_generic_template_callbacks_instead_of_legacy_busin
         assert!(
             !workbench.contains(needle),
             "workbench shell still exposes legacy asset business callback `{needle}`"
+        );
+    }
+
+    for needle in [
+        "callback asset_control_changed(source: string, control_id: string, value: string);",
+        "callback asset_control_clicked(source: string, control_id: string);",
+    ] {
+        assert!(
+            !pane_surface.contains(needle),
+            "pane surface should not keep dead asset callback bridge `{needle}`"
         );
     }
 
@@ -333,15 +356,23 @@ fn asset_surface_controls_use_generic_template_callbacks_instead_of_legacy_busin
     for needle in [
         "callback asset_control_changed(source: string, control_id: string, value: string);",
         "callback asset_control_clicked(source: string, control_id: string);",
-        "control_changed(control_id, value) => { root.asset_control_changed(\"activity\", control_id, value); }",
-        "control_clicked(control_id) => { root.asset_control_clicked(\"activity\", control_id); }",
-        "control_changed(control_id, value) => { root.asset_control_changed(\"browser\", control_id, value); }",
-        "control_clicked(control_id) => { root.asset_control_clicked(\"browser\", control_id); }",
-        "asset_control_clicked(control_id) => { root.asset_control_clicked(\"project\", control_id); }",
     ] {
         assert!(
-            workbench_shell_and_surface.contains(needle),
-            "workbench shell is missing generic asset control route `{needle}`"
+            pane_surface_host_context.contains(needle),
+            "pane surface host context is missing generic asset control callback `{needle}`"
+        );
+    }
+
+    for needle in [
+        "control_changed(control_id, value) => { PaneSurfaceHostContext.asset_control_changed(\"activity\", control_id, value); }",
+        "control_clicked(control_id) => { PaneSurfaceHostContext.asset_control_clicked(\"activity\", control_id); }",
+        "control_changed(control_id, value) => { PaneSurfaceHostContext.asset_control_changed(\"browser\", control_id, value); }",
+        "control_clicked(control_id) => { PaneSurfaceHostContext.asset_control_clicked(\"browser\", control_id); }",
+        "asset_control_clicked(control_id) => { PaneSurfaceHostContext.asset_control_clicked(\"project\", control_id); }",
+    ] {
+        assert!(
+            pane_content.contains(needle),
+            "pane content is missing generic asset control route `{needle}`"
         );
     }
 
@@ -357,8 +388,8 @@ fn asset_surface_controls_use_generic_template_callbacks_instead_of_legacy_busin
         "clicked => { root.control_clicked(\"ImportModel\"); }",
     ] {
         assert!(
-            assets.contains(needle),
-            "asset leaf surfaces are missing generic control route `{needle}`"
+            asset_panes.contains(needle),
+            "asset pane surfaces are missing generic control route `{needle}`"
         );
     }
 
@@ -369,6 +400,79 @@ fn asset_surface_controls_use_generic_template_callbacks_instead_of_legacy_busin
         assert!(
             wiring.contains(needle),
             "slint host wiring is missing generic asset control callback `{needle}`"
+        );
+    }
+}
+
+#[test]
+fn asset_surface_templates_expose_physics_and_animation_kind_filters() {
+    let asset_panes = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/ui/workbench/asset_panes.slint"
+    ));
+
+    for kind in [
+        "PhysicsMaterial",
+        "AnimationSkeleton",
+        "AnimationClip",
+        "AnimationSequence",
+        "AnimationGraph",
+        "AnimationStateMachine",
+    ] {
+        let needle = format!("root.control_changed(\"SetKindFilter\", \"{kind}\")");
+        assert_eq!(
+            asset_panes.matches(&needle).count(),
+            2,
+            "asset activity/browser surfaces should both expose {kind} kind filters"
+        );
+    }
+}
+
+#[test]
+fn asset_surface_templates_map_no_preview_physics_and_animation_assets_to_specific_icons() {
+    let assets = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/ui/workbench/assets.slint"
+    ));
+    let chrome = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/ui/workbench/chrome.slint"
+    ));
+
+    for (kind, icon_key) in [
+        ("PhysicsMaterial", "physics-material"),
+        ("AnimationSkeleton", "hierarchy"),
+        ("AnimationClip", "tool-play"),
+        ("AnimationSequence", "animation-sequence"),
+        ("AnimationGraph", "animation-graph"),
+        ("AnimationStateMachine", "animation-graph"),
+    ] {
+        let item_needle = format!("item.kind == \"{kind}\" ? \"{icon_key}\"");
+        assert_eq!(
+            assets.matches(&item_needle).count(),
+            2,
+            "asset item thumbnail/list fallbacks should classify {kind} with {icon_key}"
+        );
+
+        let selection_needle = format!("root.selection.kind == \"{kind}\" ? \"{icon_key}\"");
+        assert_eq!(
+            assets.matches(&selection_needle).count(),
+            2,
+            "selection preview/details fallbacks should classify {kind} with {icon_key}"
+        );
+    }
+
+    for (icon_key, icon_svg) in [
+        ("physics-material", "construct-outline.svg"),
+        ("animation-sequence", "play-outline.svg"),
+        ("animation-graph", "grid-outline.svg"),
+    ] {
+        let needle = format!(
+            "icon_key == \"{icon_key}\" ? @image-url(\"../../assets/icons/ionicons/{icon_svg}\")"
+        );
+        assert!(
+            chrome.contains(&needle),
+            "ShellIcon should resolve the `{icon_key}` key to `{icon_svg}`"
         );
     }
 }

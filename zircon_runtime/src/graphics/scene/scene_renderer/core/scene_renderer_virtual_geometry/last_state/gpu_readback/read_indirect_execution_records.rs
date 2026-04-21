@@ -1,6 +1,4 @@
 #[cfg(test)]
-use crate::graphics::backend::read_buffer_u32s;
-#[cfg(test)]
 use crate::graphics::types::GraphicsError;
 
 use crate::graphics::scene::scene_renderer::core::SceneRenderer;
@@ -10,59 +8,45 @@ impl SceneRenderer {
     pub(crate) fn read_last_virtual_geometry_indirect_execution_records(
         &self,
     ) -> Result<Vec<(u32, u64, u32, u32, u32)>, GraphicsError> {
-        const EXECUTION_RECORD_WORD_COUNT: usize = 6;
-
-        let Some(buffer) = self
-            .last_virtual_geometry_indirect_execution_records_buffer
-            .as_ref()
-        else {
-            return Ok(Vec::new());
-        };
-        if self.last_virtual_geometry_indirect_draw_count == 0 {
+        let execution_authority_records =
+            self.read_last_virtual_geometry_indirect_execution_authority_records()?;
+        if !execution_authority_records.is_empty() {
+            return Ok(execution_authority_records
+                .into_iter()
+                .map(|record| {
+                    (
+                        record.draw_ref_index,
+                        record.entity,
+                        record.page_id,
+                        record.submission_index,
+                        record.draw_ref_rank,
+                    )
+                })
+                .collect());
+        }
+        let authority_records = self.read_last_virtual_geometry_indirect_authority_records()?;
+        if authority_records.is_empty() {
             return Ok(Vec::new());
         }
-
-        let staging = self.backend.device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("zircon-vg-indirect-execution-records-readback"),
-            size: (self.last_virtual_geometry_indirect_draw_count as u64)
-                * (std::mem::size_of::<u32>() as u64)
-                * EXECUTION_RECORD_WORD_COUNT as u64,
-            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
-            mapped_at_creation: false,
-        });
-        let mut encoder =
-            self.backend
-                .device
-                .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                    label: Some("zircon-vg-indirect-execution-records-readback-encoder"),
-                });
-        encoder.copy_buffer_to_buffer(
-            buffer,
-            0,
-            &staging,
-            0,
-            (self.last_virtual_geometry_indirect_draw_count as u64)
-                * (std::mem::size_of::<u32>() as u64)
-                * EXECUTION_RECORD_WORD_COUNT as u64,
-        );
-        self.backend.queue.submit([encoder.finish()]);
-        let words = read_buffer_u32s(
-            &self.backend.device,
-            &staging,
-            (self.last_virtual_geometry_indirect_draw_count as usize) * EXECUTION_RECORD_WORD_COUNT,
-        )?;
-
-        Ok(words
-            .chunks_exact(EXECUTION_RECORD_WORD_COUNT)
-            .map(|chunk| {
+        let authority_by_draw_ref_index = authority_records
+            .into_iter()
+            .map(|record| {
                 (
-                    chunk[0],
-                    u64::from(chunk[4]) | (u64::from(chunk[5]) << 32),
-                    chunk[1],
-                    chunk[2],
-                    chunk[3],
+                    record.draw_ref_index,
+                    (
+                        record.draw_ref_index,
+                        record.entity,
+                        record.page_id,
+                        record.submission_index,
+                        record.draw_ref_rank,
+                    ),
                 )
             })
+            .collect::<std::collections::HashMap<_, _>>();
+        Ok(self
+            .read_last_virtual_geometry_indirect_execution_draw_ref_indices()?
+            .into_iter()
+            .filter_map(|draw_ref_index| authority_by_draw_ref_index.get(&draw_ref_index).copied())
             .collect())
     }
 }

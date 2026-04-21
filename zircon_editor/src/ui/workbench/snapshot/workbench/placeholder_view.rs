@@ -1,7 +1,7 @@
 use serde_json::Value;
 
-use crate::layout::MainPageId;
-use crate::view::{ViewDescriptorId, ViewHost, ViewInstanceId, ViewKind};
+use crate::ui::workbench::layout::MainPageId;
+use crate::ui::workbench::view::{ViewDescriptorId, ViewHost, ViewInstanceId, ViewKind};
 
 use super::{ViewContentKind, ViewTabSnapshot};
 

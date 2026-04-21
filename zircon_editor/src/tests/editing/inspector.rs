@@ -1,6 +1,6 @@
 use zircon_runtime::core::math::Vec3;
 
-use crate::EditorIntent;
+use crate::core::editing::intent::EditorIntent;
 
 use super::support::{cube_and_camera, cube_id, test_state};
 

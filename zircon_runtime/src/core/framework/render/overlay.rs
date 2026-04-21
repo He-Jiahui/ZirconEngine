@@ -8,6 +8,8 @@ use super::DisplayMode;
 pub enum SceneGizmoKind {
     Camera,
     DirectionalLight,
+    VirtualGeometryBvh,
+    VirtualGeometryVisBuffer,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]

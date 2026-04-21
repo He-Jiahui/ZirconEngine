@@ -1,8 +1,8 @@
-use crate::graphics::types::EditorOrRuntimeFrame;
+use crate::graphics::types::ViewportRenderFrame;
 
 use super::super::super::super::constants::MAX_HYBRID_GI_TRACE_REGIONS;
 
-pub(super) fn count_scheduled_trace_regions(frame: &EditorOrRuntimeFrame) -> u32 {
+pub(super) fn count_scheduled_trace_regions(frame: &ViewportRenderFrame) -> u32 {
     let Some(prepare) = frame.hybrid_gi_prepare.as_ref() else {
         return 0;
     };

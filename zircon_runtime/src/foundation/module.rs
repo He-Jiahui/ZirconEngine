@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
+use crate::core::manager::{ConfigManagerHandle, EventManagerHandle};
 use crate::core::{
     DriverDescriptor, ManagerDescriptor, ModuleDescriptor, ServiceKind, ServiceObject, StartupMode,
 };
-use crate::core::manager::{ConfigManagerHandle, EventManagerHandle};
-use crate::engine_module::{factory, qualified_name};
+use crate::engine_module::{factory, qualified_name, EngineModule};
 
 use super::{ConfigDriver, DefaultConfigManager, DefaultEventManager, EventDriver};
 
@@ -51,4 +51,21 @@ pub fn module_descriptor() -> ModuleDescriptor {
             Ok(Arc::new(EventManagerHandle::new(manager)) as ServiceObject)
         }),
     ))
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct FoundationModule;
+
+impl EngineModule for FoundationModule {
+    fn module_name(&self) -> &'static str {
+        FOUNDATION_MODULE_NAME
+    }
+
+    fn module_description(&self) -> &'static str {
+        "Built-in runtime foundation services"
+    }
+
+    fn descriptor(&self) -> ModuleDescriptor {
+        module_descriptor()
+    }
 }

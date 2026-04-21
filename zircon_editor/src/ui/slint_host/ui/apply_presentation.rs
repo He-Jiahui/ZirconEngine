@@ -1,4 +1,3 @@
-use crate::snapshot::EditorChromeSnapshot;
 use crate::ui::layouts::windows::workbench_host_window::{
     build_host_scene_data, build_native_floating_surface_data, frame_rect, ShellPresentation,
 };
@@ -10,9 +9,10 @@ use crate::ui::slint_host::root_shell_projection::{
     resolve_root_right_region_frame, resolve_root_status_bar_frame,
     resolve_root_viewport_content_frame,
 };
-use crate::ui::slint_host::{HostWindowLayoutData, UiHostWindow};
+use crate::ui::slint_host::{HostWindowLayoutData, HostWindowPresentationData, UiHostWindow};
+use crate::ui::workbench::autolayout::{ShellRegionId, WorkbenchShellGeometry};
 use crate::ui::workbench::model::WorkbenchViewModel;
-use crate::{ShellRegionId, WorkbenchShellGeometry};
+use crate::ui::workbench::snapshot::EditorChromeSnapshot;
 use slint::ComponentHandle;
 
 pub(crate) fn apply_presentation(
@@ -22,7 +22,14 @@ pub(crate) fn apply_presentation(
     geometry: &WorkbenchShellGeometry,
     preset_names: &[String],
     active_preset_name: Option<&str>,
-    ui_asset_panes: &std::collections::BTreeMap<String, crate::UiAssetEditorPanePresentation>,
+    ui_asset_panes: &std::collections::BTreeMap<
+        String,
+        crate::ui::asset_editor::UiAssetEditorPanePresentation,
+    >,
+    animation_panes: &std::collections::BTreeMap<
+        String,
+        crate::ui::animation_editor::AnimationEditorPanePresentation,
+    >,
     shared_root_frames: Option<&BuiltinWorkbenchRootShellFrames>,
     floating_window_projection_bundle: &FloatingWindowProjectionBundle,
 ) {
@@ -33,6 +40,7 @@ pub(crate) fn apply_presentation(
         preset_names,
         active_preset_name,
         ui_asset_panes,
+        animation_panes,
         floating_window_projection_bundle,
     );
     let document_pane_shows_viewport_toolbar =
@@ -68,19 +76,22 @@ pub(crate) fn apply_presentation(
         shared_root_frames,
         document_pane_shows_viewport_toolbar,
     );
-    ui.set_workbench_scene_data(build_host_scene_data(
-        &presentation.host_surface_data,
-        &presentation.host_shell,
-        &host_layout,
-        &presentation.status_primary,
-        presentation.delete_enabled,
-    ));
-    ui.set_native_floating_surface_data(build_native_floating_surface_data(
-        &presentation.host_surface_data,
-        &presentation.host_shell,
-    ));
-    ui.set_host_shell(presentation.host_shell);
-    ui.set_host_layout(host_layout);
+    let host_presentation = HostWindowPresentationData {
+        workbench_scene_data: build_host_scene_data(
+            &presentation.host_surface_data,
+            &presentation.host_shell,
+            &host_layout,
+            &presentation.status_primary,
+            presentation.delete_enabled,
+        ),
+        native_floating_surface_data: build_native_floating_surface_data(
+            &presentation.host_surface_data,
+            &presentation.host_shell,
+        ),
+        host_shell: presentation.host_shell,
+        host_layout,
+    };
+    ui.set_host_presentation(host_presentation);
     pane_surface_host.set_status_text(presentation.status_primary);
     pane_surface_host.set_delete_enabled(presentation.delete_enabled);
     pane_surface_host.set_inspector_name(presentation.inspector_name);

@@ -1,9 +1,9 @@
 use crate::core::framework::render::{
     aspect_ratio_from_viewport_size, default_viewport_aspect_ratio, FallbackSkyboxKind,
     PreviewEnvironmentExtract, RenderDirectionalLightSnapshot, RenderMeshSnapshot,
-    RenderOverlayExtract, RenderSceneGeometryExtract, RenderSceneSnapshot,
-    SceneViewportExtractRequest, SceneViewportRenderPacket, ViewportCameraSnapshot,
-    ViewportRenderSettings,
+    RenderOverlayExtract, RenderPointLightSnapshot, RenderSceneGeometryExtract,
+    RenderSceneSnapshot, RenderSpotLightSnapshot, SceneViewportExtractRequest,
+    SceneViewportRenderPacket, ViewportCameraSnapshot, ViewportRenderSettings,
 };
 use crate::core::math::Vec4;
 
@@ -23,6 +23,7 @@ impl World {
             active_camera_override: None,
             camera: None,
             viewport_size: None,
+            virtual_geometry_debug: None,
         };
         self.build_viewport_render_packet(&request)
     }
@@ -51,7 +52,7 @@ impl World {
             .collect::<Vec<_>>();
         meshes.sort_by_key(|mesh| mesh.node_id);
 
-        let mut lights = self
+        let mut directional_lights = self
             .directional_lights
             .iter()
             .filter(|(entity, _)| self.active_in_hierarchy(**entity) == Some(true))
@@ -62,19 +63,59 @@ impl World {
                 intensity: light.intensity,
             })
             .collect::<Vec<_>>();
-        lights.sort_by_key(|light| light.node_id);
+        directional_lights.sort_by_key(|light| light.node_id);
+
+        let mut point_lights = self
+            .point_lights
+            .iter()
+            .filter(|(entity, _)| self.active_in_hierarchy(**entity) == Some(true))
+            .map(|(entity, light)| RenderPointLightSnapshot {
+                node_id: *entity,
+                position: self
+                    .world_transform(*entity)
+                    .unwrap_or_default()
+                    .translation,
+                color: light.color,
+                intensity: light.intensity,
+                range: light.range,
+            })
+            .collect::<Vec<_>>();
+        point_lights.sort_by_key(|light| light.node_id);
+
+        let mut spot_lights = self
+            .spot_lights
+            .iter()
+            .filter(|(entity, _)| self.active_in_hierarchy(**entity) == Some(true))
+            .map(|(entity, light)| RenderSpotLightSnapshot {
+                node_id: *entity,
+                position: self
+                    .world_transform(*entity)
+                    .unwrap_or_default()
+                    .translation,
+                direction: light.direction,
+                color: light.color,
+                intensity: light.intensity,
+                range: light.range,
+                inner_angle_radians: light.inner_angle_radians,
+                outer_angle_radians: light.outer_angle_radians,
+            })
+            .collect::<Vec<_>>();
+        spot_lights.sort_by_key(|light| light.node_id);
 
         SceneViewportRenderPacket {
             scene: RenderSceneGeometryExtract {
                 camera,
                 meshes,
-                lights,
+                directional_lights,
+                point_lights,
+                spot_lights,
             },
             overlays: RenderOverlayExtract {
                 display_mode: request.settings.display_mode,
                 ..RenderOverlayExtract::default()
             },
             preview: build_preview_environment(request),
+            virtual_geometry_debug: request.virtual_geometry_debug,
         }
     }
 

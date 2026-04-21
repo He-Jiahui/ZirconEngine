@@ -1,4 +1,5 @@
-use crate::{ViewDescriptor, ViewInstance, WorkbenchLayout};
+use crate::ui::workbench::layout::WorkbenchLayout;
+use crate::ui::workbench::view::{ViewDescriptor, ViewInstance};
 
 use super::PreviewEditorData;
 

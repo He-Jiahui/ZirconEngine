@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::ui::{EditorTemplateAdapter, EditorTemplateRegistry};
+use crate::ui::template::{EditorTemplateAdapter, EditorTemplateRegistry};
 use zircon_runtime::ui::template::UiTemplateNode;
 use zircon_runtime::ui::{surface::UiSurface, tree::UiTree};
 

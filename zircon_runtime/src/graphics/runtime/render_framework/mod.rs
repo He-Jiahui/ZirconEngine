@@ -5,6 +5,7 @@ mod compiled_feature_names;
 mod create_viewport;
 mod destroy_viewport;
 mod query_stats;
+mod query_virtual_geometry_debug_snapshot;
 mod queue_capability;
 mod reload_pipeline;
 mod render_framework_backend_error;

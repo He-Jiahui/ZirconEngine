@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::ViewHost;
+use crate::ui::workbench::view::ViewHost;
 
 use super::{SplitAxis, SplitPlacement, WorkspaceTarget};
 

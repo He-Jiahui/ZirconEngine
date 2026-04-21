@@ -38,7 +38,11 @@ fn transform_matrix_helpers_round_trip_common_trs_paths() {
     let inverse = zircon_runtime::core::math::affine_inverse(helper);
 
     assert_mat4_approx_eq(
-        zircon_runtime::core::math::compose_trs(transform.translation, transform.rotation, transform.scale),
+        zircon_runtime::core::math::compose_trs(
+            transform.translation,
+            transform.rotation,
+            transform.scale,
+        ),
         helper,
     );
     assert_mat4_approx_eq(helper * inverse, Mat4::IDENTITY);

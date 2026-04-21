@@ -2,7 +2,7 @@ use zircon_runtime::ui::{layout::UiFrame, layout::UiSize};
 
 use crate::ui::slint_host::app::compute_window_menu_popup_height;
 use crate::ui::slint_host::callback_dispatch::BuiltinWorkbenchRootShellFrames;
-use crate::EditorChromeSnapshot;
+use crate::ui::workbench::snapshot::EditorChromeSnapshot;
 
 use super::constants::{
     MENU_BUTTON_HEIGHT, MENU_BUTTON_ROW_GAP, MENU_BUTTON_ROW_X, MENU_BUTTON_ROW_Y,

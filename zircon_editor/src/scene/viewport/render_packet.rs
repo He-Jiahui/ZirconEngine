@@ -28,6 +28,7 @@ pub(in crate::scene::viewport) fn build_render_packet(
         active_camera_override: None,
         camera: Some(camera.clone()),
         viewport_size: Some(viewport_size),
+        virtual_geometry_debug: None,
     });
     packet.overlays = RenderOverlayExtract {
         selection: build_selection_highlights(selected, settings),
@@ -77,7 +78,7 @@ pub(in crate::scene::viewport) fn build_scene_gizmos(
             NodeKind::DirectionalLight => {
                 build_directional_light_gizmo(scene, entity, is_selected, camera)
             }
-            NodeKind::Cube | NodeKind::Mesh => None,
+            NodeKind::Cube | NodeKind::Mesh | NodeKind::PointLight | NodeKind::SpotLight => None,
         };
 
         if let Some(gizmo) = gizmo.take() {

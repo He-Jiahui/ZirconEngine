@@ -1,6 +1,6 @@
 use crate::core::framework::render::{RenderFrameworkError, RenderViewportHandle};
 
-use crate::graphics::types::EditorOrRuntimeFrame;
+use crate::graphics::types::ViewportRenderFrame;
 
 use super::super::super::render_framework_backend_error::render_framework_backend_error;
 use super::super::super::wgpu_render_framework::WgpuRenderFramework;
@@ -15,7 +15,7 @@ use super::resolve_history_handle::resolve_history_handle;
 pub(in crate::graphics::runtime::render_framework) fn submit_runtime_frame(
     server: &WgpuRenderFramework,
     viewport: RenderViewportHandle,
-    frame: EditorOrRuntimeFrame,
+    frame: ViewportRenderFrame,
 ) -> Result<(), RenderFrameworkError> {
     let context =
         build_frame_submission_context(server, viewport, &frame.extract, frame.ui.as_ref())?;

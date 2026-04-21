@@ -1,0 +1,130 @@
+use super::support::*;
+
+#[test]
+fn shared_menu_pointer_bridge_opens_and_closes_top_level_menu_from_shared_hit_test() {
+    let mut bridge = WorkbenchMenuPointerBridge::new();
+    bridge.sync(default_menu_layout(), WorkbenchMenuPointerState::default());
+
+    let opened = bridge.handle_click(UiPoint::new(20.0, 12.0)).unwrap();
+    assert_eq!(opened.route, Some(WorkbenchMenuPointerRoute::MenuButton(0)));
+    assert_eq!(opened.state.open_menu_index, Some(0));
+    assert_eq!(opened.state.hovered_menu_index, Some(0));
+    assert_eq!(opened.state.hovered_item_index, None);
+    assert_eq!(opened.action_id, None);
+
+    bridge.sync(default_menu_layout(), opened.state);
+    let closed = bridge.handle_click(UiPoint::new(20.0, 12.0)).unwrap();
+    assert_eq!(closed.route, Some(WorkbenchMenuPointerRoute::MenuButton(0)));
+    assert_eq!(closed.state.open_menu_index, None);
+    assert_eq!(closed.state.hovered_menu_index, None);
+    assert_eq!(closed.state.hovered_item_index, None);
+    assert_eq!(closed.action_id, None);
+}
+
+#[test]
+fn shared_menu_pointer_bridge_resolves_popup_item_and_dismiss_overlay_routes() {
+    let mut bridge = WorkbenchMenuPointerBridge::new();
+    bridge.sync(
+        default_menu_layout(),
+        WorkbenchMenuPointerState {
+            open_menu_index: Some(0),
+            hovered_menu_index: Some(0),
+            hovered_item_index: None,
+            popup_scroll_offset: 0.0,
+        },
+    );
+
+    let item = bridge.handle_click(UiPoint::new(60.0, 72.0)).unwrap();
+    assert_eq!(
+        item.route,
+        Some(WorkbenchMenuPointerRoute::MenuItem {
+            menu_index: 0,
+            item_index: 1,
+            action_id: "SaveProject".to_string(),
+        })
+    );
+    assert_eq!(item.action_id.as_deref(), Some("SaveProject"));
+    assert_eq!(item.state.open_menu_index, None);
+    assert_eq!(item.state.hovered_menu_index, None);
+    assert_eq!(item.state.hovered_item_index, None);
+
+    bridge.sync(
+        default_menu_layout(),
+        WorkbenchMenuPointerState {
+            open_menu_index: Some(0),
+            hovered_menu_index: Some(0),
+            hovered_item_index: None,
+            popup_scroll_offset: 0.0,
+        },
+    );
+    let dismiss = bridge.handle_click(UiPoint::new(420.0, 260.0)).unwrap();
+    assert_eq!(
+        dismiss.route,
+        Some(WorkbenchMenuPointerRoute::DismissOverlay)
+    );
+    assert_eq!(dismiss.action_id, None);
+    assert_eq!(dismiss.state.open_menu_index, None);
+}
+
+#[test]
+fn shared_menu_pointer_bridge_scrolls_window_popup_using_shared_scroll_state() {
+    let mut bridge = WorkbenchMenuPointerBridge::new();
+    bridge.sync(
+        window_menu_layout(10),
+        WorkbenchMenuPointerState {
+            open_menu_index: Some(4),
+            hovered_menu_index: Some(4),
+            hovered_item_index: None,
+            popup_scroll_offset: 0.0,
+        },
+    );
+
+    let moved = bridge.handle_move(UiPoint::new(240.0, 110.0)).unwrap();
+    assert_eq!(
+        moved.route,
+        Some(WorkbenchMenuPointerRoute::MenuItem {
+            menu_index: 4,
+            item_index: 2,
+            action_id: "LoadPreset.alpha-00".to_string(),
+        })
+    );
+    assert_eq!(moved.state.hovered_menu_index, Some(4));
+    assert_eq!(moved.state.hovered_item_index, Some(2));
+
+    bridge.sync(window_menu_layout(10), moved.state);
+    let scrolled = bridge
+        .handle_scroll(UiPoint::new(240.0, 110.0), 96.0)
+        .unwrap();
+    assert_eq!(
+        scrolled.route,
+        Some(WorkbenchMenuPointerRoute::PopupSurface(4))
+    );
+    assert!(scrolled.state.popup_scroll_offset > 0.0);
+    assert_eq!(scrolled.action_id, None);
+    assert_eq!(scrolled.state.open_menu_index, Some(4));
+}
+
+#[test]
+fn shared_menu_pointer_bridge_dismiss_keeps_window_popup_scroll_state() {
+    let mut bridge = WorkbenchMenuPointerBridge::new();
+    bridge.sync(
+        window_menu_layout(10),
+        WorkbenchMenuPointerState {
+            open_menu_index: Some(4),
+            hovered_menu_index: Some(4),
+            hovered_item_index: None,
+            popup_scroll_offset: 96.0,
+        },
+    );
+
+    let dismissed = bridge.handle_click(UiPoint::new(520.0, 260.0)).unwrap();
+    assert_eq!(
+        dismissed.route,
+        Some(WorkbenchMenuPointerRoute::DismissOverlay)
+    );
+    assert_eq!(dismissed.action_id, None);
+    assert_eq!(dismissed.state.open_menu_index, None);
+    assert_eq!(dismissed.state.hovered_menu_index, None);
+    assert_eq!(dismissed.state.hovered_item_index, None);
+    assert_eq!(dismissed.state.popup_scroll_offset, 96.0);
+}

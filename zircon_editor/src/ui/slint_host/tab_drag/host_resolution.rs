@@ -1,7 +1,7 @@
-use crate::{
-    ActivityDrawerSlot, DocumentNode, MainHostPageLayout, MainPageId, ViewHost, ViewInstanceId,
-    WorkbenchLayout,
+use crate::ui::workbench::layout::{
+    ActivityDrawerSlot, DocumentNode, MainHostPageLayout, MainPageId, WorkbenchLayout,
 };
+use crate::ui::workbench::view::{ViewHost, ViewInstanceId};
 
 pub(crate) fn drop_host_for_group(
     layout: &WorkbenchLayout,

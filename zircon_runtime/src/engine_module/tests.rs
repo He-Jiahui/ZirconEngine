@@ -1,11 +1,78 @@
 use std::sync::Arc;
 
-use crate::core::{CoreRuntime, ModuleDescriptor, RegistryName, ServiceKind, StartupMode};
-
-use crate::{
-    dependency_on, driver_contract, factory, module_context, plugin_context, qualified_name,
-    stub_module_descriptor, stub_plugin_descriptor, EngineModule, EngineService,
+use crate::core::{
+    CoreRuntime, DriverDescriptor, ManagerDescriptor, ModuleDescriptor, PluginDescriptor,
+    RegistryName, ServiceKind, ServiceObject, StartupMode,
 };
+
+use super::{
+    dependency_on, driver_contract, factory, module_context, plugin_context, qualified_name,
+    EngineModule, EngineService,
+};
+
+fn stub_driver_descriptor(
+    module: &str,
+    service: &str,
+    startup_mode: StartupMode,
+) -> DriverDescriptor {
+    let name = qualified_name(module, ServiceKind::Driver, service);
+    let service_name = name.to_string();
+    DriverDescriptor::new(
+        name,
+        startup_mode,
+        Vec::new(),
+        Arc::new(move |_| Ok(Arc::new(service_name.clone()) as ServiceObject)),
+    )
+}
+
+fn stub_manager_descriptor(
+    module: &str,
+    service: &str,
+    startup_mode: StartupMode,
+) -> ManagerDescriptor {
+    let name = qualified_name(module, ServiceKind::Manager, service);
+    let service_name = name.to_string();
+    ManagerDescriptor::new(
+        name,
+        startup_mode,
+        Vec::new(),
+        Arc::new(move |_| Ok(Arc::new(service_name.clone()) as ServiceObject)),
+    )
+}
+
+fn stub_plugin_descriptor(
+    module: &str,
+    service: &str,
+    startup_mode: StartupMode,
+) -> PluginDescriptor {
+    let name = qualified_name(module, ServiceKind::Plugin, service);
+    let service_name = name.to_string();
+    PluginDescriptor::new(
+        name,
+        startup_mode,
+        Vec::new(),
+        Arc::new(move |_| Ok(Arc::new(service_name.clone()) as ServiceObject)),
+    )
+}
+
+fn stub_module_descriptor(
+    module: &str,
+    description: &str,
+    driver_service: &str,
+    manager_service: &str,
+) -> ModuleDescriptor {
+    ModuleDescriptor::new(module, description)
+        .with_driver(stub_driver_descriptor(
+            module,
+            driver_service,
+            StartupMode::Immediate,
+        ))
+        .with_manager(stub_manager_descriptor(
+            module,
+            manager_service,
+            StartupMode::Lazy,
+        ))
+}
 
 #[test]
 fn qualified_name_and_dependency_helpers_share_registry_shape() {
@@ -103,7 +170,7 @@ fn engine_module_contract_exposes_identity_and_descriptor() {
 
 #[test]
 fn driver_contract_preserves_descriptor_metadata() {
-    let descriptor = crate::stub_driver_descriptor("UiModule", "UiDriver", StartupMode::Lazy);
+    let descriptor = stub_driver_descriptor("UiModule", "UiDriver", StartupMode::Lazy);
     let contract = driver_contract("UiModule", &descriptor);
 
     assert_eq!(contract.owner_module(), "UiModule");

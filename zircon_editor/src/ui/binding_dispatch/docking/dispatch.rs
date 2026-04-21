@@ -1,9 +1,9 @@
-use crate::ui::{DockCommand, EditorUiBinding, EditorUiBindingPayload};
+use crate::core::editor_event::{LayoutCommand, MainPageId, ViewHost, ViewInstanceId};
+use crate::ui::binding::{DockCommand, EditorUiBinding, EditorUiBindingPayload};
 
 use super::super::error::EditorBindingDispatchError;
 use super::drawer_mode::parse_drawer_mode;
 use super::drawer_slot::parse_drawer_slot;
-use crate::{LayoutCommand, MainPageId, ViewHost, ViewInstanceId};
 
 pub fn dispatch_docking_binding(
     binding: &EditorUiBinding,

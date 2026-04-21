@@ -1,4 +1,4 @@
-use crate::ViewportState;
+use crate::scene::viewport::ViewportState;
 use crate::scene::viewport::{SceneViewportSettings, ViewportCameraSnapshot};
 use zircon_runtime::core::math::Vec3;
 

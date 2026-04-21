@@ -1,5 +1,5 @@
 use super::super::error::EditorBindingDispatchError;
-use crate::ActivityDrawerMode;
+use crate::core::editor_event::ActivityDrawerMode;
 
 pub(super) fn parse_drawer_mode(
     mode: &str,

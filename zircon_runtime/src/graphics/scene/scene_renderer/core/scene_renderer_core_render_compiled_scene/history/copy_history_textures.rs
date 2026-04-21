@@ -21,6 +21,13 @@ impl SceneRendererCore {
                     texture_extent(target.size),
                 );
             }
+            if runtime_features.hybrid_global_illumination_enabled {
+                encoder.copy_texture_to_texture(
+                    target.global_illumination.as_image_copy(),
+                    history.global_illumination.as_image_copy(),
+                    texture_extent(target.size),
+                );
+            }
             if runtime_features.ssao_enabled {
                 encoder.copy_texture_to_texture(
                     target.ambient_occlusion.as_image_copy(),

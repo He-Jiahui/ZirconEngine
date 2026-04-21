@@ -1,4 +1,4 @@
-use crate::GizmoAxis;
+use crate::scene::viewport::GizmoAxis;
 use zircon_runtime::core::math::Quat;
 
 use super::{global_axis, local_axis};

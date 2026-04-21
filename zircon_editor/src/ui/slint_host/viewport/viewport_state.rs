@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use slint::Image;
 use crate::scene::viewport::RenderFramework;
+use slint::Image;
 
 use super::active_viewport::ActiveViewport;
 

@@ -1,16 +1,17 @@
-use crate::core::CoreError;
 use crate::core::resource::{
-    AnimationClipMarker, AnimationGraphMarker, AnimationSequenceMarker,
-    AnimationSkeletonMarker, AnimationStateMachineMarker, MaterialMarker, ModelMarker,
-    PhysicsMaterialMarker, ResourceHandle, SceneMarker, ShaderMarker, TextureMarker,
-    UiLayoutMarker, UiStyleMarker, UiWidgetMarker,
+    AnimationClipMarker, AnimationGraphMarker, AnimationSequenceMarker, AnimationSkeletonMarker,
+    AnimationStateMachineMarker, FontMarker, MaterialMarker, ModelMarker, PhysicsMaterialMarker,
+    ResourceHandle, SceneMarker, ShaderMarker, SoundMarker, TextureMarker, UiLayoutMarker,
+    UiStyleMarker, UiWidgetMarker,
 };
+use crate::core::CoreError;
 
 use super::super::ProjectAssetManager;
 use crate::asset::{
     AnimationClipAsset, AnimationGraphAsset, AnimationSequenceAsset, AnimationSkeletonAsset,
-    AnimationStateMachineAsset, AssetId, MaterialAsset, ModelAsset, PhysicsMaterialAsset,
-    SceneAsset, ShaderAsset, TextureAsset, UiLayoutAsset, UiStyleAsset, UiWidgetAsset,
+    AnimationStateMachineAsset, AssetId, FontAsset, MaterialAsset, ModelAsset,
+    PhysicsMaterialAsset, SceneAsset, ShaderAsset, SoundAsset, TextureAsset, UiLayoutAsset,
+    UiStyleAsset, UiWidgetAsset,
 };
 
 impl ProjectAssetManager {
@@ -43,6 +44,14 @@ impl ProjectAssetManager {
 
     pub fn load_scene_asset(&self, id: AssetId) -> Result<SceneAsset, CoreError> {
         self.load_typed(id, ResourceHandle::<SceneMarker>::new(id), "scene")
+    }
+
+    pub fn load_sound_asset(&self, id: AssetId) -> Result<SoundAsset, CoreError> {
+        self.load_typed(id, ResourceHandle::<SoundMarker>::new(id), "sound")
+    }
+
+    pub fn load_font_asset(&self, id: AssetId) -> Result<FontAsset, CoreError> {
+        self.load_typed(id, ResourceHandle::<FontMarker>::new(id), "font")
     }
 
     pub fn load_animation_skeleton_asset(

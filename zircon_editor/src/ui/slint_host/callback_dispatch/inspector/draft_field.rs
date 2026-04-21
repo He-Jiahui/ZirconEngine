@@ -1,4 +1,4 @@
-use crate::ui::{
+use crate::ui::binding::{
     inspector_field_control_id, DraftCommand, EditorUiBinding, EditorUiBindingPayload,
 };
 use zircon_runtime::ui::binding::UiBindingValue;
@@ -24,7 +24,7 @@ pub(crate) fn dispatch_inspector_draft_field(
         EditorUiBinding::new(
             "InspectorView",
             control_id,
-            crate::ui::EditorUiEventKind::Change,
+            crate::ui::binding::EditorUiEventKind::Change,
             EditorUiBindingPayload::draft_command(DraftCommand::SetInspectorField {
                 subject_path: subject_path.into(),
                 field_id,

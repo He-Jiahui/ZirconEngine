@@ -4,6 +4,8 @@ mod editor_session_mode;
 mod editor_startup_session_document;
 mod editor_startup_session_document_default;
 mod editor_startup_session_document_welcome_pane_snapshot;
+mod editor_state_construction;
+mod editor_state_project;
 mod format_recent_project_time;
 mod new_project_draft;
 mod new_project_draft_project_root;

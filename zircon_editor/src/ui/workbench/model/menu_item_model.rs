@@ -1,6 +1,5 @@
-use crate::ui::EditorUiBinding;
-
-use super::menu_action::MenuAction;
+use crate::core::editor_event::MenuAction;
+use crate::ui::binding::EditorUiBinding;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct MenuItemModel {

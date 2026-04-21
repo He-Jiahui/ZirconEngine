@@ -1,0 +1,207 @@
+stylesheets = []
+
+[asset]
+kind = "layout"
+id = "editor.host.startup_welcome_controls"
+version = 1
+display_name = "startup welcome controls"
+
+[imports]
+widgets = []
+styles = []
+
+[tokens]
+
+[root]
+node_id = "root"
+kind = "component"
+component = "WelcomeSurfaceControls"
+classes = []
+bindings = []
+children = []
+
+[root.params]
+
+[root.props]
+
+[root.style_overrides.self]
+
+[root.style_overrides.slot]
+
+[components.WelcomeSurfaceControls]
+style_scope = "closed"
+
+[components.WelcomeSurfaceControls.root]
+node_id = "component_WelcomeSurfaceControls_root"
+kind = "native"
+type = "WelcomeSurfaceControls"
+classes = []
+bindings = []
+
+[components.WelcomeSurfaceControls.root.params]
+
+[components.WelcomeSurfaceControls.root.props]
+
+[components.WelcomeSurfaceControls.root.style_overrides.self]
+
+[components.WelcomeSurfaceControls.root.style_overrides.slot]
+
+[[components.WelcomeSurfaceControls.root.children]]
+
+[components.WelcomeSurfaceControls.root.children.slot]
+
+[components.WelcomeSurfaceControls.root.children.node]
+node_id = "component_WelcomeSurfaceControls_root_0"
+kind = "native"
+type = "UiHostIconButton"
+control_id = "ProjectNameEdited"
+classes = []
+children = []
+
+[components.WelcomeSurfaceControls.root.children.node.params]
+
+[components.WelcomeSurfaceControls.root.children.node.props]
+label = "ProjectNameEdited"
+
+[[components.WelcomeSurfaceControls.root.children.node.bindings]]
+id = "WelcomeSurface/ProjectNameEdited"
+event = "Change"
+route = "WelcomeCommand.SetProjectName"
+
+[components.WelcomeSurfaceControls.root.children.node.style_overrides.self]
+
+[components.WelcomeSurfaceControls.root.children.node.style_overrides.slot]
+
+[[components.WelcomeSurfaceControls.root.children]]
+
+[components.WelcomeSurfaceControls.root.children.slot]
+
+[components.WelcomeSurfaceControls.root.children.node]
+node_id = "component_WelcomeSurfaceControls_root_1"
+kind = "native"
+type = "UiHostIconButton"
+control_id = "LocationEdited"
+classes = []
+children = []
+
+[components.WelcomeSurfaceControls.root.children.node.params]
+
+[components.WelcomeSurfaceControls.root.children.node.props]
+label = "LocationEdited"
+
+[[components.WelcomeSurfaceControls.root.children.node.bindings]]
+id = "WelcomeSurface/LocationEdited"
+event = "Change"
+route = "WelcomeCommand.SetLocation"
+
+[components.WelcomeSurfaceControls.root.children.node.style_overrides.self]
+
+[components.WelcomeSurfaceControls.root.children.node.style_overrides.slot]
+
+[[components.WelcomeSurfaceControls.root.children]]
+
+[components.WelcomeSurfaceControls.root.children.slot]
+
+[components.WelcomeSurfaceControls.root.children.node]
+node_id = "component_WelcomeSurfaceControls_root_2"
+kind = "native"
+type = "UiHostIconButton"
+control_id = "CreateProject"
+classes = []
+children = []
+
+[components.WelcomeSurfaceControls.root.children.node.params]
+
+[components.WelcomeSurfaceControls.root.children.node.props]
+label = "CreateProject"
+
+[[components.WelcomeSurfaceControls.root.children.node.bindings]]
+id = "WelcomeSurface/CreateProject"
+event = "Click"
+route = "WelcomeCommand.CreateProject"
+
+[components.WelcomeSurfaceControls.root.children.node.style_overrides.self]
+
+[components.WelcomeSurfaceControls.root.children.node.style_overrides.slot]
+
+[[components.WelcomeSurfaceControls.root.children]]
+
+[components.WelcomeSurfaceControls.root.children.slot]
+
+[components.WelcomeSurfaceControls.root.children.node]
+node_id = "component_WelcomeSurfaceControls_root_3"
+kind = "native"
+type = "UiHostIconButton"
+control_id = "OpenExistingProject"
+classes = []
+children = []
+
+[components.WelcomeSurfaceControls.root.children.node.params]
+
+[components.WelcomeSurfaceControls.root.children.node.props]
+label = "OpenExistingProject"
+
+[[components.WelcomeSurfaceControls.root.children.node.bindings]]
+id = "WelcomeSurface/OpenExistingProject"
+event = "Click"
+route = "WelcomeCommand.OpenExistingProject"
+
+[components.WelcomeSurfaceControls.root.children.node.style_overrides.self]
+
+[components.WelcomeSurfaceControls.root.children.node.style_overrides.slot]
+
+[[components.WelcomeSurfaceControls.root.children]]
+
+[components.WelcomeSurfaceControls.root.children.slot]
+
+[components.WelcomeSurfaceControls.root.children.node]
+node_id = "component_WelcomeSurfaceControls_root_4"
+kind = "native"
+type = "UiHostIconButton"
+control_id = "OpenRecentProject"
+classes = []
+children = []
+
+[components.WelcomeSurfaceControls.root.children.node.params]
+
+[components.WelcomeSurfaceControls.root.children.node.props]
+label = "OpenRecentProject"
+
+[[components.WelcomeSurfaceControls.root.children.node.bindings]]
+id = "WelcomeSurface/OpenRecentProject"
+event = "Click"
+route = "WelcomeCommand.OpenRecentProject"
+
+[components.WelcomeSurfaceControls.root.children.node.style_overrides.self]
+
+[components.WelcomeSurfaceControls.root.children.node.style_overrides.slot]
+
+[[components.WelcomeSurfaceControls.root.children]]
+
+[components.WelcomeSurfaceControls.root.children.slot]
+
+[components.WelcomeSurfaceControls.root.children.node]
+node_id = "component_WelcomeSurfaceControls_root_5"
+kind = "native"
+type = "UiHostIconButton"
+control_id = "RemoveRecentProject"
+classes = []
+children = []
+
+[components.WelcomeSurfaceControls.root.children.node.params]
+
+[components.WelcomeSurfaceControls.root.children.node.props]
+label = "RemoveRecentProject"
+
+[[components.WelcomeSurfaceControls.root.children.node.bindings]]
+id = "WelcomeSurface/RemoveRecentProject"
+event = "Click"
+route = "WelcomeCommand.RemoveRecentProject"
+
+[components.WelcomeSurfaceControls.root.children.node.style_overrides.self]
+
+[components.WelcomeSurfaceControls.root.children.node.style_overrides.slot]
+
+[components.WelcomeSurfaceControls.params]
+
+[components.WelcomeSurfaceControls.slots]

@@ -1,0 +1,207 @@
+import { EmptyStateCard } from "chrome.slint";
+import { AnimationEditorPane } from "animation_editor_pane.slint";
+import { AssetBrowserPane, AssetsActivityPane, ProjectOverviewPane } from "asset_panes.slint";
+import { AssetFolderData, AssetItemData, AssetReferenceData, AssetSelectionData } from "assets.slint";
+import { ConsolePane, FallbackPane, HierarchyPane, InspectorPane, ToolWindowEmptyState } from "panes.slint";
+import { PaneData, ProjectOverviewData, SceneNodeData } from "pane_data.slint";
+import { PaneSurfaceHostContext } from "pane_surface_host_context.slint";
+import { UiAssetEditorPane } from "ui_asset_editor_pane.slint";
+import { RecentProjectData, WelcomePane, WelcomePaneData } from "welcome.slint";
+
+export component PaneContent inherits Rectangle {
+    in property <PaneData> pane;
+    in property <string> project_path;
+    in property <bool> compact_empty: true;
+    background: transparent;
+    clip: true;
+
+    property <string> empty_eyebrow:
+        root.pane.kind == "Project" || root.pane.kind == "Assets" ? "Workspace" :
+        root.pane.kind == "Console" ? "Task Output" :
+        "";
+
+    if root.pane.kind == "Welcome": WelcomePane {
+        width: parent.width;
+        height: parent.height;
+        welcome: PaneSurfaceHostContext.welcome_pane;
+        recent_projects: PaneSurfaceHostContext.recent_projects;
+        hovered_recent_project_index: PaneSurfaceHostContext.hovered_welcome_recent_index;
+        hovered_recent_action: PaneSurfaceHostContext.hovered_welcome_recent_action;
+        recent_projects_scroll_px: PaneSurfaceHostContext.welcome_recent_scroll_px;
+        control_changed(control_id, value) => { PaneSurfaceHostContext.welcome_control_changed(control_id, value); }
+        control_clicked(control_id) => { PaneSurfaceHostContext.welcome_control_clicked(control_id); }
+        recent_projects_pointer_clicked(x, y, width, height) => { PaneSurfaceHostContext.welcome_recent_pointer_clicked(x, y, width, height); }
+        recent_projects_pointer_moved(x, y, width, height) => { PaneSurfaceHostContext.welcome_recent_pointer_moved(x, y, width, height); }
+        recent_projects_pointer_scrolled(x, y, delta, width, height) => { PaneSurfaceHostContext.welcome_recent_pointer_scrolled(x, y, delta, width, height); }
+    }
+
+    if root.pane.show_empty && root.pane.kind != "Console" && root.compact_empty: ToolWindowEmptyState {
+        width: parent.width;
+        height: parent.height;
+        eyebrow: root.empty_eyebrow;
+        title: root.pane.empty_title;
+        body: root.pane.empty_body;
+        primary_action_label: root.pane.primary_action_label;
+        primary_action_id: root.pane.primary_action_id;
+        secondary_hint: root.pane.secondary_hint;
+        trigger_action(action_id) => { PaneSurfaceHostContext.surface_control_clicked("TriggerAction", action_id); }
+    }
+
+    if root.pane.show_empty && root.pane.kind != "Console" && !root.compact_empty: EmptyStateCard {
+        width: parent.width;
+        height: parent.height;
+        compact: false;
+        eyebrow: root.empty_eyebrow;
+        title: root.pane.empty_title;
+        body: root.pane.empty_body;
+        primary_action_label: root.pane.primary_action_label;
+        primary_action_id: root.pane.primary_action_id;
+        secondary_action_label: root.pane.secondary_action_label;
+        secondary_action_id: root.pane.secondary_action_id;
+        secondary_hint: root.pane.secondary_hint;
+        trigger_action(action_id) => { PaneSurfaceHostContext.surface_control_clicked("TriggerAction", action_id); }
+    }
+
+    if !root.pane.show_empty && root.pane.kind == "Project": ProjectOverviewPane {
+        width: parent.width;
+        height: parent.height;
+        project: PaneSurfaceHostContext.project_overview;
+        surface_control_clicked(control_id, action_id) => { PaneSurfaceHostContext.surface_control_clicked(control_id, action_id); }
+        asset_control_clicked(control_id) => { PaneSurfaceHostContext.asset_control_clicked("project", control_id); }
+    }
+
+    if !root.pane.show_empty && root.pane.kind == "Assets": AssetsActivityPane {
+        width: parent.width;
+        height: parent.height;
+        folder_tree: PaneSurfaceHostContext.activity_asset_tree_folders;
+        content_folders: PaneSurfaceHostContext.activity_asset_content_folders;
+        content_items: PaneSurfaceHostContext.activity_asset_content_items;
+        selection: PaneSurfaceHostContext.activity_asset_selection;
+        references: PaneSurfaceHostContext.activity_asset_references;
+        used_by: PaneSurfaceHostContext.activity_asset_used_by;
+        search_query: PaneSurfaceHostContext.activity_asset_search_query;
+        kind_filter: PaneSurfaceHostContext.activity_asset_kind_filter;
+        view_mode: PaneSurfaceHostContext.activity_asset_view_mode;
+        utility_tab: PaneSurfaceHostContext.activity_asset_utility_tab;
+        tree_hovered_index: PaneSurfaceHostContext.activity_asset_tree_hovered_index;
+        tree_scroll_px: PaneSurfaceHostContext.activity_asset_tree_scroll_px;
+        content_hovered_index: PaneSurfaceHostContext.activity_asset_content_hovered_index;
+        content_scroll_px: PaneSurfaceHostContext.activity_asset_content_scroll_px;
+        references_hovered_index: PaneSurfaceHostContext.activity_asset_references_hovered_index;
+        references_scroll_px: PaneSurfaceHostContext.activity_asset_references_scroll_px;
+        used_by_hovered_index: PaneSurfaceHostContext.activity_asset_used_by_hovered_index;
+        used_by_scroll_px: PaneSurfaceHostContext.activity_asset_used_by_scroll_px;
+        control_changed(control_id, value) => { PaneSurfaceHostContext.asset_control_changed("activity", control_id, value); }
+        control_clicked(control_id) => { PaneSurfaceHostContext.asset_control_clicked("activity", control_id); }
+        tree_pointer_clicked(x, y, width, height) => { PaneSurfaceHostContext.asset_tree_pointer_clicked("activity", x, y, width, height); }
+        tree_pointer_moved(x, y, width, height) => { PaneSurfaceHostContext.asset_tree_pointer_moved("activity", x, y, width, height); }
+        tree_pointer_scrolled(x, y, delta, width, height) => { PaneSurfaceHostContext.asset_tree_pointer_scrolled("activity", x, y, delta, width, height); }
+        content_pointer_clicked(x, y, width, height) => { PaneSurfaceHostContext.asset_content_pointer_clicked("activity", x, y, width, height); }
+        content_pointer_moved(x, y, width, height) => { PaneSurfaceHostContext.asset_content_pointer_moved("activity", x, y, width, height); }
+        content_pointer_scrolled(x, y, delta, width, height) => { PaneSurfaceHostContext.asset_content_pointer_scrolled("activity", x, y, delta, width, height); }
+        reference_pointer_clicked(list_kind, x, y, width, height) => { PaneSurfaceHostContext.asset_reference_pointer_clicked("activity", list_kind, x, y, width, height); }
+        reference_pointer_moved(list_kind, x, y, width, height) => { PaneSurfaceHostContext.asset_reference_pointer_moved("activity", list_kind, x, y, width, height); }
+        reference_pointer_scrolled(list_kind, x, y, delta, width, height) => { PaneSurfaceHostContext.asset_reference_pointer_scrolled("activity", list_kind, x, y, delta, width, height); }
+    }
+
+    if !root.pane.show_empty && root.pane.kind == "AssetBrowser": AssetBrowserPane {
+        width: parent.width;
+        height: parent.height;
+        project: PaneSurfaceHostContext.project_overview;
+        folder_tree: PaneSurfaceHostContext.browser_asset_tree_folders;
+        content_folders: PaneSurfaceHostContext.browser_asset_content_folders;
+        content_items: PaneSurfaceHostContext.browser_asset_content_items;
+        selection: PaneSurfaceHostContext.browser_asset_selection;
+        references: PaneSurfaceHostContext.browser_asset_references;
+        used_by: PaneSurfaceHostContext.browser_asset_used_by;
+        search_query: PaneSurfaceHostContext.browser_asset_search_query;
+        kind_filter: PaneSurfaceHostContext.browser_asset_kind_filter;
+        view_mode: PaneSurfaceHostContext.browser_asset_view_mode;
+        utility_tab: PaneSurfaceHostContext.browser_asset_utility_tab;
+        tree_hovered_index: PaneSurfaceHostContext.browser_asset_tree_hovered_index;
+        tree_scroll_px: PaneSurfaceHostContext.browser_asset_tree_scroll_px;
+        content_hovered_index: PaneSurfaceHostContext.browser_asset_content_hovered_index;
+        content_scroll_px: PaneSurfaceHostContext.browser_asset_content_scroll_px;
+        references_hovered_index: PaneSurfaceHostContext.browser_asset_references_hovered_index;
+        references_scroll_px: PaneSurfaceHostContext.browser_asset_references_scroll_px;
+        used_by_hovered_index: PaneSurfaceHostContext.browser_asset_used_by_hovered_index;
+        used_by_scroll_px: PaneSurfaceHostContext.browser_asset_used_by_scroll_px;
+        details_scroll_px: PaneSurfaceHostContext.browser_asset_details_scroll_px;
+        mesh_import_path <=> PaneSurfaceHostContext.mesh_import_path;
+        control_changed(control_id, value) => { PaneSurfaceHostContext.asset_control_changed("browser", control_id, value); }
+        control_clicked(control_id) => { PaneSurfaceHostContext.asset_control_clicked("browser", control_id); }
+        tree_pointer_clicked(x, y, width, height) => { PaneSurfaceHostContext.asset_tree_pointer_clicked("browser", x, y, width, height); }
+        tree_pointer_moved(x, y, width, height) => { PaneSurfaceHostContext.asset_tree_pointer_moved("browser", x, y, width, height); }
+        tree_pointer_scrolled(x, y, delta, width, height) => { PaneSurfaceHostContext.asset_tree_pointer_scrolled("browser", x, y, delta, width, height); }
+        content_pointer_clicked(x, y, width, height) => { PaneSurfaceHostContext.asset_content_pointer_clicked("browser", x, y, width, height); }
+        content_pointer_moved(x, y, width, height) => { PaneSurfaceHostContext.asset_content_pointer_moved("browser", x, y, width, height); }
+        content_pointer_scrolled(x, y, delta, width, height) => { PaneSurfaceHostContext.asset_content_pointer_scrolled("browser", x, y, delta, width, height); }
+        reference_pointer_clicked(list_kind, x, y, width, height) => { PaneSurfaceHostContext.asset_reference_pointer_clicked("browser", list_kind, x, y, width, height); }
+        reference_pointer_moved(list_kind, x, y, width, height) => { PaneSurfaceHostContext.asset_reference_pointer_moved("browser", list_kind, x, y, width, height); }
+        reference_pointer_scrolled(list_kind, x, y, delta, width, height) => { PaneSurfaceHostContext.asset_reference_pointer_scrolled("browser", list_kind, x, y, delta, width, height); }
+        details_pointer_scrolled(x, y, delta, width, height) => { PaneSurfaceHostContext.browser_asset_details_pointer_scrolled(x, y, delta, width, height); }
+        mesh_import_path_edited(value) => { PaneSurfaceHostContext.mesh_import_path_edited(value); }
+    }
+
+    if !root.pane.show_empty && root.pane.kind == "Hierarchy": HierarchyPane {
+        width: parent.width;
+        height: parent.height;
+        hierarchy_nodes: PaneSurfaceHostContext.hierarchy_nodes;
+        hovered_index: PaneSurfaceHostContext.hovered_hierarchy_index;
+        scroll_px: PaneSurfaceHostContext.hierarchy_scroll_px;
+        pointer_clicked(x, y, width, height) => { PaneSurfaceHostContext.hierarchy_pointer_clicked(x, y, width, height); }
+        pointer_moved(x, y, width, height) => { PaneSurfaceHostContext.hierarchy_pointer_moved(x, y, width, height); }
+        pointer_scrolled(x, y, delta, width, height) => { PaneSurfaceHostContext.hierarchy_pointer_scrolled(x, y, delta, width, height); }
+    }
+
+    if !root.pane.show_empty && root.pane.kind == "Inspector": InspectorPane {
+        width: parent.width;
+        height: parent.height;
+        info: root.pane.info;
+        inspector_name: PaneSurfaceHostContext.inspector_name;
+        inspector_parent: PaneSurfaceHostContext.inspector_parent;
+        inspector_x: PaneSurfaceHostContext.inspector_x;
+        inspector_y: PaneSurfaceHostContext.inspector_y;
+        inspector_z: PaneSurfaceHostContext.inspector_z;
+        scroll_px: PaneSurfaceHostContext.inspector_scroll_px;
+        delete_enabled: PaneSurfaceHostContext.delete_enabled;
+        pointer_scrolled(x, y, delta, width, height) => { PaneSurfaceHostContext.inspector_pointer_scrolled(x, y, delta, width, height); }
+        control_changed(control_id, value) => { PaneSurfaceHostContext.inspector_control_changed(control_id, value); }
+        control_clicked(control_id) => { PaneSurfaceHostContext.inspector_control_clicked(control_id); }
+    }
+
+    if root.pane.kind == "Console": ConsolePane {
+        width: parent.width;
+        height: parent.height;
+        show_empty: root.pane.show_empty;
+        empty_title: root.pane.empty_title;
+        empty_body: root.pane.empty_body;
+        status_text: PaneSurfaceHostContext.status_text;
+        scroll_px: PaneSurfaceHostContext.console_scroll_px;
+        pointer_scrolled(x, y, delta, width, height) => { PaneSurfaceHostContext.console_pointer_scrolled(x, y, delta, width, height); }
+    }
+
+    if !root.pane.show_empty && root.pane.kind == "UiAssetEditor": UiAssetEditorPane {
+        width: parent.width;
+        height: parent.height;
+        pane: root.pane.ui_asset;
+        action(action_id) => { PaneSurfaceHostContext.ui_asset_action(root.pane.id, action_id); }
+        detail_event(detail_id, action_id, item_index, primary, secondary) => { PaneSurfaceHostContext.ui_asset_detail_event(root.pane.id, detail_id, action_id, item_index, primary, secondary); }
+        collection_event(collection_id, event_kind, item_index) => { PaneSurfaceHostContext.ui_asset_collection_event(root.pane.id, collection_id, event_kind, item_index); }
+    }
+
+    if !root.pane.show_empty && (root.pane.kind == "AnimationSequenceEditor" || root.pane.kind == "AnimationGraphEditor"): AnimationEditorPane {
+        width: parent.width;
+        height: parent.height;
+        pane: root.pane.animation;
+    }
+
+    if !root.pane.show_empty && !(root.pane.kind == "Project" || root.pane.kind == "Assets" || root.pane.kind == "Hierarchy" || root.pane.kind == "Inspector" || root.pane.kind == "Console" || root.pane.kind == "AssetBrowser" || root.pane.kind == "UiAssetEditor" || root.pane.kind == "AnimationSequenceEditor" || root.pane.kind == "AnimationGraphEditor"): FallbackPane {
+        width: parent.width;
+        height: parent.height;
+        compact: root.compact_empty;
+        title: root.pane.title;
+        body: root.pane.info;
+        hint: root.pane.subtitle;
+    }
+}

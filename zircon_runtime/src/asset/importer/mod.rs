@@ -1,5 +1,5 @@
 mod error;
-mod service;
+mod ingest;
 
 pub use error::AssetImportError;
-pub use service::AssetImporter;
+pub use ingest::AssetImporter;

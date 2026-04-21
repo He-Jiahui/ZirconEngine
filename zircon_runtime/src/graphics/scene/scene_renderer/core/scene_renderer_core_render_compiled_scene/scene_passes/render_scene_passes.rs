@@ -1,6 +1,6 @@
 use crate::graphics::backend::OffscreenTarget;
 use crate::graphics::scene::resources::ResourceStreamer;
-use crate::graphics::types::EditorOrRuntimeFrame;
+use crate::graphics::types::ViewportRenderFrame;
 
 use super::super::super::super::mesh::MeshDraw;
 use super::super::super::super::post_process::SceneRuntimeFeatureFlags;
@@ -13,7 +13,7 @@ impl SceneRendererCore {
         device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
         streamer: &ResourceStreamer,
-        frame: &EditorOrRuntimeFrame,
+        frame: &ViewportRenderFrame,
         target: &mut OffscreenTarget,
         runtime_features: SceneRuntimeFeatureFlags,
         mesh_draws: &[MeshDraw],

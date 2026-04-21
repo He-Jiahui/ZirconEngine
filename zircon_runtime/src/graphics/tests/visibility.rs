@@ -364,6 +364,8 @@ fn visibility_context_builds_virtual_geometry_visibility_feedback_and_page_plan(
             virtual_page(300, false),
             virtual_page(500, true),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     });
 
     let context = VisibilityContext::from(&extract);
@@ -441,6 +443,8 @@ fn visibility_context_with_history_tracks_virtual_geometry_requested_pages() {
             virtual_page(300, false),
             virtual_page(700, true),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     });
     let previous_context = VisibilityContext::from(&previous_extract);
 
@@ -459,6 +463,8 @@ fn visibility_context_with_history_tracks_virtual_geometry_requested_pages() {
             virtual_page(600, false),
             virtual_page(700, true),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     });
 
     let context = VisibilityContext::from_extract_with_history(
@@ -518,6 +524,8 @@ fn visibility_context_refines_virtual_geometry_parent_cluster_into_visible_child
             virtual_page(200, true),
             virtual_page(300, true),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     });
 
     let context = VisibilityContext::from(&extract);
@@ -593,6 +601,8 @@ fn visibility_context_keeps_parent_virtual_geometry_cluster_visible_while_reques
             virtual_page(200, false),
             virtual_page(300, false),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     });
 
     let context = VisibilityContext::from(&extract);
@@ -661,6 +671,8 @@ fn visibility_context_keeps_resident_virtual_geometry_children_visible_while_req
             virtual_page(400, false),
             virtual_page(500, false),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     });
 
     let context = VisibilityContext::from(&extract);
@@ -735,6 +747,8 @@ fn visibility_context_holds_resident_parent_one_frame_after_requested_children_b
             virtual_page(200, false),
             virtual_page(300, false),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     });
     let previous_context = VisibilityContext::from(&previous_extract);
 
@@ -752,6 +766,8 @@ fn visibility_context_holds_resident_parent_one_frame_after_requested_children_b
             virtual_page(200, true),
             virtual_page(300, true),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     });
 
     let held_context = VisibilityContext::from_extract_with_history(
@@ -889,6 +905,8 @@ fn visibility_context_holds_resident_child_page_one_frame_when_frontier_merges_b
             virtual_page(200, true),
             virtual_page(300, true),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     });
     let previous_context = VisibilityContext::from(&previous_extract);
 
@@ -912,6 +930,8 @@ fn visibility_context_holds_resident_child_page_one_frame_when_frontier_merges_b
             virtual_page(200, true),
             virtual_page(300, false),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     });
 
     let held_context = VisibilityContext::from_extract_with_history(
@@ -1003,6 +1023,8 @@ fn visibility_context_keeps_resident_child_frontier_hot_across_repeated_budget_c
             virtual_page(200, true),
             virtual_page(300, true),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     });
     let previous_context = VisibilityContext::from(&previous_extract);
 
@@ -1026,6 +1048,8 @@ fn visibility_context_keeps_resident_child_frontier_hot_across_repeated_budget_c
             virtual_page(200, true),
             virtual_page(300, true),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     });
 
     let first_collapsed_context = VisibilityContext::from_extract_with_history(
@@ -1101,6 +1125,8 @@ fn visibility_context_requests_nonresident_ancestor_page_and_holds_descendants_w
             virtual_page(400, true),
             virtual_page(500, true),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     });
     let previous_context = VisibilityContext::from(&previous_extract);
 
@@ -1128,6 +1154,8 @@ fn visibility_context_requests_nonresident_ancestor_page_and_holds_descendants_w
             virtual_page(400, true),
             virtual_page(500, true),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     });
 
     let context = VisibilityContext::from_extract_with_history(
@@ -1200,6 +1228,8 @@ fn visibility_context_keeps_resident_grandchild_pages_hot_while_multi_level_casc
             virtual_page(400, true),
             virtual_page(500, true),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     });
     let previous_context = VisibilityContext::from(&previous_extract);
 
@@ -1221,6 +1251,8 @@ fn visibility_context_keeps_resident_grandchild_pages_hot_while_multi_level_casc
             virtual_page(400, true),
             virtual_page(500, true),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     });
 
     let held_context = VisibilityContext::from_extract_with_history(
@@ -1283,6 +1315,8 @@ fn visibility_context_keeps_intermediate_virtual_geometry_lineage_pages_hot_whil
             virtual_page(300, true),
             virtual_page(400, true),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     });
     let previous_context = VisibilityContext::from(&previous_extract);
 
@@ -1308,6 +1342,8 @@ fn visibility_context_keeps_intermediate_virtual_geometry_lineage_pages_hot_whil
             virtual_page(300, true),
             virtual_page(400, true),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     });
 
     let context = VisibilityContext::from_extract_with_history(
@@ -1380,6 +1416,8 @@ fn visibility_context_only_holds_requested_virtual_geometry_lineage_when_frontie
             virtual_page(400, true),
             virtual_page(500, true),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     });
     let previous_context = VisibilityContext::from(&previous_extract);
 
@@ -1407,6 +1445,8 @@ fn visibility_context_only_holds_requested_virtual_geometry_lineage_when_frontie
             virtual_page(400, true),
             virtual_page(500, true),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     });
 
     let held_context = VisibilityContext::from_extract_with_history(
@@ -1471,6 +1511,8 @@ fn visibility_context_splits_virtual_geometry_draw_segments_across_parent_lineag
             virtual_page(300, true),
             virtual_page(400, true),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     });
 
     let context = VisibilityContext::from(&extract);
@@ -1555,6 +1597,8 @@ fn visibility_context_keeps_parent_virtual_geometry_cluster_when_children_exceed
             virtual_page(300, false),
             virtual_page(400, false),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     });
 
     let context = VisibilityContext::from(&extract);
@@ -1610,6 +1654,8 @@ fn visibility_context_prioritizes_virtual_geometry_pages_backing_more_visible_cl
             virtual_page(200, false),
             virtual_page(500, true),
         ],
+        instances: Vec::new(),
+        debug: Default::default(),
     });
 
     let context = VisibilityContext::from(&extract);
@@ -1659,6 +1705,8 @@ fn visibility_context_uses_aggregate_screen_space_error_to_break_virtual_geometr
             virtual_cluster(mesh, 21, 200, 0, None, Vec3::new(-0.2, 0.0, 0.0), 5.0),
         ],
         pages: vec![virtual_page(100, false), virtual_page(200, false)],
+        instances: Vec::new(),
+        debug: Default::default(),
     });
 
     let context = VisibilityContext::from(&extract);

@@ -1,6 +1,6 @@
 use crate::core::framework::render::FrameHistoryHandle;
 
-use crate::graphics::types::{EditorOrRuntimeFrame, GraphicsError, ViewportFrame};
+use crate::graphics::types::{GraphicsError, ViewportFrame, ViewportRenderFrame};
 use crate::CompiledRenderPipeline;
 
 use super::super::runtime_features::runtime_features_from_pipeline;
@@ -15,7 +15,7 @@ use super::super::target_extent::viewport_size;
 impl SceneRenderer {
     pub(crate) fn render_frame_with_pipeline(
         &mut self,
-        frame: &EditorOrRuntimeFrame,
+        frame: &ViewportRenderFrame,
         pipeline: &CompiledRenderPipeline,
         history_handle: Option<FrameHistoryHandle>,
     ) -> Result<ViewportFrame, GraphicsError> {
@@ -32,23 +32,7 @@ impl SceneRenderer {
         ensure_offscreen_target(&self.backend.device, &mut self.target, size);
         let runtime_features = runtime_features_from_pipeline(pipeline);
 
-        let runtime_outputs: (
-            Option<crate::graphics::scene::scene_renderer::HybridGiGpuPendingReadback>,
-            Option<crate::graphics::scene::scene_renderer::VirtualGeometryGpuPendingReadback>,
-            u32,
-            u32,
-            u32,
-            Vec<(u64, u32)>,
-            Vec<(u64, u32, u64, usize)>,
-            Vec<(u64, u32, u32, u32, usize)>,
-            Option<std::sync::Arc<wgpu::Buffer>>,
-            u32,
-            Option<std::sync::Arc<wgpu::Buffer>>,
-            Option<std::sync::Arc<wgpu::Buffer>>,
-            Option<std::sync::Arc<wgpu::Buffer>>,
-            Option<std::sync::Arc<wgpu::Buffer>>,
-            Option<std::sync::Arc<wgpu::Buffer>>,
-        ) = {
+        let runtime_outputs = {
             let (history_textures, history_available) = prepare_history_textures(
                 &self.backend.device,
                 &self.backend.queue,
@@ -76,34 +60,76 @@ impl SceneRenderer {
             indirect_draw_count,
             indirect_buffer_count,
             indirect_segment_count,
+            execution_segment_count,
+            execution_page_count,
+            execution_resident_segment_count,
+            execution_pending_segment_count,
+            execution_missing_segment_count,
+            execution_repeated_draw_count,
+            execution_indirect_offsets,
+            execution_segments,
+            executed_selected_cluster_count,
+            executed_selected_cluster_buffer,
+            hardware_rasterization_records,
+            hardware_rasterization_source,
+            hardware_rasterization_record_count,
+            hardware_rasterization_buffer,
+            visbuffer64_clear_value,
+            visbuffer64_source,
+            visbuffer64_entry_count,
+            visbuffer64_buffer,
             indirect_draw_submission_order,
             indirect_draw_submission_records,
             indirect_draw_submission_token_records,
             indirect_args_buffer,
             indirect_args_count,
             indirect_submission_buffer,
+            indirect_authority_buffer,
             indirect_draw_ref_buffer,
             indirect_segment_buffer,
-            indirect_execution_buffer,
-            indirect_execution_records_buffer,
+            indirect_execution_submission_buffer,
+            indirect_execution_args_buffer,
+            indirect_execution_authority_buffer,
         ) = runtime_outputs;
         store_last_runtime_outputs(
             self,
             hybrid_gi_gpu_readback,
             virtual_geometry_gpu_readback,
+            frame.virtual_geometry_debug_snapshot.clone(),
+            frame.extract.geometry.virtual_geometry.as_ref(),
             indirect_draw_count,
             indirect_buffer_count,
             indirect_segment_count,
+            execution_segment_count,
+            execution_page_count,
+            execution_resident_segment_count,
+            execution_pending_segment_count,
+            execution_missing_segment_count,
+            execution_repeated_draw_count,
+            execution_indirect_offsets,
+            execution_segments,
+            executed_selected_cluster_count,
+            executed_selected_cluster_buffer,
+            hardware_rasterization_records,
+            hardware_rasterization_source,
+            hardware_rasterization_record_count,
+            hardware_rasterization_buffer,
+            visbuffer64_clear_value,
+            visbuffer64_source,
+            visbuffer64_entry_count,
+            visbuffer64_buffer,
             indirect_draw_submission_order,
             indirect_draw_submission_records,
             indirect_draw_submission_token_records,
             indirect_args_buffer,
             indirect_args_count,
             indirect_submission_buffer,
+            indirect_authority_buffer,
             indirect_draw_ref_buffer,
             indirect_segment_buffer,
-            indirect_execution_buffer,
-            indirect_execution_records_buffer,
+            indirect_execution_submission_buffer,
+            indirect_execution_args_buffer,
+            indirect_execution_authority_buffer,
         )?;
         self.generation += 1;
 

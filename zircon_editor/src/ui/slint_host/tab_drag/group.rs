@@ -1,5 +1,6 @@
 use crate::ui::slint_host::shell_pointer::WorkbenchShellPointerRoute;
-use crate::{DockEdge, MainPageId};
+use crate::ui::workbench::layout::DockEdge;
+use crate::ui::workbench::layout::MainPageId;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum WorkbenchDragTargetGroup {

@@ -1,5 +1,5 @@
-use crossbeam_channel::unbounded;
 use crate::core::{ChannelReceiver, CoreError};
+use crossbeam_channel::unbounded;
 
 use super::super::errors::asset_error;
 use super::super::project_asset_manager::ProjectAssetManager;

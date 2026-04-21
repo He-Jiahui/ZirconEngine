@@ -17,7 +17,10 @@ pub(crate) fn prepare_history_textures<'a>(
     let mut history_available = false;
     let mut history_textures = None;
 
-    if runtime_features.history_resolve_enabled || runtime_features.ssao_enabled {
+    if runtime_features.history_resolve_enabled
+        || runtime_features.ssao_enabled
+        || runtime_features.hybrid_global_illumination_enabled
+    {
         if let Some(handle) = history_handle {
             if history_targets
                 .get(&handle)

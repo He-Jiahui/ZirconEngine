@@ -1,7 +1,7 @@
 use zircon_runtime::core::math::{Transform, Vec3};
 use zircon_runtime::scene::components::NodeKind;
 
-use crate::EditorIntent;
+use crate::core::editing::intent::EditorIntent;
 
 use super::support::{cube_id, test_state};
 

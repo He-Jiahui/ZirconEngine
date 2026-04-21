@@ -1,7 +1,6 @@
-use crate::{
-    default_constraints_for_content, PreferredHost, ViewContentKind, ViewDescriptor,
-    ViewDescriptorId, ViewKind,
-};
+use crate::ui::workbench::autolayout::default_constraints_for_content;
+use crate::ui::workbench::snapshot::ViewContentKind;
+use crate::ui::workbench::view::{PreferredHost, ViewDescriptor, ViewDescriptorId, ViewKind};
 
 pub(super) fn ensure_ui_asset_descriptor(descriptors: &mut Vec<ViewDescriptor>) {
     if descriptors

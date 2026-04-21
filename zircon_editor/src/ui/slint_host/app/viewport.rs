@@ -3,8 +3,11 @@ use crate::ui::slint_host::root_shell_projection::{
     resolve_root_bottom_region_frame, resolve_root_left_region_frame,
     resolve_root_right_region_frame, resolve_root_viewport_content_frame,
 };
-use crate::{ActivityDrawerSlot, ViewHost};
-use zircon_runtime::ui::{dispatch::UiPointerEvent, surface::UiPointerButton, surface::UiPointerEventKind};
+use crate::ui::workbench::layout::ActivityDrawerSlot;
+use crate::ui::workbench::view::ViewHost;
+use zircon_runtime::ui::{
+    dispatch::UiPointerEvent, surface::UiPointerButton, surface::UiPointerEventKind,
+};
 
 const VIEWPORT_POINTER_DOWN: i32 = 0;
 const VIEWPORT_POINTER_MOVE: i32 = 1;

@@ -1,3 +1,4 @@
+mod card_capture_shading;
 mod collect_inputs;
 mod copy_readbacks;
 mod create_bind_group;
@@ -7,3 +8,4 @@ mod execute;
 mod hybrid_gi_prepare_execution_buffers;
 mod hybrid_gi_prepare_execution_inputs;
 mod queue_params;
+mod voxel_clipmap_debug;

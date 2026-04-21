@@ -18,6 +18,12 @@ pub(in crate::asset::pipeline::manager) fn register_project_resource(
         ImportedAsset::Material(asset) => {
             resource_manager.register_ready(metadata, asset);
         }
+        ImportedAsset::Sound(asset) => {
+            resource_manager.register_ready(metadata, asset);
+        }
+        ImportedAsset::Font(asset) => {
+            resource_manager.register_ready(metadata, asset);
+        }
         ImportedAsset::Scene(asset) => {
             resource_manager.register_ready(metadata, asset);
         }

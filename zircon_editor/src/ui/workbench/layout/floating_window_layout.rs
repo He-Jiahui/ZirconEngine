@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{ShellFrame, ViewInstanceId};
+use crate::ui::workbench::autolayout::ShellFrame;
+use crate::ui::workbench::view::ViewInstanceId;
 
 use super::{DocumentNode, MainPageId};
 

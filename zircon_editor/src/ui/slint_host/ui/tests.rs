@@ -2,39 +2,48 @@ use slint::{ComponentHandle, Model};
 use std::collections::BTreeMap;
 
 use super::apply_presentation;
+use crate::scene::viewport::{
+    DisplayMode, GridMode, ProjectionMode, SceneViewportTool, TransformSpace, ViewOrientation,
+};
+use crate::ui::animation_editor::AnimationEditorPanePresentation;
+use crate::ui::asset_editor::UiAssetEditorPanePresentation;
 use crate::ui::layouts::windows::workbench_host_window::{collect_floating_windows, document_pane};
 use crate::ui::slint_host::callback_dispatch::BuiltinWorkbenchTemplateBridge;
 use crate::ui::slint_host::floating_window_projection::{
     build_floating_window_projection_bundle, FloatingWindowProjectionBundle,
 };
 use crate::ui::slint_host::shell_pointer::WorkbenchShellPointerRoute;
-use crate::{
-    default_preview_fixture, ui::slint_host::tab_drag::workbench_shell_pointer_route_group_key,
-    EditorChromeSnapshot, EditorUiCompatibilityHarness, FloatingWindowLayout, MainPageId,
-    TabStackLayout, ViewHost, ViewInstance, ViewInstanceId, WorkbenchViewModel,
+use crate::ui::slint_host::tab_drag::workbench_shell_pointer_route_group_key;
+use crate::ui::template_runtime::EditorUiCompatibilityHarness;
+use crate::ui::workbench::autolayout::WorkbenchShellGeometry;
+use crate::ui::workbench::fixture::{default_preview_fixture, PreviewFixture};
+use crate::ui::workbench::layout::DockEdge;
+use crate::ui::workbench::layout::{
+    DocumentNode, FloatingWindowLayout, MainPageId, TabStackLayout,
 };
-use crate::scene::viewport::{
-    DisplayMode, GridMode, ProjectionMode, SceneViewportTool, TransformSpace, ViewOrientation,
-};
+use crate::ui::workbench::model::WorkbenchViewModel;
+use crate::ui::workbench::snapshot::EditorChromeSnapshot;
+use crate::ui::workbench::view::{ViewHost, ViewInstance, ViewInstanceId};
 use zircon_runtime::ui::layout::UiSize;
 
 fn root_shell_fixture() -> (
-    crate::PreviewFixture,
+    PreviewFixture,
     EditorChromeSnapshot,
     WorkbenchViewModel,
-    BTreeMap<String, crate::UiAssetEditorPanePresentation>,
+    BTreeMap<String, UiAssetEditorPanePresentation>,
+    BTreeMap<String, AnimationEditorPanePresentation>,
 ) {
     let fixture = default_preview_fixture();
     let chrome = fixture.build_chrome();
     let model = WorkbenchViewModel::build(&chrome);
-    (fixture, chrome, model, BTreeMap::new())
+    (fixture, chrome, model, BTreeMap::new(), BTreeMap::new())
 }
 
 #[test]
 fn apply_presentation_uses_shared_root_projection_frames_when_drawers_are_collapsed() {
     i_slint_backend_testing::init_no_event_loop();
 
-    let (_fixture, chrome, model, ui_asset_panes) = root_shell_fixture();
+    let (_fixture, chrome, model, ui_asset_panes, animation_panes) = root_shell_fixture();
     let ui =
         crate::ui::slint_host::UiHostWindow::new().expect("workbench shell should instantiate");
     ui.show()
@@ -43,26 +52,39 @@ fn apply_presentation_uses_shared_root_projection_frames_when_drawers_are_collap
 
     let bridge = BuiltinWorkbenchTemplateBridge::new(UiSize::new(1280.0, 720.0)).unwrap();
     let projection_frames = bridge.root_shell_frames();
-    let geometry = crate::WorkbenchShellGeometry {
-        center_band_frame: crate::ShellFrame::new(9.0, 19.0, 333.0, 444.0),
-        status_bar_frame: crate::ShellFrame::new(15.0, 520.0, 640.0, 18.0),
+    let geometry = WorkbenchShellGeometry {
+        center_band_frame: crate::ui::workbench::autolayout::ShellFrame::new(
+            9.0, 19.0, 333.0, 444.0,
+        ),
+        status_bar_frame: crate::ui::workbench::autolayout::ShellFrame::new(
+            15.0, 520.0, 640.0, 18.0,
+        ),
         region_frames: [
-            (crate::ShellRegionId::Left, crate::ShellFrame::default()),
             (
-                crate::ShellRegionId::Document,
-                crate::ShellFrame::new(21.0, 37.0, 410.0, 250.0),
+                crate::ui::workbench::autolayout::ShellRegionId::Left,
+                crate::ui::workbench::autolayout::ShellFrame::default(),
             ),
-            (crate::ShellRegionId::Right, crate::ShellFrame::default()),
-            (crate::ShellRegionId::Bottom, crate::ShellFrame::default()),
+            (
+                crate::ui::workbench::autolayout::ShellRegionId::Document,
+                crate::ui::workbench::autolayout::ShellFrame::new(21.0, 37.0, 410.0, 250.0),
+            ),
+            (
+                crate::ui::workbench::autolayout::ShellRegionId::Right,
+                crate::ui::workbench::autolayout::ShellFrame::default(),
+            ),
+            (
+                crate::ui::workbench::autolayout::ShellRegionId::Bottom,
+                crate::ui::workbench::autolayout::ShellFrame::default(),
+            ),
         ]
         .into_iter()
         .collect(),
-        ..crate::WorkbenchShellGeometry::default()
+        ..WorkbenchShellGeometry::default()
     };
     let floating_window_projection_bundle = build_floating_window_projection_bundle(
         &model,
         &geometry,
-        &crate::WorkbenchChromeMetrics::default(),
+        &crate::ui::workbench::autolayout::WorkbenchChromeMetrics::default(),
         &[],
     );
 
@@ -74,11 +96,12 @@ fn apply_presentation_uses_shared_root_projection_frames_when_drawers_are_collap
         &[],
         None,
         &ui_asset_panes,
+        &animation_panes,
         Some(&projection_frames),
         &floating_window_projection_bundle,
     );
 
-    let host_layout = ui.get_host_layout();
+    let host_layout = ui.get_host_presentation().host_layout;
     let center_band = host_layout.center_band_frame;
     assert_eq!(center_band.x, 0.0);
     assert_eq!(center_band.y, 40.0);
@@ -108,7 +131,7 @@ fn apply_presentation_uses_shared_root_projection_frames_when_drawers_are_collap
 fn apply_presentation_prefers_shared_root_projection_for_visible_drawer_document_region() {
     i_slint_backend_testing::init_no_event_loop();
 
-    let (_fixture, chrome, model, ui_asset_panes) = root_shell_fixture();
+    let (_fixture, chrome, model, ui_asset_panes, animation_panes) = root_shell_fixture();
     let ui =
         crate::ui::slint_host::UiHostWindow::new().expect("workbench shell should instantiate");
     ui.show()
@@ -123,11 +146,14 @@ fn apply_presentation_prefers_shared_root_projection_for_visible_drawer_document
     let body_frame = projection_frames
         .workbench_body_frame
         .expect("workbench body projection frame should exist");
-    let metrics = crate::WorkbenchChromeMetrics::default();
-    let left_geometry = crate::ShellFrame::new(180.0, 91.0, 312.0, 440.0);
-    let right_geometry = crate::ShellFrame::new(1024.0, 117.0, 256.0, 440.0);
-    let bottom_geometry = crate::ShellFrame::new(48.0, 712.0, 1232.0, 180.0);
-    let expected_document_frame = crate::ShellFrame::new(
+    let metrics = crate::ui::workbench::autolayout::WorkbenchChromeMetrics::default();
+    let left_geometry =
+        crate::ui::workbench::autolayout::ShellFrame::new(180.0, 91.0, 312.0, 440.0);
+    let right_geometry =
+        crate::ui::workbench::autolayout::ShellFrame::new(1024.0, 117.0, 256.0, 440.0);
+    let bottom_geometry =
+        crate::ui::workbench::autolayout::ShellFrame::new(48.0, 712.0, 1232.0, 180.0);
+    let expected_document_frame = crate::ui::workbench::autolayout::ShellFrame::new(
         shell_frame.x + left_geometry.width + metrics.separator_thickness,
         body_frame.y,
         body_frame.width
@@ -136,32 +162,50 @@ fn apply_presentation_prefers_shared_root_projection_for_visible_drawer_document
             - metrics.separator_thickness * 2.0,
         body_frame.height - bottom_geometry.height - metrics.separator_thickness,
     );
-    let geometry_document_frame = crate::ShellFrame::new(734.0, 91.0, 222.0, 109.0);
-    let expected_viewport_frame = crate::ShellFrame::new(
+    let geometry_document_frame =
+        crate::ui::workbench::autolayout::ShellFrame::new(734.0, 91.0, 222.0, 109.0);
+    let expected_viewport_frame = crate::ui::workbench::autolayout::ShellFrame::new(
         expected_document_frame.x,
         expected_document_frame.y + metrics.viewport_toolbar_height,
         expected_document_frame.width,
         expected_document_frame.height - metrics.viewport_toolbar_height,
     );
-    let geometry_viewport_frame = crate::ShellFrame::new(888.0, 144.0, 155.0, 77.0);
-    let geometry = crate::WorkbenchShellGeometry {
-        center_band_frame: crate::ShellFrame::new(5.0, 17.0, 400.0, 500.0),
-        status_bar_frame: crate::ShellFrame::new(11.0, 520.0, 700.0, 18.0),
+    let geometry_viewport_frame =
+        crate::ui::workbench::autolayout::ShellFrame::new(888.0, 144.0, 155.0, 77.0);
+    let geometry = WorkbenchShellGeometry {
+        center_band_frame: crate::ui::workbench::autolayout::ShellFrame::new(
+            5.0, 17.0, 400.0, 500.0,
+        ),
+        status_bar_frame: crate::ui::workbench::autolayout::ShellFrame::new(
+            11.0, 520.0, 700.0, 18.0,
+        ),
         region_frames: [
-            (crate::ShellRegionId::Left, left_geometry),
-            (crate::ShellRegionId::Document, geometry_document_frame),
-            (crate::ShellRegionId::Right, right_geometry),
-            (crate::ShellRegionId::Bottom, bottom_geometry),
+            (
+                crate::ui::workbench::autolayout::ShellRegionId::Left,
+                left_geometry,
+            ),
+            (
+                crate::ui::workbench::autolayout::ShellRegionId::Document,
+                geometry_document_frame,
+            ),
+            (
+                crate::ui::workbench::autolayout::ShellRegionId::Right,
+                right_geometry,
+            ),
+            (
+                crate::ui::workbench::autolayout::ShellRegionId::Bottom,
+                bottom_geometry,
+            ),
         ]
         .into_iter()
         .collect(),
         viewport_content_frame: geometry_viewport_frame,
-        ..crate::WorkbenchShellGeometry::default()
+        ..WorkbenchShellGeometry::default()
     };
     let floating_window_projection_bundle = build_floating_window_projection_bundle(
         &model,
         &geometry,
-        &crate::WorkbenchChromeMetrics::default(),
+        &crate::ui::workbench::autolayout::WorkbenchChromeMetrics::default(),
         &[],
     );
 
@@ -173,11 +217,12 @@ fn apply_presentation_prefers_shared_root_projection_for_visible_drawer_document
         &[],
         None,
         &ui_asset_panes,
+        &animation_panes,
         Some(&projection_frames),
         &floating_window_projection_bundle,
     );
 
-    let host_layout = ui.get_host_layout();
+    let host_layout = ui.get_host_presentation().host_layout;
     let center_band = host_layout.center_band_frame;
     assert_eq!(center_band.x, 0.0);
     assert_eq!(center_band.y, 40.0);
@@ -207,7 +252,7 @@ fn apply_presentation_prefers_shared_root_projection_for_visible_drawer_document
 fn apply_presentation_prefers_shared_root_projection_for_visible_drawer_region_positions() {
     i_slint_backend_testing::init_no_event_loop();
 
-    let (_fixture, chrome, model, ui_asset_panes) = root_shell_fixture();
+    let (_fixture, chrome, model, ui_asset_panes, animation_panes) = root_shell_fixture();
     let ui =
         crate::ui::slint_host::UiHostWindow::new().expect("workbench shell should instantiate");
     ui.show()
@@ -222,32 +267,48 @@ fn apply_presentation_prefers_shared_root_projection_for_visible_drawer_region_p
     let body_frame = projection_frames
         .workbench_body_frame
         .expect("workbench body projection frame should exist");
-    let metrics = crate::WorkbenchChromeMetrics::default();
-    let left_geometry = crate::ShellFrame::new(180.0, 91.0, 312.0, 519.0);
-    let right_geometry = crate::ShellFrame::new(1024.0, 117.0, 256.0, 401.0);
-    let bottom_geometry = crate::ShellFrame::new(48.0, 712.0, 777.0, 180.0);
+    let metrics = crate::ui::workbench::autolayout::WorkbenchChromeMetrics::default();
+    let left_geometry =
+        crate::ui::workbench::autolayout::ShellFrame::new(180.0, 91.0, 312.0, 519.0);
+    let right_geometry =
+        crate::ui::workbench::autolayout::ShellFrame::new(1024.0, 117.0, 256.0, 401.0);
+    let bottom_geometry =
+        crate::ui::workbench::autolayout::ShellFrame::new(48.0, 712.0, 777.0, 180.0);
     let expected_center_height =
         body_frame.height - bottom_geometry.height - metrics.separator_thickness;
-    let geometry = crate::WorkbenchShellGeometry {
-        center_band_frame: crate::ShellFrame::new(5.0, 17.0, 400.0, 500.0),
-        status_bar_frame: crate::ShellFrame::new(11.0, 520.0, 700.0, 18.0),
+    let geometry = WorkbenchShellGeometry {
+        center_band_frame: crate::ui::workbench::autolayout::ShellFrame::new(
+            5.0, 17.0, 400.0, 500.0,
+        ),
+        status_bar_frame: crate::ui::workbench::autolayout::ShellFrame::new(
+            11.0, 520.0, 700.0, 18.0,
+        ),
         region_frames: [
-            (crate::ShellRegionId::Left, left_geometry),
             (
-                crate::ShellRegionId::Document,
-                crate::ShellFrame::new(493.0, 91.0, 531.0, 440.0),
+                crate::ui::workbench::autolayout::ShellRegionId::Left,
+                left_geometry,
             ),
-            (crate::ShellRegionId::Right, right_geometry),
-            (crate::ShellRegionId::Bottom, bottom_geometry),
+            (
+                crate::ui::workbench::autolayout::ShellRegionId::Document,
+                crate::ui::workbench::autolayout::ShellFrame::new(493.0, 91.0, 531.0, 440.0),
+            ),
+            (
+                crate::ui::workbench::autolayout::ShellRegionId::Right,
+                right_geometry,
+            ),
+            (
+                crate::ui::workbench::autolayout::ShellRegionId::Bottom,
+                bottom_geometry,
+            ),
         ]
         .into_iter()
         .collect(),
-        ..crate::WorkbenchShellGeometry::default()
+        ..WorkbenchShellGeometry::default()
     };
     let floating_window_projection_bundle = build_floating_window_projection_bundle(
         &model,
         &geometry,
-        &crate::WorkbenchChromeMetrics::default(),
+        &crate::ui::workbench::autolayout::WorkbenchChromeMetrics::default(),
         &[],
     );
 
@@ -259,11 +320,12 @@ fn apply_presentation_prefers_shared_root_projection_for_visible_drawer_region_p
         &[],
         None,
         &ui_asset_panes,
+        &animation_panes,
         Some(&projection_frames),
         &floating_window_projection_bundle,
     );
 
-    let host_layout = ui.get_host_layout();
+    let host_layout = ui.get_host_presentation().host_layout;
     let left_region = host_layout.left_region_frame;
     assert_eq!(left_region.x, shell_frame.x);
     assert_eq!(left_region.y, body_frame.y);
@@ -293,7 +355,7 @@ fn apply_presentation_prefers_shared_root_projection_for_visible_drawer_region_p
 fn apply_presentation_prefers_shared_root_projection_for_visible_drawer_region_extents() {
     i_slint_backend_testing::init_no_event_loop();
 
-    let (_fixture, chrome, model, ui_asset_panes) = root_shell_fixture();
+    let (_fixture, chrome, model, ui_asset_panes, animation_panes) = root_shell_fixture();
     let ui =
         crate::ui::slint_host::UiHostWindow::new().expect("workbench shell should instantiate");
     ui.show()
@@ -305,39 +367,43 @@ fn apply_presentation_prefers_shared_root_projection_for_visible_drawer_region_e
         .recompute_layout_with_workbench_model(
             UiSize::new(1280.0, 720.0),
             &model,
-            &crate::WorkbenchChromeMetrics::default(),
+            &crate::ui::workbench::autolayout::WorkbenchChromeMetrics::default(),
         )
         .unwrap();
     let projection_frames = bridge.root_shell_frames();
-    let geometry = crate::WorkbenchShellGeometry {
-        center_band_frame: crate::ShellFrame::new(5.0, 17.0, 400.0, 500.0),
-        status_bar_frame: crate::ShellFrame::new(11.0, 520.0, 700.0, 18.0),
+    let geometry = WorkbenchShellGeometry {
+        center_band_frame: crate::ui::workbench::autolayout::ShellFrame::new(
+            5.0, 17.0, 400.0, 500.0,
+        ),
+        status_bar_frame: crate::ui::workbench::autolayout::ShellFrame::new(
+            11.0, 520.0, 700.0, 18.0,
+        ),
         region_frames: [
             (
-                crate::ShellRegionId::Left,
-                crate::ShellFrame::new(180.0, 91.0, 180.0, 519.0),
+                crate::ui::workbench::autolayout::ShellRegionId::Left,
+                crate::ui::workbench::autolayout::ShellFrame::new(180.0, 91.0, 180.0, 519.0),
             ),
             (
-                crate::ShellRegionId::Document,
-                crate::ShellFrame::new(493.0, 91.0, 531.0, 440.0),
+                crate::ui::workbench::autolayout::ShellRegionId::Document,
+                crate::ui::workbench::autolayout::ShellFrame::new(493.0, 91.0, 531.0, 440.0),
             ),
             (
-                crate::ShellRegionId::Right,
-                crate::ShellFrame::new(1024.0, 117.0, 144.0, 401.0),
+                crate::ui::workbench::autolayout::ShellRegionId::Right,
+                crate::ui::workbench::autolayout::ShellFrame::new(1024.0, 117.0, 144.0, 401.0),
             ),
             (
-                crate::ShellRegionId::Bottom,
-                crate::ShellFrame::new(48.0, 712.0, 777.0, 120.0),
+                crate::ui::workbench::autolayout::ShellRegionId::Bottom,
+                crate::ui::workbench::autolayout::ShellFrame::new(48.0, 712.0, 777.0, 120.0),
             ),
         ]
         .into_iter()
         .collect(),
-        ..crate::WorkbenchShellGeometry::default()
+        ..WorkbenchShellGeometry::default()
     };
     let floating_window_projection_bundle = build_floating_window_projection_bundle(
         &model,
         &geometry,
-        &crate::WorkbenchChromeMetrics::default(),
+        &crate::ui::workbench::autolayout::WorkbenchChromeMetrics::default(),
         &[],
     );
 
@@ -349,11 +415,12 @@ fn apply_presentation_prefers_shared_root_projection_for_visible_drawer_region_e
         &[],
         None,
         &ui_asset_panes,
+        &animation_panes,
         Some(&projection_frames),
         &floating_window_projection_bundle,
     );
 
-    let host_layout = ui.get_host_layout();
+    let host_layout = ui.get_host_presentation().host_layout;
     assert_eq!(
         host_layout.left_region_frame,
         crate::ui::slint_host::FrameRect {
@@ -387,7 +454,7 @@ fn apply_presentation_prefers_shared_root_projection_for_visible_drawer_region_e
 fn apply_presentation_prefers_shared_visible_drawer_projection_when_legacy_geometry_is_zeroed() {
     i_slint_backend_testing::init_no_event_loop();
 
-    let (_fixture, chrome, model, ui_asset_panes) = root_shell_fixture();
+    let (_fixture, chrome, model, ui_asset_panes, animation_panes) = root_shell_fixture();
     let ui =
         crate::ui::slint_host::UiHostWindow::new().expect("workbench shell should instantiate");
     ui.show()
@@ -399,31 +466,46 @@ fn apply_presentation_prefers_shared_visible_drawer_projection_when_legacy_geome
         .recompute_layout_with_workbench_model(
             UiSize::new(1280.0, 720.0),
             &model,
-            &crate::WorkbenchChromeMetrics::default(),
+            &crate::ui::workbench::autolayout::WorkbenchChromeMetrics::default(),
         )
         .unwrap();
     let projection_frames = bridge.root_shell_frames();
-    let geometry = crate::WorkbenchShellGeometry {
-        center_band_frame: crate::ShellFrame::new(5.0, 17.0, 400.0, 500.0),
-        status_bar_frame: crate::ShellFrame::new(11.0, 520.0, 700.0, 18.0),
+    let geometry = WorkbenchShellGeometry {
+        center_band_frame: crate::ui::workbench::autolayout::ShellFrame::new(
+            5.0, 17.0, 400.0, 500.0,
+        ),
+        status_bar_frame: crate::ui::workbench::autolayout::ShellFrame::new(
+            11.0, 520.0, 700.0, 18.0,
+        ),
         region_frames: [
-            (crate::ShellRegionId::Left, crate::ShellFrame::default()),
             (
-                crate::ShellRegionId::Document,
-                crate::ShellFrame::new(21.0, 37.0, 410.0, 250.0),
+                crate::ui::workbench::autolayout::ShellRegionId::Left,
+                crate::ui::workbench::autolayout::ShellFrame::default(),
             ),
-            (crate::ShellRegionId::Right, crate::ShellFrame::default()),
-            (crate::ShellRegionId::Bottom, crate::ShellFrame::default()),
+            (
+                crate::ui::workbench::autolayout::ShellRegionId::Document,
+                crate::ui::workbench::autolayout::ShellFrame::new(21.0, 37.0, 410.0, 250.0),
+            ),
+            (
+                crate::ui::workbench::autolayout::ShellRegionId::Right,
+                crate::ui::workbench::autolayout::ShellFrame::default(),
+            ),
+            (
+                crate::ui::workbench::autolayout::ShellRegionId::Bottom,
+                crate::ui::workbench::autolayout::ShellFrame::default(),
+            ),
         ]
         .into_iter()
         .collect(),
-        viewport_content_frame: crate::ShellFrame::new(66.0, 120.0, 320.0, 180.0),
-        ..crate::WorkbenchShellGeometry::default()
+        viewport_content_frame: crate::ui::workbench::autolayout::ShellFrame::new(
+            66.0, 120.0, 320.0, 180.0,
+        ),
+        ..WorkbenchShellGeometry::default()
     };
     let floating_window_projection_bundle = build_floating_window_projection_bundle(
         &model,
         &geometry,
-        &crate::WorkbenchChromeMetrics::default(),
+        &crate::ui::workbench::autolayout::WorkbenchChromeMetrics::default(),
         &[],
     );
 
@@ -435,11 +517,12 @@ fn apply_presentation_prefers_shared_visible_drawer_projection_when_legacy_geome
         &[],
         None,
         &ui_asset_panes,
+        &animation_panes,
         Some(&projection_frames),
         &floating_window_projection_bundle,
     );
 
-    let host_layout = ui.get_host_layout();
+    let host_layout = ui.get_host_presentation().host_layout;
     assert_eq!(
         host_layout.left_region_frame,
         crate::ui::slint_host::FrameRect {
@@ -494,7 +577,7 @@ fn scene_document_pane_uses_viewport_dimensions_and_enables_toolbar() {
     let model = WorkbenchViewModel::build(&chrome);
     let ui_asset_panes = BTreeMap::new();
 
-    let pane = document_pane(&model, &chrome, &ui_asset_panes);
+    let pane = document_pane(&model, &chrome, &ui_asset_panes, &BTreeMap::new());
 
     assert_eq!(pane.kind, "Scene");
     assert_eq!(pane.subtitle, "1280 x 720");
@@ -520,7 +603,7 @@ fn scene_document_pane_projects_viewport_toolbar_state() {
     let chrome = fixture.build_chrome();
     let model = WorkbenchViewModel::build(&chrome);
     let ui_asset_panes = BTreeMap::new();
-    let pane = document_pane(&model, &chrome, &ui_asset_panes);
+    let pane = document_pane(&model, &chrome, &ui_asset_panes, &BTreeMap::new());
 
     assert_eq!(pane.kind, "Scene");
     assert_eq!(pane.viewport.tool, "Scale");
@@ -546,7 +629,7 @@ fn floating_windows_project_tabs_and_active_pane_for_host_presentation() {
     let window_id = MainPageId::new("window:preview");
     let scene_instance = ViewInstance {
         instance_id: ViewInstanceId::new("editor.scene#float"),
-        descriptor_id: crate::ViewDescriptorId::new("editor.scene"),
+        descriptor_id: crate::ui::workbench::view::ViewDescriptorId::new("editor.scene"),
         title: "Scene".to_string(),
         serializable_payload: serde_json::json!({ "path": "crate://scene/floating.scene" }),
         dirty: false,
@@ -554,7 +637,7 @@ fn floating_windows_project_tabs_and_active_pane_for_host_presentation() {
     };
     let game_instance = ViewInstance {
         instance_id: ViewInstanceId::new("editor.game#float"),
-        descriptor_id: crate::ViewDescriptorId::new("editor.game"),
+        descriptor_id: crate::ui::workbench::view::ViewDescriptorId::new("editor.game"),
         title: "Game".to_string(),
         serializable_payload: serde_json::json!({ "path": "crate://scene/floating.play" }),
         dirty: false,
@@ -565,7 +648,7 @@ fn floating_windows_project_tabs_and_active_pane_for_host_presentation() {
     fixture.layout.floating_windows.push(FloatingWindowLayout {
         window_id: window_id.clone(),
         title: "Preview Popout".to_string(),
-        workspace: crate::DocumentNode::Tabs(TabStackLayout {
+        workspace: DocumentNode::Tabs(TabStackLayout {
             tabs: vec![
                 scene_instance.instance_id.clone(),
                 game_instance.instance_id.clone(),
@@ -573,7 +656,7 @@ fn floating_windows_project_tabs_and_active_pane_for_host_presentation() {
             active_tab: Some(game_instance.instance_id.clone()),
         }),
         focused_view: Some(game_instance.instance_id.clone()),
-        frame: crate::ShellFrame::default(),
+        frame: crate::ui::workbench::autolayout::ShellFrame::default(),
     });
 
     let chrome = fixture.build_chrome();
@@ -581,15 +664,16 @@ fn floating_windows_project_tabs_and_active_pane_for_host_presentation() {
     let ui_asset_panes = BTreeMap::new();
     let floating_window_projection_bundle = build_floating_window_projection_bundle(
         &model,
-        &crate::WorkbenchShellGeometry::default(),
-        &crate::WorkbenchChromeMetrics::default(),
+        &WorkbenchShellGeometry::default(),
+        &crate::ui::workbench::autolayout::WorkbenchChromeMetrics::default(),
         &[],
     );
     let floating_windows = collect_floating_windows(
         &model,
         &chrome,
-        &crate::WorkbenchShellGeometry::default(),
+        &WorkbenchShellGeometry::default(),
         &ui_asset_panes,
+        &BTreeMap::new(),
         &floating_window_projection_bundle,
     );
 
@@ -615,7 +699,7 @@ fn floating_windows_ignore_stale_focused_view_when_projecting_focus_target() {
     let window_id = MainPageId::new("window:preview");
     let scene_instance = ViewInstance {
         instance_id: ViewInstanceId::new("editor.scene#float"),
-        descriptor_id: crate::ViewDescriptorId::new("editor.scene"),
+        descriptor_id: crate::ui::workbench::view::ViewDescriptorId::new("editor.scene"),
         title: "Scene".to_string(),
         serializable_payload: serde_json::json!({ "path": "crate://scene/floating.scene" }),
         dirty: false,
@@ -623,7 +707,7 @@ fn floating_windows_ignore_stale_focused_view_when_projecting_focus_target() {
     };
     let game_instance = ViewInstance {
         instance_id: ViewInstanceId::new("editor.game#float"),
-        descriptor_id: crate::ViewDescriptorId::new("editor.game"),
+        descriptor_id: crate::ui::workbench::view::ViewDescriptorId::new("editor.game"),
         title: "Game".to_string(),
         serializable_payload: serde_json::json!({ "path": "crate://scene/floating.play" }),
         dirty: false,
@@ -634,7 +718,7 @@ fn floating_windows_ignore_stale_focused_view_when_projecting_focus_target() {
     fixture.layout.floating_windows.push(FloatingWindowLayout {
         window_id: window_id.clone(),
         title: "Preview Popout".to_string(),
-        workspace: crate::DocumentNode::Tabs(TabStackLayout {
+        workspace: DocumentNode::Tabs(TabStackLayout {
             tabs: vec![
                 scene_instance.instance_id.clone(),
                 game_instance.instance_id.clone(),
@@ -642,7 +726,7 @@ fn floating_windows_ignore_stale_focused_view_when_projecting_focus_target() {
             active_tab: Some(game_instance.instance_id.clone()),
         }),
         focused_view: Some(ViewInstanceId::new("editor.missing#1")),
-        frame: crate::ShellFrame::default(),
+        frame: crate::ui::workbench::autolayout::ShellFrame::default(),
     });
 
     let chrome = fixture.build_chrome();
@@ -650,15 +734,16 @@ fn floating_windows_ignore_stale_focused_view_when_projecting_focus_target() {
     let ui_asset_panes = BTreeMap::new();
     let floating_window_projection_bundle = build_floating_window_projection_bundle(
         &model,
-        &crate::WorkbenchShellGeometry::default(),
-        &crate::WorkbenchChromeMetrics::default(),
+        &WorkbenchShellGeometry::default(),
+        &crate::ui::workbench::autolayout::WorkbenchChromeMetrics::default(),
         &[],
     );
     let floating_windows = collect_floating_windows(
         &model,
         &chrome,
-        &crate::WorkbenchShellGeometry::default(),
+        &WorkbenchShellGeometry::default(),
         &ui_asset_panes,
+        &BTreeMap::new(),
         &floating_window_projection_bundle,
     );
 
@@ -674,7 +759,7 @@ fn floating_window_overlay_snapshot_captures_shared_frame_and_route_keys() {
     let window_id = MainPageId::new("window:preview");
     let scene_instance = ViewInstance {
         instance_id: ViewInstanceId::new("editor.scene#float"),
-        descriptor_id: crate::ViewDescriptorId::new("editor.scene"),
+        descriptor_id: crate::ui::workbench::view::ViewDescriptorId::new("editor.scene"),
         title: "Scene".to_string(),
         serializable_payload: serde_json::json!({ "path": "crate://scene/floating.scene" }),
         dirty: false,
@@ -682,7 +767,7 @@ fn floating_window_overlay_snapshot_captures_shared_frame_and_route_keys() {
     };
     let game_instance = ViewInstance {
         instance_id: ViewInstanceId::new("editor.game#float"),
-        descriptor_id: crate::ViewDescriptorId::new("editor.game"),
+        descriptor_id: crate::ui::workbench::view::ViewDescriptorId::new("editor.game"),
         title: "Game".to_string(),
         serializable_payload: serde_json::json!({ "path": "crate://scene/floating.play" }),
         dirty: false,
@@ -693,7 +778,7 @@ fn floating_window_overlay_snapshot_captures_shared_frame_and_route_keys() {
     fixture.layout.floating_windows.push(FloatingWindowLayout {
         window_id: window_id.clone(),
         title: "Preview Popout".to_string(),
-        workspace: crate::DocumentNode::Tabs(TabStackLayout {
+        workspace: DocumentNode::Tabs(TabStackLayout {
             tabs: vec![
                 scene_instance.instance_id.clone(),
                 game_instance.instance_id.clone(),
@@ -701,25 +786,25 @@ fn floating_window_overlay_snapshot_captures_shared_frame_and_route_keys() {
             active_tab: Some(game_instance.instance_id.clone()),
         }),
         focused_view: Some(game_instance.instance_id.clone()),
-        frame: crate::ShellFrame::new(420.0, 180.0, 360.0, 240.0),
+        frame: crate::ui::workbench::autolayout::ShellFrame::new(420.0, 180.0, 360.0, 240.0),
     });
 
     let chrome = fixture.build_chrome();
     let model = WorkbenchViewModel::build(&chrome);
-    let geometry = crate::compute_workbench_shell_geometry(
+    let geometry = crate::ui::workbench::autolayout::compute_workbench_shell_geometry(
         &model,
         &chrome,
         &fixture.layout,
         &fixture.descriptors,
-        crate::ShellSizePx::new(1440.0, 900.0),
-        &crate::WorkbenchChromeMetrics::default(),
+        crate::ui::workbench::autolayout::ShellSizePx::new(1440.0, 900.0),
+        &crate::ui::workbench::autolayout::WorkbenchChromeMetrics::default(),
         None,
     );
     let ui_asset_panes = BTreeMap::new();
     let floating_window_projection_bundle = build_floating_window_projection_bundle(
         &model,
         &geometry,
-        &crate::WorkbenchChromeMetrics::default(),
+        &crate::ui::workbench::autolayout::WorkbenchChromeMetrics::default(),
         &[],
     );
     let floating_windows = collect_floating_windows(
@@ -727,6 +812,7 @@ fn floating_window_overlay_snapshot_captures_shared_frame_and_route_keys() {
         &chrome,
         &geometry,
         &ui_asset_panes,
+        &BTreeMap::new(),
         &floating_window_projection_bundle,
     );
 
@@ -773,7 +859,7 @@ fn floating_window_overlay_route_keys_match_shared_shell_pointer_route_normaliza
     let window_id = MainPageId::new("window:preview");
     let scene_instance = ViewInstance {
         instance_id: ViewInstanceId::new("editor.scene#float"),
-        descriptor_id: crate::ViewDescriptorId::new("editor.scene"),
+        descriptor_id: crate::ui::workbench::view::ViewDescriptorId::new("editor.scene"),
         title: "Scene".to_string(),
         serializable_payload: serde_json::json!({ "path": "crate://scene/floating.scene" }),
         dirty: false,
@@ -783,30 +869,30 @@ fn floating_window_overlay_route_keys_match_shared_shell_pointer_route_normaliza
     fixture.layout.floating_windows.push(FloatingWindowLayout {
         window_id: window_id.clone(),
         title: "Preview Popout".to_string(),
-        workspace: crate::DocumentNode::Tabs(TabStackLayout {
+        workspace: DocumentNode::Tabs(TabStackLayout {
             tabs: vec![scene_instance.instance_id.clone()],
             active_tab: Some(scene_instance.instance_id.clone()),
         }),
         focused_view: Some(scene_instance.instance_id.clone()),
-        frame: crate::ShellFrame::new(420.0, 180.0, 360.0, 240.0),
+        frame: crate::ui::workbench::autolayout::ShellFrame::new(420.0, 180.0, 360.0, 240.0),
     });
 
     let chrome = fixture.build_chrome();
     let model = WorkbenchViewModel::build(&chrome);
-    let geometry = crate::compute_workbench_shell_geometry(
+    let geometry = crate::ui::workbench::autolayout::compute_workbench_shell_geometry(
         &model,
         &chrome,
         &fixture.layout,
         &fixture.descriptors,
-        crate::ShellSizePx::new(1440.0, 900.0),
-        &crate::WorkbenchChromeMetrics::default(),
+        crate::ui::workbench::autolayout::ShellSizePx::new(1440.0, 900.0),
+        &crate::ui::workbench::autolayout::WorkbenchChromeMetrics::default(),
         None,
     );
     let ui_asset_panes = BTreeMap::new();
     let floating_window_projection_bundle = build_floating_window_projection_bundle(
         &model,
         &geometry,
-        &crate::WorkbenchChromeMetrics::default(),
+        &crate::ui::workbench::autolayout::WorkbenchChromeMetrics::default(),
         &[],
     );
     let floating_windows = collect_floating_windows(
@@ -814,6 +900,7 @@ fn floating_window_overlay_route_keys_match_shared_shell_pointer_route_normaliza
         &chrome,
         &geometry,
         &ui_asset_panes,
+        &BTreeMap::new(),
         &floating_window_projection_bundle,
     );
     let window = &floating_windows[0];
@@ -827,28 +914,28 @@ fn floating_window_overlay_route_keys_match_shared_shell_pointer_route_normaliza
     assert_eq!(
         workbench_shell_pointer_route_group_key(&WorkbenchShellPointerRoute::FloatingWindowEdge {
             window_id: window_id.clone(),
-            edge: crate::DockEdge::Left,
+            edge: DockEdge::Left,
         }),
         Some(window.left_edge_target_group.to_string())
     );
     assert_eq!(
         workbench_shell_pointer_route_group_key(&WorkbenchShellPointerRoute::FloatingWindowEdge {
             window_id: window_id.clone(),
-            edge: crate::DockEdge::Right,
+            edge: DockEdge::Right,
         }),
         Some(window.right_edge_target_group.to_string())
     );
     assert_eq!(
         workbench_shell_pointer_route_group_key(&WorkbenchShellPointerRoute::FloatingWindowEdge {
             window_id: window_id.clone(),
-            edge: crate::DockEdge::Top,
+            edge: DockEdge::Top,
         }),
         Some(window.top_edge_target_group.to_string())
     );
     assert_eq!(
         workbench_shell_pointer_route_group_key(&WorkbenchShellPointerRoute::FloatingWindowEdge {
             window_id,
-            edge: crate::DockEdge::Bottom,
+            edge: DockEdge::Bottom,
         }),
         Some(window.bottom_edge_target_group.to_string())
     );
@@ -861,7 +948,7 @@ fn collect_floating_windows_does_not_fall_back_to_legacy_geometry_when_projectio
     let window_id = MainPageId::new("window:preview");
     let scene_instance = ViewInstance {
         instance_id: ViewInstanceId::new("editor.scene#float"),
-        descriptor_id: crate::ViewDescriptorId::new("editor.scene"),
+        descriptor_id: crate::ui::workbench::view::ViewDescriptorId::new("editor.scene"),
         title: "Scene".to_string(),
         serializable_payload: serde_json::json!({ "path": "crate://scene/floating.scene" }),
         dirty: false,
@@ -871,34 +958,35 @@ fn collect_floating_windows_does_not_fall_back_to_legacy_geometry_when_projectio
     fixture.layout.floating_windows.push(FloatingWindowLayout {
         window_id: window_id.clone(),
         title: "Preview Popout".to_string(),
-        workspace: crate::DocumentNode::Tabs(TabStackLayout {
+        workspace: DocumentNode::Tabs(TabStackLayout {
             tabs: vec![scene_instance.instance_id.clone()],
             active_tab: Some(scene_instance.instance_id.clone()),
         }),
         focused_view: Some(scene_instance.instance_id.clone()),
-        frame: crate::ShellFrame::new(420.0, 180.0, 360.0, 240.0),
+        frame: crate::ui::workbench::autolayout::ShellFrame::new(420.0, 180.0, 360.0, 240.0),
     });
 
     let chrome = fixture.build_chrome();
     let model = WorkbenchViewModel::build(&chrome);
-    let mut geometry = crate::compute_workbench_shell_geometry(
+    let mut geometry = crate::ui::workbench::autolayout::compute_workbench_shell_geometry(
         &model,
         &chrome,
         &fixture.layout,
         &fixture.descriptors,
-        crate::ShellSizePx::new(1440.0, 900.0),
-        &crate::WorkbenchChromeMetrics::default(),
+        crate::ui::workbench::autolayout::ShellSizePx::new(1440.0, 900.0),
+        &crate::ui::workbench::autolayout::WorkbenchChromeMetrics::default(),
         None,
     );
     geometry.floating_window_frames.insert(
         window_id.clone(),
-        crate::ShellFrame::new(96.0, 72.0, 144.0, 88.0),
+        crate::ui::workbench::autolayout::ShellFrame::new(96.0, 72.0, 144.0, 88.0),
     );
 
     let floating_windows = collect_floating_windows(
         &model,
         &chrome,
         &geometry,
+        &BTreeMap::new(),
         &BTreeMap::new(),
         &FloatingWindowProjectionBundle::default(),
     );

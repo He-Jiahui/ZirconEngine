@@ -1,4 +1,4 @@
-use crate::snapshot::EditorChromeSnapshot;
+use crate::ui::workbench::snapshot::EditorChromeSnapshot;
 
 use super::super::pane_empty_state_model::PaneEmptyStateModel;
 use super::action_factory::open_project_action;

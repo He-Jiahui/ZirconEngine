@@ -1,4 +1,6 @@
-use crate::core::framework::render::{RenderFrameworkError, RenderQualityProfile, RenderViewportHandle};
+use crate::core::framework::render::{
+    RenderFrameworkError, RenderQualityProfile, RenderViewportHandle,
+};
 
 use super::super::wgpu_render_framework::WgpuRenderFramework;
 

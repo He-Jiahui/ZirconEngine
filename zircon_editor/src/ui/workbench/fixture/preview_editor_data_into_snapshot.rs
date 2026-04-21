@@ -1,6 +1,8 @@
 use zircon_runtime::core::math::UVec2;
 
-use crate::snapshot::{AssetWorkspaceSnapshot, EditorDataSnapshot, ProjectOverviewSnapshot};
+use crate::ui::workbench::snapshot::{
+    AssetWorkspaceSnapshot, EditorDataSnapshot, ProjectOverviewSnapshot,
+};
 use crate::ui::workbench::startup::{EditorSessionMode, WelcomePaneSnapshot};
 
 use super::PreviewEditorData;

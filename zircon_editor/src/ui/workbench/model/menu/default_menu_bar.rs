@@ -1,4 +1,4 @@
-use crate::snapshot::EditorChromeSnapshot;
+use crate::ui::workbench::snapshot::EditorChromeSnapshot;
 
 use super::super::menu_bar_model::MenuBarModel;
 use super::edit_menu::build_edit_menu;

@@ -1,11 +1,12 @@
 use std::sync::Arc;
 
-use bytemuck::{Pod, Zeroable};
 use crate::core::framework::scene::EntityId;
 use crate::core::math::Vec4;
+use bytemuck::{Pod, Zeroable};
 
-use super::super::virtual_geometry_cluster_raster_draw::VirtualGeometryClusterRasterDraw;
-use crate::graphics::types::VirtualGeometryPrepareClusterState;
+use crate::graphics::types::{
+    VirtualGeometryClusterRasterDraw, VirtualGeometryPrepareClusterState,
+};
 
 pub(super) struct PendingMeshDraw {
     pub(super) mesh: Arc<crate::graphics::scene::resources::GpuMeshResource>,
@@ -28,6 +29,7 @@ pub(super) struct VirtualGeometryIndirectDrawRef {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub(super) struct VirtualGeometryIndirectSegmentKey {
     pub(super) submission_index: u32,
+    pub(super) instance_index: Option<u32>,
     pub(super) entity: EntityId,
     pub(super) page_id: u32,
     pub(super) cluster_start_ordinal: u32,
@@ -53,6 +55,7 @@ pub(super) struct VirtualGeometryIndirectSegmentInput {
     pub(super) lod_level: u32,
     pub(super) frontier_rank: u32,
     pub(super) submission_index: u32,
+    pub(super) instance_index: u32,
     pub(super) entity_lo: u32,
     pub(super) entity_hi: u32,
 }
@@ -85,6 +88,7 @@ pub(super) fn segment_key_for_cluster_draw(
 ) -> VirtualGeometryIndirectSegmentKey {
     VirtualGeometryIndirectSegmentKey {
         submission_index: cluster_draw.submission_index,
+        instance_index: cluster_draw.instance_index,
         entity,
         page_id: cluster_draw.page_id,
         cluster_start_ordinal: cluster_draw.entity_cluster_start_ordinal as u32,
@@ -112,6 +116,7 @@ pub(super) fn segment_input(
         lod_level: u32::from(segment_key.lod_level),
         frontier_rank: segment_key.frontier_rank,
         submission_index: segment_key.submission_index,
+        instance_index: segment_key.instance_index.unwrap_or(u32::MAX),
         entity_lo: segment_key.entity as u32,
         entity_hi: (segment_key.entity >> 32) as u32,
     }

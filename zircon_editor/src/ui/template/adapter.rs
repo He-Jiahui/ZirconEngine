@@ -2,7 +2,8 @@ use std::collections::BTreeMap;
 
 use zircon_runtime::ui::template::{UiBindingRef, UiTemplateInstance};
 
-use crate::{EditorTemplateError, EditorUiBinding};
+use crate::ui::binding::EditorUiBinding;
+use crate::ui::template::EditorTemplateError;
 
 #[derive(Default)]
 pub struct EditorTemplateAdapter {

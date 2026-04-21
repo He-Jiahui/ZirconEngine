@@ -1,0 +1,750 @@
+stylesheets = []
+
+[asset]
+kind = "layout"
+id = "editor.host.scene_viewport_toolbar"
+version = 1
+display_name = "scene viewport toolbar"
+
+[imports]
+widgets = []
+styles = []
+
+[tokens]
+
+[root]
+node_id = "root"
+kind = "component"
+component = "SceneViewportToolbar"
+classes = []
+bindings = []
+children = []
+
+[root.params]
+
+[root.props]
+
+[root.style_overrides.self]
+
+[root.style_overrides.slot]
+
+[components.SceneViewportToolbar]
+style_scope = "closed"
+
+[components.SceneViewportToolbar.root]
+node_id = "component_SceneViewportToolbar_root"
+kind = "native"
+type = "SceneViewportToolbar"
+control_id = "SceneViewportToolbarRoot"
+classes = []
+bindings = []
+
+[components.SceneViewportToolbar.root.params]
+
+[components.SceneViewportToolbar.root.props]
+
+[components.SceneViewportToolbar.root.layout]
+clip = true
+
+[components.SceneViewportToolbar.root.layout.container]
+kind = "Overlay"
+
+[components.SceneViewportToolbar.root.layout.height]
+max = 28.0
+min = 28.0
+preferred = 28.0
+stretch = "Fixed"
+
+[components.SceneViewportToolbar.root.layout.width]
+stretch = "Stretch"
+
+[components.SceneViewportToolbar.root.style_overrides.self]
+
+[components.SceneViewportToolbar.root.style_overrides.slot]
+
+[[components.SceneViewportToolbar.root.children]]
+
+[components.SceneViewportToolbar.root.children.slot]
+
+[components.SceneViewportToolbar.root.children.node]
+node_id = "component_SceneViewportToolbar_root_0"
+kind = "native"
+type = "HorizontalBox"
+control_id = "SceneViewportToolbarLeftGroup"
+classes = []
+bindings = []
+
+[components.SceneViewportToolbar.root.children.node.params]
+
+[components.SceneViewportToolbar.root.children.node.props]
+
+[components.SceneViewportToolbar.root.children.node.layout.anchor]
+x = 0.0
+y = 0.0
+
+[components.SceneViewportToolbar.root.children.node.layout.container]
+gap = 4.0
+kind = "HorizontalBox"
+
+[components.SceneViewportToolbar.root.children.node.layout.height]
+max = 20.0
+min = 20.0
+preferred = 20.0
+stretch = "Fixed"
+
+[components.SceneViewportToolbar.root.children.node.layout.pivot]
+x = 0.0
+y = 0.0
+
+[components.SceneViewportToolbar.root.children.node.layout.position]
+x = 8.0
+y = 4.0
+
+[components.SceneViewportToolbar.root.children.node.layout.width]
+stretch = "Stretch"
+
+[components.SceneViewportToolbar.root.children.node.style_overrides.self]
+
+[components.SceneViewportToolbar.root.children.node.style_overrides.slot]
+
+[[components.SceneViewportToolbar.root.children.node.children]]
+
+[components.SceneViewportToolbar.root.children.node.children.slot]
+
+[components.SceneViewportToolbar.root.children.node.children.node]
+node_id = "component_SceneViewportToolbar_root_0_0"
+kind = "native"
+type = "UiHostIconButton"
+control_id = "SetTool"
+classes = []
+children = []
+
+[components.SceneViewportToolbar.root.children.node.children.node.params]
+
+[components.SceneViewportToolbar.root.children.node.children.node.props]
+label = "Tool"
+
+[components.SceneViewportToolbar.root.children.node.children.node.layout.height]
+max = 20.0
+min = 20.0
+preferred = 20.0
+stretch = "Fixed"
+
+[components.SceneViewportToolbar.root.children.node.children.node.layout.width]
+max = 172.0
+min = 172.0
+preferred = 172.0
+stretch = "Fixed"
+
+[[components.SceneViewportToolbar.root.children.node.children.node.bindings]]
+id = "ViewportToolbar/SetTool"
+event = "Change"
+route = "ViewportCommand.SetTool"
+
+[components.SceneViewportToolbar.root.children.node.children.node.style_overrides.self]
+
+[components.SceneViewportToolbar.root.children.node.children.node.style_overrides.slot]
+
+[[components.SceneViewportToolbar.root.children.node.children]]
+
+[components.SceneViewportToolbar.root.children.node.children.slot]
+
+[components.SceneViewportToolbar.root.children.node.children.node]
+node_id = "component_SceneViewportToolbar_root_0_1"
+kind = "native"
+type = "Space"
+classes = []
+bindings = []
+children = []
+
+[components.SceneViewportToolbar.root.children.node.children.node.params]
+
+[components.SceneViewportToolbar.root.children.node.children.node.props]
+
+[components.SceneViewportToolbar.root.children.node.children.node.layout.height]
+max = 14.0
+min = 14.0
+preferred = 14.0
+stretch = "Fixed"
+
+[components.SceneViewportToolbar.root.children.node.children.node.layout.width]
+max = 1.0
+min = 1.0
+preferred = 1.0
+stretch = "Fixed"
+
+[components.SceneViewportToolbar.root.children.node.children.node.style_overrides.self]
+
+[components.SceneViewportToolbar.root.children.node.children.node.style_overrides.slot]
+
+[[components.SceneViewportToolbar.root.children.node.children]]
+
+[components.SceneViewportToolbar.root.children.node.children.slot]
+
+[components.SceneViewportToolbar.root.children.node.children.node]
+node_id = "component_SceneViewportToolbar_root_0_2"
+kind = "native"
+type = "UiHostIconButton"
+control_id = "SetTransformSpace"
+classes = []
+children = []
+
+[components.SceneViewportToolbar.root.children.node.children.node.params]
+
+[components.SceneViewportToolbar.root.children.node.children.node.props]
+label = "TransformSpace"
+
+[components.SceneViewportToolbar.root.children.node.children.node.layout.height]
+max = 20.0
+min = 20.0
+preferred = 20.0
+stretch = "Fixed"
+
+[components.SceneViewportToolbar.root.children.node.children.node.layout.width]
+max = 86.0
+min = 86.0
+preferred = 86.0
+stretch = "Fixed"
+
+[[components.SceneViewportToolbar.root.children.node.children.node.bindings]]
+id = "ViewportToolbar/SetTransformSpace"
+event = "Change"
+route = "ViewportCommand.SetTransformSpace"
+
+[components.SceneViewportToolbar.root.children.node.children.node.style_overrides.self]
+
+[components.SceneViewportToolbar.root.children.node.children.node.style_overrides.slot]
+
+[[components.SceneViewportToolbar.root.children.node.children]]
+
+[components.SceneViewportToolbar.root.children.node.children.slot]
+
+[components.SceneViewportToolbar.root.children.node.children.node]
+node_id = "component_SceneViewportToolbar_root_0_3"
+kind = "native"
+type = "Space"
+classes = []
+bindings = []
+children = []
+
+[components.SceneViewportToolbar.root.children.node.children.node.params]
+
+[components.SceneViewportToolbar.root.children.node.children.node.props]
+
+[components.SceneViewportToolbar.root.children.node.children.node.layout.height]
+max = 14.0
+min = 14.0
+preferred = 14.0
+stretch = "Fixed"
+
+[components.SceneViewportToolbar.root.children.node.children.node.layout.width]
+max = 1.0
+min = 1.0
+preferred = 1.0
+stretch = "Fixed"
+
+[components.SceneViewportToolbar.root.children.node.children.node.style_overrides.self]
+
+[components.SceneViewportToolbar.root.children.node.children.node.style_overrides.slot]
+
+[[components.SceneViewportToolbar.root.children.node.children]]
+
+[components.SceneViewportToolbar.root.children.node.children.slot]
+
+[components.SceneViewportToolbar.root.children.node.children.node]
+node_id = "component_SceneViewportToolbar_root_0_4"
+kind = "native"
+type = "UiHostIconButton"
+control_id = "SetDisplayMode"
+classes = []
+children = []
+
+[components.SceneViewportToolbar.root.children.node.children.node.params]
+
+[components.SceneViewportToolbar.root.children.node.children.node.props]
+label = "DisplayMode"
+
+[components.SceneViewportToolbar.root.children.node.children.node.layout.height]
+max = 20.0
+min = 20.0
+preferred = 20.0
+stretch = "Fixed"
+
+[components.SceneViewportToolbar.root.children.node.children.node.layout.width]
+max = 48.0
+min = 48.0
+preferred = 48.0
+stretch = "Fixed"
+
+[[components.SceneViewportToolbar.root.children.node.children.node.bindings]]
+id = "ViewportToolbar/SetDisplayMode"
+event = "Change"
+route = "ViewportCommand.SetDisplayMode"
+
+[components.SceneViewportToolbar.root.children.node.children.node.style_overrides.self]
+
+[components.SceneViewportToolbar.root.children.node.children.node.style_overrides.slot]
+
+[[components.SceneViewportToolbar.root.children.node.children]]
+
+[components.SceneViewportToolbar.root.children.node.children.slot]
+
+[components.SceneViewportToolbar.root.children.node.children.node]
+node_id = "component_SceneViewportToolbar_root_0_5"
+kind = "native"
+type = "UiHostIconButton"
+control_id = "SetGridMode"
+classes = []
+children = []
+
+[components.SceneViewportToolbar.root.children.node.children.node.params]
+
+[components.SceneViewportToolbar.root.children.node.children.node.props]
+label = "GridMode"
+
+[components.SceneViewportToolbar.root.children.node.children.node.layout.height]
+max = 20.0
+min = 20.0
+preferred = 20.0
+stretch = "Fixed"
+
+[components.SceneViewportToolbar.root.children.node.children.node.layout.width]
+max = 52.0
+min = 52.0
+preferred = 52.0
+stretch = "Fixed"
+
+[[components.SceneViewportToolbar.root.children.node.children.node.bindings]]
+id = "ViewportToolbar/SetGridMode"
+event = "Change"
+route = "ViewportCommand.SetGridMode"
+
+[components.SceneViewportToolbar.root.children.node.children.node.style_overrides.self]
+
+[components.SceneViewportToolbar.root.children.node.children.node.style_overrides.slot]
+
+[[components.SceneViewportToolbar.root.children.node.children]]
+
+[components.SceneViewportToolbar.root.children.node.children.slot]
+
+[components.SceneViewportToolbar.root.children.node.children.node]
+node_id = "component_SceneViewportToolbar_root_0_6"
+kind = "native"
+type = "UiHostIconButton"
+control_id = "SetTranslateSnap"
+classes = []
+children = []
+
+[components.SceneViewportToolbar.root.children.node.children.node.params]
+
+[components.SceneViewportToolbar.root.children.node.children.node.props]
+label = "TranslateSnap"
+
+[components.SceneViewportToolbar.root.children.node.children.node.layout.height]
+max = 20.0
+min = 20.0
+preferred = 20.0
+stretch = "Fixed"
+
+[components.SceneViewportToolbar.root.children.node.children.node.layout.width]
+max = 42.0
+min = 42.0
+preferred = 42.0
+stretch = "Fixed"
+
+[[components.SceneViewportToolbar.root.children.node.children.node.bindings]]
+id = "ViewportToolbar/SetTranslateSnap"
+event = "Change"
+route = "ViewportCommand.SetTranslateSnap"
+
+[components.SceneViewportToolbar.root.children.node.children.node.style_overrides.self]
+
+[components.SceneViewportToolbar.root.children.node.children.node.style_overrides.slot]
+
+[[components.SceneViewportToolbar.root.children.node.children]]
+
+[components.SceneViewportToolbar.root.children.node.children.slot]
+
+[components.SceneViewportToolbar.root.children.node.children.node]
+node_id = "component_SceneViewportToolbar_root_0_7"
+kind = "native"
+type = "UiHostIconButton"
+control_id = "SetRotateSnapDegrees"
+classes = []
+children = []
+
+[components.SceneViewportToolbar.root.children.node.children.node.params]
+
+[components.SceneViewportToolbar.root.children.node.children.node.props]
+label = "RotateSnapDegrees"
+
+[components.SceneViewportToolbar.root.children.node.children.node.layout.height]
+max = 20.0
+min = 20.0
+preferred = 20.0
+stretch = "Fixed"
+
+[components.SceneViewportToolbar.root.children.node.children.node.layout.width]
+max = 42.0
+min = 42.0
+preferred = 42.0
+stretch = "Fixed"
+
+[[components.SceneViewportToolbar.root.children.node.children.node.bindings]]
+id = "ViewportToolbar/SetRotateSnapDegrees"
+event = "Change"
+route = "ViewportCommand.SetRotateSnapDegrees"
+
+[components.SceneViewportToolbar.root.children.node.children.node.style_overrides.self]
+
+[components.SceneViewportToolbar.root.children.node.children.node.style_overrides.slot]
+
+[[components.SceneViewportToolbar.root.children.node.children]]
+
+[components.SceneViewportToolbar.root.children.node.children.slot]
+
+[components.SceneViewportToolbar.root.children.node.children.node]
+node_id = "component_SceneViewportToolbar_root_0_8"
+kind = "native"
+type = "UiHostIconButton"
+control_id = "SetScaleSnap"
+classes = []
+children = []
+
+[components.SceneViewportToolbar.root.children.node.children.node.params]
+
+[components.SceneViewportToolbar.root.children.node.children.node.props]
+label = "ScaleSnap"
+
+[components.SceneViewportToolbar.root.children.node.children.node.layout.height]
+max = 20.0
+min = 20.0
+preferred = 20.0
+stretch = "Fixed"
+
+[components.SceneViewportToolbar.root.children.node.children.node.layout.width]
+max = 42.0
+min = 42.0
+preferred = 42.0
+stretch = "Fixed"
+
+[[components.SceneViewportToolbar.root.children.node.children.node.bindings]]
+id = "ViewportToolbar/SetScaleSnap"
+event = "Change"
+route = "ViewportCommand.SetScaleSnap"
+
+[components.SceneViewportToolbar.root.children.node.children.node.style_overrides.self]
+
+[components.SceneViewportToolbar.root.children.node.children.node.style_overrides.slot]
+
+[[components.SceneViewportToolbar.root.children.node.children]]
+
+[components.SceneViewportToolbar.root.children.node.children.slot]
+
+[components.SceneViewportToolbar.root.children.node.children.node]
+node_id = "component_SceneViewportToolbar_root_0_9"
+kind = "native"
+type = "Space"
+classes = []
+bindings = []
+children = []
+
+[components.SceneViewportToolbar.root.children.node.children.node.params]
+
+[components.SceneViewportToolbar.root.children.node.children.node.props]
+
+[components.SceneViewportToolbar.root.children.node.children.node.layout.height]
+max = 14.0
+min = 14.0
+preferred = 14.0
+stretch = "Fixed"
+
+[components.SceneViewportToolbar.root.children.node.children.node.layout.width]
+max = 1.0
+min = 1.0
+preferred = 1.0
+stretch = "Fixed"
+
+[components.SceneViewportToolbar.root.children.node.children.node.style_overrides.self]
+
+[components.SceneViewportToolbar.root.children.node.children.node.style_overrides.slot]
+
+[[components.SceneViewportToolbar.root.children.node.children]]
+
+[components.SceneViewportToolbar.root.children.node.children.slot]
+
+[components.SceneViewportToolbar.root.children.node.children.node]
+node_id = "component_SceneViewportToolbar_root_0_10"
+kind = "native"
+type = "UiHostIconButton"
+control_id = "SetPreviewLighting"
+classes = []
+children = []
+
+[components.SceneViewportToolbar.root.children.node.children.node.params]
+
+[components.SceneViewportToolbar.root.children.node.children.node.props]
+label = "PreviewLighting"
+
+[components.SceneViewportToolbar.root.children.node.children.node.layout.height]
+max = 20.0
+min = 20.0
+preferred = 20.0
+stretch = "Fixed"
+
+[components.SceneViewportToolbar.root.children.node.children.node.layout.width]
+max = 38.0
+min = 38.0
+preferred = 38.0
+stretch = "Fixed"
+
+[[components.SceneViewportToolbar.root.children.node.children.node.bindings]]
+id = "ViewportToolbar/SetPreviewLighting"
+event = "Change"
+route = "ViewportCommand.SetPreviewLighting"
+
+[components.SceneViewportToolbar.root.children.node.children.node.style_overrides.self]
+
+[components.SceneViewportToolbar.root.children.node.children.node.style_overrides.slot]
+
+[[components.SceneViewportToolbar.root.children.node.children]]
+
+[components.SceneViewportToolbar.root.children.node.children.slot]
+
+[components.SceneViewportToolbar.root.children.node.children.node]
+node_id = "component_SceneViewportToolbar_root_0_11"
+kind = "native"
+type = "UiHostIconButton"
+control_id = "SetPreviewSkybox"
+classes = []
+children = []
+
+[components.SceneViewportToolbar.root.children.node.children.node.params]
+
+[components.SceneViewportToolbar.root.children.node.children.node.props]
+label = "PreviewSkybox"
+
+[components.SceneViewportToolbar.root.children.node.children.node.layout.height]
+max = 20.0
+min = 20.0
+preferred = 20.0
+stretch = "Fixed"
+
+[components.SceneViewportToolbar.root.children.node.children.node.layout.width]
+max = 34.0
+min = 34.0
+preferred = 34.0
+stretch = "Fixed"
+
+[[components.SceneViewportToolbar.root.children.node.children.node.bindings]]
+id = "ViewportToolbar/SetPreviewSkybox"
+event = "Change"
+route = "ViewportCommand.SetPreviewSkybox"
+
+[components.SceneViewportToolbar.root.children.node.children.node.style_overrides.self]
+
+[components.SceneViewportToolbar.root.children.node.children.node.style_overrides.slot]
+
+[[components.SceneViewportToolbar.root.children.node.children]]
+
+[components.SceneViewportToolbar.root.children.node.children.slot]
+
+[components.SceneViewportToolbar.root.children.node.children.node]
+node_id = "component_SceneViewportToolbar_root_0_12"
+kind = "native"
+type = "UiHostIconButton"
+control_id = "SetGizmosEnabled"
+classes = []
+children = []
+
+[components.SceneViewportToolbar.root.children.node.children.node.params]
+
+[components.SceneViewportToolbar.root.children.node.children.node.props]
+label = "GizmosEnabled"
+
+[components.SceneViewportToolbar.root.children.node.children.node.layout.height]
+max = 20.0
+min = 20.0
+preferred = 20.0
+stretch = "Fixed"
+
+[components.SceneViewportToolbar.root.children.node.children.node.layout.width]
+max = 30.0
+min = 30.0
+preferred = 30.0
+stretch = "Fixed"
+
+[[components.SceneViewportToolbar.root.children.node.children.node.bindings]]
+id = "ViewportToolbar/SetGizmosEnabled"
+event = "Change"
+route = "ViewportCommand.SetGizmosEnabled"
+
+[components.SceneViewportToolbar.root.children.node.children.node.style_overrides.self]
+
+[components.SceneViewportToolbar.root.children.node.children.node.style_overrides.slot]
+
+[[components.SceneViewportToolbar.root.children.node.children]]
+
+[components.SceneViewportToolbar.root.children.node.children.slot]
+
+[components.SceneViewportToolbar.root.children.node.children.node]
+node_id = "component_SceneViewportToolbar_root_0_13"
+kind = "native"
+type = "UiHostIconButton"
+control_id = "FrameSelection"
+classes = []
+children = []
+
+[components.SceneViewportToolbar.root.children.node.children.node.params]
+
+[components.SceneViewportToolbar.root.children.node.children.node.props]
+label = "FrameSelection"
+
+[components.SceneViewportToolbar.root.children.node.children.node.layout.height]
+max = 20.0
+min = 20.0
+preferred = 20.0
+stretch = "Fixed"
+
+[components.SceneViewportToolbar.root.children.node.children.node.layout.width]
+max = 20.0
+min = 20.0
+preferred = 20.0
+stretch = "Fixed"
+
+[[components.SceneViewportToolbar.root.children.node.children.node.bindings]]
+id = "ViewportToolbar/FrameSelection"
+event = "Click"
+route = "ViewportCommand.FrameSelection"
+
+[components.SceneViewportToolbar.root.children.node.children.node.style_overrides.self]
+
+[components.SceneViewportToolbar.root.children.node.children.node.style_overrides.slot]
+
+[[components.SceneViewportToolbar.root.children]]
+
+[components.SceneViewportToolbar.root.children.slot]
+
+[components.SceneViewportToolbar.root.children.node]
+node_id = "component_SceneViewportToolbar_root_1"
+kind = "native"
+type = "HorizontalBox"
+control_id = "SceneViewportToolbarRightGroup"
+classes = []
+bindings = []
+
+[components.SceneViewportToolbar.root.children.node.params]
+
+[components.SceneViewportToolbar.root.children.node.props]
+
+[components.SceneViewportToolbar.root.children.node.layout.anchor]
+x = 1.0
+y = 0.0
+
+[components.SceneViewportToolbar.root.children.node.layout.container]
+gap = 4.0
+kind = "HorizontalBox"
+
+[components.SceneViewportToolbar.root.children.node.layout.height]
+max = 20.0
+min = 20.0
+preferred = 20.0
+stretch = "Fixed"
+
+[components.SceneViewportToolbar.root.children.node.layout.pivot]
+x = 1.0
+y = 0.0
+
+[components.SceneViewportToolbar.root.children.node.layout.position]
+x = -8.0
+y = 4.0
+
+[components.SceneViewportToolbar.root.children.node.layout.width]
+max = 314.0
+min = 314.0
+preferred = 314.0
+stretch = "Fixed"
+
+[components.SceneViewportToolbar.root.children.node.style_overrides.self]
+
+[components.SceneViewportToolbar.root.children.node.style_overrides.slot]
+
+[[components.SceneViewportToolbar.root.children.node.children]]
+
+[components.SceneViewportToolbar.root.children.node.children.slot]
+
+[components.SceneViewportToolbar.root.children.node.children.node]
+node_id = "component_SceneViewportToolbar_root_1_0"
+kind = "native"
+type = "UiHostIconButton"
+control_id = "SetProjectionMode"
+classes = []
+children = []
+
+[components.SceneViewportToolbar.root.children.node.children.node.params]
+
+[components.SceneViewportToolbar.root.children.node.children.node.props]
+label = "ProjectionMode"
+
+[components.SceneViewportToolbar.root.children.node.children.node.layout.height]
+max = 20.0
+min = 20.0
+preferred = 20.0
+stretch = "Fixed"
+
+[components.SceneViewportToolbar.root.children.node.children.node.layout.width]
+max = 92.0
+min = 92.0
+preferred = 92.0
+stretch = "Fixed"
+
+[[components.SceneViewportToolbar.root.children.node.children.node.bindings]]
+id = "ViewportToolbar/SetProjectionMode"
+event = "Change"
+route = "ViewportCommand.SetProjectionMode"
+
+[components.SceneViewportToolbar.root.children.node.children.node.style_overrides.self]
+
+[components.SceneViewportToolbar.root.children.node.children.node.style_overrides.slot]
+
+[[components.SceneViewportToolbar.root.children.node.children]]
+
+[components.SceneViewportToolbar.root.children.node.children.slot]
+
+[components.SceneViewportToolbar.root.children.node.children.node]
+node_id = "component_SceneViewportToolbar_root_1_1"
+kind = "native"
+type = "UiHostIconButton"
+control_id = "AlignView"
+classes = []
+children = []
+
+[components.SceneViewportToolbar.root.children.node.children.node.params]
+
+[components.SceneViewportToolbar.root.children.node.children.node.props]
+label = "AlignView"
+
+[components.SceneViewportToolbar.root.children.node.children.node.layout.height]
+max = 20.0
+min = 20.0
+preferred = 20.0
+stretch = "Fixed"
+
+[components.SceneViewportToolbar.root.children.node.children.node.layout.width]
+max = 200.0
+min = 200.0
+preferred = 200.0
+stretch = "Fixed"
+
+[[components.SceneViewportToolbar.root.children.node.children.node.bindings]]
+id = "ViewportToolbar/AlignView"
+event = "Change"
+route = "ViewportCommand.AlignView"
+
+[components.SceneViewportToolbar.root.children.node.children.node.style_overrides.self]
+
+[components.SceneViewportToolbar.root.children.node.children.node.style_overrides.slot]
+
+[components.SceneViewportToolbar.params]
+
+[components.SceneViewportToolbar.slots]

@@ -1,6 +1,6 @@
-use serde_json::Value;
-use crate::core::{ChannelReceiver, CoreHandle, EngineEvent};
 use crate::core::framework::foundation::EventManager;
+use crate::core::{ChannelReceiver, CoreHandle, EngineEvent};
+use serde_json::Value;
 
 #[derive(Clone, Debug)]
 pub struct DefaultEventManager {

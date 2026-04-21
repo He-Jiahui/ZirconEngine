@@ -14,19 +14,13 @@ impl UiDocumentCompiler {
     pub(super) fn expand_node(
         &self,
         document: &UiAssetDocument,
-        node_id: &str,
+        node: &UiNodeDefinition,
         tokens: &BTreeMap<String, Value>,
         params: &BTreeMap<String, Value>,
         slot_fills: Option<&BTreeMap<String, Vec<UiTemplateNode>>>,
         artifacts: &mut CompilationArtifacts,
     ) -> Result<Vec<UiTemplateNode>, UiAssetError> {
-        let node = document
-            .nodes
-            .get(node_id)
-            .ok_or_else(|| UiAssetError::MissingNode {
-                asset_id: document.asset.id.clone(),
-                node_id: node_id.to_string(),
-            })?;
+        let node_id = node.node_id.as_str();
 
         match node.kind {
             UiNodeDefinitionKind::Native => {
@@ -111,14 +105,8 @@ impl UiDocumentCompiler {
             .clone();
         let mut children = Vec::new();
         for child in &node.children {
-            let expanded = self.expand_node(
-                document,
-                &child.child,
-                tokens,
-                params,
-                slot_fills,
-                artifacts,
-            )?;
+            let expanded =
+                self.expand_node(document, &child.node, tokens, params, slot_fills, artifacts)?;
             children.extend(apply_child_mount(expanded, child, tokens, params));
         }
 

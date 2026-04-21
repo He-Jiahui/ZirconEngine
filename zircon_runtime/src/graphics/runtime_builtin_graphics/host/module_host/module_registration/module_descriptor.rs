@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
+use crate::core::manager::{RenderFrameworkHandle, RenderingManagerHandle};
 use crate::core::{
     DriverDescriptor, ManagerDescriptor, ModuleDescriptor, ServiceKind, ServiceObject, StartupMode,
 };
-use crate::core::manager::{RenderFrameworkHandle, RenderingManagerHandle};
 use crate::engine_module::{dependency_on, factory, qualified_name};
 
 use crate::asset::ASSET_MODULE_NAME;

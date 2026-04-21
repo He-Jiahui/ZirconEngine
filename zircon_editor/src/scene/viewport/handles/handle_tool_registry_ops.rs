@@ -1,4 +1,4 @@
-use crate::GizmoAxis;
+use crate::scene::viewport::GizmoAxis;
 use crate::scene::viewport::{
     HandleOverlayExtract, SceneViewportSettings, SceneViewportTool, ViewportCameraSnapshot,
 };

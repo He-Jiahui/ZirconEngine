@@ -1,4 +1,4 @@
-use crate::ui::EditorUiBinding;
+use crate::ui::binding::EditorUiBinding;
 
 use crate::core::editor_event::{EditorEventEnvelope, EditorEventRuntime, EditorEventSource};
 use crate::ui::slint_host::event_bridge::{apply_record_effects, SlintDispatchEffects};

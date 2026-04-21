@@ -1,4 +1,4 @@
-use crate::graphics::types::{EditorOrRuntimeFrame, GraphicsError, ViewportFrame};
+use crate::graphics::types::{GraphicsError, ViewportFrame, ViewportRenderFrame};
 
 use super::super::scene_renderer::SceneRenderer;
 use super::super::scene_renderer_runtime_outputs::reset_last_runtime_outputs;
@@ -8,7 +8,7 @@ use super::super::target_extent::viewport_size;
 impl SceneRenderer {
     pub fn render_frame(
         &mut self,
-        frame: &EditorOrRuntimeFrame,
+        frame: &ViewportRenderFrame,
     ) -> Result<ViewportFrame, GraphicsError> {
         reset_last_runtime_outputs(self);
 

@@ -1,4 +1,4 @@
-use crate::layout::MainPageId;
+use crate::ui::workbench::layout::MainPageId;
 
 use super::{PreferredHost, ViewHost};
 

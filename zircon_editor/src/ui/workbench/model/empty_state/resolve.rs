@@ -1,4 +1,4 @@
-use crate::snapshot::{EditorChromeSnapshot, ViewContentKind, ViewTabSnapshot};
+use crate::ui::workbench::snapshot::{EditorChromeSnapshot, ViewContentKind, ViewTabSnapshot};
 
 use super::super::pane_empty_state_model::PaneEmptyStateModel;
 use super::console::console_empty_state;

@@ -2,7 +2,7 @@ use crate::core::framework::render::DisplayMode;
 
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::mesh::{MeshDraw, MeshPipelineCache};
-use crate::graphics::types::EditorOrRuntimeFrame;
+use crate::graphics::types::ViewportRenderFrame;
 
 pub(crate) struct BaseScenePass;
 
@@ -18,7 +18,7 @@ impl BaseScenePass {
         mesh_draws: I,
         mesh_pipelines: &mut MeshPipelineCache,
         streamer: &ResourceStreamer,
-        frame: &EditorOrRuntimeFrame,
+        frame: &ViewportRenderFrame,
     ) where
         I: IntoIterator<Item = &'a MeshDraw>,
     {

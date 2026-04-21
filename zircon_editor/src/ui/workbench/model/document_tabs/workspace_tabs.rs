@@ -1,5 +1,5 @@
-use crate::layout::WorkspaceTarget;
-use crate::snapshot::{DocumentWorkspaceSnapshot, EditorChromeSnapshot};
+use crate::ui::workbench::layout::WorkspaceTarget;
+use crate::ui::workbench::snapshot::{DocumentWorkspaceSnapshot, EditorChromeSnapshot};
 
 use super::super::document_tab_model::DocumentTabModel;
 use super::collect::collect_document_tabs;

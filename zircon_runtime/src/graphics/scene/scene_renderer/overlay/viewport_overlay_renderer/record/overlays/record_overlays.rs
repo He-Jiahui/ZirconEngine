@@ -1,5 +1,7 @@
-use crate::graphics::scene::scene_renderer::overlay::{PreparedOverlayBuffers, ViewportOverlayRenderer};
-use crate::graphics::types::EditorOrRuntimeFrame;
+use crate::graphics::scene::scene_renderer::overlay::{
+    PreparedOverlayBuffers, ViewportOverlayRenderer,
+};
+use crate::graphics::types::ViewportRenderFrame;
 
 impl ViewportOverlayRenderer {
     pub(crate) fn record_overlays(
@@ -8,7 +10,7 @@ impl ViewportOverlayRenderer {
         color_view: &wgpu::TextureView,
         depth_view: &wgpu::TextureView,
         scene_bind_group: &wgpu::BindGroup,
-        frame: &EditorOrRuntimeFrame,
+        frame: &ViewportRenderFrame,
         prepared: &PreparedOverlayBuffers,
     ) {
         self.selection_outline.record(

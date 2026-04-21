@@ -1,7 +1,7 @@
 use crate::core::framework::render::DisplayMode;
 
 use crate::graphics::scene::scene_renderer::overlay::begin_line_pass;
-use crate::graphics::types::EditorOrRuntimeFrame;
+use crate::graphics::types::ViewportRenderFrame;
 
 pub(crate) struct WireframePass;
 
@@ -14,7 +14,7 @@ impl WireframePass {
         scene_bind_group: &wgpu::BindGroup,
         line_pipeline: &wgpu::RenderPipeline,
         buffer: Option<&(wgpu::Buffer, u32)>,
-        frame: &EditorOrRuntimeFrame,
+        frame: &ViewportRenderFrame,
     ) {
         if frame.scene.overlays.display_mode == DisplayMode::Shaded {
             return;

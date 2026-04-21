@@ -1,7 +1,7 @@
+use crate::core::resource::{AssetReference, ResourceLocator};
 use crate::ui::template::{UiAssetDocument, UiAssetKind, UiAssetLoader};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use crate::core::resource::{AssetReference, ResourceLocator};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(transparent)]

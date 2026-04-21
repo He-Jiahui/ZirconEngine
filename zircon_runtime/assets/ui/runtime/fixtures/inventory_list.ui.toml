@@ -1,0 +1,709 @@
+stylesheets = []
+
+[asset]
+kind = "layout"
+id = "runtime.ui.inventory_list"
+version = 1
+display_name = "Runtime Inventory List"
+
+[imports]
+widgets = []
+styles = []
+
+[tokens]
+
+[root]
+node_id = "inventory_root"
+kind = "native"
+type = "Overlay"
+control_id = "InventoryRoot"
+classes = []
+bindings = []
+
+[root.params]
+
+[root.props]
+
+[root.layout.container]
+kind = "Overlay"
+
+[root.layout.height]
+stretch = "Stretch"
+
+[root.layout.width]
+stretch = "Stretch"
+
+[root.style_overrides.self]
+
+[root.style_overrides.slot]
+
+[[root.children]]
+
+[root.children.slot]
+
+[root.children.node]
+node_id = "inventory_panel"
+kind = "native"
+type = "Container"
+control_id = "InventoryPanel"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.params]
+
+[root.children.node.props.background]
+color = "#1d2330"
+
+[root.children.node.props.border]
+color = "#7aa3d0"
+radius = 16.0
+width = 2.0
+
+[root.children.node.layout.anchor]
+x = 1.0
+y = 0.5
+
+[root.children.node.layout.height]
+max = 380.0
+min = 380.0
+preferred = 380.0
+stretch = "Fixed"
+
+[root.children.node.layout.pivot]
+x = 1.0
+y = 0.5
+
+[root.children.node.layout.position]
+x = -36.0
+y = 0.0
+
+[root.children.node.layout.width]
+max = 540.0
+min = 540.0
+preferred = 540.0
+stretch = "Fixed"
+
+[root.children.node.style_overrides.self]
+
+[root.children.node.style_overrides.slot]
+
+[[root.children]]
+
+[root.children.slot]
+
+[root.children.node]
+node_id = "inventory_header"
+kind = "native"
+type = "Container"
+control_id = "InventoryHeader"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.params]
+
+[root.children.node.props]
+text = "Field Inventory"
+
+[root.children.node.props.background]
+color = "#7a4e23"
+
+[root.children.node.props.border]
+color = "#f2d1a0"
+radius = 12.0
+width = 1.0
+
+[root.children.node.props.foreground]
+color = "#fff2de"
+
+[root.children.node.layout.anchor]
+x = 1.0
+y = 0.5
+
+[root.children.node.layout.height]
+max = 56.0
+min = 56.0
+preferred = 56.0
+stretch = "Fixed"
+
+[root.children.node.layout.pivot]
+x = 1.0
+y = 0.5
+
+[root.children.node.layout.position]
+x = -68.0
+y = -140.0
+
+[root.children.node.layout.width]
+max = 476.0
+min = 476.0
+preferred = 476.0
+stretch = "Fixed"
+
+[root.children.node.style_overrides.self]
+
+[root.children.node.style_overrides.slot]
+
+[[root.children]]
+
+[root.children.slot]
+
+[root.children.node]
+node_id = "inventory_list"
+kind = "native"
+type = "ScrollableBox"
+control_id = "InventoryList"
+classes = []
+bindings = []
+
+[root.children.node.params]
+
+[root.children.node.props]
+
+[root.children.node.layout]
+clip = true
+
+[root.children.node.layout.anchor]
+x = 1.0
+y = 0.5
+
+[root.children.node.layout.container]
+axis = "Vertical"
+gap = 8.0
+kind = "ScrollableBox"
+scrollbar_visibility = "Always"
+
+[root.children.node.layout.container.virtualization]
+item_extent = 36.0
+overscan = 2
+
+[root.children.node.layout.height]
+max = 260.0
+min = 260.0
+preferred = 260.0
+stretch = "Fixed"
+
+[root.children.node.layout.pivot]
+x = 1.0
+y = 0.5
+
+[root.children.node.layout.position]
+x = -68.0
+y = 22.0
+
+[root.children.node.layout.width]
+max = 476.0
+min = 476.0
+preferred = 476.0
+stretch = "Fixed"
+
+[root.children.node.style_overrides.self]
+
+[root.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+
+[root.children.node.children.slot]
+
+[root.children.node.children.node]
+node_id = "row_00"
+kind = "native"
+type = "Button"
+control_id = "InventoryRow00"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.children.node.params]
+
+[root.children.node.children.node.props]
+text = "01  Pulse Cells x24"
+
+[root.children.node.children.node.props.background]
+color = "#30465e"
+
+[root.children.node.children.node.props.border]
+color = "#96c2e6"
+radius = 8.0
+width = 1.0
+
+[root.children.node.children.node.props.foreground]
+color = "#eef8ff"
+
+[root.children.node.children.node.layout.height]
+max = 36.0
+min = 36.0
+preferred = 36.0
+stretch = "Fixed"
+
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+
+[root.children.node.children.slot]
+
+[root.children.node.children.node]
+node_id = "row_01"
+kind = "native"
+type = "Button"
+control_id = "InventoryRow01"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.children.node.params]
+
+[root.children.node.children.node.props]
+text = "02  Med Kit x4"
+
+[root.children.node.children.node.props.background]
+color = "#2c394c"
+
+[root.children.node.children.node.props.border]
+color = "#89b6d9"
+radius = 8.0
+width = 1.0
+
+[root.children.node.children.node.props.foreground]
+color = "#eef8ff"
+
+[root.children.node.children.node.layout.height]
+max = 36.0
+min = 36.0
+preferred = 36.0
+stretch = "Fixed"
+
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+
+[root.children.node.children.slot]
+
+[root.children.node.children.node]
+node_id = "row_02"
+kind = "native"
+type = "Button"
+control_id = "InventoryRow02"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.children.node.params]
+
+[root.children.node.children.node.props]
+text = "03  Signal Beacon"
+
+[root.children.node.children.node.props.background]
+color = "#30465e"
+
+[root.children.node.children.node.props.border]
+color = "#96c2e6"
+radius = 8.0
+width = 1.0
+
+[root.children.node.children.node.props.foreground]
+color = "#eef8ff"
+
+[root.children.node.children.node.layout.height]
+max = 36.0
+min = 36.0
+preferred = 36.0
+stretch = "Fixed"
+
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+
+[root.children.node.children.slot]
+
+[root.children.node.children.node]
+node_id = "row_03"
+kind = "native"
+type = "Button"
+control_id = "InventoryRow03"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.children.node.params]
+
+[root.children.node.children.node.props]
+text = "04  Alloy Plate x12"
+
+[root.children.node.children.node.props.background]
+color = "#2c394c"
+
+[root.children.node.children.node.props.border]
+color = "#89b6d9"
+radius = 8.0
+width = 1.0
+
+[root.children.node.children.node.props.foreground]
+color = "#eef8ff"
+
+[root.children.node.children.node.layout.height]
+max = 36.0
+min = 36.0
+preferred = 36.0
+stretch = "Fixed"
+
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+
+[root.children.node.children.slot]
+
+[root.children.node.children.node]
+node_id = "row_04"
+kind = "native"
+type = "Button"
+control_id = "InventoryRow04"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.children.node.params]
+
+[root.children.node.children.node.props]
+text = "05  Repair Foam x3"
+
+[root.children.node.children.node.props.background]
+color = "#30465e"
+
+[root.children.node.children.node.props.border]
+color = "#96c2e6"
+radius = 8.0
+width = 1.0
+
+[root.children.node.children.node.props.foreground]
+color = "#eef8ff"
+
+[root.children.node.children.node.layout.height]
+max = 36.0
+min = 36.0
+preferred = 36.0
+stretch = "Fixed"
+
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+
+[root.children.node.children.slot]
+
+[root.children.node.children.node]
+node_id = "row_05"
+kind = "native"
+type = "Button"
+control_id = "InventoryRow05"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.children.node.params]
+
+[root.children.node.children.node.props]
+text = "06  Cryo Charge x2"
+
+[root.children.node.children.node.props.background]
+color = "#2c394c"
+
+[root.children.node.children.node.props.border]
+color = "#89b6d9"
+radius = 8.0
+width = 1.0
+
+[root.children.node.children.node.props.foreground]
+color = "#eef8ff"
+
+[root.children.node.children.node.layout.height]
+max = 36.0
+min = 36.0
+preferred = 36.0
+stretch = "Fixed"
+
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+
+[root.children.node.children.slot]
+
+[root.children.node.children.node]
+node_id = "row_06"
+kind = "native"
+type = "Button"
+control_id = "InventoryRow06"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.children.node.params]
+
+[root.children.node.children.node.props]
+text = "07  Survey Drone"
+
+[root.children.node.children.node.props.background]
+color = "#30465e"
+
+[root.children.node.children.node.props.border]
+color = "#96c2e6"
+radius = 8.0
+width = 1.0
+
+[root.children.node.children.node.props.foreground]
+color = "#eef8ff"
+
+[root.children.node.children.node.layout.height]
+max = 36.0
+min = 36.0
+preferred = 36.0
+stretch = "Fixed"
+
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+
+[root.children.node.children.slot]
+
+[root.children.node.children.node]
+node_id = "row_07"
+kind = "native"
+type = "Button"
+control_id = "InventoryRow07"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.children.node.params]
+
+[root.children.node.children.node.props]
+text = "08  Circuit Weave x7"
+
+[root.children.node.children.node.props.background]
+color = "#2c394c"
+
+[root.children.node.children.node.props.border]
+color = "#89b6d9"
+radius = 8.0
+width = 1.0
+
+[root.children.node.children.node.props.foreground]
+color = "#eef8ff"
+
+[root.children.node.children.node.layout.height]
+max = 36.0
+min = 36.0
+preferred = 36.0
+stretch = "Fixed"
+
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+
+[root.children.node.children.slot]
+
+[root.children.node.children.node]
+node_id = "row_08"
+kind = "native"
+type = "Button"
+control_id = "InventoryRow08"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.children.node.params]
+
+[root.children.node.children.node.props]
+text = "09  Field Rations x9"
+
+[root.children.node.children.node.props.background]
+color = "#30465e"
+
+[root.children.node.children.node.props.border]
+color = "#96c2e6"
+radius = 8.0
+width = 1.0
+
+[root.children.node.children.node.props.foreground]
+color = "#eef8ff"
+
+[root.children.node.children.node.layout.height]
+max = 36.0
+min = 36.0
+preferred = 36.0
+stretch = "Fixed"
+
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+
+[root.children.node.children.slot]
+
+[root.children.node.children.node]
+node_id = "row_09"
+kind = "native"
+type = "Button"
+control_id = "InventoryRow09"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.children.node.params]
+
+[root.children.node.children.node.props]
+text = "10  Archive Key"
+
+[root.children.node.children.node.props.background]
+color = "#2c394c"
+
+[root.children.node.children.node.props.border]
+color = "#89b6d9"
+radius = 8.0
+width = 1.0
+
+[root.children.node.children.node.props.foreground]
+color = "#eef8ff"
+
+[root.children.node.children.node.layout.height]
+max = 36.0
+min = 36.0
+preferred = 36.0
+stretch = "Fixed"
+
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+
+[root.children.node.children.slot]
+
+[root.children.node.children.node]
+node_id = "row_10"
+kind = "native"
+type = "Button"
+control_id = "InventoryRow10"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.children.node.params]
+
+[root.children.node.children.node.props]
+text = "11  Arc Knife"
+
+[root.children.node.children.node.props.background]
+color = "#30465e"
+
+[root.children.node.children.node.props.border]
+color = "#96c2e6"
+radius = 8.0
+width = 1.0
+
+[root.children.node.children.node.props.foreground]
+color = "#eef8ff"
+
+[root.children.node.children.node.layout.height]
+max = 36.0
+min = 36.0
+preferred = 36.0
+stretch = "Fixed"
+
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+
+[root.children.node.children.slot]
+
+[root.children.node.children.node]
+node_id = "row_11"
+kind = "native"
+type = "Button"
+control_id = "InventoryRow11"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.children.node.params]
+
+[root.children.node.children.node.props]
+text = "12  Shield Capacitor x5"
+
+[root.children.node.children.node.props.background]
+color = "#2c394c"
+
+[root.children.node.children.node.props.border]
+color = "#89b6d9"
+radius = 8.0
+width = 1.0
+
+[root.children.node.children.node.props.foreground]
+color = "#eef8ff"
+
+[root.children.node.children.node.layout.height]
+max = 36.0
+min = 36.0
+preferred = 36.0
+stretch = "Fixed"
+
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[components]

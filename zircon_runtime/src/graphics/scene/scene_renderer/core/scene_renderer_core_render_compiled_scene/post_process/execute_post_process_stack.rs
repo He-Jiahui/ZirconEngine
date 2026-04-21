@@ -1,6 +1,7 @@
 use crate::graphics::backend::OffscreenTarget;
 use crate::graphics::scene::scene_renderer::history::SceneFrameHistoryTextures;
-use crate::graphics::types::EditorOrRuntimeFrame;
+use crate::graphics::scene::scene_renderer::HybridGiScenePrepareResourcesSnapshot;
+use crate::graphics::types::ViewportRenderFrame;
 
 use super::super::super::super::post_process::SceneRuntimeFeatureFlags;
 use super::super::super::scene_renderer_core::SceneRendererCore;
@@ -12,8 +13,9 @@ impl SceneRendererCore {
         queue: &wgpu::Queue,
         encoder: &mut wgpu::CommandEncoder,
         target: &mut OffscreenTarget,
-        frame: &EditorOrRuntimeFrame,
+        frame: &ViewportRenderFrame,
         runtime_features: SceneRuntimeFeatureFlags,
+        hybrid_gi_scene_prepare_resources: Option<&HybridGiScenePrepareResourcesSnapshot>,
         history_textures: Option<&SceneFrameHistoryTextures>,
         history_available: bool,
     ) {
@@ -59,11 +61,14 @@ impl SceneRendererCore {
             &target.scene_color_view,
             &target.ambient_occlusion_view,
             history_textures.map(|history| &history.scene_color_view),
+            history_textures.map(|history| &history.global_illumination_view),
             &target.bloom_view,
             &target.final_color_view,
+            &target.global_illumination_view,
             &target.cluster_buffer,
             frame,
             runtime_features,
+            hybrid_gi_scene_prepare_resources,
             history_available,
         );
     }

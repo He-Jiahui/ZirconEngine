@@ -1,4 +1,4 @@
-use crate::graphics::types::EditorOrRuntimeFrame;
+use crate::graphics::types::ViewportRenderFrame;
 
 use super::super::super::mesh_draw::MeshDraw;
 use super::super::super::mesh_draw::VirtualGeometrySubmissionDetail;
@@ -14,7 +14,9 @@ pub(crate) struct BuiltMeshDraws {
     pub(crate) draws: Vec<MeshDraw>,
     pub(crate) indirect_segment_count: u32,
     pub(crate) indirect_args_count: u32,
+    pub(crate) indirect_args_buffer: Option<std::sync::Arc<wgpu::Buffer>>,
     pub(crate) indirect_submission_buffer: Option<std::sync::Arc<wgpu::Buffer>>,
+    pub(crate) indirect_authority_buffer: Option<std::sync::Arc<wgpu::Buffer>>,
     pub(crate) indirect_draw_ref_buffer: Option<std::sync::Arc<wgpu::Buffer>>,
     pub(crate) indirect_segment_buffer: Option<std::sync::Arc<wgpu::Buffer>>,
 }
@@ -25,7 +27,7 @@ pub(crate) fn build_mesh_draws(
     virtual_geometry_indirect_args: &VirtualGeometryIndirectArgsGpuResources,
     model_layout: &wgpu::BindGroupLayout,
     streamer: &crate::graphics::scene::resources::ResourceStreamer,
-    frame: &EditorOrRuntimeFrame,
+    frame: &ViewportRenderFrame,
     virtual_geometry_enabled: bool,
 ) -> BuiltMeshDraws {
     let build_context = build_mesh_draw_build_context(frame, virtual_geometry_enabled);
@@ -119,6 +121,9 @@ pub(crate) fn build_mesh_draws(
     let indirect_submission_buffer = shared_indirect_args_buffer
         .as_ref()
         .map(|shared| std::sync::Arc::clone(&shared.submission_buffer));
+    let indirect_authority_buffer = shared_indirect_args_buffer
+        .as_ref()
+        .map(|shared| std::sync::Arc::clone(&shared.authority_buffer));
     let indirect_segment_buffer = shared_indirect_args_buffer
         .as_ref()
         .map(|shared| std::sync::Arc::clone(&shared.segment_buffer));
@@ -126,9 +131,9 @@ pub(crate) fn build_mesh_draws(
         .as_ref()
         .map(|shared| shared.indirect_args_offsets.clone())
         .unwrap_or_default();
-    let pending_draw_submission_orders = shared_indirect_args_buffer
+    let pending_draw_draw_ref_indices = shared_indirect_args_buffer
         .as_ref()
-        .map(|shared| shared.pending_draw_submission_orders.clone())
+        .map(|shared| shared.pending_draw_draw_ref_indices.clone())
         .unwrap_or_default();
     let pending_draw_submission_tokens = shared_indirect_args_buffer
         .as_ref()
@@ -138,60 +143,63 @@ pub(crate) fn build_mesh_draws(
         .as_ref()
         .map(|shared| shared.pending_draw_submission_details.clone())
         .unwrap_or_default();
+    let pending_draw_submission_plan = shared_indirect_args_buffer
+        .as_ref()
+        .map(|shared| shared.pending_draw_submission_plan.clone())
+        .unwrap_or_default();
     let shared_indirect_args_buffer = shared_indirect_args_buffer.map(|shared| shared.buffer);
+    let indirect_args_buffer = shared_indirect_args_buffer.clone();
     let indirect_args_stride = std::mem::size_of::<IndexedIndirectArgs>() as u64;
 
-    let mut ordered_pending_draws = pending_draws
-        .into_iter()
-        .enumerate()
-        .map(|(index, pending_draw)| {
-            (
-                pending_draw_submission_orders
-                    .get(index)
-                    .copied()
-                    .unwrap_or(index as u32),
-                pending_draw_submission_tokens
-                    .get(index)
-                    .copied()
-                    .unwrap_or(u32::MAX),
+    let mut pending_draws = pending_draws.into_iter().map(Some).collect::<Vec<_>>();
+    let mut ordered_pending_draws = Vec::new();
+    if shared_indirect_args_buffer.is_some() {
+        for submission in &pending_draw_submission_plan {
+            let Some(pending_draw) = pending_draws
+                .get_mut(submission.pending_draw_index)
+                .and_then(Option::take)
+            else {
+                continue;
+            };
+            ordered_pending_draws.push((
+                submission.indirect_args_offset,
+                submission.pending_draw_index,
+                Some(submission.submission_detail),
+                pending_draw,
+            ));
+        }
+    }
+    ordered_pending_draws.extend(pending_draws.into_iter().enumerate().filter_map(
+        |(index, pending_draw)| {
+            let pending_draw = pending_draw?;
+            Some((
                 indirect_args_offsets
                     .get(index)
                     .copied()
                     .unwrap_or((index as u64) * indirect_args_stride),
                 index,
+                pending_draw_submission_details
+                    .get(index)
+                    .copied()
+                    .flatten()
+                    .or_else(|| {
+                        submission_detail_from_draw_ref(
+                            pending_draw.indirect_draw_ref,
+                            pending_draw_submission_tokens.get(index).copied(),
+                            pending_draw_draw_ref_indices.get(index).copied(),
+                            indirect_args_offsets.get(index).copied(),
+                            indirect_args_stride,
+                        )
+                    }),
                 pending_draw,
-            )
-        })
-        .collect::<Vec<_>>();
-    if shared_indirect_args_buffer.is_some() {
-        ordered_pending_draws.sort_by_key(
-            |(
-                submission_order,
-                submission_token,
-                indirect_args_offset,
-                original_index,
-                _pending_draw,
-            )| {
-                (
-                    *submission_order,
-                    *submission_token,
-                    *indirect_args_offset,
-                    *original_index,
-                )
-            },
-        );
-    }
+            ))
+        },
+    ));
     BuiltMeshDraws {
         draws: ordered_pending_draws
             .into_iter()
             .map(
-                |(
-                    _submission_order,
-                    submission_token,
-                    indirect_args_offset,
-                    _original_index,
-                    pending_draw,
-                )| {
+                |(indirect_args_offset, original_index, submission_detail, pending_draw)| {
                     create_mesh_draw(
                         device,
                         model_layout,
@@ -204,36 +212,68 @@ pub(crate) fn build_mesh_draws(
                         pending_draw.draw_index_count,
                         shared_indirect_args_buffer.clone(),
                         indirect_args_offset,
-                        pending_draw_submission_details
-                            .get(_original_index)
-                            .copied()
-                            .flatten()
-                            .or_else(|| {
-                                pending_draw.indirect_draw_ref.map(|draw_ref| {
-                                    VirtualGeometrySubmissionDetail {
-                                        entity: draw_ref.segment_key.entity,
-                                        page_id: draw_ref.segment_key.page_id,
-                                        submission_index: if submission_token == u32::MAX {
-                                            0
-                                        } else {
-                                            submission_token >> 16
-                                        },
-                                        draw_ref_rank: if submission_token == u32::MAX {
-                                            0
-                                        } else {
-                                            submission_token & 0xffff
-                                        },
-                                    }
-                                })
-                            }),
+                        submission_detail.or_else(|| {
+                            submission_detail_from_draw_ref(
+                                pending_draw.indirect_draw_ref,
+                                pending_draw_submission_tokens.get(original_index).copied(),
+                                pending_draw_draw_ref_indices.get(original_index).copied(),
+                                Some(indirect_args_offset),
+                                indirect_args_stride,
+                            )
+                        }),
                     )
                 },
             )
             .collect(),
         indirect_segment_count,
         indirect_args_count,
+        indirect_args_buffer,
         indirect_submission_buffer,
+        indirect_authority_buffer,
         indirect_draw_ref_buffer,
         indirect_segment_buffer,
     }
+}
+
+fn submission_detail_from_draw_ref(
+    draw_ref: Option<super::pending_mesh_draw::VirtualGeometryIndirectDrawRef>,
+    submission_token: Option<u32>,
+    draw_ref_index: Option<u32>,
+    indirect_args_offset: Option<u64>,
+    indirect_args_stride: u64,
+) -> Option<VirtualGeometrySubmissionDetail> {
+    let draw_ref = draw_ref?;
+    let submission_token = submission_token.unwrap_or(u32::MAX);
+    Some(VirtualGeometrySubmissionDetail {
+        instance_index: draw_ref.segment_key.instance_index,
+        entity: draw_ref.segment_key.entity,
+        page_id: draw_ref.segment_key.page_id,
+        submission_index: if submission_token == u32::MAX {
+            0
+        } else {
+            submission_token >> 16
+        },
+        draw_ref_rank: if submission_token == u32::MAX {
+            0
+        } else {
+            submission_token & 0xffff
+        },
+        draw_ref_index: draw_ref_index.unwrap_or_else(|| {
+            indirect_args_offset
+                .map(|offset| (offset / indirect_args_stride) as u32)
+                .unwrap_or_default()
+        }),
+        cluster_start_ordinal: draw_ref.segment_key.cluster_start_ordinal,
+        cluster_span_count: draw_ref.segment_key.cluster_span_count,
+        cluster_total_count: draw_ref.segment_key.cluster_total_count,
+        submission_slot: draw_ref.segment_key.submission_slot,
+        state: match draw_ref.segment_key.state {
+            0 => crate::graphics::types::VirtualGeometryPrepareClusterState::Resident,
+            1 => crate::graphics::types::VirtualGeometryPrepareClusterState::PendingUpload,
+            _ => crate::graphics::types::VirtualGeometryPrepareClusterState::Missing,
+        },
+        lineage_depth: draw_ref.segment_key.lineage_depth,
+        lod_level: draw_ref.segment_key.lod_level,
+        frontier_rank: draw_ref.segment_key.frontier_rank,
+    })
 }

@@ -1,7 +1,10 @@
 use super::super::HybridGiRuntimeState;
 
 impl HybridGiRuntimeState {
-    pub(in crate::graphics::runtime::hybrid_gi::residency_management) fn reserve_slot(&mut self, slot: u32) {
+    pub(in crate::graphics::runtime::hybrid_gi::residency_management) fn reserve_slot(
+        &mut self,
+        slot: u32,
+    ) {
         if self.free_slots.remove(&slot) {
             return;
         }

@@ -18,11 +18,22 @@ widgets = ["res://ui/common/button.ui.toml#ToolbarButton"]
 styles = ["res://ui/theme/editor.ui.toml"]
 
 [root]
-node = "root"
-
-[nodes.root]
+node_id = "root"
 kind = "native"
 type = "VerticalBox"
+classes = []
+bindings = []
+children = []
+
+[root.params]
+
+[root.props]
+
+[root.style_overrides.self]
+
+[root.style_overrides.slot]
+
+[components]
 "#;
 
 const WIDGET_UI_TOML: &str = r#"
@@ -33,14 +44,43 @@ version = 1
 display_name = "Toolbar Button"
 
 [root]
-node = "button_root"
-
-[components.ToolbarButton]
-root = "button_root"
-
-[nodes.button_root]
+node_id = "button_root"
 kind = "native"
 type = "Button"
+classes = []
+bindings = []
+children = []
+
+[root.params]
+
+[root.props]
+
+[root.style_overrides.self]
+
+[root.style_overrides.slot]
+
+[components.ToolbarButton]
+style_scope = "closed"
+
+[components.ToolbarButton.root]
+node_id = "button_root"
+kind = "native"
+type = "Button"
+classes = []
+bindings = []
+children = []
+
+[components.ToolbarButton.root.params]
+
+[components.ToolbarButton.root.props]
+
+[components.ToolbarButton.root.style_overrides.self]
+
+[components.ToolbarButton.root.style_overrides.slot]
+
+[components.ToolbarButton.params]
+
+[components.ToolbarButton.slots]
 "#;
 
 const STYLE_UI_TOML: &str = r#"
@@ -49,6 +89,14 @@ kind = "style"
 id = "ui.theme.editor"
 version = 1
 display_name = "Editor Theme"
+
+[imports]
+widgets = []
+styles = []
+
+[tokens]
+
+[components]
 
 [[stylesheets]]
 id = "editor"

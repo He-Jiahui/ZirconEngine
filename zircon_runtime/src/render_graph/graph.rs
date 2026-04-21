@@ -1,4 +1,4 @@
-use crate::{PassFlags, QueueLane, RenderPassId};
+use super::types::{PassFlags, QueueLane, RenderPassId};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CompiledRenderPass {

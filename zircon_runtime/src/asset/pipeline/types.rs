@@ -1,7 +1,7 @@
 //! Asset path sources, vertex layout, and request/payload types.
 
-use serde::{Deserialize, Serialize};
 use crate::core::math::{Vec2, Vec3};
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Hash, Eq, PartialEq, Serialize, Deserialize)]
 pub enum TextureSource {

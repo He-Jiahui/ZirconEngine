@@ -5,10 +5,10 @@ use crate::core::math::Vec4;
 
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::primitives::LineVertex;
-use crate::graphics::types::EditorOrRuntimeFrame;
+use crate::graphics::types::ViewportRenderFrame;
 
 pub(crate) fn build_wireframe_vertices(
-    frame: &EditorOrRuntimeFrame,
+    frame: &ViewportRenderFrame,
     streamer: &ResourceStreamer,
 ) -> Vec<LineVertex> {
     let selection: HashSet<_> = frame

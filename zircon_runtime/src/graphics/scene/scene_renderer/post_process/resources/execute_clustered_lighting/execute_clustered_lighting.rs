@@ -1,6 +1,6 @@
-use bytemuck::Zeroable;
 use crate::core::framework::render::RenderDirectionalLightSnapshot;
 use crate::core::math::UVec2;
+use bytemuck::Zeroable;
 
 use super::super::super::cluster_params::ClusterParams;
 use super::super::super::clustered_directional_light::ClusteredDirectionalLight;

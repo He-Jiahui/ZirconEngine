@@ -2,7 +2,7 @@ use wgpu::util::DeviceExt;
 
 use super::super::build_particle_vertices::build_particle_vertices;
 use super::ParticleRenderer;
-use crate::graphics::types::EditorOrRuntimeFrame;
+use crate::graphics::types::ViewportRenderFrame;
 
 impl ParticleRenderer {
     pub(crate) fn record(
@@ -12,7 +12,7 @@ impl ParticleRenderer {
         color_view: &wgpu::TextureView,
         depth_view: &wgpu::TextureView,
         scene_bind_group: &wgpu::BindGroup,
-        frame: &EditorOrRuntimeFrame,
+        frame: &ViewportRenderFrame,
     ) {
         let vertices = build_particle_vertices(frame);
         if vertices.is_empty() {

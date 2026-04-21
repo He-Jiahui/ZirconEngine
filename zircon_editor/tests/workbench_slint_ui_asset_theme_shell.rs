@@ -1,14 +1,30 @@
 use std::fs;
 use std::path::PathBuf;
 
-fn panes_source() -> String {
-    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("ui/workbench/panes.slint");
-    fs::read_to_string(path).expect("panes.slint should be readable")
+fn ui_asset_editor_source() -> String {
+    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    [
+        "ui/workbench/pane_fields.slint",
+        "ui/workbench/ui_asset_editor_data.slint",
+        "ui/workbench/ui_asset_editor_components.slint",
+        "ui/workbench/ui_asset_editor_center_column.slint",
+        "ui/workbench/ui_asset_editor_inspector_panel.slint",
+        "ui/workbench/ui_asset_editor_stylesheet_panel.slint",
+        "ui/workbench/ui_asset_editor_pane.slint",
+    ]
+    .into_iter()
+    .map(|relative| {
+        fs::read_to_string(manifest_dir.join(relative))
+            .unwrap_or_else(|_| panic!("{relative} should be readable"))
+    })
+    .collect::<Vec<_>>()
+    .join("\n")
 }
 
-fn pane_surface_source() -> String {
-    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("ui/workbench/pane_surface.slint");
-    fs::read_to_string(path).expect("pane_surface.slint should be readable")
+fn pane_surface_host_context_source() -> String {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("ui/workbench/pane_surface_host_context.slint");
+    fs::read_to_string(path).expect("pane_surface_host_context.slint should be readable")
 }
 
 fn block_after<'a>(source: &'a str, marker: &str) -> &'a str {
@@ -20,7 +36,7 @@ fn block_after<'a>(source: &'a str, marker: &str) -> &'a str {
 
 #[test]
 fn ui_asset_editor_theme_panel_declares_open_promote_and_local_detail_selection_controls() {
-    let panes = panes_source();
+    let panes = ui_asset_editor_source();
     let pane_block = block_after(
         &panes,
         "export component UiAssetEditorPane inherits Rectangle {",
@@ -52,7 +68,7 @@ fn ui_asset_editor_theme_panel_declares_open_promote_and_local_detail_selection_
 
 #[test]
 fn ui_asset_editor_theme_panel_declares_promote_draft_controls() {
-    let panes = panes_source();
+    let panes = ui_asset_editor_source();
     let pane_block = block_after(
         &panes,
         "export component UiAssetEditorPane inherits Rectangle {",
@@ -81,8 +97,8 @@ fn ui_asset_editor_theme_panel_declares_promote_draft_controls() {
 
 #[test]
 fn ui_asset_editor_theme_panel_declares_detach_imported_theme_control() {
-    let source = pane_surface_source();
-    let panes = panes_source();
+    let source = pane_surface_host_context_source();
+    let panes = ui_asset_editor_source();
     let pane_block = block_after(
         &panes,
         "export component UiAssetEditorPane inherits Rectangle {",
@@ -100,7 +116,7 @@ fn ui_asset_editor_theme_panel_declares_detach_imported_theme_control() {
 
 #[test]
 fn ui_asset_editor_theme_panel_declares_clone_imported_theme_control() {
-    let panes = panes_source();
+    let panes = ui_asset_editor_source();
 
     assert!(panes.contains("label: \"Clone\";"));
     assert!(panes.contains("clicked => { root.action(\"theme.source.clone_local\"); }"));
@@ -111,7 +127,7 @@ fn ui_asset_editor_theme_panel_declares_clone_imported_theme_control() {
 
 #[test]
 fn ui_asset_editor_theme_panel_declares_cascade_inspection_controls() {
-    let panes = panes_source();
+    let panes = ui_asset_editor_source();
     let pane_block = block_after(
         &panes,
         "export component UiAssetEditorPane inherits Rectangle {",
@@ -132,7 +148,7 @@ fn ui_asset_editor_theme_panel_declares_cascade_inspection_controls() {
 
 #[test]
 fn ui_asset_editor_theme_panel_declares_local_merge_preview_controls() {
-    let panes = panes_source();
+    let panes = ui_asset_editor_source();
     let pane_block = block_after(
         &panes,
         "export component UiAssetEditorPane inherits Rectangle {",
@@ -147,7 +163,7 @@ fn ui_asset_editor_theme_panel_declares_local_merge_preview_controls() {
 
 #[test]
 fn ui_asset_editor_theme_panel_declares_compare_inspection_controls() {
-    let panes = panes_source();
+    let panes = ui_asset_editor_source();
     let pane_block = block_after(
         &panes,
         "export component UiAssetEditorPane inherits Rectangle {",
@@ -162,7 +178,7 @@ fn ui_asset_editor_theme_panel_declares_compare_inspection_controls() {
 
 #[test]
 fn ui_asset_editor_theme_panel_declares_rule_helper_and_refactor_controls() {
-    let panes = panes_source();
+    let panes = ui_asset_editor_source();
     let pane_block = block_after(
         &panes,
         "export component UiAssetEditorPane inherits Rectangle {",

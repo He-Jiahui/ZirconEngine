@@ -21,12 +21,12 @@ pub enum AssetHostEvent {
         kind: Option<String>,
     },
     SetViewMode {
-        surface: crate::EditorAssetSurface,
-        view_mode: crate::EditorAssetViewMode,
+        surface: crate::core::editor_event::EditorAssetSurface,
+        view_mode: crate::core::editor_event::EditorAssetViewMode,
     },
     SetUtilityTab {
-        surface: crate::EditorAssetSurface,
-        tab: crate::EditorAssetUtilityTab,
+        surface: crate::core::editor_event::EditorAssetSurface,
+        tab: crate::core::editor_event::EditorAssetUtilityTab,
     },
     OpenAssetBrowser,
     LocateSelectedAsset,

@@ -1,17 +1,12 @@
 use crate::core::framework::render::{RenderVirtualGeometryCluster, RenderVirtualGeometryExtract};
 
+use super::cluster_ids_for_entity;
+
 pub(in crate::graphics::visibility::planning::build_virtual_geometry_plan) fn virtual_geometry_cluster_ordinal(
     extract: &RenderVirtualGeometryExtract,
     cluster: &RenderVirtualGeometryCluster,
 ) -> u32 {
-    let mut cluster_ids = extract
-        .clusters
-        .iter()
-        .filter(|candidate| candidate.entity == cluster.entity)
-        .map(|candidate| candidate.cluster_id)
-        .collect::<Vec<_>>();
-    cluster_ids.sort_unstable();
-    cluster_ids.dedup();
+    let cluster_ids = cluster_ids_for_entity(extract, cluster.entity);
     cluster_ids
         .iter()
         .position(|cluster_id| *cluster_id == cluster.cluster_id)

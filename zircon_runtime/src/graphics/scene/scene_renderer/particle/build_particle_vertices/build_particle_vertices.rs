@@ -1,11 +1,11 @@
 use crate::core::math::Vec4;
 
-use crate::graphics::types::EditorOrRuntimeFrame;
+use crate::graphics::types::ViewportRenderFrame;
 
 use super::super::particle_vertex::ParticleVertex;
 
 pub(in crate::graphics::scene::scene_renderer::particle) fn build_particle_vertices(
-    frame: &EditorOrRuntimeFrame,
+    frame: &ViewportRenderFrame,
 ) -> Vec<ParticleVertex> {
     let camera = &frame.extract.view.camera.transform;
     let right = camera.right();

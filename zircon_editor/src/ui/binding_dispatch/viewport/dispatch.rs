@@ -1,4 +1,4 @@
-use crate::ui::{EditorUiBinding, EditorUiBindingPayload, ViewportCommand};
+use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload, ViewportCommand};
 
 use super::super::error::EditorBindingDispatchError;
 

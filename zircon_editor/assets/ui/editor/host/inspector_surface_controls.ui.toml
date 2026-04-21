@@ -1,0 +1,233 @@
+stylesheets = []
+
+[asset]
+kind = "layout"
+id = "editor.host.inspector_surface_controls"
+version = 1
+display_name = "inspector surface controls"
+
+[imports]
+widgets = []
+styles = []
+
+[tokens]
+
+[root]
+node_id = "root"
+kind = "component"
+component = "InspectorSurfaceControls"
+classes = []
+bindings = []
+children = []
+
+[root.params]
+
+[root.props]
+
+[root.style_overrides.self]
+
+[root.style_overrides.slot]
+
+[components.InspectorSurfaceControls]
+style_scope = "closed"
+
+[components.InspectorSurfaceControls.root]
+node_id = "component_InspectorSurfaceControls_root"
+kind = "native"
+type = "InspectorSurfaceControls"
+classes = []
+bindings = []
+
+[components.InspectorSurfaceControls.root.params]
+
+[components.InspectorSurfaceControls.root.props]
+
+[components.InspectorSurfaceControls.root.style_overrides.self]
+
+[components.InspectorSurfaceControls.root.style_overrides.slot]
+
+[[components.InspectorSurfaceControls.root.children]]
+
+[components.InspectorSurfaceControls.root.children.slot]
+
+[components.InspectorSurfaceControls.root.children.node]
+node_id = "component_InspectorSurfaceControls_root_0"
+kind = "native"
+type = "UiHostIconButton"
+control_id = "NameField"
+classes = []
+children = []
+
+[components.InspectorSurfaceControls.root.children.node.params]
+
+[components.InspectorSurfaceControls.root.children.node.props]
+label = "NameField"
+
+[[components.InspectorSurfaceControls.root.children.node.bindings]]
+id = "InspectorView/NameField"
+event = "Change"
+route = "DraftCommand.SetInspectorField"
+
+[components.InspectorSurfaceControls.root.children.node.style_overrides.self]
+
+[components.InspectorSurfaceControls.root.children.node.style_overrides.slot]
+
+[[components.InspectorSurfaceControls.root.children]]
+
+[components.InspectorSurfaceControls.root.children.slot]
+
+[components.InspectorSurfaceControls.root.children.node]
+node_id = "component_InspectorSurfaceControls_root_1"
+kind = "native"
+type = "UiHostIconButton"
+control_id = "ParentField"
+classes = []
+children = []
+
+[components.InspectorSurfaceControls.root.children.node.params]
+
+[components.InspectorSurfaceControls.root.children.node.props]
+label = "ParentField"
+
+[[components.InspectorSurfaceControls.root.children.node.bindings]]
+id = "InspectorView/ParentField"
+event = "Change"
+route = "DraftCommand.SetInspectorField"
+
+[components.InspectorSurfaceControls.root.children.node.style_overrides.self]
+
+[components.InspectorSurfaceControls.root.children.node.style_overrides.slot]
+
+[[components.InspectorSurfaceControls.root.children]]
+
+[components.InspectorSurfaceControls.root.children.slot]
+
+[components.InspectorSurfaceControls.root.children.node]
+node_id = "component_InspectorSurfaceControls_root_2"
+kind = "native"
+type = "UiHostIconButton"
+control_id = "PositionXField"
+classes = []
+children = []
+
+[components.InspectorSurfaceControls.root.children.node.params]
+
+[components.InspectorSurfaceControls.root.children.node.props]
+label = "PositionXField"
+
+[[components.InspectorSurfaceControls.root.children.node.bindings]]
+id = "InspectorView/PositionXField"
+event = "Change"
+route = "DraftCommand.SetInspectorField"
+
+[components.InspectorSurfaceControls.root.children.node.style_overrides.self]
+
+[components.InspectorSurfaceControls.root.children.node.style_overrides.slot]
+
+[[components.InspectorSurfaceControls.root.children]]
+
+[components.InspectorSurfaceControls.root.children.slot]
+
+[components.InspectorSurfaceControls.root.children.node]
+node_id = "component_InspectorSurfaceControls_root_3"
+kind = "native"
+type = "UiHostIconButton"
+control_id = "PositionYField"
+classes = []
+children = []
+
+[components.InspectorSurfaceControls.root.children.node.params]
+
+[components.InspectorSurfaceControls.root.children.node.props]
+label = "PositionYField"
+
+[[components.InspectorSurfaceControls.root.children.node.bindings]]
+id = "InspectorView/PositionYField"
+event = "Change"
+route = "DraftCommand.SetInspectorField"
+
+[components.InspectorSurfaceControls.root.children.node.style_overrides.self]
+
+[components.InspectorSurfaceControls.root.children.node.style_overrides.slot]
+
+[[components.InspectorSurfaceControls.root.children]]
+
+[components.InspectorSurfaceControls.root.children.slot]
+
+[components.InspectorSurfaceControls.root.children.node]
+node_id = "component_InspectorSurfaceControls_root_4"
+kind = "native"
+type = "UiHostIconButton"
+control_id = "PositionZField"
+classes = []
+children = []
+
+[components.InspectorSurfaceControls.root.children.node.params]
+
+[components.InspectorSurfaceControls.root.children.node.props]
+label = "PositionZField"
+
+[[components.InspectorSurfaceControls.root.children.node.bindings]]
+id = "InspectorView/PositionZField"
+event = "Change"
+route = "DraftCommand.SetInspectorField"
+
+[components.InspectorSurfaceControls.root.children.node.style_overrides.self]
+
+[components.InspectorSurfaceControls.root.children.node.style_overrides.slot]
+
+[[components.InspectorSurfaceControls.root.children]]
+
+[components.InspectorSurfaceControls.root.children.slot]
+
+[components.InspectorSurfaceControls.root.children.node]
+node_id = "component_InspectorSurfaceControls_root_5"
+kind = "native"
+type = "UiHostIconButton"
+control_id = "ApplyBatchButton"
+classes = []
+children = []
+
+[components.InspectorSurfaceControls.root.children.node.params]
+
+[components.InspectorSurfaceControls.root.children.node.props]
+label = "ApplyBatchButton"
+
+[[components.InspectorSurfaceControls.root.children.node.bindings]]
+id = "InspectorView/ApplyBatchButton"
+event = "Click"
+route = "InspectorFieldBatch"
+
+[components.InspectorSurfaceControls.root.children.node.style_overrides.self]
+
+[components.InspectorSurfaceControls.root.children.node.style_overrides.slot]
+
+[[components.InspectorSurfaceControls.root.children]]
+
+[components.InspectorSurfaceControls.root.children.slot]
+
+[components.InspectorSurfaceControls.root.children.node]
+node_id = "component_InspectorSurfaceControls_root_6"
+kind = "native"
+type = "UiHostIconButton"
+control_id = "DeleteSelected"
+classes = []
+children = []
+
+[components.InspectorSurfaceControls.root.children.node.params]
+
+[components.InspectorSurfaceControls.root.children.node.props]
+label = "DeleteSelected"
+
+[[components.InspectorSurfaceControls.root.children.node.bindings]]
+id = "InspectorView/DeleteSelected"
+event = "Click"
+route = "MenuAction.DeleteSelected"
+
+[components.InspectorSurfaceControls.root.children.node.style_overrides.self]
+
+[components.InspectorSurfaceControls.root.children.node.style_overrides.slot]
+
+[components.InspectorSurfaceControls.params]
+
+[components.InspectorSurfaceControls.slots]
