@@ -1,6 +1,7 @@
 use crate::ui::asset_editor::{
     UiAssetEditorMode, UiAssetEditorRoute, UiAssetEditorSession,
     UI_ASSET_EDITOR_BOOTSTRAP_STYLE_ASSET_ID, UI_ASSET_EDITOR_BOOTSTRAP_WIDGET_BUTTON_REFERENCE,
+    UI_ASSET_EDITOR_BOOTSTRAP_WIDGET_HEADER_SHELL_REFERENCE,
     UI_ASSET_EDITOR_BOOTSTRAP_WIDGET_SECTION_CARD_REFERENCE,
     UI_ASSET_EDITOR_BOOTSTRAP_WIDGET_TOOLBAR_REFERENCE,
 };
@@ -74,6 +75,12 @@ pub(super) fn register_bootstrap_imports(compiler: &mut UiDocumentCompiler) {
         .expect("register bootstrap toolbar import");
     compiler
         .register_widget_import(
+            UI_ASSET_EDITOR_BOOTSTRAP_WIDGET_HEADER_SHELL_REFERENCE,
+            widget.clone(),
+        )
+        .expect("register bootstrap header shell import");
+    compiler
+        .register_widget_import(
             UI_ASSET_EDITOR_BOOTSTRAP_WIDGET_BUTTON_REFERENCE,
             widget.clone(),
         )
@@ -101,6 +108,12 @@ pub(super) fn hydrate_bootstrap_imports(session: &mut UiAssetEditorSession) {
             widget.clone(),
         )
         .expect("hydrate bootstrap toolbar import");
+    session
+        .register_widget_import(
+            UI_ASSET_EDITOR_BOOTSTRAP_WIDGET_HEADER_SHELL_REFERENCE,
+            widget.clone(),
+        )
+        .expect("hydrate bootstrap header shell import");
     session
         .register_widget_import(
             UI_ASSET_EDITOR_BOOTSTRAP_WIDGET_BUTTON_REFERENCE,

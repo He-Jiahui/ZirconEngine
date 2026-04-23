@@ -1,5 +1,3 @@
-use super::support::*;
-
 #[test]
 fn shared_menu_pointer_layout_sync_replaces_direct_slint_menu_button_frame_getters() {
     let pointer_layout = include_str!(concat!(
@@ -34,9 +32,9 @@ fn shared_menu_popup_presentation_drops_host_menu_button_frame_setters() {
         env!("CARGO_MANIFEST_DIR"),
         "/ui/workbench/host_scaffold.slint"
     ));
-    let host_components = include_str!(concat!(
+    let host_menu_chrome = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/host_components.slint"
+        "/ui/workbench/host_menu_chrome.slint"
     ));
     let pointer_layout = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
@@ -66,7 +64,7 @@ fn shared_menu_popup_presentation_drops_host_menu_button_frame_setters() {
         "x: root.help_menu_button_frame.x * 1px;",
     ] {
         assert!(
-            host_components.contains(projected_anchor),
+            host_menu_chrome.contains(projected_anchor),
             "host menu chrome is missing shared projected anchor `{projected_anchor}`"
         );
     }

@@ -1,8 +1,8 @@
 #[test]
 fn shared_detail_scroll_surfaces_do_not_leave_slint_scrollview_as_authority() {
-    let panes = include_str!(concat!(
+    let pane_content = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/panes.slint"
+        "/ui/workbench/pane_content.slint"
     ));
     let assets = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
@@ -14,8 +14,8 @@ fn shared_detail_scroll_surfaces_do_not_leave_slint_scrollview_as_authority() {
         "ScrollView {\n        width: parent.width;\n        height: parent.height;\n        viewport-y: root.scroll_px * 1px;",
     ] {
         assert!(
-            !panes.contains(needle),
-            "console pane still leaves Slint ScrollView as scroll authority via `{needle}`"
+            !pane_content.contains(needle),
+            "detail panes still leave Slint ScrollView as scroll authority via `{needle}`"
         );
     }
 

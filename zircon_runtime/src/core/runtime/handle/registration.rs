@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use crate::core::error::CoreError;
 use crate::core::lifecycle::{LifecycleState, ServiceKind, StartupMode};
 
-use super::super::descriptors::{DependencySpec, ModuleDescriptor, RegistryName, ServiceFactory};
-use super::super::state::{ModuleEntry, ServiceEntry};
+use super::super::descriptors::{DependencySpec, ModuleDescriptor, RegistryName};
+use super::super::state::{ModuleEntry, ServiceEntry, ServiceEntryFactory};
 use super::CoreHandle;
 
 impl CoreHandle {
@@ -25,7 +25,7 @@ impl CoreHandle {
                     driver.name.clone(),
                     driver.startup_mode,
                     driver.dependencies.clone(),
-                    driver.factory.clone(),
+                    ServiceEntryFactory::Service(driver.factory.clone()),
                 )?;
             }
             for manager in &descriptor.managers {
@@ -36,7 +36,7 @@ impl CoreHandle {
                     manager.name.clone(),
                     manager.startup_mode,
                     manager.dependencies.clone(),
-                    manager.factory.clone(),
+                    ServiceEntryFactory::Service(manager.factory.clone()),
                 )?;
             }
             for plugin in &descriptor.plugins {
@@ -47,7 +47,7 @@ impl CoreHandle {
                     plugin.name.clone(),
                     plugin.startup_mode,
                     plugin.dependencies.clone(),
-                    plugin.factory.clone(),
+                    ServiceEntryFactory::Plugin(plugin.factory.clone()),
                 )?;
             }
         }
@@ -70,7 +70,7 @@ impl CoreHandle {
         name: RegistryName,
         startup_mode: StartupMode,
         dependencies: Vec<DependencySpec>,
-        factory: ServiceFactory,
+        factory: ServiceEntryFactory,
     ) -> Result<(), CoreError> {
         let key = name.to_string();
         if services.contains_key(&key) {

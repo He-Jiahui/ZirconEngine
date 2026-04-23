@@ -1,3 +1,5 @@
+import { TemplateNodeFrameData, TemplatePaneNodeData } from "template_node_data.slint";
+
 export struct UiAssetCanvasNodeData {
     node_id: string,
     label: string,
@@ -301,6 +303,12 @@ export struct UiAssetInspectorPanelData {
 }
 
 export struct UiAssetEditorPaneData {
+    nodes: [TemplatePaneNodeData],
+    center_column_node: TemplatePaneNodeData,
+    designer_panel_node: TemplatePaneNodeData,
+    designer_canvas_panel_node: TemplatePaneNodeData,
+    inspector_panel_node: TemplatePaneNodeData,
+    stylesheet_panel_node: TemplatePaneNodeData,
     header: UiAssetPaneHeaderData,
     actions: UiAssetActionStateData,
     collections: UiAssetCollectionPanelData,

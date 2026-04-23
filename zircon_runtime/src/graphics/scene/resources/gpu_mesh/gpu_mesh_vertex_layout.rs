@@ -21,6 +21,16 @@ impl GpuMeshVertex {
                     offset: 24,
                     shader_location: 2,
                 },
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::Uint16x4,
+                    offset: 32,
+                    shader_location: 3,
+                },
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::Float32x4,
+                    offset: 40,
+                    shader_location: 4,
+                },
             ],
         }
     }

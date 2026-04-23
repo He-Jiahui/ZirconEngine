@@ -1,10 +1,6 @@
 #[test]
 fn shared_viewport_surface_replaces_legacy_direct_pointer_callback_abi() {
     let workbench = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/ui/workbench.slint"));
-    let pane_surface_host_context = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/pane_surface_host_context.slint"
-    ));
     let app = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/src/ui/slint_host/app.rs"
@@ -43,14 +39,10 @@ fn shared_viewport_surface_replaces_legacy_direct_pointer_callback_abi() {
     }
 
     assert!(
-        !workbench.contains(
+        workbench.contains(
             "export { PaneSurfaceHostContext } from \"workbench/pane_surface_host_context.slint\";"
         ),
-        "workbench shell should stop re-exporting the shared PaneSurfaceHostContext global"
-    );
-    assert!(
-        pane_surface_host_context.contains("export global PaneSurfaceHostContext {"),
-        "pane surface host context owner must keep the shared PaneSurfaceHostContext global"
+        "workbench shell must re-export the shared PaneSurfaceHostContext global"
     );
 
     for needle in [

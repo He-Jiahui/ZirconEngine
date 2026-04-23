@@ -1,9 +1,9 @@
-use crate::script::{HostRegistry, VmError, VmPluginManifest, VmStateBlob};
+use crate::script::{VmError, VmPluginHostContext, VmPluginManifest, VmStateBlob};
 
 pub trait VmPluginInstance: Send + Sync {
     fn manifest(&self) -> &VmPluginManifest;
 
-    fn activate(&mut self, _host: &HostRegistry) -> Result<(), VmError> {
+    fn activate(&mut self, _host: &VmPluginHostContext) -> Result<(), VmError> {
         Ok(())
     }
 

@@ -1,0 +1,92 @@
+import { Palette, ShellButton } from "chrome.slint";
+import { UiAssetPaletteDragData } from "ui_asset_editor_data.slint";
+import { UiAssetSelectableSection } from "ui_asset_editor_components.slint";
+
+export component UiAssetEditorPaletteTargetChooser inherits Rectangle {
+    in property <UiAssetPaletteDragData> palette_drag_projection;
+    callback action(action_id: string);
+    callback collection_event(collection_id: string, event_kind: string, item_index: int);
+    palette := Palette {}
+    background: transparent;
+
+    chooser_focus := FocusScope {
+        x: 0px;
+        y: 0px;
+        width: 0px;
+        height: 0px;
+        enabled: root.palette_drag_projection.target_chooser_active;
+        key-pressed(event) => {
+            if (event.text == Key.LeftArrow || event.text == Key.UpArrow) {
+                root.action("palette.target.previous");
+                return accept;
+            }
+            if (
+                event.text == Key.RightArrow
+                || event.text == Key.DownArrow
+                || event.text == Key.Tab
+                ) {
+                root.action("palette.target.next");
+                return accept;
+            }
+            if (event.text == Key.Return || event.text == "\n") {
+                root.action("palette.target.confirm");
+                return accept;
+            }
+            if (event.text == Key.Escape) {
+                root.action("palette.target.cancel");
+                return accept;
+            }
+            reject
+        }
+    }
+
+    UiAssetSelectableSection {
+        x: 0px;
+        y: 0px;
+        width: parent.width;
+        height: parent.height - 38px;
+        title: "Target Cycle";
+        items: root.palette_drag_projection.candidate_items;
+        selected_index: root.palette_drag_projection.candidate_selected_index;
+        accent: #53c98a;
+        item_selected(item_index) => {
+            root.collection_event("palette_target_candidate", "selected", item_index);
+        }
+        item_activated(item_index) => {
+            root.collection_event("palette_target_candidate", "selected", item_index);
+            root.action("palette.target.confirm");
+        }
+    }
+
+    HorizontalLayout {
+        x: 10px;
+        y: parent.height - 34px;
+        width: parent.width - 20px;
+        spacing: 6px;
+
+        ShellButton {
+            width: 56px;
+            label: "Apply";
+            active: true;
+            clicked => { root.action("palette.target.confirm"); }
+        }
+
+        ShellButton {
+            width: 58px;
+            label: "Cancel";
+            clicked => { root.action("palette.target.cancel"); }
+        }
+
+        Text {
+            width: parent.width - 120px;
+            y: 4px;
+            text:
+                root.palette_drag_projection.target_chooser_active ?
+                "Sticky target chooser  Tab/arrows cycle  Enter apply" :
+                "Tab / arrows cycle  Enter apply  Esc cancel";
+            color: palette.text_dim;
+            font-size: 9px;
+            overflow: elide;
+        }
+    }
+}

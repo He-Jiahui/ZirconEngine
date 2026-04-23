@@ -13,10 +13,17 @@ fn shared_drawer_header_surfaces_replace_legacy_direct_click_routes() {
         env!("CARGO_MANIFEST_DIR"),
         "/ui/workbench/host_components.slint"
     ));
-    let host_workbench_surfaces = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/host_workbench_surfaces.slint"
-    ));
+    let host_surface_owners = concat!(
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/ui/workbench/host_side_dock_surface.slint"
+        )),
+        "\n",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/ui/workbench/host_bottom_dock_surface.slint"
+        ))
+    );
     let app = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/src/ui/slint_host/app.rs"
@@ -39,7 +46,7 @@ fn shared_drawer_header_surfaces_replace_legacy_direct_click_routes() {
                 || host_context.contains(needle)
                 || chrome.contains(needle)
                 || host_components.contains(needle)
-                || host_workbench_surfaces.contains(needle),
+                || host_surface_owners.contains(needle),
             "drawer header shared pointer hook `{needle}` is missing"
         );
     }

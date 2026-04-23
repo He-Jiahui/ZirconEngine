@@ -4,9 +4,12 @@ use crate::asset::{ModelAsset, VirtualGeometryAsset};
 use crate::core::framework::render::{
     RenderMeshSnapshot, RenderVirtualGeometryBvhVisualizationInstance,
     RenderVirtualGeometryBvhVisualizationNode, RenderVirtualGeometryCluster,
+    RenderVirtualGeometryCpuReferenceDepthClusterMapEntry,
     RenderVirtualGeometryCpuReferenceInstance, RenderVirtualGeometryCpuReferenceLeafCluster,
+    RenderVirtualGeometryCpuReferenceMipClusterMapEntry,
     RenderVirtualGeometryCpuReferenceNodeVisit,
-    RenderVirtualGeometryCpuReferencePageClusterMapEntry, RenderVirtualGeometryDebugState,
+    RenderVirtualGeometryCpuReferencePageClusterMapEntry,
+    RenderVirtualGeometryCpuReferenceSelectedCluster, RenderVirtualGeometryDebugState,
     RenderVirtualGeometryExtract, RenderVirtualGeometryInstance, RenderVirtualGeometryPage,
 };
 use crate::core::framework::scene::EntityId;
@@ -46,8 +49,39 @@ pub(crate) fn resolve_virtual_geometry_extract(
     build_virtual_geometry_automatic_extract(automatic_instances).map(|output| output.extract)
 }
 
+#[cfg(test)]
 pub(crate) fn build_virtual_geometry_automatic_extract_from_meshes<F>(
     meshes: &[RenderMeshSnapshot],
+    load_model: F,
+) -> Option<VirtualGeometryAutomaticExtractOutput>
+where
+    F: FnMut(ResourceId) -> Option<ModelAsset>,
+{
+    build_virtual_geometry_automatic_extract_from_meshes_with_config(
+        meshes,
+        VirtualGeometryCpuReferenceConfig::default(),
+        load_model,
+    )
+}
+
+pub(crate) fn build_virtual_geometry_automatic_extract_from_meshes_with_debug<F>(
+    meshes: &[RenderMeshSnapshot],
+    debug: RenderVirtualGeometryDebugState,
+    load_model: F,
+) -> Option<VirtualGeometryAutomaticExtractOutput>
+where
+    F: FnMut(ResourceId) -> Option<ModelAsset>,
+{
+    build_virtual_geometry_automatic_extract_from_meshes_with_config(
+        meshes,
+        cpu_reference_config_for_debug(debug),
+        load_model,
+    )
+}
+
+pub(crate) fn build_virtual_geometry_automatic_extract_from_meshes_with_config<F>(
+    meshes: &[RenderMeshSnapshot],
+    config: VirtualGeometryCpuReferenceConfig,
     mut load_model: F,
 ) -> Option<VirtualGeometryAutomaticExtractOutput>
 where
@@ -72,12 +106,24 @@ where
         }
     }
 
-    build_virtual_geometry_automatic_extract(&automatic_instances)
+    build_virtual_geometry_automatic_extract_with_config(&automatic_instances, config)
 }
 
+#[cfg(test)]
 pub(crate) fn build_virtual_geometry_automatic_extract(
     automatic_instances: &[VirtualGeometryAutomaticExtractInstance],
 ) -> Option<VirtualGeometryAutomaticExtractOutput> {
+    build_virtual_geometry_automatic_extract_with_config(
+        automatic_instances,
+        VirtualGeometryCpuReferenceConfig::default(),
+    )
+}
+
+fn build_virtual_geometry_automatic_extract_with_config(
+    automatic_instances: &[VirtualGeometryAutomaticExtractInstance],
+    config: VirtualGeometryCpuReferenceConfig,
+) -> Option<VirtualGeometryAutomaticExtractOutput> {
+    let extract_debug = render_debug_state_for_cpu_reference_config(config);
     let mut clusters = Vec::new();
     let mut pages = Vec::new();
     let mut instances = Vec::new();
@@ -101,7 +147,7 @@ pub(crate) fn build_virtual_geometry_automatic_extract(
             instance.entity,
             &instance.asset,
             &resident_page_list,
-            VirtualGeometryCpuReferenceConfig::default(),
+            config,
         );
         let cpu_reference_instance_index =
             u32::try_from(cpu_reference_instances.len()).unwrap_or(u32::MAX);
@@ -207,11 +253,37 @@ pub(crate) fn build_virtual_geometry_automatic_extract(
             clusters,
             pages,
             instances,
-            debug: RenderVirtualGeometryDebugState::default(),
+            debug: extract_debug,
         },
         cpu_reference_instances,
         bvh_visualization_instances,
     })
+}
+
+fn cpu_reference_config_for_debug(
+    debug: RenderVirtualGeometryDebugState,
+) -> VirtualGeometryCpuReferenceConfig {
+    VirtualGeometryCpuReferenceConfig {
+        debug: super::cpu_reference::VirtualGeometryDebugConfig {
+            forced_mip: debug.forced_mip,
+            freeze_cull: debug.freeze_cull,
+            visualize_bvh: debug.visualize_bvh,
+            visualize_visbuffer: debug.visualize_visbuffer,
+            print_leaf_clusters: debug.print_leaf_clusters,
+        },
+    }
+}
+
+fn render_debug_state_for_cpu_reference_config(
+    config: VirtualGeometryCpuReferenceConfig,
+) -> RenderVirtualGeometryDebugState {
+    RenderVirtualGeometryDebugState {
+        forced_mip: config.debug.forced_mip,
+        freeze_cull: config.debug.freeze_cull,
+        visualize_bvh: config.debug.visualize_bvh,
+        visualize_visbuffer: config.debug.visualize_visbuffer,
+        print_leaf_clusters: config.debug.print_leaf_clusters,
+    }
 }
 
 fn render_bvh_visualization_instance(
@@ -307,6 +379,7 @@ fn render_cpu_reference_instance(
             .iter()
             .map(|cluster| RenderVirtualGeometryCpuReferenceLeafCluster {
                 node_id: cluster.node_id,
+                cluster_ordinal: cluster.cluster_ordinal,
                 cluster_id: cluster.cluster_id,
                 page_id: cluster.page_id,
                 mip_level: cluster.mip_level,
@@ -315,6 +388,36 @@ fn render_cpu_reference_instance(
                 bounds_center: cluster.bounds_center,
                 bounds_radius: cluster.bounds_radius,
                 screen_space_error: cluster.screen_space_error,
+            })
+            .collect(),
+        loaded_leaf_clusters: frame
+            .leaf_clusters
+            .iter()
+            .filter(|cluster| cluster.loaded)
+            .map(|cluster| RenderVirtualGeometryCpuReferenceLeafCluster {
+                node_id: cluster.node_id,
+                cluster_ordinal: cluster.cluster_ordinal,
+                cluster_id: cluster.cluster_id,
+                page_id: cluster.page_id,
+                mip_level: cluster.mip_level,
+                loaded: cluster.loaded,
+                parent_cluster_id: cluster.parent_cluster_id,
+                bounds_center: cluster.bounds_center,
+                bounds_radius: cluster.bounds_radius,
+                screen_space_error: cluster.screen_space_error,
+            })
+            .collect(),
+        mip_accepted_clusters: render_mip_accepted_clusters(&frame.leaf_clusters, frame.debug),
+        selected_clusters: frame
+            .selected_clusters
+            .iter()
+            .map(|cluster| RenderVirtualGeometryCpuReferenceSelectedCluster {
+                node_id: cluster.node_id,
+                cluster_ordinal: cluster.cluster_ordinal,
+                cluster_id: cluster.cluster_id,
+                page_id: cluster.page_id,
+                mip_level: cluster.mip_level,
+                loaded: cluster.loaded,
             })
             .collect(),
         page_cluster_map: frame
@@ -327,7 +430,284 @@ fn render_cpu_reference_instance(
                 },
             )
             .collect(),
+        loaded_page_cluster_map: render_loaded_page_cluster_map(&frame.leaf_clusters),
+        mip_accepted_page_cluster_map: render_mip_accepted_page_cluster_map(
+            &frame.leaf_clusters,
+            frame.debug,
+        ),
+        loaded_mip_cluster_map: render_loaded_mip_cluster_map(&frame.leaf_clusters),
+        selected_page_cluster_map: render_selected_page_cluster_map(&frame.selected_clusters),
+        depth_cluster_map: render_depth_cluster_map(&frame.visited_nodes),
+        loaded_depth_cluster_map: render_loaded_depth_cluster_map(
+            &frame.visited_nodes,
+            &frame.leaf_clusters,
+        ),
+        mip_accepted_depth_cluster_map: render_mip_accepted_depth_cluster_map(
+            &frame.visited_nodes,
+            &frame.leaf_clusters,
+            frame.debug,
+        ),
+        selected_depth_cluster_map: render_selected_depth_cluster_map(
+            &frame.visited_nodes,
+            &frame.selected_clusters,
+        ),
+        mip_cluster_map: render_mip_cluster_map(&frame.leaf_clusters),
+        selected_mip_cluster_map: render_selected_mip_cluster_map(&frame.selected_clusters),
     }
+}
+
+fn render_depth_cluster_map(
+    visits: &[super::cpu_reference::VirtualGeometryCpuReferenceNodeVisit],
+) -> Vec<RenderVirtualGeometryCpuReferenceDepthClusterMapEntry> {
+    let mut cluster_ids_by_depth = BTreeMap::<u32, Vec<u32>>::new();
+    for visit in visits {
+        if visit.cluster_ids.is_empty() {
+            continue;
+        }
+        cluster_ids_by_depth
+            .entry(visit.depth)
+            .or_default()
+            .extend(visit.cluster_ids.iter().copied());
+    }
+
+    cluster_ids_by_depth
+        .into_iter()
+        .map(
+            |(depth, cluster_ids)| RenderVirtualGeometryCpuReferenceDepthClusterMapEntry {
+                depth,
+                cluster_ids,
+            },
+        )
+        .collect()
+}
+
+fn render_mip_cluster_map(
+    leaf_clusters: &[VirtualGeometryCpuReferenceLeafCluster],
+) -> Vec<RenderVirtualGeometryCpuReferenceMipClusterMapEntry> {
+    let mut cluster_ids_by_mip = BTreeMap::<u8, Vec<u32>>::new();
+    for cluster in leaf_clusters {
+        cluster_ids_by_mip
+            .entry(cluster.mip_level)
+            .or_default()
+            .push(cluster.cluster_id);
+    }
+
+    cluster_ids_by_mip
+        .into_iter()
+        .map(
+            |(mip_level, cluster_ids)| RenderVirtualGeometryCpuReferenceMipClusterMapEntry {
+                mip_level,
+                cluster_ids,
+            },
+        )
+        .collect()
+}
+
+fn render_mip_accepted_clusters(
+    leaf_clusters: &[VirtualGeometryCpuReferenceLeafCluster],
+    debug: super::cpu_reference::VirtualGeometryDebugConfig,
+) -> Vec<RenderVirtualGeometryCpuReferenceLeafCluster> {
+    leaf_clusters
+        .iter()
+        .filter(|cluster| {
+            debug
+                .forced_mip
+                .map_or(true, |forced_mip| cluster.mip_level == forced_mip)
+        })
+        .map(|cluster| RenderVirtualGeometryCpuReferenceLeafCluster {
+            node_id: cluster.node_id,
+            cluster_ordinal: cluster.cluster_ordinal,
+            cluster_id: cluster.cluster_id,
+            page_id: cluster.page_id,
+            mip_level: cluster.mip_level,
+            loaded: cluster.loaded,
+            parent_cluster_id: cluster.parent_cluster_id,
+            bounds_center: cluster.bounds_center,
+            bounds_radius: cluster.bounds_radius,
+            screen_space_error: cluster.screen_space_error,
+        })
+        .collect()
+}
+
+fn render_loaded_page_cluster_map(
+    leaf_clusters: &[VirtualGeometryCpuReferenceLeafCluster],
+) -> Vec<RenderVirtualGeometryCpuReferencePageClusterMapEntry> {
+    let mut cluster_ids_by_page = BTreeMap::<u32, Vec<u32>>::new();
+    for cluster in leaf_clusters.iter().filter(|cluster| cluster.loaded) {
+        cluster_ids_by_page
+            .entry(cluster.page_id)
+            .or_default()
+            .push(cluster.cluster_id);
+    }
+
+    cluster_ids_by_page
+        .into_iter()
+        .map(
+            |(page_id, cluster_ids)| RenderVirtualGeometryCpuReferencePageClusterMapEntry {
+                page_id,
+                cluster_ids,
+            },
+        )
+        .collect()
+}
+
+fn render_mip_accepted_page_cluster_map(
+    leaf_clusters: &[VirtualGeometryCpuReferenceLeafCluster],
+    debug: super::cpu_reference::VirtualGeometryDebugConfig,
+) -> Vec<RenderVirtualGeometryCpuReferencePageClusterMapEntry> {
+    let mut cluster_ids_by_page = BTreeMap::<u32, Vec<u32>>::new();
+    for cluster in leaf_clusters.iter().filter(|cluster| {
+        debug
+            .forced_mip
+            .map_or(true, |forced_mip| cluster.mip_level == forced_mip)
+    }) {
+        cluster_ids_by_page
+            .entry(cluster.page_id)
+            .or_default()
+            .push(cluster.cluster_id);
+    }
+
+    cluster_ids_by_page
+        .into_iter()
+        .map(
+            |(page_id, cluster_ids)| RenderVirtualGeometryCpuReferencePageClusterMapEntry {
+                page_id,
+                cluster_ids,
+            },
+        )
+        .collect()
+}
+
+fn render_loaded_mip_cluster_map(
+    leaf_clusters: &[VirtualGeometryCpuReferenceLeafCluster],
+) -> Vec<RenderVirtualGeometryCpuReferenceMipClusterMapEntry> {
+    let mut cluster_ids_by_mip = BTreeMap::<u8, Vec<u32>>::new();
+    for cluster in leaf_clusters.iter().filter(|cluster| cluster.loaded) {
+        cluster_ids_by_mip
+            .entry(cluster.mip_level)
+            .or_default()
+            .push(cluster.cluster_id);
+    }
+
+    cluster_ids_by_mip
+        .into_iter()
+        .map(
+            |(mip_level, cluster_ids)| RenderVirtualGeometryCpuReferenceMipClusterMapEntry {
+                mip_level,
+                cluster_ids,
+            },
+        )
+        .collect()
+}
+
+fn render_selected_page_cluster_map(
+    selected_clusters: &[super::cpu_reference::VirtualGeometryCpuReferenceLeafCluster],
+) -> Vec<RenderVirtualGeometryCpuReferencePageClusterMapEntry> {
+    let mut cluster_ids_by_page = BTreeMap::<u32, Vec<u32>>::new();
+    for cluster in selected_clusters {
+        cluster_ids_by_page
+            .entry(cluster.page_id)
+            .or_default()
+            .push(cluster.cluster_id);
+    }
+
+    cluster_ids_by_page
+        .into_iter()
+        .map(
+            |(page_id, cluster_ids)| RenderVirtualGeometryCpuReferencePageClusterMapEntry {
+                page_id,
+                cluster_ids,
+            },
+        )
+        .collect()
+}
+
+fn render_selected_depth_cluster_map(
+    visits: &[super::cpu_reference::VirtualGeometryCpuReferenceNodeVisit],
+    selected_clusters: &[super::cpu_reference::VirtualGeometryCpuReferenceLeafCluster],
+) -> Vec<RenderVirtualGeometryCpuReferenceDepthClusterMapEntry> {
+    render_depth_cluster_map_for_clusters(visits, selected_clusters)
+}
+
+fn render_loaded_depth_cluster_map(
+    visits: &[super::cpu_reference::VirtualGeometryCpuReferenceNodeVisit],
+    leaf_clusters: &[super::cpu_reference::VirtualGeometryCpuReferenceLeafCluster],
+) -> Vec<RenderVirtualGeometryCpuReferenceDepthClusterMapEntry> {
+    let loaded_clusters = leaf_clusters
+        .iter()
+        .filter(|cluster| cluster.loaded)
+        .cloned()
+        .collect::<Vec<_>>();
+    render_depth_cluster_map_for_clusters(visits, &loaded_clusters)
+}
+
+fn render_mip_accepted_depth_cluster_map(
+    visits: &[super::cpu_reference::VirtualGeometryCpuReferenceNodeVisit],
+    leaf_clusters: &[super::cpu_reference::VirtualGeometryCpuReferenceLeafCluster],
+    debug: super::cpu_reference::VirtualGeometryDebugConfig,
+) -> Vec<RenderVirtualGeometryCpuReferenceDepthClusterMapEntry> {
+    let mip_accepted_clusters = leaf_clusters
+        .iter()
+        .filter(|cluster| {
+            debug
+                .forced_mip
+                .map_or(true, |forced_mip| cluster.mip_level == forced_mip)
+        })
+        .cloned()
+        .collect::<Vec<_>>();
+    render_depth_cluster_map_for_clusters(visits, &mip_accepted_clusters)
+}
+
+fn render_depth_cluster_map_for_clusters(
+    visits: &[super::cpu_reference::VirtualGeometryCpuReferenceNodeVisit],
+    clusters: &[super::cpu_reference::VirtualGeometryCpuReferenceLeafCluster],
+) -> Vec<RenderVirtualGeometryCpuReferenceDepthClusterMapEntry> {
+    let depth_by_node_id = visits
+        .iter()
+        .map(|visit| (visit.node_id, visit.depth))
+        .collect::<BTreeMap<_, _>>();
+    let mut cluster_ids_by_depth = BTreeMap::<u32, Vec<u32>>::new();
+    for cluster in clusters {
+        let Some(&depth) = depth_by_node_id.get(&cluster.node_id) else {
+            continue;
+        };
+        cluster_ids_by_depth
+            .entry(depth)
+            .or_default()
+            .push(cluster.cluster_id);
+    }
+
+    cluster_ids_by_depth
+        .into_iter()
+        .map(
+            |(depth, cluster_ids)| RenderVirtualGeometryCpuReferenceDepthClusterMapEntry {
+                depth,
+                cluster_ids,
+            },
+        )
+        .collect()
+}
+
+fn render_selected_mip_cluster_map(
+    selected_clusters: &[super::cpu_reference::VirtualGeometryCpuReferenceLeafCluster],
+) -> Vec<RenderVirtualGeometryCpuReferenceMipClusterMapEntry> {
+    let mut cluster_ids_by_mip = BTreeMap::<u8, Vec<u32>>::new();
+    for cluster in selected_clusters {
+        cluster_ids_by_mip
+            .entry(cluster.mip_level)
+            .or_default()
+            .push(cluster.cluster_id);
+    }
+
+    cluster_ids_by_mip
+        .into_iter()
+        .map(
+            |(mip_level, cluster_ids)| RenderVirtualGeometryCpuReferenceMipClusterMapEntry {
+                mip_level,
+                cluster_ids,
+            },
+        )
+        .collect()
 }
 
 fn subtree_leaf_clusters_for_node<'a>(

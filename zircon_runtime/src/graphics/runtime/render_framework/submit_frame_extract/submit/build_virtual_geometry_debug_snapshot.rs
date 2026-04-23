@@ -1,9 +1,12 @@
 use std::collections::BTreeSet;
 
 use crate::core::framework::render::{
+    RenderVirtualGeometryClusterSelectionInputSource, RenderVirtualGeometryCullInputSnapshot,
     RenderVirtualGeometryDebugSnapshot, RenderVirtualGeometryHardwareRasterizationSource,
-    RenderVirtualGeometryPageRequestInspection, RenderVirtualGeometryResidentPageInspection,
-    RenderVirtualGeometrySelectedCluster, RenderVirtualGeometryVisBuffer64Entry,
+    RenderVirtualGeometryNodeAndClusterCullInstanceSeed,
+    RenderVirtualGeometryNodeAndClusterCullSource, RenderVirtualGeometryPageRequestInspection,
+    RenderVirtualGeometryResidentPageInspection, RenderVirtualGeometrySelectedCluster,
+    RenderVirtualGeometrySelectedClusterSource, RenderVirtualGeometryVisBuffer64Entry,
     RenderVirtualGeometryVisBuffer64Source, RenderVirtualGeometryVisBufferMark,
 };
 use crate::graphics::types::VirtualGeometryPrepareFrame;
@@ -120,10 +123,21 @@ pub(super) fn build_virtual_geometry_debug_snapshot(
     Some(RenderVirtualGeometryDebugSnapshot {
         instances: extract.instances.clone(),
         debug: extract.debug,
+        cull_input: build_cull_input_snapshot(extract, prepare),
+        cluster_selection_input_source:
+            RenderVirtualGeometryClusterSelectionInputSource::Unavailable,
         cpu_reference_instances: context.virtual_geometry_cpu_reference_instances.clone(),
         bvh_visualization_instances,
         visible_cluster_ids,
         selected_clusters,
+        selected_clusters_source: RenderVirtualGeometrySelectedClusterSource::Unavailable,
+        node_and_cluster_cull_source: RenderVirtualGeometryNodeAndClusterCullSource::Unavailable,
+        node_and_cluster_cull_record_count: 0,
+        node_and_cluster_cull_instance_seeds: Vec::<
+            RenderVirtualGeometryNodeAndClusterCullInstanceSeed,
+        >::new(),
+        node_and_cluster_cull_dispatch_setup: None,
+        node_and_cluster_cull_global_state: None,
         hardware_rasterization_records: Vec::new(),
         hardware_rasterization_source:
             RenderVirtualGeometryHardwareRasterizationSource::Unavailable,
@@ -151,6 +165,68 @@ pub(super) fn build_virtual_geometry_debug_snapshot(
         submission_order: Vec::new(),
         submission_records: Vec::new(),
     })
+}
+
+fn build_cull_input_snapshot(
+    extract: &crate::core::framework::render::RenderVirtualGeometryExtract,
+    prepare: Option<&VirtualGeometryPrepareFrame>,
+) -> RenderVirtualGeometryCullInputSnapshot {
+    RenderVirtualGeometryCullInputSnapshot {
+        cluster_budget: extract.cluster_budget,
+        page_budget: extract.page_budget,
+        instance_count: saturated_u32_len(extract.instances.len()),
+        cluster_count: saturated_u32_len(extract.clusters.len()),
+        page_count: saturated_u32_len(extract.pages.len()),
+        visible_entity_count: prepare
+            .map(|prepare| saturated_u32_len(prepare.visible_entities.len()))
+            .unwrap_or_else(|| unique_extract_entity_count(extract)),
+        visible_cluster_count: prepare
+            .map(|prepare| saturated_u32_len(prepare.visible_clusters.len()))
+            .unwrap_or_else(|| saturated_u32_len(extract.clusters.len())),
+        resident_page_count: prepare
+            .map(|prepare| saturated_u32_len(prepare.resident_pages.len()))
+            .unwrap_or(0),
+        pending_page_request_count: prepare
+            .map(|prepare| saturated_u32_len(prepare.pending_page_requests.len()))
+            .unwrap_or(0),
+        available_page_slot_count: prepare
+            .map(|prepare| saturated_u32_len(prepare.available_slots.len()))
+            .unwrap_or(0),
+        evictable_page_count: prepare
+            .map(|prepare| saturated_u32_len(prepare.evictable_pages.len()))
+            .unwrap_or(0),
+        debug: extract.debug,
+        cluster_selection_input_source:
+            RenderVirtualGeometryClusterSelectionInputSource::Unavailable,
+    }
+}
+
+fn unique_extract_entity_count(
+    extract: &crate::core::framework::render::RenderVirtualGeometryExtract,
+) -> u32 {
+    if !extract.instances.is_empty() {
+        return saturated_u32_len(
+            extract
+                .instances
+                .iter()
+                .map(|instance| instance.entity)
+                .collect::<BTreeSet<_>>()
+                .len(),
+        );
+    }
+
+    saturated_u32_len(
+        extract
+            .clusters
+            .iter()
+            .map(|cluster| cluster.entity)
+            .collect::<BTreeSet<_>>()
+            .len(),
+    )
+}
+
+fn saturated_u32_len(len: usize) -> u32 {
+    u32::try_from(len).unwrap_or(u32::MAX)
 }
 
 fn instance_index_for_cluster_ordinal(
@@ -253,7 +329,9 @@ fn build_visbuffer64_entries_from_selected_clusters(
 mod tests {
     use super::build_virtual_geometry_debug_snapshot;
     use crate::core::framework::render::{
-        RenderPipelineHandle, RenderVirtualGeometryCluster, RenderVirtualGeometryDebugState,
+        RenderPipelineHandle, RenderVirtualGeometryCluster,
+        RenderVirtualGeometryClusterSelectionInputSource,
+        RenderVirtualGeometryCullInputSnapshot, RenderVirtualGeometryDebugState,
         RenderVirtualGeometryExecutionState, RenderVirtualGeometryExtract,
         RenderVirtualGeometryInstance, RenderVirtualGeometryVisBufferMark,
     };
@@ -357,6 +435,137 @@ mod tests {
                 color_rgba: [92, 190, 130, 255],
             }],
             "expected submission-build visbuffer snapshot marks to prefer prepare-owned same-frame truth instead of broad visibility feedback when prepare already projected the authoritative current-frame draw subset"
+        );
+    }
+
+    #[test]
+    fn debug_snapshot_builds_cull_input_snapshot_from_extract_and_prepare_state() {
+        let entity = 77_u64;
+        let extract = RenderVirtualGeometryExtract {
+            cluster_budget: 4,
+            page_budget: 3,
+            clusters: vec![
+                RenderVirtualGeometryCluster {
+                    entity,
+                    cluster_id: 20,
+                    page_id: 200,
+                    lod_level: 10,
+                    parent_cluster_id: None,
+                    bounds_center: Vec3::ZERO,
+                    bounds_radius: 0.5,
+                    screen_space_error: 0.25,
+                },
+                RenderVirtualGeometryCluster {
+                    entity,
+                    cluster_id: 30,
+                    page_id: 300,
+                    lod_level: 9,
+                    parent_cluster_id: Some(20),
+                    bounds_center: Vec3::X,
+                    bounds_radius: 0.5,
+                    screen_space_error: 0.2,
+                },
+            ],
+            pages: Vec::new(),
+            instances: vec![RenderVirtualGeometryInstance {
+                entity,
+                source_model: None,
+                transform: Transform::default(),
+                cluster_offset: 0,
+                cluster_count: 2,
+                page_offset: 0,
+                page_count: 0,
+                mesh_name: Some("SnapshotCullInputUnitTest".to_string()),
+                source_hint: Some("unit-test".to_string()),
+            }],
+            debug: RenderVirtualGeometryDebugState {
+                forced_mip: Some(9),
+                freeze_cull: true,
+                visualize_bvh: true,
+                visualize_visbuffer: false,
+                print_leaf_clusters: true,
+            },
+        };
+        let context = frame_submission_context(
+            extract.clone(),
+            VisibilityVirtualGeometryFeedback {
+                visible_cluster_ids: vec![20, 30],
+                requested_pages: vec![300],
+                evictable_pages: vec![200],
+                hot_resident_pages: vec![200],
+            },
+            VisibilityVirtualGeometryPageUploadPlan {
+                resident_pages: vec![200],
+                requested_pages: vec![300],
+                dirty_requested_pages: vec![300],
+                evictable_pages: vec![200],
+            },
+        );
+        let prepare = VirtualGeometryPrepareFrame {
+            visible_entities: vec![entity],
+            visible_clusters: vec![
+                crate::graphics::types::VirtualGeometryPrepareCluster {
+                    entity,
+                    cluster_id: 20,
+                    page_id: 200,
+                    lod_level: 10,
+                    resident_slot: Some(0),
+                    state: crate::graphics::types::VirtualGeometryPrepareClusterState::Resident,
+                },
+                crate::graphics::types::VirtualGeometryPrepareCluster {
+                    entity,
+                    cluster_id: 30,
+                    page_id: 300,
+                    lod_level: 9,
+                    resident_slot: None,
+                    state:
+                        crate::graphics::types::VirtualGeometryPrepareClusterState::PendingUpload,
+                },
+            ],
+            cluster_draw_segments: Vec::new(),
+            resident_pages: vec![VirtualGeometryPreparePage {
+                page_id: 200,
+                slot: 0,
+                size_bytes: 4096,
+            }],
+            pending_page_requests: vec![crate::graphics::types::VirtualGeometryPrepareRequest {
+                page_id: 300,
+                size_bytes: 4096,
+                generation: 1,
+                frontier_rank: 0,
+                assigned_slot: Some(1),
+                recycled_page_id: None,
+            }],
+            available_slots: vec![2],
+            evictable_pages: vec![VirtualGeometryPreparePage {
+                page_id: 200,
+                slot: 0,
+                size_bytes: 4096,
+            }],
+        };
+
+        let snapshot = build_virtual_geometry_debug_snapshot(&context, Some(&prepare))
+            .expect("expected virtual geometry snapshot");
+
+        assert_eq!(
+            snapshot.cull_input,
+            RenderVirtualGeometryCullInputSnapshot {
+                cluster_budget: 4,
+                page_budget: 3,
+                instance_count: 1,
+                cluster_count: 2,
+                page_count: 0,
+                visible_entity_count: 1,
+                visible_cluster_count: 2,
+                resident_page_count: 1,
+                pending_page_request_count: 1,
+                available_page_slot_count: 1,
+                evictable_page_count: 1,
+                debug: extract.debug,
+                cluster_selection_input_source:
+                    RenderVirtualGeometryClusterSelectionInputSource::Unavailable,
+            },
+            "expected the submission-build snapshot to expose one stable cull-input DTO with extract budgets, current prepare-frontier counts, and the pre-store cluster-selection provenance placeholder that later render-path storage patches to the frame-owned source"
         );
     }
 

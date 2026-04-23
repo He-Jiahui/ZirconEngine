@@ -10,7 +10,7 @@ mod weak;
 pub use contexts::{ModuleContext, PluginContext};
 pub use descriptors::{
     DependencySpec, DriverDescriptor, ManagerDescriptor, ModuleDescriptor, PluginDescriptor,
-    RegistryName, ServiceFactory,
+    PluginFactory, RegistryName, ServiceFactory,
 };
 pub use handle::CoreHandle;
 pub use runtime::CoreRuntime;

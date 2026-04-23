@@ -11,5 +11,8 @@ pub fn plugin_context(plugin_name: impl Into<String>, core: CoreWeak) -> PluginC
     PluginContext {
         plugin_name: plugin_name.into(),
         core,
+        package_root: None,
+        source_root: None,
+        data_root: None,
     }
 }

@@ -1,6 +1,3 @@
-pub(super) use crate::ui::asset_editor::{
-    UiAssetEditorMode, UiAssetEditorRoute, UiAssetEditorSession,
-};
 pub(super) use crate::ui::control::EditorUiControlService;
 pub(super) use crate::ui::template_runtime::{
     EditorUiCompatibilityHarness, EditorUiHostRuntime, SlintUiHostAdapter,
@@ -8,10 +5,8 @@ pub(super) use crate::ui::template_runtime::{
     WORKBENCH_SHELL_DOCUMENT_ID,
 };
 pub(super) use toml::Value;
-pub(super) use zircon_runtime::ui::template::{UiLegacyTemplateAdapter, UiTemplateLoader};
 pub(super) use zircon_runtime::ui::{
-    binding::UiEventKind, layout::UiFrame, layout::UiSize, template::UiAssetKind,
-    tree::UiInputPolicy,
+    binding::UiEventKind, layout::UiFrame, layout::UiSize, tree::UiInputPolicy,
 };
 
 pub(super) const ASSET_WORKBENCH_DOCUMENT_TOML: &str = r##"
@@ -60,14 +55,3 @@ children = [
   { node = { node_id = "save_project", kind = "native", type = "UiHostIconButton", control_id = "SaveProject", bindings = [{ id = "WorkbenchMenuBar/SaveProject", event = "Click", route = "MenuAction.SaveProject" }] } },
 ]
 "##;
-
-pub(super) const SIMPLE_LEGACY_TEMPLATE_TOML: &str = r#"
-version = 1
-
-[root]
-component = "VerticalBox"
-control_id = "LegacyRoot"
-children = [
-  { component = "Button", control_id = "OpenProject", bindings = [{ id = "Legacy/OpenProject", event = "Click", route = "MenuAction.OpenProject" }], attributes = { text = "Open" } }
-]
-"#;

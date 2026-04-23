@@ -1,18 +1,13 @@
-use slint::ModelRc;
-
 use crate::ui::layouts::common::model_rc;
-use crate::ui::slint_host::{NewProjectFormData, RecentProjectData, WelcomePaneData};
 use crate::ui::workbench::startup::RecentProjectValidation;
 use crate::ui::workbench::startup::WelcomePaneSnapshot;
 
-pub(crate) struct WelcomePresentation {
-    pub pane: WelcomePaneData,
-    pub recent_projects: ModelRc<RecentProjectData>,
-}
+use super::{NewProjectFormData, RecentProjectData, WelcomePaneData, WelcomePresentation};
 
 pub(crate) fn welcome_presentation(snapshot: &WelcomePaneSnapshot) -> WelcomePresentation {
     WelcomePresentation {
         pane: WelcomePaneData {
+            nodes: Default::default(),
             title: snapshot.title.clone().into(),
             subtitle: snapshot.subtitle.clone().into(),
             status_message: snapshot.status_message.clone().into(),

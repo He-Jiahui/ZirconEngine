@@ -24,7 +24,7 @@ fn runtime_ui_template_builders_live_under_build_namespace_without_bridge_folder
 }
 
 #[test]
-fn runtime_ui_flat_asset_migration_adapter_stays_crate_internal_to_template_tests() {
+fn runtime_ui_template_surface_removes_legacy_asset_migration_entrypoints() {
     let runtime_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let template_mod_source =
         std::fs::read_to_string(runtime_root.join("src/ui/template/mod.rs")).unwrap_or_default();
@@ -34,21 +34,27 @@ fn runtime_ui_flat_asset_migration_adapter_stays_crate_internal_to_template_test
     let loader_source =
         std::fs::read_to_string(runtime_root.join("src/ui/template/asset/loader.rs"))
             .unwrap_or_default();
+    let legacy_source_path = runtime_root.join("src/ui/template/asset/legacy.rs");
 
     assert!(
-        template_mod_source.contains("pub(crate) use asset::UiFlatAssetMigrationAdapter;")
-            && !template_mod_source.contains("pub use asset::UiFlatAssetMigrationAdapter;"),
-        "runtime template root should keep flat migration adapter crate-internal instead of public"
+        !template_mod_source.contains("UiLegacyTemplateAdapter")
+            && !template_mod_source.contains("UiFlatAssetMigrationAdapter"),
+        "runtime template root should drop legacy migration adapters from the formal surface"
     );
     assert!(
-        asset_mod_source.contains("pub(crate) use legacy::UiFlatAssetMigrationAdapter;")
-            && !asset_mod_source.contains("pub use legacy::UiFlatAssetMigrationAdapter;"),
-        "runtime template asset surface should keep flat migration adapter crate-internal instead of public"
+        !asset_mod_source.contains("mod legacy;")
+            && !asset_mod_source.contains("UiLegacyTemplateAdapter")
+            && !asset_mod_source.contains("UiFlatAssetMigrationAdapter"),
+        "runtime template asset surface should stop wiring legacy migration entrypoints"
     );
     assert!(
         !loader_source.contains("UiFlatAssetMigrationAdapter")
             && !loader_source.contains("looks_like_flat"),
         "formal runtime asset loader should stay tree-only instead of silently canonicalizing flat documents"
+    );
+    assert!(
+        !legacy_source_path.exists(),
+        "runtime template asset legacy.rs entrypoint should be removed after the hard cutover"
     );
 }
 

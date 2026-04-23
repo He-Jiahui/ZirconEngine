@@ -5,9 +5,9 @@ fn shared_list_surfaces_do_not_expose_legacy_direct_callback_routes() {
         env!("CARGO_MANIFEST_DIR"),
         "/ui/workbench/assets.slint"
     ));
-    let panes = include_str!(concat!(
+    let pane_content = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/panes.slint"
+        "/ui/workbench/pane_content.slint"
     ));
     let welcome = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
@@ -47,7 +47,7 @@ fn shared_list_surfaces_do_not_expose_legacy_direct_callback_routes() {
         "select_asset(asset_uuid) =>",
         "activate_reference(asset_uuid) =>",
     ] {
-        let found = assets.contains(needle) || panes.contains(needle);
+        let found = assets.contains(needle) || pane_content.contains(needle);
         assert!(
             !found,
             "asset or pane leaf surface still exposes legacy direct callback `{needle}`"

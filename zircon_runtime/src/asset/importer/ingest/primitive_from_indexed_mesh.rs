@@ -9,6 +9,8 @@ pub(super) fn primitive_from_indexed_mesh(
     normals: &[f32],
     texcoords: &[f32],
     indices: &[u32],
+    joint_indices: &[[u16; 4]],
+    joint_weights: &[[f32; 4]],
 ) -> Result<ModelPrimitiveAsset, AssetImportError> {
     if positions.len() % 3 != 0 {
         return Err(AssetImportError::Parse(
@@ -50,6 +52,13 @@ pub(super) fn primitive_from_indexed_mesh(
                     normal.normalize_or_zero()
                 },
                 uv,
+            )
+            .with_skinning(
+                joint_indices.get(index).copied().unwrap_or([0, 0, 0, 0]),
+                joint_weights
+                    .get(index)
+                    .copied()
+                    .unwrap_or([0.0, 0.0, 0.0, 0.0]),
             )
         })
         .collect();

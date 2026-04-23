@@ -167,8 +167,9 @@ impl crate::core::framework::animation::AnimationManager for DefaultAnimationMan
         skeleton: &AnimationSkeletonAsset,
         clip: &AnimationClipAsset,
         time_seconds: Real,
+        looping: bool,
     ) -> Result<AnimationPoseOutput, String> {
-        let sample_time = resolve_clip_sample_time(clip.duration_seconds, time_seconds);
+        let sample_time = resolve_clip_sample_time(clip.duration_seconds, time_seconds, looping);
         let mut bones = skeleton
             .bones
             .iter()
@@ -326,14 +327,20 @@ fn parameter_scalar(parameters: &AnimationParameterMap, name: &str) -> Option<Re
     }
 }
 
-fn resolve_clip_sample_time(duration_seconds: Real, time_seconds: Real) -> Real {
+fn resolve_clip_sample_time(duration_seconds: Real, time_seconds: Real, looping: bool) -> Real {
     if duration_seconds <= Real::EPSILON {
         return 0.0;
     }
-    if time_seconds <= duration_seconds {
-        return time_seconds.max(0.0);
+    let clamped = time_seconds.max(0.0);
+    if looping {
+        if clamped <= duration_seconds {
+            clamped
+        } else {
+            clamped.rem_euclid(duration_seconds)
+        }
+    } else {
+        clamped.min(duration_seconds)
     }
-    time_seconds.rem_euclid(duration_seconds)
 }
 
 fn sample_vec3(value: &crate::asset::AnimationChannelValueAsset) -> Result<Vec3, String> {

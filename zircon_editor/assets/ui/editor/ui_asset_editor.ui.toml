@@ -3,13 +3,12 @@ stylesheets = []
 [asset]
 kind = "layout"
 id = "editor.ui_asset_editor"
-version = 1
+version = 2
 display_name = "UI Asset Editor"
 
 [imports]
 widgets = [
-    "res://ui/editor/editor_widgets.ui.toml#EditorToolbar",
-    "res://ui/editor/editor_widgets.ui.toml#EditorToolbarButton",
+    "res://ui/editor/editor_widgets.ui.toml#EditorHeaderShell",
     "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard",
 ]
 styles = ["res://ui/theme/editor_base.ui.toml"]
@@ -29,7 +28,7 @@ bindings = []
 [root.props]
 
 [root.layout.container]
-gap = 10.0
+gap = 8.0
 kind = "VerticalBox"
 
 [root.layout.height]
@@ -47,10 +46,10 @@ stretch = "Stretch"
 [root.children.slot]
 
 [root.children.node]
-node_id = "toolbar"
+node_id = "header_panel"
 kind = "reference"
-component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorToolbar"
-control_id = "UiAssetEditorToolbar"
+component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorHeaderShell"
+control_id = "HeaderPanel"
 classes = []
 bindings = []
 
@@ -58,29 +57,76 @@ bindings = []
 
 [root.children.node.props]
 
+[root.children.node.layout.height]
+max = 56.0
+min = 56.0
+preferred = 56.0
+stretch = "Fixed"
+
+[root.children.node.layout.width]
+stretch = "Stretch"
+
 [root.children.node.style_overrides.self]
 
 [root.children.node.style_overrides.slot]
 
 [[root.children.node.children]]
-mount = "actions"
+mount = "summary"
 
 [root.children.node.children.slot]
 
 [root.children.node.children.node]
-node_id = "save_button"
-kind = "reference"
-component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorToolbarButton"
-control_id = "SaveAsset"
-classes = ["toolbar-primary"]
+node_id = "header_asset_row"
+kind = "native"
+type = "Space"
+control_id = "HeaderAssetRow"
+classes = []
 bindings = []
 children = []
 
 [root.children.node.children.node.params]
-icon = "albums-outline"
-label = "Save Asset"
 
 [root.children.node.children.node.props]
+
+[root.children.node.children.node.layout.height]
+max = 10.0
+min = 10.0
+preferred = 10.0
+stretch = "Fixed"
+
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+mount = "status"
+
+[root.children.node.children.slot]
+
+[root.children.node.children.node]
+node_id = "header_status_row"
+kind = "native"
+type = "Space"
+control_id = "HeaderStatusRow"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.children.node.params]
+
+[root.children.node.children.node.props]
+
+[root.children.node.children.node.layout.height]
+max = 10.0
+min = 10.0
+preferred = 10.0
+stretch = "Fixed"
+
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
 
 [root.children.node.children.node.style_overrides.self]
 
@@ -92,19 +138,26 @@ mount = "actions"
 [root.children.node.children.slot]
 
 [root.children.node.children.node]
-node_id = "preview_button"
-kind = "reference"
-component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorToolbarButton"
-control_id = "PreviewAsset"
+node_id = "header_action_row"
+kind = "native"
+type = "Space"
+control_id = "HeaderActionRow"
 classes = []
 bindings = []
 children = []
 
 [root.children.node.children.node.params]
-icon = "play-outline"
-label = "Preview"
 
 [root.children.node.children.node.props]
+
+[root.children.node.children.node.layout.height]
+max = 20.0
+min = 20.0
+preferred = 20.0
+stretch = "Fixed"
+
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
 
 [root.children.node.children.node.style_overrides.self]
 
@@ -127,7 +180,7 @@ bindings = []
 [root.children.node.props]
 
 [root.children.node.layout.container]
-gap = 10.0
+gap = 8.0
 kind = "HorizontalBox"
 
 [root.children.node.layout.height]
@@ -143,12 +196,42 @@ stretch = "Stretch"
 [[root.children.node.children]]
 
 [root.children.node.children.slot.layout.width]
-max = 260.0
-min = 180.0
-preferred = 220.0
+max = 240.0
+min = 240.0
+preferred = 240.0
 stretch = "Fixed"
 
 [root.children.node.children.node]
+node_id = "left_column"
+kind = "native"
+type = "VerticalBox"
+control_id = "LeftColumn"
+classes = []
+bindings = []
+
+[root.children.node.children.node.params]
+
+[root.children.node.children.node.props]
+
+[root.children.node.children.node.layout.container]
+gap = 8.0
+kind = "VerticalBox"
+
+[root.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children]]
+
+[root.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node]
 node_id = "palette_panel"
 kind = "reference"
 component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard"
@@ -156,21 +239,28 @@ control_id = "PalettePanel"
 classes = []
 bindings = []
 
-[root.children.node.children.node.params]
+[root.children.node.children.node.children.node.params]
 title = "Palette"
 
-[root.children.node.children.node.props]
+[root.children.node.children.node.children.node.props]
 
-[root.children.node.children.node.style_overrides.self]
+[root.children.node.children.node.children.node.layout.height]
+preferred = 240.0
+stretch = "Stretch"
 
-[root.children.node.children.node.style_overrides.slot]
+[root.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
 
-[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children.node.children]]
 mount = "content"
 
-[root.children.node.children.node.children.slot]
+[root.children.node.children.node.children.node.children.slot]
 
-[root.children.node.children.node.children.node]
+[root.children.node.children.node.children.node.children.node]
 node_id = "palette_label"
 kind = "native"
 type = "Label"
@@ -179,47 +269,20 @@ classes = []
 bindings = []
 children = []
 
-[root.children.node.children.node.children.node.params]
+[root.children.node.children.node.children.node.children.node.params]
 
-[root.children.node.children.node.children.node.props]
-text = "Native Widgets, Components, References"
+[root.children.node.children.node.children.node.children.node.props]
+text = "Palette shell region"
 
-[root.children.node.children.node.children.node.style_overrides.self]
+[root.children.node.children.node.children.node.children.node.style_overrides.self]
 
-[root.children.node.children.node.children.node.style_overrides.slot]
+[root.children.node.children.node.children.node.children.node.style_overrides.slot]
 
 [[root.children.node.children.node.children]]
-mount = "content"
 
 [root.children.node.children.node.children.slot]
 
 [root.children.node.children.node.children.node]
-node_id = "palette_groups_label"
-kind = "native"
-type = "Label"
-control_id = "PaletteGroupsLabel"
-classes = []
-bindings = []
-children = []
-
-[root.children.node.children.node.children.node.params]
-
-[root.children.node.children.node.children.node.props]
-text = "Patterns, Named Slots, External Widgets"
-
-[root.children.node.children.node.children.node.style_overrides.self]
-
-[root.children.node.children.node.children.node.style_overrides.slot]
-
-[[root.children.node.children]]
-
-[root.children.node.children.slot.layout.width]
-max = 260.0
-min = 220.0
-preferred = 220.0
-stretch = "Fixed"
-
-[root.children.node.children.node]
 node_id = "hierarchy_panel"
 kind = "reference"
 component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard"
@@ -227,21 +290,28 @@ control_id = "HierarchyPanel"
 classes = []
 bindings = []
 
-[root.children.node.children.node.params]
+[root.children.node.children.node.children.node.params]
 title = "Hierarchy"
 
-[root.children.node.children.node.props]
+[root.children.node.children.node.children.node.props]
 
-[root.children.node.children.node.style_overrides.self]
+[root.children.node.children.node.children.node.layout.height]
+preferred = 320.0
+stretch = "Stretch"
 
-[root.children.node.children.node.style_overrides.slot]
+[root.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
 
-[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children.node.children]]
 mount = "content"
 
-[root.children.node.children.node.children.slot]
+[root.children.node.children.node.children.node.children.slot]
 
-[root.children.node.children.node.children.node]
+[root.children.node.children.node.children.node.children.node]
 node_id = "hierarchy_label"
 kind = "native"
 type = "Label"
@@ -250,43 +320,50 @@ classes = []
 bindings = []
 children = []
 
-[root.children.node.children.node.children.node.params]
+[root.children.node.children.node.children.node.children.node.params]
 
-[root.children.node.children.node.children.node.props]
-text = "Widget Tree"
+[root.children.node.children.node.children.node.children.node.props]
+text = "Hierarchy shell region"
 
-[root.children.node.children.node.children.node.style_overrides.self]
+[root.children.node.children.node.children.node.children.node.style_overrides.self]
 
-[root.children.node.children.node.children.node.style_overrides.slot]
-
-[[root.children.node.children.node.children]]
-mount = "content"
-
-[root.children.node.children.node.children.slot]
-
-[root.children.node.children.node.children.node]
-node_id = "hierarchy_slots_label"
-kind = "native"
-type = "Label"
-control_id = "HierarchySlotsLabel"
-classes = []
-bindings = []
-children = []
-
-[root.children.node.children.node.children.node.params]
-
-[root.children.node.children.node.children.node.props]
-text = "Slots, Mounts, Component Boundaries"
-
-[root.children.node.children.node.children.node.style_overrides.self]
-
-[root.children.node.children.node.children.node.style_overrides.slot]
+[root.children.node.children.node.children.node.children.node.style_overrides.slot]
 
 [[root.children.node.children]]
 
 [root.children.node.children.slot]
 
 [root.children.node.children.node]
+node_id = "center_column"
+kind = "native"
+type = "VerticalBox"
+control_id = "CenterColumn"
+classes = []
+bindings = []
+
+[root.children.node.children.node.params]
+
+[root.children.node.children.node.props]
+
+[root.children.node.children.node.layout.container]
+gap = 8.0
+kind = "VerticalBox"
+
+[root.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children]]
+
+[root.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node]
 node_id = "designer_panel"
 kind = "reference"
 component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard"
@@ -294,192 +371,402 @@ control_id = "DesignerPanel"
 classes = []
 bindings = []
 
-[root.children.node.children.node.params]
+[root.children.node.children.node.children.node.params]
 title = "Designer"
 
-[root.children.node.children.node.props]
-
-[root.children.node.children.node.style_overrides.self]
-
-[root.children.node.children.node.style_overrides.slot]
-
-[[root.children.node.children.node.children]]
-mount = "content"
-
-[root.children.node.children.node.children.slot]
-
-[root.children.node.children.node.children.node]
-node_id = "designer_label"
-kind = "native"
-type = "Label"
-control_id = "DesignerLabel"
-classes = []
-bindings = []
-children = []
-
-[root.children.node.children.node.children.node.params]
-
 [root.children.node.children.node.children.node.props]
-text = "Designer Surface"
 
-[root.children.node.children.node.children.node.style_overrides.self]
-
-[root.children.node.children.node.children.node.style_overrides.slot]
-
-[[root.children.node.children.node.children]]
-mount = "content"
-
-[root.children.node.children.node.children.slot]
-
-[root.children.node.children.node.children.node]
-node_id = "designer_overlay_label"
-kind = "native"
-type = "Label"
-control_id = "DesignerOverlayLabel"
-classes = []
-bindings = []
-children = []
-
-[root.children.node.children.node.children.node.params]
-
-[root.children.node.children.node.children.node.props]
-text = "Selection Overlay, Slot Targets, Sticky Picker"
-
-[root.children.node.children.node.children.node.style_overrides.self]
-
-[root.children.node.children.node.children.node.style_overrides.slot]
-
-[[root.children.node.children]]
-
-[root.children.node.children.slot.layout.width]
-max = 320.0
-min = 260.0
+[root.children.node.children.node.children.node.layout.height]
 preferred = 260.0
-stretch = "Fixed"
-
-[root.children.node.children.node]
-node_id = "inspector_panel"
-kind = "reference"
-component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard"
-control_id = "InspectorPanel"
-classes = []
-bindings = []
-
-[root.children.node.children.node.params]
-title = "Inspector"
-
-[root.children.node.children.node.props]
-
-[root.children.node.children.node.style_overrides.self]
-
-[root.children.node.children.node.style_overrides.slot]
-
-[[root.children.node.children.node.children]]
-mount = "content"
-
-[root.children.node.children.node.children.slot]
-
-[root.children.node.children.node.children.node]
-node_id = "inspector_label"
-kind = "native"
-type = "Label"
-control_id = "InspectorLabel"
-classes = []
-bindings = []
-children = []
-
-[root.children.node.children.node.children.node.params]
-
-[root.children.node.children.node.children.node.props]
-text = "Selection Details"
-
-[root.children.node.children.node.children.node.style_overrides.self]
-
-[root.children.node.children.node.children.node.style_overrides.slot]
-
-[[root.children.node.children.node.children]]
-mount = "content"
-
-[root.children.node.children.node.children.slot]
-
-[root.children.node.children.node.children.node]
-node_id = "inspector_bindings_label"
-kind = "native"
-type = "Label"
-control_id = "InspectorBindingsLabel"
-classes = []
-bindings = []
-children = []
-
-[root.children.node.children.node.children.node.params]
-
-[root.children.node.children.node.children.node.props]
-text = "Widget, Slot, Layout, Style, Bindings"
-
-[root.children.node.children.node.children.node.style_overrides.self]
-
-[root.children.node.children.node.children.node.style_overrides.slot]
-
-[[root.children.node.children.node.children]]
-mount = "content"
-
-[root.children.node.children.node.children.slot]
-
-[root.children.node.children.node.children.node]
-node_id = "command_log_label"
-kind = "native"
-type = "Label"
-control_id = "CommandLogLabel"
-classes = []
-bindings = []
-children = []
-
-[root.children.node.children.node.children.node.params]
-
-[root.children.node.children.node.children.node.props]
-text = "Executable Replay, Undo Command Log, Cross-Asset Effects"
-
-[root.children.node.children.node.children.node.style_overrides.self]
-
-[root.children.node.children.node.children.node.style_overrides.slot]
-
-[[root.children]]
-
-[root.children.slot]
-
-[root.children.node]
-node_id = "footer_row"
-kind = "native"
-type = "HorizontalBox"
-control_id = "UiAssetEditorFooterRow"
-classes = []
-bindings = []
-
-[root.children.node.params]
-
-[root.children.node.props]
-
-[root.children.node.layout.container]
-gap = 10.0
-kind = "HorizontalBox"
-
-[root.children.node.layout.height]
-min = 180.0
-preferred = 220.0
-stretch = "Fixed"
-
-[root.children.node.layout.width]
 stretch = "Stretch"
 
-[root.children.node.style_overrides.self]
+[root.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
 
-[root.children.node.style_overrides.slot]
+[root.children.node.children.node.children.node.style_overrides.self]
 
-[[root.children.node.children]]
+[root.children.node.children.node.children.node.style_overrides.slot]
 
-[root.children.node.children.slot]
+[[root.children.node.children.node.children.node.children]]
+mount = "content"
 
-[root.children.node.children.node]
+[root.children.node.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node.children.node]
+node_id = "designer_content_stack"
+kind = "native"
+type = "VerticalBox"
+control_id = "DesignerContentStack"
+classes = []
+bindings = []
+
+[root.children.node.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.children.node.props]
+
+[root.children.node.children.node.children.node.children.node.layout.container]
+gap = 6.0
+kind = "VerticalBox"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children.node.children.node.children]]
+
+[root.children.node.children.node.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node.children.node.children.node]
+node_id = "designer_canvas_panel"
+kind = "native"
+type = "Label"
+control_id = "DesignerCanvasPanel"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.children.node.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.children.node.children.node.props]
+text = "Designer canvas shell region"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 92.0
+preferred = 96.0
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children.node.children.node.children]]
+
+[root.children.node.children.node.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node.children.node.children.node]
+node_id = "render_stack_panel"
+kind = "native"
+type = "Label"
+control_id = "RenderStackPanel"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.children.node.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.children.node.children.node.props]
+text = "Render stack shell region"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.height]
+max = 80.0
+min = 80.0
+preferred = 80.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children]]
+
+[root.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node]
+node_id = "action_bar_panel"
+kind = "native"
+type = "HorizontalBox"
+control_id = "ActionBarPanel"
+classes = []
+bindings = []
+
+[root.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.props]
+
+[root.children.node.children.node.children.node.layout.container]
+gap = 0.0
+kind = "HorizontalBox"
+
+[root.children.node.children.node.children.node.layout.height]
+max = 88.0
+min = 88.0
+preferred = 88.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children.node.children]]
+
+[root.children.node.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node.children.node]
+node_id = "action_bar_left_margin"
+kind = "native"
+type = "Space"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.children.node.props]
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+max = 10.0
+min = 10.0
+preferred = 10.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children.node.children]]
+
+[root.children.node.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node.children.node]
+node_id = "action_bar_content"
+kind = "native"
+type = "VerticalBox"
+classes = []
+bindings = []
+
+[root.children.node.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.children.node.props]
+
+[root.children.node.children.node.children.node.children.node.layout.container]
+gap = 0.0
+kind = "VerticalBox"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children.node.children.node.children]]
+
+[root.children.node.children.node.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node.children.node.children.node]
+node_id = "action_bar_top_margin"
+kind = "native"
+type = "Space"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.children.node.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.children.node.children.node.props]
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.height]
+max = 8.0
+min = 8.0
+preferred = 8.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children.node.children.node.children]]
+
+[root.children.node.children.node.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node.children.node.children.node]
+node_id = "action_bar_row_stack"
+kind = "native"
+type = "VerticalBox"
+classes = []
+bindings = []
+
+[root.children.node.children.node.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.children.node.children.node.props]
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.container]
+gap = 4.0
+kind = "VerticalBox"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.height]
+max = 80.0
+min = 80.0
+preferred = 80.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children.node.children.node.children.node.children]]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node]
+node_id = "action_insert_row"
+kind = "native"
+type = "HorizontalBox"
+control_id = "ActionInsertRow"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.props]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.container]
+gap = 4.0
+kind = "HorizontalBox"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.height]
+max = 24.0
+min = 24.0
+preferred = 24.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children.node.children.node.children.node.children]]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node]
+node_id = "action_reparent_row"
+kind = "native"
+type = "HorizontalBox"
+control_id = "ActionReparentRow"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.props]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.container]
+gap = 4.0
+kind = "HorizontalBox"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.height]
+max = 24.0
+min = 24.0
+preferred = 24.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children.node.children.node.children.node.children]]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node]
+node_id = "action_structure_row"
+kind = "native"
+type = "HorizontalBox"
+control_id = "ActionStructureRow"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.props]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.container]
+gap = 4.0
+kind = "HorizontalBox"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.height]
+max = 24.0
+min = 24.0
+preferred = 24.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children.node.children]]
+
+[root.children.node.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node.children.node]
+node_id = "action_bar_right_margin"
+kind = "native"
+type = "Space"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.children.node.props]
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+max = 10.0
+min = 10.0
+preferred = 10.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children]]
+
+[root.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node]
 node_id = "source_panel"
 kind = "reference"
 component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard"
@@ -487,66 +774,619 @@ control_id = "SourcePanel"
 classes = []
 bindings = []
 
-[root.children.node.children.node.params]
+[root.children.node.children.node.children.node.params]
 title = "Source"
 
+[root.children.node.children.node.children.node.props]
+
+[root.children.node.children.node.children.node.layout.height]
+preferred = 240.0
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children.node.children]]
+mount = "content"
+
+[root.children.node.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node.children.node]
+node_id = "source_content_stack"
+kind = "native"
+type = "VerticalBox"
+control_id = "SourceContentStack"
+classes = []
+bindings = []
+
+[root.children.node.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.children.node.props]
+
+[root.children.node.children.node.children.node.children.node.layout.container]
+gap = 6.0
+kind = "VerticalBox"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children.node.children.node.children]]
+
+[root.children.node.children.node.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node.children.node.children.node]
+node_id = "source_info_panel"
+kind = "native"
+type = "Label"
+control_id = "SourceInfoPanel"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.children.node.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.children.node.children.node.props]
+text = "Source info shell region"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.height]
+max = 58.0
+min = 58.0
+preferred = 58.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children.node.children.node.children]]
+
+[root.children.node.children.node.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node.children.node.children.node]
+node_id = "source_outline_panel"
+kind = "native"
+type = "Label"
+control_id = "SourceOutlinePanel"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.children.node.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.children.node.children.node.props]
+text = "Source outline shell region"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.height]
+max = 72.0
+min = 72.0
+preferred = 72.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children.node.children.node.children]]
+
+[root.children.node.children.node.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node.children.node.children.node]
+node_id = "mock_workspace_panel"
+kind = "native"
+type = "VerticalBox"
+control_id = "MockWorkspacePanel"
+classes = []
+bindings = []
+
+[root.children.node.children.node.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.children.node.children.node.props]
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.container]
+gap = 6.0
+kind = "VerticalBox"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 72.0
+preferred = 96.0
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children.node.children.node.children.node.children]]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node]
+node_id = "mock_subjects_panel"
+kind = "native"
+type = "Label"
+control_id = "MockSubjectsPanel"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.props]
+text = "Mock subjects shell region"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.height]
+preferred = 72.0
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children.node.children.node.children.node.children]]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node]
+node_id = "mock_editor_panel"
+kind = "native"
+type = "Label"
+control_id = "MockEditorPanel"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.props]
+text = "Mock editor shell region"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.height]
+preferred = 96.0
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children.node.children.node.children.node.children]]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node]
+node_id = "mock_state_graph_panel"
+kind = "native"
+type = "Label"
+control_id = "MockStateGraphPanel"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.props]
+text = "Mock state graph shell region"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.height]
+preferred = 72.0
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children.node.children.node.children]]
+
+[root.children.node.children.node.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node.children.node.children.node]
+node_id = "source_text_panel"
+kind = "native"
+type = "Label"
+control_id = "SourceTextPanel"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.children.node.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.children.node.children.node.props]
+text = "Source text shell region"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 48.0
+preferred = 112.0
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children]]
+
+[root.children.node.children.slot.layout.width]
+max = 280.0
+min = 280.0
+preferred = 280.0
+stretch = "Fixed"
+
+[root.children.node.children.node]
+node_id = "right_column"
+kind = "native"
+type = "VerticalBox"
+control_id = "RightColumn"
+classes = []
+bindings = []
+
+[root.children.node.children.node.params]
+
 [root.children.node.children.node.props]
+
+[root.children.node.children.node.layout.container]
+gap = 8.0
+kind = "VerticalBox"
+
+[root.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
 
 [root.children.node.children.node.style_overrides.self]
 
 [root.children.node.children.node.style_overrides.slot]
 
 [[root.children.node.children.node.children]]
-mount = "content"
 
 [root.children.node.children.node.children.slot]
 
 [root.children.node.children.node.children.node]
-node_id = "source_label"
-kind = "native"
-type = "Label"
-control_id = "SourceLabel"
+node_id = "inspector_panel"
+kind = "reference"
+component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard"
+control_id = "InspectorPanel"
 classes = []
 bindings = []
-children = []
 
 [root.children.node.children.node.children.node.params]
+title = "Inspector"
 
 [root.children.node.children.node.children.node.props]
-text = "Canonical TOML Source Buffer"
+
+[root.children.node.children.node.children.node.layout.height]
+preferred = 280.0
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
 
 [root.children.node.children.node.children.node.style_overrides.self]
 
 [root.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children.node.children]]
+mount = "content"
+
+[root.children.node.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node.children.node]
+node_id = "inspector_content_shell"
+kind = "native"
+type = "HorizontalBox"
+classes = []
+bindings = []
+
+[root.children.node.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.children.node.props]
+
+[root.children.node.children.node.children.node.children.node.layout.container]
+gap = 0.0
+kind = "HorizontalBox"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children.node.children.node.children]]
+
+[root.children.node.children.node.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node.children.node.children.node]
+node_id = "inspector_left_margin"
+kind = "native"
+type = "Space"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.children.node.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.children.node.children.node.props]
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.width]
+max = 10.0
+min = 10.0
+preferred = 10.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children.node.children.node.children]]
+
+[root.children.node.children.node.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node.children.node.children.node]
+node_id = "inspector_content_panel"
+kind = "native"
+type = "VerticalBox"
+control_id = "InspectorContentPanel"
+classes = []
+bindings = []
+
+[root.children.node.children.node.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.children.node.children.node.props]
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.container]
+gap = 4.0
+kind = "VerticalBox"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children.node.children.node.children.node.children]]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node]
+node_id = "inspector_widget_section"
+kind = "native"
+type = "VerticalBox"
+control_id = "InspectorWidgetSection"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.props]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.container]
+gap = 4.0
+kind = "VerticalBox"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.height]
+max = 30.0
+min = 30.0
+preferred = 30.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children.node.children.node.children.node.children]]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node]
+node_id = "inspector_promote_section"
+kind = "native"
+type = "VerticalBox"
+control_id = "InspectorPromoteSection"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.props]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.container]
+gap = 4.0
+kind = "VerticalBox"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.height]
+max = 24.0
+min = 24.0
+preferred = 24.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children.node.children.node.children.node.children]]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node]
+node_id = "inspector_slot_section"
+kind = "native"
+type = "VerticalBox"
+control_id = "InspectorSlotSection"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.props]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.container]
+gap = 4.0
+kind = "VerticalBox"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.height]
+max = 28.0
+min = 28.0
+preferred = 28.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children.node.children.node.children.node.children]]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node]
+node_id = "inspector_layout_section"
+kind = "native"
+type = "VerticalBox"
+control_id = "InspectorLayoutSection"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.props]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.container]
+gap = 4.0
+kind = "VerticalBox"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.height]
+max = 28.0
+min = 28.0
+preferred = 28.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children.node.children.node.children.node.children]]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node]
+node_id = "inspector_binding_section"
+kind = "native"
+type = "VerticalBox"
+control_id = "InspectorBindingSection"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.props]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.container]
+gap = 4.0
+kind = "VerticalBox"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.height]
+max = 32.0
+min = 32.0
+preferred = 32.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children.node.children.node.children]]
+
+[root.children.node.children.node.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node.children.node.children.node]
+node_id = "inspector_right_margin"
+kind = "native"
+type = "Space"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.children.node.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.children.node.children.node.props]
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.width]
+max = 10.0
+min = 10.0
+preferred = 10.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.children.node.children.node.style_overrides.slot]
 
 [[root.children.node.children.node.children]]
-mount = "content"
 
 [root.children.node.children.node.children.slot]
 
 [root.children.node.children.node.children.node]
-node_id = "source_outline_label"
-kind = "native"
-type = "Label"
-control_id = "SourceOutlineLabel"
-classes = []
-bindings = []
-children = []
-
-[root.children.node.children.node.children.node.params]
-
-[root.children.node.children.node.children.node.props]
-text = "Split Sync, Outline Jump, Roundtrip Diagnostics"
-
-[root.children.node.children.node.children.node.style_overrides.self]
-
-[root.children.node.children.node.children.node.style_overrides.slot]
-
-[[root.children.node.children]]
-
-[root.children.node.children.slot]
-
-[root.children.node.children.node]
 node_id = "stylesheet_panel"
 kind = "reference"
 component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard"
@@ -554,172 +1394,400 @@ control_id = "StylesheetPanel"
 classes = []
 bindings = []
 
-[root.children.node.children.node.params]
+[root.children.node.children.node.children.node.params]
 title = "Stylesheet"
 
-[root.children.node.children.node.props]
-
-[root.children.node.children.node.style_overrides.self]
-
-[root.children.node.children.node.style_overrides.slot]
-
-[[root.children.node.children.node.children]]
-mount = "content"
-
-[root.children.node.children.node.children.slot]
-
-[root.children.node.children.node.children.node]
-node_id = "stylesheet_label"
-kind = "native"
-type = "Label"
-control_id = "StylesheetLabel"
-classes = []
-bindings = []
-children = []
-
-[root.children.node.children.node.children.node.params]
-
 [root.children.node.children.node.children.node.props]
-text = "Cascade, Selectors, Rule Diff"
+
+[root.children.node.children.node.children.node.layout.height]
+preferred = 280.0
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
 
 [root.children.node.children.node.children.node.style_overrides.self]
 
 [root.children.node.children.node.children.node.style_overrides.slot]
 
-[[root.children.node.children.node.children]]
+[[root.children.node.children.node.children.node.children]]
 mount = "content"
 
-[root.children.node.children.node.children.slot]
+[root.children.node.children.node.children.node.children.slot]
 
-[root.children.node.children.node.children.node]
-node_id = "theme_tools_label"
+[root.children.node.children.node.children.node.children.node]
+node_id = "stylesheet_content_shell"
 kind = "native"
-type = "Label"
-control_id = "ThemeToolsLabel"
+type = "HorizontalBox"
+classes = []
+bindings = []
+
+[root.children.node.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.children.node.props]
+
+[root.children.node.children.node.children.node.children.node.layout.container]
+gap = 0.0
+kind = "HorizontalBox"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children.node.children.node.children]]
+
+[root.children.node.children.node.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node.children.node.children.node]
+node_id = "stylesheet_left_margin"
+kind = "native"
+type = "Space"
 classes = []
 bindings = []
 children = []
 
-[root.children.node.children.node.children.node.params]
+[root.children.node.children.node.children.node.children.node.children.node.params]
 
-[root.children.node.children.node.children.node.props]
-text = "Theme Compare, Helper Actions, Cascade Inspector"
+[root.children.node.children.node.children.node.children.node.children.node.props]
 
-[root.children.node.children.node.children.node.style_overrides.self]
+[root.children.node.children.node.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
 
-[root.children.node.children.node.children.node.style_overrides.slot]
+[root.children.node.children.node.children.node.children.node.children.node.layout.width]
+max = 10.0
+min = 10.0
+preferred = 10.0
+stretch = "Fixed"
 
-[[root.children.node.children.node.children]]
-mount = "content"
+[root.children.node.children.node.children.node.children.node.children.node.style_overrides.self]
 
-[root.children.node.children.node.children.slot]
+[root.children.node.children.node.children.node.children.node.children.node.style_overrides.slot]
 
-[root.children.node.children.node.children.node]
-node_id = "theme_cascade_helper_label"
+[[root.children.node.children.node.children.node.children.node.children]]
+
+[root.children.node.children.node.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node.children.node.children.node]
+node_id = "stylesheet_content_stack"
 kind = "native"
-type = "Label"
-control_id = "ThemeCascadeHelperLabel"
+type = "VerticalBox"
+classes = []
+bindings = []
+
+[root.children.node.children.node.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.children.node.children.node.props]
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.container]
+gap = 4.0
+kind = "VerticalBox"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children.node.children.node.children.node.children]]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node]
+node_id = "stylesheet_action_row"
+kind = "native"
+type = "HorizontalBox"
+control_id = "StylesheetActionRow"
 classes = []
 bindings = []
 children = []
 
-[root.children.node.children.node.children.node.params]
+[root.children.node.children.node.children.node.children.node.children.node.children.node.params]
 
-[root.children.node.children.node.children.node.props]
-text = "Active Cascade Adopt, Multi-Rule Sync, Theme-Wide Authoring"
+[root.children.node.children.node.children.node.children.node.children.node.children.node.props]
 
-[root.children.node.children.node.children.node.style_overrides.self]
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.container]
+gap = 4.0
+kind = "HorizontalBox"
 
-[root.children.node.children.node.children.node.style_overrides.slot]
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.height]
+max = 24.0
+min = 24.0
+preferred = 24.0
+stretch = "Fixed"
 
-[[root.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
 
-[root.children.node.children.slot]
+[root.children.node.children.node.children.node.children.node.children.node.children.node.style_overrides.self]
 
-[root.children.node.children.node]
-node_id = "preview_panel"
-kind = "reference"
-component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard"
-control_id = "PreviewPanel"
-classes = []
-bindings = []
+[root.children.node.children.node.children.node.children.node.children.node.children.node.style_overrides.slot]
 
-[root.children.node.children.node.params]
-title = "Preview"
+[[root.children.node.children.node.children.node.children.node.children.node.children]]
 
-[root.children.node.children.node.props]
+[root.children.node.children.node.children.node.children.node.children.node.children.slot]
 
-[root.children.node.children.node.style_overrides.self]
-
-[root.children.node.children.node.style_overrides.slot]
-
-[[root.children.node.children.node.children]]
-mount = "content"
-
-[root.children.node.children.node.children.slot]
-
-[root.children.node.children.node.children.node]
-node_id = "preview_label"
+[root.children.node.children.node.children.node.children.node.children.node.children.node]
+node_id = "stylesheet_state_primary_row"
 kind = "native"
-type = "Label"
-control_id = "PreviewLabel"
+type = "HorizontalBox"
+control_id = "StylesheetStatePrimaryRow"
 classes = []
 bindings = []
 children = []
 
-[root.children.node.children.node.children.node.params]
+[root.children.node.children.node.children.node.children.node.children.node.children.node.params]
 
-[root.children.node.children.node.children.node.props]
-text = "Surface Preset, Mock State, Interaction Graph"
+[root.children.node.children.node.children.node.children.node.children.node.children.node.props]
 
-[root.children.node.children.node.children.node.style_overrides.self]
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.container]
+gap = 4.0
+kind = "HorizontalBox"
 
-[root.children.node.children.node.children.node.style_overrides.slot]
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.height]
+max = 24.0
+min = 24.0
+preferred = 24.0
+stretch = "Fixed"
 
-[[root.children.node.children.node.children]]
-mount = "content"
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
 
-[root.children.node.children.node.children.slot]
+[root.children.node.children.node.children.node.children.node.children.node.children.node.style_overrides.self]
 
-[root.children.node.children.node.children.node]
-node_id = "preview_graph_label"
+[root.children.node.children.node.children.node.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children.node.children.node.children.node.children]]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node]
+node_id = "stylesheet_state_secondary_row"
 kind = "native"
-type = "Label"
-control_id = "PreviewGraphLabel"
+type = "HorizontalBox"
+control_id = "StylesheetStateSecondaryRow"
 classes = []
 bindings = []
 children = []
 
-[root.children.node.children.node.children.node.params]
+[root.children.node.children.node.children.node.children.node.children.node.children.node.params]
 
-[root.children.node.children.node.children.node.props]
-text = "Preview State Graph, Binding Graph, Expression Trace"
+[root.children.node.children.node.children.node.children.node.children.node.children.node.props]
 
-[root.children.node.children.node.children.node.style_overrides.self]
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.container]
+gap = 4.0
+kind = "HorizontalBox"
 
-[root.children.node.children.node.children.node.style_overrides.slot]
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.height]
+max = 24.0
+min = 24.0
+preferred = 24.0
+stretch = "Fixed"
 
-[[root.children.node.children.node.children]]
-mount = "content"
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
 
-[root.children.node.children.node.children.slot]
+[root.children.node.children.node.children.node.children.node.children.node.children.node.style_overrides.self]
 
-[root.children.node.children.node.children.node]
-node_id = "preview_binding_schema_label"
+[root.children.node.children.node.children.node.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children.node.children.node.children.node.children]]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node]
+node_id = "stylesheet_divider"
 kind = "native"
-type = "Label"
-control_id = "PreviewBindingSchemaLabel"
+type = "Space"
 classes = []
 bindings = []
 children = []
 
-[root.children.node.children.node.children.node.params]
+[root.children.node.children.node.children.node.children.node.children.node.children.node.params]
 
-[root.children.node.children.node.children.node.props]
-text = "Accessor Expressions, Schema Payload Authoring, Interaction Links"
+[root.children.node.children.node.children.node.children.node.children.node.children.node.props]
 
-[root.children.node.children.node.children.node.style_overrides.self]
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.height]
+max = 1.0
+min = 1.0
+preferred = 1.0
+stretch = "Fixed"
 
-[root.children.node.children.node.children.node.style_overrides.slot]
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children.node.children.node.children.node.children]]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node]
+node_id = "stylesheet_content_panel"
+kind = "native"
+type = "VerticalBox"
+control_id = "StylesheetContentPanel"
+classes = []
+bindings = []
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.props]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.container]
+gap = 4.0
+kind = "VerticalBox"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children.node.children.node.children.node.children.node.children]]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node]
+node_id = "stylesheet_theme_section"
+kind = "native"
+type = "VerticalBox"
+control_id = "StylesheetThemeSection"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.props]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.layout.container]
+gap = 4.0
+kind = "VerticalBox"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.layout.height]
+max = 20.0
+min = 20.0
+preferred = 20.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children.node.children.node.children.node.children.node.children]]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node]
+node_id = "stylesheet_authoring_section"
+kind = "native"
+type = "VerticalBox"
+control_id = "StylesheetAuthoringSection"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.props]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.layout.container]
+gap = 4.0
+kind = "VerticalBox"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.layout.height]
+max = 20.0
+min = 20.0
+preferred = 20.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children.node.children.node.children.node.children.node.children]]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node]
+node_id = "stylesheet_matched_rule_section"
+kind = "native"
+type = "VerticalBox"
+control_id = "StylesheetMatchedRuleSection"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.props]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.layout.container]
+gap = 4.0
+kind = "VerticalBox"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.layout.height]
+max = 21.0
+min = 21.0
+preferred = 21.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children.node.children.node.children]]
+
+[root.children.node.children.node.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node.children.node.children.node]
+node_id = "stylesheet_right_margin"
+kind = "native"
+type = "Space"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.children.node.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.children.node.children.node.props]
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.width]
+max = 10.0
+min = 10.0
+preferred = 10.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.children.node.children.node.style_overrides.slot]
 
 [components]

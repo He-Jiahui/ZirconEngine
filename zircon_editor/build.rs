@@ -1,10 +1,16 @@
 fn main() {
     emit_rerun_if_changed_recursive("ui").expect("track slint sources recursively");
+    compile_slint_ui("ui/workbench.slint");
+    write_viewport_gizmo_icon_manifest().expect("generate viewport gizmo icon manifest");
+}
+
+fn compile_slint_ui(path: &str) {
     let config = slint_build::CompilerConfiguration::new()
         .with_style("fluent".into())
         .embed_resources(slint_build::EmbedResourcesKind::EmbedFiles);
-    slint_build::compile_with_config("ui/workbench.slint", config).expect("compile Slint UI");
-    write_viewport_gizmo_icon_manifest().expect("generate viewport gizmo icon manifest");
+    slint_build::compile_with_config(path, config).unwrap_or_else(|error| {
+        panic!("compile Slint UI `{path}`: {error}");
+    });
 }
 
 fn emit_rerun_if_changed_recursive(root: &str) -> Result<(), Box<dyn std::error::Error>> {

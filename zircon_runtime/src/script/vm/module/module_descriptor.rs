@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::core::{ModuleDescriptor, ServiceObject, StartupMode};
-use crate::engine_module::{dependency_on, factory, qualified_name};
+use crate::engine_module::{dependency_on, factory, plugin_factory, qualified_name};
 
 use crate::script::{
     PluginHostDriver, VmPluginManager, PLUGIN_HOST_DRIVER_NAME, SCRIPT_MODULE_NAME,
@@ -32,11 +32,17 @@ pub fn module_descriptor() -> ModuleDescriptor {
                 crate::core::ServiceKind::Driver,
                 "PluginHostDriver",
             )],
-            factory(|core| {
+            plugin_factory(|context| {
+                let core = context.core.upgrade().ok_or_else(|| {
+                    crate::core::CoreError::Initialization(
+                        VM_PLUGIN_RUNTIME_NAME.to_string(),
+                        "plugin context no longer has a live core handle".to_string(),
+                    )
+                })?;
                 let host = core
                     .resolve_driver::<PluginHostDriver>(PLUGIN_HOST_DRIVER_NAME)?
                     .registry();
-                Ok(Arc::new(VmPluginManager::with_builtin_backends(host)) as ServiceObject)
+                Ok(VmPluginManager::with_plugin_context(context.clone(), host) as ServiceObject)
             }),
         ))
         .with_manager(crate::core::ManagerDescriptor::new(

@@ -161,6 +161,486 @@ default = "Section"
 required = true
 multiple = true
 
+[components.EditorHeaderShell]
+style_scope = "open"
+
+[components.EditorHeaderShell.root]
+node_id = "header_shell_root"
+kind = "native"
+type = "VerticalBox"
+classes = []
+bindings = []
+
+[components.EditorHeaderShell.root.params]
+
+[components.EditorHeaderShell.root.props]
+
+[components.EditorHeaderShell.root.layout.container]
+gap = 0.0
+kind = "VerticalBox"
+
+[components.EditorHeaderShell.root.layout.height]
+max = 56.0
+min = 56.0
+preferred = 56.0
+stretch = "Fixed"
+
+[components.EditorHeaderShell.root.layout.width]
+stretch = "Stretch"
+
+[components.EditorHeaderShell.root.style_overrides.self]
+
+[components.EditorHeaderShell.root.style_overrides.slot]
+
+[[components.EditorHeaderShell.root.children]]
+
+[components.EditorHeaderShell.root.children.slot]
+
+[components.EditorHeaderShell.root.children.node]
+node_id = "header_top_space"
+kind = "native"
+type = "Space"
+classes = []
+bindings = []
+children = []
+
+[components.EditorHeaderShell.root.children.node.params]
+
+[components.EditorHeaderShell.root.children.node.props]
+
+[components.EditorHeaderShell.root.children.node.layout.height]
+max = 6.0
+min = 6.0
+preferred = 6.0
+stretch = "Fixed"
+
+[components.EditorHeaderShell.root.children.node.layout.width]
+stretch = "Stretch"
+
+[components.EditorHeaderShell.root.children.node.style_overrides.self]
+
+[components.EditorHeaderShell.root.children.node.style_overrides.slot]
+
+[[components.EditorHeaderShell.root.children]]
+
+[components.EditorHeaderShell.root.children.slot]
+
+[components.EditorHeaderShell.root.children.node]
+node_id = "header_summary_shell"
+kind = "native"
+type = "HorizontalBox"
+classes = []
+bindings = []
+
+[components.EditorHeaderShell.root.children.node.params]
+
+[components.EditorHeaderShell.root.children.node.props]
+
+[components.EditorHeaderShell.root.children.node.layout.container]
+gap = 0.0
+kind = "HorizontalBox"
+
+[components.EditorHeaderShell.root.children.node.layout.height]
+max = 10.0
+min = 10.0
+preferred = 10.0
+stretch = "Fixed"
+
+[components.EditorHeaderShell.root.children.node.layout.width]
+stretch = "Stretch"
+
+[components.EditorHeaderShell.root.children.node.style_overrides.self]
+
+[components.EditorHeaderShell.root.children.node.style_overrides.slot]
+
+[[components.EditorHeaderShell.root.children.node.children]]
+
+[components.EditorHeaderShell.root.children.node.children.slot]
+
+[components.EditorHeaderShell.root.children.node.children.node]
+node_id = "header_summary_left_space"
+kind = "native"
+type = "Space"
+classes = []
+bindings = []
+children = []
+
+[components.EditorHeaderShell.root.children.node.children.node.params]
+
+[components.EditorHeaderShell.root.children.node.children.node.props]
+
+[components.EditorHeaderShell.root.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[components.EditorHeaderShell.root.children.node.children.node.layout.width]
+max = 10.0
+min = 10.0
+preferred = 10.0
+stretch = "Fixed"
+
+[components.EditorHeaderShell.root.children.node.children.node.style_overrides.self]
+
+[components.EditorHeaderShell.root.children.node.children.node.style_overrides.slot]
+
+[[components.EditorHeaderShell.root.children.node.children]]
+
+[components.EditorHeaderShell.root.children.node.children.slot]
+
+[components.EditorHeaderShell.root.children.node.children.node]
+node_id = "header_summary_slot"
+kind = "slot"
+slot_name = "summary"
+classes = []
+bindings = []
+children = []
+
+[components.EditorHeaderShell.root.children.node.children.node.params]
+
+[components.EditorHeaderShell.root.children.node.children.node.props]
+
+[components.EditorHeaderShell.root.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[components.EditorHeaderShell.root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[components.EditorHeaderShell.root.children.node.children.node.style_overrides.self]
+
+[components.EditorHeaderShell.root.children.node.children.node.style_overrides.slot]
+
+[[components.EditorHeaderShell.root.children.node.children]]
+
+[components.EditorHeaderShell.root.children.node.children.slot]
+
+[components.EditorHeaderShell.root.children.node.children.node]
+node_id = "header_summary_right_space"
+kind = "native"
+type = "Space"
+classes = []
+bindings = []
+children = []
+
+[components.EditorHeaderShell.root.children.node.children.node.params]
+
+[components.EditorHeaderShell.root.children.node.children.node.props]
+
+[components.EditorHeaderShell.root.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[components.EditorHeaderShell.root.children.node.children.node.layout.width]
+max = 10.0
+min = 10.0
+preferred = 10.0
+stretch = "Fixed"
+
+[components.EditorHeaderShell.root.children.node.children.node.style_overrides.self]
+
+[components.EditorHeaderShell.root.children.node.children.node.style_overrides.slot]
+
+[[components.EditorHeaderShell.root.children]]
+
+[components.EditorHeaderShell.root.children.slot]
+
+[components.EditorHeaderShell.root.children.node]
+node_id = "header_status_shell"
+kind = "native"
+type = "HorizontalBox"
+classes = []
+bindings = []
+
+[components.EditorHeaderShell.root.children.node.params]
+
+[components.EditorHeaderShell.root.children.node.props]
+
+[components.EditorHeaderShell.root.children.node.layout.container]
+gap = 0.0
+kind = "HorizontalBox"
+
+[components.EditorHeaderShell.root.children.node.layout.height]
+max = 10.0
+min = 10.0
+preferred = 10.0
+stretch = "Fixed"
+
+[components.EditorHeaderShell.root.children.node.layout.width]
+stretch = "Stretch"
+
+[components.EditorHeaderShell.root.children.node.style_overrides.self]
+
+[components.EditorHeaderShell.root.children.node.style_overrides.slot]
+
+[[components.EditorHeaderShell.root.children.node.children]]
+
+[components.EditorHeaderShell.root.children.node.children.slot]
+
+[components.EditorHeaderShell.root.children.node.children.node]
+node_id = "header_status_left_space"
+kind = "native"
+type = "Space"
+classes = []
+bindings = []
+children = []
+
+[components.EditorHeaderShell.root.children.node.children.node.params]
+
+[components.EditorHeaderShell.root.children.node.children.node.props]
+
+[components.EditorHeaderShell.root.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[components.EditorHeaderShell.root.children.node.children.node.layout.width]
+max = 10.0
+min = 10.0
+preferred = 10.0
+stretch = "Fixed"
+
+[components.EditorHeaderShell.root.children.node.children.node.style_overrides.self]
+
+[components.EditorHeaderShell.root.children.node.children.node.style_overrides.slot]
+
+[[components.EditorHeaderShell.root.children.node.children]]
+
+[components.EditorHeaderShell.root.children.node.children.slot]
+
+[components.EditorHeaderShell.root.children.node.children.node]
+node_id = "header_status_slot"
+kind = "slot"
+slot_name = "status"
+classes = []
+bindings = []
+children = []
+
+[components.EditorHeaderShell.root.children.node.children.node.params]
+
+[components.EditorHeaderShell.root.children.node.children.node.props]
+
+[components.EditorHeaderShell.root.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[components.EditorHeaderShell.root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[components.EditorHeaderShell.root.children.node.children.node.style_overrides.self]
+
+[components.EditorHeaderShell.root.children.node.children.node.style_overrides.slot]
+
+[[components.EditorHeaderShell.root.children.node.children]]
+
+[components.EditorHeaderShell.root.children.node.children.slot]
+
+[components.EditorHeaderShell.root.children.node.children.node]
+node_id = "header_status_right_space"
+kind = "native"
+type = "Space"
+classes = []
+bindings = []
+children = []
+
+[components.EditorHeaderShell.root.children.node.children.node.params]
+
+[components.EditorHeaderShell.root.children.node.children.node.props]
+
+[components.EditorHeaderShell.root.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[components.EditorHeaderShell.root.children.node.children.node.layout.width]
+max = 10.0
+min = 10.0
+preferred = 10.0
+stretch = "Fixed"
+
+[components.EditorHeaderShell.root.children.node.children.node.style_overrides.self]
+
+[components.EditorHeaderShell.root.children.node.children.node.style_overrides.slot]
+
+[[components.EditorHeaderShell.root.children]]
+
+[components.EditorHeaderShell.root.children.slot]
+
+[components.EditorHeaderShell.root.children.node]
+node_id = "header_action_gap"
+kind = "native"
+type = "Space"
+classes = []
+bindings = []
+children = []
+
+[components.EditorHeaderShell.root.children.node.params]
+
+[components.EditorHeaderShell.root.children.node.props]
+
+[components.EditorHeaderShell.root.children.node.layout.height]
+max = 2.0
+min = 2.0
+preferred = 2.0
+stretch = "Fixed"
+
+[components.EditorHeaderShell.root.children.node.layout.width]
+stretch = "Stretch"
+
+[components.EditorHeaderShell.root.children.node.style_overrides.self]
+
+[components.EditorHeaderShell.root.children.node.style_overrides.slot]
+
+[[components.EditorHeaderShell.root.children]]
+
+[components.EditorHeaderShell.root.children.slot]
+
+[components.EditorHeaderShell.root.children.node]
+node_id = "header_action_shell"
+kind = "native"
+type = "HorizontalBox"
+classes = []
+bindings = []
+
+[components.EditorHeaderShell.root.children.node.params]
+
+[components.EditorHeaderShell.root.children.node.props]
+
+[components.EditorHeaderShell.root.children.node.layout.container]
+gap = 0.0
+kind = "HorizontalBox"
+
+[components.EditorHeaderShell.root.children.node.layout.height]
+max = 20.0
+min = 20.0
+preferred = 20.0
+stretch = "Fixed"
+
+[components.EditorHeaderShell.root.children.node.layout.width]
+stretch = "Stretch"
+
+[components.EditorHeaderShell.root.children.node.style_overrides.self]
+
+[components.EditorHeaderShell.root.children.node.style_overrides.slot]
+
+[[components.EditorHeaderShell.root.children.node.children]]
+
+[components.EditorHeaderShell.root.children.node.children.slot]
+
+[components.EditorHeaderShell.root.children.node.children.node]
+node_id = "header_action_left_space"
+kind = "native"
+type = "Space"
+classes = []
+bindings = []
+children = []
+
+[components.EditorHeaderShell.root.children.node.children.node.params]
+
+[components.EditorHeaderShell.root.children.node.children.node.props]
+
+[components.EditorHeaderShell.root.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[components.EditorHeaderShell.root.children.node.children.node.layout.width]
+max = 10.0
+min = 10.0
+preferred = 10.0
+stretch = "Fixed"
+
+[components.EditorHeaderShell.root.children.node.children.node.style_overrides.self]
+
+[components.EditorHeaderShell.root.children.node.children.node.style_overrides.slot]
+
+[[components.EditorHeaderShell.root.children.node.children]]
+
+[components.EditorHeaderShell.root.children.node.children.slot]
+
+[components.EditorHeaderShell.root.children.node.children.node]
+node_id = "header_action_slot"
+kind = "slot"
+slot_name = "actions"
+classes = []
+bindings = []
+children = []
+
+[components.EditorHeaderShell.root.children.node.children.node.params]
+
+[components.EditorHeaderShell.root.children.node.children.node.props]
+
+[components.EditorHeaderShell.root.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[components.EditorHeaderShell.root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[components.EditorHeaderShell.root.children.node.children.node.style_overrides.self]
+
+[components.EditorHeaderShell.root.children.node.children.node.style_overrides.slot]
+
+[[components.EditorHeaderShell.root.children.node.children]]
+
+[components.EditorHeaderShell.root.children.node.children.slot]
+
+[components.EditorHeaderShell.root.children.node.children.node]
+node_id = "header_action_right_space"
+kind = "native"
+type = "Space"
+classes = []
+bindings = []
+children = []
+
+[components.EditorHeaderShell.root.children.node.children.node.params]
+
+[components.EditorHeaderShell.root.children.node.children.node.props]
+
+[components.EditorHeaderShell.root.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[components.EditorHeaderShell.root.children.node.children.node.layout.width]
+max = 10.0
+min = 10.0
+preferred = 10.0
+stretch = "Fixed"
+
+[components.EditorHeaderShell.root.children.node.children.node.style_overrides.self]
+
+[components.EditorHeaderShell.root.children.node.children.node.style_overrides.slot]
+
+[[components.EditorHeaderShell.root.children]]
+
+[components.EditorHeaderShell.root.children.slot]
+
+[components.EditorHeaderShell.root.children.node]
+node_id = "header_bottom_space"
+kind = "native"
+type = "Space"
+classes = []
+bindings = []
+children = []
+
+[components.EditorHeaderShell.root.children.node.params]
+
+[components.EditorHeaderShell.root.children.node.props]
+
+[components.EditorHeaderShell.root.children.node.layout.height]
+max = 8.0
+min = 8.0
+preferred = 8.0
+stretch = "Fixed"
+
+[components.EditorHeaderShell.root.children.node.layout.width]
+stretch = "Stretch"
+
+[components.EditorHeaderShell.root.children.node.style_overrides.self]
+
+[components.EditorHeaderShell.root.children.node.style_overrides.slot]
+
+[components.EditorHeaderShell.params]
+
+[components.EditorHeaderShell.slots.summary]
+required = true
+multiple = true
+
+[components.EditorHeaderShell.slots.status]
+required = true
+multiple = true
+
+[components.EditorHeaderShell.slots.actions]
+required = true
+multiple = true
+
 [components.EditorToolbar]
 style_scope = "open"
 

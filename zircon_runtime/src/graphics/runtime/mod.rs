@@ -17,12 +17,14 @@ pub use render_framework::WgpuRenderFramework;
 pub(crate) use virtual_geometry::VirtualGeometryRuntimeState;
 #[cfg(test)]
 pub(crate) use virtual_geometry::{
-    build_virtual_geometry_automatic_extract, resolve_virtual_geometry_extract,
-    VirtualGeometryAutomaticExtractInstance, VirtualGeometryCpuReferenceConfig,
-    VirtualGeometryCpuReferenceFrame, VirtualGeometryDebugConfig, VirtualGeometryExecutionMode,
+    build_virtual_geometry_automatic_extract, build_virtual_geometry_automatic_extract_from_meshes,
+    resolve_virtual_geometry_extract, VirtualGeometryAutomaticExtractInstance,
+    VirtualGeometryCpuReferenceConfig, VirtualGeometryCpuReferenceFrame,
+    VirtualGeometryDebugConfig, VirtualGeometryExecutionMode,
 };
 pub(crate) use virtual_geometry::{
-    build_virtual_geometry_automatic_extract_from_meshes, VirtualGeometryAutomaticExtractOutput,
+    build_virtual_geometry_automatic_extract_from_meshes_with_debug,
+    VirtualGeometryAutomaticExtractOutput,
 };
 #[cfg(test)]
 pub(crate) use virtual_geometry::{VirtualGeometryPageRequest, VirtualGeometryPageResidencyState};

@@ -434,7 +434,7 @@ doc_type: module-detail
   - 剩余 `sound/texture/net/navigation/particles` 已经把 registration owner 迁到 `zircon_runtime::extensions::*`，但 legacy crate 内的 driver/manager 仍然只是空实现壳
 - `zircon_runtime::extensions::{physics,animation}`
   - 当前已经完成实现所有权吸收与 runtime-facing interface 收束，但服务实现仍然只是基线 stub；真实物理 backend、动画轨道/图/状态机栈仍是后续功能层工作，不应误判成领域功能已经完成
-- `zircon_runtime::script` 已具备 package discovery、backend registry/default backend 选择、slot load/hot-reload/unload/list 生命周期，但 `PluginContext` 仍然主要停留在 core abstraction，真实 VM backend 也还只有 unavailable/mock 基线
+- `zircon_runtime::script` 现在已经收口到真实 plugin-runtime contract：`PluginDescriptor` 通过 `PluginFactory` 显式接收 `PluginContext`，`VmPluginManager` 保存 base plugin context，load/hot-reload 路径会派生 `VmPluginHostContext`，backend 选择也已经从实例 map 收束到 `VmBackendFamily` registry；当前剩余限制只在 backend breadth，内建仍是 `builtin:{mock,unavailable}` 基线
 - `zircon_editor` 的 `ui_asset` 会话和 host manager 子树仍然存在明显结构热点
 - `zircon_app` 的 production 静态依赖扇出已经明显下降，但 runtime app 和 editor host 仍然直接持有 `scene/input/render_server/editor` 等真运行时依赖；它还不是完全无扇出的纯 profile shell
 - 路线图中的 `zircon_server` 与现有 `zircon_framework` 仍然有命名/层次漂移
@@ -445,8 +445,8 @@ doc_type: module-detail
 
 1. 继续收口当前审计仍然点名的大型生产文件热点；`scene::world::property_access` 已经切成 folder-backed subtree，下一刀应优先继续压缩 [write.rs](/E:/Git/ZirconEngine/zircon_runtime/src/scene/world/property_access/write.rs) 这一类剩余 runtime world owner 热点，而不是再往 root surface 堆结构性 helper
 2. 继续降低 `zircon_app` 的剩余直接 runtime/editor host 依赖，避免它重新长回全模块静态组合器
-3. 把 `zircon_runtime::script` 从当前的 discovery/backend/slot lifecycle 基线继续推进到真实 `PluginContext` 消费面和非 mock VM backend，并继续把 `zircon_graphics` 里剩余高层 runtime-facing surface 下沉到 `zircon_runtime::graphics`
-4. 继续拆解 `zircon_editor` 的热点边界
+3. 在已经收口的 `zircon_runtime::script` 合同之上继续补真实 backend family 成员，而不是再回到 `CoreHandle` 反查或 backend 实例 map；并继续把 `zircon_graphics` 里剩余高层 runtime-facing surface 下沉到 `zircon_runtime::graphics`
+4. 继续拆解 `zircon_editor` 的热点边界，尤其是审计仍然点名的大型 `ui_asset`/animation/slint host 文件
 5. 专门处理 `zircon_server` 与 `zircon_framework` 的层次和命名收敛
 
 不要跳过这些步骤，直接宣布“接口体系已经完成”。当前完成的是抽象骨架和审计能力，不是全仓最终重构终点。

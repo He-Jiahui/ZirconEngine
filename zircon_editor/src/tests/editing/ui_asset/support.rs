@@ -598,7 +598,6 @@ component_ref = "res://ui/widgets/button.ui.toml#ToolbarButton"
 control_id = "ToolbarHost"
 "##;
 
-
 pub(super) fn byte_offset_for_line(source: &str, line: usize) -> usize {
     if line <= 1 {
         return 0;
@@ -614,7 +613,6 @@ pub(super) fn byte_offset_for_line(source: &str, line: usize) -> usize {
     }
     source.len()
 }
-
 
 pub(super) fn selected_text<'a>(
     surface: &'a zircon_runtime::ui::surface::UiSurface,
@@ -684,4 +682,3 @@ pub(super) fn slot_table_value<'a>(
     };
     slot_table_value(child, rest)
 }
-

@@ -2,7 +2,8 @@ use std::sync::Arc;
 
 use crate::core::framework::render::{
     RenderVirtualGeometryHardwareRasterizationRecord,
-    RenderVirtualGeometryHardwareRasterizationSource,
+    RenderVirtualGeometryHardwareRasterizationSource, RenderVirtualGeometrySelectedCluster,
+    RenderVirtualGeometrySelectedClusterSource,
 };
 use wgpu::util::DeviceExt;
 
@@ -20,9 +21,8 @@ pub(super) fn execute_virtual_geometry_hardware_rasterization_pass(
     pass_enabled: bool,
     executed_cluster_selection_pass: &VirtualGeometryExecutedClusterSelectionPassOutput,
 ) -> VirtualGeometryHardwareRasterizationPassOutput {
-    let records = collect_execution_hardware_rasterization_records(
-        &executed_cluster_selection_pass.selections,
-    );
+    let records =
+        collect_execution_hardware_rasterization_records_from_pass(executed_cluster_selection_pass);
     let packed_words = pack_hardware_rasterization_records(&records);
     VirtualGeometryHardwareRasterizationPassOutput {
         source: if !pass_enabled {
@@ -44,31 +44,60 @@ fn collect_execution_hardware_rasterization_records(
     executed_cluster_selections
         .iter()
         .map(|selection| {
-            let selected_cluster = selection.to_selected_cluster();
-            RenderVirtualGeometryHardwareRasterizationRecord {
-                instance_index: selected_cluster.instance_index,
-                entity: selected_cluster.entity,
-                cluster_id: selected_cluster.cluster_id,
-                cluster_ordinal: selected_cluster.cluster_ordinal,
-                page_id: selected_cluster.page_id,
-                lod_level: selected_cluster.lod_level,
-                submission_index: selection.submission_index,
-                submission_page_id: selection.submission_page_id,
-                submission_lod_level: selection.submission_lod_level,
-                entity_cluster_start_ordinal: u32::try_from(selection.entity_cluster_start_ordinal)
-                    .unwrap_or(u32::MAX),
-                entity_cluster_span_count: u32::try_from(selection.entity_cluster_span_count)
-                    .unwrap_or(u32::MAX),
-                entity_cluster_total_count: u32::try_from(selection.entity_cluster_total_count)
-                    .unwrap_or(u32::MAX),
-                lineage_depth: selection.lineage_depth,
-                frontier_rank: selection.frontier_rank,
-                resident_slot: selection.resident_slot,
-                submission_slot: selection.submission_slot,
-                state: selected_cluster.state,
-            }
+            build_hardware_rasterization_record(selection, &selection.to_selected_cluster())
         })
         .collect()
+}
+
+fn collect_execution_hardware_rasterization_records_from_pass(
+    executed_cluster_selection_pass: &VirtualGeometryExecutedClusterSelectionPassOutput,
+) -> Vec<RenderVirtualGeometryHardwareRasterizationRecord> {
+    if executed_cluster_selection_pass.source
+        == RenderVirtualGeometrySelectedClusterSource::Unavailable
+        || executed_cluster_selection_pass.selected_clusters.len()
+            != executed_cluster_selection_pass.selections.len()
+    {
+        return collect_execution_hardware_rasterization_records(
+            &executed_cluster_selection_pass.selections,
+        );
+    }
+
+    executed_cluster_selection_pass
+        .selections
+        .iter()
+        .zip(executed_cluster_selection_pass.selected_clusters.iter())
+        .map(|(selection, selected_cluster)| {
+            build_hardware_rasterization_record(selection, selected_cluster)
+        })
+        .collect()
+}
+
+fn build_hardware_rasterization_record(
+    selection: &crate::graphics::types::VirtualGeometryClusterSelection,
+    selected_cluster: &RenderVirtualGeometrySelectedCluster,
+) -> RenderVirtualGeometryHardwareRasterizationRecord {
+    RenderVirtualGeometryHardwareRasterizationRecord {
+        instance_index: selected_cluster.instance_index,
+        entity: selected_cluster.entity,
+        cluster_id: selected_cluster.cluster_id,
+        cluster_ordinal: selected_cluster.cluster_ordinal,
+        page_id: selected_cluster.page_id,
+        lod_level: selected_cluster.lod_level,
+        submission_index: selection.submission_index,
+        submission_page_id: selection.submission_page_id,
+        submission_lod_level: selection.submission_lod_level,
+        entity_cluster_start_ordinal: u32::try_from(selection.entity_cluster_start_ordinal)
+            .unwrap_or(u32::MAX),
+        entity_cluster_span_count: u32::try_from(selection.entity_cluster_span_count)
+            .unwrap_or(u32::MAX),
+        entity_cluster_total_count: u32::try_from(selection.entity_cluster_total_count)
+            .unwrap_or(u32::MAX),
+        lineage_depth: selection.lineage_depth,
+        frontier_rank: selection.frontier_rank,
+        resident_slot: selection.resident_slot,
+        submission_slot: selection.submission_slot,
+        state: selected_cluster.state,
+    }
 }
 
 fn pack_hardware_rasterization_records(
@@ -99,9 +128,14 @@ fn create_hardware_rasterization_buffer(
 
 #[cfg(test)]
 mod tests {
-    use super::collect_execution_hardware_rasterization_records;
+    use super::{
+        collect_execution_hardware_rasterization_records,
+        collect_execution_hardware_rasterization_records_from_pass,
+        VirtualGeometryExecutedClusterSelectionPassOutput,
+    };
     use crate::core::framework::render::{
         RenderVirtualGeometryExecutionState, RenderVirtualGeometryHardwareRasterizationRecord,
+        RenderVirtualGeometrySelectedCluster, RenderVirtualGeometrySelectedClusterSource,
     };
     use crate::graphics::types::{
         VirtualGeometryClusterSelection, VirtualGeometryPrepareClusterState,
@@ -232,6 +266,68 @@ mod tests {
         );
     }
 
+    #[test]
+    fn hardware_rasterization_pass_prefers_pass_owned_selected_clusters() {
+        let records = collect_execution_hardware_rasterization_records_from_pass(
+            &VirtualGeometryExecutedClusterSelectionPassOutput {
+                selections: vec![selection(
+                    Some(0),
+                    42,
+                    7,
+                    30,
+                    1,
+                    300,
+                    0,
+                    301,
+                    2,
+                    1,
+                    1,
+                    3,
+                    4,
+                    Some(3),
+                    Some(4),
+                    VirtualGeometryPrepareClusterState::PendingUpload,
+                )],
+                selected_clusters: vec![selected_cluster(
+                    Some(5),
+                    900,
+                    20,
+                    0,
+                    200,
+                    1,
+                    RenderVirtualGeometryExecutionState::Resident,
+                )],
+                source: RenderVirtualGeometrySelectedClusterSource::RenderPathExecutionSelections,
+                selected_cluster_count: 1,
+                selected_cluster_buffer: None,
+            },
+        );
+
+        assert_eq!(
+            records,
+            vec![RenderVirtualGeometryHardwareRasterizationRecord {
+                instance_index: Some(5),
+                entity: 900,
+                cluster_id: 20,
+                cluster_ordinal: 0,
+                page_id: 200,
+                lod_level: 1,
+                submission_index: 7,
+                submission_page_id: 301,
+                submission_lod_level: 2,
+                entity_cluster_start_ordinal: 1,
+                entity_cluster_span_count: 1,
+                entity_cluster_total_count: 3,
+                lineage_depth: 1,
+                frontier_rank: 4,
+                resident_slot: Some(3),
+                submission_slot: Some(4),
+                state: RenderVirtualGeometryExecutionState::Resident,
+            }],
+            "expected the hardware-rasterization compat pass to trust the pass-owned selected-cluster seam for cluster identity and execution state while still preserving startup-only submission metadata from the internal selection DTO"
+        );
+    }
+
     #[allow(clippy::too_many_arguments)]
     fn selection(
         instance_index: Option<u32>,
@@ -268,6 +364,26 @@ mod tests {
             frontier_rank,
             resident_slot,
             submission_slot,
+            state,
+        }
+    }
+
+    fn selected_cluster(
+        instance_index: Option<u32>,
+        entity: u64,
+        cluster_id: u32,
+        cluster_ordinal: u32,
+        page_id: u32,
+        lod_level: u8,
+        state: RenderVirtualGeometryExecutionState,
+    ) -> RenderVirtualGeometrySelectedCluster {
+        RenderVirtualGeometrySelectedCluster {
+            instance_index,
+            entity,
+            cluster_id,
+            cluster_ordinal,
+            page_id,
+            lod_level,
             state,
         }
     }

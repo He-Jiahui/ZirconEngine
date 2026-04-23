@@ -415,4 +415,3 @@ fn ui_asset_editor_session_falls_back_to_last_valid_source_selection_when_source
         .any(|entry| entry.contains("[nodes.button]")));
     assert!(pane.source_outline_selected_index >= 0);
 }
-

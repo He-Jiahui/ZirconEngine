@@ -2,7 +2,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 #[test]
-fn legacy_template_compat_api_moves_under_template_namespace() {
+fn template_legacy_adapter_is_removed_from_formal_namespace_surface() {
     let lib_source = include_str!("../mod.rs");
     let template_mod_source = include_str!("../template/mod.rs");
 
@@ -11,11 +11,7 @@ fn legacy_template_compat_api_moves_under_template_namespace() {
         "zircon_ui root should expose the template namespace directly"
     );
 
-    for required in [
-        "UiLegacyTemplateAdapter",
-        "UiTemplateDocument",
-        "UiTemplateLoader",
-    ] {
+    for required in ["UiTemplateDocument", "UiTemplateLoader"] {
         assert!(
             template_mod_source.contains(required),
             "zircon_ui::template should own `{required}`"
@@ -32,6 +28,11 @@ fn legacy_template_compat_api_moves_under_template_namespace() {
             "zircon_ui root should stop flattening template compat type `{forbidden}`"
         );
     }
+
+    assert!(
+        !template_mod_source.contains("UiLegacyTemplateAdapter"),
+        "zircon_ui::template should drop the legacy template adapter from the formal surface"
+    );
 }
 
 #[test]
@@ -793,7 +794,8 @@ fn runtime_ui_entry_assets_do_not_live_under_src() {
 
 #[test]
 fn legacy_runtime_fixture_source_directory_is_removed() {
-    let legacy_fixture_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/ui/runtime_ui/fixtures");
+    let legacy_fixture_dir =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("src/ui/runtime_ui/fixtures");
     assert!(
         !legacy_fixture_dir.exists(),
         "runtime fixture source directory must stay removed after the assets/ cutover: {}",

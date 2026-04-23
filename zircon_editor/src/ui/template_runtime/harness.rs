@@ -174,8 +174,9 @@ impl EditorUiCompatibilityHarness {
         snapshot
     }
 
-    pub fn capture_floating_window_overlay_snapshot(
-        floating_windows: &[crate::ui::slint_host::FloatingWindowData],
+    #[cfg(test)]
+    pub(crate) fn capture_floating_window_overlay_snapshot(
+        floating_windows: &[crate::ui::layouts::windows::workbench_host_window::FloatingWindowData],
     ) -> EditorUiCompatibilitySnapshot {
         let mut snapshot = EditorUiCompatibilitySnapshot::default();
         for window in floating_windows {

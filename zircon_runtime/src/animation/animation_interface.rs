@@ -19,8 +19,9 @@ pub trait AnimationInterface: AnimationManager {
         world: &mut World,
         sequence: &AnimationSequenceAsset,
         time_seconds: Real,
+        looping: bool,
     ) -> Result<AnimationSequenceApplyReport, String> {
-        apply_sequence_to_world(world, sequence, time_seconds)
+        apply_sequence_to_world(world, sequence, time_seconds, looping)
     }
 
     fn canonical_track_path(

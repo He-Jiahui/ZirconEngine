@@ -1,0 +1,82 @@
+import { Palette, ShellButton } from "chrome.slint";
+import { TemplatePaneNodeData } from "template_node_data.slint";
+
+component TemplatePaneNode inherits Rectangle {
+    in property <TemplatePaneNodeData> node;
+    callback node_dispatched(control_id: string, dispatch_kind: string, action_id: string);
+
+    palette := Palette {}
+    x: root.node.frame.x * 1px;
+    y: root.node.frame.y * 1px;
+    width: root.node.frame.width * 1px;
+    height: root.node.frame.height * 1px;
+    background: transparent;
+
+    property <brush> panel_background:
+        root.node.surface_variant == "panel" ? palette.panel_bg_soft :
+        root.node.surface_variant == "inset" ? palette.chrome_bg_soft :
+        transparent;
+    property <brush> panel_border:
+        root.node.surface_variant == "panel" || root.node.surface_variant == "inset" ?
+        palette.border_soft :
+        transparent;
+    property <color> text_color:
+        root.node.text_tone == "muted" ? palette.text_dim :
+        root.node.text_tone == "subtle" ? palette.text_muted :
+        palette.text;
+
+    if root.node.role == "Panel": Rectangle {
+        width: parent.width;
+        height: parent.height;
+        border-radius: root.node.corner_radius * 1px;
+        border-width: root.node.border_width * 1px;
+        border-color: root.panel_border;
+        background: root.panel_background;
+    }
+
+    if root.node.role == "Label": Text {
+        width: parent.width;
+        height: parent.height;
+        text: root.node.text;
+        color: root.text_color;
+        font-size: root.node.font_size * 1px;
+        font-weight: root.node.font_weight;
+        vertical-alignment: center;
+        horizontal-alignment:
+            root.node.text_align == "center" ? center :
+            root.node.text_align == "right" ? right :
+            left;
+        overflow: root.node.overflow == "elide" ? elide : clip;
+    }
+
+    if root.node.role == "Button": ShellButton {
+        x: 0px;
+        y: 0px;
+        width: parent.width;
+        height: parent.height;
+        label: root.node.text;
+        active: root.node.button_variant == "primary";
+        clicked => {
+            root.node_dispatched(
+                root.node.control_id,
+                root.node.dispatch_kind,
+                root.node.action_id,
+            );
+        }
+    }
+}
+
+export component TemplatePane inherits Rectangle {
+    in property <[TemplatePaneNodeData]> nodes;
+    callback node_dispatched(control_id: string, dispatch_kind: string, action_id: string);
+
+    background: transparent;
+    clip: true;
+
+    for node in root.nodes: TemplatePaneNode {
+        node: node;
+        node_dispatched(control_id, dispatch_kind, action_id) => {
+            root.node_dispatched(control_id, dispatch_kind, action_id);
+        }
+    }
+}

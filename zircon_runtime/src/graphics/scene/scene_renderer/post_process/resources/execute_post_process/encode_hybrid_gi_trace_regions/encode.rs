@@ -18,6 +18,9 @@ pub(in super::super) fn encode_hybrid_gi_trace_regions(
     if !enabled {
         return (trace_regions, 0);
     }
+    if frame.hybrid_gi_scene_prepare.is_some() {
+        return (trace_regions, 0);
+    }
 
     let Some(prepare) = frame.hybrid_gi_prepare.as_ref() else {
         return (trace_regions, 0);

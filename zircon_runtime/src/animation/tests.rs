@@ -121,7 +121,7 @@ fn apply_sequence_to_world_resolves_track_paths_and_updates_scene_properties() {
         }],
     };
 
-    let report = super::apply_sequence_to_world(&mut world, &sequence, 0.5).unwrap();
+    let report = super::apply_sequence_to_world(&mut world, &sequence, 0.5, false).unwrap();
 
     assert_eq!(report.applied_tracks.len(), 2);
     assert!(report.missing_tracks.is_empty());
@@ -309,7 +309,9 @@ fn animation_manager_samples_clip_pose_against_skeleton() {
         }],
     };
 
-    let pose = manager.sample_clip_pose(&skeleton, &clip, 0.5).unwrap();
+    let pose = manager
+        .sample_clip_pose(&skeleton, &clip, 0.5, true)
+        .unwrap();
 
     assert_eq!(pose.source, AnimationPoseSource::Clip);
     assert_eq!(pose.bones.len(), 2);

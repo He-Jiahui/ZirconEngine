@@ -5,12 +5,14 @@ use crate::core::framework::render::{
 use crate::core::framework::scene::Mobility;
 use crate::core::math::{Transform, Vec3, Vec4};
 use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
+use crate::graphics::scene::HybridGiScenePrepareResourcesSnapshot;
 
 use crate::{
     runtime::{HybridGiProbeResidencyState, HybridGiProbeUpdateRequest, HybridGiRuntimeState},
     types::{
         HybridGiPrepareCardCaptureRequest, HybridGiPrepareFrame, HybridGiPrepareProbe,
-        HybridGiPrepareUpdateRequest, HybridGiPrepareVoxelCell, HybridGiPrepareVoxelClipmap,
+        HybridGiPrepareSurfaceCachePageContent, HybridGiPrepareUpdateRequest,
+        HybridGiPrepareVoxelCell, HybridGiPrepareVoxelClipmap,
     },
     VisibilityHybridGiFeedback, VisibilityHybridGiUpdatePlan,
 };
@@ -32,8 +34,8 @@ fn hybrid_gi_runtime_state_registers_scene_cards_from_mesh_extract() {
     );
 
     assert_eq!(state.scene_card_ids(), vec![11, 22]);
-    assert_eq!(state.scene_resident_page_ids(), vec![11, 22]);
-    assert_eq!(state.scene_dirty_page_ids(), vec![11, 22]);
+    assert_eq!(state.scene_resident_page_ids(), vec![0, 1]);
+    assert_eq!(state.scene_dirty_page_ids(), vec![0, 1]);
     assert_eq!(state.scene_invalidated_page_ids(), Vec::<u32>::new());
     assert_eq!(state.scene_feedback_card_ids(), Vec::<u32>::new());
     assert_eq!(state.scene_resident_clipmap_ids(), vec![0, 1]);
@@ -147,8 +149,8 @@ fn hybrid_gi_runtime_state_only_redirties_changed_cards_but_relights_all_residen
     );
 
     assert_eq!(state.scene_card_ids(), vec![11, 22]);
-    assert_eq!(state.scene_resident_page_ids(), vec![11, 22]);
-    assert_eq!(state.scene_dirty_page_ids(), vec![22]);
+    assert_eq!(state.scene_resident_page_ids(), vec![0, 1]);
+    assert_eq!(state.scene_dirty_page_ids(), vec![1]);
     assert_eq!(state.scene_invalidated_page_ids(), Vec::<u32>::new());
     assert_eq!(state.scene_dirty_clipmap_ids(), vec![0, 1]);
 
@@ -163,8 +165,8 @@ fn hybrid_gi_runtime_state_only_redirties_changed_cards_but_relights_all_residen
         &[],
     );
 
-    assert_eq!(state.scene_resident_page_ids(), vec![11, 22]);
-    assert_eq!(state.scene_dirty_page_ids(), vec![11, 22]);
+    assert_eq!(state.scene_resident_page_ids(), vec![0, 1]);
+    assert_eq!(state.scene_dirty_page_ids(), vec![0, 1]);
     assert_eq!(state.scene_invalidated_page_ids(), Vec::<u32>::new());
     assert_eq!(state.scene_dirty_clipmap_ids(), vec![0, 1]);
 }
@@ -184,8 +186,8 @@ fn hybrid_gi_runtime_state_preserves_surface_cache_slots_across_dirtying_and_rep
         &[],
         &[],
     );
-    assert_eq!(state.scene_page_table_entries(), vec![(11, 0), (22, 1)]);
-    assert_eq!(state.scene_capture_slot_entries(), vec![(11, 0), (22, 1)]);
+    assert_eq!(state.scene_page_table_entries(), vec![(0, 0), (1, 1)]);
+    assert_eq!(state.scene_capture_slot_entries(), vec![(0, 0), (1, 1)]);
 
     state.register_scene_extract(
         Some(&extract),
@@ -197,8 +199,8 @@ fn hybrid_gi_runtime_state_preserves_surface_cache_slots_across_dirtying_and_rep
         &[],
         &[],
     );
-    assert_eq!(state.scene_page_table_entries(), vec![(11, 0), (22, 1)]);
-    assert_eq!(state.scene_capture_slot_entries(), vec![(22, 1)]);
+    assert_eq!(state.scene_page_table_entries(), vec![(0, 0), (1, 1)]);
+    assert_eq!(state.scene_capture_slot_entries(), vec![(1, 1)]);
 
     state.register_scene_extract(
         Some(&extract),
@@ -210,9 +212,168 @@ fn hybrid_gi_runtime_state_preserves_surface_cache_slots_across_dirtying_and_rep
         &[],
         &[],
     );
-    assert_eq!(state.scene_invalidated_page_ids(), vec![11]);
-    assert_eq!(state.scene_page_table_entries(), vec![(22, 1), (33, 0)]);
-    assert_eq!(state.scene_capture_slot_entries(), vec![(33, 0)]);
+    assert_eq!(state.scene_invalidated_page_ids(), vec![0]);
+    assert_eq!(state.scene_page_table_entries(), vec![(1, 1), (0, 0)]);
+    assert_eq!(state.scene_capture_slot_entries(), vec![(0, 0)]);
+}
+
+#[test]
+fn hybrid_gi_runtime_state_persists_surface_cache_page_samples_across_clean_frame_and_invalidation()
+{
+    let mut state = HybridGiRuntimeState::default();
+    let extract = hybrid_gi_settings(2, 2);
+
+    state.register_scene_extract(
+        Some(&extract),
+        &[
+            mesh(11, "res://materials/a.mat"),
+            mesh(22, "res://materials/b.mat"),
+        ],
+        &[directional_light(100, 1.0)],
+        &[],
+        &[],
+    );
+    state.apply_scene_prepare_resources(&scene_prepare_resources_snapshot(
+        vec![(0, [11, 1, 0, 255]), (1, [22, 1, 0, 255])],
+        vec![(0, [11, 2, 0, 255]), (1, [22, 2, 0, 255])],
+    ));
+    assert_eq!(
+        state.scene_surface_cache_page_contents(),
+        vec![
+            (0, 11, 0, 0, [11, 1, 0, 255], [11, 2, 0, 255]),
+            (1, 22, 1, 1, [22, 1, 0, 255], [22, 2, 0, 255]),
+        ]
+    );
+
+    state.register_scene_extract(
+        Some(&extract),
+        &[
+            mesh(11, "res://materials/a.mat"),
+            mesh(22, "res://materials/b.mat"),
+        ],
+        &[directional_light(100, 1.0)],
+        &[],
+        &[],
+    );
+    assert_eq!(state.scene_dirty_page_ids(), Vec::<u32>::new());
+    assert_eq!(
+        state.scene_surface_cache_page_contents(),
+        vec![
+            (0, 11, 0, 0, [11, 1, 0, 255], [11, 2, 0, 255]),
+            (1, 22, 1, 1, [22, 1, 0, 255], [22, 2, 0, 255]),
+        ]
+    );
+
+    state.apply_scene_prepare_resources(&scene_prepare_resources_snapshot(Vec::new(), Vec::new()));
+    assert_eq!(
+        state.scene_surface_cache_page_contents(),
+        vec![
+            (0, 11, 0, 0, [11, 1, 0, 255], [11, 2, 0, 255]),
+            (1, 22, 1, 1, [22, 1, 0, 255], [22, 2, 0, 255]),
+        ]
+    );
+
+    state.register_scene_extract(
+        Some(&extract),
+        &[
+            mesh(22, "res://materials/b.mat"),
+            mesh(33, "res://materials/c.mat"),
+        ],
+        &[directional_light(100, 1.0)],
+        &[],
+        &[],
+    );
+    assert_eq!(state.scene_invalidated_page_ids(), vec![0]);
+    assert_eq!(
+        state.scene_surface_cache_page_contents(),
+        vec![(1, 22, 1, 1, [22, 1, 0, 255], [22, 2, 0, 255]),]
+    );
+
+    state.apply_scene_prepare_resources(&scene_prepare_resources_snapshot(
+        vec![(0, [33, 1, 0, 255])],
+        vec![(0, [33, 2, 0, 255])],
+    ));
+    assert_eq!(
+        state.scene_surface_cache_page_contents(),
+        vec![
+            (1, 22, 1, 1, [22, 1, 0, 255], [22, 2, 0, 255]),
+            (0, 33, 0, 0, [33, 1, 0, 255], [33, 2, 0, 255]),
+        ]
+    );
+}
+
+#[test]
+fn hybrid_gi_runtime_state_keeps_atlas_only_surface_cache_page_samples_across_clean_frames() {
+    let mut state = HybridGiRuntimeState::default();
+    let extract = hybrid_gi_settings(1, 1);
+
+    state.register_scene_extract(
+        Some(&extract),
+        &[mesh(11, "res://materials/a.mat")],
+        &[directional_light(100, 1.0)],
+        &[],
+        &[],
+    );
+    state.apply_scene_prepare_resources(&scene_prepare_resources_snapshot(
+        vec![(0, [11, 1, 0, 255])],
+        Vec::new(),
+    ));
+    assert_eq!(
+        state.scene_surface_cache_page_contents(),
+        vec![(0, 11, 0, 0, [11, 1, 0, 255], [0, 0, 0, 0])],
+        "expected atlas-only scene-prepare truth to persist instead of being dropped just because the capture side is absent"
+    );
+
+    state.register_scene_extract(
+        Some(&extract),
+        &[mesh(11, "res://materials/a.mat")],
+        &[directional_light(100, 1.0)],
+        &[],
+        &[],
+    );
+    state.apply_scene_prepare_resources(&scene_prepare_resources_snapshot(Vec::new(), Vec::new()));
+    assert_eq!(
+        state.scene_surface_cache_page_contents(),
+        vec![(0, 11, 0, 0, [11, 1, 0, 255], [0, 0, 0, 0])],
+        "expected clean-frame runtime reuse to keep atlas-only persisted pages alive instead of requiring a capture-side sample to exist"
+    );
+}
+
+#[test]
+fn hybrid_gi_runtime_state_keeps_capture_only_surface_cache_page_samples_across_clean_frames() {
+    let mut state = HybridGiRuntimeState::default();
+    let extract = hybrid_gi_settings(1, 1);
+
+    state.register_scene_extract(
+        Some(&extract),
+        &[mesh(11, "res://materials/a.mat")],
+        &[directional_light(100, 1.0)],
+        &[],
+        &[],
+    );
+    state.apply_scene_prepare_resources(&scene_prepare_resources_snapshot(
+        Vec::new(),
+        vec![(0, [11, 2, 0, 255])],
+    ));
+    assert_eq!(
+        state.scene_surface_cache_page_contents(),
+        vec![(0, 11, 0, 0, [0, 0, 0, 0], [11, 2, 0, 255])],
+        "expected capture-only scene-prepare truth to persist instead of being dropped just because the atlas side is absent"
+    );
+
+    state.register_scene_extract(
+        Some(&extract),
+        &[mesh(11, "res://materials/a.mat")],
+        &[directional_light(100, 1.0)],
+        &[],
+        &[],
+    );
+    state.apply_scene_prepare_resources(&scene_prepare_resources_snapshot(Vec::new(), Vec::new()));
+    assert_eq!(
+        state.scene_surface_cache_page_contents(),
+        vec![(0, 11, 0, 0, [0, 0, 0, 0], [11, 2, 0, 255])],
+        "expected clean-frame runtime reuse to keep capture-only persisted pages alive instead of requiring an atlas-side sample to exist"
+    );
 }
 
 #[test]
@@ -234,8 +395,8 @@ fn hybrid_gi_runtime_state_exposes_scene_card_capture_requests() {
     assert_eq!(
         state.scene_card_capture_requests(),
         vec![
-            (11, 11, 0, 0, [-1.0, 0.0, 0.0], 1.0),
-            (22, 22, 1, 1, [3.0, 0.0, 0.0], 0.5),
+            (11, 0, 0, 0, [-1.0, 0.0, 0.0], 1.0),
+            (22, 1, 1, 1, [3.0, 0.0, 0.0], 0.5),
         ]
     );
 }
@@ -262,7 +423,7 @@ fn hybrid_gi_runtime_state_builds_scene_prepare_frame_from_scene_representation(
         vec![
             HybridGiPrepareCardCaptureRequest {
                 card_id: 11,
-                page_id: 11,
+                page_id: 0,
                 atlas_slot_id: 0,
                 capture_slot_id: 0,
                 bounds_center: Vec3::new(-1.0, 0.0, 0.0),
@@ -270,7 +431,7 @@ fn hybrid_gi_runtime_state_builds_scene_prepare_frame_from_scene_representation(
             },
             HybridGiPrepareCardCaptureRequest {
                 card_id: 22,
-                page_id: 22,
+                page_id: 1,
                 atlas_slot_id: 1,
                 capture_slot_id: 1,
                 bounds_center: Vec3::new(3.0, 0.0, 0.0),
@@ -278,6 +439,7 @@ fn hybrid_gi_runtime_state_builds_scene_prepare_frame_from_scene_representation(
             },
         ]
     );
+    assert!(frame.surface_cache_page_contents.is_empty());
     assert_eq!(
         frame.voxel_clipmaps,
         vec![
@@ -294,6 +456,324 @@ fn hybrid_gi_runtime_state_builds_scene_prepare_frame_from_scene_representation(
         ]
     );
     assert_eq!(frame.voxel_cells.len(), 128);
+}
+
+#[test]
+fn hybrid_gi_runtime_state_builds_scene_prepare_frame_with_persisted_surface_cache_page_contents_on_clean_frame(
+) {
+    let mut state = HybridGiRuntimeState::default();
+    let extract = hybrid_gi_settings(2, 2);
+
+    state.register_scene_extract(
+        Some(&extract),
+        &[
+            mesh(11, "res://materials/a.mat"),
+            mesh(22, "res://materials/b.mat"),
+        ],
+        &[directional_light(100, 1.0)],
+        &[],
+        &[],
+    );
+    state.apply_scene_prepare_resources(&scene_prepare_resources_snapshot(
+        vec![(0, [11, 1, 0, 255]), (1, [22, 1, 0, 255])],
+        vec![(0, [11, 2, 0, 255]), (1, [22, 2, 0, 255])],
+    ));
+    state.register_scene_extract(
+        Some(&extract),
+        &[
+            mesh(11, "res://materials/a.mat"),
+            mesh(22, "res://materials/b.mat"),
+        ],
+        &[directional_light(100, 1.0)],
+        &[],
+        &[],
+    );
+
+    let frame = state.build_scene_prepare_frame();
+    assert!(frame.card_capture_requests.is_empty());
+    assert_eq!(
+        frame.surface_cache_page_contents,
+        vec![
+            HybridGiPrepareSurfaceCachePageContent {
+                page_id: 0,
+                owner_card_id: 11,
+                atlas_slot_id: 0,
+                capture_slot_id: 0,
+                bounds_center: Vec3::ZERO,
+                bounds_radius: 0.5,
+                atlas_sample_rgba: [11, 1, 0, 255],
+                capture_sample_rgba: [11, 2, 0, 255],
+            },
+            HybridGiPrepareSurfaceCachePageContent {
+                page_id: 1,
+                owner_card_id: 22,
+                atlas_slot_id: 1,
+                capture_slot_id: 1,
+                bounds_center: Vec3::ZERO,
+                bounds_radius: 0.5,
+                atlas_sample_rgba: [22, 1, 0, 255],
+                capture_sample_rgba: [22, 2, 0, 255],
+            },
+        ]
+    );
+}
+
+#[test]
+fn hybrid_gi_runtime_state_uses_persisted_surface_cache_page_sample_for_clean_frame_voxel_radiance()
+{
+    let mut state = HybridGiRuntimeState::default();
+    let extract = hybrid_gi_settings(1, 1);
+    let persisted_capture_rgba = [5, 200, 13, 255];
+    let persisted_capture_rgb = [
+        persisted_capture_rgba[0],
+        persisted_capture_rgba[1],
+        persisted_capture_rgba[2],
+    ];
+
+    state.register_scene_extract(
+        Some(&extract),
+        &[mesh_at(
+            11,
+            "res://materials/runtime-voxel-persisted-page.mat",
+            Vec3::ZERO,
+            2.0,
+        )],
+        &[directional_light(100, 1.0)],
+        &[],
+        &[],
+    );
+    let baseline_frame = state.build_scene_prepare_frame();
+    let baseline_cells = baseline_frame
+        .voxel_cells
+        .iter()
+        .filter(|cell| cell.occupancy_count > 0)
+        .cloned()
+        .collect::<Vec<_>>();
+    assert!(
+        baseline_cells
+            .iter()
+            .any(|cell| cell.radiance_rgb != persisted_capture_rgb),
+        "expected the placeholder runtime voxel radiance to differ before persisted page samples are applied; baseline_cells={baseline_cells:?}"
+    );
+
+    state.apply_scene_prepare_resources(&scene_prepare_resources_snapshot(
+        vec![(0, persisted_capture_rgba)],
+        vec![(0, persisted_capture_rgba)],
+    ));
+    state.register_scene_extract(
+        Some(&extract),
+        &[mesh_at(
+            11,
+            "res://materials/runtime-voxel-persisted-page.mat",
+            Vec3::ZERO,
+            2.0,
+        )],
+        &[directional_light(100, 1.0)],
+        &[],
+        &[],
+    );
+
+    let frame = state.build_scene_prepare_frame();
+    assert!(
+        frame.card_capture_requests.is_empty(),
+        "expected the second unchanged scene registration to become a clean frame"
+    );
+    let occupied_cells = frame
+        .voxel_cells
+        .into_iter()
+        .filter(|cell| cell.occupancy_count > 0)
+        .collect::<Vec<_>>();
+    assert!(
+        occupied_cells.iter().all(|cell| {
+            cell.dominant_card_id == 11
+                && cell.radiance_present
+                && cell.radiance_rgb == persisted_capture_rgb
+        }),
+        "expected persisted clean-frame surface-cache page samples to become the runtime voxel radiance authority instead of leaving the old tint/direct-light placeholder truth in place; occupied_cells={occupied_cells:?}"
+    );
+}
+
+#[test]
+fn hybrid_gi_runtime_state_uses_atlas_only_surface_cache_page_sample_for_clean_frame_voxel_radiance(
+) {
+    let mut state = HybridGiRuntimeState::default();
+    let extract = hybrid_gi_settings(1, 1);
+    let persisted_atlas_rgba = [17, 33, 201, 255];
+    let persisted_atlas_rgb = [
+        persisted_atlas_rgba[0],
+        persisted_atlas_rgba[1],
+        persisted_atlas_rgba[2],
+    ];
+
+    state.register_scene_extract(
+        Some(&extract),
+        &[mesh_at(
+            11,
+            "res://materials/runtime-voxel-atlas-only-page.mat",
+            Vec3::ZERO,
+            2.0,
+        )],
+        &[directional_light(100, 1.0)],
+        &[],
+        &[],
+    );
+    state.apply_scene_prepare_resources(&scene_prepare_resources_snapshot(
+        vec![(0, persisted_atlas_rgba)],
+        Vec::new(),
+    ));
+    state.register_scene_extract(
+        Some(&extract),
+        &[mesh_at(
+            11,
+            "res://materials/runtime-voxel-atlas-only-page.mat",
+            Vec3::ZERO,
+            2.0,
+        )],
+        &[directional_light(100, 1.0)],
+        &[],
+        &[],
+    );
+
+    let frame = state.build_scene_prepare_frame();
+    assert!(
+        frame.card_capture_requests.is_empty(),
+        "expected the second unchanged scene registration to become a clean frame"
+    );
+    let occupied_cells = frame
+        .voxel_cells
+        .into_iter()
+        .filter(|cell| cell.occupancy_count > 0)
+        .collect::<Vec<_>>();
+    assert!(
+        occupied_cells.iter().all(|cell| {
+            cell.dominant_card_id == 11
+                && cell.radiance_present
+                && cell.radiance_rgb == persisted_atlas_rgb
+        }),
+        "expected atlas-only persisted clean-frame surface-cache page samples to rehydrate runtime voxel radiance when capture truth is absent; occupied_cells={occupied_cells:?}"
+    );
+}
+
+#[test]
+fn hybrid_gi_runtime_state_prefers_capture_surface_cache_page_sample_over_atlas_for_clean_frame_voxel_radiance(
+) {
+    let mut state = HybridGiRuntimeState::default();
+    let extract = hybrid_gi_settings(1, 1);
+    let persisted_atlas_rgba = [17, 33, 201, 255];
+    let persisted_capture_rgba = [5, 200, 13, 255];
+    let persisted_capture_rgb = [
+        persisted_capture_rgba[0],
+        persisted_capture_rgba[1],
+        persisted_capture_rgba[2],
+    ];
+
+    state.register_scene_extract(
+        Some(&extract),
+        &[mesh_at(
+            11,
+            "res://materials/runtime-voxel-capture-preferred-page.mat",
+            Vec3::ZERO,
+            2.0,
+        )],
+        &[directional_light(100, 1.0)],
+        &[],
+        &[],
+    );
+    state.apply_scene_prepare_resources(&scene_prepare_resources_snapshot(
+        vec![(0, persisted_atlas_rgba)],
+        vec![(0, persisted_capture_rgba)],
+    ));
+    state.register_scene_extract(
+        Some(&extract),
+        &[mesh_at(
+            11,
+            "res://materials/runtime-voxel-capture-preferred-page.mat",
+            Vec3::ZERO,
+            2.0,
+        )],
+        &[directional_light(100, 1.0)],
+        &[],
+        &[],
+    );
+
+    let frame = state.build_scene_prepare_frame();
+    assert!(
+        frame.card_capture_requests.is_empty(),
+        "expected the second unchanged scene registration to become a clean frame"
+    );
+    let occupied_cells = frame
+        .voxel_cells
+        .into_iter()
+        .filter(|cell| cell.occupancy_count > 0)
+        .collect::<Vec<_>>();
+    assert!(
+        occupied_cells.iter().all(|cell| {
+            cell.dominant_card_id == 11
+                && cell.radiance_present
+                && cell.radiance_rgb == persisted_capture_rgb
+        }),
+        "expected capture-side persisted page truth to stay authoritative over atlas-side truth when both are present; occupied_cells={occupied_cells:?}"
+    );
+}
+
+#[test]
+fn hybrid_gi_runtime_state_excludes_dirty_pages_from_persisted_voxel_radiance_reuse() {
+    let mut state = HybridGiRuntimeState::default();
+    let extract = hybrid_gi_settings(1, 1);
+    let persisted_capture_rgba = [5, 200, 13, 255];
+    let persisted_capture_rgb = [
+        persisted_capture_rgba[0],
+        persisted_capture_rgba[1],
+        persisted_capture_rgba[2],
+    ];
+
+    state.register_scene_extract(
+        Some(&extract),
+        &[mesh_at(
+            11,
+            "res://materials/runtime-voxel-dirty-page.mat",
+            Vec3::ZERO,
+            2.0,
+        )],
+        &[directional_light(100, 1.0)],
+        &[],
+        &[],
+    );
+    state.apply_scene_prepare_resources(&scene_prepare_resources_snapshot(
+        vec![(0, persisted_capture_rgba)],
+        vec![(0, persisted_capture_rgba)],
+    ));
+
+    state.register_scene_extract(
+        Some(&extract),
+        &[mesh_at(
+            11,
+            "res://materials/runtime-voxel-dirty-page.mat",
+            Vec3::ZERO,
+            2.0,
+        )],
+        &[directional_light(100, 2.0)],
+        &[],
+        &[],
+    );
+
+    let frame = state.build_scene_prepare_frame();
+    assert_eq!(state.scene_dirty_page_ids(), vec![0]);
+    assert!(
+        !frame.card_capture_requests.is_empty(),
+        "expected the light change to keep the owner page dirty so the current frame still schedules a recapture"
+    );
+    let occupied_cells = frame
+        .voxel_cells
+        .into_iter()
+        .filter(|cell| cell.occupancy_count > 0)
+        .collect::<Vec<_>>();
+    assert!(
+        occupied_cells
+            .iter()
+            .all(|cell| cell.radiance_rgb != persisted_capture_rgb),
+        "expected dirty owner pages to stop reusing stale persisted capture samples so the recapture frame can carry fresh voxel authority instead of last frame's clean-page color; occupied_cells={occupied_cells:?}"
+    );
 }
 
 #[test]
@@ -427,7 +907,7 @@ fn hybrid_gi_runtime_state_scene_prepare_frame_only_keeps_changed_capture_reques
         state.build_scene_prepare_frame().card_capture_requests,
         vec![HybridGiPrepareCardCaptureRequest {
             card_id: 22,
-            page_id: 22,
+            page_id: 1,
             atlas_slot_id: 1,
             capture_slot_id: 1,
             bounds_center: Vec3::new(4.0, 0.0, 0.0),
@@ -2158,6 +2638,418 @@ fn hybrid_gi_runtime_state_uses_requested_lineage_support_in_runtime_resolve_wit
 }
 
 #[test]
+fn hybrid_gi_runtime_state_builds_scene_surface_cache_irradiance_continuation_without_trace_schedule(
+) {
+    let extract = RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 1,
+        voxel_budget: 0,
+        debug_view: Default::default(),
+        probe_budget: 2,
+        tracing_budget: 0,
+        probes: vec![
+            probe_at(100, true, 96, Vec3::ZERO),
+            RenderHybridGiProbe {
+                radius: 1.8,
+                ..probe_with_parent_at(200, true, 88, 100, Vec3::ZERO)
+            },
+        ],
+        trace_regions: Vec::new(),
+    };
+
+    let mut warm = HybridGiRuntimeState::default();
+    warm.register_scene_extract(
+        Some(&extract),
+        &[mesh_at(
+            11,
+            "res://materials/surface-cache-warm.mat",
+            Vec3::ZERO,
+            2.0,
+        )],
+        &[directional_light(300, 1.0)],
+        &[],
+        &[],
+    );
+    warm.apply_scene_prepare_resources(&scene_prepare_resources_snapshot(
+        vec![(0, [224, 112, 64, 255])],
+        vec![(0, [240, 96, 48, 255])],
+    ));
+
+    let mut cool = HybridGiRuntimeState::default();
+    cool.register_scene_extract(
+        Some(&extract),
+        &[mesh_at(
+            11,
+            "res://materials/surface-cache-cool.mat",
+            Vec3::ZERO,
+            2.0,
+        )],
+        &[directional_light(300, 1.0)],
+        &[],
+        &[],
+    );
+    cool.apply_scene_prepare_resources(&scene_prepare_resources_snapshot(
+        vec![(0, [64, 112, 224, 255])],
+        vec![(0, [48, 96, 240, 255])],
+    ));
+
+    let warm_runtime = warm.build_resolve_runtime();
+    let cool_runtime = cool.build_resolve_runtime();
+    let warm_irradiance = warm_runtime
+        .hierarchy_irradiance(200)
+        .unwrap_or([0.0, 0.0, 0.0, 0.0]);
+    let cool_irradiance = cool_runtime
+        .hierarchy_irradiance(200)
+        .unwrap_or([0.0, 0.0, 0.0, 0.0]);
+
+    assert!(
+        warm_irradiance[3] > 0.1,
+        "expected runtime-host resolve inputs to synthesize nonzero hierarchy irradiance from current surface-cache truth when probe-only continuation is absent and the trace schedule is empty; warm_irradiance={warm_irradiance:?}"
+    );
+    assert!(
+        warm_irradiance[0] > cool_irradiance[0] + 0.2,
+        "expected warm surface-cache truth to warm the runtime-host hierarchy irradiance continuation when no trace schedule exists, instead of collapsing warm/cool scene pages to the same empty runtime path; warm_irradiance={warm_irradiance:?}, cool_irradiance={cool_irradiance:?}"
+    );
+    assert!(
+        cool_irradiance[2] > warm_irradiance[2] + 0.2,
+        "expected cool surface-cache truth to cool the runtime-host hierarchy irradiance continuation when no trace schedule exists, instead of collapsing warm/cool scene pages to the same empty runtime path; warm_irradiance={warm_irradiance:?}, cool_irradiance={cool_irradiance:?}"
+    );
+}
+
+#[test]
+fn hybrid_gi_runtime_state_builds_scene_voxel_rt_lighting_continuation_without_trace_schedule() {
+    let extract = RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 1,
+        voxel_budget: 1,
+        debug_view: Default::default(),
+        probe_budget: 2,
+        tracing_budget: 0,
+        probes: vec![
+            probe_at(100, true, 96, Vec3::ZERO),
+            RenderHybridGiProbe {
+                radius: 1.8,
+                ..probe_with_parent_at(200, true, 88, 100, Vec3::ZERO)
+            },
+        ],
+        trace_regions: Vec::new(),
+    };
+
+    let mut warm = HybridGiRuntimeState::default();
+    warm.register_scene_extract(
+        Some(&extract),
+        &[mesh_at(
+            11,
+            "res://materials/surface-cache-warm.mat",
+            Vec3::ZERO,
+            2.0,
+        )],
+        &[directional_light(300, 1.0)],
+        &[],
+        &[],
+    );
+    warm.apply_scene_prepare_resources(&scene_prepare_resources_snapshot(
+        vec![(0, [224, 112, 64, 255])],
+        vec![(0, [240, 96, 48, 255])],
+    ));
+
+    let mut cool = HybridGiRuntimeState::default();
+    cool.register_scene_extract(
+        Some(&extract),
+        &[mesh_at(
+            11,
+            "res://materials/surface-cache-cool.mat",
+            Vec3::ZERO,
+            2.0,
+        )],
+        &[directional_light(300, 1.0)],
+        &[],
+        &[],
+    );
+    cool.apply_scene_prepare_resources(&scene_prepare_resources_snapshot(
+        vec![(0, [64, 112, 224, 255])],
+        vec![(0, [48, 96, 240, 255])],
+    ));
+
+    let warm_runtime = warm.build_resolve_runtime();
+    let cool_runtime = cool.build_resolve_runtime();
+    let warm_rt_lighting = warm_runtime
+        .hierarchy_rt_lighting(200)
+        .unwrap_or([0.0, 0.0, 0.0, 0.0]);
+    let cool_rt_lighting = cool_runtime
+        .hierarchy_rt_lighting(200)
+        .unwrap_or([0.0, 0.0, 0.0, 0.0]);
+
+    assert!(
+        warm_runtime.hierarchy_rt_lighting_includes_scene_truth(200),
+        "expected runtime-host exact RT-lighting continuation to record when it already includes scene-driven voxel or surface-cache truth so renderer-side resolve can avoid reblending the same current-frame scene signal"
+    );
+    assert!(
+        cool_runtime.hierarchy_rt_lighting_includes_scene_truth(200),
+        "expected runtime-host exact RT-lighting continuation to mark scene-driven truth for both warm and cool variants instead of leaving metadata empty on the same empty-trace path"
+    );
+    assert!(
+        warm_rt_lighting[3] > 0.1,
+        "expected runtime-host resolve inputs to synthesize nonzero hierarchy RT lighting from current scene-owned voxel or surface-cache truth when probe-only continuation is absent and the trace schedule is empty; warm_rt_lighting={warm_rt_lighting:?}"
+    );
+    assert!(
+        warm_rt_lighting[0] > cool_rt_lighting[0] + 0.2,
+        "expected warm scene-owned truth to warm the runtime-host hierarchy RT-lighting continuation when no trace schedule exists, instead of collapsing warm/cool scene inputs to the same empty runtime path; warm_rt_lighting={warm_rt_lighting:?}, cool_rt_lighting={cool_rt_lighting:?}"
+    );
+    assert!(
+        cool_rt_lighting[2] > warm_rt_lighting[2] + 0.2,
+        "expected cool scene-owned truth to cool the runtime-host hierarchy RT-lighting continuation when no trace schedule exists, instead of collapsing warm/cool scene inputs to the same empty runtime path; warm_rt_lighting={warm_rt_lighting:?}, cool_rt_lighting={cool_rt_lighting:?}"
+    );
+}
+
+#[test]
+fn hybrid_gi_runtime_state_reports_higher_scene_truth_quality_for_voxel_rt_than_surface_cache_only_rt(
+) {
+    let voxel_extract = RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 1,
+        voxel_budget: 1,
+        debug_view: Default::default(),
+        probe_budget: 2,
+        tracing_budget: 0,
+        probes: vec![
+            probe_at(100, true, 96, Vec3::ZERO),
+            RenderHybridGiProbe {
+                radius: 1.8,
+                ..probe_with_parent_at(200, true, 88, 100, Vec3::ZERO)
+            },
+        ],
+        trace_regions: Vec::new(),
+    };
+    let surface_only_extract = RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 1,
+        voxel_budget: 0,
+        debug_view: Default::default(),
+        probe_budget: 2,
+        tracing_budget: 0,
+        probes: vec![
+            probe_at(100, true, 96, Vec3::ZERO),
+            RenderHybridGiProbe {
+                radius: 1.8,
+                ..probe_with_parent_at(200, true, 88, 100, Vec3::ZERO)
+            },
+        ],
+        trace_regions: Vec::new(),
+    };
+
+    let mut voxel_backed = HybridGiRuntimeState::default();
+    voxel_backed.register_scene_extract(
+        Some(&voxel_extract),
+        &[mesh_at(
+            11,
+            "res://materials/runtime-scene-truth-quality-voxel.mat",
+            Vec3::ZERO,
+            2.0,
+        )],
+        &[directional_light(300, 1.0)],
+        &[],
+        &[],
+    );
+    let voxel_runtime = voxel_backed.build_resolve_runtime();
+    let voxel_quality = voxel_runtime.hierarchy_rt_lighting_scene_truth_quality(200);
+
+    let mut surface_only = HybridGiRuntimeState::default();
+    surface_only.register_scene_extract(
+        Some(&surface_only_extract),
+        &[mesh_at(
+            11,
+            "res://materials/runtime-scene-truth-quality-surface-cache.mat",
+            Vec3::ZERO,
+            2.0,
+        )],
+        &[directional_light(300, 1.0)],
+        &[],
+        &[],
+    );
+    surface_only.apply_scene_prepare_resources(&scene_prepare_resources_snapshot(
+        vec![(0, [224, 112, 64, 255])],
+        vec![(0, [240, 96, 48, 255])],
+    ));
+    let surface_only_runtime = surface_only.build_resolve_runtime();
+    let surface_only_quality = surface_only_runtime.hierarchy_rt_lighting_scene_truth_quality(200);
+
+    assert!(
+        voxel_runtime.hierarchy_rt_lighting_includes_scene_truth(200),
+        "expected voxel-backed exact RT-lighting continuation to mark scene-driven truth so runtime quality metadata can distinguish it from pure continuation"
+    );
+    assert!(
+        surface_only_runtime.hierarchy_rt_lighting_includes_scene_truth(200),
+        "expected surface-cache-only exact RT-lighting continuation to keep scene-driven truth metadata instead of collapsing the no-trace fallback into plain continuation"
+    );
+    assert!(
+        voxel_quality > surface_only_quality + 0.1,
+        "expected voxel-backed exact scene truth to carry higher quality than surface-cache-only fallback in runtime metadata; voxel_quality={voxel_quality:.3}, surface_only_quality={surface_only_quality:.3}"
+    );
+    assert!(
+        surface_only_quality > 0.7,
+        "expected surface-cache-only fallback quality to stay nonzero and reflect real capture/atlas authority instead of dropping to continuation-level zero; surface_only_quality={surface_only_quality:.3}"
+    );
+}
+
+#[test]
+fn hybrid_gi_runtime_state_reports_clean_surface_cache_scene_truth_freshness_above_dirty_surface_cache_truth(
+) {
+    let extract = RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 1,
+        voxel_budget: 0,
+        debug_view: Default::default(),
+        probe_budget: 2,
+        tracing_budget: 0,
+        probes: vec![
+            probe_at(100, true, 96, Vec3::ZERO),
+            RenderHybridGiProbe {
+                radius: 1.8,
+                ..probe_with_parent_at(200, true, 88, 100, Vec3::ZERO)
+            },
+        ],
+        trace_regions: Vec::new(),
+    };
+    let scene_meshes = [mesh_at(
+        11,
+        "res://materials/runtime-scene-truth-freshness-surface-cache.mat",
+        Vec3::ZERO,
+        2.0,
+    )];
+    let scene_lights = [directional_light(300, 1.0)];
+    let scene_prepare_resources = scene_prepare_resources_snapshot(
+        vec![(0, [224, 112, 64, 255])],
+        vec![(0, [240, 96, 48, 255])],
+    );
+
+    let mut dirty = HybridGiRuntimeState::default();
+    dirty.register_scene_extract(Some(&extract), &scene_meshes, &scene_lights, &[], &[]);
+    dirty.apply_scene_prepare_resources(&scene_prepare_resources);
+    let dirty_runtime = dirty.build_resolve_runtime();
+    let dirty_freshness = dirty_runtime.hierarchy_irradiance_scene_truth_freshness(200);
+
+    let mut clean = HybridGiRuntimeState::default();
+    clean.register_scene_extract(Some(&extract), &scene_meshes, &scene_lights, &[], &[]);
+    clean.apply_scene_prepare_resources(&scene_prepare_resources);
+    clean.register_scene_extract(Some(&extract), &scene_meshes, &scene_lights, &[], &[]);
+    let clean_runtime = clean.build_resolve_runtime();
+    let clean_freshness = clean_runtime.hierarchy_irradiance_scene_truth_freshness(200);
+
+    assert_eq!(
+        dirty.scene_dirty_page_ids(),
+        vec![0],
+        "expected the first surface-cache-backed scene registration to keep the authored page dirty until a stable follow-up registration clears it"
+    );
+    assert_eq!(
+        clean.scene_dirty_page_ids(),
+        Vec::<u32>::new(),
+        "expected an unchanged follow-up scene registration to clear dirty surface-cache pages while preserving persisted page contents"
+    );
+    assert!(
+        dirty_runtime.hierarchy_irradiance_includes_scene_truth(200),
+        "expected dirty surface-cache-backed irradiance fallback to remain tagged as scene-driven truth so freshness metadata can down-weight reuse instead of collapsing to plain continuation"
+    );
+    assert!(
+        clean_runtime.hierarchy_irradiance_includes_scene_truth(200),
+        "expected clean surface-cache-backed irradiance fallback to keep scene-driven truth metadata instead of dropping freshness tracking on stable frames"
+    );
+    assert!(
+        clean_freshness > dirty_freshness + 0.3,
+        "expected stable surface-cache scene truth to report materially higher freshness than dirty page-backed truth in runtime metadata; clean_freshness={clean_freshness:.3}, dirty_freshness={dirty_freshness:.3}"
+    );
+    assert!(
+        clean_freshness > 0.95,
+        "expected clean surface-cache scene truth to approach full freshness once dirty pages clear; clean_freshness={clean_freshness:.3}"
+    );
+    assert!(
+        dirty_freshness < 0.6,
+        "expected dirty surface-cache pages to materially discount runtime freshness instead of reusing history as if the cached truth were stable; dirty_freshness={dirty_freshness:.3}"
+    );
+}
+
+#[test]
+fn hybrid_gi_runtime_state_reports_clean_voxel_scene_truth_freshness_above_dirty_voxel_truth() {
+    let extract = RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 1,
+        voxel_budget: 1,
+        debug_view: Default::default(),
+        probe_budget: 2,
+        tracing_budget: 0,
+        probes: vec![
+            probe_at(100, true, 96, Vec3::ZERO),
+            RenderHybridGiProbe {
+                radius: 1.8,
+                ..probe_with_parent_at(200, true, 88, 100, Vec3::ZERO)
+            },
+        ],
+        trace_regions: Vec::new(),
+    };
+    let scene_meshes = [mesh_at(
+        11,
+        "res://materials/runtime-scene-truth-freshness-voxel.mat",
+        Vec3::ZERO,
+        2.0,
+    )];
+    let scene_lights = [directional_light(300, 1.0)];
+
+    let mut dirty = HybridGiRuntimeState::default();
+    dirty.register_scene_extract(Some(&extract), &scene_meshes, &scene_lights, &[], &[]);
+    let dirty_runtime = dirty.build_resolve_runtime();
+    let dirty_freshness = dirty_runtime.hierarchy_rt_lighting_scene_truth_freshness(200);
+
+    let mut clean = HybridGiRuntimeState::default();
+    clean.register_scene_extract(Some(&extract), &scene_meshes, &scene_lights, &[], &[]);
+    clean.register_scene_extract(Some(&extract), &scene_meshes, &scene_lights, &[], &[]);
+    let clean_runtime = clean.build_resolve_runtime();
+    let clean_freshness = clean_runtime.hierarchy_rt_lighting_scene_truth_freshness(200);
+
+    assert_eq!(
+        dirty.scene_dirty_clipmap_ids(),
+        vec![0],
+        "expected the first voxel clipmap build to stay dirty until an unchanged follow-up registration confirms stable scene residency"
+    );
+    assert_eq!(
+        clean.scene_dirty_clipmap_ids(),
+        Vec::<u32>::new(),
+        "expected stable voxel clipmaps to clear the dirty set on an unchanged follow-up scene registration"
+    );
+    assert!(
+        dirty_runtime.hierarchy_rt_lighting_includes_scene_truth(200),
+        "expected dirty voxel-backed exact RT-lighting continuation to remain tagged as scene-driven truth so runtime freshness can down-weight temporal reuse"
+    );
+    assert!(
+        clean_runtime.hierarchy_rt_lighting_includes_scene_truth(200),
+        "expected clean voxel-backed exact RT-lighting continuation to keep scene-driven metadata instead of bypassing freshness tracking on stable frames"
+    );
+    assert!(
+        clean_freshness > dirty_freshness + 0.2,
+        "expected stable voxel scene truth to report materially higher freshness than dirty clipmap-backed truth in runtime metadata; clean_freshness={clean_freshness:.3}, dirty_freshness={dirty_freshness:.3}"
+    );
+    assert!(
+        clean_freshness > 0.95,
+        "expected clean voxel scene truth to approach full freshness on stable frames; clean_freshness={clean_freshness:.3}"
+    );
+    assert!(
+        dirty_freshness < 0.8,
+        "expected dirty voxel clipmaps to reduce runtime freshness instead of looking fully stable to temporal reuse; dirty_freshness={dirty_freshness:.3}"
+    );
+}
+
+#[test]
 fn hybrid_gi_runtime_state_keeps_recent_requested_lineage_support_after_request_clears() {
     let extract = RenderHybridGiExtract {
         enabled: true,
@@ -2359,5 +3251,38 @@ fn directional_light(node_id: u64, intensity: f32) -> RenderDirectionalLightSnap
         direction: Vec3::new(-0.4, -1.0, -0.2),
         color: Vec3::new(1.0, 0.95, 0.9),
         intensity,
+    }
+}
+
+fn scene_prepare_resources_snapshot(
+    atlas_slot_rgba_samples: Vec<(u32, [u8; 4])>,
+    capture_slot_rgba_samples: Vec<(u32, [u8; 4])>,
+) -> HybridGiScenePrepareResourcesSnapshot {
+    let occupied_atlas_slots = atlas_slot_rgba_samples
+        .iter()
+        .map(|(slot_id, _)| *slot_id)
+        .collect::<Vec<_>>();
+    let occupied_capture_slots = capture_slot_rgba_samples
+        .iter()
+        .map(|(slot_id, _)| *slot_id)
+        .collect::<Vec<_>>();
+    HybridGiScenePrepareResourcesSnapshot {
+        card_capture_request_count: occupied_capture_slots.len() as u32,
+        voxel_clipmap_ids: Vec::new(),
+        occupied_atlas_slots,
+        occupied_capture_slots,
+        atlas_slot_rgba_samples,
+        capture_slot_rgba_samples,
+        voxel_clipmap_rgba_samples: Vec::new(),
+        voxel_clipmap_occupancy_masks: Vec::new(),
+        voxel_clipmap_cell_rgba_samples: Vec::new(),
+        voxel_clipmap_cell_occupancy_counts: Vec::new(),
+        voxel_clipmap_cell_dominant_node_ids: Vec::new(),
+        voxel_clipmap_cell_dominant_rgba_samples: Vec::new(),
+        atlas_slot_count: 0,
+        capture_slot_count: 0,
+        atlas_texture_extent: (0, 0),
+        capture_texture_extent: (0, 0),
+        capture_layer_count: 0,
     }
 }

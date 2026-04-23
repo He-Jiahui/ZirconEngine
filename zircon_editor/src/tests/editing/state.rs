@@ -13,11 +13,11 @@ use zircon_runtime::core::framework::render::{
     CapturedFrame, RenderFramework, RenderQualityProfile, RenderStats, RenderViewportDescriptor,
 };
 use zircon_runtime::core::math::{UVec2, Vec2};
-use zircon_runtime::graphics::WgpuRenderFramework;
-use zircon_runtime::ui::layout::UiFrame;
 use zircon_runtime::core::resource::{ResourceKind, ResourceState};
+use zircon_runtime::graphics::WgpuRenderFramework;
 use zircon_runtime::scene::DefaultLevelManager;
 use zircon_runtime::ui::event_ui::UiTreeId;
+use zircon_runtime::ui::layout::UiFrame;
 use zircon_runtime::ui::surface::{UiRenderCommandKind, UiRenderExtract, UiTextRenderMode};
 
 use super::asset_workspace::{sample_catalog, sample_material_details, sample_resource_status};
@@ -230,16 +230,18 @@ fn viewport_authoring_commands_do_not_mutate_runtime_world_or_default_extract() 
     let _ = state.apply_viewport_command(&ViewportCommand::SetProjectionMode(
         ProjectionMode::Orthographic,
     ));
-    let _ = state.apply_viewport_command(&ViewportCommand::SetDisplayMode(
-        DisplayMode::WireOverlay,
-    ));
+    let _ =
+        state.apply_viewport_command(&ViewportCommand::SetDisplayMode(DisplayMode::WireOverlay));
     let _ = state.apply_viewport_command(&ViewportCommand::SetGridMode(GridMode::Hidden));
     let _ = state.apply_viewport_command(&ViewportCommand::SetPreviewLighting(false));
     let _ = state.apply_viewport_command(&ViewportCommand::SetPreviewSkybox(false));
     let _ = state.apply_viewport_command(&ViewportCommand::SetGizmosEnabled(false));
 
     let authored = state.render_snapshot().expect("editor render snapshot");
-    assert_eq!(authored.scene.camera.projection_mode, ProjectionMode::Orthographic);
+    assert_eq!(
+        authored.scene.camera.projection_mode,
+        ProjectionMode::Orthographic
+    );
     assert_eq!(authored.overlays.display_mode, DisplayMode::WireOverlay);
     assert!(authored.overlays.grid.is_none());
     assert!(authored.overlays.scene_gizmos.is_empty());
@@ -265,7 +267,12 @@ fn render_frame_submission_hud_text_renders_through_runtime_glyph_capture() {
         .render_frame_submission()
         .expect("render frame submission");
     let ui = submission.ui.clone().expect("viewport hud overlay");
-    let hud_frame = ui.list.commands.first().expect("viewport hud command").frame;
+    let hud_frame = ui
+        .list
+        .commands
+        .first()
+        .expect("viewport hud command")
+        .frame;
 
     let (with_text, with_text_stats) = capture_editor_submission(
         submission.extract.clone(),
@@ -285,8 +292,11 @@ fn render_frame_submission_hud_text_renders_through_runtime_glyph_capture() {
         .expect("viewport hud command")
         .text = None;
 
-    let (without_text, without_text_stats) =
-        capture_editor_submission(submission.extract, Some(background_only), state.viewport_state().size);
+    let (without_text, without_text_stats) = capture_editor_submission(
+        submission.extract,
+        Some(background_only),
+        state.viewport_state().size,
+    );
     assert_eq!(without_text_stats.last_ui_command_count, 1);
     assert_eq!(without_text_stats.last_ui_quad_count, 1);
     assert_eq!(without_text_stats.last_ui_text_payload_count, 0);

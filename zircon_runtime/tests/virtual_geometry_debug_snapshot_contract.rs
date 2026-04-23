@@ -17,16 +17,22 @@ use zircon_runtime::core::framework::render::{
     RenderFrameExtract, RenderFramework, RenderMeshSnapshot, RenderQualityProfile,
     RenderSceneSnapshot, RenderViewportDescriptor, RenderVirtualGeometryBvhVisualizationInstance,
     RenderVirtualGeometryBvhVisualizationNode, RenderVirtualGeometryCluster,
+    RenderVirtualGeometryCpuReferenceDepthClusterMapEntry,
     RenderVirtualGeometryCpuReferenceInstance, RenderVirtualGeometryCpuReferenceLeafCluster,
+    RenderVirtualGeometryCpuReferenceMipClusterMapEntry,
     RenderVirtualGeometryCpuReferenceNodeVisit,
-    RenderVirtualGeometryCpuReferencePageClusterMapEntry, RenderVirtualGeometryDebugState,
+    RenderVirtualGeometryCpuReferencePageClusterMapEntry,
+    RenderVirtualGeometryCpuReferenceSelectedCluster, RenderVirtualGeometryDebugState,
     RenderVirtualGeometryExecutionState, RenderVirtualGeometryExtract,
-    RenderVirtualGeometryInstance, RenderVirtualGeometryPage,
+    RenderVirtualGeometryInstance, RenderVirtualGeometryNodeAndClusterCullDispatchSetupSnapshot,
+    RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot,
+    RenderVirtualGeometryNodeAndClusterCullInstanceSeed,
+    RenderVirtualGeometryNodeAndClusterCullSource, RenderVirtualGeometryPage,
     RenderVirtualGeometryPageRequestInspection, RenderVirtualGeometryResidentPageInspection,
     RenderVirtualGeometrySelectedCluster, RenderVirtualGeometryVisBufferMark,
     RenderWorldSnapshotHandle,
 };
-use zircon_runtime::core::math::{Transform, UVec2, Vec2, Vec3, Vec4};
+use zircon_runtime::core::math::{view_matrix, Mat4, Transform, UVec2, Vec2, Vec3, Vec4};
 use zircon_runtime::core::resource::{MaterialMarker, ModelMarker, ResourceHandle};
 use zircon_runtime::graphics::WgpuRenderFramework;
 use zircon_runtime::scene::components::{default_render_layer_mask, Mobility};
@@ -85,6 +91,7 @@ fn render_framework_exposes_virtual_geometry_debug_snapshot_for_effective_visibl
     };
     let mut extract = world.to_render_frame_extract();
     extract.apply_viewport_size(viewport_size);
+    let expected_camera_transform = extract.view.camera.transform;
     extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
         cluster_budget: 8,
         page_budget: 2,
@@ -101,6 +108,14 @@ fn render_framework_exposes_virtual_geometry_debug_snapshot_for_effective_visibl
         instances: vec![instance.clone()],
         debug,
     });
+    let expected_view_proj = Mat4::perspective_rh(
+        extract.view.camera.fov_y_radians,
+        viewport_size.x as f32 / viewport_size.y as f32,
+        extract.view.camera.z_near,
+        extract.view.camera.z_far,
+    )
+    .mul_mat4(&view_matrix(expected_camera_transform))
+    .to_cols_array_2d();
 
     server
         .submit_frame_extract(viewport, extract)
@@ -169,6 +184,59 @@ fn render_framework_exposes_virtual_geometry_debug_snapshot_for_effective_visibl
     assert_eq!(
         snapshot.execution_segments.len() as usize,
         stats.last_virtual_geometry_indirect_draw_count
+    );
+    assert_eq!(
+        snapshot.node_and_cluster_cull_source,
+        RenderVirtualGeometryNodeAndClusterCullSource::RenderPathCullInput,
+        "expected the public VG debug snapshot to expose the same first-pass NodeAndClusterCull startup provenance as the renderer-owned pass seam"
+    );
+    assert_eq!(
+        snapshot.node_and_cluster_cull_record_count,
+        1,
+        "expected the public VG debug snapshot to expose one NodeAndClusterCull startup record for the effective VG extract"
+    );
+    assert_eq!(
+        snapshot.node_and_cluster_cull_source,
+        stats.last_virtual_geometry_node_and_cluster_cull_source,
+        "expected the public VG debug snapshot and public RenderStats surface to agree on NodeAndClusterCull startup provenance"
+    );
+    assert_eq!(
+        snapshot.node_and_cluster_cull_record_count as usize,
+        stats.last_virtual_geometry_node_and_cluster_cull_record_count,
+        "expected the public VG debug snapshot and public RenderStats surface to agree on NodeAndClusterCull startup record count"
+    );
+    assert_eq!(
+        snapshot.node_and_cluster_cull_global_state,
+        Some(RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot {
+            cull_input: snapshot.cull_input,
+            viewport_size: [viewport_size.x, viewport_size.y],
+            camera_translation: expected_camera_transform.translation.to_array(),
+            view_proj: expected_view_proj,
+        }),
+        "expected the public VG debug snapshot to expose the typed NodeAndClusterCull global-state record so host tooling can inspect viewport, camera origin, and view-projection inputs without renderer-private readback helpers"
+    );
+    assert_eq!(
+        snapshot.node_and_cluster_cull_instance_seeds,
+        vec![RenderVirtualGeometryNodeAndClusterCullInstanceSeed {
+            instance_index: 0,
+            entity: mesh,
+            cluster_offset: 1,
+            cluster_count: 2,
+            page_offset: 1,
+            page_count: 2,
+        }],
+        "expected the public VG debug snapshot to expose the first per-instance NodeAndClusterCull root seed worklist so host tooling can inspect the exact root traversal inputs instead of inferring them from the wider extract"
+    );
+    assert_eq!(
+        snapshot.node_and_cluster_cull_dispatch_setup,
+        Some(RenderVirtualGeometryNodeAndClusterCullDispatchSetupSnapshot {
+            instance_seed_count: 1,
+            cluster_budget: snapshot.cull_input.cluster_budget,
+            page_budget: snapshot.cull_input.page_budget,
+            workgroup_size: 64,
+            dispatch_group_count: [1, 1, 1],
+        }),
+        "expected the public VG debug snapshot to expose the first explicit NodeAndClusterCull dispatch/setup record so host tooling can inspect how the typed NaniteGlobalStateBuffer-style input is translated into concrete startup work before real compute traversal lands"
     );
     assert!(snapshot
         .execution_segments
@@ -436,6 +504,7 @@ fn render_framework_exposes_virtual_geometry_cpu_reference_bvh_inspection_for_au
             leaf_clusters: vec![
                 RenderVirtualGeometryCpuReferenceLeafCluster {
                     node_id: 1,
+                    cluster_ordinal: 0,
                     cluster_id: 100,
                     page_id: 10,
                     mip_level: 10,
@@ -447,6 +516,7 @@ fn render_framework_exposes_virtual_geometry_cpu_reference_bvh_inspection_for_au
                 },
                 RenderVirtualGeometryCpuReferenceLeafCluster {
                     node_id: 1,
+                    cluster_ordinal: 1,
                     cluster_id: 200,
                     page_id: 20,
                     mip_level: 9,
@@ -458,6 +528,7 @@ fn render_framework_exposes_virtual_geometry_cpu_reference_bvh_inspection_for_au
                 },
                 RenderVirtualGeometryCpuReferenceLeafCluster {
                     node_id: 2,
+                    cluster_ordinal: 2,
                     cluster_id: 300,
                     page_id: 30,
                     mip_level: 10,
@@ -466,6 +537,76 @@ fn render_framework_exposes_virtual_geometry_cpu_reference_bvh_inspection_for_au
                     bounds_center: [1.0, 0.0, 0.0],
                     bounds_radius: 0.5,
                     screen_space_error: 0.15,
+                },
+            ],
+            loaded_leaf_clusters: vec![
+                RenderVirtualGeometryCpuReferenceLeafCluster {
+                    node_id: 1,
+                    cluster_ordinal: 0,
+                    cluster_id: 100,
+                    page_id: 10,
+                    mip_level: 10,
+                    loaded: true,
+                    parent_cluster_id: None,
+                    bounds_center: [0.0, 0.0, 0.0],
+                    bounds_radius: 0.5,
+                    screen_space_error: 0.2,
+                },
+                RenderVirtualGeometryCpuReferenceLeafCluster {
+                    node_id: 2,
+                    cluster_ordinal: 2,
+                    cluster_id: 300,
+                    page_id: 30,
+                    mip_level: 10,
+                    loaded: true,
+                    parent_cluster_id: Some(100),
+                    bounds_center: [1.0, 0.0, 0.0],
+                    bounds_radius: 0.5,
+                    screen_space_error: 0.15,
+                },
+            ],
+            mip_accepted_clusters: vec![
+                RenderVirtualGeometryCpuReferenceLeafCluster {
+                    node_id: 1,
+                    cluster_ordinal: 0,
+                    cluster_id: 100,
+                    page_id: 10,
+                    mip_level: 10,
+                    loaded: true,
+                    parent_cluster_id: None,
+                    bounds_center: [0.0, 0.0, 0.0],
+                    bounds_radius: 0.5,
+                    screen_space_error: 0.2,
+                },
+                RenderVirtualGeometryCpuReferenceLeafCluster {
+                    node_id: 2,
+                    cluster_ordinal: 2,
+                    cluster_id: 300,
+                    page_id: 30,
+                    mip_level: 10,
+                    loaded: true,
+                    parent_cluster_id: Some(100),
+                    bounds_center: [1.0, 0.0, 0.0],
+                    bounds_radius: 0.5,
+                    screen_space_error: 0.15,
+                },
+            ],
+            selected_clusters: vec![
+                RenderVirtualGeometryCpuReferenceSelectedCluster {
+                    node_id: 1,
+                    cluster_ordinal: 0,
+                    cluster_id: 100,
+                    page_id: 10,
+                    mip_level: 10,
+                    loaded: true,
+                },
+                RenderVirtualGeometryCpuReferenceSelectedCluster {
+                    node_id: 2,
+                    cluster_ordinal: 2,
+                    cluster_id: 300,
+                    page_id: 30,
+                    mip_level: 10,
+                    loaded: true,
                 },
             ],
             page_cluster_map: vec![
@@ -482,6 +623,74 @@ fn render_framework_exposes_virtual_geometry_cpu_reference_bvh_inspection_for_au
                     cluster_ids: vec![300],
                 },
             ],
+            loaded_page_cluster_map: vec![
+                RenderVirtualGeometryCpuReferencePageClusterMapEntry {
+                    page_id: 10,
+                    cluster_ids: vec![100],
+                },
+                RenderVirtualGeometryCpuReferencePageClusterMapEntry {
+                    page_id: 30,
+                    cluster_ids: vec![300],
+                },
+            ],
+            mip_accepted_page_cluster_map: vec![
+                RenderVirtualGeometryCpuReferencePageClusterMapEntry {
+                    page_id: 10,
+                    cluster_ids: vec![100],
+                },
+                RenderVirtualGeometryCpuReferencePageClusterMapEntry {
+                    page_id: 30,
+                    cluster_ids: vec![300],
+                },
+            ],
+            loaded_mip_cluster_map: vec![RenderVirtualGeometryCpuReferenceMipClusterMapEntry {
+                mip_level: 10,
+                cluster_ids: vec![100, 300],
+            }],
+            selected_page_cluster_map: vec![
+                RenderVirtualGeometryCpuReferencePageClusterMapEntry {
+                    page_id: 10,
+                    cluster_ids: vec![100],
+                },
+                RenderVirtualGeometryCpuReferencePageClusterMapEntry {
+                    page_id: 30,
+                    cluster_ids: vec![300],
+                },
+            ],
+            depth_cluster_map: vec![RenderVirtualGeometryCpuReferenceDepthClusterMapEntry {
+                depth: 1,
+                cluster_ids: vec![100, 200, 300],
+            }],
+            loaded_depth_cluster_map: vec![RenderVirtualGeometryCpuReferenceDepthClusterMapEntry {
+                depth: 1,
+                cluster_ids: vec![100, 300],
+            }],
+            mip_accepted_depth_cluster_map: vec![
+                RenderVirtualGeometryCpuReferenceDepthClusterMapEntry {
+                    depth: 1,
+                    cluster_ids: vec![100, 300],
+                },
+            ],
+            selected_depth_cluster_map: vec![
+                RenderVirtualGeometryCpuReferenceDepthClusterMapEntry {
+                    depth: 1,
+                    cluster_ids: vec![100, 300],
+                }
+            ],
+            mip_cluster_map: vec![
+                RenderVirtualGeometryCpuReferenceMipClusterMapEntry {
+                    mip_level: 9,
+                    cluster_ids: vec![200],
+                },
+                RenderVirtualGeometryCpuReferenceMipClusterMapEntry {
+                    mip_level: 10,
+                    cluster_ids: vec![100, 300],
+                },
+            ],
+            selected_mip_cluster_map: vec![RenderVirtualGeometryCpuReferenceMipClusterMapEntry {
+                mip_level: 10,
+                cluster_ids: vec![100, 300],
+            }],
         }]
     );
     assert_eq!(
@@ -541,6 +750,148 @@ fn render_framework_exposes_virtual_geometry_cpu_reference_bvh_inspection_for_au
         }]
     );
     assert_eq!(snapshot.visbuffer_debug_marks, Vec::new());
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn render_framework_automatic_virtual_geometry_bvh_selected_clusters_follow_forced_mip_override() {
+    let root = unique_temp_project_root("vg_debug_snapshot_auto_forced_mip");
+    let paths = ProjectPaths::from_root(&root).expect("project paths should resolve");
+    paths
+        .ensure_layout()
+        .expect("project layout should be created");
+    ProjectManifest::new(
+        "VirtualGeometryAutomaticForcedMip",
+        AssetUri::parse("res://scenes/main.scene.toml").expect("scene uri should parse"),
+        1,
+    )
+    .save(paths.manifest_path())
+    .expect("manifest should save");
+    fs::create_dir_all(paths.assets_root().join("models"))
+        .expect("model directory should be created");
+    fs::create_dir_all(paths.assets_root().join("scenes"))
+        .expect("scene directory should be created");
+    fs::write(
+        paths
+            .assets_root()
+            .join("models")
+            .join("nanite_teapot.model.toml"),
+        sample_virtual_geometry_model_asset_with_root_page_table(vec![10, 20, 30])
+            .to_toml_string()
+            .expect("model asset should serialize"),
+    )
+    .expect("model asset should write");
+    fs::write(
+        paths.assets_root().join("scenes").join("main.scene.toml"),
+        SceneAsset {
+            entities: Vec::new(),
+        }
+        .to_toml_string()
+        .expect("scene asset should serialize"),
+    )
+    .expect("scene asset should write");
+
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    asset_manager
+        .open_project(root.to_string_lossy().as_ref())
+        .expect("project should open");
+
+    let model_id = asset_manager
+        .resolve_asset_id(
+            &AssetUri::parse("res://models/nanite_teapot.model.toml")
+                .expect("model uri should parse"),
+        )
+        .expect("model resource id should resolve");
+    let material_id = asset_manager
+        .resolve_asset_id(
+            &AssetUri::parse("builtin://material/default")
+                .expect("builtin material uri should parse"),
+        )
+        .expect("builtin material resource id should resolve");
+
+    let mut snapshot: RenderSceneSnapshot = World::new().to_render_snapshot();
+    snapshot.scene.meshes = vec![
+        zircon_runtime::core::framework::render::RenderMeshSnapshot {
+            node_id: 101,
+            transform: Transform::default(),
+            model: ResourceHandle::<ModelMarker>::new(model_id),
+            material: ResourceHandle::<MaterialMarker>::new(material_id),
+            tint: Vec4::ONE,
+            mobility: Mobility::Dynamic,
+            render_layer_mask: default_render_layer_mask(),
+        },
+    ];
+    snapshot.virtual_geometry_debug = Some(RenderVirtualGeometryDebugState {
+        forced_mip: Some(10),
+        visualize_bvh: true,
+        ..RenderVirtualGeometryDebugState::default()
+    });
+
+    let server = WgpuRenderFramework::new(asset_manager).expect("framework should initialize");
+    let viewport_size = UVec2::new(320, 240);
+    let viewport = server
+        .create_viewport(RenderViewportDescriptor::new(viewport_size))
+        .expect("viewport should be created");
+    server
+        .set_quality_profile(
+            viewport,
+            RenderQualityProfile::new("vg-debug-snapshot-auto-forced-mip")
+                .with_virtual_geometry(true)
+                .with_hybrid_global_illumination(false)
+                .with_clustered_lighting(false)
+                .with_screen_space_ambient_occlusion(false)
+                .with_history_resolve(false)
+                .with_bloom(false)
+                .with_color_grading(false)
+                .with_reflection_probes(false)
+                .with_baked_lighting(false)
+                .with_particle_rendering(false)
+                .with_async_compute(false),
+        )
+        .expect("quality profile should be accepted");
+
+    let mut extract =
+        RenderFrameExtract::from_snapshot(RenderWorldSnapshotHandle::new(3), snapshot);
+    extract.apply_viewport_size(viewport_size);
+    server
+        .submit_frame_extract(viewport, extract)
+        .expect("automatic virtual geometry submission should succeed");
+
+    let snapshot = server
+        .query_virtual_geometry_debug_snapshot()
+        .expect("snapshot query should succeed")
+        .expect("virtual geometry snapshot should be present");
+    let bvh = snapshot
+        .bvh_visualization_instances
+        .first()
+        .expect("automatic virtual geometry snapshot should publish BVH visualization");
+    let root_node = bvh
+        .nodes
+        .iter()
+        .find(|node| node.node_id == 0)
+        .expect("root BVH node should exist");
+    let left_leaf = bvh
+        .nodes
+        .iter()
+        .find(|node| node.node_id == 1)
+        .expect("left leaf BVH node should exist");
+
+    assert_eq!(
+        left_leaf.resident_cluster_ids,
+        vec![100, 200],
+        "expected the forced-mip fixture to keep the mip-9 cluster resident so the test can distinguish residency from selection"
+    );
+    assert_eq!(
+        left_leaf.selected_cluster_ids,
+        vec![100],
+        "expected automatic BVH visualization to respect forced_mip when computing selected clusters instead of treating every resident cluster as selected"
+    );
+    assert_eq!(
+        root_node.selected_cluster_ids,
+        vec![100, 300],
+        "expected the automatic root BVH node to exclude resident clusters that fail the forced_mip filter"
+    );
 
     let _ = fs::remove_dir_all(root);
 }
@@ -780,6 +1131,14 @@ fn unique_temp_project_root(label: &str) -> PathBuf {
 }
 
 fn sample_virtual_geometry_model_asset() -> ModelAsset {
+    sample_virtual_geometry_model_asset_with_root_page_table(vec![10, 30])
+}
+
+fn sample_virtual_geometry_model_asset_with_root_page_table(
+    root_page_table: Vec<u32>,
+) -> ModelAsset {
+    let mut virtual_geometry = sample_virtual_geometry_asset();
+    virtual_geometry.root_page_table = root_page_table;
     ModelAsset {
         uri: AssetUri::parse("res://models/nanite_teapot.model.toml").unwrap(),
         primitives: vec![ModelPrimitiveAsset {
@@ -789,7 +1148,7 @@ fn sample_virtual_geometry_model_asset() -> ModelAsset {
                 MeshVertex::new(Vec3::Z, Vec3::Y, Vec2::Y),
             ],
             indices: vec![0, 1, 2],
-            virtual_geometry: Some(sample_virtual_geometry_asset()),
+            virtual_geometry: Some(virtual_geometry),
         }],
     }
 }

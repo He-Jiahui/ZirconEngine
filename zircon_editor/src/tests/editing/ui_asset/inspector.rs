@@ -939,4 +939,3 @@ fn ui_asset_editor_session_projects_binding_payload_schema_suggestions_and_appli
         ]
     );
 }
-

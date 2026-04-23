@@ -17,10 +17,22 @@ fn shared_document_tab_surfaces_replace_legacy_direct_click_routes() {
         env!("CARGO_MANIFEST_DIR"),
         "/src/ui/slint_host/app.rs"
     ));
-    let host_workbench_surfaces = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/host_workbench_surfaces.slint"
-    ));
+    let host_surface_owners = concat!(
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/ui/workbench/host_document_dock_surface.slint"
+        )),
+        "\n",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/ui/workbench/host_floating_window_layer.slint"
+        )),
+        "\n",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/ui/workbench/host_native_floating_window_surface.slint"
+        ))
+    );
     let wiring = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/src/ui/slint_host/app/callback_wiring.rs"
@@ -47,7 +59,7 @@ fn shared_document_tab_surfaces_replace_legacy_direct_click_routes() {
                 || host_context.contains(needle)
                 || chrome.contains(needle)
                 || host_components.contains(needle)
-                || host_workbench_surfaces.contains(needle),
+                || host_surface_owners.contains(needle),
             "document tab shared pointer hook `{needle}` is missing"
         );
     }

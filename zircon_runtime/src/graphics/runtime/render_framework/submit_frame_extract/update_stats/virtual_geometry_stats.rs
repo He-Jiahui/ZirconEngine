@@ -1,6 +1,7 @@
 use super::super::super::render_framework_state::RenderFrameworkState;
 use super::super::frame_submission_context::FrameSubmissionContext;
 use super::super::submission_record_update::SubmissionRecordUpdate;
+use std::collections::BTreeSet;
 
 pub(super) fn update_virtual_geometry_stats(
     state: &mut RenderFrameworkState,
@@ -8,10 +9,48 @@ pub(super) fn update_virtual_geometry_stats(
     record_update: &SubmissionRecordUpdate,
 ) {
     let virtual_geometry_extract = context.virtual_geometry_extract.as_ref();
+    let cull_input_snapshot = virtual_geometry_extract
+        .and_then(|_| state.renderer.last_virtual_geometry_debug_snapshot())
+        .map(|snapshot| snapshot.cull_input);
+    state.stats.last_virtual_geometry_cluster_budget = cull_input_snapshot
+        .map(|snapshot| snapshot.cluster_budget as usize)
+        .unwrap_or_else(|| {
+            virtual_geometry_extract
+                .map(|extract| extract.cluster_budget as usize)
+                .unwrap_or(0)
+        });
+    state.stats.last_virtual_geometry_page_budget = cull_input_snapshot
+        .map(|snapshot| snapshot.page_budget as usize)
+        .unwrap_or_else(|| {
+            virtual_geometry_extract
+                .map(|extract| extract.page_budget as usize)
+                .unwrap_or(0)
+        });
+    state.stats.last_virtual_geometry_input_cluster_count = cull_input_snapshot
+        .map(|snapshot| snapshot.cluster_count as usize)
+        .unwrap_or_else(|| {
+            virtual_geometry_extract
+                .map(|extract| extract.clusters.len())
+                .unwrap_or(0)
+        });
+    state.stats.last_virtual_geometry_input_page_count = cull_input_snapshot
+        .map(|snapshot| snapshot.page_count as usize)
+        .unwrap_or_else(|| {
+            virtual_geometry_extract
+                .map(|extract| extract.pages.len())
+                .unwrap_or(0)
+        });
     state.stats.last_virtual_geometry_visible_cluster_count = context
         .visibility_context
         .virtual_geometry_visible_clusters
         .len();
+    state.stats.last_virtual_geometry_visible_entity_count = cull_input_snapshot
+        .map(|snapshot| snapshot.visible_entity_count as usize)
+        .unwrap_or_else(|| {
+            virtual_geometry_extract
+                .map(visible_entity_count_from_extract)
+                .unwrap_or(0)
+        });
     state.stats.last_virtual_geometry_instance_count = virtual_geometry_extract
         .map(|extract| extract.instances.len())
         .unwrap_or(0);
@@ -89,6 +128,57 @@ pub(super) fn update_virtual_geometry_stats(
         .renderer
         .last_virtual_geometry_execution_repeated_draw_count()
         as usize;
+    state
+        .stats
+        .last_virtual_geometry_cluster_selection_input_source = virtual_geometry_extract
+        .map(|_| {
+            state
+                .renderer
+                .last_virtual_geometry_cluster_selection_input_source()
+        })
+        .unwrap_or_default();
+    state
+        .stats
+        .last_virtual_geometry_node_and_cluster_cull_source = virtual_geometry_extract
+        .map(|_| {
+            state
+                .renderer
+                .last_virtual_geometry_node_and_cluster_cull_source()
+        })
+        .unwrap_or_default();
+    state
+        .stats
+        .last_virtual_geometry_node_and_cluster_cull_record_count = virtual_geometry_extract
+        .map(|_| {
+            state
+                .renderer
+                .last_virtual_geometry_node_and_cluster_cull_record_count() as usize
+        })
+        .unwrap_or(0);
+    state
+        .stats
+        .last_virtual_geometry_node_and_cluster_cull_instance_seed_count = virtual_geometry_extract
+        .map(|_| {
+            state
+                .renderer
+                .last_virtual_geometry_node_and_cluster_cull_instance_seed_count()
+                as usize
+        })
+        .unwrap_or(0);
+    state.stats.last_virtual_geometry_selected_cluster_source = virtual_geometry_extract
+        .map(|_| {
+            state
+                .renderer
+                .last_virtual_geometry_selected_cluster_source()
+        })
+        .unwrap_or_default();
+    state.stats.last_virtual_geometry_selected_cluster_count = virtual_geometry_extract
+        .map(|_| {
+            state
+                .renderer
+                .last_virtual_geometry_selected_cluster_count() as usize
+        })
+        .unwrap_or(0);
     state.stats.last_virtual_geometry_visbuffer64_source = virtual_geometry_extract
         .map(|_| state.renderer.last_virtual_geometry_visbuffer64_source())
         .unwrap_or_default();
@@ -120,7 +210,12 @@ pub(super) fn update_virtual_geometry_stats(
 }
 
 pub(super) fn reset_virtual_geometry_stats(state: &mut RenderFrameworkState) {
+    state.stats.last_virtual_geometry_cluster_budget = 0;
+    state.stats.last_virtual_geometry_page_budget = 0;
+    state.stats.last_virtual_geometry_input_cluster_count = 0;
+    state.stats.last_virtual_geometry_input_page_count = 0;
     state.stats.last_virtual_geometry_visible_cluster_count = 0;
+    state.stats.last_virtual_geometry_visible_entity_count = 0;
     state.stats.last_virtual_geometry_instance_count = 0;
     state.stats.last_virtual_geometry_requested_page_count = 0;
     state.stats.last_virtual_geometry_dirty_page_count = 0;
@@ -152,6 +247,20 @@ pub(super) fn reset_virtual_geometry_stats(state: &mut RenderFrameworkState) {
     state
         .stats
         .last_virtual_geometry_execution_repeated_draw_count = 0;
+    state
+        .stats
+        .last_virtual_geometry_cluster_selection_input_source = Default::default();
+    state
+        .stats
+        .last_virtual_geometry_node_and_cluster_cull_source = Default::default();
+    state
+        .stats
+        .last_virtual_geometry_node_and_cluster_cull_record_count = 0;
+    state
+        .stats
+        .last_virtual_geometry_node_and_cluster_cull_instance_seed_count = 0;
+    state.stats.last_virtual_geometry_selected_cluster_source = Default::default();
+    state.stats.last_virtual_geometry_selected_cluster_count = 0;
     state.stats.last_virtual_geometry_visbuffer64_source = Default::default();
     state.stats.last_virtual_geometry_visbuffer64_entry_count = 0;
     state
@@ -160,4 +269,24 @@ pub(super) fn reset_virtual_geometry_stats(state: &mut RenderFrameworkState) {
     state
         .stats
         .last_virtual_geometry_hardware_rasterization_record_count = 0;
+}
+
+fn visible_entity_count_from_extract(
+    extract: &crate::core::framework::render::RenderVirtualGeometryExtract,
+) -> usize {
+    if !extract.instances.is_empty() {
+        return extract
+            .instances
+            .iter()
+            .map(|instance| instance.entity)
+            .collect::<BTreeSet<_>>()
+            .len();
+    }
+
+    extract
+        .clusters
+        .iter()
+        .map(|cluster| cluster.entity)
+        .collect::<BTreeSet<_>>()
+        .len()
 }

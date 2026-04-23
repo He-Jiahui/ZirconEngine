@@ -1,0 +1,341 @@
+import { Palette, ShellIcon } from "chrome.slint";
+import { WorkbenchHostContext } from "host_context.slint";
+import { HostTabDragOverlayData } from "host_components.slint";
+
+export component HostTabDragOverlay inherits Rectangle {
+    in property <HostTabDragOverlayData> overlay_data: {
+        left_drop_enabled: false,
+        right_drop_enabled: false,
+        bottom_drop_enabled: false,
+        left_drop_width_px: 0.0,
+        right_drop_width_px: 0.0,
+        bottom_drop_height_px: 0.0,
+        main_content_y_px: 0.0,
+        main_content_height_px: 0.0,
+        document_zone_x_px: 0.0,
+        document_zone_width_px: 0.0,
+        bottom_drop_top_px: 0.0,
+        drag_overlay_bottom_px: 0.0,
+    };
+    palette := Palette {}
+    x: 0px;
+    y: 0px;
+    background: transparent;
+    visible: WorkbenchHostContext.drag_state.drag_active;
+    property <string> drag_target_label:
+        WorkbenchHostContext.drag_state.active_drag_target_group == "left" ? "Dock Left" :
+        WorkbenchHostContext.drag_state.active_drag_target_group == "right" ? "Dock Right" :
+        WorkbenchHostContext.drag_state.active_drag_target_group == "bottom" ? "Dock Bottom" :
+        WorkbenchHostContext.drag_state.active_drag_target_group == "document-left" ? "Split Left" :
+        WorkbenchHostContext.drag_state.active_drag_target_group == "document-right" ? "Split Right" :
+        WorkbenchHostContext.drag_state.active_drag_target_group == "document-top" ? "Split Top" :
+        WorkbenchHostContext.drag_state.active_drag_target_group == "document-bottom" ? "Split Bottom" :
+        WorkbenchHostContext.drag_state.active_drag_target_group == "document" ? "Dock Document" :
+        "Drag Tab";
+
+    property <bool> document_drop_active:
+        WorkbenchHostContext.drag_state.active_drag_target_group == "document" ||
+        WorkbenchHostContext.drag_state.active_drag_target_group == "document-left" ||
+        WorkbenchHostContext.drag_state.active_drag_target_group == "document-right" ||
+        WorkbenchHostContext.drag_state.active_drag_target_group == "document-top" ||
+        WorkbenchHostContext.drag_state.active_drag_target_group == "document-bottom";
+    property <bool> document_left_drop_active: WorkbenchHostContext.drag_state.active_drag_target_group == "document-left";
+    property <bool> document_right_drop_active: WorkbenchHostContext.drag_state.active_drag_target_group == "document-right";
+    property <bool> document_top_drop_active: WorkbenchHostContext.drag_state.active_drag_target_group == "document-top";
+    property <bool> document_bottom_drop_active: WorkbenchHostContext.drag_state.active_drag_target_group == "document-bottom";
+
+    drag_capture := TouchArea {
+        width: parent.width;
+        height: parent.height;
+        mouse-cursor: MouseCursor.grabbing;
+        moved => {
+            WorkbenchHostContext.drag_state = {
+                active_drag_target_group: WorkbenchHostContext.drag_state.active_drag_target_group,
+                drag_active: WorkbenchHostContext.drag_state.drag_active,
+                drag_tab_id: WorkbenchHostContext.drag_state.drag_tab_id,
+                drag_tab_title: WorkbenchHostContext.drag_state.drag_tab_title,
+                drag_tab_icon_key: WorkbenchHostContext.drag_state.drag_tab_icon_key,
+                drag_source_group: WorkbenchHostContext.drag_state.drag_source_group,
+                drag_pointer_x: self.mouse-x / 1px,
+                drag_pointer_y: self.mouse-y / 1px,
+            };
+            WorkbenchHostContext.workbench_drag_pointer_event(
+                1,
+                WorkbenchHostContext.drag_state.drag_pointer_x,
+                WorkbenchHostContext.drag_state.drag_pointer_y,
+            );
+        }
+        pointer-event(event) => {
+            if (event.button == PointerEventButton.left && event.kind == PointerEventKind.up) {
+                WorkbenchHostContext.drag_state = {
+                    active_drag_target_group: WorkbenchHostContext.drag_state.active_drag_target_group,
+                    drag_active: WorkbenchHostContext.drag_state.drag_active,
+                    drag_tab_id: WorkbenchHostContext.drag_state.drag_tab_id,
+                    drag_tab_title: WorkbenchHostContext.drag_state.drag_tab_title,
+                    drag_tab_icon_key: WorkbenchHostContext.drag_state.drag_tab_icon_key,
+                    drag_source_group: WorkbenchHostContext.drag_state.drag_source_group,
+                    drag_pointer_x: self.mouse-x / 1px,
+                    drag_pointer_y: self.mouse-y / 1px,
+                };
+                WorkbenchHostContext.workbench_drag_pointer_event(
+                    2,
+                    WorkbenchHostContext.drag_state.drag_pointer_x,
+                    WorkbenchHostContext.drag_state.drag_pointer_y,
+                );
+                WorkbenchHostContext.drag_state = {
+                    active_drag_target_group: "",
+                    drag_active: false,
+                    drag_tab_id: "",
+                    drag_tab_title: "",
+                    drag_tab_icon_key: "",
+                    drag_source_group: "",
+                    drag_pointer_x: 0.0,
+                    drag_pointer_y: 0.0,
+                };
+            }
+        }
+    }
+
+    if root.overlay_data.left_drop_enabled: Rectangle {
+        x: 8px;
+        y: root.overlay_data.main_content_y_px * 1px + 8px;
+        width: root.overlay_data.left_drop_width_px * 1px - 16px;
+        height: root.overlay_data.main_content_height_px * 1px - 16px;
+        border-radius: 6px;
+        border-width: 1px;
+        border-color: WorkbenchHostContext.drag_state.active_drag_target_group == "left" ? palette.accent : palette.border_soft;
+        background: WorkbenchHostContext.drag_state.active_drag_target_group == "left" ? #2c527933 : #17191d22;
+        opacity: WorkbenchHostContext.drag_state.active_drag_target_group == "left" ? 1.0 : 0.78;
+        animate opacity { duration: 60ms; }
+
+        Text {
+            x: 12px;
+            y: 12px;
+            text: "Dock Left";
+            color: WorkbenchHostContext.drag_state.active_drag_target_group == "left" ? palette.text : palette.text_dim;
+            font-size: 10px;
+            font-weight: 600;
+        }
+    }
+
+    Rectangle {
+        x: root.overlay_data.document_zone_x_px * 1px + 8px;
+        y: root.overlay_data.main_content_y_px * 1px + 8px;
+        width: max(root.overlay_data.document_zone_width_px * 1px - 16px, 80px);
+        height: root.overlay_data.main_content_height_px * 1px - 16px;
+        border-radius: 8px;
+        border-width: 1px;
+        border-color: root.document_drop_active ? palette.accent : palette.border_soft;
+        background: root.document_drop_active ? #2c527933 : #17191d11;
+        opacity: root.document_drop_active ? 1.0 : 0.7;
+        animate opacity { duration: 60ms; }
+
+        Text {
+            x: 12px;
+            y: 12px;
+            text: "Dock Document";
+            color: root.document_drop_active ? palette.text : palette.text_dim;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        if root.document_left_drop_active: Rectangle {
+            x: 12px;
+            y: 34px;
+            width: min(max(72px, parent.width * 0.22), parent.width * 0.45);
+            height: max(parent.height - 68px, 56px);
+            border-radius: 6px;
+            border-width: 1px;
+            border-color: palette.accent;
+            background: #2c527955;
+
+            Text {
+                x: 10px;
+                y: 10px;
+                text: "Split Left";
+                color: palette.text;
+                font-size: 10px;
+                font-weight: 600;
+            }
+        }
+
+        if root.document_right_drop_active: Rectangle {
+            x: parent.width - self.width - 12px;
+            y: 34px;
+            width: min(max(72px, parent.width * 0.22), parent.width * 0.45);
+            height: max(parent.height - 68px, 56px);
+            border-radius: 6px;
+            border-width: 1px;
+            border-color: palette.accent;
+            background: #2c527955;
+
+            Text {
+                x: parent.width - self.preferred-width - 10px;
+                y: 10px;
+                text: "Split Right";
+                color: palette.text;
+                font-size: 10px;
+                font-weight: 600;
+            }
+        }
+
+        if root.document_top_drop_active: Rectangle {
+            x: 12px;
+            y: 34px;
+            width: max(parent.width - 24px, 56px);
+            height: min(max(54px, parent.height * 0.18), parent.height * 0.38);
+            border-radius: 6px;
+            border-width: 1px;
+            border-color: palette.accent;
+            background: #2c527955;
+
+            Text {
+                x: 10px;
+                y: 10px;
+                text: "Split Top";
+                color: palette.text;
+                font-size: 10px;
+                font-weight: 600;
+            }
+        }
+
+        if root.document_bottom_drop_active: Rectangle {
+            x: 12px;
+            y: parent.height - self.height - 12px;
+            width: max(parent.width - 24px, 56px);
+            height: min(max(54px, parent.height * 0.18), parent.height * 0.38);
+            border-radius: 6px;
+            border-width: 1px;
+            border-color: palette.accent;
+            background: #2c527955;
+
+            Text {
+                x: 10px;
+                y: 10px;
+                text: "Split Bottom";
+                color: palette.text;
+                font-size: 10px;
+                font-weight: 600;
+            }
+        }
+    }
+
+    if root.overlay_data.right_drop_enabled: Rectangle {
+        x: parent.width - root.overlay_data.right_drop_width_px * 1px + 8px;
+        y: root.overlay_data.main_content_y_px * 1px + 8px;
+        width: root.overlay_data.right_drop_width_px * 1px - 16px;
+        height: root.overlay_data.main_content_height_px * 1px - 16px;
+        border-radius: 6px;
+        border-width: 1px;
+        border-color: WorkbenchHostContext.drag_state.active_drag_target_group == "right" ? palette.accent : palette.border_soft;
+        background: WorkbenchHostContext.drag_state.active_drag_target_group == "right" ? #2c527933 : #17191d22;
+        opacity: WorkbenchHostContext.drag_state.active_drag_target_group == "right" ? 1.0 : 0.78;
+        animate opacity { duration: 60ms; }
+
+        Text {
+            x: parent.width - self.preferred-width - 12px;
+            y: 12px;
+            text: "Dock Right";
+            color: WorkbenchHostContext.drag_state.active_drag_target_group == "right" ? palette.text : palette.text_dim;
+            font-size: 10px;
+            font-weight: 600;
+        }
+    }
+
+    if root.overlay_data.bottom_drop_enabled: Rectangle {
+        x: 8px;
+        y: root.overlay_data.bottom_drop_top_px * 1px + 8px;
+        width: parent.width - 16px;
+        height: root.overlay_data.bottom_drop_height_px * 1px - 16px;
+        border-radius: 6px;
+        border-width: 1px;
+        border-color: WorkbenchHostContext.drag_state.active_drag_target_group == "bottom" ? palette.accent : palette.border_soft;
+        background: WorkbenchHostContext.drag_state.active_drag_target_group == "bottom" ? #2c527933 : #17191d22;
+        opacity: WorkbenchHostContext.drag_state.active_drag_target_group == "bottom" ? 1.0 : 0.78;
+        animate opacity { duration: 60ms; }
+
+        Text {
+            x: 12px;
+            y: 12px;
+            text: "Dock Bottom";
+            color: WorkbenchHostContext.drag_state.active_drag_target_group == "bottom" ? palette.text : palette.text_dim;
+            font-size: 10px;
+            font-weight: 600;
+        }
+    }
+
+    drag_preview := Rectangle {
+        width: min(max(188px, drag_preview_title.preferred-width + 126px), 360px);
+        height: 44px;
+        x: clamp(WorkbenchHostContext.drag_state.drag_pointer_x * 1px + 18px, 12px, parent.width - self.width - 12px);
+        y: clamp(
+            WorkbenchHostContext.drag_state.drag_pointer_y * 1px - self.height - 14px,
+            root.overlay_data.main_content_y_px * 1px + 12px,
+            root.overlay_data.drag_overlay_bottom_px * 1px - self.height - 12px
+        );
+        border-radius: 7px;
+        border-width: 1px;
+        border-color: WorkbenchHostContext.drag_state.active_drag_target_group != "" ? palette.accent : palette.border_soft;
+        background: WorkbenchHostContext.drag_state.active_drag_target_group != "" ? #16202cf4 : #1b1e24f4;
+        opacity: 0.99;
+
+        Rectangle {
+            width: 4px;
+            height: parent.height;
+            border-radius: 7px;
+            background: WorkbenchHostContext.drag_state.active_drag_target_group != "" ? palette.accent : palette.border;
+        }
+
+        ShellIcon {
+            width: 14px;
+            height: 14px;
+            x: 14px;
+            y: 13px;
+            icon_key: WorkbenchHostContext.drag_state.drag_tab_icon_key != "" ? WorkbenchHostContext.drag_state.drag_tab_icon_key : "project";
+            icon_color: palette.text;
+        }
+
+        drag_preview_title := Text {
+            x: 36px;
+            y: 7px;
+            width: parent.width - 146px;
+            text: WorkbenchHostContext.drag_state.drag_tab_title != "" ? WorkbenchHostContext.drag_state.drag_tab_title : root.drag_target_label;
+            color: palette.text;
+            font-size: 11px;
+            font-weight: 600;
+            overflow: elide;
+        }
+
+        Text {
+            x: 36px;
+            y: 24px;
+            width: parent.width - 146px;
+            text: WorkbenchHostContext.drag_state.active_drag_target_group != "" ? "Release to dock" : "Drag to dock or reorder";
+            color: WorkbenchHostContext.drag_state.active_drag_target_group != "" ? palette.accent : palette.text_dim;
+            font-size: 9px;
+            overflow: elide;
+        }
+
+        drag_target_badge := Rectangle {
+            x: parent.width - self.width - 10px;
+            y: 10px;
+            width: min(max(72px, badge_text.preferred-width + 18px), 132px);
+            height: 22px;
+            border-radius: 11px;
+            border-width: 1px;
+            border-color: WorkbenchHostContext.drag_state.active_drag_target_group != "" ? palette.accent : palette.border_soft;
+            background: WorkbenchHostContext.drag_state.active_drag_target_group != "" ? #2c527944 : #20242b;
+
+            badge_text := Text {
+                width: parent.width;
+                height: parent.height;
+                text: root.drag_target_label != "" ? root.drag_target_label : "Move Tab";
+                color: WorkbenchHostContext.drag_state.active_drag_target_group != "" ? palette.text : palette.text_dim;
+                font-size: 9px;
+                font-weight: 600;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+        }
+    }
+}

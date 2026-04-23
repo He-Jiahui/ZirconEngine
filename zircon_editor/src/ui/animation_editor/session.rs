@@ -110,6 +110,14 @@ impl AnimationEditorSession {
         self.dirty
     }
 
+    pub fn save(&mut self) -> Result<(), AnimationEditorSessionError> {
+        let bytes = self.document_bytes()?;
+        std::fs::write(&self.asset_path, bytes)
+            .map_err(|error| AnimationEditorSessionError(error.to_string()))?;
+        self.dirty = false;
+        Ok(())
+    }
+
     pub fn display_name(&self) -> String {
         match &self.document {
             AnimationEditorDocument::Sequence(document) => document
@@ -832,6 +840,21 @@ impl AnimationEditorSession {
         }
         Ok(None)
     }
+
+    fn document_bytes(&self) -> Result<Vec<u8>, AnimationEditorSessionError> {
+        match &self.document {
+            AnimationEditorDocument::Sequence(document) => document
+                .asset
+                .to_bytes()
+                .map_err(AnimationEditorSessionError),
+            AnimationEditorDocument::Graph(asset) => {
+                asset.to_bytes().map_err(AnimationEditorSessionError)
+            }
+            AnimationEditorDocument::StateMachine(asset) => {
+                asset.to_bytes().map_err(AnimationEditorSessionError)
+            }
+        }
+    }
 }
 
 fn default_channel() -> AnimationChannelAsset {
@@ -855,7 +878,8 @@ fn fallback_title(asset_path: &str) -> String {
 }
 
 fn duration_frames(duration_seconds: f32, frames_per_second: f32) -> u32 {
-    (duration_seconds.max(0.0) * sanitize_frames_per_second(frames_per_second)).round() as u32
+    (sanitize_duration_seconds(duration_seconds) * sanitize_frames_per_second(frames_per_second))
+        .round() as u32
 }
 
 fn clamp_timeline_span(
@@ -871,11 +895,19 @@ fn clamp_timeline_span(
 }
 
 fn frame_to_seconds(frame: u32, frames_per_second: f32) -> f32 {
-    frame as f32 / frames_per_second.max(1.0)
+    frame as f32 / sanitize_frames_per_second(frames_per_second).max(1.0)
+}
+
+fn sanitize_duration_seconds(duration_seconds: f32) -> f32 {
+    if duration_seconds.is_finite() && duration_seconds >= 0.0 {
+        duration_seconds
+    } else {
+        0.0
+    }
 }
 
 fn sanitize_frames_per_second(frames_per_second: f32) -> f32 {
-    if frames_per_second > 0.0 {
+    if frames_per_second.is_finite() && frames_per_second > 0.0 {
         frames_per_second
     } else {
         DEFAULT_SEQUENCE_FRAMES_PER_SECOND

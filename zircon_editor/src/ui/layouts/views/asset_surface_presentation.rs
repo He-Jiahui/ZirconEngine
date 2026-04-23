@@ -6,10 +6,9 @@ use slint::{Image, ModelRc, SharedString};
 use zircon_runtime::core::resource::{ResourceKind, ResourceState};
 
 use crate::ui::layouts::common::model_rc;
-use crate::ui::slint_host::{
-    AssetFolderData, AssetItemData, AssetReferenceData, AssetSelectionData,
-};
 use crate::ui::workbench::snapshot::{AssetUtilityTab, AssetViewMode, AssetWorkspaceSnapshot};
+
+use super::{AssetFolderData, AssetItemData, AssetReferenceData, AssetSelectionData};
 
 thread_local! {
     static PREVIEW_IMAGE_CACHE: RefCell<HashMap<String, Image>> = RefCell::new(HashMap::new());

@@ -29,6 +29,8 @@ impl AssetImporter {
                     &model.mesh.normals,
                     &model.mesh.texcoords,
                     &model.mesh.indices,
+                    &[],
+                    &[],
                 )
             })
             .collect::<Result<Vec<_>, _>>()?;

@@ -1,9 +1,9 @@
 #[test]
 fn inspector_surface_controls_use_generic_template_callbacks_instead_of_legacy_business_abi() {
     let workbench = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/ui/workbench.slint"));
-    let panes = include_str!(concat!(
+    let pane_content = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/panes.slint"
+        "/ui/workbench/pane_content.slint"
     ));
     let wiring = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
@@ -49,7 +49,7 @@ fn inspector_surface_controls_use_generic_template_callbacks_instead_of_legacy_b
         "clicked => { root.delete_selected(); }",
     ] {
         assert!(
-            !panes.contains(needle),
+            !pane_content.contains(needle),
             "inspector pane still exposes legacy direct control callback `{needle}`"
         );
     }

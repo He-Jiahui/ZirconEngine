@@ -19,6 +19,7 @@ pub(super) fn pending_probe_inputs(
     resolve_runtime: Option<&HybridGiResolveRuntime>,
     extract: Option<&RenderHybridGiExtract>,
 ) -> Vec<GpuPendingProbeInput> {
+    let current_trace_schedule_is_empty = prepare.scheduled_trace_region_ids.is_empty();
     let resident_probe_ids = prepare
         .resident_probes
         .iter()
@@ -57,10 +58,12 @@ pub(super) fn pending_probe_inputs(
             let (
                 runtime_hierarchy_irradiance_weight_q,
                 runtime_hierarchy_irradiance_rgb,
+                runtime_hierarchy_irradiance_includes_scene_truth,
             ) = runtime_irradiance_source(resolve_runtime, extract, update.probe_id);
             let (
                 runtime_trace_support_q,
                 runtime_trace_lighting_rgb,
+                runtime_trace_includes_scene_truth,
             ) = runtime_trace_source(resolve_runtime, extract, update.probe_id);
             let (lineage_trace_support_q, lineage_trace_lighting_rgb) = merge_trace_sources(
                 scheduled_trace_support_q,
@@ -79,7 +82,14 @@ pub(super) fn pending_probe_inputs(
                 radius_q: probe_radius_q(extract, update.probe_id),
                 runtime_hierarchy_irradiance_rgb,
                 runtime_hierarchy_irradiance_weight_q,
+                skip_scene_prepare_for_irradiance_q: u32::from(
+                    current_trace_schedule_is_empty
+                        && runtime_hierarchy_irradiance_includes_scene_truth,
+                ),
                 lineage_trace_lighting_rgb,
+                skip_scene_prepare_for_trace_q: u32::from(
+                    current_trace_schedule_is_empty && runtime_trace_includes_scene_truth,
+                ),
                 parent_probe_id: probe_parent_probe_id(extract, update.probe_id),
                 resident_ancestor_probe_id,
                 resident_ancestor_depth,

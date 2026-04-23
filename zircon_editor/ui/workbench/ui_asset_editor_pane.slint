@@ -3,7 +3,9 @@ import { UiAssetActionStateData, UiAssetCollectionPanelData, UiAssetEditorPaneDa
 import { UiAssetSelectableSection } from "ui_asset_editor_components.slint";
 import { UiAssetEditorCenterColumn } from "ui_asset_editor_center_column.slint";
 import { UiAssetEditorInspectorPanel } from "ui_asset_editor_inspector_panel.slint";
+import { UiAssetEditorPaletteTargetChooser } from "ui_asset_editor_palette_target_chooser.slint";
 import { UiAssetEditorStylesheetPanel } from "ui_asset_editor_stylesheet_panel.slint";
+import { TemplatePaneNodeData } from "template_node_data.slint";
 
 export component UiAssetEditorPane inherits Rectangle {
     in property <UiAssetEditorPaneData> pane;
@@ -15,6 +17,7 @@ export component UiAssetEditorPane inherits Rectangle {
     callback update_palette_drag_pointer(pointer_x: float, pointer_y: float);
     callback clear_palette_drag_session();
     callback collection_event(collection_id: string, event_kind: string, item_index: int);
+    property <[TemplatePaneNodeData]> nodes: root.pane.nodes;
     property <UiAssetPaneHeaderData> header: root.pane.header;
     property <UiAssetActionStateData> actions: root.pane.actions;
     property <UiAssetCollectionPanelData> collections: root.pane.collections;
@@ -258,227 +261,266 @@ export component UiAssetEditorPane inherits Rectangle {
     background: transparent;
     clip: true;
 
-    Rectangle {
-        x: 10px;
-        y: 10px;
-        width: parent.width - 20px;
-        height: 56px;
+    for header_panel_node in root.nodes: Rectangle {
+        visible: header_panel_node.control_id == "HeaderPanel";
+        x: header_panel_node.frame.x * 1px;
+        y: header_panel_node.frame.y * 1px;
+        width: header_panel_node.frame.width * 1px;
+        height: header_panel_node.frame.height * 1px;
         border-radius: 4px;
         border-width: 1px;
         border-color: palette.border_soft;
         background: #ffffff06;
 
-        Text {
-            x: 10px;
-            y: 6px;
-            text: root.header.asset_id != "" ? root.header.asset_id : root.header.mode;
-            color: palette.text;
-            font-size: 10px;
-            overflow: elide;
-        }
-
-        Text {
-            x: 10px;
-            y: 16px;
-            width: parent.width - 20px;
-            text:
-                root.header.status != "" ?
-                root.header.mode + " • " + root.header.selection + " • " + root.header.status :
-                root.header.mode + " • " + root.header.selection;
-            color: palette.text_dim;
-            font-size: 9px;
-            overflow: elide;
-        }
-
-        HorizontalLayout {
-            x: 10px;
-            y: 28px;
-            width: parent.width - 20px;
-            spacing: 4px;
-
-            ShellButton {
-                width: 56px;
-                label: "Design";
-                active: root.header.mode == "Design";
-                clicked => { root.action("mode.design"); }
-            }
-            ShellButton {
-                width: 52px;
-                label: "Split";
-                active: root.header.mode == "Split";
-                clicked => { root.action("mode.split"); }
-            }
-            ShellButton {
-                width: 56px;
-                label: "Source";
-                active: root.header.mode == "Source";
-                clicked => { root.action("mode.source"); }
-            }
-            ShellButton {
-                width: 60px;
-                label: "Preview";
-                active: root.header.mode == "Preview";
-                clicked => { root.action("mode.preview"); }
-            }
-
-            Rectangle { width: 1px; height: 20px; background: palette.border_soft; }
-
-            ShellButton {
-                width: 58px;
-                label: "Docked";
-                active: root.preview_panel.preset == "Editor Docked";
-                clicked => { root.action("preview.preset.editor_docked"); }
-            }
-            ShellButton {
-                width: 50px;
-                label: "Float";
-                active: root.preview_panel.preset == "Editor Floating";
-                clicked => { root.action("preview.preset.editor_floating"); }
-            }
-            ShellButton {
-                width: 44px;
-                label: "HUD";
-                active: root.preview_panel.preset == "Game HUD";
-                clicked => { root.action("preview.preset.game_hud"); }
-            }
-            ShellButton {
-                width: 58px;
-                label: "Dialog";
-                active: root.preview_panel.preset == "Dialog";
-                clicked => { root.action("preview.preset.dialog"); }
-            }
-
-            Rectangle { width: 1px; height: 20px; background: palette.border_soft; }
-
-            ShellButton {
-                width: 46px;
-                label: "Save";
-                enabled: root.actions.can_save;
-                active: root.actions.can_save;
-                clicked => { root.action("save"); }
-            }
-            ShellButton {
-                width: 48px;
-                label: "Undo";
-                enabled: root.actions.can_undo;
-                clicked => { root.action("undo"); }
-            }
-            ShellButton {
-                width: 48px;
-                label: "Redo";
-                enabled: root.actions.can_redo;
-                clicked => { root.action("redo"); }
-            }
+        for header_asset_row_node in root.nodes: Rectangle {
+            visible: header_asset_row_node.control_id == "HeaderAssetRow";
+            x: (header_asset_row_node.frame.x - header_panel_node.frame.x) * 1px;
+            y: (header_asset_row_node.frame.y - header_panel_node.frame.y) * 1px;
+            width: header_asset_row_node.frame.width * 1px;
+            height: header_asset_row_node.frame.height * 1px;
+            background: transparent;
+            clip: true;
 
             Text {
-                text: root.preview_panel.available ? root.preview_panel.summary : "Preview unavailable";
+                x: 0px;
+                y: 0px;
+                width: parent.width;
+                height: parent.height;
+                text: root.header.asset_id != "" ? root.header.asset_id : root.header.mode;
+                color: palette.text;
+                font-size: 10px;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+        }
+
+        for header_status_row_node in root.nodes: Rectangle {
+            visible: header_status_row_node.control_id == "HeaderStatusRow";
+            x: (header_status_row_node.frame.x - header_panel_node.frame.x) * 1px;
+            y: (header_status_row_node.frame.y - header_panel_node.frame.y) * 1px;
+            width: header_status_row_node.frame.width * 1px;
+            height: header_status_row_node.frame.height * 1px;
+            background: transparent;
+            clip: true;
+
+            Text {
+                x: 0px;
+                y: 0px;
+                width: parent.width;
+                height: parent.height;
+                text:
+                    root.header.status != "" ?
+                    root.header.mode + " • " + root.header.selection + " • " + root.header.status :
+                    root.header.mode + " • " + root.header.selection;
                 color: palette.text_dim;
                 font-size: 9px;
                 vertical-alignment: center;
                 overflow: elide;
             }
         }
+
+        for header_action_row_node in root.nodes: Rectangle {
+            visible: header_action_row_node.control_id == "HeaderActionRow";
+            x: (header_action_row_node.frame.x - header_panel_node.frame.x) * 1px;
+            y: (header_action_row_node.frame.y - header_panel_node.frame.y) * 1px;
+            width: header_action_row_node.frame.width * 1px;
+            height: header_action_row_node.frame.height * 1px;
+            background: transparent;
+            clip: true;
+
+            HorizontalLayout {
+                x: 0px;
+                y: 0px;
+                width: parent.width;
+                height: parent.height;
+                spacing: 4px;
+
+                ShellButton {
+                    width: 56px;
+                    label: "Design";
+                    active: root.header.mode == "Design";
+                    clicked => { root.action("mode.design"); }
+                }
+                ShellButton {
+                    width: 52px;
+                    label: "Split";
+                    active: root.header.mode == "Split";
+                    clicked => { root.action("mode.split"); }
+                }
+                ShellButton {
+                    width: 56px;
+                    label: "Source";
+                    active: root.header.mode == "Source";
+                    clicked => { root.action("mode.source"); }
+                }
+                ShellButton {
+                    width: 60px;
+                    label: "Preview";
+                    active: root.header.mode == "Preview";
+                    clicked => { root.action("mode.preview"); }
+                }
+
+                Rectangle { width: 1px; height: 20px; background: palette.border_soft; }
+
+                ShellButton {
+                    width: 58px;
+                    label: "Docked";
+                    active: root.preview_panel.preset == "Editor Docked";
+                    clicked => { root.action("preview.preset.editor_docked"); }
+                }
+                ShellButton {
+                    width: 50px;
+                    label: "Float";
+                    active: root.preview_panel.preset == "Editor Floating";
+                    clicked => { root.action("preview.preset.editor_floating"); }
+                }
+                ShellButton {
+                    width: 44px;
+                    label: "HUD";
+                    active: root.preview_panel.preset == "Game HUD";
+                    clicked => { root.action("preview.preset.game_hud"); }
+                }
+                ShellButton {
+                    width: 58px;
+                    label: "Dialog";
+                    active: root.preview_panel.preset == "Dialog";
+                    clicked => { root.action("preview.preset.dialog"); }
+                }
+
+                Rectangle { width: 1px; height: 20px; background: palette.border_soft; }
+
+                ShellButton {
+                    width: 46px;
+                    label: "Save";
+                    enabled: root.actions.can_save;
+                    active: root.actions.can_save;
+                    clicked => { root.action("save"); }
+                }
+                ShellButton {
+                    width: 48px;
+                    label: "Undo";
+                    enabled: root.actions.can_undo;
+                    clicked => { root.action("undo"); }
+                }
+                ShellButton {
+                    width: 48px;
+                    label: "Redo";
+                    enabled: root.actions.can_redo;
+                    clicked => { root.action("redo"); }
+                }
+
+                Text {
+                    text: root.preview_panel.available ? root.preview_panel.summary : "Preview unavailable";
+                    color: palette.text_dim;
+                    font-size: 9px;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+            }
+        }
     }
 
-    HorizontalLayout {
-        x: 10px;
-        y: 74px;
-        width: parent.width - 20px;
-        height: parent.height - 84px;
-        spacing: 8px;
+    for left_column_node in root.nodes: Rectangle {
+        visible: left_column_node.control_id == "LeftColumn";
+        x: left_column_node.frame.x * 1px;
+        y: left_column_node.frame.y * 1px;
+        width: left_column_node.frame.width * 1px;
+        height: left_column_node.frame.height * 1px;
+        background: transparent;
 
-        Rectangle {
-            width: 240px;
-            height: parent.height;
-            background: transparent;
-
-            VerticalLayout {
-                width: parent.width;
-                height: parent.height;
-                spacing: 8px;
-
-                palette_section := UiAssetSelectableSection {
-                    height: parent.height * 0.42;
-                    title: "Palette";
-                    items: root.collections.palette.items;
-                    selected_index: root.collections.palette.selected_index;
-                    accent: #9dc07c;
-                    drag_enabled: true;
-                    item_selected(item_index) => { root.collection_event("palette", "selected", item_index); }
-                    item_drag_started(item_index, x, y) => {
-                        root.collection_event("palette", "selected", item_index);
-                        root.begin_palette_drag_session(
-                            item_index,
-                            palette_section.x / 1px + x,
-                            palette_section.y / 1px + y,
-                        );
-                        drag_focus_host.focus();
-                    }
-                }
-
-                UiAssetSelectableSection {
-                    height: parent.height * 0.58 - 8px;
-                    title: "Hierarchy";
-                    items: root.collections.hierarchy.items;
-                    selected_index: root.collections.hierarchy.selected_index;
-                    accent: #7aa2e3;
-                    item_selected(item_index) => { root.collection_event("hierarchy", "selected", item_index); }
-                    item_activated(item_index) => { root.collection_event("hierarchy", "activated", item_index); }
-                }
+        for palette_panel_node in root.nodes: palette_section := UiAssetSelectableSection {
+            visible: palette_panel_node.control_id == "PalettePanel";
+            x: (palette_panel_node.frame.x - left_column_node.frame.x) * 1px;
+            y: (palette_panel_node.frame.y - left_column_node.frame.y) * 1px;
+            width: palette_panel_node.frame.width * 1px;
+            height: palette_panel_node.frame.height * 1px;
+            title: "Palette";
+            items: root.collections.palette.items;
+            selected_index: root.collections.palette.selected_index;
+            accent: #9dc07c;
+            drag_enabled: true;
+            item_selected(item_index) => { root.collection_event("palette", "selected", item_index); }
+            item_drag_started(item_index, x, y) => {
+                root.collection_event("palette", "selected", item_index);
+                root.begin_palette_drag_session(
+                    item_index,
+                    left_column_node.frame.x + palette_section.x / 1px + x,
+                    left_column_node.frame.y + palette_section.y / 1px + y,
+                );
+                drag_focus_host.focus();
             }
         }
 
-        center_column := UiAssetEditorCenterColumn {
-            width: max(240px, parent.width - 536px);
-            height: parent.height;
-            actions: root.actions;
-            collections: root.collections;
-            source_panel: root.source_panel;
-            preview_panel: root.preview_panel;
-            palette_drag_projection: root.palette_drag_projection;
-            draft_data: root.draft_data;
-            palette_drag_session: root.palette_drag_session;
-            action(action_id) => { root.action(action_id); }
-            detail_event(detail_id, action_id, item_index, primary, secondary) => { root.detail_event(detail_id, action_id, item_index, primary, secondary); }
-            draft_value_changed(draft_id, value) => { root.draft_value_changed(draft_id, value); }
-            clear_draft(draft_id) => { root.clear_draft(draft_id); }
-            collection_event(collection_id, event_kind, item_index) => { root.collection_event(collection_id, event_kind, item_index); }
+        for hierarchy_panel_node in root.nodes: UiAssetSelectableSection {
+            visible: hierarchy_panel_node.control_id == "HierarchyPanel";
+            x: (hierarchy_panel_node.frame.x - left_column_node.frame.x) * 1px;
+            y: (hierarchy_panel_node.frame.y - left_column_node.frame.y) * 1px;
+            width: hierarchy_panel_node.frame.width * 1px;
+            height: hierarchy_panel_node.frame.height * 1px;
+            title: "Hierarchy";
+            items: root.collections.hierarchy.items;
+            selected_index: root.collections.hierarchy.selected_index;
+            accent: #7aa2e3;
+            item_selected(item_index) => { root.collection_event("hierarchy", "selected", item_index); }
+            item_activated(item_index) => { root.collection_event("hierarchy", "activated", item_index); }
         }
+    }
 
-        Rectangle {
-            width: 280px;
-            height: parent.height;
-            background: transparent;
+    center_column := UiAssetEditorCenterColumn {
+        visible: root.pane.center_column_node.control_id == "CenterColumn";
+        x: root.pane.center_column_node.frame.x * 1px;
+        y: root.pane.center_column_node.frame.y * 1px;
+        width: root.pane.center_column_node.frame.width * 1px;
+        height: root.pane.center_column_node.frame.height * 1px;
+        nodes: root.nodes;
+        center_column_node: root.pane.center_column_node;
+        designer_panel_node: root.pane.designer_panel_node;
+        designer_canvas_panel_node: root.pane.designer_canvas_panel_node;
+        actions: root.actions;
+        collections: root.collections;
+        source_panel: root.source_panel;
+        preview_panel: root.preview_panel;
+        palette_drag_projection: root.palette_drag_projection;
+        draft_data: root.draft_data;
+        palette_drag_session: root.palette_drag_session;
+        action(action_id) => { root.action(action_id); }
+        detail_event(detail_id, action_id, item_index, primary, secondary) => { root.detail_event(detail_id, action_id, item_index, primary, secondary); }
+        draft_value_changed(draft_id, value) => { root.draft_value_changed(draft_id, value); }
+        clear_draft(draft_id) => { root.clear_draft(draft_id); }
+        collection_event(collection_id, event_kind, item_index) => { root.collection_event(collection_id, event_kind, item_index); }
+    }
 
-            VerticalLayout {
-                width: parent.width;
-                height: parent.height;
-                spacing: 8px;
+    UiAssetEditorInspectorPanel {
+        visible: root.pane.inspector_panel_node.control_id == "InspectorPanel";
+        x: root.pane.inspector_panel_node.frame.x * 1px;
+        y: root.pane.inspector_panel_node.frame.y * 1px;
+        width: root.pane.inspector_panel_node.frame.width * 1px;
+        height: root.pane.inspector_panel_node.frame.height * 1px;
+        nodes: root.nodes;
+        panel_node: root.pane.inspector_panel_node;
+        inspector_panel: root.inspector_panel;
+        draft_data: root.draft_data;
+        detail_event(detail_id, action_id, item_index, primary, secondary) => { root.detail_event(detail_id, action_id, item_index, primary, secondary); }
+        draft_value_changed(draft_id, value) => { root.draft_value_changed(draft_id, value); }
+        clear_draft(draft_id) => { root.clear_draft(draft_id); }
+        collection_event(collection_id, event_kind, item_index) => { root.collection_event(collection_id, event_kind, item_index); }
+    }
 
-                UiAssetEditorInspectorPanel {
-                    width: parent.width;
-                    height: parent.height * 0.5;
-                    inspector_panel: root.inspector_panel;
-                    draft_data: root.draft_data;
-                    detail_event(detail_id, action_id, item_index, primary, secondary) => { root.detail_event(detail_id, action_id, item_index, primary, secondary); }
-                    draft_value_changed(draft_id, value) => { root.draft_value_changed(draft_id, value); }
-                    clear_draft(draft_id) => { root.clear_draft(draft_id); }
-                    collection_event(collection_id, event_kind, item_index) => { root.collection_event(collection_id, event_kind, item_index); }
-                }
-
-                UiAssetEditorStylesheetPanel {
-                    width: parent.width;
-                    height: parent.height * 0.5 - 8px;
-                    style_panel: root.style_panel;
-                    draft_data: root.draft_data;
-                    action(action_id) => { root.action(action_id); }
-                    detail_event(detail_id, action_id, item_index, primary, secondary) => { root.detail_event(detail_id, action_id, item_index, primary, secondary); }
-                    draft_value_changed(draft_id, value) => { root.draft_value_changed(draft_id, value); }
-                    clear_draft(draft_id) => { root.clear_draft(draft_id); }
-                    collection_event(collection_id, event_kind, item_index) => { root.collection_event(collection_id, event_kind, item_index); }
-                }
-            }
-        }
+    UiAssetEditorStylesheetPanel {
+        visible: root.pane.stylesheet_panel_node.control_id == "StylesheetPanel";
+        x: root.pane.stylesheet_panel_node.frame.x * 1px;
+        y: root.pane.stylesheet_panel_node.frame.y * 1px;
+        width: root.pane.stylesheet_panel_node.frame.width * 1px;
+        height: root.pane.stylesheet_panel_node.frame.height * 1px;
+        nodes: root.nodes;
+        panel_node: root.pane.stylesheet_panel_node;
+        style_panel: root.style_panel;
+        draft_data: root.draft_data;
+        action(action_id) => { root.action(action_id); }
+        detail_event(detail_id, action_id, item_index, primary, secondary) => { root.detail_event(detail_id, action_id, item_index, primary, secondary); }
+        draft_value_changed(draft_id, value) => { root.draft_value_changed(draft_id, value); }
+        clear_draft(draft_id) => { root.clear_draft(draft_id); }
+        collection_event(collection_id, event_kind, item_index) => { root.collection_event(collection_id, event_kind, item_index); }
     }
 
     if root.palette_drag_session.active: TouchArea {
@@ -561,7 +603,7 @@ export component UiAssetEditorPane inherits Rectangle {
         }
     }
 
-    if root.palette_drag_projection.candidate_items.length > 1 && (root.palette_drag_session.active || root.palette_drag_projection.target_chooser_active): Rectangle {
+    if root.palette_drag_projection.candidate_items.length > 1 && (root.palette_drag_session.active || root.palette_drag_projection.target_chooser_active): UiAssetEditorPaletteTargetChooser {
         x: min(
             max(center_column.x + center_column.preview_canvas_x_px * 1px + center_column.preview_canvas_width_px * 1px - self.width - 12px, 8px),
             max(root.width - self.width - 8px, 8px)
@@ -569,86 +611,20 @@ export component UiAssetEditorPane inherits Rectangle {
         y: max(center_column.y + center_column.preview_canvas_y_px * 1px - 2px, 8px);
         width: 248px;
         height: min(224px, max(118px, 68px + root.palette_drag_projection.candidate_items.length * 22px));
-        background: transparent;
-        chooser_focus := FocusScope {
-            x: 0px;
-            y: 0px;
-            width: 0px;
-            height: 0px;
-            enabled: root.palette_drag_projection.target_chooser_active && !root.palette_drag_session.active;
-            key-pressed(event) => {
-                if (event.text == Key.LeftArrow || event.text == Key.UpArrow) {
-                    root.action("palette.target.previous");
-                    return accept;
-                }
-                if (
-                    event.text == Key.RightArrow
-                    || event.text == Key.DownArrow
-                    || event.text == Key.Tab
-                    ) {
-                    root.action("palette.target.next");
-                    return accept;
-                }
-                if (event.text == Key.Return || event.text == "\n") {
-                    root.action("palette.target.confirm");
-                    return accept;
-                }
-                if (event.text == Key.Escape) {
-                    root.action("palette.target.cancel");
-                    return accept;
-                }
-                reject
-            }
-        }
-
-        UiAssetSelectableSection {
-            x: 0px;
-            y: 0px;
-            width: parent.width;
-            height: parent.height - 38px;
-            title: "Target Cycle";
-            items: root.palette_drag_projection.candidate_items;
-            selected_index: root.palette_drag_projection.candidate_selected_index;
-            accent: #53c98a;
-            item_selected(item_index) => {
-                root.collection_event("palette_target_candidate", "selected", item_index);
-            }
-            item_activated(item_index) => {
-                root.collection_event("palette_target_candidate", "selected", item_index);
-                root.action("palette.target.confirm");
-            }
-        }
-
-        HorizontalLayout {
-            x: 10px;
-            y: parent.height - 34px;
-            width: parent.width - 20px;
-            spacing: 6px;
-
-            ShellButton {
-                width: 56px;
-                label: "Apply";
-                active: true;
-                clicked => { root.action("palette.target.confirm"); }
-            }
-
-            ShellButton {
-                width: 58px;
-                label: "Cancel";
-                clicked => { root.action("palette.target.cancel"); }
-            }
-
-            Text {
-                width: parent.width - 120px;
-                y: 4px;
-                text:
-                    root.palette_drag_projection.target_chooser_active ?
-                    "Sticky target chooser  Tab/arrows cycle  Enter apply" :
-                    "Tab / arrows cycle  Enter apply  Esc cancel";
-                color: palette.text_dim;
-                font-size: 9px;
-                overflow: elide;
-            }
+        palette_drag_projection: {
+            target_preview_index: root.palette_drag_projection.target_preview_index,
+            target_action: root.palette_drag_projection.target_action,
+            target_label: root.palette_drag_projection.target_label,
+            slot_target_items: root.palette_drag_projection.slot_target_items,
+            candidate_items: root.palette_drag_projection.candidate_items,
+            candidate_selected_index: root.palette_drag_projection.candidate_selected_index,
+            target_chooser_active:
+                root.palette_drag_projection.target_chooser_active
+                && !root.palette_drag_session.active,
+        };
+        action(action_id) => { root.action(action_id); }
+        collection_event(collection_id, event_kind, item_index) => {
+            root.collection_event(collection_id, event_kind, item_index);
         }
     }
 }

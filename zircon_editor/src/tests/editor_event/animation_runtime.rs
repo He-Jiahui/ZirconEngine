@@ -891,8 +891,8 @@ fn animation_graph_ignores_connections_from_missing_source_nodes() {
 fn animation_graph_ignores_self_referential_connections() {
     let _guard = env_lock().lock().unwrap();
     let harness = EventRuntimeHarness::new("zircon_editor_event_animation_graph_self_cycle");
-    let asset_path = unique_temp_dir("zircon_editor_event_animation_graph_self_cycle")
-        .join("hero.graph.zranim");
+    let asset_path =
+        unique_temp_dir("zircon_editor_event_animation_graph_self_cycle").join("hero.graph.zranim");
     fs::create_dir_all(asset_path.parent().unwrap()).unwrap();
     write_graph_asset(&asset_path);
 

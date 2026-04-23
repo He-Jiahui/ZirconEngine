@@ -11,13 +11,14 @@ use zircon_runtime::asset::assets::{
     AnimationStateMachineAsset, AnimationStateTransitionAsset, AnimationTransitionConditionAsset,
 };
 use zircon_runtime::asset::AssetUri;
-use zircon_runtime::core::framework::animation::AnimationParameterValue;
+use zircon_runtime::core::framework::animation::{AnimationParameterValue, AnimationTrackPath};
 use zircon_runtime::core::framework::scene::{ComponentPropertyPath, EntityPath};
 use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::foundation::{
     module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
 };
 
+use crate::core::editor_event::EditorAnimationEvent;
 use crate::ui::host::module::{self, module_descriptor, EDITOR_MANAGER_NAME};
 use crate::ui::host::EditorManager;
 use crate::ui::workbench::view::ViewDescriptorId;
@@ -187,4 +188,71 @@ fn editor_manager_restores_state_machine_graph_editor_session_from_payload_path(
     assert_eq!(pane.asset_path, asset_path.to_string_lossy());
     assert_eq!(pane.state_items, vec!["Idle", "Run"]);
     assert_eq!(pane.transition_items, vec!["Idle -> Run"]);
+}
+
+#[test]
+fn editor_manager_saves_animation_sequence_editor_session_and_clears_dirty_metadata() {
+    let _guard = env_lock().lock().unwrap();
+    let config_path = unique_temp_path("zircon_editor_animation_sequence_save_host");
+    let asset_path = unique_temp_dir("zircon_editor_animation_sequence_save_host_asset")
+        .join("hero.sequence.zranim");
+    fs::create_dir_all(asset_path.parent().unwrap()).unwrap();
+    write_sequence_asset(&asset_path);
+
+    let runtime = editor_runtime_with_config_path(&config_path);
+    let manager = runtime
+        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+        .unwrap();
+    let instance_id = manager
+        .open_view(ViewDescriptorId::new("editor.animation_sequence"), None)
+        .unwrap();
+    manager
+        .update_view_instance_metadata(
+            &instance_id,
+            Some("Hero Sequence".to_string()),
+            Some(false),
+            Some(json!({ "path": asset_path.to_string_lossy().to_string() })),
+        )
+        .unwrap();
+    manager
+        .animation_editor_pane_presentation(&instance_id)
+        .expect("sequence editor session should restore before save");
+
+    let changed = manager
+        .apply_animation_event(&EditorAnimationEvent::CreateTrack {
+            track_path: AnimationTrackPath::parse("Root/Hero:AnimationPlayer.speed").unwrap(),
+        })
+        .unwrap();
+    assert!(
+        changed,
+        "expected animation authoring edit to dirty the session before save"
+    );
+
+    manager.save_animation_editor(&instance_id).unwrap();
+
+    let saved = AnimationSequenceAsset::from_bytes(&fs::read(&asset_path).unwrap()).unwrap();
+    let saved_track_paths = saved
+        .track_paths()
+        .into_iter()
+        .map(|path| path.to_string())
+        .collect::<Vec<_>>();
+    assert!(
+        saved_track_paths.contains(&"Root/Hero:AnimationPlayer.speed".to_string()),
+        "saving through the editor manager should persist animation track edits to disk"
+    );
+
+    let instance = manager
+        .current_view_instances()
+        .into_iter()
+        .find(|instance| instance.instance_id == instance_id)
+        .expect("expected saved animation editor instance to remain open");
+    assert!(
+        !instance.dirty,
+        "saving the animation editor should clear the workbench dirty metadata"
+    );
+    assert_eq!(
+        instance.serializable_payload["path"],
+        json!(asset_path.to_string_lossy().to_string()),
+        "saving the animation editor should preserve the serialized payload path"
+    );
 }

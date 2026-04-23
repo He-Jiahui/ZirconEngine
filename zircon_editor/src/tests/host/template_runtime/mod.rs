@@ -1,7 +1,6 @@
 mod asset_surface;
 mod host_model;
 mod inspector_surface;
-mod legacy_asset_editor;
 mod route_registration;
 mod shared_surface;
 mod structure_split;

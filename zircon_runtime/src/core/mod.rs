@@ -24,6 +24,7 @@ pub use job_scheduler::JobScheduler;
 pub use lifecycle::{LifecycleState, ServiceKind, StartupMode};
 pub use runtime::{
     CoreHandle, CoreRuntime, CoreWeak, DependencySpec, DriverDescriptor, ManagerDescriptor,
-    ModuleContext, ModuleDescriptor, PluginContext, PluginDescriptor, RegistryName, ServiceFactory,
+    ModuleContext, ModuleDescriptor, PluginContext, PluginDescriptor, PluginFactory, RegistryName,
+    ServiceFactory,
 };
 pub use types::{ChannelReceiver, ChannelSender, ServiceObject};

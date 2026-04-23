@@ -1,6 +1,9 @@
 use super::super::scene_renderer::SceneRenderer;
 use crate::core::framework::render::{
-    RenderVirtualGeometryHardwareRasterizationSource, RenderVirtualGeometryVisBuffer64Source,
+    RenderVirtualGeometryClusterSelectionInputSource,
+    RenderVirtualGeometryHardwareRasterizationSource,
+    RenderVirtualGeometryNodeAndClusterCullSource, RenderVirtualGeometrySelectedClusterSource,
+    RenderVirtualGeometryVisBuffer64Source,
 };
 
 pub(in crate::graphics::scene::scene_renderer::core) fn reset_last_runtime_outputs(
@@ -39,6 +42,18 @@ pub(in crate::graphics::scene::scene_renderer::core) fn reset_last_runtime_outpu
     renderer.last_virtual_geometry_indirect_execution_submission_buffer = None;
     renderer.last_virtual_geometry_indirect_execution_args_buffer = None;
     renderer.last_virtual_geometry_indirect_execution_authority_buffer = None;
+    renderer.last_virtual_geometry_cluster_selection_input_source =
+        RenderVirtualGeometryClusterSelectionInputSource::Unavailable;
+    renderer.last_virtual_geometry_cull_input_buffer = None;
+    renderer.last_virtual_geometry_node_and_cluster_cull_source =
+        RenderVirtualGeometryNodeAndClusterCullSource::Unavailable;
+    renderer.last_virtual_geometry_node_and_cluster_cull_record_count = 0;
+    renderer.last_virtual_geometry_node_and_cluster_cull_buffer = None;
+    renderer.last_virtual_geometry_node_and_cluster_cull_dispatch_setup_buffer = None;
+    renderer.last_virtual_geometry_node_and_cluster_cull_instance_seed_count = 0;
+    renderer.last_virtual_geometry_node_and_cluster_cull_instance_seed_buffer = None;
+    renderer.last_virtual_geometry_selected_cluster_source =
+        RenderVirtualGeometrySelectedClusterSource::Unavailable;
     renderer.last_virtual_geometry_selected_cluster_count = 0;
     renderer.last_virtual_geometry_selected_cluster_buffer = None;
     renderer.last_virtual_geometry_visbuffer64_clear_value = 0;

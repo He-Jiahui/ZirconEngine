@@ -25,7 +25,9 @@ struct ResidentProbeInput {
     previous_irradiance_rgb: u32,
     runtime_hierarchy_irradiance_rgb: u32,
     runtime_hierarchy_irradiance_weight_q: u32,
+    skip_scene_prepare_for_irradiance_q: u32,
     lineage_trace_lighting_rgb: u32,
+    skip_scene_prepare_for_trace_q: u32,
     parent_probe_id: u32,
     resident_ancestor_probe_id: u32,
     resident_ancestor_depth: u32,
@@ -48,7 +50,9 @@ struct PendingProbeInput {
     radius_q: u32,
     runtime_hierarchy_irradiance_rgb: u32,
     runtime_hierarchy_irradiance_weight_q: u32,
+    skip_scene_prepare_for_irradiance_q: u32,
     lineage_trace_lighting_rgb: u32,
+    skip_scene_prepare_for_trace_q: u32,
     parent_probe_id: u32,
     resident_ancestor_probe_id: u32,
     resident_ancestor_depth: u32,
@@ -822,6 +826,7 @@ fn traced_contribution_rgb_with_resident_ancestors(
     resident_tertiary_ancestor_depth: u32,
     resident_quaternary_ancestor_probe_id: u32,
     resident_quaternary_ancestor_depth: u32,
+    skip_scene_prepare_q: u32,
 ) -> u32 {
     var traced = traced_contribution_rgb(
         position_x_q,
@@ -854,14 +859,16 @@ fn traced_contribution_rgb_with_resident_ancestors(
         resident_quaternary_ancestor_probe_id,
         resident_quaternary_ancestor_depth,
     );
-    let scene_prepare = scene_prepare_contribution_rgb(
-        position_x_q,
-        position_y_q,
-        position_z_q,
-        radius_q,
-        ray_budget,
-    );
-    traced = blend_traced_with_scene_prepare(traced, scene_prepare, ray_budget);
+    if (skip_scene_prepare_q == 0u) {
+        let scene_prepare = scene_prepare_contribution_rgb(
+            position_x_q,
+            position_y_q,
+            position_z_q,
+            radius_q,
+            ray_budget,
+        );
+        traced = blend_traced_with_scene_prepare(traced, scene_prepare, ray_budget);
+    }
     return traced;
 }
 
@@ -994,9 +1001,32 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
             probe.resident_tertiary_ancestor_depth,
             probe.resident_quaternary_ancestor_probe_id,
             probe.resident_quaternary_ancestor_depth,
+            probe.skip_scene_prepare_for_trace_q,
         );
         let continued_traced = apply_lineage_trace_lighting_continuation(
             traced,
+            probe.lineage_trace_lighting_rgb,
+            probe.lineage_trace_support_q,
+            probe.ray_budget,
+        );
+        let traced_for_irradiance = traced_contribution_rgb_with_resident_ancestors(
+            probe.position_x_q,
+            probe.position_y_q,
+            probe.position_z_q,
+            probe.radius_q,
+            probe.ray_budget,
+            probe.resident_ancestor_probe_id,
+            probe.resident_ancestor_depth,
+            probe.resident_secondary_ancestor_probe_id,
+            probe.resident_secondary_ancestor_depth,
+            probe.resident_tertiary_ancestor_probe_id,
+            probe.resident_tertiary_ancestor_depth,
+            probe.resident_quaternary_ancestor_probe_id,
+            probe.resident_quaternary_ancestor_depth,
+            probe.skip_scene_prepare_for_irradiance_q,
+        );
+        let continued_traced_for_irradiance = apply_lineage_trace_lighting_continuation(
+            traced_for_irradiance,
             probe.lineage_trace_lighting_rgb,
             probe.lineage_trace_support_q,
             probe.ray_budget,
@@ -1019,7 +1049,7 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
             probe.ray_budget,
         );
         let contribution = combine_traced_and_gathered_with_runtime_hierarchy_fallback(
-            continued_traced,
+            continued_traced_for_irradiance,
             gathered,
             probe.runtime_hierarchy_irradiance_rgb,
             probe.runtime_hierarchy_irradiance_weight_q,
@@ -1059,9 +1089,32 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
             probe.resident_tertiary_ancestor_depth,
             probe.resident_quaternary_ancestor_probe_id,
             probe.resident_quaternary_ancestor_depth,
+            probe.skip_scene_prepare_for_trace_q,
         );
         let continued_traced = apply_lineage_trace_lighting_continuation(
             traced,
+            probe.lineage_trace_lighting_rgb,
+            probe.lineage_trace_support_q,
+            probe.ray_budget,
+        );
+        let traced_for_irradiance = traced_contribution_rgb_with_resident_ancestors(
+            probe.position_x_q,
+            probe.position_y_q,
+            probe.position_z_q,
+            probe.radius_q,
+            probe.ray_budget,
+            probe.resident_ancestor_probe_id,
+            probe.resident_ancestor_depth,
+            probe.resident_secondary_ancestor_probe_id,
+            probe.resident_secondary_ancestor_depth,
+            probe.resident_tertiary_ancestor_probe_id,
+            probe.resident_tertiary_ancestor_depth,
+            probe.resident_quaternary_ancestor_probe_id,
+            probe.resident_quaternary_ancestor_depth,
+            probe.skip_scene_prepare_for_irradiance_q,
+        );
+        let continued_traced_for_irradiance = apply_lineage_trace_lighting_continuation(
+            traced_for_irradiance,
             probe.lineage_trace_lighting_rgb,
             probe.lineage_trace_support_q,
             probe.ray_budget,
@@ -1086,7 +1139,7 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
         probe_irradiance_updates[entry_offset] = probe.probe_id;
         probe_irradiance_updates[entry_offset + 1u] =
             combine_traced_and_gathered_with_runtime_hierarchy_fallback(
-                continued_traced,
+                continued_traced_for_irradiance,
                 gathered,
                 probe.runtime_hierarchy_irradiance_rgb,
                 probe.runtime_hierarchy_irradiance_weight_q,

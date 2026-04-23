@@ -1,5 +1,6 @@
 use super::support::*;
 
+#[test]
 fn ui_asset_editor_session_creates_reference_nodes_from_imported_widget_palette_entries() {
     let route = UiAssetEditorRoute::new(
         "asset://ui/tests/style-authoring.ui.toml",
@@ -752,4 +753,3 @@ fn ui_asset_editor_session_promotes_local_theme_to_external_style_asset_and_link
         })
     );
 }
-

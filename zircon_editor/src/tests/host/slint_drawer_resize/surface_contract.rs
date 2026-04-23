@@ -5,6 +5,10 @@ fn shared_resize_surface_replaces_legacy_direct_resize_callback_abi() {
         env!("CARGO_MANIFEST_DIR"),
         "/ui/workbench/host_context.slint"
     ));
+    let host_resize_layer = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/ui/workbench/host_resize_layer.slint"
+    ));
     let host_components = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/ui/workbench/host_components.slint"
@@ -47,6 +51,7 @@ fn shared_resize_surface_replaces_legacy_direct_resize_callback_abi() {
         assert!(
             workbench.contains(needle)
                 || host_context.contains(needle)
+                || host_resize_layer.contains(needle)
                 || host_components.contains(needle),
             "workbench shell is missing shared resize pointer hook `{needle}`"
         );

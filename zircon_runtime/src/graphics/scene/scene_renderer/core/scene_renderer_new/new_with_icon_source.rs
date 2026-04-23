@@ -3,7 +3,10 @@ use std::sync::Arc;
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::core::framework::render::{
-    RenderVirtualGeometryHardwareRasterizationSource, RenderVirtualGeometryVisBuffer64Source,
+    RenderVirtualGeometryClusterSelectionInputSource,
+    RenderVirtualGeometryHardwareRasterizationSource,
+    RenderVirtualGeometryNodeAndClusterCullSource, RenderVirtualGeometrySelectedClusterSource,
+    RenderVirtualGeometryVisBuffer64Source,
 };
 
 use crate::graphics::types::GraphicsError;
@@ -66,6 +69,18 @@ impl SceneRenderer {
             last_virtual_geometry_indirect_execution_submission_buffer: None,
             last_virtual_geometry_indirect_execution_args_buffer: None,
             last_virtual_geometry_indirect_execution_authority_buffer: None,
+            last_virtual_geometry_cluster_selection_input_source:
+                RenderVirtualGeometryClusterSelectionInputSource::Unavailable,
+            last_virtual_geometry_cull_input_buffer: None,
+            last_virtual_geometry_node_and_cluster_cull_source:
+                RenderVirtualGeometryNodeAndClusterCullSource::Unavailable,
+            last_virtual_geometry_node_and_cluster_cull_record_count: 0,
+            last_virtual_geometry_node_and_cluster_cull_buffer: None,
+            last_virtual_geometry_node_and_cluster_cull_dispatch_setup_buffer: None,
+            last_virtual_geometry_node_and_cluster_cull_instance_seed_count: 0,
+            last_virtual_geometry_node_and_cluster_cull_instance_seed_buffer: None,
+            last_virtual_geometry_selected_cluster_source:
+                RenderVirtualGeometrySelectedClusterSource::Unavailable,
             last_virtual_geometry_selected_cluster_count: 0,
             last_virtual_geometry_selected_cluster_buffer: None,
             last_virtual_geometry_visbuffer64_clear_value: 0,

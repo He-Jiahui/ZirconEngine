@@ -2,6 +2,7 @@ mod binding;
 mod command;
 mod contract;
 mod document_diff;
+mod node_projection;
 mod palette_target_chooser;
 mod presentation;
 pub(crate) mod preview;
@@ -27,6 +28,7 @@ pub use contract::{
     UI_ASSET_EDITOR_BOOTSTRAP_LAYOUT_ASSET_ID, UI_ASSET_EDITOR_BOOTSTRAP_LAYOUT_DOCUMENT_ID,
     UI_ASSET_EDITOR_BOOTSTRAP_STYLE_ASSET_ID, UI_ASSET_EDITOR_BOOTSTRAP_WIDGET_ASSET_ID,
     UI_ASSET_EDITOR_BOOTSTRAP_WIDGET_BUTTON_REFERENCE,
+    UI_ASSET_EDITOR_BOOTSTRAP_WIDGET_HEADER_SHELL_REFERENCE,
     UI_ASSET_EDITOR_BOOTSTRAP_WIDGET_SECTION_CARD_REFERENCE,
     UI_ASSET_EDITOR_BOOTSTRAP_WIDGET_TOOLBAR_REFERENCE, UI_ASSET_EDITOR_WINDOW_ID,
 };
@@ -34,6 +36,7 @@ pub use presentation::{
     UiAssetEditorPanePresentation, UiAssetEditorPreviewCanvasNode,
     UiAssetEditorPreviewCanvasSlotTarget,
 };
+pub(crate) use node_projection::{ui_asset_editor_node_projection, UiAssetEditorNodeProjection};
 pub use preview::UiAssetPreviewHost;
 pub use replay_workspace::{UiAssetEditorReplayWorkspace, UiAssetEditorReplayWorkspaceResult};
 pub use session::{UiAssetEditorReplayResult, UiAssetEditorSession, UiAssetEditorSessionError};

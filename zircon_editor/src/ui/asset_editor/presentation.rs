@@ -1,3 +1,5 @@
+use crate::ui::layouts::views::ViewTemplateNodeData;
+
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct UiAssetEditorPreviewCanvasNode {
     pub node_id: String,
@@ -25,6 +27,12 @@ pub struct UiAssetEditorPreviewCanvasSlotTarget {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct UiAssetEditorPanePresentation {
+    pub nodes: Vec<ViewTemplateNodeData>,
+    pub center_column_node: ViewTemplateNodeData,
+    pub designer_panel_node: ViewTemplateNodeData,
+    pub designer_canvas_panel_node: ViewTemplateNodeData,
+    pub inspector_panel_node: ViewTemplateNodeData,
+    pub stylesheet_panel_node: ViewTemplateNodeData,
     pub asset_id: String,
     pub mode: String,
     pub source_dirty: bool,

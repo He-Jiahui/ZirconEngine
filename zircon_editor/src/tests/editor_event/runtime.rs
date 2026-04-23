@@ -525,7 +525,7 @@ fn animation_binding_without_active_sequence_editor_reports_ignored_status_line(
         .contains(&EditorEventEffect::ReflectionChanged));
     assert_eq!(
         runtime.runtime.editor_snapshot().status_line,
-        "Ignored animation command because no active animation sequence editor"
+        "Ignored animation command because active center tab is not an animation sequence editor"
     );
 }
 
@@ -568,7 +568,7 @@ fn animation_graph_and_state_machine_bindings_without_open_editor_report_ignored
         .contains(&EditorEventEffect::ReflectionChanged));
     assert_eq!(
         runtime.runtime.editor_snapshot().status_line,
-        "Ignored animation command because no active animation graph editor"
+        "Ignored animation command because active center tab is not an animation graph editor"
     );
 }
 

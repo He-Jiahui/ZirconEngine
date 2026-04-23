@@ -1,5 +1,7 @@
 use crate::core::math::UVec2;
+use crate::core::resource::ResourceId;
 
+use crate::core::framework::animation::AnimationPoseOutput;
 use crate::core::framework::scene::{EntityId, Mobility, WorldHandle};
 
 use super::{
@@ -103,10 +105,18 @@ pub struct VisibilityInput {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub struct RenderSkeletalPoseExtract {
+    pub entity: EntityId,
+    pub skeleton: ResourceId,
+    pub pose: AnimationPoseOutput,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct RenderFrameExtract {
     pub world: RenderWorldSnapshotHandle,
     pub view: RenderViewExtract,
     pub geometry: GeometryExtract,
+    pub animation_poses: Vec<RenderSkeletalPoseExtract>,
     pub lighting: LightingExtract,
     pub post_process: PostProcessExtract,
     pub debug: DebugOverlayExtract,
@@ -151,6 +161,7 @@ impl RenderFrameExtract {
                 virtual_geometry: None,
                 virtual_geometry_debug: snapshot.virtual_geometry_debug,
             },
+            animation_poses: Vec::new(),
             lighting: LightingExtract {
                 directional_lights: snapshot.scene.directional_lights.clone(),
                 point_lights: snapshot.scene.point_lights.clone(),

@@ -5,6 +5,8 @@ use crate::graphics::types::{HybridGiResolveRuntime, ViewportRenderFrame};
 
 const RUNTIME_PARENT_CHAIN_FALLOFF: f32 = 0.82;
 const RUNTIME_DESCENDANT_CHAIN_FALLOFF: f32 = 0.84;
+const RUNTIME_PARENT_CHAIN_REVISION_SEED: u32 = 0x9E37_79B9;
+const RUNTIME_DESCENDANT_CHAIN_REVISION_SEED: u32 = 0x85EB_CA77;
 
 pub(super) fn gather_runtime_parent_chain_rgb<F>(
     frame: &ViewportRenderFrame,
@@ -44,6 +46,122 @@ where
         weighted_rgb[2] / total_support,
         total_support.clamp(0.0, 0.75),
     ])
+}
+
+pub(super) fn gather_runtime_parent_chain_rgb_without_depth_falloff<F>(
+    frame: &ViewportRenderFrame,
+    probe_id: u32,
+    source_for_ancestor: F,
+) -> Option<[f32; 4]>
+where
+    F: Fn(&HybridGiResolveRuntime, u32) -> Option<([f32; 3], f32)>,
+{
+    let runtime = frame.hybrid_gi_resolve_runtime.as_ref()?;
+    let extract = frame.extract.lighting.hybrid_global_illumination.as_ref()?;
+
+    let mut weighted_rgb = [0.0_f32; 3];
+    let mut total_support = 0.0_f32;
+    for (ancestor_probe_id, _) in parent_probe_chain(extract, probe_id) {
+        let Some((rgb, support)) = source_for_ancestor(runtime, ancestor_probe_id) else {
+            continue;
+        };
+        if support <= f32::EPSILON {
+            continue;
+        }
+
+        weighted_rgb[0] += rgb[0] * support;
+        weighted_rgb[1] += rgb[1] * support;
+        weighted_rgb[2] += rgb[2] * support;
+        total_support += support;
+    }
+
+    if total_support <= f32::EPSILON {
+        return None;
+    }
+
+    Some([
+        weighted_rgb[0] / total_support,
+        weighted_rgb[1] / total_support,
+        weighted_rgb[2] / total_support,
+        total_support.clamp(0.0, 0.75),
+    ])
+}
+
+pub(super) fn gather_runtime_parent_chain_support_and_quality_without_depth_falloff<F>(
+    frame: &ViewportRenderFrame,
+    probe_id: u32,
+    source_for_ancestor: F,
+) -> Option<(f32, f32, f32)>
+where
+    F: Fn(&HybridGiResolveRuntime, u32) -> Option<(f32, f32, f32)>,
+{
+    let runtime = frame.hybrid_gi_resolve_runtime.as_ref()?;
+    let extract = frame.extract.lighting.hybrid_global_illumination.as_ref()?;
+
+    let mut weighted_quality = 0.0_f32;
+    let mut weighted_freshness = 0.0_f32;
+    let mut total_support = 0.0_f32;
+    for (ancestor_probe_id, _) in parent_probe_chain(extract, probe_id) {
+        let Some((support, quality, freshness)) = source_for_ancestor(runtime, ancestor_probe_id)
+        else {
+            continue;
+        };
+        if support <= f32::EPSILON {
+            continue;
+        }
+
+        total_support += support;
+        weighted_quality += quality.clamp(0.0, 1.0) * support;
+        weighted_freshness += freshness.clamp(0.0, 1.0) * support;
+    }
+
+    if total_support <= f32::EPSILON {
+        return None;
+    }
+
+    Some((
+        total_support.clamp(0.0, 0.75),
+        (weighted_quality / total_support).clamp(0.0, 1.0),
+        (weighted_freshness / total_support).clamp(0.0, 1.0),
+    ))
+}
+
+pub(super) fn gather_runtime_parent_chain_support_and_revision_without_depth_falloff<F>(
+    frame: &ViewportRenderFrame,
+    probe_id: u32,
+    source_for_ancestor: F,
+) -> Option<(f32, u32)>
+where
+    F: Fn(&HybridGiResolveRuntime, u32) -> Option<(f32, u32)>,
+{
+    let runtime = frame.hybrid_gi_resolve_runtime.as_ref()?;
+    let extract = frame.extract.lighting.hybrid_global_illumination.as_ref()?;
+
+    let mut total_support = 0.0_f32;
+    let mut mixed_revision = 0u32;
+    let mut has_revision = false;
+    for (ancestor_probe_id, _) in parent_probe_chain(extract, probe_id) {
+        let Some((support, revision)) = source_for_ancestor(runtime, ancestor_probe_id) else {
+            continue;
+        };
+        if support <= f32::EPSILON {
+            continue;
+        }
+
+        let support_q = quantize_revision_support(support);
+        let packed_revision = revision ^ support_q.rotate_left(8);
+        mixed_revision = mix_lineage_scene_truth_revision(
+            mixed_revision,
+            packed_revision,
+            has_revision,
+            RUNTIME_PARENT_CHAIN_REVISION_SEED,
+        );
+        total_support += support;
+        has_revision = true;
+    }
+
+    (total_support > f32::EPSILON && has_revision)
+        .then_some((total_support.clamp(0.0, 0.75), mixed_revision))
 }
 
 pub(super) fn gather_runtime_parent_chain_weight(
@@ -115,6 +233,123 @@ where
     ])
 }
 
+pub(super) fn gather_runtime_descendant_chain_rgb_without_depth_falloff<F>(
+    frame: &ViewportRenderFrame,
+    probe_id: u32,
+    source_for_descendant: F,
+) -> Option<[f32; 4]>
+where
+    F: Fn(&HybridGiResolveRuntime, u32) -> Option<([f32; 3], f32)>,
+{
+    let runtime = frame.hybrid_gi_resolve_runtime.as_ref()?;
+    let extract = frame.extract.lighting.hybrid_global_illumination.as_ref()?;
+
+    let mut weighted_rgb = [0.0_f32; 3];
+    let mut total_support = 0.0_f32;
+    for (descendant_probe_id, _) in descendant_probe_chain(extract, probe_id) {
+        let Some((rgb, support)) = source_for_descendant(runtime, descendant_probe_id) else {
+            continue;
+        };
+        if support <= f32::EPSILON {
+            continue;
+        }
+
+        weighted_rgb[0] += rgb[0] * support;
+        weighted_rgb[1] += rgb[1] * support;
+        weighted_rgb[2] += rgb[2] * support;
+        total_support += support;
+    }
+
+    if total_support <= f32::EPSILON {
+        return None;
+    }
+
+    Some([
+        weighted_rgb[0] / total_support,
+        weighted_rgb[1] / total_support,
+        weighted_rgb[2] / total_support,
+        total_support.clamp(0.0, 0.75),
+    ])
+}
+
+pub(super) fn gather_runtime_descendant_chain_support_and_quality_without_depth_falloff<F>(
+    frame: &ViewportRenderFrame,
+    probe_id: u32,
+    source_for_descendant: F,
+) -> Option<(f32, f32, f32)>
+where
+    F: Fn(&HybridGiResolveRuntime, u32) -> Option<(f32, f32, f32)>,
+{
+    let runtime = frame.hybrid_gi_resolve_runtime.as_ref()?;
+    let extract = frame.extract.lighting.hybrid_global_illumination.as_ref()?;
+
+    let mut weighted_quality = 0.0_f32;
+    let mut weighted_freshness = 0.0_f32;
+    let mut total_support = 0.0_f32;
+    for (descendant_probe_id, _) in descendant_probe_chain(extract, probe_id) {
+        let Some((support, quality, freshness)) =
+            source_for_descendant(runtime, descendant_probe_id)
+        else {
+            continue;
+        };
+        if support <= f32::EPSILON {
+            continue;
+        }
+
+        total_support += support;
+        weighted_quality += quality.clamp(0.0, 1.0) * support;
+        weighted_freshness += freshness.clamp(0.0, 1.0) * support;
+    }
+
+    if total_support <= f32::EPSILON {
+        return None;
+    }
+
+    Some((
+        total_support.clamp(0.0, 0.75),
+        (weighted_quality / total_support).clamp(0.0, 1.0),
+        (weighted_freshness / total_support).clamp(0.0, 1.0),
+    ))
+}
+
+pub(super) fn gather_runtime_descendant_chain_support_and_revision_without_depth_falloff<F>(
+    frame: &ViewportRenderFrame,
+    probe_id: u32,
+    source_for_descendant: F,
+) -> Option<(f32, u32)>
+where
+    F: Fn(&HybridGiResolveRuntime, u32) -> Option<(f32, u32)>,
+{
+    let runtime = frame.hybrid_gi_resolve_runtime.as_ref()?;
+    let extract = frame.extract.lighting.hybrid_global_illumination.as_ref()?;
+
+    let mut total_support = 0.0_f32;
+    let mut mixed_revision = 0u32;
+    let mut has_revision = false;
+    for (descendant_probe_id, _) in descendant_probe_chain(extract, probe_id) {
+        let Some((support, revision)) = source_for_descendant(runtime, descendant_probe_id) else {
+            continue;
+        };
+        if support <= f32::EPSILON {
+            continue;
+        }
+
+        let support_q = quantize_revision_support(support);
+        let packed_revision = revision ^ support_q.rotate_left(8);
+        mixed_revision = mix_lineage_scene_truth_revision(
+            mixed_revision,
+            packed_revision,
+            has_revision,
+            RUNTIME_DESCENDANT_CHAIN_REVISION_SEED,
+        );
+        total_support += support;
+        has_revision = true;
+    }
+
+    (total_support > f32::EPSILON && has_revision)
+        .then_some((total_support.clamp(0.0, 0.75), mixed_revision))
+}
+
 pub(super) fn gather_runtime_descendant_chain_weight(
     frame: &ViewportRenderFrame,
     probe_id: u32,
@@ -172,6 +407,31 @@ pub(super) fn blend_runtime_rgb_lineage_sources(
         weighted_rgb[2] / total_support,
         total_support.clamp(0.0, 0.75),
     ])
+}
+
+fn quantize_revision_support(value: f32) -> u32 {
+    (value.clamp(0.0, 1.0) * 255.0).round() as u32
+}
+
+fn mix_lineage_scene_truth_revision(
+    mixed_revision: u32,
+    packed_revision: u32,
+    has_revision: bool,
+    chain_seed: u32,
+) -> u32 {
+    if has_revision {
+        mix_revision_words(mixed_revision, packed_revision.rotate_left(5))
+    } else {
+        mix_revision_words(chain_seed, packed_revision.rotate_left(5))
+    }
+}
+
+fn mix_revision_words(left: u32, right: u32) -> u32 {
+    let mut mixed = left.wrapping_add(0x7FEB_352D).wrapping_mul(0x846C_A68B);
+    mixed ^= right.rotate_left(16);
+    mixed ^= mixed >> 15;
+    mixed = mixed.wrapping_mul(0x2C1B_3C6D);
+    mixed ^ (mixed >> 12)
 }
 
 pub(super) fn runtime_resolve_weight_support(weight: Option<f32>) -> f32 {

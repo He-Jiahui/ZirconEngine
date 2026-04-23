@@ -151,7 +151,9 @@ fn editor_state_asset_workspace_accessors_move_under_ui_workbench_project() {
         "expected ui::workbench::project mod wiring to own EditorState asset workspace accessors directly"
     );
     assert!(
-        !core_state_root.join("editor_state_asset_workspace.rs").exists(),
+        !core_state_root
+            .join("editor_state_asset_workspace.rs")
+            .exists(),
         "expected core/editing/state/editor_state_asset_workspace.rs to be deleted after ui workbench project cutover"
     );
 }
@@ -199,7 +201,9 @@ fn editor_state_construction_moves_under_ui_workbench_startup() {
         "expected ui::workbench::startup mod wiring to own EditorState construction methods directly"
     );
     assert!(
-        !core_state_root.join("editor_state_construction.rs").exists(),
+        !core_state_root
+            .join("editor_state_construction.rs")
+            .exists(),
         "expected core/editing/state/editor_state_construction.rs to be deleted after ui workbench startup cutover"
     );
 }

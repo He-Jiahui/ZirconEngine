@@ -11,6 +11,7 @@ use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, Resourc
 use crate::scene::world::World;
 
 use crate::{
+    runtime::HybridGiRuntimeState,
     types::{
         HybridGiPrepareCardCaptureRequest, HybridGiPrepareFrame, HybridGiPrepareProbe,
         HybridGiPrepareUpdateRequest, HybridGiPrepareVoxelCell, HybridGiPrepareVoxelClipmap,
@@ -1018,6 +1019,7 @@ fn hybrid_gi_gpu_completion_readback_changes_when_scene_card_capture_requests_mo
                 bounds_center: Vec3::new(0.05, 0.0, 0.0),
                 bounds_radius: 0.9,
             }],
+            surface_cache_page_contents: Vec::new(),
             voxel_clipmaps: Vec::new(),
             voxel_cells: Vec::new(),
         },
@@ -1036,6 +1038,7 @@ fn hybrid_gi_gpu_completion_readback_changes_when_scene_card_capture_requests_mo
                 bounds_center: Vec3::new(6.0, 6.0, 6.0),
                 bounds_radius: 0.9,
             }],
+            surface_cache_page_contents: Vec::new(),
             voxel_clipmaps: Vec::new(),
             voxel_cells: Vec::new(),
         },
@@ -1092,6 +1095,7 @@ fn hybrid_gi_gpu_completion_readback_changes_when_scene_voxel_clipmaps_move_near
         prepare.clone(),
         HybridGiScenePrepareFrame {
             card_capture_requests: Vec::new(),
+            surface_cache_page_contents: Vec::new(),
             voxel_clipmaps: vec![HybridGiPrepareVoxelClipmap {
                 clipmap_id: 7,
                 center: Vec3::new(0.0, 0.0, 0.1),
@@ -1107,6 +1111,7 @@ fn hybrid_gi_gpu_completion_readback_changes_when_scene_voxel_clipmaps_move_near
         prepare,
         HybridGiScenePrepareFrame {
             card_capture_requests: Vec::new(),
+            surface_cache_page_contents: Vec::new(),
             voxel_clipmaps: vec![HybridGiPrepareVoxelClipmap {
                 clipmap_id: 7,
                 center: Vec3::new(8.0, 8.0, 8.0),
@@ -1171,6 +1176,7 @@ fn hybrid_gi_gpu_completion_readback_changes_when_scene_voxel_cells_move_near_or
         prepare.clone(),
         HybridGiScenePrepareFrame {
             card_capture_requests: Vec::new(),
+            surface_cache_page_contents: Vec::new(),
             voxel_clipmaps: vec![clipmap.clone()],
             voxel_cells: vec![
                 HybridGiPrepareVoxelCell {
@@ -1215,6 +1221,7 @@ fn hybrid_gi_gpu_completion_readback_changes_when_scene_voxel_cells_move_near_or
         prepare,
         HybridGiScenePrepareFrame {
             card_capture_requests: Vec::new(),
+            surface_cache_page_contents: Vec::new(),
             voxel_clipmaps: vec![clipmap],
             voxel_cells: vec![
                 HybridGiPrepareVoxelCell {
@@ -1343,6 +1350,7 @@ fn hybrid_gi_gpu_completion_readback_changes_when_runtime_scene_voxel_radiance_c
         prepare.clone(),
         HybridGiScenePrepareFrame {
             card_capture_requests: Vec::new(),
+            surface_cache_page_contents: Vec::new(),
             voxel_clipmaps: vec![clipmap],
             voxel_cells: voxel_layout.clone(),
         },
@@ -1354,6 +1362,7 @@ fn hybrid_gi_gpu_completion_readback_changes_when_runtime_scene_voxel_radiance_c
         prepare,
         HybridGiScenePrepareFrame {
             card_capture_requests: Vec::new(),
+            surface_cache_page_contents: Vec::new(),
             voxel_clipmaps: vec![HybridGiPrepareVoxelClipmap {
                 clipmap_id: 7,
                 center: Vec3::ZERO,
@@ -1372,6 +1381,298 @@ fn hybrid_gi_gpu_completion_readback_changes_when_runtime_scene_voxel_radiance_c
     assert_ne!(
         warm, cool,
         "expected Hybrid GI GPU irradiance updates to change when runtime scene voxel radiance changes while voxel layout stays fixed"
+    );
+}
+
+#[test]
+fn hybrid_gi_gpu_completion_readback_uses_runtime_scene_voxel_radiance_rehydrated_from_persisted_page_sample_on_clean_frame(
+) {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let viewport_size = UVec2::new(96, 64);
+    let extract = build_extract(
+        viewport_size,
+        1,
+        1,
+        vec![probe(200, true, 128, Vec3::ZERO, 1.8)],
+        Vec::new(),
+    );
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(
+            &extract,
+            &RenderPipelineCompileOptions::default()
+                .with_feature_enabled(BuiltinRenderFeature::GlobalIllumination)
+                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
+                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
+                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
+                .with_feature_disabled(BuiltinRenderFeature::Bloom)
+                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
+                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
+                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
+                .with_feature_disabled(BuiltinRenderFeature::Particle)
+                .with_feature_disabled(BuiltinRenderFeature::VirtualGeometry)
+                .with_async_compute(false),
+        )
+        .unwrap();
+    let prepare = HybridGiPrepareFrame {
+        resident_probes: vec![HybridGiPrepareProbe {
+            probe_id: 200,
+            slot: 0,
+            ray_budget: 128,
+            irradiance_rgb: [112, 112, 112],
+        }],
+        pending_updates: Vec::new(),
+        scheduled_trace_region_ids: Vec::new(),
+        evictable_probe_ids: Vec::new(),
+    };
+    let warm_scene_prepare =
+        runtime_voxel_scene_prepare_from_tinted_mesh_with_persisted_page_sample(
+            [1.0, 1.0, 1.0],
+            Vec3::ZERO,
+            2.0,
+            [240, 96, 48, 255],
+        );
+    let cool_scene_prepare =
+        runtime_voxel_scene_prepare_from_tinted_mesh_with_persisted_page_sample(
+            [1.0, 1.0, 1.0],
+            Vec3::ZERO,
+            2.0,
+            [48, 96, 240, 255],
+        );
+
+    assert!(
+        warm_scene_prepare.card_capture_requests.is_empty()
+            && cool_scene_prepare.card_capture_requests.is_empty(),
+        "expected the runtime fixture to represent a clean frame with no pending card recapture requests"
+    );
+    assert_eq!(
+        warm_scene_prepare.voxel_clipmaps,
+        cool_scene_prepare.voxel_clipmaps
+    );
+    assert_eq!(
+        warm_scene_prepare
+            .voxel_cells
+            .iter()
+            .map(|cell| (cell.clipmap_id, cell.cell_index, cell.occupancy_count))
+            .collect::<Vec<_>>(),
+        cool_scene_prepare
+            .voxel_cells
+            .iter()
+            .map(|cell| (cell.clipmap_id, cell.cell_index, cell.occupancy_count))
+            .collect::<Vec<_>>(),
+        "expected warm/cool persisted-page fixtures to keep identical runtime voxel layout so this regression only checks radiance authority"
+    );
+    assert_ne!(
+        warm_scene_prepare
+            .voxel_cells
+            .iter()
+            .map(|cell| {
+                (
+                    cell.clipmap_id,
+                    cell.cell_index,
+                    cell.radiance_present,
+                    cell.radiance_rgb,
+                )
+            })
+            .collect::<Vec<_>>(),
+        cool_scene_prepare
+            .voxel_cells
+            .iter()
+            .map(|cell| {
+                (
+                    cell.clipmap_id,
+                    cell.cell_index,
+                    cell.radiance_present,
+                    cell.radiance_rgb,
+                )
+            })
+            .collect::<Vec<_>>(),
+        "expected persisted page samples to rehydrate different runtime voxel radiance while layout stays fixed"
+    );
+
+    renderer
+        .render_frame_with_pipeline(
+            &ViewportRenderFrame::from_extract(extract.clone(), viewport_size)
+                .with_hybrid_gi_prepare(Some(prepare.clone()))
+                .with_hybrid_gi_scene_prepare(Some(HybridGiScenePrepareFrame {
+                    surface_cache_page_contents: Vec::new(),
+                    ..warm_scene_prepare
+                })),
+            &compiled,
+            None,
+        )
+        .unwrap();
+    let warm_readback = renderer.take_last_hybrid_gi_gpu_readback().unwrap();
+    renderer
+        .render_frame_with_pipeline(
+            &ViewportRenderFrame::from_extract(extract, viewport_size)
+                .with_hybrid_gi_prepare(Some(prepare))
+                .with_hybrid_gi_scene_prepare(Some(HybridGiScenePrepareFrame {
+                    surface_cache_page_contents: Vec::new(),
+                    ..cool_scene_prepare
+                })),
+            &compiled,
+            None,
+        )
+        .unwrap();
+    let cool_readback = renderer.take_last_hybrid_gi_gpu_readback().unwrap();
+
+    let warm_scene_prepare_resources = warm_readback
+        .scene_prepare_resources
+        .expect("expected warm scene-prepare resource snapshot");
+    let cool_scene_prepare_resources = cool_readback
+        .scene_prepare_resources
+        .expect("expected cool scene-prepare resource snapshot");
+    assert!(
+        warm_scene_prepare_resources.capture_slot_rgba_samples.is_empty()
+            && warm_scene_prepare_resources.atlas_slot_rgba_samples.is_empty()
+            && cool_scene_prepare_resources.capture_slot_rgba_samples.is_empty()
+            && cool_scene_prepare_resources.atlas_slot_rgba_samples.is_empty(),
+        "expected this clean-frame regression to remove persisted surface-cache page-content fallback from the renderer input, so the GPU completion difference must come from runtime voxel radiance instead of owner-card capture resources"
+    );
+
+    assert_ne!(
+        warm_readback.probe_irradiance_rgb,
+        cool_readback.probe_irradiance_rgb,
+        "expected clean-frame persisted page samples to rehydrate different runtime voxel radiance for GPU completion even after owner-card surface-cache page fallback is removed from the renderer input"
+    );
+}
+
+#[test]
+fn hybrid_gi_gpu_completion_readback_uses_clean_frame_persisted_surface_cache_page_descriptors_without_dirty_requests_or_runtime_voxels(
+) {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let viewport_size = UVec2::new(96, 64);
+    let extract = build_extract(
+        viewport_size,
+        1,
+        1,
+        vec![probe(200, true, 128, Vec3::ZERO, 1.8)],
+        Vec::new(),
+    );
+    let prepare = HybridGiPrepareFrame {
+        resident_probes: vec![HybridGiPrepareProbe {
+            probe_id: 200,
+            slot: 0,
+            ray_budget: 128,
+            irradiance_rgb: [112, 112, 112],
+        }],
+        pending_updates: Vec::new(),
+        scheduled_trace_region_ids: Vec::new(),
+        evictable_probe_ids: Vec::new(),
+    };
+    let base_page_content = crate::graphics::types::HybridGiPrepareSurfaceCachePageContent {
+        page_id: 11,
+        owner_card_id: 11,
+        atlas_slot_id: 3,
+        capture_slot_id: 4,
+        bounds_center: Vec3::ZERO,
+        bounds_radius: 2.0,
+        atlas_sample_rgba: [224, 112, 64, 255],
+        capture_sample_rgba: [240, 96, 48, 255],
+    };
+
+    let warm = render_hybrid_gi_gpu_readback_with_scene_prepare(
+        &mut renderer,
+        viewport_size,
+        extract.clone(),
+        prepare.clone(),
+        HybridGiScenePrepareFrame {
+            card_capture_requests: Vec::new(),
+            surface_cache_page_contents: vec![base_page_content],
+            voxel_clipmaps: Vec::new(),
+            voxel_cells: Vec::new(),
+        },
+    );
+    let cool = render_hybrid_gi_gpu_readback_with_scene_prepare(
+        &mut renderer,
+        viewport_size,
+        extract,
+        prepare,
+        HybridGiScenePrepareFrame {
+            card_capture_requests: Vec::new(),
+            surface_cache_page_contents: vec![
+                crate::graphics::types::HybridGiPrepareSurfaceCachePageContent {
+                    atlas_sample_rgba: [64, 112, 224, 255],
+                    capture_sample_rgba: [48, 96, 240, 255],
+                    ..base_page_content
+                },
+            ],
+            voxel_clipmaps: Vec::new(),
+            voxel_cells: Vec::new(),
+        },
+    );
+
+    assert_ne!(
+        warm, cool,
+        "expected clean-frame persisted surface-cache page samples to stage scene-prepare card descriptors for GPU completion even when there are no dirty card-capture requests or runtime voxel cells"
+    );
+}
+
+#[test]
+fn hybrid_gi_gpu_completion_readback_ignores_absent_clean_frame_persisted_surface_cache_pages_without_dirty_requests_or_runtime_voxels(
+) {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let viewport_size = UVec2::new(96, 64);
+    let extract = build_extract(
+        viewport_size,
+        1,
+        1,
+        vec![probe(200, true, 128, Vec3::ZERO, 1.8)],
+        Vec::new(),
+    );
+    let prepare = HybridGiPrepareFrame {
+        resident_probes: vec![HybridGiPrepareProbe {
+            probe_id: 200,
+            slot: 0,
+            ray_budget: 128,
+            irradiance_rgb: [112, 112, 112],
+        }],
+        pending_updates: Vec::new(),
+        scheduled_trace_region_ids: Vec::new(),
+        evictable_probe_ids: Vec::new(),
+    };
+    let absent_page_content = crate::graphics::types::HybridGiPrepareSurfaceCachePageContent {
+        page_id: 11,
+        owner_card_id: 11,
+        atlas_slot_id: 3,
+        capture_slot_id: 4,
+        bounds_center: Vec3::ZERO,
+        bounds_radius: 2.0,
+        atlas_sample_rgba: [0, 0, 0, 0],
+        capture_sample_rgba: [0, 0, 0, 0],
+    };
+
+    let baseline = render_hybrid_gi_gpu_readback_with_scene_prepare(
+        &mut renderer,
+        viewport_size,
+        extract.clone(),
+        prepare.clone(),
+        HybridGiScenePrepareFrame {
+            card_capture_requests: Vec::new(),
+            surface_cache_page_contents: Vec::new(),
+            voxel_clipmaps: Vec::new(),
+            voxel_cells: Vec::new(),
+        },
+    );
+    let absent = render_hybrid_gi_gpu_readback_with_scene_prepare(
+        &mut renderer,
+        viewport_size,
+        extract,
+        prepare,
+        HybridGiScenePrepareFrame {
+            card_capture_requests: Vec::new(),
+            surface_cache_page_contents: vec![absent_page_content],
+            voxel_clipmaps: Vec::new(),
+            voxel_cells: Vec::new(),
+        },
+    );
+
+    assert_eq!(
+        baseline, absent,
+        "expected absent clean-frame persisted page samples to match the no-page baseline instead of fabricating black GPU completion authority"
     );
 }
 
@@ -1446,6 +1747,7 @@ fn hybrid_gi_gpu_completion_readback_changes_when_runtime_scene_voxel_owner_chan
         prepare.clone(),
         HybridGiScenePrepareFrame {
             card_capture_requests: Vec::new(),
+            surface_cache_page_contents: Vec::new(),
             voxel_clipmaps: vec![clipmap],
             voxel_cells: voxel_layout.clone(),
         },
@@ -1457,6 +1759,7 @@ fn hybrid_gi_gpu_completion_readback_changes_when_runtime_scene_voxel_owner_chan
         prepare,
         HybridGiScenePrepareFrame {
             card_capture_requests: Vec::new(),
+            surface_cache_page_contents: Vec::new(),
             voxel_clipmaps: vec![HybridGiPrepareVoxelClipmap {
                 clipmap_id: 7,
                 center: Vec3::ZERO,
@@ -1557,6 +1860,7 @@ fn hybrid_gi_gpu_completion_readback_changes_when_runtime_scene_voxel_owner_matc
         prepare.clone(),
         HybridGiScenePrepareFrame {
             card_capture_requests: vec![base_card_capture_request.clone()],
+            surface_cache_page_contents: Vec::new(),
             voxel_clipmaps: vec![clipmap],
             voxel_cells: voxel_layout.clone(),
         },
@@ -1571,6 +1875,7 @@ fn hybrid_gi_gpu_completion_readback_changes_when_runtime_scene_voxel_owner_matc
                 capture_slot_id: 17,
                 ..base_card_capture_request
             }],
+            surface_cache_page_contents: Vec::new(),
             voxel_clipmaps: vec![HybridGiPrepareVoxelClipmap {
                 clipmap_id: 7,
                 center: Vec3::ZERO,
@@ -1630,6 +1935,7 @@ fn hybrid_gi_gpu_completion_readback_preserves_explicit_black_runtime_voxel_radi
         prepare.clone(),
         HybridGiScenePrepareFrame {
             card_capture_requests: vec![base_card_capture_request.clone()],
+            surface_cache_page_contents: Vec::new(),
             voxel_clipmaps: vec![clipmap],
             voxel_cells: runtime_owner_voxel_cells_with_presence(true),
         },
@@ -1641,6 +1947,7 @@ fn hybrid_gi_gpu_completion_readback_preserves_explicit_black_runtime_voxel_radi
         prepare,
         HybridGiScenePrepareFrame {
             card_capture_requests: vec![base_card_capture_request],
+            surface_cache_page_contents: Vec::new(),
             voxel_clipmaps: vec![HybridGiPrepareVoxelClipmap {
                 clipmap_id: 7,
                 center: Vec3::ZERO,
@@ -1731,6 +2038,7 @@ fn hybrid_gi_gpu_completion_readback_changes_when_scene_card_capture_material_se
         prepare.clone(),
         HybridGiScenePrepareFrame {
             card_capture_requests: vec![request.clone()],
+            surface_cache_page_contents: Vec::new(),
             voxel_clipmaps: Vec::new(),
             voxel_cells: Vec::new(),
         },
@@ -1742,6 +2050,7 @@ fn hybrid_gi_gpu_completion_readback_changes_when_scene_card_capture_material_se
         prepare,
         HybridGiScenePrepareFrame {
             card_capture_requests: vec![request],
+            surface_cache_page_contents: Vec::new(),
             voxel_clipmaps: Vec::new(),
             voxel_cells: Vec::new(),
         },
@@ -2229,4 +2538,89 @@ fn runtime_owner_voxel_cells_with_presence(
             radiance_rgb: [0, 0, 0],
         })
         .collect()
+}
+
+fn runtime_voxel_scene_prepare_from_tinted_mesh_with_persisted_page_sample(
+    tint_rgb: [f32; 3],
+    translation: Vec3,
+    uniform_scale: f32,
+    persisted_capture_rgba: [u8; 4],
+) -> HybridGiScenePrepareFrame {
+    let mut runtime = HybridGiRuntimeState::default();
+    let extract = RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 1,
+        voxel_budget: 1,
+        debug_view: Default::default(),
+        probe_budget: 0,
+        tracing_budget: 0,
+        probes: Vec::new(),
+        trace_regions: Vec::new(),
+    };
+
+    runtime.register_scene_extract(
+        Some(&extract),
+        &[RenderMeshSnapshot {
+            node_id: 11,
+            transform: Transform::from_translation(translation)
+                .with_scale(Vec3::splat(uniform_scale)),
+            model: ResourceHandle::<ModelMarker>::new(ResourceId::from_stable_label(
+                "res://models/card.obj",
+            )),
+            material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
+                "res://materials/runtime-voxel-persisted-page.mat",
+            )),
+            tint: Vec4::new(tint_rgb[0], tint_rgb[1], tint_rgb[2], 1.0),
+            mobility: Mobility::Static,
+            render_layer_mask: u32::MAX,
+        }],
+        &[],
+        &[],
+        &[],
+    );
+    runtime.apply_scene_prepare_resources(
+        &crate::graphics::scene::HybridGiScenePrepareResourcesSnapshot {
+            card_capture_request_count: 1,
+            voxel_clipmap_ids: Vec::new(),
+            occupied_atlas_slots: vec![0],
+            occupied_capture_slots: vec![0],
+            atlas_slot_rgba_samples: vec![(0, persisted_capture_rgba)],
+            capture_slot_rgba_samples: vec![(0, persisted_capture_rgba)],
+            voxel_clipmap_rgba_samples: Vec::new(),
+            voxel_clipmap_occupancy_masks: Vec::new(),
+            voxel_clipmap_cell_rgba_samples: Vec::new(),
+            voxel_clipmap_cell_occupancy_counts: Vec::new(),
+            voxel_clipmap_cell_dominant_node_ids: Vec::new(),
+            voxel_clipmap_cell_dominant_rgba_samples: Vec::new(),
+            atlas_slot_count: 0,
+            capture_slot_count: 0,
+            atlas_texture_extent: (0, 0),
+            capture_texture_extent: (0, 0),
+            capture_layer_count: 0,
+        },
+    );
+    runtime.register_scene_extract(
+        Some(&extract),
+        &[RenderMeshSnapshot {
+            node_id: 11,
+            transform: Transform::from_translation(translation)
+                .with_scale(Vec3::splat(uniform_scale)),
+            model: ResourceHandle::<ModelMarker>::new(ResourceId::from_stable_label(
+                "res://models/card.obj",
+            )),
+            material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
+                "res://materials/runtime-voxel-persisted-page.mat",
+            )),
+            tint: Vec4::new(tint_rgb[0], tint_rgb[1], tint_rgb[2], 1.0),
+            mobility: Mobility::Static,
+            render_layer_mask: u32::MAX,
+        }],
+        &[],
+        &[],
+        &[],
+    );
+
+    runtime.build_scene_prepare_frame()
 }

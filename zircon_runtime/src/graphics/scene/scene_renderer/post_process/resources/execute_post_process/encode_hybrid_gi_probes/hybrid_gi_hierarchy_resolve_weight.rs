@@ -25,6 +25,17 @@ pub(super) fn hybrid_gi_hierarchy_resolve_weight(
         .as_ref()
         .and_then(|runtime| runtime.hierarchy_resolve_weight(source.probe_id))
         .filter(|runtime_weight| *runtime_weight > f32::EPSILON);
+    let exact_runtime_weight_has_scene_truth = frame
+        .hybrid_gi_resolve_runtime
+        .as_ref()
+        .map(|runtime| runtime_probe_has_scene_truth(runtime, source.probe_id))
+        .unwrap_or(false);
+    if frame.hybrid_gi_scene_prepare.is_some() {
+        return exact_runtime_weight
+            .filter(|_| exact_runtime_weight_has_scene_truth)
+            .unwrap_or(1.0);
+    }
+
     let inherited_runtime_weight = gather_runtime_parent_chain_weight(frame, source.probe_id)
         .filter(|runtime_weight| *runtime_weight > f32::EPSILON);
     let descendant_runtime_weight = gather_runtime_descendant_chain_weight(frame, source.probe_id)
@@ -35,6 +46,10 @@ pub(super) fn hybrid_gi_hierarchy_resolve_weight(
         descendant_runtime_weight,
     ) {
         return runtime_weight;
+    }
+
+    if frame.hybrid_gi_scene_prepare.is_some() {
+        return 1.0;
     }
 
     let Some(extract) = frame.extract.lighting.hybrid_global_illumination.as_ref() else {
@@ -85,6 +100,14 @@ pub(super) fn hybrid_gi_hierarchy_resolve_weight(
     let lineage_budget_weight =
         1.0 + farther_ancestor_budget_support * FARTHER_ANCESTOR_BUDGET_SCALE;
     (specificity_weight * attenuation_weight * lineage_budget_weight).clamp(0.25, 2.5)
+}
+
+fn runtime_probe_has_scene_truth(
+    runtime: &crate::graphics::types::HybridGiResolveRuntime,
+    probe_id: u32,
+) -> bool {
+    runtime.hierarchy_irradiance_includes_scene_truth(probe_id)
+        || runtime.hierarchy_rt_lighting_includes_scene_truth(probe_id)
 }
 
 fn blend_runtime_lineage_resolve_weights(
@@ -216,7 +239,10 @@ mod tests {
         RenderWorldSnapshotHandle, ViewportCameraSnapshot,
     };
     use crate::core::math::{UVec2, Vec4};
-    use crate::graphics::types::{HybridGiResolveRuntime, ViewportRenderFrame};
+    use crate::graphics::types::{
+        HybridGiPrepareFrame, HybridGiPrepareProbe, HybridGiResolveRuntime,
+        HybridGiScenePrepareFrame, ViewportRenderFrame,
+    };
 
     #[test]
     fn exact_runtime_resolve_weight_keeps_blending_with_descendant_continuation() {
@@ -226,6 +252,16 @@ mod tests {
         assert!(
             strong > weak + 0.25,
             "expected exact runtime resolve weight to keep blending with descendant continuation instead of returning the parent value unchanged; strong={strong:.3}, weak={weak:.3}"
+        );
+    }
+
+    #[test]
+    fn scene_driven_frame_uses_neutral_resolve_weight_without_runtime_authority() {
+        let child_weight = scene_driven_hierarchy_resolve_weight_without_runtime_authority();
+
+        assert!(
+            (child_weight - 1.0).abs() < 0.05,
+            "expected scene-driven frames to stop using authored probe hierarchy as resolve-weight authority once current scene truth is present, instead of keeping child-specific fallback weighting; child_weight={child_weight:.3}"
         );
     }
 
@@ -288,5 +324,79 @@ mod tests {
             }));
 
         hybrid_gi_hierarchy_resolve_weight(&frame, &parent_probe)
+    }
+
+    fn scene_driven_hierarchy_resolve_weight_without_runtime_authority() -> f32 {
+        let parent_probe = RenderHybridGiProbe {
+            probe_id: 100,
+            resident: true,
+            ray_budget: 128,
+            ..Default::default()
+        };
+        let child_probe = RenderHybridGiProbe {
+            probe_id: 200,
+            parent_probe_id: Some(parent_probe.probe_id),
+            resident: true,
+            ray_budget: 88,
+            ..Default::default()
+        };
+
+        let snapshot = RenderSceneSnapshot {
+            scene: RenderSceneGeometryExtract {
+                camera: ViewportCameraSnapshot::default(),
+                meshes: Vec::new(),
+                directional_lights: Vec::new(),
+                point_lights: Vec::new(),
+                spot_lights: Vec::new(),
+            },
+            overlays: RenderOverlayExtract::default(),
+            preview: PreviewEnvironmentExtract {
+                lighting_enabled: true,
+                skybox_enabled: false,
+                fallback_skybox: FallbackSkyboxKind::None,
+                clear_color: Vec4::ZERO,
+            },
+            virtual_geometry_debug: None,
+        };
+        let mut extract =
+            RenderFrameExtract::from_snapshot(RenderWorldSnapshotHandle::new(1), snapshot);
+        extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
+            enabled: true,
+            probe_budget: 2,
+            trace_budget: 0,
+            card_budget: 2,
+            voxel_budget: 1,
+            probes: vec![parent_probe, child_probe],
+            ..Default::default()
+        });
+
+        let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(32, 32))
+            .with_hybrid_gi_prepare(Some(HybridGiPrepareFrame {
+                resident_probes: vec![
+                    HybridGiPrepareProbe {
+                        probe_id: parent_probe.probe_id,
+                        slot: 0,
+                        ray_budget: parent_probe.ray_budget,
+                        irradiance_rgb: [160, 160, 160],
+                    },
+                    HybridGiPrepareProbe {
+                        probe_id: child_probe.probe_id,
+                        slot: 1,
+                        ray_budget: child_probe.ray_budget,
+                        irradiance_rgb: [160, 160, 160],
+                    },
+                ],
+                pending_updates: Vec::new(),
+                scheduled_trace_region_ids: Vec::new(),
+                evictable_probe_ids: Vec::new(),
+            }))
+            .with_hybrid_gi_scene_prepare(Some(HybridGiScenePrepareFrame {
+                card_capture_requests: Vec::new(),
+                surface_cache_page_contents: Vec::new(),
+                voxel_clipmaps: Vec::new(),
+                voxel_cells: Vec::new(),
+            }));
+
+        hybrid_gi_hierarchy_resolve_weight(&frame, &child_probe)
     }
 }

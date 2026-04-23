@@ -1,6 +1,14 @@
 import { Palette } from "chrome.slint";
-import { HostWindowLayoutData, HostMenuChromeData, HostPageChromeData, HostStatusBarData, HostResizeLayerData, HostTabDragOverlayData, HostSideDockSurfaceData, HostDocumentDockSurfaceData, HostBottomDockSurfaceData, HostFloatingWindowLayerData, HostWorkbenchSurfaceMetricsData, HostWorkbenchSurfaceOrchestrationData, HostMenuChrome, HostPageChrome, HostStatusBar, HostResizeLayer, HostTabDragOverlay } from "host_components.slint";
-import { HostDocumentDockSurface, HostSideDockSurface, HostBottomDockSurface, HostFloatingWindowLayer } from "host_workbench_surfaces.slint";
+import { HostWindowLayoutData, HostMenuChromeData, HostPageChromeData, HostStatusBarData, HostResizeLayerData, HostTabDragOverlayData, HostSideDockSurfaceData, HostDocumentDockSurfaceData, HostBottomDockSurfaceData, HostFloatingWindowLayerData, HostWorkbenchSurfaceMetricsData, HostWorkbenchSurfaceOrchestrationData } from "host_components.slint";
+import { HostMenuChrome } from "host_menu_chrome.slint";
+import { HostPageChrome } from "host_page_chrome.slint";
+import { HostResizeLayer } from "host_resize_layer.slint";
+import { HostStatusBar } from "host_status_bar.slint";
+import { HostTabDragOverlay } from "host_tab_drag_overlay.slint";
+import { HostBottomDockSurface } from "host_bottom_dock_surface.slint";
+import { HostDocumentDockSurface } from "host_document_dock_surface.slint";
+import { HostFloatingWindowLayer } from "host_floating_window_layer.slint";
+import { HostSideDockSurface } from "host_side_dock_surface.slint";
 
 export struct HostWorkbenchWindowSceneData {
     layout: HostWindowLayoutData,

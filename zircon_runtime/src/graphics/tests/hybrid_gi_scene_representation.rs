@@ -65,11 +65,8 @@ fn hybrid_gi_scene_representation_tracks_surface_cache_feedback_from_card_budget
     representation.synchronize_cards([11, 22, 33]);
 
     assert_eq!(representation.card_ids(), vec![11, 22, 33]);
-    assert_eq!(
-        representation.surface_cache.resident_page_ids(),
-        vec![11, 22]
-    );
-    assert_eq!(representation.surface_cache.dirty_page_ids(), vec![11, 22]);
+    assert_eq!(representation.surface_cache.resident_page_ids(), vec![0, 1]);
+    assert_eq!(representation.surface_cache.dirty_page_ids(), vec![0, 1]);
     assert_eq!(representation.surface_cache.feedback_card_ids(), vec![33]);
     assert_eq!(
         representation.surface_cache.invalidated_page_ids(),
@@ -93,19 +90,13 @@ fn hybrid_gi_scene_representation_reuses_evicted_pages_after_card_invalidation()
     representation.synchronize_cards([22, 33]);
 
     assert_eq!(representation.card_ids(), vec![22, 33]);
-    assert_eq!(
-        representation.surface_cache.resident_page_ids(),
-        vec![22, 33]
-    );
-    assert_eq!(representation.surface_cache.dirty_page_ids(), vec![33]);
+    assert_eq!(representation.surface_cache.resident_page_ids(), vec![1, 0]);
+    assert_eq!(representation.surface_cache.dirty_page_ids(), vec![0]);
     assert_eq!(
         representation.surface_cache.feedback_card_ids(),
         Vec::<u32>::new()
     );
-    assert_eq!(
-        representation.surface_cache.invalidated_page_ids(),
-        vec![11]
-    );
+    assert_eq!(representation.surface_cache.invalidated_page_ids(), vec![0]);
     assert_eq!(
         representation.voxel_scene.resident_clipmap_ids(),
         vec![0, 1]
@@ -121,11 +112,11 @@ fn hybrid_gi_scene_representation_builds_surface_cache_page_table_and_capture_sl
 
     assert_eq!(
         representation.surface_cache.page_table_entries(),
-        vec![(11, 0), (22, 1)]
+        vec![(0, 0), (1, 1)]
     );
     assert_eq!(
         representation.surface_cache.capture_slot_entries(),
-        vec![(11, 0), (22, 1)]
+        vec![(0, 0), (1, 1)]
     );
 }
 
@@ -146,8 +137,36 @@ fn hybrid_gi_scene_representation_builds_card_capture_requests_from_dirty_pages(
     assert_eq!(
         representation.card_capture_requests(),
         vec![
-            (11, 11, 0, 0, [-1.0, 0.0, 0.0], 1.0),
-            (22, 22, 1, 1, [3.0, 0.0, 0.0], 0.5),
+            (11, 0, 0, 0, [-1.0, 0.0, 0.0], 1.0),
+            (22, 1, 1, 1, [3.0, 0.0, 0.0], 0.5),
+        ]
+    );
+}
+
+#[test]
+fn hybrid_gi_scene_representation_allocates_page_ids_separately_from_owner_card_ids() {
+    let mut representation = HybridGiSceneRepresentation::from_extract(&extract_with_budgets(2, 2));
+
+    representation.synchronize_scene(
+        &[
+            mesh_at(11, Vec3::new(-1.0, 0.0, 0.0), 2.0),
+            mesh_at(22, Vec3::new(3.0, 0.0, 0.0), 1.0),
+        ],
+        &[],
+        &[],
+        &[],
+    );
+
+    assert_eq!(representation.surface_cache.resident_page_ids(), vec![0, 1]);
+    assert_eq!(
+        representation.surface_cache.page_table_entries(),
+        vec![(0, 0), (1, 1)]
+    );
+    assert_eq!(
+        representation.card_capture_requests(),
+        vec![
+            (11, 0, 0, 0, [-1.0, 0.0, 0.0], 1.0),
+            (22, 1, 1, 1, [3.0, 0.0, 0.0], 0.5),
         ]
     );
 }
@@ -161,11 +180,46 @@ fn hybrid_gi_scene_representation_reuses_surface_cache_slots_after_invalidation(
 
     assert_eq!(
         representation.surface_cache.page_table_entries(),
-        vec![(22, 1), (33, 0)]
+        vec![(1, 1), (0, 0)]
     );
     assert_eq!(
         representation.surface_cache.capture_slot_entries(),
-        vec![(33, 0)]
+        vec![(0, 0)]
+    );
+}
+
+#[test]
+fn hybrid_gi_scene_representation_reuses_recycled_page_id_for_new_owner_after_invalidation() {
+    let mut representation = HybridGiSceneRepresentation::from_extract(&extract_with_budgets(2, 2));
+
+    representation.synchronize_scene(
+        &[
+            mesh_at(11, Vec3::new(-1.0, 0.0, 0.0), 2.0),
+            mesh_at(22, Vec3::new(3.0, 0.0, 0.0), 1.0),
+        ],
+        &[],
+        &[],
+        &[],
+    );
+    representation.synchronize_scene(
+        &[
+            mesh_at(22, Vec3::new(3.0, 0.0, 0.0), 1.0),
+            mesh_at(33, Vec3::new(6.0, 0.0, 0.0), 1.5),
+        ],
+        &[],
+        &[],
+        &[],
+    );
+
+    assert_eq!(representation.surface_cache.resident_page_ids(), vec![1, 0]);
+    assert_eq!(representation.surface_cache.invalidated_page_ids(), vec![0]);
+    assert_eq!(
+        representation.surface_cache.page_table_entries(),
+        vec![(1, 1), (0, 0)]
+    );
+    assert_eq!(
+        representation.card_capture_requests(),
+        vec![(33, 0, 0, 0, [6.0, 0.0, 0.0], 0.75)]
     );
 }
 
@@ -194,7 +248,7 @@ fn hybrid_gi_scene_representation_keeps_only_changed_pages_in_card_capture_reque
 
     assert_eq!(
         representation.card_capture_requests(),
-        vec![(22, 22, 1, 1, [4.0, 0.0, 0.0], 0.75)]
+        vec![(22, 1, 1, 1, [4.0, 0.0, 0.0], 0.75)]
     );
 }
 
@@ -223,11 +277,11 @@ fn hybrid_gi_scene_representation_preserves_capture_slot_for_resident_page_redir
 
     assert_eq!(
         representation.surface_cache.page_table_entries(),
-        vec![(11, 0), (22, 1)]
+        vec![(0, 0), (1, 1)]
     );
     assert_eq!(
         representation.surface_cache.capture_slot_entries(),
-        vec![(22, 1)]
+        vec![(1, 1)]
     );
 }
 

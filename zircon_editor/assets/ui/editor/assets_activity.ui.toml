@@ -1,0 +1,286 @@
+stylesheets = []
+
+[asset]
+kind = "layout"
+id = "editor.assets_activity"
+version = 1
+display_name = "Assets Activity"
+
+[imports]
+styles = ["res://ui/theme/editor_base.ui.toml"]
+
+[root]
+node_id = "assets_activity_root"
+kind = "native"
+type = "VerticalBox"
+control_id = "AssetsActivityRoot"
+classes = ["editor-shell"]
+
+[root.layout.container]
+kind = "VerticalBox"
+gap = 10.0
+
+[root.layout.width]
+stretch = "Stretch"
+
+[root.layout.height]
+stretch = "Stretch"
+
+[[root.children]]
+[root.children.node]
+node_id = "toolbar_panel"
+kind = "native"
+type = "VerticalBox"
+control_id = "AssetsActivityToolbarPanel"
+
+[root.children.node.layout.container]
+kind = "VerticalBox"
+gap = 4.0
+
+[root.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.layout.height]
+min = 122.0
+preferred = 122.0
+max = 122.0
+stretch = "Fixed"
+
+[[root.children.node.children]]
+[root.children.node.children.node]
+node_id = "toolbar_title_row"
+kind = "native"
+type = "HorizontalBox"
+control_id = "AssetsActivityToolbarTitleRow"
+
+[root.children.node.children.node.layout.container]
+kind = "HorizontalBox"
+gap = 8.0
+
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.layout.height]
+min = 24.0
+preferred = 24.0
+max = 24.0
+stretch = "Fixed"
+
+[[root.children.node.children]]
+[root.children.node.children.node]
+node_id = "toolbar_search_row"
+kind = "native"
+type = "HorizontalBox"
+control_id = "AssetsActivityToolbarSearchRow"
+
+[root.children.node.children.node.layout.container]
+kind = "HorizontalBox"
+gap = 8.0
+
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.layout.height]
+min = 28.0
+preferred = 28.0
+max = 28.0
+stretch = "Fixed"
+
+[[root.children.node.children]]
+[root.children.node.children.node]
+node_id = "toolbar_kind_primary_row"
+kind = "native"
+type = "HorizontalBox"
+control_id = "AssetsActivityToolbarKindPrimaryRow"
+
+[root.children.node.children.node.layout.container]
+kind = "HorizontalBox"
+gap = 4.0
+
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.layout.height]
+min = 24.0
+preferred = 24.0
+max = 24.0
+stretch = "Fixed"
+
+[[root.children.node.children]]
+[root.children.node.children.node]
+node_id = "toolbar_kind_secondary_row"
+kind = "native"
+type = "HorizontalBox"
+control_id = "AssetsActivityToolbarKindSecondaryRow"
+
+[root.children.node.children.node.layout.container]
+kind = "HorizontalBox"
+gap = 4.0
+
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.layout.height]
+min = 24.0
+preferred = 24.0
+max = 24.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "main_panel"
+kind = "native"
+type = "HorizontalBox"
+control_id = "AssetsActivityMainPanel"
+
+[root.children.node.layout.container]
+kind = "HorizontalBox"
+gap = 10.0
+
+[root.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children]]
+[root.children.node.children.node]
+node_id = "tree_panel"
+kind = "native"
+type = "Space"
+control_id = "AssetsActivityTreePanel"
+
+[root.children.node.children.node.layout.width]
+min = 248.0
+preferred = 248.0
+max = 248.0
+stretch = "Fixed"
+
+[root.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children]]
+[root.children.node.children.node]
+node_id = "content_panel"
+kind = "native"
+type = "Space"
+control_id = "AssetsActivityContentPanel"
+
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children]]
+[root.children.node]
+node_id = "utility_panel"
+kind = "native"
+type = "VerticalBox"
+control_id = "AssetsActivityUtilityPanel"
+
+[root.children.node.layout.container]
+kind = "VerticalBox"
+gap = 10.0
+
+[root.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.layout.height]
+min = 176.0
+preferred = 176.0
+max = 176.0
+stretch = "Fixed"
+
+[[root.children.node.children]]
+[root.children.node.children.node]
+node_id = "utility_tabs_row"
+kind = "native"
+type = "HorizontalBox"
+control_id = "AssetsActivityUtilityTabsRow"
+
+[root.children.node.children.node.layout.container]
+kind = "HorizontalBox"
+gap = 8.0
+
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.layout.height]
+min = 32.0
+preferred = 32.0
+max = 32.0
+stretch = "Fixed"
+
+[[root.children.node.children]]
+[root.children.node.children.node]
+node_id = "utility_content_panel"
+kind = "native"
+type = "Overlay"
+control_id = "AssetsActivityUtilityContentPanel"
+
+[root.children.node.children.node.layout.container]
+kind = "Overlay"
+
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "preview_panel"
+kind = "native"
+type = "Space"
+control_id = "AssetsActivityPreviewPanel"
+
+[root.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "references_shell"
+kind = "native"
+type = "HorizontalBox"
+
+[root.children.node.children.node.children.node.layout.container]
+kind = "HorizontalBox"
+gap = 12.0
+
+[root.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node]
+node_id = "reference_left_panel"
+kind = "native"
+type = "Space"
+control_id = "AssetsActivityReferenceLeftPanel"
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node]
+node_id = "reference_right_panel"
+kind = "native"
+type = "Space"
+control_id = "AssetsActivityReferenceRightPanel"
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[components]

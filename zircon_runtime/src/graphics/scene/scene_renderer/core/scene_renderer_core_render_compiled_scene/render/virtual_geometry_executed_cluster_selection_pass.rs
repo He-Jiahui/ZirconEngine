@@ -1,23 +1,80 @@
+mod seed_backed_compat;
+
 use std::collections::HashSet;
 use std::sync::Arc;
 
-use crate::core::framework::render::RenderVirtualGeometrySelectedCluster;
+use crate::core::framework::render::{
+    RenderVirtualGeometryExtract, RenderVirtualGeometrySelectedCluster,
+    RenderVirtualGeometrySelectedClusterSource,
+};
 use crate::graphics::scene::scene_renderer::mesh::MeshDraw;
 use crate::graphics::types::VirtualGeometryClusterSelection;
 use wgpu::util::DeviceExt;
 
+use super::virtual_geometry_node_and_cluster_cull_pass::VirtualGeometryNodeAndClusterCullPassOutput;
+use seed_backed_compat::{
+    collect_execution_cluster_selection_collection_from_root_seeds,
+    SeedBackedExecutionSelectionRecord,
+};
+
 #[derive(Default)]
 pub(super) struct VirtualGeometryExecutedClusterSelectionPassOutput {
     pub(super) selections: Vec<VirtualGeometryClusterSelection>,
+    pub(super) selected_clusters: Vec<RenderVirtualGeometrySelectedCluster>,
+    pub(super) source: RenderVirtualGeometrySelectedClusterSource,
     pub(super) selected_cluster_count: u32,
     pub(super) selected_cluster_buffer: Option<Arc<wgpu::Buffer>>,
 }
 
+#[derive(Default)]
+struct ExecutedClusterSelectionCollection {
+    selections: Vec<VirtualGeometryClusterSelection>,
+    selected_clusters: Vec<RenderVirtualGeometrySelectedCluster>,
+}
+
+impl ExecutedClusterSelectionCollection {
+    fn from_selections(selections: Vec<VirtualGeometryClusterSelection>) -> Self {
+        let selected_clusters = selections
+            .iter()
+            .copied()
+            .map(VirtualGeometryClusterSelection::to_selected_cluster)
+            .collect();
+        Self {
+            selections,
+            selected_clusters,
+        }
+    }
+
+    fn from_seed_backed_records(records: Vec<SeedBackedExecutionSelectionRecord>) -> Self {
+        let (selections, selected_clusters) = records
+            .into_iter()
+            .map(|record| (record.selection, record.selected_cluster))
+            .unzip();
+        Self {
+            selections,
+            selected_clusters,
+        }
+    }
+}
+
 pub(super) fn execute_virtual_geometry_executed_cluster_selection_pass(
     device: &wgpu::Device,
+    selected_cluster_pass_enabled: bool,
     cluster_selections: Option<&[VirtualGeometryClusterSelection]>,
     indirect_execution_draws: &[&MeshDraw],
+    extract: Option<&RenderVirtualGeometryExtract>,
+    node_and_cluster_cull_pass: &VirtualGeometryNodeAndClusterCullPassOutput,
 ) -> VirtualGeometryExecutedClusterSelectionPassOutput {
+    if !selected_cluster_pass_enabled {
+        return VirtualGeometryExecutedClusterSelectionPassOutput {
+            selections: Vec::new(),
+            selected_clusters: Vec::new(),
+            source: RenderVirtualGeometrySelectedClusterSource::Unavailable,
+            selected_cluster_count: 0,
+            selected_cluster_buffer: None,
+        };
+    }
+
     let executed_submission_keys = indirect_execution_draws
         .iter()
         .filter_map(|draw| {
@@ -29,15 +86,28 @@ pub(super) fn execute_virtual_geometry_executed_cluster_selection_pass(
         cluster_selections,
         &executed_submission_keys,
     );
-    let selected_clusters = selections
-        .iter()
-        .copied()
-        .map(VirtualGeometryClusterSelection::to_selected_cluster)
-        .collect::<Vec<_>>();
+    let selection_collection = if selections.is_empty() && cluster_selections.is_none() {
+        collect_execution_cluster_selection_collection_from_root_seeds(
+            extract,
+            node_and_cluster_cull_pass,
+        )
+    } else {
+        ExecutedClusterSelectionCollection::from_selections(selections)
+    };
+    let selected_cluster_count =
+        u32::try_from(selection_collection.selected_clusters.len()).unwrap_or(u32::MAX);
+    let selected_cluster_buffer =
+        create_selected_cluster_buffer(device, &selection_collection.selected_clusters);
     VirtualGeometryExecutedClusterSelectionPassOutput {
-        selections,
-        selected_cluster_count: u32::try_from(selected_clusters.len()).unwrap_or(u32::MAX),
-        selected_cluster_buffer: create_selected_cluster_buffer(device, &selected_clusters),
+        selections: selection_collection.selections,
+        selected_clusters: selection_collection.selected_clusters,
+        source: if selected_cluster_count == 0 {
+            RenderVirtualGeometrySelectedClusterSource::RenderPathClearOnly
+        } else {
+            RenderVirtualGeometrySelectedClusterSource::RenderPathExecutionSelections
+        },
+        selected_cluster_count,
+        selected_cluster_buffer,
     }
 }
 
@@ -97,144 +167,4 @@ fn create_selected_cluster_buffer(
 }
 
 #[cfg(test)]
-mod tests {
-    use std::collections::HashSet;
-
-    use super::collect_execution_cluster_selections_from_submission_keys;
-    use crate::graphics::types::{
-        VirtualGeometryClusterSelection, VirtualGeometryPrepareClusterState,
-    };
-
-    #[test]
-    fn executed_cluster_selection_pass_filters_deduplicates_and_sorts_cluster_selections() {
-        let entity_a = 42_u64;
-        let entity_b = 43_u64;
-        let mut executed_submission_keys = HashSet::new();
-        executed_submission_keys.insert((entity_a, 7));
-        executed_submission_keys.insert((entity_b, 3));
-
-        let selections = collect_execution_cluster_selections_from_submission_keys(
-            Some(&[
-                selection(
-                    Some(1),
-                    entity_a,
-                    7,
-                    30,
-                    1,
-                    300,
-                    0,
-                    VirtualGeometryPrepareClusterState::Resident,
-                ),
-                selection(
-                    Some(1),
-                    entity_a,
-                    9,
-                    40,
-                    2,
-                    400,
-                    0,
-                    VirtualGeometryPrepareClusterState::Resident,
-                ),
-                selection(
-                    None,
-                    entity_b,
-                    3,
-                    50,
-                    0,
-                    500,
-                    0,
-                    VirtualGeometryPrepareClusterState::PendingUpload,
-                ),
-                selection(
-                    Some(1),
-                    entity_a,
-                    7,
-                    20,
-                    0,
-                    200,
-                    0,
-                    VirtualGeometryPrepareClusterState::Resident,
-                ),
-                selection(
-                    Some(1),
-                    entity_a,
-                    7,
-                    20,
-                    0,
-                    200,
-                    0,
-                    VirtualGeometryPrepareClusterState::Resident,
-                ),
-            ]),
-            &executed_submission_keys,
-        );
-
-        assert_eq!(
-            selections,
-            vec![
-                selection(
-                    Some(1),
-                    entity_a,
-                    7,
-                    20,
-                    0,
-                    200,
-                    0,
-                    VirtualGeometryPrepareClusterState::Resident,
-                ),
-                selection(
-                    Some(1),
-                    entity_a,
-                    7,
-                    30,
-                    1,
-                    300,
-                    0,
-                    VirtualGeometryPrepareClusterState::Resident,
-                ),
-                selection(
-                    None,
-                    entity_b,
-                    3,
-                    50,
-                    0,
-                    500,
-                    0,
-                    VirtualGeometryPrepareClusterState::PendingUpload,
-                ),
-            ],
-            "expected the shared compat executed-cluster seam to drop non-executed submissions, deduplicate repeated clusters, and emit the exact stable ordering that both VisBuffer64 and HardwareRasterization consume"
-        );
-    }
-
-    fn selection(
-        instance_index: Option<u32>,
-        entity: u64,
-        submission_index: u32,
-        cluster_id: u32,
-        cluster_ordinal: u32,
-        page_id: u32,
-        lod_level: u8,
-        state: VirtualGeometryPrepareClusterState,
-    ) -> VirtualGeometryClusterSelection {
-        VirtualGeometryClusterSelection {
-            submission_index,
-            instance_index,
-            entity,
-            cluster_id,
-            cluster_ordinal,
-            page_id,
-            lod_level,
-            submission_page_id: page_id,
-            submission_lod_level: lod_level,
-            entity_cluster_start_ordinal: cluster_ordinal as usize,
-            entity_cluster_span_count: 1,
-            entity_cluster_total_count: 3,
-            lineage_depth: 0,
-            frontier_rank: 0,
-            resident_slot: Some(0),
-            submission_slot: Some(0),
-            state,
-        }
-    }
-}
+mod tests;

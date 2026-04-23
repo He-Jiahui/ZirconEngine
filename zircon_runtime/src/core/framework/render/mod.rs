@@ -20,8 +20,8 @@ pub use camera::{
 };
 pub use frame_extract::{
     DebugOverlayExtract, GeometryExtract, LightingExtract, ParticleExtract, PostProcessExtract,
-    RenderExtractContext, RenderExtractProducer, RenderFrameExtract, RenderViewExtract,
-    RenderWorldSnapshotHandle, VisibilityInput, VisibilityRenderableInput,
+    RenderExtractContext, RenderExtractProducer, RenderFrameExtract, RenderSkeletalPoseExtract,
+    RenderViewExtract, RenderWorldSnapshotHandle, VisibilityInput, VisibilityRenderableInput,
 };
 pub use framework::RenderFramework;
 pub use framework_error::RenderFrameworkError;
@@ -43,16 +43,24 @@ pub use scene_extract::{
 pub(crate) use scene_extract::{RenderHybridGiProbe, RenderHybridGiTraceRegion};
 pub use virtual_geometry_debug_snapshot::{
     RenderVirtualGeometryBvhVisualizationInstance, RenderVirtualGeometryBvhVisualizationNode,
+    RenderVirtualGeometryClusterSelectionInputSource,
+    RenderVirtualGeometryCpuReferenceDepthClusterMapEntry,
     RenderVirtualGeometryCpuReferenceInstance, RenderVirtualGeometryCpuReferenceLeafCluster,
+    RenderVirtualGeometryCpuReferenceMipClusterMapEntry,
     RenderVirtualGeometryCpuReferenceNodeVisit,
-    RenderVirtualGeometryCpuReferencePageClusterMapEntry, RenderVirtualGeometryDebugSnapshot,
-    RenderVirtualGeometryExecutionSegment, RenderVirtualGeometryExecutionState,
-    RenderVirtualGeometryHardwareRasterizationRecord,
-    RenderVirtualGeometryHardwareRasterizationSource, RenderVirtualGeometryPageRequestInspection,
+    RenderVirtualGeometryCpuReferencePageClusterMapEntry,
+    RenderVirtualGeometryCpuReferenceSelectedCluster, RenderVirtualGeometryCullInputSnapshot,
+    RenderVirtualGeometryDebugSnapshot, RenderVirtualGeometryExecutionSegment,
+    RenderVirtualGeometryExecutionState, RenderVirtualGeometryHardwareRasterizationRecord,
+    RenderVirtualGeometryHardwareRasterizationSource,
+    RenderVirtualGeometryNodeAndClusterCullDispatchSetupSnapshot,
+    RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot,
+    RenderVirtualGeometryNodeAndClusterCullInstanceSeed,
+    RenderVirtualGeometryNodeAndClusterCullSource, RenderVirtualGeometryPageRequestInspection,
     RenderVirtualGeometryResidentPageInspection, RenderVirtualGeometrySelectedCluster,
-    RenderVirtualGeometrySubmissionEntry, RenderVirtualGeometrySubmissionRecord,
-    RenderVirtualGeometryVisBuffer64Entry, RenderVirtualGeometryVisBuffer64Source,
-    RenderVirtualGeometryVisBufferMark,
+    RenderVirtualGeometrySelectedClusterSource, RenderVirtualGeometrySubmissionEntry,
+    RenderVirtualGeometrySubmissionRecord, RenderVirtualGeometryVisBuffer64Entry,
+    RenderVirtualGeometryVisBuffer64Source, RenderVirtualGeometryVisBufferMark,
 };
 
 pub trait RenderingManager: Send + Sync {

@@ -8,9 +8,9 @@ fn native_floating_window_mode_forwards_tabs_header_and_pane_callbacks_to_root()
         env!("CARGO_MANIFEST_DIR"),
         "/ui/workbench/host_surface.slint"
     ));
-    let host_workbench_surfaces = include_str!(concat!(
+    let host_native_floating_window_surface = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/host_workbench_surfaces.slint"
+        "/ui/workbench/host_native_floating_window_surface.slint"
     ));
     let pane_surface = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
@@ -20,6 +20,12 @@ fn native_floating_window_mode_forwards_tabs_header_and_pane_callbacks_to_root()
         env!("CARGO_MANIFEST_DIR"),
         "/ui/workbench/pane_content.slint"
     ));
+    let template_pane = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/ui/workbench/template_pane.slint"
+    ));
+    let pane_content_normalized = pane_content.split_whitespace().collect::<String>();
+    let template_pane_normalized = template_pane.split_whitespace().collect::<String>();
     assert!(
         scaffold.contains("HostWorkbenchWindowSurfaceHost {"),
         "host scaffold should delegate window chrome switching to HostWorkbenchWindowSurfaceHost"
@@ -28,10 +34,10 @@ fn native_floating_window_mode_forwards_tabs_header_and_pane_callbacks_to_root()
         .find("export component HostNativeWorkbenchWindowSurface inherits Rectangle {")
         .expect("native floating wrapper should exist");
     let native_wrapper = &host_surface[native_wrapper_start..];
-    let native_start = host_workbench_surfaces
+    let native_start = host_native_floating_window_surface
         .find("export component HostNativeFloatingWindowSurface inherits Rectangle {")
         .expect("native floating window component should exist");
-    let native_mode = &host_workbench_surfaces[native_start..];
+    let native_mode = &host_native_floating_window_surface[native_start..];
 
     for needle in [
         "HostNativeFloatingWindowSurface {",
@@ -101,10 +107,6 @@ fn native_floating_window_mode_forwards_tabs_header_and_pane_callbacks_to_root()
     for (owner, global_route) in [
         (
             "pane_content",
-            "surface_control_clicked(control_id, action_id) => { PaneSurfaceHostContext.surface_control_clicked(control_id, action_id); }",
-        ),
-        (
-            "pane_content",
             "tree_pointer_clicked(x, y, width, height) => { PaneSurfaceHostContext.asset_tree_pointer_clicked(",
         ),
         (
@@ -128,6 +130,20 @@ fn native_floating_window_mode_forwards_tabs_header_and_pane_callbacks_to_root()
                 _ => false,
             },
             "{owner} should route native floating pane interactions through PaneSurfaceHostContext via `{global_route}`"
+        );
+    }
+    for needle in [
+        "exportcomponentTemplatePaneinheritsRectangle{",
+        "callbacknode_dispatched(control_id:string,dispatch_kind:string,action_id:string);",
+        "if!root.pane.show_empty&&root.pane.kind==\"Project\":TemplatePane{",
+        "node_dispatched(control_id,dispatch_kind,action_id)=>{",
+        "if(dispatch_kind==\"surface\"){PaneSurfaceHostContext.surface_control_clicked(control_id,action_id);}",
+    ] {
+        let found = template_pane_normalized.contains(needle)
+            || pane_content_normalized.contains(needle);
+        assert!(
+            found,
+            "project template pane should route native floating interactions through PaneSurfaceHostContext via `{needle}`"
         );
     }
 }

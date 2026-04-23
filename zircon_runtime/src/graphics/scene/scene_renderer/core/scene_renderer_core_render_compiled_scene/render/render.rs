@@ -1,6 +1,13 @@
 use crate::core::framework::render::{
-    RenderVirtualGeometryExecutionSegment, RenderVirtualGeometryHardwareRasterizationRecord,
-    RenderVirtualGeometryHardwareRasterizationSource, RenderVirtualGeometryVisBuffer64Source,
+    RenderVirtualGeometryCullInputSnapshot, RenderVirtualGeometryExecutionSegment,
+    RenderVirtualGeometryHardwareRasterizationRecord,
+    RenderVirtualGeometryHardwareRasterizationSource,
+    RenderVirtualGeometryNodeAndClusterCullDispatchSetupSnapshot,
+    RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot,
+    RenderVirtualGeometryNodeAndClusterCullInstanceSeed,
+    RenderVirtualGeometryNodeAndClusterCullSource, RenderVirtualGeometrySelectedCluster,
+    RenderVirtualGeometrySelectedClusterSource, RenderVirtualGeometryVisBuffer64Entry,
+    RenderVirtualGeometryVisBuffer64Source,
 };
 use crate::graphics::backend::OffscreenTarget;
 use crate::graphics::scene::resources::ResourceStreamer;
@@ -26,6 +33,7 @@ impl SceneRendererCore {
         queue: &wgpu::Queue,
         streamer: &ResourceStreamer,
         frame: &ViewportRenderFrame,
+        virtual_geometry_cull_input: Option<&RenderVirtualGeometryCullInputSnapshot>,
         target: &mut OffscreenTarget,
         runtime_features: SceneRuntimeFeatureFlags,
         history_textures: Option<&mut SceneFrameHistoryTextures>,
@@ -45,13 +53,25 @@ impl SceneRendererCore {
             u32,
             Vec<u64>,
             Vec<RenderVirtualGeometryExecutionSegment>,
+            Vec<RenderVirtualGeometrySelectedCluster>,
+            RenderVirtualGeometrySelectedClusterSource,
             u32,
             Option<std::sync::Arc<wgpu::Buffer>>,
+            RenderVirtualGeometryNodeAndClusterCullSource,
+            u32,
+            Option<RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot>,
+            Option<RenderVirtualGeometryNodeAndClusterCullDispatchSetupSnapshot>,
+            Vec<RenderVirtualGeometryNodeAndClusterCullInstanceSeed>,
+            Option<std::sync::Arc<wgpu::Buffer>>, // node_and_cluster_cull_buffer
+            Option<std::sync::Arc<wgpu::Buffer>>, // node_and_cluster_cull_dispatch_setup_buffer
+            u32,                                  // node_and_cluster_cull_instance_seed_count
+            Option<std::sync::Arc<wgpu::Buffer>>, // node_and_cluster_cull_instance_seed_buffer
             Vec<RenderVirtualGeometryHardwareRasterizationRecord>,
             RenderVirtualGeometryHardwareRasterizationSource,
             u32,
             Option<std::sync::Arc<wgpu::Buffer>>,
             u64,
+            Vec<RenderVirtualGeometryVisBuffer64Entry>,
             RenderVirtualGeometryVisBuffer64Source,
             u32,
             Option<std::sync::Arc<wgpu::Buffer>>,
@@ -99,11 +119,15 @@ impl SceneRendererCore {
         } else {
             compiled_scene_draws.draws.iter().collect::<Vec<_>>()
         };
+        let resolved_virtual_geometry_cluster_selections =
+            frame.resolved_virtual_geometry_cluster_selections();
         let indirect_stats = virtual_geometry_indirect_stats(
             device,
             &mut encoder,
             runtime_features.virtual_geometry_enabled,
-            frame.virtual_geometry_cluster_selections.as_deref(),
+            frame,
+            virtual_geometry_cull_input,
+            resolved_virtual_geometry_cluster_selections.as_deref(),
             &execution_draws,
             compiled_scene_draws.indirect_args_buffer.clone(),
             compiled_scene_draws.indirect_args_count,
@@ -174,13 +198,31 @@ impl SceneRendererCore {
             indirect_stats.execution_repeated_draw_count,
             indirect_stats.execution_indirect_offsets,
             indirect_stats.execution_segments,
+            indirect_stats.executed_selected_clusters,
+            indirect_stats.executed_selected_cluster_source,
             indirect_stats.executed_selected_cluster_count,
             indirect_stats.executed_selected_cluster_buffer,
+            indirect_stats.node_and_cluster_cull_pass.source,
+            indirect_stats.node_and_cluster_cull_pass.record_count,
+            indirect_stats.node_and_cluster_cull_pass.global_state,
+            indirect_stats.node_and_cluster_cull_pass.dispatch_setup,
+            indirect_stats.node_and_cluster_cull_pass.instance_seeds,
+            indirect_stats.node_and_cluster_cull_pass.buffer,
+            indirect_stats
+                .node_and_cluster_cull_pass
+                .dispatch_setup_buffer,
+            indirect_stats
+                .node_and_cluster_cull_pass
+                .instance_seed_count,
+            indirect_stats
+                .node_and_cluster_cull_pass
+                .instance_seed_buffer,
             indirect_stats.hardware_rasterization_pass.records,
             indirect_stats.hardware_rasterization_pass.source,
             indirect_stats.hardware_rasterization_pass.record_count,
             indirect_stats.hardware_rasterization_pass.buffer,
             indirect_stats.visbuffer64_pass.clear_value,
+            indirect_stats.visbuffer64_pass.entries,
             indirect_stats.visbuffer64_pass.source,
             indirect_stats.visbuffer64_pass.entry_count,
             indirect_stats.visbuffer64_pass.buffer,

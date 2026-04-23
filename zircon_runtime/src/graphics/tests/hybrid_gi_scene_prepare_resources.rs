@@ -23,8 +23,8 @@ use crate::{
     types::{
         hybrid_gi_voxel_clipmap_bounds_cell_ranges, hybrid_gi_voxel_clipmap_cell_bit_index,
         HybridGiPrepareCardCaptureRequest, HybridGiPrepareFrame, HybridGiPrepareProbe,
-        HybridGiPrepareVoxelCell, HybridGiPrepareVoxelClipmap, HybridGiScenePrepareFrame,
-        ViewportRenderFrame,
+        HybridGiPrepareSurfaceCachePageContent, HybridGiPrepareVoxelCell,
+        HybridGiPrepareVoxelClipmap, HybridGiScenePrepareFrame, ViewportRenderFrame,
     },
     BuiltinRenderFeature, RenderPipelineAsset, RenderPipelineCompileOptions, SceneRenderer,
 };
@@ -35,8 +35,12 @@ const TEST_SCENE_PREPARE_VOXEL_MIN_MESH_BOUNDS_RADIUS: f32 = 0.5;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct ScenePrepareResourceSnapshotForTest {
+    occupied_atlas_slots: Vec<u32>,
+    occupied_capture_slots: Vec<u32>,
     atlas_slot_rgba_samples: Vec<(u32, [u8; 4])>,
     capture_slot_rgba_samples: Vec<(u32, [u8; 4])>,
+    atlas_slot_count: u32,
+    capture_slot_count: u32,
     voxel_clipmap_rgba_samples: Vec<(u32, [u8; 4])>,
     voxel_clipmap_occupancy_masks: Vec<(u32, u64)>,
     voxel_clipmap_cell_rgba_samples: Vec<(u32, u32, [u8; 4])>,
@@ -106,6 +110,7 @@ fn hybrid_gi_gpu_readback_reports_scene_prepare_card_capture_resource_snapshot()
                             bounds_radius: 1.25,
                         },
                     ],
+                    surface_cache_page_contents: Vec::new(),
                     voxel_clipmaps: vec![HybridGiPrepareVoxelClipmap {
                         clipmap_id: 7,
                         center: Vec3::new(0.0, 0.0, 0.0),
@@ -1544,6 +1549,7 @@ fn hybrid_gi_scene_prepare_uses_runtime_voxel_cell_payload_without_scene_meshes(
         prepare_frame(),
         HybridGiScenePrepareFrame {
             card_capture_requests: Vec::new(),
+            surface_cache_page_contents: Vec::new(),
             voxel_clipmaps: vec![HybridGiPrepareVoxelClipmap {
                 clipmap_id: 7,
                 center: Vec3::ZERO,
@@ -1623,6 +1629,256 @@ fn hybrid_gi_scene_prepare_uses_runtime_voxel_cell_payload_without_scene_meshes(
 }
 
 #[test]
+fn hybrid_gi_scene_prepare_reuses_persisted_surface_cache_page_contents_without_card_capture_requests(
+) {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let viewport_size = UVec2::new(96, 64);
+
+    let snapshot = render_scene_prepare_resource_snapshot(
+        &mut renderer,
+        viewport_size,
+        build_extract(
+            viewport_size,
+            vec![probe(200, 96, Vec3::ZERO, 0.85)],
+            vec![trace_region(40, Vec3::ZERO, 0.8, 0.9)],
+        ),
+        prepare_frame(),
+        HybridGiScenePrepareFrame {
+            card_capture_requests: Vec::new(),
+            surface_cache_page_contents: vec![
+                HybridGiPrepareSurfaceCachePageContent {
+                    page_id: 21,
+                    owner_card_id: 21,
+                    atlas_slot_id: 0,
+                    capture_slot_id: 1,
+                    bounds_center: Vec3::ZERO,
+                    bounds_radius: 0.5,
+                    atlas_sample_rgba: [224, 96, 48, 255],
+                    capture_sample_rgba: [240, 112, 64, 255],
+                },
+                HybridGiPrepareSurfaceCachePageContent {
+                    page_id: 22,
+                    owner_card_id: 22,
+                    atlas_slot_id: 9,
+                    capture_slot_id: 4,
+                    bounds_center: Vec3::new(2.0, 0.0, 0.0),
+                    bounds_radius: 0.75,
+                    atlas_sample_rgba: [48, 96, 224, 255],
+                    capture_sample_rgba: [64, 112, 240, 255],
+                },
+            ],
+            voxel_clipmaps: Vec::new(),
+            voxel_cells: Vec::new(),
+        },
+    );
+
+    assert_eq!(
+        snapshot.atlas_slot_rgba_samples,
+        vec![(0, [224, 96, 48, 255]), (9, [48, 96, 224, 255])]
+    );
+    assert_eq!(
+        snapshot.capture_slot_rgba_samples,
+        vec![(1, [240, 112, 64, 255]), (4, [64, 112, 240, 255])]
+    );
+}
+
+#[test]
+fn hybrid_gi_scene_prepare_absent_persisted_surface_cache_page_contents_do_not_create_resource_snapshot_without_other_scene_prepare_data(
+) {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let viewport_size = UVec2::new(96, 64);
+
+    let snapshot = render_optional_scene_prepare_resource_snapshot(
+        &mut renderer,
+        viewport_size,
+        build_extract(
+            viewport_size,
+            vec![probe(200, 96, Vec3::ZERO, 0.85)],
+            vec![trace_region(40, Vec3::ZERO, 0.8, 0.9)],
+        ),
+        prepare_frame(),
+        HybridGiScenePrepareFrame {
+            card_capture_requests: Vec::new(),
+            surface_cache_page_contents: vec![HybridGiPrepareSurfaceCachePageContent {
+                page_id: 21,
+                owner_card_id: 21,
+                atlas_slot_id: 0,
+                capture_slot_id: 1,
+                bounds_center: Vec3::ZERO,
+                bounds_radius: 0.5,
+                atlas_sample_rgba: [0, 0, 0, 0],
+                capture_sample_rgba: [0, 0, 0, 0],
+            }],
+            voxel_clipmaps: Vec::new(),
+            voxel_cells: Vec::new(),
+        },
+    );
+
+    assert!(
+        snapshot.is_none(),
+        "expected absent persisted surface-cache page samples to match the no-page scene-prepare baseline instead of creating an empty-but-authoritative resource snapshot"
+    );
+}
+
+#[test]
+fn hybrid_gi_scene_prepare_absent_persisted_surface_cache_page_contents_do_not_occupy_atlas_or_capture_slots(
+) {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let viewport_size = UVec2::new(96, 64);
+
+    let snapshot = render_scene_prepare_resource_snapshot(
+        &mut renderer,
+        viewport_size,
+        build_extract(
+            viewport_size,
+            vec![probe(200, 96, Vec3::ZERO, 0.85)],
+            vec![trace_region(40, Vec3::ZERO, 0.8, 0.9)],
+        ),
+        prepare_frame(),
+        HybridGiScenePrepareFrame {
+            card_capture_requests: Vec::new(),
+            surface_cache_page_contents: vec![HybridGiPrepareSurfaceCachePageContent {
+                page_id: 21,
+                owner_card_id: 21,
+                atlas_slot_id: 7,
+                capture_slot_id: 5,
+                bounds_center: Vec3::ZERO,
+                bounds_radius: 0.5,
+                atlas_sample_rgba: [0, 0, 0, 0],
+                capture_sample_rgba: [0, 0, 0, 0],
+            }],
+            voxel_clipmaps: vec![HybridGiPrepareVoxelClipmap {
+                clipmap_id: 7,
+                center: Vec3::ZERO,
+                half_extent: 8.0,
+            }],
+            voxel_cells: Vec::new(),
+        },
+    );
+
+    assert!(
+        snapshot.occupied_atlas_slots.is_empty(),
+        "expected absent persisted page samples to stay out of occupied atlas slots even when other scene-prepare resources keep the snapshot alive"
+    );
+    assert!(
+        snapshot.occupied_capture_slots.is_empty(),
+        "expected absent persisted page samples to stay out of occupied capture slots even when other scene-prepare resources keep the snapshot alive"
+    );
+    assert_eq!(snapshot.atlas_slot_count, 0);
+    assert_eq!(snapshot.capture_slot_count, 0);
+    assert!(
+        snapshot.atlas_slot_rgba_samples.is_empty(),
+        "expected absent persisted page samples to avoid atlas RGBA readback authority"
+    );
+    assert!(
+        snapshot.capture_slot_rgba_samples.is_empty(),
+        "expected absent persisted page samples to avoid capture RGBA readback authority"
+    );
+    assert_eq!(
+        slot_sample(&snapshot.voxel_clipmap_rgba_samples, 7, "voxel"),
+        [0, 0, 0, 0],
+        "expected the snapshot to stay alive only because of voxel data, not because absent persisted pages fabricated atlas/capture support"
+    );
+}
+
+#[test]
+fn hybrid_gi_scene_prepare_atlas_only_persisted_surface_cache_page_contents_do_not_occupy_capture_slots(
+) {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let viewport_size = UVec2::new(96, 64);
+
+    let snapshot = render_scene_prepare_resource_snapshot(
+        &mut renderer,
+        viewport_size,
+        build_extract(
+            viewport_size,
+            vec![probe(200, 96, Vec3::ZERO, 0.85)],
+            vec![trace_region(40, Vec3::ZERO, 0.8, 0.9)],
+        ),
+        prepare_frame(),
+        HybridGiScenePrepareFrame {
+            card_capture_requests: Vec::new(),
+            surface_cache_page_contents: vec![HybridGiPrepareSurfaceCachePageContent {
+                page_id: 21,
+                owner_card_id: 21,
+                atlas_slot_id: 7,
+                capture_slot_id: 5,
+                bounds_center: Vec3::ZERO,
+                bounds_radius: 0.5,
+                atlas_sample_rgba: [224, 96, 48, 255],
+                capture_sample_rgba: [0, 0, 0, 0],
+            }],
+            voxel_clipmaps: Vec::new(),
+            voxel_cells: Vec::new(),
+        },
+    );
+
+    assert_eq!(snapshot.occupied_atlas_slots, vec![7]);
+    assert!(snapshot.occupied_capture_slots.is_empty());
+    assert_eq!(snapshot.atlas_slot_count, 8);
+    assert_eq!(snapshot.capture_slot_count, 0);
+    assert_eq!(
+        snapshot.atlas_slot_rgba_samples,
+        vec![(7, [224, 96, 48, 255])]
+    );
+    assert!(
+        snapshot.capture_slot_rgba_samples.is_empty(),
+        "expected atlas-only persisted page samples to avoid fabricating capture-slot authority"
+    );
+}
+
+#[test]
+fn hybrid_gi_scene_prepare_capture_only_persisted_surface_cache_page_contents_do_not_occupy_atlas_slots(
+) {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let viewport_size = UVec2::new(96, 64);
+
+    let snapshot = render_scene_prepare_resource_snapshot(
+        &mut renderer,
+        viewport_size,
+        build_extract(
+            viewport_size,
+            vec![probe(200, 96, Vec3::ZERO, 0.85)],
+            vec![trace_region(40, Vec3::ZERO, 0.8, 0.9)],
+        ),
+        prepare_frame(),
+        HybridGiScenePrepareFrame {
+            card_capture_requests: Vec::new(),
+            surface_cache_page_contents: vec![HybridGiPrepareSurfaceCachePageContent {
+                page_id: 21,
+                owner_card_id: 21,
+                atlas_slot_id: 7,
+                capture_slot_id: 5,
+                bounds_center: Vec3::ZERO,
+                bounds_radius: 0.5,
+                atlas_sample_rgba: [0, 0, 0, 0],
+                capture_sample_rgba: [240, 112, 64, 255],
+            }],
+            voxel_clipmaps: Vec::new(),
+            voxel_cells: Vec::new(),
+        },
+    );
+
+    assert!(snapshot.occupied_atlas_slots.is_empty());
+    assert_eq!(snapshot.occupied_capture_slots, vec![5]);
+    assert_eq!(snapshot.atlas_slot_count, 0);
+    assert_eq!(snapshot.capture_slot_count, 6);
+    assert!(
+        snapshot.atlas_slot_rgba_samples.is_empty(),
+        "expected capture-only persisted page samples to avoid fabricating atlas-slot authority"
+    );
+    assert_eq!(
+        snapshot.capture_slot_rgba_samples,
+        vec![(5, [240, 112, 64, 255])]
+    );
+}
+
+#[test]
 fn hybrid_gi_scene_prepare_preserves_explicit_black_runtime_voxel_radiance_without_scene_meshes() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let mut renderer = SceneRenderer::new(asset_manager).unwrap();
@@ -1639,6 +1895,7 @@ fn hybrid_gi_scene_prepare_preserves_explicit_black_runtime_voxel_radiance_witho
         prepare_frame(),
         HybridGiScenePrepareFrame {
             card_capture_requests: Vec::new(),
+            surface_cache_page_contents: Vec::new(),
             voxel_clipmaps: vec![HybridGiPrepareVoxelClipmap {
                 clipmap_id: 7,
                 center: Vec3::ZERO,
@@ -1665,6 +1922,7 @@ fn hybrid_gi_scene_prepare_preserves_explicit_black_runtime_voxel_radiance_witho
         prepare_frame(),
         HybridGiScenePrepareFrame {
             card_capture_requests: Vec::new(),
+            surface_cache_page_contents: Vec::new(),
             voxel_clipmaps: vec![HybridGiPrepareVoxelClipmap {
                 clipmap_id: 7,
                 center: Vec3::ZERO,
@@ -1981,6 +2239,7 @@ fn single_card_scene_prepare() -> HybridGiScenePrepareFrame {
             bounds_center: Vec3::ZERO,
             bounds_radius: 0.9,
         }],
+        surface_cache_page_contents: Vec::new(),
         voxel_clipmaps: Vec::new(),
         voxel_cells: Vec::new(),
     }
@@ -2041,6 +2300,7 @@ fn single_voxel_scene_prepare_with_voxel_cells(
 ) -> HybridGiScenePrepareFrame {
     HybridGiScenePrepareFrame {
         card_capture_requests: Vec::new(),
+        surface_cache_page_contents: Vec::new(),
         voxel_clipmaps: vec![single_voxel_clipmap()],
         voxel_cells,
     }
@@ -2061,6 +2321,23 @@ fn render_scene_prepare_resource_snapshot(
     prepare: HybridGiPrepareFrame,
     scene_prepare: HybridGiScenePrepareFrame,
 ) -> ScenePrepareResourceSnapshotForTest {
+    render_optional_scene_prepare_resource_snapshot(
+        renderer,
+        viewport_size,
+        extract,
+        prepare,
+        scene_prepare,
+    )
+    .expect("expected scene-prepare resource snapshot")
+}
+
+fn render_optional_scene_prepare_resource_snapshot(
+    renderer: &mut SceneRenderer,
+    viewport_size: UVec2,
+    extract: RenderFrameExtract,
+    prepare: HybridGiPrepareFrame,
+    scene_prepare: HybridGiScenePrepareFrame,
+) -> Option<ScenePrepareResourceSnapshotForTest> {
     let compiled = RenderPipelineAsset::default_forward_plus()
         .compile_with_options(
             &extract,
@@ -2092,18 +2369,21 @@ fn render_scene_prepare_resource_snapshot(
     let snapshot = renderer
         .take_last_hybrid_gi_gpu_readback()
         .expect("expected hybrid gi GPU readback")
-        .scene_prepare_resources
-        .expect("expected scene-prepare resource snapshot");
-    ScenePrepareResourceSnapshotForTest {
+        .scene_prepare_resources;
+    snapshot.map(|snapshot| ScenePrepareResourceSnapshotForTest {
+        occupied_atlas_slots: snapshot.occupied_atlas_slots,
+        occupied_capture_slots: snapshot.occupied_capture_slots,
         atlas_slot_rgba_samples: snapshot.atlas_slot_rgba_samples,
         capture_slot_rgba_samples: snapshot.capture_slot_rgba_samples,
+        atlas_slot_count: snapshot.atlas_slot_count,
+        capture_slot_count: snapshot.capture_slot_count,
         voxel_clipmap_rgba_samples: snapshot.voxel_clipmap_rgba_samples,
         voxel_clipmap_occupancy_masks: snapshot.voxel_clipmap_occupancy_masks,
         voxel_clipmap_cell_rgba_samples: snapshot.voxel_clipmap_cell_rgba_samples,
         voxel_clipmap_cell_occupancy_counts: snapshot.voxel_clipmap_cell_occupancy_counts,
         voxel_clipmap_cell_dominant_node_ids: snapshot.voxel_clipmap_cell_dominant_node_ids,
         voxel_clipmap_cell_dominant_rgba_samples: snapshot.voxel_clipmap_cell_dominant_rgba_samples,
-    }
+    })
 }
 
 fn render_scene_prepare_snapshot(

@@ -1,6 +1,6 @@
 use slint::SharedString;
 
-use crate::ui::slint_host::TabData;
+use crate::ui::layouts::windows::workbench_host_window::TabData;
 use crate::ui::workbench::layout::ActivityDrawerSlot;
 use crate::ui::workbench::model::{DocumentTabModel, HostPageTabModel, WorkbenchViewModel};
 

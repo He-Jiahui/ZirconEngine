@@ -2,763 +2,844 @@ import { Palette, ShellButton } from "chrome.slint";
 import { CompactField } from "pane_fields.slint";
 import { UiAssetEditorPaneDraftData, UiAssetStylePanelData } from "ui_asset_editor_data.slint";
 import { UiAssetSelectableSection } from "ui_asset_editor_components.slint";
+import { TemplatePaneNodeData } from "template_node_data.slint";
 
 export component UiAssetEditorStylesheetPanel inherits Rectangle {
     in property <UiAssetStylePanelData> style_panel;
     in property <UiAssetEditorPaneDraftData> draft_data;
+    in property <[TemplatePaneNodeData]> nodes;
+    in property <TemplatePaneNodeData> panel_node;
     callback action(action_id: string);
     callback detail_event(detail_id: string, action_id: string, item_index: int, primary: string, secondary: string);
     callback draft_value_changed(draft_id: string, value: string);
     callback clear_draft(draft_id: string);
     callback collection_event(collection_id: string, event_kind: string, item_index: int);
     palette := Palette {}
+    background: palette.panel_bg_soft;
+    border-radius: 4px;
+    border-width: 1px;
+    border-color: palette.border_soft;
+    clip: true;
+
+    Text {
+        x: 10px;
+        y: 6px;
+        text: "Stylesheet";
+        color: #8dc8c1;
+        font-size: 11px;
+        font-weight: 700;
+    }
+
+    for action_row_node in root.nodes: stylesheet_action_row_host := Rectangle {
+        visible: action_row_node.control_id == "StylesheetActionRow";
+        x: (action_row_node.frame.x - root.panel_node.frame.x) * 1px;
+        y: (action_row_node.frame.y - root.panel_node.frame.y) * 1px;
+        width: action_row_node.frame.width * 1px;
+        height: action_row_node.frame.height * 1px;
+        background: transparent;
+        clip: true;
+
+        HorizontalLayout {
+            x: 0px;
+            y: 0px;
+            width: parent.width;
+            height: parent.height;
+            spacing: 4px;
+
+            ShellButton {
+                width: 42px;
+                label: "Rule";
+                enabled: root.style_panel.can_create_rule;
+                active: root.style_panel.can_create_rule;
+                clicked => {
+                    root.clear_draft("style.rule.selector");
+                    root.action("style.rule.create");
+                }
+            }
+
+            ShellButton {
+                width: 58px;
+                label: "Extract";
+                enabled: root.style_panel.can_extract_rule;
+                active: root.style_panel.can_extract_rule;
+                clicked => {
+                    root.clear_draft("style.rule.selector");
+                    root.action("style.rule.extract_inline");
+                }
+            }
+        }
+    }
+
+    for state_primary_row_node in root.nodes: stylesheet_state_primary_row_host := Rectangle {
+        visible: state_primary_row_node.control_id == "StylesheetStatePrimaryRow";
+        x: (state_primary_row_node.frame.x - root.panel_node.frame.x) * 1px;
+        y: (state_primary_row_node.frame.y - root.panel_node.frame.y) * 1px;
+        width: state_primary_row_node.frame.width * 1px;
+        height: state_primary_row_node.frame.height * 1px;
+        background: transparent;
+        clip: true;
+
+        HorizontalLayout {
+            x: 0px;
+            y: 0px;
+            width: parent.width;
+            height: parent.height;
+            spacing: 4px;
+
+            ShellButton {
+                width: 46px;
+                label: "Hover";
+                active: root.style_panel.states.hover;
+                clicked => { root.action("style.state.hover"); }
+            }
+
+            ShellButton {
+                width: 46px;
+                label: "Focus";
+                active: root.style_panel.states.focus;
+                clicked => { root.action("style.state.focus"); }
+            }
+
+            ShellButton {
+                width: 60px;
+                label: "Pressed";
+                active: root.style_panel.states.pressed;
+                clicked => { root.action("style.state.pressed"); }
+            }
+        }
+    }
+
+    for state_secondary_row_node in root.nodes: stylesheet_state_secondary_row_host := Rectangle {
+        visible: state_secondary_row_node.control_id == "StylesheetStateSecondaryRow";
+        x: (state_secondary_row_node.frame.x - root.panel_node.frame.x) * 1px;
+        y: (state_secondary_row_node.frame.y - root.panel_node.frame.y) * 1px;
+        width: state_secondary_row_node.frame.width * 1px;
+        height: state_secondary_row_node.frame.height * 1px;
+        background: transparent;
+        clip: true;
+
+        HorizontalLayout {
+            x: 0px;
+            y: 0px;
+            width: parent.width;
+            height: parent.height;
+            spacing: 4px;
+
+            ShellButton {
+                width: 62px;
+                label: "Disabled";
+                active: root.style_panel.states.disabled;
+                clicked => { root.action("style.state.disabled"); }
+            }
+
+            ShellButton {
+                width: 58px;
+                label: "Selected";
+                active: root.style_panel.states.selected;
+                clicked => { root.action("style.state.selected"); }
+            }
+        }
+    }
+
+    for content_panel_node in root.nodes: Rectangle {
+        visible: content_panel_node.control_id == "StylesheetContentPanel";
+        x: (content_panel_node.frame.x - root.panel_node.frame.x) * 1px;
+        y: (content_panel_node.frame.y - root.panel_node.frame.y) * 1px - 5px;
+        width: content_panel_node.frame.width * 1px;
+        height: 1px;
+        background: palette.border_soft;
+    }
+
+    for content_panel_node in root.nodes: stylesheet_content_panel_host := Rectangle {
+        visible: content_panel_node.control_id == "StylesheetContentPanel";
+        x: (content_panel_node.frame.x - root.panel_node.frame.x) * 1px;
+        y: (content_panel_node.frame.y - root.panel_node.frame.y) * 1px;
+        width: content_panel_node.frame.width * 1px;
+        height: content_panel_node.frame.height * 1px;
+        clip: true;
+
+        for theme_section_node in root.nodes: theme_section_host := Rectangle {
+            visible: theme_section_node.control_id == "StylesheetThemeSection";
+            x: (theme_section_node.frame.x - content_panel_node.frame.x) * 1px;
+            y: (theme_section_node.frame.y - content_panel_node.frame.y) * 1px;
+            width: theme_section_node.frame.width * 1px;
+            height: theme_section_node.frame.height * 1px;
+            background: transparent;
+            clip: true;
+
+            VerticalLayout {
+                x: 0px;
+                y: 0px;
+                width: parent.width;
+                height: parent.height;
+                spacing: 4px;
+
+                UiAssetSelectableSection {
+                    width: parent.width;
+                    height: 104px;
+                    title: "Theme Sources";
+                    items: root.style_panel.theme_source.collection.items;
+                    selected_index: root.style_panel.theme_source.collection.selected_index;
+                    accent: #d8ba79;
+                    item_selected(item_index) => {
+                        root.action("theme.source.select." + item_index);
+                    }
+                    item_activated(item_index) => {
+                        root.action("theme.source.select." + item_index);
+                        root.action("theme.source.open");
+                    }
+                }
+
+                Rectangle {
+                    width: parent.width;
+                    height: 188px;
                     background: palette.panel_bg_soft;
                     border-radius: 4px;
                     border-width: 1px;
                     border-color: palette.border_soft;
                     clip: true;
 
-                    Text {
+                    VerticalLayout {
                         x: 10px;
-                        y: 6px;
-                        text: "Stylesheet";
-                        color: #8dc8c1;
-                        font-size: 11px;
-                        font-weight: 700;
-                    }
-
-                    HorizontalLayout {
-                        x: 10px;
-                        y: 26px;
+                        y: 8px;
                         width: parent.width - 20px;
-                        spacing: 4px;
+                        spacing: 3px;
 
-                        ShellButton {
-                            width: 42px;
-                            label: "Rule";
-                enabled: root.style_panel.can_create_rule;
-                active: root.style_panel.can_create_rule;
-                            clicked => {
-                                root.clear_draft("style.rule.selector");
-                                root.action("style.rule.create");
-                            }
+                        Text {
+                            text: root.style_panel.theme_source.selected_source_kind != "" ? root.style_panel.theme_source.selected_source_kind + " Theme" : "No theme source selected";
+                            color: palette.text;
+                            font-size: 10px;
+                            font-weight: 600;
+                            wrap: word-wrap;
                         }
 
-                        ShellButton {
-                            width: 58px;
-                            label: "Extract";
-                enabled: root.style_panel.can_extract_rule;
-                active: root.style_panel.can_extract_rule;
-                            clicked => {
-                                root.clear_draft("style.rule.selector");
-                                root.action("style.rule.extract_inline");
-                            }
-                        }
-                    }
-
-                    HorizontalLayout {
-                        x: 10px;
-                        y: 54px;
-                        width: parent.width - 20px;
-                        spacing: 4px;
-
-                        ShellButton {
-                            width: 46px;
-                            label: "Hover";
-                active: root.style_panel.states.hover;
-                            clicked => { root.action("style.state.hover"); }
+                        Text {
+                            text: root.style_panel.theme_source.selected_source_reference;
+                            color: palette.text_muted;
+                            font-size: 10px;
+                            wrap: word-wrap;
                         }
 
-                        ShellButton {
-                            width: 46px;
-                            label: "Focus";
-                active: root.style_panel.states.focus;
-                            clicked => { root.action("style.state.focus"); }
+                        Text {
+                            text: root.style_panel.theme_source.selected_source_kind != "" ? root.style_panel.theme_source.selected_source_token_count + " tokens • " + root.style_panel.theme_source.selected_source_rule_count + " rules" : "";
+                            color: palette.text_dim;
+                            font-size: 10px;
+                            wrap: word-wrap;
                         }
 
-                        ShellButton {
-                            width: 60px;
-                            label: "Pressed";
-                active: root.style_panel.states.pressed;
-                            clicked => { root.action("style.state.pressed"); }
-                        }
-                    }
-
-                    HorizontalLayout {
-                        x: 10px;
-                        y: 82px;
-                        width: parent.width - 20px;
-                        spacing: 4px;
-
-                        ShellButton {
-                            width: 62px;
-                            label: "Disabled";
-                active: root.style_panel.states.disabled;
-                            clicked => { root.action("style.state.disabled"); }
+                        Text {
+                            text: root.style_panel.theme_source.selected_source_kind != "" ? (root.style_panel.theme_source.selected_source_available ? "available" : "missing import") : "";
+                            color: root.style_panel.theme_source.selected_source_available ? palette.text_dim : #d69f7e;
+                            font-size: 10px;
+                            wrap: word-wrap;
                         }
 
-                        ShellButton {
-                            width: 58px;
-                            label: "Selected";
-                active: root.style_panel.states.selected;
-                            clicked => { root.action("style.state.selected"); }
-                        }
-                    }
-
-                    Rectangle {
-                        x: 10px;
-                        y: 112px;
-                        width: parent.width - 20px;
-                        height: 1px;
-                        background: palette.border_soft;
-                    }
-
-                    Rectangle {
-                        x: 0px;
-                        y: 118px;
-                        width: parent.width;
-                        height: parent.height - 118px;
-                        clip: true;
-
-                        VerticalLayout {
-                            x: 10px;
-                            y: 8px;
-                            width: parent.width - 20px;
+                        HorizontalLayout {
+                            width: parent.width;
                             spacing: 4px;
 
-                            UiAssetSelectableSection {
-                                width: parent.width;
-                                height: 104px;
-                                title: "Theme Sources";
-                                items: root.style_panel.theme_source.collection.items;
-                                selected_index: root.style_panel.theme_source.collection.selected_index;
-                                accent: #d8ba79;
-                                item_selected(item_index) => {
-                                    root.action("theme.source.select." + item_index);
-                                }
-                                item_activated(item_index) => {
-                                    root.action("theme.source.select." + item_index);
-                                    root.action("theme.source.open");
-                                }
-                            }
-
-                            Rectangle {
-                                width: parent.width;
-                                height: 188px;
-                                background: palette.panel_bg_soft;
-                                border-radius: 4px;
-                                border-width: 1px;
-                                border-color: palette.border_soft;
-                                clip: true;
-
-                                VerticalLayout {
-                                    x: 10px;
-                                    y: 8px;
-                                    width: parent.width - 20px;
-                                    spacing: 3px;
-
-                                    Text {
-                                        text: root.style_panel.theme_source.selected_source_kind != "" ? root.style_panel.theme_source.selected_source_kind + " Theme" : "No theme source selected";
-                                        color: palette.text;
-                                        font-size: 10px;
-                                        font-weight: 600;
-                                        wrap: word-wrap;
-                                    }
-
-                                    Text {
-                                        text: root.style_panel.theme_source.selected_source_reference;
-                                        color: palette.text_muted;
-                                        font-size: 10px;
-                                        wrap: word-wrap;
-                                    }
-
-                                    Text {
-                                        text: root.style_panel.theme_source.selected_source_kind != "" ? root.style_panel.theme_source.selected_source_token_count + " tokens • " + root.style_panel.theme_source.selected_source_rule_count + " rules" : "";
-                                        color: palette.text_dim;
-                                        font-size: 10px;
-                                        wrap: word-wrap;
-                                    }
-
-                                    Text {
-                                        text: root.style_panel.theme_source.selected_source_kind != "" ? (root.style_panel.theme_source.selected_source_available ? "available" : "missing import") : "";
-                                        color: root.style_panel.theme_source.selected_source_available ? palette.text_dim : #d69f7e;
-                                        font-size: 10px;
-                                        wrap: word-wrap;
-                                    }
-
-                                    HorizontalLayout {
-                                        width: parent.width;
-                                        spacing: 4px;
-
-                                        ShellButton {
-                                            width: 48px;
-                                            label: "Open";
-                                            enabled: root.style_panel.theme_source.selected_source_kind == "Imported" && root.style_panel.theme_source.selected_source_available;
-                                            active: root.style_panel.theme_source.selected_source_kind == "Imported" && root.style_panel.theme_source.selected_source_available;
-                                            clicked => { root.action("theme.source.open"); }
-                                        }
-
-                                        ShellButton {
-                                            width: 58px;
-                                            label: "Detach";
-                                            enabled: root.style_panel.theme_source.selected_source_kind == "Imported" && root.style_panel.theme_source.selected_source_available;
-                                            active: root.style_panel.theme_source.selected_source_kind == "Imported" && root.style_panel.theme_source.selected_source_available;
-                                            clicked => { root.action("theme.source.detach_local"); }
-                                        }
-
-                                        ShellButton {
-                                            width: 52px;
-                                            label: "Clone";
-                                            enabled: root.style_panel.theme_source.selected_source_kind == "Imported" && root.style_panel.theme_source.selected_source_available;
-                                            active: root.style_panel.theme_source.selected_source_kind == "Imported" && root.style_panel.theme_source.selected_source_available;
-                                            clicked => { root.action("theme.source.clone_local"); }
-                                        }
-
-                                        ShellButton {
-                                            width: 68px;
-                                            label: "Promote";
-                                            enabled: root.style_panel.theme_source.selected_source_kind == "Local" && root.style_panel.theme_source.can_promote_local;
-                                            active: root.style_panel.theme_source.selected_source_kind == "Local" && root.style_panel.theme_source.can_promote_local;
-                                            clicked => { root.action("theme.local.promote"); }
-                                        }
-                                    }
-
-                                    Text {
-                                        text: "Promote Draft";
-                                        color: palette.text;
-                                        font-size: 10px;
-                                        font-weight: 600;
-                                    }
-
-                                    Rectangle {
-                                        width: parent.width;
-                                        height: 22px;
-                                        background: transparent;
-
-                                        Text {
-                                            x: 0px;
-                                            y: 4px;
-                                            width: 58px;
-                                            text: "Asset";
-                                            color: palette.text_dim;
-                                            font-size: 10px;
-                                        }
-
-                                        CompactField {
-                                            x: 62px;
-                                            y: 0px;
-                                            width: parent.width - 62px;
-                                            text: root.style_panel.theme_source.promote_asset_id;
-                                            placeholder: "res://ui/themes/theme.ui.toml";
-                                            enabled: root.style_panel.theme_source.can_edit_promote_draft;
-                                            edited(value) => { root.detail_event("theme_source", "theme.promote.asset_id.set", -1, value, ""); }
-                                        }
-                                    }
-
-                                    Rectangle {
-                                        width: parent.width;
-                                        height: 22px;
-                                        background: transparent;
-
-                                        Text {
-                                            x: 0px;
-                                            y: 4px;
-                                            width: 58px;
-                                            text: "Doc";
-                                            color: palette.text_dim;
-                                            font-size: 10px;
-                                        }
-
-                                        CompactField {
-                                            x: 62px;
-                                            y: 0px;
-                                            width: parent.width - 62px;
-                                            text: root.style_panel.theme_source.promote_document_id;
-                                            placeholder: "ui.theme.editor_theme";
-                                            enabled: root.style_panel.theme_source.can_edit_promote_draft;
-                                            edited(value) => { root.detail_event("theme_source", "theme.promote.document_id.set", -1, value, ""); }
-                                        }
-                                    }
-
-                                    Rectangle {
-                                        width: parent.width;
-                                        height: 22px;
-                                        background: transparent;
-
-                                        Text {
-                                            x: 0px;
-                                            y: 4px;
-                                            width: 58px;
-                                            text: "Name";
-                                            color: palette.text_dim;
-                                            font-size: 10px;
-                                        }
-
-                                        CompactField {
-                                            x: 62px;
-                                            y: 0px;
-                                            width: parent.width - 62px;
-                                            text: root.style_panel.theme_source.promote_display_name;
-                                            placeholder: "Editor Theme";
-                                            enabled: root.style_panel.theme_source.can_edit_promote_draft;
-                                            edited(value) => { root.detail_event("theme_source", "theme.promote.display_name.set", -1, value, ""); }
-                                        }
-                                    }
-                                }
-                            }
-
-                            UiAssetSelectableSection {
-                                width: parent.width;
-                                height: 92px;
-                                title: "Theme Tokens";
-                                items: root.style_panel.theme_source.selected_source_token_items;
-                                selected_index: root.style_panel.theme_source.selected_source_kind == "Local" ? root.style_panel.token.selected_index : -1;
-                                accent: #d8ba79;
-                                item_selected(item_index) => {
-                                    if (root.style_panel.theme_source.selected_source_kind == "Local") {
-                                        root.detail_event("style_token", "style.token.select", item_index, "", "");
-                                    }
-                                }
-                            }
-
-                            UiAssetSelectableSection {
-                                width: parent.width;
-                                height: 92px;
-                                title: "Theme Rules";
-                                items: root.style_panel.theme_source.selected_source_rule_items;
-                                selected_index: root.style_panel.theme_source.selected_source_kind == "Local" ? root.style_panel.rule.selected_index : -1;
-                                accent: #d8ba79;
-                                item_selected(item_index) => {
-                                    if (root.style_panel.theme_source.selected_source_kind == "Local") {
-                                        root.detail_event("style_rule", "style.rule.select", item_index, "", "");
-                                    }
-                                }
-                            }
-
-                            UiAssetSelectableSection {
-                                width: parent.width;
-                                height: 76px;
-                                title: "Cascade Layers";
-                                items: root.style_panel.theme_source.cascade_layer_items;
-                                selected_index: -1;
-                                accent: #d8ba79;
-                            }
-
-                            UiAssetSelectableSection {
-                                width: parent.width;
-                                height: 92px;
-                                title: "Cascade Tokens";
-                                items: root.style_panel.theme_source.cascade_token_items;
-                                selected_index: -1;
-                                accent: #d8ba79;
-                            }
-
-                            UiAssetSelectableSection {
-                                width: parent.width;
-                                height: 92px;
-                                title: "Cascade Rules";
-                                items: root.style_panel.theme_source.cascade_rule_items;
-                                selected_index: -1;
-                                accent: #d8ba79;
-                            }
-
-                            UiAssetSelectableSection {
-                                width: parent.width;
-                                height: 108px;
-                                title: "Theme Compare";
-                                items: root.style_panel.theme_source.compare_items;
-                                selected_index: -1;
-                                accent: #d8ba79;
-                            }
-
-                            UiAssetSelectableSection {
-                                width: parent.width;
-                                height: 124px;
-                                title: "Merge Preview";
-                                items: root.style_panel.theme_source.merge_preview_items;
-                                selected_index: -1;
-                                accent: #d8ba79;
-                            }
-
-                            UiAssetSelectableSection {
-                                width: parent.width;
-                                height: 92px;
-                                title: "Rule Helpers";
-                                items: root.style_panel.theme_source.rule_helper_items;
-                                selected_index: -1;
-                                accent: #d8ba79;
-                                item_activated(item_index) => {
-                                    root.detail_event("theme_source", "theme.rule_helper.apply", item_index, "", "");
-                                }
-                            }
-
-                            UiAssetSelectableSection {
-                                width: parent.width;
-                                height: 92px;
-                                title: "Batch Refactor";
-                                items: root.style_panel.theme_source.refactor_items;
-                                selected_index: -1;
-                                accent: #d8ba79;
-                                item_activated(item_index) => {
-                                    root.detail_event("theme_source", "theme.refactor.apply", item_index, "", "");
-                                }
+                            ShellButton {
+                                width: 48px;
+                                label: "Open";
+                                enabled: root.style_panel.theme_source.selected_source_kind == "Imported" && root.style_panel.theme_source.selected_source_available;
+                                active: root.style_panel.theme_source.selected_source_kind == "Imported" && root.style_panel.theme_source.selected_source_available;
+                                clicked => { root.action("theme.source.open"); }
                             }
 
                             ShellButton {
-                                width: 116px;
-                                label: "Prune Duplicates";
-                                enabled: root.style_panel.theme_source.can_prune_duplicate_local_overrides;
-                                active: root.style_panel.theme_source.can_prune_duplicate_local_overrides;
-                                clicked => { root.action("theme.local.prune_duplicates"); }
+                                width: 58px;
+                                label: "Detach";
+                                enabled: root.style_panel.theme_source.selected_source_kind == "Imported" && root.style_panel.theme_source.selected_source_available;
+                                active: root.style_panel.theme_source.selected_source_kind == "Imported" && root.style_panel.theme_source.selected_source_available;
+                                clicked => { root.action("theme.source.detach_local"); }
                             }
 
-                            Rectangle {
-                                width: parent.width;
-                                height: 1px;
-                                background: palette.border_soft;
+                            ShellButton {
+                                width: 52px;
+                                label: "Clone";
+                                enabled: root.style_panel.theme_source.selected_source_kind == "Imported" && root.style_panel.theme_source.selected_source_available;
+                                active: root.style_panel.theme_source.selected_source_kind == "Imported" && root.style_panel.theme_source.selected_source_available;
+                                clicked => { root.action("theme.source.clone_local"); }
                             }
+
+                            ShellButton {
+                                width: 68px;
+                                label: "Promote";
+                                enabled: root.style_panel.theme_source.selected_source_kind == "Local" && root.style_panel.theme_source.can_promote_local;
+                                active: root.style_panel.theme_source.selected_source_kind == "Local" && root.style_panel.theme_source.can_promote_local;
+                                clicked => { root.action("theme.local.promote"); }
+                            }
+                        }
+
+                        Text {
+                            text: "Promote Draft";
+                            color: palette.text;
+                            font-size: 10px;
+                            font-weight: 600;
+                        }
+
+                        Rectangle {
+                            width: parent.width;
+                            height: 22px;
+                            background: transparent;
 
                             Text {
-                                text: "Classes";
-                                color: palette.text;
-                                font-size: 10px;
-                                font-weight: 600;
-                            }
-
-                            if root.style_panel.class_items.length == 0: Text {
-                                text: "No classes on selection";
+                                x: 0px;
+                                y: 4px;
+                                width: 58px;
+                                text: "Asset";
                                 color: palette.text_dim;
                                 font-size: 10px;
                             }
 
-                            for class_name in root.style_panel.class_items: Text {
-                                text: "." + class_name;
-                                color: palette.text_muted;
+                            CompactField {
+                                x: 62px;
+                                y: 0px;
+                                width: parent.width - 62px;
+                                text: root.style_panel.theme_source.promote_asset_id;
+                                placeholder: "res://ui/themes/theme.ui.toml";
+                                enabled: root.style_panel.theme_source.can_edit_promote_draft;
+                                edited(value) => { root.detail_event("theme_source", "theme.promote.asset_id.set", -1, value, ""); }
+                            }
+                        }
+
+                        Rectangle {
+                            width: parent.width;
+                            height: 22px;
+                            background: transparent;
+
+                            Text {
+                                x: 0px;
+                                y: 4px;
+                                width: 58px;
+                                text: "Doc";
+                                color: palette.text_dim;
                                 font-size: 10px;
-                                wrap: word-wrap;
                             }
 
                             CompactField {
-                                width: parent.width;
-                                text: root.draft_data.style.class_name;
-                                placeholder: "class-name";
-                                edited(value) => { root.draft_value_changed("style.class", value); }
+                                x: 62px;
+                                y: 0px;
+                                width: parent.width - 62px;
+                                text: root.style_panel.theme_source.promote_document_id;
+                                placeholder: "ui.theme.editor_theme";
+                                enabled: root.style_panel.theme_source.can_edit_promote_draft;
+                                edited(value) => { root.detail_event("theme_source", "theme.promote.document_id.set", -1, value, ""); }
                             }
+                        }
 
-                              HorizontalLayout {
-                                  width: parent.width;
-                                  spacing: 4px;
+                        Rectangle {
+                            width: parent.width;
+                            height: 22px;
+                            background: transparent;
 
-                                  ShellButton {
-                                    width: 46px;
-                                    label: "Add";
-                                    enabled: root.draft_data.style.class_name != "";
-                                    active: root.draft_data.style.class_name != "";
-                                    clicked => {
-                                        root.detail_event("style_class", "style.class.add", -1, root.draft_data.style.class_name, "");
-                                        root.clear_draft("style.class");
-                                    }
-                                }
-
-                                ShellButton {
-                                    width: 62px;
-                                    label: "Remove";
-                                    enabled: root.draft_data.style.class_name != "";
-                                    clicked => {
-                                        root.detail_event("style_class", "style.class.remove", -1, root.draft_data.style.class_name, "");
-                                        root.clear_draft("style.class");
-                                    }
-                                }
-                            }
-
-                            Rectangle {
-                                width: parent.width;
-                                height: 1px;
-                                background: palette.border_soft;
-                            }
-
-                            UiAssetSelectableSection {
-                                width: parent.width;
-                                height: 118px;
-                                title: "Tokens";
-                                items: root.style_panel.token.items;
-                                selected_index: root.style_panel.token.selected_index;
-                                accent: #8dc8c1;
-                                item_selected(item_index) => {
-                                    root.detail_event("style_token", "style.token.select", item_index, "", "");
-                                    root.draft_value_changed("style.token.name", root.style_panel.token.selected_name);
-                                    root.draft_value_changed("style.token.value", root.style_panel.token.selected_value);
-                                }
-                            }
-
-                            CompactField {
-                                width: parent.width;
-                                text:
-                                    root.draft_data.style.token_name != "" ?
-                                    root.draft_data.style.token_name :
-                                    root.style_panel.token.selected_name;
-                                placeholder: "token-name";
-                                edited(value) => { root.draft_value_changed("style.token.name", value); }
-                            }
-
-                            CompactField {
-                                width: parent.width;
-                                text:
-                                    root.draft_data.style.token_value != "" ?
-                                    root.draft_data.style.token_value :
-                                    root.style_panel.token.selected_value;
-                                placeholder: "token-value";
-                                edited(value) => { root.draft_value_changed("style.token.value", value); }
-                            }
-
-                            HorizontalLayout {
-                                width: parent.width;
-                                spacing: 4px;
-
-                                ShellButton {
-                                    width: 48px;
-                                    label: "Apply";
-                                    enabled: root.draft_data.style.token_name != "" || root.style_panel.token.selected_name != "";
-                                    active: root.draft_data.style.token_name != "" || root.style_panel.token.selected_name != "";
-                                    clicked => {
-                                        root.detail_event("style_token", "style.token.upsert", root.style_panel.token.selected_index, root.draft_data.style.token_name != "" ? root.draft_data.style.token_name : root.style_panel.token.selected_name, root.draft_data.style.token_value != "" ? root.draft_data.style.token_value : root.style_panel.token.selected_value);
-                                        root.clear_draft("style.token.name");
-                                        root.clear_draft("style.token.value");
-                                    }
-                                }
-
-                                ShellButton {
-                                    width: 56px;
-                                    label: "Delete";
-                                    enabled: root.style_panel.token.can_delete;
-                                    clicked => {
-                                        root.detail_event("style_token", "style.token.delete", root.style_panel.token.selected_index, "", "");
-                                        root.clear_draft("style.token.name");
-                                        root.clear_draft("style.token.value");
-                                    }
-                                }
-                            }
-
-                            Rectangle {
-                                width: parent.width;
-                                height: 1px;
-                                background: palette.border_soft;
-                            }
-
-                            UiAssetSelectableSection {
-                                width: parent.width;
-                                height: 126px;
-                                title: "Rules";
-                                items: root.style_panel.rule.items;
-                                selected_index: root.style_panel.rule.selected_index;
-                                accent: #8dc8c1;
-                                item_selected(item_index) => {
-                                    root.draft_value_changed("style.rule.selector", root.style_panel.rule.items[item_index]);
-                                    root.detail_event("style_rule", "style.rule.select", item_index, "", "");
-                                }
-                            }
-
-                            CompactField {
-                                width: parent.width;
-                                text:
-                                    root.draft_data.style.rule_selector != "" ?
-                                    root.draft_data.style.rule_selector :
-                                    root.style_panel.rule.selected_selector;
-                                placeholder: "selector";
-                                enabled: root.style_panel.rule.can_edit;
-                                edited(value) => { root.draft_value_changed("style.rule.selector", value); }
-                            }
-
-                            HorizontalLayout {
-                                width: parent.width;
-                                spacing: 4px;
-
-                                ShellButton {
-                                    width: 48px;
-                                    label: "Apply";
-                                    enabled: root.style_panel.rule.can_edit && (root.draft_data.style.rule_selector != "" || root.style_panel.rule.selected_selector != "");
-                                    active: root.style_panel.rule.can_edit && (root.draft_data.style.rule_selector != "" || root.style_panel.rule.selected_selector != "");
-                                    clicked => {
-                                        root.detail_event("style_rule", "style.rule.rename", root.style_panel.rule.selected_index, root.draft_data.style.rule_selector != "" ? root.draft_data.style.rule_selector : root.style_panel.rule.selected_selector, "");
-                                        root.clear_draft("style.rule.selector");
-                                    }
-                                }
-
-                                ShellButton {
-                                    width: 56px;
-                                    label: "Delete";
-                                    enabled: root.style_panel.rule.can_delete;
-                                    clicked => {
-                                        root.detail_event("style_rule", "style.rule.delete", root.style_panel.rule.selected_index, "", "");
-                                        root.clear_draft("style.rule.selector");
-                                      }
-                                  }
-
-                                  ShellButton {
-                                    width: 36px;
-                                    label: "Up";
-                                    enabled: root.style_panel.rule.can_edit && root.style_panel.rule.selected_index > 0;
-                                    clicked => {
-                                        root.detail_event("style_rule", "style.rule.move_up", root.style_panel.rule.selected_index, "", "");
-                                    }
-                                  }
-
-                                  ShellButton {
-                                    width: 46px;
-                                    label: "Down";
-                                    enabled: root.style_panel.rule.can_edit && root.style_panel.rule.selected_index >= 0 && root.style_panel.rule.selected_index + 1 < root.style_panel.rule.items.length;
-                                    clicked => {
-                                        root.detail_event("style_rule", "style.rule.move_down", root.style_panel.rule.selected_index, "", "");
-                                    }
-                                  }
-                              }
-
-                              Rectangle {
-                                  width: parent.width;
-                                  height: 1px;
-                                  background: palette.border_soft;
-                              }
-
-                              UiAssetSelectableSection {
-                                  width: parent.width;
-                                  height: 126px;
-                                  title: "Declarations";
-                                  items: root.style_panel.rule_declaration.items;
-                                  selected_index: root.style_panel.rule_declaration.selected_index;
-                                  accent: #8dc8c1;
-                                  item_selected(item_index) => {
-                                      root.detail_event("style_rule_declaration", "style.rule.declaration.select", item_index, "", "");
-                                      root.draft_value_changed("style.rule.declaration.path", root.style_panel.rule_declaration.selected_path);
-                                      root.draft_value_changed("style.rule.declaration.value", root.style_panel.rule_declaration.selected_value);
-                                  }
-                              }
-
-                              CompactField {
-                                  width: parent.width;
-                                  text:
-                                      root.draft_data.style.rule_declaration_path != "" ?
-                                      root.draft_data.style.rule_declaration_path :
-                                      root.style_panel.rule_declaration.selected_path;
-                                  placeholder: "self.background.color";
-                                  enabled: root.style_panel.rule_declaration.can_edit;
-                                  edited(value) => { root.draft_value_changed("style.rule.declaration.path", value); }
-                              }
-
-                              CompactField {
-                                  width: parent.width;
-                                  text:
-                                      root.draft_data.style.rule_declaration_value != "" ?
-                                      root.draft_data.style.rule_declaration_value :
-                                      root.style_panel.rule_declaration.selected_value;
-                                  placeholder: "value";
-                                  enabled: root.style_panel.rule_declaration.can_edit;
-                                  edited(value) => { root.draft_value_changed("style.rule.declaration.value", value); }
-                              }
-
-                              HorizontalLayout {
-                                  width: parent.width;
-                                  spacing: 4px;
-
-                                  ShellButton {
-                                      width: 48px;
-                                      label: "Apply";
-                                      enabled: root.style_panel.rule_declaration.can_edit;
-                                      active: root.style_panel.rule_declaration.can_edit;
-                                      clicked => {
-                                          root.detail_event("style_rule_declaration", "style.rule.declaration.upsert", root.style_panel.rule_declaration.selected_index, root.draft_data.style.rule_declaration_path != "" ? root.draft_data.style.rule_declaration_path : root.style_panel.rule_declaration.selected_path, root.draft_data.style.rule_declaration_value != "" ? root.draft_data.style.rule_declaration_value : root.style_panel.rule_declaration.selected_value);
-                                          root.clear_draft("style.rule.declaration.path");
-                                          root.clear_draft("style.rule.declaration.value");
-                                      }
-                                  }
-
-                                  ShellButton {
-                                      width: 56px;
-                                      label: "Delete";
-                                      enabled: root.style_panel.rule_declaration.can_delete;
-                                      clicked => {
-                                          root.detail_event("style_rule_declaration", "style.rule.declaration.delete", root.style_panel.rule_declaration.selected_index, "", "");
-                                          root.clear_draft("style.rule.declaration.path");
-                                          root.clear_draft("style.rule.declaration.value");
-                                      }
-                                  }
-                              }
-
-                              Rectangle {
-                                  width: parent.width;
-                                  height: 1px;
-                                  background: palette.border_soft;
-                              }
-
-                              UiAssetSelectableSection {
-                                  width: parent.width;
-                                  height: 126px;
-                                  title: "Matched Rules";
-                                  items: root.style_panel.matched_rule.collection.items;
-                                  selected_index: root.style_panel.matched_rule.collection.selected_index;
-                                  accent: #8dc8c1;
-                                  item_selected(item_index) => {
-                                      root.collection_event("matched_style_rule", "selected", item_index);
-                                  }
-                              }
-
-                              Rectangle {
-                                  width: parent.width;
-                                  height: 78px;
-                                  background: palette.panel_bg_soft;
-                                  border-radius: 4px;
-                                  border-width: 1px;
-                                  border-color: palette.border_soft;
-                                  clip: true;
-
-                                  VerticalLayout {
-                                      x: 10px;
-                                      y: 8px;
-                                      width: parent.width - 20px;
-                                      spacing: 3px;
-
-                                      Text {
-                                          text: root.style_panel.matched_rule.selected_origin != "" ? root.style_panel.matched_rule.selected_origin : "No matched rule selected";
-                                          color: palette.text;
-                                          font-size: 10px;
-                                          font-weight: 600;
-                                          wrap: word-wrap;
-                                      }
-
-                                      Text {
-                                          text: root.style_panel.matched_rule.selected_selector;
-                                          color: palette.text_muted;
-                                          font-size: 10px;
-                                          wrap: word-wrap;
-                                      }
-
-                                      Text {
-                                          text: root.style_panel.matched_rule.selected_specificity >= 0 ? "specificity " + root.style_panel.matched_rule.selected_specificity + " • order " + root.style_panel.matched_rule.selected_source_order : "";
-                                          color: palette.text_dim;
-                                          font-size: 10px;
-                                          wrap: word-wrap;
-                                      }
-
-                                      for item in root.style_panel.matched_rule.selected_declaration_items: Text {
-                                          text: item;
-                                          color: palette.text_muted;
-                                          font-size: 10px;
-                                          wrap: word-wrap;
-                                      }
-                                  }
-                              }
-
-                              if root.style_panel.stylesheet_items.length == 0: Text {
-                                  text: "No stylesheet entries";
-                                  color: palette.text_dim;
-                                  font-size: 10px;
-                            }
-
-                            for item in root.style_panel.stylesheet_items: Text {
-                                text: item;
-                                color: palette.text_muted;
+                            Text {
+                                x: 0px;
+                                y: 4px;
+                                width: 58px;
+                                text: "Name";
+                                color: palette.text_dim;
                                 font-size: 10px;
-                                wrap: word-wrap;
+                            }
+
+                            CompactField {
+                                x: 62px;
+                                y: 0px;
+                                width: parent.width - 62px;
+                                text: root.style_panel.theme_source.promote_display_name;
+                                placeholder: "Editor Theme";
+                                enabled: root.style_panel.theme_source.can_edit_promote_draft;
+                                edited(value) => { root.detail_event("theme_source", "theme.promote.display_name.set", -1, value, ""); }
                             }
                         }
                     }
+                }
+
+                UiAssetSelectableSection {
+                    width: parent.width;
+                    height: 92px;
+                    title: "Theme Tokens";
+                    items: root.style_panel.theme_source.selected_source_token_items;
+                    selected_index: root.style_panel.theme_source.selected_source_kind == "Local" ? root.style_panel.token.selected_index : -1;
+                    accent: #d8ba79;
+                    item_selected(item_index) => {
+                        if (root.style_panel.theme_source.selected_source_kind == "Local") {
+                            root.detail_event("style_token", "style.token.select", item_index, "", "");
+                        }
+                    }
+                }
+
+                UiAssetSelectableSection {
+                    width: parent.width;
+                    height: 92px;
+                    title: "Theme Rules";
+                    items: root.style_panel.theme_source.selected_source_rule_items;
+                    selected_index: root.style_panel.theme_source.selected_source_kind == "Local" ? root.style_panel.rule.selected_index : -1;
+                    accent: #d8ba79;
+                    item_selected(item_index) => {
+                        if (root.style_panel.theme_source.selected_source_kind == "Local") {
+                            root.detail_event("style_rule", "style.rule.select", item_index, "", "");
+                        }
+                    }
+                }
+
+                UiAssetSelectableSection {
+                    width: parent.width;
+                    height: 76px;
+                    title: "Cascade Layers";
+                    items: root.style_panel.theme_source.cascade_layer_items;
+                    selected_index: -1;
+                    accent: #d8ba79;
+                }
+
+                UiAssetSelectableSection {
+                    width: parent.width;
+                    height: 92px;
+                    title: "Cascade Tokens";
+                    items: root.style_panel.theme_source.cascade_token_items;
+                    selected_index: -1;
+                    accent: #d8ba79;
+                }
+
+                UiAssetSelectableSection {
+                    width: parent.width;
+                    height: 92px;
+                    title: "Cascade Rules";
+                    items: root.style_panel.theme_source.cascade_rule_items;
+                    selected_index: -1;
+                    accent: #d8ba79;
+                }
+
+                UiAssetSelectableSection {
+                    width: parent.width;
+                    height: 108px;
+                    title: "Theme Compare";
+                    items: root.style_panel.theme_source.compare_items;
+                    selected_index: -1;
+                    accent: #d8ba79;
+                }
+
+                UiAssetSelectableSection {
+                    width: parent.width;
+                    height: 124px;
+                    title: "Merge Preview";
+                    items: root.style_panel.theme_source.merge_preview_items;
+                    selected_index: -1;
+                    accent: #d8ba79;
+                }
+
+                UiAssetSelectableSection {
+                    width: parent.width;
+                    height: 92px;
+                    title: "Rule Helpers";
+                    items: root.style_panel.theme_source.rule_helper_items;
+                    selected_index: -1;
+                    accent: #d8ba79;
+                    item_activated(item_index) => {
+                        root.detail_event("theme_source", "theme.rule_helper.apply", item_index, "", "");
+                    }
+                }
+
+                UiAssetSelectableSection {
+                    width: parent.width;
+                    height: 92px;
+                    title: "Batch Refactor";
+                    items: root.style_panel.theme_source.refactor_items;
+                    selected_index: -1;
+                    accent: #d8ba79;
+                    item_activated(item_index) => {
+                        root.detail_event("theme_source", "theme.refactor.apply", item_index, "", "");
+                    }
+                }
+
+                ShellButton {
+                    width: 116px;
+                    label: "Prune Duplicates";
+                    enabled: root.style_panel.theme_source.can_prune_duplicate_local_overrides;
+                    active: root.style_panel.theme_source.can_prune_duplicate_local_overrides;
+                    clicked => { root.action("theme.local.prune_duplicates"); }
+                }
+            }
+        }
+
+        for authoring_section_node in root.nodes: authoring_section_host := Rectangle {
+            visible: authoring_section_node.control_id == "StylesheetAuthoringSection";
+            x: (authoring_section_node.frame.x - content_panel_node.frame.x) * 1px;
+            y: (authoring_section_node.frame.y - content_panel_node.frame.y) * 1px;
+            width: authoring_section_node.frame.width * 1px;
+            height: authoring_section_node.frame.height * 1px;
+            background: transparent;
+            clip: true;
+
+            VerticalLayout {
+                x: 0px;
+                y: 0px;
+                width: parent.width;
+                height: parent.height;
+                spacing: 4px;
+
+                Text {
+                    width: parent.width;
+                    text: "Classes";
+                    color: palette.text;
+                    font-size: 10px;
+                    font-weight: 600;
+                    overflow: elide;
+                }
+
+                if root.style_panel.class_items.length == 0: Text {
+                    width: parent.width;
+                    text: "No classes on selection";
+                    color: palette.text_dim;
+                    font-size: 10px;
+                    wrap: word-wrap;
+                }
+
+                for class_name in root.style_panel.class_items: Text {
+                    width: parent.width;
+                    text: "." + class_name;
+                    color: palette.text_muted;
+                    font-size: 10px;
+                    wrap: word-wrap;
+                }
+
+                CompactField {
+                    width: parent.width;
+                    text: root.draft_data.style.class_name;
+                    placeholder: "class-name";
+                    edited(value) => { root.draft_value_changed("style.class", value); }
+                }
+
+                HorizontalLayout {
+                    width: parent.width;
+                    spacing: 4px;
+
+                    ShellButton {
+                        width: 46px;
+                        label: "Add";
+                        enabled: root.draft_data.style.class_name != "";
+                        active: root.draft_data.style.class_name != "";
+                        clicked => {
+                            root.detail_event("style_class", "style.class.add", -1, root.draft_data.style.class_name, "");
+                            root.clear_draft("style.class");
+                        }
+                    }
+
+                    ShellButton {
+                        width: 62px;
+                        label: "Remove";
+                        enabled: root.draft_data.style.class_name != "";
+                        clicked => {
+                            root.detail_event("style_class", "style.class.remove", -1, root.draft_data.style.class_name, "");
+                            root.clear_draft("style.class");
+                        }
+                    }
+                }
+
+                Rectangle {
+                    width: parent.width;
+                    height: 1px;
+                    background: palette.border_soft;
+                }
+
+                UiAssetSelectableSection {
+                    width: parent.width;
+                    height: 118px;
+                    title: "Tokens";
+                    items: root.style_panel.token.items;
+                    selected_index: root.style_panel.token.selected_index;
+                    accent: #8dc8c1;
+                    item_selected(item_index) => {
+                        root.detail_event("style_token", "style.token.select", item_index, "", "");
+                        root.draft_value_changed("style.token.name", root.style_panel.token.selected_name);
+                        root.draft_value_changed("style.token.value", root.style_panel.token.selected_value);
+                    }
+                }
+
+                CompactField {
+                    width: parent.width;
+                    text:
+                        root.draft_data.style.token_name != "" ?
+                        root.draft_data.style.token_name :
+                        root.style_panel.token.selected_name;
+                    placeholder: "token-name";
+                    edited(value) => { root.draft_value_changed("style.token.name", value); }
+                }
+
+                CompactField {
+                    width: parent.width;
+                    text:
+                        root.draft_data.style.token_value != "" ?
+                        root.draft_data.style.token_value :
+                        root.style_panel.token.selected_value;
+                    placeholder: "token-value";
+                    edited(value) => { root.draft_value_changed("style.token.value", value); }
+                }
+
+                HorizontalLayout {
+                    width: parent.width;
+                    spacing: 4px;
+
+                    ShellButton {
+                        width: 48px;
+                        label: "Apply";
+                        enabled: root.draft_data.style.token_name != "" || root.style_panel.token.selected_name != "";
+                        active: root.draft_data.style.token_name != "" || root.style_panel.token.selected_name != "";
+                        clicked => {
+                            root.detail_event("style_token", "style.token.upsert", root.style_panel.token.selected_index, root.draft_data.style.token_name != "" ? root.draft_data.style.token_name : root.style_panel.token.selected_name, root.draft_data.style.token_value != "" ? root.draft_data.style.token_value : root.style_panel.token.selected_value);
+                            root.clear_draft("style.token.name");
+                            root.clear_draft("style.token.value");
+                        }
+                    }
+
+                    ShellButton {
+                        width: 56px;
+                        label: "Delete";
+                        enabled: root.style_panel.token.can_delete;
+                        clicked => {
+                            root.detail_event("style_token", "style.token.delete", root.style_panel.token.selected_index, "", "");
+                            root.clear_draft("style.token.name");
+                            root.clear_draft("style.token.value");
+                        }
+                    }
+                }
+
+                Rectangle {
+                    width: parent.width;
+                    height: 1px;
+                    background: palette.border_soft;
+                }
+
+                UiAssetSelectableSection {
+                    width: parent.width;
+                    height: 126px;
+                    title: "Rules";
+                    items: root.style_panel.rule.items;
+                    selected_index: root.style_panel.rule.selected_index;
+                    accent: #8dc8c1;
+                    item_selected(item_index) => {
+                        root.draft_value_changed("style.rule.selector", root.style_panel.rule.items[item_index]);
+                        root.detail_event("style_rule", "style.rule.select", item_index, "", "");
+                    }
+                }
+
+                CompactField {
+                    width: parent.width;
+                    text:
+                        root.draft_data.style.rule_selector != "" ?
+                        root.draft_data.style.rule_selector :
+                        root.style_panel.rule.selected_selector;
+                    placeholder: "selector";
+                    enabled: root.style_panel.rule.can_edit;
+                    edited(value) => { root.draft_value_changed("style.rule.selector", value); }
+                }
+
+                HorizontalLayout {
+                    width: parent.width;
+                    spacing: 4px;
+
+                    ShellButton {
+                        width: 48px;
+                        label: "Apply";
+                        enabled: root.style_panel.rule.can_edit && (root.draft_data.style.rule_selector != "" || root.style_panel.rule.selected_selector != "");
+                        active: root.style_panel.rule.can_edit && (root.draft_data.style.rule_selector != "" || root.style_panel.rule.selected_selector != "");
+                        clicked => {
+                            root.detail_event("style_rule", "style.rule.rename", root.style_panel.rule.selected_index, root.draft_data.style.rule_selector != "" ? root.draft_data.style.rule_selector : root.style_panel.rule.selected_selector, "");
+                            root.clear_draft("style.rule.selector");
+                        }
+                    }
+
+                    ShellButton {
+                        width: 56px;
+                        label: "Delete";
+                        enabled: root.style_panel.rule.can_delete;
+                        clicked => {
+                            root.detail_event("style_rule", "style.rule.delete", root.style_panel.rule.selected_index, "", "");
+                            root.clear_draft("style.rule.selector");
+                        }
+                    }
+
+                    ShellButton {
+                        width: 36px;
+                        label: "Up";
+                        enabled: root.style_panel.rule.can_edit && root.style_panel.rule.selected_index > 0;
+                        clicked => {
+                            root.detail_event("style_rule", "style.rule.move_up", root.style_panel.rule.selected_index, "", "");
+                        }
+                    }
+
+                    ShellButton {
+                        width: 46px;
+                        label: "Down";
+                        enabled: root.style_panel.rule.can_edit && root.style_panel.rule.selected_index >= 0 && root.style_panel.rule.selected_index + 1 < root.style_panel.rule.items.length;
+                        clicked => {
+                            root.detail_event("style_rule", "style.rule.move_down", root.style_panel.rule.selected_index, "", "");
+                        }
+                    }
+                }
+
+                Rectangle {
+                    width: parent.width;
+                    height: 1px;
+                    background: palette.border_soft;
+                }
+
+                UiAssetSelectableSection {
+                    width: parent.width;
+                    height: 126px;
+                    title: "Declarations";
+                    items: root.style_panel.rule_declaration.items;
+                    selected_index: root.style_panel.rule_declaration.selected_index;
+                    accent: #8dc8c1;
+                    item_selected(item_index) => {
+                        root.detail_event("style_rule_declaration", "style.rule.declaration.select", item_index, "", "");
+                        root.draft_value_changed("style.rule.declaration.path", root.style_panel.rule_declaration.selected_path);
+                        root.draft_value_changed("style.rule.declaration.value", root.style_panel.rule_declaration.selected_value);
+                    }
+                }
+
+                CompactField {
+                    width: parent.width;
+                    text:
+                        root.draft_data.style.rule_declaration_path != "" ?
+                        root.draft_data.style.rule_declaration_path :
+                        root.style_panel.rule_declaration.selected_path;
+                    placeholder: "self.background.color";
+                    enabled: root.style_panel.rule_declaration.can_edit;
+                    edited(value) => { root.draft_value_changed("style.rule.declaration.path", value); }
+                }
+
+                CompactField {
+                    width: parent.width;
+                    text:
+                        root.draft_data.style.rule_declaration_value != "" ?
+                        root.draft_data.style.rule_declaration_value :
+                        root.style_panel.rule_declaration.selected_value;
+                    placeholder: "value";
+                    enabled: root.style_panel.rule_declaration.can_edit;
+                    edited(value) => { root.draft_value_changed("style.rule.declaration.value", value); }
+                }
+
+                HorizontalLayout {
+                    width: parent.width;
+                    spacing: 4px;
+
+                    ShellButton {
+                        width: 48px;
+                        label: "Apply";
+                        enabled: root.style_panel.rule_declaration.can_edit;
+                        active: root.style_panel.rule_declaration.can_edit;
+                        clicked => {
+                            root.detail_event("style_rule_declaration", "style.rule.declaration.upsert", root.style_panel.rule_declaration.selected_index, root.draft_data.style.rule_declaration_path != "" ? root.draft_data.style.rule_declaration_path : root.style_panel.rule_declaration.selected_path, root.draft_data.style.rule_declaration_value != "" ? root.draft_data.style.rule_declaration_value : root.style_panel.rule_declaration.selected_value);
+                            root.clear_draft("style.rule.declaration.path");
+                            root.clear_draft("style.rule.declaration.value");
+                        }
+                    }
+
+                    ShellButton {
+                        width: 56px;
+                        label: "Delete";
+                        enabled: root.style_panel.rule_declaration.can_delete;
+                        clicked => {
+                            root.detail_event("style_rule_declaration", "style.rule.declaration.delete", root.style_panel.rule_declaration.selected_index, "", "");
+                            root.clear_draft("style.rule.declaration.path");
+                            root.clear_draft("style.rule.declaration.value");
+                        }
+                    }
+                }
+            }
+        }
+
+        for matched_rule_section_node in root.nodes: matched_rule_section_host := Rectangle {
+            visible: matched_rule_section_node.control_id == "StylesheetMatchedRuleSection";
+            x: (matched_rule_section_node.frame.x - content_panel_node.frame.x) * 1px;
+            y: (matched_rule_section_node.frame.y - content_panel_node.frame.y) * 1px;
+            width: matched_rule_section_node.frame.width * 1px;
+            height: matched_rule_section_node.frame.height * 1px;
+            background: transparent;
+            clip: true;
+
+            VerticalLayout {
+                x: 0px;
+                y: 0px;
+                width: parent.width;
+                height: parent.height;
+                spacing: 4px;
+
+                UiAssetSelectableSection {
+                    width: parent.width;
+                    height: 126px;
+                    title: "Matched Rules";
+                    items: root.style_panel.matched_rule.collection.items;
+                    selected_index: root.style_panel.matched_rule.collection.selected_index;
+                    accent: #8dc8c1;
+                    item_selected(item_index) => {
+                        root.collection_event("matched_style_rule", "selected", item_index);
+                    }
+                }
+
+                Rectangle {
+                    width: parent.width;
+                    height: 78px;
+                    background: palette.panel_bg_soft;
+                    border-radius: 4px;
+                    border-width: 1px;
+                    border-color: palette.border_soft;
+                    clip: true;
+
+                    VerticalLayout {
+                        x: 10px;
+                        y: 8px;
+                        width: parent.width - 20px;
+                        spacing: 3px;
+
+                        Text {
+                            text: root.style_panel.matched_rule.selected_origin != "" ? root.style_panel.matched_rule.selected_origin : "No matched rule selected";
+                            color: palette.text;
+                            font-size: 10px;
+                            font-weight: 600;
+                            wrap: word-wrap;
+                        }
+
+                        Text {
+                            text: root.style_panel.matched_rule.selected_selector;
+                            color: palette.text_muted;
+                            font-size: 10px;
+                            wrap: word-wrap;
+                        }
+
+                        Text {
+                            text: root.style_panel.matched_rule.selected_specificity >= 0 ? "specificity " + root.style_panel.matched_rule.selected_specificity + " • order " + root.style_panel.matched_rule.selected_source_order : "";
+                            color: palette.text_dim;
+                            font-size: 10px;
+                            wrap: word-wrap;
+                        }
+
+                        for item in root.style_panel.matched_rule.selected_declaration_items: Text {
+                            text: item;
+                            color: palette.text_muted;
+                            font-size: 10px;
+                            wrap: word-wrap;
+                        }
+                    }
+                }
+
+                if root.style_panel.stylesheet_items.length == 0: Text {
+                    width: parent.width;
+                    text: "No stylesheet entries";
+                    color: palette.text_dim;
+                    font-size: 10px;
+                    wrap: word-wrap;
+                }
+
+                for item in root.style_panel.stylesheet_items: Text {
+                    width: parent.width;
+                    text: item;
+                    color: palette.text_muted;
+                    font-size: 10px;
+                    wrap: word-wrap;
+                }
+            }
+        }
+    }
 }

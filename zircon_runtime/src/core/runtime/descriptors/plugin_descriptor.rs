@@ -2,14 +2,14 @@ use std::fmt;
 
 use crate::core::lifecycle::StartupMode;
 
-use super::{DependencySpec, RegistryName, ServiceFactory};
+use super::{DependencySpec, PluginFactory, RegistryName};
 
 #[derive(Clone)]
 pub struct PluginDescriptor {
     pub name: RegistryName,
     pub startup_mode: StartupMode,
     pub dependencies: Vec<DependencySpec>,
-    pub factory: ServiceFactory,
+    pub factory: PluginFactory,
 }
 
 impl PluginDescriptor {
@@ -17,7 +17,7 @@ impl PluginDescriptor {
         name: RegistryName,
         startup_mode: StartupMode,
         dependencies: Vec<DependencySpec>,
-        factory: ServiceFactory,
+        factory: PluginFactory,
     ) -> Self {
         Self {
             name,

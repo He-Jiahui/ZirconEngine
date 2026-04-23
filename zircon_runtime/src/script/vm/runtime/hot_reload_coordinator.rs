@@ -5,14 +5,13 @@ use std::sync::Mutex;
 
 use super::super::backend::{VmBackend, VmError};
 use super::super::handles::PluginSlotId;
-use super::super::host::HostRegistry;
+use super::super::host::VmPluginHostContext;
 use super::super::plugin::{
     VmPluginInstance, VmPluginManifest, VmPluginPackage, VmPluginPackageSource,
 };
 use super::vm_plugin_slot_record::VmPluginSlotRecord;
 
 pub struct HotReloadCoordinator {
-    host: HostRegistry,
     next_slot: AtomicU64,
     slots: Mutex<HashMap<PluginSlotId, PluginSlot>>,
 }
@@ -33,9 +32,8 @@ impl fmt::Debug for HotReloadCoordinator {
 }
 
 impl HotReloadCoordinator {
-    pub fn new(host: HostRegistry) -> Self {
+    pub fn new() -> Self {
         Self {
-            host,
             next_slot: AtomicU64::new(1),
             slots: Mutex::new(HashMap::new()),
         }
@@ -46,30 +44,16 @@ impl HotReloadCoordinator {
         backend_name: impl Into<String>,
         backend: &dyn VmBackend,
         package: VmPluginPackage,
+        host: &VmPluginHostContext,
     ) -> Result<PluginSlotId, VmError> {
-        self.load_package_with_source(
-            backend_name,
-            backend,
-            package,
-            VmPluginPackageSource::default(),
-        )
-    }
-
-    pub fn load_package_with_source(
-        &self,
-        backend_name: impl Into<String>,
-        backend: &dyn VmBackend,
-        package: VmPluginPackage,
-        source: VmPluginPackageSource,
-    ) -> Result<PluginSlotId, VmError> {
-        let mut instance = backend.load_package(&package, self.host.clone())?;
-        instance.activate(&self.host)?;
+        let mut instance = backend.load_package(&package, host)?;
+        instance.activate(host)?;
         let slot = PluginSlotId::new(self.next_slot.fetch_add(1, Ordering::SeqCst));
         self.slots.lock().unwrap().insert(
             slot,
             PluginSlot {
                 backend_name: backend_name.into(),
-                source,
+                source: host.package_source.clone(),
                 package,
                 instance,
             },
@@ -83,23 +67,7 @@ impl HotReloadCoordinator {
         backend_name: impl Into<String>,
         backend: &dyn VmBackend,
         package: VmPluginPackage,
-    ) -> Result<(), VmError> {
-        self.hot_reload_with_source(
-            slot,
-            backend_name,
-            backend,
-            package,
-            VmPluginPackageSource::default(),
-        )
-    }
-
-    pub fn hot_reload_with_source(
-        &self,
-        slot: PluginSlotId,
-        backend_name: impl Into<String>,
-        backend: &dyn VmBackend,
-        package: VmPluginPackage,
-        source: VmPluginPackageSource,
+        host: &VmPluginHostContext,
     ) -> Result<(), VmError> {
         let mut slots = self.slots.lock().unwrap();
         let state = {
@@ -111,15 +79,15 @@ impl HotReloadCoordinator {
             state
         };
 
-        let mut next_instance = backend.load_package(&package, self.host.clone())?;
-        next_instance.activate(&self.host)?;
+        let mut next_instance = backend.load_package(&package, host)?;
+        next_instance.activate(host)?;
         next_instance.restore_state(&state)?;
 
         slots.insert(
             slot,
             PluginSlot {
                 backend_name: backend_name.into(),
-                source,
+                source: host.package_source.clone(),
                 package,
                 instance: next_instance,
             },
@@ -169,9 +137,5 @@ impl HotReloadCoordinator {
             .collect::<Vec<_>>();
         records.sort_by_key(|record| record.slot.get());
         records
-    }
-
-    pub fn host(&self) -> HostRegistry {
-        self.host.clone()
     }
 }

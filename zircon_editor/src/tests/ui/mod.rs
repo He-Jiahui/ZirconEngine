@@ -1,6 +1,14 @@
 mod activity;
+mod animation_editor;
+mod asset_browser;
+mod assets_activity;
 mod binding;
 mod boundary;
+mod console;
 mod control;
+mod hierarchy;
+mod inspector;
+mod project_overview;
 mod template;
 mod ui_asset_editor;
+mod welcome;

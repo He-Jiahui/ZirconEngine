@@ -9,6 +9,10 @@ impl EditorManager {
         self.host.apply_animation_event(event)
     }
 
+    pub fn save_animation_editor(&self, instance_id: &ViewInstanceId) -> Result<(), EditorError> {
+        self.host.save_animation_editor(instance_id)
+    }
+
     pub fn animation_editor_pane_presentation(
         &self,
         instance_id: &ViewInstanceId,

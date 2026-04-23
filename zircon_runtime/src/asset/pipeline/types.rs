@@ -40,6 +40,10 @@ pub struct MeshVertex {
     pub position: [f32; 3],
     pub normal: [f32; 3],
     pub uv: [f32; 2],
+    #[serde(default = "default_mesh_vertex_joint_indices")]
+    pub joint_indices: [u16; 4],
+    #[serde(default = "default_mesh_vertex_joint_weights")]
+    pub joint_weights: [f32; 4],
 }
 
 impl MeshVertex {
@@ -48,8 +52,24 @@ impl MeshVertex {
             position: position.to_array(),
             normal: normal.to_array(),
             uv: uv.to_array(),
+            joint_indices: default_mesh_vertex_joint_indices(),
+            joint_weights: default_mesh_vertex_joint_weights(),
         }
     }
+
+    pub fn with_skinning(mut self, joint_indices: [u16; 4], joint_weights: [f32; 4]) -> Self {
+        self.joint_indices = joint_indices;
+        self.joint_weights = joint_weights;
+        self
+    }
+}
+
+const fn default_mesh_vertex_joint_indices() -> [u16; 4] {
+    [0, 0, 0, 0]
+}
+
+const fn default_mesh_vertex_joint_weights() -> [f32; 4] {
+    [0.0, 0.0, 0.0, 0.0]
 }
 
 #[derive(Clone, Debug)]

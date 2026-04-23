@@ -2,18 +2,160 @@
 mod tests {
     use std::fs;
     use std::path::{Path, PathBuf};
-    use std::sync::Arc;
+    use std::sync::{Arc, Mutex};
     use std::time::{SystemTime, UNIX_EPOCH};
 
-    use crate::core::CoreRuntime;
-
     use super::super::{
-        backend::MockVmBackend, module_descriptor, CapabilitySet, HostRegistry,
-        HotReloadCoordinator, PluginHostDriver, UnavailableVmBackend, VmBackend, VmError,
-        VmPluginManager, VmPluginManifest, VmPluginPackage, VmPluginPackageSource,
-        PLUGIN_HOST_DRIVER_NAME, SCRIPT_MODULE_NAME, VM_PLUGIN_MANAGER_NAME,
+        backend::MockVmBackend, module_descriptor, BuiltinVmBackendFamily, CapabilitySet,
+        HostRegistry, HotReloadCoordinator, PluginHostDriver, UnavailableVmBackend, VmBackend,
+        VmBackendFamily, VmError, VmPluginHostContext, VmPluginInstance, VmPluginManager,
+        VmPluginManifest, VmPluginPackage, VmPluginPackageSource, VmPluginSlotLifecycle,
+        VmPluginSlotRecord, PLUGIN_HOST_DRIVER_NAME, SCRIPT_MODULE_NAME, VM_PLUGIN_MANAGER_NAME,
         VM_PLUGIN_RUNTIME_NAME,
     };
+    use crate::core::{CoreRuntime, PluginContext};
+
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    struct ObservedHostContext {
+        plugin_name: String,
+        backend_selector: String,
+        package_root: Option<PathBuf>,
+        source_root: Option<PathBuf>,
+        data_root: Option<PathBuf>,
+        package_source: VmPluginPackageSource,
+        capabilities: CapabilitySet,
+    }
+
+    impl ObservedHostContext {
+        fn capture(host: &VmPluginHostContext) -> Self {
+            Self {
+                plugin_name: host.plugin.plugin_name.clone(),
+                backend_selector: host.backend_selector.clone(),
+                package_root: host.plugin.package_root.clone(),
+                source_root: host.plugin.source_root.clone(),
+                data_root: host.plugin.data_root.clone(),
+                package_source: host.package_source.clone(),
+                capabilities: host.capabilities.clone(),
+            }
+        }
+    }
+
+    #[derive(Debug, Default)]
+    struct NoopSlotLifecycle;
+
+    impl VmPluginSlotLifecycle for NoopSlotLifecycle {
+        fn load_package(
+            &self,
+            backend_selector: &str,
+            _package: VmPluginPackage,
+        ) -> Result<super::super::PluginSlotId, VmError> {
+            Err(VmError::Operation(format!(
+                "noop slot lifecycle cannot load backend {backend_selector}"
+            )))
+        }
+
+        fn hot_reload_slot(
+            &self,
+            slot: super::super::PluginSlotId,
+            _package: VmPluginPackage,
+        ) -> Result<(), VmError> {
+            Err(VmError::Operation(format!(
+                "noop slot lifecycle cannot hot reload slot {}",
+                slot.get()
+            )))
+        }
+
+        fn unload_slot(&self, slot: super::super::PluginSlotId) -> Result<(), VmError> {
+            Err(VmError::Operation(format!(
+                "noop slot lifecycle cannot unload slot {}",
+                slot.get()
+            )))
+        }
+
+        fn slot(&self, slot: super::super::PluginSlotId) -> Result<VmPluginSlotRecord, VmError> {
+            Err(VmError::MissingSlot(slot.get()))
+        }
+
+        fn list_slots(&self) -> Vec<VmPluginSlotRecord> {
+            Vec::new()
+        }
+    }
+
+    #[derive(Debug)]
+    struct RecordingVmPluginInstance {
+        manifest: VmPluginManifest,
+        observations: Arc<Mutex<Vec<ObservedHostContext>>>,
+    }
+
+    impl VmPluginInstance for RecordingVmPluginInstance {
+        fn manifest(&self) -> &VmPluginManifest {
+            &self.manifest
+        }
+
+        fn activate(&mut self, host: &VmPluginHostContext) -> Result<(), VmError> {
+            self.observations
+                .lock()
+                .unwrap()
+                .push(ObservedHostContext::capture(host));
+            Ok(())
+        }
+    }
+
+    #[derive(Debug)]
+    struct RecordingVmBackend {
+        observations: Arc<Mutex<Vec<ObservedHostContext>>>,
+    }
+
+    impl VmBackend for RecordingVmBackend {
+        fn backend_name(&self) -> &str {
+            "recording"
+        }
+
+        fn load_package(
+            &self,
+            package: &VmPluginPackage,
+            host: &VmPluginHostContext,
+        ) -> Result<Box<dyn VmPluginInstance>, VmError> {
+            self.observations
+                .lock()
+                .unwrap()
+                .push(ObservedHostContext::capture(host));
+            Ok(Box::new(RecordingVmPluginInstance {
+                manifest: package.manifest.clone(),
+                observations: Arc::clone(&self.observations),
+            }))
+        }
+    }
+
+    #[derive(Debug)]
+    struct RecordingVmBackendFamily {
+        observations: Arc<Mutex<Vec<ObservedHostContext>>>,
+    }
+
+    impl RecordingVmBackendFamily {
+        fn new(observations: Arc<Mutex<Vec<ObservedHostContext>>>) -> Self {
+            Self { observations }
+        }
+    }
+
+    impl VmBackendFamily for RecordingVmBackendFamily {
+        fn family_name(&self) -> &str {
+            "recording"
+        }
+
+        fn resolve(&self, selector: &str) -> Result<Arc<dyn VmBackend>, VmError> {
+            match selector {
+                "recording:capture" | "capture" => Ok(Arc::new(RecordingVmBackend {
+                    observations: Arc::clone(&self.observations),
+                })),
+                other => Err(VmError::UnknownBackend(other.to_string())),
+            }
+        }
+
+        fn selectors(&self) -> Vec<String> {
+            vec!["recording:capture".to_string(), "capture".to_string()]
+        }
+    }
 
     #[test]
     fn host_handles_are_stable_and_valid() {
@@ -23,22 +165,35 @@ mod tests {
     }
 
     #[test]
+    fn builtin_backend_family_accepts_qualified_and_legacy_backend_names() {
+        let registry = super::super::VmBackendRegistry::new();
+        registry.register_family(Arc::new(BuiltinVmBackendFamily));
+
+        assert!(registry.resolve("builtin:mock").is_ok());
+        assert!(registry.resolve("mock").is_ok());
+        assert!(registry.resolve("builtin:unavailable").is_ok());
+        assert!(registry.resolve("unavailable").is_ok());
+    }
+
+    #[test]
     fn hot_reload_coordinator_tracks_slot_lifecycle_records() {
-        let coordinator = HotReloadCoordinator::new(HostRegistry::default());
+        let coordinator = HotReloadCoordinator::new();
         let package_root = std::env::temp_dir().join("zircon-script-slot-lifecycle");
         let source = VmPluginPackageSource {
             package_root: Some(package_root.clone()),
             manifest_path: Some(package_root.join("plugin.toml")),
             bytecode_path: Some(package_root.join("plugin.bin")),
         };
+        let package = test_package("sample", "0.1.0");
+        let host = test_host_context(
+            VM_PLUGIN_RUNTIME_NAME,
+            "mock",
+            source.clone(),
+            package.manifest.capabilities.clone(),
+        );
 
         let slot = coordinator
-            .load_package_with_source(
-                "mock",
-                &MockVmBackend,
-                test_package("sample", "0.1.0"),
-                source.clone(),
-            )
+            .load_package("mock", &MockVmBackend, package, &host)
             .unwrap();
         let initial = coordinator.slot(slot).unwrap();
         assert_eq!(initial.backend_name, "mock");
@@ -46,12 +201,12 @@ mod tests {
         assert_eq!(initial.manifest.version, "0.1.0");
 
         coordinator
-            .hot_reload_with_source(
+            .hot_reload(
                 slot,
                 "mock",
                 &MockVmBackend,
                 test_package("sample", "0.2.0"),
-                source.clone(),
+                &host,
             )
             .unwrap();
 
@@ -110,11 +265,18 @@ mod tests {
     #[test]
     fn unavailable_backend_reports_error() {
         let backend = UnavailableVmBackend;
-        let error =
-            match backend.load_package(&test_package("sample", "0.1.0"), HostRegistry::default()) {
-                Ok(_) => panic!("expected unavailable backend to reject package"),
-                Err(error) => error,
-            };
+        let source = VmPluginPackageSource::default();
+        let package = test_package("sample", "0.1.0");
+        let host = test_host_context(
+            VM_PLUGIN_RUNTIME_NAME,
+            "builtin:unavailable",
+            source,
+            package.manifest.capabilities.clone(),
+        );
+        let error = match backend.load_package(&package, &host) {
+            Ok(_) => panic!("expected unavailable backend to reject package"),
+            Err(error) => error,
+        };
         assert!(matches!(error, VmError::BackendUnavailable(_)));
     }
 
@@ -167,11 +329,69 @@ mod tests {
 
         let capability = driver.registry().register_capability("RenderingManager");
         assert!(plugin.host_registry().is_valid(capability));
+        assert_eq!(
+            plugin.base_plugin_context().plugin_name,
+            VM_PLUGIN_RUNTIME_NAME
+        );
 
-        plugin.register_backend(Arc::new(MockVmBackend));
-        plugin.select_default_backend("mock").unwrap();
+        plugin.select_default_backend("builtin:mock").unwrap();
         let slot = plugin.load_package(test_package("core", "0.1.0")).unwrap();
-        assert_eq!(plugin.slot(slot).unwrap().backend_name, "mock");
+        assert_eq!(plugin.slot(slot).unwrap().backend_name, "builtin:mock");
+    }
+
+    #[test]
+    fn vm_plugin_manager_propagates_host_context_roots_and_backend_selector() {
+        let fixture = PluginFixture::new("sample", "0.1.0", "recording:capture", &[1, 2, 3]);
+        let observations = Arc::new(Mutex::new(Vec::<ObservedHostContext>::new()));
+        let runtime = CoreRuntime::new();
+        let base_plugin_context = PluginContext {
+            plugin_name: VM_PLUGIN_RUNTIME_NAME.to_string(),
+            core: runtime.handle().downgrade(),
+            package_root: None,
+            source_root: None,
+            data_root: None,
+        };
+        let manager =
+            VmPluginManager::with_plugin_context(base_plugin_context, HostRegistry::default());
+        manager.register_family(Arc::new(RecordingVmBackendFamily::new(Arc::clone(
+            &observations,
+        ))));
+
+        let packages = manager.discover_packages(&fixture.root).unwrap();
+        let slot = manager.load_discovered_package(&packages[0]).unwrap();
+        let record = manager.slot(slot).unwrap();
+        let expected_data_root = fixture.package_root.join("data");
+
+        assert_eq!(record.backend_name, "recording:capture");
+        assert_eq!(
+            record.source.manifest_path.as_deref(),
+            Some(fixture.manifest_path.as_path())
+        );
+        assert_eq!(
+            record.source.bytecode_path.as_deref(),
+            Some(fixture.bytecode_path.as_path())
+        );
+
+        let observed = observations.lock().unwrap().clone();
+        assert_eq!(observed.len(), 2);
+        for host in observed {
+            assert_eq!(host.plugin_name, VM_PLUGIN_RUNTIME_NAME);
+            assert_eq!(host.backend_selector, "recording:capture");
+            assert_eq!(
+                host.package_root.as_deref(),
+                Some(fixture.package_root.as_path())
+            );
+            assert_eq!(
+                host.source_root.as_deref(),
+                Some(fixture.package_root.as_path())
+            );
+            assert_eq!(
+                host.data_root.as_deref(),
+                Some(expected_data_root.as_path())
+            );
+            assert_eq!(host.package_source, record.source);
+            assert_eq!(host.capabilities, record.manifest.capabilities);
+        }
     }
 
     #[test]
@@ -240,7 +460,9 @@ mod tests {
             "module/module_descriptor.rs",
             "backend/mod.rs",
             "backend/backend_registry.rs",
+            "backend/builtin_vm_backend_family.rs",
             "backend/vm_backend.rs",
+            "backend/vm_backend_family.rs",
             "backend/unavailable_vm_backend.rs",
             "backend/mock_vm_backend.rs",
             "backend/vm_error.rs",
@@ -248,6 +470,8 @@ mod tests {
             "host/host_registry.rs",
             "host/plugin_host_driver.rs",
             "host/constants.rs",
+            "host/vm_plugin_host_context.rs",
+            "host/vm_plugin_slot_lifecycle.rs",
             "plugin/mod.rs",
             "plugin/vm_plugin_manifest.rs",
             "plugin/vm_plugin_package.rs",
@@ -280,8 +504,45 @@ mod tests {
         }
     }
 
+    fn test_host_context(
+        plugin_name: &str,
+        backend_selector: &str,
+        source: VmPluginPackageSource,
+        capabilities: CapabilitySet,
+    ) -> VmPluginHostContext {
+        let runtime = CoreRuntime::new();
+        let package_root = source.package_root.clone().or_else(|| {
+            source
+                .manifest_path
+                .as_ref()
+                .and_then(|path| path.parent().map(Path::to_path_buf))
+        });
+        let source_root = source.manifest_path.as_ref().and_then(|path| {
+            path.parent()
+                .map(Path::to_path_buf)
+                .or_else(|| package_root.clone())
+        });
+        let data_root = package_root.as_ref().map(|root| root.join("data"));
+
+        VmPluginHostContext {
+            plugin: PluginContext {
+                plugin_name: plugin_name.to_string(),
+                core: runtime.handle().downgrade(),
+                package_root,
+                source_root,
+                data_root,
+            },
+            capabilities,
+            backend_selector: backend_selector.to_string(),
+            package_source: source,
+            host_registry: HostRegistry::default(),
+            slot_lifecycle: Arc::new(NoopSlotLifecycle),
+        }
+    }
+
     struct PluginFixture {
         root: PathBuf,
+        package_root: PathBuf,
         manifest_path: PathBuf,
         bytecode_path: PathBuf,
     }
@@ -295,6 +556,7 @@ mod tests {
             let root = std::env::temp_dir().join(format!("zircon-script-fixture-{nonce}"));
             let package_root = root.join(name);
             fs::create_dir_all(&package_root).unwrap();
+            fs::create_dir_all(package_root.join("data")).unwrap();
 
             let manifest_path = package_root.join("plugin.toml");
             let bytecode_path = package_root.join("plugin.bin");
@@ -309,6 +571,7 @@ mod tests {
 
             Self {
                 root,
+                package_root,
                 manifest_path,
                 bytecode_path,
             }

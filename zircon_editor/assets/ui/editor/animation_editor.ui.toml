@@ -1,0 +1,787 @@
+stylesheets = []
+
+[asset]
+kind = "layout"
+id = "editor.animation_editor"
+version = 1
+display_name = "Animation Editor"
+
+[imports]
+styles = ["res://ui/theme/editor_base.ui.toml"]
+
+[root]
+node_id = "animation_editor_root"
+kind = "native"
+type = "VerticalBox"
+control_id = "AnimationEditorRoot"
+classes = ["editor-shell"]
+
+[root.layout.container]
+kind = "VerticalBox"
+gap = 0.0
+
+[root.layout.width]
+stretch = "Stretch"
+
+[root.layout.height]
+stretch = "Stretch"
+
+[[root.children]]
+[root.children.node]
+node_id = "header_panel"
+kind = "native"
+type = "VerticalBox"
+control_id = "AnimationEditorHeaderPanel"
+
+[root.children.node.layout.container]
+kind = "VerticalBox"
+gap = 0.0
+
+[root.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.layout.height]
+min = 64.0
+preferred = 64.0
+max = 64.0
+stretch = "Fixed"
+
+[[root.children.node.children]]
+[root.children.node.children.node]
+node_id = "header_top_space"
+kind = "native"
+type = "Space"
+
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.layout.height]
+min = 10.0
+preferred = 10.0
+max = 10.0
+stretch = "Fixed"
+
+[[root.children.node.children]]
+[root.children.node.children.node]
+node_id = "header_mode_row_shell"
+kind = "native"
+type = "HorizontalBox"
+
+[root.children.node.children.node.layout.container]
+kind = "HorizontalBox"
+gap = 0.0
+
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.layout.height]
+min = 12.0
+preferred = 12.0
+max = 12.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "header_mode_row_left_space"
+kind = "native"
+type = "Space"
+
+[root.children.node.children.node.children.node.layout.width]
+min = 12.0
+preferred = 12.0
+max = 12.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "header_mode_row"
+kind = "native"
+type = "Space"
+control_id = "AnimationEditorHeaderModeRow"
+
+[root.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "header_mode_row_right_space"
+kind = "native"
+type = "Space"
+
+[root.children.node.children.node.children.node.layout.width]
+min = 12.0
+preferred = 12.0
+max = 12.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children]]
+[root.children.node.children.node]
+node_id = "header_mode_path_gap"
+kind = "native"
+type = "Space"
+
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.layout.height]
+min = 4.0
+preferred = 4.0
+max = 4.0
+stretch = "Fixed"
+
+[[root.children.node.children]]
+[root.children.node.children.node]
+node_id = "header_path_row_shell"
+kind = "native"
+type = "HorizontalBox"
+
+[root.children.node.children.node.layout.container]
+kind = "HorizontalBox"
+gap = 0.0
+
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.layout.height]
+min = 14.0
+preferred = 14.0
+max = 14.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "header_path_row_left_space"
+kind = "native"
+type = "Space"
+
+[root.children.node.children.node.children.node.layout.width]
+min = 12.0
+preferred = 12.0
+max = 12.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "header_path_row"
+kind = "native"
+type = "Space"
+control_id = "AnimationEditorHeaderPathRow"
+
+[root.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "header_path_row_right_space"
+kind = "native"
+type = "Space"
+
+[root.children.node.children.node.children.node.layout.width]
+min = 12.0
+preferred = 12.0
+max = 12.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children]]
+[root.children.node.children.node]
+node_id = "header_path_status_gap"
+kind = "native"
+type = "Space"
+
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.layout.height]
+min = 4.0
+preferred = 4.0
+max = 4.0
+stretch = "Fixed"
+
+[[root.children.node.children]]
+[root.children.node.children.node]
+node_id = "header_status_row_shell"
+kind = "native"
+type = "HorizontalBox"
+
+[root.children.node.children.node.layout.container]
+kind = "HorizontalBox"
+gap = 0.0
+
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.layout.height]
+min = 12.0
+preferred = 12.0
+max = 12.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "header_status_row_left_space"
+kind = "native"
+type = "Space"
+
+[root.children.node.children.node.children.node.layout.width]
+min = 12.0
+preferred = 12.0
+max = 12.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "header_status_row"
+kind = "native"
+type = "Space"
+control_id = "AnimationEditorHeaderStatusRow"
+
+[root.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "header_status_row_right_space"
+kind = "native"
+type = "Space"
+
+[root.children.node.children.node.children.node.layout.width]
+min = 12.0
+preferred = 12.0
+max = 12.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children]]
+[root.children.node.children.node]
+node_id = "header_bottom_space"
+kind = "native"
+type = "Space"
+
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.layout.height]
+min = 8.0
+preferred = 8.0
+max = 8.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "body_panel"
+kind = "native"
+type = "VerticalBox"
+control_id = "AnimationEditorBodyPanel"
+
+[root.children.node.layout.container]
+kind = "Overlay"
+
+[root.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children]]
+[root.children.node.children.node]
+node_id = "sequence_shell"
+kind = "native"
+type = "VerticalBox"
+
+[root.children.node.children.node.layout.container]
+kind = "VerticalBox"
+gap = 0.0
+
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "sequence_top_space"
+kind = "native"
+type = "Space"
+
+[root.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.layout.height]
+min = 12.0
+preferred = 12.0
+max = 12.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "sequence_content_row"
+kind = "native"
+type = "HorizontalBox"
+
+[root.children.node.children.node.children.node.layout.container]
+kind = "HorizontalBox"
+gap = 0.0
+
+[root.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node]
+node_id = "sequence_left_space"
+kind = "native"
+type = "Space"
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+min = 12.0
+preferred = 12.0
+max = 12.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node]
+node_id = "sequence_content_panel"
+kind = "native"
+type = "VerticalBox"
+control_id = "AnimationSequenceContentPanel"
+
+[root.children.node.children.node.children.node.children.node.layout.container]
+kind = "VerticalBox"
+gap = 0.0
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node]
+node_id = "sequence_timeline_row"
+kind = "native"
+type = "Space"
+control_id = "AnimationSequenceTimelineRow"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 12.0
+preferred = 12.0
+max = 12.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node]
+node_id = "sequence_timeline_selection_gap"
+kind = "native"
+type = "Space"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 6.0
+preferred = 6.0
+max = 6.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node]
+node_id = "sequence_selection_row"
+kind = "native"
+type = "Space"
+control_id = "AnimationSequenceSelectionRow"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 12.0
+preferred = 12.0
+max = 12.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node]
+node_id = "sequence_selection_tracks_gap"
+kind = "native"
+type = "Space"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 14.0
+preferred = 14.0
+max = 14.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node]
+node_id = "sequence_tracks_panel"
+kind = "native"
+type = "Space"
+control_id = "AnimationSequenceTracksPanel"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node]
+node_id = "sequence_right_space"
+kind = "native"
+type = "Space"
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+min = 12.0
+preferred = 12.0
+max = 12.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children]]
+[root.children.node.children.node]
+node_id = "graph_shell"
+kind = "native"
+type = "VerticalBox"
+
+[root.children.node.children.node.layout.container]
+kind = "VerticalBox"
+gap = 0.0
+
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "graph_top_space"
+kind = "native"
+type = "Space"
+
+[root.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.layout.height]
+min = 12.0
+preferred = 12.0
+max = 12.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "graph_content_row"
+kind = "native"
+type = "HorizontalBox"
+
+[root.children.node.children.node.children.node.layout.container]
+kind = "HorizontalBox"
+gap = 0.0
+
+[root.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node]
+node_id = "graph_left_space"
+kind = "native"
+type = "Space"
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+min = 12.0
+preferred = 12.0
+max = 12.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node]
+node_id = "graph_content_panel"
+kind = "native"
+type = "VerticalBox"
+control_id = "AnimationGraphContentPanel"
+
+[root.children.node.children.node.children.node.children.node.layout.container]
+kind = "VerticalBox"
+gap = 0.0
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node]
+node_id = "graph_parameters_panel"
+kind = "native"
+type = "Space"
+control_id = "AnimationGraphParametersPanel"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 120.0
+preferred = 120.0
+max = 120.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node]
+node_id = "graph_parameters_nodes_gap"
+kind = "native"
+type = "Space"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 20.0
+preferred = 20.0
+max = 20.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node]
+node_id = "graph_nodes_panel"
+kind = "native"
+type = "Space"
+control_id = "AnimationGraphNodesPanel"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node]
+node_id = "graph_right_space"
+kind = "native"
+type = "Space"
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+min = 12.0
+preferred = 12.0
+max = 12.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children]]
+[root.children.node.children.node]
+node_id = "state_machine_shell"
+kind = "native"
+type = "VerticalBox"
+
+[root.children.node.children.node.layout.container]
+kind = "VerticalBox"
+gap = 0.0
+
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "state_machine_top_space"
+kind = "native"
+type = "Space"
+
+[root.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.layout.height]
+min = 12.0
+preferred = 12.0
+max = 12.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "state_machine_content_row"
+kind = "native"
+type = "HorizontalBox"
+
+[root.children.node.children.node.children.node.layout.container]
+kind = "HorizontalBox"
+gap = 0.0
+
+[root.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node]
+node_id = "state_machine_left_space"
+kind = "native"
+type = "Space"
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+min = 12.0
+preferred = 12.0
+max = 12.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node]
+node_id = "state_machine_content_panel"
+kind = "native"
+type = "VerticalBox"
+control_id = "AnimationStateMachineContentPanel"
+
+[root.children.node.children.node.children.node.children.node.layout.container]
+kind = "VerticalBox"
+gap = 0.0
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node]
+node_id = "state_machine_entry_row"
+kind = "native"
+type = "Space"
+control_id = "AnimationStateMachineEntryRow"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 12.0
+preferred = 12.0
+max = 12.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node]
+node_id = "state_machine_entry_states_gap"
+kind = "native"
+type = "Space"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 12.0
+preferred = 12.0
+max = 12.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node]
+node_id = "state_machine_states_panel"
+kind = "native"
+type = "Space"
+control_id = "AnimationStateMachineStatesPanel"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 112.0
+preferred = 112.0
+max = 112.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node]
+node_id = "state_machine_states_transitions_gap"
+kind = "native"
+type = "Space"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 12.0
+preferred = 12.0
+max = 12.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node]
+node_id = "state_machine_transitions_panel"
+kind = "native"
+type = "Space"
+control_id = "AnimationStateMachineTransitionsPanel"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node]
+node_id = "state_machine_right_space"
+kind = "native"
+type = "Space"
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+min = 12.0
+preferred = 12.0
+max = 12.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[components]

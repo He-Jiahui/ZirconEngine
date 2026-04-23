@@ -59,6 +59,12 @@ impl HybridGiRuntimeState {
         self.scene_representation.card_capture_requests()
     }
 
+    pub(crate) fn scene_surface_cache_page_contents(
+        &self,
+    ) -> Vec<(u32, u32, u32, u32, [u8; 4], [u8; 4])> {
+        self.scene_representation.surface_cache.page_contents()
+    }
+
     pub(crate) fn scene_resident_clipmap_ids(&self) -> Vec<u32> {
         self.scene_representation.voxel_scene.resident_clipmap_ids()
     }

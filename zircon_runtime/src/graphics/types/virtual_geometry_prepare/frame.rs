@@ -5,10 +5,7 @@ use crate::core::framework::render::{
     RenderVirtualGeometryVisBufferMark,
 };
 use crate::core::framework::scene::EntityId;
-use crate::graphics::types::{
-    build_cluster_selections, cluster_raster_draws_from_selections,
-    VirtualGeometryClusterRasterDraw, VirtualGeometryClusterSelection,
-};
+use crate::graphics::types::{build_cluster_selections, VirtualGeometryClusterSelection};
 
 use super::{
     VirtualGeometryPrepareCluster, VirtualGeometryPrepareClusterState,
@@ -181,13 +178,6 @@ impl VirtualGeometryPrepareFrame {
         extract: &RenderVirtualGeometryExtract,
     ) -> Vec<VirtualGeometryClusterSelection> {
         build_cluster_selections(self, extract)
-    }
-
-    pub(crate) fn cluster_raster_draws(
-        &self,
-        extract: &RenderVirtualGeometryExtract,
-    ) -> HashMap<EntityId, Vec<VirtualGeometryClusterRasterDraw>> {
-        cluster_raster_draws_from_selections(&self.cluster_selections(extract))
     }
 
     pub(crate) fn same_frame_visbuffer_debug_marks(

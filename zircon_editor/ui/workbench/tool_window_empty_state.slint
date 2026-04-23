@@ -1,0 +1,62 @@
+import { Palette, ShellButton } from "chrome.slint";
+
+export component ToolWindowEmptyState inherits Rectangle {
+    in property <string> eyebrow;
+    in property <string> title;
+    in property <string> body;
+    in property <string> primary_action_label;
+    in property <string> primary_action_id;
+    in property <string> secondary_hint;
+    callback trigger_action(action_id: string);
+
+    palette := Palette {}
+    background: transparent;
+
+    Rectangle {
+        x: 12px;
+        y: 18px;
+        width: parent.width - 24px;
+        height: min(parent.height - 24px, 188px);
+        background: transparent;
+
+        VerticalLayout {
+            width: parent.width;
+            spacing: 8px;
+
+            if root.eyebrow != "": Text {
+                text: root.eyebrow;
+                color: palette.accent;
+                font-size: 10px;
+                font-weight: 600;
+            }
+
+            Text {
+                text: root.title;
+                color: palette.text;
+                font-size: 14px;
+                font-weight: 600;
+            }
+
+            Text {
+                text: root.body;
+                color: palette.text_muted;
+                font-size: 11px;
+                wrap: word-wrap;
+            }
+
+            if root.primary_action_label != "": ShellButton {
+                width: 96px;
+                label: root.primary_action_label;
+                active: true;
+                clicked => { root.trigger_action(root.primary_action_id); }
+            }
+
+            if root.secondary_hint != "": Text {
+                text: root.secondary_hint;
+                color: palette.text_dim;
+                font-size: 10px;
+                wrap: word-wrap;
+            }
+        }
+    }
+}

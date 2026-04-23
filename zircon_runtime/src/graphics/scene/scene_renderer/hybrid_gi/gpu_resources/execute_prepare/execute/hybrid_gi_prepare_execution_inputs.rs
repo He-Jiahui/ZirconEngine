@@ -6,7 +6,8 @@ use crate::core::framework::render::{
     RenderSpotLightSnapshot,
 };
 use crate::graphics::types::{
-    HybridGiPrepareCardCaptureRequest, HybridGiPrepareVoxelCell, HybridGiPrepareVoxelClipmap,
+    HybridGiPrepareCardCaptureRequest, HybridGiPrepareSurfaceCachePageContent,
+    HybridGiPrepareVoxelCell, HybridGiPrepareVoxelClipmap,
 };
 
 pub(super) struct HybridGiPrepareExecutionInputs {
@@ -15,6 +16,8 @@ pub(super) struct HybridGiPrepareExecutionInputs {
     pub(super) pending_probe_inputs: Vec<GpuPendingProbeInput>,
     pub(super) trace_region_inputs: Vec<GpuTraceRegionInput>,
     pub(super) scene_card_capture_requests: Vec<HybridGiPrepareCardCaptureRequest>,
+    pub(super) scene_surface_cache_page_contents: Vec<HybridGiPrepareSurfaceCachePageContent>,
+    pub(super) scene_card_capture_descriptor_count: usize,
     pub(super) scene_voxel_clipmaps: Vec<HybridGiPrepareVoxelClipmap>,
     pub(super) scene_voxel_cells: Vec<HybridGiPrepareVoxelCell>,
     pub(super) scene_meshes: Vec<RenderMeshSnapshot>,

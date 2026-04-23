@@ -218,6 +218,8 @@ mod tests {
             pending_probe_inputs: Vec::new(),
             trace_region_inputs: Vec::new(),
             scene_card_capture_requests: Vec::new(),
+            scene_surface_cache_page_contents: Vec::new(),
+            scene_card_capture_descriptor_count: 0,
             scene_voxel_clipmaps: vec![clipmap],
             scene_voxel_cells: Vec::new(),
             scene_meshes: vec![mesh_at(translation)],

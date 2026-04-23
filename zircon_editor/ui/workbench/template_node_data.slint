@@ -1,0 +1,25 @@
+export struct TemplateNodeFrameData {
+    x: float,
+    y: float,
+    width: float,
+    height: float,
+}
+
+export struct TemplatePaneNodeData {
+    node_id: string,
+    control_id: string,
+    role: string,
+    text: string,
+    dispatch_kind: string,
+    action_id: string,
+    surface_variant: string,
+    text_tone: string,
+    button_variant: string,
+    font_size: float,
+    font_weight: int,
+    text_align: string,
+    overflow: string,
+    corner_radius: float,
+    border_width: float,
+    frame: TemplateNodeFrameData,
+}

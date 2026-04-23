@@ -1,5 +1,6 @@
 import { LineEdit } from "std-widgets.slint";
 import { Palette, ShellButton, ShellIcon } from "chrome.slint";
+import { TemplatePaneNodeData } from "template_node_data.slint";
 
 export struct RecentProjectData {
     display_name: string,
@@ -21,6 +22,7 @@ export struct NewProjectFormData {
 }
 
 export struct WelcomePaneData {
+    nodes: [TemplatePaneNodeData],
     title: string,
     subtitle: string,
     status_message: string,
@@ -76,56 +78,71 @@ export component WelcomePane inherits Rectangle {
     background: palette.panel_bg;
     clip: true;
 
-    Rectangle {
-        x: 18px;
-        y: 18px;
-        width: parent.width - 36px;
-        height: parent.height - 36px;
+    for outer_panel_node in root.welcome.nodes: Rectangle {
+        visible: outer_panel_node.control_id == "WelcomeOuterPanel";
+        x: outer_panel_node.frame.x * 1px;
+        y: outer_panel_node.frame.y * 1px;
+        width: outer_panel_node.frame.width * 1px;
+        height: outer_panel_node.frame.height * 1px;
         border-radius: 16px;
         border-width: 1px;
         border-color: palette.border;
         background: #1c1f23;
+        clip: true;
 
-        Rectangle {
-            x: 0px;
-            y: 0px;
-            width: 320px;
-            height: parent.height;
+        for recent_panel_node in root.welcome.nodes: Rectangle {
+            visible: recent_panel_node.control_id == "WelcomeRecentPanel";
+            x: (recent_panel_node.frame.x - outer_panel_node.frame.x) * 1px;
+            y: (recent_panel_node.frame.y - outer_panel_node.frame.y) * 1px;
+            width: recent_panel_node.frame.width * 1px;
+            height: recent_panel_node.frame.height * 1px;
             border-top-left-radius: 16px;
             border-bottom-left-radius: 16px;
             background: #181b1f;
             border-width: 0px;
+            clip: true;
 
-            Text {
-                x: 24px;
-                y: 26px;
-                text: "Recent Projects";
-                color: palette.text;
-                font-size: 20px;
-                font-weight: 700;
+            for recent_header_panel_node in root.welcome.nodes: Rectangle {
+                visible: recent_header_panel_node.control_id == "WelcomeRecentHeaderPanel";
+                x: (recent_header_panel_node.frame.x - recent_panel_node.frame.x) * 1px;
+                y: (recent_header_panel_node.frame.y - recent_panel_node.frame.y) * 1px;
+                width: recent_header_panel_node.frame.width * 1px;
+                height: recent_header_panel_node.frame.height * 1px;
+                background: transparent;
+                clip: true;
+
+                Text {
+                    x: 0px;
+                    y: 0px;
+                    text: "Recent Projects";
+                    color: palette.text;
+                    font-size: 20px;
+                    font-weight: 700;
+                }
+
+                Text {
+                    x: 0px;
+                    y: 30px;
+                    width: parent.width;
+                    text: "Resume a valid directory project or clean up broken entries.";
+                    color: palette.text_dim;
+                    font-size: 11px;
+                    wrap: word-wrap;
+                }
             }
 
-            Text {
-                x: 24px;
-                y: 56px;
-                width: parent.width - 48px;
-                text: "Resume a valid directory project or clean up broken entries.";
-                color: palette.text_dim;
-                font-size: 11px;
-                wrap: word-wrap;
-            }
-
-            recent_list_viewport := Rectangle {
-                x: 16px;
-                y: 94px;
-                width: parent.width - 32px;
-                height: parent.height - 110px;
+            for recent_list_panel_node in root.welcome.nodes: Rectangle {
+                visible: recent_list_panel_node.control_id == "WelcomeRecentListPanel";
+                x: (recent_list_panel_node.frame.x - recent_panel_node.frame.x) * 1px;
+                y: (recent_list_panel_node.frame.y - recent_panel_node.frame.y) * 1px;
+                width: recent_list_panel_node.frame.width * 1px;
+                height: recent_list_panel_node.frame.height * 1px;
                 clip: true;
 
                 recent_rows := VerticalLayout {
                     x: 0px;
                     y: 0px - root.recent_projects_scroll_px * 1px;
-                    width: parent.width - 8px;
+                    width: max(parent.width - 8px, 0px);
                     spacing: 10px;
 
                     for recent[index] in root.recent_projects: Rectangle {
@@ -278,26 +295,30 @@ export component WelcomePane inherits Rectangle {
             }
         }
 
-        Rectangle {
-            x: 320px;
-            y: 0px;
-            width: parent.width - 320px;
-            height: parent.height;
+        for main_panel_node in root.welcome.nodes: Rectangle {
+            visible: main_panel_node.control_id == "WelcomeMainPanel";
+            x: (main_panel_node.frame.x - outer_panel_node.frame.x) * 1px;
+            y: (main_panel_node.frame.y - outer_panel_node.frame.y) * 1px;
+            width: main_panel_node.frame.width * 1px;
+            height: main_panel_node.frame.height * 1px;
             background: transparent;
+            clip: true;
 
-            Rectangle {
-                x: 28px;
-                y: 28px;
-                width: parent.width - 56px;
-                height: 92px;
+            for hero_panel_node in root.welcome.nodes: Rectangle {
+                visible: hero_panel_node.control_id == "WelcomeHeroPanel";
+                x: (hero_panel_node.frame.x - main_panel_node.frame.x) * 1px;
+                y: (hero_panel_node.frame.y - main_panel_node.frame.y) * 1px;
+                width: hero_panel_node.frame.width * 1px;
+                height: hero_panel_node.frame.height * 1px;
                 border-radius: 14px;
                 border-width: 1px;
                 border-color: palette.border_soft;
                 background: #1f242a;
+                clip: true;
 
                 Text {
                     x: 20px;
-                    y: 18px;
+                    y: 16px;
                     text: root.welcome.title;
                     color: palette.text;
                     font-size: 26px;
@@ -306,7 +327,7 @@ export component WelcomePane inherits Rectangle {
 
                 Text {
                     x: 20px;
-                    y: 50px;
+                    y: 46px;
                     width: parent.width - 40px;
                     text: root.welcome.subtitle;
                     color: palette.text_dim;
@@ -315,19 +336,21 @@ export component WelcomePane inherits Rectangle {
                 }
             }
 
-            Rectangle {
-                x: 28px;
-                y: 132px;
-                width: parent.width - 56px;
-                height: 34px;
+            for status_panel_node in root.welcome.nodes: Rectangle {
+                visible: status_panel_node.control_id == "WelcomeStatusPanel";
+                x: (status_panel_node.frame.x - main_panel_node.frame.x) * 1px;
+                y: (status_panel_node.frame.y - main_panel_node.frame.y) * 1px;
+                width: status_panel_node.frame.width * 1px;
+                height: status_panel_node.frame.height * 1px;
                 border-radius: 10px;
                 border-width: 1px;
                 border-color: palette.border_soft;
                 background: palette.chrome_bg_soft;
+                clip: true;
 
                 Text {
                     x: 14px;
-                    y: 8px;
+                    y: max((parent.height - 12px) / 2, 0px);
                     width: parent.width - 28px;
                     text: root.welcome.status_message;
                     color: palette.text_muted;
@@ -336,56 +359,70 @@ export component WelcomePane inherits Rectangle {
                 }
             }
 
-            Text {
-                x: 28px;
-                y: 188px;
-                text: "New Project";
-                color: palette.text;
-                font-size: 18px;
-                font-weight: 700;
+            for new_project_header_panel_node in root.welcome.nodes: Rectangle {
+                visible: new_project_header_panel_node.control_id == "WelcomeNewProjectHeaderPanel";
+                x: (new_project_header_panel_node.frame.x - main_panel_node.frame.x) * 1px;
+                y: (new_project_header_panel_node.frame.y - main_panel_node.frame.y) * 1px;
+                width: new_project_header_panel_node.frame.width * 1px;
+                height: new_project_header_panel_node.frame.height * 1px;
+                background: transparent;
+                clip: true;
+
+                Text {
+                    x: 0px;
+                    y: 0px;
+                    text: "New Project";
+                    color: palette.text;
+                    font-size: 18px;
+                    font-weight: 700;
+                }
+
+                Text {
+                    x: 0px;
+                    y: 28px;
+                    width: parent.width;
+                    text: "JetBrains-style scaffold flow: name first, root directory second, preview the final path before creation.";
+                    color: palette.text_dim;
+                    font-size: 11px;
+                    wrap: word-wrap;
+                }
             }
 
-            Text {
-                x: 28px;
-                y: 216px;
-                width: parent.width - 56px;
-                text: "JetBrains-style scaffold flow: name first, root directory second, preview the final path before creation.";
-                color: palette.text_dim;
-                font-size: 11px;
-                wrap: word-wrap;
-            }
-
-            FieldCard {
-                x: 28px;
-                y: 258px;
-                width: parent.width - 56px;
-                height: 70px;
+            for project_name_field_node in root.welcome.nodes: FieldCard {
+                visible: project_name_field_node.control_id == "WelcomeProjectNameField";
+                x: (project_name_field_node.frame.x - main_panel_node.frame.x) * 1px;
+                y: (project_name_field_node.frame.y - main_panel_node.frame.y) * 1px;
+                width: project_name_field_node.frame.width * 1px;
+                height: project_name_field_node.frame.height * 1px;
                 label: "Project Name";
                 value: root.welcome.form.project_name;
                 placeholder: "MyGame";
                 edited(value) => { root.control_changed("ProjectNameEdited", value); }
             }
 
-            FieldCard {
-                x: 28px;
-                y: 340px;
-                width: parent.width - 56px;
-                height: 70px;
+            for location_field_node in root.welcome.nodes: FieldCard {
+                visible: location_field_node.control_id == "WelcomeLocationField";
+                x: (location_field_node.frame.x - main_panel_node.frame.x) * 1px;
+                y: (location_field_node.frame.y - main_panel_node.frame.y) * 1px;
+                width: location_field_node.frame.width * 1px;
+                height: location_field_node.frame.height * 1px;
                 label: "Location";
                 value: root.welcome.form.location;
                 placeholder: "E:/Projects";
                 edited(value) => { root.control_changed("LocationEdited", value); }
             }
 
-            Rectangle {
-                x: 28px;
-                y: 424px;
-                width: parent.width - 56px;
-                height: 88px;
+            for preview_panel_node in root.welcome.nodes: Rectangle {
+                visible: preview_panel_node.control_id == "WelcomePreviewPanel";
+                x: (preview_panel_node.frame.x - main_panel_node.frame.x) * 1px;
+                y: (preview_panel_node.frame.y - main_panel_node.frame.y) * 1px;
+                width: preview_panel_node.frame.width * 1px;
+                height: preview_panel_node.frame.height * 1px;
                 border-radius: 10px;
                 border-width: 1px;
                 border-color: palette.border_soft;
                 background: palette.panel_bg_soft;
+                clip: true;
 
                 Text {
                     x: 14px;
@@ -398,7 +435,7 @@ export component WelcomePane inherits Rectangle {
 
                 Text {
                     x: 14px;
-                    y: 32px;
+                    y: 30px;
                     width: parent.width - 28px;
                     text: root.welcome.form.project_path_preview;
                     color: palette.text;
@@ -408,7 +445,7 @@ export component WelcomePane inherits Rectangle {
 
                 Text {
                     x: 14px;
-                    y: 56px;
+                    y: 52px;
                     width: parent.width - 28px;
                     text: "Template: " + root.welcome.form.template_label;
                     color: palette.text_dim;
@@ -417,19 +454,23 @@ export component WelcomePane inherits Rectangle {
                 }
             }
 
-            if root.welcome.form.validation_message != "": Rectangle {
-                x: 28px;
-                y: 526px;
-                width: parent.width - 56px;
-                height: 44px;
+            for validation_panel_node in root.welcome.nodes: Rectangle {
+                visible:
+                    root.welcome.form.validation_message != "" &&
+                    validation_panel_node.control_id == "WelcomeValidationPanel";
+                x: (validation_panel_node.frame.x - main_panel_node.frame.x) * 1px;
+                y: (validation_panel_node.frame.y - main_panel_node.frame.y) * 1px;
+                width: validation_panel_node.frame.width * 1px;
+                height: validation_panel_node.frame.height * 1px;
                 border-radius: 10px;
                 border-width: 1px;
                 border-color: #7a4a4f;
                 background: #341f22;
+                clip: true;
 
                 Text {
                     x: 14px;
-                    y: 12px;
+                    y: 10px;
                     width: parent.width - 28px;
                     text: root.welcome.form.validation_message;
                     color: #ffd4d8;
@@ -438,15 +479,22 @@ export component WelcomePane inherits Rectangle {
                 }
             }
 
-            Rectangle {
-                x: 28px;
-                y: root.welcome.form.validation_message != "" ? 584px : 526px;
-                width: parent.width - 56px;
-                height: 60px;
+            for actions_row_node in root.welcome.nodes: Rectangle {
+                visible: actions_row_node.control_id == "WelcomeActionsRow";
+                x: (actions_row_node.frame.x - main_panel_node.frame.x) * 1px;
+                y: (actions_row_node.frame.y - main_panel_node.frame.y) * 1px;
+                width: actions_row_node.frame.width * 1px;
+                height: actions_row_node.frame.height * 1px;
                 background: transparent;
+                clip: true;
 
                 HorizontalLayout {
+                    x: 0px;
+                    y: 0px;
+                    width: parent.width;
+                    height: parent.height;
                     spacing: 10px;
+
                     ShellButton {
                         width: 138px;
                         label: "Create Project";
@@ -454,6 +502,7 @@ export component WelcomePane inherits Rectangle {
                         enabled: root.welcome.form.can_create;
                         clicked => { root.control_clicked("CreateProject"); }
                     }
+
                     ShellButton {
                         width: 156px;
                         label: "Open Existing Project";

@@ -84,8 +84,6 @@ fn ui_asset_editor_session_inserts_palette_items_and_tracks_tree_edits_in_undo_s
         .expect("document");
     assert!(redone.contains_node("button_2"));
 }
-
-#[test]
 fn ui_asset_editor_session_targets_palette_drag_drop_to_hovered_preview_node() {
     let route = UiAssetEditorRoute::new(
         "asset://ui/tests/simple-layout.ui.toml",
@@ -160,8 +158,6 @@ fn ui_asset_editor_session_targets_palette_drag_drop_to_hovered_preview_node() {
     assert_eq!(dropped.palette_drag_target_preview_index, -1);
     assert!(dropped.palette_drag_target_action.is_empty());
 }
-
-#[test]
 fn ui_asset_editor_session_projects_slot_aware_palette_drag_target_labels() {
     let scenarios = [
         (
@@ -223,8 +219,6 @@ fn ui_asset_editor_session_projects_slot_aware_palette_drag_target_labels() {
         assert_eq!(presentation.palette_drag_target_label, expected_label);
     }
 }
-
-#[test]
 fn ui_asset_editor_undo_stack_replays_document_diffs_for_tree_edits() {
     let mut undo_stack = UiAssetEditorUndoStack::default();
     let before_document =
@@ -701,5 +695,3 @@ fn ui_asset_editor_session_redo_restores_tree_edit_selection_and_source_summary(
     assert_eq!(redone.source_selected_block_label, "[nodes.button_2]");
     assert!(redone.source_selected_excerpt.contains("[nodes.button_2]"));
 }
-
-#[test]

@@ -1,10 +1,12 @@
 use toml::Value;
 
+use super::asset_migration_support::{
+    legacy_template_layout_document, legacy_template_layout_source, migrate_flat_ui_asset_toml_str,
+};
 use crate::ui::event_ui::UiTreeId;
 use crate::ui::surface::{UiRenderCommandKind, UiVisualAssetRef};
 use crate::ui::template::{
-    UiAssetLoader, UiDocumentCompiler, UiFlatAssetMigrationAdapter, UiLegacyTemplateAdapter,
-    UiTemplateLoader, UiTemplateSurfaceBuilder,
+    UiAssetLoader, UiDocumentCompiler, UiTemplateLoader, UiTemplateSurfaceBuilder,
 };
 use crate::ui::{layout::UiSize, template::UiAssetKind};
 
@@ -365,8 +367,7 @@ fn ui_legacy_template_adapter_converts_template_documents_into_asset_documents()
     let legacy = UiTemplateLoader::load_toml_str(LEGACY_TEMPLATE_TOML).unwrap();
 
     let asset_document =
-        UiLegacyTemplateAdapter::layout_document("legacy.workbench", "Legacy Workbench", &legacy)
-            .unwrap();
+        legacy_template_layout_document("legacy.workbench", "Legacy Workbench", &legacy).unwrap();
 
     assert_eq!(asset_document.asset.kind, UiAssetKind::Layout);
     assert_eq!(asset_document.asset.id, "legacy.workbench");
@@ -407,8 +408,7 @@ fn ui_legacy_template_adapter_emits_canonical_asset_source_that_roundtrips() {
     let legacy = UiTemplateLoader::load_toml_str(LEGACY_TEMPLATE_TOML).unwrap();
 
     let source =
-        UiLegacyTemplateAdapter::layout_source("legacy.workbench", "Legacy Workbench", &legacy)
-            .unwrap();
+        legacy_template_layout_source("legacy.workbench", "Legacy Workbench", &legacy).unwrap();
     let document = UiAssetLoader::load_toml_str(&source).unwrap();
     let compiled = UiDocumentCompiler::default().compile(&document).unwrap();
     let instance = compiled.into_template_instance();
@@ -423,7 +423,7 @@ fn ui_legacy_template_adapter_emits_canonical_asset_source_that_roundtrips() {
 
 #[test]
 fn ui_flat_asset_migration_adapter_converts_flat_assets_into_tree_authority_source() {
-    let source = UiFlatAssetMigrationAdapter::migrate_toml_str(FLAT_LAYOUT_ASSET_TOML).unwrap();
+    let source = migrate_flat_ui_asset_toml_str(FLAT_LAYOUT_ASSET_TOML).unwrap();
     let document = UiAssetLoader::load_toml_str(&source).unwrap();
     assert!(
         !source.contains("[nodes."),

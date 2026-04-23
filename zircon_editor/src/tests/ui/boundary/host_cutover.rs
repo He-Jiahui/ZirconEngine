@@ -59,8 +59,8 @@ fn editor_ui_host_owns_bootstrap_orchestration() {
         .join("src")
         .join("ui")
         .join("host");
-    let host_source = std::fs::read_to_string(host_root.join("editor_ui_host.rs"))
-        .expect("editor ui host");
+    let host_source =
+        std::fs::read_to_string(host_root.join("editor_ui_host.rs")).expect("editor ui host");
     let manager_source =
         std::fs::read_to_string(host_root.join("editor_manager.rs")).expect("editor manager");
 

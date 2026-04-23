@@ -11,6 +11,9 @@ pub(super) fn update_hybrid_gi_runtime(
     if let Some(runtime) = prepared.hybrid_gi_runtime.as_mut() {
         if let Some(completion) = hybrid_gi_gpu_completion {
             runtime.apply_gpu_cache_entries(&completion.cache_entries);
+            if let Some(scene_prepare_resources) = completion.scene_prepare_resources.as_ref() {
+                runtime.apply_scene_prepare_resources(scene_prepare_resources);
+            }
             runtime.complete_gpu_updates(
                 completion.completed_probe_ids.iter().copied(),
                 completion.completed_trace_region_ids.iter().copied(),

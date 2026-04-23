@@ -41,6 +41,7 @@ pub trait AnimationManager: Send + Sync {
         skeleton: &AnimationSkeletonAsset,
         clip: &AnimationClipAsset,
         time_seconds: Real,
+        looping: bool,
     ) -> Result<AnimationPoseOutput, String>;
     fn sequence_track_paths(&self, sequence: &AnimationSequenceAsset) -> Vec<AnimationTrackPath> {
         sequence.track_paths()

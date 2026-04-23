@@ -81,7 +81,7 @@ doc_type: category-index
 ## Documents
 
 - [Architecture-First Development](./architecture-first-development.md): `zircon_app -> zircon_core -> zircon_module/zircon_manager -> zircon_runtime + subsystem modules` 主干、ECS 运行时世界、manager façade、runtime absorption 模块、`LevelManager -> LevelSystem -> World` 分层、VM 插件边界、架构优先设计流程、主流引擎对齐要求和实现红线。
-- [Core Runtime Service Registry](./core-runtime-service-registry.md): `zircon_core::runtime` 的目录化边界，公开导出层、descriptor 子树、`CoreHandle` 行为文件、内部状态层，以及后续继续扩展 service registry 时必须遵守的模块纪律。
+- [Core Runtime Service Registry](./core-runtime-service-registry.md): `zircon_runtime::core::runtime` 的目录化边界，公开导出层、descriptor 子树、`CoreHandle` 行为文件、`PluginFactory + PluginContext` 分流，以及后续继续扩展 service registry 时必须遵守的模块纪律。
 - [Runtime Interface Convergence](./runtime-interface-convergence.md): `EngineEntry`、`EngineModule`、`EngineService`、ECS 语义合同、内建 module owner 收敛、`zircon_runtime::extensions` 对可选扩展注册面的吸收、结构审计 skill，以及当前 `converged/skeleton/needs-refactor` 诊断基线。
 - [Runtime Network Extension](./runtime-network-extension.md): `core::framework::net` 的中性 socket/message-loop 合同、`core::manager` 上的 `NetManager` façade、`extensions::net` 的 `std::net::UdpSocket` loopback MVP，以及 `M2` 网络子系统的最小完成线。
 - [Runtime Sound Extension](./runtime-sound-extension.md): `core::framework::sound` 的最小 clip/playback/mix 合同、asset 管线里的 `.wav -> SoundAsset` 支撑、`core::manager` 上的 `SoundManager` façade，以及 `extensions::sound` 的 `software-mixer` MVP。

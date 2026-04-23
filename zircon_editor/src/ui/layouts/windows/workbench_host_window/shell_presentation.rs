@@ -11,18 +11,11 @@ use crate::ui::widgets::common::{collect_tabs, document_tab_data, host_tab_data,
 pub(crate) struct ShellPresentation {
     pub host_surface_data: HostWindowSurfaceData,
     pub welcome: WelcomePresentation,
-    pub hierarchy_nodes: ModelRc<SceneNodeData>,
     pub project_overview: ProjectOverviewData,
     pub activity: AssetSurfacePresentation,
     pub browser: AssetSurfacePresentation,
     pub host_shell: HostWindowShellData,
     pub status_primary: SharedString,
-    pub delete_enabled: bool,
-    pub inspector_name: SharedString,
-    pub inspector_parent: SharedString,
-    pub inspector_x: SharedString,
-    pub inspector_y: SharedString,
-    pub inspector_z: SharedString,
     pub mesh_import_path: SharedString,
 }
 
@@ -145,18 +138,6 @@ impl ShellPresentation {
                 document_pane: document_pane(model, chrome, ui_asset_panes, animation_panes),
             },
             welcome,
-            hierarchy_nodes: model_rc(
-                chrome
-                    .scene_entries
-                    .iter()
-                    .map(|entry| SceneNodeData {
-                        id: entry.id.to_string().into(),
-                        name: entry.name.clone().into(),
-                        depth: entry.depth as i32,
-                        selected: entry.selected,
-                    })
-                    .collect(),
-            ),
             project_overview: project_overview_data(&chrome.project_overview),
             activity,
             browser,
@@ -191,37 +172,6 @@ impl ShellPresentation {
                 },
             },
             status_primary: chrome.status_line.clone().into(),
-            delete_enabled: chrome.inspector.is_some(),
-            inspector_name: chrome
-                .inspector
-                .as_ref()
-                .map(|inspector| inspector.name.clone())
-                .unwrap_or_default()
-                .into(),
-            inspector_parent: chrome
-                .inspector
-                .as_ref()
-                .map(|inspector| inspector.parent.clone())
-                .unwrap_or_default()
-                .into(),
-            inspector_x: chrome
-                .inspector
-                .as_ref()
-                .map(|inspector| inspector.translation[0].clone())
-                .unwrap_or_default()
-                .into(),
-            inspector_y: chrome
-                .inspector
-                .as_ref()
-                .map(|inspector| inspector.translation[1].clone())
-                .unwrap_or_default()
-                .into(),
-            inspector_z: chrome
-                .inspector
-                .as_ref()
-                .map(|inspector| inspector.translation[2].clone())
-                .unwrap_or_default()
-                .into(),
             mesh_import_path: chrome.mesh_import_path.clone().into(),
         }
     }

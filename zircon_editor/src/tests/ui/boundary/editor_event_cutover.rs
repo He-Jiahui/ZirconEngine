@@ -246,7 +246,9 @@ fn core_editor_event_stops_owning_ui_binding_and_projection_surfaces() {
         "expected ui/binding/core/inspector_field_change.rs to be deleted after cutover"
     );
     assert!(
-        !ui_selection_dispatch_root.join("selection_host_event.rs").exists(),
+        !ui_selection_dispatch_root
+            .join("selection_host_event.rs")
+            .exists(),
         "expected ui/binding_dispatch/selection/selection_host_event.rs to be deleted after cutover"
     );
     for forbidden in [

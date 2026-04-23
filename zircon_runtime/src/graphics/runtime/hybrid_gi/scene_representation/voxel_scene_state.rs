@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use crate::core::framework::render::{
     RenderDirectionalLightSnapshot, RenderPointLightSnapshot, RenderSpotLightSnapshot,
@@ -25,6 +25,7 @@ pub(crate) struct HybridGiVoxelSceneState {
     invalidated_clipmap_ids: Vec<u32>,
     clipmap_descriptors: Vec<HybridGiVoxelClipmapDescriptor>,
     voxel_cells: Vec<HybridGiPrepareVoxelCell>,
+    scene_revision: u32,
 }
 
 impl HybridGiVoxelSceneState {
@@ -35,17 +36,29 @@ impl HybridGiVoxelSceneState {
         directional_lights: &[RenderDirectionalLightSnapshot],
         point_lights: &[RenderPointLightSnapshot],
         spot_lights: &[RenderSpotLightSnapshot],
+        surface_cache_page_contents: &[(u32, u32, u32, u32, [u8; 4], [u8; 4])],
+        dirty_page_ids: &[u32],
         clipmap_budget: usize,
         scene_changed: bool,
     ) {
+        let previous_resident_clipmap_ids = self.resident_clipmap_ids.clone();
+        let previous_dirty_clipmap_ids = self.dirty_clipmap_ids.clone();
+        let previous_invalidated_clipmap_ids = self.invalidated_clipmap_ids.clone();
+        let previous_clipmap_descriptors = self.clipmap_descriptors.clone();
+        let previous_voxel_cells = self.voxel_cells.clone();
         let (resident_clipmap_ids, clipmap_descriptors) =
             build_clipmap_descriptors(cards, clipmap_budget);
-        let voxel_cells = build_voxel_cells(
+        let mut voxel_cells = build_voxel_cells(
             cards,
             directional_lights,
             point_lights,
             spot_lights,
             &clipmap_descriptors,
+        );
+        apply_surface_cache_page_contents_to_voxel_cells(
+            &mut voxel_cells,
+            surface_cache_page_contents,
+            dirty_page_ids,
         );
         let resident_clipmap_set = resident_clipmap_ids
             .iter()
@@ -68,6 +81,27 @@ impl HybridGiVoxelSceneState {
         self.resident_clipmap_ids = resident_clipmap_ids;
         self.clipmap_descriptors = clipmap_descriptors;
         self.voxel_cells = voxel_cells;
+        self.bump_scene_revision_if(
+            scene_changed
+                || self.resident_clipmap_ids != previous_resident_clipmap_ids
+                || self.dirty_clipmap_ids != previous_dirty_clipmap_ids
+                || self.invalidated_clipmap_ids != previous_invalidated_clipmap_ids
+                || self.clipmap_descriptors != previous_clipmap_descriptors
+                || self.voxel_cells != previous_voxel_cells,
+        );
+    }
+
+    pub(crate) fn apply_surface_cache_page_contents(
+        &mut self,
+        surface_cache_page_contents: &[(u32, u32, u32, u32, [u8; 4], [u8; 4])],
+    ) {
+        let previous_voxel_cells = self.voxel_cells.clone();
+        apply_surface_cache_page_contents_to_voxel_cells(
+            &mut self.voxel_cells,
+            surface_cache_page_contents,
+            &[],
+        );
+        self.bump_scene_revision_if(self.voxel_cells != previous_voxel_cells);
     }
 
     pub(crate) fn resident_clipmap_count(&self) -> usize {
@@ -83,13 +117,22 @@ impl HybridGiVoxelSceneState {
         self.dirty_clipmap_ids.len()
     }
 
+    pub(crate) fn dirty_clipmap_ids_snapshot(&self) -> Vec<u32> {
+        self.dirty_clipmap_ids.clone()
+    }
+
     #[cfg(test)]
     pub(crate) fn dirty_clipmap_ids(&self) -> Vec<u32> {
-        self.dirty_clipmap_ids.clone()
+        self.dirty_clipmap_ids_snapshot()
     }
 
     pub(crate) fn invalidated_clipmap_count(&self) -> usize {
         self.invalidated_clipmap_ids.len()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn invalidated_clipmap_ids_snapshot(&self) -> Vec<u32> {
+        self.invalidated_clipmap_ids.clone()
     }
 
     pub(crate) fn clipmap_descriptors_snapshot(&self) -> Vec<(u32, Vec3, f32)> {
@@ -109,9 +152,13 @@ impl HybridGiVoxelSceneState {
         self.voxel_cells.clone()
     }
 
+    pub(crate) fn scene_revision(&self) -> u32 {
+        self.scene_revision
+    }
+
     #[cfg(test)]
     pub(crate) fn invalidated_clipmap_ids(&self) -> Vec<u32> {
-        self.invalidated_clipmap_ids.clone()
+        self.invalidated_clipmap_ids_snapshot()
     }
 
     #[cfg(test)]
@@ -130,6 +177,12 @@ impl HybridGiVoxelSceneState {
                 )
             })
             .collect()
+    }
+
+    fn bump_scene_revision_if(&mut self, changed: bool) {
+        if changed {
+            self.scene_revision = self.scene_revision.wrapping_add(1);
+        }
     }
 }
 
@@ -228,6 +281,63 @@ fn build_voxel_cells(
             })
         })
         .collect()
+}
+
+fn apply_surface_cache_page_contents_to_voxel_cells(
+    voxel_cells: &mut [HybridGiPrepareVoxelCell],
+    surface_cache_page_contents: &[(u32, u32, u32, u32, [u8; 4], [u8; 4])],
+    excluded_page_ids: &[u32],
+) {
+    let excluded_page_ids = excluded_page_ids.iter().copied().collect::<BTreeSet<_>>();
+    let surface_cache_rgb_by_owner_card_id = surface_cache_page_contents
+        .iter()
+        .filter(|(page_id, _, _, _, _, _)| !excluded_page_ids.contains(page_id))
+        .filter_map(
+            |(
+                _page_id,
+                owner_card_id,
+                _atlas_slot_id,
+                _capture_slot_id,
+                atlas_sample_rgba,
+                capture_sample_rgba,
+            )| {
+                let capture_present = capture_sample_rgba[3] > 0;
+                let atlas_present = atlas_sample_rgba[3] > 0;
+                if !capture_present && !atlas_present {
+                    return None;
+                }
+
+                let preferred_sample_rgba = if capture_present {
+                    *capture_sample_rgba
+                } else {
+                    *atlas_sample_rgba
+                };
+
+                Some((
+                    *owner_card_id,
+                    [
+                        preferred_sample_rgba[0],
+                        preferred_sample_rgba[1],
+                        preferred_sample_rgba[2],
+                    ],
+                ))
+            },
+        )
+        .collect::<BTreeMap<_, _>>();
+
+    for cell in voxel_cells {
+        if cell.occupancy_count == 0 || cell.dominant_card_id == 0 {
+            continue;
+        }
+        let Some(surface_cache_rgb) = surface_cache_rgb_by_owner_card_id
+            .get(&cell.dominant_card_id)
+            .copied()
+        else {
+            continue;
+        };
+        cell.radiance_present = true;
+        cell.radiance_rgb = surface_cache_rgb;
+    }
 }
 
 fn card_voxel_radiance_rgb(
@@ -412,4 +522,33 @@ fn scene_bounds(cards: &[HybridGiCardDescriptor]) -> (Vec3, Vec3) {
             )
         },
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn persisted_surface_cache_page_samples_override_voxel_cells_by_owner_card_id_not_page_id() {
+        let mut voxel_cells = vec![HybridGiPrepareVoxelCell {
+            clipmap_id: 0,
+            cell_index: 7,
+            occupancy_count: 1,
+            dominant_card_id: 11,
+            radiance_present: false,
+            radiance_rgb: [0, 0, 0],
+        }];
+
+        apply_surface_cache_page_contents_to_voxel_cells(
+            &mut voxel_cells,
+            &[(21, 11, 0, 0, [10, 20, 30, 255], [40, 50, 60, 255])],
+            &[],
+        );
+
+        assert_eq!(voxel_cells[0].radiance_rgb, [40, 50, 60]);
+        assert!(
+            voxel_cells[0].radiance_present,
+            "expected voxel radiance reuse to match the persisted owner card id even when the persisted page id differs"
+        );
+    }
 }

@@ -3,14 +3,19 @@ use std::sync::Arc;
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::core::framework::render::{
     RenderFrameExtract, RenderSceneSnapshot, RenderVirtualGeometryCluster,
+    RenderVirtualGeometryClusterSelectionInputSource, RenderVirtualGeometryCullInputSnapshot,
     RenderVirtualGeometryDebugState, RenderVirtualGeometryExecutionState,
     RenderVirtualGeometryExtract, RenderVirtualGeometryHardwareRasterizationRecord,
     RenderVirtualGeometryHardwareRasterizationSource, RenderVirtualGeometryInstance,
-    RenderVirtualGeometryPage, RenderVirtualGeometrySelectedCluster,
+    RenderVirtualGeometryNodeAndClusterCullDispatchSetupSnapshot,
+    RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot,
+    RenderVirtualGeometryNodeAndClusterCullInstanceSeed,
+    RenderVirtualGeometryNodeAndClusterCullSource, RenderVirtualGeometryPage,
+    RenderVirtualGeometrySelectedCluster, RenderVirtualGeometrySelectedClusterSource,
     RenderVirtualGeometryVisBuffer64Entry, RenderVirtualGeometryVisBuffer64Source,
     RenderWorldSnapshotHandle,
 };
-use crate::core::math::{Transform, UVec2, Vec3};
+use crate::core::math::{view_matrix, Mat4, Transform, UVec2, Vec3};
 use crate::scene::world::World;
 
 use crate::{
@@ -1038,9 +1043,144 @@ fn virtual_geometry_gpu_readback_exposes_execution_backed_visbuffer64_entries() 
         )
         .unwrap();
 
+    assert_eq!(
+        renderer.read_last_virtual_geometry_cluster_selection_input_source(),
+        RenderVirtualGeometryClusterSelectionInputSource::PrepareOnDemand,
+        "expected a direct prepare-backed frame without stored cluster selections to record on-demand prepare provenance so later Nanite debugging can distinguish this path from mirrored runtime-frame ownership"
+    );
+    let expected_selected_clusters = vec![RenderVirtualGeometrySelectedCluster {
+        instance_index: Some(0),
+        entity: mesh,
+        cluster_id: 30,
+        cluster_ordinal: 1,
+        page_id: 300,
+        lod_level: 0,
+        state: RenderVirtualGeometryExecutionState::Resident,
+    }];
+    assert_eq!(
+        renderer.read_last_virtual_geometry_selected_cluster_source(),
+        RenderVirtualGeometrySelectedClusterSource::RenderPathExecutionSelections,
+        "expected prepare-owned ClusterSelection truth to drive the renderer-owned selected-cluster buffer directly instead of leaving the render path stuck on a clear-only fallback"
+    );
+    assert_eq!(
+        renderer
+            .read_last_virtual_geometry_selected_clusters()
+            .expect("expected renderer-owned selected-cluster readback"),
+        expected_selected_clusters,
+        "expected prepare-owned ClusterSelection truth to populate the renderer-owned selected-cluster buffer without requiring a frame-owned override"
+    );
+    assert_eq!(
+        renderer.read_last_virtual_geometry_hardware_rasterization_source(),
+        RenderVirtualGeometryHardwareRasterizationSource::RenderPathExecutionSelections,
+        "expected prepare-owned ClusterSelection truth to drive the renderer-owned hardware-rasterization startup buffer directly instead of leaving the render path stuck on a clear-only fallback"
+    );
+    assert_eq!(
+        renderer.last_virtual_geometry_hardware_rasterization_record_count(),
+        1,
+        "expected prepare-owned ClusterSelection truth to produce one hardware-rasterization startup record on the renderer-owned pass path"
+    );
+    assert_eq!(
+        renderer
+            .read_last_virtual_geometry_hardware_rasterization_records()
+            .expect("expected renderer-owned hardware-rasterization readback"),
+        vec![RenderVirtualGeometryHardwareRasterizationRecord {
+            instance_index: Some(0),
+            entity: mesh,
+            cluster_id: 30,
+            cluster_ordinal: 1,
+            page_id: 300,
+            lod_level: 0,
+            submission_index: 0,
+            submission_page_id: 300,
+            submission_lod_level: 0,
+            entity_cluster_start_ordinal: 1,
+            entity_cluster_span_count: 1,
+            entity_cluster_total_count: 2,
+            lineage_depth: 0,
+            frontier_rank: 0,
+            resident_slot: Some(0),
+            submission_slot: Some(0),
+            state: RenderVirtualGeometryExecutionState::Resident,
+        }],
+        "expected prepare-owned ClusterSelection truth to populate the renderer-owned hardware-rasterization startup records without waiting for CPU readback reconstruction"
+    );
+    assert_eq!(
+        renderer.read_last_virtual_geometry_visbuffer64_source(),
+        RenderVirtualGeometryVisBuffer64Source::RenderPathExecutionSelections,
+        "expected prepare-owned ClusterSelection truth to drive the renderer-owned VisBuffer64 pass directly instead of leaving the render path stuck on a clear-only fallback"
+    );
+    assert_eq!(
+        renderer
+            .read_last_virtual_geometry_visbuffer64_words()
+            .expect("expected renderer-owned VisBuffer64 readback"),
+        (
+            RenderVirtualGeometryVisBuffer64Entry::CLEAR_VALUE,
+            vec![RenderVirtualGeometryVisBuffer64Entry::packed_value_for(
+                Some(0),
+                30,
+                300,
+                0,
+                RenderVirtualGeometryExecutionState::Resident,
+            )]
+        ),
+        "expected prepare-owned ClusterSelection truth to populate the renderer-owned VisBuffer64 words without requiring a frame-owned override"
+    );
     let helper_visbuffer64 = renderer
         .read_last_virtual_geometry_gpu_readback_visbuffer64()
         .expect("expected non-consuming helper visbuffer64 readback");
+    let helper_visbuffer64_source = renderer
+        .read_last_virtual_geometry_gpu_readback_visbuffer64_source()
+        .expect("expected non-consuming visbuffer64 source readback");
+    let helper_visbuffer64_entry_count = renderer
+        .read_last_virtual_geometry_gpu_readback_visbuffer64_entry_count()
+        .expect("expected non-consuming visbuffer64 entry-count readback");
+    let helper_hardware_rasterization_source = renderer
+        .read_last_virtual_geometry_gpu_readback_hardware_rasterization_source()
+        .expect("expected non-consuming hardware-rasterization source readback");
+    let helper_hardware_rasterization_record_count = renderer
+        .read_last_virtual_geometry_gpu_readback_hardware_rasterization_record_count()
+        .expect("expected non-consuming hardware-rasterization record-count readback");
+    let helper_selected_clusters = renderer
+        .read_last_virtual_geometry_gpu_readback_selected_clusters()
+        .expect("expected non-consuming selected-cluster readback");
+    let helper_selected_cluster_source = renderer
+        .read_last_virtual_geometry_gpu_readback_selected_cluster_source()
+        .expect("expected non-consuming selected-cluster source readback");
+    let helper_selected_cluster_count = renderer
+        .read_last_virtual_geometry_gpu_readback_selected_cluster_count()
+        .expect("expected non-consuming selected-cluster count readback");
+    assert_eq!(
+        helper_hardware_rasterization_source,
+        RenderVirtualGeometryHardwareRasterizationSource::RenderPathExecutionSelections,
+        "expected the uploader readback helper to preserve the actual hardware-rasterization render-path provenance once prepare-owned ClusterSelection truth reaches the render path directly"
+    );
+    assert_eq!(
+        helper_hardware_rasterization_record_count, 1,
+        "expected the uploader readback helper to preserve the actual hardware-rasterization startup record count once prepare-owned ClusterSelection truth reaches the render path directly"
+    );
+    assert_eq!(
+        helper_selected_cluster_source,
+        RenderVirtualGeometrySelectedClusterSource::RenderPathExecutionSelections,
+        "expected the uploader readback helper to preserve the actual selected-cluster render-path provenance once prepare-owned ClusterSelection truth reaches the render path directly"
+    );
+    assert_eq!(
+        helper_selected_cluster_count, 1,
+        "expected the uploader readback helper to preserve the render-path selected-cluster count once prepare-owned ClusterSelection truth reaches the render path directly"
+    );
+    assert_eq!(
+        helper_selected_clusters,
+        expected_selected_clusters,
+        "expected the non-consuming GPU readback helper to mirror the same execution-backed selected-cluster subset as the stored uploader readback"
+    );
+    assert_eq!(
+        helper_visbuffer64_source,
+        RenderVirtualGeometryVisBuffer64Source::RenderPathExecutionSelections,
+        "expected the uploader readback helper to preserve the actual VisBuffer64 render-path provenance once prepare-owned ClusterSelection truth reaches the render path directly"
+    );
+    assert_eq!(
+        helper_visbuffer64_entry_count, 1,
+        "expected the uploader readback helper to preserve the render-path VisBuffer64 entry count once prepare-owned ClusterSelection truth reaches the render path directly"
+    );
     assert_eq!(
         helper_visbuffer64.0,
         RenderVirtualGeometryVisBuffer64Entry::CLEAR_VALUE,
@@ -1070,6 +1210,24 @@ fn virtual_geometry_gpu_readback_exposes_execution_backed_visbuffer64_entries() 
         .take_last_virtual_geometry_gpu_readback()
         .expect("expected virtual geometry GPU readback");
     assert_eq!(
+        renderer.read_last_virtual_geometry_hardware_rasterization_source(),
+        RenderVirtualGeometryHardwareRasterizationSource::RenderPathExecutionSelections,
+        "expected the renderer-owned hardware-rasterization source snapshot to keep the same execution-owned provenance after the uploader DTO is consumed"
+    );
+    assert_eq!(
+        renderer.last_virtual_geometry_hardware_rasterization_record_count(), 1,
+        "expected the renderer-owned hardware-rasterization record count to preserve the same execution-owned startup record count after the uploader DTO is consumed"
+    );
+    assert_eq!(
+        readback.visbuffer64_source,
+        RenderVirtualGeometryVisBuffer64Source::RenderPathExecutionSelections,
+        "expected the stored uploader DTO to preserve the real VisBuffer64 render-path provenance once prepare-owned ClusterSelection truth reaches the render path directly"
+    );
+    assert_eq!(
+        readback.visbuffer64_entry_count, 1,
+        "expected the stored uploader DTO to preserve the real render-path VisBuffer64 entry count once prepare-owned ClusterSelection truth reaches the render path directly"
+    );
+    assert_eq!(
         readback.visbuffer64_clear_value,
         RenderVirtualGeometryVisBuffer64Entry::CLEAR_VALUE,
         "expected GPU readback to expose the same stable logical VisBuffer64 clear value as the renderer-owned snapshot contract"
@@ -1094,6 +1252,28 @@ fn virtual_geometry_gpu_readback_exposes_execution_backed_visbuffer64_entries() 
         }],
         "expected GPU readback to publish the same execution-backed logical VisBuffer64 entry stream as the renderer-owned debug snapshot instead of only page-upload completion data"
     );
+    assert_eq!(
+        readback.selected_clusters,
+        vec![RenderVirtualGeometrySelectedCluster {
+            instance_index: Some(0),
+            entity: mesh,
+            cluster_id: 30,
+            cluster_ordinal: 1,
+            page_id: 300,
+            lod_level: 0,
+            state: RenderVirtualGeometryExecutionState::Resident,
+        }],
+        "expected GPU readback to publish the same execution-backed selected-cluster subset as the renderer-owned snapshot instead of exposing only uploader completion data"
+    );
+    assert_eq!(
+        readback.selected_cluster_source,
+        RenderVirtualGeometrySelectedClusterSource::RenderPathExecutionSelections,
+        "expected the stored uploader DTO to preserve the real selected-cluster render-path provenance once prepare-owned ClusterSelection truth reaches the render path directly"
+    );
+    assert_eq!(
+        readback.selected_cluster_count, 1,
+        "expected the stored uploader DTO to preserve the real render-path selected-cluster count once prepare-owned ClusterSelection truth reaches the render path directly"
+    );
     let visbuffer64_words = renderer
         .read_last_virtual_geometry_visbuffer64_words()
         .expect("expected real VG visbuffer64 buffer words");
@@ -1116,6 +1296,210 @@ fn virtual_geometry_gpu_readback_exposes_execution_backed_visbuffer64_entries() 
 }
 
 #[test]
+fn virtual_geometry_cull_input_buffer_exists_without_snapshot_or_gpu_readback() {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let viewport_size = UVec2::new(96, 64);
+    let world = World::new();
+    let mesh = world
+        .nodes()
+        .iter()
+        .find(|node| node.mesh.is_some())
+        .map(|node| node.id)
+        .expect("default world should contain a renderable mesh");
+    let mut extract = world.to_render_frame_extract();
+    extract.apply_viewport_size(viewport_size);
+    let expected_camera_transform = Transform::from_translation(Vec3::new(3.0, 4.0, 5.0));
+    extract.view.camera.transform = expected_camera_transform;
+    extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
+        cluster_budget: 2,
+        page_budget: 1,
+        clusters: vec![
+            virtual_geometry_cluster(mesh, 20, 200, 1, Vec3::ZERO, 8.0),
+            virtual_geometry_cluster(mesh, 30, 300, 0, Vec3::new(0.1, 0.0, 0.0), 6.0),
+        ],
+        pages: vec![page(200, true), page(300, false)],
+        instances: vec![RenderVirtualGeometryInstance {
+            entity: mesh,
+            source_model: None,
+            transform: Transform::default(),
+            cluster_offset: 0,
+            cluster_count: 2,
+            page_offset: 0,
+            page_count: 2,
+            mesh_name: Some("CullInputBufferUnitTestMesh".to_string()),
+            source_hint: Some("unit-test".to_string()),
+        }],
+        debug: RenderVirtualGeometryDebugState {
+            forced_mip: Some(0),
+            freeze_cull: true,
+            visualize_bvh: true,
+            visualize_visbuffer: true,
+            print_leaf_clusters: false,
+        },
+    });
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(
+            &extract,
+            &RenderPipelineCompileOptions::default()
+                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
+                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
+                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
+                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
+                .with_feature_disabled(BuiltinRenderFeature::Bloom)
+                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
+                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
+                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
+                .with_feature_disabled(BuiltinRenderFeature::Particle)
+                .with_async_compute(false),
+        )
+        .unwrap();
+    let expected_fov_y = extract.view.camera.fov_y_radians;
+    let expected_z_near = extract.view.camera.z_near;
+    let expected_z_far = extract.view.camera.z_far;
+    let expected_camera_translation = expected_camera_transform.translation.to_array();
+    let expected_view_proj = Mat4::perspective_rh(
+        expected_fov_y,
+        viewport_size.x as f32 / viewport_size.y as f32,
+        expected_z_near,
+        expected_z_far,
+    )
+    .mul_mat4(&view_matrix(expected_camera_transform))
+    .to_cols_array_2d();
+
+    renderer
+        .render_frame_with_pipeline(
+            &ViewportRenderFrame::from_extract(extract, viewport_size)
+                .with_virtual_geometry_cluster_selections(Some(vec![
+                    VirtualGeometryClusterSelection {
+                        submission_index: 0,
+                        instance_index: Some(0),
+                        entity: mesh,
+                        cluster_id: 30,
+                        cluster_ordinal: 1,
+                        page_id: 300,
+                        lod_level: 0,
+                        submission_page_id: 300,
+                        submission_lod_level: 0,
+                        entity_cluster_start_ordinal: 1,
+                        entity_cluster_span_count: 1,
+                        entity_cluster_total_count: 2,
+                        lineage_depth: 0,
+                        frontier_rank: 0,
+                        resident_slot: None,
+                        submission_slot: Some(0),
+                        state: VirtualGeometryPrepareClusterState::PendingUpload,
+                    },
+                ])),
+            &compiled,
+            None,
+        )
+        .unwrap();
+
+    assert_eq!(
+        renderer.read_last_virtual_geometry_cluster_selection_input_source(),
+        RenderVirtualGeometryClusterSelectionInputSource::ExplicitFrameOwned,
+        "expected the renderer-owned authority seam to preserve explicit frame-owned ClusterSelection provenance for the cull-input bridge as well"
+    );
+    assert!(
+        renderer.take_last_virtual_geometry_gpu_readback().is_none(),
+        "expected the no-prepare path to skip VG uploader readback so the cull-input buffer cannot be sourced from uploader DTO state"
+    );
+
+    let cull_input = renderer
+        .read_last_virtual_geometry_cull_input_snapshot()
+        .expect("expected cull-input buffer readback to succeed")
+        .expect("expected a real renderer-owned cull-input buffer");
+    assert_eq!(
+        cull_input,
+        RenderVirtualGeometryCullInputSnapshot {
+            cluster_budget: 2,
+            page_budget: 1,
+            instance_count: 1,
+            cluster_count: 2,
+            page_count: 2,
+            visible_entity_count: 1,
+            visible_cluster_count: 2,
+            resident_page_count: 0,
+            pending_page_request_count: 0,
+            available_page_slot_count: 0,
+            evictable_page_count: 0,
+            debug: RenderVirtualGeometryDebugState {
+                forced_mip: Some(0),
+                freeze_cull: true,
+                visualize_bvh: true,
+                visualize_visbuffer: true,
+                print_leaf_clusters: false,
+            },
+            cluster_selection_input_source:
+                RenderVirtualGeometryClusterSelectionInputSource::ExplicitFrameOwned,
+        },
+        "expected the new renderer-owned cull-input buffer to survive without snapshot/readback backfill and decode to the same authored VG budgets/debug/provenance surface that later NodeAndClusterCull/NaniteGlobalStateBuffer work will consume"
+    );
+    assert_eq!(
+        renderer.read_last_virtual_geometry_node_and_cluster_cull_source(),
+        RenderVirtualGeometryNodeAndClusterCullSource::RenderPathCullInput,
+        "expected the first explicit NodeAndClusterCull startup bridge to report render-path cull-input ownership instead of leaving the new cull-input buffer without a consumer-side pass seam"
+    );
+    assert_eq!(
+        renderer.last_virtual_geometry_node_and_cluster_cull_record_count(),
+        1,
+        "expected the first explicit NodeAndClusterCull startup bridge to publish one startup record when a VG cull-input snapshot exists"
+    );
+    let node_and_cluster_cull_input = renderer
+        .read_last_virtual_geometry_node_and_cluster_cull_input_snapshot()
+        .expect("expected node-and-cluster-cull startup buffer readback to succeed")
+        .expect("expected a real renderer-owned node-and-cluster-cull startup buffer");
+    assert_eq!(
+        node_and_cluster_cull_input,
+        cull_input,
+        "expected the first NodeAndClusterCull startup seam to preserve the exact packed cull-input DTO so a later NaniteGlobalStateBuffer / GPU hierarchy traversal can swap producers without changing host-side inspection contracts"
+    );
+    let node_and_cluster_cull_global_state = renderer
+        .read_last_virtual_geometry_node_and_cluster_cull_global_state_snapshot()
+        .expect("expected node-and-cluster-cull global-state readback to succeed")
+        .expect("expected a real renderer-owned node-and-cluster-cull global-state buffer");
+    assert_eq!(
+        node_and_cluster_cull_global_state,
+        RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot {
+            cull_input,
+            viewport_size: [viewport_size.x, viewport_size.y],
+            camera_translation: expected_camera_translation,
+            view_proj: expected_view_proj,
+        },
+        "expected the upgraded NodeAndClusterCull startup seam to preserve viewport size, camera origin, and the same view-projection matrix shape the renderer already uses for scene-uniform setup"
+    );
+    assert_eq!(
+        renderer
+            .read_last_virtual_geometry_node_and_cluster_cull_instance_seeds()
+            .expect("expected node-and-cluster-cull instance-seed readback to succeed"),
+        vec![RenderVirtualGeometryNodeAndClusterCullInstanceSeed {
+            instance_index: 0,
+            entity: mesh,
+            cluster_offset: 0,
+            cluster_count: 2,
+            page_offset: 0,
+            page_count: 2,
+        }],
+        "expected the next NodeAndClusterCull bridge step to consume the typed startup/global-state seam into one per-instance root seed worklist row so later GPU BVH traversal can swap in real VisitNode traversal without changing the renderer-owned seed contract"
+    );
+    assert_eq!(
+        renderer
+            .read_last_virtual_geometry_node_and_cluster_cull_dispatch_setup_snapshot()
+            .expect("expected node-and-cluster-cull dispatch-setup readback to succeed")
+            .expect("expected a real renderer-owned node-and-cluster-cull dispatch-setup buffer"),
+        RenderVirtualGeometryNodeAndClusterCullDispatchSetupSnapshot {
+            instance_seed_count: 1,
+            cluster_budget: 2,
+            page_budget: 1,
+            workgroup_size: 64,
+            dispatch_group_count: [1, 1, 1],
+        },
+        "expected the first explicit NodeAndClusterCull dispatch/setup seam to consume the typed global-state budget inputs and derived root-seed count into a dedicated renderer-owned startup record before any real compute traversal exists"
+    );
+}
+
+#[test]
 fn virtual_geometry_visbuffer64_buffer_exists_without_snapshot_or_gpu_readback() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let mut renderer = SceneRenderer::new(asset_manager).unwrap();
@@ -1129,6 +1513,7 @@ fn virtual_geometry_visbuffer64_buffer_exists_without_snapshot_or_gpu_readback()
         .expect("default world should contain a renderable mesh");
     let mut extract = world.to_render_frame_extract();
     extract.apply_viewport_size(viewport_size);
+    extract.view.camera.transform = Transform::from_translation(Vec3::new(3.0, 4.0, 5.0));
     let compiled = RenderPipelineAsset::default_forward_plus()
         .compile_with_options(
             &extract,
@@ -1175,6 +1560,11 @@ fn virtual_geometry_visbuffer64_buffer_exists_without_snapshot_or_gpu_readback()
         )
         .unwrap();
 
+    assert_eq!(
+        renderer.read_last_virtual_geometry_cluster_selection_input_source(),
+        RenderVirtualGeometryClusterSelectionInputSource::ExplicitFrameOwned,
+        "expected a frame that injects cluster selections directly to preserve explicit override provenance on the renderer-owned last-state surface"
+    );
     assert!(
         renderer.take_last_virtual_geometry_gpu_readback().is_none(),
         "expected the no-prepare path to skip VG uploader readback so the VisBuffer64 buffer cannot come from the CPU readback DTO"
@@ -1184,6 +1574,48 @@ fn virtual_geometry_visbuffer64_buffer_exists_without_snapshot_or_gpu_readback()
             .read_last_virtual_geometry_gpu_readback_visbuffer64()
             .is_none(),
         "expected the no-prepare path to have no uploader readback helper output"
+    );
+    assert!(
+        renderer
+            .read_last_virtual_geometry_gpu_readback_visbuffer64_source()
+            .is_none(),
+        "expected the no-prepare path to have no uploader VisBuffer64 source helper output"
+    );
+    assert!(
+        renderer
+            .read_last_virtual_geometry_gpu_readback_visbuffer64_entry_count()
+            .is_none(),
+        "expected the no-prepare path to have no uploader VisBuffer64 entry-count helper output"
+    );
+    assert!(
+        renderer
+            .read_last_virtual_geometry_gpu_readback_hardware_rasterization_source()
+            .is_none(),
+        "expected the no-prepare path to have no uploader hardware-rasterization source helper output"
+    );
+    assert!(
+        renderer
+            .read_last_virtual_geometry_gpu_readback_hardware_rasterization_record_count()
+            .is_none(),
+        "expected the no-prepare path to have no uploader hardware-rasterization record-count helper output"
+    );
+    assert!(
+        renderer
+            .read_last_virtual_geometry_gpu_readback_selected_clusters()
+            .is_none(),
+        "expected the no-prepare path to have no uploader selected-cluster readback helper output"
+    );
+    assert!(
+        renderer
+            .read_last_virtual_geometry_gpu_readback_selected_cluster_source()
+            .is_none(),
+        "expected the no-prepare path to have no uploader selected-cluster source helper output"
+    );
+    assert!(
+        renderer
+            .read_last_virtual_geometry_gpu_readback_selected_cluster_count()
+            .is_none(),
+        "expected the no-prepare path to have no uploader selected-cluster count helper output"
     );
     assert_eq!(
         renderer.read_last_virtual_geometry_visbuffer64_source(),
@@ -1244,6 +1676,11 @@ fn virtual_geometry_visbuffer64_buffer_exists_without_snapshot_or_gpu_readback()
         .read_last_virtual_geometry_selected_clusters()
         .expect("expected execution-owned selected-cluster records");
     assert_eq!(
+        renderer.read_last_virtual_geometry_selected_cluster_source(),
+        RenderVirtualGeometrySelectedClusterSource::RenderPathExecutionSelections,
+        "expected the renderer-owned selected-cluster buffer to report explicit render-path execution ownership instead of relying on snapshot-only reconstruction"
+    );
+    assert_eq!(
         selected_clusters,
         vec![RenderVirtualGeometrySelectedCluster {
             instance_index: Some(0),
@@ -1294,6 +1731,39 @@ fn virtual_geometry_visbuffer64_clear_only_source_exists_without_cluster_selecti
         "expected the no-prepare clear-only path to skip VG uploader readback"
     );
     assert_eq!(
+        renderer.read_last_virtual_geometry_node_and_cluster_cull_source(),
+        RenderVirtualGeometryNodeAndClusterCullSource::RenderPathCullInput,
+        "expected the NodeAndClusterCull startup seam to keep publishing one global-state cull-input record whenever a VG extract exists, even if downstream selection/raster passes stay clear-only"
+    );
+    assert_eq!(
+        renderer.last_virtual_geometry_node_and_cluster_cull_record_count(),
+        1,
+        "expected the NodeAndClusterCull startup seam to keep one published global-state record even when downstream selection/raster passes emit no clusters"
+    );
+    assert_eq!(
+        renderer
+            .read_last_virtual_geometry_node_and_cluster_cull_input_snapshot()
+            .expect("expected node-and-cluster-cull startup readback to succeed")
+            .expect("expected the node-and-cluster-cull startup seam to publish a real buffer"),
+        RenderVirtualGeometryCullInputSnapshot {
+            cluster_budget: 0,
+            page_budget: 0,
+            instance_count: 0,
+            cluster_count: 0,
+            page_count: 0,
+            visible_entity_count: 0,
+            visible_cluster_count: 0,
+            resident_page_count: 0,
+            pending_page_request_count: 0,
+            available_page_slot_count: 0,
+            evictable_page_count: 0,
+            debug: RenderVirtualGeometryDebugState::default(),
+            cluster_selection_input_source:
+                RenderVirtualGeometryClusterSelectionInputSource::Unavailable,
+        },
+        "expected the NodeAndClusterCull startup seam to preserve the zero-work global-state layout so a later NaniteGlobalStateBuffer consumer can still bind deterministic camera/budget/debug input on empty VG frames"
+    );
+    assert_eq!(
         renderer.read_last_virtual_geometry_visbuffer64_source(),
         RenderVirtualGeometryVisBuffer64Source::RenderPathClearOnly,
         "expected an enabled Virtual Geometry frame with no cluster writes to report an explicit clear-only VisBuffer64 render-path pass instead of collapsing that state into Unavailable"
@@ -1302,6 +1772,11 @@ fn virtual_geometry_visbuffer64_clear_only_source_exists_without_cluster_selecti
         renderer.read_last_virtual_geometry_hardware_rasterization_source(),
         RenderVirtualGeometryHardwareRasterizationSource::RenderPathClearOnly,
         "expected an enabled Virtual Geometry frame with no executed cluster selections to report an explicit clear-only hardware-rasterization pass instead of collapsing that state into Unavailable"
+    );
+    assert_eq!(
+        renderer.read_last_virtual_geometry_selected_cluster_source(),
+        RenderVirtualGeometrySelectedClusterSource::RenderPathClearOnly,
+        "expected an enabled Virtual Geometry frame with no executed cluster selections to report an explicit clear-only selected-cluster pass instead of collapsing that state into Unavailable"
     );
     let visbuffer64_words = renderer
         .read_last_virtual_geometry_visbuffer64_words()

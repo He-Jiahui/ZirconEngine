@@ -36,7 +36,7 @@ pub(super) fn build_runtime_frame(
         .with_hybrid_gi_prepare(prepared.hybrid_gi_prepare.clone())
         .with_hybrid_gi_scene_prepare(prepared.hybrid_gi_scene_prepare.clone())
         .with_hybrid_gi_resolve_runtime(prepared.hybrid_gi_resolve_runtime.clone())
-        .with_virtual_geometry_cluster_selections(
+        .with_prepare_derived_virtual_geometry_cluster_selections(
             prepared
                 .virtual_geometry_prepare
                 .as_ref()

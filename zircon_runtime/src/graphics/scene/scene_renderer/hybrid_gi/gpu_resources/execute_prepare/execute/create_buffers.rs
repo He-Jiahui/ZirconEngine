@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use super::super::super::buffer_helpers::{
     buffer_size_for_words, create_pod_storage_buffer, create_readback_buffer,
@@ -17,8 +17,9 @@ use super::voxel_clipmap_debug::{
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::HybridGiScenePrepareResourcesSnapshot;
 use crate::graphics::types::{
-    hybrid_gi_voxel_clipmap_cell_center, HybridGiPrepareVoxelCell, HybridGiPrepareVoxelClipmap,
-    HYBRID_GI_VOXEL_CLIPMAP_CELL_COUNT, HYBRID_GI_VOXEL_CLIPMAP_CELL_RESOLUTION,
+    hybrid_gi_voxel_clipmap_cell_center, HybridGiPrepareSurfaceCachePageContent,
+    HybridGiPrepareVoxelCell, HybridGiPrepareVoxelClipmap, HYBRID_GI_VOXEL_CLIPMAP_CELL_COUNT,
+    HYBRID_GI_VOXEL_CLIPMAP_CELL_RESOLUTION,
 };
 use bytemuck::{Pod, Zeroable};
 use wgpu::util::DeviceExt;
@@ -99,6 +100,36 @@ fn gpu_scene_card_capture_requests(
         .collect()
 }
 
+fn gpu_scene_persisted_page_card_capture_requests(
+    requests: &[crate::graphics::types::HybridGiPrepareCardCaptureRequest],
+    page_contents: &[HybridGiPrepareSurfaceCachePageContent],
+) -> Vec<GpuSceneCardCaptureRequest> {
+    let requested_page_ids = requests
+        .iter()
+        .map(|request| request.page_id)
+        .collect::<BTreeSet<_>>();
+    page_contents
+        .iter()
+        .filter(|page_content| {
+            !requested_page_ids.contains(&page_content.page_id)
+                && persisted_surface_cache_page_has_present_sample(page_content)
+        })
+        .map(|page_content| GpuSceneCardCaptureRequest {
+            card_id: page_content.owner_card_id,
+            page_id: page_content.page_id,
+            atlas_slot_id: page_content.atlas_slot_id,
+            capture_slot_id: page_content.capture_slot_id,
+            bounds_center_x_q: quantized_signed(page_content.bounds_center.x),
+            bounds_center_y_q: quantized_signed(page_content.bounds_center.y),
+            bounds_center_z_q: quantized_signed(page_content.bounds_center.z),
+            bounds_radius_q: quantized_positive(
+                page_content.bounds_radius,
+                SCENE_CARD_CAPTURE_RADIUS_SCALE,
+            ),
+        })
+        .collect()
+}
+
 fn gpu_scene_voxel_clipmaps(
     clipmaps: &[crate::graphics::types::HybridGiPrepareVoxelClipmap],
 ) -> Vec<GpuSceneVoxelClipmap> {
@@ -138,25 +169,112 @@ fn gpu_scene_card_capture_seed_rgb(
         .collect()
 }
 
+fn gpu_scene_persisted_page_card_capture_seed_rgb(
+    requests: &[crate::graphics::types::HybridGiPrepareCardCaptureRequest],
+    page_contents: &[HybridGiPrepareSurfaceCachePageContent],
+) -> Vec<Option<u32>> {
+    let requested_page_ids = requests
+        .iter()
+        .map(|request| request.page_id)
+        .collect::<BTreeSet<_>>();
+    page_contents
+        .iter()
+        .filter(|page_content| {
+            !requested_page_ids.contains(&page_content.page_id)
+                && persisted_surface_cache_page_has_present_sample(page_content)
+        })
+        .map(persisted_surface_cache_page_seed_rgb)
+        .collect()
+}
+
+fn persisted_surface_cache_page_has_present_sample(
+    page_content: &HybridGiPrepareSurfaceCachePageContent,
+) -> bool {
+    persisted_surface_cache_page_has_present_capture_sample(page_content)
+        || persisted_surface_cache_page_has_present_atlas_sample(page_content)
+}
+
+fn persisted_surface_cache_page_has_present_atlas_sample(
+    page_content: &HybridGiPrepareSurfaceCachePageContent,
+) -> bool {
+    page_content.atlas_sample_rgba[3] > 0
+}
+
+fn persisted_surface_cache_page_has_present_capture_sample(
+    page_content: &HybridGiPrepareSurfaceCachePageContent,
+) -> bool {
+    page_content.capture_sample_rgba[3] > 0
+}
+
+fn persisted_surface_cache_page_seed_rgb(
+    page_content: &HybridGiPrepareSurfaceCachePageContent,
+) -> Option<u32> {
+    if persisted_surface_cache_page_has_present_capture_sample(page_content) {
+        return Some(pack_rgb8([
+            page_content.capture_sample_rgba[0],
+            page_content.capture_sample_rgba[1],
+            page_content.capture_sample_rgba[2],
+        ]));
+    }
+
+    if persisted_surface_cache_page_has_present_atlas_sample(page_content) {
+        return Some(pack_rgb8([
+            page_content.atlas_sample_rgba[0],
+            page_content.atlas_sample_rgba[1],
+            page_content.atlas_sample_rgba[2],
+        ]));
+    }
+
+    None
+}
+
 fn gpu_scene_prepare_descriptors(
     card_capture_requests: &[crate::graphics::types::HybridGiPrepareCardCaptureRequest],
+    surface_cache_page_contents: &[HybridGiPrepareSurfaceCachePageContent],
     card_capture_seed_rgb: &[Option<u32>],
+    persisted_page_seed_rgb: &[Option<u32>],
     voxel_clipmaps: &[crate::graphics::types::HybridGiPrepareVoxelClipmap],
     voxel_cells: &[crate::graphics::types::HybridGiPrepareVoxelCell],
 ) -> Vec<GpuScenePrepareDescriptor> {
     let staged_card_capture_requests = gpu_scene_card_capture_requests(card_capture_requests);
+    let staged_persisted_page_requests = gpu_scene_persisted_page_card_capture_requests(
+        card_capture_requests,
+        surface_cache_page_contents,
+    );
     let staged_voxel_clipmaps = gpu_scene_voxel_clipmaps(voxel_clipmaps);
     let clipmaps_by_id = voxel_clipmaps
         .iter()
         .map(|clipmap| (clipmap.clipmap_id, clipmap))
         .collect::<BTreeMap<_, _>>();
     let mut descriptors = Vec::with_capacity(
-        staged_card_capture_requests.len() + staged_voxel_clipmaps.len() + voxel_cells.len(),
+        staged_card_capture_requests.len()
+            + staged_persisted_page_requests.len()
+            + staged_voxel_clipmaps.len()
+            + voxel_cells.len(),
     );
 
     descriptors.extend(staged_card_capture_requests.into_iter().enumerate().map(
         |(index, request)| {
             let packed_seed_rgb = card_capture_seed_rgb.get(index).copied().flatten();
+            GpuScenePrepareDescriptor {
+                descriptor_kind: SCENE_PREPARE_DESCRIPTOR_KIND_CARD_CAPTURE,
+                primary_id: request.card_id,
+                secondary_id: request.page_id,
+                tertiary_id: request.atlas_slot_id,
+                quaternary_id: request.capture_slot_id,
+                scalar0: request.bounds_center_x_q,
+                scalar1: request.bounds_center_y_q,
+                scalar2: request.bounds_center_z_q,
+                scalar3: request.bounds_radius_q,
+                _padding0: packed_seed_rgb.unwrap_or(0),
+                _padding1: u32::from(packed_seed_rgb.is_some()),
+                _padding2: 0,
+            }
+        },
+    ));
+    descriptors.extend(staged_persisted_page_requests.into_iter().enumerate().map(
+        |(index, request)| {
+            let packed_seed_rgb = persisted_page_seed_rgb.get(index).copied().flatten();
             GpuScenePrepareDescriptor {
                 descriptor_kind: SCENE_PREPARE_DESCRIPTOR_KIND_CARD_CAPTURE,
                 primary_id: request.card_id,
@@ -232,6 +350,21 @@ fn occupied_slots(
     projection: impl Fn(&crate::graphics::types::HybridGiPrepareCardCaptureRequest) -> u32,
 ) -> Vec<u32> {
     let mut slots = requests.iter().map(projection).collect::<Vec<_>>();
+    slots.sort_unstable();
+    slots.dedup();
+    slots
+}
+
+fn occupied_surface_cache_page_slots(
+    page_contents: &[crate::graphics::types::HybridGiPrepareSurfaceCachePageContent],
+    presence: impl Fn(&crate::graphics::types::HybridGiPrepareSurfaceCachePageContent) -> bool,
+    projection: impl Fn(&crate::graphics::types::HybridGiPrepareSurfaceCachePageContent) -> u32,
+) -> Vec<u32> {
+    let mut slots = page_contents
+        .iter()
+        .filter(|page_content| presence(page_content))
+        .map(projection)
+        .collect::<Vec<_>>();
     slots.sort_unstable();
     slots.dedup();
     slots
@@ -374,6 +507,19 @@ fn atlas_texture_rgba(
             * snapshot.atlas_texture_extent.1
             * CARD_CAPTURE_BYTES_PER_PIXEL) as usize
     ];
+    for page_content in inputs
+        .scene_surface_cache_page_contents
+        .iter()
+        .filter(|page_content| persisted_surface_cache_page_has_present_atlas_sample(page_content))
+    {
+        fill_rgba_rect(
+            &mut pixels,
+            snapshot.atlas_texture_extent.0,
+            atlas_slot_origin(page_content.atlas_slot_id),
+            (CARD_CAPTURE_TILE_EXTENT, CARD_CAPTURE_TILE_EXTENT),
+            page_content.atlas_sample_rgba,
+        );
+    }
     for request in &inputs.scene_card_capture_requests {
         fill_rgba_rect(
             &mut pixels,
@@ -398,6 +544,20 @@ fn capture_texture_rgba(
             * snapshot.capture_layer_count
             * CARD_CAPTURE_BYTES_PER_PIXEL) as usize
     ];
+    for page_content in inputs
+        .scene_surface_cache_page_contents
+        .iter()
+        .filter(|page_content| {
+            persisted_surface_cache_page_has_present_capture_sample(page_content)
+        })
+    {
+        fill_rgba_layer(
+            &mut pixels,
+            snapshot.capture_texture_extent,
+            page_content.capture_slot_id,
+            page_content.capture_sample_rgba,
+        );
+    }
     for request in &inputs.scene_card_capture_requests {
         fill_rgba_layer(
             &mut pixels,
@@ -414,16 +574,18 @@ fn atlas_slot_rgba_samples(
     streamer: &ResourceStreamer,
     inputs: &HybridGiPrepareExecutionInputs,
 ) -> Vec<(u32, [u8; 4])> {
-    let rgba_by_slot = inputs
-        .scene_card_capture_requests
+    let mut rgba_by_slot = inputs
+        .scene_surface_cache_page_contents
         .iter()
-        .map(|request| {
-            (
-                request.atlas_slot_id,
-                scene_card_capture_rgba(request, streamer, inputs),
-            )
-        })
+        .filter(|page_content| persisted_surface_cache_page_has_present_atlas_sample(page_content))
+        .map(|page_content| (page_content.atlas_slot_id, page_content.atlas_sample_rgba))
         .collect::<BTreeMap<_, _>>();
+    rgba_by_slot.extend(inputs.scene_card_capture_requests.iter().map(|request| {
+        (
+            request.atlas_slot_id,
+            scene_card_capture_rgba(request, streamer, inputs),
+        )
+    }));
 
     snapshot
         .occupied_atlas_slots
@@ -442,16 +604,25 @@ fn capture_slot_rgba_samples(
     streamer: &ResourceStreamer,
     inputs: &HybridGiPrepareExecutionInputs,
 ) -> Vec<(u32, [u8; 4])> {
-    let rgba_by_slot = inputs
-        .scene_card_capture_requests
+    let mut rgba_by_slot = inputs
+        .scene_surface_cache_page_contents
         .iter()
-        .map(|request| {
+        .filter(|page_content| {
+            persisted_surface_cache_page_has_present_capture_sample(page_content)
+        })
+        .map(|page_content| {
             (
-                request.capture_slot_id,
-                scene_card_capture_rgba(request, streamer, inputs),
+                page_content.capture_slot_id,
+                page_content.capture_sample_rgba,
             )
         })
         .collect::<BTreeMap<_, _>>();
+    rgba_by_slot.extend(inputs.scene_card_capture_requests.iter().map(|request| {
+        (
+            request.capture_slot_id,
+            scene_card_capture_rgba(request, streamer, inputs),
+        )
+    }));
 
     snapshot
         .occupied_capture_slots
@@ -671,16 +842,41 @@ fn scene_prepare_resources(
     streamer: &ResourceStreamer,
     inputs: &HybridGiPrepareExecutionInputs,
 ) -> Option<HybridGiPrepareScenePrepareResources> {
-    if inputs.scene_card_capture_requests.is_empty() && inputs.scene_voxel_clipmaps.is_empty() {
+    let has_present_surface_cache_page_content = inputs
+        .scene_surface_cache_page_contents
+        .iter()
+        .any(persisted_surface_cache_page_has_present_sample);
+    if inputs.scene_card_capture_requests.is_empty()
+        && !has_present_surface_cache_page_content
+        && inputs.scene_voxel_clipmaps.is_empty()
+    {
         return None;
     }
 
     let occupied_atlas_slots = occupied_slots(&inputs.scene_card_capture_requests, |request| {
         request.atlas_slot_id
-    });
+    })
+    .into_iter()
+    .chain(occupied_surface_cache_page_slots(
+        &inputs.scene_surface_cache_page_contents,
+        persisted_surface_cache_page_has_present_atlas_sample,
+        |page_content| page_content.atlas_slot_id,
+    ))
+    .collect::<BTreeSet<_>>()
+    .into_iter()
+    .collect::<Vec<_>>();
     let occupied_capture_slots = occupied_slots(&inputs.scene_card_capture_requests, |request| {
         request.capture_slot_id
-    });
+    })
+    .into_iter()
+    .chain(occupied_surface_cache_page_slots(
+        &inputs.scene_surface_cache_page_contents,
+        persisted_surface_cache_page_has_present_capture_sample,
+        |page_content| page_content.capture_slot_id,
+    ))
+    .collect::<BTreeSet<_>>()
+    .into_iter()
+    .collect::<Vec<_>>();
     let atlas_slot_count = slot_count(&occupied_atlas_slots);
     let capture_slot_count = slot_count(&occupied_capture_slots);
     let mut snapshot = HybridGiScenePrepareResourcesSnapshot {
@@ -790,114 +986,104 @@ fn scene_prepare_resources(
         .collect();
     snapshot.atlas_slot_rgba_samples = atlas_slot_rgba_samples(&snapshot, streamer, inputs);
     snapshot.capture_slot_rgba_samples = capture_slot_rgba_samples(&snapshot, streamer, inputs);
-    let (
-        atlas_texture,
-        atlas_view,
-        atlas_upload_buffer,
-        atlas_slot_sample_buffers,
-        capture_texture,
-        capture_views,
-        capture_upload_buffer,
-        capture_slot_sample_buffers,
-    ) = if snapshot.card_capture_request_count > 0 {
-        let atlas_rgba = atlas_texture_rgba(&snapshot, streamer, inputs);
-        let capture_rgba = capture_texture_rgba(&snapshot, streamer, inputs);
-        let (atlas_texture, atlas_view) =
-            create_card_capture_atlas_texture(device, snapshot.atlas_texture_extent);
-        let atlas_upload_buffer = create_texture_upload_buffer(
-            device,
-            "zircon-hybrid-gi-scene-prepare-card-capture-atlas-upload",
-            &atlas_rgba,
-        );
-        upload_texture_rgba(
-            encoder,
-            &atlas_upload_buffer,
-            snapshot.atlas_texture_extent,
-            1,
-            &atlas_texture,
-        );
-        let atlas_slot_sample_buffers = snapshot
-            .occupied_atlas_slots
-            .iter()
-            .map(|slot_id| {
-                let buffer = create_texture_sample_readback_buffer(
-                    device,
-                    "zircon-hybrid-gi-scene-prepare-card-capture-atlas-sample",
-                );
-                let (origin_x, origin_y) = atlas_slot_origin(*slot_id);
-                enqueue_texture_sample_readback(
-                    encoder,
-                    &atlas_texture,
-                    wgpu::Origin3d {
-                        x: origin_x,
-                        y: origin_y,
-                        z: 0,
-                    },
-                    &buffer,
-                );
-                (*slot_id, buffer)
-            })
-            .collect();
-        let (capture_texture, capture_views) = create_card_capture_texture(
-            device,
-            snapshot.capture_texture_extent,
-            snapshot.capture_layer_count,
-        );
-        let capture_upload_buffer = create_texture_upload_buffer(
-            device,
-            "zircon-hybrid-gi-scene-prepare-card-capture-texture-upload",
-            &capture_rgba,
-        );
-        upload_texture_rgba(
-            encoder,
-            &capture_upload_buffer,
-            snapshot.capture_texture_extent,
-            snapshot.capture_layer_count,
-            &capture_texture,
-        );
-        let capture_slot_sample_buffers = snapshot
-            .occupied_capture_slots
-            .iter()
-            .map(|slot_id| {
-                let buffer = create_texture_sample_readback_buffer(
-                    device,
-                    "zircon-hybrid-gi-scene-prepare-card-capture-layer-sample",
-                );
-                enqueue_texture_sample_readback(
-                    encoder,
-                    &capture_texture,
-                    wgpu::Origin3d {
-                        x: 0,
-                        y: 0,
-                        z: *slot_id,
-                    },
-                    &buffer,
-                );
-                (*slot_id, buffer)
-            })
-            .collect();
-        (
-            Some(atlas_texture),
-            Some(atlas_view),
-            Some(atlas_upload_buffer),
-            atlas_slot_sample_buffers,
-            Some(capture_texture),
-            capture_views,
-            Some(capture_upload_buffer),
-            capture_slot_sample_buffers,
-        )
-    } else {
-        (
-            None,
-            None,
-            None,
-            Vec::new(),
-            None,
-            Vec::new(),
-            None,
-            Vec::new(),
-        )
-    };
+    let (atlas_texture, atlas_view, atlas_upload_buffer, atlas_slot_sample_buffers) =
+        if snapshot.atlas_slot_count > 0 {
+            let atlas_rgba = atlas_texture_rgba(&snapshot, streamer, inputs);
+            let (atlas_texture, atlas_view) =
+                create_card_capture_atlas_texture(device, snapshot.atlas_texture_extent);
+            let atlas_upload_buffer = create_texture_upload_buffer(
+                device,
+                "zircon-hybrid-gi-scene-prepare-card-capture-atlas-upload",
+                &atlas_rgba,
+            );
+            upload_texture_rgba(
+                encoder,
+                &atlas_upload_buffer,
+                snapshot.atlas_texture_extent,
+                1,
+                &atlas_texture,
+            );
+            let atlas_slot_sample_buffers = snapshot
+                .occupied_atlas_slots
+                .iter()
+                .map(|slot_id| {
+                    let buffer = create_texture_sample_readback_buffer(
+                        device,
+                        "zircon-hybrid-gi-scene-prepare-card-capture-atlas-sample",
+                    );
+                    let (origin_x, origin_y) = atlas_slot_origin(*slot_id);
+                    enqueue_texture_sample_readback(
+                        encoder,
+                        &atlas_texture,
+                        wgpu::Origin3d {
+                            x: origin_x,
+                            y: origin_y,
+                            z: 0,
+                        },
+                        &buffer,
+                    );
+                    (*slot_id, buffer)
+                })
+                .collect();
+            (
+                Some(atlas_texture),
+                Some(atlas_view),
+                Some(atlas_upload_buffer),
+                atlas_slot_sample_buffers,
+            )
+        } else {
+            (None, None, None, Vec::new())
+        };
+    let (capture_texture, capture_views, capture_upload_buffer, capture_slot_sample_buffers) =
+        if snapshot.capture_slot_count > 0 {
+            let capture_rgba = capture_texture_rgba(&snapshot, streamer, inputs);
+            let (capture_texture, capture_views) = create_card_capture_texture(
+                device,
+                snapshot.capture_texture_extent,
+                snapshot.capture_layer_count,
+            );
+            let capture_upload_buffer = create_texture_upload_buffer(
+                device,
+                "zircon-hybrid-gi-scene-prepare-card-capture-texture-upload",
+                &capture_rgba,
+            );
+            upload_texture_rgba(
+                encoder,
+                &capture_upload_buffer,
+                snapshot.capture_texture_extent,
+                snapshot.capture_layer_count,
+                &capture_texture,
+            );
+            let capture_slot_sample_buffers = snapshot
+                .occupied_capture_slots
+                .iter()
+                .map(|slot_id| {
+                    let buffer = create_texture_sample_readback_buffer(
+                        device,
+                        "zircon-hybrid-gi-scene-prepare-card-capture-layer-sample",
+                    );
+                    enqueue_texture_sample_readback(
+                        encoder,
+                        &capture_texture,
+                        wgpu::Origin3d {
+                            x: 0,
+                            y: 0,
+                            z: *slot_id,
+                        },
+                        &buffer,
+                    );
+                    (*slot_id, buffer)
+                })
+                .collect();
+            (
+                Some(capture_texture),
+                capture_views,
+                Some(capture_upload_buffer),
+                capture_slot_sample_buffers,
+            )
+        } else {
+            (None, Vec::new(), None, Vec::new())
+        };
 
     Some(HybridGiPrepareScenePrepareResources {
         snapshot,
@@ -920,9 +1106,15 @@ pub(super) fn create_buffers(
 ) -> HybridGiPrepareExecutionBuffers {
     let scene_card_capture_seed_rgb =
         gpu_scene_card_capture_seed_rgb(&inputs.scene_card_capture_requests, streamer, inputs);
+    let persisted_page_seed_rgb = gpu_scene_persisted_page_card_capture_seed_rgb(
+        &inputs.scene_card_capture_requests,
+        &inputs.scene_surface_cache_page_contents,
+    );
     let scene_prepare_descriptors = gpu_scene_prepare_descriptors(
         &inputs.scene_card_capture_requests,
+        &inputs.scene_surface_cache_page_contents,
         &scene_card_capture_seed_rgb,
+        &persisted_page_seed_rgb,
         &inputs.scene_voxel_clipmaps,
         &inputs.scene_voxel_cells,
     );
@@ -1037,7 +1229,8 @@ pub(super) fn create_buffers(
 mod tests {
     use crate::core::math::Vec3;
     use crate::graphics::types::{
-        HybridGiPrepareCardCaptureRequest, HybridGiPrepareVoxelCell, HybridGiPrepareVoxelClipmap,
+        HybridGiPrepareCardCaptureRequest, HybridGiPrepareSurfaceCachePageContent,
+        HybridGiPrepareVoxelCell, HybridGiPrepareVoxelClipmap,
     };
 
     use super::*;
@@ -1094,6 +1287,8 @@ mod tests {
         let descriptors = gpu_scene_prepare_descriptors(
             &[],
             &[],
+            &[],
+            &[],
             &clipmaps,
             &[HybridGiPrepareVoxelCell {
                 clipmap_id: 7,
@@ -1136,8 +1331,14 @@ mod tests {
             bounds_radius: 1.5,
         }];
 
-        let descriptors =
-            gpu_scene_prepare_descriptors(&requests, &[Some(pack_rgb8([32, 64, 96]))], &[], &[]);
+        let descriptors = gpu_scene_prepare_descriptors(
+            &requests,
+            &[],
+            &[Some(pack_rgb8([32, 64, 96]))],
+            &[],
+            &[],
+            &[],
+        );
 
         assert_eq!(descriptors.len(), 1);
         assert_eq!(
@@ -1170,7 +1371,7 @@ mod tests {
             bounds_radius: 1.5,
         }];
 
-        let descriptors = gpu_scene_prepare_descriptors(&requests, &[Some(0)], &[], &[]);
+        let descriptors = gpu_scene_prepare_descriptors(&requests, &[], &[Some(0)], &[], &[], &[]);
 
         assert_eq!(descriptors.len(), 1);
         assert_eq!(descriptors[0]._padding0, 0);
@@ -1190,6 +1391,8 @@ mod tests {
         let descriptors = gpu_scene_prepare_descriptors(
             &[],
             &[],
+            &[],
+            &[],
             &clipmaps,
             &[HybridGiPrepareVoxelCell {
                 clipmap_id: 7,
@@ -1206,6 +1409,95 @@ mod tests {
         assert_eq!(
             descriptors[1]._padding1, 1,
             "explicit black runtime voxel radiance must stay distinguishable from missing voxel radiance authority"
+        );
+    }
+
+    #[test]
+    fn gpu_scene_prepare_descriptors_include_clean_frame_persisted_surface_cache_pages() {
+        let descriptors = gpu_scene_prepare_descriptors(
+            &[],
+            &[HybridGiPrepareSurfaceCachePageContent {
+                page_id: 22,
+                owner_card_id: 7,
+                atlas_slot_id: 3,
+                capture_slot_id: 4,
+                bounds_center: Vec3::new(1.25, -2.5, 3.75),
+                bounds_radius: 1.5,
+                atlas_sample_rgba: [10, 20, 30, 255],
+                capture_sample_rgba: [40, 50, 60, 255],
+            }],
+            &[],
+            &[Some(pack_rgb8([40, 50, 60]))],
+            &[],
+            &[],
+        );
+
+        assert_eq!(descriptors.len(), 1);
+        assert_eq!(
+            descriptors[0],
+            GpuScenePrepareDescriptor {
+                descriptor_kind: SCENE_PREPARE_DESCRIPTOR_KIND_CARD_CAPTURE,
+                primary_id: 7,
+                secondary_id: 22,
+                tertiary_id: 3,
+                quaternary_id: 4,
+                scalar0: 2128,
+                scalar1: 1888,
+                scalar2: 2288,
+                scalar3: 96,
+                _padding0: pack_rgb8([40, 50, 60]),
+                _padding1: 1,
+                _padding2: 0,
+            }
+        );
+    }
+
+    #[test]
+    fn gpu_scene_prepare_descriptors_skip_absent_clean_frame_persisted_surface_cache_pages() {
+        let descriptors = gpu_scene_prepare_descriptors(
+            &[],
+            &[HybridGiPrepareSurfaceCachePageContent {
+                page_id: 22,
+                owner_card_id: 22,
+                atlas_slot_id: 3,
+                capture_slot_id: 4,
+                bounds_center: Vec3::new(1.25, -2.5, 3.75),
+                bounds_radius: 1.5,
+                atlas_sample_rgba: [0, 0, 0, 0],
+                capture_sample_rgba: [0, 0, 0, 0],
+            }],
+            &[],
+            &[None],
+            &[],
+            &[],
+        );
+
+        assert!(
+            descriptors.is_empty(),
+            "expected absent persisted surface-cache page samples to skip synthetic card-descriptor staging instead of creating false black GPU authority"
+        );
+    }
+
+    #[test]
+    fn gpu_scene_persisted_page_card_capture_seed_rgb_uses_atlas_when_capture_sample_is_absent() {
+        let packed = gpu_scene_persisted_page_card_capture_seed_rgb(
+            &[],
+            &[HybridGiPrepareSurfaceCachePageContent {
+                page_id: 22,
+                owner_card_id: 22,
+                atlas_slot_id: 3,
+                capture_slot_id: 4,
+                bounds_center: Vec3::new(1.25, -2.5, 3.75),
+                bounds_radius: 1.5,
+                atlas_sample_rgba: [10, 20, 30, 255],
+                capture_sample_rgba: [0, 0, 0, 0],
+            }],
+        );
+
+        assert_eq!(
+            packed,
+            vec![Some(pack_rgb8([10, 20, 30]))],
+            "expected atlas sample RGB to seed the persisted page descriptor when capture sample is absent"
         );
     }
 }

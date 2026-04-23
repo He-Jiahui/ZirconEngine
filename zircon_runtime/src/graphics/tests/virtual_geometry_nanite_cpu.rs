@@ -6,11 +6,13 @@ use crate::asset::{
 };
 use crate::core::framework::render::RenderCapabilitySummary;
 use crate::core::framework::render::RenderMeshSnapshot;
+use crate::core::framework::render::RenderVirtualGeometryDebugState;
 use crate::core::framework::render::RenderVirtualGeometryExtract;
 use crate::core::math::{Transform, Vec3};
 use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
 use crate::graphics::runtime::{
     build_virtual_geometry_automatic_extract, build_virtual_geometry_automatic_extract_from_meshes,
+    build_virtual_geometry_automatic_extract_from_meshes_with_debug,
     resolve_virtual_geometry_extract, VirtualGeometryAutomaticExtractInstance,
     VirtualGeometryCpuReferenceConfig, VirtualGeometryCpuReferenceFrame,
     VirtualGeometryDebugConfig, VirtualGeometryExecutionMode,
@@ -80,6 +82,7 @@ fn virtual_geometry_nanite_cpu_reference_traverses_hierarchy_maps_pages_and_filt
             .leaf_clusters
             .iter()
             .map(|cluster| (
+                cluster.cluster_ordinal,
                 cluster.cluster_id,
                 cluster.page_id,
                 cluster.mip_level,
@@ -87,18 +90,18 @@ fn virtual_geometry_nanite_cpu_reference_traverses_hierarchy_maps_pages_and_filt
             ))
             .collect::<Vec<_>>(),
         vec![
-            (100, 10, 10, true),
-            (200, 20, 9, false),
-            (300, 30, 10, true)
+            (0, 100, 10, 10, true),
+            (1, 200, 20, 9, false),
+            (2, 300, 30, 10, true)
         ]
     );
     assert_eq!(
         frame
             .selected_clusters
             .iter()
-            .map(|cluster| cluster.cluster_id)
+            .map(|cluster| (cluster.cluster_ordinal, cluster.cluster_id))
             .collect::<Vec<_>>(),
-        vec![100, 300]
+        vec![(0, 100), (2, 300)]
     );
     assert_eq!(frame.page_cluster_map.get(&10).cloned(), Some(vec![100]));
     assert_eq!(frame.page_cluster_map.get(&20).cloned(), Some(vec![200]));
@@ -342,6 +345,669 @@ fn virtual_geometry_nanite_mesh_based_automatic_extract_only_collects_cooked_mod
     assert_eq!(extract.instances[0].page_count, 3);
     assert_eq!(output.cpu_reference_instances.len(), 1);
     assert_eq!(output.cpu_reference_instances[0].entity, 5);
+}
+
+#[test]
+fn virtual_geometry_nanite_mesh_based_automatic_extract_with_debug_keeps_extract_debug_in_sync() {
+    let cooked_model_id = ResourceId::from_stable_label("res://models/cooked.model.toml");
+    let debug = crate::core::framework::render::RenderVirtualGeometryDebugState {
+        forced_mip: Some(10),
+        visualize_bvh: true,
+        print_leaf_clusters: true,
+        ..Default::default()
+    };
+    let output = build_virtual_geometry_automatic_extract_from_meshes_with_debug(
+        &[RenderMeshSnapshot {
+            node_id: 5,
+            transform: Transform::default(),
+            model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
+            material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
+                "res://materials/cooked.material.toml",
+            )),
+            tint: Default::default(),
+            mobility: Mobility::Dynamic,
+            render_layer_mask: 1,
+        }],
+        debug,
+        |model_id| match model_id {
+            id if id == cooked_model_id => Some(ModelAsset {
+                uri: AssetUri::parse("res://models/cooked.model.toml").unwrap(),
+                primitives: vec![ModelPrimitiveAsset {
+                    vertices: Vec::new(),
+                    indices: Vec::new(),
+                    virtual_geometry: Some(sample_virtual_geometry_asset()),
+                }],
+            }),
+            _ => None,
+        },
+    )
+    .expect("cooked model should synthesize automatic extract");
+
+    assert_eq!(
+        output.extract.debug, debug,
+        "expected the automatic extract helper to keep its public extract debug state aligned with the debug config that already drives CPU-reference and BVH synthesis"
+    );
+}
+
+#[test]
+fn virtual_geometry_nanite_cpu_reference_instances_expose_clusters_grouped_by_bvh_depth() {
+    let cooked_model_id = ResourceId::from_stable_label("res://models/cooked.model.toml");
+    let output = build_virtual_geometry_automatic_extract_from_meshes(
+        &[RenderMeshSnapshot {
+            node_id: 5,
+            transform: Transform::default(),
+            model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
+            material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
+                "res://materials/cooked.material.toml",
+            )),
+            tint: Default::default(),
+            mobility: Mobility::Dynamic,
+            render_layer_mask: 1,
+        }],
+        |model_id| match model_id {
+            id if id == cooked_model_id => Some(ModelAsset {
+                uri: AssetUri::parse("res://models/cooked.model.toml").unwrap(),
+                primitives: vec![ModelPrimitiveAsset {
+                    vertices: Vec::new(),
+                    indices: Vec::new(),
+                    virtual_geometry: Some(sample_virtual_geometry_asset()),
+                }],
+            }),
+            _ => None,
+        },
+    )
+    .expect("cooked model should synthesize automatic extract");
+
+    assert_eq!(
+        output.cpu_reference_instances[0]
+            .depth_cluster_map
+            .iter()
+            .map(|entry| (entry.depth, entry.cluster_ids.clone()))
+            .collect::<Vec<_>>(),
+        vec![(1, vec![100, 200, 300])],
+        "expected the CPU-reference inspection surface to expose cluster ids grouped by BVH depth so the host can dump per-layer Nanite cluster traversal directly"
+    );
+}
+
+#[test]
+fn virtual_geometry_nanite_cpu_reference_instances_expose_leaf_clusters_grouped_by_mip() {
+    let cooked_model_id = ResourceId::from_stable_label("res://models/cooked.model.toml");
+    let output = build_virtual_geometry_automatic_extract_from_meshes(
+        &[RenderMeshSnapshot {
+            node_id: 5,
+            transform: Transform::default(),
+            model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
+            material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
+                "res://materials/cooked.material.toml",
+            )),
+            tint: Default::default(),
+            mobility: Mobility::Dynamic,
+            render_layer_mask: 1,
+        }],
+        |model_id| match model_id {
+            id if id == cooked_model_id => Some(ModelAsset {
+                uri: AssetUri::parse("res://models/cooked.model.toml").unwrap(),
+                primitives: vec![ModelPrimitiveAsset {
+                    vertices: Vec::new(),
+                    indices: Vec::new(),
+                    virtual_geometry: Some(sample_virtual_geometry_asset()),
+                }],
+            }),
+            _ => None,
+        },
+    )
+    .expect("cooked model should synthesize automatic extract");
+
+    assert_eq!(
+        output.cpu_reference_instances[0]
+            .mip_cluster_map
+            .iter()
+            .map(|entry| (entry.mip_level, entry.cluster_ids.clone()))
+            .collect::<Vec<_>>(),
+        vec![(9, vec![200]), (10, vec![100, 300])],
+        "expected the CPU-reference inspection surface to expose leaf clusters grouped by mip level so the host can print full mip distributions and filter Mip=10 directly"
+    );
+}
+
+#[test]
+fn virtual_geometry_nanite_cpu_reference_instances_expose_selected_clusters_as_worklist() {
+    let cooked_model_id = ResourceId::from_stable_label("res://models/cooked.model.toml");
+    let output = build_virtual_geometry_automatic_extract_from_meshes_with_debug(
+        &[RenderMeshSnapshot {
+            node_id: 5,
+            transform: Transform::default(),
+            model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
+            material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
+                "res://materials/cooked.material.toml",
+            )),
+            tint: Default::default(),
+            mobility: Mobility::Dynamic,
+            render_layer_mask: 1,
+        }],
+        RenderVirtualGeometryDebugState {
+            forced_mip: Some(10),
+            print_leaf_clusters: true,
+            ..Default::default()
+        },
+        |model_id| match model_id {
+            id if id == cooked_model_id => Some(ModelAsset {
+                uri: AssetUri::parse("res://models/cooked.model.toml").unwrap(),
+                primitives: vec![ModelPrimitiveAsset {
+                    vertices: Vec::new(),
+                    indices: Vec::new(),
+                    virtual_geometry: Some(sample_virtual_geometry_asset()),
+                }],
+            }),
+            _ => None,
+        },
+    )
+    .expect("cooked model should synthesize automatic extract");
+
+    assert_eq!(
+        output.cpu_reference_instances[0]
+            .selected_clusters
+            .iter()
+            .map(|cluster| (
+                cluster.cluster_ordinal,
+                cluster.cluster_id,
+                cluster.page_id,
+                cluster.mip_level,
+                cluster.loaded
+            ))
+            .collect::<Vec<_>>(),
+        vec![(0, 100, 10, 10, true), (2, 300, 30, 10, true)],
+        "expected the CPU-reference inspection surface to expose the post-selection worklist directly so host tools can consume Nanite teaching output without replaying residency and forced-mip filtering"
+    );
+}
+
+#[test]
+fn virtual_geometry_nanite_cpu_reference_instances_expose_loaded_leaf_clusters_as_worklist() {
+    let cooked_model_id = ResourceId::from_stable_label("res://models/cooked.model.toml");
+    let output = build_virtual_geometry_automatic_extract_from_meshes_with_debug(
+        &[RenderMeshSnapshot {
+            node_id: 5,
+            transform: Transform::default(),
+            model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
+            material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
+                "res://materials/cooked.material.toml",
+            )),
+            tint: Default::default(),
+            mobility: Mobility::Dynamic,
+            render_layer_mask: 1,
+        }],
+        RenderVirtualGeometryDebugState {
+            forced_mip: Some(9),
+            print_leaf_clusters: true,
+            ..Default::default()
+        },
+        |model_id| match model_id {
+            id if id == cooked_model_id => Some(ModelAsset {
+                uri: AssetUri::parse("res://models/cooked.model.toml").unwrap(),
+                primitives: vec![ModelPrimitiveAsset {
+                    vertices: Vec::new(),
+                    indices: Vec::new(),
+                    virtual_geometry: Some(sample_virtual_geometry_asset()),
+                }],
+            }),
+            _ => None,
+        },
+    )
+    .expect("cooked model should synthesize automatic extract");
+
+    assert!(
+        output.cpu_reference_instances[0].selected_clusters.is_empty(),
+        "forced_mip=9 should reject the loaded mip-10 leafs, keeping the selected worklist empty so the loaded-leaf list proves its distinct residency-only semantics"
+    );
+    assert_eq!(
+        output.cpu_reference_instances[0]
+            .loaded_leaf_clusters
+            .iter()
+            .map(|cluster| (
+                cluster.cluster_ordinal,
+                cluster.cluster_id,
+                cluster.page_id,
+                cluster.mip_level,
+                cluster.loaded
+            ))
+            .collect::<Vec<_>>(),
+        vec![(0, 100, 10, 10, true), (2, 300, 30, 10, true)],
+        "expected the CPU-reference inspection surface to expose loaded leaf clusters directly so host tools can verify resident pages without replaying the leaf residency filter"
+    );
+}
+
+#[test]
+fn virtual_geometry_nanite_cpu_reference_instances_expose_mip_accepted_clusters_as_worklist() {
+    let cooked_model_id = ResourceId::from_stable_label("res://models/cooked.model.toml");
+    let output = build_virtual_geometry_automatic_extract_from_meshes_with_debug(
+        &[RenderMeshSnapshot {
+            node_id: 5,
+            transform: Transform::default(),
+            model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
+            material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
+                "res://materials/cooked.material.toml",
+            )),
+            tint: Default::default(),
+            mobility: Mobility::Dynamic,
+            render_layer_mask: 1,
+        }],
+        RenderVirtualGeometryDebugState {
+            forced_mip: Some(9),
+            print_leaf_clusters: true,
+            ..Default::default()
+        },
+        |model_id| match model_id {
+            id if id == cooked_model_id => Some(ModelAsset {
+                uri: AssetUri::parse("res://models/cooked.model.toml").unwrap(),
+                primitives: vec![ModelPrimitiveAsset {
+                    vertices: Vec::new(),
+                    indices: Vec::new(),
+                    virtual_geometry: Some(sample_virtual_geometry_asset()),
+                }],
+            }),
+            _ => None,
+        },
+    )
+    .expect("cooked model should synthesize automatic extract");
+
+    assert!(
+        output.cpu_reference_instances[0].selected_clusters.is_empty(),
+        "forced_mip=9 should still leave the selected worklist empty because the only mip-accepted cluster is not resident"
+    );
+    assert_eq!(
+        output.cpu_reference_instances[0]
+            .mip_accepted_clusters
+            .iter()
+            .map(|cluster| (
+                cluster.cluster_ordinal,
+                cluster.cluster_id,
+                cluster.page_id,
+                cluster.mip_level,
+                cluster.loaded
+            ))
+            .collect::<Vec<_>>(),
+        vec![(1, 200, 20, 9, false)],
+        "expected the CPU-reference inspection surface to expose the mip-accepted worklist before residency gating so host tools can explain why forced_mip selected no resident clusters"
+    );
+}
+
+#[test]
+fn virtual_geometry_nanite_cpu_reference_instances_expose_mip_accepted_page_cluster_map() {
+    let cooked_model_id = ResourceId::from_stable_label("res://models/cooked.model.toml");
+    let output = build_virtual_geometry_automatic_extract_from_meshes_with_debug(
+        &[RenderMeshSnapshot {
+            node_id: 5,
+            transform: Transform::default(),
+            model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
+            material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
+                "res://materials/cooked.material.toml",
+            )),
+            tint: Default::default(),
+            mobility: Mobility::Dynamic,
+            render_layer_mask: 1,
+        }],
+        RenderVirtualGeometryDebugState {
+            forced_mip: Some(9),
+            print_leaf_clusters: true,
+            ..Default::default()
+        },
+        |model_id| match model_id {
+            id if id == cooked_model_id => Some(ModelAsset {
+                uri: AssetUri::parse("res://models/cooked.model.toml").unwrap(),
+                primitives: vec![ModelPrimitiveAsset {
+                    vertices: Vec::new(),
+                    indices: Vec::new(),
+                    virtual_geometry: Some(sample_virtual_geometry_asset()),
+                }],
+            }),
+            _ => None,
+        },
+    )
+    .expect("cooked model should synthesize automatic extract");
+
+    assert!(
+        output.cpu_reference_instances[0].selected_clusters.is_empty(),
+        "forced_mip=9 should still leave the selected worklist empty because the only mip-accepted cluster is not resident"
+    );
+    assert_eq!(
+        output.cpu_reference_instances[0]
+            .mip_accepted_page_cluster_map
+            .iter()
+            .map(|entry| (entry.page_id, entry.cluster_ids.clone()))
+            .collect::<Vec<_>>(),
+        vec![(20, vec![200])],
+        "expected the CPU-reference inspection surface to expose the mip-accepted page-to-cluster mapping before residency gating so host tools can explain which page the forced mip selector actually chose"
+    );
+}
+
+#[test]
+fn virtual_geometry_nanite_cpu_reference_instances_expose_loaded_page_cluster_map() {
+    let cooked_model_id = ResourceId::from_stable_label("res://models/cooked.model.toml");
+    let output = build_virtual_geometry_automatic_extract_from_meshes_with_debug(
+        &[RenderMeshSnapshot {
+            node_id: 5,
+            transform: Transform::default(),
+            model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
+            material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
+                "res://materials/cooked.material.toml",
+            )),
+            tint: Default::default(),
+            mobility: Mobility::Dynamic,
+            render_layer_mask: 1,
+        }],
+        RenderVirtualGeometryDebugState {
+            forced_mip: Some(9),
+            print_leaf_clusters: true,
+            ..Default::default()
+        },
+        |model_id| match model_id {
+            id if id == cooked_model_id => Some(ModelAsset {
+                uri: AssetUri::parse("res://models/cooked.model.toml").unwrap(),
+                primitives: vec![ModelPrimitiveAsset {
+                    vertices: Vec::new(),
+                    indices: Vec::new(),
+                    virtual_geometry: Some(sample_virtual_geometry_asset()),
+                }],
+            }),
+            _ => None,
+        },
+    )
+    .expect("cooked model should synthesize automatic extract");
+
+    assert!(
+        output.cpu_reference_instances[0].selected_clusters.is_empty(),
+        "forced_mip=9 should keep the selected worklist empty so the loaded page map proves its residency-only semantics"
+    );
+    assert_eq!(
+        output.cpu_reference_instances[0]
+            .loaded_page_cluster_map
+            .iter()
+            .map(|entry| (entry.page_id, entry.cluster_ids.clone()))
+            .collect::<Vec<_>>(),
+        vec![(10, vec![100]), (30, vec![300])],
+        "expected the CPU-reference inspection surface to expose loaded page-to-cluster mapping directly so host tools can verify resident page contents without regrouping loaded leafs themselves"
+    );
+}
+
+#[test]
+fn virtual_geometry_nanite_cpu_reference_instances_expose_loaded_mip_cluster_map() {
+    let cooked_model_id = ResourceId::from_stable_label("res://models/cooked.model.toml");
+    let output = build_virtual_geometry_automatic_extract_from_meshes_with_debug(
+        &[RenderMeshSnapshot {
+            node_id: 5,
+            transform: Transform::default(),
+            model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
+            material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
+                "res://materials/cooked.material.toml",
+            )),
+            tint: Default::default(),
+            mobility: Mobility::Dynamic,
+            render_layer_mask: 1,
+        }],
+        RenderVirtualGeometryDebugState {
+            forced_mip: Some(9),
+            print_leaf_clusters: true,
+            ..Default::default()
+        },
+        |model_id| match model_id {
+            id if id == cooked_model_id => Some(ModelAsset {
+                uri: AssetUri::parse("res://models/cooked.model.toml").unwrap(),
+                primitives: vec![ModelPrimitiveAsset {
+                    vertices: Vec::new(),
+                    indices: Vec::new(),
+                    virtual_geometry: Some(sample_virtual_geometry_asset()),
+                }],
+            }),
+            _ => None,
+        },
+    )
+    .expect("cooked model should synthesize automatic extract");
+
+    assert!(
+        output.cpu_reference_instances[0].selected_clusters.is_empty(),
+        "forced_mip=9 should keep the selected worklist empty so the loaded mip map proves its residency-only semantics"
+    );
+    assert_eq!(
+        output.cpu_reference_instances[0]
+            .loaded_mip_cluster_map
+            .iter()
+            .map(|entry| (entry.mip_level, entry.cluster_ids.clone()))
+            .collect::<Vec<_>>(),
+        vec![(10, vec![100, 300])],
+        "expected the CPU-reference inspection surface to expose loaded clusters grouped by mip so host tools can verify resident leaf distributions without regrouping loaded leaf clusters"
+    );
+}
+
+#[test]
+fn virtual_geometry_nanite_cpu_reference_instances_expose_selected_page_cluster_map() {
+    let cooked_model_id = ResourceId::from_stable_label("res://models/cooked.model.toml");
+    let output = build_virtual_geometry_automatic_extract_from_meshes_with_debug(
+        &[RenderMeshSnapshot {
+            node_id: 5,
+            transform: Transform::default(),
+            model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
+            material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
+                "res://materials/cooked.material.toml",
+            )),
+            tint: Default::default(),
+            mobility: Mobility::Dynamic,
+            render_layer_mask: 1,
+        }],
+        RenderVirtualGeometryDebugState {
+            forced_mip: Some(10),
+            print_leaf_clusters: true,
+            ..Default::default()
+        },
+        |model_id| match model_id {
+            id if id == cooked_model_id => Some(ModelAsset {
+                uri: AssetUri::parse("res://models/cooked.model.toml").unwrap(),
+                primitives: vec![ModelPrimitiveAsset {
+                    vertices: Vec::new(),
+                    indices: Vec::new(),
+                    virtual_geometry: Some(sample_virtual_geometry_asset()),
+                }],
+            }),
+            _ => None,
+        },
+    )
+    .expect("cooked model should synthesize automatic extract");
+
+    assert_eq!(
+        output.cpu_reference_instances[0]
+            .selected_page_cluster_map
+            .iter()
+            .map(|entry| (entry.page_id, entry.cluster_ids.clone()))
+            .collect::<Vec<_>>(),
+        vec![(10, vec![100]), (30, vec![300])],
+        "expected the CPU-reference inspection surface to expose selected page-to-cluster mapping directly so host tools can inspect the post-selection Nanite worklist by page without regrouping selected clusters"
+    );
+}
+
+#[test]
+fn virtual_geometry_nanite_cpu_reference_instances_expose_loaded_depth_cluster_map() {
+    let cooked_model_id = ResourceId::from_stable_label("res://models/cooked.model.toml");
+    let output = build_virtual_geometry_automatic_extract_from_meshes_with_debug(
+        &[RenderMeshSnapshot {
+            node_id: 5,
+            transform: Transform::default(),
+            model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
+            material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
+                "res://materials/cooked.material.toml",
+            )),
+            tint: Default::default(),
+            mobility: Mobility::Dynamic,
+            render_layer_mask: 1,
+        }],
+        RenderVirtualGeometryDebugState {
+            forced_mip: Some(9),
+            print_leaf_clusters: true,
+            ..Default::default()
+        },
+        |model_id| match model_id {
+            id if id == cooked_model_id => Some(ModelAsset {
+                uri: AssetUri::parse("res://models/cooked.model.toml").unwrap(),
+                primitives: vec![ModelPrimitiveAsset {
+                    vertices: Vec::new(),
+                    indices: Vec::new(),
+                    virtual_geometry: Some(sample_virtual_geometry_asset()),
+                }],
+            }),
+            _ => None,
+        },
+    )
+    .expect("cooked model should synthesize automatic extract");
+
+    assert!(
+        output.cpu_reference_instances[0].selected_clusters.is_empty(),
+        "forced_mip=9 should keep the selected worklist empty so the loaded depth map proves its residency-only semantics"
+    );
+    assert_eq!(
+        output.cpu_reference_instances[0]
+            .loaded_depth_cluster_map
+            .iter()
+            .map(|entry| (entry.depth, entry.cluster_ids.clone()))
+            .collect::<Vec<_>>(),
+        vec![(1, vec![100, 300])],
+        "expected the CPU-reference inspection surface to expose loaded clusters grouped by BVH depth so host tools can verify resident leaf depth distribution without regrouping loaded leaf clusters"
+    );
+}
+
+#[test]
+fn virtual_geometry_nanite_cpu_reference_instances_expose_mip_accepted_depth_cluster_map() {
+    let cooked_model_id = ResourceId::from_stable_label("res://models/cooked.model.toml");
+    let output = build_virtual_geometry_automatic_extract_from_meshes_with_debug(
+        &[RenderMeshSnapshot {
+            node_id: 5,
+            transform: Transform::default(),
+            model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
+            material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
+                "res://materials/cooked.material.toml",
+            )),
+            tint: Default::default(),
+            mobility: Mobility::Dynamic,
+            render_layer_mask: 1,
+        }],
+        RenderVirtualGeometryDebugState {
+            forced_mip: Some(9),
+            print_leaf_clusters: true,
+            ..Default::default()
+        },
+        |model_id| match model_id {
+            id if id == cooked_model_id => Some(ModelAsset {
+                uri: AssetUri::parse("res://models/cooked.model.toml").unwrap(),
+                primitives: vec![ModelPrimitiveAsset {
+                    vertices: Vec::new(),
+                    indices: Vec::new(),
+                    virtual_geometry: Some(sample_virtual_geometry_asset()),
+                }],
+            }),
+            _ => None,
+        },
+    )
+    .expect("cooked model should synthesize automatic extract");
+
+    assert!(
+        output.cpu_reference_instances[0].selected_clusters.is_empty(),
+        "forced_mip=9 should still leave the selected worklist empty because the only mip-accepted cluster is not resident"
+    );
+    assert_eq!(
+        output.cpu_reference_instances[0]
+            .mip_accepted_depth_cluster_map
+            .iter()
+            .map(|entry| (entry.depth, entry.cluster_ids.clone()))
+            .collect::<Vec<_>>(),
+        vec![(1, vec![200])],
+        "expected the CPU-reference inspection surface to expose the mip-accepted clusters grouped by BVH depth before residency gating so host tools can explain where the forced mip selector currently lands in the hierarchy"
+    );
+}
+
+#[test]
+fn virtual_geometry_nanite_cpu_reference_instances_expose_selected_mip_cluster_map() {
+    let cooked_model_id = ResourceId::from_stable_label("res://models/cooked.model.toml");
+    let output = build_virtual_geometry_automatic_extract_from_meshes_with_debug(
+        &[RenderMeshSnapshot {
+            node_id: 5,
+            transform: Transform::default(),
+            model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
+            material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
+                "res://materials/cooked.material.toml",
+            )),
+            tint: Default::default(),
+            mobility: Mobility::Dynamic,
+            render_layer_mask: 1,
+        }],
+        RenderVirtualGeometryDebugState {
+            forced_mip: Some(10),
+            print_leaf_clusters: true,
+            ..Default::default()
+        },
+        |model_id| match model_id {
+            id if id == cooked_model_id => Some(ModelAsset {
+                uri: AssetUri::parse("res://models/cooked.model.toml").unwrap(),
+                primitives: vec![ModelPrimitiveAsset {
+                    vertices: Vec::new(),
+                    indices: Vec::new(),
+                    virtual_geometry: Some(sample_virtual_geometry_asset()),
+                }],
+            }),
+            _ => None,
+        },
+    )
+    .expect("cooked model should synthesize automatic extract");
+
+    assert_eq!(
+        output.cpu_reference_instances[0]
+            .selected_mip_cluster_map
+            .iter()
+            .map(|entry| (entry.mip_level, entry.cluster_ids.clone()))
+            .collect::<Vec<_>>(),
+        vec![(10, vec![100, 300])],
+        "expected the CPU-reference inspection surface to expose the selected-cluster worklist grouped by mip so host tools can compare automatic or forced LOD results without regrouping selected clusters themselves"
+    );
+}
+
+#[test]
+fn virtual_geometry_nanite_cpu_reference_instances_expose_selected_depth_cluster_map() {
+    let cooked_model_id = ResourceId::from_stable_label("res://models/cooked.model.toml");
+    let output = build_virtual_geometry_automatic_extract_from_meshes_with_debug(
+        &[RenderMeshSnapshot {
+            node_id: 5,
+            transform: Transform::default(),
+            model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
+            material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
+                "res://materials/cooked.material.toml",
+            )),
+            tint: Default::default(),
+            mobility: Mobility::Dynamic,
+            render_layer_mask: 1,
+        }],
+        RenderVirtualGeometryDebugState {
+            forced_mip: Some(10),
+            print_leaf_clusters: true,
+            ..Default::default()
+        },
+        |model_id| match model_id {
+            id if id == cooked_model_id => Some(ModelAsset {
+                uri: AssetUri::parse("res://models/cooked.model.toml").unwrap(),
+                primitives: vec![ModelPrimitiveAsset {
+                    vertices: Vec::new(),
+                    indices: Vec::new(),
+                    virtual_geometry: Some(sample_virtual_geometry_asset()),
+                }],
+            }),
+            _ => None,
+        },
+    )
+    .expect("cooked model should synthesize automatic extract");
+
+    assert_eq!(
+        output.cpu_reference_instances[0]
+            .selected_depth_cluster_map
+            .iter()
+            .map(|entry| (entry.depth, entry.cluster_ids.clone()))
+            .collect::<Vec<_>>(),
+        vec![(1, vec![100, 300])],
+        "expected the CPU-reference inspection surface to expose the selected-cluster worklist grouped by BVH depth so host tools can compare current selection against full traversal depth dumps without regrouping selected clusters"
+    );
 }
 
 fn sample_virtual_geometry_asset() -> VirtualGeometryAsset {

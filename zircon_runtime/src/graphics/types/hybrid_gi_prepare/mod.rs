@@ -9,7 +9,7 @@ mod voxel_clipmap;
 pub(crate) use card_capture_request::HybridGiPrepareCardCaptureRequest;
 pub(crate) use frame::HybridGiPrepareFrame;
 pub(crate) use probe::HybridGiPrepareProbe;
-pub(crate) use scene_frame::HybridGiScenePrepareFrame;
+pub(crate) use scene_frame::{HybridGiPrepareSurfaceCachePageContent, HybridGiScenePrepareFrame};
 pub(crate) use update_request::HybridGiPrepareUpdateRequest;
 pub(crate) use voxel_cell::{
     hybrid_gi_voxel_clipmap_bounds_cell_ranges, hybrid_gi_voxel_clipmap_cell_bit_index,

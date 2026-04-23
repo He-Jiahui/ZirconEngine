@@ -607,4 +607,3 @@ fn ui_asset_editor_session_edits_preview_mock_object_entries_structurally() {
         vec!["SaveButton.metadata = { count = 4, state = \"Dirty\" }".to_string()]
     );
 }
-

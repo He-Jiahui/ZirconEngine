@@ -1,5 +1,5 @@
 use crate::script::{
-    HostRegistry, VmBackend, VmError, VmPluginInstance, VmPluginManifest, VmPluginPackage,
+    VmBackend, VmError, VmPluginHostContext, VmPluginInstance, VmPluginManifest, VmPluginPackage,
     VmStateBlob,
 };
 
@@ -14,7 +14,7 @@ impl VmBackend for MockVmBackend {
     fn load_package(
         &self,
         package: &VmPluginPackage,
-        _host: HostRegistry,
+        _host: &VmPluginHostContext,
     ) -> Result<Box<dyn VmPluginInstance>, VmError> {
         Ok(Box::new(MockVmPluginInstance {
             manifest: package.manifest.clone(),
@@ -36,7 +36,7 @@ impl VmPluginInstance for MockVmPluginInstance {
         &self.manifest
     }
 
-    fn activate(&mut self, _host: &HostRegistry) -> Result<(), VmError> {
+    fn activate(&mut self, _host: &VmPluginHostContext) -> Result<(), VmError> {
         self.activations += 1;
         Ok(())
     }

@@ -26,9 +26,10 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
     let synthesized_virtual_geometry =
         if virtual_geometry_enabled && extract.geometry.virtual_geometry.is_none() {
             let state = server.state.lock().unwrap();
-            state
-                .renderer
-                .synthesize_virtual_geometry_extract(&extract.geometry.meshes)
+            state.renderer.synthesize_virtual_geometry_extract(
+                &extract.geometry.meshes,
+                extract.geometry.virtual_geometry_debug.clone(),
+            )
         } else {
             None
         };

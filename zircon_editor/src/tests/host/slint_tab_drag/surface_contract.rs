@@ -5,6 +5,26 @@ fn shared_drag_capture_surface_replaces_legacy_direct_drop_callback_abi() {
         env!("CARGO_MANIFEST_DIR"),
         "/ui/workbench/host_context.slint"
     ));
+    let host_tab_drag_overlay = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/ui/workbench/host_tab_drag_overlay.slint"
+    ));
+    let host_side_dock_surface = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/ui/workbench/host_side_dock_surface.slint"
+    ));
+    let host_document_dock_surface = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/ui/workbench/host_document_dock_surface.slint"
+    ));
+    let host_bottom_dock_surface = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/ui/workbench/host_bottom_dock_surface.slint"
+    ));
+    let host_floating_window_layer = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/ui/workbench/host_floating_window_layer.slint"
+    ));
     let host_components = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/ui/workbench/host_components.slint"
@@ -43,6 +63,11 @@ fn shared_drag_capture_surface_replaces_legacy_direct_drop_callback_abi() {
         assert!(
             workbench.contains(needle)
                 || host_context.contains(needle)
+                || host_tab_drag_overlay.contains(needle)
+                || host_side_dock_surface.contains(needle)
+                || host_document_dock_surface.contains(needle)
+                || host_bottom_dock_surface.contains(needle)
+                || host_floating_window_layer.contains(needle)
                 || host_components.contains(needle),
             "workbench shell is missing shared drag pointer hook `{needle}`"
         );

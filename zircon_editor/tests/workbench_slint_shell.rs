@@ -32,15 +32,68 @@ fn host_scene_source() -> String {
     fs::read_to_string(path).expect("host_scene.slint should be readable")
 }
 
+fn host_menu_chrome_source() -> String {
+    let path =
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("ui/workbench/host_menu_chrome.slint");
+    fs::read_to_string(path).expect("host_menu_chrome.slint should be readable")
+}
+
+fn host_page_chrome_source() -> String {
+    let path =
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("ui/workbench/host_page_chrome.slint");
+    fs::read_to_string(path).expect("host_page_chrome.slint should be readable")
+}
+
+fn host_status_bar_source() -> String {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("ui/workbench/host_status_bar.slint");
+    fs::read_to_string(path).expect("host_status_bar.slint should be readable")
+}
+
+fn host_tab_drag_overlay_source() -> String {
+    let path =
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("ui/workbench/host_tab_drag_overlay.slint");
+    fs::read_to_string(path).expect("host_tab_drag_overlay.slint should be readable")
+}
+
+fn host_resize_layer_source() -> String {
+    let path =
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("ui/workbench/host_resize_layer.slint");
+    fs::read_to_string(path).expect("host_resize_layer.slint should be readable")
+}
+
+fn host_side_dock_surface_source() -> String {
+    let path =
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("ui/workbench/host_side_dock_surface.slint");
+    fs::read_to_string(path).expect("host_side_dock_surface.slint should be readable")
+}
+
+fn host_document_dock_surface_source() -> String {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("ui/workbench/host_document_dock_surface.slint");
+    fs::read_to_string(path).expect("host_document_dock_surface.slint should be readable")
+}
+
+fn host_bottom_dock_surface_source() -> String {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("ui/workbench/host_bottom_dock_surface.slint");
+    fs::read_to_string(path).expect("host_bottom_dock_surface.slint should be readable")
+}
+
+fn host_floating_window_layer_source() -> String {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("ui/workbench/host_floating_window_layer.slint");
+    fs::read_to_string(path).expect("host_floating_window_layer.slint should be readable")
+}
+
+fn host_native_floating_window_surface_source() -> String {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("ui/workbench/host_native_floating_window_surface.slint");
+    fs::read_to_string(path).expect("host_native_floating_window_surface.slint should be readable")
+}
+
 fn host_components_source() -> String {
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("ui/workbench/host_components.slint");
     fs::read_to_string(path).expect("host_components.slint should be readable")
-}
-
-fn host_workbench_surfaces_source() -> String {
-    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("ui/workbench/host_workbench_surfaces.slint");
-    fs::read_to_string(path).expect("host_workbench_surfaces.slint should be readable")
 }
 
 fn pane_data_source() -> String {
@@ -60,25 +113,40 @@ fn host_context_source() -> String {
 }
 
 fn shell_source() -> String {
-    format!(
-        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
+    vec![
         root_shell_source(),
         host_scaffold_source(),
         host_root_source(),
         host_surface_source(),
         host_surface_contract_source(),
         host_scene_source(),
+        host_menu_chrome_source(),
+        host_page_chrome_source(),
+        host_status_bar_source(),
+        host_tab_drag_overlay_source(),
+        host_resize_layer_source(),
         host_components_source(),
-        host_workbench_surfaces_source(),
+        host_side_dock_surface_source(),
+        host_document_dock_surface_source(),
+        host_bottom_dock_surface_source(),
+        host_floating_window_layer_source(),
+        host_native_floating_window_surface_source(),
         pane_data_source(),
         host_interaction_source(),
-        host_context_source()
-    )
+        host_context_source(),
+    ]
+    .join("\n")
 }
 
-fn generic_panes_source() -> String {
-    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("ui/workbench/panes.slint");
-    fs::read_to_string(path).expect("panes.slint should be readable")
+fn workbench_path(file_name: &str) -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("ui/workbench")
+        .join(file_name)
+}
+
+fn workbench_source(file_name: &str) -> String {
+    let path = workbench_path(file_name);
+    fs::read_to_string(&path).unwrap_or_else(|_| panic!("{file_name} should be readable"))
 }
 
 fn ui_asset_editor_pane_source() -> String {
@@ -123,17 +191,25 @@ fn pane_fields_source() -> String {
 }
 
 fn panes_source() -> String {
-    format!(
-        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
-        generic_panes_source(),
-        pane_fields_source(),
-        ui_asset_editor_data_source(),
-        ui_asset_editor_components_source(),
-        ui_asset_editor_center_column_source(),
-        ui_asset_editor_inspector_panel_source(),
-        ui_asset_editor_stylesheet_panel_source(),
-        ui_asset_editor_pane_source()
-    )
+    [
+        "assets.slint",
+        "fallback_pane.slint",
+        "pane_content.slint",
+        "pane_fields.slint",
+        "tool_window_empty_state.slint",
+        "ui_asset_editor_center_column.slint",
+        "ui_asset_editor_components.slint",
+        "ui_asset_editor_data.slint",
+        "ui_asset_editor_inspector_panel.slint",
+        "ui_asset_editor_palette_target_chooser.slint",
+        "ui_asset_editor_pane.slint",
+        "ui_asset_editor_stylesheet_panel.slint",
+        "welcome.slint",
+    ]
+    .into_iter()
+    .map(workbench_source)
+    .collect::<Vec<_>>()
+    .join("\n")
 }
 
 fn pane_surface_source() -> String {
@@ -144,11 +220,6 @@ fn pane_surface_source() -> String {
 fn pane_content_source() -> String {
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("ui/workbench/pane_content.slint");
     fs::read_to_string(path).expect("pane_content.slint should be readable")
-}
-
-fn asset_panes_source() -> String {
-    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("ui/workbench/asset_panes.slint");
-    fs::read_to_string(path).expect("asset_panes.slint should be readable")
 }
 
 fn pane_surface_host_context_source() -> String {
@@ -331,13 +402,22 @@ fn workbench_shell_extracts_business_pane_surface_catalog_out_of_root_file() {
     let host_surface = host_surface_source();
     let host_surface_contract = host_surface_contract_source();
     let host_scene = host_scene_source();
+    let host_menu_chrome_source_text = host_menu_chrome_source();
+    let host_page_chrome_source_text = host_page_chrome_source();
+    let host_status_bar_source_text = host_status_bar_source();
+    let host_tab_drag_overlay_source_text = host_tab_drag_overlay_source();
+    let host_resize_layer_source_text = host_resize_layer_source();
+    let host_side_dock_surface_source_text = host_side_dock_surface_source();
+    let host_document_dock_surface_source_text = host_document_dock_surface_source();
+    let host_bottom_dock_surface_source_text = host_bottom_dock_surface_source();
+    let host_floating_window_layer_source_text = host_floating_window_layer_source();
+    let host_native_floating_window_surface_source_text =
+        host_native_floating_window_surface_source();
     let host_components = host_components_source();
-    let host_workbench_surfaces = host_workbench_surfaces_source();
     let pane_data = pane_data_source();
     let host_context = host_context_source();
     let pane_surface = pane_surface_source();
     let pane_content = pane_content_source();
-    let generic_panes = generic_panes_source();
     let ui_asset_editor_data = ui_asset_editor_data_source();
     let ui_asset_editor_components = ui_asset_editor_components_source();
     let ui_asset_editor_center = ui_asset_editor_center_column_source();
@@ -367,24 +447,99 @@ fn workbench_shell_extracts_business_pane_surface_catalog_out_of_root_file() {
     assert!(source.contains(
         "export { PaneSurfaceHostContext } from \"workbench/pane_surface_host_context.slint\";"
     ));
-    assert!(!host_workbench_surfaces.contains("export { PaneSurfaceHostContext }"));
+    assert!(!workbench_path("host_workbench_surfaces.slint").exists());
     assert!(source.contains("export { PaneData, ProjectOverviewData, SceneNodeData } from \"workbench/pane_data.slint\";"));
     assert!(pane_data.contains("export struct ProjectOverviewData {"));
     assert!(pane_data.contains("export struct PaneData {"));
+    assert!(pane_data.contains("export struct SceneNodeData {"));
     assert!(!pane_data.contains("import { ProjectOverviewData } from \"assets.slint\";"));
-    assert!(pane_data.contains("import { SceneNodeData } from \"panes.slint\";"));
+    assert!(!pane_data.contains("console_pane.slint"));
+    assert!(!pane_data.contains("hierarchy_pane.slint"));
     assert!(
         pane_data.contains("import { UiAssetEditorPaneData } from \"ui_asset_editor_data.slint\";")
     );
     assert!(!pane_data.contains("export { ProjectOverviewData } from \"assets.slint\";"));
+    assert!(!pane_data
+        .contains("import { AnimationEditorPaneData } from \"animation_editor_pane.slint\";"));
+    assert!(pane_data.contains("export struct AnimationEditorPaneData {"));
+    assert!(pane_data.contains("nodes: [TemplatePaneNodeData],"));
+    assert!(!pane_data.contains("export struct AnimationEditorShellFrameData {"));
+    assert!(!pane_data.contains("export struct AnimationEditorShellLayoutData {"));
+    assert!(!pane_data.contains("import { InspectorPaneData } from \"inspector_pane.slint\";"));
+    assert!(pane_data.contains("export struct InspectorPaneData {"));
+    assert!(pane_data.contains("nodes: [TemplatePaneNodeData],"));
+    assert!(!pane_data.contains("export struct InspectorShellFrameData {"));
+    assert!(!pane_data.contains("export struct InspectorShellLayoutData {"));
+    assert!(pane_content.contains(
+        "import { EmptyStateCard, Palette, ShellButton, ToolbarButton } from \"chrome.slint\";"
+    ));
+    assert!(pane_content.contains(
+        "import { AssetFolderData, AssetItemData, AssetListView, AssetReferenceData, AssetSelectionData, AssetSurfaceFrame, FolderTreeView, KindChip, ReferenceListView, SearchField, SelectionDetailsRail, SelectionPreviewCard } from \"assets.slint\";"
+    ));
+    assert!(pane_content.contains(
+        "import { AnimationEditorPaneData, AssetBrowserPaneData, AssetsActivityPaneData, ConsolePaneData, HierarchyPaneData, InspectorPaneData, PaneData, ProjectOverviewData, ProjectOverviewPaneData } from \"pane_data.slint\";"
+    ));
+    assert!(pane_content.contains("import { CompactField, AxisField } from \"pane_fields.slint\";"));
+    assert!(pane_content
+        .contains("import { PaneSurfaceHostContext } from \"pane_surface_host_context.slint\";"));
+    assert!(pane_content.contains("import { TemplatePane } from \"template_pane.slint\";"));
+    assert!(pane_content
+        .contains("import { ToolWindowEmptyState } from \"tool_window_empty_state.slint\";"));
     assert!(
         pane_content.contains("import { UiAssetEditorPane } from \"ui_asset_editor_pane.slint\";")
     );
-    assert!(!pane_content.contains(
-        "import { ConsolePane, FallbackPane, HierarchyPane, InspectorPane, ToolWindowEmptyState, UiAssetEditorPane } from \"panes.slint\";"
-    ));
-    assert!(!generic_panes.contains("export component UiAssetEditorPane inherits Rectangle {"));
-    assert!(!generic_panes.contains("export struct UiAssetEditorPaneData {"));
+    assert!(pane_content.contains("import { WelcomePane } from \"welcome.slint\";"));
+    assert!(pane_content.contains("import { FallbackPane } from \"fallback_pane.slint\";"));
+    for forbidden_import in [
+        "import { AssetBrowserPane } from \"asset_panes.slint\";",
+        "import { AssetsActivityPane } from \"assets_activity_pane.slint\";",
+        "import { AnimationEditorPaneView } from \"animation_editor_pane_view.slint\";",
+        "import { ConsolePaneView } from \"console_pane_view.slint\";",
+        "import { HierarchyPaneView } from \"hierarchy_pane_view.slint\";",
+        "import { InspectorPaneView } from \"inspector_pane_view.slint\";",
+        "import { ProjectOverviewPaneView } from \"project_overview_pane_view.slint\";",
+    ] {
+        assert!(
+            !pane_content.contains(forbidden_import),
+            "pane_content should not import deleted split pane owner `{forbidden_import}`"
+        );
+    }
+    for required_owner in [
+        "component HierarchyPaneView inherits Rectangle {",
+        "component InspectorPaneView inherits Rectangle {",
+        "component ConsolePaneView inherits Rectangle {",
+        "component AnimationEditorPaneView inherits Rectangle {",
+        "component AssetsActivityPaneView inherits Rectangle {",
+        "component AssetBrowserPaneView inherits Rectangle {",
+    ] {
+        assert!(
+            pane_content.contains(required_owner),
+            "pane_content should own inline pane component `{required_owner}`"
+        );
+    }
+    for forbidden_owner in [
+        "component AssetsActivityPane inherits Rectangle {",
+        "component AssetBrowserPane inherits Rectangle {",
+    ] {
+        assert!(
+            !pane_content.contains(forbidden_owner),
+            "pane_content should not keep deleted split pane component `{forbidden_owner}`"
+        );
+    }
+    for removed_file in [
+        "animation_editor_pane_view.slint",
+        "asset_panes.slint",
+        "assets_activity_pane.slint",
+        "console_pane_view.slint",
+        "hierarchy_pane_view.slint",
+        "inspector_pane_view.slint",
+        "project_overview_pane_view.slint",
+    ] {
+        assert!(
+            !workbench_path(removed_file).exists(),
+            "workbench should delete split pane owner file `{removed_file}`"
+        );
+    }
     assert!(!ui_asset_editor_pane.contains("export struct UiAssetEditorPaneData {"));
     assert!(
         !ui_asset_editor_pane.contains("component UiAssetSelectableSection inherits Rectangle {")
@@ -769,6 +924,10 @@ fn workbench_shell_extracts_business_pane_surface_catalog_out_of_root_file() {
     assert!(host_surface.contains("scene_data: contract.workbench_scene_data;"));
     assert!(host_surface.contains("HostNativeFloatingWindowSurface {"));
     assert!(host_surface.contains("surface_data: contract.native_floating_surface_data;"));
+    assert!(host_surface.contains(
+        "import { HostNativeFloatingWindowSurface } from \"host_native_floating_window_surface.slint\";"
+    ));
+    assert!(!host_surface.contains("host_workbench_surfaces.slint"));
     assert!(!host_surface.contains("import { WorkbenchHostContext } from \"host_context.slint\";"));
     assert!(!host_surface.contains("WorkbenchHostContext.menu_pointer_clicked("));
     assert!(!host_surface.contains("WorkbenchHostContext.document_tab_pointer_clicked("));
@@ -824,30 +983,53 @@ fn workbench_shell_extracts_business_pane_surface_catalog_out_of_root_file() {
     assert!(host_scene.contains("HostResizeLayer {"));
     assert!(host_scene.contains("HostFloatingWindowLayer {"));
     assert!(host_scene.contains("HostTabDragOverlay {"));
+    assert!(host_scene.contains("import { HostMenuChrome } from \"host_menu_chrome.slint\";"));
+    assert!(host_scene.contains("import { HostPageChrome } from \"host_page_chrome.slint\";"));
+    assert!(host_scene.contains("import { HostStatusBar } from \"host_status_bar.slint\";"));
+    assert!(host_scene.contains("import { HostResizeLayer } from \"host_resize_layer.slint\";"));
+    assert!(
+        host_scene.contains("import { HostTabDragOverlay } from \"host_tab_drag_overlay.slint\";")
+    );
+    assert!(host_scene
+        .contains("import { HostSideDockSurface } from \"host_side_dock_surface.slint\";"));
+    assert!(host_scene
+        .contains("import { HostDocumentDockSurface } from \"host_document_dock_surface.slint\";"));
+    assert!(host_scene
+        .contains("import { HostBottomDockSurface } from \"host_bottom_dock_surface.slint\";"));
+    assert!(host_scene
+        .contains("import { HostFloatingWindowLayer } from \"host_floating_window_layer.slint\";"));
 
     assert!(host_components.contains("import { PaneData } from \"pane_data.slint\";"));
-    assert!(
-        host_components.contains("import { WorkbenchHostContext } from \"host_context.slint\";")
-    );
     assert!(host_components.contains("export struct HostWindowShellData {"));
     assert!(host_components.contains("export struct HostWindowLayoutData {"));
     assert!(host_components.contains("export struct HostWindowSurfaceData {"));
-    assert!(host_components.contains("export component HostMenuChrome inherits Rectangle {"));
-    assert!(host_components.contains("export component HostPageChrome inherits Rectangle {"));
-    assert!(host_components.contains("export component HostStatusBar inherits Rectangle {"));
-    assert!(host_components.contains("export component HostResizeLayer inherits Rectangle {"));
-    assert!(host_components.contains("export component HostTabDragOverlay inherits Rectangle {"));
-    assert!(host_workbench_surfaces
+    assert!(!host_components.contains("export component HostMenuChrome inherits Rectangle {"));
+    assert!(!host_components.contains("export component HostPageChrome inherits Rectangle {"));
+    assert!(!host_components.contains("export component HostStatusBar inherits Rectangle {"));
+    assert!(!host_components.contains("export component HostResizeLayer inherits Rectangle {"));
+    assert!(!host_components.contains("export component HostTabDragOverlay inherits Rectangle {"));
+    assert!(host_menu_chrome_source_text
+        .contains("export component HostMenuChrome inherits Rectangle {"));
+    assert!(host_page_chrome_source_text
+        .contains("export component HostPageChrome inherits Rectangle {"));
+    assert!(
+        host_status_bar_source_text.contains("export component HostStatusBar inherits Rectangle {")
+    );
+    assert!(host_resize_layer_source_text
+        .contains("export component HostResizeLayer inherits Rectangle {"));
+    assert!(host_tab_drag_overlay_source_text
+        .contains("export component HostTabDragOverlay inherits Rectangle {"));
+    assert!(host_document_dock_surface_source_text
         .contains("export component HostDocumentDockSurface inherits Rectangle {"));
-    assert!(host_workbench_surfaces
+    assert!(host_side_dock_surface_source_text
         .contains("export component HostSideDockSurface inherits Rectangle {"));
-    assert!(host_workbench_surfaces
+    assert!(host_bottom_dock_surface_source_text
         .contains("export component HostBottomDockSurface inherits Rectangle {"));
-    assert!(host_workbench_surfaces
+    assert!(host_floating_window_layer_source_text
         .contains("export component HostFloatingWindowLayer inherits Rectangle {"));
-    assert!(host_workbench_surfaces
+    assert!(host_native_floating_window_surface_source_text
         .contains("export component HostNativeFloatingWindowSurface inherits Rectangle {"));
-    assert!(host_workbench_surfaces.matches("PaneSurface {").count() >= 5);
+    assert!(shell_source().matches("PaneSurface {").count() >= 5);
     for removed_host_forwarder in [
         "asset_control_changed(source, control_id, value) => { PaneSurfaceHostContext.asset_control_changed(source, control_id, value); }",
         "asset_control_clicked(source, control_id) => { PaneSurfaceHostContext.asset_control_clicked(source, control_id); }",
@@ -856,7 +1038,11 @@ fn workbench_shell_extracts_business_pane_surface_catalog_out_of_root_file() {
         "viewport_toolbar_pointer_clicked(surface_key, control_id, control_x, control_y, control_width, control_height, point_x, point_y) => { PaneSurfaceHostContext.viewport_toolbar_pointer_clicked(surface_key, control_id, control_x, control_y, control_width, control_height, point_x, point_y); }",
     ] {
         assert!(
-            !host_workbench_surfaces.contains(removed_host_forwarder),
+            !host_side_dock_surface_source_text.contains(removed_host_forwarder)
+                && !host_document_dock_surface_source_text.contains(removed_host_forwarder)
+                && !host_bottom_dock_surface_source_text.contains(removed_host_forwarder)
+                && !host_floating_window_layer_source_text.contains(removed_host_forwarder)
+                && !host_native_floating_window_surface_source_text.contains(removed_host_forwarder),
             "host workbench surfaces should not keep PaneSurface callback forwarding `{removed_host_forwarder}`"
         );
     }
@@ -934,9 +1120,13 @@ fn workbench_shell_extracts_business_pane_surface_catalog_out_of_root_file() {
             "callback wiring is missing pane-surface registration `{pane_surface_registration}`"
         );
     }
-    assert!(apply_presentation.contains(
-        "let pane_surface_host = ui.global::<crate::ui::slint_host::PaneSurfaceHostContext>();"
-    ));
+    assert!(
+        apply_presentation
+            .contains("let pane_surface_host = ui.global::<slint_ui::PaneSurfaceHostContext>();")
+            || apply_presentation.contains(
+                "let pane_surface_host = ui.global::<crate::ui::slint_host::PaneSurfaceHostContext>();"
+            )
+    );
     assert!(apply_presentation.contains("let host_presentation = HostWindowPresentationData {"));
     assert!(apply_presentation.contains("ui.set_host_presentation(host_presentation);"));
     for removed_root_pane_setter in [
@@ -1015,8 +1205,8 @@ fn shell_drag_targets_allow_empty_tool_regions() {
     let host_surface = host_surface_source();
     assert!(!host_surface
         .contains("if WorkbenchHostContext.drag_state.drag_active: HostTabDragOverlay {"));
-    let host_components = host_components_source();
-    assert!(host_components.contains("visible: WorkbenchHostContext.drag_state.drag_active;"));
+    let host_tab_drag_overlay = host_tab_drag_overlay_source();
+    assert!(host_tab_drag_overlay.contains("visible: WorkbenchHostContext.drag_state.drag_active;"));
 
     let drag_overlay = scoped_block_after(
         &source,
@@ -1261,6 +1451,15 @@ fn host_surface_groups_host_surface_interaction_and_layout_payloads() {
     let host_surface_contract = host_surface_contract_source();
     let host_scene = host_scene_source();
     let host_components = host_components_source();
+    let host_menu_chrome_source_text = host_menu_chrome_source();
+    let host_page_chrome_source_text = host_page_chrome_source();
+    let host_status_bar_source_text = host_status_bar_source();
+    let host_tab_drag_overlay_source_text = host_tab_drag_overlay_source();
+    let host_resize_layer_source_text = host_resize_layer_source();
+    let host_side_dock_surface_source_text = host_side_dock_surface_source();
+    let host_document_dock_surface_source_text = host_document_dock_surface_source();
+    let host_bottom_dock_surface_source_text = host_bottom_dock_surface_source();
+    let host_floating_window_layer_source_text = host_floating_window_layer_source();
     let host_interaction = host_interaction_source();
     let host_context = host_context_source();
     let pointer_layout = slint_host_source("src/ui/slint_host/app/pointer_layout.rs");
@@ -1639,21 +1838,24 @@ fn host_surface_groups_host_surface_interaction_and_layout_payloads() {
     }
 
     assert!(
-        host_components.contains("import { WorkbenchHostContext } from \"host_context.slint\";")
+        !host_components.contains("import { WorkbenchHostContext } from \"host_context.slint\";")
     );
-    assert!(host_components.contains("in property <HostMenuChromeData> menu_data: {"));
-    assert!(host_components.contains("in property <HostPageChromeData> page_data: {"));
-    assert!(host_components.contains("in property <HostStatusBarData> status_data: {"));
-    assert!(host_components.contains("in property <HostResizeLayerData> resize_data: {"));
-    assert!(host_components.contains("in property <HostTabDragOverlayData> overlay_data: {"));
+    assert!(host_menu_chrome_source_text.contains("in property <HostMenuChromeData> menu_data: {"));
+    assert!(host_page_chrome_source_text.contains("in property <HostPageChromeData> page_data: {"));
+    assert!(host_status_bar_source_text.contains("in property <HostStatusBarData> status_data: {"));
+    assert!(
+        host_resize_layer_source_text.contains("in property <HostResizeLayerData> resize_data: {")
+    );
+    assert!(host_tab_drag_overlay_source_text
+        .contains("in property <HostTabDragOverlayData> overlay_data: {"));
     let host_menu_chrome = scoped_block_after(
-        &host_components,
+        &host_menu_chrome_source_text,
         "export component HostMenuChrome inherits Rectangle {",
     );
     assert!(host_menu_chrome.contains("WorkbenchHostContext.menu_state.open_menu_index"));
     assert!(host_menu_chrome.contains("WorkbenchHostContext.menu_pointer_clicked("));
     let host_tab_drag_overlay = scoped_block_after(
-        &host_components,
+        &host_tab_drag_overlay_source_text,
         "export component HostTabDragOverlay inherits Rectangle {",
     );
     assert!(
@@ -1661,22 +1863,21 @@ fn host_surface_groups_host_surface_interaction_and_layout_payloads() {
     );
     assert!(host_tab_drag_overlay.contains("WorkbenchHostContext.workbench_drag_pointer_event("));
     let host_resize_layer = scoped_block_after(
-        &host_components,
+        &host_resize_layer_source_text,
         "export component HostResizeLayer inherits Rectangle {",
     );
     assert!(host_resize_layer.contains("WorkbenchHostContext.resize_state.resize_group"));
     assert!(host_resize_layer.contains("WorkbenchHostContext.workbench_resize_pointer_event("));
     let host_page_chrome = scoped_block_after(
-        &host_components,
+        &host_page_chrome_source_text,
         "export component HostPageChrome inherits Rectangle {",
     );
     assert!(!host_page_chrome.contains("in property <[TabData]> tabs;"));
     assert!(!host_page_chrome.contains("in property <string> project_path;"));
     assert!(!host_page_chrome.contains("callback host_page_pointer_clicked("));
     assert!(host_page_chrome.contains("WorkbenchHostContext.host_page_pointer_clicked("));
-    let host_workbench_surfaces = host_workbench_surfaces_source();
     let host_side_dock_surface = scoped_block_after(
-        &host_workbench_surfaces,
+        &host_side_dock_surface_source_text,
         "export component HostSideDockSurface inherits Rectangle {",
     );
     assert!(host_side_dock_surface.contains("in property <HostSideDockSurfaceData> surface_data;"));
@@ -1709,7 +1910,7 @@ fn host_surface_groups_host_surface_interaction_and_layout_payloads() {
     }
 
     let host_document_dock_surface = scoped_block_after(
-        &host_workbench_surfaces,
+        &host_document_dock_surface_source_text,
         "export component HostDocumentDockSurface inherits Rectangle {",
     );
     assert!(host_document_dock_surface
@@ -1745,7 +1946,7 @@ fn host_surface_groups_host_surface_interaction_and_layout_payloads() {
     }
 
     let host_bottom_dock_surface = scoped_block_after(
-        &host_workbench_surfaces,
+        &host_bottom_dock_surface_source_text,
         "export component HostBottomDockSurface inherits Rectangle {",
     );
     assert!(
@@ -1777,7 +1978,7 @@ fn host_surface_groups_host_surface_interaction_and_layout_payloads() {
     }
 
     let host_floating_window_layer = scoped_block_after(
-        &host_workbench_surfaces,
+        &host_floating_window_layer_source_text,
         "export component HostFloatingWindowLayer inherits Rectangle {",
     );
     assert!(host_floating_window_layer
@@ -1914,6 +2115,8 @@ fn host_surface_groups_orchestration_metrics_and_native_floating_payloads() {
     let host_surface_contract = host_surface_contract_source();
     let host_scene = host_scene_source();
     let host_components = host_components_source();
+    let host_native_floating_window_surface_source_text =
+        host_native_floating_window_surface_source();
 
     for grouped_struct in [
         "export struct HostWorkbenchSurfaceMetricsData {",
@@ -2032,9 +2235,8 @@ fn host_surface_groups_orchestration_metrics_and_native_floating_payloads() {
         );
     }
 
-    let host_workbench_surfaces = host_workbench_surfaces_source();
     let host_native_floating_window_surface = scoped_block_after(
-        &host_workbench_surfaces,
+        &host_native_floating_window_surface_source_text,
         "export component HostNativeFloatingWindowSurface inherits Rectangle {",
     );
     assert!(host_native_floating_window_surface
@@ -2117,15 +2319,10 @@ fn assets_activity_pane_stays_lightweight_and_browser_keeps_advanced_tools() {
     let source = shell_source();
     let pane_surface = pane_surface_source();
     let pane_content = pane_content_source();
-    let asset_panes = asset_panes_source();
-
-    let activity_start = asset_panes
-        .find("export component AssetsActivityPane inherits Rectangle {")
-        .expect("missing AssetsActivityPane block");
-    let browser_start = asset_panes
-        .find("export component AssetBrowserPane inherits Rectangle {")
-        .expect("missing AssetBrowserPane block");
-    let activity_block = &asset_panes[activity_start..browser_start];
+    let activity_block = scoped_block_after(
+        &pane_content,
+        "component AssetsActivityPaneView inherits Rectangle {",
+    );
     assert!(!activity_block
         .contains("Unity-first activity panel for project browsing and quick preview"));
     assert!(!activity_block.contains("Quick Import"));
@@ -2135,37 +2332,55 @@ fn assets_activity_pane_stays_lightweight_and_browser_keeps_advanced_tools() {
     assert!(activity_block.contains("label: \"Preview\""));
     assert!(activity_block.contains("label: \"References\""));
 
-    let browser_block = &asset_panes[browser_start..];
+    let browser_block = scoped_block_after(
+        &pane_content,
+        "component AssetBrowserPaneView inherits Rectangle {",
+    );
     assert!(browser_block.contains("Quick Import"));
     assert!(browser_block.contains("label: \"Metadata\""));
     assert!(browser_block.contains("label: \"Plugins\""));
 
-    assert!(
-        pane_content.contains(
-            "import { AssetBrowserPane, AssetsActivityPane, ProjectOverviewPane } from \"asset_panes.slint\";"
-        ),
-        "asset browser pane catalog should live under pane_content rather than the root host shell"
-    );
+    assert!(pane_content.contains(
+        "if !root.pane.show_empty && root.pane.kind == \"Assets\": AssetsActivityPaneView {"
+    ));
+    assert!(pane_content.contains(
+        "if !root.pane.show_empty && root.pane.kind == \"AssetBrowser\": AssetBrowserPaneView {"
+    ));
+    assert!(pane_content
+        .contains("if !root.pane.show_empty && root.pane.kind == \"Project\": TemplatePane {"));
     assert!(
         pane_content.contains("import { UiAssetEditorPane } from \"ui_asset_editor_pane.slint\";")
     );
-    assert!(!pane_content.contains(
-        "import { AssetBrowserPane, AssetFolderData, AssetItemData, AssetReferenceData, AssetSelectionData, AssetsActivityPane, ProjectOverviewPane } from \"assets.slint\";"
-    ));
+    assert!(pane_content.contains("component AssetBrowserPaneView inherits Rectangle {"));
+    assert!(pane_content.contains("component AssetsActivityPaneView inherits Rectangle {"));
+    assert!(!pane_content.contains("component ProjectOverviewPaneView inherits Rectangle {"));
     assert!(!pane_surface.contains("import { AssetBrowserPane"));
     assert!(!source.contains("import { AssetBrowserPane"));
+    assert!(!workbench_path("asset_panes.slint").exists());
+    assert!(!workbench_path("assets_activity_pane.slint").exists());
 }
 
 #[test]
-fn assets_surfaces_use_responsive_utility_height_constraints() {
-    let asset_panes = asset_panes_source();
+fn asset_browser_and_assets_activity_use_mount_nodes_for_utility_panels() {
+    let pane_content = pane_content_source();
+    let browser_block = scoped_block_after(
+        &pane_content,
+        "component AssetBrowserPaneView inherits Rectangle {",
+    );
+    let activity_block = scoped_block_after(
+        &pane_content,
+        "component AssetsActivityPaneView inherits Rectangle {",
+    );
 
-    assert!(asset_panes.contains(
-        "private property <length> utility_height: min(max(22% * root.height, 132px), 176px);"
-    ));
-    assert!(asset_panes.contains(
-        "private property <length> utility_height: min(max(24% * root.height, 176px), 240px);"
-    ));
+    assert!(browser_block.contains("AssetBrowserUtilityPanel"));
+    assert!(browser_block.contains("utility_panel_node.frame.height * 1px;"));
+    assert!(browser_block.contains("AssetBrowserReferenceLeftPanel"));
+    assert!(browser_block.contains("AssetBrowserReferenceRightPanel"));
+    assert!(!browser_block.contains("root.pane.shell_layout.utility_panel.height > 0.0 ?"));
+    assert!(!browser_block.contains("root.pane.shell_layout.utility_panel.height * 1px :"));
+    assert!(activity_block.contains("AssetsActivityUtilityPanel"));
+    assert!(activity_block.contains("utility_panel_node.frame.height * 1px;"));
+    assert!(!activity_block.contains("root.pane.shell_layout.utility_panel.height > 0.0 ?"));
 }
 
 #[test]
@@ -3869,6 +4084,7 @@ fn ui_asset_editor_pane_declares_palette_drag_creation_flow() {
 fn ui_asset_editor_pane_declares_palette_target_cycle_panel_and_keyboard_controls() {
     let source = shell_source();
     let panes = panes_source();
+    let chooser = workbench_source("ui_asset_editor_palette_target_chooser.slint");
     let pane_block = block_after(
         &panes,
         "export component UiAssetEditorPane inherits Rectangle {",
@@ -3882,10 +4098,11 @@ fn ui_asset_editor_pane_declares_palette_target_cycle_panel_and_keyboard_control
     assert!(pane_block.contains(
         "property <UiAssetPaletteDragData> palette_drag_projection: root.pane.palette_drag;"
     ));
-    assert!(pane_block.contains("title: \"Target Cycle\";"));
-    assert!(pane_block.contains("items: root.palette_drag_projection.candidate_items;"));
-    assert!(pane_block
-        .contains("selected_index: root.palette_drag_projection.candidate_selected_index;"));
+    assert!(chooser.contains("title: \"Target Cycle\";"));
+    assert!(chooser.contains("items: root.palette_drag_projection.candidate_items;"));
+    assert!(
+        chooser.contains("selected_index: root.palette_drag_projection.candidate_selected_index;")
+    );
 
     assert!(drag_overlay.contains("drag_focus := FocusScope {"));
     assert!(drag_overlay.contains("key-pressed(event) => {"));
@@ -3900,6 +4117,7 @@ fn ui_asset_editor_pane_declares_sticky_palette_target_chooser_controls() {
     let source = shell_source();
     let pane_catalog = pane_surface_host_context_source();
     let panes = panes_source();
+    let chooser = workbench_source("ui_asset_editor_palette_target_chooser.slint");
     let pane_block = block_after(
         &panes,
         "export component UiAssetEditorPane inherits Rectangle {",
@@ -3922,14 +4140,14 @@ fn ui_asset_editor_pane_declares_sticky_palette_target_chooser_controls() {
     assert!(pane_block.contains(
         "callback collection_event(collection_id: string, event_kind: string, item_index: int);"
     ));
-    assert!(panes.contains(
-        "if root.palette_drag_projection.candidate_items.length > 1 && (root.palette_drag_session.active || root.palette_drag_projection.target_chooser_active): Rectangle {"
+    assert!(pane_block.contains(
+        "if root.palette_drag_projection.candidate_items.length > 1 && (root.palette_drag_session.active || root.palette_drag_projection.target_chooser_active): UiAssetEditorPaletteTargetChooser {"
     ));
-    assert!(panes.contains(
+    assert!(chooser.contains(
         "root.collection_event(\"palette_target_candidate\", \"selected\", item_index);"
     ));
-    assert!(panes.contains("root.action(\"palette.target.confirm\");"));
-    assert!(panes.contains("root.action(\"palette.target.cancel\");"));
+    assert!(chooser.contains("root.action(\"palette.target.confirm\");"));
+    assert!(chooser.contains("root.action(\"palette.target.cancel\");"));
 }
 
 #[test]

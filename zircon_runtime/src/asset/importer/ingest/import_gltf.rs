@@ -40,6 +40,14 @@ impl AssetImporter {
                             .collect::<Vec<_>>()
                     })
                     .unwrap_or_default();
+                let joint_indices = reader
+                    .read_joints(0)
+                    .map(|set| set.into_u16().collect::<Vec<_>>())
+                    .unwrap_or_default();
+                let joint_weights = reader
+                    .read_weights(0)
+                    .map(|set| set.into_f32().collect::<Vec<_>>())
+                    .unwrap_or_default();
                 let indices = reader
                     .read_indices()
                     .map(|indices| indices.into_u32().collect::<Vec<_>>())
@@ -49,7 +57,12 @@ impl AssetImporter {
                     });
 
                 primitives.push(primitive_from_indexed_mesh(
-                    &positions, &normals, &texcoords, &indices,
+                    &positions,
+                    &normals,
+                    &texcoords,
+                    &indices,
+                    &joint_indices,
+                    &joint_weights,
                 )?);
             }
         }

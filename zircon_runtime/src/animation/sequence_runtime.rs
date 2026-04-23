@@ -17,8 +17,11 @@ pub fn apply_sequence_to_world(
     world: &mut World,
     sequence: &AnimationSequenceAsset,
     time_seconds: Real,
+    looping: bool,
 ) -> Result<AnimationSequenceApplyReport, String> {
     let mut report = AnimationSequenceApplyReport::default();
+    let sample_time =
+        resolve_sequence_sample_time(sequence.duration_seconds, time_seconds, looping);
 
     for binding in &sequence.bindings {
         let Some(entity) = world.resolve_entity_path(&binding.entity_path) else {
@@ -36,7 +39,7 @@ pub fn apply_sequence_to_world(
         for track in &binding.tracks {
             let track_path =
                 AnimationTrackPath::new(binding.entity_path.clone(), track.property_path.clone());
-            let Some(sample) = track.channel.sample(time_seconds) else {
+            let Some(sample) = track.channel.sample(sample_time) else {
                 report.missing_tracks.push(track_path);
                 continue;
             };
@@ -49,6 +52,23 @@ pub fn apply_sequence_to_world(
     }
 
     Ok(report)
+}
+
+fn resolve_sequence_sample_time(duration_seconds: Real, time_seconds: Real, looping: bool) -> Real {
+    if duration_seconds <= Real::EPSILON {
+        return 0.0;
+    }
+
+    let clamped = time_seconds.max(0.0);
+    if looping {
+        if clamped <= duration_seconds {
+            clamped
+        } else {
+            clamped.rem_euclid(duration_seconds)
+        }
+    } else {
+        clamped.min(duration_seconds)
+    }
 }
 
 impl AnimationChannelAsset {

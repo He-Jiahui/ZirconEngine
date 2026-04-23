@@ -1,0 +1,118 @@
+stylesheets = []
+
+[asset]
+kind = "layout"
+id = "editor.console"
+version = 1
+display_name = "Console"
+
+[imports]
+styles = ["res://ui/theme/editor_base.ui.toml"]
+
+[root]
+node_id = "console_root"
+kind = "native"
+type = "VerticalBox"
+control_id = "ConsoleRoot"
+classes = ["editor-shell"]
+
+[root.layout.container]
+kind = "VerticalBox"
+gap = 0.0
+
+[root.layout.width]
+stretch = "Stretch"
+
+[root.layout.height]
+stretch = "Stretch"
+
+[[root.children]]
+[root.children.node]
+node_id = "top_space"
+kind = "native"
+type = "Space"
+
+[root.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.layout.height]
+min = 8.0
+preferred = 8.0
+max = 8.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "content_row"
+kind = "native"
+type = "HorizontalBox"
+
+[root.children.node.layout.container]
+kind = "HorizontalBox"
+gap = 0.0
+
+[root.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children]]
+[root.children.node.children.node]
+node_id = "left_space"
+kind = "native"
+type = "Space"
+
+[root.children.node.children.node.layout.width]
+min = 10.0
+preferred = 10.0
+max = 10.0
+stretch = "Fixed"
+
+[root.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children]]
+[root.children.node.children.node]
+node_id = "text_panel"
+kind = "native"
+type = "Space"
+control_id = "ConsoleTextPanel"
+
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children]]
+[root.children.node.children.node]
+node_id = "right_space"
+kind = "native"
+type = "Space"
+
+[root.children.node.children.node.layout.width]
+min = 10.0
+preferred = 10.0
+max = 10.0
+stretch = "Fixed"
+
+[root.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children]]
+[root.children.node]
+node_id = "bottom_space"
+kind = "native"
+type = "Space"
+
+[root.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.layout.height]
+min = 8.0
+preferred = 8.0
+max = 8.0
+stretch = "Fixed"
+
+[components]

@@ -52,6 +52,8 @@ const HYBRID_GI_HISTORY_SUPPORT_REUSE_START: f32 = 0.2;
 const HYBRID_GI_HISTORY_SUPPORT_REUSE_RANGE: f32 = 0.45;
 const HYBRID_GI_HISTORY_RESOLVE_WEIGHT_MIN: f32 = 0.25;
 const HYBRID_GI_HISTORY_RESOLVE_WEIGHT_RANGE: f32 = 2.25;
+const HYBRID_GI_HISTORY_CONTINUATION_CONFIDENCE_SCALE: f32 = 1.0;
+const HYBRID_GI_HISTORY_SCENE_TRUTH_CONFIDENCE_RANGE: f32 = 0.45;
 const HYBRID_GI_HISTORY_CONFIDENCE_BLEND_BASE: f32 = 0.6;
 const HYBRID_GI_HISTORY_CONFIDENCE_BLEND_RANGE: f32 = 1.0;
 const HYBRID_GI_HISTORY_BLEND_MAX: f32 = 0.45;
@@ -186,12 +188,19 @@ fn fs_main(@builtin(position) position: vec4<f32>) -> FragmentOutput {
                 probe_irradiance = mix(probe_irradiance, rt_lighting_tint, rt_mix);
             }
             let probe_history_support = falloff * falloff * budget_weight;
+            let scene_truth_history_confidence =
+                clamp(probe.temporal_signature_and_padding.y, 0.0, 1.0);
             let probe_history_confidence =
                 clamp(
                     (hierarchy_resolve_weight - HYBRID_GI_HISTORY_RESOLVE_WEIGHT_MIN)
                     / HYBRID_GI_HISTORY_RESOLVE_WEIGHT_RANGE,
                     0.0,
                     1.0,
+                )
+                * (
+                    HYBRID_GI_HISTORY_CONTINUATION_CONFIDENCE_SCALE
+                    + scene_truth_history_confidence
+                        * HYBRID_GI_HISTORY_SCENE_TRUTH_CONFIDENCE_RANGE
                 );
             if (probe_history_support > indirect_light_history_support) {
                 indirect_light_history_signature = probe.temporal_signature_and_padding.x;

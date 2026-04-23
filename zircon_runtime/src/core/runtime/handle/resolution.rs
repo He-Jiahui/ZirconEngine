@@ -5,6 +5,8 @@ use crate::core::error::CoreError;
 use crate::core::lifecycle::{LifecycleState, ServiceKind};
 use crate::core::types::ServiceObject;
 
+use super::super::contexts::PluginContext;
+use super::super::state::ServiceEntryFactory;
 use super::CoreHandle;
 
 impl CoreHandle {
@@ -88,9 +90,20 @@ impl CoreHandle {
             self.resolve_named_service_inner(dependency.name.as_str(), None, stack)?;
         }
 
-        let instance = factory(self).map_err(|error| {
-            CoreError::Initialization(service_name.to_string(), error.to_string())
-        })?;
+        let instance = match factory {
+            ServiceEntryFactory::Service(factory) => factory(self),
+            ServiceEntryFactory::Plugin(factory) => {
+                let context = PluginContext {
+                    plugin_name: service_name.to_string(),
+                    core: self.downgrade(),
+                    package_root: None,
+                    source_root: None,
+                    data_root: None,
+                };
+                factory(&context)
+            }
+        }
+        .map_err(|error| CoreError::Initialization(service_name.to_string(), error.to_string()))?;
 
         {
             let mut services = self.inner.services.lock().unwrap();

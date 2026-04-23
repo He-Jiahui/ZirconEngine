@@ -15,12 +15,15 @@ pub(crate) use declarations::VirtualGeometryPageRequest;
 pub(crate) use declarations::VirtualGeometryPageResidencyState;
 pub(crate) use declarations::VirtualGeometryRuntimeState;
 pub(in crate::graphics::runtime::virtual_geometry) use declarations::HOT_FRONTIER_COOLING_FRAME_COUNT;
-pub(crate) use nanite::build_virtual_geometry_automatic_extract_from_meshes;
-pub(crate) use nanite::VirtualGeometryAutomaticExtractOutput;
 #[cfg(test)]
 pub(crate) use nanite::{
-    build_virtual_geometry_automatic_extract, resolve_virtual_geometry_extract,
-    VirtualGeometryAutomaticExtractInstance, VirtualGeometryCpuReferenceConfig,
-    VirtualGeometryCpuReferenceFrame, VirtualGeometryDebugConfig, VirtualGeometryExecutionMode,
+    build_virtual_geometry_automatic_extract, build_virtual_geometry_automatic_extract_from_meshes,
+    resolve_virtual_geometry_extract, VirtualGeometryAutomaticExtractInstance,
+    VirtualGeometryCpuReferenceConfig, VirtualGeometryCpuReferenceFrame,
+    VirtualGeometryDebugConfig, VirtualGeometryExecutionMode,
+};
+pub(crate) use nanite::{
+    build_virtual_geometry_automatic_extract_from_meshes_with_debug,
+    VirtualGeometryAutomaticExtractOutput,
 };
 pub(crate) use normalized_page_table_entries::normalized_page_table_entries;

@@ -1,3 +1,4 @@
+use crate::graphics::scene::resources::GpuMeshResource;
 use crate::graphics::types::ViewportRenderFrame;
 
 use super::super::super::mesh_draw::MeshDraw;
@@ -200,10 +201,16 @@ pub(crate) fn build_mesh_draws(
             .into_iter()
             .map(
                 |(indirect_args_offset, original_index, submission_detail, pending_draw)| {
+                    let mesh = match pending_draw.mesh {
+                        super::pending_mesh_draw::PendingMeshGeometry::Prepared(mesh) => mesh,
+                        super::pending_mesh_draw::PendingMeshGeometry::Skinned(primitive) => {
+                            std::sync::Arc::new(GpuMeshResource::from_asset(device, primitive))
+                        }
+                    };
                     create_mesh_draw(
                         device,
                         model_layout,
-                        pending_draw.mesh,
+                        mesh,
                         pending_draw.texture,
                         pending_draw.pipeline_key,
                         pending_draw.model_matrix,

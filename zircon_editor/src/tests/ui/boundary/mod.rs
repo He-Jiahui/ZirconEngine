@@ -4,4 +4,6 @@ mod host_cutover;
 mod root_surfaces;
 mod support;
 mod template_assets;
+mod view_projection_cutover;
+mod workbench_projection_cutover;
 mod workbench_state_cutover;

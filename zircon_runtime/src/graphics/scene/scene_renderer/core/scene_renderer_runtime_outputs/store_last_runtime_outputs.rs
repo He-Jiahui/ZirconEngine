@@ -1,11 +1,16 @@
 use crate::core::framework::render::{
-    RenderVirtualGeometryCluster, RenderVirtualGeometryDebugSnapshot,
+    RenderVirtualGeometryCluster, RenderVirtualGeometryClusterSelectionInputSource,
+    RenderVirtualGeometryCullInputSnapshot, RenderVirtualGeometryDebugSnapshot,
     RenderVirtualGeometryExecutionSegment, RenderVirtualGeometryExtract,
     RenderVirtualGeometryHardwareRasterizationRecord,
-    RenderVirtualGeometryHardwareRasterizationSource, RenderVirtualGeometrySelectedCluster,
-    RenderVirtualGeometrySubmissionEntry, RenderVirtualGeometrySubmissionRecord,
-    RenderVirtualGeometryVisBuffer64Entry, RenderVirtualGeometryVisBuffer64Source,
-    RenderVirtualGeometryVisBufferMark,
+    RenderVirtualGeometryHardwareRasterizationSource,
+    RenderVirtualGeometryNodeAndClusterCullDispatchSetupSnapshot,
+    RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot,
+    RenderVirtualGeometryNodeAndClusterCullInstanceSeed,
+    RenderVirtualGeometryNodeAndClusterCullSource, RenderVirtualGeometrySelectedCluster,
+    RenderVirtualGeometrySelectedClusterSource, RenderVirtualGeometrySubmissionEntry,
+    RenderVirtualGeometrySubmissionRecord, RenderVirtualGeometryVisBuffer64Entry,
+    RenderVirtualGeometryVisBuffer64Source, RenderVirtualGeometryVisBufferMark,
 };
 use std::sync::Arc;
 
@@ -24,6 +29,8 @@ pub(in crate::graphics::scene::scene_renderer::core) fn store_last_runtime_outpu
     hybrid_gi_gpu_readback: Option<HybridGiGpuPendingReadback>,
     virtual_geometry_gpu_readback: Option<VirtualGeometryGpuPendingReadback>,
     virtual_geometry_debug_snapshot: Option<RenderVirtualGeometryDebugSnapshot>,
+    virtual_geometry_cull_input: Option<RenderVirtualGeometryCullInputSnapshot>,
+    cluster_selection_input_source: RenderVirtualGeometryClusterSelectionInputSource,
     virtual_geometry_extract: Option<&RenderVirtualGeometryExtract>,
     indirect_draw_count: u32,
     indirect_buffer_count: u32,
@@ -36,13 +43,29 @@ pub(in crate::graphics::scene::scene_renderer::core) fn store_last_runtime_outpu
     execution_repeated_draw_count: u32,
     execution_indirect_offsets: Vec<u64>,
     execution_segments: Vec<RenderVirtualGeometryExecutionSegment>,
+    executed_selected_clusters: Vec<RenderVirtualGeometrySelectedCluster>,
+    selected_cluster_render_path_source: RenderVirtualGeometrySelectedClusterSource,
     executed_selected_cluster_count: u32,
     executed_selected_cluster_buffer: Option<Arc<wgpu::Buffer>>,
+    node_and_cluster_cull_source: RenderVirtualGeometryNodeAndClusterCullSource,
+    node_and_cluster_cull_record_count: u32,
+    node_and_cluster_cull_global_state: Option<
+        RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot,
+    >,
+    node_and_cluster_cull_dispatch_setup: Option<
+        RenderVirtualGeometryNodeAndClusterCullDispatchSetupSnapshot,
+    >,
+    node_and_cluster_cull_instance_seeds: Vec<RenderVirtualGeometryNodeAndClusterCullInstanceSeed>,
+    node_and_cluster_cull_buffer: Option<Arc<wgpu::Buffer>>,
+    node_and_cluster_cull_dispatch_setup_buffer: Option<Arc<wgpu::Buffer>>,
+    node_and_cluster_cull_instance_seed_count: u32,
+    node_and_cluster_cull_instance_seed_buffer: Option<Arc<wgpu::Buffer>>,
     hardware_rasterization_records: Vec<RenderVirtualGeometryHardwareRasterizationRecord>,
     hardware_rasterization_render_path_source: RenderVirtualGeometryHardwareRasterizationSource,
     hardware_rasterization_record_count: u32,
     hardware_rasterization_buffer: Option<Arc<wgpu::Buffer>>,
     visbuffer64_clear_value: u64,
+    visbuffer64_entries: Vec<RenderVirtualGeometryVisBuffer64Entry>,
     visbuffer64_render_path_source: RenderVirtualGeometryVisBuffer64Source,
     visbuffer64_entry_count: u32,
     visbuffer64_buffer: Option<Arc<wgpu::Buffer>>,
@@ -65,26 +88,41 @@ pub(in crate::graphics::scene::scene_renderer::core) fn store_last_runtime_outpu
     renderer.last_virtual_geometry_gpu_readback = virtual_geometry_gpu_readback
         .map(|pending| pending.collect(&renderer.backend.device))
         .transpose()?;
-    let fallback_readback_visbuffer64_entries =
+    let fallback_readback_selected_clusters =
         if renderer.last_virtual_geometry_gpu_readback.is_some() {
-            virtual_geometry_extract
-                .map(|extract| {
-                    rebuild_selected_clusters_from_execution_segments(
-                        &RenderVirtualGeometryDebugSnapshot {
-                            instances: extract.instances.clone(),
-                            ..RenderVirtualGeometryDebugSnapshot::default()
-                        },
-                        Some(extract),
-                        &execution_segments,
-                    )
-                })
-                .map(|selected_clusters| {
-                    rebuild_visbuffer64_entries_from_selected_clusters(&selected_clusters)
-                })
-                .unwrap_or_default()
+            if selected_cluster_render_path_source
+                == RenderVirtualGeometrySelectedClusterSource::RenderPathExecutionSelections
+            {
+                executed_selected_clusters.clone()
+            } else {
+                virtual_geometry_extract
+                    .map(|extract| {
+                        rebuild_selected_clusters_from_execution_segments(
+                            &RenderVirtualGeometryDebugSnapshot {
+                                instances: extract.instances.clone(),
+                                ..RenderVirtualGeometryDebugSnapshot::default()
+                            },
+                            Some(extract),
+                            &execution_segments,
+                        )
+                    })
+                    .unwrap_or_default()
+            }
         } else {
             Vec::new()
         };
+    let fallback_readback_visbuffer64_entries = if renderer
+        .last_virtual_geometry_gpu_readback
+        .is_some()
+    {
+        if !visbuffer64_entries.is_empty() {
+            visbuffer64_entries.clone()
+        } else {
+            rebuild_visbuffer64_entries_from_selected_clusters(&fallback_readback_selected_clusters)
+        }
+    } else {
+        Vec::new()
+    };
     let fallback_readback_has_entries = !fallback_readback_visbuffer64_entries.is_empty();
     let mut virtual_geometry_debug_snapshot = virtual_geometry_debug_snapshot;
     if let Some(snapshot) = virtual_geometry_debug_snapshot.as_mut() {
@@ -98,6 +136,8 @@ pub(in crate::graphics::scene::scene_renderer::core) fn store_last_runtime_outpu
             .iter()
             .map(|segment| (segment.original_index as usize, segment.instance_index))
             .collect::<HashMap<_, _>>();
+        snapshot.cluster_selection_input_source = cluster_selection_input_source;
+        snapshot.cull_input.cluster_selection_input_source = cluster_selection_input_source;
         snapshot.execution_segment_count = execution_segment_count;
         snapshot.execution_page_count = execution_page_count;
         snapshot.execution_resident_segment_count = execution_resident_segment_count;
@@ -105,30 +145,51 @@ pub(in crate::graphics::scene::scene_renderer::core) fn store_last_runtime_outpu
         snapshot.execution_missing_segment_count = execution_missing_segment_count;
         snapshot.execution_repeated_draw_count = execution_repeated_draw_count;
         snapshot.execution_indirect_offsets = execution_indirect_offsets.clone();
-        let selected_clusters = rebuild_selected_clusters_from_execution_segments(
+        let selected_clusters = resolve_selected_clusters_for_store(
             snapshot,
             virtual_geometry_extract,
             &execution_segments,
+            &executed_selected_clusters,
+            selected_cluster_render_path_source,
         );
         snapshot.selected_clusters = selected_clusters.clone();
+        snapshot.selected_clusters_source = selected_cluster_render_path_source;
+        snapshot.node_and_cluster_cull_source = node_and_cluster_cull_source;
+        snapshot.node_and_cluster_cull_record_count = node_and_cluster_cull_record_count;
+        snapshot.node_and_cluster_cull_instance_seeds =
+            node_and_cluster_cull_instance_seeds.clone();
+        snapshot.node_and_cluster_cull_dispatch_setup = node_and_cluster_cull_dispatch_setup;
+        snapshot.node_and_cluster_cull_global_state = node_and_cluster_cull_global_state.clone();
+        if let Some(global_state) = snapshot.node_and_cluster_cull_global_state.as_mut() {
+            global_state.cull_input.cluster_selection_input_source = cluster_selection_input_source;
+        }
         snapshot.hardware_rasterization_records = hardware_rasterization_records.clone();
         snapshot.hardware_rasterization_source = hardware_rasterization_render_path_source;
         snapshot.visbuffer_debug_marks =
             rebuild_visbuffer_debug_marks_from_selected_clusters(snapshot, &selected_clusters);
-        let visbuffer64_clear_value = RenderVirtualGeometryVisBuffer64Entry::CLEAR_VALUE;
-        let visbuffer64_entries =
-            rebuild_visbuffer64_entries_from_selected_clusters(&selected_clusters);
-        let visbuffer64_source = resolve_visbuffer64_buffer_source(
+        let resolved_visbuffer64_entries = resolve_visbuffer64_entries_for_store(
+            &selected_clusters,
+            &visbuffer64_entries,
             visbuffer64_render_path_source,
-            !visbuffer64_entries.is_empty(),
+        );
+        let resolved_visbuffer64_source = resolve_visbuffer64_buffer_source(
+            visbuffer64_render_path_source,
+            !resolved_visbuffer64_entries.is_empty(),
             fallback_readback_has_entries,
         );
-        snapshot.visbuffer64_source = visbuffer64_source;
+        snapshot.visbuffer64_source = resolved_visbuffer64_source;
         snapshot.visbuffer64_clear_value = visbuffer64_clear_value;
-        snapshot.visbuffer64_entries = visbuffer64_entries.clone();
+        snapshot.visbuffer64_entries = resolved_visbuffer64_entries.clone();
         if let Some(readback) = renderer.last_virtual_geometry_gpu_readback.as_mut() {
+            readback.hardware_rasterization_record_count = hardware_rasterization_record_count;
+            readback.hardware_rasterization_source = hardware_rasterization_render_path_source;
+            readback.selected_cluster_count = executed_selected_cluster_count;
+            readback.selected_cluster_source = selected_cluster_render_path_source;
+            readback.selected_clusters = selected_clusters.clone();
+            readback.visbuffer64_entry_count = visbuffer64_entry_count;
+            readback.visbuffer64_source = visbuffer64_render_path_source;
             readback.visbuffer64_clear_value = visbuffer64_clear_value;
-            readback.visbuffer64_entries = visbuffer64_entries;
+            readback.visbuffer64_entries = resolved_visbuffer64_entries;
         }
         snapshot.execution_segments = execution_segments;
         snapshot.submission_order = indirect_draw_submission_order
@@ -164,6 +225,15 @@ pub(in crate::graphics::scene::scene_renderer::core) fn store_last_runtime_outpu
             .collect();
     }
     if let Some(readback) = renderer.last_virtual_geometry_gpu_readback.as_mut() {
+        readback.hardware_rasterization_record_count = hardware_rasterization_record_count;
+        readback.hardware_rasterization_source = hardware_rasterization_render_path_source;
+        readback.selected_cluster_count = executed_selected_cluster_count;
+        readback.selected_cluster_source = selected_cluster_render_path_source;
+        if readback.selected_clusters.is_empty() {
+            readback.selected_clusters = fallback_readback_selected_clusters;
+        }
+        readback.visbuffer64_entry_count = visbuffer64_entry_count;
+        readback.visbuffer64_source = visbuffer64_render_path_source;
         readback.visbuffer64_clear_value = RenderVirtualGeometryVisBuffer64Entry::CLEAR_VALUE;
         if readback.visbuffer64_entries.is_empty() {
             readback.visbuffer64_entries = fallback_readback_visbuffer64_entries;
@@ -219,6 +289,30 @@ pub(in crate::graphics::scene::scene_renderer::core) fn store_last_runtime_outpu
             )
             .unwrap_or(u32::MAX)
         };
+    renderer.last_virtual_geometry_cluster_selection_input_source = cluster_selection_input_source;
+    let resolved_cull_input = virtual_geometry_debug_snapshot
+        .as_ref()
+        .map(|snapshot| snapshot.cull_input)
+        .or_else(|| {
+            virtual_geometry_cull_input.map(|mut cull_input| {
+                cull_input.cluster_selection_input_source = cluster_selection_input_source;
+                cull_input
+            })
+        });
+    renderer.last_virtual_geometry_cull_input_buffer = resolved_cull_input
+        .as_ref()
+        .and_then(|cull_input| create_cull_input_buffer(&renderer.backend.device, cull_input));
+    renderer.last_virtual_geometry_node_and_cluster_cull_source = node_and_cluster_cull_source;
+    renderer.last_virtual_geometry_node_and_cluster_cull_record_count =
+        node_and_cluster_cull_record_count;
+    renderer.last_virtual_geometry_node_and_cluster_cull_buffer = node_and_cluster_cull_buffer;
+    renderer.last_virtual_geometry_node_and_cluster_cull_dispatch_setup_buffer =
+        node_and_cluster_cull_dispatch_setup_buffer;
+    renderer.last_virtual_geometry_node_and_cluster_cull_instance_seed_count =
+        node_and_cluster_cull_instance_seed_count;
+    renderer.last_virtual_geometry_node_and_cluster_cull_instance_seed_buffer =
+        node_and_cluster_cull_instance_seed_buffer;
+    renderer.last_virtual_geometry_selected_cluster_source = selected_cluster_render_path_source;
     renderer.last_virtual_geometry_selected_cluster_buffer = executed_selected_cluster_buffer
         .or_else(|| {
             create_selected_cluster_buffer(&renderer.backend.device, &selected_cluster_packed_words)
@@ -298,6 +392,24 @@ fn create_selected_cluster_buffer(
     )))
 }
 
+fn create_cull_input_buffer(
+    device: &wgpu::Device,
+    cull_input: &RenderVirtualGeometryCullInputSnapshot,
+) -> Option<Arc<wgpu::Buffer>> {
+    let packed_words = cull_input.packed_words();
+    if packed_words.is_empty() {
+        return None;
+    }
+
+    Some(Arc::new(device.create_buffer_init(
+        &wgpu::util::BufferInitDescriptor {
+            label: Some("zircon-vg-cull-input-buffer"),
+            contents: bytemuck::cast_slice(&packed_words),
+            usage: wgpu::BufferUsages::COPY_SRC | wgpu::BufferUsages::STORAGE,
+        },
+    )))
+}
+
 fn rebuild_selected_clusters_from_execution_segments(
     snapshot: &RenderVirtualGeometryDebugSnapshot,
     virtual_geometry_extract: Option<&RenderVirtualGeometryExtract>,
@@ -365,6 +477,26 @@ fn rebuild_selected_clusters_from_execution_segments(
     selected_clusters
 }
 
+fn resolve_selected_clusters_for_store(
+    snapshot: &RenderVirtualGeometryDebugSnapshot,
+    virtual_geometry_extract: Option<&RenderVirtualGeometryExtract>,
+    execution_segments: &[RenderVirtualGeometryExecutionSegment],
+    executed_selected_clusters: &[RenderVirtualGeometrySelectedCluster],
+    selected_cluster_render_path_source: RenderVirtualGeometrySelectedClusterSource,
+) -> Vec<RenderVirtualGeometrySelectedCluster> {
+    if selected_cluster_render_path_source
+        != RenderVirtualGeometrySelectedClusterSource::Unavailable
+    {
+        return executed_selected_clusters.to_vec();
+    }
+
+    rebuild_selected_clusters_from_execution_segments(
+        snapshot,
+        virtual_geometry_extract,
+        execution_segments,
+    )
+}
+
 fn rebuild_visbuffer_debug_marks_from_selected_clusters(
     snapshot: &RenderVirtualGeometryDebugSnapshot,
     selected_clusters: &[RenderVirtualGeometrySelectedCluster],
@@ -404,6 +536,23 @@ fn rebuild_visbuffer64_entries_from_selected_clusters(
             )
         })
         .collect()
+}
+
+fn resolve_visbuffer64_entries_for_store(
+    selected_clusters: &[RenderVirtualGeometrySelectedCluster],
+    pass_owned_visbuffer64_entries: &[RenderVirtualGeometryVisBuffer64Entry],
+    visbuffer64_render_path_source: RenderVirtualGeometryVisBuffer64Source,
+) -> Vec<RenderVirtualGeometryVisBuffer64Entry> {
+    if visbuffer64_render_path_source == RenderVirtualGeometryVisBuffer64Source::RenderPathClearOnly
+    {
+        return Vec::new();
+    }
+
+    if !pass_owned_visbuffer64_entries.is_empty() {
+        return pass_owned_visbuffer64_entries.to_vec();
+    }
+
+    rebuild_visbuffer64_entries_from_selected_clusters(selected_clusters)
 }
 
 fn create_visbuffer64_buffer(
@@ -544,13 +693,17 @@ fn visbuffer_mark_color(cluster_id: u32, page_id: u32, lod_level: u8) -> [u8; 4]
 
 #[cfg(test)]
 mod tests {
-    use super::rebuild_selected_clusters_from_execution_segments;
+    use super::{
+        rebuild_selected_clusters_from_execution_segments, resolve_selected_clusters_for_store,
+        resolve_visbuffer64_entries_for_store,
+    };
     use crate::core::framework::render::{
         RenderVirtualGeometryCluster, RenderVirtualGeometryDebugSnapshot,
         RenderVirtualGeometryDebugState, RenderVirtualGeometryExecutionSegment,
         RenderVirtualGeometryExecutionState, RenderVirtualGeometryExtract,
         RenderVirtualGeometryInstance, RenderVirtualGeometryPage,
-        RenderVirtualGeometrySelectedCluster,
+        RenderVirtualGeometrySelectedCluster, RenderVirtualGeometrySelectedClusterSource,
+        RenderVirtualGeometryVisBuffer64Entry, RenderVirtualGeometryVisBuffer64Source,
     };
     use crate::core::math::{Transform, Vec3};
 
@@ -637,6 +790,149 @@ mod tests {
                 state: RenderVirtualGeometryExecutionState::Resident,
             }],
             "expected the post-render authoritative selection to shrink from the submission-build visibility superset down to the real execution-backed cluster subset"
+        );
+    }
+
+    #[test]
+    fn resolve_selected_clusters_for_store_prefers_pass_owned_selected_clusters() {
+        let entity = 77_u64;
+        let extract = RenderVirtualGeometryExtract {
+            cluster_budget: 2,
+            page_budget: 0,
+            clusters: vec![
+                cluster(entity, 20, 200, 0, Vec3::ZERO, 9.0),
+                cluster(entity, 30, 300, 0, Vec3::new(0.1, 0.0, 0.0), 8.0),
+            ],
+            pages: vec![page(200, true), page(300, true)],
+            instances: vec![RenderVirtualGeometryInstance {
+                entity,
+                source_model: None,
+                transform: Transform::default(),
+                cluster_offset: 0,
+                cluster_count: 2,
+                page_offset: 0,
+                page_count: 2,
+                mesh_name: Some("StoreOutputsExplicitSelectionUnitTestMesh".to_string()),
+                source_hint: Some("unit-test".to_string()),
+            }],
+            debug: RenderVirtualGeometryDebugState::default(),
+        };
+        let snapshot = RenderVirtualGeometryDebugSnapshot {
+            instances: extract.instances.clone(),
+            debug: extract.debug,
+            selected_clusters: vec![RenderVirtualGeometrySelectedCluster {
+                instance_index: Some(0),
+                entity,
+                cluster_id: 20,
+                cluster_ordinal: 0,
+                page_id: 200,
+                lod_level: 0,
+                state: RenderVirtualGeometryExecutionState::Resident,
+            }],
+            ..RenderVirtualGeometryDebugSnapshot::default()
+        };
+        let execution_segments = vec![RenderVirtualGeometryExecutionSegment {
+            original_index: 0,
+            instance_index: Some(0),
+            entity,
+            page_id: 300,
+            draw_ref_index: 0,
+            submission_index: Some(0),
+            draw_ref_rank: Some(0),
+            cluster_start_ordinal: 1,
+            cluster_span_count: 1,
+            cluster_total_count: 2,
+            submission_slot: Some(0),
+            state: RenderVirtualGeometryExecutionState::Resident,
+            lineage_depth: 0,
+            lod_level: 0,
+            frontier_rank: 0,
+        }];
+        let explicit_selected_clusters = vec![RenderVirtualGeometrySelectedCluster {
+            instance_index: Some(0),
+            entity,
+            cluster_id: 20,
+            cluster_ordinal: 0,
+            page_id: 200,
+            lod_level: 0,
+            state: RenderVirtualGeometryExecutionState::Resident,
+        }];
+
+        assert_eq!(
+            resolve_selected_clusters_for_store(
+                &snapshot,
+                Some(&extract),
+                &execution_segments,
+                &explicit_selected_clusters,
+                RenderVirtualGeometrySelectedClusterSource::RenderPathExecutionSelections,
+            ),
+            explicit_selected_clusters,
+            "expected store_last_runtime_outputs to trust the executed selected-cluster pass output directly once that seam produced an authoritative render-path selection instead of re-deriving a second cluster list from execution segments"
+        );
+    }
+
+    #[test]
+    fn resolve_visbuffer64_entries_for_store_prefers_pass_owned_entries() {
+        let selected_clusters = vec![RenderVirtualGeometrySelectedCluster {
+            instance_index: Some(0),
+            entity: 77,
+            cluster_id: 30,
+            cluster_ordinal: 1,
+            page_id: 300,
+            lod_level: 0,
+            state: RenderVirtualGeometryExecutionState::Resident,
+        }];
+        let pass_owned_entries = vec![RenderVirtualGeometryVisBuffer64Entry {
+            entry_index: 0,
+            packed_value: RenderVirtualGeometryVisBuffer64Entry::packed_value_for(
+                Some(9),
+                20,
+                200,
+                1,
+                RenderVirtualGeometryExecutionState::PendingUpload,
+            ),
+            instance_index: Some(9),
+            entity: 999,
+            cluster_id: 20,
+            page_id: 200,
+            lod_level: 1,
+            state: RenderVirtualGeometryExecutionState::PendingUpload,
+        }];
+
+        assert_eq!(
+            resolve_visbuffer64_entries_for_store(
+                &selected_clusters,
+                &pass_owned_entries,
+                RenderVirtualGeometryVisBuffer64Source::RenderPathExecutionSelections,
+            ),
+            pass_owned_entries,
+            "expected store_last_runtime_outputs to trust the render-path VisBuffer64 pass output directly once that seam exists instead of rebuilding a second logical entry stream from selected clusters"
+        );
+    }
+
+    #[test]
+    fn resolve_visbuffer64_entries_for_store_rebuilds_when_pass_entries_are_missing() {
+        let selected_clusters = vec![RenderVirtualGeometrySelectedCluster {
+            instance_index: Some(0),
+            entity: 77,
+            cluster_id: 30,
+            cluster_ordinal: 1,
+            page_id: 300,
+            lod_level: 0,
+            state: RenderVirtualGeometryExecutionState::Resident,
+        }];
+
+        assert_eq!(
+            resolve_visbuffer64_entries_for_store(
+                &selected_clusters,
+                &[],
+                RenderVirtualGeometryVisBuffer64Source::RenderPathExecutionSelections,
+            ),
+            vec![RenderVirtualGeometryVisBuffer64Entry::from_selected_cluster(
+                0,
+                &selected_clusters[0],
+            )],
+            "expected store_last_runtime_outputs to fall back to execution-backed selected-cluster rebuild when the render path claims execution ownership but the pass-owned VisBuffer64 entry stream is still empty"
         );
     }
 

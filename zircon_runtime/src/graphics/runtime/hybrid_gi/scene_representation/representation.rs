@@ -128,15 +128,19 @@ impl HybridGiSceneRepresentation {
 
         self.surface_cache
             .synchronize(&active_card_ids, self.settings.card_budget as usize);
-        self.surface_cache.mark_dirty_pages(changed_card_ids);
+        self.surface_cache.mark_dirty_owner_cards(changed_card_ids);
         if lights_changed {
             self.surface_cache.mark_all_resident_pages_dirty();
         }
+        let dirty_page_ids = self.surface_cache.dirty_page_ids_snapshot();
+        let surface_cache_page_contents = self.surface_cache.page_contents_snapshot();
         self.voxel_scene.synchronize(
             &cards,
             &directional_lights,
             &point_lights,
             &spot_lights,
+            &surface_cache_page_contents,
+            &dirty_page_ids,
             self.settings.voxel_budget as usize,
             cards_changed || lights_changed,
         );
@@ -253,13 +257,18 @@ fn build_card_capture_requests(
         .page_table_entries_snapshot()
         .into_iter()
         .collect::<BTreeMap<_, _>>();
+    let owner_card_ids_by_page_id = surface_cache
+        .owner_card_ids_by_page_id_snapshot()
+        .into_iter()
+        .collect::<BTreeMap<_, _>>();
 
     surface_cache
         .capture_atlas_entries_snapshot()
         .into_iter()
         .filter_map(|(page_id, capture_slot_id)| {
             let atlas_slot_id = atlas_slots_by_page_id.get(&page_id).copied()?;
-            let card = cards_by_id.get(&page_id)?;
+            let owner_card_id = owner_card_ids_by_page_id.get(&page_id).copied()?;
+            let card = cards_by_id.get(&owner_card_id)?;
             Some(HybridGiCardCaptureRequest {
                 card_id: card.card_id,
                 page_id,

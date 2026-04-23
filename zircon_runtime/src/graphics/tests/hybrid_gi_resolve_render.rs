@@ -12,8 +12,9 @@ use crate::{
     runtime::HybridGiRuntimeState,
     types::{
         HybridGiPrepareCardCaptureRequest, HybridGiPrepareFrame, HybridGiPrepareProbe,
-        HybridGiPrepareVoxelCell, HybridGiPrepareVoxelClipmap, HybridGiResolveRuntime,
-        HybridGiScenePrepareFrame, ViewportRenderFrame,
+        HybridGiPrepareSurfaceCachePageContent, HybridGiPrepareVoxelCell,
+        HybridGiPrepareVoxelClipmap, HybridGiResolveRuntime, HybridGiScenePrepareFrame,
+        ViewportRenderFrame,
     },
     BuiltinRenderFeature, RenderPipelineAsset, RenderPipelineCompileOptions, SceneRenderer,
 };
@@ -694,6 +695,1346 @@ fn hybrid_gi_resolve_changes_when_trace_region_rt_lighting_tint_changes() {
     assert!(
         cool_blue > warm_blue + 0.6,
         "expected cool RT-lighting trace region tint to increase blue indirect light during resolve; warm_blue={warm_blue:.2}, cool_blue={cool_blue:.2}"
+    );
+}
+
+#[test]
+fn hybrid_gi_resolve_scene_driven_frame_ignores_trace_region_boost() {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let viewport_size = UVec2::new(96, 64);
+    let extract = build_extract_with_probes_and_trace_regions(
+        viewport_size,
+        vec![probe(200, true, 128, Vec3::ZERO, 3.5)],
+        vec![trace_region_with_bounds(
+            40,
+            Vec3::new(-1.25, 0.0, 0.0),
+            1.75,
+            0.9,
+        )],
+    );
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(
+            &extract,
+            &RenderPipelineCompileOptions::default()
+                .with_feature_enabled(BuiltinRenderFeature::GlobalIllumination)
+                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
+                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
+                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
+                .with_feature_disabled(BuiltinRenderFeature::Bloom)
+                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
+                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
+                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
+                .with_feature_disabled(BuiltinRenderFeature::Particle)
+                .with_feature_disabled(BuiltinRenderFeature::VirtualGeometry)
+                .with_async_compute(false),
+        )
+        .unwrap();
+    let scene_prepare =
+        runtime_voxel_scene_prepare_from_tinted_mesh([0.78, 0.48, 0.26], Vec3::ZERO, 1.0);
+
+    let without_trace = renderer
+        .render_frame_with_pipeline(
+            &ViewportRenderFrame::from_extract(extract.clone(), viewport_size)
+                .with_hybrid_gi_prepare(Some(HybridGiPrepareFrame {
+                    resident_probes: vec![HybridGiPrepareProbe {
+                        probe_id: 200,
+                        slot: 0,
+                        ray_budget: 128,
+                        irradiance_rgb: [160, 160, 160],
+                    }],
+                    pending_updates: Vec::new(),
+                    scheduled_trace_region_ids: Vec::new(),
+                    evictable_probe_ids: Vec::new(),
+                }))
+                .with_hybrid_gi_scene_prepare(Some(scene_prepare.clone())),
+            &compiled,
+            None,
+        )
+        .unwrap();
+    let with_trace = renderer
+        .render_frame_with_pipeline(
+            &ViewportRenderFrame::from_extract(extract, viewport_size)
+                .with_hybrid_gi_prepare(Some(HybridGiPrepareFrame {
+                    resident_probes: vec![HybridGiPrepareProbe {
+                        probe_id: 200,
+                        slot: 0,
+                        ray_budget: 128,
+                        irradiance_rgb: [160, 160, 160],
+                    }],
+                    pending_updates: Vec::new(),
+                    scheduled_trace_region_ids: vec![40],
+                    evictable_probe_ids: Vec::new(),
+                }))
+                .with_hybrid_gi_scene_prepare(Some(scene_prepare)),
+            &compiled,
+            None,
+        )
+        .unwrap();
+
+    let left_luma_delta = average_half_luma_delta(
+        &without_trace.rgba,
+        &with_trace.rgba,
+        viewport_size,
+        Half::Left,
+    );
+    let right_luma_delta = average_half_luma_delta(
+        &without_trace.rgba,
+        &with_trace.rgba,
+        viewport_size,
+        Half::Right,
+    );
+
+    assert!(
+        left_luma_delta < 0.15,
+        "expected scene-driven GI frames to stop using authored trace-region boost as a direct final-composite weight source; left_delta={left_luma_delta:.2}"
+    );
+    assert!(
+        right_luma_delta < 0.15,
+        "expected scene-driven GI frames to stay stable outside legacy trace-region boost even when scheduled trace ids remain for fixture/runtime scaffolding; right_delta={right_luma_delta:.2}"
+    );
+}
+
+#[test]
+fn hybrid_gi_resolve_scene_driven_frame_ignores_trace_region_rt_lighting_tint_changes() {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let viewport_size = UVec2::new(96, 64);
+    let probe = probe(200, true, 128, Vec3::ZERO, 2.6);
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(
+            &build_extract_with_probes_and_trace_regions(
+                viewport_size,
+                vec![probe],
+                vec![trace_region_with_bounds_and_rt_lighting(
+                    40,
+                    Vec3::ZERO,
+                    1.35,
+                    0.95,
+                    [255, 64, 32],
+                )],
+            ),
+            &RenderPipelineCompileOptions::default()
+                .with_feature_enabled(BuiltinRenderFeature::GlobalIllumination)
+                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
+                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
+                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
+                .with_feature_disabled(BuiltinRenderFeature::Bloom)
+                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
+                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
+                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
+                .with_feature_disabled(BuiltinRenderFeature::Particle)
+                .with_feature_disabled(BuiltinRenderFeature::VirtualGeometry)
+                .with_async_compute(false),
+        )
+        .unwrap();
+    let scene_prepare =
+        runtime_voxel_scene_prepare_from_tinted_mesh([0.78, 0.48, 0.26], Vec3::ZERO, 1.0);
+
+    let warm = renderer
+        .render_frame_with_pipeline(
+            &ViewportRenderFrame::from_extract(
+                build_extract_with_probes_and_trace_regions(
+                    viewport_size,
+                    vec![probe],
+                    vec![trace_region_with_bounds_and_rt_lighting(
+                        40,
+                        Vec3::ZERO,
+                        1.35,
+                        0.95,
+                        [255, 64, 32],
+                    )],
+                ),
+                viewport_size,
+            )
+            .with_hybrid_gi_prepare(Some(HybridGiPrepareFrame {
+                resident_probes: vec![HybridGiPrepareProbe {
+                    probe_id: 200,
+                    slot: 0,
+                    ray_budget: 128,
+                    irradiance_rgb: [160, 160, 160],
+                }],
+                pending_updates: Vec::new(),
+                scheduled_trace_region_ids: vec![40],
+                evictable_probe_ids: Vec::new(),
+            }))
+            .with_hybrid_gi_scene_prepare(Some(scene_prepare.clone())),
+            &compiled,
+            None,
+        )
+        .unwrap();
+    let cool = renderer
+        .render_frame_with_pipeline(
+            &ViewportRenderFrame::from_extract(
+                build_extract_with_probes_and_trace_regions(
+                    viewport_size,
+                    vec![probe],
+                    vec![trace_region_with_bounds_and_rt_lighting(
+                        40,
+                        Vec3::ZERO,
+                        1.35,
+                        0.95,
+                        [32, 96, 255],
+                    )],
+                ),
+                viewport_size,
+            )
+            .with_hybrid_gi_prepare(Some(HybridGiPrepareFrame {
+                resident_probes: vec![HybridGiPrepareProbe {
+                    probe_id: 200,
+                    slot: 0,
+                    ray_budget: 128,
+                    irradiance_rgb: [160, 160, 160],
+                }],
+                pending_updates: Vec::new(),
+                scheduled_trace_region_ids: vec![40],
+                evictable_probe_ids: Vec::new(),
+            }))
+            .with_hybrid_gi_scene_prepare(Some(scene_prepare)),
+            &compiled,
+            None,
+        )
+        .unwrap();
+
+    let warm_red = average_region_channel(&warm.rgba, viewport_size, 0, 0.35, 0.65, 0.25, 0.75);
+    let warm_blue = average_region_channel(&warm.rgba, viewport_size, 2, 0.35, 0.65, 0.25, 0.75);
+    let cool_red = average_region_channel(&cool.rgba, viewport_size, 0, 0.35, 0.65, 0.25, 0.75);
+    let cool_blue = average_region_channel(&cool.rgba, viewport_size, 2, 0.35, 0.65, 0.25, 0.75);
+    let warm_luma = average_region_luma(&warm.rgba, viewport_size, 0.35, 0.65, 0.25, 0.75);
+
+    assert!(
+        warm_luma > 1.0,
+        "expected the scene-driven GI fixture itself to contribute visible indirect light so the trace-region-tint check is meaningful; warm_luma={warm_luma:.2}"
+    );
+    assert!(
+        (warm_red - cool_red).abs() < 0.2,
+        "expected authored trace-region RT tint to stop recoloring final scene-driven GI resolve once voxel/surface scene truth is present; warm_red={warm_red:.2}, cool_red={cool_red:.2}"
+    );
+    assert!(
+        (warm_blue - cool_blue).abs() < 0.2,
+        "expected scene-driven GI resolve to stay stable across legacy trace-region tint changes once the new scene representation path is active; warm_blue={warm_blue:.2}, cool_blue={cool_blue:.2}"
+    );
+}
+
+#[test]
+fn hybrid_gi_resolve_scene_driven_frame_ignores_prepare_probe_irradiance_tint_changes() {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let viewport_size = UVec2::new(96, 64);
+    let extract = build_extract_with_probes_and_trace_regions(
+        viewport_size,
+        vec![probe(200, true, 128, Vec3::ZERO, 2.6)],
+        Vec::new(),
+    );
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(
+            &extract,
+            &RenderPipelineCompileOptions::default()
+                .with_feature_enabled(BuiltinRenderFeature::GlobalIllumination)
+                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
+                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
+                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
+                .with_feature_disabled(BuiltinRenderFeature::Bloom)
+                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
+                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
+                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
+                .with_feature_disabled(BuiltinRenderFeature::Particle)
+                .with_feature_disabled(BuiltinRenderFeature::VirtualGeometry)
+                .with_async_compute(false),
+        )
+        .unwrap();
+    let scene_prepare =
+        runtime_voxel_scene_prepare_from_tinted_mesh([0.78, 0.48, 0.26], Vec3::ZERO, 1.0);
+
+    let warm = renderer
+        .render_frame_with_pipeline(
+            &ViewportRenderFrame::from_extract(extract.clone(), viewport_size)
+                .with_hybrid_gi_prepare(Some(HybridGiPrepareFrame {
+                    resident_probes: vec![HybridGiPrepareProbe {
+                        probe_id: 200,
+                        slot: 0,
+                        ray_budget: 128,
+                        irradiance_rgb: [255, 96, 48],
+                    }],
+                    pending_updates: Vec::new(),
+                    scheduled_trace_region_ids: Vec::new(),
+                    evictable_probe_ids: Vec::new(),
+                }))
+                .with_hybrid_gi_scene_prepare(Some(scene_prepare.clone())),
+            &compiled,
+            None,
+        )
+        .unwrap();
+    let cool = renderer
+        .render_frame_with_pipeline(
+            &ViewportRenderFrame::from_extract(extract, viewport_size)
+                .with_hybrid_gi_prepare(Some(HybridGiPrepareFrame {
+                    resident_probes: vec![HybridGiPrepareProbe {
+                        probe_id: 200,
+                        slot: 0,
+                        ray_budget: 128,
+                        irradiance_rgb: [48, 96, 255],
+                    }],
+                    pending_updates: Vec::new(),
+                    scheduled_trace_region_ids: Vec::new(),
+                    evictable_probe_ids: Vec::new(),
+                }))
+                .with_hybrid_gi_scene_prepare(Some(scene_prepare)),
+            &compiled,
+            None,
+        )
+        .unwrap();
+
+    let warm_red = average_region_channel(&warm.rgba, viewport_size, 0, 0.35, 0.65, 0.25, 0.75);
+    let warm_blue = average_region_channel(&warm.rgba, viewport_size, 2, 0.35, 0.65, 0.25, 0.75);
+    let cool_red = average_region_channel(&cool.rgba, viewport_size, 0, 0.35, 0.65, 0.25, 0.75);
+    let cool_blue = average_region_channel(&cool.rgba, viewport_size, 2, 0.35, 0.65, 0.25, 0.75);
+    let warm_luma = average_region_luma(&warm.rgba, viewport_size, 0.35, 0.65, 0.25, 0.75);
+
+    assert!(
+        warm_luma > 1.0,
+        "expected the scene-driven GI fixture itself to contribute visible indirect light so the authored-probe-tint check is meaningful; warm_luma={warm_luma:.2}"
+    );
+    assert!(
+        (warm_red - cool_red).abs() < 0.2,
+        "expected scene-driven GI resolve to stop recoloring final output from authored resident-probe irradiance once voxel/surface truth is present; warm_red={warm_red:.2}, cool_red={cool_red:.2}"
+    );
+    assert!(
+        (warm_blue - cool_blue).abs() < 0.2,
+        "expected scene-driven GI resolve to stay stable across authored resident-probe irradiance tint changes once the new scene representation path is active; warm_blue={warm_blue:.2}, cool_blue={cool_blue:.2}"
+    );
+}
+
+#[test]
+fn hybrid_gi_resolve_scene_driven_frame_ignores_prepare_probe_screen_position_changes() {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let viewport_size = UVec2::new(96, 64);
+    let scene_prepare =
+        runtime_voxel_scene_prepare_from_tinted_mesh([0.78, 0.48, 0.26], Vec3::ZERO, 1.0);
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(
+            &build_extract_with_probes_and_trace_regions(
+                viewport_size,
+                vec![probe(200, true, 128, Vec3::new(-0.9, 0.0, 0.0), 2.2)],
+                Vec::new(),
+            ),
+            &RenderPipelineCompileOptions::default()
+                .with_feature_enabled(BuiltinRenderFeature::GlobalIllumination)
+                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
+                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
+                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
+                .with_feature_disabled(BuiltinRenderFeature::Bloom)
+                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
+                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
+                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
+                .with_feature_disabled(BuiltinRenderFeature::Particle)
+                .with_feature_disabled(BuiltinRenderFeature::VirtualGeometry)
+                .with_async_compute(false),
+        )
+        .unwrap();
+
+    let left = renderer
+        .render_frame_with_pipeline(
+            &ViewportRenderFrame::from_extract(
+                build_extract_with_probes_and_trace_regions(
+                    viewport_size,
+                    vec![probe(200, true, 128, Vec3::new(-0.9, 0.0, 0.0), 2.2)],
+                    Vec::new(),
+                ),
+                viewport_size,
+            )
+            .with_hybrid_gi_prepare(Some(HybridGiPrepareFrame {
+                resident_probes: vec![HybridGiPrepareProbe {
+                    probe_id: 200,
+                    slot: 0,
+                    ray_budget: 128,
+                    irradiance_rgb: [160, 160, 160],
+                }],
+                pending_updates: Vec::new(),
+                scheduled_trace_region_ids: Vec::new(),
+                evictable_probe_ids: Vec::new(),
+            }))
+            .with_hybrid_gi_scene_prepare(Some(scene_prepare.clone())),
+            &compiled,
+            None,
+        )
+        .unwrap();
+    let right = renderer
+        .render_frame_with_pipeline(
+            &ViewportRenderFrame::from_extract(
+                build_extract_with_probes_and_trace_regions(
+                    viewport_size,
+                    vec![probe(200, true, 128, Vec3::new(0.9, 0.0, 0.0), 2.2)],
+                    Vec::new(),
+                ),
+                viewport_size,
+            )
+            .with_hybrid_gi_prepare(Some(HybridGiPrepareFrame {
+                resident_probes: vec![HybridGiPrepareProbe {
+                    probe_id: 200,
+                    slot: 0,
+                    ray_budget: 128,
+                    irradiance_rgb: [160, 160, 160],
+                }],
+                pending_updates: Vec::new(),
+                scheduled_trace_region_ids: Vec::new(),
+                evictable_probe_ids: Vec::new(),
+            }))
+            .with_hybrid_gi_scene_prepare(Some(scene_prepare)),
+            &compiled,
+            None,
+        )
+        .unwrap();
+
+    let left_luma = average_region_luma(&left.rgba, viewport_size, 0.35, 0.65, 0.25, 0.75);
+    let left_half_delta =
+        average_half_luma_delta(&left.rgba, &right.rgba, viewport_size, Half::Left);
+    let right_half_delta =
+        average_half_luma_delta(&left.rgba, &right.rgba, viewport_size, Half::Right);
+
+    assert!(
+        left_luma > 1.0,
+        "expected the scene-driven GI fixture itself to contribute visible indirect light so the authored-probe-position check is meaningful; left_luma={left_luma:.2}"
+    );
+    assert!(
+        left_half_delta < 0.15,
+        "expected scene-driven GI resolve to stop shifting final left-half energy when only authored resident-probe screen position moves; left_delta={left_half_delta:.2}"
+    );
+    assert!(
+        right_half_delta < 0.15,
+        "expected scene-driven GI resolve to stay spatially stable when only authored resident-probe screen position changes once the new scene representation path is active; right_delta={right_half_delta:.2}"
+    );
+}
+
+#[test]
+fn hybrid_gi_resolve_scene_driven_frame_localizes_from_scene_prepare_bounds_instead_of_probe_position(
+) {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let viewport_size = UVec2::new(96, 64);
+    let extract = build_extract_with_probes_and_trace_regions(
+        viewport_size,
+        vec![probe(200, true, 128, Vec3::ZERO, 2.2)],
+        Vec::new(),
+    );
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(
+            &extract,
+            &RenderPipelineCompileOptions::default()
+                .with_feature_enabled(BuiltinRenderFeature::GlobalIllumination)
+                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
+                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
+                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
+                .with_feature_disabled(BuiltinRenderFeature::Bloom)
+                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
+                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
+                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
+                .with_feature_disabled(BuiltinRenderFeature::Particle)
+                .with_feature_disabled(BuiltinRenderFeature::VirtualGeometry)
+                .with_async_compute(false),
+        )
+        .unwrap();
+
+    let left_scene_prepare = HybridGiScenePrepareFrame {
+        card_capture_requests: Vec::new(),
+        surface_cache_page_contents: vec![HybridGiPrepareSurfaceCachePageContent {
+            page_id: 11,
+            owner_card_id: 11,
+            atlas_slot_id: 3,
+            capture_slot_id: 4,
+            bounds_center: Vec3::new(-1.8, 0.0, 0.0),
+            bounds_radius: 0.75,
+            atlas_sample_rgba: [224, 112, 64, 255],
+            capture_sample_rgba: [240, 96, 48, 255],
+        }],
+        voxel_clipmaps: Vec::new(),
+        voxel_cells: Vec::new(),
+    };
+    let right_scene_prepare = HybridGiScenePrepareFrame {
+        card_capture_requests: Vec::new(),
+        surface_cache_page_contents: vec![HybridGiPrepareSurfaceCachePageContent {
+            page_id: 11,
+            owner_card_id: 11,
+            atlas_slot_id: 3,
+            capture_slot_id: 4,
+            bounds_center: Vec3::new(1.8, 0.0, 0.0),
+            bounds_radius: 0.75,
+            atlas_sample_rgba: [224, 112, 64, 255],
+            capture_sample_rgba: [240, 96, 48, 255],
+        }],
+        voxel_clipmaps: Vec::new(),
+        voxel_cells: Vec::new(),
+    };
+
+    let left = renderer
+        .render_frame_with_pipeline(
+            &ViewportRenderFrame::from_extract(extract.clone(), viewport_size)
+                .with_hybrid_gi_prepare(Some(HybridGiPrepareFrame {
+                    resident_probes: vec![HybridGiPrepareProbe {
+                        probe_id: 200,
+                        slot: 0,
+                        ray_budget: 128,
+                        irradiance_rgb: [160, 160, 160],
+                    }],
+                    pending_updates: Vec::new(),
+                    scheduled_trace_region_ids: Vec::new(),
+                    evictable_probe_ids: Vec::new(),
+                }))
+                .with_hybrid_gi_scene_prepare(Some(left_scene_prepare)),
+            &compiled,
+            None,
+        )
+        .unwrap();
+    let right = renderer
+        .render_frame_with_pipeline(
+            &ViewportRenderFrame::from_extract(extract, viewport_size)
+                .with_hybrid_gi_prepare(Some(HybridGiPrepareFrame {
+                    resident_probes: vec![HybridGiPrepareProbe {
+                        probe_id: 200,
+                        slot: 0,
+                        ray_budget: 128,
+                        irradiance_rgb: [160, 160, 160],
+                    }],
+                    pending_updates: Vec::new(),
+                    scheduled_trace_region_ids: Vec::new(),
+                    evictable_probe_ids: Vec::new(),
+                }))
+                .with_hybrid_gi_scene_prepare(Some(right_scene_prepare)),
+            &compiled,
+            None,
+        )
+        .unwrap();
+
+    let left_frame_left_luma = average_half_luma(&left.rgba, viewport_size, Half::Left);
+    let left_frame_right_luma = average_half_luma(&left.rgba, viewport_size, Half::Right);
+    let right_frame_left_luma = average_half_luma(&right.rgba, viewport_size, Half::Left);
+    let right_frame_right_luma = average_half_luma(&right.rgba, viewport_size, Half::Right);
+
+    assert!(
+        left_frame_left_luma > left_frame_right_luma + 0.2,
+        "expected left-shifted scene_prepare bounds to bias scene-driven final GI toward the left half instead of staying locked to authored probe screen position; left_frame_left={left_frame_left_luma:.2}, left_frame_right={left_frame_right_luma:.2}"
+    );
+    assert!(
+        right_frame_right_luma > right_frame_left_luma + 0.2,
+        "expected right-shifted scene_prepare bounds to bias scene-driven final GI toward the right half instead of staying locked to authored probe screen position; right_frame_left={right_frame_left_luma:.2}, right_frame_right={right_frame_right_luma:.2}"
+    );
+}
+
+#[test]
+fn hybrid_gi_resolve_scene_driven_frame_ignores_unmatched_prepare_probe_slots() {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let viewport_size = UVec2::new(96, 64);
+    let extract = build_extract_with_probes_and_trace_regions(
+        viewport_size,
+        vec![probe(200, true, 128, Vec3::ZERO, 2.2)],
+        Vec::new(),
+    );
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(
+            &extract,
+            &RenderPipelineCompileOptions::default()
+                .with_feature_enabled(BuiltinRenderFeature::GlobalIllumination)
+                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
+                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
+                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
+                .with_feature_disabled(BuiltinRenderFeature::Bloom)
+                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
+                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
+                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
+                .with_feature_disabled(BuiltinRenderFeature::Particle)
+                .with_feature_disabled(BuiltinRenderFeature::VirtualGeometry)
+                .with_async_compute(false),
+        )
+        .unwrap();
+    let scene_prepare =
+        runtime_voxel_scene_prepare_from_tinted_mesh([0.78, 0.48, 0.26], Vec3::ZERO, 1.0);
+
+    let single = renderer
+        .render_frame_with_pipeline(
+            &ViewportRenderFrame::from_extract(extract.clone(), viewport_size)
+                .with_hybrid_gi_prepare(Some(HybridGiPrepareFrame {
+                    resident_probes: vec![HybridGiPrepareProbe {
+                        probe_id: 200,
+                        slot: 0,
+                        ray_budget: 128,
+                        irradiance_rgb: [160, 160, 160],
+                    }],
+                    pending_updates: Vec::new(),
+                    scheduled_trace_region_ids: Vec::new(),
+                    evictable_probe_ids: Vec::new(),
+                }))
+                .with_hybrid_gi_scene_prepare(Some(scene_prepare.clone())),
+            &compiled,
+            None,
+        )
+        .unwrap();
+    let extra_unmatched = renderer
+        .render_frame_with_pipeline(
+            &ViewportRenderFrame::from_extract(extract, viewport_size)
+                .with_hybrid_gi_prepare(Some(HybridGiPrepareFrame {
+                    resident_probes: vec![
+                        HybridGiPrepareProbe {
+                            probe_id: 200,
+                            slot: 0,
+                            ray_budget: 128,
+                            irradiance_rgb: [160, 160, 160],
+                        },
+                        HybridGiPrepareProbe {
+                            probe_id: 999,
+                            slot: 1,
+                            ray_budget: 24,
+                            irradiance_rgb: [255, 32, 32],
+                        },
+                    ],
+                    pending_updates: Vec::new(),
+                    scheduled_trace_region_ids: Vec::new(),
+                    evictable_probe_ids: Vec::new(),
+                }))
+                .with_hybrid_gi_scene_prepare(Some(scene_prepare)),
+            &compiled,
+            None,
+        )
+        .unwrap();
+
+    let single_center_luma =
+        average_region_luma(&single.rgba, viewport_size, 0.35, 0.65, 0.25, 0.75);
+    let extra_center_luma =
+        average_region_luma(&extra_unmatched.rgba, viewport_size, 0.35, 0.65, 0.25, 0.75);
+    let left_half_delta = average_half_luma_delta(
+        &single.rgba,
+        &extra_unmatched.rgba,
+        viewport_size,
+        Half::Left,
+    );
+    let right_half_delta = average_half_luma_delta(
+        &single.rgba,
+        &extra_unmatched.rgba,
+        viewport_size,
+        Half::Right,
+    );
+
+    assert!(
+        single_center_luma > 1.0,
+        "expected the scene-driven GI fixture itself to contribute visible indirect light so the unmatched-slot check is meaningful; single_center_luma={single_center_luma:.2}"
+    );
+    assert!(
+        (single_center_luma - extra_center_luma).abs() < 0.2,
+        "expected scene-driven GI resolve to ignore extra resident probe slots that have no authored probe source instead of dimming the final composite through probe-count/container semantics; single_center_luma={single_center_luma:.2}, extra_center_luma={extra_center_luma:.2}"
+    );
+    assert!(
+        left_half_delta < 0.15,
+        "expected scene-driven GI resolve to stay spatially stable on the left half when only an unmatched resident probe slot is added for compatibility fixtures; left_delta={left_half_delta:.2}"
+    );
+    assert!(
+        right_half_delta < 0.15,
+        "expected scene-driven GI resolve to stay spatially stable on the right half when only an unmatched resident probe slot is added for compatibility fixtures; right_delta={right_half_delta:.2}"
+    );
+}
+
+#[test]
+fn hybrid_gi_resolve_scene_driven_frame_ignores_authored_parent_child_links() {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let viewport_size = UVec2::new(96, 64);
+    let trace_regions = Vec::new();
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(
+            &build_extract_with_probes_and_trace_regions(
+                viewport_size,
+                vec![
+                    probe(200, true, 128, Vec3::ZERO, 2.2),
+                    probe(300, true, 128, Vec3::ZERO, 2.2),
+                ],
+                trace_regions.clone(),
+            ),
+            &RenderPipelineCompileOptions::default()
+                .with_feature_enabled(BuiltinRenderFeature::GlobalIllumination)
+                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
+                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
+                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
+                .with_feature_disabled(BuiltinRenderFeature::Bloom)
+                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
+                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
+                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
+                .with_feature_disabled(BuiltinRenderFeature::Particle)
+                .with_feature_disabled(BuiltinRenderFeature::VirtualGeometry)
+                .with_async_compute(false),
+        )
+        .unwrap();
+    let scene_prepare =
+        runtime_voxel_scene_prepare_from_tinted_mesh([0.78, 0.48, 0.26], Vec3::ZERO, 1.0);
+
+    let flat = renderer
+        .render_frame_with_pipeline(
+            &ViewportRenderFrame::from_extract(
+                build_extract_with_probes_and_trace_regions(
+                    viewport_size,
+                    vec![
+                        probe(200, true, 128, Vec3::ZERO, 2.2),
+                        probe(300, true, 128, Vec3::ZERO, 2.2),
+                    ],
+                    trace_regions.clone(),
+                ),
+                viewport_size,
+            )
+            .with_hybrid_gi_prepare(Some(HybridGiPrepareFrame {
+                resident_probes: vec![
+                    HybridGiPrepareProbe {
+                        probe_id: 200,
+                        slot: 0,
+                        ray_budget: 128,
+                        irradiance_rgb: [160, 160, 160],
+                    },
+                    HybridGiPrepareProbe {
+                        probe_id: 300,
+                        slot: 1,
+                        ray_budget: 128,
+                        irradiance_rgb: [160, 160, 160],
+                    },
+                ],
+                pending_updates: Vec::new(),
+                scheduled_trace_region_ids: Vec::new(),
+                evictable_probe_ids: Vec::new(),
+            }))
+            .with_hybrid_gi_scene_prepare(Some(scene_prepare.clone())),
+            &compiled,
+            None,
+        )
+        .unwrap();
+    let hierarchical = renderer
+        .render_frame_with_pipeline(
+            &ViewportRenderFrame::from_extract(
+                build_extract_with_probes_and_trace_regions(
+                    viewport_size,
+                    vec![
+                        probe(200, true, 128, Vec3::ZERO, 2.2),
+                        probe_with_parent(300, 200, true, 128, Vec3::ZERO, 2.2),
+                    ],
+                    trace_regions,
+                ),
+                viewport_size,
+            )
+            .with_hybrid_gi_prepare(Some(HybridGiPrepareFrame {
+                resident_probes: vec![
+                    HybridGiPrepareProbe {
+                        probe_id: 200,
+                        slot: 0,
+                        ray_budget: 128,
+                        irradiance_rgb: [160, 160, 160],
+                    },
+                    HybridGiPrepareProbe {
+                        probe_id: 300,
+                        slot: 1,
+                        ray_budget: 128,
+                        irradiance_rgb: [160, 160, 160],
+                    },
+                ],
+                pending_updates: Vec::new(),
+                scheduled_trace_region_ids: Vec::new(),
+                evictable_probe_ids: Vec::new(),
+            }))
+            .with_hybrid_gi_scene_prepare(Some(scene_prepare)),
+            &compiled,
+            None,
+        )
+        .unwrap();
+
+    let flat_center_luma = average_region_luma(&flat.rgba, viewport_size, 0.35, 0.65, 0.25, 0.75);
+    let hierarchical_center_luma =
+        average_region_luma(&hierarchical.rgba, viewport_size, 0.35, 0.65, 0.25, 0.75);
+    let left_half_delta =
+        average_half_luma_delta(&flat.rgba, &hierarchical.rgba, viewport_size, Half::Left);
+    let right_half_delta =
+        average_half_luma_delta(&flat.rgba, &hierarchical.rgba, viewport_size, Half::Right);
+
+    assert!(
+        flat_center_luma > 1.0,
+        "expected the scene-driven GI fixture itself to contribute visible indirect light so the hierarchy-link check is meaningful; flat_center_luma={flat_center_luma:.2}"
+    );
+    assert!(
+        (flat_center_luma - hierarchical_center_luma).abs() < 0.2,
+        "expected scene-driven GI resolve to ignore authored parent-child links when current scene truth is unchanged, instead of changing final intensity through resolve-weight fallback; flat_center_luma={flat_center_luma:.2}, hierarchical_center_luma={hierarchical_center_luma:.2}"
+    );
+    assert!(
+        left_half_delta < 0.15,
+        "expected scene-driven GI resolve to stay spatially stable on the left half when only authored parent-child links change; left_delta={left_half_delta:.2}"
+    );
+    assert!(
+        right_half_delta < 0.15,
+        "expected scene-driven GI resolve to stay spatially stable on the right half when only authored parent-child links change; right_delta={right_half_delta:.2}"
+    );
+}
+
+#[test]
+fn hybrid_gi_resolve_scene_driven_inherited_runtime_truth_keeps_current_gi_when_only_ancestor_depth_changes(
+) {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let viewport_size = UVec2::new(96, 64);
+    let stable_extract = build_extract_with_probes_and_trace_regions(
+        viewport_size,
+        vec![
+            probe(100, false, 96, Vec3::ZERO, 1.8),
+            probe_with_parent(200, 100, true, 128, Vec3::ZERO, 1.8),
+        ],
+        Vec::new(),
+    );
+    let changed_extract = build_extract_with_probes_and_trace_regions(
+        viewport_size,
+        vec![
+            probe(100, false, 96, Vec3::ZERO, 1.8),
+            probe_with_parent(150, 100, false, 96, Vec3::ZERO, 1.8),
+            probe_with_parent(200, 150, true, 128, Vec3::ZERO, 1.8),
+        ],
+        Vec::new(),
+    );
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(
+            &stable_extract,
+            &RenderPipelineCompileOptions::default()
+                .with_feature_enabled(BuiltinRenderFeature::GlobalIllumination)
+                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
+                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
+                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
+                .with_feature_disabled(BuiltinRenderFeature::Bloom)
+                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
+                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
+                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
+                .with_feature_disabled(BuiltinRenderFeature::Particle)
+                .with_feature_disabled(BuiltinRenderFeature::VirtualGeometry)
+                .with_async_compute(false),
+        )
+        .unwrap();
+
+    let prepare = HybridGiPrepareFrame {
+        resident_probes: vec![HybridGiPrepareProbe {
+            probe_id: 200,
+            slot: 0,
+            ray_budget: 128,
+            irradiance_rgb: [128, 128, 128],
+        }],
+        pending_updates: Vec::new(),
+        scheduled_trace_region_ids: Vec::new(),
+        evictable_probe_ids: Vec::new(),
+    };
+    let runtime = HybridGiResolveRuntime {
+        probe_hierarchy_irradiance_rgb_and_weight: std::collections::BTreeMap::from([(
+            100,
+            HybridGiResolveRuntime::pack_rgb_and_weight([0.92, 0.32, 0.14], 0.68),
+        )]),
+        probe_hierarchy_rt_lighting_rgb_and_weight: std::collections::BTreeMap::from([(
+            100,
+            HybridGiResolveRuntime::pack_rgb_and_weight([0.9, 0.3, 0.16], 0.62),
+        )]),
+        probe_scene_driven_hierarchy_irradiance_ids: std::collections::BTreeSet::from([100]),
+        probe_scene_driven_hierarchy_rt_lighting_ids: std::collections::BTreeSet::from([100]),
+        ..Default::default()
+    };
+
+    let stable = renderer
+        .render_frame_with_pipeline(
+            &ViewportRenderFrame::from_extract(stable_extract, viewport_size)
+                .with_hybrid_gi_prepare(Some(prepare.clone()))
+                .with_hybrid_gi_resolve_runtime(Some(runtime.clone())),
+            &compiled,
+            None,
+        )
+        .unwrap();
+    let changed = renderer
+        .render_frame_with_pipeline(
+            &ViewportRenderFrame::from_extract(changed_extract, viewport_size)
+                .with_hybrid_gi_prepare(Some(prepare))
+                .with_hybrid_gi_resolve_runtime(Some(runtime)),
+            &compiled,
+            None,
+        )
+        .unwrap();
+
+    let stable_center_luma =
+        average_region_luma(&stable.rgba, viewport_size, 0.25, 0.75, 0.25, 0.75);
+    let changed_center_luma =
+        average_region_luma(&changed.rgba, viewport_size, 0.25, 0.75, 0.25, 0.75);
+
+    assert!(
+        stable_center_luma > 1.0,
+        "expected the inherited scene-driven runtime GI fixture itself to contribute visible indirect light so the ancestor-depth check is meaningful; stable_center_luma={stable_center_luma:.2}"
+    );
+    assert!(
+        (stable_center_luma - changed_center_luma).abs() < 0.2,
+        "expected scene-driven inherited runtime truth to keep current GI materially aligned even when only an intermediate authored ancestor node is inserted, instead of letting ancestor depth attenuate the same runtime scene truth; stable_center_luma={stable_center_luma:.2}, changed_center_luma={changed_center_luma:.2}"
+    );
+}
+
+#[test]
+fn hybrid_gi_resolve_scene_driven_inherited_runtime_truth_keeps_scene_prepare_mix_when_only_ancestor_depth_changes(
+) {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let viewport_size = UVec2::new(96, 64);
+    let stable_extract = build_extract_with_probes_and_trace_regions(
+        viewport_size,
+        vec![
+            probe(100, false, 96, Vec3::ZERO, 1.8),
+            probe_with_parent(200, 100, true, 128, Vec3::ZERO, 1.8),
+        ],
+        Vec::new(),
+    );
+    let changed_extract = build_extract_with_probes_and_trace_regions(
+        viewport_size,
+        vec![
+            probe(100, false, 96, Vec3::ZERO, 1.8),
+            probe_with_parent(150, 100, false, 96, Vec3::ZERO, 1.8),
+            probe_with_parent(200, 150, true, 128, Vec3::ZERO, 1.8),
+        ],
+        Vec::new(),
+    );
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(
+            &stable_extract,
+            &RenderPipelineCompileOptions::default()
+                .with_feature_enabled(BuiltinRenderFeature::GlobalIllumination)
+                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
+                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
+                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
+                .with_feature_disabled(BuiltinRenderFeature::Bloom)
+                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
+                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
+                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
+                .with_feature_disabled(BuiltinRenderFeature::Particle)
+                .with_feature_disabled(BuiltinRenderFeature::VirtualGeometry)
+                .with_async_compute(false),
+        )
+        .unwrap();
+
+    let prepare = HybridGiPrepareFrame {
+        resident_probes: vec![HybridGiPrepareProbe {
+            probe_id: 200,
+            slot: 0,
+            ray_budget: 128,
+            irradiance_rgb: [128, 128, 128],
+        }],
+        pending_updates: Vec::new(),
+        scheduled_trace_region_ids: Vec::new(),
+        evictable_probe_ids: Vec::new(),
+    };
+    let runtime = HybridGiResolveRuntime {
+        probe_hierarchy_irradiance_rgb_and_weight: std::collections::BTreeMap::from([(
+            100,
+            HybridGiResolveRuntime::pack_rgb_and_weight([0.92, 0.32, 0.14], 0.68),
+        )]),
+        probe_hierarchy_rt_lighting_rgb_and_weight: std::collections::BTreeMap::from([(
+            100,
+            HybridGiResolveRuntime::pack_rgb_and_weight([0.9, 0.3, 0.16], 0.62),
+        )]),
+        probe_scene_driven_hierarchy_irradiance_ids: std::collections::BTreeSet::from([100]),
+        probe_scene_driven_hierarchy_rt_lighting_ids: std::collections::BTreeSet::from([100]),
+        ..Default::default()
+    };
+    let scene_prepare =
+        runtime_voxel_scene_prepare_from_tinted_mesh([0.14, 0.38, 0.92], Vec3::ZERO, 1.0);
+
+    let stable = renderer
+        .render_frame_with_pipeline(
+            &ViewportRenderFrame::from_extract(stable_extract, viewport_size)
+                .with_hybrid_gi_prepare(Some(prepare.clone()))
+                .with_hybrid_gi_resolve_runtime(Some(runtime.clone()))
+                .with_hybrid_gi_scene_prepare(Some(scene_prepare.clone())),
+            &compiled,
+            None,
+        )
+        .unwrap();
+    let changed = renderer
+        .render_frame_with_pipeline(
+            &ViewportRenderFrame::from_extract(changed_extract, viewport_size)
+                .with_hybrid_gi_prepare(Some(prepare))
+                .with_hybrid_gi_resolve_runtime(Some(runtime))
+                .with_hybrid_gi_scene_prepare(Some(scene_prepare)),
+            &compiled,
+            None,
+        )
+        .unwrap();
+
+    let stable_red = average_region_channel(&stable.rgba, viewport_size, 0, 0.25, 0.75, 0.25, 0.75);
+    let changed_red =
+        average_region_channel(&changed.rgba, viewport_size, 0, 0.25, 0.75, 0.25, 0.75);
+    let stable_blue =
+        average_region_channel(&stable.rgba, viewport_size, 2, 0.25, 0.75, 0.25, 0.75);
+    let changed_blue =
+        average_region_channel(&changed.rgba, viewport_size, 2, 0.25, 0.75, 0.25, 0.75);
+
+    assert!(
+        stable_red > 1.0 || stable_blue > 1.0,
+        "expected the inherited-runtime plus scene-prepare GI fixture itself to contribute visible indirect light so the ancestor-depth mix check is meaningful; stable_red={stable_red:.2}, stable_blue={stable_blue:.2}"
+    );
+    assert!(
+        (stable_red - changed_red).abs() < 0.05,
+        "expected scene-driven inherited runtime truth to keep the same red mix against scene-prepare fallback even when only an intermediate authored ancestor node is inserted, instead of letting ancestor depth change the runtime-vs-scene-prepare blend; stable_red={stable_red:.2}, changed_red={changed_red:.2}"
+    );
+    assert!(
+        (stable_blue - changed_blue).abs() < 0.05,
+        "expected scene-driven inherited runtime truth to keep the same blue mix against scene-prepare fallback even when only an intermediate authored ancestor node is inserted, instead of letting ancestor depth change the runtime-vs-scene-prepare blend; stable_blue={stable_blue:.2}, changed_blue={changed_blue:.2}"
+    );
+}
+
+#[test]
+fn hybrid_gi_resolve_scene_driven_inherited_runtime_truth_ignores_scene_prepare_surface_cache_tint(
+) {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let viewport_size = UVec2::new(96, 64);
+    let extract = build_extract_with_probes_and_trace_regions(
+        viewport_size,
+        vec![
+            probe(100, false, 96, Vec3::ZERO, 1.8),
+            probe_with_parent(200, 100, true, 128, Vec3::ZERO, 1.8),
+        ],
+        Vec::new(),
+    );
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(
+            &extract,
+            &RenderPipelineCompileOptions::default()
+                .with_feature_enabled(BuiltinRenderFeature::GlobalIllumination)
+                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
+                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
+                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
+                .with_feature_disabled(BuiltinRenderFeature::Bloom)
+                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
+                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
+                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
+                .with_feature_disabled(BuiltinRenderFeature::Particle)
+                .with_feature_disabled(BuiltinRenderFeature::VirtualGeometry)
+                .with_async_compute(false),
+        )
+        .unwrap();
+
+    let prepare = HybridGiPrepareFrame {
+        resident_probes: vec![HybridGiPrepareProbe {
+            probe_id: 200,
+            slot: 0,
+            ray_budget: 128,
+            irradiance_rgb: [128, 128, 128],
+        }],
+        pending_updates: Vec::new(),
+        scheduled_trace_region_ids: Vec::new(),
+        evictable_probe_ids: Vec::new(),
+    };
+    let runtime = HybridGiResolveRuntime {
+        probe_hierarchy_irradiance_rgb_and_weight: std::collections::BTreeMap::from([(
+            100,
+            HybridGiResolveRuntime::pack_rgb_and_weight([0.92, 0.32, 0.14], 0.68),
+        )]),
+        probe_hierarchy_rt_lighting_rgb_and_weight: std::collections::BTreeMap::from([(
+            100,
+            HybridGiResolveRuntime::pack_rgb_and_weight([0.9, 0.3, 0.16], 0.62),
+        )]),
+        probe_scene_driven_hierarchy_irradiance_ids: std::collections::BTreeSet::from([100]),
+        probe_scene_driven_hierarchy_rt_lighting_ids: std::collections::BTreeSet::from([100]),
+        ..Default::default()
+    };
+    let warm_scene_prepare = HybridGiScenePrepareFrame {
+        card_capture_requests: Vec::new(),
+        surface_cache_page_contents: vec![HybridGiPrepareSurfaceCachePageContent {
+            page_id: 11,
+            owner_card_id: 11,
+            atlas_slot_id: 3,
+            capture_slot_id: 4,
+            bounds_center: Vec3::ZERO,
+            bounds_radius: 1.0,
+            atlas_sample_rgba: [224, 112, 64, 255],
+            capture_sample_rgba: [240, 96, 48, 255],
+        }],
+        voxel_clipmaps: Vec::new(),
+        voxel_cells: Vec::new(),
+    };
+    let cool_scene_prepare = HybridGiScenePrepareFrame {
+        card_capture_requests: Vec::new(),
+        surface_cache_page_contents: vec![HybridGiPrepareSurfaceCachePageContent {
+            page_id: 11,
+            owner_card_id: 11,
+            atlas_slot_id: 3,
+            capture_slot_id: 4,
+            bounds_center: Vec3::ZERO,
+            bounds_radius: 1.0,
+            atlas_sample_rgba: [64, 112, 224, 255],
+            capture_sample_rgba: [48, 96, 240, 255],
+        }],
+        voxel_clipmaps: Vec::new(),
+        voxel_cells: Vec::new(),
+    };
+
+    let warm = renderer
+        .render_frame_with_pipeline(
+            &ViewportRenderFrame::from_extract(extract.clone(), viewport_size)
+                .with_hybrid_gi_prepare(Some(prepare.clone()))
+                .with_hybrid_gi_resolve_runtime(Some(runtime.clone()))
+                .with_hybrid_gi_scene_prepare(Some(warm_scene_prepare)),
+            &compiled,
+            None,
+        )
+        .unwrap();
+    let cool = renderer
+        .render_frame_with_pipeline(
+            &ViewportRenderFrame::from_extract(extract, viewport_size)
+                .with_hybrid_gi_prepare(Some(prepare))
+                .with_hybrid_gi_resolve_runtime(Some(runtime))
+                .with_hybrid_gi_scene_prepare(Some(cool_scene_prepare)),
+            &compiled,
+            None,
+        )
+        .unwrap();
+
+    let warm_red = average_region_channel(&warm.rgba, viewport_size, 0, 0.25, 0.75, 0.25, 0.75);
+    let cool_red = average_region_channel(&cool.rgba, viewport_size, 0, 0.25, 0.75, 0.25, 0.75);
+    let warm_blue =
+        average_region_channel(&warm.rgba, viewport_size, 2, 0.25, 0.75, 0.25, 0.75);
+    let cool_blue =
+        average_region_channel(&cool.rgba, viewport_size, 2, 0.25, 0.75, 0.25, 0.75);
+
+    assert!(
+        warm_red > 1.0 || warm_blue > 1.0,
+        "expected the inherited scene-driven runtime fixture itself to contribute visible indirect light so the surface-cache tint check is meaningful; warm_red={warm_red:.2}, warm_blue={warm_blue:.2}"
+    );
+    assert!(
+        (warm_red - cool_red).abs() < 0.05,
+        "expected scene-driven inherited runtime truth to keep current red GI stable when only the current surface-cache page tint changes, instead of reblending page tint into inherited runtime truth; warm_red={warm_red:.2}, cool_red={cool_red:.2}"
+    );
+    assert!(
+        (warm_blue - cool_blue).abs() < 0.05,
+        "expected scene-driven inherited runtime truth to keep current blue GI stable when only the current surface-cache page tint changes, instead of reblending page tint into inherited runtime truth; warm_blue={warm_blue:.2}, cool_blue={cool_blue:.2}"
+    );
+}
+
+#[test]
+fn hybrid_gi_resolve_scene_driven_inherited_runtime_truth_ignores_reachable_continuation_weight_from_inserted_ancestor(
+) {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let viewport_size = UVec2::new(96, 64);
+    let stable_extract = build_extract_with_probes_and_trace_regions(
+        viewport_size,
+        vec![
+            probe(100, false, 96, Vec3::ZERO, 1.8),
+            probe_with_parent(200, 100, true, 128, Vec3::ZERO, 1.8),
+        ],
+        Vec::new(),
+    );
+    let changed_extract = build_extract_with_probes_and_trace_regions(
+        viewport_size,
+        vec![
+            probe(100, false, 96, Vec3::ZERO, 1.8),
+            probe_with_parent(150, 100, false, 96, Vec3::ZERO, 1.8),
+            probe_with_parent(200, 150, true, 128, Vec3::ZERO, 1.8),
+        ],
+        Vec::new(),
+    );
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(
+            &stable_extract,
+            &RenderPipelineCompileOptions::default()
+                .with_feature_enabled(BuiltinRenderFeature::GlobalIllumination)
+                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
+                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
+                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
+                .with_feature_disabled(BuiltinRenderFeature::Bloom)
+                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
+                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
+                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
+                .with_feature_disabled(BuiltinRenderFeature::Particle)
+                .with_feature_disabled(BuiltinRenderFeature::VirtualGeometry)
+                .with_async_compute(false),
+        )
+        .unwrap();
+
+    let prepare = HybridGiPrepareFrame {
+        resident_probes: vec![HybridGiPrepareProbe {
+            probe_id: 200,
+            slot: 0,
+            ray_budget: 128,
+            irradiance_rgb: [128, 128, 128],
+        }],
+        pending_updates: Vec::new(),
+        scheduled_trace_region_ids: Vec::new(),
+        evictable_probe_ids: Vec::new(),
+    };
+    let runtime = HybridGiResolveRuntime {
+        probe_hierarchy_resolve_weight_q8: std::collections::BTreeMap::from([(
+            150,
+            HybridGiResolveRuntime::pack_resolve_weight_q8(2.4),
+        )]),
+        probe_hierarchy_irradiance_rgb_and_weight: std::collections::BTreeMap::from([(
+            100,
+            HybridGiResolveRuntime::pack_rgb_and_weight([0.92, 0.32, 0.14], 0.68),
+        )]),
+        probe_hierarchy_rt_lighting_rgb_and_weight: std::collections::BTreeMap::from([(
+            100,
+            HybridGiResolveRuntime::pack_rgb_and_weight([0.9, 0.3, 0.16], 0.62),
+        )]),
+        probe_scene_driven_hierarchy_irradiance_ids: std::collections::BTreeSet::from([100]),
+        probe_scene_driven_hierarchy_rt_lighting_ids: std::collections::BTreeSet::from([100]),
+        ..Default::default()
+    };
+    let scene_prepare =
+        runtime_voxel_scene_prepare_from_tinted_mesh([0.18, 0.34, 0.82], Vec3::ZERO, 1.0);
+
+    let stable = renderer
+        .render_frame_with_pipeline(
+            &ViewportRenderFrame::from_extract(stable_extract, viewport_size)
+                .with_hybrid_gi_prepare(Some(prepare.clone()))
+                .with_hybrid_gi_resolve_runtime(Some(runtime.clone()))
+                .with_hybrid_gi_scene_prepare(Some(scene_prepare.clone())),
+            &compiled,
+            None,
+        )
+        .unwrap();
+    let changed = renderer
+        .render_frame_with_pipeline(
+            &ViewportRenderFrame::from_extract(changed_extract, viewport_size)
+                .with_hybrid_gi_prepare(Some(prepare))
+                .with_hybrid_gi_resolve_runtime(Some(runtime))
+                .with_hybrid_gi_scene_prepare(Some(scene_prepare)),
+            &compiled,
+            None,
+        )
+        .unwrap();
+
+    let stable_center_luma =
+        average_region_luma(&stable.rgba, viewport_size, 0.25, 0.75, 0.25, 0.75);
+    let changed_center_luma =
+        average_region_luma(&changed.rgba, viewport_size, 0.25, 0.75, 0.25, 0.75);
+
+    assert!(
+        stable_center_luma > 1.0,
+        "expected the inherited scene-driven runtime GI fixture itself to contribute visible indirect light so the inserted-ancestor continuation-weight check is meaningful; stable_center_luma={stable_center_luma:.2}"
+    );
+    assert!(
+        (stable_center_luma - changed_center_luma).abs() < 0.2,
+        "expected scene-driven inherited runtime truth to ignore continuation-only hierarchy resolve weight that only becomes reachable after inserting an authored ancestor node, instead of changing current GI intensity when the underlying scene truth stayed fixed; stable_center_luma={stable_center_luma:.2}, changed_center_luma={changed_center_luma:.2}"
+    );
+}
+
+#[test]
+fn hybrid_gi_resolve_scene_driven_inherited_runtime_truth_ignores_reachable_continuation_rgb_from_inserted_ancestor(
+) {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let viewport_size = UVec2::new(96, 64);
+    let stable_extract = build_extract_with_probes_and_trace_regions(
+        viewport_size,
+        vec![
+            probe(100, false, 96, Vec3::ZERO, 1.8),
+            probe_with_parent(200, 100, true, 128, Vec3::ZERO, 1.8),
+        ],
+        Vec::new(),
+    );
+    let changed_extract = build_extract_with_probes_and_trace_regions(
+        viewport_size,
+        vec![
+            probe(100, false, 96, Vec3::ZERO, 1.8),
+            probe_with_parent(150, 100, false, 96, Vec3::ZERO, 1.8),
+            probe_with_parent(200, 150, true, 128, Vec3::ZERO, 1.8),
+        ],
+        Vec::new(),
+    );
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(
+            &stable_extract,
+            &RenderPipelineCompileOptions::default()
+                .with_feature_enabled(BuiltinRenderFeature::GlobalIllumination)
+                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
+                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
+                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
+                .with_feature_disabled(BuiltinRenderFeature::Bloom)
+                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
+                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
+                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
+                .with_feature_disabled(BuiltinRenderFeature::Particle)
+                .with_feature_disabled(BuiltinRenderFeature::VirtualGeometry)
+                .with_async_compute(false),
+        )
+        .unwrap();
+
+    let prepare = HybridGiPrepareFrame {
+        resident_probes: vec![HybridGiPrepareProbe {
+            probe_id: 200,
+            slot: 0,
+            ray_budget: 128,
+            irradiance_rgb: [128, 128, 128],
+        }],
+        pending_updates: Vec::new(),
+        scheduled_trace_region_ids: Vec::new(),
+        evictable_probe_ids: Vec::new(),
+    };
+    let runtime = HybridGiResolveRuntime {
+        probe_hierarchy_irradiance_rgb_and_weight: std::collections::BTreeMap::from([
+            (
+                100,
+                HybridGiResolveRuntime::pack_rgb_and_weight([0.92, 0.32, 0.14], 0.68),
+            ),
+            (
+                150,
+                HybridGiResolveRuntime::pack_rgb_and_weight([0.16, 0.34, 0.92], 0.72),
+            ),
+        ]),
+        probe_hierarchy_rt_lighting_rgb_and_weight: std::collections::BTreeMap::from([
+            (
+                100,
+                HybridGiResolveRuntime::pack_rgb_and_weight([0.9, 0.3, 0.16], 0.62),
+            ),
+            (
+                150,
+                HybridGiResolveRuntime::pack_rgb_and_weight([0.18, 0.36, 0.9], 0.68),
+            ),
+        ]),
+        probe_scene_driven_hierarchy_irradiance_ids: std::collections::BTreeSet::from([100]),
+        probe_scene_driven_hierarchy_rt_lighting_ids: std::collections::BTreeSet::from([100]),
+        ..Default::default()
+    };
+    let scene_prepare =
+        runtime_voxel_scene_prepare_from_tinted_mesh([0.18, 0.34, 0.82], Vec3::ZERO, 1.0);
+
+    let stable = renderer
+        .render_frame_with_pipeline(
+            &ViewportRenderFrame::from_extract(stable_extract, viewport_size)
+                .with_hybrid_gi_prepare(Some(prepare.clone()))
+                .with_hybrid_gi_resolve_runtime(Some(runtime.clone()))
+                .with_hybrid_gi_scene_prepare(Some(scene_prepare.clone())),
+            &compiled,
+            None,
+        )
+        .unwrap();
+    let changed = renderer
+        .render_frame_with_pipeline(
+            &ViewportRenderFrame::from_extract(changed_extract, viewport_size)
+                .with_hybrid_gi_prepare(Some(prepare))
+                .with_hybrid_gi_resolve_runtime(Some(runtime))
+                .with_hybrid_gi_scene_prepare(Some(scene_prepare)),
+            &compiled,
+            None,
+        )
+        .unwrap();
+
+    let stable_red = average_region_channel(&stable.rgba, viewport_size, 0, 0.25, 0.75, 0.25, 0.75);
+    let changed_red =
+        average_region_channel(&changed.rgba, viewport_size, 0, 0.25, 0.75, 0.25, 0.75);
+    let stable_blue =
+        average_region_channel(&stable.rgba, viewport_size, 2, 0.25, 0.75, 0.25, 0.75);
+    let changed_blue =
+        average_region_channel(&changed.rgba, viewport_size, 2, 0.25, 0.75, 0.25, 0.75);
+
+    assert!(
+        stable_red > 1.0 || stable_blue > 1.0,
+        "expected the inherited scene-driven runtime GI fixture itself to contribute visible indirect light so the inserted-ancestor continuation-RGB check is meaningful; stable_red={stable_red:.2}, stable_blue={stable_blue:.2}"
+    );
+    assert!(
+        (stable_red - changed_red).abs() < 0.05,
+        "expected scene-driven inherited runtime truth to ignore continuation-only hierarchy irradiance/RT RGB that only becomes reachable after inserting an authored ancestor node, instead of shifting current red GI while the underlying scene truth stayed fixed; stable_red={stable_red:.2}, changed_red={changed_red:.2}"
+    );
+    assert!(
+        (stable_blue - changed_blue).abs() < 0.05,
+        "expected scene-driven inherited runtime truth to ignore continuation-only hierarchy irradiance/RT RGB that only becomes reachable after inserting an authored ancestor node, instead of shifting current blue GI while the underlying scene truth stayed fixed; stable_blue={stable_blue:.2}, changed_blue={changed_blue:.2}"
     );
 }
 
@@ -1683,6 +3024,7 @@ fn hybrid_gi_resolve_uses_scene_prepare_voxel_fallback_without_current_trace_sch
                 .with_hybrid_gi_prepare(Some(prepare.clone()))
                 .with_hybrid_gi_scene_prepare(Some(HybridGiScenePrepareFrame {
                     card_capture_requests: Vec::new(),
+                    surface_cache_page_contents: Vec::new(),
                     voxel_clipmaps: vec![clipmap.clone()],
                     voxel_cells: vec![
                         HybridGiPrepareVoxelCell {
@@ -1729,6 +3071,7 @@ fn hybrid_gi_resolve_uses_scene_prepare_voxel_fallback_without_current_trace_sch
                 .with_hybrid_gi_prepare(Some(prepare))
                 .with_hybrid_gi_scene_prepare(Some(HybridGiScenePrepareFrame {
                     card_capture_requests: Vec::new(),
+                    surface_cache_page_contents: Vec::new(),
                     voxel_clipmaps: vec![clipmap],
                     voxel_cells: vec![
                         HybridGiPrepareVoxelCell {
@@ -1831,6 +3174,7 @@ fn hybrid_gi_resolve_uses_scene_prepare_voxel_clipmap_fallback_without_runtime_v
                 .with_hybrid_gi_prepare(Some(prepare.clone()))
                 .with_hybrid_gi_scene_prepare(Some(HybridGiScenePrepareFrame {
                     card_capture_requests: Vec::new(),
+                    surface_cache_page_contents: Vec::new(),
                     voxel_clipmaps: vec![HybridGiPrepareVoxelClipmap {
                         clipmap_id: 7,
                         center: Vec3::new(0.0, 0.0, 0.2),
@@ -1848,6 +3192,7 @@ fn hybrid_gi_resolve_uses_scene_prepare_voxel_clipmap_fallback_without_runtime_v
                 .with_hybrid_gi_prepare(Some(prepare))
                 .with_hybrid_gi_scene_prepare(Some(HybridGiScenePrepareFrame {
                     card_capture_requests: Vec::new(),
+                    surface_cache_page_contents: Vec::new(),
                     voxel_clipmaps: vec![HybridGiPrepareVoxelClipmap {
                         clipmap_id: 7,
                         center: Vec3::new(9.0, 9.0, 9.0),
@@ -2189,6 +3534,7 @@ fn hybrid_gi_resolve_uses_runtime_scene_voxel_owner_card_capture_seed_when_layou
                 .with_hybrid_gi_prepare(Some(prepare.clone()))
                 .with_hybrid_gi_scene_prepare(Some(HybridGiScenePrepareFrame {
                     card_capture_requests: vec![base_card_capture_request.clone()],
+                    surface_cache_page_contents: Vec::new(),
                     voxel_clipmaps: vec![HybridGiPrepareVoxelClipmap {
                         clipmap_id: 7,
                         center: Vec3::ZERO,
@@ -2210,6 +3556,7 @@ fn hybrid_gi_resolve_uses_runtime_scene_voxel_owner_card_capture_seed_when_layou
                         capture_slot_id: 31,
                         ..base_card_capture_request
                     }],
+                    surface_cache_page_contents: Vec::new(),
                     voxel_clipmaps: vec![HybridGiPrepareVoxelClipmap {
                         clipmap_id: 7,
                         center: Vec3::ZERO,
@@ -2254,6 +3601,434 @@ fn hybrid_gi_resolve_uses_runtime_scene_voxel_owner_card_capture_seed_when_layou
     assert!(
         (cool_blue - warm_blue).abs() > 0.1,
         "expected scene-driven runtime voxel fallback to reuse the matched card-capture seed when radiance is absent, so changing only that card seed still changes final GI resolve; warm_blue={warm_blue:.2}, cool_blue={cool_blue:.2}, warm_capture={warm_capture:?}, cool_capture={cool_capture:?}"
+    );
+}
+
+#[test]
+fn hybrid_gi_resolve_uses_persisted_surface_cache_page_sample_when_layout_and_owner_stay_fixed() {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let viewport_size = UVec2::new(96, 64);
+    let extract = build_extract_with_probes_and_trace_regions(
+        viewport_size,
+        vec![probe(200, true, 128, Vec3::ZERO, 1.8)],
+        Vec::new(),
+    );
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(
+            &extract,
+            &RenderPipelineCompileOptions::default()
+                .with_feature_enabled(BuiltinRenderFeature::GlobalIllumination)
+                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
+                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
+                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
+                .with_feature_disabled(BuiltinRenderFeature::Bloom)
+                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
+                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
+                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
+                .with_feature_disabled(BuiltinRenderFeature::Particle)
+                .with_feature_disabled(BuiltinRenderFeature::VirtualGeometry)
+                .with_async_compute(false),
+        )
+        .unwrap();
+
+    let prepare = HybridGiPrepareFrame {
+        resident_probes: vec![HybridGiPrepareProbe {
+            probe_id: 200,
+            slot: 0,
+            ray_budget: 128,
+            irradiance_rgb: [112, 112, 112],
+        }],
+        pending_updates: Vec::new(),
+        scheduled_trace_region_ids: Vec::new(),
+        evictable_probe_ids: Vec::new(),
+    };
+    let base_page_content = HybridGiPrepareSurfaceCachePageContent {
+        page_id: 11,
+        owner_card_id: 11,
+        atlas_slot_id: 3,
+        capture_slot_id: 4,
+        bounds_center: Vec3::ZERO,
+        bounds_radius: 0.25,
+        atlas_sample_rgba: [224, 112, 64, 255],
+        capture_sample_rgba: [240, 96, 48, 255],
+    };
+    let voxel_layout = vec![
+        HybridGiPrepareVoxelCell {
+            clipmap_id: 7,
+            cell_index: 20,
+            occupancy_count: 4,
+            dominant_card_id: 11,
+            radiance_present: false,
+            radiance_rgb: [0, 0, 0],
+        },
+        HybridGiPrepareVoxelCell {
+            clipmap_id: 7,
+            cell_index: 21,
+            occupancy_count: 4,
+            dominant_card_id: 11,
+            radiance_present: false,
+            radiance_rgb: [0, 0, 0],
+        },
+        HybridGiPrepareVoxelCell {
+            clipmap_id: 7,
+            cell_index: 24,
+            occupancy_count: 4,
+            dominant_card_id: 11,
+            radiance_present: false,
+            radiance_rgb: [0, 0, 0],
+        },
+        HybridGiPrepareVoxelCell {
+            clipmap_id: 7,
+            cell_index: 25,
+            occupancy_count: 4,
+            dominant_card_id: 11,
+            radiance_present: false,
+            radiance_rgb: [0, 0, 0],
+        },
+    ];
+
+    let warm = renderer
+        .render_frame_with_pipeline(
+            &ViewportRenderFrame::from_extract(extract.clone(), viewport_size)
+                .with_hybrid_gi_prepare(Some(prepare.clone()))
+                .with_hybrid_gi_scene_prepare(Some(HybridGiScenePrepareFrame {
+                    card_capture_requests: Vec::new(),
+                    surface_cache_page_contents: vec![base_page_content],
+                    voxel_clipmaps: vec![HybridGiPrepareVoxelClipmap {
+                        clipmap_id: 7,
+                        center: Vec3::ZERO,
+                        half_extent: 4.0,
+                    }],
+                    voxel_cells: voxel_layout.clone(),
+                })),
+            &compiled,
+            None,
+        )
+        .unwrap();
+    let warm_readback = renderer.take_last_hybrid_gi_gpu_readback().unwrap();
+    let cool = renderer
+        .render_frame_with_pipeline(
+            &ViewportRenderFrame::from_extract(extract, viewport_size)
+                .with_hybrid_gi_prepare(Some(prepare))
+                .with_hybrid_gi_scene_prepare(Some(HybridGiScenePrepareFrame {
+                    card_capture_requests: Vec::new(),
+                    surface_cache_page_contents: vec![HybridGiPrepareSurfaceCachePageContent {
+                        atlas_sample_rgba: [64, 112, 224, 255],
+                        capture_sample_rgba: [48, 96, 240, 255],
+                        ..base_page_content
+                    }],
+                    voxel_clipmaps: vec![HybridGiPrepareVoxelClipmap {
+                        clipmap_id: 7,
+                        center: Vec3::ZERO,
+                        half_extent: 4.0,
+                    }],
+                    voxel_cells: voxel_layout,
+                })),
+            &compiled,
+            None,
+        )
+        .unwrap();
+    let cool_readback = renderer.take_last_hybrid_gi_gpu_readback().unwrap();
+
+    let warm_capture = warm_readback
+        .scene_prepare_resources
+        .and_then(|snapshot| {
+            snapshot
+                .capture_slot_rgba_samples
+                .into_iter()
+                .find(|(slot_id, _)| *slot_id == 4)
+                .map(|(_, rgba)| rgba)
+        })
+        .expect("expected warm persisted capture slot sample");
+    let cool_capture = cool_readback
+        .scene_prepare_resources
+        .and_then(|snapshot| {
+            snapshot
+                .capture_slot_rgba_samples
+                .into_iter()
+                .find(|(slot_id, _)| *slot_id == 4)
+                .map(|(_, rgba)| rgba)
+        })
+        .expect("expected cool persisted capture slot sample");
+    assert_ne!(
+        warm_capture, cool_capture,
+        "expected persisted clean-frame surface-cache samples to survive scene_prepare readback when there is no current card-capture request"
+    );
+
+    let warm_blue = average_region_channel(&warm.rgba, viewport_size, 2, 0.25, 0.75, 0.25, 0.75);
+    let cool_blue = average_region_channel(&cool.rgba, viewport_size, 2, 0.25, 0.75, 0.25, 0.75);
+
+    assert!(
+        (cool_blue - warm_blue).abs() > 0.1,
+        "expected final GI resolve to reuse persisted clean-frame surface-cache page samples when runtime voxel radiance is absent and owner/layout stay fixed; warm_blue={warm_blue:.2}, cool_blue={cool_blue:.2}, warm_capture={warm_capture:?}, cool_capture={cool_capture:?}"
+    );
+}
+
+#[test]
+fn hybrid_gi_resolve_uses_persisted_surface_cache_page_sample_without_runtime_voxel_support() {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let viewport_size = UVec2::new(96, 64);
+    let extract = build_extract_with_probes_and_trace_regions(
+        viewport_size,
+        vec![probe(200, true, 128, Vec3::ZERO, 1.8)],
+        Vec::new(),
+    );
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(
+            &extract,
+            &RenderPipelineCompileOptions::default()
+                .with_feature_enabled(BuiltinRenderFeature::GlobalIllumination)
+                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
+                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
+                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
+                .with_feature_disabled(BuiltinRenderFeature::Bloom)
+                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
+                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
+                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
+                .with_feature_disabled(BuiltinRenderFeature::Particle)
+                .with_feature_disabled(BuiltinRenderFeature::VirtualGeometry)
+                .with_async_compute(false),
+        )
+        .unwrap();
+
+    let prepare = HybridGiPrepareFrame {
+        resident_probes: vec![HybridGiPrepareProbe {
+            probe_id: 200,
+            slot: 0,
+            ray_budget: 128,
+            irradiance_rgb: [112, 112, 112],
+        }],
+        pending_updates: Vec::new(),
+        scheduled_trace_region_ids: Vec::new(),
+        evictable_probe_ids: Vec::new(),
+    };
+    let base_page_content = HybridGiPrepareSurfaceCachePageContent {
+        page_id: 11,
+        owner_card_id: 11,
+        atlas_slot_id: 3,
+        capture_slot_id: 4,
+        bounds_center: Vec3::ZERO,
+        bounds_radius: 0.6,
+        atlas_sample_rgba: [224, 112, 64, 255],
+        capture_sample_rgba: [240, 96, 48, 255],
+    };
+
+    let warm = renderer
+        .render_frame_with_pipeline(
+            &ViewportRenderFrame::from_extract(extract.clone(), viewport_size)
+                .with_hybrid_gi_prepare(Some(prepare.clone()))
+                .with_hybrid_gi_scene_prepare(Some(HybridGiScenePrepareFrame {
+                    card_capture_requests: Vec::new(),
+                    surface_cache_page_contents: vec![base_page_content],
+                    voxel_clipmaps: Vec::new(),
+                    voxel_cells: Vec::new(),
+                })),
+            &compiled,
+            None,
+        )
+        .unwrap();
+    let warm_readback = renderer.take_last_hybrid_gi_gpu_readback().unwrap();
+    let cool = renderer
+        .render_frame_with_pipeline(
+            &ViewportRenderFrame::from_extract(extract, viewport_size)
+                .with_hybrid_gi_prepare(Some(prepare))
+                .with_hybrid_gi_scene_prepare(Some(HybridGiScenePrepareFrame {
+                    card_capture_requests: Vec::new(),
+                    surface_cache_page_contents: vec![HybridGiPrepareSurfaceCachePageContent {
+                        atlas_sample_rgba: [64, 112, 224, 255],
+                        capture_sample_rgba: [48, 96, 240, 255],
+                        ..base_page_content
+                    }],
+                    voxel_clipmaps: Vec::new(),
+                    voxel_cells: Vec::new(),
+                })),
+            &compiled,
+            None,
+        )
+        .unwrap();
+    let cool_readback = renderer.take_last_hybrid_gi_gpu_readback().unwrap();
+
+    let warm_capture = warm_readback
+        .scene_prepare_resources
+        .and_then(|snapshot| {
+            snapshot
+                .capture_slot_rgba_samples
+                .into_iter()
+                .find(|(slot_id, _)| *slot_id == 4)
+                .map(|(_, rgba)| rgba)
+        })
+        .expect("expected warm persisted capture slot sample without runtime voxel support");
+    let cool_capture = cool_readback
+        .scene_prepare_resources
+        .and_then(|snapshot| {
+            snapshot
+                .capture_slot_rgba_samples
+                .into_iter()
+                .find(|(slot_id, _)| *slot_id == 4)
+                .map(|(_, rgba)| rgba)
+        })
+        .expect("expected cool persisted capture slot sample without runtime voxel support");
+    assert_ne!(
+        warm_capture, cool_capture,
+        "expected persisted clean-frame surface-cache samples to survive scene_prepare readback even when runtime voxel support is absent"
+    );
+
+    let warm_blue = average_region_channel(&warm.rgba, viewport_size, 2, 0.25, 0.75, 0.25, 0.75);
+    let cool_blue = average_region_channel(&cool.rgba, viewport_size, 2, 0.25, 0.75, 0.25, 0.75);
+
+    assert!(
+        (cool_blue - warm_blue).abs() > 0.1,
+        "expected final GI resolve to reuse persisted clean-frame surface-cache page samples even when runtime voxel support is absent; warm_blue={warm_blue:.2}, cool_blue={cool_blue:.2}, warm_capture={warm_capture:?}, cool_capture={cool_capture:?}"
+    );
+}
+
+#[test]
+fn hybrid_gi_resolve_uses_runtime_scene_voxel_radiance_rehydrated_from_persisted_page_sample_on_clean_frame(
+) {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let viewport_size = UVec2::new(96, 64);
+    let extract = build_extract_with_probes_and_trace_regions(
+        viewport_size,
+        vec![probe(200, true, 128, Vec3::ZERO, 1.8)],
+        Vec::new(),
+    );
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(
+            &extract,
+            &RenderPipelineCompileOptions::default()
+                .with_feature_enabled(BuiltinRenderFeature::GlobalIllumination)
+                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
+                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
+                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
+                .with_feature_disabled(BuiltinRenderFeature::Bloom)
+                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
+                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
+                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
+                .with_feature_disabled(BuiltinRenderFeature::Particle)
+                .with_feature_disabled(BuiltinRenderFeature::VirtualGeometry)
+                .with_async_compute(false),
+        )
+        .unwrap();
+
+    let warm_scene_prepare =
+        runtime_voxel_scene_prepare_from_tinted_mesh_with_persisted_page_sample(
+            [1.0, 1.0, 1.0],
+            Vec3::ZERO,
+            2.0,
+            [240, 96, 48, 255],
+        );
+    let cool_scene_prepare =
+        runtime_voxel_scene_prepare_from_tinted_mesh_with_persisted_page_sample(
+            [1.0, 1.0, 1.0],
+            Vec3::ZERO,
+            2.0,
+            [48, 96, 240, 255],
+        );
+
+    assert!(
+        warm_scene_prepare.card_capture_requests.is_empty()
+            && cool_scene_prepare.card_capture_requests.is_empty(),
+        "expected the runtime fixture to represent a clean frame with no pending card recapture requests"
+    );
+    assert_eq!(
+        warm_scene_prepare.voxel_clipmaps,
+        cool_scene_prepare.voxel_clipmaps
+    );
+    assert_eq!(
+        warm_scene_prepare
+            .voxel_cells
+            .iter()
+            .map(|cell| (cell.clipmap_id, cell.cell_index, cell.occupancy_count))
+            .collect::<Vec<_>>(),
+        cool_scene_prepare
+            .voxel_cells
+            .iter()
+            .map(|cell| (cell.clipmap_id, cell.cell_index, cell.occupancy_count))
+            .collect::<Vec<_>>(),
+        "expected warm/cool persisted-page fixtures to keep identical runtime voxel layout so this regression only checks radiance authority"
+    );
+    assert_ne!(
+        warm_scene_prepare
+            .voxel_cells
+            .iter()
+            .map(|cell| (cell.clipmap_id, cell.cell_index, cell.radiance_present, cell.radiance_rgb))
+            .collect::<Vec<_>>(),
+        cool_scene_prepare
+            .voxel_cells
+            .iter()
+            .map(|cell| (cell.clipmap_id, cell.cell_index, cell.radiance_present, cell.radiance_rgb))
+            .collect::<Vec<_>>(),
+        "expected persisted page samples to rehydrate different runtime voxel radiance while layout stays fixed"
+    );
+
+    let prepare = HybridGiPrepareFrame {
+        resident_probes: vec![HybridGiPrepareProbe {
+            probe_id: 200,
+            slot: 0,
+            ray_budget: 128,
+            irradiance_rgb: [112, 112, 112],
+        }],
+        pending_updates: Vec::new(),
+        scheduled_trace_region_ids: Vec::new(),
+        evictable_probe_ids: Vec::new(),
+    };
+
+    let warm = renderer
+        .render_frame_with_pipeline(
+            &ViewportRenderFrame::from_extract(extract.clone(), viewport_size)
+                .with_hybrid_gi_prepare(Some(prepare.clone()))
+                .with_hybrid_gi_scene_prepare(Some(HybridGiScenePrepareFrame {
+                    surface_cache_page_contents: Vec::new(),
+                    ..warm_scene_prepare
+                })),
+            &compiled,
+            None,
+        )
+        .unwrap();
+    let warm_readback = renderer.take_last_hybrid_gi_gpu_readback().unwrap();
+    let cool = renderer
+        .render_frame_with_pipeline(
+            &ViewportRenderFrame::from_extract(extract, viewport_size)
+                .with_hybrid_gi_prepare(Some(prepare))
+                .with_hybrid_gi_scene_prepare(Some(HybridGiScenePrepareFrame {
+                    surface_cache_page_contents: Vec::new(),
+                    ..cool_scene_prepare
+                })),
+            &compiled,
+            None,
+        )
+        .unwrap();
+    let cool_readback = renderer.take_last_hybrid_gi_gpu_readback().unwrap();
+
+    let warm_scene_prepare_resources = warm_readback
+        .scene_prepare_resources
+        .expect("expected warm scene-prepare resource snapshot");
+    let cool_scene_prepare_resources = cool_readback
+        .scene_prepare_resources
+        .expect("expected cool scene-prepare resource snapshot");
+    assert!(
+        warm_scene_prepare_resources.capture_slot_rgba_samples.is_empty()
+            && warm_scene_prepare_resources.atlas_slot_rgba_samples.is_empty()
+            && cool_scene_prepare_resources.capture_slot_rgba_samples.is_empty()
+            && cool_scene_prepare_resources.atlas_slot_rgba_samples.is_empty(),
+        "expected this clean-frame regression to remove persisted surface-cache page-content fallback from the renderer input, so the resolve difference must come from runtime voxel radiance instead of owner-card capture resources"
+    );
+
+    let warm_red = average_region_channel(&warm.rgba, viewport_size, 0, 0.25, 0.75, 0.25, 0.75);
+    let cool_red = average_region_channel(&cool.rgba, viewport_size, 0, 0.25, 0.75, 0.25, 0.75);
+    let warm_blue = average_region_channel(&warm.rgba, viewport_size, 2, 0.25, 0.75, 0.25, 0.75);
+    let cool_blue = average_region_channel(&cool.rgba, viewport_size, 2, 0.25, 0.75, 0.25, 0.75);
+
+    assert!(
+        warm_red > cool_red + 0.5,
+        "expected clean-frame persisted page samples to rehydrate warm runtime voxel radiance even after owner-card surface-cache page fallback is removed from the renderer input; warm_red={warm_red:.2}, cool_red={cool_red:.2}"
+    );
+    assert!(
+        cool_blue > warm_blue + 0.5,
+        "expected clean-frame persisted page samples to rehydrate cool runtime voxel radiance even after owner-card surface-cache page fallback is removed from the renderer input; warm_blue={warm_blue:.2}, cool_blue={cool_blue:.2}"
     );
 }
 
@@ -2384,6 +4159,7 @@ fn hybrid_gi_resolve_changes_when_runtime_scene_voxel_owner_matches_scene_card_c
             bounds_center: Vec3::new(20.0, 20.0, 20.0),
             bounds_radius: 0.25,
         }],
+        surface_cache_page_contents: Vec::new(),
         voxel_clipmaps: vec![HybridGiPrepareVoxelClipmap {
             clipmap_id: 7,
             center: Vec3::ZERO,
@@ -4419,6 +6195,97 @@ fn runtime_voxel_scene_prepare_from_tinted_mesh(
         &[],
         &[],
     )
+}
+
+fn runtime_voxel_scene_prepare_from_tinted_mesh_with_persisted_page_sample(
+    tint_rgb: [f32; 3],
+    translation: Vec3,
+    uniform_scale: f32,
+    persisted_capture_rgba: [u8; 4],
+) -> HybridGiScenePrepareFrame {
+    let mut runtime = HybridGiRuntimeState::default();
+    let extract = RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 1,
+        voxel_budget: 1,
+        debug_view: Default::default(),
+        probe_budget: 0,
+        tracing_budget: 0,
+        probes: Vec::new(),
+        trace_regions: Vec::new(),
+    };
+
+    runtime.register_scene_extract(
+        Some(&extract),
+        &[crate::core::framework::render::RenderMeshSnapshot {
+            node_id: 11,
+            transform: crate::core::math::Transform::from_translation(translation)
+                .with_scale(Vec3::splat(uniform_scale)),
+            model: crate::core::resource::ResourceHandle::<crate::core::resource::ModelMarker>::new(
+                crate::core::resource::ResourceId::from_stable_label("res://models/card.obj"),
+            ),
+            material:
+                crate::core::resource::ResourceHandle::<crate::core::resource::MaterialMarker>::new(
+                    crate::core::resource::ResourceId::from_stable_label(
+                        "res://materials/runtime-voxel-persisted-page.mat",
+                    ),
+                ),
+            tint: crate::core::math::Vec4::new(tint_rgb[0], tint_rgb[1], tint_rgb[2], 1.0),
+            mobility: crate::core::framework::scene::Mobility::Static,
+            render_layer_mask: u32::MAX,
+        }],
+        &[],
+        &[],
+        &[],
+    );
+    runtime.apply_scene_prepare_resources(
+        &crate::graphics::scene::HybridGiScenePrepareResourcesSnapshot {
+            card_capture_request_count: 1,
+            voxel_clipmap_ids: Vec::new(),
+            occupied_atlas_slots: vec![0],
+            occupied_capture_slots: vec![0],
+            atlas_slot_rgba_samples: vec![(0, persisted_capture_rgba)],
+            capture_slot_rgba_samples: vec![(0, persisted_capture_rgba)],
+            voxel_clipmap_rgba_samples: Vec::new(),
+            voxel_clipmap_occupancy_masks: Vec::new(),
+            voxel_clipmap_cell_rgba_samples: Vec::new(),
+            voxel_clipmap_cell_occupancy_counts: Vec::new(),
+            voxel_clipmap_cell_dominant_node_ids: Vec::new(),
+            voxel_clipmap_cell_dominant_rgba_samples: Vec::new(),
+            atlas_slot_count: 0,
+            capture_slot_count: 0,
+            atlas_texture_extent: (0, 0),
+            capture_texture_extent: (0, 0),
+            capture_layer_count: 0,
+        },
+    );
+    runtime.register_scene_extract(
+        Some(&extract),
+        &[crate::core::framework::render::RenderMeshSnapshot {
+            node_id: 11,
+            transform: crate::core::math::Transform::from_translation(translation)
+                .with_scale(Vec3::splat(uniform_scale)),
+            model: crate::core::resource::ResourceHandle::<crate::core::resource::ModelMarker>::new(
+                crate::core::resource::ResourceId::from_stable_label("res://models/card.obj"),
+            ),
+            material:
+                crate::core::resource::ResourceHandle::<crate::core::resource::MaterialMarker>::new(
+                    crate::core::resource::ResourceId::from_stable_label(
+                        "res://materials/runtime-voxel-persisted-page.mat",
+                    ),
+                ),
+            tint: crate::core::math::Vec4::new(tint_rgb[0], tint_rgb[1], tint_rgb[2], 1.0),
+            mobility: crate::core::framework::scene::Mobility::Static,
+            render_layer_mask: u32::MAX,
+        }],
+        &[],
+        &[],
+        &[],
+    );
+
+    runtime.build_scene_prepare_frame()
 }
 
 fn runtime_voxel_scene_prepare_from_tinted_mesh_and_lights(

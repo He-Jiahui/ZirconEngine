@@ -6,8 +6,8 @@ use crate::core::{
 };
 
 use super::{
-    dependency_on, driver_contract, factory, module_context, plugin_context, qualified_name,
-    EngineModule, EngineService,
+    dependency_on, driver_contract, factory, module_context, plugin_context, plugin_factory,
+    qualified_name, EngineModule, EngineService,
 };
 
 fn stub_driver_descriptor(
@@ -51,7 +51,7 @@ fn stub_plugin_descriptor(
         name,
         startup_mode,
         Vec::new(),
-        Arc::new(move |_| Ok(Arc::new(service_name.clone()) as ServiceObject)),
+        plugin_factory(move |_| Ok(Arc::new(service_name.clone()) as ServiceObject)),
     )
 }
 
@@ -117,11 +117,20 @@ fn contexts_and_factory_preserve_supplied_names() {
         module_context("UiModule", weak.clone()).module_name,
         "UiModule"
     );
-    assert_eq!(plugin_context("ToolPlugin", weak).plugin_name, "ToolPlugin");
+    let plugin_context = plugin_context("ToolPlugin", weak);
+    assert_eq!(plugin_context.plugin_name, "ToolPlugin");
+    assert!(plugin_context.package_root.is_none());
+    assert!(plugin_context.source_root.is_none());
+    assert!(plugin_context.data_root.is_none());
 
     let factory = factory(|_| Ok(Arc::new("service".to_string()) as _));
     let service = factory(&runtime.handle());
     assert!(service.is_ok());
+
+    let plugin_factory =
+        plugin_factory(|context| Ok(Arc::new(context.plugin_name.clone()) as ServiceObject));
+    let plugin = plugin_factory(&plugin_context);
+    assert!(plugin.is_ok());
 }
 
 #[test]

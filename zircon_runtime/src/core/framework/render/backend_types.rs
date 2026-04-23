@@ -1,7 +1,9 @@
 use crate::core::math::UVec2;
 
 use super::{
-    RenderFrameExtract, RenderVirtualGeometryHardwareRasterizationSource,
+    RenderFrameExtract, RenderVirtualGeometryClusterSelectionInputSource,
+    RenderVirtualGeometryHardwareRasterizationSource,
+    RenderVirtualGeometryNodeAndClusterCullSource, RenderVirtualGeometrySelectedClusterSource,
     RenderVirtualGeometryVisBuffer64Source,
 };
 
@@ -238,7 +240,12 @@ pub struct RenderStats {
     pub last_ui_text_payload_count: usize,
     pub last_ui_image_payload_count: usize,
     pub last_ui_clipped_command_count: usize,
+    pub last_virtual_geometry_cluster_budget: usize,
+    pub last_virtual_geometry_page_budget: usize,
+    pub last_virtual_geometry_input_cluster_count: usize,
+    pub last_virtual_geometry_input_page_count: usize,
     pub last_virtual_geometry_visible_cluster_count: usize,
+    pub last_virtual_geometry_visible_entity_count: usize,
     pub last_virtual_geometry_instance_count: usize,
     pub last_virtual_geometry_requested_page_count: usize,
     pub last_virtual_geometry_dirty_page_count: usize,
@@ -262,6 +269,14 @@ pub struct RenderStats {
     pub last_virtual_geometry_execution_pending_segment_count: usize,
     pub last_virtual_geometry_execution_missing_segment_count: usize,
     pub last_virtual_geometry_execution_repeated_draw_count: usize,
+    pub last_virtual_geometry_cluster_selection_input_source:
+        RenderVirtualGeometryClusterSelectionInputSource,
+    pub last_virtual_geometry_node_and_cluster_cull_source:
+        RenderVirtualGeometryNodeAndClusterCullSource,
+    pub last_virtual_geometry_node_and_cluster_cull_record_count: usize,
+    pub last_virtual_geometry_node_and_cluster_cull_instance_seed_count: usize,
+    pub last_virtual_geometry_selected_cluster_source: RenderVirtualGeometrySelectedClusterSource,
+    pub last_virtual_geometry_selected_cluster_count: usize,
     pub last_virtual_geometry_visbuffer64_source: RenderVirtualGeometryVisBuffer64Source,
     pub last_virtual_geometry_visbuffer64_entry_count: usize,
     pub last_virtual_geometry_hardware_rasterization_source:

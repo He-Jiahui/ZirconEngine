@@ -23,6 +23,7 @@ fn collect_hybrid_gi_completion(renderer: &mut SceneRenderer) -> Option<HybridGi
             completed_trace_region_ids: readback.completed_trace_region_ids,
             probe_irradiance_rgb: readback.probe_irradiance_rgb,
             probe_trace_lighting_rgb: readback.probe_trace_lighting_rgb,
+            scene_prepare_resources: readback.scene_prepare_resources,
         })
 }
 

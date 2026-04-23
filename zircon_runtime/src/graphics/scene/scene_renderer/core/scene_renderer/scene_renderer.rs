@@ -3,7 +3,9 @@ use std::sync::Arc;
 
 use crate::core::framework::render::FrameHistoryHandle;
 use crate::core::framework::render::{
-    RenderVirtualGeometryDebugSnapshot, RenderVirtualGeometryHardwareRasterizationSource,
+    RenderVirtualGeometryClusterSelectionInputSource, RenderVirtualGeometryDebugSnapshot,
+    RenderVirtualGeometryHardwareRasterizationSource,
+    RenderVirtualGeometryNodeAndClusterCullSource, RenderVirtualGeometrySelectedClusterSource,
     RenderVirtualGeometryVisBuffer64Source,
 };
 
@@ -72,6 +74,24 @@ pub struct SceneRenderer {
         Option<Arc<wgpu::Buffer>>,
     pub(in crate::graphics::scene::scene_renderer::core) last_virtual_geometry_indirect_execution_authority_buffer:
         Option<Arc<wgpu::Buffer>>,
+    pub(in crate::graphics::scene::scene_renderer::core) last_virtual_geometry_cluster_selection_input_source:
+        RenderVirtualGeometryClusterSelectionInputSource,
+    pub(in crate::graphics::scene::scene_renderer::core) last_virtual_geometry_cull_input_buffer:
+        Option<Arc<wgpu::Buffer>>,
+    pub(in crate::graphics::scene::scene_renderer::core) last_virtual_geometry_node_and_cluster_cull_source:
+        RenderVirtualGeometryNodeAndClusterCullSource,
+    pub(in crate::graphics::scene::scene_renderer::core) last_virtual_geometry_node_and_cluster_cull_record_count:
+        u32,
+    pub(in crate::graphics::scene::scene_renderer::core) last_virtual_geometry_node_and_cluster_cull_buffer:
+        Option<Arc<wgpu::Buffer>>,
+    pub(in crate::graphics::scene::scene_renderer::core) last_virtual_geometry_node_and_cluster_cull_dispatch_setup_buffer:
+        Option<Arc<wgpu::Buffer>>,
+    pub(in crate::graphics::scene::scene_renderer::core) last_virtual_geometry_node_and_cluster_cull_instance_seed_count:
+        u32,
+    pub(in crate::graphics::scene::scene_renderer::core) last_virtual_geometry_node_and_cluster_cull_instance_seed_buffer:
+        Option<Arc<wgpu::Buffer>>,
+    pub(in crate::graphics::scene::scene_renderer::core) last_virtual_geometry_selected_cluster_source:
+        RenderVirtualGeometrySelectedClusterSource,
     pub(in crate::graphics::scene::scene_renderer::core) last_virtual_geometry_selected_cluster_count:
         u32,
     pub(in crate::graphics::scene::scene_renderer::core) last_virtual_geometry_selected_cluster_buffer:

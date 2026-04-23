@@ -5,6 +5,7 @@ mod resource_streamer_ensure_model;
 mod resource_streamer_ensure_scene_resources;
 mod resource_streamer_ensure_shader_source;
 mod resource_streamer_ensure_texture;
+mod resource_streamer_load_animation_skeleton_asset;
 mod resource_streamer_load_model_asset;
 mod resource_streamer_new;
 mod resource_streamer_resolve_texture_id;

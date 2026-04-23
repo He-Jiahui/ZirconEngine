@@ -7,12 +7,13 @@ mod plugin;
 mod runtime;
 mod tests;
 
+pub use backend::{BuiltinVmBackendFamily, VmBackendFamily};
 pub use backend::{UnavailableVmBackend, VmBackend, VmBackendRegistry, VmError};
 pub use capability_set::CapabilitySet;
 pub use handles::{HostHandle, PluginSlotId};
 pub use host::{
-    HostRegistry, PluginHostDriver, PLUGIN_HOST_DRIVER_NAME, SCRIPT_MODULE_NAME,
-    VM_PLUGIN_MANAGER_NAME, VM_PLUGIN_RUNTIME_NAME,
+    HostRegistry, PluginHostDriver, VmPluginHostContext, VmPluginSlotLifecycle,
+    PLUGIN_HOST_DRIVER_NAME, SCRIPT_MODULE_NAME, VM_PLUGIN_MANAGER_NAME, VM_PLUGIN_RUNTIME_NAME,
 };
 pub use module::{module_descriptor, ScriptModule};
 pub use plugin::{

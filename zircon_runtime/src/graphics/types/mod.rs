@@ -8,10 +8,13 @@ mod viewport_render_frame;
 mod viewport_render_frame_from_extract;
 mod viewport_render_frame_from_public_runtime;
 mod viewport_render_frame_from_snapshot;
+mod viewport_render_frame_resolve_virtual_geometry_cluster_selections;
 mod viewport_render_frame_with_hybrid_gi_prepare;
 mod viewport_render_frame_with_hybrid_gi_resolve_runtime;
 mod viewport_render_frame_with_hybrid_gi_scene_prepare;
+mod viewport_render_frame_with_prepare_derived_virtual_geometry_cluster_selections;
 mod viewport_render_frame_with_ui;
+#[cfg(test)]
 mod viewport_render_frame_with_virtual_geometry_cluster_selections;
 mod viewport_render_frame_with_virtual_geometry_debug_snapshot;
 mod viewport_render_frame_with_virtual_geometry_prepare;
@@ -24,9 +27,9 @@ pub use graphics_error::GraphicsError;
 pub(crate) use hybrid_gi_prepare::{
     hybrid_gi_voxel_clipmap_bounds_cell_ranges, hybrid_gi_voxel_clipmap_cell_bit_index,
     hybrid_gi_voxel_clipmap_cell_center, HybridGiPrepareCardCaptureRequest, HybridGiPrepareFrame,
-    HybridGiPrepareProbe, HybridGiPrepareUpdateRequest, HybridGiPrepareVoxelCell,
-    HybridGiPrepareVoxelClipmap, HybridGiScenePrepareFrame, HYBRID_GI_VOXEL_CLIPMAP_CELL_COUNT,
-    HYBRID_GI_VOXEL_CLIPMAP_CELL_RESOLUTION,
+    HybridGiPrepareProbe, HybridGiPrepareSurfaceCachePageContent, HybridGiPrepareUpdateRequest,
+    HybridGiPrepareVoxelCell, HybridGiPrepareVoxelClipmap, HybridGiScenePrepareFrame,
+    HYBRID_GI_VOXEL_CLIPMAP_CELL_COUNT, HYBRID_GI_VOXEL_CLIPMAP_CELL_RESOLUTION,
 };
 pub(crate) use hybrid_gi_resolve_runtime::HybridGiResolveRuntime;
 pub use viewport_frame::ViewportFrame;

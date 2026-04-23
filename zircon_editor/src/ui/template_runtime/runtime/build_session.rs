@@ -15,8 +15,8 @@ pub(super) fn load_builtin_host_templates(
         runtime.register_component(descriptor)?;
     }
 
-    for (document_id, template) in builtin_template_documents() {
-        runtime.register_document_source(document_id, template)?;
+    for (document_id, path) in builtin_template_documents() {
+        runtime.register_document_file(document_id, path)?;
     }
 
     for (binding_id, binding) in builtin_template_bindings() {

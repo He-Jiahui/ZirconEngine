@@ -1,6 +1,5 @@
-import { AnimationEditorPaneData } from "animation_editor_pane.slint";
-import { SceneNodeData } from "panes.slint";
 import { UiAssetEditorPaneData } from "ui_asset_editor_data.slint";
+import { TemplatePaneNodeData } from "template_node_data.slint";
 
 export struct ProjectOverviewData {
     project_name: string,
@@ -13,7 +12,45 @@ export struct ProjectOverviewData {
     asset_count: string,
 }
 
-export { SceneNodeData } from "panes.slint";
+export struct SceneNodeData {
+    id: string,
+    name: string,
+    depth: int,
+    selected: bool,
+}
+
+export struct HierarchyPaneData {
+    nodes: [TemplatePaneNodeData],
+    hierarchy_nodes: [SceneNodeData],
+}
+
+export struct AnimationEditorPaneData {
+    nodes: [TemplatePaneNodeData],
+    mode: string,
+    asset_path: string,
+    status: string,
+    selection: string,
+    current_frame: int,
+    timeline_start_frame: int,
+    timeline_end_frame: int,
+    playback_label: string,
+    track_items: [string],
+    parameter_items: [string],
+    node_items: [string],
+    state_items: [string],
+    transition_items: [string],
+}
+
+export struct InspectorPaneData {
+    nodes: [TemplatePaneNodeData],
+    info: string,
+    inspector_name: string,
+    inspector_parent: string,
+    inspector_x: string,
+    inspector_y: string,
+    inspector_z: string,
+    delete_enabled: bool,
+}
 
 export struct SceneViewportChromeData {
     tool: string,
@@ -31,6 +68,23 @@ export struct SceneViewportChromeData {
     translate_snap_label: string,
     rotate_snap_label: string,
     scale_snap_label: string,
+}
+
+export struct ConsolePaneData {
+    nodes: [TemplatePaneNodeData],
+    status_text: string,
+}
+
+export struct AssetsActivityPaneData {
+    nodes: [TemplatePaneNodeData],
+}
+
+export struct AssetBrowserPaneData {
+    nodes: [TemplatePaneNodeData],
+}
+
+export struct ProjectOverviewPaneData {
+    nodes: [TemplatePaneNodeData],
 }
 
 export struct PaneData {
@@ -51,6 +105,12 @@ export struct PaneData {
     secondary_hint: string,
     show_toolbar: bool,
     viewport: SceneViewportChromeData,
+    hierarchy: HierarchyPaneData,
+    inspector: InspectorPaneData,
+    console: ConsolePaneData,
+    assets_activity: AssetsActivityPaneData,
+    asset_browser: AssetBrowserPaneData,
+    project_overview: ProjectOverviewPaneData,
     ui_asset: UiAssetEditorPaneData,
     animation: AnimationEditorPaneData,
 }

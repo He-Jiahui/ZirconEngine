@@ -1,12 +1,1327 @@
-import { EmptyStateCard } from "chrome.slint";
-import { AnimationEditorPane } from "animation_editor_pane.slint";
-import { AssetBrowserPane, AssetsActivityPane, ProjectOverviewPane } from "asset_panes.slint";
-import { AssetFolderData, AssetItemData, AssetReferenceData, AssetSelectionData } from "assets.slint";
-import { ConsolePane, FallbackPane, HierarchyPane, InspectorPane, ToolWindowEmptyState } from "panes.slint";
-import { PaneData, ProjectOverviewData, SceneNodeData } from "pane_data.slint";
+import { EmptyStateCard, Palette, ShellButton, ToolbarButton } from "chrome.slint";
+import { AssetFolderData, AssetItemData, AssetListView, AssetReferenceData, AssetSelectionData, AssetSurfaceFrame, FolderTreeView, KindChip, ReferenceListView, SearchField, SelectionDetailsRail, SelectionPreviewCard } from "assets.slint";
+import { AnimationEditorPaneData, AssetBrowserPaneData, AssetsActivityPaneData, ConsolePaneData, HierarchyPaneData, InspectorPaneData, PaneData, ProjectOverviewData, ProjectOverviewPaneData } from "pane_data.slint";
+import { CompactField, AxisField } from "pane_fields.slint";
+import { FallbackPane } from "fallback_pane.slint";
 import { PaneSurfaceHostContext } from "pane_surface_host_context.slint";
+import { TemplatePane } from "template_pane.slint";
+import { ToolWindowEmptyState } from "tool_window_empty_state.slint";
 import { UiAssetEditorPane } from "ui_asset_editor_pane.slint";
-import { RecentProjectData, WelcomePane, WelcomePaneData } from "welcome.slint";
+import { WelcomePane } from "welcome.slint";
+
+component HierarchyPaneView inherits Rectangle {
+    in property <HierarchyPaneData> pane;
+    in property <int> hovered_index: -1;
+    in property <float> scroll_px: 0.0;
+    callback pointer_clicked(x: float, y: float, width: float, height: float);
+    callback pointer_moved(x: float, y: float, width: float, height: float);
+    callback pointer_scrolled(x: float, y: float, delta: float, width: float, height: float);
+
+    palette := Palette {}
+    background: transparent;
+    clip: true;
+
+    for list_panel_node in root.pane.nodes: Rectangle {
+        visible: list_panel_node.control_id == "HierarchyListPanel";
+        x: list_panel_node.frame.x * 1px;
+        y: list_panel_node.frame.y * 1px;
+        width: list_panel_node.frame.width * 1px;
+        height: list_panel_node.frame.height * 1px;
+        background: transparent;
+        clip: true;
+
+        rows := VerticalLayout {
+            x: 0px;
+            y: 0px - root.scroll_px * 1px;
+            width: parent.width;
+            spacing: 1px;
+
+            for node[index] in root.pane.hierarchy_nodes: Rectangle {
+                height: 22px;
+                border-radius: 3px;
+                background: node.selected ? #365880 : root.hovered_index == index ? palette.chrome_bg_soft : transparent;
+
+                Text {
+                    x: 10px + node.depth * 14px;
+                    y: 4px;
+                    text: node.name;
+                    color: node.selected ? #eef4ff : palette.text_muted;
+                    font-size: 11px;
+                }
+            }
+        }
+    }
+
+    TouchArea {
+        width: parent.width;
+        height: parent.height;
+        moved => {
+            root.pointer_moved(
+                self.mouse-x / 1px,
+                self.mouse-y / 1px,
+                root.width / 1px,
+                root.height / 1px,
+            );
+        }
+        clicked => {
+            root.pointer_clicked(
+                self.mouse-x / 1px,
+                self.mouse-y / 1px,
+                root.width / 1px,
+                root.height / 1px,
+            );
+        }
+        scroll-event(event) => {
+            root.pointer_scrolled(
+                self.mouse-x / 1px,
+                self.mouse-y / 1px,
+                event.delta_y / 1px,
+                root.width / 1px,
+                root.height / 1px,
+            );
+            accept
+        }
+    }
+}
+
+component InspectorPaneView inherits Rectangle {
+    in property <InspectorPaneData> pane;
+    in property <float> scroll_px: 0.0;
+    callback pointer_scrolled(x: float, y: float, delta: float, width: float, height: float);
+    callback control_changed(control_id: string, value: string);
+    callback control_clicked(control_id: string);
+
+    palette := Palette {}
+    background: transparent;
+    clip: true;
+
+    scroll_capture := TouchArea {
+        width: parent.width;
+        height: parent.height;
+        scroll-event(event) => {
+            root.pointer_scrolled(
+                self.mouse-x / 1px,
+                self.mouse-y / 1px,
+                event.delta_y / 1px,
+                root.width / 1px,
+                root.height / 1px,
+            );
+            accept
+        }
+
+        for content_panel_node in root.pane.nodes: Rectangle {
+            visible: content_panel_node.control_id == "InspectorContentPanel";
+            x: content_panel_node.frame.x * 1px;
+            y: content_panel_node.frame.y * 1px;
+            width: content_panel_node.frame.width * 1px;
+            height: content_panel_node.frame.height * 1px;
+            background: transparent;
+            clip: true;
+
+            content := Rectangle {
+                x: 0px;
+                y: 0px - root.scroll_px * 1px;
+                width: parent.width;
+                height: max(parent.height, 140px);
+                background: transparent;
+
+                for header_panel_node in root.pane.nodes: Rectangle {
+                    visible: header_panel_node.control_id == "InspectorHeaderPanel";
+                    x: (header_panel_node.frame.x - content_panel_node.frame.x) * 1px;
+                    y: (header_panel_node.frame.y - content_panel_node.frame.y) * 1px;
+                    width: header_panel_node.frame.width * 1px;
+                    height: header_panel_node.frame.height * 1px;
+                    border-width: 1px;
+                    border-color: palette.border_soft;
+                    background: palette.panel_bg_soft;
+
+                    Text {
+                        x: 8px;
+                        y: 3px;
+                        text: "Transform";
+                        color: palette.text;
+                        font-size: 11px;
+                        font-weight: 600;
+                    }
+
+                    Text {
+                        x: parent.width - self.preferred-width - 8px;
+                        y: 4px;
+                        text: root.pane.info;
+                        color: palette.text_dim;
+                        font-size: 9px;
+                        overflow: elide;
+                    }
+                }
+
+                for name_row_node in root.pane.nodes: Rectangle {
+                    visible: name_row_node.control_id == "InspectorNameRow";
+                    x: (name_row_node.frame.x - content_panel_node.frame.x) * 1px;
+                    y: (name_row_node.frame.y - content_panel_node.frame.y) * 1px;
+                    width: name_row_node.frame.width * 1px;
+                    height: name_row_node.frame.height * 1px;
+                    background: transparent;
+
+                    Text {
+                        x: 0px;
+                        y: 4px;
+                        width: 58px;
+                        text: "Name";
+                        color: palette.text_dim;
+                        font-size: 10px;
+                    }
+
+                    CompactField {
+                        x: 62px;
+                        y: 0px;
+                        width: parent.width - 62px;
+                        text: root.pane.inspector_name;
+                        placeholder: "Name";
+                        edited(value) => { root.control_changed("NameField", value); }
+                    }
+                }
+
+                for parent_row_node in root.pane.nodes: Rectangle {
+                    visible: parent_row_node.control_id == "InspectorParentRow";
+                    x: (parent_row_node.frame.x - content_panel_node.frame.x) * 1px;
+                    y: (parent_row_node.frame.y - content_panel_node.frame.y) * 1px;
+                    width: parent_row_node.frame.width * 1px;
+                    height: parent_row_node.frame.height * 1px;
+                    background: transparent;
+
+                    Text {
+                        x: 0px;
+                        y: 4px;
+                        width: 58px;
+                        text: "Parent";
+                        color: palette.text_dim;
+                        font-size: 10px;
+                    }
+
+                    CompactField {
+                        x: 62px;
+                        y: 0px;
+                        width: parent.width - 62px;
+                        text: root.pane.inspector_parent;
+                        placeholder: "Parent Id";
+                        edited(value) => { root.control_changed("ParentField", value); }
+                    }
+                }
+
+                for position_row_node in root.pane.nodes: Rectangle {
+                    visible: position_row_node.control_id == "InspectorPositionRow";
+                    x: (position_row_node.frame.x - content_panel_node.frame.x) * 1px;
+                    y: (position_row_node.frame.y - content_panel_node.frame.y) * 1px;
+                    width: position_row_node.frame.width * 1px;
+                    height: position_row_node.frame.height * 1px;
+                    background: transparent;
+
+                    Text {
+                        x: 0px;
+                        y: 4px;
+                        width: 58px;
+                        text: "Position";
+                        color: palette.text_dim;
+                        font-size: 10px;
+                    }
+
+                    HorizontalLayout {
+                        x: 62px;
+                        y: 0px;
+                        width: parent.width - 62px;
+                        spacing: 4px;
+
+                        AxisField {
+                            width: (parent.width - 8px) / 3;
+                            axis: "X";
+                            axis_color: #c75450;
+                            value: root.pane.inspector_x;
+                            edited(value) => { root.control_changed("PositionXField", value); }
+                        }
+
+                        AxisField {
+                            width: (parent.width - 8px) / 3;
+                            axis: "Y";
+                            axis_color: #7fb062;
+                            value: root.pane.inspector_y;
+                            edited(value) => { root.control_changed("PositionYField", value); }
+                        }
+
+                        AxisField {
+                            width: (parent.width - 8px) / 3;
+                            axis: "Z";
+                            axis_color: #5a88d2;
+                            value: root.pane.inspector_z;
+                            edited(value) => { root.control_changed("PositionZField", value); }
+                        }
+                    }
+                }
+
+                for separator_row_node in root.pane.nodes: Rectangle {
+                    visible: separator_row_node.control_id == "InspectorSeparatorRow";
+                    x: (separator_row_node.frame.x - content_panel_node.frame.x) * 1px;
+                    y: (separator_row_node.frame.y - content_panel_node.frame.y) * 1px;
+                    width: separator_row_node.frame.width * 1px;
+                    height: separator_row_node.frame.height * 1px;
+                    background: palette.border_soft;
+                }
+
+                for actions_row_node in root.pane.nodes: Rectangle {
+                    visible: actions_row_node.control_id == "InspectorActionsRow";
+                    x: (actions_row_node.frame.x - content_panel_node.frame.x) * 1px;
+                    y: (actions_row_node.frame.y - content_panel_node.frame.y) * 1px;
+                    width: actions_row_node.frame.width * 1px;
+                    height: actions_row_node.frame.height * 1px;
+                    background: transparent;
+
+                    ShellButton {
+                        x: parent.width - 126px;
+                        y: 0px;
+                        width: 58px;
+                        label: "Apply";
+                        active: true;
+                        clicked => { root.control_clicked("ApplyBatchButton"); }
+                    }
+
+                    ShellButton {
+                        x: parent.width - 62px;
+                        y: 0px;
+                        width: 58px;
+                        label: "Delete";
+                        active: false;
+                        enabled: root.pane.delete_enabled;
+                        clicked => { root.control_clicked("DeleteSelected"); }
+                    }
+                }
+            }
+        }
+    }
+}
+
+component ConsolePaneView inherits Rectangle {
+    in property <ConsolePaneData> pane;
+    in property <bool> show_empty;
+    in property <string> empty_body;
+    in property <float> scroll_px: 0.0;
+    callback pointer_scrolled(x: float, y: float, delta: float, width: float, height: float);
+
+    background: #17191c;
+    clip: true;
+
+    for text_panel_node in root.pane.nodes: Rectangle {
+        visible: text_panel_node.control_id == "ConsoleTextPanel";
+        x: text_panel_node.frame.x * 1px;
+        y: text_panel_node.frame.y * 1px;
+        width: text_panel_node.frame.width * 1px;
+        height: text_panel_node.frame.height * 1px;
+        background: transparent;
+        clip: true;
+
+        lines := VerticalLayout {
+            x: 0px;
+            y: 0px - root.scroll_px * 1px;
+            width: parent.width;
+            spacing: 6px;
+
+            if root.show_empty: Text {
+                text: root.pane.status_text != "" ? "> " + root.pane.status_text : "> No output yet";
+                color: #c3ccd8;
+                font-size: 11px;
+                font-family: "JetBrains Mono, Cascadia Mono, Consolas";
+                wrap: word-wrap;
+            }
+
+            if root.show_empty && root.empty_body != "": Text {
+                text: root.empty_body;
+                color: #8893a0;
+                font-size: 10px;
+                wrap: word-wrap;
+            }
+
+            if !root.show_empty: Text {
+                text: root.pane.status_text;
+                color: #c3ccd8;
+                font-size: 11px;
+                font-family: "JetBrains Mono, Cascadia Mono, Consolas";
+                wrap: word-wrap;
+            }
+        }
+    }
+
+    TouchArea {
+        width: parent.width;
+        height: parent.height;
+        scroll-event(event) => {
+            root.pointer_scrolled(
+                self.mouse-x / 1px,
+                self.mouse-y / 1px,
+                event.delta_y / 1px,
+                root.width / 1px,
+                root.height / 1px,
+            );
+            accept
+        }
+    }
+}
+
+component AnimationListSection inherits Rectangle {
+    in property <string> title;
+    in property <[string]> items;
+
+    palette := Palette {}
+    height: title_text.height + (root.items.length > 0 ? root.items.length * 20px : 20px) + 8px;
+    background: transparent;
+
+    title_text := Text {
+        x: 0px;
+        y: 0px;
+        text: root.title;
+        color: palette.text;
+        font-size: 11px;
+    }
+
+    item_column := Rectangle {
+        x: 0px;
+        y: title_text.height + 4px;
+        width: parent.width;
+        height: parent.height - self.y;
+        background: transparent;
+
+        VerticalLayout {
+            x: 0px;
+            y: 0px;
+            width: parent.width;
+            spacing: 2px;
+
+            for item[index] in root.items: Rectangle {
+                height: 18px;
+                border-radius: 3px;
+                background: palette.panel_bg_soft;
+
+                Text {
+                    x: 8px;
+                    y: 2px;
+                    width: parent.width - 16px;
+                    height: parent.height - 4px;
+                    text: item;
+                    color: palette.text_muted;
+                    font-size: 11px;
+                    overflow: elide;
+                }
+            }
+
+            if root.items.length == 0: Rectangle {
+                height: 18px;
+
+                Text {
+                    width: parent.width;
+                    height: parent.height;
+                    text: "No Items";
+                    color: palette.text_dim;
+                    font-size: 11px;
+                    vertical-alignment: center;
+                }
+            }
+        }
+    }
+}
+
+component AnimationEditorPaneView inherits Rectangle {
+    in property <AnimationEditorPaneData> pane;
+
+    palette := Palette {}
+    background: palette.panel_bg;
+    clip: true;
+
+    for header_panel_node in root.pane.nodes: Rectangle {
+        visible: header_panel_node.control_id == "AnimationEditorHeaderPanel";
+        x: header_panel_node.frame.x * 1px;
+        y: header_panel_node.frame.y * 1px;
+        width: header_panel_node.frame.width * 1px;
+        height: header_panel_node.frame.height * 1px;
+        background: palette.panel_bg_soft;
+        clip: true;
+
+        for header_mode_row_node in root.pane.nodes: Text {
+            visible: header_mode_row_node.control_id == "AnimationEditorHeaderModeRow";
+            x: (header_mode_row_node.frame.x - header_panel_node.frame.x) * 1px;
+            y: (header_mode_row_node.frame.y - header_panel_node.frame.y) * 1px;
+            width: header_mode_row_node.frame.width * 1px;
+            height: header_mode_row_node.frame.height * 1px;
+            text: root.pane.mode;
+            color: palette.accent;
+            font-size: 11px;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+
+        for header_path_row_node in root.pane.nodes: Text {
+            visible: header_path_row_node.control_id == "AnimationEditorHeaderPathRow";
+            x: (header_path_row_node.frame.x - header_panel_node.frame.x) * 1px;
+            y: (header_path_row_node.frame.y - header_panel_node.frame.y) * 1px;
+            width: header_path_row_node.frame.width * 1px;
+            height: header_path_row_node.frame.height * 1px;
+            text: root.pane.asset_path;
+            color: palette.text;
+            font-size: 12px;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+
+        for header_status_row_node in root.pane.nodes: Text {
+            visible: header_status_row_node.control_id == "AnimationEditorHeaderStatusRow";
+            x: (header_status_row_node.frame.x - header_panel_node.frame.x) * 1px;
+            y: (header_status_row_node.frame.y - header_panel_node.frame.y) * 1px;
+            width: header_status_row_node.frame.width * 1px;
+            height: header_status_row_node.frame.height * 1px;
+            text:
+                root.pane.status != "" ? root.pane.status :
+                root.pane.selection != "" ? root.pane.selection :
+                root.pane.playback_label;
+            color: palette.text_muted;
+            font-size: 11px;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+    }
+
+    for body_panel_node in root.pane.nodes: Rectangle {
+        visible: body_panel_node.control_id == "AnimationEditorBodyPanel";
+        x: body_panel_node.frame.x * 1px;
+        y: body_panel_node.frame.y * 1px;
+        width: body_panel_node.frame.width * 1px;
+        height: body_panel_node.frame.height * 1px;
+        background: palette.panel_bg;
+        clip: true;
+
+        for sequence_content_panel_node in root.pane.nodes: Rectangle {
+            visible:
+                root.pane.mode == "sequence" &&
+                sequence_content_panel_node.control_id == "AnimationSequenceContentPanel";
+            x: (sequence_content_panel_node.frame.x - body_panel_node.frame.x) * 1px;
+            y: (sequence_content_panel_node.frame.y - body_panel_node.frame.y) * 1px;
+            width: sequence_content_panel_node.frame.width * 1px;
+            height: sequence_content_panel_node.frame.height * 1px;
+            background: transparent;
+            clip: true;
+
+            for sequence_timeline_row_node in root.pane.nodes: Text {
+                visible: sequence_timeline_row_node.control_id == "AnimationSequenceTimelineRow";
+                x: (sequence_timeline_row_node.frame.x - sequence_content_panel_node.frame.x) * 1px;
+                y: (sequence_timeline_row_node.frame.y - sequence_content_panel_node.frame.y) * 1px;
+                width: sequence_timeline_row_node.frame.width * 1px;
+                height: sequence_timeline_row_node.frame.height * 1px;
+                text: "Frame " + root.pane.current_frame + " • Range " + root.pane.timeline_start_frame + ".." + root.pane.timeline_end_frame + " • " + root.pane.playback_label;
+                color: palette.text;
+                font-size: 11px;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+
+            for sequence_selection_row_node in root.pane.nodes: Text {
+                visible: sequence_selection_row_node.control_id == "AnimationSequenceSelectionRow";
+                x: (sequence_selection_row_node.frame.x - sequence_content_panel_node.frame.x) * 1px;
+                y: (sequence_selection_row_node.frame.y - sequence_content_panel_node.frame.y) * 1px;
+                width: sequence_selection_row_node.frame.width * 1px;
+                height: sequence_selection_row_node.frame.height * 1px;
+                text:
+                    root.pane.selection != "" ? root.pane.selection :
+                    root.pane.playback_label != "" ? root.pane.playback_label :
+                    "No timeline selection";
+                color: palette.text_muted;
+                font-size: 11px;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+
+            for sequence_tracks_panel_node in root.pane.nodes: AnimationListSection {
+                visible: sequence_tracks_panel_node.control_id == "AnimationSequenceTracksPanel";
+                x: (sequence_tracks_panel_node.frame.x - sequence_content_panel_node.frame.x) * 1px;
+                y: (sequence_tracks_panel_node.frame.y - sequence_content_panel_node.frame.y) * 1px;
+                width: sequence_tracks_panel_node.frame.width * 1px;
+                title: "Tracks";
+                items: root.pane.track_items;
+            }
+        }
+
+        for graph_content_panel_node in root.pane.nodes: Rectangle {
+            visible:
+                root.pane.mode == "graph" &&
+                graph_content_panel_node.control_id == "AnimationGraphContentPanel";
+            x: (graph_content_panel_node.frame.x - body_panel_node.frame.x) * 1px;
+            y: (graph_content_panel_node.frame.y - body_panel_node.frame.y) * 1px;
+            width: graph_content_panel_node.frame.width * 1px;
+            height: graph_content_panel_node.frame.height * 1px;
+            background: transparent;
+            clip: true;
+
+            for graph_parameters_panel_node in root.pane.nodes: AnimationListSection {
+                visible: graph_parameters_panel_node.control_id == "AnimationGraphParametersPanel";
+                x: (graph_parameters_panel_node.frame.x - graph_content_panel_node.frame.x) * 1px;
+                y: (graph_parameters_panel_node.frame.y - graph_content_panel_node.frame.y) * 1px;
+                width: graph_parameters_panel_node.frame.width * 1px;
+                title: "Parameters";
+                items: root.pane.parameter_items;
+            }
+
+            for graph_nodes_panel_node in root.pane.nodes: AnimationListSection {
+                visible: graph_nodes_panel_node.control_id == "AnimationGraphNodesPanel";
+                x: (graph_nodes_panel_node.frame.x - graph_content_panel_node.frame.x) * 1px;
+                y: (graph_nodes_panel_node.frame.y - graph_content_panel_node.frame.y) * 1px;
+                width: graph_nodes_panel_node.frame.width * 1px;
+                title: "Nodes";
+                items: root.pane.node_items;
+            }
+        }
+
+        for state_machine_content_panel_node in root.pane.nodes: Rectangle {
+            visible:
+                root.pane.mode == "state_machine" &&
+                state_machine_content_panel_node.control_id == "AnimationStateMachineContentPanel";
+            x: (state_machine_content_panel_node.frame.x - body_panel_node.frame.x) * 1px;
+            y: (state_machine_content_panel_node.frame.y - body_panel_node.frame.y) * 1px;
+            width: state_machine_content_panel_node.frame.width * 1px;
+            height: state_machine_content_panel_node.frame.height * 1px;
+            background: transparent;
+            clip: true;
+
+            for state_machine_entry_row_node in root.pane.nodes: Text {
+                visible: state_machine_entry_row_node.control_id == "AnimationStateMachineEntryRow";
+                x: (state_machine_entry_row_node.frame.x - state_machine_content_panel_node.frame.x) * 1px;
+                y: (state_machine_entry_row_node.frame.y - state_machine_content_panel_node.frame.y) * 1px;
+                width: state_machine_entry_row_node.frame.width * 1px;
+                height: state_machine_entry_row_node.frame.height * 1px;
+                text: "Entry: " + root.pane.selection;
+                color: palette.text;
+                font-size: 11px;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+
+            for state_machine_states_panel_node in root.pane.nodes: AnimationListSection {
+                visible: state_machine_states_panel_node.control_id == "AnimationStateMachineStatesPanel";
+                x: (state_machine_states_panel_node.frame.x - state_machine_content_panel_node.frame.x) * 1px;
+                y: (state_machine_states_panel_node.frame.y - state_machine_content_panel_node.frame.y) * 1px;
+                width: state_machine_states_panel_node.frame.width * 1px;
+                title: "States";
+                items: root.pane.state_items;
+            }
+
+            for state_machine_transitions_panel_node in root.pane.nodes: AnimationListSection {
+                visible: state_machine_transitions_panel_node.control_id == "AnimationStateMachineTransitionsPanel";
+                x: (state_machine_transitions_panel_node.frame.x - state_machine_content_panel_node.frame.x) * 1px;
+                y: (state_machine_transitions_panel_node.frame.y - state_machine_content_panel_node.frame.y) * 1px;
+                width: state_machine_transitions_panel_node.frame.width * 1px;
+                title: "Transitions";
+                items: root.pane.transition_items;
+            }
+        }
+    }
+}
+
+component AssetsActivityPaneView inherits Rectangle {
+    in property <AssetsActivityPaneData> pane;
+    in property <[AssetFolderData]> folder_tree;
+    in property <[AssetFolderData]> content_folders;
+    in property <[AssetItemData]> content_items;
+    in property <AssetSelectionData> selection;
+    in property <[AssetReferenceData]> references;
+    in property <[AssetReferenceData]> used_by;
+    in property <string> search_query;
+    in property <string> kind_filter;
+    in property <string> view_mode;
+    in property <string> utility_tab;
+    in property <int> tree_hovered_index: -1;
+    in property <float> tree_scroll_px: 0.0;
+    in property <int> content_hovered_index: -1;
+    in property <float> content_scroll_px: 0.0;
+    in property <int> references_hovered_index: -1;
+    in property <float> references_scroll_px: 0.0;
+    in property <int> used_by_hovered_index: -1;
+    in property <float> used_by_scroll_px: 0.0;
+    callback control_changed(control_id: string, value: string);
+    callback control_clicked(control_id: string);
+    callback tree_pointer_clicked(x: float, y: float, width: float, height: float);
+    callback tree_pointer_moved(x: float, y: float, width: float, height: float);
+    callback tree_pointer_scrolled(x: float, y: float, delta: float, width: float, height: float);
+    callback content_pointer_clicked(x: float, y: float, width: float, height: float);
+    callback content_pointer_moved(x: float, y: float, width: float, height: float);
+    callback content_pointer_scrolled(x: float, y: float, delta: float, width: float, height: float);
+    callback reference_pointer_clicked(list_kind: string, x: float, y: float, width: float, height: float);
+    callback reference_pointer_moved(list_kind: string, x: float, y: float, width: float, height: float);
+    callback reference_pointer_scrolled(list_kind: string, x: float, y: float, delta: float, width: float, height: float);
+
+    palette := Palette {}
+    background: transparent;
+    clip: true;
+
+    for toolbar_panel_node in root.pane.nodes: AssetSurfaceFrame {
+        visible: toolbar_panel_node.control_id == "AssetsActivityToolbarPanel";
+        x: toolbar_panel_node.frame.x * 1px;
+        y: toolbar_panel_node.frame.y * 1px;
+        width: toolbar_panel_node.frame.width * 1px;
+        height: toolbar_panel_node.frame.height * 1px;
+        background: palette.chrome_bg_soft;
+
+        for toolbar_title_row_node in root.pane.nodes: Rectangle {
+            visible: toolbar_title_row_node.control_id == "AssetsActivityToolbarTitleRow";
+            x: (toolbar_title_row_node.frame.x - toolbar_panel_node.frame.x) * 1px;
+            y: (toolbar_title_row_node.frame.y - toolbar_panel_node.frame.y) * 1px;
+            width: toolbar_title_row_node.frame.width * 1px;
+            height: toolbar_title_row_node.frame.height * 1px;
+            background: transparent;
+
+            Text {
+                x: 0px;
+                y: 0px;
+                text: "Assets";
+                color: palette.text;
+                font-size: 12px;
+                font-weight: 700;
+            }
+
+            Text {
+                x: 0px;
+                y: 17px;
+                width: parent.width - 108px;
+                text: "Browse project assets";
+                color: palette.text_dim;
+                font-size: 9px;
+                overflow: elide;
+            }
+
+            ShellButton {
+                x: toolbar_panel_node.frame.width * 1px - 94px;
+                y: 2px;
+                width: 82px;
+                label: "Browser";
+                active: false;
+                clicked => { root.control_clicked("OpenAssetBrowser"); }
+            }
+        }
+
+        for toolbar_search_row_node in root.pane.nodes: Rectangle {
+            visible: toolbar_search_row_node.control_id == "AssetsActivityToolbarSearchRow";
+            x: (toolbar_search_row_node.frame.x - toolbar_panel_node.frame.x) * 1px;
+            y: (toolbar_search_row_node.frame.y - toolbar_panel_node.frame.y) * 1px;
+            width: toolbar_search_row_node.frame.width * 1px;
+            height: toolbar_search_row_node.frame.height * 1px;
+            background: transparent;
+
+            SearchField {
+                x: 0px;
+                y: 0px;
+                width: max(parent.width - 104px, 0px);
+                height: parent.height;
+                text: root.search_query;
+                placeholder: "Search assets";
+                edited(value) => { root.control_changed("SearchEdited", value); }
+            }
+
+            ToolbarButton {
+                x: max(parent.width - 96px, 0px);
+                y: 2px;
+                label: "List";
+                active: root.view_mode == "list";
+                min-width: 44px;
+                clicked => { root.control_changed("SetViewMode", "list"); }
+            }
+
+            ToolbarButton {
+                x: max(parent.width - 44px, 0px);
+                y: 2px;
+                label: "Thumb";
+                active: root.view_mode == "thumbnail";
+                min-width: 52px;
+                clicked => { root.control_changed("SetViewMode", "thumbnail"); }
+            }
+        }
+
+        for kind_primary_row_node in root.pane.nodes: Rectangle {
+            visible: kind_primary_row_node.control_id == "AssetsActivityToolbarKindPrimaryRow";
+            x: (kind_primary_row_node.frame.x - toolbar_panel_node.frame.x) * 1px;
+            y: (kind_primary_row_node.frame.y - toolbar_panel_node.frame.y) * 1px;
+            width: kind_primary_row_node.frame.width * 1px;
+            height: kind_primary_row_node.frame.height * 1px;
+            background: transparent;
+
+            KindChip { x: 0px; y: 0px; width: 34px; label: "All"; active: root.kind_filter == "" || root.kind_filter == "All"; clicked => { root.control_changed("SetKindFilter", ""); } }
+            KindChip { x: 38px; y: 0px; width: 52px; label: "Texture"; active: root.kind_filter == "Texture"; clicked => { root.control_changed("SetKindFilter", "Texture"); } }
+            KindChip { x: 94px; y: 0px; width: 56px; label: "Material"; active: root.kind_filter == "Material"; clicked => { root.control_changed("SetKindFilter", "Material"); } }
+            KindChip { x: 154px; y: 0px; width: 46px; label: "Scene"; active: root.kind_filter == "Scene"; clicked => { root.control_changed("SetKindFilter", "Scene"); } }
+            KindChip { x: 204px; y: 0px; width: 50px; label: "Model"; active: root.kind_filter == "Model"; clicked => { root.control_changed("SetKindFilter", "Model"); } }
+            KindChip { x: 258px; y: 0px; width: 54px; label: "Shader"; active: root.kind_filter == "Shader"; clicked => { root.control_changed("SetKindFilter", "Shader"); } }
+        }
+
+        for kind_secondary_row_node in root.pane.nodes: Rectangle {
+            visible: kind_secondary_row_node.control_id == "AssetsActivityToolbarKindSecondaryRow";
+            x: (kind_secondary_row_node.frame.x - toolbar_panel_node.frame.x) * 1px;
+            y: (kind_secondary_row_node.frame.y - toolbar_panel_node.frame.y) * 1px;
+            width: kind_secondary_row_node.frame.width * 1px;
+            height: kind_secondary_row_node.frame.height * 1px;
+            background: transparent;
+
+            KindChip { x: 0px; y: 0px; width: 56px; label: "Physics"; active: root.kind_filter == "PhysicsMaterial"; clicked => { root.control_changed("SetKindFilter", "PhysicsMaterial"); } }
+            KindChip { x: 60px; y: 0px; width: 62px; label: "Skeleton"; active: root.kind_filter == "AnimationSkeleton"; clicked => { root.control_changed("SetKindFilter", "AnimationSkeleton"); } }
+            KindChip { x: 126px; y: 0px; width: 38px; label: "Clip"; active: root.kind_filter == "AnimationClip"; clicked => { root.control_changed("SetKindFilter", "AnimationClip"); } }
+            KindChip { x: 168px; y: 0px; width: 64px; label: "Sequence"; active: root.kind_filter == "AnimationSequence"; clicked => { root.control_changed("SetKindFilter", "AnimationSequence"); } }
+            KindChip { x: 236px; y: 0px; width: 52px; label: "Graph"; active: root.kind_filter == "AnimationGraph"; clicked => { root.control_changed("SetKindFilter", "AnimationGraph"); } }
+            KindChip { x: 292px; y: 0px; width: 48px; label: "State"; active: root.kind_filter == "AnimationStateMachine"; clicked => { root.control_changed("SetKindFilter", "AnimationStateMachine"); } }
+        }
+    }
+
+    for main_panel_node in root.pane.nodes: Rectangle {
+        visible: main_panel_node.control_id == "AssetsActivityMainPanel";
+        x: main_panel_node.frame.x * 1px;
+        y: main_panel_node.frame.y * 1px;
+        width: main_panel_node.frame.width * 1px;
+        height: main_panel_node.frame.height * 1px;
+        background: transparent;
+
+        for tree_panel_node in root.pane.nodes: FolderTreeView {
+            visible: tree_panel_node.control_id == "AssetsActivityTreePanel";
+            x: (tree_panel_node.frame.x - main_panel_node.frame.x) * 1px;
+            y: (tree_panel_node.frame.y - main_panel_node.frame.y) * 1px;
+            width: tree_panel_node.frame.width * 1px;
+            height: tree_panel_node.frame.height * 1px;
+            title: "Folders";
+            subtitle: "Project/assets";
+            folders: root.folder_tree;
+            hovered_index: root.tree_hovered_index;
+            scroll_px: root.tree_scroll_px;
+            pointer_clicked(x, y, width, height) => { root.tree_pointer_clicked(x, y, width, height); }
+            pointer_moved(x, y, width, height) => { root.tree_pointer_moved(x, y, width, height); }
+            pointer_scrolled(x, y, delta, width, height) => { root.tree_pointer_scrolled(x, y, delta, width, height); }
+        }
+
+        for content_panel_node in root.pane.nodes: AssetListView {
+            visible: content_panel_node.control_id == "AssetsActivityContentPanel";
+            x: (content_panel_node.frame.x - main_panel_node.frame.x) * 1px;
+            y: (content_panel_node.frame.y - main_panel_node.frame.y) * 1px;
+            width: content_panel_node.frame.width * 1px;
+            height: content_panel_node.frame.height * 1px;
+            title: "Content";
+            subtitle: "Folder first • name sort";
+            folders: root.content_folders;
+            items: root.content_items;
+            view_mode: root.view_mode;
+            hovered_index: root.content_hovered_index;
+            scroll_px: root.content_scroll_px;
+            pointer_clicked(x, y, width, height) => { root.content_pointer_clicked(x, y, width, height); }
+            pointer_moved(x, y, width, height) => { root.content_pointer_moved(x, y, width, height); }
+            pointer_scrolled(x, y, delta, width, height) => { root.content_pointer_scrolled(x, y, delta, width, height); }
+        }
+    }
+
+    for utility_panel_node in root.pane.nodes: AssetSurfaceFrame {
+        visible: utility_panel_node.control_id == "AssetsActivityUtilityPanel";
+        x: utility_panel_node.frame.x * 1px;
+        y: utility_panel_node.frame.y * 1px;
+        width: utility_panel_node.frame.width * 1px;
+        height: utility_panel_node.frame.height * 1px;
+
+        for utility_tabs_row_node in root.pane.nodes: Rectangle {
+            visible: utility_tabs_row_node.control_id == "AssetsActivityUtilityTabsRow";
+            x: (utility_tabs_row_node.frame.x - utility_panel_node.frame.x) * 1px;
+            y: (utility_tabs_row_node.frame.y - utility_panel_node.frame.y) * 1px;
+            width: utility_tabs_row_node.frame.width * 1px;
+            height: utility_tabs_row_node.frame.height * 1px;
+            background: transparent;
+
+            ToolbarButton {
+                x: 0px;
+                y: 0px;
+                label: "Preview";
+                active: root.utility_tab == "preview";
+                min-width: 56px;
+                clicked => { root.control_changed("SetUtilityTab", "preview"); }
+            }
+
+            ToolbarButton {
+                x: 64px;
+                y: 0px;
+                label: "References";
+                active: root.utility_tab == "references";
+                min-width: 74px;
+                clicked => { root.control_changed("SetUtilityTab", "references"); }
+            }
+
+            Text {
+                x: max(parent.width - 168px, 0px);
+                y: 5px;
+                width: 168px;
+                horizontal-alignment: right;
+                text: root.selection.name != "" ? root.selection.name : "No asset selected";
+                color: palette.text_dim;
+                font-size: 9px;
+                overflow: elide;
+            }
+        }
+
+        for utility_tabs_row_node in root.pane.nodes: Rectangle {
+            visible: utility_tabs_row_node.control_id == "AssetsActivityUtilityTabsRow";
+            x: 0px;
+            y: (utility_tabs_row_node.frame.y - utility_panel_node.frame.y + utility_tabs_row_node.frame.height + 6.0) * 1px;
+            width: parent.width;
+            height: 1px;
+            background: palette.border_soft;
+        }
+
+        for preview_panel_node in root.pane.nodes: SelectionPreviewCard {
+            visible: root.utility_tab == "preview" && preview_panel_node.control_id == "AssetsActivityPreviewPanel";
+            x: (preview_panel_node.frame.x - utility_panel_node.frame.x) * 1px;
+            y: (preview_panel_node.frame.y - utility_panel_node.frame.y) * 1px;
+            width: preview_panel_node.frame.width * 1px;
+            height: preview_panel_node.frame.height * 1px;
+            selection: root.selection;
+        }
+
+        for utility_content_panel_node in root.pane.nodes: Rectangle {
+            visible: root.utility_tab == "references" && utility_content_panel_node.control_id == "AssetsActivityUtilityContentPanel";
+            x: (utility_content_panel_node.frame.x - utility_panel_node.frame.x) * 1px;
+            y: (utility_content_panel_node.frame.y - utility_panel_node.frame.y) * 1px;
+            width: utility_content_panel_node.frame.width * 1px;
+            height: utility_content_panel_node.frame.height * 1px;
+            background: transparent;
+
+            for reference_left_panel_node in root.pane.nodes: ReferenceListView {
+                visible: reference_left_panel_node.control_id == "AssetsActivityReferenceLeftPanel";
+                x: (reference_left_panel_node.frame.x - utility_content_panel_node.frame.x) * 1px;
+                y: (reference_left_panel_node.frame.y - utility_content_panel_node.frame.y) * 1px;
+                width: reference_left_panel_node.frame.width * 1px;
+                height: reference_left_panel_node.frame.height * 1px;
+                title: "References";
+                references: root.references;
+                hovered_index: root.references_hovered_index;
+                scroll_px: root.references_scroll_px;
+                pointer_clicked(x, y, width, height) => { root.reference_pointer_clicked("references", x, y, width, height); }
+                pointer_moved(x, y, width, height) => { root.reference_pointer_moved("references", x, y, width, height); }
+                pointer_scrolled(x, y, delta, width, height) => { root.reference_pointer_scrolled("references", x, y, delta, width, height); }
+            }
+
+            for reference_right_panel_node in root.pane.nodes: ReferenceListView {
+                visible: reference_right_panel_node.control_id == "AssetsActivityReferenceRightPanel";
+                x: (reference_right_panel_node.frame.x - utility_content_panel_node.frame.x) * 1px;
+                y: (reference_right_panel_node.frame.y - utility_content_panel_node.frame.y) * 1px;
+                width: reference_right_panel_node.frame.width * 1px;
+                height: reference_right_panel_node.frame.height * 1px;
+                title: "Used By";
+                references: root.used_by;
+                hovered_index: root.used_by_hovered_index;
+                scroll_px: root.used_by_scroll_px;
+                pointer_clicked(x, y, width, height) => { root.reference_pointer_clicked("used_by", x, y, width, height); }
+                pointer_moved(x, y, width, height) => { root.reference_pointer_moved("used_by", x, y, width, height); }
+                pointer_scrolled(x, y, delta, width, height) => { root.reference_pointer_scrolled("used_by", x, y, delta, width, height); }
+            }
+        }
+    }
+}
+
+component AssetBrowserPaneView inherits Rectangle {
+    in property <AssetBrowserPaneData> pane;
+    in property <ProjectOverviewData> project;
+    in property <[AssetFolderData]> folder_tree;
+    in property <[AssetFolderData]> content_folders;
+    in property <[AssetItemData]> content_items;
+    in property <AssetSelectionData> selection;
+    in property <[AssetReferenceData]> references;
+    in property <[AssetReferenceData]> used_by;
+    in property <string> search_query;
+    in property <string> kind_filter;
+    in property <string> view_mode;
+    in property <string> utility_tab;
+    in property <int> tree_hovered_index: -1;
+    in property <float> tree_scroll_px: 0.0;
+    in property <int> content_hovered_index: -1;
+    in property <float> content_scroll_px: 0.0;
+    in property <int> references_hovered_index: -1;
+    in property <float> references_scroll_px: 0.0;
+    in property <int> used_by_hovered_index: -1;
+    in property <float> used_by_scroll_px: 0.0;
+    in property <float> details_scroll_px: 0.0;
+    in-out property <string> mesh_import_path;
+    callback control_changed(control_id: string, value: string);
+    callback control_clicked(control_id: string);
+    callback tree_pointer_clicked(x: float, y: float, width: float, height: float);
+    callback tree_pointer_moved(x: float, y: float, width: float, height: float);
+    callback tree_pointer_scrolled(x: float, y: float, delta: float, width: float, height: float);
+    callback content_pointer_clicked(x: float, y: float, width: float, height: float);
+    callback content_pointer_moved(x: float, y: float, width: float, height: float);
+    callback content_pointer_scrolled(x: float, y: float, delta: float, width: float, height: float);
+    callback reference_pointer_clicked(list_kind: string, x: float, y: float, width: float, height: float);
+    callback reference_pointer_moved(list_kind: string, x: float, y: float, width: float, height: float);
+    callback reference_pointer_scrolled(list_kind: string, x: float, y: float, delta: float, width: float, height: float);
+    callback details_pointer_scrolled(x: float, y: float, delta: float, width: float, height: float);
+    callback mesh_import_path_edited(value: string);
+
+    palette := Palette {}
+    background: transparent;
+    clip: true;
+
+    for toolbar_panel_node in root.pane.nodes: AssetSurfaceFrame {
+        visible: toolbar_panel_node.control_id == "AssetBrowserToolbarPanel";
+        x: toolbar_panel_node.frame.x * 1px;
+        y: toolbar_panel_node.frame.y * 1px;
+        width: toolbar_panel_node.frame.width * 1px;
+        height: toolbar_panel_node.frame.height * 1px;
+        background: palette.chrome_bg_soft;
+        for toolbar_title_row_node in root.pane.nodes: Rectangle {
+            visible: toolbar_title_row_node.control_id == "AssetBrowserToolbarTitleRow";
+            x: (toolbar_title_row_node.frame.x - toolbar_panel_node.frame.x) * 1px;
+            y: (toolbar_title_row_node.frame.y - toolbar_panel_node.frame.y) * 1px;
+            width: toolbar_title_row_node.frame.width * 1px;
+            height: toolbar_title_row_node.frame.height * 1px;
+            background: transparent;
+
+            Text {
+                x: 0px;
+                y: 0px;
+                width: 320px;
+                text: root.project.project_name != "" ? root.project.project_name + " / Asset Browser" : "Asset Browser";
+                color: palette.text;
+                font-size: 12px;
+                font-weight: 700;
+                overflow: elide;
+            }
+
+            Text {
+                x: 0px;
+                y: 18px;
+                width: 420px;
+                text: root.project.assets_root != "" ? root.project.assets_root : "Project/assets";
+                color: palette.text_dim;
+                font-size: 9px;
+                overflow: elide;
+            }
+
+            ShellButton {
+                x: parent.width - 124px;
+                y: 4px;
+                width: 124px;
+                label: "Locate In Assets";
+                active: false;
+                clicked => { root.control_clicked("LocateSelectedAsset"); }
+            }
+        }
+
+        for toolbar_search_row_node in root.pane.nodes: SearchField {
+            visible: toolbar_search_row_node.control_id == "AssetBrowserToolbarSearchRow";
+            x: (toolbar_search_row_node.frame.x - toolbar_panel_node.frame.x) * 1px;
+            y: (toolbar_search_row_node.frame.y - toolbar_panel_node.frame.y) * 1px;
+            width: toolbar_search_row_node.frame.width * 1px;
+            height: toolbar_search_row_node.frame.height * 1px;
+            text: root.search_query;
+            placeholder: "Search assets";
+            edited(value) => { root.control_changed("SearchEdited", value); }
+        }
+
+        for kind_primary_row_node in root.pane.nodes: Rectangle {
+            visible: kind_primary_row_node.control_id == "AssetBrowserToolbarKindPrimaryRow";
+            x: (kind_primary_row_node.frame.x - toolbar_panel_node.frame.x) * 1px;
+            y: (kind_primary_row_node.frame.y - toolbar_panel_node.frame.y) * 1px;
+            width: kind_primary_row_node.frame.width * 1px;
+            height: kind_primary_row_node.frame.height * 1px;
+            background: transparent;
+
+            KindChip { x: 0px; y: 0px; width: 34px; label: "All"; active: root.kind_filter == "" || root.kind_filter == "All"; clicked => { root.control_changed("SetKindFilter", ""); } }
+            KindChip { x: 38px; y: 0px; width: 52px; label: "Texture"; active: root.kind_filter == "Texture"; clicked => { root.control_changed("SetKindFilter", "Texture"); } }
+            KindChip { x: 94px; y: 0px; width: 56px; label: "Material"; active: root.kind_filter == "Material"; clicked => { root.control_changed("SetKindFilter", "Material"); } }
+            KindChip { x: 154px; y: 0px; width: 46px; label: "Scene"; active: root.kind_filter == "Scene"; clicked => { root.control_changed("SetKindFilter", "Scene"); } }
+            KindChip { x: 204px; y: 0px; width: 50px; label: "Model"; active: root.kind_filter == "Model"; clicked => { root.control_changed("SetKindFilter", "Model"); } }
+            KindChip { x: 258px; y: 0px; width: 54px; label: "Shader"; active: root.kind_filter == "Shader"; clicked => { root.control_changed("SetKindFilter", "Shader"); } }
+
+            ToolbarButton {
+                x: parent.width - 114px;
+                y: 0px;
+                label: "List";
+                active: root.view_mode == "list";
+                min-width: 44px;
+                clicked => { root.control_changed("SetViewMode", "list"); }
+            }
+
+            ToolbarButton {
+                x: parent.width - 60px;
+                y: 0px;
+                label: "Thumb";
+                active: root.view_mode == "thumbnail";
+                min-width: 52px;
+                clicked => { root.control_changed("SetViewMode", "thumbnail"); }
+            }
+        }
+
+        for kind_secondary_row_node in root.pane.nodes: Rectangle {
+            visible: kind_secondary_row_node.control_id == "AssetBrowserToolbarKindSecondaryRow";
+            x: (kind_secondary_row_node.frame.x - toolbar_panel_node.frame.x) * 1px;
+            y: (kind_secondary_row_node.frame.y - toolbar_panel_node.frame.y) * 1px;
+            width: kind_secondary_row_node.frame.width * 1px;
+            height: kind_secondary_row_node.frame.height * 1px;
+            background: transparent;
+
+            KindChip { x: 0px; y: 0px; width: 56px; label: "Physics"; active: root.kind_filter == "PhysicsMaterial"; clicked => { root.control_changed("SetKindFilter", "PhysicsMaterial"); } }
+            KindChip { x: 60px; y: 0px; width: 62px; label: "Skeleton"; active: root.kind_filter == "AnimationSkeleton"; clicked => { root.control_changed("SetKindFilter", "AnimationSkeleton"); } }
+            KindChip { x: 126px; y: 0px; width: 38px; label: "Clip"; active: root.kind_filter == "AnimationClip"; clicked => { root.control_changed("SetKindFilter", "AnimationClip"); } }
+            KindChip { x: 168px; y: 0px; width: 64px; label: "Sequence"; active: root.kind_filter == "AnimationSequence"; clicked => { root.control_changed("SetKindFilter", "AnimationSequence"); } }
+            KindChip { x: 236px; y: 0px; width: 52px; label: "Graph"; active: root.kind_filter == "AnimationGraph"; clicked => { root.control_changed("SetKindFilter", "AnimationGraph"); } }
+            KindChip { x: 292px; y: 0px; width: 48px; label: "State"; active: root.kind_filter == "AnimationStateMachine"; clicked => { root.control_changed("SetKindFilter", "AnimationStateMachine"); } }
+        }
+    }
+
+    for import_panel_node in root.pane.nodes: AssetSurfaceFrame {
+        visible: import_panel_node.control_id == "AssetBrowserImportPanel";
+        x: import_panel_node.frame.x * 1px;
+        y: import_panel_node.frame.y * 1px;
+        width: import_panel_node.frame.width * 1px;
+        height: import_panel_node.frame.height * 1px;
+        background: palette.chrome_bg_soft;
+
+        Text { x: 12px; y: 13px; text: "Quick Import"; color: palette.text_dim; font-size: 9px; }
+
+        SearchField {
+            x: 88px;
+            y: 8px;
+            width: parent.width - 180px;
+            height: 28px;
+            text: root.mesh_import_path;
+            placeholder: "Import model (.obj/.gltf/.glb)";
+            edited(value) => { root.mesh_import_path_edited(value); }
+        }
+
+        ShellButton {
+            x: parent.width - 80px;
+            y: 9px;
+            width: 68px;
+            label: "Import";
+            active: true;
+            enabled: root.mesh_import_path != "";
+            clicked => { root.control_clicked("ImportModel"); }
+        }
+    }
+
+    for main_panel_node in root.pane.nodes: Rectangle {
+        visible: main_panel_node.control_id == "AssetBrowserMainPanel";
+        x: main_panel_node.frame.x * 1px;
+        y: main_panel_node.frame.y * 1px;
+        width: main_panel_node.frame.width * 1px;
+        height: main_panel_node.frame.height * 1px;
+        background: transparent;
+
+        for sources_panel_node in root.pane.nodes: FolderTreeView {
+            visible: sources_panel_node.control_id == "AssetBrowserSourcesPanel";
+            x: (sources_panel_node.frame.x - main_panel_node.frame.x) * 1px;
+            y: (sources_panel_node.frame.y - main_panel_node.frame.y) * 1px;
+            width: sources_panel_node.frame.width * 1px;
+            height: sources_panel_node.frame.height * 1px;
+            title: "Sources";
+            subtitle: "Project/assets";
+            folders: root.folder_tree;
+            hovered_index: root.tree_hovered_index;
+            scroll_px: root.tree_scroll_px;
+            pointer_clicked(x, y, width, height) => { root.tree_pointer_clicked(x, y, width, height); }
+            pointer_moved(x, y, width, height) => { root.tree_pointer_moved(x, y, width, height); }
+            pointer_scrolled(x, y, delta, width, height) => { root.tree_pointer_scrolled(x, y, delta, width, height); }
+        }
+
+        for content_panel_node in root.pane.nodes: AssetListView {
+            visible: content_panel_node.control_id == "AssetBrowserContentPanel";
+            x: (content_panel_node.frame.x - main_panel_node.frame.x) * 1px;
+            y: (content_panel_node.frame.y - main_panel_node.frame.y) * 1px;
+            width: content_panel_node.frame.width * 1px;
+            height: content_panel_node.frame.height * 1px;
+            title: "Content Browser";
+            subtitle: "Folder first • name sort";
+            folders: root.content_folders;
+            items: root.content_items;
+            view_mode: root.view_mode;
+            hovered_index: root.content_hovered_index;
+            scroll_px: root.content_scroll_px;
+            pointer_clicked(x, y, width, height) => { root.content_pointer_clicked(x, y, width, height); }
+            pointer_moved(x, y, width, height) => { root.content_pointer_moved(x, y, width, height); }
+            pointer_scrolled(x, y, delta, width, height) => { root.content_pointer_scrolled(x, y, delta, width, height); }
+        }
+
+        for details_panel_node in root.pane.nodes: SelectionDetailsRail {
+            visible: details_panel_node.control_id == "AssetBrowserDetailsPanel";
+            x: (details_panel_node.frame.x - main_panel_node.frame.x) * 1px;
+            y: (details_panel_node.frame.y - main_panel_node.frame.y) * 1px;
+            width: details_panel_node.frame.width * 1px;
+            height: details_panel_node.frame.height * 1px;
+            selection: root.selection;
+            scroll_px: root.details_scroll_px;
+            pointer_scrolled(x, y, delta, width, height) => { root.details_pointer_scrolled(x, y, delta, width, height); }
+        }
+    }
+
+    for utility_panel_node in root.pane.nodes: AssetSurfaceFrame {
+        visible: utility_panel_node.control_id == "AssetBrowserUtilityPanel";
+        x: utility_panel_node.frame.x * 1px;
+        y: utility_panel_node.frame.y * 1px;
+        width: utility_panel_node.frame.width * 1px;
+        height: utility_panel_node.frame.height * 1px;
+
+        for utility_tabs_row_node in root.pane.nodes: Rectangle {
+            visible: utility_tabs_row_node.control_id == "AssetBrowserUtilityTabsRow";
+            x: (utility_tabs_row_node.frame.x - utility_panel_node.frame.x) * 1px;
+            y: (utility_tabs_row_node.frame.y - utility_panel_node.frame.y) * 1px;
+            width: utility_tabs_row_node.frame.width * 1px;
+            height: utility_tabs_row_node.frame.height * 1px;
+            background: transparent;
+
+            ToolbarButton { x: 0px; y: 0px; label: "Preview"; active: root.utility_tab == "preview"; min-width: 56px; clicked => { root.control_changed("SetUtilityTab", "preview"); } }
+            ToolbarButton { x: 64px; y: 0px; label: "References"; active: root.utility_tab == "references"; min-width: 74px; clicked => { root.control_changed("SetUtilityTab", "references"); } }
+            ToolbarButton { x: 144px; y: 0px; label: "Metadata"; active: root.utility_tab == "metadata"; min-width: 74px; clicked => { root.control_changed("SetUtilityTab", "metadata"); } }
+            ToolbarButton { x: 224px; y: 0px; label: "Plugins"; active: root.utility_tab == "plugins"; min-width: 64px; clicked => { root.control_changed("SetUtilityTab", "plugins"); } }
+
+            Text {
+                x: parent.width - 228px;
+                y: 5px;
+                width: 228px;
+                horizontal-alignment: right;
+                text: root.selection.locator != "" ? root.selection.locator : "Select an asset to inspect";
+                color: palette.text_dim;
+                font-size: 9px;
+                overflow: elide;
+            }
+        }
+
+        for utility_tabs_row_node in root.pane.nodes: Rectangle {
+            visible: utility_tabs_row_node.control_id == "AssetBrowserUtilityTabsRow";
+            x: 0px;
+            y: (utility_tabs_row_node.frame.y - utility_panel_node.frame.y + utility_tabs_row_node.frame.height + 6.0) * 1px;
+            width: parent.width;
+            height: 1px;
+            background: palette.border_soft;
+        }
+
+        for utility_content_panel_node in root.pane.nodes: SelectionPreviewCard {
+            visible: root.utility_tab == "preview" && utility_content_panel_node.control_id == "AssetBrowserUtilityContentPanel";
+            x: (utility_content_panel_node.frame.x - utility_panel_node.frame.x) * 1px;
+            y: (utility_content_panel_node.frame.y - utility_panel_node.frame.y) * 1px;
+            width: utility_content_panel_node.frame.width * 1px;
+            height: utility_content_panel_node.frame.height * 1px;
+            selection: root.selection;
+        }
+
+        for utility_content_panel_node in root.pane.nodes: Rectangle {
+            visible: root.utility_tab == "references" && utility_content_panel_node.control_id == "AssetBrowserUtilityContentPanel";
+            x: (utility_content_panel_node.frame.x - utility_panel_node.frame.x) * 1px;
+            y: (utility_content_panel_node.frame.y - utility_panel_node.frame.y) * 1px;
+            width: utility_content_panel_node.frame.width * 1px;
+            height: utility_content_panel_node.frame.height * 1px;
+            background: transparent;
+
+            for reference_left_panel_node in root.pane.nodes: ReferenceListView {
+                visible: reference_left_panel_node.control_id == "AssetBrowserReferenceLeftPanel";
+                x: (reference_left_panel_node.frame.x - utility_content_panel_node.frame.x) * 1px;
+                y: (reference_left_panel_node.frame.y - utility_content_panel_node.frame.y) * 1px;
+                width: reference_left_panel_node.frame.width * 1px;
+                height: reference_left_panel_node.frame.height * 1px;
+                title: "References";
+                references: root.references;
+                hovered_index: root.references_hovered_index;
+                scroll_px: root.references_scroll_px;
+                pointer_clicked(x, y, width, height) => { root.reference_pointer_clicked("references", x, y, width, height); }
+                pointer_moved(x, y, width, height) => { root.reference_pointer_moved("references", x, y, width, height); }
+                pointer_scrolled(x, y, delta, width, height) => { root.reference_pointer_scrolled("references", x, y, delta, width, height); }
+            }
+
+            for reference_right_panel_node in root.pane.nodes: ReferenceListView {
+                visible: reference_right_panel_node.control_id == "AssetBrowserReferenceRightPanel";
+                x: (reference_right_panel_node.frame.x - utility_content_panel_node.frame.x) * 1px;
+                y: (reference_right_panel_node.frame.y - utility_content_panel_node.frame.y) * 1px;
+                width: reference_right_panel_node.frame.width * 1px;
+                height: reference_right_panel_node.frame.height * 1px;
+                title: "Used By";
+                references: root.used_by;
+                hovered_index: root.used_by_hovered_index;
+                scroll_px: root.used_by_scroll_px;
+                pointer_clicked(x, y, width, height) => { root.reference_pointer_clicked("used_by", x, y, width, height); }
+                pointer_moved(x, y, width, height) => { root.reference_pointer_moved("used_by", x, y, width, height); }
+                pointer_scrolled(x, y, delta, width, height) => { root.reference_pointer_scrolled("used_by", x, y, delta, width, height); }
+            }
+        }
+
+        for utility_content_panel_node in root.pane.nodes: Rectangle {
+            visible: root.utility_tab == "metadata" && utility_content_panel_node.control_id == "AssetBrowserUtilityContentPanel";
+            x: (utility_content_panel_node.frame.x - utility_panel_node.frame.x) * 1px;
+            y: (utility_content_panel_node.frame.y - utility_panel_node.frame.y) * 1px;
+            width: utility_content_panel_node.frame.width * 1px;
+            height: utility_content_panel_node.frame.height * 1px;
+            background: transparent;
+
+            Rectangle {
+                x: 0px;
+                y: 0px;
+                width: parent.width;
+                height: 48px;
+                border-radius: 6px;
+                border-width: 1px;
+                border-color: palette.border_soft;
+                background: palette.chrome_bg_soft;
+
+                Text { x: 10px; y: 8px; text: "Meta Path"; color: palette.text_dim; font-size: 9px; }
+                Text { x: 10px; y: 22px; width: parent.width - 20px; text: root.selection.meta_path; color: palette.text; font-size: 10px; overflow: elide; }
+            }
+
+            Rectangle {
+                x: 0px;
+                y: 56px;
+                width: parent.width;
+                height: 48px;
+                border-radius: 6px;
+                border-width: 1px;
+                border-color: palette.border_soft;
+                background: palette.chrome_bg_soft;
+
+                Text { x: 10px; y: 8px; text: "Adapter"; color: palette.text_dim; font-size: 9px; }
+                Text { x: 10px; y: 22px; width: parent.width - 20px; text: root.selection.adapter_key; color: palette.text; font-size: 10px; overflow: elide; }
+            }
+
+            Rectangle {
+                x: 0px;
+                y: 112px;
+                width: parent.width;
+                height: parent.height - 112px;
+                border-radius: 6px;
+                border-width: 1px;
+                border-color: root.selection.diagnostics != "" ? #7a4a4f : palette.border_soft;
+                background: root.selection.diagnostics != "" ? #341f22 : palette.chrome_bg_soft;
+
+                Text { x: 10px; y: 8px; text: "Diagnostics"; color: root.selection.diagnostics != "" ? #f2d7da : palette.text_dim; font-size: 9px; }
+                Text {
+                    x: 10px;
+                    y: 24px;
+                    width: parent.width - 20px;
+                    text: root.selection.diagnostics != "" ? root.selection.diagnostics : "No active diagnostics";
+                    color: root.selection.diagnostics != "" ? #ffd4d8 : palette.text;
+                    font-size: 10px;
+                    wrap: word-wrap;
+                }
+            }
+        }
+
+        for utility_content_panel_node in root.pane.nodes: Rectangle {
+            visible: root.utility_tab == "plugins" && utility_content_panel_node.control_id == "AssetBrowserUtilityContentPanel";
+            x: (utility_content_panel_node.frame.x - utility_panel_node.frame.x) * 1px;
+            y: (utility_content_panel_node.frame.y - utility_panel_node.frame.y) * 1px;
+            width: utility_content_panel_node.frame.width * 1px;
+            height: utility_content_panel_node.frame.height * 1px;
+            border-radius: 6px;
+            border-width: 1px;
+            border-color: palette.border_soft;
+            background: palette.chrome_bg_soft;
+
+            Text {
+                width: parent.width;
+                height: parent.height;
+                text: "Plugin utility tabs can mount here.";
+                color: palette.text_dim;
+                font-size: 11px;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+        }
+    }
+}
 
 export component PaneContent inherits Rectangle {
     in property <PaneData> pane;
@@ -62,17 +1377,23 @@ export component PaneContent inherits Rectangle {
         trigger_action(action_id) => { PaneSurfaceHostContext.surface_control_clicked("TriggerAction", action_id); }
     }
 
-    if !root.pane.show_empty && root.pane.kind == "Project": ProjectOverviewPane {
+    if !root.pane.show_empty && root.pane.kind == "Project": TemplatePane {
         width: parent.width;
         height: parent.height;
-        project: PaneSurfaceHostContext.project_overview;
-        surface_control_clicked(control_id, action_id) => { PaneSurfaceHostContext.surface_control_clicked(control_id, action_id); }
-        asset_control_clicked(control_id) => { PaneSurfaceHostContext.asset_control_clicked("project", control_id); }
+        nodes: root.pane.project_overview.nodes;
+        node_dispatched(control_id, dispatch_kind, action_id) => {
+            if (dispatch_kind == "surface") {
+                PaneSurfaceHostContext.surface_control_clicked(control_id, action_id);
+            } else if (dispatch_kind == "asset") {
+                PaneSurfaceHostContext.asset_control_clicked("project", control_id);
+            }
+        }
     }
 
-    if !root.pane.show_empty && root.pane.kind == "Assets": AssetsActivityPane {
+    if !root.pane.show_empty && root.pane.kind == "Assets": AssetsActivityPaneView {
         width: parent.width;
         height: parent.height;
+        pane: root.pane.assets_activity;
         folder_tree: PaneSurfaceHostContext.activity_asset_tree_folders;
         content_folders: PaneSurfaceHostContext.activity_asset_content_folders;
         content_items: PaneSurfaceHostContext.activity_asset_content_items;
@@ -104,9 +1425,10 @@ export component PaneContent inherits Rectangle {
         reference_pointer_scrolled(list_kind, x, y, delta, width, height) => { PaneSurfaceHostContext.asset_reference_pointer_scrolled("activity", list_kind, x, y, delta, width, height); }
     }
 
-    if !root.pane.show_empty && root.pane.kind == "AssetBrowser": AssetBrowserPane {
+    if !root.pane.show_empty && root.pane.kind == "AssetBrowser": AssetBrowserPaneView {
         width: parent.width;
         height: parent.height;
+        pane: root.pane.asset_browser;
         project: PaneSurfaceHostContext.project_overview;
         folder_tree: PaneSurfaceHostContext.browser_asset_tree_folders;
         content_folders: PaneSurfaceHostContext.browser_asset_content_folders;
@@ -143,10 +1465,10 @@ export component PaneContent inherits Rectangle {
         mesh_import_path_edited(value) => { PaneSurfaceHostContext.mesh_import_path_edited(value); }
     }
 
-    if !root.pane.show_empty && root.pane.kind == "Hierarchy": HierarchyPane {
+    if !root.pane.show_empty && root.pane.kind == "Hierarchy": HierarchyPaneView {
         width: parent.width;
         height: parent.height;
-        hierarchy_nodes: PaneSurfaceHostContext.hierarchy_nodes;
+        pane: root.pane.hierarchy;
         hovered_index: PaneSurfaceHostContext.hovered_hierarchy_index;
         scroll_px: PaneSurfaceHostContext.hierarchy_scroll_px;
         pointer_clicked(x, y, width, height) => { PaneSurfaceHostContext.hierarchy_pointer_clicked(x, y, width, height); }
@@ -154,29 +1476,22 @@ export component PaneContent inherits Rectangle {
         pointer_scrolled(x, y, delta, width, height) => { PaneSurfaceHostContext.hierarchy_pointer_scrolled(x, y, delta, width, height); }
     }
 
-    if !root.pane.show_empty && root.pane.kind == "Inspector": InspectorPane {
+    if !root.pane.show_empty && root.pane.kind == "Inspector": InspectorPaneView {
         width: parent.width;
         height: parent.height;
-        info: root.pane.info;
-        inspector_name: PaneSurfaceHostContext.inspector_name;
-        inspector_parent: PaneSurfaceHostContext.inspector_parent;
-        inspector_x: PaneSurfaceHostContext.inspector_x;
-        inspector_y: PaneSurfaceHostContext.inspector_y;
-        inspector_z: PaneSurfaceHostContext.inspector_z;
+        pane: root.pane.inspector;
         scroll_px: PaneSurfaceHostContext.inspector_scroll_px;
-        delete_enabled: PaneSurfaceHostContext.delete_enabled;
         pointer_scrolled(x, y, delta, width, height) => { PaneSurfaceHostContext.inspector_pointer_scrolled(x, y, delta, width, height); }
         control_changed(control_id, value) => { PaneSurfaceHostContext.inspector_control_changed(control_id, value); }
         control_clicked(control_id) => { PaneSurfaceHostContext.inspector_control_clicked(control_id); }
     }
 
-    if root.pane.kind == "Console": ConsolePane {
+    if root.pane.kind == "Console": ConsolePaneView {
         width: parent.width;
         height: parent.height;
+        pane: root.pane.console;
         show_empty: root.pane.show_empty;
-        empty_title: root.pane.empty_title;
         empty_body: root.pane.empty_body;
-        status_text: PaneSurfaceHostContext.status_text;
         scroll_px: PaneSurfaceHostContext.console_scroll_px;
         pointer_scrolled(x, y, delta, width, height) => { PaneSurfaceHostContext.console_pointer_scrolled(x, y, delta, width, height); }
     }
@@ -190,7 +1505,7 @@ export component PaneContent inherits Rectangle {
         collection_event(collection_id, event_kind, item_index) => { PaneSurfaceHostContext.ui_asset_collection_event(root.pane.id, collection_id, event_kind, item_index); }
     }
 
-    if !root.pane.show_empty && (root.pane.kind == "AnimationSequenceEditor" || root.pane.kind == "AnimationGraphEditor"): AnimationEditorPane {
+    if !root.pane.show_empty && (root.pane.kind == "AnimationSequenceEditor" || root.pane.kind == "AnimationGraphEditor"): AnimationEditorPaneView {
         width: parent.width;
         height: parent.height;
         pane: root.pane.animation;

@@ -12,14 +12,14 @@ pub(crate) struct UiAssetExternalWidgetDraft {
     pub(crate) document_id: String,
 }
 
-pub(super) fn can_promote_selected_component_to_external_widget(
+pub(crate) fn can_promote_selected_component_to_external_widget(
     document: &UiAssetDocument,
     selection: &UiDesignerSelectionModel,
 ) -> bool {
     selected_local_component_name(document, selection).is_some()
 }
 
-pub(super) fn default_external_widget_draft(
+pub(crate) fn default_external_widget_draft(
     document: &UiAssetDocument,
     selection: &UiDesignerSelectionModel,
 ) -> Option<UiAssetExternalWidgetDraft> {
@@ -32,7 +32,7 @@ pub(super) fn default_external_widget_draft(
     })
 }
 
-pub(super) fn selected_local_component_name(
+pub(crate) fn selected_local_component_name(
     document: &UiAssetDocument,
     selection: &UiDesignerSelectionModel,
 ) -> Option<String> {
@@ -48,7 +48,7 @@ pub(super) fn selected_local_component_name(
         .then(|| component_name.to_string())
 }
 
-pub(super) fn promote_selected_component_to_external_widget(
+pub(crate) fn promote_selected_component_to_external_widget(
     document: &mut UiAssetDocument,
     selection: &UiDesignerSelectionModel,
     widget_asset_id: &str,

@@ -1,6 +1,5 @@
 mod compiler;
 mod document;
-mod legacy;
 mod loader;
 mod style;
 
@@ -11,8 +10,5 @@ pub use document::{
     UiNamedSlotSchema, UiNodeDefinition, UiNodeDefinitionKind, UiNodeParent,
     UiStyleDeclarationBlock, UiStyleRule, UiStyleScope, UiStyleSheet,
 };
-#[cfg(test)]
-pub(crate) use legacy::UiFlatAssetMigrationAdapter;
-pub use legacy::UiLegacyTemplateAdapter;
 pub use loader::UiAssetLoader;
 pub use style::{UiSelector, UiSelectorToken};

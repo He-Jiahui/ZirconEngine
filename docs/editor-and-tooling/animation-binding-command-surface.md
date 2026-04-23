@@ -240,6 +240,7 @@ track path 无效时，dispatch 统一返回 `EditorBindingDispatchError::Invali
 - sequence editor 对不存在的 track 执行 `SelectTimelineSpan` 时现在返回 `Ok(false)`，不会制造 phantom selection
 - sequence editor 对 `SelectTimelineSpan` 的越界端点现在会 clamp 到当前 timeline range，而不是把不可见帧区间直接写入 `selected_span`
 - sequence editor 在 `SetTimelineRange` 收缩可见区间时，也会同步把已有 `selected_span` clamp 回新范围内，避免 pane 摘要继续显示越界帧
+- sequence session 在加载 `.sequence.zranim` 时也会清洗非有限 `duration_seconds` / `frames_per_second`，避免异常 timing 元数据把可见 timeline 范围投影成失真大值
 - sequence editor 对 `SetPlayback` 的非有限速度输入现在也返回 `Ok(false)`，不会把播放标签静默污染成 `speed=NaN` 或 `speed=inf`
 - graph editor 对 `SetGraphParameter` 的 `NaN` / `Inf` 标量和带非有限分量的 vector literal 现在也统一返回 `Ok(false)`，不会把 typed default 悄悄改写成无效值
 - state-machine editor 对 `SetTransitionCondition` 的 `NaN` / `Inf` 标量和带非有限分量的 vector literal 现在也统一返回 `Ok(false)`，不会把现有条件值偷偷污染成无效数据

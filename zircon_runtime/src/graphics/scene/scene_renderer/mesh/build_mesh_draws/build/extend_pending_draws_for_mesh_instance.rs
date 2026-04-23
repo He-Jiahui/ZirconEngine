@@ -8,7 +8,10 @@ use super::super::super::super::primitives::render_mat4_or;
 use super::super::raster_draws_for_mesh::raster_draws_for_mesh;
 use super::super::virtual_geometry_cluster_streaming_tint::virtual_geometry_cluster_streaming_tint;
 use super::mesh_draw_build_context::MeshDrawBuildContext;
-use super::pending_mesh_draw::{indirect_draw_ref_for_cluster_draw, PendingMeshDraw};
+use super::pending_mesh_draw::{
+    indirect_draw_ref_for_cluster_draw, PendingMeshDraw, PendingMeshGeometry,
+};
+use super::skinning::skin_model_primitive;
 
 pub(super) fn extend_pending_draws_for_mesh_instance(
     pending_draws: &mut Vec<PendingMeshDraw>,
@@ -48,13 +51,52 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
         .as_ref()
         .and_then(|cluster_draws| cluster_draws.get(&mesh_instance.node_id))
         .map(Vec::as_slice);
+    let skinned_primitives = frame
+        .extract
+        .animation_poses
+        .iter()
+        .find(|entry| entry.entity == mesh_instance.node_id)
+        .and_then(|entry| {
+            let model_asset = streamer.load_model_asset(mesh_instance.model.id())?;
+            let skeleton = streamer.load_animation_skeleton_asset(entry.skeleton)?;
+            Some(
+                model_asset
+                    .primitives
+                    .iter()
+                    .map(|primitive| skin_model_primitive(primitive, &skeleton, &entry.pose).ok())
+                    .collect::<Vec<_>>(),
+            )
+        });
 
-    for mesh in &model.meshes {
+    for (mesh_index, mesh) in model.meshes.iter().enumerate() {
+        if let Some(skinned_primitive) = skinned_primitives
+            .as_ref()
+            .and_then(|primitives| primitives.get(mesh_index))
+            .cloned()
+            .flatten()
+        {
+            for (first_index, draw_index_count, draw_tint) in
+                raster_draws_for_mesh(mesh.index_count, None, base_tint)
+            {
+                pending_draws.push(PendingMeshDraw {
+                    mesh: PendingMeshGeometry::Skinned(skinned_primitive.clone()),
+                    texture: texture.clone(),
+                    pipeline_key: pipeline_key.clone(),
+                    model_matrix,
+                    draw_tint,
+                    first_index,
+                    draw_index_count,
+                    indirect_draw_ref: None,
+                });
+            }
+            continue;
+        }
+
         if build_context.virtual_geometry_enabled {
             if let Some(cluster_raster_draws) = cluster_raster_draws {
                 for cluster_draw in cluster_raster_draws {
                     pending_draws.push(PendingMeshDraw {
-                        mesh: mesh.clone(),
+                        mesh: PendingMeshGeometry::Prepared(mesh.clone()),
                         texture: texture.clone(),
                         pipeline_key: pipeline_key.clone(),
                         model_matrix,
@@ -85,7 +127,7 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
 
             for (first_index, draw_index_count, draw_tint) in raster_draws {
                 pending_draws.push(PendingMeshDraw {
-                    mesh: mesh.clone(),
+                    mesh: PendingMeshGeometry::Prepared(mesh.clone()),
                     texture: texture.clone(),
                     pipeline_key: pipeline_key.clone(),
                     model_matrix,

@@ -1,10 +1,32 @@
 #[test]
 fn pane_surface_actions_use_generic_template_callbacks_instead_of_legacy_menu_action_abi() {
     let workbench = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/ui/workbench.slint"));
-    let host_workbench_surfaces = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/host_workbench_surfaces.slint"
-    ));
+    let host_surface_owners = concat!(
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/ui/workbench/host_side_dock_surface.slint"
+        )),
+        "\n",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/ui/workbench/host_document_dock_surface.slint"
+        )),
+        "\n",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/ui/workbench/host_bottom_dock_surface.slint"
+        )),
+        "\n",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/ui/workbench/host_floating_window_layer.slint"
+        )),
+        "\n",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/ui/workbench/host_native_floating_window_surface.slint"
+        ))
+    );
     let pane_surface = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/ui/workbench/pane_surface.slint"
@@ -12,6 +34,10 @@ fn pane_surface_actions_use_generic_template_callbacks_instead_of_legacy_menu_ac
     let pane_content = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/ui/workbench/pane_content.slint"
+    ));
+    let template_pane = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/ui/workbench/template_pane.slint"
     ));
     let pane_surface_host_context = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
@@ -21,10 +47,6 @@ fn pane_surface_actions_use_generic_template_callbacks_instead_of_legacy_menu_ac
         env!("CARGO_MANIFEST_DIR"),
         "/ui/workbench/assets.slint"
     ));
-    let asset_panes = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/asset_panes.slint"
-    ));
     let wiring = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/src/ui/slint_host/app/callback_wiring.rs"
@@ -33,6 +55,8 @@ fn pane_surface_actions_use_generic_template_callbacks_instead_of_legacy_menu_ac
         env!("CARGO_MANIFEST_DIR"),
         "/src/ui/slint_host/app/host_lifecycle.rs"
     ));
+    let pane_content_normalized = pane_content.split_whitespace().collect::<String>();
+    let template_pane_normalized = template_pane.split_whitespace().collect::<String>();
 
     for needle in [
         "callback menu_action(action_id: string);",
@@ -41,7 +65,7 @@ fn pane_surface_actions_use_generic_template_callbacks_instead_of_legacy_menu_ac
         "open_assets() => { root.empty_action(\"OpenView.editor.assets\"); }",
     ] {
         let found =
-            workbench.contains(needle) || assets.contains(needle) || asset_panes.contains(needle);
+            workbench.contains(needle) || assets.contains(needle) || pane_content.contains(needle);
         assert!(
             !found,
             "pane surfaces still expose legacy menu-action callback `{needle}`"
@@ -62,16 +86,12 @@ fn pane_surface_actions_use_generic_template_callbacks_instead_of_legacy_menu_ac
         "pane surface host context is missing generic pane-surface control callback"
     );
     assert!(
-        pane_surface_host_context.contains("export global PaneSurfaceHostContext {"),
-        "pane surface host context owner must keep the shared PaneSurfaceHostContext global"
-    );
-    assert!(
-        !workbench.contains(
+        workbench.contains(
             "export { PaneSurfaceHostContext } from \"workbench/pane_surface_host_context.slint\";"
         ),
-        "workbench shell should stop re-exporting the shared PaneSurfaceHostContext for host wiring"
+        "workbench shell should still export the shared PaneSurfaceHostContext for host wiring"
     );
-    assert!(!host_workbench_surfaces.contains("export { PaneSurfaceHostContext }"));
+    assert!(!host_surface_owners.contains("export { PaneSurfaceHostContext }"));
 
     for needle in [
         "trigger_action(action_id) => { PaneSurfaceHostContext.surface_control_clicked(\"TriggerAction\", action_id); }",
@@ -82,17 +102,25 @@ fn pane_surface_actions_use_generic_template_callbacks_instead_of_legacy_menu_ac
             "pane leaf surfaces are missing generic control route `{needle}`"
         );
     }
+    for needle in [
+        "exportcomponentTemplatePaneinheritsRectangle{",
+        "callbacknode_dispatched(control_id:string,dispatch_kind:string,action_id:string);",
+        "if!root.pane.show_empty&&root.pane.kind==\"Project\":TemplatePane{",
+        "node_dispatched(control_id,dispatch_kind,action_id)=>{",
+        "if(dispatch_kind==\"surface\"){PaneSurfaceHostContext.surface_control_clicked(control_id,action_id);}",
+    ] {
+        let found = template_pane_normalized.contains(needle)
+            || pane_content_normalized.contains(needle);
+        assert!(
+            found,
+            "project template route is missing generic pane-surface control bridge `{needle}`"
+        );
+    }
     assert!(
         pane_content.contains(
-            "surface_control_clicked(control_id, action_id) => { PaneSurfaceHostContext.surface_control_clicked(control_id, action_id); }"
+            "trigger_action(action_id) => { PaneSurfaceHostContext.surface_control_clicked(\"TriggerAction\", action_id); }"
         ),
-        "pane content is missing the direct project surface control route"
-    );
-    assert!(
-        asset_panes.contains(
-            "clicked => { root.surface_control_clicked(\"TriggerAction\", \"OpenView.editor.assets\"); }"
-        ),
-        "asset pane surfaces are missing the generic empty-state trigger action"
+        "pane content is missing the generic empty-state trigger action bridge"
     );
 
     assert!(

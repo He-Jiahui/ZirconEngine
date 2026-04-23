@@ -4,7 +4,8 @@ use crate::scene::viewport::{
     DisplayMode, GridMode, ProjectionMode, SceneViewportSettings, SceneViewportTool,
     TransformSpace, ViewOrientation,
 };
-use crate::ui::slint_host::SceneViewportChromeData;
+
+use super::SceneViewportChromeData;
 
 pub(crate) fn blank_viewport_chrome() -> SceneViewportChromeData {
     SceneViewportChromeData {

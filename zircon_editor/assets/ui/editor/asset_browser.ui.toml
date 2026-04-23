@@ -3,18 +3,11 @@ stylesheets = []
 [asset]
 kind = "layout"
 id = "editor.asset_browser"
-version = 1
+version = 2
 display_name = "Asset Browser"
 
 [imports]
-widgets = [
-    "res://ui/editor/editor_widgets.ui.toml#EditorToolbar",
-    "res://ui/editor/editor_widgets.ui.toml#EditorToolbarButton",
-    "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard",
-]
 styles = ["res://ui/theme/editor_base.ui.toml"]
-
-[tokens]
 
 [root]
 node_id = "asset_browser_root"
@@ -22,262 +15,280 @@ kind = "native"
 type = "VerticalBox"
 control_id = "AssetBrowserRoot"
 classes = ["editor-shell"]
-bindings = []
-
-[root.params]
-
-[root.props]
 
 [root.layout.container]
-gap = 10.0
 kind = "VerticalBox"
-
-[root.layout.height]
-stretch = "Stretch"
+gap = 12.0
 
 [root.layout.width]
 stretch = "Stretch"
 
-[root.style_overrides.self]
-
-[root.style_overrides.slot]
-
-[[root.children]]
-
-[root.children.slot]
-
-[root.children.node]
-node_id = "toolbar"
-kind = "reference"
-component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorToolbar"
-control_id = "AssetBrowserToolbar"
-classes = []
-bindings = []
-
-[root.children.node.params]
-
-[root.children.node.props]
-
-[root.children.node.style_overrides.self]
-
-[root.children.node.style_overrides.slot]
-
-[[root.children.node.children]]
-mount = "actions"
-
-[root.children.node.children.slot]
-
-[root.children.node.children.node]
-node_id = "import_button"
-kind = "reference"
-component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorToolbarButton"
-control_id = "ImportAsset"
-classes = ["toolbar-primary"]
-bindings = []
-children = []
-
-[root.children.node.children.node.params]
-icon = "folder-open-outline"
-label = "Import"
-
-[root.children.node.children.node.props]
-
-[root.children.node.children.node.style_overrides.self]
-
-[root.children.node.children.node.style_overrides.slot]
-
-[[root.children.node.children]]
-mount = "actions"
-
-[root.children.node.children.slot]
-
-[root.children.node.children.node]
-node_id = "locate_button"
-kind = "reference"
-component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorToolbarButton"
-control_id = "LocateAsset"
-classes = []
-bindings = []
-children = []
-
-[root.children.node.children.node.params]
-icon = "scan-outline"
-label = "Locate"
-
-[root.children.node.children.node.props]
-
-[root.children.node.children.node.style_overrides.self]
-
-[root.children.node.children.node.style_overrides.slot]
+[root.layout.height]
+stretch = "Stretch"
 
 [[root.children]]
-
-[root.children.slot]
-
 [root.children.node]
-node_id = "content"
+node_id = "toolbar_panel"
 kind = "native"
-type = "HorizontalBox"
-control_id = "AssetBrowserContent"
-classes = []
-bindings = []
-
-[root.children.node.params]
-
-[root.children.node.props]
+type = "VerticalBox"
+control_id = "AssetBrowserToolbarPanel"
 
 [root.children.node.layout.container]
-gap = 10.0
-kind = "HorizontalBox"
-
-[root.children.node.layout.height]
-stretch = "Stretch"
+kind = "VerticalBox"
+gap = 4.0
 
 [root.children.node.layout.width]
 stretch = "Stretch"
 
-[root.children.node.style_overrides.self]
-
-[root.children.node.style_overrides.slot]
-
-[[root.children.node.children]]
-
-[root.children.node.children.slot.layout.width]
-max = 260.0
-min = 220.0
-preferred = 220.0
+[root.children.node.layout.height]
+min = 112.0
+preferred = 112.0
+max = 112.0
 stretch = "Fixed"
 
+[[root.children.node.children]]
 [root.children.node.children.node]
-node_id = "tree_panel"
-kind = "reference"
-component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard"
-control_id = "AssetTreePanel"
-classes = []
-bindings = []
-
-[root.children.node.children.node.params]
-title = "Folders"
-
-[root.children.node.children.node.props]
-
-[root.children.node.children.node.style_overrides.self]
-
-[root.children.node.children.node.style_overrides.slot]
-
-[[root.children.node.children.node.children]]
-mount = "content"
-
-[root.children.node.children.node.children.slot]
-
-[root.children.node.children.node.children.node]
-node_id = "tree_label"
+node_id = "toolbar_title_row"
 kind = "native"
-type = "Label"
-control_id = "AssetTreeLabel"
-classes = []
-bindings = []
-children = []
+type = "HorizontalBox"
+control_id = "AssetBrowserToolbarTitleRow"
 
-[root.children.node.children.node.children.node.params]
+[root.children.node.children.node.layout.container]
+kind = "HorizontalBox"
+gap = 8.0
 
-[root.children.node.children.node.children.node.props]
-text = "Project / UI / Theme"
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
 
-[root.children.node.children.node.children.node.style_overrides.self]
-
-[root.children.node.children.node.children.node.style_overrides.slot]
+[root.children.node.children.node.layout.height]
+min = 24.0
+preferred = 24.0
+max = 24.0
+stretch = "Fixed"
 
 [[root.children.node.children]]
-
-[root.children.node.children.slot]
-
 [root.children.node.children.node]
-node_id = "grid_panel"
-kind = "reference"
-component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard"
-control_id = "AssetGridPanel"
-classes = []
-bindings = []
-
-[root.children.node.children.node.params]
-title = "Assets"
-
-[root.children.node.children.node.props]
-
-[root.children.node.children.node.style_overrides.self]
-
-[root.children.node.children.node.style_overrides.slot]
-
-[[root.children.node.children.node.children]]
-mount = "content"
-
-[root.children.node.children.node.children.slot]
-
-[root.children.node.children.node.children.node]
-node_id = "grid_label"
+node_id = "toolbar_search_row"
 kind = "native"
-type = "Label"
-control_id = "AssetGridLabel"
-classes = []
-bindings = []
-children = []
+type = "HorizontalBox"
+control_id = "AssetBrowserToolbarSearchRow"
 
-[root.children.node.children.node.children.node.params]
+[root.children.node.children.node.layout.container]
+kind = "HorizontalBox"
+gap = 8.0
 
-[root.children.node.children.node.children.node.props]
-text = "asset_browser.ui.toml, runtime_hud.ui.toml"
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
 
-[root.children.node.children.node.children.node.style_overrides.self]
-
-[root.children.node.children.node.children.node.style_overrides.slot]
+[root.children.node.children.node.layout.height]
+min = 28.0
+preferred = 28.0
+max = 28.0
+stretch = "Fixed"
 
 [[root.children.node.children]]
+[root.children.node.children.node]
+node_id = "toolbar_kind_primary_row"
+kind = "native"
+type = "HorizontalBox"
+control_id = "AssetBrowserToolbarKindPrimaryRow"
 
-[root.children.node.children.slot.layout.width]
-max = 340.0
-min = 260.0
+[root.children.node.children.node.layout.container]
+kind = "HorizontalBox"
+gap = 4.0
+
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.layout.height]
+min = 24.0
+preferred = 24.0
+max = 24.0
+stretch = "Fixed"
+
+[[root.children.node.children]]
+[root.children.node.children.node]
+node_id = "toolbar_kind_secondary_row"
+kind = "native"
+type = "HorizontalBox"
+control_id = "AssetBrowserToolbarKindSecondaryRow"
+
+[root.children.node.children.node.layout.container]
+kind = "HorizontalBox"
+gap = 4.0
+
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.layout.height]
+min = 24.0
+preferred = 24.0
+max = 24.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "import_panel"
+kind = "native"
+type = "HorizontalBox"
+control_id = "AssetBrowserImportPanel"
+
+[root.children.node.layout.container]
+kind = "HorizontalBox"
+gap = 8.0
+
+[root.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.layout.height]
+min = 44.0
+preferred = 44.0
+max = 44.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "main_panel"
+kind = "native"
+type = "HorizontalBox"
+control_id = "AssetBrowserMainPanel"
+
+[root.children.node.layout.container]
+kind = "HorizontalBox"
+gap = 12.0
+
+[root.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children]]
+[root.children.node.children.node]
+node_id = "sources_panel"
+kind = "native"
+type = "Space"
+control_id = "AssetBrowserSourcesPanel"
+
+[root.children.node.children.node.layout.width]
+min = 280.0
 preferred = 280.0
+max = 280.0
 stretch = "Fixed"
 
+[root.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children]]
+[root.children.node.children.node]
+node_id = "content_panel"
+kind = "native"
+type = "Space"
+control_id = "AssetBrowserContentPanel"
+
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children]]
 [root.children.node.children.node]
 node_id = "details_panel"
-kind = "reference"
-component_ref = "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard"
-control_id = "AssetDetailsPanel"
-classes = []
-bindings = []
+kind = "native"
+type = "Space"
+control_id = "AssetBrowserDetailsPanel"
 
-[root.children.node.children.node.params]
-title = "Details"
+[root.children.node.children.node.layout.width]
+min = 340.0
+preferred = 340.0
+max = 340.0
+stretch = "Fixed"
 
-[root.children.node.children.node.props]
+[root.children.node.children.node.layout.height]
+stretch = "Stretch"
 
-[root.children.node.children.node.style_overrides.self]
+[[root.children]]
+[root.children.node]
+node_id = "utility_panel"
+kind = "native"
+type = "VerticalBox"
+control_id = "AssetBrowserUtilityPanel"
 
-[root.children.node.children.node.style_overrides.slot]
+[root.children.node.layout.container]
+kind = "VerticalBox"
+gap = 8.0
+
+[root.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.layout.height]
+min = 208.0
+preferred = 208.0
+max = 208.0
+stretch = "Fixed"
+
+[[root.children.node.children]]
+[root.children.node.children.node]
+node_id = "utility_tabs_row"
+kind = "native"
+type = "HorizontalBox"
+control_id = "AssetBrowserUtilityTabsRow"
+
+[root.children.node.children.node.layout.container]
+kind = "HorizontalBox"
+gap = 8.0
+
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.layout.height]
+min = 24.0
+preferred = 24.0
+max = 24.0
+stretch = "Fixed"
+
+[[root.children.node.children]]
+[root.children.node.children.node]
+node_id = "utility_content_panel"
+kind = "native"
+type = "HorizontalBox"
+control_id = "AssetBrowserUtilityContentPanel"
+
+[root.children.node.children.node.layout.container]
+kind = "HorizontalBox"
+gap = 12.0
+
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.layout.height]
+stretch = "Stretch"
 
 [[root.children.node.children.node.children]]
-mount = "content"
-
-[root.children.node.children.node.children.slot]
-
 [root.children.node.children.node.children.node]
-node_id = "details_label"
+node_id = "reference_left_panel"
 kind = "native"
-type = "Label"
-control_id = "AssetDetailsLabel"
-classes = []
-bindings = []
-children = []
+type = "Space"
+control_id = "AssetBrowserReferenceLeftPanel"
 
-[root.children.node.children.node.children.node.params]
+[root.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
 
-[root.children.node.children.node.children.node.props]
-text = "Selected Asset Metadata"
+[root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
 
-[root.children.node.children.node.children.node.style_overrides.self]
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "reference_right_panel"
+kind = "native"
+type = "Space"
+control_id = "AssetBrowserReferenceRightPanel"
 
-[root.children.node.children.node.children.node.style_overrides.slot]
+[root.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
 
 [components]

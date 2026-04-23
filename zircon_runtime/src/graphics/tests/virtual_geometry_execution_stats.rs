@@ -311,6 +311,11 @@ fn render_framework_stats_expose_actual_virtual_geometry_execution_compaction() 
         1,
         "expected render-framework stats to surface the repeated primitive compaction delta between execution draws and unique execution segments"
     );
+    assert_eq!(
+        stats.last_virtual_geometry_selected_cluster_count,
+        1,
+        "expected render-framework stats to expose the executed selected-cluster count rather than the expanded repeated-draw indirect workload"
+    );
 
     let _ = fs::remove_dir_all(root);
 }

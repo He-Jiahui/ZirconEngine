@@ -1,0 +1,478 @@
+stylesheets = []
+
+[asset]
+kind = "layout"
+id = "editor.welcome"
+version = 1
+display_name = "Welcome"
+
+[imports]
+styles = ["res://ui/theme/editor_base.ui.toml"]
+
+[root]
+node_id = "welcome_root"
+kind = "native"
+type = "VerticalBox"
+control_id = "WelcomeRoot"
+classes = ["editor-shell"]
+
+[root.layout.container]
+kind = "VerticalBox"
+gap = 0.0
+
+[root.layout.width]
+stretch = "Stretch"
+
+[root.layout.height]
+stretch = "Stretch"
+
+[[root.children]]
+[root.children.node]
+node_id = "top_space"
+kind = "native"
+type = "Space"
+
+[root.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.layout.height]
+min = 18.0
+preferred = 18.0
+max = 18.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "content_row"
+kind = "native"
+type = "HorizontalBox"
+
+[root.children.node.layout.container]
+kind = "HorizontalBox"
+gap = 0.0
+
+[root.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children]]
+[root.children.node.children.node]
+node_id = "left_space"
+kind = "native"
+type = "Space"
+
+[root.children.node.children.node.layout.width]
+min = 18.0
+preferred = 18.0
+max = 18.0
+stretch = "Fixed"
+
+[root.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children]]
+[root.children.node.children.node]
+node_id = "outer_panel"
+kind = "native"
+type = "HorizontalBox"
+control_id = "WelcomeOuterPanel"
+
+[root.children.node.children.node.layout.container]
+kind = "HorizontalBox"
+gap = 0.0
+
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "recent_panel"
+kind = "native"
+type = "VerticalBox"
+control_id = "WelcomeRecentPanel"
+
+[root.children.node.children.node.children.node.layout.container]
+kind = "VerticalBox"
+gap = 0.0
+
+[root.children.node.children.node.children.node.layout.width]
+min = 320.0
+preferred = 320.0
+max = 320.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node]
+node_id = "recent_panel_top_space"
+kind = "native"
+type = "Space"
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+min = 26.0
+preferred = 26.0
+max = 26.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node]
+node_id = "recent_header_panel"
+kind = "native"
+type = "Space"
+control_id = "WelcomeRecentHeaderPanel"
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+min = 54.0
+preferred = 54.0
+max = 54.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node]
+node_id = "recent_header_list_gap"
+kind = "native"
+type = "Space"
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+min = 14.0
+preferred = 14.0
+max = 14.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node]
+node_id = "recent_list_panel"
+kind = "native"
+type = "Space"
+control_id = "WelcomeRecentListPanel"
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "main_panel"
+kind = "native"
+type = "VerticalBox"
+control_id = "WelcomeMainPanel"
+
+[root.children.node.children.node.children.node.layout.container]
+kind = "VerticalBox"
+gap = 0.0
+
+[root.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node]
+node_id = "main_panel_top_space"
+kind = "native"
+type = "Space"
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+min = 28.0
+preferred = 28.0
+max = 28.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node]
+node_id = "hero_panel"
+kind = "native"
+type = "Space"
+control_id = "WelcomeHeroPanel"
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+min = 84.0
+preferred = 84.0
+max = 84.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node]
+node_id = "hero_status_gap"
+kind = "native"
+type = "Space"
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+min = 12.0
+preferred = 12.0
+max = 12.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node]
+node_id = "status_panel"
+kind = "native"
+type = "Space"
+control_id = "WelcomeStatusPanel"
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+min = 30.0
+preferred = 30.0
+max = 30.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node]
+node_id = "status_new_project_gap"
+kind = "native"
+type = "Space"
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+min = 22.0
+preferred = 22.0
+max = 22.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node]
+node_id = "new_project_header_panel"
+kind = "native"
+type = "Space"
+control_id = "WelcomeNewProjectHeaderPanel"
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+min = 46.0
+preferred = 46.0
+max = 46.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node]
+node_id = "new_project_name_gap"
+kind = "native"
+type = "Space"
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+min = 16.0
+preferred = 16.0
+max = 16.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node]
+node_id = "project_name_field"
+kind = "native"
+type = "Space"
+control_id = "WelcomeProjectNameField"
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+min = 64.0
+preferred = 64.0
+max = 64.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node]
+node_id = "project_name_location_gap"
+kind = "native"
+type = "Space"
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+min = 12.0
+preferred = 12.0
+max = 12.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node]
+node_id = "location_field"
+kind = "native"
+type = "Space"
+control_id = "WelcomeLocationField"
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+min = 64.0
+preferred = 64.0
+max = 64.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node]
+node_id = "location_preview_gap"
+kind = "native"
+type = "Space"
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+min = 14.0
+preferred = 14.0
+max = 14.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node]
+node_id = "preview_panel"
+kind = "native"
+type = "Space"
+control_id = "WelcomePreviewPanel"
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+min = 72.0
+preferred = 72.0
+max = 72.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node]
+node_id = "preview_bottom_fill"
+kind = "native"
+type = "Space"
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node]
+node_id = "validation_panel"
+kind = "native"
+type = "Space"
+control_id = "WelcomeValidationPanel"
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+min = 36.0
+preferred = 36.0
+max = 36.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node]
+node_id = "validation_actions_gap"
+kind = "native"
+type = "Space"
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+min = 12.0
+preferred = 12.0
+max = 12.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node]
+node_id = "actions_row"
+kind = "native"
+type = "Space"
+control_id = "WelcomeActionsRow"
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+min = 32.0
+preferred = 32.0
+max = 32.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node]
+node_id = "main_panel_bottom_space"
+kind = "native"
+type = "Space"
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+min = 18.0
+preferred = 18.0
+max = 18.0
+stretch = "Fixed"
+
+[[root.children.node.children]]
+[root.children.node.children.node]
+node_id = "right_space"
+kind = "native"
+type = "Space"
+
+[root.children.node.children.node.layout.width]
+min = 18.0
+preferred = 18.0
+max = 18.0
+stretch = "Fixed"
+
+[root.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children]]
+[root.children.node]
+node_id = "bottom_space"
+kind = "native"
+type = "Space"
+
+[root.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.layout.height]
+min = 18.0
+preferred = 18.0
+max = 18.0
+stretch = "Fixed"
+
+[components]

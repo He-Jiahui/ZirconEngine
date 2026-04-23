@@ -11,8 +11,8 @@ use crate::scene::world::World;
 use crate::{
     runtime::HybridGiRuntimeState,
     types::{
-        HybridGiPrepareFrame, HybridGiPrepareUpdateRequest, HybridGiResolveRuntime,
-        ViewportRenderFrame,
+        HybridGiPrepareFrame, HybridGiPrepareSurfaceCachePageContent, HybridGiPrepareUpdateRequest,
+        HybridGiResolveRuntime, HybridGiScenePrepareFrame, ViewportRenderFrame,
     },
     BuiltinRenderFeature, RenderPipelineAsset, RenderPipelineCompileOptions, SceneRenderer,
 };
@@ -246,6 +246,284 @@ fn hybrid_gi_pending_probe_gpu_irradiance_uses_runtime_hierarchy_source_when_sce
     assert!(
         u16::from(cool_irradiance[2]) > u16::from(warm_irradiance[2]) + 20,
         "expected pending probe GPU prepare to keep consuming cool runtime hierarchy irradiance when current-frame resident gather is unavailable, instead of collapsing both paths to the same black/no-gather source; warm_irradiance={warm_irradiance:?}, cool_irradiance={cool_irradiance:?}"
+    );
+}
+
+#[test]
+fn hybrid_gi_pending_probe_gpu_irradiance_blends_exact_runtime_source_with_current_surface_cache_truth_when_trace_schedule_is_empty(
+) {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let viewport_size = UVec2::new(96, 64);
+    let extract = build_extract(
+        viewport_size,
+        1,
+        0,
+        vec![probe(200, false, 128, Vec3::new(0.0, 0.0, 0.0), 0.85)],
+        Vec::new(),
+    );
+    let prepare = HybridGiPrepareFrame {
+        resident_probes: Vec::new(),
+        pending_updates: vec![HybridGiPrepareUpdateRequest {
+            probe_id: 200,
+            ray_budget: 128,
+            generation: 33,
+        }],
+        scheduled_trace_region_ids: Vec::new(),
+        evictable_probe_ids: Vec::new(),
+    };
+    let neutral_runtime = HybridGiResolveRuntime {
+        probe_hierarchy_irradiance_rgb_and_weight: std::collections::BTreeMap::from([(
+            200,
+            HybridGiResolveRuntime::pack_rgb_and_weight([0.47, 0.47, 0.47], 0.62),
+        )]),
+        ..Default::default()
+    };
+    let warm = render_hybrid_gi_gpu_irradiance_readback_with_scene_prepare_and_runtime(
+        &mut renderer,
+        viewport_size,
+        extract.clone(),
+        prepare.clone(),
+        Some(HybridGiScenePrepareFrame {
+            card_capture_requests: Vec::new(),
+            surface_cache_page_contents: vec![HybridGiPrepareSurfaceCachePageContent {
+                page_id: 11,
+                owner_card_id: 11,
+                atlas_slot_id: 3,
+                capture_slot_id: 4,
+                bounds_center: Vec3::ZERO,
+                bounds_radius: 0.6,
+                atlas_sample_rgba: [224, 112, 64, 255],
+                capture_sample_rgba: [240, 96, 48, 255],
+            }],
+            voxel_clipmaps: Vec::new(),
+            voxel_cells: Vec::new(),
+        }),
+        Some(neutral_runtime.clone()),
+    );
+    let cool = render_hybrid_gi_gpu_irradiance_readback_with_scene_prepare_and_runtime(
+        &mut renderer,
+        viewport_size,
+        extract,
+        prepare,
+        Some(HybridGiScenePrepareFrame {
+            card_capture_requests: Vec::new(),
+            surface_cache_page_contents: vec![HybridGiPrepareSurfaceCachePageContent {
+                page_id: 11,
+                owner_card_id: 11,
+                atlas_slot_id: 3,
+                capture_slot_id: 4,
+                bounds_center: Vec3::ZERO,
+                bounds_radius: 0.6,
+                atlas_sample_rgba: [64, 112, 224, 255],
+                capture_sample_rgba: [48, 96, 240, 255],
+            }],
+            voxel_clipmaps: Vec::new(),
+            voxel_cells: Vec::new(),
+        }),
+        Some(neutral_runtime),
+    );
+
+    let warm_irradiance = warm
+        .iter()
+        .find(|(probe_id, _)| *probe_id == 200)
+        .map(|(_, rgb)| *rgb)
+        .expect("warm pending exact-runtime irradiance probe");
+    let cool_irradiance = cool
+        .iter()
+        .find(|(probe_id, _)| *probe_id == 200)
+        .map(|(_, rgb)| *rgb)
+        .expect("cool pending exact-runtime irradiance probe");
+
+    assert!(
+        u16::from(warm_irradiance[0]) > u16::from(cool_irradiance[0]) + 12,
+        "expected stale exact runtime irradiance to keep blending with current warm surface-cache truth in pending-probe GPU encode when there is no current trace schedule, instead of flattening both frames to the same runtime-only source; warm_irradiance={warm_irradiance:?}, cool_irradiance={cool_irradiance:?}"
+    );
+    assert!(
+        u16::from(cool_irradiance[2]) > u16::from(warm_irradiance[2]) + 12,
+        "expected stale exact runtime irradiance to keep blending with current cool surface-cache truth in pending-probe GPU encode when there is no current trace schedule, instead of flattening both frames to the same runtime-only source; warm_irradiance={warm_irradiance:?}, cool_irradiance={cool_irradiance:?}"
+    );
+}
+
+#[test]
+fn hybrid_gi_pending_probe_gpu_irradiance_skips_scene_prepare_reblend_when_exact_runtime_source_is_already_scene_driven(
+) {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let viewport_size = UVec2::new(96, 64);
+    let extract = build_extract(
+        viewport_size,
+        1,
+        0,
+        vec![probe(200, false, 128, Vec3::new(0.0, 0.0, 0.0), 0.85)],
+        Vec::new(),
+    );
+    let prepare = HybridGiPrepareFrame {
+        resident_probes: Vec::new(),
+        pending_updates: vec![HybridGiPrepareUpdateRequest {
+            probe_id: 200,
+            ray_budget: 128,
+            generation: 34,
+        }],
+        scheduled_trace_region_ids: Vec::new(),
+        evictable_probe_ids: Vec::new(),
+    };
+    let exact_runtime = HybridGiResolveRuntime::pack_rgb_and_weight([0.84, 0.36, 0.18], 0.58);
+    let scene_prepare = HybridGiScenePrepareFrame {
+        card_capture_requests: Vec::new(),
+        surface_cache_page_contents: vec![HybridGiPrepareSurfaceCachePageContent {
+            page_id: 11,
+            owner_card_id: 11,
+            atlas_slot_id: 3,
+            capture_slot_id: 4,
+            bounds_center: Vec3::ZERO,
+            bounds_radius: 0.6,
+            atlas_sample_rgba: [64, 112, 224, 255],
+            capture_sample_rgba: [48, 96, 240, 255],
+        }],
+        voxel_clipmaps: Vec::new(),
+        voxel_cells: Vec::new(),
+    };
+
+    let scene_driven = render_hybrid_gi_gpu_irradiance_readback_with_scene_prepare_and_runtime(
+        &mut renderer,
+        viewport_size,
+        extract.clone(),
+        prepare.clone(),
+        Some(scene_prepare.clone()),
+        Some(HybridGiResolveRuntime {
+            probe_hierarchy_irradiance_rgb_and_weight: std::collections::BTreeMap::from([(
+                200,
+                exact_runtime,
+            )]),
+            probe_scene_driven_hierarchy_irradiance_ids: std::collections::BTreeSet::from([200]),
+            ..Default::default()
+        }),
+    );
+    let reblended = render_hybrid_gi_gpu_irradiance_readback_with_scene_prepare_and_runtime(
+        &mut renderer,
+        viewport_size,
+        extract,
+        prepare,
+        Some(scene_prepare),
+        Some(HybridGiResolveRuntime {
+            probe_hierarchy_irradiance_rgb_and_weight: std::collections::BTreeMap::from([(
+                200,
+                exact_runtime,
+            )]),
+            ..Default::default()
+        }),
+    );
+
+    let scene_driven_irradiance = scene_driven
+        .iter()
+        .find(|(probe_id, _)| *probe_id == 200)
+        .map(|(_, rgb)| *rgb)
+        .expect("scene-driven pending exact-runtime irradiance probe");
+    let reblended_irradiance = reblended
+        .iter()
+        .find(|(probe_id, _)| *probe_id == 200)
+        .map(|(_, rgb)| *rgb)
+        .expect("reblended pending exact-runtime irradiance probe");
+
+    assert!(
+        u16::from(scene_driven_irradiance[0]) > u16::from(reblended_irradiance[0]) + 12,
+        "expected pending-probe GPU irradiance encode to trust a runtime exact source that already includes current scene truth instead of blending the same cool scene_prepare page twice; scene_driven_irradiance={scene_driven_irradiance:?}, reblended_irradiance={reblended_irradiance:?}"
+    );
+    assert!(
+        u16::from(reblended_irradiance[2]) > u16::from(scene_driven_irradiance[2]) + 12,
+        "expected unflagged pending-probe GPU irradiance encode to keep drifting toward the cool current scene_prepare page while the scene-driven runtime source stays closer to its authored warm color; scene_driven_irradiance={scene_driven_irradiance:?}, reblended_irradiance={reblended_irradiance:?}"
+    );
+}
+
+#[test]
+fn hybrid_gi_pending_probe_gpu_trace_lighting_skips_scene_prepare_reblend_when_exact_runtime_source_is_already_scene_driven(
+) {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let viewport_size = UVec2::new(96, 64);
+    let extract = build_extract(
+        viewport_size,
+        1,
+        0,
+        vec![probe(200, false, 128, Vec3::new(0.0, 0.0, 0.0), 0.85)],
+        Vec::new(),
+    );
+    let prepare = HybridGiPrepareFrame {
+        resident_probes: Vec::new(),
+        pending_updates: vec![HybridGiPrepareUpdateRequest {
+            probe_id: 200,
+            ray_budget: 128,
+            generation: 35,
+        }],
+        scheduled_trace_region_ids: Vec::new(),
+        evictable_probe_ids: Vec::new(),
+    };
+    let exact_runtime = HybridGiResolveRuntime::pack_rgb_and_weight([0.84, 0.36, 0.18], 0.58);
+    let scene_prepare = HybridGiScenePrepareFrame {
+        card_capture_requests: Vec::new(),
+        surface_cache_page_contents: vec![HybridGiPrepareSurfaceCachePageContent {
+            page_id: 11,
+            owner_card_id: 11,
+            atlas_slot_id: 3,
+            capture_slot_id: 4,
+            bounds_center: Vec3::ZERO,
+            bounds_radius: 0.6,
+            atlas_sample_rgba: [64, 112, 224, 255],
+            capture_sample_rgba: [48, 96, 240, 255],
+        }],
+        voxel_clipmaps: Vec::new(),
+        voxel_cells: Vec::new(),
+    };
+
+    let scene_driven = render_hybrid_gi_gpu_trace_lighting_readback_with_scene_prepare_and_runtime(
+        &mut renderer,
+        viewport_size,
+        extract.clone(),
+        prepare.clone(),
+        Some(scene_prepare.clone()),
+        Some(HybridGiResolveRuntime {
+            probe_hierarchy_rt_lighting_rgb_and_weight: std::collections::BTreeMap::from([(
+                200,
+                exact_runtime,
+            )]),
+            probe_scene_driven_hierarchy_rt_lighting_ids: std::collections::BTreeSet::from([200]),
+            ..Default::default()
+        }),
+    );
+    let reblended = render_hybrid_gi_gpu_trace_lighting_readback_with_scene_prepare_and_runtime(
+        &mut renderer,
+        viewport_size,
+        extract,
+        prepare,
+        Some(scene_prepare),
+        Some(HybridGiResolveRuntime {
+            probe_hierarchy_rt_lighting_rgb_and_weight: std::collections::BTreeMap::from([(
+                200,
+                exact_runtime,
+            )]),
+            ..Default::default()
+        }),
+    );
+
+    let scene_driven_trace = scene_driven
+        .iter()
+        .find(|(probe_id, _)| *probe_id == 200)
+        .map(|(_, rgb)| *rgb)
+        .expect("scene-driven pending exact-runtime trace-lighting probe");
+    let reblended_trace = reblended
+        .iter()
+        .find(|(probe_id, _)| *probe_id == 200)
+        .map(|(_, rgb)| *rgb)
+        .expect("reblended pending exact-runtime trace-lighting probe");
+
+    assert!(
+        u16::from(scene_driven_trace[0]) > u16::from(reblended_trace[0]) + 12,
+        "expected pending-probe GPU trace-lighting encode to trust a runtime exact source that already includes current scene truth instead of blending the same cool scene_prepare page twice; scene_driven_trace={scene_driven_trace:?}, reblended_trace={reblended_trace:?}"
+    );
+    assert!(
+        u16::from(reblended_trace[2]) > u16::from(scene_driven_trace[2]) + 12,
+        "expected unflagged pending-probe GPU trace-lighting encode to keep drifting toward the cool current scene_prepare page while the scene-driven runtime source stays closer to its authored warm color; scene_driven_trace={scene_driven_trace:?}, reblended_trace={reblended_trace:?}"
     );
 }
 
@@ -932,11 +1210,12 @@ fn render_hybrid_gi_gpu_trace_lighting_readback_with_runtime(
         .probe_trace_lighting_rgb
 }
 
-fn render_hybrid_gi_gpu_irradiance_readback_with_runtime(
+fn render_hybrid_gi_gpu_trace_lighting_readback_with_scene_prepare_and_runtime(
     renderer: &mut SceneRenderer,
     viewport_size: UVec2,
     extract: RenderFrameExtract,
     prepare: HybridGiPrepareFrame,
+    scene_prepare: Option<HybridGiScenePrepareFrame>,
     runtime: Option<HybridGiResolveRuntime>,
 ) -> Vec<(u32, [u8; 3])> {
     let compiled = RenderPipelineAsset::default_forward_plus()
@@ -961,6 +1240,67 @@ fn render_hybrid_gi_gpu_irradiance_readback_with_runtime(
         .render_frame_with_pipeline(
             &ViewportRenderFrame::from_extract(extract, viewport_size)
                 .with_hybrid_gi_prepare(Some(prepare))
+                .with_hybrid_gi_scene_prepare(scene_prepare)
+                .with_hybrid_gi_resolve_runtime(runtime),
+            &compiled,
+            None,
+        )
+        .unwrap();
+
+    renderer
+        .take_last_hybrid_gi_gpu_readback()
+        .expect("expected hybrid gi GPU readback")
+        .probe_trace_lighting_rgb
+}
+
+fn render_hybrid_gi_gpu_irradiance_readback_with_runtime(
+    renderer: &mut SceneRenderer,
+    viewport_size: UVec2,
+    extract: RenderFrameExtract,
+    prepare: HybridGiPrepareFrame,
+    runtime: Option<HybridGiResolveRuntime>,
+) -> Vec<(u32, [u8; 3])> {
+    render_hybrid_gi_gpu_irradiance_readback_with_scene_prepare_and_runtime(
+        renderer,
+        viewport_size,
+        extract,
+        prepare,
+        None,
+        runtime,
+    )
+}
+
+fn render_hybrid_gi_gpu_irradiance_readback_with_scene_prepare_and_runtime(
+    renderer: &mut SceneRenderer,
+    viewport_size: UVec2,
+    extract: RenderFrameExtract,
+    prepare: HybridGiPrepareFrame,
+    scene_prepare: Option<HybridGiScenePrepareFrame>,
+    runtime: Option<HybridGiResolveRuntime>,
+) -> Vec<(u32, [u8; 3])> {
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(
+            &extract,
+            &RenderPipelineCompileOptions::default()
+                .with_feature_enabled(BuiltinRenderFeature::GlobalIllumination)
+                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
+                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
+                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
+                .with_feature_disabled(BuiltinRenderFeature::Bloom)
+                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
+                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
+                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
+                .with_feature_disabled(BuiltinRenderFeature::Particle)
+                .with_feature_disabled(BuiltinRenderFeature::VirtualGeometry)
+                .with_async_compute(false),
+        )
+        .unwrap();
+
+    renderer
+        .render_frame_with_pipeline(
+            &ViewportRenderFrame::from_extract(extract, viewport_size)
+                .with_hybrid_gi_prepare(Some(prepare))
+                .with_hybrid_gi_scene_prepare(scene_prepare)
                 .with_hybrid_gi_resolve_runtime(runtime),
             &compiled,
             None,

@@ -516,8 +516,8 @@ fn sequence_session_sanitizes_infinite_frames_per_second() {
 
 #[test]
 fn sequence_session_sanitizes_infinite_duration() {
-    let asset_path = unique_temp_dir("zircon_animation_session_infinite_duration")
-        .join("hero.sequence.zranim");
+    let asset_path =
+        unique_temp_dir("zircon_animation_session_infinite_duration").join("hero.sequence.zranim");
     write_sequence_asset_with_track_timing(&asset_path, f32::INFINITY, 30.0);
 
     let session = AnimationEditorSession::from_path(&asset_path).unwrap();
@@ -594,5 +594,106 @@ fn set_playback_ignores_infinite_speed() {
         session.pane_presentation().playback_label,
         "Paused • loop=false • speed=1.00",
         "invalid playback speeds should preserve the current playback presentation"
+    );
+}
+
+#[test]
+fn save_sequence_session_persists_track_changes_and_clears_dirty() {
+    let asset_path =
+        unique_temp_dir("zircon_animation_session_save_sequence").join("hero.sequence.zranim");
+    write_sequence_asset_with_track(&asset_path);
+
+    let mut session = AnimationEditorSession::from_path(&asset_path).unwrap();
+    let track_path = AnimationTrackPath::parse("Root/Hero:AnimationPlayer.speed").unwrap();
+    let changed = session.create_track(&track_path).unwrap();
+
+    assert!(
+        changed,
+        "creating a new track should mutate the sequence asset"
+    );
+    assert!(
+        session.is_dirty(),
+        "mutating the sequence asset should dirty the session"
+    );
+
+    session.save().unwrap();
+
+    assert!(
+        !session.is_dirty(),
+        "saving the sequence asset should clear the dirty bit"
+    );
+
+    let saved = AnimationSequenceAsset::from_bytes(&fs::read(&asset_path).unwrap()).unwrap();
+    assert!(
+        saved.track_paths().contains(&track_path),
+        "saving the sequence session should persist newly created tracks to disk"
+    );
+}
+
+#[test]
+fn save_graph_session_persists_parameter_changes_and_clears_dirty() {
+    let asset_path =
+        unique_temp_dir("zircon_animation_session_save_graph").join("hero.graph.zranim");
+    write_graph_asset_with_bool_parameter(&asset_path);
+
+    let mut session = AnimationEditorSession::from_path(&asset_path).unwrap();
+    let changed = session.set_graph_parameter("grounded", "false").unwrap();
+
+    assert!(
+        changed,
+        "changing a graph parameter should mutate the graph asset"
+    );
+    assert!(
+        session.is_dirty(),
+        "mutating the graph asset should dirty the session"
+    );
+
+    session.save().unwrap();
+
+    assert!(
+        !session.is_dirty(),
+        "saving the graph asset should clear the dirty bit"
+    );
+
+    let saved = AnimationGraphAsset::from_bytes(&fs::read(&asset_path).unwrap()).unwrap();
+    assert_eq!(
+        saved.parameters,
+        vec![AnimationGraphParameterAsset {
+            name: "grounded".to_string(),
+            default_value: AnimationParameterValue::Bool(false),
+        }],
+        "saving the graph session should persist parameter edits to disk"
+    );
+}
+
+#[test]
+fn save_state_machine_session_persists_entry_state_changes_and_clears_dirty() {
+    let asset_path = unique_temp_dir("zircon_animation_session_save_state_machine")
+        .join("hero.state_machine.zranim");
+    write_state_machine_asset_with_transition(&asset_path);
+
+    let mut session = AnimationEditorSession::from_path(&asset_path).unwrap();
+    let changed = session.set_entry_state("Run").unwrap();
+
+    assert!(
+        changed,
+        "changing the entry state should mutate the state-machine asset"
+    );
+    assert!(
+        session.is_dirty(),
+        "mutating the state-machine asset should dirty the session"
+    );
+
+    session.save().unwrap();
+
+    assert!(
+        !session.is_dirty(),
+        "saving the state-machine asset should clear the dirty bit"
+    );
+
+    let saved = AnimationStateMachineAsset::from_bytes(&fs::read(&asset_path).unwrap()).unwrap();
+    assert_eq!(
+        saved.entry_state, "Run",
+        "saving the state-machine session should persist the updated entry state to disk"
     );
 }

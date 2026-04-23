@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use crate::core::framework::render::{
+    RenderVirtualGeometrySelectedCluster, RenderVirtualGeometrySelectedClusterSource,
     RenderVirtualGeometryVisBuffer64Entry, RenderVirtualGeometryVisBuffer64Source,
 };
 use wgpu::util::DeviceExt;
@@ -9,6 +10,7 @@ use super::virtual_geometry_executed_cluster_selection_pass::VirtualGeometryExec
 
 pub(super) struct VirtualGeometryVisBuffer64PassOutput {
     pub(super) clear_value: u64,
+    pub(super) entries: Vec<RenderVirtualGeometryVisBuffer64Entry>,
     pub(super) source: RenderVirtualGeometryVisBuffer64Source,
     pub(super) entry_count: u32,
     pub(super) buffer: Option<Arc<wgpu::Buffer>>,
@@ -19,10 +21,11 @@ pub(super) fn execute_virtual_geometry_visbuffer64_pass(
     pass_enabled: bool,
     executed_cluster_selection_pass: &VirtualGeometryExecutedClusterSelectionPassOutput,
 ) -> VirtualGeometryVisBuffer64PassOutput {
-    let packed_words =
-        collect_execution_visbuffer64_words(&executed_cluster_selection_pass.selections);
+    let entries = collect_execution_visbuffer64_entries_from_pass(executed_cluster_selection_pass);
+    let packed_words = pack_execution_visbuffer64_entries(&entries);
     VirtualGeometryVisBuffer64PassOutput {
         clear_value: RenderVirtualGeometryVisBuffer64Entry::CLEAR_VALUE,
+        entries,
         source: if !pass_enabled {
             RenderVirtualGeometryVisBuffer64Source::Unavailable
         } else if packed_words.is_empty() {
@@ -35,22 +38,37 @@ pub(super) fn execute_virtual_geometry_visbuffer64_pass(
     }
 }
 
-fn collect_execution_visbuffer64_words(
-    executed_cluster_selections: &[crate::graphics::types::VirtualGeometryClusterSelection],
-) -> Vec<u64> {
-    executed_cluster_selections
-        .into_iter()
-        .map(|selection| {
-            let selected_cluster = (*selection).to_selected_cluster();
-            RenderVirtualGeometryVisBuffer64Entry::packed_value_for(
-                selected_cluster.instance_index,
-                selected_cluster.cluster_id,
-                selected_cluster.page_id,
-                selected_cluster.lod_level,
-                selected_cluster.state,
+fn collect_execution_visbuffer64_entries(
+    executed_selected_clusters: &[RenderVirtualGeometrySelectedCluster],
+) -> Vec<RenderVirtualGeometryVisBuffer64Entry> {
+    executed_selected_clusters
+        .iter()
+        .enumerate()
+        .map(|(entry_index, selected_cluster)| {
+            RenderVirtualGeometryVisBuffer64Entry::from_selected_cluster(
+                u32::try_from(entry_index).unwrap_or(u32::MAX),
+                selected_cluster,
             )
         })
         .collect()
+}
+
+fn collect_execution_visbuffer64_entries_from_pass(
+    executed_cluster_selection_pass: &VirtualGeometryExecutedClusterSelectionPassOutput,
+) -> Vec<RenderVirtualGeometryVisBuffer64Entry> {
+    if executed_cluster_selection_pass.source
+        == RenderVirtualGeometrySelectedClusterSource::Unavailable
+    {
+        return Vec::new();
+    }
+
+    collect_execution_visbuffer64_entries(&executed_cluster_selection_pass.selected_clusters)
+}
+
+fn pack_execution_visbuffer64_entries(
+    entries: &[RenderVirtualGeometryVisBuffer64Entry],
+) -> Vec<u64> {
+    entries.iter().map(|entry| entry.packed_value).collect()
 }
 
 fn create_visbuffer64_buffer(
@@ -72,75 +90,168 @@ fn create_visbuffer64_buffer(
 
 #[cfg(test)]
 mod tests {
-    use super::collect_execution_visbuffer64_words;
+    use super::{
+        collect_execution_visbuffer64_entries, collect_execution_visbuffer64_entries_from_pass,
+        pack_execution_visbuffer64_entries, VirtualGeometryExecutedClusterSelectionPassOutput,
+    };
     use crate::core::framework::render::{
-        RenderVirtualGeometryExecutionState, RenderVirtualGeometryVisBuffer64Entry,
+        RenderVirtualGeometryExecutionState, RenderVirtualGeometrySelectedCluster,
+        RenderVirtualGeometrySelectedClusterSource, RenderVirtualGeometryVisBuffer64Entry,
     };
     use crate::graphics::types::{
         VirtualGeometryClusterSelection, VirtualGeometryPrepareClusterState,
     };
 
     #[test]
-    fn visbuffer64_pass_words_follow_shared_executed_cluster_selection_order() {
-        let packed_words = collect_execution_visbuffer64_words(&[
-            selection(
+    fn visbuffer64_pass_entries_follow_shared_executed_cluster_selection_order() {
+        let entries = collect_execution_visbuffer64_entries(&[
+            selected_cluster(
                 Some(0),
                 42,
-                7,
                 20,
                 0,
                 400,
                 0,
-                VirtualGeometryPrepareClusterState::Resident,
+                RenderVirtualGeometryExecutionState::Resident,
             ),
-            selection(
+            selected_cluster(
                 Some(0),
                 42,
-                7,
                 30,
                 1,
                 300,
                 0,
-                VirtualGeometryPrepareClusterState::Resident,
+                RenderVirtualGeometryExecutionState::Resident,
             ),
-            selection(
+            selected_cluster(
                 None,
                 43,
-                3,
                 50,
                 0,
                 500,
                 0,
-                VirtualGeometryPrepareClusterState::PendingUpload,
+                RenderVirtualGeometryExecutionState::PendingUpload,
             ),
         ]);
 
         assert_eq!(
-            packed_words,
+            entries,
             vec![
-                RenderVirtualGeometryVisBuffer64Entry::packed_value_for(
-                    Some(0),
-                    20,
-                    400,
+                RenderVirtualGeometryVisBuffer64Entry::from_selected_cluster(
                     0,
-                    RenderVirtualGeometryExecutionState::Resident,
+                    &selected_cluster(
+                        Some(0),
+                        42,
+                        20,
+                        0,
+                        400,
+                        0,
+                        RenderVirtualGeometryExecutionState::Resident,
+                    ),
                 ),
-                RenderVirtualGeometryVisBuffer64Entry::packed_value_for(
-                    Some(0),
-                    30,
-                    300,
-                    0,
-                    RenderVirtualGeometryExecutionState::Resident,
+                RenderVirtualGeometryVisBuffer64Entry::from_selected_cluster(
+                    1,
+                    &selected_cluster(
+                        Some(0),
+                        42,
+                        30,
+                        1,
+                        300,
+                        0,
+                        RenderVirtualGeometryExecutionState::Resident,
+                    ),
                 ),
-                RenderVirtualGeometryVisBuffer64Entry::packed_value_for(
-                    None,
-                    50,
-                    500,
-                    0,
-                    RenderVirtualGeometryExecutionState::PendingUpload,
+                RenderVirtualGeometryVisBuffer64Entry::from_selected_cluster(
+                    2,
+                    &selected_cluster(
+                        None,
+                        43,
+                        50,
+                        0,
+                        500,
+                        0,
+                        RenderVirtualGeometryExecutionState::PendingUpload,
+                    ),
                 ),
             ],
-            "expected the VisBuffer64 compat pass to preserve the ordering of the shared executed-cluster seam instead of rebuilding its own submission-key filter, dedupe, or sort layer"
+            "expected the VisBuffer64 compat pass to preserve the ordering and typed identity of the shared executed-cluster seam instead of rebuilding its own submission-key filter, dedupe, or sort layer"
+        );
+    }
+
+    #[test]
+    fn visbuffer64_pass_prefers_pass_owned_selected_clusters() {
+        let entries = collect_execution_visbuffer64_entries_from_pass(
+            &VirtualGeometryExecutedClusterSelectionPassOutput {
+                selections: vec![selection(
+                    Some(0),
+                    42,
+                    7,
+                    30,
+                    1,
+                    300,
+                    0,
+                    VirtualGeometryPrepareClusterState::Resident,
+                )],
+                selected_clusters: vec![selected_cluster(
+                    Some(0),
+                    42,
+                    20,
+                    0,
+                    200,
+                    0,
+                    RenderVirtualGeometryExecutionState::Resident,
+                )],
+                source: RenderVirtualGeometrySelectedClusterSource::RenderPathExecutionSelections,
+                selected_cluster_count: 1,
+                selected_cluster_buffer: None,
+            },
+        );
+
+        assert_eq!(
+            entries,
+            vec![RenderVirtualGeometryVisBuffer64Entry::from_selected_cluster(
+                0,
+                &selected_cluster(
+                    Some(0),
+                    42,
+                    20,
+                    0,
+                    200,
+                    0,
+                    RenderVirtualGeometryExecutionState::Resident,
+                ),
+            )],
+            "expected the VisBuffer64 compat pass to project typed entries from the executed pass-owned selected-cluster seam directly once that seam exists instead of re-projecting a second cluster identity list from the internal selection DTO"
+        );
+    }
+
+    #[test]
+    fn visbuffer64_pass_packs_words_from_pass_owned_entries() {
+        let entries = vec![
+            RenderVirtualGeometryVisBuffer64Entry::from_selected_cluster(
+                0,
+                &selected_cluster(
+                    Some(0),
+                    42,
+                    20,
+                    0,
+                    200,
+                    0,
+                    RenderVirtualGeometryExecutionState::Resident,
+                ),
+            ),
+        ];
+
+        assert_eq!(
+            pack_execution_visbuffer64_entries(&entries),
+            vec![RenderVirtualGeometryVisBuffer64Entry::packed_value_for(
+                Some(0),
+                20,
+                200,
+                0,
+                RenderVirtualGeometryExecutionState::Resident,
+            )],
+            "expected the VisBuffer64 compat pass to derive packed buffer words from its pass-owned typed entry list so later store/readback code can share that same seam"
         );
     }
 
@@ -171,6 +282,26 @@ mod tests {
             frontier_rank: 0,
             resident_slot: Some(0),
             submission_slot: Some(0),
+            state,
+        }
+    }
+
+    fn selected_cluster(
+        instance_index: Option<u32>,
+        entity: u64,
+        cluster_id: u32,
+        cluster_ordinal: u32,
+        page_id: u32,
+        lod_level: u8,
+        state: RenderVirtualGeometryExecutionState,
+    ) -> RenderVirtualGeometrySelectedCluster {
+        RenderVirtualGeometrySelectedCluster {
+            instance_index,
+            entity,
+            cluster_id,
+            cluster_ordinal,
+            page_id,
+            lod_level,
             state,
         }
     }

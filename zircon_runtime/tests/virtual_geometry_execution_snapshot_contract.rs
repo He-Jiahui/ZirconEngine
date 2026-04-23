@@ -7,8 +7,8 @@ use zircon_runtime::core::framework::render::{
     RenderVirtualGeometryExtract, RenderVirtualGeometryHardwareRasterizationRecord,
     RenderVirtualGeometryHardwareRasterizationSource, RenderVirtualGeometryInstance,
     RenderVirtualGeometryPage, RenderVirtualGeometrySelectedCluster,
-    RenderVirtualGeometryVisBuffer64Entry, RenderVirtualGeometryVisBuffer64Source,
-    RenderVirtualGeometryVisBufferMark,
+    RenderVirtualGeometrySelectedClusterSource, RenderVirtualGeometryVisBuffer64Entry,
+    RenderVirtualGeometryVisBuffer64Source, RenderVirtualGeometryVisBufferMark,
 };
 use zircon_runtime::core::math::{Transform, UVec2, Vec3};
 use zircon_runtime::graphics::WgpuRenderFramework;
@@ -129,6 +129,11 @@ fn render_framework_visbuffer_marks_follow_execution_segments_not_missing_visibi
         "expected selected_clusters to be rebuilt from the real execution subset so the stored public cluster worklist matches the same authoritative post-render selection as execution_segments"
     );
     assert_eq!(
+        snapshot.selected_clusters_source,
+        RenderVirtualGeometrySelectedClusterSource::RenderPathExecutionSelections,
+        "expected the public execution snapshot to preserve explicit render-path provenance when executed cluster selections produced the authoritative selected-cluster worklist"
+    );
+    assert_eq!(
         snapshot.visbuffer_debug_marks,
         vec![RenderVirtualGeometryVisBufferMark {
             instance_index: Some(0),
@@ -241,6 +246,15 @@ fn render_framework_visbuffer64_source_reports_clear_only_for_empty_execution_se
         .expect("snapshot query should succeed")
         .expect("virtual geometry snapshot should be present");
 
+    assert_eq!(
+        snapshot.selected_clusters_source,
+        RenderVirtualGeometrySelectedClusterSource::RenderPathClearOnly,
+        "expected an enabled Virtual Geometry frame with no execution selections to keep the public snapshot on the explicit clear-only selected-cluster render-path source instead of collapsing that frame to Unavailable"
+    );
+    assert!(
+        snapshot.selected_clusters.is_empty(),
+        "expected the clear-only execution snapshot to keep selected clusters empty when the render path emitted no executed cluster selections"
+    );
     assert_eq!(
         snapshot.visbuffer64_source,
         RenderVirtualGeometryVisBuffer64Source::RenderPathClearOnly,

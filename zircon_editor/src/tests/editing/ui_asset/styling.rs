@@ -539,4 +539,3 @@ fn ui_asset_editor_session_selects_matched_style_rules_and_projects_details() {
         vec!["self.text.color = \"#ffeeaa\"".to_string()]
     );
 }
-

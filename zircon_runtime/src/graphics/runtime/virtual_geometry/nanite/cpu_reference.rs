@@ -38,6 +38,7 @@ pub(crate) struct VirtualGeometryCpuReferenceNodeVisit {
 pub(crate) struct VirtualGeometryCpuReferenceLeafCluster {
     pub(crate) entity: EntityId,
     pub(crate) node_id: u32,
+    pub(crate) cluster_ordinal: u32,
     pub(crate) cluster_id: u32,
     pub(crate) page_id: u32,
     pub(crate) mip_level: u8,
@@ -62,6 +63,13 @@ pub(crate) struct VirtualGeometryCpuReferenceFrame {
     page_sizes: BTreeMap<u32, u64>,
 }
 
+#[derive(Clone, Debug, Default, PartialEq)]
+struct VirtualGeometryCpuReferenceTraversalState {
+    visited_nodes: Vec<VirtualGeometryCpuReferenceNodeVisit>,
+    leaf_clusters: Vec<VirtualGeometryCpuReferenceLeafCluster>,
+    selected_clusters: Vec<VirtualGeometryCpuReferenceLeafCluster>,
+}
+
 impl VirtualGeometryCpuReferenceFrame {
     pub(crate) fn from_asset(
         entity: EntityId,
@@ -81,9 +89,7 @@ impl VirtualGeometryCpuReferenceFrame {
             .iter()
             .map(|node| (node.node_id, node))
             .collect::<BTreeMap<_, _>>();
-        let mut visited_nodes = Vec::new();
-        let mut leaf_clusters = Vec::new();
-        let mut selected_clusters = Vec::new();
+        let mut traversal = VirtualGeometryCpuReferenceTraversalState::default();
         let mut stack = root_node_ids(asset, &nodes_by_id)
             .into_iter()
             .rev()
@@ -97,41 +103,18 @@ impl VirtualGeometryCpuReferenceFrame {
             let child_ids = node.child_node_ids.clone();
             let cluster_headers =
                 cluster_headers_for_node(asset, node.cluster_start, node.cluster_count);
-            visited_nodes.push(VirtualGeometryCpuReferenceNodeVisit {
-                node_id: node.node_id,
-                depth,
-                page_id: node.page_id,
-                mip_level: node.mip_level,
-                is_leaf: child_ids.is_empty(),
-                cluster_ids: cluster_headers
-                    .iter()
-                    .map(|cluster| cluster.cluster_id)
-                    .collect(),
-            });
-
-            if child_ids.is_empty() {
-                for cluster in cluster_headers {
-                    let leaf = VirtualGeometryCpuReferenceLeafCluster {
+            if visit_node(&mut traversal, node, depth, &cluster_headers) {
+                for (cluster_index, cluster) in cluster_headers.iter().enumerate() {
+                    store_cluster(
+                        &mut traversal,
                         entity,
-                        node_id: node.node_id,
-                        cluster_id: cluster.cluster_id,
-                        page_id: cluster.page_id,
-                        mip_level: cluster.lod_level,
-                        loaded: resident_pages.contains(&cluster.page_id),
-                        parent_cluster_id: cluster.parent_cluster_id,
-                        bounds_center: cluster.bounds_center,
-                        bounds_radius: cluster.bounds_radius,
-                        screen_space_error: cluster.screen_space_error,
-                    };
-                    let selected = resident_pages.contains(&cluster.page_id)
-                        && config
-                            .debug
-                            .forced_mip
-                            .map_or(true, |forced_mip| forced_mip == cluster.lod_level);
-                    if selected {
-                        selected_clusters.push(leaf.clone());
-                    }
-                    leaf_clusters.push(leaf);
+                        node.node_id,
+                        node.cluster_start
+                            .saturating_add(u32::try_from(cluster_index).unwrap_or(u32::MAX)),
+                        cluster,
+                        config,
+                        &resident_pages,
+                    );
                 }
                 continue;
             }
@@ -142,9 +125,9 @@ impl VirtualGeometryCpuReferenceFrame {
         }
 
         Self {
-            visited_nodes,
-            leaf_clusters,
-            selected_clusters,
+            visited_nodes: traversal.visited_nodes,
+            leaf_clusters: traversal.leaf_clusters,
+            selected_clusters: traversal.selected_clusters,
             page_cluster_map,
             entity,
             debug: config.debug,
@@ -222,6 +205,62 @@ fn render_debug_state(debug: VirtualGeometryDebugConfig) -> RenderVirtualGeometr
     }
 }
 
+fn visit_node(
+    traversal: &mut VirtualGeometryCpuReferenceTraversalState,
+    node: &crate::asset::VirtualGeometryHierarchyNodeAsset,
+    depth: u32,
+    cluster_headers: &[VirtualGeometryClusterHeaderAsset],
+) -> bool {
+    let is_leaf = node.child_node_ids.is_empty();
+    traversal
+        .visited_nodes
+        .push(VirtualGeometryCpuReferenceNodeVisit {
+            node_id: node.node_id,
+            depth,
+            page_id: node.page_id,
+            mip_level: node.mip_level,
+            is_leaf,
+            cluster_ids: cluster_headers
+                .iter()
+                .map(|cluster| cluster.cluster_id)
+                .collect(),
+        });
+    is_leaf
+}
+
+fn store_cluster(
+    traversal: &mut VirtualGeometryCpuReferenceTraversalState,
+    entity: EntityId,
+    node_id: u32,
+    cluster_ordinal: u32,
+    cluster: &VirtualGeometryClusterHeaderAsset,
+    config: VirtualGeometryCpuReferenceConfig,
+    resident_pages: &BTreeSet<u32>,
+) {
+    let leaf = VirtualGeometryCpuReferenceLeafCluster {
+        entity,
+        node_id,
+        cluster_ordinal,
+        cluster_id: cluster.cluster_id,
+        page_id: cluster.page_id,
+        mip_level: cluster.lod_level,
+        loaded: resident_pages.contains(&cluster.page_id),
+        parent_cluster_id: cluster.parent_cluster_id,
+        bounds_center: cluster.bounds_center,
+        bounds_radius: cluster.bounds_radius,
+        screen_space_error: cluster.screen_space_error,
+    };
+    let selected = resident_pages.contains(&cluster.page_id)
+        && config
+            .debug
+            .forced_mip
+            .map_or(true, |forced_mip| forced_mip == cluster.lod_level);
+    if selected {
+        traversal.selected_clusters.push(leaf.clone());
+    }
+    traversal.leaf_clusters.push(leaf);
+}
+
 fn root_node_ids(
     asset: &VirtualGeometryAsset,
     nodes_by_id: &BTreeMap<u32, &crate::asset::VirtualGeometryHierarchyNodeAsset>,
@@ -265,4 +304,137 @@ fn build_page_cluster_map(asset: &VirtualGeometryAsset) -> BTreeMap<u32, Vec<u32
             .push(cluster.cluster_id);
     }
     page_cluster_map
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::asset::VirtualGeometryHierarchyNodeAsset;
+
+    #[test]
+    fn visit_node_records_visit_order_and_cluster_ids() {
+        let node = VirtualGeometryHierarchyNodeAsset {
+            node_id: 7,
+            parent_node_id: Some(1),
+            child_node_ids: vec![9, 11],
+            cluster_start: 0,
+            cluster_count: 2,
+            page_id: 44,
+            mip_level: 6,
+            bounds_center: [0.0, 0.0, 0.0],
+            bounds_radius: 1.0,
+            screen_space_error: 0.25,
+        };
+        let clusters = vec![
+            VirtualGeometryClusterHeaderAsset {
+                cluster_id: 100,
+                hierarchy_node_id: 7,
+                page_id: 10,
+                lod_level: 6,
+                parent_cluster_id: None,
+                bounds_center: [0.0, 0.0, 0.0],
+                bounds_radius: 0.5,
+                screen_space_error: 0.1,
+            },
+            VirtualGeometryClusterHeaderAsset {
+                cluster_id: 200,
+                hierarchy_node_id: 7,
+                page_id: 20,
+                lod_level: 5,
+                parent_cluster_id: Some(100),
+                bounds_center: [1.0, 0.0, 0.0],
+                bounds_radius: 0.5,
+                screen_space_error: 0.2,
+            },
+        ];
+        let mut traversal = VirtualGeometryCpuReferenceTraversalState::default();
+
+        let is_leaf = visit_node(&mut traversal, &node, 3, &clusters);
+
+        assert!(!is_leaf);
+        assert_eq!(
+            traversal.visited_nodes,
+            vec![VirtualGeometryCpuReferenceNodeVisit {
+                node_id: 7,
+                depth: 3,
+                page_id: 44,
+                mip_level: 6,
+                is_leaf: false,
+                cluster_ids: vec![100, 200],
+            }]
+        );
+    }
+
+    #[test]
+    fn store_cluster_keeps_all_leafs_and_selects_only_resident_matching_mip() {
+        let mut traversal = VirtualGeometryCpuReferenceTraversalState::default();
+        let config = VirtualGeometryCpuReferenceConfig {
+            debug: VirtualGeometryDebugConfig {
+                forced_mip: Some(10),
+                ..VirtualGeometryDebugConfig::default()
+            },
+        };
+        let resident_pages = [10_u32].into_iter().collect::<BTreeSet<_>>();
+
+        store_cluster(
+            &mut traversal,
+            77,
+            5,
+            0,
+            &VirtualGeometryClusterHeaderAsset {
+                cluster_id: 100,
+                hierarchy_node_id: 5,
+                page_id: 10,
+                lod_level: 10,
+                parent_cluster_id: None,
+                bounds_center: [0.0, 0.0, 0.0],
+                bounds_radius: 0.5,
+                screen_space_error: 0.1,
+            },
+            config,
+            &resident_pages,
+        );
+        store_cluster(
+            &mut traversal,
+            77,
+            5,
+            1,
+            &VirtualGeometryClusterHeaderAsset {
+                cluster_id: 200,
+                hierarchy_node_id: 5,
+                page_id: 20,
+                lod_level: 9,
+                parent_cluster_id: Some(100),
+                bounds_center: [1.0, 0.0, 0.0],
+                bounds_radius: 0.5,
+                screen_space_error: 0.2,
+            },
+            config,
+            &resident_pages,
+        );
+
+        assert_eq!(
+            traversal
+                .leaf_clusters
+                .iter()
+                .map(|cluster| {
+                    (
+                        cluster.cluster_ordinal,
+                        cluster.cluster_id,
+                        cluster.page_id,
+                        cluster.loaded,
+                    )
+                })
+                .collect::<Vec<_>>(),
+            vec![(0, 100, 10, true), (1, 200, 20, false)]
+        );
+        assert_eq!(
+            traversal
+                .selected_clusters
+                .iter()
+                .map(|cluster| (cluster.cluster_ordinal, cluster.cluster_id))
+                .collect::<Vec<_>>(),
+            vec![(0, 100)]
+        );
+    }
 }

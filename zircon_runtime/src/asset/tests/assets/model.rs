@@ -12,7 +12,13 @@ fn model_asset_toml_roundtrip_preserves_virtual_geometry_payload() {
         uri: AssetUri::parse("res://models/nanite_teapot.model.toml").unwrap(),
         primitives: vec![ModelPrimitiveAsset {
             vertices: vec![
-                MeshVertex::new(Vec3::ZERO, Vec3::Y, Vec2::ZERO),
+                MeshVertex {
+                    position: Vec3::ZERO.to_array(),
+                    normal: Vec3::Y.to_array(),
+                    uv: Vec2::ZERO.to_array(),
+                    joint_indices: [0, 1, 0, 0],
+                    joint_weights: [0.75, 0.25, 0.0, 0.0],
+                },
                 MeshVertex::new(Vec3::X, Vec3::Y, Vec2::X),
                 MeshVertex::new(Vec3::Z, Vec3::Y, Vec2::Y),
             ],

@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::asset::ModelPrimitiveAsset;
 use crate::core::framework::scene::EntityId;
 use crate::core::math::Vec4;
 use bytemuck::{Pod, Zeroable};
@@ -8,8 +9,13 @@ use crate::graphics::types::{
     VirtualGeometryClusterRasterDraw, VirtualGeometryPrepareClusterState,
 };
 
+pub(super) enum PendingMeshGeometry {
+    Prepared(Arc<crate::graphics::scene::resources::GpuMeshResource>),
+    Skinned(ModelPrimitiveAsset),
+}
+
 pub(super) struct PendingMeshDraw {
-    pub(super) mesh: Arc<crate::graphics::scene::resources::GpuMeshResource>,
+    pub(super) mesh: PendingMeshGeometry,
     pub(super) texture: Arc<crate::graphics::scene::resources::GpuTextureResource>,
     pub(super) pipeline_key: crate::graphics::scene::resources::PipelineKey,
     pub(super) model_matrix: [[f32; 4]; 4],

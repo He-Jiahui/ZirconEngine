@@ -9,7 +9,7 @@ mod service_factory;
 pub use crate::core::{
     CoreHandle, CoreRuntime, CoreWeak, DependencySpec, DriverDescriptor, LifecycleState,
     ManagerDescriptor, ModuleContext, ModuleDescriptor, PluginContext, PluginDescriptor,
-    RegistryName, ServiceKind, StartupMode,
+    PluginFactory, RegistryName, ServiceKind, StartupMode,
 };
 
 pub use contexts::{module_context, plugin_context};
@@ -19,7 +19,7 @@ pub use engine_service::{
     driver_contract, manager_contract, plugin_contract, DriverContract, EngineDriver,
     EngineManager, EnginePlugin, EngineService, ManagerContract, PluginContract,
 };
-pub use service_factory::factory;
+pub use service_factory::{factory, plugin_factory};
 
 #[cfg(test)]
 mod tests;

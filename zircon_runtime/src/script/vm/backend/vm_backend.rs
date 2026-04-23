@@ -1,4 +1,4 @@
-use crate::script::{HostRegistry, VmError, VmPluginInstance, VmPluginPackage};
+use crate::script::{VmError, VmPluginHostContext, VmPluginInstance, VmPluginPackage};
 
 pub trait VmBackend: Send + Sync {
     fn backend_name(&self) -> &str;
@@ -6,6 +6,6 @@ pub trait VmBackend: Send + Sync {
     fn load_package(
         &self,
         package: &VmPluginPackage,
-        host: HostRegistry,
+        host: &VmPluginHostContext,
     ) -> Result<Box<dyn VmPluginInstance>, VmError>;
 }

@@ -1,93 +1,76 @@
 use std::collections::BTreeMap;
 
-#[cfg(test)]
 use serde::Deserialize;
 use toml::Value;
 
-#[cfg(test)]
-use crate::ui::template::UiComponentParamSchema;
 use crate::ui::template::{
-    UiAssetDocument, UiAssetError, UiAssetHeader, UiAssetImports, UiAssetKind, UiChildMount,
-    UiComponentDefinition, UiNamedSlotSchema, UiNodeDefinition, UiNodeDefinitionKind,
-    UiStyleDeclarationBlock, UiStyleScope,
+    UiAssetDocument, UiAssetError, UiAssetHeader, UiAssetImports, UiAssetKind, UiBindingRef,
+    UiChildMount, UiComponentDefinition, UiComponentParamSchema, UiNamedSlotSchema,
+    UiNodeDefinition, UiNodeDefinitionKind, UiStyleDeclarationBlock, UiStyleScope, UiStyleSheet,
+    UiTemplateDocument, UiTemplateNode,
 };
-use crate::ui::template::{UiTemplateDocument, UiTemplateNode};
 
-#[derive(Default)]
-pub struct UiLegacyTemplateAdapter;
+pub(super) fn legacy_template_layout_document(
+    asset_id: impl Into<String>,
+    display_name: impl Into<String>,
+    document: &UiTemplateDocument,
+) -> Result<UiAssetDocument, UiAssetError> {
+    let mut components = BTreeMap::new();
 
-#[cfg(test)]
-#[derive(Default)]
-pub struct UiFlatAssetMigrationAdapter;
-
-impl UiLegacyTemplateAdapter {
-    pub fn layout_document(
-        asset_id: impl Into<String>,
-        display_name: impl Into<String>,
-        document: &UiTemplateDocument,
-    ) -> Result<UiAssetDocument, UiAssetError> {
-        let mut components = BTreeMap::new();
-
-        for (name, template) in &document.components {
-            let component_root = format!("component_{name}_root");
-            let _ = components.insert(
-                name.clone(),
-                UiComponentDefinition {
-                    root: convert_template_node(&component_root, &template.root)?,
-                    style_scope: UiStyleScope::Closed,
-                    params: BTreeMap::new(),
-                    slots: template
-                        .slots
-                        .iter()
-                        .map(|(slot_name, slot)| {
-                            (
-                                slot_name.clone(),
-                                UiNamedSlotSchema {
-                                    required: slot.required,
-                                    multiple: slot.multiple,
-                                },
-                            )
-                        })
-                        .collect(),
-                },
-            );
-        }
-
-        Ok(UiAssetDocument {
-            asset: UiAssetHeader {
-                kind: UiAssetKind::Layout,
-                id: asset_id.into(),
-                version: document.version,
-                display_name: display_name.into(),
+    for (name, template) in &document.components {
+        let component_root = format!("component_{name}_root");
+        let _ = components.insert(
+            name.clone(),
+            UiComponentDefinition {
+                root: convert_template_node(&component_root, &template.root)?,
+                style_scope: UiStyleScope::Closed,
+                params: BTreeMap::new(),
+                slots: template
+                    .slots
+                    .iter()
+                    .map(|(slot_name, slot)| {
+                        (
+                            slot_name.clone(),
+                            UiNamedSlotSchema {
+                                required: slot.required,
+                                multiple: slot.multiple,
+                            },
+                        )
+                    })
+                    .collect(),
             },
-            imports: UiAssetImports::default(),
-            tokens: BTreeMap::new(),
-            root: Some(convert_template_node("root", &document.root)?),
-            components,
-            stylesheets: Vec::new(),
-        })
+        );
     }
 
-    pub fn layout_source(
-        asset_id: impl Into<String>,
-        display_name: impl Into<String>,
-        document: &UiTemplateDocument,
-    ) -> Result<String, UiAssetError> {
-        let document = Self::layout_document(asset_id, display_name, document)?;
-        toml::to_string_pretty(&document)
-            .map_err(|error| UiAssetError::ParseToml(error.to_string()))
-    }
+    Ok(UiAssetDocument {
+        asset: UiAssetHeader {
+            kind: UiAssetKind::Layout,
+            id: asset_id.into(),
+            version: document.version,
+            display_name: display_name.into(),
+        },
+        imports: UiAssetImports::default(),
+        tokens: BTreeMap::new(),
+        root: Some(convert_template_node("root", &document.root)?),
+        components,
+        stylesheets: Vec::new(),
+    })
 }
 
-#[cfg(test)]
-impl UiFlatAssetMigrationAdapter {
-    pub fn migrate_toml_str(input: &str) -> Result<String, UiAssetError> {
-        let legacy: FlatUiAssetDocument =
-            toml::from_str(input).map_err(|error| UiAssetError::ParseToml(error.to_string()))?;
-        let migrated = legacy.into_tree_document()?;
-        toml::to_string_pretty(&migrated)
-            .map_err(|error| UiAssetError::ParseToml(error.to_string()))
-    }
+pub(super) fn legacy_template_layout_source(
+    asset_id: impl Into<String>,
+    display_name: impl Into<String>,
+    document: &UiTemplateDocument,
+) -> Result<String, UiAssetError> {
+    let document = legacy_template_layout_document(asset_id, display_name, document)?;
+    toml::to_string_pretty(&document).map_err(|error| UiAssetError::ParseToml(error.to_string()))
+}
+
+pub(super) fn migrate_flat_ui_asset_toml_str(input: &str) -> Result<String, UiAssetError> {
+    let legacy: FlatUiAssetDocument =
+        toml::from_str(input).map_err(|error| UiAssetError::ParseToml(error.to_string()))?;
+    let migrated = legacy.into_tree_document()?;
+    toml::to_string_pretty(&migrated).map_err(|error| UiAssetError::ParseToml(error.to_string()))
 }
 
 fn convert_template_node(
@@ -181,7 +164,6 @@ fn table_to_btree_map(table: &toml::map::Map<String, Value>) -> BTreeMap<String,
         .collect()
 }
 
-#[cfg(test)]
 impl FlatUiAssetDocument {
     fn into_tree_document(self) -> Result<UiAssetDocument, UiAssetError> {
         let root = self
@@ -220,7 +202,6 @@ impl FlatUiAssetDocument {
     }
 }
 
-#[cfg(test)]
 fn build_tree_node(
     asset_id: &str,
     nodes: &BTreeMap<String, FlatUiNodeDefinition>,
@@ -272,7 +253,6 @@ fn build_tree_node(
     })
 }
 
-#[cfg(test)]
 #[derive(Clone, Debug, PartialEq, Deserialize)]
 struct FlatUiAssetDocument {
     pub asset: UiAssetHeader,
@@ -287,16 +267,14 @@ struct FlatUiAssetDocument {
     #[serde(default)]
     pub components: BTreeMap<String, FlatUiComponentDefinition>,
     #[serde(default)]
-    pub stylesheets: Vec<crate::ui::template::UiStyleSheet>,
+    pub stylesheets: Vec<UiStyleSheet>,
 }
 
-#[cfg(test)]
 #[derive(Clone, Debug, PartialEq, Deserialize)]
 struct FlatUiAssetRoot {
     pub node: String,
 }
 
-#[cfg(test)]
 #[derive(Clone, Debug, Default, PartialEq, Deserialize)]
 struct FlatUiNodeDefinition {
     #[serde(default)]
@@ -320,14 +298,13 @@ struct FlatUiNodeDefinition {
     #[serde(default)]
     pub layout: Option<BTreeMap<String, Value>>,
     #[serde(default)]
-    pub bindings: Vec<crate::ui::template::UiBindingRef>,
+    pub bindings: Vec<UiBindingRef>,
     #[serde(default)]
     pub style_overrides: UiStyleDeclarationBlock,
     #[serde(default)]
     pub children: Vec<FlatUiChildMount>,
 }
 
-#[cfg(test)]
 #[derive(Clone, Debug, Default, PartialEq, Deserialize)]
 struct FlatUiChildMount {
     pub child: String,
@@ -337,7 +314,6 @@ struct FlatUiChildMount {
     pub slot: BTreeMap<String, Value>,
 }
 
-#[cfg(test)]
 #[derive(Clone, Debug, Default, PartialEq, Deserialize)]
 struct FlatUiComponentDefinition {
     pub root: String,

@@ -249,6 +249,10 @@ fn asset_surface_controls_use_generic_template_callbacks_instead_of_legacy_busin
         env!("CARGO_MANIFEST_DIR"),
         "/ui/workbench/pane_content.slint"
     ));
+    let template_pane = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/ui/workbench/template_pane.slint"
+    ));
     let pane_surface_host_context = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/ui/workbench/pane_surface_host_context.slint"
@@ -256,10 +260,6 @@ fn asset_surface_controls_use_generic_template_callbacks_instead_of_legacy_busin
     let assets = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/ui/workbench/assets.slint"
-    ));
-    let asset_panes = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/asset_panes.slint"
     ));
     let wiring = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
@@ -269,6 +269,8 @@ fn asset_surface_controls_use_generic_template_callbacks_instead_of_legacy_busin
         env!("CARGO_MANIFEST_DIR"),
         "/src/ui/slint_host/app/assets.rs"
     ));
+    let pane_content_normalized = pane_content.split_whitespace().collect::<String>();
+    let template_pane_normalized = template_pane.split_whitespace().collect::<String>();
 
     for needle in [
         "callback asset_search_edited(",
@@ -368,11 +370,31 @@ fn asset_surface_controls_use_generic_template_callbacks_instead_of_legacy_busin
         "control_clicked(control_id) => { PaneSurfaceHostContext.asset_control_clicked(\"activity\", control_id); }",
         "control_changed(control_id, value) => { PaneSurfaceHostContext.asset_control_changed(\"browser\", control_id, value); }",
         "control_clicked(control_id) => { PaneSurfaceHostContext.asset_control_clicked(\"browser\", control_id); }",
-        "asset_control_clicked(control_id) => { PaneSurfaceHostContext.asset_control_clicked(\"project\", control_id); }",
     ] {
         assert!(
             pane_content.contains(needle),
             "pane content is missing generic asset control route `{needle}`"
+        );
+    }
+    for needle in [
+        "exportcomponentTemplatePaneinheritsRectangle{",
+        "callbacknode_dispatched(control_id:string,dispatch_kind:string,action_id:string);",
+        "clicked=>{root.node_dispatched(root.node.control_id,root.node.dispatch_kind,root.node.action_id",
+    ] {
+        assert!(
+            template_pane_normalized.contains(needle),
+            "template_pane.slint is missing generic template dispatch route `{needle}`"
+        );
+    }
+    for needle in [
+        "if!root.pane.show_empty&&root.pane.kind==\"Project\":TemplatePane{",
+        "nodes:root.pane.project_overview.nodes;",
+        "node_dispatched(control_id,dispatch_kind,action_id)=>{",
+        "PaneSurfaceHostContext.asset_control_clicked(\"project\",control_id);",
+    ] {
+        assert!(
+            pane_content_normalized.contains(needle),
+            "pane content is missing projected project template route `{needle}`"
         );
     }
 
@@ -388,8 +410,8 @@ fn asset_surface_controls_use_generic_template_callbacks_instead_of_legacy_busin
         "clicked => { root.control_clicked(\"ImportModel\"); }",
     ] {
         assert!(
-            asset_panes.contains(needle),
-            "asset pane surfaces are missing generic control route `{needle}`"
+            pane_content.contains(needle),
+            "pane_content is missing generic asset control route `{needle}`"
         );
     }
 
@@ -406,9 +428,9 @@ fn asset_surface_controls_use_generic_template_callbacks_instead_of_legacy_busin
 
 #[test]
 fn asset_surface_templates_expose_physics_and_animation_kind_filters() {
-    let asset_panes = include_str!(concat!(
+    let pane_content = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/asset_panes.slint"
+        "/ui/workbench/pane_content.slint"
     ));
 
     for kind in [
@@ -421,7 +443,7 @@ fn asset_surface_templates_expose_physics_and_animation_kind_filters() {
     ] {
         let needle = format!("root.control_changed(\"SetKindFilter\", \"{kind}\")");
         assert_eq!(
-            asset_panes.matches(&needle).count(),
+            pane_content.matches(&needle).count(),
             2,
             "asset activity/browser surfaces should both expose {kind} kind filters"
         );

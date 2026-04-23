@@ -2,15 +2,21 @@ use std::collections::HashSet;
 use std::sync::Arc;
 
 use crate::core::framework::render::{
-    RenderVirtualGeometryExecutionSegment, RenderVirtualGeometryExecutionState,
+    RenderVirtualGeometryCullInputSnapshot, RenderVirtualGeometryExecutionSegment,
+    RenderVirtualGeometryExecutionState, RenderVirtualGeometrySelectedCluster,
+    RenderVirtualGeometrySelectedClusterSource,
 };
 use crate::graphics::scene::scene_renderer::mesh::MeshDraw;
-use crate::graphics::types::VirtualGeometryClusterSelection;
+use crate::graphics::types::{ViewportRenderFrame, VirtualGeometryClusterSelection};
 
 use super::virtual_geometry_executed_cluster_selection_pass::execute_virtual_geometry_executed_cluster_selection_pass;
 use super::virtual_geometry_hardware_rasterization_pass::{
     execute_virtual_geometry_hardware_rasterization_pass,
     VirtualGeometryHardwareRasterizationPassOutput,
+};
+use super::virtual_geometry_node_and_cluster_cull_pass::{
+    execute_virtual_geometry_node_and_cluster_cull_pass,
+    VirtualGeometryNodeAndClusterCullPassOutput,
 };
 use super::virtual_geometry_visbuffer64_pass::{
     execute_virtual_geometry_visbuffer64_pass, VirtualGeometryVisBuffer64PassOutput,
@@ -28,8 +34,11 @@ pub(super) struct VirtualGeometryIndirectStats {
     pub(super) execution_repeated_draw_count: u32,
     pub(super) execution_indirect_offsets: Vec<u64>,
     pub(super) execution_segments: Vec<RenderVirtualGeometryExecutionSegment>,
+    pub(super) executed_selected_clusters: Vec<RenderVirtualGeometrySelectedCluster>,
+    pub(super) executed_selected_cluster_source: RenderVirtualGeometrySelectedClusterSource,
     pub(super) executed_selected_cluster_count: u32,
     pub(super) executed_selected_cluster_buffer: Option<Arc<wgpu::Buffer>>,
+    pub(super) node_and_cluster_cull_pass: VirtualGeometryNodeAndClusterCullPassOutput,
     pub(super) hardware_rasterization_pass: VirtualGeometryHardwareRasterizationPassOutput,
     pub(super) visbuffer64_pass: VirtualGeometryVisBuffer64PassOutput,
     pub(super) draw_submission_order: Vec<(Option<u32>, u64, u32)>,
@@ -50,6 +59,8 @@ pub(super) fn virtual_geometry_indirect_stats(
     device: &wgpu::Device,
     encoder: &mut wgpu::CommandEncoder,
     visbuffer64_pass_enabled: bool,
+    frame: &ViewportRenderFrame,
+    cull_input: Option<&RenderVirtualGeometryCullInputSnapshot>,
     cluster_selections: Option<&[VirtualGeometryClusterSelection]>,
     execution_draws: &[&MeshDraw],
     args_buffer: Option<Arc<wgpu::Buffer>>,
@@ -96,10 +107,19 @@ pub(super) fn virtual_geometry_indirect_stats(
         .map(|draw| draw.indirect_args_offset)
         .collect::<Vec<_>>();
     let execution_segments = collect_execution_segments(&indirect_execution_draws);
+    let node_and_cluster_cull_pass = execute_virtual_geometry_node_and_cluster_cull_pass(
+        device,
+        visbuffer64_pass_enabled,
+        frame,
+        cull_input,
+    );
     let executed_cluster_selection_pass = execute_virtual_geometry_executed_cluster_selection_pass(
         device,
+        visbuffer64_pass_enabled,
         cluster_selections,
         &indirect_execution_draws,
+        frame.extract.geometry.virtual_geometry.as_ref(),
+        &node_and_cluster_cull_pass,
     );
     let hardware_rasterization_pass = execute_virtual_geometry_hardware_rasterization_pass(
         device,
@@ -166,10 +186,13 @@ pub(super) fn virtual_geometry_indirect_stats(
         execution_repeated_draw_count: execution_summary.repeated_draw_count,
         execution_indirect_offsets,
         execution_segments,
+        executed_selected_clusters: executed_cluster_selection_pass.selected_clusters,
+        executed_selected_cluster_source: executed_cluster_selection_pass.source,
         executed_selected_cluster_count: executed_cluster_selection_pass.selected_cluster_count,
         executed_selected_cluster_buffer: executed_cluster_selection_pass
             .selected_cluster_buffer
             .clone(),
+        node_and_cluster_cull_pass,
         hardware_rasterization_pass,
         visbuffer64_pass,
         draw_submission_order,

@@ -2,17 +2,17 @@ use std::collections::BTreeMap;
 use std::fmt;
 use std::sync::{Arc, Mutex};
 
-use super::{VmBackend, VmError};
+use super::{VmBackend, VmBackendFamily, VmError};
 
 #[derive(Default)]
 pub struct VmBackendRegistry {
-    backends: Mutex<BTreeMap<String, Arc<dyn VmBackend>>>,
+    families: Mutex<BTreeMap<String, Arc<dyn VmBackendFamily>>>,
 }
 
 impl fmt::Debug for VmBackendRegistry {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("VmBackendRegistry")
-            .field("backends", &self.names())
+            .field("families", &self.names())
             .finish()
     }
 }
@@ -22,30 +22,53 @@ impl VmBackendRegistry {
         Self::default()
     }
 
-    pub fn register(&self, backend: Arc<dyn VmBackend>) -> String {
-        let name = backend.backend_name().to_string();
-        self.register_named(name.clone(), backend);
+    pub fn register_family(&self, family: Arc<dyn VmBackendFamily>) -> String {
+        let name = family.family_name().to_string();
+        self.families.lock().unwrap().insert(name.clone(), family);
         name
     }
 
-    pub fn register_named(&self, name: impl Into<String>, backend: Arc<dyn VmBackend>) {
-        self.backends.lock().unwrap().insert(name.into(), backend);
-    }
-
-    pub fn resolve(&self, name: &str) -> Result<Arc<dyn VmBackend>, VmError> {
-        self.backends
+    pub fn resolve(&self, selector: &str) -> Result<Arc<dyn VmBackend>, VmError> {
+        let families = self
+            .families
             .lock()
             .unwrap()
-            .get(name)
+            .values()
             .cloned()
-            .ok_or_else(|| VmError::UnknownBackend(name.to_string()))
+            .collect::<Vec<_>>();
+
+        if let Some((family_name, _)) = selector.split_once(':') {
+            if let Some(family) = families
+                .iter()
+                .find(|family| family.family_name() == family_name)
+            {
+                return family.resolve(selector);
+            }
+        }
+
+        for family in families {
+            if let Ok(backend) = family.resolve(selector) {
+                return Ok(backend);
+            }
+        }
+
+        Err(VmError::UnknownBackend(selector.to_string()))
     }
 
-    pub fn contains(&self, name: &str) -> bool {
-        self.backends.lock().unwrap().contains_key(name)
+    pub fn contains(&self, selector: &str) -> bool {
+        self.resolve(selector).is_ok()
     }
 
     pub fn names(&self) -> Vec<String> {
-        self.backends.lock().unwrap().keys().cloned().collect()
+        let mut selectors = self
+            .families
+            .lock()
+            .unwrap()
+            .values()
+            .flat_map(|family| family.selectors())
+            .collect::<Vec<_>>();
+        selectors.sort();
+        selectors.dedup();
+        selectors
     }
 }

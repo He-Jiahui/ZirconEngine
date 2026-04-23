@@ -1,13 +1,16 @@
 use slint::{Model, SharedString};
 
-use crate::ui::slint_host::{
-    HostBottomDockSurfaceData, HostDocumentDockSurfaceData, HostFloatingWindowLayerData,
-    HostMenuChromeData, HostNativeFloatingWindowSurfaceData, HostPageChromeData,
-    HostResizeLayerData, HostSideDockSurfaceData, HostStatusBarData, HostTabDragOverlayData,
-    HostWindowLayoutData, HostWindowShellData, HostWindowSurfaceData,
-    HostWorkbenchSurfaceMetricsData, HostWorkbenchSurfaceOrchestrationData,
-    HostWorkbenchWindowSceneData,
-};
+use super::*;
+use crate::ui::asset_editor::ui_asset_editor_node_projection;
+use crate::ui::layouts::common::model_rc;
+use crate::ui::layouts::views::animation_editor_pane_nodes;
+use crate::ui::layouts::views::asset_browser_pane_nodes;
+use crate::ui::layouts::views::assets_activity_pane_data;
+use crate::ui::layouts::views::console_pane_nodes;
+use crate::ui::layouts::views::hierarchy_pane_nodes;
+use crate::ui::layouts::views::inspector_pane_nodes;
+use crate::ui::layouts::views::project_overview_pane_data;
+use zircon_runtime::ui::layout::UiSize;
 
 const DEFAULT_PRESET_NAME: &str = "rider";
 const OUTER_MARGIN_PX: f32 = 0.0;
@@ -24,6 +27,7 @@ pub(crate) fn build_host_scene_data(
     host_layout: &HostWindowLayoutData,
     status_primary: &SharedString,
     delete_enabled: bool,
+    project_overview: &crate::ui::workbench::snapshot::ProjectOverviewSnapshot,
 ) -> HostWorkbenchWindowSceneData {
     let metrics = surface_metrics();
     let orchestration =
@@ -77,12 +81,31 @@ pub(crate) fn build_host_scene_data(
             - orchestration.bottom_panel_height_px.max(MIN_DROP_TARGET_PX),
         drag_overlay_bottom_px: host_layout.status_bar_frame.y,
     };
+    let left_content_height =
+        (host_layout.left_region_frame.height - metrics.panel_header_height_px - 1.0).max(0.0);
+    let document_content_height =
+        (host_layout.document_region_frame.height - metrics.document_header_height_px - 1.0)
+            .max(0.0);
+    let right_content_height =
+        (host_layout.right_region_frame.height - metrics.panel_header_height_px - 1.0).max(0.0);
+    let bottom_content_height =
+        (host_layout.bottom_region_frame.height - metrics.panel_header_height_px - 1.0).max(0.0);
+    let floating_windows = floating_windows_with_pane_shell_layouts(
+        &host_surface_data.floating_windows,
+        metrics.document_header_height_px,
+        project_overview,
+    );
     let left_dock = HostSideDockSurfaceData {
         region_frame: host_layout.left_region_frame.clone(),
         surface_key: "left".into(),
         rail_before_panel: true,
         tabs: host_surface_data.left_tabs.clone(),
-        pane: host_surface_data.left_pane.clone(),
+        pane: pane_with_host_owned_shell_layouts(
+            host_surface_data.left_pane.clone(),
+            orchestration.left_panel_width_px,
+            left_content_height,
+            project_overview,
+        ),
         rail_width_px: orchestration.left_rail_width_px,
         panel_width_px: orchestration.left_panel_width_px,
         panel_header_height_px: metrics.panel_header_height_px,
@@ -93,7 +116,12 @@ pub(crate) fn build_host_scene_data(
         region_frame: host_layout.document_region_frame.clone(),
         surface_key: "document".into(),
         tabs: host_surface_data.document_tabs.clone(),
-        pane: host_surface_data.document_pane.clone(),
+        pane: pane_with_host_owned_shell_layouts(
+            host_surface_data.document_pane.clone(),
+            host_layout.document_region_frame.width,
+            document_content_height,
+            project_overview,
+        ),
         header_height_px: metrics.document_header_height_px,
         tab_origin_x_px: orchestration.document_tab_origin_x_px,
         tab_origin_y_px: orchestration.document_tab_origin_y_px,
@@ -103,7 +131,12 @@ pub(crate) fn build_host_scene_data(
         surface_key: "right".into(),
         rail_before_panel: false,
         tabs: host_surface_data.right_tabs.clone(),
-        pane: host_surface_data.right_pane.clone(),
+        pane: pane_with_host_owned_shell_layouts(
+            host_surface_data.right_pane.clone(),
+            orchestration.right_panel_width_px,
+            right_content_height,
+            project_overview,
+        ),
         rail_width_px: orchestration.right_rail_width_px,
         panel_width_px: orchestration.right_panel_width_px,
         panel_header_height_px: metrics.panel_header_height_px,
@@ -114,14 +147,19 @@ pub(crate) fn build_host_scene_data(
         region_frame: host_layout.bottom_region_frame.clone(),
         surface_key: "bottom".into(),
         tabs: host_surface_data.bottom_tabs.clone(),
-        pane: host_surface_data.bottom_pane.clone(),
+        pane: pane_with_host_owned_shell_layouts(
+            host_surface_data.bottom_pane.clone(),
+            host_layout.bottom_region_frame.width,
+            bottom_content_height,
+            project_overview,
+        ),
         expanded: host_shell.bottom_expanded,
         header_height_px: metrics.panel_header_height_px,
         tab_origin_x_px: orchestration.bottom_tab_origin_x_px,
         tab_origin_y_px: orchestration.bottom_tab_origin_y_px,
     };
     let floating_layer = HostFloatingWindowLayerData {
-        floating_windows: host_surface_data.floating_windows.clone(),
+        floating_windows,
         header_height_px: metrics.document_header_height_px,
     };
 
@@ -145,9 +183,14 @@ pub(crate) fn build_host_scene_data(
 pub(crate) fn build_native_floating_surface_data(
     host_surface_data: &HostWindowSurfaceData,
     host_shell: &HostWindowShellData,
+    project_overview: &crate::ui::workbench::snapshot::ProjectOverviewSnapshot,
 ) -> HostNativeFloatingWindowSurfaceData {
     HostNativeFloatingWindowSurfaceData {
-        floating_windows: host_surface_data.floating_windows.clone(),
+        floating_windows: floating_windows_with_pane_shell_layouts(
+            &host_surface_data.floating_windows,
+            DOCUMENT_HEADER_HEIGHT_PX,
+            project_overview,
+        ),
         native_floating_window_id: host_shell.native_floating_window_id.clone(),
         native_window_bounds: host_shell.native_window_bounds.clone(),
         header_height_px: DOCUMENT_HEADER_HEIGHT_PX,
@@ -224,4 +267,135 @@ fn surface_orchestration_data(
         bottom_tab_origin_x_px: 6.0,
         bottom_tab_origin_y_px: host_layout.bottom_region_frame.y + 2.0,
     }
+}
+
+fn pane_with_ui_asset_nodes(mut pane: PaneData, width: f32, height: f32) -> PaneData {
+    if pane.kind.as_str() != "UiAssetEditor" {
+        return pane;
+    }
+
+    let size = UiSize::new(width.max(0.0), height.max(0.0));
+    let projection = ui_asset_editor_node_projection(size);
+    pane.ui_asset.nodes = projection.nodes;
+    pane.ui_asset.center_column_node = projection.center_column_node;
+    pane.ui_asset.designer_panel_node = projection.designer_panel_node;
+    pane.ui_asset.designer_canvas_panel_node = projection.designer_canvas_panel_node;
+    pane.ui_asset.inspector_panel_node = projection.inspector_panel_node;
+    pane.ui_asset.stylesheet_panel_node = projection.stylesheet_panel_node;
+    pane
+}
+
+fn pane_with_host_owned_shell_layouts(
+    mut pane: PaneData,
+    width: f32,
+    height: f32,
+    project_overview: &crate::ui::workbench::snapshot::ProjectOverviewSnapshot,
+) -> PaneData {
+    pane = pane_with_ui_asset_nodes(pane, width, height);
+    pane = pane_with_hierarchy_projection(pane, width, height);
+    pane = pane_with_inspector_projection(pane, width, height);
+    pane = pane_with_console_projection(pane, width, height);
+    pane = pane_with_assets_activity_projection(pane, width, height);
+    pane = pane_with_asset_browser_projection(pane, width, height);
+    pane = pane_with_project_overview_projection(pane, width, height, project_overview);
+    pane_with_animation_projection(pane, width, height)
+}
+
+fn pane_with_hierarchy_projection(mut pane: PaneData, width: f32, height: f32) -> PaneData {
+    if pane.kind.as_str() != "Hierarchy" {
+        return pane;
+    }
+
+    let size = UiSize::new(width.max(0.0), height.max(0.0));
+    pane.hierarchy.nodes = hierarchy_pane_nodes(size);
+    pane
+}
+
+fn pane_with_inspector_projection(mut pane: PaneData, width: f32, height: f32) -> PaneData {
+    if pane.kind.as_str() != "Inspector" {
+        return pane;
+    }
+
+    let size = UiSize::new(width.max(0.0), height.max(0.0));
+    pane.inspector.nodes = inspector_pane_nodes(size);
+    pane
+}
+
+fn pane_with_console_projection(mut pane: PaneData, width: f32, height: f32) -> PaneData {
+    if pane.kind.as_str() != "Console" {
+        return pane;
+    }
+
+    let size = UiSize::new(width.max(0.0), height.max(0.0));
+    pane.console.nodes = console_pane_nodes(size);
+    pane
+}
+
+fn pane_with_assets_activity_projection(mut pane: PaneData, width: f32, height: f32) -> PaneData {
+    if pane.kind.as_str() != "Assets" {
+        return pane;
+    }
+
+    let size = UiSize::new(width.max(0.0), height.max(0.0));
+    pane.assets_activity = assets_activity_pane_data(size);
+    pane
+}
+
+fn pane_with_asset_browser_projection(mut pane: PaneData, width: f32, height: f32) -> PaneData {
+    if pane.kind.as_str() != "AssetBrowser" {
+        return pane;
+    }
+
+    let size = UiSize::new(width.max(0.0), height.max(0.0));
+    pane.asset_browser.nodes = asset_browser_pane_nodes(size);
+    pane
+}
+
+fn pane_with_project_overview_projection(
+    mut pane: PaneData,
+    width: f32,
+    height: f32,
+    project_overview: &crate::ui::workbench::snapshot::ProjectOverviewSnapshot,
+) -> PaneData {
+    if pane.kind.as_str() != "Project" {
+        return pane;
+    }
+
+    let size = UiSize::new(width.max(0.0), height.max(0.0));
+    pane.project_overview = project_overview_pane_data(project_overview, size);
+    pane
+}
+
+fn pane_with_animation_projection(mut pane: PaneData, width: f32, height: f32) -> PaneData {
+    if pane.kind.as_str() != "AnimationSequenceEditor"
+        && pane.kind.as_str() != "AnimationGraphEditor"
+    {
+        return pane;
+    }
+
+    let size = UiSize::new(width.max(0.0), height.max(0.0));
+    pane.animation.nodes = animation_editor_pane_nodes(size);
+    pane
+}
+
+fn floating_windows_with_pane_shell_layouts(
+    floating_windows: &slint::ModelRc<FloatingWindowData>,
+    header_height_px: f32,
+    project_overview: &crate::ui::workbench::snapshot::ProjectOverviewSnapshot,
+) -> slint::ModelRc<FloatingWindowData> {
+    model_rc(
+        (0..floating_windows.row_count())
+            .filter_map(|row| floating_windows.row_data(row))
+            .map(|mut window| {
+                let content_height = (window.frame.height - header_height_px).max(0.0);
+                window.active_pane = pane_with_host_owned_shell_layouts(
+                    window.active_pane.clone(),
+                    window.frame.width,
+                    content_height,
+                    project_overview,
+                );
+                window
+            })
+            .collect(),
+    )
 }

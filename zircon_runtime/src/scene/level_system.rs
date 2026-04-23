@@ -1,9 +1,15 @@
 //! Runtime level instance wrapping one ECS world plus lifecycle metadata.
 
+use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
 
+use crate::core::framework::animation::AnimationPoseOutput;
+use crate::core::framework::physics::{PhysicsContactEvent, PhysicsWorldStepPlan};
 use crate::core::framework::scene::WorldHandle;
+use crate::core::math::Real;
+use crate::core::{CoreError, CoreHandle};
 use crate::scene::world::World;
+use crate::scene::{EntityId, WorldDriver, WORLD_DRIVER_NAME};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum LevelLifecycleState {
@@ -22,9 +28,19 @@ pub struct LevelMetadata {
 pub struct LevelSystem {
     handle: WorldHandle,
     inner: Arc<Mutex<World>>,
+    runtime_state: Arc<Mutex<WorldRuntimeState>>,
     metadata: Arc<Mutex<LevelMetadata>>,
     lifecycle: Arc<Mutex<LevelLifecycleState>>,
     subsystems: Arc<Mutex<Vec<String>>>,
+}
+
+#[derive(Clone, Debug, Default)]
+struct WorldRuntimeState {
+    physics_step_plan: Option<PhysicsWorldStepPlan>,
+    physics_contacts: Vec<PhysicsContactEvent>,
+    animation_poses: BTreeMap<EntityId, AnimationPoseOutput>,
+    animation_graph_times: BTreeMap<EntityId, Real>,
+    animation_state_machine_times: BTreeMap<EntityId, Real>,
 }
 
 impl LevelSystem {
@@ -36,6 +52,7 @@ impl LevelSystem {
         Self {
             handle,
             inner,
+            runtime_state: Arc::new(Mutex::new(WorldRuntimeState::default())),
             metadata: Arc::new(Mutex::new(metadata)),
             lifecycle: Arc::new(Mutex::new(LevelLifecycleState::Loaded)),
             subsystems: Arc::new(Mutex::new(Vec::new())),
@@ -66,6 +83,69 @@ impl LevelSystem {
     pub fn with_world_mut<R>(&self, write: impl FnOnce(&mut World) -> R) -> R {
         let mut world = self.inner.lock().unwrap();
         write(&mut world)
+    }
+
+    pub fn tick(&self, core: &CoreHandle, delta_seconds: Real) -> Result<(), CoreError> {
+        let driver = core.resolve_driver::<WorldDriver>(WORLD_DRIVER_NAME)?;
+        driver.tick_level(core, self, delta_seconds)
+    }
+
+    pub fn last_physics_step_plan(&self) -> Option<PhysicsWorldStepPlan> {
+        self.runtime_state.lock().unwrap().physics_step_plan
+    }
+
+    pub fn physics_contacts(&self) -> Vec<PhysicsContactEvent> {
+        self.runtime_state.lock().unwrap().physics_contacts.clone()
+    }
+
+    pub fn animation_pose(&self, entity: EntityId) -> Option<AnimationPoseOutput> {
+        self.runtime_state
+            .lock()
+            .unwrap()
+            .animation_poses
+            .get(&entity)
+            .cloned()
+    }
+
+    pub(crate) fn animation_poses(&self) -> BTreeMap<EntityId, AnimationPoseOutput> {
+        self.runtime_state.lock().unwrap().animation_poses.clone()
+    }
+
+    pub(crate) fn animation_playback_times(
+        &self,
+    ) -> (BTreeMap<EntityId, Real>, BTreeMap<EntityId, Real>) {
+        let runtime_state = self.runtime_state.lock().unwrap();
+        (
+            runtime_state.animation_graph_times.clone(),
+            runtime_state.animation_state_machine_times.clone(),
+        )
+    }
+
+    pub(crate) fn record_physics_tick(
+        &self,
+        step_plan: PhysicsWorldStepPlan,
+        contacts: Vec<PhysicsContactEvent>,
+    ) {
+        let mut runtime_state = self.runtime_state.lock().unwrap();
+        runtime_state.physics_step_plan = Some(step_plan);
+        runtime_state.physics_contacts = contacts;
+    }
+
+    pub(crate) fn record_animation_poses(
+        &self,
+        animation_poses: BTreeMap<EntityId, AnimationPoseOutput>,
+    ) {
+        self.runtime_state.lock().unwrap().animation_poses = animation_poses;
+    }
+
+    pub(crate) fn record_animation_playback_times(
+        &self,
+        animation_graph_times: BTreeMap<EntityId, Real>,
+        animation_state_machine_times: BTreeMap<EntityId, Real>,
+    ) {
+        let mut runtime_state = self.runtime_state.lock().unwrap();
+        runtime_state.animation_graph_times = animation_graph_times;
+        runtime_state.animation_state_machine_times = animation_state_machine_times;
     }
 
     pub fn metadata(&self) -> LevelMetadata {
