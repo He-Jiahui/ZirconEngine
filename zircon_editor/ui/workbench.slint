@@ -1,14 +1,14 @@
-import { WorkbenchHostContext } from "workbench/host_context.slint";
-import { WorkbenchHostScaffold } from "workbench/host_scaffold.slint";
+import { UiHostContext } from "workbench/host_context.slint";
+import { UiHostScaffold } from "workbench/host_scaffold.slint";
 import { HostWindowBootstrapData } from "workbench/host_components.slint";
 import { HostWindowPresentationData } from "workbench/host_root.slint";
 
-export { WorkbenchHostContext } from "workbench/host_context.slint";
+export { UiHostContext } from "workbench/host_context.slint";
 export { PaneSurfaceHostContext } from "workbench/pane_surface_host_context.slint";
 export { FrameRect, FloatingWindowData, HostWindowBootstrapData, HostWindowLayoutData, HostWindowShellData, HostWindowSurfaceData, HostNativeFloatingWindowSurfaceData } from "workbench/host_components.slint";
 export { HostWindowPresentationData } from "workbench/host_root.slint";
 export { PaneData, ProjectOverviewData, SceneNodeData } from "workbench/pane_data.slint";
-export { HostWorkbenchWindowSceneData } from "workbench/host_scene.slint";
+export { HostWindowSceneData } from "workbench/host_scene.slint";
 
 export component UiHostWindow inherits Window {
     in property <HostWindowPresentationData> host_presentation;
@@ -25,7 +25,7 @@ export component UiHostWindow inherits Window {
     background: #1f232a;
     default-font-family: "JetBrains Sans, Segoe UI, Microsoft YaHei UI, Noto Sans";
 
-    host := WorkbenchHostScaffold {
+    host := UiHostScaffold {
         width: root.width;
         height: root.height;
         host_presentation: root.host_presentation;

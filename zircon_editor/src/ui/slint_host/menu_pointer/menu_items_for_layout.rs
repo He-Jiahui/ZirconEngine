@@ -1,8 +1,8 @@
+use super::host_menu_pointer_layout::HostMenuPointerLayout;
 use super::menu_item_spec::MenuItemSpec;
-use super::workbench_menu_pointer_layout::WorkbenchMenuPointerLayout;
 
 pub(in crate::ui::slint_host::menu_pointer) fn menu_items_for_layout(
-    layout: &WorkbenchMenuPointerLayout,
+    layout: &HostMenuPointerLayout,
     menu_index: usize,
 ) -> Vec<MenuItemSpec> {
     match menu_index {

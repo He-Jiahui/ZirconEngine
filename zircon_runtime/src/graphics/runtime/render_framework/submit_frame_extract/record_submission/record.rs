@@ -20,6 +20,7 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn reco
     frame: ViewportFrame,
     hybrid_gi_gpu_completion: Option<HybridGiGpuCompletion>,
     virtual_geometry_gpu_completion: Option<VirtualGeometryGpuCompletion>,
+    node_and_cluster_cull_page_requests: Vec<u32>,
 ) -> SubmissionRecordUpdate {
     let mut prepared = prepared;
     let (previous_handle, history_handle) =
@@ -31,6 +32,7 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn reco
         context,
         &mut prepared,
         virtual_geometry_gpu_completion.as_ref(),
+        &node_and_cluster_cull_page_requests,
     );
 
     record.hybrid_gi_runtime = prepared.hybrid_gi_runtime;

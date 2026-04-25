@@ -1,14 +1,13 @@
 use crate::asset::assets::{
     AnimationChannelAsset, AnimationChannelKeyAsset, AnimationChannelValueAsset,
-    AnimationClipAsset, AnimationClipBoneTrackAsset, AnimationGraphAsset, AnimationGraphNodeAsset,
-    AnimationGraphParameterAsset, AnimationInterpolationAsset, AnimationSequenceAsset,
-    AnimationSequenceBindingAsset, AnimationSequenceTrackAsset, AnimationSkeletonAsset,
-    AnimationSkeletonBoneAsset, AnimationStateAsset, AnimationStateMachineAsset,
+    AnimationGraphAsset, AnimationGraphNodeAsset, AnimationGraphParameterAsset,
+    AnimationInterpolationAsset, AnimationSequenceAsset, AnimationSequenceBindingAsset,
+    AnimationSequenceTrackAsset, AnimationStateAsset, AnimationStateMachineAsset,
     AnimationStateTransitionAsset, AnimationTransitionConditionAsset,
 };
 use crate::asset::{AnimationConditionOperatorAsset, AssetReference, AssetUri};
 use crate::core::framework::animation::{
-    AnimationManager, AnimationParameterValue, AnimationPlaybackSettings, AnimationPoseSource,
+    AnimationManager, AnimationParameterValue, AnimationPlaybackSettings,
 };
 use crate::core::framework::scene::{ComponentPropertyPath, EntityPath};
 use crate::core::manager::{resolve_animation_manager, resolve_config_manager};
@@ -19,6 +18,8 @@ use crate::foundation::FOUNDATION_MODULE_NAME;
 use crate::scene::components::{AnimationPlayerComponent, NodeKind};
 use crate::scene::world::World;
 use std::collections::BTreeMap;
+
+mod clip_pose_guards;
 
 #[test]
 fn animation_root_stays_structural_after_module_split() {
@@ -133,6 +134,195 @@ fn apply_sequence_to_world_resolves_track_paths_and_updates_scene_properties() {
 }
 
 #[test]
+fn apply_sequence_to_world_clamps_non_finite_timing_to_start() {
+    let mut world = World::new();
+    let hero = world.spawn_node(NodeKind::Mesh);
+    world.rename_node(hero, "Hero").unwrap();
+
+    let mut sequence = AnimationSequenceAsset {
+        name: Some("Locomotion".to_string()),
+        duration_seconds: f32::NAN,
+        frames_per_second: 30.0,
+        bindings: vec![AnimationSequenceBindingAsset {
+            entity_path: EntityPath::parse("Hero").unwrap(),
+            tracks: vec![AnimationSequenceTrackAsset {
+                property_path: ComponentPropertyPath::parse("Transform.translation").unwrap(),
+                channel: AnimationChannelAsset {
+                    interpolation: AnimationInterpolationAsset::Hermite,
+                    keys: vec![
+                        AnimationChannelKeyAsset {
+                            time_seconds: 0.0,
+                            value: AnimationChannelValueAsset::Vec3([0.0, 1.0, 0.0]),
+                            in_tangent: Some(AnimationChannelValueAsset::Vec3([0.0, 0.0, 0.0])),
+                            out_tangent: Some(AnimationChannelValueAsset::Vec3([0.0, 0.0, 0.0])),
+                        },
+                        AnimationChannelKeyAsset {
+                            time_seconds: 1.0,
+                            value: AnimationChannelValueAsset::Vec3([0.0, 2.0, 0.0]),
+                            in_tangent: Some(AnimationChannelValueAsset::Vec3([0.0, 0.0, 0.0])),
+                            out_tangent: Some(AnimationChannelValueAsset::Vec3([0.0, 0.0, 0.0])),
+                        },
+                    ],
+                },
+            }],
+        }],
+    };
+
+    super::apply_sequence_to_world(&mut world, &sequence, 0.75, true).unwrap();
+    assert_eq!(
+        world.find_node(hero).unwrap().transform.translation,
+        Vec3::new(0.0, 1.0, 0.0)
+    );
+
+    sequence.duration_seconds = 1.0;
+
+    super::apply_sequence_to_world(&mut world, &sequence, f32::INFINITY, true).unwrap();
+    assert_eq!(
+        world.find_node(hero).unwrap().transform.translation,
+        Vec3::new(0.0, 1.0, 0.0)
+    );
+}
+
+#[test]
+fn apply_sequence_to_world_rejects_non_finite_channel_values() {
+    let mut world = World::new();
+    let hero = world.spawn_node(NodeKind::Mesh);
+    world.rename_node(hero, "Hero").unwrap();
+
+    let sequence = AnimationSequenceAsset {
+        name: Some("BadLocomotion".to_string()),
+        duration_seconds: 1.0,
+        frames_per_second: 30.0,
+        bindings: vec![AnimationSequenceBindingAsset {
+            entity_path: EntityPath::parse("Hero").unwrap(),
+            tracks: vec![AnimationSequenceTrackAsset {
+                property_path: ComponentPropertyPath::parse("Transform.translation").unwrap(),
+                channel: AnimationChannelAsset {
+                    interpolation: AnimationInterpolationAsset::Hermite,
+                    keys: vec![
+                        AnimationChannelKeyAsset {
+                            time_seconds: 0.0,
+                            value: AnimationChannelValueAsset::Vec3([0.0, f32::NAN, 0.0]),
+                            in_tangent: Some(AnimationChannelValueAsset::Vec3([0.0, 0.0, 0.0])),
+                            out_tangent: Some(AnimationChannelValueAsset::Vec3([0.0, 0.0, 0.0])),
+                        },
+                        AnimationChannelKeyAsset {
+                            time_seconds: 1.0,
+                            value: AnimationChannelValueAsset::Vec3([0.0, 2.0, 0.0]),
+                            in_tangent: Some(AnimationChannelValueAsset::Vec3([0.0, 0.0, 0.0])),
+                            out_tangent: Some(AnimationChannelValueAsset::Vec3([0.0, 0.0, 0.0])),
+                        },
+                    ],
+                },
+            }],
+        }],
+    };
+
+    match super::apply_sequence_to_world(&mut world, &sequence, 0.0, true) {
+        Ok(report) => {
+            panic!("expected non-finite sequence channel value to be rejected, got {report:?}")
+        }
+        Err(error) => assert!(error.contains("non-finite"), "{error}"),
+    }
+    assert_eq!(
+        world.find_node(hero).unwrap().transform.translation,
+        Vec3::ZERO
+    );
+}
+
+#[test]
+fn apply_sequence_to_world_skips_channel_with_non_finite_key_times() {
+    let mut world = World::new();
+    let hero = world.spawn_node(NodeKind::Mesh);
+    world.rename_node(hero, "Hero").unwrap();
+
+    let sequence = AnimationSequenceAsset {
+        name: Some("BadLocomotion".to_string()),
+        duration_seconds: 1.0,
+        frames_per_second: 30.0,
+        bindings: vec![AnimationSequenceBindingAsset {
+            entity_path: EntityPath::parse("Hero").unwrap(),
+            tracks: vec![AnimationSequenceTrackAsset {
+                property_path: ComponentPropertyPath::parse("Transform.translation").unwrap(),
+                channel: AnimationChannelAsset {
+                    interpolation: AnimationInterpolationAsset::Step,
+                    keys: vec![
+                        AnimationChannelKeyAsset {
+                            time_seconds: f32::NAN,
+                            value: AnimationChannelValueAsset::Vec3([0.0, 9.0, 0.0]),
+                            in_tangent: None,
+                            out_tangent: None,
+                        },
+                        AnimationChannelKeyAsset {
+                            time_seconds: 1.0,
+                            value: AnimationChannelValueAsset::Vec3([0.0, 2.0, 0.0]),
+                            in_tangent: None,
+                            out_tangent: None,
+                        },
+                    ],
+                },
+            }],
+        }],
+    };
+
+    let report = super::apply_sequence_to_world(&mut world, &sequence, 0.5, true).unwrap();
+
+    assert!(report.applied_tracks.is_empty());
+    assert_eq!(report.missing_tracks.len(), 1);
+    assert_eq!(
+        world.find_node(hero).unwrap().transform.translation,
+        Vec3::ZERO
+    );
+}
+
+#[test]
+fn apply_sequence_to_world_rejects_zero_length_quaternion_channel_values() {
+    let mut world = World::new();
+    let hero = world.spawn_node(NodeKind::Mesh);
+    world.rename_node(hero, "Hero").unwrap();
+
+    let sequence = AnimationSequenceAsset {
+        name: Some("BadRotation".to_string()),
+        duration_seconds: 1.0,
+        frames_per_second: 30.0,
+        bindings: vec![AnimationSequenceBindingAsset {
+            entity_path: EntityPath::parse("Hero").unwrap(),
+            tracks: vec![AnimationSequenceTrackAsset {
+                property_path: ComponentPropertyPath::parse("Transform.rotation").unwrap(),
+                channel: AnimationChannelAsset {
+                    interpolation: AnimationInterpolationAsset::Hermite,
+                    keys: vec![
+                        AnimationChannelKeyAsset {
+                            time_seconds: 0.0,
+                            value: AnimationChannelValueAsset::Quaternion([0.0, 0.0, 0.0, 0.0]),
+                            in_tangent: None,
+                            out_tangent: None,
+                        },
+                        AnimationChannelKeyAsset {
+                            time_seconds: 1.0,
+                            value: AnimationChannelValueAsset::Quaternion([0.0, 0.0, 0.0, 0.0]),
+                            in_tangent: None,
+                            out_tangent: None,
+                        },
+                    ],
+                },
+            }],
+        }],
+    };
+
+    match super::apply_sequence_to_world(&mut world, &sequence, 0.0, true) {
+        Ok(report) => {
+            panic!("expected zero-length sequence quaternion to be rejected, got {report:?}")
+        }
+        Err(error) => assert!(error.contains("zero-length"), "{error}"),
+    }
+    assert_eq!(
+        world.find_node(hero).unwrap().transform.rotation,
+        Quat::IDENTITY
+    );
+}
+
+#[test]
 fn animation_manager_persists_playback_settings_to_runtime_config() {
     let runtime = CoreRuntime::new();
     runtime
@@ -224,6 +414,109 @@ fn animation_manager_evaluates_graphs_and_parameter_overrides() {
 }
 
 #[test]
+fn animation_manager_evaluates_graph_blend_with_non_finite_weight_as_default() {
+    let manager = super::DefaultAnimationManager::default();
+    let graph = AnimationGraphAsset {
+        name: Some("HeroGraph".to_string()),
+        parameters: vec![AnimationGraphParameterAsset {
+            name: "blend".to_string(),
+            default_value: AnimationParameterValue::Scalar(0.0),
+        }],
+        nodes: vec![
+            AnimationGraphNodeAsset::Clip {
+                id: "idle".to_string(),
+                clip: asset_reference("res://animation/hero_idle.clip.zranim"),
+                playback_speed: 1.0,
+                looping: true,
+            },
+            AnimationGraphNodeAsset::Clip {
+                id: "run".to_string(),
+                clip: asset_reference("res://animation/hero_run.clip.zranim"),
+                playback_speed: 1.0,
+                looping: true,
+            },
+            AnimationGraphNodeAsset::Blend {
+                id: "blend_node".to_string(),
+                inputs: vec!["idle".to_string(), "run".to_string()],
+                weight_parameter: Some("blend".to_string()),
+            },
+            AnimationGraphNodeAsset::Output {
+                source: "blend_node".to_string(),
+            },
+        ],
+    };
+
+    let evaluation = manager.evaluate_graph(
+        &graph,
+        &BTreeMap::from([(
+            "blend".to_string(),
+            AnimationParameterValue::Scalar(f32::NAN),
+        )]),
+    );
+
+    assert_eq!(evaluation.clips.len(), 2);
+    assert!(evaluation.clips.iter().all(|clip| clip.weight.is_finite()));
+    assert_eq!(evaluation.clips[0].weight, 1.0);
+    assert_eq!(evaluation.clips[1].weight, 0.0);
+}
+
+#[test]
+fn animation_manager_rejects_non_finite_parameter_set() {
+    let manager = super::DefaultAnimationManager::default();
+    let mut parameters =
+        BTreeMap::from([("speed".to_string(), AnimationParameterValue::Scalar(0.5))]);
+
+    manager.set_parameter(
+        &mut parameters,
+        "speed",
+        AnimationParameterValue::Scalar(f32::NAN),
+    );
+    manager.set_parameter(
+        &mut parameters,
+        "blend",
+        AnimationParameterValue::Scalar(f32::INFINITY),
+    );
+
+    assert_eq!(
+        manager.parameter_value(&parameters, "speed"),
+        Some(AnimationParameterValue::Scalar(0.5))
+    );
+    assert_eq!(manager.parameter_value(&parameters, "blend"), None);
+}
+
+#[test]
+fn animation_manager_rejects_non_finite_parameter_defaults() {
+    let manager = super::DefaultAnimationManager::default();
+    let graph = AnimationGraphAsset {
+        name: Some("MalformedGraph".to_string()),
+        parameters: vec![
+            AnimationGraphParameterAsset {
+                name: "speed".to_string(),
+                default_value: AnimationParameterValue::Scalar(f32::NAN),
+            },
+            AnimationGraphParameterAsset {
+                name: "direction".to_string(),
+                default_value: AnimationParameterValue::Vec3([0.0, f32::INFINITY, 1.0]),
+            },
+            AnimationGraphParameterAsset {
+                name: "grounded".to_string(),
+                default_value: AnimationParameterValue::Bool(true),
+            },
+        ],
+        nodes: Vec::new(),
+    };
+
+    let parameters = manager.parameter_defaults(&graph);
+
+    assert_eq!(manager.parameter_value(&parameters, "speed"), None);
+    assert_eq!(manager.parameter_value(&parameters, "direction"), None);
+    assert_eq!(
+        manager.parameter_value(&parameters, "grounded"),
+        Some(AnimationParameterValue::Bool(true))
+    );
+}
+
+#[test]
 fn animation_manager_resolves_state_machine_transitions_from_parameters() {
     let manager = super::DefaultAnimationManager::default();
     let state_machine = AnimationStateMachineAsset {
@@ -270,58 +563,126 @@ fn animation_manager_resolves_state_machine_transitions_from_parameters() {
 }
 
 #[test]
-fn animation_manager_samples_clip_pose_against_skeleton() {
+fn animation_manager_falls_back_to_entry_state_when_current_state_is_stale() {
     let manager = super::DefaultAnimationManager::default();
-    let skeleton = AnimationSkeletonAsset {
-        name: Some("HeroSkeleton".to_string()),
-        bones: vec![
-            AnimationSkeletonBoneAsset {
-                name: "Root".to_string(),
-                parent_index: None,
-                local_translation: [0.0, 0.0, 0.0],
-                local_rotation: Quat::IDENTITY.to_array(),
-                local_scale: [1.0, 1.0, 1.0],
+    let state_machine = AnimationStateMachineAsset {
+        name: Some("HeroStateMachine".to_string()),
+        entry_state: "Idle".to_string(),
+        states: vec![
+            AnimationStateAsset {
+                name: "Idle".to_string(),
+                graph: asset_reference("res://animation/idle.graph.zranim"),
             },
-            AnimationSkeletonBoneAsset {
-                name: "Hand".to_string(),
-                parent_index: Some(0),
-                local_translation: [0.0, 1.0, 0.0],
-                local_rotation: Quat::IDENTITY.to_array(),
-                local_scale: [1.0, 1.0, 1.0],
+            AnimationStateAsset {
+                name: "Jump".to_string(),
+                graph: asset_reference("res://animation/jump.graph.zranim"),
             },
         ],
+        transitions: Vec::new(),
     };
-    let clip = AnimationClipAsset {
-        name: Some("Wave".to_string()),
-        skeleton: asset_reference("res://animation/hero.skeleton.zranim"),
-        duration_seconds: 1.0,
-        tracks: vec![AnimationClipBoneTrackAsset {
-            bone_name: "Hand".to_string(),
-            translation: vec3_channel([(0.0, [0.0, 1.0, 0.0]), (1.0, [0.0, 2.0, 0.0])]),
-            rotation: quaternion_channel([
-                (0.0, Quat::IDENTITY.to_array()),
-                (
-                    1.0,
-                    Quat::from_rotation_y(std::f32::consts::FRAC_PI_2).to_array(),
-                ),
-            ]),
-            scale: vec3_channel([(0.0, [1.0, 1.0, 1.0]), (1.0, [2.0, 2.0, 2.0])]),
+
+    let evaluation =
+        manager.evaluate_state_machine(&state_machine, Some("RemovedState"), &BTreeMap::new());
+
+    assert_eq!(evaluation.active_state.as_deref(), Some("Idle"));
+    assert!(!evaluation.transitioned);
+    assert_eq!(
+        evaluation
+            .graph
+            .as_ref()
+            .map(|graph| graph.locator.to_string())
+            .as_deref(),
+        Some("res://animation/idle.graph.zranim")
+    );
+}
+
+#[test]
+fn animation_manager_ignores_transition_when_target_state_is_missing() {
+    let manager = super::DefaultAnimationManager::default();
+    let state_machine = AnimationStateMachineAsset {
+        name: Some("HeroStateMachine".to_string()),
+        entry_state: "Idle".to_string(),
+        states: vec![AnimationStateAsset {
+            name: "Idle".to_string(),
+            graph: asset_reference("res://animation/idle.graph.zranim"),
+        }],
+        transitions: vec![AnimationStateTransitionAsset {
+            from_state: "Idle".to_string(),
+            to_state: "RemovedState".to_string(),
+            duration_seconds: 0.1,
+            conditions: vec![AnimationTransitionConditionAsset {
+                parameter: "jump".to_string(),
+                operator: AnimationConditionOperatorAsset::Triggered,
+                value: None,
+            }],
         }],
     };
 
-    let pose = manager
-        .sample_clip_pose(&skeleton, &clip, 0.5, true)
-        .unwrap();
+    let evaluation = manager.evaluate_state_machine(
+        &state_machine,
+        Some("Idle"),
+        &BTreeMap::from([("jump".to_string(), AnimationParameterValue::Trigger)]),
+    );
 
-    assert_eq!(pose.source, AnimationPoseSource::Clip);
-    assert_eq!(pose.bones.len(), 2);
-    let hand = pose
-        .bones
-        .iter()
-        .find(|bone| bone.name == "Hand")
-        .expect("missing hand pose");
-    assert_eq!(hand.local_transform.translation, Vec3::new(0.0, 1.5, 0.0));
-    assert_eq!(hand.local_transform.scale, Vec3::splat(1.5));
+    assert_eq!(evaluation.active_state.as_deref(), Some("Idle"));
+    assert!(!evaluation.transitioned);
+    assert_eq!(
+        evaluation
+            .graph
+            .as_ref()
+            .map(|graph| graph.locator.to_string())
+            .as_deref(),
+        Some("res://animation/idle.graph.zranim")
+    );
+}
+
+#[test]
+fn animation_manager_ignores_state_machine_transition_with_non_finite_parameter() {
+    let manager = super::DefaultAnimationManager::default();
+    let state_machine = AnimationStateMachineAsset {
+        name: Some("HeroStateMachine".to_string()),
+        entry_state: "Idle".to_string(),
+        states: vec![
+            AnimationStateAsset {
+                name: "Idle".to_string(),
+                graph: asset_reference("res://animation/idle.graph.zranim"),
+            },
+            AnimationStateAsset {
+                name: "Run".to_string(),
+                graph: asset_reference("res://animation/run.graph.zranim"),
+            },
+        ],
+        transitions: vec![AnimationStateTransitionAsset {
+            from_state: "Idle".to_string(),
+            to_state: "Run".to_string(),
+            duration_seconds: 0.1,
+            conditions: vec![AnimationTransitionConditionAsset {
+                parameter: "speed".to_string(),
+                operator: AnimationConditionOperatorAsset::NotEqual,
+                value: Some(AnimationParameterValue::Scalar(0.0)),
+            }],
+        }],
+    };
+
+    let evaluation = manager.evaluate_state_machine(
+        &state_machine,
+        Some("Idle"),
+        &BTreeMap::from([(
+            "speed".to_string(),
+            AnimationParameterValue::Scalar(f32::NAN),
+        )]),
+    );
+
+    assert_eq!(evaluation.active_state.as_deref(), Some("Idle"));
+    assert!(!evaluation.transitioned);
+    assert_eq!(
+        evaluation
+            .graph
+            .as_ref()
+            .map(|graph| graph.locator.to_string())
+            .as_deref(),
+        Some("res://animation/idle.graph.zranim")
+    );
 }
 
 fn asset_reference(locator: &str) -> AssetReference {

@@ -15,6 +15,9 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
             RenderPassStage::PostProcess,
             "baked-lighting-composite",
             QueueLane::Graphics,
-        )],
+        )
+        .with_executor_id("lighting.baked-composite")
+        .read_texture("scene-color")
+        .write_texture("scene-color")],
     )
 }

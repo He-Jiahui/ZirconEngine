@@ -3,11 +3,11 @@ use crate::core::editor_event::{
 };
 use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
 use crate::ui::slint_host::activity_rail_pointer::{
-    build_workbench_activity_rail_pointer_layout, WorkbenchActivityRailPointerBridge,
-    WorkbenchActivityRailPointerRoute, WorkbenchActivityRailPointerSide,
+    build_host_activity_rail_pointer_layout, HostActivityRailPointerBridge,
+    HostActivityRailPointerRoute, HostActivityRailPointerSide,
 };
 use crate::ui::slint_host::callback_dispatch::{
-    dispatch_shared_activity_rail_pointer_click, BuiltinWorkbenchTemplateBridge,
+    dispatch_shared_activity_rail_pointer_click, BuiltinHostWindowTemplateBridge,
 };
 use crate::ui::workbench::autolayout::{
     compute_workbench_shell_geometry, ShellSizePx, WorkbenchChromeMetrics,
@@ -20,7 +20,7 @@ fn shared_activity_rail_pointer_click_dispatches_project_toggle_through_runtime_
     let _guard = env_lock().lock().unwrap();
 
     let harness = EventRuntimeHarness::new("zircon_slint_activity_rail_pointer_project_toggle");
-    let template_bridge = BuiltinWorkbenchTemplateBridge::new(UiSize::new(1280.0, 720.0))
+    let template_bridge = BuiltinHostWindowTemplateBridge::new(UiSize::new(1280.0, 720.0))
         .expect("builtin workbench template bridge should build");
     let chrome = harness.runtime.chrome_snapshot();
     let model = WorkbenchViewModel::build(&chrome);
@@ -33,8 +33,8 @@ fn shared_activity_rail_pointer_click_dispatches_project_toggle_through_runtime_
         &WorkbenchChromeMetrics::default(),
         None,
     );
-    let mut pointer_bridge = WorkbenchActivityRailPointerBridge::new();
-    pointer_bridge.sync(build_workbench_activity_rail_pointer_layout(
+    let mut pointer_bridge = HostActivityRailPointerBridge::new();
+    pointer_bridge.sync(build_host_activity_rail_pointer_layout(
         &model,
         &geometry,
         &WorkbenchChromeMetrics::default(),
@@ -45,15 +45,15 @@ fn shared_activity_rail_pointer_click_dispatches_project_toggle_through_runtime_
         &harness.runtime,
         &template_bridge,
         &mut pointer_bridge,
-        WorkbenchActivityRailPointerSide::Left,
+        HostActivityRailPointerSide::Left,
         UiPoint::new(15.0, 20.0),
     )
     .expect("shared activity rail route should dispatch project drawer toggle");
 
     assert_eq!(
         dispatched.pointer.route,
-        Some(WorkbenchActivityRailPointerRoute::Button {
-            side: WorkbenchActivityRailPointerSide::Left,
+        Some(HostActivityRailPointerRoute::Button {
+            side: HostActivityRailPointerSide::Left,
             item_index: 0,
             slot: "left_top".to_string(),
             instance_id: "editor.project#1".to_string(),

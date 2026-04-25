@@ -1,15 +1,32 @@
 use std::sync::Arc;
 
 use crate::core::framework::render::{
-    ProjectionMode, RenderVirtualGeometryCullInputSnapshot,
+    RenderVirtualGeometryCullInputSnapshot,
     RenderVirtualGeometryNodeAndClusterCullDispatchSetupSnapshot,
     RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot,
     RenderVirtualGeometryNodeAndClusterCullInstanceSeed,
+    RenderVirtualGeometryNodeAndClusterCullInstanceWorkItem,
+    RenderVirtualGeometryNodeAndClusterCullLaunchWorklistSnapshot,
     RenderVirtualGeometryNodeAndClusterCullSource,
 };
-use crate::core::math::{view_matrix, Mat4, Real};
-use crate::graphics::types::ViewportRenderFrame;
+use crate::graphics::scene::scene_renderer::virtual_geometry::VirtualGeometryGpuResources;
+use crate::graphics::types::{
+    ViewportRenderFrame, VirtualGeometryNodeAndClusterCullChildWorkItem,
+    VirtualGeometryNodeAndClusterCullClusterWorkItem,
+    VirtualGeometryNodeAndClusterCullTraversalRecord,
+};
 use wgpu::util::DeviceExt;
+
+mod buffers;
+mod child_decision;
+mod child_worklist;
+mod startup_worklist;
+mod traversal;
+
+#[cfg(test)]
+use startup_worklist::build_node_and_cluster_cull_global_state;
+
+const NODE_AND_CLUSTER_CULL_COMPAT_TRAVERSAL_WAVE_LIMIT: usize = 8;
 
 pub(super) struct VirtualGeometryNodeAndClusterCullPassOutput {
     pub(super) source: RenderVirtualGeometryNodeAndClusterCullSource,
@@ -17,19 +34,40 @@ pub(super) struct VirtualGeometryNodeAndClusterCullPassOutput {
     pub(super) global_state: Option<RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot>,
     pub(super) buffer: Option<Arc<wgpu::Buffer>>,
     pub(super) dispatch_setup: Option<RenderVirtualGeometryNodeAndClusterCullDispatchSetupSnapshot>,
+    pub(super) launch_worklist:
+        Option<RenderVirtualGeometryNodeAndClusterCullLaunchWorklistSnapshot>,
     pub(super) dispatch_setup_buffer: Option<Arc<wgpu::Buffer>>,
+    pub(super) launch_worklist_buffer: Option<Arc<wgpu::Buffer>>,
     pub(super) instance_seed_count: u32,
     pub(super) instance_seeds: Vec<RenderVirtualGeometryNodeAndClusterCullInstanceSeed>,
     pub(super) instance_seed_buffer: Option<Arc<wgpu::Buffer>>,
+    pub(super) instance_work_item_count: u32,
+    pub(super) instance_work_items: Vec<RenderVirtualGeometryNodeAndClusterCullInstanceWorkItem>,
+    pub(super) instance_work_item_buffer: Option<Arc<wgpu::Buffer>>,
+    pub(super) cluster_work_item_count: u32,
+    pub(super) cluster_work_items: Vec<VirtualGeometryNodeAndClusterCullClusterWorkItem>,
+    pub(super) cluster_work_item_buffer: Option<Arc<wgpu::Buffer>>,
+    pub(super) hierarchy_child_ids: Vec<u32>,
+    pub(super) hierarchy_child_id_buffer: Option<Arc<wgpu::Buffer>>,
+    pub(super) child_work_item_count: u32,
+    pub(super) child_work_items: Vec<VirtualGeometryNodeAndClusterCullChildWorkItem>,
+    pub(super) child_work_item_buffer: Option<Arc<wgpu::Buffer>>,
+    pub(super) traversal_record_count: u32,
+    pub(super) traversal_records: Vec<VirtualGeometryNodeAndClusterCullTraversalRecord>,
+    pub(super) traversal_record_buffer: Option<Arc<wgpu::Buffer>>,
+    pub(super) page_request_count: u32,
+    pub(super) page_request_ids: Vec<u32>,
+    pub(super) page_request_buffer: Option<Arc<wgpu::Buffer>>,
 }
-
-const NODE_AND_CLUSTER_CULL_DISPATCH_WORKGROUP_SIZE: u32 = 64;
 
 pub(super) fn execute_virtual_geometry_node_and_cluster_cull_pass(
     device: &wgpu::Device,
+    encoder: &mut wgpu::CommandEncoder,
+    virtual_geometry_gpu_resources: &VirtualGeometryGpuResources,
     pass_enabled: bool,
     frame: &ViewportRenderFrame,
     cull_input: Option<&RenderVirtualGeometryCullInputSnapshot>,
+    previous_global_state: Option<&RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot>,
 ) -> VirtualGeometryNodeAndClusterCullPassOutput {
     if !pass_enabled {
         return VirtualGeometryNodeAndClusterCullPassOutput {
@@ -38,10 +76,29 @@ pub(super) fn execute_virtual_geometry_node_and_cluster_cull_pass(
             global_state: None,
             buffer: None,
             dispatch_setup: None,
+            launch_worklist: None,
             dispatch_setup_buffer: None,
+            launch_worklist_buffer: None,
             instance_seed_count: 0,
             instance_seeds: Vec::new(),
             instance_seed_buffer: None,
+            instance_work_item_count: 0,
+            instance_work_items: Vec::new(),
+            instance_work_item_buffer: None,
+            cluster_work_item_count: 0,
+            cluster_work_items: Vec::new(),
+            cluster_work_item_buffer: None,
+            hierarchy_child_ids: Vec::new(),
+            hierarchy_child_id_buffer: None,
+            child_work_item_count: 0,
+            child_work_items: Vec::new(),
+            child_work_item_buffer: None,
+            traversal_record_count: 0,
+            traversal_records: Vec::new(),
+            traversal_record_buffer: None,
+            page_request_count: 0,
+            page_request_ids: Vec::new(),
+            page_request_buffer: None,
         };
     }
 
@@ -52,19 +109,161 @@ pub(super) fn execute_virtual_geometry_node_and_cluster_cull_pass(
             global_state: None,
             buffer: None,
             dispatch_setup: None,
+            launch_worklist: None,
             dispatch_setup_buffer: None,
+            launch_worklist_buffer: None,
             instance_seed_count: 0,
             instance_seeds: Vec::new(),
             instance_seed_buffer: None,
+            instance_work_item_count: 0,
+            instance_work_items: Vec::new(),
+            instance_work_item_buffer: None,
+            cluster_work_item_count: 0,
+            cluster_work_items: Vec::new(),
+            cluster_work_item_buffer: None,
+            hierarchy_child_ids: Vec::new(),
+            hierarchy_child_id_buffer: None,
+            child_work_item_count: 0,
+            child_work_items: Vec::new(),
+            child_work_item_buffer: None,
+            traversal_record_count: 0,
+            traversal_records: Vec::new(),
+            traversal_record_buffer: None,
+            page_request_count: 0,
+            page_request_ids: Vec::new(),
+            page_request_buffer: None,
         };
     };
 
-    let global_state = build_node_and_cluster_cull_global_state(frame, cull_input);
+    let global_state = startup_worklist::build_node_and_cluster_cull_global_state(
+        frame,
+        cull_input,
+        previous_global_state,
+    );
     let packed_words = global_state.packed_words();
-    let instance_seeds = build_node_and_cluster_cull_instance_seeds(frame, &global_state);
+    let instance_seeds =
+        startup_worklist::build_node_and_cluster_cull_instance_seeds(frame, &global_state);
     let instance_seed_count = u32::try_from(instance_seeds.len()).unwrap_or(u32::MAX);
-    let dispatch_setup =
-        build_node_and_cluster_cull_dispatch_setup(&global_state, instance_seed_count);
+    let dispatch_setup = startup_worklist::build_node_and_cluster_cull_dispatch_setup(
+        &global_state,
+        instance_seed_count,
+    );
+    let launch_worklist = startup_worklist::build_node_and_cluster_cull_launch_worklist(
+        &global_state,
+        dispatch_setup,
+        &instance_seeds,
+    );
+    let instance_work_items =
+        startup_worklist::build_node_and_cluster_cull_instance_work_items(&launch_worklist);
+    let instance_work_item_count = u32::try_from(instance_work_items.len()).unwrap_or(u32::MAX);
+    let cluster_work_items = startup_worklist::build_node_and_cluster_cull_cluster_work_items(
+        frame,
+        &instance_work_items,
+        global_state.cull_input.cluster_count,
+    );
+    let cluster_work_item_count = u32::try_from(cluster_work_items.len()).unwrap_or(u32::MAX);
+    let clusters = frame
+        .extract
+        .geometry
+        .virtual_geometry
+        .as_ref()
+        .map(|extract| extract.clusters.as_slice())
+        .unwrap_or(&[]);
+    let hierarchy_nodes = frame
+        .extract
+        .geometry
+        .virtual_geometry
+        .as_ref()
+        .map(|extract| extract.hierarchy_nodes.as_slice())
+        .unwrap_or(&[]);
+    let hierarchy_child_ids = frame
+        .extract
+        .geometry
+        .virtual_geometry
+        .as_ref()
+        .map(|extract| extract.hierarchy_child_ids.clone())
+        .unwrap_or_default();
+    let pages = frame
+        .extract
+        .geometry
+        .virtual_geometry
+        .as_ref()
+        .map(|extract| extract.pages.as_slice())
+        .unwrap_or(&[]);
+    let mut traversal_records = traversal::build_node_and_cluster_cull_traversal_records(
+        &cluster_work_items,
+        hierarchy_nodes,
+    );
+    let mut child_work_items = Vec::new();
+    let mut page_request_ids = Vec::new();
+    let mut current_wave_records = traversal_records.clone();
+    let page_request_budget = cull_input
+        .page_budget
+        .saturating_sub(cull_input.pending_page_request_count);
+
+    for _ in 0..NODE_AND_CLUSTER_CULL_COMPAT_TRAVERSAL_WAVE_LIMIT {
+        let wave_child_work_items = child_worklist::build_node_and_cluster_cull_child_work_items(
+            &current_wave_records,
+            &hierarchy_child_ids,
+        );
+        if wave_child_work_items.is_empty() {
+            break;
+        }
+
+        let child_visit_records = child_worklist::build_node_and_cluster_cull_child_visit_records(
+            &wave_child_work_items,
+            hierarchy_nodes,
+            traversal::next_node_and_cluster_cull_traversal_index(&traversal_records),
+        );
+        child_work_items.extend(wave_child_work_items);
+        if child_visit_records.is_empty() {
+            break;
+        }
+
+        let child_decision_output =
+            child_decision::build_node_and_cluster_cull_child_decision_output(
+                &child_visit_records,
+                &global_state,
+                &frame.extract.view.camera,
+                clusters,
+                hierarchy_nodes,
+                pages,
+                traversal::next_node_and_cluster_cull_traversal_index(&child_visit_records),
+            );
+        append_node_and_cluster_cull_page_requests(
+            &mut page_request_ids,
+            &child_decision_output.requested_page_ids,
+            page_request_budget,
+        );
+        traversal_records.extend(child_visit_records);
+        current_wave_records = child_decision_output.traversal_records.clone();
+        traversal_records.extend(child_decision_output.traversal_records);
+    }
+    let child_work_item_count = u32::try_from(child_work_items.len()).unwrap_or(u32::MAX);
+    let traversal_record_count = u32::try_from(traversal_records.len()).unwrap_or(u32::MAX);
+    let page_request_count = u32::try_from(page_request_ids.len()).unwrap_or(u32::MAX);
+    let launch_worklist_buffer =
+        buffers::create_node_and_cluster_cull_launch_worklist_buffer(device, &launch_worklist);
+    let instance_work_item_buffer = buffers::create_node_and_cluster_cull_instance_work_item_buffer(
+        device,
+        encoder,
+        virtual_geometry_gpu_resources,
+        launch_worklist_buffer.as_ref(),
+        dispatch_setup,
+        instance_work_item_count,
+    );
+    let cluster_work_item_buffer =
+        buffers::create_node_and_cluster_cull_cluster_work_item_buffer(device, &cluster_work_items);
+    let hierarchy_child_id_buffer = buffers::create_node_and_cluster_cull_hierarchy_child_id_buffer(
+        device,
+        &hierarchy_child_ids,
+    );
+    let child_work_item_buffer =
+        buffers::create_node_and_cluster_cull_child_work_item_buffer(device, &child_work_items);
+    let traversal_record_buffer =
+        buffers::create_node_and_cluster_cull_traversal_record_buffer(device, &traversal_records);
+    let page_request_buffer =
+        buffers::create_node_and_cluster_cull_page_request_buffer(device, &page_request_ids);
     VirtualGeometryNodeAndClusterCullPassOutput {
         source: RenderVirtualGeometryNodeAndClusterCullSource::RenderPathCullInput,
         record_count: 1,
@@ -77,337 +276,54 @@ pub(super) fn execute_virtual_geometry_node_and_cluster_cull_pass(
             },
         ))),
         dispatch_setup: Some(dispatch_setup),
-        dispatch_setup_buffer: create_node_and_cluster_cull_dispatch_setup_buffer(
+        launch_worklist: Some(launch_worklist),
+        dispatch_setup_buffer: buffers::create_node_and_cluster_cull_dispatch_setup_buffer(
             device,
             &dispatch_setup,
         ),
+        launch_worklist_buffer,
         instance_seed_count,
-        instance_seed_buffer: create_node_and_cluster_cull_instance_seed_buffer(
+        instance_seed_buffer: buffers::create_node_and_cluster_cull_instance_seed_buffer(
             device,
             &instance_seeds,
         ),
         instance_seeds,
+        instance_work_item_count,
+        instance_work_items,
+        instance_work_item_buffer,
+        cluster_work_item_count,
+        cluster_work_items,
+        cluster_work_item_buffer,
+        hierarchy_child_ids,
+        hierarchy_child_id_buffer,
+        child_work_item_count,
+        child_work_items,
+        child_work_item_buffer,
+        traversal_record_count,
+        traversal_records,
+        traversal_record_buffer,
+        page_request_count,
+        page_request_ids,
+        page_request_buffer,
     }
 }
 
-fn build_node_and_cluster_cull_global_state(
-    frame: &ViewportRenderFrame,
-    cull_input: &RenderVirtualGeometryCullInputSnapshot,
-) -> RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot {
-    let camera = &frame.scene.scene.camera;
-    let aspect = frame.viewport_size.x as Real / frame.viewport_size.y.max(1) as Real;
-    let projection = match camera.projection_mode {
-        ProjectionMode::Perspective => Mat4::perspective_rh(
-            camera.fov_y_radians,
-            aspect.max(0.001),
-            camera.z_near.max(0.001),
-            camera.z_far,
-        ),
-        ProjectionMode::Orthographic => {
-            let half_height = camera.ortho_size.max(0.01);
-            let half_width = half_height * aspect.max(0.001);
-            Mat4::orthographic_rh(
-                -half_width,
-                half_width,
-                -half_height,
-                half_height,
-                camera.z_near.max(0.001),
-                camera.z_far,
-            )
+fn append_node_and_cluster_cull_page_requests(
+    page_request_ids: &mut Vec<u32>,
+    requested_page_ids: &[u32],
+    page_budget: u32,
+) {
+    for page_id in requested_page_ids {
+        if page_request_ids.len() >= page_budget as usize {
+            break;
         }
-    };
-    let view = view_matrix(camera.transform);
+        if page_request_ids.contains(page_id) {
+            continue;
+        }
 
-    RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot {
-        cull_input: *cull_input,
-        viewport_size: [frame.viewport_size.x, frame.viewport_size.y],
-        camera_translation: camera.transform.translation.to_array(),
-        view_proj: (projection * view).to_cols_array_2d(),
+        page_request_ids.push(*page_id);
     }
-}
-
-fn build_node_and_cluster_cull_instance_seeds(
-    frame: &ViewportRenderFrame,
-    global_state: &RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot,
-) -> Vec<RenderVirtualGeometryNodeAndClusterCullInstanceSeed> {
-    let Some(extract) = frame.extract.geometry.virtual_geometry.as_ref() else {
-        return Vec::new();
-    };
-
-    extract
-        .instances
-        .iter()
-        .take(global_state.cull_input.instance_count as usize)
-        .enumerate()
-        .map(
-            |(instance_index, instance)| RenderVirtualGeometryNodeAndClusterCullInstanceSeed {
-                instance_index: u32::try_from(instance_index).unwrap_or(u32::MAX),
-                entity: instance.entity,
-                cluster_offset: instance.cluster_offset,
-                cluster_count: instance.cluster_count,
-                page_offset: instance.page_offset,
-                page_count: instance.page_count,
-            },
-        )
-        .collect()
-}
-
-fn build_node_and_cluster_cull_dispatch_setup(
-    global_state: &RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot,
-    instance_seed_count: u32,
-) -> RenderVirtualGeometryNodeAndClusterCullDispatchSetupSnapshot {
-    RenderVirtualGeometryNodeAndClusterCullDispatchSetupSnapshot {
-        instance_seed_count,
-        cluster_budget: global_state.cull_input.cluster_budget,
-        page_budget: global_state.cull_input.page_budget,
-        workgroup_size: NODE_AND_CLUSTER_CULL_DISPATCH_WORKGROUP_SIZE,
-        dispatch_group_count: [
-            instance_seed_count.div_ceil(NODE_AND_CLUSTER_CULL_DISPATCH_WORKGROUP_SIZE),
-            1,
-            1,
-        ],
-    }
-}
-
-fn create_node_and_cluster_cull_dispatch_setup_buffer(
-    device: &wgpu::Device,
-    dispatch_setup: &RenderVirtualGeometryNodeAndClusterCullDispatchSetupSnapshot,
-) -> Option<Arc<wgpu::Buffer>> {
-    let packed_words = dispatch_setup.packed_words();
-    Some(Arc::new(device.create_buffer_init(
-        &wgpu::util::BufferInitDescriptor {
-            label: Some("zircon-vg-node-and-cluster-cull-dispatch-setup"),
-            contents: bytemuck::cast_slice(&packed_words),
-            usage: wgpu::BufferUsages::COPY_SRC | wgpu::BufferUsages::STORAGE,
-        },
-    )))
-}
-
-fn create_node_and_cluster_cull_instance_seed_buffer(
-    device: &wgpu::Device,
-    instance_seeds: &[RenderVirtualGeometryNodeAndClusterCullInstanceSeed],
-) -> Option<Arc<wgpu::Buffer>> {
-    if instance_seeds.is_empty() {
-        return None;
-    }
-
-    let packed_words = instance_seeds
-        .iter()
-        .flat_map(RenderVirtualGeometryNodeAndClusterCullInstanceSeed::packed_words)
-        .collect::<Vec<_>>();
-    Some(Arc::new(device.create_buffer_init(
-        &wgpu::util::BufferInitDescriptor {
-            label: Some("zircon-vg-node-and-cluster-cull-instance-seeds"),
-            contents: bytemuck::cast_slice(&packed_words),
-            usage: wgpu::BufferUsages::COPY_SRC | wgpu::BufferUsages::STORAGE,
-        },
-    )))
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{
-        build_node_and_cluster_cull_global_state,
-        execute_virtual_geometry_node_and_cluster_cull_pass,
-    };
-    use crate::core::framework::render::{
-        RenderVirtualGeometryClusterSelectionInputSource, RenderVirtualGeometryCullInputSnapshot,
-        RenderVirtualGeometryDebugState, RenderVirtualGeometryExtract,
-        RenderVirtualGeometryInstance,
-        RenderVirtualGeometryNodeAndClusterCullDispatchSetupSnapshot,
-        RenderVirtualGeometryNodeAndClusterCullInstanceSeed,
-        RenderVirtualGeometryNodeAndClusterCullSource, RenderWorldSnapshotHandle,
-    };
-    use crate::core::math::{Transform, UVec2, Vec3};
-    use crate::graphics::backend::RenderBackend;
-    use crate::graphics::types::ViewportRenderFrame;
-    use crate::scene::world::World;
-
-    #[test]
-    fn node_and_cluster_cull_pass_publishes_cull_input_record_when_present() {
-        let backend = RenderBackend::new_offscreen().expect("backend should initialize");
-        let frame = viewport_frame(UVec2::new(96, 64));
-        let cull_input = RenderVirtualGeometryCullInputSnapshot {
-            cluster_budget: 4,
-            page_budget: 2,
-            instance_count: 3,
-            cluster_count: 9,
-            page_count: 5,
-            visible_entity_count: 2,
-            visible_cluster_count: 7,
-            resident_page_count: 1,
-            pending_page_request_count: 2,
-            available_page_slot_count: 1,
-            evictable_page_count: 0,
-            debug: RenderVirtualGeometryDebugState {
-                forced_mip: Some(6),
-                freeze_cull: true,
-                visualize_bvh: false,
-                visualize_visbuffer: true,
-                print_leaf_clusters: false,
-            },
-            cluster_selection_input_source:
-                RenderVirtualGeometryClusterSelectionInputSource::PrepareOnDemand,
-        };
-        let output = execute_virtual_geometry_node_and_cluster_cull_pass(
-            &backend.device,
-            true,
-            &frame,
-            Some(&cull_input),
-        );
-        assert_eq!(
-            output.source,
-            RenderVirtualGeometryNodeAndClusterCullSource::RenderPathCullInput
-        );
-        assert_eq!(output.record_count, 1);
-        assert!(
-            output.buffer.is_some(),
-            "expected the first NodeAndClusterCull bridge to materialize a real GPU buffer from the stable cull-input layout"
-        );
-        assert_eq!(
-            output.instance_seeds,
-            vec![RenderVirtualGeometryNodeAndClusterCullInstanceSeed {
-                instance_index: 0,
-                entity: 7,
-                cluster_offset: 10,
-                cluster_count: 2,
-                page_offset: 20,
-                page_count: 1,
-            }],
-            "expected the next NodeAndClusterCull bridge step to publish one per-instance root seed row from the effective VG extract instead of leaving the typed global-state record without an instance worklist seam"
-        );
-        assert_eq!(output.instance_seed_count, 1);
-        assert!(output.instance_seed_buffer.is_some());
-    }
-
-    #[test]
-    fn node_and_cluster_cull_pass_reports_clear_only_without_cull_input() {
-        let backend = RenderBackend::new_offscreen().expect("backend should initialize");
-        let output = execute_virtual_geometry_node_and_cluster_cull_pass(
-            &backend.device,
-            true,
-            &viewport_frame(UVec2::new(96, 64)),
-            None,
-        );
-
-        assert_eq!(
-            output.source,
-            RenderVirtualGeometryNodeAndClusterCullSource::RenderPathClearOnly
-        );
-        assert_eq!(output.record_count, 0);
-        assert!(output.buffer.is_none());
-    }
-
-    #[test]
-    fn node_and_cluster_cull_pass_derives_dispatch_setup_from_global_state_and_seed_count() {
-        let backend = RenderBackend::new_offscreen().expect("backend should initialize");
-        let output = execute_virtual_geometry_node_and_cluster_cull_pass(
-            &backend.device,
-            true,
-            &viewport_frame(UVec2::new(96, 64)),
-            Some(&RenderVirtualGeometryCullInputSnapshot {
-                cluster_budget: 4,
-                page_budget: 2,
-                instance_count: 1,
-                cluster_count: 9,
-                page_count: 5,
-                visible_entity_count: 1,
-                visible_cluster_count: 7,
-                resident_page_count: 1,
-                pending_page_request_count: 2,
-                available_page_slot_count: 1,
-                evictable_page_count: 0,
-                debug: RenderVirtualGeometryDebugState {
-                    forced_mip: Some(6),
-                    freeze_cull: true,
-                    visualize_bvh: false,
-                    visualize_visbuffer: true,
-                    print_leaf_clusters: false,
-                },
-                cluster_selection_input_source:
-                    RenderVirtualGeometryClusterSelectionInputSource::PrepareOnDemand,
-            }),
-        );
-
-        assert_eq!(
-            output.dispatch_setup,
-            Some(RenderVirtualGeometryNodeAndClusterCullDispatchSetupSnapshot {
-                instance_seed_count: 1,
-                cluster_budget: 4,
-                page_budget: 2,
-                workgroup_size: 64,
-                dispatch_group_count: [1, 1, 1],
-            }),
-            "expected the first explicit NodeAndClusterCull dispatch/setup seam to consume the typed global-state budget inputs together with the derived root-seed count instead of leaving dispatch dimensions as implicit host logic"
-        );
-        assert!(
-            output.dispatch_setup_buffer.is_some(),
-            "expected the dispatch/setup seam to materialize a dedicated GPU buffer beside the global-state and seed buffers so a later compute NodeAndClusterCull pass can bind explicit startup parameters"
-        );
-    }
-
-    #[test]
-    fn node_and_cluster_cull_global_state_uses_viewport_and_camera_from_frame() {
-        let frame = viewport_frame(UVec2::new(320, 180));
-        let snapshot = build_node_and_cluster_cull_global_state(
-            &frame,
-            &RenderVirtualGeometryCullInputSnapshot {
-                cluster_budget: 4,
-                page_budget: 2,
-                instance_count: 3,
-                cluster_count: 9,
-                page_count: 5,
-                visible_entity_count: 2,
-                visible_cluster_count: 7,
-                resident_page_count: 1,
-                pending_page_request_count: 2,
-                available_page_slot_count: 1,
-                evictable_page_count: 0,
-                debug: RenderVirtualGeometryDebugState {
-                    forced_mip: Some(6),
-                    freeze_cull: true,
-                    visualize_bvh: false,
-                    visualize_visbuffer: true,
-                    print_leaf_clusters: false,
-                },
-                cluster_selection_input_source:
-                    RenderVirtualGeometryClusterSelectionInputSource::PrepareOnDemand,
-            },
-        );
-
-        assert_eq!(snapshot.viewport_size, [320, 180]);
-        assert_eq!(snapshot.camera_translation, [3.0, 4.0, 5.0]);
-        assert!(
-            snapshot.view_proj.iter().flatten().any(|value| *value != 0.0),
-            "expected the upgraded NodeAndClusterCull startup record to carry a non-empty view-projection matrix derived from the frame camera"
-        );
-    }
-
-    fn viewport_frame(viewport_size: UVec2) -> ViewportRenderFrame {
-        let mut extract = crate::core::framework::render::RenderFrameExtract::from_snapshot(
-            RenderWorldSnapshotHandle::new(1),
-            World::new().to_render_snapshot(),
-        );
-        extract.apply_viewport_size(viewport_size);
-        extract.view.camera.transform = Transform::from_translation(Vec3::new(3.0, 4.0, 5.0));
-        extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
-            cluster_budget: 4,
-            page_budget: 2,
-            clusters: Vec::new(),
-            pages: Vec::new(),
-            instances: vec![RenderVirtualGeometryInstance {
-                entity: 7,
-                source_model: None,
-                transform: Transform::default(),
-                cluster_offset: 10,
-                cluster_count: 2,
-                page_offset: 20,
-                page_count: 1,
-                mesh_name: Some("NodeAndClusterCullUnitTestMesh".to_string()),
-                source_hint: Some("unit-test".to_string()),
-            }],
-            debug: RenderVirtualGeometryDebugState::default(),
-        });
-        ViewportRenderFrame::from_extract(extract, viewport_size)
-    }
-}
+mod tests;

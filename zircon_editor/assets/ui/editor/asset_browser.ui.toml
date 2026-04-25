@@ -41,9 +41,9 @@ gap = 4.0
 stretch = "Stretch"
 
 [root.children.node.layout.height]
-min = 112.0
-preferred = 112.0
-max = 112.0
+min = 122.0
+preferred = 122.0
+max = 122.0
 stretch = "Fixed"
 
 [[root.children.node.children]]
@@ -61,10 +61,87 @@ gap = 8.0
 stretch = "Stretch"
 
 [root.children.node.children.node.layout.height]
-min = 24.0
-preferred = 24.0
-max = 24.0
+min = 20.0
+preferred = 20.0
+max = 20.0
 stretch = "Fixed"
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "toolbar_title_text"
+kind = "native"
+type = "Label"
+control_id = "AssetBrowserTitleText"
+
+[root.children.node.children.node.children.node.props]
+text = "Asset Browser"
+font_size = 12.0
+font_weight = 700
+overflow = "elide"
+
+[root.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "toolbar_locate_button"
+kind = "native"
+type = "Button"
+control_id = "LocateSelectedAsset"
+
+[root.children.node.children.node.children.node.props]
+label = "Locate In Assets"
+
+[root.children.node.children.node.children.node.layout.width]
+min = 124.0
+preferred = 124.0
+max = 124.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children]]
+[root.children.node.children.node]
+node_id = "toolbar_subtitle_row"
+kind = "native"
+type = "HorizontalBox"
+control_id = "AssetBrowserToolbarSubtitleRow"
+
+[root.children.node.children.node.layout.container]
+kind = "HorizontalBox"
+gap = 0.0
+
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.layout.height]
+min = 10.0
+preferred = 10.0
+max = 10.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "toolbar_subtitle_text"
+kind = "native"
+type = "Label"
+control_id = "AssetBrowserSubtitleText"
+
+[root.children.node.children.node.children.node.props]
+text = "Project/assets"
+text_tone = "muted"
+font_size = 9.0
+overflow = "elide"
+
+[root.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
 
 [[root.children.node.children]]
 [root.children.node.children.node]
@@ -75,7 +152,7 @@ control_id = "AssetBrowserToolbarSearchRow"
 
 [root.children.node.children.node.layout.container]
 kind = "HorizontalBox"
-gap = 8.0
+gap = 0.0
 
 [root.children.node.children.node.layout.width]
 stretch = "Stretch"
@@ -85,6 +162,19 @@ min = 28.0
 preferred = 28.0
 max = 28.0
 stretch = "Fixed"
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "toolbar_search_field"
+kind = "native"
+type = "TextField"
+control_id = "SearchEdited"
+
+[root.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
 
 [[root.children.node.children]]
 [root.children.node.children.node]
@@ -106,6 +196,170 @@ preferred = 24.0
 max = 24.0
 stretch = "Fixed"
 
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "toolbar_kind_all_chip"
+kind = "native"
+type = "Button"
+control_id = "AssetBrowserKindAllChip"
+
+[root.children.node.children.node.children.node.props]
+label = "All"
+
+[root.children.node.children.node.children.node.layout.width]
+min = 34.0
+preferred = 34.0
+max = 34.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "toolbar_kind_texture_chip"
+kind = "native"
+type = "Button"
+control_id = "AssetBrowserKindTextureChip"
+
+[root.children.node.children.node.children.node.props]
+label = "Texture"
+
+[root.children.node.children.node.children.node.layout.width]
+min = 52.0
+preferred = 52.0
+max = 52.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "toolbar_kind_material_chip"
+kind = "native"
+type = "Button"
+control_id = "AssetBrowserKindMaterialChip"
+
+[root.children.node.children.node.children.node.props]
+label = "Material"
+
+[root.children.node.children.node.children.node.layout.width]
+min = 56.0
+preferred = 56.0
+max = 56.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "toolbar_kind_scene_chip"
+kind = "native"
+type = "Button"
+control_id = "AssetBrowserKindSceneChip"
+
+[root.children.node.children.node.children.node.props]
+label = "Scene"
+
+[root.children.node.children.node.children.node.layout.width]
+min = 46.0
+preferred = 46.0
+max = 46.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "toolbar_kind_model_chip"
+kind = "native"
+type = "Button"
+control_id = "AssetBrowserKindModelChip"
+
+[root.children.node.children.node.children.node.props]
+label = "Model"
+
+[root.children.node.children.node.children.node.layout.width]
+min = 50.0
+preferred = 50.0
+max = 50.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "toolbar_kind_shader_chip"
+kind = "native"
+type = "Button"
+control_id = "AssetBrowserKindShaderChip"
+
+[root.children.node.children.node.children.node.props]
+label = "Shader"
+
+[root.children.node.children.node.children.node.layout.width]
+min = 54.0
+preferred = 54.0
+max = 54.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "toolbar_kind_primary_spacer"
+kind = "native"
+type = "Space"
+
+[root.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "toolbar_view_mode_list_button"
+kind = "native"
+type = "Button"
+control_id = "AssetBrowserViewModeListButton"
+
+[root.children.node.children.node.children.node.props]
+label = "List"
+
+[root.children.node.children.node.children.node.layout.width]
+min = 44.0
+preferred = 44.0
+max = 44.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "toolbar_view_mode_thumb_button"
+kind = "native"
+type = "Button"
+control_id = "AssetBrowserViewModeThumbButton"
+
+[root.children.node.children.node.children.node.props]
+label = "Thumb"
+
+[root.children.node.children.node.children.node.layout.width]
+min = 52.0
+preferred = 52.0
+max = 52.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
 [[root.children.node.children]]
 [root.children.node.children.node]
 node_id = "toolbar_kind_secondary_row"
@@ -126,6 +380,120 @@ preferred = 24.0
 max = 24.0
 stretch = "Fixed"
 
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "toolbar_kind_physics_chip"
+kind = "native"
+type = "Button"
+control_id = "AssetBrowserKindPhysicsChip"
+
+[root.children.node.children.node.children.node.props]
+label = "Physics"
+
+[root.children.node.children.node.children.node.layout.width]
+min = 56.0
+preferred = 56.0
+max = 56.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "toolbar_kind_skeleton_chip"
+kind = "native"
+type = "Button"
+control_id = "AssetBrowserKindSkeletonChip"
+
+[root.children.node.children.node.children.node.props]
+label = "Skeleton"
+
+[root.children.node.children.node.children.node.layout.width]
+min = 62.0
+preferred = 62.0
+max = 62.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "toolbar_kind_clip_chip"
+kind = "native"
+type = "Button"
+control_id = "AssetBrowserKindClipChip"
+
+[root.children.node.children.node.children.node.props]
+label = "Clip"
+
+[root.children.node.children.node.children.node.layout.width]
+min = 38.0
+preferred = 38.0
+max = 38.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "toolbar_kind_sequence_chip"
+kind = "native"
+type = "Button"
+control_id = "AssetBrowserKindSequenceChip"
+
+[root.children.node.children.node.children.node.props]
+label = "Sequence"
+
+[root.children.node.children.node.children.node.layout.width]
+min = 64.0
+preferred = 64.0
+max = 64.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "toolbar_kind_graph_chip"
+kind = "native"
+type = "Button"
+control_id = "AssetBrowserKindGraphChip"
+
+[root.children.node.children.node.children.node.props]
+label = "Graph"
+
+[root.children.node.children.node.children.node.layout.width]
+min = 52.0
+preferred = 52.0
+max = 52.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "toolbar_kind_state_chip"
+kind = "native"
+type = "Button"
+control_id = "AssetBrowserKindStateChip"
+
+[root.children.node.children.node.children.node.props]
+label = "State"
+
+[root.children.node.children.node.children.node.layout.width]
+min = 48.0
+preferred = 48.0
+max = 48.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
 [[root.children]]
 [root.children.node]
 node_id = "import_panel"
@@ -145,6 +513,96 @@ min = 44.0
 preferred = 44.0
 max = 44.0
 stretch = "Fixed"
+
+[[root.children.node.children]]
+[root.children.node.children.node]
+node_id = "import_left_space"
+kind = "native"
+type = "Space"
+
+[root.children.node.children.node.layout.width]
+min = 12.0
+preferred = 12.0
+max = 12.0
+stretch = "Fixed"
+
+[root.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children]]
+[root.children.node.children.node]
+node_id = "import_label"
+kind = "native"
+type = "Label"
+control_id = "AssetBrowserImportLabel"
+
+[root.children.node.children.node.props]
+text = "Quick Import"
+text_tone = "muted"
+font_size = 9.0
+
+[root.children.node.children.node.layout.width]
+min = 60.0
+preferred = 60.0
+max = 60.0
+stretch = "Fixed"
+
+[root.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children]]
+[root.children.node.children.node]
+node_id = "import_path_field"
+kind = "native"
+type = "TextField"
+control_id = "AssetBrowserImportPathField"
+
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.layout.height]
+min = 28.0
+preferred = 28.0
+max = 28.0
+stretch = "Fixed"
+
+[[root.children.node.children]]
+[root.children.node.children.node]
+node_id = "import_button"
+kind = "native"
+type = "Button"
+control_id = "ImportModel"
+
+[root.children.node.children.node.props]
+label = "Import"
+button_variant = "primary"
+
+[root.children.node.children.node.layout.width]
+min = 68.0
+preferred = 68.0
+max = 68.0
+stretch = "Fixed"
+
+[root.children.node.children.node.layout.height]
+min = 26.0
+preferred = 26.0
+max = 26.0
+stretch = "Fixed"
+
+[[root.children.node.children]]
+[root.children.node.children.node]
+node_id = "import_right_space"
+kind = "native"
+type = "Space"
+
+[root.children.node.children.node.layout.width]
+min = 12.0
+preferred = 12.0
+max = 12.0
+stretch = "Fixed"
+
+[root.children.node.children.node.layout.height]
+stretch = "Stretch"
 
 [[root.children]]
 [root.children.node]
@@ -196,8 +654,12 @@ stretch = "Stretch"
 [root.children.node.children.node]
 node_id = "details_panel"
 kind = "native"
-type = "Space"
+type = "VerticalBox"
 control_id = "AssetBrowserDetailsPanel"
+
+[root.children.node.children.node.layout.container]
+kind = "VerticalBox"
+gap = 0.0
 
 [root.children.node.children.node.layout.width]
 min = 340.0
@@ -208,16 +670,1021 @@ stretch = "Fixed"
 [root.children.node.children.node.layout.height]
 stretch = "Stretch"
 
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "details_header_panel"
+kind = "native"
+type = "Overlay"
+control_id = "AssetBrowserDetailsHeaderPanel"
+
+[root.children.node.children.node.children.node.props]
+surface_variant = "inset"
+
+[root.children.node.children.node.children.node.layout.container]
+kind = "Overlay"
+
+[root.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.layout.height]
+min = 48.0
+preferred = 48.0
+max = 48.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node]
+node_id = "details_header_title_text"
+kind = "native"
+type = "Label"
+control_id = "AssetBrowserDetailsHeaderTitleText"
+
+[root.children.node.children.node.children.node.children.node.props]
+text = "Details"
+font_size = 11.0
+font_weight = 700
+
+[root.children.node.children.node.children.node.children.node.layout.anchor]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.layout.pivot]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.layout.position]
+x = 12.0
+y = 10.0
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+min = 12.0
+preferred = 12.0
+max = 12.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node]
+node_id = "details_header_selection_text"
+kind = "native"
+type = "Label"
+control_id = "AssetBrowserDetailsHeaderSelectionText"
+
+[root.children.node.children.node.children.node.children.node.props]
+text = "No Asset Selected"
+text_tone = "muted"
+font_size = 9.0
+overflow = "elide"
+
+[root.children.node.children.node.children.node.children.node.layout.anchor]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.layout.pivot]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.layout.position]
+x = 12.0
+y = 25.0
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+min = 10.0
+preferred = 10.0
+max = 10.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "details_divider"
+kind = "native"
+type = "Space"
+control_id = "AssetBrowserDetailsDivider"
+
+[root.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.layout.height]
+min = 1.0
+preferred = 1.0
+max = 1.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "details_scroll_body"
+kind = "native"
+type = "HorizontalBox"
+control_id = "AssetBrowserDetailsScrollBody"
+
+[root.children.node.children.node.children.node.layout.container]
+kind = "HorizontalBox"
+gap = 0.0
+
+[root.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node]
+node_id = "details_left_gutter"
+kind = "native"
+type = "Space"
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+min = 12.0
+preferred = 12.0
+max = 12.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node]
+node_id = "details_content_panel"
+kind = "native"
+type = "VerticalBox"
+control_id = "AssetBrowserDetailsContentPanel"
+
+[root.children.node.children.node.children.node.children.node.layout.container]
+kind = "VerticalBox"
+gap = 10.0
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+min = 538.0
+preferred = 538.0
+max = 538.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node]
+node_id = "details_preview_panel"
+kind = "native"
+type = "Overlay"
+control_id = "AssetBrowserDetailsPreviewPanel"
+
+[root.children.node.children.node.children.node.children.node.children.node.props]
+surface_variant = "asset-preview"
+radius = 8.0
+border_width = 1.0
+
+[root.children.node.children.node.children.node.children.node.children.node.layout]
+clip = true
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.container]
+kind = "Overlay"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 180.0
+preferred = 180.0
+max = 180.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node.children.node]
+node_id = "details_preview_visual_panel"
+kind = "native"
+type = "Overlay"
+control_id = "AssetBrowserDetailsPreviewVisualPanel"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.props]
+surface_variant = "asset-preview-visual"
+radius = 6.0
+border_width = 1.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout]
+clip = true
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.container]
+kind = "Overlay"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.anchor]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.pivot]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.position]
+x = 10.0
+y = 10.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.width]
+min = 108.0
+preferred = 108.0
+max = 108.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 160.0
+preferred = 160.0
+max = 160.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node.children.node]
+node_id = "details_preview_name_text"
+kind = "native"
+type = "Label"
+control_id = "AssetBrowserDetailsPreviewNameText"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.props]
+text = "No Asset Selected"
+font_size = 12.0
+font_weight = 700
+overflow = "elide"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.anchor]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.pivot]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.position]
+x = 132.0
+y = 12.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 16.0
+preferred = 16.0
+max = 16.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node.children.node]
+node_id = "details_preview_locator_text"
+kind = "native"
+type = "Label"
+control_id = "AssetBrowserDetailsPreviewLocatorText"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.props]
+text = ""
+text_tone = "subtle"
+font_size = 10.0
+overflow = "elide"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.anchor]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.pivot]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.position]
+x = 132.0
+y = 32.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 14.0
+preferred = 14.0
+max = 14.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node.children.node]
+node_id = "details_preview_kind_text"
+kind = "native"
+type = "Label"
+control_id = "AssetBrowserDetailsPreviewKindText"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.props]
+text = ""
+text_tone = "muted"
+font_size = 10.0
+overflow = "elide"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.anchor]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.pivot]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.position]
+x = 132.0
+y = 50.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 14.0
+preferred = 14.0
+max = 14.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node.children.node]
+node_id = "details_preview_identity_text"
+kind = "native"
+type = "Label"
+control_id = "AssetBrowserDetailsPreviewIdentityText"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.props]
+text = ""
+text_tone = "muted"
+font_size = 9.0
+overflow = "elide"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.anchor]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.pivot]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.position]
+x = 132.0
+y = 66.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 12.0
+preferred = 12.0
+max = 12.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node.children.node]
+node_id = "details_preview_adapter_text"
+kind = "native"
+type = "Label"
+control_id = "AssetBrowserDetailsPreviewAdapterText"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.props]
+text = ""
+text_tone = "muted"
+font_size = 9.0
+overflow = "elide"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.anchor]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.pivot]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.position]
+x = 132.0
+y = 82.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 12.0
+preferred = 12.0
+max = 12.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node.children.node]
+node_id = "details_preview_meta_path_text"
+kind = "native"
+type = "Label"
+control_id = "AssetBrowserDetailsPreviewMetaPathText"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.props]
+text = ""
+text_tone = "muted"
+font_size = 9.0
+overflow = "elide"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.anchor]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.pivot]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.position]
+x = 132.0
+y = 98.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 12.0
+preferred = 12.0
+max = 12.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node.children.node]
+node_id = "details_preview_diagnostics_text"
+kind = "native"
+type = "Label"
+control_id = "AssetBrowserDetailsPreviewDiagnosticsText"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.props]
+text = ""
+font_size = 9.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.anchor]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.pivot]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.position]
+x = 132.0
+y = 132.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 38.0
+preferred = 38.0
+max = 38.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node]
+node_id = "details_locator_panel"
+kind = "native"
+type = "Overlay"
+control_id = "AssetBrowserDetailsLocatorPanel"
+
+[root.children.node.children.node.children.node.children.node.children.node.props]
+surface_variant = "inset"
+radius = 6.0
+border_width = 1.0
+
+[root.children.node.children.node.children.node.children.node.children.node.layout]
+clip = true
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.container]
+kind = "Overlay"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 54.0
+preferred = 54.0
+max = 54.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node.children.node]
+node_id = "details_locator_label"
+kind = "native"
+type = "Label"
+control_id = "AssetBrowserDetailsLocatorLabel"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.props]
+text = "Locator"
+text_tone = "muted"
+font_size = 9.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.anchor]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.pivot]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.position]
+x = 10.0
+y = 8.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 10.0
+preferred = 10.0
+max = 10.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node.children.node]
+node_id = "details_locator_value"
+kind = "native"
+type = "Label"
+control_id = "AssetBrowserDetailsLocatorValue"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.props]
+text = "No project locator"
+font_size = 10.0
+overflow = "elide"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.anchor]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.pivot]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.position]
+x = 10.0
+y = 23.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 16.0
+preferred = 16.0
+max = 16.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node]
+node_id = "details_type_panel"
+kind = "native"
+type = "Overlay"
+control_id = "AssetBrowserDetailsTypePanel"
+
+[root.children.node.children.node.children.node.children.node.children.node.props]
+surface_variant = "inset"
+radius = 6.0
+border_width = 1.0
+
+[root.children.node.children.node.children.node.children.node.children.node.layout]
+clip = true
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.container]
+kind = "Overlay"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 50.0
+preferred = 50.0
+max = 50.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node.children.node]
+node_id = "details_type_label"
+kind = "native"
+type = "Label"
+control_id = "AssetBrowserDetailsTypeLabel"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.props]
+text = "Type"
+text_tone = "muted"
+font_size = 9.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.anchor]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.pivot]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.position]
+x = 10.0
+y = 8.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 10.0
+preferred = 10.0
+max = 10.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node.children.node]
+node_id = "details_type_value"
+kind = "native"
+type = "Label"
+control_id = "AssetBrowserDetailsTypeValue"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.props]
+text = "Unknown Type"
+font_size = 10.0
+overflow = "elide"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.anchor]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.pivot]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.position]
+x = 10.0
+y = 22.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 16.0
+preferred = 16.0
+max = 16.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node]
+node_id = "details_identity_panel"
+kind = "native"
+type = "Overlay"
+control_id = "AssetBrowserDetailsIdentityPanel"
+
+[root.children.node.children.node.children.node.children.node.children.node.props]
+surface_variant = "inset"
+radius = 6.0
+border_width = 1.0
+
+[root.children.node.children.node.children.node.children.node.children.node.layout]
+clip = true
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.container]
+kind = "Overlay"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 58.0
+preferred = 58.0
+max = 58.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node.children.node]
+node_id = "details_identity_label"
+kind = "native"
+type = "Label"
+control_id = "AssetBrowserDetailsIdentityLabel"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.props]
+text = "Identity"
+text_tone = "muted"
+font_size = 9.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.anchor]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.pivot]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.position]
+x = 10.0
+y = 8.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 10.0
+preferred = 10.0
+max = 10.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node.children.node]
+node_id = "details_identity_uuid_value"
+kind = "native"
+type = "Label"
+control_id = "AssetBrowserDetailsIdentityUuidValue"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.props]
+text = "No UUID"
+font_size = 10.0
+overflow = "elide"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.anchor]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.pivot]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.position]
+x = 10.0
+y = 22.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 12.0
+preferred = 12.0
+max = 12.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node.children.node]
+node_id = "details_identity_revision_value"
+kind = "native"
+type = "Label"
+control_id = "AssetBrowserDetailsIdentityRevisionValue"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.props]
+text = "Revision pending"
+text_tone = "muted"
+font_size = 9.0
+overflow = "elide"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.anchor]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.pivot]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.position]
+x = 10.0
+y = 37.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 10.0
+preferred = 10.0
+max = 10.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node]
+node_id = "details_metadata_panel"
+kind = "native"
+type = "Overlay"
+control_id = "AssetBrowserDetailsMetadataPanel"
+
+[root.children.node.children.node.children.node.children.node.children.node.props]
+surface_variant = "inset"
+radius = 6.0
+border_width = 1.0
+
+[root.children.node.children.node.children.node.children.node.children.node.layout]
+clip = true
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.container]
+kind = "Overlay"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 64.0
+preferred = 64.0
+max = 64.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node.children.node]
+node_id = "details_metadata_label"
+kind = "native"
+type = "Label"
+control_id = "AssetBrowserDetailsMetadataLabel"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.props]
+text = "Metadata"
+text_tone = "muted"
+font_size = 9.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.anchor]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.pivot]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.position]
+x = 10.0
+y = 8.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 10.0
+preferred = 10.0
+max = 10.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node.children.node]
+node_id = "details_metadata_meta_path_value"
+kind = "native"
+type = "Label"
+control_id = "AssetBrowserDetailsMetadataMetaPathValue"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.props]
+text = "No meta path"
+font_size = 10.0
+overflow = "elide"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.anchor]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.pivot]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.position]
+x = 10.0
+y = 22.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 12.0
+preferred = 12.0
+max = 12.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node.children.node]
+node_id = "details_metadata_adapter_value"
+kind = "native"
+type = "Label"
+control_id = "AssetBrowserDetailsMetadataAdapterValue"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.props]
+text = "No adapter"
+text_tone = "muted"
+font_size = 9.0
+overflow = "elide"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.anchor]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.pivot]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.position]
+x = 10.0
+y = 38.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 10.0
+preferred = 10.0
+max = 10.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node]
+node_id = "details_diagnostics_panel"
+kind = "native"
+type = "Overlay"
+control_id = "AssetBrowserDetailsDiagnosticsPanel"
+
+[root.children.node.children.node.children.node.children.node.children.node.props]
+surface_variant = "danger"
+radius = 6.0
+border_width = 1.0
+
+[root.children.node.children.node.children.node.children.node.children.node.layout]
+clip = true
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.container]
+kind = "Overlay"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 82.0
+preferred = 82.0
+max = 82.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node.children.node]
+node_id = "details_diagnostics_label"
+kind = "native"
+type = "Label"
+control_id = "AssetBrowserDetailsDiagnosticsLabel"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.props]
+text = "Diagnostics"
+text_tone = "muted"
+font_size = 9.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.anchor]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.pivot]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.position]
+x = 10.0
+y = 8.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 10.0
+preferred = 10.0
+max = 10.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node.children.node]
+node_id = "details_diagnostics_text"
+kind = "native"
+type = "Label"
+control_id = "AssetBrowserDetailsDiagnosticsText"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.props]
+text = ""
+font_size = 9.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.anchor]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.pivot]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.position]
+x = 10.0
+y = 24.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node]
+node_id = "details_right_gutter"
+kind = "native"
+type = "Space"
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+min = 12.0
+preferred = 12.0
+max = 12.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
 [[root.children]]
 [root.children.node]
 node_id = "utility_panel"
 kind = "native"
-type = "VerticalBox"
+type = "Overlay"
 control_id = "AssetBrowserUtilityPanel"
 
 [root.children.node.layout.container]
-kind = "VerticalBox"
-gap = 8.0
+kind = "Overlay"
 
 [root.children.node.layout.width]
 stretch = "Stretch"
@@ -239,6 +1706,18 @@ control_id = "AssetBrowserUtilityTabsRow"
 kind = "HorizontalBox"
 gap = 8.0
 
+[root.children.node.children.node.layout.anchor]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.layout.pivot]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.layout.position]
+x = 0.0
+y = 0.0
+
 [root.children.node.children.node.layout.width]
 stretch = "Stretch"
 
@@ -248,47 +1727,1359 @@ preferred = 24.0
 max = 24.0
 stretch = "Fixed"
 
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "utility_preview_button"
+kind = "native"
+type = "Button"
+control_id = "AssetBrowserPreviewTabButton"
+
+[root.children.node.children.node.children.node.props]
+label = "Preview"
+
+[root.children.node.children.node.children.node.layout.width]
+min = 56.0
+preferred = 56.0
+max = 56.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "utility_references_button"
+kind = "native"
+type = "Button"
+control_id = "AssetBrowserReferencesTabButton"
+
+[root.children.node.children.node.children.node.props]
+label = "References"
+
+[root.children.node.children.node.children.node.layout.width]
+min = 74.0
+preferred = 74.0
+max = 74.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "utility_metadata_button"
+kind = "native"
+type = "Button"
+control_id = "AssetBrowserMetadataTabButton"
+
+[root.children.node.children.node.children.node.props]
+label = "Metadata"
+
+[root.children.node.children.node.children.node.layout.width]
+min = 74.0
+preferred = 74.0
+max = 74.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "utility_plugins_button"
+kind = "native"
+type = "Button"
+control_id = "AssetBrowserPluginsTabButton"
+
+[root.children.node.children.node.children.node.props]
+label = "Plugins"
+
+[root.children.node.children.node.children.node.layout.width]
+min = 64.0
+preferred = 64.0
+max = 64.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "utility_tabs_spacer"
+kind = "native"
+type = "Space"
+
+[root.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "utility_selection_locator_text"
+kind = "native"
+type = "Label"
+control_id = "AssetBrowserSelectionLocatorText"
+
+[root.children.node.children.node.children.node.props]
+text = "Select an asset to inspect"
+text_tone = "muted"
+font_size = 9.0
+text_align = "right"
+overflow = "elide"
+
+[root.children.node.children.node.children.node.layout.width]
+min = 228.0
+preferred = 228.0
+max = 228.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
 [[root.children.node.children]]
 [root.children.node.children.node]
-node_id = "utility_content_panel"
+node_id = "utility_divider"
 kind = "native"
-type = "HorizontalBox"
-control_id = "AssetBrowserUtilityContentPanel"
+type = "Space"
+control_id = "AssetBrowserUtilityDivider"
 
-[root.children.node.children.node.layout.container]
-kind = "HorizontalBox"
-gap = 12.0
+[root.children.node.children.node.layout.anchor]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.layout.pivot]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.layout.position]
+x = 0.0
+y = 30.0
 
 [root.children.node.children.node.layout.width]
 stretch = "Stretch"
 
 [root.children.node.children.node.layout.height]
+min = 1.0
+preferred = 1.0
+max = 1.0
+stretch = "Fixed"
+
+[[root.children.node.children]]
+[root.children.node.children.node]
+node_id = "utility_content_panel"
+kind = "native"
+type = "Overlay"
+control_id = "AssetBrowserUtilityContentPanel"
+
+[root.children.node.children.node.layout.container]
+kind = "Overlay"
+
+[root.children.node.children.node.layout.anchor]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.layout.pivot]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.layout.position]
+x = 0.0
+y = 32.0
+
+[root.children.node.children.node.layout.width]
 stretch = "Stretch"
+
+[root.children.node.children.node.layout.height]
+min = 176.0
+preferred = 176.0
+max = 176.0
+stretch = "Fixed"
 
 [[root.children.node.children.node.children]]
 [root.children.node.children.node.children.node]
+node_id = "preview_panel"
+kind = "native"
+type = "Overlay"
+control_id = "AssetBrowserPreviewPanel"
+
+[root.children.node.children.node.children.node.props]
+surface_variant = "asset-preview"
+radius = 6.0
+border_width = 1.0
+
+[root.children.node.children.node.children.node.layout]
+clip = true
+
+[root.children.node.children.node.children.node.layout.container]
+kind = "Overlay"
+
+[root.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node]
+node_id = "preview_visual_panel"
+kind = "native"
+type = "Overlay"
+control_id = "AssetBrowserPreviewVisualPanel"
+
+[root.children.node.children.node.children.node.children.node.props]
+surface_variant = "asset-preview-visual"
+radius = 6.0
+border_width = 1.0
+
+[root.children.node.children.node.children.node.children.node.layout]
+clip = true
+
+[root.children.node.children.node.children.node.children.node.layout.container]
+kind = "Overlay"
+
+[root.children.node.children.node.children.node.children.node.layout.anchor]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.layout.pivot]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.layout.position]
+x = 10.0
+y = 10.0
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+min = 108.0
+preferred = 108.0
+max = 108.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+min = 156.0
+preferred = 156.0
+max = 156.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node]
+node_id = "preview_name_text"
+kind = "native"
+type = "Label"
+control_id = "AssetBrowserPreviewNameText"
+
+[root.children.node.children.node.children.node.children.node.props]
+text = "No Asset Selected"
+font_size = 12.0
+font_weight = 700
+overflow = "elide"
+
+[root.children.node.children.node.children.node.children.node.layout.anchor]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.layout.pivot]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.layout.position]
+x = 132.0
+y = 12.0
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+min = 16.0
+preferred = 16.0
+max = 16.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node]
+node_id = "preview_locator_text"
+kind = "native"
+type = "Label"
+control_id = "AssetBrowserPreviewLocatorText"
+
+[root.children.node.children.node.children.node.children.node.props]
+text = ""
+text_tone = "subtle"
+font_size = 10.0
+overflow = "elide"
+
+[root.children.node.children.node.children.node.children.node.layout.anchor]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.layout.pivot]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.layout.position]
+x = 132.0
+y = 32.0
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+min = 14.0
+preferred = 14.0
+max = 14.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node]
+node_id = "preview_kind_text"
+kind = "native"
+type = "Label"
+control_id = "AssetBrowserPreviewKindText"
+
+[root.children.node.children.node.children.node.children.node.props]
+text = ""
+text_tone = "muted"
+font_size = 10.0
+overflow = "elide"
+
+[root.children.node.children.node.children.node.children.node.layout.anchor]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.layout.pivot]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.layout.position]
+x = 132.0
+y = 50.0
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+min = 14.0
+preferred = 14.0
+max = 14.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node]
+node_id = "preview_identity_text"
+kind = "native"
+type = "Label"
+control_id = "AssetBrowserPreviewIdentityText"
+
+[root.children.node.children.node.children.node.children.node.props]
+text = ""
+text_tone = "muted"
+font_size = 9.0
+overflow = "elide"
+
+[root.children.node.children.node.children.node.children.node.layout.anchor]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.layout.pivot]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.layout.position]
+x = 132.0
+y = 66.0
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+min = 12.0
+preferred = 12.0
+max = 12.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node]
+node_id = "preview_adapter_text"
+kind = "native"
+type = "Label"
+control_id = "AssetBrowserPreviewAdapterText"
+
+[root.children.node.children.node.children.node.children.node.props]
+text = ""
+text_tone = "muted"
+font_size = 9.0
+overflow = "elide"
+
+[root.children.node.children.node.children.node.children.node.layout.anchor]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.layout.pivot]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.layout.position]
+x = 132.0
+y = 82.0
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+min = 12.0
+preferred = 12.0
+max = 12.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node]
+node_id = "preview_meta_path_text"
+kind = "native"
+type = "Label"
+control_id = "AssetBrowserPreviewMetaPathText"
+
+[root.children.node.children.node.children.node.children.node.props]
+text = ""
+text_tone = "muted"
+font_size = 9.0
+overflow = "elide"
+
+[root.children.node.children.node.children.node.children.node.layout.anchor]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.layout.pivot]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.layout.position]
+x = 132.0
+y = 98.0
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+min = 12.0
+preferred = 12.0
+max = 12.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node]
+node_id = "preview_diagnostics_text"
+kind = "native"
+type = "Label"
+control_id = "AssetBrowserPreviewDiagnosticsText"
+
+[root.children.node.children.node.children.node.children.node.props]
+text = ""
+font_size = 9.0
+
+[root.children.node.children.node.children.node.children.node.layout.anchor]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.layout.pivot]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.layout.position]
+x = 132.0
+y = 138.0
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+min = 38.0
+preferred = 38.0
+max = 38.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "references_shell"
+kind = "native"
+type = "HorizontalBox"
+
+[root.children.node.children.node.children.node.layout.container]
+kind = "HorizontalBox"
+gap = 12.0
+
+[root.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node]
 node_id = "reference_left_panel"
 kind = "native"
-type = "Space"
+type = "Overlay"
 control_id = "AssetBrowserReferenceLeftPanel"
+
+[root.children.node.children.node.children.node.children.node.layout.container]
+kind = "Overlay"
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node]
+node_id = "reference_left_title_text"
+kind = "native"
+type = "Label"
+control_id = "AssetBrowserReferenceLeftTitleText"
+
+[root.children.node.children.node.children.node.children.node.children.node.props]
+text = "References"
+font_size = 11.0
+font_weight = 600
+overflow = "elide"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.anchor]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.pivot]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.position]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 14.0
+preferred = 14.0
+max = 14.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node]
+node_id = "reference_left_scroll_body"
+kind = "native"
+type = "Overlay"
+control_id = "AssetBrowserReferenceLeftScrollBody"
+
+[root.children.node.children.node.children.node.children.node.children.node.props]
+surface_variant = "scroll-body"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout]
+clip = true
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.container]
+kind = "Overlay"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.anchor]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.pivot]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.position]
+x = 0.0
+y = 20.0
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node.children.node]
+node_id = "reference_left_empty_text"
+kind = "native"
+type = "Label"
+control_id = "AssetBrowserReferenceLeftEmptyText"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.props]
+text = "No direct references"
+text_tone = "muted"
+font_size = 10.0
+overflow = "elide"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.anchor]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.pivot]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.position]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 12.0
+preferred = 12.0
+max = 12.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node.children.node]
+node_id = "reference_left_row_panel"
+kind = "native"
+type = "Overlay"
+control_id = "AssetBrowserReferenceLeftRowPanel"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.props]
+surface_variant = "reference-row"
+radius = 6.0
+border_width = 1.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout]
+clip = true
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.container]
+kind = "Overlay"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.anchor]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.pivot]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.position]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 34.0
+preferred = 34.0
+max = 34.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node]
+node_id = "reference_left_row_name_text"
+kind = "native"
+type = "Label"
+control_id = "AssetBrowserReferenceLeftRowNameText"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.props]
+text = ""
+font_size = 10.0
+overflow = "elide"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.layout.anchor]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.layout.pivot]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.layout.position]
+x = 8.0
+y = 4.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 10.0
+preferred = 10.0
+max = 10.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node]
+node_id = "reference_left_row_locator_text"
+kind = "native"
+type = "Label"
+control_id = "AssetBrowserReferenceLeftRowLocatorText"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.props]
+text = ""
+text_tone = "muted"
+font_size = 9.0
+overflow = "elide"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.layout.anchor]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.layout.pivot]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.layout.position]
+x = 8.0
+y = 15.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 9.0
+preferred = 9.0
+max = 9.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node]
+node_id = "reference_left_row_kind_text"
+kind = "native"
+type = "Label"
+control_id = "AssetBrowserReferenceLeftRowKindText"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.props]
+text = ""
+text_tone = "muted"
+font_size = 9.0
+text_align = "right"
+overflow = "elide"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.layout.anchor]
+x = 1.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.layout.pivot]
+x = 1.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.layout.position]
+x = -8.0
+y = 8.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.layout.width]
+min = 56.0
+preferred = 56.0
+max = 56.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 9.0
+preferred = 9.0
+max = 9.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node]
+node_id = "reference_right_panel"
+kind = "native"
+type = "Overlay"
+control_id = "AssetBrowserReferenceRightPanel"
+
+[root.children.node.children.node.children.node.children.node.layout.container]
+kind = "Overlay"
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node]
+node_id = "reference_right_title_text"
+kind = "native"
+type = "Label"
+control_id = "AssetBrowserReferenceRightTitleText"
+
+[root.children.node.children.node.children.node.children.node.children.node.props]
+text = "Used By"
+font_size = 11.0
+font_weight = 600
+overflow = "elide"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.anchor]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.pivot]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.position]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 14.0
+preferred = 14.0
+max = 14.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node]
+node_id = "reference_right_scroll_body"
+kind = "native"
+type = "Overlay"
+control_id = "AssetBrowserReferenceRightScrollBody"
+
+[root.children.node.children.node.children.node.children.node.children.node.props]
+surface_variant = "scroll-body"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout]
+clip = true
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.container]
+kind = "Overlay"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.anchor]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.pivot]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.position]
+x = 0.0
+y = 20.0
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node.children.node]
+node_id = "reference_right_empty_text"
+kind = "native"
+type = "Label"
+control_id = "AssetBrowserReferenceRightEmptyText"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.props]
+text = "No direct references"
+text_tone = "muted"
+font_size = 10.0
+overflow = "elide"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.anchor]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.pivot]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.position]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 12.0
+preferred = 12.0
+max = 12.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node.children.node]
+node_id = "reference_right_row_panel"
+kind = "native"
+type = "Overlay"
+control_id = "AssetBrowserReferenceRightRowPanel"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.props]
+surface_variant = "reference-row"
+radius = 6.0
+border_width = 1.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout]
+clip = true
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.container]
+kind = "Overlay"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.anchor]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.pivot]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.position]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 34.0
+preferred = 34.0
+max = 34.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node]
+node_id = "reference_right_row_name_text"
+kind = "native"
+type = "Label"
+control_id = "AssetBrowserReferenceRightRowNameText"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.props]
+text = ""
+font_size = 10.0
+overflow = "elide"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.layout.anchor]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.layout.pivot]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.layout.position]
+x = 8.0
+y = 4.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 10.0
+preferred = 10.0
+max = 10.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node]
+node_id = "reference_right_row_locator_text"
+kind = "native"
+type = "Label"
+control_id = "AssetBrowserReferenceRightRowLocatorText"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.props]
+text = ""
+text_tone = "muted"
+font_size = 9.0
+overflow = "elide"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.layout.anchor]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.layout.pivot]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.layout.position]
+x = 8.0
+y = 15.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 9.0
+preferred = 9.0
+max = 9.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node]
+node_id = "reference_right_row_kind_text"
+kind = "native"
+type = "Label"
+control_id = "AssetBrowserReferenceRightRowKindText"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.props]
+text = ""
+text_tone = "muted"
+font_size = 9.0
+text_align = "right"
+overflow = "elide"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.layout.anchor]
+x = 1.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.layout.pivot]
+x = 1.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.layout.position]
+x = -8.0
+y = 8.0
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.layout.width]
+min = 56.0
+preferred = 56.0
+max = 56.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 9.0
+preferred = 9.0
+max = 9.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "metadata_stack"
+kind = "native"
+type = "VerticalBox"
+
+[root.children.node.children.node.children.node.layout.container]
+kind = "VerticalBox"
+gap = 8.0
 
 [root.children.node.children.node.children.node.layout.width]
 stretch = "Stretch"
 
 [root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node]
+node_id = "metadata_meta_path_panel"
+kind = "native"
+type = "Overlay"
+control_id = "AssetBrowserMetaPathPanel"
+
+[root.children.node.children.node.children.node.children.node.props]
+surface_variant = "inset"
+radius = 6.0
+border_width = 1.0
+
+[root.children.node.children.node.children.node.children.node.layout]
+clip = true
+
+[root.children.node.children.node.children.node.children.node.layout.container]
+kind = "Overlay"
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+min = 48.0
+preferred = 48.0
+max = 48.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node]
+node_id = "metadata_meta_path_label"
+kind = "native"
+type = "Label"
+control_id = "AssetBrowserMetaPathLabel"
+
+[root.children.node.children.node.children.node.children.node.children.node.props]
+text = "Meta Path"
+text_tone = "muted"
+font_size = 9.0
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.anchor]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.pivot]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.position]
+x = 10.0
+y = 8.0
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 10.0
+preferred = 10.0
+max = 10.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node]
+node_id = "metadata_meta_path_value"
+kind = "native"
+type = "Label"
+control_id = "AssetBrowserMetaPathValue"
+
+[root.children.node.children.node.children.node.children.node.children.node.props]
+text = ""
+font_size = 10.0
+overflow = "elide"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.anchor]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.pivot]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.position]
+x = 10.0
+y = 22.0
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 16.0
+preferred = 16.0
+max = 16.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node]
+node_id = "metadata_adapter_panel"
+kind = "native"
+type = "Overlay"
+control_id = "AssetBrowserAdapterPanel"
+
+[root.children.node.children.node.children.node.children.node.props]
+surface_variant = "inset"
+radius = 6.0
+border_width = 1.0
+
+[root.children.node.children.node.children.node.children.node.layout]
+clip = true
+
+[root.children.node.children.node.children.node.children.node.layout.container]
+kind = "Overlay"
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+min = 48.0
+preferred = 48.0
+max = 48.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node]
+node_id = "metadata_adapter_label"
+kind = "native"
+type = "Label"
+control_id = "AssetBrowserAdapterLabel"
+
+[root.children.node.children.node.children.node.children.node.children.node.props]
+text = "Adapter"
+text_tone = "muted"
+font_size = 9.0
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.anchor]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.pivot]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.position]
+x = 10.0
+y = 8.0
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 10.0
+preferred = 10.0
+max = 10.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node]
+node_id = "metadata_adapter_value"
+kind = "native"
+type = "Label"
+control_id = "AssetBrowserAdapterValue"
+
+[root.children.node.children.node.children.node.children.node.children.node.props]
+text = ""
+font_size = 10.0
+overflow = "elide"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.anchor]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.pivot]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.position]
+x = 10.0
+y = 22.0
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 16.0
+preferred = 16.0
+max = 16.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node]
+node_id = "metadata_diagnostics_panel"
+kind = "native"
+type = "Overlay"
+control_id = "AssetBrowserDiagnosticsPanel"
+
+[root.children.node.children.node.children.node.children.node.props]
+surface_variant = "inset"
+radius = 6.0
+border_width = 1.0
+
+[root.children.node.children.node.children.node.children.node.layout]
+clip = true
+
+[root.children.node.children.node.children.node.children.node.layout.container]
+kind = "Overlay"
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node]
+node_id = "metadata_diagnostics_label"
+kind = "native"
+type = "Label"
+control_id = "AssetBrowserDiagnosticsLabel"
+
+[root.children.node.children.node.children.node.children.node.children.node.props]
+text = "Diagnostics"
+text_tone = "muted"
+font_size = 9.0
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.anchor]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.pivot]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.position]
+x = 10.0
+y = 8.0
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 10.0
+preferred = 10.0
+max = 10.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node]
+node_id = "metadata_diagnostics_text"
+kind = "native"
+type = "Label"
+control_id = "AssetBrowserDiagnosticsText"
+
+[root.children.node.children.node.children.node.children.node.children.node.props]
+text = "No active diagnostics"
+font_size = 10.0
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.anchor]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.pivot]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.position]
+x = 10.0
+y = 24.0
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.height]
 stretch = "Stretch"
 
 [[root.children.node.children.node.children]]
 [root.children.node.children.node.children.node]
-node_id = "reference_right_panel"
+node_id = "plugins_panel"
 kind = "native"
-type = "Space"
-control_id = "AssetBrowserReferenceRightPanel"
+type = "Overlay"
+control_id = "AssetBrowserPluginsPanel"
+
+[root.children.node.children.node.children.node.props]
+surface_variant = "inset"
+radius = 6.0
+border_width = 1.0
+
+[root.children.node.children.node.children.node.layout]
+clip = true
+
+[root.children.node.children.node.children.node.layout.container]
+kind = "Overlay"
 
 [root.children.node.children.node.children.node.layout.width]
 stretch = "Stretch"
 
 [root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node]
+node_id = "plugins_text"
+kind = "native"
+type = "Label"
+control_id = "AssetBrowserPluginsText"
+
+[root.children.node.children.node.children.node.children.node.props]
+text = "Plugin utility tabs can mount here."
+text_tone = "muted"
+font_size = 11.0
+text_align = "center"
+
+[root.children.node.children.node.children.node.children.node.layout.anchor]
+x = 0.5
+y = 0.5
+
+[root.children.node.children.node.children.node.children.node.layout.pivot]
+x = 0.5
+y = 0.5
+
+[root.children.node.children.node.children.node.children.node.layout.position]
+x = 0.0
+y = 0.0
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
 stretch = "Stretch"
 
 [components]

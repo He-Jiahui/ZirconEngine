@@ -10,12 +10,12 @@ use super::constants::{
     ROOT_NODE_ID, STRIP_X, STRIP_Y, SURFACE_NODE_ID_BASE, TAB_GAP, TAB_HEIGHT, TAB_MIN_WIDTH,
     TAB_NODE_ID_BASE,
 };
+use super::host_drawer_header_pointer_bridge::HostDrawerHeaderPointerBridge;
+use super::host_drawer_header_pointer_target::HostDrawerHeaderPointerTarget;
 use super::register_handled_pointer_node::register_handled_pointer_node;
 use super::root_frame::root_frame;
-use super::workbench_drawer_header_pointer_bridge::WorkbenchDrawerHeaderPointerBridge;
-use super::workbench_drawer_header_pointer_target::WorkbenchDrawerHeaderPointerTarget;
 
-impl WorkbenchDrawerHeaderPointerBridge {
+impl HostDrawerHeaderPointerBridge {
     pub(super) fn rebuild_surface(&mut self) {
         let mut surface = UiSurface::new(UiTreeId::new("zircon.editor.drawer_header.pointer"));
         let mut dispatcher = UiPointerDispatcher::default();
@@ -88,7 +88,7 @@ impl WorkbenchDrawerHeaderPointerBridge {
                 register_handled_pointer_node(&mut dispatcher, node_id);
                 targets.insert(
                     node_id,
-                    WorkbenchDrawerHeaderPointerTarget::Tab {
+                    HostDrawerHeaderPointerTarget::Tab {
                         surface_key: surface_layout.key.clone(),
                         item_index,
                         slot: item.slot.clone(),

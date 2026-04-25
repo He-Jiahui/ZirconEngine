@@ -5,7 +5,7 @@ use crate::ui::workbench::layout::{ActivityDrawerLayout, WorkbenchLayout};
 use super::super::builtin_layout::builtin_hybrid_layout;
 use super::baseline_main_page_tabs::baseline_main_page_tabs;
 use super::collect_instance_hosts::collect_instance_hosts;
-use super::ensure_workbench_document_root::ensure_workbench_document_root;
+use super::ensure_host_document_root::ensure_host_document_root;
 use super::first_tab_stack_mut::first_tab_stack_mut;
 
 pub(in crate::ui::host) fn repair_builtin_shell_layout(layout: &mut WorkbenchLayout) {
@@ -51,7 +51,7 @@ pub(in crate::ui::host) fn repair_builtin_shell_layout(layout: &mut WorkbenchLay
         return;
     };
 
-    let stack = first_tab_stack_mut(ensure_workbench_document_root(layout));
+    let stack = first_tab_stack_mut(ensure_host_document_root(layout));
     for instance_id in baseline_stack.tabs {
         if present.insert(instance_id.clone()) {
             stack.tabs.push(instance_id);

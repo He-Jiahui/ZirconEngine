@@ -10,7 +10,10 @@ pub use descriptors::{
     ShaderModuleDesc, ShaderStage, SwapchainDesc, TextureDesc, TextureDimension, TextureFormat,
     TextureUsage,
 };
-pub use device::{CommandList, FenceValue, RenderDevice, TransientAllocatorStats};
+pub use device::{
+    BufferHandle, CommandList, FenceValue, PipelineHandle, RenderDevice, RhiError, SamplerHandle,
+    ShaderModuleHandle, TextureHandle, TransientAllocatorStats,
+};
 
 #[cfg(test)]
 mod tests;

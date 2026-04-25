@@ -1,7 +1,10 @@
 use super::*;
 use crate::ui::layouts::common::model_rc;
-use crate::ui::layouts::views::{blank_viewport_chrome, scene_viewport_chrome};
+use crate::ui::layouts::views::{
+    blank_viewport_chrome, scene_viewport_chrome, SceneViewportChromeData,
+};
 use crate::ui::widgets::common::drawer_slot_key;
+use zircon_runtime::core::diagnostics::RuntimeDiagnosticsSnapshot;
 
 pub(super) fn side_pane(
     model: &WorkbenchViewModel,
@@ -15,6 +18,7 @@ pub(super) fn side_pane(
         String,
         crate::ui::animation_editor::AnimationEditorPanePresentation,
     >,
+    runtime_diagnostics: Option<&RuntimeDiagnosticsSnapshot>,
 ) -> PaneData {
     let stack = slots
         .iter()
@@ -59,6 +63,7 @@ pub(super) fn side_pane(
         chrome,
         ui_asset_panes.get(&tab.instance_id.0),
         animation_panes.get(&tab.instance_id.0),
+        runtime_diagnostics,
     )
 }
 
@@ -73,6 +78,7 @@ pub(crate) fn document_pane(
         String,
         crate::ui::animation_editor::AnimationEditorPanePresentation,
     >,
+    runtime_diagnostics: Option<&RuntimeDiagnosticsSnapshot>,
 ) -> PaneData {
     let tab = model
         .document_tabs
@@ -93,6 +99,7 @@ pub(crate) fn document_pane(
         chrome,
         ui_asset_panes.get(&tab.instance_id.0),
         animation_panes.get(&tab.instance_id.0),
+        runtime_diagnostics,
     )
 }
 
@@ -107,6 +114,7 @@ pub(super) fn pane_from_tab(
     chrome: &EditorChromeSnapshot,
     ui_asset_pane: Option<&crate::ui::asset_editor::UiAssetEditorPanePresentation>,
     animation_pane: Option<&crate::ui::animation_editor::AnimationEditorPanePresentation>,
+    runtime_diagnostics: Option<&RuntimeDiagnosticsSnapshot>,
 ) -> PaneData {
     let (subtitle, info, show_toolbar) = pane_metadata(kind, snapshot, chrome);
     let viewport = match kind {
@@ -162,6 +170,19 @@ pub(super) fn pane_from_tab(
         });
     let ui_asset_pane = ui_asset_pane.cloned().unwrap_or_default();
     let animation_pane = animation_pane.cloned().unwrap_or_default();
+    let pane_presentation = build_compat_pane_presentation(
+        title,
+        icon_key,
+        &subtitle,
+        &info,
+        empty_state,
+        show_toolbar,
+        &viewport,
+        snapshot,
+        chrome,
+        Some(&animation_pane),
+        runtime_diagnostics,
+    );
 
     PaneData {
         id: instance_id.into(),
@@ -181,14 +202,17 @@ pub(super) fn pane_from_tab(
         secondary_hint: SharedString::from(secondary_hint),
         show_toolbar,
         viewport,
-        hierarchy: hierarchy_pane_data(chrome),
-        inspector: inspector_pane_data(chrome, &info),
-        console: console_pane_data(chrome),
-        assets_activity: AssetsActivityPaneViewData::default(),
-        asset_browser: AssetBrowserPaneViewData::default(),
-        project_overview: ProjectOverviewPaneViewData::default(),
-        ui_asset: ui_asset_pane,
-        animation: animation_pane_data(animation_pane),
+        body_compat: PaneBodyCompatData {
+            hierarchy: hierarchy_pane_data(chrome),
+            inspector: inspector_pane_data(chrome, &info),
+            console: console_pane_data(chrome),
+            assets_activity: AssetsActivityPaneViewData::default(),
+            asset_browser: AssetBrowserPaneViewData::default(),
+            project_overview: ProjectOverviewPaneViewData::default(),
+            ui_asset: ui_asset_pane,
+            animation: animation_pane_data(animation_pane),
+        },
+        pane_presentation,
     }
 }
 
@@ -273,16 +297,75 @@ pub(super) fn blank_pane() -> PaneData {
         secondary_hint: SharedString::default(),
         show_toolbar: false,
         viewport: blank_viewport_chrome(),
-        hierarchy: HierarchyPaneViewData::default(),
-        inspector: InspectorPaneViewData::default(),
-        console: ConsolePaneViewData::default(),
-        assets_activity: AssetsActivityPaneViewData::default(),
-        asset_browser: AssetBrowserPaneViewData::default(),
-        project_overview: ProjectOverviewPaneViewData::default(),
-        ui_asset: crate::ui::asset_editor::UiAssetEditorPanePresentation::default(),
-        animation: animation_pane_data(
-            crate::ui::animation_editor::AnimationEditorPanePresentation::default(),
+        body_compat: PaneBodyCompatData {
+            hierarchy: HierarchyPaneViewData::default(),
+            inspector: InspectorPaneViewData::default(),
+            console: ConsolePaneViewData::default(),
+            assets_activity: AssetsActivityPaneViewData::default(),
+            asset_browser: AssetBrowserPaneViewData::default(),
+            project_overview: ProjectOverviewPaneViewData::default(),
+            ui_asset: crate::ui::asset_editor::UiAssetEditorPanePresentation::default(),
+            animation: animation_pane_data(
+                crate::ui::animation_editor::AnimationEditorPanePresentation::default(),
+            ),
+        },
+        pane_presentation: None,
+    }
+}
+
+fn build_compat_pane_presentation(
+    title: &str,
+    icon_key: &str,
+    subtitle: &str,
+    info: &str,
+    empty_state: Option<&PaneEmptyStateModel>,
+    show_toolbar: bool,
+    viewport: &SceneViewportChromeData,
+    snapshot: Option<&ViewTabSnapshot>,
+    chrome: &EditorChromeSnapshot,
+    animation_pane: Option<&crate::ui::animation_editor::AnimationEditorPanePresentation>,
+    runtime_diagnostics: Option<&RuntimeDiagnosticsSnapshot>,
+) -> Option<PanePresentation> {
+    let pane_template = snapshot.and_then(|snapshot| snapshot.pane_template.as_ref())?;
+    let mut context = PanePayloadBuildContext::new(chrome);
+    if let Some(animation_pane) = animation_pane {
+        context = context.with_animation_pane(animation_pane);
+    }
+    if let Some(runtime_diagnostics) = runtime_diagnostics {
+        context = context.with_runtime_diagnostics(runtime_diagnostics);
+    }
+
+    Some(PanePresentation::new(
+        PaneShellPresentation::new(
+            title,
+            icon_key,
+            subtitle,
+            info,
+            empty_state.map(empty_state_presentation),
+            show_toolbar,
+            viewport.clone(),
         ),
+        build_pane_body_presentation(&pane_template.body, &context),
+    ))
+}
+
+fn empty_state_presentation(empty_state: &PaneEmptyStateModel) -> PaneEmptyStatePresentation {
+    PaneEmptyStatePresentation {
+        title: empty_state.title.clone(),
+        body: empty_state.body.clone(),
+        primary_action: empty_state.primary_action.as_ref().map(action_presentation),
+        secondary_action: empty_state
+            .secondary_action
+            .as_ref()
+            .map(action_presentation),
+        secondary_hint: empty_state.secondary_hint.clone().unwrap_or_default(),
+    }
+}
+
+fn action_presentation(action: &PaneActionModel) -> PaneActionPresentation {
+    PaneActionPresentation {
+        label: action.label.clone(),
+        action_id: action_id_from_model(action),
     }
 }
 
@@ -347,6 +430,11 @@ fn pane_metadata(
             false,
         ),
         ViewContentKind::Console => ("Task Output".to_string(), chrome.status_line.clone(), false),
+        ViewContentKind::RuntimeDiagnostics => (
+            "Runtime Services".to_string(),
+            "Render, physics, and animation diagnostics".to_string(),
+            false,
+        ),
         ViewContentKind::PrefabEditor => (
             payload_path(snapshot).unwrap_or_else(|| "Prefab Workspace".to_string()),
             "Prefab editor host slot is ready. Asset-specific tooling is still placeholder.".into(),
@@ -480,6 +568,7 @@ fn pane_kind_key(kind: ViewContentKind) -> &'static str {
         ViewContentKind::UiAssetEditor => "UiAssetEditor",
         ViewContentKind::AnimationSequenceEditor => "AnimationSequenceEditor",
         ViewContentKind::AnimationGraphEditor => "AnimationGraphEditor",
+        ViewContentKind::RuntimeDiagnostics => "RuntimeDiagnostics",
         ViewContentKind::Placeholder => "Placeholder",
     }
 }

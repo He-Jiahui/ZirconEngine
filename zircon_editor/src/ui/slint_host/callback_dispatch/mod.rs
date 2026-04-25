@@ -23,10 +23,9 @@ pub(crate) use inspector::{
 };
 pub(crate) use layout::{
     dispatch_builtin_floating_window_focus, dispatch_builtin_floating_window_focus_for_source,
-    dispatch_builtin_workbench_document_tab_activation,
-    dispatch_builtin_workbench_document_tab_close, dispatch_builtin_workbench_drawer_toggle,
-    dispatch_builtin_workbench_host_page_activation, dispatch_layout_command, dispatch_tab_drop,
-    resolve_builtin_floating_window_close_instances,
+    dispatch_builtin_host_document_tab_activation, dispatch_builtin_host_document_tab_close,
+    dispatch_builtin_host_drawer_toggle, dispatch_builtin_host_page_activation,
+    dispatch_layout_command, dispatch_tab_drop, resolve_builtin_floating_window_close_instances,
 };
 pub(crate) use pane::dispatch_builtin_pane_surface_control;
 pub(crate) use shared_pointer::{
@@ -38,13 +37,13 @@ pub(crate) use shared_pointer::{
     dispatch_shared_viewport_toolbar_pointer_click, dispatch_shared_welcome_recent_pointer_click,
 };
 #[cfg(test)]
-pub(crate) use template_bridge::BuiltinWorkbenchDrawerSourceTemplateBridge;
+pub(crate) use template_bridge::BuiltinHostDrawerSourceTemplateBridge;
 pub(crate) use template_bridge::{
     BuiltinAssetSurfaceTemplateBridge, BuiltinFloatingWindowSourceFrames,
-    BuiltinFloatingWindowSourceTemplateBridge, BuiltinInspectorSurfaceTemplateBridge,
+    BuiltinFloatingWindowSourceTemplateBridge, BuiltinHostRootShellFrames,
+    BuiltinHostWindowTemplateBridge, BuiltinInspectorSurfaceTemplateBridge,
     BuiltinPaneSurfaceTemplateBridge, BuiltinViewportToolbarTemplateBridge,
-    BuiltinWelcomeSurfaceTemplateBridge, BuiltinWorkbenchRootShellFrames,
-    BuiltinWorkbenchTemplateBridge,
+    BuiltinWelcomeSurfaceTemplateBridge,
 };
 #[cfg(test)]
 pub(crate) use viewport::{dispatch_builtin_viewport_toolbar_control, dispatch_viewport_command};
@@ -54,9 +53,9 @@ pub(crate) use viewport::{
     SharedViewportPointerBridge,
 };
 pub(crate) use welcome::dispatch_builtin_welcome_surface_control;
-pub(crate) use workbench::dispatch_workbench_menu_action_with_template_fallback;
+pub(crate) use workbench::dispatch_host_menu_action_with_template_fallback;
 #[cfg(test)]
 pub(crate) use workbench::{
-    dispatch_builtin_workbench_control, dispatch_builtin_workbench_menu_action,
-    dispatch_menu_action, slint_menu_action,
+    dispatch_builtin_host_control, dispatch_builtin_host_menu_action, dispatch_menu_action,
+    slint_menu_action,
 };

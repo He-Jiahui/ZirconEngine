@@ -1,20 +1,20 @@
 import { HostNativeFloatingWindowSurfaceData } from "host_components.slint";
 import { HostWindowPresentationData } from "host_root.slint";
-import { HostWorkbenchWindowSceneData, HostWorkbenchWindowScene } from "host_scene.slint";
-import { HostWorkbenchWindowSurfaceContract } from "host_surface_contract.slint";
+import { HostWindowSceneData, HostWindowScene } from "host_scene.slint";
+import { HostWindowSurfaceContract } from "host_surface_contract.slint";
 import { HostNativeFloatingWindowSurface } from "host_native_floating_window_surface.slint";
 
-export component HostWorkbenchWindowSurface inherits Rectangle {
-    in property <HostWorkbenchWindowSceneData> scene_data;
+export component HostWindowSurface inherits Rectangle {
+    in property <HostWindowSceneData> scene_data;
 
-    HostWorkbenchWindowScene {
+    HostWindowScene {
         width: parent.width;
         height: parent.height;
         scene_data: root.scene_data;
     }
 }
 
-export component HostNativeWorkbenchWindowSurface inherits Rectangle {
+export component HostNativeWindowSurface inherits Rectangle {
     in property <HostNativeFloatingWindowSurfaceData> surface_data;
 
     HostNativeFloatingWindowSurface {
@@ -24,20 +24,20 @@ export component HostNativeWorkbenchWindowSurface inherits Rectangle {
     }
 }
 
-export component HostWorkbenchWindowSurfaceHost inherits Rectangle {
+export component HostWindowSurfaceHost inherits Rectangle {
     in property <HostWindowPresentationData> host_presentation;
 
-    contract := HostWorkbenchWindowSurfaceContract {
+    contract := HostWindowSurfaceContract {
         host_presentation: root.host_presentation;
     }
 
-    if !root.host_presentation.host_shell.native_floating_window_mode: HostWorkbenchWindowSurface {
+    if !root.host_presentation.host_shell.native_floating_window_mode: HostWindowSurface {
         width: parent.width;
         height: parent.height;
-        scene_data: contract.workbench_scene_data;
+        scene_data: contract.host_scene_data;
     }
 
-    if root.host_presentation.host_shell.native_floating_window_mode: HostNativeWorkbenchWindowSurface {
+    if root.host_presentation.host_shell.native_floating_window_mode: HostNativeWindowSurface {
         width: parent.width;
         height: parent.height;
         surface_data: contract.native_floating_surface_data;

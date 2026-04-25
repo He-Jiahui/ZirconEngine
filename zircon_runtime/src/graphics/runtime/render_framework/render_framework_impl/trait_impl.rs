@@ -10,11 +10,13 @@ use super::super::create_viewport::create_viewport;
 use super::super::destroy_viewport::destroy_viewport;
 use super::super::query_stats::query_stats;
 use super::super::query_virtual_geometry_debug_snapshot::query_virtual_geometry_debug_snapshot;
+use super::super::register_pipeline_asset::register_pipeline_asset;
 use super::super::reload_pipeline::reload_pipeline;
 use super::super::set_pipeline_asset::set_pipeline_asset;
 use super::super::set_quality_profile::set_quality_profile;
 use super::super::submit_frame_extract::{submit_frame_extract, submit_frame_extract_with_ui};
 use super::super::wgpu_render_framework::WgpuRenderFramework;
+use crate::RenderPipelineAsset;
 
 impl RenderFramework for WgpuRenderFramework {
     fn create_viewport(
@@ -51,6 +53,13 @@ impl RenderFramework for WgpuRenderFramework {
         pipeline: RenderPipelineHandle,
     ) -> Result<(), RenderFrameworkError> {
         set_pipeline_asset(self, viewport, pipeline)
+    }
+
+    fn register_pipeline_asset(
+        &self,
+        pipeline: RenderPipelineAsset,
+    ) -> Result<RenderPipelineHandle, RenderFrameworkError> {
+        register_pipeline_asset(self, pipeline)
     }
 
     fn reload_pipeline(&self, pipeline: RenderPipelineHandle) -> Result<(), RenderFrameworkError> {

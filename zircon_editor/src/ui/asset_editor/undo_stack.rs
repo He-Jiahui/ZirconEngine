@@ -72,6 +72,7 @@ pub struct UiAssetEditorUndoTransition {
     pub selection: UiDesignerSelectionModel,
     pub source_cursor: UiAssetEditorSourceCursorSnapshot,
     pub selected_theme_source_key: Option<String>,
+    pub selected_style_rule_id: Option<String>,
     pub document: Option<UiAssetEditorUndoDocumentReplay>,
     pub document_commands: Vec<UiAssetEditorDocumentReplayCommand>,
     pub external_effects: Vec<UiAssetEditorExternalEffect>,
@@ -84,20 +85,19 @@ impl UiAssetEditorUndoTransition {
     }
 
     pub fn apply_to_document(&self, document: &mut UiAssetDocument) -> Result<bool, &'static str> {
-        let original_document = document.clone();
+        let mut target_document = document.clone();
         let mut changed = false;
         if !self.document_commands.is_empty() {
             for command in &self.document_commands {
-                changed |= apply_document_replay_command(document, command)?;
+                changed |= apply_document_replay_command(&mut target_document, command)?;
             }
         }
         if let Some(replay) = self.document.as_ref() {
-            let mut target_document = original_document;
             let _ = replay.apply_to_document(&mut target_document)?;
-            if *document != target_document {
-                *document = target_document;
-                changed = true;
-            }
+            changed |= *document != target_document;
+        }
+        if changed {
+            *document = target_document;
         }
         Ok(changed)
     }
@@ -202,6 +202,45 @@ impl UiAssetEditorUndoStack {
         after_document: Option<UiAssetDocument>,
         external_effects: UiAssetEditorUndoExternalEffects,
     ) {
+        self.push_edit_with_style_rule_selection(
+            label,
+            tree_edit,
+            document_replay,
+            before_source,
+            before_selection,
+            before_source_cursor,
+            before_selected_theme_source_key,
+            None,
+            before_document,
+            after_source,
+            after_selection,
+            after_source_cursor,
+            after_selected_theme_source_key,
+            None,
+            after_document,
+            external_effects,
+        );
+    }
+
+    pub fn push_edit_with_style_rule_selection(
+        &mut self,
+        label: impl Into<String>,
+        tree_edit: Option<UiAssetEditorTreeEdit>,
+        document_replay: Option<UiAssetEditorDocumentReplayBundle>,
+        before_source: String,
+        before_selection: UiDesignerSelectionModel,
+        before_source_cursor: UiAssetEditorSourceCursorSnapshot,
+        before_selected_theme_source_key: Option<String>,
+        before_selected_style_rule_id: Option<String>,
+        before_document: Option<UiAssetDocument>,
+        after_source: String,
+        after_selection: UiDesignerSelectionModel,
+        after_source_cursor: UiAssetEditorSourceCursorSnapshot,
+        after_selected_theme_source_key: Option<String>,
+        after_selected_style_rule_id: Option<String>,
+        after_document: Option<UiAssetDocument>,
+        external_effects: UiAssetEditorUndoExternalEffects,
+    ) {
         let inverse_tree_edit = match (
             tree_edit.as_ref(),
             before_document.as_ref(),
@@ -220,6 +259,7 @@ impl UiAssetEditorUndoStack {
                 selection: before_selection,
                 source_cursor: before_source_cursor,
                 selected_theme_source_key: before_selected_theme_source_key,
+                selected_style_rule_id: before_selected_style_rule_id,
                 document: match (before_document.as_ref(), after_document.as_ref()) {
                     (Some(before_document), Some(after_document)) => Some(
                         UiAssetEditorUndoDocumentReplay::between(after_document, before_document),
@@ -237,6 +277,7 @@ impl UiAssetEditorUndoStack {
                 selection: after_selection,
                 source_cursor: after_source_cursor,
                 selected_theme_source_key: after_selected_theme_source_key,
+                selected_style_rule_id: after_selected_style_rule_id,
                 document: match (before_document.as_ref(), after_document.as_ref()) {
                     (Some(before_document), Some(after_document)) => Some(
                         UiAssetEditorUndoDocumentReplay::between(before_document, after_document),
@@ -542,13 +583,9 @@ fn apply_document_replay_command(
         UiAssetEditorDocumentReplayCommand::RemoveStyleToken { token_name } => {
             Ok(document.tokens.remove(token_name).is_some())
         }
-        UiAssetEditorDocumentReplayCommand::SetStyleSheets { stylesheets } => {
-            if document.stylesheets == *stylesheets {
-                return Ok(false);
-            }
-            document.stylesheets = stylesheets.clone();
-            Ok(true)
-        }
+        UiAssetEditorDocumentReplayCommand::SetStyleSheets { stylesheets } => document
+            .set_style_sheets(stylesheets.clone())
+            .map_err(|_| "invalid stylesheet replay"),
         UiAssetEditorDocumentReplayCommand::InsertStyleSheet {
             index,
             stylesheet_id,
@@ -562,16 +599,17 @@ fn apply_document_replay_command(
             }) else {
                 return Err("invalid stylesheet replay");
             };
-            let insert_index = (*index).min(document.stylesheets.len());
             if document
                 .stylesheets
-                .get(insert_index)
-                .is_some_and(|existing| existing.id == stylesheet.id)
+                .iter()
+                .any(|existing| *existing == stylesheet)
             {
                 return Ok(false);
             }
-            document.stylesheets.insert(insert_index, stylesheet);
-            Ok(true)
+            document
+                .insert_style_sheet(*index, stylesheet)
+                .map(|_| true)
+                .map_err(|_| "invalid stylesheet replay")
         }
         UiAssetEditorDocumentReplayCommand::RemoveStyleSheet {
             index,
@@ -600,8 +638,10 @@ fn apply_document_replay_command(
             if *existing == *stylesheet {
                 return Ok(false);
             }
-            *existing = stylesheet.clone();
-            Ok(true)
+            document
+                .replace_style_sheet(stylesheet_id, stylesheet.clone())
+                .map(|replaced| replaced.is_some())
+                .map_err(|_| "invalid stylesheet replay")
         }
         UiAssetEditorDocumentReplayCommand::MoveStyleSheet {
             from_index,
@@ -628,22 +668,26 @@ fn apply_document_replay_command(
             rule,
             ..
         } => {
-            let Some(stylesheet) = document.stylesheets.get_mut(*stylesheet_index) else {
+            let Some(stylesheet_id) = document
+                .stylesheets
+                .get(*stylesheet_index)
+                .map(|stylesheet| stylesheet.id.clone())
+            else {
                 return Ok(false);
             };
             let Some(rule) = rule.clone() else {
                 return Err("invalid style rule replay");
             };
-            let insert_index = (*index).min(stylesheet.rules.len());
-            if stylesheet
+            if document.stylesheets[*stylesheet_index]
                 .rules
-                .get(insert_index)
+                .get((*index).min(document.stylesheets[*stylesheet_index].rules.len()))
                 .is_some_and(|existing| *existing == rule)
             {
                 return Ok(false);
             }
-            stylesheet.rules.insert(insert_index, rule);
-            Ok(true)
+            document
+                .insert_style_rule(&stylesheet_id, *index, rule)
+                .map_err(|_| "invalid style rule replay")
         }
         UiAssetEditorDocumentReplayCommand::RemoveStyleRule {
             stylesheet_index,

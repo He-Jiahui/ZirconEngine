@@ -4,7 +4,7 @@ use crate::ui::workbench::layout::TabInsertionAnchor;
 use crate::ui::workbench::layout::WorkspaceTarget;
 use crate::ui::workbench::view::ViewHost;
 
-use super::group::WorkbenchDragTargetGroup;
+use super::group::HostDragTargetGroup;
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct ResolvedTabDrop {
@@ -13,14 +13,14 @@ pub(crate) struct ResolvedTabDrop {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(crate) struct ResolvedWorkbenchTabDropRoute {
-    pub target_group: WorkbenchDragTargetGroup,
+pub(crate) struct ResolvedHostTabDropRoute {
+    pub target_group: HostDragTargetGroup,
     pub target_label: &'static str,
-    pub target: ResolvedWorkbenchTabDropTarget,
+    pub target: ResolvedHostTabDropTarget,
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(crate) enum ResolvedWorkbenchTabDropTarget {
+pub(crate) enum ResolvedHostTabDropTarget {
     Attach(ResolvedTabDrop),
     Split {
         workspace: WorkspaceTarget,

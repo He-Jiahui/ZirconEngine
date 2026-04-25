@@ -10,6 +10,7 @@ mod lifecycle;
 pub mod runtime;
 mod types;
 
+pub mod diagnostics;
 pub mod framework;
 pub mod manager;
 pub mod math;

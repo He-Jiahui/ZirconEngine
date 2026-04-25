@@ -23,6 +23,7 @@ use super::{
         declaration_entries, parse_declaration_literal, remove_declaration, set_declaration,
         UiStyleRuleDeclarationPath,
     },
+    style_rule_identity::{editable_stylesheet_index, unique_style_rule_id},
     theme_state::theme_document_replay_bundle,
     ui_asset_editor_session::{UiAssetEditorSession, UiAssetEditorSessionError},
 };
@@ -48,28 +49,28 @@ impl UiAssetEditorSession {
         }
 
         let mut document = self.last_valid_document.clone();
-        let stylesheet_index = if document.stylesheets.is_empty() {
-            0
-        } else {
-            document.stylesheets.len() - 1
-        };
+        let stylesheet_index = editable_stylesheet_index(&mut document);
+        let stylesheet_id = document.stylesheets[stylesheet_index].id.clone();
         let rule = UiStyleRule {
+            id: Some(unique_style_rule_id(&document, &selector)),
             selector,
             set: UiStyleDeclarationBlock::default(),
         };
-        let rule_index = editable_stylesheet(&mut document).rules.len();
-        editable_stylesheet(&mut document).rules.push(rule.clone());
-        self.selected_style_rule_index = local_style_rule_entries(&document).len().checked_sub(1);
+        let rule_index = document.stylesheets[stylesheet_index].rules.len();
+        if !document.insert_style_rule(&stylesheet_id, rule_index, rule.clone())? {
+            return Ok(false);
+        }
         self.selected_style_rule_declaration_path = None;
-        self.apply_document_edit_with_label_and_replay(
+        self.apply_document_edit_with_label_replay_and_style_rule_selection(
             document,
             "Create Stylesheet Rule",
             style_rule_insert_replay_bundle(
                 &self.last_valid_document,
                 stylesheet_index,
                 rule_index,
-                rule,
+                rule.clone(),
             ),
+            rule.id,
         )?;
         Ok(true)
     }
@@ -93,28 +94,28 @@ impl UiAssetEditorSession {
         }
 
         let overrides = std::mem::take(&mut node.style_overrides);
-        let stylesheet_index = if document.stylesheets.is_empty() {
-            0
-        } else {
-            document.stylesheets.len() - 1
-        };
+        let stylesheet_index = editable_stylesheet_index(&mut document);
+        let stylesheet_id = document.stylesheets[stylesheet_index].id.clone();
         let rule = UiStyleRule {
+            id: Some(unique_style_rule_id(&document, &selector)),
             selector,
             set: overrides,
         };
-        let rule_index = editable_stylesheet(&mut document).rules.len();
-        editable_stylesheet(&mut document).rules.push(rule.clone());
-        self.selected_style_rule_index = local_style_rule_entries(&document).len().checked_sub(1);
+        let rule_index = document.stylesheets[stylesheet_index].rules.len();
+        if !document.insert_style_rule(&stylesheet_id, rule_index, rule.clone())? {
+            return Ok(false);
+        }
         self.selected_style_rule_declaration_path = None;
-        self.apply_document_edit_with_label_and_replay(
+        self.apply_document_edit_with_label_replay_and_style_rule_selection(
             document,
             "Extract Inline Overrides",
             style_rule_insert_replay_bundle(
                 &self.last_valid_document,
                 stylesheet_index,
                 rule_index,
-                rule,
+                rule.clone(),
             ),
+            rule.id,
         )?;
         Ok(true)
     }
@@ -547,16 +548,31 @@ impl UiAssetEditorSession {
         &mut self,
         index: usize,
     ) -> Result<bool, UiAssetEditorSessionError> {
-        if local_style_rule_entries(&self.last_valid_document)
-            .get(index)
-            .is_none()
-        {
+        let entries = local_style_rule_entries(&self.last_valid_document);
+        let Some(entry) = entries.get(index) else {
             return Err(UiAssetEditorSessionError::InvalidStyleRuleIndex { index });
-        }
+        };
         let changed = self.selected_style_rule_index != Some(index);
         self.selected_style_rule_index = Some(index);
+        self.selected_style_rule_id = entry.id.clone();
         self.selected_style_rule_declaration_path = None;
         Ok(changed)
+    }
+
+    pub fn select_stylesheet_rule_id(
+        &mut self,
+        rule_id: impl AsRef<str>,
+    ) -> Result<bool, UiAssetEditorSessionError> {
+        let rule_id = rule_id.as_ref();
+        let Some(index) = local_style_rule_entries(&self.last_valid_document)
+            .iter()
+            .position(|entry| entry.id.as_deref() == Some(rule_id))
+        else {
+            return Err(UiAssetEditorSessionError::InvalidStyleRuleId {
+                rule_id: rule_id.to_string(),
+            });
+        };
+        self.select_stylesheet_rule(index)
     }
 
     pub fn move_selected_stylesheet_rule_up(&mut self) -> Result<bool, UiAssetEditorSessionError> {
@@ -745,12 +761,16 @@ impl UiAssetEditorSession {
         }
         let removed_rule = rules.remove(entry.rule_index);
         let remaining = local_style_rule_entries(&document).len();
-        self.selected_style_rule_index = (remaining > 0).then(|| index.min(remaining - 1));
+        let next_selected_style_rule_id = (remaining > 0)
+            .then(|| index.min(remaining - 1))
+            .and_then(|index| local_style_rule_entries(&document).get(index).cloned())
+            .and_then(|entry| entry.id);
         self.selected_style_rule_declaration_path = None;
-        self.apply_document_edit_with_label_and_replay(
+        self.apply_document_edit_with_label_replay_and_style_rule_selection(
             document,
             "Delete Stylesheet Rule",
             style_rule_remove_replay_bundle(entry.stylesheet_index, entry.rule_index, removed_rule),
+            next_selected_style_rule_id,
         )?;
         Ok(true)
     }
@@ -775,9 +795,8 @@ impl UiAssetEditorSession {
         let from_index = entry.rule_index;
         let to_index = next_rule_index as usize;
         rules.swap(entry.rule_index, next_rule_index as usize);
-        self.selected_style_rule_index = Some((index as isize + delta) as usize);
         self.selected_style_rule_declaration_path = None;
-        self.apply_document_edit_with_label_and_replay(
+        self.apply_document_edit_with_label_replay_and_style_rule_selection(
             document,
             if delta < 0 {
                 "Move Stylesheet Rule Up"
@@ -785,6 +804,7 @@ impl UiAssetEditorSession {
                 "Move Stylesheet Rule Down"
             },
             style_rule_move_replay_bundle(entry.stylesheet_index, from_index, to_index),
+            entry.id.clone(),
         )?;
         Ok(true)
     }
@@ -831,19 +851,6 @@ impl UiAssetEditorSession {
         );
         Ok(true)
     }
-}
-
-pub(super) fn editable_stylesheet(document: &mut UiAssetDocument) -> &mut UiStyleSheet {
-    if document.stylesheets.is_empty() {
-        document.stylesheets.push(UiStyleSheet {
-            id: "local_editor_rules".to_string(),
-            rules: Vec::new(),
-        });
-    }
-    document
-        .stylesheets
-        .last_mut()
-        .expect("style sheet should exist after initialization")
 }
 
 pub(super) fn style_rule_insert_replay_bundle(

@@ -23,10 +23,10 @@ fn tab_drop_dispatch_attaches_view_and_reopens_target_drawer_from_normalized_rou
     let effects = dispatch_tab_drop(
         &harness.runtime,
         "editor.project#1",
-        &ResolvedWorkbenchTabDropRoute {
-            target_group: WorkbenchDragTargetGroup::Right,
+        &ResolvedHostTabDropRoute {
+            target_group: HostDragTargetGroup::Right,
             target_label: "right tool stack",
-            target: ResolvedWorkbenchTabDropTarget::Attach(ResolvedTabDrop {
+            target: ResolvedHostTabDropTarget::Attach(ResolvedTabDrop {
                 host: ViewHost::Drawer(ActivityDrawerSlot::RightTop),
                 anchor: None,
             }),
@@ -70,10 +70,10 @@ fn tab_drop_dispatch_does_not_reopen_drawer_when_target_is_already_visible() {
     let effects = dispatch_tab_drop(
         &harness.runtime,
         "editor.project#1",
-        &ResolvedWorkbenchTabDropRoute {
-            target_group: WorkbenchDragTargetGroup::Right,
+        &ResolvedHostTabDropRoute {
+            target_group: HostDragTargetGroup::Right,
             target_label: "right tool stack",
-            target: ResolvedWorkbenchTabDropTarget::Attach(ResolvedTabDrop {
+            target: ResolvedHostTabDropTarget::Attach(ResolvedTabDrop {
                 host: ViewHost::Drawer(ActivityDrawerSlot::RightTop),
                 anchor: None,
             }),
@@ -114,10 +114,10 @@ fn tab_drop_dispatch_preserves_auto_hide_drawer_mode() {
     let effects = dispatch_tab_drop(
         &harness.runtime,
         "editor.project#1",
-        &ResolvedWorkbenchTabDropRoute {
-            target_group: WorkbenchDragTargetGroup::Right,
+        &ResolvedHostTabDropRoute {
+            target_group: HostDragTargetGroup::Right,
             target_label: "right tool stack",
-            target: ResolvedWorkbenchTabDropTarget::Attach(ResolvedTabDrop {
+            target: ResolvedHostTabDropTarget::Attach(ResolvedTabDrop {
                 host: ViewHost::Drawer(ActivityDrawerSlot::RightTop),
                 anchor: None,
             }),
@@ -158,10 +158,10 @@ fn tab_drop_dispatch_creates_split_for_document_edge_route() {
     let effects = dispatch_tab_drop(
         &harness.runtime,
         "editor.project#1",
-        &ResolvedWorkbenchTabDropRoute {
-            target_group: WorkbenchDragTargetGroup::Document,
+        &ResolvedHostTabDropRoute {
+            target_group: HostDragTargetGroup::Document,
             target_label: "Split Document Left",
-            target: ResolvedWorkbenchTabDropTarget::Split {
+            target: ResolvedHostTabDropTarget::Split {
                 workspace: WorkspaceTarget::MainPage(MainPageId::workbench()),
                 path: vec![],
                 axis: SplitAxis::Horizontal,

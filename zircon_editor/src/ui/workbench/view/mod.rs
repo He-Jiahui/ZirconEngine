@@ -1,6 +1,11 @@
 //! View descriptors, instances, and registry for the editor workbench.
 
+mod activity_window_template_spec;
 mod dock_policy;
+mod pane_interaction_mode;
+mod pane_payload_kind;
+mod pane_route_namespace;
+mod pane_template_spec;
 mod preferred_host;
 mod preferred_host_to_view_host;
 mod view_descriptor;
@@ -18,7 +23,13 @@ mod view_registry_open_descriptor;
 mod view_registry_register_view;
 mod view_registry_restore_instance;
 
+pub use activity_window_template_spec::ActivityWindowTemplateSpec;
 pub use dock_policy::DockPolicy;
+pub use pane_interaction_mode::PaneInteractionMode;
+pub use pane_payload_kind::PanePayloadKind;
+pub use pane_payload_kind::PanePayloadKind as ViewPayloadKind;
+pub use pane_route_namespace::PaneRouteNamespace;
+pub use pane_template_spec::{PaneBodySpec, PaneShellSpec, PaneTemplateSpec};
 pub use preferred_host::PreferredHost;
 pub use view_descriptor::ViewDescriptor;
 pub use view_descriptor_id::ViewDescriptorId;

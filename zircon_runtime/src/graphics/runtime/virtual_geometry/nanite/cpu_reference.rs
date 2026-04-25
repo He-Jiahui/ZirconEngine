@@ -5,7 +5,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use crate::asset::{VirtualGeometryAsset, VirtualGeometryClusterHeaderAsset};
 use crate::core::framework::render::{
     RenderVirtualGeometryCluster, RenderVirtualGeometryDebugState, RenderVirtualGeometryExtract,
-    RenderVirtualGeometryInstance, RenderVirtualGeometryPage,
+    RenderVirtualGeometryHierarchyNode, RenderVirtualGeometryInstance, RenderVirtualGeometryPage,
 };
 use crate::core::framework::scene::EntityId;
 use crate::core::math::{Transform, Vec3};
@@ -55,6 +55,8 @@ pub(crate) struct VirtualGeometryCpuReferenceFrame {
     pub(crate) leaf_clusters: Vec<VirtualGeometryCpuReferenceLeafCluster>,
     pub(crate) selected_clusters: Vec<VirtualGeometryCpuReferenceLeafCluster>,
     pub(crate) page_cluster_map: BTreeMap<u32, Vec<u32>>,
+    pub(crate) hierarchy_nodes: Vec<RenderVirtualGeometryHierarchyNode>,
+    pub(crate) hierarchy_child_ids: Vec<u32>,
     pub(crate) entity: EntityId,
     pub(crate) debug: VirtualGeometryDebugConfig,
     pub(crate) mesh_name: Option<String>,
@@ -124,11 +126,15 @@ impl VirtualGeometryCpuReferenceFrame {
             }
         }
 
+        let (hierarchy_nodes, hierarchy_child_ids) = render_hierarchy_for_asset(0, asset, 0);
+
         Self {
             visited_nodes: traversal.visited_nodes,
             leaf_clusters: traversal.leaf_clusters,
             selected_clusters: traversal.selected_clusters,
             page_cluster_map,
+            hierarchy_nodes,
+            hierarchy_child_ids,
             entity,
             debug: config.debug,
             mesh_name: asset.debug.mesh_name.clone(),
@@ -150,6 +156,7 @@ impl VirtualGeometryCpuReferenceFrame {
             .map(|cluster| RenderVirtualGeometryCluster {
                 entity: cluster.entity,
                 cluster_id: cluster.cluster_id,
+                hierarchy_node_id: Some(cluster.node_id),
                 page_id: cluster.page_id,
                 lod_level: cluster.mip_level,
                 parent_cluster_id: cluster.parent_cluster_id,
@@ -188,11 +195,42 @@ impl VirtualGeometryCpuReferenceFrame {
             cluster_budget,
             page_budget,
             clusters,
+            hierarchy_nodes: self.hierarchy_nodes.clone(),
+            hierarchy_child_ids: self.hierarchy_child_ids.clone(),
             pages,
             instances,
             debug: render_debug_state(self.debug),
         }
     }
+}
+
+fn render_hierarchy_for_asset(
+    instance_index: u32,
+    asset: &VirtualGeometryAsset,
+    cluster_offset: u32,
+) -> (Vec<RenderVirtualGeometryHierarchyNode>, Vec<u32>) {
+    let mut hierarchy_child_ids = Vec::new();
+    let hierarchy_nodes = asset
+        .hierarchy_buffer
+        .iter()
+        .map(|node| {
+            let child_base = if node.child_node_ids.is_empty() {
+                0
+            } else {
+                u32::try_from(hierarchy_child_ids.len()).unwrap_or(u32::MAX)
+            };
+            hierarchy_child_ids.extend(node.child_node_ids.iter().copied());
+            RenderVirtualGeometryHierarchyNode {
+                instance_index,
+                node_id: node.node_id,
+                child_base,
+                child_count: u32::try_from(node.child_node_ids.len()).unwrap_or(u32::MAX),
+                cluster_start: cluster_offset.saturating_add(node.cluster_start),
+                cluster_count: node.cluster_count,
+            }
+        })
+        .collect();
+    (hierarchy_nodes, hierarchy_child_ids)
 }
 
 fn render_debug_state(debug: VirtualGeometryDebugConfig) -> RenderVirtualGeometryDebugState {
@@ -436,5 +474,189 @@ mod tests {
                 .collect::<Vec<_>>(),
             vec![(0, 100)]
         );
+    }
+
+    #[test]
+    fn to_render_extract_carries_authored_hierarchy_child_ranges() {
+        let asset = VirtualGeometryAsset {
+            hierarchy_buffer: vec![
+                VirtualGeometryHierarchyNodeAsset {
+                    node_id: 5,
+                    parent_node_id: None,
+                    child_node_ids: vec![7, 8],
+                    cluster_start: 0,
+                    cluster_count: 0,
+                    page_id: 10,
+                    mip_level: 9,
+                    bounds_center: [0.0, 0.0, 0.0],
+                    bounds_radius: 2.0,
+                    screen_space_error: 0.5,
+                },
+                VirtualGeometryHierarchyNodeAsset {
+                    node_id: 7,
+                    parent_node_id: Some(5),
+                    child_node_ids: Vec::new(),
+                    cluster_start: 0,
+                    cluster_count: 1,
+                    page_id: 10,
+                    mip_level: 10,
+                    bounds_center: [0.0, 0.0, 0.0],
+                    bounds_radius: 1.0,
+                    screen_space_error: 0.1,
+                },
+                VirtualGeometryHierarchyNodeAsset {
+                    node_id: 8,
+                    parent_node_id: Some(5),
+                    child_node_ids: Vec::new(),
+                    cluster_start: 1,
+                    cluster_count: 1,
+                    page_id: 20,
+                    mip_level: 10,
+                    bounds_center: [1.0, 0.0, 0.0],
+                    bounds_radius: 1.0,
+                    screen_space_error: 0.1,
+                },
+            ],
+            cluster_headers: vec![
+                VirtualGeometryClusterHeaderAsset {
+                    cluster_id: 100,
+                    hierarchy_node_id: 7,
+                    page_id: 10,
+                    lod_level: 10,
+                    parent_cluster_id: None,
+                    bounds_center: [0.0, 0.0, 0.0],
+                    bounds_radius: 0.5,
+                    screen_space_error: 0.1,
+                },
+                VirtualGeometryClusterHeaderAsset {
+                    cluster_id: 200,
+                    hierarchy_node_id: 8,
+                    page_id: 20,
+                    lod_level: 10,
+                    parent_cluster_id: Some(100),
+                    bounds_center: [1.0, 0.0, 0.0],
+                    bounds_radius: 0.5,
+                    screen_space_error: 0.1,
+                },
+            ],
+            root_page_table: vec![10, 20],
+            ..VirtualGeometryAsset::default()
+        };
+
+        let frame =
+            VirtualGeometryCpuReferenceFrame::from_asset(77, &asset, &[10, 20], Default::default());
+        let extract = frame.to_render_extract(2, 2);
+
+        assert_eq!(
+            extract.hierarchy_nodes,
+            vec![
+                RenderVirtualGeometryHierarchyNode {
+                    instance_index: 0,
+                    node_id: 5,
+                    child_base: 0,
+                    child_count: 2,
+                    cluster_start: 0,
+                    cluster_count: 0,
+                },
+                RenderVirtualGeometryHierarchyNode {
+                    instance_index: 0,
+                    node_id: 7,
+                    child_base: 0,
+                    child_count: 0,
+                    cluster_start: 0,
+                    cluster_count: 1,
+                },
+                RenderVirtualGeometryHierarchyNode {
+                    instance_index: 0,
+                    node_id: 8,
+                    child_base: 0,
+                    child_count: 0,
+                    cluster_start: 1,
+                    cluster_count: 1,
+                },
+            ],
+            "expected the CPU reference render extract to carry authored hierarchy child ranges so NodeAndClusterCull can replace compat fixed fanout without reopening the cooked asset"
+        );
+        assert_eq!(extract.hierarchy_child_ids, vec![7, 8]);
+    }
+
+    #[test]
+    fn to_render_extract_flattens_non_contiguous_hierarchy_child_ids() {
+        let asset = VirtualGeometryAsset {
+            hierarchy_buffer: vec![
+                VirtualGeometryHierarchyNodeAsset {
+                    node_id: 5,
+                    parent_node_id: None,
+                    child_node_ids: vec![7, 42],
+                    cluster_start: 0,
+                    cluster_count: 0,
+                    page_id: 10,
+                    mip_level: 9,
+                    bounds_center: [0.0, 0.0, 0.0],
+                    bounds_radius: 2.0,
+                    screen_space_error: 0.5,
+                },
+                VirtualGeometryHierarchyNodeAsset {
+                    node_id: 7,
+                    parent_node_id: Some(5),
+                    child_node_ids: Vec::new(),
+                    cluster_start: 0,
+                    cluster_count: 1,
+                    page_id: 10,
+                    mip_level: 10,
+                    bounds_center: [0.0, 0.0, 0.0],
+                    bounds_radius: 1.0,
+                    screen_space_error: 0.1,
+                },
+                VirtualGeometryHierarchyNodeAsset {
+                    node_id: 42,
+                    parent_node_id: Some(5),
+                    child_node_ids: Vec::new(),
+                    cluster_start: 1,
+                    cluster_count: 1,
+                    page_id: 20,
+                    mip_level: 10,
+                    bounds_center: [1.0, 0.0, 0.0],
+                    bounds_radius: 1.0,
+                    screen_space_error: 0.1,
+                },
+            ],
+            cluster_headers: vec![
+                VirtualGeometryClusterHeaderAsset {
+                    cluster_id: 100,
+                    hierarchy_node_id: 7,
+                    page_id: 10,
+                    lod_level: 10,
+                    parent_cluster_id: None,
+                    bounds_center: [0.0, 0.0, 0.0],
+                    bounds_radius: 0.5,
+                    screen_space_error: 0.1,
+                },
+                VirtualGeometryClusterHeaderAsset {
+                    cluster_id: 200,
+                    hierarchy_node_id: 42,
+                    page_id: 20,
+                    lod_level: 10,
+                    parent_cluster_id: Some(100),
+                    bounds_center: [1.0, 0.0, 0.0],
+                    bounds_radius: 0.5,
+                    screen_space_error: 0.1,
+                },
+            ],
+            root_page_table: vec![10, 20],
+            ..VirtualGeometryAsset::default()
+        };
+
+        let frame =
+            VirtualGeometryCpuReferenceFrame::from_asset(77, &asset, &[10, 20], Default::default());
+        let extract = frame.to_render_extract(2, 2);
+
+        assert_eq!(
+            extract.hierarchy_child_ids,
+            vec![7, 42],
+            "expected render extract to preserve authored child ids in a flat table instead of assuming child node ids are contiguous"
+        );
+        assert_eq!(extract.hierarchy_nodes[0].child_base, 0);
+        assert_eq!(extract.hierarchy_nodes[0].child_count, 2);
     }
 }

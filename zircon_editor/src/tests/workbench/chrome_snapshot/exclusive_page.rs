@@ -32,6 +32,7 @@ fn chrome_builder_marks_exclusive_activity_window_pages() {
             window_instance: asset_browser.instance_id.clone(),
         }],
         drawers: BTreeMap::new(),
+        activity_windows: Default::default(),
         floating_windows: Vec::new(),
         region_overrides: BTreeMap::new(),
         view_overrides: BTreeMap::new(),

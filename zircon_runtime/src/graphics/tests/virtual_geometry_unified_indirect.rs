@@ -1443,6 +1443,7 @@ fn build_single_entity_extract(
         clusters: vec![RenderVirtualGeometryCluster {
             entity: 2,
             cluster_id: 2,
+            hierarchy_node_id: None,
             page_id: 300,
             lod_level: 0,
             parent_cluster_id: None,
@@ -1450,6 +1451,8 @@ fn build_single_entity_extract(
             bounds_radius: 1.0,
             screen_space_error: 1.0,
         }],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![RenderVirtualGeometryPage {
             page_id: 300,
             resident: true,

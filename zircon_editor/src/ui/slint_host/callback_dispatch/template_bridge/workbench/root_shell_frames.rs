@@ -3,12 +3,12 @@ use zircon_runtime::ui::layout::UiFrame;
 use crate::ui::workbench::autolayout::ShellRegionId;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
-pub(crate) struct BuiltinWorkbenchRootShellFrames {
+pub(crate) struct BuiltinHostRootShellFrames {
     pub shell_frame: Option<UiFrame>,
     pub menu_bar_frame: Option<UiFrame>,
     pub activity_rail_frame: Option<UiFrame>,
     pub host_page_strip_frame: Option<UiFrame>,
-    pub workbench_body_frame: Option<UiFrame>,
+    pub host_body_frame: Option<UiFrame>,
     pub left_drawer_shell_frame: Option<UiFrame>,
     pub left_drawer_header_frame: Option<UiFrame>,
     pub left_drawer_content_frame: Option<UiFrame>,
@@ -24,7 +24,7 @@ pub(crate) struct BuiltinWorkbenchRootShellFrames {
     pub status_bar_frame: Option<UiFrame>,
 }
 
-impl BuiltinWorkbenchRootShellFrames {
+impl BuiltinHostRootShellFrames {
     pub(crate) fn drawer_shell_frame(&self, region: ShellRegionId) -> Option<UiFrame> {
         match region {
             ShellRegionId::Left => self.left_drawer_shell_frame,

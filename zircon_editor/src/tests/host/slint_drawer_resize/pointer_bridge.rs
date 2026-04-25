@@ -1,10 +1,8 @@
 use std::collections::BTreeMap;
 
-use crate::ui::slint_host::drawer_resize::WorkbenchResizeTargetGroup;
-use crate::ui::slint_host::shell_pointer::{
-    WorkbenchShellPointerBridge, WorkbenchShellPointerRoute,
-};
-use crate::ui::slint_host::tab_drag::WorkbenchDragTargetGroup;
+use crate::ui::slint_host::drawer_resize::HostResizeTargetGroup;
+use crate::ui::slint_host::shell_pointer::{HostShellPointerBridge, HostShellPointerRoute};
+use crate::ui::slint_host::tab_drag::HostDragTargetGroup;
 use crate::ui::workbench::autolayout::{
     ShellFrame, ShellRegionId, ShellSizePx, WorkbenchShellGeometry,
 };
@@ -52,7 +50,7 @@ fn unified_shell_pointer_bridge_routes_drag_targets_and_resize_targets_from_one_
         floating_window_frames: BTreeMap::new(),
         viewport_content_frame: ShellFrame::new(316.0, 82.0, 808.0, 634.0),
     };
-    let mut bridge = WorkbenchShellPointerBridge::new();
+    let mut bridge = HostShellPointerBridge::new();
     bridge.update_layout_with_floating_windows(
         ShellSizePx::new(1440.0, 900.0),
         &geometry,
@@ -63,13 +61,11 @@ fn unified_shell_pointer_bridge_routes_drag_targets_and_resize_targets_from_one_
 
     assert_eq!(
         bridge.drag_target_at(UiPoint::new(1428.0, 240.0)),
-        Some(WorkbenchDragTargetGroup::Right)
+        Some(HostDragTargetGroup::Right)
     );
     assert_eq!(
         bridge.begin_resize(UiPoint::new(312.0, 420.0)),
-        Some(WorkbenchShellPointerRoute::Resize(
-            WorkbenchResizeTargetGroup::Left
-        ))
+        Some(HostShellPointerRoute::Resize(HostResizeTargetGroup::Left))
     );
 }
 
@@ -101,7 +97,7 @@ fn unified_shell_pointer_bridge_keeps_resize_route_captured_until_pointer_up() {
         floating_window_frames: BTreeMap::new(),
         viewport_content_frame: ShellFrame::new(316.0, 82.0, 1124.0, 634.0),
     };
-    let mut bridge = WorkbenchShellPointerBridge::new();
+    let mut bridge = HostShellPointerBridge::new();
     bridge.update_layout_with_floating_windows(
         ShellSizePx::new(1440.0, 900.0),
         &geometry,
@@ -112,17 +108,15 @@ fn unified_shell_pointer_bridge_keeps_resize_route_captured_until_pointer_up() {
 
     assert_eq!(
         bridge.begin_resize(UiPoint::new(312.0, 420.0)),
-        Some(WorkbenchShellPointerRoute::Resize(
-            WorkbenchResizeTargetGroup::Left
-        ))
+        Some(HostShellPointerRoute::Resize(HostResizeTargetGroup::Left))
     );
     assert_eq!(
         bridge.update_resize(UiPoint::new(900.0, 420.0)),
-        Some(WorkbenchResizeTargetGroup::Left)
+        Some(HostResizeTargetGroup::Left)
     );
     assert_eq!(
         bridge.finish_resize(UiPoint::new(900.0, 420.0)),
-        Some(WorkbenchResizeTargetGroup::Left)
+        Some(HostResizeTargetGroup::Left)
     );
     assert_eq!(bridge.update_resize(UiPoint::new(900.0, 420.0)), None);
 }

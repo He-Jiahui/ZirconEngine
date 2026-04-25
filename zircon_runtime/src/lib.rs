@@ -37,13 +37,14 @@ pub(crate) use graphics::{
     backend, extract, feature, material, pipeline, runtime, types, visibility,
     BuiltinRenderFeature, CompiledRenderPipeline, FrameHistoryAccess, FrameHistoryBinding,
     FrameHistoryHandle, FrameHistorySlot, GraphicsError, MaterialDomain, OfflineBakeOutput,
-    OfflineBakeSettings, RenderFeature, RenderFeatureDescriptor, RenderPassStage,
-    RenderPipelineAsset, RenderPipelineCompileOptions, RendererAsset, RendererFeatureAsset,
-    SceneRenderer, ViewportFrame, ViewportFrameTextureHandle, VisibilityContext,
-    VisibilityHistorySnapshot, VisibilityHybridGiFeedback, VisibilityHybridGiUpdatePlan,
-    VisibilityVirtualGeometryCluster, VisibilityVirtualGeometryDrawSegment,
-    VisibilityVirtualGeometryFeedback, VisibilityVirtualGeometryPageUploadPlan,
-    WgpuRenderFramework,
+    OfflineBakeSettings, RenderFeature, RenderFeatureCapabilityRequirement,
+    RenderFeatureDescriptor, RenderFeaturePassDescriptor, RenderFeatureResourceAccess,
+    RenderFeatureResourceKind, RenderPassStage, RenderPipelineAsset, RenderPipelineCompileOptions,
+    RendererAsset, RendererFeatureAsset, SceneRenderer, ViewportFrame, ViewportFrameTextureHandle,
+    VisibilityContext, VisibilityHistorySnapshot, VisibilityHybridGiFeedback,
+    VisibilityHybridGiUpdatePlan, VisibilityVirtualGeometryCluster,
+    VisibilityVirtualGeometryDrawSegment, VisibilityVirtualGeometryFeedback,
+    VisibilityVirtualGeometryPageUploadPlan, WgpuRenderFramework,
 };
 
 #[cfg(test)]

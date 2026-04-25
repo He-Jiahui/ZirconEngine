@@ -3,7 +3,7 @@ use super::support::*;
 #[test]
 fn editor_ui_host_runtime_registers_projection_bindings_as_route_stubs() {
     let mut runtime = EditorUiHostRuntime::default();
-    runtime.load_builtin_workbench_shell().unwrap();
+    runtime.load_builtin_host_templates().unwrap();
     let mut projection = runtime
         .project_document(UI_HOST_WINDOW_DOCUMENT_ID)
         .unwrap();

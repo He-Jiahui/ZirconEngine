@@ -3,11 +3,11 @@ use crate::core::editor_event::{
 };
 use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
 use crate::ui::slint_host::callback_dispatch::{
-    dispatch_shared_drawer_header_pointer_click, BuiltinWorkbenchTemplateBridge,
+    dispatch_shared_drawer_header_pointer_click, BuiltinHostWindowTemplateBridge,
 };
 use crate::ui::slint_host::drawer_header_pointer::{
-    build_workbench_drawer_header_pointer_layout, WorkbenchDrawerHeaderPointerBridge,
-    WorkbenchDrawerHeaderPointerRoute,
+    build_host_drawer_header_pointer_layout, HostDrawerHeaderPointerBridge,
+    HostDrawerHeaderPointerRoute,
 };
 use crate::ui::workbench::autolayout::{
     compute_workbench_shell_geometry, ShellSizePx, WorkbenchChromeMetrics,
@@ -20,7 +20,7 @@ fn shared_drawer_header_pointer_click_dispatches_drawer_toggle_through_runtime_d
     let _guard = env_lock().lock().unwrap();
 
     let harness = EventRuntimeHarness::new("zircon_slint_drawer_header_pointer_toggle");
-    let template_bridge = BuiltinWorkbenchTemplateBridge::new(UiSize::new(1280.0, 720.0))
+    let template_bridge = BuiltinHostWindowTemplateBridge::new(UiSize::new(1280.0, 720.0))
         .expect("builtin workbench template bridge should build");
     let chrome = harness.runtime.chrome_snapshot();
     let model = WorkbenchViewModel::build(&chrome);
@@ -33,8 +33,8 @@ fn shared_drawer_header_pointer_click_dispatches_drawer_toggle_through_runtime_d
         &WorkbenchChromeMetrics::default(),
         None,
     );
-    let mut pointer_bridge = WorkbenchDrawerHeaderPointerBridge::new();
-    pointer_bridge.sync(build_workbench_drawer_header_pointer_layout(
+    let mut pointer_bridge = HostDrawerHeaderPointerBridge::new();
+    pointer_bridge.sync(build_host_drawer_header_pointer_layout(
         &model,
         &geometry,
         &WorkbenchChromeMetrics::default(),
@@ -55,7 +55,7 @@ fn shared_drawer_header_pointer_click_dispatches_drawer_toggle_through_runtime_d
 
     assert_eq!(
         dispatched.pointer.route,
-        Some(WorkbenchDrawerHeaderPointerRoute::Tab {
+        Some(HostDrawerHeaderPointerRoute::Tab {
             surface_key: "left".to_string(),
             item_index: 0,
             slot: "left_top".to_string(),

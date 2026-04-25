@@ -82,6 +82,7 @@ fn welcome_startup_projects_into_exclusive_page_model() {
                 window_instance: welcome_instance.instance_id.clone(),
             }],
             drawers: BTreeMap::new(),
+            activity_windows: Default::default(),
             floating_windows: Vec::new(),
             region_overrides: BTreeMap::new(),
             view_overrides: BTreeMap::new(),

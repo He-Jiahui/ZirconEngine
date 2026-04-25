@@ -27,11 +27,11 @@ fn native_floating_window_mode_forwards_tabs_header_and_pane_callbacks_to_root()
     let pane_content_normalized = pane_content.split_whitespace().collect::<String>();
     let template_pane_normalized = template_pane.split_whitespace().collect::<String>();
     assert!(
-        scaffold.contains("HostWorkbenchWindowSurfaceHost {"),
-        "host scaffold should delegate window chrome switching to HostWorkbenchWindowSurfaceHost"
+        scaffold.contains("HostWindowSurfaceHost {"),
+        "host scaffold should delegate window chrome switching to HostWindowSurfaceHost"
     );
     let native_wrapper_start = host_surface
-        .find("export component HostNativeWorkbenchWindowSurface inherits Rectangle {")
+        .find("export component HostNativeWindowSurface inherits Rectangle {")
         .expect("native floating wrapper should exist");
     let native_wrapper = &host_surface[native_wrapper_start..];
     let native_start = host_native_floating_window_surface
@@ -49,9 +49,9 @@ fn native_floating_window_mode_forwards_tabs_header_and_pane_callbacks_to_root()
         );
     }
     for removed_wrapper_forwarder in [
-        "WorkbenchHostContext.document_tab_pointer_clicked(",
-        "WorkbenchHostContext.document_tab_close_pointer_clicked(",
-        "WorkbenchHostContext.floating_window_header_pointer_clicked(",
+        "UiHostContext.document_tab_pointer_clicked(",
+        "UiHostContext.document_tab_close_pointer_clicked(",
+        "UiHostContext.floating_window_header_pointer_clicked(",
     ] {
         assert!(
             !native_wrapper.contains(removed_wrapper_forwarder),
@@ -63,9 +63,9 @@ fn native_floating_window_mode_forwards_tabs_header_and_pane_callbacks_to_root()
         "closeable: tab.closeable;",
         "pointer_clicked(x, y) => {",
         "close_pointer_clicked(x, y) => {",
-        "WorkbenchHostContext.document_tab_pointer_clicked(",
-        "WorkbenchHostContext.document_tab_close_pointer_clicked(",
-        "WorkbenchHostContext.floating_window_header_pointer_clicked(",
+        "UiHostContext.document_tab_pointer_clicked(",
+        "UiHostContext.document_tab_close_pointer_clicked(",
+        "UiHostContext.floating_window_header_pointer_clicked(",
         "root.surface_data.native_window_bounds.x + self.x / 1px + self.mouse-x / 1px",
         "root.surface_data.native_window_bounds.y + self.mouse-y / 1px",
         "PaneSurface {",

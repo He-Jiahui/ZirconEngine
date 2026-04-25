@@ -28,6 +28,8 @@ fn visibility_context_uses_instance_ranges_and_forced_mip_for_virtual_geometry_s
             virtual_cluster(mesh, 20, 200, 10, Vec3::new(0.1, 0.0, 0.0), 8.0),
             virtual_cluster(mesh, 30, 300, 10, Vec3::new(0.2, 0.0, 0.0), 7.0),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![
             virtual_page(100, false),
             virtual_page(200, false),
@@ -95,6 +97,8 @@ fn visibility_context_freeze_cull_preserves_previous_virtual_geometry_selection_
             virtual_cluster(mesh, 10, 100, 0, Vec3::new(0.0, 0.0, 0.0), 9.0),
             virtual_cluster(mesh, 20, 200, 0, Vec3::new(0.1, 0.0, 0.0), 6.0),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![virtual_page(100, false), virtual_page(200, false)],
         instances: vec![RenderVirtualGeometryInstance {
             entity: mesh,
@@ -129,6 +133,8 @@ fn visibility_context_freeze_cull_preserves_previous_virtual_geometry_selection_
             virtual_cluster(mesh, 10, 100, 0, Vec3::new(100.0, 0.0, 0.0), 9.0),
             virtual_cluster(mesh, 20, 200, 0, Vec3::new(0.1, 0.0, 0.0), 12.0),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![virtual_page(100, false), virtual_page(200, false)],
         instances: vec![RenderVirtualGeometryInstance {
             entity: mesh,
@@ -225,6 +231,7 @@ fn virtual_cluster(
         page_id,
         lod_level,
         parent_cluster_id: None,
+        hierarchy_node_id: None,
         bounds_center,
         bounds_radius: 8.0,
         screen_space_error,

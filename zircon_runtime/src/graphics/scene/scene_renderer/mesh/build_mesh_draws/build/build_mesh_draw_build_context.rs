@@ -195,6 +195,7 @@ mod tests {
             clusters: vec![RenderVirtualGeometryCluster {
                 entity: 222_u64,
                 cluster_id: 10,
+                hierarchy_node_id: None,
                 page_id: 20,
                 lod_level: 1,
                 parent_cluster_id: None,
@@ -202,6 +203,8 @@ mod tests {
                 bounds_radius: 0.5,
                 screen_space_error: 0.25,
             }],
+            hierarchy_nodes: Vec::new(),
+            hierarchy_child_ids: Vec::new(),
             pages: Vec::new(),
             instances: vec![RenderVirtualGeometryInstance {
                 entity: 222_u64,

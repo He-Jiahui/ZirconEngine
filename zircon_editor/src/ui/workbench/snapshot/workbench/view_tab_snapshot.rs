@@ -1,6 +1,8 @@
 use serde_json::Value;
 
-use crate::ui::workbench::view::{ViewDescriptorId, ViewHost, ViewInstanceId, ViewKind};
+use crate::ui::workbench::view::{
+    PaneTemplateSpec, ViewDescriptorId, ViewHost, ViewInstanceId, ViewKind,
+};
 
 use super::ViewContentKind;
 
@@ -15,5 +17,6 @@ pub struct ViewTabSnapshot {
     pub serializable_payload: Value,
     pub dirty: bool,
     pub content_kind: ViewContentKind,
+    pub pane_template: Option<PaneTemplateSpec>,
     pub placeholder: bool,
 }

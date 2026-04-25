@@ -19,6 +19,10 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
             RenderPassStage::Transparent,
             "particle-render",
             QueueLane::Graphics,
-        )],
+        )
+        .with_executor_id("particle.transparent")
+        .read_texture("scene-depth")
+        .read_texture("scene-color")
+        .write_texture("scene-color")],
     )
 }

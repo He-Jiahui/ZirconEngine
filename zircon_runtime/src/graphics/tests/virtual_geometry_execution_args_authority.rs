@@ -792,6 +792,8 @@ fn build_overlapping_extract(
         cluster_budget: clusters.len() as u32,
         page_budget: pages.len() as u32,
         clusters,
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages,
         instances: Vec::new(),
         debug: Default::default(),
@@ -869,6 +871,7 @@ fn cluster(entity: u64, cluster_id: u32, page_id: u32) -> RenderVirtualGeometryC
     RenderVirtualGeometryCluster {
         entity,
         cluster_id,
+        hierarchy_node_id: None,
         page_id,
         lod_level: 0,
         parent_cluster_id: None,

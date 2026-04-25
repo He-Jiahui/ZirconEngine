@@ -1,35 +1,32 @@
 use zircon_runtime::ui::{dispatch::UiPointerEvent, layout::UiPoint, surface::UiPointerEventKind};
 
+use super::host_activity_rail_pointer_bridge::HostActivityRailPointerBridge;
+use super::host_activity_rail_pointer_dispatch::HostActivityRailPointerDispatch;
+use super::host_activity_rail_pointer_side::HostActivityRailPointerSide;
+use super::host_activity_rail_pointer_target::HostActivityRailPointerTarget;
 use super::to_public_route::to_public_route;
-use super::workbench_activity_rail_pointer_bridge::WorkbenchActivityRailPointerBridge;
-use super::workbench_activity_rail_pointer_dispatch::WorkbenchActivityRailPointerDispatch;
-use super::workbench_activity_rail_pointer_side::WorkbenchActivityRailPointerSide;
-use super::workbench_activity_rail_pointer_target::WorkbenchActivityRailPointerTarget;
 
-impl WorkbenchActivityRailPointerBridge {
+impl HostActivityRailPointerBridge {
     pub(crate) fn handle_click(
         &mut self,
-        side: WorkbenchActivityRailPointerSide,
+        side: HostActivityRailPointerSide,
         point: UiPoint,
-    ) -> Result<WorkbenchActivityRailPointerDispatch, String> {
+    ) -> Result<HostActivityRailPointerDispatch, String> {
         let local_point = self.global_point_for_side(side, point);
         let mut route =
             self.dispatch_event(UiPointerEvent::new(UiPointerEventKind::Down, local_point))?;
-        if !matches!(
-            route,
-            Some(WorkbenchActivityRailPointerTarget::Button { .. })
-        ) {
+        if !matches!(route, Some(HostActivityRailPointerTarget::Button { .. })) {
             let projected_route =
                 self.dispatch_event(UiPointerEvent::new(UiPointerEventKind::Down, point))?;
             if matches!(
                 projected_route,
-                Some(WorkbenchActivityRailPointerTarget::Button { .. })
+                Some(HostActivityRailPointerTarget::Button { .. })
             ) || route.is_none()
             {
                 route = projected_route;
             }
         }
-        Ok(WorkbenchActivityRailPointerDispatch {
+        Ok(HostActivityRailPointerDispatch {
             route: route.map(to_public_route),
         })
     }

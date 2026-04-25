@@ -1,8 +1,8 @@
 use zircon_runtime::ui::layout::UiPoint;
 
-use super::workbench_drawer_header_pointer_bridge::WorkbenchDrawerHeaderPointerBridge;
+use super::host_drawer_header_pointer_bridge::HostDrawerHeaderPointerBridge;
 
-impl WorkbenchDrawerHeaderPointerBridge {
+impl HostDrawerHeaderPointerBridge {
     pub(super) fn global_point(
         &self,
         surface_key: &str,

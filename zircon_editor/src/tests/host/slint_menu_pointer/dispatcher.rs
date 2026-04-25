@@ -5,10 +5,10 @@ fn shared_menu_pointer_click_dispatches_reset_layout_through_runtime_dispatcher(
     let _guard = env_lock().lock().unwrap();
 
     let harness = EventRuntimeHarness::new("zircon_slint_menu_pointer_reset_layout");
-    let template_bridge = BuiltinWorkbenchTemplateBridge::new(UiSize::new(1280.0, 720.0))
+    let template_bridge = BuiltinHostWindowTemplateBridge::new(UiSize::new(1280.0, 720.0))
         .expect("builtin workbench template bridge should build");
-    let mut pointer_bridge = WorkbenchMenuPointerBridge::new();
-    pointer_bridge.sync(default_menu_layout(), WorkbenchMenuPointerState::default());
+    let mut pointer_bridge = HostMenuPointerBridge::new();
+    pointer_bridge.sync(default_menu_layout(), HostMenuPointerState::default());
 
     let opened = dispatch_shared_menu_pointer_click(
         &harness.runtime,
@@ -19,7 +19,7 @@ fn shared_menu_pointer_click_dispatches_reset_layout_through_runtime_dispatcher(
     .expect("shared pointer route should open the file menu");
     assert_eq!(
         opened.pointer.route,
-        Some(WorkbenchMenuPointerRoute::MenuButton(0))
+        Some(HostMenuPointerRoute::MenuButton(0))
     );
     assert!(opened.effects.is_none());
 
@@ -32,7 +32,7 @@ fn shared_menu_pointer_click_dispatches_reset_layout_through_runtime_dispatcher(
     .expect("shared pointer route should dispatch reset layout");
     assert_eq!(
         dispatched.pointer.route,
-        Some(WorkbenchMenuPointerRoute::MenuItem {
+        Some(HostMenuPointerRoute::MenuItem {
             menu_index: 0,
             item_index: 3,
             action_id: "ResetLayout".to_string(),
@@ -59,13 +59,13 @@ fn shared_menu_pointer_click_dispatches_scrolled_window_preset_selection() {
         dispatch_menu_action(&harness.runtime, &format!("SavePreset.alpha-{index:02}"))
             .expect("preset save setup should succeed");
     }
-    let template_bridge = BuiltinWorkbenchTemplateBridge::new(UiSize::new(1280.0, 720.0))
+    let template_bridge = BuiltinHostWindowTemplateBridge::new(UiSize::new(1280.0, 720.0))
         .expect("builtin workbench template bridge should build");
-    let mut pointer_bridge = WorkbenchMenuPointerBridge::new();
+    let mut pointer_bridge = HostMenuPointerBridge::new();
     let layout = window_menu_layout(10);
     pointer_bridge.sync(
         layout.clone(),
-        WorkbenchMenuPointerState {
+        HostMenuPointerState {
             open_menu_index: Some(4),
             hovered_menu_index: Some(4),
             hovered_item_index: None,
@@ -90,7 +90,7 @@ fn shared_menu_pointer_click_dispatches_scrolled_window_preset_selection() {
     .expect("shared pointer route should dispatch a scrolled preset selection");
     assert_eq!(
         dispatched.pointer.route,
-        Some(WorkbenchMenuPointerRoute::MenuItem {
+        Some(HostMenuPointerRoute::MenuItem {
             menu_index: 4,
             item_index: preset_index,
             action_id: "LoadPreset.alpha-03".to_string(),

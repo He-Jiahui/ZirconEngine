@@ -41,6 +41,10 @@ pub(super) fn encode_hybrid_gi_scene_driven_probe_screen_data(
     )
 }
 
+pub(super) fn encode_hybrid_gi_scene_truth_fallback_probe_screen_data(ray_budget: u32) -> [f32; 4] {
+    [0.5, 0.5, 1.0, hybrid_gi_budget_weight(ray_budget)]
+}
+
 fn encode_hybrid_gi_bounds_screen_data(
     extract: &RenderFrameExtract,
     viewport_size: UVec2,

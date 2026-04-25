@@ -244,6 +244,8 @@ fn virtual_geometry_nanite_extract_resolution_respects_explicit_payload_and_feat
         cluster_budget: 9,
         page_budget: 7,
         clusters: Vec::new(),
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: Vec::new(),
         instances: Vec::new(),
         debug: Default::default(),

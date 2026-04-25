@@ -23,66 +23,23 @@ impl RenderPipelineAsset {
                     RenderPassStage::Overlay,
                 ],
                 features: vec![
-                    RendererFeatureAsset {
-                        feature: BuiltinRenderFeature::VirtualGeometry,
-                        enabled: true,
-                    },
-                    RendererFeatureAsset {
-                        feature: BuiltinRenderFeature::DeferredGeometry,
-                        enabled: true,
-                    },
-                    RendererFeatureAsset {
-                        feature: BuiltinRenderFeature::Shadows,
-                        enabled: true,
-                    },
-                    RendererFeatureAsset {
-                        feature: BuiltinRenderFeature::ScreenSpaceAmbientOcclusion,
-                        enabled: true,
-                    },
-                    RendererFeatureAsset {
-                        feature: BuiltinRenderFeature::ClusteredLighting,
-                        enabled: true,
-                    },
-                    RendererFeatureAsset {
-                        feature: BuiltinRenderFeature::DeferredLighting,
-                        enabled: true,
-                    },
-                    RendererFeatureAsset {
-                        feature: BuiltinRenderFeature::GlobalIllumination,
-                        enabled: true,
-                    },
-                    RendererFeatureAsset {
-                        feature: BuiltinRenderFeature::Particle,
-                        enabled: true,
-                    },
-                    RendererFeatureAsset {
-                        feature: BuiltinRenderFeature::Bloom,
-                        enabled: true,
-                    },
-                    RendererFeatureAsset {
-                        feature: BuiltinRenderFeature::ReflectionProbes,
-                        enabled: true,
-                    },
-                    RendererFeatureAsset {
-                        feature: BuiltinRenderFeature::BakedLighting,
-                        enabled: true,
-                    },
-                    RendererFeatureAsset {
-                        feature: BuiltinRenderFeature::PostProcess,
-                        enabled: true,
-                    },
-                    RendererFeatureAsset {
-                        feature: BuiltinRenderFeature::ColorGrading,
-                        enabled: true,
-                    },
-                    RendererFeatureAsset {
-                        feature: BuiltinRenderFeature::HistoryResolve,
-                        enabled: true,
-                    },
-                    RendererFeatureAsset {
-                        feature: BuiltinRenderFeature::DebugOverlay,
-                        enabled: true,
-                    },
+                    RendererFeatureAsset::builtin(BuiltinRenderFeature::VirtualGeometry),
+                    RendererFeatureAsset::builtin(BuiltinRenderFeature::DeferredGeometry),
+                    RendererFeatureAsset::builtin(BuiltinRenderFeature::Shadows),
+                    RendererFeatureAsset::builtin(
+                        BuiltinRenderFeature::ScreenSpaceAmbientOcclusion,
+                    ),
+                    RendererFeatureAsset::builtin(BuiltinRenderFeature::ClusteredLighting),
+                    RendererFeatureAsset::builtin(BuiltinRenderFeature::DeferredLighting),
+                    RendererFeatureAsset::builtin(BuiltinRenderFeature::GlobalIllumination),
+                    RendererFeatureAsset::builtin(BuiltinRenderFeature::Particle),
+                    RendererFeatureAsset::builtin(BuiltinRenderFeature::Bloom),
+                    RendererFeatureAsset::builtin(BuiltinRenderFeature::ReflectionProbes),
+                    RendererFeatureAsset::builtin(BuiltinRenderFeature::BakedLighting),
+                    RendererFeatureAsset::builtin(BuiltinRenderFeature::PostProcess),
+                    RendererFeatureAsset::builtin(BuiltinRenderFeature::ColorGrading),
+                    RendererFeatureAsset::builtin(BuiltinRenderFeature::HistoryResolve),
+                    RendererFeatureAsset::builtin(BuiltinRenderFeature::DebugOverlay),
                 ],
             },
         }

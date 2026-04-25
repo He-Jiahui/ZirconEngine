@@ -5,12 +5,16 @@ use super::super::gpu_completion::{HybridGiGpuCompletion, VirtualGeometryGpuComp
 pub(super) struct GpuCompletions {
     pub(super) hybrid_gi_completion: Option<HybridGiGpuCompletion>,
     pub(super) virtual_geometry_completion: Option<VirtualGeometryGpuCompletion>,
+    pub(super) node_and_cluster_cull_page_requests: Vec<u32>,
 }
 
 pub(super) fn collect_gpu_completions(renderer: &mut SceneRenderer) -> GpuCompletions {
     GpuCompletions {
         hybrid_gi_completion: collect_hybrid_gi_completion(renderer),
         virtual_geometry_completion: collect_virtual_geometry_completion(renderer),
+        node_and_cluster_cull_page_requests: renderer
+            .last_virtual_geometry_node_and_cluster_cull_page_request_ids()
+            .to_vec(),
     }
 }
 

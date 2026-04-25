@@ -357,6 +357,8 @@ fn visibility_context_builds_virtual_geometry_visibility_feedback_and_page_plan(
             virtual_cluster(mesh, 20, 200, 1, None, Vec3::new(0.1, 0.0, 0.0), 5.0),
             virtual_cluster(mesh, 10, 100, 2, None, Vec3::new(0.2, 0.0, 0.0), 2.0),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![
             virtual_page(100, false),
             virtual_page(150, false),
@@ -438,6 +440,8 @@ fn visibility_context_with_history_tracks_virtual_geometry_requested_pages() {
             virtual_cluster(mesh, 30, 300, 0, None, Vec3::new(0.0, 0.0, 0.0), 8.0),
             virtual_cluster(mesh, 20, 200, 1, None, Vec3::new(0.1, 0.0, 0.0), 5.0),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![
             virtual_page(200, true),
             virtual_page(300, false),
@@ -457,6 +461,8 @@ fn visibility_context_with_history_tracks_virtual_geometry_requested_pages() {
             virtual_cluster(mesh, 30, 300, 1, None, Vec3::new(0.1, 0.0, 0.0), 8.0),
             virtual_cluster(mesh, 20, 200, 2, None, Vec3::new(0.2, 0.0, 0.0), 4.0),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![
             virtual_page(200, true),
             virtual_page(300, false),
@@ -519,6 +525,8 @@ fn visibility_context_refines_virtual_geometry_parent_cluster_into_visible_child
             virtual_cluster(mesh, 20, 200, 1, Some(10), Vec3::new(0.1, 0.0, 0.0), 9.0),
             virtual_cluster(mesh, 30, 300, 1, Some(10), Vec3::new(-0.1, 0.0, 0.0), 8.0),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![
             virtual_page(100, true),
             virtual_page(200, true),
@@ -596,6 +604,8 @@ fn visibility_context_keeps_parent_virtual_geometry_cluster_visible_while_reques
             virtual_cluster(mesh, 20, 200, 1, Some(10), Vec3::new(0.1, 0.0, 0.0), 9.0),
             virtual_cluster(mesh, 30, 300, 1, Some(10), Vec3::new(-0.1, 0.0, 0.0), 8.0),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![
             virtual_page(100, true),
             virtual_page(200, false),
@@ -664,6 +674,8 @@ fn visibility_context_keeps_resident_virtual_geometry_children_visible_while_req
             virtual_cluster(mesh, 40, 400, 2, Some(20), Vec3::new(0.16, 0.0, 0.0), 6.5),
             virtual_cluster(mesh, 50, 500, 2, Some(30), Vec3::new(-0.16, 0.0, 0.0), 5.5),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![
             virtual_page(100, true),
             virtual_page(200, true),
@@ -742,6 +754,8 @@ fn visibility_context_holds_resident_parent_one_frame_after_requested_children_b
             virtual_cluster(mesh, 20, 200, 1, Some(10), Vec3::new(0.1, 0.0, 0.0), 9.0),
             virtual_cluster(mesh, 30, 300, 1, Some(10), Vec3::new(-0.1, 0.0, 0.0), 8.0),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![
             virtual_page(100, true),
             virtual_page(200, false),
@@ -761,6 +775,8 @@ fn visibility_context_holds_resident_parent_one_frame_after_requested_children_b
             virtual_cluster(mesh, 20, 200, 1, Some(10), Vec3::new(0.1, 0.0, 0.0), 9.0),
             virtual_cluster(mesh, 30, 300, 1, Some(10), Vec3::new(-0.1, 0.0, 0.0), 8.0),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![
             virtual_page(100, true),
             virtual_page(200, true),
@@ -900,6 +916,8 @@ fn visibility_context_holds_resident_child_page_one_frame_when_frontier_merges_b
             virtual_cluster(mesh, 20, 200, 1, Some(10), Vec3::new(0.1, 0.0, 0.0), 9.0),
             virtual_cluster(mesh, 30, 300, 1, Some(10), Vec3::new(-0.1, 0.0, 0.0), 8.0),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![
             virtual_page(100, true),
             virtual_page(200, true),
@@ -925,6 +943,8 @@ fn visibility_context_holds_resident_child_page_one_frame_when_frontier_merges_b
             virtual_cluster(mesh, 20, 200, 1, Some(10), Vec3::new(0.1, 0.0, 0.0), 9.0),
             virtual_cluster(mesh, 30, 300, 1, Some(10), Vec3::new(-0.1, 0.0, 0.0), 8.0),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![
             virtual_page(100, true),
             virtual_page(200, true),
@@ -1018,6 +1038,8 @@ fn visibility_context_keeps_resident_child_frontier_hot_across_repeated_budget_c
             virtual_cluster(mesh, 20, 200, 1, Some(10), Vec3::new(0.1, 0.0, 0.0), 9.0),
             virtual_cluster(mesh, 30, 300, 1, Some(10), Vec3::new(-0.1, 0.0, 0.0), 8.0),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![
             virtual_page(100, true),
             virtual_page(200, true),
@@ -1043,6 +1065,8 @@ fn visibility_context_keeps_resident_child_frontier_hot_across_repeated_budget_c
             virtual_cluster(mesh, 20, 200, 1, Some(10), Vec3::new(0.1, 0.0, 0.0), 9.0),
             virtual_cluster(mesh, 30, 300, 1, Some(10), Vec3::new(-0.1, 0.0, 0.0), 8.0),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![
             virtual_page(100, true),
             virtual_page(200, true),
@@ -1118,6 +1142,8 @@ fn visibility_context_requests_nonresident_ancestor_page_and_holds_descendants_w
             virtual_cluster(mesh, 40, 400, 2, Some(20), Vec3::new(0.16, 0.0, 0.0), 6.5),
             virtual_cluster(mesh, 50, 500, 2, Some(30), Vec3::new(-0.16, 0.0, 0.0), 5.5),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![
             virtual_page(100, true),
             virtual_page(200, true),
@@ -1147,6 +1173,8 @@ fn visibility_context_requests_nonresident_ancestor_page_and_holds_descendants_w
             virtual_cluster(mesh, 40, 400, 2, Some(20), Vec3::new(0.16, 0.0, 0.0), 6.5),
             virtual_cluster(mesh, 50, 500, 2, Some(30), Vec3::new(-0.16, 0.0, 0.0), 5.5),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![
             virtual_page(100, true),
             virtual_page(200, true),
@@ -1221,6 +1249,8 @@ fn visibility_context_keeps_resident_grandchild_pages_hot_while_multi_level_casc
             virtual_cluster(mesh, 40, 400, 2, Some(20), Vec3::new(0.16, 0.0, 0.0), 6.5),
             virtual_cluster(mesh, 50, 500, 2, Some(30), Vec3::new(-0.16, 0.0, 0.0), 5.5),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![
             virtual_page(100, true),
             virtual_page(200, true),
@@ -1244,6 +1274,8 @@ fn visibility_context_keeps_resident_grandchild_pages_hot_while_multi_level_casc
             virtual_cluster(mesh, 40, 400, 2, Some(20), Vec3::new(0.16, 0.0, 0.0), 6.5),
             virtual_cluster(mesh, 50, 500, 2, Some(30), Vec3::new(-0.16, 0.0, 0.0), 5.5),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![
             virtual_page(100, true),
             virtual_page(200, true),
@@ -1309,6 +1341,8 @@ fn visibility_context_keeps_intermediate_virtual_geometry_lineage_pages_hot_whil
             virtual_cluster(mesh, 30, 300, 2, Some(20), Vec3::new(0.12, 0.0, 0.0), 7.0),
             virtual_cluster(mesh, 40, 400, 3, Some(30), Vec3::new(0.16, 0.0, 0.0), 5.0),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![
             virtual_page(100, true),
             virtual_page(200, true),
@@ -1336,6 +1370,8 @@ fn visibility_context_keeps_intermediate_virtual_geometry_lineage_pages_hot_whil
             virtual_cluster(mesh, 30, 300, 2, Some(20), Vec3::new(0.12, 0.0, 0.0), 7.0),
             virtual_cluster(mesh, 40, 400, 3, Some(30), Vec3::new(0.16, 0.0, 0.0), 5.0),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![
             virtual_page(100, true),
             virtual_page(200, false),
@@ -1409,6 +1445,8 @@ fn visibility_context_only_holds_requested_virtual_geometry_lineage_when_frontie
             virtual_cluster(mesh, 40, 400, 2, Some(20), Vec3::new(0.15, 0.0, 0.0), 7.0),
             virtual_cluster(mesh, 50, 500, 2, Some(30), Vec3::new(-0.15, 0.0, 0.0), 6.5),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![
             virtual_page(100, true),
             virtual_page(200, true),
@@ -1438,6 +1476,8 @@ fn visibility_context_only_holds_requested_virtual_geometry_lineage_when_frontie
             virtual_cluster(mesh, 40, 400, 2, Some(20), Vec3::new(0.15, 0.0, 0.0), 7.0),
             virtual_cluster(mesh, 50, 500, 2, Some(30), Vec3::new(-0.15, 0.0, 0.0), 6.5),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![
             virtual_page(100, true),
             virtual_page(200, false),
@@ -1505,6 +1545,8 @@ fn visibility_context_splits_virtual_geometry_draw_segments_across_parent_lineag
             virtual_cluster(mesh, 40, 400, 2, Some(20), Vec3::new(0.16, 0.0, 0.0), 6.5),
             virtual_cluster(mesh, 50, 400, 2, Some(30), Vec3::new(-0.16, 0.0, 0.0), 5.5),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![
             virtual_page(100, true),
             virtual_page(200, true),
@@ -1591,6 +1633,8 @@ fn visibility_context_keeps_parent_virtual_geometry_cluster_when_children_exceed
             virtual_cluster(mesh, 30, 300, 1, Some(10), Vec3::new(-0.1, 0.0, 0.0), 8.0),
             virtual_cluster(mesh, 40, 400, 1, Some(10), Vec3::new(0.0, 0.1, 0.0), 7.0),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![
             virtual_page(100, false),
             virtual_page(200, false),
@@ -1649,6 +1693,8 @@ fn visibility_context_prioritizes_virtual_geometry_pages_backing_more_visible_cl
             virtual_cluster(mesh, 20, 200, 1, None, Vec3::new(0.1, 0.0, 0.0), 8.0),
             virtual_cluster(mesh, 30, 200, 1, None, Vec3::new(-0.1, 0.0, 0.0), 7.0),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![
             virtual_page(100, false),
             virtual_page(200, false),
@@ -1704,6 +1750,8 @@ fn visibility_context_uses_aggregate_screen_space_error_to_break_virtual_geometr
             virtual_cluster(mesh, 20, 200, 0, None, Vec3::new(-0.1, 0.0, 0.0), 6.0),
             virtual_cluster(mesh, 21, 200, 0, None, Vec3::new(-0.2, 0.0, 0.0), 5.0),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![virtual_page(100, false), virtual_page(200, false)],
         instances: Vec::new(),
         debug: Default::default(),
@@ -1802,6 +1850,7 @@ fn virtual_cluster(
     RenderVirtualGeometryCluster {
         entity,
         cluster_id,
+        hierarchy_node_id: None,
         page_id,
         lod_level,
         parent_cluster_id,

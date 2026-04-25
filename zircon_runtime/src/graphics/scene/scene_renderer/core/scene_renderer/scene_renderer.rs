@@ -5,6 +5,7 @@ use crate::core::framework::render::FrameHistoryHandle;
 use crate::core::framework::render::{
     RenderVirtualGeometryClusterSelectionInputSource, RenderVirtualGeometryDebugSnapshot,
     RenderVirtualGeometryHardwareRasterizationSource,
+    RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot,
     RenderVirtualGeometryNodeAndClusterCullSource, RenderVirtualGeometrySelectedClusterSource,
     RenderVirtualGeometryVisBuffer64Source,
 };
@@ -16,6 +17,10 @@ use crate::graphics::scene::scene_renderer::history::SceneFrameHistoryTextures;
 use crate::graphics::scene::scene_renderer::HybridGiGpuReadback;
 use crate::graphics::scene::scene_renderer::VirtualGeometryGpuReadback;
 
+use super::super::super::graph_execution::{
+    RenderGraphExecutionRecord, RenderPassExecutorRegistry,
+};
+
 pub struct SceneRenderer {
     pub(in crate::graphics::scene::scene_renderer::core) backend: RenderBackend,
     pub(in crate::graphics::scene::scene_renderer::core) core: SceneRendererCore,
@@ -24,6 +29,10 @@ pub struct SceneRenderer {
     pub(in crate::graphics::scene::scene_renderer::core) history_targets:
         HashMap<FrameHistoryHandle, SceneFrameHistoryTextures>,
     pub(in crate::graphics::scene::scene_renderer::core) generation: u64,
+    pub(in crate::graphics::scene::scene_renderer::core) render_pass_executors:
+        RenderPassExecutorRegistry,
+    pub(in crate::graphics::scene::scene_renderer::core) last_render_graph_execution:
+        RenderGraphExecutionRecord,
     pub(in crate::graphics::scene::scene_renderer::core) last_hybrid_gi_gpu_readback:
         Option<HybridGiGpuReadback>,
     pub(in crate::graphics::scene::scene_renderer::core) last_virtual_geometry_gpu_readback:
@@ -82,13 +91,45 @@ pub struct SceneRenderer {
         RenderVirtualGeometryNodeAndClusterCullSource,
     pub(in crate::graphics::scene::scene_renderer::core) last_virtual_geometry_node_and_cluster_cull_record_count:
         u32,
+    pub(in crate::graphics::scene::scene_renderer::core) last_virtual_geometry_node_and_cluster_cull_global_state:
+        Option<RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot>,
+    pub(in crate::graphics::scene::scene_renderer::core) last_virtual_geometry_node_and_cluster_cull_dispatch_group_count:
+        [u32; 3],
     pub(in crate::graphics::scene::scene_renderer::core) last_virtual_geometry_node_and_cluster_cull_buffer:
         Option<Arc<wgpu::Buffer>>,
     pub(in crate::graphics::scene::scene_renderer::core) last_virtual_geometry_node_and_cluster_cull_dispatch_setup_buffer:
         Option<Arc<wgpu::Buffer>>,
+    pub(in crate::graphics::scene::scene_renderer::core) last_virtual_geometry_node_and_cluster_cull_launch_worklist_buffer:
+        Option<Arc<wgpu::Buffer>>,
     pub(in crate::graphics::scene::scene_renderer::core) last_virtual_geometry_node_and_cluster_cull_instance_seed_count:
         u32,
     pub(in crate::graphics::scene::scene_renderer::core) last_virtual_geometry_node_and_cluster_cull_instance_seed_buffer:
+        Option<Arc<wgpu::Buffer>>,
+    pub(in crate::graphics::scene::scene_renderer::core) last_virtual_geometry_node_and_cluster_cull_instance_work_item_count:
+        u32,
+    pub(in crate::graphics::scene::scene_renderer::core) last_virtual_geometry_node_and_cluster_cull_instance_work_item_buffer:
+        Option<Arc<wgpu::Buffer>>,
+    pub(in crate::graphics::scene::scene_renderer::core) last_virtual_geometry_node_and_cluster_cull_cluster_work_item_count:
+        u32,
+    pub(in crate::graphics::scene::scene_renderer::core) last_virtual_geometry_node_and_cluster_cull_cluster_work_item_buffer:
+        Option<Arc<wgpu::Buffer>>,
+    pub(in crate::graphics::scene::scene_renderer::core) last_virtual_geometry_node_and_cluster_cull_hierarchy_child_id_count:
+        u32,
+    pub(in crate::graphics::scene::scene_renderer::core) last_virtual_geometry_node_and_cluster_cull_hierarchy_child_id_buffer:
+        Option<Arc<wgpu::Buffer>>,
+    pub(in crate::graphics::scene::scene_renderer::core) last_virtual_geometry_node_and_cluster_cull_child_work_item_count:
+        u32,
+    pub(in crate::graphics::scene::scene_renderer::core) last_virtual_geometry_node_and_cluster_cull_child_work_item_buffer:
+        Option<Arc<wgpu::Buffer>>,
+    pub(in crate::graphics::scene::scene_renderer::core) last_virtual_geometry_node_and_cluster_cull_traversal_record_count:
+        u32,
+    pub(in crate::graphics::scene::scene_renderer::core) last_virtual_geometry_node_and_cluster_cull_traversal_record_buffer:
+        Option<Arc<wgpu::Buffer>>,
+    pub(in crate::graphics::scene::scene_renderer::core) last_virtual_geometry_node_and_cluster_cull_page_request_count:
+        u32,
+    pub(in crate::graphics::scene::scene_renderer::core) last_virtual_geometry_node_and_cluster_cull_page_request_ids:
+        Vec<u32>,
+    pub(in crate::graphics::scene::scene_renderer::core) last_virtual_geometry_node_and_cluster_cull_page_request_buffer:
         Option<Arc<wgpu::Buffer>>,
     pub(in crate::graphics::scene::scene_renderer::core) last_virtual_geometry_selected_cluster_source:
         RenderVirtualGeometrySelectedClusterSource,

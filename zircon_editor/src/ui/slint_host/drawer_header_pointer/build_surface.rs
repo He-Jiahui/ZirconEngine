@@ -4,8 +4,8 @@ use crate::ui::workbench::autolayout::WorkbenchChromeMetrics;
 use crate::ui::workbench::model::WorkbenchViewModel;
 
 use super::drawer_slot_key::drawer_slot_key;
-use super::workbench_drawer_header_pointer_item::WorkbenchDrawerHeaderPointerItem;
-use super::workbench_drawer_header_pointer_surface::WorkbenchDrawerHeaderPointerSurface;
+use super::host_drawer_header_pointer_item::HostDrawerHeaderPointerItem;
+use super::host_drawer_header_pointer_surface::HostDrawerHeaderPointerSurface;
 
 pub(super) fn build_surface(
     key: &str,
@@ -14,7 +14,7 @@ pub(super) fn build_surface(
     slots: &[crate::ui::workbench::layout::ActivityDrawerSlot],
     metrics: &WorkbenchChromeMetrics,
     side_with_rail: bool,
-) -> Option<WorkbenchDrawerHeaderPointerSurface> {
+) -> Option<HostDrawerHeaderPointerSurface> {
     let items = slots
         .iter()
         .filter_map(|slot| model.tool_windows.get(slot))
@@ -22,7 +22,7 @@ pub(super) fn build_surface(
             stack
                 .tabs
                 .iter()
-                .map(move |tab| WorkbenchDrawerHeaderPointerItem {
+                .map(move |tab| HostDrawerHeaderPointerItem {
                     slot: drawer_slot_key(stack.slot).to_string(),
                     instance_id: tab.instance_id.0.clone(),
                 })
@@ -61,7 +61,7 @@ pub(super) fn build_surface(
         )
     };
 
-    Some(WorkbenchDrawerHeaderPointerSurface {
+    Some(HostDrawerHeaderPointerSurface {
         key: key.to_string(),
         strip_frame,
         items,

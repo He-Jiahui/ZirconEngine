@@ -24,6 +24,7 @@ pub(crate) mod preview_state;
 pub(crate) mod promotion_state;
 pub(crate) mod session_state;
 pub(crate) mod style_inspection;
+pub(crate) mod style_rule_identity;
 pub(crate) mod style_state;
 pub(crate) mod theme_state;
 pub(crate) mod ui_asset_editor_session;

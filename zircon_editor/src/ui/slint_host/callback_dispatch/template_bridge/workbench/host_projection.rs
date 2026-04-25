@@ -12,21 +12,21 @@ use crate::ui::template_runtime::{EditorUiHostRuntime, SlintUiHostProjection, Sl
 use crate::ui::workbench::autolayout::WorkbenchChromeMetrics;
 
 use super::bridge::HOST_PAGE_STRIP_CONTROL_ID;
-use super::error::BuiltinWorkbenchTemplateBridgeError;
+use super::error::BuiltinHostWindowTemplateBridgeError;
 
-pub(super) fn build_builtin_workbench_host_projection(
+pub(super) fn build_builtin_host_window_projection(
     runtime: &EditorUiHostRuntime,
     projection: &SlintUiProjection,
     shell_size: UiSize,
-) -> Result<SlintUiHostProjection, BuiltinWorkbenchTemplateBridgeError> {
+) -> Result<SlintUiHostProjection, BuiltinHostWindowTemplateBridgeError> {
     let mut surface = runtime.build_shared_surface(BUILTIN_UI_HOST_WINDOW_DOCUMENT_ID)?;
     surface.compute_layout(shell_size)?;
-    apply_builtin_workbench_host_strip_layout(&mut surface);
+    apply_builtin_host_window_strip_layout(&mut surface);
     surface.compute_layout(shell_size)?;
     Ok(runtime.build_slint_host_projection_with_surface(projection, &surface)?)
 }
 
-fn apply_builtin_workbench_host_strip_layout(surface: &mut UiSurface) {
+fn apply_builtin_host_window_strip_layout(surface: &mut UiSurface) {
     let Some(shell_frame) = surface_control_frame(surface, UI_HOST_WINDOW_CONTROL_ID) else {
         return;
     };

@@ -1,6 +1,6 @@
 import { Palette, TabChip } from "chrome.slint";
 import { HostNativeFloatingWindowSurfaceData } from "host_components.slint";
-import { WorkbenchHostContext } from "host_context.slint";
+import { UiHostContext } from "host_context.slint";
 import { PaneSurface } from "pane_surface.slint";
 
 export component HostNativeFloatingWindowSurface inherits Rectangle {
@@ -29,7 +29,7 @@ export component HostNativeFloatingWindowSurface inherits Rectangle {
                     width: max(parent.width - self.x, 0px);
                     height: parent.height;
                     clicked => {
-                        WorkbenchHostContext.floating_window_header_pointer_clicked(
+                        UiHostContext.floating_window_header_pointer_clicked(
                             root.surface_data.native_window_bounds.x + self.x / 1px + self.mouse-x / 1px,
                             root.surface_data.native_window_bounds.y + self.mouse-y / 1px,
                         );
@@ -47,7 +47,7 @@ export component HostNativeFloatingWindowSurface inherits Rectangle {
                         closeable: tab.closeable;
                         drag_enabled: false;
                         pointer_clicked(x, y) => {
-                            WorkbenchHostContext.document_tab_pointer_clicked(
+                            UiHostContext.document_tab_pointer_clicked(
                                 window.window_id,
                                 index,
                                 8.0 + self.x / 1px,
@@ -57,7 +57,7 @@ export component HostNativeFloatingWindowSurface inherits Rectangle {
                             );
                         }
                         close_pointer_clicked(x, y) => {
-                            WorkbenchHostContext.document_tab_close_pointer_clicked(
+                            UiHostContext.document_tab_close_pointer_clicked(
                                 window.window_id,
                                 index,
                                 8.0 + self.x / 1px,

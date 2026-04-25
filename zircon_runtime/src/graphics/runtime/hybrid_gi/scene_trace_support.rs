@@ -11,6 +11,7 @@ const REQUESTED_ANCESTOR_SUPPORT: f32 = 0.78;
 const REQUESTED_ANCESTOR_FALLOFF: f32 = 0.78;
 const REQUESTED_DESCENDANT_SUPPORT: f32 = 0.92;
 const REQUESTED_DESCENDANT_FALLOFF: f32 = 0.84;
+const MAX_RUNTIME_SCENE_TRACE_REGIONS: usize = 16;
 
 impl HybridGiRuntimeState {
     pub(in crate::graphics::runtime::hybrid_gi) fn assign_scheduled_trace_regions(
@@ -21,6 +22,8 @@ impl HybridGiRuntimeState {
         self.scheduled_trace_regions = trace_region_ids
             .into_iter()
             .filter(|region_id| seen_region_ids.insert(*region_id))
+            .filter(|region_id| self.trace_region_scene_data.contains_key(region_id))
+            .take(MAX_RUNTIME_SCENE_TRACE_REGIONS)
             .collect();
     }
 
@@ -82,6 +85,13 @@ impl HybridGiRuntimeState {
         trace_support.max(request_support)
     }
 
+    pub(in crate::graphics::runtime::hybrid_gi) fn has_current_lineage_trace_support(
+        &self,
+        probe_id: u32,
+    ) -> bool {
+        self.current_lineage_trace_support_score(probe_id) > f32::EPSILON
+    }
+
     fn current_lineage_trace_support_score(&self, probe_id: u32) -> f32 {
         let mut total_support = 0.0_f32;
         let mut lineage_weight = 1.0_f32;
@@ -110,9 +120,8 @@ impl HybridGiRuntimeState {
             return 0.0;
         };
 
-        self.scheduled_trace_regions
-            .iter()
-            .filter_map(|region_id| self.trace_region_scene_data.get(region_id))
+        self.scheduled_scene_trace_regions()
+            .into_iter()
             .map(|region| {
                 let reach = probe.radius_q.saturating_add(region.radius_q).max(1) as f32;
                 let max_distance = (reach * 3.0).max(1.0);
@@ -127,6 +136,16 @@ impl HybridGiRuntimeState {
                 proximity * proximity * (region.coverage_q.min(255) as f32 / 128.0)
             })
             .sum()
+    }
+
+    fn scheduled_scene_trace_regions(
+        &self,
+    ) -> Vec<&super::declarations::HybridGiRuntimeTraceRegionSceneData> {
+        self.scheduled_trace_regions
+            .iter()
+            .filter_map(|region_id| self.trace_region_scene_data.get(region_id))
+            .take(MAX_RUNTIME_SCENE_TRACE_REGIONS)
+            .collect()
     }
 
     fn descendant_trace_support_score(&self, probe_id: u32) -> f32 {

@@ -11,12 +11,12 @@ use zircon_runtime::ui::{
 
 #[cfg(test)]
 use crate::ui::host::NativeWindowHostState;
-use crate::ui::slint_host::callback_dispatch::BuiltinWorkbenchRootShellFrames;
-use crate::ui::slint_host::drawer_resize::WorkbenchResizeTargetGroup;
+use crate::ui::slint_host::callback_dispatch::BuiltinHostRootShellFrames;
+use crate::ui::slint_host::drawer_resize::HostResizeTargetGroup;
 #[cfg(test)]
 use crate::ui::slint_host::floating_window_projection::build_floating_window_projection_bundle_from_windows;
 use crate::ui::slint_host::floating_window_projection::FloatingWindowProjectionBundle;
-use crate::ui::slint_host::tab_drag::WorkbenchDragTargetGroup;
+use crate::ui::slint_host::tab_drag::HostDragTargetGroup;
 use crate::ui::workbench::autolayout::ShellSizePx;
 #[cfg(test)]
 use crate::ui::workbench::autolayout::WorkbenchChromeMetrics;
@@ -25,23 +25,23 @@ use crate::ui::workbench::model::FloatingWindowModel;
 
 use super::drag_surface::build_drag_surface;
 use super::resize_surface::{build_resize_surface, update_resize_surface};
-use super::route::{drag_route_from_node, resize_group_from_dispatch, WorkbenchShellPointerRoute};
+use super::route::{drag_route_from_node, resize_group_from_dispatch, HostShellPointerRoute};
 
-pub(crate) struct WorkbenchShellPointerBridge {
+pub(crate) struct HostShellPointerBridge {
     drag_surface: UiSurface,
     drag_dispatcher: UiPointerDispatcher,
-    drag_routes: BTreeMap<UiNodeId, WorkbenchShellPointerRoute>,
+    drag_routes: BTreeMap<UiNodeId, HostShellPointerRoute>,
     resize_surface: UiSurface,
     resize_dispatcher: UiPointerDispatcher,
 }
 
-impl Default for WorkbenchShellPointerBridge {
+impl Default for HostShellPointerBridge {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl WorkbenchShellPointerBridge {
+impl HostShellPointerBridge {
     pub(crate) fn new() -> Self {
         let (drag_surface, drag_dispatcher, drag_routes) = build_drag_surface(
             ShellSizePx::new(1.0, 1.0),
@@ -104,7 +104,7 @@ impl WorkbenchShellPointerBridge {
         geometry: &WorkbenchShellGeometry,
         drawers_visible: bool,
         floating_windows: &[FloatingWindowModel],
-        shared_root_frames: Option<&BuiltinWorkbenchRootShellFrames>,
+        shared_root_frames: Option<&BuiltinHostRootShellFrames>,
         native_window_hosts: &[NativeWindowHostState],
     ) {
         let floating_window_projection_bundle =
@@ -130,7 +130,7 @@ impl WorkbenchShellPointerBridge {
         geometry: &WorkbenchShellGeometry,
         drawers_visible: bool,
         floating_windows: &[FloatingWindowModel],
-        shared_root_frames: Option<&BuiltinWorkbenchRootShellFrames>,
+        shared_root_frames: Option<&BuiltinHostRootShellFrames>,
         floating_window_projection_bundle: Option<&FloatingWindowProjectionBundle>,
     ) {
         let (drag_surface, drag_dispatcher, drag_routes) = build_drag_surface(
@@ -147,19 +147,19 @@ impl WorkbenchShellPointerBridge {
         update_resize_surface(&mut self.resize_surface, root_size, geometry);
     }
 
-    pub(crate) fn drag_target_at(&mut self, point: UiPoint) -> Option<WorkbenchDragTargetGroup> {
+    pub(crate) fn drag_target_at(&mut self, point: UiPoint) -> Option<HostDragTargetGroup> {
         self.drag_route_at(point).and_then(|route| match route {
-            WorkbenchShellPointerRoute::DragTarget(group) => Some(group),
-            WorkbenchShellPointerRoute::DocumentEdge(_)
-            | WorkbenchShellPointerRoute::FloatingWindow(_)
-            | WorkbenchShellPointerRoute::FloatingWindowEdge { .. } => {
-                Some(WorkbenchDragTargetGroup::Document)
+            HostShellPointerRoute::DragTarget(group) => Some(group),
+            HostShellPointerRoute::DocumentEdge(_)
+            | HostShellPointerRoute::FloatingWindow(_)
+            | HostShellPointerRoute::FloatingWindowEdge { .. } => {
+                Some(HostDragTargetGroup::Document)
             }
-            WorkbenchShellPointerRoute::Resize(_) => None,
+            HostShellPointerRoute::Resize(_) => None,
         })
     }
 
-    pub(crate) fn drag_route_at(&mut self, point: UiPoint) -> Option<WorkbenchShellPointerRoute> {
+    pub(crate) fn drag_route_at(&mut self, point: UiPoint) -> Option<HostShellPointerRoute> {
         let dispatch = self
             .drag_surface
             .dispatch_pointer_event(
@@ -174,36 +174,30 @@ impl WorkbenchShellPointerBridge {
     }
 
     #[cfg(test)]
-    pub(crate) fn resize_target_at(
-        &mut self,
-        point: UiPoint,
-    ) -> Option<WorkbenchResizeTargetGroup> {
+    pub(crate) fn resize_target_at(&mut self, point: UiPoint) -> Option<HostResizeTargetGroup> {
         self.dispatch_resize_event(UiPointerEvent::new(UiPointerEventKind::Move, point))
     }
 
-    pub(crate) fn begin_resize(&mut self, point: UiPoint) -> Option<WorkbenchShellPointerRoute> {
+    pub(crate) fn begin_resize(&mut self, point: UiPoint) -> Option<HostShellPointerRoute> {
         self.dispatch_resize_event(
             UiPointerEvent::new(UiPointerEventKind::Down, point)
                 .with_button(UiPointerButton::Primary),
         )
-        .map(WorkbenchShellPointerRoute::Resize)
+        .map(HostShellPointerRoute::Resize)
     }
 
-    pub(crate) fn update_resize(&mut self, point: UiPoint) -> Option<WorkbenchResizeTargetGroup> {
+    pub(crate) fn update_resize(&mut self, point: UiPoint) -> Option<HostResizeTargetGroup> {
         self.dispatch_resize_event(UiPointerEvent::new(UiPointerEventKind::Move, point))
     }
 
-    pub(crate) fn finish_resize(&mut self, point: UiPoint) -> Option<WorkbenchResizeTargetGroup> {
+    pub(crate) fn finish_resize(&mut self, point: UiPoint) -> Option<HostResizeTargetGroup> {
         self.dispatch_resize_event(
             UiPointerEvent::new(UiPointerEventKind::Up, point)
                 .with_button(UiPointerButton::Primary),
         )
     }
 
-    fn dispatch_resize_event(
-        &mut self,
-        event: UiPointerEvent,
-    ) -> Option<WorkbenchResizeTargetGroup> {
+    fn dispatch_resize_event(&mut self, event: UiPointerEvent) -> Option<HostResizeTargetGroup> {
         let dispatch = self
             .resize_surface
             .dispatch_pointer_event(&self.resize_dispatcher, event)

@@ -2,6 +2,7 @@ use std::fs;
 
 use crate::ui::binding::EditorUiBinding;
 use crate::ui::control::EditorUiControlService;
+use crate::ui::layouts::windows::workbench_host_window::PaneBodyPresentation;
 use crate::ui::template::{
     EditorComponentCatalog, EditorComponentDescriptor, EditorTemplateAdapter, EditorTemplateError,
     EditorTemplateRegistry,
@@ -18,6 +19,7 @@ use crate::ui::template_runtime::{
 
 use super::{
     build_session::load_builtin_host_templates,
+    pane_payload_projection::project_pane_body,
     projection::{build_host_model, build_host_model_with_surface, project_document},
 };
 
@@ -122,15 +124,18 @@ impl EditorUiHostRuntime {
         load_builtin_host_templates(self)
     }
 
-    pub fn load_builtin_workbench_shell(&mut self) -> Result<(), EditorUiHostRuntimeError> {
-        self.load_builtin_host_templates()
-    }
-
     pub fn project_document(
         &self,
         document_id: &str,
     ) -> Result<SlintUiProjection, EditorUiHostRuntimeError> {
         project_document(&self.template_registry, &self.template_adapter, document_id)
+    }
+
+    pub(crate) fn project_pane_body(
+        &self,
+        body: &PaneBodyPresentation,
+    ) -> Result<SlintUiProjection, EditorUiHostRuntimeError> {
+        project_pane_body(&self.template_registry, &self.template_adapter, body)
     }
 
     pub fn register_projection_routes(

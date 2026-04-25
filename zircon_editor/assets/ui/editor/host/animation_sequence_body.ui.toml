@@ -1,0 +1,38 @@
+stylesheets = []
+
+[asset]
+kind = "layout"
+id = "editor.host.pane.animation.sequence.body"
+version = 1
+display_name = "animation sequence pane body"
+
+[imports]
+widgets = []
+styles = []
+
+[tokens]
+
+[root]
+node_id = "root"
+kind = "component"
+component = "AnimationSequencePaneBody"
+
+[components.AnimationSequencePaneBody]
+style_scope = "closed"
+
+[components.AnimationSequencePaneBody.root]
+node_id = "animation_sequence_pane_body_root"
+kind = "native"
+type = "VerticalBox"
+children = [
+  { node = { node_id = "animation_sequence_header", kind = "native", type = "HorizontalBox", control_id = "AnimationEditorHeaderPanel", children = [
+    { node = { node_id = "animation_sequence_header_mode", kind = "native", type = "Label", control_id = "AnimationEditorHeaderModeRow" } },
+    { node = { node_id = "animation_sequence_header_path", kind = "native", type = "Label", control_id = "AnimationEditorHeaderPathRow" } },
+    { node = { node_id = "animation_sequence_header_status", kind = "native", type = "Label", control_id = "AnimationEditorHeaderStatusRow" } },
+    { node = { node_id = "animation_sequence_scrub_action", kind = "native", type = "UiHostIconButton", control_id = "ScrubTimeline", bindings = [{ id = "AnimationSequencePaneBody/ScrubTimeline", event = "Click", route = "AnimationCommand.ScrubTimeline" }], props = { label = "Scrub Timeline" } } }
+  ] } },
+  { node = { node_id = "animation_timeline_slot_node", kind = "slot", slot_name = "animation_timeline_slot" } },
+]
+
+[components.AnimationSequencePaneBody.slots.animation_timeline_slot]
+required = false

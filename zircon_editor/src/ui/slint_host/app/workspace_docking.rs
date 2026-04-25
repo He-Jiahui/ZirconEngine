@@ -3,25 +3,25 @@ use crate::ui::slint_host::root_shell_projection::{
     resolve_root_bottom_region_frame, resolve_root_left_region_frame,
     resolve_root_right_region_frame,
 };
-use crate::ui::slint_host::tab_drag::resolve_workbench_tab_drop_route_with_root_frames;
-use crate::ui::slint_host::WorkbenchHostContext;
+use crate::ui::slint_host::tab_drag::resolve_host_tab_drop_route_with_root_frames;
+use crate::ui::slint_host::UiHostContext;
 use crate::ui::workbench::autolayout::ShellFrame;
 
-const WORKBENCH_POINTER_DOWN: i32 = 0;
-const WORKBENCH_POINTER_MOVE: i32 = 1;
-const WORKBENCH_POINTER_UP: i32 = 2;
+const HOST_POINTER_DOWN: i32 = 0;
+const HOST_POINTER_MOVE: i32 = 1;
+const HOST_POINTER_UP: i32 = 2;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum WorkbenchPointerFactKind {
+enum HostPointerFactKind {
     Down,
     Move,
     Up,
 }
 
 impl SlintEditorHost {
-    pub(super) fn workbench_drag_pointer_event(&mut self, kind: i32, x: f32, y: f32) {
+    pub(super) fn host_drag_pointer_event(&mut self, kind: i32, x: f32, y: f32) {
         self.recompute_if_dirty();
-        let kind = match map_workbench_pointer_kind(kind, "drag") {
+        let kind = match map_host_pointer_kind(kind, "drag") {
             Ok(kind) => kind,
             Err(error) => {
                 self.set_status_line(error);
@@ -30,16 +30,16 @@ impl SlintEditorHost {
         };
 
         match kind {
-            WorkbenchPointerFactKind::Down | WorkbenchPointerFactKind::Move => {
+            HostPointerFactKind::Down | HostPointerFactKind::Move => {
                 self.sync_drag_target_group(x, y);
             }
-            WorkbenchPointerFactKind::Up => self.dispatch_drag_drop_from_pointer(x, y),
+            HostPointerFactKind::Up => self.dispatch_drag_drop_from_pointer(x, y),
         }
     }
 
-    pub(super) fn workbench_resize_pointer_event(&mut self, kind: i32, x: f32, y: f32) {
+    pub(super) fn host_resize_pointer_event(&mut self, kind: i32, x: f32, y: f32) {
         self.recompute_if_dirty();
-        let kind = match map_workbench_pointer_kind(kind, "resize") {
+        let kind = match map_host_pointer_kind(kind, "resize") {
             Ok(kind) => kind,
             Err(error) => {
                 self.set_status_line(error);
@@ -48,9 +48,9 @@ impl SlintEditorHost {
         };
 
         match kind {
-            WorkbenchPointerFactKind::Down => self.begin_drawer_resize_capture(x, y),
-            WorkbenchPointerFactKind::Move => self.update_drawer_resize_capture(x, y),
-            WorkbenchPointerFactKind::Up => self.finish_drawer_resize_capture(x, y),
+            HostPointerFactKind::Down => self.begin_drawer_resize_capture(x, y),
+            HostPointerFactKind::Move => self.update_drawer_resize_capture(x, y),
+            HostPointerFactKind::Up => self.finish_drawer_resize_capture(x, y),
         }
     }
 
@@ -58,9 +58,9 @@ impl SlintEditorHost {
         let value = self
             .shell_pointer_bridge
             .drag_route_at(UiPoint::new(x, y))
-            .and_then(|route| workbench_shell_pointer_route_group_key(&route))
+            .and_then(|route| host_shell_pointer_route_group_key(&route))
             .unwrap_or_default();
-        let host_shell = self.ui.global::<WorkbenchHostContext>();
+        let host_shell = self.ui.global::<UiHostContext>();
         let mut drag_state = host_shell.get_drag_state();
         drag_state.active_drag_target_group = value.into();
         host_shell.set_drag_state(drag_state);
@@ -69,7 +69,7 @@ impl SlintEditorHost {
     fn dispatch_drag_drop_from_pointer(&mut self, x: f32, y: f32) {
         self.sync_drag_target_group(x, y);
 
-        let host_shell = self.ui.global::<WorkbenchHostContext>();
+        let host_shell = self.ui.global::<UiHostContext>();
         let drag_state = host_shell.get_drag_state();
         let tab_id = drag_state.drag_tab_id.to_string();
         let target_group = drag_state.active_drag_target_group.to_string();
@@ -83,7 +83,7 @@ impl SlintEditorHost {
         let pointer_route = self.shell_pointer_bridge.drag_route_at(UiPoint::new(x, y));
         let root_shell_frames = self.template_bridge.root_shell_frames();
         let Some(resolved) = self.shell_geometry.as_ref().and_then(|geometry| {
-            resolve_workbench_tab_drop_route_with_root_frames(
+            resolve_host_tab_drop_route_with_root_frames(
                 &layout,
                 &model,
                 geometry,
@@ -114,11 +114,11 @@ impl SlintEditorHost {
             .shell_pointer_bridge
             .begin_resize(UiPoint::new(x, y))
             .and_then(|route| match route {
-                WorkbenchShellPointerRoute::Resize(group) => Some(group.region()),
-                WorkbenchShellPointerRoute::DragTarget(_)
-                | WorkbenchShellPointerRoute::DocumentEdge(_)
-                | WorkbenchShellPointerRoute::FloatingWindow(_)
-                | WorkbenchShellPointerRoute::FloatingWindowEdge { .. } => None,
+                HostShellPointerRoute::Resize(group) => Some(group.region()),
+                HostShellPointerRoute::DragTarget(_)
+                | HostShellPointerRoute::DocumentEdge(_)
+                | HostShellPointerRoute::FloatingWindow(_)
+                | HostShellPointerRoute::FloatingWindowEdge { .. } => None,
             })
         else {
             return;
@@ -207,14 +207,11 @@ impl SlintEditorHost {
     }
 }
 
-fn map_workbench_pointer_kind(
-    kind: i32,
-    channel: &str,
-) -> Result<WorkbenchPointerFactKind, String> {
+fn map_host_pointer_kind(kind: i32, channel: &str) -> Result<HostPointerFactKind, String> {
     match kind {
-        WORKBENCH_POINTER_DOWN => Ok(WorkbenchPointerFactKind::Down),
-        WORKBENCH_POINTER_MOVE => Ok(WorkbenchPointerFactKind::Move),
-        WORKBENCH_POINTER_UP => Ok(WorkbenchPointerFactKind::Up),
-        _ => Err(format!("unknown workbench {channel} pointer kind {kind}")),
+        HOST_POINTER_DOWN => Ok(HostPointerFactKind::Down),
+        HOST_POINTER_MOVE => Ok(HostPointerFactKind::Move),
+        HOST_POINTER_UP => Ok(HostPointerFactKind::Up),
+        _ => Err(format!("unknown host {channel} pointer kind {kind}")),
     }
 }

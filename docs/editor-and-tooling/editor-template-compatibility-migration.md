@@ -92,9 +92,9 @@ related_code:
   - zircon_editor/src/ui/slint_host/detail_pointer/mod.rs
   - zircon_editor/src/ui/slint_host/scroll_surface_host.rs
   - zircon_editor/src/ui/slint_host/event_bridge.rs
-  - zircon_editor/src/ui/slint_host/menu_pointer.rs
-  - zircon_editor/src/ui/slint_host/menu_pointer/build_workbench_menu_pointer_layout.rs
-  - zircon_editor/src/ui/slint_host/menu_pointer/workbench_menu_pointer_bridge_popup_state.rs
+  - zircon_editor/src/ui/slint_host/menu_pointer/mod.rs
+  - zircon_editor/src/ui/slint_host/menu_pointer/build_host_menu_pointer_layout.rs
+  - zircon_editor/src/ui/slint_host/menu_pointer/host_menu_pointer_bridge_popup_state.rs
   - zircon_editor/src/ui/slint_host/shell_pointer.rs
   - zircon_editor/src/ui/slint_host/shell_pointer/drag_surface.rs
   - zircon_editor/src/ui/slint_host/callback_dispatch/layout/floating_window/mod.rs
@@ -230,9 +230,9 @@ implementation_files:
   - zircon_editor/src/ui/slint_host/detail_pointer/mod.rs
   - zircon_editor/src/ui/slint_host/scroll_surface_host.rs
   - zircon_editor/src/ui/slint_host/event_bridge.rs
-  - zircon_editor/src/ui/slint_host/menu_pointer.rs
-  - zircon_editor/src/ui/slint_host/menu_pointer/build_workbench_menu_pointer_layout.rs
-  - zircon_editor/src/ui/slint_host/menu_pointer/workbench_menu_pointer_bridge_popup_state.rs
+  - zircon_editor/src/ui/slint_host/menu_pointer/mod.rs
+  - zircon_editor/src/ui/slint_host/menu_pointer/build_host_menu_pointer_layout.rs
+  - zircon_editor/src/ui/slint_host/menu_pointer/host_menu_pointer_bridge_popup_state.rs
   - zircon_editor/src/ui/slint_host/shell_pointer.rs
   - zircon_editor/src/ui/slint_host/tab_drag.rs
   - zircon_editor/src/core/host/manager/layout_commands.rs
@@ -1434,7 +1434,7 @@ host model 侧新增记录：
 
 这一轮又把 editor shell 的 menu / popup / scroll pointer 路由推进到了和 dock / drag / resize 同一层的 shared authority：
 
-- [`menu_pointer.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/menu_pointer.rs) 现在持有 `WorkbenchMenuPointerBridge`，内部维护独立 `UiSurface + UiPointerDispatcher`
+- [`menu_pointer.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/menu_pointer/mod.rs) 现在持有 `HostMenuPointerBridge`，内部维护独立 `UiSurface + UiPointerDispatcher`
 - bridge surface 会显式建出：
   - top menu button 节点
   - popup dismiss overlay 节点
@@ -1443,7 +1443,7 @@ host model 侧新增记录：
 - `Window` 菜单的 popup surface 不再只是一块 Slint 裁剪区域，而是 shared `ScrollableBox + UiScrollState` 节点；滚轮会先更新 shared scroll state，再回灌 host 的 `window_menu_scroll_px`
 - dismiss overlay route 现在只收起 popup，不再在 close path 上清空 `popup_scroll_offset`；shared scroll state 只在下一次 `open_popup(...)` 时重置，这样 template/runtime parity 和真实 host dismiss/reopen 都继续共用同一份 canonical state
 - [`workbench.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench.slint) 和 [`chrome.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/chrome.slint) 里的 menu button / item 现在只是表现层，真实命中和 hover/open state 都由 host 下发
-- [`build_workbench_menu_pointer_layout(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/menu_pointer/build_workbench_menu_pointer_layout.rs) 现在把 builtin `root_shell_frames()` 里的 `WorkbenchMenuBarRoot` / `WorkbenchShellRoot` frame 继续投影成兼容壳仍在使用的六段 top menu button frame；这一步保证 legacy Slint menu 壳还没完全模板化之前，top-level menu strip 也优先吃 shared root projection，而不是继续把 `get_*_menu_button_frame()` 当真源
+- [`build_host_menu_pointer_layout(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/menu_pointer/build_host_menu_pointer_layout.rs) 现在把 builtin `root_shell_frames()` 里的 `WorkbenchMenuBarRoot` / `WorkbenchShellRoot` frame 继续投影成兼容壳仍在使用的六段 top menu button frame；这一步保证 legacy Slint menu 壳还没完全模板化之前，top-level menu strip 也优先吃 shared root projection，而不是继续把 `get_*_menu_button_frame()` 当真源
 - [`app/pointer_layout.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/app/pointer_layout.rs) 会把这组 frame 反向设置回 `WorkbenchShell` 的 `*_menu_button_frame`；[`workbench.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench.slint) 的 popup anchor 已切到这些 host-projected property，因此 menu hit-test 与 popup presentation 在兼容壳里重新共享同一条 authority 链
 - [`callback_dispatch/mod.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/callback_dispatch/mod.rs) 新增 `dispatch_shared_menu_pointer_click(...)`，把：
   Slint 坐标

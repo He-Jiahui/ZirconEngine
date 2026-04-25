@@ -1,4 +1,4 @@
-use crate::core::framework::render::RenderPipelineHandle;
+use crate::core::framework::render::{RenderCapabilitySummary, RenderPipelineHandle};
 use crate::core::math::UVec2;
 
 use crate::{
@@ -15,5 +15,6 @@ pub(super) struct ViewportRecordState {
     pub(super) previous_virtual_geometry_runtime: Option<VirtualGeometryRuntimeState>,
     pub(super) pipeline_asset: RenderPipelineAsset,
     pub(super) compile_options: RenderPipelineCompileOptions,
+    pub(super) capabilities: RenderCapabilitySummary,
     pub(super) predicted_generation: u64,
 }

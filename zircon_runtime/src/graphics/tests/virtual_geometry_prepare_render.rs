@@ -1360,6 +1360,7 @@ fn virtual_geometry_prepare_preserves_explicit_segment_boundaries_even_when_segm
             RenderVirtualGeometryCluster {
                 entity: 2,
                 cluster_id: 2,
+                hierarchy_node_id: None,
                 page_id: 300,
                 lod_level: 0,
                 parent_cluster_id: None,
@@ -1370,6 +1371,7 @@ fn virtual_geometry_prepare_preserves_explicit_segment_boundaries_even_when_segm
             RenderVirtualGeometryCluster {
                 entity: 2,
                 cluster_id: 3,
+                hierarchy_node_id: None,
                 page_id: 300,
                 lod_level: 0,
                 parent_cluster_id: None,
@@ -1550,6 +1552,7 @@ fn virtual_geometry_prepare_reuses_one_shared_indirect_buffer_across_multiple_in
             RenderVirtualGeometryCluster {
                 entity: 2,
                 cluster_id: 2,
+                hierarchy_node_id: None,
                 page_id: 300,
                 lod_level: 0,
                 parent_cluster_id: None,
@@ -1560,6 +1563,7 @@ fn virtual_geometry_prepare_reuses_one_shared_indirect_buffer_across_multiple_in
             RenderVirtualGeometryCluster {
                 entity: 2,
                 cluster_id: 3,
+                hierarchy_node_id: None,
                 page_id: 300,
                 lod_level: 0,
                 parent_cluster_id: None,
@@ -1700,6 +1704,7 @@ fn virtual_geometry_prepare_keeps_different_pages_in_same_slot_split_into_separa
             RenderVirtualGeometryCluster {
                 entity: 2,
                 cluster_id: 2,
+                hierarchy_node_id: None,
                 page_id: 300,
                 lod_level: 0,
                 parent_cluster_id: None,
@@ -1710,6 +1715,7 @@ fn virtual_geometry_prepare_keeps_different_pages_in_same_slot_split_into_separa
             RenderVirtualGeometryCluster {
                 entity: 2,
                 cluster_id: 3,
+                hierarchy_node_id: None,
                 page_id: 301,
                 lod_level: 0,
                 parent_cluster_id: None,
@@ -1878,6 +1884,7 @@ fn virtual_geometry_prepare_visibility_owned_draw_segment_span_changes_fallback_
             RenderVirtualGeometryCluster {
                 entity: 2,
                 cluster_id: 2,
+                hierarchy_node_id: None,
                 page_id: 300,
                 lod_level: 0,
                 parent_cluster_id: None,
@@ -1888,6 +1895,7 @@ fn virtual_geometry_prepare_visibility_owned_draw_segment_span_changes_fallback_
             RenderVirtualGeometryCluster {
                 entity: 2,
                 cluster_id: 3,
+                hierarchy_node_id: None,
                 page_id: 300,
                 lod_level: 0,
                 parent_cluster_id: None,
@@ -2087,6 +2095,7 @@ fn virtual_geometry_prepare_gpu_generated_indirect_args_follow_visibility_owned_
             RenderVirtualGeometryCluster {
                 entity: 2,
                 cluster_id: 2,
+                hierarchy_node_id: None,
                 page_id: 300,
                 lod_level: 0,
                 parent_cluster_id: None,
@@ -2097,6 +2106,7 @@ fn virtual_geometry_prepare_gpu_generated_indirect_args_follow_visibility_owned_
             RenderVirtualGeometryCluster {
                 entity: 2,
                 cluster_id: 3,
+                hierarchy_node_id: None,
                 page_id: 300,
                 lod_level: 0,
                 parent_cluster_id: None,
@@ -2292,6 +2302,7 @@ fn virtual_geometry_prepare_gpu_generated_indirect_args_change_when_resident_slo
         vec![RenderVirtualGeometryCluster {
             entity: 2,
             cluster_id: 2,
+            hierarchy_node_id: None,
             page_id: 300,
             lod_level: 0,
             parent_cluster_id: None,
@@ -2466,6 +2477,7 @@ fn virtual_geometry_prepare_gpu_generated_indirect_args_change_when_page_id_chan
             RenderVirtualGeometryCluster {
                 entity: 2,
                 cluster_id: 2,
+                hierarchy_node_id: None,
                 page_id: 300,
                 lod_level: 0,
                 parent_cluster_id: None,
@@ -2476,6 +2488,7 @@ fn virtual_geometry_prepare_gpu_generated_indirect_args_change_when_page_id_chan
             RenderVirtualGeometryCluster {
                 entity: 2,
                 cluster_id: 3,
+                hierarchy_node_id: None,
                 page_id: 301,
                 lod_level: 0,
                 parent_cluster_id: None,
@@ -2657,6 +2670,7 @@ fn virtual_geometry_prepare_gpu_generated_indirect_args_change_when_lod_level_ch
         vec![RenderVirtualGeometryCluster {
             entity: 2,
             cluster_id: 2,
+            hierarchy_node_id: None,
             page_id: 300,
             lod_level: 0,
             parent_cluster_id: None,
@@ -2831,6 +2845,7 @@ fn virtual_geometry_prepare_cluster_raster_output_changes_when_page_id_changes_i
         vec![RenderVirtualGeometryCluster {
             entity: 2,
             cluster_id: 2,
+            hierarchy_node_id: None,
             page_id: 300,
             lod_level: 0,
             parent_cluster_id: None,
@@ -3007,6 +3022,7 @@ fn virtual_geometry_prepare_cluster_raster_output_changes_when_pending_request_f
         vec![RenderVirtualGeometryCluster {
             entity: 2,
             cluster_id: 2,
+            hierarchy_node_id: None,
             page_id: 300,
             lod_level: 0,
             parent_cluster_id: None,
@@ -3537,6 +3553,7 @@ fn build_extract(
             RenderVirtualGeometryCluster {
                 entity: 1,
                 cluster_id: 1,
+                hierarchy_node_id: None,
                 page_id: 200,
                 lod_level: 0,
                 parent_cluster_id: None,
@@ -3547,6 +3564,7 @@ fn build_extract(
             RenderVirtualGeometryCluster {
                 entity: 2,
                 cluster_id: 2,
+                hierarchy_node_id: None,
                 page_id: 300,
                 lod_level: 0,
                 parent_cluster_id: None,
@@ -3555,6 +3573,8 @@ fn build_extract(
                 screen_space_error: 1.0,
             },
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![
             RenderVirtualGeometryPage {
                 page_id: 200,
@@ -3585,6 +3605,7 @@ fn build_single_entity_extract(
         vec![RenderVirtualGeometryCluster {
             entity: 2,
             cluster_id: 2,
+            hierarchy_node_id: None,
             page_id: 300,
             lod_level: 0,
             parent_cluster_id: None,
@@ -3613,6 +3634,7 @@ fn build_single_entity_clustered_extract(
             RenderVirtualGeometryCluster {
                 entity: 2,
                 cluster_id: 2,
+                hierarchy_node_id: None,
                 page_id: 300,
                 lod_level: 0,
                 parent_cluster_id: None,
@@ -3623,6 +3645,7 @@ fn build_single_entity_clustered_extract(
             RenderVirtualGeometryCluster {
                 entity: 2,
                 cluster_id: 3,
+                hierarchy_node_id: None,
                 page_id: 301,
                 lod_level: 1,
                 parent_cluster_id: None,
@@ -3702,6 +3725,8 @@ fn build_single_entity_extract_with_clusters(
         cluster_budget: clusters.len() as u32,
         page_budget: 1,
         clusters,
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages,
         instances: Vec::new(),
         debug: Default::default(),

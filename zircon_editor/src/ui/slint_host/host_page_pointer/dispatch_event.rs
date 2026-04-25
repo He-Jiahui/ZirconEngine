@@ -1,13 +1,13 @@
 use zircon_runtime::ui::dispatch::UiPointerEvent;
 
-use super::workbench_host_page_pointer_bridge::WorkbenchHostPagePointerBridge;
-use super::workbench_host_page_pointer_target::WorkbenchHostPagePointerTarget;
+use super::host_page_pointer_bridge::HostPagePointerBridge;
+use super::host_page_pointer_target::HostPagePointerTarget;
 
-impl WorkbenchHostPagePointerBridge {
+impl HostPagePointerBridge {
     pub(super) fn dispatch_event(
         &mut self,
         event: UiPointerEvent,
-    ) -> Result<Option<WorkbenchHostPagePointerTarget>, String> {
+    ) -> Result<Option<HostPagePointerTarget>, String> {
         let dispatch = self
             .surface
             .dispatch_pointer_event(&self.dispatcher, event)

@@ -20,7 +20,7 @@ fn shared_menu_pointer_layout_sync_replaces_direct_slint_menu_button_frame_gette
     }
 
     assert!(
-        pointer_layout.contains("build_workbench_menu_pointer_layout("),
+        pointer_layout.contains("build_host_menu_pointer_layout("),
         "menu pointer sync should delegate top-level button frame authority to a shared layout builder"
     );
 }

@@ -7,9 +7,11 @@ use crate::graphics::types::ViewportRenderFrame;
 
 use super::hybrid_gi_budget_weight::hybrid_gi_budget_weight;
 use super::runtime_parent_chain::{
-    blend_runtime_rgb_lineage_sources, gather_runtime_descendant_chain_rgb,
-    gather_runtime_descendant_chain_rgb_without_depth_falloff, gather_runtime_parent_chain_rgb,
-    gather_runtime_parent_chain_rgb_without_depth_falloff,
+    blend_runtime_rgb_lineage_sources, frame_has_scheduled_trace_region_payload,
+    gather_runtime_descendant_chain_rgb, gather_runtime_descendant_chain_rgb_without_depth_falloff,
+    gather_runtime_parent_chain_rgb, gather_runtime_parent_chain_rgb_without_depth_falloff,
+    runtime_irradiance_lineage_has_scene_truth, runtime_parent_topology_is_authoritative,
+    runtime_probe_lineage_has_scene_truth,
 };
 use super::scene_prepare_surface_cache_samples::scene_prepare_surface_cache_fallback_rgb_and_support;
 
@@ -30,12 +32,13 @@ pub(crate) fn hybrid_gi_hierarchy_irradiance_with_scene_prepare_resources(
     source: &RenderHybridGiProbe,
     scene_prepare_resources: Option<&HybridGiScenePrepareResourcesSnapshot>,
 ) -> [f32; 4] {
-    let scene_driven_frame = frame.hybrid_gi_scene_prepare.is_some();
-    let current_trace_schedule_is_empty = frame
-        .hybrid_gi_prepare
-        .as_ref()
-        .map(|prepare| prepare.scheduled_trace_region_ids.is_empty())
-        .unwrap_or(true);
+    let has_scene_prepare = frame.hybrid_gi_scene_prepare.is_some();
+    let runtime_probe_scene_truth = runtime_probe_lineage_has_scene_truth(frame, source.probe_id);
+    let stripped_runtime_probe_scene_truth = !has_scene_prepare && runtime_probe_scene_truth;
+    let scene_driven_frame = has_scene_prepare
+        || stripped_runtime_probe_scene_truth
+        || runtime_irradiance_lineage_has_scene_truth(frame, source.probe_id);
+    let current_trace_schedule_is_empty = !frame_has_scheduled_trace_region_payload(frame);
     let exact_runtime_irradiance = frame
         .hybrid_gi_resolve_runtime
         .as_ref()
@@ -167,16 +170,17 @@ pub(crate) fn hybrid_gi_hierarchy_irradiance_with_scene_prepare_resources(
     );
     let selected_runtime_irradiance_is_scene_truth =
         scene_driven_frame && scene_truth_runtime_irradiance.is_some();
-    let selected_runtime_irradiance =
-        if selected_runtime_irradiance_is_scene_truth {
-            scene_truth_runtime_irradiance
-        } else {
-            blend_runtime_rgb_lineage_sources(
-                scene_truth_runtime_irradiance,
-                continuation_runtime_irradiance,
-                None,
-            )
-        };
+    let selected_runtime_irradiance = if selected_runtime_irradiance_is_scene_truth {
+        scene_truth_runtime_irradiance
+    } else if runtime_probe_scene_truth && scene_truth_runtime_irradiance.is_none() {
+        None
+    } else {
+        blend_runtime_rgb_lineage_sources(
+            scene_truth_runtime_irradiance,
+            continuation_runtime_irradiance,
+            None,
+        )
+    };
     if let Some(runtime_irradiance) = selected_runtime_irradiance {
         if current_trace_schedule_is_empty && !selected_runtime_irradiance_is_scene_truth {
             if let Some(scene_prepare_irradiance) = scene_prepare_surface_cache_irradiance_fallback(
@@ -204,6 +208,15 @@ pub(crate) fn hybrid_gi_hierarchy_irradiance_with_scene_prepare_resources(
             }
         }
         return runtime_irradiance;
+    }
+
+    if runtime_parent_topology_is_authoritative(frame) {
+        return scene_prepare_surface_cache_irradiance_fallback(
+            frame,
+            source,
+            scene_prepare_resources,
+        )
+        .unwrap_or([0.0; 4]);
     }
 
     let Some(extract) = frame.extract.lighting.hybrid_global_illumination.as_ref() else {

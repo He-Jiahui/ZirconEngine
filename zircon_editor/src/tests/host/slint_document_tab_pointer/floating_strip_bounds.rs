@@ -1,5 +1,5 @@
 use crate::ui::host::NativeWindowHostState;
-use crate::ui::slint_host::document_tab_pointer::build_workbench_document_tab_pointer_layout;
+use crate::ui::slint_host::document_tab_pointer::build_host_document_tab_pointer_layout;
 use crate::ui::slint_host::floating_window_projection::build_floating_window_projection_bundle;
 use crate::ui::workbench::autolayout::{
     compute_workbench_shell_geometry, ShellFrame, ShellSizePx, WorkbenchChromeMetrics,
@@ -57,7 +57,7 @@ fn shared_document_tab_pointer_layout_prefers_native_window_host_bounds_for_floa
             bounds: [640.0, 320.0, 700.0, 420.0],
         }],
     );
-    let layout = build_workbench_document_tab_pointer_layout(
+    let layout = build_host_document_tab_pointer_layout(
         &model,
         &geometry,
         &WorkbenchChromeMetrics::default(),

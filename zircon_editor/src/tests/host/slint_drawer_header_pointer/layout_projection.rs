@@ -1,6 +1,6 @@
 use crate::tests::editor_event::support::env_lock;
-use crate::ui::slint_host::callback_dispatch::BuiltinWorkbenchTemplateBridge;
-use crate::ui::slint_host::drawer_header_pointer::build_workbench_drawer_header_pointer_layout;
+use crate::ui::slint_host::callback_dispatch::BuiltinHostWindowTemplateBridge;
+use crate::ui::slint_host::drawer_header_pointer::build_host_drawer_header_pointer_layout;
 use crate::ui::workbench::autolayout::{
     ShellFrame, ShellRegionId, WorkbenchChromeMetrics, WorkbenchShellGeometry,
 };
@@ -16,7 +16,7 @@ fn shared_drawer_header_pointer_layout_prefers_shared_root_projection_for_visibl
     let chrome = fixture.build_chrome();
     let model = WorkbenchViewModel::build(&chrome);
     let metrics = WorkbenchChromeMetrics::default();
-    let mut bridge = BuiltinWorkbenchTemplateBridge::new(UiSize::new(1280.0, 720.0))
+    let mut bridge = BuiltinHostWindowTemplateBridge::new(UiSize::new(1280.0, 720.0))
         .expect("builtin workbench template bridge should build");
     bridge
         .recompute_layout_with_workbench_model(UiSize::new(1280.0, 720.0), &model, &metrics)
@@ -58,12 +58,8 @@ fn shared_drawer_header_pointer_layout_prefers_shared_root_projection_for_visibl
         ..WorkbenchShellGeometry::default()
     };
 
-    let layout = build_workbench_drawer_header_pointer_layout(
-        &model,
-        &geometry,
-        &metrics,
-        Some(&root_frames),
-    );
+    let layout =
+        build_host_drawer_header_pointer_layout(&model, &geometry, &metrics, Some(&root_frames));
 
     let left_surface = layout
         .surfaces

@@ -1,11 +1,11 @@
 use crate::core::editor_event::EditorEventRuntime;
 use crate::ui::slint_host::event_bridge::SlintDispatchEffects;
 
-use super::super::{common::dispatch_editor_binding, BuiltinWorkbenchTemplateBridge};
+use super::super::{common::dispatch_editor_binding, BuiltinHostWindowTemplateBridge};
 
-pub(crate) fn dispatch_builtin_workbench_control(
+pub(crate) fn dispatch_builtin_host_control(
     runtime: &EditorEventRuntime,
-    bridge: &BuiltinWorkbenchTemplateBridge,
+    bridge: &BuiltinHostWindowTemplateBridge,
     control_id: &str,
     event_kind: zircon_runtime::ui::binding::UiEventKind,
 ) -> Option<Result<SlintDispatchEffects, String>> {
@@ -13,12 +13,12 @@ pub(crate) fn dispatch_builtin_workbench_control(
     Some(dispatch_editor_binding(runtime, binding))
 }
 
-pub(crate) fn dispatch_builtin_workbench_menu_action(
+pub(crate) fn dispatch_builtin_host_menu_action(
     runtime: &EditorEventRuntime,
-    bridge: &BuiltinWorkbenchTemplateBridge,
+    bridge: &BuiltinHostWindowTemplateBridge,
     action: &str,
 ) -> Option<Result<SlintDispatchEffects, String>> {
-    dispatch_builtin_workbench_control(
+    dispatch_builtin_host_control(
         runtime,
         bridge,
         action,

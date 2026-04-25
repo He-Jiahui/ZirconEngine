@@ -55,6 +55,8 @@ fn render_framework_stats_expose_virtual_geometry_instance_ranges_and_debug_stat
             virtual_geometry_cluster(mesh, 30, 300, 1, Vec3::ZERO, 8.0),
             virtual_geometry_cluster(mesh, 20, 200, 1, Vec3::new(0.1, 0.0, 0.0), 5.0),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: vec![7, 42],
         pages: vec![
             virtual_geometry_page(200, true),
             virtual_geometry_page(300, false),
@@ -167,6 +169,46 @@ fn render_framework_stats_expose_virtual_geometry_instance_ranges_and_debug_stat
         "expected stats to expose the same NodeAndClusterCull root-seed worklist count as the renderer-owned VG snapshot"
     );
     assert_eq!(
+        stats.last_virtual_geometry_node_and_cluster_cull_dispatch_group_count,
+        snapshot
+            .node_and_cluster_cull_dispatch_setup
+            .as_ref()
+            .expect("expected NodeAndClusterCull dispatch setup")
+            .dispatch_group_count
+            .map(|group_count| group_count as usize),
+        "expected stats to expose NodeAndClusterCull dispatch dimensions without requiring a GPU buffer readback"
+    );
+    assert_eq!(
+        stats.last_virtual_geometry_node_and_cluster_cull_instance_work_item_count,
+        snapshot.node_and_cluster_cull_instance_work_items.len(),
+        "expected stats to expose the launch-worklist consumer count that feeds the first compute-stub work-item seam"
+    );
+    assert_eq!(
+        stats.last_virtual_geometry_node_and_cluster_cull_cluster_work_item_count,
+        2,
+        "expected stats to expose the per-cluster NodeAndClusterCull worklist size for runtime/editor monitoring"
+    );
+    assert_eq!(
+        stats.last_virtual_geometry_node_and_cluster_cull_hierarchy_child_id_count,
+        2,
+        "expected stats to expose the authored hierarchy child-id table size even when the current root clusters do not enqueue child work"
+    );
+    assert_eq!(
+        stats.last_virtual_geometry_node_and_cluster_cull_child_work_item_count,
+        0,
+        "expected stats to expose that this simple root-only fixture did not enqueue authored child work"
+    );
+    assert_eq!(
+        stats.last_virtual_geometry_node_and_cluster_cull_traversal_record_count,
+        4,
+        "expected stats to expose the VisitNode/StoreCluster traversal queue size for the current compat traversal"
+    );
+    assert_eq!(
+        stats.last_virtual_geometry_node_and_cluster_cull_page_request_count,
+        0,
+        "expected stats to expose NodeAndClusterCull page feedback count even when no child page request was emitted"
+    );
+    assert_eq!(
         stats.last_virtual_geometry_cluster_budget,
         snapshot.cull_input.cluster_budget as usize,
         "expected stats to mirror the same authoritative VG cluster budget as the renderer-owned cull-input snapshot"
@@ -250,6 +292,34 @@ fn render_framework_stats_expose_virtual_geometry_instance_ranges_and_debug_stat
         cleared_stats.last_virtual_geometry_node_and_cluster_cull_instance_seed_count,
         0
     );
+    assert_eq!(
+        cleared_stats.last_virtual_geometry_node_and_cluster_cull_dispatch_group_count,
+        [0, 0, 0]
+    );
+    assert_eq!(
+        cleared_stats.last_virtual_geometry_node_and_cluster_cull_instance_work_item_count,
+        0
+    );
+    assert_eq!(
+        cleared_stats.last_virtual_geometry_node_and_cluster_cull_cluster_work_item_count,
+        0
+    );
+    assert_eq!(
+        cleared_stats.last_virtual_geometry_node_and_cluster_cull_hierarchy_child_id_count,
+        0
+    );
+    assert_eq!(
+        cleared_stats.last_virtual_geometry_node_and_cluster_cull_child_work_item_count,
+        0
+    );
+    assert_eq!(
+        cleared_stats.last_virtual_geometry_node_and_cluster_cull_traversal_record_count,
+        0
+    );
+    assert_eq!(
+        cleared_stats.last_virtual_geometry_node_and_cluster_cull_page_request_count,
+        0
+    );
 }
 
 fn virtual_geometry_cluster(
@@ -266,6 +336,7 @@ fn virtual_geometry_cluster(
         page_id,
         lod_level,
         parent_cluster_id: None,
+        hierarchy_node_id: None,
         bounds_center,
         bounds_radius: 0.5,
         screen_space_error,

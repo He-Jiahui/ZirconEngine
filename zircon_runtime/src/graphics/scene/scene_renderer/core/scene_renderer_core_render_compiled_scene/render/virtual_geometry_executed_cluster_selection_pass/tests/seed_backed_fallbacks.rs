@@ -11,6 +11,7 @@ fn seed_backed_execution_selection_falls_back_to_nearest_resident_parent_cluster
             RenderVirtualGeometryCluster {
                 entity,
                 cluster_id: 20,
+                hierarchy_node_id: None,
                 page_id: 200,
                 lod_level: 2,
                 parent_cluster_id: None,
@@ -21,6 +22,7 @@ fn seed_backed_execution_selection_falls_back_to_nearest_resident_parent_cluster
             RenderVirtualGeometryCluster {
                 entity,
                 cluster_id: 30,
+                hierarchy_node_id: None,
                 page_id: 300,
                 lod_level: 1,
                 parent_cluster_id: Some(20),
@@ -31,6 +33,7 @@ fn seed_backed_execution_selection_falls_back_to_nearest_resident_parent_cluster
             RenderVirtualGeometryCluster {
                 entity,
                 cluster_id: 40,
+                hierarchy_node_id: None,
                 page_id: 400,
                 lod_level: 0,
                 parent_cluster_id: Some(30),
@@ -39,6 +42,8 @@ fn seed_backed_execution_selection_falls_back_to_nearest_resident_parent_cluster
                 screen_space_error: 0.25,
             },
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity,
@@ -115,6 +120,7 @@ fn seed_backed_execution_selection_keeps_selected_cluster_order_when_later_child
             RenderVirtualGeometryCluster {
                 entity,
                 cluster_id: 30,
+                hierarchy_node_id: None,
                 page_id: 300,
                 lod_level: 2,
                 parent_cluster_id: None,
@@ -125,6 +131,7 @@ fn seed_backed_execution_selection_keeps_selected_cluster_order_when_later_child
             RenderVirtualGeometryCluster {
                 entity,
                 cluster_id: 40,
+                hierarchy_node_id: None,
                 page_id: 400,
                 lod_level: 1,
                 parent_cluster_id: None,
@@ -135,6 +142,7 @@ fn seed_backed_execution_selection_keeps_selected_cluster_order_when_later_child
             RenderVirtualGeometryCluster {
                 entity,
                 cluster_id: 50,
+                hierarchy_node_id: None,
                 page_id: 500,
                 lod_level: 0,
                 parent_cluster_id: Some(30),
@@ -143,6 +151,8 @@ fn seed_backed_execution_selection_keeps_selected_cluster_order_when_later_child
                 screen_space_error: 0.25,
             },
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity,

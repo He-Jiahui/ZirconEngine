@@ -1,16 +1,17 @@
-use super::support::EDITOR_WORKBENCH_ASSET_TOML;
+use super::support::EDITOR_HOST_WINDOW_ASSET_TOML;
 use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind};
 use crate::ui::template::{EditorTemplateAdapter, EditorTemplateError, EditorTemplateRegistry};
 use zircon_runtime::ui::binding::UiEventKind;
 
 #[test]
 fn editor_template_adapter_resolves_stable_binding_ids_to_typed_editor_bindings() {
-    let document = crate::tests::support::load_test_ui_asset(EDITOR_WORKBENCH_ASSET_TOML).unwrap();
+    let document =
+        crate::tests::support::load_test_ui_asset(EDITOR_HOST_WINDOW_ASSET_TOML).unwrap();
     let mut registry = EditorTemplateRegistry::default();
     registry
-        .register_asset_document("workbench.shell", document)
+        .register_asset_document("ui.host_window", document)
         .unwrap();
-    let instance = registry.instantiate("workbench.shell").unwrap();
+    let instance = registry.instantiate("ui.host_window").unwrap();
 
     let mut adapter = EditorTemplateAdapter::default();
     adapter
@@ -46,12 +47,13 @@ fn editor_template_adapter_resolves_stable_binding_ids_to_typed_editor_bindings(
 
 #[test]
 fn editor_template_adapter_rejects_missing_binding_resolution() {
-    let document = crate::tests::support::load_test_ui_asset(EDITOR_WORKBENCH_ASSET_TOML).unwrap();
+    let document =
+        crate::tests::support::load_test_ui_asset(EDITOR_HOST_WINDOW_ASSET_TOML).unwrap();
     let mut registry = EditorTemplateRegistry::default();
     registry
-        .register_asset_document("workbench.shell", document)
+        .register_asset_document("ui.host_window", document)
         .unwrap();
-    let instance = registry.instantiate("workbench.shell").unwrap();
+    let instance = registry.instantiate("ui.host_window").unwrap();
 
     let error = EditorTemplateAdapter::default()
         .resolve_instance_bindings(&instance)

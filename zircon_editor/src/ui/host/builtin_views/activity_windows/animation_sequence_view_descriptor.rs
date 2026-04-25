@@ -1,6 +1,9 @@
 use crate::ui::workbench::autolayout::default_constraints_for_content;
 use crate::ui::workbench::snapshot::ViewContentKind;
-use crate::ui::workbench::view::{PreferredHost, ViewDescriptor, ViewDescriptorId, ViewKind};
+use crate::ui::workbench::view::{
+    PaneBodySpec, PaneInteractionMode, PanePayloadKind, PaneRouteNamespace, PaneTemplateSpec,
+    PreferredHost, ViewDescriptor, ViewDescriptorId, ViewKind,
+};
 
 pub(super) fn animation_sequence_view_descriptor() -> ViewDescriptor {
     ViewDescriptor::new(
@@ -13,5 +16,11 @@ pub(super) fn animation_sequence_view_descriptor() -> ViewDescriptor {
     .with_default_constraints(default_constraints_for_content(
         ViewContentKind::AnimationSequenceEditor,
     ))
+    .with_pane_template(PaneTemplateSpec::new(PaneBodySpec::new(
+        "pane.animation.sequence.body",
+        PanePayloadKind::AnimationSequenceV1,
+        PaneRouteNamespace::Animation,
+        PaneInteractionMode::HybridNativeSlot,
+    )))
     .with_icon_key("animation-sequence")
 }

@@ -1,16 +1,16 @@
-use crate::ui::slint_host::shell_pointer::WorkbenchShellPointerRoute;
+use crate::ui::slint_host::shell_pointer::HostShellPointerRoute;
 use crate::ui::workbench::layout::DockEdge;
 use crate::ui::workbench::layout::MainPageId;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum WorkbenchDragTargetGroup {
+pub enum HostDragTargetGroup {
     Left,
     Right,
     Bottom,
     Document,
 }
 
-impl WorkbenchDragTargetGroup {
+impl HostDragTargetGroup {
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::Left => "left",
@@ -64,21 +64,19 @@ pub(crate) fn floating_window_edge_group_key(window_id: &MainPageId, edge: DockE
     )
 }
 
-pub(crate) fn workbench_shell_pointer_route_group_key(
-    route: &WorkbenchShellPointerRoute,
-) -> Option<String> {
+pub(crate) fn host_shell_pointer_route_group_key(route: &HostShellPointerRoute) -> Option<String> {
     match route {
-        WorkbenchShellPointerRoute::DragTarget(group) => Some(group.as_str().to_string()),
-        WorkbenchShellPointerRoute::DocumentEdge(edge) => {
+        HostShellPointerRoute::DragTarget(group) => Some(group.as_str().to_string()),
+        HostShellPointerRoute::DocumentEdge(edge) => {
             Some(document_edge_group_key(*edge).to_string())
         }
-        WorkbenchShellPointerRoute::FloatingWindow(window_id) => {
+        HostShellPointerRoute::FloatingWindow(window_id) => {
             Some(floating_window_group_key(window_id))
         }
-        WorkbenchShellPointerRoute::FloatingWindowEdge { window_id, edge } => {
+        HostShellPointerRoute::FloatingWindowEdge { window_id, edge } => {
             Some(floating_window_edge_group_key(window_id, *edge))
         }
-        WorkbenchShellPointerRoute::Resize(_) => None,
+        HostShellPointerRoute::Resize(_) => None,
     }
 }
 

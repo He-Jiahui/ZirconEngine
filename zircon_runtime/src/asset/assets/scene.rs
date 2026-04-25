@@ -84,6 +84,10 @@ pub struct SceneRigidBodyAsset {
     #[serde(default = "default_rigid_body_mass")]
     pub mass: Real,
     #[serde(default)]
+    pub linear_velocity: [Real; 3],
+    #[serde(default)]
+    pub angular_velocity: [Real; 3],
+    #[serde(default)]
     pub linear_damping: Real,
     #[serde(default)]
     pub angular_damping: Real,

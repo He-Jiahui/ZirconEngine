@@ -3,10 +3,12 @@ use std::sync::Arc;
 
 use crate::core::framework::render::{
     RenderVirtualGeometryCullInputSnapshot, RenderVirtualGeometryExecutionSegment,
-    RenderVirtualGeometryExecutionState, RenderVirtualGeometrySelectedCluster,
-    RenderVirtualGeometrySelectedClusterSource,
+    RenderVirtualGeometryExecutionState,
+    RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot,
+    RenderVirtualGeometrySelectedCluster, RenderVirtualGeometrySelectedClusterSource,
 };
 use crate::graphics::scene::scene_renderer::mesh::MeshDraw;
+use crate::graphics::scene::scene_renderer::virtual_geometry::VirtualGeometryGpuResources;
 use crate::graphics::types::{ViewportRenderFrame, VirtualGeometryClusterSelection};
 
 use super::virtual_geometry_executed_cluster_selection_pass::execute_virtual_geometry_executed_cluster_selection_pass;
@@ -58,9 +60,13 @@ pub(super) struct VirtualGeometryIndirectStats {
 pub(super) fn virtual_geometry_indirect_stats(
     device: &wgpu::Device,
     encoder: &mut wgpu::CommandEncoder,
+    virtual_geometry_gpu_resources: &VirtualGeometryGpuResources,
     visbuffer64_pass_enabled: bool,
     frame: &ViewportRenderFrame,
     cull_input: Option<&RenderVirtualGeometryCullInputSnapshot>,
+    previous_node_and_cluster_cull_global_state: Option<
+        &RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot,
+    >,
     cluster_selections: Option<&[VirtualGeometryClusterSelection]>,
     execution_draws: &[&MeshDraw],
     args_buffer: Option<Arc<wgpu::Buffer>>,
@@ -109,9 +115,12 @@ pub(super) fn virtual_geometry_indirect_stats(
     let execution_segments = collect_execution_segments(&indirect_execution_draws);
     let node_and_cluster_cull_pass = execute_virtual_geometry_node_and_cluster_cull_pass(
         device,
+        encoder,
+        virtual_geometry_gpu_resources,
         visbuffer64_pass_enabled,
         frame,
         cull_input,
+        previous_node_and_cluster_cull_global_state,
     );
     let executed_cluster_selection_pass = execute_virtual_geometry_executed_cluster_selection_pass(
         device,

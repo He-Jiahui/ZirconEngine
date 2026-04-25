@@ -76,8 +76,8 @@ fn slint_template_bridge_workbench_owner_stays_structural_after_folder_split() {
         "mod error;",
         "mod host_projection;",
         "mod root_shell_frames;",
-        "pub(crate) use bridge::BuiltinWorkbenchTemplateBridge;",
-        "pub(crate) use root_shell_frames::BuiltinWorkbenchRootShellFrames;",
+        "pub(crate) use bridge::BuiltinHostWindowTemplateBridge;",
+        "pub(crate) use root_shell_frames::BuiltinHostRootShellFrames;",
     ] {
         assert!(
             source.contains(required),
@@ -86,10 +86,10 @@ fn slint_template_bridge_workbench_owner_stays_structural_after_folder_split() {
     }
 
     for forbidden in [
-        "pub(crate) struct BuiltinWorkbenchTemplateBridge {",
-        "pub(crate) enum BuiltinWorkbenchTemplateBridgeError {",
-        "pub(crate) struct BuiltinWorkbenchRootShellFrames {",
-        "fn build_builtin_workbench_host_projection(",
+        "pub(crate) struct BuiltinHostWindowTemplateBridge {",
+        "pub(crate) enum BuiltinHostWindowTemplateBridgeError {",
+        "pub(crate) struct BuiltinHostRootShellFrames {",
+        "fn build_builtin_host_window_projection(",
     ] {
         assert!(
             !source.contains(forbidden),
@@ -125,8 +125,8 @@ fn slint_template_bridge_workbench_drawer_source_owner_stays_structural_after_fo
         "mod error;",
         "mod layout;",
         "mod source_frames;",
-        "pub(crate) use bridge::BuiltinWorkbenchDrawerSourceTemplateBridge;",
-        "pub(super) use error::BuiltinWorkbenchDrawerSourceTemplateBridgeError;",
+        "pub(crate) use bridge::BuiltinHostDrawerSourceTemplateBridge;",
+        "pub(super) use error::BuiltinHostDrawerSourceTemplateBridgeError;",
     ] {
         assert!(
             source.contains(required),
@@ -135,10 +135,10 @@ fn slint_template_bridge_workbench_drawer_source_owner_stays_structural_after_fo
     }
 
     for forbidden in [
-        "pub(crate) struct BuiltinWorkbenchDrawerSourceTemplateBridge {",
-        "pub(crate) enum BuiltinWorkbenchDrawerSourceTemplateBridgeError {",
-        "pub(crate) struct BuiltinWorkbenchDrawerSourceFrames {",
-        "fn build_builtin_workbench_drawer_source_surface(",
+        "pub(crate) struct BuiltinHostDrawerSourceTemplateBridge {",
+        "pub(crate) enum BuiltinHostDrawerSourceTemplateBridgeError {",
+        "pub(crate) struct BuiltinHostDrawerSourceFrames {",
+        "fn build_builtin_host_drawer_source_surface(",
     ] {
         assert!(
             !source.contains(forbidden),
@@ -472,7 +472,7 @@ fn slint_callback_dispatch_root_stays_structural_after_owner_split() {
         "pub(crate) use shared_pointer::{",
         "pub(crate) use template_bridge::{",
         "pub(crate) use viewport::{",
-        "pub(crate) use workbench::dispatch_workbench_menu_action_with_template_fallback;",
+        "pub(crate) use workbench::dispatch_host_menu_action_with_template_fallback;",
     ] {
         assert!(
             source.contains(required),
@@ -485,7 +485,7 @@ fn slint_callback_dispatch_root_stays_structural_after_owner_split() {
         "pub(crate) fn dispatch_layout_command(",
         "pub(crate) fn dispatch_shared_menu_pointer_click(",
         "pub(crate) fn dispatch_viewport_event(",
-        "pub(crate) struct BuiltinWorkbenchTemplateBridge {",
+        "pub(crate) struct BuiltinHostWindowTemplateBridge {",
     ] {
         assert!(
             !source.contains(forbidden),
@@ -600,9 +600,9 @@ fn slint_callback_dispatch_layout_root_stays_structural() {
 
     for forbidden in [
         "pub(crate) fn dispatch_layout_command(",
-        "pub(crate) fn dispatch_builtin_workbench_document_tab_activation(",
-        "pub(crate) fn dispatch_builtin_workbench_drawer_toggle(",
-        "pub(crate) fn dispatch_builtin_workbench_host_page_activation(",
+        "pub(crate) fn dispatch_builtin_host_document_tab_activation(",
+        "pub(crate) fn dispatch_builtin_host_drawer_toggle(",
+        "pub(crate) fn dispatch_builtin_host_page_activation(",
         "pub(crate) fn dispatch_tab_drop(",
     ] {
         assert!(
@@ -717,7 +717,7 @@ fn slint_callback_dispatch_workbench_root_stays_structural() {
     for required in [
         "mod control;",
         "mod menu_action;",
-        "pub(crate) use menu_action::dispatch_workbench_menu_action_with_template_fallback;",
+        "pub(crate) use menu_action::dispatch_host_menu_action_with_template_fallback;",
     ] {
         assert!(
             source.contains(required),
@@ -726,10 +726,10 @@ fn slint_callback_dispatch_workbench_root_stays_structural() {
     }
 
     for forbidden in [
-        "pub(crate) fn dispatch_builtin_workbench_control(",
-        "pub(crate) fn dispatch_builtin_workbench_menu_action(",
+        "pub(crate) fn dispatch_builtin_host_control(",
+        "pub(crate) fn dispatch_builtin_host_menu_action(",
         "pub(crate) fn dispatch_menu_action(",
-        "pub(crate) fn dispatch_workbench_menu_action_with_template_fallback(",
+        "pub(crate) fn dispatch_host_menu_action_with_template_fallback(",
     ] {
         assert!(
             !source.contains(forbidden),

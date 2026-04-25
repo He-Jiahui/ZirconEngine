@@ -2,13 +2,13 @@ use std::collections::BTreeMap;
 
 use zircon_runtime::ui::{dispatch::UiPointerDispatcher, event_ui::UiTreeId, surface::UiSurface};
 
-use super::workbench_host_page_pointer_bridge::WorkbenchHostPagePointerBridge;
-use super::workbench_host_page_pointer_layout::WorkbenchHostPagePointerLayout;
+use super::host_page_pointer_bridge::HostPagePointerBridge;
+use super::host_page_pointer_layout::HostPagePointerLayout;
 
-impl WorkbenchHostPagePointerBridge {
+impl HostPagePointerBridge {
     pub(crate) fn new() -> Self {
         let mut bridge = Self {
-            layout: WorkbenchHostPagePointerLayout {
+            layout: HostPagePointerLayout {
                 strip_frame: zircon_runtime::ui::layout::UiFrame::default(),
                 items: Vec::new(),
             },

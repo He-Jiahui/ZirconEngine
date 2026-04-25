@@ -1,5 +1,5 @@
 import { Palette, ShellIcon } from "chrome.slint";
-import { WorkbenchHostContext } from "host_context.slint";
+import { UiHostContext } from "host_context.slint";
 import { HostTabDragOverlayData } from "host_components.slint";
 
 export component HostTabDragOverlay inherits Rectangle {
@@ -21,68 +21,68 @@ export component HostTabDragOverlay inherits Rectangle {
     x: 0px;
     y: 0px;
     background: transparent;
-    visible: WorkbenchHostContext.drag_state.drag_active;
+    visible: UiHostContext.drag_state.drag_active;
     property <string> drag_target_label:
-        WorkbenchHostContext.drag_state.active_drag_target_group == "left" ? "Dock Left" :
-        WorkbenchHostContext.drag_state.active_drag_target_group == "right" ? "Dock Right" :
-        WorkbenchHostContext.drag_state.active_drag_target_group == "bottom" ? "Dock Bottom" :
-        WorkbenchHostContext.drag_state.active_drag_target_group == "document-left" ? "Split Left" :
-        WorkbenchHostContext.drag_state.active_drag_target_group == "document-right" ? "Split Right" :
-        WorkbenchHostContext.drag_state.active_drag_target_group == "document-top" ? "Split Top" :
-        WorkbenchHostContext.drag_state.active_drag_target_group == "document-bottom" ? "Split Bottom" :
-        WorkbenchHostContext.drag_state.active_drag_target_group == "document" ? "Dock Document" :
+        UiHostContext.drag_state.active_drag_target_group == "left" ? "Dock Left" :
+        UiHostContext.drag_state.active_drag_target_group == "right" ? "Dock Right" :
+        UiHostContext.drag_state.active_drag_target_group == "bottom" ? "Dock Bottom" :
+        UiHostContext.drag_state.active_drag_target_group == "document-left" ? "Split Left" :
+        UiHostContext.drag_state.active_drag_target_group == "document-right" ? "Split Right" :
+        UiHostContext.drag_state.active_drag_target_group == "document-top" ? "Split Top" :
+        UiHostContext.drag_state.active_drag_target_group == "document-bottom" ? "Split Bottom" :
+        UiHostContext.drag_state.active_drag_target_group == "document" ? "Dock Document" :
         "Drag Tab";
 
     property <bool> document_drop_active:
-        WorkbenchHostContext.drag_state.active_drag_target_group == "document" ||
-        WorkbenchHostContext.drag_state.active_drag_target_group == "document-left" ||
-        WorkbenchHostContext.drag_state.active_drag_target_group == "document-right" ||
-        WorkbenchHostContext.drag_state.active_drag_target_group == "document-top" ||
-        WorkbenchHostContext.drag_state.active_drag_target_group == "document-bottom";
-    property <bool> document_left_drop_active: WorkbenchHostContext.drag_state.active_drag_target_group == "document-left";
-    property <bool> document_right_drop_active: WorkbenchHostContext.drag_state.active_drag_target_group == "document-right";
-    property <bool> document_top_drop_active: WorkbenchHostContext.drag_state.active_drag_target_group == "document-top";
-    property <bool> document_bottom_drop_active: WorkbenchHostContext.drag_state.active_drag_target_group == "document-bottom";
+        UiHostContext.drag_state.active_drag_target_group == "document" ||
+        UiHostContext.drag_state.active_drag_target_group == "document-left" ||
+        UiHostContext.drag_state.active_drag_target_group == "document-right" ||
+        UiHostContext.drag_state.active_drag_target_group == "document-top" ||
+        UiHostContext.drag_state.active_drag_target_group == "document-bottom";
+    property <bool> document_left_drop_active: UiHostContext.drag_state.active_drag_target_group == "document-left";
+    property <bool> document_right_drop_active: UiHostContext.drag_state.active_drag_target_group == "document-right";
+    property <bool> document_top_drop_active: UiHostContext.drag_state.active_drag_target_group == "document-top";
+    property <bool> document_bottom_drop_active: UiHostContext.drag_state.active_drag_target_group == "document-bottom";
 
     drag_capture := TouchArea {
         width: parent.width;
         height: parent.height;
         mouse-cursor: MouseCursor.grabbing;
         moved => {
-            WorkbenchHostContext.drag_state = {
-                active_drag_target_group: WorkbenchHostContext.drag_state.active_drag_target_group,
-                drag_active: WorkbenchHostContext.drag_state.drag_active,
-                drag_tab_id: WorkbenchHostContext.drag_state.drag_tab_id,
-                drag_tab_title: WorkbenchHostContext.drag_state.drag_tab_title,
-                drag_tab_icon_key: WorkbenchHostContext.drag_state.drag_tab_icon_key,
-                drag_source_group: WorkbenchHostContext.drag_state.drag_source_group,
+            UiHostContext.drag_state = {
+                active_drag_target_group: UiHostContext.drag_state.active_drag_target_group,
+                drag_active: UiHostContext.drag_state.drag_active,
+                drag_tab_id: UiHostContext.drag_state.drag_tab_id,
+                drag_tab_title: UiHostContext.drag_state.drag_tab_title,
+                drag_tab_icon_key: UiHostContext.drag_state.drag_tab_icon_key,
+                drag_source_group: UiHostContext.drag_state.drag_source_group,
                 drag_pointer_x: self.mouse-x / 1px,
                 drag_pointer_y: self.mouse-y / 1px,
             };
-            WorkbenchHostContext.workbench_drag_pointer_event(
+            UiHostContext.host_drag_pointer_event(
                 1,
-                WorkbenchHostContext.drag_state.drag_pointer_x,
-                WorkbenchHostContext.drag_state.drag_pointer_y,
+                UiHostContext.drag_state.drag_pointer_x,
+                UiHostContext.drag_state.drag_pointer_y,
             );
         }
         pointer-event(event) => {
             if (event.button == PointerEventButton.left && event.kind == PointerEventKind.up) {
-                WorkbenchHostContext.drag_state = {
-                    active_drag_target_group: WorkbenchHostContext.drag_state.active_drag_target_group,
-                    drag_active: WorkbenchHostContext.drag_state.drag_active,
-                    drag_tab_id: WorkbenchHostContext.drag_state.drag_tab_id,
-                    drag_tab_title: WorkbenchHostContext.drag_state.drag_tab_title,
-                    drag_tab_icon_key: WorkbenchHostContext.drag_state.drag_tab_icon_key,
-                    drag_source_group: WorkbenchHostContext.drag_state.drag_source_group,
+                UiHostContext.drag_state = {
+                    active_drag_target_group: UiHostContext.drag_state.active_drag_target_group,
+                    drag_active: UiHostContext.drag_state.drag_active,
+                    drag_tab_id: UiHostContext.drag_state.drag_tab_id,
+                    drag_tab_title: UiHostContext.drag_state.drag_tab_title,
+                    drag_tab_icon_key: UiHostContext.drag_state.drag_tab_icon_key,
+                    drag_source_group: UiHostContext.drag_state.drag_source_group,
                     drag_pointer_x: self.mouse-x / 1px,
                     drag_pointer_y: self.mouse-y / 1px,
                 };
-                WorkbenchHostContext.workbench_drag_pointer_event(
+                UiHostContext.host_drag_pointer_event(
                     2,
-                    WorkbenchHostContext.drag_state.drag_pointer_x,
-                    WorkbenchHostContext.drag_state.drag_pointer_y,
+                    UiHostContext.drag_state.drag_pointer_x,
+                    UiHostContext.drag_state.drag_pointer_y,
                 );
-                WorkbenchHostContext.drag_state = {
+                UiHostContext.drag_state = {
                     active_drag_target_group: "",
                     drag_active: false,
                     drag_tab_id: "",
@@ -103,16 +103,16 @@ export component HostTabDragOverlay inherits Rectangle {
         height: root.overlay_data.main_content_height_px * 1px - 16px;
         border-radius: 6px;
         border-width: 1px;
-        border-color: WorkbenchHostContext.drag_state.active_drag_target_group == "left" ? palette.accent : palette.border_soft;
-        background: WorkbenchHostContext.drag_state.active_drag_target_group == "left" ? #2c527933 : #17191d22;
-        opacity: WorkbenchHostContext.drag_state.active_drag_target_group == "left" ? 1.0 : 0.78;
+        border-color: UiHostContext.drag_state.active_drag_target_group == "left" ? palette.accent : palette.border_soft;
+        background: UiHostContext.drag_state.active_drag_target_group == "left" ? #2c527933 : #17191d22;
+        opacity: UiHostContext.drag_state.active_drag_target_group == "left" ? 1.0 : 0.78;
         animate opacity { duration: 60ms; }
 
         Text {
             x: 12px;
             y: 12px;
             text: "Dock Left";
-            color: WorkbenchHostContext.drag_state.active_drag_target_group == "left" ? palette.text : palette.text_dim;
+            color: UiHostContext.drag_state.active_drag_target_group == "left" ? palette.text : palette.text_dim;
             font-size: 10px;
             font-weight: 600;
         }
@@ -227,16 +227,16 @@ export component HostTabDragOverlay inherits Rectangle {
         height: root.overlay_data.main_content_height_px * 1px - 16px;
         border-radius: 6px;
         border-width: 1px;
-        border-color: WorkbenchHostContext.drag_state.active_drag_target_group == "right" ? palette.accent : palette.border_soft;
-        background: WorkbenchHostContext.drag_state.active_drag_target_group == "right" ? #2c527933 : #17191d22;
-        opacity: WorkbenchHostContext.drag_state.active_drag_target_group == "right" ? 1.0 : 0.78;
+        border-color: UiHostContext.drag_state.active_drag_target_group == "right" ? palette.accent : palette.border_soft;
+        background: UiHostContext.drag_state.active_drag_target_group == "right" ? #2c527933 : #17191d22;
+        opacity: UiHostContext.drag_state.active_drag_target_group == "right" ? 1.0 : 0.78;
         animate opacity { duration: 60ms; }
 
         Text {
             x: parent.width - self.preferred-width - 12px;
             y: 12px;
             text: "Dock Right";
-            color: WorkbenchHostContext.drag_state.active_drag_target_group == "right" ? palette.text : palette.text_dim;
+            color: UiHostContext.drag_state.active_drag_target_group == "right" ? palette.text : palette.text_dim;
             font-size: 10px;
             font-weight: 600;
         }
@@ -249,16 +249,16 @@ export component HostTabDragOverlay inherits Rectangle {
         height: root.overlay_data.bottom_drop_height_px * 1px - 16px;
         border-radius: 6px;
         border-width: 1px;
-        border-color: WorkbenchHostContext.drag_state.active_drag_target_group == "bottom" ? palette.accent : palette.border_soft;
-        background: WorkbenchHostContext.drag_state.active_drag_target_group == "bottom" ? #2c527933 : #17191d22;
-        opacity: WorkbenchHostContext.drag_state.active_drag_target_group == "bottom" ? 1.0 : 0.78;
+        border-color: UiHostContext.drag_state.active_drag_target_group == "bottom" ? palette.accent : palette.border_soft;
+        background: UiHostContext.drag_state.active_drag_target_group == "bottom" ? #2c527933 : #17191d22;
+        opacity: UiHostContext.drag_state.active_drag_target_group == "bottom" ? 1.0 : 0.78;
         animate opacity { duration: 60ms; }
 
         Text {
             x: 12px;
             y: 12px;
             text: "Dock Bottom";
-            color: WorkbenchHostContext.drag_state.active_drag_target_group == "bottom" ? palette.text : palette.text_dim;
+            color: UiHostContext.drag_state.active_drag_target_group == "bottom" ? palette.text : palette.text_dim;
             font-size: 10px;
             font-weight: 600;
         }
@@ -267,23 +267,23 @@ export component HostTabDragOverlay inherits Rectangle {
     drag_preview := Rectangle {
         width: min(max(188px, drag_preview_title.preferred-width + 126px), 360px);
         height: 44px;
-        x: clamp(WorkbenchHostContext.drag_state.drag_pointer_x * 1px + 18px, 12px, parent.width - self.width - 12px);
+        x: clamp(UiHostContext.drag_state.drag_pointer_x * 1px + 18px, 12px, parent.width - self.width - 12px);
         y: clamp(
-            WorkbenchHostContext.drag_state.drag_pointer_y * 1px - self.height - 14px,
+            UiHostContext.drag_state.drag_pointer_y * 1px - self.height - 14px,
             root.overlay_data.main_content_y_px * 1px + 12px,
             root.overlay_data.drag_overlay_bottom_px * 1px - self.height - 12px
         );
         border-radius: 7px;
         border-width: 1px;
-        border-color: WorkbenchHostContext.drag_state.active_drag_target_group != "" ? palette.accent : palette.border_soft;
-        background: WorkbenchHostContext.drag_state.active_drag_target_group != "" ? #16202cf4 : #1b1e24f4;
+        border-color: UiHostContext.drag_state.active_drag_target_group != "" ? palette.accent : palette.border_soft;
+        background: UiHostContext.drag_state.active_drag_target_group != "" ? #16202cf4 : #1b1e24f4;
         opacity: 0.99;
 
         Rectangle {
             width: 4px;
             height: parent.height;
             border-radius: 7px;
-            background: WorkbenchHostContext.drag_state.active_drag_target_group != "" ? palette.accent : palette.border;
+            background: UiHostContext.drag_state.active_drag_target_group != "" ? palette.accent : palette.border;
         }
 
         ShellIcon {
@@ -291,7 +291,7 @@ export component HostTabDragOverlay inherits Rectangle {
             height: 14px;
             x: 14px;
             y: 13px;
-            icon_key: WorkbenchHostContext.drag_state.drag_tab_icon_key != "" ? WorkbenchHostContext.drag_state.drag_tab_icon_key : "project";
+            icon_key: UiHostContext.drag_state.drag_tab_icon_key != "" ? UiHostContext.drag_state.drag_tab_icon_key : "project";
             icon_color: palette.text;
         }
 
@@ -299,7 +299,7 @@ export component HostTabDragOverlay inherits Rectangle {
             x: 36px;
             y: 7px;
             width: parent.width - 146px;
-            text: WorkbenchHostContext.drag_state.drag_tab_title != "" ? WorkbenchHostContext.drag_state.drag_tab_title : root.drag_target_label;
+            text: UiHostContext.drag_state.drag_tab_title != "" ? UiHostContext.drag_state.drag_tab_title : root.drag_target_label;
             color: palette.text;
             font-size: 11px;
             font-weight: 600;
@@ -310,8 +310,8 @@ export component HostTabDragOverlay inherits Rectangle {
             x: 36px;
             y: 24px;
             width: parent.width - 146px;
-            text: WorkbenchHostContext.drag_state.active_drag_target_group != "" ? "Release to dock" : "Drag to dock or reorder";
-            color: WorkbenchHostContext.drag_state.active_drag_target_group != "" ? palette.accent : palette.text_dim;
+            text: UiHostContext.drag_state.active_drag_target_group != "" ? "Release to dock" : "Drag to dock or reorder";
+            color: UiHostContext.drag_state.active_drag_target_group != "" ? palette.accent : palette.text_dim;
             font-size: 9px;
             overflow: elide;
         }
@@ -323,14 +323,14 @@ export component HostTabDragOverlay inherits Rectangle {
             height: 22px;
             border-radius: 11px;
             border-width: 1px;
-            border-color: WorkbenchHostContext.drag_state.active_drag_target_group != "" ? palette.accent : palette.border_soft;
-            background: WorkbenchHostContext.drag_state.active_drag_target_group != "" ? #2c527944 : #20242b;
+            border-color: UiHostContext.drag_state.active_drag_target_group != "" ? palette.accent : palette.border_soft;
+            background: UiHostContext.drag_state.active_drag_target_group != "" ? #2c527944 : #20242b;
 
             badge_text := Text {
                 width: parent.width;
                 height: parent.height;
                 text: root.drag_target_label != "" ? root.drag_target_label : "Move Tab";
-                color: WorkbenchHostContext.drag_state.active_drag_target_group != "" ? palette.text : palette.text_dim;
+                color: UiHostContext.drag_state.active_drag_target_group != "" ? palette.text : palette.text_dim;
                 font-size: 9px;
                 font-weight: 600;
                 horizontal-alignment: center;

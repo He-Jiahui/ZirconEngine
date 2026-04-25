@@ -12,12 +12,12 @@ use crate::ui::layouts::views::blank_viewport_chrome;
 use crate::ui::layouts::windows::workbench_host_window::{
     self as host_window, collect_floating_windows, document_pane,
 };
-use crate::ui::slint_host::callback_dispatch::BuiltinWorkbenchTemplateBridge;
+use crate::ui::slint_host::callback_dispatch::BuiltinHostWindowTemplateBridge;
 use crate::ui::slint_host::floating_window_projection::{
     build_floating_window_projection_bundle, FloatingWindowProjectionBundle,
 };
-use crate::ui::slint_host::shell_pointer::WorkbenchShellPointerRoute;
-use crate::ui::slint_host::tab_drag::workbench_shell_pointer_route_group_key;
+use crate::ui::slint_host::shell_pointer::HostShellPointerRoute;
+use crate::ui::slint_host::tab_drag::host_shell_pointer_route_group_key;
 use crate::ui::template_runtime::EditorUiCompatibilityHarness;
 use crate::ui::workbench::autolayout::WorkbenchShellGeometry;
 use crate::ui::workbench::fixture::{default_preview_fixture, PreviewFixture};
@@ -122,6 +122,7 @@ fn welcome_shell_fixture() -> (
                 window_instance: welcome_instance.instance_id.clone(),
             }],
             drawers: BTreeMap::new(),
+            activity_windows: Default::default(),
             floating_windows: Vec::new(),
             region_overrides: BTreeMap::new(),
             view_overrides: BTreeMap::new(),
@@ -219,20 +220,23 @@ fn host_pane(id: &str, title: &str) -> host_window::PaneData {
         secondary_hint: format!("{title} hint").into(),
         show_toolbar: true,
         viewport: blank_viewport_chrome(),
-        hierarchy: host_window::HierarchyPaneViewData::default(),
-        inspector: host_window::InspectorPaneViewData::default(),
-        console: host_window::ConsolePaneViewData::default(),
-        assets_activity: host_window::AssetsActivityPaneViewData::default(),
-        asset_browser: host_window::AssetBrowserPaneViewData::default(),
-        project_overview: host_window::ProjectOverviewPaneViewData::default(),
-        ui_asset: UiAssetEditorPanePresentation::default(),
-        animation: host_window::AnimationEditorPaneViewData::default(),
+        body_compat: host_window::PaneBodyCompatData {
+            hierarchy: host_window::HierarchyPaneViewData::default(),
+            inspector: host_window::InspectorPaneViewData::default(),
+            console: host_window::ConsolePaneViewData::default(),
+            assets_activity: host_window::AssetsActivityPaneViewData::default(),
+            asset_browser: host_window::AssetBrowserPaneViewData::default(),
+            project_overview: host_window::ProjectOverviewPaneViewData::default(),
+            ui_asset: UiAssetEditorPanePresentation::default(),
+            animation: host_window::AnimationEditorPaneViewData::default(),
+        },
+        pane_presentation: None,
     }
 }
 
 #[test]
 fn host_scene_projection_converts_host_owned_panes_to_slint_panes() {
-    let mut scene = host_window::HostWorkbenchWindowSceneData {
+    let mut scene = host_window::HostWindowSceneData {
         layout: host_window::HostWindowLayoutData {
             center_band_frame: host_frame_rect(0.0, 0.0, 1200.0, 700.0),
             status_bar_frame: host_frame_rect(0.0, 700.0, 1200.0, 24.0),
@@ -245,7 +249,7 @@ fn host_scene_projection_converts_host_owned_panes_to_slint_panes() {
             bottom_splitter_frame: host_frame_rect(240.0, 496.0, 720.0, 4.0),
             viewport_content_frame: host_frame_rect(240.0, 64.0, 720.0, 432.0),
         },
-        metrics: host_window::HostWorkbenchSurfaceMetricsData {
+        metrics: host_window::HostWindowSurfaceMetricsData {
             outer_margin_px: 8.0,
             rail_width_px: 40.0,
             top_bar_height_px: 40.0,
@@ -253,7 +257,7 @@ fn host_scene_projection_converts_host_owned_panes_to_slint_panes() {
             panel_header_height_px: 28.0,
             document_header_height_px: 32.0,
         },
-        orchestration: host_window::HostWorkbenchSurfaceOrchestrationData {
+        orchestration: host_window::HostWindowSurfaceOrchestrationData {
             left_rail_width_px: 40.0,
             right_rail_width_px: 40.0,
             left_stack_width_px: 240.0,
@@ -377,7 +381,14 @@ fn host_scene_projection_converts_host_owned_panes_to_slint_panes() {
         },
     };
     let ui_asset_nodes = vec![
-        mount_node("ui_asset/header_panel", "HeaderPanel", 11.0, 12.0, 640.0, 56.0),
+        mount_node(
+            "ui_asset/header_panel",
+            "HeaderPanel",
+            11.0,
+            12.0,
+            640.0,
+            56.0,
+        ),
         mount_node(
             "ui_asset/header_asset_row",
             "HeaderAssetRow",
@@ -402,9 +413,30 @@ fn host_scene_projection_converts_host_owned_panes_to_slint_panes() {
             620.0,
             20.0,
         ),
-        mount_node("ui_asset/left_column", "LeftColumn", 16.0, 80.0, 220.0, 240.0),
-        mount_node("ui_asset/palette_panel", "PalettePanel", 16.0, 80.0, 220.0, 240.0),
-        mount_node("ui_asset/center_column", "CenterColumn", 260.0, 80.0, 420.0, 928.0),
+        mount_node(
+            "ui_asset/left_column",
+            "LeftColumn",
+            16.0,
+            80.0,
+            220.0,
+            240.0,
+        ),
+        mount_node(
+            "ui_asset/palette_panel",
+            "PalettePanel",
+            16.0,
+            80.0,
+            220.0,
+            240.0,
+        ),
+        mount_node(
+            "ui_asset/center_column",
+            "CenterColumn",
+            260.0,
+            80.0,
+            420.0,
+            928.0,
+        ),
         mount_node(
             "ui_asset/designer_panel",
             "DesignerPanel",
@@ -573,7 +605,7 @@ fn host_scene_projection_converts_host_owned_panes_to_slint_panes() {
             .cloned()
             .unwrap_or_else(|| panic!("missing ui asset test node `{control_id}`"))
     };
-    scene.left_dock.pane.ui_asset = UiAssetEditorPanePresentation {
+    scene.left_dock.pane.body_compat.ui_asset = UiAssetEditorPanePresentation {
         asset_id: "asset://ui/test.ui.toml".to_string(),
         mode: "split".to_string(),
         last_error: "clean".to_string(),
@@ -588,9 +620,16 @@ fn host_scene_projection_converts_host_owned_panes_to_slint_panes() {
         stylesheet_panel_node: ui_asset_node("StylesheetPanel"),
         ..UiAssetEditorPanePresentation::default()
     };
-    scene.right_dock.pane.animation = host_window::AnimationEditorPaneViewData {
+    scene.right_dock.pane.body_compat.animation = host_window::AnimationEditorPaneViewData {
         nodes: model_rc(vec![
-            mount_node("root/header_panel", "AnimationEditorHeaderPanel", 14.0, 18.0, 520.0, 64.0),
+            mount_node(
+                "root/header_panel",
+                "AnimationEditorHeaderPanel",
+                14.0,
+                18.0,
+                520.0,
+                64.0,
+            ),
             mount_node(
                 "root/header_mode_row",
                 "AnimationEditorHeaderModeRow",
@@ -615,7 +654,14 @@ fn host_scene_projection_converts_host_owned_panes_to_slint_panes() {
                 496.0,
                 12.0,
             ),
-            mount_node("root/body_panel", "AnimationEditorBodyPanel", 14.0, 82.0, 520.0, 318.0),
+            mount_node(
+                "root/body_panel",
+                "AnimationEditorBodyPanel",
+                14.0,
+                82.0,
+                520.0,
+                318.0,
+            ),
             mount_node(
                 "root/sequence_content_panel",
                 "AnimationSequenceContentPanel",
@@ -720,81 +766,82 @@ fn host_scene_projection_converts_host_owned_panes_to_slint_panes() {
         transition_items: model_rc(vec!["Idle -> Walk".into()]),
     };
     scene.document_dock.pane.kind = "Project".into();
-    scene.document_dock.pane.project_overview = host_window::ProjectOverviewPaneViewData {
-        nodes: model_rc(vec![
-            crate::ui::layouts::views::ViewTemplateNodeData {
-                node_id: "root/outer_panel".into(),
-                control_id: "ProjectOverviewOuterPanel".into(),
-                role: "Panel".into(),
-                text: "".into(),
-                dispatch_kind: "".into(),
-                action_id: "".into(),
-                surface_variant: "panel".into(),
-                text_tone: "".into(),
-                button_variant: "".into(),
-                font_size: 0.0,
-                font_weight: 0,
-                text_align: "left".into(),
-                overflow: "".into(),
-                corner_radius: 8.0,
-                border_width: 1.0,
-                frame: crate::ui::layouts::views::ViewTemplateFrameData {
-                    x: 16.0,
-                    y: 14.0,
-                    width: 688.0,
-                    height: 654.0,
+    scene.document_dock.pane.body_compat.project_overview =
+        host_window::ProjectOverviewPaneViewData {
+            nodes: model_rc(vec![
+                crate::ui::layouts::views::ViewTemplateNodeData {
+                    node_id: "root/outer_panel".into(),
+                    control_id: "ProjectOverviewOuterPanel".into(),
+                    role: "Panel".into(),
+                    text: "".into(),
+                    dispatch_kind: "".into(),
+                    action_id: "".into(),
+                    surface_variant: "panel".into(),
+                    text_tone: "".into(),
+                    button_variant: "".into(),
+                    font_size: 0.0,
+                    font_weight: 0,
+                    text_align: "left".into(),
+                    overflow: "".into(),
+                    corner_radius: 8.0,
+                    border_width: 1.0,
+                    frame: crate::ui::layouts::views::ViewTemplateFrameData {
+                        x: 16.0,
+                        y: 14.0,
+                        width: 688.0,
+                        height: 654.0,
+                    },
                 },
-            },
-            crate::ui::layouts::views::ViewTemplateNodeData {
-                node_id: "root/header_path".into(),
-                control_id: "ProjectOverviewPathText".into(),
-                role: "Label".into(),
-                text: "res://project".into(),
-                dispatch_kind: "".into(),
-                action_id: "".into(),
-                surface_variant: "".into(),
-                text_tone: "muted".into(),
-                button_variant: "".into(),
-                font_size: 10.0,
-                font_weight: 400,
-                text_align: "left".into(),
-                overflow: "elide".into(),
-                corner_radius: 0.0,
-                border_width: 0.0,
-                frame: crate::ui::layouts::views::ViewTemplateFrameData {
-                    x: 32.0,
-                    y: 52.0,
-                    width: 656.0,
-                    height: 16.0,
+                crate::ui::layouts::views::ViewTemplateNodeData {
+                    node_id: "root/header_path".into(),
+                    control_id: "ProjectOverviewPathText".into(),
+                    role: "Label".into(),
+                    text: "res://project".into(),
+                    dispatch_kind: "".into(),
+                    action_id: "".into(),
+                    surface_variant: "".into(),
+                    text_tone: "muted".into(),
+                    button_variant: "".into(),
+                    font_size: 10.0,
+                    font_weight: 400,
+                    text_align: "left".into(),
+                    overflow: "elide".into(),
+                    corner_radius: 0.0,
+                    border_width: 0.0,
+                    frame: crate::ui::layouts::views::ViewTemplateFrameData {
+                        x: 32.0,
+                        y: 52.0,
+                        width: 656.0,
+                        height: 16.0,
+                    },
                 },
-            },
-            crate::ui::layouts::views::ViewTemplateNodeData {
-                node_id: "root/catalog_panel".into(),
-                control_id: "ProjectOverviewCatalogPanel".into(),
-                role: "Panel".into(),
-                text: "".into(),
-                dispatch_kind: "".into(),
-                action_id: "".into(),
-                surface_variant: "inset".into(),
-                text_tone: "".into(),
-                button_variant: "".into(),
-                font_size: 0.0,
-                font_weight: 0,
-                text_align: "left".into(),
-                overflow: "".into(),
-                corner_radius: 6.0,
-                border_width: 1.0,
-                frame: crate::ui::layouts::views::ViewTemplateFrameData {
-                    x: 32.0,
-                    y: 206.0,
-                    width: 656.0,
-                    height: 68.0,
+                crate::ui::layouts::views::ViewTemplateNodeData {
+                    node_id: "root/catalog_panel".into(),
+                    control_id: "ProjectOverviewCatalogPanel".into(),
+                    role: "Panel".into(),
+                    text: "".into(),
+                    dispatch_kind: "".into(),
+                    action_id: "".into(),
+                    surface_variant: "inset".into(),
+                    text_tone: "".into(),
+                    button_variant: "".into(),
+                    font_size: 0.0,
+                    font_weight: 0,
+                    text_align: "left".into(),
+                    overflow: "".into(),
+                    corner_radius: 6.0,
+                    border_width: 1.0,
+                    frame: crate::ui::layouts::views::ViewTemplateFrameData {
+                        x: 32.0,
+                        y: 206.0,
+                        width: 656.0,
+                        height: 68.0,
+                    },
                 },
-            },
-        ]),
-    };
+            ]),
+        };
     scene.bottom_dock.pane.kind = "Assets".into();
-    scene.bottom_dock.pane.assets_activity = host_window::AssetsActivityPaneViewData {
+    scene.bottom_dock.pane.body_compat.assets_activity = host_window::AssetsActivityPaneViewData {
         nodes: model_rc(vec![
             crate::ui::layouts::views::ViewTemplateNodeData {
                 node_id: "root/toolbar_panel".into(),
@@ -890,7 +937,7 @@ fn host_scene_projection_converts_host_owned_panes_to_slint_panes() {
             },
         ]),
     };
-    scene.left_dock.pane.hierarchy = host_window::HierarchyPaneViewData {
+    scene.left_dock.pane.body_compat.hierarchy = host_window::HierarchyPaneViewData {
         nodes: model_rc(vec![crate::ui::layouts::views::ViewTemplateNodeData {
             node_id: "root/list_panel".into(),
             control_id: "HierarchyListPanel".into(),
@@ -929,7 +976,7 @@ fn host_scene_projection_converts_host_owned_panes_to_slint_panes() {
             },
         ]),
     };
-    scene.right_dock.pane.inspector = host_window::InspectorPaneViewData {
+    scene.right_dock.pane.body_compat.inspector = host_window::InspectorPaneViewData {
         nodes: model_rc(vec![
             crate::ui::layouts::views::ViewTemplateNodeData {
                 node_id: "root/content_panel".into(),
@@ -1101,7 +1148,7 @@ fn host_scene_projection_converts_host_owned_panes_to_slint_panes() {
         inspector_z: "3.0".into(),
         delete_enabled: true,
     };
-    scene.bottom_dock.pane.console = host_window::ConsolePaneViewData {
+    scene.bottom_dock.pane.body_compat.console = host_window::ConsolePaneViewData {
         nodes: model_rc(vec![crate::ui::layouts::views::ViewTemplateNodeData {
             node_id: "root/text_panel".into(),
             control_id: "ConsoleTextPanel".into(),
@@ -1145,73 +1192,44 @@ fn host_scene_projection_converts_host_owned_panes_to_slint_panes() {
     );
     assert_eq!(projected.left_dock.pane.ui_asset.header.mode, "split");
     assert_eq!(projected.left_dock.pane.ui_asset.header.selection, "Root");
+    let projected_ui_asset_nodes = (0..projected.left_dock.pane.ui_asset.nodes.row_count())
+        .filter_map(|row| projected.left_dock.pane.ui_asset.nodes.row_data(row))
+        .collect::<Vec<_>>();
+    let projected_ui_asset_node = |control_id: &str| {
+        projected_ui_asset_nodes
+            .iter()
+            .find(|node| node.control_id == control_id)
+            .unwrap_or_else(|| panic!("projected ui asset node `{control_id}` should exist"))
+    };
+    assert_eq!(projected_ui_asset_node("HeaderPanel").frame.x, 11.0);
+    assert_eq!(projected_ui_asset_node("HeaderPanel").frame.width, 640.0);
+    assert_eq!(projected_ui_asset_node("HeaderAssetRow").frame.x, 21.0);
+    assert_eq!(projected_ui_asset_node("HeaderStatusRow").frame.y, 28.0);
     assert_eq!(
-        projected
-            .left_dock
-            .pane
-            .ui_asset
-            .shell_layout
-            .header_panel
-            .x,
-        11.0
-    );
-    assert_eq!(
-        projected
-            .left_dock
-            .pane
-            .ui_asset
-            .shell_layout
-            .header_panel
-            .width,
-        640.0
-    );
-    assert_eq!(
-        projected
-            .left_dock
-            .pane
-            .ui_asset
-            .shell_layout
-            .header_asset_row
-            .x,
-        21.0
-    );
-    assert_eq!(
-        projected
-            .left_dock
-            .pane
-            .ui_asset
-            .shell_layout
-            .header_status_row
-            .y,
-        28.0
-    );
-    assert_eq!(
-        projected
-            .left_dock
-            .pane
-            .ui_asset
-            .shell_layout
-            .header_action_row
-            .height,
+        projected_ui_asset_node("HeaderActionRow").frame.height,
         20.0
     );
+    assert_eq!(projected_ui_asset_node("PalettePanel").frame.height, 240.0);
     assert_eq!(
         projected
             .left_dock
             .pane
             .ui_asset
-            .shell_layout
-            .palette_panel
-            .height,
-        240.0
+            .center_column_node
+            .control_id,
+        "CenterColumn"
+    );
+    assert_eq!(
+        projected.left_dock.pane.ui_asset.center_column_node.frame.x,
+        260.0
     );
     assert_eq!(
         projected
             .left_dock
             .pane
             .ui_asset
-            .shell_layout
-            .designer_panel
+            .designer_panel_node
+            .frame
             .y,
         80.0
     );
@@ -1220,139 +1238,49 @@ fn host_scene_projection_converts_host_owned_panes_to_slint_panes() {
             .left_dock
             .pane
             .ui_asset
-            .shell_layout
-            .designer_canvas_panel
+            .designer_canvas_panel_node
+            .frame
             .height,
         214.0
     );
+    assert_eq!(projected_ui_asset_node("RenderStackPanel").frame.y, 328.0);
+    assert_eq!(projected_ui_asset_node("ActionBarPanel").frame.height, 88.0);
+    assert_eq!(projected_ui_asset_node("ActionInsertRow").frame.x, 280.0);
+    assert_eq!(projected_ui_asset_node("ActionReparentRow").frame.y, 450.0);
     assert_eq!(
-        projected
-            .left_dock
-            .pane
-            .ui_asset
-            .shell_layout
-            .render_stack_panel
-            .y,
-        328.0
-    );
-    assert_eq!(
-        projected
-            .left_dock
-            .pane
-            .ui_asset
-            .shell_layout
-            .action_bar_panel
-            .height,
-        88.0
-    );
-    assert_eq!(
-        projected
-            .left_dock
-            .pane
-            .ui_asset
-            .shell_layout
-            .action_insert_row
-            .x,
-        280.0
-    );
-    assert_eq!(
-        projected
-            .left_dock
-            .pane
-            .ui_asset
-            .shell_layout
-            .action_reparent_row
-            .y,
-        450.0
-    );
-    assert_eq!(
-        projected
-            .left_dock
-            .pane
-            .ui_asset
-            .shell_layout
-            .action_structure_row
-            .width,
+        projected_ui_asset_node("ActionStructureRow").frame.width,
         380.0
     );
     assert_eq!(
-        projected
-            .left_dock
-            .pane
-            .ui_asset
-            .shell_layout
-            .source_info_panel
-            .height,
+        projected_ui_asset_node("SourceInfoPanel").frame.height,
         58.0
     );
     assert_eq!(
-        projected
-            .left_dock
-            .pane
-            .ui_asset
-            .shell_layout
-            .mock_workspace_panel
-            .width,
+        projected_ui_asset_node("MockWorkspacePanel").frame.width,
         400.0
     );
     assert_eq!(
-        projected
-            .left_dock
-            .pane
-            .ui_asset
-            .shell_layout
-            .mock_subjects_panel
-            .height,
+        projected_ui_asset_node("MockSubjectsPanel").frame.height,
         72.0
     );
+    assert_eq!(projected_ui_asset_node("MockEditorPanel").frame.y, 606.0);
     assert_eq!(
-        projected
-            .left_dock
-            .pane
-            .ui_asset
-            .shell_layout
-            .mock_editor_panel
-            .y,
-        606.0
-    );
-    assert_eq!(
-        projected
-            .left_dock
-            .pane
-            .ui_asset
-            .shell_layout
-            .mock_state_graph_panel
-            .y,
+        projected_ui_asset_node("MockStateGraphPanel").frame.y,
         782.0
     );
+    assert_eq!(projected_ui_asset_node("SourceTextPanel").frame.y, 860.0);
     assert_eq!(
         projected
             .left_dock
             .pane
             .ui_asset
-            .shell_layout
-            .source_text_panel
-            .y,
-        860.0
-    );
-    assert_eq!(
-        projected
-            .left_dock
-            .pane
-            .ui_asset
-            .shell_layout
-            .inspector_panel
+            .inspector_panel_node
+            .frame
             .height,
         240.0
     );
     assert_eq!(
-        projected
-            .left_dock
-            .pane
-            .ui_asset
-            .shell_layout
-            .inspector_content_panel
-            .y,
+        projected_ui_asset_node("InspectorContentPanel").frame.y,
         106.0
     );
     assert_eq!(
@@ -1360,48 +1288,30 @@ fn host_scene_projection_converts_host_owned_panes_to_slint_panes() {
             .left_dock
             .pane
             .ui_asset
-            .shell_layout
-            .stylesheet_panel
+            .stylesheet_panel_node
+            .frame
             .width,
         260.0
     );
     assert_eq!(
-        projected
-            .left_dock
-            .pane
-            .ui_asset
-            .shell_layout
-            .stylesheet_action_row
-            .y,
+        projected_ui_asset_node("StylesheetActionRow").frame.y,
         356.0
     );
     assert_eq!(
-        projected
-            .left_dock
-            .pane
-            .ui_asset
-            .shell_layout
-            .stylesheet_state_primary_row
+        projected_ui_asset_node("StylesheetStatePrimaryRow")
+            .frame
             .height,
         24.0
     );
     assert_eq!(
-        projected
-            .left_dock
-            .pane
-            .ui_asset
-            .shell_layout
-            .stylesheet_state_secondary_row
+        projected_ui_asset_node("StylesheetStateSecondaryRow")
+            .frame
             .x,
         710.0
     );
     assert_eq!(
-        projected
-            .left_dock
-            .pane
-            .ui_asset
-            .shell_layout
-            .stylesheet_content_panel
+        projected_ui_asset_node("StylesheetContentPanel")
+            .frame
             .height,
         49.0
     );
@@ -1479,10 +1389,7 @@ fn host_scene_projection_converts_host_owned_panes_to_slint_panes() {
             .find(|node| node.control_id == control_id)
             .unwrap_or_else(|| panic!("animation node `{control_id}` should project"))
     };
-    assert_eq!(
-        animation_node("AnimationEditorHeaderPanel").frame.x,
-        14.0
-    );
+    assert_eq!(animation_node("AnimationEditorHeaderPanel").frame.x, 14.0);
     assert_eq!(
         animation_node("AnimationEditorHeaderStatusRow").frame.y,
         62.0
@@ -1523,12 +1430,11 @@ fn host_scene_projection_converts_host_owned_panes_to_slint_panes() {
             .text,
         "res://project"
     );
+    assert_eq!(animation_node("AnimationGraphNodesPanel").frame.y, 234.0);
     assert_eq!(
-        animation_node("AnimationGraphNodesPanel").frame.y,
-        234.0
-    );
-    assert_eq!(
-        animation_node("AnimationStateMachineTransitionsPanel").frame.height,
+        animation_node("AnimationStateMachineTransitionsPanel")
+            .frame
+            .height,
         146.0
     );
     assert_eq!(
@@ -1600,8 +1506,8 @@ fn host_scene_projection_converts_host_owned_panes_to_slint_panes() {
     assert_eq!(
         projected_console_nodes
             .iter()
-            .find(|node| node.control_id == "ConsoleTextPanel")
-            .expect("console text panel node should project")
+            .find(|node| node.control_id == "ConsoleBodySection")
+            .expect("console body section node should project")
             .frame
             .height,
         152.0
@@ -1619,7 +1525,7 @@ fn apply_presentation_uses_shared_root_projection_frames_when_drawers_are_collap
         .expect("workbench shell should show in the test backend");
     ui.window().set_size(slint::PhysicalSize::new(1280, 720));
 
-    let bridge = BuiltinWorkbenchTemplateBridge::new(UiSize::new(1280.0, 720.0)).unwrap();
+    let bridge = BuiltinHostWindowTemplateBridge::new(UiSize::new(1280.0, 720.0)).unwrap();
     let projection_frames = bridge.root_shell_frames();
     let geometry = WorkbenchShellGeometry {
         center_band_frame: crate::ui::workbench::autolayout::ShellFrame::new(
@@ -1666,6 +1572,7 @@ fn apply_presentation_uses_shared_root_projection_frames_when_drawers_are_collap
         None,
         &ui_asset_panes,
         &animation_panes,
+        None,
         Some(&projection_frames),
         &floating_window_projection_bundle,
     );
@@ -1707,13 +1614,13 @@ fn apply_presentation_prefers_shared_root_projection_for_visible_drawer_document
         .expect("workbench shell should show in the test backend");
     ui.window().set_size(slint::PhysicalSize::new(1280, 720));
 
-    let bridge = BuiltinWorkbenchTemplateBridge::new(UiSize::new(1280.0, 720.0)).unwrap();
+    let bridge = BuiltinHostWindowTemplateBridge::new(UiSize::new(1280.0, 720.0)).unwrap();
     let projection_frames = bridge.root_shell_frames();
     let shell_frame = projection_frames
         .shell_frame
         .expect("root shell projection frame should exist");
     let body_frame = projection_frames
-        .workbench_body_frame
+        .host_body_frame
         .expect("workbench body projection frame should exist");
     let metrics = crate::ui::workbench::autolayout::WorkbenchChromeMetrics::default();
     let left_geometry =
@@ -1787,6 +1694,7 @@ fn apply_presentation_prefers_shared_root_projection_for_visible_drawer_document
         None,
         &ui_asset_panes,
         &animation_panes,
+        None,
         Some(&projection_frames),
         &floating_window_projection_bundle,
     );
@@ -1828,13 +1736,13 @@ fn apply_presentation_prefers_shared_root_projection_for_visible_drawer_region_p
         .expect("workbench shell should show in the test backend");
     ui.window().set_size(slint::PhysicalSize::new(1280, 720));
 
-    let bridge = BuiltinWorkbenchTemplateBridge::new(UiSize::new(1280.0, 720.0)).unwrap();
+    let bridge = BuiltinHostWindowTemplateBridge::new(UiSize::new(1280.0, 720.0)).unwrap();
     let projection_frames = bridge.root_shell_frames();
     let shell_frame = projection_frames
         .shell_frame
         .expect("root shell projection frame should exist");
     let body_frame = projection_frames
-        .workbench_body_frame
+        .host_body_frame
         .expect("workbench body projection frame should exist");
     let metrics = crate::ui::workbench::autolayout::WorkbenchChromeMetrics::default();
     let left_geometry =
@@ -1890,6 +1798,7 @@ fn apply_presentation_prefers_shared_root_projection_for_visible_drawer_region_p
         None,
         &ui_asset_panes,
         &animation_panes,
+        None,
         Some(&projection_frames),
         &floating_window_projection_bundle,
     );
@@ -1931,7 +1840,7 @@ fn apply_presentation_prefers_shared_root_projection_for_visible_drawer_region_e
         .expect("workbench shell should show in the test backend");
     ui.window().set_size(slint::PhysicalSize::new(1280, 720));
 
-    let mut bridge = BuiltinWorkbenchTemplateBridge::new(UiSize::new(1280.0, 720.0)).unwrap();
+    let mut bridge = BuiltinHostWindowTemplateBridge::new(UiSize::new(1280.0, 720.0)).unwrap();
     bridge
         .recompute_layout_with_workbench_model(
             UiSize::new(1280.0, 720.0),
@@ -1985,6 +1894,7 @@ fn apply_presentation_prefers_shared_root_projection_for_visible_drawer_region_e
         None,
         &ui_asset_panes,
         &animation_panes,
+        None,
         Some(&projection_frames),
         &floating_window_projection_bundle,
     );
@@ -2030,7 +1940,7 @@ fn apply_presentation_prefers_shared_visible_drawer_projection_when_legacy_geome
         .expect("workbench shell should show in the test backend");
     ui.window().set_size(slint::PhysicalSize::new(1280, 720));
 
-    let mut bridge = BuiltinWorkbenchTemplateBridge::new(UiSize::new(1280.0, 720.0)).unwrap();
+    let mut bridge = BuiltinHostWindowTemplateBridge::new(UiSize::new(1280.0, 720.0)).unwrap();
     bridge
         .recompute_layout_with_workbench_model(
             UiSize::new(1280.0, 720.0),
@@ -2087,6 +1997,7 @@ fn apply_presentation_prefers_shared_visible_drawer_projection_when_legacy_geome
         None,
         &ui_asset_panes,
         &animation_panes,
+        None,
         Some(&projection_frames),
         &floating_window_projection_bundle,
     );
@@ -2150,7 +2061,7 @@ fn apply_presentation_projects_welcome_mount_nodes_into_global_context() {
         .expect("workbench shell should show in the test backend");
     ui.window().set_size(slint::PhysicalSize::new(1280, 720));
 
-    let bridge = BuiltinWorkbenchTemplateBridge::new(UiSize::new(1280.0, 720.0)).unwrap();
+    let bridge = BuiltinHostWindowTemplateBridge::new(UiSize::new(1280.0, 720.0)).unwrap();
     let projection_frames = bridge.root_shell_frames();
     let geometry = WorkbenchShellGeometry {
         center_band_frame: crate::ui::workbench::autolayout::ShellFrame::new(
@@ -2197,6 +2108,7 @@ fn apply_presentation_projects_welcome_mount_nodes_into_global_context() {
         None,
         &ui_asset_panes,
         &animation_panes,
+        None,
         Some(&projection_frames),
         &floating_window_projection_bundle,
     );
@@ -2245,7 +2157,7 @@ fn scene_document_pane_uses_viewport_dimensions_and_enables_toolbar() {
     let model = WorkbenchViewModel::build(&chrome);
     let ui_asset_panes = BTreeMap::new();
 
-    let pane = document_pane(&model, &chrome, &ui_asset_panes, &BTreeMap::new());
+    let pane = document_pane(&model, &chrome, &ui_asset_panes, &BTreeMap::new(), None);
 
     assert_eq!(pane.kind, "Scene");
     assert_eq!(pane.subtitle, "1280 x 720");
@@ -2271,7 +2183,7 @@ fn scene_document_pane_projects_viewport_toolbar_state() {
     let chrome = fixture.build_chrome();
     let model = WorkbenchViewModel::build(&chrome);
     let ui_asset_panes = BTreeMap::new();
-    let pane = document_pane(&model, &chrome, &ui_asset_panes, &BTreeMap::new());
+    let pane = document_pane(&model, &chrome, &ui_asset_panes, &BTreeMap::new(), None);
 
     assert_eq!(pane.kind, "Scene");
     assert_eq!(pane.viewport.tool, "Scale");
@@ -2342,6 +2254,7 @@ fn floating_windows_project_tabs_and_active_pane_for_host_presentation() {
         &WorkbenchShellGeometry::default(),
         &ui_asset_panes,
         &BTreeMap::new(),
+        None,
         &floating_window_projection_bundle,
     );
 
@@ -2412,6 +2325,7 @@ fn floating_windows_ignore_stale_focused_view_when_projecting_focus_target() {
         &WorkbenchShellGeometry::default(),
         &ui_asset_panes,
         &BTreeMap::new(),
+        None,
         &floating_window_projection_bundle,
     );
 
@@ -2481,6 +2395,7 @@ fn floating_window_overlay_snapshot_captures_shared_frame_and_route_keys() {
         &geometry,
         &ui_asset_panes,
         &BTreeMap::new(),
+        None,
         &floating_window_projection_bundle,
     );
 
@@ -2569,39 +2484,40 @@ fn floating_window_overlay_route_keys_match_shared_shell_pointer_route_normaliza
         &geometry,
         &ui_asset_panes,
         &BTreeMap::new(),
+        None,
         &floating_window_projection_bundle,
     );
     let window = &floating_windows[0];
 
     assert_eq!(
-        workbench_shell_pointer_route_group_key(&WorkbenchShellPointerRoute::FloatingWindow(
+        host_shell_pointer_route_group_key(&HostShellPointerRoute::FloatingWindow(
             window_id.clone()
         )),
         Some(window.target_group.to_string())
     );
     assert_eq!(
-        workbench_shell_pointer_route_group_key(&WorkbenchShellPointerRoute::FloatingWindowEdge {
+        host_shell_pointer_route_group_key(&HostShellPointerRoute::FloatingWindowEdge {
             window_id: window_id.clone(),
             edge: DockEdge::Left,
         }),
         Some(window.left_edge_target_group.to_string())
     );
     assert_eq!(
-        workbench_shell_pointer_route_group_key(&WorkbenchShellPointerRoute::FloatingWindowEdge {
+        host_shell_pointer_route_group_key(&HostShellPointerRoute::FloatingWindowEdge {
             window_id: window_id.clone(),
             edge: DockEdge::Right,
         }),
         Some(window.right_edge_target_group.to_string())
     );
     assert_eq!(
-        workbench_shell_pointer_route_group_key(&WorkbenchShellPointerRoute::FloatingWindowEdge {
+        host_shell_pointer_route_group_key(&HostShellPointerRoute::FloatingWindowEdge {
             window_id: window_id.clone(),
             edge: DockEdge::Top,
         }),
         Some(window.top_edge_target_group.to_string())
     );
     assert_eq!(
-        workbench_shell_pointer_route_group_key(&WorkbenchShellPointerRoute::FloatingWindowEdge {
+        host_shell_pointer_route_group_key(&HostShellPointerRoute::FloatingWindowEdge {
             window_id,
             edge: DockEdge::Bottom,
         }),
@@ -2656,6 +2572,7 @@ fn collect_floating_windows_does_not_fall_back_to_legacy_geometry_when_projectio
         &geometry,
         &BTreeMap::new(),
         &BTreeMap::new(),
+        None,
         &FloatingWindowProjectionBundle::default(),
     );
 

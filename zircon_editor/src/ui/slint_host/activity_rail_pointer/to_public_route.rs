@@ -1,23 +1,21 @@
-use super::workbench_activity_rail_pointer_route::WorkbenchActivityRailPointerRoute;
-use super::workbench_activity_rail_pointer_target::WorkbenchActivityRailPointerTarget;
+use super::host_activity_rail_pointer_route::HostActivityRailPointerRoute;
+use super::host_activity_rail_pointer_target::HostActivityRailPointerTarget;
 
 pub(super) fn to_public_route(
-    target: WorkbenchActivityRailPointerTarget,
-) -> WorkbenchActivityRailPointerRoute {
+    target: HostActivityRailPointerTarget,
+) -> HostActivityRailPointerRoute {
     match target {
-        WorkbenchActivityRailPointerTarget::Button {
+        HostActivityRailPointerTarget::Button {
             side,
             item_index,
             slot,
             instance_id,
-        } => WorkbenchActivityRailPointerRoute::Button {
+        } => HostActivityRailPointerRoute::Button {
             side,
             item_index,
             slot,
             instance_id,
         },
-        WorkbenchActivityRailPointerTarget::Strip(side) => {
-            WorkbenchActivityRailPointerRoute::Strip(side)
-        }
+        HostActivityRailPointerTarget::Strip(side) => HostActivityRailPointerRoute::Strip(side),
     }
 }

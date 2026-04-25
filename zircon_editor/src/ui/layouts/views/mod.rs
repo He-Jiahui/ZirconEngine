@@ -6,7 +6,6 @@ mod console;
 mod hierarchy;
 mod inspector;
 mod project_overview;
-mod ui_asset_editor;
 mod view_data;
 mod view_projection;
 mod viewport_chrome;
@@ -21,7 +20,6 @@ pub(crate) use console::console_pane_nodes;
 pub(crate) use hierarchy::hierarchy_pane_nodes;
 pub(crate) use inspector::inspector_pane_nodes;
 pub(crate) use project_overview::{project_overview_data, project_overview_pane_data};
-pub(crate) use ui_asset_editor::ui_asset_editor_pane_nodes;
 pub(crate) use view_data::{
     AssetFolderData, AssetItemData, AssetReferenceData, AssetSelectionData, NewProjectFormData,
     RecentProjectData, SceneViewportChromeData, WelcomePaneData, WelcomePresentation,

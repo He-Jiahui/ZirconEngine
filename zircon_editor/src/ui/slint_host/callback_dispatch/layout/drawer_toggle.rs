@@ -8,13 +8,13 @@ use crate::ui::workbench::view::ViewInstanceId;
 
 use super::super::{
     common::{merge_effects, parse_activity_drawer_slot},
-    BuiltinWorkbenchTemplateBridge,
+    BuiltinHostWindowTemplateBridge,
 };
 use super::dispatch_layout_command;
 
-pub(crate) fn dispatch_builtin_workbench_drawer_toggle(
+pub(crate) fn dispatch_builtin_host_drawer_toggle(
     runtime: &EditorEventRuntime,
-    bridge: &BuiltinWorkbenchTemplateBridge,
+    bridge: &BuiltinHostWindowTemplateBridge,
     slot: &str,
     instance_id: &str,
 ) -> Option<Result<SlintDispatchEffects, String>> {

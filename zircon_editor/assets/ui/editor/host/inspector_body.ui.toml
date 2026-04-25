@@ -1,0 +1,32 @@
+stylesheets = []
+
+[asset]
+kind = "layout"
+id = "editor.host.pane.inspector.body"
+version = 1
+display_name = "inspector pane body"
+
+[imports]
+widgets = []
+styles = []
+
+[tokens]
+
+[root]
+node_id = "root"
+kind = "component"
+component = "InspectorPaneBody"
+
+[components.InspectorPaneBody]
+style_scope = "closed"
+
+[components.InspectorPaneBody.root]
+node_id = "inspector_pane_body_root"
+kind = "native"
+type = "VerticalBox"
+children = [
+  { node = { node_id = "inspector_header", kind = "native", type = "HorizontalBox", children = [
+    { node = { node_id = "inspector_apply_draft_action", kind = "native", type = "UiHostIconButton", control_id = "ApplyDraft", bindings = [{ id = "InspectorPaneBody/ApplyDraft", event = "Click", route = "DraftCommand.SetInspectorField" }], props = { label = "Apply Draft" } } }
+  ] } },
+  { node = { node_id = "inspector_body_section", kind = "native", type = "Container", control_id = "InspectorBodySection" } },
+]

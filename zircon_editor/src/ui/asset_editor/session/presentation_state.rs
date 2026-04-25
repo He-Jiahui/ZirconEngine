@@ -422,6 +422,9 @@ impl UiAssetEditorSession {
                 .selected_style_rule_index
                 .map(|index| index as i32)
                 .unwrap_or(-1),
+            style_selected_rule_id: selected_style_rule
+                .and_then(|rule| rule.id.clone())
+                .unwrap_or_default(),
             style_selected_rule_selector: selected_style_rule
                 .map(|rule| rule.selector.clone())
                 .unwrap_or_default(),

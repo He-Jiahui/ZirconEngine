@@ -1,5 +1,27 @@
 ---
 related_code:
+  - zircon_runtime/src/core/framework/render/framework.rs
+  - zircon_runtime/src/core/framework/render/framework_error.rs
+  - zircon_runtime/src/rhi/descriptors.rs
+  - zircon_runtime/src/rhi/device.rs
+  - zircon_runtime/src/rhi_wgpu/device.rs
+  - zircon_runtime/src/render_graph/builder.rs
+  - zircon_runtime/src/render_graph/graph.rs
+  - zircon_runtime/src/render_graph/types.rs
+  - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot.rs
+  - zircon_runtime/src/graphics/pipeline/declarations/renderer_feature_asset.rs
+  - zircon_runtime/src/graphics/pipeline/declarations/compiled_render_pipeline.rs
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
+  - zircon_runtime/src/graphics/feature/render_feature_pass_descriptor/render_feature_pass_descriptor.rs
+  - zircon_runtime/src/graphics/feature/render_feature_capability_requirement.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/register_pipeline_asset/register_pipeline_asset.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/reload_pipeline/reload_pipeline.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/capability_validation/mod.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/compile_pipeline.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/resolve_viewport_record_state.rs
   - zircon_rhi/src/lib.rs
   - zircon_rhi/src/capabilities.rs
   - zircon_rhi/src/descriptors.rs
@@ -586,6 +608,30 @@ doc_type: module-detail
 ---
 
 # Render Framework Architecture
+
+## 2026-04-25 SRP/RHI Convergence
+
+当前实现不再新增 `zircon_render_server`、`zircon_rhi` 或 `zircon_render_graph` 独立 crate。公共入口收束在 `zircon_runtime::core::framework::render::RenderFramework`；底层 RHI 与资源图分别落在 `zircon_runtime/src/rhi`、`zircon_runtime/src/rhi_wgpu` 和 `zircon_runtime/src/render_graph`；SRP asset/feature/pass 与 `SceneRenderer` 执行迁移钩子落在 `zircon_runtime/src/graphics`。
+
+本轮代码已打通：pipeline asset 注册/重载时做 graph validation，feature descriptor 真实写入 RenderGraph resource IO 与 executor id，Hybrid GI / Virtual Geometry 作为可开关 feature pass 家族进入 compiled graph。旧文中独立 crate 路径仅作为历史路线描述保留，新的实现路径以上方 `zircon_runtime/src/...` 为准。
+
+后续补丁已把 graph execution 记录进入 `RenderStats`，并让 VG/GI/RT feature descriptor 声明 backend capability requirements；质量档、pipeline 切换和提交期 compiled pipeline 校验缺失能力时会返回 `CapabilityMismatch`。SceneRenderer 现在持有固定 built-in executor registry，未知 executor id 会失败而不是被每帧临时 no-op 吞掉；`RenderStats` 同步暴露 executed pass 与 executor id。Public Virtual Geometry NodeAndClusterCull DTO 也补齐了 GPU word pack/unpack，确保 façade debug snapshot 与 renderer readback 共享同一份布局合同。
+
+最新代码把 `RendererFeatureAsset` 扩展为可携带 feature-local config、quality gate 和额外 capability requirements 的资产节点；`RenderPipelineAsset::compile_with_options(...)` 会用这些字段决定 pass 是否进入 graph，并把本地能力需求并入 compiled pipeline。pipeline 注册、重载和提交执行也统一经过 compiled graph executor-id 校验，避免错误 executor 配置进入运行期才暴露。
+
+`RendererFeatureAsset` 现在还可以提供 `RenderFeatureDescriptor` override，用资产侧 descriptor 替换内建 feature descriptor 来改变 pass、resource IO 和 executor id；`graphics` public surface 同步导出 `RenderFeaturePassDescriptor` 与 resource access/kind 枚举，供项目资产加载器构造同一套 SRP pass 描述。
+
+descriptor override 编译期会拒绝指向未声明 renderer stage 的 pass，也会拒绝重复 pass name，避免项目资产把 pass 静默丢出 graph 或生成含混的执行统计。
+
+同名 resource 的 Texture/Buffer kind 冲突也会在 pipeline compile 阶段报错，避免 asset override 把 RenderGraph resource registry 推到内部 panic 路径。
+
+descriptor override 还会拒绝空 descriptor/pass/executor/resource 名称，确保 compiled graph、executor registry 和 stats 里不会出现不可追踪的匿名节点。
+
+显式 External resource 也不能复用已由 Texture/Buffer transient 管理的名称，避免自定义 pass 把已有 graph resource 偷换成 imported output/input。
+
+executor registry validation 覆盖 compiled graph 的全部 pass，包括被 culling 剔除的 pass；pipeline 注册/重载因此也会拒绝藏在 culled pass 里的未知 executor id。
+
+启用的 `RendererFeatureAsset` 即使当前被 quality gate 关闭，其 descriptor override 也会参与结构验证；注册 pipeline asset 时不会再放过藏在质量档之后的坏 descriptor。
 
 ## Purpose
 

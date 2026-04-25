@@ -1,25 +1,23 @@
-use super::workbench_menu_pointer_route::WorkbenchMenuPointerRoute;
-use super::workbench_menu_pointer_target::WorkbenchMenuPointerTarget;
+use super::host_menu_pointer_route::HostMenuPointerRoute;
+use super::host_menu_pointer_target::HostMenuPointerTarget;
 
 pub(in crate::ui::slint_host::menu_pointer) fn to_public_route(
-    target: WorkbenchMenuPointerTarget,
-) -> WorkbenchMenuPointerRoute {
+    target: HostMenuPointerTarget,
+) -> HostMenuPointerRoute {
     match target {
-        WorkbenchMenuPointerTarget::MenuButton(index) => {
-            WorkbenchMenuPointerRoute::MenuButton(index)
-        }
-        WorkbenchMenuPointerTarget::MenuItem {
+        HostMenuPointerTarget::MenuButton(index) => HostMenuPointerRoute::MenuButton(index),
+        HostMenuPointerTarget::MenuItem {
             menu_index,
             item_index,
             action_id,
-        } => WorkbenchMenuPointerRoute::MenuItem {
+        } => HostMenuPointerRoute::MenuItem {
             menu_index,
             item_index,
             action_id,
         },
-        WorkbenchMenuPointerTarget::PopupSurface(menu_index) => {
-            WorkbenchMenuPointerRoute::PopupSurface(menu_index)
+        HostMenuPointerTarget::PopupSurface(menu_index) => {
+            HostMenuPointerRoute::PopupSurface(menu_index)
         }
-        WorkbenchMenuPointerTarget::DismissOverlay => WorkbenchMenuPointerRoute::DismissOverlay,
+        HostMenuPointerTarget::DismissOverlay => HostMenuPointerRoute::DismissOverlay,
     }
 }

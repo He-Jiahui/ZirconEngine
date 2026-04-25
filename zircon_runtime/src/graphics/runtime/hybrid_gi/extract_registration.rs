@@ -88,11 +88,24 @@ impl HybridGiRuntimeState {
         self.trace_region_scene_data
             .retain(|region_id, _| live_trace_region_ids.contains(region_id));
 
-        self.probe_budget = (extract.probe_budget as usize)
-            .max(extract.probes.iter().filter(|probe| probe.resident).count());
+        let mut registered_probe_ids = BTreeSet::new();
+        let unique_resident_probe_count = extract
+            .probes
+            .iter()
+            .filter(|probe| probe.resident)
+            .filter(|probe| registered_probe_ids.insert(probe.probe_id))
+            .count();
+        self.probe_budget = (extract.probe_budget as usize).max(unique_resident_probe_count);
 
+        registered_probe_ids.clear();
         for probe in &extract.probes {
-            if let Some(parent_probe_id) = probe.parent_probe_id {
+            if !registered_probe_ids.insert(probe.probe_id) {
+                continue;
+            }
+            if let Some(parent_probe_id) = probe
+                .parent_probe_id
+                .filter(|parent_probe_id| live_probe_ids.contains(parent_probe_id))
+            {
                 self.probe_parent_probes
                     .insert(probe.probe_id, parent_probe_id);
             } else {
@@ -114,7 +127,11 @@ impl HybridGiRuntimeState {
             }
         }
 
+        let mut registered_trace_region_ids = BTreeSet::new();
         for region in &extract.trace_regions {
+            if !registered_trace_region_ids.insert(region.region_id) {
+                continue;
+            }
             self.trace_region_scene_data.insert(
                 region.region_id,
                 super::declarations::HybridGiRuntimeTraceRegionSceneData {

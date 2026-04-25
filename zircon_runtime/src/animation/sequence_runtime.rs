@@ -55,7 +55,11 @@ pub fn apply_sequence_to_world(
 }
 
 fn resolve_sequence_sample_time(duration_seconds: Real, time_seconds: Real, looping: bool) -> Real {
-    if duration_seconds <= Real::EPSILON {
+    if !duration_seconds.is_finite() || duration_seconds <= Real::EPSILON {
+        return 0.0;
+    }
+
+    if !time_seconds.is_finite() {
         return 0.0;
     }
 
@@ -73,6 +77,10 @@ fn resolve_sequence_sample_time(duration_seconds: Real, time_seconds: Real, loop
 
 impl AnimationChannelAsset {
     pub fn sample(&self, time_seconds: Real) -> Option<AnimationChannelValueAsset> {
+        if !time_seconds.is_finite() || self.keys.iter().any(|key| !key.time_seconds.is_finite()) {
+            return None;
+        }
+
         let first = self.keys.first()?;
         if self.keys.len() == 1 || time_seconds <= first.time_seconds {
             return Some(first.value.clone());
@@ -101,6 +109,17 @@ impl AnimationChannelAsset {
 fn scene_property_value_from_channel(
     value: &AnimationChannelValueAsset,
 ) -> Result<ScenePropertyValue, String> {
+    if !animation_channel_value_is_finite(value) {
+        return Err(format!("non-finite animation channel sample: {value:?}"));
+    }
+    if let AnimationChannelValueAsset::Quaternion(value) = value {
+        if !quaternion_array_is_normalizable(value) {
+            return Err(format!(
+                "zero-length quaternion animation channel sample: {value:?}"
+            ));
+        }
+    }
+
     Ok(match value {
         AnimationChannelValueAsset::Bool(value) => ScenePropertyValue::Bool(*value),
         AnimationChannelValueAsset::Integer(value) => ScenePropertyValue::Integer(*value as i64),
@@ -110,6 +129,30 @@ fn scene_property_value_from_channel(
         AnimationChannelValueAsset::Vec4(value) => ScenePropertyValue::Vec4(*value),
         AnimationChannelValueAsset::Quaternion(value) => ScenePropertyValue::Quaternion(*value),
     })
+}
+
+fn animation_channel_value_is_finite(value: &AnimationChannelValueAsset) -> bool {
+    match value {
+        AnimationChannelValueAsset::Bool(_) | AnimationChannelValueAsset::Integer(_) => true,
+        AnimationChannelValueAsset::Scalar(value) => value.is_finite(),
+        AnimationChannelValueAsset::Vec2(value) => {
+            value.iter().all(|component| component.is_finite())
+        }
+        AnimationChannelValueAsset::Vec3(value) => {
+            value.iter().all(|component| component.is_finite())
+        }
+        AnimationChannelValueAsset::Vec4(value) | AnimationChannelValueAsset::Quaternion(value) => {
+            value.iter().all(|component| component.is_finite())
+        }
+    }
+}
+
+fn quaternion_array_is_normalizable(value: &[Real; 4]) -> bool {
+    value
+        .iter()
+        .map(|component| component * component)
+        .sum::<Real>()
+        > Real::EPSILON
 }
 
 fn sample_hermite(

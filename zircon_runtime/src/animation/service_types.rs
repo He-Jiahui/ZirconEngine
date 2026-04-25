@@ -3,7 +3,8 @@ use std::sync::{Arc, Mutex};
 
 use crate::asset::{
     AnimationClipAsset, AnimationConditionOperatorAsset, AnimationGraphAsset,
-    AnimationGraphNodeAsset, AnimationSkeletonAsset, AnimationStateMachineAsset,
+    AnimationGraphNodeAsset, AnimationSkeletonAsset, AnimationSkeletonBoneAsset,
+    AnimationStateMachineAsset,
 };
 use crate::core::framework::animation::{
     AnimationGraphClipInstance, AnimationGraphEvaluation, AnimationParameterMap,
@@ -73,6 +74,7 @@ impl crate::core::framework::animation::AnimationManager for DefaultAnimationMan
         graph
             .parameters
             .iter()
+            .filter(|parameter| animation_parameter_value_is_finite(&parameter.default_value))
             .map(|parameter| (parameter.name.clone(), parameter.default_value.clone()))
             .collect()
     }
@@ -91,7 +93,9 @@ impl crate::core::framework::animation::AnimationManager for DefaultAnimationMan
         name: &str,
         value: AnimationParameterValue,
     ) {
-        parameters.insert(name.to_string(), value);
+        if animation_parameter_value_is_finite(&value) {
+            parameters.insert(name.to_string(), value);
+        }
     }
 
     fn evaluate_graph(
@@ -101,7 +105,9 @@ impl crate::core::framework::animation::AnimationManager for DefaultAnimationMan
     ) -> AnimationGraphEvaluation {
         let mut parameters = self.parameter_defaults(graph);
         for (name, value) in overrides {
-            parameters.insert(name.clone(), value.clone());
+            if animation_parameter_value_is_finite(value) {
+                parameters.insert(name.clone(), value.clone());
+            }
         }
 
         let output_node = graph.nodes.iter().find_map(|node| match node {
@@ -127,13 +133,18 @@ impl crate::core::framework::animation::AnimationManager for DefaultAnimationMan
         parameters: &AnimationParameterMap,
     ) -> AnimationStateMachineEvaluation {
         let mut active_state = current_state
+            .filter(|state| state_machine_has_state(state_machine, state))
             .map(ToOwned::to_owned)
-            .or_else(|| Some(state_machine.entry_state.clone()));
+            .or_else(|| {
+                state_machine_has_state(state_machine, &state_machine.entry_state)
+                    .then(|| state_machine.entry_state.clone())
+            });
         let mut transitioned = false;
 
         if let Some(current) = active_state.as_deref() {
             if let Some(transition) = state_machine.transitions.iter().find(|transition| {
                 transition.from_state == current
+                    && state_machine_has_state(state_machine, &transition.to_state)
                     && transition
                         .conditions
                         .iter()
@@ -173,15 +184,8 @@ impl crate::core::framework::animation::AnimationManager for DefaultAnimationMan
         let mut bones = skeleton
             .bones
             .iter()
-            .map(|bone| AnimationPoseBone {
-                name: bone.name.clone(),
-                local_transform: Transform {
-                    translation: Vec3::from_array(bone.local_translation),
-                    rotation: Quat::from_array(bone.local_rotation).normalize(),
-                    scale: Vec3::from_array(bone.local_scale),
-                },
-            })
-            .collect::<Vec<_>>();
+            .map(animation_pose_bone_from_skeleton)
+            .collect::<Result<Vec<_>, _>>()?;
 
         for track in &clip.tracks {
             let Some(bone) = bones.iter_mut().find(|bone| bone.name == track.bone_name) else {
@@ -204,6 +208,44 @@ impl crate::core::framework::animation::AnimationManager for DefaultAnimationMan
             bones,
         })
     }
+}
+
+fn animation_pose_bone_from_skeleton(
+    bone: &AnimationSkeletonBoneAsset,
+) -> Result<AnimationPoseBone, String> {
+    if !real_array_is_finite(&bone.local_translation) {
+        return Err(format!(
+            "non-finite skeleton bind translation for bone `{}`: {:?}",
+            bone.name, bone.local_translation
+        ));
+    }
+    if !real_array_is_finite(&bone.local_rotation) {
+        return Err(format!(
+            "non-finite skeleton bind rotation for bone `{}`: {:?}",
+            bone.name, bone.local_rotation
+        ));
+    }
+    if !quaternion_array_is_normalizable(&bone.local_rotation) {
+        return Err(format!(
+            "zero-length skeleton bind rotation for bone `{}`: {:?}",
+            bone.name, bone.local_rotation
+        ));
+    }
+    if !real_array_is_finite(&bone.local_scale) {
+        return Err(format!(
+            "non-finite skeleton bind scale for bone `{}`: {:?}",
+            bone.name, bone.local_scale
+        ));
+    }
+
+    Ok(AnimationPoseBone {
+        name: bone.name.clone(),
+        local_transform: Transform {
+            translation: Vec3::from_array(bone.local_translation),
+            rotation: Quat::from_array(bone.local_rotation).normalize(),
+            scale: Vec3::from_array(bone.local_scale),
+        },
+    })
 }
 
 impl AnimationInterface for DefaultAnimationManager {
@@ -290,6 +332,14 @@ fn condition_matches(
     condition: &crate::asset::AnimationTransitionConditionAsset,
 ) -> bool {
     let current = parameters.get(&condition.parameter);
+    if current.is_some_and(|value| !animation_parameter_value_is_finite(value))
+        || condition
+            .value
+            .as_ref()
+            .is_some_and(|value| !animation_parameter_value_is_finite(value))
+    {
+        return false;
+    }
     match condition.operator {
         AnimationConditionOperatorAsset::Triggered => {
             matches!(current, Some(AnimationParameterValue::Trigger))
@@ -311,6 +361,10 @@ fn condition_matches(
     }
 }
 
+fn state_machine_has_state(state_machine: &AnimationStateMachineAsset, name: &str) -> bool {
+    state_machine.states.iter().any(|state| state.name == name)
+}
+
 fn numeric_parameter(value: Option<&AnimationParameterValue>) -> Real {
     match value {
         Some(AnimationParameterValue::Integer(value)) => *value as Real,
@@ -322,13 +376,28 @@ fn numeric_parameter(value: Option<&AnimationParameterValue>) -> Real {
 fn parameter_scalar(parameters: &AnimationParameterMap, name: &str) -> Option<Real> {
     match parameters.get(name) {
         Some(AnimationParameterValue::Integer(value)) => Some(*value as Real),
-        Some(AnimationParameterValue::Scalar(value)) => Some(*value),
+        Some(AnimationParameterValue::Scalar(value)) if value.is_finite() => Some(*value),
         _ => None,
     }
 }
 
+fn animation_parameter_value_is_finite(value: &AnimationParameterValue) -> bool {
+    match value {
+        AnimationParameterValue::Scalar(value) => value.is_finite(),
+        AnimationParameterValue::Vec2(value) => value.iter().all(|component| component.is_finite()),
+        AnimationParameterValue::Vec3(value) => value.iter().all(|component| component.is_finite()),
+        AnimationParameterValue::Vec4(value) => value.iter().all(|component| component.is_finite()),
+        AnimationParameterValue::Bool(_)
+        | AnimationParameterValue::Integer(_)
+        | AnimationParameterValue::Trigger => true,
+    }
+}
+
 fn resolve_clip_sample_time(duration_seconds: Real, time_seconds: Real, looping: bool) -> Real {
-    if duration_seconds <= Real::EPSILON {
+    if !duration_seconds.is_finite() || duration_seconds <= Real::EPSILON {
+        return 0.0;
+    }
+    if !time_seconds.is_finite() {
         return 0.0;
     }
     let clamped = time_seconds.max(0.0);
@@ -343,17 +412,48 @@ fn resolve_clip_sample_time(duration_seconds: Real, time_seconds: Real, looping:
     }
 }
 
+fn real_array_is_finite<const N: usize>(value: &[Real; N]) -> bool {
+    value.iter().all(|component| component.is_finite())
+}
+
+fn quaternion_array_is_normalizable(value: &[Real; 4]) -> bool {
+    value
+        .iter()
+        .map(|component| component * component)
+        .sum::<Real>()
+        > Real::EPSILON
+}
+
 fn sample_vec3(value: &crate::asset::AnimationChannelValueAsset) -> Result<Vec3, String> {
     match value {
-        crate::asset::AnimationChannelValueAsset::Vec3(value) => Ok(Vec3::from_array(*value)),
+        crate::asset::AnimationChannelValueAsset::Vec3(value)
+            if value.iter().all(|c| c.is_finite()) =>
+        {
+            Ok(Vec3::from_array(*value))
+        }
+        crate::asset::AnimationChannelValueAsset::Vec3(value) => {
+            Err(format!("non-finite vec3 animation sample: {value:?}"))
+        }
         other => Err(format!("expected vec3 animation sample, found {other:?}")),
     }
 }
 
 fn sample_quaternion(value: &crate::asset::AnimationChannelValueAsset) -> Result<Quat, String> {
     match value {
-        crate::asset::AnimationChannelValueAsset::Quaternion(value) => {
+        crate::asset::AnimationChannelValueAsset::Quaternion(value)
+            if value.iter().all(|c| c.is_finite()) && quaternion_array_is_normalizable(value) =>
+        {
             Ok(Quat::from_array(*value).normalize())
+        }
+        crate::asset::AnimationChannelValueAsset::Quaternion(value)
+            if value.iter().all(|c| c.is_finite()) =>
+        {
+            Err(format!(
+                "zero-length quaternion animation sample: {value:?}"
+            ))
+        }
+        crate::asset::AnimationChannelValueAsset::Quaternion(value) => {
+            Err(format!("non-finite quaternion animation sample: {value:?}"))
         }
         other => Err(format!(
             "expected quaternion animation sample, found {other:?}"

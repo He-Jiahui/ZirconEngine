@@ -3,13 +3,11 @@ use super::support::{
     UI_ASSET_EDITOR_BOOTSTRAP_STYLE_TOML, UI_ASSET_EDITOR_BOOTSTRAP_WIDGET_TOML,
 };
 use crate::ui::asset_editor::{
-    UiAssetEditorMode, UiAssetEditorRoute, UiAssetEditorSession,
-    UI_ASSET_EDITOR_BOOTSTRAP_LAYOUT_ASSET_ID,
-    UI_ASSET_EDITOR_BOOTSTRAP_LAYOUT_DOCUMENT_ID, UI_ASSET_EDITOR_BOOTSTRAP_STYLE_ASSET_ID,
-    UI_ASSET_EDITOR_BOOTSTRAP_WIDGET_ASSET_ID,
+    ui_asset_editor_node_projection, UiAssetEditorMode, UiAssetEditorRoute, UiAssetEditorSession,
+    UI_ASSET_EDITOR_BOOTSTRAP_LAYOUT_ASSET_ID, UI_ASSET_EDITOR_BOOTSTRAP_LAYOUT_DOCUMENT_ID,
+    UI_ASSET_EDITOR_BOOTSTRAP_STYLE_ASSET_ID, UI_ASSET_EDITOR_BOOTSTRAP_WIDGET_ASSET_ID,
     UI_ASSET_EDITOR_BOOTSTRAP_WIDGET_HEADER_SHELL_REFERENCE,
 };
-use slint::Model;
 use zircon_runtime::ui::template::{UiDocumentCompiler, UiNodeDefinitionKind};
 use zircon_runtime::ui::{layout::UiSize, template::UiAssetKind};
 
@@ -197,12 +195,10 @@ fn ui_asset_editor_bootstrap_layout_self_hosts_header_shell_rows() {
 
 #[test]
 fn ui_asset_editor_bootstrap_template_projection_exposes_pane_shell_regions() {
-    let nodes = crate::ui::layouts::views::ui_asset_editor_pane_nodes(UiSize::new(1280.0, 720.0));
-    let nodes = (0..nodes.row_count())
-        .filter_map(|row| nodes.row_data(row))
-        .collect::<Vec<_>>();
+    let nodes = ui_asset_editor_node_projection(UiSize::new(1280.0, 720.0)).nodes;
     let node = |control_id: &str| {
-        nodes.iter()
+        nodes
+            .iter()
             .find(|node| node.control_id.as_str() == control_id)
             .unwrap_or_else(|| panic!("missing projected node `{control_id}`"))
     };
@@ -286,23 +282,14 @@ fn ui_asset_editor_bootstrap_template_projection_exposes_pane_shell_regions() {
     assert!(node("InspectorBindingSection").frame.y >= node("InspectorLayoutSection").frame.y);
     assert!(node("StylesheetPanel").frame.y >= node("InspectorPanel").frame.y);
     assert!(node("StylesheetActionRow").frame.y >= node("StylesheetPanel").frame.y);
+    assert!(node("StylesheetStatePrimaryRow").frame.y >= node("StylesheetActionRow").frame.y);
     assert!(
-        node("StylesheetStatePrimaryRow").frame.y >= node("StylesheetActionRow").frame.y
+        node("StylesheetStateSecondaryRow").frame.y >= node("StylesheetStatePrimaryRow").frame.y
     );
-    assert!(
-        node("StylesheetStateSecondaryRow").frame.y
-            >= node("StylesheetStatePrimaryRow").frame.y
-    );
-    assert!(
-        node("StylesheetContentPanel").frame.y
-            >= node("StylesheetStateSecondaryRow").frame.y
-    );
+    assert!(node("StylesheetContentPanel").frame.y >= node("StylesheetStateSecondaryRow").frame.y);
     assert!(node("StylesheetThemeSection").frame.y >= node("StylesheetContentPanel").frame.y);
+    assert!(node("StylesheetAuthoringSection").frame.y >= node("StylesheetThemeSection").frame.y);
     assert!(
-        node("StylesheetAuthoringSection").frame.y >= node("StylesheetThemeSection").frame.y
-    );
-    assert!(
-        node("StylesheetMatchedRuleSection").frame.y
-            >= node("StylesheetAuthoringSection").frame.y
+        node("StylesheetMatchedRuleSection").frame.y >= node("StylesheetAuthoringSection").frame.y
     );
 }

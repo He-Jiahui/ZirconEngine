@@ -1,4 +1,4 @@
-use crate::ui::slint_host::callback_dispatch::BuiltinWorkbenchRootShellFrames;
+use crate::ui::slint_host::callback_dispatch::BuiltinHostRootShellFrames;
 use crate::ui::workbench::autolayout::WorkbenchChromeMetrics;
 use crate::ui::workbench::autolayout::WorkbenchShellGeometry;
 use crate::ui::workbench::layout::WorkbenchLayout;
@@ -41,7 +41,7 @@ pub(crate) fn resolve_tab_drop_with_root_frames(
     target_group: &str,
     pointer_x: f32,
     pointer_y: f32,
-    shared_root_frames: Option<&BuiltinWorkbenchRootShellFrames>,
+    shared_root_frames: Option<&BuiltinHostRootShellFrames>,
 ) -> Option<ResolvedTabDrop> {
     precise_drop_target(
         model,

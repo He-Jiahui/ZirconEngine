@@ -982,6 +982,210 @@ fn hybrid_gi_runtime_state_tracks_cache_residency_pending_updates_and_trace_sche
 }
 
 #[test]
+fn hybrid_gi_runtime_state_ignores_plan_probe_ids_without_live_payloads() {
+    let mut state = HybridGiRuntimeState::default();
+    let extract = RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
+        probe_budget: 2,
+        tracing_budget: 0,
+        probes: vec![probe(200, true, 64), probe(300, false, 128)],
+        trace_regions: Vec::new(),
+    };
+
+    state.register_extract(Some(&extract));
+    state.ingest_plan(
+        11,
+        &VisibilityHybridGiUpdatePlan {
+            resident_probe_ids: vec![200, 9_999],
+            requested_probe_ids: vec![300, 8_888],
+            dirty_requested_probe_ids: vec![300, 8_888],
+            scheduled_trace_region_ids: Vec::new(),
+            evictable_probe_ids: vec![200, 9_999],
+        },
+    );
+
+    assert_eq!(state.probe_slot(200), Some(0));
+    assert_eq!(
+        state.probe_slot(9_999),
+        None,
+        "expected stale plan resident ids without a live RenderHybridGiProbe payload not to allocate runtime cache slots"
+    );
+    assert_eq!(
+        state.probe_residency(8_888),
+        None,
+        "expected stale dirty/requested plan ids without a live RenderHybridGiProbe payload not to enter the runtime update queue"
+    );
+    assert_eq!(
+        state.pending_updates(),
+        vec![HybridGiProbeUpdateRequest {
+            probe_id: 300,
+            ray_budget: 128,
+            generation: 11,
+        }]
+    );
+    assert_eq!(state.evictable_probes(), vec![200]);
+}
+
+#[test]
+fn hybrid_gi_runtime_state_filters_scheduled_trace_region_ids_without_live_payloads() {
+    let mut state = HybridGiRuntimeState::default();
+    let extract = RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
+        probe_budget: 1,
+        tracing_budget: 2,
+        probes: vec![probe(200, true, 64)],
+        trace_regions: vec![trace_region(40), trace_region(50)],
+    };
+
+    state.register_extract(Some(&extract));
+    state.ingest_plan(
+        12,
+        &VisibilityHybridGiUpdatePlan {
+            resident_probe_ids: vec![200],
+            requested_probe_ids: Vec::new(),
+            dirty_requested_probe_ids: Vec::new(),
+            scheduled_trace_region_ids: vec![9_999, 40, 40, 8_888, 50],
+            evictable_probe_ids: Vec::new(),
+        },
+    );
+
+    assert_eq!(
+        state.scheduled_trace_regions(),
+        vec![40, 50],
+        "expected runtime trace scheduling to keep only deduplicated ids backed by current RenderHybridGiTraceRegion payloads"
+    );
+}
+
+#[test]
+fn hybrid_gi_runtime_state_ignores_gpu_completion_probe_payloads_without_live_probe_payloads() {
+    let mut state = HybridGiRuntimeState::default();
+    let initial_extract = RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
+        probe_budget: 1,
+        tracing_budget: 0,
+        probes: vec![probe(200, true, 64)],
+        trace_regions: Vec::new(),
+    };
+    let later_extract = RenderHybridGiExtract {
+        probes: vec![probe(999, false, 128)],
+        ..initial_extract.clone()
+    };
+
+    state.register_extract(Some(&initial_extract));
+    state.complete_gpu_updates([], [], &[(999, [8, 16, 32])], &[(999, [240, 96, 48])], &[]);
+    state.register_extract(Some(&later_extract));
+    state.ingest_plan(
+        13,
+        &VisibilityHybridGiUpdatePlan {
+            resident_probe_ids: Vec::new(),
+            requested_probe_ids: vec![999],
+            dirty_requested_probe_ids: vec![999],
+            scheduled_trace_region_ids: Vec::new(),
+            evictable_probe_ids: Vec::new(),
+        },
+    );
+
+    let runtime = state.build_resolve_runtime();
+
+    assert_eq!(
+        runtime.hierarchy_rt_lighting(999),
+        None,
+        "expected stale GPU completion payloads for ids without a live RenderHybridGiProbe payload not to be reused when the same id appears in a later extract"
+    );
+}
+
+#[test]
+fn hybrid_gi_runtime_state_ignores_parent_probe_ids_without_live_payloads() {
+    let mut state = HybridGiRuntimeState::default();
+    let extract = RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
+        probe_budget: 1,
+        tracing_budget: 0,
+        probes: vec![probe_with_parent(200, false, 128, 9_999)],
+        trace_regions: Vec::new(),
+    };
+
+    state.register_extract(Some(&extract));
+    state.complete_gpu_updates([], [], &[], &[(200, [240, 96, 48])], &[]);
+    state.ingest_plan(
+        14,
+        &VisibilityHybridGiUpdatePlan {
+            resident_probe_ids: Vec::new(),
+            requested_probe_ids: vec![200],
+            dirty_requested_probe_ids: vec![200],
+            scheduled_trace_region_ids: Vec::new(),
+            evictable_probe_ids: Vec::new(),
+        },
+    );
+
+    let runtime = state.build_resolve_runtime();
+
+    assert_eq!(
+        runtime.probe_parent_probes.get(&200).copied(),
+        None,
+        "expected runtime parent topology to drop parent ids that have no live RenderHybridGiProbe payload"
+    );
+    assert!(
+        runtime
+            .hierarchy_rt_lighting(200)
+            .map(|source| source[0] > 0.8 && source[1] > 0.25 && source[2] > 0.1)
+            .unwrap_or(false),
+        "expected a dangling legacy parent id not to block standalone direct RT fallback for the live child probe"
+    );
+}
+
+#[test]
+fn hybrid_gi_runtime_state_ignores_gpu_cache_entries_without_live_probe_payloads() {
+    let mut state = HybridGiRuntimeState::default();
+    let extract = RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
+        probe_budget: 1,
+        tracing_budget: 0,
+        probes: vec![probe(200, false, 64)],
+        trace_regions: Vec::new(),
+    };
+
+    state.register_extract(Some(&extract));
+    state.apply_gpu_cache_entries(&[(9_999, 3)]);
+
+    assert_eq!(
+        state.probe_slot(9_999),
+        None,
+        "expected stale GPU cache entries without a live RenderHybridGiProbe payload not to allocate runtime cache slots"
+    );
+    assert_eq!(
+        state.snapshot().cache_entry_count,
+        0,
+        "expected stale GPU cache entries to be discarded before residency accounting"
+    );
+}
+
+#[test]
 fn hybrid_gi_runtime_state_deduplicates_probe_updates_and_reuses_evicted_slots() {
     let mut state = HybridGiRuntimeState::default();
     let extract = RenderHybridGiExtract {
@@ -1216,6 +1420,56 @@ fn hybrid_gi_runtime_state_leaves_updates_pending_without_evictable_budget() {
         }]
     );
     assert_eq!(state.scheduled_trace_regions(), vec![60]);
+}
+
+#[test]
+fn hybrid_gi_runtime_state_does_not_inflate_probe_budget_from_duplicate_resident_probe_payloads() {
+    let mut state = HybridGiRuntimeState::default();
+    let extract = RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
+        probe_budget: 1,
+        tracing_budget: 1,
+        probes: vec![
+            probe(200, true, 64),
+            probe(200, true, 64),
+            probe(300, false, 128),
+        ],
+        trace_regions: vec![trace_region(40), trace_region(60)],
+    };
+
+    state.register_extract(Some(&extract));
+    state.ingest_plan(
+        9,
+        &VisibilityHybridGiUpdatePlan {
+            resident_probe_ids: vec![200],
+            requested_probe_ids: vec![300],
+            dirty_requested_probe_ids: vec![300],
+            scheduled_trace_region_ids: vec![40],
+            evictable_probe_ids: Vec::new(),
+        },
+    );
+    state.consume_feedback(&VisibilityHybridGiFeedback {
+        active_probe_ids: vec![300, 200],
+        requested_probe_ids: vec![300],
+        scheduled_trace_region_ids: vec![60],
+        evictable_probe_ids: Vec::new(),
+    });
+
+    assert_eq!(state.probe_slot(200), Some(0));
+    assert_eq!(
+        state.probe_slot(300),
+        None,
+        "expected duplicate legacy resident RenderHybridGiProbe payloads not to inflate runtime probe budget and promote a pending probe without an evictable slot"
+    );
+    assert_eq!(
+        state.probe_residency(300),
+        Some(HybridGiProbeResidencyState::PendingUpdate)
+    );
 }
 
 #[test]
@@ -2265,6 +2519,179 @@ fn hybrid_gi_runtime_state_deduplicates_scheduled_trace_region_ids_before_lineag
 }
 
 #[test]
+fn hybrid_gi_runtime_state_keeps_first_duplicate_trace_region_payload_for_lineage_support() {
+    let far_region = trace_region_at(40, crate::core::math::Vec3::new(2.4, 0.0, 0.0));
+    let near_duplicate_region = trace_region_at(40, crate::core::math::Vec3::new(-0.8, 0.0, 0.0));
+    let base_extract = RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
+        probe_budget: 2,
+        tracing_budget: 1,
+        probes: vec![
+            probe_at(100, true, 96, crate::core::math::Vec3::new(-0.8, 0.0, 0.0)),
+            probe_with_parent_at(200, false, 80, 100, crate::core::math::Vec3::ZERO),
+        ],
+        trace_regions: vec![far_region.clone()],
+    };
+    let duplicate_extract = RenderHybridGiExtract {
+        trace_regions: vec![far_region, near_duplicate_region],
+        ..base_extract.clone()
+    };
+
+    let mut first_payload = HybridGiRuntimeState::default();
+    first_payload.register_extract(Some(&base_extract));
+    first_payload.ingest_plan(
+        71,
+        &VisibilityHybridGiUpdatePlan {
+            resident_probe_ids: vec![100],
+            requested_probe_ids: vec![200],
+            dirty_requested_probe_ids: vec![200],
+            scheduled_trace_region_ids: vec![40],
+            evictable_probe_ids: Vec::new(),
+        },
+    );
+
+    let mut duplicate_payload = HybridGiRuntimeState::default();
+    duplicate_payload.register_extract(Some(&duplicate_extract));
+    duplicate_payload.ingest_plan(
+        71,
+        &VisibilityHybridGiUpdatePlan {
+            resident_probe_ids: vec![100],
+            requested_probe_ids: vec![200],
+            dirty_requested_probe_ids: vec![200],
+            scheduled_trace_region_ids: vec![40],
+            evictable_probe_ids: Vec::new(),
+        },
+    );
+
+    let first_payload_weight = first_payload
+        .build_resolve_runtime()
+        .hierarchy_resolve_weight(200)
+        .expect("first trace payload weight");
+    let duplicate_payload_weight = duplicate_payload
+        .build_resolve_runtime()
+        .hierarchy_resolve_weight(200)
+        .expect("duplicate trace payload weight");
+
+    assert!(
+        (duplicate_payload_weight - first_payload_weight).abs() <= 0.001,
+        "expected duplicate legacy RenderHybridGiTraceRegion payloads with the same id to keep the first live payload for runtime lineage support, matching renderer scheduled trace lookup instead of letting a later duplicate override it; first_payload_weight={first_payload_weight:.3}, duplicate_payload_weight={duplicate_payload_weight:.3}"
+    );
+}
+
+#[test]
+fn hybrid_gi_runtime_state_keeps_first_duplicate_probe_payload_for_parent_topology() {
+    let extract = RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
+        probe_budget: 3,
+        tracing_budget: 0,
+        probes: vec![
+            probe_at(100, true, 96, crate::core::math::Vec3::new(-1.0, 0.0, 0.0)),
+            probe_at(300, true, 96, crate::core::math::Vec3::new(1.0, 0.0, 0.0)),
+            probe_with_parent_at(200, true, 80, 100, crate::core::math::Vec3::ZERO),
+            probe_with_parent_at(200, true, 80, 300, crate::core::math::Vec3::ZERO),
+        ],
+        trace_regions: Vec::new(),
+    };
+    let mut state = HybridGiRuntimeState::default();
+
+    state.register_extract(Some(&extract));
+    let runtime = state.build_resolve_runtime();
+
+    assert_eq!(
+        runtime.probe_parent_probes.get(&200).copied(),
+        Some(100),
+        "expected duplicate legacy RenderHybridGiProbe payloads with the same id to keep the first parent topology, matching renderer source-probe lookup instead of letting a later duplicate override it"
+    );
+}
+
+#[test]
+fn hybrid_gi_runtime_state_limits_lineage_trace_support_to_live_payload_region_budget() {
+    const MAX_TEST_TRACE_REGIONS: usize = 16;
+
+    let filler_region_ids = (0..MAX_TEST_TRACE_REGIONS)
+        .map(|index| 10_000 + index as u32)
+        .collect::<Vec<_>>();
+    let tail_region_id = 40;
+    let mut scheduled_trace_region_ids = filler_region_ids.clone();
+    scheduled_trace_region_ids.push(tail_region_id);
+    let mut trace_regions = filler_region_ids
+        .iter()
+        .copied()
+        .map(|region_id| trace_region_at(region_id, crate::core::math::Vec3::new(10.0, 0.0, 0.0)))
+        .collect::<Vec<_>>();
+    trace_regions.push(trace_region_at(
+        tail_region_id,
+        crate::core::math::Vec3::new(-0.8, 0.0, 0.0),
+    ));
+
+    let extract = RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
+        probe_budget: 2,
+        tracing_budget: 1,
+        probes: vec![
+            probe_at(100, true, 96, crate::core::math::Vec3::new(-0.8, 0.0, 0.0)),
+            probe_with_parent_at(200, false, 80, 100, crate::core::math::Vec3::ZERO),
+        ],
+        trace_regions,
+    };
+
+    let mut flat = HybridGiRuntimeState::default();
+    flat.register_extract(Some(&extract));
+    flat.ingest_plan(
+        71,
+        &VisibilityHybridGiUpdatePlan {
+            resident_probe_ids: vec![100],
+            requested_probe_ids: vec![200],
+            dirty_requested_probe_ids: vec![200],
+            scheduled_trace_region_ids: filler_region_ids,
+            evictable_probe_ids: Vec::new(),
+        },
+    );
+
+    let mut tail_supported = HybridGiRuntimeState::default();
+    tail_supported.register_extract(Some(&extract));
+    tail_supported.ingest_plan(
+        71,
+        &VisibilityHybridGiUpdatePlan {
+            resident_probe_ids: vec![100],
+            requested_probe_ids: vec![200],
+            dirty_requested_probe_ids: vec![200],
+            scheduled_trace_region_ids,
+            evictable_probe_ids: Vec::new(),
+        },
+    );
+
+    let flat_weight = flat
+        .build_resolve_runtime()
+        .hierarchy_resolve_weight(200)
+        .expect("flat trace schedule weight");
+    let tail_supported_weight = tail_supported
+        .build_resolve_runtime()
+        .hierarchy_resolve_weight(200)
+        .expect("tail trace schedule weight");
+
+    assert!(
+        (tail_supported_weight - flat_weight).abs() <= 0.001,
+        "expected runtime lineage trace support to ignore live trace payloads beyond the same region budget used by GPU trace encoding, instead of letting a 17th legacy scheduled payload strengthen runtime resolve; flat_weight={flat_weight:.3}, tail_supported_weight={tail_supported_weight:.3}"
+    );
+}
+
+#[test]
 fn hybrid_gi_runtime_state_keeps_recent_lineage_trace_support_for_pending_probe_order_after_schedule_clears(
 ) {
     let extract = RenderHybridGiExtract {
@@ -2979,6 +3406,60 @@ fn hybrid_gi_runtime_state_reports_clean_surface_cache_scene_truth_freshness_abo
 }
 
 #[test]
+fn hybrid_gi_runtime_state_keeps_surface_cache_scene_truth_with_stale_scheduled_trace_region() {
+    let extract = RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 1,
+        voxel_budget: 0,
+        debug_view: Default::default(),
+        probe_budget: 2,
+        tracing_budget: 0,
+        probes: vec![
+            probe_at(100, true, 96, Vec3::ZERO),
+            RenderHybridGiProbe {
+                radius: 1.8,
+                ..probe_with_parent_at(200, true, 88, 100, Vec3::ZERO)
+            },
+        ],
+        trace_regions: Vec::new(),
+    };
+    let scene_meshes = [mesh_at(
+        11,
+        "res://materials/runtime-scene-truth-stale-trace-region.mat",
+        Vec3::ZERO,
+        2.0,
+    )];
+    let scene_lights = [directional_light(300, 1.0)];
+    let mut state = HybridGiRuntimeState::default();
+
+    state.register_scene_extract(Some(&extract), &scene_meshes, &scene_lights, &[], &[]);
+    state.apply_scene_prepare_resources(&scene_prepare_resources_snapshot(
+        vec![(0, [224, 112, 64, 255])],
+        vec![(0, [240, 96, 48, 255])],
+    ));
+    state.ingest_plan(
+        1,
+        &VisibilityHybridGiUpdatePlan {
+            resident_probe_ids: vec![100, 200],
+            requested_probe_ids: Vec::new(),
+            dirty_requested_probe_ids: Vec::new(),
+            scheduled_trace_region_ids: vec![40],
+            evictable_probe_ids: Vec::new(),
+        },
+    );
+
+    let runtime = state.build_resolve_runtime();
+
+    assert_eq!(state.scheduled_trace_regions(), Vec::<u32>::new());
+    assert!(
+        runtime.hierarchy_irradiance_includes_scene_truth(200),
+        "expected scheduled trace-region ids without current region scene data to be filtered before runtime surface-cache scene truth is resolved"
+    );
+}
+
+#[test]
 fn hybrid_gi_runtime_state_reports_clean_voxel_scene_truth_freshness_above_dirty_voxel_truth() {
     let extract = RenderHybridGiExtract {
         enabled: true,
@@ -3046,6 +3527,56 @@ fn hybrid_gi_runtime_state_reports_clean_voxel_scene_truth_freshness_above_dirty
     assert!(
         dirty_freshness < 0.8,
         "expected dirty voxel clipmaps to reduce runtime freshness instead of looking fully stable to temporal reuse; dirty_freshness={dirty_freshness:.3}"
+    );
+}
+
+#[test]
+fn hybrid_gi_runtime_state_keeps_voxel_scene_truth_with_stale_scheduled_trace_region() {
+    let extract = RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 1,
+        voxel_budget: 1,
+        debug_view: Default::default(),
+        probe_budget: 2,
+        tracing_budget: 0,
+        probes: vec![
+            probe_at(100, true, 96, Vec3::ZERO),
+            RenderHybridGiProbe {
+                radius: 1.8,
+                ..probe_with_parent_at(200, true, 88, 100, Vec3::ZERO)
+            },
+        ],
+        trace_regions: Vec::new(),
+    };
+    let scene_meshes = [mesh_at(
+        11,
+        "res://materials/runtime-voxel-scene-truth-stale-trace-region.mat",
+        Vec3::ZERO,
+        2.0,
+    )];
+    let scene_lights = [directional_light(300, 1.0)];
+    let mut state = HybridGiRuntimeState::default();
+
+    state.register_scene_extract(Some(&extract), &scene_meshes, &scene_lights, &[], &[]);
+    state.ingest_plan(
+        1,
+        &VisibilityHybridGiUpdatePlan {
+            resident_probe_ids: vec![100, 200],
+            requested_probe_ids: Vec::new(),
+            dirty_requested_probe_ids: Vec::new(),
+            scheduled_trace_region_ids: vec![40],
+            evictable_probe_ids: Vec::new(),
+        },
+    );
+
+    let runtime = state.build_resolve_runtime();
+
+    assert_eq!(state.scheduled_trace_regions(), Vec::<u32>::new());
+    assert!(
+        runtime.hierarchy_rt_lighting_includes_scene_truth(200),
+        "expected scheduled trace-region ids without current region scene data to be filtered before runtime voxel scene truth is resolved"
     );
 }
 

@@ -7,8 +7,7 @@ use toml::Value;
 use zircon_runtime::ui::layout::UiSize;
 use zircon_runtime::ui::surface::{UiRenderExtract, UiTextAlign};
 use zircon_runtime::ui::template::{
-    UiAssetError, UiAssetLoader, UiDocumentCompiler, UiTemplateBuildError,
-    UiTemplateSurfaceBuilder,
+    UiAssetError, UiAssetLoader, UiDocumentCompiler, UiTemplateBuildError, UiTemplateSurfaceBuilder,
 };
 use zircon_runtime::ui::{event_ui::UiTreeId, tree::UiTreeError};
 
@@ -98,7 +97,9 @@ fn build_ui_asset_editor_node_projection(
         entry.is_quad |= command.kind == zircon_runtime::ui::surface::UiRenderCommandKind::Quad;
         entry.font_size = entry.font_size.max(command.style.font_size.max(0.0));
         entry.border_width = entry.border_width.max(command.style.border_width.max(0.0));
-        entry.corner_radius = entry.corner_radius.max(command.style.corner_radius.max(0.0));
+        entry.corner_radius = entry
+            .corner_radius
+            .max(command.style.corner_radius.max(0.0));
         entry.text_align = command.style.text_align;
         if command.kind == zircon_runtime::ui::surface::UiRenderCommandKind::Text
             && command.text.is_some()
@@ -140,11 +141,8 @@ fn build_ui_asset_editor_node_projection(
                 button_variant: string_attribute(metadata, "button_variant")
                     .unwrap_or_default()
                     .into(),
-                font_size: number_attribute(metadata, "font_size").unwrap_or_else(|| {
-                    render_info
-                        .map(|info| info.font_size)
-                        .unwrap_or_default()
-                }),
+                font_size: number_attribute(metadata, "font_size")
+                    .unwrap_or_else(|| render_info.map(|info| info.font_size).unwrap_or_default()),
                 font_weight: integer_attribute(metadata, "font_weight").unwrap_or(400),
                 text_align: string_attribute(metadata, "text_align")
                     .unwrap_or_else(|| {
@@ -197,7 +195,8 @@ fn asset_path(relative: &str) -> PathBuf {
 }
 
 fn find_node(nodes: &[ViewTemplateNodeData], control_id: &str) -> ViewTemplateNodeData {
-    nodes.iter()
+    nodes
+        .iter()
         .find(|node| node.control_id.as_str() == control_id)
         .cloned()
         .unwrap_or_default()

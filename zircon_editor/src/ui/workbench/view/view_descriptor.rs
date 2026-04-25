@@ -2,7 +2,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::ui::workbench::autolayout::PaneConstraints;
 
-use super::{DockPolicy, PreferredHost, ViewDescriptorId, ViewKind};
+use super::{
+    ActivityWindowTemplateSpec, DockPolicy, PaneTemplateSpec, PreferredHost, ViewDescriptorId,
+    ViewKind,
+};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ViewDescriptor {
@@ -17,6 +20,10 @@ pub struct ViewDescriptor {
     pub persistence_key_policy: String,
     #[serde(default)]
     pub default_constraints: PaneConstraints,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pane_template: Option<PaneTemplateSpec>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub activity_window_template: Option<ActivityWindowTemplateSpec>,
 }
 
 impl ViewDescriptor {
@@ -37,6 +44,8 @@ impl ViewDescriptor {
             preferred_host: PreferredHost::DocumentCenter,
             persistence_key_policy: descriptor_key,
             default_constraints: PaneConstraints::default(),
+            pane_template: None,
+            activity_window_template: None,
         }
     }
 }

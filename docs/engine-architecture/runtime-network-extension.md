@@ -44,6 +44,7 @@ tests:
   - cargo check -p zircon_runtime --locked
   - cargo check --workspace --locked
   - cargo test -p zircon_runtime core::framework::tests::net_framework_root_stays_structural_after_folder_split --locked
+  - cargo test -p zircon_runtime --lib --locked manager_facades --offline
   - cargo test -p zircon_runtime tests::extensions::manager_facades::net_manager_resolves_through_framework_facade_and_roundtrips_udp_loopback_packets --locked
   - cargo test -p zircon_runtime tests::extensions::manager_facades::physics_and_animation_runtime_extensions_keep_manager_handles_under_core_manager_facades --locked
 doc_type: module-detail
@@ -117,6 +118,7 @@ doc_type: module-detail
 - `bind_udp` 绑定本地 endpoint，并切成 non-blocking
 - `send_udp` 直接通过已绑定 socket 向目标 endpoint 发送 payload
 - `poll_udp` 在 non-blocking 模式下收集最多 `max_packets` 个数据包，遇到 `WouldBlock` 立刻返回
+- `poll_udp(max_packets)` 的 budget 是硬边界；超过 budget 的 datagram 留在 socket 中，等待下一次 poll
 - `close_socket` 从 manager 内部 socket 表移除句柄
 
 内部状态只是一张 `NetSocketId -> UdpSocket` 的表和一个递增 id 计数器，没有后台线程，也没有额外 runtime scheduler 依赖。
@@ -153,6 +155,8 @@ doc_type: module-detail
   - 证明 `core::framework::net/mod.rs` 保持 structural root，而不是重新把实现堆回根文件
 - `cargo test -p zircon_runtime tests::extensions::manager_facades::net_manager_resolves_through_framework_facade_and_roundtrips_udp_loopback_packets --locked`
   - 证明 `NetManager` 已经能通过 `core::manager` façade 解析，并在 loopback 上完成真实 `bind/send/poll/close` 闭环
+- `cargo test -p zircon_runtime --lib --locked manager_facades --offline`
+  - 证明 façade 层同时覆盖 UDP loopback 闭环、`poll_udp(max_packets)` 留存未消费 datagram 的 budget 行为，以及其他 runtime manager façade 回归
 - `cargo test -p zircon_runtime tests::extensions::manager_facades::physics_and_animation_runtime_extensions_keep_manager_handles_under_core_manager_facades --locked`
   - 证明 `NetManagerHandle` / `resolve_net_manager(...)` / `NET_MANAGER_NAME` 已经进入 core manager 稳定表面，而不是继续留在 extension 内部私有路径
 

@@ -27,12 +27,12 @@ pub struct UiAssetEditorPreviewCanvasSlotTarget {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct UiAssetEditorPanePresentation {
-    pub nodes: Vec<ViewTemplateNodeData>,
-    pub center_column_node: ViewTemplateNodeData,
-    pub designer_panel_node: ViewTemplateNodeData,
-    pub designer_canvas_panel_node: ViewTemplateNodeData,
-    pub inspector_panel_node: ViewTemplateNodeData,
-    pub stylesheet_panel_node: ViewTemplateNodeData,
+    pub(crate) nodes: Vec<ViewTemplateNodeData>,
+    pub(crate) center_column_node: ViewTemplateNodeData,
+    pub(crate) designer_panel_node: ViewTemplateNodeData,
+    pub(crate) designer_canvas_panel_node: ViewTemplateNodeData,
+    pub(crate) inspector_panel_node: ViewTemplateNodeData,
+    pub(crate) stylesheet_panel_node: ViewTemplateNodeData,
     pub asset_id: String,
     pub mode: String,
     pub source_dirty: bool,
@@ -63,6 +63,7 @@ pub struct UiAssetEditorPanePresentation {
     pub style_class_items: Vec<String>,
     pub style_rule_items: Vec<String>,
     pub style_rule_selected_index: i32,
+    pub style_selected_rule_id: String,
     pub style_selected_rule_selector: String,
     pub style_can_edit_rule: bool,
     pub style_can_delete_rule: bool,

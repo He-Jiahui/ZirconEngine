@@ -7,11 +7,11 @@ use zircon_runtime::ui::{
 
 use super::base_state::base_state;
 use super::constants::{LEFT_STRIP_NODE_ID, RIGHT_STRIP_NODE_ID, ROOT_NODE_ID};
+use super::host_activity_rail_pointer_bridge::HostActivityRailPointerBridge;
 use super::insert_strip::insert_strip;
 use super::root_frame::root_frame;
-use super::workbench_activity_rail_pointer_bridge::WorkbenchActivityRailPointerBridge;
 
-impl WorkbenchActivityRailPointerBridge {
+impl HostActivityRailPointerBridge {
     pub(super) fn rebuild_surface(&mut self) {
         let mut surface = UiSurface::new(UiTreeId::new("zircon.editor.activity_rail.pointer"));
         let mut dispatcher = UiPointerDispatcher::default();
@@ -32,7 +32,7 @@ impl WorkbenchActivityRailPointerBridge {
             "editor.activity_rail.left",
             self.layout.left_strip_frame,
             &self.layout.left_tabs,
-            super::workbench_activity_rail_pointer_side::WorkbenchActivityRailPointerSide::Left,
+            super::host_activity_rail_pointer_side::HostActivityRailPointerSide::Left,
         );
         insert_strip(
             &mut surface,
@@ -43,7 +43,7 @@ impl WorkbenchActivityRailPointerBridge {
             "editor.activity_rail.right",
             self.layout.right_strip_frame,
             &self.layout.right_tabs,
-            super::workbench_activity_rail_pointer_side::WorkbenchActivityRailPointerSide::Right,
+            super::host_activity_rail_pointer_side::HostActivityRailPointerSide::Right,
         );
         surface.rebuild();
 

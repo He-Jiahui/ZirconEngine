@@ -37,7 +37,7 @@ pub fn default_constraints_for_content(kind: ViewContentKind) -> PaneConstraints
             width: stretch_axis(220.0, 280.0, 55, 1.0),
             height: stretch_axis(180.0, 320.0, 55, 1.0),
         },
-        ViewContentKind::Console => PaneConstraints {
+        ViewContentKind::Console | ViewContentKind::RuntimeDiagnostics => PaneConstraints {
             width: stretch_axis(0.0, 0.0, 50, 1.0),
             height: stretch_axis(140.0, 200.0, 50, 1.0),
         },

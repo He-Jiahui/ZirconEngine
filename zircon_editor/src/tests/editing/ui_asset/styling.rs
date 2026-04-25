@@ -34,6 +34,7 @@ fn ui_asset_editor_session_creates_stylesheet_rule_from_selected_node() {
         .first()
         .and_then(|sheet| sheet.rules.last())
         .expect("created rule");
+    assert_eq!(created.id.as_deref(), Some("save_button"));
     assert_eq!(created.selector, "#SaveButton");
     assert!(created.set.self_values.is_empty());
     assert!(created.set.slot.is_empty());
@@ -71,6 +72,7 @@ fn ui_asset_editor_session_extracts_inline_overrides_into_stylesheet_rule() {
         .first()
         .and_then(|sheet| sheet.rules.last())
         .expect("extracted rule");
+    assert_eq!(extracted.id.as_deref(), Some("save_button"));
     assert_eq!(extracted.selector, "#SaveButton");
     assert_eq!(
         extracted
@@ -89,6 +91,107 @@ fn ui_asset_editor_session_extracts_inline_overrides_into_stylesheet_rule() {
             .and_then(toml::Value::as_integer),
         Some(4)
     );
+}
+
+#[test]
+fn ui_asset_editor_session_extracts_inline_overrides_with_unique_rule_id_after_created_rule() {
+    let route = UiAssetEditorRoute::new(
+        "asset://ui/tests/style-authoring.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Design,
+    );
+    let mut session = UiAssetEditorSession::from_source(
+        route,
+        STYLE_AUTHORING_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("session");
+
+    session
+        .select_hierarchy_index(1)
+        .expect("select button from hierarchy");
+    assert!(session.create_rule_from_selection().expect("create rule"));
+    assert!(session
+        .extract_inline_overrides_to_rule()
+        .expect("extract inline overrides"));
+
+    let document = crate::tests::support::load_test_ui_asset(session.source_buffer().text())
+        .expect("document");
+    let button_rules = document.stylesheets[0]
+        .rules
+        .iter()
+        .filter(|rule| rule.selector == "#SaveButton")
+        .collect::<Vec<_>>();
+    assert_eq!(button_rules.len(), 2);
+    assert_eq!(button_rules[0].id.as_deref(), Some("save_button"));
+    assert_eq!(button_rules[1].id.as_deref(), Some("save_button_2"));
+    assert!(button_rules[0].set.self_values.is_empty());
+    assert_eq!(
+        button_rules[1]
+            .set
+            .slot
+            .get("padding")
+            .and_then(toml::Value::as_integer),
+        Some(4)
+    );
+
+    session
+        .select_stylesheet_rule_id("save_button_2")
+        .expect("select extracted button rule by id");
+    let pane = session.pane_presentation();
+    assert_eq!(pane.style_selected_rule_id, "save_button_2");
+    assert_eq!(pane.style_selected_rule_selector, "#SaveButton");
+
+    let mut reordered_document =
+        crate::tests::support::load_test_ui_asset(session.source_buffer().text())
+            .expect("reordered document");
+    reordered_document.stylesheets[0].rules.insert(
+        0,
+        UiStyleRule {
+            id: Some("inserted_rule".to_string()),
+            selector: ".inserted".to_string(),
+            set: Default::default(),
+        },
+    );
+    let reordered_source = toml::to_string_pretty(&reordered_document).expect("reordered source");
+    session
+        .apply_command(UiAssetEditorCommand::edit_source(reordered_source))
+        .expect("apply reordered source");
+    let reordered_pane = session.pane_presentation();
+    assert_eq!(reordered_pane.style_selected_rule_id, "save_button_2");
+    assert_eq!(reordered_pane.style_selected_rule_selector, "#SaveButton");
+}
+
+#[test]
+fn ui_asset_editor_session_redo_restores_created_style_rule_selection_by_id() {
+    let route = UiAssetEditorRoute::new(
+        "asset://ui/tests/style-authoring.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Design,
+    );
+    let mut session = UiAssetEditorSession::from_source(
+        route,
+        STYLE_AUTHORING_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("session");
+
+    session
+        .select_hierarchy_index(1)
+        .expect("select button from hierarchy");
+    assert!(session.create_rule_from_selection().expect("create rule"));
+    let created = session.pane_presentation();
+    assert_eq!(created.style_selected_rule_id, "save_button");
+    assert_eq!(created.style_selected_rule_selector, "#SaveButton");
+
+    assert!(session.undo().expect("undo created rule"));
+    let undone = session.pane_presentation();
+    assert_ne!(undone.style_selected_rule_id, "save_button");
+
+    assert!(session.redo().expect("redo created rule"));
+    let redone = session.pane_presentation();
+    assert_eq!(redone.style_selected_rule_id, "save_button");
+    assert_eq!(redone.style_selected_rule_selector, "#SaveButton");
 }
 
 #[test]
@@ -164,6 +267,7 @@ fn ui_asset_editor_session_selects_renames_and_deletes_local_stylesheet_rules() 
         ]
     );
     assert_eq!(initial_pane.style_rule_selected_index, -1);
+    assert_eq!(initial_pane.style_selected_rule_id, "");
     assert_eq!(initial_pane.style_selected_rule_selector, "");
 
     assert!(session
@@ -171,6 +275,7 @@ fn ui_asset_editor_session_selects_renames_and_deletes_local_stylesheet_rules() 
         .expect("select local stylesheet rule"));
     let selected = session.pane_presentation();
     assert_eq!(selected.style_rule_selected_index, 1);
+    assert_eq!(selected.style_selected_rule_id, "");
     assert_eq!(selected.style_selected_rule_selector, ".primary:hover");
 
     assert!(session
@@ -185,6 +290,7 @@ fn ui_asset_editor_session_selects_renames_and_deletes_local_stylesheet_rules() 
     );
     let renamed = session.pane_presentation();
     assert_eq!(renamed.style_rule_selected_index, 1);
+    assert_eq!(renamed.style_selected_rule_id, "");
     assert_eq!(
         renamed.style_selected_rule_selector,
         "Button.toolbar:hover".to_string()
@@ -210,6 +316,7 @@ fn ui_asset_editor_session_selects_renames_and_deletes_local_stylesheet_rules() 
         vec![".primary".to_string(), ".primary:disabled".to_string()]
     );
     assert_eq!(deleted.style_rule_selected_index, 1);
+    assert_eq!(deleted.style_selected_rule_id, "");
     assert_eq!(
         deleted.style_selected_rule_selector,
         ".primary:disabled".to_string()

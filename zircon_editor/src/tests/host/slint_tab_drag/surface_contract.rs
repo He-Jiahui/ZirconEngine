@@ -57,8 +57,8 @@ fn shared_drag_capture_surface_replaces_legacy_direct_drop_callback_abi() {
     }
 
     for needle in [
-        "callback workbench_drag_pointer_event(kind: int, x: float, y: float);",
-        "WorkbenchHostContext.workbench_drag_pointer_event(",
+        "callback host_drag_pointer_event(kind: int, x: float, y: float);",
+        "UiHostContext.host_drag_pointer_event(",
     ] {
         assert!(
             workbench.contains(needle)
@@ -74,11 +74,11 @@ fn shared_drag_capture_surface_replaces_legacy_direct_drop_callback_abi() {
     }
 
     assert!(
-        wiring.contains("host_shell.on_workbench_drag_pointer_event("),
+        wiring.contains("host_shell.on_host_drag_pointer_event("),
         "slint host callback wiring must register shared drag pointer callback"
     );
     assert!(
-        docking.contains("fn workbench_drag_pointer_event("),
+        docking.contains("fn host_drag_pointer_event("),
         "workspace docking host must handle shared drag pointer events"
     );
 }

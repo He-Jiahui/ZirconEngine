@@ -5,7 +5,7 @@ use crate::ui::layouts::windows::workbench_host_window::{
     self as host_window, build_host_scene_data, build_native_floating_surface_data, frame_rect,
     ShellPresentation,
 };
-use crate::ui::slint_host::callback_dispatch::BuiltinWorkbenchRootShellFrames;
+use crate::ui::slint_host::callback_dispatch::BuiltinHostRootShellFrames;
 use crate::ui::slint_host::floating_window_projection::FloatingWindowProjectionBundle;
 use crate::ui::slint_host::root_shell_projection::{
     resolve_root_bottom_region_frame, resolve_root_center_band_frame,
@@ -35,7 +35,8 @@ pub(crate) fn apply_presentation(
         String,
         crate::ui::animation_editor::AnimationEditorPanePresentation,
     >,
-    shared_root_frames: Option<&BuiltinWorkbenchRootShellFrames>,
+    runtime_diagnostics: Option<&zircon_runtime::core::diagnostics::RuntimeDiagnosticsSnapshot>,
+    shared_root_frames: Option<&BuiltinHostRootShellFrames>,
     floating_window_projection_bundle: &FloatingWindowProjectionBundle,
 ) {
     let presentation = ShellPresentation::from_state(
@@ -46,6 +47,7 @@ pub(crate) fn apply_presentation(
         active_preset_name,
         ui_asset_panes,
         animation_panes,
+        runtime_diagnostics,
         floating_window_projection_bundle,
     );
     let document_pane_shows_viewport_toolbar =
@@ -100,7 +102,7 @@ pub(crate) fn apply_presentation(
         shared_root_frames,
         document_pane_shows_viewport_toolbar,
     );
-    let workbench_scene_data = build_host_scene_data(
+    let host_scene_data = build_host_scene_data(
         &presentation.host_surface_data,
         &presentation.host_shell,
         &host_layout,
@@ -108,14 +110,14 @@ pub(crate) fn apply_presentation(
         chrome.inspector.is_some(),
         &chrome.project_overview,
     );
-    let welcome_pane = project_welcome_pane(&presentation.welcome.pane, &workbench_scene_data);
+    let welcome_pane = project_welcome_pane(&presentation.welcome.pane, &host_scene_data);
     let native_floating_surface_data = build_native_floating_surface_data(
         &presentation.host_surface_data,
         &presentation.host_shell,
         &chrome.project_overview,
     );
     let host_presentation = HostWindowPresentationData {
-        workbench_scene_data: to_slint_host_scene_data(&workbench_scene_data),
+        host_scene_data: to_slint_host_scene_data(&host_scene_data),
         native_floating_surface_data: to_slint_native_floating_surface_data(
             &native_floating_surface_data,
         ),
@@ -129,7 +131,7 @@ pub(crate) fn apply_presentation(
 
 fn host_window_layout(
     geometry: &WorkbenchShellGeometry,
-    shared_root_frames: Option<&BuiltinWorkbenchRootShellFrames>,
+    shared_root_frames: Option<&BuiltinHostRootShellFrames>,
     document_pane_shows_viewport_toolbar: bool,
 ) -> host_window::HostWindowLayoutData {
     host_window::HostWindowLayoutData {
@@ -199,7 +201,12 @@ fn to_slint_tabs(tabs: &ModelRc<host_window::TabData>) -> ModelRc<slint_ui::TabD
 
 fn to_slint_floating_window_data(
     window: host_window::FloatingWindowData,
+    header_height_px: f32,
 ) -> slint_ui::FloatingWindowData {
+    let pane_size = host_window::PaneContentSize::new(
+        window.frame.width,
+        (window.frame.height - header_height_px).max(0.0),
+    );
     slint_ui::FloatingWindowData {
         window_id: window.window_id,
         title: window.title,
@@ -211,14 +218,17 @@ fn to_slint_floating_window_data(
         bottom_edge_target_group: window.bottom_edge_target_group,
         focus_target_id: window.focus_target_id,
         tabs: to_slint_tabs(&window.tabs),
-        active_pane: to_slint_pane(window.active_pane),
+        active_pane: to_slint_pane(window.active_pane, pane_size),
     }
 }
 
 fn to_slint_floating_windows(
     windows: &ModelRc<host_window::FloatingWindowData>,
+    header_height_px: f32,
 ) -> ModelRc<slint_ui::FloatingWindowData> {
-    map_model_rc(windows, to_slint_floating_window_data)
+    map_model_rc(windows, |window| {
+        to_slint_floating_window_data(window, header_height_px)
+    })
 }
 
 fn to_slint_new_project_form(form: &view_data::NewProjectFormData) -> slint_ui::NewProjectFormData {
@@ -245,7 +255,9 @@ fn to_slint_template_frame(
     }
 }
 
-fn to_slint_template_node(data: &view_data::ViewTemplateNodeData) -> slint_ui::TemplatePaneNodeData {
+fn to_slint_template_node(
+    data: &view_data::ViewTemplateNodeData,
+) -> slint_ui::TemplatePaneNodeData {
     slint_ui::TemplatePaneNodeData {
         node_id: data.node_id.clone(),
         control_id: data.control_id.clone(),
@@ -278,7 +290,7 @@ fn to_slint_welcome_pane(pane: &view_data::WelcomePaneData) -> slint_ui::Welcome
 
 fn project_welcome_pane(
     pane: &view_data::WelcomePaneData,
-    scene: &host_window::HostWorkbenchWindowSceneData,
+    scene: &host_window::HostWindowSceneData,
 ) -> view_data::WelcomePaneData {
     let mut pane = pane.clone();
     if let Some(size) = resolve_visible_welcome_pane_size(scene) {
@@ -287,9 +299,7 @@ fn project_welcome_pane(
     pane
 }
 
-fn resolve_visible_welcome_pane_size(
-    scene: &host_window::HostWorkbenchWindowSceneData,
-) -> Option<UiSize> {
+fn resolve_visible_welcome_pane_size(scene: &host_window::HostWindowSceneData) -> Option<UiSize> {
     if scene.document_dock.pane.kind.as_str() == "Welcome" {
         return Some(UiSize::new(
             scene.document_dock.region_frame.width.max(0.0),
@@ -457,9 +467,10 @@ fn to_slint_scene_viewport_chrome(
 }
 
 fn to_slint_animation_editor_pane(
-    data: host_window::AnimationEditorPaneViewData,
+    data: &host_window::PaneData,
+    pane_size: host_window::PaneContentSize,
 ) -> slint_ui::AnimationEditorPaneData {
-    pane_data_conversion::to_slint_animation_editor_pane(data)
+    pane_data_conversion::to_slint_animation_editor_pane_from_host_pane(data, pane_size)
 }
 
 fn to_slint_assets_activity_pane(
@@ -469,19 +480,24 @@ fn to_slint_assets_activity_pane(
 }
 
 fn to_slint_hierarchy_pane(
-    data: host_window::HierarchyPaneViewData,
+    data: &host_window::PaneData,
+    pane_size: host_window::PaneContentSize,
 ) -> slint_ui::HierarchyPaneData {
-    pane_data_conversion::to_slint_hierarchy_pane(data)
+    pane_data_conversion::to_slint_hierarchy_pane_from_host_pane(data, pane_size)
 }
 
 fn to_slint_inspector_pane(
-    data: host_window::InspectorPaneViewData,
+    data: &host_window::PaneData,
+    pane_size: host_window::PaneContentSize,
 ) -> slint_ui::InspectorPaneData {
-    pane_data_conversion::to_slint_inspector_pane(data)
+    pane_data_conversion::to_slint_inspector_pane_from_host_pane(data, pane_size)
 }
 
-fn to_slint_console_pane(data: host_window::ConsolePaneViewData) -> slint_ui::ConsolePaneData {
-    pane_data_conversion::to_slint_console_pane(data)
+fn to_slint_console_pane(
+    data: &host_window::PaneData,
+    pane_size: host_window::PaneContentSize,
+) -> slint_ui::ConsolePaneData {
+    pane_data_conversion::to_slint_console_pane_from_host_pane(data, pane_size)
 }
 
 fn to_slint_project_overview_pane(
@@ -496,7 +512,15 @@ fn to_slint_ui_asset_pane(
     pane_data_conversion::to_slint_ui_asset_pane(data)
 }
 
-fn to_slint_pane(data: host_window::PaneData) -> slint_ui::PaneData {
+fn to_slint_pane(
+    data: host_window::PaneData,
+    pane_size: host_window::PaneContentSize,
+) -> slint_ui::PaneData {
+    let hierarchy = to_slint_hierarchy_pane(&data, pane_size);
+    let inspector = to_slint_inspector_pane(&data, pane_size);
+    let console = to_slint_console_pane(&data, pane_size);
+    let animation = to_slint_animation_editor_pane(&data, pane_size);
+
     slint_ui::PaneData {
         id: data.id,
         slot: data.slot,
@@ -515,14 +539,16 @@ fn to_slint_pane(data: host_window::PaneData) -> slint_ui::PaneData {
         secondary_hint: data.secondary_hint,
         show_toolbar: data.show_toolbar,
         viewport: to_slint_scene_viewport_chrome(&data.viewport),
-        hierarchy: to_slint_hierarchy_pane(data.hierarchy),
-        inspector: to_slint_inspector_pane(data.inspector),
-        console: to_slint_console_pane(data.console),
-        assets_activity: to_slint_assets_activity_pane(data.assets_activity),
-        asset_browser: pane_data_conversion::to_slint_asset_browser_pane(data.asset_browser),
-        project_overview: to_slint_project_overview_pane(data.project_overview),
-        ui_asset: to_slint_ui_asset_pane(data.ui_asset),
-        animation: to_slint_animation_editor_pane(data.animation),
+        hierarchy,
+        inspector,
+        console,
+        assets_activity: to_slint_assets_activity_pane(data.body_compat.assets_activity),
+        asset_browser: pane_data_conversion::to_slint_asset_browser_pane(
+            data.body_compat.asset_browser,
+        ),
+        project_overview: to_slint_project_overview_pane(data.body_compat.project_overview),
+        ui_asset: to_slint_ui_asset_pane(data.body_compat.ui_asset),
+        animation,
     }
 }
 
@@ -582,9 +608,9 @@ fn to_slint_host_shell(shell: &host_window::HostWindowShellData) -> slint_ui::Ho
 }
 
 fn to_slint_metrics(
-    metrics: &host_window::HostWorkbenchSurfaceMetricsData,
-) -> slint_ui::HostWorkbenchSurfaceMetricsData {
-    slint_ui::HostWorkbenchSurfaceMetricsData {
+    metrics: &host_window::HostWindowSurfaceMetricsData,
+) -> slint_ui::HostWindowSurfaceMetricsData {
+    slint_ui::HostWindowSurfaceMetricsData {
         outer_margin_px: metrics.outer_margin_px,
         rail_width_px: metrics.rail_width_px,
         top_bar_height_px: metrics.top_bar_height_px,
@@ -595,9 +621,9 @@ fn to_slint_metrics(
 }
 
 fn to_slint_orchestration(
-    orchestration: &host_window::HostWorkbenchSurfaceOrchestrationData,
-) -> slint_ui::HostWorkbenchSurfaceOrchestrationData {
-    slint_ui::HostWorkbenchSurfaceOrchestrationData {
+    orchestration: &host_window::HostWindowSurfaceOrchestrationData,
+) -> slint_ui::HostWindowSurfaceOrchestrationData {
+    slint_ui::HostWindowSurfaceOrchestrationData {
         left_rail_width_px: orchestration.left_rail_width_px,
         right_rail_width_px: orchestration.right_rail_width_px,
         left_stack_width_px: orchestration.left_stack_width_px,
@@ -684,12 +710,16 @@ fn to_slint_drag_overlay(
 fn to_slint_side_dock(
     dock: &host_window::HostSideDockSurfaceData,
 ) -> slint_ui::HostSideDockSurfaceData {
+    let pane_size = host_window::PaneContentSize::new(
+        dock.panel_width_px,
+        dock_content_height(dock.region_frame.height, dock.panel_header_height_px),
+    );
     slint_ui::HostSideDockSurfaceData {
         region_frame: to_slint_frame_rect(&dock.region_frame),
         surface_key: dock.surface_key.clone(),
         rail_before_panel: dock.rail_before_panel,
         tabs: to_slint_tabs(&dock.tabs),
-        pane: to_slint_pane(dock.pane.clone()),
+        pane: to_slint_pane(dock.pane.clone(), pane_size),
         rail_width_px: dock.rail_width_px,
         panel_width_px: dock.panel_width_px,
         panel_header_height_px: dock.panel_header_height_px,
@@ -701,11 +731,15 @@ fn to_slint_side_dock(
 fn to_slint_document_dock(
     dock: &host_window::HostDocumentDockSurfaceData,
 ) -> slint_ui::HostDocumentDockSurfaceData {
+    let pane_size = host_window::PaneContentSize::new(
+        dock.region_frame.width,
+        dock_content_height(dock.region_frame.height, dock.header_height_px),
+    );
     slint_ui::HostDocumentDockSurfaceData {
         region_frame: to_slint_frame_rect(&dock.region_frame),
         surface_key: dock.surface_key.clone(),
         tabs: to_slint_tabs(&dock.tabs),
-        pane: to_slint_pane(dock.pane.clone()),
+        pane: to_slint_pane(dock.pane.clone(), pane_size),
         header_height_px: dock.header_height_px,
         tab_origin_x_px: dock.tab_origin_x_px,
         tab_origin_y_px: dock.tab_origin_y_px,
@@ -715,11 +749,15 @@ fn to_slint_document_dock(
 fn to_slint_bottom_dock(
     dock: &host_window::HostBottomDockSurfaceData,
 ) -> slint_ui::HostBottomDockSurfaceData {
+    let pane_size = host_window::PaneContentSize::new(
+        dock.region_frame.width,
+        dock_content_height(dock.region_frame.height, dock.header_height_px),
+    );
     slint_ui::HostBottomDockSurfaceData {
         region_frame: to_slint_frame_rect(&dock.region_frame),
         surface_key: dock.surface_key.clone(),
         tabs: to_slint_tabs(&dock.tabs),
-        pane: to_slint_pane(dock.pane.clone()),
+        pane: to_slint_pane(dock.pane.clone(), pane_size),
         expanded: dock.expanded,
         header_height_px: dock.header_height_px,
         tab_origin_x_px: dock.tab_origin_x_px,
@@ -731,15 +769,18 @@ fn to_slint_floating_layer(
     layer: &host_window::HostFloatingWindowLayerData,
 ) -> slint_ui::HostFloatingWindowLayerData {
     slint_ui::HostFloatingWindowLayerData {
-        floating_windows: to_slint_floating_windows(&layer.floating_windows),
+        floating_windows: to_slint_floating_windows(
+            &layer.floating_windows,
+            layer.header_height_px,
+        ),
         header_height_px: layer.header_height_px,
     }
 }
 
 pub(super) fn to_slint_host_scene_data(
-    scene: &host_window::HostWorkbenchWindowSceneData,
-) -> slint_ui::HostWorkbenchWindowSceneData {
-    slint_ui::HostWorkbenchWindowSceneData {
+    scene: &host_window::HostWindowSceneData,
+) -> slint_ui::HostWindowSceneData {
+    slint_ui::HostWindowSceneData {
         layout: to_slint_host_window_layout(&scene.layout),
         metrics: to_slint_metrics(&scene.metrics),
         orchestration: to_slint_orchestration(&scene.orchestration),
@@ -760,7 +801,10 @@ fn to_slint_native_floating_surface_data(
     surface: &host_window::HostNativeFloatingWindowSurfaceData,
 ) -> slint_ui::HostNativeFloatingWindowSurfaceData {
     slint_ui::HostNativeFloatingWindowSurfaceData {
-        floating_windows: to_slint_floating_windows(&surface.floating_windows),
+        floating_windows: to_slint_floating_windows(
+            &surface.floating_windows,
+            surface.header_height_px,
+        ),
         native_floating_window_id: surface.native_floating_window_id.clone(),
         native_window_bounds: to_slint_frame_rect(&surface.native_window_bounds),
         header_height_px: surface.header_height_px,

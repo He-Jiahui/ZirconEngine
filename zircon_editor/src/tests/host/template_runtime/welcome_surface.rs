@@ -3,7 +3,7 @@ use super::support::*;
 #[test]
 fn editor_ui_host_runtime_projects_builtin_welcome_surface_template_into_slint_projection() {
     let mut runtime = EditorUiHostRuntime::default();
-    runtime.load_builtin_workbench_shell().unwrap();
+    runtime.load_builtin_host_templates().unwrap();
 
     assert_eq!(
         runtime

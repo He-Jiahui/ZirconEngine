@@ -18,6 +18,8 @@ fn virtual_geometry_runtime_state_uses_current_visibility_request_order_for_pend
             render_cluster(80, 800, None),
             render_cluster(90, 900, Some(80)),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![
             page(200, false, 2_048),
             page(800, false, 4_096),
@@ -85,6 +87,8 @@ fn virtual_geometry_runtime_state_keeps_first_unique_visibility_request_order_wh
             render_cluster(80, 800, None),
             render_cluster(90, 900, Some(80)),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![
             page(200, false, 2_048),
             page(800, false, 4_096),
@@ -154,6 +158,8 @@ fn virtual_geometry_runtime_state_evicts_unrelated_pages_before_active_request_l
             render_cluster(70, 700, None),
             render_cluster(90, 900, None),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![
             page(200, false, 2_048),
             page(300, true, 1_024),
@@ -208,6 +214,8 @@ fn virtual_geometry_runtime_state_evicts_later_active_request_lineage_before_ear
             render_cluster(60, 600, Some(50)),
             render_cluster(70, 700, None),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![
             page(200, false, 2_048),
             page(300, true, 1_024),
@@ -261,6 +269,8 @@ fn virtual_geometry_runtime_state_keeps_hot_later_request_lineage_resident_while
             render_cluster(60, 600, Some(50)),
             render_cluster(70, 700, None),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![
             page(200, false, 2_048),
             page(300, true, 1_024),
@@ -312,6 +322,8 @@ fn virtual_geometry_runtime_state_prefers_evicting_cold_page_before_recent_front
             render_cluster(30, 300, None),
             render_cluster(70, 700, None),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![
             page(200, true, 2_048),
             page(300, true, 2_048),
@@ -356,6 +368,8 @@ fn virtual_geometry_runtime_state_carries_recent_frontier_hot_pages_into_next_pr
             render_cluster(30, 300, None),
             render_cluster(70, 700, None),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![
             page(200, true, 2_048),
             page(300, true, 2_048),
@@ -419,6 +433,8 @@ fn virtual_geometry_runtime_state_keeps_hot_farther_descendant_resident_while_re
             render_cluster(40, 400, Some(20)),
             render_cluster(80, 800, Some(40)),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![
             page(100, true, 2_048),
             page(200, false, 2_048),
@@ -471,6 +487,8 @@ fn virtual_geometry_runtime_state_keeps_deepest_hot_descendant_resident_when_sam
             render_cluster(40, 400, Some(20)),
             render_cluster(80, 800, Some(40)),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![
             page(100, true, 2_048),
             page(200, false, 2_048),
@@ -523,6 +541,8 @@ fn virtual_geometry_runtime_state_cascades_hot_frontier_ancestor_truth_to_deeper
             render_cluster(40, 400, Some(20)),
             render_cluster(80, 800, Some(40)),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![
             page(100, true, 2_048),
             page(200, false, 2_048),
@@ -575,6 +595,8 @@ fn virtual_geometry_runtime_state_carries_hot_frontier_truth_into_newly_complete
             render_cluster(40, 400, Some(20)),
             render_cluster(80, 800, Some(40)),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![
             page(100, true, 2_048),
             page(200, false, 2_048),
@@ -643,6 +665,8 @@ fn virtual_geometry_runtime_state_carries_hot_descendant_frontier_truth_into_new
             render_cluster(50, 500, None),
             render_cluster(80, 800, Some(20)),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![
             page(100, true, 2_048),
             page(200, false, 2_048),
@@ -711,6 +735,8 @@ fn virtual_geometry_runtime_state_carries_recent_hot_frontier_lineage_through_on
             render_cluster(40, 400, Some(20)),
             render_cluster(80, 800, Some(40)),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![
             page(100, true, 2_048),
             page(200, false, 2_048),
@@ -791,6 +817,8 @@ fn virtual_geometry_runtime_state_carries_confirmed_hot_frontier_lineage_through
             render_cluster(40, 400, Some(20)),
             render_cluster(80, 800, Some(40)),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![
             page(100, true, 2_048),
             page(200, false, 2_048),
@@ -886,6 +914,8 @@ fn virtual_geometry_runtime_state_drops_confirmed_hot_frontier_lineage_after_coo
             render_cluster(40, 400, Some(20)),
             render_cluster(80, 800, Some(40)),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![
             page(100, true, 2_048),
             page(200, false, 2_048),
@@ -970,6 +1000,8 @@ fn virtual_geometry_runtime_state_feedback_completion_carries_recent_frontier_tr
             render_cluster(60, 600, None),
             render_cluster(80, 800, Some(40)),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![
             page(200, false, 2_048),
             page(300, true, 2_048),
@@ -1052,6 +1084,8 @@ fn virtual_geometry_runtime_state_drops_recent_hot_frontier_truth_when_page_leav
             render_cluster(30, 300, None),
             render_cluster(50, 500, None),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![
             page(200, true, 2_048),
             page(300, true, 2_048),
@@ -1064,6 +1098,8 @@ fn virtual_geometry_runtime_state_drops_recent_hot_frontier_truth_when_page_leav
         cluster_budget: 2,
         page_budget: 1,
         clusters: vec![render_cluster(30, 300, None), render_cluster(50, 500, None)],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![page(300, true, 2_048), page(500, false, 2_048)],
         instances: Vec::new(),
         debug: Default::default(),
@@ -1076,6 +1112,8 @@ fn virtual_geometry_runtime_state_drops_recent_hot_frontier_truth_when_page_leav
             render_cluster(30, 300, None),
             render_cluster(50, 500, None),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![
             page(200, true, 2_048),
             page(300, true, 2_048),
@@ -1159,6 +1197,8 @@ fn virtual_geometry_runtime_state_does_not_let_evicted_hot_descendant_bias_later
             render_cluster(70, 700, None),
             render_cluster(80, 800, Some(20)),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![
             page(200, false, 2_048),
             page(300, true, 2_048),
@@ -1232,6 +1272,8 @@ fn virtual_geometry_runtime_state_does_not_let_later_batch_eviction_keep_hot_des
             render_cluster(70, 700, None),
             render_cluster(80, 800, Some(20)),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![
             page(200, false, 2_048),
             page(300, true, 2_048),
@@ -1304,6 +1346,8 @@ fn virtual_geometry_runtime_state_does_not_let_removed_hot_descendant_bias_page_
             render_cluster(70, 700, None),
             render_cluster(80, 800, Some(20)),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![
             page(200, false, 2_048),
             page(300, true, 2_048),
@@ -1370,6 +1414,8 @@ fn virtual_geometry_runtime_state_keeps_reassigned_page_table_owner_in_next_fron
             render_cluster(50, 500, None),
             render_cluster(70, 700, None),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![
             page(200, true, 2_048),
             page(300, true, 2_048),
@@ -1442,6 +1488,7 @@ fn render_cluster(
     RenderVirtualGeometryCluster {
         entity: 10,
         cluster_id,
+        hierarchy_node_id: None,
         page_id,
         lod_level: 0,
         parent_cluster_id,

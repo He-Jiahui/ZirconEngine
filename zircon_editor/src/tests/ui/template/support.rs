@@ -1,16 +1,16 @@
-pub(super) const EDITOR_WORKBENCH_ASSET_TOML: &str = r##"
+pub(super) const EDITOR_HOST_WINDOW_ASSET_TOML: &str = r##"
 [asset]
 kind = "layout"
 id = "editor.workbench.asset"
 version = 1
-display_name = "Editor Workbench Asset"
+display_name = "Editor Host Window Asset"
 
 [root]
 node = "root"
 
 [nodes.root]
 kind = "component"
-component = "WorkbenchShell"
+component = "UiHostWindow"
 children = [
   { child = "menu_bar_root", mount = "menu_bar" },
   { child = "status_bar_root", mount = "status_bar" },
@@ -25,31 +25,31 @@ kind = "native"
 type = "StatusBar"
 control_id = "StatusBarRoot"
 
-[components.WorkbenchShell]
-root = "workbench_shell_root"
+[components.UiHostWindow]
+root = "host_window_root"
 
-[components.WorkbenchShell.slots.menu_bar]
+[components.UiHostWindow.slots.menu_bar]
 required = true
 
-[components.WorkbenchShell.slots.status_bar]
+[components.UiHostWindow.slots.status_bar]
 required = true
 
 [components.MenuBar]
 root = "menu_bar_component_root"
 
-[nodes.workbench_shell_root]
+[nodes.host_window_root]
 kind = "native"
-type = "WorkbenchShell"
+type = "UiHostWindow"
 children = [
-  { child = "workbench_shell_menu_bar_slot", mount = "menu_bar" },
-  { child = "workbench_shell_status_bar_slot", mount = "status_bar" },
+  { child = "host_window_menu_bar_slot", mount = "menu_bar" },
+  { child = "host_window_status_bar_slot", mount = "status_bar" },
 ]
 
-[nodes.workbench_shell_menu_bar_slot]
+[nodes.host_window_menu_bar_slot]
 kind = "slot"
 slot_name = "menu_bar"
 
-[nodes.workbench_shell_status_bar_slot]
+[nodes.host_window_status_bar_slot]
 kind = "slot"
 slot_name = "status_bar"
 

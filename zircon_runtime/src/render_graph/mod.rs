@@ -9,7 +9,9 @@ pub use builder::RenderGraphBuilder;
 pub use error::RenderGraphError;
 pub use graph::{CompiledRenderGraph, CompiledRenderPass};
 pub use types::{
-    ExternalResource, PassFlags, QueueLane, RenderPassId, TransientBuffer, TransientTexture,
+    ExternalResource, PassFlags, QueueLane, RenderGraphResource, RenderGraphResourceDesc,
+    RenderGraphResourceKind, RenderGraphResourceLifetime, RenderPassId, TransientBuffer,
+    TransientTexture,
 };
 
 #[cfg(test)]

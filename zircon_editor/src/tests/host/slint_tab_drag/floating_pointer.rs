@@ -1,29 +1,27 @@
 use super::support::*;
 
 #[test]
-fn workbench_shell_pointer_route_group_key_normalizes_document_and_floating_routes() {
+fn host_shell_pointer_route_group_key_normalizes_document_and_floating_routes() {
     let window_id = MainPageId::new("window:preview");
 
     assert_eq!(
-        workbench_shell_pointer_route_group_key(&WorkbenchShellPointerRoute::DragTarget(
-            WorkbenchDragTargetGroup::Right,
+        host_shell_pointer_route_group_key(&HostShellPointerRoute::DragTarget(
+            HostDragTargetGroup::Right,
         )),
         Some("right".to_string())
     );
     assert_eq!(
-        workbench_shell_pointer_route_group_key(&WorkbenchShellPointerRoute::DocumentEdge(
-            DockEdge::Bottom,
-        )),
+        host_shell_pointer_route_group_key(&HostShellPointerRoute::DocumentEdge(DockEdge::Bottom,)),
         Some("document-bottom".to_string())
     );
     assert_eq!(
-        workbench_shell_pointer_route_group_key(&WorkbenchShellPointerRoute::FloatingWindow(
+        host_shell_pointer_route_group_key(&HostShellPointerRoute::FloatingWindow(
             window_id.clone(),
         )),
         Some(floating_window_group_key(&window_id))
     );
     assert_eq!(
-        workbench_shell_pointer_route_group_key(&WorkbenchShellPointerRoute::FloatingWindowEdge {
+        host_shell_pointer_route_group_key(&HostShellPointerRoute::FloatingWindowEdge {
             window_id: window_id.clone(),
             edge: DockEdge::Left,
         }),
@@ -49,7 +47,7 @@ fn shared_shell_pointer_route_reports_floating_window_attach_from_shared_surface
         Vec::new(),
         None,
     )];
-    let mut bridge = WorkbenchShellPointerBridge::new();
+    let mut bridge = HostShellPointerBridge::new();
     bridge.update_layout_with_floating_windows(
         UiSize::new(1440.0, 900.0),
         &geometry,
@@ -60,11 +58,11 @@ fn shared_shell_pointer_route_reports_floating_window_attach_from_shared_surface
 
     assert_eq!(
         bridge.drag_route_at(UiPoint::new(600.0, 300.0)),
-        Some(WorkbenchShellPointerRoute::FloatingWindow(window_id))
+        Some(HostShellPointerRoute::FloatingWindow(window_id))
     );
     assert_eq!(
         bridge.drag_target_at(UiPoint::new(600.0, 300.0)),
-        Some(WorkbenchDragTargetGroup::Document)
+        Some(HostDragTargetGroup::Document)
     );
 }
 
@@ -87,7 +85,7 @@ fn shared_shell_pointer_route_does_not_fall_back_to_legacy_geometry_when_project
         Vec::new(),
         None,
     )];
-    let mut bridge = WorkbenchShellPointerBridge::new();
+    let mut bridge = HostShellPointerBridge::new();
     let empty_bundle = FloatingWindowProjectionBundle::default();
     bridge.update_layout_with_root_shell_frames(
         UiSize::new(1440.0, 900.0),
@@ -123,7 +121,7 @@ fn shared_shell_pointer_route_prefers_native_window_host_bounds_for_floating_att
         Vec::new(),
         None,
     )];
-    let mut bridge = WorkbenchShellPointerBridge::new();
+    let mut bridge = HostShellPointerBridge::new();
     bridge.update_layout_with_native_window_hosts(
         UiSize::new(1440.0, 900.0),
         &geometry,
@@ -139,7 +137,7 @@ fn shared_shell_pointer_route_prefers_native_window_host_bounds_for_floating_att
 
     assert_eq!(
         bridge.drag_route_at(UiPoint::new(900.0, 500.0)),
-        Some(WorkbenchShellPointerRoute::FloatingWindow(window_id)),
+        Some(HostShellPointerRoute::FloatingWindow(window_id)),
         "drag attach surface should move to native host bounds instead of stale layout geometry"
     );
 }
@@ -162,7 +160,7 @@ fn shared_shell_pointer_route_reports_floating_window_edge_from_shared_surface()
         Vec::new(),
         None,
     )];
-    let mut bridge = WorkbenchShellPointerBridge::new();
+    let mut bridge = HostShellPointerBridge::new();
     bridge.update_layout_with_floating_windows(
         UiSize::new(1440.0, 900.0),
         &geometry,
@@ -173,13 +171,13 @@ fn shared_shell_pointer_route_reports_floating_window_edge_from_shared_surface()
 
     assert_eq!(
         bridge.drag_route_at(UiPoint::new(426.0, 300.0)),
-        Some(WorkbenchShellPointerRoute::FloatingWindowEdge {
+        Some(HostShellPointerRoute::FloatingWindowEdge {
             window_id,
             edge: DockEdge::Left,
         })
     );
     assert_eq!(
         bridge.drag_target_at(UiPoint::new(426.0, 300.0)),
-        Some(WorkbenchDragTargetGroup::Document)
+        Some(HostDragTargetGroup::Document)
     );
 }

@@ -10,6 +10,7 @@ pub(super) fn update_virtual_geometry_runtime(
     context: &FrameSubmissionContext,
     prepared: &mut PreparedRuntimeSubmission,
     virtual_geometry_gpu_completion: Option<&VirtualGeometryGpuCompletion>,
+    node_and_cluster_cull_page_requests: &[u32],
 ) -> VirtualGeometryStatSnapshot {
     let previous_slot_owners = prepared
         .virtual_geometry_runtime
@@ -67,6 +68,10 @@ pub(super) fn update_virtual_geometry_runtime(
         } else if let Some(feedback) = context.virtual_geometry_feedback.as_ref() {
             runtime.consume_feedback(feedback);
         }
+        runtime.ingest_page_requests(
+            context.predicted_generation,
+            node_and_cluster_cull_page_requests.iter().copied(),
+        );
         let snapshot = runtime.snapshot();
         VirtualGeometryStatSnapshot {
             page_table_entry_count: snapshot.page_table_entry_count,
@@ -166,6 +171,7 @@ mod tests {
                 completed_page_assignments: Vec::new(),
                 completed_page_replacements: Vec::new(),
             }),
+            &[],
         );
 
         let runtime = prepared
@@ -216,6 +222,7 @@ mod tests {
                 completed_page_assignments: vec![(700, 1)],
                 completed_page_replacements: vec![(700, 300)],
             }),
+            &[],
         );
 
         let runtime = prepared
@@ -256,6 +263,72 @@ mod tests {
     }
 
     #[test]
+    fn node_and_cluster_cull_page_requests_become_runtime_pending_upload_requests() {
+        let context = frame_submission_context(VisibilityVirtualGeometryFeedback {
+            visible_cluster_ids: Vec::new(),
+            requested_pages: Vec::new(),
+            evictable_pages: vec![200, 300],
+            hot_resident_pages: Vec::new(),
+        });
+        let mut runtime = crate::graphics::runtime::VirtualGeometryRuntimeState::default();
+        runtime.register_extract(Some(&RenderVirtualGeometryExtract {
+            cluster_budget: 3,
+            page_budget: 2,
+            clusters: Vec::new(),
+            hierarchy_nodes: Vec::new(),
+            hierarchy_child_ids: Vec::new(),
+            pages: vec![
+                page(200, true, 2048),
+                page(300, true, 2048),
+                page(700, false, 4096),
+            ],
+            instances: Vec::new(),
+            debug: Default::default(),
+        }));
+        runtime.ingest_plan(
+            1,
+            &VisibilityVirtualGeometryPageUploadPlan {
+                resident_pages: vec![200, 300],
+                requested_pages: Vec::new(),
+                dirty_requested_pages: Vec::new(),
+                evictable_pages: vec![200, 300],
+            },
+        );
+        let mut prepared = PreparedRuntimeSubmission {
+            hybrid_gi_runtime: None,
+            hybrid_gi_prepare: None,
+            hybrid_gi_scene_prepare: None,
+            hybrid_gi_resolve_runtime: None,
+            hybrid_gi_evictable_probe_ids: Vec::new(),
+            virtual_geometry_runtime: Some(runtime),
+            virtual_geometry_prepare: None,
+            virtual_geometry_evictable_page_ids: vec![200, 300],
+        };
+
+        update_virtual_geometry_runtime(&context, &mut prepared, None, &[700]);
+
+        let prepare = prepared
+            .virtual_geometry_runtime
+            .as_ref()
+            .expect("expected virtual geometry runtime")
+            .build_prepare_frame(&[]);
+        assert_eq!(
+            prepare
+                .pending_page_requests
+                .iter()
+                .map(|request| (
+                    request.page_id,
+                    request.size_bytes,
+                    request.generation,
+                    request.frontier_rank
+                ))
+                .collect::<Vec<_>>(),
+            vec![(700, 4096, 2, 0)],
+            "expected NodeAndClusterCull page-request feedback collected after rendering to become the next runtime pending upload request with the current predicted frame generation and request order"
+        );
+    }
+
+    #[test]
     fn gpu_completion_path_ignores_reported_replacement_when_previous_slot_owner_stays_resident() {
         let context = frame_submission_context(VisibilityVirtualGeometryFeedback {
             visible_cluster_ids: Vec::new(),
@@ -268,6 +341,8 @@ mod tests {
             cluster_budget: 3,
             page_budget: 3,
             clusters: Vec::new(),
+            hierarchy_nodes: Vec::new(),
+            hierarchy_child_ids: Vec::new(),
             pages: vec![
                 page(200, true, 2048),
                 page(300, true, 2048),
@@ -304,6 +379,7 @@ mod tests {
                 completed_page_assignments: vec![(700, 1)],
                 completed_page_replacements: vec![(700, 300)],
             }),
+            &[],
         );
 
         let runtime = prepared
@@ -364,6 +440,7 @@ mod tests {
                 completed_page_assignments: Vec::new(),
                 completed_page_replacements: Vec::new(),
             }),
+            &[],
         );
 
         let runtime = prepared
@@ -479,6 +556,8 @@ mod tests {
             cluster_budget: 3,
             page_budget: 2,
             clusters: Vec::new(),
+            hierarchy_nodes: Vec::new(),
+            hierarchy_child_ids: Vec::new(),
             pages: vec![
                 page(200, true, 2048),
                 page(300, true, 2048),

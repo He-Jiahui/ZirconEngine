@@ -19,6 +19,9 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
             RenderPassStage::Lighting,
             "clustered-light-culling",
             QueueLane::AsyncCompute,
-        )],
+        )
+        .with_executor_id("lighting.clustered-cull")
+        .read_texture("scene-depth")
+        .write_buffer("light-list")],
     )
 }

@@ -25,10 +25,13 @@ fn virtual_geometry_extract_preserves_instance_ranges_and_debug_state() {
             page_id: 10,
             lod_level: 10,
             parent_cluster_id: None,
+            hierarchy_node_id: None,
             bounds_center: Vec3::new(1.0, 2.0, 3.0),
             bounds_radius: 0.5,
             screen_space_error: 0.25,
         }],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![RenderVirtualGeometryPage {
             page_id: 10,
             resident: true,

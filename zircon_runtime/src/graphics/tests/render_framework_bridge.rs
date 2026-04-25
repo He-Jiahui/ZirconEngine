@@ -2,9 +2,9 @@ use std::sync::Arc;
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::core::framework::render::{
-    FrameHistoryHandle, RenderFrameExtract, RenderFramework, RenderFrameworkError,
-    RenderHybridGiExtract, RenderHybridGiProbe, RenderHybridGiTraceRegion, RenderPipelineHandle,
-    RenderQualityProfile, RenderViewportDescriptor, RenderViewportHandle,
+    FrameHistoryHandle, RenderCapabilitySummary, RenderFrameExtract, RenderFramework,
+    RenderFrameworkError, RenderHybridGiExtract, RenderHybridGiProbe, RenderHybridGiTraceRegion,
+    RenderPipelineHandle, RenderQualityProfile, RenderViewportDescriptor, RenderViewportHandle,
     RenderVirtualGeometryCluster, RenderVirtualGeometryExtract, RenderVirtualGeometryPage,
     RenderWorldSnapshotHandle,
 };
@@ -18,6 +18,11 @@ use crate::ui::surface::{
 };
 
 use crate::graphics::runtime::WgpuRenderFramework;
+use crate::render_graph::QueueLane;
+use crate::{
+    BuiltinRenderFeature, RenderFeatureDescriptor, RenderFeaturePassDescriptor, RenderPassStage,
+    RenderPipelineAsset, RenderPipelineCompileOptions,
+};
 
 #[test]
 fn render_framework_tracks_viewports_and_accepts_frame_extract_submission() {
@@ -63,6 +68,71 @@ fn render_framework_uses_default_forward_plus_pipeline_when_viewport_has_no_expl
         stats.last_pipeline,
         Some(RenderPipelineHandle::new(1)),
         "submit should fall back to the default Forward+ pipeline asset"
+    );
+}
+
+#[test]
+fn render_framework_stats_report_executed_render_graph_passes() {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let viewport = server
+        .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
+        .unwrap();
+    let expected_pipeline = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(
+            &test_extract(),
+            &RenderPipelineCompileOptions::default().with_async_compute(false),
+        )
+        .unwrap();
+    let expected_executed_passes = expected_pipeline
+        .graph
+        .passes()
+        .iter()
+        .filter(|pass| !pass.culled && pass.executor_id.is_some())
+        .map(|pass| pass.name.clone())
+        .collect::<Vec<_>>();
+    let expected_executor_ids = expected_pipeline
+        .graph
+        .passes()
+        .iter()
+        .filter(|pass| !pass.culled)
+        .filter_map(|pass| pass.executor_id.clone())
+        .collect::<Vec<_>>();
+
+    server
+        .submit_frame_extract(viewport, test_extract())
+        .unwrap();
+    let stats = server.query_stats().unwrap();
+
+    assert_eq!(
+        stats.last_graph_pass_count,
+        expected_pipeline.graph.passes().len()
+    );
+    assert_eq!(
+        stats.last_graph_culled_pass_count,
+        expected_pipeline
+            .graph
+            .passes()
+            .iter()
+            .filter(|pass| pass.culled)
+            .count()
+    );
+    assert_eq!(
+        stats.last_graph_executed_pass_count,
+        expected_executed_passes.len()
+    );
+    assert_eq!(stats.last_graph_executed_passes, expected_executed_passes);
+    assert_eq!(
+        stats.last_graph_executed_executor_ids,
+        expected_executor_ids
+    );
+    assert_eq!(
+        stats.last_graph_executed_passes.first().map(String::as_str),
+        Some("depth-prepass")
+    );
+    assert_eq!(
+        stats.last_graph_executed_passes.last().map(String::as_str),
+        Some("overlay-gizmo")
     );
 }
 
@@ -219,6 +289,104 @@ fn render_framework_rejects_unknown_pipeline_handles() {
 }
 
 #[test]
+fn render_framework_rejects_quality_profile_when_requested_feature_lacks_backend_caps() {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let viewport = server
+        .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
+        .unwrap();
+    server.override_capabilities_for_tests(RenderCapabilitySummary {
+        backend_name: "capability-test".to_string(),
+        supports_offscreen: true,
+        ..Default::default()
+    });
+
+    let error = server
+        .set_quality_profile(
+            viewport,
+            RenderQualityProfile::new("flagship")
+                .with_virtual_geometry(true)
+                .with_hybrid_global_illumination(true),
+        )
+        .unwrap_err();
+
+    assert_eq!(
+        error,
+        RenderFrameworkError::CapabilityMismatch {
+            pipeline: 0,
+            reason:
+                "quality profile `flagship` requires virtual_geometry, hybrid_global_illumination"
+                    .to_string(),
+        }
+    );
+}
+
+#[test]
+fn render_framework_rejects_pipeline_switch_when_active_profile_loses_required_caps() {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let viewport = server
+        .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
+        .unwrap();
+    server
+        .set_quality_profile(
+            viewport,
+            RenderQualityProfile::new("flagship").with_virtual_geometry(true),
+        )
+        .unwrap();
+    server.override_capabilities_for_tests(RenderCapabilitySummary {
+        backend_name: "capability-test".to_string(),
+        supports_offscreen: true,
+        ..Default::default()
+    });
+
+    let error = server
+        .set_pipeline_asset(viewport, RenderPipelineHandle::new(1))
+        .unwrap_err();
+
+    assert_eq!(
+        error,
+        RenderFrameworkError::CapabilityMismatch {
+            pipeline: 1,
+            reason: "quality profile `flagship` requires virtual_geometry".to_string(),
+        }
+    );
+}
+
+#[test]
+#[cfg(target_os = "windows")]
+fn render_framework_rejects_submit_when_active_profile_loses_required_caps() {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let viewport = server
+        .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
+        .unwrap();
+    server
+        .set_quality_profile(
+            viewport,
+            RenderQualityProfile::new("flagship").with_virtual_geometry(true),
+        )
+        .unwrap();
+    server.override_capabilities_for_tests(RenderCapabilitySummary {
+        backend_name: "capability-test".to_string(),
+        supports_offscreen: true,
+        ..Default::default()
+    });
+
+    let error = server
+        .submit_frame_extract(viewport, test_extract())
+        .unwrap_err();
+
+    assert_eq!(
+        error,
+        RenderFrameworkError::CapabilityMismatch {
+            pipeline: 1,
+            reason: "quality profile `flagship` requires virtual_geometry".to_string(),
+        }
+    );
+}
+
+#[test]
 fn render_framework_accepts_built_in_deferred_pipeline_handle() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let server = WgpuRenderFramework::new(asset_manager).unwrap();
@@ -239,6 +407,152 @@ fn render_framework_accepts_built_in_deferred_pipeline_handle() {
         "submit should honor the built-in deferred pipeline asset"
     );
     assert_eq!(stats.last_frame_history, Some(FrameHistoryHandle::new(1)));
+}
+
+#[test]
+fn render_framework_registers_pipeline_assets_and_validates_reload() {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let viewport = server
+        .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
+        .unwrap();
+    let mut custom_pipeline = RenderPipelineAsset::default_forward_plus();
+    custom_pipeline.handle = RenderPipelineHandle::new(77);
+    custom_pipeline.name = "custom-forward-plus".to_string();
+
+    let handle = server.register_pipeline_asset(custom_pipeline).unwrap();
+    server.reload_pipeline(handle).unwrap();
+    server.set_pipeline_asset(viewport, handle).unwrap();
+    server
+        .submit_frame_extract(viewport, test_extract())
+        .unwrap();
+    let stats = server.query_stats().unwrap();
+
+    assert_eq!(handle, RenderPipelineHandle::new(77));
+    assert_eq!(stats.last_pipeline, Some(RenderPipelineHandle::new(77)));
+}
+
+#[test]
+fn render_framework_rejects_pipeline_asset_with_unknown_executor_id() {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let mut custom_pipeline = RenderPipelineAsset::default_forward_plus();
+    custom_pipeline.handle = RenderPipelineHandle::new(78);
+    custom_pipeline.name = "bad-executor-pipeline".to_string();
+    let bloom = custom_pipeline
+        .renderer
+        .features
+        .iter_mut()
+        .find(|feature| feature.feature == BuiltinRenderFeature::Bloom)
+        .expect("default pipeline should include bloom");
+    *bloom = bloom
+        .clone()
+        .with_descriptor_override(RenderFeatureDescriptor::new(
+            "bad-executor-feature",
+            Vec::new(),
+            Vec::new(),
+            vec![RenderFeaturePassDescriptor::new(
+                RenderPassStage::PostProcess,
+                "bad-executor-pass",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("custom.missing-executor")
+            .with_side_effects()],
+        ));
+
+    let error = server.register_pipeline_asset(custom_pipeline).unwrap_err();
+
+    assert_eq!(
+        error,
+        RenderFrameworkError::GraphCompileFailure {
+            pipeline: 78,
+            message:
+                "render pass `bad-executor-pass` references unregistered executor `custom.missing-executor`"
+                    .to_string(),
+        }
+    );
+}
+
+#[test]
+fn render_framework_rejects_pipeline_asset_with_culled_unknown_executor_id() {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let mut custom_pipeline = RenderPipelineAsset::default_forward_plus();
+    custom_pipeline.handle = RenderPipelineHandle::new(79);
+    custom_pipeline.name = "bad-culled-executor-pipeline".to_string();
+    let bloom = custom_pipeline
+        .renderer
+        .features
+        .iter_mut()
+        .find(|feature| feature.feature == BuiltinRenderFeature::Bloom)
+        .expect("default pipeline should include bloom");
+    *bloom = bloom
+        .clone()
+        .with_descriptor_override(RenderFeatureDescriptor::new(
+            "bad-culled-executor-feature",
+            Vec::new(),
+            Vec::new(),
+            vec![RenderFeaturePassDescriptor::new(
+                RenderPassStage::PostProcess,
+                "bad-culled-executor-pass",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("custom.culled-missing")
+            .write_texture("unused-custom-target")],
+        ));
+
+    let error = server.register_pipeline_asset(custom_pipeline).unwrap_err();
+
+    assert_eq!(
+        error,
+        RenderFrameworkError::GraphCompileFailure {
+            pipeline: 79,
+            message:
+                "render pass `bad-culled-executor-pass` references unregistered executor `custom.culled-missing`"
+                    .to_string(),
+        }
+    );
+}
+
+#[test]
+fn render_framework_rejects_quality_gated_bad_descriptor_during_registration() {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let mut custom_pipeline = RenderPipelineAsset::default_forward_plus();
+    custom_pipeline.handle = RenderPipelineHandle::new(80);
+    custom_pipeline.name = "bad-gated-descriptor-pipeline".to_string();
+    let bloom = custom_pipeline
+        .renderer
+        .features
+        .iter_mut()
+        .find(|feature| feature.feature == BuiltinRenderFeature::Bloom)
+        .expect("default pipeline should include bloom");
+    *bloom = bloom
+        .clone()
+        .with_quality_gate(BuiltinRenderFeature::VirtualGeometry)
+        .with_descriptor_override(RenderFeatureDescriptor::new(
+            "bad-gated-descriptor",
+            Vec::new(),
+            Vec::new(),
+            vec![RenderFeaturePassDescriptor::new(
+                RenderPassStage::GBuffer,
+                "bad-gated-registration-pass",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("post.stack")],
+        ));
+
+    let error = server.register_pipeline_asset(custom_pipeline).unwrap_err();
+
+    assert_eq!(
+        error,
+        RenderFrameworkError::GraphCompileFailure {
+            pipeline: 80,
+            message:
+                "feature descriptor `bad-gated-descriptor` pass `bad-gated-registration-pass` targets undeclared stage `GBuffer`"
+                    .to_string(),
+        }
+    );
 }
 
 #[test]
@@ -690,6 +1004,8 @@ fn flagship_extract() -> RenderFrameExtract {
             virtual_geometry_cluster(mesh, 20, 200, 1, None, Vec3::new(0.1, 0.0, 0.0), 5.0),
             virtual_geometry_cluster(mesh, 10, 100, 2, None, Vec3::new(0.2, 0.0, 0.0), 2.0),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![
             virtual_geometry_page(100, false),
             virtual_geometry_page(150, false),
@@ -735,6 +1051,7 @@ fn virtual_geometry_cluster(
     RenderVirtualGeometryCluster {
         entity,
         cluster_id,
+        hierarchy_node_id: None,
         page_id,
         lod_level,
         parent_cluster_id,

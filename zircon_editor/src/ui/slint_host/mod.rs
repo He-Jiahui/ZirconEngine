@@ -36,3 +36,11 @@ pub(crate) use app::{
     collect_native_floating_window_targets, configure_native_floating_window_presentation,
     NativeFloatingWindowTarget, NativeWindowPresenterStore,
 };
+#[cfg(test)]
+pub(crate) use ui::to_slint_animation_editor_pane_from_host_pane;
+#[cfg(test)]
+pub(crate) use ui::to_slint_console_pane_from_host_pane;
+#[cfg(test)]
+pub(crate) use ui::to_slint_hierarchy_pane_from_host_pane;
+#[cfg(test)]
+pub(crate) use ui::to_slint_inspector_pane_from_host_pane;

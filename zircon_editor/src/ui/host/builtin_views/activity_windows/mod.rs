@@ -3,3 +3,4 @@ mod animation_graph_view_descriptor;
 mod animation_sequence_view_descriptor;
 mod asset_browser_view_descriptor;
 mod prefab_view_descriptor;
+mod workbench_window_view_descriptor;

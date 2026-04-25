@@ -7,5 +7,5 @@ mod node_ids;
 mod resize_surface;
 mod route;
 
-pub(crate) use bridge::WorkbenchShellPointerBridge;
-pub(crate) use route::WorkbenchShellPointerRoute;
+pub(crate) use bridge::HostShellPointerBridge;
+pub(crate) use route::HostShellPointerRoute;

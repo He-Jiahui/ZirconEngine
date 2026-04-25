@@ -398,8 +398,10 @@ fn build_dual_entity_extract(
     extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
         cluster_budget: 2,
         page_budget: 1,
-        clusters,
-        pages,
+        clusters: clusters.clone(),
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
+        pages: pages.clone(),
         instances: Vec::new(),
         debug: Default::default(),
     });
@@ -461,6 +463,8 @@ fn build_single_entity_extract(
         cluster_budget: 1,
         page_budget: 1,
         clusters: vec![cluster(2, 2, 300)],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![page(300, resident)],
         instances: Vec::new(),
         debug: Default::default(),
@@ -472,6 +476,7 @@ fn cluster(entity: u64, cluster_id: u32, page_id: u32) -> RenderVirtualGeometryC
     RenderVirtualGeometryCluster {
         entity,
         cluster_id,
+        hierarchy_node_id: None,
         page_id,
         lod_level: 0,
         parent_cluster_id: None,

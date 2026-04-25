@@ -1,26 +1,26 @@
 use super::{
-    workbench_document_tab_pointer_route::WorkbenchDocumentTabPointerRoute,
-    workbench_document_tab_pointer_target::WorkbenchDocumentTabPointerTarget,
+    host_document_tab_pointer_route::HostDocumentTabPointerRoute,
+    host_document_tab_pointer_target::HostDocumentTabPointerTarget,
 };
 
 pub(in crate::ui::slint_host::document_tab_pointer) fn to_public_route(
-    target: WorkbenchDocumentTabPointerTarget,
-) -> WorkbenchDocumentTabPointerRoute {
+    target: HostDocumentTabPointerTarget,
+) -> HostDocumentTabPointerRoute {
     match target {
-        WorkbenchDocumentTabPointerTarget::ActivateTab {
+        HostDocumentTabPointerTarget::ActivateTab {
             surface_key,
             item_index,
             instance_id,
-        } => WorkbenchDocumentTabPointerRoute::ActivateTab {
+        } => HostDocumentTabPointerRoute::ActivateTab {
             surface_key,
             item_index,
             instance_id,
         },
-        WorkbenchDocumentTabPointerTarget::CloseTab {
+        HostDocumentTabPointerTarget::CloseTab {
             surface_key,
             item_index,
             instance_id,
-        } => WorkbenchDocumentTabPointerRoute::CloseTab {
+        } => HostDocumentTabPointerRoute::CloseTab {
             surface_key,
             item_index,
             instance_id,

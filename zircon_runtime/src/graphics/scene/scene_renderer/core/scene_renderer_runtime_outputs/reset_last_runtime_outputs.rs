@@ -9,6 +9,7 @@ use crate::core::framework::render::{
 pub(in crate::graphics::scene::scene_renderer::core) fn reset_last_runtime_outputs(
     renderer: &mut SceneRenderer,
 ) {
+    renderer.last_render_graph_execution = Default::default();
     renderer.last_hybrid_gi_gpu_readback = None;
     renderer.last_virtual_geometry_gpu_readback = None;
     renderer.last_virtual_geometry_debug_snapshot = None;
@@ -48,10 +49,28 @@ pub(in crate::graphics::scene::scene_renderer::core) fn reset_last_runtime_outpu
     renderer.last_virtual_geometry_node_and_cluster_cull_source =
         RenderVirtualGeometryNodeAndClusterCullSource::Unavailable;
     renderer.last_virtual_geometry_node_and_cluster_cull_record_count = 0;
+    renderer.last_virtual_geometry_node_and_cluster_cull_global_state = None;
+    renderer.last_virtual_geometry_node_and_cluster_cull_dispatch_group_count = [0, 0, 0];
     renderer.last_virtual_geometry_node_and_cluster_cull_buffer = None;
     renderer.last_virtual_geometry_node_and_cluster_cull_dispatch_setup_buffer = None;
+    renderer.last_virtual_geometry_node_and_cluster_cull_launch_worklist_buffer = None;
     renderer.last_virtual_geometry_node_and_cluster_cull_instance_seed_count = 0;
     renderer.last_virtual_geometry_node_and_cluster_cull_instance_seed_buffer = None;
+    renderer.last_virtual_geometry_node_and_cluster_cull_instance_work_item_count = 0;
+    renderer.last_virtual_geometry_node_and_cluster_cull_instance_work_item_buffer = None;
+    renderer.last_virtual_geometry_node_and_cluster_cull_cluster_work_item_count = 0;
+    renderer.last_virtual_geometry_node_and_cluster_cull_cluster_work_item_buffer = None;
+    renderer.last_virtual_geometry_node_and_cluster_cull_hierarchy_child_id_count = 0;
+    renderer.last_virtual_geometry_node_and_cluster_cull_hierarchy_child_id_buffer = None;
+    renderer.last_virtual_geometry_node_and_cluster_cull_child_work_item_count = 0;
+    renderer.last_virtual_geometry_node_and_cluster_cull_child_work_item_buffer = None;
+    renderer.last_virtual_geometry_node_and_cluster_cull_traversal_record_count = 0;
+    renderer.last_virtual_geometry_node_and_cluster_cull_traversal_record_buffer = None;
+    renderer.last_virtual_geometry_node_and_cluster_cull_page_request_count = 0;
+    renderer
+        .last_virtual_geometry_node_and_cluster_cull_page_request_ids
+        .clear();
+    renderer.last_virtual_geometry_node_and_cluster_cull_page_request_buffer = None;
     renderer.last_virtual_geometry_selected_cluster_source =
         RenderVirtualGeometrySelectedClusterSource::Unavailable;
     renderer.last_virtual_geometry_selected_cluster_count = 0;

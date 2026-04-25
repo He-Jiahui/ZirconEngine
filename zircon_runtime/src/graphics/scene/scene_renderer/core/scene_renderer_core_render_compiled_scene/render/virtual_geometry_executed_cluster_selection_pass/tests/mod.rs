@@ -13,8 +13,11 @@ pub(super) use crate::core::framework::render::{
     RenderVirtualGeometryCluster, RenderVirtualGeometryClusterSelectionInputSource,
     RenderVirtualGeometryCullInputSnapshot, RenderVirtualGeometryDebugState,
     RenderVirtualGeometryExecutionState, RenderVirtualGeometryExtract,
-    RenderVirtualGeometryInstance, RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot,
+    RenderVirtualGeometryInstance, RenderVirtualGeometryNodeAndClusterCullDispatchSetupSnapshot,
+    RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot,
     RenderVirtualGeometryNodeAndClusterCullInstanceSeed,
+    RenderVirtualGeometryNodeAndClusterCullInstanceWorkItem,
+    RenderVirtualGeometryNodeAndClusterCullLaunchWorklistSnapshot,
     RenderVirtualGeometryNodeAndClusterCullSource, RenderVirtualGeometryPage,
     RenderVirtualGeometrySelectedCluster,
 };

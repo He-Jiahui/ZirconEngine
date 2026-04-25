@@ -6,7 +6,7 @@ use zircon_runtime::ui::layout::UiSize;
 #[test]
 fn viewport_toolbar_template_projects_surface_backed_group_frames() {
     let mut runtime = EditorUiHostRuntime::default();
-    runtime.load_builtin_workbench_shell().unwrap();
+    runtime.load_builtin_host_templates().unwrap();
     let mut projection = runtime.project_document("scene.viewport_toolbar").unwrap();
     let mut service = EditorUiControlService::default();
     runtime

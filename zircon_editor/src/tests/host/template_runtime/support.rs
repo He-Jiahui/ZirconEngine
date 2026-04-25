@@ -1,15 +1,15 @@
 pub(super) use crate::ui::control::EditorUiControlService;
 pub(super) use crate::ui::template_runtime::{
     EditorUiCompatibilityHarness, EditorUiHostRuntime, SlintUiHostAdapter,
-    SlintUiHostComponentKind, SlintUiHostValue, UI_HOST_WINDOW_DOCUMENT_ID,
-    WORKBENCH_SHELL_DOCUMENT_ID,
+    SlintUiHostComponentKind, SlintUiHostValue, LEGACY_HOST_WINDOW_DOCUMENT_ID,
+    UI_HOST_WINDOW_DOCUMENT_ID,
 };
 pub(super) use toml::Value;
 pub(super) use zircon_runtime::ui::{
     binding::UiEventKind, layout::UiFrame, layout::UiSize, tree::UiInputPolicy,
 };
 
-pub(super) const ASSET_WORKBENCH_DOCUMENT_TOML: &str = r##"
+pub(super) const ASSET_HOST_WINDOW_DOCUMENT_TOML: &str = r##"
 [asset]
 kind = "layout"
 id = "editor.workbench.asset"

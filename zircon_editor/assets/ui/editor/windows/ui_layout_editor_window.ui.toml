@@ -1,0 +1,85 @@
+stylesheets = []
+
+[asset]
+kind = "layout"
+id = "editor.window.ui_layout_editor"
+version = 1
+display_name = "UI Layout Editor Window"
+
+[imports]
+widgets = [
+    "res://ui/editor/host/activity_drawer_window.ui.toml#ActivityDrawerWindow",
+    "res://ui/editor/ui_asset_editor.ui.toml",
+]
+styles = []
+
+[tokens]
+
+[root]
+node_id = "ui_layout_editor_window_root"
+kind = "reference"
+component_ref = "res://ui/editor/host/activity_drawer_window.ui.toml#ActivityDrawerWindow"
+control_id = "UILayoutEditorWindowRoot"
+
+[[root.children]]
+mount = "left_top_activity"
+[root.children.node]
+node_id = "ui_layout_editor_palette_activity"
+kind = "native"
+type = "Container"
+control_id = "UILayoutEditorPaletteActivity"
+children = []
+
+[[root.children]]
+mount = "left_bottom_activity"
+[root.children.node]
+node_id = "ui_layout_editor_hierarchy_activity"
+kind = "native"
+type = "Container"
+control_id = "UILayoutEditorHierarchyActivity"
+children = []
+
+[[root.children]]
+mount = "right_top_activity"
+[root.children.node]
+node_id = "ui_layout_editor_inspector_activity"
+kind = "native"
+type = "Container"
+control_id = "UILayoutEditorInspectorActivity"
+children = []
+
+[[root.children]]
+mount = "right_bottom_activity"
+[root.children.node]
+node_id = "ui_layout_editor_style_activity"
+kind = "native"
+type = "Container"
+control_id = "UILayoutEditorStyleActivity"
+children = []
+
+[[root.children]]
+mount = "bottom_left_activity"
+[root.children.node]
+node_id = "ui_layout_editor_diagnostics_activity"
+kind = "native"
+type = "Container"
+control_id = "UILayoutEditorDiagnosticsActivity"
+children = []
+
+[[root.children]]
+mount = "bottom_right_activity"
+[root.children.node]
+node_id = "ui_layout_editor_debug_activity"
+kind = "native"
+type = "Container"
+control_id = "UILayoutEditorLayoutDebugActivity"
+children = []
+
+[[root.children]]
+mount = "content"
+[root.children.node]
+node_id = "ui_layout_editor_content"
+kind = "reference"
+component_ref = "res://ui/editor/ui_asset_editor.ui.toml#UiAssetEditorRoot"
+control_id = "UILayoutEditorContent"
+children = []

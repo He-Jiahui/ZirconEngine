@@ -1,5 +1,5 @@
 import { Palette } from "chrome.slint";
-import { HostWindowLayoutData, HostMenuChromeData, HostPageChromeData, HostStatusBarData, HostResizeLayerData, HostTabDragOverlayData, HostSideDockSurfaceData, HostDocumentDockSurfaceData, HostBottomDockSurfaceData, HostFloatingWindowLayerData, HostWorkbenchSurfaceMetricsData, HostWorkbenchSurfaceOrchestrationData } from "host_components.slint";
+import { HostWindowLayoutData, HostMenuChromeData, HostPageChromeData, HostStatusBarData, HostResizeLayerData, HostTabDragOverlayData, HostSideDockSurfaceData, HostDocumentDockSurfaceData, HostBottomDockSurfaceData, HostFloatingWindowLayerData, HostWindowSurfaceMetricsData, HostWindowSurfaceOrchestrationData } from "host_components.slint";
 import { HostMenuChrome } from "host_menu_chrome.slint";
 import { HostPageChrome } from "host_page_chrome.slint";
 import { HostResizeLayer } from "host_resize_layer.slint";
@@ -10,10 +10,10 @@ import { HostDocumentDockSurface } from "host_document_dock_surface.slint";
 import { HostFloatingWindowLayer } from "host_floating_window_layer.slint";
 import { HostSideDockSurface } from "host_side_dock_surface.slint";
 
-export struct HostWorkbenchWindowSceneData {
+export struct HostWindowSceneData {
     layout: HostWindowLayoutData,
-    metrics: HostWorkbenchSurfaceMetricsData,
-    orchestration: HostWorkbenchSurfaceOrchestrationData,
+    metrics: HostWindowSurfaceMetricsData,
+    orchestration: HostWindowSurfaceOrchestrationData,
     menu_chrome: HostMenuChromeData,
     page_chrome: HostPageChromeData,
     status_bar: HostStatusBarData,
@@ -26,8 +26,8 @@ export struct HostWorkbenchWindowSceneData {
     floating_layer: HostFloatingWindowLayerData,
 }
 
-export component HostWorkbenchWindowScene inherits Rectangle {
-    in property <HostWorkbenchWindowSceneData> scene_data;
+export component HostWindowScene inherits Rectangle {
+    in property <HostWindowSceneData> scene_data;
     palette := Palette {}
     background: palette.shell_bg;
 

@@ -1,19 +1,18 @@
 pub(super) use std::collections::BTreeMap;
 
 pub(super) use crate::ui::host::NativeWindowHostState;
-pub(super) use crate::ui::slint_host::callback_dispatch::BuiltinWorkbenchRootShellFrames;
+pub(super) use crate::ui::slint_host::callback_dispatch::BuiltinHostRootShellFrames;
 pub(super) use crate::ui::slint_host::floating_window_projection::FloatingWindowProjectionBundle;
 pub(super) use crate::ui::slint_host::shell_pointer::{
-    WorkbenchShellPointerBridge, WorkbenchShellPointerRoute,
+    HostShellPointerBridge, HostShellPointerRoute,
 };
 pub(super) use crate::ui::slint_host::tab_drag::{
     document_edge_group_key, drop_host_for_group, drop_host_for_tab, estimate_dock_tab_width,
     estimate_document_tab_width, floating_window_edge_group_key, floating_window_group_key,
-    resolve_tab_drop, resolve_workbench_drag_target_group,
-    resolve_workbench_drag_target_group_with_root_frames, resolve_workbench_tab_drop_route,
-    resolve_workbench_tab_drop_route_with_root_frames, workbench_shell_pointer_route_group_key,
-    ResolvedTabDrop, ResolvedWorkbenchTabDropRoute, ResolvedWorkbenchTabDropTarget,
-    WorkbenchDragTargetGroup,
+    host_shell_pointer_route_group_key, resolve_host_drag_target_group,
+    resolve_host_drag_target_group_with_root_frames, resolve_host_tab_drop_route,
+    resolve_host_tab_drop_route_with_root_frames, resolve_tab_drop, HostDragTargetGroup,
+    ResolvedHostTabDropRoute, ResolvedHostTabDropTarget, ResolvedTabDrop,
 };
 pub(super) use crate::ui::template_runtime::EditorUiCompatibilityHarness;
 pub(super) use crate::ui::workbench::autolayout::{

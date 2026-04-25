@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use zircon_runtime::ui::template::UiAssetLoader;
 
 #[test]
-fn editor_repository_workbench_template_file_loads_and_instantiates() {
+fn editor_repository_host_window_template_file_loads_and_instantiates() {
     let template_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("assets")
         .join("ui")
@@ -14,10 +14,10 @@ fn editor_repository_workbench_template_file_loads_and_instantiates() {
 
     let mut registry = EditorTemplateRegistry::default();
     registry
-        .register_asset_document("workbench.shell.file", document)
+        .register_asset_document("ui.host_window.file", document)
         .unwrap();
 
-    let instance = registry.instantiate("workbench.shell.file").unwrap();
+    let instance = registry.instantiate("ui.host_window.file").unwrap();
     assert_eq!(instance.root.component.as_deref(), Some("UiHostWindow"));
     assert_eq!(instance.root.children.len(), 5);
     assert_eq!(

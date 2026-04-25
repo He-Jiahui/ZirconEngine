@@ -2,12 +2,14 @@ use std::collections::{HashMap, HashSet};
 
 use crate::core::framework::render::{
     RenderVirtualGeometryCluster, RenderVirtualGeometryExtract,
-    RenderVirtualGeometryNodeAndClusterCullInstanceSeed,
     RenderVirtualGeometryNodeAndClusterCullSource, RenderVirtualGeometrySelectedCluster,
 };
 use crate::graphics::types::{VirtualGeometryClusterSelection, VirtualGeometryPrepareClusterState};
 
-use super::{ExecutedClusterSelectionCollection, VirtualGeometryNodeAndClusterCullPassOutput};
+use super::{
+    ExecutedClusterSelectionCollection, VirtualGeometryNodeAndClusterCullClusterWorkItem,
+    VirtualGeometryNodeAndClusterCullPassOutput,
+};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct SeedBackedExecutionSelectionRecord {
@@ -39,16 +41,14 @@ pub(super) fn collect_execution_cluster_selection_collection_from_root_seeds(
     {
         return ExecutedClusterSelectionCollection::default();
     }
+    if node_and_cluster_cull_pass.instance_work_items.is_empty() {
+        return ExecutedClusterSelectionCollection::default();
+    }
+    if node_and_cluster_cull_pass.cluster_work_items.is_empty() {
+        return ExecutedClusterSelectionCollection::default();
+    }
 
-    let cluster_budget = node_and_cluster_cull_pass
-        .global_state
-        .as_ref()
-        .map(|global_state| global_state.cull_input.cluster_budget as usize)
-        .unwrap_or_default();
-    let forced_mip = node_and_cluster_cull_pass
-        .global_state
-        .as_ref()
-        .and_then(|global_state| global_state.cull_input.debug.forced_mip);
+    let cluster_budget = node_and_cluster_cull_pass.cluster_work_items[0].cluster_budget as usize;
     if cluster_budget == 0 {
         return ExecutedClusterSelectionCollection::default();
     }
@@ -64,27 +64,23 @@ pub(super) fn collect_execution_cluster_selection_collection_from_root_seeds(
         .copied()
         .map(|cluster| (cluster.cluster_id, cluster))
         .collect::<HashMap<_, _>>();
-    let cluster_ordering = seed_backed_cluster_ordering_from_instance_seeds(
+    let cluster_ordering = seed_backed_cluster_ordering_from_cluster_work_items(
         extract,
-        &node_and_cluster_cull_pass.instance_seeds,
+        &node_and_cluster_cull_pass.cluster_work_items,
     );
     let mut frontier_ranking = SeedBackedFrontierRanking::default();
     let mut compat_records = Vec::new();
     let mut selected_cluster_record_index = HashMap::<(u64, u32), usize>::new();
-    for seed in &node_and_cluster_cull_pass.instance_seeds {
-        extend_seed_backed_execution_selection_records_with_frontier_ranking(
-            extract,
+    for work_item in &node_and_cluster_cull_pass.cluster_work_items {
+        extend_seed_backed_execution_selection_records_from_cluster_work_item(
             &clusters_by_id,
             &cluster_ordering,
             &page_residency,
             &mut frontier_ranking,
             &mut compat_records,
             &mut selected_cluster_record_index,
-            seed.instance_index,
-            seed.entity,
-            seed.cluster_offset,
-            seed.cluster_count,
-            forced_mip,
+            extract,
+            work_item,
         );
     }
     compat_records.sort_by_key(seed_backed_record_sort_key);
@@ -232,6 +228,7 @@ fn build_seed_backed_execution_selections_with_frontier_ranking(
         .collect()
 }
 
+#[cfg(test)]
 fn extend_seed_backed_execution_selection_records_with_frontier_ranking(
     extract: &RenderVirtualGeometryExtract,
     clusters_by_id: &HashMap<u32, RenderVirtualGeometryCluster>,
@@ -509,43 +506,6 @@ pub(super) fn seed_backed_cluster_ordering(
     finalize_seed_backed_cluster_ordering(clusters_by_entity)
 }
 
-fn seed_backed_cluster_ordering_from_instance_seeds(
-    extract: &RenderVirtualGeometryExtract,
-    instance_seeds: &[RenderVirtualGeometryNodeAndClusterCullInstanceSeed],
-) -> HashMap<(u64, u32), SeedBackedClusterOrdering> {
-    if instance_seeds.is_empty() {
-        return seed_backed_cluster_ordering(extract);
-    }
-
-    let mut clusters_by_entity = HashMap::<u64, Vec<_>>::new();
-    for seed in instance_seeds {
-        let Some(instance) = extract.instances.get(seed.instance_index as usize) else {
-            continue;
-        };
-        if instance.entity != seed.entity {
-            continue;
-        }
-
-        let start = seed.cluster_offset as usize;
-        let end = start.saturating_add(seed.cluster_count as usize);
-        for cluster in extract
-            .clusters
-            .get(start..end)
-            .into_iter()
-            .flatten()
-            .copied()
-            .filter(|cluster| cluster.entity == seed.entity)
-        {
-            clusters_by_entity
-                .entry(cluster.entity)
-                .or_default()
-                .push(cluster);
-        }
-    }
-
-    finalize_seed_backed_cluster_ordering(clusters_by_entity)
-}
-
 fn finalize_seed_backed_cluster_ordering(
     clusters_by_entity: HashMap<u64, Vec<RenderVirtualGeometryCluster>>,
 ) -> HashMap<(u64, u32), SeedBackedClusterOrdering> {
@@ -566,6 +526,89 @@ fn finalize_seed_backed_cluster_ordering(
     }
 
     ordering
+}
+
+fn seed_backed_cluster_ordering_from_cluster_work_items(
+    extract: &RenderVirtualGeometryExtract,
+    cluster_work_items: &[VirtualGeometryNodeAndClusterCullClusterWorkItem],
+) -> HashMap<(u64, u32), SeedBackedClusterOrdering> {
+    if cluster_work_items.is_empty() {
+        return seed_backed_cluster_ordering(extract);
+    }
+
+    let mut clusters_by_entity = HashMap::<u64, Vec<_>>::new();
+    for work_item in cluster_work_items {
+        let Some(cluster) = extract
+            .clusters
+            .get(work_item.cluster_array_index as usize)
+            .copied()
+        else {
+            continue;
+        };
+        if cluster.entity != work_item.entity {
+            continue;
+        }
+        clusters_by_entity
+            .entry(cluster.entity)
+            .or_default()
+            .push(cluster);
+    }
+
+    finalize_seed_backed_cluster_ordering(clusters_by_entity)
+}
+
+fn extend_seed_backed_execution_selection_records_from_cluster_work_item(
+    clusters_by_id: &HashMap<u32, RenderVirtualGeometryCluster>,
+    cluster_ordering: &HashMap<(u64, u32), SeedBackedClusterOrdering>,
+    page_residency: &HashMap<u32, bool>,
+    frontier_ranking: &mut SeedBackedFrontierRanking,
+    records: &mut Vec<SeedBackedExecutionSelectionRecord>,
+    selected_cluster_record_index: &mut HashMap<(u64, u32), usize>,
+    extract: &RenderVirtualGeometryExtract,
+    work_item: &VirtualGeometryNodeAndClusterCullClusterWorkItem,
+) {
+    let Some(cluster) = extract
+        .clusters
+        .get(work_item.cluster_array_index as usize)
+        .copied()
+    else {
+        return;
+    };
+    if cluster.entity != work_item.entity {
+        return;
+    }
+    if work_item
+        .forced_mip
+        .is_some_and(|forced_mip| cluster.lod_level != forced_mip)
+    {
+        return;
+    }
+
+    let record = build_seed_backed_execution_selection_record(
+        cluster,
+        work_item.cluster_array_index as usize,
+        1,
+        work_item.instance_index,
+        clusters_by_id,
+        cluster_ordering,
+        page_residency,
+        frontier_ranking,
+        work_item.forced_mip,
+    );
+    let selected_cluster_key = (
+        record.selected_cluster.entity,
+        record.selected_cluster.cluster_id,
+    );
+    if let Some(record_index) = selected_cluster_record_index
+        .get(&selected_cluster_key)
+        .copied()
+    {
+        records[record_index] = record;
+        return;
+    }
+
+    selected_cluster_record_index.insert(selected_cluster_key, records.len());
+    records.push(record);
 }
 
 fn cluster_lineage_depth(

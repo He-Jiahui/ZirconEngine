@@ -1,4 +1,4 @@
-use crate::ui::slint_host::callback_dispatch::BuiltinWorkbenchRootShellFrames;
+use crate::ui::slint_host::callback_dispatch::BuiltinHostRootShellFrames;
 use crate::ui::workbench::autolayout::ShellFrame;
 use crate::ui::workbench::autolayout::ShellRegionId;
 use crate::ui::workbench::autolayout::WorkbenchChromeMetrics;
@@ -7,10 +7,10 @@ use zircon_runtime::ui::layout::UiFrame;
 
 pub(crate) fn resolve_root_center_band_frame(
     geometry: &WorkbenchShellGeometry,
-    shared_root_frames: Option<&BuiltinWorkbenchRootShellFrames>,
+    shared_root_frames: Option<&BuiltinHostRootShellFrames>,
 ) -> ShellFrame {
     shared_root_frames
-        .and_then(|frames| frames.workbench_body_frame)
+        .and_then(|frames| frames.host_body_frame)
         .map(shell_frame)
         .filter(|frame| frame_is_visible(*frame))
         .or_else(|| visible_frame(root_geometry_center_band_frame(geometry)))
@@ -19,7 +19,7 @@ pub(crate) fn resolve_root_center_band_frame(
 
 pub(crate) fn resolve_root_status_bar_frame(
     geometry: &WorkbenchShellGeometry,
-    shared_root_frames: Option<&BuiltinWorkbenchRootShellFrames>,
+    shared_root_frames: Option<&BuiltinHostRootShellFrames>,
 ) -> ShellFrame {
     shared_root_frames
         .and_then(|frames| frames.status_bar_frame)
@@ -31,28 +31,28 @@ pub(crate) fn resolve_root_status_bar_frame(
 
 pub(crate) fn resolve_root_document_region_frame(
     geometry: &WorkbenchShellGeometry,
-    shared_root_frames: Option<&BuiltinWorkbenchRootShellFrames>,
+    shared_root_frames: Option<&BuiltinHostRootShellFrames>,
 ) -> ShellFrame {
     resolve_root_layout_frames(geometry, shared_root_frames).document
 }
 
 pub(crate) fn resolve_root_left_region_frame(
     geometry: &WorkbenchShellGeometry,
-    shared_root_frames: Option<&BuiltinWorkbenchRootShellFrames>,
+    shared_root_frames: Option<&BuiltinHostRootShellFrames>,
 ) -> ShellFrame {
     resolve_root_layout_frames(geometry, shared_root_frames).left
 }
 
 pub(crate) fn resolve_root_right_region_frame(
     geometry: &WorkbenchShellGeometry,
-    shared_root_frames: Option<&BuiltinWorkbenchRootShellFrames>,
+    shared_root_frames: Option<&BuiltinHostRootShellFrames>,
 ) -> ShellFrame {
     resolve_root_layout_frames(geometry, shared_root_frames).right
 }
 
 pub(crate) fn resolve_root_bottom_region_frame(
     geometry: &WorkbenchShellGeometry,
-    shared_root_frames: Option<&BuiltinWorkbenchRootShellFrames>,
+    shared_root_frames: Option<&BuiltinHostRootShellFrames>,
 ) -> ShellFrame {
     resolve_root_layout_frames(geometry, shared_root_frames).bottom
 }
@@ -60,7 +60,7 @@ pub(crate) fn resolve_root_bottom_region_frame(
 pub(crate) fn resolve_root_activity_rail_frame(
     geometry: &WorkbenchShellGeometry,
     metrics: &WorkbenchChromeMetrics,
-    shared_root_frames: Option<&BuiltinWorkbenchRootShellFrames>,
+    shared_root_frames: Option<&BuiltinHostRootShellFrames>,
 ) -> ShellFrame {
     let layout_frames = resolve_root_layout_frames(geometry, shared_root_frames);
     if frame_is_visible(layout_frames.left) {
@@ -77,7 +77,7 @@ pub(crate) fn resolve_root_activity_rail_frame(
 pub(crate) fn resolve_root_document_tabs_frame(
     geometry: &WorkbenchShellGeometry,
     metrics: &WorkbenchChromeMetrics,
-    shared_root_frames: Option<&BuiltinWorkbenchRootShellFrames>,
+    shared_root_frames: Option<&BuiltinHostRootShellFrames>,
 ) -> ShellFrame {
     let layout_frames = resolve_root_layout_frames(geometry, shared_root_frames);
     if layout_frames.has_visible_drawers && frame_is_visible(layout_frames.document) {
@@ -108,7 +108,7 @@ pub(crate) fn resolve_root_document_tabs_frame(
 
 pub(crate) fn resolve_root_viewport_content_frame(
     geometry: &WorkbenchShellGeometry,
-    shared_root_frames: Option<&BuiltinWorkbenchRootShellFrames>,
+    shared_root_frames: Option<&BuiltinHostRootShellFrames>,
     document_pane_shows_viewport_toolbar: bool,
 ) -> ShellFrame {
     let metrics = WorkbenchChromeMetrics::default();
@@ -176,7 +176,7 @@ struct RootLayoutFrames {
 
 fn resolve_root_layout_frames(
     geometry: &WorkbenchShellGeometry,
-    shared_root_frames: Option<&BuiltinWorkbenchRootShellFrames>,
+    shared_root_frames: Option<&BuiltinHostRootShellFrames>,
 ) -> RootLayoutFrames {
     let left = shared_visible_drawer_shell_frame(shared_root_frames, ShellRegionId::Left)
         .unwrap_or_default();
@@ -234,7 +234,7 @@ fn activity_rail_frame_from_region(
 }
 
 fn shared_document_region_frame(
-    shared_root_frames: Option<&BuiltinWorkbenchRootShellFrames>,
+    shared_root_frames: Option<&BuiltinHostRootShellFrames>,
 ) -> Option<ShellFrame> {
     shared_root_frames
         .and_then(|frames| frames.document_host_frame)
@@ -243,7 +243,7 @@ fn shared_document_region_frame(
 }
 
 fn shared_visible_drawer_shell_frame(
-    shared_root_frames: Option<&BuiltinWorkbenchRootShellFrames>,
+    shared_root_frames: Option<&BuiltinHostRootShellFrames>,
     region: ShellRegionId,
 ) -> Option<ShellFrame> {
     shared_root_frames
@@ -261,7 +261,7 @@ fn frame_is_visible(frame: ShellFrame) -> bool {
 }
 
 fn shared_root_shell_frame(
-    shared_root_frames: Option<&BuiltinWorkbenchRootShellFrames>,
+    shared_root_frames: Option<&BuiltinHostRootShellFrames>,
 ) -> Option<ShellFrame> {
     shared_root_frames
         .and_then(|frames| frames.shell_frame)
@@ -270,17 +270,17 @@ fn shared_root_shell_frame(
 }
 
 fn shared_root_body_frame(
-    shared_root_frames: Option<&BuiltinWorkbenchRootShellFrames>,
+    shared_root_frames: Option<&BuiltinHostRootShellFrames>,
 ) -> Option<ShellFrame> {
     shared_root_frames
-        .and_then(|frames| frames.workbench_body_frame)
+        .and_then(|frames| frames.host_body_frame)
         .map(shell_frame)
         .filter(|frame| frame_is_visible(*frame))
 }
 
 fn derive_layout_frames_from_geometry_with_shared_root(
     geometry: &WorkbenchShellGeometry,
-    shared_root_frames: Option<&BuiltinWorkbenchRootShellFrames>,
+    shared_root_frames: Option<&BuiltinHostRootShellFrames>,
 ) -> Option<RootLayoutFrames> {
     let left_width = root_geometry_region_frame(geometry, ShellRegionId::Left)
         .width

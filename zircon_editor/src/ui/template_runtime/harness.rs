@@ -4,7 +4,7 @@ use zircon_runtime::ui::surface::UiSurface;
 #[cfg(test)]
 use crate::core::editor_event::EditorEventJournal;
 #[cfg(test)]
-use crate::ui::slint_host::tab_drag::ResolvedWorkbenchTabDropRoute;
+use crate::ui::slint_host::tab_drag::ResolvedHostTabDropRoute;
 
 use super::{SlintUiHostModel, SlintUiHostProjection, SlintUiNodeProjection, SlintUiProjection};
 
@@ -255,7 +255,7 @@ impl EditorUiCompatibilityHarness {
 
     #[cfg(test)]
     pub(crate) fn capture_resolved_tab_drop_route_snapshot(
-        route: &ResolvedWorkbenchTabDropRoute,
+        route: &ResolvedHostTabDropRoute,
     ) -> EditorUiCompatibilitySnapshot {
         let mut snapshot = EditorUiCompatibilitySnapshot::default();
         snapshot
@@ -265,7 +265,7 @@ impl EditorUiCompatibilityHarness {
             .route_result_entries
             .push(format!("label={}", route.target_label));
         match &route.target {
-            crate::ui::slint_host::tab_drag::ResolvedWorkbenchTabDropTarget::Attach(drop) => {
+            crate::ui::slint_host::tab_drag::ResolvedHostTabDropTarget::Attach(drop) => {
                 snapshot
                     .route_result_entries
                     .push("target=attach".to_string());
@@ -276,7 +276,7 @@ impl EditorUiCompatibilityHarness {
                     .route_result_entries
                     .push(format!("anchor={:?}", drop.anchor));
             }
-            crate::ui::slint_host::tab_drag::ResolvedWorkbenchTabDropTarget::Split {
+            crate::ui::slint_host::tab_drag::ResolvedHostTabDropTarget::Split {
                 workspace,
                 path,
                 axis,

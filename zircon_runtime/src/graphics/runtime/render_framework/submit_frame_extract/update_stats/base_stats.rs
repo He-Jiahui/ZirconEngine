@@ -16,6 +16,21 @@ pub(super) fn update_base_stats(
     state.stats.last_pipeline = Some(context.pipeline_handle);
     state.stats.last_frame_history = Some(record_update.history_handle);
     state.stats.last_effective_features = compiled_feature_names(&context.compiled_pipeline);
+    state.stats.last_graph_pass_count = context.compiled_pipeline.graph.passes().len();
+    state.stats.last_graph_culled_pass_count = context
+        .compiled_pipeline
+        .graph
+        .passes()
+        .iter()
+        .filter(|pass| pass.culled)
+        .count();
+    state.stats.last_graph_executed_passes =
+        state.renderer.last_render_graph_executed_passes().to_vec();
+    state.stats.last_graph_executed_executor_ids = state
+        .renderer
+        .last_render_graph_executed_executor_ids()
+        .to_vec();
+    state.stats.last_graph_executed_pass_count = state.stats.last_graph_executed_passes.len();
     state.stats.last_async_compute_pass_count = context
         .compiled_pipeline
         .graph

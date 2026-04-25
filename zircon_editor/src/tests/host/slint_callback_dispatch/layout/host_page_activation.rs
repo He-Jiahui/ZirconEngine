@@ -5,11 +5,11 @@ use crate::core::editor_event::{
 use crate::ui::template_runtime::EditorUiCompatibilityHarness;
 
 #[test]
-fn builtin_workbench_host_page_activation_dispatches_activate_main_page_from_template_binding() {
+fn builtin_host_page_activation_dispatches_activate_main_page_from_template_binding() {
     let _guard = env_lock().lock().unwrap();
 
     let harness = EventRuntimeHarness::new("zircon_slint_template_bridge_host_page");
-    let bridge = BuiltinWorkbenchTemplateBridge::new(UiSize::new(1280.0, 720.0)).unwrap();
+    let bridge = BuiltinHostWindowTemplateBridge::new(UiSize::new(1280.0, 720.0)).unwrap();
 
     let workbench_shell = bridge
         .host_projection()
@@ -20,10 +20,9 @@ fn builtin_workbench_host_page_activation_dispatches_activate_main_page_from_tem
             && route.binding_id == "UiHostWindow/ActivateMainPage"
     }));
 
-    let effects =
-        dispatch_builtin_workbench_host_page_activation(&harness.runtime, &bridge, "workbench")
-            .expect("builtin host page activation should resolve through template bridge")
-            .unwrap();
+    let effects = dispatch_builtin_host_page_activation(&harness.runtime, &bridge, "workbench")
+        .expect("builtin host page activation should resolve through template bridge")
+        .unwrap();
 
     let journal = harness.runtime.journal();
     assert_eq!(
@@ -36,7 +35,7 @@ fn builtin_workbench_host_page_activation_dispatches_activate_main_page_from_tem
 }
 
 #[test]
-fn builtin_workbench_host_page_activation_matches_legacy_layout_command_dispatch() {
+fn builtin_host_page_activation_matches_legacy_layout_command_dispatch() {
     let _guard = env_lock().lock().unwrap();
 
     let legacy_harness = EventRuntimeHarness::new("zircon_slint_parity_host_page_legacy");
@@ -56,14 +55,11 @@ fn builtin_workbench_host_page_activation_matches_legacy_layout_command_dispatch
         .clone();
 
     let builtin_harness = EventRuntimeHarness::new("zircon_slint_parity_host_page_builtin");
-    let bridge = BuiltinWorkbenchTemplateBridge::new(UiSize::new(1280.0, 720.0)).unwrap();
-    let builtin_effects = dispatch_builtin_workbench_host_page_activation(
-        &builtin_harness.runtime,
-        &bridge,
-        "workbench",
-    )
-    .expect("templated host page activation should resolve")
-    .unwrap();
+    let bridge = BuiltinHostWindowTemplateBridge::new(UiSize::new(1280.0, 720.0)).unwrap();
+    let builtin_effects =
+        dispatch_builtin_host_page_activation(&builtin_harness.runtime, &bridge, "workbench")
+            .expect("templated host page activation should resolve")
+            .unwrap();
     let builtin_record = builtin_harness
         .runtime
         .journal()

@@ -13,6 +13,7 @@ pub struct UiAssetEditorReplayWorkspace {
     pub selection: UiDesignerSelectionModel,
     pub source_cursor: UiAssetEditorSourceCursorSnapshot,
     pub selected_theme_source_key: Option<String>,
+    pub selected_style_rule_id: Option<String>,
     pub asset_sources: BTreeMap<String, String>,
 }
 
@@ -23,6 +24,7 @@ pub struct UiAssetEditorReplayWorkspaceResult {
     pub selection_changed: bool,
     pub source_cursor_changed: bool,
     pub theme_source_changed: bool,
+    pub style_rule_selection_changed: bool,
     pub asset_sources_changed: bool,
 }
 
@@ -49,6 +51,12 @@ impl UiAssetEditorUndoTransition {
             workspace.selected_theme_source_key = self.selected_theme_source_key.clone();
         }
 
+        let style_rule_selection_changed =
+            workspace.selected_style_rule_id != self.selected_style_rule_id;
+        if style_rule_selection_changed {
+            workspace.selected_style_rule_id = self.selected_style_rule_id.clone();
+        }
+
         let asset_sources_changed = apply_external_effects_to_asset_sources(
             &mut workspace.asset_sources,
             &self.external_effects,
@@ -60,6 +68,7 @@ impl UiAssetEditorUndoTransition {
             selection_changed,
             source_cursor_changed,
             theme_source_changed,
+            style_rule_selection_changed,
             asset_sources_changed,
         })
     }

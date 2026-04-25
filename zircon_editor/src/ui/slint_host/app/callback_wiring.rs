@@ -1,5 +1,5 @@
 use super::*;
-use crate::ui::slint_host::{PaneSurfaceHostContext, WorkbenchHostContext};
+use crate::ui::slint_host::{PaneSurfaceHostContext, UiHostContext};
 use slint::SharedString;
 
 fn dispatch_with_callback_source(
@@ -15,7 +15,7 @@ fn dispatch_with_callback_source(
 }
 
 pub(super) fn wire_callbacks(ui: &UiHostWindow, host: &Rc<RefCell<SlintEditorHost>>) {
-    let host_shell = ui.global::<WorkbenchHostContext>();
+    let host_shell = ui.global::<UiHostContext>();
     let weak = Rc::downgrade(host);
     host_shell.on_menu_pointer_clicked(move |x, y| {
         if let Some(host) = weak.upgrade() {
@@ -112,16 +112,16 @@ pub(super) fn wire_callbacks(ui: &UiHostWindow, host: &Rc<RefCell<SlintEditorHos
     );
 
     let weak = Rc::downgrade(host);
-    host_shell.on_workbench_drag_pointer_event(move |kind, x, y| {
+    host_shell.on_host_drag_pointer_event(move |kind, x, y| {
         if let Some(host) = weak.upgrade() {
-            host.borrow_mut().workbench_drag_pointer_event(kind, x, y);
+            host.borrow_mut().host_drag_pointer_event(kind, x, y);
         }
     });
 
     let weak = Rc::downgrade(host);
-    host_shell.on_workbench_resize_pointer_event(move |kind, x, y| {
+    host_shell.on_host_resize_pointer_event(move |kind, x, y| {
         if let Some(host) = weak.upgrade() {
-            host.borrow_mut().workbench_resize_pointer_event(kind, x, y);
+            host.borrow_mut().host_resize_pointer_event(kind, x, y);
         }
     });
 

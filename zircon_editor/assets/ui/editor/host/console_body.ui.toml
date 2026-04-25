@@ -1,0 +1,32 @@
+stylesheets = []
+
+[asset]
+kind = "layout"
+id = "editor.host.pane.console.body"
+version = 1
+display_name = "console pane body"
+
+[imports]
+widgets = []
+styles = []
+
+[tokens]
+
+[root]
+node_id = "root"
+kind = "component"
+component = "ConsolePaneBody"
+
+[components.ConsolePaneBody]
+style_scope = "closed"
+
+[components.ConsolePaneBody.root]
+node_id = "console_pane_body_root"
+kind = "native"
+type = "VerticalBox"
+children = [
+  { node = { node_id = "console_header", kind = "native", type = "HorizontalBox", children = [
+    { node = { node_id = "console_focus_action", kind = "native", type = "UiHostIconButton", control_id = "FocusConsole", bindings = [{ id = "ConsolePaneBody/FocusConsole", event = "Click", route = "DockCommand.FocusView" }], props = { label = "Focus Console" } } }
+  ] } },
+  { node = { node_id = "console_body_section", kind = "native", type = "Container", control_id = "ConsoleBodySection" } },
+]

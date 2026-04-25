@@ -1,15 +1,15 @@
 import { HostWindowBootstrapData } from "host_components.slint";
 import { HostWindowPresentationData } from "host_root.slint";
-import { HostWorkbenchWindowSurfaceHost } from "host_surface.slint";
+import { HostWindowSurfaceHost } from "host_surface.slint";
 
-export component WorkbenchHostScaffold inherits Rectangle {
+export component UiHostScaffold inherits Rectangle {
     in property <HostWindowPresentationData> host_presentation;
     out property <HostWindowBootstrapData> host_window_bootstrap: {
         shell_frame: { x: 0.0, y: 0.0, width: root.width / 1px, height: root.height / 1px },
         viewport_content_frame: root.host_presentation.host_layout.viewport_content_frame,
     };
 
-    HostWorkbenchWindowSurfaceHost {
+    HostWindowSurfaceHost {
         width: parent.width;
         height: parent.height;
         host_presentation: root.host_presentation;

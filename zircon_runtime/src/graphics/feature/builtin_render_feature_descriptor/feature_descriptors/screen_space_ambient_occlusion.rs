@@ -22,6 +22,9 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
             RenderPassStage::AmbientOcclusion,
             "ssao-evaluate",
             QueueLane::AsyncCompute,
-        )],
+        )
+        .with_executor_id("ao.ssao-evaluate")
+        .read_texture("scene-depth")
+        .write_texture("ambient-occlusion")],
     )
 }

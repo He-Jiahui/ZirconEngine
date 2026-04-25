@@ -5,19 +5,24 @@ use crate::core::math::Vec3;
 
 use crate::graphics::scene::scene_renderer::HybridGiScenePrepareResourcesSnapshot;
 use crate::graphics::types::{
-    hybrid_gi_voxel_clipmap_cell_center, HybridGiPrepareVoxelClipmap, ViewportRenderFrame,
-    HYBRID_GI_VOXEL_CLIPMAP_CELL_COUNT, HYBRID_GI_VOXEL_CLIPMAP_CELL_RESOLUTION,
+    hybrid_gi_voxel_clipmap_cell_center, HybridGiPrepareVoxelClipmap, HybridGiResolveRuntime,
+    ViewportRenderFrame, HYBRID_GI_VOXEL_CLIPMAP_CELL_COUNT,
+    HYBRID_GI_VOXEL_CLIPMAP_CELL_RESOLUTION,
 };
 
 use super::hybrid_gi_budget_weight::hybrid_gi_budget_weight;
 use super::runtime_parent_chain::{
     blend_runtime_rgb_lineage_sources, gather_runtime_descendant_chain_rgb,
     gather_runtime_descendant_chain_rgb_without_depth_falloff, gather_runtime_parent_chain_rgb,
-    gather_runtime_parent_chain_rgb_without_depth_falloff, runtime_resolve_weight_support,
+    gather_runtime_parent_chain_rgb_without_depth_falloff,
+    runtime_parent_topology_is_authoritative, runtime_probe_lineage_has_scene_truth,
+    runtime_resolve_weight_support, runtime_rt_lighting_lineage_has_scene_truth,
+    scheduled_live_trace_region_ids,
 };
 use super::scene_prepare_surface_cache_samples::{
     rgba_sample_is_present, rgba_sample_rgb, scene_prepare_surface_cache_fallback_rgb_and_support,
-    scene_prepare_surface_cache_owner_rgb,
+    scene_prepare_surface_cache_fallback_rgb_support_and_quality,
+    scene_prepare_surface_cache_owner_rgb_and_quality,
 };
 
 const ANCESTOR_TRACE_INHERITANCE_FALLOFF: f32 = 0.72;
@@ -37,27 +42,36 @@ pub(crate) fn hybrid_gi_hierarchy_rt_lighting_with_scene_prepare_resources(
     source: &RenderHybridGiProbe,
     scene_prepare_resources: Option<&HybridGiScenePrepareResourcesSnapshot>,
 ) -> [f32; 4] {
-    let Some(extract) = frame.extract.lighting.hybrid_global_illumination.as_ref() else {
-        return [0.0; 4];
-    };
-    let scene_driven_frame = frame.hybrid_gi_scene_prepare.is_some();
+    let hybrid_gi_extract = frame.extract.lighting.hybrid_global_illumination.as_ref();
+    let has_scene_prepare = frame.hybrid_gi_scene_prepare.is_some();
+    let runtime_probe_scene_truth = runtime_probe_lineage_has_scene_truth(frame, source.probe_id);
+    let stripped_runtime_probe_scene_truth = !has_scene_prepare && runtime_probe_scene_truth;
+    let scene_driven_frame = has_scene_prepare
+        || stripped_runtime_probe_scene_truth
+        || runtime_rt_lighting_lineage_has_scene_truth(frame, source.probe_id);
     let prepare = frame.hybrid_gi_prepare.as_ref();
-    let scheduled_trace_region_ids = prepare
-        .map(|prepare| prepare.scheduled_trace_region_ids.as_slice())
-        .unwrap_or(&[]);
+    let scheduled_trace_region_ids = scheduled_live_trace_region_ids(frame);
 
-    let probes_by_id = extract
-        .probes
-        .iter()
-        .copied()
-        .map(|probe| (probe.probe_id, probe))
-        .collect::<BTreeMap<_, _>>();
-    let trace_regions_by_id = extract
-        .trace_regions
-        .iter()
-        .copied()
-        .map(|region| (region.region_id, region))
-        .collect::<BTreeMap<_, _>>();
+    let probes_by_id = hybrid_gi_extract
+        .map(|extract| {
+            extract
+                .probes
+                .iter()
+                .copied()
+                .map(|probe| (probe.probe_id, probe))
+                .collect::<BTreeMap<_, _>>()
+        })
+        .unwrap_or_default();
+    let trace_regions_by_id = hybrid_gi_extract
+        .map(|extract| {
+            extract
+                .trace_regions
+                .iter()
+                .copied()
+                .map(|region| (region.region_id, region))
+                .collect::<BTreeMap<_, _>>()
+        })
+        .unwrap_or_default();
     let resident_prepare_by_id = prepare
         .map(|prepare| {
             prepare
@@ -67,14 +81,22 @@ pub(crate) fn hybrid_gi_hierarchy_rt_lighting_with_scene_prepare_resources(
                 .collect::<BTreeMap<_, _>>()
         })
         .unwrap_or_default();
-    let exact_runtime_rt_lighting =
-        runtime_hierarchy_rt_lighting(frame, source, &resident_prepare_by_id)
-            .filter(|runtime_rt_lighting| runtime_rt_lighting[3] > f32::EPSILON);
     let exact_runtime_includes_scene_truth = frame
         .hybrid_gi_resolve_runtime
         .as_ref()
         .map(|runtime| runtime.hierarchy_rt_lighting_includes_scene_truth(source.probe_id))
         .unwrap_or(false);
+    let exact_runtime_rt_lighting = if exact_runtime_includes_scene_truth {
+        frame
+            .hybrid_gi_resolve_runtime
+            .as_ref()
+            .and_then(|runtime| {
+                runtime_rt_lighting_packed_or_legacy_source(runtime, source.probe_id)
+            })
+    } else {
+        runtime_hierarchy_rt_lighting(frame, source, &resident_prepare_by_id)
+    }
+    .filter(|runtime_rt_lighting| runtime_rt_lighting[3] > f32::EPSILON);
     let exact_scene_truth_runtime_rt_lighting =
         exact_runtime_rt_lighting.filter(|_| exact_runtime_includes_scene_truth);
     let exact_continuation_runtime_rt_lighting =
@@ -92,35 +114,7 @@ pub(crate) fn hybrid_gi_hierarchy_rt_lighting_with_scene_prepare_resources(
                             return None;
                         }
 
-                        if let Some(hierarchy_rt_lighting) =
-                            runtime.hierarchy_rt_lighting(ancestor_probe_id)
-                        {
-                            return Some((
-                                [
-                                    hierarchy_rt_lighting[0],
-                                    hierarchy_rt_lighting[1],
-                                    hierarchy_rt_lighting[2],
-                                ],
-                                hierarchy_rt_lighting[3],
-                            ));
-                        }
-
-                        runtime
-                            .probe_rt_lighting_rgb
-                            .get(&ancestor_probe_id)
-                            .copied()
-                            .map(|rgb| {
-                                (
-                                    [
-                                        rgb[0] as f32 / 255.0,
-                                        rgb[1] as f32 / 255.0,
-                                        rgb[2] as f32 / 255.0,
-                                    ],
-                                    runtime_resolve_weight_support(
-                                        runtime.hierarchy_resolve_weight(ancestor_probe_id),
-                                    ),
-                                )
-                            })
+                        runtime_rt_lighting_lineage_source(runtime, ancestor_probe_id)
                     },
                 )
             })
@@ -137,35 +131,7 @@ pub(crate) fn hybrid_gi_hierarchy_rt_lighting_with_scene_prepare_resources(
                             return None;
                         }
 
-                        if let Some(hierarchy_rt_lighting) =
-                            runtime.hierarchy_rt_lighting(ancestor_probe_id)
-                        {
-                            return Some((
-                                [
-                                    hierarchy_rt_lighting[0],
-                                    hierarchy_rt_lighting[1],
-                                    hierarchy_rt_lighting[2],
-                                ],
-                                hierarchy_rt_lighting[3],
-                            ));
-                        }
-
-                        runtime
-                            .probe_rt_lighting_rgb
-                            .get(&ancestor_probe_id)
-                            .copied()
-                            .map(|rgb| {
-                                (
-                                    [
-                                        rgb[0] as f32 / 255.0,
-                                        rgb[1] as f32 / 255.0,
-                                        rgb[2] as f32 / 255.0,
-                                    ],
-                                    runtime_resolve_weight_support(
-                                        runtime.hierarchy_resolve_weight(ancestor_probe_id),
-                                    ),
-                                )
-                            })
+                        runtime_rt_lighting_lineage_source(runtime, ancestor_probe_id)
                     },
                 )
             })
@@ -183,35 +149,7 @@ pub(crate) fn hybrid_gi_hierarchy_rt_lighting_with_scene_prepare_resources(
                             return None;
                         }
 
-                        if let Some(hierarchy_rt_lighting) =
-                            runtime.hierarchy_rt_lighting(descendant_probe_id)
-                        {
-                            return Some((
-                                [
-                                    hierarchy_rt_lighting[0],
-                                    hierarchy_rt_lighting[1],
-                                    hierarchy_rt_lighting[2],
-                                ],
-                                hierarchy_rt_lighting[3],
-                            ));
-                        }
-
-                        runtime
-                            .probe_rt_lighting_rgb
-                            .get(&descendant_probe_id)
-                            .copied()
-                            .map(|rgb| {
-                                (
-                                    [
-                                        rgb[0] as f32 / 255.0,
-                                        rgb[1] as f32 / 255.0,
-                                        rgb[2] as f32 / 255.0,
-                                    ],
-                                    runtime_resolve_weight_support(
-                                        runtime.hierarchy_resolve_weight(descendant_probe_id),
-                                    ),
-                                )
-                            })
+                        runtime_rt_lighting_lineage_source(runtime, descendant_probe_id)
                     },
                 )
             })
@@ -228,35 +166,7 @@ pub(crate) fn hybrid_gi_hierarchy_rt_lighting_with_scene_prepare_resources(
                             return None;
                         }
 
-                        if let Some(hierarchy_rt_lighting) =
-                            runtime.hierarchy_rt_lighting(descendant_probe_id)
-                        {
-                            return Some((
-                                [
-                                    hierarchy_rt_lighting[0],
-                                    hierarchy_rt_lighting[1],
-                                    hierarchy_rt_lighting[2],
-                                ],
-                                hierarchy_rt_lighting[3],
-                            ));
-                        }
-
-                        runtime
-                            .probe_rt_lighting_rgb
-                            .get(&descendant_probe_id)
-                            .copied()
-                            .map(|rgb| {
-                                (
-                                    [
-                                        rgb[0] as f32 / 255.0,
-                                        rgb[1] as f32 / 255.0,
-                                        rgb[2] as f32 / 255.0,
-                                    ],
-                                    runtime_resolve_weight_support(
-                                        runtime.hierarchy_resolve_weight(descendant_probe_id),
-                                    ),
-                                )
-                            })
+                        runtime_rt_lighting_lineage_source(runtime, descendant_probe_id)
                     },
                 )
             })
@@ -274,16 +184,17 @@ pub(crate) fn hybrid_gi_hierarchy_rt_lighting_with_scene_prepare_resources(
     );
     let selected_runtime_rt_lighting_is_scene_truth =
         scene_driven_frame && scene_truth_runtime_rt_lighting.is_some();
-    let selected_runtime_rt_lighting =
-        if selected_runtime_rt_lighting_is_scene_truth {
-            scene_truth_runtime_rt_lighting
-        } else {
-            blend_runtime_rgb_lineage_sources(
-                scene_truth_runtime_rt_lighting,
-                continuation_runtime_rt_lighting,
-                None,
-            )
-        };
+    let selected_runtime_rt_lighting = if selected_runtime_rt_lighting_is_scene_truth {
+        scene_truth_runtime_rt_lighting
+    } else if runtime_probe_scene_truth && scene_truth_runtime_rt_lighting.is_none() {
+        None
+    } else {
+        blend_runtime_rgb_lineage_sources(
+            scene_truth_runtime_rt_lighting,
+            continuation_runtime_rt_lighting,
+            None,
+        )
+    };
     if let Some(runtime_rt_lighting) = selected_runtime_rt_lighting {
         if scene_driven_frame && !selected_runtime_rt_lighting_is_scene_truth {
             if let Some(scene_prepare_rt_lighting) =
@@ -320,6 +231,9 @@ pub(crate) fn hybrid_gi_hierarchy_rt_lighting_with_scene_prepare_resources(
     if scheduled_trace_region_ids.is_empty() {
         return scene_prepare_voxel_fallback.unwrap_or([0.0; 4]);
     }
+    if runtime_parent_topology_is_authoritative(frame) {
+        return scene_prepare_voxel_fallback.unwrap_or([0.0; 4]);
+    }
 
     let mut current_probe_id = source.probe_id;
     let mut visited_probe_ids = BTreeSet::from([source.probe_id]);
@@ -350,10 +264,10 @@ pub(crate) fn hybrid_gi_hierarchy_rt_lighting_with_scene_prepare_resources(
         ancestor_depth += 1;
         let hierarchy_weight =
             ANCESTOR_TRACE_INHERITANCE_FALLOFF.powi((ancestor_depth.saturating_sub(1)) as i32);
-        for region_id in scheduled_trace_region_ids {
-            let Some(region) = trace_regions_by_id.get(region_id) else {
-                continue;
-            };
+        for region in scheduled_trace_region_ids
+            .iter()
+            .filter_map(|region_id| trace_regions_by_id.get(region_id))
+        {
             let region_rt_lighting = hybrid_gi_trace_region_rt_lighting(region);
             if region_rt_lighting[3] <= 0.0 {
                 continue;
@@ -387,6 +301,145 @@ pub(crate) fn hybrid_gi_hierarchy_rt_lighting_with_scene_prepare_resources(
         weighted_rgb[2] / total_support,
         inherited_weight,
     ]
+}
+
+pub(super) fn current_rt_lighting_surface_cache_proxy_rgb_and_support(
+    frame: &ViewportRenderFrame,
+    source: &RenderHybridGiProbe,
+    scene_prepare_resources: Option<&HybridGiScenePrepareResourcesSnapshot>,
+) -> Option<([f32; 3], f32)> {
+    current_rt_lighting_surface_cache_proxy_rgb_support_and_quality(
+        frame,
+        source,
+        scene_prepare_resources,
+    )
+    .map(|(rgb, support, _)| (rgb, support))
+}
+
+pub(super) fn current_rt_lighting_surface_cache_proxy_rgb_support_and_quality(
+    frame: &ViewportRenderFrame,
+    source: &RenderHybridGiProbe,
+    scene_prepare_resources: Option<&HybridGiScenePrepareResourcesSnapshot>,
+) -> Option<([f32; 3], f32, f32)> {
+    let Some(scene_prepare) = frame.hybrid_gi_scene_prepare.as_ref() else {
+        return None;
+    };
+
+    let prepare = frame.hybrid_gi_prepare.as_ref();
+    let resident_prepare_by_id = prepare
+        .map(|prepare| {
+            prepare
+                .resident_probes
+                .iter()
+                .map(|probe| (probe.probe_id, probe))
+                .collect::<BTreeMap<_, _>>()
+        })
+        .unwrap_or_default();
+    let exact_runtime_rt_lighting =
+        runtime_hierarchy_rt_lighting(frame, source, &resident_prepare_by_id)
+            .filter(|runtime_rt_lighting| runtime_rt_lighting[3] > f32::EPSILON);
+    let exact_runtime_includes_scene_truth = frame
+        .hybrid_gi_resolve_runtime
+        .as_ref()
+        .map(|runtime| runtime.hierarchy_rt_lighting_includes_scene_truth(source.probe_id))
+        .unwrap_or(false);
+    let exact_scene_truth_runtime_rt_lighting =
+        exact_runtime_rt_lighting.filter(|_| exact_runtime_includes_scene_truth);
+    let exact_scene_truth_runtime_rt_lighting_present =
+        exact_scene_truth_runtime_rt_lighting.is_some();
+    let inherited_scene_truth_runtime_rt_lighting =
+        (!exact_scene_truth_runtime_rt_lighting_present)
+            .then(|| {
+                gather_runtime_parent_chain_rgb_without_depth_falloff(
+                    frame,
+                    source.probe_id,
+                    |runtime, ancestor_probe_id| {
+                        if !runtime.hierarchy_rt_lighting_includes_scene_truth(ancestor_probe_id) {
+                            return None;
+                        }
+
+                        runtime_rt_lighting_lineage_source(runtime, ancestor_probe_id)
+                    },
+                )
+            })
+            .flatten()
+            .filter(|runtime_rt_lighting| runtime_rt_lighting[3] > f32::EPSILON);
+    let descendant_scene_truth_runtime_rt_lighting =
+        (!exact_scene_truth_runtime_rt_lighting_present)
+            .then(|| {
+                gather_runtime_descendant_chain_rgb_without_depth_falloff(
+                    frame,
+                    source.probe_id,
+                    |runtime, descendant_probe_id| {
+                        if !runtime.hierarchy_rt_lighting_includes_scene_truth(descendant_probe_id)
+                        {
+                            return None;
+                        }
+
+                        runtime_rt_lighting_lineage_source(runtime, descendant_probe_id)
+                    },
+                )
+            })
+            .flatten()
+            .filter(|runtime_rt_lighting| runtime_rt_lighting[3] > f32::EPSILON);
+    let scene_truth_runtime_rt_lighting = blend_runtime_rgb_lineage_sources(
+        exact_scene_truth_runtime_rt_lighting,
+        inherited_scene_truth_runtime_rt_lighting,
+        descendant_scene_truth_runtime_rt_lighting,
+    );
+    if scene_truth_runtime_rt_lighting.is_some() {
+        return None;
+    }
+    let exact_continuation_runtime_rt_lighting =
+        exact_runtime_rt_lighting.filter(|_| !exact_runtime_includes_scene_truth);
+    let inherited_continuation_runtime_rt_lighting =
+        (!exact_scene_truth_runtime_rt_lighting_present)
+            .then(|| {
+                gather_runtime_parent_chain_rgb(
+                    frame,
+                    source.probe_id,
+                    |runtime, ancestor_probe_id| {
+                        if runtime.hierarchy_rt_lighting_includes_scene_truth(ancestor_probe_id) {
+                            return None;
+                        }
+
+                        runtime_rt_lighting_lineage_source(runtime, ancestor_probe_id)
+                    },
+                )
+            })
+            .flatten()
+            .filter(|runtime_rt_lighting| runtime_rt_lighting[3] > f32::EPSILON);
+    let descendant_continuation_runtime_rt_lighting =
+        (!exact_scene_truth_runtime_rt_lighting_present)
+            .then(|| {
+                gather_runtime_descendant_chain_rgb(
+                    frame,
+                    source.probe_id,
+                    |runtime, descendant_probe_id| {
+                        if runtime.hierarchy_rt_lighting_includes_scene_truth(descendant_probe_id) {
+                            return None;
+                        }
+
+                        runtime_rt_lighting_lineage_source(runtime, descendant_probe_id)
+                    },
+                )
+            })
+            .flatten()
+            .filter(|runtime_rt_lighting| runtime_rt_lighting[3] > f32::EPSILON);
+    let continuation_runtime_rt_lighting = blend_runtime_rgb_lineage_sources(
+        exact_continuation_runtime_rt_lighting,
+        inherited_continuation_runtime_rt_lighting,
+        descendant_continuation_runtime_rt_lighting,
+    );
+    if continuation_runtime_rt_lighting.is_none() {
+        return None;
+    }
+
+    current_scene_prepare_rt_lighting_surface_cache_proxy_rgb_support_and_quality(
+        scene_prepare,
+        source,
+        scene_prepare_resources,
+    )
 }
 
 fn scene_prepare_voxel_fallback_rt_lighting(
@@ -462,6 +515,116 @@ fn scene_prepare_voxel_fallback_rt_lighting(
         weighted_rgb[2] / total_support,
         (total_support * SCENE_PREPARE_VOXEL_FALLBACK_WEIGHT_SCALE).clamp(0.18, 0.7),
     ])
+}
+
+fn current_scene_prepare_rt_lighting_surface_cache_proxy_rgb_support_and_quality(
+    scene_prepare: &crate::graphics::types::HybridGiScenePrepareFrame,
+    source: &RenderHybridGiProbe,
+    scene_prepare_resources: Option<&HybridGiScenePrepareResourcesSnapshot>,
+) -> Option<([f32; 3], f32, f32)> {
+    let clipmaps_by_id = scene_prepare
+        .voxel_clipmaps
+        .iter()
+        .map(|clipmap| (clipmap.clipmap_id, clipmap))
+        .collect::<BTreeMap<_, _>>();
+    let mut total_cell_support = 0.0_f32;
+    let mut surface_cache_weighted_rgb = [0.0_f32; 3];
+    let mut surface_cache_support = 0.0_f32;
+    let mut weighted_confidence_quality = 0.0_f32;
+
+    for cell in &scene_prepare.voxel_cells {
+        if cell.occupancy_count == 0 {
+            continue;
+        }
+        let Some(clipmap) = clipmaps_by_id.get(&cell.clipmap_id).copied() else {
+            continue;
+        };
+        let cell_index = cell.cell_index as usize;
+        if cell_index >= HYBRID_GI_VOXEL_CLIPMAP_CELL_COUNT {
+            continue;
+        }
+
+        let cell_x = cell_index % HYBRID_GI_VOXEL_CLIPMAP_CELL_RESOLUTION;
+        let cell_y = (cell_index / HYBRID_GI_VOXEL_CLIPMAP_CELL_RESOLUTION)
+            % HYBRID_GI_VOXEL_CLIPMAP_CELL_RESOLUTION;
+        let cell_z = cell_index
+            / (HYBRID_GI_VOXEL_CLIPMAP_CELL_RESOLUTION * HYBRID_GI_VOXEL_CLIPMAP_CELL_RESOLUTION);
+        let cell_center = hybrid_gi_voxel_clipmap_cell_center(clipmap, cell_x, cell_y, cell_z);
+        let cell_half_extent =
+            (clipmap.half_extent / HYBRID_GI_VOXEL_CLIPMAP_CELL_RESOLUTION as f32).max(0.05);
+        let support = scene_prepare_voxel_cell_support(
+            source.position,
+            source.radius,
+            cell_center,
+            cell_half_extent,
+            cell.occupancy_count,
+        );
+        if support <= f32::EPSILON {
+            continue;
+        }
+
+        total_cell_support += support;
+        if cell.radiance_present {
+            continue;
+        }
+        if scene_prepare_voxel_cell_resource_rgb(scene_prepare_resources, cell).is_some() {
+            continue;
+        }
+        let Some((owner_rgb, confidence_quality)) =
+            scene_prepare_voxel_owner_card_capture_rgb_and_quality(
+                scene_prepare,
+                scene_prepare_resources,
+                cell,
+            )
+        else {
+            continue;
+        };
+        surface_cache_weighted_rgb[0] += owner_rgb[0] * support;
+        surface_cache_weighted_rgb[1] += owner_rgb[1] * support;
+        surface_cache_weighted_rgb[2] += owner_rgb[2] * support;
+        surface_cache_support += support;
+        weighted_confidence_quality += confidence_quality * support;
+    }
+    if total_cell_support > f32::EPSILON {
+        if surface_cache_support <= f32::EPSILON {
+            return None;
+        }
+
+        return Some((
+            [
+                surface_cache_weighted_rgb[0] / surface_cache_support,
+                surface_cache_weighted_rgb[1] / surface_cache_support,
+                surface_cache_weighted_rgb[2] / surface_cache_support,
+            ],
+            surface_cache_support,
+            (weighted_confidence_quality / surface_cache_support).clamp(0.0, 1.0),
+        ));
+    }
+
+    let total_clipmap_support =
+        scene_prepare
+            .voxel_clipmaps
+            .iter()
+            .fold(0.0_f32, |total_support, clipmap| {
+                total_support
+                    + scene_prepare_voxel_clipmap_support(
+                        source.position,
+                        source.radius,
+                        clipmap.center,
+                        clipmap.half_extent,
+                    )
+            });
+    if total_clipmap_support > f32::EPSILON {
+        return None;
+    }
+
+    scene_prepare_surface_cache_fallback_rgb_support_and_quality(
+        scene_prepare,
+        source.position,
+        source.radius,
+        scene_prepare_resources,
+    )
+    .filter(|(_, support, _)| *support > f32::EPSILON)
 }
 
 fn scene_prepare_voxel_clipmap_fallback_rt_lighting(
@@ -603,7 +766,20 @@ fn scene_prepare_voxel_owner_card_capture_rgb(
     scene_prepare_resources: Option<&HybridGiScenePrepareResourcesSnapshot>,
     cell: &crate::graphics::types::HybridGiPrepareVoxelCell,
 ) -> Option<[f32; 3]> {
-    scene_prepare_surface_cache_owner_rgb(
+    scene_prepare_voxel_owner_card_capture_rgb_and_quality(
+        scene_prepare,
+        scene_prepare_resources,
+        cell,
+    )
+    .map(|(rgb, _)| rgb)
+}
+
+fn scene_prepare_voxel_owner_card_capture_rgb_and_quality(
+    scene_prepare: &crate::graphics::types::HybridGiScenePrepareFrame,
+    scene_prepare_resources: Option<&HybridGiScenePrepareResourcesSnapshot>,
+    cell: &crate::graphics::types::HybridGiPrepareVoxelCell,
+) -> Option<([f32; 3], f32)> {
+    scene_prepare_surface_cache_owner_rgb_and_quality(
         scene_prepare,
         scene_prepare_resources,
         cell.dominant_card_id,
@@ -683,6 +859,41 @@ fn scene_prepare_voxel_clipmap_resource_rgb(
         .map(|(_, rgba)| rgba_sample_rgb(*rgba))
 }
 
+fn runtime_rt_lighting_lineage_source(
+    runtime: &HybridGiResolveRuntime,
+    probe_id: u32,
+) -> Option<([f32; 3], f32)> {
+    runtime_rt_lighting_packed_or_legacy_source(runtime, probe_id)
+        .map(|source| ([source[0], source[1], source[2]], source[3]))
+}
+
+fn runtime_rt_lighting_packed_or_legacy_source(
+    runtime: &HybridGiResolveRuntime,
+    probe_id: u32,
+) -> Option<[f32; 4]> {
+    if let Some(hierarchy_rt_lighting) = runtime
+        .hierarchy_rt_lighting(probe_id)
+        .filter(|hierarchy_rt_lighting| hierarchy_rt_lighting[3] > f32::EPSILON)
+    {
+        return Some(hierarchy_rt_lighting);
+    }
+
+    runtime
+        .probe_rt_lighting_rgb
+        .get(&probe_id)
+        .copied()
+        .and_then(|rgb| {
+            let support =
+                runtime_resolve_weight_support(runtime.hierarchy_resolve_weight(probe_id));
+            (support > f32::EPSILON).then_some([
+                rgb[0] as f32 / 255.0,
+                rgb[1] as f32 / 255.0,
+                rgb[2] as f32 / 255.0,
+                support,
+            ])
+        })
+}
+
 fn runtime_hierarchy_rt_lighting(
     frame: &ViewportRenderFrame,
     source: &RenderHybridGiProbe,
@@ -753,14 +964,16 @@ fn hybrid_gi_trace_region_rt_lighting(region: &RenderHybridGiTraceRegion) -> [f3
 mod tests {
     use std::collections::{BTreeMap, BTreeSet};
 
+    use super::super::super::super::super::constants::MAX_HYBRID_GI_TRACE_REGIONS;
     use super::{
         hybrid_gi_hierarchy_rt_lighting,
         hybrid_gi_hierarchy_rt_lighting_with_scene_prepare_resources,
     };
     use crate::core::framework::render::{
         FallbackSkyboxKind, PreviewEnvironmentExtract, RenderFrameExtract, RenderHybridGiExtract,
-        RenderHybridGiProbe, RenderOverlayExtract, RenderSceneGeometryExtract, RenderSceneSnapshot,
-        RenderWorldSnapshotHandle, ViewportCameraSnapshot,
+        RenderHybridGiProbe, RenderHybridGiTraceRegion, RenderOverlayExtract,
+        RenderSceneGeometryExtract, RenderSceneSnapshot, RenderWorldSnapshotHandle,
+        ViewportCameraSnapshot,
     };
     use crate::core::math::{UVec2, Vec3, Vec4};
     use crate::graphics::scene::scene_renderer::HybridGiScenePrepareResourcesSnapshot;
@@ -909,26 +1122,30 @@ mod tests {
 
     #[test]
     fn scene_driven_lineage_runtime_rt_lighting_ignores_scene_prepare_surface_cache_tint() {
-        let inherited_warm = scene_prepare_rt_lighting_with_scene_driven_lineage_and_surface_cache_page(
-            true,
-            HybridGiResolveRuntime::pack_rgb_and_weight([0.84, 0.36, 0.18], 0.58),
-            [240, 96, 48, 255],
-        );
-        let inherited_cool = scene_prepare_rt_lighting_with_scene_driven_lineage_and_surface_cache_page(
-            true,
-            HybridGiResolveRuntime::pack_rgb_and_weight([0.84, 0.36, 0.18], 0.58),
-            [48, 96, 240, 255],
-        );
-        let descendant_warm = scene_prepare_rt_lighting_with_scene_driven_lineage_and_surface_cache_page(
-            false,
-            HybridGiResolveRuntime::pack_rgb_and_weight([0.84, 0.36, 0.18], 0.58),
-            [240, 96, 48, 255],
-        );
-        let descendant_cool = scene_prepare_rt_lighting_with_scene_driven_lineage_and_surface_cache_page(
-            false,
-            HybridGiResolveRuntime::pack_rgb_and_weight([0.84, 0.36, 0.18], 0.58),
-            [48, 96, 240, 255],
-        );
+        let inherited_warm =
+            scene_prepare_rt_lighting_with_scene_driven_lineage_and_surface_cache_page(
+                true,
+                HybridGiResolveRuntime::pack_rgb_and_weight([0.84, 0.36, 0.18], 0.58),
+                [240, 96, 48, 255],
+            );
+        let inherited_cool =
+            scene_prepare_rt_lighting_with_scene_driven_lineage_and_surface_cache_page(
+                true,
+                HybridGiResolveRuntime::pack_rgb_and_weight([0.84, 0.36, 0.18], 0.58),
+                [48, 96, 240, 255],
+            );
+        let descendant_warm =
+            scene_prepare_rt_lighting_with_scene_driven_lineage_and_surface_cache_page(
+                false,
+                HybridGiResolveRuntime::pack_rgb_and_weight([0.84, 0.36, 0.18], 0.58),
+                [240, 96, 48, 255],
+            );
+        let descendant_cool =
+            scene_prepare_rt_lighting_with_scene_driven_lineage_and_surface_cache_page(
+                false,
+                HybridGiResolveRuntime::pack_rgb_and_weight([0.84, 0.36, 0.18], 0.58),
+                [48, 96, 240, 255],
+            );
 
         assert!(
             (inherited_warm[0] - inherited_cool[0]).abs() < 0.03
@@ -947,6 +1164,47 @@ mod tests {
         assert!(
             descendant_warm[0] > descendant_warm[2] + 0.35,
             "expected descendant scene-driven runtime RT lighting to keep its authored warm bias after scene_prepare page tint changes; descendant_warm={descendant_warm:?}"
+        );
+    }
+
+    #[test]
+    fn scene_driven_inherited_legacy_probe_rt_lighting_uses_legacy_when_packed_hierarchy_rt_is_zero(
+    ) {
+        let inherited_rt_lighting =
+            inherited_legacy_probe_rt_lighting_with_zero_packed_hierarchy_rt();
+
+        assert!(
+            inherited_rt_lighting[0] > 0.45,
+            "expected inherited legacy RT lighting to remain visible when the packed hierarchy RT scene-truth source has zero support; inherited_rt_lighting={inherited_rt_lighting:?}"
+        );
+        assert!(
+            inherited_rt_lighting[3] > 0.1,
+            "expected inherited legacy RT lighting resolve weight to provide support when packed hierarchy RT is zero-weight; inherited_rt_lighting={inherited_rt_lighting:?}"
+        );
+    }
+
+    #[test]
+    fn legacy_trace_region_inheritance_counts_duplicate_scheduled_live_payload_once() {
+        let single = inherited_trace_region_rt_lighting_with_scheduled_region_ids(vec![40]);
+        let duplicate = inherited_trace_region_rt_lighting_with_scheduled_region_ids(vec![40, 40]);
+
+        assert!(
+            (single[3] - duplicate[3]).abs() < f32::EPSILON,
+            "expected duplicate scheduled ids for the same live RenderHybridGiTraceRegion payload not to inflate inherited RT lighting support; single={single:?}, duplicate={duplicate:?}"
+        );
+        assert!(
+            single[3] > 0.0,
+            "expected the live trace payload to remain visible after scheduled-id de-duplication; single={single:?}"
+        );
+    }
+
+    #[test]
+    fn legacy_trace_region_inheritance_respects_live_payload_region_limit() {
+        let rt_lighting = inherited_trace_region_rt_lighting_with_budget_excess_tail_payload();
+
+        assert!(
+            rt_lighting[3] <= f32::EPSILON,
+            "expected legacy trace-region inheritance to respect the same live-payload GPU budget as trace-region encoding instead of reading a 17th scheduled payload; rt_lighting={rt_lighting:?}"
         );
     }
 
@@ -1907,6 +2165,242 @@ mod tests {
             }));
 
         hybrid_gi_hierarchy_rt_lighting(&frame, &encoded_probe)
+    }
+
+    fn inherited_legacy_probe_rt_lighting_with_zero_packed_hierarchy_rt() -> [f32; 4] {
+        let parent_probe = RenderHybridGiProbe {
+            probe_id: 100,
+            resident: true,
+            ray_budget: 128,
+            radius: 1.8,
+            ..Default::default()
+        };
+        let child_probe = RenderHybridGiProbe {
+            probe_id: 200,
+            parent_probe_id: Some(parent_probe.probe_id),
+            resident: true,
+            ray_budget: 96,
+            radius: 1.2,
+            ..Default::default()
+        };
+        let snapshot = RenderSceneSnapshot {
+            scene: RenderSceneGeometryExtract {
+                camera: ViewportCameraSnapshot::default(),
+                meshes: Vec::new(),
+                directional_lights: Vec::new(),
+                point_lights: Vec::new(),
+                spot_lights: Vec::new(),
+            },
+            overlays: RenderOverlayExtract::default(),
+            preview: PreviewEnvironmentExtract {
+                lighting_enabled: true,
+                skybox_enabled: false,
+                fallback_skybox: FallbackSkyboxKind::None,
+                clear_color: Vec4::ZERO,
+            },
+            virtual_geometry_debug: None,
+        };
+        let mut extract =
+            RenderFrameExtract::from_snapshot(RenderWorldSnapshotHandle::new(1), snapshot);
+        extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
+            enabled: true,
+            probe_budget: 2,
+            trace_budget: 0,
+            card_budget: 0,
+            voxel_budget: 0,
+            probes: vec![parent_probe, child_probe],
+            ..Default::default()
+        });
+
+        let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(32, 32))
+            .with_hybrid_gi_prepare(Some(HybridGiPrepareFrame {
+                resident_probes: vec![HybridGiPrepareProbe {
+                    probe_id: child_probe.probe_id,
+                    slot: 0,
+                    ray_budget: child_probe.ray_budget,
+                    irradiance_rgb: [112, 112, 112],
+                }],
+                pending_updates: Vec::new(),
+                scheduled_trace_region_ids: Vec::new(),
+                evictable_probe_ids: Vec::new(),
+            }))
+            .with_hybrid_gi_resolve_runtime(Some(HybridGiResolveRuntime {
+                probe_rt_lighting_rgb: BTreeMap::from([(parent_probe.probe_id, [240, 96, 48])]),
+                probe_hierarchy_resolve_weight_q8: BTreeMap::from([(
+                    parent_probe.probe_id,
+                    HybridGiResolveRuntime::pack_resolve_weight_q8(2.0),
+                )]),
+                probe_hierarchy_rt_lighting_rgb_and_weight: BTreeMap::from([(
+                    parent_probe.probe_id,
+                    HybridGiResolveRuntime::pack_rgb_and_weight([0.05, 0.05, 0.05], 0.0),
+                )]),
+                probe_scene_driven_hierarchy_rt_lighting_ids: BTreeSet::from([
+                    parent_probe.probe_id
+                ]),
+                ..Default::default()
+            }));
+
+        hybrid_gi_hierarchy_rt_lighting(&frame, &child_probe)
+    }
+
+    fn inherited_trace_region_rt_lighting_with_scheduled_region_ids(
+        scheduled_trace_region_ids: Vec<u32>,
+    ) -> [f32; 4] {
+        let parent_probe = RenderHybridGiProbe {
+            probe_id: 100,
+            resident: true,
+            ray_budget: 128,
+            radius: 1.8,
+            ..Default::default()
+        };
+        let child_probe = RenderHybridGiProbe {
+            probe_id: 200,
+            parent_probe_id: Some(parent_probe.probe_id),
+            resident: true,
+            ray_budget: 96,
+            radius: 1.2,
+            ..Default::default()
+        };
+        let snapshot = RenderSceneSnapshot {
+            scene: RenderSceneGeometryExtract {
+                camera: ViewportCameraSnapshot::default(),
+                meshes: Vec::new(),
+                directional_lights: Vec::new(),
+                point_lights: Vec::new(),
+                spot_lights: Vec::new(),
+            },
+            overlays: RenderOverlayExtract::default(),
+            preview: PreviewEnvironmentExtract {
+                lighting_enabled: true,
+                skybox_enabled: false,
+                fallback_skybox: FallbackSkyboxKind::None,
+                clear_color: Vec4::ZERO,
+            },
+            virtual_geometry_debug: None,
+        };
+        let mut extract =
+            RenderFrameExtract::from_snapshot(RenderWorldSnapshotHandle::new(1), snapshot);
+        extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
+            enabled: true,
+            probe_budget: 2,
+            trace_budget: 2,
+            card_budget: 0,
+            voxel_budget: 0,
+            probes: vec![parent_probe, child_probe],
+            trace_regions: vec![RenderHybridGiTraceRegion {
+                entity: 40,
+                region_id: 40,
+                bounds_center: Vec3::ZERO,
+                bounds_radius: 2.0,
+                screen_coverage: 1.0,
+                rt_lighting_rgb: [240, 96, 48],
+            }],
+            ..Default::default()
+        });
+
+        let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(32, 32))
+            .with_hybrid_gi_prepare(Some(HybridGiPrepareFrame {
+                resident_probes: vec![HybridGiPrepareProbe {
+                    probe_id: parent_probe.probe_id,
+                    slot: 0,
+                    ray_budget: parent_probe.ray_budget,
+                    irradiance_rgb: [112, 112, 112],
+                }],
+                pending_updates: Vec::new(),
+                scheduled_trace_region_ids,
+                evictable_probe_ids: Vec::new(),
+            }));
+
+        hybrid_gi_hierarchy_rt_lighting(&frame, &child_probe)
+    }
+
+    fn inherited_trace_region_rt_lighting_with_budget_excess_tail_payload() -> [f32; 4] {
+        let parent_probe = RenderHybridGiProbe {
+            probe_id: 100,
+            resident: true,
+            ray_budget: 128,
+            radius: 1.8,
+            ..Default::default()
+        };
+        let child_probe = RenderHybridGiProbe {
+            probe_id: 200,
+            parent_probe_id: Some(parent_probe.probe_id),
+            resident: true,
+            ray_budget: 96,
+            radius: 1.2,
+            ..Default::default()
+        };
+        let live_tail_region_id = 40;
+        let budget_filler_region_ids = (0..MAX_HYBRID_GI_TRACE_REGIONS)
+            .map(|index| 10_000 + index as u32)
+            .collect::<Vec<_>>();
+        let mut scheduled_trace_region_ids = budget_filler_region_ids.clone();
+        scheduled_trace_region_ids.push(live_tail_region_id);
+        let mut trace_regions = budget_filler_region_ids
+            .iter()
+            .copied()
+            .map(|region_id| RenderHybridGiTraceRegion {
+                entity: u64::from(region_id),
+                region_id,
+                bounds_center: Vec3::new(10_000.0, 0.0, 0.0),
+                bounds_radius: 0.5,
+                screen_coverage: 1.0,
+                rt_lighting_rgb: [240, 96, 48],
+            })
+            .collect::<Vec<_>>();
+        trace_regions.push(RenderHybridGiTraceRegion {
+            entity: u64::from(live_tail_region_id),
+            region_id: live_tail_region_id,
+            bounds_center: Vec3::ZERO,
+            bounds_radius: 2.0,
+            screen_coverage: 1.0,
+            rt_lighting_rgb: [240, 96, 48],
+        });
+
+        let snapshot = RenderSceneSnapshot {
+            scene: RenderSceneGeometryExtract {
+                camera: ViewportCameraSnapshot::default(),
+                meshes: Vec::new(),
+                directional_lights: Vec::new(),
+                point_lights: Vec::new(),
+                spot_lights: Vec::new(),
+            },
+            overlays: RenderOverlayExtract::default(),
+            preview: PreviewEnvironmentExtract {
+                lighting_enabled: true,
+                skybox_enabled: false,
+                fallback_skybox: FallbackSkyboxKind::None,
+                clear_color: Vec4::ZERO,
+            },
+            virtual_geometry_debug: None,
+        };
+        let mut extract =
+            RenderFrameExtract::from_snapshot(RenderWorldSnapshotHandle::new(1), snapshot);
+        extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
+            enabled: true,
+            probe_budget: 2,
+            trace_budget: 2,
+            card_budget: 0,
+            voxel_budget: 0,
+            probes: vec![parent_probe, child_probe],
+            trace_regions,
+            ..Default::default()
+        });
+
+        let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(32, 32))
+            .with_hybrid_gi_prepare(Some(HybridGiPrepareFrame {
+                resident_probes: vec![HybridGiPrepareProbe {
+                    probe_id: parent_probe.probe_id,
+                    slot: 0,
+                    ray_budget: parent_probe.ray_budget,
+                    irradiance_rgb: [112, 112, 112],
+                }],
+                pending_updates: Vec::new(),
+                scheduled_trace_region_ids,
+                evictable_probe_ids: Vec::new(),
+            }));
+
+        hybrid_gi_hierarchy_rt_lighting(&frame, &child_probe)
     }
 
     fn scene_prepare_resources_snapshot(

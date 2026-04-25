@@ -55,6 +55,30 @@ related_code:
   - zircon_editor/src/tests/ui/boundary/mod.rs
   - zircon_editor/src/tests/ui/boundary/template_assets.rs
   - zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml
+  - zircon_editor/assets/ui/editor/host/hierarchy_body.ui.toml
+  - zircon_editor/assets/ui/editor/host/animation_sequence_body.ui.toml
+  - zircon_editor/assets/ui/editor/host/animation_graph_body.ui.toml
+  - zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs
+  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs
+  - zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs
+  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion.rs
+  - zircon_editor/src/ui/slint_host/ui/apply_presentation.rs
+  - zircon_editor/ui/workbench.slint
+  - zircon_editor/ui/workbench/host_context.slint
+  - zircon_editor/ui/workbench/host_scaffold.slint
+  - zircon_editor/ui/workbench/host_scene.slint
+  - zircon_editor/ui/workbench/host_surface.slint
+  - zircon_editor/ui/workbench/pane_content.slint
+  - zircon_editor/src/ui/slint_host/activity_rail_pointer/mod.rs
+  - zircon_editor/src/ui/slint_host/document_tab_pointer/mod.rs
+  - zircon_editor/src/ui/slint_host/drawer_header_pointer/mod.rs
+  - zircon_editor/src/ui/slint_host/shell_pointer.rs
+  - zircon_editor/src/ui/slint_host/drawer_resize.rs
+  - zircon_editor/src/ui/slint_host/tab_drag.rs
+  - zircon_editor/src/ui/slint_host/app.rs
+  - zircon_editor/src/ui/slint_host/callback_dispatch/shared_pointer/activity_rail.rs
+  - zircon_editor/src/ui/slint_host/callback_dispatch/template_bridge/workbench/root_shell_frames.rs
+  - zircon_editor/src/tests/host/slint_window/generic_host_boundary.rs
 implementation_files:
   - zircon_runtime/assets/fonts/default.font.toml
   - zircon_runtime/assets/fonts/FiraMono-subset.ttf
@@ -104,6 +128,29 @@ implementation_files:
   - zircon_editor/src/tests/ui/template/binding_resolution.rs
   - zircon_editor/src/tests/ui/template/repository_assets.rs
   - zircon_editor/src/tests/ui/boundary/template_assets.rs
+  - zircon_editor/assets/ui/editor/host/hierarchy_body.ui.toml
+  - zircon_editor/assets/ui/editor/host/animation_sequence_body.ui.toml
+  - zircon_editor/assets/ui/editor/host/animation_graph_body.ui.toml
+  - zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs
+  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs
+  - zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs
+  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion.rs
+  - zircon_editor/src/ui/slint_host/ui/apply_presentation.rs
+  - zircon_editor/ui/workbench.slint
+  - zircon_editor/ui/workbench/host_context.slint
+  - zircon_editor/ui/workbench/host_scaffold.slint
+  - zircon_editor/ui/workbench/host_scene.slint
+  - zircon_editor/ui/workbench/host_surface.slint
+  - zircon_editor/ui/workbench/pane_content.slint
+  - zircon_editor/src/ui/slint_host/activity_rail_pointer/mod.rs
+  - zircon_editor/src/ui/slint_host/document_tab_pointer/mod.rs
+  - zircon_editor/src/ui/slint_host/drawer_header_pointer/mod.rs
+  - zircon_editor/src/ui/slint_host/shell_pointer.rs
+  - zircon_editor/src/ui/slint_host/drawer_resize.rs
+  - zircon_editor/src/ui/slint_host/tab_drag.rs
+  - zircon_editor/src/ui/slint_host/app.rs
+  - zircon_editor/src/ui/slint_host/callback_dispatch/shared_pointer/activity_rail.rs
+  - zircon_editor/src/ui/slint_host/callback_dispatch/template_bridge/workbench/root_shell_frames.rs
 plan_sources:
   - user: 2026-04-15 按自定义 TOML 描述文件运行时构建 Slint 树并严格服从 Shared Layout 契约
   - user: 2026-04-15 PLEASE IMPLEMENT THIS PLAN
@@ -114,10 +161,12 @@ plan_sources:
   - user: 2026-04-21 继续推进 M1，默认字体入口必须成为 runtime 自有资产
   - user: 2026-04-21 继续推进 M1，把 .font.toml 正式纳入 asset/resource 主链并让 UI loader 复用公共 FontAsset
   - user: 2026-04-21 继续推进 M1，让项目内 res:// 字体资产通过 ProjectAssetManager 进入 runtime UI 文本链路
+  - user: 2026-04-24 继续编辑器 .slint 去真源 Runtime UI 可用 Cutover 路线图
   - .codex/plans/布局系统.md
   - .codex/plans/Zircon UI 资产化 Widget Editor 与共享 Layout.md
   - .codex/plans/编辑器 .slint 去真源 Runtime UI 可用 Cutover 路线图.md
   - .codex/plans/Zircon 运行时编辑器共享 UI 布局与事件系统架构计划.md
+  - docs/superpowers/plans/2026-04-24-ui-toml-pane-template-implementation.md
 tests:
   - zircon_runtime/src/asset/tests/assets/font.rs
   - zircon_runtime/src/ui/tests/template.rs
@@ -128,6 +177,11 @@ tests:
   - zircon_editor/src/tests/host/template_runtime/workbench_document.rs
   - zircon_editor/src/tests/host/template_runtime/shared_surface.rs
   - zircon_editor/src/tests/host/template_runtime/structure_split.rs
+  - zircon_editor/src/tests/host/template_runtime/pane_body_documents.rs
+  - zircon_editor/src/tests/host/template_runtime/pane_payload_projection.rs
+  - zircon_editor/src/tests/host/slint_hierarchy_template_body.rs
+  - zircon_editor/src/tests/host/slint_animation_template_body.rs
+  - zircon_editor/src/tests/host/slint_window/generic_host_boundary.rs
   - zircon_editor/src/tests/ui/template/catalog_registry.rs
   - zircon_editor/src/tests/ui/template/binding_resolution.rs
   - zircon_editor/src/tests/ui/template/repository_assets.rs
@@ -140,11 +194,30 @@ tests:
   - cargo test -p zircon_runtime --test runtime_ui_text_render_contract --locked
   - cargo check -p zircon_runtime --locked --lib
   - cargo test -p zircon_runtime template_tree_builder_projects_template_instance_into_shared_ui_tree_with_metadata --locked
+  - cargo test -p zircon_editor --lib --locked tab_drag_module_uses_generic_host_type_names --offline
+  - cargo test -p zircon_editor --lib --locked drawer_resize_module_uses_generic_host_type_names --offline
+  - cargo test -p zircon_editor --lib --locked root_shell_frames_use_generic_host_type_names --offline
   - cargo test -p zircon_runtime ui_document_compiler_expands_imported_widget_references_and_applies_stylesheets --locked
   - cargo test -p zircon_runtime --locked
   - cargo check -p zircon_editor
   - cargo test -p zircon_editor boundary
   - cargo test -p zircon_editor template
+  - cargo test -p zircon_editor --lib --locked template_runtime --offline
+  - cargo test -p zircon_editor --lib --locked slint_hierarchy_template_body --offline
+  - cargo test -p zircon_editor --lib --locked slint_animation_template_body --offline
+  - cargo test -p zircon_editor --lib --locked root_workbench_slint_exports_only_generic_host_bootstrap_symbols --offline
+  - cargo test -p zircon_editor --lib --locked slint_host_presentation_uses_generic_scene_data_property --offline
+  - cargo test -p zircon_editor --lib --locked slint_host_scene_uses_generic_surface_metrics_and_orchestration_names --offline
+  - cargo test -p zircon_editor --lib --locked slint_host_drag_and_resize_callbacks_use_generic_host_event_names --offline
+  - cargo test -p zircon_editor --lib --locked host_page_pointer_module_uses_generic_host_type_names --offline
+  - cargo test -p zircon_editor --lib --locked activity_rail_pointer_module_uses_generic_host_type_names --offline
+  - cargo test -p zircon_editor --lib --locked document_tab_pointer_module_uses_generic_host_type_names --offline
+  - cargo test -p zircon_editor --lib --locked drawer_header_pointer_module_uses_generic_host_type_names --offline
+  - cargo test -p zircon_editor --lib --locked shell_pointer_module_uses_generic_host_type_names --offline
+  - cargo test -p zircon_editor --lib --locked slint_window --offline
+  - cargo test -p zircon_editor --lib --locked slint_host --offline
+  - cargo fmt --all
+  - cargo check -p zircon_editor --locked --offline
   - .codex/skills/zircon-dev/scripts/validate-matrix.ps1 -Package zircon_editor -SkipTest -VerboseOutput
 doc_type: module-detail
 ---
@@ -189,6 +262,29 @@ editor host 这一侧也已经同步收口：
 - `cargo test -p zircon_editor boundary`
 - `cargo test -p zircon_editor template`
 - `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_editor -SkipTest -VerboseOutput`
+
+## Builtin Pane Body Projection
+
+2026-04-24 的 pane body cutover 把首批 workbench pane 的 body authority 又从 Slint/Rust 手写 DTO 往 `.ui.toml -> PanePresentation -> Slint host projection` 推进了一层。`Console` 和 `Inspector` 已经走 template-only body；本轮补齐了 `Hierarchy`、`AnimationSequenceEditor` 和 `AnimationGraphEditor` 的 hybrid body 消费路径。
+
+当前合同如下：
+
+- [`hierarchy_body.ui.toml`](../../zircon_editor/assets/ui/editor/host/hierarchy_body.ui.toml) 保留 `SelectionCommand.SelectSceneNode` route，并把树主体声明成 `hierarchy_tree_slot`；Slint 宿主只继续承载已有 tree native slot 与 pointer bridge。
+- [`animation_sequence_body.ui.toml`](../../zircon_editor/assets/ui/editor/host/animation_sequence_body.ui.toml) 保留 `AnimationCommand.ScrubTimeline` route，并把 timeline 主体声明成根级 `animation_timeline_slot`。
+- [`animation_graph_body.ui.toml`](../../zircon_editor/assets/ui/editor/host/animation_graph_body.ui.toml) 保留 `AnimationCommand.AddGraphNode` route，并把 graph canvas 主体声明成根级 `animation_graph_canvas_slot`。
+- [`pane_data_conversion.rs`](../../zircon_editor/src/ui/slint_host/ui/pane_data_conversion.rs) 现在对 hierarchy/animation 优先读取 `PanePresentation.body`，调用 `EditorUiHostRuntime::project_pane_body(...)` 注入 payload 与 hybrid slot anchor，再把 payload 还原成 Slint 现有 native view 所需的 rows、track、parameter、node、state 和 transition 数据。
+- [`apply_presentation.rs`](../../zircon_editor/src/ui/slint_host/ui/apply_presentation.rs) 会把每个 dock/floating pane 的可见内容尺寸传给转换层，让 template body projection 至少拥有宿主 content bounds；dock/window 生命周期和 native pointer bridge 不在这一层重写。
+- [`pane_content.slint`](../../zircon_editor/ui/workbench/pane_content.slint) 只消费 template projection 输出的 stable control id / anchor id，并继续把 hierarchy tree、timeline 和 graph canvas 的细交互交给原 native slot。
+
+Task 10 的 host-side cleanup 把 [`PaneData`](../../zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs) 中原本平铺的 `Console` / `Inspector` / `Hierarchy` / `Animation` / asset body DTO 收进 `PaneBodyCompatData`。`PaneData` 现在的正式 body authority 是 `presentation: PanePresentation`；`body_compat` 只作为 Slint ABI、native slot 和未完全退场 pane 的兼容壳存在。对应地，[`pane_projection.rs`](../../zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs) 只在生成 `PanePresentation` 后填充兼容壳，[`scene_projection.rs`](../../zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs) 读取 compat 数据时也显式标注为宿主桥接，而不是继续把 giant union 当成结构真源。
+
+验证覆盖：
+
+- `cargo test -p zircon_editor --lib --locked template_runtime --offline` 锁住 builtin body document 注册、hybrid slot 根级声明、route namespace 和 payload projection。
+- `cargo test -p zircon_editor --lib --locked slint_hierarchy_template_body --offline` 锁住 hierarchy body 从 payload 和 template anchor 投影到 Slint view data。
+- `cargo test -p zircon_editor --lib --locked slint_animation_template_body --offline` 锁住 sequence timeline / graph canvas hybrid anchors 与 animation payload 投影。
+- `cargo test -p zircon_editor --lib --locked slint_host --offline` 确认现有真实宿主桥仍然保持可运行。
+- `cargo check -p zircon_editor --locked --offline` 确认 `PaneBodyCompatData` 收束后 production crate 仍然编译通过。
 
 ## Runtime Typography Metadata
 
@@ -531,7 +627,34 @@ root = { component = "UiHostToolbar", children = [
 - 旧的 `workbench.shell` 仍作为兼容 alias 同时注册到同一份 [`workbench_shell.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml)
 - `UiHostWindow` 相关 component descriptor 也同步改成指向 `ui.host_window`
 - `EditorUiHostRuntime` 新增 generic `load_builtin_host_templates()`，把“加载一组 builtin host template”与“加载 workbench shell”两个概念拆开
-- [`zircon_editor/ui/workbench.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench.slint) 的导出 root 现在也已经跟着这个 identity 收口：`UiHostWindow` 只剩 window/bootstrap wrapper，自身不再直接拥有 menu/drawer/document/floating 业务树；真正的 workbench 结构落在内部 `WorkbenchHostScaffold`
-- 这层 wrapper 目前仍通过属性别名和 callback forwarding 暂时保留旧的宿主 ABI，因此 shared template/runtime 的 generic root identity 可以先稳定下来，而不需要一次性重写所有 host/slint 业务接线
+- [`zircon_editor/ui/workbench.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench.slint) 的导出 root 现在也已经跟着这个 identity 收口：`UiHostWindow` 只剩 window/bootstrap wrapper，bootstrap 符号统一为 `UiHostContext`、`UiHostScaffold` 和 `HostWindowSceneData`
+- host presentation / scene contract 也同步去掉首批 workbench 专名：`workbench_scene_data` 已改为 `host_scene_data`，`HostWorkbenchSurfaceMetricsData` / `HostWorkbenchSurfaceOrchestrationData` 已改为 `HostWindowSurfaceMetricsData` / `HostWindowSurfaceOrchestrationData`
+- host drag / resize pointer event 也已经从 `workbench_drag_pointer_event` / `workbench_resize_pointer_event` 收口为 `host_drag_pointer_event` / `host_resize_pointer_event`
+- Rust host-page pointer helper 也已经从 `WorkbenchHostPagePointer*` / `build_workbench_host_page_pointer_layout` 收口为 `HostPagePointer*` / `build_host_page_pointer_layout`
+- Rust menu pointer helper 也已经从 `WorkbenchMenuPointer*` / `build_workbench_menu_pointer_layout` 收口为 `HostMenuPointer*` / `build_host_menu_pointer_layout`
+- Rust activity rail pointer helper 也已经从 `WorkbenchActivityRailPointer*` / `build_workbench_activity_rail_pointer_layout` 收口为 `HostActivityRailPointer*` / `build_host_activity_rail_pointer_layout`
+- Rust document tab pointer helper 也已经从 `WorkbenchDocumentTabPointer*` / `build_workbench_document_tab_pointer_layout` 收口为 `HostDocumentTabPointer*` / `build_host_document_tab_pointer_layout`
+- Rust drawer header pointer helper 也已经从 `WorkbenchDrawerHeaderPointer*` / `build_workbench_drawer_header_pointer_layout` 收口为 `HostDrawerHeaderPointer*` / `build_host_drawer_header_pointer_layout`
+- Rust shell pointer helper 也已经从 `WorkbenchShellPointer*` / `workbench_shell_pointer_*` 收口为 `HostShellPointer*` / `host_shell_pointer_*`
+- Rust tab drag helper 也已经从 `WorkbenchDragTarget*` / `ResolvedWorkbenchTabDrop*` / `resolve_workbench_*` 收口为 `HostDragTarget*` / `ResolvedHostTabDrop*` / `resolve_host_*`
+- Rust resize target helper 也已经从 `WorkbenchResizeTargetGroup` / `resolve_workbench_resize_target_group` 收口为 `HostResizeTargetGroup` / `resolve_host_resize_target_group`
+- Rust root shell frames DTO 也已经从 `BuiltinWorkbenchRootShellFrames` / `workbench_body_frame` 收口为 `BuiltinHostRootShellFrames` / `host_body_frame`
+- Rust builtin host projection builder 也已经从 `build_builtin_workbench_host_projection` 收口为 `build_builtin_host_window_projection`
+- Rust drawer source bridge 也已经从 `BuiltinWorkbenchDrawerSource*` / `build_builtin_workbench_drawer_source_surface` 收口为 `BuiltinHostDrawerSource*` / `build_builtin_host_drawer_source_surface`
+- 内置 template runtime 现在会递归解析 `res://...` widget imports，并允许 layout root 通过 `#RootControlId` 作为嵌入组件使用
+- `root_workbench_slint_exports_only_generic_host_bootstrap_symbols` 会守住 root 文件不再回到 `WorkbenchHostContext`、`WorkbenchHostScaffold` 或 `HostWorkbenchWindowSceneData`
+- `slint_host_presentation_uses_generic_scene_data_property` 与 `slint_host_scene_uses_generic_surface_metrics_and_orchestration_names` 会守住 host scene DTO 不再回到 workbench 专名
+- `slint_host_drag_and_resize_callbacks_use_generic_host_event_names` 会守住通用拖拽/resize 宿主事件不再回到 workbench 专名
+- `host_page_pointer_module_uses_generic_host_type_names` 会守住 host-page pointer helper 不再回到 workbench 专名
+- `menu_pointer_module_uses_generic_host_type_names` 会守住 menu pointer helper 不再回到 workbench 专名
+- `activity_rail_pointer_module_uses_generic_host_type_names` 会守住 activity rail pointer helper 不再回到 workbench 专名
+- `document_tab_pointer_module_uses_generic_host_type_names` 会守住 document tab pointer helper 不再回到 workbench 专名
+- `drawer_header_pointer_module_uses_generic_host_type_names` 会守住 drawer header pointer helper 不再回到 workbench 专名
+- `shell_pointer_module_uses_generic_host_type_names` 会守住 shell pointer helper 不再回到 workbench 专名
+- `tab_drag_module_uses_generic_host_type_names` 会守住 tab drag helper 不再回到 workbench 专名
+- `drawer_resize_module_uses_generic_host_type_names` 会守住 resize target helper 不再回到 workbench 专名
+- `root_shell_frames_use_generic_host_type_names` 会守住 root shell frames DTO 不再回到 workbench 专名
+- `drawer_source_bridge_uses_generic_host_type_names` 会守住 drawer source bridge 不再回到 workbench 专名
+- 这层 wrapper 目前仍通过属性别名、typed event 名称和 callback forwarding 暂时保留部分 workbench 业务 ABI，因此 shared template/runtime 的 generic root identity 可以先稳定下来，而不需要一次性重写所有 host/slint 业务接线
 
 这样 shared template runtime 对外暴露的默认 root 入口已经不再是 workbench 业务名；workbench 只剩兼容标签，而不是 builtin host root 的唯一 canonical identity。后续继续做 `Generic host boundary` 时，就可以在不改 shared runtime 主入口命名的前提下，逐步削掉 `workbench.slint` 和 builtin projection 里的业务壳结构。

@@ -1,5 +1,5 @@
 use crate::core::framework::scene::{ComponentPropertyPath, EntityPath, ScenePropertyValue};
-use crate::core::math::{Transform, Vec3};
+use crate::core::math::{Quat, Transform, Vec3};
 use crate::core::resource::{AnimationClipMarker, ResourceHandle, ResourceId};
 use crate::scene::components::{
     AnimationPlayerComponent, NodeKind, RigidBodyComponent, RigidBodyType,
@@ -97,4 +97,79 @@ fn world_resolves_entity_paths_and_mutates_component_properties() {
         world.property(hero, &weight_path).unwrap(),
         ScenePropertyValue::Scalar(0.75)
     );
+}
+
+#[test]
+fn world_rejects_zero_length_transform_rotation_property_writes() {
+    let mut world = World::new();
+    let hero = world.spawn_node(NodeKind::Mesh);
+    let rotation_path = ComponentPropertyPath::parse("Transform.rotation").unwrap();
+    let rotation_w_path = ComponentPropertyPath::parse("Transform.rotation.w").unwrap();
+
+    let error = world
+        .set_property(
+            hero,
+            &rotation_path,
+            ScenePropertyValue::Quaternion([0.0, 0.0, 0.0, 0.0]),
+        )
+        .unwrap_err();
+    assert!(error.contains("zero-length"), "{error}");
+    assert_eq!(
+        world.find_node(hero).unwrap().transform.rotation,
+        Quat::IDENTITY
+    );
+
+    let error = world
+        .set_property(hero, &rotation_w_path, ScenePropertyValue::Scalar(0.0))
+        .unwrap_err();
+    assert!(error.contains("zero-length"), "{error}");
+    assert_eq!(
+        world.find_node(hero).unwrap().transform.rotation,
+        Quat::IDENTITY
+    );
+}
+
+#[test]
+fn world_rejects_non_finite_transform_property_writes() {
+    let mut world = World::new();
+    let hero = world.spawn_node(NodeKind::Mesh);
+    let translation_path = ComponentPropertyPath::parse("Transform.translation").unwrap();
+    let translation_x_path = ComponentPropertyPath::parse("Transform.translation.x").unwrap();
+    let scale_path = ComponentPropertyPath::parse("Transform.scale").unwrap();
+
+    let error = world
+        .set_property(
+            hero,
+            &translation_path,
+            ScenePropertyValue::Vec3([f32::NAN, 1.0, 2.0]),
+        )
+        .unwrap_err();
+    assert!(error.contains("finite"), "{error}");
+    assert_eq!(
+        world.find_node(hero).unwrap().transform.translation,
+        Vec3::ZERO
+    );
+
+    let error = world
+        .set_property(
+            hero,
+            &translation_x_path,
+            ScenePropertyValue::Scalar(f32::INFINITY),
+        )
+        .unwrap_err();
+    assert!(error.contains("finite"), "{error}");
+    assert_eq!(
+        world.find_node(hero).unwrap().transform.translation,
+        Vec3::ZERO
+    );
+
+    let error = world
+        .set_property(
+            hero,
+            &scale_path,
+            ScenePropertyValue::Vec3([1.0, f32::NEG_INFINITY, 1.0]),
+        )
+        .unwrap_err();
+    assert!(error.contains("finite"), "{error}");
+    assert_eq!(world.find_node(hero).unwrap().transform.scale, Vec3::ONE);
 }

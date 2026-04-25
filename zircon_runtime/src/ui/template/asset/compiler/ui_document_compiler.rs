@@ -37,7 +37,10 @@ impl UiDocumentCompiler {
         document: UiAssetDocument,
     ) -> Result<&mut Self, UiAssetError> {
         let reference = reference.into();
-        if document.asset.kind != UiAssetKind::Widget {
+        if !matches!(
+            document.asset.kind,
+            UiAssetKind::Layout | UiAssetKind::Widget
+        ) {
             return Err(UiAssetError::ImportKindMismatch {
                 reference,
                 expected: UiAssetKind::Widget,

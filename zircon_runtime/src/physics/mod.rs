@@ -10,7 +10,8 @@ pub use module::{
 };
 pub use physics_interface::PhysicsInterface;
 pub use service_types::{
-    build_world_sync_state, DefaultPhysicsManager, PhysicsDriver, PhysicsTickPlan, JOLT_ENABLED,
+    build_world_sync_state, integrate_builtin_physics_steps, DefaultPhysicsManager, PhysicsDriver,
+    PhysicsTickPlan, JOLT_ENABLED,
 };
 
 #[cfg(test)]

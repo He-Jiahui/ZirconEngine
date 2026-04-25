@@ -1,4 +1,6 @@
-use super::support::{cluster_ordering, clusters_by_id};
+use super::support::{
+    cluster_ordering, clusters_by_id, node_and_cluster_cull_pass_output_from_launch_worklist,
+};
 use super::*;
 
 #[test]
@@ -11,6 +13,7 @@ fn seed_backed_execution_selection_expands_all_clusters_in_seed_range_and_page_r
             RenderVirtualGeometryCluster {
                 entity,
                 cluster_id: 20,
+                hierarchy_node_id: None,
                 page_id: 200,
                 lod_level: 1,
                 parent_cluster_id: None,
@@ -21,6 +24,7 @@ fn seed_backed_execution_selection_expands_all_clusters_in_seed_range_and_page_r
             RenderVirtualGeometryCluster {
                 entity,
                 cluster_id: 30,
+                hierarchy_node_id: None,
                 page_id: 300,
                 lod_level: 0,
                 parent_cluster_id: None,
@@ -29,6 +33,8 @@ fn seed_backed_execution_selection_expands_all_clusters_in_seed_range_and_page_r
                 screen_space_error: 0.25,
             },
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity,
@@ -114,6 +120,7 @@ fn seed_backed_execution_selection_derives_lineage_depth_from_parent_chain() {
             RenderVirtualGeometryCluster {
                 entity,
                 cluster_id: 20,
+                hierarchy_node_id: None,
                 page_id: 200,
                 lod_level: 2,
                 parent_cluster_id: None,
@@ -124,6 +131,7 @@ fn seed_backed_execution_selection_derives_lineage_depth_from_parent_chain() {
             RenderVirtualGeometryCluster {
                 entity,
                 cluster_id: 30,
+                hierarchy_node_id: None,
                 page_id: 300,
                 lod_level: 1,
                 parent_cluster_id: Some(20),
@@ -134,6 +142,7 @@ fn seed_backed_execution_selection_derives_lineage_depth_from_parent_chain() {
             RenderVirtualGeometryCluster {
                 entity,
                 cluster_id: 40,
+                hierarchy_node_id: None,
                 page_id: 400,
                 lod_level: 0,
                 parent_cluster_id: Some(30),
@@ -142,6 +151,8 @@ fn seed_backed_execution_selection_derives_lineage_depth_from_parent_chain() {
                 screen_space_error: 0.25,
             },
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity,
@@ -246,6 +257,7 @@ fn seed_backed_execution_selection_keeps_instance_local_cluster_ordinal_for_subs
             RenderVirtualGeometryCluster {
                 entity,
                 cluster_id: 30,
+                hierarchy_node_id: None,
                 page_id: 300,
                 lod_level: 0,
                 parent_cluster_id: None,
@@ -256,6 +268,7 @@ fn seed_backed_execution_selection_keeps_instance_local_cluster_ordinal_for_subs
             RenderVirtualGeometryCluster {
                 entity,
                 cluster_id: 20,
+                hierarchy_node_id: None,
                 page_id: 200,
                 lod_level: 1,
                 parent_cluster_id: None,
@@ -264,6 +277,8 @@ fn seed_backed_execution_selection_keeps_instance_local_cluster_ordinal_for_subs
                 screen_space_error: 0.5,
             },
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity,
@@ -329,6 +344,7 @@ fn seed_backed_execution_selection_collection_uses_node_and_cluster_cull_seed_ra
             RenderVirtualGeometryCluster {
                 entity,
                 cluster_id: 30,
+                hierarchy_node_id: None,
                 page_id: 300,
                 lod_level: 0,
                 parent_cluster_id: None,
@@ -339,6 +355,7 @@ fn seed_backed_execution_selection_collection_uses_node_and_cluster_cull_seed_ra
             RenderVirtualGeometryCluster {
                 entity,
                 cluster_id: 20,
+                hierarchy_node_id: None,
                 page_id: 200,
                 lod_level: 1,
                 parent_cluster_id: None,
@@ -349,6 +366,7 @@ fn seed_backed_execution_selection_collection_uses_node_and_cluster_cull_seed_ra
             RenderVirtualGeometryCluster {
                 entity,
                 cluster_id: 10,
+                hierarchy_node_id: None,
                 page_id: 100,
                 lod_level: 2,
                 parent_cluster_id: None,
@@ -357,6 +375,8 @@ fn seed_backed_execution_selection_collection_uses_node_and_cluster_cull_seed_ra
                 screen_space_error: 0.75,
             },
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![RenderVirtualGeometryPage {
             page_id: 200,
             resident: true,
@@ -378,35 +398,10 @@ fn seed_backed_execution_selection_collection_uses_node_and_cluster_cull_seed_ra
 
     let collection = collect_execution_cluster_selection_collection_from_root_seeds(
         Some(&extract),
-        &VirtualGeometryNodeAndClusterCullPassOutput {
-            source: RenderVirtualGeometryNodeAndClusterCullSource::RenderPathCullInput,
-            record_count: 1,
-            global_state: Some(RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot {
-                cull_input: RenderVirtualGeometryCullInputSnapshot {
-                    cluster_budget: 1,
-                    page_budget: 3,
-                    instance_count: 1,
-                    cluster_count: 1,
-                    page_count: 3,
-                    visible_entity_count: 1,
-                    visible_cluster_count: 1,
-                    resident_page_count: 1,
-                    pending_page_request_count: 0,
-                    available_page_slot_count: 0,
-                    evictable_page_count: 0,
-                    debug: RenderVirtualGeometryDebugState::default(),
-                    cluster_selection_input_source:
-                        RenderVirtualGeometryClusterSelectionInputSource::Unavailable,
-                },
-                viewport_size: [96, 64],
-                camera_translation: [0.0, 0.0, 0.0],
-                view_proj: [[0.0; 4]; 4],
-            }),
-            buffer: None,
-            dispatch_setup: None,
-            dispatch_setup_buffer: None,
-            instance_seed_count: 1,
-            instance_seeds: vec![RenderVirtualGeometryNodeAndClusterCullInstanceSeed {
+        &node_and_cluster_cull_pass_output_from_launch_worklist(
+            1,
+            3,
+            vec![RenderVirtualGeometryNodeAndClusterCullInstanceSeed {
                 instance_index: 0,
                 entity,
                 cluster_offset: 1,
@@ -414,8 +409,8 @@ fn seed_backed_execution_selection_collection_uses_node_and_cluster_cull_seed_ra
                 page_offset: 0,
                 page_count: 3,
             }],
-            instance_seed_buffer: None,
-        },
+            RenderVirtualGeometryDebugState::default(),
+        ),
     );
 
     assert_eq!(
@@ -457,6 +452,134 @@ fn seed_backed_execution_selection_collection_uses_node_and_cluster_cull_seed_ra
 }
 
 #[test]
+fn seed_backed_execution_selection_collection_requires_explicit_instance_work_item_contract() {
+    let entity = 42_u64;
+    let extract = RenderVirtualGeometryExtract {
+        cluster_budget: 1,
+        page_budget: 1,
+        clusters: vec![RenderVirtualGeometryCluster {
+            entity,
+            cluster_id: 20,
+            hierarchy_node_id: None,
+            page_id: 200,
+            lod_level: 1,
+            parent_cluster_id: None,
+            bounds_center: Vec3::ZERO,
+            bounds_radius: 0.5,
+            screen_space_error: 0.5,
+        }],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
+        pages: vec![RenderVirtualGeometryPage {
+            page_id: 200,
+            resident: true,
+            size_bytes: 2048,
+        }],
+        instances: vec![RenderVirtualGeometryInstance {
+            entity,
+            source_model: None,
+            transform: Transform::default(),
+            cluster_offset: 0,
+            cluster_count: 1,
+            page_offset: 0,
+            page_count: 1,
+            mesh_name: Some("SeedCompatRequiresLaunchWorklistUnitTestMesh".to_string()),
+            source_hint: Some("unit-test".to_string()),
+        }],
+        debug: RenderVirtualGeometryDebugState::default(),
+    };
+    let mut node_and_cluster_cull_pass = node_and_cluster_cull_pass_output_from_launch_worklist(
+        1,
+        1,
+        vec![RenderVirtualGeometryNodeAndClusterCullInstanceSeed {
+            instance_index: 0,
+            entity,
+            cluster_offset: 0,
+            cluster_count: 1,
+            page_offset: 0,
+            page_count: 1,
+        }],
+        RenderVirtualGeometryDebugState::default(),
+    );
+    node_and_cluster_cull_pass.instance_work_item_count = 0;
+    node_and_cluster_cull_pass.instance_work_items.clear();
+    node_and_cluster_cull_pass.instance_work_item_buffer = None;
+
+    let collection = collect_execution_cluster_selection_collection_from_root_seeds(
+        Some(&extract),
+        &node_and_cluster_cull_pass,
+    );
+
+    assert!(
+        collection.selections.is_empty() && collection.selected_clusters.is_empty(),
+        "expected the seed-backed compat consumer to require the explicit NodeAndClusterCull instance-work-item contract instead of silently reconstructing execution work from launch setup or the broader extract"
+    );
+}
+
+#[test]
+fn seed_backed_execution_selection_collection_requires_explicit_cluster_work_item_contract() {
+    let entity = 42_u64;
+    let extract = RenderVirtualGeometryExtract {
+        cluster_budget: 1,
+        page_budget: 1,
+        clusters: vec![RenderVirtualGeometryCluster {
+            entity,
+            cluster_id: 20,
+            hierarchy_node_id: None,
+            page_id: 200,
+            lod_level: 1,
+            parent_cluster_id: None,
+            bounds_center: Vec3::ZERO,
+            bounds_radius: 0.5,
+            screen_space_error: 0.5,
+        }],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
+        pages: vec![RenderVirtualGeometryPage {
+            page_id: 200,
+            resident: true,
+            size_bytes: 2048,
+        }],
+        instances: vec![RenderVirtualGeometryInstance {
+            entity,
+            source_model: None,
+            transform: Transform::default(),
+            cluster_offset: 0,
+            cluster_count: 1,
+            page_offset: 0,
+            page_count: 1,
+            mesh_name: Some("SeedCompatRequiresClusterWorkItemsUnitTestMesh".to_string()),
+            source_hint: Some("unit-test".to_string()),
+        }],
+        debug: RenderVirtualGeometryDebugState::default(),
+    };
+    let mut node_and_cluster_cull_pass = node_and_cluster_cull_pass_output_from_launch_worklist(
+        1,
+        1,
+        vec![RenderVirtualGeometryNodeAndClusterCullInstanceSeed {
+            instance_index: 0,
+            entity,
+            cluster_offset: 0,
+            cluster_count: 1,
+            page_offset: 0,
+            page_count: 1,
+        }],
+        RenderVirtualGeometryDebugState::default(),
+    );
+    node_and_cluster_cull_pass.cluster_work_items.clear();
+
+    let collection = collect_execution_cluster_selection_collection_from_root_seeds(
+        Some(&extract),
+        &node_and_cluster_cull_pass,
+    );
+
+    assert!(
+        collection.selections.is_empty() && collection.selected_clusters.is_empty(),
+        "expected the seed-backed compat consumer to require the explicit NodeAndClusterCull cluster-work-item seam instead of silently reconstructing cluster candidates from broader instance ranges"
+    );
+}
+
+#[test]
 fn seed_backed_execution_selection_respects_forced_mip() {
     let entity = 42_u64;
     let extract = RenderVirtualGeometryExtract {
@@ -466,6 +589,7 @@ fn seed_backed_execution_selection_respects_forced_mip() {
             RenderVirtualGeometryCluster {
                 entity,
                 cluster_id: 20,
+                hierarchy_node_id: None,
                 page_id: 200,
                 lod_level: 1,
                 parent_cluster_id: None,
@@ -476,6 +600,7 @@ fn seed_backed_execution_selection_respects_forced_mip() {
             RenderVirtualGeometryCluster {
                 entity,
                 cluster_id: 30,
+                hierarchy_node_id: None,
                 page_id: 300,
                 lod_level: 0,
                 parent_cluster_id: None,
@@ -484,6 +609,8 @@ fn seed_backed_execution_selection_respects_forced_mip() {
                 screen_space_error: 0.25,
             },
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity,

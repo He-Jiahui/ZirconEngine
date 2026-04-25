@@ -9,13 +9,13 @@ use super::base_state::base_state;
 use super::constants::{
     ROOT_NODE_ID, STRIP_NODE_ID, STRIP_X, STRIP_Y, TAB_GAP, TAB_HEIGHT, TAB_MIN_WIDTH,
 };
+use super::host_page_pointer_bridge::HostPagePointerBridge;
+use super::host_page_pointer_target::HostPagePointerTarget;
 use super::register_handled_pointer_node::register_handled_pointer_node;
 use super::root_frame::root_frame;
 use super::tab_node_id::tab_node_id;
-use super::workbench_host_page_pointer_bridge::WorkbenchHostPagePointerBridge;
-use super::workbench_host_page_pointer_target::WorkbenchHostPagePointerTarget;
 
-impl WorkbenchHostPagePointerBridge {
+impl HostPagePointerBridge {
     pub(super) fn rebuild_surface(&mut self) {
         let mut surface = UiSurface::new(UiTreeId::new("zircon.editor.host_page.pointer"));
         let mut dispatcher = UiPointerDispatcher::default();
@@ -77,7 +77,7 @@ impl WorkbenchHostPagePointerBridge {
             register_handled_pointer_node(&mut dispatcher, node_id);
             targets.insert(
                 node_id,
-                WorkbenchHostPagePointerTarget::Tab {
+                HostPagePointerTarget::Tab {
                     item_index,
                     page_id: item.page_id.clone(),
                 },

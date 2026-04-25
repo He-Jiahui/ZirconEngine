@@ -41,10 +41,9 @@ impl SlintEditorHost {
             bootstrap.shell_frame.width.max(1.0),
             bootstrap.shell_frame.height.max(1.0),
         );
-        let template_bridge = callback_dispatch::BuiltinWorkbenchTemplateBridge::new(UiSize::new(
-            shell_size.width,
-            shell_size.height,
-        ))?;
+        let template_bridge = callback_dispatch::BuiltinHostWindowTemplateBridge::new(
+            UiSize::new(shell_size.width, shell_size.height),
+        )?;
         let floating_window_source_bridge =
             callback_dispatch::BuiltinFloatingWindowSourceTemplateBridge::new(UiSize::new(
                 shell_size.width,
@@ -83,14 +82,14 @@ impl SlintEditorHost {
             welcome_surface_bridge,
             inspector_surface_bridge,
             pane_surface_bridge,
-            shell_pointer_bridge: WorkbenchShellPointerBridge::new(),
-            activity_rail_pointer_bridge: WorkbenchActivityRailPointerBridge::new(),
-            host_page_pointer_bridge: WorkbenchHostPagePointerBridge::new(),
-            document_tab_pointer_bridge: WorkbenchDocumentTabPointerBridge::new(),
-            drawer_header_pointer_bridge: WorkbenchDrawerHeaderPointerBridge::new(),
-            menu_pointer_bridge: WorkbenchMenuPointerBridge::new(),
-            menu_pointer_state: WorkbenchMenuPointerState::default(),
-            menu_pointer_layout: WorkbenchMenuPointerLayout::default(),
+            shell_pointer_bridge: HostShellPointerBridge::new(),
+            activity_rail_pointer_bridge: HostActivityRailPointerBridge::new(),
+            host_page_pointer_bridge: HostPagePointerBridge::new(),
+            document_tab_pointer_bridge: HostDocumentTabPointerBridge::new(),
+            drawer_header_pointer_bridge: HostDrawerHeaderPointerBridge::new(),
+            menu_pointer_bridge: HostMenuPointerBridge::new(),
+            menu_pointer_state: HostMenuPointerState::default(),
+            menu_pointer_layout: HostMenuPointerLayout::default(),
             welcome_recent_pointer_bridge: WelcomeRecentPointerBridge::new(),
             welcome_recent_pointer_state: WelcomeRecentPointerState::default(),
             welcome_recent_pointer_size: UiSize::new(0.0, 0.0),
@@ -287,6 +286,7 @@ impl SlintEditorHost {
         let preset_names = self.runtime.preset_names();
         let ui_asset_panes = self.collect_ui_asset_panes();
         let animation_panes = self.collect_animation_editor_panes();
+        let runtime_diagnostics = self.editor_manager.runtime_diagnostics();
         apply_presentation(
             &self.ui,
             &model,
@@ -296,6 +296,7 @@ impl SlintEditorHost {
             self.active_layout_preset.as_deref(),
             &ui_asset_panes,
             &animation_panes,
+            Some(&runtime_diagnostics),
             Some(&root_shell_frames),
             &floating_window_projection_bundle,
         );
@@ -306,6 +307,7 @@ impl SlintEditorHost {
             &preset_names,
             &ui_asset_panes,
             &animation_panes,
+            &runtime_diagnostics,
             &floating_window_projection_bundle,
         );
         self.sync_menu_pointer_layout(&chrome, &preset_names);
@@ -429,6 +431,7 @@ impl SlintEditorHost {
             String,
             crate::ui::animation_editor::AnimationEditorPanePresentation,
         >,
+        runtime_diagnostics: &zircon_runtime::core::diagnostics::RuntimeDiagnosticsSnapshot,
         floating_window_projection_bundle: &FloatingWindowProjectionBundle,
     ) {
         let targets =
@@ -462,6 +465,7 @@ impl SlintEditorHost {
                     active_preset_name,
                     ui_asset_panes,
                     animation_panes,
+                    Some(runtime_diagnostics),
                     None,
                     floating_window_projection_bundle,
                 );

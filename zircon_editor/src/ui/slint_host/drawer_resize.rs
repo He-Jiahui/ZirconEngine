@@ -10,16 +10,16 @@ use crate::ui::workbench::autolayout::{ShellSizePx, WorkbenchShellGeometry};
 use zircon_runtime::ui::layout::UiPoint;
 
 #[cfg(test)]
-use super::shell_pointer::WorkbenchShellPointerBridge;
+use super::shell_pointer::HostShellPointerBridge;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(crate) enum WorkbenchResizeTargetGroup {
+pub(crate) enum HostResizeTargetGroup {
     Left,
     Right,
     Bottom,
 }
 
-impl WorkbenchResizeTargetGroup {
+impl HostResizeTargetGroup {
     pub(crate) const fn region(self) -> ShellRegionId {
         match self {
             Self::Left => ShellRegionId::Left,
@@ -30,12 +30,12 @@ impl WorkbenchResizeTargetGroup {
 }
 
 #[cfg(test)]
-pub(crate) fn resolve_workbench_resize_target_group(
+pub(crate) fn resolve_host_resize_target_group(
     root_size: ShellSizePx,
     geometry: &WorkbenchShellGeometry,
     point: UiPoint,
-) -> Option<WorkbenchResizeTargetGroup> {
-    let mut bridge = WorkbenchShellPointerBridge::new();
+) -> Option<HostResizeTargetGroup> {
+    let mut bridge = HostShellPointerBridge::new();
     bridge.update_layout(root_size, geometry, true);
     bridge.resize_target_at(point)
 }

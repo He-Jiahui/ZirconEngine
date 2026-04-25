@@ -1,17 +1,17 @@
 pub(super) use crate::core::editor_event::{EditorEvent, LayoutCommand, MenuAction};
 pub(super) use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
 pub(super) use crate::ui::slint_host::callback_dispatch::{
-    dispatch_menu_action, dispatch_shared_menu_pointer_click, BuiltinWorkbenchRootShellFrames,
-    BuiltinWorkbenchTemplateBridge,
+    dispatch_menu_action, dispatch_shared_menu_pointer_click, BuiltinHostRootShellFrames,
+    BuiltinHostWindowTemplateBridge,
 };
 pub(super) use crate::ui::slint_host::menu_pointer::{
-    build_workbench_menu_pointer_layout, WorkbenchMenuPointerBridge, WorkbenchMenuPointerLayout,
-    WorkbenchMenuPointerRoute, WorkbenchMenuPointerState,
+    build_host_menu_pointer_layout, HostMenuPointerBridge, HostMenuPointerLayout,
+    HostMenuPointerRoute, HostMenuPointerState,
 };
 pub(super) use zircon_runtime::ui::{layout::UiFrame, layout::UiPoint, layout::UiSize};
 
-pub(super) fn default_menu_layout() -> WorkbenchMenuPointerLayout {
-    WorkbenchMenuPointerLayout {
+pub(super) fn default_menu_layout() -> HostMenuPointerLayout {
+    HostMenuPointerLayout {
         shell_frame: UiFrame::new(0.0, 0.0, 1280.0, 720.0),
         button_frames: [
             UiFrame::new(8.0, 1.0, 40.0, 22.0),
@@ -32,7 +32,7 @@ pub(super) fn default_menu_layout() -> WorkbenchMenuPointerLayout {
     }
 }
 
-pub(super) fn window_menu_layout(preset_count: usize) -> WorkbenchMenuPointerLayout {
+pub(super) fn window_menu_layout(preset_count: usize) -> HostMenuPointerLayout {
     let mut layout = default_menu_layout();
     layout.preset_names = (0..preset_count)
         .map(|index| format!("alpha-{index:02}"))

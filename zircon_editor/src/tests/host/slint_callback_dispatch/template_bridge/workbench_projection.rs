@@ -4,10 +4,10 @@ use crate::ui::workbench::fixture::default_preview_fixture;
 use crate::ui::workbench::model::WorkbenchViewModel;
 
 #[test]
-fn builtin_workbench_template_bridge_recomputes_surface_backed_frames_with_shell_size() {
+fn builtin_host_window_template_bridge_recomputes_surface_backed_frames_with_shell_size() {
     let _guard = env_lock().lock().unwrap();
 
-    let mut bridge = BuiltinWorkbenchTemplateBridge::new(UiSize::new(1280.0, 720.0)).unwrap();
+    let mut bridge = BuiltinHostWindowTemplateBridge::new(UiSize::new(1280.0, 720.0)).unwrap();
     let initial = bridge
         .host_projection()
         .node_by_control_id("DocumentHostRoot")
@@ -47,7 +47,7 @@ fn builtin_workbench_template_bridge_recomputes_surface_backed_frames_with_shell
         Some(UiFrame::new(0.0, 26.0, 960.0, 24.0))
     );
     assert_eq!(
-        root_frames.workbench_body_frame,
+        root_frames.host_body_frame,
         Some(UiFrame::new(0.0, 40.0, 960.0, 476.0))
     );
     assert_eq!(
@@ -69,14 +69,14 @@ fn builtin_workbench_template_bridge_recomputes_surface_backed_frames_with_shell
 }
 
 #[test]
-fn builtin_workbench_template_bridge_exports_visible_drawer_shell_and_header_frames_from_workbench_model(
+fn builtin_host_window_template_bridge_exports_visible_drawer_shell_and_header_frames_from_workbench_model(
 ) {
     let _guard = env_lock().lock().unwrap();
 
     let fixture = default_preview_fixture();
     let chrome = fixture.build_chrome();
     let model = WorkbenchViewModel::build(&chrome);
-    let mut bridge = BuiltinWorkbenchTemplateBridge::new(UiSize::new(1280.0, 720.0)).unwrap();
+    let mut bridge = BuiltinHostWindowTemplateBridge::new(UiSize::new(1280.0, 720.0)).unwrap();
     bridge
         .recompute_layout_with_workbench_model(
             UiSize::new(1280.0, 720.0),
@@ -87,7 +87,7 @@ fn builtin_workbench_template_bridge_exports_visible_drawer_shell_and_header_fra
 
     let root_frames = bridge.root_shell_frames();
     let body_frame = root_frames
-        .workbench_body_frame
+        .host_body_frame
         .expect("workbench body projection frame should exist");
     let expected_center_height = body_frame.height - 164.0 - 1.0;
     assert_eq!(

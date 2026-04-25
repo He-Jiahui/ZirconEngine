@@ -12,6 +12,7 @@ pub(super) fn binding_view_id(activity: &EditorActivityReflection) -> String {
         "editor.game" => "GameView".to_string(),
         "editor.assets" => "AssetsView".to_string(),
         "editor.console" => "ConsoleView".to_string(),
+        "editor.runtime_diagnostics" => "RuntimeDiagnosticsView".to_string(),
         "editor.prefab" => "PrefabEditorWindow".to_string(),
         "editor.asset_browser" => "AssetBrowserWindow".to_string(),
         _ => activity.instance_id.clone(),
@@ -48,6 +49,7 @@ pub(super) fn content_kind_name(kind: ViewContentKind) -> &'static str {
         ViewContentKind::UiAssetEditor => "ui_asset_editor",
         ViewContentKind::AnimationSequenceEditor => "animation_sequence_editor",
         ViewContentKind::AnimationGraphEditor => "animation_graph_editor",
+        ViewContentKind::RuntimeDiagnostics => "runtime_diagnostics",
         ViewContentKind::Placeholder => "placeholder",
     }
 }

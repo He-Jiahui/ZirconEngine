@@ -1,17 +1,17 @@
 use zircon_runtime::ui::layout::UiPoint;
 
-use super::workbench_activity_rail_pointer_bridge::WorkbenchActivityRailPointerBridge;
-use super::workbench_activity_rail_pointer_side::WorkbenchActivityRailPointerSide;
+use super::host_activity_rail_pointer_bridge::HostActivityRailPointerBridge;
+use super::host_activity_rail_pointer_side::HostActivityRailPointerSide;
 
-impl WorkbenchActivityRailPointerBridge {
+impl HostActivityRailPointerBridge {
     pub(super) fn global_point_for_side(
         &self,
-        side: WorkbenchActivityRailPointerSide,
+        side: HostActivityRailPointerSide,
         point: UiPoint,
     ) -> UiPoint {
         let frame = match side {
-            WorkbenchActivityRailPointerSide::Left => self.layout.left_strip_frame,
-            WorkbenchActivityRailPointerSide::Right => self.layout.right_strip_frame,
+            HostActivityRailPointerSide::Left => self.layout.left_strip_frame,
+            HostActivityRailPointerSide::Right => self.layout.right_strip_frame,
         };
         UiPoint::new(frame.x + point.x, frame.y + point.y)
     }

@@ -20,6 +20,7 @@ pub(super) fn placeholder_view(
         serializable_payload: Value::Null,
         dirty: false,
         content_kind: ViewContentKind::Placeholder,
+        pane_template: None,
         placeholder: true,
     }
 }

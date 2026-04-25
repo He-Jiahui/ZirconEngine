@@ -12,7 +12,7 @@ fn builtin_workbench_drawer_source_template_bridge_exports_visible_drawer_frames
     let chrome = fixture.build_chrome();
     let model = WorkbenchViewModel::build(&chrome);
     let mut bridge =
-        BuiltinWorkbenchDrawerSourceTemplateBridge::new(UiSize::new(1280.0, 720.0)).unwrap();
+        BuiltinHostDrawerSourceTemplateBridge::new(UiSize::new(1280.0, 720.0)).unwrap();
     bridge
         .recompute_layout_with_workbench_model(
             UiSize::new(1280.0, 720.0),

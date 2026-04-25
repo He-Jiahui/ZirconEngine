@@ -3,7 +3,7 @@ use std::rc::Rc;
 
 use crate::ui::slint_host::{
     configure_native_floating_window_presentation, NativeFloatingWindowTarget,
-    NativeWindowPresenterStore, WorkbenchHostContext,
+    NativeWindowPresenterStore, UiHostContext,
 };
 use crate::ui::workbench::layout::MainPageId;
 use slint::{ComponentHandle, PhysicalSize};
@@ -110,7 +110,7 @@ fn native_window_presenter_store_runs_child_window_creation_hook_for_callback_wi
             &[target],
             |ui, _target| {
                 let callback_hits = callback_hits.clone();
-                ui.global::<WorkbenchHostContext>()
+                ui.global::<UiHostContext>()
                     .on_menu_pointer_clicked(move |_x, _y| {
                         callback_hits.set(callback_hits.get() + 1);
                     });
@@ -125,7 +125,7 @@ fn native_window_presenter_store_runs_child_window_creation_hook_for_callback_wi
         .window(&window_id)
         .expect("native window should exist after sync");
     window
-        .global::<WorkbenchHostContext>()
+        .global::<UiHostContext>()
         .invoke_menu_pointer_clicked(18.0, 24.0);
 
     assert_eq!(callback_hits.get(), 1);

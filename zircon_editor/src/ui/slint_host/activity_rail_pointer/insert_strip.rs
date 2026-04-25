@@ -7,22 +7,22 @@ use zircon_runtime::ui::{
 
 use super::base_state::base_state;
 use super::constants::{BUTTON_EXTENT, BUTTON_GAP, STRIP_X_INSET, STRIP_Y_INSET};
+use super::host_activity_rail_pointer_item::HostActivityRailPointerItem;
+use super::host_activity_rail_pointer_side::HostActivityRailPointerSide;
+use super::host_activity_rail_pointer_target::HostActivityRailPointerTarget;
 use super::register_handled_pointer_node::register_handled_pointer_node;
 use super::strip_button_node_id::strip_button_node_id;
-use super::workbench_activity_rail_pointer_item::WorkbenchActivityRailPointerItem;
-use super::workbench_activity_rail_pointer_side::WorkbenchActivityRailPointerSide;
-use super::workbench_activity_rail_pointer_target::WorkbenchActivityRailPointerTarget;
 
 pub(super) fn insert_strip(
     surface: &mut UiSurface,
     dispatcher: &mut UiPointerDispatcher,
-    targets: &mut BTreeMap<UiNodeId, WorkbenchActivityRailPointerTarget>,
+    targets: &mut BTreeMap<UiNodeId, HostActivityRailPointerTarget>,
     root_node_id: UiNodeId,
     strip_node_id: UiNodeId,
     path: &str,
     frame: UiFrame,
-    tabs: &[WorkbenchActivityRailPointerItem],
-    side: WorkbenchActivityRailPointerSide,
+    tabs: &[HostActivityRailPointerItem],
+    side: HostActivityRailPointerSide,
 ) {
     if frame.width <= 0.0 || frame.height <= 0.0 {
         return;
@@ -40,10 +40,7 @@ pub(super) fn insert_strip(
         )
         .expect("activity rail root must exist");
     register_handled_pointer_node(dispatcher, strip_node_id);
-    targets.insert(
-        strip_node_id,
-        WorkbenchActivityRailPointerTarget::Strip(side),
-    );
+    targets.insert(strip_node_id, HostActivityRailPointerTarget::Strip(side));
 
     for (item_index, tab) in tabs.iter().enumerate() {
         let node_id = strip_button_node_id(side, item_index);
@@ -69,7 +66,7 @@ pub(super) fn insert_strip(
         register_handled_pointer_node(dispatcher, node_id);
         targets.insert(
             node_id,
-            WorkbenchActivityRailPointerTarget::Button {
+            HostActivityRailPointerTarget::Button {
                 side,
                 item_index,
                 slot: tab.slot.clone(),

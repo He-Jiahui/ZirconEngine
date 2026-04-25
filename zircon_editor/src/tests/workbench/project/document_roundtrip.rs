@@ -48,6 +48,7 @@ fn editor_project_document_roundtrips_world_and_workspace() {
                     visible: true,
                 },
             )]),
+            activity_windows: Default::default(),
             floating_windows: vec![FloatingWindowLayout {
                 window_id: MainPageId::new("float#1"),
                 title: "Scene".to_string(),

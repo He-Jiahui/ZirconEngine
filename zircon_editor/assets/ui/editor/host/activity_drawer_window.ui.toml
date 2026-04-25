@@ -1,0 +1,271 @@
+stylesheets = []
+
+[asset]
+kind = "layout"
+id = "editor.host.activity_drawer_window"
+version = 1
+display_name = "activity drawer window"
+
+[imports]
+widgets = []
+styles = []
+
+[tokens]
+
+[root]
+node_id = "activity_drawer_window_root_instance"
+kind = "component"
+component = "ActivityDrawerWindow"
+
+[components.ActivityDrawerWindow]
+style_scope = "closed"
+
+[components.ActivityDrawerWindow.root]
+node_id = "component_activity_drawer_window_root"
+kind = "native"
+type = "VerticalBox"
+control_id = "ActivityDrawerWindowRoot"
+classes = ["activity-drawer-window"]
+
+[components.ActivityDrawerWindow.root.layout]
+clip = true
+
+[components.ActivityDrawerWindow.root.layout.container]
+kind = "VerticalBox"
+gap = 0.0
+
+[components.ActivityDrawerWindow.root.layout.width]
+stretch = "Stretch"
+
+[components.ActivityDrawerWindow.root.layout.height]
+stretch = "Stretch"
+
+[[components.ActivityDrawerWindow.root.children]]
+[components.ActivityDrawerWindow.root.children.slot]
+
+[components.ActivityDrawerWindow.root.children.node]
+node_id = "activity_drawer_window_center_band"
+kind = "native"
+type = "HorizontalBox"
+control_id = "ActivityDrawerWindowCenterBand"
+
+[components.ActivityDrawerWindow.root.children.node.layout]
+clip = true
+
+[components.ActivityDrawerWindow.root.children.node.layout.container]
+kind = "HorizontalBox"
+gap = 0.0
+
+[components.ActivityDrawerWindow.root.children.node.layout.width]
+stretch = "Stretch"
+
+[components.ActivityDrawerWindow.root.children.node.layout.height]
+stretch = "Stretch"
+
+[[components.ActivityDrawerWindow.root.children.node.children]]
+[components.ActivityDrawerWindow.root.children.node.children.slot]
+
+[components.ActivityDrawerWindow.root.children.node.children.node]
+node_id = "activity_drawer_window_left_column"
+kind = "native"
+type = "VerticalBox"
+control_id = "ActivityDrawerWindowLeftColumn"
+
+[components.ActivityDrawerWindow.root.children.node.children.node.layout]
+clip = true
+
+[components.ActivityDrawerWindow.root.children.node.children.node.layout.container]
+kind = "VerticalBox"
+gap = 0.0
+
+[components.ActivityDrawerWindow.root.children.node.children.node.layout.width]
+min = 0.0
+preferred = 260.0
+stretch = "Fixed"
+
+[components.ActivityDrawerWindow.root.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[components.ActivityDrawerWindow.root.children.node.children.node.children]]
+[components.ActivityDrawerWindow.root.children.node.children.node.children.slot]
+
+[components.ActivityDrawerWindow.root.children.node.children.node.children.node]
+node_id = "activity_drawer_window_left_top_slot"
+kind = "slot"
+slot_name = "left_top_activity"
+control_id = "ActivityDrawerWindowLeftTopSlot"
+
+[components.ActivityDrawerWindow.root.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[components.ActivityDrawerWindow.root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[components.ActivityDrawerWindow.root.children.node.children.node.children]]
+[components.ActivityDrawerWindow.root.children.node.children.node.children.slot]
+
+[components.ActivityDrawerWindow.root.children.node.children.node.children.node]
+node_id = "activity_drawer_window_left_bottom_slot"
+kind = "slot"
+slot_name = "left_bottom_activity"
+control_id = "ActivityDrawerWindowLeftBottomSlot"
+
+[components.ActivityDrawerWindow.root.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[components.ActivityDrawerWindow.root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[components.ActivityDrawerWindow.root.children.node.children]]
+[components.ActivityDrawerWindow.root.children.node.children.slot]
+
+[components.ActivityDrawerWindow.root.children.node.children.node]
+node_id = "activity_drawer_window_content_slot"
+kind = "slot"
+slot_name = "content"
+control_id = "ActivityDrawerWindowContentSlot"
+
+[components.ActivityDrawerWindow.root.children.node.children.node.layout]
+clip = true
+
+[components.ActivityDrawerWindow.root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[components.ActivityDrawerWindow.root.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[components.ActivityDrawerWindow.root.children.node.children]]
+[components.ActivityDrawerWindow.root.children.node.children.slot]
+
+[components.ActivityDrawerWindow.root.children.node.children.node]
+node_id = "activity_drawer_window_right_column"
+kind = "native"
+type = "VerticalBox"
+control_id = "ActivityDrawerWindowRightColumn"
+
+[components.ActivityDrawerWindow.root.children.node.children.node.layout]
+clip = true
+
+[components.ActivityDrawerWindow.root.children.node.children.node.layout.container]
+kind = "VerticalBox"
+gap = 0.0
+
+[components.ActivityDrawerWindow.root.children.node.children.node.layout.width]
+min = 0.0
+preferred = 308.0
+stretch = "Fixed"
+
+[components.ActivityDrawerWindow.root.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[components.ActivityDrawerWindow.root.children.node.children.node.children]]
+[components.ActivityDrawerWindow.root.children.node.children.node.children.slot]
+
+[components.ActivityDrawerWindow.root.children.node.children.node.children.node]
+node_id = "activity_drawer_window_right_top_slot"
+kind = "slot"
+slot_name = "right_top_activity"
+control_id = "ActivityDrawerWindowRightTopSlot"
+
+[components.ActivityDrawerWindow.root.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[components.ActivityDrawerWindow.root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[components.ActivityDrawerWindow.root.children.node.children.node.children]]
+[components.ActivityDrawerWindow.root.children.node.children.node.children.slot]
+
+[components.ActivityDrawerWindow.root.children.node.children.node.children.node]
+node_id = "activity_drawer_window_right_bottom_slot"
+kind = "slot"
+slot_name = "right_bottom_activity"
+control_id = "ActivityDrawerWindowRightBottomSlot"
+
+[components.ActivityDrawerWindow.root.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[components.ActivityDrawerWindow.root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[components.ActivityDrawerWindow.root.children]]
+[components.ActivityDrawerWindow.root.children.slot]
+
+[components.ActivityDrawerWindow.root.children.node]
+node_id = "activity_drawer_window_bottom_row"
+kind = "native"
+type = "HorizontalBox"
+control_id = "ActivityDrawerWindowBottomRow"
+
+[components.ActivityDrawerWindow.root.children.node.layout]
+clip = true
+
+[components.ActivityDrawerWindow.root.children.node.layout.container]
+kind = "HorizontalBox"
+gap = 0.0
+
+[components.ActivityDrawerWindow.root.children.node.layout.width]
+stretch = "Stretch"
+
+[components.ActivityDrawerWindow.root.children.node.layout.height]
+min = 0.0
+preferred = 200.0
+stretch = "Fixed"
+
+[[components.ActivityDrawerWindow.root.children.node.children]]
+[components.ActivityDrawerWindow.root.children.node.children.slot]
+
+[components.ActivityDrawerWindow.root.children.node.children.node]
+node_id = "activity_drawer_window_bottom_left_slot"
+kind = "slot"
+slot_name = "bottom_left_activity"
+control_id = "ActivityDrawerWindowBottomLeftSlot"
+
+[components.ActivityDrawerWindow.root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[components.ActivityDrawerWindow.root.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[components.ActivityDrawerWindow.root.children.node.children]]
+[components.ActivityDrawerWindow.root.children.node.children.slot]
+
+[components.ActivityDrawerWindow.root.children.node.children.node]
+node_id = "activity_drawer_window_bottom_right_slot"
+kind = "slot"
+slot_name = "bottom_right_activity"
+control_id = "ActivityDrawerWindowBottomRightSlot"
+
+[components.ActivityDrawerWindow.root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[components.ActivityDrawerWindow.root.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[components.ActivityDrawerWindow.slots.left_top_activity]
+required = false
+multiple = false
+
+[components.ActivityDrawerWindow.slots.left_bottom_activity]
+required = false
+multiple = false
+
+[components.ActivityDrawerWindow.slots.right_top_activity]
+required = false
+multiple = false
+
+[components.ActivityDrawerWindow.slots.right_bottom_activity]
+required = false
+multiple = false
+
+[components.ActivityDrawerWindow.slots.bottom_left_activity]
+required = false
+multiple = false
+
+[components.ActivityDrawerWindow.slots.bottom_right_activity]
+required = false
+multiple = false
+
+[components.ActivityDrawerWindow.slots.content]
+required = false
+multiple = false

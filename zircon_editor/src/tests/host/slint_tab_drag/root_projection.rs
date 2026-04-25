@@ -26,7 +26,7 @@ fn shared_shell_pointer_route_reports_document_edge_before_document_group() {
         floating_window_frames: BTreeMap::new(),
         viewport_content_frame: ShellFrame::new(0.0, 0.0, 0.0, 0.0),
     };
-    let mut bridge = WorkbenchShellPointerBridge::new();
+    let mut bridge = HostShellPointerBridge::new();
     bridge.update_layout_with_floating_windows(
         UiSize::new(1440.0, 900.0),
         &geometry,
@@ -37,11 +37,11 @@ fn shared_shell_pointer_route_reports_document_edge_before_document_group() {
 
     assert_eq!(
         bridge.drag_route_at(UiPoint::new(12.0, 240.0)),
-        Some(WorkbenchShellPointerRoute::DocumentEdge(DockEdge::Left))
+        Some(HostShellPointerRoute::DocumentEdge(DockEdge::Left))
     );
     assert_eq!(
         bridge.drag_target_at(UiPoint::new(12.0, 240.0)),
-        Some(WorkbenchDragTargetGroup::Document)
+        Some(HostDragTargetGroup::Document)
     );
 }
 
@@ -72,13 +72,13 @@ fn shared_shell_pointer_route_uses_shared_root_projection_document_bounds_when_d
         floating_window_frames: BTreeMap::new(),
         viewport_content_frame: ShellFrame::default(),
     };
-    let root_projection = BuiltinWorkbenchRootShellFrames {
-        workbench_body_frame: Some(UiFrame::new(0.0, 40.0, 1440.0, 656.0)),
+    let root_projection = BuiltinHostRootShellFrames {
+        host_body_frame: Some(UiFrame::new(0.0, 40.0, 1440.0, 656.0)),
         document_host_frame: Some(UiFrame::new(56.0, 40.0, 1384.0, 656.0)),
         status_bar_frame: Some(UiFrame::new(0.0, 696.0, 1440.0, 24.0)),
-        ..BuiltinWorkbenchRootShellFrames::default()
+        ..BuiltinHostRootShellFrames::default()
     };
-    let mut bridge = WorkbenchShellPointerBridge::new();
+    let mut bridge = HostShellPointerBridge::new();
     bridge.update_layout_with_root_shell_frames(
         UiSize::new(1440.0, 720.0),
         &geometry,
@@ -91,23 +91,22 @@ fn shared_shell_pointer_route_uses_shared_root_projection_document_bounds_when_d
     assert_eq!(bridge.drag_route_at(UiPoint::new(40.0, 240.0)), None);
     assert_eq!(
         bridge.drag_route_at(UiPoint::new(80.0, 240.0)),
-        Some(WorkbenchShellPointerRoute::DocumentEdge(DockEdge::Left))
+        Some(HostShellPointerRoute::DocumentEdge(DockEdge::Left))
     );
     assert_eq!(
         bridge.drag_target_at(UiPoint::new(80.0, 240.0)),
-        Some(WorkbenchDragTargetGroup::Document)
+        Some(HostDragTargetGroup::Document)
     );
     assert_eq!(
         bridge.drag_route_at(UiPoint::new(160.0, 240.0)),
-        Some(WorkbenchShellPointerRoute::DragTarget(
-            WorkbenchDragTargetGroup::Document,
+        Some(HostShellPointerRoute::DragTarget(
+            HostDragTargetGroup::Document,
         ))
     );
 }
 
 #[test]
-fn resolve_workbench_tab_drop_route_uses_shared_root_projection_tab_strip_when_drawers_are_collapsed(
-) {
+fn resolve_host_tab_drop_route_uses_shared_root_projection_tab_strip_when_drawers_are_collapsed() {
     let layout = WorkbenchLayout {
         active_main_page: MainPageId::workbench(),
         main_pages: vec![workbench_page(MainPageId::workbench())],
@@ -133,6 +132,7 @@ fn resolve_workbench_tab_drop_route_uses_shared_root_projection_tab_strip_when_d
                 ),
             ),
         ]),
+        activity_windows: Default::default(),
         floating_windows: Vec::new(),
         region_overrides: BTreeMap::new(),
         view_overrides: BTreeMap::new(),
@@ -169,12 +169,12 @@ fn resolve_workbench_tab_drop_route_uses_shared_root_projection_tab_strip_when_d
         ShellFrame::new(34.0, 50.0, 1086.0, 738.0),
         ShellFrame::new(0.0, 788.0, 1440.0, 92.0),
     );
-    let root_projection = BuiltinWorkbenchRootShellFrames {
-        workbench_body_frame: Some(UiFrame::new(0.0, 40.0, 1440.0, 840.0)),
+    let root_projection = BuiltinHostRootShellFrames {
+        host_body_frame: Some(UiFrame::new(0.0, 40.0, 1440.0, 840.0)),
         status_bar_frame: Some(UiFrame::new(0.0, 880.0, 1440.0, 20.0)),
-        ..BuiltinWorkbenchRootShellFrames::default()
+        ..BuiltinHostRootShellFrames::default()
     };
-    let mut bridge = WorkbenchShellPointerBridge::new();
+    let mut bridge = HostShellPointerBridge::new();
     bridge.update_layout_with_root_shell_frames(
         UiSize::new(1440.0, 900.0),
         &geometry,
@@ -191,7 +191,7 @@ fn resolve_workbench_tab_drop_route_uses_shared_root_projection_tab_strip_when_d
     let pointer_route = bridge.drag_route_at(UiPoint::new(pointer_x, 44.0));
 
     assert_eq!(
-        resolve_workbench_tab_drop_route_with_root_frames(
+        resolve_host_tab_drop_route_with_root_frames(
             &layout,
             &model,
             &geometry,
@@ -203,10 +203,10 @@ fn resolve_workbench_tab_drop_route_uses_shared_root_projection_tab_strip_when_d
             44.0,
             Some(&root_projection),
         ),
-        Some(ResolvedWorkbenchTabDropRoute {
-            target_group: WorkbenchDragTargetGroup::Right,
+        Some(ResolvedHostTabDropRoute {
+            target_group: HostDragTargetGroup::Right,
             target_label: "right tool stack",
-            target: ResolvedWorkbenchTabDropTarget::Attach(ResolvedTabDrop {
+            target: ResolvedHostTabDropTarget::Attach(ResolvedTabDrop {
                 host: ViewHost::Drawer(ActivityDrawerSlot::RightBottom),
                 anchor: Some(TabInsertionAnchor {
                     target_id: ViewInstanceId::new("editor.project#1"),
@@ -218,7 +218,7 @@ fn resolve_workbench_tab_drop_route_uses_shared_root_projection_tab_strip_when_d
 }
 
 #[test]
-fn resolve_workbench_tab_drop_route_uses_shared_root_projection_right_tab_strip_when_visible_drawer_geometry_is_stale(
+fn resolve_host_tab_drop_route_uses_shared_root_projection_right_tab_strip_when_visible_drawer_geometry_is_stale(
 ) {
     let layout = WorkbenchLayout {
         active_main_page: MainPageId::workbench(),
@@ -245,6 +245,7 @@ fn resolve_workbench_tab_drop_route_uses_shared_root_projection_right_tab_strip_
                 ),
             ),
         ]),
+        activity_windows: Default::default(),
         floating_windows: Vec::new(),
         region_overrides: BTreeMap::new(),
         view_overrides: BTreeMap::new(),
@@ -300,13 +301,13 @@ fn resolve_workbench_tab_drop_route_uses_shared_root_projection_right_tab_strip_
         floating_window_frames: BTreeMap::new(),
         viewport_content_frame: ShellFrame::default(),
     };
-    let root_projection = BuiltinWorkbenchRootShellFrames {
+    let root_projection = BuiltinHostRootShellFrames {
         shell_frame: Some(UiFrame::new(0.0, 0.0, 1440.0, 900.0)),
-        workbench_body_frame: Some(UiFrame::new(0.0, 40.0, 1440.0, 840.0)),
+        host_body_frame: Some(UiFrame::new(0.0, 40.0, 1440.0, 840.0)),
         status_bar_frame: Some(UiFrame::new(0.0, 880.0, 1440.0, 20.0)),
-        ..BuiltinWorkbenchRootShellFrames::default()
+        ..BuiltinHostRootShellFrames::default()
     };
-    let mut bridge = WorkbenchShellPointerBridge::new();
+    let mut bridge = HostShellPointerBridge::new();
     bridge.update_layout_with_root_shell_frames(
         UiSize::new(1440.0, 900.0),
         &geometry,
@@ -324,7 +325,7 @@ fn resolve_workbench_tab_drop_route_uses_shared_root_projection_right_tab_strip_
     let pointer_route = bridge.drag_route_at(UiPoint::new(pointer_x, pointer_y));
 
     assert_eq!(
-        resolve_workbench_tab_drop_route_with_root_frames(
+        resolve_host_tab_drop_route_with_root_frames(
             &layout,
             &model,
             &geometry,
@@ -336,10 +337,10 @@ fn resolve_workbench_tab_drop_route_uses_shared_root_projection_right_tab_strip_
             pointer_y,
             Some(&root_projection),
         ),
-        Some(ResolvedWorkbenchTabDropRoute {
-            target_group: WorkbenchDragTargetGroup::Right,
+        Some(ResolvedHostTabDropRoute {
+            target_group: HostDragTargetGroup::Right,
             target_label: "right tool stack",
-            target: ResolvedWorkbenchTabDropTarget::Attach(ResolvedTabDrop {
+            target: ResolvedHostTabDropTarget::Attach(ResolvedTabDrop {
                 host: ViewHost::Drawer(ActivityDrawerSlot::RightBottom),
                 anchor: Some(TabInsertionAnchor {
                     target_id: ViewInstanceId::new("editor.project#1"),
@@ -351,7 +352,7 @@ fn resolve_workbench_tab_drop_route_uses_shared_root_projection_right_tab_strip_
 }
 
 #[test]
-fn resolve_workbench_tab_drop_route_uses_shared_root_projection_bottom_tab_strip_when_visible_drawer_geometry_is_stale(
+fn resolve_host_tab_drop_route_uses_shared_root_projection_bottom_tab_strip_when_visible_drawer_geometry_is_stale(
 ) {
     let layout = WorkbenchLayout {
         active_main_page: MainPageId::workbench(),
@@ -378,6 +379,7 @@ fn resolve_workbench_tab_drop_route_uses_shared_root_projection_bottom_tab_strip
                 ),
             ),
         ]),
+        activity_windows: Default::default(),
         floating_windows: Vec::new(),
         region_overrides: BTreeMap::new(),
         view_overrides: BTreeMap::new(),
@@ -427,13 +429,13 @@ fn resolve_workbench_tab_drop_route_uses_shared_root_projection_bottom_tab_strip
         floating_window_frames: BTreeMap::new(),
         viewport_content_frame: ShellFrame::default(),
     };
-    let root_projection = BuiltinWorkbenchRootShellFrames {
+    let root_projection = BuiltinHostRootShellFrames {
         shell_frame: Some(UiFrame::new(0.0, 0.0, 1440.0, 900.0)),
-        workbench_body_frame: Some(UiFrame::new(0.0, 40.0, 1440.0, 840.0)),
+        host_body_frame: Some(UiFrame::new(0.0, 40.0, 1440.0, 840.0)),
         status_bar_frame: Some(UiFrame::new(0.0, 880.0, 1440.0, 20.0)),
-        ..BuiltinWorkbenchRootShellFrames::default()
+        ..BuiltinHostRootShellFrames::default()
     };
-    let mut bridge = WorkbenchShellPointerBridge::new();
+    let mut bridge = HostShellPointerBridge::new();
     bridge.update_layout_with_root_shell_frames(
         UiSize::new(1440.0, 900.0),
         &geometry,
@@ -448,7 +450,7 @@ fn resolve_workbench_tab_drop_route_uses_shared_root_projection_bottom_tab_strip
     let pointer_route = bridge.drag_route_at(UiPoint::new(pointer_x, pointer_y));
 
     assert_eq!(
-        resolve_workbench_tab_drop_route_with_root_frames(
+        resolve_host_tab_drop_route_with_root_frames(
             &layout,
             &model,
             &geometry,
@@ -460,10 +462,10 @@ fn resolve_workbench_tab_drop_route_uses_shared_root_projection_bottom_tab_strip
             pointer_y,
             Some(&root_projection),
         ),
-        Some(ResolvedWorkbenchTabDropRoute {
-            target_group: WorkbenchDragTargetGroup::Bottom,
+        Some(ResolvedHostTabDropRoute {
+            target_group: HostDragTargetGroup::Bottom,
             target_label: "bottom tool stack",
-            target: ResolvedWorkbenchTabDropTarget::Attach(ResolvedTabDrop {
+            target: ResolvedHostTabDropTarget::Attach(ResolvedTabDrop {
                 host: ViewHost::Drawer(ActivityDrawerSlot::BottomRight),
                 anchor: Some(TabInsertionAnchor {
                     target_id: ViewInstanceId::new("editor.project#1"),

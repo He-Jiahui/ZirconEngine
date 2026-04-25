@@ -1,7 +1,7 @@
 use super::*;
 use crate::ui::slint_host::floating_window_projection::FloatingWindowProjectionBundle;
-use crate::ui::slint_host::menu_pointer::build_workbench_menu_pointer_layout;
-use crate::ui::slint_host::{HostMenuStateData, PaneSurfaceHostContext, WorkbenchHostContext};
+use crate::ui::slint_host::menu_pointer::build_host_menu_pointer_layout;
+use crate::ui::slint_host::{HostMenuStateData, PaneSurfaceHostContext, UiHostContext};
 
 impl SlintEditorHost {
     pub(super) fn sync_menu_pointer_layout(
@@ -10,7 +10,7 @@ impl SlintEditorHost {
         preset_names: &[String],
     ) {
         let root_shell_frames = self.template_bridge.root_shell_frames();
-        self.menu_pointer_layout = build_workbench_menu_pointer_layout(
+        self.menu_pointer_layout = build_host_menu_pointer_layout(
             chrome,
             self.shell_size,
             preset_names,
@@ -25,7 +25,7 @@ impl SlintEditorHost {
     }
 
     pub(super) fn apply_menu_pointer_state_to_ui(&self) {
-        let host_shell = self.ui.global::<WorkbenchHostContext>();
+        let host_shell = self.ui.global::<UiHostContext>();
         host_shell.set_menu_state(HostMenuStateData {
             open_menu_index: self
                 .menu_pointer_state
@@ -58,7 +58,7 @@ impl SlintEditorHost {
     ) {
         let root_shell_frames = self.template_bridge.root_shell_frames();
         self.activity_rail_pointer_bridge
-            .sync(build_workbench_activity_rail_pointer_layout(
+            .sync(build_host_activity_rail_pointer_layout(
                 model,
                 geometry,
                 &self.chrome_metrics,
@@ -69,7 +69,7 @@ impl SlintEditorHost {
     pub(super) fn sync_host_page_pointer_layout(&mut self, model: &WorkbenchViewModel) {
         let root_shell_frames = self.template_bridge.root_shell_frames();
         self.host_page_pointer_bridge
-            .sync(build_workbench_host_page_pointer_layout(
+            .sync(build_host_page_pointer_layout(
                 model,
                 &self.chrome_metrics,
                 Some(&root_shell_frames),
@@ -84,7 +84,7 @@ impl SlintEditorHost {
     ) {
         let root_shell_frames = self.template_bridge.root_shell_frames();
         self.document_tab_pointer_bridge
-            .sync(build_workbench_document_tab_pointer_layout(
+            .sync(build_host_document_tab_pointer_layout(
                 model,
                 geometry,
                 &self.chrome_metrics,
@@ -100,7 +100,7 @@ impl SlintEditorHost {
     ) {
         let root_shell_frames = self.template_bridge.root_shell_frames();
         self.drawer_header_pointer_bridge
-            .sync(build_workbench_drawer_header_pointer_layout(
+            .sync(build_host_drawer_header_pointer_layout(
                 model,
                 geometry,
                 &self.chrome_metrics,

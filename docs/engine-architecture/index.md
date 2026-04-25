@@ -85,6 +85,7 @@ doc_type: category-index
 - [Runtime Interface Convergence](./runtime-interface-convergence.md): `EngineEntry`、`EngineModule`、`EngineService`、ECS 语义合同、内建 module owner 收敛、`zircon_runtime::extensions` 对可选扩展注册面的吸收、结构审计 skill，以及当前 `converged/skeleton/needs-refactor` 诊断基线。
 - [Runtime Network Extension](./runtime-network-extension.md): `core::framework::net` 的中性 socket/message-loop 合同、`core::manager` 上的 `NetManager` façade、`extensions::net` 的 `std::net::UdpSocket` loopback MVP，以及 `M2` 网络子系统的最小完成线。
 - [Runtime Sound Extension](./runtime-sound-extension.md): `core::framework::sound` 的最小 clip/playback/mix 合同、asset 管线里的 `.wav -> SoundAsset` 支撑、`core::manager` 上的 `SoundManager` façade，以及 `extensions::sound` 的 `software-mixer` MVP。
+- [Runtime Diagnostics Facade](./runtime-diagnostics-facade.md): `core::diagnostics` 的只读 runtime inspection snapshot、render/physics/animation manager 聚合，以及 editor diagnostics pane 的 `.ui.toml` 接线边界。
 - [Runtime Foundation Precision And Scene Authority](./runtime-foundation-precision-and-scene-authority.md): `zircon_math` 精度 seam、`zircon_scene` 的 `LocalTransform + WorldMatrix + ActiveSelf/ActiveInHierarchy + RenderLayerMask + Mobility` authority、scene asset 的默认化新字段，以及 `zircon_graphics` 的 runtime-to-render downcast 边界。
 - [Workspace Ownership Cutover Map](./workspace-ownership-cutover-map.md): workspace hard-cutover 的旧 owner -> 新 owner 权威映射，以及删旧、收根、去兼容层时必须遵守的 owner 依据。
 - [Workspace Root Rules And Hard Cutover](./workspace-root-rules-and-hard-cutover.md): 固定三包形态、root file 红线、hard-cutover 删除规则，以及 crate root/public surface 的长期标准。

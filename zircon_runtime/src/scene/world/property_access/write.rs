@@ -10,7 +10,7 @@ use super::value_conversion::{
     expect_u32, expect_vec3, expect_vec4, missing_component_error, normalized_identifier,
     parse_combine_rule, parse_joint_kind, parse_mobility, parse_rigid_body_type,
     property_type_error, quat_axis_index, set_animation_player_like_property,
-    unknown_property_error,
+    unknown_property_error, validate_quat_array,
 };
 
 impl World {
@@ -433,6 +433,7 @@ impl World {
                 let axis = quat_axis_index(axis, property_path)?;
                 let mut rotation = next.rotation.to_array();
                 rotation[axis] = expect_scalar(value, property_path)?;
+                validate_quat_array(rotation, property_path)?;
                 next.rotation = Quat::from_array(rotation);
             }
             [field, axis] if field == "scale" => {
@@ -469,6 +470,38 @@ impl World {
                     return Ok(false);
                 }
                 rigid_body.mass = next;
+            }
+            [field] if field == "linearvelocity" => {
+                let next = expect_vec3(value, property_path)?;
+                if rigid_body.linear_velocity == next {
+                    return Ok(false);
+                }
+                rigid_body.linear_velocity = next;
+            }
+            [field, axis] if field == "linearvelocity" => {
+                let axis = axis_index(axis, property_path)?;
+                let mut next = rigid_body.linear_velocity;
+                next[axis] = expect_scalar(value, property_path)?;
+                if rigid_body.linear_velocity == next {
+                    return Ok(false);
+                }
+                rigid_body.linear_velocity = next;
+            }
+            [field] if field == "angularvelocity" => {
+                let next = expect_vec3(value, property_path)?;
+                if rigid_body.angular_velocity == next {
+                    return Ok(false);
+                }
+                rigid_body.angular_velocity = next;
+            }
+            [field, axis] if field == "angularvelocity" => {
+                let axis = axis_index(axis, property_path)?;
+                let mut next = rigid_body.angular_velocity;
+                next[axis] = expect_scalar(value, property_path)?;
+                if rigid_body.angular_velocity == next {
+                    return Ok(false);
+                }
+                rigid_body.angular_velocity = next;
             }
             [field] if field == "lineardamping" => {
                 let next = expect_scalar(value, property_path)?;

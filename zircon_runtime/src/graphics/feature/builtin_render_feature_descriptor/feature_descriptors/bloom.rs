@@ -15,6 +15,9 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
             RenderPassStage::PostProcess,
             "bloom-extract",
             QueueLane::Graphics,
-        )],
+        )
+        .with_executor_id("post.bloom-extract")
+        .read_texture("scene-color")
+        .write_texture("bloom-texture")],
     )
 }

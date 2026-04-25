@@ -68,6 +68,7 @@ plan_sources:
 tests:
   - cargo test -p zircon_runtime asset::tests::project::manager::project_manager_imports_sound_assets_into_runtime_library --locked
   - cargo test -p zircon_runtime extensions::sound::tests::sound_manager_loads_project_wav_and_mixes_playback_to_stereo --locked
+  - cargo test -p zircon_runtime --lib --locked sound_manager_ --offline
   - cargo test -p zircon_runtime tests::extensions::manager_facades::physics_and_animation_runtime_extensions_keep_manager_handles_under_core_manager_facades --locked
   - .codex/skills/zircon-dev/scripts/validate-matrix.ps1
 doc_type: module-detail
@@ -201,6 +202,8 @@ doc_type: module-detail
 - `render_mix(frames)` 按当前播放游标把 clip 样本混到输出 buffer
 - mono clip 输出到 stereo 时复制到左右声道
 - multi-channel clip 输出到 mono 时先做均值
+- `stop_playback(playback)` 会让播放实例从后续混音中消失
+- `looped = true` 的播放实例会跨 clip 结尾回绕继续混音
 - 播放结束且 `looped = false` 的实例会在混音后自动回收
 
 默认配置是：
@@ -240,6 +243,8 @@ doc_type: module-detail
   - 证明最底层 `.wav` importer、`SoundAsset`、artifact store 和 project registry 已经闭合
 - `cargo test -p zircon_runtime extensions::sound::tests::sound_manager_loads_project_wav_and_mixes_playback_to_stereo --locked`
   - 证明正常路径已经成立：`open_project -> load_clip -> play_clip -> render_mix`
+- `cargo test -p zircon_runtime --lib --locked sound_manager_ --offline`
+  - 证明播放生命周期 contract 已经覆盖停止后不再混音、looped playback 跨 clip 结尾回绕，以及项目 WAV 加载混音路径
 - `cargo test -p zircon_runtime tests::extensions::manager_facades::physics_and_animation_runtime_extensions_keep_manager_handles_under_core_manager_facades --locked`
   - 证明 `SOUND_MANAGER_NAME`、`SoundManagerHandle` 和 `resolve_sound_manager(...)` 已进入 core manager 稳定表面
 

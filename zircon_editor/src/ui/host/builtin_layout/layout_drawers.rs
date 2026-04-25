@@ -74,8 +74,11 @@ pub(super) fn bottom_left_drawer() -> ActivityDrawerLayout {
 pub(super) fn bottom_right_drawer() -> ActivityDrawerLayout {
     ActivityDrawerLayout {
         slot: ActivityDrawerSlot::BottomRight,
-        tab_stack: TabStackLayout::default(),
-        active_view: None,
+        tab_stack: TabStackLayout {
+            tabs: vec![ViewInstanceId::new("editor.runtime_diagnostics#1")],
+            active_tab: Some(ViewInstanceId::new("editor.runtime_diagnostics#1")),
+        },
+        active_view: Some(ViewInstanceId::new("editor.runtime_diagnostics#1")),
         mode: ActivityDrawerMode::Collapsed,
         extent: 224.0,
         visible: true,

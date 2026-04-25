@@ -3,18 +3,18 @@ use zircon_runtime::ui::{
 };
 
 use super::constants::{STRIP_Y, TAB_HEIGHT, TAB_MIN_WIDTH};
+use super::host_page_pointer_bridge::HostPagePointerBridge;
+use super::host_page_pointer_dispatch::HostPagePointerDispatch;
 use super::to_public_route::to_public_route;
-use super::workbench_host_page_pointer_bridge::WorkbenchHostPagePointerBridge;
-use super::workbench_host_page_pointer_dispatch::WorkbenchHostPagePointerDispatch;
 
-impl WorkbenchHostPagePointerBridge {
+impl HostPagePointerBridge {
     pub(crate) fn handle_click(
         &mut self,
         item_index: usize,
         tab_x: f32,
         tab_width: f32,
         point: UiPoint,
-    ) -> Result<WorkbenchHostPagePointerDispatch, String> {
+    ) -> Result<HostPagePointerDispatch, String> {
         if item_index < self.measured_frames.len() {
             self.measured_frames[item_index] = Some(UiFrame::new(
                 self.layout.strip_frame.x + tab_x,
@@ -29,7 +29,7 @@ impl WorkbenchHostPagePointerBridge {
             self.layout.strip_frame.y + point.y,
         );
         let route = self.dispatch_event(UiPointerEvent::new(UiPointerEventKind::Down, point))?;
-        Ok(WorkbenchHostPagePointerDispatch {
+        Ok(HostPagePointerDispatch {
             route: route.map(to_public_route),
         })
     }

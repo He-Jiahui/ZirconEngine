@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use crate::core::framework::scene::{ComponentPropertyPath, ScenePropertyValue};
 use crate::core::framework::{animation::AnimationParameterValue, physics::PhysicsCombineRule};
-use crate::core::math::{Quat, Vec3, Vec4};
+use crate::core::math::{Quat, Real, Vec3, Vec4};
 use crate::core::resource::{ResourceHandle, ResourceId, ResourceMarker};
 use crate::scene::components::{JointKind, Mobility, RigidBodyType};
 use crate::scene::EntityId;
@@ -127,12 +127,14 @@ pub(super) fn expect_scalar(
     value: ScenePropertyValue,
     property_path: &ComponentPropertyPath,
 ) -> Result<f32, String> {
-    match value {
+    let value = match value {
         ScenePropertyValue::Scalar(value) => Ok(value),
         ScenePropertyValue::Integer(value) => Ok(value as f32),
         ScenePropertyValue::Unsigned(value) => Ok(value as f32),
         _ => Err(format!("property `{property_path}` expected scalar")),
-    }
+    }?;
+    validate_finite_scalar(value, property_path)?;
+    Ok(value)
 }
 
 pub(super) fn expect_u32(
@@ -155,6 +157,7 @@ pub(super) fn expect_vec3(
     let ScenePropertyValue::Vec3(value) = value else {
         return Err(format!("property `{property_path}` expected vec3"));
     };
+    validate_finite_array(&value, property_path, "vec3")?;
     Ok(Vec3::from_array(value))
 }
 
@@ -165,6 +168,7 @@ pub(super) fn expect_vec4(
     let ScenePropertyValue::Vec4(value) = value else {
         return Err(format!("property `{property_path}` expected vec4"));
     };
+    validate_finite_array(&value, property_path, "vec4")?;
     Ok(Vec4::from_array(value))
 }
 
@@ -175,7 +179,51 @@ pub(super) fn expect_quat(
     let ScenePropertyValue::Quaternion(value) = value else {
         return Err(format!("property `{property_path}` expected quaternion"));
     };
+    validate_quat_array(value, property_path)?;
     Ok(Quat::from_array(value))
+}
+
+pub(super) fn validate_quat_array(
+    value: [Real; 4],
+    property_path: &ComponentPropertyPath,
+) -> Result<(), String> {
+    validate_finite_array(&value, property_path, "quaternion")?;
+    if value
+        .iter()
+        .map(|component| component * component)
+        .sum::<Real>()
+        <= Real::EPSILON
+    {
+        return Err(format!(
+            "property `{property_path}` rejects zero-length quaternion"
+        ));
+    }
+    Ok(())
+}
+
+fn validate_finite_scalar(
+    value: Real,
+    property_path: &ComponentPropertyPath,
+) -> Result<(), String> {
+    if value.is_finite() {
+        Ok(())
+    } else {
+        Err(format!("property `{property_path}` expected finite scalar"))
+    }
+}
+
+fn validate_finite_array(
+    value: &[Real],
+    property_path: &ComponentPropertyPath,
+    expected: &str,
+) -> Result<(), String> {
+    if value.iter().all(|component| component.is_finite()) {
+        Ok(())
+    } else {
+        Err(format!(
+            "property `{property_path}` expected finite {expected}"
+        ))
+    }
 }
 
 pub(super) fn expect_resource_id(

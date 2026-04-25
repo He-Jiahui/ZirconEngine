@@ -14,7 +14,7 @@ use crate::core::editor_event::{
 use crate::scene::viewport::{DisplayMode, ViewOrientation};
 use crate::ui::host::module::{self, EDITOR_MANAGER_NAME};
 use crate::ui::host::EditorManager;
-use crate::ui::slint_host::{PaneSurfaceHostContext, WorkbenchHostContext};
+use crate::ui::slint_host::{PaneSurfaceHostContext, UiHostContext};
 use crate::ui::workbench::autolayout::ShellFrame;
 use crate::ui::workbench::layout::{
     ActivityDrawerMode, ActivityDrawerSlot, LayoutCommand, MainPageId,
@@ -46,8 +46,8 @@ fn pane_surface_host(ui: &UiHostWindow) -> PaneSurfaceHostContext<'_> {
     ui.global::<PaneSurfaceHostContext>()
 }
 
-fn host_context(ui: &UiHostWindow) -> WorkbenchHostContext<'_> {
-    ui.global::<WorkbenchHostContext>()
+fn host_context(ui: &UiHostWindow) -> UiHostContext<'_> {
+    ui.global::<UiHostContext>()
 }
 
 impl ChildWindowHostHarness {
@@ -854,7 +854,7 @@ fn root_resize_capture_prefers_shared_left_drawer_shell_extent_over_stale_region
         ShellFrame::new(left.x, left.y, 80.0, left.height),
     );
 
-    host.workbench_resize_pointer_event(
+    host.host_resize_pointer_event(
         0,
         splitter.x + splitter.width * 0.5,
         splitter.y + splitter.height * 0.5,

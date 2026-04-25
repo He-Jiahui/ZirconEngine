@@ -9,12 +9,15 @@ use crate::core::framework::physics::{
     PhysicsWorldSyncState,
 };
 use crate::core::framework::scene::WorldHandle;
-use crate::core::math::{Real, Transform, Vec3};
+use crate::core::math::{Quat, Real, Transform, Vec3};
 use crate::core::{CoreError, CoreHandle};
 use crate::scene::components::{ColliderShape, JointKind, RigidBodyType};
 use crate::scene::world::World;
 
 use super::PhysicsInterface;
+use query_contact::{collider_matches_query, compute_contact_events, ray_cast_collider};
+
+mod query_contact;
 
 pub const JOLT_ENABLED: bool = cfg!(feature = "jolt");
 
@@ -92,7 +95,12 @@ impl DefaultPhysicsManager {
             .lock()
             .expect("physics accumulator mutex poisoned");
         let accumulator = accumulators.entry(world).or_insert(0.0);
-        *accumulator += delta_seconds.max(0.0);
+        let delta_seconds = if delta_seconds.is_finite() {
+            delta_seconds.max(0.0)
+        } else {
+            0.0
+        };
+        *accumulator += delta_seconds;
 
         let max_substeps = settings.max_substeps.max(1);
         let step_epsilon = step_seconds * STEP_EPSILON_SCALE;
@@ -132,6 +140,8 @@ pub fn build_world_sync_state(world_handle: WorldHandle, world: &World) -> Physi
                 },
                 transform: entity_transform,
                 mass: rigid_body.mass,
+                linear_velocity: rigid_body.linear_velocity.to_array(),
+                angular_velocity: rigid_body.angular_velocity.to_array(),
                 linear_damping: rigid_body.linear_damping,
                 angular_damping: rigid_body.angular_damping,
                 gravity_scale: rigid_body.gravity_scale,
@@ -201,6 +211,94 @@ pub fn build_world_sync_state(world_handle: WorldHandle, world: &World) -> Physi
     sync
 }
 
+pub fn integrate_builtin_physics_steps(world: &mut World, plan: PhysicsWorldStepPlan) {
+    const GRAVITY: Vec3 = Vec3::new(0.0, -9.81, 0.0);
+
+    if plan.steps == 0 || !plan.step_seconds.is_finite() || plan.step_seconds <= 0.0 {
+        return;
+    }
+
+    let entities = world.nodes().iter().map(|node| node.id).collect::<Vec<_>>();
+    for _ in 0..plan.steps {
+        for entity in &entities {
+            let Some(mut rigid_body) = world.rigid_body(*entity).cloned() else {
+                continue;
+            };
+            if rigid_body.body_type == RigidBodyType::Static {
+                continue;
+            }
+            if !rigid_body_step_input_is_finite(&rigid_body) {
+                continue;
+            }
+            let Some(mut transform) = world.find_node(*entity).map(|node| node.transform) else {
+                continue;
+            };
+
+            let mut velocity = match rigid_body.body_type {
+                RigidBodyType::Dynamic => {
+                    let damping = (1.0 - rigid_body.linear_damping.max(0.0) * plan.step_seconds)
+                        .clamp(0.0, 1.0);
+                    (rigid_body.linear_velocity
+                        + GRAVITY * rigid_body.gravity_scale * plan.step_seconds)
+                        * damping
+                }
+                RigidBodyType::Kinematic => rigid_body.linear_velocity,
+                RigidBodyType::Static => unreachable!(),
+            };
+            for axis in 0..3 {
+                if rigid_body.lock_translation[axis] {
+                    velocity[axis] = 0.0;
+                } else {
+                    transform.translation[axis] += velocity[axis] * plan.step_seconds;
+                }
+            }
+            rigid_body.linear_velocity = velocity;
+
+            let mut angular_velocity = match rigid_body.body_type {
+                RigidBodyType::Dynamic => {
+                    rigid_body.angular_velocity
+                        * (1.0 - rigid_body.angular_damping.max(0.0) * plan.step_seconds)
+                            .clamp(0.0, 1.0)
+                }
+                RigidBodyType::Kinematic => rigid_body.angular_velocity,
+                RigidBodyType::Static => unreachable!(),
+            };
+            for axis in 0..3 {
+                if rigid_body.lock_rotation[axis] {
+                    angular_velocity[axis] = 0.0;
+                }
+            }
+            let rotation_step = angular_velocity * plan.step_seconds;
+            if rotation_step.length_squared() > Real::EPSILON {
+                transform.rotation =
+                    (Quat::from_scaled_axis(rotation_step) * transform.rotation).normalize();
+            }
+            rigid_body.angular_velocity = angular_velocity;
+
+            let _ = world.update_transform(*entity, transform);
+            let _ = world.set_rigid_body(*entity, Some(rigid_body));
+        }
+    }
+}
+
+fn rigid_body_step_input_is_finite(
+    rigid_body: &crate::scene::components::RigidBodyComponent,
+) -> bool {
+    vec3_is_finite(rigid_body.linear_velocity)
+        && vec3_is_finite(rigid_body.angular_velocity)
+        && rigid_body.linear_damping.is_finite()
+        && rigid_body.angular_damping.is_finite()
+        && rigid_body.gravity_scale.is_finite()
+}
+
+fn vec3_is_finite(value: Vec3) -> bool {
+    value.x.is_finite() && value.y.is_finite() && value.z.is_finite()
+}
+
+fn array3_is_finite(value: [Real; 3]) -> bool {
+    value[0].is_finite() && value[1].is_finite() && value[2].is_finite()
+}
+
 fn default_settings() -> PhysicsSettings {
     PhysicsSettings {
         backend: if JOLT_ENABLED {
@@ -242,7 +340,8 @@ impl crate::core::framework::physics::PhysicsManager for DefaultPhysicsManager {
     }
 
     fn sync_world(&self, sync: PhysicsWorldSyncState) {
-        let contacts = compute_contact_events(&sync);
+        let settings = self.settings();
+        let contacts = compute_contact_events(&sync, &settings);
         self.synced_worlds
             .lock()
             .expect("physics sync mutex poisoned")
@@ -262,6 +361,12 @@ impl crate::core::framework::physics::PhysicsManager for DefaultPhysicsManager {
     }
 
     fn ray_cast(&self, query: &PhysicsRayCastQuery) -> Option<PhysicsRayCastHit> {
+        if !query.max_distance.is_finite()
+            || !array3_is_finite(query.origin)
+            || !array3_is_finite(query.direction)
+        {
+            return None;
+        }
         let direction = Vec3::from_array(query.direction).normalize_or_zero();
         if direction.length_squared() <= Real::EPSILON || query.max_distance <= 0.0 {
             return None;
@@ -270,12 +375,7 @@ impl crate::core::framework::physics::PhysicsManager for DefaultPhysicsManager {
         self.synchronized_world(query.world)?
             .colliders
             .iter()
-            .filter(|collider| query.include_sensors || !collider.sensor)
-            .filter(|collider| {
-                query
-                    .collision_mask
-                    .is_none_or(|mask| collider.collision_mask & mask != 0)
-            })
+            .filter(|collider| collider_matches_query(query, collider))
             .filter_map(|collider| {
                 ray_cast_collider(
                     Vec3::from_array(query.origin),
@@ -361,182 +461,9 @@ fn physics_backend_status(settings: &PhysicsSettings) -> PhysicsBackendStatus {
     }
 }
 
-fn compute_contact_events(sync: &PhysicsWorldSyncState) -> Vec<PhysicsContactEvent> {
-    let mut contacts = Vec::new();
-    for left_index in 0..sync.colliders.len() {
-        for right_index in left_index + 1..sync.colliders.len() {
-            let left = &sync.colliders[left_index];
-            let right = &sync.colliders[right_index];
-            if !colliders_overlap(left, right) {
-                continue;
-            }
-
-            let left_center = left.transform.translation;
-            let right_center = right.transform.translation;
-            let mut normal = (right_center - left_center).normalize_or_zero();
-            if normal.length_squared() <= Real::EPSILON {
-                normal = Vec3::Y;
-            }
-            let point = (left_center + right_center) * 0.5;
-            contacts.push(PhysicsContactEvent {
-                world: sync.world,
-                entity: left.entity,
-                other_entity: right.entity,
-                point: point.to_array(),
-                normal: normal.to_array(),
-            });
-        }
-    }
-    contacts
-}
-
-fn colliders_overlap(left: &PhysicsColliderSyncState, right: &PhysicsColliderSyncState) -> bool {
-    let (left_min, left_max) = collider_aabb(left);
-    let (right_min, right_max) = collider_aabb(right);
-    left_min.x <= right_max.x
-        && left_max.x >= right_min.x
-        && left_min.y <= right_max.y
-        && left_max.y >= right_min.y
-        && left_min.z <= right_max.z
-        && left_max.z >= right_min.z
-}
-
-fn collider_aabb(collider: &PhysicsColliderSyncState) -> (Vec3, Vec3) {
-    let center = collider.transform.translation;
-    let scale = collider.transform.scale.abs();
-    let half_extents = match collider.shape {
-        PhysicsColliderShape::Box { half_extents } => Vec3::from_array(half_extents) * scale,
-        PhysicsColliderShape::Sphere { radius } => Vec3::splat(radius * scale.max_element()),
-        PhysicsColliderShape::Capsule {
-            radius,
-            half_height,
-        } => Vec3::new(
-            radius * scale.x.abs(),
-            (radius + half_height) * scale.y.abs(),
-            radius * scale.z.abs(),
-        ),
-    };
-    (center - half_extents, center + half_extents)
-}
-
-fn ray_cast_collider(
-    origin: Vec3,
-    direction: Vec3,
-    max_distance: Real,
-    collider: &PhysicsColliderSyncState,
-) -> Option<PhysicsRayCastHit> {
-    match collider.shape {
-        PhysicsColliderShape::Box { .. } | PhysicsColliderShape::Capsule { .. } => {
-            let (min, max) = collider_aabb(collider);
-            ray_cast_aabb(origin, direction, max_distance, collider.entity, min, max)
-        }
-        PhysicsColliderShape::Sphere { radius } => {
-            let scale = collider.transform.scale.max_element().abs();
-            ray_cast_sphere(
-                origin,
-                direction,
-                max_distance,
-                collider.entity,
-                collider.transform.translation,
-                radius * scale,
-            )
-        }
-    }
-}
-
-fn ray_cast_aabb(
-    origin: Vec3,
-    direction: Vec3,
-    max_distance: Real,
-    entity: u64,
-    min: Vec3,
-    max: Vec3,
-) -> Option<PhysicsRayCastHit> {
-    let mut t_min = 0.0;
-    let mut t_max = max_distance;
-    let mut normal = Vec3::ZERO;
-
-    for axis in 0..3 {
-        let origin_axis = origin[axis];
-        let direction_axis = direction[axis];
-        if direction_axis.abs() <= Real::EPSILON {
-            if origin_axis < min[axis] || origin_axis > max[axis] {
-                return None;
-            }
-            continue;
-        }
-
-        let inv_dir = 1.0 / direction_axis;
-        let mut near = (min[axis] - origin_axis) * inv_dir;
-        let mut far = (max[axis] - origin_axis) * inv_dir;
-        let mut axis_normal = match axis {
-            0 => -Vec3::X,
-            1 => -Vec3::Y,
-            _ => -Vec3::Z,
-        };
-        if near > far {
-            std::mem::swap(&mut near, &mut far);
-            axis_normal = -axis_normal;
-        }
-        if near > t_min {
-            t_min = near;
-            normal = axis_normal;
-        }
-        t_max = t_max.min(far);
-        if t_min > t_max {
-            return None;
-        }
-    }
-
-    if t_min < 0.0 || t_min > max_distance {
-        return None;
-    }
-
-    let position = origin + direction * t_min;
-    Some(PhysicsRayCastHit {
-        entity,
-        distance: t_min,
-        position: position.to_array(),
-        normal: normal.to_array(),
-    })
-}
-
-fn ray_cast_sphere(
-    origin: Vec3,
-    direction: Vec3,
-    max_distance: Real,
-    entity: u64,
-    center: Vec3,
-    radius: Real,
-) -> Option<PhysicsRayCastHit> {
-    let offset = origin - center;
-    let a = direction.length_squared();
-    let b = 2.0 * offset.dot(direction);
-    let c = offset.length_squared() - radius * radius;
-    let discriminant = b * b - 4.0 * a * c;
-    if discriminant < 0.0 {
-        return None;
-    }
-
-    let sqrt_discriminant = discriminant.sqrt();
-    let distance = (-b - sqrt_discriminant) / (2.0 * a);
-    if !(0.0..=max_distance).contains(&distance) {
-        return None;
-    }
-
-    let position = origin + direction * distance;
-    let normal = (position - center).normalize_or_zero();
-    Some(PhysicsRayCastHit {
-        entity,
-        distance,
-        position: position.to_array(),
-        normal: normal.to_array(),
-    })
-}
-
 fn combine_transforms(parent: Transform, local: Transform) -> Transform {
     Transform {
-        translation: parent.translation + local.translation,
+        translation: parent.translation + parent.rotation * (parent.scale * local.translation),
         rotation: parent.rotation * local.rotation,
         scale: parent.scale * local.scale,
     }

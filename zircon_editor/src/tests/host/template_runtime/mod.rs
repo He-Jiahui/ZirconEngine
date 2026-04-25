@@ -1,10 +1,12 @@
 mod asset_surface;
 mod host_model;
+mod host_window_document;
 mod inspector_surface;
+mod pane_body_documents;
+mod pane_payload_projection;
 mod route_registration;
 mod shared_surface;
 mod structure_split;
 mod support;
 mod viewport_toolbar;
 mod welcome_surface;
-mod workbench_document;

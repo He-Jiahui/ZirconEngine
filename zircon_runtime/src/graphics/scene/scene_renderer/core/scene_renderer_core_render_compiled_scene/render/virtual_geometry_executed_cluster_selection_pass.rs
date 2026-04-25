@@ -8,7 +8,9 @@ use crate::core::framework::render::{
     RenderVirtualGeometrySelectedClusterSource,
 };
 use crate::graphics::scene::scene_renderer::mesh::MeshDraw;
-use crate::graphics::types::VirtualGeometryClusterSelection;
+use crate::graphics::types::{
+    VirtualGeometryClusterSelection, VirtualGeometryNodeAndClusterCullClusterWorkItem,
+};
 use wgpu::util::DeviceExt;
 
 use super::virtual_geometry_node_and_cluster_cull_pass::VirtualGeometryNodeAndClusterCullPassOutput;

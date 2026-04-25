@@ -104,28 +104,41 @@ impl LayoutManager {
             }
             LayoutCommand::SetDrawerMode { slot, mode } => {
                 let drawer = layout
-                    .drawers
-                    .get_mut(&slot)
+                    .default_activity_window_mut()
+                    .and_then(|window| window.activity_drawers.get_mut(&slot))
                     .ok_or_else(|| format!("missing drawer {:?}", slot))?;
                 drawer.mode = mode;
+                if let Some(root_drawer) = layout.drawers.get_mut(&slot) {
+                    root_drawer.mode = mode;
+                }
                 Ok(LayoutDiff { changed: true })
             }
             LayoutCommand::SetDrawerExtent { slot, extent } => {
+                let extent = extent.max(120.0);
                 let drawer = layout
-                    .drawers
-                    .get_mut(&slot)
+                    .default_activity_window_mut()
+                    .and_then(|window| window.activity_drawers.get_mut(&slot))
                     .ok_or_else(|| format!("missing drawer {:?}", slot))?;
-                drawer.extent = extent.max(120.0);
+                drawer.extent = extent;
+                if let Some(root_drawer) = layout.drawers.get_mut(&slot) {
+                    root_drawer.extent = extent;
+                }
                 Ok(LayoutDiff { changed: true })
             }
             LayoutCommand::ActivateDrawerTab { slot, instance_id } => {
                 let drawer = layout
-                    .drawers
-                    .get_mut(&slot)
+                    .default_activity_window_mut()
+                    .and_then(|window| window.activity_drawers.get_mut(&slot))
                     .ok_or_else(|| format!("missing drawer {:?}", slot))?;
                 if drawer.tab_stack.tabs.contains(&instance_id) {
                     drawer.tab_stack.active_tab = Some(instance_id.clone());
                     drawer.active_view = Some(instance_id);
+                    let active_tab = drawer.tab_stack.active_tab.clone();
+                    let active_view = drawer.active_view.clone();
+                    if let Some(root_drawer) = layout.drawers.get_mut(&slot) {
+                        root_drawer.tab_stack.active_tab = active_tab;
+                        root_drawer.active_view = active_view;
+                    }
                     Ok(LayoutDiff { changed: true })
                 } else {
                     Err("drawer does not contain target tab".to_string())

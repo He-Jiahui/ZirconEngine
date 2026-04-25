@@ -11,6 +11,18 @@ pub(crate) struct FrameRect {
     pub height: f32,
 }
 
+#[derive(Clone, Copy, Default)]
+pub(crate) struct PaneContentSize {
+    pub width: f32,
+    pub height: f32,
+}
+
+impl PaneContentSize {
+    pub const fn new(width: f32, height: f32) -> Self {
+        Self { width, height }
+    }
+}
+
 #[derive(Clone)]
 pub(crate) struct TabData {
     pub id: SharedString,
@@ -55,6 +67,13 @@ pub(crate) struct PaneData {
     pub secondary_hint: SharedString,
     pub show_toolbar: bool,
     pub viewport: SceneViewportChromeData,
+    pub body_compat: PaneBodyCompatData,
+    #[allow(dead_code)]
+    pub pane_presentation: Option<super::PanePresentation>,
+}
+
+#[derive(Clone, Default)]
+pub(crate) struct PaneBodyCompatData {
     pub hierarchy: HierarchyPaneViewData,
     pub inspector: InspectorPaneViewData,
     pub console: ConsolePaneViewData,
@@ -193,7 +212,7 @@ pub(crate) struct HostWindowLayoutData {
 }
 
 #[derive(Clone)]
-pub(crate) struct HostWorkbenchSurfaceMetricsData {
+pub(crate) struct HostWindowSurfaceMetricsData {
     pub outer_margin_px: f32,
     pub rail_width_px: f32,
     pub top_bar_height_px: f32,
@@ -203,7 +222,7 @@ pub(crate) struct HostWorkbenchSurfaceMetricsData {
 }
 
 #[derive(Clone)]
-pub(crate) struct HostWorkbenchSurfaceOrchestrationData {
+pub(crate) struct HostWindowSurfaceOrchestrationData {
     pub left_rail_width_px: f32,
     pub right_rail_width_px: f32,
     pub left_stack_width_px: f32,
@@ -321,10 +340,10 @@ pub(crate) struct HostFloatingWindowLayerData {
 }
 
 #[derive(Clone)]
-pub(crate) struct HostWorkbenchWindowSceneData {
+pub(crate) struct HostWindowSceneData {
     pub layout: HostWindowLayoutData,
-    pub metrics: HostWorkbenchSurfaceMetricsData,
-    pub orchestration: HostWorkbenchSurfaceOrchestrationData,
+    pub metrics: HostWindowSurfaceMetricsData,
+    pub orchestration: HostWindowSurfaceOrchestrationData,
     pub menu_chrome: HostMenuChromeData,
     pub page_chrome: HostPageChromeData,
     pub status_bar: HostStatusBarData,

@@ -3,6 +3,8 @@ use std::collections::BTreeSet;
 use crate::core::framework::render::RenderHybridGiExtract;
 use crate::graphics::types::{HybridGiResolveRuntime, ViewportRenderFrame};
 
+use super::super::super::super::constants::MAX_HYBRID_GI_TRACE_REGIONS;
+
 const RUNTIME_PARENT_CHAIN_FALLOFF: f32 = 0.82;
 const RUNTIME_DESCENDANT_CHAIN_FALLOFF: f32 = 0.84;
 const RUNTIME_PARENT_CHAIN_REVISION_SEED: u32 = 0x9E37_79B9;
@@ -17,11 +19,10 @@ where
     F: Fn(&HybridGiResolveRuntime, u32) -> Option<([f32; 3], f32)>,
 {
     let runtime = frame.hybrid_gi_resolve_runtime.as_ref()?;
-    let extract = frame.extract.lighting.hybrid_global_illumination.as_ref()?;
 
     let mut weighted_rgb = [0.0_f32; 3];
     let mut total_support = 0.0_f32;
-    for (ancestor_probe_id, depth) in parent_probe_chain(extract, probe_id) {
+    for (ancestor_probe_id, depth) in parent_probe_chain(frame, probe_id)? {
         let Some((rgb, support)) = source_for_ancestor(runtime, ancestor_probe_id) else {
             continue;
         };
@@ -57,11 +58,10 @@ where
     F: Fn(&HybridGiResolveRuntime, u32) -> Option<([f32; 3], f32)>,
 {
     let runtime = frame.hybrid_gi_resolve_runtime.as_ref()?;
-    let extract = frame.extract.lighting.hybrid_global_illumination.as_ref()?;
 
     let mut weighted_rgb = [0.0_f32; 3];
     let mut total_support = 0.0_f32;
-    for (ancestor_probe_id, _) in parent_probe_chain(extract, probe_id) {
+    for (ancestor_probe_id, _) in parent_probe_chain(frame, probe_id)? {
         let Some((rgb, support)) = source_for_ancestor(runtime, ancestor_probe_id) else {
             continue;
         };
@@ -96,12 +96,11 @@ where
     F: Fn(&HybridGiResolveRuntime, u32) -> Option<(f32, f32, f32)>,
 {
     let runtime = frame.hybrid_gi_resolve_runtime.as_ref()?;
-    let extract = frame.extract.lighting.hybrid_global_illumination.as_ref()?;
 
     let mut weighted_quality = 0.0_f32;
     let mut weighted_freshness = 0.0_f32;
     let mut total_support = 0.0_f32;
-    for (ancestor_probe_id, _) in parent_probe_chain(extract, probe_id) {
+    for (ancestor_probe_id, _) in parent_probe_chain(frame, probe_id)? {
         let Some((support, quality, freshness)) = source_for_ancestor(runtime, ancestor_probe_id)
         else {
             continue;
@@ -135,12 +134,11 @@ where
     F: Fn(&HybridGiResolveRuntime, u32) -> Option<(f32, u32)>,
 {
     let runtime = frame.hybrid_gi_resolve_runtime.as_ref()?;
-    let extract = frame.extract.lighting.hybrid_global_illumination.as_ref()?;
 
     let mut total_support = 0.0_f32;
     let mut mixed_revision = 0u32;
     let mut has_revision = false;
-    for (ancestor_probe_id, _) in parent_probe_chain(extract, probe_id) {
+    for (ancestor_probe_id, _) in parent_probe_chain(frame, probe_id)? {
         let Some((support, revision)) = source_for_ancestor(runtime, ancestor_probe_id) else {
             continue;
         };
@@ -169,11 +167,10 @@ pub(super) fn gather_runtime_parent_chain_weight(
     probe_id: u32,
 ) -> Option<f32> {
     let runtime = frame.hybrid_gi_resolve_runtime.as_ref()?;
-    let extract = frame.extract.lighting.hybrid_global_illumination.as_ref()?;
 
     let mut weighted_weight = 0.0_f32;
     let mut total_support = 0.0_f32;
-    for (ancestor_probe_id, depth) in parent_probe_chain(extract, probe_id) {
+    for (ancestor_probe_id, depth) in parent_probe_chain(frame, probe_id)? {
         let Some(weight) = runtime.hierarchy_resolve_weight(ancestor_probe_id) else {
             continue;
         };
@@ -202,11 +199,10 @@ where
     F: Fn(&HybridGiResolveRuntime, u32) -> Option<([f32; 3], f32)>,
 {
     let runtime = frame.hybrid_gi_resolve_runtime.as_ref()?;
-    let extract = frame.extract.lighting.hybrid_global_illumination.as_ref()?;
 
     let mut weighted_rgb = [0.0_f32; 3];
     let mut total_support = 0.0_f32;
-    for (descendant_probe_id, depth) in descendant_probe_chain(extract, probe_id) {
+    for (descendant_probe_id, depth) in descendant_probe_chain(frame, probe_id)? {
         let Some((rgb, support)) = source_for_descendant(runtime, descendant_probe_id) else {
             continue;
         };
@@ -242,11 +238,10 @@ where
     F: Fn(&HybridGiResolveRuntime, u32) -> Option<([f32; 3], f32)>,
 {
     let runtime = frame.hybrid_gi_resolve_runtime.as_ref()?;
-    let extract = frame.extract.lighting.hybrid_global_illumination.as_ref()?;
 
     let mut weighted_rgb = [0.0_f32; 3];
     let mut total_support = 0.0_f32;
-    for (descendant_probe_id, _) in descendant_probe_chain(extract, probe_id) {
+    for (descendant_probe_id, _) in descendant_probe_chain(frame, probe_id)? {
         let Some((rgb, support)) = source_for_descendant(runtime, descendant_probe_id) else {
             continue;
         };
@@ -281,12 +276,11 @@ where
     F: Fn(&HybridGiResolveRuntime, u32) -> Option<(f32, f32, f32)>,
 {
     let runtime = frame.hybrid_gi_resolve_runtime.as_ref()?;
-    let extract = frame.extract.lighting.hybrid_global_illumination.as_ref()?;
 
     let mut weighted_quality = 0.0_f32;
     let mut weighted_freshness = 0.0_f32;
     let mut total_support = 0.0_f32;
-    for (descendant_probe_id, _) in descendant_probe_chain(extract, probe_id) {
+    for (descendant_probe_id, _) in descendant_probe_chain(frame, probe_id)? {
         let Some((support, quality, freshness)) =
             source_for_descendant(runtime, descendant_probe_id)
         else {
@@ -321,12 +315,11 @@ where
     F: Fn(&HybridGiResolveRuntime, u32) -> Option<(f32, u32)>,
 {
     let runtime = frame.hybrid_gi_resolve_runtime.as_ref()?;
-    let extract = frame.extract.lighting.hybrid_global_illumination.as_ref()?;
 
     let mut total_support = 0.0_f32;
     let mut mixed_revision = 0u32;
     let mut has_revision = false;
-    for (descendant_probe_id, _) in descendant_probe_chain(extract, probe_id) {
+    for (descendant_probe_id, _) in descendant_probe_chain(frame, probe_id)? {
         let Some((support, revision)) = source_for_descendant(runtime, descendant_probe_id) else {
             continue;
         };
@@ -355,11 +348,10 @@ pub(super) fn gather_runtime_descendant_chain_weight(
     probe_id: u32,
 ) -> Option<f32> {
     let runtime = frame.hybrid_gi_resolve_runtime.as_ref()?;
-    let extract = frame.extract.lighting.hybrid_global_illumination.as_ref()?;
 
     let mut weighted_weight = 0.0_f32;
     let mut total_support = 0.0_f32;
-    for (descendant_probe_id, depth) in descendant_probe_chain(extract, probe_id) {
+    for (descendant_probe_id, depth) in descendant_probe_chain(frame, probe_id)? {
         let Some(weight) = runtime.hierarchy_resolve_weight(descendant_probe_id) else {
             continue;
         };
@@ -409,6 +401,108 @@ pub(super) fn blend_runtime_rgb_lineage_sources(
     ])
 }
 
+pub(super) fn runtime_irradiance_lineage_has_scene_truth(
+    frame: &ViewportRenderFrame,
+    probe_id: u32,
+) -> bool {
+    runtime_lineage_has_scene_truth(frame, probe_id, runtime_probe_has_irradiance_scene_truth)
+}
+
+pub(super) fn runtime_rt_lighting_lineage_has_scene_truth(
+    frame: &ViewportRenderFrame,
+    probe_id: u32,
+) -> bool {
+    runtime_lineage_has_scene_truth(frame, probe_id, runtime_probe_has_rt_lighting_scene_truth)
+}
+
+pub(in super::super) fn frame_has_runtime_probe_lineage_scene_truth(
+    frame: &ViewportRenderFrame,
+) -> bool {
+    let Some(prepare) = frame.hybrid_gi_prepare.as_ref() else {
+        return false;
+    };
+
+    prepare
+        .resident_probes
+        .iter()
+        .any(|resident_probe| runtime_probe_lineage_has_scene_truth(frame, resident_probe.probe_id))
+}
+
+pub(in super::super) fn frame_has_runtime_scene_truth(frame: &ViewportRenderFrame) -> bool {
+    let Some(runtime) = frame.hybrid_gi_resolve_runtime.as_ref() else {
+        return false;
+    };
+
+    runtime
+        .probe_scene_driven_hierarchy_irradiance_ids
+        .iter()
+        .any(|&probe_id| runtime_probe_has_irradiance_scene_truth(runtime, probe_id))
+        || runtime
+            .probe_scene_driven_hierarchy_rt_lighting_ids
+            .iter()
+            .any(|&probe_id| runtime_probe_has_rt_lighting_scene_truth(runtime, probe_id))
+}
+
+pub(in super::super) fn runtime_probe_lineage_has_scene_truth(
+    frame: &ViewportRenderFrame,
+    probe_id: u32,
+) -> bool {
+    runtime_irradiance_lineage_has_scene_truth(frame, probe_id)
+        || runtime_rt_lighting_lineage_has_scene_truth(frame, probe_id)
+}
+
+fn runtime_lineage_has_scene_truth<F>(
+    frame: &ViewportRenderFrame,
+    probe_id: u32,
+    probe_has_scene_truth: F,
+) -> bool
+where
+    F: Fn(&HybridGiResolveRuntime, u32) -> bool,
+{
+    let Some(runtime) = frame.hybrid_gi_resolve_runtime.as_ref() else {
+        return false;
+    };
+    if probe_has_scene_truth(runtime, probe_id) {
+        return true;
+    }
+
+    let Some(parent_chain) = parent_probe_chain(frame, probe_id) else {
+        return false;
+    };
+    let Some(descendant_chain) = descendant_probe_chain(frame, probe_id) else {
+        return false;
+    };
+    parent_chain
+        .into_iter()
+        .chain(descendant_chain)
+        .any(|(lineage_probe_id, _)| probe_has_scene_truth(runtime, lineage_probe_id))
+}
+
+fn runtime_probe_has_irradiance_scene_truth(
+    runtime: &HybridGiResolveRuntime,
+    probe_id: u32,
+) -> bool {
+    runtime.hierarchy_irradiance_includes_scene_truth(probe_id)
+        && runtime
+            .hierarchy_irradiance(probe_id)
+            .map(|source| source[3] > f32::EPSILON)
+            .unwrap_or(false)
+}
+
+fn runtime_probe_has_rt_lighting_scene_truth(
+    runtime: &HybridGiResolveRuntime,
+    probe_id: u32,
+) -> bool {
+    runtime.hierarchy_rt_lighting_includes_scene_truth(probe_id)
+        && (runtime
+            .hierarchy_rt_lighting(probe_id)
+            .map(|source| source[3] > f32::EPSILON)
+            .unwrap_or(false)
+            || (runtime.probe_rt_lighting_rgb.contains_key(&probe_id)
+                && runtime_resolve_weight_support(runtime.hierarchy_resolve_weight(probe_id))
+                    > f32::EPSILON))
+}
+
 fn quantize_revision_support(value: f32) -> u32 {
     (value.clamp(0.0, 1.0) * 255.0).round() as u32
 }
@@ -440,7 +534,80 @@ pub(super) fn runtime_resolve_weight_support(weight: Option<f32>) -> f32 {
         .unwrap_or(96.0 / 255.0)
 }
 
-fn parent_probe_chain(extract: &RenderHybridGiExtract, probe_id: u32) -> Vec<(u32, usize)> {
+pub(super) fn runtime_parent_topology_is_authoritative(frame: &ViewportRenderFrame) -> bool {
+    frame
+        .hybrid_gi_resolve_runtime
+        .as_ref()
+        .map(|runtime| !runtime.probe_parent_probes.is_empty())
+        .unwrap_or(false)
+        || frame_has_runtime_scene_truth(frame)
+}
+
+pub(super) fn frame_has_scheduled_trace_region_payload(frame: &ViewportRenderFrame) -> bool {
+    !scheduled_live_trace_region_ids(frame).is_empty()
+}
+
+pub(in super::super) fn scheduled_live_trace_region_ids(frame: &ViewportRenderFrame) -> Vec<u32> {
+    let Some(prepare) = frame.hybrid_gi_prepare.as_ref() else {
+        return Vec::new();
+    };
+    let Some(extract) = frame.extract.lighting.hybrid_global_illumination.as_ref() else {
+        return Vec::new();
+    };
+
+    let trace_region_ids = extract
+        .trace_regions
+        .iter()
+        .map(|region| region.region_id)
+        .collect::<BTreeSet<_>>();
+    let mut scheduled_region_ids = BTreeSet::new();
+
+    prepare
+        .scheduled_trace_region_ids
+        .iter()
+        .copied()
+        .filter(|region_id| scheduled_region_ids.insert(*region_id))
+        .filter(|region_id| trace_region_ids.contains(region_id))
+        .take(MAX_HYBRID_GI_TRACE_REGIONS)
+        .collect()
+}
+
+pub(super) fn temporal_parent_probe_chain(
+    frame: &ViewportRenderFrame,
+    probe_id: u32,
+    legacy_parent_probe_id: Option<u32>,
+) -> Vec<(u32, usize)> {
+    if let Some(chain) = parent_probe_chain(frame, probe_id) {
+        if !chain.is_empty() || runtime_parent_topology_is_authoritative(frame) {
+            return chain;
+        }
+    }
+
+    legacy_parent_probe_id
+        .map(|parent_probe_id| vec![(parent_probe_id, 1)])
+        .unwrap_or_default()
+}
+
+fn parent_probe_chain(frame: &ViewportRenderFrame, probe_id: u32) -> Option<Vec<(u32, usize)>> {
+    if runtime_parent_topology_is_authoritative(frame) {
+        if let Some(runtime) = frame.hybrid_gi_resolve_runtime.as_ref() {
+            return Some(parent_probe_chain_from_runtime(runtime, probe_id));
+        }
+    }
+
+    if let Some(extract) = frame.extract.lighting.hybrid_global_illumination.as_ref() {
+        let extract_chain = parent_probe_chain_from_extract(extract, probe_id);
+        if !extract_chain.is_empty() {
+            return Some(extract_chain);
+        }
+    }
+    frame.hybrid_gi_resolve_runtime.as_ref().map(|_| Vec::new())
+}
+
+fn parent_probe_chain_from_extract(
+    extract: &RenderHybridGiExtract,
+    probe_id: u32,
+) -> Vec<(u32, usize)> {
     let mut chain = Vec::new();
     let mut current_probe_id = probe_id;
     let mut visited_probe_ids = BTreeSet::from([probe_id]);
@@ -458,7 +625,47 @@ fn parent_probe_chain(extract: &RenderHybridGiExtract, probe_id: u32) -> Vec<(u3
     chain
 }
 
-fn descendant_probe_chain(extract: &RenderHybridGiExtract, probe_id: u32) -> Vec<(u32, usize)> {
+fn parent_probe_chain_from_runtime(
+    runtime: &HybridGiResolveRuntime,
+    probe_id: u32,
+) -> Vec<(u32, usize)> {
+    let mut chain = Vec::new();
+    let mut current_probe_id = probe_id;
+    let mut visited_probe_ids = BTreeSet::from([probe_id]);
+    let mut depth = 0usize;
+
+    while let Some(parent_probe_id) = runtime.probe_parent_probes.get(&current_probe_id).copied() {
+        if !visited_probe_ids.insert(parent_probe_id) {
+            break;
+        }
+        depth += 1;
+        chain.push((parent_probe_id, depth));
+        current_probe_id = parent_probe_id;
+    }
+
+    chain
+}
+
+fn descendant_probe_chain(frame: &ViewportRenderFrame, probe_id: u32) -> Option<Vec<(u32, usize)>> {
+    if runtime_parent_topology_is_authoritative(frame) {
+        if let Some(runtime) = frame.hybrid_gi_resolve_runtime.as_ref() {
+            return Some(descendant_probe_chain_from_runtime(runtime, probe_id));
+        }
+    }
+
+    if let Some(extract) = frame.extract.lighting.hybrid_global_illumination.as_ref() {
+        let extract_chain = descendant_probe_chain_from_extract(extract, probe_id);
+        if !extract_chain.is_empty() {
+            return Some(extract_chain);
+        }
+    }
+    frame.hybrid_gi_resolve_runtime.as_ref().map(|_| Vec::new())
+}
+
+fn descendant_probe_chain_from_extract(
+    extract: &RenderHybridGiExtract,
+    probe_id: u32,
+) -> Vec<(u32, usize)> {
     let mut chain = Vec::new();
     let mut stack = extract
         .probes
@@ -479,6 +686,36 @@ fn descendant_probe_chain(extract: &RenderHybridGiExtract, probe_id: u32) -> Vec
             (probe.parent_probe_id == Some(candidate_probe_id))
                 .then_some((probe.probe_id, depth + 1))
         }));
+    }
+
+    chain
+}
+
+fn descendant_probe_chain_from_runtime(
+    runtime: &HybridGiResolveRuntime,
+    probe_id: u32,
+) -> Vec<(u32, usize)> {
+    let mut chain = Vec::new();
+    let mut stack = runtime
+        .probe_parent_probes
+        .iter()
+        .filter_map(|(&candidate_probe_id, &parent_probe_id)| {
+            (parent_probe_id == probe_id).then_some((candidate_probe_id, 1usize))
+        })
+        .collect::<Vec<_>>();
+    let mut visited_probe_ids = BTreeSet::new();
+
+    while let Some((candidate_probe_id, depth)) = stack.pop() {
+        if !visited_probe_ids.insert(candidate_probe_id) {
+            continue;
+        }
+
+        chain.push((candidate_probe_id, depth));
+        stack.extend(runtime.probe_parent_probes.iter().filter_map(
+            |(&grandchild_probe_id, &parent_probe_id)| {
+                (parent_probe_id == candidate_probe_id).then_some((grandchild_probe_id, depth + 1))
+            },
+        ));
     }
 
     chain

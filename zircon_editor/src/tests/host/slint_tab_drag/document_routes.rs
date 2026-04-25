@@ -1,7 +1,7 @@
 use super::support::*;
 
 #[test]
-fn resolve_workbench_tab_drop_route_prefers_shared_pointer_route_over_stale_host_group() {
+fn resolve_host_tab_drop_route_prefers_shared_pointer_route_over_stale_host_group() {
     let layout = WorkbenchLayout {
         active_main_page: MainPageId::workbench(),
         main_pages: vec![workbench_page(MainPageId::workbench())],
@@ -27,6 +27,7 @@ fn resolve_workbench_tab_drop_route_prefers_shared_pointer_route_over_stale_host
                 ),
             ),
         ]),
+        activity_windows: Default::default(),
         floating_windows: Vec::new(),
         region_overrides: BTreeMap::new(),
         view_overrides: BTreeMap::new(),
@@ -71,23 +72,23 @@ fn resolve_workbench_tab_drop_route_prefers_shared_pointer_route_over_stale_host
     let pointer_y = 54.0;
 
     assert_eq!(
-        resolve_workbench_tab_drop_route(
+        resolve_host_tab_drop_route(
             &layout,
             &model,
             &geometry,
             &WorkbenchChromeMetrics::default(),
             "editor.hierarchy#1",
-            Some(WorkbenchShellPointerRoute::DragTarget(
-                WorkbenchDragTargetGroup::Right,
+            Some(HostShellPointerRoute::DragTarget(
+                HostDragTargetGroup::Right,
             )),
             "document",
             pointer_x,
             pointer_y,
         ),
-        Some(ResolvedWorkbenchTabDropRoute {
-            target_group: WorkbenchDragTargetGroup::Right,
+        Some(ResolvedHostTabDropRoute {
+            target_group: HostDragTargetGroup::Right,
             target_label: "right tool stack",
-            target: ResolvedWorkbenchTabDropTarget::Attach(ResolvedTabDrop {
+            target: ResolvedHostTabDropTarget::Attach(ResolvedTabDrop {
                 host: ViewHost::Drawer(ActivityDrawerSlot::RightBottom),
                 anchor: Some(TabInsertionAnchor {
                     target_id: ViewInstanceId::new("editor.project#1"),
@@ -99,11 +100,12 @@ fn resolve_workbench_tab_drop_route_prefers_shared_pointer_route_over_stale_host
 }
 
 #[test]
-fn resolve_workbench_tab_drop_route_falls_back_to_host_group_when_pointer_route_is_missing() {
+fn resolve_host_tab_drop_route_falls_back_to_host_group_when_pointer_route_is_missing() {
     let layout = WorkbenchLayout {
         active_main_page: MainPageId::workbench(),
         main_pages: vec![workbench_page(MainPageId::workbench())],
         drawers: default_drawers(),
+        activity_windows: Default::default(),
         floating_windows: Vec::new(),
         region_overrides: BTreeMap::new(),
         view_overrides: BTreeMap::new(),
@@ -130,7 +132,7 @@ fn resolve_workbench_tab_drop_route_falls_back_to_host_group_when_pointer_route_
     let pointer_y = 54.0;
 
     assert_eq!(
-        resolve_workbench_tab_drop_route(
+        resolve_host_tab_drop_route(
             &layout,
             &model,
             &geometry,
@@ -141,10 +143,10 @@ fn resolve_workbench_tab_drop_route_falls_back_to_host_group_when_pointer_route_
             pointer_x,
             pointer_y,
         ),
-        Some(ResolvedWorkbenchTabDropRoute {
-            target_group: WorkbenchDragTargetGroup::Document,
+        Some(ResolvedHostTabDropRoute {
+            target_group: HostDragTargetGroup::Document,
             target_label: "document workspace",
-            target: ResolvedWorkbenchTabDropTarget::Attach(ResolvedTabDrop {
+            target: ResolvedHostTabDropTarget::Attach(ResolvedTabDrop {
                 host: ViewHost::Document(MainPageId::workbench(), vec![1]),
                 anchor: Some(TabInsertionAnchor {
                     target_id: ViewInstanceId::new("editor.game#1"),
@@ -156,11 +158,12 @@ fn resolve_workbench_tab_drop_route_falls_back_to_host_group_when_pointer_route_
 }
 
 #[test]
-fn resolve_workbench_tab_drop_route_maps_document_edge_to_create_split_on_active_workspace_path() {
+fn resolve_host_tab_drop_route_maps_document_edge_to_create_split_on_active_workspace_path() {
     let layout = WorkbenchLayout {
         active_main_page: MainPageId::workbench(),
         main_pages: vec![workbench_page(MainPageId::workbench())],
         drawers: default_drawers(),
+        activity_windows: Default::default(),
         floating_windows: Vec::new(),
         region_overrides: BTreeMap::new(),
         view_overrides: BTreeMap::new(),
@@ -181,21 +184,21 @@ fn resolve_workbench_tab_drop_route_maps_document_edge_to_create_split_on_active
     );
 
     assert_eq!(
-        resolve_workbench_tab_drop_route(
+        resolve_host_tab_drop_route(
             &layout,
             &model,
             &geometry,
             &WorkbenchChromeMetrics::default(),
             "editor.assets#1",
-            Some(WorkbenchShellPointerRoute::DocumentEdge(DockEdge::Left)),
+            Some(HostShellPointerRoute::DocumentEdge(DockEdge::Left)),
             "document",
             48.0,
             240.0,
         ),
-        Some(ResolvedWorkbenchTabDropRoute {
-            target_group: WorkbenchDragTargetGroup::Document,
+        Some(ResolvedHostTabDropRoute {
+            target_group: HostDragTargetGroup::Document,
             target_label: "Split Document Left",
-            target: ResolvedWorkbenchTabDropTarget::Split {
+            target: ResolvedHostTabDropTarget::Split {
                 workspace: WorkspaceTarget::MainPage(MainPageId::workbench()),
                 path: vec![1],
                 axis: SplitAxis::Horizontal,
@@ -206,12 +209,12 @@ fn resolve_workbench_tab_drop_route_maps_document_edge_to_create_split_on_active
 }
 
 #[test]
-fn resolved_workbench_tab_drop_route_snapshot_matches_shared_pointer_and_group_key_for_document_edge(
-) {
+fn resolved_host_tab_drop_route_snapshot_matches_shared_pointer_and_group_key_for_document_edge() {
     let layout = WorkbenchLayout {
         active_main_page: MainPageId::workbench(),
         main_pages: vec![workbench_page(MainPageId::workbench())],
         drawers: default_drawers(),
+        activity_windows: Default::default(),
         floating_windows: Vec::new(),
         region_overrides: BTreeMap::new(),
         view_overrides: BTreeMap::new(),
@@ -249,7 +252,7 @@ fn resolved_workbench_tab_drop_route_snapshot_matches_shared_pointer_and_group_k
         floating_window_frames: BTreeMap::new(),
         viewport_content_frame: ShellFrame::new(0.0, 0.0, 0.0, 0.0),
     };
-    let mut bridge = WorkbenchShellPointerBridge::new();
+    let mut bridge = HostShellPointerBridge::new();
     bridge.update_layout_with_floating_windows(
         UiSize::new(1440.0, 900.0),
         &geometry,
@@ -259,7 +262,7 @@ fn resolved_workbench_tab_drop_route_snapshot_matches_shared_pointer_and_group_k
     );
 
     let pointer_route = bridge.drag_route_at(UiPoint::new(12.0, 240.0));
-    let from_pointer = resolve_workbench_tab_drop_route(
+    let from_pointer = resolve_host_tab_drop_route(
         &layout,
         &model,
         &geometry,
@@ -271,7 +274,7 @@ fn resolved_workbench_tab_drop_route_snapshot_matches_shared_pointer_and_group_k
         240.0,
     )
     .expect("document edge route should resolve from shared pointer route");
-    let from_group_key = resolve_workbench_tab_drop_route(
+    let from_group_key = resolve_host_tab_drop_route(
         &layout,
         &model,
         &geometry,
@@ -296,11 +299,12 @@ fn resolved_workbench_tab_drop_route_snapshot_matches_shared_pointer_and_group_k
 }
 
 #[test]
-fn resolve_workbench_tab_drop_route_accepts_document_edge_group_fallback_keys() {
+fn resolve_host_tab_drop_route_accepts_document_edge_group_fallback_keys() {
     let layout = WorkbenchLayout {
         active_main_page: MainPageId::workbench(),
         main_pages: vec![workbench_page(MainPageId::workbench())],
         drawers: default_drawers(),
+        activity_windows: Default::default(),
         floating_windows: Vec::new(),
         region_overrides: BTreeMap::new(),
         view_overrides: BTreeMap::new(),
@@ -320,7 +324,7 @@ fn resolve_workbench_tab_drop_route_accepts_document_edge_group_fallback_keys() 
     );
 
     assert_eq!(
-        resolve_workbench_tab_drop_route(
+        resolve_host_tab_drop_route(
             &layout,
             &model,
             &geometry,
@@ -331,10 +335,10 @@ fn resolve_workbench_tab_drop_route_accepts_document_edge_group_fallback_keys() 
             1088.0,
             240.0,
         ),
-        Some(ResolvedWorkbenchTabDropRoute {
-            target_group: WorkbenchDragTargetGroup::Document,
+        Some(ResolvedHostTabDropRoute {
+            target_group: HostDragTargetGroup::Document,
             target_label: "Split Document Right",
-            target: ResolvedWorkbenchTabDropTarget::Split {
+            target: ResolvedHostTabDropTarget::Split {
                 workspace: WorkspaceTarget::MainPage(MainPageId::workbench()),
                 path: vec![0],
                 axis: SplitAxis::Horizontal,
@@ -345,11 +349,12 @@ fn resolve_workbench_tab_drop_route_accepts_document_edge_group_fallback_keys() 
 }
 
 #[test]
-fn resolve_workbench_tab_drop_route_prefers_document_edge_fallback_over_coarse_document_route() {
+fn resolve_host_tab_drop_route_prefers_document_edge_fallback_over_coarse_document_route() {
     let layout = WorkbenchLayout {
         active_main_page: MainPageId::workbench(),
         main_pages: vec![workbench_page(MainPageId::workbench())],
         drawers: default_drawers(),
+        activity_windows: Default::default(),
         floating_windows: Vec::new(),
         region_overrides: BTreeMap::new(),
         view_overrides: BTreeMap::new(),
@@ -369,23 +374,23 @@ fn resolve_workbench_tab_drop_route_prefers_document_edge_fallback_over_coarse_d
     );
 
     assert_eq!(
-        resolve_workbench_tab_drop_route(
+        resolve_host_tab_drop_route(
             &layout,
             &model,
             &geometry,
             &WorkbenchChromeMetrics::default(),
             "editor.assets#1",
-            Some(WorkbenchShellPointerRoute::DragTarget(
-                WorkbenchDragTargetGroup::Document,
+            Some(HostShellPointerRoute::DragTarget(
+                HostDragTargetGroup::Document,
             )),
             "document-top",
             640.0,
             60.0,
         ),
-        Some(ResolvedWorkbenchTabDropRoute {
-            target_group: WorkbenchDragTargetGroup::Document,
+        Some(ResolvedHostTabDropRoute {
+            target_group: HostDragTargetGroup::Document,
             target_label: "Split Document Top",
-            target: ResolvedWorkbenchTabDropTarget::Split {
+            target: ResolvedHostTabDropTarget::Split {
                 workspace: WorkspaceTarget::MainPage(MainPageId::workbench()),
                 path: vec![1],
                 axis: SplitAxis::Vertical,

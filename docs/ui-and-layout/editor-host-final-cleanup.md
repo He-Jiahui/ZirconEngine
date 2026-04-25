@@ -101,7 +101,7 @@ doc_type: module-detail
 
 同时 `workbench.slint` 的 root `UiHostWindow` 与 `host_scaffold.slint` 的 orchestrator 层都不再通过 `*_menu_button_frame` 暴露 control-specific frame 宿主 ABI。
 
-当前 popup 视觉锚点已经收进 [`HostMenuChrome`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_components.slint) 的内部 `out property`，因此 UI 外观不需要再依赖 root/scaffold 代理 frame；menu hit-test / popup open state 继续由 shared `WorkbenchMenuPointerLayout` 和 pointer bridge 决定。
+当前 popup 视觉锚点已经收进 [`HostMenuChrome`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_components.slint) 的内部 `out property`，因此 UI 外观不需要再依赖 root/scaffold 代理 frame；menu hit-test / popup open state 继续由 shared `HostMenuPointerLayout` 和 pointer bridge 决定。
 
 ### Floating-window geometry fallback removed from production consumers
 

@@ -1,9 +1,9 @@
 use zircon_runtime::ui::layout::UiFrame;
 
 use super::constants::{STRIP_Y, TAB_HEIGHT, TAB_MIN_WIDTH};
-use super::workbench_drawer_header_pointer_bridge::WorkbenchDrawerHeaderPointerBridge;
+use super::host_drawer_header_pointer_bridge::HostDrawerHeaderPointerBridge;
 
-impl WorkbenchDrawerHeaderPointerBridge {
+impl HostDrawerHeaderPointerBridge {
     pub(super) fn update_measured_frame(
         &mut self,
         surface_key: &str,

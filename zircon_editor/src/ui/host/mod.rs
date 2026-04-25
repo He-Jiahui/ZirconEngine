@@ -17,6 +17,7 @@ mod editor_manager_animation_editor;
 mod editor_manager_asset_editor;
 mod editor_manager_layout;
 mod editor_manager_project;
+mod editor_manager_runtime_diagnostics;
 mod editor_manager_startup;
 mod editor_manager_workspace;
 mod editor_session_state;

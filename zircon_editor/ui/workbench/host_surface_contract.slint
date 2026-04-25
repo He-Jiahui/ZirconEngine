@@ -1,10 +1,10 @@
 import { HostNativeFloatingWindowSurfaceData } from "host_components.slint";
 import { HostWindowPresentationData } from "host_root.slint";
-import { HostWorkbenchWindowSceneData } from "host_scene.slint";
+import { HostWindowSceneData } from "host_scene.slint";
 
-export component HostWorkbenchWindowSurfaceContract inherits Rectangle {
+export component HostWindowSurfaceContract inherits Rectangle {
     in property <HostWindowPresentationData> host_presentation;
-    out property <HostWorkbenchWindowSceneData> workbench_scene_data: root.host_presentation.workbench_scene_data;
+    out property <HostWindowSceneData> host_scene_data: root.host_presentation.host_scene_data;
     out property <HostNativeFloatingWindowSurfaceData> native_floating_surface_data: root.host_presentation.native_floating_surface_data;
     width: 0px;
     height: 0px;

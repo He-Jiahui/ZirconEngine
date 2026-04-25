@@ -52,6 +52,7 @@ fn chrome_builder_keeps_placeholder_tabs_for_missing_view_instances() {
                 visible: true,
             },
         )]),
+        activity_windows: Default::default(),
         floating_windows: Vec::new(),
         region_overrides: BTreeMap::new(),
         view_overrides: BTreeMap::new(),

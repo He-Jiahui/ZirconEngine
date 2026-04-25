@@ -130,6 +130,8 @@ fn build_extract(
             virtual_geometry_cluster(mesh, 20, 200, 0, Vec3::new(-0.75, 0.6, 0.0)),
             virtual_geometry_cluster(mesh, 30, 300, 0, Vec3::new(0.75, 0.6, 0.0)),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![
             virtual_geometry_page(200, false),
             virtual_geometry_page(300, true),
@@ -163,6 +165,7 @@ fn virtual_geometry_cluster(
         page_id,
         lod_level,
         parent_cluster_id: None,
+        hierarchy_node_id: None,
         bounds_center,
         bounds_radius: 0.18,
         screen_space_error: 1.0,

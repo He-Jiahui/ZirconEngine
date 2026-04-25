@@ -6,16 +6,24 @@ use crate::core::framework::render::{
     RenderVirtualGeometryClusterSelectionInputSource, RenderVirtualGeometryCullInputSnapshot,
     RenderVirtualGeometryDebugState, RenderVirtualGeometryExecutionState,
     RenderVirtualGeometryExtract, RenderVirtualGeometryHardwareRasterizationRecord,
-    RenderVirtualGeometryHardwareRasterizationSource, RenderVirtualGeometryInstance,
-    RenderVirtualGeometryNodeAndClusterCullDispatchSetupSnapshot,
+    RenderVirtualGeometryHardwareRasterizationSource, RenderVirtualGeometryHierarchyNode,
+    RenderVirtualGeometryInstance, RenderVirtualGeometryNodeAndClusterCullDispatchSetupSnapshot,
     RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot,
     RenderVirtualGeometryNodeAndClusterCullInstanceSeed,
+    RenderVirtualGeometryNodeAndClusterCullInstanceWorkItem,
+    RenderVirtualGeometryNodeAndClusterCullLaunchWorklistSnapshot,
     RenderVirtualGeometryNodeAndClusterCullSource, RenderVirtualGeometryPage,
     RenderVirtualGeometrySelectedCluster, RenderVirtualGeometrySelectedClusterSource,
     RenderVirtualGeometryVisBuffer64Entry, RenderVirtualGeometryVisBuffer64Source,
     RenderWorldSnapshotHandle,
 };
 use crate::core::math::{view_matrix, Mat4, Transform, UVec2, Vec3};
+use crate::graphics::types::{
+    VirtualGeometryNodeAndClusterCullChildWorkItem,
+    VirtualGeometryNodeAndClusterCullClusterWorkItem,
+    VirtualGeometryNodeAndClusterCullTraversalChildSource,
+    VirtualGeometryNodeAndClusterCullTraversalOp, VirtualGeometryNodeAndClusterCullTraversalRecord,
+};
 use crate::scene::world::World;
 
 use crate::{
@@ -963,6 +971,8 @@ fn virtual_geometry_gpu_readback_exposes_execution_backed_visbuffer64_entries() 
             virtual_geometry_cluster(mesh, 20, 200, 0, Vec3::ZERO, 9.0),
             virtual_geometry_cluster(mesh, 30, 300, 0, Vec3::new(0.1, 0.0, 0.0), 8.0),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![
             RenderVirtualGeometryPage {
                 page_id: 200,
@@ -1311,13 +1321,59 @@ fn virtual_geometry_cull_input_buffer_exists_without_snapshot_or_gpu_readback() 
     extract.apply_viewport_size(viewport_size);
     let expected_camera_transform = Transform::from_translation(Vec3::new(3.0, 4.0, 5.0));
     extract.view.camera.transform = expected_camera_transform;
+    let mut render_clusters = vec![
+        RenderVirtualGeometryCluster {
+            hierarchy_node_id: Some(71),
+            ..virtual_geometry_cluster(mesh, 20, 200, 1, Vec3::ZERO, 8.0)
+        },
+        RenderVirtualGeometryCluster {
+            hierarchy_node_id: Some(72),
+            ..virtual_geometry_cluster(mesh, 30, 300, 0, Vec3::new(0.1, 0.0, 0.0), 6.0)
+        },
+    ];
+    render_clusters.resize(91, RenderVirtualGeometryCluster::default());
+    for cluster_array_index in [70, 71, 72, 90] {
+        render_clusters[cluster_array_index] = RenderVirtualGeometryCluster {
+            entity: mesh,
+            cluster_id: u32::try_from(cluster_array_index).unwrap_or(u32::MAX),
+            page_id: 200,
+            lod_level: 0,
+            bounds_center: Vec3::new(3.0, 4.0, 0.0),
+            bounds_radius: 0.5,
+            ..RenderVirtualGeometryCluster::default()
+        };
+    }
     extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
-        cluster_budget: 2,
+        cluster_budget: 1,
         page_budget: 1,
-        clusters: vec![
-            virtual_geometry_cluster(mesh, 20, 200, 1, Vec3::ZERO, 8.0),
-            virtual_geometry_cluster(mesh, 30, 300, 0, Vec3::new(0.1, 0.0, 0.0), 6.0),
+        clusters: render_clusters,
+        hierarchy_nodes: vec![
+            RenderVirtualGeometryHierarchyNode {
+                instance_index: 0,
+                node_id: 72,
+                child_base: 0,
+                child_count: 2,
+                cluster_start: 1,
+                cluster_count: 1,
+            },
+            RenderVirtualGeometryHierarchyNode {
+                instance_index: 0,
+                node_id: 7,
+                child_base: 0,
+                child_count: 0,
+                cluster_start: 70,
+                cluster_count: 3,
+            },
+            RenderVirtualGeometryHierarchyNode {
+                instance_index: 0,
+                node_id: 42,
+                child_base: 0,
+                child_count: 0,
+                cluster_start: 90,
+                cluster_count: 1,
+            },
         ],
+        hierarchy_child_ids: vec![7, 42],
         pages: vec![page(200, true), page(300, false)],
         instances: vec![RenderVirtualGeometryInstance {
             entity: mesh,
@@ -1413,13 +1469,13 @@ fn virtual_geometry_cull_input_buffer_exists_without_snapshot_or_gpu_readback() 
     assert_eq!(
         cull_input,
         RenderVirtualGeometryCullInputSnapshot {
-            cluster_budget: 2,
+            cluster_budget: 1,
             page_budget: 1,
             instance_count: 1,
-            cluster_count: 2,
+            cluster_count: 91,
             page_count: 2,
             visible_entity_count: 1,
-            visible_cluster_count: 2,
+            visible_cluster_count: 91,
             resident_page_count: 0,
             pending_page_request_count: 0,
             available_page_slot_count: 0,
@@ -1465,14 +1521,19 @@ fn virtual_geometry_cull_input_buffer_exists_without_snapshot_or_gpu_readback() 
             cull_input,
             viewport_size: [viewport_size.x, viewport_size.y],
             camera_translation: expected_camera_translation,
+            child_split_screen_space_error_threshold: 1.0,
+            child_frustum_culling_enabled: true,
             view_proj: expected_view_proj,
+            previous_camera_translation: expected_camera_translation,
+            previous_view_proj: expected_view_proj,
         },
         "expected the upgraded NodeAndClusterCull startup seam to preserve viewport size, camera origin, and the same view-projection matrix shape the renderer already uses for scene-uniform setup"
     );
+    let node_and_cluster_cull_instance_seeds = renderer
+        .read_last_virtual_geometry_node_and_cluster_cull_instance_seeds()
+        .expect("expected node-and-cluster-cull instance-seed readback to succeed");
     assert_eq!(
-        renderer
-            .read_last_virtual_geometry_node_and_cluster_cull_instance_seeds()
-            .expect("expected node-and-cluster-cull instance-seed readback to succeed"),
+        node_and_cluster_cull_instance_seeds,
         vec![RenderVirtualGeometryNodeAndClusterCullInstanceSeed {
             instance_index: 0,
             entity: mesh,
@@ -1483,19 +1544,445 @@ fn virtual_geometry_cull_input_buffer_exists_without_snapshot_or_gpu_readback() 
         }],
         "expected the next NodeAndClusterCull bridge step to consume the typed startup/global-state seam into one per-instance root seed worklist row so later GPU BVH traversal can swap in real VisitNode traversal without changing the renderer-owned seed contract"
     );
+    let node_and_cluster_cull_dispatch_setup = renderer
+        .read_last_virtual_geometry_node_and_cluster_cull_dispatch_setup_snapshot()
+        .expect("expected node-and-cluster-cull dispatch-setup readback to succeed")
+        .expect("expected a real renderer-owned node-and-cluster-cull dispatch-setup buffer");
     assert_eq!(
-        renderer
-            .read_last_virtual_geometry_node_and_cluster_cull_dispatch_setup_snapshot()
-            .expect("expected node-and-cluster-cull dispatch-setup readback to succeed")
-            .expect("expected a real renderer-owned node-and-cluster-cull dispatch-setup buffer"),
+        node_and_cluster_cull_dispatch_setup,
         RenderVirtualGeometryNodeAndClusterCullDispatchSetupSnapshot {
             instance_seed_count: 1,
-            cluster_budget: 2,
+            cluster_budget: 1,
             page_budget: 1,
             workgroup_size: 64,
             dispatch_group_count: [1, 1, 1],
         },
         "expected the first explicit NodeAndClusterCull dispatch/setup seam to consume the typed global-state budget inputs and derived root-seed count into a dedicated renderer-owned startup record before any real compute traversal exists"
+    );
+    assert_eq!(
+        renderer
+            .read_last_virtual_geometry_node_and_cluster_cull_launch_worklist_snapshot()
+            .expect("expected node-and-cluster-cull launch-worklist readback to succeed")
+            .expect("expected a real renderer-owned node-and-cluster-cull launch-worklist buffer"),
+        RenderVirtualGeometryNodeAndClusterCullLaunchWorklistSnapshot {
+            global_state: node_and_cluster_cull_global_state,
+            dispatch_setup: node_and_cluster_cull_dispatch_setup,
+            instance_seeds: node_and_cluster_cull_instance_seeds,
+        },
+        "expected the renderer-owned NodeAndClusterCull launch-worklist buffer to preserve the combined global-state, dispatch-setup, and root-seed contract so later compat compute or real traversal can bind one authoritative startup package"
+    );
+    assert_eq!(
+        renderer
+            .read_last_virtual_geometry_node_and_cluster_cull_instance_work_items()
+            .expect("expected node-and-cluster-cull instance-work-item readback to succeed"),
+        vec![RenderVirtualGeometryNodeAndClusterCullInstanceWorkItem {
+            instance_index: 0,
+            entity: mesh,
+            cluster_offset: 0,
+            cluster_count: 2,
+            page_offset: 0,
+            page_count: 2,
+            cluster_budget: 1,
+            page_budget: 1,
+            forced_mip: Some(0),
+        }],
+        "expected the renderer-owned NodeAndClusterCull compute-stub buffer to preserve typed per-instance work items so later compat execution and GPU traversal can share the same authoritative seam"
+    );
+    assert_eq!(
+        renderer
+            .read_last_virtual_geometry_node_and_cluster_cull_cluster_work_items()
+            .expect("expected node-and-cluster-cull cluster-work-item readback to succeed"),
+        vec![
+            VirtualGeometryNodeAndClusterCullClusterWorkItem {
+                instance_index: 0,
+                entity: mesh,
+                cluster_array_index: 0,
+                hierarchy_node_id: Some(71),
+                cluster_budget: 1,
+                page_budget: 1,
+                forced_mip: Some(0),
+            },
+            VirtualGeometryNodeAndClusterCullClusterWorkItem {
+                instance_index: 0,
+                entity: mesh,
+                cluster_array_index: 1,
+                hierarchy_node_id: Some(72),
+                cluster_budget: 1,
+                page_budget: 1,
+                forced_mip: Some(0),
+            },
+        ],
+        "expected the renderer-owned NodeAndClusterCull seam below instance work items to preserve typed per-cluster queue rows so the next VisitNode or compat traversal stage can bind a real cluster worklist instead of rescanning broad instance slices"
+    );
+    assert_eq!(
+        renderer
+            .read_last_virtual_geometry_node_and_cluster_cull_hierarchy_child_ids()
+            .expect("expected node-and-cluster-cull hierarchy-child-id readback to succeed"),
+        vec![7, 42],
+        "expected the renderer-owned NodeAndClusterCull child-id table to preserve non-contiguous authored child nodes beside traversal records instead of forcing later consumers to reinterpret child_base/count as node ids"
+    );
+    assert_eq!(
+        renderer
+            .read_last_virtual_geometry_node_and_cluster_cull_child_work_items()
+            .expect("expected node-and-cluster-cull child-work-item readback to succeed"),
+        vec![
+            VirtualGeometryNodeAndClusterCullChildWorkItem {
+                instance_index: 0,
+                entity: mesh,
+                parent_cluster_array_index: 1,
+                parent_hierarchy_node_id: Some(72),
+                child_node_id: 7,
+                child_table_index: 0,
+                traversal_index: 3,
+                cluster_budget: 1,
+                page_budget: 1,
+                forced_mip: Some(0),
+            },
+            VirtualGeometryNodeAndClusterCullChildWorkItem {
+                instance_index: 0,
+                entity: mesh,
+                parent_cluster_array_index: 1,
+                parent_hierarchy_node_id: Some(72),
+                child_node_id: 42,
+                child_table_index: 1,
+                traversal_index: 3,
+                cluster_budget: 1,
+                page_budget: 1,
+                forced_mip: Some(0),
+            },
+        ],
+        "expected the renderer-owned NodeAndClusterCull child worklist to expand authored child-id table ranges into persistent child-node rows instead of leaving EnqueueChild as an opaque traversal marker"
+    );
+    assert_eq!(
+        renderer
+            .read_last_virtual_geometry_node_and_cluster_cull_traversal_records()
+            .expect("expected node-and-cluster-cull traversal-record readback to succeed"),
+        vec![
+            VirtualGeometryNodeAndClusterCullTraversalRecord {
+                op: VirtualGeometryNodeAndClusterCullTraversalOp::VisitNode,
+                child_source: VirtualGeometryNodeAndClusterCullTraversalChildSource::None,
+                instance_index: 0,
+                entity: mesh,
+                cluster_array_index: 0,
+                hierarchy_node_id: Some(71),
+                node_cluster_start: 0,
+                node_cluster_count: 0,
+                child_base: 0,
+                child_count: 0,
+                traversal_index: 0,
+                cluster_budget: 1,
+                page_budget: 1,
+                forced_mip: Some(0),
+            },
+            VirtualGeometryNodeAndClusterCullTraversalRecord {
+                op: VirtualGeometryNodeAndClusterCullTraversalOp::StoreCluster,
+                child_source: VirtualGeometryNodeAndClusterCullTraversalChildSource::None,
+                instance_index: 0,
+                entity: mesh,
+                cluster_array_index: 0,
+                hierarchy_node_id: Some(71),
+                node_cluster_start: 0,
+                node_cluster_count: 0,
+                child_base: 0,
+                child_count: 0,
+                traversal_index: 1,
+                cluster_budget: 1,
+                page_budget: 1,
+                forced_mip: Some(0),
+            },
+            VirtualGeometryNodeAndClusterCullTraversalRecord {
+                op: VirtualGeometryNodeAndClusterCullTraversalOp::VisitNode,
+                child_source: VirtualGeometryNodeAndClusterCullTraversalChildSource::None,
+                instance_index: 0,
+                entity: mesh,
+                cluster_array_index: 1,
+                hierarchy_node_id: Some(72),
+                node_cluster_start: 0,
+                node_cluster_count: 0,
+                child_base: 0,
+                child_count: 0,
+                traversal_index: 2,
+                cluster_budget: 1,
+                page_budget: 1,
+                forced_mip: Some(0),
+            },
+            VirtualGeometryNodeAndClusterCullTraversalRecord {
+                op: VirtualGeometryNodeAndClusterCullTraversalOp::EnqueueChild,
+                child_source:
+                    VirtualGeometryNodeAndClusterCullTraversalChildSource::AuthoredHierarchy,
+                instance_index: 0,
+                entity: mesh,
+                cluster_array_index: 1,
+                hierarchy_node_id: Some(72),
+                node_cluster_start: 0,
+                node_cluster_count: 0,
+                child_base: 0,
+                child_count: 2,
+                traversal_index: 3,
+                cluster_budget: 1,
+                page_budget: 1,
+                forced_mip: Some(0),
+            },
+            VirtualGeometryNodeAndClusterCullTraversalRecord {
+                op: VirtualGeometryNodeAndClusterCullTraversalOp::VisitNode,
+                child_source: VirtualGeometryNodeAndClusterCullTraversalChildSource::None,
+                instance_index: 0,
+                entity: mesh,
+                cluster_array_index: 1,
+                hierarchy_node_id: Some(7),
+                node_cluster_start: 70,
+                node_cluster_count: 3,
+                child_base: 0,
+                child_count: 0,
+                traversal_index: 4,
+                cluster_budget: 1,
+                page_budget: 1,
+                forced_mip: Some(0),
+            },
+            VirtualGeometryNodeAndClusterCullTraversalRecord {
+                op: VirtualGeometryNodeAndClusterCullTraversalOp::VisitNode,
+                child_source: VirtualGeometryNodeAndClusterCullTraversalChildSource::None,
+                instance_index: 0,
+                entity: mesh,
+                cluster_array_index: 1,
+                hierarchy_node_id: Some(42),
+                node_cluster_start: 90,
+                node_cluster_count: 1,
+                child_base: 0,
+                child_count: 0,
+                traversal_index: 5,
+                cluster_budget: 1,
+                page_budget: 1,
+                forced_mip: Some(0),
+            },
+            VirtualGeometryNodeAndClusterCullTraversalRecord {
+                op: VirtualGeometryNodeAndClusterCullTraversalOp::StoreCluster,
+                child_source: VirtualGeometryNodeAndClusterCullTraversalChildSource::None,
+                instance_index: 0,
+                entity: mesh,
+                cluster_array_index: 70,
+                hierarchy_node_id: Some(7),
+                node_cluster_start: 70,
+                node_cluster_count: 3,
+                child_base: 0,
+                child_count: 0,
+                traversal_index: 6,
+                cluster_budget: 1,
+                page_budget: 1,
+                forced_mip: Some(0),
+            },
+            VirtualGeometryNodeAndClusterCullTraversalRecord {
+                op: VirtualGeometryNodeAndClusterCullTraversalOp::StoreCluster,
+                child_source: VirtualGeometryNodeAndClusterCullTraversalChildSource::None,
+                instance_index: 0,
+                entity: mesh,
+                cluster_array_index: 90,
+                hierarchy_node_id: Some(42),
+                node_cluster_start: 90,
+                node_cluster_count: 1,
+                child_base: 0,
+                child_count: 0,
+                traversal_index: 7,
+                cluster_budget: 1,
+                page_budget: 1,
+                forced_mip: Some(0),
+            },
+        ],
+        "expected the renderer-owned NodeAndClusterCull traversal seam to publish parent VisitNode/StoreCluster/EnqueueChild rows plus budget-limited child StoreCluster rows before the real hierarchy cull kernel lands"
+    );
+}
+
+#[test]
+fn virtual_geometry_node_and_cluster_cull_reuses_previous_renderer_owned_global_state_without_debug_snapshot(
+) {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let viewport_size = UVec2::new(96, 64);
+    let first_camera_transform = Transform::from_translation(Vec3::new(3.0, 4.0, 5.0));
+    let second_camera_transform = Transform::from_translation(Vec3::new(-2.0, 6.0, 8.0));
+    let first_extract =
+        build_node_and_cluster_cull_history_extract(viewport_size, first_camera_transform);
+    let second_extract =
+        build_node_and_cluster_cull_history_extract(viewport_size, second_camera_transform);
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(
+            &first_extract,
+            &RenderPipelineCompileOptions::default()
+                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
+                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
+                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
+                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
+                .with_feature_disabled(BuiltinRenderFeature::Bloom)
+                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
+                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
+                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
+                .with_feature_disabled(BuiltinRenderFeature::Particle)
+                .with_async_compute(false),
+        )
+        .unwrap();
+    renderer
+        .render_frame_with_pipeline(
+            &ViewportRenderFrame::from_extract(first_extract, viewport_size),
+            &compiled,
+            None,
+        )
+        .unwrap();
+    let first_global_state = renderer
+        .read_last_virtual_geometry_node_and_cluster_cull_global_state_snapshot()
+        .expect("expected first global-state readback to succeed")
+        .expect("expected first global-state buffer");
+
+    renderer
+        .render_frame_with_pipeline(
+            &ViewportRenderFrame::from_extract(second_extract, viewport_size),
+            &compiled,
+            None,
+        )
+        .unwrap();
+    let second_global_state = renderer
+        .read_last_virtual_geometry_node_and_cluster_cull_global_state_snapshot()
+        .expect("expected second global-state readback to succeed")
+        .expect("expected second global-state buffer");
+
+    assert_eq!(
+        second_global_state.previous_camera_translation,
+        first_global_state.camera_translation,
+        "expected the second no-debug-snapshot render path to reuse the renderer-owned NodeAndClusterCull global-state history instead of falling back to the second frame camera"
+    );
+    assert_eq!(
+        second_global_state.previous_view_proj,
+        first_global_state.view_proj,
+        "expected renderer-owned NodeAndClusterCull history to preserve the previous frame view-projection when no frame debug snapshot was stored"
+    );
+    assert_ne!(
+        second_global_state.previous_camera_translation,
+        second_global_state.camera_translation
+    );
+}
+
+#[test]
+fn virtual_geometry_node_and_cluster_cull_page_requests_are_readable_from_last_state() {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let viewport_size = UVec2::new(96, 64);
+    let world = World::new();
+    let mesh = world
+        .nodes()
+        .iter()
+        .find(|node| node.mesh.is_some())
+        .map(|node| node.id)
+        .expect("default world should contain a renderable mesh");
+    let mut extract = world.to_render_frame_extract();
+    extract.apply_viewport_size(viewport_size);
+    extract.view.camera.transform = Transform::from_translation(Vec3::new(3.0, 4.0, 5.0));
+    let mut render_clusters = vec![
+        RenderVirtualGeometryCluster {
+            hierarchy_node_id: Some(71),
+            ..virtual_geometry_cluster(mesh, 20, 200, 0, Vec3::ZERO, 8.0)
+        },
+        RenderVirtualGeometryCluster {
+            hierarchy_node_id: Some(72),
+            ..virtual_geometry_cluster(mesh, 30, 300, 0, Vec3::new(0.1, 0.0, 0.0), 6.0)
+        },
+    ];
+    render_clusters.resize(72, RenderVirtualGeometryCluster::default());
+    render_clusters[70] = RenderVirtualGeometryCluster {
+        entity: mesh,
+        cluster_id: 70,
+        page_id: 200,
+        lod_level: 0,
+        bounds_center: Vec3::new(3.0, 4.0, 0.0),
+        bounds_radius: 0.5,
+        ..RenderVirtualGeometryCluster::default()
+    };
+    render_clusters[71] = RenderVirtualGeometryCluster {
+        entity: mesh,
+        cluster_id: 71,
+        page_id: 300,
+        lod_level: 0,
+        bounds_center: Vec3::new(3.0, 4.0, 0.0),
+        bounds_radius: 0.5,
+        ..RenderVirtualGeometryCluster::default()
+    };
+    extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
+        cluster_budget: 1,
+        page_budget: 1,
+        clusters: render_clusters,
+        hierarchy_nodes: vec![
+            RenderVirtualGeometryHierarchyNode {
+                instance_index: 0,
+                node_id: 72,
+                child_base: 0,
+                child_count: 1,
+                cluster_start: 1,
+                cluster_count: 1,
+            },
+            RenderVirtualGeometryHierarchyNode {
+                instance_index: 0,
+                node_id: 7,
+                child_base: 0,
+                child_count: 0,
+                cluster_start: 70,
+                cluster_count: 2,
+            },
+        ],
+        hierarchy_child_ids: vec![7],
+        pages: vec![page(200, true), page(300, false)],
+        instances: vec![RenderVirtualGeometryInstance {
+            entity: mesh,
+            source_model: None,
+            transform: Transform::default(),
+            cluster_offset: 0,
+            cluster_count: 2,
+            page_offset: 0,
+            page_count: 2,
+            mesh_name: Some("NodeAndClusterCullPageRequestUnitTestMesh".to_string()),
+            source_hint: Some("unit-test".to_string()),
+        }],
+        debug: RenderVirtualGeometryDebugState {
+            forced_mip: Some(0),
+            freeze_cull: true,
+            visualize_bvh: true,
+            visualize_visbuffer: true,
+            print_leaf_clusters: false,
+        },
+    });
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(
+            &extract,
+            &RenderPipelineCompileOptions::default()
+                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
+                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
+                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
+                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
+                .with_feature_disabled(BuiltinRenderFeature::Bloom)
+                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
+                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
+                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
+                .with_feature_disabled(BuiltinRenderFeature::Particle)
+                .with_async_compute(false),
+        )
+        .unwrap();
+
+    renderer
+        .render_frame_with_pipeline(
+            &ViewportRenderFrame::from_extract(extract, viewport_size),
+            &compiled,
+            None,
+        )
+        .unwrap();
+
+    assert_eq!(
+        renderer.last_virtual_geometry_node_and_cluster_cull_page_request_count(),
+        1,
+        "expected renderer last-state to preserve the NodeAndClusterCull page request count for runtime upload feedback"
+    );
+    assert_eq!(
+        renderer
+            .read_last_virtual_geometry_node_and_cluster_cull_page_requests()
+            .expect("expected node-and-cluster-cull page-request readback to succeed"),
+        vec![300],
+        "expected renderer-owned NodeAndClusterCull page-request buffer to publish the nonresident child page id for the next runtime upload-authority integration"
     );
 }
 
@@ -1799,6 +2286,43 @@ fn virtual_geometry_visbuffer64_clear_only_source_exists_without_cluster_selecti
     );
 }
 
+fn build_node_and_cluster_cull_history_extract(
+    viewport_size: UVec2,
+    camera_transform: Transform,
+) -> RenderFrameExtract {
+    let world = World::new();
+    let mesh = world
+        .nodes()
+        .iter()
+        .find(|node| node.mesh.is_some())
+        .map(|node| node.id)
+        .expect("default world should contain a renderable mesh");
+    let mut extract = world.to_render_frame_extract();
+    extract.apply_viewport_size(viewport_size);
+    extract.view.camera.transform = camera_transform;
+    extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
+        cluster_budget: 1,
+        page_budget: 1,
+        clusters: vec![virtual_geometry_cluster(mesh, 20, 200, 0, Vec3::ZERO, 1.0)],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
+        pages: vec![page(200, true)],
+        instances: vec![RenderVirtualGeometryInstance {
+            entity: mesh,
+            source_model: None,
+            transform: Transform::default(),
+            cluster_offset: 0,
+            cluster_count: 1,
+            page_offset: 0,
+            page_count: 1,
+            mesh_name: Some("NodeAndClusterCullHistoryUnitTestMesh".to_string()),
+            source_hint: Some("unit-test".to_string()),
+        }],
+        debug: RenderVirtualGeometryDebugState::default(),
+    });
+    extract
+}
+
 fn build_extract(
     viewport_size: UVec2,
     page_budget: u32,
@@ -1814,7 +2338,9 @@ fn build_extract(
         cluster_budget: 0,
         page_budget,
         clusters: Vec::new(),
-        pages,
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
+        pages: pages.clone(),
         instances: Vec::new(),
         debug: Default::default(),
     });
@@ -1840,6 +2366,7 @@ fn virtual_geometry_cluster(
     RenderVirtualGeometryCluster {
         entity,
         cluster_id,
+        hierarchy_node_id: None,
         page_id,
         lod_level,
         parent_cluster_id: None,

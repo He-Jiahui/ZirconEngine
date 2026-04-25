@@ -3,8 +3,7 @@ use zircon_runtime::ui::layout::UiPoint;
 use crate::core::editor_event::EditorEventRuntime;
 use crate::ui::slint_host::{
     document_tab_pointer::{
-        WorkbenchDocumentTabPointerBridge, WorkbenchDocumentTabPointerDispatch,
-        WorkbenchDocumentTabPointerRoute,
+        HostDocumentTabPointerBridge, HostDocumentTabPointerDispatch, HostDocumentTabPointerRoute,
     },
     event_bridge::SlintDispatchEffects,
 };
@@ -12,21 +11,20 @@ use crate::ui::workbench::layout::LayoutCommand;
 use crate::ui::workbench::view::ViewInstanceId;
 
 use super::super::{
-    dispatch_builtin_workbench_document_tab_activation,
-    dispatch_builtin_workbench_document_tab_close, dispatch_layout_command,
-    BuiltinWorkbenchTemplateBridge,
+    dispatch_builtin_host_document_tab_activation, dispatch_builtin_host_document_tab_close,
+    dispatch_layout_command, BuiltinHostWindowTemplateBridge,
 };
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct SharedDocumentTabPointerClickDispatch {
-    pub pointer: WorkbenchDocumentTabPointerDispatch,
+    pub pointer: HostDocumentTabPointerDispatch,
     pub effects: Option<SlintDispatchEffects>,
 }
 
 pub(crate) fn dispatch_shared_document_tab_pointer_click(
     runtime: &EditorEventRuntime,
-    template_bridge: &BuiltinWorkbenchTemplateBridge,
-    pointer_bridge: &mut WorkbenchDocumentTabPointerBridge,
+    template_bridge: &BuiltinHostWindowTemplateBridge,
+    pointer_bridge: &mut HostDocumentTabPointerBridge,
     surface_key: &str,
     item_index: usize,
     tab_x: f32,
@@ -36,8 +34,8 @@ pub(crate) fn dispatch_shared_document_tab_pointer_click(
     let pointer =
         pointer_bridge.handle_activate_click(surface_key, item_index, tab_x, tab_width, point)?;
     let effects = match pointer.route.as_ref() {
-        Some(WorkbenchDocumentTabPointerRoute::ActivateTab { instance_id, .. }) => {
-            match dispatch_builtin_workbench_document_tab_activation(
+        Some(HostDocumentTabPointerRoute::ActivateTab { instance_id, .. }) => {
+            match dispatch_builtin_host_document_tab_activation(
                 runtime,
                 template_bridge,
                 instance_id,
@@ -58,8 +56,8 @@ pub(crate) fn dispatch_shared_document_tab_pointer_click(
 
 pub(crate) fn dispatch_shared_document_tab_close_pointer_click(
     runtime: &EditorEventRuntime,
-    template_bridge: &BuiltinWorkbenchTemplateBridge,
-    pointer_bridge: &mut WorkbenchDocumentTabPointerBridge,
+    template_bridge: &BuiltinHostWindowTemplateBridge,
+    pointer_bridge: &mut HostDocumentTabPointerBridge,
     surface_key: &str,
     item_index: usize,
     tab_x: f32,
@@ -69,12 +67,8 @@ pub(crate) fn dispatch_shared_document_tab_close_pointer_click(
     let pointer =
         pointer_bridge.handle_close_click(surface_key, item_index, tab_x, tab_width, point)?;
     let effects = match pointer.route.as_ref() {
-        Some(WorkbenchDocumentTabPointerRoute::CloseTab { instance_id, .. }) => {
-            match dispatch_builtin_workbench_document_tab_close(
-                runtime,
-                template_bridge,
-                instance_id,
-            ) {
+        Some(HostDocumentTabPointerRoute::CloseTab { instance_id, .. }) => {
+            match dispatch_builtin_host_document_tab_close(runtime, template_bridge, instance_id) {
                 Some(result) => Some(result?),
                 None => Some(dispatch_layout_command(
                     runtime,

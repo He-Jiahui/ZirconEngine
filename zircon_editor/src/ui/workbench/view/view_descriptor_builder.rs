@@ -1,7 +1,9 @@
 use crate::ui::workbench::autolayout::PaneConstraints;
 use crate::ui::workbench::layout::ActivityDrawerSlot;
 
-use super::{DockPolicy, PreferredHost, ViewDescriptor};
+use super::{
+    ActivityWindowTemplateSpec, DockPolicy, PaneTemplateSpec, PreferredHost, ViewDescriptor,
+};
 
 impl ViewDescriptor {
     pub fn with_multi_instance(mut self, multi_instance: bool) -> Self {
@@ -32,6 +34,19 @@ impl ViewDescriptor {
 
     pub fn with_default_constraints(mut self, constraints: PaneConstraints) -> Self {
         self.default_constraints = constraints;
+        self
+    }
+
+    pub fn with_pane_template(mut self, pane_template: PaneTemplateSpec) -> Self {
+        self.pane_template = Some(pane_template);
+        self
+    }
+
+    pub fn with_activity_window_template(
+        mut self,
+        activity_window_template: ActivityWindowTemplateSpec,
+    ) -> Self {
+        self.activity_window_template = Some(activity_window_template);
         self
     }
 }

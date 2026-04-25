@@ -15,6 +15,9 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
             RenderPassStage::Overlay,
             "overlay-gizmo",
             QueueLane::Graphics,
-        )],
+        )
+        .with_executor_id("overlay.gizmo")
+        .read_texture("scene-color")
+        .write_external("viewport-output")],
     )
 }

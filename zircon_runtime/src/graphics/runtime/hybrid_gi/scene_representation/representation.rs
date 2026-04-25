@@ -104,8 +104,9 @@ impl HybridGiSceneRepresentation {
             debug_view: extract.debug_view,
         };
         self.inputs = HybridGiInputSet::deferred();
-        self.fixture_probe_count = extract.probes.len();
-        self.fixture_trace_region_count = extract.trace_regions.len();
+        self.fixture_probe_count = unique_count(extract.probes.iter().map(|probe| probe.probe_id));
+        self.fixture_trace_region_count =
+            unique_count(extract.trace_regions.iter().map(|region| region.region_id));
     }
 
     pub(crate) fn synchronize_scene(
@@ -222,6 +223,10 @@ fn build_card_descriptors(meshes: &[RenderMeshSnapshot]) -> Vec<HybridGiCardDesc
         );
     }
     cards.into_values().collect()
+}
+
+fn unique_count(ids: impl IntoIterator<Item = u32>) -> usize {
+    ids.into_iter().collect::<BTreeSet<_>>().len()
 }
 
 fn card_bounds_radius(mesh: &RenderMeshSnapshot) -> f32 {

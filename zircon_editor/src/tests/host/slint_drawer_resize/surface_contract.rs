@@ -45,8 +45,8 @@ fn shared_resize_surface_replaces_legacy_direct_resize_callback_abi() {
     }
 
     for needle in [
-        "callback workbench_resize_pointer_event(kind: int, x: float, y: float);",
-        "WorkbenchHostContext.workbench_resize_pointer_event(",
+        "callback host_resize_pointer_event(kind: int, x: float, y: float);",
+        "UiHostContext.host_resize_pointer_event(",
     ] {
         assert!(
             workbench.contains(needle)
@@ -58,11 +58,11 @@ fn shared_resize_surface_replaces_legacy_direct_resize_callback_abi() {
     }
 
     assert!(
-        wiring.contains("host_shell.on_workbench_resize_pointer_event("),
+        wiring.contains("host_shell.on_host_resize_pointer_event("),
         "slint host callback wiring must register shared resize pointer callback"
     );
     assert!(
-        docking.contains("fn workbench_resize_pointer_event("),
+        docking.contains("fn host_resize_pointer_event("),
         "workspace docking host must handle shared resize pointer events"
     );
 }

@@ -1,4 +1,4 @@
-use crate::ui::slint_host::callback_dispatch::BuiltinWorkbenchRootShellFrames;
+use crate::ui::slint_host::callback_dispatch::BuiltinHostRootShellFrames;
 use crate::ui::slint_host::root_shell_projection::{
     resolve_root_bottom_region_frame, resolve_root_center_band_frame,
     resolve_root_document_region_frame, resolve_root_left_region_frame,
@@ -50,7 +50,7 @@ pub(super) fn precise_drop_target(
     target_group: &str,
     pointer_x: f32,
     pointer_y: f32,
-    shared_root_frames: Option<&BuiltinWorkbenchRootShellFrames>,
+    shared_root_frames: Option<&BuiltinHostRootShellFrames>,
 ) -> Option<ResolvedTabDrop> {
     let strip = strip_hit_box(model, geometry, metrics, target_group, shared_root_frames)?;
     if pointer_y < strip.y
@@ -119,7 +119,7 @@ fn strip_hit_box(
     geometry: &WorkbenchShellGeometry,
     metrics: &WorkbenchChromeMetrics,
     target_group: &str,
-    shared_root_frames: Option<&BuiltinWorkbenchRootShellFrames>,
+    shared_root_frames: Option<&BuiltinHostRootShellFrames>,
 ) -> Option<TabStripHitBox> {
     match target_group {
         "left" => tool_strip_hit_box(
@@ -156,7 +156,7 @@ fn tool_strip_hit_box(
     slots: &[ActivityDrawerSlot],
     region: ShellRegionId,
     rail_on_left: bool,
-    shared_root_frames: Option<&BuiltinWorkbenchRootShellFrames>,
+    shared_root_frames: Option<&BuiltinHostRootShellFrames>,
 ) -> Option<TabStripHitBox> {
     if !group_expanded(model, slots) {
         return None;
@@ -210,7 +210,7 @@ fn bottom_strip_hit_box(
     model: &WorkbenchViewModel,
     geometry: &WorkbenchShellGeometry,
     metrics: &WorkbenchChromeMetrics,
-    shared_root_frames: Option<&BuiltinWorkbenchRootShellFrames>,
+    shared_root_frames: Option<&BuiltinHostRootShellFrames>,
 ) -> Option<TabStripHitBox> {
     if !group_expanded(
         model,
@@ -258,7 +258,7 @@ fn bottom_strip_hit_box(
 fn document_strip_hit_box(
     model: &WorkbenchViewModel,
     geometry: &WorkbenchShellGeometry,
-    shared_root_frames: Option<&BuiltinWorkbenchRootShellFrames>,
+    shared_root_frames: Option<&BuiltinHostRootShellFrames>,
 ) -> Option<TabStripHitBox> {
     let frame = resolve_root_document_region_frame(geometry, shared_root_frames);
     if frame.width <= 0.0 {

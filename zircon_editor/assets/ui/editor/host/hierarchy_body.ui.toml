@@ -1,0 +1,35 @@
+stylesheets = []
+
+[asset]
+kind = "layout"
+id = "editor.host.pane.hierarchy.body"
+version = 1
+display_name = "hierarchy pane body"
+
+[imports]
+widgets = []
+styles = []
+
+[tokens]
+
+[root]
+node_id = "root"
+kind = "component"
+component = "HierarchyPaneBody"
+
+[components.HierarchyPaneBody]
+style_scope = "closed"
+
+[components.HierarchyPaneBody.root]
+node_id = "hierarchy_pane_body_root"
+kind = "native"
+type = "VerticalBox"
+children = [
+  { node = { node_id = "hierarchy_header", kind = "native", type = "HorizontalBox", children = [
+    { node = { node_id = "hierarchy_select_root_action", kind = "native", type = "UiHostIconButton", control_id = "SelectRoot", bindings = [{ id = "HierarchyPaneBody/SelectRoot", event = "Click", route = "SelectionCommand.SelectSceneNode" }], props = { label = "Select Root" } } }
+  ] } },
+  { node = { node_id = "hierarchy_tree_slot_node", kind = "slot", slot_name = "hierarchy_tree_slot", control_id = "HierarchyListPanel" } },
+]
+
+[components.HierarchyPaneBody.slots.hierarchy_tree_slot]
+required = false

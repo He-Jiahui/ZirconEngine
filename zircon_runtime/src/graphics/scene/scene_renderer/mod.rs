@@ -1,5 +1,6 @@
 mod core;
 mod deferred;
+mod graph_execution;
 mod history;
 mod hybrid_gi;
 mod mesh;
@@ -12,6 +13,7 @@ mod ui;
 mod virtual_geometry;
 
 pub use core::SceneRenderer;
+pub(crate) use graph_execution::RenderPassExecutorId;
 
 pub(crate) use core::{create_depth_texture, OFFSCREEN_FORMAT};
 pub(crate) use deferred::GBUFFER_ALBEDO_FORMAT;

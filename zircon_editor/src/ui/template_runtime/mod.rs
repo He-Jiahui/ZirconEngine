@@ -6,9 +6,9 @@ mod runtime;
 mod slint_adapter;
 
 #[cfg(test)]
-pub(crate) use builtin::UI_HOST_WINDOW_DOCUMENT_ID;
+pub(crate) use builtin::LEGACY_HOST_WINDOW_DOCUMENT_ID;
 #[cfg(test)]
-pub(crate) use builtin::WORKBENCH_SHELL_DOCUMENT_ID;
+pub(crate) use builtin::UI_HOST_WINDOW_DOCUMENT_ID;
 pub use harness::{EditorUiCompatibilityHarness, EditorUiCompatibilitySnapshot};
 pub use host_nodes::{SlintUiHostBindingProjection, SlintUiHostModel, SlintUiHostNodeProjection};
 pub use model::{SlintUiBindingProjection, SlintUiNodeProjection, SlintUiProjection};

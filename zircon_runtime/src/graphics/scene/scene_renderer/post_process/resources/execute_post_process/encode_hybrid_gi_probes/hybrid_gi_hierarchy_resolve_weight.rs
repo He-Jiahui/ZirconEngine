@@ -7,6 +7,8 @@ use crate::graphics::types::ViewportRenderFrame;
 use super::hybrid_gi_budget_weight::hybrid_gi_budget_weight;
 use super::runtime_parent_chain::{
     gather_runtime_descendant_chain_weight, gather_runtime_parent_chain_weight,
+    runtime_parent_topology_is_authoritative, runtime_probe_lineage_has_scene_truth,
+    runtime_resolve_weight_support,
 };
 
 const CHILD_SPECIFICITY_BOOST: f32 = 0.3;
@@ -30,7 +32,9 @@ pub(super) fn hybrid_gi_hierarchy_resolve_weight(
         .as_ref()
         .map(|runtime| runtime_probe_has_scene_truth(runtime, source.probe_id))
         .unwrap_or(false);
-    if frame.hybrid_gi_scene_prepare.is_some() {
+    if frame.hybrid_gi_scene_prepare.is_some()
+        || runtime_probe_lineage_has_scene_truth(frame, source.probe_id)
+    {
         return exact_runtime_weight
             .filter(|_| exact_runtime_weight_has_scene_truth)
             .unwrap_or(1.0);
@@ -49,6 +53,9 @@ pub(super) fn hybrid_gi_hierarchy_resolve_weight(
     }
 
     if frame.hybrid_gi_scene_prepare.is_some() {
+        return 1.0;
+    }
+    if runtime_parent_topology_is_authoritative(frame) {
         return 1.0;
     }
 
@@ -106,8 +113,20 @@ fn runtime_probe_has_scene_truth(
     runtime: &crate::graphics::types::HybridGiResolveRuntime,
     probe_id: u32,
 ) -> bool {
-    runtime.hierarchy_irradiance_includes_scene_truth(probe_id)
-        || runtime.hierarchy_rt_lighting_includes_scene_truth(probe_id)
+    let has_supported_irradiance = runtime.hierarchy_irradiance_includes_scene_truth(probe_id)
+        && runtime
+            .hierarchy_irradiance(probe_id)
+            .map(|source| source[3] > f32::EPSILON)
+            .unwrap_or(false);
+    let has_supported_rt_lighting = runtime.hierarchy_rt_lighting_includes_scene_truth(probe_id)
+        && (runtime
+            .hierarchy_rt_lighting(probe_id)
+            .map(|source| source[3] > f32::EPSILON)
+            .unwrap_or(false)
+            || (runtime.probe_rt_lighting_rgb.contains_key(&probe_id)
+                && runtime_resolve_weight_support(runtime.hierarchy_resolve_weight(probe_id))
+                    > f32::EPSILON));
+    has_supported_irradiance || has_supported_rt_lighting
 }
 
 fn blend_runtime_lineage_resolve_weights(
@@ -230,7 +249,7 @@ fn farther_resident_ancestor_budget_support<'a>(
 
 #[cfg(test)]
 mod tests {
-    use std::collections::BTreeMap;
+    use std::collections::{BTreeMap, BTreeSet};
 
     use super::hybrid_gi_hierarchy_resolve_weight;
     use crate::core::framework::render::{
@@ -262,6 +281,17 @@ mod tests {
         assert!(
             (child_weight - 1.0).abs() < 0.05,
             "expected scene-driven frames to stop using authored probe hierarchy as resolve-weight authority once current scene truth is present, instead of keeping child-specific fallback weighting; child_weight={child_weight:.3}"
+        );
+    }
+
+    #[test]
+    fn scene_driven_frame_ignores_resolve_weight_with_stale_scene_truth_flag_without_supported_source(
+    ) {
+        let stale_flag_weight = scene_driven_hierarchy_resolve_weight_with_stale_scene_truth_flag();
+
+        assert!(
+            (stale_flag_weight - 1.0).abs() < 0.05,
+            "expected scene-driven frames to reject exact runtime resolve weight when the only scene-truth evidence is a stale flag without supported irradiance/RT source data; stale_flag_weight={stale_flag_weight:.3}"
         );
     }
 
@@ -398,5 +428,72 @@ mod tests {
             }));
 
         hybrid_gi_hierarchy_resolve_weight(&frame, &child_probe)
+    }
+
+    fn scene_driven_hierarchy_resolve_weight_with_stale_scene_truth_flag() -> f32 {
+        let probe = RenderHybridGiProbe {
+            probe_id: 100,
+            resident: true,
+            ray_budget: 128,
+            ..Default::default()
+        };
+
+        let snapshot = RenderSceneSnapshot {
+            scene: RenderSceneGeometryExtract {
+                camera: ViewportCameraSnapshot::default(),
+                meshes: Vec::new(),
+                directional_lights: Vec::new(),
+                point_lights: Vec::new(),
+                spot_lights: Vec::new(),
+            },
+            overlays: RenderOverlayExtract::default(),
+            preview: PreviewEnvironmentExtract {
+                lighting_enabled: true,
+                skybox_enabled: false,
+                fallback_skybox: FallbackSkyboxKind::None,
+                clear_color: Vec4::ZERO,
+            },
+            virtual_geometry_debug: None,
+        };
+        let mut extract =
+            RenderFrameExtract::from_snapshot(RenderWorldSnapshotHandle::new(1), snapshot);
+        extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
+            enabled: true,
+            probe_budget: 1,
+            trace_budget: 0,
+            card_budget: 2,
+            voxel_budget: 1,
+            probes: vec![probe],
+            ..Default::default()
+        });
+
+        let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(32, 32))
+            .with_hybrid_gi_prepare(Some(HybridGiPrepareFrame {
+                resident_probes: vec![HybridGiPrepareProbe {
+                    probe_id: probe.probe_id,
+                    slot: 0,
+                    ray_budget: probe.ray_budget,
+                    irradiance_rgb: [160, 160, 160],
+                }],
+                pending_updates: Vec::new(),
+                scheduled_trace_region_ids: Vec::new(),
+                evictable_probe_ids: Vec::new(),
+            }))
+            .with_hybrid_gi_scene_prepare(Some(HybridGiScenePrepareFrame {
+                card_capture_requests: Vec::new(),
+                surface_cache_page_contents: Vec::new(),
+                voxel_clipmaps: Vec::new(),
+                voxel_cells: Vec::new(),
+            }))
+            .with_hybrid_gi_resolve_runtime(Some(HybridGiResolveRuntime {
+                probe_hierarchy_resolve_weight_q8: BTreeMap::from([(
+                    probe.probe_id,
+                    HybridGiResolveRuntime::pack_resolve_weight_q8(2.4),
+                )]),
+                probe_scene_driven_hierarchy_irradiance_ids: BTreeSet::from([probe.probe_id]),
+                ..Default::default()
+            }));
+
+        hybrid_gi_hierarchy_resolve_weight(&frame, &probe)
     }
 }

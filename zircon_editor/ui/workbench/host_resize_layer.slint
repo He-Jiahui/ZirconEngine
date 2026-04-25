@@ -1,5 +1,5 @@
 import { Palette } from "chrome.slint";
-import { WorkbenchHostContext } from "host_context.slint";
+import { UiHostContext } from "host_context.slint";
 import { HostResizeLayerData } from "host_components.slint";
 
 export component HostResizeLayer inherits Rectangle {
@@ -24,8 +24,8 @@ export component HostResizeLayer inherits Rectangle {
             x: (parent.width - 1px) / 2;
             width: 1px;
             height: parent.height;
-            background: WorkbenchHostContext.resize_state.resize_active && WorkbenchHostContext.resize_state.resize_group == "left" ? palette.accent : palette.border_soft;
-            opacity: left_splitter_touch.has-hover || (WorkbenchHostContext.resize_state.resize_active && WorkbenchHostContext.resize_state.resize_group == "left") ? 1.0 : 0.0;
+            background: UiHostContext.resize_state.resize_active && UiHostContext.resize_state.resize_group == "left" ? palette.accent : palette.border_soft;
+            opacity: left_splitter_touch.has-hover || (UiHostContext.resize_state.resize_active && UiHostContext.resize_state.resize_group == "left") ? 1.0 : 0.0;
         }
 
         left_splitter_touch := TouchArea {
@@ -34,11 +34,11 @@ export component HostResizeLayer inherits Rectangle {
             mouse-cursor: ew-resize;
             pointer-event(event) => {
                 if (event.button == PointerEventButton.left && event.kind == PointerEventKind.down) {
-                    WorkbenchHostContext.resize_state = {
+                    UiHostContext.resize_state = {
                         resize_active: true,
                         resize_group: "left",
                     };
-                    WorkbenchHostContext.workbench_resize_pointer_event(
+                    UiHostContext.host_resize_pointer_event(
                         0,
                         (left_splitter.x + self.mouse-x) / 1px,
                         (left_splitter.y + self.mouse-y) / 1px,
@@ -59,8 +59,8 @@ export component HostResizeLayer inherits Rectangle {
             x: (parent.width - 1px) / 2;
             width: 1px;
             height: parent.height;
-            background: WorkbenchHostContext.resize_state.resize_active && WorkbenchHostContext.resize_state.resize_group == "right" ? palette.accent : palette.border_soft;
-            opacity: right_splitter_touch.has-hover || (WorkbenchHostContext.resize_state.resize_active && WorkbenchHostContext.resize_state.resize_group == "right") ? 1.0 : 0.0;
+            background: UiHostContext.resize_state.resize_active && UiHostContext.resize_state.resize_group == "right" ? palette.accent : palette.border_soft;
+            opacity: right_splitter_touch.has-hover || (UiHostContext.resize_state.resize_active && UiHostContext.resize_state.resize_group == "right") ? 1.0 : 0.0;
         }
 
         right_splitter_touch := TouchArea {
@@ -69,11 +69,11 @@ export component HostResizeLayer inherits Rectangle {
             mouse-cursor: ew-resize;
             pointer-event(event) => {
                 if (event.button == PointerEventButton.left && event.kind == PointerEventKind.down) {
-                    WorkbenchHostContext.resize_state = {
+                    UiHostContext.resize_state = {
                         resize_active: true,
                         resize_group: "right",
                     };
-                    WorkbenchHostContext.workbench_resize_pointer_event(
+                    UiHostContext.host_resize_pointer_event(
                         0,
                         (right_splitter.x + self.mouse-x) / 1px,
                         (right_splitter.y + self.mouse-y) / 1px,
@@ -94,8 +94,8 @@ export component HostResizeLayer inherits Rectangle {
             y: (parent.height - 1px) / 2;
             width: parent.width;
             height: 1px;
-            background: WorkbenchHostContext.resize_state.resize_active && WorkbenchHostContext.resize_state.resize_group == "bottom" ? palette.accent : palette.border_soft;
-            opacity: bottom_splitter_touch.has-hover || (WorkbenchHostContext.resize_state.resize_active && WorkbenchHostContext.resize_state.resize_group == "bottom") ? 1.0 : 0.0;
+            background: UiHostContext.resize_state.resize_active && UiHostContext.resize_state.resize_group == "bottom" ? palette.accent : palette.border_soft;
+            opacity: bottom_splitter_touch.has-hover || (UiHostContext.resize_state.resize_active && UiHostContext.resize_state.resize_group == "bottom") ? 1.0 : 0.0;
         }
 
         bottom_splitter_touch := TouchArea {
@@ -104,11 +104,11 @@ export component HostResizeLayer inherits Rectangle {
             mouse-cursor: ns-resize;
             pointer-event(event) => {
                 if (event.button == PointerEventButton.left && event.kind == PointerEventKind.down) {
-                    WorkbenchHostContext.resize_state = {
+                    UiHostContext.resize_state = {
                         resize_active: true,
                         resize_group: "bottom",
                     };
-                    WorkbenchHostContext.workbench_resize_pointer_event(
+                    UiHostContext.host_resize_pointer_event(
                         0,
                         (bottom_splitter.x + self.mouse-x) / 1px,
                         (bottom_splitter.y + self.mouse-y) / 1px,
@@ -118,19 +118,19 @@ export component HostResizeLayer inherits Rectangle {
         }
     }
 
-    if WorkbenchHostContext.resize_state.resize_active: TouchArea {
+    if UiHostContext.resize_state.resize_active: TouchArea {
         x: 0px;
         y: 0px;
         width: parent.width;
         height: parent.height;
-        mouse-cursor: WorkbenchHostContext.resize_state.resize_group == "bottom" ? ns-resize : ew-resize;
+        mouse-cursor: UiHostContext.resize_state.resize_group == "bottom" ? ns-resize : ew-resize;
         moved => {
-            WorkbenchHostContext.workbench_resize_pointer_event(1, self.mouse-x / 1px, self.mouse-y / 1px);
+            UiHostContext.host_resize_pointer_event(1, self.mouse-x / 1px, self.mouse-y / 1px);
         }
         pointer-event(event) => {
             if (event.button == PointerEventButton.left && event.kind == PointerEventKind.up) {
-                WorkbenchHostContext.workbench_resize_pointer_event(2, self.mouse-x / 1px, self.mouse-y / 1px);
-                WorkbenchHostContext.resize_state = {
+                UiHostContext.host_resize_pointer_event(2, self.mouse-x / 1px, self.mouse-y / 1px);
+                UiHostContext.resize_state = {
                     resize_active: false,
                     resize_group: "",
                 };

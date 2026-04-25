@@ -38,6 +38,7 @@ pub(crate) fn resolve_view_tab(
         serializable_payload: instance.serializable_payload.clone(),
         dirty: instance.dirty,
         content_kind: descriptor_content_kind(&descriptor.descriptor_id),
+        pane_template: descriptor.pane_template.clone(),
         placeholder: false,
     }
 }

@@ -209,6 +209,717 @@ children = [
 ]
 "#;
 
+const STYLE_WITH_RULE_IDS: &str = r##"
+[asset]
+kind = "style"
+id = "ui.theme.rule_ids"
+version = 1
+display_name = "Rule Ids"
+
+[[stylesheets]]
+id = "rule_id_sheet"
+
+[[stylesheets.rules]]
+id = "primary_button_hover"
+selector = "Button.primary:hover"
+set = { self = { text = "Hover" } }
+
+[[stylesheets.rules]]
+selector = "Label"
+set = { self = { text = "Label" } }
+
+[[stylesheets]]
+id = "secondary_sheet"
+
+[[stylesheets.rules]]
+id = "secondary_label_rule"
+selector = "Label.secondary"
+set = { self = { text = "Secondary" } }
+"##;
+
+#[test]
+fn ui_asset_stylesheet_rules_preserve_stable_rule_ids() {
+    let document = UiAssetLoader::load_toml_str(STYLE_WITH_RULE_IDS).unwrap();
+    let rules = &document.stylesheets[0].rules;
+    assert_eq!(rules[0].id.as_deref(), Some("primary_button_hover"));
+    assert_eq!(rules[1].id, None);
+
+    let roundtrip = toml::to_string_pretty(&document).unwrap();
+    assert!(roundtrip.contains("id = \"primary_button_hover\""));
+    let reparsed = UiAssetLoader::load_toml_str(&roundtrip).unwrap();
+    assert_eq!(
+        reparsed.stylesheets[0].rules[0].id.as_deref(),
+        Some("primary_button_hover")
+    );
+}
+
+#[test]
+fn ui_asset_stylesheet_rules_can_be_found_and_edited_by_stable_id() {
+    let mut document = UiAssetLoader::load_toml_str(STYLE_WITH_RULE_IDS).unwrap();
+
+    assert_eq!(
+        document
+            .style_rule("primary_button_hover")
+            .map(|rule| rule.selector.as_str()),
+        Some("Button.primary:hover")
+    );
+    assert!(document.style_rule("missing_rule").is_none());
+
+    document
+        .style_rule_mut("primary_button_hover")
+        .unwrap()
+        .selector = "Button.primary:pressed".to_string();
+
+    assert_eq!(
+        document
+            .style_rule("primary_button_hover")
+            .map(|rule| rule.selector.as_str()),
+        Some("Button.primary:pressed")
+    );
+}
+
+#[test]
+fn ui_asset_stylesheets_can_be_found_and_edited_by_stable_id() {
+    let mut document = UiAssetLoader::load_toml_str(STYLE_WITH_RULE_IDS).unwrap();
+
+    assert_eq!(
+        document
+            .style_sheet("rule_id_sheet")
+            .map(|stylesheet| stylesheet.rules.len()),
+        Some(2)
+    );
+    assert!(document.style_sheet("missing_sheet").is_none());
+
+    document.style_sheet_mut("rule_id_sheet").unwrap().id = "renamed_rule_id_sheet".to_string();
+
+    assert!(document.style_sheet("rule_id_sheet").is_none());
+    assert_eq!(
+        document
+            .style_sheet("renamed_rule_id_sheet")
+            .map(|stylesheet| stylesheet.rules.len()),
+        Some(2)
+    );
+}
+
+#[test]
+fn ui_asset_stylesheet_rules_can_be_renamed_without_breaking_id_uniqueness() {
+    let mut document = UiAssetLoader::load_toml_str(STYLE_WITH_RULE_IDS).unwrap();
+
+    assert!(document
+        .rename_style_rule("primary_button_hover", "primary_button_pressed")
+        .unwrap());
+    assert!(document.style_rule("primary_button_hover").is_none());
+    assert_eq!(
+        document
+            .style_rule("primary_button_pressed")
+            .map(|rule| rule.selector.as_str()),
+        Some("Button.primary:hover")
+    );
+    assert!(!document
+        .rename_style_rule("missing_rule", "new_rule")
+        .unwrap());
+
+    let duplicate_error = document
+        .rename_style_rule("primary_button_pressed", "secondary_label_rule")
+        .expect_err("renaming to a duplicate style rule id should fail");
+    assert!(
+        duplicate_error
+            .to_string()
+            .contains("duplicate style rule id secondary_label_rule"),
+        "unexpected error: {duplicate_error:?}"
+    );
+
+    let empty_error = document
+        .rename_style_rule("primary_button_pressed", " ")
+        .expect_err("renaming to an empty style rule id should fail");
+    assert!(
+        empty_error
+            .to_string()
+            .contains("style rule id cannot be empty"),
+        "unexpected error: {empty_error:?}"
+    );
+}
+
+#[test]
+fn ui_asset_stylesheets_can_be_renamed_without_breaking_id_uniqueness() {
+    let mut document = UiAssetLoader::load_toml_str(STYLE_WITH_RULE_IDS).unwrap();
+
+    assert!(document
+        .rename_style_sheet("rule_id_sheet", "renamed_rule_id_sheet")
+        .unwrap());
+    assert!(document.style_sheet("rule_id_sheet").is_none());
+    assert_eq!(
+        document
+            .style_sheet("renamed_rule_id_sheet")
+            .map(|stylesheet| stylesheet.rules.len()),
+        Some(2)
+    );
+    assert!(!document
+        .rename_style_sheet("missing_sheet", "new_sheet")
+        .unwrap());
+
+    let duplicate_error = document
+        .rename_style_sheet("renamed_rule_id_sheet", "secondary_sheet")
+        .expect_err("renaming to a duplicate stylesheet id should fail");
+    assert!(
+        duplicate_error
+            .to_string()
+            .contains("duplicate stylesheet id secondary_sheet"),
+        "unexpected error: {duplicate_error:?}"
+    );
+
+    let empty_error = document
+        .rename_style_sheet("renamed_rule_id_sheet", " ")
+        .expect_err("renaming to an empty stylesheet id should fail");
+    assert!(
+        empty_error
+            .to_string()
+            .contains("stylesheet id cannot be empty"),
+        "unexpected error: {empty_error:?}"
+    );
+}
+
+#[test]
+fn ui_asset_stylesheet_rules_can_be_removed_by_stable_id_for_editor_undo() {
+    let mut document = UiAssetLoader::load_toml_str(STYLE_WITH_RULE_IDS).unwrap();
+
+    let removed = document
+        .remove_style_rule("primary_button_hover")
+        .expect("style rule should be removed");
+    assert_eq!(removed.id.as_deref(), Some("primary_button_hover"));
+    assert_eq!(removed.selector, "Button.primary:hover");
+    assert!(document.style_rule("primary_button_hover").is_none());
+    assert_eq!(document.stylesheets[0].rules.len(), 1);
+
+    assert!(document.remove_style_rule("missing_rule").is_none());
+}
+
+#[test]
+fn ui_asset_stylesheets_can_be_removed_by_stable_id_for_editor_undo() {
+    let mut document = UiAssetLoader::load_toml_str(STYLE_WITH_RULE_IDS).unwrap();
+
+    let removed = document
+        .remove_style_sheet("secondary_sheet")
+        .expect("stylesheet should be removed");
+    assert_eq!(removed.id, "secondary_sheet");
+    assert_eq!(removed.rules.len(), 1);
+    assert!(document.style_sheet("secondary_sheet").is_none());
+    assert_eq!(document.stylesheets.len(), 1);
+
+    assert!(document.remove_style_sheet("missing_sheet").is_none());
+}
+
+#[test]
+fn ui_asset_stylesheet_rules_can_be_inserted_at_stable_editor_positions() {
+    let mut document = UiAssetLoader::load_toml_str(STYLE_WITH_RULE_IDS).unwrap();
+    let removed = document
+        .remove_style_rule("primary_button_hover")
+        .expect("style rule should be removed");
+
+    assert!(document
+        .insert_style_rule("rule_id_sheet", 0, removed)
+        .unwrap());
+    assert_eq!(
+        document.stylesheets[0].rules[0].id.as_deref(),
+        Some("primary_button_hover")
+    );
+    assert!(!document
+        .insert_style_rule(
+            "missing_sheet",
+            0,
+            document.style_rule("primary_button_hover").unwrap().clone()
+        )
+        .unwrap());
+
+    let duplicate_error = document
+        .insert_style_rule(
+            "rule_id_sheet",
+            0,
+            document.style_rule("primary_button_hover").unwrap().clone(),
+        )
+        .expect_err("inserting a duplicate style rule id should fail");
+    assert!(
+        duplicate_error
+            .to_string()
+            .contains("duplicate style rule id primary_button_hover"),
+        "unexpected error: {duplicate_error:?}"
+    );
+}
+
+#[test]
+fn ui_asset_stylesheet_rules_can_be_replaced_atomically_for_editor_edits() {
+    let mut document = UiAssetLoader::load_toml_str(STYLE_WITH_RULE_IDS).unwrap();
+    let mut replacement = document
+        .style_rule("primary_button_hover")
+        .expect("style rule")
+        .clone();
+    replacement.selector = "Button.primary:focus".to_string();
+
+    let previous = document
+        .replace_style_rule("primary_button_hover", replacement)
+        .unwrap()
+        .expect("style rule should be replaced");
+    assert_eq!(previous.selector, "Button.primary:hover");
+    assert_eq!(
+        document
+            .style_rule("primary_button_hover")
+            .map(|rule| rule.selector.as_str()),
+        Some("Button.primary:focus")
+    );
+    assert!(document
+        .replace_style_rule(
+            "missing_rule",
+            document.style_rule("primary_button_hover").unwrap().clone()
+        )
+        .unwrap()
+        .is_none());
+
+    let duplicate_replacement = document
+        .style_rule("secondary_label_rule")
+        .expect("secondary rule")
+        .clone();
+    let duplicate_error = document
+        .replace_style_rule("primary_button_hover", duplicate_replacement)
+        .expect_err("replacing with a duplicate rule id should fail");
+    assert!(
+        duplicate_error
+            .to_string()
+            .contains("duplicate style rule id secondary_label_rule"),
+        "unexpected error: {duplicate_error:?}"
+    );
+    assert_eq!(
+        document
+            .style_rule("primary_button_hover")
+            .map(|rule| rule.selector.as_str()),
+        Some("Button.primary:focus")
+    );
+}
+
+#[test]
+fn ui_asset_stylesheet_rule_write_apis_reject_invalid_selectors_atomically() {
+    let mut document = UiAssetLoader::load_toml_str(STYLE_WITH_RULE_IDS).unwrap();
+
+    let mut invalid_replacement = document
+        .style_rule("primary_button_hover")
+        .expect("style rule")
+        .clone();
+    invalid_replacement.selector = "Button#".to_string();
+
+    let replace_error = document
+        .replace_style_rule("primary_button_hover", invalid_replacement)
+        .expect_err("replacing with an invalid selector should fail");
+    assert!(
+        matches!(
+            replace_error,
+            crate::ui::template::UiAssetError::InvalidSelector(_)
+        ),
+        "unexpected error: {replace_error:?}"
+    );
+    assert_eq!(
+        document
+            .style_rule("primary_button_hover")
+            .map(|rule| rule.selector.as_str()),
+        Some("Button.primary:hover")
+    );
+
+    let mut invalid_insert = document
+        .remove_style_rule("primary_button_hover")
+        .expect("style rule should be removed before reinserting");
+    invalid_insert.selector = "Button#".to_string();
+    let rule_count = document.stylesheets[0].rules.len();
+
+    let insert_error = document
+        .insert_style_rule("rule_id_sheet", 0, invalid_insert)
+        .expect_err("inserting an invalid selector should fail");
+    assert!(
+        matches!(
+            insert_error,
+            crate::ui::template::UiAssetError::InvalidSelector(_)
+        ),
+        "unexpected error: {insert_error:?}"
+    );
+    assert_eq!(document.stylesheets[0].rules.len(), rule_count);
+    assert!(document.style_rule("primary_button_hover").is_none());
+}
+
+#[test]
+fn ui_asset_stylesheets_can_be_inserted_at_stable_editor_positions() {
+    let mut document = UiAssetLoader::load_toml_str(STYLE_WITH_RULE_IDS).unwrap();
+    let removed = document
+        .remove_style_sheet("secondary_sheet")
+        .expect("stylesheet should be removed");
+
+    let inserted_index = document.insert_style_sheet(0, removed).unwrap();
+    assert_eq!(inserted_index, 0);
+    assert_eq!(document.stylesheets[0].id, "secondary_sheet");
+
+    let duplicate_error = document
+        .insert_style_sheet(0, document.style_sheet("secondary_sheet").unwrap().clone())
+        .expect_err("inserting a duplicate stylesheet id should fail");
+    assert!(
+        duplicate_error
+            .to_string()
+            .contains("duplicate stylesheet id secondary_sheet"),
+        "unexpected error: {duplicate_error:?}"
+    );
+}
+
+#[test]
+fn ui_asset_stylesheets_can_be_replaced_atomically_for_editor_edits() {
+    let mut document = UiAssetLoader::load_toml_str(STYLE_WITH_RULE_IDS).unwrap();
+    let mut replacement = document
+        .style_sheet("rule_id_sheet")
+        .expect("stylesheet")
+        .clone();
+    replacement.rules.clear();
+
+    let previous = document
+        .replace_style_sheet("rule_id_sheet", replacement)
+        .unwrap()
+        .expect("stylesheet should be replaced");
+    assert_eq!(previous.rules.len(), 2);
+    assert_eq!(
+        document
+            .style_sheet("rule_id_sheet")
+            .map(|stylesheet| stylesheet.rules.len()),
+        Some(0)
+    );
+    assert!(document
+        .replace_style_sheet(
+            "missing_sheet",
+            document.style_sheet("rule_id_sheet").unwrap().clone()
+        )
+        .unwrap()
+        .is_none());
+
+    let duplicate_replacement = document
+        .style_sheet("secondary_sheet")
+        .expect("secondary sheet")
+        .clone();
+    let duplicate_error = document
+        .replace_style_sheet("rule_id_sheet", duplicate_replacement)
+        .expect_err("replacing with a duplicate stylesheet id should fail");
+    assert!(
+        duplicate_error
+            .to_string()
+            .contains("duplicate stylesheet id secondary_sheet"),
+        "unexpected error: {duplicate_error:?}"
+    );
+    assert_eq!(
+        document
+            .style_sheet("rule_id_sheet")
+            .map(|stylesheet| stylesheet.rules.len()),
+        Some(0)
+    );
+}
+
+#[test]
+fn ui_asset_stylesheet_write_apis_reject_invalid_selectors_atomically() {
+    let mut document = UiAssetLoader::load_toml_str(STYLE_WITH_RULE_IDS).unwrap();
+
+    let mut invalid_replacement = document
+        .style_sheet("rule_id_sheet")
+        .expect("stylesheet")
+        .clone();
+    invalid_replacement.rules[0].selector = "Button#".to_string();
+
+    let replace_error = document
+        .replace_style_sheet("rule_id_sheet", invalid_replacement)
+        .expect_err("replacing a stylesheet with an invalid selector should fail");
+    assert!(
+        matches!(
+            replace_error,
+            crate::ui::template::UiAssetError::InvalidSelector(_)
+        ),
+        "unexpected error: {replace_error:?}"
+    );
+    assert_eq!(
+        document.stylesheets[0].rules[0].selector,
+        "Button.primary:hover"
+    );
+
+    let mut invalid_insert = document
+        .remove_style_sheet("secondary_sheet")
+        .expect("stylesheet should be removed before reinserting");
+    invalid_insert.rules[0].selector = "Button#".to_string();
+    let stylesheet_count = document.stylesheets.len();
+
+    let insert_error = document
+        .insert_style_sheet(0, invalid_insert)
+        .expect_err("inserting a stylesheet with an invalid selector should fail");
+    assert!(
+        matches!(
+            insert_error,
+            crate::ui::template::UiAssetError::InvalidSelector(_)
+        ),
+        "unexpected error: {insert_error:?}"
+    );
+    assert_eq!(document.stylesheets.len(), stylesheet_count);
+    assert!(document.style_sheet("secondary_sheet").is_none());
+}
+
+#[test]
+fn ui_asset_stylesheets_can_be_replaced_atomically_for_editor_replay() {
+    let mut document = UiAssetLoader::load_toml_str(STYLE_WITH_RULE_IDS).unwrap();
+    let original_stylesheets = document.stylesheets.clone();
+    let mut replacement = original_stylesheets.clone();
+    replacement[0].rules[0].selector = "Button#".to_string();
+
+    let replace_error = document
+        .set_style_sheets(replacement)
+        .expect_err("setting invalid stylesheets should fail");
+    assert!(
+        matches!(
+            replace_error,
+            crate::ui::template::UiAssetError::InvalidSelector(_)
+        ),
+        "unexpected error: {replace_error:?}"
+    );
+    assert_eq!(document.stylesheets, original_stylesheets);
+
+    let mut replacement = original_stylesheets.clone();
+    replacement[0].rules.clear();
+    assert!(document
+        .set_style_sheets(replacement.clone())
+        .expect("valid stylesheets should be accepted"));
+    assert_eq!(document.stylesheets, replacement);
+    assert!(!document
+        .set_style_sheets(replacement)
+        .expect("unchanged stylesheets should be a no-op"));
+}
+
+#[test]
+fn ui_asset_stylesheets_replacement_rejects_duplicate_ids_atomically() {
+    let mut document = UiAssetLoader::load_toml_str(STYLE_WITH_RULE_IDS).unwrap();
+    let original_stylesheets = document.stylesheets.clone();
+    let mut replacement = original_stylesheets.clone();
+    replacement[1].id = replacement[0].id.clone();
+
+    let replace_error = document
+        .set_style_sheets(replacement)
+        .expect_err("setting duplicate stylesheet ids should fail");
+    assert!(
+        replace_error
+            .to_string()
+            .contains("duplicate stylesheet id"),
+        "unexpected error: {replace_error:?}"
+    );
+    assert_eq!(document.stylesheets, original_stylesheets);
+}
+
+#[test]
+fn ui_asset_stylesheet_rules_can_be_moved_to_stable_editor_positions() {
+    let mut document = UiAssetLoader::load_toml_str(STYLE_WITH_RULE_IDS).unwrap();
+
+    assert!(document
+        .move_style_rule("secondary_label_rule", "rule_id_sheet", 1)
+        .unwrap());
+    assert_eq!(document.stylesheets[0].rules.len(), 3);
+    assert_eq!(
+        document.stylesheets[0].rules[1].id.as_deref(),
+        Some("secondary_label_rule")
+    );
+    assert!(document.stylesheets[1].rules.is_empty());
+
+    assert!(!document
+        .move_style_rule("missing_rule", "rule_id_sheet", 0)
+        .unwrap());
+    assert!(!document
+        .move_style_rule("secondary_label_rule", "missing_sheet", 0)
+        .unwrap());
+}
+
+#[test]
+fn ui_asset_stylesheets_can_be_moved_to_stable_editor_positions() {
+    let mut document = UiAssetLoader::load_toml_str(STYLE_WITH_RULE_IDS).unwrap();
+
+    assert_eq!(document.move_style_sheet("secondary_sheet", 0), Some(0));
+    assert_eq!(document.stylesheets[0].id, "secondary_sheet");
+    assert_eq!(document.stylesheets[1].id, "rule_id_sheet");
+
+    assert_eq!(document.move_style_sheet("secondary_sheet", 99), Some(1));
+    assert_eq!(document.stylesheets[1].id, "secondary_sheet");
+    assert_eq!(document.move_style_sheet("missing_sheet", 0), None);
+}
+
+#[test]
+fn ui_asset_style_positions_follow_editor_reorder_operations() {
+    let mut document = UiAssetLoader::load_toml_str(STYLE_WITH_RULE_IDS).unwrap();
+
+    assert_eq!(document.style_sheet_index("rule_id_sheet"), Some(0));
+    assert_eq!(document.style_sheet_index("secondary_sheet"), Some(1));
+    let position = document
+        .style_rule_position("secondary_label_rule")
+        .expect("style rule position");
+    assert_eq!(position.stylesheet_id, "secondary_sheet");
+    assert_eq!(position.stylesheet_index, 1);
+    assert_eq!(position.rule_index, 0);
+
+    document
+        .move_style_rule("secondary_label_rule", "rule_id_sheet", 1)
+        .unwrap();
+    document.move_style_sheet("secondary_sheet", 0);
+
+    assert_eq!(document.style_sheet_index("rule_id_sheet"), Some(1));
+    let position = document
+        .style_rule_position("secondary_label_rule")
+        .expect("style rule position after move");
+    assert_eq!(position.stylesheet_id, "rule_id_sheet");
+    assert_eq!(position.stylesheet_index, 1);
+    assert_eq!(position.rule_index, 1);
+    assert!(document.style_rule_position("missing_rule").is_none());
+}
+
+#[test]
+fn ui_asset_loader_rejects_duplicate_stable_style_rule_ids() {
+    const STYLE_WITH_DUPLICATE_RULE_IDS: &str = r##"
+[asset]
+kind = "style"
+id = "ui.theme.duplicate_rule_ids"
+version = 1
+display_name = "Duplicate Rule Ids"
+
+[[stylesheets]]
+id = "first_sheet"
+
+[[stylesheets.rules]]
+id = "primary_button"
+selector = "Button.primary"
+set = { self = { text = "Primary" } }
+
+[[stylesheets]]
+id = "second_sheet"
+
+[[stylesheets.rules]]
+id = "primary_button"
+selector = "Button.primary:hover"
+set = { self = { text = "Hover" } }
+"##;
+
+    let error = UiAssetLoader::load_toml_str(STYLE_WITH_DUPLICATE_RULE_IDS)
+        .expect_err("duplicate stable style rule ids should be rejected");
+
+    assert!(
+        matches!(
+            error,
+            crate::ui::template::UiAssetError::InvalidDocument { .. }
+        ),
+        "unexpected error: {error:?}"
+    );
+    assert!(
+        error
+            .to_string()
+            .contains("duplicate style rule id primary_button"),
+        "unexpected error: {error:?}"
+    );
+}
+
+#[test]
+fn ui_asset_loader_rejects_duplicate_stable_stylesheet_ids() {
+    const STYLE_WITH_DUPLICATE_STYLESHEET_IDS: &str = r##"
+[asset]
+kind = "style"
+id = "ui.theme.duplicate_stylesheet_ids"
+version = 1
+display_name = "Duplicate Stylesheet Ids"
+
+[[stylesheets]]
+id = "editor_base"
+
+[[stylesheets.rules]]
+selector = "Button.primary"
+set = { self = { text = "Primary" } }
+
+[[stylesheets]]
+id = "editor_base"
+
+[[stylesheets.rules]]
+selector = "Button.primary:hover"
+set = { self = { text = "Hover" } }
+"##;
+
+    let error = UiAssetLoader::load_toml_str(STYLE_WITH_DUPLICATE_STYLESHEET_IDS)
+        .expect_err("duplicate stable stylesheet ids should be rejected");
+
+    assert!(
+        matches!(
+            error,
+            crate::ui::template::UiAssetError::InvalidDocument { .. }
+        ),
+        "unexpected error: {error:?}"
+    );
+    assert!(
+        error
+            .to_string()
+            .contains("duplicate stylesheet id editor_base"),
+        "unexpected error: {error:?}"
+    );
+}
+
+#[test]
+fn ui_asset_loader_rejects_blank_stable_stylesheet_ids() {
+    const STYLE_WITH_BLANK_STYLESHEET_ID: &str = r##"
+[asset]
+kind = "style"
+id = "ui.theme.blank_stylesheet_id"
+version = 1
+display_name = "Blank Stylesheet Id"
+
+[[stylesheets]]
+id = " "
+
+[[stylesheets.rules]]
+selector = "Button.primary"
+set = { self = { text = "Primary" } }
+"##;
+
+    let error = UiAssetLoader::load_toml_str(STYLE_WITH_BLANK_STYLESHEET_ID)
+        .expect_err("blank stable stylesheet ids should be rejected");
+
+    assert!(
+        matches!(
+            error,
+            crate::ui::template::UiAssetError::InvalidDocument { .. }
+        ),
+        "unexpected error: {error:?}"
+    );
+    assert!(
+        error.to_string().contains("stylesheet id cannot be empty"),
+        "unexpected error: {error:?}"
+    );
+}
+
+#[test]
+fn ui_asset_loader_rejects_invalid_style_rule_selectors() {
+    const STYLE_WITH_INVALID_SELECTOR: &str = r##"
+[asset]
+kind = "style"
+id = "ui.theme.invalid_selector"
+version = 1
+display_name = "Invalid Selector"
+
+[[stylesheets]]
+id = "editor_base"
+
+[[stylesheets.rules]]
+id = "bad_rule"
+selector = "Button#"
+set = { self = { text = "Bad" } }
+"##;
+
+    let error = UiAssetLoader::load_toml_str(STYLE_WITH_INVALID_SELECTOR)
+        .expect_err("invalid style rule selectors should be rejected");
+
+    assert!(
+        matches!(error, crate::ui::template::UiAssetError::InvalidSelector(_)),
+        "unexpected error: {error:?}"
+    );
+    assert!(
+        error.to_string().contains("Button#"),
+        "unexpected error: {error:?}"
+    );
+}
+
 #[test]
 fn ui_document_compiler_expands_imported_widget_references_and_applies_stylesheets() {
     let button_asset = UiAssetLoader::load_toml_str(IMPORTED_BUTTON_ASSET_TOML).unwrap();

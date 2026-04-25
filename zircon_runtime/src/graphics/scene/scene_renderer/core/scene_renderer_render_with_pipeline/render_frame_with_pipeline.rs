@@ -5,6 +5,10 @@ use crate::core::framework::render::{
 use crate::graphics::types::{GraphicsError, ViewportFrame, ViewportRenderFrame};
 use crate::CompiledRenderPipeline;
 
+use super::super::super::graph_execution::{
+    RenderGraphExecutionRecord, RenderPassExecutionContext, RenderPassExecutorId,
+    RenderPassExecutorRegistry,
+};
 use super::super::runtime_features::runtime_features_from_pipeline;
 use super::super::scene_renderer::SceneRenderer;
 use super::super::scene_renderer_history::prepare_history_textures;
@@ -21,6 +25,15 @@ impl SceneRenderer {
         pipeline: &CompiledRenderPipeline,
         history_handle: Option<FrameHistoryHandle>,
     ) -> Result<ViewportFrame, GraphicsError> {
+        let previous_node_and_cluster_cull_global_state = self
+            .last_virtual_geometry_debug_snapshot
+            .as_ref()
+            .and_then(|snapshot| snapshot.node_and_cluster_cull_global_state.clone())
+            .or_else(|| {
+                self.last_virtual_geometry_node_and_cluster_cull_global_state
+                    .clone()
+            });
+
         reset_last_runtime_outputs(self);
 
         self.streamer.ensure_scene_resources(
@@ -34,6 +47,8 @@ impl SceneRenderer {
         ensure_offscreen_target(&self.backend.device, &mut self.target, size);
         let runtime_features = runtime_features_from_pipeline(pipeline);
         let virtual_geometry_cull_input = resolve_virtual_geometry_cull_input(frame);
+        self.last_render_graph_execution =
+            execute_compiled_graph_passes(pipeline, &self.render_pass_executors)?;
 
         let runtime_outputs = {
             let (history_textures, history_available) = prepare_history_textures(
@@ -51,6 +66,7 @@ impl SceneRenderer {
                 &self.streamer,
                 frame,
                 virtual_geometry_cull_input.as_ref(),
+                previous_node_and_cluster_cull_global_state.as_ref(),
                 target,
                 runtime_features,
                 history_textures,
@@ -80,11 +96,30 @@ impl SceneRenderer {
             node_and_cluster_cull_record_count,
             node_and_cluster_cull_global_state,
             node_and_cluster_cull_dispatch_setup,
+            node_and_cluster_cull_launch_worklist,
             node_and_cluster_cull_instance_seeds,
             node_and_cluster_cull_buffer,
             node_and_cluster_cull_dispatch_setup_buffer,
+            node_and_cluster_cull_launch_worklist_buffer,
             node_and_cluster_cull_instance_seed_count,
             node_and_cluster_cull_instance_seed_buffer,
+            node_and_cluster_cull_instance_work_item_count,
+            node_and_cluster_cull_instance_work_items,
+            node_and_cluster_cull_instance_work_item_buffer,
+            node_and_cluster_cull_cluster_work_item_count,
+            node_and_cluster_cull_cluster_work_items,
+            node_and_cluster_cull_cluster_work_item_buffer,
+            node_and_cluster_cull_hierarchy_child_ids,
+            node_and_cluster_cull_hierarchy_child_id_buffer,
+            node_and_cluster_cull_child_work_item_count,
+            node_and_cluster_cull_child_work_items,
+            node_and_cluster_cull_child_work_item_buffer,
+            node_and_cluster_cull_traversal_record_count,
+            node_and_cluster_cull_traversal_records,
+            node_and_cluster_cull_traversal_record_buffer,
+            node_and_cluster_cull_page_request_count,
+            node_and_cluster_cull_page_request_ids,
+            node_and_cluster_cull_page_request_buffer,
             hardware_rasterization_records,
             hardware_rasterization_source,
             hardware_rasterization_record_count,
@@ -134,11 +169,30 @@ impl SceneRenderer {
             node_and_cluster_cull_record_count,
             node_and_cluster_cull_global_state,
             node_and_cluster_cull_dispatch_setup,
+            node_and_cluster_cull_launch_worklist,
             node_and_cluster_cull_instance_seeds,
             node_and_cluster_cull_buffer,
             node_and_cluster_cull_dispatch_setup_buffer,
+            node_and_cluster_cull_launch_worklist_buffer,
             node_and_cluster_cull_instance_seed_count,
             node_and_cluster_cull_instance_seed_buffer,
+            node_and_cluster_cull_instance_work_item_count,
+            node_and_cluster_cull_instance_work_items,
+            node_and_cluster_cull_instance_work_item_buffer,
+            node_and_cluster_cull_cluster_work_item_count,
+            node_and_cluster_cull_cluster_work_items,
+            node_and_cluster_cull_cluster_work_item_buffer,
+            node_and_cluster_cull_hierarchy_child_ids,
+            node_and_cluster_cull_hierarchy_child_id_buffer,
+            node_and_cluster_cull_child_work_item_count,
+            node_and_cluster_cull_child_work_items,
+            node_and_cluster_cull_child_work_item_buffer,
+            node_and_cluster_cull_traversal_record_count,
+            node_and_cluster_cull_traversal_records,
+            node_and_cluster_cull_traversal_record_buffer,
+            node_and_cluster_cull_page_request_count,
+            node_and_cluster_cull_page_request_ids,
+            node_and_cluster_cull_page_request_buffer,
             hardware_rasterization_records,
             hardware_rasterization_source,
             hardware_rasterization_record_count,
@@ -170,6 +224,24 @@ impl SceneRenderer {
             target,
             self.generation,
         )
+    }
+}
+
+impl SceneRenderer {
+    pub(crate) fn validate_compiled_pipeline_executors(
+        &self,
+        pipeline: &CompiledRenderPipeline,
+    ) -> Result<(), String> {
+        self.render_pass_executors
+            .validate_compiled_pipeline(pipeline)
+    }
+
+    pub(crate) fn last_render_graph_executed_passes(&self) -> &[String] {
+        self.last_render_graph_execution.executed_passes()
+    }
+
+    pub(crate) fn last_render_graph_executed_executor_ids(&self) -> &[String] {
+        self.last_render_graph_execution.executed_executor_ids()
     }
 }
 
@@ -249,4 +321,25 @@ fn unique_extract_entity_count(extract: &RenderVirtualGeometryExtract) -> u32 {
 
 fn saturated_u32_len(len: usize) -> u32 {
     u32::try_from(len).unwrap_or(u32::MAX)
+}
+
+fn execute_compiled_graph_passes(
+    pipeline: &CompiledRenderPipeline,
+    registry: &RenderPassExecutorRegistry,
+) -> Result<RenderGraphExecutionRecord, GraphicsError> {
+    registry
+        .validate_compiled_pipeline(pipeline)
+        .map_err(GraphicsError::Asset)?;
+
+    let mut record = RenderGraphExecutionRecord::default();
+    for pass in pipeline.graph.passes().iter().filter(|pass| !pass.culled) {
+        let Some(executor_id) = pass.executor_id.as_ref() else {
+            continue;
+        };
+        let executor_id = RenderPassExecutorId::new(executor_id.clone());
+        let context = RenderPassExecutionContext::new(pass.name.clone(), executor_id.clone());
+        registry.execute(&context).map_err(GraphicsError::Asset)?;
+        record.push_executed_pass(pass.name.clone(), executor_id.as_str().to_string());
+    }
+    Ok(record)
 }

@@ -192,3 +192,59 @@ fn net_manager_resolves_through_framework_facade_and_roundtrips_udp_loopback_pac
         Err(crate::core::framework::net::NetError::UnknownSocket { socket: left })
     );
 }
+
+#[test]
+fn net_manager_poll_udp_respects_packet_budget_and_leaves_remaining_packets() {
+    let runtime = CoreRuntime::new();
+    runtime
+        .register_module(crate::extensions::net::module_descriptor())
+        .unwrap();
+    runtime
+        .activate_module(crate::extensions::net::NET_MODULE_NAME)
+        .unwrap();
+
+    let net = crate::core::manager::resolve_net_manager(&runtime.handle()).unwrap();
+    let sender = net
+        .bind_udp(&crate::core::framework::net::NetEndpoint::new(
+            "127.0.0.1",
+            0,
+        ))
+        .unwrap();
+    let receiver = net
+        .bind_udp(&crate::core::framework::net::NetEndpoint::new(
+            "127.0.0.1",
+            0,
+        ))
+        .unwrap();
+    let receiver_endpoint = net.local_endpoint(receiver).unwrap();
+
+    net.send_udp(sender, &receiver_endpoint, b"first").unwrap();
+    net.send_udp(sender, &receiver_endpoint, b"second").unwrap();
+
+    let first_poll = wait_for_packet_count(&*net, receiver, 1);
+    assert_eq!(first_poll.len(), 1);
+    assert_eq!(first_poll[0].payload, b"first");
+
+    let second_poll = wait_for_packet_count(&*net, receiver, 1);
+    assert_eq!(second_poll.len(), 1);
+    assert_eq!(second_poll[0].payload, b"second");
+
+    net.close_socket(sender).unwrap();
+    net.close_socket(receiver).unwrap();
+}
+
+fn wait_for_packet_count(
+    net: &dyn crate::core::framework::net::NetManager,
+    socket: crate::core::framework::net::NetSocketId,
+    max_packets: usize,
+) -> Vec<crate::core::framework::net::NetPacket> {
+    let mut packets = Vec::new();
+    for _ in 0..20 {
+        packets = net.poll_udp(socket, max_packets).unwrap();
+        if packets.len() == max_packets {
+            break;
+        }
+        thread::sleep(Duration::from_millis(10));
+    }
+    packets
+}

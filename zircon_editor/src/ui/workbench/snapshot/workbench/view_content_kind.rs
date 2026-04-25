@@ -13,5 +13,6 @@ pub enum ViewContentKind {
     UiAssetEditor,
     AnimationSequenceEditor,
     AnimationGraphEditor,
+    RuntimeDiagnostics,
     Placeholder,
 }

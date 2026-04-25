@@ -5,10 +5,18 @@ use super::{HybridGiProbeUpdateRequest, HybridGiRuntimeState};
 impl HybridGiRuntimeState {
     pub(crate) fn ingest_plan(&mut self, generation: u64, plan: &VisibilityHybridGiUpdatePlan) {
         for &probe_id in &plan.resident_probe_ids {
+            if !self.has_live_probe_payload(probe_id) {
+                continue;
+            }
+
             self.promote_to_resident(probe_id);
         }
 
         for &probe_id in &plan.dirty_requested_probe_ids {
+            if !self.has_live_probe_payload(probe_id) {
+                continue;
+            }
+
             if self.resident_slots.contains_key(&probe_id)
                 || self.pending_probes.contains(&probe_id)
             {
@@ -44,5 +52,9 @@ impl HybridGiRuntimeState {
             .copied()
             .filter(|probe_id| self.resident_slots.contains_key(probe_id))
             .collect();
+    }
+
+    fn has_live_probe_payload(&self, probe_id: u32) -> bool {
+        self.probe_scene_data.contains_key(&probe_id)
     }
 }

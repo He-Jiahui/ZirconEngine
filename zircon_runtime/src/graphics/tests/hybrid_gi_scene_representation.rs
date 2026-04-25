@@ -59,6 +59,53 @@ fn hybrid_gi_scene_representation_separates_public_settings_from_internal_fixtur
 }
 
 #[test]
+fn hybrid_gi_scene_representation_counts_duplicate_legacy_fixture_payloads_once() {
+    let representation = HybridGiSceneRepresentation::from_extract(&RenderHybridGiExtract {
+        enabled: true,
+        quality: RenderHybridGiQuality::High,
+        trace_budget: 24,
+        card_budget: 48,
+        voxel_budget: 12,
+        debug_view: RenderHybridGiDebugView::SurfaceCache,
+        probe_budget: 1,
+        tracing_budget: 1,
+        probes: vec![
+            RenderHybridGiProbe {
+                probe_id: 10,
+                ..Default::default()
+            },
+            RenderHybridGiProbe {
+                probe_id: 10,
+                position: Vec3::new(9.0, 0.0, 0.0),
+                ..Default::default()
+            },
+        ],
+        trace_regions: vec![
+            RenderHybridGiTraceRegion {
+                region_id: 11,
+                ..Default::default()
+            },
+            RenderHybridGiTraceRegion {
+                region_id: 11,
+                bounds_center: Vec3::new(9.0, 0.0, 0.0),
+                ..Default::default()
+            },
+        ],
+    });
+
+    assert_eq!(
+        representation.fixture_probe_count(),
+        1,
+        "expected legacy fixture probe stats to count unique ids after the old authored probe path is demoted"
+    );
+    assert_eq!(
+        representation.fixture_trace_region_count(),
+        1,
+        "expected legacy fixture trace-region stats to count unique ids after the old authored trace path is demoted"
+    );
+}
+
+#[test]
 fn hybrid_gi_scene_representation_tracks_surface_cache_feedback_from_card_budget() {
     let mut representation = HybridGiSceneRepresentation::from_extract(&extract_with_budgets(2, 3));
 

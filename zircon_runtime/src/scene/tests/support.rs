@@ -315,6 +315,8 @@ fn write_default_scene(path: PathBuf) {
                 rigid_body: Some(SceneRigidBodyAsset {
                     body_type: SceneRigidBodyTypeAsset::Dynamic,
                     mass: 2.5,
+                    linear_velocity: [0.25, 0.0, 0.0],
+                    angular_velocity: [0.0, 0.25, 0.0],
                     linear_damping: 0.15,
                     angular_damping: 0.05,
                     gravity_scale: 1.0,

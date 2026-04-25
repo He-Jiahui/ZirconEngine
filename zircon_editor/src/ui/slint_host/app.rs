@@ -43,8 +43,8 @@ use crate::ui::workbench::startup::{EditorSessionMode, EditorStartupSessionDocum
 use crate::ui::workbench::state::EditorState;
 
 use super::activity_rail_pointer::{
-    build_workbench_activity_rail_pointer_layout, WorkbenchActivityRailPointerBridge,
-    WorkbenchActivityRailPointerSide,
+    build_host_activity_rail_pointer_layout, HostActivityRailPointerBridge,
+    HostActivityRailPointerSide,
 };
 use super::asset_pointer::{
     AssetContentListPointerBridge, AssetContentListPointerLayout, AssetFolderTreePointerBridge,
@@ -57,10 +57,10 @@ use super::detail_pointer::{
     inspector_scroll_layout,
 };
 use super::document_tab_pointer::{
-    build_workbench_document_tab_pointer_layout, WorkbenchDocumentTabPointerBridge,
+    build_host_document_tab_pointer_layout, HostDocumentTabPointerBridge,
 };
 use super::drawer_header_pointer::{
-    build_workbench_drawer_header_pointer_layout, WorkbenchDrawerHeaderPointerBridge,
+    build_host_drawer_header_pointer_layout, HostDrawerHeaderPointerBridge,
 };
 use super::drawer_resize::dispatch_resize_to_group;
 use super::event_bridge::SlintDispatchEffects;
@@ -68,15 +68,11 @@ use super::floating_window_projection::FloatingWindowProjectionBundle;
 use super::hierarchy_pointer::{
     HierarchyPointerBridge, HierarchyPointerLayout, HierarchyPointerState,
 };
-use super::host_page_pointer::{
-    build_workbench_host_page_pointer_layout, WorkbenchHostPagePointerBridge,
-};
-use super::menu_pointer::{
-    WorkbenchMenuPointerBridge, WorkbenchMenuPointerLayout, WorkbenchMenuPointerState,
-};
+use super::host_page_pointer::{build_host_page_pointer_layout, HostPagePointerBridge};
+use super::menu_pointer::{HostMenuPointerBridge, HostMenuPointerLayout, HostMenuPointerState};
 use super::scroll_surface_host::ScrollSurfaceHostState;
-use super::shell_pointer::{WorkbenchShellPointerBridge, WorkbenchShellPointerRoute};
-use super::tab_drag::workbench_shell_pointer_route_group_key;
+use super::shell_pointer::{HostShellPointerBridge, HostShellPointerRoute};
+use super::tab_drag::host_shell_pointer_route_group_key;
 use super::ui::apply_presentation;
 use super::viewport::SlintViewportController;
 use super::viewport_toolbar_pointer::{
@@ -169,7 +165,7 @@ struct SlintEditorHost {
     startup_session: EditorStartupSessionDocument,
     viewport_size: UVec2,
     viewport_pointer_bridge: callback_dispatch::SharedViewportPointerBridge,
-    template_bridge: callback_dispatch::BuiltinWorkbenchTemplateBridge,
+    template_bridge: callback_dispatch::BuiltinHostWindowTemplateBridge,
     floating_window_source_bridge: callback_dispatch::BuiltinFloatingWindowSourceTemplateBridge,
     viewport_toolbar_bridge: callback_dispatch::BuiltinViewportToolbarTemplateBridge,
     viewport_toolbar_pointer_bridge: ViewportToolbarPointerBridge,
@@ -177,14 +173,14 @@ struct SlintEditorHost {
     welcome_surface_bridge: callback_dispatch::BuiltinWelcomeSurfaceTemplateBridge,
     inspector_surface_bridge: callback_dispatch::BuiltinInspectorSurfaceTemplateBridge,
     pane_surface_bridge: callback_dispatch::BuiltinPaneSurfaceTemplateBridge,
-    shell_pointer_bridge: WorkbenchShellPointerBridge,
-    activity_rail_pointer_bridge: WorkbenchActivityRailPointerBridge,
-    host_page_pointer_bridge: WorkbenchHostPagePointerBridge,
-    document_tab_pointer_bridge: WorkbenchDocumentTabPointerBridge,
-    drawer_header_pointer_bridge: WorkbenchDrawerHeaderPointerBridge,
-    menu_pointer_bridge: WorkbenchMenuPointerBridge,
-    menu_pointer_state: WorkbenchMenuPointerState,
-    menu_pointer_layout: WorkbenchMenuPointerLayout,
+    shell_pointer_bridge: HostShellPointerBridge,
+    activity_rail_pointer_bridge: HostActivityRailPointerBridge,
+    host_page_pointer_bridge: HostPagePointerBridge,
+    document_tab_pointer_bridge: HostDocumentTabPointerBridge,
+    drawer_header_pointer_bridge: HostDrawerHeaderPointerBridge,
+    menu_pointer_bridge: HostMenuPointerBridge,
+    menu_pointer_state: HostMenuPointerState,
+    menu_pointer_layout: HostMenuPointerLayout,
     welcome_recent_pointer_bridge: WelcomeRecentPointerBridge,
     welcome_recent_pointer_state: WelcomeRecentPointerState,
     welcome_recent_pointer_size: UiSize,

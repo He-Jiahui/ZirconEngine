@@ -104,11 +104,25 @@ pub(super) fn scene_prepare_surface_cache_fallback_rgb_support_and_quality(
     ))
 }
 
+#[cfg_attr(not(test), allow(dead_code))]
 pub(super) fn scene_prepare_surface_cache_owner_rgb(
     scene_prepare: &HybridGiScenePrepareFrame,
     scene_prepare_resources: Option<&HybridGiScenePrepareResourcesSnapshot>,
     owner_id: u32,
 ) -> Option<[f32; 3]> {
+    scene_prepare_surface_cache_owner_rgb_and_quality(
+        scene_prepare,
+        scene_prepare_resources,
+        owner_id,
+    )
+    .map(|(rgb, _)| rgb)
+}
+
+pub(super) fn scene_prepare_surface_cache_owner_rgb_and_quality(
+    scene_prepare: &HybridGiScenePrepareFrame,
+    scene_prepare_resources: Option<&HybridGiScenePrepareResourcesSnapshot>,
+    owner_id: u32,
+) -> Option<([f32; 3], f32)> {
     if owner_id == 0 {
         return None;
     }
@@ -117,23 +131,21 @@ pub(super) fn scene_prepare_surface_cache_owner_rgb(
         .card_capture_requests
         .iter()
         .find(|request| request.card_id == owner_id)
-        .map(|request| scene_prepare_card_capture_request_rgb(request, scene_prepare_resources))
+        .map(|request| {
+            scene_prepare_card_capture_request_rgb_and_quality(request, scene_prepare_resources)
+        })
         .or_else(|| {
             scene_prepare
                 .surface_cache_page_contents
                 .iter()
                 .find(|page_content| page_content.owner_card_id == owner_id)
                 .and_then(|page_content| {
-                    scene_prepare_surface_cache_page_rgb(page_content, scene_prepare_resources)
+                    scene_prepare_surface_cache_page_rgb_and_quality(
+                        page_content,
+                        scene_prepare_resources,
+                    )
                 })
         })
-}
-
-pub(super) fn scene_prepare_card_capture_request_rgb(
-    request: &HybridGiPrepareCardCaptureRequest,
-    scene_prepare_resources: Option<&HybridGiScenePrepareResourcesSnapshot>,
-) -> [f32; 3] {
-    scene_prepare_card_capture_request_rgb_and_quality(request, scene_prepare_resources).0
 }
 
 fn scene_prepare_card_capture_request_rgb_and_quality(
@@ -180,14 +192,6 @@ fn scene_prepare_card_capture_request_rgb_and_quality(
         ],
         SYNTHETIC_REQUEST_CONFIDENCE_QUALITY,
     )
-}
-
-pub(super) fn scene_prepare_surface_cache_page_rgb(
-    page_content: &HybridGiPrepareSurfaceCachePageContent,
-    scene_prepare_resources: Option<&HybridGiScenePrepareResourcesSnapshot>,
-) -> Option<[f32; 3]> {
-    scene_prepare_surface_cache_page_rgb_and_quality(page_content, scene_prepare_resources)
-        .map(|(rgb, _)| rgb)
 }
 
 fn scene_prepare_surface_cache_page_rgb_and_quality(

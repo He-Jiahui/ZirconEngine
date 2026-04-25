@@ -61,14 +61,17 @@ props = { text = "Save" }
 id = "local_theme"
 
 [[stylesheets.rules]]
+id = "primary"
 selector = ".primary"
 set = { self = { text = "Default" } }
 
 [[stylesheets.rules]]
+id = "primary_hover"
 selector = ".primary:hover"
 set = { self = { text = "Hover" } }
 
 [[stylesheets.rules]]
+id = "primary_disabled"
 selector = ".primary:disabled"
 set = { self = { text = "Disabled" } }
 "##;
@@ -374,6 +377,7 @@ fn ui_asset_editor_session_tracks_executable_replay_commands_for_style_rule_inse
             stylesheet: Some(UiStyleSheet {
                 id: "local_editor_rules".to_string(),
                 rules: vec![UiStyleRule {
+                    id: None,
                     selector: "#SaveButton".to_string(),
                     set: UiStyleDeclarationBlock::default(),
                 }],
@@ -407,6 +411,7 @@ fn ui_asset_editor_session_tracks_executable_replay_commands_for_style_rule_inse
             selector: ".primary:hover".to_string(),
             rule: Some(UiStyleRule {
                 selector: ".primary:hover".to_string(),
+                id: None,
                 set: UiStyleDeclarationBlock {
                     self_values: [("text".to_string(), toml::Value::String("Hover".to_string()),)]
                         .into_iter()
@@ -483,6 +488,7 @@ fn ui_asset_editor_session_theme_promotion_emits_executable_theme_replay_command
                 stylesheet: Some(UiStyleSheet {
                     id: "local_theme".to_string(),
                     rules: vec![UiStyleRule {
+                        id: None,
                         selector: "#RootLabel".to_string(),
                         set: UiStyleDeclarationBlock {
                             self_values: [(
@@ -787,6 +793,7 @@ fn ui_asset_editor_replay_workspace_applies_stylesheet_insert_and_cross_file_eff
     let inserted_stylesheet = UiStyleSheet {
         id: "local_editor_rules".to_string(),
         rules: vec![UiStyleRule {
+            id: None,
             selector: "#SaveButton".to_string(),
             set: UiStyleDeclarationBlock::default(),
         }],
@@ -851,6 +858,7 @@ fn ui_asset_editor_replay_workspace_applies_stylesheet_insert_and_cross_file_eff
         selection: after_selection.clone(),
         source_cursor: after_cursor.clone(),
         selected_theme_source_key: Some("local".to_string()),
+        selected_style_rule_id: None,
         asset_sources: BTreeMap::from([(
             generated_asset_id.clone(),
             generated_asset_source.clone(),
@@ -925,7 +933,7 @@ fn ui_asset_editor_replay_workspace_applies_style_rule_reorders_from_document_co
     };
 
     let mut stack = UiAssetEditorUndoStack::default();
-    stack.push_edit(
+    stack.push_edit_with_style_rule_selection(
         "Replay Workspace Reorder",
         None,
         Some(UiAssetEditorDocumentReplayBundle {
@@ -944,11 +952,13 @@ fn ui_asset_editor_replay_workspace_applies_style_rule_reorders_from_document_co
         before_selection.clone(),
         before_cursor.clone(),
         None,
+        Some("primary_hover".to_string()),
         Some(before_document.clone()),
         after_source.clone(),
         after_selection.clone(),
         after_cursor.clone(),
         None,
+        Some("primary_disabled".to_string()),
         Some(after_document.clone()),
         UiAssetEditorUndoExternalEffects::default(),
     );
@@ -959,6 +969,7 @@ fn ui_asset_editor_replay_workspace_applies_style_rule_reorders_from_document_co
         selection: after_selection.clone(),
         source_cursor: after_cursor.clone(),
         selected_theme_source_key: None,
+        selected_style_rule_id: Some("primary_disabled".to_string()),
         asset_sources: BTreeMap::new(),
     };
 
@@ -982,11 +993,16 @@ fn ui_asset_editor_replay_workspace_applies_style_rule_reorders_from_document_co
     );
     assert_eq!(workspace.selection, before_selection);
     assert_eq!(workspace.source_cursor, before_cursor);
+    assert_eq!(
+        workspace.selected_style_rule_id,
+        Some("primary_hover".to_string())
+    );
     assert!(undo_result.source_changed);
     assert!(undo_result.document_changed);
     assert!(undo_result.selection_changed);
     assert!(undo_result.source_cursor_changed);
     assert!(!undo_result.theme_source_changed);
+    assert!(undo_result.style_rule_selection_changed);
     assert!(!undo_result.asset_sources_changed);
 
     let redo = stack.redo_record().expect("redo replay record");
@@ -1009,11 +1025,16 @@ fn ui_asset_editor_replay_workspace_applies_style_rule_reorders_from_document_co
     );
     assert_eq!(workspace.selection, after_selection);
     assert_eq!(workspace.source_cursor, after_cursor);
+    assert_eq!(
+        workspace.selected_style_rule_id,
+        Some("primary_disabled".to_string())
+    );
     assert!(redo_result.source_changed);
     assert!(redo_result.document_changed);
     assert!(redo_result.selection_changed);
     assert!(redo_result.source_cursor_changed);
     assert!(!redo_result.theme_source_changed);
+    assert!(redo_result.style_rule_selection_changed);
     assert!(!redo_result.asset_sources_changed);
 }
 
@@ -1088,6 +1109,7 @@ set = { self = { text = "Footer" } }
     after_document.stylesheets.push(UiStyleSheet {
         id: "accent".to_string(),
         rules: vec![UiStyleRule {
+            id: None,
             selector: ".accent".to_string(),
             set: UiStyleDeclarationBlock {
                 self_values: [(
@@ -1204,6 +1226,7 @@ set = { self = { text = "Footer" } }
         selection: after_selection.clone(),
         source_cursor: after_cursor.clone(),
         selected_theme_source_key: Some("local".to_string()),
+        selected_style_rule_id: None,
         asset_sources: BTreeMap::new(),
     };
 
@@ -1426,6 +1449,7 @@ fn ui_asset_editor_session_theme_refactor_uses_style_rule_vector_replay_commands
             index: 0,
             selector: "Button".to_string(),
             rule: Some(UiStyleRule {
+                id: None,
                 selector: "Button".to_string(),
                 set: UiStyleDeclarationBlock {
                     self_values: [(

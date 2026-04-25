@@ -8,15 +8,15 @@ use crate::ui::binding_dispatch::{
     dispatch_draft_binding, dispatch_inspector_binding, dispatch_selection_binding,
     dispatch_viewport_binding, AnimationHostEvent, AssetHostEvent, DraftHostEvent,
 };
-use crate::ui::workbench::event::{dispatch_workbench_binding, WorkbenchHostEvent};
+use crate::ui::workbench::event::{dispatch_editor_host_binding, EditorHostEvent};
 
 pub(crate) fn normalize_editor_event_binding(
     binding: &EditorUiBinding,
 ) -> Result<EditorEvent, String> {
     match binding.payload() {
         EditorUiBindingPayload::MenuAction { .. } => {
-            let WorkbenchHostEvent::Menu(action) =
-                dispatch_workbench_binding(binding).map_err(|error| error.to_string())?;
+            let EditorHostEvent::Menu(action) =
+                dispatch_editor_host_binding(binding).map_err(|error| error.to_string())?;
             Ok(EditorEvent::WorkbenchMenu(action))
         }
         EditorUiBindingPayload::DockCommand(_) => Ok(EditorEvent::Layout(

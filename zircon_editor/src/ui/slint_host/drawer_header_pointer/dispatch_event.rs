@@ -1,13 +1,13 @@
 use zircon_runtime::ui::dispatch::UiPointerEvent;
 
-use super::workbench_drawer_header_pointer_bridge::WorkbenchDrawerHeaderPointerBridge;
-use super::workbench_drawer_header_pointer_target::WorkbenchDrawerHeaderPointerTarget;
+use super::host_drawer_header_pointer_bridge::HostDrawerHeaderPointerBridge;
+use super::host_drawer_header_pointer_target::HostDrawerHeaderPointerTarget;
 
-impl WorkbenchDrawerHeaderPointerBridge {
+impl HostDrawerHeaderPointerBridge {
     pub(super) fn dispatch_event(
         &mut self,
         event: UiPointerEvent,
-    ) -> Result<Option<WorkbenchDrawerHeaderPointerTarget>, String> {
+    ) -> Result<Option<HostDrawerHeaderPointerTarget>, String> {
         let dispatch = self
             .surface
             .dispatch_pointer_event(&self.dispatcher, event)

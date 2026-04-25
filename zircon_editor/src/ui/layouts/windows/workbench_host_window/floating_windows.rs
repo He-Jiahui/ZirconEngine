@@ -5,6 +5,7 @@ use crate::ui::layouts::common::model_rc;
 use crate::ui::slint_host::floating_window_projection::FloatingWindowProjectionBundle;
 use crate::ui::slint_host::tab_drag::{floating_window_edge_group_key, floating_window_group_key};
 use crate::ui::widgets::common::document_tab_data;
+use zircon_runtime::core::diagnostics::RuntimeDiagnosticsSnapshot;
 
 pub(crate) fn collect_floating_windows(
     model: &WorkbenchViewModel,
@@ -18,6 +19,7 @@ pub(crate) fn collect_floating_windows(
         String,
         crate::ui::animation_editor::AnimationEditorPanePresentation,
     >,
+    runtime_diagnostics: Option<&RuntimeDiagnosticsSnapshot>,
     floating_window_projection_bundle: &FloatingWindowProjectionBundle,
 ) -> Vec<FloatingWindowData> {
     model
@@ -30,6 +32,7 @@ pub(crate) fn collect_floating_windows(
                 geometry,
                 ui_asset_panes,
                 animation_panes,
+                runtime_diagnostics,
                 floating_window_projection_bundle,
             )
         })
@@ -48,6 +51,7 @@ fn floating_window_data(
         String,
         crate::ui::animation_editor::AnimationEditorPanePresentation,
     >,
+    runtime_diagnostics: Option<&RuntimeDiagnosticsSnapshot>,
     floating_window_projection_bundle: &FloatingWindowProjectionBundle,
 ) -> FloatingWindowData {
     let active_tab = window.focus_target_tab();
@@ -64,6 +68,7 @@ fn floating_window_data(
                 chrome,
                 ui_asset_panes.get(&tab.instance_id.0),
                 animation_panes.get(&tab.instance_id.0),
+                runtime_diagnostics,
             )
         })
         .unwrap_or_else(blank_pane);

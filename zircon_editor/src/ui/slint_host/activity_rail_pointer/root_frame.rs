@@ -1,8 +1,8 @@
 use zircon_runtime::ui::layout::UiFrame;
 
-use super::workbench_activity_rail_pointer_layout::WorkbenchActivityRailPointerLayout;
+use super::host_activity_rail_pointer_layout::HostActivityRailPointerLayout;
 
-pub(super) fn root_frame(layout: &WorkbenchActivityRailPointerLayout) -> UiFrame {
+pub(super) fn root_frame(layout: &HostActivityRailPointerLayout) -> UiFrame {
     let max_x = [layout.left_strip_frame, layout.right_strip_frame]
         .into_iter()
         .map(|frame| frame.x + frame.width)

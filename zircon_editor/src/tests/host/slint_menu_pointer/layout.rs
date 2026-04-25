@@ -4,12 +4,12 @@ use super::support::*;
 fn shared_menu_pointer_layout_prefers_shared_root_menu_bar_projection_over_stale_legacy_frames() {
     let harness = EventRuntimeHarness::new("zircon_slint_menu_pointer_root_projection");
     let chrome = harness.runtime.chrome_snapshot();
-    let layout = build_workbench_menu_pointer_layout(
+    let layout = build_host_menu_pointer_layout(
         &chrome,
         UiSize::new(1280.0, 720.0),
         &["alpha-00".to_string(), "alpha-01".to_string()],
         Some("compact"),
-        Some(&BuiltinWorkbenchRootShellFrames {
+        Some(&BuiltinHostRootShellFrames {
             shell_frame: Some(UiFrame::new(32.0, 18.0, 1440.0, 900.0)),
             menu_bar_frame: Some(UiFrame::new(32.0, 18.0, 1440.0, 40.0)),
             ..Default::default()
@@ -38,12 +38,12 @@ fn shared_menu_pointer_layout_derives_button_frames_from_shared_shell_when_menu_
 ) {
     let harness = EventRuntimeHarness::new("zircon_slint_menu_pointer_shell_projection");
     let chrome = harness.runtime.chrome_snapshot();
-    let layout = build_workbench_menu_pointer_layout(
+    let layout = build_host_menu_pointer_layout(
         &chrome,
         UiSize::new(1280.0, 720.0),
         &["alpha-00".to_string(), "alpha-01".to_string()],
         Some("compact"),
-        Some(&BuiltinWorkbenchRootShellFrames {
+        Some(&BuiltinHostRootShellFrames {
             shell_frame: Some(UiFrame::new(32.0, 18.0, 1440.0, 900.0)),
             menu_bar_frame: None,
             ..Default::default()

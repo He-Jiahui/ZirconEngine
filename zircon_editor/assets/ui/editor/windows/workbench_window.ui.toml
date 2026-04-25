@@ -1,0 +1,82 @@
+stylesheets = []
+
+[asset]
+kind = "layout"
+id = "editor.window.workbench"
+version = 1
+display_name = "Workbench Window"
+
+[imports]
+widgets = ["res://ui/editor/host/activity_drawer_window.ui.toml#ActivityDrawerWindow"]
+styles = []
+
+[tokens]
+
+[root]
+node_id = "workbench_window_root"
+kind = "reference"
+component_ref = "res://ui/editor/host/activity_drawer_window.ui.toml#ActivityDrawerWindow"
+control_id = "WorkbenchWindowRoot"
+
+[[root.children]]
+mount = "left_top_activity"
+[root.children.node]
+node_id = "workbench_hierarchy_activity"
+kind = "native"
+type = "Container"
+control_id = "WorkbenchHierarchyActivity"
+children = []
+
+[[root.children]]
+mount = "left_bottom_activity"
+[root.children.node]
+node_id = "workbench_assets_activity"
+kind = "native"
+type = "Container"
+control_id = "WorkbenchAssetsActivity"
+children = []
+
+[[root.children]]
+mount = "right_top_activity"
+[root.children.node]
+node_id = "workbench_inspector_activity"
+kind = "native"
+type = "Container"
+control_id = "WorkbenchInspectorActivity"
+children = []
+
+[[root.children]]
+mount = "right_bottom_activity"
+[root.children.node]
+node_id = "workbench_details_activity"
+kind = "native"
+type = "Container"
+control_id = "WorkbenchDetailsActivity"
+children = []
+
+[[root.children]]
+mount = "bottom_left_activity"
+[root.children.node]
+node_id = "workbench_console_activity"
+kind = "native"
+type = "Container"
+control_id = "WorkbenchConsoleActivity"
+children = []
+
+[[root.children]]
+mount = "bottom_right_activity"
+[root.children.node]
+node_id = "workbench_diagnostics_activity"
+kind = "native"
+type = "Container"
+control_id = "WorkbenchDiagnosticsActivity"
+children = []
+
+[[root.children]]
+mount = "content"
+[root.children.node]
+node_id = "workbench_document_content"
+kind = "native"
+type = "Container"
+control_id = "WorkbenchDocumentContent"
+children = []

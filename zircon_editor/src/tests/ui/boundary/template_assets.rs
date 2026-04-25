@@ -198,7 +198,7 @@ fn pane_surface_shell_extracts_business_pane_catalog_into_pane_content_owner() {
     }
 
     for required in [
-        "import { EmptyStateCard, Palette, ShellButton, ToolbarButton } from \"chrome.slint\";",
+        "import { EmptyStateCard, Palette, ShellButton, ShellIcon, ToolbarButton } from \"chrome.slint\";",
         "import { AssetFolderData, AssetItemData, AssetListView",
         "import { AnimationEditorPaneData, AssetBrowserPaneData, AssetsActivityPaneData, ConsolePaneData, HierarchyPaneData, InspectorPaneData, PaneData, ProjectOverviewData, ProjectOverviewPaneData } from \"pane_data.slint\";",
         "import { CompactField, AxisField } from \"pane_fields.slint\";",
@@ -474,9 +474,8 @@ fn ui_asset_editor_template_node_data_is_shared_between_pane_data_and_ui_asset_e
     let ui_asset_data =
         std::fs::read_to_string(ui_root.join("workbench/ui_asset_editor_data.slint"))
             .expect("ui asset data");
-    let shared_data =
-        std::fs::read_to_string(ui_root.join("workbench/template_node_data.slint"))
-            .expect("shared template node data");
+    let shared_data = std::fs::read_to_string(ui_root.join("workbench/template_node_data.slint"))
+        .expect("shared template node data");
     let normalized = format!(
         "{}{}{}",
         pane_data.split_whitespace().collect::<String>(),
@@ -1120,7 +1119,7 @@ fn console_pane_consumes_template_mount_nodes_for_text_panel() {
         "componentConsolePaneViewinheritsRectangle{",
         "inproperty<ConsolePaneData>pane;",
         "root.pane.nodes",
-        "ConsoleTextPanel",
+        "ConsoleBodySection",
         "root.pane.status_text",
     ] {
         assert!(
@@ -1130,6 +1129,7 @@ fn console_pane_consumes_template_mount_nodes_for_text_panel() {
     }
 
     for forbidden in [
+        "ConsoleTextPanel",
         "root.pane.shell_layout.text_panel",
         "lines:=VerticalLayout{x:10px;y:8px-root.scroll_px*1px;width:parent.width-20px;spacing:6px;",
     ] {
@@ -1221,11 +1221,82 @@ fn asset_browser_pane_consumes_template_mount_nodes_for_toolbar_and_utility_sect
 
     for required in [
         "AssetBrowserToolbarTitleRow",
+        "AssetBrowserTitleText",
+        "LocateSelectedAsset",
+        "AssetBrowserToolbarSubtitleRow",
+        "AssetBrowserSubtitleText",
         "AssetBrowserToolbarSearchRow",
+        "SearchEdited",
         "AssetBrowserToolbarKindPrimaryRow",
+        "AssetBrowserKindAllChip",
+        "AssetBrowserKindTextureChip",
+        "AssetBrowserKindMaterialChip",
+        "AssetBrowserKindSceneChip",
+        "AssetBrowserKindModelChip",
+        "AssetBrowserKindShaderChip",
+        "AssetBrowserViewModeListButton",
+        "AssetBrowserViewModeThumbButton",
         "AssetBrowserToolbarKindSecondaryRow",
+        "AssetBrowserKindPhysicsChip",
+        "AssetBrowserKindSkeletonChip",
+        "AssetBrowserKindClipChip",
+        "AssetBrowserKindSequenceChip",
+        "AssetBrowserKindGraphChip",
+        "AssetBrowserKindStateChip",
+        "AssetBrowserSourcesHeaderPanel",
+        "AssetBrowserSourcesTitleText",
+        "AssetBrowserSourcesSubtitleText",
+        "AssetBrowserSourcesDivider",
+        "AssetBrowserSourcesScrollBody",
+        "AssetBrowserSourcesRowPanel",
+        "AssetBrowserSourcesRowIcon",
+        "AssetBrowserSourcesRowNameText",
+        "AssetBrowserSourcesRowCountText",
+        "AssetBrowserImportLabel",
+        "AssetBrowserImportPathField",
+        "ImportModel",
+        "AssetBrowserPreviewTabButton",
+        "AssetBrowserReferencesTabButton",
+        "AssetBrowserMetadataTabButton",
+        "AssetBrowserPluginsTabButton",
+        "AssetBrowserSelectionLocatorText",
+        "AssetBrowserUtilityDivider",
+        "AssetBrowserPreviewPanel",
+        "AssetBrowserPreviewVisualPanel",
+        "AssetBrowserPreviewNameText",
+        "AssetBrowserPreviewLocatorText",
+        "AssetBrowserPreviewKindText",
+        "AssetBrowserPreviewIdentityText",
+        "AssetBrowserPreviewAdapterText",
+        "AssetBrowserPreviewMetaPathText",
+        "AssetBrowserPreviewDiagnosticsText",
         "AssetBrowserReferenceLeftPanel",
+        "AssetBrowserReferenceLeftTitleText",
+        "AssetBrowserReferenceLeftScrollBody",
+        "AssetBrowserReferenceLeftEmptyText",
+        "AssetBrowserReferenceLeftRowPanel",
+        "AssetBrowserReferenceLeftRowNameText",
+        "AssetBrowserReferenceLeftRowLocatorText",
+        "AssetBrowserReferenceLeftRowKindText",
         "AssetBrowserReferenceRightPanel",
+        "AssetBrowserReferenceRightTitleText",
+        "AssetBrowserReferenceRightScrollBody",
+        "AssetBrowserReferenceRightEmptyText",
+        "AssetBrowserReferenceRightRowPanel",
+        "AssetBrowserReferenceRightRowNameText",
+        "AssetBrowserReferenceRightRowLocatorText",
+        "AssetBrowserReferenceRightRowKindText",
+        "AssetBrowserMetaPathPanel",
+        "AssetBrowserMetaPathLabel",
+        "AssetBrowserMetaPathValue",
+        "AssetBrowserAdapterPanel",
+        "AssetBrowserAdapterLabel",
+        "AssetBrowserAdapterValue",
+        "AssetBrowserDiagnosticsPanel",
+        "AssetBrowserDiagnosticsLabel",
+        "AssetBrowserDiagnosticsText",
+        "AssetBrowserPluginsPanel",
+        "AssetBrowserPluginsText",
     ] {
         assert!(
             normalized.contains(required),
@@ -1238,19 +1309,128 @@ fn asset_browser_pane_consumes_template_mount_nodes_for_toolbar_and_utility_sect
         "root.pane.shell_layout.toolbar_search_row",
         "root.pane.shell_layout.toolbar_kind_primary_row",
         "root.pane.shell_layout.toolbar_kind_secondary_row",
+        "root.pane.shell_layout.preview_panel",
+        "root.pane.shell_layout.meta_path_panel",
+        "root.pane.shell_layout.adapter_panel",
+        "root.pane.shell_layout.diagnostics_panel",
+        "root.pane.shell_layout.plugins_panel",
         "root.pane.shell_layout.reference_left_panel",
         "root.pane.shell_layout.reference_right_panel",
+        "Text{x:0px;y:0px;width:320px;text:root.project.project_name!=\"\"?root.project.project_name+\"/AssetBrowser\":\"AssetBrowser\";",
+        "Text{x:12px;y:13px;text:\"QuickImport\";",
+        "SearchField{x:88px;y:8px;width:parent.width-180px;height:28px;",
+        "ShellButton{x:parent.width-80px;y:9px;width:68px;label:\"Import\";",
         "SearchField{x:12px;y:46px;width:236px;height:28px;",
         "KindChip{x:260px;y:48px;width:34px;label:\"All\";",
         "KindChip{x:260px;y:76px;width:56px;label:\"Physics\";",
         "ToolbarButton{x:parent.width-114px;y:48px;",
-        "Text{x:parent.width-240px;y:15px;width:228px;",
+        "ToolbarButton{x:parent.width-58px;y:48px;",
+        "FolderTreeView{",
+        "ToolbarButton{x:0px;y:0px;label:\"Preview\";",
+        "ToolbarButton{x:64px;y:0px;label:\"References\";",
+        "ToolbarButton{x:144px;y:0px;label:\"Metadata\";",
+        "ToolbarButton{x:224px;y:0px;label:\"Plugins\";",
+        "SelectionPreviewCard{",
+        "Text{x:parent.width-228px;y:5px;width:228px;",
+        "x:0px;y:(utility_tabs_row_node.frame.y-utility_panel_node.frame.y+utility_tabs_row_node.frame.height+6.0)*1px;width:parent.width;height:1px;",
+        "ReferenceListView{",
         "ReferenceListView{x:0px;y:0px;width:(parent.width-12px)/2;",
         "Rectangle{x:12px;y:50px;width:parent.width-24px;height:parent.height-62px;background:transparent;",
+        "Rectangle{x:0px;y:0px;width:parent.width;height:48px;",
+        "Text{x:10px;y:8px;text:\"MetaPath\";",
+        "Text{x:10px;y:22px;width:parent.width-20px;text:root.selection.meta_path;",
+        "Rectangle{x:0px;y:56px;width:parent.width;height:48px;",
+        "Text{x:10px;y:8px;text:\"Adapter\";",
+        "Text{x:10px;y:22px;width:parent.width-20px;text:root.selection.adapter_key;",
+        "Rectangle{x:0px;y:112px;width:parent.width;height:parent.height-112px;",
+        "Text{width:parent.width;height:parent.height;text:\"Pluginutilitytabscanmounthere.\";",
     ] {
         assert!(
             !normalized.contains(forbidden),
             "expected asset browser block to drop shell/absolute inner section geometry `{forbidden}`"
+        );
+    }
+}
+
+#[test]
+fn asset_browser_pane_consumes_template_mount_nodes_for_details_sections() {
+    let ui_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("ui");
+    let pane_data =
+        std::fs::read_to_string(ui_root.join("workbench/pane_data.slint")).expect("pane data");
+    let pane_content = std::fs::read_to_string(ui_root.join("workbench/pane_content.slint"))
+        .expect("pane content");
+    let asset_browser = scoped_block_after(
+        &pane_content,
+        "component AssetBrowserPaneView inherits Rectangle {",
+    );
+    let normalized = format!(
+        "{}{}",
+        pane_data.split_whitespace().collect::<String>(),
+        asset_browser.split_whitespace().collect::<String>()
+    );
+
+    for required in [
+        "AssetBrowserDetailsHeaderPanel",
+        "AssetBrowserDetailsHeaderTitleText",
+        "AssetBrowserDetailsHeaderSelectionText",
+        "AssetBrowserDetailsDivider",
+        "AssetBrowserDetailsScrollBody",
+        "AssetBrowserDetailsContentPanel",
+        "AssetBrowserDetailsPreviewPanel",
+        "AssetBrowserDetailsPreviewVisualPanel",
+        "AssetBrowserDetailsPreviewNameText",
+        "AssetBrowserDetailsPreviewLocatorText",
+        "AssetBrowserDetailsPreviewKindText",
+        "AssetBrowserDetailsPreviewIdentityText",
+        "AssetBrowserDetailsPreviewAdapterText",
+        "AssetBrowserDetailsPreviewMetaPathText",
+        "AssetBrowserDetailsPreviewDiagnosticsText",
+        "AssetBrowserDetailsLocatorPanel",
+        "AssetBrowserDetailsLocatorLabel",
+        "AssetBrowserDetailsLocatorValue",
+        "AssetBrowserDetailsTypePanel",
+        "AssetBrowserDetailsTypeLabel",
+        "AssetBrowserDetailsTypeValue",
+        "AssetBrowserDetailsIdentityPanel",
+        "AssetBrowserDetailsIdentityLabel",
+        "AssetBrowserDetailsIdentityUuidValue",
+        "AssetBrowserDetailsIdentityRevisionValue",
+        "AssetBrowserDetailsMetadataPanel",
+        "AssetBrowserDetailsMetadataLabel",
+        "AssetBrowserDetailsMetadataMetaPathValue",
+        "AssetBrowserDetailsMetadataAdapterValue",
+        "AssetBrowserDetailsDiagnosticsPanel",
+        "AssetBrowserDetailsDiagnosticsLabel",
+        "AssetBrowserDetailsDiagnosticsText",
+    ] {
+        assert!(
+            normalized.contains(required),
+            "expected asset browser details block to consume inner template mount `{required}`"
+        );
+    }
+
+    for forbidden in [
+        "SelectionDetailsRail{",
+        "privateproperty<length>header_height:48px;",
+        "Text{x:12px;y:10px;text:\"Details\";",
+        "Text{x:12px;y:25px;width:parent.width-24px;text:root.selection.name!=\"\"?root.selection.name:\"NoAssetSelected\";",
+        "x:0px;y:root.header_height+1px;width:parent.width;height:parent.height-root.header_height-1px;clip:true;",
+        "y:12px-root.scroll_px*1px;",
+        "Rectangle{height:180px;border-radius:8px;",
+        "Text{x:10px;y:8px;text:\"Locator\";",
+        "Text{x:10px;y:23px;width:parent.width-20px;text:root.selection.locator!=\"\"?root.selection.locator:\"Noprojectlocator\";",
+        "Text{x:10px;y:8px;text:\"Type\";",
+        "Text{x:10px;y:22px;width:parent.width-20px;text:root.selection.kind+(root.selection.state!=\"\"?\"•\"+root.selection.state:\"\");",
+        "Text{x:10px;y:8px;text:\"Identity\";",
+        "Text{x:10px;y:22px;width:parent.width-20px;text:root.selection.uuid!=\"\"?\"UUID\"+root.selection.uuid:\"NoUUID\";",
+        "Text{x:10px;y:37px;width:parent.width-20px;text:root.selection.revision!=\"\"?\"Revision\"+root.selection.revision:\"Revisionpending\";",
+        "Text{x:10px;y:8px;text:\"Metadata\";",
+        "Text{x:10px;y:22px;width:parent.width-20px;text:root.selection.meta_path!=\"\"?root.selection.meta_path:\"Nometapath\";",
+        "Text{x:10px;y:38px;width:parent.width-20px;text:root.selection.adapter_key!=\"\"?\"Adapter\"+root.selection.adapter_key:\"Noadapter\";",
+    ] {
+        assert!(
+            !normalized.contains(forbidden),
+            "expected asset browser details block to drop legacy details shell layout `{forbidden}`"
         );
     }
 }
@@ -1313,12 +1493,66 @@ fn assets_activity_pane_consumes_template_mount_nodes_for_toolbar_and_utility_se
 
     for required in [
         "AssetsActivityToolbarTitleRow",
+        "AssetsActivityTitleText",
+        "AssetsActivityToolbarSubtitleRow",
+        "AssetsActivitySubtitleText",
         "AssetsActivityToolbarSearchRow",
+        "SearchEdited",
+        "AssetsActivityViewModeListButton",
+        "AssetsActivityViewModeThumbButton",
         "AssetsActivityToolbarKindPrimaryRow",
+        "AssetsActivityKindAllChip",
+        "AssetsActivityKindTextureChip",
+        "AssetsActivityKindMaterialChip",
+        "AssetsActivityKindSceneChip",
+        "AssetsActivityKindModelChip",
+        "AssetsActivityKindShaderChip",
         "AssetsActivityToolbarKindSecondaryRow",
+        "AssetsActivityKindPhysicsChip",
+        "AssetsActivityKindSkeletonChip",
+        "AssetsActivityKindClipChip",
+        "AssetsActivityKindSequenceChip",
+        "AssetsActivityKindGraphChip",
+        "AssetsActivityKindStateChip",
+        "OpenAssetBrowser",
+        "AssetsActivityTreeHeaderPanel",
+        "AssetsActivityTreeTitleText",
+        "AssetsActivityTreeSubtitleText",
+        "AssetsActivityTreeDivider",
+        "AssetsActivityTreeScrollBody",
+        "AssetsActivityTreeRowPanel",
+        "AssetsActivityTreeRowIcon",
+        "AssetsActivityTreeRowNameText",
+        "AssetsActivityTreeRowCountText",
+        "AssetsActivityPreviewTabButton",
+        "AssetsActivityReferencesTabButton",
+        "AssetsActivitySelectionText",
+        "AssetsActivityUtilityDivider",
         "AssetsActivityPreviewPanel",
+        "AssetsActivityPreviewVisualPanel",
+        "AssetsActivityPreviewNameText",
+        "AssetsActivityPreviewLocatorText",
+        "AssetsActivityPreviewKindText",
+        "AssetsActivityPreviewIdentityText",
+        "AssetsActivityPreviewAdapterText",
+        "AssetsActivityPreviewMetaPathText",
+        "AssetsActivityPreviewDiagnosticsText",
         "AssetsActivityReferenceLeftPanel",
+        "AssetsActivityReferenceLeftTitleText",
+        "AssetsActivityReferenceLeftScrollBody",
+        "AssetsActivityReferenceLeftEmptyText",
+        "AssetsActivityReferenceLeftRowPanel",
+        "AssetsActivityReferenceLeftRowNameText",
+        "AssetsActivityReferenceLeftRowLocatorText",
+        "AssetsActivityReferenceLeftRowKindText",
         "AssetsActivityReferenceRightPanel",
+        "AssetsActivityReferenceRightTitleText",
+        "AssetsActivityReferenceRightScrollBody",
+        "AssetsActivityReferenceRightEmptyText",
+        "AssetsActivityReferenceRightRowPanel",
+        "AssetsActivityReferenceRightRowNameText",
+        "AssetsActivityReferenceRightRowLocatorText",
+        "AssetsActivityReferenceRightRowKindText",
     ] {
         assert!(
             normalized.contains(required),
@@ -1334,6 +1568,31 @@ fn assets_activity_pane_consumes_template_mount_nodes_for_toolbar_and_utility_se
         "root.pane.shell_layout.preview_panel",
         "root.pane.shell_layout.reference_left_panel",
         "root.pane.shell_layout.reference_right_panel",
+        "Text{x:0px;y:0px;text:\"Assets\";",
+        "Text{x:0px;y:17px;width:parent.width-108px;text:\"Browseprojectassets\";",
+        "ShellButton{x:toolbar_panel_node.frame.width*1px-94px;y:2px;width:82px;label:\"Browser\";",
+        "SearchField{x:0px;y:0px;width:max(parent.width-104px,0px);height:parent.height;",
+        "ToolbarButton{x:max(parent.width-96px,0px);y:2px;label:\"List\";",
+        "ToolbarButton{x:max(parent.width-44px,0px);y:2px;label:\"Thumb\";",
+        "KindChip{x:0px;y:0px;width:34px;label:\"All\";",
+        "KindChip{x:38px;y:0px;width:52px;label:\"Texture\";",
+        "KindChip{x:94px;y:0px;width:56px;label:\"Material\";",
+        "KindChip{x:154px;y:0px;width:46px;label:\"Scene\";",
+        "KindChip{x:204px;y:0px;width:50px;label:\"Model\";",
+        "KindChip{x:258px;y:0px;width:54px;label:\"Shader\";",
+        "KindChip{x:0px;y:0px;width:56px;label:\"Physics\";",
+        "KindChip{x:60px;y:0px;width:62px;label:\"Skeleton\";",
+        "KindChip{x:126px;y:0px;width:38px;label:\"Clip\";",
+        "KindChip{x:168px;y:0px;width:64px;label:\"Sequence\";",
+        "KindChip{x:236px;y:0px;width:52px;label:\"Graph\";",
+        "KindChip{x:292px;y:0px;width:48px;label:\"State\";",
+        "FolderTreeView{",
+        "ToolbarButton{x:0px;y:0px;label:\"Preview\";",
+        "ToolbarButton{x:64px;y:0px;label:\"References\";",
+        "SelectionPreviewCard{",
+        "ReferenceListView{",
+        "Text{x:max(parent.width-168px,0px);y:5px;width:168px;",
+        "x:0px;y:(utility_tabs_row_node.frame.y-utility_panel_node.frame.y+utility_tabs_row_node.frame.height+6.0)*1px;width:parent.width;height:1px;",
     ] {
         assert!(
             !normalized.contains(forbidden),

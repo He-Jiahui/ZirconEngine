@@ -20,17 +20,28 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
                 RenderPassStage::DepthPrepass,
                 "depth-prepass",
                 QueueLane::Graphics,
-            ),
+            )
+            .with_executor_id("deferred.depth-prepass")
+            .write_texture("scene-depth"),
             RenderFeaturePassDescriptor::new(
                 RenderPassStage::GBuffer,
                 "gbuffer-mesh",
                 QueueLane::Graphics,
-            ),
+            )
+            .with_executor_id("deferred.gbuffer")
+            .read_texture("scene-depth")
+            .write_texture("gbuffer-albedo")
+            .write_texture("gbuffer-normal")
+            .write_texture("gbuffer-material"),
             RenderFeaturePassDescriptor::new(
                 RenderPassStage::Transparent,
                 "transparent-mesh",
                 QueueLane::Graphics,
-            ),
+            )
+            .with_executor_id("deferred.transparent")
+            .read_texture("scene-depth")
+            .read_texture("scene-color")
+            .write_texture("scene-color"),
         ],
     )
 }

@@ -1,16 +1,16 @@
-use super::workbench_drawer_header_pointer_route::WorkbenchDrawerHeaderPointerRoute;
-use super::workbench_drawer_header_pointer_target::WorkbenchDrawerHeaderPointerTarget;
+use super::host_drawer_header_pointer_route::HostDrawerHeaderPointerRoute;
+use super::host_drawer_header_pointer_target::HostDrawerHeaderPointerTarget;
 
 pub(super) fn to_public_route(
-    target: WorkbenchDrawerHeaderPointerTarget,
-) -> WorkbenchDrawerHeaderPointerRoute {
+    target: HostDrawerHeaderPointerTarget,
+) -> HostDrawerHeaderPointerRoute {
     match target {
-        WorkbenchDrawerHeaderPointerTarget::Tab {
+        HostDrawerHeaderPointerTarget::Tab {
             surface_key,
             item_index,
             slot,
             instance_id,
-        } => WorkbenchDrawerHeaderPointerRoute::Tab {
+        } => HostDrawerHeaderPointerRoute::Tab {
             surface_key,
             item_index,
             slot,

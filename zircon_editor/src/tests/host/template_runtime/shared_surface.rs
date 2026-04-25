@@ -3,7 +3,7 @@ use super::support::*;
 #[test]
 fn editor_ui_host_runtime_builds_shared_surface_for_builtin_template() {
     let mut runtime = EditorUiHostRuntime::default();
-    runtime.load_builtin_workbench_shell().unwrap();
+    runtime.load_builtin_host_templates().unwrap();
 
     let surface = runtime
         .build_shared_surface(UI_HOST_WINDOW_DOCUMENT_ID)
@@ -48,7 +48,7 @@ fn editor_ui_host_runtime_builds_shared_surface_for_builtin_template() {
 #[test]
 fn editor_ui_compatibility_harness_captures_shared_surface_snapshot() {
     let mut runtime = EditorUiHostRuntime::default();
-    runtime.load_builtin_workbench_shell().unwrap();
+    runtime.load_builtin_host_templates().unwrap();
     let surface = runtime
         .build_shared_surface(UI_HOST_WINDOW_DOCUMENT_ID)
         .unwrap();
@@ -80,7 +80,7 @@ fn editor_ui_compatibility_harness_captures_shared_surface_snapshot() {
 #[test]
 fn editor_ui_host_runtime_builds_laid_out_host_model_from_shared_surface_authority() {
     let mut runtime = EditorUiHostRuntime::default();
-    runtime.load_builtin_workbench_shell().unwrap();
+    runtime.load_builtin_host_templates().unwrap();
     let mut projection = runtime
         .project_document(UI_HOST_WINDOW_DOCUMENT_ID)
         .unwrap();
@@ -141,7 +141,7 @@ fn editor_ui_host_runtime_builds_laid_out_host_model_from_shared_surface_authori
 fn editor_ui_compatibility_harness_captures_shared_layout_frames_from_surface_and_slint_projection()
 {
     let mut runtime = EditorUiHostRuntime::default();
-    runtime.load_builtin_workbench_shell().unwrap();
+    runtime.load_builtin_host_templates().unwrap();
     let mut projection = runtime
         .project_document(UI_HOST_WINDOW_DOCUMENT_ID)
         .unwrap();

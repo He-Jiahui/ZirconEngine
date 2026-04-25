@@ -11,6 +11,9 @@ use crate::ui::workbench::snapshot::{
 mod floating_windows;
 mod frame_rect;
 mod host_data;
+mod pane_payload;
+mod pane_payload_builders;
+mod pane_presentation;
 mod pane_projection;
 mod scene_projection;
 mod shell_presentation;
@@ -23,10 +26,16 @@ pub(crate) use host_data::{
     HostBottomDockSurfaceData, HostDocumentDockSurfaceData, HostFloatingWindowLayerData,
     HostMenuChromeData, HostNativeFloatingWindowSurfaceData, HostPageChromeData,
     HostResizeLayerData, HostSideDockSurfaceData, HostStatusBarData, HostTabDragOverlayData,
-    HostWindowLayoutData, HostWindowShellData, HostWindowSurfaceData,
-    HostWorkbenchSurfaceMetricsData, HostWorkbenchSurfaceOrchestrationData,
-    HostWorkbenchWindowSceneData, InspectorPaneViewData, PaneData, ProjectOverviewData,
+    HostWindowLayoutData, HostWindowSceneData, HostWindowShellData, HostWindowSurfaceData,
+    HostWindowSurfaceMetricsData, HostWindowSurfaceOrchestrationData, InspectorPaneViewData,
+    PaneBodyCompatData, PaneContentSize, PaneData, ProjectOverviewData,
     ProjectOverviewPaneViewData, SceneNodeData, TabData,
+};
+#[allow(unused_imports)]
+pub(crate) use pane_payload::PanePayload;
+pub(crate) use pane_presentation::{
+    build_pane_body_presentation, PaneActionPresentation, PaneBodyPresentation,
+    PaneEmptyStatePresentation, PanePayloadBuildContext, PanePresentation, PaneShellPresentation,
 };
 pub(crate) use pane_projection::document_pane;
 pub(crate) use scene_projection::{build_host_scene_data, build_native_floating_surface_data};

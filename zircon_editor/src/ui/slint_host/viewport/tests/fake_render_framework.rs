@@ -6,6 +6,7 @@ use crate::scene::viewport::{
     RenderQualityProfile, RenderStats, RenderViewportDescriptor, RenderViewportHandle,
 };
 use zircon_runtime::core::math::UVec2;
+use zircon_runtime::graphics::RenderPipelineAsset;
 use zircon_runtime::ui::surface::UiRenderExtract;
 
 #[derive(Default)]
@@ -102,6 +103,13 @@ impl RenderFramework for FakeRenderFramework {
         _pipeline: RenderPipelineHandle,
     ) -> Result<(), RenderFrameworkError> {
         Ok(())
+    }
+
+    fn register_pipeline_asset(
+        &self,
+        pipeline: RenderPipelineAsset,
+    ) -> Result<RenderPipelineHandle, RenderFrameworkError> {
+        Ok(pipeline.handle)
     }
 
     fn reload_pipeline(&self, _pipeline: RenderPipelineHandle) -> Result<(), RenderFrameworkError> {

@@ -156,6 +156,12 @@ impl World {
                                 SceneRigidBodyTypeAsset::Kinematic => RigidBodyType::Kinematic,
                             },
                             mass: rigid_body.mass,
+                            linear_velocity: crate::core::math::Vec3::from_array(
+                                rigid_body.linear_velocity,
+                            ),
+                            angular_velocity: crate::core::math::Vec3::from_array(
+                                rigid_body.angular_velocity,
+                            ),
                             linear_damping: rigid_body.linear_damping,
                             angular_damping: rigid_body.angular_damping,
                             gravity_scale: rigid_body.gravity_scale,
@@ -322,6 +328,8 @@ impl World {
                             RigidBodyType::Kinematic => SceneRigidBodyTypeAsset::Kinematic,
                         },
                         mass: rigid_body.mass,
+                        linear_velocity: rigid_body.linear_velocity.to_array(),
+                        angular_velocity: rigid_body.angular_velocity.to_array(),
                         linear_damping: rigid_body.linear_damping,
                         angular_damping: rigid_body.angular_damping,
                         gravity_scale: rigid_body.gravity_scale,

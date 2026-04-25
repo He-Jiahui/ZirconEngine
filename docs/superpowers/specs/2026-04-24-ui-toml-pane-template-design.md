@@ -11,6 +11,7 @@ related_code:
   - zircon_editor/src/ui/workbench/view/view_descriptor_builder.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs
+  - zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs
   - zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs
   - zircon_editor/src/ui/template_runtime/runtime/projection.rs
   - zircon_editor/src/ui/template_runtime/slint_adapter.rs
@@ -19,6 +20,12 @@ related_code:
   - zircon_editor/src/ui/template_runtime/builtin/template_bindings.rs
   - zircon_editor/src/ui/slint_host/ui/apply_presentation.rs
   - zircon_editor/src/ui/slint_host/ui/pane_data_conversion.rs
+  - zircon_editor/ui/workbench.slint
+  - zircon_editor/ui/workbench/host_context.slint
+  - zircon_editor/ui/workbench/host_scaffold.slint
+  - zircon_editor/ui/workbench/host_scene.slint
+  - zircon_editor/ui/workbench/host_surface.slint
+  - zircon_editor/src/tests/host/slint_window/generic_host_boundary.rs
   - zircon_editor/src/ui/slint_host/app/hierarchy_pointer.rs
   - zircon_editor/src/ui/slint_host/app/detail_scroll_pointer.rs
 implementation_files:
@@ -26,6 +33,7 @@ implementation_files:
   - zircon_editor/src/ui/workbench/view/view_descriptor_builder.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs
+  - zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs
   - zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs
   - zircon_editor/src/ui/template_runtime/runtime/projection.rs
   - zircon_editor/src/ui/template_runtime/builtin/template_documents.rs
@@ -33,6 +41,12 @@ implementation_files:
   - zircon_editor/src/ui/template_runtime/builtin/template_bindings.rs
   - zircon_editor/src/ui/slint_host/ui/apply_presentation.rs
   - zircon_editor/src/ui/slint_host/ui/pane_data_conversion.rs
+  - zircon_editor/ui/workbench.slint
+  - zircon_editor/ui/workbench/host_context.slint
+  - zircon_editor/ui/workbench/host_scaffold.slint
+  - zircon_editor/ui/workbench/host_scene.slint
+  - zircon_editor/ui/workbench/host_surface.slint
+  - zircon_editor/src/tests/host/slint_window/generic_host_boundary.rs
 plan_sources:
   - user: ui.toml描述代替slint布局做窗口
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
@@ -40,7 +54,16 @@ plan_sources:
 tests:
   - cargo test -p zircon_editor --lib --locked --offline
   - cargo test -p zircon_editor --lib --locked template_runtime --offline
+  - cargo test -p zircon_editor --lib --locked slint_hierarchy_template_body --offline
+  - cargo test -p zircon_editor --lib --locked slint_animation_template_body --offline
+  - cargo test -p zircon_editor --lib --locked root_workbench_slint_exports_only_generic_host_bootstrap_symbols --offline
+  - cargo test -p zircon_editor --lib --locked slint_host_presentation_uses_generic_scene_data_property --offline
+  - cargo test -p zircon_editor --lib --locked slint_host_scene_uses_generic_surface_metrics_and_orchestration_names --offline
+  - cargo test -p zircon_editor --lib --locked slint_host_drag_and_resize_callbacks_use_generic_host_event_names --offline
+  - cargo test -p zircon_editor --lib --locked host_page_pointer_module_uses_generic_host_type_names --offline
+  - cargo test -p zircon_editor --lib --locked slint_window --offline
   - cargo test -p zircon_editor --lib --locked slint_host --offline
+  - cargo fmt --all
   - cargo check -p zircon_editor --locked --offline
 doc_type: milestone-detail
 ---
@@ -48,7 +71,9 @@ doc_type: milestone-detail
 
 ## 背景
 
-当前 `zircon_editor` 已经具备 `.ui.toml -> template runtime -> host projection -> Slint` 的主链，但 pane 内容定义权仍主要停留在 Rust 和 Slint 手工拼装层，而不是模板层。
+当前 `zircon_editor` 已经具备 `.ui.toml -> template runtime -> host projection -> Slint` 的主链；2026-04-24 cutover 后，首批 pane body 的内容定义权已经从 Rust/Slint 手工拼装层迁到 `PanePresentation` 和 `.ui.toml` 模板层，剩余 Slint DTO 只作为宿主兼容壳存在。
+
+同一轮后续推进还开始了 root Slint generic host boundary 的第一刀：`workbench.slint` 的 bootstrap 导出已收口到 `UiHostContext`、`UiHostScaffold` 和 `HostWindowSceneData`，scene contract 也收口到 `host_scene_data`、`HostWindowSurfaceMetricsData` 和 `HostWindowSurfaceOrchestrationData`，通用拖拽/resize 宿主事件收口到 `host_drag_pointer_event` 和 `host_resize_pointer_event`，Rust host-page pointer helper 收口到 `HostPagePointer*` 和 `build_host_page_pointer_layout`，并由 `root_workbench_slint_exports_only_generic_host_bootstrap_symbols`、`slint_host_presentation_uses_generic_scene_data_property`、`slint_host_scene_uses_generic_surface_metrics_and_orchestration_names`、`slint_host_drag_and_resize_callbacks_use_generic_host_event_names`、`host_page_pointer_module_uses_generic_host_type_names` 防止 root/scene/host-event/host-page-pointer 文件重新暴露 workbench 专名。这一步只冻结宿主入口、scene DTO、通用 host event 和 host-page pointer 命名，不等价于 menu/drawer/document/floating 业务结构已经迁出。
 
 现状中的两个事实同时成立：
 
@@ -72,7 +97,7 @@ doc_type: milestone-detail
 
 - `.ui.toml` 成为 pane body 和局部 shell 的布局权威
 - `ViewDescriptor` 成为 pane 模板语义的注册入口
-- `PaneData` 从 giant union 收敛为 `shell + body` 两段结构
+- `PaneData` 从 giant union 收敛为 `shell + body` 两段结构；实现态中 `PaneBodyCompatData` 只承载 Slint ABI 和 native slot 兼容字段
 - 保留现有 `EditorUiBindingPayload` 命令体系，不引入第二套模板命令系统
 - 允许高交互区域通过 hybrid native slot 挂接，而不是强行在第一轮改写控件运行时
 
@@ -332,6 +357,8 @@ Phase 1 不追求所有 pane 完全模板化。
 - `host_data.rs` 中的 giant union 字段
 - `pane_data_conversion.rs` 中的 pane-specific Slint DTO 转换
 - `apply_presentation.rs` 中直接灌入 pane body 细节的逻辑
+
+当前落点是 `PaneData` 保留 shell、viewport、presentation 和一个显式命名的 `PaneBodyCompatData`。首批 pane 的结构真源不再是平铺 union 字段；Slint 生成类型仍保持扁平 ABI，因此 compat 壳在 Rust host 边界内负责喂给 native tree、timeline、graph canvas 与尚未完全模板化的 asset/project body。
 
 ## 文件级改造落点
 

@@ -20,6 +20,11 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
             RenderPassStage::Lighting,
             "deferred-lighting",
             QueueLane::Graphics,
-        )],
+        )
+        .with_executor_id("lighting.deferred")
+        .read_texture("gbuffer-albedo")
+        .read_texture("gbuffer-normal")
+        .read_texture("gbuffer-material")
+        .write_texture("scene-color")],
     )
 }

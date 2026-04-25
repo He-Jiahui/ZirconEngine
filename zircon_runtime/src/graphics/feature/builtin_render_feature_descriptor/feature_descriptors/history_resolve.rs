@@ -18,6 +18,9 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
             RenderPassStage::PostProcess,
             "history-resolve",
             QueueLane::Graphics,
-        )],
+        )
+        .with_executor_id("history.scene-color")
+        .read_texture("scene-color")
+        .write_external("history-scene-color")],
     )
 }

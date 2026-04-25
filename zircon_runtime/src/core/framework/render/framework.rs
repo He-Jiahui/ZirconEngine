@@ -3,6 +3,7 @@ use super::{
     RenderQualityProfile, RenderStats, RenderViewportDescriptor, RenderViewportHandle,
     RenderVirtualGeometryDebugSnapshot,
 };
+use crate::graphics::RenderPipelineAsset;
 use crate::ui::surface::UiRenderExtract;
 
 pub trait RenderFramework: Send + Sync {
@@ -31,6 +32,11 @@ pub trait RenderFramework: Send + Sync {
         viewport: RenderViewportHandle,
         pipeline: RenderPipelineHandle,
     ) -> Result<(), RenderFrameworkError>;
+
+    fn register_pipeline_asset(
+        &self,
+        pipeline: RenderPipelineAsset,
+    ) -> Result<RenderPipelineHandle, RenderFrameworkError>;
 
     fn reload_pipeline(&self, pipeline: RenderPipelineHandle) -> Result<(), RenderFrameworkError>;
 

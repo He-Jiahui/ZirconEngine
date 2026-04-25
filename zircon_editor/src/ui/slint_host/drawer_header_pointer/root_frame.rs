@@ -1,8 +1,8 @@
 use zircon_runtime::ui::layout::UiFrame;
 
-use super::workbench_drawer_header_pointer_layout::WorkbenchDrawerHeaderPointerLayout;
+use super::host_drawer_header_pointer_layout::HostDrawerHeaderPointerLayout;
 
-pub(super) fn root_frame(layout: &WorkbenchDrawerHeaderPointerLayout) -> UiFrame {
+pub(super) fn root_frame(layout: &HostDrawerHeaderPointerLayout) -> UiFrame {
     let max_x = layout
         .surfaces
         .iter()

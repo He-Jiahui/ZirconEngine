@@ -4,11 +4,11 @@ use crate::core::editor_event::{
 };
 
 #[test]
-fn builtin_workbench_document_tab_activation_focuses_view_from_template_binding() {
+fn builtin_host_document_tab_activation_focuses_view_from_template_binding() {
     let _guard = env_lock().lock().unwrap();
 
     let harness = EventRuntimeHarness::new("zircon_slint_template_bridge_document_focus");
-    let bridge = BuiltinWorkbenchTemplateBridge::new(UiSize::new(1280.0, 720.0)).unwrap();
+    let bridge = BuiltinHostWindowTemplateBridge::new(UiSize::new(1280.0, 720.0)).unwrap();
 
     let document_tabs = bridge
         .host_projection()
@@ -18,13 +18,10 @@ fn builtin_workbench_document_tab_activation_focuses_view_from_template_binding(
         route.event_kind == UiEventKind::Change && route.binding_id == "DocumentTabs/ActivateTab"
     }));
 
-    let effects = dispatch_builtin_workbench_document_tab_activation(
-        &harness.runtime,
-        &bridge,
-        "editor.game#1",
-    )
-    .expect("builtin document tab activation should resolve through template bridge")
-    .unwrap();
+    let effects =
+        dispatch_builtin_host_document_tab_activation(&harness.runtime, &bridge, "editor.game#1")
+            .expect("builtin document tab activation should resolve through template bridge")
+            .unwrap();
 
     let journal = harness.runtime.journal();
     assert_eq!(
@@ -38,11 +35,11 @@ fn builtin_workbench_document_tab_activation_focuses_view_from_template_binding(
 }
 
 #[test]
-fn builtin_workbench_document_tab_close_dispatches_close_view_from_template_binding() {
+fn builtin_host_document_tab_close_dispatches_close_view_from_template_binding() {
     let _guard = env_lock().lock().unwrap();
 
     let harness = EventRuntimeHarness::new("zircon_slint_template_bridge_document_close");
-    let bridge = BuiltinWorkbenchTemplateBridge::new(UiSize::new(1280.0, 720.0)).unwrap();
+    let bridge = BuiltinHostWindowTemplateBridge::new(UiSize::new(1280.0, 720.0)).unwrap();
 
     let document_tabs = bridge
         .host_projection()
@@ -53,7 +50,7 @@ fn builtin_workbench_document_tab_close_dispatches_close_view_from_template_bind
     }));
 
     let effects =
-        dispatch_builtin_workbench_document_tab_close(&harness.runtime, &bridge, "editor.game#1")
+        dispatch_builtin_host_document_tab_close(&harness.runtime, &bridge, "editor.game#1")
             .expect("builtin document tab close should resolve through template bridge")
             .unwrap();
 

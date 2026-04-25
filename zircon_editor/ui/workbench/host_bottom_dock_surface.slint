@@ -1,6 +1,6 @@
 import { DockTabButton, Palette } from "chrome.slint";
 import { HostBottomDockSurfaceData } from "host_components.slint";
-import { WorkbenchHostContext } from "host_context.slint";
+import { UiHostContext } from "host_context.slint";
 import { PaneSurface } from "pane_surface.slint";
 
 export component HostBottomDockSurface inherits Rectangle {
@@ -33,7 +33,7 @@ export component HostBottomDockSurface inherits Rectangle {
                     drag_origin_x: (root.surface_data.tab_origin_x_px * 1px + self.x) / 1px;
                     drag_origin_y: (root.surface_data.tab_origin_y_px * 1px + self.y) / 1px;
                     pointer_clicked(x, y) => {
-                        WorkbenchHostContext.drawer_header_pointer_clicked(
+                        UiHostContext.drawer_header_pointer_clicked(
                             root.surface_data.surface_key,
                             index,
                             6.0 + self.x / 1px,
@@ -43,8 +43,8 @@ export component HostBottomDockSurface inherits Rectangle {
                         );
                     }
                     drag_started(x, y) => {
-                        WorkbenchHostContext.drag_state = {
-                            active_drag_target_group: WorkbenchHostContext.drag_state.active_drag_target_group,
+                        UiHostContext.drag_state = {
+                            active_drag_target_group: UiHostContext.drag_state.active_drag_target_group,
                             drag_active: true,
                             drag_tab_id: tab.id,
                             drag_tab_title: tab.title,
@@ -53,28 +53,28 @@ export component HostBottomDockSurface inherits Rectangle {
                             drag_pointer_x: x,
                             drag_pointer_y: y,
                         };
-                        WorkbenchHostContext.workbench_drag_pointer_event(
+                        UiHostContext.host_drag_pointer_event(
                             1,
-                            WorkbenchHostContext.drag_state.drag_pointer_x,
-                            WorkbenchHostContext.drag_state.drag_pointer_y,
+                            UiHostContext.drag_state.drag_pointer_x,
+                            UiHostContext.drag_state.drag_pointer_y,
                         );
                     }
                     drag_moved(x, y) => {
-                        if (WorkbenchHostContext.drag_state.drag_tab_id == tab.id) {
-                            WorkbenchHostContext.drag_state = {
-                                active_drag_target_group: WorkbenchHostContext.drag_state.active_drag_target_group,
-                                drag_active: WorkbenchHostContext.drag_state.drag_active,
-                                drag_tab_id: WorkbenchHostContext.drag_state.drag_tab_id,
-                                drag_tab_title: WorkbenchHostContext.drag_state.drag_tab_title,
-                                drag_tab_icon_key: WorkbenchHostContext.drag_state.drag_tab_icon_key,
-                                drag_source_group: WorkbenchHostContext.drag_state.drag_source_group,
+                        if (UiHostContext.drag_state.drag_tab_id == tab.id) {
+                            UiHostContext.drag_state = {
+                                active_drag_target_group: UiHostContext.drag_state.active_drag_target_group,
+                                drag_active: UiHostContext.drag_state.drag_active,
+                                drag_tab_id: UiHostContext.drag_state.drag_tab_id,
+                                drag_tab_title: UiHostContext.drag_state.drag_tab_title,
+                                drag_tab_icon_key: UiHostContext.drag_state.drag_tab_icon_key,
+                                drag_source_group: UiHostContext.drag_state.drag_source_group,
                                 drag_pointer_x: x,
                                 drag_pointer_y: y,
                             };
-                            WorkbenchHostContext.workbench_drag_pointer_event(
+                            UiHostContext.host_drag_pointer_event(
                                 1,
-                                WorkbenchHostContext.drag_state.drag_pointer_x,
-                                WorkbenchHostContext.drag_state.drag_pointer_y,
+                                UiHostContext.drag_state.drag_pointer_x,
+                                UiHostContext.drag_state.drag_pointer_y,
                             );
                         }
                     }

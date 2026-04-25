@@ -3,7 +3,7 @@ use super::*;
 impl SlintEditorHost {
     pub(super) fn activity_rail_pointer_clicked(&mut self, side: &str, x: f32, y: f32) {
         self.recompute_if_dirty();
-        let side = match WorkbenchActivityRailPointerSide::parse(side) {
+        let side = match HostActivityRailPointerSide::parse(side) {
             Ok(side) => side,
             Err(error) => {
                 self.set_status_line(error);
@@ -131,13 +131,11 @@ impl SlintEditorHost {
             .shell_pointer_bridge
             .drag_route_at(UiPoint::new(x, y))
             .and_then(|route| match route {
-                WorkbenchShellPointerRoute::FloatingWindow(window_id)
-                | WorkbenchShellPointerRoute::FloatingWindowEdge { window_id, .. } => {
-                    Some(window_id)
-                }
-                WorkbenchShellPointerRoute::DragTarget(_)
-                | WorkbenchShellPointerRoute::DocumentEdge(_)
-                | WorkbenchShellPointerRoute::Resize(_) => None,
+                HostShellPointerRoute::FloatingWindow(window_id)
+                | HostShellPointerRoute::FloatingWindowEdge { window_id, .. } => Some(window_id),
+                HostShellPointerRoute::DragTarget(_)
+                | HostShellPointerRoute::DocumentEdge(_)
+                | HostShellPointerRoute::Resize(_) => None,
             })
         else {
             return;

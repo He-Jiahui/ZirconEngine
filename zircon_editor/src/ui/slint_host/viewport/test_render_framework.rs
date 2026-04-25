@@ -2,6 +2,7 @@ use crate::scene::viewport::{
     CapturedFrame, RenderFrameExtract, RenderFramework, RenderFrameworkError, RenderPipelineHandle,
     RenderQualityProfile, RenderStats, RenderViewportDescriptor, RenderViewportHandle,
 };
+use zircon_runtime::graphics::RenderPipelineAsset;
 use zircon_runtime::ui::surface::UiRenderExtract;
 
 pub(super) struct TestRenderFramework;
@@ -44,6 +45,13 @@ impl RenderFramework for TestRenderFramework {
         _pipeline: RenderPipelineHandle,
     ) -> Result<(), RenderFrameworkError> {
         Ok(())
+    }
+
+    fn register_pipeline_asset(
+        &self,
+        pipeline: RenderPipelineAsset,
+    ) -> Result<RenderPipelineHandle, RenderFrameworkError> {
+        Ok(pipeline.handle)
     }
 
     fn reload_pipeline(&self, _pipeline: RenderPipelineHandle) -> Result<(), RenderFrameworkError> {

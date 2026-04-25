@@ -1,14 +1,42 @@
 use serde::{Deserialize, Serialize};
+use std::ops::{BitOr, BitOrAssign};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub enum BufferUsage {
-    Vertex,
-    Index,
-    Uniform,
-    Storage,
-    StagingRead,
-    StagingWrite,
-    Indirect,
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct BufferUsage(u32);
+
+impl BufferUsage {
+    pub const NONE: Self = Self(0);
+    pub const VERTEX: Self = Self(1 << 0);
+    pub const INDEX: Self = Self(1 << 1);
+    pub const UNIFORM: Self = Self(1 << 2);
+    pub const STORAGE: Self = Self(1 << 3);
+    pub const STAGING_READ: Self = Self(1 << 4);
+    pub const STAGING_WRITE: Self = Self(1 << 5);
+    pub const INDIRECT: Self = Self(1 << 6);
+    pub const COPY_SRC: Self = Self(1 << 7);
+    pub const COPY_DST: Self = Self(1 << 8);
+
+    pub const fn bits(self) -> u32 {
+        self.0
+    }
+
+    pub const fn contains(self, other: Self) -> bool {
+        (self.0 & other.0) == other.0
+    }
+}
+
+impl BitOr for BufferUsage {
+    type Output = Self;
+
+    fn bitor(self, rhs: Self) -> Self::Output {
+        Self(self.0 | rhs.0)
+    }
+}
+
+impl BitOrAssign for BufferUsage {
+    fn bitor_assign(&mut self, rhs: Self) {
+        self.0 |= rhs.0;
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -34,14 +62,39 @@ pub enum TextureFormat {
     Depth32Float,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub enum TextureUsage {
-    RenderAttachment,
-    Sampled,
-    Storage,
-    CopySrc,
-    CopyDst,
-    Present,
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct TextureUsage(u32);
+
+impl TextureUsage {
+    pub const NONE: Self = Self(0);
+    pub const RENDER_ATTACHMENT: Self = Self(1 << 0);
+    pub const SAMPLED: Self = Self(1 << 1);
+    pub const STORAGE: Self = Self(1 << 2);
+    pub const COPY_SRC: Self = Self(1 << 3);
+    pub const COPY_DST: Self = Self(1 << 4);
+    pub const PRESENT: Self = Self(1 << 5);
+
+    pub const fn bits(self) -> u32 {
+        self.0
+    }
+
+    pub const fn contains(self, other: Self) -> bool {
+        (self.0 & other.0) == other.0
+    }
+}
+
+impl BitOr for TextureUsage {
+    type Output = Self;
+
+    fn bitor(self, rhs: Self) -> Self::Output {
+        Self(self.0 | rhs.0)
+    }
+}
+
+impl BitOrAssign for TextureUsage {
+    fn bitor_assign(&mut self, rhs: Self) {
+        self.0 |= rhs.0;
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]

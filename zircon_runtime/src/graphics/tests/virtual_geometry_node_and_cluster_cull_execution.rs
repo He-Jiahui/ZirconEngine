@@ -776,6 +776,8 @@ fn render_seed_backed_execution_frame(
             virtual_geometry_cluster(mesh, 20, 200, 1, None, Vec3::new(0.0, 0.0, 0.0), 0.5),
             virtual_geometry_cluster(mesh, 30, 300, 0, None, Vec3::new(0.5, 0.0, 0.0), 0.25),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![page(200, true), page(300, false)],
         instances: vec![RenderVirtualGeometryInstance {
             entity: mesh,
@@ -850,6 +852,8 @@ fn render_seed_backed_frontier_rank_execution_frame(
             virtual_geometry_cluster(mesh, 40, 400, 1, None, Vec3::new(1.0, 0.0, 0.0), 0.5),
             virtual_geometry_cluster(mesh, 50, 500, 0, None, Vec3::new(1.5, 0.0, 0.0), 0.25),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![page(200, true), page(300, false), page(500, false)],
         instances: vec![RenderVirtualGeometryInstance {
             entity: mesh,
@@ -923,6 +927,8 @@ fn render_seed_backed_parent_fallback_execution_frame(
             virtual_geometry_cluster(mesh, 30, 300, 1, Some(20), Vec3::new(0.5, 0.0, 0.0), 0.5),
             virtual_geometry_cluster(mesh, 40, 400, 0, Some(30), Vec3::new(1.0, 0.0, 0.0), 0.25),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![page(200, true), page(300, true), page(400, false)],
         instances: vec![RenderVirtualGeometryInstance {
             entity: mesh,
@@ -998,6 +1004,8 @@ fn render_seed_backed_duplicate_parent_fallback_execution_frame(
             virtual_geometry_cluster(mesh, 40, 400, 1, None, Vec3::new(0.5, 0.0, 0.0), 0.5),
             virtual_geometry_cluster(mesh, 50, 500, 0, Some(30), Vec3::new(1.0, 0.0, 0.0), 0.25),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![page(300, true), page(400, true), page(500, false)],
         instances: vec![RenderVirtualGeometryInstance {
             entity: mesh,
@@ -1072,6 +1080,8 @@ fn render_seed_backed_budget_order_execution_frame(
             virtual_geometry_cluster(mesh, 40, 400, 0, None, Vec3::new(0.5, 0.0, 0.0), 0.25),
             virtual_geometry_cluster(mesh, 30, 300, 1, None, Vec3::new(0.0, 0.0, 0.0), 0.5),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![],
         instances: vec![RenderVirtualGeometryInstance {
             entity: mesh,
@@ -1144,6 +1154,8 @@ fn render_seed_backed_subset_execution_frame(
             virtual_geometry_cluster(mesh, 30, 300, 0, None, Vec3::new(0.5, 0.0, 0.0), 0.25),
             virtual_geometry_cluster(mesh, 20, 200, 1, None, Vec3::new(0.0, 0.0, 0.0), 0.5),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![page(200, true), page(300, false)],
         instances: vec![RenderVirtualGeometryInstance {
             entity: mesh,
@@ -1217,6 +1229,8 @@ fn render_seed_backed_hierarchical_execution_frame(
             virtual_geometry_cluster(mesh, 30, 300, 1, Some(20), Vec3::new(0.5, 0.0, 0.0), 0.5),
             virtual_geometry_cluster(mesh, 40, 400, 0, Some(30), Vec3::new(1.0, 0.0, 0.0), 0.25),
         ],
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
         pages: vec![page(200, false), page(300, false)],
         instances: vec![RenderVirtualGeometryInstance {
             entity: mesh,
@@ -1285,6 +1299,7 @@ fn virtual_geometry_cluster(
     RenderVirtualGeometryCluster {
         entity,
         cluster_id,
+        hierarchy_node_id: None,
         page_id,
         lod_level,
         parent_cluster_id,

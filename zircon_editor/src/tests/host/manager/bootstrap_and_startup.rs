@@ -263,6 +263,7 @@ fn applying_project_workspace_restores_single_instance_registry_state() {
                     visible: true,
                 },
             )]),
+            activity_windows: Default::default(),
             floating_windows: Vec::new(),
             region_overrides: BTreeMap::new(),
             view_overrides: BTreeMap::new(),

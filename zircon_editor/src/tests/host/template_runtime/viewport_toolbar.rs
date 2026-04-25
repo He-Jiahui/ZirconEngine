@@ -3,7 +3,7 @@ use super::support::*;
 #[test]
 fn editor_ui_host_runtime_projects_builtin_viewport_toolbar_template_into_slint_projection() {
     let mut runtime = EditorUiHostRuntime::default();
-    runtime.load_builtin_workbench_shell().unwrap();
+    runtime.load_builtin_host_templates().unwrap();
 
     assert_eq!(
         runtime
@@ -55,7 +55,7 @@ fn editor_ui_host_runtime_projects_builtin_viewport_toolbar_template_into_slint_
 #[test]
 fn editor_ui_host_runtime_builds_surface_backed_viewport_toolbar_group_frames() {
     let mut runtime = EditorUiHostRuntime::default();
-    runtime.load_builtin_workbench_shell().unwrap();
+    runtime.load_builtin_host_templates().unwrap();
     let mut projection = runtime.project_document("scene.viewport_toolbar").unwrap();
     let mut service = EditorUiControlService::default();
     runtime

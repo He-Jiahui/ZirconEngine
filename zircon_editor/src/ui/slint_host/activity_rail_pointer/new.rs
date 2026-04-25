@@ -2,13 +2,13 @@ use std::collections::BTreeMap;
 
 use zircon_runtime::ui::{dispatch::UiPointerDispatcher, event_ui::UiTreeId, surface::UiSurface};
 
-use super::workbench_activity_rail_pointer_bridge::WorkbenchActivityRailPointerBridge;
-use super::workbench_activity_rail_pointer_layout::WorkbenchActivityRailPointerLayout;
+use super::host_activity_rail_pointer_bridge::HostActivityRailPointerBridge;
+use super::host_activity_rail_pointer_layout::HostActivityRailPointerLayout;
 
-impl WorkbenchActivityRailPointerBridge {
+impl HostActivityRailPointerBridge {
     pub(crate) fn new() -> Self {
         let mut bridge = Self {
-            layout: WorkbenchActivityRailPointerLayout::default(),
+            layout: HostActivityRailPointerLayout::default(),
             surface: UiSurface::new(UiTreeId::new("zircon.editor.activity_rail.pointer")),
             dispatcher: UiPointerDispatcher::default(),
             targets: BTreeMap::new(),

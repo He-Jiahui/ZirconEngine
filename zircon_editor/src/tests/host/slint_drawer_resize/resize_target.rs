@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use crate::ui::slint_host::drawer_resize::{
-    resolve_workbench_resize_target_group, WorkbenchResizeTargetGroup,
+    resolve_host_resize_target_group, HostResizeTargetGroup,
 };
 use crate::ui::workbench::autolayout::{
     ShellFrame, ShellRegionId, ShellSizePx, WorkbenchShellGeometry,
@@ -36,16 +36,16 @@ fn shared_resize_target_route_resolves_left_right_and_bottom_splitters() {
     let shell_size = ShellSizePx::new(1440.0, 900.0);
 
     assert_eq!(
-        resolve_workbench_resize_target_group(shell_size, &geometry, UiPoint::new(312.0, 420.0)),
-        Some(WorkbenchResizeTargetGroup::Left)
+        resolve_host_resize_target_group(shell_size, &geometry, UiPoint::new(312.0, 420.0)),
+        Some(HostResizeTargetGroup::Left)
     );
     assert_eq!(
-        resolve_workbench_resize_target_group(shell_size, &geometry, UiPoint::new(1128.0, 420.0)),
-        Some(WorkbenchResizeTargetGroup::Right)
+        resolve_host_resize_target_group(shell_size, &geometry, UiPoint::new(1128.0, 420.0)),
+        Some(HostResizeTargetGroup::Right)
     );
     assert_eq!(
-        resolve_workbench_resize_target_group(shell_size, &geometry, UiPoint::new(720.0, 720.0)),
-        Some(WorkbenchResizeTargetGroup::Bottom)
+        resolve_host_resize_target_group(shell_size, &geometry, UiPoint::new(720.0, 720.0)),
+        Some(HostResizeTargetGroup::Bottom)
     );
 }
 
@@ -66,7 +66,7 @@ fn shared_resize_target_route_ignores_points_outside_splitter_frames() {
     };
 
     assert_eq!(
-        resolve_workbench_resize_target_group(
+        resolve_host_resize_target_group(
             ShellSizePx::new(1440.0, 900.0),
             &geometry,
             UiPoint::new(420.0, 420.0),

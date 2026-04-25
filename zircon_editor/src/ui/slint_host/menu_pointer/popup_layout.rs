@@ -3,11 +3,11 @@ use zircon_runtime::ui::layout::UiFrame;
 use super::constants::{
     POPUP_PADDING, POPUP_ROW_GAP, POPUP_ROW_HEIGHT, POPUP_WIDTHS, WINDOW_MENU_INDEX,
 };
+use super::host_menu_pointer_layout::HostMenuPointerLayout;
 use super::menu_items_for_layout::menu_items_for_layout;
-use super::workbench_menu_pointer_layout::WorkbenchMenuPointerLayout;
 
 pub(in crate::ui::slint_host::menu_pointer) fn popup_frame(
-    layout: &WorkbenchMenuPointerLayout,
+    layout: &HostMenuPointerLayout,
     menu_index: usize,
 ) -> UiFrame {
     let button_frame = layout.button_frames[menu_index];
@@ -41,14 +41,14 @@ pub(in crate::ui::slint_host::menu_pointer) fn popup_content_height(item_count: 
 }
 
 pub(in crate::ui::slint_host::menu_pointer) fn popup_viewport_extent(
-    layout: &WorkbenchMenuPointerLayout,
+    layout: &HostMenuPointerLayout,
     menu_index: usize,
 ) -> f32 {
     (popup_frame(layout, menu_index).height - POPUP_PADDING * 2.0).max(0.0)
 }
 
 pub(in crate::ui::slint_host::menu_pointer) fn popup_scroll_metrics(
-    layout: &WorkbenchMenuPointerLayout,
+    layout: &HostMenuPointerLayout,
     menu_index: usize,
 ) -> (f32, f32) {
     let viewport_extent = popup_viewport_extent(layout, menu_index);

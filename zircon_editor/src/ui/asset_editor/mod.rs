@@ -32,11 +32,11 @@ pub use contract::{
     UI_ASSET_EDITOR_BOOTSTRAP_WIDGET_SECTION_CARD_REFERENCE,
     UI_ASSET_EDITOR_BOOTSTRAP_WIDGET_TOOLBAR_REFERENCE, UI_ASSET_EDITOR_WINDOW_ID,
 };
+pub(crate) use node_projection::ui_asset_editor_node_projection;
 pub use presentation::{
     UiAssetEditorPanePresentation, UiAssetEditorPreviewCanvasNode,
     UiAssetEditorPreviewCanvasSlotTarget,
 };
-pub(crate) use node_projection::{ui_asset_editor_node_projection, UiAssetEditorNodeProjection};
 pub use preview::UiAssetPreviewHost;
 pub use replay_workspace::{UiAssetEditorReplayWorkspace, UiAssetEditorReplayWorkspaceResult};
 pub use session::{UiAssetEditorReplayResult, UiAssetEditorSession, UiAssetEditorSessionError};

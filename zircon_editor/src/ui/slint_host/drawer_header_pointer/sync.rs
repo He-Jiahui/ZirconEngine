@@ -1,8 +1,8 @@
-use super::workbench_drawer_header_pointer_bridge::WorkbenchDrawerHeaderPointerBridge;
-use super::workbench_drawer_header_pointer_layout::WorkbenchDrawerHeaderPointerLayout;
+use super::host_drawer_header_pointer_bridge::HostDrawerHeaderPointerBridge;
+use super::host_drawer_header_pointer_layout::HostDrawerHeaderPointerLayout;
 
-impl WorkbenchDrawerHeaderPointerBridge {
-    pub(crate) fn sync(&mut self, layout: WorkbenchDrawerHeaderPointerLayout) {
+impl HostDrawerHeaderPointerBridge {
+    pub(crate) fn sync(&mut self, layout: HostDrawerHeaderPointerLayout) {
         self.layout = layout;
         self.measured_frames = self
             .layout

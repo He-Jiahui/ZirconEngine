@@ -1,4 +1,5 @@
 mod capability_summary;
+mod capability_validation;
 mod capture_frame;
 mod compile_options_for_profile;
 mod compiled_feature_names;
@@ -7,6 +8,7 @@ mod destroy_viewport;
 mod query_stats;
 mod query_virtual_geometry_debug_snapshot;
 mod queue_capability;
+mod register_pipeline_asset;
 mod reload_pipeline;
 mod render_framework_backend_error;
 mod render_framework_impl;

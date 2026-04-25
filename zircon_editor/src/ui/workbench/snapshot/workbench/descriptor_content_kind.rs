@@ -17,6 +17,7 @@ pub(super) fn descriptor_content_kind(descriptor_id: &ViewDescriptorId) -> ViewC
         "editor.ui_asset" => ViewContentKind::UiAssetEditor,
         "editor.animation_sequence" => ViewContentKind::AnimationSequenceEditor,
         "editor.animation_graph" => ViewContentKind::AnimationGraphEditor,
+        "editor.runtime_diagnostics" => ViewContentKind::RuntimeDiagnostics,
         _ => ViewContentKind::Placeholder,
     }
 }

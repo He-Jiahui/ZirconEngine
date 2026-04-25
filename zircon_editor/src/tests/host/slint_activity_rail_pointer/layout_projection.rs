@@ -1,6 +1,6 @@
 use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
-use crate::ui::slint_host::activity_rail_pointer::build_workbench_activity_rail_pointer_layout;
-use crate::ui::slint_host::callback_dispatch::BuiltinWorkbenchTemplateBridge;
+use crate::ui::slint_host::activity_rail_pointer::build_host_activity_rail_pointer_layout;
+use crate::ui::slint_host::callback_dispatch::BuiltinHostWindowTemplateBridge;
 use crate::ui::workbench::autolayout::{
     compute_workbench_shell_geometry, ShellFrame, ShellRegionId, ShellSizePx,
     WorkbenchChromeMetrics, WorkbenchShellGeometry,
@@ -15,7 +15,7 @@ fn shared_activity_rail_pointer_layout_prefers_shared_root_projection_when_left_
     let _guard = env_lock().lock().unwrap();
 
     let harness = EventRuntimeHarness::new("zircon_slint_activity_rail_pointer_root_projection");
-    let template_bridge = BuiltinWorkbenchTemplateBridge::new(UiSize::new(1280.0, 720.0))
+    let template_bridge = BuiltinHostWindowTemplateBridge::new(UiSize::new(1280.0, 720.0))
         .expect("builtin workbench template bridge should build");
     let chrome = harness.runtime.chrome_snapshot();
     let model = WorkbenchViewModel::build(&chrome);
@@ -39,7 +39,7 @@ fn shared_activity_rail_pointer_layout_prefers_shared_root_projection_when_left_
         .insert(ShellRegionId::Bottom, ShellFrame::default());
 
     let root_frames = template_bridge.root_shell_frames();
-    let layout = build_workbench_activity_rail_pointer_layout(
+    let layout = build_host_activity_rail_pointer_layout(
         &model,
         &geometry,
         &WorkbenchChromeMetrics::default(),
@@ -60,11 +60,11 @@ fn shared_activity_rail_pointer_layout_prefers_shared_visible_drawer_regions_whe
     let chrome = fixture.build_chrome();
     let model = WorkbenchViewModel::build(&chrome);
     let metrics = WorkbenchChromeMetrics::default();
-    let template_bridge = BuiltinWorkbenchTemplateBridge::new(UiSize::new(1280.0, 720.0))
+    let template_bridge = BuiltinHostWindowTemplateBridge::new(UiSize::new(1280.0, 720.0))
         .expect("builtin workbench template bridge should build");
     let root_frames = template_bridge.root_shell_frames();
     let body_frame = root_frames
-        .workbench_body_frame
+        .host_body_frame
         .expect("workbench body projection frame should exist");
     let left_geometry = ShellFrame::new(180.0, 140.0, 312.0, 519.0);
     let right_geometry = ShellFrame::new(1024.0, 168.0, 256.0, 401.0);
@@ -86,12 +86,8 @@ fn shared_activity_rail_pointer_layout_prefers_shared_visible_drawer_regions_whe
         ..WorkbenchShellGeometry::default()
     };
 
-    let layout = build_workbench_activity_rail_pointer_layout(
-        &model,
-        &geometry,
-        &metrics,
-        Some(&root_frames),
-    );
+    let layout =
+        build_host_activity_rail_pointer_layout(&model, &geometry, &metrics, Some(&root_frames));
 
     assert_eq!(
         layout.left_strip_frame,

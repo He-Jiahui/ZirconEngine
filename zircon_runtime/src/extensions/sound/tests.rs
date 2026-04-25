@@ -56,6 +56,81 @@ fn sound_manager_loads_project_wav_and_mixes_playback_to_stereo() {
     fs::remove_dir_all(project_root).ok();
 }
 
+#[test]
+fn sound_manager_stop_playback_removes_it_from_future_mixes() {
+    let (runtime, project_root) =
+        runtime_with_sound_project("sound-manager-stop-playback", &[16_384, 16_384]);
+    let sound = resolve_sound_manager(&runtime.handle()).unwrap();
+    let clip = sound.load_clip("res://audio/ping.wav").unwrap();
+    let playback = sound
+        .play_clip(clip, SoundPlaybackSettings::default())
+        .unwrap();
+
+    sound.stop_playback(playback).unwrap();
+
+    let mix = sound.render_mix(2).unwrap();
+    assert_samples_close(&mix.samples, &[0.0, 0.0, 0.0, 0.0]);
+    assert_eq!(
+        sound.stop_playback(playback),
+        Err(crate::core::framework::sound::SoundError::UnknownPlayback { playback })
+    );
+
+    fs::remove_dir_all(project_root).ok();
+}
+
+#[test]
+fn sound_manager_looped_playback_wraps_across_clip_end() {
+    let (runtime, project_root) =
+        runtime_with_sound_project("sound-manager-looped-playback", &[16_384, -16_384]);
+    let sound = resolve_sound_manager(&runtime.handle()).unwrap();
+    let clip = sound.load_clip("res://audio/ping.wav").unwrap();
+    sound
+        .play_clip(
+            clip,
+            SoundPlaybackSettings {
+                looped: true,
+                ..SoundPlaybackSettings::default()
+            },
+        )
+        .unwrap();
+
+    let mix = sound.render_mix(5).unwrap();
+    assert_samples_close(
+        &mix.samples,
+        &[0.5, 0.5, -0.5, -0.5, 0.5, 0.5, -0.5, -0.5, 0.5, 0.5],
+    );
+
+    fs::remove_dir_all(project_root).ok();
+}
+
+fn runtime_with_sound_project(label: &str, samples: &[i16]) -> (CoreRuntime, PathBuf) {
+    let project_root = unique_temp_project_root(label);
+    write_manifest(&project_root);
+    write_pcm16_wav(
+        project_root.join("assets/audio/ping.wav"),
+        48_000,
+        1,
+        samples,
+    );
+
+    let runtime = CoreRuntime::new();
+    runtime
+        .register_module(crate::asset::module_descriptor())
+        .unwrap();
+    runtime.register_module(super::module_descriptor()).unwrap();
+    runtime
+        .activate_module(crate::asset::ASSET_MODULE_NAME)
+        .unwrap();
+    runtime.activate_module(super::SOUND_MODULE_NAME).unwrap();
+
+    let asset_manager = resolve_asset_manager(&runtime.handle()).unwrap();
+    asset_manager
+        .open_project(project_root.to_str().unwrap())
+        .unwrap();
+
+    (runtime, project_root)
+}
+
 fn unique_temp_project_root(label: &str) -> PathBuf {
     let nanos = SystemTime::now()
         .duration_since(UNIX_EPOCH)

@@ -1,31 +1,31 @@
-mod build_workbench_document_tab_pointer_layout;
+mod build_host_document_tab_pointer_layout;
 mod constants;
 mod helper;
+mod host_document_tab_pointer_bridge;
+mod host_document_tab_pointer_bridge_activate;
+mod host_document_tab_pointer_bridge_close;
+mod host_document_tab_pointer_bridge_dispatch_event;
+mod host_document_tab_pointer_bridge_global_point;
+mod host_document_tab_pointer_bridge_new;
+mod host_document_tab_pointer_bridge_rebuild_surface;
+mod host_document_tab_pointer_bridge_sync;
+mod host_document_tab_pointer_bridge_update_measured_frame;
+mod host_document_tab_pointer_dispatch;
+mod host_document_tab_pointer_item;
+mod host_document_tab_pointer_layout;
+mod host_document_tab_pointer_route;
+mod host_document_tab_pointer_surface;
+mod host_document_tab_pointer_target;
 mod register_handled_pointer_node;
 mod route_conversion;
-mod workbench_document_tab_pointer_bridge;
-mod workbench_document_tab_pointer_bridge_activate;
-mod workbench_document_tab_pointer_bridge_close;
-mod workbench_document_tab_pointer_bridge_dispatch_event;
-mod workbench_document_tab_pointer_bridge_global_point;
-mod workbench_document_tab_pointer_bridge_new;
-mod workbench_document_tab_pointer_bridge_rebuild_surface;
-mod workbench_document_tab_pointer_bridge_sync;
-mod workbench_document_tab_pointer_bridge_update_measured_frame;
-mod workbench_document_tab_pointer_dispatch;
-mod workbench_document_tab_pointer_item;
-mod workbench_document_tab_pointer_layout;
-mod workbench_document_tab_pointer_route;
-mod workbench_document_tab_pointer_surface;
-mod workbench_document_tab_pointer_target;
 
-pub(crate) use build_workbench_document_tab_pointer_layout::build_workbench_document_tab_pointer_layout;
-pub(crate) use workbench_document_tab_pointer_bridge::WorkbenchDocumentTabPointerBridge;
-pub(crate) use workbench_document_tab_pointer_dispatch::WorkbenchDocumentTabPointerDispatch;
+pub(crate) use build_host_document_tab_pointer_layout::build_host_document_tab_pointer_layout;
+pub(crate) use host_document_tab_pointer_bridge::HostDocumentTabPointerBridge;
+pub(crate) use host_document_tab_pointer_dispatch::HostDocumentTabPointerDispatch;
 #[cfg(test)]
-pub(crate) use workbench_document_tab_pointer_item::WorkbenchDocumentTabPointerItem;
+pub(crate) use host_document_tab_pointer_item::HostDocumentTabPointerItem;
 #[cfg(test)]
-pub(crate) use workbench_document_tab_pointer_layout::WorkbenchDocumentTabPointerLayout;
-pub(crate) use workbench_document_tab_pointer_route::WorkbenchDocumentTabPointerRoute;
+pub(crate) use host_document_tab_pointer_layout::HostDocumentTabPointerLayout;
+pub(crate) use host_document_tab_pointer_route::HostDocumentTabPointerRoute;
 #[cfg(test)]
-pub(crate) use workbench_document_tab_pointer_surface::WorkbenchDocumentTabPointerSurface;
+pub(crate) use host_document_tab_pointer_surface::HostDocumentTabPointerSurface;

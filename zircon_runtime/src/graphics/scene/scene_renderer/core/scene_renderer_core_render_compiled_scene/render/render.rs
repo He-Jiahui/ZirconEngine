@@ -5,6 +5,8 @@ use crate::core::framework::render::{
     RenderVirtualGeometryNodeAndClusterCullDispatchSetupSnapshot,
     RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot,
     RenderVirtualGeometryNodeAndClusterCullInstanceSeed,
+    RenderVirtualGeometryNodeAndClusterCullInstanceWorkItem,
+    RenderVirtualGeometryNodeAndClusterCullLaunchWorklistSnapshot,
     RenderVirtualGeometryNodeAndClusterCullSource, RenderVirtualGeometrySelectedCluster,
     RenderVirtualGeometrySelectedClusterSource, RenderVirtualGeometryVisBuffer64Entry,
     RenderVirtualGeometryVisBuffer64Source,
@@ -16,7 +18,11 @@ use crate::graphics::scene::scene_renderer::post_process::SceneRuntimeFeatureFla
 use crate::graphics::scene::scene_renderer::{
     HybridGiGpuPendingReadback, VirtualGeometryGpuPendingReadback,
 };
-use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
+use crate::graphics::types::{
+    GraphicsError, ViewportRenderFrame, VirtualGeometryNodeAndClusterCullChildWorkItem,
+    VirtualGeometryNodeAndClusterCullClusterWorkItem,
+    VirtualGeometryNodeAndClusterCullTraversalRecord,
+};
 
 use super::super::super::scene_renderer_core::SceneRendererCore;
 use super::assign_execution_owned_indirect_args::assign_execution_owned_indirect_args;
@@ -34,6 +40,9 @@ impl SceneRendererCore {
         streamer: &ResourceStreamer,
         frame: &ViewportRenderFrame,
         virtual_geometry_cull_input: Option<&RenderVirtualGeometryCullInputSnapshot>,
+        previous_node_and_cluster_cull_global_state: Option<
+            &RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot,
+        >,
         target: &mut OffscreenTarget,
         runtime_features: SceneRuntimeFeatureFlags,
         history_textures: Option<&mut SceneFrameHistoryTextures>,
@@ -61,11 +70,30 @@ impl SceneRendererCore {
             u32,
             Option<RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot>,
             Option<RenderVirtualGeometryNodeAndClusterCullDispatchSetupSnapshot>,
+            Option<RenderVirtualGeometryNodeAndClusterCullLaunchWorklistSnapshot>,
             Vec<RenderVirtualGeometryNodeAndClusterCullInstanceSeed>,
             Option<std::sync::Arc<wgpu::Buffer>>, // node_and_cluster_cull_buffer
             Option<std::sync::Arc<wgpu::Buffer>>, // node_and_cluster_cull_dispatch_setup_buffer
+            Option<std::sync::Arc<wgpu::Buffer>>, // node_and_cluster_cull_launch_worklist_buffer
             u32,                                  // node_and_cluster_cull_instance_seed_count
             Option<std::sync::Arc<wgpu::Buffer>>, // node_and_cluster_cull_instance_seed_buffer
+            u32,                                  // node_and_cluster_cull_instance_work_item_count
+            Vec<RenderVirtualGeometryNodeAndClusterCullInstanceWorkItem>,
+            Option<std::sync::Arc<wgpu::Buffer>>, // node_and_cluster_cull_instance_work_item_buffer
+            u32,                                  // node_and_cluster_cull_cluster_work_item_count
+            Vec<VirtualGeometryNodeAndClusterCullClusterWorkItem>,
+            Option<std::sync::Arc<wgpu::Buffer>>, // node_and_cluster_cull_cluster_work_item_buffer
+            Vec<u32>,                             // node_and_cluster_cull_hierarchy_child_ids
+            Option<std::sync::Arc<wgpu::Buffer>>, // node_and_cluster_cull_hierarchy_child_id_buffer
+            u32,                                  // node_and_cluster_cull_child_work_item_count
+            Vec<VirtualGeometryNodeAndClusterCullChildWorkItem>,
+            Option<std::sync::Arc<wgpu::Buffer>>, // node_and_cluster_cull_child_work_item_buffer
+            u32,                                  // node_and_cluster_cull_traversal_record_count
+            Vec<VirtualGeometryNodeAndClusterCullTraversalRecord>,
+            Option<std::sync::Arc<wgpu::Buffer>>, // node_and_cluster_cull_traversal_record_buffer
+            u32,                                  // node_and_cluster_cull_page_request_count
+            Vec<u32>,                             // node_and_cluster_cull_page_request_ids
+            Option<std::sync::Arc<wgpu::Buffer>>, // node_and_cluster_cull_page_request_buffer
             Vec<RenderVirtualGeometryHardwareRasterizationRecord>,
             RenderVirtualGeometryHardwareRasterizationSource,
             u32,
@@ -124,9 +152,11 @@ impl SceneRendererCore {
         let indirect_stats = virtual_geometry_indirect_stats(
             device,
             &mut encoder,
+            &self.virtual_geometry,
             runtime_features.virtual_geometry_enabled,
             frame,
             virtual_geometry_cull_input,
+            previous_node_and_cluster_cull_global_state,
             resolved_virtual_geometry_cluster_selections.as_deref(),
             &execution_draws,
             compiled_scene_draws.indirect_args_buffer.clone(),
@@ -206,6 +236,7 @@ impl SceneRendererCore {
             indirect_stats.node_and_cluster_cull_pass.record_count,
             indirect_stats.node_and_cluster_cull_pass.global_state,
             indirect_stats.node_and_cluster_cull_pass.dispatch_setup,
+            indirect_stats.node_and_cluster_cull_pass.launch_worklist,
             indirect_stats.node_and_cluster_cull_pass.instance_seeds,
             indirect_stats.node_and_cluster_cull_pass.buffer,
             indirect_stats
@@ -213,10 +244,54 @@ impl SceneRendererCore {
                 .dispatch_setup_buffer,
             indirect_stats
                 .node_and_cluster_cull_pass
+                .launch_worklist_buffer,
+            indirect_stats
+                .node_and_cluster_cull_pass
                 .instance_seed_count,
             indirect_stats
                 .node_and_cluster_cull_pass
                 .instance_seed_buffer,
+            indirect_stats
+                .node_and_cluster_cull_pass
+                .instance_work_item_count,
+            indirect_stats
+                .node_and_cluster_cull_pass
+                .instance_work_items,
+            indirect_stats
+                .node_and_cluster_cull_pass
+                .instance_work_item_buffer,
+            indirect_stats
+                .node_and_cluster_cull_pass
+                .cluster_work_item_count,
+            indirect_stats.node_and_cluster_cull_pass.cluster_work_items,
+            indirect_stats
+                .node_and_cluster_cull_pass
+                .cluster_work_item_buffer,
+            indirect_stats
+                .node_and_cluster_cull_pass
+                .hierarchy_child_ids,
+            indirect_stats
+                .node_and_cluster_cull_pass
+                .hierarchy_child_id_buffer,
+            indirect_stats
+                .node_and_cluster_cull_pass
+                .child_work_item_count,
+            indirect_stats.node_and_cluster_cull_pass.child_work_items,
+            indirect_stats
+                .node_and_cluster_cull_pass
+                .child_work_item_buffer,
+            indirect_stats
+                .node_and_cluster_cull_pass
+                .traversal_record_count,
+            indirect_stats.node_and_cluster_cull_pass.traversal_records,
+            indirect_stats
+                .node_and_cluster_cull_pass
+                .traversal_record_buffer,
+            indirect_stats.node_and_cluster_cull_pass.page_request_count,
+            indirect_stats.node_and_cluster_cull_pass.page_request_ids,
+            indirect_stats
+                .node_and_cluster_cull_pass
+                .page_request_buffer,
             indirect_stats.hardware_rasterization_pass.records,
             indirect_stats.hardware_rasterization_pass.source,
             indirect_stats.hardware_rasterization_pass.record_count,

@@ -1,7 +1,7 @@
 use crate::core::editor_event::EditorEventRuntime;
 use crate::ui::slint_host::{
     event_bridge::SlintDispatchEffects,
-    tab_drag::{ResolvedWorkbenchTabDropRoute, ResolvedWorkbenchTabDropTarget},
+    tab_drag::{ResolvedHostTabDropRoute, ResolvedHostTabDropTarget},
 };
 use crate::ui::workbench::layout::{ActivityDrawerMode, LayoutCommand};
 use crate::ui::workbench::view::{ViewHost, ViewInstanceId};
@@ -12,10 +12,10 @@ use super::dispatch_layout_command;
 pub(crate) fn dispatch_tab_drop(
     runtime: &EditorEventRuntime,
     instance_id: &str,
-    route: &ResolvedWorkbenchTabDropRoute,
+    route: &ResolvedHostTabDropRoute,
 ) -> Result<SlintDispatchEffects, String> {
     match &route.target {
-        ResolvedWorkbenchTabDropTarget::Attach(drop) => {
+        ResolvedHostTabDropTarget::Attach(drop) => {
             let reopen_drawer_slot = match &drop.host {
                 ViewHost::Drawer(slot) => {
                     runtime
@@ -51,7 +51,7 @@ pub(crate) fn dispatch_tab_drop(
 
             Ok(effects)
         }
-        ResolvedWorkbenchTabDropTarget::Split {
+        ResolvedHostTabDropTarget::Split {
             workspace,
             path,
             axis,

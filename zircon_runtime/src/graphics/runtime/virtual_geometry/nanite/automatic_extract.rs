@@ -10,7 +10,8 @@ use crate::core::framework::render::{
     RenderVirtualGeometryCpuReferenceNodeVisit,
     RenderVirtualGeometryCpuReferencePageClusterMapEntry,
     RenderVirtualGeometryCpuReferenceSelectedCluster, RenderVirtualGeometryDebugState,
-    RenderVirtualGeometryExtract, RenderVirtualGeometryInstance, RenderVirtualGeometryPage,
+    RenderVirtualGeometryExtract, RenderVirtualGeometryHierarchyNode,
+    RenderVirtualGeometryInstance, RenderVirtualGeometryPage,
 };
 use crate::core::framework::scene::EntityId;
 use crate::core::math::{Transform, Vec3};
@@ -125,6 +126,8 @@ fn build_virtual_geometry_automatic_extract_with_config(
 ) -> Option<VirtualGeometryAutomaticExtractOutput> {
     let extract_debug = render_debug_state_for_cpu_reference_config(config);
     let mut clusters = Vec::new();
+    let mut hierarchy_nodes = Vec::new();
+    let mut hierarchy_child_ids = Vec::new();
     let mut pages = Vec::new();
     let mut instances = Vec::new();
     let mut cpu_reference_instances = Vec::new();
@@ -176,6 +179,7 @@ fn build_virtual_geometry_automatic_extract_with_config(
             page_budget.saturating_add(u32::try_from(per_instance_page_budget).unwrap_or(u32::MAX));
         let instance_page_offset = u32::try_from(pages.len()).unwrap_or(u32::MAX);
         let instance_cluster_offset = u32::try_from(clusters.len()).unwrap_or(u32::MAX);
+        let instance_index = u32::try_from(instances.len()).unwrap_or(u32::MAX);
 
         let local_pages = ordered_local_pages(&instance.asset);
         let mut page_remap = BTreeMap::new();
@@ -199,6 +203,14 @@ fn build_virtual_geometry_automatic_extract_with_config(
 
         let transform_matrix = instance.transform.matrix();
         let bounds_scale = instance.transform.scale.abs().max_element();
+        let (instance_hierarchy_nodes, instance_hierarchy_child_ids) = render_hierarchy_for_asset(
+            instance_index,
+            &instance.asset,
+            instance_cluster_offset,
+            u32::try_from(hierarchy_child_ids.len()).unwrap_or(u32::MAX),
+        );
+        hierarchy_nodes.extend(instance_hierarchy_nodes);
+        hierarchy_child_ids.extend(instance_hierarchy_child_ids);
         for cluster in &instance.asset.cluster_headers {
             let Some(&global_cluster_id) = cluster_remap.get(&cluster.cluster_id) else {
                 continue;
@@ -212,6 +224,7 @@ fn build_virtual_geometry_automatic_extract_with_config(
             clusters.push(RenderVirtualGeometryCluster {
                 entity: instance.entity,
                 cluster_id: global_cluster_id,
+                hierarchy_node_id: Some(cluster.hierarchy_node_id),
                 page_id,
                 lod_level: cluster.lod_level,
                 parent_cluster_id: cluster
@@ -251,6 +264,8 @@ fn build_virtual_geometry_automatic_extract_with_config(
             cluster_budget,
             page_budget,
             clusters,
+            hierarchy_nodes,
+            hierarchy_child_ids,
             pages,
             instances,
             debug: extract_debug,
@@ -258,6 +273,37 @@ fn build_virtual_geometry_automatic_extract_with_config(
         cpu_reference_instances,
         bvh_visualization_instances,
     })
+}
+
+fn render_hierarchy_for_asset(
+    instance_index: u32,
+    asset: &VirtualGeometryAsset,
+    cluster_offset: u32,
+    child_id_offset: u32,
+) -> (Vec<RenderVirtualGeometryHierarchyNode>, Vec<u32>) {
+    let mut hierarchy_child_ids = Vec::new();
+    let hierarchy_nodes = asset
+        .hierarchy_buffer
+        .iter()
+        .map(|node| {
+            let child_base = if node.child_node_ids.is_empty() {
+                0
+            } else {
+                child_id_offset
+                    .saturating_add(u32::try_from(hierarchy_child_ids.len()).unwrap_or(u32::MAX))
+            };
+            hierarchy_child_ids.extend(node.child_node_ids.iter().copied());
+            RenderVirtualGeometryHierarchyNode {
+                instance_index,
+                node_id: node.node_id,
+                child_base,
+                child_count: u32::try_from(node.child_node_ids.len()).unwrap_or(u32::MAX),
+                cluster_start: cluster_offset.saturating_add(node.cluster_start),
+                cluster_count: node.cluster_count,
+            }
+        })
+        .collect();
+    (hierarchy_nodes, hierarchy_child_ids)
 }
 
 fn cpu_reference_config_for_debug(

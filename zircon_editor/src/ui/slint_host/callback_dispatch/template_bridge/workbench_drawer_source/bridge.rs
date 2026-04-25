@@ -7,25 +7,25 @@ use crate::ui::template_runtime::EditorUiHostRuntime;
 use crate::ui::workbench::autolayout::WorkbenchChromeMetrics;
 use crate::ui::workbench::model::WorkbenchViewModel;
 
-use super::error::BuiltinWorkbenchDrawerSourceTemplateBridgeError;
+use super::error::BuiltinHostDrawerSourceTemplateBridgeError;
 use super::layout::{
-    build_builtin_workbench_drawer_source_surface, default_drawer_layout_inputs,
+    build_builtin_host_drawer_source_surface, default_drawer_layout_inputs,
     drawer_layout_inputs_from_workbench_model,
 };
-use super::source_frames::{source_frames_from_surface, BuiltinWorkbenchDrawerSourceFrames};
+use super::source_frames::{source_frames_from_surface, BuiltinHostDrawerSourceFrames};
 
-pub(crate) struct BuiltinWorkbenchDrawerSourceTemplateBridge {
+pub(crate) struct BuiltinHostDrawerSourceTemplateBridge {
     runtime: EditorUiHostRuntime,
     surface: UiSurface,
 }
 
-impl BuiltinWorkbenchDrawerSourceTemplateBridge {
+impl BuiltinHostDrawerSourceTemplateBridge {
     pub(crate) fn new(
         shell_size: UiSize,
-    ) -> Result<Self, BuiltinWorkbenchDrawerSourceTemplateBridgeError> {
+    ) -> Result<Self, BuiltinHostDrawerSourceTemplateBridgeError> {
         let mut runtime = EditorUiHostRuntime::default();
-        runtime.load_builtin_workbench_shell()?;
-        let surface = build_builtin_workbench_drawer_source_surface(
+        runtime.load_builtin_host_templates()?;
+        let surface = build_builtin_host_drawer_source_surface(
             &runtime,
             shell_size,
             default_drawer_layout_inputs(),
@@ -38,8 +38,8 @@ impl BuiltinWorkbenchDrawerSourceTemplateBridge {
     pub(crate) fn recompute_layout(
         &mut self,
         shell_size: UiSize,
-    ) -> Result<(), BuiltinWorkbenchDrawerSourceTemplateBridgeError> {
-        self.surface = build_builtin_workbench_drawer_source_surface(
+    ) -> Result<(), BuiltinHostDrawerSourceTemplateBridgeError> {
+        self.surface = build_builtin_host_drawer_source_surface(
             &self.runtime,
             shell_size,
             default_drawer_layout_inputs(),
@@ -53,8 +53,8 @@ impl BuiltinWorkbenchDrawerSourceTemplateBridge {
         shell_size: UiSize,
         model: &WorkbenchViewModel,
         metrics: &WorkbenchChromeMetrics,
-    ) -> Result<(), BuiltinWorkbenchDrawerSourceTemplateBridgeError> {
-        self.surface = build_builtin_workbench_drawer_source_surface(
+    ) -> Result<(), BuiltinHostDrawerSourceTemplateBridgeError> {
+        self.surface = build_builtin_host_drawer_source_surface(
             &self.runtime,
             shell_size,
             drawer_layout_inputs_from_workbench_model(model, metrics),
@@ -67,7 +67,7 @@ impl BuiltinWorkbenchDrawerSourceTemplateBridge {
         self.source_frames().control_frame(control_id)
     }
 
-    pub(crate) fn source_frames(&self) -> BuiltinWorkbenchDrawerSourceFrames {
+    pub(crate) fn source_frames(&self) -> BuiltinHostDrawerSourceFrames {
         source_frames_from_surface(&self.surface)
     }
 }

@@ -4,24 +4,121 @@ use crate::core::framework::render::{
     RenderVirtualGeometryExecutionSegment, RenderVirtualGeometryExtract,
     RenderVirtualGeometryHardwareRasterizationRecord,
     RenderVirtualGeometryHardwareRasterizationSource,
+    RenderVirtualGeometryNodeAndClusterCullChildWorkItem as RenderNodeAndClusterCullChildWorkItem,
+    RenderVirtualGeometryNodeAndClusterCullClusterWorkItem as RenderNodeAndClusterCullClusterWorkItem,
     RenderVirtualGeometryNodeAndClusterCullDispatchSetupSnapshot,
     RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot,
     RenderVirtualGeometryNodeAndClusterCullInstanceSeed,
-    RenderVirtualGeometryNodeAndClusterCullSource, RenderVirtualGeometrySelectedCluster,
-    RenderVirtualGeometrySelectedClusterSource, RenderVirtualGeometrySubmissionEntry,
-    RenderVirtualGeometrySubmissionRecord, RenderVirtualGeometryVisBuffer64Entry,
-    RenderVirtualGeometryVisBuffer64Source, RenderVirtualGeometryVisBufferMark,
+    RenderVirtualGeometryNodeAndClusterCullInstanceWorkItem,
+    RenderVirtualGeometryNodeAndClusterCullLaunchWorklistSnapshot,
+    RenderVirtualGeometryNodeAndClusterCullSource,
+    RenderVirtualGeometryNodeAndClusterCullTraversalChildSource as RenderNodeAndClusterCullTraversalChildSource,
+    RenderVirtualGeometryNodeAndClusterCullTraversalOp as RenderNodeAndClusterCullTraversalOp,
+    RenderVirtualGeometryNodeAndClusterCullTraversalRecord as RenderNodeAndClusterCullTraversalRecord,
+    RenderVirtualGeometrySelectedCluster, RenderVirtualGeometrySelectedClusterSource,
+    RenderVirtualGeometrySubmissionEntry, RenderVirtualGeometrySubmissionRecord,
+    RenderVirtualGeometryVisBuffer64Entry, RenderVirtualGeometryVisBuffer64Source,
+    RenderVirtualGeometryVisBufferMark,
 };
 use std::sync::Arc;
 
 use crate::graphics::scene::scene_renderer::{
     HybridGiGpuPendingReadback, VirtualGeometryGpuPendingReadback,
 };
-use crate::graphics::types::GraphicsError;
+use crate::graphics::types::{
+    GraphicsError, VirtualGeometryNodeAndClusterCullChildWorkItem,
+    VirtualGeometryNodeAndClusterCullClusterWorkItem,
+    VirtualGeometryNodeAndClusterCullTraversalChildSource,
+    VirtualGeometryNodeAndClusterCullTraversalOp, VirtualGeometryNodeAndClusterCullTraversalRecord,
+};
 use std::collections::{HashMap, HashSet};
 use wgpu::util::DeviceExt;
 
 use super::super::scene_renderer::SceneRenderer;
+
+impl From<VirtualGeometryNodeAndClusterCullClusterWorkItem>
+    for RenderNodeAndClusterCullClusterWorkItem
+{
+    fn from(work_item: VirtualGeometryNodeAndClusterCullClusterWorkItem) -> Self {
+        Self {
+            instance_index: work_item.instance_index,
+            entity: work_item.entity,
+            cluster_array_index: work_item.cluster_array_index,
+            hierarchy_node_id: work_item.hierarchy_node_id,
+            cluster_budget: work_item.cluster_budget,
+            page_budget: work_item.page_budget,
+            forced_mip: work_item.forced_mip,
+        }
+    }
+}
+
+impl From<VirtualGeometryNodeAndClusterCullChildWorkItem>
+    for RenderNodeAndClusterCullChildWorkItem
+{
+    fn from(work_item: VirtualGeometryNodeAndClusterCullChildWorkItem) -> Self {
+        Self {
+            instance_index: work_item.instance_index,
+            entity: work_item.entity,
+            parent_cluster_array_index: work_item.parent_cluster_array_index,
+            parent_hierarchy_node_id: work_item.parent_hierarchy_node_id,
+            child_node_id: work_item.child_node_id,
+            child_table_index: work_item.child_table_index,
+            traversal_index: work_item.traversal_index,
+            cluster_budget: work_item.cluster_budget,
+            page_budget: work_item.page_budget,
+            forced_mip: work_item.forced_mip,
+        }
+    }
+}
+
+impl From<VirtualGeometryNodeAndClusterCullTraversalOp> for RenderNodeAndClusterCullTraversalOp {
+    fn from(op: VirtualGeometryNodeAndClusterCullTraversalOp) -> Self {
+        match op {
+            VirtualGeometryNodeAndClusterCullTraversalOp::VisitNode => Self::VisitNode,
+            VirtualGeometryNodeAndClusterCullTraversalOp::StoreCluster => Self::StoreCluster,
+            VirtualGeometryNodeAndClusterCullTraversalOp::EnqueueChild => Self::EnqueueChild,
+        }
+    }
+}
+
+impl From<VirtualGeometryNodeAndClusterCullTraversalChildSource>
+    for RenderNodeAndClusterCullTraversalChildSource
+{
+    fn from(source: VirtualGeometryNodeAndClusterCullTraversalChildSource) -> Self {
+        match source {
+            VirtualGeometryNodeAndClusterCullTraversalChildSource::None => Self::None,
+            VirtualGeometryNodeAndClusterCullTraversalChildSource::CompatFixedFanout => {
+                Self::CompatFixedFanout
+            }
+            VirtualGeometryNodeAndClusterCullTraversalChildSource::AuthoredHierarchy => {
+                Self::AuthoredHierarchy
+            }
+        }
+    }
+}
+
+impl From<VirtualGeometryNodeAndClusterCullTraversalRecord>
+    for RenderNodeAndClusterCullTraversalRecord
+{
+    fn from(record: VirtualGeometryNodeAndClusterCullTraversalRecord) -> Self {
+        Self {
+            op: RenderNodeAndClusterCullTraversalOp::from(record.op),
+            child_source: RenderNodeAndClusterCullTraversalChildSource::from(record.child_source),
+            instance_index: record.instance_index,
+            entity: record.entity,
+            cluster_array_index: record.cluster_array_index,
+            hierarchy_node_id: record.hierarchy_node_id,
+            node_cluster_start: record.node_cluster_start,
+            node_cluster_count: record.node_cluster_count,
+            child_base: record.child_base,
+            child_count: record.child_count,
+            traversal_index: record.traversal_index,
+            cluster_budget: record.cluster_budget,
+            page_budget: record.page_budget,
+            forced_mip: record.forced_mip,
+        }
+    }
+}
 
 #[allow(clippy::too_many_arguments)]
 pub(in crate::graphics::scene::scene_renderer::core) fn store_last_runtime_outputs(
@@ -55,11 +152,34 @@ pub(in crate::graphics::scene::scene_renderer::core) fn store_last_runtime_outpu
     node_and_cluster_cull_dispatch_setup: Option<
         RenderVirtualGeometryNodeAndClusterCullDispatchSetupSnapshot,
     >,
+    node_and_cluster_cull_launch_worklist: Option<
+        RenderVirtualGeometryNodeAndClusterCullLaunchWorklistSnapshot,
+    >,
     node_and_cluster_cull_instance_seeds: Vec<RenderVirtualGeometryNodeAndClusterCullInstanceSeed>,
     node_and_cluster_cull_buffer: Option<Arc<wgpu::Buffer>>,
     node_and_cluster_cull_dispatch_setup_buffer: Option<Arc<wgpu::Buffer>>,
+    node_and_cluster_cull_launch_worklist_buffer: Option<Arc<wgpu::Buffer>>,
     node_and_cluster_cull_instance_seed_count: u32,
     node_and_cluster_cull_instance_seed_buffer: Option<Arc<wgpu::Buffer>>,
+    node_and_cluster_cull_instance_work_item_count: u32,
+    node_and_cluster_cull_instance_work_items: Vec<
+        RenderVirtualGeometryNodeAndClusterCullInstanceWorkItem,
+    >,
+    node_and_cluster_cull_instance_work_item_buffer: Option<Arc<wgpu::Buffer>>,
+    node_and_cluster_cull_cluster_work_item_count: u32,
+    node_and_cluster_cull_cluster_work_items: Vec<VirtualGeometryNodeAndClusterCullClusterWorkItem>,
+    node_and_cluster_cull_cluster_work_item_buffer: Option<Arc<wgpu::Buffer>>,
+    node_and_cluster_cull_hierarchy_child_ids: Vec<u32>,
+    node_and_cluster_cull_hierarchy_child_id_buffer: Option<Arc<wgpu::Buffer>>,
+    node_and_cluster_cull_child_work_item_count: u32,
+    node_and_cluster_cull_child_work_items: Vec<VirtualGeometryNodeAndClusterCullChildWorkItem>,
+    node_and_cluster_cull_child_work_item_buffer: Option<Arc<wgpu::Buffer>>,
+    node_and_cluster_cull_traversal_record_count: u32,
+    node_and_cluster_cull_traversal_records: Vec<VirtualGeometryNodeAndClusterCullTraversalRecord>,
+    node_and_cluster_cull_traversal_record_buffer: Option<Arc<wgpu::Buffer>>,
+    node_and_cluster_cull_page_request_count: u32,
+    node_and_cluster_cull_page_request_ids: Vec<u32>,
+    node_and_cluster_cull_page_request_buffer: Option<Arc<wgpu::Buffer>>,
     hardware_rasterization_records: Vec<RenderVirtualGeometryHardwareRasterizationRecord>,
     hardware_rasterization_render_path_source: RenderVirtualGeometryHardwareRasterizationSource,
     hardware_rasterization_record_count: u32,
@@ -158,10 +278,40 @@ pub(in crate::graphics::scene::scene_renderer::core) fn store_last_runtime_outpu
         snapshot.node_and_cluster_cull_record_count = node_and_cluster_cull_record_count;
         snapshot.node_and_cluster_cull_instance_seeds =
             node_and_cluster_cull_instance_seeds.clone();
+        snapshot.node_and_cluster_cull_instance_work_items =
+            node_and_cluster_cull_instance_work_items.clone();
+        snapshot.node_and_cluster_cull_cluster_work_items =
+            node_and_cluster_cull_cluster_work_items
+                .iter()
+                .copied()
+                .map(RenderNodeAndClusterCullClusterWorkItem::from)
+                .collect();
+        snapshot.node_and_cluster_cull_child_work_items = node_and_cluster_cull_child_work_items
+            .iter()
+            .copied()
+            .map(RenderNodeAndClusterCullChildWorkItem::from)
+            .collect();
+        snapshot.node_and_cluster_cull_traversal_records = node_and_cluster_cull_traversal_records
+            .iter()
+            .copied()
+            .map(RenderNodeAndClusterCullTraversalRecord::from)
+            .collect();
+        snapshot.node_and_cluster_cull_hierarchy_child_ids =
+            node_and_cluster_cull_hierarchy_child_ids.clone();
+        snapshot.node_and_cluster_cull_page_request_ids =
+            node_and_cluster_cull_page_request_ids.clone();
         snapshot.node_and_cluster_cull_dispatch_setup = node_and_cluster_cull_dispatch_setup;
+        snapshot.node_and_cluster_cull_launch_worklist =
+            node_and_cluster_cull_launch_worklist.clone();
         snapshot.node_and_cluster_cull_global_state = node_and_cluster_cull_global_state.clone();
         if let Some(global_state) = snapshot.node_and_cluster_cull_global_state.as_mut() {
             global_state.cull_input.cluster_selection_input_source = cluster_selection_input_source;
+        }
+        if let Some(launch_worklist) = snapshot.node_and_cluster_cull_launch_worklist.as_mut() {
+            launch_worklist
+                .global_state
+                .cull_input
+                .cluster_selection_input_source = cluster_selection_input_source;
         }
         snapshot.hardware_rasterization_records = hardware_rasterization_records.clone();
         snapshot.hardware_rasterization_source = hardware_rasterization_render_path_source;
@@ -305,13 +455,106 @@ pub(in crate::graphics::scene::scene_renderer::core) fn store_last_runtime_outpu
     renderer.last_virtual_geometry_node_and_cluster_cull_source = node_and_cluster_cull_source;
     renderer.last_virtual_geometry_node_and_cluster_cull_record_count =
         node_and_cluster_cull_record_count;
+    renderer.last_virtual_geometry_node_and_cluster_cull_global_state =
+        node_and_cluster_cull_global_state;
+    renderer.last_virtual_geometry_node_and_cluster_cull_dispatch_group_count =
+        node_and_cluster_cull_dispatch_setup
+            .map(|dispatch_setup| dispatch_setup.dispatch_group_count)
+            .unwrap_or([0, 0, 0]);
     renderer.last_virtual_geometry_node_and_cluster_cull_buffer = node_and_cluster_cull_buffer;
     renderer.last_virtual_geometry_node_and_cluster_cull_dispatch_setup_buffer =
         node_and_cluster_cull_dispatch_setup_buffer;
+    renderer.last_virtual_geometry_node_and_cluster_cull_launch_worklist_buffer =
+        node_and_cluster_cull_launch_worklist_buffer.or_else(|| {
+            node_and_cluster_cull_launch_worklist
+                .as_ref()
+                .and_then(|launch_worklist| {
+                    create_node_and_cluster_cull_launch_worklist_buffer(
+                        &renderer.backend.device,
+                        launch_worklist,
+                    )
+                })
+        });
     renderer.last_virtual_geometry_node_and_cluster_cull_instance_seed_count =
         node_and_cluster_cull_instance_seed_count;
     renderer.last_virtual_geometry_node_and_cluster_cull_instance_seed_buffer =
         node_and_cluster_cull_instance_seed_buffer;
+    renderer.last_virtual_geometry_node_and_cluster_cull_instance_work_item_count =
+        if node_and_cluster_cull_instance_work_item_buffer.is_some() {
+            node_and_cluster_cull_instance_work_item_count
+        } else {
+            u32::try_from(node_and_cluster_cull_instance_work_items.len()).unwrap_or(u32::MAX)
+        };
+    renderer.last_virtual_geometry_node_and_cluster_cull_instance_work_item_buffer =
+        node_and_cluster_cull_instance_work_item_buffer.or_else(|| {
+            create_node_and_cluster_cull_instance_work_item_buffer(
+                &renderer.backend.device,
+                &node_and_cluster_cull_instance_work_items,
+            )
+        });
+    renderer.last_virtual_geometry_node_and_cluster_cull_cluster_work_item_count =
+        if node_and_cluster_cull_cluster_work_item_buffer.is_some() {
+            node_and_cluster_cull_cluster_work_item_count
+        } else {
+            u32::try_from(node_and_cluster_cull_cluster_work_items.len()).unwrap_or(u32::MAX)
+        };
+    renderer.last_virtual_geometry_node_and_cluster_cull_cluster_work_item_buffer =
+        node_and_cluster_cull_cluster_work_item_buffer.or_else(|| {
+            create_node_and_cluster_cull_cluster_work_item_buffer(
+                &renderer.backend.device,
+                &node_and_cluster_cull_cluster_work_items,
+            )
+        });
+    renderer.last_virtual_geometry_node_and_cluster_cull_hierarchy_child_id_count =
+        u32::try_from(node_and_cluster_cull_hierarchy_child_ids.len()).unwrap_or(u32::MAX);
+    renderer.last_virtual_geometry_node_and_cluster_cull_hierarchy_child_id_buffer =
+        node_and_cluster_cull_hierarchy_child_id_buffer.or_else(|| {
+            create_node_and_cluster_cull_hierarchy_child_id_buffer(
+                &renderer.backend.device,
+                &node_and_cluster_cull_hierarchy_child_ids,
+            )
+        });
+    renderer.last_virtual_geometry_node_and_cluster_cull_child_work_item_count =
+        if node_and_cluster_cull_child_work_item_buffer.is_some() {
+            node_and_cluster_cull_child_work_item_count
+        } else {
+            u32::try_from(node_and_cluster_cull_child_work_items.len()).unwrap_or(u32::MAX)
+        };
+    renderer.last_virtual_geometry_node_and_cluster_cull_child_work_item_buffer =
+        node_and_cluster_cull_child_work_item_buffer.or_else(|| {
+            create_node_and_cluster_cull_child_work_item_buffer(
+                &renderer.backend.device,
+                &node_and_cluster_cull_child_work_items,
+            )
+        });
+    renderer.last_virtual_geometry_node_and_cluster_cull_traversal_record_count =
+        if node_and_cluster_cull_traversal_record_buffer.is_some() {
+            node_and_cluster_cull_traversal_record_count
+        } else {
+            u32::try_from(node_and_cluster_cull_traversal_records.len()).unwrap_or(u32::MAX)
+        };
+    renderer.last_virtual_geometry_node_and_cluster_cull_traversal_record_buffer =
+        node_and_cluster_cull_traversal_record_buffer.or_else(|| {
+            create_node_and_cluster_cull_traversal_record_buffer(
+                &renderer.backend.device,
+                &node_and_cluster_cull_traversal_records,
+            )
+        });
+    renderer.last_virtual_geometry_node_and_cluster_cull_page_request_count =
+        if node_and_cluster_cull_page_request_buffer.is_some() {
+            node_and_cluster_cull_page_request_count
+        } else {
+            u32::try_from(node_and_cluster_cull_page_request_ids.len()).unwrap_or(u32::MAX)
+        };
+    renderer.last_virtual_geometry_node_and_cluster_cull_page_request_ids =
+        node_and_cluster_cull_page_request_ids.clone();
+    renderer.last_virtual_geometry_node_and_cluster_cull_page_request_buffer =
+        node_and_cluster_cull_page_request_buffer.or_else(|| {
+            create_node_and_cluster_cull_page_request_buffer(
+                &renderer.backend.device,
+                &node_and_cluster_cull_page_request_ids,
+            )
+        });
     renderer.last_virtual_geometry_selected_cluster_source = selected_cluster_render_path_source;
     renderer.last_virtual_geometry_selected_cluster_buffer = executed_selected_cluster_buffer
         .or_else(|| {
@@ -405,6 +648,138 @@ fn create_cull_input_buffer(
         &wgpu::util::BufferInitDescriptor {
             label: Some("zircon-vg-cull-input-buffer"),
             contents: bytemuck::cast_slice(&packed_words),
+            usage: wgpu::BufferUsages::COPY_SRC | wgpu::BufferUsages::STORAGE,
+        },
+    )))
+}
+
+fn create_node_and_cluster_cull_launch_worklist_buffer(
+    device: &wgpu::Device,
+    launch_worklist: &RenderVirtualGeometryNodeAndClusterCullLaunchWorklistSnapshot,
+) -> Option<Arc<wgpu::Buffer>> {
+    let packed_words = launch_worklist.packed_words();
+    Some(Arc::new(device.create_buffer_init(
+        &wgpu::util::BufferInitDescriptor {
+            label: Some("zircon-vg-node-and-cluster-cull-launch-worklist-buffer"),
+            contents: bytemuck::cast_slice(&packed_words),
+            usage: wgpu::BufferUsages::COPY_SRC | wgpu::BufferUsages::STORAGE,
+        },
+    )))
+}
+
+fn create_node_and_cluster_cull_instance_work_item_buffer(
+    device: &wgpu::Device,
+    instance_work_items: &[RenderVirtualGeometryNodeAndClusterCullInstanceWorkItem],
+) -> Option<Arc<wgpu::Buffer>> {
+    if instance_work_items.is_empty() {
+        return None;
+    }
+
+    let packed_words = instance_work_items
+        .iter()
+        .flat_map(RenderVirtualGeometryNodeAndClusterCullInstanceWorkItem::packed_words)
+        .collect::<Vec<_>>();
+    Some(Arc::new(device.create_buffer_init(
+        &wgpu::util::BufferInitDescriptor {
+            label: Some("zircon-vg-node-and-cluster-cull-instance-work-item-buffer"),
+            contents: bytemuck::cast_slice(&packed_words),
+            usage: wgpu::BufferUsages::COPY_SRC | wgpu::BufferUsages::STORAGE,
+        },
+    )))
+}
+
+fn create_node_and_cluster_cull_cluster_work_item_buffer(
+    device: &wgpu::Device,
+    cluster_work_items: &[VirtualGeometryNodeAndClusterCullClusterWorkItem],
+) -> Option<Arc<wgpu::Buffer>> {
+    if cluster_work_items.is_empty() {
+        return None;
+    }
+
+    let packed_words = cluster_work_items
+        .iter()
+        .flat_map(VirtualGeometryNodeAndClusterCullClusterWorkItem::packed_words)
+        .collect::<Vec<_>>();
+    Some(Arc::new(device.create_buffer_init(
+        &wgpu::util::BufferInitDescriptor {
+            label: Some("zircon-vg-node-and-cluster-cull-cluster-work-item-buffer"),
+            contents: bytemuck::cast_slice(&packed_words),
+            usage: wgpu::BufferUsages::COPY_SRC | wgpu::BufferUsages::STORAGE,
+        },
+    )))
+}
+
+fn create_node_and_cluster_cull_hierarchy_child_id_buffer(
+    device: &wgpu::Device,
+    hierarchy_child_ids: &[u32],
+) -> Option<Arc<wgpu::Buffer>> {
+    if hierarchy_child_ids.is_empty() {
+        return None;
+    }
+
+    Some(Arc::new(device.create_buffer_init(
+        &wgpu::util::BufferInitDescriptor {
+            label: Some("zircon-vg-node-and-cluster-cull-hierarchy-child-ids"),
+            contents: bytemuck::cast_slice(hierarchy_child_ids),
+            usage: wgpu::BufferUsages::COPY_SRC | wgpu::BufferUsages::STORAGE,
+        },
+    )))
+}
+
+fn create_node_and_cluster_cull_child_work_item_buffer(
+    device: &wgpu::Device,
+    child_work_items: &[VirtualGeometryNodeAndClusterCullChildWorkItem],
+) -> Option<Arc<wgpu::Buffer>> {
+    if child_work_items.is_empty() {
+        return None;
+    }
+
+    let packed_words = child_work_items
+        .iter()
+        .flat_map(VirtualGeometryNodeAndClusterCullChildWorkItem::packed_words)
+        .collect::<Vec<_>>();
+    Some(Arc::new(device.create_buffer_init(
+        &wgpu::util::BufferInitDescriptor {
+            label: Some("zircon-vg-node-and-cluster-cull-child-work-item-buffer"),
+            contents: bytemuck::cast_slice(&packed_words),
+            usage: wgpu::BufferUsages::COPY_SRC | wgpu::BufferUsages::STORAGE,
+        },
+    )))
+}
+
+fn create_node_and_cluster_cull_traversal_record_buffer(
+    device: &wgpu::Device,
+    traversal_records: &[VirtualGeometryNodeAndClusterCullTraversalRecord],
+) -> Option<Arc<wgpu::Buffer>> {
+    if traversal_records.is_empty() {
+        return None;
+    }
+
+    let packed_words = traversal_records
+        .iter()
+        .flat_map(VirtualGeometryNodeAndClusterCullTraversalRecord::packed_words)
+        .collect::<Vec<_>>();
+    Some(Arc::new(device.create_buffer_init(
+        &wgpu::util::BufferInitDescriptor {
+            label: Some("zircon-vg-node-and-cluster-cull-traversal-record-buffer"),
+            contents: bytemuck::cast_slice(&packed_words),
+            usage: wgpu::BufferUsages::COPY_SRC | wgpu::BufferUsages::STORAGE,
+        },
+    )))
+}
+
+fn create_node_and_cluster_cull_page_request_buffer(
+    device: &wgpu::Device,
+    page_request_ids: &[u32],
+) -> Option<Arc<wgpu::Buffer>> {
+    if page_request_ids.is_empty() {
+        return None;
+    }
+
+    Some(Arc::new(device.create_buffer_init(
+        &wgpu::util::BufferInitDescriptor {
+            label: Some("zircon-vg-node-and-cluster-cull-page-request-buffer"),
+            contents: bytemuck::cast_slice(page_request_ids),
             usage: wgpu::BufferUsages::COPY_SRC | wgpu::BufferUsages::STORAGE,
         },
     )))
@@ -717,6 +1092,8 @@ mod tests {
                 cluster(entity, 20, 200, 0, Vec3::ZERO, 9.0),
                 cluster(entity, 30, 300, 0, Vec3::new(0.1, 0.0, 0.0), 8.0),
             ],
+            hierarchy_nodes: Vec::new(),
+            hierarchy_child_ids: Vec::new(),
             pages: vec![page(200, false), page(300, true)],
             instances: vec![RenderVirtualGeometryInstance {
                 entity,
@@ -803,6 +1180,8 @@ mod tests {
                 cluster(entity, 20, 200, 0, Vec3::ZERO, 9.0),
                 cluster(entity, 30, 300, 0, Vec3::new(0.1, 0.0, 0.0), 8.0),
             ],
+            hierarchy_nodes: Vec::new(),
+            hierarchy_child_ids: Vec::new(),
             pages: vec![page(200, true), page(300, true)],
             instances: vec![RenderVirtualGeometryInstance {
                 entity,
@@ -947,6 +1326,7 @@ mod tests {
         RenderVirtualGeometryCluster {
             entity,
             cluster_id,
+            hierarchy_node_id: None,
             page_id,
             lod_level,
             parent_cluster_id: None,

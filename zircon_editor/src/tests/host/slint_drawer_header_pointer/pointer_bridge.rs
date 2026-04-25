@@ -1,5 +1,5 @@
 use crate::ui::slint_host::drawer_header_pointer::{
-    WorkbenchDrawerHeaderPointerBridge, WorkbenchDrawerHeaderPointerRoute,
+    HostDrawerHeaderPointerBridge, HostDrawerHeaderPointerRoute,
 };
 use zircon_runtime::ui::layout::UiPoint;
 
@@ -7,7 +7,7 @@ use super::support::sample_drawer_header_layout;
 
 #[test]
 fn shared_drawer_header_pointer_bridge_routes_group_tabs_from_shared_hit_test() {
-    let mut bridge = WorkbenchDrawerHeaderPointerBridge::new();
+    let mut bridge = HostDrawerHeaderPointerBridge::new();
     bridge.sync(sample_drawer_header_layout());
 
     let route = bridge
@@ -15,7 +15,7 @@ fn shared_drawer_header_pointer_bridge_routes_group_tabs_from_shared_hit_test() 
         .unwrap();
     assert_eq!(
         route.route,
-        Some(WorkbenchDrawerHeaderPointerRoute::Tab {
+        Some(HostDrawerHeaderPointerRoute::Tab {
             surface_key: "left".to_string(),
             item_index: 1,
             slot: "left_bottom".to_string(),

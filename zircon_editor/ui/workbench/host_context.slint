@@ -1,6 +1,6 @@
 import { HostDragStateData, HostMenuStateData, HostResizeStateData } from "host_interaction.slint";
 
-export global WorkbenchHostContext {
+export global UiHostContext {
     in-out property <HostMenuStateData> menu_state: {
         open_menu_index: -1,
         hovered_menu_index: -1,
@@ -32,6 +32,6 @@ export global WorkbenchHostContext {
     callback document_tab_pointer_clicked(surface_key: string, tab_index: int, tab_x: float, tab_width: float, point_x: float, point_y: float);
     callback document_tab_close_pointer_clicked(surface_key: string, tab_index: int, tab_x: float, tab_width: float, point_x: float, point_y: float);
     callback floating_window_header_pointer_clicked(x: float, y: float);
-    callback workbench_drag_pointer_event(kind: int, x: float, y: float);
-    callback workbench_resize_pointer_event(kind: int, x: float, y: float);
+    callback host_drag_pointer_event(kind: int, x: float, y: float);
+    callback host_resize_pointer_event(kind: int, x: float, y: float);
 }

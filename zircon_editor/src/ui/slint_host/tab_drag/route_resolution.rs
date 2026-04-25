@@ -1,5 +1,5 @@
-use crate::ui::slint_host::callback_dispatch::BuiltinWorkbenchRootShellFrames;
-use crate::ui::slint_host::shell_pointer::WorkbenchShellPointerRoute;
+use crate::ui::slint_host::callback_dispatch::BuiltinHostRootShellFrames;
+use crate::ui::slint_host::shell_pointer::HostShellPointerRoute;
 use crate::ui::workbench::autolayout::{WorkbenchChromeMetrics, WorkbenchShellGeometry};
 use crate::ui::workbench::layout::{
     DockEdge, MainPageId, SplitAxis, SplitPlacement, WorkbenchLayout, WorkspaceTarget,
@@ -10,26 +10,24 @@ use crate::ui::workbench::view::ViewHost;
 use super::drop_resolution::resolve_tab_drop_with_root_frames;
 use super::group::{
     document_edge_from_group_key, floating_window_edge_from_group_key,
-    floating_window_from_group_key, WorkbenchDragTargetGroup,
+    floating_window_from_group_key, HostDragTargetGroup,
 };
 use super::host_resolution::{active_floating_window_path, preferred_document_page};
-use super::resolved_drop::{
-    ResolvedTabDrop, ResolvedWorkbenchTabDropRoute, ResolvedWorkbenchTabDropTarget,
-};
+use super::resolved_drop::{ResolvedHostTabDropRoute, ResolvedHostTabDropTarget, ResolvedTabDrop};
 
 #[cfg(test)]
-pub(crate) fn resolve_workbench_tab_drop_route(
+pub(crate) fn resolve_host_tab_drop_route(
     layout: &WorkbenchLayout,
     model: &WorkbenchViewModel,
     geometry: &WorkbenchShellGeometry,
     metrics: &WorkbenchChromeMetrics,
     instance_id: &str,
-    pointer_route: Option<WorkbenchShellPointerRoute>,
+    pointer_route: Option<HostShellPointerRoute>,
     fallback_target_group: &str,
     pointer_x: f32,
     pointer_y: f32,
-) -> Option<ResolvedWorkbenchTabDropRoute> {
-    resolve_workbench_tab_drop_route_with_root_frames(
+) -> Option<ResolvedHostTabDropRoute> {
+    resolve_host_tab_drop_route_with_root_frames(
         layout,
         model,
         geometry,
@@ -43,30 +41,30 @@ pub(crate) fn resolve_workbench_tab_drop_route(
     )
 }
 
-pub(crate) fn resolve_workbench_tab_drop_route_with_root_frames(
+pub(crate) fn resolve_host_tab_drop_route_with_root_frames(
     layout: &WorkbenchLayout,
     model: &WorkbenchViewModel,
     geometry: &WorkbenchShellGeometry,
     metrics: &WorkbenchChromeMetrics,
     instance_id: &str,
-    pointer_route: Option<WorkbenchShellPointerRoute>,
+    pointer_route: Option<HostShellPointerRoute>,
     fallback_target_group: &str,
     pointer_x: f32,
     pointer_y: f32,
-    shared_root_frames: Option<&BuiltinWorkbenchRootShellFrames>,
-) -> Option<ResolvedWorkbenchTabDropRoute> {
+    shared_root_frames: Option<&BuiltinHostRootShellFrames>,
+) -> Option<ResolvedHostTabDropRoute> {
     match pointer_route {
-        Some(WorkbenchShellPointerRoute::DocumentEdge(edge)) => {
+        Some(HostShellPointerRoute::DocumentEdge(edge)) => {
             document_edge_drop_route(layout, model, edge)
         }
-        Some(WorkbenchShellPointerRoute::FloatingWindow(window_id)) => {
+        Some(HostShellPointerRoute::FloatingWindow(window_id)) => {
             floating_window_attach_route(layout, &window_id)
         }
-        Some(WorkbenchShellPointerRoute::FloatingWindowEdge { window_id, edge }) => {
+        Some(HostShellPointerRoute::FloatingWindowEdge { window_id, edge }) => {
             floating_window_edge_drop_route(layout, &window_id, edge)
         }
-        Some(WorkbenchShellPointerRoute::DragTarget(target_group)) => {
-            if target_group == WorkbenchDragTargetGroup::Document {
+        Some(HostShellPointerRoute::DragTarget(target_group)) => {
+            if target_group == HostDragTargetGroup::Document {
                 if let Some(edge) = document_edge_from_group_key(fallback_target_group) {
                     return document_edge_drop_route(layout, model, edge);
                 }
@@ -82,13 +80,13 @@ pub(crate) fn resolve_workbench_tab_drop_route_with_root_frames(
                 pointer_y,
                 shared_root_frames,
             )?;
-            Some(ResolvedWorkbenchTabDropRoute {
+            Some(ResolvedHostTabDropRoute {
                 target_group,
                 target_label: target_group.label(),
-                target: ResolvedWorkbenchTabDropTarget::Attach(drop),
+                target: ResolvedHostTabDropTarget::Attach(drop),
             })
         }
-        Some(WorkbenchShellPointerRoute::Resize(_)) | None => resolve_fallback_drop_route(
+        Some(HostShellPointerRoute::Resize(_)) | None => resolve_fallback_drop_route(
             layout,
             model,
             geometry,
@@ -124,12 +122,12 @@ fn document_edge_drop_route(
     layout: &WorkbenchLayout,
     model: &WorkbenchViewModel,
     edge: DockEdge,
-) -> Option<ResolvedWorkbenchTabDropRoute> {
+) -> Option<ResolvedHostTabDropRoute> {
     let (page_id, path) = active_document_workspace_target(layout, model)?;
-    Some(ResolvedWorkbenchTabDropRoute {
-        target_group: WorkbenchDragTargetGroup::Document,
+    Some(ResolvedHostTabDropRoute {
+        target_group: HostDragTargetGroup::Document,
         target_label: document_edge_label(edge),
-        target: ResolvedWorkbenchTabDropTarget::Split {
+        target: ResolvedHostTabDropTarget::Split {
             workspace: WorkspaceTarget::MainPage(page_id),
             path,
             axis: edge_axis(edge),
@@ -150,12 +148,12 @@ fn document_edge_label(edge: DockEdge) -> &'static str {
 fn floating_window_attach_route(
     layout: &WorkbenchLayout,
     window_id: &MainPageId,
-) -> Option<ResolvedWorkbenchTabDropRoute> {
+) -> Option<ResolvedHostTabDropRoute> {
     let path = active_floating_window_path(layout, window_id)?;
-    Some(ResolvedWorkbenchTabDropRoute {
-        target_group: WorkbenchDragTargetGroup::Document,
+    Some(ResolvedHostTabDropRoute {
+        target_group: HostDragTargetGroup::Document,
         target_label: "floating window",
-        target: ResolvedWorkbenchTabDropTarget::Attach(ResolvedTabDrop {
+        target: ResolvedHostTabDropTarget::Attach(ResolvedTabDrop {
             host: ViewHost::FloatingWindow(window_id.clone(), path),
             anchor: None,
         }),
@@ -166,12 +164,12 @@ fn floating_window_edge_drop_route(
     layout: &WorkbenchLayout,
     window_id: &MainPageId,
     edge: DockEdge,
-) -> Option<ResolvedWorkbenchTabDropRoute> {
+) -> Option<ResolvedHostTabDropRoute> {
     let path = active_floating_window_path(layout, window_id)?;
-    Some(ResolvedWorkbenchTabDropRoute {
-        target_group: WorkbenchDragTargetGroup::Document,
+    Some(ResolvedHostTabDropRoute {
+        target_group: HostDragTargetGroup::Document,
         target_label: floating_window_edge_label(edge),
-        target: ResolvedWorkbenchTabDropTarget::Split {
+        target: ResolvedHostTabDropTarget::Split {
             workspace: WorkspaceTarget::FloatingWindow(window_id.clone()),
             path,
             axis: edge_axis(edge),
@@ -212,8 +210,8 @@ fn resolve_fallback_drop_route(
     fallback_target_group: &str,
     pointer_x: f32,
     pointer_y: f32,
-    shared_root_frames: Option<&BuiltinWorkbenchRootShellFrames>,
-) -> Option<ResolvedWorkbenchTabDropRoute> {
+    shared_root_frames: Option<&BuiltinHostRootShellFrames>,
+) -> Option<ResolvedHostTabDropRoute> {
     if let Some(edge) = document_edge_from_group_key(fallback_target_group) {
         return document_edge_drop_route(layout, model, edge);
     }
@@ -224,7 +222,7 @@ fn resolve_fallback_drop_route(
         return floating_window_attach_route(layout, &window_id);
     }
 
-    let target_group = WorkbenchDragTargetGroup::from_str(fallback_target_group)?;
+    let target_group = HostDragTargetGroup::from_str(fallback_target_group)?;
     let drop = resolve_tab_drop_with_root_frames(
         layout,
         model,
@@ -236,9 +234,9 @@ fn resolve_fallback_drop_route(
         pointer_y,
         shared_root_frames,
     )?;
-    Some(ResolvedWorkbenchTabDropRoute {
+    Some(ResolvedHostTabDropRoute {
         target_group,
         target_label: target_group.label(),
-        target: ResolvedWorkbenchTabDropTarget::Attach(drop),
+        target: ResolvedHostTabDropTarget::Attach(drop),
     })
 }

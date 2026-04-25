@@ -1,0 +1,38 @@
+stylesheets = []
+
+[asset]
+kind = "layout"
+id = "editor.host.pane.animation.graph.body"
+version = 1
+display_name = "animation graph pane body"
+
+[imports]
+widgets = []
+styles = []
+
+[tokens]
+
+[root]
+node_id = "root"
+kind = "component"
+component = "AnimationGraphPaneBody"
+
+[components.AnimationGraphPaneBody]
+style_scope = "closed"
+
+[components.AnimationGraphPaneBody.root]
+node_id = "animation_graph_pane_body_root"
+kind = "native"
+type = "VerticalBox"
+children = [
+  { node = { node_id = "animation_graph_header", kind = "native", type = "HorizontalBox", control_id = "AnimationEditorHeaderPanel", children = [
+    { node = { node_id = "animation_graph_header_mode", kind = "native", type = "Label", control_id = "AnimationEditorHeaderModeRow" } },
+    { node = { node_id = "animation_graph_header_path", kind = "native", type = "Label", control_id = "AnimationEditorHeaderPathRow" } },
+    { node = { node_id = "animation_graph_header_status", kind = "native", type = "Label", control_id = "AnimationEditorHeaderStatusRow" } },
+    { node = { node_id = "animation_graph_add_node_action", kind = "native", type = "UiHostIconButton", control_id = "AddNode", bindings = [{ id = "AnimationGraphPaneBody/AddNode", event = "Click", route = "AnimationCommand.AddGraphNode" }], props = { label = "Add Node" } } }
+  ] } },
+  { node = { node_id = "animation_graph_canvas_slot_node", kind = "slot", slot_name = "animation_graph_canvas_slot" } },
+]
+
+[components.AnimationGraphPaneBody.slots.animation_graph_canvas_slot]
+required = false

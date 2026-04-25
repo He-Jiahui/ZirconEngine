@@ -5,8 +5,8 @@ use crate::scene::viewport::{
     DisplayMode, GridMode, ProjectionMode, SceneViewportTool, TransformSpace, ViewOrientation,
 };
 use crate::ui::binding::{
-    AssetCommand, DockCommand, DraftCommand, EditorUiBinding, EditorUiBindingPayload,
-    EditorUiEventKind, ViewportCommand, WelcomeCommand,
+    AnimationCommand, AssetCommand, DockCommand, DraftCommand, EditorUiBinding,
+    EditorUiBindingPayload, EditorUiEventKind, SelectionCommand, ViewportCommand, WelcomeCommand,
 };
 use zircon_runtime::ui::binding::UiBindingValue;
 
@@ -505,6 +505,76 @@ pub(crate) fn builtin_template_bindings() -> BTreeMap<String, EditorUiBinding> {
                 "TriggerAction",
                 EditorUiEventKind::Click,
                 EditorUiBindingPayload::menu_action("OpenProject"),
+            ),
+        ),
+        (
+            "ConsolePaneBody/FocusConsole".to_string(),
+            EditorUiBinding::new(
+                "ConsolePaneBody",
+                "FocusConsole",
+                EditorUiEventKind::Click,
+                EditorUiBindingPayload::dock_command(DockCommand::FocusView {
+                    instance_id: "editor.console#1".to_string(),
+                }),
+            ),
+        ),
+        (
+            "InspectorPaneBody/ApplyDraft".to_string(),
+            EditorUiBinding::new(
+                "InspectorPaneBody",
+                "ApplyDraft",
+                EditorUiEventKind::Click,
+                EditorUiBindingPayload::draft_command(DraftCommand::SetInspectorField {
+                    subject_path: "entity://selected".to_string(),
+                    field_id: "name".to_string(),
+                    value: UiBindingValue::string(String::new()),
+                }),
+            ),
+        ),
+        (
+            "HierarchyPaneBody/SelectRoot".to_string(),
+            EditorUiBinding::new(
+                "HierarchyPaneBody",
+                "SelectRoot",
+                EditorUiEventKind::Click,
+                EditorUiBindingPayload::selection_command(SelectionCommand::SelectSceneNode {
+                    node_id: 0,
+                }),
+            ),
+        ),
+        (
+            "AnimationSequencePaneBody/ScrubTimeline".to_string(),
+            EditorUiBinding::new(
+                "AnimationSequencePaneBody",
+                "ScrubTimeline",
+                EditorUiEventKind::Click,
+                EditorUiBindingPayload::animation_command(AnimationCommand::ScrubTimeline {
+                    frame: 0,
+                }),
+            ),
+        ),
+        (
+            "AnimationGraphPaneBody/AddNode".to_string(),
+            EditorUiBinding::new(
+                "AnimationGraphPaneBody",
+                "AddNode",
+                EditorUiEventKind::Click,
+                EditorUiBindingPayload::animation_command(AnimationCommand::AddGraphNode {
+                    graph_path: "animation://selected/graph".to_string(),
+                    node_id: "new_state".to_string(),
+                    node_kind: "State".to_string(),
+                }),
+            ),
+        ),
+        (
+            "RuntimeDiagnosticsPaneBody/FocusDiagnostics".to_string(),
+            EditorUiBinding::new(
+                "RuntimeDiagnosticsPaneBody",
+                "FocusDiagnostics",
+                EditorUiEventKind::Click,
+                EditorUiBindingPayload::dock_command(DockCommand::FocusView {
+                    instance_id: "editor.runtime_diagnostics#1".to_string(),
+                }),
             ),
         ),
     ])

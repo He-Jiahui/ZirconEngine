@@ -8,7 +8,7 @@ use super::control_ids::{
 };
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
-pub(crate) struct BuiltinWorkbenchDrawerSourceFrames {
+pub(crate) struct BuiltinHostDrawerSourceFrames {
     pub left_drawer_shell_frame: Option<UiFrame>,
     pub left_drawer_header_frame: Option<UiFrame>,
     pub left_drawer_content_frame: Option<UiFrame>,
@@ -20,7 +20,7 @@ pub(crate) struct BuiltinWorkbenchDrawerSourceFrames {
     pub bottom_drawer_content_frame: Option<UiFrame>,
 }
 
-impl BuiltinWorkbenchDrawerSourceFrames {
+impl BuiltinHostDrawerSourceFrames {
     pub(crate) fn control_frame(&self, control_id: &str) -> Option<UiFrame> {
         match control_id {
             LEFT_DRAWER_SHELL_CONTROL_ID => self.left_drawer_shell_frame,
@@ -37,10 +37,8 @@ impl BuiltinWorkbenchDrawerSourceFrames {
     }
 }
 
-pub(super) fn source_frames_from_surface(
-    surface: &UiSurface,
-) -> BuiltinWorkbenchDrawerSourceFrames {
-    BuiltinWorkbenchDrawerSourceFrames {
+pub(super) fn source_frames_from_surface(surface: &UiSurface) -> BuiltinHostDrawerSourceFrames {
+    BuiltinHostDrawerSourceFrames {
         left_drawer_shell_frame: surface_control_frame(surface, LEFT_DRAWER_SHELL_CONTROL_ID),
         left_drawer_header_frame: surface_control_frame(surface, LEFT_DRAWER_HEADER_CONTROL_ID),
         left_drawer_content_frame: surface_control_frame(surface, LEFT_DRAWER_CONTENT_CONTROL_ID),

@@ -20,6 +20,7 @@ pub(crate) fn builtin_hybrid_layout() -> WorkbenchLayout {
             (ActivityDrawerSlot::BottomLeft, bottom_left_drawer()),
             (ActivityDrawerSlot::BottomRight, bottom_right_drawer()),
         ]),
+        activity_windows: Default::default(),
         floating_windows: Vec::new(),
         region_overrides: BTreeMap::new(),
         view_overrides: BTreeMap::new(),

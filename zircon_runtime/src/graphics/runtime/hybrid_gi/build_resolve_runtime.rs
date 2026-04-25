@@ -107,6 +107,15 @@ impl HybridGiRuntimeState {
         }
 
         HybridGiResolveRuntime {
+            probe_parent_probes: self
+                .probe_parent_probes
+                .iter()
+                .filter_map(|(&probe_id, &parent_probe_id)| {
+                    (tracked_probe_ids.contains(&probe_id)
+                        && tracked_probe_ids.contains(&parent_probe_id))
+                    .then_some((probe_id, parent_probe_id))
+                })
+                .collect(),
             probe_rt_lighting_rgb: self
                 .probe_rt_lighting_rgb
                 .iter()
@@ -247,7 +256,7 @@ impl HybridGiRuntimeState {
                 return Some((encoded, false, 1.0, 1.0, 0));
             }
 
-            if self.scheduled_trace_regions.is_empty() {
+            if !self.has_current_lineage_trace_support(probe_id) {
                 return self.scene_surface_cache_irradiance_fallback(probe_id).map(
                     |(encoded, scene_truth_quality, scene_truth_freshness)| {
                         (
@@ -340,7 +349,7 @@ impl HybridGiRuntimeState {
                 return Some((encoded, false, 1.0, 1.0, 0));
             }
 
-            if self.scheduled_trace_regions.is_empty() {
+            if !self.has_current_lineage_trace_support(probe_id) {
                 return self.scene_voxel_rt_lighting_fallback(probe_id).map(
                     |(
                         encoded,

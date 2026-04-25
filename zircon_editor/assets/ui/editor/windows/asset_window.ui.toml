@@ -1,0 +1,85 @@
+stylesheets = []
+
+[asset]
+kind = "layout"
+id = "editor.window.asset"
+version = 1
+display_name = "Asset Window"
+
+[imports]
+widgets = [
+    "res://ui/editor/host/activity_drawer_window.ui.toml#ActivityDrawerWindow",
+    "res://ui/editor/asset_browser.ui.toml",
+]
+styles = []
+
+[tokens]
+
+[root]
+node_id = "asset_window_root"
+kind = "reference"
+component_ref = "res://ui/editor/host/activity_drawer_window.ui.toml#ActivityDrawerWindow"
+control_id = "AssetWindowRoot"
+
+[[root.children]]
+mount = "left_top_activity"
+[root.children.node]
+node_id = "asset_window_tree_activity"
+kind = "native"
+type = "Container"
+control_id = "AssetWindowTreeActivity"
+children = []
+
+[[root.children]]
+mount = "left_bottom_activity"
+[root.children.node]
+node_id = "asset_window_collections_activity"
+kind = "native"
+type = "Container"
+control_id = "AssetWindowCollectionsActivity"
+children = []
+
+[[root.children]]
+mount = "right_top_activity"
+[root.children.node]
+node_id = "asset_window_details_activity"
+kind = "native"
+type = "Container"
+control_id = "AssetWindowDetailsActivity"
+children = []
+
+[[root.children]]
+mount = "right_bottom_activity"
+[root.children.node]
+node_id = "asset_window_preview_activity"
+kind = "native"
+type = "Container"
+control_id = "AssetWindowPreviewActivity"
+children = []
+
+[[root.children]]
+mount = "bottom_left_activity"
+[root.children.node]
+node_id = "asset_window_import_log_activity"
+kind = "native"
+type = "Container"
+control_id = "AssetWindowImportLogActivity"
+children = []
+
+[[root.children]]
+mount = "bottom_right_activity"
+[root.children.node]
+node_id = "asset_window_dependency_activity"
+kind = "native"
+type = "Container"
+control_id = "AssetWindowDependencyActivity"
+children = []
+
+[[root.children]]
+mount = "content"
+[root.children.node]
+node_id = "asset_window_browser_content"
+kind = "reference"
+component_ref = "res://ui/editor/asset_browser.ui.toml#AssetBrowserRoot"
+control_id = "AssetWindowBrowserContent"
+children = []

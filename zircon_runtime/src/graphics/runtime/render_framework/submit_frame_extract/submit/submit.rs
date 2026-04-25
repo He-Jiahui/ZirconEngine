@@ -56,6 +56,7 @@ pub(in crate::graphics::runtime::render_framework) fn submit_frame_extract_with_
         frame,
         gpu_completions.hybrid_gi_completion,
         gpu_completions.virtual_geometry_completion,
+        gpu_completions.node_and_cluster_cull_page_requests,
     );
     release_previous_history(&mut state.renderer, &record_update);
     update_stats(&mut state, &context, &record_update, frame_generation);

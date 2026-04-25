@@ -190,6 +190,16 @@ impl World {
                 true,
             );
             push(
+                "RigidBody.linear_velocity",
+                ScenePropertyValue::Vec3(rigid_body.linear_velocity.to_array()),
+                true,
+            );
+            push(
+                "RigidBody.angular_velocity",
+                ScenePropertyValue::Vec3(rigid_body.angular_velocity.to_array()),
+                true,
+            );
+            push(
                 "RigidBody.linear_damping",
                 ScenePropertyValue::Scalar(rigid_body.linear_damping),
                 true,

@@ -13,14 +13,14 @@ use zircon_runtime::ui::{
     tree::UiTreeNode,
 };
 
-use crate::ui::slint_host::callback_dispatch::BuiltinWorkbenchRootShellFrames;
+use crate::ui::slint_host::callback_dispatch::BuiltinHostRootShellFrames;
 use crate::ui::slint_host::floating_window_projection::FloatingWindowProjectionBundle;
 use crate::ui::slint_host::root_shell_projection::{
     resolve_root_bottom_region_frame, resolve_root_center_band_frame,
     resolve_root_document_region_frame, resolve_root_left_region_frame,
     resolve_root_right_region_frame, resolve_root_status_bar_frame,
 };
-use crate::ui::slint_host::tab_drag::WorkbenchDragTargetGroup;
+use crate::ui::slint_host::tab_drag::HostDragTargetGroup;
 use crate::ui::workbench::autolayout::ShellSizePx;
 use crate::ui::workbench::autolayout::WorkbenchShellGeometry;
 use crate::ui::workbench::layout::DockEdge;
@@ -36,7 +36,7 @@ use super::node_ids::{
     DRAG_POINTER_ROOT_NODE_ID, DRAG_TARGET_BOTTOM_NODE_ID, DRAG_TARGET_DOCUMENT_NODE_ID,
     DRAG_TARGET_LEFT_NODE_ID, DRAG_TARGET_RIGHT_NODE_ID,
 };
-use super::route::WorkbenchShellPointerRoute;
+use super::route::HostShellPointerRoute;
 
 const MIN_SIDE_DROP_EXTENT: f32 = 92.0;
 const MIN_BOTTOM_DROP_EXTENT: f32 = 92.0;
@@ -46,12 +46,12 @@ pub(super) fn build_drag_surface(
     geometry: &WorkbenchShellGeometry,
     drawers_visible: bool,
     floating_windows: &[FloatingWindowModel],
-    shared_root_frames: Option<&BuiltinWorkbenchRootShellFrames>,
+    shared_root_frames: Option<&BuiltinHostRootShellFrames>,
     floating_window_projection_bundle: Option<&FloatingWindowProjectionBundle>,
 ) -> (
     UiSurface,
     UiPointerDispatcher,
-    BTreeMap<UiNodeId, WorkbenchShellPointerRoute>,
+    BTreeMap<UiNodeId, HostShellPointerRoute>,
 ) {
     let mut surface = UiSurface::new(UiTreeId::new("zircon.editor.workbench.shell_pointer.drag"));
     surface.tree.insert_root(
@@ -237,11 +237,7 @@ pub(super) fn build_drag_surface(
         DRAG_TARGET_LEFT_NODE_ID,
         UiPointerEventKind::Move,
         move |context| {
-            side_target_effect(
-                WorkbenchDragTargetGroup::Left,
-                &left_frames,
-                context.route.point,
-            )
+            side_target_effect(HostDragTargetGroup::Left, &left_frames, context.route.point)
         },
     );
 
@@ -251,7 +247,7 @@ pub(super) fn build_drag_surface(
         UiPointerEventKind::Move,
         move |context| {
             side_target_effect(
-                WorkbenchDragTargetGroup::Right,
+                HostDragTargetGroup::Right,
                 &right_frames,
                 context.route.point,
             )
@@ -383,7 +379,7 @@ pub(super) fn build_drag_surface(
 
         drag_routes.insert(
             attach_id,
-            WorkbenchShellPointerRoute::FloatingWindow(window.window_id.clone()),
+            HostShellPointerRoute::FloatingWindow(window.window_id.clone()),
         );
         drag_dispatcher.register(attach_id, UiPointerEventKind::Move, |_context| {
             UiPointerDispatchEffect::handled()
@@ -397,7 +393,7 @@ pub(super) fn build_drag_surface(
         ] {
             drag_routes.insert(
                 node_id,
-                WorkbenchShellPointerRoute::FloatingWindowEdge {
+                HostShellPointerRoute::FloatingWindowEdge {
                     window_id: window.window_id.clone(),
                     edge,
                 },

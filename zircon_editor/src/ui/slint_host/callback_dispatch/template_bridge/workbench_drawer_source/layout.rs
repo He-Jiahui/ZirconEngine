@@ -5,7 +5,7 @@ use zircon_runtime::ui::{
     surface::UiSurface,
 };
 
-use crate::ui::slint_host::callback_dispatch::constants::BUILTIN_WORKBENCH_DRAWER_SOURCE_DOCUMENT_ID;
+use crate::ui::slint_host::callback_dispatch::constants::BUILTIN_HOST_DRAWER_SOURCE_DOCUMENT_ID;
 use crate::ui::template_runtime::EditorUiHostRuntime;
 use crate::ui::workbench::autolayout::WorkbenchChromeMetrics;
 use crate::ui::workbench::layout::{ActivityDrawerMode, ActivityDrawerSlot};
@@ -17,22 +17,22 @@ use super::control_ids::{
     BOTTOM_DRAWER_SHELL_CONTROL_ID, LEFT_DRAWER_PANEL_CONTROL_ID, LEFT_DRAWER_SHELL_CONTROL_ID,
     RIGHT_DRAWER_PANEL_CONTROL_ID, RIGHT_DRAWER_SHELL_CONTROL_ID,
 };
-use super::error::BuiltinWorkbenchDrawerSourceTemplateBridgeError;
+use super::error::BuiltinHostDrawerSourceTemplateBridgeError;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
-struct BuiltinWorkbenchDrawerRegionInput {
+struct BuiltinHostDrawerRegionInput {
     visible: bool,
     extent: f32,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
-pub(super) struct BuiltinWorkbenchDrawerLayoutInputs {
-    left: BuiltinWorkbenchDrawerRegionInput,
-    right: BuiltinWorkbenchDrawerRegionInput,
-    bottom: BuiltinWorkbenchDrawerRegionInput,
+pub(super) struct BuiltinHostDrawerLayoutInputs {
+    left: BuiltinHostDrawerRegionInput,
+    right: BuiltinHostDrawerRegionInput,
+    bottom: BuiltinHostDrawerRegionInput,
 }
 
-impl BuiltinWorkbenchDrawerLayoutInputs {
+impl BuiltinHostDrawerLayoutInputs {
     fn from_workbench_model(model: &WorkbenchViewModel, metrics: &WorkbenchChromeMetrics) -> Self {
         Self {
             left: drawer_region_input(
@@ -60,32 +60,32 @@ impl BuiltinWorkbenchDrawerLayoutInputs {
     }
 }
 
-pub(super) fn default_drawer_layout_inputs() -> BuiltinWorkbenchDrawerLayoutInputs {
-    BuiltinWorkbenchDrawerLayoutInputs::default()
+pub(super) fn default_drawer_layout_inputs() -> BuiltinHostDrawerLayoutInputs {
+    BuiltinHostDrawerLayoutInputs::default()
 }
 
 pub(super) fn drawer_layout_inputs_from_workbench_model(
     model: &WorkbenchViewModel,
     metrics: &WorkbenchChromeMetrics,
-) -> BuiltinWorkbenchDrawerLayoutInputs {
-    BuiltinWorkbenchDrawerLayoutInputs::from_workbench_model(model, metrics)
+) -> BuiltinHostDrawerLayoutInputs {
+    BuiltinHostDrawerLayoutInputs::from_workbench_model(model, metrics)
 }
 
-pub(super) fn build_builtin_workbench_drawer_source_surface(
+pub(super) fn build_builtin_host_drawer_source_surface(
     runtime: &EditorUiHostRuntime,
     shell_size: UiSize,
-    drawer_inputs: BuiltinWorkbenchDrawerLayoutInputs,
+    drawer_inputs: BuiltinHostDrawerLayoutInputs,
     metrics: WorkbenchChromeMetrics,
-) -> Result<UiSurface, BuiltinWorkbenchDrawerSourceTemplateBridgeError> {
-    let mut surface = runtime.build_shared_surface(BUILTIN_WORKBENCH_DRAWER_SOURCE_DOCUMENT_ID)?;
-    apply_builtin_workbench_drawer_source_layout(&mut surface, drawer_inputs, metrics);
+) -> Result<UiSurface, BuiltinHostDrawerSourceTemplateBridgeError> {
+    let mut surface = runtime.build_shared_surface(BUILTIN_HOST_DRAWER_SOURCE_DOCUMENT_ID)?;
+    apply_builtin_host_drawer_source_layout(&mut surface, drawer_inputs, metrics);
     surface.compute_layout(shell_size)?;
     Ok(surface)
 }
 
-fn apply_builtin_workbench_drawer_source_layout(
+fn apply_builtin_host_drawer_source_layout(
     surface: &mut UiSurface,
-    drawer_inputs: BuiltinWorkbenchDrawerLayoutInputs,
+    drawer_inputs: BuiltinHostDrawerLayoutInputs,
     metrics: WorkbenchChromeMetrics,
 ) {
     let rail_width = metrics.rail_width.max(0.0);
@@ -128,7 +128,7 @@ fn apply_builtin_workbench_drawer_source_layout(
     );
 }
 
-fn resolved_drawer_shell_extent(region: BuiltinWorkbenchDrawerRegionInput) -> f32 {
+fn resolved_drawer_shell_extent(region: BuiltinHostDrawerRegionInput) -> f32 {
     if region.visible {
         region.extent.max(0.0)
     } else {
@@ -136,7 +136,7 @@ fn resolved_drawer_shell_extent(region: BuiltinWorkbenchDrawerRegionInput) -> f3
     }
 }
 
-fn resolved_side_panel_extent(region: BuiltinWorkbenchDrawerRegionInput, rail_width: f32) -> f32 {
+fn resolved_side_panel_extent(region: BuiltinHostDrawerRegionInput, rail_width: f32) -> f32 {
     if region.visible {
         (region.extent - rail_width).max(0.0)
     } else {
@@ -144,10 +144,7 @@ fn resolved_side_panel_extent(region: BuiltinWorkbenchDrawerRegionInput, rail_wi
     }
 }
 
-fn resolved_bottom_panel_extent(
-    region: BuiltinWorkbenchDrawerRegionInput,
-    header_height: f32,
-) -> f32 {
+fn resolved_bottom_panel_extent(region: BuiltinHostDrawerRegionInput, header_height: f32) -> f32 {
     if region.visible {
         (region.extent - header_height).max(0.0)
     } else {
@@ -155,7 +152,7 @@ fn resolved_bottom_panel_extent(
     }
 }
 
-fn resolved_drawer_separator_extent(region: BuiltinWorkbenchDrawerRegionInput) -> f32 {
+fn resolved_drawer_separator_extent(region: BuiltinHostDrawerRegionInput) -> f32 {
     if region.visible {
         1.0
     } else {
@@ -167,7 +164,7 @@ fn drawer_region_input(
     drawers: &BTreeMap<ActivityDrawerSlot, ActivityDrawerSnapshot>,
     slots: &[ActivityDrawerSlot],
     collapsed_extent: f32,
-) -> BuiltinWorkbenchDrawerRegionInput {
+) -> BuiltinHostDrawerRegionInput {
     let mut visible = false;
     let mut extent = 0.0_f32;
 
@@ -189,7 +186,7 @@ fn drawer_region_input(
         extent = extent.max(next_extent);
     }
 
-    BuiltinWorkbenchDrawerRegionInput {
+    BuiltinHostDrawerRegionInput {
         visible,
         extent: if visible { extent.max(0.0) } else { 0.0 },
     }

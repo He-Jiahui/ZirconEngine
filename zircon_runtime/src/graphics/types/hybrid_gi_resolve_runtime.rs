@@ -2,6 +2,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(crate) struct HybridGiResolveRuntime {
+    pub(crate) probe_parent_probes: BTreeMap<u32, u32>,
     pub(crate) probe_rt_lighting_rgb: BTreeMap<u32, [u8; 3]>,
     pub(crate) probe_hierarchy_resolve_weight_q8: BTreeMap<u32, u16>,
     pub(crate) probe_hierarchy_irradiance_rgb_and_weight: BTreeMap<u32, [u8; 4]>,

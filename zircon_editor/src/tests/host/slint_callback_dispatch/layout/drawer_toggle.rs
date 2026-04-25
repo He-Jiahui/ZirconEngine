@@ -5,11 +5,11 @@ use crate::core::editor_event::{
 };
 
 #[test]
-fn builtin_workbench_activity_toggle_collapses_active_project_drawer_from_template_binding() {
+fn builtin_host_activity_toggle_collapses_active_project_drawer_from_template_binding() {
     let _guard = env_lock().lock().unwrap();
 
     let harness = EventRuntimeHarness::new("zircon_slint_template_bridge_activity_collapse");
-    let bridge = BuiltinWorkbenchTemplateBridge::new(UiSize::new(1280.0, 720.0)).unwrap();
+    let bridge = BuiltinHostWindowTemplateBridge::new(UiSize::new(1280.0, 720.0)).unwrap();
 
     let before = harness.runtime.current_layout();
     let drawer = before.drawers.get(&ActivityDrawerSlot::LeftTop).unwrap();
@@ -19,7 +19,7 @@ fn builtin_workbench_activity_toggle_collapses_active_project_drawer_from_templa
         Some("editor.project#1")
     );
 
-    let effects = dispatch_builtin_workbench_drawer_toggle(
+    let effects = dispatch_builtin_host_drawer_toggle(
         &harness.runtime,
         &bridge,
         "left_top",
@@ -50,13 +50,13 @@ fn builtin_workbench_activity_toggle_collapses_active_project_drawer_from_templa
 }
 
 #[test]
-fn builtin_workbench_activity_toggle_reopens_collapsed_project_drawer_from_template_binding() {
+fn builtin_host_activity_toggle_reopens_collapsed_project_drawer_from_template_binding() {
     let _guard = env_lock().lock().unwrap();
 
     let harness = EventRuntimeHarness::new("zircon_slint_template_bridge_activity_reopen");
-    let bridge = BuiltinWorkbenchTemplateBridge::new(UiSize::new(1280.0, 720.0)).unwrap();
+    let bridge = BuiltinHostWindowTemplateBridge::new(UiSize::new(1280.0, 720.0)).unwrap();
 
-    let collapse = dispatch_builtin_workbench_drawer_toggle(
+    let collapse = dispatch_builtin_host_drawer_toggle(
         &harness.runtime,
         &bridge,
         "left_top",
@@ -66,7 +66,7 @@ fn builtin_workbench_activity_toggle_reopens_collapsed_project_drawer_from_templ
     .unwrap();
     assert!(collapse.layout_dirty);
 
-    let effects = dispatch_builtin_workbench_drawer_toggle(
+    let effects = dispatch_builtin_host_drawer_toggle(
         &harness.runtime,
         &bridge,
         "left_top",

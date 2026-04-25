@@ -121,6 +121,7 @@ impl Default for RenderBakedLightingExtract {
 pub struct RenderVirtualGeometryCluster {
     pub entity: EntityId,
     pub cluster_id: u32,
+    pub hierarchy_node_id: Option<u32>,
     pub page_id: u32,
     pub lod_level: u8,
     pub parent_cluster_id: Option<u32>,
@@ -134,6 +135,7 @@ impl Default for RenderVirtualGeometryCluster {
         Self {
             entity: 0,
             cluster_id: 0,
+            hierarchy_node_id: None,
             page_id: 0,
             lod_level: 0,
             parent_cluster_id: None,
@@ -142,6 +144,16 @@ impl Default for RenderVirtualGeometryCluster {
             screen_space_error: 0.0,
         }
     }
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct RenderVirtualGeometryHierarchyNode {
+    pub instance_index: u32,
+    pub node_id: u32,
+    pub child_base: u32,
+    pub child_count: u32,
+    pub cluster_start: u32,
+    pub cluster_count: u32,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -204,6 +216,8 @@ pub struct RenderVirtualGeometryExtract {
     pub cluster_budget: u32,
     pub page_budget: u32,
     pub clusters: Vec<RenderVirtualGeometryCluster>,
+    pub hierarchy_nodes: Vec<RenderVirtualGeometryHierarchyNode>,
+    pub hierarchy_child_ids: Vec<u32>,
     pub pages: Vec<RenderVirtualGeometryPage>,
     pub instances: Vec<RenderVirtualGeometryInstance>,
     pub debug: RenderVirtualGeometryDebugState,
@@ -215,6 +229,8 @@ impl Default for RenderVirtualGeometryExtract {
             cluster_budget: 0,
             page_budget: 0,
             clusters: Vec::new(),
+            hierarchy_nodes: Vec::new(),
+            hierarchy_child_ids: Vec::new(),
             pages: Vec::new(),
             instances: Vec::new(),
             debug: RenderVirtualGeometryDebugState::default(),

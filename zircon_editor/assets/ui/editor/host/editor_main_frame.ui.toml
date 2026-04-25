@@ -1,0 +1,87 @@
+stylesheets = []
+
+[asset]
+kind = "layout"
+id = "editor.host.editor_main_frame"
+version = 1
+display_name = "editor main frame"
+
+[imports]
+widgets = []
+styles = []
+
+[tokens]
+
+[root]
+node_id = "editor_main_frame_root"
+kind = "native"
+type = "VerticalBox"
+control_id = "EditorMainFrameRoot"
+classes = ["editor-main-frame"]
+
+[root.layout]
+clip = true
+
+[root.layout.container]
+kind = "VerticalBox"
+gap = 0.0
+
+[root.layout.width]
+stretch = "Stretch"
+
+[root.layout.height]
+stretch = "Stretch"
+
+[[root.children]]
+[root.children.slot]
+
+[root.children.node]
+node_id = "editor_main_frame_task_bar_slot"
+kind = "slot"
+slot_name = "task_bar"
+control_id = "EditorMainFrameTaskBarSlot"
+
+[root.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.layout.height]
+min = 32.0
+preferred = 32.0
+max = 32.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.slot]
+
+[root.children.node]
+node_id = "editor_main_frame_window_tab_strip_slot"
+kind = "slot"
+slot_name = "window_tab_strip"
+control_id = "EditorMainFrameWindowTabStripSlot"
+
+[root.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.layout.height]
+min = 28.0
+preferred = 28.0
+max = 28.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.slot]
+
+[root.children.node]
+node_id = "editor_main_frame_active_window_host_slot"
+kind = "slot"
+slot_name = "active_window_host"
+control_id = "EditorMainFrameActiveWindowHostSlot"
+
+[root.children.node.layout]
+clip = true
+
+[root.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.layout.height]
+stretch = "Stretch"

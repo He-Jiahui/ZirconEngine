@@ -12,6 +12,9 @@ use crate::core::framework::render::{
 use crate::graphics::types::GraphicsError;
 
 use super::super::super::super::resources::ResourceStreamer;
+use super::super::super::graph_execution::{
+    RenderGraphExecutionRecord, RenderPassExecutorRegistry,
+};
 use super::super::super::overlay::ViewportIconSource;
 use super::super::constants::OFFSCREEN_FORMAT;
 use super::super::scene_renderer::SceneRenderer;
@@ -44,6 +47,8 @@ impl SceneRenderer {
             target: None,
             history_targets: HashMap::new(),
             generation: 0,
+            render_pass_executors: RenderPassExecutorRegistry::with_builtin_noop_executors(),
+            last_render_graph_execution: RenderGraphExecutionRecord::default(),
             last_hybrid_gi_gpu_readback: None,
             last_virtual_geometry_gpu_readback: None,
             last_virtual_geometry_debug_snapshot: None,
@@ -75,10 +80,26 @@ impl SceneRenderer {
             last_virtual_geometry_node_and_cluster_cull_source:
                 RenderVirtualGeometryNodeAndClusterCullSource::Unavailable,
             last_virtual_geometry_node_and_cluster_cull_record_count: 0,
+            last_virtual_geometry_node_and_cluster_cull_global_state: None,
+            last_virtual_geometry_node_and_cluster_cull_dispatch_group_count: [0, 0, 0],
             last_virtual_geometry_node_and_cluster_cull_buffer: None,
             last_virtual_geometry_node_and_cluster_cull_dispatch_setup_buffer: None,
+            last_virtual_geometry_node_and_cluster_cull_launch_worklist_buffer: None,
             last_virtual_geometry_node_and_cluster_cull_instance_seed_count: 0,
             last_virtual_geometry_node_and_cluster_cull_instance_seed_buffer: None,
+            last_virtual_geometry_node_and_cluster_cull_instance_work_item_count: 0,
+            last_virtual_geometry_node_and_cluster_cull_instance_work_item_buffer: None,
+            last_virtual_geometry_node_and_cluster_cull_cluster_work_item_count: 0,
+            last_virtual_geometry_node_and_cluster_cull_cluster_work_item_buffer: None,
+            last_virtual_geometry_node_and_cluster_cull_hierarchy_child_id_count: 0,
+            last_virtual_geometry_node_and_cluster_cull_hierarchy_child_id_buffer: None,
+            last_virtual_geometry_node_and_cluster_cull_child_work_item_count: 0,
+            last_virtual_geometry_node_and_cluster_cull_child_work_item_buffer: None,
+            last_virtual_geometry_node_and_cluster_cull_traversal_record_count: 0,
+            last_virtual_geometry_node_and_cluster_cull_traversal_record_buffer: None,
+            last_virtual_geometry_node_and_cluster_cull_page_request_count: 0,
+            last_virtual_geometry_node_and_cluster_cull_page_request_ids: Vec::new(),
+            last_virtual_geometry_node_and_cluster_cull_page_request_buffer: None,
             last_virtual_geometry_selected_cluster_source:
                 RenderVirtualGeometrySelectedClusterSource::Unavailable,
             last_virtual_geometry_selected_cluster_count: 0,

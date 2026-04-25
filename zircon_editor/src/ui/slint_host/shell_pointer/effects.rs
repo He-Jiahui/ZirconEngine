@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use zircon_runtime::ui::{dispatch::UiPointerDispatchEffect, layout::UiFrame, layout::UiPoint};
 
-use crate::ui::slint_host::tab_drag::WorkbenchDragTargetGroup;
+use crate::ui::slint_host::tab_drag::HostDragTargetGroup;
 use crate::ui::workbench::layout::DockEdge;
 
 use super::drag_frames::DragTargetFrames;
@@ -10,7 +10,7 @@ use super::drag_frames::DragTargetFrames;
 const MAX_DOCUMENT_EDGE_EXTENT: f32 = 96.0;
 
 pub(super) fn side_target_effect(
-    side: WorkbenchDragTargetGroup,
+    side: HostDragTargetGroup,
     frames: &Arc<Mutex<DragTargetFrames>>,
     point: UiPoint,
 ) -> UiPointerDispatchEffect {
@@ -18,9 +18,9 @@ pub(super) fn side_target_effect(
         .lock()
         .expect("shell pointer drag frames lock poisoned");
     let (side_frame, side_distance) = match side {
-        WorkbenchDragTargetGroup::Left => (frames.left, point.x - frames.left.x),
-        WorkbenchDragTargetGroup::Right => (frames.right, frames.right.right() - point.x),
-        WorkbenchDragTargetGroup::Bottom | WorkbenchDragTargetGroup::Document => {
+        HostDragTargetGroup::Left => (frames.left, point.x - frames.left.x),
+        HostDragTargetGroup::Right => (frames.right, frames.right.right() - point.x),
+        HostDragTargetGroup::Bottom | HostDragTargetGroup::Document => {
             return UiPointerDispatchEffect::Unhandled;
         }
     };

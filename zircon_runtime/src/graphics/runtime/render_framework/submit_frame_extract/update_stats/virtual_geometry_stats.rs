@@ -157,11 +157,87 @@ pub(super) fn update_virtual_geometry_stats(
         .unwrap_or(0);
     state
         .stats
+        .last_virtual_geometry_node_and_cluster_cull_dispatch_group_count =
+        virtual_geometry_extract
+            .map(|_| {
+                state
+                    .renderer
+                    .last_virtual_geometry_node_and_cluster_cull_dispatch_group_count()
+                    .map(|group_count| group_count as usize)
+            })
+            .unwrap_or([0, 0, 0]);
+    state
+        .stats
         .last_virtual_geometry_node_and_cluster_cull_instance_seed_count = virtual_geometry_extract
         .map(|_| {
             state
                 .renderer
                 .last_virtual_geometry_node_and_cluster_cull_instance_seed_count()
+                as usize
+        })
+        .unwrap_or(0);
+    state
+        .stats
+        .last_virtual_geometry_node_and_cluster_cull_instance_work_item_count =
+        virtual_geometry_extract
+            .map(|_| {
+                state
+                    .renderer
+                    .last_virtual_geometry_node_and_cluster_cull_instance_work_item_count()
+                    as usize
+            })
+            .unwrap_or(0);
+    state
+        .stats
+        .last_virtual_geometry_node_and_cluster_cull_cluster_work_item_count =
+        virtual_geometry_extract
+            .map(|_| {
+                state
+                    .renderer
+                    .last_virtual_geometry_node_and_cluster_cull_cluster_work_item_count()
+                    as usize
+            })
+            .unwrap_or(0);
+    state
+        .stats
+        .last_virtual_geometry_node_and_cluster_cull_hierarchy_child_id_count =
+        virtual_geometry_extract
+            .map(|_| {
+                state
+                    .renderer
+                    .last_virtual_geometry_node_and_cluster_cull_hierarchy_child_id_count()
+                    as usize
+            })
+            .unwrap_or(0);
+    state
+        .stats
+        .last_virtual_geometry_node_and_cluster_cull_child_work_item_count =
+        virtual_geometry_extract
+            .map(|_| {
+                state
+                    .renderer
+                    .last_virtual_geometry_node_and_cluster_cull_child_work_item_count()
+                    as usize
+            })
+            .unwrap_or(0);
+    state
+        .stats
+        .last_virtual_geometry_node_and_cluster_cull_traversal_record_count =
+        virtual_geometry_extract
+            .map(|_| {
+                state
+                    .renderer
+                    .last_virtual_geometry_node_and_cluster_cull_traversal_record_count()
+                    as usize
+            })
+            .unwrap_or(0);
+    state
+        .stats
+        .last_virtual_geometry_node_and_cluster_cull_page_request_count = virtual_geometry_extract
+        .map(|_| {
+            state
+                .renderer
+                .last_virtual_geometry_node_and_cluster_cull_page_request_count()
                 as usize
         })
         .unwrap_or(0);
@@ -258,7 +334,28 @@ pub(super) fn reset_virtual_geometry_stats(state: &mut RenderFrameworkState) {
         .last_virtual_geometry_node_and_cluster_cull_record_count = 0;
     state
         .stats
+        .last_virtual_geometry_node_and_cluster_cull_dispatch_group_count = [0, 0, 0];
+    state
+        .stats
         .last_virtual_geometry_node_and_cluster_cull_instance_seed_count = 0;
+    state
+        .stats
+        .last_virtual_geometry_node_and_cluster_cull_instance_work_item_count = 0;
+    state
+        .stats
+        .last_virtual_geometry_node_and_cluster_cull_cluster_work_item_count = 0;
+    state
+        .stats
+        .last_virtual_geometry_node_and_cluster_cull_hierarchy_child_id_count = 0;
+    state
+        .stats
+        .last_virtual_geometry_node_and_cluster_cull_child_work_item_count = 0;
+    state
+        .stats
+        .last_virtual_geometry_node_and_cluster_cull_traversal_record_count = 0;
+    state
+        .stats
+        .last_virtual_geometry_node_and_cluster_cull_page_request_count = 0;
     state.stats.last_virtual_geometry_selected_cluster_source = Default::default();
     state.stats.last_virtual_geometry_selected_cluster_count = 0;
     state.stats.last_virtual_geometry_visbuffer64_source = Default::default();

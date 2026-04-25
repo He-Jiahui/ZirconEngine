@@ -3,7 +3,7 @@ use super::support::*;
 #[test]
 fn editor_ui_compatibility_harness_captures_projection_shape_for_parity_checks() {
     let mut runtime = EditorUiHostRuntime::default();
-    runtime.load_builtin_workbench_shell().unwrap();
+    runtime.load_builtin_host_templates().unwrap();
     let projection = runtime
         .project_document(UI_HOST_WINDOW_DOCUMENT_ID)
         .unwrap();
@@ -52,7 +52,7 @@ fn editor_ui_compatibility_harness_captures_projection_shape_for_parity_checks()
 #[test]
 fn editor_ui_host_runtime_builds_host_node_model_with_routes_and_attributes() {
     let mut runtime = EditorUiHostRuntime::default();
-    runtime.load_builtin_workbench_shell().unwrap();
+    runtime.load_builtin_host_templates().unwrap();
     let mut projection = runtime
         .project_document(UI_HOST_WINDOW_DOCUMENT_ID)
         .unwrap();
@@ -148,7 +148,7 @@ fn editor_ui_host_runtime_builds_host_node_model_with_routes_and_attributes() {
 #[test]
 fn editor_ui_compatibility_harness_captures_host_model_routes_and_attributes() {
     let mut runtime = EditorUiHostRuntime::default();
-    runtime.load_builtin_workbench_shell().unwrap();
+    runtime.load_builtin_host_templates().unwrap();
     let mut projection = runtime
         .project_document(UI_HOST_WINDOW_DOCUMENT_ID)
         .unwrap();
@@ -181,7 +181,7 @@ fn editor_ui_compatibility_harness_captures_host_model_routes_and_attributes() {
 #[test]
 fn slint_ui_host_adapter_builds_generic_projection_from_host_model() {
     let mut runtime = EditorUiHostRuntime::default();
-    runtime.load_builtin_workbench_shell().unwrap();
+    runtime.load_builtin_host_templates().unwrap();
     let mut projection = runtime
         .project_document(UI_HOST_WINDOW_DOCUMENT_ID)
         .unwrap();
@@ -267,7 +267,7 @@ fn slint_ui_host_adapter_builds_generic_projection_from_host_model() {
 #[test]
 fn editor_ui_host_runtime_builds_slint_host_projection_and_snapshot() {
     let mut runtime = EditorUiHostRuntime::default();
-    runtime.load_builtin_workbench_shell().unwrap();
+    runtime.load_builtin_host_templates().unwrap();
     let mut projection = runtime
         .project_document(UI_HOST_WINDOW_DOCUMENT_ID)
         .unwrap();

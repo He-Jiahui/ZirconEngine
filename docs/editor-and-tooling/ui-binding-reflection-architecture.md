@@ -82,6 +82,9 @@ related_code:
   - zircon_editor/src/tests/editing/ui_asset/
   - zircon_editor/src/tests/host/slint_window/callback_source_window.rs
   - zircon_editor/src/ui/workbench/event/mod.rs
+  - zircon_editor/src/ui/workbench/event/dispatch_editor_host_binding.rs
+  - zircon_editor/src/ui/workbench/event/editor_host_event.rs
+  - zircon_editor/src/ui/workbench/event/editor_host_event_error.rs
   - zircon_editor/src/ui/workbench/model/mod.rs
   - zircon_editor/src/ui/workbench/project/mod.rs
   - zircon_editor/src/ui/workbench/reflection/mod.rs
@@ -153,6 +156,9 @@ implementation_files:
   - zircon_editor/src/ui/host/asset_editor_sessions/mod.rs
   - zircon_editor/src/ui/slint_host/app/ui_asset_editor.rs
   - zircon_editor/src/ui/workbench/event/mod.rs
+  - zircon_editor/src/ui/workbench/event/dispatch_editor_host_binding.rs
+  - zircon_editor/src/ui/workbench/event/editor_host_event.rs
+  - zircon_editor/src/ui/workbench/event/editor_host_event_error.rs
   - zircon_editor/src/ui/workbench/model/mod.rs
   - zircon_editor/src/ui/workbench/project/mod.rs
   - zircon_editor/src/ui/workbench/reflection/mod.rs
@@ -556,8 +562,8 @@ transient hover/focus/pressed/drawer-resize 投影现在已经迁到 [`transient
 
 - source: `WorkbenchMenuBar/*`
 - payload: `MenuAction`
-- dispatch entry: `dispatch_workbench_binding`
-- result: `WorkbenchHostEvent::Menu`
+- dispatch entry: `dispatch_editor_host_binding`
+- result: `EditorHostEvent::Menu`
 
 menu 继续承载：
 

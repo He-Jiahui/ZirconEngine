@@ -27,7 +27,7 @@ use super::{
     style_inspection::{
         build_style_inspector, matched_style_rule_entries_for_selection,
         reconcile_selected_matched_style_rule_index,
-        reconcile_selected_style_rule_declaration_path, reconcile_selected_style_rule_index,
+        reconcile_selected_style_rule_declaration_path, reconcile_selected_style_rule_selection,
         reconcile_selected_style_token_name,
     },
     theme_summary::reconcile_selected_theme_source_key,
@@ -105,6 +105,7 @@ impl UiAssetEditorSession {
             selection,
             style_inspector,
             selected_style_rule_index: None,
+            selected_style_rule_id: None,
             selected_matched_style_rule_index: None,
             selected_style_rule_declaration_path: None,
             selected_style_token_name: None,
@@ -385,10 +386,14 @@ impl UiAssetEditorSession {
         self.selection = reconcile_selection(&self.last_valid_document, &self.selection);
         self.reconcile_promote_widget_draft();
         self.reconcile_promote_theme_draft();
-        self.selected_style_rule_index = reconcile_selected_style_rule_index(
-            &self.last_valid_document,
-            self.selected_style_rule_index,
-        );
+        let (selected_style_rule_index, selected_style_rule_id) =
+            reconcile_selected_style_rule_selection(
+                &self.last_valid_document,
+                self.selected_style_rule_index,
+                self.selected_style_rule_id.as_deref(),
+            );
+        self.selected_style_rule_index = selected_style_rule_index;
+        self.selected_style_rule_id = selected_style_rule_id;
         self.selected_style_rule_declaration_path = reconcile_selected_style_rule_declaration_path(
             &self.last_valid_document,
             self.selected_style_rule_index,

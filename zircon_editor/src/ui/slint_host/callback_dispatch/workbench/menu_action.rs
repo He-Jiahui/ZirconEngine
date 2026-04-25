@@ -3,10 +3,10 @@ use crate::core::editor_event::{
 };
 use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind};
 use crate::ui::slint_host::event_bridge::SlintDispatchEffects;
-use crate::ui::workbench::event::{dispatch_workbench_binding, WorkbenchHostEvent};
+use crate::ui::workbench::event::{dispatch_editor_host_binding, EditorHostEvent};
 
 use super::super::common::dispatch_envelope;
-use super::control::dispatch_builtin_workbench_menu_action;
+use super::control::dispatch_builtin_host_menu_action;
 
 pub(crate) fn dispatch_menu_action(
     runtime: &EditorEventRuntime,
@@ -15,12 +15,12 @@ pub(crate) fn dispatch_menu_action(
     dispatch_envelope(runtime, slint_menu_action(action)?)
 }
 
-pub(crate) fn dispatch_workbench_menu_action_with_template_fallback(
+pub(crate) fn dispatch_host_menu_action_with_template_fallback(
     runtime: &EditorEventRuntime,
-    bridge: &super::super::BuiltinWorkbenchTemplateBridge,
+    bridge: &super::super::BuiltinHostWindowTemplateBridge,
     action: &str,
 ) -> Result<SlintDispatchEffects, String> {
-    if let Some(result) = dispatch_builtin_workbench_menu_action(runtime, bridge, action) {
+    if let Some(result) = dispatch_builtin_host_menu_action(runtime, bridge, action) {
         return result;
     }
     dispatch_menu_action(runtime, action)
@@ -53,8 +53,8 @@ pub(crate) fn slint_menu_action(action_id: &str) -> Result<EditorEventEnvelope, 
         EditorUiEventKind::Click,
         EditorUiBindingPayload::menu_action(action_id),
     );
-    let event = dispatch_workbench_binding(&binding).map_err(|error| error.to_string())?;
-    let WorkbenchHostEvent::Menu(action) = event;
+    let event = dispatch_editor_host_binding(&binding).map_err(|error| error.to_string())?;
+    let EditorHostEvent::Menu(action) = event;
     Ok(EditorEventEnvelope::new(
         EditorEventSource::Slint,
         EditorEvent::WorkbenchMenu(action),

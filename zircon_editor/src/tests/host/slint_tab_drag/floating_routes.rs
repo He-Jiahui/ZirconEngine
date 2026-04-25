@@ -1,12 +1,13 @@
 use super::support::*;
 
 #[test]
-fn resolve_workbench_tab_drop_route_accepts_floating_window_group_fallback_key() {
+fn resolve_host_tab_drop_route_accepts_floating_window_group_fallback_key() {
     let floating_window_id = MainPageId::new("window:prefab");
     let layout = WorkbenchLayout {
         active_main_page: MainPageId::workbench(),
         main_pages: vec![workbench_page(MainPageId::workbench())],
         drawers: default_drawers(),
+        activity_windows: Default::default(),
         floating_windows: vec![FloatingWindowLayout {
             window_id: floating_window_id.clone(),
             title: "Prefab Popout".to_string(),
@@ -68,7 +69,7 @@ fn resolve_workbench_tab_drop_route_accepts_floating_window_group_fallback_key()
     );
 
     assert_eq!(
-        resolve_workbench_tab_drop_route(
+        resolve_host_tab_drop_route(
             &layout,
             &model,
             &geometry,
@@ -79,10 +80,10 @@ fn resolve_workbench_tab_drop_route_accepts_floating_window_group_fallback_key()
             0.0,
             0.0,
         ),
-        Some(ResolvedWorkbenchTabDropRoute {
-            target_group: WorkbenchDragTargetGroup::Document,
+        Some(ResolvedHostTabDropRoute {
+            target_group: HostDragTargetGroup::Document,
             target_label: "floating window",
-            target: ResolvedWorkbenchTabDropTarget::Attach(ResolvedTabDrop {
+            target: ResolvedHostTabDropTarget::Attach(ResolvedTabDrop {
                 host: ViewHost::FloatingWindow(floating_window_id, vec![1]),
                 anchor: None,
             }),
@@ -91,13 +92,14 @@ fn resolve_workbench_tab_drop_route_accepts_floating_window_group_fallback_key()
 }
 
 #[test]
-fn resolved_workbench_tab_drop_route_snapshot_matches_shared_pointer_and_group_key_for_floating_window(
-) {
+fn resolved_host_tab_drop_route_snapshot_matches_shared_pointer_and_group_key_for_floating_window()
+{
     let floating_window_id = MainPageId::new("window:prefab");
     let layout = WorkbenchLayout {
         active_main_page: MainPageId::workbench(),
         main_pages: vec![workbench_page(MainPageId::workbench())],
         drawers: default_drawers(),
+        activity_windows: Default::default(),
         floating_windows: vec![FloatingWindowLayout {
             window_id: floating_window_id.clone(),
             title: "Prefab Popout".to_string(),
@@ -167,7 +169,7 @@ fn resolved_workbench_tab_drop_route_snapshot_matches_shared_pointer_and_group_k
         Vec::new(),
         None,
     )];
-    let mut bridge = WorkbenchShellPointerBridge::new();
+    let mut bridge = HostShellPointerBridge::new();
     bridge.update_layout_with_floating_windows(
         UiSize::new(1440.0, 900.0),
         &geometry,
@@ -177,7 +179,7 @@ fn resolved_workbench_tab_drop_route_snapshot_matches_shared_pointer_and_group_k
     );
 
     let pointer_route = bridge.drag_route_at(UiPoint::new(600.0, 300.0));
-    let from_pointer = resolve_workbench_tab_drop_route(
+    let from_pointer = resolve_host_tab_drop_route(
         &layout,
         &model,
         &geometry,
@@ -189,7 +191,7 @@ fn resolved_workbench_tab_drop_route_snapshot_matches_shared_pointer_and_group_k
         300.0,
     )
     .expect("floating window route should resolve from shared pointer route");
-    let from_group_key = resolve_workbench_tab_drop_route(
+    let from_group_key = resolve_host_tab_drop_route(
         &layout,
         &model,
         &geometry,
@@ -214,12 +216,13 @@ fn resolved_workbench_tab_drop_route_snapshot_matches_shared_pointer_and_group_k
 }
 
 #[test]
-fn resolve_workbench_tab_drop_route_accepts_floating_window_edge_fallback_key() {
+fn resolve_host_tab_drop_route_accepts_floating_window_edge_fallback_key() {
     let floating_window_id = MainPageId::new("window:prefab");
     let layout = WorkbenchLayout {
         active_main_page: MainPageId::workbench(),
         main_pages: vec![workbench_page(MainPageId::workbench())],
         drawers: default_drawers(),
+        activity_windows: Default::default(),
         floating_windows: vec![FloatingWindowLayout {
             window_id: floating_window_id.clone(),
             title: "Prefab Popout".to_string(),
@@ -281,7 +284,7 @@ fn resolve_workbench_tab_drop_route_accepts_floating_window_edge_fallback_key() 
     );
 
     assert_eq!(
-        resolve_workbench_tab_drop_route(
+        resolve_host_tab_drop_route(
             &layout,
             &model,
             &geometry,
@@ -292,10 +295,10 @@ fn resolve_workbench_tab_drop_route_accepts_floating_window_edge_fallback_key() 
             0.0,
             0.0,
         ),
-        Some(ResolvedWorkbenchTabDropRoute {
-            target_group: WorkbenchDragTargetGroup::Document,
+        Some(ResolvedHostTabDropRoute {
+            target_group: HostDragTargetGroup::Document,
             target_label: "Split Floating Window Right",
-            target: ResolvedWorkbenchTabDropTarget::Split {
+            target: ResolvedHostTabDropTarget::Split {
                 workspace: WorkspaceTarget::FloatingWindow(floating_window_id),
                 path: vec![1],
                 axis: SplitAxis::Horizontal,

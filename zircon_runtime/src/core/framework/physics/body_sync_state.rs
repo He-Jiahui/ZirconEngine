@@ -11,6 +11,8 @@ pub struct PhysicsBodySyncState {
     pub body_type: PhysicsBodyType,
     pub transform: Transform,
     pub mass: Real,
+    pub linear_velocity: [Real; 3],
+    pub angular_velocity: [Real; 3],
     pub linear_damping: Real,
     pub angular_damping: Real,
     pub gravity_scale: Real,

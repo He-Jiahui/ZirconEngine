@@ -136,7 +136,14 @@ pub(super) fn build_virtual_geometry_debug_snapshot(
         node_and_cluster_cull_instance_seeds: Vec::<
             RenderVirtualGeometryNodeAndClusterCullInstanceSeed,
         >::new(),
+        node_and_cluster_cull_instance_work_items: Vec::new(),
+        node_and_cluster_cull_cluster_work_items: Vec::new(),
+        node_and_cluster_cull_child_work_items: Vec::new(),
+        node_and_cluster_cull_traversal_records: Vec::new(),
+        node_and_cluster_cull_hierarchy_child_ids: Vec::new(),
+        node_and_cluster_cull_page_request_ids: Vec::new(),
         node_and_cluster_cull_dispatch_setup: None,
+        node_and_cluster_cull_launch_worklist: None,
         node_and_cluster_cull_global_state: None,
         hardware_rasterization_records: Vec::new(),
         hardware_rasterization_source:
@@ -356,6 +363,7 @@ mod tests {
                 RenderVirtualGeometryCluster {
                     entity,
                     cluster_id: 20,
+                    hierarchy_node_id: None,
                     page_id: 200,
                     lod_level: 10,
                     parent_cluster_id: None,
@@ -366,6 +374,7 @@ mod tests {
                 RenderVirtualGeometryCluster {
                     entity,
                     cluster_id: 30,
+                    hierarchy_node_id: None,
                     page_id: 300,
                     lod_level: 10,
                     parent_cluster_id: Some(20),
@@ -374,6 +383,8 @@ mod tests {
                     screen_space_error: 0.2,
                 },
             ],
+            hierarchy_nodes: Vec::new(),
+            hierarchy_child_ids: Vec::new(),
             pages: Vec::new(),
             instances: vec![RenderVirtualGeometryInstance {
                 entity,
@@ -448,6 +459,7 @@ mod tests {
                 RenderVirtualGeometryCluster {
                     entity,
                     cluster_id: 20,
+                    hierarchy_node_id: None,
                     page_id: 200,
                     lod_level: 10,
                     parent_cluster_id: None,
@@ -458,6 +470,7 @@ mod tests {
                 RenderVirtualGeometryCluster {
                     entity,
                     cluster_id: 30,
+                    hierarchy_node_id: None,
                     page_id: 300,
                     lod_level: 9,
                     parent_cluster_id: Some(20),
@@ -466,6 +479,8 @@ mod tests {
                     screen_space_error: 0.2,
                 },
             ],
+            hierarchy_nodes: Vec::new(),
+            hierarchy_child_ids: Vec::new(),
             pages: Vec::new(),
             instances: vec![RenderVirtualGeometryInstance {
                 entity,

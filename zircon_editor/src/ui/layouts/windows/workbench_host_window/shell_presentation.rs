@@ -7,6 +7,7 @@ use crate::ui::layouts::views::{
 };
 use crate::ui::slint_host::floating_window_projection::FloatingWindowProjectionBundle;
 use crate::ui::widgets::common::{collect_tabs, document_tab_data, host_tab_data, side_expanded};
+use zircon_runtime::core::diagnostics::RuntimeDiagnosticsSnapshot;
 
 pub(crate) struct ShellPresentation {
     pub host_surface_data: HostWindowSurfaceData,
@@ -34,6 +35,7 @@ impl ShellPresentation {
             String,
             crate::ui::animation_editor::AnimationEditorPanePresentation,
         >,
+        runtime_diagnostics: Option<&RuntimeDiagnosticsSnapshot>,
         floating_window_projection_bundle: &FloatingWindowProjectionBundle,
     ) -> Self {
         let left_tabs = collect_tabs(
@@ -106,6 +108,7 @@ impl ShellPresentation {
                     geometry,
                     ui_asset_panes,
                     animation_panes,
+                    runtime_diagnostics,
                     floating_window_projection_bundle,
                 )),
                 left_pane: side_pane(
@@ -114,6 +117,7 @@ impl ShellPresentation {
                     &[ActivityDrawerSlot::LeftTop, ActivityDrawerSlot::LeftBottom],
                     ui_asset_panes,
                     animation_panes,
+                    runtime_diagnostics,
                 ),
                 right_pane: side_pane(
                     model,
@@ -124,6 +128,7 @@ impl ShellPresentation {
                     ],
                     ui_asset_panes,
                     animation_panes,
+                    runtime_diagnostics,
                 ),
                 bottom_pane: side_pane(
                     model,
@@ -134,8 +139,15 @@ impl ShellPresentation {
                     ],
                     ui_asset_panes,
                     animation_panes,
+                    runtime_diagnostics,
                 ),
-                document_pane: document_pane(model, chrome, ui_asset_panes, animation_panes),
+                document_pane: document_pane(
+                    model,
+                    chrome,
+                    ui_asset_panes,
+                    animation_panes,
+                    runtime_diagnostics,
+                ),
             },
             welcome,
             project_overview: project_overview_data(&chrome.project_overview),

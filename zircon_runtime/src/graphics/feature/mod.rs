@@ -1,10 +1,14 @@
 mod builtin_render_feature;
 mod builtin_render_feature_descriptor;
 mod render_feature;
+mod render_feature_capability_requirement;
 mod render_feature_descriptor;
 mod render_feature_pass_descriptor;
 
 pub use builtin_render_feature::BuiltinRenderFeature;
 pub use render_feature::RenderFeature;
+pub use render_feature_capability_requirement::RenderFeatureCapabilityRequirement;
 pub use render_feature_descriptor::RenderFeatureDescriptor;
-pub use render_feature_pass_descriptor::RenderFeaturePassDescriptor;
+pub use render_feature_pass_descriptor::{
+    RenderFeaturePassDescriptor, RenderFeatureResourceAccess, RenderFeatureResourceKind,
+};

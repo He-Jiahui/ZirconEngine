@@ -1,0 +1,150 @@
+import { Palette } from "chrome.slint";
+import { AssetReferenceData } from "assets.slint";
+import { TemplatePaneNodeData } from "template_node_data.slint";
+
+export component ProjectedReferencePanel inherits Rectangle {
+    in property <TemplatePaneNodeData> panel;
+    in property <[TemplatePaneNodeData]> nodes;
+    in property <string> title_control_id;
+    in property <string> body_control_id;
+    in property <string> empty_control_id;
+    in property <string> row_control_id;
+    in property <string> row_name_control_id;
+    in property <string> row_locator_control_id;
+    in property <string> row_kind_control_id;
+    in property <[AssetReferenceData]> references;
+    in property <int> hovered_index: -1;
+    in property <float> scroll_px: 0.0;
+    callback pointer_clicked(x: float, y: float, width: float, height: float);
+    callback pointer_moved(x: float, y: float, width: float, height: float);
+    callback pointer_scrolled(x: float, y: float, delta: float, width: float, height: float);
+
+    palette := Palette {}
+    background: transparent;
+
+    for title_node in root.nodes: Text {
+        visible: title_node.control_id == root.title_control_id;
+        x: (title_node.frame.x - root.panel.frame.x) * 1px;
+        y: (title_node.frame.y - root.panel.frame.y) * 1px;
+        width: title_node.frame.width * 1px;
+        height: title_node.frame.height * 1px;
+        text: title_node.text;
+        color: palette.text;
+        font-size: title_node.font_size * 1px;
+        font-weight: title_node.font_weight;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+
+    for body_node in root.nodes: Rectangle {
+        visible: body_node.control_id == root.body_control_id;
+        x: (body_node.frame.x - root.panel.frame.x) * 1px;
+        y: (body_node.frame.y - root.panel.frame.y) * 1px;
+        width: body_node.frame.width * 1px;
+        height: body_node.frame.height * 1px;
+        background: transparent;
+        clip: true;
+
+        for empty_node in root.nodes: Text {
+            visible: empty_node.control_id == root.empty_control_id && root.references.length == 0;
+            x: (empty_node.frame.x - body_node.frame.x) * 1px;
+            y: (empty_node.frame.y - body_node.frame.y) * 1px;
+            width: empty_node.frame.width * 1px;
+            height: empty_node.frame.height * 1px;
+            text: empty_node.text;
+            color: palette.text_dim;
+            font-size: empty_node.font_size * 1px;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+
+        for row_panel_node in root.nodes: Rectangle {
+            visible: row_panel_node.control_id == root.row_control_id;
+            width: 0px;
+            height: 0px;
+            background: transparent;
+
+            for reference[index] in root.references: Rectangle {
+                x: (row_panel_node.frame.x - body_node.frame.x) * 1px;
+                y: ((row_panel_node.frame.y - body_node.frame.y) + index * 38.0 - root.scroll_px) * 1px;
+                width: row_panel_node.frame.width * 1px;
+                height: row_panel_node.frame.height * 1px;
+                border-radius: row_panel_node.corner_radius * 1px;
+                border-width: row_panel_node.border_width * 1px;
+                border-color: palette.border_soft;
+                background: root.hovered_index == index ? palette.chrome_bg_soft : palette.panel_bg_soft;
+
+                for row_name_node in root.nodes: Text {
+                    visible: row_name_node.control_id == root.row_name_control_id;
+                    x: (row_name_node.frame.x - row_panel_node.frame.x) * 1px;
+                    y: (row_name_node.frame.y - row_panel_node.frame.y) * 1px;
+                    width: max(parent.width - 78px, 0px);
+                    height: row_name_node.frame.height * 1px;
+                    text: reference.name;
+                    color: palette.text;
+                    font-size: row_name_node.font_size * 1px;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+
+                for row_locator_node in root.nodes: Text {
+                    visible: row_locator_node.control_id == root.row_locator_control_id;
+                    x: (row_locator_node.frame.x - row_panel_node.frame.x) * 1px;
+                    y: (row_locator_node.frame.y - row_panel_node.frame.y) * 1px;
+                    width: max(parent.width - 78px, 0px);
+                    height: row_locator_node.frame.height * 1px;
+                    text: reference.locator;
+                    color: palette.text_dim;
+                    font-size: row_locator_node.font_size * 1px;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+
+                for row_kind_node in root.nodes: Text {
+                    visible: row_kind_node.control_id == root.row_kind_control_id;
+                    x: max(parent.width - 64px, 0px);
+                    y: (row_kind_node.frame.y - row_panel_node.frame.y) * 1px;
+                    width: 56px;
+                    height: row_kind_node.frame.height * 1px;
+                    text: reference.kind != "" ? reference.kind : "External";
+                    color: palette.text_dim;
+                    font-size: row_kind_node.font_size * 1px;
+                    vertical-alignment: center;
+                    horizontal-alignment: right;
+                    overflow: elide;
+                }
+            }
+        }
+
+        TouchArea {
+            width: parent.width;
+            height: parent.height;
+            moved => {
+                root.pointer_moved(
+                    self.mouse-x / 1px,
+                    self.mouse-y / 1px + (body_node.frame.y - root.panel.frame.y),
+                    root.width / 1px,
+                    root.height / 1px,
+                );
+            }
+            clicked => {
+                root.pointer_clicked(
+                    self.mouse-x / 1px,
+                    self.mouse-y / 1px + (body_node.frame.y - root.panel.frame.y),
+                    root.width / 1px,
+                    root.height / 1px,
+                );
+            }
+            scroll-event(event) => {
+                root.pointer_scrolled(
+                    self.mouse-x / 1px,
+                    self.mouse-y / 1px + (body_node.frame.y - root.panel.frame.y),
+                    event.delta_y / 1px,
+                    root.width / 1px,
+                    root.height / 1px,
+                );
+                accept
+            }
+        }
+    }
+}

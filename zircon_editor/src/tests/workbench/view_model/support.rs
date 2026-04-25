@@ -73,6 +73,7 @@ pub(super) fn sample_workbench_chrome() -> EditorChromeSnapshot {
                 visible: true,
             },
         )]),
+        activity_windows: Default::default(),
         floating_windows: Vec::new(),
         region_overrides: BTreeMap::new(),
         view_overrides: BTreeMap::new(),
@@ -150,6 +151,7 @@ pub(super) fn sample_exclusive_chrome() -> EditorChromeSnapshot {
                 ActivityDrawerSlot::RightTop,
                 ActivityDrawerLayout::new(ActivityDrawerSlot::RightTop),
             )]),
+            activity_windows: Default::default(),
             floating_windows: Vec::new(),
             region_overrides: BTreeMap::new(),
             view_overrides: BTreeMap::new(),
@@ -235,6 +237,7 @@ pub(super) fn sample_floating_window_chrome() -> EditorChromeSnapshot {
                 ActivityDrawerSlot::LeftTop,
                 ActivityDrawerLayout::new(ActivityDrawerSlot::LeftTop),
             )]),
+            activity_windows: Default::default(),
             floating_windows: vec![FloatingWindowLayout {
                 window_id: MainPageId::new("window:prefab"),
                 title: "Prefab Popout".to_string(),

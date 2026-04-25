@@ -5,13 +5,13 @@ use crate::rhi::{
 
 #[test]
 fn resource_descriptors_keep_stable_labels_and_usage() {
-    let buffer = BufferDesc::new("frame-uniform", 256, BufferUsage::Uniform);
+    let buffer = BufferDesc::new("frame-uniform", 256, BufferUsage::UNIFORM);
     let texture = TextureDesc::new(
         "scene-color",
         1920,
         1080,
         TextureFormat::Rgba8UnormSrgb,
-        TextureUsage::RenderAttachment,
+        TextureUsage::RENDER_ATTACHMENT,
     )
     .with_dimension(TextureDimension::D2);
     let sampler = SamplerDesc::linear("scene-linear");
@@ -25,4 +25,15 @@ fn resource_descriptors_keep_stable_labels_and_usage() {
     assert_eq!(texture.dimension, TextureDimension::D2);
     assert!(sampler.linear_filtering);
     assert_eq!(pipeline.kind, PipelineKind::Raster);
+}
+
+#[test]
+fn rhi_descriptors_do_not_embed_scene_level_semantics() {
+    let source = include_str!("../descriptors.rs");
+    for forbidden in ["Mesh", "Material", "Light", "Scene"] {
+        assert!(
+            !source.contains(forbidden),
+            "RHI descriptors must not encode upper-layer `{forbidden}` semantics"
+        );
+    }
 }

@@ -4,7 +4,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::core::framework::animation::AnimationParameterValue;
 use crate::core::framework::physics::{PhysicsCombineRule, PhysicsMaterialMetadata};
-use crate::core::math::Transform;
+use crate::core::math::{Transform, Vec3};
 use crate::core::resource::{
     AnimationClipMarker, AnimationGraphMarker, AnimationSequenceMarker, AnimationSkeletonMarker,
     AnimationStateMachineMarker, PhysicsMaterialMarker, ResourceHandle, ResourceId,
@@ -24,6 +24,8 @@ fn world_project_roundtrip_preserves_physics_and_animation_components() {
     let rigid_body = RigidBodyComponent {
         body_type: RigidBodyType::Dynamic,
         mass: 3.5,
+        linear_velocity: Vec3::new(0.25, 0.0, 0.0),
+        angular_velocity: Vec3::new(0.0, 0.5, 0.0),
         linear_damping: 0.2,
         angular_damping: 0.15,
         gravity_scale: 0.8,

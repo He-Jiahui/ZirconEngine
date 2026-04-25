@@ -20,6 +20,8 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
             RenderPassStage::Shadow,
             "shadow-map",
             QueueLane::Graphics,
-        )],
+        )
+        .with_executor_id("shadow.map")
+        .write_texture("shadow-map")],
     )
 }

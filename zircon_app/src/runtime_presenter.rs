@@ -167,6 +167,7 @@ mod tests {
         RenderVirtualGeometryDebugSnapshot, RenderWorldSnapshotHandle,
     };
     use zircon_runtime::core::math::UVec2;
+    use zircon_runtime::graphics::RenderPipelineAsset;
     use zircon_runtime::scene::world::World;
     use zircon_runtime::ui::surface::UiRenderExtract;
 
@@ -309,6 +310,13 @@ mod tests {
             _pipeline: RenderPipelineHandle,
         ) -> Result<(), RenderFrameworkError> {
             Ok(())
+        }
+
+        fn register_pipeline_asset(
+            &self,
+            _pipeline: RenderPipelineAsset,
+        ) -> Result<RenderPipelineHandle, RenderFrameworkError> {
+            Ok(RenderPipelineHandle::new(1))
         }
 
         fn reload_pipeline(

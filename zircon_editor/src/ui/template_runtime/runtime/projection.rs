@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 
 use crate::ui::template::{EditorTemplateAdapter, EditorTemplateRegistry};
+use zircon_runtime::ui::template::UiTemplateInstance;
 use zircon_runtime::ui::template::UiTemplateNode;
 use zircon_runtime::ui::{surface::UiSurface, tree::UiTree};
 
@@ -19,7 +20,14 @@ pub(super) fn project_document(
     let instance = template_registry
         .instantiate(document_id)
         .map_err(EditorUiHostRuntimeError::from)?;
+    project_instance(document_id, &instance, template_adapter)
+}
 
+pub(super) fn project_instance(
+    document_id: &str,
+    instance: &UiTemplateInstance,
+    template_adapter: &EditorTemplateAdapter,
+) -> Result<SlintUiProjection, EditorUiHostRuntimeError> {
     let mut bindings = Vec::new();
     let root = project_node(&instance.root, template_adapter, &mut bindings)?;
     Ok(SlintUiProjection {

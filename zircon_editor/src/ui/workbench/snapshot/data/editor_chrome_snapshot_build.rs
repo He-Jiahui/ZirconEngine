@@ -61,8 +61,13 @@ fn build_drawers(
     instances: &HashMap<ViewInstanceId, ViewInstance>,
     descriptors: &HashMap<ViewDescriptorId, ViewDescriptor>,
 ) -> BTreeMap<crate::ui::workbench::layout::ActivityDrawerSlot, ActivityDrawerSnapshot> {
-    layout
-        .drawers
+    let activity_windows = layout.activity_windows();
+    let Some(window) = activity_windows.values().next() else {
+        return BTreeMap::new();
+    };
+
+    window
+        .activity_drawers
         .iter()
         .map(|(slot, drawer)| {
             (

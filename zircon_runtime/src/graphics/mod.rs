@@ -14,7 +14,11 @@ pub(crate) mod visibility;
 pub mod runtime_builtin_graphics;
 
 pub use extract::{FrameHistoryAccess, FrameHistoryBinding, FrameHistoryHandle, FrameHistorySlot};
-pub use feature::{BuiltinRenderFeature, RenderFeature, RenderFeatureDescriptor};
+pub use feature::{
+    BuiltinRenderFeature, RenderFeature, RenderFeatureCapabilityRequirement,
+    RenderFeatureDescriptor, RenderFeaturePassDescriptor, RenderFeatureResourceAccess,
+    RenderFeatureResourceKind,
+};
 pub use material::MaterialDomain;
 pub use pipeline::{
     CompiledRenderPipeline, RenderPassStage, RenderPipelineAsset, RenderPipelineCompileOptions,

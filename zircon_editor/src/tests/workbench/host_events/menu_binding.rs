@@ -1,6 +1,6 @@
 use crate::core::editor_event::{MenuAction, ViewDescriptorId};
 use crate::ui::workbench::event::{
-    dispatch_workbench_binding, menu_action_binding, WorkbenchHostEvent,
+    dispatch_editor_host_binding, menu_action_binding, EditorHostEvent,
 };
 
 #[test]
@@ -13,7 +13,7 @@ fn menu_action_binding_roundtrips_through_headless_dispatch() {
         r#"WorkbenchMenuBar/OpenView.editor.scene:onClick(MenuAction("OpenView.editor.scene"))"#
     );
     assert_eq!(
-        dispatch_workbench_binding(&binding).unwrap(),
-        WorkbenchHostEvent::Menu(action)
+        dispatch_editor_host_binding(&binding).unwrap(),
+        EditorHostEvent::Menu(action)
     );
 }

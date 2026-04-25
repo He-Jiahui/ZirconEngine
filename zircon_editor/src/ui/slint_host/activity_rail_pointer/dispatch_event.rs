@@ -1,13 +1,13 @@
 use zircon_runtime::ui::dispatch::UiPointerEvent;
 
-use super::workbench_activity_rail_pointer_bridge::WorkbenchActivityRailPointerBridge;
-use super::workbench_activity_rail_pointer_target::WorkbenchActivityRailPointerTarget;
+use super::host_activity_rail_pointer_bridge::HostActivityRailPointerBridge;
+use super::host_activity_rail_pointer_target::HostActivityRailPointerTarget;
 
-impl WorkbenchActivityRailPointerBridge {
+impl HostActivityRailPointerBridge {
     pub(super) fn dispatch_event(
         &mut self,
         event: UiPointerEvent,
-    ) -> Result<Option<WorkbenchActivityRailPointerTarget>, String> {
+    ) -> Result<Option<HostActivityRailPointerTarget>, String> {
         let dispatch = self
             .surface
             .dispatch_pointer_event(&self.dispatcher, event)

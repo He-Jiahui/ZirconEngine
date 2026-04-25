@@ -393,6 +393,7 @@ pub(super) fn empty_layout_with_page(page_id: &str) -> WorkbenchLayout {
                 )
             })
             .collect(),
+        activity_windows: Default::default(),
         floating_windows: Vec::new(),
         region_overrides: BTreeMap::new(),
         view_overrides: BTreeMap::new(),

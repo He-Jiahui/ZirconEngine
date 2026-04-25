@@ -84,6 +84,8 @@ fn ui_asset_editor_session_inserts_palette_items_and_tracks_tree_edits_in_undo_s
         .expect("document");
     assert!(redone.contains_node("button_2"));
 }
+
+#[test]
 fn ui_asset_editor_session_targets_palette_drag_drop_to_hovered_preview_node() {
     let route = UiAssetEditorRoute::new(
         "asset://ui/tests/simple-layout.ui.toml",
@@ -158,6 +160,8 @@ fn ui_asset_editor_session_targets_palette_drag_drop_to_hovered_preview_node() {
     assert_eq!(dropped.palette_drag_target_preview_index, -1);
     assert!(dropped.palette_drag_target_action.is_empty());
 }
+
+#[test]
 fn ui_asset_editor_session_projects_slot_aware_palette_drag_target_labels() {
     let scenarios = [
         (
@@ -219,6 +223,8 @@ fn ui_asset_editor_session_projects_slot_aware_palette_drag_target_labels() {
         assert_eq!(presentation.palette_drag_target_label, expected_label);
     }
 }
+
+#[test]
 fn ui_asset_editor_undo_stack_replays_document_diffs_for_tree_edits() {
     let mut undo_stack = UiAssetEditorUndoStack::default();
     let before_document =
@@ -272,6 +278,131 @@ fn ui_asset_editor_undo_stack_replays_document_diffs_for_tree_edits() {
         .apply_to_document(&mut redone_document)
         .expect("apply redo diff"));
     assert_eq!(redone_document, after_document);
+}
+
+fn redo_transition_for_document_commands(
+    commands: Vec<UiAssetEditorDocumentReplayCommand>,
+) -> UiAssetEditorUndoTransition {
+    let mut undo_stack = UiAssetEditorUndoStack::default();
+    undo_stack.push_edit(
+        "Replay Document Commands",
+        None,
+        Some(UiAssetEditorDocumentReplayBundle {
+            undo: Vec::new(),
+            redo: commands,
+        }),
+        STYLE_AUTHORING_LAYOUT_ASSET_TOML.to_string(),
+        UiDesignerSelectionModel::default(),
+        Default::default(),
+        None,
+        None,
+        STYLE_AUTHORING_LAYOUT_ASSET_TOML.to_string(),
+        UiDesignerSelectionModel::default(),
+        Default::default(),
+        None,
+        None,
+        UiAssetEditorUndoExternalEffects::default(),
+    );
+
+    let _ = undo_stack.undo().expect("move replay to redo stack");
+    undo_stack.redo().expect("redo replay")
+}
+
+#[test]
+fn ui_asset_editor_undo_stack_rejects_invalid_style_rule_replay_atomically() {
+    let mut document = crate::tests::support::load_test_ui_asset(STYLE_AUTHORING_LAYOUT_ASSET_TOML)
+        .expect("document");
+    let original_document = document.clone();
+
+    let redone = redo_transition_for_document_commands(vec![
+        UiAssetEditorDocumentReplayCommand::InsertStyleRule {
+            stylesheet_index: 0,
+            index: 0,
+            selector: "Button#".to_string(),
+            rule: Some(UiStyleRule {
+                id: Some("bad_rule".to_string()),
+                selector: "Button#".to_string(),
+                set: Default::default(),
+            }),
+        },
+    ]);
+
+    assert_eq!(
+        redone.apply_to_document(&mut document),
+        Err("invalid style rule replay")
+    );
+    assert_eq!(document, original_document);
+}
+
+#[test]
+fn ui_asset_editor_undo_stack_rolls_back_partial_document_command_replay() {
+    let mut document = crate::tests::support::load_test_ui_asset(STYLE_AUTHORING_LAYOUT_ASSET_TOML)
+        .expect("document");
+    let original_document = document.clone();
+
+    let redone = redo_transition_for_document_commands(vec![
+        UiAssetEditorDocumentReplayCommand::UpsertStyleToken {
+            token_name: "temporary".to_string(),
+            value: toml::Value::Integer(42),
+        },
+        UiAssetEditorDocumentReplayCommand::InsertStyleRule {
+            stylesheet_index: 0,
+            index: 0,
+            selector: "Button#".to_string(),
+            rule: Some(UiStyleRule {
+                id: Some("bad_rule".to_string()),
+                selector: "Button#".to_string(),
+                set: Default::default(),
+            }),
+        },
+    ]);
+
+    assert_eq!(
+        redone.apply_to_document(&mut document),
+        Err("invalid style rule replay")
+    );
+    assert_eq!(document, original_document);
+    assert!(!document.tokens.contains_key("temporary"));
+}
+
+#[test]
+fn ui_asset_editor_undo_stack_rejects_invalid_set_stylesheets_replay() {
+    let mut document = crate::tests::support::load_test_ui_asset(STYLE_AUTHORING_LAYOUT_ASSET_TOML)
+        .expect("document");
+    let original_document = document.clone();
+    let mut invalid_stylesheets = document.stylesheets.clone();
+    invalid_stylesheets[0].rules[0].selector = "Button#".to_string();
+
+    let redone = redo_transition_for_document_commands(vec![
+        UiAssetEditorDocumentReplayCommand::SetStyleSheets {
+            stylesheets: invalid_stylesheets,
+        },
+    ]);
+
+    assert_eq!(
+        redone.apply_to_document(&mut document),
+        Err("invalid stylesheet replay")
+    );
+    assert_eq!(document, original_document);
+}
+
+#[test]
+fn ui_asset_editor_undo_stack_applies_valid_set_stylesheets_replay() {
+    let mut document = crate::tests::support::load_test_ui_asset(STYLE_AUTHORING_LAYOUT_ASSET_TOML)
+        .expect("document");
+    let mut expected_stylesheets = document.stylesheets.clone();
+    expected_stylesheets[0].rules.clear();
+
+    let redone = redo_transition_for_document_commands(vec![
+        UiAssetEditorDocumentReplayCommand::SetStyleSheets {
+            stylesheets: expected_stylesheets.clone(),
+        },
+    ]);
+
+    assert!(redone
+        .apply_to_document(&mut document)
+        .expect("valid stylesheets replay should apply"));
+    assert_eq!(document.stylesheets, expected_stylesheets);
 }
 
 #[test]

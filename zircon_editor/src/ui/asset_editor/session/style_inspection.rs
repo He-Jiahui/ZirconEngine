@@ -22,6 +22,7 @@ pub(super) const SUPPORTED_PSEUDO_STATES: &[&str] = &[
 pub(super) struct LocalStyleRuleEntry {
     pub(super) stylesheet_index: usize,
     pub(super) rule_index: usize,
+    pub(super) id: Option<String>,
     pub(super) selector: String,
 }
 
@@ -72,6 +73,7 @@ pub(super) fn local_style_rule_entries(document: &UiAssetDocument) -> Vec<LocalS
             entries.push(LocalStyleRuleEntry {
                 stylesheet_index,
                 rule_index,
+                id: rule.id.clone(),
                 selector: rule.selector.clone(),
             });
         }
@@ -129,6 +131,29 @@ pub(super) fn reconcile_selected_style_rule_index(
         (Some(index), count) => Some(index.min(count - 1)),
         (None, _) => None,
     }
+}
+
+pub(super) fn reconcile_selected_style_rule_selection(
+    document: &UiAssetDocument,
+    current_index: Option<usize>,
+    current_id: Option<&str>,
+) -> (Option<usize>, Option<String>) {
+    let entries = local_style_rule_entries(document);
+    if entries.is_empty() {
+        return (None, None);
+    }
+    if let Some(current_id) = current_id {
+        if let Some(index) = entries
+            .iter()
+            .position(|entry| entry.id.as_deref() == Some(current_id))
+        {
+            return (Some(index), Some(current_id.to_string()));
+        }
+    }
+    let Some(index) = current_index.map(|index| index.min(entries.len() - 1)) else {
+        return (None, None);
+    };
+    (Some(index), entries[index].id.clone())
 }
 
 pub(super) fn reconcile_selected_style_rule_declaration_path(

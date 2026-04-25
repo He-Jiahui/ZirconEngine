@@ -1,14 +1,12 @@
-use super::workbench_host_page_pointer_route::WorkbenchHostPagePointerRoute;
-use super::workbench_host_page_pointer_target::WorkbenchHostPagePointerTarget;
+use super::host_page_pointer_route::HostPagePointerRoute;
+use super::host_page_pointer_target::HostPagePointerTarget;
 
-pub(super) fn to_public_route(
-    target: WorkbenchHostPagePointerTarget,
-) -> WorkbenchHostPagePointerRoute {
+pub(super) fn to_public_route(target: HostPagePointerTarget) -> HostPagePointerRoute {
     match target {
-        WorkbenchHostPagePointerTarget::Tab {
+        HostPagePointerTarget::Tab {
             item_index,
             page_id,
-        } => WorkbenchHostPagePointerRoute::Tab {
+        } => HostPagePointerRoute::Tab {
             item_index,
             page_id,
         },

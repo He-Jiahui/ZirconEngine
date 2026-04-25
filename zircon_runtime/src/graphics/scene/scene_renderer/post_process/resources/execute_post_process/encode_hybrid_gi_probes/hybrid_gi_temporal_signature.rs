@@ -1,17 +1,22 @@
 use std::collections::BTreeSet;
 
-use crate::core::framework::render::{RenderHybridGiExtract, RenderHybridGiProbe};
+use crate::core::framework::render::RenderHybridGiProbe;
 use crate::graphics::scene::scene_renderer::HybridGiScenePrepareResourcesSnapshot;
 use crate::graphics::types::{HybridGiResolveRuntime, ViewportRenderFrame};
 
+use super::hybrid_gi_hierarchy_rt_lighting::{
+    current_rt_lighting_surface_cache_proxy_rgb_and_support,
+    current_rt_lighting_surface_cache_proxy_rgb_support_and_quality,
+};
 use super::runtime_parent_chain::{
-    blend_runtime_rgb_lineage_sources, gather_runtime_descendant_chain_rgb,
-    gather_runtime_descendant_chain_rgb_without_depth_falloff,
+    blend_runtime_rgb_lineage_sources, frame_has_scheduled_trace_region_payload,
+    gather_runtime_descendant_chain_rgb, gather_runtime_descendant_chain_rgb_without_depth_falloff,
     gather_runtime_descendant_chain_support_and_quality_without_depth_falloff,
     gather_runtime_descendant_chain_support_and_revision_without_depth_falloff,
     gather_runtime_parent_chain_rgb, gather_runtime_parent_chain_rgb_without_depth_falloff,
     gather_runtime_parent_chain_support_and_quality_without_depth_falloff,
     gather_runtime_parent_chain_support_and_revision_without_depth_falloff,
+    runtime_resolve_weight_support, temporal_parent_probe_chain,
 };
 use super::scene_prepare_surface_cache_samples::{
     scene_prepare_surface_cache_fallback_rgb_and_support,
@@ -52,21 +57,8 @@ pub(super) fn hybrid_gi_temporal_signature(
     scene_prepare_resources: Option<&HybridGiScenePrepareResourcesSnapshot>,
 ) -> f32 {
     let surface_cache_signature_source = source.and_then(|source| {
-        surface_cache_proxy_participates_in_current_irradiance(frame, source.probe_id).then(|| {
-            frame
-                .hybrid_gi_scene_prepare
-                .as_ref()
-                .and_then(|scene_prepare| {
-                    scene_prepare_surface_cache_fallback_rgb_and_support(
-                        scene_prepare,
-                        source.position,
-                        source.radius,
-                        scene_prepare_resources,
-                    )
-                })
-        })
-    })
-    .flatten();
+        surface_cache_proxy_signature_source_in_current_gi(frame, source, scene_prepare_resources)
+    });
     let runtime_irradiance_signature_source = runtime_scene_truth_signature_source(
         frame,
         probe_id,
@@ -76,7 +68,7 @@ pub(super) fn hybrid_gi_temporal_signature(
     let runtime_rt_signature_source = runtime_scene_truth_signature_source(
         frame,
         probe_id,
-        HybridGiResolveRuntime::hierarchy_rt_lighting,
+        runtime_rt_lighting_temporal_source,
         HybridGiResolveRuntime::hierarchy_rt_lighting_includes_scene_truth,
     );
     let has_scene_truth_signature_authority = surface_cache_signature_source.is_some()
@@ -86,26 +78,25 @@ pub(super) fn hybrid_gi_temporal_signature(
     let mut mixed_signature = if has_scene_truth_signature_authority {
         SCENE_TRUTH_SIGNATURE_SEED
     } else {
-        let extract = frame.extract.lighting.hybrid_global_illumination.as_ref();
-        let parent_signature = parent_probe_id.unwrap_or(NO_PARENT_SIGNATURE_SEED);
+        let parent_chain = temporal_parent_probe_chain(frame, probe_id, parent_probe_id);
+        let parent_signature = parent_chain
+            .first()
+            .map(|(parent_probe_id, _)| *parent_probe_id)
+            .unwrap_or(NO_PARENT_SIGNATURE_SEED);
         let mut lineage_signature = mix_signature_words(
             probe_id ^ PROBE_SIGNATURE_SEED,
             parent_signature ^ PARENT_SIGNATURE_SEED,
         );
-        let mut next_parent_probe_id = parent_probe_id;
         let mut visited_probe_ids = BTreeSet::from([probe_id]);
-        let mut depth = 0u32;
-        while let Some(ancestor_probe_id) = next_parent_probe_id {
+        for (ancestor_probe_id, depth) in parent_chain {
             if !visited_probe_ids.insert(ancestor_probe_id) {
                 break;
             }
-            depth += 1;
+            let depth = depth as u32;
             lineage_signature = mix_signature_words(
                 lineage_signature ^ ancestor_probe_id.rotate_left(depth % u32::BITS),
                 ancestor_probe_id ^ ANCESTOR_SIGNATURE_DEPTH_SEED.wrapping_mul(depth),
             );
-            next_parent_probe_id =
-                extract.and_then(|extract| probe_parent_id(extract, ancestor_probe_id));
         }
         lineage_signature
     };
@@ -176,7 +167,7 @@ pub(super) fn hybrid_gi_temporal_signature(
         if let Some((quality, freshness)) = runtime_scene_truth_signature_validity(
             frame,
             probe_id,
-            HybridGiResolveRuntime::hierarchy_rt_lighting,
+            runtime_rt_lighting_temporal_source,
             HybridGiResolveRuntime::hierarchy_rt_lighting_includes_scene_truth,
             HybridGiResolveRuntime::hierarchy_rt_lighting_scene_truth_quality,
             HybridGiResolveRuntime::hierarchy_rt_lighting_scene_truth_freshness,
@@ -191,7 +182,7 @@ pub(super) fn hybrid_gi_temporal_signature(
         if let Some(revision_signature) = runtime_scene_truth_signature_revision(
             frame,
             probe_id,
-            HybridGiResolveRuntime::hierarchy_rt_lighting,
+            runtime_rt_lighting_temporal_source,
             HybridGiResolveRuntime::hierarchy_rt_lighting_includes_scene_truth,
             HybridGiResolveRuntime::hierarchy_rt_lighting_scene_truth_revision,
         ) {
@@ -212,24 +203,8 @@ pub(super) fn hybrid_gi_temporal_scene_truth_confidence(
     scene_prepare_resources: Option<&HybridGiScenePrepareResourcesSnapshot>,
 ) -> f32 {
     let surface_cache_confidence = source
-        .filter(|source| surface_cache_proxy_participates_in_current_irradiance(frame, source.probe_id))
-        .and_then(|source| {
-            frame
-                .hybrid_gi_scene_prepare
-                .as_ref()
-                .and_then(|scene_prepare| {
-                    scene_prepare_surface_cache_fallback_rgb_support_and_quality(
-                        scene_prepare,
-                        source.position,
-                        source.radius,
-                        scene_prepare_resources,
-                    )
-                })
-        })
-        .map(|(_, support, confidence_quality)| {
-            (support / SURFACE_CACHE_SIGNATURE_SUPPORT_NORMALIZER.max(f32::EPSILON)).clamp(0.0, 1.0)
-                * confidence_quality.clamp(0.0, 1.0)
-                * SURFACE_CACHE_PROXY_SCENE_TRUTH_CONFIDENCE_SCALE.clamp(0.0, 1.0)
+        .map(|source| {
+            surface_cache_proxy_confidence_in_current_gi(frame, source, scene_prepare_resources)
         })
         .unwrap_or(0.0);
     let runtime_irradiance_confidence = runtime_scene_truth_confidence(
@@ -243,7 +218,7 @@ pub(super) fn hybrid_gi_temporal_scene_truth_confidence(
     let runtime_rt_lighting_confidence = runtime_scene_truth_confidence(
         frame,
         probe_id,
-        HybridGiResolveRuntime::hierarchy_rt_lighting,
+        runtime_rt_lighting_temporal_source,
         HybridGiResolveRuntime::hierarchy_rt_lighting_includes_scene_truth,
         HybridGiResolveRuntime::hierarchy_rt_lighting_scene_truth_quality,
         HybridGiResolveRuntime::hierarchy_rt_lighting_scene_truth_freshness,
@@ -256,16 +231,91 @@ pub(super) fn hybrid_gi_temporal_scene_truth_confidence(
     ])
 }
 
+fn surface_cache_proxy_signature_source_in_current_gi(
+    frame: &ViewportRenderFrame,
+    source: &RenderHybridGiProbe,
+    scene_prepare_resources: Option<&HybridGiScenePrepareResourcesSnapshot>,
+) -> Option<([f32; 3], f32)> {
+    current_rt_lighting_surface_cache_proxy_rgb_and_support(frame, source, scene_prepare_resources)
+        .or_else(|| {
+            surface_cache_proxy_signature_source_in_current_irradiance(
+                frame,
+                source,
+                scene_prepare_resources,
+            )
+        })
+}
+
+fn surface_cache_proxy_confidence_in_current_gi(
+    frame: &ViewportRenderFrame,
+    source: &RenderHybridGiProbe,
+    scene_prepare_resources: Option<&HybridGiScenePrepareResourcesSnapshot>,
+) -> f32 {
+    if let Some((_, support, confidence_quality)) =
+        current_rt_lighting_surface_cache_proxy_rgb_support_and_quality(
+            frame,
+            source,
+            scene_prepare_resources,
+        )
+    {
+        return (support / SURFACE_CACHE_SIGNATURE_SUPPORT_NORMALIZER.max(f32::EPSILON))
+            .clamp(0.0, 1.0)
+            * confidence_quality.clamp(0.0, 1.0)
+            * SURFACE_CACHE_PROXY_SCENE_TRUTH_CONFIDENCE_SCALE.clamp(0.0, 1.0);
+    }
+
+    frame
+        .hybrid_gi_scene_prepare
+        .as_ref()
+        .and_then(|scene_prepare| {
+            surface_cache_proxy_participates_in_current_irradiance(frame, source.probe_id).then(
+                || {
+                    scene_prepare_surface_cache_fallback_rgb_support_and_quality(
+                        scene_prepare,
+                        source.position,
+                        source.radius,
+                        scene_prepare_resources,
+                    )
+                },
+            )
+        })
+        .flatten()
+        .map(|(_, support, confidence_quality)| {
+            (support / SURFACE_CACHE_SIGNATURE_SUPPORT_NORMALIZER.max(f32::EPSILON)).clamp(0.0, 1.0)
+                * confidence_quality.clamp(0.0, 1.0)
+                * SURFACE_CACHE_PROXY_SCENE_TRUTH_CONFIDENCE_SCALE.clamp(0.0, 1.0)
+        })
+        .unwrap_or(0.0)
+}
+
+fn surface_cache_proxy_signature_source_in_current_irradiance(
+    frame: &ViewportRenderFrame,
+    source: &RenderHybridGiProbe,
+    scene_prepare_resources: Option<&HybridGiScenePrepareResourcesSnapshot>,
+) -> Option<([f32; 3], f32)> {
+    surface_cache_proxy_participates_in_current_irradiance(frame, source.probe_id)
+        .then(|| {
+            frame
+                .hybrid_gi_scene_prepare
+                .as_ref()
+                .and_then(|scene_prepare| {
+                    scene_prepare_surface_cache_fallback_rgb_and_support(
+                        scene_prepare,
+                        source.position,
+                        source.radius,
+                        scene_prepare_resources,
+                    )
+                })
+        })
+        .flatten()
+}
+
 fn surface_cache_proxy_participates_in_current_irradiance(
     frame: &ViewportRenderFrame,
     probe_id: u32,
 ) -> bool {
     let scene_driven_frame = frame.hybrid_gi_scene_prepare.is_some();
-    let current_trace_schedule_is_empty = frame
-        .hybrid_gi_prepare
-        .as_ref()
-        .map(|prepare| prepare.scheduled_trace_region_ids.is_empty())
-        .unwrap_or(true);
+    let current_trace_schedule_is_empty = !frame_has_scheduled_trace_region_payload(frame);
     let exact_runtime_irradiance = frame
         .hybrid_gi_resolve_runtime
         .as_ref()
@@ -330,34 +380,33 @@ fn surface_cache_proxy_participates_in_current_irradiance(
         })
         .flatten()
         .filter(|runtime_irradiance| runtime_irradiance[3] > f32::EPSILON);
-    let descendant_scene_truth_runtime_irradiance =
-        (!exact_scene_truth_runtime_irradiance_present)
-            .then(|| {
-                gather_runtime_descendant_chain_rgb_without_depth_falloff(
-                    frame,
-                    probe_id,
-                    |runtime, descendant_probe_id| {
-                        if !runtime.hierarchy_irradiance_includes_scene_truth(descendant_probe_id) {
-                            return None;
-                        }
+    let descendant_scene_truth_runtime_irradiance = (!exact_scene_truth_runtime_irradiance_present)
+        .then(|| {
+            gather_runtime_descendant_chain_rgb_without_depth_falloff(
+                frame,
+                probe_id,
+                |runtime, descendant_probe_id| {
+                    if !runtime.hierarchy_irradiance_includes_scene_truth(descendant_probe_id) {
+                        return None;
+                    }
 
-                        runtime
-                            .hierarchy_irradiance(descendant_probe_id)
-                            .map(|hierarchy_irradiance| {
-                                (
-                                    [
-                                        hierarchy_irradiance[0],
-                                        hierarchy_irradiance[1],
-                                        hierarchy_irradiance[2],
-                                    ],
-                                    hierarchy_irradiance[3],
-                                )
-                            })
-                    },
-                )
-            })
-            .flatten()
-            .filter(|runtime_irradiance| runtime_irradiance[3] > f32::EPSILON);
+                    runtime
+                        .hierarchy_irradiance(descendant_probe_id)
+                        .map(|hierarchy_irradiance| {
+                            (
+                                [
+                                    hierarchy_irradiance[0],
+                                    hierarchy_irradiance[1],
+                                    hierarchy_irradiance[2],
+                                ],
+                                hierarchy_irradiance[3],
+                            )
+                        })
+                },
+            )
+        })
+        .flatten()
+        .filter(|runtime_irradiance| runtime_irradiance[3] > f32::EPSILON);
     let descendant_continuation_runtime_irradiance =
         (!exact_scene_truth_runtime_irradiance_present)
             .then(|| {
@@ -398,16 +447,15 @@ fn surface_cache_proxy_participates_in_current_irradiance(
     );
     let selected_runtime_irradiance_is_scene_truth =
         scene_driven_frame && scene_truth_runtime_irradiance.is_some();
-    let selected_runtime_irradiance =
-        if selected_runtime_irradiance_is_scene_truth {
-            scene_truth_runtime_irradiance
-        } else {
-            blend_runtime_rgb_lineage_sources(
-                scene_truth_runtime_irradiance,
-                continuation_runtime_irradiance,
-                None,
-            )
-        };
+    let selected_runtime_irradiance = if selected_runtime_irradiance_is_scene_truth {
+        scene_truth_runtime_irradiance
+    } else {
+        blend_runtime_rgb_lineage_sources(
+            scene_truth_runtime_irradiance,
+            continuation_runtime_irradiance,
+            None,
+        )
+    };
 
     if selected_runtime_irradiance.is_some() {
         return current_trace_schedule_is_empty && !selected_runtime_irradiance_is_scene_truth;
@@ -543,6 +591,33 @@ fn normalized_runtime_scene_truth_confidence(
         * lineage_scale.clamp(0.0, 1.0)
         * source_quality.clamp(0.0, 1.0)
         * source_freshness.clamp(0.0, 1.0)
+}
+
+fn runtime_rt_lighting_temporal_source(
+    runtime: &HybridGiResolveRuntime,
+    probe_id: u32,
+) -> Option<[f32; 4]> {
+    if let Some(hierarchy_rt_lighting) = runtime
+        .hierarchy_rt_lighting(probe_id)
+        .filter(|source| source[3] > f32::EPSILON)
+    {
+        return Some(hierarchy_rt_lighting);
+    }
+
+    runtime
+        .probe_rt_lighting_rgb
+        .get(&probe_id)
+        .copied()
+        .and_then(|rgb| {
+            let support =
+                runtime_resolve_weight_support(runtime.hierarchy_resolve_weight(probe_id));
+            (support > f32::EPSILON).then_some([
+                rgb[0] as f32 / 255.0,
+                rgb[1] as f32 / 255.0,
+                rgb[2] as f32 / 255.0,
+                support,
+            ])
+        })
 }
 
 fn runtime_scene_truth_signature_source<S, T>(
@@ -843,12 +918,4 @@ fn mix_signature_words(left: u32, right: u32) -> u32 {
 
 fn quantize_signature_channel(value: f32) -> u32 {
     (value.clamp(0.0, 1.0) * 255.0).round() as u32
-}
-
-fn probe_parent_id(extract: &RenderHybridGiExtract, probe_id: u32) -> Option<u32> {
-    extract
-        .probes
-        .iter()
-        .find(|probe| probe.probe_id == probe_id)
-        .and_then(|probe| probe.parent_probe_id)
 }

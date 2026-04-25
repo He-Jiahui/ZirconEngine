@@ -2,11 +2,11 @@ use super::super::support::*;
 use super::support::surface_control_frame;
 
 #[test]
-fn builtin_workbench_drawer_source_document_can_be_loaded_as_shared_surface() {
+fn builtin_host_drawer_source_document_can_be_loaded_as_shared_surface() {
     let _guard = env_lock().lock().unwrap();
 
     let mut runtime = crate::ui::template_runtime::EditorUiHostRuntime::default();
-    runtime.load_builtin_workbench_shell().unwrap();
+    runtime.load_builtin_host_templates().unwrap();
 
     let mut surface = runtime
         .build_shared_surface("workbench.drawer_source")

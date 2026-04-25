@@ -42,6 +42,8 @@ pub enum UiAssetEditorSessionError {
     InvalidPreviewIndex { index: usize },
     #[error("ui asset stylesheet rule index {index} is out of range")]
     InvalidStyleRuleIndex { index: usize },
+    #[error("ui asset stylesheet rule id {rule_id} is out of range")]
+    InvalidStyleRuleId { rule_id: String },
     #[error("ui asset matched style rule index {index} is out of range")]
     InvalidMatchedStyleRuleIndex { index: usize },
     #[error("ui asset stylesheet rule declaration index {index} is out of range")]
@@ -85,6 +87,7 @@ pub struct UiAssetEditorSession {
     pub(super) selection: UiDesignerSelectionModel,
     pub(super) style_inspector: UiStyleInspectorReflectionModel,
     pub(super) selected_style_rule_index: Option<usize>,
+    pub(super) selected_style_rule_id: Option<String>,
     pub(super) selected_matched_style_rule_index: Option<usize>,
     pub(super) selected_style_rule_declaration_path: Option<String>,
     pub(super) selected_style_token_name: Option<String>,

@@ -37,10 +37,26 @@ impl UiAssetEditorSession {
         external_effects: UiAssetEditorUndoExternalEffects,
         next_theme_source_key: Option<String>,
     ) -> Result<(), UiAssetEditorSessionError> {
+        self.apply_command_with_effects_theme_and_style_rule(
+            command,
+            external_effects,
+            next_theme_source_key,
+            None,
+        )
+    }
+
+    pub(super) fn apply_command_with_effects_theme_and_style_rule(
+        &mut self,
+        command: UiAssetEditorCommand,
+        external_effects: UiAssetEditorUndoExternalEffects,
+        next_theme_source_key: Option<String>,
+        next_style_rule_id: Option<Option<String>>,
+    ) -> Result<(), UiAssetEditorSessionError> {
         let before_source = self.source_buffer.text().to_string();
         let before_selection = self.selection.clone();
         let before_source_cursor = self.source_cursor_snapshot();
         let before_selected_theme_source_key = self.selected_theme_source_key.clone();
+        let before_selected_style_rule_id = self.selected_style_rule_id.clone();
         let tree_edit = command.structured_tree_edit().cloned();
         let document_replay = command.document_replay().cloned();
         let before_document = tree_edit.as_ref().map(|_| self.last_valid_document.clone());
@@ -57,6 +73,9 @@ impl UiAssetEditorSession {
         if let Some(next_theme_source_key) = next_theme_source_key {
             self.selected_theme_source_key = Some(next_theme_source_key);
         }
+        if let Some(next_style_rule_id) = next_style_rule_id {
+            self.selected_style_rule_id = next_style_rule_id;
+        }
         self.revalidate().map(|_| {
             if command.next_selection().is_some() {
                 self.set_source_cursor_to_selected_node_start();
@@ -65,7 +84,7 @@ impl UiAssetEditorSession {
             }
             let after_document = tree_edit.as_ref().map(|_| self.last_valid_document.clone());
             let after_source_cursor = self.source_cursor_snapshot();
-            self.undo_stack.push_edit(
+            self.undo_stack.push_edit_with_style_rule_selection(
                 command.label().to_string(),
                 tree_edit,
                 document_replay,
@@ -73,11 +92,13 @@ impl UiAssetEditorSession {
                 before_selection,
                 before_source_cursor,
                 before_selected_theme_source_key,
+                before_selected_style_rule_id,
                 before_document,
                 self.source_buffer.text().to_string(),
                 self.selection.clone(),
                 after_source_cursor,
                 self.selected_theme_source_key.clone(),
+                self.selected_style_rule_id.clone(),
                 after_document,
                 external_effects,
             );
@@ -187,6 +208,28 @@ impl UiAssetEditorSession {
         )
     }
 
+    pub(super) fn apply_document_edit_with_label_replay_and_style_rule_selection(
+        &mut self,
+        document: zircon_runtime::ui::template::UiAssetDocument,
+        label: &str,
+        replay: UiAssetEditorDocumentReplayBundle,
+        selected_style_rule_id: Option<String>,
+    ) -> Result<(), UiAssetEditorSessionError> {
+        let next_source = serialize_document(&document)?;
+        self.apply_command_with_effects_theme_and_style_rule(
+            UiAssetEditorCommand::tree_edit_structured(
+                UiAssetEditorTreeEdit::generic(UiAssetEditorTreeEditKind::DocumentEdit),
+                label,
+                next_source,
+            )
+            .with_document_replay(replay),
+            UiAssetEditorUndoExternalEffects::default(),
+            None,
+            Some(selected_style_rule_id),
+        )?;
+        Ok(())
+    }
+
     pub(super) fn apply_binding_document_edit_with_label(
         &mut self,
         document: zircon_runtime::ui::template::UiAssetDocument,
@@ -236,10 +279,12 @@ impl UiAssetEditorSession {
             selection,
             source_cursor,
             selected_theme_source_key,
+            selected_style_rule_id,
             ..
         } = transition;
         self.selection = selection;
         self.selected_theme_source_key = selected_theme_source_key;
+        self.selected_style_rule_id = selected_style_rule_id;
         self.source_buffer.replace(source);
         self.restore_source_cursor_snapshot(&source_cursor);
         if document_changed {

@@ -1,4 +1,5 @@
 use crate::core::framework::render::RenderPipelineHandle;
+use crate::graphics::feature::RenderFeatureCapabilityRequirement;
 use crate::render_graph::CompiledRenderGraph;
 
 use crate::extract::FrameHistoryBinding;
@@ -13,6 +14,7 @@ pub struct CompiledRenderPipeline {
     pub stages: Vec<RenderPassStage>,
     pub enabled_features: Vec<RendererFeatureAsset>,
     pub required_extract_sections: Vec<String>,
+    pub capability_requirements: Vec<RenderFeatureCapabilityRequirement>,
     pub history_bindings: Vec<FrameHistoryBinding>,
     pub graph: CompiledRenderGraph,
 }

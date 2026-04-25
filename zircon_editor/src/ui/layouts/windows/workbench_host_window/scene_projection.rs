@@ -28,7 +28,7 @@ pub(crate) fn build_host_scene_data(
     status_primary: &SharedString,
     delete_enabled: bool,
     project_overview: &crate::ui::workbench::snapshot::ProjectOverviewSnapshot,
-) -> HostWorkbenchWindowSceneData {
+) -> HostWindowSceneData {
     let metrics = surface_metrics();
     let orchestration =
         surface_orchestration_data(host_surface_data, host_shell, host_layout, &metrics);
@@ -163,7 +163,7 @@ pub(crate) fn build_host_scene_data(
         header_height_px: metrics.document_header_height_px,
     };
 
-    HostWorkbenchWindowSceneData {
+    HostWindowSceneData {
         layout: host_layout.clone(),
         metrics,
         orchestration,
@@ -197,8 +197,8 @@ pub(crate) fn build_native_floating_surface_data(
     }
 }
 
-fn surface_metrics() -> HostWorkbenchSurfaceMetricsData {
-    HostWorkbenchSurfaceMetricsData {
+fn surface_metrics() -> HostWindowSurfaceMetricsData {
+    HostWindowSurfaceMetricsData {
         outer_margin_px: OUTER_MARGIN_PX,
         rail_width_px: RAIL_WIDTH_PX,
         top_bar_height_px: TOP_BAR_HEIGHT_PX,
@@ -212,8 +212,8 @@ fn surface_orchestration_data(
     host_surface_data: &HostWindowSurfaceData,
     host_shell: &HostWindowShellData,
     host_layout: &HostWindowLayoutData,
-    metrics: &HostWorkbenchSurfaceMetricsData,
-) -> HostWorkbenchSurfaceOrchestrationData {
+    metrics: &HostWindowSurfaceMetricsData,
+) -> HostWindowSurfaceOrchestrationData {
     let left_has_rail =
         host_layout.left_region_frame.width > 0.0 && host_surface_data.left_tabs.row_count() > 0;
     let right_has_rail =
@@ -244,7 +244,7 @@ fn surface_orchestration_data(
         0.0
     };
 
-    HostWorkbenchSurfaceOrchestrationData {
+    HostWindowSurfaceOrchestrationData {
         left_rail_width_px,
         right_rail_width_px,
         left_stack_width_px,
@@ -276,12 +276,12 @@ fn pane_with_ui_asset_nodes(mut pane: PaneData, width: f32, height: f32) -> Pane
 
     let size = UiSize::new(width.max(0.0), height.max(0.0));
     let projection = ui_asset_editor_node_projection(size);
-    pane.ui_asset.nodes = projection.nodes;
-    pane.ui_asset.center_column_node = projection.center_column_node;
-    pane.ui_asset.designer_panel_node = projection.designer_panel_node;
-    pane.ui_asset.designer_canvas_panel_node = projection.designer_canvas_panel_node;
-    pane.ui_asset.inspector_panel_node = projection.inspector_panel_node;
-    pane.ui_asset.stylesheet_panel_node = projection.stylesheet_panel_node;
+    pane.body_compat.ui_asset.nodes = projection.nodes;
+    pane.body_compat.ui_asset.center_column_node = projection.center_column_node;
+    pane.body_compat.ui_asset.designer_panel_node = projection.designer_panel_node;
+    pane.body_compat.ui_asset.designer_canvas_panel_node = projection.designer_canvas_panel_node;
+    pane.body_compat.ui_asset.inspector_panel_node = projection.inspector_panel_node;
+    pane.body_compat.ui_asset.stylesheet_panel_node = projection.stylesheet_panel_node;
     pane
 }
 
@@ -307,7 +307,7 @@ fn pane_with_hierarchy_projection(mut pane: PaneData, width: f32, height: f32) -
     }
 
     let size = UiSize::new(width.max(0.0), height.max(0.0));
-    pane.hierarchy.nodes = hierarchy_pane_nodes(size);
+    pane.body_compat.hierarchy.nodes = hierarchy_pane_nodes(size);
     pane
 }
 
@@ -317,7 +317,7 @@ fn pane_with_inspector_projection(mut pane: PaneData, width: f32, height: f32) -
     }
 
     let size = UiSize::new(width.max(0.0), height.max(0.0));
-    pane.inspector.nodes = inspector_pane_nodes(size);
+    pane.body_compat.inspector.nodes = inspector_pane_nodes(size);
     pane
 }
 
@@ -327,7 +327,7 @@ fn pane_with_console_projection(mut pane: PaneData, width: f32, height: f32) -> 
     }
 
     let size = UiSize::new(width.max(0.0), height.max(0.0));
-    pane.console.nodes = console_pane_nodes(size);
+    pane.body_compat.console.nodes = console_pane_nodes(size);
     pane
 }
 
@@ -337,7 +337,7 @@ fn pane_with_assets_activity_projection(mut pane: PaneData, width: f32, height: 
     }
 
     let size = UiSize::new(width.max(0.0), height.max(0.0));
-    pane.assets_activity = assets_activity_pane_data(size);
+    pane.body_compat.assets_activity = assets_activity_pane_data(size);
     pane
 }
 
@@ -347,7 +347,7 @@ fn pane_with_asset_browser_projection(mut pane: PaneData, width: f32, height: f3
     }
 
     let size = UiSize::new(width.max(0.0), height.max(0.0));
-    pane.asset_browser.nodes = asset_browser_pane_nodes(size);
+    pane.body_compat.asset_browser.nodes = asset_browser_pane_nodes(size);
     pane
 }
 
@@ -362,7 +362,7 @@ fn pane_with_project_overview_projection(
     }
 
     let size = UiSize::new(width.max(0.0), height.max(0.0));
-    pane.project_overview = project_overview_pane_data(project_overview, size);
+    pane.body_compat.project_overview = project_overview_pane_data(project_overview, size);
     pane
 }
 
@@ -374,7 +374,7 @@ fn pane_with_animation_projection(mut pane: PaneData, width: f32, height: f32) -
     }
 
     let size = UiSize::new(width.max(0.0), height.max(0.0));
-    pane.animation.nodes = animation_editor_pane_nodes(size);
+    pane.body_compat.animation.nodes = animation_editor_pane_nodes(size);
     pane
 }
 

@@ -1,8 +1,8 @@
 use zircon_runtime::ui::layout::UiFrame;
 
-use super::workbench_host_page_pointer_layout::WorkbenchHostPagePointerLayout;
+use super::host_page_pointer_layout::HostPagePointerLayout;
 
-pub(super) fn root_frame(layout: &WorkbenchHostPagePointerLayout) -> UiFrame {
+pub(super) fn root_frame(layout: &HostPagePointerLayout) -> UiFrame {
     UiFrame::new(
         0.0,
         0.0,

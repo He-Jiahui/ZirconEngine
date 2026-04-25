@@ -4,8 +4,8 @@ use super::constants::{
     CLOSEABLE_TAB_MIN_WIDTH, CLOSE_NODE_ID_BASE, TAB_MIN_WIDTH, TAB_NODE_ID_BASE,
 };
 use super::{
-    workbench_document_tab_pointer_layout::WorkbenchDocumentTabPointerLayout,
-    workbench_document_tab_pointer_surface::WorkbenchDocumentTabPointerSurface,
+    host_document_tab_pointer_layout::HostDocumentTabPointerLayout,
+    host_document_tab_pointer_surface::HostDocumentTabPointerSurface,
 };
 
 pub(in crate::ui::slint_host::document_tab_pointer) fn tab_node_id(
@@ -23,7 +23,7 @@ pub(in crate::ui::slint_host::document_tab_pointer) fn close_node_id(
 }
 
 pub(in crate::ui::slint_host::document_tab_pointer) fn tab_min_width(
-    surface: &WorkbenchDocumentTabPointerSurface,
+    surface: &HostDocumentTabPointerSurface,
     item_index: usize,
 ) -> f32 {
     surface
@@ -40,7 +40,7 @@ pub(in crate::ui::slint_host::document_tab_pointer) fn tab_min_width(
 }
 
 pub(in crate::ui::slint_host::document_tab_pointer) fn root_frame(
-    layout: &WorkbenchDocumentTabPointerLayout,
+    layout: &HostDocumentTabPointerLayout,
 ) -> UiFrame {
     let max_x = layout
         .surfaces

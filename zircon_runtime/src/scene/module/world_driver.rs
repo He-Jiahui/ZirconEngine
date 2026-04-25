@@ -10,7 +10,7 @@ use crate::core::manager::resolve_animation_manager;
 use crate::core::manager::resolve_physics_manager;
 use crate::core::math::Real;
 use crate::core::{CoreError, CoreHandle};
-use crate::physics::build_world_sync_state;
+use crate::physics::{build_world_sync_state, integrate_builtin_physics_steps};
 use crate::scene::{EntityId, LevelSystem};
 
 #[derive(Clone, Debug)]
@@ -63,7 +63,8 @@ impl WorldDriver {
         if let Ok(physics) = resolve_physics_manager(core) {
             let world_handle = level.handle();
             let step_plan = physics.plan_world_step(world_handle, delta_seconds);
-            level.with_world(|world| {
+            level.with_world_mut(|world| {
+                integrate_builtin_physics_steps(world, step_plan);
                 physics.sync_world(build_world_sync_state(world_handle, world));
             });
             let contacts = physics.drain_contacts(world_handle);

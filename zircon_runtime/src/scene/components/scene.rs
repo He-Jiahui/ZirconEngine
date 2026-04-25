@@ -154,6 +154,10 @@ pub enum RigidBodyType {
 pub struct RigidBodyComponent {
     pub body_type: RigidBodyType,
     pub mass: Real,
+    #[serde(default)]
+    pub linear_velocity: Vec3,
+    #[serde(default)]
+    pub angular_velocity: Vec3,
     pub linear_damping: Real,
     pub angular_damping: Real,
     pub gravity_scale: Real,
@@ -167,6 +171,8 @@ impl Default for RigidBodyComponent {
         Self {
             body_type: RigidBodyType::Dynamic,
             mass: 1.0,
+            linear_velocity: Vec3::ZERO,
+            angular_velocity: Vec3::ZERO,
             linear_damping: 0.0,
             angular_damping: 0.0,
             gravity_scale: 1.0,

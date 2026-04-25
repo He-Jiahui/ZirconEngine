@@ -17,13 +17,14 @@ use zircon_runtime::asset::{
 use zircon_runtime::core::framework::animation::{
     AnimationParameterValue, AnimationPlaybackSettings, AnimationPoseSource,
 };
+use zircon_runtime::core::framework::physics::{PhysicsSettings, PhysicsSimulationMode};
 use zircon_runtime::core::framework::render::{
     RenderExtractContext, RenderExtractProducer, SceneViewportExtractRequest,
     ViewportRenderSettings,
 };
 use zircon_runtime::core::framework::scene::{ComponentPropertyPath, EntityPath};
 use zircon_runtime::core::manager::resolve_physics_manager;
-use zircon_runtime::core::math::{Transform, Vec3};
+use zircon_runtime::core::math::{Quat, Transform, Vec3};
 use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::foundation::FOUNDATION_MODULE_NAME;
 use zircon_runtime::scene::components::{
@@ -288,6 +289,161 @@ fn quaternion_channel(keys: [(f32, [f32; 4]); 2]) -> AnimationChannelAsset {
             })
             .collect(),
     }
+}
+
+#[test]
+fn level_tick_integrates_dynamic_rigid_body_linear_velocity() {
+    let runtime = create_runtime_with_scene_and_physics();
+    runtime
+        .resolve_manager::<zircon_runtime::physics::DefaultPhysicsManager>(
+            "PhysicsModule.Manager.DefaultPhysicsManager",
+        )
+        .unwrap()
+        .store_settings(PhysicsSettings {
+            backend: "builtin".to_string(),
+            simulation_mode: PhysicsSimulationMode::Simulate,
+            ..PhysicsSettings::default()
+        })
+        .unwrap();
+    let level = create_default_level(&runtime.handle()).unwrap();
+    let body = level.with_world_mut(|world| {
+        let body = world.spawn_node(NodeKind::Cube);
+        world
+            .update_transform(body, Transform::from_translation(Vec3::ZERO))
+            .unwrap();
+        world
+            .set_rigid_body(
+                body,
+                Some(RigidBodyComponent {
+                    body_type: RigidBodyType::Dynamic,
+                    linear_velocity: Vec3::new(2.0, 0.0, 0.0),
+                    gravity_scale: 0.0,
+                    ..RigidBodyComponent::default()
+                }),
+            )
+            .unwrap();
+        body
+    });
+
+    level.tick(&runtime.handle(), 1.0 / 60.0).unwrap();
+
+    let (translation, velocity) = level.with_world(|world| {
+        (
+            world.find_node(body).unwrap().transform.translation,
+            world.rigid_body(body).unwrap().linear_velocity,
+        )
+    });
+    assert!((translation.x - (2.0 / 60.0)).abs() < 1.0e-6);
+    assert_eq!(translation.y, 0.0);
+    assert_eq!(translation.z, 0.0);
+    assert_eq!(velocity, Vec3::new(2.0, 0.0, 0.0));
+}
+
+#[test]
+fn level_tick_integrates_dynamic_rigid_body_angular_velocity() {
+    let runtime = create_runtime_with_scene_and_physics();
+    runtime
+        .resolve_manager::<zircon_runtime::physics::DefaultPhysicsManager>(
+            "PhysicsModule.Manager.DefaultPhysicsManager",
+        )
+        .unwrap()
+        .store_settings(PhysicsSettings {
+            backend: "builtin".to_string(),
+            simulation_mode: PhysicsSimulationMode::Simulate,
+            ..PhysicsSettings::default()
+        })
+        .unwrap();
+    let level = create_default_level(&runtime.handle()).unwrap();
+    let body = level.with_world_mut(|world| {
+        let body = world.spawn_node(NodeKind::Cube);
+        world
+            .set_rigid_body(
+                body,
+                Some(RigidBodyComponent {
+                    body_type: RigidBodyType::Dynamic,
+                    angular_velocity: Vec3::new(0.0, std::f32::consts::FRAC_PI_2, 0.0),
+                    gravity_scale: 0.0,
+                    ..RigidBodyComponent::default()
+                }),
+            )
+            .unwrap();
+        body
+    });
+
+    level.tick(&runtime.handle(), 1.0 / 60.0).unwrap();
+
+    let (rotation, angular_velocity) = level.with_world(|world| {
+        (
+            world.find_node(body).unwrap().transform.rotation,
+            world.rigid_body(body).unwrap().angular_velocity,
+        )
+    });
+    let expected = Quat::from_rotation_y(std::f32::consts::FRAC_PI_2 / 60.0);
+    assert!(
+        rotation.abs_diff_eq(expected, 1.0e-6),
+        "expected {expected:?}, got {rotation:?}"
+    );
+    assert_eq!(
+        angular_velocity,
+        Vec3::new(0.0, std::f32::consts::FRAC_PI_2, 0.0)
+    );
+}
+
+#[test]
+fn level_tick_integrates_kinematic_rigid_body_velocity() {
+    let runtime = create_runtime_with_scene_and_physics();
+    runtime
+        .resolve_manager::<zircon_runtime::physics::DefaultPhysicsManager>(
+            "PhysicsModule.Manager.DefaultPhysicsManager",
+        )
+        .unwrap()
+        .store_settings(PhysicsSettings {
+            backend: "builtin".to_string(),
+            simulation_mode: PhysicsSimulationMode::Simulate,
+            ..PhysicsSettings::default()
+        })
+        .unwrap();
+    let level = create_default_level(&runtime.handle()).unwrap();
+    let body = level.with_world_mut(|world| {
+        let body = world.spawn_node(NodeKind::Cube);
+        world
+            .set_rigid_body(
+                body,
+                Some(RigidBodyComponent {
+                    body_type: RigidBodyType::Kinematic,
+                    linear_velocity: Vec3::new(3.0, 0.0, 0.0),
+                    angular_velocity: Vec3::new(0.0, std::f32::consts::PI, 0.0),
+                    linear_damping: 30.0,
+                    angular_damping: 30.0,
+                    ..RigidBodyComponent::default()
+                }),
+            )
+            .unwrap();
+        body
+    });
+
+    level.tick(&runtime.handle(), 1.0 / 60.0).unwrap();
+
+    let (transform, rigid_body) = level.with_world(|world| {
+        (
+            world.find_node(body).unwrap().transform,
+            world.rigid_body(body).unwrap().clone(),
+        )
+    });
+    assert!((transform.translation.x - (3.0 / 60.0)).abs() < 1.0e-6);
+    assert_eq!(transform.translation.y, 0.0);
+    assert_eq!(transform.translation.z, 0.0);
+    let expected_rotation = Quat::from_rotation_y(std::f32::consts::PI / 60.0);
+    assert!(
+        transform.rotation.abs_diff_eq(expected_rotation, 1.0e-6),
+        "expected {expected_rotation:?}, got {:?}",
+        transform.rotation
+    );
+    assert_eq!(rigid_body.linear_velocity, Vec3::new(3.0, 0.0, 0.0));
+    assert_eq!(
+        rigid_body.angular_velocity,
+        Vec3::new(0.0, std::f32::consts::PI, 0.0)
+    );
 }
 
 #[test]
