@@ -1,80 +1,31 @@
 #[test]
-fn extensions_root_stays_structural_after_module_split() {
-    let source = include_str!("../../extensions/mod.rs");
+fn runtime_extensions_root_is_removed_after_plugin_cutover() {
+    let runtime_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
 
-    for forbidden in [
-        "use std::sync::Arc;",
-        "fn module_descriptor_with_driver_and_manager",
-        "DriverDescriptor",
-        "ManagerDescriptor",
-        "ServiceObject",
-    ] {
-        assert!(
-            !source.contains(forbidden),
-            "expected extensions/mod.rs to stay structural after split, found `{forbidden}`"
-        );
-    }
+    assert!(
+        !runtime_root.join("src/extensions").exists(),
+        "optional runtime extension implementations should live under zircon_plugins, not zircon_runtime/src/extensions"
+    );
 }
 
 #[test]
-fn extension_module_roots_stay_structural_after_module_split() {
-    for (label, source, forbidden) in [
-        (
-            "navigation",
-            include_str!("../../extensions/navigation/mod.rs"),
-            [
-                "pub struct NavigationConfig",
-                "pub struct NavigationModule",
-                "pub fn module_descriptor(",
-                "impl EngineModule for NavigationModule",
-            ],
-        ),
-        (
-            "net",
-            include_str!("../../extensions/net/mod.rs"),
-            [
-                "pub struct NetConfig",
-                "pub struct NetModule",
-                "pub fn module_descriptor(",
-                "impl EngineModule for NetModule",
-            ],
-        ),
-        (
-            "particles",
-            include_str!("../../extensions/particles/mod.rs"),
-            [
-                "pub struct ParticlesConfig",
-                "pub struct ParticlesModule",
-                "pub fn module_descriptor(",
-                "impl EngineModule for ParticlesModule",
-            ],
-        ),
-        (
-            "sound",
-            include_str!("../../extensions/sound/mod.rs"),
-            [
-                "pub struct SoundConfig",
-                "pub struct SoundModule",
-                "pub fn module_descriptor(",
-                "impl EngineModule for SoundModule",
-            ],
-        ),
-        (
-            "texture",
-            include_str!("../../extensions/texture/mod.rs"),
-            [
-                "pub struct TextureConfig",
-                "pub struct TextureModule",
-                "pub fn module_descriptor(",
-                "impl EngineModule for TextureModule",
-            ],
-        ),
-    ] {
-        for marker in forbidden {
-            assert!(
-                !source.contains(marker),
-                "expected extensions/{label}/mod.rs to stay structural after split, found `{marker}`"
-            );
-        }
+fn optional_extension_module_roots_live_in_zircon_plugins() {
+    let repo_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .expect("runtime crate should have a workspace parent");
+
+    for plugin in ["navigation", "net", "particles", "sound", "texture"] {
+        let plugin_root = repo_root.join("zircon_plugins").join(plugin);
+        let runtime_lib = plugin_root.join("runtime/src/lib.rs");
+        let plugin_manifest = plugin_root.join("plugin.toml");
+
+        assert!(
+            runtime_lib.exists(),
+            "expected optional runtime plugin {plugin} to own runtime/src/lib.rs"
+        );
+        assert!(
+            plugin_manifest.exists(),
+            "expected optional runtime plugin {plugin} to declare plugin.toml"
+        );
     }
 }

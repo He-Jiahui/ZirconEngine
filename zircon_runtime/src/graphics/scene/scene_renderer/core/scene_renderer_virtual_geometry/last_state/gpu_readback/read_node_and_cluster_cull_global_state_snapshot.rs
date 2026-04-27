@@ -14,7 +14,8 @@ impl SceneRenderer {
     ) -> Result<Option<RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot>, GraphicsError>
     {
         let Some(buffer) = self
-            .last_virtual_geometry_node_and_cluster_cull_buffer
+            .advanced_plugin_outputs
+            .virtual_geometry_node_and_cluster_cull_buffer
             .as_ref()
         else {
             return Ok(None);

@@ -12,11 +12,11 @@ related_code:
   - zircon_runtime/src/core/manager/resolver.rs
   - zircon_runtime/src/core/manager/service_names.rs
   - zircon_runtime/src/core/resource/marker.rs
-  - zircon_runtime/src/extensions/sound/mod.rs
-  - zircon_runtime/src/extensions/sound/config.rs
-  - zircon_runtime/src/extensions/sound/module.rs
-  - zircon_runtime/src/extensions/sound/service_types.rs
-  - zircon_runtime/src/extensions/sound/tests.rs
+  - zircon_plugins/sound/runtime/src/mod.rs
+  - zircon_plugins/sound/runtime/src/config.rs
+  - zircon_plugins/sound/runtime/src/module.rs
+  - zircon_plugins/sound/runtime/src/service_types.rs
+  - zircon_plugins/sound/runtime/src/tests.rs
   - zircon_runtime/src/asset/assets/mod.rs
   - zircon_runtime/src/asset/assets/imported.rs
   - zircon_runtime/src/asset/assets/sound.rs
@@ -43,10 +43,10 @@ implementation_files:
   - zircon_runtime/src/core/manager/resolver.rs
   - zircon_runtime/src/core/manager/service_names.rs
   - zircon_runtime/src/core/resource/marker.rs
-  - zircon_runtime/src/extensions/sound/mod.rs
-  - zircon_runtime/src/extensions/sound/config.rs
-  - zircon_runtime/src/extensions/sound/module.rs
-  - zircon_runtime/src/extensions/sound/service_types.rs
+  - zircon_plugins/sound/runtime/src/mod.rs
+  - zircon_plugins/sound/runtime/src/config.rs
+  - zircon_plugins/sound/runtime/src/module.rs
+  - zircon_plugins/sound/runtime/src/service_types.rs
   - zircon_runtime/src/asset/assets/mod.rs
   - zircon_runtime/src/asset/assets/imported.rs
   - zircon_runtime/src/asset/assets/sound.rs
@@ -67,7 +67,7 @@ plan_sources:
   - .codex/plans/全系统重构方案.md
 tests:
   - cargo test -p zircon_runtime asset::tests::project::manager::project_manager_imports_sound_assets_into_runtime_library --locked
-  - cargo test -p zircon_runtime extensions::sound::tests::sound_manager_loads_project_wav_and_mixes_playback_to_stereo --locked
+  - cargo test -p zircon_runtime zircon_plugin_sound_runtime::tests::sound_manager_loads_project_wav_and_mixes_playback_to_stereo --locked
   - cargo test -p zircon_runtime --lib --locked sound_manager_ --offline
   - cargo test -p zircon_runtime tests::extensions::manager_facades::physics_and_animation_runtime_extensions_keep_manager_handles_under_core_manager_facades --locked
   - .codex/skills/zircon-dev/scripts/validate-matrix.ps1
@@ -78,14 +78,14 @@ doc_type: module-detail
 
 ## Purpose
 
-这份文档记录 `M2` 第二个真实子系统起手：把 `zircon_runtime::extensions::sound` 从只有 module/config/service type 壳的占位实现，补成可通过项目资产加载 `.wav`、创建播放实例、并输出真实混音样本的最小音频闭环。
+这份文档记录 `M2` 第二个真实子系统起手：把 `zircon_plugin_sound_runtime` 从只有 module/config/service type 壳的占位实现，补成可通过项目资产加载 `.wav`、创建播放实例、并输出真实混音样本的最小音频闭环。
 
 当前完成线不是平台音频设备、空间音频、bus graph、streaming decode 或压缩格式支持，而是更窄的一层：
 
 - `core::framework::sound` 定义共享音频合同
 - `core::manager` 暴露稳定 `SoundManager` façade
 - `asset` 管线认识 `.wav` 并落成 `SoundAsset`
-- `extensions::sound` 提供默认 `software-mixer` runtime
+- `zircon_plugin_sound_runtime` 提供默认 `software-mixer` runtime
 
 这正对应 `M2` 里“音频先做资源加载与播放闭环”的完成线。
 
@@ -112,7 +112,7 @@ doc_type: module-detail
   - `SoundAsset`
   - `.wav` importer
   - `ProjectAssetManager::load_sound_asset(...)`
-- `zircon_runtime::extensions::sound`
+- `zircon_plugin_sound_runtime`
   - `SoundModule`
   - `SoundDriver`
   - `DefaultSoundManager`
@@ -241,7 +241,7 @@ doc_type: module-detail
 
 - `cargo test -p zircon_runtime asset::tests::project::manager::project_manager_imports_sound_assets_into_runtime_library --locked`
   - 证明最底层 `.wav` importer、`SoundAsset`、artifact store 和 project registry 已经闭合
-- `cargo test -p zircon_runtime extensions::sound::tests::sound_manager_loads_project_wav_and_mixes_playback_to_stereo --locked`
+- `cargo test -p zircon_runtime zircon_plugin_sound_runtime::tests::sound_manager_loads_project_wav_and_mixes_playback_to_stereo --locked`
   - 证明正常路径已经成立：`open_project -> load_clip -> play_clip -> render_mix`
 - `cargo test -p zircon_runtime --lib --locked sound_manager_ --offline`
   - 证明播放生命周期 contract 已经覆盖停止后不再混音、looped playback 跨 clip 结尾回绕，以及项目 WAV 加载混音路径

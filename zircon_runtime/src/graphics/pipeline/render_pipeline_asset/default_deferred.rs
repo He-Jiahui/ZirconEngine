@@ -23,7 +23,6 @@ impl RenderPipelineAsset {
                     RenderPassStage::Overlay,
                 ],
                 features: vec![
-                    RendererFeatureAsset::builtin(BuiltinRenderFeature::VirtualGeometry),
                     RendererFeatureAsset::builtin(BuiltinRenderFeature::DeferredGeometry),
                     RendererFeatureAsset::builtin(BuiltinRenderFeature::Shadows),
                     RendererFeatureAsset::builtin(
@@ -31,7 +30,6 @@ impl RenderPipelineAsset {
                     ),
                     RendererFeatureAsset::builtin(BuiltinRenderFeature::ClusteredLighting),
                     RendererFeatureAsset::builtin(BuiltinRenderFeature::DeferredLighting),
-                    RendererFeatureAsset::builtin(BuiltinRenderFeature::GlobalIllumination),
                     RendererFeatureAsset::builtin(BuiltinRenderFeature::Particle),
                     RendererFeatureAsset::builtin(BuiltinRenderFeature::Bloom),
                     RendererFeatureAsset::builtin(BuiltinRenderFeature::ReflectionProbes),

@@ -1,0 +1,883 @@
+[asset]
+kind = "layout"
+id = "editor.window.ui_component_showcase"
+version = 1
+display_name = "UI Component Showcase"
+
+[imports]
+widgets = ["res://ui/editor/component_widgets.ui.toml#ShowcaseSection"]
+styles = ["res://ui/theme/editor_material.ui.toml"]
+
+[root]
+node_id = "component_showcase_root"
+kind = "native"
+type = "VerticalBox"
+control_id = "UiComponentShowcaseRoot"
+classes = ["showcase-shell"]
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox", gap = 10.0 } }
+
+[[root.children]]
+[root.children.node]
+node_id = "component_showcase_header"
+kind = "native"
+type = "Label"
+control_id = "UiComponentShowcaseHeader"
+classes = ["showcase-title"]
+props = { text = "Runtime UI Component Showcase" }
+layout = { width = { stretch = "Stretch" }, height = { min = 36.0, preferred = 36.0, max = 36.0, stretch = "Fixed" } }
+
+[[root.children]]
+[root.children.node]
+node_id = "component_showcase_body"
+kind = "native"
+type = "HorizontalBox"
+control_id = "UiComponentShowcaseBody"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "HorizontalBox", gap = 10.0 } }
+
+[[root.children.node.children]]
+slot = { layout = { width = { min = 180.0, preferred = 180.0, max = 180.0, stretch = "Fixed" } } }
+[root.children.node.children.node]
+node_id = "component_showcase_nav"
+kind = "native"
+type = "VerticalBox"
+control_id = "ComponentCategoryNav"
+classes = ["showcase-panel"]
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox", gap = 6.0 } }
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "component_showcase_nav_visual"
+kind = "native"
+type = "Button"
+control_id = "ShowVisualCategory"
+props = { text = "Visual" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[[root.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/ShowVisualCategory"
+event = "Click"
+route = "UiComponentShowcase.SelectCategory.Visual"
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "component_showcase_nav_input"
+kind = "native"
+type = "Button"
+control_id = "ShowInputCategory"
+props = { text = "Input" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[[root.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/ShowInputCategory"
+event = "Click"
+route = "UiComponentShowcase.SelectCategory.Input"
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "component_showcase_nav_data"
+kind = "native"
+type = "Button"
+control_id = "ShowDataCategory"
+props = { text = "Collections" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[[root.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/ShowDataCategory"
+event = "Click"
+route = "UiComponentShowcase.SelectCategory.Collections"
+
+[[root.children.node.children]]
+slot = { layout = { width = { stretch = "Stretch" } } }
+[root.children.node.children.node]
+node_id = "component_showcase_content"
+kind = "native"
+type = "ScrollableBox"
+control_id = "ComponentShowcaseScroll"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox", gap = 10.0 }, scroll = { vertical = true } }
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "component_showcase_visual_section"
+kind = "reference"
+component_ref = "res://ui/editor/component_widgets.ui.toml#ShowcaseSection"
+params = { title = "Visual and Feedback" }
+
+[[root.children.node.children.node.children.node.children]]
+mount = "content"
+[root.children.node.children.node.children.node.children.node]
+node_id = "label_demo"
+kind = "native"
+type = "Label"
+control_id = "LabelDemo"
+props = { text = "Label, rich label, badge, icon, SVG icon and progress primitives" }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[[root.children.node.children.node.children.node.children]]
+mount = "content"
+[root.children.node.children.node.children.node.children.node]
+node_id = "rich_label_demo"
+kind = "native"
+type = "RichLabel"
+control_id = "RichLabelDemo"
+props = { text = "RichLabel: supports emphasized inspector copy" }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[[root.children.node.children.node.children.node.children]]
+mount = "content"
+[root.children.node.children.node.children.node.children.node]
+node_id = "image_demo"
+kind = "native"
+type = "Image"
+control_id = "ImageDemo"
+classes = ["showcase-field"]
+props = { value = "res://textures/grid.albedo.png", image = "res://textures/grid.albedo.png" }
+layout = { width = { stretch = "Stretch" }, height = { min = 26.0, preferred = 26.0, max = 26.0, stretch = "Fixed" } }
+
+[[root.children.node.children.node.children.node.children]]
+mount = "content"
+[root.children.node.children.node.children.node.children.node]
+node_id = "icon_demo"
+kind = "native"
+type = "Icon"
+control_id = "IconDemo"
+classes = ["showcase-field"]
+props = { value = "ionicons/options-outline.svg", icon = "options-outline" }
+layout = { width = { stretch = "Stretch" }, height = { min = 26.0, preferred = 26.0, max = 26.0, stretch = "Fixed" } }
+
+[[root.children.node.children.node.children.node.children]]
+mount = "content"
+[root.children.node.children.node.children.node.children.node]
+node_id = "svg_icon_demo"
+kind = "native"
+type = "SvgIcon"
+control_id = "SvgIconDemo"
+classes = ["showcase-field"]
+props = { source = "ionicons/options-outline.svg" }
+layout = { width = { stretch = "Stretch" }, height = { min = 26.0, preferred = 26.0, max = 26.0, stretch = "Fixed" } }
+
+[[root.children.node.children.node.children.node.children]]
+mount = "content"
+[root.children.node.children.node.children.node.children.node]
+node_id = "separator_demo"
+kind = "native"
+type = "Separator"
+control_id = "SeparatorDemo"
+classes = ["showcase-field"]
+props = { text = "Separator" }
+layout = { width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
+
+[[root.children.node.children.node.children.node.children]]
+mount = "content"
+[root.children.node.children.node.children.node.children.node]
+node_id = "progress_demo"
+kind = "native"
+type = "ProgressBar"
+control_id = "ProgressBarDemo"
+classes = ["showcase-field"]
+props = { value = 0.62, validation_level = "normal" }
+layout = { width = { stretch = "Stretch" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
+
+[[root.children.node.children.node.children.node.children]]
+mount = "content"
+[root.children.node.children.node.children.node.children.node]
+node_id = "spinner_demo"
+kind = "native"
+type = "Spinner"
+control_id = "SpinnerDemo"
+classes = ["showcase-field"]
+props = { text = "Spinner" }
+layout = { width = { stretch = "Stretch" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
+
+[[root.children.node.children.node.children.node.children]]
+mount = "content"
+[root.children.node.children.node.children.node.children.node]
+node_id = "badge_demo"
+kind = "native"
+type = "Badge"
+control_id = "BadgeDemo"
+classes = ["showcase-field"]
+props = { text = "Badge / Tag" }
+layout = { width = { stretch = "Stretch" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
+
+[[root.children.node.children.node.children.node.children]]
+mount = "content"
+[root.children.node.children.node.children.node.children.node]
+node_id = "help_row_demo"
+kind = "native"
+type = "HelpRow"
+control_id = "HelpRowDemo"
+classes = ["showcase-field"]
+props = { text = "Help row with inline validation guidance", validation_level = "warning", validation_message = "review" }
+layout = { width = { stretch = "Stretch" }, height = { min = 26.0, preferred = 26.0, max = 26.0, stretch = "Fixed" } }
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "component_showcase_input_section"
+kind = "reference"
+component_ref = "res://ui/editor/component_widgets.ui.toml#ShowcaseSection"
+params = { title = "Inputs and Numeric Fields" }
+
+[[root.children.node.children.node.children.node.children]]
+mount = "content"
+[root.children.node.children.node.children.node.children.node]
+node_id = "button_demo"
+kind = "native"
+type = "Button"
+control_id = "ButtonDemo"
+classes = ["showcase-field"]
+props = { text = "Button", validation_level = "normal" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/ButtonCommit"
+event = "Click"
+route = "UiComponentShowcase.Commit.Button"
+
+[[root.children.node.children.node.children.node.children]]
+mount = "content"
+[root.children.node.children.node.children.node.children.node]
+node_id = "icon_button_demo"
+kind = "native"
+type = "IconButton"
+control_id = "IconButtonDemo"
+classes = ["showcase-field"]
+props = { text = "Icon Button", icon = "add-outline" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/IconButtonCommit"
+event = "Click"
+route = "UiComponentShowcase.Commit.IconButton"
+
+[[root.children.node.children.node.children.node.children]]
+mount = "content"
+[root.children.node.children.node.children.node.children.node]
+node_id = "toggle_button_demo"
+kind = "native"
+type = "ToggleButton"
+control_id = "ToggleButtonDemo"
+classes = ["showcase-field"]
+props = { text = "Toggle Button", value = true, checked = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/ToggleButtonChanged"
+event = "Toggle"
+route = "UiComponentShowcase.Change.ToggleButton"
+
+[[root.children.node.children.node.children.node.children]]
+mount = "content"
+[root.children.node.children.node.children.node.children.node]
+node_id = "checkbox_demo"
+kind = "native"
+type = "Checkbox"
+control_id = "CheckboxDemo"
+classes = ["showcase-field"]
+props = { text = "Checkbox", value = true, checked = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/CheckboxChanged"
+event = "Toggle"
+route = "UiComponentShowcase.Change.Checkbox"
+
+[[root.children.node.children.node.children.node.children]]
+mount = "content"
+[root.children.node.children.node.children.node.children.node]
+node_id = "radio_demo"
+kind = "native"
+type = "Radio"
+control_id = "RadioDemo"
+classes = ["showcase-field"]
+props = { text = "Radio", value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/RadioChanged"
+event = "Change"
+route = "UiComponentShowcase.Change.Radio"
+
+[[root.children.node.children.node.children.node.children]]
+mount = "content"
+[root.children.node.children.node.children.node.children.node]
+node_id = "segmented_control_demo"
+kind = "native"
+type = "SegmentedControl"
+control_id = "SegmentedControlDemo"
+classes = ["showcase-field"]
+props = { value = "move", options = ["select", "move", "rotate", "scale"], selection_state = "single" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/SegmentedControlChanged"
+event = "Change"
+route = "UiComponentShowcase.SelectOption.SegmentedControl"
+
+[[root.children.node.children.node.children.node.children]]
+mount = "content"
+[root.children.node.children.node.children.node.children.node]
+node_id = "text_field_demo"
+kind = "native"
+type = "InputField"
+control_id = "InputFieldDemo"
+classes = ["showcase-field"]
+props = { value = "Runtime retained text", placeholder = "Type here", validation_level = "normal" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/InputFieldChanged"
+event = "Change"
+route = "UiComponentShowcase.ValueChanged.InputField"
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/InputFieldCommitted"
+event = "Submit"
+route = "UiComponentShowcase.Commit.InputField"
+
+[[root.children.node.children.node.children.node.children]]
+mount = "content"
+[root.children.node.children.node.children.node.children.node]
+node_id = "text_area_demo"
+kind = "native"
+type = "TextField"
+control_id = "TextFieldDemo"
+classes = ["showcase-field"]
+props = { value = "Longer retained text field", placeholder = "Multi-line notes", validation_level = "normal" }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/TextFieldChanged"
+event = "Change"
+route = "UiComponentShowcase.ValueChanged.TextField"
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/TextFieldCommitted"
+event = "Submit"
+route = "UiComponentShowcase.Commit.TextField"
+
+[[root.children.node.children.node.children.node.children]]
+mount = "content"
+[root.children.node.children.node.children.node.children.node]
+node_id = "number_field_demo"
+kind = "native"
+type = "NumberField"
+control_id = "NumberFieldDemo"
+classes = ["showcase-field"]
+props = { value = 42.0, min = 0.0, max = 100.0, step = 1.0, large_step = 10.0, validation_level = "normal" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/NumberFieldDragBegin"
+event = "DragBegin"
+route = "UiComponentShowcase.BeginDrag.NumberField"
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/NumberFieldDragUpdate"
+event = "DragUpdate"
+route = "UiComponentShowcase.DragDelta.NumberField"
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/NumberFieldLargeDragUpdate"
+event = "DragUpdate"
+route = "UiComponentShowcase.LargeDragDelta.NumberField"
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/NumberFieldDragEnd"
+event = "DragEnd"
+route = "UiComponentShowcase.EndDrag.NumberField"
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/NumberFieldChanged"
+event = "Change"
+route = "UiComponentShowcase.ValueChanged.NumberField"
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/NumberFieldCommitted"
+event = "Submit"
+route = "UiComponentShowcase.Commit.NumberField"
+
+[[root.children.node.children.node.children.node.children]]
+mount = "content"
+[root.children.node.children.node.children.node.children.node]
+node_id = "range_field_demo"
+kind = "native"
+type = "RangeField"
+control_id = "RangeFieldDemo"
+classes = ["showcase-field"]
+props = { value = 68.0, min = 0.0, max = 100.0, step = 1.0 }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/RangeFieldDragUpdate"
+event = "DragUpdate"
+route = "UiComponentShowcase.DragDelta.RangeField"
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/RangeFieldChanged"
+event = "Change"
+route = "UiComponentShowcase.ValueChanged.RangeField"
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/RangeFieldCommitted"
+event = "Submit"
+route = "UiComponentShowcase.Commit.RangeField"
+
+[[root.children.node.children.node.children.node.children]]
+mount = "content"
+[root.children.node.children.node.children.node.children.node]
+node_id = "color_field_demo"
+kind = "native"
+type = "ColorField"
+control_id = "ColorFieldDemo"
+classes = ["showcase-field"]
+props = { value = "#4d89ff", validation_level = "normal" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[[root.children.node.children.node.children.node.children]]
+mount = "content"
+[root.children.node.children.node.children.node.children.node]
+node_id = "vector2_field_demo"
+kind = "native"
+type = "Vector2Field"
+control_id = "Vector2FieldDemo"
+classes = ["showcase-field"]
+props = { value = [12.0, 24.0], value_text = "12, 24", validation_level = "normal" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[[root.children.node.children.node.children.node.children]]
+mount = "content"
+[root.children.node.children.node.children.node.children.node]
+node_id = "vector3_field_demo"
+kind = "native"
+type = "Vector3Field"
+control_id = "Vector3FieldDemo"
+classes = ["showcase-field"]
+props = { value = [0.0, 1.0, 0.0], value_text = "0, 1, 0", validation_level = "normal" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[[root.children.node.children.node.children.node.children]]
+mount = "content"
+[root.children.node.children.node.children.node.children.node]
+node_id = "vector4_field_demo"
+kind = "native"
+type = "Vector4Field"
+control_id = "Vector4FieldDemo"
+classes = ["showcase-field"]
+props = { value = [0.0, 1.0, 0.0, 1.0], value_text = "0, 1, 0, 1", validation_level = "normal" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "component_showcase_selection_section"
+kind = "reference"
+component_ref = "res://ui/editor/component_widgets.ui.toml#ShowcaseSection"
+params = { title = "Selection and References" }
+
+[[root.children.node.children.node.children.node.children]]
+mount = "content"
+[root.children.node.children.node.children.node.children.node]
+node_id = "dropdown_demo"
+kind = "native"
+type = "Dropdown"
+control_id = "DropdownDemo"
+classes = ["showcase-field"]
+props = { value = "runtime", options = ["runtime", "editor", "debug"], multiple = true, popup_open = true, selection_state = "multi", validation_level = "normal" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/DropdownChanged"
+event = "Change"
+route = "UiComponentShowcase.SelectOption.Dropdown"
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/DropdownOpenPopup"
+event = "Click"
+route = "UiComponentShowcase.OpenPopup.Dropdown"
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/DropdownClosePopup"
+event = "Click"
+route = "UiComponentShowcase.ClosePopup.Dropdown"
+
+[[root.children.node.children.node.children.node.children]]
+mount = "content"
+[root.children.node.children.node.children.node.children.node]
+node_id = "combo_box_demo"
+kind = "native"
+type = "ComboBox"
+control_id = "ComboBoxDemo"
+classes = ["showcase-field"]
+props = { value = "material", options = ["material", "fluent", "native"], multiple = false, selection_state = "single" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/ComboBoxChanged"
+event = "Change"
+route = "UiComponentShowcase.SelectOption.ComboBox"
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/ComboBoxOpenPopup"
+event = "Click"
+route = "UiComponentShowcase.OpenPopup.ComboBox"
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/ComboBoxClosePopup"
+event = "Click"
+route = "UiComponentShowcase.ClosePopup.ComboBox"
+
+[[root.children.node.children.node.children.node.children]]
+mount = "content"
+[root.children.node.children.node.children.node.children.node]
+node_id = "enum_field_demo"
+kind = "native"
+type = "EnumField"
+control_id = "EnumFieldDemo"
+classes = ["showcase-field"]
+props = { value = "RiderDocking", options = ["RiderDocking", "UnityInspector", "RuntimeOverlay"], selection_state = "single" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/EnumFieldChanged"
+event = "Change"
+route = "UiComponentShowcase.SelectOption.EnumField"
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/EnumFieldOpenPopup"
+event = "Click"
+route = "UiComponentShowcase.OpenPopup.EnumField"
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/EnumFieldClosePopup"
+event = "Click"
+route = "UiComponentShowcase.ClosePopup.EnumField"
+
+[[root.children.node.children.node.children.node.children]]
+mount = "content"
+[root.children.node.children.node.children.node.children.node]
+node_id = "flags_field_demo"
+kind = "native"
+type = "FlagsField"
+control_id = "FlagsFieldDemo"
+classes = ["showcase-field"]
+props = { value = ["Selectable", "Draggable"], value_text = "Selectable, Draggable", options = ["Selectable", "Draggable", "Disabled"], multiple = true, selection_state = "flags" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/FlagsFieldChanged"
+event = "Change"
+route = "UiComponentShowcase.SelectOption.FlagsField"
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/FlagsFieldOpenPopup"
+event = "Click"
+route = "UiComponentShowcase.OpenPopup.FlagsField"
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/FlagsFieldClosePopup"
+event = "Click"
+route = "UiComponentShowcase.ClosePopup.FlagsField"
+
+[[root.children.node.children.node.children.node.children]]
+mount = "content"
+[root.children.node.children.node.children.node.children.node]
+node_id = "search_select_demo"
+kind = "native"
+type = "SearchSelect"
+control_id = "SearchSelectDemo"
+classes = ["showcase-field"]
+props = { value = "runtime.ui.NumberField", query = "number", options = ["runtime.ui.NumberField", "runtime.ui.RangeField", "runtime.ui.Vector3Field"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/SearchSelectChanged"
+event = "Change"
+route = "UiComponentShowcase.SelectOption.SearchSelect"
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/SearchSelectOpenPopup"
+event = "Click"
+route = "UiComponentShowcase.OpenPopup.SearchSelect"
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/SearchSelectClosePopup"
+event = "Click"
+route = "UiComponentShowcase.ClosePopup.SearchSelect"
+
+[[root.children.node.children.node.children.node.children]]
+mount = "content"
+[root.children.node.children.node.children.node.children.node]
+node_id = "asset_field_demo"
+kind = "native"
+type = "AssetField"
+control_id = "AssetFieldDemo"
+classes = ["showcase-field"]
+props = { value = "res://textures/grid.albedo.png", validation_level = "normal" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/AssetFieldDropped"
+event = "Drop"
+route = "UiComponentShowcase.DropReference.AssetField"
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/AssetFieldLocate"
+event = "Click"
+route = "UiComponentShowcase.LocateReference.AssetField"
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/AssetFieldOpen"
+event = "Click"
+route = "UiComponentShowcase.OpenReference.AssetField"
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/AssetFieldClear"
+event = "Click"
+route = "UiComponentShowcase.ClearReference.AssetField"
+
+[[root.children.node.children.node.children.node.children]]
+mount = "content"
+[root.children.node.children.node.children.node.children.node]
+node_id = "instance_field_demo"
+kind = "native"
+type = "InstanceField"
+control_id = "InstanceFieldDemo"
+classes = ["showcase-field"]
+props = { value = "scene://Root/CameraRig", validation_level = "normal" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/InstanceFieldDropped"
+event = "Drop"
+route = "UiComponentShowcase.DropReference.InstanceField"
+
+[[root.children.node.children.node.children.node.children]]
+mount = "content"
+[root.children.node.children.node.children.node.children.node]
+node_id = "object_field_demo"
+kind = "native"
+type = "ObjectField"
+control_id = "ObjectFieldDemo"
+classes = ["showcase-field"]
+props = { value = "object://Selection/MainCamera", validation_level = "normal" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/ObjectFieldDropped"
+event = "Drop"
+route = "UiComponentShowcase.DropReference.ObjectField"
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "component_showcase_collections_section"
+kind = "reference"
+component_ref = "res://ui/editor/component_widgets.ui.toml#ShowcaseSection"
+params = { title = "Collections and Inspector Structures" }
+
+[[root.children.node.children.node.children.node.children]]
+mount = "content"
+[root.children.node.children.node.children.node.children.node]
+node_id = "group_demo"
+kind = "native"
+type = "Group"
+control_id = "GroupDemo"
+classes = ["showcase-panel"]
+props = { text = "Foldout Group", expanded = true, validation_level = "normal" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/GroupToggled"
+event = "Toggle"
+route = "UiComponentShowcase.ToggleExpanded.Group"
+
+[[root.children.node.children.node.children.node.children]]
+mount = "content"
+[root.children.node.children.node.children.node.children.node]
+node_id = "foldout_demo"
+kind = "native"
+type = "Foldout"
+control_id = "FoldoutDemo"
+classes = ["showcase-panel"]
+props = { text = "Foldout", expanded = false, validation_level = "normal" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/FoldoutToggled"
+event = "Toggle"
+route = "UiComponentShowcase.ToggleExpanded.Foldout"
+
+[[root.children.node.children.node.children.node.children]]
+mount = "content"
+[root.children.node.children.node.children.node.children.node]
+node_id = "property_row_demo"
+kind = "native"
+type = "PropertyRow"
+control_id = "PropertyRowDemo"
+classes = ["showcase-field"]
+props = { text = "Property Row", value = "Label + Field" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[[root.children.node.children.node.children.node.children]]
+mount = "content"
+[root.children.node.children.node.children.node.children.node]
+node_id = "inspector_section_demo"
+kind = "native"
+type = "InspectorSection"
+control_id = "InspectorSectionDemo"
+classes = ["showcase-panel"]
+props = { text = "Inspector Section", expanded = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[[root.children.node.children.node.children.node.children]]
+mount = "content"
+[root.children.node.children.node.children.node.children.node]
+node_id = "array_field_demo"
+kind = "native"
+type = "ArrayField"
+control_id = "ArrayFieldDemo"
+classes = ["showcase-field"]
+props = { items = ["Label", "NumberField", "AssetField"], value_text = "3 elements", element_type = "UiComponentRef", validation_level = "normal" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/ArrayFieldChanged"
+event = "Change"
+route = "UiComponentShowcase.ValueChanged.ArrayField"
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/ArrayFieldAddElement"
+event = "Submit"
+route = "UiComponentShowcase.AddElement.ArrayField"
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/ArrayFieldSetElement"
+event = "Submit"
+route = "UiComponentShowcase.SetElement.ArrayField"
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/ArrayFieldRemoveElement"
+event = "Submit"
+route = "UiComponentShowcase.RemoveElement.ArrayField"
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/ArrayFieldMoveElement"
+event = "DragEnd"
+route = "UiComponentShowcase.MoveElement.ArrayField"
+
+[[root.children.node.children.node.children.node.children]]
+mount = "content"
+[root.children.node.children.node.children.node.children.node]
+node_id = "map_field_demo"
+kind = "native"
+type = "MapField"
+control_id = "MapFieldDemo"
+classes = ["showcase-field"]
+props = { entries = { speed = 1.0, visible = true }, value_text = "2 entries", key_type = "String", value_type = "UiValue", validation_level = "normal" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/MapFieldChanged"
+event = "Change"
+route = "UiComponentShowcase.ValueChanged.MapField"
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/MapFieldAddEntry"
+event = "Submit"
+route = "UiComponentShowcase.AddMapEntry.MapField"
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/MapFieldSetEntry"
+event = "Submit"
+route = "UiComponentShowcase.SetMapEntry.MapField"
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/MapFieldRemoveEntry"
+event = "Submit"
+route = "UiComponentShowcase.RemoveMapEntry.MapField"
+
+[[root.children.node.children.node.children.node.children]]
+mount = "content"
+[root.children.node.children.node.children.node.children.node]
+node_id = "list_row_demo"
+kind = "native"
+type = "ListRow"
+control_id = "ListRowDemo"
+classes = ["showcase-field"]
+props = { text = "List Row", value = "selected" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/ListRowClicked"
+event = "Click"
+route = "UiComponentShowcase.Select.ListRow"
+
+[[root.children.node.children.node.children.node.children]]
+mount = "content"
+[root.children.node.children.node.children.node.children.node]
+node_id = "tree_row_demo"
+kind = "native"
+type = "TreeRow"
+control_id = "TreeRowDemo"
+classes = ["showcase-field"]
+props = { text = "Tree Row", expanded = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/TreeRowToggled"
+event = "Toggle"
+route = "UiComponentShowcase.ToggleExpanded.TreeRow"
+
+[[root.children.node.children.node.children.node.children]]
+mount = "content"
+[root.children.node.children.node.children.node.children.node]
+node_id = "context_action_menu_demo"
+kind = "native"
+type = "ContextActionMenu"
+control_id = "ContextActionMenuDemo"
+classes = ["showcase-field"]
+props = { value = "Inspect", options = ["Inspect", "Duplicate", "Delete"], popup_open = true, menu_items = ["Inspect|checked|Ctrl+I", "---", "Duplicate||Ctrl+D", "Delete|disabled|Del"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/ContextActionMenuChanged"
+event = "Change"
+route = "UiComponentShowcase.SelectOption.ContextActionMenu"
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/ContextActionMenuOpenPopup"
+event = "Click"
+route = "UiComponentShowcase.OpenPopup.ContextActionMenu"
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/ContextActionMenuClosePopup"
+event = "Click"
+route = "UiComponentShowcase.ClosePopup.ContextActionMenu"
+
+[[root.children.node.children]]
+slot = { layout = { width = { min = 260.0, preferred = 260.0, max = 260.0, stretch = "Fixed" } } }
+[root.children.node.children.node]
+node_id = "component_showcase_state_panel"
+kind = "native"
+type = "VerticalBox"
+control_id = "ComponentShowcaseStatePanel"
+classes = ["showcase-panel"]
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox", gap = 6.0 } }
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "component_showcase_state_title"
+kind = "native"
+type = "Label"
+control_id = "ComponentShowcaseStateTitle"
+classes = ["showcase-title"]
+props = { text = "Runtime State and Events" }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "component_showcase_event_log"
+kind = "native"
+type = "Label"
+control_id = "ComponentShowcaseEventLog"
+classes = ["showcase-muted"]
+props = { text = "Registered events: NumberField drag/commit, popup open/close, Dropdown change, Foldout toggle, Array/Map change, reference drop" }
+layout = { width = { stretch = "Stretch" }, height = { min = 64.0, preferred = 64.0, max = 64.0, stretch = "Fixed" } }

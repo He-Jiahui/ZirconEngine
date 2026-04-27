@@ -31,9 +31,11 @@ impl SceneRenderer {
     ) -> Result<Vec<VirtualGeometryIndirectAuthorityRecord>, GraphicsError> {
         read_indirect_authority_records_buffer(
             self,
-            self.last_virtual_geometry_indirect_authority_buffer
+            self.advanced_plugin_outputs
+                .virtual_geometry_indirect_authority_buffer
                 .as_deref(),
-            self.last_virtual_geometry_indirect_args_count,
+            self.advanced_plugin_outputs
+                .virtual_geometry_indirect_args_count,
             "zircon-vg-indirect-authority-records",
         )
     }
@@ -44,9 +46,11 @@ impl SceneRenderer {
     ) -> Result<Vec<VirtualGeometryIndirectAuthorityRecord>, GraphicsError> {
         read_indirect_authority_records_buffer(
             self,
-            self.last_virtual_geometry_indirect_execution_authority_buffer
+            self.advanced_plugin_outputs
+                .virtual_geometry_indirect_execution_authority_buffer
                 .as_deref(),
-            self.last_virtual_geometry_indirect_draw_count,
+            self.advanced_plugin_outputs
+                .virtual_geometry_indirect_draw_count,
             "zircon-vg-indirect-execution-authority-records",
         )
     }

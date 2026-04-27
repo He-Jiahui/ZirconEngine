@@ -235,12 +235,12 @@ pub(crate) fn normalize_editor_event_binding(
         EditorUiBindingPayload::ViewportCommand(_) => {
             Ok(EditorEvent::Viewport(viewport_event_from_binding(binding)?))
         }
-        EditorUiBindingPayload::WelcomeCommand(_) | EditorUiBindingPayload::Custom(_) => {
-            Err(format!(
-                "unsupported editor event binding {}",
-                binding.native_binding()
-            ))
-        }
+        EditorUiBindingPayload::WelcomeCommand(_)
+        | EditorUiBindingPayload::EditorOperation { .. }
+        | EditorUiBindingPayload::Custom(_) => Err(format!(
+            "unsupported editor event binding {}",
+            binding.native_binding()
+        )),
     }
 }
 

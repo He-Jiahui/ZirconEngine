@@ -31,6 +31,7 @@ use crate::ui::host::editor_asset_manager::{
 use crate::ui::host::module::EDITOR_MANAGER_NAME;
 use crate::ui::host::resource_access::resolve_ready_handle;
 use crate::ui::host::EditorManager;
+use crate::ui::template_runtime::EditorUiHostRuntime;
 use crate::ui::workbench::autolayout::{
     compute_workbench_shell_geometry, ShellRegionId, ShellSizePx, WorkbenchChromeMetrics,
     WorkbenchShellGeometry,
@@ -173,6 +174,7 @@ struct SlintEditorHost {
     welcome_surface_bridge: callback_dispatch::BuiltinWelcomeSurfaceTemplateBridge,
     inspector_surface_bridge: callback_dispatch::BuiltinInspectorSurfaceTemplateBridge,
     pane_surface_bridge: callback_dispatch::BuiltinPaneSurfaceTemplateBridge,
+    component_showcase_runtime: EditorUiHostRuntime,
     shell_pointer_bridge: HostShellPointerBridge,
     activity_rail_pointer_bridge: HostActivityRailPointerBridge,
     host_page_pointer_bridge: HostPagePointerBridge,

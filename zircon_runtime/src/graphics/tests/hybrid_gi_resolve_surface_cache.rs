@@ -7,6 +7,7 @@ use crate::core::framework::render::{
 };
 use crate::core::math::{Transform, UVec2, Vec3, Vec4};
 use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
+use crate::graphics::tests::plugin_render_feature_fixtures::hybrid_gi_render_feature_descriptor;
 use crate::scene::world::World;
 
 use crate::{
@@ -15,21 +16,19 @@ use crate::{
         HybridGiPrepareFrame, HybridGiPrepareProbe, HybridGiResolveRuntime,
         HybridGiScenePrepareFrame, ViewportRenderFrame,
     },
-    BuiltinRenderFeature, RenderPipelineAsset, RenderPipelineCompileOptions, SceneRenderer,
+    BuiltinRenderFeature, CompiledRenderPipeline, RenderFeatureCapabilityRequirement,
+    RenderPipelineAsset, RenderPipelineCompileOptions, SceneRenderer,
 };
 
-#[test]
-fn hybrid_gi_resolve_uses_atlas_only_persisted_surface_cache_page_sample_without_runtime_voxel_support(
-) {
-    let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
-    let viewport_size = UVec2::new(96, 64);
-    let extract = build_extract(viewport_size);
-    let compiled = RenderPipelineAsset::default_forward_plus()
+fn compile_hybrid_gi_pipeline(extract: &RenderFrameExtract) -> CompiledRenderPipeline {
+    RenderPipelineAsset::default_forward_plus()
+        .with_plugin_render_features([hybrid_gi_render_feature_descriptor()])
         .compile_with_options(
-            &extract,
+            extract,
             &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::GlobalIllumination)
+                .with_capability_enabled(
+                    RenderFeatureCapabilityRequirement::HybridGlobalIllumination,
+                )
                 .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
                 .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
                 .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
@@ -41,7 +40,25 @@ fn hybrid_gi_resolve_uses_atlas_only_persisted_surface_cache_page_sample_without
                 .with_feature_disabled(BuiltinRenderFeature::VirtualGeometry)
                 .with_async_compute(false),
         )
-        .unwrap();
+        .unwrap()
+}
+
+fn hybrid_gi_scene_renderer(asset_manager: Arc<ProjectAssetManager>) -> SceneRenderer {
+    SceneRenderer::new_with_plugin_render_features(
+        asset_manager,
+        [hybrid_gi_render_feature_descriptor()],
+    )
+    .unwrap()
+}
+
+#[test]
+fn hybrid_gi_resolve_uses_atlas_only_persisted_surface_cache_page_sample_without_runtime_voxel_support(
+) {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager);
+    let viewport_size = UVec2::new(96, 64);
+    let extract = build_extract(viewport_size);
+    let compiled = compile_hybrid_gi_pipeline(&extract);
 
     let warm_atlas_rgba = [240, 96, 48, 255];
     let cool_atlas_rgba = [48, 96, 240, 255];
@@ -124,26 +141,10 @@ fn hybrid_gi_resolve_uses_atlas_only_persisted_surface_cache_page_sample_without
 fn hybrid_gi_resolve_prefers_capture_surface_cache_page_sample_over_atlas_without_runtime_voxel_support(
 ) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let extract = build_extract(viewport_size);
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::GlobalIllumination)
-                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
-                .with_feature_disabled(BuiltinRenderFeature::Bloom)
-                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
-                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
-                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
-                .with_feature_disabled(BuiltinRenderFeature::Particle)
-                .with_feature_disabled(BuiltinRenderFeature::VirtualGeometry)
-                .with_async_compute(false),
-        )
-        .unwrap();
+    let compiled = compile_hybrid_gi_pipeline(&extract);
 
     let warm_scene_prepare = scene_prepare_without_runtime_voxel_support(
         runtime_scene_prepare_from_persisted_page_samples(
@@ -219,26 +220,10 @@ fn hybrid_gi_resolve_prefers_capture_surface_cache_page_sample_over_atlas_withou
 fn hybrid_gi_resolve_uses_atlas_only_runtime_scene_voxel_radiance_rehydrated_from_persisted_page_sample_on_clean_frame(
 ) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let extract = build_extract(viewport_size);
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::GlobalIllumination)
-                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
-                .with_feature_disabled(BuiltinRenderFeature::Bloom)
-                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
-                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
-                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
-                .with_feature_disabled(BuiltinRenderFeature::Particle)
-                .with_feature_disabled(BuiltinRenderFeature::VirtualGeometry)
-                .with_async_compute(false),
-        )
-        .unwrap();
+    let compiled = compile_hybrid_gi_pipeline(&extract);
 
     let warm_scene_prepare =
         stripped_surface_cache_page_contents(runtime_scene_prepare_from_persisted_page_samples(
@@ -311,26 +296,10 @@ fn hybrid_gi_resolve_uses_atlas_only_runtime_scene_voxel_radiance_rehydrated_fro
 fn hybrid_gi_resolve_prefers_capture_over_atlas_in_runtime_scene_voxel_radiance_rehydration_on_clean_frame(
 ) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let extract = build_extract(viewport_size);
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::GlobalIllumination)
-                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
-                .with_feature_disabled(BuiltinRenderFeature::Bloom)
-                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
-                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
-                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
-                .with_feature_disabled(BuiltinRenderFeature::Particle)
-                .with_feature_disabled(BuiltinRenderFeature::VirtualGeometry)
-                .with_async_compute(false),
-        )
-        .unwrap();
+    let compiled = compile_hybrid_gi_pipeline(&extract);
 
     let warm_scene_prepare =
         stripped_surface_cache_page_contents(runtime_scene_prepare_from_persisted_page_samples(
@@ -402,26 +371,10 @@ fn hybrid_gi_resolve_prefers_capture_over_atlas_in_runtime_scene_voxel_radiance_
 #[test]
 fn hybrid_gi_resolve_rejects_global_illumination_history_when_surface_cache_page_truth_changes() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let extract = build_extract(viewport_size);
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::GlobalIllumination)
-                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
-                .with_feature_disabled(BuiltinRenderFeature::Bloom)
-                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
-                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
-                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
-                .with_feature_disabled(BuiltinRenderFeature::Particle)
-                .with_feature_disabled(BuiltinRenderFeature::VirtualGeometry)
-                .with_async_compute(false),
-        )
-        .unwrap();
+    let compiled = compile_hybrid_gi_pipeline(&extract);
     let history_handle = crate::FrameHistoryHandle::new(15);
 
     let warm_scene_prepare = scene_prepare_without_runtime_voxel_support(
@@ -509,26 +462,10 @@ fn hybrid_gi_resolve_rejects_global_illumination_history_when_surface_cache_page
 fn hybrid_gi_resolve_blends_exact_runtime_rt_with_current_surface_cache_truth_when_trace_schedule_is_empty(
 ) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let extract = build_extract(viewport_size);
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::GlobalIllumination)
-                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
-                .with_feature_disabled(BuiltinRenderFeature::Bloom)
-                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
-                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
-                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
-                .with_feature_disabled(BuiltinRenderFeature::Particle)
-                .with_feature_disabled(BuiltinRenderFeature::VirtualGeometry)
-                .with_async_compute(false),
-        )
-        .unwrap();
+    let compiled = compile_hybrid_gi_pipeline(&extract);
     let neutral_runtime = HybridGiResolveRuntime {
         probe_rt_lighting_rgb: std::collections::BTreeMap::from([(200, [120, 120, 120])]),
         probe_hierarchy_irradiance_rgb_and_weight: std::collections::BTreeMap::from([(

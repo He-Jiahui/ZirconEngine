@@ -1,6 +1,6 @@
 use crate::core::framework::render::{RenderCapabilitySummary, RenderQualityProfile};
 
-use crate::{BuiltinRenderFeature, RenderPipelineCompileOptions};
+use crate::{RenderFeatureCapabilityRequirement, RenderPipelineCompileOptions};
 
 pub(super) fn apply_flagship_profile_features(
     profile: Option<&RenderQualityProfile>,
@@ -10,12 +10,14 @@ pub(super) fn apply_flagship_profile_features(
     if profile.is_some_and(|profile| profile.features.virtual_geometry)
         && capabilities.virtual_geometry_supported
     {
-        options = options.with_feature_enabled(BuiltinRenderFeature::VirtualGeometry);
+        options =
+            options.with_capability_enabled(RenderFeatureCapabilityRequirement::VirtualGeometry);
     }
     if profile.is_some_and(|profile| profile.features.hybrid_global_illumination)
         && capabilities.hybrid_global_illumination_supported
     {
-        options = options.with_feature_enabled(BuiltinRenderFeature::GlobalIllumination);
+        options = options
+            .with_capability_enabled(RenderFeatureCapabilityRequirement::HybridGlobalIllumination);
     }
 
     options

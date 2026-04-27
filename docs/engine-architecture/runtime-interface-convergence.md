@@ -25,18 +25,18 @@ related_code:
   - zircon_runtime/src/scene/world/property_access/mod.rs
   - zircon_runtime/src/scene/world/property_access/entries.rs
   - zircon_runtime/src/scene/world/property_access/write.rs
-  - zircon_runtime/src/extensions/mod.rs
-  - zircon_runtime/src/extensions/animation/mod.rs
-  - zircon_runtime/src/extensions/animation/animation_interface.rs
-  - zircon_runtime/src/extensions/animation/service_types.rs
-  - zircon_runtime/src/extensions/navigation.rs
-  - zircon_runtime/src/extensions/net.rs
-  - zircon_runtime/src/extensions/particles.rs
-  - zircon_runtime/src/extensions/physics/mod.rs
-  - zircon_runtime/src/extensions/physics/physics_interface.rs
-  - zircon_runtime/src/extensions/physics/service_types.rs
-  - zircon_runtime/src/extensions/sound.rs
-  - zircon_runtime/src/extensions/texture.rs
+  - zircon_plugins/mod.rs
+  - zircon_plugins/animation/runtime/src/mod.rs
+  - zircon_plugins/animation/runtime/src/animation_interface.rs
+  - zircon_plugins/animation/runtime/src/service_types.rs
+  - zircon_plugins/navigation.rs
+  - zircon_plugins/net/runtime/src.rs
+  - zircon_plugins/particles.rs
+  - zircon_plugins/physics/runtime/src/mod.rs
+  - zircon_plugins/physics/runtime/src/physics_interface.rs
+  - zircon_plugins/physics/runtime/src/service_types.rs
+  - zircon_plugins/sound/runtime/src.rs
+  - zircon_plugins/texture.rs
   - zircon_scene/src/lib.rs
   - zircon_scene/src/semantics.rs
   - zircon_manager/src/lib.rs
@@ -118,18 +118,18 @@ implementation_files:
   - zircon_runtime/src/scene/world/property_access/mod.rs
   - zircon_runtime/src/scene/world/property_access/entries.rs
   - zircon_runtime/src/scene/world/property_access/write.rs
-  - zircon_runtime/src/extensions/mod.rs
-  - zircon_runtime/src/extensions/animation/mod.rs
-  - zircon_runtime/src/extensions/animation/animation_interface.rs
-  - zircon_runtime/src/extensions/animation/service_types.rs
-  - zircon_runtime/src/extensions/navigation.rs
-  - zircon_runtime/src/extensions/net.rs
-  - zircon_runtime/src/extensions/particles.rs
-  - zircon_runtime/src/extensions/physics/mod.rs
-  - zircon_runtime/src/extensions/physics/physics_interface.rs
-  - zircon_runtime/src/extensions/physics/service_types.rs
-  - zircon_runtime/src/extensions/sound.rs
-  - zircon_runtime/src/extensions/texture.rs
+  - zircon_plugins/mod.rs
+  - zircon_plugins/animation/runtime/src/mod.rs
+  - zircon_plugins/animation/runtime/src/animation_interface.rs
+  - zircon_plugins/animation/runtime/src/service_types.rs
+  - zircon_plugins/navigation.rs
+  - zircon_plugins/net/runtime/src.rs
+  - zircon_plugins/particles.rs
+  - zircon_plugins/physics/runtime/src/mod.rs
+  - zircon_plugins/physics/runtime/src/physics_interface.rs
+  - zircon_plugins/physics/runtime/src/service_types.rs
+  - zircon_plugins/sound/runtime/src.rs
+  - zircon_plugins/texture.rs
   - zircon_scene/src/lib.rs
   - zircon_scene/src/semantics.rs
   - zircon_manager/src/lib.rs
@@ -261,7 +261,7 @@ doc_type: module-detail
 - `zircon_runtime`
   - 当前已稳定导出 `FoundationModule` / `PlatformModule` / `InputModule` / `ScriptModule` / `UiModule` / `AssetModule` / `SceneModule`；脚本 VM 实现目录位于 `zircon_runtime/src/script/`，UI/asset/scene module-registration surface 分别位于 `zircon_runtime/src/ui/`、`zircon_runtime/src/asset/`、`zircon_runtime/src/scene/`
   - `zircon_runtime::graphics` 现在已经重新成为 graphics module owner：`GraphicsModule` 保留在 runtime graphics surface，`zircon_runtime::builtin_runtime_modules()` 也直接把 graphics 放在 asset 之后、scene 之前；`zircon_app` 不再手工维护这段 runtime module 顺序
-  - `zircon_runtime/src/extensions/` 现在由 runtime 侧统一持有可选扩展模块注册面；其中 `physics/` 与 `animation/` 已进一步收束为 folder-backed runtime subtree，直接定义 `PhysicsInterface` / `AnimationInterface`、`PhysicsDriver` / `AnimationDriver`、`PhysicsManager` / `AnimationManager`、service-name 常量与 `module_descriptor()`
+  - `zircon_plugins/` 现在由 runtime 侧统一持有可选扩展模块注册面；其中 `physics/` 与 `animation/` 已进一步收束为 folder-backed runtime subtree，直接定义 `PhysicsInterface` / `AnimationInterface`、`PhysicsDriver` / `AnimationDriver`、`PhysicsManager` / `AnimationManager`、service-name 常量与 `module_descriptor()`
   - `zircon_physics` 与 `zircon_animation` 已从 workspace 删除；`builtin_runtime_modules()` 不再通过任何 legacy crate root 间接取得 physics/animation 的服务实现
 - `zircon_sound`、`zircon_texture`、`zircon_net`、`zircon_navigation`、`zircon_particles`
   - 当前 root 已退回到 driver/manager implementation shell；`builtin_runtime_modules()` 不再直接从这些 legacy crate root 构造 `Arc<dyn EngineModule>`
@@ -334,8 +334,8 @@ doc_type: module-detail
   - `zircon_runtime::asset` 现在保留 `project` / `watch` 作为显式 namespace，而不再重新平铺 `ProjectManager`、`AssetWatcher` 一类子域特化 surface
 - `zircon_runtime/src/scene/`
   - `src/scene/mod.rs + module.rs` 现在持有 `SceneModule`、`SCENE_MODULE_NAME`、`DEFAULT_LEVEL_MANAGER_NAME`、`LEVEL_MANAGER_NAME`、`create_default_level()`、`load_level_asset()` 与 `module_descriptor()`；`zircon_scene` root 退回 runtime world / scene domain surface，不再根级公开 module-registration helper
-- `zircon_runtime/src/extensions/`
-  - `src/extensions/mod.rs` 现在成为可选扩展注册面的统一 owner；`sound.rs`、`texture.rs`、`net.rs`、`navigation.rs`、`particles.rs` 继续持有对应的 `*Module`、`*Config`、service-name 常量与 `module_descriptor()`
+- `zircon_plugins/`
+  - `zircon_plugins/<plugin>/runtime/src/lib.rs` 现在成为可选扩展注册面的统一 owner；`sound`、`texture`、`net`、`navigation`、`particles` 继续在各自 plugin crate 内持有对应的 `*Module`、`*Config`、service-name 常量与 `module_descriptor()`
   - `physics/` 与 `animation/` 已从 flat file 改成 folder-backed runtime subtree：`mod.rs` 只保留 owner/wiring，`physics_interface.rs` / `animation_interface.rs` 提供 runtime-facing 接口，`service_types.rs` 提供 driver/manager stub；这样 physics/animation 的实现所有权也正式收进 `zircon_runtime`
   - `zircon_physics` 与 `zircon_animation` 已从 workspace 删除；其余 legacy extension crate root 也不再持有 `*Module` 或 `module_descriptor()`，runtime built-in 清单终于不再绕回旧扩展 crate root
 - `zircon_editor` 热点链路
@@ -431,8 +431,8 @@ doc_type: module-detail
 仍然明确未收敛的部分：
 
 - skeleton module crates 仍然大量存在，不能被误判为完成态
-  - 剩余 `sound/texture/net/navigation/particles` 已经把 registration owner 迁到 `zircon_runtime::extensions::*`，但 legacy crate 内的 driver/manager 仍然只是空实现壳
-- `zircon_runtime::extensions::{physics,animation}`
+  - 剩余 `sound/texture/net/navigation/particles` 已经把 registration owner 迁到 `zircon_plugins::*`，但 legacy crate 内的 driver/manager 仍然只是空实现壳
+- `zircon_plugins::{physics,animation}`
   - 当前已经完成实现所有权吸收与 runtime-facing interface 收束，但服务实现仍然只是基线 stub；真实物理 backend、动画轨道/图/状态机栈仍是后续功能层工作，不应误判成领域功能已经完成
 - `zircon_runtime::script` 现在已经收口到真实 plugin-runtime contract：`PluginDescriptor` 通过 `PluginFactory` 显式接收 `PluginContext`，`VmPluginManager` 保存 base plugin context，load/hot-reload 路径会派生 `VmPluginHostContext`，backend 选择也已经从实例 map 收束到 `VmBackendFamily` registry；当前剩余限制只在 backend breadth，内建仍是 `builtin:{mock,unavailable}` 基线
 - `zircon_editor` 的 `ui_asset` 会话和 host manager 子树仍然存在明显结构热点

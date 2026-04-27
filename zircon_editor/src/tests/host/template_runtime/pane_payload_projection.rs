@@ -34,6 +34,15 @@ use toml::Value;
 
 fn editor_runtime() -> CoreRuntime {
     let runtime = CoreRuntime::new();
+    runtime.store_config_value(
+        crate::ui::host::EDITOR_ENABLED_SUBSYSTEMS_CONFIG_KEY,
+        serde_json::json!([
+            crate::ui::host::EDITOR_SUBSYSTEM_ANIMATION_AUTHORING,
+            crate::ui::host::EDITOR_SUBSYSTEM_UI_ASSET_AUTHORING,
+            crate::ui::host::EDITOR_SUBSYSTEM_RUNTIME_DIAGNOSTICS,
+            crate::ui::host::EDITOR_SUBSYSTEM_NATIVE_WINDOW_HOSTING,
+        ]),
+    );
     runtime
         .register_module(foundation_module_descriptor())
         .unwrap();

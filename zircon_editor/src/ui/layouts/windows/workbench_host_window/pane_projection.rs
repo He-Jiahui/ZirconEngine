@@ -19,6 +19,7 @@ pub(super) fn side_pane(
         crate::ui::animation_editor::AnimationEditorPanePresentation,
     >,
     runtime_diagnostics: Option<&RuntimeDiagnosticsSnapshot>,
+    module_plugins: &ModulePluginsPaneViewData,
 ) -> PaneData {
     let stack = slots
         .iter()
@@ -64,6 +65,7 @@ pub(super) fn side_pane(
         ui_asset_panes.get(&tab.instance_id.0),
         animation_panes.get(&tab.instance_id.0),
         runtime_diagnostics,
+        module_plugins,
     )
 }
 
@@ -79,6 +81,7 @@ pub(crate) fn document_pane(
         crate::ui::animation_editor::AnimationEditorPanePresentation,
     >,
     runtime_diagnostics: Option<&RuntimeDiagnosticsSnapshot>,
+    module_plugins: &ModulePluginsPaneViewData,
 ) -> PaneData {
     let tab = model
         .document_tabs
@@ -100,6 +103,7 @@ pub(crate) fn document_pane(
         ui_asset_panes.get(&tab.instance_id.0),
         animation_panes.get(&tab.instance_id.0),
         runtime_diagnostics,
+        module_plugins,
     )
 }
 
@@ -115,6 +119,7 @@ pub(super) fn pane_from_tab(
     ui_asset_pane: Option<&crate::ui::asset_editor::UiAssetEditorPanePresentation>,
     animation_pane: Option<&crate::ui::animation_editor::AnimationEditorPanePresentation>,
     runtime_diagnostics: Option<&RuntimeDiagnosticsSnapshot>,
+    module_plugins: &ModulePluginsPaneViewData,
 ) -> PaneData {
     let (subtitle, info, show_toolbar) = pane_metadata(kind, snapshot, chrome);
     let viewport = match kind {
@@ -209,6 +214,7 @@ pub(super) fn pane_from_tab(
             assets_activity: AssetsActivityPaneViewData::default(),
             asset_browser: AssetBrowserPaneViewData::default(),
             project_overview: ProjectOverviewPaneViewData::default(),
+            module_plugins: module_plugins.clone(),
             ui_asset: ui_asset_pane,
             animation: animation_pane_data(animation_pane),
         },
@@ -304,6 +310,7 @@ pub(super) fn blank_pane() -> PaneData {
             assets_activity: AssetsActivityPaneViewData::default(),
             asset_browser: AssetBrowserPaneViewData::default(),
             project_overview: ProjectOverviewPaneViewData::default(),
+            module_plugins: ModulePluginsPaneViewData::default(),
             ui_asset: crate::ui::asset_editor::UiAssetEditorPanePresentation::default(),
             animation: animation_pane_data(
                 crate::ui::animation_editor::AnimationEditorPanePresentation::default(),
@@ -435,6 +442,11 @@ fn pane_metadata(
             "Render, physics, and animation diagnostics".to_string(),
             false,
         ),
+        ViewContentKind::ModulePlugins => (
+            "Project Plugins".to_string(),
+            "Builtin and native plugin packages".to_string(),
+            false,
+        ),
         ViewContentKind::PrefabEditor => (
             payload_path(snapshot).unwrap_or_else(|| "Prefab Workspace".to_string()),
             "Prefab editor host slot is ready. Asset-specific tooling is still placeholder.".into(),
@@ -452,6 +464,11 @@ fn pane_metadata(
         ViewContentKind::UiAssetEditor => (
             payload_path(snapshot).unwrap_or_else(|| "UI Asset Editor".to_string()),
             "Live UI asset preview and source editing session".to_string(),
+            false,
+        ),
+        ViewContentKind::UiComponentShowcase => (
+            "UI Component Showcase".to_string(),
+            "Runtime component semantics and editor bindings".to_string(),
             false,
         ),
         ViewContentKind::AnimationSequenceEditor => (
@@ -566,9 +583,11 @@ fn pane_kind_key(kind: ViewContentKind) -> &'static str {
         ViewContentKind::PrefabEditor => "PrefabEditor",
         ViewContentKind::AssetBrowser => "AssetBrowser",
         ViewContentKind::UiAssetEditor => "UiAssetEditor",
+        ViewContentKind::UiComponentShowcase => "UiComponentShowcase",
         ViewContentKind::AnimationSequenceEditor => "AnimationSequenceEditor",
         ViewContentKind::AnimationGraphEditor => "AnimationGraphEditor",
         ViewContentKind::RuntimeDiagnostics => "RuntimeDiagnostics",
+        ViewContentKind::ModulePlugins => "ModulePlugins",
         ViewContentKind::Placeholder => "Placeholder",
     }
 }

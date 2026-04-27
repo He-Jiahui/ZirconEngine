@@ -13,7 +13,11 @@ impl SceneRenderer {
     pub(crate) fn read_last_virtual_geometry_cull_input_snapshot(
         &self,
     ) -> Result<Option<RenderVirtualGeometryCullInputSnapshot>, GraphicsError> {
-        let Some(buffer) = self.last_virtual_geometry_cull_input_buffer.as_ref() else {
+        let Some(buffer) = self
+            .advanced_plugin_outputs
+            .virtual_geometry_cull_input_buffer
+            .as_ref()
+        else {
             return Ok(None);
         };
 

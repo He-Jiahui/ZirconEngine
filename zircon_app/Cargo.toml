@@ -9,14 +9,24 @@ autobins = false
 [[bin]]
 name = "zircon_editor"
 path = "src/bin/editor.rs"
+required-features = ["target-editor-host"]
 
 [[bin]]
 name = "zircon_runtime"
 path = "src/bin/runtime_preview.rs"
+required-features = ["target-client"]
+
+[features]
+default = ["target-client"]
+core-min = ["zircon_runtime/core-min"]
+plugin-ui = ["zircon_runtime/plugin-ui"]
+target-client = ["zircon_runtime/target-client"]
+target-server = ["zircon_runtime/target-server"]
+target-editor-host = ["zircon_runtime/target-editor-host", "dep:zircon_editor"]
 
 [dependencies]
 serde_json = "1.0.149"
 softbuffer = "0.4.6"
 winit.workspace = true
-zircon_editor = { path = "../zircon_editor" }
-zircon_runtime = { path = "../zircon_runtime" }
+zircon_editor = { path = "../zircon_editor", optional = true }
+zircon_runtime = { path = "../zircon_runtime", default-features = false }

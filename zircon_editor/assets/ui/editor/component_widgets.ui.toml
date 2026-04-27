@@ -1,0 +1,44 @@
+[asset]
+kind = "widget"
+id = "ui.editor.component_widgets"
+version = 1
+display_name = "Component Showcase Widgets"
+
+[imports]
+widgets = []
+styles = ["res://ui/theme/editor_material.ui.toml"]
+
+[components.ShowcaseSection]
+style_scope = "open"
+
+[components.ShowcaseSection.params.title]
+type = "string"
+default = "Section"
+
+[components.ShowcaseSection.slots.content]
+required = true
+multiple = true
+
+[components.ShowcaseSection.root]
+node_id = "showcase_section_root"
+kind = "native"
+type = "Group"
+classes = ["showcase-panel"]
+props = { text = "$param.title", expanded = true }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox", gap = 8.0 } }
+
+[[components.ShowcaseSection.root.children]]
+[components.ShowcaseSection.root.children.node]
+node_id = "showcase_section_title"
+kind = "native"
+type = "Label"
+classes = ["showcase-title"]
+props = { text = "$param.title" }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[[components.ShowcaseSection.root.children]]
+mount = "content"
+[components.ShowcaseSection.root.children.node]
+node_id = "showcase_section_content"
+kind = "slot"
+slot_name = "content"

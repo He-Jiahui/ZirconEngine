@@ -133,6 +133,15 @@ pub(crate) fn write_ui_asset(path: impl AsRef<Path>, source: &str) {
 pub(crate) fn editor_runtime_with_config_path(path: &Path) -> CoreRuntime {
     std::env::set_var("ZIRCON_CONFIG_PATH", path);
     let runtime = CoreRuntime::new();
+    runtime.store_config_value(
+        crate::ui::host::EDITOR_ENABLED_SUBSYSTEMS_CONFIG_KEY,
+        serde_json::json!([
+            crate::ui::host::EDITOR_SUBSYSTEM_ANIMATION_AUTHORING,
+            crate::ui::host::EDITOR_SUBSYSTEM_UI_ASSET_AUTHORING,
+            crate::ui::host::EDITOR_SUBSYSTEM_RUNTIME_DIAGNOSTICS,
+            crate::ui::host::EDITOR_SUBSYSTEM_NATIVE_WINDOW_HOSTING,
+        ]),
+    );
     runtime
         .register_module(foundation_module_descriptor())
         .unwrap();

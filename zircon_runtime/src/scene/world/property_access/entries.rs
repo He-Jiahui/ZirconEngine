@@ -1,3 +1,5 @@
+use serde_json::Value;
+
 use crate::core::framework::animation::AnimationParameterValue;
 use crate::core::framework::scene::{
     ComponentPropertyPath, ScenePropertyEntry, ScenePropertyValue,
@@ -505,8 +507,38 @@ impl World {
                 );
             }
         }
+        if let Some(dynamic_components) = self.dynamic_components.get(&entity) {
+            for (component_id, component_value) in dynamic_components {
+                let Some(properties) = component_value.as_object() else {
+                    continue;
+                };
+                for (property, value) in properties {
+                    let Some(scene_value) = dynamic_scene_value_from_json(value) else {
+                        continue;
+                    };
+                    push(&format!("{component_id}.{property}"), scene_value, true);
+                }
+            }
+        }
 
         entries
+    }
+}
+
+fn dynamic_scene_value_from_json(value: &Value) -> Option<ScenePropertyValue> {
+    match value {
+        Value::Bool(value) => Some(ScenePropertyValue::Bool(*value)),
+        Value::Number(value) => value
+            .as_i64()
+            .map(ScenePropertyValue::Integer)
+            .or_else(|| value.as_u64().map(ScenePropertyValue::Unsigned))
+            .or_else(|| {
+                value
+                    .as_f64()
+                    .map(|value| ScenePropertyValue::Scalar(value as _))
+            }),
+        Value::String(value) => Some(ScenePropertyValue::String(value.clone())),
+        Value::Null | Value::Array(_) | Value::Object(_) => None,
     }
 }
 

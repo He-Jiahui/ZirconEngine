@@ -36,6 +36,8 @@ fn workbench_reflection_model_projects_menu_and_activity_descriptors() {
         menu,
         UiControlResponse::Node(Some(node))
             if node.display_name == "Save Project"
+                && node.properties["operation_path"].reflected_value
+                    == serde_json::json!("File.Project.Save")
     ));
     let scene = service.handle_request(UiControlRequest::QueryNode {
         node_path: UiNodePath::new("editor/workbench/pages/workbench/editor.scene#1"),

@@ -6,6 +6,7 @@ pub enum PanePayload {
     AnimationSequenceV1(AnimationSequencePanePayload),
     AnimationGraphV1(AnimationGraphPanePayload),
     RuntimeDiagnosticsV1(RuntimeDiagnosticsPanePayload),
+    UiComponentShowcaseV1(UiComponentShowcasePanePayload),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -67,4 +68,9 @@ pub struct RuntimeDiagnosticsPanePayload {
     pub physics_status: String,
     pub animation_status: String,
     pub detail_items: Vec<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct UiComponentShowcasePanePayload {
+    pub state_summary: String,
 }

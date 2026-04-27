@@ -1,7 +1,6 @@
 use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
 
 use super::super::super::super::resources::ResourceStreamer;
-use super::super::super::mesh::build_mesh_draws;
 use super::super::scene_renderer_core::SceneRendererCore;
 
 impl SceneRendererCore {
@@ -18,10 +17,9 @@ impl SceneRendererCore {
         let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("zircon-scene-encoder"),
         });
-        let built_mesh_draws = build_mesh_draws(
+        let built_mesh_draws = self.advanced_plugin_resources.build_mesh_draws(
             device,
             &mut encoder,
-            &self.virtual_geometry_indirect_args,
             &self.model_bind_group_layout,
             streamer,
             frame,

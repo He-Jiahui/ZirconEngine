@@ -27,11 +27,11 @@ pub(in crate::graphics::pipeline) fn validate_renderer_asset(
 
     let mut seen_features = BTreeSet::new();
     for feature in &renderer.features {
-        if !seen_features.insert(feature.feature) {
+        let feature_name = feature.feature_name();
+        if !seen_features.insert(feature_name.clone()) {
             return Err(format!(
                 "renderer `{}` contains duplicate feature `{}`",
-                renderer.name,
-                feature.feature.descriptor().name
+                renderer.name, feature_name
             ));
         }
     }

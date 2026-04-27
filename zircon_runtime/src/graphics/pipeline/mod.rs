@@ -5,5 +5,5 @@ mod validation;
 
 pub use declarations::{
     CompiledRenderPipeline, RenderPassStage, RenderPipelineAsset, RenderPipelineCompileOptions,
-    RendererAsset, RendererFeatureAsset,
+    RendererAsset, RendererFeatureAsset, RendererFeatureSource,
 };

@@ -1,0 +1,19 @@
+id = "animation"
+version = "0.1.0"
+display_name = "Animation"
+description = "Optional animation runtime and editor authoring package."
+default_packaging = ["source_template", "library_embed"]
+
+[[modules]]
+name = "animation.runtime"
+kind = "runtime"
+crate_name = "zircon_plugin_animation_runtime"
+target_modes = ["client_runtime", "editor_host"]
+capabilities = ["runtime.plugin.animation"]
+
+[[modules]]
+name = "animation.editor"
+kind = "editor"
+crate_name = "zircon_plugin_animation_editor"
+target_modes = ["editor_host"]
+capabilities = ["editor.extension.animation_authoring"]

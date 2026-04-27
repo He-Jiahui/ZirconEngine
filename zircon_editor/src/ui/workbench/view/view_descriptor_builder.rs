@@ -49,4 +49,13 @@ impl ViewDescriptor {
         self.activity_window_template = Some(activity_window_template);
         self
     }
+
+    pub fn with_required_capabilities<I, S>(mut self, capabilities: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.required_capabilities = capabilities.into_iter().map(Into::into).collect();
+        self
+    }
 }

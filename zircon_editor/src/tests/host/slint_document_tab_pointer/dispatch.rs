@@ -23,17 +23,17 @@ use zircon_runtime::ui::{
 };
 
 #[test]
-fn shared_document_tab_pointer_bridge_routes_main_and_floating_tab_targets() {
+fn shared_document_tab_pointer_bridge_routes_document_and_floating_tab_targets() {
     let mut bridge = HostDocumentTabPointerBridge::new();
     bridge.sync(sample_document_tab_layout());
 
-    let main = bridge
-        .handle_activate_click("main", 1, 110.0, 120.0, UiPoint::new(132.0, 14.0))
+    let document = bridge
+        .handle_activate_click("document", 1, 110.0, 120.0, UiPoint::new(132.0, 14.0))
         .unwrap();
     assert_eq!(
-        main.route,
+        document.route,
         Some(HostDocumentTabPointerRoute::ActivateTab {
-            surface_key: "main".to_string(),
+            surface_key: "document".to_string(),
             item_index: 1,
             instance_id: "editor.game#1".to_string(),
         })
@@ -89,7 +89,7 @@ fn shared_document_tab_pointer_click_dispatches_focus_view_through_runtime_dispa
         &harness.runtime,
         &template_bridge,
         &mut pointer_bridge,
-        "main",
+        "document",
         0,
         8.0,
         114.0,
@@ -100,7 +100,7 @@ fn shared_document_tab_pointer_click_dispatches_focus_view_through_runtime_dispa
     assert_eq!(
         dispatched.pointer.route,
         Some(HostDocumentTabPointerRoute::ActivateTab {
-            surface_key: "main".to_string(),
+            surface_key: "document".to_string(),
             item_index: 0,
             instance_id: "editor.scene#1".to_string(),
         })
@@ -172,7 +172,7 @@ fn shared_document_tab_close_pointer_click_dispatches_close_view_through_runtime
         &harness.runtime,
         &template_bridge,
         &mut pointer_bridge,
-        "main",
+        "document",
         close_index,
         8.0 + close_index as f32 * 160.0,
         114.0,
@@ -183,7 +183,7 @@ fn shared_document_tab_close_pointer_click_dispatches_close_view_through_runtime
     assert_eq!(
         dispatched.pointer.route,
         Some(HostDocumentTabPointerRoute::CloseTab {
-            surface_key: "main".to_string(),
+            surface_key: "document".to_string(),
             item_index: close_index,
             instance_id: close_tab.instance_id.0.clone(),
         })
@@ -205,7 +205,7 @@ fn sample_document_tab_layout() -> HostDocumentTabPointerLayout {
     HostDocumentTabPointerLayout {
         surfaces: vec![
             HostDocumentTabPointerSurface {
-                key: "main".to_string(),
+                key: "document".to_string(),
                 strip_frame: UiFrame::new(312.0, 51.0, 640.0, 31.0),
                 items: vec![
                     HostDocumentTabPointerItem {

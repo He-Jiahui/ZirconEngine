@@ -31,22 +31,10 @@ fn runtime_diagnostics_reports_missing_runtime_facades_without_panicking() {
 }
 
 #[test]
-fn runtime_diagnostics_combines_render_physics_and_animation_facades() {
+fn runtime_diagnostics_combines_core_render_facade_and_missing_externalized_plugins() {
     let runtime = CoreRuntime::new();
     runtime.register_module(fake_render_module()).unwrap();
-    runtime
-        .register_module(crate::physics::module_descriptor())
-        .unwrap();
-    runtime
-        .register_module(crate::animation::module_descriptor())
-        .unwrap();
     runtime.activate_module(DIAGNOSTICS_TEST_MODULE).unwrap();
-    runtime
-        .activate_module(crate::physics::PHYSICS_MODULE_NAME)
-        .unwrap();
-    runtime
-        .activate_module(crate::animation::ANIMATION_MODULE_NAME)
-        .unwrap();
 
     let snapshot = crate::core::diagnostics::collect_runtime_diagnostics(&runtime.handle());
 
@@ -61,20 +49,13 @@ fn runtime_diagnostics_combines_render_physics_and_animation_facades() {
     assert!(!snapshot.render.virtual_geometry_debug_available);
     assert!(snapshot.render.error.is_none());
 
-    assert!(snapshot.physics.available);
-    let physics_status = snapshot.physics.backend_status.expect("physics status");
-    assert_eq!(physics_status.requested_backend, "unconfigured");
-    assert_eq!(snapshot.physics.fixed_hz, Some(60));
-    assert!(snapshot.physics.error.is_none());
+    assert!(!snapshot.physics.available);
+    assert!(snapshot.physics.backend_status.is_none());
+    assert!(snapshot.physics.error.is_some());
 
-    assert!(snapshot.animation.available);
-    let animation_settings = snapshot
-        .animation
-        .playback_settings
-        .expect("animation playback settings");
-    assert!(animation_settings.enabled);
-    assert!(animation_settings.graphs);
-    assert!(snapshot.animation.error.is_none());
+    assert!(!snapshot.animation.available);
+    assert!(snapshot.animation.playback_settings.is_none());
+    assert!(snapshot.animation.error.is_some());
 }
 
 fn fake_render_module() -> ModuleDescriptor {

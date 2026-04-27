@@ -13,6 +13,7 @@ mod hybrid_gi_visibility;
 mod m4_behavior_layers;
 mod m5_flagship_slots;
 mod pipeline_compile;
+mod plugin_render_feature_fixtures;
 mod project_render;
 mod render_framework_bridge;
 mod scene_overlay;

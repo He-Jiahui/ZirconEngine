@@ -22,7 +22,7 @@ pub use feature::{
 pub use material::MaterialDomain;
 pub use pipeline::{
     CompiledRenderPipeline, RenderPassStage, RenderPipelineAsset, RenderPipelineCompileOptions,
-    RendererAsset, RendererFeatureAsset,
+    RendererAsset, RendererFeatureAsset, RendererFeatureSource,
 };
 pub use runtime::{
     offline_bake_frame, OfflineBakeOutput, OfflineBakeSettings, WgpuRenderFramework,

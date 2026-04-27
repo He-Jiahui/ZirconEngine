@@ -11,6 +11,7 @@ use crate::graphics::scene::scene_renderer::mesh::MeshDraw;
 use crate::graphics::scene::scene_renderer::virtual_geometry::VirtualGeometryGpuResources;
 use crate::graphics::types::{ViewportRenderFrame, VirtualGeometryClusterSelection};
 
+use super::super::super::scene_renderer_core::SceneRendererAdvancedPluginResources;
 use super::virtual_geometry_executed_cluster_selection_pass::execute_virtual_geometry_executed_cluster_selection_pass;
 use super::virtual_geometry_hardware_rasterization_pass::{
     execute_virtual_geometry_hardware_rasterization_pass,
@@ -24,40 +25,98 @@ use super::virtual_geometry_visbuffer64_pass::{
     execute_virtual_geometry_visbuffer64_pass, VirtualGeometryVisBuffer64PassOutput,
 };
 
-pub(super) struct VirtualGeometryIndirectStats {
-    pub(super) draw_count: u32,
-    pub(super) buffer_count: u32,
-    pub(super) segment_count: u32,
-    pub(super) execution_segment_count: u32,
-    pub(super) execution_page_count: u32,
-    pub(super) execution_resident_segment_count: u32,
-    pub(super) execution_pending_segment_count: u32,
-    pub(super) execution_missing_segment_count: u32,
-    pub(super) execution_repeated_draw_count: u32,
-    pub(super) execution_indirect_offsets: Vec<u64>,
-    pub(super) execution_segments: Vec<RenderVirtualGeometryExecutionSegment>,
-    pub(super) executed_selected_clusters: Vec<RenderVirtualGeometrySelectedCluster>,
-    pub(super) executed_selected_cluster_source: RenderVirtualGeometrySelectedClusterSource,
-    pub(super) executed_selected_cluster_count: u32,
-    pub(super) executed_selected_cluster_buffer: Option<Arc<wgpu::Buffer>>,
-    pub(super) node_and_cluster_cull_pass: VirtualGeometryNodeAndClusterCullPassOutput,
-    pub(super) hardware_rasterization_pass: VirtualGeometryHardwareRasterizationPassOutput,
-    pub(super) visbuffer64_pass: VirtualGeometryVisBuffer64PassOutput,
-    pub(super) draw_submission_order: Vec<(Option<u32>, u64, u32)>,
-    pub(super) draw_submission_records: Vec<(u64, u32, u32, usize)>,
-    pub(super) draw_submission_token_records: Vec<(u64, u32, u32, u32, usize)>,
-    pub(super) args_buffer: Option<Arc<wgpu::Buffer>>,
-    pub(super) args_count: u32,
-    pub(super) submission_buffer: Option<Arc<wgpu::Buffer>>,
-    pub(super) authority_buffer: Option<Arc<wgpu::Buffer>>,
-    pub(super) draw_ref_buffer: Option<Arc<wgpu::Buffer>>,
-    pub(super) segment_buffer: Option<Arc<wgpu::Buffer>>,
-    pub(super) execution_submission_buffer: Option<Arc<wgpu::Buffer>>,
-    pub(super) execution_args_buffer: Option<Arc<wgpu::Buffer>>,
-    pub(super) execution_authority_buffer: Option<Arc<wgpu::Buffer>>,
+pub(in crate::graphics::scene::scene_renderer::core) struct VirtualGeometryIndirectStats {
+    pub(in crate::graphics::scene::scene_renderer::core) draw_count: u32,
+    pub(in crate::graphics::scene::scene_renderer::core) buffer_count: u32,
+    pub(in crate::graphics::scene::scene_renderer::core) segment_count: u32,
+    pub(in crate::graphics::scene::scene_renderer::core) execution_segment_count: u32,
+    pub(in crate::graphics::scene::scene_renderer::core) execution_page_count: u32,
+    pub(in crate::graphics::scene::scene_renderer::core) execution_resident_segment_count: u32,
+    pub(in crate::graphics::scene::scene_renderer::core) execution_pending_segment_count: u32,
+    pub(in crate::graphics::scene::scene_renderer::core) execution_missing_segment_count: u32,
+    pub(in crate::graphics::scene::scene_renderer::core) execution_repeated_draw_count: u32,
+    pub(in crate::graphics::scene::scene_renderer::core) execution_indirect_offsets: Vec<u64>,
+    pub(in crate::graphics::scene::scene_renderer::core) execution_segments:
+        Vec<RenderVirtualGeometryExecutionSegment>,
+    pub(in crate::graphics::scene::scene_renderer::core) executed_selected_clusters:
+        Vec<RenderVirtualGeometrySelectedCluster>,
+    pub(in crate::graphics::scene::scene_renderer::core) executed_selected_cluster_source:
+        RenderVirtualGeometrySelectedClusterSource,
+    pub(in crate::graphics::scene::scene_renderer::core) executed_selected_cluster_count: u32,
+    pub(in crate::graphics::scene::scene_renderer::core) executed_selected_cluster_buffer:
+        Option<Arc<wgpu::Buffer>>,
+    pub(in crate::graphics::scene::scene_renderer::core) node_and_cluster_cull_pass:
+        VirtualGeometryNodeAndClusterCullPassOutput,
+    pub(in crate::graphics::scene::scene_renderer::core) hardware_rasterization_pass:
+        VirtualGeometryHardwareRasterizationPassOutput,
+    pub(in crate::graphics::scene::scene_renderer::core) visbuffer64_pass:
+        VirtualGeometryVisBuffer64PassOutput,
+    pub(in crate::graphics::scene::scene_renderer::core) draw_submission_order:
+        Vec<(Option<u32>, u64, u32)>,
+    pub(in crate::graphics::scene::scene_renderer::core) draw_submission_records:
+        Vec<(u64, u32, u32, usize)>,
+    pub(in crate::graphics::scene::scene_renderer::core) draw_submission_token_records:
+        Vec<(u64, u32, u32, u32, usize)>,
+    pub(in crate::graphics::scene::scene_renderer::core) args_buffer: Option<Arc<wgpu::Buffer>>,
+    pub(in crate::graphics::scene::scene_renderer::core) args_count: u32,
+    pub(in crate::graphics::scene::scene_renderer::core) submission_buffer:
+        Option<Arc<wgpu::Buffer>>,
+    pub(in crate::graphics::scene::scene_renderer::core) authority_buffer:
+        Option<Arc<wgpu::Buffer>>,
+    pub(in crate::graphics::scene::scene_renderer::core) draw_ref_buffer: Option<Arc<wgpu::Buffer>>,
+    pub(in crate::graphics::scene::scene_renderer::core) segment_buffer: Option<Arc<wgpu::Buffer>>,
+    pub(in crate::graphics::scene::scene_renderer::core) execution_submission_buffer:
+        Option<Arc<wgpu::Buffer>>,
+    pub(in crate::graphics::scene::scene_renderer::core) execution_args_buffer:
+        Option<Arc<wgpu::Buffer>>,
+    pub(in crate::graphics::scene::scene_renderer::core) execution_authority_buffer:
+        Option<Arc<wgpu::Buffer>>,
 }
 
-pub(super) fn virtual_geometry_indirect_stats(
+impl SceneRendererAdvancedPluginResources {
+    #[allow(clippy::too_many_arguments)]
+    pub(in crate::graphics::scene::scene_renderer::core) fn collect_virtual_geometry_indirect_stats(
+        &self,
+        device: &wgpu::Device,
+        encoder: &mut wgpu::CommandEncoder,
+        visbuffer64_pass_enabled: bool,
+        frame: &ViewportRenderFrame,
+        cull_input: Option<&RenderVirtualGeometryCullInputSnapshot>,
+        previous_node_and_cluster_cull_global_state: Option<
+            &RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot,
+        >,
+        cluster_selections: Option<&[VirtualGeometryClusterSelection]>,
+        execution_draws: &[&MeshDraw],
+        args_buffer: Option<Arc<wgpu::Buffer>>,
+        args_count: u32,
+        segment_count: u32,
+        submission_buffer: Option<Arc<wgpu::Buffer>>,
+        authority_buffer: Option<Arc<wgpu::Buffer>>,
+        draw_ref_buffer: Option<Arc<wgpu::Buffer>>,
+        segment_buffer: Option<Arc<wgpu::Buffer>>,
+    ) -> VirtualGeometryIndirectStats {
+        virtual_geometry_indirect_stats(
+            device,
+            encoder,
+            &self.virtual_geometry,
+            visbuffer64_pass_enabled,
+            frame,
+            cull_input,
+            previous_node_and_cluster_cull_global_state,
+            cluster_selections,
+            execution_draws,
+            args_buffer,
+            args_count,
+            segment_count,
+            submission_buffer,
+            authority_buffer,
+            draw_ref_buffer,
+            segment_buffer,
+        )
+    }
+}
+
+fn virtual_geometry_indirect_stats(
     device: &wgpu::Device,
     encoder: &mut wgpu::CommandEncoder,
     virtual_geometry_gpu_resources: &VirtualGeometryGpuResources,

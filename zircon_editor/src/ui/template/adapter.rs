@@ -1,6 +1,8 @@
 use std::collections::BTreeMap;
 
-use zircon_runtime::ui::template::{UiBindingRef, UiTemplateInstance};
+use zircon_runtime::ui::template::UiBindingRef;
+#[cfg(test)]
+use zircon_runtime::ui::template::UiTemplateInstance;
 
 use crate::ui::binding::EditorUiBinding;
 use crate::ui::template::EditorTemplateError;
@@ -44,6 +46,7 @@ impl EditorTemplateAdapter {
         Ok(binding)
     }
 
+    #[cfg(test)]
     pub fn resolve_instance_bindings(
         &self,
         instance: &UiTemplateInstance,

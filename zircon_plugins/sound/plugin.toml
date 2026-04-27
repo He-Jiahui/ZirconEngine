@@ -1,0 +1,19 @@
+id = "sound"
+version = "0.1.0"
+display_name = "Sound"
+description = "Optional runtime audio and editor sound authoring package."
+default_packaging = ["source_template", "library_embed"]
+
+[[modules]]
+name = "sound.runtime"
+kind = "runtime"
+crate_name = "zircon_plugin_sound_runtime"
+target_modes = ["client_runtime", "editor_host"]
+capabilities = ["runtime.plugin.sound"]
+
+[[modules]]
+name = "sound.editor"
+kind = "editor"
+crate_name = "zircon_plugin_sound_editor"
+target_modes = ["editor_host"]
+capabilities = ["editor.extension.sound_authoring"]

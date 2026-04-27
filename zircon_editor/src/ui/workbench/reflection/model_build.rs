@@ -31,6 +31,10 @@ pub fn build_workbench_reflection_model(
                     control_id: item.binding.path().control_id.clone(),
                     label: item.label.clone(),
                     enabled: item.enabled,
+                    operation_path: item
+                        .operation_path
+                        .as_ref()
+                        .map(|path| path.as_str().to_string()),
                     binding: item.binding.clone(),
                     route_id: None,
                 })

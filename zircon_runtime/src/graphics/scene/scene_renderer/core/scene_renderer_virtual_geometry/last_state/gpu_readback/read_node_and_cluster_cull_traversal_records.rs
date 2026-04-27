@@ -11,9 +11,11 @@ impl SceneRenderer {
         &self,
     ) -> Result<Vec<VirtualGeometryNodeAndClusterCullTraversalRecord>, GraphicsError> {
         let record_count =
-            self.last_virtual_geometry_node_and_cluster_cull_traversal_record_count as usize;
+            self.advanced_plugin_outputs
+                .virtual_geometry_node_and_cluster_cull_traversal_record_count as usize;
         let Some(buffer) = self
-            .last_virtual_geometry_node_and_cluster_cull_traversal_record_buffer
+            .advanced_plugin_outputs
+            .virtual_geometry_node_and_cluster_cull_traversal_record_buffer
             .as_ref()
         else {
             return Ok(Vec::new());

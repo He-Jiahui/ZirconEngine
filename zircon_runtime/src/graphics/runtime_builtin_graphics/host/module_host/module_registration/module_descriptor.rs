@@ -5,16 +5,24 @@ use crate::core::{
     DriverDescriptor, ManagerDescriptor, ModuleDescriptor, ServiceKind, ServiceObject, StartupMode,
 };
 use crate::engine_module::{dependency_on, factory, qualified_name};
+use crate::graphics::RenderFeatureDescriptor;
 
 use crate::asset::ASSET_MODULE_NAME;
 
-use super::super::create::create_render_framework;
+use super::super::create::create_render_framework_with_render_features;
 use super::super::driver::WgpuDriver;
 use super::super::rendering_manager::WgpuRenderingManager;
 use super::graphics_core_error::graphics_core_error;
 use super::service_names::{GRAPHICS_MODULE_NAME, RENDER_FRAMEWORK_NAME};
 
 pub fn module_descriptor() -> ModuleDescriptor {
+    module_descriptor_with_render_features(Vec::new())
+}
+
+pub fn module_descriptor_with_render_features(
+    render_features: impl IntoIterator<Item = RenderFeatureDescriptor>,
+) -> ModuleDescriptor {
+    let render_features = Arc::new(render_features.into_iter().collect::<Vec<_>>());
     ModuleDescriptor::new(
         GRAPHICS_MODULE_NAME,
         "Rendering device abstraction and scene rendering",
@@ -31,16 +39,20 @@ pub fn module_descriptor() -> ModuleDescriptor {
             ServiceKind::Manager,
             "RenderFramework",
         ),
-        StartupMode::Immediate,
+        StartupMode::Lazy,
         vec![dependency_on(
             ASSET_MODULE_NAME,
             ServiceKind::Manager,
             "ProjectAssetManager",
         )],
-        factory(|core| {
-            let render_framework = create_render_framework(core)
-                .map_err(|error| graphics_core_error(RENDER_FRAMEWORK_NAME, error))?;
-            Ok(Arc::new(RenderFrameworkHandle::new(render_framework)) as ServiceObject)
+        factory({
+            let render_features = Arc::clone(&render_features);
+            move |core| {
+                let render_framework =
+                    create_render_framework_with_render_features(core, render_features.to_vec())
+                        .map_err(|error| graphics_core_error(RENDER_FRAMEWORK_NAME, error))?;
+                Ok(Arc::new(RenderFrameworkHandle::new(render_framework)) as ServiceObject)
+            }
         }),
     ))
     .with_manager(ManagerDescriptor::new(

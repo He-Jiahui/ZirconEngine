@@ -4,6 +4,6 @@ use super::super::scene_renderer::SceneRenderer;
 
 impl SceneRenderer {
     pub(crate) fn take_last_hybrid_gi_gpu_readback(&mut self) -> Option<HybridGiGpuReadback> {
-        self.last_hybrid_gi_gpu_readback.take()
+        self.advanced_plugin_outputs.take_hybrid_gi_gpu_readback()
     }
 }

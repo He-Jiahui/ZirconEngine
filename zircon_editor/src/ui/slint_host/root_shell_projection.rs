@@ -120,11 +120,23 @@ pub(crate) fn resolve_root_viewport_content_frame(
 
     let layout_frames = resolve_root_layout_frames(geometry, shared_root_frames);
     if layout_frames.has_visible_drawers && frame_is_visible(layout_frames.document) {
+        return document_viewport_content_frame(
+            layout_frames.document,
+            &metrics,
+            viewport_toolbar_height,
+        );
+    }
+
+    if let Some(pane_surface) = shared_root_frames
+        .and_then(|frames| frames.pane_surface_frame)
+        .map(shell_frame)
+        .filter(|frame| frame_is_visible(*frame))
+    {
         return ShellFrame::new(
-            layout_frames.document.x,
-            layout_frames.document.y + viewport_toolbar_height,
-            layout_frames.document.width,
-            (layout_frames.document.height - viewport_toolbar_height).max(0.0),
+            pane_surface.x,
+            pane_surface.y + viewport_toolbar_height,
+            pane_surface.width,
+            (pane_surface.height - viewport_toolbar_height).max(0.0),
         );
     }
 
@@ -138,9 +150,16 @@ pub(crate) fn resolve_root_viewport_content_frame(
         let document_tabs_extent = document_tabs.height.max(0.0);
         return ShellFrame::new(
             document.x,
-            document.y + document_tabs_extent + viewport_toolbar_height,
+            document.y
+                + document_tabs_extent
+                + metrics.separator_thickness.max(0.0)
+                + viewport_toolbar_height,
             document.width,
-            (document.height - document_tabs_extent - viewport_toolbar_height).max(0.0),
+            (document.height
+                - document_tabs_extent
+                - metrics.separator_thickness.max(0.0)
+                - viewport_toolbar_height)
+                .max(0.0),
         );
     }
 
@@ -150,15 +169,25 @@ pub(crate) fn resolve_root_viewport_content_frame(
         .filter(|frame| frame_is_visible(*frame))
         .or_else(|| {
             visible_frame(layout_frames.document).map(|document| {
-                ShellFrame::new(
-                    document.x,
-                    document.y + viewport_toolbar_height,
-                    document.width,
-                    (document.height - viewport_toolbar_height).max(0.0),
-                )
+                document_viewport_content_frame(document, &metrics, viewport_toolbar_height)
             })
         })
         .unwrap_or_default()
+}
+
+fn document_viewport_content_frame(
+    document: ShellFrame,
+    metrics: &WorkbenchChromeMetrics,
+    viewport_toolbar_height: f32,
+) -> ShellFrame {
+    let document_chrome_height =
+        metrics.document_header_height.max(0.0) + metrics.separator_thickness.max(0.0);
+    ShellFrame::new(
+        document.x,
+        document.y + document_chrome_height + viewport_toolbar_height,
+        document.width,
+        (document.height - document_chrome_height - viewport_toolbar_height).max(0.0),
+    )
 }
 
 fn shell_frame(frame: UiFrame) -> ShellFrame {

@@ -6,7 +6,10 @@ use crate::core::editor_event::{
     EditorEvent, EditorEventDispatcher, EditorEventEnvelope, EditorEventJournal, EditorEventRecord,
     EditorEventSource,
 };
+use crate::core::editor_extension::{ComponentDrawerDescriptor, EditorUiTemplateDescriptor};
+use crate::core::editor_operation::EditorOperationStack;
 use crate::scene::viewport::{RenderFrameExtract, RenderSceneSnapshot};
+use crate::ui::activity::ActivityViewDescriptor;
 use crate::ui::host::editor_asset_manager::{
     EditorAssetCatalogSnapshotRecord, EditorAssetDetailsRecord,
 };
@@ -123,6 +126,54 @@ impl EditorEventRuntime {
 
     pub fn journal(&self) -> EditorEventJournal {
         self.inner.lock().unwrap().journal.clone()
+    }
+
+    pub fn operation_stack(&self) -> EditorOperationStack {
+        self.inner.lock().unwrap().operation_stack.clone()
+    }
+
+    pub fn activity_view_descriptor(&self, view_id: &str) -> Option<ActivityViewDescriptor> {
+        self.inner
+            .lock()
+            .unwrap()
+            .control_service
+            .activity_view(view_id)
+            .cloned()
+    }
+
+    pub fn component_drawer_descriptor(
+        &self,
+        component_type: &str,
+    ) -> Option<ComponentDrawerDescriptor> {
+        let inner = self.inner.lock().unwrap();
+        let enabled_capabilities = inner
+            .manager
+            .capability_snapshot()
+            .enabled_capabilities()
+            .to_vec();
+        inner
+            .editor_extensions
+            .iter()
+            .filter(|registration| registration.is_enabled_by(&enabled_capabilities))
+            .flat_map(|registration| registration.registry().component_drawers())
+            .find(|descriptor| descriptor.component_type() == component_type)
+            .cloned()
+    }
+
+    pub fn ui_template_descriptor(&self, id: &str) -> Option<EditorUiTemplateDescriptor> {
+        let inner = self.inner.lock().unwrap();
+        let enabled_capabilities = inner
+            .manager
+            .capability_snapshot()
+            .enabled_capabilities()
+            .to_vec();
+        inner
+            .editor_extensions
+            .iter()
+            .filter(|registration| registration.is_enabled_by(&enabled_capabilities))
+            .flat_map(|registration| registration.registry().ui_templates())
+            .find(|descriptor| descriptor.id() == id)
+            .cloned()
     }
 
     pub fn dispatch_envelope(

@@ -1,0 +1,19 @@
+id = "virtual_geometry"
+version = "0.1.0"
+display_name = "Virtual Geometry"
+description = "Optional virtualized geometry runtime and editor package."
+default_packaging = ["source_template", "library_embed"]
+
+[[modules]]
+name = "virtual_geometry.runtime"
+kind = "runtime"
+crate_name = "zircon_plugin_virtual_geometry_runtime"
+target_modes = ["client_runtime", "editor_host"]
+capabilities = ["runtime.plugin.virtual_geometry"]
+
+[[modules]]
+name = "virtual_geometry.editor"
+kind = "editor"
+crate_name = "zircon_plugin_virtual_geometry_editor"
+target_modes = ["editor_host"]
+capabilities = ["editor.extension.virtual_geometry_authoring"]

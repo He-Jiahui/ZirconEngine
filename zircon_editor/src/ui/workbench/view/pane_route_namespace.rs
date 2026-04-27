@@ -8,6 +8,7 @@ pub enum PaneRouteNamespace {
     Selection,
     Animation,
     Diagnostics,
+    UiComponentShowcase,
 }
 
 impl PaneRouteNamespace {
@@ -18,6 +19,7 @@ impl PaneRouteNamespace {
             Self::Selection => "Selection",
             Self::Animation => "Animation",
             Self::Diagnostics => "Diagnostics",
+            Self::UiComponentShowcase => "UiComponentShowcase",
         }
     }
 }

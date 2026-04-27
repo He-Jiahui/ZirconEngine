@@ -1,0 +1,9 @@
+[package]
+name = "zircon_plugin_editor_support"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Shared editor plugin registration helpers for Zircon plugin packages."
+
+[dependencies]
+zircon_editor = { path = "../../zircon_editor" }

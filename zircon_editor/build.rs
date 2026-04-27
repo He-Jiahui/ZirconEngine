@@ -6,7 +6,7 @@ fn main() {
 
 fn compile_slint_ui(path: &str) {
     let config = slint_build::CompilerConfiguration::new()
-        .with_style("fluent".into())
+        .with_style("material".into())
         .embed_resources(slint_build::EmbedResourcesKind::EmbedFiles);
     slint_build::compile_with_config(path, config).unwrap_or_else(|error| {
         panic!("compile Slint UI `{path}`: {error}");

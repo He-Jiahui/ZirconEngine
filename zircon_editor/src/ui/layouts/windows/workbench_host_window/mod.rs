@@ -28,8 +28,8 @@ pub(crate) use host_data::{
     HostResizeLayerData, HostSideDockSurfaceData, HostStatusBarData, HostTabDragOverlayData,
     HostWindowLayoutData, HostWindowSceneData, HostWindowShellData, HostWindowSurfaceData,
     HostWindowSurfaceMetricsData, HostWindowSurfaceOrchestrationData, InspectorPaneViewData,
-    PaneBodyCompatData, PaneContentSize, PaneData, ProjectOverviewData,
-    ProjectOverviewPaneViewData, SceneNodeData, TabData,
+    ModulePluginStatusViewData, ModulePluginsPaneViewData, PaneBodyCompatData, PaneContentSize,
+    PaneData, ProjectOverviewData, ProjectOverviewPaneViewData, SceneNodeData, TabData,
 };
 #[allow(unused_imports)]
 pub(crate) use pane_payload::PanePayload;

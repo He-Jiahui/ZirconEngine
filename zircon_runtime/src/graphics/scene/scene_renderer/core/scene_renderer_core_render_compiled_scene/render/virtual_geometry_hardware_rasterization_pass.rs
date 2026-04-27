@@ -9,11 +9,14 @@ use wgpu::util::DeviceExt;
 
 use super::virtual_geometry_executed_cluster_selection_pass::VirtualGeometryExecutedClusterSelectionPassOutput;
 
-pub(super) struct VirtualGeometryHardwareRasterizationPassOutput {
-    pub(super) source: RenderVirtualGeometryHardwareRasterizationSource,
-    pub(super) record_count: u32,
-    pub(super) buffer: Option<Arc<wgpu::Buffer>>,
-    pub(super) records: Vec<RenderVirtualGeometryHardwareRasterizationRecord>,
+pub(in crate::graphics::scene::scene_renderer::core) struct VirtualGeometryHardwareRasterizationPassOutput
+{
+    pub(in crate::graphics::scene::scene_renderer::core) source:
+        RenderVirtualGeometryHardwareRasterizationSource,
+    pub(in crate::graphics::scene::scene_renderer::core) record_count: u32,
+    pub(in crate::graphics::scene::scene_renderer::core) buffer: Option<Arc<wgpu::Buffer>>,
+    pub(in crate::graphics::scene::scene_renderer::core) records:
+        Vec<RenderVirtualGeometryHardwareRasterizationRecord>,
 }
 
 pub(super) fn execute_virtual_geometry_hardware_rasterization_pass(

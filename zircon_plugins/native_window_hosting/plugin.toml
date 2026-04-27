@@ -1,0 +1,12 @@
+id = "native_window_hosting"
+version = "0.1.0"
+display_name = "Native Window Hosting"
+description = "Optional editor integration for native floating window surfaces."
+default_packaging = ["source_template", "library_embed"]
+
+[[modules]]
+name = "native_window_hosting.editor"
+kind = "editor"
+crate_name = "zircon_plugin_native_window_hosting_editor"
+target_modes = ["editor_host"]
+capabilities = ["editor.extension.native_window_hosting"]

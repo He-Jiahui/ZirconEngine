@@ -7,6 +7,7 @@ impl SceneRenderer {
     pub(crate) fn read_last_virtual_geometry_selected_cluster_source(
         &self,
     ) -> RenderVirtualGeometrySelectedClusterSource {
-        self.last_virtual_geometry_selected_cluster_source
+        self.advanced_plugin_outputs
+            .virtual_geometry_selected_cluster_source
     }
 }

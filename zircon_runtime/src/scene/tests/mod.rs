@@ -5,7 +5,6 @@ mod property_paths;
 mod semantics;
 mod support;
 mod world_basics;
-mod world_driver;
 
 use crate::scene::{DefaultLevelManager, RuntimeObject, RuntimeSystem};
 

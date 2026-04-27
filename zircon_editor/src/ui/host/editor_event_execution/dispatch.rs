@@ -1,4 +1,4 @@
-use crate::core::editor_event::{EditorEvent, EditorEventEffect};
+use crate::core::editor_event::{EditorEvent, EditorEventEffect, EditorOperationEvent};
 
 use super::execution_outcome::ExecutionOutcome;
 use super::{
@@ -22,6 +22,9 @@ pub(crate) fn execute_event(
         EditorEvent::Animation(event) => execute_animation_event(inner, event),
         EditorEvent::Inspector(event) => execute_inspector_event(inner, event),
         EditorEvent::Viewport(event) => execute_viewport_event(inner, event),
+        EditorEvent::Operation(event) => match event {
+            EditorOperationEvent::ControlFailure { error, .. } => Err(error.clone()),
+        },
         EditorEvent::Transient(update) => {
             inner.transient.apply(update);
             Ok(ExecutionOutcome {

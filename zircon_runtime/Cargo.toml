@@ -6,8 +6,22 @@ license.workspace = true
 description = "Runtime absorption layer for high-level engine subsystems."
 
 [features]
+default = ["target-client"]
 runtime-ui-integration-tests = []
 jolt = []
+core-min = []
+plugin-ui = []
+target-client = [
+    "core-min",
+    "plugin-ui",
+]
+target-server = [
+    "core-min",
+]
+target-editor-host = [
+    "core-min",
+    "plugin-ui",
+]
 
 [dependencies]
 bincode.workspace = true

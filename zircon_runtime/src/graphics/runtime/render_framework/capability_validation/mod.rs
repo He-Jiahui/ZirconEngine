@@ -78,10 +78,11 @@ mod tests {
         RenderCapabilitySummary, RenderFrameExtract, RenderFrameworkError, RenderPipelineHandle,
         RenderQualityProfile, RenderWorldSnapshotHandle,
     };
+    use crate::render_graph::QueueLane;
     use crate::scene::world::World;
     use crate::{
-        BuiltinRenderFeature, RenderFeatureCapabilityRequirement, RenderPipelineAsset,
-        RenderPipelineCompileOptions,
+        RenderFeatureCapabilityRequirement, RenderFeatureDescriptor, RenderFeaturePassDescriptor,
+        RenderPassStage, RenderPipelineAsset, RenderPipelineCompileOptions, RendererFeatureAsset,
     };
 
     use super::{validate_compiled_pipeline_capabilities, validate_quality_profile_capabilities};
@@ -117,12 +118,30 @@ mod tests {
 
     #[test]
     fn compiled_pipeline_capability_validation_reports_descriptor_requirements() {
-        let pipeline = RenderPipelineAsset::default_forward_plus();
+        let mut pipeline = RenderPipelineAsset::default_forward_plus();
+        pipeline
+            .renderer
+            .features
+            .push(RendererFeatureAsset::plugin(
+                RenderFeatureDescriptor::new(
+                    "plugin.virtual_geometry.capability_validation",
+                    Vec::new(),
+                    Vec::new(),
+                    vec![RenderFeaturePassDescriptor::new(
+                        RenderPassStage::DepthPrepass,
+                        "plugin-virtual-geometry-capability-validation",
+                        QueueLane::Graphics,
+                    )
+                    .with_executor_id("plugin.virtual-geometry.capability-validation")
+                    .with_side_effects()],
+                )
+                .with_capability_requirement(RenderFeatureCapabilityRequirement::VirtualGeometry),
+            ));
         let compiled = pipeline
             .compile_with_options(
                 &test_extract(),
                 &RenderPipelineCompileOptions::default()
-                    .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry),
+                    .with_capability_enabled(RenderFeatureCapabilityRequirement::VirtualGeometry),
             )
             .unwrap();
         assert_eq!(

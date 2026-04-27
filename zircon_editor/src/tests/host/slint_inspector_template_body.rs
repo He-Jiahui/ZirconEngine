@@ -109,6 +109,7 @@ fn inspector_pane() -> crate::ui::layouts::windows::workbench_host_window::PaneD
             assets_activity: Default::default(),
             asset_browser: Default::default(),
             project_overview: Default::default(),
+            module_plugins: Default::default(),
             ui_asset: Default::default(),
             animation: Default::default(),
         },

@@ -34,6 +34,7 @@ const BINDING_EVENT_ORDER: &[UiEventKind] = &[
     UiEventKind::DragBegin,
     UiEventKind::DragUpdate,
     UiEventKind::DragEnd,
+    UiEventKind::Drop,
 ];
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -766,6 +767,20 @@ fn binding_root_payload_suggestions(binding: &UiBindingRef) -> Vec<(String, Valu
                 Value::String(event_source_tag(binding.event)),
             ),
         ],
+        UiEventKind::Drop => vec![
+            (
+                "payload_kind".to_string(),
+                Value::String("asset".to_string()),
+            ),
+            (
+                "reference".to_string(),
+                Value::String("res://textures/grid.albedo.png".to_string()),
+            ),
+            (
+                "source".to_string(),
+                Value::String(event_source_tag(binding.event)),
+            ),
+        ],
         _ => vec![(
             "source".to_string(),
             Value::String(event_source_tag(binding.event)),
@@ -940,6 +955,10 @@ fn binding_route_suggestions(node: &UiNodeDefinition, binding: &UiBindingRef) ->
             suggestions.push("Route.Toggle.Changed".to_string());
             suggestions.push("Route.Panel.VisibilityChanged".to_string());
         }
+        UiEventKind::Drop => {
+            suggestions.push("Route.Reference.Dropped".to_string());
+            suggestions.push("Route.Asset.AcceptDrop".to_string());
+        }
         _ => {
             suggestions.push(format!("Route.{}", binding_route_slug(node, binding)));
         }
@@ -965,6 +984,10 @@ fn binding_action_suggestions(node: &UiNodeDefinition, binding: &UiBindingRef) -
         UiEventKind::Toggle => {
             suggestions.push("EditorAction.ToggleVisibility".to_string());
             suggestions.push("EditorAction.ToggleSelectionState".to_string());
+        }
+        UiEventKind::Drop => {
+            suggestions.push("EditorAction.AcceptAssetDrop".to_string());
+            suggestions.push("EditorAction.AssignReference".to_string());
         }
         _ => {
             suggestions.push(format!(

@@ -37,6 +37,7 @@ impl World {
             active_in_hierarchy: HashMap::new(),
             render_layer_masks: HashMap::new(),
             mobility: HashMap::new(),
+            dynamic_components: HashMap::new(),
             next_id: 1,
             active_camera: 0,
             schedule: Schedule::default(),

@@ -28,36 +28,54 @@ use startup_worklist::build_node_and_cluster_cull_global_state;
 
 const NODE_AND_CLUSTER_CULL_COMPAT_TRAVERSAL_WAVE_LIMIT: usize = 8;
 
-pub(super) struct VirtualGeometryNodeAndClusterCullPassOutput {
-    pub(super) source: RenderVirtualGeometryNodeAndClusterCullSource,
-    pub(super) record_count: u32,
-    pub(super) global_state: Option<RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot>,
-    pub(super) buffer: Option<Arc<wgpu::Buffer>>,
-    pub(super) dispatch_setup: Option<RenderVirtualGeometryNodeAndClusterCullDispatchSetupSnapshot>,
-    pub(super) launch_worklist:
+pub(in crate::graphics::scene::scene_renderer::core) struct VirtualGeometryNodeAndClusterCullPassOutput
+{
+    pub(in crate::graphics::scene::scene_renderer::core) source:
+        RenderVirtualGeometryNodeAndClusterCullSource,
+    pub(in crate::graphics::scene::scene_renderer::core) record_count: u32,
+    pub(in crate::graphics::scene::scene_renderer::core) global_state:
+        Option<RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot>,
+    pub(in crate::graphics::scene::scene_renderer::core) buffer: Option<Arc<wgpu::Buffer>>,
+    pub(in crate::graphics::scene::scene_renderer::core) dispatch_setup:
+        Option<RenderVirtualGeometryNodeAndClusterCullDispatchSetupSnapshot>,
+    pub(in crate::graphics::scene::scene_renderer::core) launch_worklist:
         Option<RenderVirtualGeometryNodeAndClusterCullLaunchWorklistSnapshot>,
-    pub(super) dispatch_setup_buffer: Option<Arc<wgpu::Buffer>>,
-    pub(super) launch_worklist_buffer: Option<Arc<wgpu::Buffer>>,
-    pub(super) instance_seed_count: u32,
-    pub(super) instance_seeds: Vec<RenderVirtualGeometryNodeAndClusterCullInstanceSeed>,
-    pub(super) instance_seed_buffer: Option<Arc<wgpu::Buffer>>,
-    pub(super) instance_work_item_count: u32,
-    pub(super) instance_work_items: Vec<RenderVirtualGeometryNodeAndClusterCullInstanceWorkItem>,
-    pub(super) instance_work_item_buffer: Option<Arc<wgpu::Buffer>>,
-    pub(super) cluster_work_item_count: u32,
-    pub(super) cluster_work_items: Vec<VirtualGeometryNodeAndClusterCullClusterWorkItem>,
-    pub(super) cluster_work_item_buffer: Option<Arc<wgpu::Buffer>>,
-    pub(super) hierarchy_child_ids: Vec<u32>,
-    pub(super) hierarchy_child_id_buffer: Option<Arc<wgpu::Buffer>>,
-    pub(super) child_work_item_count: u32,
-    pub(super) child_work_items: Vec<VirtualGeometryNodeAndClusterCullChildWorkItem>,
-    pub(super) child_work_item_buffer: Option<Arc<wgpu::Buffer>>,
-    pub(super) traversal_record_count: u32,
-    pub(super) traversal_records: Vec<VirtualGeometryNodeAndClusterCullTraversalRecord>,
-    pub(super) traversal_record_buffer: Option<Arc<wgpu::Buffer>>,
-    pub(super) page_request_count: u32,
-    pub(super) page_request_ids: Vec<u32>,
-    pub(super) page_request_buffer: Option<Arc<wgpu::Buffer>>,
+    pub(in crate::graphics::scene::scene_renderer::core) dispatch_setup_buffer:
+        Option<Arc<wgpu::Buffer>>,
+    pub(in crate::graphics::scene::scene_renderer::core) launch_worklist_buffer:
+        Option<Arc<wgpu::Buffer>>,
+    pub(in crate::graphics::scene::scene_renderer::core) instance_seed_count: u32,
+    pub(in crate::graphics::scene::scene_renderer::core) instance_seeds:
+        Vec<RenderVirtualGeometryNodeAndClusterCullInstanceSeed>,
+    pub(in crate::graphics::scene::scene_renderer::core) instance_seed_buffer:
+        Option<Arc<wgpu::Buffer>>,
+    pub(in crate::graphics::scene::scene_renderer::core) instance_work_item_count: u32,
+    pub(in crate::graphics::scene::scene_renderer::core) instance_work_items:
+        Vec<RenderVirtualGeometryNodeAndClusterCullInstanceWorkItem>,
+    pub(in crate::graphics::scene::scene_renderer::core) instance_work_item_buffer:
+        Option<Arc<wgpu::Buffer>>,
+    pub(in crate::graphics::scene::scene_renderer::core) cluster_work_item_count: u32,
+    pub(in crate::graphics::scene::scene_renderer::core) cluster_work_items:
+        Vec<VirtualGeometryNodeAndClusterCullClusterWorkItem>,
+    pub(in crate::graphics::scene::scene_renderer::core) cluster_work_item_buffer:
+        Option<Arc<wgpu::Buffer>>,
+    pub(in crate::graphics::scene::scene_renderer::core) hierarchy_child_ids: Vec<u32>,
+    pub(in crate::graphics::scene::scene_renderer::core) hierarchy_child_id_buffer:
+        Option<Arc<wgpu::Buffer>>,
+    pub(in crate::graphics::scene::scene_renderer::core) child_work_item_count: u32,
+    pub(in crate::graphics::scene::scene_renderer::core) child_work_items:
+        Vec<VirtualGeometryNodeAndClusterCullChildWorkItem>,
+    pub(in crate::graphics::scene::scene_renderer::core) child_work_item_buffer:
+        Option<Arc<wgpu::Buffer>>,
+    pub(in crate::graphics::scene::scene_renderer::core) traversal_record_count: u32,
+    pub(in crate::graphics::scene::scene_renderer::core) traversal_records:
+        Vec<VirtualGeometryNodeAndClusterCullTraversalRecord>,
+    pub(in crate::graphics::scene::scene_renderer::core) traversal_record_buffer:
+        Option<Arc<wgpu::Buffer>>,
+    pub(in crate::graphics::scene::scene_renderer::core) page_request_count: u32,
+    pub(in crate::graphics::scene::scene_renderer::core) page_request_ids: Vec<u32>,
+    pub(in crate::graphics::scene::scene_renderer::core) page_request_buffer:
+        Option<Arc<wgpu::Buffer>>,
 }
 
 pub(super) fn execute_virtual_geometry_node_and_cluster_cull_pass(

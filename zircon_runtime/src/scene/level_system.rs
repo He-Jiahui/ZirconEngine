@@ -121,16 +121,6 @@ impl LevelSystem {
         )
     }
 
-    pub(crate) fn record_physics_tick(
-        &self,
-        step_plan: PhysicsWorldStepPlan,
-        contacts: Vec<PhysicsContactEvent>,
-    ) {
-        let mut runtime_state = self.runtime_state.lock().unwrap();
-        runtime_state.physics_step_plan = Some(step_plan);
-        runtime_state.physics_contacts = contacts;
-    }
-
     pub(crate) fn record_animation_poses(
         &self,
         animation_poses: BTreeMap<EntityId, AnimationPoseOutput>,

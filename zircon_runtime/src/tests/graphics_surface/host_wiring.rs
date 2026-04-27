@@ -64,3 +64,34 @@ fn graphics_runtime_host_no_longer_owns_legacy_preview_or_render_service_wiring(
         );
     }
 }
+
+#[test]
+fn graphics_module_defers_render_framework_until_resolved() {
+    use crate::core::manager::resolve_rendering_manager;
+    use crate::core::{CoreRuntime, StartupMode};
+    use crate::graphics::{graphics_module_descriptor, RENDER_FRAMEWORK_NAME};
+
+    let descriptor = graphics_module_descriptor();
+    let render_framework = descriptor
+        .managers
+        .iter()
+        .find(|manager| manager.name.as_str() == RENDER_FRAMEWORK_NAME)
+        .expect("graphics module should register RenderFramework");
+    assert_eq!(render_framework.startup_mode, StartupMode::Lazy);
+
+    let runtime = CoreRuntime::new();
+    runtime
+        .register_module(crate::asset::module_descriptor())
+        .expect("register asset module");
+    runtime
+        .register_module(descriptor)
+        .expect("register graphics module");
+    runtime
+        .activate_module(crate::asset::ASSET_MODULE_NAME)
+        .expect("activate asset module");
+    runtime
+        .activate_module(crate::graphics::GRAPHICS_MODULE_NAME)
+        .expect("activate graphics module without initializing RenderFramework");
+
+    assert!(resolve_rendering_manager(&runtime.handle()).is_ok());
+}

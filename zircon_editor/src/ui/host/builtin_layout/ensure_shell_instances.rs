@@ -1,5 +1,6 @@
 use crate::ui::workbench::view::{ViewInstance, ViewRegistry};
 
+use super::super::editor_capabilities::EditorCapabilitySnapshot;
 use super::super::editor_error::EditorError;
 use super::super::editor_session_state::EditorSessionState;
 use super::builtin_shell_view_instances::builtin_shell_view_instances;
@@ -7,8 +8,10 @@ use super::builtin_shell_view_instances::builtin_shell_view_instances;
 pub(crate) fn ensure_builtin_shell_instances(
     registry: &mut ViewRegistry,
     session: &mut EditorSessionState,
+    snapshot: &EditorCapabilitySnapshot,
 ) -> Result<(), EditorError> {
-    for instance in builtin_shell_view_instances() {
+    registry.set_available_capabilities(snapshot.enabled_capabilities().to_vec());
+    for instance in builtin_shell_view_instances(snapshot) {
         let restored = restore_or_reuse_instance(registry, &instance)?;
         session
             .open_view_instances

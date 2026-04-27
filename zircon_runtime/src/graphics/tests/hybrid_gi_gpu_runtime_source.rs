@@ -6,6 +6,7 @@ use crate::core::framework::render::{
     RenderSceneSnapshot, RenderWorldSnapshotHandle,
 };
 use crate::core::math::{UVec2, Vec3};
+use crate::graphics::tests::plugin_render_feature_fixtures::hybrid_gi_render_feature_descriptor;
 use crate::scene::world::World;
 
 use crate::{
@@ -14,14 +15,46 @@ use crate::{
         HybridGiPrepareFrame, HybridGiPrepareSurfaceCachePageContent, HybridGiPrepareUpdateRequest,
         HybridGiResolveRuntime, HybridGiScenePrepareFrame, ViewportRenderFrame,
     },
-    BuiltinRenderFeature, RenderPipelineAsset, RenderPipelineCompileOptions, SceneRenderer,
+    BuiltinRenderFeature, CompiledRenderPipeline, RenderFeatureCapabilityRequirement,
+    RenderPipelineAsset, RenderPipelineCompileOptions, SceneRenderer,
 };
+
+fn compile_hybrid_gi_pipeline(extract: &RenderFrameExtract) -> CompiledRenderPipeline {
+    RenderPipelineAsset::default_forward_plus()
+        .with_plugin_render_features([hybrid_gi_render_feature_descriptor()])
+        .compile_with_options(
+            extract,
+            &RenderPipelineCompileOptions::default()
+                .with_capability_enabled(
+                    RenderFeatureCapabilityRequirement::HybridGlobalIllumination,
+                )
+                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
+                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
+                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
+                .with_feature_disabled(BuiltinRenderFeature::Bloom)
+                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
+                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
+                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
+                .with_feature_disabled(BuiltinRenderFeature::Particle)
+                .with_feature_disabled(BuiltinRenderFeature::VirtualGeometry)
+                .with_async_compute(false),
+        )
+        .unwrap()
+}
+
+fn hybrid_gi_scene_renderer(asset_manager: Arc<ProjectAssetManager>) -> SceneRenderer {
+    SceneRenderer::new_with_plugin_render_features(
+        asset_manager,
+        [hybrid_gi_render_feature_descriptor()],
+    )
+    .unwrap()
+}
 
 #[test]
 fn hybrid_gi_pending_probe_gpu_trace_lighting_uses_runtime_hierarchy_rt_continuation_after_schedule_clears(
 ) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let extract = build_extract(
         viewport_size,
@@ -108,7 +141,7 @@ fn hybrid_gi_pending_probe_gpu_trace_lighting_uses_runtime_hierarchy_rt_continua
 fn hybrid_gi_pending_probe_gpu_trace_lighting_uses_runtime_direct_rt_history_when_hierarchy_weight_is_flat(
 ) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let extract = build_extract(
         viewport_size,
@@ -174,7 +207,7 @@ fn hybrid_gi_pending_probe_gpu_trace_lighting_uses_runtime_direct_rt_history_whe
 fn hybrid_gi_pending_probe_gpu_irradiance_uses_runtime_hierarchy_source_when_scene_gather_is_missing(
 ) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let extract = build_extract(
         viewport_size,
@@ -253,7 +286,7 @@ fn hybrid_gi_pending_probe_gpu_irradiance_uses_runtime_hierarchy_source_when_sce
 fn hybrid_gi_pending_probe_gpu_irradiance_blends_exact_runtime_source_with_current_surface_cache_truth_when_trace_schedule_is_empty(
 ) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let extract = build_extract(
         viewport_size,
@@ -349,7 +382,7 @@ fn hybrid_gi_pending_probe_gpu_irradiance_blends_exact_runtime_source_with_curre
 fn hybrid_gi_pending_probe_gpu_irradiance_skips_scene_prepare_reblend_when_exact_runtime_source_is_already_scene_driven(
 ) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let extract = build_extract(
         viewport_size,
@@ -440,7 +473,7 @@ fn hybrid_gi_pending_probe_gpu_irradiance_skips_scene_prepare_reblend_when_exact
 fn hybrid_gi_pending_probe_gpu_trace_lighting_skips_scene_prepare_reblend_when_exact_runtime_source_is_already_scene_driven(
 ) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let extract = build_extract(
         viewport_size,
@@ -531,7 +564,7 @@ fn hybrid_gi_pending_probe_gpu_trace_lighting_skips_scene_prepare_reblend_when_e
 fn hybrid_gi_pending_probe_gpu_trace_lighting_uses_requested_lineage_runtime_source_without_trace_schedule(
 ) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let extract = build_extract(
         viewport_size,
@@ -592,7 +625,7 @@ fn hybrid_gi_pending_probe_gpu_trace_lighting_uses_requested_lineage_runtime_sou
 fn hybrid_gi_pending_probe_gpu_irradiance_uses_requested_lineage_runtime_source_without_trace_schedule(
 ) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let extract = build_extract(
         viewport_size,
@@ -653,7 +686,7 @@ fn hybrid_gi_pending_probe_gpu_irradiance_uses_requested_lineage_runtime_source_
 fn hybrid_gi_pending_probe_gpu_irradiance_inherits_requested_nonresident_ancestor_runtime_source_without_trace_schedule(
 ) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let extract = build_extract(
         viewport_size,
@@ -716,7 +749,7 @@ fn hybrid_gi_pending_probe_gpu_irradiance_inherits_requested_nonresident_ancesto
 fn hybrid_gi_pending_probe_gpu_trace_lighting_inherits_requested_nonresident_ancestor_runtime_source_without_trace_schedule(
 ) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let extract = build_extract(
         viewport_size,
@@ -782,7 +815,7 @@ fn hybrid_gi_pending_probe_gpu_trace_lighting_inherits_requested_nonresident_anc
 fn hybrid_gi_pending_probe_gpu_trace_lighting_keeps_recent_requested_lineage_runtime_source_after_request_clears(
 ) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let extract = build_extract(
         viewport_size,
@@ -849,7 +882,7 @@ fn hybrid_gi_pending_probe_gpu_trace_lighting_keeps_recent_requested_lineage_run
 fn hybrid_gi_pending_probe_gpu_trace_lighting_blends_runtime_hierarchy_source_with_current_trace_schedule(
 ) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let extract = build_extract(
         viewport_size,
@@ -930,7 +963,7 @@ fn hybrid_gi_pending_probe_gpu_trace_lighting_blends_runtime_hierarchy_source_wi
 fn hybrid_gi_pending_probe_gpu_trace_lighting_gathers_runtime_grandparent_hierarchy_source_when_exact_probe_entry_is_missing(
 ) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let extract = build_extract(
         viewport_size,
@@ -1006,7 +1039,7 @@ fn hybrid_gi_pending_probe_gpu_trace_lighting_gathers_runtime_grandparent_hierar
 fn hybrid_gi_pending_probe_gpu_irradiance_gathers_runtime_grandparent_hierarchy_source_when_exact_probe_entry_is_missing(
 ) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let extract = build_extract(
         viewport_size,
@@ -1176,23 +1209,7 @@ fn render_hybrid_gi_gpu_trace_lighting_readback_with_runtime(
     prepare: HybridGiPrepareFrame,
     runtime: Option<HybridGiResolveRuntime>,
 ) -> Vec<(u32, [u8; 3])> {
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::GlobalIllumination)
-                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
-                .with_feature_disabled(BuiltinRenderFeature::Bloom)
-                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
-                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
-                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
-                .with_feature_disabled(BuiltinRenderFeature::Particle)
-                .with_feature_disabled(BuiltinRenderFeature::VirtualGeometry)
-                .with_async_compute(false),
-        )
-        .unwrap();
+    let compiled = compile_hybrid_gi_pipeline(&extract);
 
     renderer
         .render_frame_with_pipeline(
@@ -1218,23 +1235,7 @@ fn render_hybrid_gi_gpu_trace_lighting_readback_with_scene_prepare_and_runtime(
     scene_prepare: Option<HybridGiScenePrepareFrame>,
     runtime: Option<HybridGiResolveRuntime>,
 ) -> Vec<(u32, [u8; 3])> {
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::GlobalIllumination)
-                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
-                .with_feature_disabled(BuiltinRenderFeature::Bloom)
-                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
-                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
-                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
-                .with_feature_disabled(BuiltinRenderFeature::Particle)
-                .with_feature_disabled(BuiltinRenderFeature::VirtualGeometry)
-                .with_async_compute(false),
-        )
-        .unwrap();
+    let compiled = compile_hybrid_gi_pipeline(&extract);
 
     renderer
         .render_frame_with_pipeline(
@@ -1278,23 +1279,7 @@ fn render_hybrid_gi_gpu_irradiance_readback_with_scene_prepare_and_runtime(
     scene_prepare: Option<HybridGiScenePrepareFrame>,
     runtime: Option<HybridGiResolveRuntime>,
 ) -> Vec<(u32, [u8; 3])> {
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::GlobalIllumination)
-                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
-                .with_feature_disabled(BuiltinRenderFeature::Bloom)
-                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
-                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
-                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
-                .with_feature_disabled(BuiltinRenderFeature::Particle)
-                .with_feature_disabled(BuiltinRenderFeature::VirtualGeometry)
-                .with_async_compute(false),
-        )
-        .unwrap();
+    let compiled = compile_hybrid_gi_pipeline(&extract);
 
     renderer
         .render_frame_with_pipeline(

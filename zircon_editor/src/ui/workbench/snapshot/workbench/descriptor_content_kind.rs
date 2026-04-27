@@ -15,9 +15,11 @@ pub(super) fn descriptor_content_kind(descriptor_id: &ViewDescriptorId) -> ViewC
         "editor.prefab" => ViewContentKind::PrefabEditor,
         "editor.asset_browser" => ViewContentKind::AssetBrowser,
         "editor.ui_asset" => ViewContentKind::UiAssetEditor,
+        "editor.ui_component_showcase" => ViewContentKind::UiComponentShowcase,
         "editor.animation_sequence" => ViewContentKind::AnimationSequenceEditor,
         "editor.animation_graph" => ViewContentKind::AnimationGraphEditor,
         "editor.runtime_diagnostics" => ViewContentKind::RuntimeDiagnostics,
+        "editor.module_plugins" => ViewContentKind::ModulePlugins,
         _ => ViewContentKind::Placeholder,
     }
 }

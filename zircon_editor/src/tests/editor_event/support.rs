@@ -13,6 +13,11 @@ use zircon_runtime::scene::DefaultLevelManager;
 use crate::core::editor_event::EditorEventRuntime;
 use crate::ui::host::module::{self, EDITOR_MANAGER_NAME};
 use crate::ui::host::EditorManager;
+use crate::ui::host::{
+    EDITOR_ENABLED_SUBSYSTEMS_CONFIG_KEY, EDITOR_SUBSYSTEM_ANIMATION_AUTHORING,
+    EDITOR_SUBSYSTEM_NATIVE_WINDOW_HOSTING, EDITOR_SUBSYSTEM_RUNTIME_DIAGNOSTICS,
+    EDITOR_SUBSYSTEM_UI_ASSET_AUTHORING,
+};
 use crate::ui::workbench::state::EditorState;
 
 pub(crate) fn env_lock() -> &'static Mutex<()> {
@@ -36,6 +41,18 @@ pub(crate) struct EventRuntimeHarness {
 
 impl EventRuntimeHarness {
     pub(crate) fn new(prefix: &str) -> Self {
+        Self::with_enabled_subsystems(
+            prefix,
+            &[
+                EDITOR_SUBSYSTEM_ANIMATION_AUTHORING,
+                EDITOR_SUBSYSTEM_UI_ASSET_AUTHORING,
+                EDITOR_SUBSYSTEM_RUNTIME_DIAGNOSTICS,
+                EDITOR_SUBSYSTEM_NATIVE_WINDOW_HOSTING,
+            ],
+        )
+    }
+
+    pub(crate) fn with_enabled_subsystems(prefix: &str, enabled_subsystems: &[&str]) -> Self {
         let config_path = unique_temp_path(prefix);
         std::env::set_var("ZIRCON_CONFIG_PATH", &config_path);
 
@@ -45,6 +62,10 @@ impl EventRuntimeHarness {
         core.register_module(zircon_runtime::asset::module_descriptor())
             .unwrap();
         core.register_module(module::module_descriptor()).unwrap();
+        core.store_config_value(
+            EDITOR_ENABLED_SUBSYSTEMS_CONFIG_KEY,
+            serde_json::json!(enabled_subsystems),
+        );
         core.activate_module(FOUNDATION_MODULE_NAME).unwrap();
         core.activate_module(zircon_runtime::asset::ASSET_MODULE_NAME)
             .unwrap();

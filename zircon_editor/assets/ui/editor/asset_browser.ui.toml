@@ -637,6 +637,236 @@ stretch = "Fixed"
 [root.children.node.children.node.layout.height]
 stretch = "Stretch"
 
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "sources_header_panel"
+kind = "native"
+type = "Overlay"
+control_id = "AssetBrowserSourcesHeaderPanel"
+
+[root.children.node.children.node.children.node.props]
+surface_variant = "panel"
+
+[root.children.node.children.node.children.node.layout]
+clip = true
+
+[root.children.node.children.node.children.node.layout.container]
+kind = "Overlay"
+
+[root.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.layout.height]
+min = 48.0
+preferred = 48.0
+max = 48.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node]
+node_id = "sources_title_text"
+kind = "native"
+type = "Label"
+control_id = "AssetBrowserSourcesTitleText"
+
+[root.children.node.children.node.children.node.children.node.props]
+text = "Sources"
+font_size = 11.0
+font_weight = 700
+
+[root.children.node.children.node.children.node.children.node.layout.position]
+x = 12.0
+y = 10.0
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+min = 14.0
+preferred = 14.0
+max = 14.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node]
+node_id = "sources_subtitle_text"
+kind = "native"
+type = "Label"
+control_id = "AssetBrowserSourcesSubtitleText"
+
+[root.children.node.children.node.children.node.children.node.props]
+text = "Project/assets"
+font_size = 9.0
+overflow = "elide"
+
+[root.children.node.children.node.children.node.children.node.layout.position]
+x = 12.0
+y = 25.0
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+min = 12.0
+preferred = 12.0
+max = 12.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "sources_divider"
+kind = "native"
+type = "Space"
+control_id = "AssetBrowserSourcesDivider"
+
+[root.children.node.children.node.children.node.props]
+surface_variant = "divider"
+
+[root.children.node.children.node.children.node.layout.position]
+x = 0.0
+y = 48.0
+
+[root.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.layout.height]
+min = 1.0
+preferred = 1.0
+max = 1.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "sources_scroll_body"
+kind = "native"
+type = "Overlay"
+control_id = "AssetBrowserSourcesScrollBody"
+
+[root.children.node.children.node.children.node.props]
+surface_variant = "scroll-body"
+
+[root.children.node.children.node.children.node.layout]
+clip = true
+
+[root.children.node.children.node.children.node.layout.container]
+kind = "Overlay"
+
+[root.children.node.children.node.children.node.layout.position]
+x = 0.0
+y = 49.0
+
+[root.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node]
+node_id = "sources_row_panel"
+kind = "native"
+type = "Overlay"
+control_id = "AssetBrowserSourcesRowPanel"
+
+[root.children.node.children.node.children.node.children.node.props]
+surface_variant = "asset-tree-row"
+radius = 6.0
+
+[root.children.node.children.node.children.node.children.node.layout]
+clip = true
+
+[root.children.node.children.node.children.node.children.node.layout.container]
+kind = "Overlay"
+
+[root.children.node.children.node.children.node.children.node.layout.position]
+x = 8.0
+y = 8.0
+
+[root.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.layout.height]
+min = 28.0
+preferred = 28.0
+max = 28.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node]
+node_id = "sources_row_icon"
+kind = "native"
+type = "Space"
+control_id = "AssetBrowserSourcesRowIcon"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.position]
+x = 8.0
+y = 7.0
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.width]
+min = 14.0
+preferred = 14.0
+max = 14.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 14.0
+preferred = 14.0
+max = 14.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node]
+node_id = "sources_row_name_text"
+kind = "native"
+type = "Label"
+control_id = "AssetBrowserSourcesRowNameText"
+
+[root.children.node.children.node.children.node.children.node.children.node.props]
+text = "Assets"
+font_size = 11.0
+overflow = "elide"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.position]
+x = 30.0
+y = 6.0
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 16.0
+preferred = 16.0
+max = 16.0
+stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node]
+node_id = "sources_row_count_text"
+kind = "native"
+type = "Label"
+control_id = "AssetBrowserSourcesRowCountText"
+
+[root.children.node.children.node.children.node.children.node.children.node.props]
+text = "0"
+font_size = 10.0
+text_align = "right"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.position]
+x = 236.0
+y = 5.0
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.width]
+min = 24.0
+preferred = 24.0
+max = 24.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.height]
+min = 16.0
+preferred = 16.0
+max = 16.0
+stretch = "Fixed"
+
 [[root.children.node.children]]
 [root.children.node.children.node]
 node_id = "content_panel"

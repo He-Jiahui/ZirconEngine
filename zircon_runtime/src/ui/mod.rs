@@ -1,4 +1,4 @@
-//! Runtime UI subsystem: layout, template, events (absorbed from legacy `zircon_ui`).
+//! Runtime UI subsystem: layout, template, surface, binding, and event data.
 
 mod module;
 #[allow(dead_code)]
@@ -13,6 +13,7 @@ pub(crate) use runtime_ui::PublicRuntimeFrame;
 pub(crate) use runtime_ui::{RuntimeUiFixture, RuntimeUiManager};
 
 pub mod binding;
+pub mod component;
 pub mod dispatch;
 pub mod event_ui;
 pub mod layout;

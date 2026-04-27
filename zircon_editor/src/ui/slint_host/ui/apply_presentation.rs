@@ -14,6 +14,7 @@ use crate::ui::slint_host::root_shell_projection::{
     resolve_root_viewport_content_frame,
 };
 use crate::ui::slint_host::{self as slint_ui, HostWindowPresentationData, UiHostWindow};
+use crate::ui::template_runtime::EditorUiHostRuntime;
 use crate::ui::workbench::autolayout::{ShellRegionId, WorkbenchShellGeometry};
 use crate::ui::workbench::model::WorkbenchViewModel;
 use crate::ui::workbench::snapshot::EditorChromeSnapshot;
@@ -36,8 +37,10 @@ pub(crate) fn apply_presentation(
         crate::ui::animation_editor::AnimationEditorPanePresentation,
     >,
     runtime_diagnostics: Option<&zircon_runtime::core::diagnostics::RuntimeDiagnosticsSnapshot>,
+    module_plugins: &host_window::ModulePluginsPaneViewData,
     shared_root_frames: Option<&BuiltinHostRootShellFrames>,
     floating_window_projection_bundle: &FloatingWindowProjectionBundle,
+    component_showcase_runtime: Option<&EditorUiHostRuntime>,
 ) {
     let presentation = ShellPresentation::from_state(
         model,
@@ -48,6 +51,7 @@ pub(crate) fn apply_presentation(
         ui_asset_panes,
         animation_panes,
         runtime_diagnostics,
+        module_plugins,
         floating_window_projection_bundle,
     );
     let document_pane_shows_viewport_toolbar =
@@ -117,9 +121,13 @@ pub(crate) fn apply_presentation(
         &chrome.project_overview,
     );
     let host_presentation = HostWindowPresentationData {
-        host_scene_data: to_slint_host_scene_data(&host_scene_data),
-        native_floating_surface_data: to_slint_native_floating_surface_data(
+        host_scene_data: to_slint_host_scene_data_with_runtime(
+            &host_scene_data,
+            component_showcase_runtime,
+        ),
+        native_floating_surface_data: to_slint_native_floating_surface_data_with_runtime(
             &native_floating_surface_data,
+            component_showcase_runtime,
         ),
         host_shell: to_slint_host_shell(&presentation.host_shell),
         host_layout: to_slint_host_window_layout(&host_layout),
@@ -202,6 +210,7 @@ fn to_slint_tabs(tabs: &ModelRc<host_window::TabData>) -> ModelRc<slint_ui::TabD
 fn to_slint_floating_window_data(
     window: host_window::FloatingWindowData,
     header_height_px: f32,
+    component_showcase_runtime: Option<&EditorUiHostRuntime>,
 ) -> slint_ui::FloatingWindowData {
     let pane_size = host_window::PaneContentSize::new(
         window.frame.width,
@@ -218,16 +227,17 @@ fn to_slint_floating_window_data(
         bottom_edge_target_group: window.bottom_edge_target_group,
         focus_target_id: window.focus_target_id,
         tabs: to_slint_tabs(&window.tabs),
-        active_pane: to_slint_pane(window.active_pane, pane_size),
+        active_pane: to_slint_pane(window.active_pane, pane_size, component_showcase_runtime),
     }
 }
 
 fn to_slint_floating_windows(
     windows: &ModelRc<host_window::FloatingWindowData>,
     header_height_px: f32,
+    component_showcase_runtime: Option<&EditorUiHostRuntime>,
 ) -> ModelRc<slint_ui::FloatingWindowData> {
     map_model_rc(windows, |window| {
-        to_slint_floating_window_data(window, header_height_px)
+        to_slint_floating_window_data(window, header_height_px, component_showcase_runtime)
     })
 }
 
@@ -263,8 +273,38 @@ fn to_slint_template_node(
         control_id: data.control_id.clone(),
         role: data.role.clone(),
         text: data.text.clone(),
+        component_role: "".into(),
+        value_text: "".into(),
+        value_number: 0.0,
+        value_percent: 0.0,
+        value_color: slint::Color::from_argb_u8(0, 0, 0, 0),
+        media_source: "".into(),
+        icon_name: "".into(),
+        vector_components: ModelRc::default(),
+        validation_level: "".into(),
+        validation_message: "".into(),
+        popup_open: false,
+        selection_state: "".into(),
+        options_text: "".into(),
+        options: ModelRc::default(),
+        collection_items: ModelRc::default(),
+        menu_items: ModelRc::default(),
+        actions: ModelRc::default(),
+        accepted_drag_payloads: "".into(),
+        checked: false,
+        expanded: false,
+        focused: false,
+        hovered: false,
+        pressed: false,
+        dragging: false,
+        drop_hovered: false,
+        disabled: false,
         dispatch_kind: data.dispatch_kind.clone(),
         action_id: data.action_id.clone(),
+        begin_drag_action_id: "".into(),
+        drag_action_id: "".into(),
+        end_drag_action_id: "".into(),
+        edit_action_id: "".into(),
         surface_variant: data.surface_variant.clone(),
         text_tone: data.text_tone.clone(),
         button_variant: data.button_variant.clone(),
@@ -506,6 +546,32 @@ fn to_slint_project_overview_pane(
     pane_data_conversion::to_slint_project_overview_pane(data)
 }
 
+fn to_slint_module_plugin_status(
+    data: host_window::ModulePluginStatusViewData,
+) -> slint_ui::ModulePluginStatusData {
+    slint_ui::ModulePluginStatusData {
+        plugin_id: data.plugin_id,
+        display_name: data.display_name,
+        package_source: data.package_source,
+        load_state: data.load_state,
+        enabled: data.enabled,
+        required: data.required,
+        runtime_crate: data.runtime_crate,
+        editor_crate: data.editor_crate,
+        capabilities: data.capabilities,
+        diagnostics: data.diagnostics,
+    }
+}
+
+fn to_slint_module_plugins_pane(
+    data: host_window::ModulePluginsPaneViewData,
+) -> slint_ui::ModulePluginsPaneData {
+    slint_ui::ModulePluginsPaneData {
+        plugins: map_model_rc(&data.plugins, to_slint_module_plugin_status),
+        diagnostics: data.diagnostics,
+    }
+}
+
 fn to_slint_ui_asset_pane(
     data: crate::ui::asset_editor::UiAssetEditorPanePresentation,
 ) -> slint_ui::UiAssetEditorPaneData {
@@ -515,11 +581,29 @@ fn to_slint_ui_asset_pane(
 fn to_slint_pane(
     data: host_window::PaneData,
     pane_size: host_window::PaneContentSize,
+    component_showcase_runtime: Option<&EditorUiHostRuntime>,
 ) -> slint_ui::PaneData {
     let hierarchy = to_slint_hierarchy_pane(&data, pane_size);
     let inspector = to_slint_inspector_pane(&data, pane_size);
     let console = to_slint_console_pane(&data, pane_size);
     let animation = to_slint_animation_editor_pane(&data, pane_size);
+    let pane_kind = data.kind.to_string();
+    let project_overview = if pane_kind == "UiComponentShowcase" {
+        component_showcase_runtime.map_or_else(
+            || {
+                pane_data_conversion::to_slint_component_showcase_pane_from_host_pane(
+                    &data, pane_size,
+                )
+            },
+            |runtime| {
+                pane_data_conversion::to_slint_component_showcase_pane_from_host_pane_with_runtime(
+                    &data, pane_size, runtime,
+                )
+            },
+        )
+    } else {
+        to_slint_project_overview_pane(data.body_compat.project_overview.clone())
+    };
 
     slint_ui::PaneData {
         id: data.id,
@@ -546,7 +630,8 @@ fn to_slint_pane(
         asset_browser: pane_data_conversion::to_slint_asset_browser_pane(
             data.body_compat.asset_browser,
         ),
-        project_overview: to_slint_project_overview_pane(data.body_compat.project_overview),
+        project_overview,
+        module_plugins: to_slint_module_plugins_pane(data.body_compat.module_plugins),
         ui_asset: to_slint_ui_asset_pane(data.body_compat.ui_asset),
         animation,
     }
@@ -709,6 +794,7 @@ fn to_slint_drag_overlay(
 
 fn to_slint_side_dock(
     dock: &host_window::HostSideDockSurfaceData,
+    component_showcase_runtime: Option<&EditorUiHostRuntime>,
 ) -> slint_ui::HostSideDockSurfaceData {
     let pane_size = host_window::PaneContentSize::new(
         dock.panel_width_px,
@@ -719,7 +805,7 @@ fn to_slint_side_dock(
         surface_key: dock.surface_key.clone(),
         rail_before_panel: dock.rail_before_panel,
         tabs: to_slint_tabs(&dock.tabs),
-        pane: to_slint_pane(dock.pane.clone(), pane_size),
+        pane: to_slint_pane(dock.pane.clone(), pane_size, component_showcase_runtime),
         rail_width_px: dock.rail_width_px,
         panel_width_px: dock.panel_width_px,
         panel_header_height_px: dock.panel_header_height_px,
@@ -730,6 +816,7 @@ fn to_slint_side_dock(
 
 fn to_slint_document_dock(
     dock: &host_window::HostDocumentDockSurfaceData,
+    component_showcase_runtime: Option<&EditorUiHostRuntime>,
 ) -> slint_ui::HostDocumentDockSurfaceData {
     let pane_size = host_window::PaneContentSize::new(
         dock.region_frame.width,
@@ -739,7 +826,7 @@ fn to_slint_document_dock(
         region_frame: to_slint_frame_rect(&dock.region_frame),
         surface_key: dock.surface_key.clone(),
         tabs: to_slint_tabs(&dock.tabs),
-        pane: to_slint_pane(dock.pane.clone(), pane_size),
+        pane: to_slint_pane(dock.pane.clone(), pane_size, component_showcase_runtime),
         header_height_px: dock.header_height_px,
         tab_origin_x_px: dock.tab_origin_x_px,
         tab_origin_y_px: dock.tab_origin_y_px,
@@ -748,6 +835,7 @@ fn to_slint_document_dock(
 
 fn to_slint_bottom_dock(
     dock: &host_window::HostBottomDockSurfaceData,
+    component_showcase_runtime: Option<&EditorUiHostRuntime>,
 ) -> slint_ui::HostBottomDockSurfaceData {
     let pane_size = host_window::PaneContentSize::new(
         dock.region_frame.width,
@@ -757,7 +845,7 @@ fn to_slint_bottom_dock(
         region_frame: to_slint_frame_rect(&dock.region_frame),
         surface_key: dock.surface_key.clone(),
         tabs: to_slint_tabs(&dock.tabs),
-        pane: to_slint_pane(dock.pane.clone(), pane_size),
+        pane: to_slint_pane(dock.pane.clone(), pane_size, component_showcase_runtime),
         expanded: dock.expanded,
         header_height_px: dock.header_height_px,
         tab_origin_x_px: dock.tab_origin_x_px,
@@ -767,18 +855,28 @@ fn to_slint_bottom_dock(
 
 fn to_slint_floating_layer(
     layer: &host_window::HostFloatingWindowLayerData,
+    component_showcase_runtime: Option<&EditorUiHostRuntime>,
 ) -> slint_ui::HostFloatingWindowLayerData {
     slint_ui::HostFloatingWindowLayerData {
         floating_windows: to_slint_floating_windows(
             &layer.floating_windows,
             layer.header_height_px,
+            component_showcase_runtime,
         ),
         header_height_px: layer.header_height_px,
     }
 }
 
+#[cfg(test)]
 pub(super) fn to_slint_host_scene_data(
     scene: &host_window::HostWindowSceneData,
+) -> slint_ui::HostWindowSceneData {
+    to_slint_host_scene_data_with_runtime(scene, None)
+}
+
+fn to_slint_host_scene_data_with_runtime(
+    scene: &host_window::HostWindowSceneData,
+    component_showcase_runtime: Option<&EditorUiHostRuntime>,
 ) -> slint_ui::HostWindowSceneData {
     slint_ui::HostWindowSceneData {
         layout: to_slint_host_window_layout(&scene.layout),
@@ -789,21 +887,23 @@ pub(super) fn to_slint_host_scene_data(
         status_bar: to_slint_status_bar(&scene.status_bar),
         resize_layer: to_slint_resize_layer(&scene.resize_layer),
         drag_overlay: to_slint_drag_overlay(&scene.drag_overlay),
-        left_dock: to_slint_side_dock(&scene.left_dock),
-        document_dock: to_slint_document_dock(&scene.document_dock),
-        right_dock: to_slint_side_dock(&scene.right_dock),
-        bottom_dock: to_slint_bottom_dock(&scene.bottom_dock),
-        floating_layer: to_slint_floating_layer(&scene.floating_layer),
+        left_dock: to_slint_side_dock(&scene.left_dock, component_showcase_runtime),
+        document_dock: to_slint_document_dock(&scene.document_dock, component_showcase_runtime),
+        right_dock: to_slint_side_dock(&scene.right_dock, component_showcase_runtime),
+        bottom_dock: to_slint_bottom_dock(&scene.bottom_dock, component_showcase_runtime),
+        floating_layer: to_slint_floating_layer(&scene.floating_layer, component_showcase_runtime),
     }
 }
 
-fn to_slint_native_floating_surface_data(
+fn to_slint_native_floating_surface_data_with_runtime(
     surface: &host_window::HostNativeFloatingWindowSurfaceData,
+    component_showcase_runtime: Option<&EditorUiHostRuntime>,
 ) -> slint_ui::HostNativeFloatingWindowSurfaceData {
     slint_ui::HostNativeFloatingWindowSurfaceData {
         floating_windows: to_slint_floating_windows(
             &surface.floating_windows,
             surface.header_height_px,
+            component_showcase_runtime,
         ),
         native_floating_window_id: surface.native_floating_window_id.clone(),
         native_window_bounds: to_slint_frame_rect(&surface.native_window_bounds),

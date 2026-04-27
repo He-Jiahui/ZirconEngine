@@ -1,0 +1,11 @@
+[package]
+name = "zircon_plugin_runtime_diagnostics_editor"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Runtime diagnostics editor plugin package for Zircon."
+
+[dependencies]
+zircon_editor = { path = "../../../zircon_editor" }
+zircon_plugin_editor_support = { path = "../../editor_support" }
+zircon_runtime = { path = "../../../zircon_runtime", default-features = false }

@@ -3,13 +3,31 @@
 mod host;
 
 use crate::engine_module::{EngineModule, ModuleDescriptor};
+use crate::graphics::RenderFeatureDescriptor;
 
 pub use host::{
-    module_descriptor, GRAPHICS_MODULE_NAME, RENDERING_MANAGER_NAME, RENDER_FRAMEWORK_NAME,
+    module_descriptor, module_descriptor_with_render_features, GRAPHICS_MODULE_NAME,
+    RENDERING_MANAGER_NAME, RENDER_FRAMEWORK_NAME,
 };
 
-#[derive(Clone, Copy, Debug, Default)]
-pub struct GraphicsModule;
+#[derive(Clone, Debug, Default)]
+pub struct GraphicsModule {
+    render_features: Vec<RenderFeatureDescriptor>,
+}
+
+impl GraphicsModule {
+    pub fn with_render_features(
+        render_features: impl IntoIterator<Item = RenderFeatureDescriptor>,
+    ) -> Self {
+        Self {
+            render_features: render_features.into_iter().collect(),
+        }
+    }
+
+    pub fn render_features(&self) -> &[RenderFeatureDescriptor] {
+        &self.render_features
+    }
+}
 
 impl EngineModule for GraphicsModule {
     fn module_name(&self) -> &'static str {
@@ -21,6 +39,6 @@ impl EngineModule for GraphicsModule {
     }
 
     fn descriptor(&self) -> ModuleDescriptor {
-        module_descriptor()
+        module_descriptor_with_render_features(self.render_features.clone())
     }
 }

@@ -22,8 +22,9 @@ pub(crate) fn undo_policy_for_event(event: &EditorEvent) -> EditorEventUndoPolic
             | MenuAction::ResetLayout
             | MenuAction::OpenView(_),
         ) => EditorEventUndoPolicy::FutureInverseEvent,
-        EditorEvent::Draft(_) | EditorEvent::Selection(_) | EditorEvent::Transient(_) => {
-            EditorEventUndoPolicy::NonUndoable
-        }
+        EditorEvent::Draft(_)
+        | EditorEvent::Selection(_)
+        | EditorEvent::Operation(_)
+        | EditorEvent::Transient(_) => EditorEventUndoPolicy::NonUndoable,
     }
 }

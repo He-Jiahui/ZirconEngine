@@ -47,9 +47,11 @@ pub(super) fn content_kind_name(kind: ViewContentKind) -> &'static str {
         ViewContentKind::PrefabEditor => "prefab_editor",
         ViewContentKind::AssetBrowser => "asset_browser",
         ViewContentKind::UiAssetEditor => "ui_asset_editor",
+        ViewContentKind::UiComponentShowcase => "ui_component_showcase",
         ViewContentKind::AnimationSequenceEditor => "animation_sequence_editor",
         ViewContentKind::AnimationGraphEditor => "animation_graph_editor",
         ViewContentKind::RuntimeDiagnostics => "runtime_diagnostics",
+        ViewContentKind::ModulePlugins => "module_plugins",
         ViewContentKind::Placeholder => "placeholder",
     }
 }

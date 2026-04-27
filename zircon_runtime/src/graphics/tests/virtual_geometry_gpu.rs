@@ -18,6 +18,7 @@ use crate::core::framework::render::{
     RenderWorldSnapshotHandle,
 };
 use crate::core::math::{view_matrix, Mat4, Transform, UVec2, Vec3};
+use crate::graphics::tests::plugin_render_feature_fixtures::virtual_geometry_render_feature_descriptor;
 use crate::graphics::types::{
     VirtualGeometryNodeAndClusterCullChildWorkItem,
     VirtualGeometryNodeAndClusterCullClusterWorkItem,
@@ -32,24 +33,17 @@ use crate::{
         VirtualGeometryPrepareClusterState, VirtualGeometryPrepareFrame,
         VirtualGeometryPreparePage, VirtualGeometryPrepareRequest,
     },
-    BuiltinRenderFeature, RenderPipelineAsset, RenderPipelineCompileOptions, SceneRenderer,
+    BuiltinRenderFeature, CompiledRenderPipeline, RenderFeatureCapabilityRequirement,
+    RenderPipelineAsset, RenderPipelineCompileOptions, SceneRenderer,
 };
 
-#[test]
-fn virtual_geometry_gpu_uploader_readback_reports_completed_page_ids_from_prepare_snapshot() {
-    let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
-    let viewport_size = UVec2::new(96, 64);
-    let extract = build_extract(
-        viewport_size,
-        2,
-        vec![page(200, true), page(500, true), page(300, false)],
-    );
-    let compiled = RenderPipelineAsset::default_forward_plus()
+fn compile_virtual_geometry_pipeline(extract: &RenderFrameExtract) -> CompiledRenderPipeline {
+    RenderPipelineAsset::default_forward_plus()
+        .with_plugin_render_features([virtual_geometry_render_feature_descriptor()])
         .compile_with_options(
-            &extract,
+            extract,
             &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
+                .with_capability_enabled(RenderFeatureCapabilityRequirement::VirtualGeometry)
                 .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
                 .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
                 .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
@@ -60,7 +54,29 @@ fn virtual_geometry_gpu_uploader_readback_reports_completed_page_ids_from_prepar
                 .with_feature_disabled(BuiltinRenderFeature::Particle)
                 .with_async_compute(false),
         )
-        .unwrap();
+        .unwrap()
+}
+
+fn virtual_geometry_scene_renderer(asset_manager: Arc<ProjectAssetManager>) -> SceneRenderer {
+    SceneRenderer::new_with_plugin_render_features(
+        asset_manager,
+        [virtual_geometry_render_feature_descriptor()],
+    )
+    .unwrap()
+}
+
+#[test]
+fn virtual_geometry_gpu_uploader_readback_reports_completed_page_ids_from_prepare_snapshot() {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
+    let viewport_size = UVec2::new(96, 64);
+    let extract = build_extract(
+        viewport_size,
+        2,
+        vec![page(200, true), page(500, true), page(300, false)],
+    );
+
+    let compiled = compile_virtual_geometry_pipeline(&extract);
 
     renderer
         .render_frame_with_pipeline(
@@ -113,25 +129,11 @@ fn virtual_geometry_gpu_uploader_readback_reports_completed_page_ids_from_prepar
 fn virtual_geometry_gpu_uploader_readback_merges_gpu_completed_assignments_into_page_table_snapshot(
 ) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let extract = build_extract(viewport_size, 2, vec![page(200, true), page(300, false)]);
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
-                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
-                .with_feature_disabled(BuiltinRenderFeature::Bloom)
-                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
-                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
-                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
-                .with_feature_disabled(BuiltinRenderFeature::Particle)
-                .with_async_compute(false),
-        )
-        .unwrap();
+
+    let compiled = compile_virtual_geometry_pipeline(&extract);
 
     renderer
         .render_frame_with_pipeline(
@@ -177,25 +179,11 @@ fn virtual_geometry_gpu_uploader_readback_merges_gpu_completed_assignments_into_
 fn virtual_geometry_gpu_uploader_readback_reports_actual_recycled_page_for_implicit_evictable_slot_reuse(
 ) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let extract = build_extract(viewport_size, 1, vec![page(200, false), page(400, true)]);
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
-                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
-                .with_feature_disabled(BuiltinRenderFeature::Bloom)
-                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
-                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
-                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
-                .with_feature_disabled(BuiltinRenderFeature::Particle)
-                .with_async_compute(false),
-        )
-        .unwrap();
+
+    let compiled = compile_virtual_geometry_pipeline(&extract);
 
     renderer
         .render_frame_with_pipeline(
@@ -245,25 +233,11 @@ fn virtual_geometry_gpu_uploader_readback_reports_actual_recycled_page_for_impli
 #[test]
 fn virtual_geometry_gpu_uploader_readback_respects_budget_without_evictable_pages() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let extract = build_extract(viewport_size, 1, vec![page(200, true), page(300, false)]);
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
-                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
-                .with_feature_disabled(BuiltinRenderFeature::Bloom)
-                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
-                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
-                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
-                .with_feature_disabled(BuiltinRenderFeature::Particle)
-                .with_async_compute(false),
-        )
-        .unwrap();
+
+    let compiled = compile_virtual_geometry_pipeline(&extract);
 
     renderer
         .render_frame_with_pipeline(
@@ -307,25 +281,11 @@ fn virtual_geometry_gpu_uploader_readback_respects_budget_without_evictable_page
 #[test]
 fn virtual_geometry_gpu_uploader_readback_respects_streaming_bytes_even_with_evictable_pages() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let extract = build_extract(viewport_size, 1, vec![page(200, true)]);
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
-                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
-                .with_feature_disabled(BuiltinRenderFeature::Bloom)
-                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
-                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
-                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
-                .with_feature_disabled(BuiltinRenderFeature::Particle)
-                .with_async_compute(false),
-        )
-        .unwrap();
+
+    let compiled = compile_virtual_geometry_pipeline(&extract);
 
     renderer
         .render_frame_with_pipeline(
@@ -377,25 +337,11 @@ fn virtual_geometry_gpu_uploader_readback_respects_streaming_bytes_even_with_evi
 #[test]
 fn virtual_geometry_gpu_uploader_readback_skips_oversized_requests_and_completes_ones_that_fit() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let extract = build_extract(viewport_size, 1, vec![page(400, false), page(500, false)]);
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
-                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
-                .with_feature_disabled(BuiltinRenderFeature::Bloom)
-                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
-                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
-                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
-                .with_feature_disabled(BuiltinRenderFeature::Particle)
-                .with_async_compute(false),
-        )
-        .unwrap();
+
+    let compiled = compile_virtual_geometry_pipeline(&extract);
 
     renderer
         .render_frame_with_pipeline(
@@ -446,25 +392,11 @@ fn virtual_geometry_gpu_uploader_readback_skips_oversized_requests_and_completes
 #[test]
 fn virtual_geometry_gpu_uploader_readback_assigns_free_slots_before_recycling_evictable_slots() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let extract = build_extract(viewport_size, 3, vec![page(200, true), page(500, true)]);
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
-                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
-                .with_feature_disabled(BuiltinRenderFeature::Bloom)
-                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
-                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
-                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
-                .with_feature_disabled(BuiltinRenderFeature::Particle)
-                .with_async_compute(false),
-        )
-        .unwrap();
+
+    let compiled = compile_virtual_geometry_pipeline(&extract);
 
     renderer
         .render_frame_with_pipeline(
@@ -529,25 +461,11 @@ fn virtual_geometry_gpu_uploader_readback_assigns_free_slots_before_recycling_ev
 #[test]
 fn virtual_geometry_gpu_uploader_readback_prioritizes_explicit_frontier_rank_over_input_order() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let extract = build_extract(viewport_size, 1, vec![page(300, false), page(600, false)]);
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
-                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
-                .with_feature_disabled(BuiltinRenderFeature::Bloom)
-                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
-                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
-                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
-                .with_feature_disabled(BuiltinRenderFeature::Particle)
-                .with_async_compute(false),
-        )
-        .unwrap();
+
+    let compiled = compile_virtual_geometry_pipeline(&extract);
 
     renderer
         .render_frame_with_pipeline(
@@ -602,7 +520,7 @@ fn virtual_geometry_gpu_uploader_readback_prioritizes_explicit_frontier_rank_ove
 fn virtual_geometry_gpu_uploader_readback_uses_explicit_request_assigned_slot_over_evictable_input_order(
 ) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let extract = build_extract(
         viewport_size,
@@ -614,22 +532,8 @@ fn virtual_geometry_gpu_uploader_readback_uses_explicit_request_assigned_slot_ov
             page(800, true),
         ],
     );
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
-                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
-                .with_feature_disabled(BuiltinRenderFeature::Bloom)
-                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
-                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
-                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
-                .with_feature_disabled(BuiltinRenderFeature::Particle)
-                .with_async_compute(false),
-        )
-        .unwrap();
+
+    let compiled = compile_virtual_geometry_pipeline(&extract);
 
     renderer
         .render_frame_with_pipeline(
@@ -706,7 +610,7 @@ fn virtual_geometry_gpu_uploader_readback_uses_explicit_request_assigned_slot_ov
 #[test]
 fn virtual_geometry_gpu_uploader_readback_rejects_stale_explicit_recycle_slot_contract() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let extract = build_extract(
         viewport_size,
@@ -719,22 +623,8 @@ fn virtual_geometry_gpu_uploader_readback_rejects_stale_explicit_recycle_slot_co
             page(900, true),
         ],
     );
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
-                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
-                .with_feature_disabled(BuiltinRenderFeature::Bloom)
-                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
-                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
-                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
-                .with_feature_disabled(BuiltinRenderFeature::Particle)
-                .with_async_compute(false),
-        )
-        .unwrap();
+
+    let compiled = compile_virtual_geometry_pipeline(&extract);
 
     renderer
         .render_frame_with_pipeline(
@@ -826,7 +716,7 @@ fn virtual_geometry_gpu_uploader_readback_rejects_stale_explicit_recycle_slot_co
 fn virtual_geometry_gpu_uploader_readback_preserves_frontier_recycle_preference_after_stale_requests_are_skipped(
 ) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let extract = build_extract(
         viewport_size,
@@ -840,22 +730,8 @@ fn virtual_geometry_gpu_uploader_readback_preserves_frontier_recycle_preference_
             page(800, true),
         ],
     );
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
-                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
-                .with_feature_disabled(BuiltinRenderFeature::Bloom)
-                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
-                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
-                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
-                .with_feature_disabled(BuiltinRenderFeature::Particle)
-                .with_async_compute(false),
-        )
-        .unwrap();
+
+    let compiled = compile_virtual_geometry_pipeline(&extract);
 
     renderer
         .render_frame_with_pipeline(
@@ -950,7 +826,7 @@ fn virtual_geometry_gpu_uploader_readback_preserves_frontier_recycle_preference_
 #[test]
 fn virtual_geometry_gpu_readback_exposes_execution_backed_visbuffer64_entries() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let world = World::new();
     let mesh = world
@@ -998,22 +874,8 @@ fn virtual_geometry_gpu_readback_exposes_execution_backed_visbuffer64_entries() 
         }],
         debug: RenderVirtualGeometryDebugState::default(),
     });
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
-                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
-                .with_feature_disabled(BuiltinRenderFeature::Bloom)
-                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
-                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
-                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
-                .with_feature_disabled(BuiltinRenderFeature::Particle)
-                .with_async_compute(false),
-        )
-        .unwrap();
+
+    let compiled = compile_virtual_geometry_pipeline(&extract);
 
     renderer
         .render_frame_with_pipeline(
@@ -1308,7 +1170,7 @@ fn virtual_geometry_gpu_readback_exposes_execution_backed_visbuffer64_entries() 
 #[test]
 fn virtual_geometry_cull_input_buffer_exists_without_snapshot_or_gpu_readback() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let world = World::new();
     let mesh = world
@@ -1394,22 +1256,9 @@ fn virtual_geometry_cull_input_buffer_exists_without_snapshot_or_gpu_readback() 
             print_leaf_clusters: false,
         },
     });
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
-                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
-                .with_feature_disabled(BuiltinRenderFeature::Bloom)
-                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
-                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
-                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
-                .with_feature_disabled(BuiltinRenderFeature::Particle)
-                .with_async_compute(false),
-        )
-        .unwrap();
+
+    let compiled = compile_virtual_geometry_pipeline(&extract);
+
     let expected_fov_y = extract.view.camera.fov_y_radians;
     let expected_z_near = extract.view.camera.z_near;
     let expected_z_far = extract.view.camera.z_far;
@@ -1796,7 +1645,7 @@ fn virtual_geometry_cull_input_buffer_exists_without_snapshot_or_gpu_readback() 
 fn virtual_geometry_node_and_cluster_cull_reuses_previous_renderer_owned_global_state_without_debug_snapshot(
 ) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let first_camera_transform = Transform::from_translation(Vec3::new(3.0, 4.0, 5.0));
     let second_camera_transform = Transform::from_translation(Vec3::new(-2.0, 6.0, 8.0));
@@ -1804,22 +1653,7 @@ fn virtual_geometry_node_and_cluster_cull_reuses_previous_renderer_owned_global_
         build_node_and_cluster_cull_history_extract(viewport_size, first_camera_transform);
     let second_extract =
         build_node_and_cluster_cull_history_extract(viewport_size, second_camera_transform);
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &first_extract,
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
-                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
-                .with_feature_disabled(BuiltinRenderFeature::Bloom)
-                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
-                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
-                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
-                .with_feature_disabled(BuiltinRenderFeature::Particle)
-                .with_async_compute(false),
-        )
-        .unwrap();
+    let compiled = compile_virtual_geometry_pipeline(&first_extract);
     renderer
         .render_frame_with_pipeline(
             &ViewportRenderFrame::from_extract(first_extract, viewport_size),
@@ -1863,7 +1697,7 @@ fn virtual_geometry_node_and_cluster_cull_reuses_previous_renderer_owned_global_
 #[test]
 fn virtual_geometry_node_and_cluster_cull_page_requests_are_readable_from_last_state() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let world = World::new();
     let mesh = world
@@ -1947,22 +1781,8 @@ fn virtual_geometry_node_and_cluster_cull_page_requests_are_readable_from_last_s
             print_leaf_clusters: false,
         },
     });
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
-                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
-                .with_feature_disabled(BuiltinRenderFeature::Bloom)
-                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
-                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
-                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
-                .with_feature_disabled(BuiltinRenderFeature::Particle)
-                .with_async_compute(false),
-        )
-        .unwrap();
+
+    let compiled = compile_virtual_geometry_pipeline(&extract);
 
     renderer
         .render_frame_with_pipeline(
@@ -1989,7 +1809,7 @@ fn virtual_geometry_node_and_cluster_cull_page_requests_are_readable_from_last_s
 #[test]
 fn virtual_geometry_visbuffer64_buffer_exists_without_snapshot_or_gpu_readback() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let world = World::new();
     let mesh = world
@@ -2001,22 +1821,8 @@ fn virtual_geometry_visbuffer64_buffer_exists_without_snapshot_or_gpu_readback()
     let mut extract = world.to_render_frame_extract();
     extract.apply_viewport_size(viewport_size);
     extract.view.camera.transform = Transform::from_translation(Vec3::new(3.0, 4.0, 5.0));
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
-                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
-                .with_feature_disabled(BuiltinRenderFeature::Bloom)
-                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
-                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
-                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
-                .with_feature_disabled(BuiltinRenderFeature::Particle)
-                .with_async_compute(false),
-        )
-        .unwrap();
+
+    let compiled = compile_virtual_geometry_pipeline(&extract);
 
     renderer
         .render_frame_with_pipeline(
@@ -2185,25 +1991,11 @@ fn virtual_geometry_visbuffer64_buffer_exists_without_snapshot_or_gpu_readback()
 #[test]
 fn virtual_geometry_visbuffer64_clear_only_source_exists_without_cluster_selections() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let extract = build_extract(viewport_size, 0, Vec::new());
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
-                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
-                .with_feature_disabled(BuiltinRenderFeature::Bloom)
-                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
-                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
-                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
-                .with_feature_disabled(BuiltinRenderFeature::Particle)
-                .with_async_compute(false),
-        )
-        .unwrap();
+
+    let compiled = compile_virtual_geometry_pipeline(&extract);
 
     renderer
         .render_frame_with_pipeline(

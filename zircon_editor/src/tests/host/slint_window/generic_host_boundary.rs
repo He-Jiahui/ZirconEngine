@@ -27,6 +27,16 @@ fn root_workbench_slint_exports_only_generic_host_bootstrap_symbols() {
 }
 
 #[test]
+fn slint_host_build_uses_material_style() {
+    let build_script = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/build.rs"));
+
+    assert!(
+        build_script.contains(".with_style(\"material\".into())"),
+        "Slint host build should use the Material style while business UI remains in .ui.toml"
+    );
+}
+
+#[test]
 fn slint_host_presentation_uses_generic_scene_data_property() {
     let host_root = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
@@ -604,7 +614,7 @@ fn host_window_template_bridge_uses_generic_host_type_names() {
         "src/ui/slint_host/app/host_lifecycle.rs",
         "src/ui/slint_host/ui/tests.rs",
         "src/tests/host",
-        "tests/structure_roots.rs",
+        "tests/integration_contracts/structure_roots.rs",
     ];
 
     let mut checked_sources = Vec::new();
@@ -894,7 +904,7 @@ fn tab_drag_module_uses_generic_host_type_names() {
         "src/tests/host/slint_tab_drag/floating_routes.rs",
         "src/tests/host/slint_tab_drag/root_projection.rs",
         "src/tests/host/slint_tab_drag/support.rs",
-        "tests/host_drag_targets.rs",
+        "tests/integration_contracts/host_drag_targets.rs",
     ] {
         checked_sources.push(manifest_dir.join(relative_path));
     }

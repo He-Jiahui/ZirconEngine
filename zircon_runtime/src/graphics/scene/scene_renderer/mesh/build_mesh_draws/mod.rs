@@ -6,4 +6,4 @@ mod raster_draws_for_mesh;
 mod virtual_geometry_cluster_streaming_tint;
 mod virtual_geometry_draw_range;
 
-pub(crate) use build::build_mesh_draws;
+pub(crate) use build::{build_mesh_draws, BuiltMeshDraws};

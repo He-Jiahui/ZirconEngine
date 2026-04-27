@@ -39,6 +39,7 @@ impl World {
                         == target_segments
             })
             .map(|entry| entry.value)
+            .or_else(|| self.dynamic_component_property(entity, property_path))
             .ok_or_else(|| {
                 format!("property `{property_path}` is not available on entity {entity}")
             })

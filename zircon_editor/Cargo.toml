@@ -23,3 +23,12 @@ slint-build.workspace = true
 [dev-dependencies]
 crossbeam-channel.workspace = true
 i-slint-backend-testing = "1.15.1"
+
+[features]
+default = []
+integration-contracts = []
+
+[[test]]
+name = "integration_contracts"
+path = "tests/integration_contracts.rs"
+required-features = ["integration-contracts"]

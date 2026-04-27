@@ -15,6 +15,7 @@ use crate::core::framework::render::{
 };
 use crate::core::math::{Transform, UVec2, Vec3, Vec4};
 use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle};
+use crate::graphics::tests::plugin_render_feature_fixtures::virtual_geometry_render_feature_descriptor;
 use crate::scene::components::{default_render_layer_mask, Mobility};
 use image::{ImageBuffer, ImageFormat, Rgba};
 
@@ -23,8 +24,37 @@ use crate::{
         ViewportRenderFrame, VirtualGeometryPrepareCluster, VirtualGeometryPrepareClusterState,
         VirtualGeometryPrepareFrame, VirtualGeometryPreparePage,
     },
-    BuiltinRenderFeature, RenderPipelineAsset, RenderPipelineCompileOptions, SceneRenderer,
+    BuiltinRenderFeature, CompiledRenderPipeline, RenderFeatureCapabilityRequirement,
+    RenderPipelineAsset, RenderPipelineCompileOptions, SceneRenderer,
 };
+
+fn compile_virtual_geometry_pipeline(extract: &RenderFrameExtract) -> CompiledRenderPipeline {
+    RenderPipelineAsset::default_forward_plus()
+        .with_plugin_render_features([virtual_geometry_render_feature_descriptor()])
+        .compile_with_options(
+            extract,
+            &RenderPipelineCompileOptions::default()
+                .with_capability_enabled(RenderFeatureCapabilityRequirement::VirtualGeometry)
+                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
+                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
+                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
+                .with_feature_disabled(BuiltinRenderFeature::Bloom)
+                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
+                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
+                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
+                .with_feature_disabled(BuiltinRenderFeature::Particle)
+                .with_async_compute(false),
+        )
+        .unwrap()
+}
+
+fn virtual_geometry_scene_renderer(asset_manager: Arc<ProjectAssetManager>) -> SceneRenderer {
+    SceneRenderer::new_with_plugin_render_features(
+        asset_manager,
+        [virtual_geometry_render_feature_descriptor()],
+    )
+    .unwrap()
+}
 
 fn draw_segment(
     entity: u64,
@@ -132,24 +162,10 @@ fn virtual_geometry_prepare_filters_mesh_fallback_to_allowed_entities() {
     );
     let viewport_size = UVec2::new(160, 120);
     let extract = build_extract(viewport_size, model, red_material, green_material);
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
-                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
-                .with_feature_disabled(BuiltinRenderFeature::Bloom)
-                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
-                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
-                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
-                .with_feature_disabled(BuiltinRenderFeature::Particle)
-                .with_async_compute(false),
-        )
-        .unwrap();
 
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let compiled = compile_virtual_geometry_pipeline(&extract);
+
+    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
     let unfiltered = renderer
         .render_frame_with_pipeline(
             &ViewportRenderFrame::from_extract(extract.clone(), viewport_size),
@@ -271,24 +287,10 @@ fn virtual_geometry_prepare_streaming_state_changes_fallback_raster_output() {
     );
     let viewport_size = UVec2::new(160, 120);
     let extract = build_extract(viewport_size, model, red_material, green_material);
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
-                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
-                .with_feature_disabled(BuiltinRenderFeature::Bloom)
-                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
-                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
-                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
-                .with_feature_disabled(BuiltinRenderFeature::Particle)
-                .with_async_compute(false),
-        )
-        .unwrap();
 
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let compiled = compile_virtual_geometry_pipeline(&extract);
+
+    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
     let pending = renderer
         .render_frame_with_pipeline(
             &ViewportRenderFrame::from_extract(extract.clone(), viewport_size)
@@ -422,24 +424,10 @@ fn virtual_geometry_prepare_streaming_state_changes_fallback_raster_coverage() {
     );
     let viewport_size = UVec2::new(160, 120);
     let extract = build_single_entity_extract(viewport_size, model, green_material);
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
-                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
-                .with_feature_disabled(BuiltinRenderFeature::Bloom)
-                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
-                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
-                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
-                .with_feature_disabled(BuiltinRenderFeature::Particle)
-                .with_async_compute(false),
-        )
-        .unwrap();
 
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let compiled = compile_virtual_geometry_pipeline(&extract);
+
+    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
     let pending = renderer
         .render_frame_with_pipeline(
             &ViewportRenderFrame::from_extract(extract.clone(), viewport_size)
@@ -583,24 +571,10 @@ fn virtual_geometry_prepare_gpu_args_change_when_only_visible_submission_index_c
     );
     let viewport_size = UVec2::new(160, 120);
     let extract = build_extract(viewport_size, model, red_material, green_material);
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
-                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
-                .with_feature_disabled(BuiltinRenderFeature::Bloom)
-                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
-                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
-                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
-                .with_feature_disabled(BuiltinRenderFeature::Particle)
-                .with_async_compute(false),
-        )
-        .unwrap();
 
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let compiled = compile_virtual_geometry_pipeline(&extract);
+
+    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
     let helper_precedes_frame = renderer
         .render_frame_with_pipeline(
             &ViewportRenderFrame::from_extract(extract.clone(), viewport_size)
@@ -833,24 +807,10 @@ fn virtual_geometry_prepare_resident_slot_changes_fallback_raster_output() {
     );
     let viewport_size = UVec2::new(160, 120);
     let extract = build_single_entity_extract(viewport_size, model, green_material);
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
-                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
-                .with_feature_disabled(BuiltinRenderFeature::Bloom)
-                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
-                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
-                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
-                .with_feature_disabled(BuiltinRenderFeature::Particle)
-                .with_async_compute(false),
-        )
-        .unwrap();
 
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let compiled = compile_virtual_geometry_pipeline(&extract);
+
+    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
     let slot_one = renderer
         .render_frame_with_pipeline(
             &ViewportRenderFrame::from_extract(extract.clone(), viewport_size)
@@ -982,24 +942,10 @@ fn virtual_geometry_prepare_visible_cluster_ids_change_fallback_raster_region() 
     );
     let viewport_size = UVec2::new(160, 120);
     let extract = build_single_entity_clustered_extract(viewport_size, model, green_material);
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
-                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
-                .with_feature_disabled(BuiltinRenderFeature::Bloom)
-                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
-                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
-                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
-                .with_feature_disabled(BuiltinRenderFeature::Particle)
-                .with_async_compute(false),
-        )
-        .unwrap();
 
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let compiled = compile_virtual_geometry_pipeline(&extract);
+
+    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
     let first_cluster = renderer
         .render_frame_with_pipeline(
             &ViewportRenderFrame::from_extract(extract.clone(), viewport_size)
@@ -1138,24 +1084,10 @@ fn virtual_geometry_prepare_draw_segments_override_extract_cluster_ordinals_for_
     );
     let viewport_size = UVec2::new(160, 120);
     let extract = build_single_entity_clustered_extract(viewport_size, model, green_material);
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
-                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
-                .with_feature_disabled(BuiltinRenderFeature::Bloom)
-                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
-                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
-                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
-                .with_feature_disabled(BuiltinRenderFeature::Particle)
-                .with_async_compute(false),
-        )
-        .unwrap();
 
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let compiled = compile_virtual_geometry_pipeline(&extract);
+
+    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
     let frame = renderer
         .render_frame_with_pipeline(
             &ViewportRenderFrame::from_extract(extract, viewport_size)
@@ -1246,24 +1178,10 @@ fn virtual_geometry_prepare_segments_submit_indirect_raster_draws_when_feature_e
     );
     let viewport_size = UVec2::new(160, 120);
     let extract = build_single_entity_clustered_extract(viewport_size, model, green_material);
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
-                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
-                .with_feature_disabled(BuiltinRenderFeature::Bloom)
-                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
-                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
-                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
-                .with_feature_disabled(BuiltinRenderFeature::Particle)
-                .with_async_compute(false),
-        )
-        .unwrap();
 
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let compiled = compile_virtual_geometry_pipeline(&extract);
+
+    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
     renderer
         .render_frame_with_pipeline(
             &ViewportRenderFrame::from_extract(extract, viewport_size)
@@ -1386,24 +1304,10 @@ fn virtual_geometry_prepare_preserves_explicit_segment_boundaries_even_when_segm
             size_bytes: 4096,
         }],
     );
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
-                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
-                .with_feature_disabled(BuiltinRenderFeature::Bloom)
-                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
-                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
-                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
-                .with_feature_disabled(BuiltinRenderFeature::Particle)
-                .with_async_compute(false),
-        )
-        .unwrap();
 
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let compiled = compile_virtual_geometry_pipeline(&extract);
+
+    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
     renderer
         .render_frame_with_pipeline(
             &ViewportRenderFrame::from_extract(extract.clone(), viewport_size)
@@ -1578,24 +1482,10 @@ fn virtual_geometry_prepare_reuses_one_shared_indirect_buffer_across_multiple_in
             size_bytes: 4096,
         }],
     );
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
-                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
-                .with_feature_disabled(BuiltinRenderFeature::Bloom)
-                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
-                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
-                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
-                .with_feature_disabled(BuiltinRenderFeature::Particle)
-                .with_async_compute(false),
-        )
-        .unwrap();
 
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let compiled = compile_virtual_geometry_pipeline(&extract);
+
+    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
     renderer
         .render_frame_with_pipeline(
             &ViewportRenderFrame::from_extract(extract, viewport_size)
@@ -1737,24 +1627,10 @@ fn virtual_geometry_prepare_keeps_different_pages_in_same_slot_split_into_separa
             },
         ],
     );
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
-                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
-                .with_feature_disabled(BuiltinRenderFeature::Bloom)
-                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
-                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
-                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
-                .with_feature_disabled(BuiltinRenderFeature::Particle)
-                .with_async_compute(false),
-        )
-        .unwrap();
 
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let compiled = compile_virtual_geometry_pipeline(&extract);
+
+    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
     renderer
         .render_frame_with_pipeline(
             &ViewportRenderFrame::from_extract(extract, viewport_size)
@@ -1910,24 +1786,10 @@ fn virtual_geometry_prepare_visibility_owned_draw_segment_span_changes_fallback_
             size_bytes: 4096,
         }],
     );
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
-                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
-                .with_feature_disabled(BuiltinRenderFeature::Bloom)
-                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
-                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
-                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
-                .with_feature_disabled(BuiltinRenderFeature::Particle)
-                .with_async_compute(false),
-        )
-        .unwrap();
 
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let compiled = compile_virtual_geometry_pipeline(&extract);
+
+    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
     let narrow = renderer
         .render_frame_with_pipeline(
             &ViewportRenderFrame::from_extract(extract.clone(), viewport_size)
@@ -2121,24 +1983,10 @@ fn virtual_geometry_prepare_gpu_generated_indirect_args_follow_visibility_owned_
             size_bytes: 4096,
         }],
     );
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
-                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
-                .with_feature_disabled(BuiltinRenderFeature::Bloom)
-                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
-                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
-                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
-                .with_feature_disabled(BuiltinRenderFeature::Particle)
-                .with_async_compute(false),
-        )
-        .unwrap();
 
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let compiled = compile_virtual_geometry_pipeline(&extract);
+
+    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
     renderer
         .render_frame_with_pipeline(
             &ViewportRenderFrame::from_extract(extract.clone(), viewport_size)
@@ -2316,24 +2164,10 @@ fn virtual_geometry_prepare_gpu_generated_indirect_args_change_when_resident_slo
             size_bytes: 4096,
         }],
     );
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
-                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
-                .with_feature_disabled(BuiltinRenderFeature::Bloom)
-                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
-                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
-                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
-                .with_feature_disabled(BuiltinRenderFeature::Particle)
-                .with_async_compute(false),
-        )
-        .unwrap();
 
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let compiled = compile_virtual_geometry_pipeline(&extract);
+
+    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
     renderer
         .render_frame_with_pipeline(
             &ViewportRenderFrame::from_extract(extract.clone(), viewport_size)
@@ -2510,24 +2344,10 @@ fn virtual_geometry_prepare_gpu_generated_indirect_args_change_when_page_id_chan
             },
         ],
     );
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
-                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
-                .with_feature_disabled(BuiltinRenderFeature::Bloom)
-                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
-                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
-                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
-                .with_feature_disabled(BuiltinRenderFeature::Particle)
-                .with_async_compute(false),
-        )
-        .unwrap();
 
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let compiled = compile_virtual_geometry_pipeline(&extract);
+
+    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
     renderer
         .render_frame_with_pipeline(
             &ViewportRenderFrame::from_extract(extract.clone(), viewport_size)
@@ -2684,24 +2504,10 @@ fn virtual_geometry_prepare_gpu_generated_indirect_args_change_when_lod_level_ch
             size_bytes: 4096,
         }],
     );
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
-                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
-                .with_feature_disabled(BuiltinRenderFeature::Bloom)
-                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
-                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
-                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
-                .with_feature_disabled(BuiltinRenderFeature::Particle)
-                .with_async_compute(false),
-        )
-        .unwrap();
 
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let compiled = compile_virtual_geometry_pipeline(&extract);
+
+    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
     renderer
         .render_frame_with_pipeline(
             &ViewportRenderFrame::from_extract(extract.clone(), viewport_size)
@@ -2859,24 +2665,10 @@ fn virtual_geometry_prepare_cluster_raster_output_changes_when_page_id_changes_i
             size_bytes: 4096,
         }],
     );
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
-                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
-                .with_feature_disabled(BuiltinRenderFeature::Bloom)
-                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
-                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
-                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
-                .with_feature_disabled(BuiltinRenderFeature::Particle)
-                .with_async_compute(false),
-        )
-        .unwrap();
 
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let compiled = compile_virtual_geometry_pipeline(&extract);
+
+    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
     let page_300 = renderer
         .render_frame_with_pipeline(
             &ViewportRenderFrame::from_extract(extract.clone(), viewport_size)
@@ -3036,24 +2828,10 @@ fn virtual_geometry_prepare_cluster_raster_output_changes_when_pending_request_f
             size_bytes: 4096,
         }],
     );
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
-                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
-                .with_feature_disabled(BuiltinRenderFeature::Bloom)
-                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
-                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
-                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
-                .with_feature_disabled(BuiltinRenderFeature::Particle)
-                .with_async_compute(false),
-        )
-        .unwrap();
 
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let compiled = compile_virtual_geometry_pipeline(&extract);
+
+    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
     let early_frontier = renderer
         .render_frame_with_pipeline(
             &ViewportRenderFrame::from_extract(extract.clone(), viewport_size)
@@ -3254,22 +3032,7 @@ fn virtual_geometry_prepare_cluster_raster_output_is_stable_when_same_segment_pr
         build_single_entity_extract(viewport_size, left_then_right_model, green_material);
     let right_then_left_extract =
         build_single_entity_extract(viewport_size, right_then_left_model, green_material);
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &left_then_right_extract,
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
-                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
-                .with_feature_disabled(BuiltinRenderFeature::Bloom)
-                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
-                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
-                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
-                .with_feature_disabled(BuiltinRenderFeature::Particle)
-                .with_async_compute(false),
-        )
-        .unwrap();
+    let compiled = compile_virtual_geometry_pipeline(&left_then_right_extract);
 
     let prepare = Some(VirtualGeometryPrepareFrame {
         visible_entities: vec![2],
@@ -3302,7 +3065,7 @@ fn virtual_geometry_prepare_cluster_raster_output_is_stable_when_same_segment_pr
         evictable_pages: Vec::new(),
     });
 
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
     let left_then_right = renderer
         .render_frame_with_pipeline(
             &ViewportRenderFrame::from_extract(left_then_right_extract, viewport_size)
@@ -3398,22 +3161,7 @@ fn virtual_geometry_prepare_cluster_raster_output_is_stable_when_same_segment_pr
         build_single_entity_extract(viewport_size, left_then_right_model, blend_material);
     let right_then_left_extract =
         build_single_entity_extract(viewport_size, right_then_left_model, blend_material);
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &left_then_right_extract,
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
-                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
-                .with_feature_disabled(BuiltinRenderFeature::Bloom)
-                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
-                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
-                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
-                .with_feature_disabled(BuiltinRenderFeature::Particle)
-                .with_async_compute(false),
-        )
-        .unwrap();
+    let compiled = compile_virtual_geometry_pipeline(&left_then_right_extract);
 
     let prepare = Some(VirtualGeometryPrepareFrame {
         visible_entities: vec![2],
@@ -3446,7 +3194,7 @@ fn virtual_geometry_prepare_cluster_raster_output_is_stable_when_same_segment_pr
         evictable_pages: Vec::new(),
     });
 
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
     let left_then_right = renderer
         .render_frame_with_pipeline(
             &ViewportRenderFrame::from_extract(left_then_right_extract, viewport_size)

@@ -1,0 +1,19 @@
+id = "texture"
+version = "0.1.0"
+display_name = "Texture"
+description = "Optional texture processing runtime and editor package."
+default_packaging = ["source_template", "library_embed"]
+
+[[modules]]
+name = "texture.runtime"
+kind = "runtime"
+crate_name = "zircon_plugin_texture_runtime"
+target_modes = ["client_runtime", "editor_host"]
+capabilities = ["runtime.plugin.texture"]
+
+[[modules]]
+name = "texture.editor"
+kind = "editor"
+crate_name = "zircon_plugin_texture_editor"
+target_modes = ["editor_host"]
+capabilities = ["editor.extension.texture_authoring"]

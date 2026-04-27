@@ -128,12 +128,16 @@ fn read_execution_submission_tokens(renderer: &SceneRenderer) -> Result<Vec<u32>
     const INDIRECT_ARGS_WORD_COUNT: usize = 5;
 
     let Some(buffer) = renderer
-        .last_virtual_geometry_indirect_execution_args_buffer
+        .advanced_plugin_outputs
+        .virtual_geometry_indirect_execution_args_buffer
         .as_ref()
     else {
         return Ok(Vec::new());
     };
-    if renderer.last_virtual_geometry_indirect_draw_count == 0 {
+    let indirect_draw_count = renderer
+        .advanced_plugin_outputs
+        .virtual_geometry_indirect_draw_count;
+    if indirect_draw_count == 0 {
         return Ok(Vec::new());
     }
 
@@ -142,7 +146,7 @@ fn read_execution_submission_tokens(renderer: &SceneRenderer) -> Result<Vec<u32>
         .device
         .create_buffer(&wgpu::BufferDescriptor {
             label: Some("zircon-vg-indirect-execution-args-readback"),
-            size: (renderer.last_virtual_geometry_indirect_draw_count as u64)
+            size: (indirect_draw_count as u64)
                 * (std::mem::size_of::<u32>() as u64)
                 * INDIRECT_ARGS_WORD_COUNT as u64,
             usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
@@ -160,7 +164,7 @@ fn read_execution_submission_tokens(renderer: &SceneRenderer) -> Result<Vec<u32>
         0,
         &staging,
         0,
-        (renderer.last_virtual_geometry_indirect_draw_count as u64)
+        (indirect_draw_count as u64)
             * (std::mem::size_of::<u32>() as u64)
             * INDIRECT_ARGS_WORD_COUNT as u64,
     );
@@ -169,7 +173,7 @@ fn read_execution_submission_tokens(renderer: &SceneRenderer) -> Result<Vec<u32>
     Ok(read_buffer_u32s(
         &renderer.backend.device,
         &staging,
-        (renderer.last_virtual_geometry_indirect_draw_count as usize) * INDIRECT_ARGS_WORD_COUNT,
+        (indirect_draw_count as usize) * INDIRECT_ARGS_WORD_COUNT,
     )?
     .chunks_exact(INDIRECT_ARGS_WORD_COUNT)
     .map(|chunk| chunk[4])

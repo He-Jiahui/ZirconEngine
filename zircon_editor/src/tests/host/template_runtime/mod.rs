@@ -1,4 +1,5 @@
 mod asset_surface;
+mod component_showcase_state;
 mod host_model;
 mod host_window_document;
 mod inspector_surface;

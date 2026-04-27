@@ -8,6 +8,7 @@ use crate::ui::slint_host as slint_ui;
 use crate::ui::template_runtime::EditorUiHostRuntime;
 use slint::{Model, ModelRc};
 use toml::Value;
+use zircon_runtime::ui::component::{UiComponentDescriptorRegistry, UiValue};
 use zircon_runtime::ui::layout::UiSize;
 
 fn map_model_rc<T, U, F>(model: &ModelRc<T>, mut map: F) -> ModelRc<U>
@@ -162,8 +163,38 @@ fn to_slint_template_node(data: ViewTemplateNodeData) -> slint_ui::TemplatePaneN
         control_id: data.control_id,
         role: data.role,
         text: data.text,
+        component_role: "".into(),
+        value_text: "".into(),
+        value_number: 0.0,
+        value_percent: 0.0,
+        value_color: slint::Color::from_argb_u8(0, 0, 0, 0),
+        media_source: "".into(),
+        icon_name: "".into(),
+        vector_components: ModelRc::default(),
+        validation_level: "".into(),
+        validation_message: "".into(),
+        popup_open: false,
+        selection_state: "".into(),
+        options_text: "".into(),
+        options: ModelRc::default(),
+        collection_items: ModelRc::default(),
+        menu_items: ModelRc::default(),
+        actions: ModelRc::default(),
+        accepted_drag_payloads: "".into(),
+        checked: false,
+        expanded: false,
+        focused: false,
+        hovered: false,
+        pressed: false,
+        dragging: false,
+        drop_hovered: false,
+        disabled: false,
         dispatch_kind: data.dispatch_kind,
         action_id: data.action_id,
+        begin_drag_action_id: "".into(),
+        drag_action_id: "".into(),
+        end_drag_action_id: "".into(),
+        edit_action_id: "".into(),
         surface_variant: data.surface_variant,
         text_tone: data.text_tone,
         button_variant: data.button_variant,
@@ -442,10 +473,160 @@ fn host_template_node(
     node: crate::ui::template_runtime::SlintUiHostNodeProjection,
 ) -> Option<slint_ui::TemplatePaneNodeData> {
     let control_id = node.control_id?;
+    let component = node.component.clone();
+    let component_descriptor = runtime_component_registry().descriptor(&component);
+    let disabled = node
+        .attributes
+        .get("disabled")
+        .and_then(value_as_bool)
+        .unwrap_or(false)
+        || node.attributes.get("enabled").and_then(value_as_bool) == Some(false);
+    let component_role = component_descriptor
+        .map(|descriptor| descriptor.role.clone())
+        .unwrap_or_default();
+    let value_text = node
+        .attributes
+        .get("value_text")
+        .and_then(value_as_string)
+        .or_else(|| {
+            node.attributes
+                .get("value")
+                .or_else(|| node.attributes.get("items"))
+                .or_else(|| node.attributes.get("entries"))
+                .map(UiValue::from_toml)
+                .map(|value| value.display_text())
+        })
+        .unwrap_or_default();
+    let value_number = node
+        .attributes
+        .get("value")
+        .and_then(value_as_f64)
+        .unwrap_or(0.0);
+    let value_percent = normalized_value_percent(
+        value_number,
+        node.attributes.get("min").and_then(value_as_f64),
+        node.attributes.get("max").and_then(value_as_f64),
+    );
+    let value_color = node
+        .attributes
+        .get("value")
+        .and_then(value_as_color)
+        .unwrap_or_else(|| slint::Color::from_argb_u8(0, 0, 0, 0));
+    let media_source = node
+        .attributes
+        .get("image")
+        .or_else(|| node.attributes.get("source"))
+        .or_else(|| node.attributes.get("media"))
+        .or_else(|| {
+            if matches!(component_role.as_str(), "image" | "svg-icon") {
+                node.attributes.get("value")
+            } else {
+                None
+            }
+        })
+        .and_then(value_as_string)
+        .unwrap_or_default();
+    let icon_name = node
+        .attributes
+        .get("icon")
+        .or_else(|| {
+            if component_role.as_str() == "icon" {
+                node.attributes.get("value")
+            } else {
+                None
+            }
+        })
+        .and_then(value_as_string)
+        .unwrap_or_default();
+    let vector_components = node
+        .attributes
+        .get("value")
+        .and_then(value_as_float_array)
+        .unwrap_or_default();
+    let validation_level = node
+        .attributes
+        .get("validation_level")
+        .and_then(value_as_string)
+        .or_else(|| {
+            component_descriptor.map(|_| if disabled { "disabled" } else { "normal" }.to_string())
+        })
+        .unwrap_or_default();
+    let selection_state = node
+        .attributes
+        .get("selection_state")
+        .and_then(value_as_string)
+        .or_else(|| {
+            node.attributes
+                .get("multiple")
+                .and_then(value_as_bool)
+                .map(|multiple| if multiple { "multi" } else { "single" }.to_string())
+        })
+        .unwrap_or_default();
+    let options = node
+        .attributes
+        .get("options")
+        .and_then(value_as_options)
+        .unwrap_or_default();
+    let options_text = options.join(", ");
+    let collection_items = node
+        .attributes
+        .get("collection_items")
+        .and_then(value_as_options)
+        .unwrap_or_default();
+    let menu_items = node
+        .attributes
+        .get("menu_items")
+        .and_then(value_as_options)
+        .unwrap_or_default();
+    let popup_open = node
+        .attributes
+        .get("popup_open")
+        .and_then(value_as_bool)
+        .unwrap_or(false);
+    let accepted_drag_payloads = component_descriptor
+        .map(|descriptor| {
+            descriptor
+                .drop_policy
+                .accepts
+                .iter()
+                .map(|kind| kind.as_str())
+                .collect::<Vec<_>>()
+                .join(",")
+        })
+        .unwrap_or_default();
+    let action_id = component_descriptor
+        .and_then(|_| preferred_showcase_action_id(&control_id, popup_open, &node.bindings))
+        .unwrap_or_default();
+    let drag_action_id = component_descriptor
+        .and_then(|_| preferred_showcase_drag_action_id(&control_id, &node.bindings))
+        .unwrap_or_default();
+    let begin_drag_action_id = component_descriptor
+        .and_then(|_| {
+            preferred_showcase_pointer_drag_action_id(&control_id, "DragBegin", &node.bindings)
+        })
+        .unwrap_or_default();
+    let end_drag_action_id = component_descriptor
+        .and_then(|_| {
+            preferred_showcase_pointer_drag_action_id(&control_id, "DragEnd", &node.bindings)
+        })
+        .unwrap_or_default();
+    let edit_action_id = component_descriptor
+        .and_then(|_| preferred_showcase_edit_action_id(&control_id, &node.bindings))
+        .unwrap_or_default();
+    let actions = if component_descriptor.is_some() {
+        preferred_showcase_action_buttons(&control_id, &node.bindings)
+    } else {
+        Vec::new()
+    };
+    let dispatch_kind = if !disabled && !action_id.is_empty() {
+        "showcase"
+    } else {
+        ""
+    };
     Some(slint_ui::TemplatePaneNodeData {
         node_id: node.node_id.into(),
         control_id: control_id.into(),
-        role: node.component.into(),
+        role: component.into(),
         text: node
             .attributes
             .get("text")
@@ -453,8 +634,72 @@ fn host_template_node(
             .and_then(value_as_string)
             .unwrap_or_default()
             .into(),
-        dispatch_kind: "".into(),
-        action_id: "".into(),
+        component_role: component_role.into(),
+        value_text: value_text.into(),
+        value_number: value_number as f32,
+        value_percent,
+        value_color,
+        media_source: media_source.into(),
+        icon_name: icon_name.into(),
+        vector_components: model_rc(vector_components),
+        validation_level: validation_level.into(),
+        validation_message: node
+            .attributes
+            .get("validation_message")
+            .and_then(value_as_string)
+            .unwrap_or_default()
+            .into(),
+        popup_open,
+        selection_state: selection_state.into(),
+        options_text: options_text.into(),
+        options: to_slint_shared_string_list(options),
+        collection_items: to_slint_shared_string_list(collection_items),
+        menu_items: to_slint_shared_string_list(menu_items),
+        actions: model_rc(actions),
+        accepted_drag_payloads: accepted_drag_payloads.into(),
+        checked: node
+            .attributes
+            .get("checked")
+            .or_else(|| node.attributes.get("value"))
+            .and_then(value_as_bool)
+            .unwrap_or(false),
+        expanded: node
+            .attributes
+            .get("expanded")
+            .and_then(value_as_bool)
+            .unwrap_or(false),
+        focused: node
+            .attributes
+            .get("focused")
+            .and_then(value_as_bool)
+            .unwrap_or(false),
+        hovered: node
+            .attributes
+            .get("hovered")
+            .and_then(value_as_bool)
+            .unwrap_or(false),
+        pressed: node
+            .attributes
+            .get("pressed")
+            .and_then(value_as_bool)
+            .unwrap_or(false),
+        dragging: node
+            .attributes
+            .get("dragging")
+            .and_then(value_as_bool)
+            .unwrap_or(false),
+        drop_hovered: node
+            .attributes
+            .get("drop_hovered")
+            .and_then(value_as_bool)
+            .unwrap_or(false),
+        disabled,
+        dispatch_kind: dispatch_kind.into(),
+        action_id: action_id.into(),
+        begin_drag_action_id: begin_drag_action_id.into(),
+        drag_action_id: drag_action_id.into(),
+        end_drag_action_id: end_drag_action_id.into(),
+        edit_action_id: edit_action_id.into(),
         surface_variant: "".into(),
         text_tone: "".into(),
         button_variant: "".into(),
@@ -473,6 +718,166 @@ fn host_template_node(
     })
 }
 
+fn preferred_showcase_action_id(
+    control_id: &str,
+    popup_open: bool,
+    bindings: &[crate::ui::template_runtime::SlintUiHostBindingProjection],
+) -> Option<String> {
+    let preferred = match control_id {
+        "NumberFieldDemo" => Some("NumberFieldDragUpdate"),
+        "RangeFieldDemo" => Some("RangeFieldChanged"),
+        "DropdownDemo" => Some(if popup_open {
+            "DropdownChanged"
+        } else {
+            "DropdownOpenPopup"
+        }),
+        "ComboBoxDemo" => Some(if popup_open {
+            "ComboBoxChanged"
+        } else {
+            "ComboBoxOpenPopup"
+        }),
+        "EnumFieldDemo" => Some(if popup_open {
+            "EnumFieldChanged"
+        } else {
+            "EnumFieldOpenPopup"
+        }),
+        "FlagsFieldDemo" => Some(if popup_open {
+            "FlagsFieldChanged"
+        } else {
+            "FlagsFieldOpenPopup"
+        }),
+        "SearchSelectDemo" => Some(if popup_open {
+            "SearchSelectChanged"
+        } else {
+            "SearchSelectOpenPopup"
+        }),
+        "AssetFieldDemo" => Some("AssetFieldDropped"),
+        "InstanceFieldDemo" => Some("InstanceFieldDropped"),
+        "ObjectFieldDemo" => Some("ObjectFieldDropped"),
+        "GroupDemo" => Some("GroupToggled"),
+        "FoldoutDemo" => Some("FoldoutToggled"),
+        "ArrayFieldDemo" => Some("ArrayFieldAddElement"),
+        "MapFieldDemo" => Some("MapFieldAddEntry"),
+        "TreeRowDemo" => Some("TreeRowToggled"),
+        "ContextActionMenuDemo" => Some(if popup_open {
+            "ContextActionMenuChanged"
+        } else {
+            "ContextActionMenuOpenPopup"
+        }),
+        _ => None,
+    };
+    preferred
+        .and_then(|suffix| {
+            bindings.iter().find(|binding| {
+                binding.binding_id.starts_with("UiComponentShowcase/")
+                    && binding.binding_id.ends_with(suffix)
+            })
+        })
+        .or_else(|| {
+            bindings
+                .iter()
+                .find(|binding| binding.binding_id.starts_with("UiComponentShowcase/"))
+        })
+        .map(|binding| binding.binding_id.clone())
+}
+
+fn preferred_showcase_drag_action_id(
+    control_id: &str,
+    bindings: &[crate::ui::template_runtime::SlintUiHostBindingProjection],
+) -> Option<String> {
+    let suffix = match control_id {
+        "NumberFieldDemo" => Some("NumberFieldDragUpdate"),
+        "RangeFieldDemo" => Some("RangeFieldDragUpdate"),
+        _ => None,
+    }?;
+    bindings
+        .iter()
+        .find(|binding| {
+            binding.binding_id.starts_with("UiComponentShowcase/")
+                && binding.binding_id.ends_with(suffix)
+        })
+        .map(|binding| binding.binding_id.clone())
+}
+
+fn preferred_showcase_pointer_drag_action_id(
+    control_id: &str,
+    event_suffix: &str,
+    bindings: &[crate::ui::template_runtime::SlintUiHostBindingProjection],
+) -> Option<String> {
+    let suffix = match (control_id, event_suffix) {
+        ("NumberFieldDemo", "DragBegin") => Some("NumberFieldDragBegin"),
+        ("NumberFieldDemo", "DragEnd") => Some("NumberFieldDragEnd"),
+        _ => None,
+    }?;
+    bindings
+        .iter()
+        .find(|binding| {
+            binding.binding_id.starts_with("UiComponentShowcase/")
+                && binding.binding_id.ends_with(suffix)
+        })
+        .map(|binding| binding.binding_id.clone())
+}
+
+fn preferred_showcase_edit_action_id(
+    control_id: &str,
+    bindings: &[crate::ui::template_runtime::SlintUiHostBindingProjection],
+) -> Option<String> {
+    let suffix = match control_id {
+        "InputFieldDemo" => Some("InputFieldChanged"),
+        "TextFieldDemo" => Some("TextFieldChanged"),
+        "NumberFieldDemo" => Some("NumberFieldChanged"),
+        "RangeFieldDemo" => Some("RangeFieldChanged"),
+        _ => None,
+    }?;
+    bindings
+        .iter()
+        .find(|binding| {
+            binding.binding_id.starts_with("UiComponentShowcase/")
+                && binding.binding_id.ends_with(suffix)
+        })
+        .map(|binding| binding.binding_id.clone())
+}
+
+fn preferred_showcase_action_buttons(
+    control_id: &str,
+    bindings: &[crate::ui::template_runtime::SlintUiHostBindingProjection],
+) -> Vec<slint_ui::TemplatePaneActionData> {
+    let actions: &[(&str, &str)] = match control_id {
+        "AssetFieldDemo" => &[
+            ("Find", "AssetFieldLocate"),
+            ("Open", "AssetFieldOpen"),
+            ("Clear", "AssetFieldClear"),
+        ],
+        "ArrayFieldDemo" => &[
+            ("Add", "ArrayFieldAddElement"),
+            ("Set", "ArrayFieldSetElement"),
+            ("Remove", "ArrayFieldRemoveElement"),
+            ("Move", "ArrayFieldMoveElement"),
+        ],
+        "MapFieldDemo" => &[
+            ("Add", "MapFieldAddEntry"),
+            ("Set", "MapFieldSetEntry"),
+            ("Remove", "MapFieldRemoveEntry"),
+        ],
+        _ => &[],
+    };
+    actions
+        .iter()
+        .filter_map(|(label, suffix)| {
+            bindings
+                .iter()
+                .find(|binding| {
+                    binding.binding_id.starts_with("UiComponentShowcase/")
+                        && binding.binding_id.ends_with(suffix)
+                })
+                .map(|binding| slint_ui::TemplatePaneActionData {
+                    label: (*label).into(),
+                    action_id: binding.binding_id.clone().into(),
+                })
+        })
+        .collect()
+}
+
 fn builtin_host_runtime() -> Option<&'static EditorUiHostRuntime> {
     static BUILTIN_HOST_RUNTIME: OnceLock<Option<EditorUiHostRuntime>> = OnceLock::new();
     BUILTIN_HOST_RUNTIME
@@ -482,6 +887,11 @@ fn builtin_host_runtime() -> Option<&'static EditorUiHostRuntime> {
             Some(runtime)
         })
         .as_ref()
+}
+
+fn runtime_component_registry() -> &'static UiComponentDescriptorRegistry {
+    static UI_COMPONENT_REGISTRY: OnceLock<UiComponentDescriptorRegistry> = OnceLock::new();
+    UI_COMPONENT_REGISTRY.get_or_init(UiComponentDescriptorRegistry::editor_showcase)
 }
 
 fn value_as_string(value: &Value) -> Option<String> {
@@ -498,6 +908,78 @@ fn value_as_bool(value: &Value) -> Option<bool> {
     }
 }
 
+fn value_as_f64(value: &Value) -> Option<f64> {
+    match value {
+        Value::Float(value) => Some(*value),
+        Value::Integer(value) => Some(*value as f64),
+        _ => None,
+    }
+}
+
+fn value_as_float_array(value: &Value) -> Option<Vec<f32>> {
+    let Value::Array(values) = value else {
+        return None;
+    };
+    let components = values
+        .iter()
+        .filter_map(value_as_f64)
+        .map(|value| value as f32)
+        .collect::<Vec<_>>();
+    if components.is_empty() {
+        None
+    } else {
+        Some(components)
+    }
+}
+
+fn normalized_value_percent(value: f64, min: Option<f64>, max: Option<f64>) -> f32 {
+    match (min, max) {
+        (Some(min), Some(max)) if max > min => ((value - min) / (max - min)).clamp(0.0, 1.0) as f32,
+        _ => value.clamp(0.0, 1.0) as f32,
+    }
+}
+
+fn value_as_color(value: &Value) -> Option<slint::Color> {
+    parse_hex_color(value_as_string(value)?.as_str())
+}
+
+fn parse_hex_color(value: &str) -> Option<slint::Color> {
+    let hex = value.strip_prefix('#')?;
+    match hex.len() {
+        6 => Some(slint::Color::from_rgb_u8(
+            parse_hex_pair(&hex[0..2])?,
+            parse_hex_pair(&hex[2..4])?,
+            parse_hex_pair(&hex[4..6])?,
+        )),
+        8 => Some(slint::Color::from_argb_u8(
+            parse_hex_pair(&hex[6..8])?,
+            parse_hex_pair(&hex[0..2])?,
+            parse_hex_pair(&hex[2..4])?,
+            parse_hex_pair(&hex[4..6])?,
+        )),
+        _ => None,
+    }
+}
+
+fn parse_hex_pair(value: &str) -> Option<u8> {
+    u8::from_str_radix(value, 16).ok()
+}
+
+fn value_as_options(value: &Value) -> Option<Vec<String>> {
+    let Value::Array(values) = value else {
+        return None;
+    };
+    let options = values
+        .iter()
+        .filter_map(value_as_string)
+        .collect::<Vec<_>>();
+    if options.is_empty() {
+        None
+    } else {
+        Some(options)
+    }
+}
+
 fn to_slint_template_nodes(
     items: Vec<ViewTemplateNodeData>,
 ) -> ModelRc<slint_ui::TemplatePaneNodeData> {
@@ -510,6 +992,61 @@ pub(super) fn to_slint_project_overview_pane(
     slint_ui::ProjectOverviewPaneData {
         nodes: map_model_rc(&data.nodes, to_slint_template_node),
     }
+}
+
+pub(crate) fn to_slint_component_showcase_pane_from_host_pane(
+    data: &crate::ui::layouts::windows::workbench_host_window::PaneData,
+    content_size: PaneContentSize,
+) -> slint_ui::ProjectOverviewPaneData {
+    builtin_host_runtime()
+        .and_then(|runtime| component_showcase_template_projection(data, content_size, runtime))
+        .unwrap_or_default()
+}
+
+pub(crate) fn to_slint_component_showcase_pane_from_host_pane_with_runtime(
+    data: &crate::ui::layouts::windows::workbench_host_window::PaneData,
+    content_size: PaneContentSize,
+    runtime: &EditorUiHostRuntime,
+) -> slint_ui::ProjectOverviewPaneData {
+    component_showcase_template_projection(data, content_size, runtime).unwrap_or_default()
+}
+
+fn component_showcase_template_projection(
+    data: &crate::ui::layouts::windows::workbench_host_window::PaneData,
+    content_size: PaneContentSize,
+    runtime: &EditorUiHostRuntime,
+) -> Option<slint_ui::ProjectOverviewPaneData> {
+    let presentation = data.pane_presentation.as_ref()?;
+    if !matches!(
+        &presentation.body.payload,
+        crate::ui::layouts::windows::workbench_host_window::PanePayload::UiComponentShowcaseV1(_)
+    ) {
+        return None;
+    }
+
+    let projection = runtime.project_pane_body(&presentation.body).ok()?;
+    let mut surface = runtime
+        .build_shared_surface(&presentation.body.document_id)
+        .ok()?;
+    surface
+        .compute_layout(UiSize::new(
+            content_size.width.max(0.0),
+            content_size.height.max(0.0),
+        ))
+        .ok()?;
+    let host_model = runtime
+        .build_host_model_with_surface(&projection, &surface)
+        .ok()?;
+
+    Some(slint_ui::ProjectOverviewPaneData {
+        nodes: model_rc(
+            host_model
+                .nodes
+                .into_iter()
+                .filter_map(host_template_node)
+                .collect(),
+        ),
+    })
 }
 
 fn to_slint_ui_asset_string_selection(

@@ -3,6 +3,12 @@ mod apply_presentation_impl;
 #[path = "ui/pane_data_conversion.rs"]
 mod pane_data_conversion;
 #[cfg(test)]
+#[path = "ui/reference_component_tests.rs"]
+mod reference_component_tests;
+#[cfg(test)]
+#[path = "ui/structure_component_tests.rs"]
+mod structure_component_tests;
+#[cfg(test)]
 mod tests;
 
 pub(crate) use apply_presentation_impl::apply_presentation;

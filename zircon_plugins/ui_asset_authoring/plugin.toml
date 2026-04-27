@@ -1,0 +1,12 @@
+id = "ui_asset_authoring"
+version = "0.1.0"
+display_name = "UI Asset Authoring"
+description = "Optional editor tools for authoring Slint/UI asset documents."
+default_packaging = ["source_template", "library_embed"]
+
+[[modules]]
+name = "ui_asset_authoring.editor"
+kind = "editor"
+crate_name = "zircon_plugin_ui_asset_authoring_editor"
+target_modes = ["editor_host"]
+capabilities = ["editor.extension.ui_asset_authoring"]

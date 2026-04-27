@@ -6,6 +6,10 @@ impl ViewRegistry {
     }
 
     pub fn list_descriptors(&self) -> Vec<ViewDescriptor> {
-        self.descriptors.values().cloned().collect()
+        self.descriptors
+            .values()
+            .filter(|descriptor| self.descriptor_capability_error(descriptor).is_none())
+            .cloned()
+            .collect()
     }
 }

@@ -44,10 +44,10 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/overlay/icon_source/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/overlay/icon_source/viewport_icon_source.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_new/new_with_icon_source.rs
-  - zircon_runtime/src/animation/mod.rs
-  - zircon_runtime/src/animation/animation_interface.rs
-  - zircon_runtime/src/animation/sequence_runtime.rs
-  - zircon_runtime/src/physics/mod.rs
+  - zircon_plugins/animation/runtime/src/mod.rs
+  - zircon_plugins/animation/runtime/src/animation_interface.rs
+  - zircon_plugins/animation/runtime/src/sequence_runtime.rs
+  - zircon_plugins/physics/runtime/src/mod.rs
   - zircon_runtime/src/scene/world/property_access.rs
   - zircon_runtime/src/graphics/runtime/virtual_geometry/pending_completion/ordered_evictable_pages_for_target.rs
   - zircon_runtime/src/scene/world/render.rs
@@ -100,10 +100,10 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/overlay/icon_source/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/overlay/icon_source/viewport_icon_source.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_new/new_with_icon_source.rs
-  - zircon_runtime/src/animation/mod.rs
-  - zircon_runtime/src/animation/animation_interface.rs
-  - zircon_runtime/src/animation/sequence_runtime.rs
-  - zircon_runtime/src/physics/mod.rs
+  - zircon_plugins/animation/runtime/src/mod.rs
+  - zircon_plugins/animation/runtime/src/animation_interface.rs
+  - zircon_plugins/animation/runtime/src/sequence_runtime.rs
+  - zircon_plugins/physics/runtime/src/mod.rs
   - zircon_runtime/src/scene/world/property_access.rs
   - zircon_runtime/src/graphics/runtime/virtual_geometry/pending_completion/ordered_evictable_pages_for_target.rs
   - zircon_runtime/src/scene/world/render.rs

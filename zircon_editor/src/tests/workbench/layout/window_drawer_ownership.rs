@@ -112,8 +112,12 @@ fn drawer_attach_focus_and_close_commands_mutate_default_activity_window_drawers
         )
         .unwrap();
 
-    let drawer = &layout.activity_windows[&window_id].activity_drawers[&ActivityDrawerSlot::LeftTop];
-    assert_eq!(drawer.tab_stack.tabs, vec![hierarchy.clone(), inspector.clone()]);
+    let drawer =
+        &layout.activity_windows[&window_id].activity_drawers[&ActivityDrawerSlot::LeftTop];
+    assert_eq!(
+        drawer.tab_stack.tabs,
+        vec![hierarchy.clone(), inspector.clone()]
+    );
     assert_eq!(drawer.tab_stack.active_tab, Some(hierarchy.clone()));
     assert_eq!(drawer.active_view, Some(hierarchy.clone()));
 
@@ -126,7 +130,8 @@ fn drawer_attach_focus_and_close_commands_mutate_default_activity_window_drawers
         )
         .unwrap();
 
-    let drawer = &layout.activity_windows[&window_id].activity_drawers[&ActivityDrawerSlot::LeftTop];
+    let drawer =
+        &layout.activity_windows[&window_id].activity_drawers[&ActivityDrawerSlot::LeftTop];
     assert_eq!(drawer.tab_stack.tabs, vec![inspector.clone()]);
     assert_eq!(drawer.active_view, Some(inspector));
 }

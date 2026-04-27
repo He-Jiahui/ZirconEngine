@@ -27,7 +27,17 @@ fn workbench_view_model_projects_menu_strip_drawers_and_status() {
         .menus
         .iter()
         .flat_map(|menu| menu.items.iter())
-        .any(|item| item.action == MenuAction::Undo && item.enabled));
+        .any(|item| item.action.as_ref() == Some(&MenuAction::Undo) && item.enabled));
+    let undo_operation = model
+        .menu_bar
+        .menus
+        .iter()
+        .find(|menu| menu.label == "Edit")
+        .and_then(|menu| menu.items.iter().find(|item| item.label == "Undo"))
+        .and_then(|item| item.operation_path.as_ref())
+        .map(|path| path.as_str())
+        .expect("undo operation path");
+    assert_eq!(undo_operation, "Edit.History.Undo");
     assert_eq!(model.host_strip.active_page, MainPageId::workbench());
     assert_eq!(
         model
@@ -57,6 +67,16 @@ fn workbench_view_model_projects_menu_strip_drawers_and_status() {
         save_project_binding,
         r#"WorkbenchMenuBar/SaveProject:onClick(MenuAction("SaveProject"))"#
     );
+    let reset_layout_operation = model
+        .menu_bar
+        .menus
+        .iter()
+        .find(|menu| menu.label == "Window")
+        .and_then(|menu| menu.items.iter().find(|item| item.label == "Reset Layout"))
+        .and_then(|item| item.operation_path.as_ref())
+        .map(|path| path.as_str())
+        .expect("reset layout operation path");
+    assert_eq!(reset_layout_operation, "Window.Layout.Reset");
 }
 
 #[test]

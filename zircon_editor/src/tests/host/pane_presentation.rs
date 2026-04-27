@@ -42,6 +42,15 @@ use crate::ui::workbench::view::{
 
 fn editor_runtime() -> CoreRuntime {
     let runtime = CoreRuntime::new();
+    runtime.store_config_value(
+        crate::ui::host::EDITOR_ENABLED_SUBSYSTEMS_CONFIG_KEY,
+        serde_json::json!([
+            crate::ui::host::EDITOR_SUBSYSTEM_ANIMATION_AUTHORING,
+            crate::ui::host::EDITOR_SUBSYSTEM_UI_ASSET_AUTHORING,
+            crate::ui::host::EDITOR_SUBSYSTEM_RUNTIME_DIAGNOSTICS,
+            crate::ui::host::EDITOR_SUBSYSTEM_NATIVE_WINDOW_HOSTING,
+        ]),
+    );
     runtime
         .register_module(foundation_module_descriptor())
         .unwrap();
@@ -428,6 +437,8 @@ fn document_pane_projects_first_wave_pane_presentations_alongside_legacy_data() 
             &BTreeMap::new(),
             &animation_panes,
             Some(&runtime_diagnostics),
+            &crate::ui::layouts::windows::workbench_host_window::ModulePluginsPaneViewData::default(
+            ),
         );
         let pane_presentation = pane
             .pane_presentation

@@ -1,0 +1,11 @@
+[package]
+name = "zircon_plugin_native_dynamic_sample_native"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Native dynamic ABI sample plugin for Zircon."
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]

@@ -7,6 +7,8 @@ related_code:
   - zircon_editor/src/ui/slint_host/ui.rs
   - zircon_editor/src/core/editing/command.rs
   - zircon_editor/src/core/editing/history.rs
+  - zircon_editor/src/core/editor_operation.rs
+  - zircon_editor/src/ui/host/editor_operation_dispatch.rs
   - zircon_editor/src/ui/workbench/layout/mod.rs
   - zircon_editor/src/ui/host/mod.rs
   - zircon_editor/src/core/editor_event/host_adapter.rs
@@ -29,6 +31,8 @@ implementation_files:
   - zircon_editor/src/ui/slint_host/ui.rs
   - zircon_editor/src/core/editing/command.rs
   - zircon_editor/src/core/editing/history.rs
+  - zircon_editor/src/core/editor_operation.rs
+  - zircon_editor/src/ui/host/editor_operation_dispatch.rs
   - zircon_editor/src/ui/host/mod.rs
   - zircon_editor/src/ui/workbench/project/mod.rs
   - zircon_editor/src/ui/workbench/snapshot/mod.rs
@@ -80,6 +84,7 @@ doc_type: category-index
 - `zircon_editor` 如何把 Slint 宿主组织成 workbench shell
 - 布局、view registry、项目 workspace 和配置持久化如何协同
 - UI 草稿态如何转换成命令，并在 `zircon_runtime::scene::LevelSystem` 所托管的 `zircon_scene::Scene` 上安全执行与 undo/redo
+- `EditorOperation` 如何以路径命名方式把菜单、远控、CLI 和未来组件编辑器入口统一提交到 editor event runtime
 
 ## Documents
 
@@ -89,12 +94,13 @@ doc_type: category-index
 - [Viewport Interaction Boundary Split](./viewport-interaction-boundary-split.md): `zircon_editor` / `zircon_graphics` / `zircon_app` 的 viewport ownership 重分配，editor-owned interaction types、runtime-private camera controller，以及 graphics 仅保留 render framework/overlay 职责。
 - [Runtime/Editor Boundary Cleanup](./runtime-editor-boundary-cleanup.md): 继续把 runtime 内残留的 editor-only 默认假设剪掉，包括 viewport authoring contract 回迁到 `zircon_editor`，以及 foundation config path 的 editor 命名中性化。
 - [Crate Boundary Audit Round 2](./crate-boundary-audit-round-2.md): 第二轮更严格的错包审计规则、`zircon_graphics` 红测根因、已通过的边界项，以及下一批最强迁移候选。
-- [UI Binding And Reflection Architecture](./ui-binding-reflection-architecture.md): `zircon_ui` / `zircon_editor::ui` / `zircon_runtime::input` 边界，nativeBinding、反射树、REPL/网络操控与 headless 回放架构。
+- [UI Binding And Reflection Architecture](./ui-binding-reflection-architecture.md): `zircon_ui` / `zircon_editor::ui` / `zircon_runtime::input` 边界，nativeBinding、反射树、EditorOperation 路径命名操作、REPL/网络操控与 headless 回放架构。
 - [Animation Binding Command Surface](./animation-binding-command-surface.md): `AnimationCommand` 如何统一轨道创建/删除、重绑定、关键帧、scrub 和 playback 的 editor authoring binding 面，并进入正式 `EditorEventRuntime` 事件链与动画资产 view 路由。
 - [Animation Editor Pane Session](./animation-editor-pane-session.md): `ui::animation_editor` 与 `ui::host::animation_editor_sessions` 如何维护 sequence/graph/state-machine 的最小真实 session model，并把 animation 资产页签投影到正式 workbench pane。
 - [Engine Architecture / Runtime Diagnostics Facade](../engine-architecture/runtime-diagnostics-facade.md): `EditorManager::runtime_diagnostics()`、`editor.runtime_diagnostics` activity pane、`RuntimeDiagnosticsV1` pane payload 和 `pane.runtime.diagnostics.body` TOML 模板的 editor-facing inspection 边界。
 - [Editor Template Compatibility Migration](./editor-template-compatibility-migration.md): `zircon_editor::ui` 的 editor-only template catalog/registry/adapter，如何把 shared `UiBindingRef` 收口到 typed `EditorUiBinding`，以及后续把 TOML 模板实例接到 Slint host 的迁移顺序。
 - [UI Asset Editor Host Session](./ui-asset-editor-host-session.md): `zircon_editor::ui::host` 与 `zircon_editor::ui::asset_editor` 的当前 owner 边界，说明 `EditorManager`、layout/window/session orchestration 已回迁到 `src/ui/`，且不再通过 `core` 兼容 re-export 持有实现。
+- [Editor Host Minimal Plugin Loading](./editor-host-minimal-plugin-loading.md): `EditorHostMinimal` 白名单、扩展黑名单、EngineModule/VM 双轨加载入口、VM host capability handle bridge 和失败隔离策略。
 - [Editor Structure Hard Cutover Rules](./editor-structure-hard-cutover-rules.md): `core/scene/ui` 顶层分工、`ui/host` vs `ui/slint_host` vs `ui/asset_editor` vs `ui/workbench` 的 owner 红线，以及 `zircon_editor` crate root/public surface 收口规则。
 - [UI And Layout / UI Asset Documents And Editor Protocol](../ui-and-layout/ui-asset-documents-and-editor-protocol.md): `zircon_ui::template::asset` 的 `layout/widget/style` 编译链、selector stylesheet、legacy adapter、slot-aware shared bridge，以及 shared asset model 如何移交给 editor asset pipeline 和 host session。
 - [UI And Layout / Shared UI Core Foundation](../ui-and-layout/shared-ui-core-foundation.md): 运行时/编辑器共享的 `zircon_ui` 约束类型、retained tree、命中索引、surface/render extract，以及 editor workbench 对共享布局核心的复用边界。
@@ -105,6 +111,8 @@ doc_type: category-index
 
 - `zircon_editor/src/core/editing/command.rs`
 - `zircon_editor/src/core/editing/history.rs`
+- `zircon_editor/src/core/editor_operation.rs`
+- `zircon_editor/src/ui/host/editor_operation_dispatch.rs`
 - `zircon_editor/src/scene/viewport/controller/mod.rs`
 - `zircon_editor/src/scene/viewport/handles/mod.rs`
 - `zircon_editor/src/ui/workbench/layout/mod.rs`

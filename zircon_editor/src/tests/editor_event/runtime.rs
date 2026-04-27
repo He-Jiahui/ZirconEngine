@@ -23,6 +23,1230 @@ use crate::ui::workbench::view::ViewDescriptorId;
 use super::support::{env_lock, EventRuntimeHarness};
 
 #[test]
+fn editor_operation_registry_exposes_builtin_menu_operations_by_path() {
+    use crate::core::editor_operation::{EditorOperationPath, EditorOperationRegistry};
+
+    let registry = EditorOperationRegistry::with_builtin_operations();
+    let reset_path = EditorOperationPath::parse("Window.Layout.Reset").unwrap();
+    let reset = registry
+        .descriptor(&reset_path)
+        .expect("reset layout operation should be registered");
+
+    assert_eq!(reset.path().as_str(), "Window.Layout.Reset");
+    assert_eq!(reset.display_name(), "Reset Layout");
+    assert_eq!(reset.menu_path(), Some("Window/Reset Layout"));
+    assert!(reset.callable_from_remote());
+    assert!(reset.undoable().is_some());
+}
+
+#[test]
+fn editor_extension_registry_collects_plugin_windows_menus_drawers_and_operations() {
+    use crate::core::editor_extension::{
+        ComponentDrawerDescriptor, DrawerDescriptor, EditorExtensionRegistry,
+        EditorMenuItemDescriptor, EditorUiTemplateDescriptor, ViewDescriptor,
+    };
+    use crate::core::editor_operation::{
+        EditorOperationDescriptor, EditorOperationPath, UndoableEditorOperation,
+    };
+
+    let operation_path = EditorOperationPath::parse("Weather.CloudLayer.Refresh").unwrap();
+    let operation = EditorOperationDescriptor::new(operation_path.clone(), "Refresh Cloud Layers")
+        .with_menu_path("Tools/Weather/Refresh Cloud Layers")
+        .with_undoable(UndoableEditorOperation::new("Refresh Cloud Layers"));
+
+    let mut registry = EditorExtensionRegistry::default();
+    registry
+        .register_view(ViewDescriptor::new(
+            "weather.cloud_layers",
+            "Cloud Layers",
+            "Weather",
+        ))
+        .unwrap();
+    registry
+        .register_drawer(DrawerDescriptor::new(
+            "weather.cloud_layers.drawer",
+            "Cloud Layer Tools",
+        ))
+        .unwrap();
+    registry
+        .register_menu_item(EditorMenuItemDescriptor::new(
+            "Tools/Weather/Refresh Cloud Layers",
+            operation_path.clone(),
+        ))
+        .unwrap();
+    registry
+        .register_component_drawer(ComponentDrawerDescriptor::new(
+            "weather.Component.CloudLayer",
+            "asset://weather/editor/cloud_layer.inspector.ui.toml",
+            "weather.editor.CloudLayerInspectorController",
+        ))
+        .unwrap();
+    registry
+        .register_ui_template(EditorUiTemplateDescriptor::new(
+            "weather.cloud_layer.inspector",
+            "asset://weather/editor/cloud_layer.inspector.ui.toml",
+        ))
+        .unwrap();
+    registry.register_operation(operation.clone()).unwrap();
+
+    assert_eq!(registry.views().len(), 1);
+    assert_eq!(registry.drawers().len(), 1);
+    assert_eq!(registry.menu_items()[0].operation(), &operation_path);
+    assert_eq!(
+        registry.component_drawers()[0].component_type(),
+        "weather.Component.CloudLayer"
+    );
+    assert_eq!(
+        registry.operations().descriptor(&operation_path),
+        Some(&operation)
+    );
+
+    let duplicate = registry.register_operation(operation).unwrap_err();
+    assert!(duplicate
+        .to_string()
+        .contains("editor operation Weather.CloudLayer.Refresh already registered"));
+}
+
+#[test]
+fn operation_invocation_dispatches_to_the_same_event_and_marks_the_journal_record() {
+    use crate::core::editor_operation::{
+        EditorOperationInvocation, EditorOperationPath, EditorOperationSource,
+    };
+
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_operation_invoke");
+    let before = runtime.runtime.editor_snapshot().scene_entries.len();
+
+    let record = runtime
+        .runtime
+        .invoke_operation(
+            EditorOperationSource::Menu,
+            EditorOperationInvocation::new(
+                EditorOperationPath::parse("Scene.Node.CreateCube").unwrap(),
+            ),
+        )
+        .unwrap();
+
+    assert_eq!(
+        record.event,
+        EditorEvent::WorkbenchMenu(MenuAction::CreateNode(NodeKind::Cube))
+    );
+    assert_eq!(
+        record.operation_id.as_deref(),
+        Some("Scene.Node.CreateCube")
+    );
+    assert_eq!(
+        record.operation_display_name.as_deref(),
+        Some("Create Cube")
+    );
+    assert_eq!(
+        runtime.runtime.journal().records()[0]
+            .operation_id
+            .as_deref(),
+        Some("Scene.Node.CreateCube")
+    );
+    assert_eq!(
+        runtime.runtime.operation_stack().undo_stack()[0]
+            .operation_id
+            .as_str(),
+        "Scene.Node.CreateCube"
+    );
+    assert_eq!(runtime.runtime.operation_stack().undo_stack().len(), 1);
+    assert_eq!(
+        runtime.runtime.editor_snapshot().scene_entries.len(),
+        before + 1
+    );
+}
+
+#[test]
+fn operation_control_request_returns_structured_success_and_failure() {
+    use crate::core::editor_operation::{
+        EditorOperationControlRequest, EditorOperationInvocation, EditorOperationPath,
+    };
+
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_operation_control");
+
+    let success = runtime.runtime.handle_operation_control_request(
+        EditorOperationControlRequest::InvokeOperation(EditorOperationInvocation::new(
+            EditorOperationPath::parse("Window.Layout.Reset").unwrap(),
+        )),
+    );
+    assert!(success.error.is_none());
+    assert_eq!(success.operation_id.as_deref(), Some("Window.Layout.Reset"));
+    assert!(success.value.is_some());
+
+    let failure = runtime.runtime.handle_operation_control_request(
+        EditorOperationControlRequest::InvokeOperation(EditorOperationInvocation::new(
+            EditorOperationPath::parse("Weather.Missing.Action").unwrap(),
+        )),
+    );
+    assert_eq!(
+        failure.error.as_deref(),
+        Some("editor operation Weather.Missing.Action is not registered")
+    );
+}
+
+#[test]
+fn failed_operation_control_request_is_journaled_without_polluting_undo_stack() {
+    use crate::core::editor_operation::{
+        EditorOperationControlRequest, EditorOperationInvocation, EditorOperationPath,
+    };
+
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_operation_failure_journal");
+
+    let failure = runtime.runtime.handle_operation_control_request(
+        EditorOperationControlRequest::InvokeOperation(EditorOperationInvocation::new(
+            EditorOperationPath::parse("Weather.Missing.Action").unwrap(),
+        )),
+    );
+
+    assert_eq!(
+        failure.error.as_deref(),
+        Some("editor operation Weather.Missing.Action is not registered")
+    );
+    let journal = runtime.runtime.journal();
+    assert_eq!(journal.records().len(), 1);
+    let record = &journal.records()[0];
+    assert_eq!(
+        record.operation_id.as_deref(),
+        Some("Weather.Missing.Action")
+    );
+    assert_eq!(
+        record.result.error.as_deref(),
+        Some("editor operation Weather.Missing.Action is not registered")
+    );
+    assert!(runtime.runtime.operation_stack().undo_stack().is_empty());
+    assert!(runtime.runtime.operation_stack().redo_stack().is_empty());
+
+    let replay = EventRuntimeHarness::new("zircon_editor_event_operation_failure_journal_replay");
+    EditorEventReplay::replay(&replay.runtime, journal.records()).expect("replay failure record");
+    let replay_journal = replay.runtime.journal();
+    assert_eq!(replay_journal.records().len(), 1);
+    assert_eq!(
+        replay_journal.records()[0].source,
+        EditorEventSource::Replay
+    );
+    assert_eq!(
+        replay_journal.records()[0].result.error.as_deref(),
+        Some("editor operation Weather.Missing.Action is not registered")
+    );
+    assert!(replay.runtime.operation_stack().undo_stack().is_empty());
+}
+
+#[test]
+fn remote_and_cli_operation_invocation_respects_callable_from_remote_gate() {
+    use crate::core::editor_extension::{EditorExtensionRegistry, EditorMenuItemDescriptor};
+    use crate::core::editor_operation::{
+        EditorOperationControlRequest, EditorOperationDescriptor, EditorOperationInvocation,
+        EditorOperationPath, EditorOperationSource,
+    };
+
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_operation_remote_gate");
+    let operation_path = EditorOperationPath::parse("Weather.Secret.Refresh").unwrap();
+    let mut extension = EditorExtensionRegistry::default();
+    extension
+        .register_operation(
+            EditorOperationDescriptor::new(operation_path.clone(), "Refresh Secret Weather")
+                .with_event(EditorEvent::WorkbenchMenu(MenuAction::ResetLayout))
+                .with_callable_from_remote(false),
+        )
+        .unwrap();
+    extension
+        .register_menu_item(EditorMenuItemDescriptor::new(
+            "Tools/Weather/Secret Refresh",
+            operation_path.clone(),
+        ))
+        .unwrap();
+    runtime
+        .runtime
+        .register_editor_extension(extension)
+        .expect("register editor extension");
+    runtime.runtime.refresh_reflection();
+
+    let remote = runtime.runtime.handle_operation_control_request(
+        EditorOperationControlRequest::InvokeOperation(EditorOperationInvocation::new(
+            operation_path.clone(),
+        )),
+    );
+    assert_eq!(
+        remote.error.as_deref(),
+        Some("editor operation Weather.Secret.Refresh is not callable from remote control")
+    );
+    let cli = runtime
+        .runtime
+        .handle_operation_control_request_from_source(
+            EditorOperationSource::Cli,
+            EditorOperationControlRequest::InvokeOperation(EditorOperationInvocation::new(
+                operation_path.clone(),
+            )),
+        );
+    assert_eq!(
+        cli.error.as_deref(),
+        Some("editor operation Weather.Secret.Refresh is not callable from remote control")
+    );
+    assert_eq!(runtime.runtime.journal().records().len(), 2);
+    assert_eq!(
+        runtime.runtime.journal().records()[0]
+            .operation_id
+            .as_deref(),
+        Some("Weather.Secret.Refresh")
+    );
+    assert_eq!(
+        runtime.runtime.journal().records()[1].source,
+        EditorEventSource::Cli
+    );
+    assert!(runtime.runtime.operation_stack().undo_stack().is_empty());
+
+    let invoked = runtime
+        .runtime
+        .handle_control_request(UiControlRequest::CallAction {
+            node_path: UiNodePath::new("editor/workbench/menu/tools/Weather.Secret.Refresh"),
+            action_id: "onClick".to_string(),
+            arguments: Vec::new(),
+        });
+    assert!(matches!(
+        invoked,
+        UiControlResponse::Invocation(result) if result.error.is_none()
+    ));
+    assert_eq!(
+        runtime.runtime.journal().records()[2]
+            .operation_id
+            .as_deref(),
+        Some("Weather.Secret.Refresh")
+    );
+}
+
+#[test]
+fn operation_control_request_lists_registered_operations_for_remote_discovery() {
+    use crate::core::editor_extension::{EditorExtensionRegistry, ViewDescriptor};
+    use crate::core::editor_operation::EditorOperationControlRequest;
+
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_operation_listing");
+    let mut extension = EditorExtensionRegistry::default();
+    extension
+        .register_view(ViewDescriptor::new(
+            "weather.cloud_layers",
+            "Cloud Layers",
+            "Weather",
+        ))
+        .unwrap();
+    runtime
+        .runtime
+        .register_editor_extension(extension)
+        .expect("register editor extension");
+
+    let response = runtime
+        .runtime
+        .handle_operation_control_request(EditorOperationControlRequest::ListOperations);
+
+    assert!(response.error.is_none());
+    let operations = response
+        .value
+        .as_ref()
+        .and_then(|value| value.get("operations"))
+        .and_then(serde_json::Value::as_array)
+        .expect("operations array");
+    assert!(operations.iter().any(|operation| {
+        operation
+            .get("operation_id")
+            .and_then(serde_json::Value::as_str)
+            == Some("Window.Layout.Reset")
+            && operation
+                .get("menu_path")
+                .and_then(serde_json::Value::as_str)
+                == Some("Window/Reset Layout")
+            && operation
+                .get("undoable")
+                .and_then(serde_json::Value::as_bool)
+                == Some(true)
+    }));
+    assert!(operations.iter().any(|operation| {
+        operation
+            .get("operation_id")
+            .and_then(serde_json::Value::as_str)
+            == Some("View.weather.cloud_layers.Open")
+            && operation
+                .get("menu_path")
+                .and_then(serde_json::Value::as_str)
+                == Some("View/Weather/Cloud Layers")
+            && operation
+                .get("callable_from_remote")
+                .and_then(serde_json::Value::as_bool)
+                == Some(true)
+    }));
+}
+
+#[test]
+fn operation_control_request_returns_named_operation_history_stack() {
+    use crate::core::editor_operation::{
+        EditorOperationControlRequest, EditorOperationInvocation, EditorOperationPath,
+        EditorOperationSource,
+    };
+
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_operation_stack");
+    runtime
+        .runtime
+        .invoke_operation(
+            EditorOperationSource::Remote,
+            EditorOperationInvocation::new(
+                EditorOperationPath::parse("Scene.Node.CreateCube").unwrap(),
+            ),
+        )
+        .unwrap();
+
+    let response = runtime
+        .runtime
+        .handle_operation_control_request(EditorOperationControlRequest::QueryOperationStack);
+
+    assert!(response.error.is_none());
+    let value = response.value.as_ref().expect("stack value");
+    let undo = value
+        .get("undo_stack")
+        .and_then(serde_json::Value::as_array)
+        .expect("undo stack");
+    assert_eq!(undo.len(), 1);
+    assert_eq!(
+        undo[0]
+            .get("operation_id")
+            .and_then(serde_json::Value::as_str),
+        Some("Scene.Node.CreateCube")
+    );
+    assert_eq!(
+        undo[0]
+            .get("display_name")
+            .and_then(serde_json::Value::as_str),
+        Some("Create Cube")
+    );
+    assert_eq!(
+        value
+            .get("redo_stack")
+            .and_then(serde_json::Value::as_array)
+            .expect("redo stack")
+            .len(),
+        0
+    );
+}
+
+#[test]
+fn operation_control_request_can_record_cli_source() {
+    use crate::core::editor_operation::{
+        EditorOperationControlRequest, EditorOperationInvocation, EditorOperationPath,
+        EditorOperationSource,
+    };
+
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_operation_cli_source");
+
+    let response = runtime
+        .runtime
+        .handle_operation_control_request_from_source(
+            EditorOperationSource::Cli,
+            EditorOperationControlRequest::InvokeOperation(EditorOperationInvocation::new(
+                EditorOperationPath::parse("Window.Layout.Reset").unwrap(),
+            )),
+        );
+
+    assert!(response.error.is_none());
+    assert_eq!(
+        runtime.runtime.journal().records()[0].source,
+        EditorEventSource::Cli
+    );
+    assert_eq!(
+        runtime.runtime.journal().records()[0]
+            .operation_id
+            .as_deref(),
+        Some("Window.Layout.Reset")
+    );
+}
+
+#[test]
+fn event_listener_control_gates_named_event_deliveries() {
+    use crate::core::editor_event::EditorEventListenerControlRequest;
+    use crate::core::editor_operation::{
+        EditorOperationInvocation, EditorOperationPath, EditorOperationSource,
+    };
+
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_listener_control");
+    let listener_id = "External.HistoryPanel".to_string();
+
+    let registered = runtime.runtime.handle_event_listener_control_request(
+        EditorEventListenerControlRequest::Register {
+            listener_id: listener_id.clone(),
+            display_name: "History Panel".to_string(),
+        },
+    );
+    assert!(registered.error.is_none());
+
+    runtime.runtime.handle_event_listener_control_request(
+        EditorEventListenerControlRequest::SetEnabled {
+            listener_id: listener_id.clone(),
+            enabled: false,
+        },
+    );
+    runtime
+        .runtime
+        .invoke_operation(
+            EditorOperationSource::Remote,
+            EditorOperationInvocation::new(
+                EditorOperationPath::parse("Scene.Node.CreateCube").unwrap(),
+            ),
+        )
+        .unwrap();
+    let disabled_deliveries = runtime.runtime.handle_event_listener_control_request(
+        EditorEventListenerControlRequest::QueryDeliveries {
+            listener_id: listener_id.clone(),
+        },
+    );
+    assert_eq!(
+        disabled_deliveries.value["deliveries"]
+            .as_array()
+            .expect("deliveries")
+            .len(),
+        0
+    );
+
+    runtime.runtime.handle_event_listener_control_request(
+        EditorEventListenerControlRequest::SetEnabled {
+            listener_id: listener_id.clone(),
+            enabled: true,
+        },
+    );
+    runtime
+        .runtime
+        .invoke_operation(
+            EditorOperationSource::Remote,
+            EditorOperationInvocation::new(
+                EditorOperationPath::parse("Scene.Node.CreateCube").unwrap(),
+            ),
+        )
+        .unwrap();
+
+    let deliveries = runtime.runtime.handle_event_listener_control_request(
+        EditorEventListenerControlRequest::QueryDeliveries { listener_id },
+    );
+    assert_eq!(
+        deliveries.value["deliveries"][0]["operation_id"],
+        "Scene.Node.CreateCube"
+    );
+    assert_eq!(deliveries.value["deliveries"][0]["sequence"], 2);
+}
+
+#[test]
+fn event_listener_filter_limits_delivery_by_operation_path_prefix() {
+    use crate::core::editor_event::{EditorEventListenerControlRequest, EditorEventListenerFilter};
+    use crate::core::editor_operation::{
+        EditorOperationInvocation, EditorOperationPath, EditorOperationSource,
+    };
+
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_listener_filter");
+    let listener_id = "External.SceneHistory".to_string();
+    runtime.runtime.handle_event_listener_control_request(
+        EditorEventListenerControlRequest::Register {
+            listener_id: listener_id.clone(),
+            display_name: "Scene History".to_string(),
+        },
+    );
+    runtime.runtime.handle_event_listener_control_request(
+        EditorEventListenerControlRequest::SetFilter {
+            listener_id: listener_id.clone(),
+            filter: EditorEventListenerFilter::operation_prefix("Scene.Node."),
+        },
+    );
+
+    runtime
+        .runtime
+        .invoke_operation(
+            EditorOperationSource::Remote,
+            EditorOperationInvocation::new(
+                EditorOperationPath::parse("Window.Layout.Reset").unwrap(),
+            ),
+        )
+        .unwrap();
+    runtime
+        .runtime
+        .invoke_operation(
+            EditorOperationSource::Remote,
+            EditorOperationInvocation::new(
+                EditorOperationPath::parse("Scene.Node.CreateCube").unwrap(),
+            ),
+        )
+        .unwrap();
+
+    let deliveries = runtime.runtime.handle_event_listener_control_request(
+        EditorEventListenerControlRequest::QueryDeliveries { listener_id },
+    );
+    let deliveries = deliveries.value["deliveries"]
+        .as_array()
+        .expect("deliveries");
+    assert_eq!(deliveries.len(), 1);
+    assert_eq!(deliveries[0]["operation_id"], "Scene.Node.CreateCube");
+}
+
+#[test]
+fn event_listener_control_clears_operation_path_filter() {
+    use crate::core::editor_event::{EditorEventListenerControlRequest, EditorEventListenerFilter};
+    use crate::core::editor_operation::{
+        EditorOperationInvocation, EditorOperationPath, EditorOperationSource,
+    };
+
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_listener_clear_filter");
+    let listener_id = "External.DynamicPanel".to_string();
+    runtime.runtime.handle_event_listener_control_request(
+        EditorEventListenerControlRequest::Register {
+            listener_id: listener_id.clone(),
+            display_name: "Dynamic Panel".to_string(),
+        },
+    );
+    runtime.runtime.handle_event_listener_control_request(
+        EditorEventListenerControlRequest::SetFilter {
+            listener_id: listener_id.clone(),
+            filter: EditorEventListenerFilter::operation_prefix("Scene.Node."),
+        },
+    );
+    runtime.runtime.handle_event_listener_control_request(
+        EditorEventListenerControlRequest::ClearFilter {
+            listener_id: listener_id.clone(),
+        },
+    );
+
+    runtime
+        .runtime
+        .invoke_operation(
+            EditorOperationSource::Remote,
+            EditorOperationInvocation::new(
+                EditorOperationPath::parse("Window.Layout.Reset").unwrap(),
+            ),
+        )
+        .unwrap();
+
+    let deliveries = runtime.runtime.handle_event_listener_control_request(
+        EditorEventListenerControlRequest::QueryDeliveries { listener_id },
+    );
+    let deliveries = deliveries.value["deliveries"]
+        .as_array()
+        .expect("deliveries");
+    assert_eq!(deliveries.len(), 1);
+    assert_eq!(deliveries[0]["operation_id"], "Window.Layout.Reset");
+}
+
+#[test]
+fn event_listener_control_unregisters_listener_and_drops_deliveries() {
+    use crate::core::editor_event::EditorEventListenerControlRequest;
+    use crate::core::editor_operation::{
+        EditorOperationInvocation, EditorOperationPath, EditorOperationSource,
+    };
+
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_listener_unregister");
+    let listener_id = "External.TemporaryPanel".to_string();
+    runtime.runtime.handle_event_listener_control_request(
+        EditorEventListenerControlRequest::Register {
+            listener_id: listener_id.clone(),
+            display_name: "Temporary Panel".to_string(),
+        },
+    );
+    runtime
+        .runtime
+        .invoke_operation(
+            EditorOperationSource::Remote,
+            EditorOperationInvocation::new(
+                EditorOperationPath::parse("Scene.Node.CreateCube").unwrap(),
+            ),
+        )
+        .unwrap();
+
+    let unregistered = runtime.runtime.handle_event_listener_control_request(
+        EditorEventListenerControlRequest::Unregister {
+            listener_id: listener_id.clone(),
+        },
+    );
+    assert!(unregistered.error.is_none());
+
+    let listeners = runtime
+        .runtime
+        .handle_event_listener_control_request(EditorEventListenerControlRequest::ListListeners);
+    assert!(listeners.value["listeners"]
+        .as_array()
+        .expect("listeners")
+        .is_empty());
+
+    let deliveries = runtime.runtime.handle_event_listener_control_request(
+        EditorEventListenerControlRequest::QueryDeliveries { listener_id },
+    );
+    assert!(deliveries.value["deliveries"]
+        .as_array()
+        .expect("deliveries")
+        .is_empty());
+}
+
+#[test]
+fn event_listener_control_queries_deliveries_after_sequence_cursor() {
+    use crate::core::editor_event::EditorEventListenerControlRequest;
+    use crate::core::editor_operation::{
+        EditorOperationInvocation, EditorOperationPath, EditorOperationSource,
+    };
+
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_listener_cursor");
+    let listener_id = "External.PollingPanel".to_string();
+    runtime.runtime.handle_event_listener_control_request(
+        EditorEventListenerControlRequest::Register {
+            listener_id: listener_id.clone(),
+            display_name: "Polling Panel".to_string(),
+        },
+    );
+    runtime
+        .runtime
+        .invoke_operation(
+            EditorOperationSource::Remote,
+            EditorOperationInvocation::new(
+                EditorOperationPath::parse("Scene.Node.CreateCube").unwrap(),
+            ),
+        )
+        .unwrap();
+    runtime
+        .runtime
+        .invoke_operation(
+            EditorOperationSource::Remote,
+            EditorOperationInvocation::new(
+                EditorOperationPath::parse("Scene.Node.CreateCube").unwrap(),
+            ),
+        )
+        .unwrap();
+
+    let deliveries = runtime.runtime.handle_event_listener_control_request(
+        EditorEventListenerControlRequest::QueryDeliveriesSince {
+            listener_id,
+            after_sequence: 1,
+        },
+    );
+    let deliveries = deliveries.value["deliveries"]
+        .as_array()
+        .expect("deliveries");
+    assert_eq!(deliveries.len(), 1);
+    assert_eq!(deliveries[0]["sequence"], 2);
+    assert_eq!(deliveries[0]["operation_id"], "Scene.Node.CreateCube");
+}
+
+#[test]
+fn event_listener_control_acknowledges_deliveries_through_sequence() {
+    use crate::core::editor_event::EditorEventListenerControlRequest;
+    use crate::core::editor_operation::{
+        EditorOperationInvocation, EditorOperationPath, EditorOperationSource,
+    };
+
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_listener_ack");
+    let listener_id = "External.StreamingPanel".to_string();
+    runtime.runtime.handle_event_listener_control_request(
+        EditorEventListenerControlRequest::Register {
+            listener_id: listener_id.clone(),
+            display_name: "Streaming Panel".to_string(),
+        },
+    );
+    runtime
+        .runtime
+        .invoke_operation(
+            EditorOperationSource::Remote,
+            EditorOperationInvocation::new(
+                EditorOperationPath::parse("Scene.Node.CreateCube").unwrap(),
+            ),
+        )
+        .unwrap();
+    runtime
+        .runtime
+        .invoke_operation(
+            EditorOperationSource::Remote,
+            EditorOperationInvocation::new(
+                EditorOperationPath::parse("Scene.Node.CreateCube").unwrap(),
+            ),
+        )
+        .unwrap();
+
+    let ack = runtime.runtime.handle_event_listener_control_request(
+        EditorEventListenerControlRequest::AckDeliveriesThrough {
+            listener_id: listener_id.clone(),
+            sequence: 1,
+        },
+    );
+    assert!(ack.error.is_none());
+    assert_eq!(ack.value["removed"], 1);
+
+    let deliveries = runtime.runtime.handle_event_listener_control_request(
+        EditorEventListenerControlRequest::QueryDeliveries { listener_id },
+    );
+    let deliveries = deliveries.value["deliveries"]
+        .as_array()
+        .expect("deliveries");
+    assert_eq!(deliveries.len(), 1);
+    assert_eq!(deliveries[0]["sequence"], 2);
+}
+
+#[test]
+fn editor_runtime_accepts_plugin_extension_operations_for_later_invocation() {
+    use crate::core::editor_extension::EditorExtensionRegistry;
+    use crate::core::editor_operation::{
+        EditorOperationDescriptor, EditorOperationInvocation, EditorOperationPath,
+        EditorOperationSource,
+    };
+
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_plugin_operation");
+    let operation_path = EditorOperationPath::parse("Weather.Tools.ResetLayout").unwrap();
+    let mut extension = EditorExtensionRegistry::default();
+    extension
+        .register_operation(
+            EditorOperationDescriptor::new(operation_path.clone(), "Weather Reset Layout")
+                .with_menu_path("Tools/Weather/Reset Layout")
+                .with_event(EditorEvent::WorkbenchMenu(MenuAction::ResetLayout)),
+        )
+        .unwrap();
+
+    runtime
+        .runtime
+        .register_editor_extension(extension)
+        .expect("register editor extension");
+    let record = runtime
+        .runtime
+        .invoke_operation(
+            EditorOperationSource::Remote,
+            EditorOperationInvocation::new(operation_path),
+        )
+        .unwrap();
+
+    assert_eq!(
+        record.operation_id.as_deref(),
+        Some("Weather.Tools.ResetLayout")
+    );
+    assert_eq!(
+        runtime.runtime.journal().records()[0]
+            .operation_id
+            .as_deref(),
+        Some("Weather.Tools.ResetLayout")
+    );
+}
+
+#[test]
+fn explicit_plugin_operation_records_its_own_undo_stack_entry_when_reusing_builtin_event() {
+    use crate::core::editor_extension::EditorExtensionRegistry;
+    use crate::core::editor_operation::{
+        EditorOperationDescriptor, EditorOperationInvocation, EditorOperationPath,
+        EditorOperationSource, UndoableEditorOperation,
+    };
+
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_plugin_operation_stack_identity");
+    let operation_path = EditorOperationPath::parse("Zzz.Tools.ResetLayout").unwrap();
+    let mut extension = EditorExtensionRegistry::default();
+    extension
+        .register_operation(
+            EditorOperationDescriptor::new(operation_path.clone(), "Plugin Reset Layout")
+                .with_menu_path("Tools/Zzz/Reset Layout")
+                .with_event(EditorEvent::WorkbenchMenu(MenuAction::ResetLayout))
+                .with_undoable(UndoableEditorOperation::new("Plugin Reset Layout")),
+        )
+        .unwrap();
+
+    runtime
+        .runtime
+        .register_editor_extension(extension)
+        .expect("register editor extension");
+    runtime
+        .runtime
+        .invoke_operation(
+            EditorOperationSource::Remote,
+            EditorOperationInvocation::new(operation_path),
+        )
+        .unwrap();
+
+    let stack = runtime.runtime.operation_stack();
+    assert_eq!(stack.undo_stack().len(), 1);
+    assert_eq!(
+        stack.undo_stack()[0].operation_id.as_str(),
+        "Zzz.Tools.ResetLayout"
+    );
+    assert_eq!(stack.undo_stack()[0].display_name, "Plugin Reset Layout");
+    assert_eq!(
+        runtime.runtime.journal().records()[0]
+            .operation_id
+            .as_deref(),
+        Some("Zzz.Tools.ResetLayout")
+    );
+}
+
+#[test]
+fn editor_runtime_projects_plugin_menu_operations_into_remote_callable_reflection() {
+    use crate::core::editor_extension::{EditorExtensionRegistry, EditorMenuItemDescriptor};
+    use crate::core::editor_operation::{EditorOperationDescriptor, EditorOperationPath};
+
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_plugin_menu_operation");
+    let operation_path = EditorOperationPath::parse("Weather.CloudLayer.Refresh").unwrap();
+    let mut extension = EditorExtensionRegistry::default();
+    extension
+        .register_operation(
+            EditorOperationDescriptor::new(operation_path.clone(), "Refresh Cloud Layers")
+                .with_event(EditorEvent::WorkbenchMenu(MenuAction::ResetLayout)),
+        )
+        .unwrap();
+    extension
+        .register_menu_item(EditorMenuItemDescriptor::new(
+            "Tools/Weather/Refresh Cloud Layers",
+            operation_path,
+        ))
+        .unwrap();
+
+    runtime
+        .runtime
+        .register_editor_extension(extension)
+        .expect("register editor extension");
+    runtime.runtime.refresh_reflection();
+
+    let menu = runtime
+        .runtime
+        .handle_control_request(UiControlRequest::QueryNode {
+            node_path: UiNodePath::new("editor/workbench/menu/tools/Weather.CloudLayer.Refresh"),
+        });
+    assert!(matches!(
+        menu,
+        UiControlResponse::Node(Some(node))
+            if node.display_name == "Refresh Cloud Layers"
+                && node.actions["onClick"].binding_symbol == "EditorOperation"
+                && node.actions["onClick"].callable_from_remote
+                && node.properties["operation_path"].reflected_value
+                    == json!("Weather.CloudLayer.Refresh")
+    ));
+
+    let invoked = runtime
+        .runtime
+        .handle_control_request(UiControlRequest::CallAction {
+            node_path: UiNodePath::new("editor/workbench/menu/tools/Weather.CloudLayer.Refresh"),
+            action_id: "onClick".to_string(),
+            arguments: Vec::new(),
+        });
+    assert!(matches!(
+        invoked,
+        UiControlResponse::Invocation(result)
+            if result.error.is_none()
+                && result.binding
+                    .as_ref()
+                    .and_then(|binding| binding.action.as_ref())
+                    .map(|call| call.symbol.as_str())
+                    == Some("EditorOperation")
+    ));
+    assert_eq!(
+        runtime.runtime.journal().records()[0]
+            .operation_id
+            .as_deref(),
+        Some("Weather.CloudLayer.Refresh")
+    );
+}
+
+#[test]
+fn editor_runtime_registers_plugin_views_as_activity_descriptors() {
+    use crate::core::editor_extension::{EditorExtensionRegistry, ViewDescriptor};
+
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_plugin_view_descriptor");
+    let mut extension = EditorExtensionRegistry::default();
+    extension
+        .register_view(ViewDescriptor::new(
+            "weather.cloud_layers",
+            "Cloud Layers",
+            "Weather",
+        ))
+        .unwrap();
+
+    runtime
+        .runtime
+        .register_editor_extension(extension)
+        .expect("register editor extension");
+    runtime.runtime.refresh_reflection();
+
+    let descriptor = runtime
+        .runtime
+        .descriptors()
+        .into_iter()
+        .find(|descriptor| descriptor.descriptor_id.0 == "weather.cloud_layers")
+        .expect("plugin view descriptor registered");
+    assert_eq!(descriptor.default_title, "Cloud Layers");
+    assert_eq!(descriptor.icon_key, "weather.cloud_layers");
+    assert!(runtime
+        .runtime
+        .activity_view_descriptor("weather.cloud_layers")
+        .is_some());
+}
+
+#[test]
+fn editor_runtime_projects_plugin_views_into_view_menu_operations() {
+    use crate::core::editor_extension::{EditorExtensionRegistry, ViewDescriptor};
+
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_plugin_view_menu_operation");
+    let mut extension = EditorExtensionRegistry::default();
+    extension
+        .register_view(ViewDescriptor::new(
+            "weather.cloud_layers",
+            "Cloud Layers",
+            "Weather",
+        ))
+        .unwrap();
+
+    runtime
+        .runtime
+        .register_editor_extension(extension)
+        .expect("register editor extension");
+    runtime.runtime.refresh_reflection();
+
+    let menu = runtime
+        .runtime
+        .handle_control_request(UiControlRequest::QueryNode {
+            node_path: UiNodePath::new("editor/workbench/menu/view/View.weather.cloud_layers.Open"),
+        });
+    assert!(matches!(
+        menu,
+        UiControlResponse::Node(Some(node))
+            if node.display_name == "Cloud Layers"
+                && node.properties["operation_path"].reflected_value
+                    == json!("View.weather.cloud_layers.Open")
+                && node.actions["onClick"].binding_symbol == "EditorOperation"
+                && node.actions["onClick"].callable_from_remote
+    ));
+
+    let invoked = runtime
+        .runtime
+        .handle_control_request(UiControlRequest::CallAction {
+            node_path: UiNodePath::new("editor/workbench/menu/view/View.weather.cloud_layers.Open"),
+            action_id: "onClick".to_string(),
+            arguments: Vec::new(),
+        });
+    assert!(matches!(
+        invoked,
+        UiControlResponse::Invocation(result) if result.error.is_none()
+    ));
+    assert!(runtime
+        .runtime
+        .current_view_instances()
+        .iter()
+        .any(|instance| instance.descriptor_id.0 == "weather.cloud_layers"));
+    assert_eq!(
+        runtime.runtime.journal().records()[0]
+            .operation_id
+            .as_deref(),
+        Some("View.weather.cloud_layers.Open")
+    );
+}
+
+#[test]
+fn editor_runtime_consumes_plugin_registration_reports_with_capability_gate() {
+    use crate::core::editor_extension::{
+        EditorExtensionRegistry, EditorMenuItemDescriptor, ViewDescriptor,
+    };
+    use crate::core::editor_operation::{
+        EditorOperationControlRequest, EditorOperationDescriptor, EditorOperationInvocation,
+        EditorOperationPath,
+    };
+    use crate::core::editor_plugin::EditorPluginRegistrationReport;
+    use crate::ui::host::module::EDITOR_MANAGER_NAME;
+    use crate::ui::host::EditorManager;
+    use zircon_runtime::{PluginModuleManifest, PluginPackageManifest};
+
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::with_enabled_subsystems(
+        "zircon_editor_event_plugin_registration_gate",
+        &[],
+    );
+    let capability = "editor.extension.weather_authoring".to_string();
+    let mut extension = EditorExtensionRegistry::default();
+    extension
+        .register_view(ViewDescriptor::new(
+            "weather.cloud_layers",
+            "Cloud Layers",
+            "Weather",
+        ))
+        .unwrap();
+    let operation_path = EditorOperationPath::parse("Weather.CloudLayer.Refresh").unwrap();
+    extension
+        .register_operation(
+            EditorOperationDescriptor::new(operation_path.clone(), "Refresh Cloud Layers")
+                .with_event(EditorEvent::WorkbenchMenu(MenuAction::ResetLayout)),
+        )
+        .unwrap();
+    extension
+        .register_menu_item(EditorMenuItemDescriptor::new(
+            "Tools/Weather/Refresh Cloud Layers",
+            operation_path.clone(),
+        ))
+        .unwrap();
+
+    runtime
+        .runtime
+        .register_editor_plugin_registration(EditorPluginRegistrationReport {
+            package_manifest: PluginPackageManifest::new("weather", "Weather").with_editor_module(
+                PluginModuleManifest::editor("weather.editor", "zircon_plugin_weather_editor")
+                    .with_capabilities([capability.clone()]),
+            ),
+            capabilities: vec![capability.clone()],
+            extensions: extension,
+            diagnostics: Vec::new(),
+        })
+        .expect("register editor plugin report");
+    runtime.runtime.refresh_reflection();
+
+    assert!(runtime
+        .runtime
+        .descriptors()
+        .iter()
+        .all(|descriptor| descriptor.descriptor_id.0 != "weather.cloud_layers"));
+    let disabled_menu = runtime
+        .runtime
+        .handle_control_request(UiControlRequest::QueryNode {
+            node_path: UiNodePath::new("editor/workbench/menu/view/View.weather.cloud_layers.Open"),
+        });
+    assert!(matches!(disabled_menu, UiControlResponse::Node(None)));
+    let disabled_operations = runtime
+        .runtime
+        .handle_operation_control_request(EditorOperationControlRequest::ListOperations);
+    assert!(!disabled_operations
+        .value
+        .as_ref()
+        .and_then(|value| value.get("operations"))
+        .and_then(serde_json::Value::as_array)
+        .expect("operations array")
+        .iter()
+        .any(|operation| operation
+            .get("operation_id")
+            .and_then(serde_json::Value::as_str)
+            == Some("Weather.CloudLayer.Refresh")));
+    let disabled_invoke = runtime.runtime.handle_operation_control_request(
+        EditorOperationControlRequest::InvokeOperation(EditorOperationInvocation::new(
+            operation_path.clone(),
+        )),
+    );
+    assert_eq!(
+        disabled_invoke.error.as_deref(),
+        Some(
+            "editor operation Weather.CloudLayer.Refresh requires disabled capabilities: editor.extension.weather_authoring"
+        )
+    );
+
+    let manager = runtime
+        .core
+        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+        .unwrap();
+    manager
+        .set_editor_capabilities_enabled(&[capability], true)
+        .unwrap();
+    runtime.runtime.refresh_reflection();
+
+    let descriptor = runtime
+        .runtime
+        .descriptors()
+        .into_iter()
+        .find(|descriptor| descriptor.descriptor_id.0 == "weather.cloud_layers")
+        .expect("enabled plugin view descriptor registered");
+    assert_eq!(
+        descriptor.required_capabilities,
+        vec!["editor.extension.weather_authoring"]
+    );
+    let enabled_menu = runtime
+        .runtime
+        .handle_control_request(UiControlRequest::QueryNode {
+            node_path: UiNodePath::new("editor/workbench/menu/view/View.weather.cloud_layers.Open"),
+        });
+    assert!(matches!(
+        enabled_menu,
+        UiControlResponse::Node(Some(node))
+            if node.display_name == "Cloud Layers"
+                && node.properties["operation_path"].reflected_value
+                    == json!("View.weather.cloud_layers.Open")
+    ));
+    let enabled_operations = runtime
+        .runtime
+        .handle_operation_control_request(EditorOperationControlRequest::ListOperations);
+    assert!(enabled_operations
+        .value
+        .as_ref()
+        .and_then(|value| value.get("operations"))
+        .and_then(serde_json::Value::as_array)
+        .expect("operations array")
+        .iter()
+        .any(|operation| operation
+            .get("operation_id")
+            .and_then(serde_json::Value::as_str)
+            == Some("Weather.CloudLayer.Refresh")));
+    let enabled_invoke = runtime.runtime.handle_operation_control_request(
+        EditorOperationControlRequest::InvokeOperation(EditorOperationInvocation::new(
+            operation_path,
+        )),
+    );
+    assert!(enabled_invoke.error.is_none());
+}
+
+#[test]
+fn editor_runtime_exposes_plugin_component_drawer_templates_for_inspector_lookup() {
+    use crate::core::editor_extension::{
+        ComponentDrawerDescriptor, EditorExtensionRegistry, EditorUiTemplateDescriptor,
+    };
+
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_plugin_component_drawer");
+    let mut extension = EditorExtensionRegistry::default();
+    extension
+        .register_ui_template(EditorUiTemplateDescriptor::new(
+            "weather.cloud_layer.inspector",
+            "asset://weather/editor/cloud_layer.inspector.ui.toml",
+        ))
+        .unwrap();
+    extension
+        .register_component_drawer(
+            ComponentDrawerDescriptor::new(
+                "weather.Component.CloudLayer",
+                "asset://weather/editor/cloud_layer.inspector.ui.toml",
+                "weather.editor.CloudLayerInspectorController",
+            )
+            .with_binding("Weather.CloudLayer.Refresh"),
+        )
+        .unwrap();
+
+    runtime
+        .runtime
+        .register_editor_extension(extension)
+        .expect("register editor extension");
+
+    let drawer = runtime
+        .runtime
+        .component_drawer_descriptor("weather.Component.CloudLayer")
+        .expect("component drawer registered");
+    assert_eq!(
+        drawer.ui_document(),
+        "asset://weather/editor/cloud_layer.inspector.ui.toml"
+    );
+    assert_eq!(
+        drawer.controller(),
+        "weather.editor.CloudLayerInspectorController"
+    );
+    assert_eq!(drawer.bindings(), ["Weather.CloudLayer.Refresh"]);
+
+    let template = runtime
+        .runtime
+        .ui_template_descriptor("weather.cloud_layer.inspector")
+        .expect("ui template registered");
+    assert_eq!(
+        template.ui_document(),
+        "asset://weather/editor/cloud_layer.inspector.ui.toml"
+    );
+}
+
+#[test]
 fn slint_adapter_binding_and_call_action_share_the_same_normalized_menu_event() {
     let _guard = env_lock().lock().unwrap();
 
@@ -63,8 +1287,18 @@ fn slint_adapter_binding_and_call_action_share_the_same_normalized_menu_event() 
     );
     assert_eq!(binding_record.event, slint_record.event);
     assert_eq!(
+        binding_record.operation_id.as_deref(),
+        Some("Scene.Node.CreateCube")
+    );
+    assert_eq!(
         action.runtime.journal().records()[0].event,
         slint_record.event
+    );
+    assert_eq!(
+        action.runtime.journal().records()[0]
+            .operation_id
+            .as_deref(),
+        Some("Scene.Node.CreateCube")
     );
     assert_eq!(binding_record.result.value, slint_record.result.value);
     assert_eq!(action_result.value, slint_record.result.value);

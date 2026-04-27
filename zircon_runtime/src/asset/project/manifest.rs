@@ -3,6 +3,7 @@ use std::fs;
 use std::path::Path;
 
 use crate::asset::AssetUri;
+use crate::{ExportProfile, ProjectPluginManifest};
 
 const PROJECT_FORMAT_VERSION: u32 = 1;
 
@@ -12,6 +13,10 @@ pub struct ProjectManifest {
     pub format_version: u32,
     pub default_scene: AssetUri,
     pub library_version: u32,
+    #[serde(default, skip_serializing_if = "ProjectPluginManifest::is_empty")]
+    pub plugins: ProjectPluginManifest,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub export_profiles: Vec<ExportProfile>,
 }
 
 impl ProjectManifest {
@@ -21,6 +26,8 @@ impl ProjectManifest {
             format_version: PROJECT_FORMAT_VERSION,
             default_scene,
             library_version,
+            plugins: ProjectPluginManifest::default(),
+            export_profiles: Vec::new(),
         }
     }
 

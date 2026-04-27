@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 
+use crate::graphics::RenderFeatureDescriptor;
 use crate::CompiledRenderPipeline;
 
 use super::{RenderPassExecutionContext, RenderPassExecutorId};
@@ -21,6 +22,25 @@ impl RenderPassExecutorRegistry {
             );
         }
         registry
+    }
+
+    pub fn with_builtin_noop_executors_for_render_features(
+        render_features: impl IntoIterator<Item = RenderFeatureDescriptor>,
+    ) -> Self {
+        let mut registry = Self::with_builtin_noop_executors();
+        registry.register_noop_executors_for_render_features(render_features);
+        registry
+    }
+
+    pub fn register_noop_executors_for_render_features(
+        &mut self,
+        render_features: impl IntoIterator<Item = RenderFeatureDescriptor>,
+    ) {
+        for render_feature in render_features {
+            for pass in render_feature.stage_passes {
+                registry_register_noop_executor(self, pass.executor_id);
+            }
+        }
     }
 
     pub fn register(
@@ -72,10 +92,6 @@ const BUILTIN_NOOP_EXECUTOR_IDS: &[&str] = &[
     "deferred.gbuffer",
     "deferred.transparent",
     "history.scene-color",
-    "hybrid-gi.history",
-    "hybrid-gi.resolve",
-    "hybrid-gi.scene-prepare",
-    "hybrid-gi.trace-schedule",
     "lighting.baked-composite",
     "lighting.clustered-cull",
     "lighting.deferred",
@@ -89,15 +105,17 @@ const BUILTIN_NOOP_EXECUTOR_IDS: &[&str] = &[
     "post.color-grade",
     "post.stack",
     "shadow.map",
-    "virtual-geometry.debug-overlay",
-    "virtual-geometry.node-cluster-cull",
-    "virtual-geometry.page-feedback",
-    "virtual-geometry.prepare",
-    "virtual-geometry.visbuffer",
 ];
 
 fn noop_render_pass_executor(_context: &RenderPassExecutionContext) -> Result<(), String> {
     Ok(())
+}
+
+fn registry_register_noop_executor(
+    registry: &mut RenderPassExecutorRegistry,
+    executor_id: RenderPassExecutorId,
+) {
+    registry.register(executor_id, noop_render_pass_executor);
 }
 
 #[cfg(test)]
@@ -109,8 +127,9 @@ mod tests {
     use crate::rhi::{TextureDesc, TextureFormat, TextureUsage};
     use crate::scene::world::World;
     use crate::{
-        BuiltinRenderFeature, CompiledRenderPipeline, RenderPipelineAsset,
-        RenderPipelineCompileOptions,
+        CompiledRenderPipeline, RenderFeatureCapabilityRequirement, RenderFeatureDescriptor,
+        RenderFeaturePassDescriptor, RenderPassStage, RenderPipelineAsset,
+        RenderPipelineCompileOptions, RendererFeatureAsset,
     };
 
     use super::super::{RenderPassExecutionContext, RenderPassExecutorId};
@@ -137,20 +156,10 @@ mod tests {
         let registry = RenderPassExecutorRegistry::with_builtin_noop_executors();
         let extract = test_extract();
         let forward = RenderPipelineAsset::default_forward_plus()
-            .compile_with_options(
-                &extract,
-                &RenderPipelineCompileOptions::default()
-                    .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
-                    .with_feature_enabled(BuiltinRenderFeature::GlobalIllumination),
-            )
+            .compile_with_options(&extract, &RenderPipelineCompileOptions::default())
             .unwrap();
         let deferred = RenderPipelineAsset::default_deferred()
-            .compile_with_options(
-                &extract,
-                &RenderPipelineCompileOptions::default()
-                    .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
-                    .with_feature_enabled(BuiltinRenderFeature::GlobalIllumination),
-            )
+            .compile_with_options(&extract, &RenderPipelineCompileOptions::default())
             .unwrap();
 
         for pipeline in [&forward, &deferred] {
@@ -169,6 +178,62 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn builtin_registry_excludes_pluginized_advanced_executor_ids() {
+        let registry = RenderPassExecutorRegistry::with_builtin_noop_executors();
+
+        for executor_id in [
+            "virtual-geometry.prepare",
+            "virtual-geometry.node-cluster-cull",
+            "virtual-geometry.page-feedback",
+            "virtual-geometry.visbuffer",
+            "virtual-geometry.debug-overlay",
+            "hybrid-gi.scene-prepare",
+            "hybrid-gi.trace-schedule",
+            "hybrid-gi.resolve",
+            "hybrid-gi.history",
+        ] {
+            assert!(
+                !registry.contains(&RenderPassExecutorId::new(executor_id)),
+                "core built-in registry should not carry pluginized executor `{executor_id}`"
+            );
+        }
+    }
+
+    #[test]
+    fn plugin_render_feature_descriptors_register_noop_executor_ids() {
+        let mut pipeline = RenderPipelineAsset::default_forward_plus();
+        let descriptor = plugin_virtual_geometry_descriptor();
+        pipeline
+            .renderer
+            .features
+            .push(RendererFeatureAsset::plugin(descriptor.clone()));
+        let compiled = pipeline
+            .compile_with_options(
+                &test_extract(),
+                &RenderPipelineCompileOptions::default()
+                    .with_capability_enabled(RenderFeatureCapabilityRequirement::VirtualGeometry),
+            )
+            .unwrap();
+
+        let core_registry = RenderPassExecutorRegistry::with_builtin_noop_executors();
+        let error = core_registry
+            .validate_compiled_pipeline(&compiled)
+            .unwrap_err();
+        assert!(
+            error.contains("virtual-geometry.prepare"),
+            "core registry should reject plugin executor ids before plugin registration: {error}"
+        );
+
+        let plugin_registry =
+            RenderPassExecutorRegistry::with_builtin_noop_executors_for_render_features([
+                descriptor,
+            ]);
+        plugin_registry
+            .validate_compiled_pipeline(&compiled)
+            .expect("plugin render feature descriptors should register their executor ids");
     }
 
     #[test]
@@ -245,5 +310,21 @@ mod tests {
             RenderWorldSnapshotHandle::new(1),
             World::new().to_render_snapshot(),
         )
+    }
+
+    fn plugin_virtual_geometry_descriptor() -> RenderFeatureDescriptor {
+        RenderFeatureDescriptor::new(
+            "plugin.virtual_geometry.registry",
+            Vec::new(),
+            Vec::new(),
+            vec![RenderFeaturePassDescriptor::new(
+                RenderPassStage::DepthPrepass,
+                "plugin-virtual-geometry-registry",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("virtual-geometry.prepare")
+            .with_side_effects()],
+        )
+        .with_capability_requirement(RenderFeatureCapabilityRequirement::VirtualGeometry)
     }
 }

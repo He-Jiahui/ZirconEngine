@@ -18,7 +18,8 @@ impl EditorUiHost {
             LayoutCommand::ResetToDefault => {
                 let mut session = self.session.lock().unwrap();
                 let mut registry = self.view_registry.lock().unwrap();
-                ensure_builtin_shell_instances(&mut registry, &mut session)?;
+                let snapshot = self.capability_snapshot.lock().unwrap().clone();
+                ensure_builtin_shell_instances(&mut registry, &mut session, &snapshot)?;
                 self.animation_editor_sessions.lock().unwrap().clear();
                 self.ui_asset_sessions.lock().unwrap().clear();
                 session.layout = self.layout_manager.default_layout();

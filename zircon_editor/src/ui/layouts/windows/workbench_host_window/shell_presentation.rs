@@ -36,6 +36,7 @@ impl ShellPresentation {
             crate::ui::animation_editor::AnimationEditorPanePresentation,
         >,
         runtime_diagnostics: Option<&RuntimeDiagnosticsSnapshot>,
+        module_plugins: &ModulePluginsPaneViewData,
         floating_window_projection_bundle: &FloatingWindowProjectionBundle,
     ) -> Self {
         let left_tabs = collect_tabs(
@@ -109,6 +110,7 @@ impl ShellPresentation {
                     ui_asset_panes,
                     animation_panes,
                     runtime_diagnostics,
+                    module_plugins,
                     floating_window_projection_bundle,
                 )),
                 left_pane: side_pane(
@@ -118,6 +120,7 @@ impl ShellPresentation {
                     ui_asset_panes,
                     animation_panes,
                     runtime_diagnostics,
+                    module_plugins,
                 ),
                 right_pane: side_pane(
                     model,
@@ -129,6 +132,7 @@ impl ShellPresentation {
                     ui_asset_panes,
                     animation_panes,
                     runtime_diagnostics,
+                    module_plugins,
                 ),
                 bottom_pane: side_pane(
                     model,
@@ -140,6 +144,7 @@ impl ShellPresentation {
                     ui_asset_panes,
                     animation_panes,
                     runtime_diagnostics,
+                    module_plugins,
                 ),
                 document_pane: document_pane(
                     model,
@@ -147,6 +152,7 @@ impl ShellPresentation {
                     ui_asset_panes,
                     animation_panes,
                     runtime_diagnostics,
+                    module_plugins,
                 ),
             },
             welcome,

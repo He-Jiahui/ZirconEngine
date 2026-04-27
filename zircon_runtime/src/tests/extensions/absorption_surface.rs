@@ -1,33 +1,39 @@
 #[test]
-fn optional_extension_module_registration_is_absorbed_into_runtime_extensions_surface() {
+fn optional_extension_module_registration_is_externalized_to_plugin_packages() {
     let runtime_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    let extensions_mod = runtime_root.join("src/extensions/mod.rs");
+    let repo_root = runtime_root
+        .parent()
+        .expect("runtime crate should have a workspace parent");
     let builtin_source =
         std::fs::read_to_string(runtime_root.join("src/builtin/mod.rs")).unwrap_or_default();
 
     assert!(
-        extensions_mod.exists(),
-        "expected zircon_runtime/src/extensions/mod.rs to own optional extension module registration"
+        !runtime_root.join("src/extensions").exists(),
+        "zircon_runtime should not keep optional extension implementations after plugin cutover"
     );
 
-    for (legacy_lib, module_name) in [
-        ("../zircon_physics/src/lib.rs", "PhysicsModule"),
-        ("../zircon_animation/src/lib.rs", "AnimationModule"),
+    for plugin in [
+        "physics",
+        "sound",
+        "texture",
+        "net",
+        "navigation",
+        "particles",
+        "animation",
     ] {
-        let legacy_source =
-            std::fs::read_to_string(runtime_root.join(legacy_lib)).unwrap_or_default();
-
+        let plugin_root = repo_root.join("zircon_plugins").join(plugin);
         assert!(
-            !legacy_source.contains(&format!("pub struct {module_name}")),
-            "legacy extension crate {legacy_lib} should stop owning {module_name}"
+            plugin_root.join("runtime/Cargo.toml").exists(),
+            "runtime plugin {plugin} should own its runtime crate manifest"
         );
         assert!(
-            !legacy_source.contains("pub fn module_descriptor()"),
-            "legacy extension crate {legacy_lib} should stop owning module_descriptor()"
-        );
-        assert!(
-            !builtin_source.contains("Arc::new(zircon_"),
-            "builtin runtime module list should stop constructing optional extension modules from legacy crate roots"
+            plugin_root.join("plugin.toml").exists(),
+            "runtime plugin {plugin} should own its plugin package manifest"
         );
     }
+
+    assert!(
+        !builtin_source.contains("Arc::new(zircon_"),
+        "builtin runtime module list should stop constructing optional extension modules from external crates"
+    );
 }

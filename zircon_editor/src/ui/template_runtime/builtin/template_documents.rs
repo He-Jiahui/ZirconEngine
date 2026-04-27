@@ -5,6 +5,8 @@ pub(crate) const EDITOR_MAIN_FRAME_DOCUMENT_ID: &str = "editor.host.editor_main_
 pub(crate) const ACTIVITY_DRAWER_WINDOW_DOCUMENT_ID: &str = "editor.host.activity_drawer_window";
 pub(crate) const WORKBENCH_WINDOW_DOCUMENT_ID: &str = "editor.window.workbench";
 pub(crate) const ASSET_WINDOW_DOCUMENT_ID: &str = "editor.window.asset";
+pub(crate) const UI_COMPONENT_SHOWCASE_WINDOW_DOCUMENT_ID: &str =
+    "editor.window.ui_component_showcase";
 pub(crate) const UI_LAYOUT_EDITOR_WINDOW_DOCUMENT_ID: &str = "editor.window.ui_layout_editor";
 pub(crate) const LEGACY_HOST_WINDOW_DOCUMENT_ID: &str = "workbench.shell";
 pub(crate) const HOST_DRAWER_SOURCE_DOCUMENT_ID: &str = "workbench.drawer_source";
@@ -21,6 +23,7 @@ pub(crate) const PANE_ANIMATION_SEQUENCE_BODY_DOCUMENT_ID: &str = "pane.animatio
 pub(crate) const PANE_ANIMATION_GRAPH_BODY_DOCUMENT_ID: &str = "pane.animation.graph.body";
 pub(crate) const PANE_RUNTIME_DIAGNOSTICS_BODY_DOCUMENT_ID: &str = "pane.runtime.diagnostics.body";
 const BUILTIN_HOST_TEMPLATE_ROOT: &str = "/assets/ui/editor/host/";
+const BUILTIN_EDITOR_TEMPLATE_ROOT: &str = "/assets/ui/editor/";
 const BUILTIN_WINDOW_TEMPLATE_ROOT: &str = "/assets/ui/editor/windows/";
 
 fn builtin_host_template_path(relative: &str) -> PathBuf {
@@ -35,7 +38,13 @@ fn builtin_window_template_path(relative: &str) -> PathBuf {
         .join(relative)
 }
 
-pub(crate) fn builtin_template_documents() -> [(&'static str, PathBuf); 20] {
+fn builtin_editor_template_path(relative: &str) -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join(BUILTIN_EDITOR_TEMPLATE_ROOT.trim_start_matches('/'))
+        .join(relative)
+}
+
+pub(crate) fn builtin_template_documents() -> [(&'static str, PathBuf); 21] {
     [
         (
             EDITOR_MAIN_FRAME_DOCUMENT_ID,
@@ -56,6 +65,10 @@ pub(crate) fn builtin_template_documents() -> [(&'static str, PathBuf); 20] {
         (
             UI_LAYOUT_EDITOR_WINDOW_DOCUMENT_ID,
             builtin_window_template_path("ui_layout_editor_window.ui.toml"),
+        ),
+        (
+            UI_COMPONENT_SHOWCASE_WINDOW_DOCUMENT_ID,
+            builtin_editor_template_path("component_showcase.ui.toml"),
         ),
         (
             UI_HOST_WINDOW_DOCUMENT_ID,

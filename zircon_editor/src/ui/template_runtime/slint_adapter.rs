@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 
 use toml::Value;
+use zircon_runtime::ui::component::{UiComponentDescriptorRegistry, UiValue};
 use zircon_runtime::ui::{binding::UiEventKind, event_ui::UiRouteId, layout::UiFrame};
 
 use super::SlintUiHostModel;
@@ -87,6 +88,25 @@ pub struct SlintUiHostNodeModel {
     pub z_index: i32,
     pub text: Option<String>,
     pub icon: Option<String>,
+    pub component_role: Option<String>,
+    pub value_text: Option<String>,
+    pub validation_level: Option<String>,
+    pub validation_message: Option<String>,
+    pub popup_open: bool,
+    pub selection_state: Option<String>,
+    pub options_text: Option<String>,
+    pub options: Vec<String>,
+    pub collection_items: Vec<String>,
+    pub menu_items: Vec<String>,
+    pub accepted_drag_payloads: Vec<String>,
+    pub checked: bool,
+    pub expanded: bool,
+    pub focused: bool,
+    pub hovered: bool,
+    pub pressed: bool,
+    pub dragging: bool,
+    pub drop_hovered: bool,
+    pub disabled: bool,
     pub properties: BTreeMap<String, SlintUiHostValue>,
     pub style_tokens: BTreeMap<String, String>,
     pub routes: Vec<SlintUiHostRouteProjection>,
@@ -111,17 +131,21 @@ pub struct SlintUiHostAdapter;
 
 impl SlintUiHostAdapter {
     pub fn build_projection(host_model: &SlintUiHostModel) -> SlintUiHostProjection {
+        let component_registry = UiComponentDescriptorRegistry::editor_showcase();
         SlintUiHostProjection {
             document_id: host_model.document_id.clone(),
             nodes: host_model
                 .nodes
                 .iter()
                 .map(|node| {
+                    let component_descriptor = component_registry.descriptor(&node.component);
                     let properties = node
                         .attributes
                         .iter()
                         .map(|(key, value)| (key.clone(), map_value(value)))
                         .collect::<BTreeMap<_, _>>();
+                    let disabled = bool_attribute(&node.attributes, "disabled").unwrap_or(false)
+                        || bool_attribute(&node.attributes, "enabled") == Some(false);
                     SlintUiHostNodeModel {
                         node_id: node.node_id.clone(),
                         parent_id: node.parent_id.clone(),
@@ -136,6 +160,67 @@ impl SlintUiHostAdapter {
                         icon: extract_string(&properties, "icon"),
                         properties,
                         style_tokens: node.style_tokens.clone(),
+                        component_role: component_descriptor
+                            .map(|descriptor| descriptor.role.clone()),
+                        value_text: string_attribute(&node.attributes, "value_text").or_else(
+                            || {
+                                node.attributes
+                                    .get("value")
+                                    .or_else(|| node.attributes.get("items"))
+                                    .or_else(|| node.attributes.get("entries"))
+                                    .map(UiValue::from_toml)
+                                    .map(|value| value.display_text())
+                            },
+                        ),
+                        validation_level: string_attribute(&node.attributes, "validation_level")
+                            .or_else(|| {
+                                component_descriptor.map(|_| {
+                                    if disabled { "disabled" } else { "normal" }.to_string()
+                                })
+                            }),
+                        validation_message: string_attribute(
+                            &node.attributes,
+                            "validation_message",
+                        ),
+                        popup_open: bool_attribute(&node.attributes, "popup_open").unwrap_or(false),
+                        selection_state: string_attribute(&node.attributes, "selection_state")
+                            .or_else(|| {
+                                bool_attribute(&node.attributes, "multiple").map(|multiple| {
+                                    if multiple {
+                                        "multi".to_string()
+                                    } else {
+                                        "single".to_string()
+                                    }
+                                })
+                            }),
+                        options_text: options_text_attribute(&node.attributes, "options"),
+                        options: options_attribute(&node.attributes, "options"),
+                        collection_items: string_array_attribute(
+                            &node.attributes,
+                            "collection_items",
+                        ),
+                        menu_items: string_array_attribute(&node.attributes, "menu_items"),
+                        accepted_drag_payloads: component_descriptor
+                            .map(|descriptor| {
+                                descriptor
+                                    .drop_policy
+                                    .accepts
+                                    .iter()
+                                    .map(|kind| kind.as_str().to_string())
+                                    .collect()
+                            })
+                            .unwrap_or_default(),
+                        checked: bool_attribute(&node.attributes, "checked")
+                            .or_else(|| bool_attribute(&node.attributes, "value"))
+                            .unwrap_or(false),
+                        expanded: bool_attribute(&node.attributes, "expanded").unwrap_or(false),
+                        focused: bool_attribute(&node.attributes, "focused").unwrap_or(false),
+                        hovered: bool_attribute(&node.attributes, "hovered").unwrap_or(false),
+                        pressed: bool_attribute(&node.attributes, "pressed").unwrap_or(false),
+                        dragging: bool_attribute(&node.attributes, "dragging").unwrap_or(false),
+                        drop_hovered: bool_attribute(&node.attributes, "drop_hovered")
+                            .unwrap_or(false),
+                        disabled,
                         routes: node
                             .bindings
                             .iter()
@@ -150,6 +235,44 @@ impl SlintUiHostAdapter {
                 .collect(),
         }
     }
+}
+
+fn string_attribute(attributes: &BTreeMap<String, Value>, key: &str) -> Option<String> {
+    attributes
+        .get(key)
+        .and_then(Value::as_str)
+        .map(str::to_string)
+}
+
+fn bool_attribute(attributes: &BTreeMap<String, Value>, key: &str) -> Option<bool> {
+    attributes.get(key).and_then(Value::as_bool)
+}
+
+fn options_text_attribute(attributes: &BTreeMap<String, Value>, key: &str) -> Option<String> {
+    let options = options_attribute(attributes, key);
+    if options.is_empty() {
+        None
+    } else {
+        Some(options.join(", "))
+    }
+}
+
+fn options_attribute(attributes: &BTreeMap<String, Value>, key: &str) -> Vec<String> {
+    string_array_attribute(attributes, key)
+}
+
+fn string_array_attribute(attributes: &BTreeMap<String, Value>, key: &str) -> Vec<String> {
+    attributes
+        .get(key)
+        .and_then(Value::as_array)
+        .map(|values| {
+            values
+                .iter()
+                .filter_map(Value::as_str)
+                .map(str::to_string)
+                .collect()
+        })
+        .unwrap_or_default()
 }
 
 fn extract_string(properties: &BTreeMap<String, SlintUiHostValue>, key: &str) -> Option<String> {

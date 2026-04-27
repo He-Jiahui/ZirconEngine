@@ -1,4 +1,4 @@
-//! Runtime scene: level orchestration plus ECS world (absorbed from legacy `zircon_scene`).
+//! Runtime scene subsystem: level orchestration plus the core ECS world.
 
 mod level_system;
 mod level_system_render_extract;
@@ -22,12 +22,14 @@ pub mod semantics;
 pub mod serializer;
 pub mod world;
 
+pub use world::World;
+
 #[allow(unused_imports)]
 pub(crate) use components::{
     default_render_layer_mask, Mobility, NodeKind, NodeRecord, Schedule, SystemStage,
 };
 
-pub type Scene = world::World;
+pub type Scene = World;
 
 #[cfg(test)]
 mod tests;

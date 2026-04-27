@@ -8,12 +8,14 @@ use wgpu::util::DeviceExt;
 
 use super::virtual_geometry_executed_cluster_selection_pass::VirtualGeometryExecutedClusterSelectionPassOutput;
 
-pub(super) struct VirtualGeometryVisBuffer64PassOutput {
-    pub(super) clear_value: u64,
-    pub(super) entries: Vec<RenderVirtualGeometryVisBuffer64Entry>,
-    pub(super) source: RenderVirtualGeometryVisBuffer64Source,
-    pub(super) entry_count: u32,
-    pub(super) buffer: Option<Arc<wgpu::Buffer>>,
+pub(in crate::graphics::scene::scene_renderer::core) struct VirtualGeometryVisBuffer64PassOutput {
+    pub(in crate::graphics::scene::scene_renderer::core) clear_value: u64,
+    pub(in crate::graphics::scene::scene_renderer::core) entries:
+        Vec<RenderVirtualGeometryVisBuffer64Entry>,
+    pub(in crate::graphics::scene::scene_renderer::core) source:
+        RenderVirtualGeometryVisBuffer64Source,
+    pub(in crate::graphics::scene::scene_renderer::core) entry_count: u32,
+    pub(in crate::graphics::scene::scene_renderer::core) buffer: Option<Arc<wgpu::Buffer>>,
 }
 
 pub(super) fn execute_virtual_geometry_visbuffer64_pass(

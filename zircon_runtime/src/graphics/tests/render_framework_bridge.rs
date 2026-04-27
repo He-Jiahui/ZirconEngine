@@ -24,6 +24,8 @@ use crate::{
     RenderPipelineAsset, RenderPipelineCompileOptions,
 };
 
+use super::plugin_render_feature_fixtures::pluginized_wgpu_render_framework;
+
 #[test]
 fn render_framework_tracks_viewports_and_accepts_frame_extract_submission() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
@@ -443,7 +445,7 @@ fn render_framework_rejects_pipeline_asset_with_unknown_executor_id() {
         .renderer
         .features
         .iter_mut()
-        .find(|feature| feature.feature == BuiltinRenderFeature::Bloom)
+        .find(|feature| feature.is_builtin(BuiltinRenderFeature::Bloom))
         .expect("default pipeline should include bloom");
     *bloom = bloom
         .clone()
@@ -484,7 +486,7 @@ fn render_framework_rejects_pipeline_asset_with_culled_unknown_executor_id() {
         .renderer
         .features
         .iter_mut()
-        .find(|feature| feature.feature == BuiltinRenderFeature::Bloom)
+        .find(|feature| feature.is_builtin(BuiltinRenderFeature::Bloom))
         .expect("default pipeline should include bloom");
     *bloom = bloom
         .clone()
@@ -525,7 +527,7 @@ fn render_framework_rejects_quality_gated_bad_descriptor_during_registration() {
         .renderer
         .features
         .iter_mut()
-        .find(|feature| feature.feature == BuiltinRenderFeature::Bloom)
+        .find(|feature| feature.is_builtin(BuiltinRenderFeature::Bloom))
         .expect("default pipeline should include bloom");
     *bloom = bloom
         .clone()
@@ -550,6 +552,48 @@ fn render_framework_rejects_quality_gated_bad_descriptor_during_registration() {
             pipeline: 80,
             message:
                 "feature descriptor `bad-gated-descriptor` pass `bad-gated-registration-pass` targets undeclared stage `GBuffer`"
+                    .to_string(),
+        }
+    );
+}
+
+#[test]
+fn render_framework_rejects_quality_gated_unknown_executor_during_registration() {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let mut custom_pipeline = RenderPipelineAsset::default_forward_plus();
+    custom_pipeline.handle = RenderPipelineHandle::new(81);
+    custom_pipeline.name = "bad-gated-executor-pipeline".to_string();
+    let bloom = custom_pipeline
+        .renderer
+        .features
+        .iter_mut()
+        .find(|feature| feature.is_builtin(BuiltinRenderFeature::Bloom))
+        .expect("default pipeline should include bloom");
+    *bloom = bloom
+        .clone()
+        .with_quality_gate(BuiltinRenderFeature::VirtualGeometry)
+        .with_descriptor_override(RenderFeatureDescriptor::new(
+            "bad-gated-executor",
+            Vec::new(),
+            Vec::new(),
+            vec![RenderFeaturePassDescriptor::new(
+                RenderPassStage::PostProcess,
+                "bad-gated-executor-pass",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("custom.gated-missing")
+            .with_side_effects()],
+        ));
+
+    let error = server.register_pipeline_asset(custom_pipeline).unwrap_err();
+
+    assert_eq!(
+        error,
+        RenderFrameworkError::GraphCompileFailure {
+            pipeline: 81,
+            message:
+                "render pass `bad-gated-executor-pass` references unregistered executor `custom.gated-missing`"
                     .to_string(),
         }
     );
@@ -584,8 +628,7 @@ fn quality_profile_can_override_the_default_pipeline_asset() {
 
 #[test]
 fn headless_wgpu_server_exposes_current_m5_flagship_baselines_without_rt_capabilities() {
-    let asset_manager = Arc::new(ProjectAssetManager::default());
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = pluginized_wgpu_render_framework();
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();
@@ -626,7 +669,7 @@ fn headless_wgpu_server_exposes_current_m5_flagship_baselines_without_rt_capabil
         .contains(&"virtual_geometry".to_string()));
     assert!(stats
         .last_effective_features
-        .contains(&"global_illumination".to_string()));
+        .contains(&"hybrid_gi".to_string()));
     assert_eq!(stats.last_virtual_geometry_visible_cluster_count, 2);
     assert_eq!(stats.last_virtual_geometry_requested_page_count, 1);
     assert_eq!(stats.last_virtual_geometry_dirty_page_count, 1);
@@ -698,8 +741,7 @@ fn headless_wgpu_server_exposes_current_m5_flagship_baselines_without_rt_capabil
 #[test]
 fn render_framework_drops_stale_flagship_runtime_state_when_extract_removes_vg_and_hybrid_gi_payload(
 ) {
-    let asset_manager = Arc::new(ProjectAssetManager::default());
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = pluginized_wgpu_render_framework();
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();
@@ -868,8 +910,7 @@ fn test_ui_extract(text: &str) -> UiRenderExtract {
 fn render_hybrid_gi_history_capture(
     seed_rt_lighting_rgb: [u8; 3],
 ) -> crate::core::framework::render::CapturedFrame {
-    let asset_manager = Arc::new(ProjectAssetManager::default());
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = pluginized_wgpu_render_framework();
     let viewport_size = UVec2::new(160, 120);
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(viewport_size))

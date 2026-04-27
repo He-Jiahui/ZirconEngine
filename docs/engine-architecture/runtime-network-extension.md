@@ -11,10 +11,10 @@ related_code:
   - zircon_runtime/src/core/manager/mod.rs
   - zircon_runtime/src/core/manager/resolver.rs
   - zircon_runtime/src/core/manager/service_names.rs
-  - zircon_runtime/src/extensions/net/mod.rs
-  - zircon_runtime/src/extensions/net/config.rs
-  - zircon_runtime/src/extensions/net/module.rs
-  - zircon_runtime/src/extensions/net/service_types.rs
+  - zircon_plugins/net/runtime/src/mod.rs
+  - zircon_plugins/net/runtime/src/config.rs
+  - zircon_plugins/net/runtime/src/module.rs
+  - zircon_plugins/net/runtime/src/service_types.rs
   - zircon_runtime/src/tests/extensions/manager_facades.rs
   - zircon_runtime/src/builtin/runtime_modules.rs
 implementation_files:
@@ -29,10 +29,10 @@ implementation_files:
   - zircon_runtime/src/core/manager/mod.rs
   - zircon_runtime/src/core/manager/resolver.rs
   - zircon_runtime/src/core/manager/service_names.rs
-  - zircon_runtime/src/extensions/net/mod.rs
-  - zircon_runtime/src/extensions/net/config.rs
-  - zircon_runtime/src/extensions/net/module.rs
-  - zircon_runtime/src/extensions/net/service_types.rs
+  - zircon_plugins/net/runtime/src/mod.rs
+  - zircon_plugins/net/runtime/src/config.rs
+  - zircon_plugins/net/runtime/src/module.rs
+  - zircon_plugins/net/runtime/src/service_types.rs
   - zircon_runtime/src/tests/extensions/manager_facades.rs
 plan_sources:
   - user: 2026-04-21 PLEASE IMPLEMENT THIS PLAN
@@ -54,13 +54,13 @@ doc_type: module-detail
 
 ## Purpose
 
-这份文档记录 `M2` 的第一个真实子系统起手：把 `zircon_runtime::extensions::net` 从“只有 module descriptor 的占位壳”补成最小可用网络闭环。
+这份文档记录 `M2` 的第一个真实子系统起手：把 `zircon_plugin_net_runtime` 从“只有 module descriptor 的占位壳”补成最小可用网络闭环。
 
 当前完成线不是完整 multiplayer / replication / RPC，而是更薄的一层：
 
 - `core::framework::net` 定义共享 socket/message-loop 合同
 - `core::manager` 暴露稳定 `NetManager` façade
-- `extensions::net` 提供默认 runtime 实现
+- `zircon_plugin_net_runtime` 提供默认 runtime 实现
 - 默认实现能在本机 loopback 上完成 `bind -> send -> poll -> close`
 
 这正对应 roadmap 里 `M2` 的“socket/基础消息闭环”。
@@ -80,7 +80,7 @@ doc_type: module-detail
   - `NetManagerHandle`
   - `resolve_net_manager(...)`
   - `ManagerResolver::net()`
-- `zircon_runtime::extensions::net`
+- `zircon_plugin_net_runtime`
   - `NetModule`
   - `NetDriver`
   - `DefaultNetManager`
@@ -148,7 +148,7 @@ doc_type: module-detail
 这轮直接跑过的验证包括：
 
 - `cargo check -p zircon_runtime --locked`
-  - 证明 `framework::net`、`core::manager` 和 `extensions::net` 的 production wiring 已经闭合
+  - 证明 `framework::net`、`core::manager` 和 `zircon_plugin_net_runtime` 的 production wiring 已经闭合
 - `cargo check --workspace --locked`
   - 证明新的 shared manager façade 没有破坏工作区主链
 - `cargo test -p zircon_runtime core::framework::tests::net_framework_root_stays_structural_after_folder_split --locked`

@@ -1,0 +1,19 @@
+id = "particles"
+version = "0.1.0"
+display_name = "Particles"
+description = "Optional particles runtime and editor package."
+default_packaging = ["source_template", "library_embed"]
+
+[[modules]]
+name = "particles.runtime"
+kind = "runtime"
+crate_name = "zircon_plugin_particles_runtime"
+target_modes = ["client_runtime", "editor_host"]
+capabilities = ["runtime.plugin.particles"]
+
+[[modules]]
+name = "particles.editor"
+kind = "editor"
+crate_name = "zircon_plugin_particles_editor"
+target_modes = ["editor_host"]
+capabilities = ["editor.extension.particles_authoring"]

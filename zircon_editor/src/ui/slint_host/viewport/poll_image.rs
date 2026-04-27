@@ -12,7 +12,7 @@ impl SlintViewportController {
         match shared.render_framework.capture_frame(viewport) {
             Ok(Some(frame)) => {
                 if shared.latest_generation == Some(frame.generation) {
-                    return shared.latest_image.clone();
+                    return None;
                 }
                 match import_frame_image(&frame) {
                     Ok(image) => {
@@ -27,7 +27,7 @@ impl SlintViewportController {
                     }
                 }
             }
-            Ok(None) => shared.latest_image.clone(),
+            Ok(None) => None,
             Err(error) => {
                 shared.last_error = Some(error.to_string());
                 shared.latest_image.clone()

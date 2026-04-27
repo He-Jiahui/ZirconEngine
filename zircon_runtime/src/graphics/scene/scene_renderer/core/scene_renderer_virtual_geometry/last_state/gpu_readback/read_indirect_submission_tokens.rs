@@ -12,9 +12,11 @@ impl SceneRenderer {
     ) -> Result<Vec<u32>, GraphicsError> {
         read_submission_tokens_buffer(
             self,
-            self.last_virtual_geometry_indirect_submission_buffer
+            self.advanced_plugin_outputs
+                .virtual_geometry_indirect_submission_buffer
                 .as_deref(),
-            self.last_virtual_geometry_indirect_args_count,
+            self.advanced_plugin_outputs
+                .virtual_geometry_indirect_args_count,
             "zircon-vg-indirect-submission-tokens",
         )
     }
@@ -25,9 +27,11 @@ impl SceneRenderer {
     ) -> Result<Vec<u32>, GraphicsError> {
         read_submission_tokens_buffer(
             self,
-            self.last_virtual_geometry_indirect_execution_submission_buffer
+            self.advanced_plugin_outputs
+                .virtual_geometry_indirect_execution_submission_buffer
                 .as_deref(),
-            self.last_virtual_geometry_indirect_draw_count,
+            self.advanced_plugin_outputs
+                .virtual_geometry_indirect_draw_count,
             "zircon-vg-indirect-execution-submission-tokens",
         )
     }

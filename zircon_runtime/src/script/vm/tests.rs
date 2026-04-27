@@ -165,6 +165,26 @@ mod tests {
     }
 
     #[test]
+    fn host_registry_exposes_stable_capability_records_without_concrete_objects() {
+        let registry = HostRegistry::default();
+        let ui_shell = registry.register_capability("editor.host.ui_shell");
+        let asset_core = registry.register_capability("editor.host.asset_core");
+
+        let ui_record = registry.capability(ui_shell).unwrap();
+        assert_eq!(ui_record.handle, ui_shell);
+        assert_eq!(ui_record.label, "editor.host.ui_shell");
+
+        let records = registry.capabilities();
+        assert_eq!(records.len(), 2);
+        assert_eq!(records[0].handle, ui_shell);
+        assert_eq!(records[1].handle, asset_core);
+        assert!(records.iter().all(|record| !record.label.is_empty()));
+        assert!(registry
+            .capability(super::super::HostHandle::new(999))
+            .is_none());
+    }
+
+    #[test]
     fn builtin_backend_family_accepts_qualified_and_legacy_backend_names() {
         let registry = super::super::VmBackendRegistry::new();
         registry.register_family(Arc::new(BuiltinVmBackendFamily));

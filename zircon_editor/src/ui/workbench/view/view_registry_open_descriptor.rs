@@ -13,6 +13,9 @@ impl ViewRegistry {
             .get(&descriptor_id)
             .cloned()
             .ok_or_else(|| format!("missing view descriptor {}", descriptor_id.0))?;
+        if let Some(error) = self.descriptor_capability_error(&descriptor) {
+            return Err(error);
+        }
 
         if !descriptor.multi_instance {
             if let Some(instance_id) = self.single_instance_index.get(&descriptor_id) {

@@ -6,6 +6,6 @@ pub(in crate::graphics::runtime::render_framework) fn compiled_feature_names(
     pipeline
         .enabled_features
         .iter()
-        .map(|feature| feature.feature.descriptor().name)
+        .map(|feature| feature.feature_name())
         .collect()
 }

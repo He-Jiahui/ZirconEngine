@@ -6,6 +6,7 @@ use crate::core::framework::render::{
     RenderSceneSnapshot, RenderWorldSnapshotHandle,
 };
 use crate::core::math::{UVec2, Vec3};
+use crate::graphics::tests::plugin_render_feature_fixtures::hybrid_gi_render_feature_descriptor;
 use crate::scene::world::World;
 
 use crate::{
@@ -13,14 +14,46 @@ use crate::{
         HybridGiPrepareFrame, HybridGiPrepareProbe, HybridGiPrepareUpdateRequest,
         ViewportRenderFrame,
     },
-    BuiltinRenderFeature, RenderPipelineAsset, RenderPipelineCompileOptions, SceneRenderer,
+    BuiltinRenderFeature, CompiledRenderPipeline, RenderFeatureCapabilityRequirement,
+    RenderPipelineAsset, RenderPipelineCompileOptions, SceneRenderer,
 };
+
+fn compile_hybrid_gi_pipeline(extract: &RenderFrameExtract) -> CompiledRenderPipeline {
+    RenderPipelineAsset::default_forward_plus()
+        .with_plugin_render_features([hybrid_gi_render_feature_descriptor()])
+        .compile_with_options(
+            extract,
+            &RenderPipelineCompileOptions::default()
+                .with_capability_enabled(
+                    RenderFeatureCapabilityRequirement::HybridGlobalIllumination,
+                )
+                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
+                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
+                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
+                .with_feature_disabled(BuiltinRenderFeature::Bloom)
+                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
+                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
+                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
+                .with_feature_disabled(BuiltinRenderFeature::Particle)
+                .with_feature_disabled(BuiltinRenderFeature::VirtualGeometry)
+                .with_async_compute(false),
+        )
+        .unwrap()
+}
+
+fn hybrid_gi_scene_renderer(asset_manager: Arc<ProjectAssetManager>) -> SceneRenderer {
+    SceneRenderer::new_with_plugin_render_features(
+        asset_manager,
+        [hybrid_gi_render_feature_descriptor()],
+    )
+    .unwrap()
+}
 
 #[test]
 fn hybrid_gi_gpu_completion_readback_prefers_resident_ancestor_radiance_through_nonresident_hierarchy_gap(
 ) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let trace_regions = vec![trace_region(40, Vec3::ZERO, 0.8, 0.9)];
     let prepare = HybridGiPrepareFrame {
@@ -106,7 +139,7 @@ fn hybrid_gi_gpu_completion_readback_prefers_resident_ancestor_radiance_through_
 fn hybrid_gi_gpu_completion_readback_inherits_ancestor_trace_rt_lighting_through_nonresident_hierarchy_gap(
 ) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let prepare = HybridGiPrepareFrame {
         resident_probes: vec![
@@ -204,7 +237,7 @@ fn hybrid_gi_gpu_completion_readback_inherits_ancestor_trace_rt_lighting_through
 fn hybrid_gi_gpu_completion_readback_blends_farther_resident_ancestor_radiance_beyond_nearest_resident_parent(
 ) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let prepare = HybridGiPrepareFrame {
         resident_probes: vec![
@@ -298,7 +331,7 @@ fn hybrid_gi_gpu_completion_readback_blends_farther_resident_ancestor_radiance_b
 fn hybrid_gi_gpu_completion_readback_inherits_farther_resident_ancestor_trace_rt_lighting_beyond_nearest_resident_parent(
 ) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let prepare = HybridGiPrepareFrame {
         resident_probes: vec![
@@ -395,7 +428,7 @@ fn hybrid_gi_gpu_completion_readback_inherits_farther_resident_ancestor_trace_rt
 #[test]
 fn hybrid_gi_gpu_completion_readback_inherits_third_resident_ancestor_trace_rt_lighting() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let prepare = HybridGiPrepareFrame {
         resident_probes: vec![
@@ -500,7 +533,7 @@ fn hybrid_gi_gpu_completion_readback_inherits_third_resident_ancestor_trace_rt_l
 #[test]
 fn hybrid_gi_gpu_completion_readback_gathers_third_resident_ancestor_radiance() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let prepare = HybridGiPrepareFrame {
         resident_probes: vec![
@@ -601,7 +634,7 @@ fn hybrid_gi_gpu_completion_readback_gathers_third_resident_ancestor_radiance() 
 #[test]
 fn hybrid_gi_gpu_completion_readback_inherits_fourth_resident_ancestor_trace_rt_lighting() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let prepare = HybridGiPrepareFrame {
         resident_probes: vec![
@@ -714,7 +747,7 @@ fn hybrid_gi_gpu_completion_readback_inherits_fourth_resident_ancestor_trace_rt_
 #[test]
 fn hybrid_gi_gpu_completion_readback_gathers_fourth_resident_ancestor_radiance() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let prepare = HybridGiPrepareFrame {
         resident_probes: vec![
@@ -824,7 +857,7 @@ fn hybrid_gi_gpu_completion_readback_gathers_fourth_resident_ancestor_radiance()
 fn hybrid_gi_gpu_completion_readback_inherits_primary_resident_ancestor_radiance_without_spatial_overlap(
 ) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let extract = build_extract(
         viewport_size,
@@ -910,7 +943,7 @@ fn hybrid_gi_gpu_completion_readback_inherits_primary_resident_ancestor_radiance
 fn hybrid_gi_gpu_completion_readback_updates_resident_probe_from_hierarchy_only_resident_ancestor_radiance(
 ) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let hierarchical_extract = build_extract(
         viewport_size,
@@ -1004,7 +1037,7 @@ fn hybrid_gi_gpu_completion_readback_updates_resident_probe_from_hierarchy_only_
 fn hybrid_gi_gpu_completion_readback_updates_resident_probe_with_ancestor_rt_lighting_continuation()
 {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let prepare = HybridGiPrepareFrame {
         resident_probes: vec![
@@ -1097,7 +1130,7 @@ fn hybrid_gi_gpu_completion_readback_updates_resident_probe_with_ancestor_rt_lig
 fn hybrid_gi_gpu_completion_readback_inherits_nonresident_lineage_trace_lighting_without_resident_ancestors(
 ) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let prepare = HybridGiPrepareFrame {
         resident_probes: Vec::new(),
@@ -1201,23 +1234,7 @@ fn render_hybrid_gi_gpu_trace_readback(
     extract: RenderFrameExtract,
     prepare: HybridGiPrepareFrame,
 ) -> (Vec<(u32, [u8; 3])>, Vec<(u32, [u8; 3])>) {
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::GlobalIllumination)
-                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
-                .with_feature_disabled(BuiltinRenderFeature::Bloom)
-                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
-                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
-                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
-                .with_feature_disabled(BuiltinRenderFeature::Particle)
-                .with_feature_disabled(BuiltinRenderFeature::VirtualGeometry)
-                .with_async_compute(false),
-        )
-        .unwrap();
+    let compiled = compile_hybrid_gi_pipeline(&extract);
 
     renderer
         .render_frame_with_pipeline(

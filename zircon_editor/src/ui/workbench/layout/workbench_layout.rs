@@ -16,7 +16,7 @@ pub struct WorkbenchLayout {
     pub active_main_page: MainPageId,
     pub main_pages: Vec<MainHostPageLayout>,
     pub drawers: BTreeMap<ActivityDrawerSlot, ActivityDrawerLayout>,
-    #[serde(default = "default_activity_windows")]
+    #[serde(default)]
     pub activity_windows: BTreeMap<ActivityWindowId, ActivityWindowLayout>,
     pub floating_windows: Vec<FloatingWindowLayout>,
     #[serde(default)]
@@ -54,6 +54,9 @@ impl WorkbenchLayout {
     }
 
     pub fn default_activity_window_mut(&mut self) -> Option<&mut ActivityWindowLayout> {
+        if self.activity_windows.is_empty() {
+            self.activity_windows = default_activity_windows_with_drawers(self.drawers.clone());
+        }
         self.activity_windows
             .get_mut(&ActivityWindowId::new("window:workbench"))
     }
@@ -84,8 +87,4 @@ fn default_activity_windows_with_drawers(
     )]
     .into_iter()
     .collect()
-}
-
-fn default_activity_windows() -> BTreeMap<ActivityWindowId, ActivityWindowLayout> {
-    default_activity_windows_with_drawers(default_drawers())
 }

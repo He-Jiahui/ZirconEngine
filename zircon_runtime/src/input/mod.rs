@@ -1,4 +1,4 @@
-//! Runtime input facade and protocol types.
+//! Runtime input subsystem and protocol types.
 
 mod module;
 mod runtime;

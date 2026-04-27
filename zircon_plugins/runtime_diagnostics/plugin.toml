@@ -1,0 +1,12 @@
+id = "runtime_diagnostics"
+version = "0.1.0"
+display_name = "Runtime Diagnostics"
+description = "Optional editor diagnostics views for inspecting embedded runtime state."
+default_packaging = ["source_template", "library_embed"]
+
+[[modules]]
+name = "runtime_diagnostics.editor"
+kind = "editor"
+crate_name = "zircon_plugin_runtime_diagnostics_editor"
+target_modes = ["editor_host"]
+capabilities = ["editor.extension.runtime_diagnostics"]

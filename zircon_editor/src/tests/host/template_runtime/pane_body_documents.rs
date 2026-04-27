@@ -5,16 +5,26 @@ use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::foundation::{
     module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
 };
+use zircon_runtime::ui::binding::UiEventKind;
 
 use crate::tests::support::load_test_ui_asset;
 use crate::ui::binding::EditorUiBindingPayload;
 use crate::ui::host::module::{self, module_descriptor, EDITOR_MANAGER_NAME};
 use crate::ui::host::EditorManager;
-use crate::ui::template_runtime::EditorUiHostRuntime;
+use crate::ui::template_runtime::{EditorUiHostRuntime, SlintUiHostValue};
 use crate::ui::workbench::view::ViewDescriptorId;
 
 fn editor_runtime() -> CoreRuntime {
     let runtime = CoreRuntime::new();
+    runtime.store_config_value(
+        crate::ui::host::EDITOR_ENABLED_SUBSYSTEMS_CONFIG_KEY,
+        serde_json::json!([
+            crate::ui::host::EDITOR_SUBSYSTEM_ANIMATION_AUTHORING,
+            crate::ui::host::EDITOR_SUBSYSTEM_UI_ASSET_AUTHORING,
+            crate::ui::host::EDITOR_SUBSYSTEM_RUNTIME_DIAGNOSTICS,
+            crate::ui::host::EDITOR_SUBSYSTEM_NATIVE_WINDOW_HOSTING,
+        ]),
+    );
     runtime
         .register_module(foundation_module_descriptor())
         .unwrap();
@@ -47,6 +57,7 @@ fn builtin_activity_window_documents_are_registered_in_host_runtime() {
         "editor.window.workbench",
         "editor.window.asset",
         "editor.window.ui_layout_editor",
+        "editor.window.ui_component_showcase",
     ] {
         let projection = ui_runtime
             .project_document(document_id)
@@ -54,6 +65,118 @@ fn builtin_activity_window_documents_are_registered_in_host_runtime() {
         assert_eq!(projection.document_id, document_id);
         assert_eq!(projection.root.component, "VerticalBox");
     }
+}
+
+#[test]
+fn component_showcase_projection_carries_runtime_component_semantics() {
+    let _guard = crate::tests::support::env_lock()
+        .lock()
+        .unwrap_or_else(|poison| poison.into_inner());
+    let mut ui_runtime = EditorUiHostRuntime::default();
+    ui_runtime.load_builtin_host_templates().unwrap();
+
+    let document_id = "editor.window.ui_component_showcase";
+    let projection = ui_runtime.project_document(document_id).unwrap();
+    let surface = ui_runtime.build_shared_surface(document_id).unwrap();
+    let host_projection = ui_runtime
+        .build_slint_host_projection_with_surface(&projection, &surface)
+        .unwrap();
+
+    let number = host_projection
+        .node_by_control_id("NumberFieldDemo")
+        .expect("component showcase should project NumberFieldDemo");
+    assert_eq!(number.component_role.as_deref(), Some("number-field"));
+    assert_eq!(number.value_text.as_deref(), Some("42"));
+    assert_eq!(number.validation_level.as_deref(), Some("normal"));
+    assert!(number.routes.iter().any(|route| {
+        route.binding_id == "UiComponentShowcase/NumberFieldDragUpdate"
+            && route.event_kind == UiEventKind::DragUpdate
+    }));
+    assert!(number.routes.iter().any(|route| {
+        route.binding_id == "UiComponentShowcase/NumberFieldCommitted"
+            && route.event_kind == UiEventKind::Submit
+    }));
+
+    let dropdown = host_projection
+        .node_by_control_id("DropdownDemo")
+        .expect("component showcase should project DropdownDemo");
+    assert_eq!(dropdown.component_role.as_deref(), Some("dropdown"));
+    assert!(dropdown.popup_open);
+    assert_eq!(dropdown.selection_state.as_deref(), Some("multi"));
+    assert_eq!(
+        dropdown.options_text.as_deref(),
+        Some("runtime, editor, debug")
+    );
+    assert_eq!(
+        dropdown.options,
+        vec![
+            "runtime".to_string(),
+            "editor".to_string(),
+            "debug".to_string()
+        ]
+    );
+    assert!(dropdown.routes.iter().any(|route| {
+        route.binding_id == "UiComponentShowcase/DropdownChanged"
+            && route.event_kind == UiEventKind::Change
+    }));
+
+    let asset = host_projection
+        .node_by_control_id("AssetFieldDemo")
+        .expect("component showcase should project AssetFieldDemo");
+    assert_eq!(asset.component_role.as_deref(), Some("asset-field"));
+    assert!(asset
+        .accepted_drag_payloads
+        .iter()
+        .any(|kind| kind == "asset"));
+    assert!(asset.routes.iter().any(|route| {
+        route.binding_id == "UiComponentShowcase/AssetFieldDropped"
+            && route.event_kind == UiEventKind::Drop
+    }));
+
+    let drop_binding = projection
+        .bindings
+        .iter()
+        .find(|binding| binding.binding_id == "UiComponentShowcase/AssetFieldDropped")
+        .expect("showcase asset field drop binding should be projected");
+    match drop_binding.binding.payload() {
+        EditorUiBindingPayload::Custom(call) => {
+            assert_eq!(call.symbol, "UiComponentShowcase");
+            assert_eq!(
+                call.argument(0).and_then(|value| value.as_str()),
+                Some("DropReference.AssetField")
+            );
+        }
+        other => panic!("unexpected showcase binding payload: {other:?}"),
+    }
+}
+
+#[test]
+fn host_projection_carries_runtime_component_properties_and_routes() {
+    let _guard = crate::tests::support::env_lock()
+        .lock()
+        .unwrap_or_else(|poison| poison.into_inner());
+    let mut ui_runtime = EditorUiHostRuntime::default();
+    ui_runtime.load_builtin_host_templates().unwrap();
+
+    let document_id = "inspector.surface_controls";
+    let projection = ui_runtime.project_document(document_id).unwrap();
+    let surface = ui_runtime.build_shared_surface(document_id).unwrap();
+    let host_projection = ui_runtime
+        .build_slint_host_projection_with_surface(&projection, &surface)
+        .unwrap();
+
+    let name_field = host_projection
+        .node_by_control_id("NameField")
+        .expect("inspector surface should project NameField");
+    assert_eq!(name_field.component, "UiHostIconButton");
+    assert_eq!(name_field.text.as_deref(), Some("NameField"));
+    assert_eq!(
+        name_field.properties.get("label"),
+        Some(&SlintUiHostValue::String("NameField".to_string()))
+    );
+    assert!(name_field.routes.iter().any(|route| {
+        route.binding_id == "InspectorView/NameField" && route.event_kind == UiEventKind::Change
+    }));
 }
 
 #[test]

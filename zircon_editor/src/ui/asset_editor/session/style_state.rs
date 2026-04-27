@@ -23,13 +23,23 @@ use super::{
         declaration_entries, parse_declaration_literal, remove_declaration, set_declaration,
         UiStyleRuleDeclarationPath,
     },
-    style_rule_identity::{editable_stylesheet_index, unique_style_rule_id},
+    style_rule_identity::unique_style_rule_id,
     theme_state::theme_document_replay_bundle,
     ui_asset_editor_session::{UiAssetEditorSession, UiAssetEditorSessionError},
 };
 use zircon_runtime::ui::template::{
     UiAssetDocument, UiStyleDeclarationBlock, UiStyleRule, UiStyleSheet,
 };
+
+pub(super) fn editable_stylesheet(document: &mut UiAssetDocument) -> usize {
+    if document.stylesheets.is_empty() {
+        document.stylesheets.push(UiStyleSheet {
+            id: "local_editor_rules".to_string(),
+            rules: Vec::new(),
+        });
+    }
+    document.stylesheets.len() - 1
+}
 
 impl UiAssetEditorSession {
     pub fn create_rule_from_selection(&mut self) -> Result<bool, UiAssetEditorSessionError> {
@@ -49,7 +59,7 @@ impl UiAssetEditorSession {
         }
 
         let mut document = self.last_valid_document.clone();
-        let stylesheet_index = editable_stylesheet_index(&mut document);
+        let stylesheet_index = editable_stylesheet(&mut document);
         let stylesheet_id = document.stylesheets[stylesheet_index].id.clone();
         let rule = UiStyleRule {
             id: Some(unique_style_rule_id(&document, &selector)),
@@ -94,7 +104,7 @@ impl UiAssetEditorSession {
         }
 
         let overrides = std::mem::take(&mut node.style_overrides);
-        let stylesheet_index = editable_stylesheet_index(&mut document);
+        let stylesheet_index = editable_stylesheet(&mut document);
         let stylesheet_id = document.stylesheets[stylesheet_index].id.clone();
         let rule = UiStyleRule {
             id: Some(unique_style_rule_id(&document, &selector)),

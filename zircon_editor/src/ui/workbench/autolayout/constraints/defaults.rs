@@ -37,13 +37,16 @@ pub fn default_constraints_for_content(kind: ViewContentKind) -> PaneConstraints
             width: stretch_axis(220.0, 280.0, 55, 1.0),
             height: stretch_axis(180.0, 320.0, 55, 1.0),
         },
-        ViewContentKind::Console | ViewContentKind::RuntimeDiagnostics => PaneConstraints {
+        ViewContentKind::Console
+        | ViewContentKind::RuntimeDiagnostics
+        | ViewContentKind::ModulePlugins => PaneConstraints {
             width: stretch_axis(0.0, 0.0, 50, 1.0),
             height: stretch_axis(140.0, 200.0, 50, 1.0),
         },
         ViewContentKind::Assets
         | ViewContentKind::AssetBrowser
         | ViewContentKind::UiAssetEditor
+        | ViewContentKind::UiComponentShowcase
         | ViewContentKind::AnimationSequenceEditor
         | ViewContentKind::AnimationGraphEditor => PaneConstraints {
             width: stretch_axis(420.0, 720.0, 80, 2.0),

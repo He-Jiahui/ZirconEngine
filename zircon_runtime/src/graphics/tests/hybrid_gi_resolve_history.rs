@@ -10,6 +10,7 @@ use crate::core::framework::scene::Mobility;
 use crate::core::math::{Transform, UVec2, Vec3, Vec4};
 use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
 use crate::graphics::scene::HybridGiScenePrepareResourcesSnapshot;
+use crate::graphics::tests::plugin_render_feature_fixtures::hybrid_gi_render_feature_descriptor;
 use crate::scene::world::World;
 
 use crate::{
@@ -19,20 +20,19 @@ use crate::{
         HybridGiPrepareVoxelCell, HybridGiPrepareVoxelClipmap, HybridGiResolveRuntime,
         HybridGiScenePrepareFrame, ViewportFrame, ViewportRenderFrame,
     },
-    BuiltinRenderFeature, RenderPipelineAsset, RenderPipelineCompileOptions, SceneRenderer,
+    BuiltinRenderFeature, CompiledRenderPipeline, RenderFeatureCapabilityRequirement,
+    RenderPipelineAsset, RenderPipelineCompileOptions, SceneRenderer,
 };
 
-#[test]
-fn hybrid_gi_resolve_rejects_history_when_scene_driven_exact_runtime_truth_changes() {
-    let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
-    let viewport_size = UVec2::new(96, 64);
-    let extract = build_extract(viewport_size);
-    let compiled = RenderPipelineAsset::default_forward_plus()
+fn compile_hybrid_gi_pipeline(extract: &RenderFrameExtract) -> CompiledRenderPipeline {
+    RenderPipelineAsset::default_forward_plus()
+        .with_plugin_render_features([hybrid_gi_render_feature_descriptor()])
         .compile_with_options(
-            &extract,
+            extract,
             &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::GlobalIllumination)
+                .with_capability_enabled(
+                    RenderFeatureCapabilityRequirement::HybridGlobalIllumination,
+                )
                 .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
                 .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
                 .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
@@ -44,7 +44,24 @@ fn hybrid_gi_resolve_rejects_history_when_scene_driven_exact_runtime_truth_chang
                 .with_feature_disabled(BuiltinRenderFeature::VirtualGeometry)
                 .with_async_compute(false),
         )
-        .unwrap();
+        .unwrap()
+}
+
+fn hybrid_gi_scene_renderer(asset_manager: Arc<ProjectAssetManager>) -> SceneRenderer {
+    SceneRenderer::new_with_plugin_render_features(
+        asset_manager,
+        [hybrid_gi_render_feature_descriptor()],
+    )
+    .unwrap()
+}
+
+#[test]
+fn hybrid_gi_resolve_rejects_history_when_scene_driven_exact_runtime_truth_changes() {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager);
+    let viewport_size = UVec2::new(96, 64);
+    let extract = build_extract(viewport_size);
+    let compiled = compile_hybrid_gi_pipeline(&extract);
     let history_handle = crate::FrameHistoryHandle::new(16);
 
     renderer
@@ -2268,24 +2285,8 @@ fn render_second_frame(
     history_handle: Option<crate::FrameHistoryHandle>,
 ) -> ViewportFrame {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::GlobalIllumination)
-                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
-                .with_feature_disabled(BuiltinRenderFeature::Bloom)
-                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
-                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
-                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
-                .with_feature_disabled(BuiltinRenderFeature::Particle)
-                .with_feature_disabled(BuiltinRenderFeature::VirtualGeometry)
-                .with_async_compute(false),
-        )
-        .unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager);
+    let compiled = compile_hybrid_gi_pipeline(&extract);
 
     if let Some(history_handle) = history_handle {
         renderer
@@ -2401,24 +2402,8 @@ fn render_second_frame_after_probe_identity_transition(
     history_handle: Option<crate::FrameHistoryHandle>,
 ) -> ViewportFrame {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &first_extract,
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::GlobalIllumination)
-                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
-                .with_feature_disabled(BuiltinRenderFeature::Bloom)
-                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
-                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
-                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
-                .with_feature_disabled(BuiltinRenderFeature::Particle)
-                .with_feature_disabled(BuiltinRenderFeature::VirtualGeometry)
-                .with_async_compute(false),
-        )
-        .unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager);
+    let compiled = compile_hybrid_gi_pipeline(&first_extract);
 
     if let Some(history_handle) = history_handle {
         renderer
@@ -2466,24 +2451,8 @@ fn render_second_frame_after_probe_identity_and_scene_prepare_transition(
     history_handle: Option<crate::FrameHistoryHandle>,
 ) -> ViewportFrame {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &first_extract,
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::GlobalIllumination)
-                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
-                .with_feature_disabled(BuiltinRenderFeature::Bloom)
-                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
-                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
-                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
-                .with_feature_disabled(BuiltinRenderFeature::Particle)
-                .with_feature_disabled(BuiltinRenderFeature::VirtualGeometry)
-                .with_async_compute(false),
-        )
-        .unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager);
+    let compiled = compile_hybrid_gi_pipeline(&first_extract);
 
     if let Some(history_handle) = history_handle {
         renderer
@@ -2556,24 +2525,8 @@ fn render_second_frame_after_scene_prepare_transition(
     history_handle: Option<crate::FrameHistoryHandle>,
 ) -> ViewportFrame {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::GlobalIllumination)
-                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
-                .with_feature_disabled(BuiltinRenderFeature::Bloom)
-                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
-                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
-                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
-                .with_feature_disabled(BuiltinRenderFeature::Particle)
-                .with_feature_disabled(BuiltinRenderFeature::VirtualGeometry)
-                .with_async_compute(false),
-        )
-        .unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager);
+    let compiled = compile_hybrid_gi_pipeline(&extract);
 
     if let Some(history_handle) = history_handle {
         renderer
@@ -2618,24 +2571,8 @@ fn render_second_frame_after_runtime_transition(
     second_runtime: HybridGiResolveRuntime,
 ) -> ViewportFrame {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::GlobalIllumination)
-                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
-                .with_feature_disabled(BuiltinRenderFeature::Bloom)
-                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
-                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
-                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
-                .with_feature_disabled(BuiltinRenderFeature::Particle)
-                .with_feature_disabled(BuiltinRenderFeature::VirtualGeometry)
-                .with_async_compute(false),
-        )
-        .unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager);
+    let compiled = compile_hybrid_gi_pipeline(&extract);
     let history_handle = crate::FrameHistoryHandle::new(16);
 
     renderer

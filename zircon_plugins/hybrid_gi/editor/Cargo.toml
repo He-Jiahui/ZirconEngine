@@ -1,0 +1,12 @@
+[package]
+name = "zircon_plugin_hybrid_gi_editor"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Hybrid GI editor plugin package for Zircon."
+
+[dependencies]
+zircon_editor = { path = "../../../zircon_editor" }
+zircon_plugin_editor_support = { path = "../../editor_support" }
+zircon_plugin_hybrid_gi_runtime = { path = "../runtime" }
+zircon_runtime = { path = "../../../zircon_runtime", default-features = false }

@@ -22,6 +22,7 @@ pub enum UiEventKind {
     DragBegin,
     DragUpdate,
     DragEnd,
+    Drop,
 }
 
 impl UiEventKind {
@@ -42,6 +43,7 @@ impl UiEventKind {
             Self::DragBegin => "onDragBegin",
             Self::DragUpdate => "onDragUpdate",
             Self::DragEnd => "onDragEnd",
+            Self::Drop => "onDrop",
         }
     }
 }
@@ -72,6 +74,7 @@ impl FromStr for UiEventKind {
             "onDragBegin" => Ok(Self::DragBegin),
             "onDragUpdate" => Ok(Self::DragUpdate),
             "onDragEnd" => Ok(Self::DragEnd),
+            "onDrop" => Ok(Self::Drop),
             other => Err(UiBindingParseError::UnknownEventKind(other.to_string())),
         }
     }

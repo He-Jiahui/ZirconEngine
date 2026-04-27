@@ -15,14 +15,21 @@ impl LayoutManager {
     ) -> Result<(), String> {
         match target {
             ViewHost::Drawer(slot) => {
-                let drawer = layout
-                    .drawers
-                    .get_mut(&slot)
-                    .ok_or_else(|| format!("missing drawer {:?}", slot))?;
-                drawer
-                    .tab_stack
-                    .insert(instance_id.clone(), anchor.as_ref());
-                drawer.active_view = Some(instance_id);
+                let (tab_stack, active_view) = {
+                    let drawer = layout
+                        .default_activity_window_mut()
+                        .and_then(|window| window.activity_drawers.get_mut(&slot))
+                        .ok_or_else(|| format!("missing drawer {:?}", slot))?;
+                    drawer
+                        .tab_stack
+                        .insert(instance_id.clone(), anchor.as_ref());
+                    drawer.active_view = Some(instance_id);
+                    (drawer.tab_stack.clone(), drawer.active_view.clone())
+                };
+                if let Some(root_drawer) = layout.drawers.get_mut(&slot) {
+                    root_drawer.tab_stack = tab_stack;
+                    root_drawer.active_view = active_view;
+                }
             }
             ViewHost::Document(page_id, path) => {
                 let node = self

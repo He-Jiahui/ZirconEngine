@@ -718,7 +718,7 @@ fn root_document_tab_pointer_click_prefers_shared_projection_surface_width_over_
     let baseline = harness.journal_len();
 
     host_context(&harness.root_ui).invoke_document_tab_pointer_clicked(
-        "main".into(),
+        "document".into(),
         tab_index,
         tab_x,
         tab_width,
@@ -731,6 +731,16 @@ fn root_document_tab_pointer_click_prefers_shared_projection_surface_width_over_
         vec![EditorEvent::Layout(EventLayoutCommand::FocusView {
             instance_id: EventViewInstanceId::new(expected_instance.0.clone()),
         })]
+    );
+    assert!(
+        !harness
+            .host
+            .borrow()
+            .runtime
+            .editor_snapshot()
+            .status_line
+            .contains("Unknown document tab surface"),
+        "root document tab callbacks should use the same surface key registered by the pointer bridge"
     );
 }
 
@@ -874,6 +884,30 @@ fn root_host_viewport_size_matches_presented_viewport_content_frame_when_drawers
     let _guard = lock_env();
 
     let harness = ChildWindowHostHarness::new("zircon_slint_root_viewport_size_alignment");
+    let viewport_frame = harness
+        .root_ui
+        .get_host_presentation()
+        .host_layout
+        .viewport_content_frame;
+    let host = harness.host.borrow();
+
+    assert_eq!(
+        host.viewport_size,
+        UVec2::new(
+            viewport_frame.width.max(0.0).round() as u32,
+            viewport_frame.height.max(0.0).round() as u32,
+        )
+    );
+}
+
+#[test]
+fn root_host_viewport_size_matches_presented_viewport_content_frame_when_drawers_are_visible() {
+    let _guard = lock_env();
+
+    let harness = ChildWindowHostHarness::new("zircon_slint_root_viewport_size_visible_drawers");
+    harness.activate_workbench_page();
+    harness.activate_drawer_tab(ActivityDrawerSlot::LeftTop, "editor.hierarchy#1");
+
     let viewport_frame = harness
         .root_ui
         .get_host_presentation()

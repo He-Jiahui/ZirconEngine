@@ -21,6 +21,7 @@ impl SlintViewportController {
         Ok(())
     }
 
+    #[cfg(test)]
     pub(crate) fn submit_extract(
         &self,
         mut extract: RenderFrameExtract,

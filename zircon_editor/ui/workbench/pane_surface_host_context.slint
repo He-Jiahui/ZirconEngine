@@ -53,6 +53,10 @@ export global PaneSurfaceHostContext {
     in-out property <float> console_scroll_px: 0.0;
     in-out property <string> mesh_import_path;
     callback surface_control_clicked(control_id: string, action_id: string);
+    callback component_showcase_control_activated(control_id: string, action_id: string);
+    callback component_showcase_control_drag_delta(control_id: string, action_id: string, delta: float);
+    callback component_showcase_control_edited(control_id: string, action_id: string, value: string);
+    callback component_showcase_option_selected(control_id: string, action_id: string, option_id: string);
     callback hierarchy_pointer_clicked(x: float, y: float, width: float, height: float);
     callback hierarchy_pointer_moved(x: float, y: float, width: float, height: float);
     callback hierarchy_pointer_scrolled(x: float, y: float, delta: float, width: float, height: float);

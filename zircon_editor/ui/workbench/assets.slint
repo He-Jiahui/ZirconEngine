@@ -105,6 +105,82 @@ export component AssetSurfaceFrame inherits Rectangle {
     clip: true;
 }
 
+export component AssetSelectionPreviewImage inherits Rectangle {
+    in property <AssetSelectionData> selection;
+    in property <length> icon_size: 28px;
+
+    palette := Palette {}
+    border-radius: 6px;
+    border-width: 1px;
+    border-color: palette.border_soft;
+    background: #16191f;
+    clip: true;
+
+    if root.selection.has_preview: Image {
+        width: parent.width;
+        height: parent.height;
+        source: root.selection.preview;
+        image-fit: contain;
+    }
+
+    if !root.selection.has_preview: ShellIcon {
+        width: root.icon_size;
+        height: root.icon_size;
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        icon_key: root.selection.kind == "Texture" ? "assets" :
+            root.selection.kind == "Material" ? "inspector" :
+            root.selection.kind == "PhysicsMaterial" ? "physics-material" :
+            root.selection.kind == "AnimationSkeleton" ? "hierarchy" :
+            root.selection.kind == "AnimationClip" ? "tool-play" :
+            root.selection.kind == "AnimationSequence" ? "animation-sequence" :
+            root.selection.kind == "AnimationGraph" ? "animation-graph" :
+            root.selection.kind == "AnimationStateMachine" ? "animation-graph" :
+            root.selection.kind == "Scene" ? "scene" :
+            root.selection.kind == "Model" ? "prefab" :
+            "console";
+        icon_color: palette.text_dim;
+    }
+}
+
+export component AssetSelectionDetailsImage inherits Rectangle {
+    in property <AssetSelectionData> selection;
+    in property <length> icon_size: 34px;
+
+    palette := Palette {}
+    border-radius: 6px;
+    border-width: 1px;
+    border-color: palette.border_soft;
+    background: #16191f;
+    clip: true;
+
+    if root.selection.has_preview: Image {
+        width: parent.width;
+        height: parent.height;
+        source: root.selection.preview;
+        image-fit: contain;
+    }
+
+    if !root.selection.has_preview: ShellIcon {
+        width: root.icon_size;
+        height: root.icon_size;
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        icon_key: root.selection.kind == "Texture" ? "assets" :
+            root.selection.kind == "Material" ? "inspector" :
+            root.selection.kind == "PhysicsMaterial" ? "physics-material" :
+            root.selection.kind == "AnimationSkeleton" ? "hierarchy" :
+            root.selection.kind == "AnimationClip" ? "tool-play" :
+            root.selection.kind == "AnimationSequence" ? "animation-sequence" :
+            root.selection.kind == "AnimationGraph" ? "animation-graph" :
+            root.selection.kind == "AnimationStateMachine" ? "animation-graph" :
+            root.selection.kind == "Scene" ? "scene" :
+            root.selection.kind == "Model" ? "prefab" :
+            "console";
+        icon_color: palette.text_dim;
+    }
+}
+
 export component FolderTreeView inherits AssetSurfaceFrame {
     in property <[AssetFolderData]> folders;
     in property <string> title: "Sources";

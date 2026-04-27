@@ -80,6 +80,7 @@ pub(crate) struct PaneBodyCompatData {
     pub assets_activity: AssetsActivityPaneViewData,
     pub asset_browser: AssetBrowserPaneViewData,
     pub project_overview: ProjectOverviewPaneViewData,
+    pub module_plugins: ModulePluginsPaneViewData,
     pub ui_asset: UiAssetEditorPanePresentation,
     pub animation: AnimationEditorPaneViewData,
 }
@@ -121,6 +122,26 @@ pub(crate) struct AssetBrowserPaneViewData {
 #[derive(Clone, Default)]
 pub(crate) struct ProjectOverviewPaneViewData {
     pub nodes: ModelRc<ViewTemplateNodeData>,
+}
+
+#[derive(Clone, Default)]
+pub(crate) struct ModulePluginStatusViewData {
+    pub plugin_id: SharedString,
+    pub display_name: SharedString,
+    pub package_source: SharedString,
+    pub load_state: SharedString,
+    pub enabled: bool,
+    pub required: bool,
+    pub runtime_crate: SharedString,
+    pub editor_crate: SharedString,
+    pub capabilities: SharedString,
+    pub diagnostics: SharedString,
+}
+
+#[derive(Clone, Default)]
+pub(crate) struct ModulePluginsPaneViewData {
+    pub plugins: ModelRc<ModulePluginStatusViewData>,
+    pub diagnostics: SharedString,
 }
 
 #[derive(Clone, Default)]

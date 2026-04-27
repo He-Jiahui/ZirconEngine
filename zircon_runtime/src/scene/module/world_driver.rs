@@ -1,16 +1,13 @@
 use std::collections::BTreeMap;
 
-use crate::animation::apply_sequence_to_world;
 use crate::asset::{AssetId, ProjectAssetManager};
 use crate::core::framework::animation::{
     AnimationGraphClipInstance, AnimationManager, AnimationParameterMap, AnimationPoseOutput,
     AnimationPoseSource,
 };
 use crate::core::manager::resolve_animation_manager;
-use crate::core::manager::resolve_physics_manager;
 use crate::core::math::Real;
 use crate::core::{CoreError, CoreHandle};
-use crate::physics::{build_world_sync_state, integrate_builtin_physics_steps};
 use crate::scene::{EntityId, LevelSystem};
 
 #[derive(Clone, Debug)]
@@ -60,16 +57,7 @@ impl WorldDriver {
         level: &LevelSystem,
         delta_seconds: Real,
     ) -> Result<(), CoreError> {
-        if let Ok(physics) = resolve_physics_manager(core) {
-            let world_handle = level.handle();
-            let step_plan = physics.plan_world_step(world_handle, delta_seconds);
-            level.with_world_mut(|world| {
-                integrate_builtin_physics_steps(world, step_plan);
-                physics.sync_world(build_world_sync_state(world_handle, world));
-            });
-            let contacts = physics.drain_contacts(world_handle);
-            level.record_physics_tick(step_plan, contacts);
-        }
+        tick_physics_world(core, level, delta_seconds);
 
         if let Ok(animation) = resolve_animation_manager(core) {
             let playback_settings = animation.playback_settings();
@@ -218,16 +206,7 @@ impl WorldDriver {
                         })
                         .collect::<Vec<_>>();
                     if !loaded_sequences.is_empty() {
-                        level.with_world_mut(|world| {
-                            for (sequence, time_seconds, looping) in &loaded_sequences {
-                                let _ = apply_sequence_to_world(
-                                    world,
-                                    sequence,
-                                    *time_seconds,
-                                    *looping,
-                                );
-                            }
-                        });
+                        apply_loaded_sequences(level, &loaded_sequences);
                     }
 
                     let mut animation_poses = sample_pose_requests(
@@ -272,6 +251,14 @@ impl WorldDriver {
 
         Ok(())
     }
+}
+
+fn tick_physics_world(_core: &CoreHandle, _level: &LevelSystem, _delta_seconds: Real) {}
+
+fn apply_loaded_sequences(
+    _level: &LevelSystem,
+    _loaded_sequences: &[(crate::asset::AnimationSequenceAsset, Real, bool)],
+) {
 }
 
 fn sample_pose_requests(

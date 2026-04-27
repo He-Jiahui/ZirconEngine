@@ -1,8 +1,8 @@
 use crate::graphics::scene::resources::ResourceStreamer;
-use crate::graphics::scene::scene_renderer::mesh::{build_mesh_draws, MeshDraw};
+use crate::graphics::scene::scene_renderer::mesh::MeshDraw;
 use crate::graphics::types::ViewportRenderFrame;
 
-use super::super::super::scene_renderer_core::SceneRendererCore;
+use super::super::super::scene_renderer_core::SceneRendererAdvancedPluginResources;
 
 pub(super) struct CompiledSceneDraws {
     pub(super) draws: Vec<MeshDraw>,
@@ -16,18 +16,18 @@ pub(super) struct CompiledSceneDraws {
 }
 
 pub(super) fn build_compiled_scene_draws(
-    renderer: &SceneRendererCore,
+    advanced_plugin_resources: &SceneRendererAdvancedPluginResources,
     device: &wgpu::Device,
     encoder: &mut wgpu::CommandEncoder,
+    model_bind_group_layout: &wgpu::BindGroupLayout,
     streamer: &ResourceStreamer,
     frame: &ViewportRenderFrame,
     virtual_geometry_enabled: bool,
 ) -> CompiledSceneDraws {
-    let built_mesh_draws = build_mesh_draws(
+    let built_mesh_draws = advanced_plugin_resources.build_mesh_draws(
         device,
         encoder,
-        &renderer.virtual_geometry_indirect_args,
-        &renderer.model_bind_group_layout,
+        model_bind_group_layout,
         streamer,
         frame,
         virtual_geometry_enabled,

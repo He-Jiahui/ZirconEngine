@@ -22,7 +22,7 @@ pub(crate) fn build_host_document_tab_pointer_layout(
     if !model.document_tabs.is_empty() {
         let document_tabs = resolve_root_document_tabs_frame(geometry, metrics, shared_root_frames);
         surfaces.push(HostDocumentTabPointerSurface {
-            key: "main".to_string(),
+            key: "document".to_string(),
             strip_frame: UiFrame::new(
                 document_tabs.x,
                 document_tabs.y,

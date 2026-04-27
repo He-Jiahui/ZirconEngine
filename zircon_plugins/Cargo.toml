@@ -1,0 +1,32 @@
+[workspace]
+members = [
+    "editor_support",
+    "physics/runtime",
+    "physics/editor",
+    "sound/runtime",
+    "sound/editor",
+    "texture/runtime",
+    "texture/editor",
+    "net/runtime",
+    "net/editor",
+    "navigation/runtime",
+    "navigation/editor",
+    "particles/runtime",
+    "particles/editor",
+    "animation/runtime",
+    "animation/editor",
+    "virtual_geometry/runtime",
+    "virtual_geometry/editor",
+    "hybrid_gi/runtime",
+    "hybrid_gi/editor",
+    "runtime_diagnostics/editor",
+    "ui_asset_authoring/editor",
+    "native_window_hosting/editor",
+    "native_dynamic_sample/native",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"

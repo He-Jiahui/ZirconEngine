@@ -1,16 +1,6 @@
 use std::collections::BTreeSet;
 
-use zircon_runtime::ui::template::{UiAssetDocument, UiStyleSheet};
-
-pub(super) fn editable_stylesheet_index(document: &mut UiAssetDocument) -> usize {
-    if document.stylesheets.is_empty() {
-        document.stylesheets.push(UiStyleSheet {
-            id: "local_editor_rules".to_string(),
-            rules: Vec::new(),
-        });
-    }
-    document.stylesheets.len() - 1
-}
+use zircon_runtime::ui::template::UiAssetDocument;
 
 pub(super) fn unique_style_rule_id(document: &UiAssetDocument, selector: &str) -> String {
     let base = style_rule_id_stem(selector);

@@ -13,6 +13,9 @@ pub enum EditorUiBindingPayload {
     MenuAction {
         action_id: String,
     },
+    EditorOperation {
+        operation_id: String,
+    },
     DraftCommand(DraftCommand),
     InspectorFieldBatch {
         subject_path: String,

@@ -12,6 +12,8 @@ pub(super) fn record_with_event_and_effects(
         sequence: EditorEventSequence::new(1),
         source: EditorEventSource::Slint,
         event,
+        operation_id: None,
+        operation_display_name: None,
         effects,
         undo_policy: EditorEventUndoPolicy::NonUndoable,
         before_revision: 0,

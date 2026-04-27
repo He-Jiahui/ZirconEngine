@@ -1,5 +1,3 @@
-use std::fs;
-
 use crate::ui::binding::EditorUiBinding;
 use crate::ui::control::EditorUiControlService;
 use crate::ui::layouts::windows::workbench_host_window::PaneBodyPresentation;
@@ -15,10 +13,11 @@ use zircon_runtime::ui::{event_ui::UiTreeId, surface::UiSurface, template::UiAss
 
 use crate::ui::template_runtime::{
     SlintUiHostAdapter, SlintUiHostModel, SlintUiHostProjection, SlintUiProjection,
+    UiComponentShowcaseDemoError, UiComponentShowcaseDemoEventInput, UiComponentShowcaseDemoState,
 };
 
 use super::{
-    build_session::load_builtin_host_templates,
+    build_session::{compile_template_document_file, load_builtin_host_templates},
     pane_payload_projection::project_pane_body,
     projection::{build_host_model, build_host_model_with_surface, project_document},
 };
@@ -43,6 +42,7 @@ pub struct EditorUiHostRuntime {
     pub(super) template_registry: EditorTemplateRegistry,
     pub(super) template_adapter: EditorTemplateAdapter,
     pub(super) builtin_host_templates_loaded: bool,
+    showcase_demo_state: UiComponentShowcaseDemoState,
 }
 
 fn parse_ui_asset_document_source(source: &str) -> Result<UiAssetDocument, UiAssetError> {
@@ -105,9 +105,10 @@ impl EditorUiHostRuntime {
         document_id: impl Into<String>,
         path: impl AsRef<std::path::Path>,
     ) -> Result<(), EditorUiHostRuntimeError> {
-        let source =
-            fs::read_to_string(path).map_err(|error| UiAssetError::Io(error.to_string()))?;
-        self.register_document_source(document_id, &source)
+        let compiled = compile_template_document_file(path.as_ref())?;
+        self.template_registry
+            .register_compiled_document(document_id, compiled)
+            .map_err(EditorUiHostRuntimeError::from)
     }
 
     pub fn register_binding(
@@ -122,6 +123,19 @@ impl EditorUiHostRuntime {
 
     pub fn load_builtin_host_templates(&mut self) -> Result<(), EditorUiHostRuntimeError> {
         load_builtin_host_templates(self)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn showcase_demo_state(&self) -> &UiComponentShowcaseDemoState {
+        &self.showcase_demo_state
+    }
+
+    pub(crate) fn apply_showcase_demo_binding(
+        &mut self,
+        binding: &EditorUiBinding,
+        input: UiComponentShowcaseDemoEventInput,
+    ) -> Result<(), UiComponentShowcaseDemoError> {
+        self.showcase_demo_state.apply_binding(binding, input)
     }
 
     pub fn project_document(
@@ -156,7 +170,10 @@ impl EditorUiHostRuntime {
         &self,
         projection: &SlintUiProjection,
     ) -> Result<SlintUiHostModel, EditorUiHostRuntimeError> {
-        build_host_model(projection)
+        let mut host_model = build_host_model(projection)?;
+        self.showcase_demo_state
+            .apply_to_host_model(&mut host_model);
+        Ok(host_model)
     }
 
     pub fn build_host_model_with_surface(
@@ -164,7 +181,10 @@ impl EditorUiHostRuntime {
         projection: &SlintUiProjection,
         surface: &UiSurface,
     ) -> Result<SlintUiHostModel, EditorUiHostRuntimeError> {
-        build_host_model_with_surface(projection, surface)
+        let mut host_model = build_host_model_with_surface(projection, surface)?;
+        self.showcase_demo_state
+            .apply_to_host_model(&mut host_model);
+        Ok(host_model)
     }
 
     pub fn build_shared_surface(

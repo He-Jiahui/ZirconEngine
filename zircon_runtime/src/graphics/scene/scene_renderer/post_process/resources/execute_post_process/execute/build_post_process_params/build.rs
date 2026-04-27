@@ -40,8 +40,8 @@ pub(in super::super) fn build_post_process_params(
         ],
         blends: [
             0.24,
-            0.42,
-            0.28,
+            0.0,
+            0.0,
             if features.bloom_enabled {
                 extract.post_process.bloom.intensity.max(0.0)
             } else {
@@ -80,5 +80,43 @@ pub(in super::super) fn build_post_process_params(
             baked_lighting.color.z.max(0.0),
             baked_lighting.intensity.max(0.0),
         ],
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::core::framework::render::{RenderFrameExtract, RenderWorldSnapshotHandle};
+    use crate::core::math::UVec2;
+    use crate::scene::World;
+
+    use super::*;
+
+    #[test]
+    fn clustered_lighting_does_not_tint_final_frame_by_tile_buffer() {
+        let params = build_post_process_params(
+            UVec2::new(128, 96),
+            UVec2::new(8, 6),
+            &RenderFrameExtract::from_snapshot(
+                RenderWorldSnapshotHandle::new(1),
+                World::new().to_render_snapshot(),
+            ),
+            SceneRuntimeFeatureFlags {
+                clustered_lighting_enabled: true,
+                ..SceneRuntimeFeatureFlags::default()
+            },
+            false,
+            0,
+            0,
+            0,
+        );
+
+        assert_eq!(
+            params.blends[1], 0.0,
+            "cluster buffer intensity must not create visible viewport tile bands"
+        );
+        assert_eq!(
+            params.blends[2], 0.0,
+            "cluster buffer color must not create visible viewport tile bands"
+        );
     }
 }

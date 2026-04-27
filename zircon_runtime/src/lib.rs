@@ -15,18 +15,20 @@ pub mod render_graph;
 pub mod rhi;
 pub mod rhi_wgpu;
 
-/// Animation driver/manager registration (first-class runtime subsystem).
-pub mod animation;
 mod builtin;
-pub mod extensions;
 pub mod foundation;
 pub mod input;
-/// Physics backend/driver/manager registration (first-class runtime subsystem).
-pub mod physics;
 pub mod platform;
+pub mod plugin;
 pub mod script;
 
-pub use builtin::builtin_runtime_modules;
+pub use builtin::{
+    builtin_runtime_modules, default_manifest_for_target, manifest_with_mode_baseline,
+    runtime_core_modules, runtime_modules_for_target,
+    runtime_modules_for_target_with_linked_plugins,
+    runtime_modules_for_target_with_plugin_registration_reports, RuntimeModuleLoadReport,
+    RuntimePluginId, RuntimeRequiredPluginMissing, RuntimeTargetMode,
+};
 #[allow(unused_imports)]
 pub(crate) use graphics::scene::{
     cluster_buffer_bytes_for_size, cluster_dimensions_for_size, create_depth_texture,
@@ -45,6 +47,18 @@ pub(crate) use graphics::{
     VisibilityHybridGiUpdatePlan, VisibilityVirtualGeometryCluster,
     VisibilityVirtualGeometryDrawSegment, VisibilityVirtualGeometryFeedback,
     VisibilityVirtualGeometryPageUploadPlan, WgpuRenderFramework,
+};
+pub use plugin::{
+    ComponentPropertyDescriptor, ComponentTypeDescriptor, EditorCoreProfile, ExportBuildPlan,
+    ExportGeneratedFile, ExportPackagingStrategy, ExportProfile, ExportTargetPlatform,
+    LoadedNativePlugin, NativePluginAbiV1, NativePluginCandidate, NativePluginDescriptor,
+    NativePluginLoadManifest, NativePluginLoadManifestEntry, NativePluginLoadReport,
+    NativePluginLoader, PluginModuleKind, PluginModuleManifest, PluginPackageManifest,
+    ProjectPluginManifest, ProjectPluginSelection, RuntimeCoreProfile,
+    RuntimeExtensionCatalogReport, RuntimeExtensionRegistry, RuntimeExtensionRegistryError,
+    RuntimePlugin, RuntimePluginCatalog, RuntimePluginDescriptor, RuntimePluginRegistrationReport,
+    UiComponentDescriptor, ZIRCON_NATIVE_PLUGIN_ABI_VERSION,
+    ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL,
 };
 
 #[cfg(test)]

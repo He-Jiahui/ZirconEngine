@@ -2,14 +2,18 @@ use std::collections::BTreeSet;
 
 use crate::ui::workbench::layout::{ActivityDrawerLayout, WorkbenchLayout};
 
-use super::super::builtin_layout::builtin_hybrid_layout;
+use super::super::builtin_layout::builtin_hybrid_layout_for_subsystems;
+use super::super::editor_subsystems::EditorSubsystemReport;
 use super::baseline_main_page_tabs::baseline_main_page_tabs;
 use super::collect_instance_hosts::collect_instance_hosts;
 use super::ensure_host_document_root::ensure_host_document_root;
 use super::first_tab_stack_mut::first_tab_stack_mut;
 
-pub(in crate::ui::host) fn repair_builtin_shell_layout(layout: &mut WorkbenchLayout) {
-    let baseline = builtin_hybrid_layout();
+pub(in crate::ui::host) fn repair_builtin_shell_layout(
+    layout: &mut WorkbenchLayout,
+    subsystems: &EditorSubsystemReport,
+) {
+    let baseline = builtin_hybrid_layout_for_subsystems(subsystems);
     let mut present: BTreeSet<_> = collect_instance_hosts(layout).into_keys().collect();
 
     for (slot, baseline_drawer) in &baseline.drawers {

@@ -17,7 +17,8 @@ impl SceneRenderer {
                     .collect()
             })
             .unwrap_or_else(|_| {
-                self.last_virtual_geometry_mesh_draw_submission_order
+                self.advanced_plugin_outputs
+                    .virtual_geometry_mesh_draw_submission_order
                     .clone()
             })
     }

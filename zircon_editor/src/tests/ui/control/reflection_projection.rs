@@ -33,6 +33,7 @@ fn editor_ui_reflection_adapter_projects_activity_hosts_and_menu_bindings() {
             control_id: "SaveProject".to_string(),
             label: "Save Project".to_string(),
             enabled: true,
+            operation_path: Some("File.Project.Save".to_string()),
             binding: menu_binding,
             route_id: Some(menu_route),
         }],
@@ -95,6 +96,8 @@ fn editor_ui_reflection_adapter_projects_activity_hosts_and_menu_bindings() {
         menu,
         UiControlResponse::Node(Some(node))
             if node.actions.contains_key("onClick")
+                && node.properties["operation_path"].reflected_value
+                    == json!("File.Project.Save")
     ));
     let invoked = service.handle_request(UiControlRequest::InvokeBinding {
         binding: UiEventBinding::new(

@@ -8,3 +8,5 @@ mod virtual_geometry_hardware_rasterization_pass;
 mod virtual_geometry_indirect_stats;
 mod virtual_geometry_node_and_cluster_cull_pass;
 mod virtual_geometry_visbuffer64_pass;
+
+pub(in crate::graphics::scene::scene_renderer::core) use virtual_geometry_indirect_stats::VirtualGeometryIndirectStats;

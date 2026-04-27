@@ -7,6 +7,7 @@ impl Default for RenderPipelineCompileOptions {
         Self {
             enabled_features: BTreeSet::new(),
             disabled_features: BTreeSet::new(),
+            enabled_capabilities: BTreeSet::new(),
             allow_async_compute: true,
         }
     }

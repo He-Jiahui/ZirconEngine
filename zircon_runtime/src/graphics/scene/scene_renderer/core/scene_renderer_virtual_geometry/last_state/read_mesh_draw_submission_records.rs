@@ -9,11 +9,13 @@ impl SceneRenderer {
         &self,
     ) -> Result<Vec<(Option<u32>, u64, u32, u32, u32)>, crate::graphics::types::GraphicsError> {
         if !self
-            .last_virtual_geometry_mesh_draw_submission_token_records
+            .advanced_plugin_outputs
+            .virtual_geometry_mesh_draw_submission_token_records
             .is_empty()
         {
             return Ok(self
-                .last_virtual_geometry_mesh_draw_submission_token_records
+                .advanced_plugin_outputs
+                .virtual_geometry_mesh_draw_submission_token_records
                 .clone()
                 .into_iter()
                 .enumerate()
@@ -23,7 +25,8 @@ impl SceneRenderer {
                         (entity, page_id, submission_index, draw_ref_rank, _original_index),
                     )| {
                         (
-                            self.last_virtual_geometry_mesh_draw_submission_order
+                            self.advanced_plugin_outputs
+                                .virtual_geometry_mesh_draw_submission_order
                                 .get(record_index)
                                 .map(|(instance_index, _entity, _page_id)| *instance_index)
                                 .flatten(),
@@ -92,7 +95,8 @@ impl SceneRenderer {
         }
 
         let mesh_draw_submission_records = if self
-            .last_virtual_geometry_mesh_draw_submission_records
+            .advanced_plugin_outputs
+            .virtual_geometry_mesh_draw_submission_records
             .is_empty()
         {
             let indirect_draw_refs = self.read_last_virtual_geometry_indirect_draw_refs()?;
@@ -151,14 +155,16 @@ impl SceneRenderer {
                 }
             }
         } else {
-            self.last_virtual_geometry_mesh_draw_submission_records
+            self.advanced_plugin_outputs
+                .virtual_geometry_mesh_draw_submission_records
                 .clone()
                 .into_iter()
                 .enumerate()
                 .map(
                     |(record_index, (entity, page_id, draw_ref_index, original_index))| {
                         (
-                            self.last_virtual_geometry_mesh_draw_submission_order
+                            self.advanced_plugin_outputs
+                                .virtual_geometry_mesh_draw_submission_order
                                 .get(record_index)
                                 .map(|(instance_index, _entity, _page_id)| *instance_index)
                                 .flatten(),
@@ -224,43 +230,51 @@ impl SceneRenderer {
 
     #[cfg(test)]
     pub(crate) fn drop_last_virtual_geometry_indirect_submission_buffer_for_test(&mut self) {
-        self.last_virtual_geometry_indirect_submission_buffer = None;
+        self.advanced_plugin_outputs
+            .virtual_geometry_indirect_submission_buffer = None;
     }
 
     #[cfg(test)]
     pub(crate) fn drop_last_virtual_geometry_indirect_authority_buffer_for_test(&mut self) {
-        self.last_virtual_geometry_indirect_authority_buffer = None;
+        self.advanced_plugin_outputs
+            .virtual_geometry_indirect_authority_buffer = None;
     }
 
     #[cfg(test)]
     pub(crate) fn drop_last_virtual_geometry_mesh_draw_submission_token_records_for_test(
         &mut self,
     ) {
-        self.last_virtual_geometry_mesh_draw_submission_token_records
+        self.advanced_plugin_outputs
+            .virtual_geometry_mesh_draw_submission_token_records
             .clear();
     }
 
     #[cfg(test)]
     pub(crate) fn drop_last_virtual_geometry_mesh_draw_submission_records_for_test(&mut self) {
-        self.last_virtual_geometry_mesh_draw_submission_records
+        self.advanced_plugin_outputs
+            .virtual_geometry_mesh_draw_submission_records
             .clear();
-        self.last_virtual_geometry_mesh_draw_submission_order
+        self.advanced_plugin_outputs
+            .virtual_geometry_mesh_draw_submission_order
             .clear();
     }
 
     #[cfg(test)]
     pub(crate) fn drop_last_virtual_geometry_indirect_args_buffer_for_test(&mut self) {
-        self.last_virtual_geometry_indirect_args_buffer = None;
+        self.advanced_plugin_outputs
+            .virtual_geometry_indirect_args_buffer = None;
     }
 
     #[cfg(test)]
     pub(crate) fn drop_last_virtual_geometry_indirect_draw_refs_buffer_for_test(&mut self) {
-        self.last_virtual_geometry_indirect_draw_refs_buffer = None;
+        self.advanced_plugin_outputs
+            .virtual_geometry_indirect_draw_refs_buffer = None;
     }
 
     #[cfg(test)]
     pub(crate) fn drop_last_virtual_geometry_indirect_segments_buffer_for_test(&mut self) {
-        self.last_virtual_geometry_indirect_segments_buffer = None;
+        self.advanced_plugin_outputs
+            .virtual_geometry_indirect_segments_buffer = None;
     }
 
     #[cfg(test)]
@@ -286,18 +300,21 @@ impl SceneRenderer {
     pub(crate) fn drop_last_virtual_geometry_indirect_execution_submission_buffer_for_test(
         &mut self,
     ) {
-        self.last_virtual_geometry_indirect_execution_submission_buffer = None;
+        self.advanced_plugin_outputs
+            .virtual_geometry_indirect_execution_submission_buffer = None;
     }
 
     #[cfg(test)]
     pub(crate) fn drop_last_virtual_geometry_indirect_execution_args_buffer_for_test(&mut self) {
-        self.last_virtual_geometry_indirect_execution_args_buffer = None;
+        self.advanced_plugin_outputs
+            .virtual_geometry_indirect_execution_args_buffer = None;
     }
 
     #[cfg(test)]
     pub(crate) fn drop_last_virtual_geometry_indirect_execution_authority_buffer_for_test(
         &mut self,
     ) {
-        self.last_virtual_geometry_indirect_execution_authority_buffer = None;
+        self.advanced_plugin_outputs
+            .virtual_geometry_indirect_execution_authority_buffer = None;
     }
 }

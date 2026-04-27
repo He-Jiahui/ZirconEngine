@@ -1,9 +1,12 @@
 use crate::core::framework::render::{RenderFrameExtract, RenderWorldSnapshotHandle};
+use crate::graphics::tests::plugin_render_feature_fixtures::{
+    hybrid_gi_render_feature_descriptor, virtual_geometry_render_feature_descriptor,
+};
 use crate::render_graph::QueueLane;
 use crate::scene::world::World;
 
 use crate::{
-    BuiltinRenderFeature, FrameHistoryBinding, FrameHistorySlot, RenderPipelineAsset,
+    FrameHistoryBinding, FrameHistorySlot, RenderFeatureCapabilityRequirement, RenderPipelineAsset,
     RenderPipelineCompileOptions,
 };
 
@@ -37,13 +40,19 @@ fn default_forward_plus_pipeline_keeps_m5_flagship_features_opted_out() {
 }
 
 #[test]
-fn compile_options_can_opt_in_virtual_geometry_and_hybrid_gi_features() {
+fn compile_options_can_opt_in_linked_virtual_geometry_and_hybrid_gi_features() {
     let compiled = RenderPipelineAsset::default_forward_plus()
+        .with_plugin_render_features([
+            virtual_geometry_render_feature_descriptor(),
+            hybrid_gi_render_feature_descriptor(),
+        ])
         .compile_with_options(
             &test_extract(),
             &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
-                .with_feature_enabled(BuiltinRenderFeature::GlobalIllumination)
+                .with_capability_enabled(RenderFeatureCapabilityRequirement::VirtualGeometry)
+                .with_capability_enabled(
+                    RenderFeatureCapabilityRequirement::HybridGlobalIllumination,
+                )
                 .with_async_compute(false),
         )
         .unwrap();

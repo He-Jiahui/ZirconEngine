@@ -210,6 +210,12 @@ fn inject_payload_attributes(root: &mut UiTemplateNode, payload: &PanePayload) {
                 string_array(&payload.detail_items),
             );
         }
+        PanePayload::UiComponentShowcaseV1(payload) => {
+            root.attributes.insert(
+                "payload_state_summary".to_string(),
+                Value::String(payload.state_summary.clone()),
+            );
+        }
     }
 }
 

@@ -11,6 +11,7 @@ use crate::core::framework::scene::Mobility;
 use crate::core::math::UVec2;
 use crate::core::math::{Quat, Transform, Vec3, Vec4};
 use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
+use crate::graphics::tests::plugin_render_feature_fixtures::hybrid_gi_render_feature_descriptor;
 use crate::scene::world::World;
 
 use super::hybrid_gi_scene_prepare_material_fixtures::{
@@ -26,12 +27,44 @@ use crate::{
         HybridGiPrepareSurfaceCachePageContent, HybridGiPrepareVoxelCell,
         HybridGiPrepareVoxelClipmap, HybridGiScenePrepareFrame, ViewportRenderFrame,
     },
-    BuiltinRenderFeature, RenderPipelineAsset, RenderPipelineCompileOptions, SceneRenderer,
+    BuiltinRenderFeature, CompiledRenderPipeline, RenderFeatureCapabilityRequirement,
+    RenderPipelineAsset, RenderPipelineCompileOptions, SceneRenderer,
 };
 
 const CARD_CAPTURE_TILE_EXTENT: u32 = 64;
 const CARD_CAPTURE_ATLAS_COLUMNS: u32 = 8;
 const TEST_SCENE_PREPARE_VOXEL_MIN_MESH_BOUNDS_RADIUS: f32 = 0.5;
+
+fn compile_hybrid_gi_pipeline(extract: &RenderFrameExtract) -> CompiledRenderPipeline {
+    RenderPipelineAsset::default_forward_plus()
+        .with_plugin_render_features([hybrid_gi_render_feature_descriptor()])
+        .compile_with_options(
+            extract,
+            &RenderPipelineCompileOptions::default()
+                .with_capability_enabled(
+                    RenderFeatureCapabilityRequirement::HybridGlobalIllumination,
+                )
+                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
+                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
+                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
+                .with_feature_disabled(BuiltinRenderFeature::Bloom)
+                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
+                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
+                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
+                .with_feature_disabled(BuiltinRenderFeature::Particle)
+                .with_feature_disabled(BuiltinRenderFeature::VirtualGeometry)
+                .with_async_compute(false),
+        )
+        .unwrap()
+}
+
+fn hybrid_gi_scene_renderer(asset_manager: Arc<ProjectAssetManager>) -> SceneRenderer {
+    SceneRenderer::new_with_plugin_render_features(
+        asset_manager,
+        [hybrid_gi_render_feature_descriptor()],
+    )
+    .unwrap()
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct ScenePrepareResourceSnapshotForTest {
@@ -52,30 +85,14 @@ struct ScenePrepareResourceSnapshotForTest {
 #[test]
 fn hybrid_gi_gpu_readback_reports_scene_prepare_card_capture_resource_snapshot() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let extract = build_extract(
         viewport_size,
         vec![probe(200, 96, Vec3::ZERO, 0.85)],
         vec![trace_region(40, Vec3::ZERO, 0.8, 0.9)],
     );
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::GlobalIllumination)
-                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
-                .with_feature_disabled(BuiltinRenderFeature::Bloom)
-                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
-                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
-                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
-                .with_feature_disabled(BuiltinRenderFeature::Particle)
-                .with_feature_disabled(BuiltinRenderFeature::VirtualGeometry)
-                .with_async_compute(false),
-        )
-        .unwrap();
+    let compiled = compile_hybrid_gi_pipeline(&extract);
 
     renderer
         .render_frame_with_pipeline(
@@ -167,7 +184,7 @@ fn hybrid_gi_gpu_readback_reports_scene_prepare_card_capture_resource_snapshot()
 #[test]
 fn hybrid_gi_scene_prepare_card_capture_samples_change_with_mesh_tint_and_directional_light() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let prepare = prepare_frame();
     let scene_prepare = single_card_scene_prepare();
@@ -231,7 +248,7 @@ fn hybrid_gi_scene_prepare_card_capture_samples_change_with_mesh_tint_and_direct
 #[test]
 fn hybrid_gi_scene_prepare_card_capture_samples_change_with_point_and_spot_lights() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let prepare = prepare_frame();
     let scene_prepare = single_card_scene_prepare();
@@ -323,7 +340,7 @@ fn hybrid_gi_scene_prepare_card_capture_samples_change_with_point_and_spot_light
 #[test]
 fn hybrid_gi_scene_prepare_card_capture_samples_change_with_material_base_color() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let prepare = prepare_frame();
     let scene_prepare = single_card_scene_prepare();
@@ -390,7 +407,7 @@ fn hybrid_gi_scene_prepare_card_capture_samples_change_with_material_base_color_
         base_color_blue,
         ..
     } = material_texture_capture_test_assets();
-    let mut renderer = SceneRenderer::new(asset_manager.clone()).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager.clone());
     let viewport_size = UVec2::new(96, 64);
     let prepare = prepare_frame();
     let scene_prepare = single_card_scene_prepare();
@@ -460,7 +477,7 @@ fn hybrid_gi_scene_prepare_card_capture_samples_change_with_material_base_color_
 #[test]
 fn hybrid_gi_scene_prepare_card_capture_samples_change_with_material_emissive() {
     let (asset_manager, root, black_material, emissive_material) = material_capture_test_assets();
-    let mut renderer = SceneRenderer::new(asset_manager.clone()).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager.clone());
     let viewport_size = UVec2::new(96, 64);
     let prepare = prepare_frame();
     let scene_prepare = single_card_scene_prepare();
@@ -531,7 +548,7 @@ fn hybrid_gi_scene_prepare_card_capture_samples_change_with_material_emissive_te
         emissive_cool,
         ..
     } = material_texture_capture_test_assets();
-    let mut renderer = SceneRenderer::new(asset_manager.clone()).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager.clone());
     let viewport_size = UVec2::new(96, 64);
     let prepare = prepare_frame();
     let scene_prepare = single_card_scene_prepare();
@@ -601,7 +618,7 @@ fn hybrid_gi_scene_prepare_card_capture_samples_change_with_material_emissive_te
 fn hybrid_gi_scene_prepare_card_capture_samples_change_with_material_roughness() {
     let (asset_manager, root, smooth_white, rough_white, _, _) =
         material_surface_response_test_assets();
-    let mut renderer = SceneRenderer::new(asset_manager.clone()).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager.clone());
     let viewport_size = UVec2::new(96, 64);
     let prepare = prepare_frame();
     let scene_prepare = single_card_scene_prepare();
@@ -677,7 +694,7 @@ fn hybrid_gi_scene_prepare_card_capture_samples_change_with_material_normal_text
         tilted_normal,
         ..
     } = material_texture_capture_test_assets();
-    let mut renderer = SceneRenderer::new(asset_manager.clone()).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager.clone());
     let viewport_size = UVec2::new(96, 64);
     let prepare = prepare_frame();
     let scene_prepare = single_card_scene_prepare();
@@ -752,7 +769,7 @@ fn hybrid_gi_scene_prepare_card_capture_respects_material_double_sided_backface_
         double_sided_white,
         ..
     } = material_visibility_capture_test_assets();
-    let mut renderer = SceneRenderer::new(asset_manager.clone()).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager.clone());
     let viewport_size = UVec2::new(96, 64);
     let prepare = prepare_frame();
     let scene_prepare = single_card_scene_prepare();
@@ -830,7 +847,7 @@ fn hybrid_gi_scene_prepare_card_capture_respects_material_alpha_mask() {
         masked_cutout_white,
         ..
     } = material_visibility_capture_test_assets();
-    let mut renderer = SceneRenderer::new(asset_manager.clone()).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager.clone());
     let viewport_size = UVec2::new(96, 64);
     let prepare = prepare_frame();
     let scene_prepare = single_card_scene_prepare();
@@ -906,7 +923,7 @@ fn hybrid_gi_scene_prepare_card_capture_respects_material_alpha_blend() {
         blended_white,
         ..
     } = material_visibility_capture_test_assets();
-    let mut renderer = SceneRenderer::new(asset_manager.clone()).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager.clone());
     let viewport_size = UVec2::new(96, 64);
     let prepare = prepare_frame();
     let scene_prepare = single_card_scene_prepare();
@@ -976,7 +993,7 @@ fn hybrid_gi_scene_prepare_card_capture_respects_material_alpha_blend() {
 #[test]
 fn hybrid_gi_scene_prepare_voxel_samples_change_with_material_emissive() {
     let (asset_manager, root, black_material, emissive_material) = material_capture_test_assets();
-    let mut renderer = SceneRenderer::new(asset_manager.clone()).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager.clone());
     let viewport_size = UVec2::new(96, 64);
     let prepare = prepare_frame();
     let scene_prepare = single_voxel_scene_prepare();
@@ -1047,7 +1064,7 @@ fn hybrid_gi_scene_prepare_voxel_samples_change_with_material_occlusion_texture(
         blocked_occlusion,
         ..
     } = material_texture_capture_test_assets();
-    let mut renderer = SceneRenderer::new(asset_manager.clone()).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager.clone());
     let viewport_size = UVec2::new(96, 64);
     let prepare = prepare_frame();
     let scene_prepare = single_voxel_scene_prepare();
@@ -1121,7 +1138,7 @@ fn hybrid_gi_scene_prepare_voxel_samples_change_with_material_emissive_texture()
         emissive_cool,
         ..
     } = material_texture_capture_test_assets();
-    let mut renderer = SceneRenderer::new(asset_manager.clone()).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager.clone());
     let viewport_size = UVec2::new(96, 64);
     let prepare = prepare_frame();
     let scene_prepare = single_voxel_scene_prepare();
@@ -1191,7 +1208,7 @@ fn hybrid_gi_scene_prepare_voxel_samples_change_with_material_emissive_texture()
 fn hybrid_gi_scene_prepare_voxel_samples_change_with_material_metallic() {
     let (asset_manager, root, _, _, dielectric_red, metallic_red) =
         material_surface_response_test_assets();
-    let mut renderer = SceneRenderer::new(asset_manager.clone()).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager.clone());
     let viewport_size = UVec2::new(96, 64);
     let prepare = prepare_frame();
     let scene_prepare = single_voxel_scene_prepare();
@@ -1270,7 +1287,7 @@ fn hybrid_gi_scene_prepare_voxel_samples_change_with_material_metallic_roughness
         smooth_metallic,
         ..
     } = material_texture_capture_test_assets();
-    let mut renderer = SceneRenderer::new(asset_manager.clone()).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager.clone());
     let viewport_size = UVec2::new(96, 64);
     let prepare = prepare_frame();
     let scene_prepare = single_voxel_scene_prepare();
@@ -1340,7 +1357,7 @@ fn hybrid_gi_scene_prepare_voxel_samples_change_with_material_metallic_roughness
 #[test]
 fn hybrid_gi_scene_prepare_voxel_occupancy_changes_with_mesh_translation() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let prepare = prepare_frame();
     let left_meshes = vec![mesh_with_transform_and_tint(
@@ -1399,7 +1416,7 @@ fn hybrid_gi_scene_prepare_voxel_occupancy_changes_with_mesh_translation() {
 #[test]
 fn hybrid_gi_scene_prepare_voxel_cell_samples_follow_mesh_translation() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let prepare = prepare_frame();
     let scene_prepare = single_voxel_scene_prepare();
@@ -1461,7 +1478,7 @@ fn hybrid_gi_scene_prepare_voxel_cell_samples_follow_mesh_translation() {
 #[test]
 fn hybrid_gi_scene_prepare_voxel_cell_occupancy_counts_accumulate_overlapping_meshes() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let prepare = prepare_frame();
     let single_meshes = vec![mesh_with_transform_and_tint(
@@ -1535,7 +1552,7 @@ fn hybrid_gi_scene_prepare_voxel_cell_occupancy_counts_accumulate_overlapping_me
 #[test]
 fn hybrid_gi_scene_prepare_uses_runtime_voxel_cell_payload_without_scene_meshes() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
 
     let snapshot = render_scene_prepare_resource_snapshot(
@@ -1632,7 +1649,7 @@ fn hybrid_gi_scene_prepare_uses_runtime_voxel_cell_payload_without_scene_meshes(
 fn hybrid_gi_scene_prepare_reuses_persisted_surface_cache_page_contents_without_card_capture_requests(
 ) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
 
     let snapshot = render_scene_prepare_resource_snapshot(
@@ -1687,7 +1704,7 @@ fn hybrid_gi_scene_prepare_reuses_persisted_surface_cache_page_contents_without_
 fn hybrid_gi_scene_prepare_absent_persisted_surface_cache_page_contents_do_not_create_resource_snapshot_without_other_scene_prepare_data(
 ) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
 
     let snapshot = render_optional_scene_prepare_resource_snapshot(
@@ -1726,7 +1743,7 @@ fn hybrid_gi_scene_prepare_absent_persisted_surface_cache_page_contents_do_not_c
 fn hybrid_gi_scene_prepare_absent_persisted_surface_cache_page_contents_do_not_occupy_atlas_or_capture_slots(
 ) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
 
     let snapshot = render_scene_prepare_resource_snapshot(
@@ -1788,7 +1805,7 @@ fn hybrid_gi_scene_prepare_absent_persisted_surface_cache_page_contents_do_not_o
 fn hybrid_gi_scene_prepare_atlas_only_persisted_surface_cache_page_contents_do_not_occupy_capture_slots(
 ) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
 
     let snapshot = render_scene_prepare_resource_snapshot(
@@ -1835,7 +1852,7 @@ fn hybrid_gi_scene_prepare_atlas_only_persisted_surface_cache_page_contents_do_n
 fn hybrid_gi_scene_prepare_capture_only_persisted_surface_cache_page_contents_do_not_occupy_atlas_slots(
 ) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
 
     let snapshot = render_scene_prepare_resource_snapshot(
@@ -1881,7 +1898,7 @@ fn hybrid_gi_scene_prepare_capture_only_persisted_surface_cache_page_contents_do
 #[test]
 fn hybrid_gi_scene_prepare_preserves_explicit_black_runtime_voxel_radiance_without_scene_meshes() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
 
     let present_black = render_scene_prepare_resource_snapshot(
@@ -1972,7 +1989,7 @@ fn hybrid_gi_scene_prepare_preserves_explicit_black_runtime_voxel_radiance_witho
 #[test]
 fn hybrid_gi_scene_prepare_requires_runtime_voxel_cells_for_occupancy_and_count_truth() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
 
     let snapshot = render_scene_prepare_resource_snapshot(
@@ -2013,7 +2030,7 @@ fn hybrid_gi_scene_prepare_requires_runtime_voxel_cells_for_occupancy_and_count_
 #[test]
 fn hybrid_gi_scene_prepare_voxel_cell_dominant_node_prefers_brighter_overlap() {
     let (asset_manager, root, black_material, emissive_material) = material_capture_test_assets();
-    let mut renderer = SceneRenderer::new(asset_manager.clone()).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager.clone());
     let viewport_size = UVec2::new(96, 64);
     let prepare = prepare_frame();
     let scene_prepare = single_voxel_scene_prepare();
@@ -2066,7 +2083,7 @@ fn hybrid_gi_scene_prepare_voxel_cell_dominant_node_prefers_brighter_overlap() {
 #[test]
 fn hybrid_gi_scene_prepare_voxel_cell_dominant_sample_matches_brighter_overlap() {
     let (asset_manager, root, _black_material, emissive_material) = material_capture_test_assets();
-    let mut renderer = SceneRenderer::new(asset_manager.clone()).unwrap();
+    let mut renderer = hybrid_gi_scene_renderer(asset_manager.clone());
     let viewport_size = UVec2::new(96, 64);
     let prepare = prepare_frame();
     let scene_prepare = single_voxel_scene_prepare();
@@ -2338,23 +2355,7 @@ fn render_optional_scene_prepare_resource_snapshot(
     prepare: HybridGiPrepareFrame,
     scene_prepare: HybridGiScenePrepareFrame,
 ) -> Option<ScenePrepareResourceSnapshotForTest> {
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::GlobalIllumination)
-                .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-                .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
-                .with_feature_disabled(BuiltinRenderFeature::Bloom)
-                .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
-                .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
-                .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
-                .with_feature_disabled(BuiltinRenderFeature::Particle)
-                .with_feature_disabled(BuiltinRenderFeature::VirtualGeometry)
-                .with_async_compute(false),
-        )
-        .unwrap();
+    let compiled = compile_hybrid_gi_pipeline(&extract);
 
     renderer
         .render_frame_with_pipeline(

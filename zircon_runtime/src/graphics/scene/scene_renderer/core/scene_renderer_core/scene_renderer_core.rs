@@ -1,12 +1,11 @@
 use super::super::super::deferred::DeferredSceneResources;
-use super::super::super::hybrid_gi::HybridGiGpuResources;
-use super::super::super::mesh::{MeshPipelineCache, VirtualGeometryIndirectArgsGpuResources};
+use super::super::super::mesh::MeshPipelineCache;
 use super::super::super::overlay::ViewportOverlayRenderer;
 use super::super::super::particle::ParticleRenderer;
 use super::super::super::post_process::ScenePostProcessResources;
 use super::super::super::prepass::NormalPrepassPipeline;
 use super::super::super::ui::ScreenSpaceUiRenderer;
-use super::super::super::virtual_geometry::VirtualGeometryGpuResources;
+use super::SceneRendererAdvancedPluginResources;
 
 pub(crate) struct SceneRendererCore {
     pub(crate) texture_bind_group_layout: wgpu::BindGroupLayout,
@@ -22,9 +21,6 @@ pub(crate) struct SceneRendererCore {
     pub(in crate::graphics::scene::scene_renderer::core) overlay_renderer: ViewportOverlayRenderer,
     pub(in crate::graphics::scene::scene_renderer::core) screen_space_ui_renderer:
         ScreenSpaceUiRenderer,
-    pub(in crate::graphics::scene::scene_renderer::core) hybrid_gi: HybridGiGpuResources,
-    pub(in crate::graphics::scene::scene_renderer::core) virtual_geometry:
-        VirtualGeometryGpuResources,
-    pub(in crate::graphics::scene::scene_renderer::core) virtual_geometry_indirect_args:
-        VirtualGeometryIndirectArgsGpuResources,
+    pub(in crate::graphics::scene::scene_renderer::core) advanced_plugin_resources:
+        SceneRendererAdvancedPluginResources,
 }

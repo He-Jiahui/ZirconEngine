@@ -27,6 +27,25 @@ fn native_binding_roundtrip_preserves_generic_ui_contract() {
 }
 
 #[test]
+fn drop_binding_roundtrip_preserves_reference_payload_contract() {
+    let binding = UiEventBinding::new(
+        UiEventPath::new("ReferenceField", "AssetSlot", UiEventKind::Drop),
+        UiBindingCall::new("DropReference")
+            .with_argument(UiBindingValue::string("asset"))
+            .with_argument(UiBindingValue::string("res://textures/grid.albedo.png")),
+    );
+
+    assert_eq!(
+        binding.native_binding(),
+        r#"ReferenceField/AssetSlot:onDrop(DropReference("asset","res://textures/grid.albedo.png"))"#
+    );
+    assert_eq!(
+        UiEventBinding::parse_native_binding(&binding.native_binding()).unwrap(),
+        binding
+    );
+}
+
+#[test]
 fn headless_router_dispatches_native_binding_without_ui_runtime() {
     let binding = UiEventBinding::new(
         UiEventPath::new("ExampleView", "PrimaryButton", UiEventKind::Click),

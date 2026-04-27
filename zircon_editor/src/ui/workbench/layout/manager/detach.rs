@@ -10,8 +10,17 @@ impl LayoutManager {
     ) -> bool {
         let mut changed = false;
 
+        for activity_window in layout.activity_windows.values_mut() {
+            for drawer in activity_window.activity_drawers.values_mut() {
+                changed |= drawer.tab_stack.remove(instance_id);
+                if drawer.active_view.as_ref() == Some(instance_id) {
+                    drawer.active_view = drawer.tab_stack.active_tab.clone();
+                }
+            }
+        }
+
         for drawer in layout.drawers.values_mut() {
-            changed |= drawer.tab_stack.remove(instance_id);
+            drawer.tab_stack.remove(instance_id);
             if drawer.active_view.as_ref() == Some(instance_id) {
                 drawer.active_view = drawer.tab_stack.active_tab.clone();
             }

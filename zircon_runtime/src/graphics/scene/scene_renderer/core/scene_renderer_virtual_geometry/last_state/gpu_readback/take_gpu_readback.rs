@@ -5,6 +5,7 @@ impl SceneRenderer {
     pub(crate) fn take_last_virtual_geometry_gpu_readback(
         &mut self,
     ) -> Option<VirtualGeometryGpuReadback> {
-        self.last_virtual_geometry_gpu_readback.take()
+        self.advanced_plugin_outputs
+            .take_virtual_geometry_gpu_readback()
     }
 }

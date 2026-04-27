@@ -1,0 +1,19 @@
+id = "hybrid_gi"
+version = "0.1.0"
+display_name = "Hybrid GI"
+description = "Optional hybrid global illumination runtime and editor package."
+default_packaging = ["source_template", "library_embed"]
+
+[[modules]]
+name = "hybrid_gi.runtime"
+kind = "runtime"
+crate_name = "zircon_plugin_hybrid_gi_runtime"
+target_modes = ["client_runtime", "editor_host"]
+capabilities = ["runtime.plugin.hybrid_gi"]
+
+[[modules]]
+name = "hybrid_gi.editor"
+kind = "editor"
+crate_name = "zircon_plugin_hybrid_gi_editor"
+target_modes = ["editor_host"]
+capabilities = ["editor.extension.hybrid_gi_authoring"]

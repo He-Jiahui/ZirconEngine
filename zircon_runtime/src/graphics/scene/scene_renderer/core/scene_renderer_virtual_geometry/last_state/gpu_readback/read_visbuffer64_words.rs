@@ -10,9 +10,17 @@ impl SceneRenderer {
     pub(crate) fn read_last_virtual_geometry_visbuffer64_words(
         &self,
     ) -> Result<(u64, Vec<u64>), GraphicsError> {
-        let clear_value = self.last_virtual_geometry_visbuffer64_clear_value;
-        let entry_count = self.last_virtual_geometry_visbuffer64_entry_count as usize;
-        let Some(buffer) = self.last_virtual_geometry_visbuffer64_buffer.as_ref() else {
+        let clear_value = self
+            .advanced_plugin_outputs
+            .virtual_geometry_visbuffer64_clear_value;
+        let entry_count = self
+            .advanced_plugin_outputs
+            .virtual_geometry_visbuffer64_entry_count as usize;
+        let Some(buffer) = self
+            .advanced_plugin_outputs
+            .virtual_geometry_visbuffer64_buffer
+            .as_ref()
+        else {
             return Ok((clear_value, Vec::new()));
         };
         if entry_count == 0 {

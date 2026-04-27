@@ -97,7 +97,7 @@ export component PaneSurface inherits Rectangle {
                 width: parent.width;
                 height: parent.height;
                 source: PaneSurfaceHostContext.viewport_image;
-                image-fit: contain;
+                image-fit: fill;
             }
 
             if !root.pane.show_empty: Rectangle {

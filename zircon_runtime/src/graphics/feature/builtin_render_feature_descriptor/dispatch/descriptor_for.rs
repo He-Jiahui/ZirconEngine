@@ -1,8 +1,8 @@
 use super::super::builtin_render_feature::BuiltinRenderFeature;
 use super::super::feature_descriptors::{
     baked_lighting, bloom, clustered_lighting, color_grading, debug_overlay, deferred_geometry,
-    deferred_lighting, global_illumination, history_resolve, mesh, particle, post_process,
-    ray_tracing, reflection_probes, screen_space_ambient_occlusion, shadows, virtual_geometry,
+    deferred_lighting, history_resolve, mesh, particle, post_process, ray_tracing,
+    reflection_probes, screen_space_ambient_occlusion, shadows,
 };
 use super::super::render_feature_descriptor::RenderFeatureDescriptor;
 
@@ -24,8 +24,16 @@ pub(super) fn descriptor_for(feature: BuiltinRenderFeature) -> RenderFeatureDesc
         BuiltinRenderFeature::PostProcess => post_process::descriptor(),
         BuiltinRenderFeature::DebugOverlay => debug_overlay::descriptor(),
         BuiltinRenderFeature::Particle => particle::descriptor(),
-        BuiltinRenderFeature::GlobalIllumination => global_illumination::descriptor(),
+        BuiltinRenderFeature::GlobalIllumination => {
+            pluginized_advanced_placeholder_descriptor("global_illumination")
+        }
         BuiltinRenderFeature::RayTracing => ray_tracing::descriptor(),
-        BuiltinRenderFeature::VirtualGeometry => virtual_geometry::descriptor(),
+        BuiltinRenderFeature::VirtualGeometry => {
+            pluginized_advanced_placeholder_descriptor("virtual_geometry")
+        }
     }
+}
+
+fn pluginized_advanced_placeholder_descriptor(name: &str) -> RenderFeatureDescriptor {
+    RenderFeatureDescriptor::new(name, Vec::new(), Vec::new(), Vec::new())
 }

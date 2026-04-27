@@ -24,6 +24,8 @@ pub struct ViewDescriptor {
     pub pane_template: Option<PaneTemplateSpec>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub activity_window_template: Option<ActivityWindowTemplateSpec>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub required_capabilities: Vec<String>,
 }
 
 impl ViewDescriptor {
@@ -46,6 +48,7 @@ impl ViewDescriptor {
             default_constraints: PaneConstraints::default(),
             pane_template: None,
             activity_window_template: None,
+            required_capabilities: Vec::new(),
         }
     }
 }

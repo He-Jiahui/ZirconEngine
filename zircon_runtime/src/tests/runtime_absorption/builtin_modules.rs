@@ -1,7 +1,10 @@
-use crate::builtin_runtime_modules;
+use crate::{
+    builtin_runtime_modules, runtime_modules_for_target, ProjectPluginManifest,
+    ProjectPluginSelection, RuntimePluginId, RuntimeTargetMode,
+};
 
 #[test]
-fn builtin_runtime_modules_include_absorbed_high_level_subsystems_and_extensions() {
+fn builtin_runtime_modules_include_target_client_core_and_required_plugins() {
     let descriptors = builtin_runtime_modules()
         .into_iter()
         .map(|module| module.descriptor().name)
@@ -15,33 +18,34 @@ fn builtin_runtime_modules_include_absorbed_high_level_subsystems_and_extensions
         crate::graphics::GRAPHICS_MODULE_NAME,
         crate::scene::SCENE_MODULE_NAME,
         crate::script::SCRIPT_MODULE_NAME,
-        crate::ui::UI_MODULE_NAME,
-        "PhysicsModule",
-        "SoundModule",
-        "TextureModule",
-        "NetModule",
-        "NavigationModule",
-        "ParticlesModule",
-        "AnimationModule",
     ] {
         assert!(
             descriptors.iter().any(|name| name == expected),
             "missing runtime module {expected}"
         );
     }
+
+    #[cfg(feature = "plugin-ui")]
+    assert!(
+        descriptors
+            .iter()
+            .any(|name| name == crate::ui::UI_MODULE_NAME),
+        "missing runtime module {}",
+        crate::ui::UI_MODULE_NAME
+    );
 }
 
 #[test]
-fn builtin_runtime_modules_keep_graphics_in_runtime_owned_ordering() {
+fn builtin_runtime_modules_keep_client_plugins_after_core_spine() {
     let descriptors = builtin_runtime_modules()
         .into_iter()
         .map(|module| module.descriptor().name)
         .collect::<Vec<_>>();
 
-    let asset_index = descriptors
+    let script_index = descriptors
         .iter()
-        .position(|name| *name == crate::asset::ASSET_MODULE_NAME)
-        .expect("asset module should exist in runtime builtins");
+        .position(|name| *name == crate::script::SCRIPT_MODULE_NAME)
+        .expect("script module should exist in runtime builtins");
     let graphics_index = descriptors
         .iter()
         .position(|name| *name == crate::graphics::GRAPHICS_MODULE_NAME)
@@ -51,14 +55,74 @@ fn builtin_runtime_modules_keep_graphics_in_runtime_owned_ordering() {
         .position(|name| *name == crate::scene::SCENE_MODULE_NAME)
         .expect("scene module should exist in runtime builtins");
 
+    assert!(
+        scene_index < script_index,
+        "scene should remain part of the core spine before script"
+    );
     assert_eq!(
         graphics_index,
-        asset_index + 1,
-        "graphics module ordering should stay runtime-owned immediately after asset"
+        scene_index + 1,
+        "graphics base should remain in the minimal runtime core before script"
     );
+
+    #[cfg(feature = "plugin-ui")]
+    {
+        let ui_index = descriptors
+            .iter()
+            .position(|name| *name == crate::ui::UI_MODULE_NAME)
+            .expect("ui module should exist in runtime builtins");
+
+        assert_eq!(
+            ui_index,
+            script_index + 1,
+            "ui plugin should follow the target-client core spine"
+        );
+    }
+
+    #[cfg(not(feature = "plugin-ui"))]
     assert_eq!(
-        scene_index,
-        graphics_index + 1,
-        "scene module ordering should follow graphics in the runtime-owned builtin chain"
+        script_index,
+        descriptors.len() - 1,
+        "core-min runtime spine should stop at script when plugin-ui is disabled"
     );
+}
+
+#[test]
+fn required_unavailable_runtime_plugin_is_reported_as_fatal_missing() {
+    let manifest = ProjectPluginManifest {
+        selections: vec![ProjectPluginSelection::runtime_plugin(
+            RuntimePluginId::VirtualGeometry,
+            true,
+            true,
+        )],
+    };
+
+    let report = runtime_modules_for_target(RuntimeTargetMode::ClientRuntime, Some(&manifest));
+
+    assert!(report
+        .required_missing()
+        .iter()
+        .any(|missing| missing.id == RuntimePluginId::VirtualGeometry));
+    assert!(report
+        .required_missing_summary()
+        .contains("VirtualGeometry"));
+}
+
+#[test]
+fn optional_unavailable_runtime_plugin_stays_warning_only() {
+    let manifest = ProjectPluginManifest {
+        selections: vec![ProjectPluginSelection::runtime_plugin(
+            RuntimePluginId::VirtualGeometry,
+            true,
+            false,
+        )],
+    };
+
+    let report = runtime_modules_for_target(RuntimeTargetMode::ClientRuntime, Some(&manifest));
+
+    assert!(report.required_missing().is_empty());
+    assert!(report
+        .warnings
+        .iter()
+        .any(|warning| warning.contains("zircon_plugins/virtual_geometry")));
 }

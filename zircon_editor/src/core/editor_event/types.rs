@@ -39,6 +39,7 @@ define_id!(EditorEventSequence);
 pub enum EditorEventSource {
     Slint,
     Headless,
+    Cli,
     Mcp,
     Replay,
 }
@@ -112,6 +113,11 @@ pub enum EditorDraftEvent {
     SetMeshImportPath {
         value: String,
     },
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum EditorOperationEvent {
+    ControlFailure { operation_id: String, error: String },
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -255,6 +261,7 @@ pub enum EditorEvent {
     Animation(EditorAnimationEvent),
     Inspector(EditorInspectorEvent),
     Viewport(EditorViewportEvent),
+    Operation(EditorOperationEvent),
     Transient(EditorEventTransient),
 }
 
@@ -319,6 +326,10 @@ pub struct EditorEventRecord {
     pub sequence: EditorEventSequence,
     pub source: EditorEventSource,
     pub event: EditorEvent,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub operation_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub operation_display_name: Option<String>,
     pub effects: Vec<EditorEventEffect>,
     pub undo_policy: EditorEventUndoPolicy,
     pub before_revision: u64,

@@ -5,8 +5,8 @@ related_code:
   - zircon_runtime/src/builtin/mod.rs
   - zircon_runtime/src/builtin/runtime_modules.rs
   - zircon_runtime/src/platform/mod.rs
-  - zircon_runtime/src/extensions/mod.rs
-  - zircon_runtime/src/extensions/navigation/mod.rs
+  - zircon_plugins/mod.rs
+  - zircon_plugins/navigation/mod.rs
   - zircon_runtime/src/graphics/mod.rs
   - zircon_runtime/src/ui/mod.rs
   - zircon_editor/src/lib.rs
@@ -21,9 +21,9 @@ implementation_files:
   - zircon_runtime/src/builtin/runtime_modules.rs
   - zircon_runtime/src/platform/mod.rs
   - zircon_runtime/src/platform/module.rs
-  - zircon_runtime/src/extensions/mod.rs
-  - zircon_runtime/src/extensions/registration.rs
-  - zircon_runtime/src/extensions/navigation/module.rs
+  - zircon_plugins/mod.rs
+  - zircon_plugins/registration.rs
+  - zircon_plugins/navigation/module.rs
   - zircon_runtime/src/graphics/mod.rs
   - zircon_runtime/src/ui/mod.rs
   - zircon_editor/src/lib.rs
@@ -104,7 +104,7 @@ This document defines the structural rules that stay true after the workspace ha
 - `zircon_editor/src/lib.rs` may re-export `EditorModule`, but the `EngineModule` implementation and module descriptor wiring live under `zircon_editor/src/ui/host/module.rs`.
 - `zircon_runtime` crate root and `graphics` root expose only stable runtime-facing contracts. Deep frame assembly, renderer construction helpers, and overlay seams stay internal.
 - `zircon_runtime::builtin` keeps `builtin_runtime_modules()` as the public entry, but `src/builtin/mod.rs` must stay structural and delegate the actual module list assembly to a child owner file such as `runtime_modules.rs`.
-- `zircon_runtime::platform` and `zircon_runtime::extensions::{navigation,net,particles,sound,texture}` roots may re-export their public module/config/service types, but the actual `EngineModule` implementation and descriptor wiring must live in child owner files such as `module.rs`, `service_types.rs`, or `registration.rs`.
+- `zircon_runtime::platform` and `zircon_plugins::{navigation,net,particles,sound,texture}` roots may re-export their public module/config/service types, but the actual `EngineModule` implementation and descriptor wiring must live in child owner files such as `module.rs`, `service_types.rs`, or `registration.rs`.
 - Runtime production `.ui.toml` resources live under crate `assets/`, never under `src/`.
 
 ## Required Follow-Through

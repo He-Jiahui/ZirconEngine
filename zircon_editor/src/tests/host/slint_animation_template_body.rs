@@ -122,6 +122,7 @@ fn animation_pane(
             assets_activity: Default::default(),
             asset_browser: Default::default(),
             project_overview: Default::default(),
+            module_plugins: Default::default(),
             ui_asset: Default::default(),
             animation: AnimationEditorPaneViewData {
                 nodes: slint::ModelRc::default(),

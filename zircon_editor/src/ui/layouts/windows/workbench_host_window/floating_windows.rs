@@ -20,6 +20,7 @@ pub(crate) fn collect_floating_windows(
         crate::ui::animation_editor::AnimationEditorPanePresentation,
     >,
     runtime_diagnostics: Option<&RuntimeDiagnosticsSnapshot>,
+    module_plugins: &ModulePluginsPaneViewData,
     floating_window_projection_bundle: &FloatingWindowProjectionBundle,
 ) -> Vec<FloatingWindowData> {
     model
@@ -33,6 +34,7 @@ pub(crate) fn collect_floating_windows(
                 ui_asset_panes,
                 animation_panes,
                 runtime_diagnostics,
+                module_plugins,
                 floating_window_projection_bundle,
             )
         })
@@ -52,6 +54,7 @@ fn floating_window_data(
         crate::ui::animation_editor::AnimationEditorPanePresentation,
     >,
     runtime_diagnostics: Option<&RuntimeDiagnosticsSnapshot>,
+    module_plugins: &ModulePluginsPaneViewData,
     floating_window_projection_bundle: &FloatingWindowProjectionBundle,
 ) -> FloatingWindowData {
     let active_tab = window.focus_target_tab();
@@ -69,6 +72,7 @@ fn floating_window_data(
                 ui_asset_panes.get(&tab.instance_id.0),
                 animation_panes.get(&tab.instance_id.0),
                 runtime_diagnostics,
+                module_plugins,
             )
         })
         .unwrap_or_else(blank_pane);

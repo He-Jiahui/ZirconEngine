@@ -44,6 +44,8 @@ pub struct EditorMenuItemReflectionModel {
     pub control_id: String,
     pub label: String,
     pub enabled: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub operation_path: Option<String>,
     pub binding: EditorUiBinding,
     pub route_id: Option<UiRouteId>,
 }
@@ -138,19 +140,27 @@ impl EditorUiReflectionAdapter {
                 .as_ref()
                 .map(|call| call.symbol.clone())
                 .unwrap_or_else(|| "Action".to_string());
+            let mut properties = vec![
+                UiPropertyDescriptor::new("menu_id", UiValueType::String, json!(item.menu_id)),
+                UiPropertyDescriptor::new(
+                    "native_binding",
+                    UiValueType::String,
+                    json!(item.binding.native_binding()),
+                ),
+            ];
+            if let Some(operation_path) = &item.operation_path {
+                properties.push(UiPropertyDescriptor::new(
+                    "operation_path",
+                    UiValueType::String,
+                    json!(operation_path),
+                ));
+            }
             let node = builder.push_node(
                 format!("editor/workbench/menu/{}/{}", item.menu_id, item.control_id),
                 "MenuItem",
                 item.label.clone(),
                 visible_enabled_flags(true, item.enabled),
-                vec![
-                    UiPropertyDescriptor::new("menu_id", UiValueType::String, json!(item.menu_id)),
-                    UiPropertyDescriptor::new(
-                        "native_binding",
-                        UiValueType::String,
-                        json!(item.binding.native_binding()),
-                    ),
-                ],
+                properties,
                 vec![match item.route_id {
                     Some(route_id) => {
                         UiActionDescriptor::new("onClick", action.path.event_kind, symbol)

@@ -3,6 +3,7 @@
 mod bootstrap;
 mod component_access;
 mod derived_state;
+mod dynamic_components;
 mod hierarchy;
 mod project_io;
 mod property_access;

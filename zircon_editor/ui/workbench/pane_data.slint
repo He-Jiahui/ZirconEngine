@@ -1,5 +1,5 @@
 import { UiAssetEditorPaneData } from "ui_asset_editor_data.slint";
-import { TemplatePaneNodeData } from "template_node_data.slint";
+import { TemplateNodeFrameData, TemplatePaneNodeData } from "template_node_data.slint";
 
 export struct ProjectOverviewData {
     project_name: string,
@@ -87,6 +87,24 @@ export struct ProjectOverviewPaneData {
     nodes: [TemplatePaneNodeData],
 }
 
+export struct ModulePluginStatusData {
+    plugin_id: string,
+    display_name: string,
+    package_source: string,
+    load_state: string,
+    enabled: bool,
+    required: bool,
+    runtime_crate: string,
+    editor_crate: string,
+    capabilities: string,
+    diagnostics: string,
+}
+
+export struct ModulePluginsPaneData {
+    plugins: [ModulePluginStatusData],
+    diagnostics: string,
+}
+
 export struct PaneData {
     id: string,
     slot: string,
@@ -111,6 +129,7 @@ export struct PaneData {
     assets_activity: AssetsActivityPaneData,
     asset_browser: AssetBrowserPaneData,
     project_overview: ProjectOverviewPaneData,
+    module_plugins: ModulePluginsPaneData,
     ui_asset: UiAssetEditorPaneData,
     animation: AnimationEditorPaneData,
 }

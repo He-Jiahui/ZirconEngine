@@ -1,0 +1,19 @@
+id = "net"
+version = "0.1.0"
+display_name = "Network"
+description = "Optional networking runtime and editor diagnostics package."
+default_packaging = ["source_template", "library_embed"]
+
+[[modules]]
+name = "net.runtime"
+kind = "runtime"
+crate_name = "zircon_plugin_net_runtime"
+target_modes = ["server_runtime", "client_runtime"]
+capabilities = ["runtime.plugin.net"]
+
+[[modules]]
+name = "net.editor"
+kind = "editor"
+crate_name = "zircon_plugin_net_editor"
+target_modes = ["editor_host"]
+capabilities = ["editor.extension.net_authoring"]

@@ -52,6 +52,8 @@ pub struct World {
     pub(super) render_layer_masks: HashMap<EntityId, RenderLayerMask>,
     #[serde(default)]
     pub(super) mobility: HashMap<EntityId, Mobility>,
+    #[serde(default)]
+    pub(super) dynamic_components: HashMap<EntityId, HashMap<String, serde_json::Value>>,
     pub(super) next_id: EntityId,
     pub(super) active_camera: EntityId,
     #[serde(skip, default)]

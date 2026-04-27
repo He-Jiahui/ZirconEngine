@@ -17,14 +17,16 @@ impl SceneRenderer {
     ) -> Result<Option<RenderVirtualGeometryNodeAndClusterCullLaunchWorklistSnapshot>, GraphicsError>
     {
         let Some(buffer) = self
-            .last_virtual_geometry_node_and_cluster_cull_launch_worklist_buffer
+            .advanced_plugin_outputs
+            .virtual_geometry_node_and_cluster_cull_launch_worklist_buffer
             .as_ref()
         else {
             return Ok(None);
         };
 
         let seed_count =
-            self.last_virtual_geometry_node_and_cluster_cull_instance_seed_count as usize;
+            self.advanced_plugin_outputs
+                .virtual_geometry_node_and_cluster_cull_instance_seed_count as usize;
         let word_count =
             RenderVirtualGeometryNodeAndClusterCullLaunchWorklistSnapshot::GPU_HEADER_WORD_COUNT
                 + seed_count * RenderVirtualGeometryNodeAndClusterCullInstanceSeed::GPU_WORD_COUNT;

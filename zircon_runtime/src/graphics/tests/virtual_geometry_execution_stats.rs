@@ -20,13 +20,17 @@ use crate::scene::components::{default_render_layer_mask, Mobility};
 use image::{ImageBuffer, ImageFormat, Rgba};
 
 use crate::{
-    runtime::WgpuRenderFramework,
+    graphics::tests::plugin_render_feature_fixtures::{
+        pluginized_wgpu_render_framework_with_asset_manager,
+        virtual_geometry_render_feature_descriptor,
+    },
     types::{
         ViewportRenderFrame, VirtualGeometryPrepareCluster, VirtualGeometryPrepareClusterState,
         VirtualGeometryPrepareDrawSegment, VirtualGeometryPrepareFrame, VirtualGeometryPreparePage,
         VirtualGeometryPrepareRequest,
     },
-    BuiltinRenderFeature, RenderPipelineAsset, RenderPipelineCompileOptions, SceneRenderer,
+    BuiltinRenderFeature, RenderFeatureCapabilityRequirement, RenderPipelineAsset,
+    RenderPipelineCompileOptions, SceneRenderer,
 };
 
 #[test]
@@ -80,11 +84,13 @@ fn renderer_execution_stats_follow_actual_virtual_geometry_cluster_states() {
         vec![cluster(2, 20, 300), cluster(3, 30, 301)],
         vec![page(300, true), page(301, false)],
     );
+    let virtual_geometry_descriptor = virtual_geometry_render_feature_descriptor();
     let compiled = RenderPipelineAsset::default_forward_plus()
+        .with_plugin_render_features([virtual_geometry_descriptor.clone()])
         .compile_with_options(
             &extract,
             &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
+                .with_capability_enabled(RenderFeatureCapabilityRequirement::VirtualGeometry)
                 .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
                 .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
                 .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
@@ -97,7 +103,11 @@ fn renderer_execution_stats_follow_actual_virtual_geometry_cluster_states() {
         )
         .unwrap();
 
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = SceneRenderer::new_with_plugin_render_features(
+        asset_manager,
+        [virtual_geometry_descriptor],
+    )
+    .unwrap();
     renderer
         .render_frame_with_pipeline(
             &ViewportRenderFrame::from_extract(extract, viewport_size)
@@ -253,7 +263,7 @@ fn render_framework_stats_expose_actual_virtual_geometry_execution_compaction() 
     let viewport_size = UVec2::new(160, 120);
     let extract = build_single_entity_extract(viewport_size, model, material, true);
 
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = pluginized_wgpu_render_framework_with_asset_manager(asset_manager);
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(viewport_size))
         .unwrap();

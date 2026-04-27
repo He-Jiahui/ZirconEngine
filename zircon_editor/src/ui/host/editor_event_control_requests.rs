@@ -1,5 +1,8 @@
 use crate::core::editor_event::{EditorEventRuntime, EditorEventSource};
-use crate::ui::binding::EditorUiBinding;
+use crate::core::editor_operation::{
+    EditorOperationInvocation, EditorOperationPath, EditorOperationSource,
+};
+use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload};
 use zircon_runtime::ui::{
     binding::UiEventBinding, event_ui::UiControlRequest, event_ui::UiControlResponse,
     event_ui::UiInvocationError, event_ui::UiInvocationResult, event_ui::UiNodePath,
@@ -149,6 +152,33 @@ impl EditorEventRuntime {
         binding: EditorUiBinding,
     ) -> UiInvocationResult {
         let ui_binding = binding.as_ui_binding();
+        if let EditorUiBindingPayload::EditorOperation { operation_id } = binding.payload() {
+            let invocation = match EditorOperationPath::parse(operation_id.clone()) {
+                Ok(path) => EditorOperationInvocation::new(path),
+                Err(error) => {
+                    return UiInvocationResult {
+                        route_id,
+                        binding: Some(ui_binding),
+                        value: None,
+                        error: Some(UiInvocationError::HandlerFailed(error.to_string())),
+                    };
+                }
+            };
+            return match self.invoke_operation(EditorOperationSource::UiBinding, invocation) {
+                Ok(record) => UiInvocationResult {
+                    route_id,
+                    binding: Some(ui_binding),
+                    value: record.result.value,
+                    error: None,
+                },
+                Err(error) => UiInvocationResult {
+                    route_id,
+                    binding: Some(ui_binding),
+                    value: None,
+                    error: Some(UiInvocationError::HandlerFailed(error.to_string())),
+                },
+            };
+        }
         match self.dispatch_binding(binding, EditorEventSource::Headless) {
             Ok(record) => UiInvocationResult {
                 route_id,

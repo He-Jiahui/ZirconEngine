@@ -13,7 +13,7 @@ related_code:
   - zircon_runtime/src/core/framework/physics/material_metadata.rs
   - zircon_runtime/src/core/framework/physics/settings.rs
   - zircon_runtime/src/core/framework/physics/world_sync_state.rs
-  - zircon_runtime/src/animation/animation_interface.rs
+  - zircon_plugins/animation/runtime/src/animation_interface.rs
   - zircon_runtime/src/asset/assets/animation.rs
   - zircon_runtime/src/asset/assets/model.rs
   - zircon_runtime/src/asset/assets/physics_material.rs
@@ -22,7 +22,7 @@ related_code:
   - zircon_runtime/src/asset/importer/ingest/import_obj.rs
   - zircon_runtime/src/asset/importer/ingest/primitive_from_indexed_mesh.rs
   - zircon_runtime/src/asset/pipeline/types.rs
-  - zircon_runtime/src/physics/physics_interface.rs
+  - zircon_plugins/physics/runtime/src/physics_interface.rs
   - zircon_runtime/src/scene/components/scene.rs
   - zircon_runtime/src/scene/components/schedule.rs
   - zircon_runtime/src/scene/level_system.rs
@@ -35,8 +35,8 @@ related_code:
   - zircon_runtime/src/scene/world/records.rs
   - zircon_runtime/src/scene/world/project_io.rs
   - zircon_runtime/src/asset/project/manager/collect_files.rs
-  - zircon_runtime/src/animation/service_types.rs
-  - zircon_runtime/src/animation/sequence_runtime.rs
+  - zircon_plugins/animation/runtime/src/service_types.rs
+  - zircon_plugins/animation/runtime/src/sequence_runtime.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_vertex.rs
   - zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_vertex_from_mesh_vertex.rs
@@ -47,16 +47,16 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_mesh_draw.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs
-  - zircon_runtime/src/physics/service_types.rs
-  - zircon_runtime/src/physics/service_types/query_contact.rs
+  - zircon_plugins/physics/runtime/src/service_types.rs
+  - zircon_plugins/physics/runtime/src/service_types/query_contact.rs
   - zircon_runtime/src/asset/tests/assets/animation.rs
   - zircon_runtime/src/asset/tests/assets/importer.rs
   - zircon_runtime/src/asset/tests/assets/model.rs
   - zircon_runtime/src/asset/tests/assets/physics_material.rs
   - zircon_runtime/src/asset/tests/assets/scene.rs
-  - zircon_runtime/src/animation/tests.rs
-  - zircon_runtime/src/animation/tests/clip_pose_guards.rs
-  - zircon_runtime/src/physics/tests.rs
+  - zircon_plugins/animation/runtime/src/tests.rs
+  - zircon_plugins/animation/runtime/src/tests/clip_pose_guards.rs
+  - zircon_plugins/physics/runtime/src/tests.rs
   - zircon_runtime/src/scene/tests/asset_scene.rs
   - zircon_runtime/src/scene/tests/property_paths.rs
   - zircon_runtime/src/scene/tests/physics_animation_components.rs
@@ -99,7 +99,7 @@ implementation_files:
   - zircon_runtime/src/core/framework/physics/material_metadata.rs
   - zircon_runtime/src/core/framework/physics/settings.rs
   - zircon_runtime/src/core/framework/physics/world_sync_state.rs
-  - zircon_runtime/src/animation/animation_interface.rs
+  - zircon_plugins/animation/runtime/src/animation_interface.rs
   - zircon_runtime/src/asset/assets/animation.rs
   - zircon_runtime/src/asset/assets/model.rs
   - zircon_runtime/src/asset/assets/physics_material.rs
@@ -108,7 +108,7 @@ implementation_files:
   - zircon_runtime/src/asset/importer/ingest/import_obj.rs
   - zircon_runtime/src/asset/importer/ingest/primitive_from_indexed_mesh.rs
   - zircon_runtime/src/asset/pipeline/types.rs
-  - zircon_runtime/src/physics/physics_interface.rs
+  - zircon_plugins/physics/runtime/src/physics_interface.rs
   - zircon_runtime/src/scene/components/scene.rs
   - zircon_runtime/src/scene/components/schedule.rs
   - zircon_runtime/src/scene/level_system.rs
@@ -121,8 +121,8 @@ implementation_files:
   - zircon_runtime/src/scene/world/records.rs
   - zircon_runtime/src/scene/world/project_io.rs
   - zircon_runtime/src/asset/project/manager/collect_files.rs
-  - zircon_runtime/src/animation/service_types.rs
-  - zircon_runtime/src/animation/sequence_runtime.rs
+  - zircon_plugins/animation/runtime/src/service_types.rs
+  - zircon_plugins/animation/runtime/src/sequence_runtime.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_vertex.rs
   - zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_vertex_from_mesh_vertex.rs
@@ -133,8 +133,8 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_mesh_draw.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs
-  - zircon_runtime/src/physics/service_types.rs
-  - zircon_runtime/src/physics/service_types/query_contact.rs
+  - zircon_plugins/physics/runtime/src/service_types.rs
+  - zircon_plugins/physics/runtime/src/service_types/query_contact.rs
   - zircon_editor/src/ui/host/editor_asset_manager/manager/reference_analysis.rs
   - zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/catalog_snapshot.rs
   - zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/asset_details.rs
@@ -169,10 +169,10 @@ tests:
   - zircon_runtime/src/asset/tests/assets/model.rs
   - zircon_runtime/src/asset/tests/assets/physics_material.rs
   - zircon_runtime/src/asset/tests/assets/scene.rs
-  - zircon_runtime/src/animation/tests.rs
-  - zircon_runtime/src/animation/tests/clip_pose_guards.rs
+  - zircon_plugins/animation/runtime/src/tests.rs
+  - zircon_plugins/animation/runtime/src/tests/clip_pose_guards.rs
   - zircon_runtime/src/core/framework/tests.rs
-  - zircon_runtime/src/physics/tests.rs
+  - zircon_plugins/physics/runtime/src/tests.rs
   - zircon_runtime/src/scene/tests/asset_scene.rs
   - zircon_runtime/src/scene/tests/property_paths.rs
   - zircon_runtime/src/scene/tests/physics_animation_components.rs
@@ -328,7 +328,7 @@ doc_type: module-detail
 这里的 structure 规则也一起固定下来：
 
 - `core::framework::physics` 与 `core::framework::animation` 内部现在都和 `input/`、`render/`、`scene/` 一样采用 folder-backed subtree
-- 顶层 `zircon_runtime/src/physics/mod.rs` 与 `zircon_runtime/src/animation/mod.rs` 也降成结构入口
+- 顶层 `zircon_plugins/physics/runtime/src/mod.rs` 与 `zircon_plugins/animation/runtime/src/mod.rs` 也降成结构入口
 - `PhysicsConfig` / `AnimationConfig` 进入 `config.rs`，module registration 与 service-name 常量进入 `module.rs`
 - root `mod.rs` 不再允许重新吸收 DTO、trait、default impl 或 parse helper
 - 后续新增 physics/animation contract 时，应该继续进入子文件，而不是回到 umbrella root

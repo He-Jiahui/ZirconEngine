@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
-use crate::core::editor_event::EditorEventJournal;
+use crate::core::editor_event::{EditorEventJournal, EditorEventListenerRegistry};
+use crate::core::editor_extension::EditorExtensionRegistration;
+use crate::core::editor_operation::{EditorOperationRegistry, EditorOperationStack};
 use crate::ui::control::EditorUiControlService;
 use crate::ui::host::EditorManager;
 use crate::ui::workbench::reflection::EditorTransientUiState;
@@ -11,6 +13,10 @@ pub(crate) struct EditorEventRuntimeInner {
     pub(crate) manager: Arc<EditorManager>,
     pub(crate) transient: EditorTransientUiState,
     pub(crate) journal: EditorEventJournal,
+    pub(crate) event_listeners: EditorEventListenerRegistry,
+    pub(crate) editor_extensions: Vec<EditorExtensionRegistration>,
+    pub(crate) operation_registry: EditorOperationRegistry,
+    pub(crate) operation_stack: EditorOperationStack,
     pub(crate) control_service: EditorUiControlService,
     pub(crate) next_event_id: u64,
     pub(crate) next_sequence: u64,
@@ -25,6 +31,10 @@ impl EditorEventRuntimeInner {
             manager,
             transient: EditorTransientUiState::default(),
             journal: EditorEventJournal::default(),
+            event_listeners: EditorEventListenerRegistry::default(),
+            editor_extensions: Vec::new(),
+            operation_registry: EditorOperationRegistry::with_builtin_operations(),
+            operation_stack: EditorOperationStack::default(),
             control_service: EditorUiControlService::default(),
             next_event_id: 0,
             next_sequence: 0,

@@ -121,18 +121,6 @@ pub(super) fn local_style_token_entries(document: &UiAssetDocument) -> Vec<Local
         .collect()
 }
 
-pub(super) fn reconcile_selected_style_rule_index(
-    document: &UiAssetDocument,
-    current: Option<usize>,
-) -> Option<usize> {
-    let count = local_style_rule_entries(document).len();
-    match (current, count) {
-        (_, 0) => None,
-        (Some(index), count) => Some(index.min(count - 1)),
-        (None, _) => None,
-    }
-}
-
 pub(super) fn reconcile_selected_style_rule_selection(
     document: &UiAssetDocument,
     current_index: Option<usize>,

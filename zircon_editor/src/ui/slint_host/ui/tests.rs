@@ -1,7 +1,10 @@
 use slint::{ComponentHandle, Model};
 use std::collections::BTreeMap;
 
-use super::{apply_presentation, apply_presentation_impl::to_slint_host_scene_data};
+use super::{
+    apply_presentation as apply_presentation_with_module_plugins,
+    apply_presentation_impl::to_slint_host_scene_data,
+};
 use crate::scene::viewport::{
     DisplayMode, GridMode, ProjectionMode, SceneViewportTool, TransformSpace, ViewOrientation,
 };
@@ -10,7 +13,8 @@ use crate::ui::asset_editor::UiAssetEditorPanePresentation;
 use crate::ui::layouts::common::model_rc;
 use crate::ui::layouts::views::blank_viewport_chrome;
 use crate::ui::layouts::windows::workbench_host_window::{
-    self as host_window, collect_floating_windows, document_pane,
+    self as host_window, collect_floating_windows as collect_floating_windows_with_module_plugins,
+    document_pane as document_pane_with_module_plugins,
 };
 use crate::ui::slint_host::callback_dispatch::BuiltinHostWindowTemplateBridge;
 use crate::ui::slint_host::floating_window_projection::{
@@ -18,7 +22,9 @@ use crate::ui::slint_host::floating_window_projection::{
 };
 use crate::ui::slint_host::shell_pointer::HostShellPointerRoute;
 use crate::ui::slint_host::tab_drag::host_shell_pointer_route_group_key;
-use crate::ui::template_runtime::EditorUiCompatibilityHarness;
+use crate::ui::template_runtime::{
+    EditorUiCompatibilityHarness, EditorUiHostRuntime, UiComponentShowcaseDemoEventInput,
+};
 use crate::ui::workbench::autolayout::WorkbenchShellGeometry;
 use crate::ui::workbench::fixture::{default_preview_fixture, PreviewFixture};
 use crate::ui::workbench::layout::{DockEdge, MainHostPageLayout, WorkbenchLayout};
@@ -34,11 +40,11 @@ use crate::ui::workbench::startup::{
     WelcomePaneSnapshot,
 };
 use crate::ui::workbench::view::{
-    PreferredHost, ViewDescriptor, ViewDescriptorId, ViewHost, ViewInstance, ViewInstanceId,
-    ViewKind,
+    PaneBodySpec, PaneInteractionMode, PanePayloadKind, PaneRouteNamespace, PreferredHost,
+    ViewDescriptor, ViewDescriptorId, ViewHost, ViewInstance, ViewInstanceId, ViewKind,
 };
 use zircon_runtime::core::math::UVec2;
-use zircon_runtime::ui::layout::UiSize;
+use zircon_runtime::ui::layout::{UiFrame, UiSize};
 
 fn root_shell_fixture() -> (
     PreviewFixture,
@@ -134,6 +140,76 @@ fn welcome_shell_fixture() -> (
     (chrome, model, BTreeMap::new(), BTreeMap::new())
 }
 
+fn apply_presentation(
+    ui: &crate::ui::slint_host::UiHostWindow,
+    model: &WorkbenchViewModel,
+    chrome: &EditorChromeSnapshot,
+    geometry: &WorkbenchShellGeometry,
+    preset_names: &[String],
+    active_preset_name: Option<&str>,
+    ui_asset_panes: &BTreeMap<String, UiAssetEditorPanePresentation>,
+    animation_panes: &BTreeMap<String, AnimationEditorPanePresentation>,
+    runtime_diagnostics: Option<&zircon_runtime::core::diagnostics::RuntimeDiagnosticsSnapshot>,
+    shared_root_frames: Option<
+        &crate::ui::slint_host::callback_dispatch::BuiltinHostRootShellFrames,
+    >,
+    floating_window_projection_bundle: &FloatingWindowProjectionBundle,
+) {
+    apply_presentation_with_module_plugins(
+        ui,
+        model,
+        chrome,
+        geometry,
+        preset_names,
+        active_preset_name,
+        ui_asset_panes,
+        animation_panes,
+        runtime_diagnostics,
+        &host_window::ModulePluginsPaneViewData::default(),
+        shared_root_frames,
+        floating_window_projection_bundle,
+        None,
+    );
+}
+
+fn document_pane(
+    model: &WorkbenchViewModel,
+    chrome: &EditorChromeSnapshot,
+    ui_asset_panes: &BTreeMap<String, UiAssetEditorPanePresentation>,
+    animation_panes: &BTreeMap<String, AnimationEditorPanePresentation>,
+    runtime_diagnostics: Option<&zircon_runtime::core::diagnostics::RuntimeDiagnosticsSnapshot>,
+) -> host_window::PaneData {
+    document_pane_with_module_plugins(
+        model,
+        chrome,
+        ui_asset_panes,
+        animation_panes,
+        runtime_diagnostics,
+        &host_window::ModulePluginsPaneViewData::default(),
+    )
+}
+
+fn collect_floating_windows(
+    model: &WorkbenchViewModel,
+    chrome: &EditorChromeSnapshot,
+    geometry: &WorkbenchShellGeometry,
+    ui_asset_panes: &BTreeMap<String, UiAssetEditorPanePresentation>,
+    animation_panes: &BTreeMap<String, AnimationEditorPanePresentation>,
+    runtime_diagnostics: Option<&zircon_runtime::core::diagnostics::RuntimeDiagnosticsSnapshot>,
+    floating_window_projection_bundle: &FloatingWindowProjectionBundle,
+) -> Vec<host_window::FloatingWindowData> {
+    collect_floating_windows_with_module_plugins(
+        model,
+        chrome,
+        geometry,
+        ui_asset_panes,
+        animation_panes,
+        runtime_diagnostics,
+        &host_window::ModulePluginsPaneViewData::default(),
+        floating_window_projection_bundle,
+    )
+}
+
 fn host_frame_rect(x: f32, y: f32, width: f32, height: f32) -> host_window::FrameRect {
     host_window::FrameRect {
         x,
@@ -227,11 +303,590 @@ fn host_pane(id: &str, title: &str) -> host_window::PaneData {
             assets_activity: host_window::AssetsActivityPaneViewData::default(),
             asset_browser: host_window::AssetBrowserPaneViewData::default(),
             project_overview: host_window::ProjectOverviewPaneViewData::default(),
+            module_plugins: host_window::ModulePluginsPaneViewData::default(),
             ui_asset: UiAssetEditorPanePresentation::default(),
             animation: host_window::AnimationEditorPaneViewData::default(),
         },
         pane_presentation: None,
     }
+}
+
+#[test]
+fn component_showcase_template_numeric_drag_tracks_two_axis_delta() {
+    let template = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/ui/workbench/template_pane.slint"
+    ));
+
+    assert!(
+        template.contains("property <float> drag_last_y"),
+        "numeric showcase drag should track vertical pointer movement"
+    );
+    assert!(
+        template.contains("root.drag_last_y = self.mouse-y / 1px"),
+        "numeric showcase drag should record the y origin and last y position"
+    );
+    assert!(
+        template.contains(
+            "(self.mouse-x / 1px - root.drag_last_x) - (self.mouse-y / 1px - root.drag_last_y)"
+        ),
+        "numeric showcase drag should map right/up to positive deltas and left/down to negative deltas"
+    );
+}
+
+#[test]
+fn component_showcase_template_fields_dispatch_live_edits() {
+    let template = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/ui/workbench/template_pane.slint"
+    ));
+
+    assert!(
+        template.contains("import { LineEdit } from \"std-widgets.slint\";"),
+        "component showcase fields should use the generic Slint text input primitive"
+    );
+    assert!(
+        template.contains("callback node_edited(control_id: string, dispatch_kind: string, action_id: string, value: string);"),
+        "component showcase fields should expose live edited text through a generic callback"
+    );
+    assert!(
+        template.contains("root.node.component_role == \"input-field\""),
+        "InputField rows should render an editable field instead of a static value label"
+    );
+    assert!(
+        template.contains("root.node.component_role == \"number-field\""),
+        "NumberField rows should render an editable field instead of a static value label"
+    );
+    assert!(
+        template.contains("edited(value) => {"),
+        "editable component rows should dispatch typed value text changes"
+    );
+}
+
+#[test]
+fn component_showcase_template_popup_options_dispatch_candidate_selection() {
+    let template = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/ui/workbench/template_pane.slint"
+    ));
+    let pane_content = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/ui/workbench/pane_content.slint"
+    ));
+    let host_context = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/ui/workbench/pane_surface_host_context.slint"
+    ));
+    let callback_wiring = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/ui/slint_host/app/callback_wiring.rs"
+    ));
+
+    assert!(
+        template.contains("callback node_option_selected(control_id: string, dispatch_kind: string, action_id: string, option_id: string);"),
+        "component showcase popup rows should expose the selected option id through a generic callback"
+    );
+    assert!(
+        template.contains("for option[index] in root.node.options"),
+        "component showcase popup should render real candidate rows instead of only a summary label"
+    );
+    assert!(
+        template.contains("root.node_option_selected("),
+        "candidate rows should dispatch an option-selection event when clicked"
+    );
+    assert!(
+        pane_content.contains("component_showcase_option_selected(control_id, action_id, option_id)"),
+        "PaneContent should route generic option-selection callbacks into the showcase host context"
+    );
+    assert!(
+        host_context.contains("callback component_showcase_option_selected(control_id: string, action_id: string, option_id: string);"),
+        "PaneSurfaceHostContext should expose a typed option-selection callback"
+    );
+    assert!(
+        callback_wiring.contains("on_component_showcase_option_selected"),
+        "Rust callback wiring should forward option row clicks to the editor host"
+    );
+}
+
+#[test]
+fn component_showcase_template_action_chips_dispatch_secondary_actions() {
+    let template_node_data = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/ui/workbench/template_node_data.slint"
+    ));
+    let template = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/ui/workbench/template_pane.slint"
+    ));
+    let pane_content = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/ui/workbench/pane_content.slint"
+    ));
+    let pane_actions = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/ui/slint_host/app/pane_surface_actions.rs"
+    ));
+
+    assert!(
+        template_node_data.contains("export struct TemplatePaneActionData"),
+        "TemplatePane should expose generic secondary action metadata"
+    );
+    assert!(
+        template.contains("callback node_action_invoked(control_id: string, dispatch_kind: string, action_id: string);"),
+        "TemplatePane action chips should dispatch their action ids generically"
+    );
+    assert!(
+        template.contains("for action[index] in root.node.actions"),
+        "TemplatePane should render all projected secondary actions as rows/chips"
+    );
+    assert!(
+        pane_content.contains("node_action_invoked(control_id, dispatch_kind, action_id)"),
+        "PaneContent should route secondary component actions"
+    );
+    assert!(
+        pane_actions.contains("AssetFieldClear")
+            && pane_actions.contains("AssetFieldLocate")
+            && pane_actions.contains("AssetFieldOpen"),
+        "asset action chips should map clear/locate/open into the showcase reducer"
+    );
+}
+
+#[test]
+fn component_showcase_template_materializes_runtime_component_primitives() {
+    let template_node_data = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/ui/workbench/template_node_data.slint"
+    ));
+    let template = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/ui/workbench/template_pane.slint"
+    ));
+
+    assert!(
+        template_node_data.contains("value_number: float"),
+        "TemplatePane should carry the numeric value behind NumberField and RangeField rows"
+    );
+    assert!(
+        template_node_data.contains("value_percent: float"),
+        "TemplatePane should carry normalized progress/range values for retained static rendering"
+    );
+    assert!(
+        template_node_data.contains("value_color: color"),
+        "TemplatePane should carry parsed ColorField swatches as Slint colors"
+    );
+    assert!(
+        template.contains("root.node.component_role == \"checkbox\""),
+        "Checkbox rows should render a checkbox primitive instead of only a value label"
+    );
+    assert!(
+        template.contains("root.node.component_role == \"radio\""),
+        "Radio rows should render a radio primitive instead of only a value label"
+    );
+    assert!(
+        template.contains("root.node.component_role == \"toggle-button\""),
+        "ToggleButton rows should render a switch primitive instead of only a value label"
+    );
+    assert!(
+        template.contains("root.node.component_role == \"progress-bar\""),
+        "ProgressBar rows should render a progress primitive"
+    );
+    assert!(
+        template.contains("root.node.component_role == \"range-field\""),
+        "RangeField rows should render a slider track and editable value"
+    );
+    assert!(
+        template.contains("root.node.component_role == \"color-field\""),
+        "ColorField rows should render a swatch primitive"
+    );
+    assert!(
+        template.contains("root.node.value_percent"),
+        "Progress and range primitives should use normalized retained values"
+    );
+    assert!(
+        template.contains("root.node.value_color"),
+        "Color swatches should use the parsed retained color"
+    );
+}
+
+#[test]
+fn component_showcase_template_materializes_visual_feedback_and_vector_primitives() {
+    let template_node_data = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/ui/workbench/template_node_data.slint"
+    ));
+    let template = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/ui/workbench/template_pane.slint"
+    ));
+
+    assert!(
+        template_node_data.contains("media_source: string"),
+        "TemplatePane should carry retained image/svg sources for generic host rendering"
+    );
+    assert!(
+        template_node_data.contains("icon_name: string"),
+        "TemplatePane should carry semantic icon names separately from value text"
+    );
+    assert!(
+        template_node_data.contains("vector_components: [float]"),
+        "TemplatePane should carry Vector2/3/4 components as typed retained values"
+    );
+    assert!(
+        template.contains("root.node.component_role == \"image\""),
+        "Image rows should render a thumbnail primitive"
+    );
+    assert!(
+        template.contains("root.node.component_role == \"icon\""),
+        "Icon rows should render an icon primitive"
+    );
+    assert!(
+        template.contains("root.node.component_role == \"svg-icon\""),
+        "SvgIcon rows should render an SVG/icon primitive"
+    );
+    assert!(
+        template.contains("root.node.component_role == \"spinner\""),
+        "Spinner rows should render a retained feedback primitive"
+    );
+    assert!(
+        template.contains("root.node.component_role == \"badge\""),
+        "Badge rows should render a tag primitive"
+    );
+    assert!(
+        template.contains("root.node.component_role == \"help-row\""),
+        "Help rows should render a validation/help primitive"
+    );
+    assert!(
+        template.contains("root.node.component_role == \"separator\""),
+        "Separator rows should render a retained divider primitive"
+    );
+    assert!(
+        template.contains("root.node.component_role == \"vector3-field\""),
+        "Vector fields should render axis chips instead of plain value text"
+    );
+    assert!(
+        template.contains("root.node.media_source"),
+        "Image and svg primitives should use retained media source metadata"
+    );
+    assert!(
+        template.contains("root.node.icon_name"),
+        "Icon primitives should use retained icon metadata"
+    );
+    assert!(
+        template.contains("root.node.vector_components"),
+        "Vector primitives should iterate retained component values"
+    );
+}
+
+#[test]
+fn component_showcase_pane_projects_runtime_component_nodes_for_template_pane() {
+    let _guard = crate::tests::support::env_lock()
+        .lock()
+        .unwrap_or_else(|poison| poison.into_inner());
+    let (_fixture, chrome, _model, _ui_asset_panes, _animation_panes) = root_shell_fixture();
+    let body_spec = PaneBodySpec::new(
+        "editor.window.ui_component_showcase",
+        PanePayloadKind::UiComponentShowcaseV1,
+        PaneRouteNamespace::UiComponentShowcase,
+        PaneInteractionMode::TemplateOnly,
+    );
+    let body = host_window::build_pane_body_presentation(
+        &body_spec,
+        &host_window::PanePayloadBuildContext::new(&chrome),
+    );
+    let mut pane = host_pane("component-showcase", "UI Component Showcase");
+    pane.kind = "UiComponentShowcase".into();
+    pane.pane_presentation = Some(host_window::PanePresentation::new(
+        host_window::PaneShellPresentation::new(
+            "UI Component Showcase",
+            "ui-components",
+            "Runtime components",
+            "",
+            None,
+            false,
+            blank_viewport_chrome(),
+        ),
+        body,
+    ));
+
+    let slint_pane = super::pane_data_conversion::to_slint_component_showcase_pane_from_host_pane(
+        &pane,
+        host_window::PaneContentSize::new(1080.0, 720.0),
+    );
+
+    let nodes = (0..slint_pane.nodes.row_count())
+        .filter_map(|row| slint_pane.nodes.row_data(row))
+        .collect::<Vec<_>>();
+    let number = nodes
+        .iter()
+        .find(|node| node.control_id.as_str() == "NumberFieldDemo")
+        .expect("component showcase pane should expose NumberFieldDemo");
+    assert_eq!(number.component_role.as_str(), "number-field");
+    assert_eq!(number.value_text.as_str(), "42");
+    assert_eq!(number.value_number, 42.0);
+    assert_eq!(number.value_percent, 0.42);
+    assert_eq!(number.dispatch_kind.as_str(), "showcase");
+    assert_eq!(
+        number.action_id.as_str(),
+        "UiComponentShowcase/NumberFieldDragUpdate"
+    );
+    assert_eq!(
+        number.drag_action_id.as_str(),
+        "UiComponentShowcase/NumberFieldDragUpdate"
+    );
+    assert_eq!(
+        number.begin_drag_action_id.as_str(),
+        "UiComponentShowcase/NumberFieldDragBegin"
+    );
+    assert_eq!(
+        number.end_drag_action_id.as_str(),
+        "UiComponentShowcase/NumberFieldDragEnd"
+    );
+    assert_eq!(
+        number.edit_action_id.as_str(),
+        "UiComponentShowcase/NumberFieldChanged"
+    );
+
+    let input = nodes
+        .iter()
+        .find(|node| node.control_id.as_str() == "InputFieldDemo")
+        .expect("component showcase pane should expose InputFieldDemo");
+    assert_eq!(
+        input.edit_action_id.as_str(),
+        "UiComponentShowcase/InputFieldChanged"
+    );
+
+    let range = nodes
+        .iter()
+        .find(|node| node.control_id.as_str() == "RangeFieldDemo")
+        .expect("component showcase pane should expose RangeFieldDemo");
+    assert_eq!(range.value_number, 68.0);
+    assert_eq!(range.value_percent, 0.68);
+    assert_eq!(
+        range.drag_action_id.as_str(),
+        "UiComponentShowcase/RangeFieldDragUpdate"
+    );
+    assert_eq!(
+        range.edit_action_id.as_str(),
+        "UiComponentShowcase/RangeFieldChanged"
+    );
+
+    let dropdown = nodes
+        .iter()
+        .find(|node| node.control_id.as_str() == "DropdownDemo")
+        .expect("component showcase pane should expose DropdownDemo");
+    assert!(dropdown.popup_open);
+    assert_eq!(dropdown.selection_state.as_str(), "multi");
+    assert_eq!(dropdown.options_text.as_str(), "runtime, editor, debug");
+    assert_eq!(dropdown.options.row_count(), 3);
+    assert_eq!(dropdown.options.row_data(0).as_deref(), Some("runtime"));
+    assert_eq!(dropdown.options.row_data(1).as_deref(), Some("editor"));
+    assert_eq!(dropdown.options.row_data(2).as_deref(), Some("debug"));
+
+    let combo_box = nodes
+        .iter()
+        .find(|node| node.control_id.as_str() == "ComboBoxDemo")
+        .expect("component showcase pane should expose ComboBoxDemo");
+    assert!(!combo_box.popup_open);
+    assert_eq!(
+        combo_box.action_id.as_str(),
+        "UiComponentShowcase/ComboBoxOpenPopup"
+    );
+    assert_eq!(combo_box.options_text.as_str(), "material, fluent, native");
+    assert_eq!(combo_box.options.row_count(), 3);
+
+    let progress = nodes
+        .iter()
+        .find(|node| node.control_id.as_str() == "ProgressBarDemo")
+        .expect("component showcase pane should expose ProgressBarDemo");
+    assert_eq!(progress.value_number, 0.62);
+    assert_eq!(progress.value_percent, 0.62);
+
+    let color = nodes
+        .iter()
+        .find(|node| node.control_id.as_str() == "ColorFieldDemo")
+        .expect("component showcase pane should expose ColorFieldDemo");
+    assert_eq!(color.value_color, slint::Color::from_rgb_u8(77, 137, 255));
+
+    let image = nodes
+        .iter()
+        .find(|node| node.control_id.as_str() == "ImageDemo")
+        .expect("component showcase pane should expose ImageDemo");
+    assert_eq!(
+        image.media_source.as_str(),
+        "res://textures/grid.albedo.png"
+    );
+
+    let icon = nodes
+        .iter()
+        .find(|node| node.control_id.as_str() == "IconDemo")
+        .expect("component showcase pane should expose IconDemo");
+    assert_eq!(icon.icon_name.as_str(), "options-outline");
+
+    let svg_icon = nodes
+        .iter()
+        .find(|node| node.control_id.as_str() == "SvgIconDemo")
+        .expect("component showcase pane should expose SvgIconDemo");
+    assert_eq!(
+        svg_icon.media_source.as_str(),
+        "ionicons/options-outline.svg"
+    );
+
+    let vector2 = nodes
+        .iter()
+        .find(|node| node.control_id.as_str() == "Vector2FieldDemo")
+        .expect("component showcase pane should expose Vector2Demo");
+    assert_eq!(vector2.vector_components.row_count(), 2);
+    assert_eq!(vector2.vector_components.row_data(0), Some(12.0));
+    assert_eq!(vector2.vector_components.row_data(1), Some(24.0));
+
+    let vector3 = nodes
+        .iter()
+        .find(|node| node.control_id.as_str() == "Vector3FieldDemo")
+        .expect("component showcase pane should expose Vector3Demo");
+    assert_eq!(vector3.vector_components.row_count(), 3);
+    assert_eq!(vector3.vector_components.row_data(0), Some(0.0));
+    assert_eq!(vector3.vector_components.row_data(1), Some(1.0));
+    assert_eq!(vector3.vector_components.row_data(2), Some(0.0));
+
+    let vector4 = nodes
+        .iter()
+        .find(|node| node.control_id.as_str() == "Vector4FieldDemo")
+        .expect("component showcase pane should expose Vector4Demo");
+    assert_eq!(vector4.vector_components.row_count(), 4);
+    assert_eq!(vector4.vector_components.row_data(3), Some(1.0));
+
+    let asset = nodes
+        .iter()
+        .find(|node| node.control_id.as_str() == "AssetFieldDemo")
+        .expect("component showcase pane should expose AssetFieldDemo");
+    assert_eq!(asset.actions.row_count(), 3);
+    assert_eq!(
+        asset.actions.row_data(0).map(|action| action.label),
+        Some("Find".into())
+    );
+    assert_eq!(
+        asset.actions.row_data(1).map(|action| action.label),
+        Some("Open".into())
+    );
+    assert_eq!(
+        asset.actions.row_data(2).map(|action| action.label),
+        Some("Clear".into())
+    );
+
+    let array = nodes
+        .iter()
+        .find(|node| node.control_id.as_str() == "ArrayFieldDemo")
+        .expect("component showcase pane should expose ArrayFieldDemo");
+    assert_eq!(array.actions.row_count(), 4);
+
+    let map = nodes
+        .iter()
+        .find(|node| node.control_id.as_str() == "MapFieldDemo")
+        .expect("component showcase pane should expose MapFieldDemo");
+    assert_eq!(map.actions.row_count(), 3);
+
+    let event_log = nodes
+        .iter()
+        .find(|node| node.control_id.as_str() == "ComponentShowcaseEventLog")
+        .expect("component showcase pane should expose event log node");
+    assert!(event_log.text.contains("Registered events"));
+}
+
+#[test]
+fn component_showcase_pane_uses_supplied_runtime_demo_state() {
+    let _guard = crate::tests::support::env_lock()
+        .lock()
+        .unwrap_or_else(|poison| poison.into_inner());
+    let (_fixture, chrome, _model, _ui_asset_panes, _animation_panes) = root_shell_fixture();
+    let body_spec = PaneBodySpec::new(
+        "editor.window.ui_component_showcase",
+        PanePayloadKind::UiComponentShowcaseV1,
+        PaneRouteNamespace::UiComponentShowcase,
+        PaneInteractionMode::TemplateOnly,
+    );
+    let body = host_window::build_pane_body_presentation(
+        &body_spec,
+        &host_window::PanePayloadBuildContext::new(&chrome),
+    );
+    let mut pane = host_pane("component-showcase", "UI Component Showcase");
+    pane.kind = "UiComponentShowcase".into();
+    pane.pane_presentation = Some(host_window::PanePresentation::new(
+        host_window::PaneShellPresentation::new(
+            "UI Component Showcase",
+            "ui-components",
+            "Runtime components",
+            "",
+            None,
+            false,
+            blank_viewport_chrome(),
+        ),
+        body,
+    ));
+
+    let mut runtime = EditorUiHostRuntime::default();
+    runtime
+        .load_builtin_host_templates()
+        .expect("built-in host templates should load");
+    let binding = runtime
+        .project_document("editor.window.ui_component_showcase")
+        .expect("showcase projection should compile")
+        .bindings
+        .into_iter()
+        .find(|binding| binding.binding_id == "UiComponentShowcase/NumberFieldDragUpdate")
+        .expect("showcase should expose NumberField drag binding")
+        .binding;
+    runtime
+        .apply_showcase_demo_binding(&binding, UiComponentShowcaseDemoEventInput::DragDelta(5.0))
+        .expect("showcase runtime should accept NumberField drag input");
+    let combo_open_binding = runtime
+        .project_document("editor.window.ui_component_showcase")
+        .expect("showcase projection should compile")
+        .bindings
+        .into_iter()
+        .find(|binding| binding.binding_id == "UiComponentShowcase/ComboBoxOpenPopup")
+        .expect("showcase should expose ComboBox open binding")
+        .binding;
+    runtime
+        .apply_showcase_demo_binding(&combo_open_binding, UiComponentShowcaseDemoEventInput::None)
+        .expect("showcase runtime should accept ComboBox popup input");
+
+    let slint_pane =
+        super::pane_data_conversion::to_slint_component_showcase_pane_from_host_pane_with_runtime(
+            &pane,
+            host_window::PaneContentSize::new(1080.0, 720.0),
+            &runtime,
+        );
+
+    let nodes = (0..slint_pane.nodes.row_count())
+        .filter_map(|row| slint_pane.nodes.row_data(row))
+        .collect::<Vec<_>>();
+    let number = nodes
+        .iter()
+        .find(|node| node.control_id.as_str() == "NumberFieldDemo")
+        .expect("component showcase pane should expose NumberFieldDemo");
+    assert_eq!(number.value_text.as_str(), "47");
+
+    let combo_box = nodes
+        .iter()
+        .find(|node| node.control_id.as_str() == "ComboBoxDemo")
+        .expect("component showcase pane should expose ComboBoxDemo");
+    assert!(combo_box.popup_open);
+    assert_eq!(
+        combo_box.action_id.as_str(),
+        "UiComponentShowcase/ComboBoxChanged"
+    );
+
+    let event_log = nodes
+        .iter()
+        .find(|node| node.control_id.as_str() == "ComponentShowcaseEventLog")
+        .expect("component showcase pane should expose event log node");
+    assert!(
+        event_log
+            .text
+            .contains("NumberFieldDemo -> DragDelta.NumberField = 47"),
+        "event log should reflect the supplied runtime state: {}",
+        event_log.text
+    );
 }
 
 #[test]
@@ -1640,11 +2295,12 @@ fn apply_presentation_prefers_shared_root_projection_for_visible_drawer_document
     );
     let geometry_document_frame =
         crate::ui::workbench::autolayout::ShellFrame::new(734.0, 91.0, 222.0, 109.0);
+    let document_chrome_height = metrics.document_header_height + metrics.separator_thickness;
     let expected_viewport_frame = crate::ui::workbench::autolayout::ShellFrame::new(
         expected_document_frame.x,
-        expected_document_frame.y + metrics.viewport_toolbar_height,
+        expected_document_frame.y + document_chrome_height + metrics.viewport_toolbar_height,
         expected_document_frame.width,
-        expected_document_frame.height - metrics.viewport_toolbar_height,
+        expected_document_frame.height - document_chrome_height - metrics.viewport_toolbar_height,
     );
     let geometry_viewport_frame =
         crate::ui::workbench::autolayout::ShellFrame::new(888.0, 144.0, 155.0, 77.0);
@@ -1719,6 +2375,85 @@ fn apply_presentation_prefers_shared_root_projection_for_visible_drawer_document
     assert_eq!(status_bar.height, 24.0);
 
     let viewport_content = host_layout.viewport_content_frame;
+    assert_eq!(viewport_content.x, expected_viewport_frame.x);
+    assert_eq!(viewport_content.y, expected_viewport_frame.y);
+    assert_eq!(viewport_content.width, expected_viewport_frame.width);
+    assert_eq!(viewport_content.height, expected_viewport_frame.height);
+}
+
+#[test]
+fn apply_presentation_prefers_drawer_derived_viewport_when_pane_surface_is_stale() {
+    i_slint_backend_testing::init_no_event_loop();
+
+    let (_fixture, chrome, model, ui_asset_panes, animation_panes) = root_shell_fixture();
+    let ui =
+        crate::ui::slint_host::UiHostWindow::new().expect("workbench shell should instantiate");
+    ui.show()
+        .expect("workbench shell should show in the test backend");
+    ui.window().set_size(slint::PhysicalSize::new(1280, 720));
+
+    let bridge = BuiltinHostWindowTemplateBridge::new(UiSize::new(1280.0, 720.0)).unwrap();
+    let mut projection_frames = bridge.root_shell_frames();
+    projection_frames.left_drawer_shell_frame = Some(UiFrame::new(56.0, 40.0, 312.0, 480.0));
+    projection_frames.pane_surface_frame = Some(UiFrame::new(369.0, 100.0, 602.0, 420.0));
+
+    let metrics = crate::ui::workbench::autolayout::WorkbenchChromeMetrics::default();
+    let shell_frame = projection_frames
+        .shell_frame
+        .expect("root shell projection frame should exist");
+    let body_frame = projection_frames
+        .host_body_frame
+        .expect("workbench body projection frame should exist");
+    let expected_document_frame = crate::ui::workbench::autolayout::ShellFrame::new(
+        shell_frame.x + 312.0 + metrics.separator_thickness,
+        body_frame.y,
+        body_frame.width - 312.0 - metrics.separator_thickness,
+        body_frame.height,
+    );
+    let document_chrome_height = metrics.document_header_height + metrics.separator_thickness;
+    let expected_viewport_frame = crate::ui::workbench::autolayout::ShellFrame::new(
+        expected_document_frame.x,
+        expected_document_frame.y + document_chrome_height + metrics.viewport_toolbar_height,
+        expected_document_frame.width,
+        expected_document_frame.height - document_chrome_height - metrics.viewport_toolbar_height,
+    );
+    let geometry = WorkbenchShellGeometry {
+        center_band_frame: crate::ui::workbench::autolayout::ShellFrame::new(
+            5.0, 17.0, 400.0, 500.0,
+        ),
+        region_frames: [(
+            crate::ui::workbench::autolayout::ShellRegionId::Document,
+            crate::ui::workbench::autolayout::ShellFrame::new(734.0, 91.0, 222.0, 109.0),
+        )]
+        .into_iter()
+        .collect(),
+        ..WorkbenchShellGeometry::default()
+    };
+    let floating_window_projection_bundle = build_floating_window_projection_bundle(
+        &model,
+        &geometry,
+        &crate::ui::workbench::autolayout::WorkbenchChromeMetrics::default(),
+        &[],
+    );
+
+    apply_presentation(
+        &ui,
+        &model,
+        &chrome,
+        &geometry,
+        &[],
+        None,
+        &ui_asset_panes,
+        &animation_panes,
+        None,
+        Some(&projection_frames),
+        &floating_window_projection_bundle,
+    );
+
+    let viewport_content = ui
+        .get_host_presentation()
+        .host_layout
+        .viewport_content_frame;
     assert_eq!(viewport_content.x, expected_viewport_frame.x);
     assert_eq!(viewport_content.y, expected_viewport_frame.y);
     assert_eq!(viewport_content.width, expected_viewport_frame.width);

@@ -6,4 +6,4 @@ mod mesh_draw_build_context;
 mod pending_mesh_draw;
 mod skinning;
 
-pub(crate) use build::build_mesh_draws;
+pub(crate) use build::{build_mesh_draws, BuiltMeshDraws};

@@ -3,8 +3,15 @@ use std::sync::Arc;
 
 use zircon_runtime::core::{CoreError, CoreHandle, CoreRuntime, ModuleDescriptor};
 use zircon_runtime::engine_module::EngineModule;
+use zircon_runtime::RuntimePluginRegistrationReport;
 
-use super::{builtin_modules::builtin_modules_for_profile, EntryProfile};
+use super::{
+    builtin_modules::{
+        builtin_modules_for_config, builtin_modules_for_config_with_available_runtime_plugins,
+        builtin_modules_for_config_with_runtime_plugin_registrations,
+    },
+    EntryConfig, EntryProfile,
+};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum EntryRunMode {
@@ -52,15 +59,70 @@ pub trait EngineEntry: Send + Sync + fmt::Debug {
 
 #[derive(Clone, Debug)]
 pub struct BuiltinEngineEntry {
+    config: EntryConfig,
     profile: EntryProfile,
     modules: Vec<Arc<dyn EngineModule>>,
 }
 
 impl BuiltinEngineEntry {
-    pub fn for_profile(profile: EntryProfile) -> Self {
-        Self {
-            profile,
-            modules: builtin_modules_for_profile(profile),
+    pub fn for_profile(profile: EntryProfile) -> Result<Self, CoreError> {
+        Self::for_config(&EntryConfig::new(profile))
+    }
+
+    pub fn for_config(config: &EntryConfig) -> Result<Self, CoreError> {
+        Ok(Self {
+            config: config.clone(),
+            profile: config.profile,
+            modules: builtin_modules_for_config(config)?,
+        })
+    }
+
+    pub fn for_config_with_runtime_plugin_registrations(
+        config: &EntryConfig,
+        registrations: impl IntoIterator<Item = RuntimePluginRegistrationReport>,
+    ) -> Result<Self, CoreError> {
+        let registrations = registrations.into_iter().collect::<Vec<_>>();
+        Ok(Self {
+            config: config.clone(),
+            profile: config.profile,
+            modules: builtin_modules_for_config_with_runtime_plugin_registrations(
+                config,
+                &registrations,
+            )?,
+        })
+    }
+
+    pub fn for_config_with_available_runtime_plugins(
+        config: &EntryConfig,
+        available_plugin_ids: impl IntoIterator<Item = String>,
+    ) -> Result<Self, CoreError> {
+        let available_plugin_ids = available_plugin_ids.into_iter().collect::<Vec<_>>();
+        Ok(Self {
+            config: config.clone(),
+            profile: config.profile,
+            modules: builtin_modules_for_config_with_available_runtime_plugins(
+                config,
+                &available_plugin_ids,
+            )?,
+        })
+    }
+
+    fn store_entry_config(&self, runtime: &CoreRuntime) {
+        let _ = &self.config;
+        #[cfg(not(feature = "target-editor-host"))]
+        let _ = runtime;
+        #[cfg(feature = "target-editor-host")]
+        if matches!(self.config.profile, EntryProfile::Editor) {
+            if let Some(subsystems) = &self.config.editor_enabled_subsystems {
+                runtime.store_config_value(
+                    zircon_editor::EDITOR_ENABLED_SUBSYSTEMS_CONFIG_KEY,
+                    serde_json::json!(subsystems),
+                );
+            }
+            runtime.store_config_value(
+                zircon_editor::EDITOR_RUNTIME_SANDBOX_ENABLED_CONFIG_KEY,
+                serde_json::json!(self.config.editor_runtime_sandbox_enabled),
+            );
         }
     }
 }
@@ -76,5 +138,20 @@ impl EngineEntry for BuiltinEngineEntry {
 
     fn modules(&self) -> &[Arc<dyn EngineModule>] {
         &self.modules
+    }
+
+    fn bootstrap(&self) -> Result<CoreHandle, CoreError> {
+        let runtime = CoreRuntime::new();
+        let descriptors = self.module_descriptors();
+
+        self.store_entry_config(&runtime);
+        for descriptor in &descriptors {
+            runtime.register_module(descriptor.clone())?;
+        }
+        for descriptor in &descriptors {
+            runtime.activate_module(&descriptor.name)?;
+        }
+
+        Ok(runtime.handle())
     }
 }

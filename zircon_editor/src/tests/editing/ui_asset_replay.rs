@@ -377,7 +377,7 @@ fn ui_asset_editor_session_tracks_executable_replay_commands_for_style_rule_inse
             stylesheet: Some(UiStyleSheet {
                 id: "local_editor_rules".to_string(),
                 rules: vec![UiStyleRule {
-                    id: None,
+                    id: Some("save_button".to_string()),
                     selector: "#SaveButton".to_string(),
                     set: UiStyleDeclarationBlock::default(),
                 }],
@@ -411,7 +411,7 @@ fn ui_asset_editor_session_tracks_executable_replay_commands_for_style_rule_inse
             selector: ".primary:hover".to_string(),
             rule: Some(UiStyleRule {
                 selector: ".primary:hover".to_string(),
-                id: None,
+                id: Some("primary_hover".to_string()),
                 set: UiStyleDeclarationBlock {
                     self_values: [("text".to_string(), toml::Value::String("Hover".to_string()),)]
                         .into_iter()

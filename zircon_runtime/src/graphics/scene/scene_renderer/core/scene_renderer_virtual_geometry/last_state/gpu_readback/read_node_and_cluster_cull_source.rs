@@ -7,6 +7,7 @@ impl SceneRenderer {
     pub(crate) fn read_last_virtual_geometry_node_and_cluster_cull_source(
         &self,
     ) -> RenderVirtualGeometryNodeAndClusterCullSource {
-        self.last_virtual_geometry_node_and_cluster_cull_source
+        self.advanced_plugin_outputs
+            .virtual_geometry_node_and_cluster_cull_source
     }
 }

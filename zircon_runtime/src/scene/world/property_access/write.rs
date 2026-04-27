@@ -404,7 +404,7 @@ impl World {
                 }
                 Ok(changed)
             }
-            _ => unknown_property_error(property_path),
+            _ => self.set_dynamic_component_property(entity, property_path, value),
         }
     }
 

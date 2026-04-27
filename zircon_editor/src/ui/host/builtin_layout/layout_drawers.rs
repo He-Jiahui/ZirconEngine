@@ -3,6 +3,10 @@ use crate::ui::workbench::layout::{
 };
 use crate::ui::workbench::view::ViewInstanceId;
 
+use super::super::editor_subsystems::{
+    EditorSubsystemReport, EDITOR_SUBSYSTEM_RUNTIME_DIAGNOSTICS,
+};
+
 pub(super) fn left_top_drawer() -> ActivityDrawerLayout {
     ActivityDrawerLayout {
         slot: ActivityDrawerSlot::LeftTop,
@@ -24,8 +28,11 @@ pub(super) fn left_top_drawer() -> ActivityDrawerLayout {
 pub(super) fn left_bottom_drawer() -> ActivityDrawerLayout {
     ActivityDrawerLayout {
         slot: ActivityDrawerSlot::LeftBottom,
-        tab_stack: TabStackLayout::default(),
-        active_view: None,
+        tab_stack: TabStackLayout {
+            tabs: vec![ViewInstanceId::new("editor.module_plugins#1")],
+            active_tab: Some(ViewInstanceId::new("editor.module_plugins#1")),
+        },
+        active_view: Some(ViewInstanceId::new("editor.module_plugins#1")),
         mode: ActivityDrawerMode::Collapsed,
         extent: 288.0,
         visible: true,
@@ -71,14 +78,21 @@ pub(super) fn bottom_left_drawer() -> ActivityDrawerLayout {
     }
 }
 
-pub(super) fn bottom_right_drawer() -> ActivityDrawerLayout {
+pub(super) fn bottom_right_drawer(subsystems: &EditorSubsystemReport) -> ActivityDrawerLayout {
+    let diagnostics = ViewInstanceId::new("editor.runtime_diagnostics#1");
+    let tabs = subsystems
+        .is_enabled(EDITOR_SUBSYSTEM_RUNTIME_DIAGNOSTICS)
+        .then_some(diagnostics.clone())
+        .into_iter()
+        .collect::<Vec<_>>();
+    let active = tabs.first().cloned();
     ActivityDrawerLayout {
         slot: ActivityDrawerSlot::BottomRight,
         tab_stack: TabStackLayout {
-            tabs: vec![ViewInstanceId::new("editor.runtime_diagnostics#1")],
-            active_tab: Some(ViewInstanceId::new("editor.runtime_diagnostics#1")),
+            tabs,
+            active_tab: active.clone(),
         },
-        active_view: Some(ViewInstanceId::new("editor.runtime_diagnostics#1")),
+        active_view: active,
         mode: ActivityDrawerMode::Collapsed,
         extent: 224.0,
         visible: true,

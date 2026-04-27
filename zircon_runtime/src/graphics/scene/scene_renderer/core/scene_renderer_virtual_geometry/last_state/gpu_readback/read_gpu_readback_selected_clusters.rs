@@ -7,8 +7,8 @@ impl SceneRenderer {
     pub(crate) fn read_last_virtual_geometry_gpu_readback_selected_clusters(
         &self,
     ) -> Option<Vec<RenderVirtualGeometrySelectedCluster>> {
-        self.last_virtual_geometry_gpu_readback
-            .as_ref()
+        self.advanced_plugin_outputs
+            .virtual_geometry_gpu_readback()
             .map(|readback| readback.selected_clusters.clone())
     }
 }

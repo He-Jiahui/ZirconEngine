@@ -42,7 +42,7 @@ impl RenderPipelineAsset {
             .iter()
             .filter(|feature| {
                 feature.enabled
-                    && options.permits_feature(feature.feature)
+                    && options.permits_feature_asset(feature)
                     && feature
                         .quality_gate
                         .is_none_or(|gate| options.permits_feature(gate))
@@ -219,10 +219,7 @@ impl RenderPipelineAsset {
 }
 
 fn feature_descriptor(feature: &RendererFeatureAsset) -> RenderFeatureDescriptor {
-    feature
-        .descriptor_override
-        .clone()
-        .unwrap_or_else(|| feature.feature.descriptor())
+    feature.descriptor()
 }
 
 fn validate_feature_descriptors(

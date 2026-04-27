@@ -13,8 +13,14 @@ impl SceneRenderer {
     pub(crate) fn read_last_virtual_geometry_selected_clusters(
         &self,
     ) -> Result<Vec<RenderVirtualGeometrySelectedCluster>, GraphicsError> {
-        let entry_count = self.last_virtual_geometry_selected_cluster_count as usize;
-        let Some(buffer) = self.last_virtual_geometry_selected_cluster_buffer.as_ref() else {
+        let entry_count = self
+            .advanced_plugin_outputs
+            .virtual_geometry_selected_cluster_count as usize;
+        let Some(buffer) = self
+            .advanced_plugin_outputs
+            .virtual_geometry_selected_cluster_buffer
+            .as_ref()
+        else {
             return Ok(Vec::new());
         };
         if entry_count == 0 {

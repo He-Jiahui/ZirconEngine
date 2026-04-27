@@ -13,18 +13,22 @@ impl SceneRenderer {
         const DRAW_REF_WORD_COUNT: usize = 4;
 
         let Some(buffer) = self
-            .last_virtual_geometry_indirect_draw_refs_buffer
+            .advanced_plugin_outputs
+            .virtual_geometry_indirect_draw_refs_buffer
             .as_ref()
         else {
             return Ok(Vec::new());
         };
-        if self.last_virtual_geometry_indirect_args_count == 0 {
+        let indirect_args_count = self
+            .advanced_plugin_outputs
+            .virtual_geometry_indirect_args_count;
+        if indirect_args_count == 0 {
             return Ok(Vec::new());
         }
 
         let staging = self.backend.device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("zircon-vg-indirect-draw-refs-readback"),
-            size: (self.last_virtual_geometry_indirect_args_count as u64)
+            size: (indirect_args_count as u64)
                 * (std::mem::size_of::<u32>() as u64)
                 * DRAW_REF_WORD_COUNT as u64,
             usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
@@ -41,7 +45,7 @@ impl SceneRenderer {
             0,
             &staging,
             0,
-            (self.last_virtual_geometry_indirect_args_count as u64)
+            (indirect_args_count as u64)
                 * (std::mem::size_of::<u32>() as u64)
                 * DRAW_REF_WORD_COUNT as u64,
         );
@@ -49,7 +53,7 @@ impl SceneRenderer {
         let words = read_buffer_u32s(
             &self.backend.device,
             &staging,
-            (self.last_virtual_geometry_indirect_args_count as usize) * DRAW_REF_WORD_COUNT,
+            (indirect_args_count as usize) * DRAW_REF_WORD_COUNT,
         )?;
 
         Ok(words

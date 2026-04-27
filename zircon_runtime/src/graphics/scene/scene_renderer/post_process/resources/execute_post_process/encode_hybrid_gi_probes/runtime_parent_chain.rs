@@ -591,7 +591,15 @@ pub(super) fn temporal_parent_probe_chain(
 fn parent_probe_chain(frame: &ViewportRenderFrame, probe_id: u32) -> Option<Vec<(u32, usize)>> {
     if runtime_parent_topology_is_authoritative(frame) {
         if let Some(runtime) = frame.hybrid_gi_resolve_runtime.as_ref() {
-            return Some(parent_probe_chain_from_runtime(runtime, probe_id));
+            let runtime_chain = parent_probe_chain_from_runtime(runtime, probe_id);
+            let allow_extract_lineage = legacy_extract_has_scene_prepare_inputs(frame)
+                || runtime_has_legacy_rt_source(runtime);
+            if !runtime_chain.is_empty()
+                || !runtime.probe_parent_probes.is_empty()
+                || !allow_extract_lineage
+            {
+                return Some(runtime_chain);
+            }
         }
     }
 
@@ -602,6 +610,21 @@ fn parent_probe_chain(frame: &ViewportRenderFrame, probe_id: u32) -> Option<Vec<
         }
     }
     frame.hybrid_gi_resolve_runtime.as_ref().map(|_| Vec::new())
+}
+
+fn legacy_extract_has_scene_prepare_inputs(frame: &ViewportRenderFrame) -> bool {
+    frame
+        .extract
+        .lighting
+        .hybrid_global_illumination
+        .as_ref()
+        .map(|extract| extract.card_budget > 0 || extract.voxel_budget > 0)
+        .unwrap_or(false)
+        || frame.hybrid_gi_scene_prepare.is_some()
+}
+
+fn runtime_has_legacy_rt_source(runtime: &HybridGiResolveRuntime) -> bool {
+    !runtime.probe_rt_lighting_rgb.is_empty()
 }
 
 fn parent_probe_chain_from_extract(
@@ -649,7 +672,15 @@ fn parent_probe_chain_from_runtime(
 fn descendant_probe_chain(frame: &ViewportRenderFrame, probe_id: u32) -> Option<Vec<(u32, usize)>> {
     if runtime_parent_topology_is_authoritative(frame) {
         if let Some(runtime) = frame.hybrid_gi_resolve_runtime.as_ref() {
-            return Some(descendant_probe_chain_from_runtime(runtime, probe_id));
+            let runtime_chain = descendant_probe_chain_from_runtime(runtime, probe_id);
+            let allow_extract_lineage = legacy_extract_has_scene_prepare_inputs(frame)
+                || runtime_has_legacy_rt_source(runtime);
+            if !runtime_chain.is_empty()
+                || !runtime.probe_parent_probes.is_empty()
+                || !allow_extract_lineage
+            {
+                return Some(runtime_chain);
+            }
         }
     }
 

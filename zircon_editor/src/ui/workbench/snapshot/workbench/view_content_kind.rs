@@ -11,8 +11,10 @@ pub enum ViewContentKind {
     PrefabEditor,
     AssetBrowser,
     UiAssetEditor,
+    UiComponentShowcase,
     AnimationSequenceEditor,
     AnimationGraphEditor,
     RuntimeDiagnostics,
+    ModulePlugins,
     Placeholder,
 }

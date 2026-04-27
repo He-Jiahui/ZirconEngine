@@ -10,10 +10,13 @@ impl SceneRenderer {
     pub(crate) fn read_last_virtual_geometry_node_and_cluster_cull_cluster_work_items(
         &self,
     ) -> Result<Vec<VirtualGeometryNodeAndClusterCullClusterWorkItem>, GraphicsError> {
-        let work_item_count =
-            self.last_virtual_geometry_node_and_cluster_cull_cluster_work_item_count as usize;
+        let work_item_count = self
+            .advanced_plugin_outputs
+            .virtual_geometry_node_and_cluster_cull_cluster_work_item_count
+            as usize;
         let Some(buffer) = self
-            .last_virtual_geometry_node_and_cluster_cull_cluster_work_item_buffer
+            .advanced_plugin_outputs
+            .virtual_geometry_node_and_cluster_cull_cluster_work_item_buffer
             .as_ref()
         else {
             return Ok(Vec::new());

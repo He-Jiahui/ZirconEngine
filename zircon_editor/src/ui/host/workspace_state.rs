@@ -7,7 +7,7 @@ use crate::ui::workbench::project::ProjectEditorWorkspace;
 use crate::ui::workbench::view::{ViewDescriptor, ViewInstance, ViewInstanceId};
 
 use super::asset_editor_sessions::UI_ASSET_EDITOR_DESCRIPTOR_ID;
-use super::builtin_layout::ensure_builtin_shell_instances;
+use super::builtin_layout::{builtin_hybrid_layout_for_subsystems, ensure_builtin_shell_instances};
 use super::editor_error::EditorError;
 use super::editor_session_state::EditorSessionState;
 use super::editor_ui_host::EditorUiHost;
@@ -164,8 +164,10 @@ impl EditorUiHost {
         self.animation_editor_sessions.lock().unwrap().clear();
         self.ui_asset_sessions.lock().unwrap().clear();
         let mut session = EditorSessionState::default();
-        ensure_builtin_shell_instances(&mut registry, &mut session)?;
-        session.layout = self.layout_manager.default_layout();
+        let snapshot = self.capability_snapshot.lock().unwrap().clone();
+        let subsystem_report = self.subsystem_report.lock().unwrap().clone();
+        ensure_builtin_shell_instances(&mut registry, &mut session, &snapshot)?;
+        session.layout = builtin_hybrid_layout_for_subsystems(&subsystem_report);
         self.layout_manager
             .normalize(&mut session.layout, &registry);
         *self.session.lock().unwrap() = session;
@@ -173,7 +175,7 @@ impl EditorUiHost {
         if let Some(layout) = self.load_global_default_layout() {
             let mut session = self.session.lock().unwrap();
             session.layout = layout;
-            repair_builtin_shell_layout(&mut session.layout);
+            repair_builtin_shell_layout(&mut session.layout, &subsystem_report);
             self.layout_manager
                 .normalize(&mut session.layout, &registry);
             self.recompute_session_metadata(&mut session);

@@ -15,6 +15,8 @@ impl EditorUiBindingPayload {
             Self::MenuAction { action_id } => {
                 UiBindingCall::new("MenuAction").with_argument(UiBindingValue::string(action_id))
             }
+            Self::EditorOperation { operation_id } => UiBindingCall::new("EditorOperation")
+                .with_argument(UiBindingValue::string(operation_id)),
             Self::DraftCommand(command) => command.to_call(),
             Self::InspectorFieldBatch {
                 subject_path,
@@ -65,6 +67,15 @@ impl EditorUiBindingPayload {
                     .and_then(UiBindingValue::as_str)
                     .ok_or(EditorUiBindingError::InvalidPayload(
                         "MenuAction expects string action_id".to_string(),
+                    ))?
+                    .to_string(),
+            }),
+            "EditorOperation" => Ok(Self::EditorOperation {
+                operation_id: call
+                    .argument(0)
+                    .and_then(UiBindingValue::as_str)
+                    .ok_or(EditorUiBindingError::InvalidPayload(
+                        "EditorOperation expects string operation_id".to_string(),
                     ))?
                     .to_string(),
             }),

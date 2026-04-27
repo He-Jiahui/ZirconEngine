@@ -1,4 +1,4 @@
-//! Runtime asset subsystem: loading and pipeline runtime support (absorbed from legacy `zircon_asset`).
+//! Runtime asset subsystem: project manifests, loading, import, and pipeline runtime support.
 
 mod module;
 

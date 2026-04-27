@@ -1,8 +1,13 @@
 use crate::ui::workbench::layout::{ActivityDrawerSlot, MainPageId};
 use crate::ui::workbench::view::{ViewDescriptorId, ViewHost, ViewInstance, ViewInstanceId};
 
-pub(super) fn builtin_shell_view_instances() -> Vec<ViewInstance> {
-    vec![
+use super::super::editor_capabilities::EditorCapabilitySnapshot;
+use super::super::editor_subsystems::EDITOR_SUBSYSTEM_RUNTIME_DIAGNOSTICS;
+
+pub(super) fn builtin_shell_view_instances(
+    snapshot: &EditorCapabilitySnapshot,
+) -> Vec<ViewInstance> {
+    let mut instances = vec![
         ViewInstance {
             instance_id: ViewInstanceId::new("editor.project#1"),
             descriptor_id: ViewDescriptorId::new("editor.project"),
@@ -18,6 +23,14 @@ pub(super) fn builtin_shell_view_instances() -> Vec<ViewInstance> {
             serializable_payload: serde_json::json!({ "root": "crate://" }),
             dirty: false,
             host: ViewHost::Drawer(ActivityDrawerSlot::LeftTop),
+        },
+        ViewInstance {
+            instance_id: ViewInstanceId::new("editor.module_plugins#1"),
+            descriptor_id: ViewDescriptorId::new("editor.module_plugins"),
+            title: "Modules".to_string(),
+            serializable_payload: serde_json::Value::Null,
+            dirty: false,
+            host: ViewHost::Drawer(ActivityDrawerSlot::LeftBottom),
         },
         ViewInstance {
             instance_id: ViewInstanceId::new("editor.hierarchy#1"),
@@ -67,5 +80,10 @@ pub(super) fn builtin_shell_view_instances() -> Vec<ViewInstance> {
             dirty: false,
             host: ViewHost::Document(MainPageId::workbench(), vec![]),
         },
-    ]
+    ];
+    instances.retain(|instance| match instance.descriptor_id.0.as_str() {
+        "editor.runtime_diagnostics" => snapshot.is_enabled(EDITOR_SUBSYSTEM_RUNTIME_DIAGNOSTICS),
+        _ => true,
+    });
+    instances
 }

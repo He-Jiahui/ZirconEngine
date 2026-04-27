@@ -1,4 +1,7 @@
 use crate::core::framework::render::{RenderFrameExtract, RenderWorldSnapshotHandle};
+use crate::graphics::tests::plugin_render_feature_fixtures::{
+    hybrid_gi_render_feature_descriptor, virtual_geometry_render_feature_descriptor,
+};
 use crate::render_graph::{QueueLane, RenderGraphResourceKind};
 use crate::scene::world::World;
 
@@ -136,6 +139,33 @@ fn default_deferred_pipeline_compiles_expected_stage_order_and_passes() {
 }
 
 #[test]
+fn default_pipeline_assets_do_not_embed_pluginized_advanced_builtin_features() {
+    for pipeline in [
+        RenderPipelineAsset::default_forward_plus(),
+        RenderPipelineAsset::default_deferred(),
+    ] {
+        assert!(
+            !pipeline
+                .renderer
+                .features
+                .iter()
+                .any(|feature| feature.is_builtin(BuiltinRenderFeature::VirtualGeometry)),
+            "{} should receive virtual geometry from plugin descriptors",
+            pipeline.name
+        );
+        assert!(
+            !pipeline
+                .renderer
+                .features
+                .iter()
+                .any(|feature| feature.is_builtin(BuiltinRenderFeature::GlobalIllumination)),
+            "{} should receive hybrid GI from plugin descriptors",
+            pipeline.name
+        );
+    }
+}
+
+#[test]
 fn forward_plus_pipeline_compilation_is_deterministic() {
     let pipeline = RenderPipelineAsset::default_forward_plus();
     let extract = test_extract();
@@ -223,11 +253,14 @@ fn flagship_feature_descriptors_declare_backend_capability_requirements() {
 }
 
 #[test]
-fn compiled_pipeline_collects_enabled_feature_capability_requirements() {
-    let pipeline = RenderPipelineAsset::default_forward_plus();
+fn compiled_pipeline_collects_enabled_plugin_feature_capability_requirements() {
+    let pipeline = RenderPipelineAsset::default_forward_plus().with_plugin_render_features([
+        virtual_geometry_render_feature_descriptor(),
+        hybrid_gi_render_feature_descriptor(),
+    ]);
     let options = RenderPipelineCompileOptions::default()
-        .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry)
-        .with_feature_enabled(BuiltinRenderFeature::GlobalIllumination);
+        .with_capability_enabled(RenderFeatureCapabilityRequirement::VirtualGeometry)
+        .with_capability_enabled(RenderFeatureCapabilityRequirement::HybridGlobalIllumination);
 
     let compiled = pipeline
         .compile_with_options(&test_extract(), &options)
@@ -310,7 +343,10 @@ fn feature_pass_descriptors_drive_executor_ids_and_resource_graph() {
 
 #[test]
 fn gi_and_virtual_geometry_opt_in_add_feature_runtime_passes_to_graph() {
-    let pipeline = RenderPipelineAsset::default_forward_plus();
+    let pipeline = RenderPipelineAsset::default_forward_plus().with_plugin_render_features([
+        virtual_geometry_render_feature_descriptor(),
+        hybrid_gi_render_feature_descriptor(),
+    ]);
     let disabled = pipeline.compile(&test_extract()).unwrap();
     let disabled_pass_names = disabled
         .graph
@@ -322,8 +358,8 @@ fn gi_and_virtual_geometry_opt_in_add_feature_runtime_passes_to_graph() {
     assert!(!disabled_pass_names.contains(&"virtual-geometry-node-cluster-cull"));
 
     let options = RenderPipelineCompileOptions::default()
-        .with_feature_enabled(BuiltinRenderFeature::GlobalIllumination)
-        .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry);
+        .with_capability_enabled(RenderFeatureCapabilityRequirement::HybridGlobalIllumination)
+        .with_capability_enabled(RenderFeatureCapabilityRequirement::VirtualGeometry);
     let enabled = pipeline
         .compile_with_options(&test_extract(), &options)
         .unwrap();
@@ -355,6 +391,243 @@ fn gi_and_virtual_geometry_opt_in_add_feature_runtime_passes_to_graph() {
         .contains(&FrameHistoryBinding::read_write(
             FrameHistorySlot::GlobalIllumination
         )));
+}
+
+#[test]
+fn plugin_render_feature_asset_compiles_descriptor_without_builtin_feature_identity() {
+    let mut pipeline = RenderPipelineAsset::default_forward_plus();
+    pipeline
+        .renderer
+        .features
+        .push(RendererFeatureAsset::plugin(
+            plugin_virtual_geometry_descriptor(),
+        ));
+
+    let compiled = pipeline
+        .compile_with_options(
+            &test_extract(),
+            &RenderPipelineCompileOptions::default()
+                .with_capability_enabled(RenderFeatureCapabilityRequirement::VirtualGeometry),
+        )
+        .unwrap();
+    let pass_names = compiled
+        .graph
+        .passes()
+        .iter()
+        .map(|pass| pass.name.as_str())
+        .collect::<Vec<_>>();
+
+    assert!(
+        pass_names.contains(&"plugin-virtual-geometry-prepare"),
+        "plugin descriptor pass should be compiled into the render graph"
+    );
+    let plugin_feature = compiled
+        .enabled_features
+        .iter()
+        .find(|feature| feature.feature_name() == "plugin.virtual_geometry")
+        .expect("compiled pipeline should retain the plugin feature name");
+    assert!(
+        plugin_feature.builtin_feature().is_none(),
+        "plugin renderer feature should not masquerade as a built-in feature"
+    );
+    assert!(compiled
+        .required_extract_sections
+        .contains(&"plugin_virtual_geometry".to_string()));
+    assert!(compiled
+        .capability_requirements
+        .contains(&RenderFeatureCapabilityRequirement::VirtualGeometry));
+}
+
+#[test]
+fn plugin_render_feature_asset_respects_capability_opt_in_gate() {
+    let mut pipeline = RenderPipelineAsset::default_forward_plus();
+    pipeline
+        .renderer
+        .features
+        .push(RendererFeatureAsset::plugin(
+            plugin_virtual_geometry_descriptor(),
+        ));
+
+    let compiled = pipeline.compile(&test_extract()).unwrap();
+    let pass_names = compiled
+        .graph
+        .passes()
+        .iter()
+        .map(|pass| pass.name.as_str())
+        .collect::<Vec<_>>();
+
+    assert!(
+        !pass_names.contains(&"plugin-virtual-geometry-prepare"),
+        "advanced plugin descriptor passes should not compile until their capability is enabled"
+    );
+    assert!(
+        !compiled
+            .capability_requirements
+            .contains(&RenderFeatureCapabilityRequirement::VirtualGeometry),
+        "disabled plugin descriptors should not add runtime capability requirements"
+    );
+}
+
+#[test]
+fn plugin_render_feature_descriptors_replace_advanced_builtin_slots() {
+    let pipeline = legacy_advanced_builtin_pipeline().with_plugin_render_features([
+        replacement_virtual_geometry_descriptor(),
+        replacement_hybrid_gi_descriptor(),
+    ]);
+
+    assert!(!pipeline
+        .renderer
+        .features
+        .iter()
+        .any(|feature| feature.is_builtin(BuiltinRenderFeature::VirtualGeometry)));
+    assert!(!pipeline
+        .renderer
+        .features
+        .iter()
+        .any(|feature| feature.is_builtin(BuiltinRenderFeature::GlobalIllumination)));
+    assert!(pipeline.renderer.features.iter().any(|feature| {
+        feature.feature_name() == "virtual_geometry" && feature.builtin_feature().is_none()
+    }));
+    assert!(pipeline.renderer.features.iter().any(|feature| {
+        feature.feature_name() == "hybrid_gi" && feature.builtin_feature().is_none()
+    }));
+
+    let compiled = pipeline
+        .compile_with_options(
+            &test_extract(),
+            &RenderPipelineCompileOptions::default()
+                .with_capability_enabled(RenderFeatureCapabilityRequirement::VirtualGeometry)
+                .with_capability_enabled(
+                    RenderFeatureCapabilityRequirement::HybridGlobalIllumination,
+                ),
+        )
+        .unwrap();
+    let pass_names = compiled
+        .graph
+        .passes()
+        .iter()
+        .map(|pass| pass.name.as_str())
+        .collect::<Vec<_>>();
+
+    assert!(pass_names.contains(&"plugin-virtual-geometry-replacement"));
+    assert!(pass_names.contains(&"plugin-hybrid-gi-replacement"));
+    assert!(
+        !pass_names.contains(&"virtual-geometry-prepare"),
+        "built-in virtual geometry pass should be removed when plugin descriptor replaces the capability"
+    );
+    assert!(
+        !pass_names.contains(&"hybrid-gi-resolve"),
+        "built-in hybrid GI pass should be removed when plugin descriptor replaces the capability"
+    );
+}
+
+#[test]
+fn pipeline_compile_rejects_duplicate_plugin_render_feature_names() {
+    let mut pipeline = RenderPipelineAsset::default_forward_plus();
+    pipeline
+        .renderer
+        .features
+        .push(RendererFeatureAsset::plugin(RenderFeatureDescriptor::new(
+            "plugin.duplicate_feature",
+            Vec::new(),
+            Vec::new(),
+            vec![RenderFeaturePassDescriptor::new(
+                RenderPassStage::Overlay,
+                "plugin-duplicate-feature-a",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("plugin.duplicate.a")
+            .with_side_effects()],
+        )));
+    pipeline
+        .renderer
+        .features
+        .push(RendererFeatureAsset::plugin(RenderFeatureDescriptor::new(
+            "plugin.duplicate_feature",
+            Vec::new(),
+            Vec::new(),
+            vec![RenderFeaturePassDescriptor::new(
+                RenderPassStage::Overlay,
+                "plugin-duplicate-feature-b",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("plugin.duplicate.b")
+            .with_side_effects()],
+        )));
+
+    let error = pipeline.compile(&test_extract()).unwrap_err();
+
+    assert!(
+        error.contains("duplicate feature `plugin.duplicate_feature`"),
+        "unexpected error: {error}"
+    );
+}
+
+fn plugin_virtual_geometry_descriptor() -> RenderFeatureDescriptor {
+    RenderFeatureDescriptor::new(
+        "plugin.virtual_geometry",
+        vec!["plugin_virtual_geometry".to_string()],
+        Vec::new(),
+        vec![RenderFeaturePassDescriptor::new(
+            RenderPassStage::DepthPrepass,
+            "plugin-virtual-geometry-prepare",
+            QueueLane::Graphics,
+        )
+        .with_executor_id("plugin.virtual-geometry.prepare")
+        .write_buffer("plugin-virtual-geometry-page-requests")],
+    )
+    .with_capability_requirement(RenderFeatureCapabilityRequirement::VirtualGeometry)
+}
+
+fn replacement_virtual_geometry_descriptor() -> RenderFeatureDescriptor {
+    RenderFeatureDescriptor::new(
+        "virtual_geometry",
+        Vec::new(),
+        Vec::new(),
+        vec![RenderFeaturePassDescriptor::new(
+            RenderPassStage::DepthPrepass,
+            "plugin-virtual-geometry-replacement",
+            QueueLane::Graphics,
+        )
+        .with_executor_id("plugin.virtual-geometry.replacement")
+        .write_buffer("plugin-virtual-geometry-replacement")],
+    )
+    .with_capability_requirement(RenderFeatureCapabilityRequirement::VirtualGeometry)
+}
+
+fn replacement_hybrid_gi_descriptor() -> RenderFeatureDescriptor {
+    RenderFeatureDescriptor::new(
+        "hybrid_gi",
+        Vec::new(),
+        vec![FrameHistoryBinding::read_write(
+            FrameHistorySlot::GlobalIllumination,
+        )],
+        vec![RenderFeaturePassDescriptor::new(
+            RenderPassStage::Lighting,
+            "plugin-hybrid-gi-replacement",
+            QueueLane::Graphics,
+        )
+        .with_executor_id("plugin.hybrid-gi.replacement")
+        .write_texture("plugin-hybrid-gi-lighting")],
+    )
+    .with_capability_requirement(RenderFeatureCapabilityRequirement::HybridGlobalIllumination)
+}
+
+fn legacy_advanced_builtin_pipeline() -> RenderPipelineAsset {
+    let mut pipeline = RenderPipelineAsset::default_forward_plus();
+    pipeline
+        .renderer
+        .features
+        .push(RendererFeatureAsset::builtin(
+            BuiltinRenderFeature::VirtualGeometry,
+        ));
+    pipeline
+        .renderer
+        .features
+        .push(RendererFeatureAsset::builtin(
+            BuiltinRenderFeature::GlobalIllumination,
+        ));
+    pipeline
 }
 
 #[test]
@@ -393,7 +666,7 @@ fn disabling_post_process_keeps_overlay_extract_requirements_for_debug_gizmos() 
         .renderer
         .features
         .iter_mut()
-        .find(|feature| feature.feature == BuiltinRenderFeature::PostProcess)
+        .find(|feature| feature.is_builtin(BuiltinRenderFeature::PostProcess))
         .expect("default pipeline should include post-process")
         .enabled = false;
 
@@ -428,9 +701,9 @@ fn renderer_feature_asset_quality_gate_controls_compiled_passes() {
         .renderer
         .features
         .iter_mut()
-        .find(|feature| feature.feature == BuiltinRenderFeature::Bloom)
+        .find(|feature| feature.is_builtin(BuiltinRenderFeature::Bloom))
         .expect("default pipeline should include bloom")
-        .quality_gate = Some(BuiltinRenderFeature::VirtualGeometry);
+        .quality_gate = Some(BuiltinRenderFeature::RayTracing);
 
     let without_gate = pipeline.compile(&test_extract()).unwrap();
     assert!(!without_gate
@@ -443,7 +716,7 @@ fn renderer_feature_asset_quality_gate_controls_compiled_passes() {
         .compile_with_options(
             &test_extract(),
             &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::VirtualGeometry),
+                .with_feature_enabled(BuiltinRenderFeature::RayTracing),
         )
         .unwrap();
     assert!(with_gate
@@ -460,7 +733,7 @@ fn pipeline_compile_validates_quality_gated_descriptor_overrides_even_when_gate_
         .renderer
         .features
         .iter_mut()
-        .find(|feature| feature.feature == BuiltinRenderFeature::Bloom)
+        .find(|feature| feature.is_builtin(BuiltinRenderFeature::Bloom))
         .expect("default pipeline should include bloom");
     *bloom = bloom
         .clone()
@@ -492,7 +765,7 @@ fn renderer_feature_asset_local_config_and_capabilities_survive_compile() {
         .renderer
         .features
         .iter_mut()
-        .find(|feature| feature.feature == BuiltinRenderFeature::ColorGrading)
+        .find(|feature| feature.is_builtin(BuiltinRenderFeature::ColorGrading))
         .expect("default pipeline should include color grading");
     *color_grading = color_grading
         .clone()
@@ -503,7 +776,7 @@ fn renderer_feature_asset_local_config_and_capabilities_survive_compile() {
     let compiled_color_grading = compiled
         .enabled_features
         .iter()
-        .find(|feature| feature.feature == BuiltinRenderFeature::ColorGrading)
+        .find(|feature| feature.is_builtin(BuiltinRenderFeature::ColorGrading))
         .expect("color grading should remain enabled");
 
     assert_eq!(
@@ -522,7 +795,7 @@ fn renderer_feature_asset_descriptor_override_changes_compiled_graph() {
         .renderer
         .features
         .iter_mut()
-        .find(|feature| feature.feature == BuiltinRenderFeature::Bloom)
+        .find(|feature| feature.is_builtin(BuiltinRenderFeature::Bloom))
         .expect("default pipeline should include bloom");
     *bloom = bloom
         .clone()
@@ -565,7 +838,7 @@ fn pipeline_compile_rejects_descriptor_passes_for_undeclared_stages() {
         .renderer
         .features
         .iter_mut()
-        .find(|feature| feature.feature == BuiltinRenderFeature::Bloom)
+        .find(|feature| feature.is_builtin(BuiltinRenderFeature::Bloom))
         .expect("default pipeline should include bloom");
     *bloom = bloom
         .clone()
@@ -597,7 +870,7 @@ fn pipeline_compile_rejects_duplicate_descriptor_pass_names() {
         .renderer
         .features
         .iter_mut()
-        .find(|feature| feature.feature == BuiltinRenderFeature::Bloom)
+        .find(|feature| feature.is_builtin(BuiltinRenderFeature::Bloom))
         .expect("default pipeline should include bloom");
     *bloom = bloom
         .clone()
@@ -629,7 +902,7 @@ fn pipeline_compile_rejects_conflicting_descriptor_resource_kinds() {
         .renderer
         .features
         .iter_mut()
-        .find(|feature| feature.feature == BuiltinRenderFeature::Bloom)
+        .find(|feature| feature.is_builtin(BuiltinRenderFeature::Bloom))
         .expect("default pipeline should include bloom");
     *bloom = bloom
         .clone()
@@ -661,7 +934,7 @@ fn pipeline_compile_rejects_explicit_external_resource_name_conflicts() {
         .renderer
         .features
         .iter_mut()
-        .find(|feature| feature.feature == BuiltinRenderFeature::Bloom)
+        .find(|feature| feature.is_builtin(BuiltinRenderFeature::Bloom))
         .expect("default pipeline should include bloom");
     *bloom = bloom
         .clone()
@@ -693,7 +966,7 @@ fn pipeline_compile_rejects_empty_descriptor_pass_executor_and_resource_names() 
         .renderer
         .features
         .iter_mut()
-        .find(|feature| feature.feature == BuiltinRenderFeature::Bloom)
+        .find(|feature| feature.is_builtin(BuiltinRenderFeature::Bloom))
         .expect("default pipeline should include bloom");
     *bloom = bloom
         .clone()
@@ -725,7 +998,7 @@ fn pipeline_compile_rejects_empty_descriptor_pass_names_after_descriptor_name_is
         .renderer
         .features
         .iter_mut()
-        .find(|feature| feature.feature == BuiltinRenderFeature::Bloom)
+        .find(|feature| feature.is_builtin(BuiltinRenderFeature::Bloom))
         .expect("default pipeline should include bloom");
     *bloom = bloom
         .clone()
@@ -756,7 +1029,7 @@ fn pipeline_compile_rejects_empty_descriptor_executor_and_resource_names() {
         .renderer
         .features
         .iter_mut()
-        .find(|feature| feature.feature == BuiltinRenderFeature::Bloom)
+        .find(|feature| feature.is_builtin(BuiltinRenderFeature::Bloom))
         .expect("default pipeline should include bloom");
     *bloom = bloom
         .clone()
@@ -788,7 +1061,7 @@ fn pipeline_compile_rejects_empty_descriptor_resource_names_after_executor_is_va
         .renderer
         .features
         .iter_mut()
-        .find(|feature| feature.feature == BuiltinRenderFeature::Bloom)
+        .find(|feature| feature.is_builtin(BuiltinRenderFeature::Bloom))
         .expect("default pipeline should include bloom");
     *bloom = bloom
         .clone()
