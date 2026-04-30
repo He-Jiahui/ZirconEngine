@@ -22,7 +22,8 @@ impl VirtualGeometryRuntimeState {
         replacements: impl IntoIterator<Item = (u32, u32)>,
         evictable_pages: &[u32],
     ) {
-        if self.page_budget == 0 {
+        let page_budget = self.page_budget();
+        if page_budget == 0 {
             return;
         }
 
@@ -35,7 +36,7 @@ impl VirtualGeometryRuntimeState {
         let mut assignments_by_first_unique_page = Vec::new();
         let mut seen_page_ids = BTreeSet::new();
         for (page_id, slot) in assignments {
-            if !self.pending_pages.contains(&page_id) || !seen_page_ids.insert(page_id) {
+            if !self.has_pending_page(page_id) || !seen_page_ids.insert(page_id) {
                 continue;
             }
             assignments_by_first_unique_page.push((page_id, slot));
@@ -44,9 +45,8 @@ impl VirtualGeometryRuntimeState {
         let displaced_resident_pages = assignments_by_first_unique_page
             .iter()
             .filter_map(|(page_id, slot)| {
-                self.resident_slots
-                    .iter()
-                    .find_map(|(&resident_page_id, &resident_slot)| {
+                self.resident_page_slots()
+                    .find_map(|(resident_page_id, resident_slot)| {
                         (resident_slot == *slot && resident_page_id != *page_id)
                             .then_some(resident_page_id)
                     })
@@ -59,13 +59,10 @@ impl VirtualGeometryRuntimeState {
             .collect::<BTreeSet<_>>();
 
         for (page_id, slot) in assignments_by_first_unique_page {
-            let confirmed_replaced_page_id =
-                replacement_by_page_id
-                    .get(&page_id)
-                    .copied()
-                    .filter(|replaced_page_id| {
-                        self.resident_slots.get(replaced_page_id).copied() == Some(slot)
-                    });
+            let confirmed_replaced_page_id = replacement_by_page_id
+                .get(&page_id)
+                .copied()
+                .filter(|replaced_page_id| self.resident_slot(*replaced_page_id) == Some(slot));
             let inherits_hot_frontier = confirmed_replaced_page_id
                 .map(|replaced_page_id| frontier_hot_pages.contains(&replaced_page_id))
                 .unwrap_or(false)
@@ -78,34 +75,25 @@ impl VirtualGeometryRuntimeState {
                 continue;
             }
 
-            while self.resident_slots.len() >= self.page_budget {
-                if self
-                    .resident_slots
-                    .iter()
-                    .find_map(|(&resident_page_id, &resident_slot)| {
-                        (resident_slot == slot).then_some(resident_page_id)
-                    })
-                    .is_some()
-                {
+            while self.resident_page_count() >= page_budget {
+                if self.page_in_slot(slot).is_some() {
                     break;
                 }
 
                 if !self
                     .evict_one(self.ordered_evictable_pages_for_target(page_id, evictable_pages))
                 {
-                    self.evictable_pages
-                        .retain(|candidate| self.resident_slots.contains_key(candidate));
+                    self.retain_resident_evictable_pages();
                     return;
                 }
             }
 
             self.promote_to_resident_in_slot(page_id, slot);
             if inherits_hot_frontier {
-                self.current_hot_resident_pages.insert(page_id);
+                self.insert_current_hot_resident_page(page_id);
             }
         }
 
-        self.evictable_pages
-            .retain(|candidate| self.resident_slots.contains_key(candidate));
+        self.retain_resident_evictable_pages();
     }
 }

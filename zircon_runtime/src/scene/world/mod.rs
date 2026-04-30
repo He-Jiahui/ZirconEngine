@@ -2,6 +2,7 @@
 
 mod bootstrap;
 mod component_access;
+mod component_type_registry;
 mod derived_state;
 mod dynamic_components;
 mod hierarchy;
@@ -12,5 +13,6 @@ mod records;
 mod render;
 mod world;
 
+pub use component_type_registry::ComponentTypeRegistry;
 pub use project_io::SceneProjectError;
 pub use world::World;

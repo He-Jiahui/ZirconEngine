@@ -6,7 +6,7 @@ use crate::core::framework::render::RenderCapabilitySummary;
 pub(crate) enum VirtualGeometryExecutionMode {
     #[default]
     CpuDebug,
-    CompatGpu,
+    BaselineGpu,
     FlagshipGpu,
 }
 
@@ -17,7 +17,7 @@ impl VirtualGeometryExecutionMode {
         }
 
         if capabilities.supports_offscreen || capabilities.supports_surface {
-            return Self::CompatGpu;
+            return Self::BaselineGpu;
         }
 
         Self::CpuDebug

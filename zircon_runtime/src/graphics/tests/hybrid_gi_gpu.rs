@@ -109,11 +109,11 @@ fn hybrid_gi_gpu_completion_readback_reports_completed_probe_updates_and_traces(
     let readback = renderer
         .take_last_hybrid_gi_gpu_readback()
         .expect("expected hybrid gi GPU readback");
-    assert_eq!(readback.cache_entries, vec![(200, 0), (500, 1)]);
-    assert_eq!(readback.completed_probe_ids, vec![300]);
-    assert_eq!(readback.completed_trace_region_ids, vec![40]);
+    assert_eq!(readback.cache_entries(), vec![(200, 0), (500, 1)]);
+    assert_eq!(readback.completed_probe_ids(), vec![300]);
+    assert_eq!(readback.completed_trace_region_ids(), vec![40]);
     assert_eq!(
-        readback.probe_irradiance_rgb,
+        readback.probe_irradiance_rgb(),
         vec![
             (
                 200,
@@ -211,11 +211,11 @@ fn hybrid_gi_gpu_completion_readback_respects_probe_budget_without_evictable_slo
     let readback = renderer
         .take_last_hybrid_gi_gpu_readback()
         .expect("expected hybrid gi GPU readback");
-    assert_eq!(readback.cache_entries, vec![(200, 0)]);
-    assert_eq!(readback.completed_probe_ids, Vec::<u32>::new());
-    assert_eq!(readback.completed_trace_region_ids, vec![40, 50]);
+    assert_eq!(readback.cache_entries(), vec![(200, 0)]);
+    assert_eq!(readback.completed_probe_ids(), Vec::<u32>::new());
+    assert_eq!(readback.completed_trace_region_ids(), vec![40, 50]);
     assert_eq!(
-        readback.probe_irradiance_rgb,
+        readback.probe_irradiance_rgb(),
         vec![(
             200,
             expected_gpu_irradiance(
@@ -417,34 +417,40 @@ fn hybrid_gi_gpu_trace_lighting_readback_uses_runtime_hierarchy_rt_lighting_afte
         viewport_size,
         extract.clone(),
         prepare.clone(),
-        Some(HybridGiResolveRuntime {
-            probe_hierarchy_resolve_weight_q8: std::collections::BTreeMap::from([(
-                200,
-                HybridGiResolveRuntime::pack_resolve_weight_q8(1.85),
-            )]),
-            probe_hierarchy_rt_lighting_rgb_and_weight: std::collections::BTreeMap::from([(
-                200,
-                HybridGiResolveRuntime::pack_rgb_and_weight([0.95, 0.32, 0.12], 0.6),
-            )]),
-            ..Default::default()
-        }),
+        Some(
+            HybridGiResolveRuntime::fixture()
+                .with_probe_hierarchy_resolve_weight_q8(std::collections::BTreeMap::from([(
+                    200,
+                    HybridGiResolveRuntime::pack_resolve_weight_q8(1.85),
+                )]))
+                .with_probe_hierarchy_rt_lighting_rgb_and_weight(std::collections::BTreeMap::from(
+                    [(
+                        200,
+                        HybridGiResolveRuntime::pack_rgb_and_weight([0.95, 0.32, 0.12], 0.6),
+                    )],
+                ))
+                .build(),
+        ),
     );
     let cool = render_hybrid_gi_gpu_trace_lighting_readback_with_runtime(
         &mut renderer,
         viewport_size,
         extract,
         prepare,
-        Some(HybridGiResolveRuntime {
-            probe_hierarchy_resolve_weight_q8: std::collections::BTreeMap::from([(
-                200,
-                HybridGiResolveRuntime::pack_resolve_weight_q8(1.85),
-            )]),
-            probe_hierarchy_rt_lighting_rgb_and_weight: std::collections::BTreeMap::from([(
-                200,
-                HybridGiResolveRuntime::pack_rgb_and_weight([0.12, 0.32, 0.95], 0.6),
-            )]),
-            ..Default::default()
-        }),
+        Some(
+            HybridGiResolveRuntime::fixture()
+                .with_probe_hierarchy_resolve_weight_q8(std::collections::BTreeMap::from([(
+                    200,
+                    HybridGiResolveRuntime::pack_resolve_weight_q8(1.85),
+                )]))
+                .with_probe_hierarchy_rt_lighting_rgb_and_weight(std::collections::BTreeMap::from(
+                    [(
+                        200,
+                        HybridGiResolveRuntime::pack_rgb_and_weight([0.12, 0.32, 0.95], 0.6),
+                    )],
+                ))
+                .build(),
+        ),
     );
 
     let warm_trace = warm
@@ -1503,22 +1509,30 @@ fn hybrid_gi_gpu_completion_readback_uses_runtime_scene_voxel_radiance_rehydrate
     let cool_readback = renderer.take_last_hybrid_gi_gpu_readback().unwrap();
 
     let warm_scene_prepare_resources = warm_readback
-        .scene_prepare_resources
+        .scene_prepare_resources()
         .expect("expected warm scene-prepare resource snapshot");
     let cool_scene_prepare_resources = cool_readback
-        .scene_prepare_resources
+        .scene_prepare_resources()
         .expect("expected cool scene-prepare resource snapshot");
     assert!(
-        warm_scene_prepare_resources.capture_slot_rgba_samples.is_empty()
-            && warm_scene_prepare_resources.atlas_slot_rgba_samples.is_empty()
-            && cool_scene_prepare_resources.capture_slot_rgba_samples.is_empty()
-            && cool_scene_prepare_resources.atlas_slot_rgba_samples.is_empty(),
+        warm_scene_prepare_resources
+            .capture_slot_rgba_samples()
+            .is_empty()
+            && warm_scene_prepare_resources
+                .atlas_slot_rgba_samples()
+                .is_empty()
+            && cool_scene_prepare_resources
+                .capture_slot_rgba_samples()
+                .is_empty()
+            && cool_scene_prepare_resources
+                .atlas_slot_rgba_samples()
+                .is_empty(),
         "expected this clean-frame regression to remove persisted surface-cache page-content fallback from the renderer input, so the GPU completion difference must come from runtime voxel radiance instead of owner-card capture resources"
     );
 
     assert_ne!(
-        warm_readback.probe_irradiance_rgb,
-        cool_readback.probe_irradiance_rgb,
+        warm_readback.probe_irradiance_rgb(),
+        cool_readback.probe_irradiance_rgb(),
         "expected clean-frame persisted page samples to rehydrate different runtime voxel radiance for GPU completion even after owner-card surface-cache page fallback is removed from the renderer input"
     );
 }
@@ -2287,8 +2301,8 @@ fn render_hybrid_gi_gpu_full_readback_with_runtime_and_scene_prepare(
         .take_last_hybrid_gi_gpu_readback()
         .expect("expected hybrid gi GPU readback");
     (
-        readback.probe_irradiance_rgb,
-        readback.probe_trace_lighting_rgb,
+        readback.probe_irradiance_rgb().to_vec(),
+        readback.probe_trace_lighting_rgb().to_vec(),
     )
 }
 
@@ -2549,27 +2563,23 @@ fn runtime_voxel_scene_prepare_from_tinted_mesh_with_persisted_page_sample(
         &[],
         &[],
     );
-    runtime.apply_scene_prepare_resources(
-        &crate::graphics::scene::HybridGiScenePrepareResourcesSnapshot {
-            card_capture_request_count: 1,
-            voxel_clipmap_ids: Vec::new(),
-            occupied_atlas_slots: vec![0],
-            occupied_capture_slots: vec![0],
-            atlas_slot_rgba_samples: vec![(0, persisted_capture_rgba)],
-            capture_slot_rgba_samples: vec![(0, persisted_capture_rgba)],
-            voxel_clipmap_rgba_samples: Vec::new(),
-            voxel_clipmap_occupancy_masks: Vec::new(),
-            voxel_clipmap_cell_rgba_samples: Vec::new(),
-            voxel_clipmap_cell_occupancy_counts: Vec::new(),
-            voxel_clipmap_cell_dominant_node_ids: Vec::new(),
-            voxel_clipmap_cell_dominant_rgba_samples: Vec::new(),
-            atlas_slot_count: 0,
-            capture_slot_count: 0,
-            atlas_texture_extent: (0, 0),
-            capture_texture_extent: (0, 0),
-            capture_layer_count: 0,
-        },
+    let mut scene_prepare_resources =
+        crate::graphics::scene::HybridGiScenePrepareResourcesSnapshot::new(
+            1,
+            Vec::new(),
+            vec![0],
+            vec![0],
+            0,
+            0,
+            (0, 0),
+            (0, 0),
+            0,
+        );
+    scene_prepare_resources.store_texture_slot_rgba_samples(
+        vec![(0, persisted_capture_rgba)],
+        vec![(0, persisted_capture_rgba)],
     );
+    runtime.apply_scene_prepare_resources_for_test(&scene_prepare_resources);
     runtime.register_scene_extract(
         Some(&extract),
         &[RenderMeshSnapshot {

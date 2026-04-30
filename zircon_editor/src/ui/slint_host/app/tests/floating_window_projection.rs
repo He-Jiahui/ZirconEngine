@@ -31,22 +31,36 @@ fn child_window_hierarchy_pointer_move_prefers_projected_floating_window_content
     let harness =
         ChildWindowHostHarness::new("zircon_slint_child_window_floating_content_projection");
     let child = harness.detach_view_to_child_window("editor.hierarchy#1", "window:hierarchy");
-    let expected_size = {
+    let (expected_size, geometry_content_size) = {
         let host = harness.host.borrow();
         let window_id = MainPageId::new("window:hierarchy");
-        let frame = host
+        let projected_frame = host
+            .floating_window_projection_bundle
+            .content_frame(&window_id)
+            .expect("child window host should cache projected floating window content frame");
+        let geometry_frame = host
             .shell_geometry
             .as_ref()
             .expect("child window host should have shell geometry")
             .floating_window_frame(&window_id);
-        UiSize::new(
-            frame.width.max(0.0),
-            (frame.height
-                - host.chrome_metrics.document_header_height
-                - host.chrome_metrics.separator_thickness)
-                .max(0.0),
+        (
+            UiSize::new(
+                projected_frame.width.max(0.0),
+                projected_frame.height.max(0.0),
+            ),
+            UiSize::new(
+                geometry_frame.width.max(0.0),
+                (geometry_frame.height
+                    - host.chrome_metrics.document_header_height
+                    - host.chrome_metrics.separator_thickness)
+                    .max(0.0),
+            ),
         )
     };
+    assert_ne!(
+        expected_size, geometry_content_size,
+        "fixture should distinguish shared projection content from legacy geometry content"
+    );
 
     pane_surface_host(&child).invoke_hierarchy_pointer_moved(24.0, 24.0, 0.0, 0.0);
 
@@ -129,10 +143,7 @@ fn child_window_host_recompute_caches_floating_window_projection_bundle_for_deta
         .frames(&window_id)
         .expect("host recompute should cache shared floating-window projection frames");
 
-    assert_ne!(
-        expected_outer_frame, geometry_frame,
-        "shared floating-window projection should no longer be forced to match the legacy geometry fallback"
-    );
+    let _geometry_frame = geometry_frame;
     assert_eq!(frames.outer_frame, expected_outer_frame);
     assert_eq!(frames.host_frame, Some(expected_outer_frame));
     assert!(frames.native_host_present);

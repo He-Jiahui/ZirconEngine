@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use slint::{CloseRequestResponse, ComponentHandle, PhysicalPosition, PhysicalSize, PlatformError};
+use slint::{CloseRequestResponse, PhysicalPosition, PhysicalSize, PlatformError};
 
 use crate::ui::slint_host::floating_window_projection::FloatingWindowProjectionBundle;
 use crate::ui::workbench::layout::MainPageId;
@@ -123,8 +123,6 @@ impl NativeWindowPresenterStore {
 
     #[cfg(test)]
     pub(crate) fn window(&self, window_id: &MainPageId) -> Option<UiHostWindow> {
-        self.windows
-            .get(window_id)
-            .map(ComponentHandle::clone_strong)
+        self.windows.get(window_id).map(UiHostWindow::clone_strong)
     }
 }

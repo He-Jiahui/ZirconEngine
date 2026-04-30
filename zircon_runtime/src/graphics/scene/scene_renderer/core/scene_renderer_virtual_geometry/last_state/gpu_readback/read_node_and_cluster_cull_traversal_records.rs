@@ -10,12 +10,13 @@ impl SceneRenderer {
     pub(crate) fn read_last_virtual_geometry_node_and_cluster_cull_traversal_records(
         &self,
     ) -> Result<Vec<VirtualGeometryNodeAndClusterCullTraversalRecord>, GraphicsError> {
-        let record_count =
-            self.advanced_plugin_outputs
-                .virtual_geometry_node_and_cluster_cull_traversal_record_count as usize;
+        let record_count = self
+            .advanced_plugin_outputs
+            .virtual_geometry_node_and_cluster_cull_traversal_record_count()
+            as usize;
         let Some(buffer) = self
             .advanced_plugin_outputs
-            .virtual_geometry_node_and_cluster_cull_traversal_record_buffer
+            .virtual_geometry_node_and_cluster_cull_traversal_record_buffer()
             .as_ref()
         else {
             return Ok(Vec::new());

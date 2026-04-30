@@ -15,8 +15,8 @@ impl Default for WorkbenchChromeMetrics {
     fn default() -> Self {
         Self {
             top_bar_height: 25.0,
-            host_bar_height: 24.0,
-            status_bar_height: 20.0,
+            host_bar_height: 32.0,
+            status_bar_height: 24.0,
             panel_header_height: 25.0,
             document_header_height: 31.0,
             viewport_toolbar_height: 28.0,

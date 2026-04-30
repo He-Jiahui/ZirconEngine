@@ -15,7 +15,7 @@ related_code:
   - zircon_plugins/net/runtime/src/config.rs
   - zircon_plugins/net/runtime/src/module.rs
   - zircon_plugins/net/runtime/src/service_types.rs
-  - zircon_runtime/src/tests/extensions/manager_facades.rs
+  - zircon_runtime/src/tests/extensions/manager_handles.rs
   - zircon_runtime/src/builtin/runtime_modules.rs
 implementation_files:
   - zircon_runtime/src/core/framework/mod.rs
@@ -33,7 +33,7 @@ implementation_files:
   - zircon_plugins/net/runtime/src/config.rs
   - zircon_plugins/net/runtime/src/module.rs
   - zircon_plugins/net/runtime/src/service_types.rs
-  - zircon_runtime/src/tests/extensions/manager_facades.rs
+  - zircon_runtime/src/tests/extensions/manager_handles.rs
 plan_sources:
   - user: 2026-04-21 PLEASE IMPLEMENT THIS PLAN
   - user: 2026-04-21 Later Milestones / M2 基础子系统补齐
@@ -44,9 +44,7 @@ tests:
   - cargo check -p zircon_runtime --locked
   - cargo check --workspace --locked
   - cargo test -p zircon_runtime core::framework::tests::net_framework_root_stays_structural_after_folder_split --locked
-  - cargo test -p zircon_runtime --lib --locked manager_facades --offline
-  - cargo test -p zircon_runtime tests::extensions::manager_facades::net_manager_resolves_through_framework_facade_and_roundtrips_udp_loopback_packets --locked
-  - cargo test -p zircon_runtime tests::extensions::manager_facades::physics_and_animation_runtime_extensions_keep_manager_handles_under_core_manager_facades --locked
+  - cargo test -p zircon_runtime tests::extensions::manager_handles::externalized_runtime_plugins_keep_manager_handles_under_core_manager_contracts --locked
 doc_type: module-detail
 ---
 
@@ -59,7 +57,7 @@ doc_type: module-detail
 当前完成线不是完整 multiplayer / replication / RPC，而是更薄的一层：
 
 - `core::framework::net` 定义共享 socket/message-loop 合同
-- `core::manager` 暴露稳定 `NetManager` façade
+- `core::manager` 暴露稳定 `NetManager` contract / handle
 - `zircon_plugin_net_runtime` 提供默认 runtime 实现
 - 默认实现能在本机 loopback 上完成 `bind -> send -> poll -> close`
 
@@ -87,7 +85,7 @@ doc_type: module-detail
 
 也就是说：
 
-- framework 只定义中性 DTO 和 façade trait
+- framework 只定义中性 DTO 和 manager trait
 - core manager 只定义稳定服务名和 resolver surface
 - runtime extension 才拥有 `std::net::UdpSocket` 的具体行为
 
@@ -136,9 +134,9 @@ doc_type: module-detail
 
 1. `NetDriver`
 2. `DefaultNetManager`
-3. façade `NetManagerHandle`
+3. manager handle `NetManagerHandle`
 
-这一步的意义不是为了复杂化，而是把“默认实现”和“稳定 façade”分开：
+这一步的意义不是为了复杂化，而是把“默认实现”和“稳定 manager contract”分开：
 
 - 以后换掉默认 backend，不需要改 `NET_MANAGER_NAME`
 - 上层 app / editor / plugin 继续只认 `core::manager::resolve_net_manager(...)`
@@ -150,15 +148,11 @@ doc_type: module-detail
 - `cargo check -p zircon_runtime --locked`
   - 证明 `framework::net`、`core::manager` 和 `zircon_plugin_net_runtime` 的 production wiring 已经闭合
 - `cargo check --workspace --locked`
-  - 证明新的 shared manager façade 没有破坏工作区主链
+  - 证明新的 shared manager contract / handle 没有破坏工作区主链
 - `cargo test -p zircon_runtime core::framework::tests::net_framework_root_stays_structural_after_folder_split --locked`
   - 证明 `core::framework::net/mod.rs` 保持 structural root，而不是重新把实现堆回根文件
-- `cargo test -p zircon_runtime tests::extensions::manager_facades::net_manager_resolves_through_framework_facade_and_roundtrips_udp_loopback_packets --locked`
-  - 证明 `NetManager` 已经能通过 `core::manager` façade 解析，并在 loopback 上完成真实 `bind/send/poll/close` 闭环
-- `cargo test -p zircon_runtime --lib --locked manager_facades --offline`
-  - 证明 façade 层同时覆盖 UDP loopback 闭环、`poll_udp(max_packets)` 留存未消费 datagram 的 budget 行为，以及其他 runtime manager façade 回归
-- `cargo test -p zircon_runtime tests::extensions::manager_facades::physics_and_animation_runtime_extensions_keep_manager_handles_under_core_manager_facades --locked`
-  - 证明 `NetManagerHandle` / `resolve_net_manager(...)` / `NET_MANAGER_NAME` 已经进入 core manager 稳定表面，而不是继续留在 extension 内部私有路径
+- `cargo test -p zircon_runtime tests::extensions::manager_handles::externalized_runtime_plugins_keep_manager_handles_under_core_manager_contracts --locked`
+  - 证明 `NetManagerHandle` / `resolve_net_manager(...)` / `NET_MANAGER_NAME` 已经进入 core manager 稳定表面，而不是继续留在 extension 内部私有路径；网络行为闭环现在由 `zircon_plugin_net_runtime` 的独立插件 workspace 测试覆盖
 
 ## Next Steps
 
@@ -168,4 +162,4 @@ doc_type: module-detail
 2. 把 UDP-only MVP 扩到 TCP listener / accepted stream surface
 3. 再往上才是消息 schema、RPC、replication、多人状态同步
 
-关键是这些后续层都应该建立在当前已经收口的 `NetManager` façade 之上，而不是重新回到“只有 module 壳、没有真实 runtime 行为”的状态。
+关键是这些后续层都应该建立在当前已经收口的 `NetManager` contract 之上，而不是重新回到“只有 module 壳、没有真实 runtime 行为”的状态。

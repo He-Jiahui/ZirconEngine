@@ -1,5 +1,5 @@
 use crate::ui::slint_host::UiHostWindow;
-use slint::{ComponentHandle, PhysicalSize};
+use slint::PhysicalSize;
 
 #[test]
 fn workbench_shell_window_can_resize_and_toggle_maximize() {

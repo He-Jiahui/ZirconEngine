@@ -1,5 +1,6 @@
 mod compile;
 mod component_instance_expander;
+mod component_props;
 mod node_expander;
 mod shape_validator;
 mod style_apply;

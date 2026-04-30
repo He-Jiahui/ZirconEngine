@@ -1,6 +1,6 @@
 mod build_runtime_frame;
 mod build_virtual_geometry_debug_snapshot;
-mod collect_gpu_completions;
+mod collect_runtime_feedback;
 mod release_previous_history;
 mod resolve_history_handle;
 mod submit;

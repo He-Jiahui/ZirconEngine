@@ -177,6 +177,14 @@ pub(super) fn wire_callbacks(ui: &UiHostWindow, host: &Rc<RefCell<SlintEditorHos
 
     let weak = Rc::downgrade(host);
     let source_ui = ui.clone_strong();
+    pane_surface_host.on_hierarchy_pointer_event(move |kind, button, x, y, width, height| {
+        dispatch_with_callback_source(&weak, &source_ui, |host| {
+            host.hierarchy_pointer_event(kind, button, x, y, width, height);
+        });
+    });
+
+    let weak = Rc::downgrade(host);
+    let source_ui = ui.clone_strong();
     pane_surface_host.on_console_pointer_scrolled(move |x, y, delta, width, height| {
         dispatch_with_callback_source(&weak, &source_ui, |host| {
             host.console_pointer_scrolled(x, y, delta, width, height);
@@ -190,6 +198,16 @@ pub(super) fn wire_callbacks(ui: &UiHostWindow, host: &Rc<RefCell<SlintEditorHos
             host.inspector_pointer_scrolled(x, y, delta, width, height);
         });
     });
+
+    let weak = Rc::downgrade(host);
+    let source_ui = ui.clone_strong();
+    pane_surface_host.on_inspector_reference_pointer_event(
+        move |kind, button, x, y, width, height| {
+            dispatch_with_callback_source(&weak, &source_ui, |host| {
+                host.inspector_reference_pointer_event(kind, button, x, y, width, height);
+            });
+        },
+    );
 
     let weak = Rc::downgrade(host);
     let source_ui = ui.clone_strong();
@@ -255,6 +273,21 @@ pub(super) fn wire_callbacks(ui: &UiHostWindow, host: &Rc<RefCell<SlintEditorHos
                     control_id.as_str(),
                     action_id.as_str(),
                     value.as_str(),
+                );
+            });
+        },
+    );
+
+    let weak = Rc::downgrade(host);
+    let source_ui = ui.clone_strong();
+    pane_surface_host.on_component_showcase_control_context_requested(
+        move |control_id: SharedString, action_id: SharedString, x: f32, y: f32| {
+            dispatch_with_callback_source(&weak, &source_ui, |host| {
+                host.dispatch_component_showcase_control_context_requested(
+                    control_id.as_str(),
+                    action_id.as_str(),
+                    f64::from(x),
+                    f64::from(y),
                 );
             });
         },
@@ -350,6 +383,24 @@ pub(super) fn wire_callbacks(ui: &UiHostWindow, host: &Rc<RefCell<SlintEditorHos
 
     let weak = Rc::downgrade(host);
     let source_ui = ui.clone_strong();
+    pane_surface_host.on_asset_content_pointer_event(
+        move |surface_mode: SharedString, kind, button, x, y, width, height| {
+            dispatch_with_callback_source(&weak, &source_ui, |host| {
+                host.asset_content_pointer_event(
+                    surface_mode.as_str(),
+                    kind,
+                    button,
+                    x,
+                    y,
+                    width,
+                    height,
+                );
+            });
+        },
+    );
+
+    let weak = Rc::downgrade(host);
+    let source_ui = ui.clone_strong();
     pane_surface_host.on_asset_content_pointer_moved(
         move |surface_mode: SharedString, x, y, width, height| {
             dispatch_with_callback_source(&weak, &source_ui, |host| {
@@ -383,6 +434,32 @@ pub(super) fn wire_callbacks(ui: &UiHostWindow, host: &Rc<RefCell<SlintEditorHos
                 host.asset_reference_pointer_clicked(
                     surface_mode.as_str(),
                     list_kind.as_str(),
+                    x,
+                    y,
+                    width,
+                    height,
+                );
+            });
+        },
+    );
+
+    let weak = Rc::downgrade(host);
+    let source_ui = ui.clone_strong();
+    pane_surface_host.on_asset_reference_pointer_event(
+        move |surface_mode: SharedString,
+              list_kind: SharedString,
+              kind,
+              button,
+              x,
+              y,
+              width,
+              height| {
+            dispatch_with_callback_source(&weak, &source_ui, |host| {
+                host.asset_reference_pointer_event(
+                    surface_mode.as_str(),
+                    list_kind.as_str(),
+                    kind,
+                    button,
                     x,
                     y,
                     width,

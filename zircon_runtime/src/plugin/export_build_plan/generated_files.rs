@@ -11,7 +11,6 @@ use super::ExportGeneratedFile;
 pub(super) fn generated_files_for_profile(
     manifest: &ProjectManifest,
     profile: &ExportProfile,
-    enabled_plugins: &[&ProjectPluginSelection],
     project_plugin_selections: &[&ProjectPluginSelection],
     linked_runtime_crates: &[String],
     native_dynamic_packages: &[String],
@@ -45,8 +44,8 @@ pub(super) fn generated_files_for_profile(
             purpose: "generated plugin selection code".to_string(),
             contents: plugin_selection_template(
                 profile,
-                enabled_plugins,
                 project_plugin_selections,
+                linked_runtime_crates,
             ),
         },
         ExportGeneratedFile {

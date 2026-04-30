@@ -76,6 +76,12 @@ fn builtin_pane_views_expose_template_metadata() {
             PaneInteractionMode::TemplateOnly,
         ),
         (
+            "editor.module_plugins",
+            PanePayloadKind::ModulePluginsV1,
+            PaneRouteNamespace::Dock,
+            PaneInteractionMode::HybridNativeSlot,
+        ),
+        (
             "editor.ui_component_showcase",
             PanePayloadKind::UiComponentShowcaseV1,
             PaneRouteNamespace::UiComponentShowcase,

@@ -96,10 +96,7 @@ impl EditorCliOperationRequest {
             );
         };
         Ok(EditorOperationControlRequest::InvokeOperation(
-            EditorOperationInvocation {
-                operation_id,
-                arguments: self.arguments,
-            },
+            EditorOperationInvocation::new(operation_id).with_arguments(self.arguments),
         ))
     }
 

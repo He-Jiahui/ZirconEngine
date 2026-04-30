@@ -56,17 +56,17 @@ fn seed_backed_node_and_cluster_cull_can_drive_execution_selected_clusters_witho
     assert_eq!(
         renderer.read_last_virtual_geometry_cluster_selection_input_source(),
         RenderVirtualGeometryClusterSelectionInputSource::Unavailable,
-        "expected this compat path to start from NodeAndClusterCull root seeds rather than explicit or prepare-owned ClusterSelection input"
+        "expected this baseline path to start from NodeAndClusterCull root seeds rather than explicit or prepare-owned ClusterSelection input"
     );
     assert_eq!(
         renderer.read_last_virtual_geometry_node_and_cluster_cull_source(),
         RenderVirtualGeometryNodeAndClusterCullSource::RenderPathCullInput,
-        "expected the seed-driven execution compat path to reuse the existing NodeAndClusterCull cull-input bridge as its upstream source of truth"
+        "expected the seed-driven execution baseline path to reuse the existing NodeAndClusterCull cull-input bridge as its upstream source of truth"
     );
     assert_eq!(
         renderer.read_last_virtual_geometry_selected_cluster_source(),
         RenderVirtualGeometrySelectedClusterSource::RenderPathExecutionSelections,
-        "expected a non-empty seed-driven compat execution path to publish execution-owned selected clusters instead of staying clear-only"
+        "expected a non-empty seed-driven baseline execution path to publish execution-owned selected clusters instead of staying clear-only"
     );
     assert_eq!(
         renderer
@@ -81,7 +81,7 @@ fn seed_backed_node_and_cluster_cull_can_drive_execution_selected_clusters_witho
             lod_level: 1,
             state: RenderVirtualGeometryExecutionState::Resident,
         }],
-        "expected the minimal seed consumer to promote the first cluster in the seeded instance range into the shared executed-cluster seam so downstream compat passes can stop depending on explicit ClusterSelection injection"
+        "expected the minimal seed consumer to promote the first cluster in the seeded instance range into the shared executed-cluster seam so downstream baseline passes can stop depending on explicit ClusterSelection injection"
     );
     assert_eq!(
         renderer.read_last_virtual_geometry_visbuffer64_source(),
@@ -100,7 +100,7 @@ fn seed_backed_node_and_cluster_cull_can_drive_execution_selected_clusters_witho
             1,
             RenderVirtualGeometryExecutionState::Resident,
         )],
-        "expected the seed-driven compat consumer to preserve the selected cluster identity all the way into VisBuffer64 packing"
+        "expected the seed-driven execution selection path to preserve the selected cluster identity all the way into VisBuffer64 packing"
     );
     assert_eq!(
         renderer.read_last_virtual_geometry_hardware_rasterization_source(),
@@ -130,7 +130,7 @@ fn seed_backed_node_and_cluster_cull_can_drive_execution_selected_clusters_witho
             submission_slot: None,
             state: RenderVirtualGeometryExecutionState::Resident,
         }],
-        "expected the seed-driven compat consumer to preserve the same selected cluster identity and synthesize the minimal submission metadata needed by the hardware-rasterization startup seam"
+        "expected the seed-driven execution selection path to preserve the same selected cluster identity and synthesize the minimal submission metadata needed by the hardware-rasterization startup seam"
     );
 }
 
@@ -142,17 +142,17 @@ fn seed_backed_node_and_cluster_cull_can_drive_multiple_execution_selected_clust
     assert_eq!(
         renderer.read_last_virtual_geometry_cluster_selection_input_source(),
         RenderVirtualGeometryClusterSelectionInputSource::Unavailable,
-        "expected this compat path to still start from NodeAndClusterCull root seeds rather than explicit or prepare-owned ClusterSelection input"
+        "expected this baseline path to still start from NodeAndClusterCull root seeds rather than explicit or prepare-owned ClusterSelection input"
     );
     assert_eq!(
         renderer.read_last_virtual_geometry_node_and_cluster_cull_source(),
         RenderVirtualGeometryNodeAndClusterCullSource::RenderPathCullInput,
-        "expected the multi-cluster compat path to reuse the existing NodeAndClusterCull cull-input bridge as its upstream source of truth"
+        "expected the multi-cluster baseline path to reuse the existing NodeAndClusterCull cull-input bridge as its upstream source of truth"
     );
     assert_eq!(
         renderer.read_last_virtual_geometry_selected_cluster_source(),
         RenderVirtualGeometrySelectedClusterSource::RenderPathExecutionSelections,
-        "expected a multi-cluster seed-driven compat execution path to publish execution-owned selected clusters instead of staying clear-only"
+        "expected a multi-cluster seed-driven baseline execution path to publish execution-owned selected clusters instead of staying clear-only"
     );
     assert_eq!(
         renderer
@@ -178,7 +178,7 @@ fn seed_backed_node_and_cluster_cull_can_drive_multiple_execution_selected_clust
                 state: RenderVirtualGeometryExecutionState::PendingUpload,
             },
         ],
-        "expected the seed-driven compat consumer to expand the full seeded cluster range into the shared executed-cluster seam instead of truncating each instance to a single root candidate"
+        "expected the seed-driven execution selection path to expand the full seeded cluster range into the shared executed-cluster seam instead of truncating each instance to a single root candidate"
     );
     assert_eq!(
         renderer.read_last_virtual_geometry_visbuffer64_source(),
@@ -206,7 +206,7 @@ fn seed_backed_node_and_cluster_cull_can_drive_multiple_execution_selected_clust
                 RenderVirtualGeometryExecutionState::PendingUpload,
             ),
         ],
-        "expected the seed-driven compat consumer to preserve all expanded cluster identities all the way into VisBuffer64 packing"
+        "expected the seed-driven execution selection path to preserve all expanded cluster identities all the way into VisBuffer64 packing"
     );
     assert_eq!(
         renderer.read_last_virtual_geometry_hardware_rasterization_source(),
@@ -257,7 +257,7 @@ fn seed_backed_node_and_cluster_cull_can_drive_multiple_execution_selected_clust
                 state: RenderVirtualGeometryExecutionState::PendingUpload,
             },
         ],
-        "expected the seed-driven compat consumer to synthesize one hardware-rasterization startup record per expanded cluster instead of preserving only the first seeded cluster"
+        "expected the seed-driven execution selection path to synthesize one hardware-rasterization startup record per expanded cluster instead of preserving only the first seeded cluster"
     );
 }
 
@@ -268,7 +268,7 @@ fn seed_backed_node_and_cluster_cull_respects_forced_mip_without_explicit_cluste
     assert_eq!(
         renderer.read_last_virtual_geometry_selected_cluster_source(),
         RenderVirtualGeometrySelectedClusterSource::RenderPathExecutionSelections,
-        "expected the forced-mip seed-backed compat path to keep publishing execution-owned selected clusters instead of collapsing to clear-only"
+        "expected the forced-mip seed-backed baseline path to keep publishing execution-owned selected clusters instead of collapsing to clear-only"
     );
     assert_eq!(
         renderer
@@ -283,7 +283,7 @@ fn seed_backed_node_and_cluster_cull_respects_forced_mip_without_explicit_cluste
             lod_level: 0,
             state: RenderVirtualGeometryExecutionState::PendingUpload,
         }],
-        "expected the seed-driven compat consumer to honor forced_mip when expanding a seeded cluster range so render-path execution selection stays aligned with the Nanite teaching/debug mip override instead of selecting every seeded cluster regardless of mip"
+        "expected the seed-driven execution selection path to honor forced_mip when expanding a seeded cluster range so render-path execution selection stays aligned with the Nanite teaching/debug mip override instead of selecting every seeded cluster regardless of mip"
     );
     assert_eq!(
         renderer
@@ -297,7 +297,7 @@ fn seed_backed_node_and_cluster_cull_respects_forced_mip_without_explicit_cluste
             0,
             RenderVirtualGeometryExecutionState::PendingUpload,
         )],
-        "expected forced_mip filtering to survive all the way into VisBuffer64 packing on the seed-driven compat path"
+        "expected forced_mip filtering to survive all the way into VisBuffer64 packing on the seed-driven baseline path"
     );
     assert_eq!(
         renderer
@@ -322,7 +322,7 @@ fn seed_backed_node_and_cluster_cull_respects_forced_mip_without_explicit_cluste
             submission_slot: None,
             state: RenderVirtualGeometryExecutionState::PendingUpload,
         }],
-        "expected forced_mip filtering to survive all the way into hardware-rasterization startup records on the seed-driven compat path"
+        "expected forced_mip filtering to survive all the way into hardware-rasterization startup records on the seed-driven baseline path"
     );
 }
 
@@ -334,7 +334,7 @@ fn seed_backed_node_and_cluster_cull_preserves_lineage_depth_in_hardware_rasteri
     assert_eq!(
         renderer.read_last_virtual_geometry_selected_cluster_source(),
         RenderVirtualGeometrySelectedClusterSource::RenderPathExecutionSelections,
-        "expected the hierarchical seed-backed compat path to keep publishing execution-owned selected clusters instead of collapsing to clear-only"
+        "expected the hierarchical seed-backed baseline path to keep publishing execution-owned selected clusters instead of collapsing to clear-only"
     );
     assert_eq!(
         renderer
@@ -399,7 +399,7 @@ fn seed_backed_node_and_cluster_cull_preserves_lineage_depth_in_hardware_rasteri
                 state: RenderVirtualGeometryExecutionState::Missing,
             },
         ],
-        "expected the hierarchical seed-driven compat consumer to preserve non-zero lineage depth on child and grandchild clusters so hardware-rasterization startup metadata matches the existing visibility-plan parent-chain semantics"
+        "expected the hierarchical seed-driven execution selection path to preserve non-zero lineage depth on child and grandchild clusters so hardware-rasterization startup metadata matches the existing visibility-plan parent-chain semantics"
     );
 }
 
@@ -421,7 +421,7 @@ fn seed_backed_node_and_cluster_cull_keeps_instance_local_cluster_slice_metadata
             lod_level: 1,
             state: RenderVirtualGeometryExecutionState::Resident,
         }],
-        "expected the subset-range seed-backed compat path to preserve entity-local cluster ordinal instead of reusing the raw extract slice offset as though it were already the stable per-entity ordinal"
+        "expected the subset-range seed-backed baseline path to preserve entity-local cluster ordinal instead of reusing the raw extract slice offset as though it were already the stable per-entity ordinal"
     );
     assert_eq!(
         renderer
@@ -479,7 +479,7 @@ fn seed_backed_node_and_cluster_cull_falls_back_to_resident_parent_cluster_witho
                 state: RenderVirtualGeometryExecutionState::Resident,
             },
         ],
-        "expected the seed-backed compat path to replace an undrawable child cluster with its nearest resident ancestor while preserving resident clusters that were already selected earlier in the same seeded instance slice"
+        "expected the seed-backed baseline path to replace an undrawable child cluster with its nearest resident ancestor while preserving resident clusters that were already selected earlier in the same seeded instance slice"
     );
     assert_eq!(
         renderer
@@ -525,7 +525,7 @@ fn seed_backed_node_and_cluster_cull_falls_back_to_resident_parent_cluster_witho
                 state: RenderVirtualGeometryExecutionState::Resident,
             },
         ],
-        "expected resident-parent fallback to keep the original child submission metadata even while the compat raster path consumes the resolved resident ancestor cluster that can actually draw in place of the missing child"
+        "expected resident-parent fallback to keep the original child submission metadata even while the baseline raster path consumes the resolved resident ancestor cluster that can actually draw in place of the missing child"
     );
 }
 
@@ -649,7 +649,7 @@ fn seed_backed_node_and_cluster_cull_applies_cluster_budget_after_stable_selecte
             lod_level: 1,
             state: RenderVirtualGeometryExecutionState::Missing,
         }],
-        "expected cluster_budget clamping to happen after stable selected-cluster ordering on the root-seed compat path, so an unsorted extract still chooses the ordinal-0 cluster"
+        "expected cluster_budget clamping to happen after stable selected-cluster ordering on the root-seed baseline path, so an unsorted extract still chooses the ordinal-0 cluster"
     );
     assert_eq!(
         renderer
@@ -663,7 +663,7 @@ fn seed_backed_node_and_cluster_cull_applies_cluster_budget_after_stable_selecte
             1,
             RenderVirtualGeometryExecutionState::Missing,
         )],
-        "expected VisBuffer64 packing to reflect the post-ordering budget clamp instead of the first raw extract entry on the root-seed compat path"
+        "expected VisBuffer64 packing to reflect the post-ordering budget clamp instead of the first raw extract entry on the root-seed baseline path"
     );
     assert_eq!(
         renderer
@@ -688,7 +688,7 @@ fn seed_backed_node_and_cluster_cull_applies_cluster_budget_after_stable_selecte
             submission_slot: None,
             state: RenderVirtualGeometryExecutionState::Missing,
         }],
-        "expected hardware-rasterization startup records to see the same post-ordering budget clamp as the selected-cluster seam on the root-seed compat path"
+        "expected hardware-rasterization startup records to see the same post-ordering budget clamp as the selected-cluster seam on the root-seed baseline path"
     );
 }
 
@@ -779,7 +779,7 @@ fn seed_backed_node_and_cluster_cull_derives_frontier_rank_from_unresolved_page_
                 state: RenderVirtualGeometryExecutionState::PendingUpload,
             },
         ],
-        "expected the seed-backed compat execution seam to assign stable frontier_rank values from first unresolved page occurrence so downstream raster/debug consumers stop seeing every expanded cluster as rank zero before true traversal-owned frontier ordering exists"
+        "expected the seed-backed baseline execution seam to assign stable frontier_rank values from first unresolved page occurrence so downstream raster/debug consumers stop seeing every expanded cluster as rank zero before true traversal-owned frontier ordering exists"
     );
 }
 

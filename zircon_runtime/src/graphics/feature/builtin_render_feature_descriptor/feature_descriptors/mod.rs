@@ -7,7 +7,6 @@ pub(super) mod deferred_geometry;
 pub(super) mod deferred_lighting;
 pub(super) mod history_resolve;
 pub(super) mod mesh;
-pub(super) mod particle;
 pub(super) mod post_process;
 pub(super) mod ray_tracing;
 pub(super) mod reflection_probes;

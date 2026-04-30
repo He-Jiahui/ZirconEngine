@@ -58,10 +58,10 @@ fn editor_template_registry_instantiates_registered_asset_documents() {
         crate::tests::support::load_test_ui_asset(EDITOR_HOST_WINDOW_ASSET_TOML).unwrap();
     let mut registry = EditorTemplateRegistry::default();
     registry
-        .register_asset_document("workbench.shell.asset", document)
+        .register_asset_document("ui.host_window.asset", document)
         .unwrap();
 
-    let instance = registry.instantiate("workbench.shell.asset").unwrap();
+    let instance = registry.instantiate("ui.host_window.asset").unwrap();
     assert_eq!(instance.root.component.as_deref(), Some("UiHostWindow"));
     assert_eq!(
         instance.root.children[0].component.as_deref(),

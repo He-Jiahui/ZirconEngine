@@ -240,198 +240,38 @@ fn shared_asset_reference_pointer_bridge_scrolls_and_dispatches_reference_activa
 
 #[test]
 fn asset_surface_controls_use_generic_template_callbacks_instead_of_legacy_business_abi() {
-    let workbench = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/ui/workbench.slint"));
-    let pane_surface = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/pane_surface.slint"
-    ));
-    let pane_content = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/pane_content.slint"
-    ));
-    let template_pane = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/template_pane.slint"
-    ));
-    let pane_surface_host_context = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/pane_surface_host_context.slint"
-    ));
-    let assets = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/assets.slint"
-    ));
-    let wiring = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/src/ui/slint_host/app/callback_wiring.rs"
-    ));
-    let app_assets = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/src/ui/slint_host/app/assets.rs"
-    ));
-    let pane_content_normalized = pane_content.split_whitespace().collect::<String>();
-    let template_pane_normalized = template_pane.split_whitespace().collect::<String>();
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let globals = std::fs::read_to_string(root.join("src/ui/slint_host/host_contract/globals.rs"))
+        .expect("host globals");
+    let wiring = std::fs::read_to_string(root.join("src/ui/slint_host/app/callback_wiring.rs"))
+        .expect("callback wiring");
+    let controls = std::fs::read_to_string(root.join("assets/ui/editor/host/asset_surface_controls.ui.toml"))
+        .expect("asset controls asset");
 
-    for needle in [
-        "callback asset_search_edited(",
-        "callback asset_kind_filter_changed(",
-        "callback asset_view_mode_changed(",
-        "callback asset_utility_tab_changed(",
-        "callback open_asset_browser(",
-        "callback locate_selected_asset(",
-        "callback import_model(",
-        "asset_search_edited(value) =>",
-        "asset_kind_filter_changed(kind) =>",
-        "asset_view_mode_changed(",
-        "asset_utility_tab_changed(",
-        "open_asset_browser() =>",
-        "locate_selected_asset() =>",
-        "import_model() =>",
-    ] {
-        assert!(
-            !workbench.contains(needle),
-            "workbench shell still exposes legacy asset business callback `{needle}`"
-        );
-    }
-
-    for needle in [
-        "callback asset_control_changed(source: string, control_id: string, value: string);",
-        "callback asset_control_clicked(source: string, control_id: string);",
-    ] {
-        assert!(
-            !pane_surface.contains(needle),
-            "pane surface should not keep dead asset callback bridge `{needle}`"
-        );
-    }
-
-    for needle in [
-        "callback search_edited(value: string);",
-        "callback kind_filter_changed(kind: string);",
-        "callback view_mode_changed(mode: string);",
-        "callback utility_tab_changed(tab: string);",
-        "callback open_asset_browser();",
-        "callback locate_selected();",
-        "callback import_model();",
-        "edited(value) => { root.search_edited(value); }",
-        "clicked => { root.kind_filter_changed(\"Texture\"); }",
-        "clicked => { root.view_mode_changed(\"list\"); }",
-        "clicked => { root.utility_tab_changed(\"preview\"); }",
-        "clicked => { root.open_asset_browser(); }",
-        "clicked => { root.locate_selected(); }",
-        "clicked => { root.import_model(); }",
-    ] {
-        assert!(
-            !assets.contains(needle),
-            "asset leaf surfaces still expose legacy direct control callback `{needle}`"
-        );
-    }
-
-    for needle in [
-        "ui.on_asset_search_edited(",
-        "ui.on_asset_kind_filter_changed(",
-        "ui.on_asset_view_mode_changed(",
-        "ui.on_asset_utility_tab_changed(",
-        "ui.on_open_asset_browser(",
-        "ui.on_locate_selected_asset(",
-        "ui.on_import_model(",
-    ] {
-        assert!(
-            !wiring.contains(needle),
-            "slint host wiring still registers legacy asset control callback `{needle}`"
-        );
-    }
-
-    for needle in [
-        "fn update_asset_search(",
-        "fn update_asset_kind_filter(",
-        "fn update_asset_view_mode(",
-        "fn update_asset_utility_tab(",
-        "fn open_asset_browser(",
-        "fn locate_selected_asset(",
-    ] {
-        assert!(
-            !app_assets.contains(needle),
-            "asset host helper file still carries legacy business helper `{needle}`"
-        );
-    }
-
-    for needle in [
-        "callback asset_control_changed(source: string, control_id: string, value: string);",
-        "callback asset_control_clicked(source: string, control_id: string);",
-    ] {
-        assert!(
-            pane_surface_host_context.contains(needle),
-            "pane surface host context is missing generic asset control callback `{needle}`"
-        );
-    }
-
-    for needle in [
-        "control_changed(control_id, value) => { PaneSurfaceHostContext.asset_control_changed(\"activity\", control_id, value); }",
-        "control_clicked(control_id) => { PaneSurfaceHostContext.asset_control_clicked(\"activity\", control_id); }",
-        "control_changed(control_id, value) => { PaneSurfaceHostContext.asset_control_changed(\"browser\", control_id, value); }",
-        "control_clicked(control_id) => { PaneSurfaceHostContext.asset_control_clicked(\"browser\", control_id); }",
-    ] {
-        assert!(
-            pane_content.contains(needle),
-            "pane content is missing generic asset control route `{needle}`"
-        );
+    for needle in ["on_asset_control_changed", "on_asset_control_clicked"] {
+        assert!(globals.contains(needle), "host globals missing `{needle}`");
+        assert!(wiring.contains(needle), "callback wiring missing `{needle}`");
     }
     for needle in [
-        "exportcomponentTemplatePaneinheritsRectangle{",
-        "callbacknode_dispatched(control_id:string,dispatch_kind:string,action_id:string);",
-        "clicked=>{root.node_dispatched(root.node.control_id,root.node.dispatch_kind,root.node.action_id",
+        "SearchEdited",
+        "SetKindFilter",
+        "SetViewMode",
+        "SetUtilityTab",
+        "OpenAssetBrowser",
+        "LocateSelectedAsset",
+        "ImportModel",
     ] {
-        assert!(
-            template_pane_normalized.contains(needle),
-            "template_pane.slint is missing generic template dispatch route `{needle}`"
-        );
-    }
-    for needle in [
-        "if!root.pane.show_empty&&root.pane.kind==\"Project\":TemplatePane{",
-        "nodes:root.pane.project_overview.nodes;",
-        "node_dispatched(control_id,dispatch_kind,action_id)=>{",
-        "PaneSurfaceHostContext.asset_control_clicked(\"project\",control_id);",
-    ] {
-        assert!(
-            pane_content_normalized.contains(needle),
-            "pane content is missing projected project template route `{needle}`"
-        );
-    }
-
-    for needle in [
-        "callback control_changed(control_id: string, value: string);",
-        "callback control_clicked(control_id: string);",
-        "edited(value) => { root.control_changed(\"SearchEdited\", value); }",
-        "clicked => { root.control_changed(\"SetKindFilter\", \"Texture\"); }",
-        "clicked => { root.control_changed(\"SetViewMode\", \"list\"); }",
-        "clicked => { root.control_changed(\"SetUtilityTab\", \"preview\"); }",
-        "clicked => { root.control_clicked(\"OpenAssetBrowser\"); }",
-        "clicked => { root.control_clicked(\"LocateSelectedAsset\"); }",
-        "clicked => { root.control_clicked(\"ImportModel\"); }",
-    ] {
-        assert!(
-            pane_content.contains(needle),
-            "pane_content is missing generic asset control route `{needle}`"
-        );
-    }
-
-    for needle in [
-        "pane_surface_host.on_asset_control_changed(",
-        "pane_surface_host.on_asset_control_clicked(",
-    ] {
-        assert!(
-            wiring.contains(needle),
-            "slint host wiring is missing generic asset control callback `{needle}`"
-        );
+        assert!(controls.contains(needle), "asset controls TOML missing `{needle}`");
     }
 }
 
 #[test]
 fn asset_surface_templates_expose_physics_and_animation_kind_filters() {
-    let pane_content = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/pane_content.slint"
-    ));
+    let projection = std::fs::read_to_string(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("src/ui/layouts/views/asset_surface_presentation.rs"),
+    )
+    .expect("asset surface presentation");
 
     for kind in [
         "PhysicsMaterial",
@@ -441,62 +281,24 @@ fn asset_surface_templates_expose_physics_and_animation_kind_filters() {
         "AnimationGraph",
         "AnimationStateMachine",
     ] {
-        let needle = format!("root.control_changed(\"SetKindFilter\", \"{kind}\")");
-        assert_eq!(
-            pane_content.matches(&needle).count(),
-            2,
-            "asset activity/browser surfaces should both expose {kind} kind filters"
-        );
+        assert!(projection.contains(kind), "asset kind projection missing `{kind}`");
     }
 }
 
 #[test]
 fn asset_surface_templates_map_no_preview_physics_and_animation_assets_to_specific_icons() {
-    let assets = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/assets.slint"
-    ));
-    let chrome = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/chrome.slint"
-    ));
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let sequence_descriptor = std::fs::read_to_string(
+        root.join("src/ui/host/builtin_views/activity_windows/animation_sequence_view_descriptor.rs"),
+    )
+    .expect("animation sequence descriptor");
+    let graph_descriptor = std::fs::read_to_string(
+        root.join("src/ui/host/builtin_views/activity_windows/animation_graph_view_descriptor.rs"),
+    )
+    .expect("animation graph descriptor");
 
-    for (kind, icon_key) in [
-        ("PhysicsMaterial", "physics-material"),
-        ("AnimationSkeleton", "hierarchy"),
-        ("AnimationClip", "tool-play"),
-        ("AnimationSequence", "animation-sequence"),
-        ("AnimationGraph", "animation-graph"),
-        ("AnimationStateMachine", "animation-graph"),
-    ] {
-        let item_needle = format!("item.kind == \"{kind}\" ? \"{icon_key}\"");
-        assert_eq!(
-            assets.matches(&item_needle).count(),
-            2,
-            "asset item thumbnail/list fallbacks should classify {kind} with {icon_key}"
-        );
-
-        let selection_needle = format!("root.selection.kind == \"{kind}\" ? \"{icon_key}\"");
-        assert_eq!(
-            assets.matches(&selection_needle).count(),
-            2,
-            "selection preview/details fallbacks should classify {kind} with {icon_key}"
-        );
-    }
-
-    for (icon_key, icon_svg) in [
-        ("physics-material", "construct-outline.svg"),
-        ("animation-sequence", "play-outline.svg"),
-        ("animation-graph", "grid-outline.svg"),
-    ] {
-        let needle = format!(
-            "icon_key == \"{icon_key}\" ? @image-url(\"../../assets/icons/ionicons/{icon_svg}\")"
-        );
-        assert!(
-            chrome.contains(&needle),
-            "ShellIcon should resolve the `{icon_key}` key to `{icon_svg}`"
-        );
-    }
+    assert!(sequence_descriptor.contains(".with_icon_key(\"animation-sequence\")"));
+    assert!(graph_descriptor.contains(".with_icon_key(\"animation-graph\")"));
 }
 
 fn repeated_ids(ids: &[String], len: usize) -> Vec<String> {

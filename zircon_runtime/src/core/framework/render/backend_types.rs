@@ -60,6 +60,59 @@ pub enum RenderQueueCapability {
     Copy,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum RenderCapabilityKind {
+    VirtualGeometry,
+    HybridGlobalIllumination,
+    AccelerationStructures,
+    InlineRayQuery,
+    RayTracingPipeline,
+    AsyncCompute,
+    AsyncCopy,
+}
+
+impl RenderCapabilityKind {
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::VirtualGeometry => "virtual_geometry",
+            Self::HybridGlobalIllumination => "hybrid_global_illumination",
+            Self::AccelerationStructures => "acceleration_structures",
+            Self::InlineRayQuery => "inline_ray_query",
+            Self::RayTracingPipeline => "ray_tracing_pipeline",
+            Self::AsyncCompute => "async_compute",
+            Self::AsyncCopy => "async_copy",
+        }
+    }
+
+    pub fn is_satisfied_by(self, capabilities: &RenderCapabilitySummary) -> bool {
+        match self {
+            Self::VirtualGeometry => capabilities.virtual_geometry_supported,
+            Self::HybridGlobalIllumination => capabilities.hybrid_global_illumination_supported,
+            Self::AccelerationStructures => capabilities.acceleration_structures_supported,
+            Self::InlineRayQuery => capabilities.inline_ray_query,
+            Self::RayTracingPipeline => capabilities.ray_tracing_pipeline,
+            Self::AsyncCompute => capabilities.supports_async_compute,
+            Self::AsyncCopy => capabilities.supports_async_copy,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct RenderCapabilityMismatchDetail {
+    pub capability: RenderCapabilityKind,
+}
+
+impl RenderCapabilityMismatchDetail {
+    // Keep mismatch payloads backend-neutral so framework consumers never need graphics enums.
+    pub const fn new(capability: RenderCapabilityKind) -> Self {
+        Self { capability }
+    }
+
+    pub const fn label(self) -> &'static str {
+        self.capability.label()
+    }
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct RenderCapabilitySummary {
     pub backend_name: String,
@@ -236,9 +289,19 @@ pub struct RenderStats {
     pub last_effective_features: Vec<String>,
     pub last_graph_pass_count: usize,
     pub last_graph_culled_pass_count: usize,
+    pub last_graph_queue_fallback_pass_count: usize,
+    pub last_graph_resource_lifetime_count: usize,
+    pub last_graph_planned_resource_access_count: usize,
+    pub last_graph_planned_dependency_count: usize,
+    pub last_graph_transient_texture_slot_count: usize,
+    pub last_graph_transient_buffer_slot_count: usize,
     pub last_graph_executed_pass_count: usize,
     pub last_graph_executed_passes: Vec<String>,
     pub last_graph_executed_executor_ids: Vec<String>,
+    pub last_graph_executed_resource_access_count: usize,
+    pub last_graph_executed_dependency_count: usize,
+    pub last_virtual_geometry_graph_executed_pass_count: usize,
+    pub last_hybrid_gi_graph_executed_pass_count: usize,
     pub last_async_compute_pass_count: usize,
     pub last_ui_command_count: usize,
     pub last_ui_quad_count: usize,

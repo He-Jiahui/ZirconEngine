@@ -48,6 +48,7 @@ fn clipped_runtime_ui_text_stays_inside_clip_frame() {
                 text_render_mode: UiTextRenderMode::Native,
                 ..UiResolvedStyle::default()
             },
+            text_layout: None,
             text: Some("Clip Me Hard".to_string()),
             image: None,
             opacity: 1.0,
@@ -91,6 +92,7 @@ fn wrapped_runtime_ui_text_spans_multiple_rows_inside_text_frame() {
                 text_render_mode: UiTextRenderMode::Native,
                 ..UiResolvedStyle::default()
             },
+            text_layout: None,
             text: Some("Wrap this runtime text into multiple rows".to_string()),
             image: None,
             opacity: 1.0,
@@ -302,6 +304,7 @@ fn render_text_frame(
                 text_render_mode,
                 ..UiResolvedStyle::default()
             },
+            text_layout: None,
             text: Some(text.to_string()),
             image: None,
             opacity: 1.0,
@@ -573,6 +576,7 @@ fn text_command_with_opacity(opacity: f32, text: &str) -> UiRenderCommand {
             text_render_mode: UiTextRenderMode::Native,
             ..UiResolvedStyle::default()
         },
+        text_layout: None,
         text: Some(text.to_string()),
         image: None,
         opacity,

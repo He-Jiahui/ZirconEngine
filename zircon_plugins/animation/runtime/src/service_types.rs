@@ -18,6 +18,8 @@ use crate::sequence_runtime::AnimationChannelSampleExt;
 
 use super::AnimationInterface;
 
+const DEFAULT_GRAPH_CLIP_PLAYBACK_SPEED: Real = 1.0;
+
 #[derive(Clone, Debug, Default)]
 pub struct AnimationDriver;
 
@@ -280,7 +282,7 @@ fn collect_graph_clips(
                 looping,
             } if id == node_id => Some(vec![AnimationGraphClipInstance {
                 clip: clip.clone(),
-                playback_speed: *playback_speed,
+                playback_speed: finite_graph_clip_playback_speed(*playback_speed),
                 looping: *looping,
                 weight: 1.0,
             }]),
@@ -333,8 +335,10 @@ fn condition_matches(
     parameters: &AnimationParameterMap,
     condition: &zircon_runtime::asset::AnimationTransitionConditionAsset,
 ) -> bool {
-    let current = parameters.get(&condition.parameter);
-    if current.is_some_and(|value| !animation_parameter_value_is_finite(value))
+    let Some(current) = parameters.get(&condition.parameter) else {
+        return false;
+    };
+    if !animation_parameter_value_is_finite(current)
         || condition
             .value
             .as_ref()
@@ -342,23 +346,31 @@ fn condition_matches(
     {
         return false;
     }
+    if matches!(
+        condition.operator,
+        AnimationConditionOperatorAsset::Triggered
+    ) {
+        return matches!(current, AnimationParameterValue::Trigger);
+    }
+
+    let Some(expected) = condition.value.as_ref() else {
+        return false;
+    };
     match condition.operator {
-        AnimationConditionOperatorAsset::Triggered => {
-            matches!(current, Some(AnimationParameterValue::Trigger))
-        }
-        AnimationConditionOperatorAsset::Equal => current == condition.value.as_ref(),
-        AnimationConditionOperatorAsset::NotEqual => current != condition.value.as_ref(),
+        AnimationConditionOperatorAsset::Triggered => unreachable!(),
+        AnimationConditionOperatorAsset::Equal => current == expected,
+        AnimationConditionOperatorAsset::NotEqual => current != expected,
         AnimationConditionOperatorAsset::Greater => {
-            numeric_parameter(current) > numeric_parameter(condition.value.as_ref())
+            numeric_parameter(Some(current)) > numeric_parameter(Some(expected))
         }
         AnimationConditionOperatorAsset::GreaterEqual => {
-            numeric_parameter(current) >= numeric_parameter(condition.value.as_ref())
+            numeric_parameter(Some(current)) >= numeric_parameter(Some(expected))
         }
         AnimationConditionOperatorAsset::Less => {
-            numeric_parameter(current) < numeric_parameter(condition.value.as_ref())
+            numeric_parameter(Some(current)) < numeric_parameter(Some(expected))
         }
         AnimationConditionOperatorAsset::LessEqual => {
-            numeric_parameter(current) <= numeric_parameter(condition.value.as_ref())
+            numeric_parameter(Some(current)) <= numeric_parameter(Some(expected))
         }
     }
 }
@@ -380,6 +392,14 @@ fn parameter_scalar(parameters: &AnimationParameterMap, name: &str) -> Option<Re
         Some(AnimationParameterValue::Integer(value)) => Some(*value as Real),
         Some(AnimationParameterValue::Scalar(value)) if value.is_finite() => Some(*value),
         _ => None,
+    }
+}
+
+fn finite_graph_clip_playback_speed(playback_speed: Real) -> Real {
+    if playback_speed.is_finite() {
+        playback_speed
+    } else {
+        DEFAULT_GRAPH_CLIP_PLAYBACK_SPEED
     }
 }
 

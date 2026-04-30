@@ -10,6 +10,7 @@ pub(crate) use hybrid_gi::HybridGiProbeResidencyState;
 #[cfg(test)]
 pub(crate) use hybrid_gi::HybridGiProbeUpdateRequest;
 pub(crate) use hybrid_gi::HybridGiRuntimeState;
+pub(in crate::graphics::runtime) use hybrid_gi::HybridGiSceneInputs;
 #[cfg(test)]
 pub(crate) use hybrid_gi::{HybridGiInputSet, HybridGiSceneRepresentation};
 pub use offline_bake::{offline_bake_frame, OfflineBakeOutput, OfflineBakeSettings};

@@ -52,7 +52,7 @@ related_code:
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs
   - zircon_editor/src/ui/slint_host/ui/apply_presentation.rs
-  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion.rs
+  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/mod.rs
   - zircon_editor/src/ui/slint_host/ui/tests.rs
   - zircon_editor/src/ui/slint_host/app/ui_asset_editor.rs
   - zircon_editor/ui/workbench/fallback_pane.slint
@@ -141,7 +141,7 @@ implementation_files:
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs
   - zircon_editor/src/ui/slint_host/ui/apply_presentation.rs
-  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion.rs
+  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/mod.rs
   - zircon_editor/src/ui/slint_host/ui/tests.rs
   - zircon_editor/src/ui/slint_host/app/ui_asset_editor.rs
   - zircon_editor/ui/workbench/asset_panes.slint
@@ -386,7 +386,7 @@ doc_type: module-detail
 - Slint 边界仍然由 [`apply_presentation.rs`](../../zircon_editor/src/ui/slint_host/ui/apply_presentation.rs) 暴露：
   - `to_slint_ui_asset_pane(...)`
   - `to_slint_animation_editor_pane(...)`
-- 这两个函数现在只是薄 wrapper，真正的大块 pane DTO 映射实现已经拆到 [`pane_data_conversion.rs`](../../zircon_editor/src/ui/slint_host/ui/pane_data_conversion.rs)，避免 `apply_presentation.rs` 再次演变成新的 1k+ 行 owner 文件
+- 这两个函数现在只是薄 wrapper，真正的大块 pane DTO 映射实现已经拆到 [`pane_data_conversion/mod.rs`](../../zircon_editor/src/ui/slint_host/ui/pane_data_conversion/mod.rs)，避免 `apply_presentation.rs` 再次演变成新的 1k+ 行 owner 文件
 
 这条边界的意义很直接：
 
@@ -401,7 +401,7 @@ doc_type: module-detail
 - [`ui_asset_editor.ui.toml`](../../zircon_editor/assets/ui/editor/ui_asset_editor.ui.toml) 现在不再承载旧的 footer-row 试验形态，而是直接描述当前工作中的 `UiAssetEditor` pane shell：`HeaderPanel`、`LeftColumn`、`CenterColumn`、`RightColumn` 以及 `PalettePanel`、`HierarchyPanel`、`DesignerPanel`、`ActionBarPanel`、`SourcePanel`、`InspectorPanel`、`StylesheetPanel`
 - [`shell_layout.rs`](../../zircon_editor/src/ui/asset_editor/shell_layout.rs) 作为新的生产 owner，从 crate `assets/` 读取 bootstrap `.ui.toml`、注册 widget/style import、编译 shared `UiSurface`，再把上述 control frame 萃取成 `UiAssetEditorShellLayout`
 - [`scene_projection.rs`](../../zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs) 不再让 `UiAssetEditorPanePresentation` 只携带纯业务字段，而是在知道 dock/floating content size 后，把 `UiAssetEditorShellLayout` 灌回 `pane.ui_asset.shell_layout`
-- [`pane_data_conversion.rs`](../../zircon_editor/src/ui/slint_host/ui/pane_data_conversion.rs) 继续作为 Slint 边界 owner，把 `UiAssetEditorShellLayout` 转成 `UiAssetEditorShellLayoutData`
+- [`pane_data_conversion/mod.rs`](../../zircon_editor/src/ui/slint_host/ui/pane_data_conversion/mod.rs) 继续作为 Slint 边界 owner，把 `UiAssetEditorShellLayout` 转成 `UiAssetEditorShellLayoutData`
 - [`ui_asset_editor_pane.slint`](../../zircon_editor/ui/workbench/ui_asset_editor_pane.slint) 现在只消费这些 shell frame 来放置 header/left column/center column/right column；旧的 outer `HorizontalLayout { x: 10px; y: 74px; ... }` 固定几何不再是唯一 authority
 
 这一步的目的不是宣称 `UiAssetEditor` 已经完全摆脱业务 `.slint`，而是先把最外层 pane shell 的几何真源从手写 Slint 改成树形 `.ui.toml`。列内的具体 leaf widget、draft state、interaction callback 还暂时留在 `.slint`，下一阶段才能继续削减到真正的 projection/generic host。
@@ -410,19 +410,19 @@ doc_type: module-detail
 
 - [`editor_widgets.ui.toml`](../../zircon_editor/assets/ui/editor/editor_widgets.ui.toml) 新增 `EditorHeaderShell`，把 summary/status/actions 三段行壳定义成共享 widget 资产，而不是继续借 `EditorToolbar` 单 slot 结构硬塞业务 header
 - [`ui_asset_editor.ui.toml`](../../zircon_editor/assets/ui/editor/ui_asset_editor.ui.toml) 现在继续下钻到 `HeaderAssetRow`、`HeaderStatusRow`、`HeaderActionRow`
-- [`shell_layout.rs`](../../zircon_editor/src/ui/asset_editor/shell_layout.rs) / [`pane_data_conversion.rs`](../../zircon_editor/src/ui/slint_host/ui/pane_data_conversion.rs) / [`ui_asset_editor_data.slint`](../../zircon_editor/ui/workbench/ui_asset_editor_data.slint) 已把这三块 frame 当成正式宿主边界字段
+- [`shell_layout.rs`](../../zircon_editor/src/ui/asset_editor/shell_layout.rs) / [`pane_data_conversion/mod.rs`](../../zircon_editor/src/ui/slint_host/ui/pane_data_conversion/mod.rs) / [`ui_asset_editor_data.slint`](../../zircon_editor/ui/workbench/ui_asset_editor_data.slint) 已把这三块 frame 当成正式宿主边界字段
 - [`ui_asset_editor_pane.slint`](../../zircon_editor/ui/workbench/ui_asset_editor_pane.slint) 只在各 row host 里摆标题文本、状态文本和 mode/preset/save/undo/redo 控件，不再自己保留 `x: 10 / y: 6 / 16 / 28` 这组 header row 偏移真源
 
 随后这条边界又继续往 `SourcePanel` 内部推进了一层，不再只停在“整个 source panel 是一个大矩形”：
 
 - [`ui_asset_editor.ui.toml`](../../zircon_editor/assets/ui/editor/ui_asset_editor.ui.toml) 现在除了 `SourceInfoPanel`、`SourceOutlinePanel`、`MockWorkspacePanel`、`SourceTextPanel` 之外，还明确给 `MockWorkspacePanel` 拆出了 `MockSubjectsPanel`、`MockEditorPanel`、`MockStateGraphPanel`
 - 同一份 bootstrap asset 也开始继续拆 `DesignerPanel` 内部几何，新增 `DesignerCanvasPanel` 和 `RenderStackPanel`，避免 `.slint` 自己继续保留 `preview_canvas y: 28px`、`render stack y: parent.height - 90px` 这类内部纵向真源
-- [`shell_layout.rs`](../../zircon_editor/src/ui/asset_editor/shell_layout.rs) 和 [`pane_data_conversion.rs`](../../zircon_editor/src/ui/slint_host/ui/pane_data_conversion.rs) 也同步把这三块 frame 作为正式 `UiAssetEditorShellLayout` / `UiAssetEditorShellLayoutData` 字段传到 Slint 边界
+- [`shell_layout.rs`](../../zircon_editor/src/ui/asset_editor/shell_layout.rs) 和 [`pane_data_conversion/mod.rs`](../../zircon_editor/src/ui/slint_host/ui/pane_data_conversion/mod.rs) 也同步把这三块 frame 作为正式 `UiAssetEditorShellLayout` / `UiAssetEditorShellLayoutData` 字段传到 Slint 边界
 - [`ui_asset_editor_center_column.slint`](../../zircon_editor/ui/workbench/ui_asset_editor_center_column.slint) 不再自己决定 mock workspace 的大段纵向分区；它现在只消费这三个 host band，再在每个 band 内用局部 layout 摆叶子控件
 - `Designer` 区域也开始遵守同一个规则：`.slint` 只在 `DesignerCanvasPanel` / `RenderStackPanel` 里面放 preview canvas 与 render-stack list，不再自己决定这两个 band 的相对外框
 - `ActionBarPanel` 现在也不再把三排按钮组的分段几何留在 `.slint` 里：
   - bootstrap `.ui.toml` 继续下钻到 `ActionInsertRow`、`ActionReparentRow`、`ActionStructureRow`
-  - `shell_layout.rs` / `pane_data_conversion.rs` / `UiAssetEditorShellLayoutData` 把这三块 frame 当成正式宿主边界字段传进 Slint
+  - `shell_layout.rs` / `pane_data_conversion/mod.rs` / `UiAssetEditorShellLayoutData` 把这三块 frame 当成正式宿主边界字段传进 Slint
   - `ui_asset_editor_center_column.slint` 只在每个 row host 里摆对应 `ShellButton`，旧的 `VerticalLayout { x: 10px; y: 8px; width: parent.width - 20px; spacing: 4px; }` 已不再是 action bar 的真正分组 authority
 - `StylesheetPanel` 的顶部壳层也开始遵守同一原则：
   - bootstrap `.ui.toml` 现在继续下钻到 `StylesheetActionRow`、`StylesheetStatePrimaryRow`、`StylesheetStateSecondaryRow`、`StylesheetContentPanel`
@@ -430,7 +430,7 @@ doc_type: module-detail
   - `ui_asset_editor_pane.slint` 只负责把 `shell_layout` 和 `panel_frame` 透传给 `UiAssetEditorStylesheetPanel`，不再在右侧 panel owner 里重算这组 offsets
 - `InspectorPanel` 现在也开始把内容壳层交回 bootstrap 资产：
   - bootstrap `.ui.toml` 不再只放一个占位 `InspectorLabel`，而是继续下钻到 `InspectorContentPanel`
-  - `shell_layout.rs` / `pane_data_conversion.rs` / `UiAssetEditorShellLayoutData` 把这块 frame 当成正式宿主边界字段传进 Slint
+  - `shell_layout.rs` / `pane_data_conversion/mod.rs` / `UiAssetEditorShellLayoutData` 把这块 frame 当成正式宿主边界字段传进 Slint
   - `ui_asset_editor_pane.slint` 只负责把 `shell_layout` 和 `panel_frame` 透传给 `UiAssetEditorInspectorPanel`
   - `ui_asset_editor_inspector_panel.slint` 不再把 `Rectangle { x: 0px; y: 26px; width: parent.width; height: parent.height - 26px; ... }` 和内部 `VerticalLayout { x: 10px; y: 8px; ... }` 当成唯一壳层几何 authority，而是直接消费 `InspectorContentPanel` frame
 
@@ -471,7 +471,7 @@ doc_type: module-detail
 
 - [`asset_browser.ui.toml`](../../zircon_editor/assets/ui/editor/asset_browser.ui.toml) 不再只是一个粗粒度 page shell，而是把 `ToolbarPanel`、`ImportPanel`、`MainPanel`、`UtilityPanel` 以及 `ToolbarTitleRow`、`ToolbarSearchRow`、`ToolbarKindPrimaryRow`、`ToolbarKindSecondaryRow`、`UtilityTabsRow`、`UtilityContentPanel`、`ReferenceLeftPanel`、`ReferenceRightPanel` 都固定成 bootstrap asset authority
 - [`asset_browser_shell_layout.rs`](../../zircon_editor/src/ui/layouts/views/asset_browser_shell_layout.rs) 作为新的读取 owner，从 crate `assets/` 编译这份 tree asset 并把 frame 萃取成 `AssetBrowserShellLayout`
-- [`host_data.rs`](../../zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs)、[`scene_projection.rs`](../../zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs) 和 [`pane_data_conversion.rs`](../../zircon_editor/src/ui/slint_host/ui/pane_data_conversion.rs) 继续把这份 layout 作为 `PaneData.asset_browser -> AssetBrowserPaneData -> AssetBrowserShellLayoutData` 的正式投影链路
+- [`host_data.rs`](../../zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs)、[`scene_projection.rs`](../../zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs) 和 [`pane_data_conversion/mod.rs`](../../zircon_editor/src/ui/slint_host/ui/pane_data_conversion/mod.rs) 继续把这份 layout 作为 `PaneData.asset_browser -> AssetBrowserPaneData -> AssetBrowserShellLayoutData` 的正式投影链路
 - [`pane_content.slint`](../../zircon_editor/ui/workbench/pane_content.slint) 现在只把 `root.pane.asset_browser` 透传进 [`asset_panes.slint`](../../zircon_editor/ui/workbench/asset_panes.slint)，而 `AssetBrowserPane` 本身不再保留旧的 outer-margin / toolbar-height / sources-width / details-width 公式；它只消费 `root.pane.shell_layout.*` frame，再在每个 host band 里摆 Search、kind chip、details rail 和 utility tab 叶子控件
 - 这一步先只收口 shell/topology authority。`metadata` / `plugins` tab 的叶子排布仍然保留在 pane owner 内部，但它们已经退到 `UtilityContentPanel` 这个稳定宿主壳层之下，不再决定 page 级 panel 分区
 
@@ -491,7 +491,7 @@ doc_type: module-detail
   - `BodyPanel` 使用 overlay container，让 sequence / graph / state-machine 三套 mode shell 共享同一块内容区，而不是在 `.slint` 里各自保留一组 inset/offset 公式
 - [`animation_editor_shell_layout.rs`](../../zircon_editor/src/ui/layouts/views/animation_editor_shell_layout.rs)
   - 作为新的读取 owner，从 crate `assets/` 编译 tree asset 并把 frame 萃取成 `AnimationEditorShellLayout`
-- [`host_data.rs`](../../zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs)、[`scene_projection.rs`](../../zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs) 和 [`pane_data_conversion.rs`](../../zircon_editor/src/ui/slint_host/ui/pane_data_conversion.rs)
+- [`host_data.rs`](../../zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs)、[`scene_projection.rs`](../../zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs) 和 [`pane_data_conversion/mod.rs`](../../zircon_editor/src/ui/slint_host/ui/pane_data_conversion/mod.rs)
   - 把这份 layout 作为 `AnimationEditorPaneViewData -> AnimationEditorPaneData -> AnimationEditorShellLayoutData` 的正式投影链路
 - [`animation_editor_pane.slint`](../../zircon_editor/ui/workbench/animation_editor_pane.slint)
   - 现在只消费 `root.pane.shell_layout.*` frame，再在对应 host band 内摆 mode text、timeline/selection 文本和 track/node/state/transition 列表
@@ -517,7 +517,7 @@ doc_type: module-detail
 - [`assets_activity.rs`](../../zircon_editor/src/ui/layouts/views/assets_activity.rs)
   - 现在的读取 owner 不再萃取 `AssetsActivityShellLayout`，而是通过 `build_view_template_nodes(...)` 直接把 tree asset 编译成 `ViewTemplateNodeData`
   - `AssetsActivityPaneViewData` 正式承接 `nodes: ModelRc<ViewTemplateNodeData>`，把 `Assets` pane 固定在“runtime tree asset -> neutral node projection -> Slint leaf owner”的主链上
-- [`host_data.rs`](../../zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs)、[`scene_projection.rs`](../../zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs) 和 [`pane_data_conversion.rs`](../../zircon_editor/src/ui/slint_host/ui/pane_data_conversion.rs)
+- [`host_data.rs`](../../zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs)、[`scene_projection.rs`](../../zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs) 和 [`pane_data_conversion/mod.rs`](../../zircon_editor/src/ui/slint_host/ui/pane_data_conversion/mod.rs)
   - 现在把这条链路固定成 `AssetsActivityPaneViewData -> AssetsActivityPaneData { nodes } -> Slint [TemplatePaneNodeData]`
   - `pane_with_assets_activity_projection(...)` 负责在 host scene 投影阶段注入当前尺寸下的 mount frame，而不是把 authoring 几何写死回 `.slint`
 - [`pane_content.slint`](../../zircon_editor/ui/workbench/pane_content.slint) 与 [`pane_data.slint`](../../zircon_editor/ui/workbench/pane_data.slint)
@@ -545,7 +545,7 @@ doc_type: module-detail
 - [`project_overview.rs`](../../zircon_editor/src/ui/layouts/views/project_overview.rs)
   - 作为读取 owner，通过 `build_view_template_nodes(...)` 把 tree asset 编译成 `ViewTemplateNodeData`
   - `project_overview_pane_data(...)` 在投影阶段直接把 project snapshot 文本写进对应 control node，正式去掉 `ProjectOverviewShellLayout`
-- [`host_data.rs`](../../zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs)、[`scene_projection.rs`](../../zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs)、[`pane_data_conversion.rs`](../../zircon_editor/src/ui/slint_host/ui/pane_data_conversion.rs) 和 [`apply_presentation.rs`](../../zircon_editor/src/ui/slint_host/ui/apply_presentation.rs)
+- [`host_data.rs`](../../zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs)、[`scene_projection.rs`](../../zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs)、[`pane_data_conversion/mod.rs`](../../zircon_editor/src/ui/slint_host/ui/pane_data_conversion/mod.rs) 和 [`apply_presentation.rs`](../../zircon_editor/src/ui/slint_host/ui/apply_presentation.rs)
   - 把 project pane 链路固定成 `ProjectOverviewPaneViewData -> ProjectOverviewPaneData { nodes }`
   - 继续禁止 `workbench_host_window` 内部回流 Slint 生成 DTO，只允许 host 侧保留 Rust-owned neutral node projection
 - [`pane_content.slint`](../../zircon_editor/ui/workbench/pane_content.slint)、[`pane_data.slint`](../../zircon_editor/ui/workbench/pane_data.slint) 与 [`template_pane.slint`](../../zircon_editor/ui/workbench/template_pane.slint)
@@ -607,7 +607,7 @@ doc_type: module-detail
   - 分别把 `HierarchyListPanel`、`InspectorContentPanel/HeaderPanel/NameRow/ParentRow/PositionRow/SeparatorRow/ActionsRow`、`ConsoleTextPanel` 固定成新的 bootstrap asset authority
 - [`hierarchy_shell_layout.rs`](../../zircon_editor/src/ui/layouts/views/hierarchy_shell_layout.rs)、[`inspector_shell_layout.rs`](../../zircon_editor/src/ui/layouts/views/inspector_shell_layout.rs)、[`console_shell_layout.rs`](../../zircon_editor/src/ui/layouts/views/console_shell_layout.rs)
   - 作为新的读取 owner，从 crate `assets/` 编译这三份 tree asset，并把 frame 萃取成 Rust-owned shell layout DTO
-- [`pane_data.slint`](../../zircon_editor/ui/workbench/pane_data.slint)、[`host_data.rs`](../../zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs)、[`pane_projection.rs`](../../zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs)、[`scene_projection.rs`](../../zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs)、[`pane_data_conversion.rs`](../../zircon_editor/src/ui/slint_host/ui/pane_data_conversion.rs) 与 [`apply_presentation.rs`](../../zircon_editor/src/ui/slint_host/ui/apply_presentation.rs)
+- [`pane_data.slint`](../../zircon_editor/ui/workbench/pane_data.slint)、[`host_data.rs`](../../zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs)、[`pane_projection.rs`](../../zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs)、[`scene_projection.rs`](../../zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs)、[`pane_data_conversion/mod.rs`](../../zircon_editor/src/ui/slint_host/ui/pane_data_conversion/mod.rs) 与 [`apply_presentation.rs`](../../zircon_editor/src/ui/slint_host/ui/apply_presentation.rs)
   - 现在把剩余三类 pane 的合同固定成 `Rust host DTO -> Slint boundary DTO -> dedicated pane owner`
   - `PaneData.hierarchy` 现在直接携带 `hierarchy_nodes` 和 `shell_layout`
   - `PaneData.inspector` 现在直接携带 `info`、`inspector_name`、`inspector_parent`、`inspector_x/y/z`、`delete_enabled` 和 `shell_layout`
@@ -691,7 +691,7 @@ doc_type: module-detail
 - `cargo test -p zircon_editor --locked workbench_host_window_keeps_generated_slint_shell_dtos_at_ui_boundary_only`
   - 证明 `workbench_host_window` 仍未重新吃回深层 `UiAsset*` / `AnimationEditorPaneData`，而且 `apply_presentation.rs` 对外 wrapper 还在
 - `cargo test -p zircon_editor --locked host_scene_projection_converts_host_owned_panes_to_slint_panes`
-  - 证明新的 `pane_data_conversion.rs` 真实接管了 pane 投影，而不是只通过源码守卫
+  - 证明新的 `pane_data_conversion/mod.rs` 真实接管了 pane 投影，而不是只通过源码守卫
 - `F:/cargo-targets/zircon-codex-a/debug/deps/zircon_editor-0e7c5fdfee4db764.exe tests::editing::ui_asset:: --nocapture`
   - 在邻近 `zircon_runtime` Nanite compile drift 阻断普通 `cargo test -p zircon_editor --locked tests::editing::ui_asset:: ...` 时，复用刚编出的 `zircon_editor` lib-test 二进制完成了 66 个 `editing::ui_asset` 行为回归，确认这次 session split 没有破坏现有 authoring 语义
 - `cargo test -p zircon_editor --locked tests::editing::ui_asset::source_projection:: --target-dir F:/cargo-targets/zircon-codex-a -- --nocapture`

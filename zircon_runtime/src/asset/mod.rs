@@ -14,6 +14,7 @@ pub mod importer;
 mod load;
 pub mod pipeline;
 pub mod project;
+mod virtual_geometry_cook;
 pub mod watch;
 
 #[allow(unused_imports)]
@@ -51,6 +52,11 @@ pub(crate) use pipeline::{types, worker_pool};
 #[allow(unused_imports)]
 pub(crate) use project::{
     AssetMetaDocument, PreviewState, ProjectManager, ProjectManifest, ProjectPaths,
+};
+pub use virtual_geometry_cook::{
+    cook_virtual_geometry_from_mesh, encode_virtual_geometry_cook_binary_dump,
+    format_virtual_geometry_cook_bvh_graph_dump, format_virtual_geometry_cook_inspection_dump,
+    VirtualGeometryCookConfig,
 };
 
 pub type AssetId = crate::core::resource::ResourceId;

@@ -23,7 +23,7 @@ fn shared_host_page_pointer_layout_prefers_shared_shell_width_over_metric_strip_
 
     assert_eq!(
         layout.strip_frame,
-        UiFrame::new(0.0, 26.0, 1280.0, 24.0),
+        UiFrame::new(0.0, 26.0, 1280.0, 32.0),
         "shared shell projection should own the root host-page strip width"
     );
 }

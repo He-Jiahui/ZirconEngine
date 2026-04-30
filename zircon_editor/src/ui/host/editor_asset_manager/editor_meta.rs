@@ -14,34 +14,11 @@ impl EditorAssetMetaDocument {
         toml::from_str(&document).map_err(invalid_data)
     }
 
-    pub(crate) fn load_or_migrate(
-        editor_meta_path: &Path,
-        runtime_meta_path: &Path,
-    ) -> Result<Self, std::io::Error> {
+    pub(crate) fn load_or_default(editor_meta_path: &Path) -> Result<Self, std::io::Error> {
         if editor_meta_path.exists() {
             return Self::load(editor_meta_path);
         }
-
-        if !runtime_meta_path.exists() {
-            return Ok(Self::default());
-        }
-
-        let legacy = Self::load(runtime_meta_path)?;
-        if legacy.editor_adapter.is_some() {
-            legacy.save(editor_meta_path)?;
-        }
-        Ok(legacy)
-    }
-
-    pub(crate) fn save(&self, path: impl AsRef<Path>) -> Result<(), std::io::Error> {
-        let path = path.as_ref();
-        if let Some(parent) = path.parent() {
-            if !parent.as_os_str().is_empty() {
-                fs::create_dir_all(parent)?;
-            }
-        }
-        let document = toml::to_string_pretty(self).map_err(invalid_data)?;
-        fs::write(path, document)
+        Ok(Self::default())
     }
 }
 

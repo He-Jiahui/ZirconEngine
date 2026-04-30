@@ -11,24 +11,24 @@ pub(super) fn record_history(
     frame: &ViewportFrame,
     allocated_history: Option<FrameHistoryHandle>,
 ) -> (Option<FrameHistoryHandle>, FrameHistoryHandle) {
-    let previous_handle = record.history.as_ref().map(|history| history.handle);
-    let history_handle = match (record.history.as_mut(), allocated_history) {
+    let previous_handle = record.history().map(|history| history.handle());
+    let history_handle = match (record.history_mut(), allocated_history) {
         (Some(history), None) => {
             history.update(
                 frame.generation,
-                context.compiled_pipeline.history_bindings.clone(),
-                context.visibility_context.history_snapshot.clone(),
+                context.compiled_pipeline().history_bindings.clone(),
+                context.visibility_context().history_snapshot.clone(),
             );
-            history.handle
+            history.handle()
         }
         (_, Some(handle)) => {
-            record.history = Some(ViewportFrameHistory::new(
+            record.replace_history(ViewportFrameHistory::new(
                 handle,
-                context.size,
-                context.pipeline_handle,
+                context.size(),
+                context.pipeline_handle(),
                 frame.generation,
-                context.compiled_pipeline.history_bindings.clone(),
-                context.visibility_context.history_snapshot.clone(),
+                context.compiled_pipeline().history_bindings.clone(),
+                context.visibility_context().history_snapshot.clone(),
             ));
             handle
         }

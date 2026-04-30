@@ -28,7 +28,9 @@ pub(super) fn apply_disabled_profile_features(
         options = options.with_feature_disabled(BuiltinRenderFeature::BakedLighting);
     }
     if profile.is_some_and(|profile| !profile.features.particle_rendering) {
-        options = options.with_feature_disabled(BuiltinRenderFeature::Particle);
+        options = options
+            .with_feature_disabled(BuiltinRenderFeature::Particle)
+            .with_plugin_feature_disabled("particle");
     }
 
     options

@@ -1,5 +1,5 @@
 #[test]
-fn editor_manager_becomes_thin_facade_over_editor_ui_host() {
+fn editor_manager_becomes_thin_contract_over_editor_ui_host() {
     let host_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("src")
         .join("ui")

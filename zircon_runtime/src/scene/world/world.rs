@@ -10,6 +10,8 @@ use crate::scene::components::{
 };
 use crate::scene::EntityId;
 
+use super::ComponentTypeRegistry;
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct World {
     pub(super) entities: Vec<EntityId>,
@@ -54,6 +56,8 @@ pub struct World {
     pub(super) mobility: HashMap<EntityId, Mobility>,
     #[serde(default)]
     pub(super) dynamic_components: HashMap<EntityId, HashMap<String, serde_json::Value>>,
+    #[serde(skip, default)]
+    pub(super) component_types: ComponentTypeRegistry,
     pub(super) next_id: EntityId,
     pub(super) active_camera: EntityId,
     #[serde(skip, default)]

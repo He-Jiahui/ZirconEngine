@@ -23,7 +23,7 @@
 - Create: `zircon_runtime/src/scene/module/core_error.rs`
 - Create: `zircon_runtime/src/scene/module/default_level_manager.rs`
 - Create: `zircon_runtime/src/scene/module/level_display_name.rs`
-- Create: `zircon_runtime/src/scene/module/level_manager_facade.rs`
+- Create: `zircon_runtime/src/scene/module/level_manager_contract.rs`
 - Create: `zircon_runtime/src/scene/module/level_manager_lifecycle.rs`
 - Create: `zircon_runtime/src/scene/module/level_manager_project_io.rs`
 - Create: `zircon_runtime/src/scene/module/service_names.rs`
@@ -56,7 +56,7 @@
 - Delete: `zircon_scene/src/module/core_error.rs`
 - Delete: `zircon_scene/src/module/default_level_manager.rs`
 - Delete: `zircon_scene/src/module/level_display_name.rs`
-- Delete: `zircon_scene/src/module/level_manager_facade.rs`
+- Delete: `zircon_runtime/src/scene/module/level_manager_contract.rs`
 - Delete: `zircon_scene/src/module/level_manager_lifecycle.rs`
 - Delete: `zircon_scene/src/module/level_manager_project_io.rs`
 - Delete: `zircon_scene/src/module/service_names.rs`
@@ -326,7 +326,7 @@ Expected: PASS or zero matching tests if the file contains only compile-owned ru
 - Create: `E:/Git/ZirconEngine/zircon_runtime/src/scene/module/core_error.rs`
 - Create: `E:/Git/ZirconEngine/zircon_runtime/src/scene/module/default_level_manager.rs`
 - Create: `E:/Git/ZirconEngine/zircon_runtime/src/scene/module/level_display_name.rs`
-- Create: `E:/Git/ZirconEngine/zircon_runtime/src/scene/module/level_manager_facade.rs`
+- Create: `E:/Git/ZirconEngine/zircon_runtime/src/scene/module/level_manager_contract.rs`
 - Create: `E:/Git/ZirconEngine/zircon_runtime/src/scene/module/level_manager_lifecycle.rs`
 - Create: `E:/Git/ZirconEngine/zircon_runtime/src/scene/module/level_manager_project_io.rs`
 - Create: `E:/Git/ZirconEngine/zircon_runtime/src/scene/module/service_names.rs`
@@ -353,7 +353,7 @@ Expected: PASS or zero matching tests if the file contains only compile-owned ru
 - Delete: `E:/Git/ZirconEngine/zircon_scene/src/module/core_error.rs`
 - Delete: `E:/Git/ZirconEngine/zircon_scene/src/module/default_level_manager.rs`
 - Delete: `E:/Git/ZirconEngine/zircon_scene/src/module/level_display_name.rs`
-- Delete: `E:/Git/ZirconEngine/zircon_scene/src/module/level_manager_facade.rs`
+- Delete: `E:/Git/ZirconEngine/zircon_runtime/src/scene/module/level_manager_contract.rs`
 - Delete: `E:/Git/ZirconEngine/zircon_scene/src/module/level_manager_lifecycle.rs`
 - Delete: `E:/Git/ZirconEngine/zircon_scene/src/module/level_manager_project_io.rs`
 - Delete: `E:/Git/ZirconEngine/zircon_scene/src/module/service_names.rs`

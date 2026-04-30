@@ -1,7 +1,8 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::core::framework::render::{
-    RenderHybridGiExtract, RenderHybridGiProbe, RenderHybridGiTraceRegion, ViewportCameraSnapshot,
+use crate::core::framework::render::{RenderHybridGiExtract, ViewportCameraSnapshot};
+use crate::graphics::hybrid_gi_extract_sources::{
+    enabled_hybrid_gi_extract, hybrid_gi_extract_uses_scene_representation_budget,
 };
 
 use super::super::super::declarations::{
@@ -11,6 +12,10 @@ use super::super::super::declarations::{
 use super::frontier::{refine_visible_probe_frontier, unique_probe_ids};
 use super::ordering::{
     hybrid_gi_probe_request_sort_key, hybrid_gi_probe_sort_key, hybrid_gi_trace_region_sort_key,
+};
+use super::sources::{
+    hybrid_gi_visibility_plan_probes, hybrid_gi_visibility_plan_trace_regions,
+    HybridGiVisibilityPlanProbe, HybridGiVisibilityPlanTraceRegion,
 };
 use super::visibility::{hybrid_gi_probe_visible, hybrid_gi_trace_region_visible};
 
@@ -25,24 +30,21 @@ pub(crate) fn build_hybrid_gi_plan(
     VisibilityHybridGiFeedback,
     Vec<u32>,
 ) {
-    let Some(extract) = extract else {
-        return (
-            Vec::new(),
-            VisibilityHybridGiUpdatePlan::default(),
-            VisibilityHybridGiFeedback::default(),
-            Vec::new(),
-        );
+    let Some(extract) = enabled_hybrid_gi_extract(extract) else {
+        return empty_hybrid_gi_plan();
     };
+    if hybrid_gi_extract_uses_scene_representation_budget(extract) {
+        return empty_hybrid_gi_plan();
+    }
 
-    let resident_probe_ids = extract
-        .probes
+    let live_probes = hybrid_gi_visibility_plan_probes(extract);
+    let resident_probe_ids = live_probes
         .iter()
         .filter(|probe| probe.resident)
         .map(|probe| probe.probe_id)
         .collect::<Vec<_>>();
 
-    let mut visible_probes = extract
-        .probes
+    let mut visible_probes = live_probes
         .iter()
         .filter(|probe| visible_entities.contains(&probe.entity))
         .filter(|probe| hybrid_gi_probe_visible(probe, camera))
@@ -66,8 +68,8 @@ pub(crate) fn build_hybrid_gi_plan(
         })
         .collect::<Vec<_>>();
 
-    let mut scheduled_trace_regions = extract
-        .trace_regions
+    let live_trace_regions = hybrid_gi_visibility_plan_trace_regions(extract);
+    let mut scheduled_trace_regions = live_trace_regions
         .iter()
         .filter(|region| visible_entities.contains(&region.entity))
         .filter(|region| hybrid_gi_trace_region_visible(region, camera))
@@ -154,6 +156,21 @@ pub(crate) fn build_hybrid_gi_plan(
         .iter()
         .map(|probe| probe.probe_id)
         .collect::<BTreeSet<_>>();
+    let active_child_parent_hold_protected_probe_ids = visible_probes
+        .iter()
+        .filter(|probe| probe.resident)
+        .filter(|probe| !active_probe_set.contains(&probe.probe_id))
+        .filter(|probe| {
+            children_by_parent
+                .get(&probe.probe_id)
+                .is_some_and(|children| {
+                    children
+                        .iter()
+                        .any(|child| active_probe_set.contains(&child.probe_id))
+                })
+        })
+        .map(|probe| probe.probe_id)
+        .collect::<BTreeSet<_>>();
     let merge_back_child_hold_protected_probe_ids = visible_probes
         .iter()
         .filter(|probe| probe.resident)
@@ -199,6 +216,7 @@ pub(crate) fn build_hybrid_gi_plan(
         .copied()
         .filter(|probe_id| !active_probe_set.contains(probe_id))
         .filter(|probe_id| !previous_requested_probe_ids.contains(probe_id))
+        .filter(|probe_id| !active_child_parent_hold_protected_probe_ids.contains(probe_id))
         .filter(|probe_id| !merge_back_child_hold_protected_probe_ids.contains(probe_id))
         .filter(|probe_id| !requested_frontier_hold_protected_probe_ids.contains(probe_id))
         .collect::<Vec<_>>();
@@ -228,10 +246,24 @@ pub(crate) fn build_hybrid_gi_plan(
     )
 }
 
+fn empty_hybrid_gi_plan() -> (
+    Vec<VisibilityHybridGiProbe>,
+    VisibilityHybridGiUpdatePlan,
+    VisibilityHybridGiFeedback,
+    Vec<u32>,
+) {
+    (
+        Vec::new(),
+        VisibilityHybridGiUpdatePlan::default(),
+        VisibilityHybridGiFeedback::default(),
+        Vec::new(),
+    )
+}
+
 fn collect_nonresident_descendants(
-    children_by_parent: &BTreeMap<u32, Vec<RenderHybridGiProbe>>,
+    children_by_parent: &BTreeMap<u32, Vec<HybridGiVisibilityPlanProbe>>,
     root_probe_id: u32,
-) -> Vec<RenderHybridGiProbe> {
+) -> Vec<HybridGiVisibilityPlanProbe> {
     let mut descendants = Vec::new();
     let mut visited_probe_ids = BTreeSet::new();
     let mut stack = children_by_parent
@@ -255,11 +287,11 @@ fn collect_nonresident_descendants(
 }
 
 fn interleave_requested_probe_groups(
-    requested_probe_groups: &[Vec<RenderHybridGiProbe>],
-    scheduled_trace_regions: &[RenderHybridGiTraceRegion],
-    visible_probes_by_id: &BTreeMap<u32, RenderHybridGiProbe>,
+    requested_probe_groups: &[Vec<HybridGiVisibilityPlanProbe>],
+    scheduled_trace_regions: &[HybridGiVisibilityPlanTraceRegion],
+    visible_probes_by_id: &BTreeMap<u32, HybridGiVisibilityPlanProbe>,
     previous_requested_probe_ids: &BTreeSet<u32>,
-) -> Vec<RenderHybridGiProbe> {
+) -> Vec<HybridGiVisibilityPlanProbe> {
     let mut requested_probes = Vec::new();
     let mut round_index = 0usize;
 
@@ -289,7 +321,7 @@ fn interleave_requested_probe_groups(
 
 fn requested_frontier_probe_ids(
     requested_probe_ids: &[u32],
-    visible_probes_by_id: &BTreeMap<u32, RenderHybridGiProbe>,
+    visible_probes_by_id: &BTreeMap<u32, HybridGiVisibilityPlanProbe>,
     active_probe_set: &BTreeSet<u32>,
 ) -> BTreeSet<u32> {
     requested_probe_ids
@@ -302,7 +334,7 @@ fn requested_frontier_probe_ids(
 
 fn visible_frontier_probe_id_for_probe(
     probe_id: u32,
-    visible_probes_by_id: &BTreeMap<u32, RenderHybridGiProbe>,
+    visible_probes_by_id: &BTreeMap<u32, HybridGiVisibilityPlanProbe>,
     active_probe_set: &BTreeSet<u32>,
 ) -> Option<u32> {
     let mut current_probe_id = probe_id;
@@ -329,7 +361,7 @@ fn visible_frontier_probe_id_for_probe(
 
 fn has_hidden_resident_descendant_probe(
     probe_id: u32,
-    children_by_parent: &BTreeMap<u32, Vec<RenderHybridGiProbe>>,
+    children_by_parent: &BTreeMap<u32, Vec<HybridGiVisibilityPlanProbe>>,
     active_probe_set: &BTreeSet<u32>,
 ) -> bool {
     let mut visited_probe_ids = BTreeSet::new();

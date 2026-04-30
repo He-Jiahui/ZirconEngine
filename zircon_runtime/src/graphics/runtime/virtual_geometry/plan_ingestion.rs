@@ -8,11 +8,9 @@ impl VirtualGeometryRuntimeState {
         generation: u64,
         plan: &VisibilityVirtualGeometryPageUploadPlan,
     ) {
-        self.current_requested_page_order.clear();
+        self.clear_current_requested_page_order();
         for (order, page_id) in plan.requested_pages.iter().copied().enumerate() {
-            self.current_requested_page_order
-                .entry(page_id)
-                .or_insert(order);
+            self.ensure_current_requested_page_order(page_id, order);
         }
 
         for &page_id in &plan.resident_pages {
@@ -20,24 +18,24 @@ impl VirtualGeometryRuntimeState {
         }
 
         for &page_id in &plan.dirty_requested_pages {
-            if self.resident_slots.contains_key(&page_id) || self.pending_pages.contains(&page_id) {
+            if self.has_resident_page(page_id) || self.has_pending_page(page_id) {
                 continue;
             }
 
-            self.pending_pages.insert(page_id);
-            self.pending_requests.push(VirtualGeometryPageRequest {
-                page_id,
-                size_bytes: self.page_sizes.get(&page_id).copied().unwrap_or_default(),
-                generation,
-            });
+            let size_bytes = self.page_size_bytes(page_id);
+            self.insert_pending_page(page_id);
+            self.push_pending_page_request(VirtualGeometryPageRequest::new(
+                page_id, size_bytes, generation,
+            ));
         }
 
-        self.evictable_pages = plan
+        let evictable_pages = plan
             .evictable_pages
             .iter()
             .copied()
-            .filter(|page_id| self.resident_slots.contains_key(page_id))
+            .filter(|page_id| self.has_resident_page(*page_id))
             .collect();
+        self.replace_evictable_pages(evictable_pages);
     }
 
     pub(crate) fn ingest_page_requests(
@@ -45,29 +43,25 @@ impl VirtualGeometryRuntimeState {
         generation: u64,
         page_ids: impl IntoIterator<Item = u32>,
     ) {
-        let mut next_order = self.current_requested_page_order.len();
+        let mut next_order = self.current_requested_page_order_len();
         for page_id in page_ids {
-            if !self.page_sizes.contains_key(&page_id) {
+            if !self.has_page_size(page_id) {
                 continue;
             }
 
-            if let std::collections::btree_map::Entry::Vacant(entry) =
-                self.current_requested_page_order.entry(page_id)
-            {
-                entry.insert(next_order);
+            if self.ensure_current_requested_page_order(page_id, next_order) {
                 next_order += 1;
             }
 
-            if self.resident_slots.contains_key(&page_id) || self.pending_pages.contains(&page_id) {
+            if self.has_resident_page(page_id) || self.has_pending_page(page_id) {
                 continue;
             }
 
-            self.pending_pages.insert(page_id);
-            self.pending_requests.push(VirtualGeometryPageRequest {
-                page_id,
-                size_bytes: self.page_sizes.get(&page_id).copied().unwrap_or_default(),
-                generation,
-            });
+            let size_bytes = self.page_size_bytes(page_id);
+            self.insert_pending_page(page_id);
+            self.push_pending_page_request(VirtualGeometryPageRequest::new(
+                page_id, size_bytes, generation,
+            ));
         }
     }
 }

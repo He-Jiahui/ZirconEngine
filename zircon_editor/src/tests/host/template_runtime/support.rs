@@ -1,8 +1,7 @@
 pub(super) use crate::ui::control::EditorUiControlService;
 pub(super) use crate::ui::template_runtime::{
     EditorUiCompatibilityHarness, EditorUiHostRuntime, SlintUiHostAdapter,
-    SlintUiHostComponentKind, SlintUiHostValue, LEGACY_HOST_WINDOW_DOCUMENT_ID,
-    UI_HOST_WINDOW_DOCUMENT_ID,
+    SlintUiHostComponentKind, SlintUiHostValue, UI_HOST_WINDOW_DOCUMENT_ID,
 };
 pub(super) use toml::Value;
 pub(super) use zircon_runtime::ui::{
@@ -51,7 +50,7 @@ node_id = "menu_bar_component_root"
 kind = "native"
 type = "UiHostToolbar"
 children = [
-  { node = { node_id = "open_project", kind = "native", type = "UiHostIconButton", control_id = "OpenProject", bindings = [{ id = "WorkbenchMenuBar/OpenProject", event = "Click", route = "MenuAction.OpenProject" }] } },
-  { node = { node_id = "save_project", kind = "native", type = "UiHostIconButton", control_id = "SaveProject", bindings = [{ id = "WorkbenchMenuBar/SaveProject", event = "Click", route = "MenuAction.SaveProject" }] } },
+  { node = { node_id = "open_project", kind = "native", type = "IconButton", control_id = "OpenProject", bindings = [{ id = "WorkbenchMenuBar/OpenProject", event = "Click", route = "MenuAction.OpenProject" }] } },
+  { node = { node_id = "save_project", kind = "native", type = "IconButton", control_id = "SaveProject", bindings = [{ id = "WorkbenchMenuBar/SaveProject", event = "Click", route = "MenuAction.SaveProject" }] } },
 ]
 "##;

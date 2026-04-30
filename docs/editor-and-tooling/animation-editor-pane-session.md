@@ -20,7 +20,7 @@ related_code:
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/shell_presentation.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/floating_windows.rs
-  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion.rs
+  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/mod.rs
   - zircon_editor/src/ui/slint_host/ui/apply_presentation.rs
   - zircon_editor/src/ui/slint_host/ui/tests.rs
   - zircon_editor/src/ui/slint_host/app/host_lifecycle.rs
@@ -54,7 +54,7 @@ implementation_files:
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/shell_presentation.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/floating_windows.rs
-  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion.rs
+  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/mod.rs
   - zircon_editor/src/ui/slint_host/ui/apply_presentation.rs
   - zircon_editor/src/ui/slint_host/ui/tests.rs
   - zircon_editor/src/ui/slint_host/app/host_lifecycle.rs
@@ -216,7 +216,7 @@ animation pane 现在已经接到正式 workbench/slint 投影链：
 - [`animation_editor_shell_layout.rs`](../../zircon_editor/src/ui/layouts/views/animation_editor_shell_layout.rs)
   - 从 crate `assets/` 读取 tree asset、注册 editor base style、编译 `UiSurface`
   - 把 control frame 萃取成 `AnimationEditorShellLayout`
-- [`host_data.rs`](../../zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs)、[`scene_projection.rs`](../../zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs)、[`pane_data_conversion.rs`](../../zircon_editor/src/ui/slint_host/ui/pane_data_conversion.rs)
+- [`host_data.rs`](../../zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs)、[`scene_projection.rs`](../../zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs)、[`pane_data_conversion/mod.rs`](../../zircon_editor/src/ui/slint_host/ui/pane_data_conversion/mod.rs)
   - 把这份 layout 作为 `AnimationEditorPaneViewData -> AnimationEditorPaneData -> AnimationEditorShellLayoutData` 的正式投影链
 - [`pane_content.slint`](../../zircon_editor/ui/workbench/pane_content.slint)
   - 显式导入 `AnimationEditorPaneView`，把 animation pane kind 接回通用 `PaneContent` 路由
@@ -287,7 +287,7 @@ animation editor 现在已经有正式的 host save 链路，而不是只会把 
 - animation pane bootstrap asset 能导出 header/body 和 sequence / graph / state-machine mode frame
 - `pane_content.slint` 现在显式导入 animation pane view，Slint build 不再因为缺失 pane import 而把 animation surface 卡死在 build script
 - Slint source guard 已锁住 animation pane 不再退回到 `64px` header、`y: 140px` graph node band、`y: 148px` transition band 这类硬编码壳层公式
-- host -> Slint 投影回归已经证明 animation shell layout 会穿过 `host_data.rs` / `pane_data_conversion.rs` 边界，而不是重新把这份几何留在 `.slint`
+- host -> Slint 投影回归已经证明 animation shell layout 会穿过 `host_data.rs` / `pane_data_conversion/mod.rs` 边界，而不是重新把这份几何留在 `.slint`
 - sequence/graph authoring 的关键防御分支现在也被直接回归覆盖，包括：
   - 重复 rebind 不会删源轨道
   - 删除选中轨道会清掉悬空选区

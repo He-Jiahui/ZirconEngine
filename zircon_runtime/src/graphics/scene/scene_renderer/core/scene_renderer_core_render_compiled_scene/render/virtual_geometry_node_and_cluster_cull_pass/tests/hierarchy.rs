@@ -49,16 +49,16 @@ fn node_and_cluster_cull_pass_carries_hierarchy_node_id_from_render_clusters_to_
     );
 
     assert_eq!(
-        output.cluster_work_items[0].hierarchy_node_id,
+        output.cluster_work_items()[0].hierarchy_node_id,
         Some(910),
-        "expected the cluster work-item seam to preserve the asset hierarchy node id from the render extract cluster row instead of only carrying the compat array index"
+        "expected the cluster work-item seam to preserve the asset hierarchy node id from the render extract cluster row instead of only carrying the baseline array index"
     );
     assert_eq!(
-        output.traversal_records[3],
+        output.traversal_records()[3],
         VirtualGeometryNodeAndClusterCullTraversalRecord {
             op: VirtualGeometryNodeAndClusterCullTraversalOp::EnqueueChild,
             child_source:
-                VirtualGeometryNodeAndClusterCullTraversalChildSource::CompatFixedFanout,
+                VirtualGeometryNodeAndClusterCullTraversalChildSource::FixedFanout,
             instance_index: 0,
             entity: 7,
             cluster_array_index: 11,
@@ -72,7 +72,7 @@ fn node_and_cluster_cull_pass_carries_hierarchy_node_id_from_render_clusters_to_
             page_budget: 2,
             forced_mip: Some(6),
         },
-        "expected traversal records to keep the authored hierarchy node id beside the temporary compat child range so the next slice can swap the fanout source without guessing from cluster array position"
+        "expected traversal records to keep the authored hierarchy node id beside the temporary fixed-fanout child range so the next slice can swap the fanout source without guessing from cluster array position"
     );
 }
 
@@ -131,7 +131,7 @@ fn node_and_cluster_cull_pass_uses_authored_hierarchy_child_range_for_enqueue_ch
     );
 
     assert_eq!(
-        output.traversal_records[3],
+        output.traversal_records()[3],
         VirtualGeometryNodeAndClusterCullTraversalRecord {
             op: VirtualGeometryNodeAndClusterCullTraversalOp::EnqueueChild,
             child_source:
@@ -149,7 +149,7 @@ fn node_and_cluster_cull_pass_uses_authored_hierarchy_child_range_for_enqueue_ch
             page_budget: 2,
             forced_mip: Some(6),
         },
-        "expected authored hierarchy child ranges to replace the temporary compat fanout whenever the cull seam can resolve the work item's hierarchy node id"
+        "expected authored hierarchy child ranges to replace the temporary fixed fanout whenever the cull seam can resolve the work item's hierarchy node id"
     );
 }
 
@@ -226,13 +226,13 @@ fn node_and_cluster_cull_pass_points_authored_children_at_child_id_table() {
         }),
     );
 
-    assert_eq!(output.hierarchy_child_ids, vec![7, 42]);
+    assert_eq!(output.hierarchy_child_ids(), &[7, 42]);
     assert!(
-        output.hierarchy_child_id_buffer.is_some(),
+        output.hierarchy_child_id_buffer().is_some(),
         "expected authored child ids to materialize as a GPU-visible table for the later traversal consumer"
     );
     assert_eq!(
-        output.traversal_records[3],
+        output.traversal_records()[3],
         VirtualGeometryNodeAndClusterCullTraversalRecord {
             op: VirtualGeometryNodeAndClusterCullTraversalOp::EnqueueChild,
             child_source:
@@ -327,10 +327,10 @@ fn node_and_cluster_cull_pass_expands_authored_child_ids_into_child_work_items()
         }),
     );
 
-    assert_eq!(output.child_work_item_count, 2);
+    assert_eq!(output.child_work_item_count(), 2);
     assert_eq!(
-        output.child_work_items,
-        vec![
+        output.child_work_items(),
+        &[
             VirtualGeometryNodeAndClusterCullChildWorkItem {
                 instance_index: 0,
                 entity: 7,
@@ -359,7 +359,7 @@ fn node_and_cluster_cull_pass_expands_authored_child_ids_into_child_work_items()
         "expected authored EnqueueChild traversal ranges to expand through the flat child-id table into persistent child-node work rows instead of staying as a marker only"
     );
     assert!(
-        output.child_work_item_buffer.is_some(),
+        output.child_work_item_buffer().is_some(),
         "expected child-node work rows to materialize as a GPU-visible buffer for the next persistent traversal slice"
     );
 }
@@ -463,7 +463,7 @@ fn node_and_cluster_cull_pass_consumes_child_work_items_into_child_visit_records
     );
 
     assert_eq!(
-        &output.traversal_records[4..],
+        &output.traversal_records()[4..],
         &[
             VirtualGeometryNodeAndClusterCullTraversalRecord {
                 op: VirtualGeometryNodeAndClusterCullTraversalOp::VisitNode,

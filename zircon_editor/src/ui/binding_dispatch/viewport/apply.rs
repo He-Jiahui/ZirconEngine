@@ -3,7 +3,7 @@ use crate::ui::binding::{EditorUiBinding, ViewportCommand};
 
 use super::super::error::EditorBindingDispatchError;
 use super::dispatch::dispatch_viewport_binding;
-use crate::EditorState;
+use crate::ui::workbench::state::EditorState;
 
 pub fn apply_viewport_binding(
     state: &mut EditorState,

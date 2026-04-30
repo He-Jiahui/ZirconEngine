@@ -1,7 +1,7 @@
 use zircon_runtime::scene::NodeId;
 
 use super::super::error::EditorBindingDispatchError;
-use crate::EditorState;
+use crate::ui::workbench::state::EditorState;
 
 pub(super) fn resolve_subject_path(
     state: &EditorState,

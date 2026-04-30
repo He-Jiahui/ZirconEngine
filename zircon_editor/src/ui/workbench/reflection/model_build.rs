@@ -35,6 +35,7 @@ pub fn build_workbench_reflection_model(
                         .operation_path
                         .as_ref()
                         .map(|path| path.as_str().to_string()),
+                    shortcut: item.shortcut.clone(),
                     binding: item.binding.clone(),
                     route_id: None,
                 })
@@ -49,6 +50,7 @@ pub fn build_workbench_reflection_model(
             MainPageSnapshot::Workbench {
                 id,
                 title,
+                activity_window: _,
                 workspace,
             } => EditorHostPageReflectionModel {
                 page_id: id.0.clone(),

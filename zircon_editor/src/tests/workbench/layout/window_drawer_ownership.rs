@@ -1,8 +1,11 @@
+use std::collections::BTreeMap;
+
 use crate::ui::workbench::layout::{
-    ActivityDrawerMode, ActivityDrawerSlot, ActivityWindowId, LayoutCommand, LayoutManager,
-    WorkbenchLayout,
+    ActivityDrawerLayout, ActivityDrawerMode, ActivityDrawerSlot, ActivityWindowHostMode,
+    ActivityWindowId, ActivityWindowLayout, DocumentNode, LayoutCommand, LayoutManager,
+    MainHostPageLayout, MainPageId, WorkbenchLayout,
 };
-use crate::ui::workbench::view::{ViewHost, ViewInstanceId};
+use crate::ui::workbench::view::{ViewDescriptorId, ViewHost, ViewInstanceId};
 
 #[test]
 fn default_workbench_layout_seeds_drawers_inside_workbench_activity_window() {
@@ -75,6 +78,58 @@ fn drawer_layout_commands_mutate_default_activity_window_drawers() {
         &layout.activity_windows[&window_id].activity_drawers[&ActivityDrawerSlot::LeftTop];
     assert_eq!(drawer.extent, 144.0);
     assert_eq!(drawer.mode, ActivityDrawerMode::Collapsed);
+}
+
+#[test]
+fn drawer_layout_commands_mutate_active_activity_window_drawers() {
+    let manager = LayoutManager::default();
+    let mut layout = WorkbenchLayout::default();
+    let asset_page_id = MainPageId::new("asset-browser");
+    let asset_window_id = ActivityWindowId::new("window:z_asset_browser");
+    let mut asset_drawer = ActivityDrawerLayout::new(ActivityDrawerSlot::LeftTop);
+    asset_drawer.extent = 192.0;
+
+    layout.main_pages.push(MainHostPageLayout::WorkbenchPage {
+        id: asset_page_id.clone(),
+        title: "Asset Browser".to_string(),
+        activity_window: asset_window_id.clone(),
+        document_workspace: DocumentNode::default(),
+    });
+    layout.activity_windows.insert(
+        asset_window_id.clone(),
+        ActivityWindowLayout {
+            window_id: asset_window_id.clone(),
+            descriptor_id: ViewDescriptorId::new("editor.asset_browser"),
+            host_mode: ActivityWindowHostMode::EmbeddedMainFrame,
+            activity_drawers: BTreeMap::from([(ActivityDrawerSlot::LeftTop, asset_drawer)]),
+            content_workspace: DocumentNode::default(),
+            region_overrides: BTreeMap::new(),
+            view_overrides: BTreeMap::new(),
+        },
+    );
+    layout.active_main_page = asset_page_id;
+
+    manager
+        .apply(
+            &mut layout,
+            LayoutCommand::SetDrawerExtent {
+                slot: ActivityDrawerSlot::LeftTop,
+                extent: 336.0,
+            },
+        )
+        .unwrap();
+
+    assert_eq!(
+        layout.activity_windows[&asset_window_id].activity_drawers[&ActivityDrawerSlot::LeftTop]
+            .extent,
+        336.0
+    );
+    assert_ne!(
+        layout.activity_windows[&ActivityWindowId::workbench()].activity_drawers
+            [&ActivityDrawerSlot::LeftTop]
+            .extent,
+        336.0
+    );
 }
 
 #[test]

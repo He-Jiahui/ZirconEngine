@@ -6,7 +6,7 @@ use std::rc::{Rc, Weak};
 use std::sync::Arc;
 use std::time::Duration;
 
-use slint::{ComponentHandle, Timer, TimerMode};
+use slint::{Timer, TimerMode};
 use zircon_runtime::asset::pipeline::manager::AssetManager;
 use zircon_runtime::asset::project::{ProjectManager, ProjectPaths};
 use zircon_runtime::asset::watch::AssetChange;
@@ -19,14 +19,19 @@ use zircon_runtime::core::resource::{
 use zircon_runtime::core::{ChannelReceiver, CoreHandle};
 use zircon_runtime::scene::Scene;
 use zircon_runtime::ui::{
-    binding::UiBindingValue, binding::UiEventKind, layout::UiFrame, layout::UiPoint, layout::UiSize,
+    binding::UiBindingValue,
+    binding::UiEventKind,
+    component::{UiDragPayload, UiDragPayloadKind, UiDragSourceMetadata},
+    layout::UiFrame,
+    layout::UiPoint,
+    layout::UiSize,
 };
 
 use crate::core::editing::paths::canonical_model_source_path;
 use crate::core::editor_event::{EditorEventRuntime, EditorViewportEvent};
 use crate::ui::binding_dispatch::WelcomeHostEvent;
 use crate::ui::host::editor_asset_manager::{
-    EditorAssetChange, EditorAssetManager as EditorAssetManagerFacade,
+    EditorAssetChange, EditorAssetManager as EditorAssetManagerContract,
 };
 use crate::ui::host::module::EDITOR_MANAGER_NAME;
 use crate::ui::host::resource_access::resolve_ready_handle;
@@ -39,7 +44,7 @@ use crate::ui::workbench::autolayout::{
 use crate::ui::workbench::layout::{ActivityDrawerMode, MainPageId};
 use crate::ui::workbench::model::WorkbenchViewModel;
 use crate::ui::workbench::project::EditorProjectDocument;
-use crate::ui::workbench::snapshot::ViewContentKind;
+use crate::ui::workbench::snapshot::{SceneEntry, ViewContentKind};
 use crate::ui::workbench::startup::{EditorSessionMode, EditorStartupSessionDocument};
 use crate::ui::workbench::state::EditorState;
 
@@ -49,8 +54,8 @@ use super::activity_rail_pointer::{
 };
 use super::asset_pointer::{
     AssetContentListPointerBridge, AssetContentListPointerLayout, AssetFolderTreePointerBridge,
-    AssetFolderTreePointerLayout, AssetListPointerState, AssetReferenceListPointerBridge,
-    AssetReferenceListPointerLayout,
+    AssetFolderTreePointerLayout, AssetListPointerState, AssetPointerContentRoute,
+    AssetPointerReferenceRoute, AssetReferenceListPointerBridge, AssetReferenceListPointerLayout,
 };
 use super::callback_dispatch;
 use super::detail_pointer::{
@@ -86,6 +91,7 @@ use super::welcome_recent_pointer::{
 use super::{FrameRect, UiHostWindow};
 
 mod asset_content_pointer;
+mod asset_drag_payload;
 mod asset_reference_pointer;
 mod asset_surface_pointer_state;
 mod asset_tree_pointer;
@@ -98,10 +104,13 @@ mod hierarchy_pointer;
 mod host_lifecycle;
 mod inspector;
 mod menu_pointer;
+mod module_plugin_actions;
 mod native_window_close;
 mod native_windows;
 mod pane_surface_actions;
 mod pointer_layout;
+mod reference_drop_payload;
+mod showcase_event_inputs;
 mod startup;
 #[cfg(test)]
 mod tests;
@@ -158,7 +167,7 @@ struct SlintEditorHost {
     editor_manager: Arc<EditorManager>,
     viewport: SlintViewportController,
     asset_server: Arc<dyn AssetManager>,
-    editor_asset_server: Arc<dyn EditorAssetManagerFacade>,
+    editor_asset_server: Arc<dyn EditorAssetManagerContract>,
     resource_server: Arc<dyn ResourceManager>,
     asset_change_events: ChannelReceiver<AssetChange>,
     editor_asset_change_events: ChannelReceiver<EditorAssetChange>,
@@ -194,6 +203,9 @@ struct SlintEditorHost {
     browser_asset_details_scroll_surface: ScrollSurfaceHostState,
     activity_asset_pointer: AssetSurfacePointerState,
     browser_asset_pointer: AssetSurfacePointerState,
+    active_asset_drag_payload: Option<UiDragPayload>,
+    active_scene_drag_payload: Option<UiDragPayload>,
+    active_object_drag_payload: Option<UiDragPayload>,
     native_window_presenters: NativeWindowPresenterStore,
     floating_window_projection_bundle: FloatingWindowProjectionBundle,
     callback_source_window: Option<MainPageId>,

@@ -17,7 +17,7 @@ related_code:
   - zircon_runtime/src/scene/module/core_error.rs
   - zircon_runtime/src/scene/module/default_level_manager.rs
   - zircon_runtime/src/scene/module/level_display_name.rs
-  - zircon_runtime/src/scene/module/level_manager_facade.rs
+  - zircon_runtime/src/scene/module/level_manager_contract.rs
   - zircon_runtime/src/scene/module/level_manager_lifecycle.rs
   - zircon_runtime/src/scene/module/level_manager_project_io.rs
   - zircon_runtime/src/scene/module/world_driver.rs
@@ -54,7 +54,7 @@ implementation_files:
   - zircon_runtime/src/scene/module/core_error.rs
   - zircon_runtime/src/scene/module/default_level_manager.rs
   - zircon_runtime/src/scene/module/level_display_name.rs
-  - zircon_runtime/src/scene/module/level_manager_facade.rs
+  - zircon_runtime/src/scene/module/level_manager_contract.rs
   - zircon_runtime/src/scene/module/level_manager_lifecycle.rs
   - zircon_runtime/src/scene/module/level_manager_project_io.rs
   - zircon_runtime/src/scene/module/world_driver.rs
@@ -155,7 +155,7 @@ doc_type: module-detail
 为了让这套 authority 在工程规模继续扩大时不再退化成单文件实现，当前代码树还新增了两个边界约束：
 
 - `zircon_scene/src/world.rs` 现在只作为 world 子系统入口；`World` 结构定义独立放到 `zircon_scene/src/world/world.rs`
-- `zircon_runtime/src/scene/mod.rs` 现在只作为 runtime scene 吸收层导出层；`LevelSystem`、`DefaultLevelManager` 生命周期、project I/O、facade 适配和 world driver 组装拆到 `zircon_runtime/src/scene/` 与 `zircon_runtime/src/scene/module/`
+- `zircon_runtime/src/scene/mod.rs` 现在只作为 runtime scene 吸收层导出层；`LevelSystem`、`DefaultLevelManager` 生命周期、project I/O、framework service contract 实现和 world driver 组装拆到 `zircon_runtime/src/scene/` 与 `zircon_runtime/src/scene/module/`
 - `zircon_scene/src/components/` 现在只保留 `schedule`、`scene` 与 scene-domain `Mobility`；viewport request/render packet/overlay DTO 已经固定分别归 `zircon_framework::render` 与 `zircon_editor::scene::viewport::render_packet`
 
 ## Compatibility Layer

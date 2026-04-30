@@ -9,6 +9,7 @@ pub(crate) mod drawer_resize;
 pub(crate) mod event_bridge;
 pub(crate) mod floating_window_projection;
 pub(crate) mod hierarchy_pointer;
+mod host_contract;
 pub(crate) mod host_page_pointer;
 pub(crate) mod menu_pointer;
 pub(crate) mod root_shell_projection;
@@ -20,13 +21,7 @@ mod viewport;
 pub(crate) mod viewport_toolbar_pointer;
 pub(crate) mod welcome_recent_pointer;
 
-mod generated {
-    #![allow(dead_code)]
-
-    slint::include_modules!();
-}
-
-pub(crate) use generated::*;
+pub(crate) use host_contract::*;
 
 #[cfg(test)]
 pub(crate) use app::backend_refresh::{plan_asset_backend_refresh, AssetBackendRefreshPlan};
@@ -37,10 +32,12 @@ pub(crate) use app::{
     NativeFloatingWindowTarget, NativeWindowPresenterStore,
 };
 #[cfg(test)]
-pub(crate) use ui::to_slint_animation_editor_pane_from_host_pane;
+pub(crate) use ui::apply_presentation;
 #[cfg(test)]
-pub(crate) use ui::to_slint_console_pane_from_host_pane;
+pub(crate) use ui::to_host_contract_animation_editor_pane_from_host_pane;
 #[cfg(test)]
-pub(crate) use ui::to_slint_hierarchy_pane_from_host_pane;
+pub(crate) use ui::to_host_contract_console_pane_from_host_pane;
 #[cfg(test)]
-pub(crate) use ui::to_slint_inspector_pane_from_host_pane;
+pub(crate) use ui::to_host_contract_hierarchy_pane_from_host_pane;
+#[cfg(test)]
+pub(crate) use ui::to_host_contract_inspector_pane_from_host_pane;

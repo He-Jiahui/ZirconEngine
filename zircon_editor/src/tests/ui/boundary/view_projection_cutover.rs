@@ -29,7 +29,7 @@ fn block_imports_name(block: &str, name: &str) -> bool {
 }
 
 #[test]
-fn view_presentations_keep_asset_and_welcome_slint_dtos_at_ui_boundary_only() {
+fn view_presentations_keep_asset_and_welcome_host_contract_dtos_at_ui_boundary_only() {
     let views_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("src")
         .join("ui")
@@ -75,31 +75,31 @@ fn view_presentations_keep_asset_and_welcome_slint_dtos_at_ui_boundary_only() {
             for block in &import_blocks {
                 assert!(
                     !block_imports_name(block, forbidden),
-                    "expected {:?} to stop importing generated Slint view DTO `{forbidden}` into layouts::views",
+                    "expected {:?} to stop importing host-contract DTO `{forbidden}` into layouts::views",
                     path.file_name().expect("file name")
                 );
             }
             assert!(
                 !source.contains(&format!("crate::ui::slint_host::{forbidden}")),
-                "expected {:?} to stop importing generated Slint view DTO `{forbidden}` into layouts::views",
+                "expected {:?} to stop importing host-contract DTO `{forbidden}` into layouts::views",
                 path.file_name().expect("file name")
             );
         }
     }
 
     for required in [
-        "fn to_slint_welcome_pane(",
-        "fn to_slint_recent_projects(",
-        "fn to_slint_asset_folders(",
-        "fn to_slint_asset_items(",
-        "fn to_slint_asset_references(",
-        "fn to_slint_asset_selection(",
-        "fn to_slint_scene_viewport_chrome(",
-        "fn to_slint_pane(",
+        "fn to_host_contract_welcome_pane(",
+        "fn to_host_contract_recent_projects(",
+        "fn to_host_contract_asset_folders(",
+        "fn to_host_contract_asset_items(",
+        "fn to_host_contract_asset_references(",
+        "fn to_host_contract_asset_selection(",
+        "fn to_host_contract_scene_viewport_chrome(",
+        "fn to_host_contract_pane(",
     ] {
         assert!(
             apply_presentation.contains(required),
-            "expected apply_presentation.rs to own Slint boundary conversion `{required}`"
+            "expected apply_presentation.rs to own host-contract boundary conversion `{required}`"
         );
     }
 }

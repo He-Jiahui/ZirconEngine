@@ -1,5 +1,7 @@
 use crate::core::framework::render::{RenderFrameworkError, RenderPipelineHandle};
+use crate::RenderPipelineAsset;
 
+use super::super::capability_validation::validate_compiled_pipeline_capabilities;
 use super::super::register_pipeline_asset::compile_pipeline_for_validation;
 use super::super::wgpu_render_framework::WgpuRenderFramework;
 
@@ -7,7 +9,7 @@ pub(in crate::graphics::runtime::render_framework) fn reload_pipeline(
     server: &WgpuRenderFramework,
     pipeline: RenderPipelineHandle,
 ) -> Result<(), RenderFrameworkError> {
-    let mut state = server.state.lock().unwrap();
+    let state = server.state.lock().unwrap();
     let pipeline_asset =
         state
             .pipelines
@@ -24,7 +26,14 @@ pub(in crate::graphics::runtime::render_framework) fn reload_pipeline(
             pipeline: pipeline.raw(),
             message,
         })?;
-    state.stats.last_pipeline = Some(pipeline);
+    let default_pipeline = RenderPipelineAsset::default_forward_plus().handle;
+    let active_for_viewport = state
+        .viewports
+        .values()
+        .any(|record| record.effective_pipeline(default_pipeline) == pipeline);
+    if active_for_viewport {
+        validate_compiled_pipeline_capabilities(&compiled, &state.stats.capabilities)?;
+    }
     Ok(())
 }
 

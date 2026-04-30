@@ -106,19 +106,19 @@ fn hybrid_gi_runtime_state_snapshot_reports_scene_representation_counts() {
     );
 
     let snapshot = state.snapshot();
-    assert_eq!(snapshot.cache_entry_count, 0);
-    assert_eq!(snapshot.resident_probe_count, 0);
-    assert_eq!(snapshot.pending_update_count, 0);
-    assert_eq!(snapshot.scheduled_trace_region_count, 0);
-    assert_eq!(snapshot.scene_card_count, 3);
-    assert_eq!(snapshot.surface_cache_resident_page_count, 2);
-    assert_eq!(snapshot.surface_cache_dirty_page_count, 2);
-    assert_eq!(snapshot.surface_cache_feedback_card_count, 1);
-    assert_eq!(snapshot.surface_cache_capture_slot_count, 2);
-    assert_eq!(snapshot.surface_cache_invalidated_page_count, 0);
-    assert_eq!(snapshot.voxel_resident_clipmap_count, 2);
-    assert_eq!(snapshot.voxel_dirty_clipmap_count, 2);
-    assert_eq!(snapshot.voxel_invalidated_clipmap_count, 0);
+    assert_eq!(snapshot.cache_entry_count(), 0);
+    assert_eq!(snapshot.resident_probe_count(), 0);
+    assert_eq!(snapshot.pending_update_count(), 0);
+    assert_eq!(snapshot.scheduled_trace_region_count(), 0);
+    assert_eq!(snapshot.scene_card_count(), 3);
+    assert_eq!(snapshot.surface_cache_resident_page_count(), 2);
+    assert_eq!(snapshot.surface_cache_dirty_page_count(), 2);
+    assert_eq!(snapshot.surface_cache_feedback_card_count(), 1);
+    assert_eq!(snapshot.surface_cache_capture_slot_count(), 2);
+    assert_eq!(snapshot.surface_cache_invalidated_page_count(), 0);
+    assert_eq!(snapshot.voxel_resident_clipmap_count(), 2);
+    assert_eq!(snapshot.voxel_dirty_clipmap_count(), 2);
+    assert_eq!(snapshot.voxel_invalidated_clipmap_count(), 0);
 }
 
 #[test]
@@ -233,7 +233,7 @@ fn hybrid_gi_runtime_state_persists_surface_cache_page_samples_across_clean_fram
         &[],
         &[],
     );
-    state.apply_scene_prepare_resources(&scene_prepare_resources_snapshot(
+    state.apply_scene_prepare_resources_for_test(&scene_prepare_resources_snapshot(
         vec![(0, [11, 1, 0, 255]), (1, [22, 1, 0, 255])],
         vec![(0, [11, 2, 0, 255]), (1, [22, 2, 0, 255])],
     ));
@@ -264,7 +264,10 @@ fn hybrid_gi_runtime_state_persists_surface_cache_page_samples_across_clean_fram
         ]
     );
 
-    state.apply_scene_prepare_resources(&scene_prepare_resources_snapshot(Vec::new(), Vec::new()));
+    state.apply_scene_prepare_resources_for_test(&scene_prepare_resources_snapshot(
+        Vec::new(),
+        Vec::new(),
+    ));
     assert_eq!(
         state.scene_surface_cache_page_contents(),
         vec![
@@ -289,7 +292,7 @@ fn hybrid_gi_runtime_state_persists_surface_cache_page_samples_across_clean_fram
         vec![(1, 22, 1, 1, [22, 1, 0, 255], [22, 2, 0, 255]),]
     );
 
-    state.apply_scene_prepare_resources(&scene_prepare_resources_snapshot(
+    state.apply_scene_prepare_resources_for_test(&scene_prepare_resources_snapshot(
         vec![(0, [33, 1, 0, 255])],
         vec![(0, [33, 2, 0, 255])],
     ));
@@ -314,7 +317,7 @@ fn hybrid_gi_runtime_state_keeps_atlas_only_surface_cache_page_samples_across_cl
         &[],
         &[],
     );
-    state.apply_scene_prepare_resources(&scene_prepare_resources_snapshot(
+    state.apply_scene_prepare_resources_for_test(&scene_prepare_resources_snapshot(
         vec![(0, [11, 1, 0, 255])],
         Vec::new(),
     ));
@@ -331,7 +334,10 @@ fn hybrid_gi_runtime_state_keeps_atlas_only_surface_cache_page_samples_across_cl
         &[],
         &[],
     );
-    state.apply_scene_prepare_resources(&scene_prepare_resources_snapshot(Vec::new(), Vec::new()));
+    state.apply_scene_prepare_resources_for_test(&scene_prepare_resources_snapshot(
+        Vec::new(),
+        Vec::new(),
+    ));
     assert_eq!(
         state.scene_surface_cache_page_contents(),
         vec![(0, 11, 0, 0, [11, 1, 0, 255], [0, 0, 0, 0])],
@@ -351,7 +357,7 @@ fn hybrid_gi_runtime_state_keeps_capture_only_surface_cache_page_samples_across_
         &[],
         &[],
     );
-    state.apply_scene_prepare_resources(&scene_prepare_resources_snapshot(
+    state.apply_scene_prepare_resources_for_test(&scene_prepare_resources_snapshot(
         Vec::new(),
         vec![(0, [11, 2, 0, 255])],
     ));
@@ -368,7 +374,10 @@ fn hybrid_gi_runtime_state_keeps_capture_only_surface_cache_page_samples_across_
         &[],
         &[],
     );
-    state.apply_scene_prepare_resources(&scene_prepare_resources_snapshot(Vec::new(), Vec::new()));
+    state.apply_scene_prepare_resources_for_test(&scene_prepare_resources_snapshot(
+        Vec::new(),
+        Vec::new(),
+    ));
     assert_eq!(
         state.scene_surface_cache_page_contents(),
         vec![(0, 11, 0, 0, [0, 0, 0, 0], [11, 2, 0, 255])],
@@ -474,7 +483,7 @@ fn hybrid_gi_runtime_state_builds_scene_prepare_frame_with_persisted_surface_cac
         &[],
         &[],
     );
-    state.apply_scene_prepare_resources(&scene_prepare_resources_snapshot(
+    state.apply_scene_prepare_resources_for_test(&scene_prepare_resources_snapshot(
         vec![(0, [11, 1, 0, 255]), (1, [22, 1, 0, 255])],
         vec![(0, [11, 2, 0, 255]), (1, [22, 2, 0, 255])],
     ));
@@ -556,7 +565,7 @@ fn hybrid_gi_runtime_state_uses_persisted_surface_cache_page_sample_for_clean_fr
         "expected the placeholder runtime voxel radiance to differ before persisted page samples are applied; baseline_cells={baseline_cells:?}"
     );
 
-    state.apply_scene_prepare_resources(&scene_prepare_resources_snapshot(
+    state.apply_scene_prepare_resources_for_test(&scene_prepare_resources_snapshot(
         vec![(0, persisted_capture_rgba)],
         vec![(0, persisted_capture_rgba)],
     ));
@@ -617,7 +626,7 @@ fn hybrid_gi_runtime_state_uses_atlas_only_surface_cache_page_sample_for_clean_f
         &[],
         &[],
     );
-    state.apply_scene_prepare_resources(&scene_prepare_resources_snapshot(
+    state.apply_scene_prepare_resources_for_test(&scene_prepare_resources_snapshot(
         vec![(0, persisted_atlas_rgba)],
         Vec::new(),
     ));
@@ -679,7 +688,7 @@ fn hybrid_gi_runtime_state_prefers_capture_surface_cache_page_sample_over_atlas_
         &[],
         &[],
     );
-    state.apply_scene_prepare_resources(&scene_prepare_resources_snapshot(
+    state.apply_scene_prepare_resources_for_test(&scene_prepare_resources_snapshot(
         vec![(0, persisted_atlas_rgba)],
         vec![(0, persisted_capture_rgba)],
     ));
@@ -739,7 +748,7 @@ fn hybrid_gi_runtime_state_excludes_dirty_pages_from_persisted_voxel_radiance_re
         &[],
         &[],
     );
-    state.apply_scene_prepare_resources(&scene_prepare_resources_snapshot(
+    state.apply_scene_prepare_resources_for_test(&scene_prepare_resources_snapshot(
         vec![(0, persisted_capture_rgba)],
         vec![(0, persisted_capture_rgba)],
     ));
@@ -963,22 +972,133 @@ fn hybrid_gi_runtime_state_tracks_cache_residency_pending_updates_and_trace_sche
         state.probe_residency(300),
         Some(HybridGiProbeResidencyState::PendingUpdate)
     );
-    assert_eq!(
-        state.pending_updates(),
-        vec![HybridGiProbeUpdateRequest {
-            probe_id: 300,
-            ray_budget: 128,
-            generation: 9,
-        }]
-    );
+    assert_eq!(pending_update_records(&state), vec![(300, 128, 9)]);
     assert_eq!(state.scheduled_trace_regions(), vec![40]);
     assert_eq!(state.evictable_probes(), vec![500]);
 
     let snapshot = state.snapshot();
-    assert_eq!(snapshot.cache_entry_count, 2);
-    assert_eq!(snapshot.resident_probe_count, 2);
-    assert_eq!(snapshot.pending_update_count, 1);
-    assert_eq!(snapshot.scheduled_trace_region_count, 1);
+    assert_eq!(snapshot.cache_entry_count(), 2);
+    assert_eq!(snapshot.resident_probe_count(), 2);
+    assert_eq!(snapshot.pending_update_count(), 1);
+    assert_eq!(snapshot.scheduled_trace_region_count(), 1);
+}
+
+#[test]
+fn hybrid_gi_runtime_state_ignores_disabled_extract_payloads() {
+    let mut state = HybridGiRuntimeState::default();
+    let extract = RenderHybridGiExtract {
+        enabled: false,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 2,
+        voxel_budget: 1,
+        debug_view: Default::default(),
+        probe_budget: 2,
+        tracing_budget: 1,
+        probes: vec![probe(200, true, 64), probe(300, false, 128)],
+        trace_regions: vec![trace_region(40)],
+    };
+
+    state.register_scene_extract(
+        Some(&extract),
+        &[mesh(11, "res://materials/disabled.mat")],
+        &[directional_light(100, 1.0)],
+        &[],
+        &[],
+    );
+    state.ingest_plan(
+        17,
+        &VisibilityHybridGiUpdatePlan {
+            resident_probe_ids: vec![200],
+            requested_probe_ids: vec![300],
+            dirty_requested_probe_ids: vec![300],
+            scheduled_trace_region_ids: vec![40],
+            evictable_probe_ids: Vec::new(),
+        },
+    );
+
+    let snapshot = state.snapshot();
+    assert_eq!(snapshot.resident_probe_count(), 0);
+    assert_eq!(snapshot.pending_update_count(), 0);
+    assert_eq!(snapshot.scheduled_trace_region_count(), 0);
+    assert_eq!(snapshot.scene_card_count(), 0);
+    assert_eq!(snapshot.surface_cache_resident_page_count(), 0);
+    assert_eq!(snapshot.voxel_resident_clipmap_count(), 0);
+}
+
+#[test]
+fn hybrid_gi_runtime_state_ignores_legacy_payloads_when_scene_representation_is_budgeted() {
+    let mut state = HybridGiRuntimeState::default();
+    let extract = RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 3,
+        card_budget: 2,
+        voxel_budget: 1,
+        debug_view: Default::default(),
+        probe_budget: 2,
+        tracing_budget: 2,
+        probes: vec![
+            probe(200, true, 64),
+            probe_with_parent(300, false, 128, 200),
+        ],
+        trace_regions: vec![trace_region(40), trace_region(50)],
+    };
+
+    state.register_scene_extract(
+        Some(&extract),
+        &[
+            mesh(11, "res://materials/scene-a.mat"),
+            mesh(22, "res://materials/scene-b.mat"),
+        ],
+        &[directional_light(100, 1.0)],
+        &[],
+        &[],
+    );
+    state.ingest_plan(
+        19,
+        &VisibilityHybridGiUpdatePlan {
+            resident_probe_ids: vec![200],
+            requested_probe_ids: vec![300],
+            dirty_requested_probe_ids: vec![300],
+            scheduled_trace_region_ids: vec![40, 50],
+            evictable_probe_ids: vec![200],
+        },
+    );
+
+    assert_eq!(state.scene_card_ids(), vec![11, 22]);
+    assert_eq!(
+        state.probe_slot(200),
+        None,
+        "scene-representation budgets should keep old resident RenderHybridGiProbe payloads from allocating runtime cache slots"
+    );
+    assert_eq!(
+        state.probe_residency(300),
+        None,
+        "scene-representation budgets should keep old requested RenderHybridGiProbe payloads out of runtime update queues"
+    );
+    assert_eq!(
+        state.pending_updates(),
+        Vec::<HybridGiProbeUpdateRequest>::new()
+    );
+    assert_eq!(state.scheduled_trace_regions(), Vec::<u32>::new());
+    let resolve_runtime = state.build_resolve_runtime();
+    assert!(
+        !resolve_runtime.has_probe_scene_data_entries(),
+        "scene-representation budgets should keep old RenderHybridGiProbe geometry out of resolve runtime scene data"
+    );
+    assert!(
+        !resolve_runtime.has_trace_region_scene_data_entries(),
+        "scene-representation budgets should keep old RenderHybridGiTraceRegion geometry out of resolve runtime scene data"
+    );
+
+    let snapshot = state.snapshot();
+    assert_eq!(snapshot.resident_probe_count(), 0);
+    assert_eq!(snapshot.pending_update_count(), 0);
+    assert_eq!(snapshot.scheduled_trace_region_count(), 0);
+    assert_eq!(snapshot.scene_card_count(), 2);
+    assert_eq!(snapshot.surface_cache_resident_page_count(), 2);
+    assert_eq!(snapshot.voxel_resident_clipmap_count(), 1);
 }
 
 #[test]
@@ -1020,14 +1140,7 @@ fn hybrid_gi_runtime_state_ignores_plan_probe_ids_without_live_payloads() {
         None,
         "expected stale dirty/requested plan ids without a live RenderHybridGiProbe payload not to enter the runtime update queue"
     );
-    assert_eq!(
-        state.pending_updates(),
-        vec![HybridGiProbeUpdateRequest {
-            probe_id: 300,
-            ray_budget: 128,
-            generation: 11,
-        }]
-    );
+    assert_eq!(pending_update_records(&state), vec![(300, 128, 11)]);
     assert_eq!(state.evictable_probes(), vec![200]);
 }
 
@@ -1141,7 +1254,7 @@ fn hybrid_gi_runtime_state_ignores_parent_probe_ids_without_live_payloads() {
     let runtime = state.build_resolve_runtime();
 
     assert_eq!(
-        runtime.probe_parent_probes.get(&200).copied(),
+        runtime.parent_probe_id(200),
         None,
         "expected runtime parent topology to drop parent ids that have no live RenderHybridGiProbe payload"
     );
@@ -1179,9 +1292,91 @@ fn hybrid_gi_runtime_state_ignores_gpu_cache_entries_without_live_probe_payloads
         "expected stale GPU cache entries without a live RenderHybridGiProbe payload not to allocate runtime cache slots"
     );
     assert_eq!(
-        state.snapshot().cache_entry_count,
+        state.snapshot().cache_entry_count(),
         0,
         "expected stale GPU cache entries to be discarded before residency accounting"
+    );
+}
+
+#[test]
+fn hybrid_gi_runtime_state_breaks_legacy_probe_parent_cycles_on_registration() {
+    let mut state = HybridGiRuntimeState::default();
+    let extract = RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
+        probe_budget: 2,
+        tracing_budget: 0,
+        probes: vec![
+            probe_with_parent(100, false, 64, 200),
+            probe_with_parent(200, false, 96, 100),
+        ],
+        trace_regions: Vec::new(),
+    };
+
+    state.register_extract(Some(&extract));
+    state.ingest_plan(
+        15,
+        &VisibilityHybridGiUpdatePlan {
+            resident_probe_ids: Vec::new(),
+            requested_probe_ids: vec![100, 200],
+            dirty_requested_probe_ids: vec![100, 200],
+            scheduled_trace_region_ids: Vec::new(),
+            evictable_probe_ids: Vec::new(),
+        },
+    );
+
+    let prepare = state.build_prepare_frame();
+    let runtime = state.build_resolve_runtime();
+
+    assert_eq!(
+        runtime.parent_probe_count(),
+        1,
+        "expected runtime registration to break cyclic legacy RenderHybridGiProbe parent topology instead of exporting both cycle edges"
+    );
+    assert!(
+        !prepare.pending_updates.is_empty(),
+        "expected cyclic legacy parent topology not to make every pending probe wait on another pending ancestor"
+    );
+}
+
+#[test]
+fn hybrid_gi_runtime_state_rebuilds_parent_topology_from_current_extract_before_cycle_check() {
+    let mut state = HybridGiRuntimeState::default();
+    let initial_extract = RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
+        probe_budget: 2,
+        tracing_budget: 0,
+        probes: vec![probe_with_parent(100, true, 64, 200), probe(200, true, 96)],
+        trace_regions: Vec::new(),
+    };
+    let updated_extract = RenderHybridGiExtract {
+        probes: vec![probe_with_parent(200, true, 96, 100), probe(100, true, 64)],
+        ..initial_extract.clone()
+    };
+
+    state.register_extract(Some(&initial_extract));
+    state.register_extract(Some(&updated_extract));
+
+    let runtime = state.build_resolve_runtime();
+
+    assert_eq!(
+        runtime.parent_probe_id(200),
+        Some(100),
+        "expected current legacy RenderHybridGiProbe payloads to rebuild runtime parent topology before cycle pruning, instead of letting a stale previous-frame parent edge suppress the new valid parent"
+    );
+    assert_eq!(
+        runtime.parent_probe_id(100),
+        None,
+        "expected parent topology registration to remove stale previous-frame edges for probes whose current payload no longer declares a parent"
     );
 }
 
@@ -1245,10 +1440,10 @@ fn hybrid_gi_runtime_state_deduplicates_probe_updates_and_reuses_evicted_slots()
     assert_eq!(state.scheduled_trace_regions(), vec![50]);
 
     let snapshot = state.snapshot();
-    assert_eq!(snapshot.cache_entry_count, 2);
-    assert_eq!(snapshot.resident_probe_count, 2);
-    assert_eq!(snapshot.pending_update_count, 0);
-    assert_eq!(snapshot.scheduled_trace_region_count, 1);
+    assert_eq!(snapshot.cache_entry_count(), 2);
+    assert_eq!(snapshot.resident_probe_count(), 2);
+    assert_eq!(snapshot.pending_update_count(), 0);
+    assert_eq!(snapshot.scheduled_trace_region_count(), 1);
 }
 
 #[test]
@@ -1364,10 +1559,10 @@ fn hybrid_gi_runtime_state_consumes_feedback_and_promotes_requested_probes() {
     assert_eq!(state.scheduled_trace_regions(), vec![50]);
 
     let snapshot = state.snapshot();
-    assert_eq!(snapshot.cache_entry_count, 2);
-    assert_eq!(snapshot.resident_probe_count, 2);
-    assert_eq!(snapshot.pending_update_count, 0);
-    assert_eq!(snapshot.scheduled_trace_region_count, 1);
+    assert_eq!(snapshot.cache_entry_count(), 2);
+    assert_eq!(snapshot.resident_probe_count(), 2);
+    assert_eq!(snapshot.pending_update_count(), 0);
+    assert_eq!(snapshot.scheduled_trace_region_count(), 1);
 }
 
 #[test]
@@ -1411,14 +1606,7 @@ fn hybrid_gi_runtime_state_leaves_updates_pending_without_evictable_budget() {
         state.probe_residency(300),
         Some(HybridGiProbeResidencyState::PendingUpdate)
     );
-    assert_eq!(
-        state.pending_updates(),
-        vec![HybridGiProbeUpdateRequest {
-            probe_id: 300,
-            ray_budget: 128,
-            generation: 9,
-        }]
-    );
+    assert_eq!(pending_update_records(&state), vec![(300, 128, 9)]);
     assert_eq!(state.scheduled_trace_regions(), vec![60]);
 }
 
@@ -1465,6 +1653,50 @@ fn hybrid_gi_runtime_state_does_not_inflate_probe_budget_from_duplicate_resident
         state.probe_slot(300),
         None,
         "expected duplicate legacy resident RenderHybridGiProbe payloads not to inflate runtime probe budget and promote a pending probe without an evictable slot"
+    );
+    assert_eq!(
+        state.probe_residency(300),
+        Some(HybridGiProbeResidencyState::PendingUpdate)
+    );
+}
+
+#[test]
+fn hybrid_gi_runtime_state_ignores_later_duplicate_resident_payload_for_probe_budget() {
+    let mut state = HybridGiRuntimeState::default();
+    let extract = RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
+        probe_budget: 0,
+        tracing_budget: 0,
+        probes: vec![
+            probe(200, false, 64),
+            probe(200, true, 64),
+            probe(300, false, 128),
+        ],
+        trace_regions: Vec::new(),
+    };
+
+    state.register_extract(Some(&extract));
+    state.ingest_plan(
+        10,
+        &VisibilityHybridGiUpdatePlan {
+            resident_probe_ids: Vec::new(),
+            requested_probe_ids: vec![300],
+            dirty_requested_probe_ids: vec![300],
+            scheduled_trace_region_ids: Vec::new(),
+            evictable_probe_ids: Vec::new(),
+        },
+    );
+    state.complete_gpu_updates([300], [], &[], &[], &[]);
+
+    assert_eq!(
+        state.probe_slot(300),
+        None,
+        "expected a later duplicate resident RenderHybridGiProbe payload not to inflate runtime probe budget after a first non-resident payload wins"
     );
     assert_eq!(
         state.probe_residency(300),
@@ -1603,14 +1835,7 @@ fn hybrid_gi_runtime_state_applies_gpu_cache_snapshot_as_residency_truth() {
         state.probe_residency(600),
         Some(HybridGiProbeResidencyState::PendingUpdate)
     );
-    assert_eq!(
-        state.pending_updates(),
-        vec![HybridGiProbeUpdateRequest {
-            probe_id: 600,
-            ray_budget: 48,
-            generation: 9,
-        }]
-    );
+    assert_eq!(pending_update_records(&state), vec![(600, 48, 9)]);
     assert!(state.evictable_probes().is_empty());
 
     assert_eq!(
@@ -2018,9 +2243,18 @@ fn hybrid_gi_runtime_state_builds_resolve_runtime_from_gpu_trace_lighting_histor
         &[500],
     );
 
+    let resolve_runtime = state.build_resolve_runtime();
     assert_eq!(
-        state.build_resolve_runtime().probe_rt_lighting_rgb,
-        std::collections::BTreeMap::from([(200, [208, 96, 48]), (300, [176, 104, 64])]),
+        resolve_runtime.probe_rt_lighting_rgb(200),
+        Some([208, 96, 48])
+    );
+    assert_eq!(
+        resolve_runtime.probe_rt_lighting_rgb(300),
+        Some([176, 104, 64])
+    );
+    assert_eq!(
+        resolve_runtime.probe_rt_lighting_rgb(500),
+        None,
         "expected runtime-host resolve inputs to retain GPU-produced per-probe trace-lighting truth for resident probes so post-process resolve can consume GPU source instead of recomputing all RT tint encode-side"
     );
 }
@@ -2608,7 +2842,7 @@ fn hybrid_gi_runtime_state_keeps_first_duplicate_probe_payload_for_parent_topolo
     let runtime = state.build_resolve_runtime();
 
     assert_eq!(
-        runtime.probe_parent_probes.get(&200).copied(),
+        runtime.parent_probe_id(200),
         Some(100),
         "expected duplicate legacy RenderHybridGiProbe payloads with the same id to keep the first parent topology, matching renderer source-probe lookup instead of letting a later duplicate override it"
     );
@@ -3076,13 +3310,7 @@ fn hybrid_gi_runtime_state_builds_scene_surface_cache_irradiance_continuation_wi
         debug_view: Default::default(),
         probe_budget: 2,
         tracing_budget: 0,
-        probes: vec![
-            probe_at(100, true, 96, Vec3::ZERO),
-            RenderHybridGiProbe {
-                radius: 1.8,
-                ..probe_with_parent_at(200, true, 88, 100, Vec3::ZERO)
-            },
-        ],
+        probes: Vec::new(),
         trace_regions: Vec::new(),
     };
 
@@ -3099,7 +3327,8 @@ fn hybrid_gi_runtime_state_builds_scene_surface_cache_irradiance_continuation_wi
         &[],
         &[],
     );
-    warm.apply_scene_prepare_resources(&scene_prepare_resources_snapshot(
+    seed_runtime_probe_lineage_for_scene_truth(&mut warm);
+    warm.apply_scene_prepare_resources_for_test(&scene_prepare_resources_snapshot(
         vec![(0, [224, 112, 64, 255])],
         vec![(0, [240, 96, 48, 255])],
     ));
@@ -3117,7 +3346,8 @@ fn hybrid_gi_runtime_state_builds_scene_surface_cache_irradiance_continuation_wi
         &[],
         &[],
     );
-    cool.apply_scene_prepare_resources(&scene_prepare_resources_snapshot(
+    seed_runtime_probe_lineage_for_scene_truth(&mut cool);
+    cool.apply_scene_prepare_resources_for_test(&scene_prepare_resources_snapshot(
         vec![(0, [64, 112, 224, 255])],
         vec![(0, [48, 96, 240, 255])],
     ));
@@ -3156,13 +3386,7 @@ fn hybrid_gi_runtime_state_builds_scene_voxel_rt_lighting_continuation_without_t
         debug_view: Default::default(),
         probe_budget: 2,
         tracing_budget: 0,
-        probes: vec![
-            probe_at(100, true, 96, Vec3::ZERO),
-            RenderHybridGiProbe {
-                radius: 1.8,
-                ..probe_with_parent_at(200, true, 88, 100, Vec3::ZERO)
-            },
-        ],
+        probes: Vec::new(),
         trace_regions: Vec::new(),
     };
 
@@ -3179,7 +3403,8 @@ fn hybrid_gi_runtime_state_builds_scene_voxel_rt_lighting_continuation_without_t
         &[],
         &[],
     );
-    warm.apply_scene_prepare_resources(&scene_prepare_resources_snapshot(
+    seed_runtime_probe_lineage_for_scene_truth(&mut warm);
+    warm.apply_scene_prepare_resources_for_test(&scene_prepare_resources_snapshot(
         vec![(0, [224, 112, 64, 255])],
         vec![(0, [240, 96, 48, 255])],
     ));
@@ -3197,7 +3422,8 @@ fn hybrid_gi_runtime_state_builds_scene_voxel_rt_lighting_continuation_without_t
         &[],
         &[],
     );
-    cool.apply_scene_prepare_resources(&scene_prepare_resources_snapshot(
+    seed_runtime_probe_lineage_for_scene_truth(&mut cool);
+    cool.apply_scene_prepare_resources_for_test(&scene_prepare_resources_snapshot(
         vec![(0, [64, 112, 224, 255])],
         vec![(0, [48, 96, 240, 255])],
     ));
@@ -3245,13 +3471,7 @@ fn hybrid_gi_runtime_state_reports_higher_scene_truth_quality_for_voxel_rt_than_
         debug_view: Default::default(),
         probe_budget: 2,
         tracing_budget: 0,
-        probes: vec![
-            probe_at(100, true, 96, Vec3::ZERO),
-            RenderHybridGiProbe {
-                radius: 1.8,
-                ..probe_with_parent_at(200, true, 88, 100, Vec3::ZERO)
-            },
-        ],
+        probes: Vec::new(),
         trace_regions: Vec::new(),
     };
     let surface_only_extract = RenderHybridGiExtract {
@@ -3263,13 +3483,7 @@ fn hybrid_gi_runtime_state_reports_higher_scene_truth_quality_for_voxel_rt_than_
         debug_view: Default::default(),
         probe_budget: 2,
         tracing_budget: 0,
-        probes: vec![
-            probe_at(100, true, 96, Vec3::ZERO),
-            RenderHybridGiProbe {
-                radius: 1.8,
-                ..probe_with_parent_at(200, true, 88, 100, Vec3::ZERO)
-            },
-        ],
+        probes: Vec::new(),
         trace_regions: Vec::new(),
     };
 
@@ -3286,6 +3500,7 @@ fn hybrid_gi_runtime_state_reports_higher_scene_truth_quality_for_voxel_rt_than_
         &[],
         &[],
     );
+    seed_runtime_probe_lineage_for_scene_truth(&mut voxel_backed);
     let voxel_runtime = voxel_backed.build_resolve_runtime();
     let voxel_quality = voxel_runtime.hierarchy_rt_lighting_scene_truth_quality(200);
 
@@ -3302,7 +3517,8 @@ fn hybrid_gi_runtime_state_reports_higher_scene_truth_quality_for_voxel_rt_than_
         &[],
         &[],
     );
-    surface_only.apply_scene_prepare_resources(&scene_prepare_resources_snapshot(
+    seed_runtime_probe_lineage_for_scene_truth(&mut surface_only);
+    surface_only.apply_scene_prepare_resources_for_test(&scene_prepare_resources_snapshot(
         vec![(0, [224, 112, 64, 255])],
         vec![(0, [240, 96, 48, 255])],
     ));
@@ -3339,13 +3555,7 @@ fn hybrid_gi_runtime_state_reports_clean_surface_cache_scene_truth_freshness_abo
         debug_view: Default::default(),
         probe_budget: 2,
         tracing_budget: 0,
-        probes: vec![
-            probe_at(100, true, 96, Vec3::ZERO),
-            RenderHybridGiProbe {
-                radius: 1.8,
-                ..probe_with_parent_at(200, true, 88, 100, Vec3::ZERO)
-            },
-        ],
+        probes: Vec::new(),
         trace_regions: Vec::new(),
     };
     let scene_meshes = [mesh_at(
@@ -3362,14 +3572,16 @@ fn hybrid_gi_runtime_state_reports_clean_surface_cache_scene_truth_freshness_abo
 
     let mut dirty = HybridGiRuntimeState::default();
     dirty.register_scene_extract(Some(&extract), &scene_meshes, &scene_lights, &[], &[]);
-    dirty.apply_scene_prepare_resources(&scene_prepare_resources);
+    dirty.apply_scene_prepare_resources_for_test(&scene_prepare_resources);
+    seed_runtime_probe_lineage_for_scene_truth(&mut dirty);
     let dirty_runtime = dirty.build_resolve_runtime();
     let dirty_freshness = dirty_runtime.hierarchy_irradiance_scene_truth_freshness(200);
 
     let mut clean = HybridGiRuntimeState::default();
     clean.register_scene_extract(Some(&extract), &scene_meshes, &scene_lights, &[], &[]);
-    clean.apply_scene_prepare_resources(&scene_prepare_resources);
+    clean.apply_scene_prepare_resources_for_test(&scene_prepare_resources);
     clean.register_scene_extract(Some(&extract), &scene_meshes, &scene_lights, &[], &[]);
+    seed_runtime_probe_lineage_for_scene_truth(&mut clean);
     let clean_runtime = clean.build_resolve_runtime();
     let clean_freshness = clean_runtime.hierarchy_irradiance_scene_truth_freshness(200);
 
@@ -3416,13 +3628,7 @@ fn hybrid_gi_runtime_state_keeps_surface_cache_scene_truth_with_stale_scheduled_
         debug_view: Default::default(),
         probe_budget: 2,
         tracing_budget: 0,
-        probes: vec![
-            probe_at(100, true, 96, Vec3::ZERO),
-            RenderHybridGiProbe {
-                radius: 1.8,
-                ..probe_with_parent_at(200, true, 88, 100, Vec3::ZERO)
-            },
-        ],
+        probes: Vec::new(),
         trace_regions: Vec::new(),
     };
     let scene_meshes = [mesh_at(
@@ -3435,10 +3641,11 @@ fn hybrid_gi_runtime_state_keeps_surface_cache_scene_truth_with_stale_scheduled_
     let mut state = HybridGiRuntimeState::default();
 
     state.register_scene_extract(Some(&extract), &scene_meshes, &scene_lights, &[], &[]);
-    state.apply_scene_prepare_resources(&scene_prepare_resources_snapshot(
+    state.apply_scene_prepare_resources_for_test(&scene_prepare_resources_snapshot(
         vec![(0, [224, 112, 64, 255])],
         vec![(0, [240, 96, 48, 255])],
     ));
+    seed_runtime_probe_lineage_for_scene_truth(&mut state);
     state.ingest_plan(
         1,
         &VisibilityHybridGiUpdatePlan {
@@ -3470,13 +3677,7 @@ fn hybrid_gi_runtime_state_reports_clean_voxel_scene_truth_freshness_above_dirty
         debug_view: Default::default(),
         probe_budget: 2,
         tracing_budget: 0,
-        probes: vec![
-            probe_at(100, true, 96, Vec3::ZERO),
-            RenderHybridGiProbe {
-                radius: 1.8,
-                ..probe_with_parent_at(200, true, 88, 100, Vec3::ZERO)
-            },
-        ],
+        probes: Vec::new(),
         trace_regions: Vec::new(),
     };
     let scene_meshes = [mesh_at(
@@ -3489,12 +3690,14 @@ fn hybrid_gi_runtime_state_reports_clean_voxel_scene_truth_freshness_above_dirty
 
     let mut dirty = HybridGiRuntimeState::default();
     dirty.register_scene_extract(Some(&extract), &scene_meshes, &scene_lights, &[], &[]);
+    seed_runtime_probe_lineage_for_scene_truth(&mut dirty);
     let dirty_runtime = dirty.build_resolve_runtime();
     let dirty_freshness = dirty_runtime.hierarchy_rt_lighting_scene_truth_freshness(200);
 
     let mut clean = HybridGiRuntimeState::default();
     clean.register_scene_extract(Some(&extract), &scene_meshes, &scene_lights, &[], &[]);
     clean.register_scene_extract(Some(&extract), &scene_meshes, &scene_lights, &[], &[]);
+    seed_runtime_probe_lineage_for_scene_truth(&mut clean);
     let clean_runtime = clean.build_resolve_runtime();
     let clean_freshness = clean_runtime.hierarchy_rt_lighting_scene_truth_freshness(200);
 
@@ -3541,13 +3744,7 @@ fn hybrid_gi_runtime_state_keeps_voxel_scene_truth_with_stale_scheduled_trace_re
         debug_view: Default::default(),
         probe_budget: 2,
         tracing_budget: 0,
-        probes: vec![
-            probe_at(100, true, 96, Vec3::ZERO),
-            RenderHybridGiProbe {
-                radius: 1.8,
-                ..probe_with_parent_at(200, true, 88, 100, Vec3::ZERO)
-            },
-        ],
+        probes: Vec::new(),
         trace_regions: Vec::new(),
     };
     let scene_meshes = [mesh_at(
@@ -3560,6 +3757,7 @@ fn hybrid_gi_runtime_state_keeps_voxel_scene_truth_with_stale_scheduled_trace_re
     let mut state = HybridGiRuntimeState::default();
 
     state.register_scene_extract(Some(&extract), &scene_meshes, &scene_lights, &[], &[]);
+    seed_runtime_probe_lineage_for_scene_truth(&mut state);
     state.ingest_plan(
         1,
         &VisibilityHybridGiUpdatePlan {
@@ -3717,6 +3915,13 @@ fn probe_with_parent_at(
     }
 }
 
+fn seed_runtime_probe_lineage_for_scene_truth(state: &mut HybridGiRuntimeState) {
+    state.seed_runtime_probe_scene_data_for_test([
+        (100, Vec3::ZERO, 0.5, None, 96),
+        (200, Vec3::ZERO, 1.8, Some(100), 88),
+    ]);
+}
+
 fn trace_region(region_id: u32) -> RenderHybridGiTraceRegion {
     RenderHybridGiTraceRegion {
         entity: 1,
@@ -3785,6 +3990,14 @@ fn directional_light(node_id: u64, intensity: f32) -> RenderDirectionalLightSnap
     }
 }
 
+fn pending_update_records(state: &HybridGiRuntimeState) -> Vec<(u32, u32, u64)> {
+    state
+        .pending_updates()
+        .iter()
+        .map(|update| (update.probe_id(), update.ray_budget(), update.generation()))
+        .collect()
+}
+
 fn scene_prepare_resources_snapshot(
     atlas_slot_rgba_samples: Vec<(u32, [u8; 4])>,
     capture_slot_rgba_samples: Vec<(u32, [u8; 4])>,
@@ -3797,23 +4010,17 @@ fn scene_prepare_resources_snapshot(
         .iter()
         .map(|(slot_id, _)| *slot_id)
         .collect::<Vec<_>>();
-    HybridGiScenePrepareResourcesSnapshot {
-        card_capture_request_count: occupied_capture_slots.len() as u32,
-        voxel_clipmap_ids: Vec::new(),
+    let mut snapshot = HybridGiScenePrepareResourcesSnapshot::new(
+        occupied_capture_slots.len() as u32,
+        Vec::new(),
         occupied_atlas_slots,
         occupied_capture_slots,
-        atlas_slot_rgba_samples,
-        capture_slot_rgba_samples,
-        voxel_clipmap_rgba_samples: Vec::new(),
-        voxel_clipmap_occupancy_masks: Vec::new(),
-        voxel_clipmap_cell_rgba_samples: Vec::new(),
-        voxel_clipmap_cell_occupancy_counts: Vec::new(),
-        voxel_clipmap_cell_dominant_node_ids: Vec::new(),
-        voxel_clipmap_cell_dominant_rgba_samples: Vec::new(),
-        atlas_slot_count: 0,
-        capture_slot_count: 0,
-        atlas_texture_extent: (0, 0),
-        capture_texture_extent: (0, 0),
-        capture_layer_count: 0,
-    }
+        0,
+        0,
+        (0, 0),
+        (0, 0),
+        0,
+    );
+    snapshot.store_texture_slot_rgba_samples(atlas_slot_rgba_samples, capture_slot_rgba_samples);
+    snapshot
 }

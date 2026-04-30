@@ -13,8 +13,8 @@ pub(in crate::graphics::runtime::render_framework) fn capture_frame(
         .ok_or(RenderFrameworkError::UnknownViewport {
             viewport: viewport.raw(),
         })?
-        .last_capture
-        .clone();
+        .last_capture()
+        .cloned();
     if frame.is_some() {
         state.stats.captured_frames += 1;
     }

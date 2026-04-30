@@ -6,4 +6,5 @@ mod pipeline;
 mod project;
 mod registry;
 mod support;
+mod virtual_geometry_cook;
 mod watcher;

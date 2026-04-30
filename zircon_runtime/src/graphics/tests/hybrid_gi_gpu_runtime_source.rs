@@ -86,34 +86,40 @@ fn hybrid_gi_pending_probe_gpu_trace_lighting_uses_runtime_hierarchy_rt_continua
         viewport_size,
         extract.clone(),
         prepare.clone(),
-        Some(HybridGiResolveRuntime {
-            probe_hierarchy_resolve_weight_q8: std::collections::BTreeMap::from([(
-                200,
-                HybridGiResolveRuntime::pack_resolve_weight_q8(1.85),
-            )]),
-            probe_hierarchy_rt_lighting_rgb_and_weight: std::collections::BTreeMap::from([(
-                200,
-                HybridGiResolveRuntime::pack_rgb_and_weight([0.95, 0.32, 0.12], 0.6),
-            )]),
-            ..Default::default()
-        }),
+        Some(
+            HybridGiResolveRuntime::fixture()
+                .with_probe_hierarchy_resolve_weight_q8(std::collections::BTreeMap::from([(
+                    200,
+                    HybridGiResolveRuntime::pack_resolve_weight_q8(1.85),
+                )]))
+                .with_probe_hierarchy_rt_lighting_rgb_and_weight(std::collections::BTreeMap::from(
+                    [(
+                        200,
+                        HybridGiResolveRuntime::pack_rgb_and_weight([0.95, 0.32, 0.12], 0.6),
+                    )],
+                ))
+                .build(),
+        ),
     );
     let cool = render_hybrid_gi_gpu_trace_lighting_readback_with_runtime(
         &mut renderer,
         viewport_size,
         extract,
         prepare,
-        Some(HybridGiResolveRuntime {
-            probe_hierarchy_resolve_weight_q8: std::collections::BTreeMap::from([(
-                200,
-                HybridGiResolveRuntime::pack_resolve_weight_q8(1.85),
-            )]),
-            probe_hierarchy_rt_lighting_rgb_and_weight: std::collections::BTreeMap::from([(
-                200,
-                HybridGiResolveRuntime::pack_rgb_and_weight([0.12, 0.32, 0.95], 0.6),
-            )]),
-            ..Default::default()
-        }),
+        Some(
+            HybridGiResolveRuntime::fixture()
+                .with_probe_hierarchy_resolve_weight_q8(std::collections::BTreeMap::from([(
+                    200,
+                    HybridGiResolveRuntime::pack_resolve_weight_q8(1.85),
+                )]))
+                .with_probe_hierarchy_rt_lighting_rgb_and_weight(std::collections::BTreeMap::from(
+                    [(
+                        200,
+                        HybridGiResolveRuntime::pack_rgb_and_weight([0.12, 0.32, 0.95], 0.6),
+                    )],
+                ))
+                .build(),
+        ),
     );
 
     let warm_trace = warm
@@ -239,26 +245,32 @@ fn hybrid_gi_pending_probe_gpu_irradiance_uses_runtime_hierarchy_source_when_sce
         viewport_size,
         extract.clone(),
         prepare.clone(),
-        Some(HybridGiResolveRuntime {
-            probe_hierarchy_irradiance_rgb_and_weight: std::collections::BTreeMap::from([(
-                200,
-                HybridGiResolveRuntime::pack_rgb_and_weight([0.92, 0.34, 0.12], 0.62),
-            )]),
-            ..Default::default()
-        }),
+        Some(
+            HybridGiResolveRuntime::fixture()
+                .with_probe_hierarchy_irradiance_rgb_and_weight(std::collections::BTreeMap::from([
+                    (
+                        200,
+                        HybridGiResolveRuntime::pack_rgb_and_weight([0.92, 0.34, 0.12], 0.62),
+                    ),
+                ]))
+                .build(),
+        ),
     );
     let cool = render_hybrid_gi_gpu_irradiance_readback_with_runtime(
         &mut renderer,
         viewport_size,
         extract,
         prepare,
-        Some(HybridGiResolveRuntime {
-            probe_hierarchy_irradiance_rgb_and_weight: std::collections::BTreeMap::from([(
-                200,
-                HybridGiResolveRuntime::pack_rgb_and_weight([0.12, 0.34, 0.92], 0.62),
-            )]),
-            ..Default::default()
-        }),
+        Some(
+            HybridGiResolveRuntime::fixture()
+                .with_probe_hierarchy_irradiance_rgb_and_weight(std::collections::BTreeMap::from([
+                    (
+                        200,
+                        HybridGiResolveRuntime::pack_rgb_and_weight([0.12, 0.34, 0.92], 0.62),
+                    ),
+                ]))
+                .build(),
+        ),
     );
 
     let warm_irradiance = warm
@@ -305,13 +317,12 @@ fn hybrid_gi_pending_probe_gpu_irradiance_blends_exact_runtime_source_with_curre
         scheduled_trace_region_ids: Vec::new(),
         evictable_probe_ids: Vec::new(),
     };
-    let neutral_runtime = HybridGiResolveRuntime {
-        probe_hierarchy_irradiance_rgb_and_weight: std::collections::BTreeMap::from([(
+    let neutral_runtime = HybridGiResolveRuntime::fixture()
+        .with_probe_hierarchy_irradiance_rgb_and_weight(std::collections::BTreeMap::from([(
             200,
             HybridGiResolveRuntime::pack_rgb_and_weight([0.47, 0.47, 0.47], 0.62),
-        )]),
-        ..Default::default()
-    };
+        )]))
+        .build();
     let warm = render_hybrid_gi_gpu_irradiance_readback_with_scene_prepare_and_runtime(
         &mut renderer,
         viewport_size,
@@ -424,14 +435,16 @@ fn hybrid_gi_pending_probe_gpu_irradiance_skips_scene_prepare_reblend_when_exact
         extract.clone(),
         prepare.clone(),
         Some(scene_prepare.clone()),
-        Some(HybridGiResolveRuntime {
-            probe_hierarchy_irradiance_rgb_and_weight: std::collections::BTreeMap::from([(
-                200,
-                exact_runtime,
-            )]),
-            probe_scene_driven_hierarchy_irradiance_ids: std::collections::BTreeSet::from([200]),
-            ..Default::default()
-        }),
+        Some(
+            HybridGiResolveRuntime::fixture()
+                .with_probe_hierarchy_irradiance_rgb_and_weight(std::collections::BTreeMap::from([
+                    (200, exact_runtime),
+                ]))
+                .with_probe_scene_driven_hierarchy_irradiance_ids(std::collections::BTreeSet::from(
+                    [200],
+                ))
+                .build(),
+        ),
     );
     let reblended = render_hybrid_gi_gpu_irradiance_readback_with_scene_prepare_and_runtime(
         &mut renderer,
@@ -439,13 +452,13 @@ fn hybrid_gi_pending_probe_gpu_irradiance_skips_scene_prepare_reblend_when_exact
         extract,
         prepare,
         Some(scene_prepare),
-        Some(HybridGiResolveRuntime {
-            probe_hierarchy_irradiance_rgb_and_weight: std::collections::BTreeMap::from([(
-                200,
-                exact_runtime,
-            )]),
-            ..Default::default()
-        }),
+        Some(
+            HybridGiResolveRuntime::fixture()
+                .with_probe_hierarchy_irradiance_rgb_and_weight(std::collections::BTreeMap::from([
+                    (200, exact_runtime),
+                ]))
+                .build(),
+        ),
     );
 
     let scene_driven_irradiance = scene_driven
@@ -515,14 +528,16 @@ fn hybrid_gi_pending_probe_gpu_trace_lighting_skips_scene_prepare_reblend_when_e
         extract.clone(),
         prepare.clone(),
         Some(scene_prepare.clone()),
-        Some(HybridGiResolveRuntime {
-            probe_hierarchy_rt_lighting_rgb_and_weight: std::collections::BTreeMap::from([(
-                200,
-                exact_runtime,
-            )]),
-            probe_scene_driven_hierarchy_rt_lighting_ids: std::collections::BTreeSet::from([200]),
-            ..Default::default()
-        }),
+        Some(
+            HybridGiResolveRuntime::fixture()
+                .with_probe_hierarchy_rt_lighting_rgb_and_weight(std::collections::BTreeMap::from(
+                    [(200, exact_runtime)],
+                ))
+                .with_probe_scene_driven_hierarchy_rt_lighting_ids(
+                    std::collections::BTreeSet::from([200]),
+                )
+                .build(),
+        ),
     );
     let reblended = render_hybrid_gi_gpu_trace_lighting_readback_with_scene_prepare_and_runtime(
         &mut renderer,
@@ -530,13 +545,13 @@ fn hybrid_gi_pending_probe_gpu_trace_lighting_skips_scene_prepare_reblend_when_e
         extract,
         prepare,
         Some(scene_prepare),
-        Some(HybridGiResolveRuntime {
-            probe_hierarchy_rt_lighting_rgb_and_weight: std::collections::BTreeMap::from([(
-                200,
-                exact_runtime,
-            )]),
-            ..Default::default()
-        }),
+        Some(
+            HybridGiResolveRuntime::fixture()
+                .with_probe_hierarchy_rt_lighting_rgb_and_weight(std::collections::BTreeMap::from(
+                    [(200, exact_runtime)],
+                ))
+                .build(),
+        ),
     );
 
     let scene_driven_trace = scene_driven
@@ -992,26 +1007,40 @@ fn hybrid_gi_pending_probe_gpu_trace_lighting_gathers_runtime_grandparent_hierar
         viewport_size,
         extract.clone(),
         prepare.clone(),
-        Some(HybridGiResolveRuntime {
-            probe_hierarchy_rt_lighting_rgb_and_weight: std::collections::BTreeMap::from([(
-                100,
-                HybridGiResolveRuntime::pack_rgb_and_weight([0.94, 0.26, 0.12], 0.7),
-            )]),
-            ..Default::default()
-        }),
+        Some(
+            HybridGiResolveRuntime::fixture()
+                .with_probe_parent_probes(std::collections::BTreeMap::from([
+                    (200, 100),
+                    (300, 200),
+                ]))
+                .with_probe_hierarchy_rt_lighting_rgb_and_weight(std::collections::BTreeMap::from(
+                    [(
+                        100,
+                        HybridGiResolveRuntime::pack_rgb_and_weight([0.94, 0.26, 0.12], 0.7),
+                    )],
+                ))
+                .build(),
+        ),
     );
     let cool = render_hybrid_gi_gpu_trace_lighting_readback_with_runtime(
         &mut renderer,
         viewport_size,
         extract,
         prepare,
-        Some(HybridGiResolveRuntime {
-            probe_hierarchy_rt_lighting_rgb_and_weight: std::collections::BTreeMap::from([(
-                100,
-                HybridGiResolveRuntime::pack_rgb_and_weight([0.12, 0.26, 0.94], 0.7),
-            )]),
-            ..Default::default()
-        }),
+        Some(
+            HybridGiResolveRuntime::fixture()
+                .with_probe_parent_probes(std::collections::BTreeMap::from([
+                    (200, 100),
+                    (300, 200),
+                ]))
+                .with_probe_hierarchy_rt_lighting_rgb_and_weight(std::collections::BTreeMap::from(
+                    [(
+                        100,
+                        HybridGiResolveRuntime::pack_rgb_and_weight([0.12, 0.26, 0.94], 0.7),
+                    )],
+                ))
+                .build(),
+        ),
     );
 
     let warm_trace = warm
@@ -1068,26 +1097,40 @@ fn hybrid_gi_pending_probe_gpu_irradiance_gathers_runtime_grandparent_hierarchy_
         viewport_size,
         extract.clone(),
         prepare.clone(),
-        Some(HybridGiResolveRuntime {
-            probe_hierarchy_irradiance_rgb_and_weight: std::collections::BTreeMap::from([(
-                100,
-                HybridGiResolveRuntime::pack_rgb_and_weight([0.92, 0.34, 0.14], 0.68),
-            )]),
-            ..Default::default()
-        }),
+        Some(
+            HybridGiResolveRuntime::fixture()
+                .with_probe_parent_probes(std::collections::BTreeMap::from([
+                    (200, 100),
+                    (300, 200),
+                ]))
+                .with_probe_hierarchy_irradiance_rgb_and_weight(std::collections::BTreeMap::from([
+                    (
+                        100,
+                        HybridGiResolveRuntime::pack_rgb_and_weight([0.92, 0.34, 0.14], 0.68),
+                    ),
+                ]))
+                .build(),
+        ),
     );
     let cool = render_hybrid_gi_gpu_irradiance_readback_with_runtime(
         &mut renderer,
         viewport_size,
         extract,
         prepare,
-        Some(HybridGiResolveRuntime {
-            probe_hierarchy_irradiance_rgb_and_weight: std::collections::BTreeMap::from([(
-                100,
-                HybridGiResolveRuntime::pack_rgb_and_weight([0.14, 0.34, 0.92], 0.68),
-            )]),
-            ..Default::default()
-        }),
+        Some(
+            HybridGiResolveRuntime::fixture()
+                .with_probe_parent_probes(std::collections::BTreeMap::from([
+                    (200, 100),
+                    (300, 200),
+                ]))
+                .with_probe_hierarchy_irradiance_rgb_and_weight(std::collections::BTreeMap::from([
+                    (
+                        100,
+                        HybridGiResolveRuntime::pack_rgb_and_weight([0.14, 0.34, 0.92], 0.68),
+                    ),
+                ]))
+                .build(),
+        ),
     );
 
     let warm_irradiance = warm
@@ -1224,7 +1267,8 @@ fn render_hybrid_gi_gpu_trace_lighting_readback_with_runtime(
     renderer
         .take_last_hybrid_gi_gpu_readback()
         .expect("expected hybrid gi GPU readback")
-        .probe_trace_lighting_rgb
+        .probe_trace_lighting_rgb()
+        .to_vec()
 }
 
 fn render_hybrid_gi_gpu_trace_lighting_readback_with_scene_prepare_and_runtime(
@@ -1251,7 +1295,8 @@ fn render_hybrid_gi_gpu_trace_lighting_readback_with_scene_prepare_and_runtime(
     renderer
         .take_last_hybrid_gi_gpu_readback()
         .expect("expected hybrid gi GPU readback")
-        .probe_trace_lighting_rgb
+        .probe_trace_lighting_rgb()
+        .to_vec()
 }
 
 fn render_hybrid_gi_gpu_irradiance_readback_with_runtime(
@@ -1295,7 +1340,8 @@ fn render_hybrid_gi_gpu_irradiance_readback_with_scene_prepare_and_runtime(
     renderer
         .take_last_hybrid_gi_gpu_readback()
         .expect("expected hybrid gi GPU readback")
-        .probe_irradiance_rgb
+        .probe_irradiance_rgb()
+        .to_vec()
 }
 
 fn requested_lineage_runtime_for_gpu_source(

@@ -9,7 +9,7 @@ use crate::ui::layouts::windows::workbench_host_window::{
     build_pane_body_presentation, HierarchyPaneViewData, PaneContentSize, PanePayloadBuildContext,
     PanePresentation, PaneShellPresentation, SceneNodeData,
 };
-use crate::ui::slint_host::to_slint_hierarchy_pane_from_host_pane;
+use crate::ui::slint_host::to_host_contract_hierarchy_pane_from_host_pane;
 use crate::ui::workbench::layout::MainPageId;
 use crate::ui::workbench::snapshot::{
     AssetWorkspaceSnapshot, EditorChromeSnapshot, ProjectOverviewSnapshot, SceneEntry,
@@ -101,7 +101,7 @@ fn hierarchy_pane() -> crate::ui::layouts::windows::workbench_host_window::PaneD
         secondary_hint: "".into(),
         show_toolbar: false,
         viewport: blank_viewport_chrome(),
-        body_compat: crate::ui::layouts::windows::workbench_host_window::PaneBodyCompatData {
+        native_body: crate::ui::layouts::windows::workbench_host_window::PaneNativeBodyData {
             hierarchy: HierarchyPaneViewData {
                 nodes: slint::ModelRc::default(),
                 hierarchy_nodes: slint::ModelRc::from(
@@ -128,7 +128,7 @@ fn hierarchy_pane() -> crate::ui::layouts::windows::workbench_host_window::PaneD
 
 #[test]
 fn hierarchy_template_body_projects_hybrid_slot_and_payload_nodes_for_slint_conversion() {
-    let projected = to_slint_hierarchy_pane_from_host_pane(
+    let projected = to_host_contract_hierarchy_pane_from_host_pane(
         &hierarchy_pane(),
         PaneContentSize::new(300.0, 240.0),
     );

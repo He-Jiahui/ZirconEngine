@@ -756,13 +756,13 @@ pub enum UiAssetError {
     },
     #[error("ui selector is invalid: {0}")]
     InvalidSelector(String),
-    #[error("ui asset legacy adapter failed: {0}")]
-    LegacyTemplate(String),
+    #[error("ui asset template fixture conversion failed: {0}")]
+    TemplateFixtureConversion(String),
 }
 
 impl From<UiTemplateError> for UiAssetError {
     fn from(value: UiTemplateError) -> Self {
-        Self::LegacyTemplate(value.to_string())
+        Self::TemplateFixtureConversion(value.to_string())
     }
 }
 

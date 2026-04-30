@@ -7,8 +7,9 @@ use crate::ui::template::{
 };
 
 use super::component_instance_expander::{apply_child_mount, component_name_from_reference};
+use super::component_props::build_component_attribute_map;
 use super::ui_document_compiler::{CompilationArtifacts, UiDocumentCompiler};
-use super::value_normalizer::{build_attribute_map, compose_tokens};
+use super::value_normalizer::compose_tokens;
 
 impl UiDocumentCompiler {
     pub(super) fn expand_node(
@@ -110,6 +111,15 @@ impl UiDocumentCompiler {
             children.extend(apply_child_mount(expanded, child, tokens, params));
         }
 
+        let attributes = build_component_attribute_map(
+            document,
+            &component,
+            node,
+            tokens,
+            params,
+            self.component_descriptor(&component),
+        )?;
+
         Ok(vec![UiTemplateNode {
             component: Some(component),
             template: None,
@@ -119,7 +129,7 @@ impl UiDocumentCompiler {
             bindings: node.bindings.clone(),
             children,
             slots: BTreeMap::new(),
-            attributes: build_attribute_map(node, tokens, params),
+            attributes,
             slot_attributes: BTreeMap::new(),
             style_overrides: super::value_normalizer::resolve_value_map(
                 &node.style_overrides.self_values,

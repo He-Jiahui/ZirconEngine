@@ -1,88 +1,26 @@
+fn source(relative: &str) -> String {
+    std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(relative))
+        .unwrap_or_else(|error| panic!("read `{relative}`: {error}"))
+}
+
 #[test]
-fn shared_viewport_surface_replaces_legacy_direct_pointer_callback_abi() {
-    let workbench = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/ui/workbench.slint"));
-    let app = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/src/ui/slint_host/app.rs"
-    ));
-    let viewport = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/src/ui/slint_host/app/viewport.rs"
-    ));
-    let wiring = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/src/ui/slint_host/app/callback_wiring.rs"
-    ));
+fn shared_viewport_surface_uses_unified_rust_pointer_dispatch() {
+    let globals = source("src/ui/slint_host/host_contract/globals.rs");
+    let wiring = source("src/ui/slint_host/app/callback_wiring.rs");
+    let viewport = source("src/ui/slint_host/app/viewport.rs");
 
-    for needle in [
-        "callback viewport_pointer_moved(",
-        "callback viewport_left_pressed(",
-        "callback viewport_left_released(",
-        "callback viewport_right_pressed(",
-        "callback viewport_right_released(",
-        "callback viewport_middle_pressed(",
-        "callback viewport_middle_released(",
-        "callback viewport_scrolled(",
-        "viewport_pointer_moved(x, y) =>",
-        "viewport_left_pressed(x, y) =>",
-        "viewport_left_released() =>",
-        "viewport_right_pressed(x, y) =>",
-        "viewport_right_released() =>",
-        "viewport_middle_pressed(x, y) =>",
-        "viewport_middle_released() =>",
-        "viewport_scrolled(delta) =>",
-    ] {
-        assert!(
-            !workbench.contains(needle),
-            "workbench shell still exposes legacy direct viewport callback `{needle}`"
-        );
-    }
-
-    assert!(
-        workbench.contains(
-            "export { PaneSurfaceHostContext } from \"workbench/pane_surface_host_context.slint\";"
-        ),
-        "workbench shell must re-export the shared PaneSurfaceHostContext global"
-    );
-
-    for needle in [
-        "ui.on_viewport_pointer_moved(",
-        "ui.on_viewport_left_pressed(",
-        "ui.on_viewport_left_released(",
-        "ui.on_viewport_right_pressed(",
-        "ui.on_viewport_right_released(",
-        "ui.on_viewport_middle_pressed(",
-        "ui.on_viewport_middle_released(",
-        "ui.on_viewport_scrolled(",
-    ] {
-        assert!(
-            !wiring.contains(needle),
-            "slint host wiring still registers legacy direct viewport callback `{needle}`"
-        );
-    }
-
-    assert!(
-        wiring.contains("pane_surface_host.on_viewport_pointer_event("),
-        "slint host wiring must register unified shared viewport callback on the exported global"
-    );
-
-    for needle in [
+    assert!(globals.contains("on_viewport_pointer_event"));
+    assert!(wiring.contains("pane_surface_host.on_viewport_pointer_event("));
+    assert!(viewport.contains("dispatch_viewport_pointer_event("));
+    for legacy in [
+        "on_viewport_pointer_moved",
+        "on_viewport_left_pressed",
+        "on_viewport_scrolled",
         "InputManager",
-        "InputButton",
-        "InputEvent",
-        "submit_event(InputEvent::CursorMoved",
-        "submit_event(InputEvent::ButtonPressed",
-        "submit_event(InputEvent::ButtonReleased",
-        "submit_event(InputEvent::WheelScrolled",
     ] {
         assert!(
-            !app.contains(needle) && !viewport.contains(needle),
-            "slint viewport host still depends on legacy raw input manager path `{needle}`"
+            !wiring.contains(legacy) && !viewport.contains(legacy),
+            "viewport path should not keep legacy callback `{legacy}`"
         );
     }
-
-    assert!(
-        viewport.contains("dispatch_viewport_pointer_event("),
-        "slint viewport host must dispatch through shared viewport pointer bridge"
-    );
 }

@@ -330,6 +330,10 @@ pub struct EditorEventRecord {
     pub operation_id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub operation_display_name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub operation_arguments: Option<Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub operation_group: Option<String>,
     pub effects: Vec<EditorEventEffect>,
     pub undo_policy: EditorEventUndoPolicy,
     pub before_revision: u64,

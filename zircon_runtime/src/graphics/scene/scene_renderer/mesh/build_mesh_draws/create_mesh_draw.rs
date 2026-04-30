@@ -39,18 +39,16 @@ pub(super) fn create_mesh_draw(
         }],
     });
 
-    MeshDraw {
+    MeshDraw::new(
         mesh,
         first_index,
         draw_index_count,
         indirect_args_buffer,
         indirect_args_offset,
-        virtual_geometry_submission_key: virtual_geometry_submission_detail
-            .map(|detail| (detail.entity, detail.page_id)),
         virtual_geometry_submission_detail,
         texture,
         pipeline_key,
         model_buffer,
         model_bind_group,
-    }
+    )
 }

@@ -29,7 +29,6 @@ impl RenderPipelineAsset {
                         BuiltinRenderFeature::ScreenSpaceAmbientOcclusion,
                     ),
                     RendererFeatureAsset::builtin(BuiltinRenderFeature::ClusteredLighting),
-                    RendererFeatureAsset::builtin(BuiltinRenderFeature::Particle),
                     RendererFeatureAsset::builtin(BuiltinRenderFeature::Bloom),
                     RendererFeatureAsset::builtin(BuiltinRenderFeature::ReflectionProbes),
                     RendererFeatureAsset::builtin(BuiltinRenderFeature::BakedLighting),

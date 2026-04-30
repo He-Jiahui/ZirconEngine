@@ -15,10 +15,10 @@ impl SceneRenderer {
     ) -> Result<Vec<RenderVirtualGeometrySelectedCluster>, GraphicsError> {
         let entry_count = self
             .advanced_plugin_outputs
-            .virtual_geometry_selected_cluster_count as usize;
+            .virtual_geometry_selected_cluster_count() as usize;
         let Some(buffer) = self
             .advanced_plugin_outputs
-            .virtual_geometry_selected_cluster_buffer
+            .virtual_geometry_selected_cluster_buffer()
             .as_ref()
         else {
             return Ok(Vec::new());

@@ -7,7 +7,7 @@ use zircon_runtime::ui::{
 
 use crate::ui::slint_host::callback_dispatch::constants::BUILTIN_HOST_DRAWER_SOURCE_DOCUMENT_ID;
 use crate::ui::template_runtime::EditorUiHostRuntime;
-use crate::ui::workbench::autolayout::WorkbenchChromeMetrics;
+use crate::ui::workbench::autolayout::{compact_bottom_height_limit, WorkbenchChromeMetrics};
 use crate::ui::workbench::layout::{ActivityDrawerMode, ActivityDrawerSlot};
 use crate::ui::workbench::model::WorkbenchViewModel;
 use crate::ui::workbench::snapshot::ActivityDrawerSnapshot;
@@ -78,18 +78,20 @@ pub(super) fn build_builtin_host_drawer_source_surface(
     metrics: WorkbenchChromeMetrics,
 ) -> Result<UiSurface, BuiltinHostDrawerSourceTemplateBridgeError> {
     let mut surface = runtime.build_shared_surface(BUILTIN_HOST_DRAWER_SOURCE_DOCUMENT_ID)?;
-    apply_builtin_host_drawer_source_layout(&mut surface, drawer_inputs, metrics);
+    apply_builtin_host_drawer_source_layout(&mut surface, shell_size, drawer_inputs, metrics);
     surface.compute_layout(shell_size)?;
     Ok(surface)
 }
 
 fn apply_builtin_host_drawer_source_layout(
     surface: &mut UiSurface,
+    shell_size: UiSize,
     drawer_inputs: BuiltinHostDrawerLayoutInputs,
     metrics: WorkbenchChromeMetrics,
 ) {
     let rail_width = metrics.rail_width.max(0.0);
     let header_height = metrics.panel_header_height.max(0.0);
+    let bottom = compacted_bottom_region_input(drawer_inputs.bottom, shell_size, metrics);
 
     apply_fixed_control_width(
         surface,
@@ -114,18 +116,43 @@ fn apply_builtin_host_drawer_source_layout(
     apply_fixed_control_height(
         surface,
         BOTTOM_DRAWER_OUTER_SEPARATOR_CONTROL_ID,
-        resolved_drawer_separator_extent(drawer_inputs.bottom),
+        resolved_drawer_separator_extent(bottom),
     );
     apply_fixed_control_height(
         surface,
         BOTTOM_DRAWER_SHELL_CONTROL_ID,
-        resolved_drawer_shell_extent(drawer_inputs.bottom),
+        resolved_drawer_shell_extent(bottom),
     );
     apply_fixed_control_height(
         surface,
         BOTTOM_DRAWER_PANEL_CONTROL_ID,
-        resolved_bottom_panel_extent(drawer_inputs.bottom, header_height),
+        resolved_bottom_panel_extent(bottom, header_height),
     );
+}
+
+fn compacted_bottom_region_input(
+    region: BuiltinHostDrawerRegionInput,
+    shell_size: UiSize,
+    metrics: WorkbenchChromeMetrics,
+) -> BuiltinHostDrawerRegionInput {
+    if !region.visible {
+        return region;
+    }
+
+    let separator = metrics.separator_thickness.max(0.0);
+    let available_height = (shell_size.height
+        - metrics.top_bar_height.max(0.0)
+        - separator
+        - metrics.host_bar_height.max(0.0)
+        - separator
+        - metrics.status_bar_height.max(0.0)
+        - separator)
+        .max(0.0);
+    let extent = compact_bottom_height_limit(available_height)
+        .map(|limit| region.extent.min(limit))
+        .unwrap_or(region.extent);
+
+    BuiltinHostDrawerRegionInput { extent, ..region }
 }
 
 fn resolved_drawer_shell_extent(region: BuiltinHostDrawerRegionInput) -> f32 {

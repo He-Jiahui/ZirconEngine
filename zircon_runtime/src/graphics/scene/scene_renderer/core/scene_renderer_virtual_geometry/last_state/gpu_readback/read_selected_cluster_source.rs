@@ -8,6 +8,6 @@ impl SceneRenderer {
         &self,
     ) -> RenderVirtualGeometrySelectedClusterSource {
         self.advanced_plugin_outputs
-            .virtual_geometry_selected_cluster_source
+            .virtual_geometry_selected_cluster_source()
     }
 }

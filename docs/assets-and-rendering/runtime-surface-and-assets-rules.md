@@ -54,5 +54,6 @@ This document captures the runtime-side structure rules introduced by the worksp
 ## Crate Root Rules
 
 - `zircon_runtime/src/lib.rs` stays a structural entry and registration surface.
+- The workspace root manifest keeps only dependencies still used by root members; generated Slint build seams such as `slint-build` are not retained after the Rust-owned host cutover.
 - `graphics/mod.rs` stays a narrow runtime-facing export layer, not a deep implementation barrel.
 - Internal convenience flattening is tolerated only when it stays crate-private and does not re-create a public compatibility surface.

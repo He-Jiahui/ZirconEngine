@@ -4,21 +4,120 @@ use crate::graphics::types::{GraphicsError, VirtualGeometryPrepareClusterState};
 use crate::graphics::scene::scene_renderer::core::SceneRenderer;
 
 #[cfg(test)]
+use super::read_indirect_authority_records::VirtualGeometryIndirectAuthorityRecord;
+
+#[cfg(test)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct VirtualGeometryIndirectExecutionSegmentRecord {
-    pub(crate) instance_index: Option<u32>,
-    pub(crate) entity: u64,
-    pub(crate) cluster_start_ordinal: u32,
-    pub(crate) cluster_span_count: u32,
-    pub(crate) cluster_total_count: u32,
-    pub(crate) page_id: u32,
-    pub(crate) submission_slot: u32,
-    pub(crate) state: VirtualGeometryPrepareClusterState,
-    pub(crate) lineage_depth: u32,
-    pub(crate) lod_level: u32,
-    pub(crate) frontier_rank: u32,
-    pub(crate) submission_index: u32,
-    pub(crate) draw_ref_rank: u32,
+    instance_index: Option<u32>,
+    entity: u64,
+    cluster_start_ordinal: u32,
+    cluster_span_count: u32,
+    cluster_total_count: u32,
+    page_id: u32,
+    submission_slot: u32,
+    state: VirtualGeometryPrepareClusterState,
+    lineage_depth: u32,
+    lod_level: u32,
+    frontier_rank: u32,
+    submission_index: u32,
+    draw_ref_rank: u32,
+}
+
+#[cfg(test)]
+impl VirtualGeometryIndirectExecutionSegmentRecord {
+    #[allow(clippy::too_many_arguments)]
+    fn new(
+        instance_index: Option<u32>,
+        entity: u64,
+        cluster_start_ordinal: u32,
+        cluster_span_count: u32,
+        cluster_total_count: u32,
+        page_id: u32,
+        submission_slot: u32,
+        state: VirtualGeometryPrepareClusterState,
+        lineage_depth: u32,
+        lod_level: u32,
+        frontier_rank: u32,
+        submission_index: u32,
+        draw_ref_rank: u32,
+    ) -> Self {
+        Self {
+            instance_index,
+            entity,
+            cluster_start_ordinal,
+            cluster_span_count,
+            cluster_total_count,
+            page_id,
+            submission_slot,
+            state,
+            lineage_depth,
+            lod_level,
+            frontier_rank,
+            submission_index,
+            draw_ref_rank,
+        }
+    }
+
+    pub(crate) fn from_authority_record(record: VirtualGeometryIndirectAuthorityRecord) -> Self {
+        Self::new(
+            record.instance_index(),
+            record.entity(),
+            record.cluster_start_ordinal(),
+            record.cluster_span_count(),
+            record.cluster_total_count(),
+            record.page_id(),
+            record.submission_slot(),
+            record.state(),
+            record.lineage_depth(),
+            record.lod_level(),
+            record.frontier_rank(),
+            record.submission_index(),
+            record.draw_ref_rank(),
+        )
+    }
+
+    pub(crate) fn instance_index(&self) -> Option<u32> {
+        self.instance_index
+    }
+
+    pub(crate) fn execution_order_tuple(
+        &self,
+    ) -> (
+        Option<u32>,
+        (
+            u64,
+            u32,
+            u32,
+            u32,
+            u32,
+            u32,
+            VirtualGeometryPrepareClusterState,
+            u32,
+            u32,
+            u32,
+            u32,
+            u32,
+        ),
+    ) {
+        (
+            self.instance_index,
+            (
+                self.entity,
+                self.cluster_start_ordinal,
+                self.cluster_span_count,
+                self.cluster_total_count,
+                self.page_id,
+                self.submission_slot,
+                self.state,
+                self.lineage_depth,
+                self.lod_level,
+                self.frontier_rank,
+                self.submission_index,
+                self.draw_ref_rank,
+            ),
+        )
+    }
 }
 
 impl SceneRenderer {
@@ -31,21 +130,7 @@ impl SceneRenderer {
         if !execution_authority_records.is_empty() {
             return Ok(execution_authority_records
                 .into_iter()
-                .map(|record| VirtualGeometryIndirectExecutionSegmentRecord {
-                    instance_index: record.instance_index,
-                    entity: record.entity,
-                    cluster_start_ordinal: record.cluster_start_ordinal,
-                    cluster_span_count: record.cluster_span_count,
-                    cluster_total_count: record.cluster_total_count,
-                    page_id: record.page_id,
-                    submission_slot: record.submission_slot,
-                    state: record.state,
-                    lineage_depth: record.lineage_depth,
-                    lod_level: record.lod_level,
-                    frontier_rank: record.frontier_rank,
-                    submission_index: record.submission_index,
-                    draw_ref_rank: record.draw_ref_rank,
-                })
+                .map(VirtualGeometryIndirectExecutionSegmentRecord::from_authority_record)
                 .collect());
         }
         let authority_records = self.read_last_virtual_geometry_indirect_authority_records()?;
@@ -56,22 +141,8 @@ impl SceneRenderer {
             .into_iter()
             .map(|record| {
                 (
-                    record.draw_ref_index,
-                    VirtualGeometryIndirectExecutionSegmentRecord {
-                        instance_index: record.instance_index,
-                        entity: record.entity,
-                        cluster_start_ordinal: record.cluster_start_ordinal,
-                        cluster_span_count: record.cluster_span_count,
-                        cluster_total_count: record.cluster_total_count,
-                        page_id: record.page_id,
-                        submission_slot: record.submission_slot,
-                        state: record.state,
-                        lineage_depth: record.lineage_depth,
-                        lod_level: record.lod_level,
-                        frontier_rank: record.frontier_rank,
-                        submission_index: record.submission_index,
-                        draw_ref_rank: record.draw_ref_rank,
-                    },
+                    record.draw_ref_index(),
+                    VirtualGeometryIndirectExecutionSegmentRecord::from_authority_record(record),
                 )
             })
             .collect::<std::collections::HashMap<_, _>>();

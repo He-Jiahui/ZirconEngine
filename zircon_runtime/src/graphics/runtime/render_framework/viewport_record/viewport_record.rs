@@ -8,16 +8,12 @@ use crate::{
 };
 
 pub(in crate::graphics::runtime::render_framework) struct ViewportRecord {
-    pub(in crate::graphics::runtime::render_framework) descriptor: RenderViewportDescriptor,
-    pub(in crate::graphics::runtime::render_framework) pipeline: Option<RenderPipelineHandle>,
-    pub(in crate::graphics::runtime::render_framework) quality_profile:
-        Option<RenderQualityProfile>,
-    pub(in crate::graphics::runtime::render_framework) compiled_pipeline:
-        Option<CompiledRenderPipeline>,
-    pub(in crate::graphics::runtime::render_framework) last_capture: Option<CapturedFrame>,
-    pub(in crate::graphics::runtime::render_framework) history: Option<ViewportFrameHistory>,
-    pub(in crate::graphics::runtime::render_framework) hybrid_gi_runtime:
-        Option<HybridGiRuntimeState>,
-    pub(in crate::graphics::runtime::render_framework) virtual_geometry_runtime:
-        Option<VirtualGeometryRuntimeState>,
+    pub(super) descriptor: RenderViewportDescriptor,
+    pub(super) pipeline: Option<RenderPipelineHandle>,
+    pub(super) quality_profile: Option<RenderQualityProfile>,
+    pub(super) compiled_pipeline: Option<CompiledRenderPipeline>,
+    pub(super) last_capture: Option<CapturedFrame>,
+    pub(super) history: Option<ViewportFrameHistory>,
+    pub(super) hybrid_gi_runtime: Option<HybridGiRuntimeState>,
+    pub(super) virtual_geometry_runtime: Option<VirtualGeometryRuntimeState>,
 }

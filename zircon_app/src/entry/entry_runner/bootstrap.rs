@@ -24,7 +24,7 @@ impl EntryRunner {
         config: EntryConfig,
         export_root: impl AsRef<Path>,
     ) -> Result<CoreHandle, CoreError> {
-        let native_report = NativePluginLoader.load_from_load_manifest(export_root);
+        let native_report = NativePluginLoader.load_runtime_from_load_manifest(export_root);
         for diagnostic in &native_report.diagnostics {
             eprintln!("[zircon_app] native plugin warning: {diagnostic}");
         }

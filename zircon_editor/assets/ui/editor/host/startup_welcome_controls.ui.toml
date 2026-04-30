@@ -53,7 +53,7 @@ bindings = []
 [components.WelcomeSurfaceControls.root.children.node]
 node_id = "component_WelcomeSurfaceControls_root_0"
 kind = "native"
-type = "UiHostIconButton"
+type = "IconButton"
 control_id = "ProjectNameEdited"
 classes = []
 children = []
@@ -79,7 +79,7 @@ route = "WelcomeCommand.SetProjectName"
 [components.WelcomeSurfaceControls.root.children.node]
 node_id = "component_WelcomeSurfaceControls_root_1"
 kind = "native"
-type = "UiHostIconButton"
+type = "IconButton"
 control_id = "LocationEdited"
 classes = []
 children = []
@@ -105,7 +105,7 @@ route = "WelcomeCommand.SetLocation"
 [components.WelcomeSurfaceControls.root.children.node]
 node_id = "component_WelcomeSurfaceControls_root_2"
 kind = "native"
-type = "UiHostIconButton"
+type = "IconButton"
 control_id = "CreateProject"
 classes = []
 children = []
@@ -131,7 +131,7 @@ route = "WelcomeCommand.CreateProject"
 [components.WelcomeSurfaceControls.root.children.node]
 node_id = "component_WelcomeSurfaceControls_root_3"
 kind = "native"
-type = "UiHostIconButton"
+type = "IconButton"
 control_id = "OpenExistingProject"
 classes = []
 children = []
@@ -157,7 +157,7 @@ route = "WelcomeCommand.OpenExistingProject"
 [components.WelcomeSurfaceControls.root.children.node]
 node_id = "component_WelcomeSurfaceControls_root_4"
 kind = "native"
-type = "UiHostIconButton"
+type = "IconButton"
 control_id = "OpenRecentProject"
 classes = []
 children = []
@@ -183,7 +183,7 @@ route = "WelcomeCommand.OpenRecentProject"
 [components.WelcomeSurfaceControls.root.children.node]
 node_id = "component_WelcomeSurfaceControls_root_5"
 kind = "native"
-type = "UiHostIconButton"
+type = "IconButton"
 control_id = "RemoveRecentProject"
 classes = []
 children = []

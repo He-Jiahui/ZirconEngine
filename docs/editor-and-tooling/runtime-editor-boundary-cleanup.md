@@ -11,6 +11,8 @@ related_code:
   - zircon_editor/src/ui/host/editor_asset_manager/reference_graph.rs
   - zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/sync_from_project.rs
   - zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/asset_details.rs
+  - zircon_editor/src/tests/host/asset_metadata/runtime_sidecar_isolation.rs
+  - zircon_editor/src/tests/host/asset_metadata/precedence.rs
   - zircon_editor/src/tests/host/asset_manager_boundary.rs
   - zircon_editor/src/tests/host/asset_metadata.rs
   - zircon_editor/src/lib.rs
@@ -71,6 +73,8 @@ implementation_files:
   - zircon_editor/src/ui/host/editor_asset_manager/reference_graph.rs
   - zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/sync_from_project.rs
   - zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/asset_details.rs
+  - zircon_editor/src/tests/host/asset_metadata/runtime_sidecar_isolation.rs
+  - zircon_editor/src/tests/host/asset_metadata/precedence.rs
   - zircon_editor/src/lib.rs
   - zircon_editor/src/ui/host/mod.rs
   - zircon_editor/src/core/host/mod.rs
@@ -385,7 +389,7 @@ editor asset host 在 `sync_from_project()` 里现在同时读取两份文档：
 - runtime meta: `foo.ext.meta.toml`
 - editor meta: `foo.ext.editor.meta.toml`
 
-如果 editor sidecar 还不存在，editor 会先尝试从旧的 runtime meta 里读取 legacy `editor_adapter` 字段；一旦读到，就立刻写入新的 editor sidecar。这样后续 preview refresh 再把 runtime meta 写回磁盘时，不会把旧项目里的 adapter 配置静默抹掉。
+`foo.ext.editor.meta.toml` 是 editor adapter 选择的唯一持久化来源。若 editor sidecar 不存在，editor 返回默认 editor metadata；不会再从 runtime meta 导入 `editor_adapter`，也不会自动生成 sidecar。这样运行时 `.meta.toml` 只承载 runtime/import/preview 字段，编辑器发行和运行时发行之间不会通过历史字段互相污染。
 
 ### Runtime Root-Surface Cut
 

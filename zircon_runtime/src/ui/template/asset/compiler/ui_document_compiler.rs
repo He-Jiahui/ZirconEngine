@@ -2,6 +2,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use toml::Value;
 
+use crate::ui::component::{UiComponentDescriptor, UiComponentDescriptorRegistry};
 use crate::ui::template::{
     UiAssetDocument, UiAssetError, UiAssetHeader, UiAssetKind, UiStyleSheet, UiTemplateInstance,
 };
@@ -24,13 +25,35 @@ impl UiCompiledDocument {
     }
 }
 
-#[derive(Default)]
 pub struct UiDocumentCompiler {
     pub(super) widget_imports: BTreeMap<String, UiAssetDocument>,
     pub(super) style_imports: BTreeMap<String, UiAssetDocument>,
+    component_registry: UiComponentDescriptorRegistry,
+}
+
+impl Default for UiDocumentCompiler {
+    fn default() -> Self {
+        Self {
+            widget_imports: BTreeMap::new(),
+            style_imports: BTreeMap::new(),
+            component_registry: UiComponentDescriptorRegistry::editor_showcase(),
+        }
+    }
 }
 
 impl UiDocumentCompiler {
+    pub fn with_component_registry(mut self, registry: UiComponentDescriptorRegistry) -> Self {
+        self.component_registry = registry;
+        self
+    }
+
+    pub(super) fn component_descriptor(
+        &self,
+        component_id: &str,
+    ) -> Option<&UiComponentDescriptor> {
+        self.component_registry.descriptor(component_id)
+    }
+
     pub fn register_widget_import(
         &mut self,
         reference: impl Into<String>,

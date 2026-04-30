@@ -84,7 +84,7 @@ zircon_runtime/src/scene/
     core_error.rs
     default_level_manager.rs
     level_display_name.rs
-    level_manager_facade.rs
+    level_manager_contract.rs
     level_manager_lifecycle.rs
     level_manager_project_io.rs
     service_names.rs
@@ -106,7 +106,7 @@ zircon_scene/src/
 
 本轮之后边界固定为：
 
-- `zircon_runtime::scene` 负责 scene runtime service registration、level lifecycle object、level manager facade、world driver
+- `zircon_runtime::scene` 负责 scene runtime service registration、level lifecycle object、level manager service contract、world driver
 - `zircon_scene` 负责 world model、component model、scene serialization、scene render extract
 - `zircon_runtime::scene` 可以依赖 `zircon_scene::World` 与 `SceneAssetSerializer`
 - `zircon_scene` 不反向依赖 `zircon_runtime`

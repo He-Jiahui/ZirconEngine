@@ -23,31 +23,27 @@ pub(super) fn build_runtime_frame(
     prepared: &PreparedRuntimeSubmission,
 ) -> ViewportRenderFrame {
     let virtual_geometry_debug_snapshot =
-        build_virtual_geometry_debug_snapshot(context, prepared.virtual_geometry_prepare.as_ref());
+        build_virtual_geometry_debug_snapshot(context, prepared.virtual_geometry_prepare());
     let extract = augment_virtual_geometry_debug_overlays(
         extract,
         context,
-        prepared.virtual_geometry_prepare.as_ref(),
+        prepared.virtual_geometry_prepare(),
         virtual_geometry_debug_snapshot.as_ref(),
     );
-    ViewportRenderFrame::from_extract(extract, context.size)
+    ViewportRenderFrame::from_extract(extract, context.size())
         .with_ui(ui)
         .with_virtual_geometry_debug_snapshot(virtual_geometry_debug_snapshot)
-        .with_hybrid_gi_prepare(prepared.hybrid_gi_prepare.clone())
-        .with_hybrid_gi_scene_prepare(prepared.hybrid_gi_scene_prepare.clone())
-        .with_hybrid_gi_resolve_runtime(prepared.hybrid_gi_resolve_runtime.clone())
+        .with_hybrid_gi_prepare(prepared.hybrid_gi_prepare().cloned())
+        .with_hybrid_gi_scene_prepare(prepared.hybrid_gi_scene_prepare().cloned())
+        .with_hybrid_gi_resolve_runtime(prepared.hybrid_gi_resolve_runtime().cloned())
         .with_prepare_derived_virtual_geometry_cluster_selections(
-            prepared
-                .virtual_geometry_prepare
-                .as_ref()
-                .and_then(|prepare| {
-                    context
-                        .virtual_geometry_extract
-                        .as_ref()
-                        .map(|extract| prepare.cluster_selections(extract))
-                }),
+            prepared.virtual_geometry_prepare().and_then(|prepare| {
+                context
+                    .virtual_geometry_extract()
+                    .map(|extract| prepare.cluster_selections(extract))
+            }),
         )
-        .with_virtual_geometry_prepare(prepared.virtual_geometry_prepare.clone())
+        .with_virtual_geometry_prepare(prepared.virtual_geometry_prepare().cloned())
 }
 
 fn augment_virtual_geometry_debug_overlays(
@@ -61,7 +57,7 @@ fn augment_virtual_geometry_debug_overlays(
     };
     let visbuffer_debug_marks = build_current_frame_visbuffer_debug_marks(
         snapshot,
-        context.virtual_geometry_extract.as_ref(),
+        context.virtual_geometry_extract(),
         prepare,
     );
     if snapshot.bvh_visualization_instances.is_empty() && visbuffer_debug_marks.is_empty() {
@@ -143,7 +139,7 @@ fn build_virtual_geometry_visbuffer_scene_gizmos(
     context: &FrameSubmissionContext,
     visbuffer_debug_marks: &[RenderVirtualGeometryVisBufferMark],
 ) -> Vec<SceneGizmoOverlayExtract> {
-    let Some(virtual_geometry_extract) = context.virtual_geometry_extract.as_ref() else {
+    let Some(virtual_geometry_extract) = context.virtual_geometry_extract() else {
         return Vec::new();
     };
     let clusters_by_id = virtual_geometry_extract

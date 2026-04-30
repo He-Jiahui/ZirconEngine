@@ -1,11 +1,27 @@
 use serde_json::{Map, Value};
 
 use crate::core::framework::scene::{ComponentPropertyPath, ScenePropertyValue};
+use crate::plugin::ComponentTypeDescriptor;
 use crate::scene::EntityId;
 
 use super::World;
 
 impl World {
+    pub fn register_component_type(
+        &mut self,
+        descriptor: ComponentTypeDescriptor,
+    ) -> Result<(), String> {
+        self.component_types.register(descriptor)
+    }
+
+    pub fn component_type_descriptor(&self, type_id: &str) -> Option<&ComponentTypeDescriptor> {
+        self.component_types.descriptor(type_id)
+    }
+
+    pub fn component_type_descriptors(&self) -> Vec<&ComponentTypeDescriptor> {
+        self.component_types.descriptors().collect()
+    }
+
     pub fn set_dynamic_component(
         &mut self,
         entity: EntityId,
@@ -18,6 +34,7 @@ impl World {
             ));
         }
         let component_id = component_id.into();
+        self.validate_dynamic_component_type(&component_id)?;
         let components = self.dynamic_components.entry(entity).or_default();
         if components.get(&component_id) == Some(&value) {
             return Ok(false);
@@ -91,6 +108,8 @@ impl World {
         }
         let (component_id, property) = split_dynamic_property_path(property_path)
             .ok_or_else(|| format!("unknown property `{property_path}`"))?;
+        self.validate_dynamic_component_type(&component_id)?;
+        self.validate_dynamic_component_property_write(&component_id, &property)?;
         let Some(json_value) = json_from_scene_value(value) else {
             return Err(format!(
                 "property `{property_path}` cannot be written to a dynamic component"
@@ -126,6 +145,43 @@ impl World {
                     .filter(move |component_id| component_id.starts_with(&prefix))
                     .map(move |component_id| (*entity, component_id.as_str()))
             })
+    }
+
+    fn validate_dynamic_component_type(&self, component_id: &str) -> Result<(), String> {
+        if self.component_types.is_empty() || self.component_types.contains(component_id) {
+            return Ok(());
+        }
+        Err(format!(
+            "dynamic component type `{component_id}` is not registered"
+        ))
+    }
+
+    fn validate_dynamic_component_property_write(
+        &self,
+        component_id: &str,
+        property: &str,
+    ) -> Result<(), String> {
+        let Some(descriptor) = self.component_types.descriptor(component_id) else {
+            return Ok(());
+        };
+        if descriptor.properties.is_empty() {
+            return Ok(());
+        }
+        let Some(property_descriptor) = descriptor
+            .properties
+            .iter()
+            .find(|descriptor| descriptor.name == property)
+        else {
+            return Err(format!(
+                "dynamic component type `{component_id}` does not declare property `{property}`"
+            ));
+        };
+        if !property_descriptor.editable {
+            return Err(format!(
+                "dynamic component property `{component_id}.{property}` is not editable"
+            ));
+        }
+        Ok(())
     }
 }
 

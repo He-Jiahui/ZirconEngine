@@ -120,9 +120,9 @@ fn virtual_geometry_gpu_uploader_readback_reports_completed_page_ids_from_prepar
     let readback = renderer
         .take_last_virtual_geometry_gpu_readback()
         .expect("expected virtual geometry GPU readback");
-    assert_eq!(readback.page_table_entries, vec![(200, 0), (300, 1)]);
-    assert_eq!(readback.completed_page_ids, vec![300]);
-    assert_eq!(readback.completed_page_assignments, vec![(300, 1)]);
+    assert_eq!(readback.page_table_entries(), vec![(200, 0), (300, 1)]);
+    assert_eq!(readback.completed_page_ids(), vec![300]);
+    assert_eq!(readback.completed_page_assignments(), vec![(300, 1)]);
 }
 
 #[test]
@@ -166,10 +166,10 @@ fn virtual_geometry_gpu_uploader_readback_merges_gpu_completed_assignments_into_
     let readback = renderer
         .take_last_virtual_geometry_gpu_readback()
         .expect("expected virtual geometry GPU readback");
-    assert_eq!(readback.completed_page_ids, vec![300]);
-    assert_eq!(readback.completed_page_assignments, vec![(300, 5)]);
+    assert_eq!(readback.completed_page_ids(), vec![300]);
+    assert_eq!(readback.completed_page_assignments(), vec![(300, 5)]);
     assert_eq!(
-        readback.page_table_entries,
+        readback.page_table_entries(),
         vec![(200, 0), (300, 5)],
         "expected GPU uploader page-table snapshot to include newly completed page-slot assignments in the same readback"
     );
@@ -220,11 +220,11 @@ fn virtual_geometry_gpu_uploader_readback_reports_actual_recycled_page_for_impli
     let readback = renderer
         .take_last_virtual_geometry_gpu_readback()
         .expect("expected virtual geometry GPU readback");
-    assert_eq!(readback.page_table_entries, vec![(200, 1)]);
-    assert_eq!(readback.completed_page_ids, vec![200]);
-    assert_eq!(readback.completed_page_assignments, vec![(200, 1)]);
+    assert_eq!(readback.page_table_entries(), vec![(200, 1)]);
+    assert_eq!(readback.completed_page_ids(), vec![200]);
+    assert_eq!(readback.completed_page_assignments(), vec![(200, 1)]);
     assert_eq!(
-        readback.completed_page_replacements,
+        readback.completed_page_replacements(),
         vec![(200, 400)],
         "expected GPU uploader to report the actual resident page recycled through an implicit evictable-slot reuse so runtime completion does not have to infer replacement truth only from page-table aliasing"
     );
@@ -270,10 +270,10 @@ fn virtual_geometry_gpu_uploader_readback_respects_budget_without_evictable_page
     let readback = renderer
         .take_last_virtual_geometry_gpu_readback()
         .expect("expected virtual geometry GPU readback");
-    assert_eq!(readback.page_table_entries, vec![(200, 0)]);
-    assert_eq!(readback.completed_page_ids, Vec::<u32>::new());
+    assert_eq!(readback.page_table_entries(), vec![(200, 0)]);
+    assert_eq!(readback.completed_page_ids(), Vec::<u32>::new());
     assert_eq!(
-        readback.completed_page_assignments,
+        readback.completed_page_assignments(),
         Vec::<(u32, u32)>::new()
     );
 }
@@ -322,14 +322,14 @@ fn virtual_geometry_gpu_uploader_readback_respects_streaming_bytes_even_with_evi
     let readback = renderer
         .take_last_virtual_geometry_gpu_readback()
         .expect("expected virtual geometry GPU readback");
-    assert_eq!(readback.page_table_entries, vec![(200, 0)]);
+    assert_eq!(readback.page_table_entries(), vec![(200, 0)]);
     assert_eq!(
-        readback.completed_page_ids,
+        readback.completed_page_ids(),
         Vec::<u32>::new(),
         "expected uploader to reject oversized page requests when streaming bytes are insufficient"
     );
     assert_eq!(
-        readback.completed_page_assignments,
+        readback.completed_page_assignments(),
         Vec::<(u32, u32)>::new()
     );
 }
@@ -380,13 +380,13 @@ fn virtual_geometry_gpu_uploader_readback_skips_oversized_requests_and_completes
     let readback = renderer
         .take_last_virtual_geometry_gpu_readback()
         .expect("expected virtual geometry GPU readback");
-    assert_eq!(readback.page_table_entries, vec![(500, 0)]);
+    assert_eq!(readback.page_table_entries(), vec![(500, 0)]);
     assert_eq!(
-        readback.completed_page_ids,
+        readback.completed_page_ids(),
         vec![500],
         "expected uploader to skip oversized requests and complete later requests that fit the streaming budget"
     );
-    assert_eq!(readback.completed_page_assignments, vec![(500, 0)]);
+    assert_eq!(readback.completed_page_assignments(), vec![(500, 0)]);
 }
 
 #[test]
@@ -450,9 +450,9 @@ fn virtual_geometry_gpu_uploader_readback_assigns_free_slots_before_recycling_ev
     let readback = renderer
         .take_last_virtual_geometry_gpu_readback()
         .expect("expected virtual geometry GPU readback");
-    assert_eq!(readback.completed_page_ids, vec![300, 600]);
+    assert_eq!(readback.completed_page_ids(), vec![300, 600]);
     assert_eq!(
-        readback.completed_page_assignments,
+        readback.completed_page_assignments(),
         vec![(300, 2), (600, 7)],
         "expected uploader to consume explicit available slots before recycling evictable resident slots"
     );
@@ -505,12 +505,12 @@ fn virtual_geometry_gpu_uploader_readback_prioritizes_explicit_frontier_rank_ove
         .take_last_virtual_geometry_gpu_readback()
         .expect("expected virtual geometry GPU readback");
     assert_eq!(
-        readback.completed_page_ids,
+        readback.completed_page_ids(),
         vec![300],
         "expected GPU uploader completion to follow explicit frontier truth rather than raw pending request input order when only one slot is available"
     );
     assert_eq!(
-        readback.completed_page_assignments,
+        readback.completed_page_assignments(),
         vec![(300, 0)],
         "expected page-table completion to keep the earliest frontier page resident even when a later-rank request appears first in the pending input buffer"
     );
@@ -590,18 +590,18 @@ fn virtual_geometry_gpu_uploader_readback_uses_explicit_request_assigned_slot_ov
         .take_last_virtual_geometry_gpu_readback()
         .expect("expected virtual geometry GPU readback");
     assert_eq!(
-        readback.page_table_entries,
+        readback.page_table_entries(),
         vec![(100, 0), (400, 1), (200, 2)],
         "expected page-table completion to honor the request's explicit frontier-aware recycle-slot choice instead of consuming evictable slots in raw input order"
     );
-    assert_eq!(readback.completed_page_ids, vec![200]);
+    assert_eq!(readback.completed_page_ids(), vec![200]);
     assert_eq!(
-        readback.completed_page_assignments,
+        readback.completed_page_assignments(),
         vec![(200, 2)],
         "expected GPU uploader to keep the nearer descendant slot hot and recycle the explicit farther-frontier slot chosen by the request contract"
     );
     assert_eq!(
-        readback.completed_page_replacements,
+        readback.completed_page_replacements(),
         vec![(200, 800)],
         "expected GPU readback to preserve the explicit frontier-aware recycled page truth instead of forcing runtime/page-table consumers to infer replacement only from slot aliasing"
     );
@@ -691,22 +691,22 @@ fn virtual_geometry_gpu_uploader_readback_rejects_stale_explicit_recycle_slot_co
         .take_last_virtual_geometry_gpu_readback()
         .expect("expected virtual geometry GPU readback");
     assert_eq!(
-        readback.page_table_entries,
+        readback.page_table_entries(),
         vec![(100, 0), (300, 1), (900, 2)],
         "expected GPU uploader to reject a stale explicit recycle-slot contract once the claimed recycled page no longer owns that slot, instead of silently evicting the current slot occupant"
     );
     assert_eq!(
-        readback.completed_page_ids,
+        readback.completed_page_ids(),
         vec![300],
         "expected uploader to skip the stale explicit recycle-slot request and continue with the next valid pending request under the same page budget"
     );
     assert_eq!(
-        readback.completed_page_assignments,
+        readback.completed_page_assignments(),
         vec![(300, 1)],
         "expected page-table completion to preserve real slot ownership when explicit recycled-page truth disagrees with the current GPU page table"
     );
     assert_eq!(
-        readback.completed_page_replacements,
+        readback.completed_page_replacements(),
         vec![(300, 400)],
         "expected replacement readback to keep matching the actual recycled resident page rather than echoing a stale request-side recycled-page id"
     );
@@ -806,18 +806,18 @@ fn virtual_geometry_gpu_uploader_readback_preserves_frontier_recycle_preference_
         .take_last_virtual_geometry_gpu_readback()
         .expect("expected virtual geometry GPU readback");
     assert_eq!(
-        readback.page_table_entries,
+        readback.page_table_entries(),
         vec![(100, 0), (400, 1), (500, 2)],
         "expected uploader fallback submission to keep the late request on its frontier-preferred colder slot after earlier stale requests are skipped, instead of falling back to raw evictable-slot order and evicting the wrong lineage"
     );
     assert_eq!(
-        readback.completed_page_ids,
+        readback.completed_page_ids(),
         vec![500],
         "expected only the fallback request with a still-valid frontier recycle preference to complete after the earlier stale slot contracts are rejected"
     );
-    assert_eq!(readback.completed_page_assignments, vec![(500, 2)]);
+    assert_eq!(readback.completed_page_assignments(), vec![(500, 2)]);
     assert_eq!(
-        readback.completed_page_replacements,
+        readback.completed_page_replacements(),
         vec![(500, 800)],
         "expected replacement readback to preserve the preferred frontier recycle page chosen for the fallback request"
     );
@@ -1091,21 +1091,21 @@ fn virtual_geometry_gpu_readback_exposes_execution_backed_visbuffer64_entries() 
         "expected the renderer-owned hardware-rasterization record count to preserve the same execution-owned startup record count after the uploader DTO is consumed"
     );
     assert_eq!(
-        readback.visbuffer64_source,
+        readback.visbuffer64_source(),
         RenderVirtualGeometryVisBuffer64Source::RenderPathExecutionSelections,
         "expected the stored uploader DTO to preserve the real VisBuffer64 render-path provenance once prepare-owned ClusterSelection truth reaches the render path directly"
     );
     assert_eq!(
-        readback.visbuffer64_entry_count, 1,
+        readback.visbuffer64_entry_count(), 1,
         "expected the stored uploader DTO to preserve the real render-path VisBuffer64 entry count once prepare-owned ClusterSelection truth reaches the render path directly"
     );
     assert_eq!(
-        readback.visbuffer64_clear_value,
+        readback.visbuffer64_clear_value(),
         RenderVirtualGeometryVisBuffer64Entry::CLEAR_VALUE,
         "expected GPU readback to expose the same stable logical VisBuffer64 clear value as the renderer-owned snapshot contract"
     );
     assert_eq!(
-        readback.visbuffer64_entries,
+        readback.visbuffer64_entries(),
         vec![RenderVirtualGeometryVisBuffer64Entry {
             entry_index: 0,
             packed_value: RenderVirtualGeometryVisBuffer64Entry::packed_value_for(
@@ -1125,7 +1125,7 @@ fn virtual_geometry_gpu_readback_exposes_execution_backed_visbuffer64_entries() 
         "expected GPU readback to publish the same execution-backed logical VisBuffer64 entry stream as the renderer-owned debug snapshot instead of only page-upload completion data"
     );
     assert_eq!(
-        readback.selected_clusters,
+        readback.selected_clusters(),
         vec![RenderVirtualGeometrySelectedCluster {
             instance_index: Some(0),
             entity: mesh,
@@ -1138,12 +1138,12 @@ fn virtual_geometry_gpu_readback_exposes_execution_backed_visbuffer64_entries() 
         "expected GPU readback to publish the same execution-backed selected-cluster subset as the renderer-owned snapshot instead of exposing only uploader completion data"
     );
     assert_eq!(
-        readback.selected_cluster_source,
+        readback.selected_cluster_source(),
         RenderVirtualGeometrySelectedClusterSource::RenderPathExecutionSelections,
         "expected the stored uploader DTO to preserve the real selected-cluster render-path provenance once prepare-owned ClusterSelection truth reaches the render path directly"
     );
     assert_eq!(
-        readback.selected_cluster_count, 1,
+        readback.selected_cluster_count(), 1,
         "expected the stored uploader DTO to preserve the real render-path selected-cluster count once prepare-owned ClusterSelection truth reaches the render path directly"
     );
     let visbuffer64_words = renderer
@@ -1418,7 +1418,7 @@ fn virtual_geometry_cull_input_buffer_exists_without_snapshot_or_gpu_readback() 
             dispatch_setup: node_and_cluster_cull_dispatch_setup,
             instance_seeds: node_and_cluster_cull_instance_seeds,
         },
-        "expected the renderer-owned NodeAndClusterCull launch-worklist buffer to preserve the combined global-state, dispatch-setup, and root-seed contract so later compat compute or real traversal can bind one authoritative startup package"
+        "expected the renderer-owned NodeAndClusterCull launch-worklist buffer to preserve the combined global-state, dispatch-setup, and root-seed contract so later baseline compute or real traversal can bind one authoritative startup package"
     );
     assert_eq!(
         renderer
@@ -1435,7 +1435,7 @@ fn virtual_geometry_cull_input_buffer_exists_without_snapshot_or_gpu_readback() 
             page_budget: 1,
             forced_mip: Some(0),
         }],
-        "expected the renderer-owned NodeAndClusterCull compute-stub buffer to preserve typed per-instance work items so later compat execution and GPU traversal can share the same authoritative seam"
+        "expected the renderer-owned NodeAndClusterCull compute-stub buffer to preserve typed per-instance work items so later baseline execution and GPU traversal can share the same authoritative seam"
     );
     assert_eq!(
         renderer
@@ -1461,7 +1461,7 @@ fn virtual_geometry_cull_input_buffer_exists_without_snapshot_or_gpu_readback() 
                 forced_mip: Some(0),
             },
         ],
-        "expected the renderer-owned NodeAndClusterCull seam below instance work items to preserve typed per-cluster queue rows so the next VisitNode or compat traversal stage can bind a real cluster worklist instead of rescanning broad instance slices"
+        "expected the renderer-owned NodeAndClusterCull seam below instance work items to preserve typed per-cluster queue rows so the next VisitNode or baseline traversal stage can bind a real cluster worklist instead of rescanning broad instance slices"
     );
     assert_eq!(
         renderer

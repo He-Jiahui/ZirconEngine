@@ -27,7 +27,7 @@ related_code:
   - zircon_editor/src/ui/host/editor_capabilities.rs
   - zircon_editor/src/ui/host/editor_subsystems.rs
   - zircon_editor/src/ui/host/editor_manager_minimal_host.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/mod.rs
   - zircon_editor/src/ui/host/builtin_views/activity_views/module_plugins_view_descriptor.rs
   - zircon_editor/src/ui/workbench/view/view_registry_register_view.rs
   - zircon_editor/src/ui/host/editor_asset_manager/api.rs
@@ -56,7 +56,7 @@ implementation_files:
   - zircon_editor/src/ui/host/editor_capabilities.rs
   - zircon_editor/src/ui/host/editor_subsystems.rs
   - zircon_editor/src/ui/host/editor_manager_minimal_host.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/mod.rs
   - zircon_editor/src/ui/workbench/view/view_registry_register_view.rs
 plan_sources:
   - user: 2026-04-26 Editor Host 最小化插件加载

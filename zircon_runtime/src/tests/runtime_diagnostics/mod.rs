@@ -14,7 +14,7 @@ use crate::graphics::RenderPipelineAsset;
 const DIAGNOSTICS_TEST_MODULE: &str = "DiagnosticsTestModule";
 
 #[test]
-fn runtime_diagnostics_reports_missing_runtime_facades_without_panicking() {
+fn runtime_diagnostics_reports_missing_runtime_contracts_without_panicking() {
     let runtime = CoreRuntime::new();
 
     let snapshot = crate::core::diagnostics::collect_runtime_diagnostics(&runtime.handle());
@@ -31,7 +31,7 @@ fn runtime_diagnostics_reports_missing_runtime_facades_without_panicking() {
 }
 
 #[test]
-fn runtime_diagnostics_combines_core_render_facade_and_missing_externalized_plugins() {
+fn runtime_diagnostics_combines_core_render_contract_and_missing_externalized_plugins() {
     let runtime = CoreRuntime::new();
     runtime.register_module(fake_render_module()).unwrap();
     runtime.activate_module(DIAGNOSTICS_TEST_MODULE).unwrap();

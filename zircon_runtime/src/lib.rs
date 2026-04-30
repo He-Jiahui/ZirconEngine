@@ -51,14 +51,20 @@ pub(crate) use graphics::{
 pub use plugin::{
     ComponentPropertyDescriptor, ComponentTypeDescriptor, EditorCoreProfile, ExportBuildPlan,
     ExportGeneratedFile, ExportPackagingStrategy, ExportProfile, ExportTargetPlatform,
-    LoadedNativePlugin, NativePluginAbiV1, NativePluginCandidate, NativePluginDescriptor,
-    NativePluginLoadManifest, NativePluginLoadManifestEntry, NativePluginLoadReport,
-    NativePluginLoader, PluginModuleKind, PluginModuleManifest, PluginPackageManifest,
-    ProjectPluginManifest, ProjectPluginSelection, RuntimeCoreProfile,
-    RuntimeExtensionCatalogReport, RuntimeExtensionRegistry, RuntimeExtensionRegistryError,
-    RuntimePlugin, RuntimePluginCatalog, RuntimePluginDescriptor, RuntimePluginRegistrationReport,
-    UiComponentDescriptor, ZIRCON_NATIVE_PLUGIN_ABI_VERSION,
-    ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL,
+    LoadedNativePlugin, NativePluginAbiV1, NativePluginAbiV2, NativePluginBehaviorCallReport,
+    NativePluginBehaviorV2, NativePluginByteSliceV2, NativePluginCallbackStatusV2,
+    NativePluginCandidate, NativePluginDescriptor, NativePluginEntryReportV2,
+    NativePluginHostFunctionTableV2, NativePluginLoadManifest, NativePluginLoadManifestEntry,
+    NativePluginLoadReport, NativePluginLoader, NativePluginOwnedByteBufferV2, PluginModuleKind,
+    PluginModuleManifest, PluginPackageManifest, ProjectPluginManifest, ProjectPluginSelection,
+    RuntimeCoreProfile, RuntimeExtensionCatalogReport, RuntimeExtensionRegistry,
+    RuntimeExtensionRegistryError, RuntimePlugin, RuntimePluginCatalog, RuntimePluginDescriptor,
+    RuntimePluginRegistrationReport, UiComponentDescriptor, ZIRCON_NATIVE_PLUGIN_ABI_VERSION,
+    ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V1, ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2,
+    ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL, ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V1,
+    ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V2, ZIRCON_NATIVE_PLUGIN_STATUS_DENIED,
+    ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+    ZIRCON_NATIVE_PLUGIN_STATUS_PANIC,
 };
 
 #[cfg(test)]

@@ -176,7 +176,7 @@ zircon_editor/assets/ui/editor/host/
 ### Task 7: Switch Console To Template-Driven Body
 
 **Files:**
-- Modify: `zircon_editor/src/ui/slint_host/ui/pane_data_conversion.rs`
+- Modify: `zircon_editor/src/ui/slint_host/ui/pane_data_conversion/mod.rs`
 - Modify: `zircon_editor/src/ui/slint_host/ui/apply_presentation.rs`
 - Modify: `zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs`
 - Create: `zircon_editor/src/tests/host/slint_console_template_body.rs`
@@ -191,7 +191,7 @@ zircon_editor/assets/ui/editor/host/
 ### Task 8: Switch Inspector To Template-Driven Body Without Changing DraftCommand Semantics
 
 **Files:**
-- Modify: `zircon_editor/src/ui/slint_host/ui/pane_data_conversion.rs`
+- Modify: `zircon_editor/src/ui/slint_host/ui/pane_data_conversion/mod.rs`
 - Modify: `zircon_editor/src/ui/slint_host/ui/apply_presentation.rs`
 - Modify: `zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs`
 - Modify: `zircon_editor/src/tests/editing/inspector.rs`
@@ -207,7 +207,7 @@ zircon_editor/assets/ui/editor/host/
 ### Task 9: Switch Hierarchy And Animation To Hybrid Template Bodies
 
 **Files:**
-- Modify: `zircon_editor/src/ui/slint_host/ui/pane_data_conversion.rs`
+- Modify: `zircon_editor/src/ui/slint_host/ui/pane_data_conversion/mod.rs`
 - Modify: `zircon_editor/src/ui/slint_host/ui/apply_presentation.rs`
 - Modify: `zircon_editor/src/ui/slint_host/app/hierarchy_pointer.rs`
 - Modify: `zircon_editor/src/ui/slint_host/app/detail_scroll_pointer.rs`
@@ -230,7 +230,7 @@ zircon_editor/assets/ui/editor/host/
 
 **Files:**
 - Modify: `zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs`
-- Modify: `zircon_editor/src/ui/slint_host/ui/pane_data_conversion.rs`
+- Modify: `zircon_editor/src/ui/slint_host/ui/pane_data_conversion/mod.rs`
 - Modify: `zircon_editor/src/ui/slint_host/ui/apply_presentation.rs`
 - Modify: `zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs`
 - Modify: `zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs`

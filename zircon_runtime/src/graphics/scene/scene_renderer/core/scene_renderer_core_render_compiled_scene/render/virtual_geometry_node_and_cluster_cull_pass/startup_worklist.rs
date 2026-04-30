@@ -12,12 +12,12 @@ use crate::graphics::types::{
 };
 
 const NODE_AND_CLUSTER_CULL_DISPATCH_WORKGROUP_SIZE: u32 = 64;
-const NODE_AND_CLUSTER_CULL_COMPAT_CHILD_SPLIT_SCREEN_SPACE_ERROR_THRESHOLD: Real = 1.0;
-const NODE_AND_CLUSTER_CULL_COMPAT_REFERENCE_VIEWPORT_HEIGHT: Real = 64.0;
-const NODE_AND_CLUSTER_CULL_COMPAT_REFERENCE_ORTHO_SIZE: Real = 5.0;
-const NODE_AND_CLUSTER_CULL_COMPAT_MIN_CHILD_SPLIT_SCREEN_SPACE_ERROR_THRESHOLD: Real = 0.03125;
-const NODE_AND_CLUSTER_CULL_COMPAT_MAX_CHILD_SPLIT_SCREEN_SPACE_ERROR_THRESHOLD: Real = 32.0;
-const NODE_AND_CLUSTER_CULL_COMPAT_CHILD_FRUSTUM_CULLING_ENABLED: bool = true;
+const NODE_AND_CLUSTER_CULL_BASELINE_CHILD_SPLIT_SCREEN_SPACE_ERROR_THRESHOLD: Real = 1.0;
+const NODE_AND_CLUSTER_CULL_BASELINE_REFERENCE_VIEWPORT_HEIGHT: Real = 64.0;
+const NODE_AND_CLUSTER_CULL_BASELINE_REFERENCE_ORTHO_SIZE: Real = 5.0;
+const NODE_AND_CLUSTER_CULL_BASELINE_MIN_CHILD_SPLIT_SCREEN_SPACE_ERROR_THRESHOLD: Real = 0.03125;
+const NODE_AND_CLUSTER_CULL_BASELINE_MAX_CHILD_SPLIT_SCREEN_SPACE_ERROR_THRESHOLD: Real = 32.0;
+const NODE_AND_CLUSTER_CULL_BASELINE_CHILD_FRUSTUM_CULLING_ENABLED: bool = true;
 
 pub(super) fn build_node_and_cluster_cull_global_state(
     frame: &ViewportRenderFrame,
@@ -77,7 +77,7 @@ fn node_and_cluster_cull_child_split_screen_space_error_threshold(
     viewport_height: u32,
 ) -> Real {
     let viewport_scale =
-        NODE_AND_CLUSTER_CULL_COMPAT_REFERENCE_VIEWPORT_HEIGHT / viewport_height.max(1) as Real;
+        NODE_AND_CLUSTER_CULL_BASELINE_REFERENCE_VIEWPORT_HEIGHT / viewport_height.max(1) as Real;
     let projection_scale = match camera.projection_mode {
         ProjectionMode::Perspective => {
             let reference_projection_y = 1.0 / (std::f32::consts::FRAC_PI_3 * 0.5).tan();
@@ -90,21 +90,21 @@ fn node_and_cluster_cull_child_split_screen_space_error_threshold(
             reference_projection_y / projection_y.max(0.001)
         }
         ProjectionMode::Orthographic => {
-            camera.ortho_size.max(0.01) / NODE_AND_CLUSTER_CULL_COMPAT_REFERENCE_ORTHO_SIZE
+            camera.ortho_size.max(0.01) / NODE_AND_CLUSTER_CULL_BASELINE_REFERENCE_ORTHO_SIZE
         }
     };
 
-    (NODE_AND_CLUSTER_CULL_COMPAT_CHILD_SPLIT_SCREEN_SPACE_ERROR_THRESHOLD
+    (NODE_AND_CLUSTER_CULL_BASELINE_CHILD_SPLIT_SCREEN_SPACE_ERROR_THRESHOLD
         * viewport_scale
         * projection_scale)
         .clamp(
-            NODE_AND_CLUSTER_CULL_COMPAT_MIN_CHILD_SPLIT_SCREEN_SPACE_ERROR_THRESHOLD,
-            NODE_AND_CLUSTER_CULL_COMPAT_MAX_CHILD_SPLIT_SCREEN_SPACE_ERROR_THRESHOLD,
+            NODE_AND_CLUSTER_CULL_BASELINE_MIN_CHILD_SPLIT_SCREEN_SPACE_ERROR_THRESHOLD,
+            NODE_AND_CLUSTER_CULL_BASELINE_MAX_CHILD_SPLIT_SCREEN_SPACE_ERROR_THRESHOLD,
         )
 }
 
 fn node_and_cluster_cull_child_frustum_culling_enabled(camera: &ViewportCameraSnapshot) -> bool {
-    if !NODE_AND_CLUSTER_CULL_COMPAT_CHILD_FRUSTUM_CULLING_ENABLED {
+    if !NODE_AND_CLUSTER_CULL_BASELINE_CHILD_FRUSTUM_CULLING_ENABLED {
         return false;
     }
     if camera.z_far <= camera.z_near.max(0.001) {

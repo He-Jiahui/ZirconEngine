@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use super::{
     UiComponentCategory, UiComponentDescriptor, UiComponentEventKind, UiDragPayloadKind,
@@ -11,10 +11,12 @@ pub struct UiComponentDescriptorRegistry {
 }
 
 impl UiComponentDescriptorRegistry {
+    /// Creates an empty component descriptor registry.
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// Builds the Runtime UI component catalog used by the editor showcase.
     pub fn editor_showcase() -> Self {
         let mut registry = Self::new();
         for descriptor in editor_showcase_descriptors() {
@@ -23,16 +25,58 @@ impl UiComponentDescriptorRegistry {
         registry
     }
 
+    /// Registers or replaces a descriptor by component id.
     pub fn register(&mut self, descriptor: UiComponentDescriptor) {
         self.descriptors.insert(descriptor.id.clone(), descriptor);
     }
 
+    /// Returns the descriptor for a component id.
     pub fn descriptor(&self, component_id: &str) -> Option<&UiComponentDescriptor> {
         self.descriptors.get(component_id)
     }
 
+    /// Returns whether the registry has a descriptor for a component id.
+    pub fn contains(&self, component_id: &str) -> bool {
+        self.descriptors.contains_key(component_id)
+    }
+
+    /// Returns the number of registered component descriptors.
+    pub fn len(&self) -> usize {
+        self.descriptors.len()
+    }
+
+    /// Returns whether the registry has no registered component descriptors.
+    pub fn is_empty(&self) -> bool {
+        self.descriptors.is_empty()
+    }
+
+    /// Iterates registered component ids in deterministic order.
+    pub fn component_ids(&self) -> impl Iterator<Item = &str> {
+        self.descriptors.keys().map(String::as_str)
+    }
+
+    /// Iterates component categories represented by the registry.
+    pub fn categories(&self) -> impl Iterator<Item = UiComponentCategory> {
+        self.descriptors
+            .values()
+            .map(|descriptor| descriptor.category)
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+    }
+
+    /// Iterates all registered descriptors in deterministic component-id order.
     pub fn descriptors(&self) -> impl Iterator<Item = &UiComponentDescriptor> {
         self.descriptors.values()
+    }
+
+    /// Iterates registered descriptors that belong to a component category.
+    pub fn descriptors_in_category(
+        &self,
+        category: UiComponentCategory,
+    ) -> impl Iterator<Item = &UiComponentDescriptor> {
+        self.descriptors
+            .values()
+            .filter(move |descriptor| descriptor.category == category)
     }
 }
 
@@ -46,9 +90,11 @@ fn editor_showcase_descriptors() -> Vec<UiComponentDescriptor> {
             .with_prop(text_prop())
             .state(state_text_prop()),
         visual("Image", "Image", "image")
+            .with_prop(UiPropSchema::new("value", UiValueKind::AssetRef))
             .with_prop(UiPropSchema::new("image", UiValueKind::AssetRef))
             .state(UiPropSchema::new("image", UiValueKind::AssetRef)),
         visual("Icon", "Icon", "icon")
+            .with_prop(UiPropSchema::new("value", UiValueKind::String))
             .with_prop(UiPropSchema::new("icon", UiValueKind::String))
             .state(UiPropSchema::new("icon", UiValueKind::String)),
         visual("SvgIcon", "SVG Icon", "svg-icon")
@@ -91,6 +137,7 @@ fn editor_showcase_descriptors() -> Vec<UiComponentDescriptor> {
             .event(UiComponentEventKind::Commit),
         input("ToggleButton", "Toggle Button", "toggle-button")
             .with_prop(bool_value_prop(false))
+            .with_prop(bool_prop("checked", false))
             .with_prop(text_prop())
             .state(state_bool_prop("value", false))
             .state(state_bool_prop("checked", false))
@@ -100,6 +147,7 @@ fn editor_showcase_descriptors() -> Vec<UiComponentDescriptor> {
             .event(UiComponentEventKind::ValueChanged),
         input("Checkbox", "Checkbox", "checkbox")
             .with_prop(bool_value_prop(false))
+            .with_prop(bool_prop("checked", false))
             .with_prop(text_prop())
             .state(state_bool_prop("value", false))
             .state(state_bool_prop("checked", false))
@@ -109,6 +157,7 @@ fn editor_showcase_descriptors() -> Vec<UiComponentDescriptor> {
             .event(UiComponentEventKind::ValueChanged),
         input("Radio", "Radio", "radio")
             .with_prop(bool_value_prop(false))
+            .with_prop(bool_prop("checked", false))
             .with_prop(text_prop())
             .state(state_bool_prop("value", false))
             .state(state_bool_prop("checked", false))
@@ -119,6 +168,7 @@ fn editor_showcase_descriptors() -> Vec<UiComponentDescriptor> {
         input("SegmentedControl", "Segmented Control", "segmented-control")
             .with_prop(options_prop())
             .with_prop(UiPropSchema::new("value", UiValueKind::Enum))
+            .with_prop(selection_state_prop())
             .event(UiComponentEventKind::Focus)
             .state(state_bool_prop("focused", false))
             .state(state_bool_prop("selected", false))
@@ -227,9 +277,6 @@ fn editor_showcase_descriptors() -> Vec<UiComponentDescriptor> {
             "flags-field",
             UiValueKind::Flags,
         )
-        .with_prop(
-            UiPropSchema::new("multiple", UiValueKind::Bool).default_value(UiValue::Bool(false)),
-        )
         .with_prop(UiPropSchema::new("query", UiValueKind::String)),
         selection(
             "SearchSelect",
@@ -250,6 +297,8 @@ fn editor_showcase_descriptors() -> Vec<UiComponentDescriptor> {
         .event(UiComponentEventKind::Focus)
         .state(state_bool_prop("focused", false))
         .state(state_bool_prop("dragging", false))
+        .state(state_bool_prop("drop_hovered", false))
+        .state(state_bool_prop("active_drag_target", false))
         .state(state_bool_prop("disabled", false)),
         reference(
             "InstanceField",
@@ -262,6 +311,8 @@ fn editor_showcase_descriptors() -> Vec<UiComponentDescriptor> {
         .event(UiComponentEventKind::Focus)
         .state(state_bool_prop("focused", false))
         .state(state_bool_prop("dragging", false))
+        .state(state_bool_prop("drop_hovered", false))
+        .state(state_bool_prop("active_drag_target", false))
         .state(state_bool_prop("disabled", false)),
         reference(
             "ObjectField",
@@ -278,6 +329,8 @@ fn editor_showcase_descriptors() -> Vec<UiComponentDescriptor> {
         .event(UiComponentEventKind::Focus)
         .state(state_bool_prop("focused", false))
         .state(state_bool_prop("dragging", false))
+        .state(state_bool_prop("drop_hovered", false))
+        .state(state_bool_prop("active_drag_target", false))
         .state(state_bool_prop("disabled", false)),
         container("Group", "Group", "group")
             .with_prop(expanded_prop())
@@ -306,6 +359,7 @@ fn editor_showcase_descriptors() -> Vec<UiComponentDescriptor> {
             .slot(UiSlotSchema::new("field")),
         container("InspectorSection", "Inspector Section", "inspector-section")
             .with_prop(text_prop())
+            .with_prop(expanded_prop())
             .slot(UiSlotSchema::new("content").multiple(true))
             .state(state_bool_prop("expanded", true))
             .event(UiComponentEventKind::ToggleExpanded),
@@ -328,6 +382,7 @@ fn editor_showcase_descriptors() -> Vec<UiComponentDescriptor> {
             .with_prop(UiPropSchema::new("entries", UiValueKind::Map))
             .with_prop(UiPropSchema::new("key_type", UiValueKind::String))
             .with_prop(UiPropSchema::new("value_type", UiValueKind::String))
+            .with_prop(validation_level_prop())
             .with_prop(value_text_prop())
             .event(UiComponentEventKind::Focus)
             .state(state_map_prop("entries"))
@@ -335,24 +390,39 @@ fn editor_showcase_descriptors() -> Vec<UiComponentDescriptor> {
             .events([
                 UiComponentEventKind::AddMapEntry,
                 UiComponentEventKind::SetMapEntry,
+                UiComponentEventKind::RenameMapKey,
                 UiComponentEventKind::RemoveMapEntry,
                 UiComponentEventKind::ValueChanged,
             ]),
         collection("ListRow", "List Row", "list-row")
             .with_prop(text_prop())
             .with_prop(UiPropSchema::new("value", UiValueKind::String))
+            .with_prop(bool_prop("selected", false))
+            .with_prop(bool_prop("focused", false))
+            .with_prop(bool_prop("hovered", false))
+            .with_prop(bool_prop("pressed", false))
             .event(UiComponentEventKind::Focus)
+            .event(UiComponentEventKind::Hover)
+            .event(UiComponentEventKind::Press)
             .state(state_text_prop())
             .state(state_bool_prop("selected", false))
-            .state(state_bool_prop("focused", false)),
+            .state(state_bool_prop("focused", false))
+            .state(state_bool_prop("hovered", false))
+            .state(state_bool_prop("pressed", false)),
         collection("TreeRow", "Tree Row", "tree-row")
             .with_prop(text_prop())
             .with_prop(expanded_prop())
+            .with_prop(UiPropSchema::new("tree_depth", UiValueKind::Int))
+            .with_prop(UiPropSchema::new("tree_indent_px", UiValueKind::Float))
             .event(UiComponentEventKind::Focus)
+            .event(UiComponentEventKind::Hover)
+            .event(UiComponentEventKind::Press)
             .state(state_text_prop())
             .state(state_bool_prop("expanded", false))
             .state(state_bool_prop("selected", false))
             .state(state_bool_prop("focused", false))
+            .state(state_bool_prop("hovered", false))
+            .state(state_bool_prop("pressed", false))
             .event(UiComponentEventKind::ToggleExpanded),
         input(
             "ContextActionMenu",
@@ -361,12 +431,19 @@ fn editor_showcase_descriptors() -> Vec<UiComponentDescriptor> {
         )
         .with_prop(options_prop())
         .with_prop(UiPropSchema::new("value", UiValueKind::String))
+        .with_prop(bool_prop("popup_open", false))
+        .with_prop(UiPropSchema::new("popup_anchor_x", UiValueKind::Float))
+        .with_prop(UiPropSchema::new("popup_anchor_y", UiValueKind::Float))
+        .with_prop(UiPropSchema::new("menu_items", UiValueKind::Array))
         .event(UiComponentEventKind::Focus)
         .state(state_bool_prop("focused", false))
         .state(state_bool_prop("selected", false))
         .state(state_bool_prop("popup_open", false))
+        .state(UiPropSchema::new("popup_anchor_x", UiValueKind::Float))
+        .state(UiPropSchema::new("popup_anchor_y", UiValueKind::Float))
         .events([
             UiComponentEventKind::OpenPopup,
+            UiComponentEventKind::OpenPopupAt,
             UiComponentEventKind::ClosePopup,
             UiComponentEventKind::SelectOption,
         ]),
@@ -404,7 +481,11 @@ fn reference(
     accepts: impl IntoIterator<Item = UiDragPayloadKind>,
 ) -> UiComponentDescriptor {
     UiComponentDescriptor::new(id, display_name, UiComponentCategory::Reference, role)
+        .with_prop(bool_prop("drop_hovered", false))
+        .with_prop(bool_prop("active_drag_target", false))
         .drop_policy(UiDropPolicy::new(accepts))
+        .event(UiComponentEventKind::DropHover)
+        .event(UiComponentEventKind::ActiveDragTarget)
         .event(UiComponentEventKind::DropReference)
         .event(UiComponentEventKind::ClearReference)
         .event(UiComponentEventKind::LocateReference)
@@ -426,6 +507,12 @@ fn selection(
         )
         .with_prop(selection_state_prop())
         .with_prop(validation_level_prop())
+        .with_prop(bool_prop("popup_open", false))
+        .with_prop(option_ids_prop("disabled_options"))
+        .with_prop(option_ids_prop("special_options"))
+        .with_prop(option_ids_prop("focused_options"))
+        .with_prop(option_ids_prop("hovered_options"))
+        .with_prop(option_ids_prop("pressed_options"))
         .event(UiComponentEventKind::Focus)
         .state(state_bool_prop("focused", false))
         .state(state_bool_prop("popup_open", false))
@@ -472,6 +559,10 @@ fn bool_value_prop(default: bool) -> UiPropSchema {
     UiPropSchema::new("value", UiValueKind::Bool).default_value(UiValue::Bool(default))
 }
 
+fn bool_prop(name: &str, default: bool) -> UiPropSchema {
+    UiPropSchema::new(name, UiValueKind::Bool).default_value(UiValue::Bool(default))
+}
+
 fn number_value_prop() -> UiPropSchema {
     UiPropSchema::new("value", UiValueKind::Float)
         .default_value(UiValue::Float(0.0))
@@ -514,6 +605,10 @@ fn options_prop() -> UiPropSchema {
             )
             .special_condition("mixed"),
         ])
+}
+
+fn option_ids_prop(name: &str) -> UiPropSchema {
+    UiPropSchema::new(name, UiValueKind::Array).default_value(UiValue::Array(Vec::new()))
 }
 
 fn selection_state_prop() -> UiPropSchema {

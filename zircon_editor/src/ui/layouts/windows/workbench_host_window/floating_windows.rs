@@ -84,6 +84,9 @@ fn floating_window_data(
         window_id: window.window_id.0.clone().into(),
         title: window.title.clone().into(),
         frame: frame_rect(frame),
+        header_nodes: Default::default(),
+        header_frame: Default::default(),
+        tab_frames: Default::default(),
         target_group: floating_window_group_key(&window.window_id).into(),
         left_edge_target_group: floating_window_edge_group_key(
             &window.window_id,

@@ -17,7 +17,7 @@ impl LayoutManager {
             ViewHost::Drawer(slot) => {
                 let (tab_stack, active_view) = {
                     let drawer = layout
-                        .default_activity_window_mut()
+                        .active_activity_window_mut()
                         .and_then(|window| window.activity_drawers.get_mut(&slot))
                         .ok_or_else(|| format!("missing drawer {:?}", slot))?;
                     drawer

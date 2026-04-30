@@ -1,0 +1,1619 @@
+stylesheets = []
+
+[asset]
+kind = "layout"
+id = "editor.workbench_menu_popup"
+version = 1
+display_name = "workbench menu popup"
+
+[imports]
+widgets = []
+styles = []
+
+[root]
+node_id = "workbench_menu_popup_root"
+kind = "native"
+type = "Overlay"
+control_id = "WorkbenchMenuPopupRoot"
+
+[root.layout]
+clip = true
+
+[root.layout.container]
+kind = "Overlay"
+
+[root.layout.width]
+stretch = "Stretch"
+
+[root.layout.height]
+stretch = "Stretch"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_menu_popup_panel"
+kind = "native"
+type = "Container"
+control_id = "WorkbenchMenuPopupPanel"
+
+[root.children.node.props]
+surface_variant = "panel"
+radius = 8.0
+border_width = 1.0
+
+[root.children.node.layout.position]
+x = 0.0
+y = 0.0
+
+[root.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_menu_popup_item_row_0"
+kind = "native"
+type = "Label"
+control_id = "MenuPopupItemRow0"
+
+[root.children.node.props]
+text = ""
+radius = 4.0
+font_size = 12.0
+text_align = "left"
+overflow = "elide"
+
+[root.children.node.layout.position]
+x = 6.0
+y = 6.0
+
+[root.children.node.layout.width]
+min = 360.0
+preferred = 360.0
+max = 360.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 28.0
+preferred = 28.0
+max = 28.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_menu_popup_item_label_0"
+kind = "native"
+type = "Label"
+control_id = "MenuPopupItemLabel0"
+
+[root.children.node.props]
+text = ""
+text_tone = "default"
+font_size = 12.0
+text_align = "left"
+overflow = "elide"
+
+[root.children.node.layout.position]
+x = 16.0
+y = 6.0
+
+[root.children.node.layout.width]
+min = 132.0
+preferred = 132.0
+max = 132.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 28.0
+preferred = 28.0
+max = 28.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_menu_popup_item_shortcut_0"
+kind = "native"
+type = "Label"
+control_id = "MenuPopupItemShortcut0"
+
+[root.children.node.props]
+text = ""
+text_tone = "muted"
+font_size = 11.0
+text_align = "right"
+overflow = "elide"
+
+[root.children.node.layout.anchor]
+x = 1.0
+y = 0.0
+
+[root.children.node.layout.pivot]
+x = 1.0
+y = 0.0
+
+[root.children.node.layout.position]
+x = -10.0
+y = 6.0
+
+[root.children.node.layout.width]
+min = 78.0
+preferred = 78.0
+max = 78.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 28.0
+preferred = 28.0
+max = 28.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_menu_popup_item_row_1"
+kind = "native"
+type = "Label"
+control_id = "MenuPopupItemRow1"
+
+[root.children.node.props]
+text = ""
+radius = 4.0
+font_size = 12.0
+text_align = "left"
+overflow = "elide"
+
+[root.children.node.layout.position]
+x = 6.0
+y = 36.0
+
+[root.children.node.layout.width]
+min = 360.0
+preferred = 360.0
+max = 360.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 28.0
+preferred = 28.0
+max = 28.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_menu_popup_item_label_1"
+kind = "native"
+type = "Label"
+control_id = "MenuPopupItemLabel1"
+
+[root.children.node.props]
+text = ""
+text_tone = "default"
+font_size = 12.0
+text_align = "left"
+overflow = "elide"
+
+[root.children.node.layout.position]
+x = 16.0
+y = 36.0
+
+[root.children.node.layout.width]
+min = 132.0
+preferred = 132.0
+max = 132.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 28.0
+preferred = 28.0
+max = 28.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_menu_popup_item_shortcut_1"
+kind = "native"
+type = "Label"
+control_id = "MenuPopupItemShortcut1"
+
+[root.children.node.props]
+text = ""
+text_tone = "muted"
+font_size = 11.0
+text_align = "right"
+overflow = "elide"
+
+[root.children.node.layout.anchor]
+x = 1.0
+y = 0.0
+
+[root.children.node.layout.pivot]
+x = 1.0
+y = 0.0
+
+[root.children.node.layout.position]
+x = -10.0
+y = 36.0
+
+[root.children.node.layout.width]
+min = 78.0
+preferred = 78.0
+max = 78.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 28.0
+preferred = 28.0
+max = 28.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_menu_popup_item_row_2"
+kind = "native"
+type = "Label"
+control_id = "MenuPopupItemRow2"
+
+[root.children.node.props]
+text = ""
+radius = 4.0
+font_size = 12.0
+text_align = "left"
+overflow = "elide"
+
+[root.children.node.layout.position]
+x = 6.0
+y = 66.0
+
+[root.children.node.layout.width]
+min = 360.0
+preferred = 360.0
+max = 360.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 28.0
+preferred = 28.0
+max = 28.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_menu_popup_item_label_2"
+kind = "native"
+type = "Label"
+control_id = "MenuPopupItemLabel2"
+
+[root.children.node.props]
+text = ""
+text_tone = "default"
+font_size = 12.0
+text_align = "left"
+overflow = "elide"
+
+[root.children.node.layout.position]
+x = 16.0
+y = 66.0
+
+[root.children.node.layout.width]
+min = 132.0
+preferred = 132.0
+max = 132.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 28.0
+preferred = 28.0
+max = 28.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_menu_popup_item_shortcut_2"
+kind = "native"
+type = "Label"
+control_id = "MenuPopupItemShortcut2"
+
+[root.children.node.props]
+text = ""
+text_tone = "muted"
+font_size = 11.0
+text_align = "right"
+overflow = "elide"
+
+[root.children.node.layout.anchor]
+x = 1.0
+y = 0.0
+
+[root.children.node.layout.pivot]
+x = 1.0
+y = 0.0
+
+[root.children.node.layout.position]
+x = -10.0
+y = 66.0
+
+[root.children.node.layout.width]
+min = 78.0
+preferred = 78.0
+max = 78.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 28.0
+preferred = 28.0
+max = 28.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_menu_popup_item_row_3"
+kind = "native"
+type = "Label"
+control_id = "MenuPopupItemRow3"
+
+[root.children.node.props]
+text = ""
+radius = 4.0
+font_size = 12.0
+text_align = "left"
+overflow = "elide"
+
+[root.children.node.layout.position]
+x = 6.0
+y = 96.0
+
+[root.children.node.layout.width]
+min = 360.0
+preferred = 360.0
+max = 360.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 28.0
+preferred = 28.0
+max = 28.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_menu_popup_item_label_3"
+kind = "native"
+type = "Label"
+control_id = "MenuPopupItemLabel3"
+
+[root.children.node.props]
+text = ""
+text_tone = "default"
+font_size = 12.0
+text_align = "left"
+overflow = "elide"
+
+[root.children.node.layout.position]
+x = 16.0
+y = 96.0
+
+[root.children.node.layout.width]
+min = 132.0
+preferred = 132.0
+max = 132.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 28.0
+preferred = 28.0
+max = 28.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_menu_popup_item_shortcut_3"
+kind = "native"
+type = "Label"
+control_id = "MenuPopupItemShortcut3"
+
+[root.children.node.props]
+text = ""
+text_tone = "muted"
+font_size = 11.0
+text_align = "right"
+overflow = "elide"
+
+[root.children.node.layout.anchor]
+x = 1.0
+y = 0.0
+
+[root.children.node.layout.pivot]
+x = 1.0
+y = 0.0
+
+[root.children.node.layout.position]
+x = -10.0
+y = 96.0
+
+[root.children.node.layout.width]
+min = 78.0
+preferred = 78.0
+max = 78.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 28.0
+preferred = 28.0
+max = 28.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_menu_popup_item_row_4"
+kind = "native"
+type = "Label"
+control_id = "MenuPopupItemRow4"
+
+[root.children.node.props]
+text = ""
+radius = 4.0
+font_size = 12.0
+text_align = "left"
+overflow = "elide"
+
+[root.children.node.layout.position]
+x = 6.0
+y = 126.0
+
+[root.children.node.layout.width]
+min = 360.0
+preferred = 360.0
+max = 360.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 28.0
+preferred = 28.0
+max = 28.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_menu_popup_item_label_4"
+kind = "native"
+type = "Label"
+control_id = "MenuPopupItemLabel4"
+
+[root.children.node.props]
+text = ""
+text_tone = "default"
+font_size = 12.0
+text_align = "left"
+overflow = "elide"
+
+[root.children.node.layout.position]
+x = 16.0
+y = 126.0
+
+[root.children.node.layout.width]
+min = 132.0
+preferred = 132.0
+max = 132.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 28.0
+preferred = 28.0
+max = 28.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_menu_popup_item_shortcut_4"
+kind = "native"
+type = "Label"
+control_id = "MenuPopupItemShortcut4"
+
+[root.children.node.props]
+text = ""
+text_tone = "muted"
+font_size = 11.0
+text_align = "right"
+overflow = "elide"
+
+[root.children.node.layout.anchor]
+x = 1.0
+y = 0.0
+
+[root.children.node.layout.pivot]
+x = 1.0
+y = 0.0
+
+[root.children.node.layout.position]
+x = -10.0
+y = 126.0
+
+[root.children.node.layout.width]
+min = 78.0
+preferred = 78.0
+max = 78.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 28.0
+preferred = 28.0
+max = 28.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_menu_popup_item_row_5"
+kind = "native"
+type = "Label"
+control_id = "MenuPopupItemRow5"
+
+[root.children.node.props]
+text = ""
+radius = 4.0
+font_size = 12.0
+text_align = "left"
+overflow = "elide"
+
+[root.children.node.layout.position]
+x = 6.0
+y = 156.0
+
+[root.children.node.layout.width]
+min = 360.0
+preferred = 360.0
+max = 360.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 28.0
+preferred = 28.0
+max = 28.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_menu_popup_item_label_5"
+kind = "native"
+type = "Label"
+control_id = "MenuPopupItemLabel5"
+
+[root.children.node.props]
+text = ""
+text_tone = "default"
+font_size = 12.0
+text_align = "left"
+overflow = "elide"
+
+[root.children.node.layout.position]
+x = 16.0
+y = 156.0
+
+[root.children.node.layout.width]
+min = 132.0
+preferred = 132.0
+max = 132.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 28.0
+preferred = 28.0
+max = 28.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_menu_popup_item_shortcut_5"
+kind = "native"
+type = "Label"
+control_id = "MenuPopupItemShortcut5"
+
+[root.children.node.props]
+text = ""
+text_tone = "muted"
+font_size = 11.0
+text_align = "right"
+overflow = "elide"
+
+[root.children.node.layout.anchor]
+x = 1.0
+y = 0.0
+
+[root.children.node.layout.pivot]
+x = 1.0
+y = 0.0
+
+[root.children.node.layout.position]
+x = -10.0
+y = 156.0
+
+[root.children.node.layout.width]
+min = 78.0
+preferred = 78.0
+max = 78.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 28.0
+preferred = 28.0
+max = 28.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_menu_popup_item_row_6"
+kind = "native"
+type = "Label"
+control_id = "MenuPopupItemRow6"
+
+[root.children.node.props]
+text = ""
+radius = 4.0
+font_size = 12.0
+text_align = "left"
+overflow = "elide"
+
+[root.children.node.layout.position]
+x = 6.0
+y = 186.0
+
+[root.children.node.layout.width]
+min = 360.0
+preferred = 360.0
+max = 360.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 28.0
+preferred = 28.0
+max = 28.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_menu_popup_item_label_6"
+kind = "native"
+type = "Label"
+control_id = "MenuPopupItemLabel6"
+
+[root.children.node.props]
+text = ""
+text_tone = "default"
+font_size = 12.0
+text_align = "left"
+overflow = "elide"
+
+[root.children.node.layout.position]
+x = 16.0
+y = 186.0
+
+[root.children.node.layout.width]
+min = 132.0
+preferred = 132.0
+max = 132.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 28.0
+preferred = 28.0
+max = 28.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_menu_popup_item_shortcut_6"
+kind = "native"
+type = "Label"
+control_id = "MenuPopupItemShortcut6"
+
+[root.children.node.props]
+text = ""
+text_tone = "muted"
+font_size = 11.0
+text_align = "right"
+overflow = "elide"
+
+[root.children.node.layout.anchor]
+x = 1.0
+y = 0.0
+
+[root.children.node.layout.pivot]
+x = 1.0
+y = 0.0
+
+[root.children.node.layout.position]
+x = -10.0
+y = 186.0
+
+[root.children.node.layout.width]
+min = 78.0
+preferred = 78.0
+max = 78.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 28.0
+preferred = 28.0
+max = 28.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_menu_popup_item_row_7"
+kind = "native"
+type = "Label"
+control_id = "MenuPopupItemRow7"
+
+[root.children.node.props]
+text = ""
+radius = 4.0
+font_size = 12.0
+text_align = "left"
+overflow = "elide"
+
+[root.children.node.layout.position]
+x = 6.0
+y = 216.0
+
+[root.children.node.layout.width]
+min = 360.0
+preferred = 360.0
+max = 360.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 28.0
+preferred = 28.0
+max = 28.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_menu_popup_item_label_7"
+kind = "native"
+type = "Label"
+control_id = "MenuPopupItemLabel7"
+
+[root.children.node.props]
+text = ""
+text_tone = "default"
+font_size = 12.0
+text_align = "left"
+overflow = "elide"
+
+[root.children.node.layout.position]
+x = 16.0
+y = 216.0
+
+[root.children.node.layout.width]
+min = 132.0
+preferred = 132.0
+max = 132.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 28.0
+preferred = 28.0
+max = 28.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_menu_popup_item_shortcut_7"
+kind = "native"
+type = "Label"
+control_id = "MenuPopupItemShortcut7"
+
+[root.children.node.props]
+text = ""
+text_tone = "muted"
+font_size = 11.0
+text_align = "right"
+overflow = "elide"
+
+[root.children.node.layout.anchor]
+x = 1.0
+y = 0.0
+
+[root.children.node.layout.pivot]
+x = 1.0
+y = 0.0
+
+[root.children.node.layout.position]
+x = -10.0
+y = 216.0
+
+[root.children.node.layout.width]
+min = 78.0
+preferred = 78.0
+max = 78.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 28.0
+preferred = 28.0
+max = 28.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_menu_popup_item_row_8"
+kind = "native"
+type = "Label"
+control_id = "MenuPopupItemRow8"
+
+[root.children.node.props]
+text = ""
+radius = 4.0
+font_size = 12.0
+text_align = "left"
+overflow = "elide"
+
+[root.children.node.layout.position]
+x = 6.0
+y = 246.0
+
+[root.children.node.layout.width]
+min = 360.0
+preferred = 360.0
+max = 360.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 28.0
+preferred = 28.0
+max = 28.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_menu_popup_item_label_8"
+kind = "native"
+type = "Label"
+control_id = "MenuPopupItemLabel8"
+
+[root.children.node.props]
+text = ""
+text_tone = "default"
+font_size = 12.0
+text_align = "left"
+overflow = "elide"
+
+[root.children.node.layout.position]
+x = 16.0
+y = 246.0
+
+[root.children.node.layout.width]
+min = 132.0
+preferred = 132.0
+max = 132.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 28.0
+preferred = 28.0
+max = 28.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_menu_popup_item_shortcut_8"
+kind = "native"
+type = "Label"
+control_id = "MenuPopupItemShortcut8"
+
+[root.children.node.props]
+text = ""
+text_tone = "muted"
+font_size = 11.0
+text_align = "right"
+overflow = "elide"
+
+[root.children.node.layout.anchor]
+x = 1.0
+y = 0.0
+
+[root.children.node.layout.pivot]
+x = 1.0
+y = 0.0
+
+[root.children.node.layout.position]
+x = -10.0
+y = 246.0
+
+[root.children.node.layout.width]
+min = 78.0
+preferred = 78.0
+max = 78.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 28.0
+preferred = 28.0
+max = 28.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_menu_popup_item_row_9"
+kind = "native"
+type = "Label"
+control_id = "MenuPopupItemRow9"
+
+[root.children.node.props]
+text = ""
+radius = 4.0
+font_size = 12.0
+text_align = "left"
+overflow = "elide"
+
+[root.children.node.layout.position]
+x = 6.0
+y = 276.0
+
+[root.children.node.layout.width]
+min = 360.0
+preferred = 360.0
+max = 360.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 28.0
+preferred = 28.0
+max = 28.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_menu_popup_item_label_9"
+kind = "native"
+type = "Label"
+control_id = "MenuPopupItemLabel9"
+
+[root.children.node.props]
+text = ""
+text_tone = "default"
+font_size = 12.0
+text_align = "left"
+overflow = "elide"
+
+[root.children.node.layout.position]
+x = 16.0
+y = 276.0
+
+[root.children.node.layout.width]
+min = 132.0
+preferred = 132.0
+max = 132.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 28.0
+preferred = 28.0
+max = 28.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_menu_popup_item_shortcut_9"
+kind = "native"
+type = "Label"
+control_id = "MenuPopupItemShortcut9"
+
+[root.children.node.props]
+text = ""
+text_tone = "muted"
+font_size = 11.0
+text_align = "right"
+overflow = "elide"
+
+[root.children.node.layout.anchor]
+x = 1.0
+y = 0.0
+
+[root.children.node.layout.pivot]
+x = 1.0
+y = 0.0
+
+[root.children.node.layout.position]
+x = -10.0
+y = 276.0
+
+[root.children.node.layout.width]
+min = 78.0
+preferred = 78.0
+max = 78.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 28.0
+preferred = 28.0
+max = 28.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_menu_popup_item_row_10"
+kind = "native"
+type = "Label"
+control_id = "MenuPopupItemRow10"
+
+[root.children.node.props]
+text = ""
+radius = 4.0
+font_size = 12.0
+text_align = "left"
+overflow = "elide"
+
+[root.children.node.layout.position]
+x = 6.0
+y = 306.0
+
+[root.children.node.layout.width]
+min = 360.0
+preferred = 360.0
+max = 360.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 28.0
+preferred = 28.0
+max = 28.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_menu_popup_item_label_10"
+kind = "native"
+type = "Label"
+control_id = "MenuPopupItemLabel10"
+
+[root.children.node.props]
+text = ""
+text_tone = "default"
+font_size = 12.0
+text_align = "left"
+overflow = "elide"
+
+[root.children.node.layout.position]
+x = 16.0
+y = 306.0
+
+[root.children.node.layout.width]
+min = 132.0
+preferred = 132.0
+max = 132.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 28.0
+preferred = 28.0
+max = 28.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_menu_popup_item_shortcut_10"
+kind = "native"
+type = "Label"
+control_id = "MenuPopupItemShortcut10"
+
+[root.children.node.props]
+text = ""
+text_tone = "muted"
+font_size = 11.0
+text_align = "right"
+overflow = "elide"
+
+[root.children.node.layout.anchor]
+x = 1.0
+y = 0.0
+
+[root.children.node.layout.pivot]
+x = 1.0
+y = 0.0
+
+[root.children.node.layout.position]
+x = -10.0
+y = 306.0
+
+[root.children.node.layout.width]
+min = 78.0
+preferred = 78.0
+max = 78.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 28.0
+preferred = 28.0
+max = 28.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_menu_popup_item_row_11"
+kind = "native"
+type = "Label"
+control_id = "MenuPopupItemRow11"
+
+[root.children.node.props]
+text = ""
+radius = 4.0
+font_size = 12.0
+text_align = "left"
+overflow = "elide"
+
+[root.children.node.layout.position]
+x = 6.0
+y = 336.0
+
+[root.children.node.layout.width]
+min = 360.0
+preferred = 360.0
+max = 360.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 28.0
+preferred = 28.0
+max = 28.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_menu_popup_item_label_11"
+kind = "native"
+type = "Label"
+control_id = "MenuPopupItemLabel11"
+
+[root.children.node.props]
+text = ""
+text_tone = "default"
+font_size = 12.0
+text_align = "left"
+overflow = "elide"
+
+[root.children.node.layout.position]
+x = 16.0
+y = 336.0
+
+[root.children.node.layout.width]
+min = 132.0
+preferred = 132.0
+max = 132.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 28.0
+preferred = 28.0
+max = 28.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_menu_popup_item_shortcut_11"
+kind = "native"
+type = "Label"
+control_id = "MenuPopupItemShortcut11"
+
+[root.children.node.props]
+text = ""
+text_tone = "muted"
+font_size = 11.0
+text_align = "right"
+overflow = "elide"
+
+[root.children.node.layout.anchor]
+x = 1.0
+y = 0.0
+
+[root.children.node.layout.pivot]
+x = 1.0
+y = 0.0
+
+[root.children.node.layout.position]
+x = -10.0
+y = 336.0
+
+[root.children.node.layout.width]
+min = 78.0
+preferred = 78.0
+max = 78.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 28.0
+preferred = 28.0
+max = 28.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_menu_popup_item_row_12"
+kind = "native"
+type = "Label"
+control_id = "MenuPopupItemRow12"
+
+[root.children.node.props]
+text = ""
+radius = 4.0
+font_size = 12.0
+text_align = "left"
+overflow = "elide"
+
+[root.children.node.layout.position]
+x = 6.0
+y = 366.0
+
+[root.children.node.layout.width]
+min = 360.0
+preferred = 360.0
+max = 360.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 28.0
+preferred = 28.0
+max = 28.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_menu_popup_item_label_12"
+kind = "native"
+type = "Label"
+control_id = "MenuPopupItemLabel12"
+
+[root.children.node.props]
+text = ""
+text_tone = "default"
+font_size = 12.0
+text_align = "left"
+overflow = "elide"
+
+[root.children.node.layout.position]
+x = 16.0
+y = 366.0
+
+[root.children.node.layout.width]
+min = 132.0
+preferred = 132.0
+max = 132.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 28.0
+preferred = 28.0
+max = 28.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_menu_popup_item_shortcut_12"
+kind = "native"
+type = "Label"
+control_id = "MenuPopupItemShortcut12"
+
+[root.children.node.props]
+text = ""
+text_tone = "muted"
+font_size = 11.0
+text_align = "right"
+overflow = "elide"
+
+[root.children.node.layout.anchor]
+x = 1.0
+y = 0.0
+
+[root.children.node.layout.pivot]
+x = 1.0
+y = 0.0
+
+[root.children.node.layout.position]
+x = -10.0
+y = 366.0
+
+[root.children.node.layout.width]
+min = 78.0
+preferred = 78.0
+max = 78.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 28.0
+preferred = 28.0
+max = 28.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_menu_popup_item_row_13"
+kind = "native"
+type = "Label"
+control_id = "MenuPopupItemRow13"
+
+[root.children.node.props]
+text = ""
+radius = 4.0
+font_size = 12.0
+text_align = "left"
+overflow = "elide"
+
+[root.children.node.layout.position]
+x = 6.0
+y = 396.0
+
+[root.children.node.layout.width]
+min = 360.0
+preferred = 360.0
+max = 360.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 28.0
+preferred = 28.0
+max = 28.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_menu_popup_item_label_13"
+kind = "native"
+type = "Label"
+control_id = "MenuPopupItemLabel13"
+
+[root.children.node.props]
+text = ""
+text_tone = "default"
+font_size = 12.0
+text_align = "left"
+overflow = "elide"
+
+[root.children.node.layout.position]
+x = 16.0
+y = 396.0
+
+[root.children.node.layout.width]
+min = 132.0
+preferred = 132.0
+max = 132.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 28.0
+preferred = 28.0
+max = 28.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_menu_popup_item_shortcut_13"
+kind = "native"
+type = "Label"
+control_id = "MenuPopupItemShortcut13"
+
+[root.children.node.props]
+text = ""
+text_tone = "muted"
+font_size = 11.0
+text_align = "right"
+overflow = "elide"
+
+[root.children.node.layout.anchor]
+x = 1.0
+y = 0.0
+
+[root.children.node.layout.pivot]
+x = 1.0
+y = 0.0
+
+[root.children.node.layout.position]
+x = -10.0
+y = 396.0
+
+[root.children.node.layout.width]
+min = 78.0
+preferred = 78.0
+max = 78.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 28.0
+preferred = 28.0
+max = 28.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_menu_popup_item_row_14"
+kind = "native"
+type = "Label"
+control_id = "MenuPopupItemRow14"
+
+[root.children.node.props]
+text = ""
+radius = 4.0
+font_size = 12.0
+text_align = "left"
+overflow = "elide"
+
+[root.children.node.layout.position]
+x = 6.0
+y = 426.0
+
+[root.children.node.layout.width]
+min = 360.0
+preferred = 360.0
+max = 360.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 28.0
+preferred = 28.0
+max = 28.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_menu_popup_item_label_14"
+kind = "native"
+type = "Label"
+control_id = "MenuPopupItemLabel14"
+
+[root.children.node.props]
+text = ""
+text_tone = "default"
+font_size = 12.0
+text_align = "left"
+overflow = "elide"
+
+[root.children.node.layout.position]
+x = 16.0
+y = 426.0
+
+[root.children.node.layout.width]
+min = 132.0
+preferred = 132.0
+max = 132.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 28.0
+preferred = 28.0
+max = 28.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_menu_popup_item_shortcut_14"
+kind = "native"
+type = "Label"
+control_id = "MenuPopupItemShortcut14"
+
+[root.children.node.props]
+text = ""
+text_tone = "muted"
+font_size = 11.0
+text_align = "right"
+overflow = "elide"
+
+[root.children.node.layout.anchor]
+x = 1.0
+y = 0.0
+
+[root.children.node.layout.pivot]
+x = 1.0
+y = 0.0
+
+[root.children.node.layout.position]
+x = -10.0
+y = 426.0
+
+[root.children.node.layout.width]
+min = 78.0
+preferred = 78.0
+max = 78.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 28.0
+preferred = 28.0
+max = 28.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_menu_popup_item_row_15"
+kind = "native"
+type = "Label"
+control_id = "MenuPopupItemRow15"
+
+[root.children.node.props]
+text = ""
+radius = 4.0
+font_size = 12.0
+text_align = "left"
+overflow = "elide"
+
+[root.children.node.layout.position]
+x = 6.0
+y = 456.0
+
+[root.children.node.layout.width]
+min = 360.0
+preferred = 360.0
+max = 360.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 28.0
+preferred = 28.0
+max = 28.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_menu_popup_item_label_15"
+kind = "native"
+type = "Label"
+control_id = "MenuPopupItemLabel15"
+
+[root.children.node.props]
+text = ""
+text_tone = "default"
+font_size = 12.0
+text_align = "left"
+overflow = "elide"
+
+[root.children.node.layout.position]
+x = 16.0
+y = 456.0
+
+[root.children.node.layout.width]
+min = 132.0
+preferred = 132.0
+max = 132.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 28.0
+preferred = 28.0
+max = 28.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_menu_popup_item_shortcut_15"
+kind = "native"
+type = "Label"
+control_id = "MenuPopupItemShortcut15"
+
+[root.children.node.props]
+text = ""
+text_tone = "muted"
+font_size = 11.0
+text_align = "right"
+overflow = "elide"
+
+[root.children.node.layout.anchor]
+x = 1.0
+y = 0.0
+
+[root.children.node.layout.pivot]
+x = 1.0
+y = 0.0
+
+[root.children.node.layout.position]
+x = -10.0
+y = 456.0
+
+[root.children.node.layout.width]
+min = 78.0
+preferred = 78.0
+max = 78.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 28.0
+preferred = 28.0
+max = 28.0
+stretch = "Fixed"

@@ -69,8 +69,8 @@ pub(super) fn resolve_style(metadata: Option<&UiTemplateNodeMetadata>) -> UiReso
 }
 
 pub(super) fn resolve_text(metadata: Option<&UiTemplateNodeMetadata>) -> Option<String> {
-    resolve_string_attribute(metadata, "text")
-        .or_else(|| resolve_string_attribute(metadata, "label"))
+    resolve_non_empty_string_attribute(metadata, "text")
+        .or_else(|| resolve_non_empty_string_attribute(metadata, "label"))
         .map(str::to_string)
 }
 
@@ -96,6 +96,13 @@ fn resolve_string_attribute<'a>(
     metadata
         .and_then(|metadata| metadata.attributes.get(key))
         .and_then(Value::as_str)
+}
+
+fn resolve_non_empty_string_attribute<'a>(
+    metadata: Option<&'a UiTemplateNodeMetadata>,
+    key: &str,
+) -> Option<&'a str> {
+    resolve_string_attribute(metadata, key).filter(|value| !value.is_empty())
 }
 
 fn resolve_number_attribute(metadata: Option<&UiTemplateNodeMetadata>, key: &str) -> Option<f32> {

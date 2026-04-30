@@ -99,6 +99,31 @@ fn shared_menu_pointer_bridge_scrolls_window_popup_using_shared_scroll_state() {
 }
 
 #[test]
+fn shared_menu_pointer_bridge_recomputes_hovered_item_after_window_popup_scroll() {
+    let mut bridge = HostMenuPointerBridge::new();
+    bridge.sync(
+        window_menu_layout(20),
+        HostMenuPointerState {
+            open_menu_index: Some(4),
+            hovered_menu_index: Some(4),
+            hovered_item_index: None,
+            popup_scroll_offset: 0.0,
+        },
+    );
+
+    let scrolled = bridge
+        .handle_scroll(UiPoint::new(240.0, 110.0), 420.0)
+        .unwrap();
+
+    assert_eq!(scrolled.state.hovered_menu_index, Some(4));
+    assert_eq!(
+        scrolled.state.hovered_item_index,
+        Some(16),
+        "scroll should re-hover the absolute Window menu row now under the pointer"
+    );
+}
+
+#[test]
 fn shared_menu_pointer_bridge_dismiss_keeps_window_popup_scroll_state() {
     let mut bridge = HostMenuPointerBridge::new();
     bridge.sync(

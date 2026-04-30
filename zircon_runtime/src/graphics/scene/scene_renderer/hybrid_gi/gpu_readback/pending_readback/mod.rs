@@ -2,4 +2,4 @@ mod collect;
 mod hybrid_gi_gpu_pending_readback;
 mod new;
 
-pub(crate) use hybrid_gi_gpu_pending_readback::HybridGiGpuPendingReadback;
+pub(in crate::graphics::scene::scene_renderer) use hybrid_gi_gpu_pending_readback::HybridGiGpuPendingReadback;

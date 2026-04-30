@@ -46,6 +46,8 @@ pub struct EditorMenuItemReflectionModel {
     pub enabled: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub operation_path: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub shortcut: Option<String>,
     pub binding: EditorUiBinding,
     pub route_id: Option<UiRouteId>,
 }
@@ -153,6 +155,13 @@ impl EditorUiReflectionAdapter {
                     "operation_path",
                     UiValueType::String,
                     json!(operation_path),
+                ));
+            }
+            if let Some(shortcut) = &item.shortcut {
+                properties.push(UiPropertyDescriptor::new(
+                    "shortcut",
+                    UiValueType::String,
+                    json!(shortcut),
                 ));
             }
             let node = builder.push_node(

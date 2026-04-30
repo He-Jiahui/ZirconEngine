@@ -110,9 +110,10 @@ impl RenderPipelineAsset {
         let mut previous = None;
         for stage in &self.renderer.stages {
             for pass_descriptor in stage_pass_descriptors(*stage, &enabled_descriptors) {
-                let pass = graph.add_pass_with_executor(
+                let pass = graph.add_pass_with_executor_and_declared_queue(
                     pass_descriptor.pass_name.clone(),
                     options.resolve_queue(pass_descriptor.queue),
+                    pass_descriptor.queue,
                     Some(pass_descriptor.executor_id.as_str().to_string()),
                 );
                 graph

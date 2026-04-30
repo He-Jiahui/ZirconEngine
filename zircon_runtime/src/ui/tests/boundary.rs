@@ -25,7 +25,7 @@ fn template_legacy_adapter_is_removed_from_formal_namespace_surface() {
     ] {
         assert!(
             !lib_source.contains(forbidden),
-            "zircon_ui root should stop flattening template compat type `{forbidden}`"
+            "zircon_ui root should stop flattening template boundary type `{forbidden}`"
         );
     }
 

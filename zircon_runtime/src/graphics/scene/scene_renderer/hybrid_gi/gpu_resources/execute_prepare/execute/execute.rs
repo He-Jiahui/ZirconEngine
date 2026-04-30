@@ -19,7 +19,7 @@ use super::hybrid_gi_prepare_execution_buffers::HybridGiPrepareExecutionBuffers;
 use super::queue_params::queue_params;
 
 impl HybridGiGpuResources {
-    pub(crate) fn execute_prepare(
+    pub(in crate::graphics::scene::scene_renderer) fn execute_prepare(
         &self,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
@@ -57,6 +57,8 @@ impl HybridGiGpuResources {
             prepare,
             &inputs,
             directional_lights,
+            point_lights,
+            spot_lights,
             probe_budget,
             tracing_budget,
         );

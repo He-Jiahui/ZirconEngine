@@ -8,7 +8,11 @@ impl LayoutManager {
         layout: &mut WorkbenchLayout,
         instance_id: &ViewInstanceId,
     ) -> bool {
-        for activity_window in layout.activity_windows.values_mut() {
+        if layout.activity_windows.is_empty() {
+            layout.default_activity_window_mut();
+        }
+        let mut focused_activity_window = None;
+        for (activity_window_id, activity_window) in layout.activity_windows.iter_mut() {
             for (slot, drawer) in &mut activity_window.activity_drawers {
                 if drawer.tab_stack.tabs.contains(instance_id) {
                     drawer.tab_stack.active_tab = Some(instance_id.clone());
@@ -17,9 +21,19 @@ impl LayoutManager {
                         root_drawer.tab_stack.active_tab = drawer.tab_stack.active_tab.clone();
                         root_drawer.active_view = drawer.active_view.clone();
                     }
-                    return true;
+                    focused_activity_window = Some(activity_window_id.clone());
+                    break;
                 }
             }
+            if focused_activity_window.is_some() {
+                break;
+            }
+        }
+        if let Some(activity_window_id) = focused_activity_window {
+            if let Some(page_id) = layout.page_id_for_activity_window(&activity_window_id) {
+                layout.active_main_page = page_id;
+            }
+            return true;
         }
 
         for page in &mut layout.main_pages {

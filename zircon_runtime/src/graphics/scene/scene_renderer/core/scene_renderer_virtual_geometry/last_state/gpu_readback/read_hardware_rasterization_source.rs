@@ -8,6 +8,6 @@ impl SceneRenderer {
         &self,
     ) -> RenderVirtualGeometryHardwareRasterizationSource {
         self.advanced_plugin_outputs
-            .virtual_geometry_hardware_rasterization_source
+            .virtual_geometry_hardware_rasterization_source()
     }
 }

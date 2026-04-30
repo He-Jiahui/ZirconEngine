@@ -1,10 +1,11 @@
 use super::super::builtin_render_feature::BuiltinRenderFeature;
 use super::super::feature_descriptors::{
     baked_lighting, bloom, clustered_lighting, color_grading, debug_overlay, deferred_geometry,
-    deferred_lighting, history_resolve, mesh, particle, post_process, ray_tracing,
-    reflection_probes, screen_space_ambient_occlusion, shadows,
+    deferred_lighting, history_resolve, mesh, post_process, ray_tracing, reflection_probes,
+    screen_space_ambient_occlusion, shadows,
 };
 use super::super::render_feature_descriptor::RenderFeatureDescriptor;
+use crate::graphics::feature::RenderFeatureCapabilityRequirement;
 
 pub(super) fn descriptor_for(feature: BuiltinRenderFeature) -> RenderFeatureDescriptor {
     match feature {
@@ -23,17 +24,29 @@ pub(super) fn descriptor_for(feature: BuiltinRenderFeature) -> RenderFeatureDesc
         BuiltinRenderFeature::Shadows => shadows::descriptor(),
         BuiltinRenderFeature::PostProcess => post_process::descriptor(),
         BuiltinRenderFeature::DebugOverlay => debug_overlay::descriptor(),
-        BuiltinRenderFeature::Particle => particle::descriptor(),
+        BuiltinRenderFeature::Particle => externalized_optional_plugin_descriptor("particle"),
         BuiltinRenderFeature::GlobalIllumination => {
-            pluginized_advanced_placeholder_descriptor("global_illumination")
+            externalized_advanced_plugin_descriptor("global_illumination")
         }
         BuiltinRenderFeature::RayTracing => ray_tracing::descriptor(),
         BuiltinRenderFeature::VirtualGeometry => {
-            pluginized_advanced_placeholder_descriptor("virtual_geometry")
+            externalized_advanced_plugin_descriptor("virtual_geometry")
         }
     }
 }
 
-fn pluginized_advanced_placeholder_descriptor(name: &str) -> RenderFeatureDescriptor {
+fn externalized_advanced_plugin_descriptor(name: &str) -> RenderFeatureDescriptor {
+    let descriptor = RenderFeatureDescriptor::new(name, Vec::new(), Vec::new(), Vec::new());
+    match name {
+        "virtual_geometry" => descriptor
+            .with_capability_requirement(RenderFeatureCapabilityRequirement::VirtualGeometry),
+        "global_illumination" => descriptor.with_capability_requirement(
+            RenderFeatureCapabilityRequirement::HybridGlobalIllumination,
+        ),
+        _ => descriptor,
+    }
+}
+
+fn externalized_optional_plugin_descriptor(name: &str) -> RenderFeatureDescriptor {
     RenderFeatureDescriptor::new(name, Vec::new(), Vec::new(), Vec::new())
 }

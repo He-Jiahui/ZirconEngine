@@ -27,7 +27,7 @@ impl SlintUiHostComponentKind {
         match component {
             "UiHostWindow" => Self::Root,
             "UiHostToolbar" => Self::Toolbar,
-            "UiHostIconButton" => Self::IconButton,
+            "IconButton" => Self::IconButton,
             "ActivityRail" => Self::ActivityRail,
             "DocumentHost" => Self::DocumentHost,
             "HorizontalBox" => Self::HorizontalBox,
@@ -35,7 +35,7 @@ impl SlintUiHostComponentKind {
             "PaneSurface" => Self::PaneSurface,
             "StatusBar" => Self::StatusBar,
             "VerticalBox" => Self::VerticalBox,
-            "UiHostLabel" => Self::Label,
+            "Label" => Self::Label,
             _ => Self::Unknown,
         }
     }
@@ -93,12 +93,16 @@ pub struct SlintUiHostNodeModel {
     pub validation_level: Option<String>,
     pub validation_message: Option<String>,
     pub popup_open: bool,
+    pub has_popup_anchor: bool,
+    pub popup_anchor_x: f64,
+    pub popup_anchor_y: f64,
     pub selection_state: Option<String>,
     pub options_text: Option<String>,
     pub options: Vec<String>,
     pub collection_items: Vec<String>,
     pub menu_items: Vec<String>,
     pub accepted_drag_payloads: Vec<String>,
+    pub drop_source_summary: Option<String>,
     pub checked: bool,
     pub expanded: bool,
     pub focused: bool,
@@ -106,6 +110,7 @@ pub struct SlintUiHostNodeModel {
     pub pressed: bool,
     pub dragging: bool,
     pub drop_hovered: bool,
+    pub active_drag_target: bool,
     pub disabled: bool,
     pub properties: BTreeMap<String, SlintUiHostValue>,
     pub style_tokens: BTreeMap<String, String>,
@@ -146,6 +151,9 @@ impl SlintUiHostAdapter {
                         .collect::<BTreeMap<_, _>>();
                     let disabled = bool_attribute(&node.attributes, "disabled").unwrap_or(false)
                         || bool_attribute(&node.attributes, "enabled") == Some(false);
+                    let popup_anchor_x = float_attribute(&node.attributes, "popup_anchor_x");
+                    let popup_anchor_y = float_attribute(&node.attributes, "popup_anchor_y");
+                    let has_popup_anchor = popup_anchor_x.is_some() && popup_anchor_y.is_some();
                     SlintUiHostNodeModel {
                         node_id: node.node_id.clone(),
                         parent_id: node.parent_id.clone(),
@@ -155,8 +163,8 @@ impl SlintUiHostAdapter {
                         frame: node.frame,
                         clip_frame: node.clip_frame,
                         z_index: node.z_index,
-                        text: extract_string(&properties, "text")
-                            .or_else(|| extract_string(&properties, "label")),
+                        text: extract_non_empty_string(&properties, "text")
+                            .or_else(|| extract_non_empty_string(&properties, "label")),
                         icon: extract_string(&properties, "icon"),
                         properties,
                         style_tokens: node.style_tokens.clone(),
@@ -183,6 +191,9 @@ impl SlintUiHostAdapter {
                             "validation_message",
                         ),
                         popup_open: bool_attribute(&node.attributes, "popup_open").unwrap_or(false),
+                        has_popup_anchor,
+                        popup_anchor_x: popup_anchor_x.unwrap_or(0.0),
+                        popup_anchor_y: popup_anchor_y.unwrap_or(0.0),
                         selection_state: string_attribute(&node.attributes, "selection_state")
                             .or_else(|| {
                                 bool_attribute(&node.attributes, "multiple").map(|multiple| {
@@ -210,6 +221,10 @@ impl SlintUiHostAdapter {
                                     .collect()
                             })
                             .unwrap_or_default(),
+                        drop_source_summary: string_attribute(
+                            &node.attributes,
+                            "drop_source_summary",
+                        ),
                         checked: bool_attribute(&node.attributes, "checked")
                             .or_else(|| bool_attribute(&node.attributes, "value"))
                             .unwrap_or(false),
@@ -219,6 +234,8 @@ impl SlintUiHostAdapter {
                         pressed: bool_attribute(&node.attributes, "pressed").unwrap_or(false),
                         dragging: bool_attribute(&node.attributes, "dragging").unwrap_or(false),
                         drop_hovered: bool_attribute(&node.attributes, "drop_hovered")
+                            .unwrap_or(false),
+                        active_drag_target: bool_attribute(&node.attributes, "active_drag_target")
                             .unwrap_or(false),
                         disabled,
                         routes: node
@@ -246,6 +263,10 @@ fn string_attribute(attributes: &BTreeMap<String, Value>, key: &str) -> Option<S
 
 fn bool_attribute(attributes: &BTreeMap<String, Value>, key: &str) -> Option<bool> {
     attributes.get(key).and_then(Value::as_bool)
+}
+
+fn float_attribute(attributes: &BTreeMap<String, Value>, key: &str) -> Option<f64> {
+    attributes.get(key).and_then(Value::as_float)
 }
 
 fn options_text_attribute(attributes: &BTreeMap<String, Value>, key: &str) -> Option<String> {
@@ -280,6 +301,13 @@ fn extract_string(properties: &BTreeMap<String, SlintUiHostValue>, key: &str) ->
         Some(SlintUiHostValue::String(value)) => Some(value.clone()),
         _ => None,
     }
+}
+
+fn extract_non_empty_string(
+    properties: &BTreeMap<String, SlintUiHostValue>,
+    key: &str,
+) -> Option<String> {
+    extract_string(properties, key).filter(|value| !value.is_empty())
 }
 
 fn map_value(value: &Value) -> SlintUiHostValue {

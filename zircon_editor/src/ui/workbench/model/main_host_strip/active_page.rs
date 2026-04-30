@@ -1,4 +1,4 @@
-use crate::ui::workbench::layout::MainPageId;
+use crate::ui::workbench::layout::{ActivityWindowId, MainPageId};
 use crate::ui::workbench::snapshot::{
     DocumentWorkspaceSnapshot, EditorChromeSnapshot, MainPageSnapshot,
 };
@@ -21,6 +21,7 @@ pub(crate) fn active_page_snapshot(chrome: &EditorChromeSnapshot) -> MainPageSna
                 .unwrap_or_else(|| MainPageSnapshot::Workbench {
                     id: MainPageId::workbench(),
                     title: "Workbench".to_string(),
+                    activity_window: ActivityWindowId::workbench(),
                     workspace: DocumentWorkspaceSnapshot::Tabs {
                         tabs: Vec::new(),
                         active_tab: None,

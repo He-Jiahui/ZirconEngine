@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::ui::workbench::layout::{ActivityDrawerMode, ActivityDrawerSlot, WorkbenchLayout};
+use crate::ui::workbench::layout::{ActivityDrawerMode, ActivityDrawerSlot};
 use crate::ui::workbench::model::WorkbenchViewModel;
 
 use super::super::super::ShellRegionId;
@@ -35,7 +35,7 @@ pub(super) fn tool_region_is_expanded(
 }
 
 pub(super) fn tool_region_extent(
-    layout: &WorkbenchLayout,
+    model: &WorkbenchViewModel,
     region: ShellRegionId,
     slots: &[ActivityDrawerSlot],
     transient_region_preferred: Option<&BTreeMap<ShellRegionId, f32>>,
@@ -45,7 +45,7 @@ pub(super) fn tool_region_extent(
         .unwrap_or_else(|| {
             slots
                 .iter()
-                .filter_map(|slot| layout.drawers.get(slot))
+                .filter_map(|slot| model.drawer_ring.drawers.get(slot))
                 .filter(|drawer| drawer.visible)
                 .map(|drawer| drawer.extent)
                 .fold(0.0_f32, f32::max)

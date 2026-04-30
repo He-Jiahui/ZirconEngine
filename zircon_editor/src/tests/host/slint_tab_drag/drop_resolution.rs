@@ -148,6 +148,7 @@ fn drop_host_for_tab_keeps_current_document_stack_when_dropping_within_document_
         main_pages: vec![MainHostPageLayout::WorkbenchPage {
             id: MainPageId::workbench(),
             title: "Workbench".to_string(),
+            activity_window: ActivityWindowId::workbench(),
             document_workspace: DocumentNode::SplitNode {
                 axis: SplitAxis::Horizontal,
                 ratio: 0.5,

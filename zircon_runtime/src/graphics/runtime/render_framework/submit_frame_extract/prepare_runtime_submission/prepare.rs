@@ -19,24 +19,25 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn prep
         .as_ref()
         .map(crate::graphics::runtime::HybridGiRuntimeState::build_resolve_runtime);
     let virtual_geometry_runtime = build_virtual_geometry_runtime(context);
+    let visibility_context = context.visibility_context();
     let virtual_geometry_prepare = build_virtual_geometry_prepare(
         virtual_geometry_runtime.as_ref(),
-        &context.visibility_context.virtual_geometry_visible_clusters,
-        &context.visibility_context.virtual_geometry_draw_segments,
+        &visibility_context.virtual_geometry_visible_clusters,
+        &visibility_context.virtual_geometry_draw_segments,
     );
+    let hybrid_gi_evictable_probe_ids =
+        collect_hybrid_gi_evictable_probe_ids(hybrid_gi_prepare.as_ref());
+    let virtual_geometry_evictable_page_ids =
+        collect_virtual_geometry_evictable_page_ids(virtual_geometry_prepare.as_ref());
 
-    PreparedRuntimeSubmission {
-        hybrid_gi_evictable_probe_ids: collect_hybrid_gi_evictable_probe_ids(
-            hybrid_gi_prepare.as_ref(),
-        ),
+    PreparedRuntimeSubmission::new(
+        hybrid_gi_runtime,
         hybrid_gi_prepare,
         hybrid_gi_scene_prepare,
         hybrid_gi_resolve_runtime,
-        hybrid_gi_runtime,
-        virtual_geometry_evictable_page_ids: collect_virtual_geometry_evictable_page_ids(
-            virtual_geometry_prepare.as_ref(),
-        ),
-        virtual_geometry_prepare,
+        hybrid_gi_evictable_probe_ids,
         virtual_geometry_runtime,
-    }
+        virtual_geometry_prepare,
+        virtual_geometry_evictable_page_ids,
+    )
 }

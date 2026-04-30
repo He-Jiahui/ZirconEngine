@@ -1,0 +1,19 @@
+id = "native_dynamic_fixture"
+version = "0.1.0"
+display_name = "Native Dynamic Fixture"
+description = "Real dynamic library fixture for ABI v2 native plugin loading."
+default_packaging = ["native_dynamic"]
+
+[[modules]]
+name = "native_dynamic_fixture.runtime"
+kind = "runtime"
+crate_name = "zircon_plugin_native_dynamic_fixture_native"
+target_modes = ["client_runtime", "server_runtime", "editor_host"]
+capabilities = ["runtime.plugin.native_dynamic_fixture"]
+
+[[modules]]
+name = "native_dynamic_fixture.editor"
+kind = "editor"
+crate_name = "zircon_plugin_native_dynamic_fixture_native"
+target_modes = ["editor_host"]
+capabilities = ["editor.extension.native_dynamic_fixture"]

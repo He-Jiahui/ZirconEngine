@@ -60,20 +60,13 @@ fn virtual_geometry_runtime_state_tracks_page_table_and_request_sink() {
         state.page_residency(300),
         Some(VirtualGeometryPageResidencyState::PendingUpload)
     );
-    assert_eq!(
-        state.pending_requests(),
-        vec![VirtualGeometryPageRequest {
-            page_id: 300,
-            size_bytes: 4096,
-            generation: 7,
-        }]
-    );
+    assert_eq!(pending_request_records(&state), vec![(300, 4096, 7)]);
     assert_eq!(state.evictable_pages(), vec![500]);
 
     let snapshot = state.snapshot();
-    assert_eq!(snapshot.page_table_entry_count, 2);
-    assert_eq!(snapshot.resident_page_count, 2);
-    assert_eq!(snapshot.pending_request_count, 1);
+    assert_eq!(snapshot.page_table_entry_count(), 2);
+    assert_eq!(snapshot.resident_page_count(), 2);
+    assert_eq!(snapshot.pending_request_count(), 1);
 }
 
 #[test]
@@ -131,9 +124,9 @@ fn virtual_geometry_runtime_state_deduplicates_requests_and_reuses_evicted_slots
     );
 
     let snapshot = state.snapshot();
-    assert_eq!(snapshot.page_table_entry_count, 2);
-    assert_eq!(snapshot.resident_page_count, 2);
-    assert_eq!(snapshot.pending_request_count, 0);
+    assert_eq!(snapshot.page_table_entry_count(), 2);
+    assert_eq!(snapshot.resident_page_count(), 2);
+    assert_eq!(snapshot.pending_request_count(), 0);
 }
 
 #[test]
@@ -823,14 +816,7 @@ fn virtual_geometry_runtime_state_leaves_requests_pending_without_evictable_budg
         state.page_residency(300),
         Some(VirtualGeometryPageResidencyState::PendingUpload)
     );
-    assert_eq!(
-        state.pending_requests(),
-        vec![VirtualGeometryPageRequest {
-            page_id: 300,
-            size_bytes: 4096,
-            generation: 7,
-        }]
-    );
+    assert_eq!(pending_request_records(&state), vec![(300, 4096, 7)]);
 }
 
 #[test]
@@ -917,12 +903,8 @@ fn virtual_geometry_runtime_state_rejects_gpu_slot_recycling_when_current_evicta
         Some(VirtualGeometryPageResidencyState::PendingUpload)
     );
     assert_eq!(
-        state.pending_requests(),
-        vec![VirtualGeometryPageRequest {
-            page_id: 300,
-            size_bytes: 4096,
-            generation: 7,
-        }],
+        pending_request_records(&state),
+        vec![(300, 4096, 7)],
         "expected runtime residency completion to obey the current visibility-owned evictable set instead of recycling a slot from stale runtime state"
     );
 }
@@ -1149,19 +1131,8 @@ fn virtual_geometry_runtime_state_keeps_processing_later_valid_gpu_completions_a
         "expected runtime completion to keep processing later valid GPU completions after leading stale slot assignments, instead of truncating at page_budget before slot validation"
     );
     assert_eq!(
-        state.pending_requests(),
-        vec![
-            VirtualGeometryPageRequest {
-                page_id: 200,
-                size_bytes: 2_048,
-                generation: 92,
-            },
-            VirtualGeometryPageRequest {
-                page_id: 300,
-                size_bytes: 2_048,
-                generation: 92,
-            },
-        ],
+        pending_request_records(&state),
+        vec![(200, 2_048, 92), (300, 2_048, 92)],
         "expected only the stale completions to remain pending once the later valid completion is accepted"
     );
 }
@@ -1321,14 +1292,7 @@ fn virtual_geometry_runtime_state_applies_gpu_page_table_snapshot_as_residency_t
         state.page_residency(600),
         Some(VirtualGeometryPageResidencyState::PendingUpload)
     );
-    assert_eq!(
-        state.pending_requests(),
-        vec![VirtualGeometryPageRequest {
-            page_id: 600,
-            size_bytes: 1024,
-            generation: 7,
-        }]
-    );
+    assert_eq!(pending_request_records(&state), vec![(600, 1024, 7)]);
     assert!(state.evictable_pages().is_empty());
 
     let prepare = state.build_prepare_frame(&[
@@ -1957,6 +1921,20 @@ fn virtual_geometry_runtime_state_keeps_frontier_recycle_preference_for_later_re
         ],
         "expected later pending uploads without an immediately assignable slot to keep their frontier-aware recycle preference so GPU fallback submission can still reuse the colder lineage slot if earlier requests are skipped"
     );
+}
+
+fn pending_request_records(state: &VirtualGeometryRuntimeState) -> Vec<(u32, u64, u64)> {
+    state
+        .pending_requests()
+        .iter()
+        .map(|request| {
+            (
+                request.page_id(),
+                request.size_bytes(),
+                request.generation(),
+            )
+        })
+        .collect()
 }
 
 fn page(page_id: u32, resident: bool, size_bytes: u64) -> RenderVirtualGeometryPage {

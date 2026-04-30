@@ -19,7 +19,7 @@ related_code:
   - zircon_editor/src/ui/template_runtime/builtin/component_descriptors.rs
   - zircon_editor/src/ui/template_runtime/builtin/template_bindings.rs
   - zircon_editor/src/ui/slint_host/ui/apply_presentation.rs
-  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion.rs
+  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/mod.rs
   - zircon_editor/ui/workbench.slint
   - zircon_editor/ui/workbench/host_context.slint
   - zircon_editor/ui/workbench/host_scaffold.slint
@@ -40,7 +40,7 @@ implementation_files:
   - zircon_editor/src/ui/template_runtime/builtin/component_descriptors.rs
   - zircon_editor/src/ui/template_runtime/builtin/template_bindings.rs
   - zircon_editor/src/ui/slint_host/ui/apply_presentation.rs
-  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion.rs
+  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/mod.rs
   - zircon_editor/ui/workbench.slint
   - zircon_editor/ui/workbench/host_context.slint
   - zircon_editor/ui/workbench/host_scaffold.slint
@@ -84,7 +84,7 @@ doc_type: milestone-detail
 
 - `zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs`
 - `zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs`
-- `zircon_editor/src/ui/slint_host/ui/pane_data_conversion.rs`
+- `zircon_editor/src/ui/slint_host/ui/pane_data_conversion/mod.rs`
 - `zircon_editor/src/ui/slint_host/ui/apply_presentation.rs`
 
 这导致 pane body 的结构、字段、模板选择和 Slint 专用 DTO 仍然强耦合在宿主层，`.ui.toml` 只能描述一层薄壳，而不能成为 pane body 的权威来源。
@@ -97,7 +97,7 @@ doc_type: milestone-detail
 
 - `.ui.toml` 成为 pane body 和局部 shell 的布局权威
 - `ViewDescriptor` 成为 pane 模板语义的注册入口
-- `PaneData` 从 giant union 收敛为 `shell + body` 两段结构；实现态中 `PaneBodyCompatData` 只承载 Slint ABI 和 native slot 兼容字段
+- `PaneData` 从 giant union 收敛为 `shell + body` 两段结构；实现态中 `PaneNativeBodyData` 只承载 Rust-owned host ABI 和 native slot 投影字段
 - 保留现有 `EditorUiBindingPayload` 命令体系，不引入第二套模板命令系统
 - 允许高交互区域通过 hybrid native slot 挂接，而不是强行在第一轮改写控件运行时
 
@@ -355,10 +355,10 @@ Phase 1 不追求所有 pane 完全模板化。
 随着 pane body authority 迁移完成，逐步削薄：
 
 - `host_data.rs` 中的 giant union 字段
-- `pane_data_conversion.rs` 中的 pane-specific Slint DTO 转换
+- `pane_data_conversion/mod.rs` 中的 pane-specific Slint DTO 转换
 - `apply_presentation.rs` 中直接灌入 pane body 细节的逻辑
 
-当前落点是 `PaneData` 保留 shell、viewport、presentation 和一个显式命名的 `PaneBodyCompatData`。首批 pane 的结构真源不再是平铺 union 字段；Slint 生成类型仍保持扁平 ABI，因此 compat 壳在 Rust host 边界内负责喂给 native tree、timeline、graph canvas 与尚未完全模板化的 asset/project body。
+当前落点是 `PaneData` 保留 shell、viewport、presentation 和一个显式命名的 `PaneNativeBodyData`。首批 pane 的结构真源不再是平铺 union 字段；Rust host 边界内的 native body 投影负责喂给 native tree、timeline、graph canvas 与尚未完全模板化的 asset/project body。
 
 ## 文件级改造落点
 
@@ -396,7 +396,7 @@ Phase 1 不追求所有 pane 完全模板化。
 
 - `host_data.rs`
 - `pane_projection.rs`
-- `pane_data_conversion.rs`
+- `pane_data_conversion/mod.rs`
 - `apply_presentation.rs`
 
 ### 保留职责

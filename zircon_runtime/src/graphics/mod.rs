@@ -3,6 +3,7 @@
 pub(crate) mod backend;
 pub(crate) mod extract;
 pub(crate) mod feature;
+pub(in crate::graphics) mod hybrid_gi_extract_sources;
 pub(crate) mod material;
 pub(crate) mod pipeline;
 pub(crate) mod runtime;

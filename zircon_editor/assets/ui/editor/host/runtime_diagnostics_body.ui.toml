@@ -26,7 +26,7 @@ kind = "native"
 type = "VerticalBox"
 children = [
   { node = { node_id = "runtime_diagnostics_header", kind = "native", type = "HorizontalBox", children = [
-    { node = { node_id = "runtime_diagnostics_focus_action", kind = "native", type = "UiHostIconButton", control_id = "FocusDiagnostics", bindings = [{ id = "RuntimeDiagnosticsPaneBody/FocusDiagnostics", event = "Click", route = "DockCommand.FocusView" }], props = { label = "Focus Diagnostics" } } }
+    { node = { node_id = "runtime_diagnostics_focus_action", kind = "native", type = "IconButton", control_id = "FocusDiagnostics", bindings = [{ id = "RuntimeDiagnosticsPaneBody/FocusDiagnostics", event = "Click", route = "DockCommand.FocusView" }], props = { label = "Focus Diagnostics" } } }
   ] } },
   { node = { node_id = "runtime_diagnostics_summary", kind = "native", type = "Label", control_id = "RuntimeDiagnosticsSummary", props = { text = "Runtime diagnostics" } } },
   { node = { node_id = "runtime_diagnostics_body_section", kind = "native", type = "Container", control_id = "RuntimeDiagnosticsBodySection" } },

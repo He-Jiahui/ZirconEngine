@@ -16,20 +16,21 @@ fn editor_ui_compatibility_harness_captures_projection_shape_for_parity_checks()
             "UiHostWindow",
             "VerticalBox",
             "UiHostToolbar",
-            "UiHostIconButton",
-            "UiHostIconButton",
-            "UiHostIconButton",
+            "IconButton",
+            "IconButton",
+            "IconButton",
+            "Container",
+            "Container",
             "HorizontalBox",
             "ActivityRail",
-            "UiHostIconButton",
-            "UiHostIconButton",
-            "UiHostIconButton",
+            "IconButton",
+            "IconButton",
+            "IconButton",
             "DocumentHost",
             "DocumentTabs",
             "PaneSurface",
             "StatusBar",
-            "UiHostLabel",
-            "Container",
+            "Label",
             "Overlay",
             "Container",
             "Container",
@@ -74,20 +75,21 @@ fn editor_ui_host_runtime_builds_host_node_model_with_routes_and_attributes() {
             "UiHostWindow",
             "VerticalBox",
             "UiHostToolbar",
-            "UiHostIconButton",
-            "UiHostIconButton",
-            "UiHostIconButton",
+            "IconButton",
+            "IconButton",
+            "IconButton",
+            "Container",
+            "Container",
             "HorizontalBox",
             "ActivityRail",
-            "UiHostIconButton",
-            "UiHostIconButton",
-            "UiHostIconButton",
+            "IconButton",
+            "IconButton",
+            "IconButton",
             "DocumentHost",
             "DocumentTabs",
             "PaneSurface",
             "StatusBar",
-            "UiHostLabel",
-            "Container",
+            "Label",
             "Overlay",
             "Container",
             "Container",
@@ -138,7 +140,7 @@ fn editor_ui_host_runtime_builds_host_node_model_with_routes_and_attributes() {
         .iter()
         .find(|node| node.control_id.as_deref() == Some("StatusText"))
         .unwrap();
-    assert_eq!(status_text.node_id, "root.0.2.0");
+    assert_eq!(status_text.node_id, "root.0.4.0");
     assert_eq!(
         status_text.attributes.get("text"),
         Some(&Value::String("Ready".to_string()))
@@ -162,10 +164,10 @@ fn editor_ui_compatibility_harness_captures_host_model_routes_and_attributes() {
 
     assert!(snapshot
         .host_nodes
-        .contains(&"root.0.0.0|UiHostIconButton|OpenProject".to_string()));
+        .contains(&"root.0.0.0|IconButton|OpenProject".to_string()));
     assert!(snapshot
         .host_nodes
-        .contains(&"root.0.2.0|UiHostLabel|StatusText".to_string()));
+        .contains(&"root.0.4.0|Label|StatusText".to_string()));
     assert!(snapshot
         .route_bindings
         .iter()
@@ -175,7 +177,7 @@ fn editor_ui_compatibility_harness_captures_host_model_routes_and_attributes() {
         .contains(&"root.0.0.0.icon=folder-open-outline".to_string()));
     assert!(snapshot
         .attribute_entries
-        .contains(&"root.0.2.0.text=Ready".to_string()));
+        .contains(&"root.0.4.0.text=Ready".to_string()));
 }
 
 #[test]
@@ -207,6 +209,8 @@ fn slint_ui_host_adapter_builds_generic_projection_from_host_model() {
             SlintUiHostComponentKind::IconButton,
             SlintUiHostComponentKind::IconButton,
             SlintUiHostComponentKind::IconButton,
+            SlintUiHostComponentKind::Unknown,
+            SlintUiHostComponentKind::Unknown,
             SlintUiHostComponentKind::HorizontalBox,
             SlintUiHostComponentKind::ActivityRail,
             SlintUiHostComponentKind::IconButton,
@@ -217,7 +221,6 @@ fn slint_ui_host_adapter_builds_generic_projection_from_host_model() {
             SlintUiHostComponentKind::PaneSurface,
             SlintUiHostComponentKind::StatusBar,
             SlintUiHostComponentKind::Label,
-            SlintUiHostComponentKind::Unknown,
             SlintUiHostComponentKind::Unknown,
             SlintUiHostComponentKind::Unknown,
             SlintUiHostComponentKind::Unknown,
@@ -280,13 +283,13 @@ fn editor_ui_host_runtime_builds_slint_host_projection_and_snapshot() {
     let snapshot =
         EditorUiCompatibilityHarness::capture_slint_host_projection_snapshot(&slint_projection);
 
-    assert_eq!(slint_projection.nodes.len(), 26);
+    assert_eq!(slint_projection.nodes.len(), 27);
     assert!(snapshot
         .slint_nodes
         .contains(&"root.0.0.0|IconButton|OpenProject".to_string()));
     assert!(snapshot
         .slint_nodes
-        .contains(&"root.0.2.0|Label|StatusText".to_string()));
+        .contains(&"root.0.4.0|Label|StatusText".to_string()));
     assert!(snapshot
         .text_entries
         .contains(&"root.0.0.0=Open".to_string()));

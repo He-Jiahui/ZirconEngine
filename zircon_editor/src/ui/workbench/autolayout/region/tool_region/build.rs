@@ -27,7 +27,7 @@ pub(crate) fn build_tool_region_state(
     let tab = active_tool_tab(model, slots);
     let has_tabs = tool_region_has_tabs(model, slots);
     let expanded = tool_region_is_expanded(model, slots);
-    let extent = tool_region_extent(layout, region, slots, transient_region_preferred);
+    let extent = tool_region_extent(model, region, slots, transient_region_preferred);
 
     if !has_tabs {
         return RegionState {

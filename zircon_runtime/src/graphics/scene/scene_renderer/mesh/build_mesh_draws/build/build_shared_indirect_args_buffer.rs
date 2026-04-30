@@ -13,6 +13,21 @@ use super::pending_mesh_draw::{
 };
 
 pub(super) struct SharedIndirectArgsBuffer {
+    buffer: Arc<wgpu::Buffer>,
+    submission_buffer: Arc<wgpu::Buffer>,
+    authority_buffer: Arc<wgpu::Buffer>,
+    draw_ref_buffer: Arc<wgpu::Buffer>,
+    segment_buffer: Arc<wgpu::Buffer>,
+    segment_count: u32,
+    args_count: u32,
+    indirect_args_offsets: Vec<u64>,
+    pending_draw_draw_ref_indices: Vec<u32>,
+    pending_draw_submission_tokens: Vec<u32>,
+    pending_draw_submission_details: Vec<Option<VirtualGeometrySubmissionDetail>>,
+    pending_draw_submission_plan: Vec<PendingDrawSubmissionPlanEntry>,
+}
+
+pub(super) struct SharedIndirectArgsBufferParts {
     pub(super) buffer: Arc<wgpu::Buffer>,
     pub(super) submission_buffer: Arc<wgpu::Buffer>,
     pub(super) authority_buffer: Arc<wgpu::Buffer>,
@@ -25,6 +40,25 @@ pub(super) struct SharedIndirectArgsBuffer {
     pub(super) pending_draw_submission_tokens: Vec<u32>,
     pub(super) pending_draw_submission_details: Vec<Option<VirtualGeometrySubmissionDetail>>,
     pub(super) pending_draw_submission_plan: Vec<PendingDrawSubmissionPlanEntry>,
+}
+
+impl SharedIndirectArgsBuffer {
+    pub(super) fn into_parts(self) -> SharedIndirectArgsBufferParts {
+        SharedIndirectArgsBufferParts {
+            buffer: self.buffer,
+            submission_buffer: self.submission_buffer,
+            authority_buffer: self.authority_buffer,
+            draw_ref_buffer: self.draw_ref_buffer,
+            segment_buffer: self.segment_buffer,
+            segment_count: self.segment_count,
+            args_count: self.args_count,
+            indirect_args_offsets: self.indirect_args_offsets,
+            pending_draw_draw_ref_indices: self.pending_draw_draw_ref_indices,
+            pending_draw_submission_tokens: self.pending_draw_submission_tokens,
+            pending_draw_submission_details: self.pending_draw_submission_details,
+            pending_draw_submission_plan: self.pending_draw_submission_plan,
+        }
+    }
 }
 
 pub(super) fn build_shared_indirect_args_buffer(
@@ -141,9 +175,23 @@ struct SharedIndirectArgsLayout {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) struct PendingDrawSubmissionPlanEntry {
-    pub(super) pending_draw_index: usize,
-    pub(super) indirect_args_offset: u64,
-    pub(super) submission_detail: VirtualGeometrySubmissionDetail,
+    pending_draw_index: usize,
+    indirect_args_offset: u64,
+    submission_detail: VirtualGeometrySubmissionDetail,
+}
+
+impl PendingDrawSubmissionPlanEntry {
+    pub(super) fn pending_draw_index(&self) -> usize {
+        self.pending_draw_index
+    }
+
+    pub(super) fn indirect_args_offset(&self) -> u64 {
+        self.indirect_args_offset
+    }
+
+    pub(super) fn submission_detail(&self) -> VirtualGeometrySubmissionDetail {
+        self.submission_detail
+    }
 }
 
 fn build_shared_indirect_args_layout(
@@ -305,22 +353,22 @@ fn build_shared_indirect_args_layout(
             let draw_ref = draw_ref_entries[draw_ref_index as usize];
             let segment_key = unique_segment_keys[draw_ref.segment_index as usize];
             let submission_token = draw_ref_submission_tokens[draw_ref_index as usize];
-            Some(VirtualGeometrySubmissionDetail {
-                instance_index: segment_key.instance_index,
-                entity: segment_key.entity,
-                page_id: segment_key.page_id,
-                submission_index: submission_token >> 16,
-                draw_ref_rank: submission_token & 0xffff,
+            Some(VirtualGeometrySubmissionDetail::new(
+                segment_key.instance_index,
+                segment_key.entity,
+                segment_key.page_id,
+                submission_token >> 16,
+                submission_token & 0xffff,
                 draw_ref_index,
-                cluster_start_ordinal: segment_key.cluster_start_ordinal,
-                cluster_span_count: segment_key.cluster_span_count,
-                cluster_total_count: segment_key.cluster_total_count,
-                submission_slot: segment_key.submission_slot,
-                state: decode_cluster_state(segment_key.state),
-                lineage_depth: segment_key.lineage_depth,
-                lod_level: segment_key.lod_level,
-                frontier_rank: segment_key.frontier_rank,
-            })
+                segment_key.cluster_start_ordinal,
+                segment_key.cluster_span_count,
+                segment_key.cluster_total_count,
+                segment_key.submission_slot,
+                decode_cluster_state(segment_key.state),
+                segment_key.lineage_depth,
+                segment_key.lod_level,
+                segment_key.frontier_rank,
+            ))
         })
         .collect::<Vec<_>>();
     let mut pending_draw_submission_plan = vec![
@@ -532,11 +580,11 @@ fn segment_submission_order_key(
 
 #[cfg(test)]
 mod tests {
+    use super::super::super::super::mesh_draw::VirtualGeometrySubmissionDetail;
     use super::{
         build_shared_indirect_args_layout, VirtualGeometryIndirectDrawRef,
         VirtualGeometryIndirectSegmentKey,
     };
-    use crate::graphics::scene::scene_renderer::mesh::mesh_draw::VirtualGeometrySubmissionDetail;
 
     #[test]
     fn shared_indirect_args_layout_keeps_distinct_gpu_args_slots_for_repeated_draw_refs() {
@@ -598,54 +646,9 @@ mod tests {
         assert_eq!(
             layout.pending_draw_submission_details,
             vec![
-                Some(VirtualGeometrySubmissionDetail {
-                    instance_index: None,
-                    entity: 2,
-                    page_id: 300,
-                    submission_index: 0,
-                    draw_ref_rank: 0,
-                    draw_ref_index: 0,
-                    cluster_start_ordinal: 0,
-                    cluster_span_count: 1,
-                    cluster_total_count: 1,
-                    submission_slot: Some(1),
-                    state: crate::graphics::types::VirtualGeometryPrepareClusterState::Resident,
-                    lineage_depth: 0,
-                    lod_level: 0,
-                    frontier_rank: 0,
-                }),
-                Some(VirtualGeometrySubmissionDetail {
-                    instance_index: None,
-                    entity: 2,
-                    page_id: 300,
-                    submission_index: 0,
-                    draw_ref_rank: 1,
-                    draw_ref_index: 1,
-                    cluster_start_ordinal: 0,
-                    cluster_span_count: 1,
-                    cluster_total_count: 1,
-                    submission_slot: Some(1),
-                    state: crate::graphics::types::VirtualGeometryPrepareClusterState::Resident,
-                    lineage_depth: 0,
-                    lod_level: 0,
-                    frontier_rank: 0,
-                }),
-                Some(VirtualGeometrySubmissionDetail {
-                    instance_index: None,
-                    entity: 3,
-                    page_id: 301,
-                    submission_index: 1,
-                    draw_ref_rank: 0,
-                    draw_ref_index: 2,
-                    cluster_start_ordinal: 0,
-                    cluster_span_count: 1,
-                    cluster_total_count: 1,
-                    submission_slot: Some(2),
-                    state: crate::graphics::types::VirtualGeometryPrepareClusterState::Resident,
-                    lineage_depth: 0,
-                    lod_level: 0,
-                    frontier_rank: 0,
-                }),
+                Some(submission_detail(None, 2, 300, 0, 0, 0, Some(1))),
+                Some(submission_detail(None, 2, 300, 0, 1, 1, Some(1))),
+                Some(submission_detail(None, 3, 301, 1, 0, 2, Some(2))),
             ],
             "expected renderer-side submission detail to be derived from the same shared layout truth that authored the GPU draw-ref input instead of being reconstructed later from per-draw CPU residue"
         );
@@ -692,22 +695,7 @@ mod tests {
         );
         assert_eq!(
             layout.pending_draw_submission_details,
-            vec![Some(VirtualGeometrySubmissionDetail {
-                instance_index: None,
-                entity: 2,
-                page_id: 300,
-                submission_index: 0,
-                draw_ref_rank: 1,
-                draw_ref_index: 1,
-                cluster_start_ordinal: 0,
-                cluster_span_count: 1,
-                cluster_total_count: 1,
-                submission_slot: Some(1),
-                state: crate::graphics::types::VirtualGeometryPrepareClusterState::Resident,
-                lineage_depth: 0,
-                lod_level: 0,
-                frontier_rank: 0,
-            })],
+            vec![Some(submission_detail(None, 2, 300, 0, 1, 1, Some(1)))],
             "expected renderer-side submission detail to keep the later authoritative draw-ref rank when only that primitive survives the drawable subset, instead of collapsing back onto the earlier primitive's CPU-compacted slot"
         );
     }
@@ -745,7 +733,7 @@ mod tests {
             layout
                 .pending_draw_submission_plan
                 .iter()
-                .map(|entry| entry.pending_draw_index)
+                .map(|entry| entry.pending_draw_index())
                 .collect::<Vec<_>>(),
             vec![1, 0],
             "expected shared layout to emit a ready-to-consume pending-draw submission plan in authoritative order, instead of forcing build_mesh_draws to reconstruct that order from CPU-side sort keys"
@@ -754,7 +742,12 @@ mod tests {
             layout
                 .pending_draw_submission_plan
                 .iter()
-                .map(|entry| (entry.submission_detail.entity, entry.submission_detail.page_id))
+                .map(|entry| {
+                    (
+                        entry.submission_detail().entity(),
+                        entry.submission_detail().page_id(),
+                    )
+                })
                 .collect::<Vec<_>>(),
             vec![(2, 300), (3, 301)],
             "expected the authoritative submission plan to carry the same visibility-owned segment truth that authored the indirect layout"
@@ -794,22 +787,7 @@ mod tests {
 
         assert_eq!(
             layout.pending_draw_submission_details,
-            vec![Some(VirtualGeometrySubmissionDetail {
-                instance_index: Some(4),
-                entity: 2,
-                page_id: 300,
-                submission_index: 0,
-                draw_ref_rank: 0,
-                draw_ref_index: 0,
-                cluster_start_ordinal: 0,
-                cluster_span_count: 1,
-                cluster_total_count: 1,
-                submission_slot: Some(1),
-                state: crate::graphics::types::VirtualGeometryPrepareClusterState::Resident,
-                lineage_depth: 0,
-                lod_level: 0,
-                frontier_rank: 0,
-            })],
+            vec![Some(submission_detail(Some(4), 2, 300, 0, 0, 0, Some(1)))],
             "expected shared indirect layout to preserve instance ownership inside renderer-facing submission detail so later execution/debug surfaces do not have to recover it from entity-local cluster scans"
         );
     }
@@ -833,6 +811,33 @@ mod tests {
             submission_slot: Some(submission_index + 1),
             state: 0,
         }
+    }
+
+    fn submission_detail(
+        instance_index: Option<u32>,
+        entity: u64,
+        page_id: u32,
+        submission_index: u32,
+        draw_ref_rank: u32,
+        draw_ref_index: u32,
+        submission_slot: Option<u32>,
+    ) -> VirtualGeometrySubmissionDetail {
+        VirtualGeometrySubmissionDetail::new(
+            instance_index,
+            entity,
+            page_id,
+            submission_index,
+            draw_ref_rank,
+            draw_ref_index,
+            0,
+            1,
+            1,
+            submission_slot,
+            crate::graphics::types::VirtualGeometryPrepareClusterState::Resident,
+            0,
+            0,
+            0,
+        )
     }
 }
 

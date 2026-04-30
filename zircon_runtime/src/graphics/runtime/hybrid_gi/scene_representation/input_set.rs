@@ -1,12 +1,12 @@
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct HybridGiInputSet {
-    pub(crate) depth: bool,
-    pub(crate) normal: bool,
-    pub(crate) roughness: bool,
-    pub(crate) base_color: bool,
-    pub(crate) emissive: bool,
-    pub(crate) history_validity: bool,
-    pub(crate) motion_vectors: bool,
+    depth: bool,
+    normal: bool,
+    roughness: bool,
+    base_color: bool,
+    emissive: bool,
+    history_validity: bool,
+    motion_vectors: bool,
 }
 
 impl HybridGiInputSet {

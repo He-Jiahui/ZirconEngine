@@ -6,4 +6,7 @@ mod runtime_prepare;
 mod scene_passes;
 
 pub(in crate::graphics::scene::scene_renderer::core) use compiled_scene_outputs::SceneRendererCompiledSceneOutputs;
-pub(in crate::graphics::scene::scene_renderer::core) use render::VirtualGeometryIndirectStats;
+pub(in crate::graphics::scene::scene_renderer::core) use render::{
+    VirtualGeometryHardwareRasterizationPassStoreParts, VirtualGeometryIndirectStatsStoreParts,
+    VirtualGeometryNodeAndClusterCullPassStoreParts, VirtualGeometryVisBuffer64PassStoreParts,
+};

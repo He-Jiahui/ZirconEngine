@@ -13,6 +13,7 @@ use super::window_menu::build_window_menu;
 pub(crate) fn default_menu_bar_with_extensions(
     chrome: &EditorChromeSnapshot,
     extensions: &[EditorExtensionRegistry],
+    enabled_capabilities: &[String],
 ) -> MenuBarModel {
     let mut menu_bar = MenuBarModel {
         menus: vec![
@@ -24,6 +25,6 @@ pub(crate) fn default_menu_bar_with_extensions(
             build_help_menu(),
         ],
     };
-    append_extension_menus(&mut menu_bar, extensions);
+    append_extension_menus(&mut menu_bar, extensions, enabled_capabilities);
     menu_bar
 }

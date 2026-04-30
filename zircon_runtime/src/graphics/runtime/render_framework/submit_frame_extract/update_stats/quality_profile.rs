@@ -5,7 +5,7 @@ pub(super) fn update_quality_profile(
     state: &mut RenderFrameworkState,
     context: &FrameSubmissionContext,
 ) {
-    if let Some(profile) = context.quality_profile.clone() {
-        state.stats.last_quality_profile = Some(profile);
+    if let Some(profile) = context.quality_profile() {
+        state.stats.last_quality_profile = Some(profile.to_owned());
     }
 }

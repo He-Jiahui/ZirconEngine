@@ -43,6 +43,15 @@ impl EditorUiBinding {
         &self,
         arguments: Vec<UiBindingValue>,
     ) -> Result<Self, EditorUiBindingError> {
+        if let EditorUiBindingPayload::EditorOperation { operation_id, .. } = self.payload() {
+            return Ok(Self {
+                path: self.path.clone(),
+                payload: EditorUiBindingPayload::EditorOperation {
+                    operation_id: operation_id.clone(),
+                    arguments,
+                },
+            });
+        }
         let mut binding = self.as_ui_binding();
         let action = binding
             .action

@@ -18,7 +18,7 @@ impl SceneRenderer {
             })
             .unwrap_or_else(|_| {
                 self.advanced_plugin_outputs
-                    .virtual_geometry_mesh_draw_submission_order
+                    .virtual_geometry_mesh_draw_submission_order()
                     .clone()
             })
     }

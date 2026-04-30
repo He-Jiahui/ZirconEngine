@@ -1,4 +1,6 @@
 mod asset_surface;
+mod component_showcase_category;
+mod component_showcase_selection;
 mod component_showcase_state;
 mod host_model;
 mod host_window_document;

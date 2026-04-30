@@ -5,8 +5,7 @@ impl HybridGiRuntimeState {
         &mut self,
         probe_id: u32,
     ) {
-        self.pending_probes.remove(&probe_id);
-        self.pending_updates
-            .retain(|update| update.probe_id != probe_id);
+        self.remove_pending_probe(probe_id);
+        self.retain_pending_update_requests(|update| update.probe_id() != probe_id);
     }
 }

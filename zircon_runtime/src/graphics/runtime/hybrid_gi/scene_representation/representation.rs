@@ -7,6 +7,9 @@ use crate::core::framework::render::{
 use crate::core::framework::scene::Mobility;
 use crate::core::math::{Transform, Vec4};
 use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
+use crate::graphics::hybrid_gi_extract_sources::{
+    hybrid_gi_extract_probe_records, hybrid_gi_extract_trace_region_records,
+};
 
 use super::input_set::HybridGiInputSet;
 use super::surface_cache_state::HybridGiSurfaceCacheState;
@@ -14,12 +17,26 @@ use super::voxel_scene_state::HybridGiVoxelSceneState;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct HybridGiSceneRepresentationSettings {
-    pub(crate) enabled: bool,
-    pub(crate) quality: RenderHybridGiQuality,
-    pub(crate) trace_budget: u32,
-    pub(crate) card_budget: u32,
-    pub(crate) voxel_budget: u32,
-    pub(crate) debug_view: RenderHybridGiDebugView,
+    enabled: bool,
+    quality: RenderHybridGiQuality,
+    trace_budget: u32,
+    card_budget: u32,
+    voxel_budget: u32,
+    debug_view: RenderHybridGiDebugView,
+}
+
+impl HybridGiSceneRepresentationSettings {
+    pub(crate) fn trace_budget(&self) -> u32 {
+        self.trace_budget
+    }
+
+    pub(crate) fn card_budget(&self) -> u32 {
+        self.card_budget
+    }
+
+    pub(crate) fn voxel_budget(&self) -> u32 {
+        self.voxel_budget
+    }
 }
 
 impl Default for HybridGiSceneRepresentationSettings {
@@ -36,31 +53,75 @@ impl Default for HybridGiSceneRepresentationSettings {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(crate) struct HybridGiCardDescriptor {
-    pub(crate) card_id: u32,
-    pub(crate) mesh: RenderMeshSnapshot,
-    pub(crate) bounds_center: crate::core::math::Vec3,
-    pub(crate) bounds_radius: f32,
+pub(super) struct HybridGiCardDescriptor {
+    card_id: u32,
+    mesh: RenderMeshSnapshot,
+    bounds_center: crate::core::math::Vec3,
+    bounds_radius: f32,
+}
+
+impl HybridGiCardDescriptor {
+    pub(super) fn card_id(&self) -> u32 {
+        self.card_id
+    }
+
+    pub(super) fn mesh(&self) -> &RenderMeshSnapshot {
+        &self.mesh
+    }
+
+    pub(super) fn bounds_center(&self) -> crate::core::math::Vec3 {
+        self.bounds_center
+    }
+
+    pub(super) fn bounds_radius(&self) -> f32 {
+        self.bounds_radius
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(crate) struct HybridGiCardCaptureRequest {
-    pub(crate) card_id: u32,
-    pub(crate) page_id: u32,
-    pub(crate) atlas_slot_id: u32,
-    pub(crate) capture_slot_id: u32,
-    pub(crate) bounds_center: crate::core::math::Vec3,
-    pub(crate) bounds_radius: f32,
+pub(in crate::graphics::runtime::hybrid_gi) struct HybridGiCardCaptureRequest {
+    card_id: u32,
+    page_id: u32,
+    atlas_slot_id: u32,
+    capture_slot_id: u32,
+    bounds_center: crate::core::math::Vec3,
+    bounds_radius: f32,
+}
+
+impl HybridGiCardCaptureRequest {
+    pub(in crate::graphics::runtime::hybrid_gi) fn card_id(&self) -> u32 {
+        self.card_id
+    }
+
+    pub(in crate::graphics::runtime::hybrid_gi) fn page_id(&self) -> u32 {
+        self.page_id
+    }
+
+    pub(in crate::graphics::runtime::hybrid_gi) fn atlas_slot_id(&self) -> u32 {
+        self.atlas_slot_id
+    }
+
+    pub(in crate::graphics::runtime::hybrid_gi) fn capture_slot_id(&self) -> u32 {
+        self.capture_slot_id
+    }
+
+    pub(in crate::graphics::runtime::hybrid_gi) fn bounds_center(&self) -> crate::core::math::Vec3 {
+        self.bounds_center
+    }
+
+    pub(in crate::graphics::runtime::hybrid_gi) fn bounds_radius(&self) -> f32 {
+        self.bounds_radius
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct HybridGiSceneRepresentation {
-    pub(crate) settings: HybridGiSceneRepresentationSettings,
-    pub(crate) cards: Vec<HybridGiCardDescriptor>,
-    pub(crate) card_capture_requests: Vec<HybridGiCardCaptureRequest>,
-    pub(crate) surface_cache: HybridGiSurfaceCacheState,
-    pub(crate) voxel_scene: HybridGiVoxelSceneState,
-    pub(crate) inputs: HybridGiInputSet,
+    settings: HybridGiSceneRepresentationSettings,
+    cards: Vec<HybridGiCardDescriptor>,
+    card_capture_requests: Vec<HybridGiCardCaptureRequest>,
+    surface_cache: HybridGiSurfaceCacheState,
+    voxel_scene: HybridGiVoxelSceneState,
+    inputs: HybridGiInputSet,
     directional_lights: Vec<RenderDirectionalLightSnapshot>,
     point_lights: Vec<RenderPointLightSnapshot>,
     spot_lights: Vec<RenderSpotLightSnapshot>,
@@ -87,6 +148,50 @@ impl Default for HybridGiSceneRepresentation {
 }
 
 impl HybridGiSceneRepresentation {
+    pub(crate) fn settings(&self) -> HybridGiSceneRepresentationSettings {
+        self.settings
+    }
+
+    #[cfg_attr(not(test), allow(dead_code))]
+    pub(crate) fn inputs(&self) -> &HybridGiInputSet {
+        &self.inputs
+    }
+
+    pub(crate) fn surface_cache(&self) -> &HybridGiSurfaceCacheState {
+        &self.surface_cache
+    }
+
+    pub(in crate::graphics::runtime::hybrid_gi) fn surface_cache_mut(
+        &mut self,
+    ) -> &mut HybridGiSurfaceCacheState {
+        &mut self.surface_cache
+    }
+
+    pub(crate) fn voxel_scene(&self) -> &HybridGiVoxelSceneState {
+        &self.voxel_scene
+    }
+
+    pub(in crate::graphics::runtime::hybrid_gi) fn voxel_scene_mut(
+        &mut self,
+    ) -> &mut HybridGiVoxelSceneState {
+        &mut self.voxel_scene
+    }
+
+    pub(in crate::graphics::runtime::hybrid_gi) fn card_bounds_by_id(
+        &self,
+    ) -> BTreeMap<u32, (crate::core::math::Vec3, f32)> {
+        self.cards
+            .iter()
+            .map(|card| (card.card_id, (card.bounds_center, card.bounds_radius)))
+            .collect()
+    }
+
+    pub(in crate::graphics::runtime::hybrid_gi) fn card_capture_request_descriptors(
+        &self,
+    ) -> &[HybridGiCardCaptureRequest] {
+        &self.card_capture_requests
+    }
+
     #[cfg_attr(not(test), allow(dead_code))]
     pub(crate) fn from_extract(extract: &RenderHybridGiExtract) -> Self {
         let mut representation = Self::default();
@@ -104,9 +209,13 @@ impl HybridGiSceneRepresentation {
             debug_view: extract.debug_view,
         };
         self.inputs = HybridGiInputSet::deferred();
-        self.fixture_probe_count = unique_count(extract.probes.iter().map(|probe| probe.probe_id));
-        self.fixture_trace_region_count =
-            unique_count(extract.trace_regions.iter().map(|region| region.region_id));
+        if !extract.enabled {
+            self.fixture_probe_count = 0;
+            self.fixture_trace_region_count = 0;
+            return;
+        }
+        self.fixture_probe_count = hybrid_gi_extract_probe_records(extract).len();
+        self.fixture_trace_region_count = hybrid_gi_extract_trace_region_records(extract).len();
     }
 
     pub(crate) fn synchronize_scene(
@@ -223,10 +332,6 @@ fn build_card_descriptors(meshes: &[RenderMeshSnapshot]) -> Vec<HybridGiCardDesc
         );
     }
     cards.into_values().collect()
-}
-
-fn unique_count(ids: impl IntoIterator<Item = u32>) -> usize {
-    ids.into_iter().collect::<BTreeSet<_>>().len()
 }
 
 fn card_bounds_radius(mesh: &RenderMeshSnapshot) -> f32 {

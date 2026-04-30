@@ -19,8 +19,8 @@ pub(crate) fn env_lock() -> &'static Mutex<()> {
 pub(crate) fn load_test_ui_asset(source: &str) -> Result<UiAssetDocument, UiAssetError> {
     UiAssetLoader::load_toml_str(source).or_else(|error| {
         if looks_like_flat_ui_asset_source(source) {
-            // Keep legacy flat fixture migration isolated to editor tests.
-            let migrated = migrate_flat_ui_asset_toml_str(source)?;
+            // Keep flat fixture migration isolated to editor tests.
+            let migrated = migrate_flat_ui_asset_fixture_toml_str(source)?;
             return UiAssetLoader::load_toml_str(&migrated);
         }
 
@@ -46,10 +46,10 @@ fn looks_like_flat_ui_asset_source(source: &str) -> bool {
             && (source.contains("\nroot = \"") || source.contains("\r\nroot = \""))
 }
 
-fn migrate_flat_ui_asset_toml_str(input: &str) -> Result<String, UiAssetError> {
-    let legacy: FlatUiAssetDocument =
+fn migrate_flat_ui_asset_fixture_toml_str(input: &str) -> Result<String, UiAssetError> {
+    let flat_fixture: FlatUiAssetDocument =
         toml::from_str(input).map_err(|error| UiAssetError::ParseToml(error.to_string()))?;
-    let migrated = legacy.into_tree_document()?;
+    let migrated = flat_fixture.into_tree_document()?;
     toml::to_string_pretty(&migrated).map_err(|error| UiAssetError::ParseToml(error.to_string()))
 }
 

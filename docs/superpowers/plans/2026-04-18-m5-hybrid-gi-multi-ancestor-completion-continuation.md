@@ -16,12 +16,13 @@ related_code:
   - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_readback/decode/completed_trace_region_ids.rs
   - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_readback/decode/probe_irradiance_rgb.rs
   - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_readback/pending_readback/collect.rs
-  - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_readback/pending_readback/hybrid_gi_gpu_pending_readback.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/hybrid_gi/gpu_readback/pending_readback/hybrid_gi_gpu_pending_readback/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/hybrid_gi/gpu_readback/pending_readback/hybrid_gi_gpu_pending_readback/scene_prepare_resources_access.rs
   - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_readback/decode/mod.rs
   - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_readback/decode/completed_page_assignments.rs
   - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_readback/decode/page_table_entries.rs
   - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_readback/pending_readback/collect.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_readback/pending_readback/virtual_geometry_gpu_pending_readback.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/virtual_geometry/gpu_readback/pending_readback/virtual_geometry_gpu_pending_readback/mod.rs
 implementation_files:
   - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_resources/gpu_pending_probe_input.rs
   - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_resources/execute_prepare/pending_probe_inputs.rs
@@ -39,12 +40,13 @@ implementation_files:
   - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_readback/decode/completed_trace_region_ids.rs
   - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_readback/decode/probe_irradiance_rgb.rs
   - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_readback/pending_readback/collect.rs
-  - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_readback/pending_readback/hybrid_gi_gpu_pending_readback.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/hybrid_gi/gpu_readback/pending_readback/hybrid_gi_gpu_pending_readback/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/hybrid_gi/gpu_readback/pending_readback/hybrid_gi_gpu_pending_readback/scene_prepare_resources_access.rs
   - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_readback/decode/mod.rs
   - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_readback/decode/completed_page_assignments.rs
   - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_readback/decode/page_table_entries.rs
   - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_readback/pending_readback/collect.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_readback/pending_readback/virtual_geometry_gpu_pending_readback.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/virtual_geometry/gpu_readback/pending_readback/virtual_geometry_gpu_pending_readback/mod.rs
 plan_sources:
   - user: 2026-04-18 剩余更值得继续推进的主链是更完整的 scene-driven screen-probe hierarchy / probe gather / RT hybrid lighting
   - user: 2026-04-18 Hybrid GI 的 hierarchy-aware resolve / deeper screen-probe hierarchy / RT hybrid lighting continuation

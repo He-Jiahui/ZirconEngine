@@ -1,3 +1,5 @@
+use std::collections::BTreeSet;
+
 use crate::VisibilityHybridGiUpdatePlan;
 
 use super::{HybridGiProbeUpdateRequest, HybridGiRuntimeState};
@@ -17,44 +19,46 @@ impl HybridGiRuntimeState {
                 continue;
             }
 
-            if self.resident_slots.contains_key(&probe_id)
-                || self.pending_probes.contains(&probe_id)
-            {
+            if self.has_resident_probe(probe_id) || self.has_pending_probe(probe_id) {
                 continue;
             }
 
-            self.pending_probes.insert(probe_id);
-            self.pending_updates.push(HybridGiProbeUpdateRequest {
-                probe_id,
-                ray_budget: self
-                    .probe_ray_budgets
-                    .get(&probe_id)
-                    .copied()
-                    .unwrap_or_default(),
-                generation,
-            });
+            let ray_budget = self
+                .probe_ray_budgets()
+                .get(&probe_id)
+                .copied()
+                .unwrap_or_default();
+            self.insert_pending_probe(probe_id);
+            self.push_pending_update_request(HybridGiProbeUpdateRequest::new(
+                probe_id, ray_budget, generation,
+            ));
         }
 
-        self.current_requested_probe_ids = plan
-            .requested_probe_ids
-            .iter()
-            .copied()
-            .filter(|probe_id| {
-                self.probe_scene_data.contains_key(probe_id)
-                    && !self.resident_slots.contains_key(probe_id)
-            })
-            .collect();
+        let current_requested_probe_ids = if self.scene_representation_owns_runtime() {
+            BTreeSet::new()
+        } else {
+            plan.requested_probe_ids
+                .iter()
+                .copied()
+                .filter(|probe_id| {
+                    self.probe_scene_data().contains_key(probe_id)
+                        && !self.has_resident_probe(*probe_id)
+                })
+                .collect()
+        };
+        self.replace_current_requested_probe_ids(current_requested_probe_ids);
         self.assign_scheduled_trace_regions(plan.scheduled_trace_region_ids.iter().copied());
         self.refresh_recent_lineage_trace_support();
-        self.evictable_probes = plan
+        let evictable_probes = plan
             .evictable_probe_ids
             .iter()
             .copied()
-            .filter(|probe_id| self.resident_slots.contains_key(probe_id))
+            .filter(|probe_id| self.has_resident_probe(*probe_id))
             .collect();
+        self.replace_evictable_probes(evictable_probes);
     }
 
     fn has_live_probe_payload(&self, probe_id: u32) -> bool {
-        self.probe_scene_data.contains_key(&probe_id)
+        !self.scene_representation_owns_runtime() && self.probe_scene_data().contains_key(&probe_id)
     }
 }

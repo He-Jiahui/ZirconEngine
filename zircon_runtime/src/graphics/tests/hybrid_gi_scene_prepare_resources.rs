@@ -144,41 +144,41 @@ fn hybrid_gi_gpu_readback_reports_scene_prepare_card_capture_resource_snapshot()
         .take_last_hybrid_gi_gpu_readback()
         .expect("expected hybrid gi GPU readback");
     let snapshot = readback
-        .scene_prepare_resources
+        .scene_prepare_resources()
         .expect("expected Hybrid GI scene-prepare resource snapshot");
 
-    assert_eq!(snapshot.card_capture_request_count, 2);
-    assert_eq!(snapshot.voxel_clipmap_ids, vec![7]);
-    assert_eq!(snapshot.occupied_atlas_slots, vec![0, 9]);
-    assert_eq!(snapshot.occupied_capture_slots, vec![1, 4]);
+    assert_eq!(snapshot.card_capture_request_count(), 2);
+    assert_eq!(snapshot.voxel_clipmap_ids().to_vec(), vec![7]);
+    assert_eq!(snapshot.occupied_atlas_slots().to_vec(), vec![0, 9]);
+    assert_eq!(snapshot.occupied_capture_slots().to_vec(), vec![1, 4]);
     assert_eq!(
-        snapshot.atlas_slot_rgba_samples,
+        snapshot.atlas_slot_rgba_samples(),
         vec![
             (0, expected_card_capture_debug_rgba(11, 21, 0, 1)),
             (9, expected_card_capture_debug_rgba(12, 22, 9, 4)),
         ]
     );
     assert_eq!(
-        snapshot.capture_slot_rgba_samples,
+        snapshot.capture_slot_rgba_samples(),
         vec![
             (1, expected_card_capture_debug_rgba(11, 21, 0, 1)),
             (4, expected_card_capture_debug_rgba(12, 22, 9, 4)),
         ]
     );
-    assert_eq!(snapshot.atlas_slot_count, 10);
-    assert_eq!(snapshot.capture_slot_count, 5);
+    assert_eq!(snapshot.atlas_slot_count(), 10);
+    assert_eq!(snapshot.capture_slot_count(), 5);
     assert_eq!(
-        snapshot.atlas_texture_extent,
+        snapshot.atlas_texture_extent(),
         (
             CARD_CAPTURE_TILE_EXTENT * CARD_CAPTURE_ATLAS_COLUMNS,
             CARD_CAPTURE_TILE_EXTENT * 2,
         )
     );
     assert_eq!(
-        snapshot.capture_texture_extent,
+        snapshot.capture_texture_extent(),
         (CARD_CAPTURE_TILE_EXTENT, CARD_CAPTURE_TILE_EXTENT)
     );
-    assert_eq!(snapshot.capture_layer_count, 5);
+    assert_eq!(snapshot.capture_layer_count(), 5);
 }
 
 #[test]
@@ -2370,20 +2370,26 @@ fn render_optional_scene_prepare_resource_snapshot(
     let snapshot = renderer
         .take_last_hybrid_gi_gpu_readback()
         .expect("expected hybrid gi GPU readback")
-        .scene_prepare_resources;
+        .scene_prepare_resources();
     snapshot.map(|snapshot| ScenePrepareResourceSnapshotForTest {
-        occupied_atlas_slots: snapshot.occupied_atlas_slots,
-        occupied_capture_slots: snapshot.occupied_capture_slots,
-        atlas_slot_rgba_samples: snapshot.atlas_slot_rgba_samples,
-        capture_slot_rgba_samples: snapshot.capture_slot_rgba_samples,
-        atlas_slot_count: snapshot.atlas_slot_count,
-        capture_slot_count: snapshot.capture_slot_count,
-        voxel_clipmap_rgba_samples: snapshot.voxel_clipmap_rgba_samples,
-        voxel_clipmap_occupancy_masks: snapshot.voxel_clipmap_occupancy_masks,
-        voxel_clipmap_cell_rgba_samples: snapshot.voxel_clipmap_cell_rgba_samples,
-        voxel_clipmap_cell_occupancy_counts: snapshot.voxel_clipmap_cell_occupancy_counts,
-        voxel_clipmap_cell_dominant_node_ids: snapshot.voxel_clipmap_cell_dominant_node_ids,
-        voxel_clipmap_cell_dominant_rgba_samples: snapshot.voxel_clipmap_cell_dominant_rgba_samples,
+        occupied_atlas_slots: snapshot.occupied_atlas_slots().to_vec(),
+        occupied_capture_slots: snapshot.occupied_capture_slots().to_vec(),
+        atlas_slot_rgba_samples: snapshot.atlas_slot_rgba_samples().to_vec(),
+        capture_slot_rgba_samples: snapshot.capture_slot_rgba_samples().to_vec(),
+        atlas_slot_count: snapshot.atlas_slot_count(),
+        capture_slot_count: snapshot.capture_slot_count(),
+        voxel_clipmap_rgba_samples: snapshot.voxel_clipmap_rgba_samples().to_vec(),
+        voxel_clipmap_occupancy_masks: snapshot.voxel_clipmap_occupancy_masks().to_vec(),
+        voxel_clipmap_cell_rgba_samples: snapshot.voxel_clipmap_cell_rgba_samples().to_vec(),
+        voxel_clipmap_cell_occupancy_counts: snapshot
+            .voxel_clipmap_cell_occupancy_counts()
+            .to_vec(),
+        voxel_clipmap_cell_dominant_node_ids: snapshot
+            .voxel_clipmap_cell_dominant_node_ids()
+            .to_vec(),
+        voxel_clipmap_cell_dominant_rgba_samples: snapshot
+            .voxel_clipmap_cell_dominant_rgba_samples()
+            .to_vec(),
     })
 }
 

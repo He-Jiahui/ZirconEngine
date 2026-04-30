@@ -1,11 +1,12 @@
 use crate::core::editor_event::{
     EditorEvent, EditorEventDispatcher, EditorEventEffect, EditorEventEnvelope, EditorEventId,
     EditorEventRecord, EditorEventResult, EditorEventRuntime, EditorEventSequence,
-    EditorEventSource,
+    EditorEventSource, MenuAction,
 };
 use crate::core::editor_operation::{EditorOperationPath, EditorOperationStackEntry};
 use crate::ui::binding::EditorUiBinding;
 use crate::ui::binding_dispatch::editor_event_normalization::normalize_editor_event_binding;
+use serde_json::Value;
 use zircon_runtime::ui::binding::UiEventBinding;
 
 use super::editor_event_execution::{event_result_value, execute_event, undo_policy_for_event};
@@ -23,7 +24,7 @@ impl EditorEventRuntime {
         &self,
         source: EditorEventSource,
         event: EditorEvent,
-        operation: Option<(EditorOperationPath, String, bool)>,
+        operation: Option<(EditorOperationPath, String, bool, Value, Option<String>)>,
     ) -> Result<EditorEventRecord, String> {
         let mut inner = self.inner.lock().unwrap();
         inner.next_event_id += 1;
@@ -43,13 +44,26 @@ impl EditorEventRuntime {
                 .cloned()
         });
         let registry_operation = registry_operation.flatten();
-        let (operation_id, operation_display_name, explicit_stack_entry) = match operation {
-            Some((operation_id, operation_display_name, undoable)) => {
-                let stack_entry =
-                    undoable.then(|| (operation_id.clone(), operation_display_name.clone()));
+        let (
+            operation_id,
+            operation_display_name,
+            operation_arguments,
+            operation_group,
+            explicit_stack_entry,
+        ) = match operation {
+            Some((operation_id, operation_display_name, undoable, arguments, group)) => {
+                let stack_entry = undoable.then(|| {
+                    (
+                        operation_id.clone(),
+                        operation_display_name.clone(),
+                        group.clone(),
+                    )
+                });
                 (
                     Some(operation_id.to_string()),
                     Some(operation_display_name),
+                    operation_arguments_for_record(arguments),
+                    group,
                     stack_entry,
                 )
             }
@@ -60,6 +74,8 @@ impl EditorEventRuntime {
                 registry_operation
                     .as_ref()
                     .map(|descriptor| descriptor.display_name().to_string()),
+                None,
+                None,
                 None,
             ),
         };
@@ -75,6 +91,8 @@ impl EditorEventRuntime {
                     event,
                     operation_id: operation_id.clone(),
                     operation_display_name: operation_display_name.clone(),
+                    operation_arguments: operation_arguments.clone(),
+                    operation_group: operation_group.clone(),
                     effects: vec![
                         EditorEventEffect::PresentationChanged,
                         EditorEventEffect::ReflectionChanged,
@@ -98,6 +116,8 @@ impl EditorEventRuntime {
             event,
             operation_id,
             operation_display_name,
+            operation_arguments,
+            operation_group,
             effects: execution.effects().to_vec(),
             undo_policy,
             before_revision,
@@ -107,17 +127,30 @@ impl EditorEventRuntime {
                 execution.changed(),
             )),
         };
-        if let Some((operation_id, display_name)) = explicit_stack_entry {
-            inner.operation_stack.record(EditorOperationStackEntry::new(
-                operation_id,
-                display_name,
-                record.sequence.0,
-            ));
+        if let Some((operation_id, display_name, operation_group)) = explicit_stack_entry {
+            inner.operation_stack.record(
+                EditorOperationStackEntry::new(
+                    operation_id,
+                    display_name,
+                    record.source.clone(),
+                    record.sequence.0,
+                )
+                .with_operation_group(operation_group),
+            );
+        } else if execution.changed()
+            && matches!(record.event, EditorEvent::WorkbenchMenu(MenuAction::Undo))
+        {
+            inner.operation_stack.move_undo_to_redo();
+        } else if execution.changed()
+            && matches!(record.event, EditorEvent::WorkbenchMenu(MenuAction::Redo))
+        {
+            inner.operation_stack.move_redo_to_undo();
         } else if let Some(descriptor) = registry_operation.as_ref() {
             if descriptor.undoable().is_some() && record.result.error.is_none() {
                 inner.operation_stack.record(EditorOperationStackEntry::new(
                     descriptor.path().clone(),
                     descriptor.display_name().to_string(),
+                    record.source.clone(),
                     record.sequence.0,
                 ));
             }
@@ -126,6 +159,14 @@ impl EditorEventRuntime {
         inner.journal.push(record.clone());
         inner.event_listeners.notify(&record);
         Ok(record)
+    }
+}
+
+fn operation_arguments_for_record(arguments: Value) -> Option<Value> {
+    match arguments {
+        Value::Null => None,
+        Value::Array(values) if values.is_empty() => None,
+        other => Some(other),
     }
 }
 

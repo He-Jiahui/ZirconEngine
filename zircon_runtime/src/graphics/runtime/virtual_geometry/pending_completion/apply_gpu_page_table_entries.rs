@@ -6,14 +6,13 @@ impl VirtualGeometryRuntimeState {
     pub(crate) fn apply_gpu_page_table_entries(&mut self, page_table_entries: &[(u32, u32)]) {
         let unique_page_table_entries = normalized_page_table_entries(page_table_entries);
 
-        let previous_resident_pages = self.resident_slots.keys().copied().collect::<BTreeSet<_>>();
+        let previous_resident_pages = self.resident_page_ids().collect::<BTreeSet<_>>();
         let previous_slot_owners = self
-            .resident_slots
-            .iter()
-            .map(|(&page_id, &slot)| (slot, page_id))
+            .resident_page_slots()
+            .map(|(page_id, slot)| (slot, page_id))
             .collect::<Vec<_>>();
         let previous_hot_resident_pages = self.frontier_hot_resident_pages();
-        let resident_page_ids = self.resident_slots.keys().copied().collect::<Vec<_>>();
+        let resident_page_ids = self.resident_page_ids().collect::<Vec<_>>();
         let gpu_resident_pages = unique_page_table_entries
             .iter()
             .map(|(page_id, _)| *page_id)
@@ -34,24 +33,22 @@ impl VirtualGeometryRuntimeState {
             self.promote_to_resident_in_slot(*page_id, *slot);
         }
 
-        self.evictable_pages
-            .retain(|page_id| self.resident_slots.contains_key(page_id));
-        self.current_hot_resident_pages
-            .retain(|page_id| self.resident_slots.contains_key(page_id));
-        self.recent_hot_resident_pages
-            .retain(|page_id, _| self.resident_slots.contains_key(page_id));
-        self.current_hot_resident_pages.extend(
-            inherited_hot_completed_pages(
-                &unique_page_table_entries,
-                &previous_resident_pages,
-                &previous_slot_owners,
-                &previous_hot_resident_pages,
-                &surviving_previous_hot_resident_pages,
-                &self.page_parent_pages,
-            )
-            .into_iter()
-            .filter(|page_id| self.resident_slots.contains_key(page_id)),
-        );
+        self.retain_resident_evictable_pages();
+        let resident_page_ids = self.resident_page_ids().collect::<BTreeSet<_>>();
+        self.retain_current_hot_resident_pages(|page_id| resident_page_ids.contains(page_id));
+        self.retain_recent_hot_resident_pages(|page_id, _| resident_page_ids.contains(page_id));
+        let inherited_hot_completed_pages = inherited_hot_completed_pages(
+            &unique_page_table_entries,
+            &previous_resident_pages,
+            &previous_slot_owners,
+            &previous_hot_resident_pages,
+            &surviving_previous_hot_resident_pages,
+            self.page_parent_pages(),
+        )
+        .into_iter()
+        .filter(|page_id| resident_page_ids.contains(page_id))
+        .collect::<Vec<_>>();
+        self.extend_current_hot_resident_pages(inherited_hot_completed_pages);
     }
 }
 

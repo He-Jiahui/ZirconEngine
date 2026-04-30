@@ -4,8 +4,13 @@ use zircon_runtime::core::{
     ManagerDescriptor, ModuleDescriptor, ServiceKind, ServiceObject, StartupMode,
 };
 use zircon_runtime::engine_module::{factory, qualified_name};
+use zircon_runtime::graphics::{
+    RenderFeatureDescriptor, RenderFeaturePassDescriptor, RenderPassStage,
+};
+use zircon_runtime::render_graph::QueueLane;
 
 pub const PLUGIN_ID: &str = "particles";
+pub const PARTICLES_FEATURE_NAME: &str = "particle";
 pub const PARTICLES_MODULE_NAME: &str = "ParticlesModule";
 pub const PARTICLES_MANAGER_NAME: &str = "ParticlesModule.Manager.ParticlesManager";
 
@@ -78,8 +83,30 @@ impl zircon_runtime::RuntimePlugin for ParticlesRuntimePlugin {
         &self,
         registry: &mut zircon_runtime::RuntimeExtensionRegistry,
     ) -> Result<(), zircon_runtime::RuntimeExtensionRegistryError> {
-        registry.register_module(module_descriptor())
+        registry.register_module(module_descriptor())?;
+        registry.register_render_feature(render_feature_descriptor())
     }
+}
+
+pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
+    RenderFeatureDescriptor::new(
+        PARTICLES_FEATURE_NAME,
+        vec![
+            "view".to_string(),
+            "particles".to_string(),
+            "visibility".to_string(),
+        ],
+        Vec::new(),
+        vec![RenderFeaturePassDescriptor::new(
+            RenderPassStage::Transparent,
+            "particle-render",
+            QueueLane::Graphics,
+        )
+        .with_executor_id("particle.transparent")
+        .read_texture("scene-depth")
+        .read_texture("scene-color")
+        .write_texture("scene-color")],
+    )
 }
 
 pub fn runtime_plugin_descriptor() -> zircon_runtime::RuntimePluginDescriptor {
@@ -132,6 +159,11 @@ mod tests {
             .modules()
             .iter()
             .any(|module| module.name == PARTICLES_MODULE_NAME));
+        assert!(report
+            .extensions
+            .render_features()
+            .iter()
+            .any(|feature| feature.name == PARTICLES_FEATURE_NAME));
         assert_eq!(
             report.package_manifest.modules[0].target_modes,
             vec![

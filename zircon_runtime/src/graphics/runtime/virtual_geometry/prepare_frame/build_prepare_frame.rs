@@ -24,11 +24,13 @@ impl VirtualGeometryRuntimeState {
     ) -> VirtualGeometryPrepareFrame {
         let prepared_visible_clusters =
             prepare_visible_clusters(self, visible_clusters, visibility_draw_segments);
+        let (visible_entities, visible_clusters, cluster_draw_segments) =
+            prepared_visible_clusters.into_parts();
 
         VirtualGeometryPrepareFrame {
-            visible_entities: prepared_visible_clusters.visible_entities,
-            visible_clusters: prepared_visible_clusters.visible_clusters,
-            cluster_draw_segments: prepared_visible_clusters.cluster_draw_segments,
+            visible_entities,
+            visible_clusters,
+            cluster_draw_segments,
             resident_pages: resident_pages(self),
             pending_page_requests: pending_page_requests(self),
             available_slots: available_slots(self),

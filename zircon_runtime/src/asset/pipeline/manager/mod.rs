@@ -4,11 +4,11 @@ mod asset_manager;
 mod builtins;
 mod driver;
 mod errors;
-mod facades;
 mod project_asset_manager;
 mod records;
 mod registration;
 mod resource_sync;
+mod service_contracts;
 
 pub use asset_manager::{resolve_asset_manager, AssetManager, AssetManagerHandle};
 pub use driver::AssetIoDriver;

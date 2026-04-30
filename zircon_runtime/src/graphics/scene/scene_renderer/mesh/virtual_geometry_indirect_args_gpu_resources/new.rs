@@ -1,7 +1,7 @@
 use super::VirtualGeometryIndirectArgsGpuResources;
 
 impl VirtualGeometryIndirectArgsGpuResources {
-    pub(crate) fn new(device: &wgpu::Device) -> Self {
+    pub(in crate::graphics::scene::scene_renderer) fn new(device: &wgpu::Device) -> Self {
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("zircon-vg-indirect-args-bind-group-layout"),
             entries: &[

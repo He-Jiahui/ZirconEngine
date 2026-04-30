@@ -1,90 +1,36 @@
 use std::fs;
-use std::path::PathBuf;
+use std::path::Path;
 
-fn ui_asset_editor_source() -> String {
-    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    [
-        "ui/workbench/pane_fields.slint",
-        "ui/workbench/ui_asset_editor_data.slint",
-        "ui/workbench/ui_asset_editor_components.slint",
-        "ui/workbench/ui_asset_editor_center_column.slint",
-        "ui/workbench/ui_asset_editor_inspector_panel.slint",
-        "ui/workbench/ui_asset_editor_stylesheet_panel.slint",
-        "ui/workbench/ui_asset_editor_pane.slint",
-    ]
-    .into_iter()
-    .map(|relative| {
-        fs::read_to_string(manifest_dir.join(relative))
-            .unwrap_or_else(|_| panic!("{relative} should be readable"))
-    })
-    .collect::<Vec<_>>()
-    .join("\n")
-}
-
-fn block_after<'a>(source: &'a str, marker: &str) -> &'a str {
-    let start = source
-        .find(marker)
-        .unwrap_or_else(|| panic!("missing marker `{marker}`"));
-    &source[start..]
+fn source(relative: &str) -> String {
+    fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join(relative))
+        .unwrap_or_else(|error| panic!("read `{relative}`: {error}"))
 }
 
 #[test]
-fn ui_asset_editor_pane_declares_preview_mock_subject_and_expression_controls() {
-    let panes = ui_asset_editor_source();
-    let pane_block = block_after(
-        &panes,
-        "export component UiAssetEditorPane inherits Rectangle {",
-    );
-    let preview_struct_block = block_after(&panes, "export struct UiAssetPreviewMockData {");
+fn ui_asset_authoring_preview_and_binding_contracts_are_rust_owned() {
+    let ui_asset = source("src/ui/slint_host/host_contract/data/ui_asset.rs");
+    let asset = source("assets/ui/editor/ui_asset_editor.ui.toml");
 
-    assert!(preview_struct_block.contains("subject_collection: UiAssetStringSelectionData,"));
-    assert!(preview_struct_block.contains("subject_node_id: string,"));
-    assert!(preview_struct_block.contains("expression_result: string,"));
-    assert!(preview_struct_block.contains("schema_items: [string],"));
-    assert!(
-        pane_block.contains("property <UiAssetPreviewPanelData> preview_panel: root.pane.preview;")
-    );
-    assert!(panes.contains("title: \"Mock Subjects\";"));
-    assert!(panes.contains("items: root.preview_panel.mock.subject_collection.items;"));
-    assert!(panes
-        .contains("root.collection_event(\"preview_mock_subject\", \"selected\", item_index);"));
-    assert!(panes.contains("text: root.preview_panel.mock.expression_result;"));
-    assert!(panes.contains("title: \"Mock Schema\";"));
-    assert!(panes.contains("items: root.preview_panel.mock.schema_items;"));
-}
+    for required in [
+        "pub(crate) struct UiAssetPreviewMockData",
+        "pub subject_collection: UiAssetStringSelectionData",
+        "pub subject_node_id: SharedString",
+        "pub expression_result: SharedString",
+        "pub schema_items: ModelRc<SharedString>",
+        "pub(crate) struct UiAssetInspectorBindingData",
+        "pub route_suggestion_collection: UiAssetStringSelectionData",
+        "pub action_suggestion_collection: UiAssetStringSelectionData",
+    ] {
+        assert!(ui_asset.contains(required), "ui asset DTO missing `{required}`");
+    }
 
-#[test]
-fn ui_asset_editor_pane_declares_binding_target_suggestion_controls() {
-    let panes = ui_asset_editor_source();
-    let pane_block = block_after(
-        &panes,
-        "export component UiAssetEditorPane inherits Rectangle {",
-    );
-    let binding_struct_block = block_after(&panes, "export struct UiAssetInspectorBindingData {");
-
-    assert!(
-        binding_struct_block.contains("route_suggestion_collection: UiAssetStringSelectionData,")
-    );
-    assert!(
-        binding_struct_block.contains("action_suggestion_collection: UiAssetStringSelectionData,")
-    );
-    assert!(binding_struct_block.contains("schema_items: [string],"));
-    assert!(pane_block
-        .contains("property <UiAssetInspectorPanelData> inspector_panel: root.pane.inspector;"));
-    assert!(panes.contains("title: \"Route Suggestions\";"));
-    assert!(
-        panes.contains("items: root.inspector_panel.binding.route_suggestion_collection.items;")
-    );
-    assert!(panes.contains(
-        "root.detail_event(\"binding_route_suggestion\", \"binding.route.suggestion.apply\", item_index, \"\", \"\");"
-    ));
-    assert!(panes.contains("title: \"Action Suggestions\";"));
-    assert!(
-        panes.contains("items: root.inspector_panel.binding.action_suggestion_collection.items;")
-    );
-    assert!(panes.contains(
-        "root.detail_event(\"binding_action_suggestion\", \"binding.action.suggestion.apply\", item_index, \"\", \"\");"
-    ));
-    assert!(panes.contains("title: \"Binding Schema\";"));
-    assert!(panes.contains("items: root.inspector_panel.binding.schema_items;"));
+    for required in [
+        "MockWorkspacePanel",
+        "MockSubjectsPanel",
+        "MockEditorPanel",
+        "MockStateGraphPanel",
+        "InspectorBindingSection",
+    ] {
+        assert!(asset.contains(required), "ui asset TOML missing `{required}`");
+    }
 }

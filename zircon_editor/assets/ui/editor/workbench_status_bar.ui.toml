@@ -1,0 +1,182 @@
+stylesheets = []
+
+[asset]
+kind = "layout"
+id = "editor.workbench_status_bar"
+version = 1
+display_name = "workbench status bar"
+
+[imports]
+widgets = []
+styles = []
+
+[root]
+node_id = "workbench_status_bar_root"
+kind = "native"
+type = "Overlay"
+control_id = "WorkbenchStatusBarRoot"
+
+[root.layout]
+clip = false
+
+[root.layout.container]
+kind = "Overlay"
+
+[root.layout.width]
+stretch = "Stretch"
+
+[root.layout.height]
+stretch = "Stretch"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_status_bar_separator"
+kind = "native"
+type = "Container"
+control_id = "StatusBarSeparator"
+
+[root.children.node.props]
+surface_variant = "inset"
+radius = 0.0
+border_width = 0.0
+
+[root.children.node.layout.position]
+x = 0.0
+y = -1.0
+
+[root.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.layout.height]
+min = 1.0
+preferred = 1.0
+max = 1.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_status_bar_panel"
+kind = "native"
+type = "Container"
+control_id = "StatusBarPanel"
+
+[root.children.node.props]
+surface_variant = "panel"
+radius = 0.0
+border_width = 0.0
+
+[root.children.node.layout.position]
+x = 0.0
+y = 0.0
+
+[root.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children]]
+[root.children.node]
+node_id = "status_primary_label"
+kind = "native"
+type = "Label"
+control_id = "StatusPrimaryLabel"
+
+[root.children.node.props]
+text = "Ready"
+text_tone = "subtle"
+font_size = 10.0
+text_align = "left"
+overflow = "elide"
+
+[root.children.node.layout.position]
+x = 12.0
+y = 4.0
+
+[root.children.node.layout.width]
+min = 240.0
+preferred = 560.0
+max = 960.0
+stretch = "Stretch"
+
+[root.children.node.layout.height]
+min = 14.0
+preferred = 14.0
+max = 14.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "status_secondary_label"
+kind = "native"
+type = "Label"
+control_id = "StatusSecondaryLabel"
+
+[root.children.node.props]
+text = ""
+text_tone = "muted"
+font_size = 10.0
+text_align = "right"
+overflow = "elide"
+
+[root.children.node.layout.anchor]
+x = 1.0
+y = 0.0
+
+[root.children.node.layout.pivot]
+x = 1.0
+y = 0.0
+
+[root.children.node.layout.position]
+x = -128.0
+y = 4.0
+
+[root.children.node.layout.width]
+min = 96.0
+preferred = 96.0
+max = 96.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 14.0
+preferred = 14.0
+max = 14.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "status_viewport_label"
+kind = "native"
+type = "Label"
+control_id = "StatusViewportLabel"
+
+[root.children.node.props]
+text = "1280 x 720"
+text_tone = "muted"
+font_size = 10.0
+text_align = "right"
+overflow = "elide"
+
+[root.children.node.layout.anchor]
+x = 1.0
+y = 0.0
+
+[root.children.node.layout.pivot]
+x = 1.0
+y = 0.0
+
+[root.children.node.layout.position]
+x = -14.0
+y = 4.0
+
+[root.children.node.layout.width]
+min = 104.0
+preferred = 104.0
+max = 104.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 14.0
+preferred = 14.0
+max = 14.0
+stretch = "Fixed"

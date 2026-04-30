@@ -16,6 +16,7 @@ impl HostMenuPointerBridge {
             UiPointerEvent::new(UiPointerEventKind::Scroll, point).with_scroll_delta(delta),
         )?;
 
+        let mut hover_route = route.clone();
         if self.state.open_menu_index == Some(WINDOW_MENU_INDEX) {
             if let Some(popup) = self.surface.tree.node(POPUP_NODE_ID) {
                 let offset = popup.scroll_state.unwrap_or_default().offset;
@@ -24,9 +25,11 @@ impl HostMenuPointerBridge {
                     self.rebuild_surface();
                 }
             }
+            hover_route =
+                self.dispatch_event(UiPointerEvent::new(UiPointerEventKind::Move, point))?;
         }
 
-        match route.as_ref() {
+        match hover_route.as_ref() {
             Some(HostMenuPointerTarget::MenuItem {
                 menu_index,
                 item_index,

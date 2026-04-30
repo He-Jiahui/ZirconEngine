@@ -65,7 +65,7 @@ tests:
   - zircon_runtime/src/tests/ui_boundary/assets.rs
   - zircon_runtime/src/tests/extensions/mod.rs
   - zircon_runtime/src/tests/extensions/absorption_surface.rs
-  - zircon_runtime/src/tests/extensions/manager_facades.rs
+  - zircon_runtime/src/tests/extensions/manager_handles.rs
   - zircon_runtime/src/tests/extensions/root_entries.rs
   - zircon_runtime/src/scene/tests/mod.rs
   - zircon_runtime/src/ui/tests/mod.rs
@@ -116,6 +116,8 @@ This document is the cutover authority for the current workspace refactor. Every
 
 - Old owner: `zircon_editor/src/lib.rs` as a flattened public surface for host, workbench, asset editor, viewport, and binding specialists
 - New owner: direct `core`, `scene`, and `ui` subtrees with minimal curated crate-root exports only
+- Old owner: crate-root `EditorState` re-export
+- New owner: `zircon_editor::ui::workbench::state::EditorState`
 - Old owner: `core` holding UI host, workbench, layout, window, or asset-editor session implementation
 - New owner: `ui/host` and `ui/workbench`
 - Old owner: `ui/slint_host` mixing shell glue with business ownership

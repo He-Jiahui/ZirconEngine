@@ -113,6 +113,9 @@ impl SlintEditorHost {
             ),
             activity_asset_pointer: AssetSurfacePointerState::new(),
             browser_asset_pointer: AssetSurfacePointerState::new(),
+            active_asset_drag_payload: None,
+            active_scene_drag_payload: None,
+            active_object_drag_payload: None,
             native_window_presenters: NativeWindowPresenterStore::default(),
             floating_window_projection_bundle: FloatingWindowProjectionBundle::default(),
             callback_source_window: None,
@@ -316,7 +319,7 @@ impl SlintEditorHost {
             &runtime_diagnostics,
             &floating_window_projection_bundle,
         );
-        self.sync_menu_pointer_layout(&chrome, &preset_names);
+        self.sync_menu_pointer_layout(&model, &chrome, &preset_names);
         self.sync_welcome_recent_pointer_layout(&chrome.welcome);
         self.sync_hierarchy_pointer_layout(&chrome.scene_entries);
         self.sync_detail_pointer_layouts(&chrome);
@@ -411,9 +414,18 @@ impl SlintEditorHost {
                         load_state: plugin.load_state.into(),
                         enabled: plugin.enabled,
                         required: plugin.required,
+                        target_modes: plugin
+                            .target_modes
+                            .iter()
+                            .map(target_mode_label)
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                            .into(),
+                        packaging: packaging_label(plugin.packaging).into(),
                         runtime_crate: plugin.runtime_crate.unwrap_or_default().into(),
                         editor_crate: plugin.editor_crate.unwrap_or_default().into(),
-                        capabilities: plugin.editor_capabilities.join(", ").into(),
+                        runtime_capabilities: plugin.runtime_capabilities.join(", ").into(),
+                        editor_capabilities: plugin.editor_capabilities.join(", ").into(),
                         diagnostics: plugin.diagnostics.join("\n").into(),
                     })
                     .collect(),
@@ -578,6 +590,22 @@ fn active_document_shows_viewport_toolbar(model: &WorkbenchViewModel) -> bool {
         .find(|tab| tab.active)
         .or_else(|| model.document_tabs.first())
         .is_some_and(|tab| tab.content_kind == ViewContentKind::Scene)
+}
+
+fn target_mode_label(mode: &zircon_runtime::RuntimeTargetMode) -> &'static str {
+    match mode {
+        zircon_runtime::RuntimeTargetMode::ClientRuntime => "client",
+        zircon_runtime::RuntimeTargetMode::ServerRuntime => "server",
+        zircon_runtime::RuntimeTargetMode::EditorHost => "editor",
+    }
+}
+
+fn packaging_label(strategy: zircon_runtime::ExportPackagingStrategy) -> &'static str {
+    match strategy {
+        zircon_runtime::ExportPackagingStrategy::SourceTemplate => "source-template",
+        zircon_runtime::ExportPackagingStrategy::LibraryEmbed => "library-embed",
+        zircon_runtime::ExportPackagingStrategy::NativeDynamic => "native-dynamic",
+    }
 }
 
 fn fallback_project_manifest() -> zircon_runtime::asset::project::ProjectManifest {

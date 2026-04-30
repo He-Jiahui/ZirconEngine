@@ -26,7 +26,7 @@ kind = "native"
 type = "VerticalBox"
 children = [
   { node = { node_id = "hierarchy_header", kind = "native", type = "HorizontalBox", children = [
-    { node = { node_id = "hierarchy_select_root_action", kind = "native", type = "UiHostIconButton", control_id = "SelectRoot", bindings = [{ id = "HierarchyPaneBody/SelectRoot", event = "Click", route = "SelectionCommand.SelectSceneNode" }], props = { label = "Select Root" } } }
+    { node = { node_id = "hierarchy_select_root_action", kind = "native", type = "IconButton", control_id = "SelectRoot", bindings = [{ id = "HierarchyPaneBody/SelectRoot", event = "Click", route = "SelectionCommand.SelectSceneNode" }], props = { label = "Select Root" } } }
   ] } },
   { node = { node_id = "hierarchy_tree_slot_node", kind = "slot", slot_name = "hierarchy_tree_slot", control_id = "HierarchyListPanel" } },
 ]

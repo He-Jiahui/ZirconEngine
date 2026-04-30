@@ -7,8 +7,6 @@ mod showcase_demo_state;
 mod slint_adapter;
 
 #[cfg(test)]
-pub(crate) use builtin::LEGACY_HOST_WINDOW_DOCUMENT_ID;
-#[cfg(test)]
 pub(crate) use builtin::UI_HOST_WINDOW_DOCUMENT_ID;
 pub use harness::{EditorUiCompatibilityHarness, EditorUiCompatibilitySnapshot};
 pub use host_nodes::{SlintUiHostBindingProjection, SlintUiHostModel, SlintUiHostNodeProjection};

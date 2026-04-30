@@ -5,8 +5,28 @@ use crate::graphics::runtime::render_framework::render_framework_state::RenderFr
 use super::super::frame_submission_context::FrameSubmissionContext;
 
 pub(super) struct ResolvedHistoryHandle {
-    pub(super) allocated_history: Option<FrameHistoryHandle>,
-    pub(super) current_history_handle: Option<FrameHistoryHandle>,
+    allocated_history: Option<FrameHistoryHandle>,
+    current_history_handle: Option<FrameHistoryHandle>,
+}
+
+impl ResolvedHistoryHandle {
+    fn new(
+        allocated_history: Option<FrameHistoryHandle>,
+        current_history_handle: Option<FrameHistoryHandle>,
+    ) -> Self {
+        Self {
+            allocated_history,
+            current_history_handle,
+        }
+    }
+
+    pub(super) fn allocated_history(&self) -> Option<FrameHistoryHandle> {
+        self.allocated_history
+    }
+
+    pub(super) fn current_history_handle(&self) -> Option<FrameHistoryHandle> {
+        self.current_history_handle
+    }
 }
 
 pub(super) fn resolve_history_handle(
@@ -19,10 +39,7 @@ pub(super) fn resolve_history_handle(
     let current_history_handle =
         allocated_history.or_else(|| current_history_handle(state, viewport));
 
-    ResolvedHistoryHandle {
-        allocated_history,
-        current_history_handle,
-    }
+    ResolvedHistoryHandle::new(allocated_history, current_history_handle)
 }
 
 fn should_rotate_history(
@@ -33,12 +50,12 @@ fn should_rotate_history(
     state
         .viewports
         .get(&viewport)
-        .and_then(|record| record.history.as_ref())
+        .and_then(|record| record.history())
         .is_none_or(|history| {
             !history.is_compatible(
-                context.size,
-                context.pipeline_handle,
-                &context.compiled_pipeline.history_bindings,
+                context.size(),
+                context.pipeline_handle(),
+                &context.compiled_pipeline().history_bindings,
             )
         })
 }
@@ -56,5 +73,5 @@ fn current_history_handle(
     state
         .viewports
         .get(&viewport)
-        .and_then(|record| record.history.as_ref().map(|history| history.handle))
+        .and_then(|record| record.history().map(|history| history.handle()))
 }

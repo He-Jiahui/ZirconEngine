@@ -11,7 +11,7 @@ use crate::engine_module::{dependency_on, factory, qualified_name, EngineModule}
 mod core_error;
 mod default_level_manager;
 mod level_display_name;
-mod level_manager_facade;
+mod level_manager_contract;
 mod level_manager_lifecycle;
 mod level_manager_project_io;
 mod world_driver;

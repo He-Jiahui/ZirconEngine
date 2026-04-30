@@ -16,7 +16,7 @@ pub(super) use crate::core::framework::render::{
 };
 pub(super) use crate::core::math::{Transform, UVec2, Vec3};
 pub(super) use crate::graphics::backend::RenderBackend;
-pub(super) use crate::graphics::scene::scene_renderer::virtual_geometry::VirtualGeometryGpuResources;
+pub(super) use crate::graphics::scene::scene_renderer::core::scene_renderer_core::SceneRendererAdvancedPluginResources;
 pub(super) use crate::graphics::types::{
     ViewportRenderFrame, VirtualGeometryNodeAndClusterCullChildWorkItem,
     VirtualGeometryNodeAndClusterCullClusterWorkItem,

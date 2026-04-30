@@ -30,7 +30,7 @@ pub(crate) struct HybridGiVoxelSceneState {
 
 impl HybridGiVoxelSceneState {
     #[cfg_attr(not(test), allow(dead_code))]
-    pub(crate) fn synchronize(
+    pub(in crate::graphics::runtime::hybrid_gi::scene_representation) fn synchronize(
         &mut self,
         cards: &[HybridGiCardDescriptor],
         directional_lights: &[RenderDirectionalLightSnapshot],
@@ -238,8 +238,8 @@ fn build_voxel_cells(
                 let Some([(x_start, x_end), (y_start, y_end), (z_start, z_end)]) =
                     hybrid_gi_voxel_clipmap_bounds_cell_ranges(
                         &clipmap,
-                        card.bounds_center,
-                        card.bounds_radius,
+                        card.bounds_center(),
+                        card.bounds_radius(),
                     )
                 else {
                     continue;
@@ -257,9 +257,9 @@ fn build_voxel_cells(
                             let should_replace = dominant_card_ids[cell_index] == 0
                                 || radiance_strength > dominant_strengths[cell_index]
                                 || (radiance_strength == dominant_strengths[cell_index]
-                                    && card.card_id > dominant_card_ids[cell_index]);
+                                    && card.card_id() > dominant_card_ids[cell_index]);
                             if should_replace {
-                                dominant_card_ids[cell_index] = card.card_id;
+                                dominant_card_ids[cell_index] = card.card_id();
                                 dominant_strengths[cell_index] = radiance_strength;
                                 dominant_radiance_present[cell_index] = true;
                                 dominant_radiance_rgb[cell_index] = radiance_rgb;
@@ -347,24 +347,24 @@ fn card_voxel_radiance_rgb(
     spot_lights: &[RenderSpotLightSnapshot],
 ) -> [u8; 3] {
     let tint = saturate_vec3(Vec3::new(
-        card.mesh.tint.x,
-        card.mesh.tint.y,
-        card.mesh.tint.z,
+        card.mesh().tint.x,
+        card.mesh().tint.y,
+        card.mesh().tint.z,
     ));
     let card_normal = card_normal(card);
     let direct_light = directional_lights.iter().fold(Vec3::ZERO, |acc, light| {
         acc + directional_light_contribution(card_normal, light)
     }) + point_lights.iter().fold(Vec3::ZERO, |acc, light| {
-        acc + point_light_contribution(card.bounds_center, card_normal, light)
+        acc + point_light_contribution(card.bounds_center(), card_normal, light)
     }) + spot_lights.iter().fold(Vec3::ZERO, |acc, light| {
-        acc + spot_light_contribution(card.bounds_center, card_normal, light)
+        acc + spot_light_contribution(card.bounds_center(), card_normal, light)
     });
     let radiance = tint * 0.45 + component_mul(tint, direct_light * 0.9);
     quantize_voxel_radiance(radiance.max(Vec3::ZERO))
 }
 
 fn card_normal(card: &HybridGiCardDescriptor) -> Vec3 {
-    let normal = card.mesh.transform.forward();
+    let normal = card.mesh().transform.forward();
     if normal == Vec3::ZERO {
         -Vec3::Z
     } else {
@@ -515,10 +515,10 @@ fn scene_bounds(cards: &[HybridGiCardDescriptor]) -> (Vec3, Vec3) {
     cards.iter().fold(
         (Vec3::splat(f32::INFINITY), Vec3::splat(f32::NEG_INFINITY)),
         |(min_bounds, max_bounds), card| {
-            let radius = Vec3::splat(card.bounds_radius.max(0.0));
+            let radius = Vec3::splat(card.bounds_radius().max(0.0));
             (
-                min_bounds.min(card.bounds_center - radius),
-                max_bounds.max(card.bounds_center + radius),
+                min_bounds.min(card.bounds_center() - radius),
+                max_bounds.max(card.bounds_center() + radius),
             )
         },
     )

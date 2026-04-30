@@ -118,6 +118,12 @@ impl ScreenSpaceUiRenderer {
             );
             pass.draw(draw.vertices.clone(), 0..1);
         }
+        pass.set_scissor_rect(
+            0,
+            0,
+            frame.viewport_size.x.max(1),
+            frame.viewport_size.y.max(1),
+        );
         self.text_system.render(&mut pass);
     }
 }
@@ -262,33 +268,85 @@ fn plan_command_batches(
         push_rect(&mut plan.vertices, icon, color, viewport);
     }
 
-    if let Some(text) = command.text.as_ref().filter(|text| !text.is_empty()) {
+    if command.text.as_ref().is_some_and(|text| !text.is_empty()) {
         let color = parse_color(
             command.style.foreground_color.as_deref(),
             [0.96, 0.96, 0.96, 1.0],
             command.opacity,
         )
         .unwrap_or([0.96, 0.96, 0.96, command.opacity]);
-        let batch = ScreenSpaceUiTextBatch {
-            text: text.clone(),
-            frame,
-            clip_frame: command.clip_frame,
-            color,
-            font: command.style.font.clone(),
-            font_family: command.style.font_family.clone(),
-            font_size: command.style.font_size.max(1.0),
-            line_height: command
-                .style
-                .line_height
-                .max(command.style.font_size.max(1.0)),
-            text_align: command.style.text_align,
-            wrap: command.style.wrap,
-        };
-        match command.style.text_render_mode {
-            UiTextRenderMode::Auto => plan.auto_texts.push(batch),
-            UiTextRenderMode::Native => plan.native_texts.push(batch),
-            UiTextRenderMode::Sdf => plan.sdf_texts.push(batch),
+        push_text_batches(command, frame, color, plan);
+    }
+}
+
+fn push_text_batches(
+    command: &UiRenderCommand,
+    fallback_frame: UiFrame,
+    color: [f32; 4],
+    plan: &mut PlannedScreenSpaceUi,
+) {
+    if let Some(layout) = command
+        .text_layout
+        .as_ref()
+        .filter(|layout| !layout.lines.is_empty())
+    {
+        for line in &layout.lines {
+            push_text_batch(
+                command,
+                line.text.clone(),
+                line.frame,
+                layout.font_size,
+                layout.line_height,
+                color,
+                plan,
+            );
         }
+        return;
+    }
+
+    if let Some(text) = command.text.as_ref().filter(|text| !text.is_empty()) {
+        let font_size = command.style.font_size.max(1.0);
+        push_text_batch(
+            command,
+            text.clone(),
+            fallback_frame,
+            font_size,
+            command.style.line_height.max(font_size),
+            color,
+            plan,
+        );
+    }
+}
+
+fn push_text_batch(
+    command: &UiRenderCommand,
+    text: String,
+    frame: UiFrame,
+    font_size: f32,
+    line_height: f32,
+    color: [f32; 4],
+    plan: &mut PlannedScreenSpaceUi,
+) {
+    if text.is_empty() || frame.width <= 0.0 || frame.height <= 0.0 {
+        return;
+    }
+
+    let batch = ScreenSpaceUiTextBatch {
+        text,
+        frame,
+        clip_frame: command.clip_frame,
+        color,
+        font: command.style.font.clone(),
+        font_family: command.style.font_family.clone(),
+        font_size: font_size.max(1.0),
+        line_height: line_height.max(font_size.max(1.0)),
+        text_align: command.style.text_align,
+        wrap: command.style.wrap,
+    };
+    match command.style.text_render_mode {
+        UiTextRenderMode::Auto => plan.auto_texts.push(batch),
+        UiTextRenderMode::Native => plan.native_texts.push(batch),
+        UiTextRenderMode::Sdf => plan.sdf_texts.push(batch),
     }
 }
 
@@ -447,7 +505,8 @@ mod tests {
     use crate::core::math::UVec2;
     use crate::ui::event_ui::{UiNodeId, UiTreeId};
     use crate::ui::surface::{
-        UiRenderExtract, UiRenderList, UiTextAlign, UiTextRenderMode, UiTextWrap,
+        UiRenderExtract, UiRenderList, UiResolvedTextLayout, UiResolvedTextLine, UiTextAlign,
+        UiTextRenderMode, UiTextWrap,
     };
 
     #[test]
@@ -472,6 +531,7 @@ mod tests {
                             text_render_mode: UiTextRenderMode::Native,
                             ..crate::ui::surface::UiResolvedStyle::default()
                         },
+                        text_layout: None,
                         text: Some("Launch".to_string()),
                         image: None,
                         opacity: 1.0,
@@ -507,6 +567,7 @@ mod tests {
                             text_render_mode: UiTextRenderMode::Sdf,
                             ..crate::ui::surface::UiResolvedStyle::default()
                         },
+                        text_layout: None,
                         text: Some("SDF".to_string()),
                         image: None,
                         opacity: 1.0,
@@ -542,6 +603,7 @@ mod tests {
                             text_render_mode: UiTextRenderMode::Auto,
                             ..crate::ui::surface::UiResolvedStyle::default()
                         },
+                        text_layout: None,
                         text: Some("Auto".to_string()),
                         image: None,
                         opacity: 1.0,
@@ -554,5 +616,69 @@ mod tests {
         assert!(plan.native_texts.is_empty());
         assert!(plan.sdf_texts.is_empty());
         assert_eq!(plan.auto_texts.len(), 1);
+    }
+
+    #[test]
+    fn screen_space_ui_plan_uses_resolved_text_layout_lines_as_batches() {
+        let plan = plan_screen_space_ui_batches(
+            &UiRenderExtract {
+                tree_id: UiTreeId::new("runtime.ui"),
+                list: UiRenderList {
+                    commands: vec![UiRenderCommand {
+                        node_id: UiNodeId::new(4),
+                        kind: UiRenderCommandKind::Text,
+                        frame: UiFrame::new(10.0, 20.0, 90.0, 48.0),
+                        clip_frame: Some(UiFrame::new(0.0, 0.0, 120.0, 48.0)),
+                        z_index: 0,
+                        style: crate::ui::surface::UiResolvedStyle {
+                            foreground_color: Some("#ffffff".to_string()),
+                            font_size: 10.0,
+                            line_height: 12.0,
+                            text_align: UiTextAlign::Center,
+                            wrap: UiTextWrap::Word,
+                            text_render_mode: UiTextRenderMode::Native,
+                            ..crate::ui::surface::UiResolvedStyle::default()
+                        },
+                        text_layout: Some(UiResolvedTextLayout {
+                            text_align: UiTextAlign::Center,
+                            wrap: UiTextWrap::Word,
+                            font_size: 10.0,
+                            line_height: 12.0,
+                            lines: vec![
+                                UiResolvedTextLine {
+                                    text: "Alpha Beta".to_string(),
+                                    frame: UiFrame::new(20.0, 20.0, 50.0, 12.0),
+                                },
+                                UiResolvedTextLine {
+                                    text: "Gamma".to_string(),
+                                    frame: UiFrame::new(35.0, 32.0, 25.0, 12.0),
+                                },
+                            ],
+                            overflow_clipped: false,
+                        }),
+                        text: Some("Alpha Beta Gamma".to_string()),
+                        image: None,
+                        opacity: 1.0,
+                    }],
+                },
+            },
+            UVec2::new(160, 120),
+        );
+
+        assert_eq!(plan.native_texts.len(), 2);
+        assert_eq!(plan.native_texts[0].text, "Alpha Beta");
+        assert_eq!(
+            plan.native_texts[0].frame,
+            UiFrame::new(20.0, 20.0, 50.0, 12.0)
+        );
+        assert_eq!(plan.native_texts[1].text, "Gamma");
+        assert_eq!(
+            plan.native_texts[1].frame,
+            UiFrame::new(35.0, 32.0, 25.0, 12.0)
+        );
+        assert_eq!(
+            plan.native_texts[0].clip_frame,
+            Some(UiFrame::new(0.0, 0.0, 120.0, 48.0))
+        );
     }
 }

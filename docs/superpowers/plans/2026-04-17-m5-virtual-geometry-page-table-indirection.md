@@ -1,7 +1,11 @@
 ---
 related_code:
   - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/execute_prepare/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/virtual_geometry_gpu_resources/new.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/virtual_geometry/gpu_resources/virtual_geometry_gpu_resources/new/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/virtual_geometry/gpu_resources/virtual_geometry_gpu_resources/new/bind_group_layout.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/virtual_geometry/gpu_resources/virtual_geometry_gpu_resources/new/uploader_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/virtual_geometry/gpu_resources/virtual_geometry_gpu_resources/new/params_buffer.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/virtual_geometry/gpu_resources/virtual_geometry_gpu_resources/new/node_and_cluster_cull_instance_work_item_pipeline.rs
   - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/virtual_geometry_uploader_params/virtual_geometry_uploader_params.rs
   - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_readback/mod.rs
   - zircon_graphics/src/scene/scene_renderer/virtual_geometry/shaders/uploader.wgsl
@@ -10,7 +14,11 @@ related_code:
   - zircon_graphics/src/tests/virtual_geometry_prepare_render.rs
 implementation_files:
   - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/execute_prepare/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/virtual_geometry_gpu_resources/new.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/virtual_geometry/gpu_resources/virtual_geometry_gpu_resources/new/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/virtual_geometry/gpu_resources/virtual_geometry_gpu_resources/new/bind_group_layout.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/virtual_geometry/gpu_resources/virtual_geometry_gpu_resources/new/uploader_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/virtual_geometry/gpu_resources/virtual_geometry_gpu_resources/new/params_buffer.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/virtual_geometry/gpu_resources/virtual_geometry_gpu_resources/new/node_and_cluster_cull_instance_work_item_pipeline.rs
   - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/virtual_geometry_uploader_params/virtual_geometry_uploader_params.rs
   - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_readback/mod.rs
   - zircon_graphics/src/scene/scene_renderer/virtual_geometry/shaders/uploader.wgsl

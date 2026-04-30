@@ -1,6 +1,93 @@
 use super::*;
 
 impl SlintEditorHost {
+    pub(super) fn asset_content_pointer_event(
+        &mut self,
+        surface_mode: &str,
+        kind: i32,
+        button: i32,
+        x: f32,
+        y: f32,
+        width: f32,
+        height: f32,
+    ) {
+        if button == 1 && kind == 2 {
+            self.active_asset_drag_payload = None;
+            return;
+        }
+        if kind != 0 || button != 1 {
+            return;
+        }
+        self.active_scene_drag_payload = None;
+        self.active_object_drag_payload = None;
+        self.recompute_if_dirty();
+        self.focus_callback_source_window();
+        let Some(snapshot) = self.asset_workspace_snapshot_for_pointer(surface_mode) else {
+            self.active_asset_drag_payload = None;
+            self.set_status_line(format!("Unknown asset surface mode {surface_mode}"));
+            return;
+        };
+        let Some(content_size) =
+            self.asset_surface_pointer_state(surface_mode)
+                .and_then(|surface| {
+                    self.resolve_callback_surface_size_for_asset_surface(
+                        surface_mode,
+                        width,
+                        height,
+                        surface.content_size,
+                    )
+                })
+        else {
+            self.active_asset_drag_payload = None;
+            self.set_status_line(format!("Unknown asset surface mode {surface_mode}"));
+            return;
+        };
+
+        let dispatch = {
+            let Some(surface) = self.asset_surface_pointer_state_mut(surface_mode) else {
+                self.active_asset_drag_payload = None;
+                self.set_status_line(format!("Unknown asset surface mode {surface_mode}"));
+                return;
+            };
+            surface.content_size = content_size;
+            surface.content_bridge.sync(
+                AssetContentListPointerLayout::from_snapshot(&snapshot, surface.content_size),
+                surface.content_state.clone(),
+            );
+            surface.content_bridge.handle_press(UiPoint::new(x, y))
+        };
+
+        match dispatch {
+            Ok(dispatch) => {
+                if let Some(surface) = self.asset_surface_pointer_state_mut(surface_mode) {
+                    surface.content_state = dispatch.state;
+                }
+                self.apply_asset_pointer_state_to_ui(surface_mode);
+                if let Some(AssetPointerContentRoute::Item { asset_uuid, .. }) = dispatch.route {
+                    self.active_asset_drag_payload =
+                        asset_drag_payload::asset_drag_payload_from_snapshot(
+                            surface_mode,
+                            asset_uuid.as_str(),
+                            &snapshot,
+                        );
+                    if let Some(summary) = self
+                        .active_asset_drag_payload
+                        .as_ref()
+                        .and_then(UiDragPayload::source_summary)
+                    {
+                        self.set_status_line(format!("Asset drag source: {summary}"));
+                    }
+                } else {
+                    self.active_asset_drag_payload = None;
+                }
+            }
+            Err(error) => {
+                self.active_asset_drag_payload = None;
+                self.set_status_line(error);
+            }
+        }
+    }
+
     pub(super) fn asset_content_pointer_clicked(
         &mut self,
         surface_mode: &str,

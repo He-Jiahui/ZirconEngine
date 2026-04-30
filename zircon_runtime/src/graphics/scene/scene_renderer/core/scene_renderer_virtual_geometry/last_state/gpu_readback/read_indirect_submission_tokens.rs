@@ -13,10 +13,10 @@ impl SceneRenderer {
         read_submission_tokens_buffer(
             self,
             self.advanced_plugin_outputs
-                .virtual_geometry_indirect_submission_buffer
+                .virtual_geometry_indirect_submission_buffer()
                 .as_deref(),
             self.advanced_plugin_outputs
-                .virtual_geometry_indirect_args_count,
+                .virtual_geometry_indirect_args_count(),
             "zircon-vg-indirect-submission-tokens",
         )
     }
@@ -28,10 +28,10 @@ impl SceneRenderer {
         read_submission_tokens_buffer(
             self,
             self.advanced_plugin_outputs
-                .virtual_geometry_indirect_execution_submission_buffer
+                .virtual_geometry_indirect_execution_submission_buffer()
                 .as_deref(),
             self.advanced_plugin_outputs
-                .virtual_geometry_indirect_draw_count,
+                .virtual_geometry_indirect_draw_count(),
             "zircon-vg-indirect-execution-submission-tokens",
         )
     }

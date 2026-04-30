@@ -69,7 +69,7 @@ doc_type: module-detail
 - `zircon_app` 只负责 entry profile 选择、内建模块注册、shell 启动和主循环接通
 - `zircon_core` 负责进程级唯一 `CoreRuntime`、生命周期、依赖排序、事件、配置和调度
 - `zircon_module` 负责模块、驱动器、管理器、插件 descriptor 和上下文
-- `zircon_manager` 负责稳定 façade、trait、resolver 和 handle surface
+- manager 层负责稳定 contract、trait、resolver 和 handle surface
 - `zircon_runtime` 负责吸收 foundation/input/platform 等高层运行时模块实现，并继续向外提供具体模块 owner
 - 具体领域能力由 `zircon_*` 子系统模块实现，并通过 core/module/manager 模型接入
 
@@ -82,7 +82,7 @@ doc_type: module-detail
 
 ### Editor and Runtime Boundary
 
-- editor 和 runtime 都必须通过 core 查询 façade 或 manager，而不是直接拼接底层实现对象
+- editor 和 runtime 都必须通过 core 查询 contract、handle 或 manager，而不是直接拼接底层实现对象
 - `zircon_editor` 负责 editor state、命令系统、选择集、宿主 UI 和 workbench；它不是运行时世界的拥有者
 - editor 对世界的修改应通过 `LevelManager`、`LevelSystem` 或命令层落入 ECS world
 
@@ -101,7 +101,7 @@ doc_type: module-detail
 - core contract
 - module descriptor
 - driver or manager
-- manager façade or stable handle
+- manager contract or stable handle
 - ECS component, resource, or system stage
 - config object or manifest
 - editor command surface
@@ -114,7 +114,7 @@ doc_type: module-detail
 不允许从上层直接 new 或持有下层具体实现对象来走主链路。上层应依赖：
 
 - descriptors
-- typed façade traits
+- typed contract traits
 - stable handles
 - manager interfaces
 - ECS queries or command surfaces
@@ -126,7 +126,7 @@ doc_type: module-detail
 “这个功能很简单，所以先直接写了” 不是有效理由。每次觉得实现很简单时，先问两个问题：
 
 - 这是因为系统已经有足够强的抽象，所以 leaf implementation 很薄吗？
-- 还是因为我们绕过了 descriptor、resolver、façade、`LevelSystem`、plugin contract、lifecycle 这些必要层？
+- 还是因为我们绕过了 descriptor、resolver、manager contract、`LevelSystem`、plugin contract、lifecycle 这些必要层？
 
 只有第一种情况可以继续实现。第二种情况必须先补架构。
 
@@ -138,7 +138,7 @@ doc_type: module-detail
 
 - 应用入口与核心 runtime 分离
 - 模块注册和生命周期由统一核心管理
-- 上层通过 façade 或服务访问领域能力
+- 上层通过 contract、handle 或服务访问领域能力
 - `LevelManager -> LevelSystem -> World` 作为场景运行时权威分层
 - editor 作为宿主和工具层，不直接吞并 runtime 内核
 - plugin/script 通过稳定协议接入，而不是直接绑死具体实现
@@ -158,7 +158,7 @@ doc_type: module-detail
 
 - capability contract
 - lifecycle rule
-- façade boundary
+- contract boundary
 - ECS data model
 - command surface
 - serialization rule
@@ -184,7 +184,7 @@ doc_type: module-detail
 
 开始前先回答：
 
-- 这个能力属于 core、module metadata、manager façade、`LevelManager`、`LevelSystem`、`World`、graphics extract、editor host 还是 VM plugin？
+- 这个能力属于 core、module metadata、manager contract、`LevelManager`、`LevelSystem`、`World`、graphics extract、editor host 还是 VM plugin？
 - 它依赖哪个生命周期层？
 - 它需要哪些 sibling 模块同步接入？
 
@@ -224,7 +224,7 @@ doc_type: module-detail
 1. 描述边界与契约
 2. 接入 descriptor、注册、生命周期和 config
 3. 补 no-op 或 stub 路径
-4. 接入 façade、manager、ECS 或 plugin protocol
+4. 接入 contract、manager、ECS 或 plugin protocol
 5. 最后再写 feature-specific behavior
 
 这样可以保证具体功能是正常消费者，而不是反向定义架构。
@@ -234,7 +234,7 @@ doc_type: module-detail
 以下现象出现时，应立刻停下重审设计：
 
 - “先直接从 editor 调这个具体类型，后面再抽象”
-- “这个功能只有一个地方用，不需要 façade”
+- “这个功能只有一个地方用，不需要 contract”
 - “先把 world 放在 editor state 里，后面再拆”
 - “这个 plugin 先拿 Rust 对象引用，热替换以后再说”
 - “其他 crate 先不接，当前链路跑通就行”
@@ -248,7 +248,7 @@ doc_type: module-detail
 
 - 改动完全封闭在一个既有抽象内部
 - 不新增跨 crate public entry point
-- 不改变 lifecycle、façade、ECS authority 或 plugin contract
+- 不改变 lifecycle、manager contract、ECS authority 或 plugin contract
 - 未来同类能力不需要新的公共框架槽位复用
 
 如果任何一条不满足，就先做架构设计。
@@ -258,7 +258,7 @@ doc_type: module-detail
 架构类工作不能只用“功能跑了”作为验收。至少要检查被触达的层次：
 
 - lifecycle 注册、激活、停机和依赖顺序
-- façade 或 handle 是否成为唯一上层入口
+- contract 或 handle 是否成为唯一上层入口
 - ECS 数据权威是否仍然只在 world 一侧
 - render extract / update 阶段是否仍然分离
 - plugin state save/restore 和 capability 边界是否清晰
@@ -273,5 +273,5 @@ doc_type: module-detail
 
 ## Open Issues or Follow-up
 
-- 后续可以继续拆分本目录，分别补 `core-runtime-lifecycle.md`、`manager-facade-contracts.md`、`level-runtime-world.md`、`vm-plugin-host-contract.md`
+- 后续可以继续拆分本目录，分别补 `core-runtime-lifecycle.md`、`manager-contracts-and-handles.md`、`level-runtime-world.md`、`vm-plugin-host-contract.md`
 - 当 `zircon_core`、`zircon_module`、`zircon_manager`、`zircon_runtime`、`zircon_app`、`zircon_scene`、`zircon_runtime::script` 稳定后，应把这里的全局规则细化成每个子系统的叶子文档

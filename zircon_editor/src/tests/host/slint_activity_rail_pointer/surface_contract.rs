@@ -1,40 +1,27 @@
+fn source(relative: &str) -> String {
+    std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(relative))
+        .unwrap_or_else(|error| panic!("read `{relative}`: {error}"))
+}
+
 #[test]
-fn shared_activity_rail_surfaces_replace_legacy_direct_click_routes() {
-    let workbench = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/ui/workbench.slint"));
-    let host_context = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/host_context.slint"
-    ));
-    let app = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/src/ui/slint_host/app.rs"
-    ));
-    let wiring = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/src/ui/slint_host/app/callback_wiring.rs"
-    ));
+fn shared_activity_rail_surfaces_use_rust_callbacks_and_toml_projection() {
+    let globals = source("src/ui/slint_host/host_contract/globals.rs");
+    let wiring = source("src/ui/slint_host/app/callback_wiring.rs");
+    let pointer_layout = source("src/ui/slint_host/app/pointer_layout.rs");
+    let chrome_projection = source("src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs");
+    let activity_asset = source("assets/ui/editor/workbench_activity_rail.ui.toml");
 
-    let direct_toggle_count = workbench
-        .matches("clicked => { root.toggle_drawer_tab(tab.slot, tab.id); }")
-        .count();
-    assert!(
-        direct_toggle_count <= 3,
-        "workbench shell still exposes legacy rail direct callback sites ({direct_toggle_count})"
-    );
-
-    for needle in [
-        "callback activity_rail_pointer_clicked(",
-        "activity_rail_pointer_clicked(",
+    assert!(globals.contains("on_activity_rail_pointer_clicked"));
+    assert!(wiring.contains("host_shell.on_activity_rail_pointer_clicked("));
+    assert!(pointer_layout.contains("build_host_activity_rail_pointer_layout("));
+    for required in [
+        "activity_rail_nodes",
+        "activity_rail_button_frames",
+        "activity_rail_active_control_id",
     ] {
-        assert!(
-            workbench.contains(needle) || host_context.contains(needle),
-            "workbench shell is missing shared activity rail pointer hook `{needle}`"
-        );
+        assert!(chrome_projection.contains(required), "missing `{required}`");
     }
-
-    assert!(
-        app.contains("host_shell.on_activity_rail_pointer_clicked(")
-            || wiring.contains("host_shell.on_activity_rail_pointer_clicked("),
-        "slint host app must register shared activity rail pointer clicks"
-    );
+    for required in ["ActivityRailPanel", "ActivityRailButton0", "ActivityRailButton1"] {
+        assert!(activity_asset.contains(required), "missing `{required}`");
+    }
 }

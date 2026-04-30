@@ -6,7 +6,7 @@ pub(super) fn infer_interaction(node: &UiTemplateNode) -> (UiStateFlags, UiInput
     let is_interactive = !node.bindings.is_empty()
         || matches!(
             node.component.as_deref(),
-            Some("Button" | "UiHostIconButton" | "TextField")
+            Some("Button" | "IconButton" | "TextField")
         );
     (
         UiStateFlags {

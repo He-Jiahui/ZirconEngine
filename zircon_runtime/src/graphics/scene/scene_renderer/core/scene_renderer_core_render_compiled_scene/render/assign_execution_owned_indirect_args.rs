@@ -48,12 +48,12 @@ pub(super) fn assign_execution_owned_indirect_args(
     for (execution_index, draw_index) in indirect_execution_draw_indices.iter().copied().enumerate()
     {
         let draw = &mesh_draws[draw_index];
-        let Some(source_buffer) = draw.indirect_args_buffer.as_ref() else {
+        let Some(source_buffer) = draw.indirect_args_buffer() else {
             continue;
         };
         encoder.copy_buffer_to_buffer(
             source_buffer,
-            draw.indirect_args_offset,
+            draw.indirect_args_offset(),
             &buffer,
             (execution_index as u64) * INDIRECT_ARGS_STRIDE_BYTES,
             INDIRECT_ARGS_STRIDE_BYTES,
@@ -62,8 +62,10 @@ pub(super) fn assign_execution_owned_indirect_args(
 
     for (execution_index, draw_index) in indirect_execution_draw_indices.into_iter().enumerate() {
         let draw = &mut mesh_draws[draw_index];
-        draw.indirect_args_buffer = Some(Arc::clone(&buffer));
-        draw.indirect_args_offset = (execution_index as u64) * INDIRECT_ARGS_STRIDE_BYTES;
+        draw.assign_execution_owned_indirect_args(
+            Arc::clone(&buffer),
+            (execution_index as u64) * INDIRECT_ARGS_STRIDE_BYTES,
+        );
     }
 
     Some(buffer)

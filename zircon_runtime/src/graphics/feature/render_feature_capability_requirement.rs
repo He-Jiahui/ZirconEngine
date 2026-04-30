@@ -1,4 +1,4 @@
-use crate::core::framework::render::RenderCapabilitySummary;
+use crate::core::framework::render::{RenderCapabilityKind, RenderCapabilitySummary};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum RenderFeatureCapabilityRequirement {
@@ -13,26 +13,22 @@ pub enum RenderFeatureCapabilityRequirement {
 
 impl RenderFeatureCapabilityRequirement {
     pub fn is_satisfied_by(self, capabilities: &RenderCapabilitySummary) -> bool {
+        self.capability_kind().is_satisfied_by(capabilities)
+    }
+
+    pub const fn capability_kind(self) -> RenderCapabilityKind {
         match self {
-            Self::VirtualGeometry => capabilities.virtual_geometry_supported,
-            Self::HybridGlobalIllumination => capabilities.hybrid_global_illumination_supported,
-            Self::AccelerationStructures => capabilities.acceleration_structures_supported,
-            Self::InlineRayQuery => capabilities.inline_ray_query,
-            Self::RayTracingPipeline => capabilities.ray_tracing_pipeline,
-            Self::AsyncCompute => capabilities.supports_async_compute,
-            Self::AsyncCopy => capabilities.supports_async_copy,
+            Self::VirtualGeometry => RenderCapabilityKind::VirtualGeometry,
+            Self::HybridGlobalIllumination => RenderCapabilityKind::HybridGlobalIllumination,
+            Self::AccelerationStructures => RenderCapabilityKind::AccelerationStructures,
+            Self::InlineRayQuery => RenderCapabilityKind::InlineRayQuery,
+            Self::RayTracingPipeline => RenderCapabilityKind::RayTracingPipeline,
+            Self::AsyncCompute => RenderCapabilityKind::AsyncCompute,
+            Self::AsyncCopy => RenderCapabilityKind::AsyncCopy,
         }
     }
 
     pub const fn label(self) -> &'static str {
-        match self {
-            Self::VirtualGeometry => "virtual_geometry",
-            Self::HybridGlobalIllumination => "hybrid_global_illumination",
-            Self::AccelerationStructures => "acceleration_structures",
-            Self::InlineRayQuery => "inline_ray_query",
-            Self::RayTracingPipeline => "ray_tracing_pipeline",
-            Self::AsyncCompute => "async_compute",
-            Self::AsyncCopy => "async_copy",
-        }
+        self.capability_kind().label()
     }
 }

@@ -12,57 +12,211 @@ use crate::core::math::{Transform, Vec3};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) struct VirtualGeometryDebugConfig {
-    pub(crate) forced_mip: Option<u8>,
-    pub(crate) freeze_cull: bool,
-    pub(crate) visualize_bvh: bool,
-    pub(crate) visualize_visbuffer: bool,
-    pub(crate) print_leaf_clusters: bool,
+    forced_mip: Option<u8>,
+    freeze_cull: bool,
+    visualize_bvh: bool,
+    visualize_visbuffer: bool,
+    print_leaf_clusters: bool,
+}
+
+impl VirtualGeometryDebugConfig {
+    pub(crate) fn new(
+        forced_mip: Option<u8>,
+        freeze_cull: bool,
+        visualize_bvh: bool,
+        visualize_visbuffer: bool,
+        print_leaf_clusters: bool,
+    ) -> Self {
+        Self {
+            forced_mip,
+            freeze_cull,
+            visualize_bvh,
+            visualize_visbuffer,
+            print_leaf_clusters,
+        }
+    }
+
+    pub(crate) fn forced_mip(&self) -> Option<u8> {
+        self.forced_mip
+    }
+
+    pub(crate) fn freeze_cull(&self) -> bool {
+        self.freeze_cull
+    }
+
+    pub(crate) fn visualize_bvh(&self) -> bool {
+        self.visualize_bvh
+    }
+
+    pub(crate) fn visualize_visbuffer(&self) -> bool {
+        self.visualize_visbuffer
+    }
+
+    pub(crate) fn print_leaf_clusters(&self) -> bool {
+        self.print_leaf_clusters
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) struct VirtualGeometryCpuReferenceConfig {
-    pub(crate) debug: VirtualGeometryDebugConfig,
+    debug: VirtualGeometryDebugConfig,
+}
+
+impl VirtualGeometryCpuReferenceConfig {
+    pub(crate) fn new(debug: VirtualGeometryDebugConfig) -> Self {
+        Self { debug }
+    }
+
+    pub(crate) fn debug(&self) -> VirtualGeometryDebugConfig {
+        self.debug
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(crate) struct VirtualGeometryCpuReferenceNodeVisit {
-    pub(crate) node_id: u32,
-    pub(crate) depth: u32,
-    pub(crate) page_id: u32,
-    pub(crate) mip_level: u8,
-    pub(crate) is_leaf: bool,
-    pub(crate) cluster_ids: Vec<u32>,
+    node_id: u32,
+    depth: u32,
+    page_id: u32,
+    mip_level: u8,
+    is_leaf: bool,
+    cluster_ids: Vec<u32>,
+}
+
+impl VirtualGeometryCpuReferenceNodeVisit {
+    pub(crate) fn node_id(&self) -> u32 {
+        self.node_id
+    }
+
+    pub(crate) fn depth(&self) -> u32 {
+        self.depth
+    }
+
+    pub(crate) fn page_id(&self) -> u32 {
+        self.page_id
+    }
+
+    pub(crate) fn mip_level(&self) -> u8 {
+        self.mip_level
+    }
+
+    pub(crate) fn is_leaf(&self) -> bool {
+        self.is_leaf
+    }
+
+    pub(crate) fn cluster_ids(&self) -> &[u32] {
+        &self.cluster_ids
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct VirtualGeometryCpuReferenceLeafCluster {
-    pub(crate) entity: EntityId,
-    pub(crate) node_id: u32,
-    pub(crate) cluster_ordinal: u32,
-    pub(crate) cluster_id: u32,
-    pub(crate) page_id: u32,
-    pub(crate) mip_level: u8,
-    pub(crate) loaded: bool,
-    pub(crate) parent_cluster_id: Option<u32>,
-    pub(crate) bounds_center: [f32; 3],
-    pub(crate) bounds_radius: f32,
-    pub(crate) screen_space_error: f32,
+    entity: EntityId,
+    node_id: u32,
+    cluster_ordinal: u32,
+    cluster_id: u32,
+    page_id: u32,
+    mip_level: u8,
+    loaded: bool,
+    parent_cluster_id: Option<u32>,
+    bounds_center: [f32; 3],
+    bounds_radius: f32,
+    screen_space_error: f32,
+}
+
+impl VirtualGeometryCpuReferenceLeafCluster {
+    pub(crate) fn entity(&self) -> EntityId {
+        self.entity
+    }
+
+    pub(crate) fn node_id(&self) -> u32 {
+        self.node_id
+    }
+
+    pub(crate) fn cluster_ordinal(&self) -> u32 {
+        self.cluster_ordinal
+    }
+
+    pub(crate) fn cluster_id(&self) -> u32 {
+        self.cluster_id
+    }
+
+    pub(crate) fn page_id(&self) -> u32 {
+        self.page_id
+    }
+
+    pub(crate) fn mip_level(&self) -> u8 {
+        self.mip_level
+    }
+
+    pub(crate) fn loaded(&self) -> bool {
+        self.loaded
+    }
+
+    pub(crate) fn parent_cluster_id(&self) -> Option<u32> {
+        self.parent_cluster_id
+    }
+
+    pub(crate) fn bounds_center(&self) -> [f32; 3] {
+        self.bounds_center
+    }
+
+    pub(crate) fn bounds_radius(&self) -> f32 {
+        self.bounds_radius
+    }
+
+    pub(crate) fn screen_space_error(&self) -> f32 {
+        self.screen_space_error
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub(crate) struct VirtualGeometryCpuReferenceFrame {
-    pub(crate) visited_nodes: Vec<VirtualGeometryCpuReferenceNodeVisit>,
-    pub(crate) leaf_clusters: Vec<VirtualGeometryCpuReferenceLeafCluster>,
-    pub(crate) selected_clusters: Vec<VirtualGeometryCpuReferenceLeafCluster>,
-    pub(crate) page_cluster_map: BTreeMap<u32, Vec<u32>>,
-    pub(crate) hierarchy_nodes: Vec<RenderVirtualGeometryHierarchyNode>,
-    pub(crate) hierarchy_child_ids: Vec<u32>,
-    pub(crate) entity: EntityId,
-    pub(crate) debug: VirtualGeometryDebugConfig,
-    pub(crate) mesh_name: Option<String>,
-    pub(crate) source_hint: Option<String>,
+    visited_nodes: Vec<VirtualGeometryCpuReferenceNodeVisit>,
+    leaf_clusters: Vec<VirtualGeometryCpuReferenceLeafCluster>,
+    selected_clusters: Vec<VirtualGeometryCpuReferenceLeafCluster>,
+    page_cluster_map: BTreeMap<u32, Vec<u32>>,
+    hierarchy_nodes: Vec<RenderVirtualGeometryHierarchyNode>,
+    hierarchy_child_ids: Vec<u32>,
+    entity: EntityId,
+    debug: VirtualGeometryDebugConfig,
+    mesh_name: Option<String>,
+    source_hint: Option<String>,
     resident_pages: BTreeSet<u32>,
     page_sizes: BTreeMap<u32, u64>,
+}
+
+impl VirtualGeometryCpuReferenceFrame {
+    pub(crate) fn visited_nodes(&self) -> &[VirtualGeometryCpuReferenceNodeVisit] {
+        &self.visited_nodes
+    }
+
+    pub(crate) fn leaf_clusters(&self) -> &[VirtualGeometryCpuReferenceLeafCluster] {
+        &self.leaf_clusters
+    }
+
+    pub(crate) fn selected_clusters(&self) -> &[VirtualGeometryCpuReferenceLeafCluster] {
+        &self.selected_clusters
+    }
+
+    pub(crate) fn page_cluster_map(&self) -> &BTreeMap<u32, Vec<u32>> {
+        &self.page_cluster_map
+    }
+
+    pub(crate) fn entity(&self) -> EntityId {
+        self.entity
+    }
+
+    pub(crate) fn debug(&self) -> VirtualGeometryDebugConfig {
+        self.debug
+    }
+
+    pub(crate) fn mesh_name(&self) -> Option<&str> {
+        self.mesh_name.as_deref()
+    }
+
+    pub(crate) fn source_hint(&self) -> Option<&str> {
+        self.source_hint.as_deref()
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -406,12 +560,13 @@ mod tests {
     #[test]
     fn store_cluster_keeps_all_leafs_and_selects_only_resident_matching_mip() {
         let mut traversal = VirtualGeometryCpuReferenceTraversalState::default();
-        let config = VirtualGeometryCpuReferenceConfig {
-            debug: VirtualGeometryDebugConfig {
-                forced_mip: Some(10),
-                ..VirtualGeometryDebugConfig::default()
-            },
-        };
+        let config = VirtualGeometryCpuReferenceConfig::new(VirtualGeometryDebugConfig::new(
+            Some(10),
+            false,
+            false,
+            false,
+            false,
+        ));
         let resident_pages = [10_u32].into_iter().collect::<BTreeSet<_>>();
 
         store_cluster(
@@ -575,7 +730,7 @@ mod tests {
                     cluster_count: 1,
                 },
             ],
-            "expected the CPU reference render extract to carry authored hierarchy child ranges so NodeAndClusterCull can replace compat fixed fanout without reopening the cooked asset"
+            "expected the CPU reference render extract to carry authored hierarchy child ranges so NodeAndClusterCull can replace fixed fanout without reopening the cooked asset"
         );
         assert_eq!(extract.hierarchy_child_ids, vec![7, 8]);
     }

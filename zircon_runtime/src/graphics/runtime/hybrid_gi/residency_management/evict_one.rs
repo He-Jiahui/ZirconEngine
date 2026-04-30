@@ -6,10 +6,9 @@ impl HybridGiRuntimeState {
         probe_ids: impl IntoIterator<Item = u32>,
     ) -> bool {
         for probe_id in probe_ids {
-            if let Some(slot) = self.resident_slots.remove(&probe_id) {
-                self.free_slots.insert(slot);
-                self.evictable_probes
-                    .retain(|candidate| *candidate != probe_id);
+            if let Some(slot) = self.remove_resident_probe_slot(probe_id) {
+                self.insert_free_slot(slot);
+                self.remove_evictable_probe(probe_id);
                 return true;
             }
         }

@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+mod support;
+
 use zircon_runtime::asset::pipeline::manager::ProjectAssetManager;
 use zircon_runtime::core::framework::render::{
     RenderFrameExtract, RenderFramework, RenderQualityProfile, RenderViewportDescriptor,
@@ -8,13 +10,12 @@ use zircon_runtime::core::framework::render::{
     RenderVirtualGeometryInstance, RenderVirtualGeometryPage, RenderWorldSnapshotHandle,
 };
 use zircon_runtime::core::math::{Transform, UVec2, Vec3, Vec4};
-use zircon_runtime::graphics::WgpuRenderFramework;
 use zircon_runtime::scene::world::World;
 
 #[test]
 fn render_framework_visualize_visbuffer_draws_only_execution_subset_in_captured_frame() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let server = WgpuRenderFramework::new(asset_manager).expect("framework should initialize");
+    let server = support::virtual_geometry_wgpu_render_framework(asset_manager);
     let viewport_size = UVec2::new(160, 120);
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(viewport_size))

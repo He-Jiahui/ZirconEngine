@@ -1,31 +1,93 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
-use super::EditorEventRecord;
+use super::{EditorEventRecord, EditorEventResult, EditorEventSource};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EditorEventListenerFilter {
+    #[serde(default)]
     pub operation_path_prefixes: Vec<String>,
+    #[serde(default)]
+    pub sources: Vec<EditorEventSource>,
+    #[serde(default = "default_filter_includes_events")]
+    pub include_successes: bool,
+    #[serde(default = "default_filter_includes_events")]
+    pub include_failures: bool,
+}
+
+impl Default for EditorEventListenerFilter {
+    fn default() -> Self {
+        Self {
+            operation_path_prefixes: Vec::new(),
+            sources: Vec::new(),
+            include_successes: true,
+            include_failures: true,
+        }
+    }
 }
 
 impl EditorEventListenerFilter {
     pub fn operation_prefix(prefix: impl Into<String>) -> Self {
         Self {
             operation_path_prefixes: vec![prefix.into()],
+            ..Self::default()
         }
     }
 
-    fn accepts(&self, record: &EditorEventRecord) -> bool {
-        if self.operation_path_prefixes.is_empty() {
-            return true;
+    pub fn source(source: EditorEventSource) -> Self {
+        Self {
+            sources: vec![source],
+            ..Self::default()
         }
-        let Some(operation_id) = record.operation_id.as_deref() else {
-            return false;
-        };
-        self.operation_path_prefixes
-            .iter()
-            .any(|prefix| operation_id.starts_with(prefix))
     }
+
+    pub fn with_sources<I>(mut self, sources: I) -> Self
+    where
+        I: IntoIterator<Item = EditorEventSource>,
+    {
+        self.sources = sources.into_iter().collect();
+        self
+    }
+
+    pub fn failures_only(mut self) -> Self {
+        self.include_successes = false;
+        self.include_failures = true;
+        self
+    }
+
+    pub fn successes_only(mut self) -> Self {
+        self.include_successes = true;
+        self.include_failures = false;
+        self
+    }
+
+    fn accepts(&self, record: &EditorEventRecord) -> bool {
+        if !self.operation_path_prefixes.is_empty() {
+            let Some(operation_id) = record.operation_id.as_deref() else {
+                return false;
+            };
+            if !self
+                .operation_path_prefixes
+                .iter()
+                .any(|prefix| operation_id.starts_with(prefix))
+            {
+                return false;
+            }
+        }
+
+        if !self.sources.is_empty() && !self.sources.contains(&record.source) {
+            return false;
+        }
+
+        if record.result.error.is_some() {
+            return self.include_failures;
+        }
+        self.include_successes
+    }
+}
+
+fn default_filter_includes_events() -> bool {
+    true
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -41,8 +103,21 @@ pub struct EditorEventListenerDelivery {
     pub listener_id: String,
     pub event_id: u64,
     pub sequence: u64,
+    pub source: EditorEventSource,
     pub operation_id: Option<String>,
     pub operation_display_name: Option<String>,
+    pub operation_arguments: Option<Value>,
+    pub operation_group: Option<String>,
+    pub result: EditorEventResult,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct EditorEventListenerStatus {
+    pub listener_id: String,
+    pub descriptor: EditorEventListenerDescriptor,
+    pub pending_delivery_count: usize,
+    pub first_pending_sequence: Option<u64>,
+    pub last_pending_sequence: Option<u64>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -66,6 +141,9 @@ pub enum EditorEventListenerControlRequest {
         listener_id: String,
     },
     ListListeners,
+    QueryListenerStatus {
+        listener_id: String,
+    },
     QueryDeliveries {
         listener_id: String,
     },
@@ -195,32 +273,75 @@ impl EditorEventListenerRegistry {
         &self.listeners
     }
 
-    pub fn deliveries_for(&self, listener_id: &str) -> Vec<EditorEventListenerDelivery> {
-        self.deliveries
+    pub fn status_for(&self, listener_id: &str) -> Result<EditorEventListenerStatus, String> {
+        let descriptor = self
+            .listeners
+            .iter()
+            .find(|listener| listener.listener_id == listener_id)
+            .cloned()
+            .ok_or_else(|| format!("editor event listener {listener_id} is not registered"))?;
+        let mut pending_delivery_count = 0usize;
+        let mut first_pending_sequence = None;
+        let mut last_pending_sequence = None;
+        for delivery in self
+            .deliveries
+            .iter()
+            .filter(|delivery| delivery.listener_id == listener_id)
+        {
+            pending_delivery_count += 1;
+            if first_pending_sequence.is_none() {
+                first_pending_sequence = Some(delivery.sequence);
+            }
+            last_pending_sequence = Some(delivery.sequence);
+        }
+
+        Ok(EditorEventListenerStatus {
+            listener_id: descriptor.listener_id.clone(),
+            descriptor,
+            pending_delivery_count,
+            first_pending_sequence,
+            last_pending_sequence,
+        })
+    }
+
+    pub fn deliveries_for(
+        &self,
+        listener_id: &str,
+    ) -> Result<Vec<EditorEventListenerDelivery>, String> {
+        self.ensure_registered(listener_id)?;
+        Ok(self
+            .deliveries
             .iter()
             .filter(|delivery| delivery.listener_id == listener_id)
             .cloned()
-            .collect()
+            .collect())
     }
 
     pub fn deliveries_after(
         &self,
         listener_id: &str,
         after_sequence: u64,
-    ) -> Vec<EditorEventListenerDelivery> {
-        self.deliveries
+    ) -> Result<Vec<EditorEventListenerDelivery>, String> {
+        self.ensure_registered(listener_id)?;
+        Ok(self
+            .deliveries
             .iter()
             .filter(|delivery| delivery.listener_id == listener_id)
             .filter(|delivery| delivery.sequence > after_sequence)
             .cloned()
-            .collect()
+            .collect())
     }
 
-    pub fn acknowledge_through(&mut self, listener_id: &str, sequence: u64) -> usize {
+    pub fn acknowledge_through(
+        &mut self,
+        listener_id: &str,
+        sequence: u64,
+    ) -> Result<usize, String> {
+        self.ensure_registered(listener_id)?;
         let before = self.deliveries.len();
         self.deliveries
             .retain(|delivery| delivery.listener_id != listener_id || delivery.sequence > sequence);
-        before - self.deliveries.len()
+        Ok(before - self.deliveries.len())
     }
 
     pub fn notify(&mut self, record: &EditorEventRecord) {
@@ -239,8 +360,12 @@ impl EditorEventListenerRegistry {
                 listener_id: listener.listener_id.clone(),
                 event_id: record.event_id.0,
                 sequence: record.sequence.0,
+                source: record.source.clone(),
                 operation_id: record.operation_id.clone(),
                 operation_display_name: record.operation_display_name.clone(),
+                operation_arguments: record.operation_arguments.clone(),
+                operation_group: record.operation_group.clone(),
+                result: record.result.clone(),
             });
         }
     }
@@ -251,24 +376,50 @@ impl EditorEventListenerRegistry {
             .iter_mut()
             .filter(|delivery| delivery.event_id == record.event_id.0)
         {
+            delivery.source = record.source.clone();
             delivery.operation_id = record.operation_id.clone();
             delivery.operation_display_name = record.operation_display_name.clone();
+            delivery.operation_arguments = record.operation_arguments.clone();
+            delivery.operation_group = record.operation_group.clone();
+            delivery.result = record.result.clone();
         }
+    }
+
+    fn ensure_registered(&self, listener_id: &str) -> Result<(), String> {
+        if self
+            .listeners
+            .iter()
+            .any(|listener| listener.listener_id == listener_id)
+        {
+            return Ok(());
+        }
+        Err(format!(
+            "editor event listener {listener_id} is not registered"
+        ))
     }
 }
 
 pub(crate) fn listener_descriptors(listeners: &[EditorEventListenerDescriptor]) -> Vec<Value> {
-    listeners
-        .iter()
-        .map(|listener| {
-            json!({
-                "listener_id": listener.listener_id,
-                "display_name": listener.display_name,
-                "enabled": listener.enabled,
-                "filter": listener.filter,
-            })
-        })
-        .collect()
+    listeners.iter().map(listener_descriptor).collect()
+}
+
+pub(crate) fn listener_status(status: &EditorEventListenerStatus) -> Value {
+    json!({
+        "listener_id": status.listener_id,
+        "descriptor": listener_descriptor(&status.descriptor),
+        "pending_delivery_count": status.pending_delivery_count,
+        "first_pending_sequence": status.first_pending_sequence,
+        "last_pending_sequence": status.last_pending_sequence,
+    })
+}
+
+fn listener_descriptor(listener: &EditorEventListenerDescriptor) -> Value {
+    json!({
+        "listener_id": listener.listener_id,
+        "display_name": listener.display_name,
+        "enabled": listener.enabled,
+        "filter": listener.filter,
+    })
 }
 
 pub(crate) fn listener_deliveries(deliveries: &[EditorEventListenerDelivery]) -> Vec<Value> {
@@ -279,8 +430,12 @@ pub(crate) fn listener_deliveries(deliveries: &[EditorEventListenerDelivery]) ->
                 "listener_id": delivery.listener_id,
                 "event_id": delivery.event_id,
                 "sequence": delivery.sequence,
+                "source": delivery.source,
                 "operation_id": delivery.operation_id,
                 "operation_display_name": delivery.operation_display_name,
+                "operation_arguments": delivery.operation_arguments,
+                "operation_group": delivery.operation_group,
+                "result": delivery.result,
             })
         })
         .collect()

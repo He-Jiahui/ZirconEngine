@@ -6,11 +6,13 @@ use crate::ui::slint_host::{HostMenuStateData, PaneSurfaceHostContext, UiHostCon
 impl SlintEditorHost {
     pub(super) fn sync_menu_pointer_layout(
         &mut self,
+        model: &WorkbenchViewModel,
         chrome: &crate::ui::workbench::snapshot::EditorChromeSnapshot,
         preset_names: &[String],
     ) {
         let root_shell_frames = self.template_bridge.root_shell_frames();
         self.menu_pointer_layout = build_host_menu_pointer_layout(
+            &model.menu_bar,
             chrome,
             self.shell_size,
             preset_names,

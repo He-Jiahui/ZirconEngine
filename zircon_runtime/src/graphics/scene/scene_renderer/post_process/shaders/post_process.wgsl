@@ -50,11 +50,11 @@ struct FragmentOutput {
 
 const HYBRID_GI_HISTORY_SUPPORT_REUSE_START: f32 = 0.2;
 const HYBRID_GI_HISTORY_SUPPORT_REUSE_RANGE: f32 = 0.45;
-const HYBRID_GI_HISTORY_RESOLVE_WEIGHT_MIN: f32 = 0.25;
-const HYBRID_GI_HISTORY_RESOLVE_WEIGHT_RANGE: f32 = 2.25;
+const HYBRID_GI_HISTORY_RESOLVE_CONFIDENCE_START: f32 = 0.6;
+const HYBRID_GI_HISTORY_RESOLVE_CONFIDENCE_RANGE: f32 = 0.65;
 const HYBRID_GI_HISTORY_CONTINUATION_CONFIDENCE_SCALE: f32 = 1.0;
 const HYBRID_GI_HISTORY_SCENE_TRUTH_CONFIDENCE_RANGE: f32 = 0.45;
-const HYBRID_GI_HISTORY_CONFIDENCE_BLEND_BASE: f32 = 0.6;
+const HYBRID_GI_HISTORY_CONFIDENCE_BLEND_BASE: f32 = 0.05;
 const HYBRID_GI_HISTORY_CONFIDENCE_BLEND_RANGE: f32 = 1.0;
 const HYBRID_GI_HISTORY_BLEND_MAX: f32 = 0.45;
 const HYBRID_GI_HISTORY_SIGNATURE_SCALE: f32 = 255.0;
@@ -190,13 +190,18 @@ fn fs_main(@builtin(position) position: vec4<f32>) -> FragmentOutput {
             let probe_history_support = falloff * falloff * budget_weight;
             let scene_truth_history_confidence =
                 clamp(probe.temporal_signature_and_padding.y, 0.0, 1.0);
-            let probe_history_confidence =
+            let resolve_weight_history_t =
                 clamp(
-                    (hierarchy_resolve_weight - HYBRID_GI_HISTORY_RESOLVE_WEIGHT_MIN)
-                    / HYBRID_GI_HISTORY_RESOLVE_WEIGHT_RANGE,
+                    (hierarchy_resolve_weight - HYBRID_GI_HISTORY_RESOLVE_CONFIDENCE_START)
+                    / HYBRID_GI_HISTORY_RESOLVE_CONFIDENCE_RANGE,
                     0.0,
                     1.0,
-                )
+                );
+            let resolve_weight_history_confidence =
+                resolve_weight_history_t * resolve_weight_history_t
+                * (3.0 - 2.0 * resolve_weight_history_t);
+            let probe_history_confidence =
+                resolve_weight_history_confidence
                 * (
                     HYBRID_GI_HISTORY_CONTINUATION_CONFIDENCE_SCALE
                     + scene_truth_history_confidence
@@ -237,16 +242,17 @@ fn fs_main(@builtin(position) position: vec4<f32>) -> FragmentOutput {
                 current_signature_bucket > 0.0
                 && history_signature_bucket > 0.0
                 && current_signature_bucket == history_signature_bucket;
+            let confidence_history_blend =
+                clamp(
+                    HYBRID_GI_HISTORY_CONFIDENCE_BLEND_BASE
+                    + indirect_light_history_confidence
+                        * HYBRID_GI_HISTORY_CONFIDENCE_BLEND_RANGE,
+                    0.0,
+                    1.0,
+                );
             let history_blend =
-                min(
-                    spatial_history_blend
-                    * (
-                        HYBRID_GI_HISTORY_CONFIDENCE_BLEND_BASE
-                        + indirect_light_history_confidence
-                            * HYBRID_GI_HISTORY_CONFIDENCE_BLEND_RANGE
-                    ),
-                    HYBRID_GI_HISTORY_BLEND_MAX,
-                )
+                min(spatial_history_blend, HYBRID_GI_HISTORY_BLEND_MAX)
+                * confidence_history_blend
                 * select(0.0, 1.0, signature_matches || history_signature_bucket == 0.0);
             indirect_light = mix(indirect_light, global_illumination_history, history_blend);
         }

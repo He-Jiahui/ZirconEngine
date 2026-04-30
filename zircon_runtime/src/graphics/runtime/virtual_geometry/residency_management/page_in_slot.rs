@@ -1,12 +1,11 @@
 use super::super::VirtualGeometryRuntimeState;
 
 impl VirtualGeometryRuntimeState {
-    pub(in crate::graphics::runtime::virtual_geometry::residency_management) fn page_in_slot(
+    pub(in crate::graphics::runtime::virtual_geometry) fn page_in_slot(
         &self,
         slot: u32,
     ) -> Option<u32> {
-        self.resident_slots
-            .iter()
-            .find_map(|(&page_id, &resident_slot)| (resident_slot == slot).then_some(page_id))
+        self.resident_page_slots()
+            .find_map(|(page_id, resident_slot)| (resident_slot == slot).then_some(page_id))
     }
 }

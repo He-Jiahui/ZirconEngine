@@ -1,5 +1,6 @@
 ---
 related_code:
+  - Cargo.toml
   - zircon_editor/build.rs
   - zircon_editor/src/lib.rs
   - zircon_editor/src/core/mod.rs
@@ -23,6 +24,9 @@ related_code:
   - zircon_editor/src/ui/workbench/startup/editor_state_project.rs
   - zircon_editor/src/ui/workbench/snapshot/data/mod.rs
   - zircon_editor/src/ui/workbench/snapshot/data/editor_state_snapshot_build.rs
+  - zircon_editor/src/ui/binding_dispatch/viewport/apply.rs
+  - zircon_editor/src/ui/binding_dispatch/inspector/subject_path.rs
+  - zircon_editor/src/ui/binding_dispatch/draft/apply.rs
   - zircon_editor/src/tests/host/template_runtime/mod.rs
   - zircon_editor/src/tests/host/template_runtime/structure_split.rs
   - zircon_editor/src/tests/ui/template/mod.rs
@@ -37,6 +41,7 @@ related_code:
   - zircon_editor/src/tests/ui/boundary/workbench_state_cutover.rs
   - zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml
 implementation_files:
+  - Cargo.toml
   - zircon_editor/build.rs
   - zircon_editor/src/lib.rs
   - zircon_editor/src/core/editing/state/editor_state_render.rs
@@ -57,6 +62,9 @@ implementation_files:
   - zircon_editor/src/ui/workbench/startup/editor_state_project.rs
   - zircon_editor/src/ui/workbench/snapshot/data/mod.rs
   - zircon_editor/src/ui/workbench/snapshot/data/editor_state_snapshot_build.rs
+  - zircon_editor/src/ui/binding_dispatch/viewport/apply.rs
+  - zircon_editor/src/ui/binding_dispatch/inspector/subject_path.rs
+  - zircon_editor/src/ui/binding_dispatch/draft/apply.rs
   - zircon_editor/src/tests/host/template_runtime/mod.rs
   - zircon_editor/src/tests/host/template_runtime/structure_split.rs
   - zircon_editor/src/tests/ui/template/mod.rs
@@ -138,6 +146,7 @@ This document is the editor-side authority for the converged `core/scene/ui` spl
 
 - `zircon_editor/src/lib.rs` exposes only high-level entry points.
 - `zircon_editor/src/lib.rs` must not own the `EditorModule` type or its `EngineModule` implementation; that ownership lives under `ui/host/module.rs`.
+- `EditorState` is a workbench specialist and must be imported from `zircon_editor::ui::workbench::state::EditorState`, not from the crate root.
 - `zircon_editor/src/ui/mod.rs` may declare structure and curated exports, but must not become a mixed-domain umbrella.
 - `zircon_editor/src/ui/mod.rs` must not re-export `asset_editor`, `binding`, `control`, or `template` specialist types for convenience; callers import those owner paths directly.
 - Specialist workbench, asset-editor, host, and viewport types are referenced through their owner modules.
@@ -146,9 +155,9 @@ This document is the editor-side authority for the converged `core/scene/ui` spl
 
 - Large subsystem roots split into folders before they become new umbrella files.
 - Same-domain folder ownership beats flat file accumulation.
-- `zircon_editor/build.rs` must recursively track the full `ui/` tree so nested `.slint` and template files invalidate generated bindings immediately.
+- `zircon_editor/build.rs` tracks editor assets and Rust-owned generated data only; the workspace root manifest must not retain `slint-build` after the Rust-owned host cutover.
 - Production builtin host template entry files must stay outside `src/`; the current owner path is `zircon_editor/assets/ui/editor/host/*.ui.toml`.
-- Production template-runtime loading inside `ui/template_runtime/runtime/runtime_host.rs` must accept tree `UiAssetDocument` input only. `UiTemplateLoader` / `UiTemplateDocument` may remain in legacy adapters or tests, but not in editor production runtime.
+- Production template-runtime loading inside `ui/template_runtime/runtime/runtime_host.rs` must accept tree `UiAssetDocument` input only. `UiTemplateLoader` / `UiTemplateDocument` may remain in fixture conversion tests, but not in editor production runtime.
 - `ui/template/registry.rs` must not reintroduce a dual authority store for legacy template documents. Compiled asset documents are the only registry authority on the production path.
 - Structural tests should reject:
   - path re-exports to deleted flat files

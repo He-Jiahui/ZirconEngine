@@ -57,8 +57,8 @@ fn node_and_cluster_cull_pass_publishes_visit_node_and_store_cluster_records_fro
     );
 
     assert_eq!(
-        output.traversal_records,
-        vec![
+        output.traversal_records(),
+        &[
             VirtualGeometryNodeAndClusterCullTraversalRecord {
                 op: VirtualGeometryNodeAndClusterCullTraversalOp::VisitNode,
                 child_source: VirtualGeometryNodeAndClusterCullTraversalChildSource::None,
@@ -124,7 +124,7 @@ fn node_and_cluster_cull_pass_publishes_visit_node_and_store_cluster_records_fro
                 forced_mip: Some(6),
             },
         ],
-        "expected the first cull-side consumer below cluster work items to publish explicit VisitNode and StoreCluster traversal records before later GPU hierarchy logic replaces the compat expansion"
+        "expected the first cull-side consumer below cluster work items to publish explicit VisitNode and StoreCluster traversal records before later GPU hierarchy logic replaces the fixed-fanout expansion"
     );
 }
 
@@ -161,8 +161,8 @@ fn node_and_cluster_cull_pass_gates_store_cluster_records_by_cluster_budget() {
     );
 
     assert_eq!(
-        output.traversal_records,
-        vec![
+        output.traversal_records(),
+        &[
             VirtualGeometryNodeAndClusterCullTraversalRecord {
                 op: VirtualGeometryNodeAndClusterCullTraversalOp::VisitNode,
                 child_source: VirtualGeometryNodeAndClusterCullTraversalChildSource::None,
@@ -214,7 +214,7 @@ fn node_and_cluster_cull_pass_gates_store_cluster_records_by_cluster_budget() {
             VirtualGeometryNodeAndClusterCullTraversalRecord {
                 op: VirtualGeometryNodeAndClusterCullTraversalOp::EnqueueChild,
                 child_source:
-                    VirtualGeometryNodeAndClusterCullTraversalChildSource::CompatFixedFanout,
+                    VirtualGeometryNodeAndClusterCullTraversalChildSource::FixedFanout,
                 instance_index: 0,
                 entity: 7,
                 cluster_array_index: 11,
@@ -231,14 +231,14 @@ fn node_and_cluster_cull_pass_gates_store_cluster_records_by_cluster_budget() {
         ],
         "expected the first traversal-side consumer to preserve VisitNode audit rows for over-budget candidates and publish an explicit child-work marker instead of pretending the candidate was stored"
     );
-    assert_eq!(output.traversal_record_count, 4);
+    assert_eq!(output.traversal_record_count(), 4);
 }
 
 #[test]
 fn node_and_cluster_cull_enqueue_child_record_roundtrips_through_gpu_word_layout() {
     let record = VirtualGeometryNodeAndClusterCullTraversalRecord {
         op: VirtualGeometryNodeAndClusterCullTraversalOp::EnqueueChild,
-        child_source: VirtualGeometryNodeAndClusterCullTraversalChildSource::CompatFixedFanout,
+        child_source: VirtualGeometryNodeAndClusterCullTraversalChildSource::FixedFanout,
         instance_index: 3,
         entity: 42,
         cluster_array_index: 17,

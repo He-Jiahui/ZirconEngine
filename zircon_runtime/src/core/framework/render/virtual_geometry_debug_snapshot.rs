@@ -900,7 +900,7 @@ impl RenderVirtualGeometryNodeAndClusterCullTraversalOp {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RenderVirtualGeometryNodeAndClusterCullTraversalChildSource {
     None,
-    CompatFixedFanout,
+    FixedFanout,
     AuthoredHierarchy,
 }
 
@@ -908,7 +908,7 @@ impl RenderVirtualGeometryNodeAndClusterCullTraversalChildSource {
     const fn packed_word(self) -> u32 {
         match self {
             Self::None => 0,
-            Self::CompatFixedFanout => 1,
+            Self::FixedFanout => 1,
             Self::AuthoredHierarchy => 2,
         }
     }
@@ -916,7 +916,7 @@ impl RenderVirtualGeometryNodeAndClusterCullTraversalChildSource {
     fn from_packed_word(word: u32) -> Option<Self> {
         match word {
             0 => Some(Self::None),
-            1 => Some(Self::CompatFixedFanout),
+            1 => Some(Self::FixedFanout),
             2 => Some(Self::AuthoredHierarchy),
             _ => None,
         }
@@ -1314,7 +1314,7 @@ mod tests {
 
         assert_eq!(
             decoded, work_item,
-            "expected the NodeAndClusterCull instance-work-item word layout to round-trip the first compute-stub output contract so the renderer-owned GPU buffer and compat pass can share one typed per-instance seam"
+            "expected the NodeAndClusterCull instance-work-item word layout to round-trip the first compute-stub output contract so the renderer-owned GPU buffer and baseline pass can share one typed per-instance seam"
         );
     }
 
@@ -1478,7 +1478,7 @@ mod tests {
 
         assert_eq!(
             decoded, snapshot,
-            "expected the NodeAndClusterCull launch-worklist word layout to round-trip the combined global state, dispatch setup, and root seeds so the renderer-owned GPU buffer can stay the single compat compute-stub contract"
+            "expected the NodeAndClusterCull launch-worklist word layout to round-trip the combined global state, dispatch setup, and root seeds so the renderer-owned GPU buffer can stay the single baseline compute-stub contract"
         );
     }
 }

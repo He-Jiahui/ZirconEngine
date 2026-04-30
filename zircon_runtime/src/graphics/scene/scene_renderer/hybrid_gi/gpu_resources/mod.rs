@@ -8,4 +8,4 @@ mod hybrid_gi_gpu_resources;
 mod new;
 mod seed_quantization;
 
-pub(crate) use hybrid_gi_gpu_resources::HybridGiGpuResources;
+pub(in crate::graphics::scene::scene_renderer) use hybrid_gi_gpu_resources::HybridGiGpuResources;

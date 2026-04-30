@@ -15,6 +15,7 @@ pub struct UiOptionDescriptor {
 }
 
 impl UiOptionDescriptor {
+    /// Creates an option descriptor with a stable id, display label, and typed value.
     pub fn new(id: impl Into<String>, label: impl Into<String>, value: UiValue) -> Self {
         Self {
             id: id.into(),
@@ -25,11 +26,13 @@ impl UiOptionDescriptor {
         }
     }
 
+    /// Marks whether the option should reject selection.
     pub fn disabled(mut self, disabled: bool) -> Self {
         self.disabled = disabled;
         self
     }
 
+    /// Marks the option as a special-condition row such as a mixed inspector value.
     pub fn special_condition(mut self, condition: impl Into<String>) -> Self {
         self.special_condition = Some(condition.into());
         self
@@ -49,6 +52,7 @@ pub struct UiPropSchema {
 }
 
 impl UiPropSchema {
+    /// Creates a prop or retained-state schema with a stable name and value kind.
     pub fn new(name: impl Into<String>, value_kind: UiValueKind) -> Self {
         Self {
             name: name.into(),
@@ -62,27 +66,32 @@ impl UiPropSchema {
         }
     }
 
+    /// Marks whether the prop is required by authored component nodes.
     pub fn required(mut self, required: bool) -> Self {
         self.required = required;
         self
     }
 
+    /// Sets the typed default value for the prop or retained-state schema.
     pub fn default_value(mut self, value: UiValue) -> Self {
         self.default_value = Some(value);
         self
     }
 
+    /// Sets an inclusive numeric range for numeric schemas.
     pub fn range(mut self, min: f64, max: f64) -> Self {
         self.min = Some(min);
         self.max = Some(max);
         self
     }
 
+    /// Sets the numeric step used by drag, slider, or spinner-style controls.
     pub fn step(mut self, step: f64) -> Self {
         self.step = Some(step);
         self
     }
 
+    /// Attaches structured option metadata to enum-like props.
     pub fn with_options(mut self, options: impl IntoIterator<Item = UiOptionDescriptor>) -> Self {
         self.options = options.into_iter().collect();
         self
@@ -97,6 +106,7 @@ pub struct UiSlotSchema {
 }
 
 impl UiSlotSchema {
+    /// Creates a content slot schema with a stable slot name.
     pub fn new(name: impl Into<String>) -> Self {
         Self {
             name: name.into(),
@@ -105,11 +115,13 @@ impl UiSlotSchema {
         }
     }
 
+    /// Marks whether the slot must be authored by component nodes.
     pub fn required(mut self, required: bool) -> Self {
         self.required = required;
         self
     }
 
+    /// Marks whether the slot accepts multiple child nodes.
     pub fn multiple(mut self, multiple: bool) -> Self {
         self.multiple = multiple;
         self
@@ -131,6 +143,7 @@ pub struct UiComponentDescriptor {
 }
 
 impl UiComponentDescriptor {
+    /// Creates a component descriptor with identity, category, and host-rendering role.
     pub fn new(
         id: impl Into<String>,
         display_name: impl Into<String>,
@@ -151,26 +164,31 @@ impl UiComponentDescriptor {
         }
     }
 
+    /// Adds a default authored prop value for this component.
     pub fn default_prop(mut self, name: impl Into<String>, value: UiValue) -> Self {
         self.default_props.push((name.into(), value));
         self
     }
 
+    /// Adds a typed authored prop schema.
     pub fn with_prop(mut self, schema: UiPropSchema) -> Self {
         self.prop_schema.push(schema);
         self
     }
 
+    /// Adds a typed retained-state schema.
     pub fn state(mut self, schema: UiPropSchema) -> Self {
         self.state_schema.push(schema);
         self
     }
 
+    /// Adds a content slot schema.
     pub fn slot(mut self, schema: UiSlotSchema) -> Self {
         self.slot_schema.push(schema);
         self
     }
 
+    /// Adds one supported component event kind.
     pub fn event(mut self, event: UiComponentEventKind) -> Self {
         if !self.events.contains(&event) {
             self.events.push(event);
@@ -178,6 +196,7 @@ impl UiComponentDescriptor {
         self
     }
 
+    /// Adds multiple supported component event kinds, preserving first-seen order.
     pub fn events(mut self, events: impl IntoIterator<Item = UiComponentEventKind>) -> Self {
         for event in events {
             if !self.events.contains(&event) {
@@ -187,19 +206,33 @@ impl UiComponentDescriptor {
         self
     }
 
+    /// Sets the drag/drop acceptance policy for reference-like components.
     pub fn drop_policy(mut self, policy: UiDropPolicy) -> Self {
         self.drop_policy = policy;
         self
     }
 
+    /// Returns the declared prop schema for a component prop name.
     pub fn prop(&self, name: &str) -> Option<&UiPropSchema> {
         self.prop_schema.iter().find(|schema| schema.name == name)
     }
 
+    /// Returns the declared retained-state schema for a component state name.
+    pub fn state_prop(&self, name: &str) -> Option<&UiPropSchema> {
+        self.state_schema.iter().find(|schema| schema.name == name)
+    }
+
+    /// Returns the declared slot schema for a component slot name.
+    pub fn slot_schema(&self, name: &str) -> Option<&UiSlotSchema> {
+        self.slot_schema.iter().find(|schema| schema.name == name)
+    }
+
+    /// Returns whether the component advertises support for an event kind.
     pub fn supports_event(&self, event: UiComponentEventKind) -> bool {
         self.events.contains(&event)
     }
 
+    /// Returns whether the component accepts a drag payload kind.
     pub fn accepts_drag_payload(&self, kind: UiDragPayloadKind) -> bool {
         self.drop_policy.accepts(kind)
     }

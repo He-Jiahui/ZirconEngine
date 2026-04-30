@@ -30,16 +30,9 @@ pub(super) fn resolve_viewport_record_state(
                 .ok_or(RenderFrameworkError::UnknownViewport {
                     viewport: viewport.raw(),
                 })?;
-        let pipeline_handle = record
-            .pipeline
-            .or_else(|| {
-                record
-                    .quality_profile
-                    .as_ref()
-                    .and_then(|profile| profile.pipeline_override)
-            })
-            .unwrap_or(RenderPipelineAsset::default_forward_plus().handle);
-        if let Some(profile) = record.quality_profile.as_ref() {
+        let pipeline_handle =
+            record.effective_pipeline(RenderPipelineAsset::default_forward_plus().handle);
+        if let Some(profile) = record.quality_profile() {
             validate_quality_profile_capabilities(
                 Some(pipeline_handle),
                 profile,
@@ -47,19 +40,13 @@ pub(super) fn resolve_viewport_record_state(
             )?;
         }
         (
-            record.descriptor.size,
+            record.size(),
             pipeline_handle,
-            record
-                .quality_profile
-                .as_ref()
-                .map(|profile| profile.name.clone()),
-            record
-                .history
-                .as_ref()
-                .map(|history| history.visibility.clone()),
-            record.hybrid_gi_runtime.clone(),
-            record.virtual_geometry_runtime.clone(),
-            compile_options_for_profile(record.quality_profile.as_ref(), &state.stats.capabilities),
+            record.quality_profile().map(|profile| profile.name.clone()),
+            record.history().map(|history| history.visibility().clone()),
+            record.hybrid_gi_runtime().cloned(),
+            record.virtual_geometry_runtime().cloned(),
+            compile_options_for_profile(record.quality_profile(), &state.stats.capabilities),
             state.stats.capabilities.clone(),
             state.stats.last_generation.unwrap_or(0) + 1,
         )
@@ -70,7 +57,7 @@ pub(super) fn resolve_viewport_record_state(
         },
     )?;
 
-    Ok(ViewportRecordState {
+    Ok(ViewportRecordState::new(
         size,
         pipeline_handle,
         quality_profile,
@@ -81,5 +68,5 @@ pub(super) fn resolve_viewport_record_state(
         compile_options,
         capabilities,
         predicted_generation,
-    })
+    ))
 }

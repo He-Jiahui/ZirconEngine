@@ -1,6 +1,12 @@
-use zircon_runtime::ui::component::{UiDragPayloadKind, UiValue};
+use std::collections::BTreeMap;
 
-use crate::ui::template_runtime::{EditorUiHostRuntime, UiComponentShowcaseDemoEventInput};
+use zircon_runtime::ui::component::{
+    UiDragPayload, UiDragPayloadKind, UiDragSourceMetadata, UiValue,
+};
+
+use crate::ui::template_runtime::{
+    EditorUiHostRuntime, SlintUiHostValue, UiComponentShowcaseDemoEventInput,
+};
 
 fn showcase_binding(
     runtime: &EditorUiHostRuntime,
@@ -44,6 +50,11 @@ fn showcase_demo_state_applies_projected_bindings_to_retained_values_and_log() {
         runtime.showcase_demo_state().selected_category(),
         "Collections"
     );
+    apply_showcase_binding(
+        &mut runtime,
+        "UiComponentShowcase/ShowAllCategory",
+        UiComponentShowcaseDemoEventInput::None,
+    );
 
     apply_showcase_binding(
         &mut runtime,
@@ -69,6 +80,19 @@ fn showcase_demo_state_applies_projected_bindings_to_retained_values_and_log() {
             .value_text("InputFieldDemo", "value")
             .as_deref(),
         Some("hello runtime")
+    );
+
+    apply_showcase_binding(
+        &mut runtime,
+        "UiComponentShowcase/InputFieldCommitted",
+        UiComponentShowcaseDemoEventInput::Value(UiValue::String("committed runtime".to_string())),
+    );
+    assert_eq!(
+        runtime
+            .showcase_demo_state()
+            .value_text("InputFieldDemo", "value")
+            .as_deref(),
+        Some("committed runtime")
     );
 
     apply_showcase_binding(
@@ -99,6 +123,45 @@ fn showcase_demo_state_applies_projected_bindings_to_retained_values_and_log() {
 
     apply_showcase_binding(
         &mut runtime,
+        "UiComponentShowcase/NumberFieldCommitted",
+        UiComponentShowcaseDemoEventInput::Value(UiValue::Float(51.0)),
+    );
+    assert_eq!(
+        runtime
+            .showcase_demo_state()
+            .value_text("NumberFieldDemo", "value")
+            .as_deref(),
+        Some("51")
+    );
+
+    apply_showcase_binding(
+        &mut runtime,
+        "UiComponentShowcase/ColorFieldChanged",
+        UiComponentShowcaseDemoEventInput::Value(UiValue::Color("#ffcc33".to_string())),
+    );
+    assert_eq!(
+        runtime
+            .showcase_demo_state()
+            .value_text("ColorFieldDemo", "value")
+            .as_deref(),
+        Some("#ffcc33")
+    );
+
+    apply_showcase_binding(
+        &mut runtime,
+        "UiComponentShowcase/Vector3FieldChanged",
+        UiComponentShowcaseDemoEventInput::Value(UiValue::Vec3([3.0, 4.0, 5.0])),
+    );
+    assert_eq!(
+        runtime
+            .showcase_demo_state()
+            .value_text("Vector3FieldDemo", "value")
+            .as_deref(),
+        Some("3, 4, 5")
+    );
+
+    apply_showcase_binding(
+        &mut runtime,
         "UiComponentShowcase/DropdownChanged",
         UiComponentShowcaseDemoEventInput::SelectOption {
             option_id: "editor".to_string(),
@@ -110,7 +173,7 @@ fn showcase_demo_state_applies_projected_bindings_to_retained_values_and_log() {
             .showcase_demo_state()
             .value_text("DropdownDemo", "value")
             .as_deref(),
-        Some("editor")
+        Some("2 items")
     );
 
     apply_showcase_binding(
@@ -155,12 +218,21 @@ fn showcase_demo_state_applies_projected_bindings_to_retained_values_and_log() {
         "ClosePopup should be retained and projected for ComboBoxDemo"
     );
 
+    let source = UiDragSourceMetadata::asset(
+        "browser",
+        "AssetBrowserContentPanel",
+        "asset-uuid-1",
+        "res://materials/demo.mat",
+        "Demo Material",
+        "Material",
+        "mat",
+    );
     apply_showcase_binding(
         &mut runtime,
         "UiComponentShowcase/AssetFieldDropped",
         UiComponentShowcaseDemoEventInput::DropReference {
-            kind: UiDragPayloadKind::Asset,
-            reference: "res://materials/demo.mat".to_string(),
+            payload: UiDragPayload::new(UiDragPayloadKind::Asset, "res://materials/demo.mat")
+                .with_source(source),
         },
     );
     assert_eq!(
@@ -252,6 +324,26 @@ fn showcase_demo_state_applies_projected_bindings_to_retained_values_and_log() {
                 && entry.control_id == "NumberFieldDemo"),
         "state reducer should append a typed event-log entry for projected bindings"
     );
+    assert!(
+        runtime
+            .showcase_demo_state()
+            .event_log()
+            .iter()
+            .any(|entry| entry.action == "Commit.InputField"
+                && entry.control_id == "InputFieldDemo"
+                && entry.value_text.as_deref() == Some("committed runtime")),
+        "committed text edits should be logged as typed Runtime UI commit events"
+    );
+    assert!(
+        runtime
+            .showcase_demo_state()
+            .event_log()
+            .iter()
+            .any(|entry| entry.action == "Commit.NumberField"
+                && entry.control_id == "NumberFieldDemo"
+                && entry.value_text.as_deref() == Some("51")),
+        "committed numeric edits should be logged as typed Runtime UI commit events"
+    );
 
     let projection = runtime
         .project_document("editor.window.ui_component_showcase")
@@ -267,19 +359,126 @@ fn showcase_demo_state_applies_projected_bindings_to_retained_values_and_log() {
         host_projection
             .node_by_control_id("NumberFieldDemo")
             .and_then(|node| node.value_text.as_deref()),
-        Some("47")
+        Some("51")
     );
     assert_eq!(
         host_projection
             .node_by_control_id("DropdownDemo")
             .and_then(|node| node.value_text.as_deref()),
-        Some("editor")
+        Some("2 items")
+    );
+    assert_eq!(
+        host_projection
+            .node_by_control_id("ColorFieldDemo")
+            .and_then(|node| node.value_text.as_deref()),
+        Some("#ffcc33")
+    );
+    assert_eq!(
+        host_projection
+            .node_by_control_id("ColorFieldDemo")
+            .and_then(|node| node.properties.get("value")),
+        Some(&SlintUiHostValue::String("#ffcc33".to_string()))
+    );
+    assert_eq!(
+        host_projection
+            .node_by_control_id("Vector3FieldDemo")
+            .and_then(|node| node.value_text.as_deref()),
+        Some("3, 4, 5")
+    );
+    assert_eq!(
+        host_projection
+            .node_by_control_id("Vector3FieldDemo")
+            .and_then(|node| node.properties.get("value")),
+        Some(&SlintUiHostValue::Array(vec![
+            SlintUiHostValue::Float(3.0),
+            SlintUiHostValue::Float(4.0),
+            SlintUiHostValue::Float(5.0),
+        ]))
     );
     assert_eq!(
         host_projection
             .node_by_control_id("AssetFieldDemo")
             .and_then(|node| node.value_text.as_deref()),
         Some("res://materials/demo.mat")
+    );
+    assert_eq!(
+        host_projection
+            .node_by_control_id("AssetFieldDemo")
+            .and_then(|node| node.properties.get("drop_source_summary")),
+        Some(&SlintUiHostValue::String(
+            "Material: Demo Material".to_string()
+        ))
+    );
+    assert_eq!(
+        host_projection
+            .node_by_control_id("AssetFieldDemo")
+            .and_then(|node| node.drop_source_summary.as_deref()),
+        Some("Material: Demo Material")
+    );
+    assert_eq!(
+        host_projection
+            .node_by_control_id("AssetFieldDemo")
+            .and_then(|node| node.properties.get("value")),
+        Some(&SlintUiHostValue::String(
+            "res://materials/demo.mat".to_string()
+        ))
+    );
+    assert_eq!(
+        host_projection
+            .node_by_control_id("ComponentShowcaseLastControl")
+            .and_then(|node| node.value_text.as_deref()),
+        Some("MapFieldDemo")
+    );
+    assert_eq!(
+        host_projection
+            .node_by_control_id("ComponentShowcaseLastAction")
+            .and_then(|node| node.value_text.as_deref()),
+        Some("RemoveMapEntry.MapField")
+    );
+    assert_eq!(
+        host_projection
+            .node_by_control_id("ComponentShowcaseCurrentValue")
+            .and_then(|node| node.value_text.as_deref()),
+        Some("2 entries")
+    );
+    assert_eq!(
+        host_projection
+            .node_by_control_id("ComponentShowcaseValidation")
+            .and_then(|node| node.value_text.as_deref()),
+        Some("normal")
+    );
+    assert_eq!(
+        host_projection
+            .node_by_control_id("ComponentShowcaseDragPayload")
+            .and_then(|node| node.value_text.as_deref()),
+        Some("No retained drop payload")
+    );
+
+    apply_showcase_binding(
+        &mut runtime,
+        "UiComponentShowcase/AssetFieldClear",
+        UiComponentShowcaseDemoEventInput::None,
+    );
+    let projection = runtime
+        .project_document("editor.window.ui_component_showcase")
+        .unwrap();
+    let surface = runtime
+        .build_shared_surface("editor.window.ui_component_showcase")
+        .unwrap();
+    let host_projection = runtime
+        .build_slint_host_projection_with_surface(&projection, &surface)
+        .unwrap();
+    assert_eq!(
+        host_projection
+            .node_by_control_id("AssetFieldDemo")
+            .and_then(|node| node.properties.get("drop_source_summary")),
+        None
+    );
+    assert_eq!(
+        host_projection
+            .node_by_control_id("AssetFieldDemo")
+            .and_then(|node| node.drop_source_summary.as_deref()),
+        None
     );
     assert_eq!(
         host_projection
@@ -291,8 +490,42 @@ fn showcase_demo_state_applies_projected_bindings_to_retained_values_and_log() {
         host_projection
             .node_by_control_id("ComponentShowcaseEventLog")
             .and_then(|node| node.text.as_deref())
-            .is_some_and(|text| text.contains("NumberFieldDemo -> DragDelta.NumberField = 47")),
+            .is_some_and(
+                |text| text.contains("MapFieldDemo -> RemoveMapEntry.MapField = 2 entries")
+            ),
         "event log label should be rebuilt from retained showcase state"
+    );
+
+    let binding = showcase_binding(&runtime, "UiComponentShowcase/ColorFieldChanged");
+    let error = runtime
+        .apply_showcase_demo_binding(
+            &binding,
+            UiComponentShowcaseDemoEventInput::Value(UiValue::String("#not-a-color".to_string())),
+        )
+        .unwrap_err();
+    assert!(error.to_string().contains("invalid value kind"));
+
+    let projection = runtime
+        .project_document("editor.window.ui_component_showcase")
+        .unwrap();
+    let surface = runtime
+        .build_shared_surface("editor.window.ui_component_showcase")
+        .unwrap();
+    let host_projection = runtime
+        .build_slint_host_projection_with_surface(&projection, &surface)
+        .unwrap();
+    assert_eq!(
+        host_projection
+            .node_by_control_id("ComponentShowcaseLastControl")
+            .and_then(|node| node.value_text.as_deref()),
+        Some("ColorFieldDemo")
+    );
+    assert!(
+        host_projection
+            .node_by_control_id("ComponentShowcaseValidation")
+            .and_then(|node| node.value_text.as_deref())
+            .is_some_and(|value| value.contains("invalid value kind")),
+        "failed retained events should select the failed control in the state panel"
     );
 }
 
@@ -358,6 +591,21 @@ fn showcase_demo_state_exercises_full_component_action_bindings() {
 
     apply_showcase_binding(
         &mut runtime,
+        "UiComponentShowcase/ArrayFieldChanged",
+        UiComponentShowcaseDemoEventInput::Value(UiValue::Array(vec![UiValue::String(
+            "OnlyChild".to_string(),
+        )])),
+    );
+    assert_eq!(
+        runtime
+            .showcase_demo_state()
+            .value_text("ArrayFieldDemo", "items")
+            .as_deref(),
+        Some("1 items")
+    );
+
+    apply_showcase_binding(
+        &mut runtime,
         "UiComponentShowcase/MapFieldSetEntry",
         UiComponentShowcaseDemoEventInput::SetMapEntry {
             key: "speed".to_string(),
@@ -372,6 +620,59 @@ fn showcase_demo_state_exercises_full_component_action_bindings() {
         Some("2 entries")
     );
 
+    apply_showcase_binding(
+        &mut runtime,
+        "UiComponentShowcase/MapFieldSetEntry",
+        UiComponentShowcaseDemoEventInput::RenameMapEntry {
+            from_key: "speed".to_string(),
+            to_key: "velocity".to_string(),
+        },
+    );
+    assert_eq!(
+        runtime
+            .showcase_demo_state()
+            .value_text("MapFieldDemo", "entries")
+            .as_deref(),
+        Some("2 entries")
+    );
+
+    apply_showcase_binding(
+        &mut runtime,
+        "UiComponentShowcase/InspectorSectionToggled",
+        UiComponentShowcaseDemoEventInput::Toggle(false),
+    );
+    assert_eq!(
+        runtime
+            .showcase_demo_state()
+            .value_text("InspectorSectionDemo", "expanded")
+            .as_deref(),
+        Some("false")
+    );
+    let projection = runtime
+        .project_document("editor.window.ui_component_showcase")
+        .unwrap();
+    let surface = runtime
+        .build_shared_surface("editor.window.ui_component_showcase")
+        .unwrap();
+    let host_projection = runtime
+        .build_slint_host_projection_with_surface(&projection, &surface)
+        .unwrap();
+    assert!(
+        host_projection
+            .node_by_control_id("MapFieldDemo")
+            .expect("MapFieldDemo")
+            .collection_items
+            .iter()
+            .any(|item| item.starts_with("velocity: String -> UiValue = 2.5")),
+        "MapField key edits should rename the retained key used by projected child rows"
+    );
+    assert!(
+        host_projection
+            .node_by_control_id("InspectorSectionDemo")
+            .is_some_and(|node| !node.expanded),
+        "InspectorSection ToggleExpanded should override the authored expanded state"
+    );
+
     let log = runtime.showcase_demo_state().event_log();
     assert!(log
         .iter()
@@ -382,6 +683,21 @@ fn showcase_demo_state_exercises_full_component_action_bindings() {
     assert!(log
         .iter()
         .any(|entry| entry.action == "SetMapEntry.MapField"));
+
+    let mut replacement_entries = BTreeMap::new();
+    replacement_entries.insert("replacement".to_string(), UiValue::Bool(true));
+    apply_showcase_binding(
+        &mut runtime,
+        "UiComponentShowcase/MapFieldChanged",
+        UiComponentShowcaseDemoEventInput::Value(UiValue::Map(replacement_entries)),
+    );
+    assert_eq!(
+        runtime
+            .showcase_demo_state()
+            .value_text("MapFieldDemo", "entries")
+            .as_deref(),
+        Some("1 entries")
+    );
 }
 
 #[test]
@@ -399,8 +715,28 @@ fn showcase_demo_state_projects_collection_children_and_control_flags() {
     );
     apply_showcase_binding(
         &mut runtime,
+        "UiComponentShowcase/ListRowHovered",
+        UiComponentShowcaseDemoEventInput::Hover(true),
+    );
+    apply_showcase_binding(
+        &mut runtime,
+        "UiComponentShowcase/ListRowPressed",
+        UiComponentShowcaseDemoEventInput::Press(true),
+    );
+    apply_showcase_binding(
+        &mut runtime,
         "UiComponentShowcase/NumberFieldDragBegin",
         UiComponentShowcaseDemoEventInput::None,
+    );
+    apply_showcase_binding(
+        &mut runtime,
+        "UiComponentShowcase/AssetFieldDropHovered",
+        UiComponentShowcaseDemoEventInput::DropHover(true),
+    );
+    apply_showcase_binding(
+        &mut runtime,
+        "UiComponentShowcase/AssetFieldActiveDragTarget",
+        UiComponentShowcaseDemoEventInput::ActiveDragTarget(true),
     );
     apply_showcase_binding(
         &mut runtime,
@@ -427,12 +763,79 @@ fn showcase_demo_state_projects_collection_children_and_control_flags() {
         Some("focused"),
         "focused row state should be represented as a selection-state token"
     );
+    assert!(list_row.hovered, "ListRow should retain hover state");
+    assert!(list_row.pressed, "ListRow should retain press state");
 
     assert!(
         host_projection
             .node_by_control_id("NumberFieldDemo")
             .is_some_and(|node| node.dragging),
         "NumberField BeginDrag should be retained and projected"
+    );
+    assert!(
+        host_projection
+            .node_by_control_id("AssetFieldDemo")
+            .is_some_and(|node| node.drop_hovered),
+        "AssetField DropHover should be retained and projected"
+    );
+    assert!(
+        host_projection
+            .node_by_control_id("AssetFieldDemo")
+            .is_some_and(|node| node.active_drag_target),
+        "AssetField ActiveDragTarget should be retained and projected"
+    );
+
+    apply_showcase_binding(
+        &mut runtime,
+        "UiComponentShowcase/ListRowHovered",
+        UiComponentShowcaseDemoEventInput::Hover(false),
+    );
+    apply_showcase_binding(
+        &mut runtime,
+        "UiComponentShowcase/ListRowPressed",
+        UiComponentShowcaseDemoEventInput::Press(false),
+    );
+    apply_showcase_binding(
+        &mut runtime,
+        "UiComponentShowcase/AssetFieldDropHovered",
+        UiComponentShowcaseDemoEventInput::DropHover(false),
+    );
+    apply_showcase_binding(
+        &mut runtime,
+        "UiComponentShowcase/AssetFieldActiveDragTarget",
+        UiComponentShowcaseDemoEventInput::ActiveDragTarget(false),
+    );
+    let projection = runtime
+        .project_document("editor.window.ui_component_showcase")
+        .unwrap();
+    let surface = runtime
+        .build_shared_surface("editor.window.ui_component_showcase")
+        .unwrap();
+    let host_projection = runtime
+        .build_slint_host_projection_with_surface(&projection, &surface)
+        .unwrap();
+
+    let list_row = host_projection
+        .node_by_control_id("ListRowDemo")
+        .expect("ListRowDemo should be projected after transient flags clear");
+    assert!(
+        !list_row.hovered,
+        "ListRow Hover(false) should override the authored showcase hover prop"
+    );
+    assert!(
+        !list_row.pressed,
+        "ListRow Press(false) should clear retained press state"
+    );
+    let asset_field = host_projection
+        .node_by_control_id("AssetFieldDemo")
+        .expect("AssetFieldDemo should be projected after transient flags clear");
+    assert!(
+        !asset_field.drop_hovered,
+        "AssetField DropHover(false) should override the authored showcase drop-hover prop"
+    );
+    assert!(
+        !asset_field.active_drag_target,
+        "AssetField ActiveDragTarget(false) should override the authored showcase active target prop"
     );
 
     assert_eq!(
@@ -466,9 +869,9 @@ fn showcase_demo_state_projects_collection_children_and_control_flags() {
     assert_eq!(
         menu.menu_items,
         vec![
-            "Inspect|checked|Ctrl+I".to_string(),
+            "Inspect|checked,focused|Ctrl+I".to_string(),
             "---".to_string(),
-            "Duplicate||Ctrl+D".to_string(),
+            "Duplicate|hovered,pressed|Ctrl+D".to_string(),
             "Delete|disabled|Del".to_string(),
         ],
         "ContextActionMenu should project menu-row metadata beyond a flat option label"
@@ -499,5 +902,46 @@ fn showcase_context_action_menu_selects_clean_action_labels_from_menu_metadata()
             .as_deref(),
         Some("Duplicate"),
         "ContextActionMenu should store the selected action label, not the encoded menu-row metadata"
+    );
+}
+
+#[test]
+fn showcase_context_action_menu_opens_at_retained_pointer_anchor() {
+    let _guard = crate::tests::support::env_lock()
+        .lock()
+        .unwrap_or_else(|poison| poison.into_inner());
+    let mut runtime = EditorUiHostRuntime::default();
+    runtime.load_builtin_host_templates().unwrap();
+
+    apply_showcase_binding(
+        &mut runtime,
+        "UiComponentShowcase/ContextActionMenuOpenAt",
+        UiComponentShowcaseDemoEventInput::OpenPopupAt { x: 212.0, y: 96.0 },
+    );
+
+    let projection = runtime
+        .project_document("editor.window.ui_component_showcase")
+        .unwrap();
+    let surface = runtime
+        .build_shared_surface("editor.window.ui_component_showcase")
+        .unwrap();
+    let host_projection = runtime
+        .build_slint_host_projection_with_surface(&projection, &surface)
+        .unwrap();
+
+    let menu = host_projection
+        .node_by_control_id("ContextActionMenuDemo")
+        .expect("ContextActionMenuDemo");
+    assert!(menu.popup_open);
+    assert!(menu.has_popup_anchor);
+    assert_eq!(menu.popup_anchor_x, 212.0);
+    assert_eq!(menu.popup_anchor_y, 96.0);
+    assert_eq!(
+        menu.properties.get("popup_anchor_x"),
+        Some(&SlintUiHostValue::Float(212.0))
+    );
+    assert_eq!(
+        menu.properties.get("popup_anchor_y"),
+        Some(&SlintUiHostValue::Float(96.0))
     );
 }

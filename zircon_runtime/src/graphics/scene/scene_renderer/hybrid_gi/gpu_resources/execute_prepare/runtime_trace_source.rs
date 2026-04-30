@@ -1,14 +1,11 @@
 use std::collections::BTreeSet;
 
-use crate::core::framework::render::RenderHybridGiExtract;
-
 use crate::graphics::types::HybridGiResolveRuntime;
 
 use super::probe_quantization::pack_rgb8;
 
 pub(super) fn runtime_trace_source(
     resolve_runtime: Option<&HybridGiResolveRuntime>,
-    extract: Option<&RenderHybridGiExtract>,
     probe_id: u32,
 ) -> (u32, u32, bool) {
     let Some(resolve_runtime) = resolve_runtime else {
@@ -30,17 +27,17 @@ pub(super) fn runtime_trace_source(
         }
     }
 
-    if let Some(direct_rt_lighting_rgb) = resolve_runtime.probe_rt_lighting_rgb.get(&probe_id) {
+    if let Some(direct_rt_lighting_rgb) = resolve_runtime.probe_rt_lighting_rgb(probe_id) {
         let support_q = resolve_runtime
             .hierarchy_resolve_weight(probe_id)
             .map(runtime_resolve_weight_support_q)
             .unwrap_or(96);
         if support_q > 0 {
-            return (support_q, pack_rgb8(*direct_rt_lighting_rgb), false);
+            return (support_q, pack_rgb8(direct_rt_lighting_rgb), false);
         }
     }
 
-    runtime_parent_chain_trace_source(resolve_runtime, extract, probe_id)
+    runtime_parent_chain_trace_source(resolve_runtime, probe_id)
 }
 
 pub(super) fn merge_trace_sources(
@@ -71,7 +68,6 @@ pub(super) fn merge_trace_sources(
 
 pub(super) fn runtime_irradiance_source(
     resolve_runtime: Option<&HybridGiResolveRuntime>,
-    extract: Option<&RenderHybridGiExtract>,
     probe_id: u32,
 ) -> (u32, u32, bool) {
     let Some(resolve_runtime) = resolve_runtime else {
@@ -93,7 +89,7 @@ pub(super) fn runtime_irradiance_source(
         }
     }
 
-    runtime_parent_chain_irradiance_source(resolve_runtime, extract, probe_id)
+    runtime_parent_chain_irradiance_source(resolve_runtime, probe_id)
 }
 
 fn runtime_resolve_weight_support_q(weight: f32) -> u32 {
@@ -102,75 +98,56 @@ fn runtime_resolve_weight_support_q(weight: f32) -> u32 {
 
 fn runtime_parent_chain_trace_source(
     resolve_runtime: &HybridGiResolveRuntime,
-    extract: Option<&RenderHybridGiExtract>,
     probe_id: u32,
 ) -> (u32, u32, bool) {
-    accumulate_parent_chain_runtime_rgb(
-        resolve_runtime,
-        extract,
-        probe_id,
-        |runtime, ancestor_probe_id| {
-            if let Some(hierarchy_rt_lighting) = runtime.hierarchy_rt_lighting(ancestor_probe_id) {
-                let support = hierarchy_rt_lighting[3];
-                return Some((
-                    [
-                        hierarchy_rt_lighting[0],
-                        hierarchy_rt_lighting[1],
-                        hierarchy_rt_lighting[2],
-                    ],
-                    support,
-                ));
-            }
+    accumulate_parent_chain_runtime_rgb(resolve_runtime, probe_id, |runtime, ancestor_probe_id| {
+        if let Some(hierarchy_rt_lighting) = runtime.hierarchy_rt_lighting(ancestor_probe_id) {
+            let support = hierarchy_rt_lighting[3];
+            return Some((
+                [
+                    hierarchy_rt_lighting[0],
+                    hierarchy_rt_lighting[1],
+                    hierarchy_rt_lighting[2],
+                ],
+                support,
+            ));
+        }
 
-            runtime
-                .probe_rt_lighting_rgb
-                .get(&ancestor_probe_id)
-                .copied()
-                .map(|rgb| {
-                    (
-                        [
-                            rgb[0] as f32 / 255.0,
-                            rgb[1] as f32 / 255.0,
-                            rgb[2] as f32 / 255.0,
-                        ],
-                        runtime_resolve_weight_support(
-                            runtime.hierarchy_resolve_weight(ancestor_probe_id),
-                        ),
-                    )
-                })
-        },
-    )
+        runtime.probe_rt_lighting_rgb(ancestor_probe_id).map(|rgb| {
+            (
+                [
+                    rgb[0] as f32 / 255.0,
+                    rgb[1] as f32 / 255.0,
+                    rgb[2] as f32 / 255.0,
+                ],
+                runtime_resolve_weight_support(runtime.hierarchy_resolve_weight(ancestor_probe_id)),
+            )
+        })
+    })
 }
 
 fn runtime_parent_chain_irradiance_source(
     resolve_runtime: &HybridGiResolveRuntime,
-    extract: Option<&RenderHybridGiExtract>,
     probe_id: u32,
 ) -> (u32, u32, bool) {
-    accumulate_parent_chain_runtime_rgb(
-        resolve_runtime,
-        extract,
-        probe_id,
-        |runtime, ancestor_probe_id| {
-            runtime
-                .hierarchy_irradiance(ancestor_probe_id)
-                .map(|hierarchy_irradiance| {
-                    (
-                        [
-                            hierarchy_irradiance[0],
-                            hierarchy_irradiance[1],
-                            hierarchy_irradiance[2],
-                        ],
-                        hierarchy_irradiance[3],
-                    )
-                })
-        },
-    )
+    accumulate_parent_chain_runtime_rgb(resolve_runtime, probe_id, |runtime, ancestor_probe_id| {
+        runtime
+            .hierarchy_irradiance(ancestor_probe_id)
+            .map(|hierarchy_irradiance| {
+                (
+                    [
+                        hierarchy_irradiance[0],
+                        hierarchy_irradiance[1],
+                        hierarchy_irradiance[2],
+                    ],
+                    hierarchy_irradiance[3],
+                )
+            })
+    })
 }
 
 fn accumulate_parent_chain_runtime_rgb<F>(
     resolve_runtime: &HybridGiResolveRuntime,
-    extract: Option<&RenderHybridGiExtract>,
     probe_id: u32,
     source_for_ancestor: F,
 ) -> (u32, u32, bool)
@@ -179,13 +156,9 @@ where
 {
     const RUNTIME_PARENT_CHAIN_FALLOFF: f32 = 0.82;
 
-    let Some(extract) = extract else {
-        return (0, 0, false);
-    };
-
     let mut weighted_rgb = [0.0_f32; 3];
     let mut total_support = 0.0_f32;
-    for (ancestor_probe_id, depth) in parent_probe_chain(extract, probe_id) {
+    for (ancestor_probe_id, depth) in parent_probe_chain(resolve_runtime, probe_id) {
         let Some((rgb, support)) = source_for_ancestor(resolve_runtime, ancestor_probe_id) else {
             continue;
         };
@@ -285,13 +258,13 @@ fn unpack_rgb8(packed: u32) -> [u8; 3] {
     ]
 }
 
-fn parent_probe_chain(extract: &RenderHybridGiExtract, probe_id: u32) -> Vec<(u32, usize)> {
+fn parent_probe_chain(runtime: &HybridGiResolveRuntime, probe_id: u32) -> Vec<(u32, usize)> {
     let mut chain = Vec::new();
     let mut current_probe_id = probe_id;
     let mut visited_probe_ids = BTreeSet::from([probe_id]);
     let mut depth = 0usize;
 
-    while let Some(parent_probe_id) = probe_parent_id(extract, current_probe_id) {
+    while let Some(parent_probe_id) = runtime.parent_probe_id(current_probe_id) {
         if !visited_probe_ids.insert(parent_probe_id) {
             break;
         }
@@ -303,10 +276,55 @@ fn parent_probe_chain(extract: &RenderHybridGiExtract, probe_id: u32) -> Vec<(u3
     chain
 }
 
-fn probe_parent_id(extract: &RenderHybridGiExtract, probe_id: u32) -> Option<u32> {
-    extract
-        .probes
-        .iter()
-        .find(|probe| probe.probe_id == probe_id)
-        .and_then(|probe| probe.parent_probe_id)
+#[cfg(test)]
+mod tests {
+    use std::collections::BTreeMap;
+
+    use super::*;
+
+    #[test]
+    fn runtime_irradiance_source_follows_runtime_parent_topology() {
+        let runtime = HybridGiResolveRuntime::fixture()
+            .with_probe_parent_probes(BTreeMap::from([(300, 200)]))
+            .with_probe_hierarchy_irradiance_rgb_and_weight(BTreeMap::from([
+                (
+                    100,
+                    HybridGiResolveRuntime::pack_rgb_and_weight([1.0, 0.0, 0.0], 1.0),
+                ),
+                (
+                    200,
+                    HybridGiResolveRuntime::pack_rgb_and_weight([0.0, 0.0, 1.0], 1.0),
+                ),
+            ]))
+            .build();
+
+        let (support_q, rgb, scene_truth) = runtime_irradiance_source(Some(&runtime), 300);
+
+        assert!(support_q > 0);
+        assert_eq!(unpack_rgb8(rgb), [0, 0, 255]);
+        assert!(!scene_truth);
+    }
+
+    #[test]
+    fn runtime_trace_source_does_not_walk_parent_lineage_when_runtime_topology_is_flat() {
+        let runtime = HybridGiResolveRuntime::fixture()
+            .with_probe_rt_lighting_rgb(BTreeMap::from([(100, [240, 96, 48])]))
+            .build();
+
+        assert_eq!(runtime_trace_source(Some(&runtime), 300), (0, 0, false));
+    }
+
+    #[test]
+    fn runtime_trace_source_breaks_runtime_parent_cycles() {
+        let runtime = HybridGiResolveRuntime::fixture()
+            .with_probe_parent_probes(BTreeMap::from([(200, 300), (300, 200)]))
+            .with_probe_rt_lighting_rgb(BTreeMap::from([(200, [12, 24, 240])]))
+            .build();
+
+        let (support_q, rgb, scene_truth) = runtime_trace_source(Some(&runtime), 300);
+
+        assert!(support_q > 0);
+        assert_eq!(unpack_rgb8(rgb), [12, 24, 240]);
+        assert!(!scene_truth);
+    }
 }

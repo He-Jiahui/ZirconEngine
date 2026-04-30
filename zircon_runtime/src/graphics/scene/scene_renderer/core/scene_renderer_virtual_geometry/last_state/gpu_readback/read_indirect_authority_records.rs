@@ -8,20 +8,128 @@ use crate::graphics::scene::scene_renderer::core::SceneRenderer;
 #[cfg(test)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct VirtualGeometryIndirectAuthorityRecord {
-    pub(crate) draw_ref_index: u32,
-    pub(crate) instance_index: Option<u32>,
-    pub(crate) entity: u64,
-    pub(crate) page_id: u32,
-    pub(crate) cluster_start_ordinal: u32,
-    pub(crate) cluster_span_count: u32,
-    pub(crate) cluster_total_count: u32,
-    pub(crate) submission_slot: u32,
-    pub(crate) state: VirtualGeometryPrepareClusterState,
-    pub(crate) lineage_depth: u32,
-    pub(crate) lod_level: u32,
-    pub(crate) frontier_rank: u32,
-    pub(crate) submission_index: u32,
-    pub(crate) draw_ref_rank: u32,
+    draw_ref_index: u32,
+    instance_index: Option<u32>,
+    entity: u64,
+    page_id: u32,
+    cluster_start_ordinal: u32,
+    cluster_span_count: u32,
+    cluster_total_count: u32,
+    submission_slot: u32,
+    state: VirtualGeometryPrepareClusterState,
+    lineage_depth: u32,
+    lod_level: u32,
+    frontier_rank: u32,
+    submission_index: u32,
+    draw_ref_rank: u32,
+}
+
+#[cfg(test)]
+impl VirtualGeometryIndirectAuthorityRecord {
+    #[allow(clippy::too_many_arguments)]
+    fn new(
+        draw_ref_index: u32,
+        instance_index: Option<u32>,
+        entity: u64,
+        page_id: u32,
+        cluster_start_ordinal: u32,
+        cluster_span_count: u32,
+        cluster_total_count: u32,
+        submission_slot: u32,
+        state: VirtualGeometryPrepareClusterState,
+        lineage_depth: u32,
+        lod_level: u32,
+        frontier_rank: u32,
+        submission_index: u32,
+        draw_ref_rank: u32,
+    ) -> Self {
+        Self {
+            draw_ref_index,
+            instance_index,
+            entity,
+            page_id,
+            cluster_start_ordinal,
+            cluster_span_count,
+            cluster_total_count,
+            submission_slot,
+            state,
+            lineage_depth,
+            lod_level,
+            frontier_rank,
+            submission_index,
+            draw_ref_rank,
+        }
+    }
+
+    pub(crate) fn draw_ref_index(&self) -> u32 {
+        self.draw_ref_index
+    }
+
+    pub(crate) fn instance_index(&self) -> Option<u32> {
+        self.instance_index
+    }
+
+    pub(crate) fn entity(&self) -> u64 {
+        self.entity
+    }
+
+    pub(crate) fn page_id(&self) -> u32 {
+        self.page_id
+    }
+
+    pub(crate) fn cluster_start_ordinal(&self) -> u32 {
+        self.cluster_start_ordinal
+    }
+
+    pub(crate) fn cluster_span_count(&self) -> u32 {
+        self.cluster_span_count
+    }
+
+    pub(crate) fn cluster_total_count(&self) -> u32 {
+        self.cluster_total_count
+    }
+
+    pub(crate) fn submission_slot(&self) -> u32 {
+        self.submission_slot
+    }
+
+    pub(crate) fn state(&self) -> VirtualGeometryPrepareClusterState {
+        self.state
+    }
+
+    pub(crate) fn lineage_depth(&self) -> u32 {
+        self.lineage_depth
+    }
+
+    pub(crate) fn lod_level(&self) -> u32 {
+        self.lod_level
+    }
+
+    pub(crate) fn frontier_rank(&self) -> u32 {
+        self.frontier_rank
+    }
+
+    pub(crate) fn submission_index(&self) -> u32 {
+        self.submission_index
+    }
+
+    pub(crate) fn draw_ref_rank(&self) -> u32 {
+        self.draw_ref_rank
+    }
+
+    pub(crate) fn submission_token(&self) -> u32 {
+        (self.submission_index.min(0xffff) << 16) | self.draw_ref_rank.min(0xffff)
+    }
+
+    pub(crate) fn execution_record(&self) -> (u32, u64, u32, u32, u32) {
+        (
+            self.draw_ref_index,
+            self.entity,
+            self.page_id,
+            self.submission_index,
+            self.draw_ref_rank,
+        )
+    }
 }
 
 impl SceneRenderer {
@@ -32,10 +140,10 @@ impl SceneRenderer {
         read_indirect_authority_records_buffer(
             self,
             self.advanced_plugin_outputs
-                .virtual_geometry_indirect_authority_buffer
+                .virtual_geometry_indirect_authority_buffer()
                 .as_deref(),
             self.advanced_plugin_outputs
-                .virtual_geometry_indirect_args_count,
+                .virtual_geometry_indirect_args_count(),
             "zircon-vg-indirect-authority-records",
         )
     }
@@ -47,10 +155,10 @@ impl SceneRenderer {
         read_indirect_authority_records_buffer(
             self,
             self.advanced_plugin_outputs
-                .virtual_geometry_indirect_execution_authority_buffer
+                .virtual_geometry_indirect_execution_authority_buffer()
                 .as_deref(),
             self.advanced_plugin_outputs
-                .virtual_geometry_indirect_draw_count,
+                .virtual_geometry_indirect_draw_count(),
             "zircon-vg-indirect-execution-authority-records",
         )
     }
@@ -117,21 +225,23 @@ fn read_indirect_authority_records_buffer(
 
     Ok(words
         .chunks_exact(AUTHORITY_RECORD_WORD_COUNT)
-        .map(|chunk| VirtualGeometryIndirectAuthorityRecord {
-            draw_ref_index: chunk[0],
-            instance_index: decode_instance_index(chunk[1]),
-            entity: u64::from(chunk[13]) | (u64::from(chunk[14]) << 32),
-            page_id: chunk[5],
-            cluster_start_ordinal: chunk[2],
-            cluster_span_count: chunk[3],
-            cluster_total_count: chunk[4],
-            submission_slot: chunk[6],
-            state: decode_cluster_state(chunk[7]),
-            lineage_depth: chunk[8],
-            lod_level: chunk[9],
-            frontier_rank: chunk[10],
-            submission_index: chunk[11],
-            draw_ref_rank: chunk[12],
+        .map(|chunk| {
+            VirtualGeometryIndirectAuthorityRecord::new(
+                chunk[0],
+                decode_instance_index(chunk[1]),
+                u64::from(chunk[13]) | (u64::from(chunk[14]) << 32),
+                chunk[5],
+                chunk[2],
+                chunk[3],
+                chunk[4],
+                chunk[6],
+                decode_cluster_state(chunk[7]),
+                chunk[8],
+                chunk[9],
+                chunk[10],
+                chunk[11],
+                chunk[12],
+            )
         })
         .collect::<Vec<VirtualGeometryIndirectAuthorityRecord>>())
 }

@@ -7,6 +7,7 @@ use crate::ui::workbench::view::{
 
 use super::pane_payload::PanePayload;
 use super::pane_payload_builders::build_payload;
+use super::ModulePluginsPaneViewData;
 
 #[derive(Clone)]
 pub(crate) struct PanePayloadBuildContext<'a> {
@@ -14,6 +15,7 @@ pub(crate) struct PanePayloadBuildContext<'a> {
     pub animation_pane: Option<&'a AnimationEditorPanePresentation>,
     pub runtime_diagnostics:
         Option<&'a zircon_runtime::core::diagnostics::RuntimeDiagnosticsSnapshot>,
+    pub module_plugins: Option<&'a ModulePluginsPaneViewData>,
 }
 
 impl<'a> PanePayloadBuildContext<'a> {
@@ -22,6 +24,7 @@ impl<'a> PanePayloadBuildContext<'a> {
             chrome,
             animation_pane: None,
             runtime_diagnostics: None,
+            module_plugins: None,
         }
     }
 
@@ -38,6 +41,11 @@ impl<'a> PanePayloadBuildContext<'a> {
         runtime_diagnostics: &'a zircon_runtime::core::diagnostics::RuntimeDiagnosticsSnapshot,
     ) -> Self {
         self.runtime_diagnostics = Some(runtime_diagnostics);
+        self
+    }
+
+    pub fn with_module_plugins(mut self, module_plugins: &'a ModulePluginsPaneViewData) -> Self {
+        self.module_plugins = Some(module_plugins);
         self
     }
 }

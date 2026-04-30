@@ -50,21 +50,12 @@ impl BaseScenePass {
             return;
         }
         for draw in mesh_draws {
-            let pipeline = mesh_pipelines.ensure_pipeline(device, streamer, &draw.pipeline_key);
+            let pipeline = mesh_pipelines.ensure_pipeline(device, streamer, draw.pipeline_key());
             pass.set_pipeline(pipeline);
-            pass.set_bind_group(1, &draw.model_bind_group, &[]);
-            pass.set_bind_group(2, &draw.texture.bind_group, &[]);
-            pass.set_vertex_buffer(0, draw.mesh.vertex_buffer.slice(..));
-            pass.set_index_buffer(draw.mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint32);
-            if let Some(indirect_args_buffer) = &draw.indirect_args_buffer {
-                pass.draw_indexed_indirect(indirect_args_buffer, draw.indirect_args_offset);
-            } else {
-                pass.draw_indexed(
-                    draw.first_index..(draw.first_index + draw.draw_index_count),
-                    0,
-                    0..1,
-                );
-            }
+            draw.bind_model(&mut pass);
+            draw.bind_texture(&mut pass);
+            draw.bind_geometry_buffers(&mut pass);
+            draw.record_indexed_draw(&mut pass);
         }
     }
 }

@@ -63,9 +63,7 @@ impl From<VirtualGeometryNodeAndClusterCullTraversalChildSource>
     fn from(source: VirtualGeometryNodeAndClusterCullTraversalChildSource) -> Self {
         match source {
             VirtualGeometryNodeAndClusterCullTraversalChildSource::None => Self::None,
-            VirtualGeometryNodeAndClusterCullTraversalChildSource::CompatFixedFanout => {
-                Self::CompatFixedFanout
-            }
+            VirtualGeometryNodeAndClusterCullTraversalChildSource::FixedFanout => Self::FixedFanout,
             VirtualGeometryNodeAndClusterCullTraversalChildSource::AuthoredHierarchy => {
                 Self::AuthoredHierarchy
             }

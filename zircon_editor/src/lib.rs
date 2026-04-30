@@ -15,15 +15,15 @@ pub use ui::host::module::{
 };
 pub use ui::host::{
     editor_host_minimal_contract, EditorCapabilitySnapshot, EditorExportBuildReport,
-    EditorHostMinimalContract, EditorHostMinimalReport, EditorHostVmBridgeReport,
-    EditorPluginEnableReport, EditorPluginStatus, EditorPluginStatusReport, EditorSubsystemReport,
+    EditorExportCargoInvocation, EditorHostMinimalContract, EditorHostMinimalReport,
+    EditorHostVmBridgeReport, EditorPluginEnableReport, EditorPluginSelectionUpdateReport,
+    EditorPluginStatus, EditorPluginStatusReport, EditorSubsystemReport,
     EditorVmExtensionLoadReport, EDITOR_ENABLED_SUBSYSTEMS_CONFIG_KEY,
     EDITOR_RUNTIME_SANDBOX_ENABLED_CONFIG_KEY, EDITOR_SUBSYSTEM_ANIMATION_AUTHORING,
     EDITOR_SUBSYSTEM_NATIVE_WINDOW_HOSTING, EDITOR_SUBSYSTEM_RUNTIME_DIAGNOSTICS,
     EDITOR_SUBSYSTEM_UI_ASSET_AUTHORING,
 };
 pub use ui::slint_host::run_editor;
-pub use ui::workbench::state::EditorState;
 
 #[cfg(test)]
 mod tests;

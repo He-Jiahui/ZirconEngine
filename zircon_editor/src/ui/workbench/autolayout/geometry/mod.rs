@@ -7,3 +7,4 @@ mod viewport_content_frame;
 mod window_minimums;
 
 pub use compute::compute_workbench_shell_geometry;
+pub(crate) use region_frames::{compact_bottom_height_limit, compact_side_width_limit};

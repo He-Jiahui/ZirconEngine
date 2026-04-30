@@ -22,12 +22,12 @@ use crate::ui::host::module::{self, module_descriptor, EDITOR_MANAGER_NAME};
 use crate::ui::host::EditorManager;
 use crate::ui::layouts::views::blank_viewport_chrome;
 use crate::ui::layouts::windows::workbench_host_window::{
-    build_pane_body_presentation, document_pane, PaneActionPresentation,
-    PaneEmptyStatePresentation, PanePayload, PanePayloadBuildContext, PanePresentation,
-    PaneShellPresentation,
+    build_pane_body_presentation, document_pane, ModulePluginStatusViewData,
+    ModulePluginsPaneViewData, PaneActionPresentation, PaneEmptyStatePresentation, PanePayload,
+    PanePayloadBuildContext, PanePresentation, PaneShellPresentation,
 };
 use crate::ui::workbench::layout::{
-    DocumentNode, MainHostPageLayout, MainPageId, TabStackLayout, WorkbenchLayout,
+    ActivityWindowId, DocumentNode, MainHostPageLayout, MainPageId, TabStackLayout, WorkbenchLayout,
 };
 use crate::ui::workbench::model::WorkbenchViewModel;
 use crate::ui::workbench::snapshot::{
@@ -210,6 +210,27 @@ fn runtime_diagnostics_fixture() -> RuntimeDiagnosticsSnapshot {
     }
 }
 
+fn module_plugins_fixture() -> ModulePluginsPaneViewData {
+    ModulePluginsPaneViewData {
+        plugins: crate::ui::layouts::common::model_rc(vec![ModulePluginStatusViewData {
+            plugin_id: "physics".into(),
+            display_name: "Physics".into(),
+            package_source: "builtin".into(),
+            load_state: "loaded".into(),
+            enabled: true,
+            required: false,
+            target_modes: "editor, runtime".into(),
+            packaging: "linked".into(),
+            runtime_crate: "zircon_plugins_physics_runtime".into(),
+            editor_crate: "zircon_plugins_physics_editor".into(),
+            runtime_capabilities: "simulation".into(),
+            editor_capabilities: "inspector".into(),
+            diagnostics: "".into(),
+        }]),
+        diagnostics: "plugin catalog ready".into(),
+    }
+}
+
 #[test]
 fn pane_payload_builders_emit_stable_body_metadata_for_first_wave_views() {
     let _guard = crate::tests::support::env_lock()
@@ -218,9 +239,11 @@ fn pane_payload_builders_emit_stable_body_metadata_for_first_wave_views() {
     let chrome = chrome_fixture();
     let animation = animation_fixture();
     let runtime_diagnostics = runtime_diagnostics_fixture();
+    let module_plugins = module_plugins_fixture();
     let context = PanePayloadBuildContext::new(&chrome)
         .with_animation_pane(&animation)
-        .with_runtime_diagnostics(&runtime_diagnostics);
+        .with_runtime_diagnostics(&runtime_diagnostics)
+        .with_module_plugins(&module_plugins);
 
     let cases = [
         (
@@ -252,6 +275,11 @@ fn pane_payload_builders_emit_stable_body_metadata_for_first_wave_views() {
             "editor.runtime_diagnostics",
             "pane.runtime.diagnostics.body",
             PanePayloadKind::RuntimeDiagnosticsV1,
+        ),
+        (
+            "editor.module_plugins",
+            "pane.module_plugins.body",
+            PanePayloadKind::ModulePluginsV1,
         ),
     ];
 
@@ -309,6 +337,13 @@ fn pane_payload_builders_emit_stable_body_metadata_for_first_wave_views() {
                 assert!(payload
                     .detail_items
                     .contains(&"Hybrid GI active probes: 4".to_string()));
+            }
+            ("editor.module_plugins", PanePayload::ModulePluginsV1(payload)) => {
+                assert_eq!(payload.diagnostics, "plugin catalog ready");
+                assert_eq!(payload.plugins.len(), 1);
+                assert_eq!(payload.plugins[0].plugin_id, "physics");
+                assert_eq!(payload.plugins[0].display_name, "Physics");
+                assert!(payload.plugins[0].enabled);
             }
             (unexpected_id, unexpected_payload) => panic!(
                 "builder for `{unexpected_id}` produced unexpected payload {unexpected_payload:?}"
@@ -392,6 +427,7 @@ fn document_pane_projects_first_wave_pane_presentations_alongside_legacy_data() 
             "editor.runtime_diagnostics",
             "pane.runtime.diagnostics.body",
         ),
+        ("editor.module_plugins", "pane.module_plugins.body"),
     ];
 
     for (descriptor_id, document_id) in cases {
@@ -410,6 +446,7 @@ fn document_pane_projects_first_wave_pane_presentations_alongside_legacy_data() 
             main_pages: vec![MainHostPageLayout::WorkbenchPage {
                 id: MainPageId::workbench(),
                 title: "Workbench".to_string(),
+                activity_window: ActivityWindowId::workbench(),
                 document_workspace: DocumentNode::Tabs(TabStackLayout {
                     tabs: vec![instance_id.clone()],
                     active_tab: Some(instance_id.clone()),

@@ -17,6 +17,12 @@ pub(crate) fn runtime_features_from_pipeline(
             .iter()
             .any(|enabled| enabled.requires_capability(requirement))
     };
+    let plugin_feature_enabled = |name: &str| {
+        pipeline
+            .enabled_features
+            .iter()
+            .any(|enabled| enabled.builtin_feature().is_none() && enabled.feature_name() == name)
+    };
 
     SceneRuntimeFeatureFlags {
         deferred_lighting_enabled: feature_enabled(BuiltinRenderFeature::DeferredLighting)
@@ -31,7 +37,7 @@ pub(crate) fn runtime_features_from_pipeline(
         color_grading_enabled: feature_enabled(BuiltinRenderFeature::ColorGrading),
         reflection_probes_enabled: feature_enabled(BuiltinRenderFeature::ReflectionProbes),
         baked_lighting_enabled: feature_enabled(BuiltinRenderFeature::BakedLighting),
-        particle_rendering_enabled: feature_enabled(BuiltinRenderFeature::Particle),
+        particle_rendering_enabled: plugin_feature_enabled("particle"),
         virtual_geometry_enabled: capability_enabled(
             RenderFeatureCapabilityRequirement::VirtualGeometry,
         ),
@@ -171,6 +177,42 @@ mod tests {
         assert!(
             !flags.hybrid_global_illumination_enabled,
             "hybrid GI runtime state should require capability metadata"
+        );
+    }
+
+    #[test]
+    fn particle_rendering_runtime_flag_requires_particle_plugin_feature() {
+        let default_compiled = RenderPipelineAsset::default_forward_plus()
+            .compile(&test_extract())
+            .unwrap();
+        let default_flags = runtime_features_from_pipeline(&default_compiled);
+        assert!(
+            !default_flags.particle_rendering_enabled,
+            "default runtime pipeline should not enable pluginized particle rendering"
+        );
+
+        let plugin_compiled = RenderPipelineAsset::default_forward_plus()
+            .with_plugin_render_features([RenderFeatureDescriptor::new(
+                "particle",
+                vec!["particles".to_string()],
+                Vec::new(),
+                vec![RenderFeaturePassDescriptor::new(
+                    RenderPassStage::Transparent,
+                    "particle-render",
+                    QueueLane::Graphics,
+                )
+                .with_executor_id("particle.transparent")
+                .read_texture("scene-depth")
+                .read_texture("scene-color")
+                .write_texture("scene-color")],
+            )])
+            .compile(&test_extract())
+            .unwrap();
+        let plugin_flags = runtime_features_from_pipeline(&plugin_compiled);
+
+        assert!(
+            plugin_flags.particle_rendering_enabled,
+            "particle rendering should be enabled only when the particle plugin contributes its render feature"
         );
     }
 

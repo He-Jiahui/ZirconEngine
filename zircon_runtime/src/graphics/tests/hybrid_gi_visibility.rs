@@ -910,6 +910,254 @@ fn visibility_context_keeps_resident_hybrid_gi_descendant_probe_hot_while_ancest
     );
 }
 
+#[test]
+fn visibility_context_deduplicates_legacy_hybrid_gi_probe_payloads_first_payload_wins() {
+    let mut world = World::new();
+    remove_default_meshes(&mut world);
+
+    let mesh = world.spawn_mesh_node(
+        model_handle("res://models/hybrid_gi.obj"),
+        material_handle("res://materials/hybrid_gi.material.toml"),
+    );
+    world
+        .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
+        .expect("mesh transform should update");
+
+    let mut extract = world.to_render_frame_extract();
+    extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
+        probe_budget: 2,
+        tracing_budget: 1,
+        probes: vec![
+            hybrid_probe(mesh, 10, true, Vec3::new(0.1, 0.0, 0.0), 32),
+            hybrid_probe(mesh, 10, false, Vec3::ZERO, 256),
+            hybrid_probe(mesh, 20, false, Vec3::new(0.05, 0.0, 0.0), 96),
+        ],
+        trace_regions: vec![hybrid_trace_region(mesh, 40, Vec3::ZERO, 8.0)],
+    });
+
+    let context = VisibilityContext::from(&extract);
+
+    assert_eq!(
+        context.hybrid_gi_feedback.active_probe_ids,
+        vec![20, 10],
+        "expected visibility planning to keep the first live RenderHybridGiProbe payload for a duplicate id instead of letting the later compatibility payload become active"
+    );
+    assert_eq!(
+        context.hybrid_gi_update_plan,
+        VisibilityHybridGiUpdatePlan {
+            resident_probe_ids: vec![10],
+            requested_probe_ids: vec![20],
+            dirty_requested_probe_ids: vec![20],
+            scheduled_trace_region_ids: vec![40],
+            evictable_probe_ids: Vec::new(),
+        }
+    );
+}
+
+#[test]
+fn visibility_context_deduplicates_legacy_hybrid_gi_trace_region_payloads_first_payload_wins() {
+    let mut world = World::new();
+    remove_default_meshes(&mut world);
+
+    let mesh = world.spawn_mesh_node(
+        model_handle("res://models/hybrid_gi.obj"),
+        material_handle("res://materials/hybrid_gi.material.toml"),
+    );
+    world
+        .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
+        .expect("mesh transform should update");
+
+    let mut extract = world.to_render_frame_extract();
+    extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
+        probe_budget: 1,
+        tracing_budget: 2,
+        probes: vec![hybrid_probe(mesh, 10, false, Vec3::ZERO, 96)],
+        trace_regions: vec![
+            hybrid_trace_region(mesh, 40, Vec3::new(0.02, 0.0, 0.0), 8.0),
+            hybrid_trace_region(mesh, 40, Vec3::ZERO, 64.0),
+            hybrid_trace_region(mesh, 50, Vec3::new(0.04, 0.0, 0.0), 7.0),
+        ],
+    });
+
+    let context = VisibilityContext::from(&extract);
+
+    assert_eq!(
+        context.hybrid_gi_update_plan.scheduled_trace_region_ids,
+        vec![40, 50],
+        "expected visibility planning to schedule each live RenderHybridGiTraceRegion id once before handing ids to runtime"
+    );
+    assert_eq!(
+        context.hybrid_gi_feedback.scheduled_trace_region_ids,
+        vec![40, 50]
+    );
+}
+
+#[test]
+fn visibility_context_ignores_legacy_hybrid_gi_payloads_when_scene_representation_is_budgeted() {
+    let mut world = World::new();
+    remove_default_meshes(&mut world);
+
+    let mesh = world.spawn_mesh_node(
+        model_handle("res://models/hybrid_gi.obj"),
+        material_handle("res://materials/hybrid_gi.material.toml"),
+    );
+    world
+        .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
+        .expect("mesh transform should update");
+
+    let mut extract = world.to_render_frame_extract();
+    extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 4,
+        card_budget: 2,
+        voxel_budget: 1,
+        debug_view: Default::default(),
+        probe_budget: 2,
+        tracing_budget: 2,
+        probes: vec![
+            hybrid_probe(mesh, 10, true, Vec3::ZERO, 96),
+            hybrid_probe(mesh, 20, false, Vec3::new(0.1, 0.0, 0.0), 128),
+        ],
+        trace_regions: vec![
+            hybrid_trace_region(mesh, 40, Vec3::ZERO, 8.0),
+            hybrid_trace_region(mesh, 50, Vec3::new(0.1, 0.0, 0.0), 7.0),
+        ],
+    });
+
+    let context = VisibilityContext::from(&extract);
+
+    assert!(
+        context.hybrid_gi_active_probes.is_empty(),
+        "scene-representation budgets should keep legacy RenderHybridGiProbe payloads out of visibility active probes"
+    );
+    assert_eq!(
+        context.hybrid_gi_update_plan,
+        VisibilityHybridGiUpdatePlan::default(),
+        "scene-representation budgets should suppress old probe requests, trace schedules, and resident probe ids"
+    );
+    assert_eq!(
+        context.hybrid_gi_feedback,
+        VisibilityHybridGiFeedback::default(),
+        "scene-representation budgets should prevent legacy RenderHybridGiTraceRegion payloads from reaching feedback"
+    );
+    assert!(
+        context
+            .history_snapshot
+            .hybrid_gi_requested_probes
+            .is_empty(),
+        "scene-representation frames should not seed old requested-probe history"
+    );
+}
+
+#[test]
+fn visibility_context_ignores_disabled_hybrid_gi_extract_payloads() {
+    let mut world = World::new();
+    remove_default_meshes(&mut world);
+
+    let mesh = world.spawn_mesh_node(
+        model_handle("res://models/hybrid_gi.obj"),
+        material_handle("res://materials/hybrid_gi.material.toml"),
+    );
+    world
+        .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
+        .expect("mesh transform should update");
+
+    let mut extract = world.to_render_frame_extract();
+    extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
+        enabled: false,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
+        probe_budget: 1,
+        tracing_budget: 1,
+        probes: vec![hybrid_probe(mesh, 10, false, Vec3::ZERO, 96)],
+        trace_regions: vec![hybrid_trace_region(mesh, 40, Vec3::ZERO, 8.0)],
+    });
+
+    let context = VisibilityContext::from(&extract);
+
+    assert!(
+        context.hybrid_gi_active_probes.is_empty(),
+        "disabled RenderHybridGiExtract payloads must not keep the old probe path alive"
+    );
+    assert_eq!(
+        context.hybrid_gi_update_plan,
+        VisibilityHybridGiUpdatePlan::default()
+    );
+    assert_eq!(
+        context.hybrid_gi_feedback,
+        VisibilityHybridGiFeedback::default()
+    );
+    assert!(context
+        .history_snapshot
+        .hybrid_gi_requested_probes
+        .is_empty());
+}
+
+#[test]
+fn visibility_context_breaks_legacy_hybrid_gi_probe_parent_cycles_before_frontier_selection() {
+    let mut world = World::new();
+    remove_default_meshes(&mut world);
+
+    let mesh = world.spawn_mesh_node(
+        model_handle("res://models/hybrid_gi.obj"),
+        material_handle("res://materials/hybrid_gi.material.toml"),
+    );
+    world
+        .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
+        .expect("mesh transform should update");
+
+    let mut extract = world.to_render_frame_extract();
+    extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 0,
+        card_budget: 0,
+        voxel_budget: 0,
+        debug_view: Default::default(),
+        probe_budget: 2,
+        tracing_budget: 1,
+        probes: vec![
+            hybrid_probe_with_parent(mesh, 10, true, Vec3::ZERO, 128, 20),
+            hybrid_probe_with_parent(mesh, 20, true, Vec3::new(0.1, 0.0, 0.0), 96, 10),
+        ],
+        trace_regions: vec![hybrid_trace_region(mesh, 40, Vec3::ZERO, 8.0)],
+    });
+
+    let context = VisibilityContext::from(&extract);
+
+    assert_eq!(
+        context.hybrid_gi_feedback.active_probe_ids,
+        vec![10],
+        "expected cyclic legacy parent topology to be broken before frontier selection so at least one resident probe remains active"
+    );
+    assert_eq!(
+        context.hybrid_gi_update_plan,
+        VisibilityHybridGiUpdatePlan {
+            resident_probe_ids: vec![10, 20],
+            requested_probe_ids: Vec::new(),
+            dirty_requested_probe_ids: Vec::new(),
+            scheduled_trace_region_ids: vec![40],
+            evictable_probe_ids: Vec::new(),
+        }
+    );
+}
+
 fn remove_default_meshes(world: &mut World) {
     let mesh_entities = world
         .nodes()

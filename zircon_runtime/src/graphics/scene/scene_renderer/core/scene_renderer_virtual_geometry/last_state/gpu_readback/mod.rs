@@ -34,4 +34,6 @@ mod read_selected_cluster_source;
 mod read_selected_clusters;
 mod read_visbuffer64_source;
 mod read_visbuffer64_words;
+mod take_gpu_completion_parts;
+#[cfg(test)]
 mod take_gpu_readback;

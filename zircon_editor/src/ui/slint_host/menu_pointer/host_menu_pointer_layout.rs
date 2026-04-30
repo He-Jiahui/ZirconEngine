@@ -1,5 +1,7 @@
 use zircon_runtime::ui::layout::UiFrame;
 
+use super::menu_item_spec::MenuItemSpec;
+
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct HostMenuPointerLayout {
     pub shell_frame: UiFrame,
@@ -12,6 +14,7 @@ pub(crate) struct HostMenuPointerLayout {
     pub active_preset_name: String,
     pub resolved_preset_name: String,
     pub window_popup_height: f32,
+    pub menus: Vec<Vec<MenuItemSpec>>,
 }
 
 impl Default for HostMenuPointerLayout {
@@ -27,6 +30,7 @@ impl Default for HostMenuPointerLayout {
             active_preset_name: String::new(),
             resolved_preset_name: "rider".to_string(),
             window_popup_height: 72.0,
+            menus: Vec::new(),
         }
     }
 }

@@ -12,10 +12,10 @@ impl SceneRenderer {
     ) -> Result<Vec<u32>, GraphicsError> {
         let page_request_count =
             self.advanced_plugin_outputs
-                .virtual_geometry_node_and_cluster_cull_page_request_count as usize;
+                .virtual_geometry_node_and_cluster_cull_page_request_count() as usize;
         let Some(buffer) = self
             .advanced_plugin_outputs
-            .virtual_geometry_node_and_cluster_cull_page_request_buffer
+            .virtual_geometry_node_and_cluster_cull_page_request_buffer()
             .as_ref()
         else {
             return Ok(Vec::new());

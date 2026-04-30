@@ -80,12 +80,12 @@ doc_type: category-index
 
 ## Documents
 
-- [Architecture-First Development](./architecture-first-development.md): `zircon_app -> zircon_core -> zircon_module/zircon_manager -> zircon_runtime + subsystem modules` 主干、ECS 运行时世界、manager façade、runtime absorption 模块、`LevelManager -> LevelSystem -> World` 分层、VM 插件边界、架构优先设计流程、主流引擎对齐要求和实现红线。
+- [Architecture-First Development](./architecture-first-development.md): `zircon_app -> zircon_core -> zircon_module/zircon_manager -> zircon_runtime + subsystem modules` 主干、ECS 运行时世界、manager contracts、runtime absorption 模块、`LevelManager -> LevelSystem -> World` 分层、VM 插件边界、架构优先设计流程、主流引擎对齐要求和实现红线。
 - [Core Runtime Service Registry](./core-runtime-service-registry.md): `zircon_runtime::core::runtime` 的目录化边界，公开导出层、descriptor 子树、`CoreHandle` 行为文件、`PluginFactory + PluginContext` 分流，以及后续继续扩展 service registry 时必须遵守的模块纪律。
 - [Runtime Interface Convergence](./runtime-interface-convergence.md): `EngineEntry`、`EngineModule`、`EngineService`、ECS 语义合同、内建 module owner 收敛、`zircon_plugins` 对可选扩展注册面的吸收、结构审计 skill，以及当前 `converged/skeleton/needs-refactor` 诊断基线。
-- [Runtime Network Extension](./runtime-network-extension.md): `core::framework::net` 的中性 socket/message-loop 合同、`core::manager` 上的 `NetManager` façade、`zircon_plugin_net_runtime` 的 `std::net::UdpSocket` loopback MVP，以及 `M2` 网络子系统的最小完成线。
-- [Runtime Sound Extension](./runtime-sound-extension.md): `core::framework::sound` 的最小 clip/playback/mix 合同、asset 管线里的 `.wav -> SoundAsset` 支撑、`core::manager` 上的 `SoundManager` façade，以及 `zircon_plugin_sound_runtime` 的 `software-mixer` MVP。
-- [Runtime Diagnostics Facade](./runtime-diagnostics-facade.md): `core::diagnostics` 的只读 runtime inspection snapshot、render/physics/animation manager 聚合，以及 editor diagnostics pane 的 `.ui.toml` 接线边界。
+- [Runtime Network Extension](./runtime-network-extension.md): `core::framework::net` 的中性 socket/message-loop 合同、`core::manager` 上的 `NetManager` contract / handle、`zircon_plugin_net_runtime` 的 `std::net::UdpSocket` loopback MVP，以及 `M2` 网络子系统的最小完成线。
+- [Runtime Sound Extension](./runtime-sound-extension.md): `core::framework::sound` 的最小 clip/playback/mix 合同、asset 管线里的 `.wav -> SoundAsset` 支撑、`core::manager` 上的 `SoundManager` contract / handle，以及 `zircon_plugin_sound_runtime` 的 `software-mixer` MVP。
+- [Runtime Diagnostics Contract](./runtime-diagnostics-contract.md): `core::diagnostics` 的只读 runtime inspection snapshot、render/physics/animation manager 聚合，以及 editor diagnostics pane 的 `.ui.toml` 接线边界。
 - [Runtime/Editor Pluginized Export](./runtime-editor-pluginized-export.md): Runtime/Editor 最小本体、项目插件清单、导出 profile、editor capability gating、独立 `zircon_plugins` workspace 与插件包 runtime/editor crate 分离规则。
 - [Runtime Foundation Precision And Scene Authority](./runtime-foundation-precision-and-scene-authority.md): `zircon_math` 精度 seam、`zircon_scene` 的 `LocalTransform + WorldMatrix + ActiveSelf/ActiveInHierarchy + RenderLayerMask + Mobility` authority、scene asset 的默认化新字段，以及 `zircon_graphics` 的 runtime-to-render downcast 边界。
 - [Workspace Ownership Cutover Map](./workspace-ownership-cutover-map.md): workspace hard-cutover 的旧 owner -> 新 owner 权威映射，以及删旧、收根、去兼容层时必须遵守的 owner 依据。
@@ -96,7 +96,7 @@ doc_type: category-index
 当前目录覆盖的系统级约束包括：
 
 - 以 [全系统重构方案](../../.codex/plans/全系统重构方案.md) 为默认权威路线图的全局架构基线
-- `EntryRunner`、`CoreRuntime`、模块 descriptor、manager façade、`zircon_runtime` 吸收的 foundation/input/platform/script 实现目录与 asset/scene/graphics/ui/optional-extensions module-registration surface、`LevelManager -> LevelSystem -> World`、editor host、VM plugin 的职责分层
+- `EntryRunner`、`CoreRuntime`、模块 descriptor、manager contracts / handles、`zircon_runtime` 吸收的 foundation/input/platform/script 实现目录与 asset/scene/graphics/ui/optional-extensions module-registration surface、`LevelManager -> LevelSystem -> World`、editor host、VM plugin 的职责分层
 - `M2` optional extensions 里的 `net` / `sound` 最小可用闭环，其中 `net` 负责 socket/message-loop MVP，`sound` 负责 `.wav` asset import + clip playback + software mix MVP
 - `EngineEntry`、`EngineModule`、`EngineService` 与 `RuntimeObject/RuntimeSystem/EntityIdentity/ComponentData` 这组接口家族和语义合同
 - `CoreRuntime` service registry 的文件级边界和 `runtime/mod.rs` 只做导出层的结构纪律
@@ -106,5 +106,5 @@ doc_type: category-index
 - “先检查是否和主流引擎模式对齐，过于简单时优先深化架构设计”的设计规则
 - 跨 crate 功能接入时对 sibling `zircon_*` crates 的一致性要求
 
-后续如果继续细化 `zircon_core` 生命周期、`zircon_manager` façade 族、`zircon_runtime::foundation` 的 clock/config/event/scheduler 内建模块拆分、`zircon_scene` 的 `LevelSystem` 子系统托管、runtime `f64` 切换过程或 `zircon_runtime::script` VM 热替换协议，可以在本目录继续追加叶子文档。
+后续如果继续细化 `zircon_core` 生命周期、manager contract 族、`zircon_runtime::foundation` 的 clock/config/event/scheduler 内建模块拆分、`zircon_scene` 的 `LevelSystem` 子系统托管、runtime `f64` 切换过程或 `zircon_runtime::script` VM 热替换协议，可以在本目录继续追加叶子文档。
 

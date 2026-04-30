@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::graphics::scene::HybridGiScenePrepareResourcesSnapshot;
+use super::HybridGiScenePrepareResourceSamples;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct HybridGiSurfaceCachePageTableEntry {
@@ -196,21 +196,11 @@ impl HybridGiSurfaceCacheState {
         self.mark_dirty_pages(self.resident_page_ids_snapshot());
     }
 
-    pub(crate) fn apply_scene_prepare_resources(
+    pub(in crate::graphics::runtime::hybrid_gi) fn apply_scene_prepare_resources(
         &mut self,
-        snapshot: &HybridGiScenePrepareResourcesSnapshot,
+        resources: &dyn HybridGiScenePrepareResourceSamples,
     ) {
         let previous_page_contents = self.page_contents.clone();
-        let atlas_samples_by_slot = snapshot
-            .atlas_slot_rgba_samples
-            .iter()
-            .copied()
-            .collect::<BTreeMap<_, _>>();
-        let capture_samples_by_slot = snapshot
-            .capture_slot_rgba_samples
-            .iter()
-            .copied()
-            .collect::<BTreeMap<_, _>>();
         let existing_entries = self
             .page_contents
             .iter()
@@ -243,14 +233,12 @@ impl HybridGiSurfaceCacheState {
                     .get(&page.page_id)
                     .copied()
                     .filter(|entry| entry.owner_card_id == page.owner_card_id);
-                let atlas_sample_rgba = atlas_samples_by_slot
-                    .get(&atlas_slot_id)
-                    .copied()
+                let atlas_sample_rgba = resources
+                    .atlas_slot_rgba_sample(atlas_slot_id)
                     .or_else(|| existing.map(|entry| entry.atlas_sample_rgba))
                     .unwrap_or([0, 0, 0, 0]);
-                let capture_sample_rgba = capture_samples_by_slot
-                    .get(&capture_slot_id)
-                    .copied()
+                let capture_sample_rgba = resources
+                    .capture_slot_rgba_sample(capture_slot_id)
                     .or_else(|| existing.map(|entry| entry.capture_sample_rgba))
                     .unwrap_or([0, 0, 0, 0]);
 

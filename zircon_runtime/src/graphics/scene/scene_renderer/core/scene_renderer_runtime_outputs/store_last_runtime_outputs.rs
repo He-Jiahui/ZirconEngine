@@ -17,7 +17,9 @@ use super::super::scene_renderer::{
     VirtualGeometryLastOutputUpdate, VirtualGeometryRenderPathOutputUpdate,
 };
 use super::super::scene_renderer_core_render_compiled_scene::{
-    SceneRendererCompiledSceneOutputs, VirtualGeometryIndirectStats,
+    SceneRendererCompiledSceneOutputs, VirtualGeometryHardwareRasterizationPassStoreParts,
+    VirtualGeometryIndirectStatsStoreParts, VirtualGeometryNodeAndClusterCullPassStoreParts,
+    VirtualGeometryVisBuffer64PassStoreParts,
 };
 use super::virtual_geometry_output_buffers::{
     create_cull_input_buffer, create_hardware_rasterization_buffer,
@@ -51,7 +53,7 @@ pub(in crate::graphics::scene::scene_renderer::core) fn store_last_runtime_outpu
         &renderer.backend.device,
         &mut renderer.advanced_plugin_outputs,
     )?;
-    let VirtualGeometryIndirectStats {
+    let VirtualGeometryIndirectStatsStoreParts {
         draw_count: indirect_draw_count,
         buffer_count: indirect_buffer_count,
         segment_count: indirect_segment_count,
@@ -82,56 +84,50 @@ pub(in crate::graphics::scene::scene_renderer::core) fn store_last_runtime_outpu
         execution_submission_buffer: indirect_execution_submission_buffer,
         execution_args_buffer: indirect_execution_args_buffer,
         execution_authority_buffer: indirect_execution_authority_buffer,
-    } = virtual_geometry_indirect_stats;
-    let node_and_cluster_cull_source = node_and_cluster_cull_pass.source;
-    let node_and_cluster_cull_record_count = node_and_cluster_cull_pass.record_count;
-    let node_and_cluster_cull_global_state = node_and_cluster_cull_pass.global_state;
-    let node_and_cluster_cull_dispatch_setup = node_and_cluster_cull_pass.dispatch_setup;
-    let node_and_cluster_cull_launch_worklist = node_and_cluster_cull_pass.launch_worklist;
-    let node_and_cluster_cull_instance_seeds = node_and_cluster_cull_pass.instance_seeds;
-    let node_and_cluster_cull_buffer = node_and_cluster_cull_pass.buffer;
-    let node_and_cluster_cull_dispatch_setup_buffer =
-        node_and_cluster_cull_pass.dispatch_setup_buffer;
-    let node_and_cluster_cull_launch_worklist_buffer =
-        node_and_cluster_cull_pass.launch_worklist_buffer;
-    let node_and_cluster_cull_instance_seed_count = node_and_cluster_cull_pass.instance_seed_count;
-    let node_and_cluster_cull_instance_seed_buffer =
-        node_and_cluster_cull_pass.instance_seed_buffer;
-    let node_and_cluster_cull_instance_work_item_count =
-        node_and_cluster_cull_pass.instance_work_item_count;
-    let node_and_cluster_cull_instance_work_items = node_and_cluster_cull_pass.instance_work_items;
-    let node_and_cluster_cull_instance_work_item_buffer =
-        node_and_cluster_cull_pass.instance_work_item_buffer;
-    let node_and_cluster_cull_cluster_work_item_count =
-        node_and_cluster_cull_pass.cluster_work_item_count;
-    let node_and_cluster_cull_cluster_work_items = node_and_cluster_cull_pass.cluster_work_items;
-    let node_and_cluster_cull_cluster_work_item_buffer =
-        node_and_cluster_cull_pass.cluster_work_item_buffer;
-    let node_and_cluster_cull_hierarchy_child_ids = node_and_cluster_cull_pass.hierarchy_child_ids;
-    let node_and_cluster_cull_hierarchy_child_id_buffer =
-        node_and_cluster_cull_pass.hierarchy_child_id_buffer;
-    let node_and_cluster_cull_child_work_item_count =
-        node_and_cluster_cull_pass.child_work_item_count;
-    let node_and_cluster_cull_child_work_items = node_and_cluster_cull_pass.child_work_items;
-    let node_and_cluster_cull_child_work_item_buffer =
-        node_and_cluster_cull_pass.child_work_item_buffer;
-    let node_and_cluster_cull_traversal_record_count =
-        node_and_cluster_cull_pass.traversal_record_count;
-    let node_and_cluster_cull_traversal_records = node_and_cluster_cull_pass.traversal_records;
-    let node_and_cluster_cull_traversal_record_buffer =
-        node_and_cluster_cull_pass.traversal_record_buffer;
-    let node_and_cluster_cull_page_request_count = node_and_cluster_cull_pass.page_request_count;
-    let node_and_cluster_cull_page_request_ids = node_and_cluster_cull_pass.page_request_ids;
-    let node_and_cluster_cull_page_request_buffer = node_and_cluster_cull_pass.page_request_buffer;
-    let hardware_rasterization_records = hardware_rasterization_pass.records;
-    let hardware_rasterization_render_path_source = hardware_rasterization_pass.source;
-    let hardware_rasterization_record_count = hardware_rasterization_pass.record_count;
-    let hardware_rasterization_buffer = hardware_rasterization_pass.buffer;
-    let visbuffer64_clear_value = visbuffer64_pass.clear_value;
-    let visbuffer64_entries = visbuffer64_pass.entries;
-    let visbuffer64_render_path_source = visbuffer64_pass.source;
-    let visbuffer64_entry_count = visbuffer64_pass.entry_count;
-    let visbuffer64_buffer = visbuffer64_pass.buffer;
+    } = virtual_geometry_indirect_stats.into_store_parts();
+    let VirtualGeometryNodeAndClusterCullPassStoreParts {
+        source: node_and_cluster_cull_source,
+        record_count: node_and_cluster_cull_record_count,
+        global_state: node_and_cluster_cull_global_state,
+        buffer: node_and_cluster_cull_buffer,
+        dispatch_setup: node_and_cluster_cull_dispatch_setup,
+        launch_worklist: node_and_cluster_cull_launch_worklist,
+        dispatch_setup_buffer: node_and_cluster_cull_dispatch_setup_buffer,
+        launch_worklist_buffer: node_and_cluster_cull_launch_worklist_buffer,
+        instance_seed_count: node_and_cluster_cull_instance_seed_count,
+        instance_seeds: node_and_cluster_cull_instance_seeds,
+        instance_seed_buffer: node_and_cluster_cull_instance_seed_buffer,
+        instance_work_item_count: node_and_cluster_cull_instance_work_item_count,
+        instance_work_items: node_and_cluster_cull_instance_work_items,
+        instance_work_item_buffer: node_and_cluster_cull_instance_work_item_buffer,
+        cluster_work_item_count: node_and_cluster_cull_cluster_work_item_count,
+        cluster_work_items: node_and_cluster_cull_cluster_work_items,
+        cluster_work_item_buffer: node_and_cluster_cull_cluster_work_item_buffer,
+        hierarchy_child_ids: node_and_cluster_cull_hierarchy_child_ids,
+        hierarchy_child_id_buffer: node_and_cluster_cull_hierarchy_child_id_buffer,
+        child_work_item_count: node_and_cluster_cull_child_work_item_count,
+        child_work_items: node_and_cluster_cull_child_work_items,
+        child_work_item_buffer: node_and_cluster_cull_child_work_item_buffer,
+        traversal_record_count: node_and_cluster_cull_traversal_record_count,
+        traversal_records: node_and_cluster_cull_traversal_records,
+        traversal_record_buffer: node_and_cluster_cull_traversal_record_buffer,
+        page_request_count: node_and_cluster_cull_page_request_count,
+        page_request_ids: node_and_cluster_cull_page_request_ids,
+        page_request_buffer: node_and_cluster_cull_page_request_buffer,
+    } = node_and_cluster_cull_pass.into_store_parts();
+    let VirtualGeometryHardwareRasterizationPassStoreParts {
+        records: hardware_rasterization_records,
+        source: hardware_rasterization_render_path_source,
+        record_count: hardware_rasterization_record_count,
+        buffer: hardware_rasterization_buffer,
+    } = hardware_rasterization_pass.into_store_parts();
+    let VirtualGeometryVisBuffer64PassStoreParts {
+        clear_value: visbuffer64_clear_value,
+        entries: visbuffer64_entries,
+        source: visbuffer64_render_path_source,
+        entry_count: visbuffer64_entry_count,
+        buffer: visbuffer64_buffer,
+    } = visbuffer64_pass.into_store_parts();
     let fallback_readback_selected_clusters = if renderer
         .advanced_plugin_outputs
         .has_virtual_geometry_gpu_readback()
@@ -260,15 +256,17 @@ pub(in crate::graphics::scene::scene_renderer::core) fn store_last_runtime_outpu
             .advanced_plugin_outputs
             .virtual_geometry_gpu_readback_mut()
         {
-            readback.hardware_rasterization_record_count = hardware_rasterization_record_count;
-            readback.hardware_rasterization_source = hardware_rasterization_render_path_source;
-            readback.selected_cluster_count = executed_selected_cluster_count;
-            readback.selected_cluster_source = selected_cluster_render_path_source;
-            readback.selected_clusters = selected_clusters.clone();
-            readback.visbuffer64_entry_count = visbuffer64_entry_count;
-            readback.visbuffer64_source = visbuffer64_render_path_source;
-            readback.visbuffer64_clear_value = visbuffer64_clear_value;
-            readback.visbuffer64_entries = resolved_visbuffer64_entries;
+            readback.replace_render_path_readback(
+                hardware_rasterization_record_count,
+                hardware_rasterization_render_path_source,
+                executed_selected_cluster_count,
+                selected_cluster_render_path_source,
+                selected_clusters.clone(),
+                visbuffer64_entry_count,
+                visbuffer64_render_path_source,
+                visbuffer64_clear_value,
+                resolved_visbuffer64_entries,
+            );
         }
         snapshot.execution_segments = execution_segments;
         snapshot.submission_order = indirect_draw_submission_order
@@ -307,19 +305,17 @@ pub(in crate::graphics::scene::scene_renderer::core) fn store_last_runtime_outpu
         .advanced_plugin_outputs
         .virtual_geometry_gpu_readback_mut()
     {
-        readback.hardware_rasterization_record_count = hardware_rasterization_record_count;
-        readback.hardware_rasterization_source = hardware_rasterization_render_path_source;
-        readback.selected_cluster_count = executed_selected_cluster_count;
-        readback.selected_cluster_source = selected_cluster_render_path_source;
-        if readback.selected_clusters.is_empty() {
-            readback.selected_clusters = fallback_readback_selected_clusters;
-        }
-        readback.visbuffer64_entry_count = visbuffer64_entry_count;
-        readback.visbuffer64_source = visbuffer64_render_path_source;
-        readback.visbuffer64_clear_value = RenderVirtualGeometryVisBuffer64Entry::CLEAR_VALUE;
-        if readback.visbuffer64_entries.is_empty() {
-            readback.visbuffer64_entries = fallback_readback_visbuffer64_entries;
-        }
+        readback.fill_missing_render_path_readback(
+            hardware_rasterization_record_count,
+            hardware_rasterization_render_path_source,
+            executed_selected_cluster_count,
+            selected_cluster_render_path_source,
+            fallback_readback_selected_clusters,
+            visbuffer64_entry_count,
+            visbuffer64_render_path_source,
+            RenderVirtualGeometryVisBuffer64Entry::CLEAR_VALUE,
+            fallback_readback_visbuffer64_entries,
+        );
     }
     let visbuffer64_packed_words = virtual_geometry_debug_snapshot
         .as_ref()
@@ -335,13 +331,7 @@ pub(in crate::graphics::scene::scene_renderer::core) fn store_last_runtime_outpu
             renderer
                 .advanced_plugin_outputs
                 .virtual_geometry_gpu_readback()
-                .map(|readback| {
-                    readback
-                        .visbuffer64_entries
-                        .iter()
-                        .map(|entry| entry.packed_value)
-                        .collect::<Vec<_>>()
-                })
+                .map(|readback| readback.visbuffer64_packed_words())
                 .filter(|entries| !entries.is_empty())
         })
         .unwrap_or_default();

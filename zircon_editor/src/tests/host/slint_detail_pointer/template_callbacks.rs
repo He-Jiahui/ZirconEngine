@@ -1,71 +1,24 @@
+fn source(relative: &str) -> String {
+    std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(relative))
+        .unwrap_or_else(|error| panic!("read `{relative}`: {error}"))
+}
+
 #[test]
-fn inspector_surface_controls_use_generic_template_callbacks_instead_of_legacy_business_abi() {
-    let workbench = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/ui/workbench.slint"));
-    let pane_content = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/pane_content.slint"
-    ));
-    let wiring = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/src/ui/slint_host/app/callback_wiring.rs"
-    ));
+fn inspector_surface_controls_use_pane_surface_host_callbacks() {
+    let globals = source("src/ui/slint_host/host_contract/globals.rs");
+    let wiring = source("src/ui/slint_host/app/callback_wiring.rs");
+    let inspector = source("src/ui/slint_host/app/inspector.rs");
 
-    for needle in [
-        "callback inspector_name_edited(",
-        "callback inspector_parent_edited(",
-        "callback inspector_x_edited(",
-        "callback inspector_y_edited(",
-        "callback inspector_z_edited(",
-        "callback inspector_apply()",
-        "callback delete_selected()",
-        "inspector_name_edited(value) =>",
-        "inspector_parent_edited(value) =>",
-        "inspector_x_edited(value) =>",
-        "inspector_y_edited(value) =>",
-        "inspector_z_edited(value) =>",
-        "inspector_apply() =>",
-        "delete_selected() =>",
+    for required in [
+        "on_inspector_control_changed",
+        "on_inspector_control_clicked",
+        "invoke_inspector_control_changed",
+        "invoke_inspector_control_clicked",
     ] {
-        assert!(
-            !workbench.contains(needle),
-            "workbench shell still exposes legacy inspector callback `{needle}`"
-        );
+        assert!(globals.contains(required), "host globals missing `{required}`");
     }
-
-    for needle in [
-        "callback inspector_name_edited(value: string);",
-        "callback inspector_parent_edited(value: string);",
-        "callback inspector_x_edited(value: string);",
-        "callback inspector_y_edited(value: string);",
-        "callback inspector_z_edited(value: string);",
-        "callback inspector_apply();",
-        "callback delete_selected();",
-        "edited(value) => { root.inspector_name_edited(value); }",
-        "edited(value) => { root.inspector_parent_edited(value); }",
-        "edited(value) => { root.inspector_x_edited(value); }",
-        "edited(value) => { root.inspector_y_edited(value); }",
-        "edited(value) => { root.inspector_z_edited(value); }",
-        "clicked => { root.inspector_apply(); }",
-        "clicked => { root.delete_selected(); }",
-    ] {
-        assert!(
-            !pane_content.contains(needle),
-            "inspector pane still exposes legacy direct control callback `{needle}`"
-        );
-    }
-
-    for needle in [
-        "ui.on_inspector_name_edited(",
-        "ui.on_inspector_parent_edited(",
-        "ui.on_inspector_x_edited(",
-        "ui.on_inspector_y_edited(",
-        "ui.on_inspector_z_edited(",
-        "ui.on_inspector_apply(",
-        "ui.on_delete_selected(",
-    ] {
-        assert!(
-            !wiring.contains(needle),
-            "slint host wiring still registers legacy inspector callback `{needle}`"
-        );
-    }
+    assert!(wiring.contains("pane_surface_host.on_inspector_control_changed("));
+    assert!(wiring.contains("pane_surface_host.on_inspector_control_clicked("));
+    assert!(inspector.contains("dispatch_inspector_control_changed"));
+    assert!(inspector.contains("dispatch_inspector_control_clicked"));
 }

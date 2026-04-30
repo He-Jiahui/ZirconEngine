@@ -210,6 +210,75 @@ fn inject_payload_attributes(root: &mut UiTemplateNode, payload: &PanePayload) {
                 string_array(&payload.detail_items),
             );
         }
+        PanePayload::ModulePluginsV1(payload) => {
+            root.attributes.insert(
+                "payload_diagnostics".to_string(),
+                Value::String(payload.diagnostics.clone()),
+            );
+            root.attributes.insert(
+                "payload_plugin_count".to_string(),
+                Value::Integer(i64::try_from(payload.plugins.len()).unwrap_or(i64::MAX)),
+            );
+            root.attributes.insert(
+                "payload_plugins".to_string(),
+                Value::Array(
+                    payload
+                        .plugins
+                        .iter()
+                        .map(|plugin| {
+                            let mut table = Table::new();
+                            table.insert(
+                                "plugin_id".to_string(),
+                                Value::String(plugin.plugin_id.clone()),
+                            );
+                            table.insert(
+                                "display_name".to_string(),
+                                Value::String(plugin.display_name.clone()),
+                            );
+                            table.insert(
+                                "package_source".to_string(),
+                                Value::String(plugin.package_source.clone()),
+                            );
+                            table.insert(
+                                "load_state".to_string(),
+                                Value::String(plugin.load_state.clone()),
+                            );
+                            table.insert("enabled".to_string(), Value::Boolean(plugin.enabled));
+                            table.insert("required".to_string(), Value::Boolean(plugin.required));
+                            table.insert(
+                                "target_modes".to_string(),
+                                Value::String(plugin.target_modes.clone()),
+                            );
+                            table.insert(
+                                "packaging".to_string(),
+                                Value::String(plugin.packaging.clone()),
+                            );
+                            table.insert(
+                                "runtime_crate".to_string(),
+                                Value::String(plugin.runtime_crate.clone()),
+                            );
+                            table.insert(
+                                "editor_crate".to_string(),
+                                Value::String(plugin.editor_crate.clone()),
+                            );
+                            table.insert(
+                                "runtime_capabilities".to_string(),
+                                Value::String(plugin.runtime_capabilities.clone()),
+                            );
+                            table.insert(
+                                "editor_capabilities".to_string(),
+                                Value::String(plugin.editor_capabilities.clone()),
+                            );
+                            table.insert(
+                                "diagnostics".to_string(),
+                                Value::String(plugin.diagnostics.clone()),
+                            );
+                            Value::Table(table)
+                        })
+                        .collect(),
+                ),
+            );
+        }
         PanePayload::UiComponentShowcaseV1(payload) => {
             root.attributes.insert(
                 "payload_state_summary".to_string(),
@@ -264,6 +333,9 @@ fn hybrid_slot_anchor(body: &PaneBodyPresentation) -> Option<(&'static str, &'st
             "AnimationGraphCanvasSlotAnchor",
             "animation_graph_canvas_slot",
         )),
+        PanePayload::ModulePluginsV1(_) => {
+            Some(("ModulePluginListSlotAnchor", "module_plugin_list_slot"))
+        }
         _ => None,
     }
 }

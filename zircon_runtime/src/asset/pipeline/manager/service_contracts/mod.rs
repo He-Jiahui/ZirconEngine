@@ -1,0 +1,2 @@
+mod asset_manager_contract;
+mod resource_manager_contract;

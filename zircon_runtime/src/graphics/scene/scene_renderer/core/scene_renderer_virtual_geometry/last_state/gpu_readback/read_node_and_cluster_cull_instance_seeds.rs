@@ -14,10 +14,10 @@ impl SceneRenderer {
     ) -> Result<Vec<RenderVirtualGeometryNodeAndClusterCullInstanceSeed>, GraphicsError> {
         let seed_count =
             self.advanced_plugin_outputs
-                .virtual_geometry_node_and_cluster_cull_instance_seed_count as usize;
+                .virtual_geometry_node_and_cluster_cull_instance_seed_count() as usize;
         let Some(buffer) = self
             .advanced_plugin_outputs
-            .virtual_geometry_node_and_cluster_cull_instance_seed_buffer
+            .virtual_geometry_node_and_cluster_cull_instance_seed_buffer()
             .as_ref()
         else {
             return Ok(Vec::new());

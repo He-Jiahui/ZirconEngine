@@ -19,7 +19,7 @@ impl VirtualGeometryRuntimeState {
         }
 
         let mut current_page_id = page_id;
-        while let Some(parent_page_id) = self.page_parent_pages.get(&current_page_id).copied() {
+        while let Some(parent_page_id) = self.page_parent_pages().get(&current_page_id).copied() {
             if frontier_hot_pages.contains(&parent_page_id) {
                 return true;
             }
@@ -27,7 +27,7 @@ impl VirtualGeometryRuntimeState {
         }
 
         let mut stack = self
-            .page_parent_pages
+            .page_parent_pages()
             .iter()
             .filter_map(|(&candidate_page_id, &parent_page_id)| {
                 (parent_page_id == page_id).then_some(candidate_page_id)
@@ -42,7 +42,7 @@ impl VirtualGeometryRuntimeState {
             if frontier_hot_pages.contains(&candidate_page_id) {
                 return true;
             }
-            stack.extend(self.page_parent_pages.iter().filter_map(
+            stack.extend(self.page_parent_pages().iter().filter_map(
                 |(&descendant_page_id, &parent_page_id)| {
                     (parent_page_id == candidate_page_id).then_some(descendant_page_id)
                 },
@@ -110,9 +110,9 @@ impl VirtualGeometryRuntimeState {
         target_page_id: u32,
         candidate_page_id: u32,
     ) -> Option<(usize, u32)> {
-        self.current_requested_page_order
+        self.current_requested_page_order()
             .iter()
-            .filter(|(requested_page_id, _)| self.pending_pages.contains(requested_page_id))
+            .filter(|(requested_page_id, _)| self.has_pending_page(**requested_page_id))
             .filter(|(requested_page_id, _)| **requested_page_id != target_page_id)
             .filter_map(|(requested_page_id, request_order)| {
                 let lineage_distance = if *requested_page_id == candidate_page_id {
@@ -135,7 +135,7 @@ impl VirtualGeometryRuntimeState {
 
         let mut current_page_id = descendant_page_id;
         let mut distance = 0_u32;
-        while let Some(parent_page_id) = self.page_parent_pages.get(&current_page_id).copied() {
+        while let Some(parent_page_id) = self.page_parent_pages().get(&current_page_id).copied() {
             distance = distance.saturating_add(1);
             if parent_page_id == ancestor_page_id {
                 return Some(distance);
@@ -157,10 +157,8 @@ impl VirtualGeometryRuntimeState {
     pub(in crate::graphics::runtime::virtual_geometry) fn frontier_hot_resident_pages(
         &self,
     ) -> BTreeSet<u32> {
-        self.current_hot_resident_pages
-            .iter()
-            .chain(self.recent_hot_resident_pages.keys())
-            .copied()
+        self.current_hot_resident_page_ids()
+            .chain(self.recent_hot_resident_page_ids())
             .collect()
     }
 }

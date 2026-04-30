@@ -67,7 +67,7 @@ fn node_and_cluster_cull_traversal_record(
     let (child_source, child_base, child_count) = match op {
         VirtualGeometryNodeAndClusterCullTraversalOp::EnqueueChild => {
             authored_hierarchy_child_range(work_item, hierarchy_nodes).unwrap_or((
-                VirtualGeometryNodeAndClusterCullTraversalChildSource::CompatFixedFanout,
+                VirtualGeometryNodeAndClusterCullTraversalChildSource::FixedFanout,
                 work_item
                     .cluster_array_index
                     .saturating_mul(NODE_AND_CLUSTER_CULL_CHILD_FANOUT),

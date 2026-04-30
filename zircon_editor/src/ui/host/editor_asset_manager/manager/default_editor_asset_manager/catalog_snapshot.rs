@@ -1,6 +1,6 @@
 use super::super::super::EditorAssetCatalogSnapshotRecord;
 use super::super::folder_projection::build_folder_records;
-use super::{record_to_facade::record_to_facade, DefaultEditorAssetManager};
+use super::{record_to_view::record_to_view, DefaultEditorAssetManager};
 
 impl DefaultEditorAssetManager {
     pub(crate) fn catalog_snapshot_record(&self) -> EditorAssetCatalogSnapshotRecord {
@@ -8,7 +8,7 @@ impl DefaultEditorAssetManager {
         let mut assets = state
             .catalog_by_uuid
             .values()
-            .map(|record| record_to_facade(record, &state))
+            .map(|record| record_to_view(record, &state))
             .collect::<Vec<_>>();
         assets.sort_by(|left, right| left.locator.cmp(&right.locator));
 

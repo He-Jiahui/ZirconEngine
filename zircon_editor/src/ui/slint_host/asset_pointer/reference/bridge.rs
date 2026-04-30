@@ -63,6 +63,13 @@ impl AssetReferenceListPointerBridge {
         &mut self,
         point: UiPoint,
     ) -> Result<AssetReferenceListPointerDispatch, String> {
+        self.handle_press(point)
+    }
+
+    pub(crate) fn handle_press(
+        &mut self,
+        point: UiPoint,
+    ) -> Result<AssetReferenceListPointerDispatch, String> {
         let route = self.dispatch_event(UiPointerEvent::new(UiPointerEventKind::Down, point))?;
         self.state.hovered_row_index = hovered_row_from_target(route.as_ref());
         Ok(AssetReferenceListPointerDispatch {

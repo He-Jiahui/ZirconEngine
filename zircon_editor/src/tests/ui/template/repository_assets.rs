@@ -19,14 +19,14 @@ fn editor_repository_host_window_template_file_loads_and_instantiates() {
 
     let instance = registry.instantiate("ui.host_window.file").unwrap();
     assert_eq!(instance.root.component.as_deref(), Some("UiHostWindow"));
-    assert_eq!(instance.root.children.len(), 5);
+    assert_eq!(instance.root.children.len(), 4);
     assert_eq!(
         instance.root.children[0].component.as_deref(),
         Some("VerticalBox")
     );
     assert_eq!(
         instance.root.children[1].component.as_deref(),
-        Some("Container")
+        Some("Overlay")
     );
     assert_eq!(
         instance.root.children[2].component.as_deref(),
@@ -35,35 +35,5 @@ fn editor_repository_host_window_template_file_loads_and_instantiates() {
     assert_eq!(
         instance.root.children[3].component.as_deref(),
         Some("Overlay")
-    );
-    assert_eq!(
-        instance.root.children[4].component.as_deref(),
-        Some("Overlay")
-    );
-    assert_eq!(instance.root.children[0].children.len(), 3);
-    assert_eq!(
-        instance.root.children[0].children[0].component.as_deref(),
-        Some("UiHostToolbar")
-    );
-    assert_eq!(
-        instance.root.children[0].children[1].component.as_deref(),
-        Some("HorizontalBox")
-    );
-    assert_eq!(
-        instance.root.children[0].children[2].component.as_deref(),
-        Some("StatusBar")
-    );
-    assert_eq!(instance.root.children[0].children[1].children.len(), 2);
-    assert_eq!(
-        instance.root.children[0].children[1].children[0]
-            .component
-            .as_deref(),
-        Some("ActivityRail")
-    );
-    assert_eq!(
-        instance.root.children[0].children[1].children[1]
-            .component
-            .as_deref(),
-        Some("DocumentHost")
     );
 }

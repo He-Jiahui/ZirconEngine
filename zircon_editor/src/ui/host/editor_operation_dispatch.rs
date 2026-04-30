@@ -35,6 +35,7 @@ impl EditorEventRuntime {
                         event_source,
                         invocation.operation_id,
                         error,
+                        invocation.arguments,
                     );
                 }
             };
@@ -50,6 +51,7 @@ impl EditorEventRuntime {
                     event_source,
                     invocation.operation_id,
                     error,
+                    invocation.arguments,
                 );
             }
             if let Some(error) = operation_capability_error(
@@ -61,6 +63,7 @@ impl EditorEventRuntime {
                     event_source,
                     invocation.operation_id,
                     error,
+                    invocation.arguments,
                 );
             }
             descriptor
@@ -76,6 +79,7 @@ impl EditorEventRuntime {
                     event_source,
                     invocation.operation_id,
                     error,
+                    invocation.arguments,
                 );
             }
         };
@@ -87,6 +91,8 @@ impl EditorEventRuntime {
                 invocation.operation_id,
                 descriptor.display_name().to_string(),
                 descriptor.undoable().is_some(),
+                invocation.arguments,
+                invocation.operation_group,
             )),
         )
     }
@@ -96,6 +102,7 @@ impl EditorEventRuntime {
         source: EditorEventSource,
         operation_id: EditorOperationPath,
         error: String,
+        arguments: serde_json::Value,
     ) -> Result<EditorEventRecord, String> {
         self.dispatch_normalized_event_with_operation(
             source,
@@ -103,7 +110,13 @@ impl EditorEventRuntime {
                 operation_id: operation_id.to_string(),
                 error,
             }),
-            Some((operation_id.clone(), operation_id.to_string(), false)),
+            Some((
+                operation_id.clone(),
+                operation_id.to_string(),
+                false,
+                arguments,
+                None,
+            )),
         )
     }
 
@@ -185,7 +198,9 @@ fn stack_entries(
             json!({
                 "operation_id": entry.operation_id.as_str(),
                 "display_name": &entry.display_name,
+                "source": &entry.source,
                 "sequence": entry.sequence,
+                "operation_group": &entry.operation_group,
             })
         })
         .collect()

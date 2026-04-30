@@ -48,14 +48,14 @@ fn hybrid_gi_scene_representation_separates_public_settings_from_internal_fixtur
         }],
     });
 
-    assert_eq!(representation.settings.trace_budget, 24);
-    assert_eq!(representation.settings.card_budget, 48);
-    assert_eq!(representation.settings.voxel_budget, 12);
+    assert_eq!(representation.settings().trace_budget(), 24);
+    assert_eq!(representation.settings().card_budget(), 48);
+    assert_eq!(representation.settings().voxel_budget(), 12);
     assert_eq!(representation.fixture_probe_count(), 1);
     assert_eq!(representation.fixture_trace_region_count(), 1);
-    assert!(representation.inputs.is_complete());
-    assert_eq!(representation.surface_cache.resident_page_count(), 0);
-    assert_eq!(representation.voxel_scene.resident_clipmap_count(), 0);
+    assert!(representation.inputs().is_complete());
+    assert_eq!(representation.surface_cache().resident_page_count(), 0);
+    assert_eq!(representation.voxel_scene().resident_clipmap_count(), 0);
 }
 
 #[test]
@@ -106,25 +106,53 @@ fn hybrid_gi_scene_representation_counts_duplicate_legacy_fixture_payloads_once(
 }
 
 #[test]
+fn hybrid_gi_scene_representation_ignores_disabled_legacy_fixture_payloads() {
+    let representation = HybridGiSceneRepresentation::from_extract(&RenderHybridGiExtract {
+        enabled: false,
+        quality: RenderHybridGiQuality::High,
+        trace_budget: 24,
+        card_budget: 48,
+        voxel_budget: 12,
+        debug_view: RenderHybridGiDebugView::SurfaceCache,
+        probe_budget: 1,
+        tracing_budget: 1,
+        probes: vec![RenderHybridGiProbe {
+            probe_id: 10,
+            ..Default::default()
+        }],
+        trace_regions: vec![RenderHybridGiTraceRegion {
+            region_id: 11,
+            ..Default::default()
+        }],
+    });
+
+    assert_eq!(representation.fixture_probe_count(), 0);
+    assert_eq!(representation.fixture_trace_region_count(), 0);
+}
+
+#[test]
 fn hybrid_gi_scene_representation_tracks_surface_cache_feedback_from_card_budget() {
     let mut representation = HybridGiSceneRepresentation::from_extract(&extract_with_budgets(2, 3));
 
     representation.synchronize_cards([11, 22, 33]);
 
     assert_eq!(representation.card_ids(), vec![11, 22, 33]);
-    assert_eq!(representation.surface_cache.resident_page_ids(), vec![0, 1]);
-    assert_eq!(representation.surface_cache.dirty_page_ids(), vec![0, 1]);
-    assert_eq!(representation.surface_cache.feedback_card_ids(), vec![33]);
     assert_eq!(
-        representation.surface_cache.invalidated_page_ids(),
+        representation.surface_cache().resident_page_ids(),
+        vec![0, 1]
+    );
+    assert_eq!(representation.surface_cache().dirty_page_ids(), vec![0, 1]);
+    assert_eq!(representation.surface_cache().feedback_card_ids(), vec![33]);
+    assert_eq!(
+        representation.surface_cache().invalidated_page_ids(),
         Vec::<u32>::new()
     );
     assert_eq!(
-        representation.voxel_scene.resident_clipmap_ids(),
+        representation.voxel_scene().resident_clipmap_ids(),
         vec![0, 1, 2]
     );
     assert_eq!(
-        representation.voxel_scene.dirty_clipmap_ids(),
+        representation.voxel_scene().dirty_clipmap_ids(),
         vec![0, 1, 2]
     );
 }
@@ -137,18 +165,24 @@ fn hybrid_gi_scene_representation_reuses_evicted_pages_after_card_invalidation()
     representation.synchronize_cards([22, 33]);
 
     assert_eq!(representation.card_ids(), vec![22, 33]);
-    assert_eq!(representation.surface_cache.resident_page_ids(), vec![1, 0]);
-    assert_eq!(representation.surface_cache.dirty_page_ids(), vec![0]);
     assert_eq!(
-        representation.surface_cache.feedback_card_ids(),
+        representation.surface_cache().resident_page_ids(),
+        vec![1, 0]
+    );
+    assert_eq!(representation.surface_cache().dirty_page_ids(), vec![0]);
+    assert_eq!(
+        representation.surface_cache().feedback_card_ids(),
         Vec::<u32>::new()
     );
-    assert_eq!(representation.surface_cache.invalidated_page_ids(), vec![0]);
     assert_eq!(
-        representation.voxel_scene.resident_clipmap_ids(),
+        representation.surface_cache().invalidated_page_ids(),
+        vec![0]
+    );
+    assert_eq!(
+        representation.voxel_scene().resident_clipmap_ids(),
         vec![0, 1]
     );
-    assert_eq!(representation.voxel_scene.dirty_clipmap_ids(), vec![0, 1]);
+    assert_eq!(representation.voxel_scene().dirty_clipmap_ids(), vec![0, 1]);
 }
 
 #[test]
@@ -158,11 +192,11 @@ fn hybrid_gi_scene_representation_builds_surface_cache_page_table_and_capture_sl
     representation.synchronize_cards([11, 22, 33]);
 
     assert_eq!(
-        representation.surface_cache.page_table_entries(),
+        representation.surface_cache().page_table_entries(),
         vec![(0, 0), (1, 1)]
     );
     assert_eq!(
-        representation.surface_cache.capture_slot_entries(),
+        representation.surface_cache().capture_slot_entries(),
         vec![(0, 0), (1, 1)]
     );
 }
@@ -204,9 +238,12 @@ fn hybrid_gi_scene_representation_allocates_page_ids_separately_from_owner_card_
         &[],
     );
 
-    assert_eq!(representation.surface_cache.resident_page_ids(), vec![0, 1]);
     assert_eq!(
-        representation.surface_cache.page_table_entries(),
+        representation.surface_cache().resident_page_ids(),
+        vec![0, 1]
+    );
+    assert_eq!(
+        representation.surface_cache().page_table_entries(),
         vec![(0, 0), (1, 1)]
     );
     assert_eq!(
@@ -226,11 +263,11 @@ fn hybrid_gi_scene_representation_reuses_surface_cache_slots_after_invalidation(
     representation.synchronize_cards([22, 33]);
 
     assert_eq!(
-        representation.surface_cache.page_table_entries(),
+        representation.surface_cache().page_table_entries(),
         vec![(1, 1), (0, 0)]
     );
     assert_eq!(
-        representation.surface_cache.capture_slot_entries(),
+        representation.surface_cache().capture_slot_entries(),
         vec![(0, 0)]
     );
 }
@@ -258,10 +295,16 @@ fn hybrid_gi_scene_representation_reuses_recycled_page_id_for_new_owner_after_in
         &[],
     );
 
-    assert_eq!(representation.surface_cache.resident_page_ids(), vec![1, 0]);
-    assert_eq!(representation.surface_cache.invalidated_page_ids(), vec![0]);
     assert_eq!(
-        representation.surface_cache.page_table_entries(),
+        representation.surface_cache().resident_page_ids(),
+        vec![1, 0]
+    );
+    assert_eq!(
+        representation.surface_cache().invalidated_page_ids(),
+        vec![0]
+    );
+    assert_eq!(
+        representation.surface_cache().page_table_entries(),
         vec![(1, 1), (0, 0)]
     );
     assert_eq!(
@@ -323,11 +366,11 @@ fn hybrid_gi_scene_representation_preserves_capture_slot_for_resident_page_redir
     );
 
     assert_eq!(
-        representation.surface_cache.page_table_entries(),
+        representation.surface_cache().page_table_entries(),
         vec![(0, 0), (1, 1)]
     );
     assert_eq!(
-        representation.surface_cache.capture_slot_entries(),
+        representation.surface_cache().capture_slot_entries(),
         vec![(1, 1)]
     );
 }
@@ -347,7 +390,7 @@ fn hybrid_gi_scene_representation_builds_voxel_clipmap_descriptors_from_scene_bo
     );
 
     assert_eq!(
-        representation.voxel_scene.clipmap_descriptors(),
+        representation.voxel_scene().clipmap_descriptors(),
         vec![(0, [0.0, 0.0, 0.0], 5.0), (1, [0.0, 0.0, 0.0], 10.0),]
     );
 }
@@ -376,19 +419,19 @@ fn hybrid_gi_scene_representation_updates_and_invalidates_voxel_clipmap_descript
     );
 
     assert_eq!(
-        representation.voxel_scene.clipmap_descriptors(),
+        representation.voxel_scene().clipmap_descriptors(),
         vec![(0, [8.0, 0.0, 0.0], 2.0), (1, [8.0, 0.0, 0.0], 4.0),]
     );
-    assert_eq!(representation.voxel_scene.dirty_clipmap_ids(), vec![0, 1]);
+    assert_eq!(representation.voxel_scene().dirty_clipmap_ids(), vec![0, 1]);
 
     representation.synchronize_scene(&[], &[], &[], &[]);
 
     assert_eq!(
-        representation.voxel_scene.clipmap_descriptors(),
+        representation.voxel_scene().clipmap_descriptors(),
         Vec::<(u32, [f32; 3], f32)>::new()
     );
     assert_eq!(
-        representation.voxel_scene.invalidated_clipmap_ids(),
+        representation.voxel_scene().invalidated_clipmap_ids(),
         vec![0, 1]
     );
 }

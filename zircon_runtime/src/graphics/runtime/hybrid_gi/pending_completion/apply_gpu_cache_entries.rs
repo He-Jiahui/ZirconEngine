@@ -7,7 +7,7 @@ impl HybridGiRuntimeState {
         let mut unique_cache_entries = Vec::new();
         let mut seen_probe_ids = BTreeSet::new();
         for (probe_id, slot) in cache_entries {
-            if !self.probe_scene_data.contains_key(probe_id) {
+            if !self.probe_scene_data().contains_key(probe_id) {
                 continue;
             }
 
@@ -17,7 +17,7 @@ impl HybridGiRuntimeState {
             unique_cache_entries.push((*probe_id, *slot));
         }
 
-        let resident_probe_ids = self.resident_slots.keys().copied().collect::<Vec<_>>();
+        let resident_probe_ids = self.resident_probe_ids().collect::<Vec<_>>();
         let gpu_resident_probes = unique_cache_entries
             .iter()
             .map(|(probe_id, _)| *probe_id)
@@ -33,7 +33,6 @@ impl HybridGiRuntimeState {
             self.promote_to_resident_in_slot(probe_id, slot);
         }
 
-        self.evictable_probes
-            .retain(|probe_id| self.resident_slots.contains_key(probe_id));
+        self.retain_resident_evictable_probes();
     }
 }

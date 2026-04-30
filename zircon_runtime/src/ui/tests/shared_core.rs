@@ -290,7 +290,7 @@ fn render_extract_carries_visual_contract_fields_for_visible_nodes() {
                     dirty: false,
                 })
                 .with_template_metadata(UiTemplateNodeMetadata {
-                    component: "UiHostIconButton".to_string(),
+                    component: "IconButton".to_string(),
                     control_id: Some("LaunchButton".to_string()),
                     classes: vec!["primary".to_string()],
                     attributes: toml::from_str(
@@ -384,6 +384,70 @@ radius = 6.0
             text_render_mode: UiTextRenderMode::Sdf,
         }
     );
+}
+
+#[test]
+fn render_extract_uses_label_when_schema_text_default_is_empty() {
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui"));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_frame(UiFrame::new(0.0, 0.0, 200.0, 80.0))
+            .with_state_flags(UiStateFlags {
+                visible: true,
+                enabled: true,
+                clickable: false,
+                hoverable: false,
+                focusable: false,
+                pressed: false,
+                checked: false,
+                dirty: false,
+            }),
+    );
+    surface
+        .tree
+        .insert_child(
+            UiNodeId::new(1),
+            UiTreeNode::new(UiNodeId::new(2), UiNodePath::new("root/locate"))
+                .with_frame(UiFrame::new(8.0, 8.0, 124.0, 32.0))
+                .with_state_flags(UiStateFlags {
+                    visible: true,
+                    enabled: true,
+                    clickable: true,
+                    hoverable: true,
+                    focusable: true,
+                    pressed: false,
+                    checked: false,
+                    dirty: false,
+                })
+                .with_template_metadata(UiTemplateNodeMetadata {
+                    component: "Button".to_string(),
+                    control_id: Some("LocateSelectedAsset".to_string()),
+                    classes: Vec::new(),
+                    attributes: toml::from_str(
+                        r#"
+text = ""
+label = "Locate In Assets"
+"#,
+                    )
+                    .unwrap(),
+                    slot_attributes: Default::default(),
+                    style_overrides: Default::default(),
+                    style_tokens: Default::default(),
+                    bindings: Vec::new(),
+                }),
+        )
+        .unwrap();
+
+    surface.rebuild();
+
+    let locate_command = surface
+        .render_extract
+        .list
+        .commands
+        .iter()
+        .find(|command| command.node_id == UiNodeId::new(2))
+        .unwrap();
+    assert_eq!(locate_command.text.as_deref(), Some("Locate In Assets"));
 }
 
 #[test]

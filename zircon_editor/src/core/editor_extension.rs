@@ -54,6 +54,7 @@ impl EditorExtensionRegistry {
         &mut self,
         descriptor: ComponentDrawerDescriptor,
     ) -> Result<(), EditorExtensionRegistryError> {
+        validate_component_drawer_bindings(&descriptor)?;
         insert_unique(
             &mut self.component_drawers,
             descriptor.component_type.clone(),
@@ -224,6 +225,8 @@ pub struct EditorMenuItemDescriptor {
     priority: i32,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     shortcut: Option<String>,
+    #[serde(default = "default_menu_item_enabled")]
+    enabled: bool,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     required_capabilities: Vec<String>,
 }
@@ -235,8 +238,36 @@ impl EditorMenuItemDescriptor {
             operation,
             priority: 0,
             shortcut: None,
+            enabled: true,
             required_capabilities: Vec::new(),
         }
+    }
+
+    pub fn with_priority(mut self, priority: i32) -> Self {
+        self.priority = priority;
+        self
+    }
+
+    pub fn with_shortcut(mut self, shortcut: impl Into<String>) -> Self {
+        self.shortcut = Some(shortcut.into());
+        self
+    }
+
+    pub fn with_enabled(mut self, enabled: bool) -> Self {
+        self.enabled = enabled;
+        self
+    }
+
+    pub fn with_required_capabilities<I, S>(mut self, capabilities: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.required_capabilities
+            .extend(capabilities.into_iter().map(Into::into));
+        self.required_capabilities.sort();
+        self.required_capabilities.dedup();
+        self
     }
 
     pub fn path(&self) -> &str {
@@ -254,6 +285,18 @@ impl EditorMenuItemDescriptor {
     pub fn shortcut(&self) -> Option<&str> {
         self.shortcut.as_deref()
     }
+
+    pub fn enabled(&self) -> bool {
+        self.enabled
+    }
+
+    pub fn required_capabilities(&self) -> &[String] {
+        &self.required_capabilities
+    }
+}
+
+fn default_menu_item_enabled() -> bool {
+    true
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -299,6 +342,16 @@ impl ComponentDrawerDescriptor {
     pub fn bindings(&self) -> &[String] {
         &self.bindings
     }
+}
+
+fn validate_component_drawer_bindings(
+    descriptor: &ComponentDrawerDescriptor,
+) -> Result<(), EditorExtensionRegistryError> {
+    for binding in descriptor.bindings() {
+        EditorOperationPath::parse(binding.clone())
+            .map_err(EditorExtensionRegistryError::Operation)?;
+    }
+    Ok(())
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

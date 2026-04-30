@@ -1,4 +1,5 @@
 /target/
+/zircon_plugins/target/
 **/*.rs.bk
 .idea/
 .vscode/

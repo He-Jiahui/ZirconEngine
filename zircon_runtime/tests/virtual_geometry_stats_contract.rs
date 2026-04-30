@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+mod support;
+
 use zircon_runtime::asset::pipeline::manager::ProjectAssetManager;
 use zircon_runtime::core::framework::render::{
     RenderFramework, RenderQualityProfile, RenderViewportDescriptor, RenderVirtualGeometryCluster,
@@ -10,13 +12,12 @@ use zircon_runtime::core::framework::render::{
     RenderVirtualGeometryVisBuffer64Source,
 };
 use zircon_runtime::core::math::{Transform, UVec2, Vec3};
-use zircon_runtime::graphics::WgpuRenderFramework;
 use zircon_runtime::scene::world::World;
 
 #[test]
 fn render_framework_stats_expose_virtual_geometry_instance_ranges_and_debug_state() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let server = WgpuRenderFramework::new(asset_manager).expect("framework should initialize");
+    let server = support::virtual_geometry_wgpu_render_framework(asset_manager);
     let viewport_size = UVec2::new(320, 240);
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(viewport_size))

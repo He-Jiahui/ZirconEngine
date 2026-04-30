@@ -14,12 +14,12 @@ fn editor_ui_host_runtime_builds_shared_surface_for_builtin_template() {
         format!("template.{UI_HOST_WINDOW_DOCUMENT_ID}")
     );
     assert_eq!(surface.tree.roots.len(), 1);
-    assert_eq!(surface.tree.nodes.len(), 26);
+    assert_eq!(surface.tree.nodes.len(), 27);
     assert_eq!(
         surface.render_extract.tree_id.0,
         format!("template.{UI_HOST_WINDOW_DOCUMENT_ID}")
     );
-    assert_eq!(surface.render_extract.list.commands.len(), 26);
+    assert_eq!(surface.render_extract.list.commands.len(), 27);
 
     let open_project = surface
         .tree
@@ -33,7 +33,7 @@ fn editor_ui_host_runtime_builds_shared_surface_for_builtin_template() {
         })
         .unwrap();
     let template = open_project.template_metadata.as_ref().unwrap();
-    assert_eq!(template.component, "UiHostIconButton");
+    assert_eq!(template.component, "IconButton");
     assert_eq!(
         template.attributes.get("icon").unwrap().as_str(),
         Some("folder-open-outline")
@@ -59,11 +59,11 @@ fn editor_ui_compatibility_harness_captures_shared_surface_snapshot() {
         .surface_nodes
         .contains(&"root|UiHostWindow|UiHostWindowRoot".to_string()));
     assert!(snapshot.surface_nodes.contains(
-        &"root/WorkbenchScaffold_0/WorkbenchMenuBarRoot_0/OpenProject_0|UiHostIconButton|OpenProject"
+        &"root/WorkbenchScaffold_0/WorkbenchMenuBarRoot_0/OpenProject_0|IconButton|OpenProject"
             .to_string()
     ));
     assert!(snapshot.surface_nodes.contains(
-        &"root/WorkbenchScaffold_0/StatusBarRoot_2/StatusText_0|UiHostLabel|StatusText".to_string()
+        &"root/WorkbenchScaffold_0/StatusBarRoot_4/StatusText_0|Label|StatusText".to_string()
     ));
     assert!(snapshot.attribute_entries.contains(
         &"root/WorkbenchScaffold_0/WorkbenchMenuBarRoot_0/OpenProject_0.icon=folder-open-outline"
@@ -108,7 +108,7 @@ fn editor_ui_host_runtime_builds_laid_out_host_model_from_shared_surface_authori
         menu_bar.parent_id.as_deref(),
         Some("root/WorkbenchScaffold_0")
     );
-    assert_eq!(menu_bar.frame, UiFrame::new(0.0, 0.0, 1280.0, 40.0));
+    assert_eq!(menu_bar.frame, UiFrame::new(0.0, 0.0, 1280.0, 26.0));
 
     let open_project = host_model.node_by_control_id("OpenProject").unwrap();
     assert_eq!(
@@ -122,16 +122,16 @@ fn editor_ui_host_runtime_builds_laid_out_host_model_from_shared_surface_authori
     assert_eq!(open_project.frame, UiFrame::new(0.0, 0.0, 120.0, 32.0));
 
     let activity_rail = host_model.node_by_control_id("ActivityRailRoot").unwrap();
-    assert_eq!(activity_rail.frame, UiFrame::new(0.0, 40.0, 56.0, 656.0));
+    assert_eq!(activity_rail.frame, UiFrame::new(0.0, 59.0, 56.0, 637.0));
 
     let document_host = host_model.node_by_control_id("DocumentHostRoot").unwrap();
-    assert_eq!(document_host.frame, UiFrame::new(56.0, 40.0, 1224.0, 656.0));
+    assert_eq!(document_host.frame, UiFrame::new(56.0, 59.0, 1224.0, 637.0));
 
     let tabs = host_model.node_by_control_id("DocumentTabsRoot").unwrap();
-    assert_eq!(tabs.frame, UiFrame::new(56.0, 40.0, 1224.0, 32.0));
+    assert_eq!(tabs.frame, UiFrame::new(56.0, 59.0, 1224.0, 32.0));
 
     let pane_surface = host_model.node_by_control_id("PaneSurfaceRoot").unwrap();
-    assert_eq!(pane_surface.frame, UiFrame::new(56.0, 72.0, 1224.0, 624.0));
+    assert_eq!(pane_surface.frame, UiFrame::new(56.0, 91.0, 1224.0, 605.0));
 
     let status_bar = host_model.node_by_control_id("StatusBarRoot").unwrap();
     assert_eq!(status_bar.frame, UiFrame::new(0.0, 696.0, 1280.0, 24.0));
@@ -167,11 +167,11 @@ fn editor_ui_compatibility_harness_captures_shared_layout_frames_from_surface_an
 
     assert!(surface_snapshot
         .frame_entries
-        .contains(&"root/WorkbenchScaffold_0/WorkbenchMenuBarRoot_0=0,0,1280,40".to_string()));
+        .contains(&"root/WorkbenchScaffold_0/WorkbenchMenuBarRoot_0=0,0,1280,26".to_string()));
     assert!(host_snapshot.frame_entries.contains(
-        &"root/WorkbenchScaffold_0/WorkbenchBody_1/DocumentHostRoot_1=56,40,1224,656".to_string()
+        &"root/WorkbenchScaffold_0/WorkbenchBody_3/DocumentHostRoot_1=56,59,1224,637".to_string()
     ));
     assert!(slint_snapshot
         .frame_entries
-        .contains(&"root/WorkbenchScaffold_0/StatusBarRoot_2=0,696,1280,24".to_string()));
+        .contains(&"root/WorkbenchScaffold_0/StatusBarRoot_4=0,696,1280,24".to_string()));
 }

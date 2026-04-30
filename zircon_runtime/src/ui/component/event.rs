@@ -1,18 +1,23 @@
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use super::{UiDragPayload, UiValue};
+use super::{UiDragPayload, UiValue, UiValueKind};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum UiComponentEventKind {
     ValueChanged,
     Commit,
     Focus,
+    Hover,
+    Press,
     BeginDrag,
     DragDelta,
     LargeDragDelta,
     EndDrag,
+    DropHover,
+    ActiveDragTarget,
     OpenPopup,
+    OpenPopupAt,
     ClosePopup,
     SelectOption,
     ToggleExpanded,
@@ -22,6 +27,7 @@ pub enum UiComponentEventKind {
     MoveElement,
     AddMapEntry,
     SetMapEntry,
+    RenameMapKey,
     RemoveMapEntry,
     DropReference,
     ClearReference,
@@ -42,6 +48,12 @@ pub enum UiComponentEvent {
     Focus {
         focused: bool,
     },
+    Hover {
+        hovered: bool,
+    },
+    Press {
+        pressed: bool,
+    },
     BeginDrag {
         property: String,
     },
@@ -56,7 +68,17 @@ pub enum UiComponentEvent {
     EndDrag {
         property: String,
     },
+    DropHover {
+        hovered: bool,
+    },
+    ActiveDragTarget {
+        active: bool,
+    },
     OpenPopup,
+    OpenPopupAt {
+        x: f64,
+        y: f64,
+    },
     ClosePopup,
     SelectOption {
         property: String,
@@ -94,6 +116,11 @@ pub enum UiComponentEvent {
         key: String,
         value: UiValue,
     },
+    RenameMapKey {
+        property: String,
+        from_key: String,
+        to_key: String,
+    },
     RemoveMapEntry {
         property: String,
         key: String,
@@ -124,6 +151,12 @@ pub enum UiComponentEventError {
     NonNumericProperty { property: String },
     #[error("invalid value `{value}` for numeric property {property}")]
     InvalidNumericValue { property: String, value: String },
+    #[error("invalid value kind {actual:?} for property {property}; expected {expected:?}")]
+    InvalidValueKind {
+        property: String,
+        expected: UiValueKind,
+        actual: UiValueKind,
+    },
     #[error("array property {property} has no element at index {index}")]
     ArrayIndexOutOfBounds { property: String, index: usize },
     #[error("map property {property} already contains key {key}")]

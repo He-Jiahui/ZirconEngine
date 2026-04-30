@@ -10,7 +10,7 @@ use crate::ui::layouts::windows::workbench_host_window::{
     build_pane_body_presentation, AnimationEditorPaneViewData, PaneContentSize,
     PanePayloadBuildContext, PanePresentation, PaneShellPresentation,
 };
-use crate::ui::slint_host::to_slint_animation_editor_pane_from_host_pane;
+use crate::ui::slint_host::to_host_contract_animation_editor_pane_from_host_pane;
 use crate::ui::workbench::layout::MainPageId;
 use crate::ui::workbench::snapshot::{
     AssetWorkspaceSnapshot, EditorChromeSnapshot, ProjectOverviewSnapshot, WorkbenchSnapshot,
@@ -115,7 +115,7 @@ fn animation_pane(
         secondary_hint: "".into(),
         show_toolbar: false,
         viewport: blank_viewport_chrome(),
-        body_compat: crate::ui::layouts::windows::workbench_host_window::PaneBodyCompatData {
+        native_body: crate::ui::layouts::windows::workbench_host_window::PaneNativeBodyData {
             hierarchy: Default::default(),
             inspector: Default::default(),
             console: Default::default(),
@@ -148,7 +148,7 @@ fn animation_pane(
 #[test]
 fn animation_sequence_template_body_projects_hybrid_timeline_slot_for_slint_conversion() {
     let animation = animation_fixture("sequence");
-    let projected = to_slint_animation_editor_pane_from_host_pane(
+    let projected = to_host_contract_animation_editor_pane_from_host_pane(
         &animation_pane(
             "pane.animation.sequence.body",
             PanePayloadKind::AnimationSequenceV1,
@@ -180,7 +180,7 @@ fn animation_sequence_template_body_projects_hybrid_timeline_slot_for_slint_conv
 #[test]
 fn animation_graph_template_body_projects_hybrid_canvas_slot_for_slint_conversion() {
     let animation = animation_fixture("graph");
-    let projected = to_slint_animation_editor_pane_from_host_pane(
+    let projected = to_host_contract_animation_editor_pane_from_host_pane(
         &animation_pane(
             "pane.animation.graph.body",
             PanePayloadKind::AnimationGraphV1,

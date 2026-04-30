@@ -10,11 +10,8 @@ pub(super) fn record_capture(
     context: &FrameSubmissionContext,
     frame: ViewportFrame,
 ) {
-    record.compiled_pipeline = Some(context.compiled_pipeline.clone());
-    record.last_capture = Some(CapturedFrame::new(
-        frame.width,
-        frame.height,
-        frame.rgba,
-        frame.generation,
-    ));
+    record.store_capture(
+        context.compiled_pipeline().clone(),
+        CapturedFrame::new(frame.width, frame.height, frame.rgba, frame.generation),
+    );
 }

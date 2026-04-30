@@ -5,53 +5,43 @@ use thiserror::Error;
 use toml::Value as TomlValue;
 use zircon_runtime::ui::component::{
     UiComponentDescriptorRegistry, UiComponentEvent, UiComponentEventError, UiComponentState,
-    UiDragPayload, UiDragPayloadKind, UiValue,
+    UiDragPayload, UiDragSourceMetadata, UiValue,
 };
 
 use super::host_nodes::SlintUiHostModel;
 
+mod categories;
+mod defaults;
+mod state_panel;
+
+use categories::{project_selected_category_state, should_keep_for_selected_category};
+use defaults::{component_id_for_control, default_state_for_control};
+
 pub(crate) const SHOWCASE_DOCUMENT_ID: &str = "editor.window.ui_component_showcase";
 
+#[allow(dead_code)]
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) enum UiComponentShowcaseDemoEventInput {
     None,
     Value(UiValue),
     Toggle(bool),
+    Hover(bool),
+    Press(bool),
     DragDelta(f64),
     LargeDragDelta(f64),
-    SelectOption {
-        option_id: String,
-        selected: bool,
-    },
-    DropReference {
-        kind: UiDragPayloadKind,
-        reference: String,
-    },
-    AddElement {
-        value: UiValue,
-    },
-    SetElement {
-        index: usize,
-        value: UiValue,
-    },
-    RemoveElement {
-        index: usize,
-    },
-    MoveElement {
-        from: usize,
-        to: usize,
-    },
-    AddMapEntry {
-        key: String,
-        value: UiValue,
-    },
-    SetMapEntry {
-        key: String,
-        value: UiValue,
-    },
-    RemoveMapEntry {
-        key: String,
-    },
+    DropHover(bool),
+    ActiveDragTarget(bool),
+    OpenPopupAt { x: f64, y: f64 },
+    SelectOption { option_id: String, selected: bool },
+    DropReference { payload: UiDragPayload },
+    AddElement { value: UiValue },
+    SetElement { index: usize, value: UiValue },
+    RemoveElement { index: usize },
+    MoveElement { from: usize, to: usize },
+    AddMapEntry { key: String, value: UiValue },
+    SetMapEntry { key: String, value: UiValue },
+    RenameMapEntry { from_key: String, to_key: String },
+    RemoveMapEntry { key: String },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -71,7 +61,7 @@ pub(crate) struct UiComponentShowcaseDemoState {
 impl Default for UiComponentShowcaseDemoState {
     fn default() -> Self {
         Self {
-            selected_category: "Visual".to_string(),
+            selected_category: "All".to_string(),
             states: BTreeMap::new(),
             event_log: Vec::new(),
         }
@@ -126,16 +116,24 @@ impl UiComponentShowcaseDemoState {
             }
         })?;
         let (event, changed_property) = component_event_for_action(action, input)?;
-        let state = self
-            .states
-            .entry(control_id.to_string())
-            .or_insert_with(|| default_state_for_control(control_id));
-        state.apply_event(descriptor, event)?;
-        let value_text = changed_property
-            .as_deref()
-            .and_then(|property| state.value(property))
-            .map(UiValue::display_text);
+        let (result, value_text) = {
+            let state = self
+                .states
+                .entry(control_id.to_string())
+                .or_insert_with(|| default_state_for_control(control_id));
+            let result = state.apply_event(descriptor, event);
+            let value_text = if result.is_ok() {
+                changed_property
+                    .as_deref()
+                    .and_then(|property| state.value(property))
+                    .map(UiValue::display_text)
+            } else {
+                None
+            };
+            (result, value_text)
+        };
         self.push_log(action, control_id, value_text);
+        result?;
         Ok(())
     }
 
@@ -144,10 +142,18 @@ impl UiComponentShowcaseDemoState {
             return;
         }
 
+        project_selected_category_state(&mut host_model.nodes, &self.selected_category);
+        host_model
+            .nodes
+            .retain(|node| should_keep_for_selected_category(node, &self.selected_category));
+
         for node in &mut host_model.nodes {
             let Some(control_id) = node.control_id.as_deref() else {
                 continue;
             };
+            if state_panel::project_state_panel_node(self, control_id, &mut node.attributes) {
+                continue;
+            }
             if control_id == "ComponentShowcaseEventLog" {
                 if let Some(text) = self.event_log_text() {
                     node.attributes
@@ -180,17 +186,64 @@ impl UiComponentShowcaseDemoState {
                     }
                 }
             }
+            if let Some(source_summary) = state
+                .reference_source("value")
+                .and_then(UiDragSourceMetadata::summary)
+            {
+                node.attributes.insert(
+                    "drop_source_summary".to_string(),
+                    TomlValue::String(source_summary),
+                );
+            } else {
+                node.attributes.remove("drop_source_summary");
+            }
             if let Some(explicit_state) = self.states.get(control_id) {
                 node.attributes.insert(
                     "popup_open".to_string(),
                     TomlValue::Boolean(explicit_state.flags().popup_open),
                 );
             }
+            project_state_value_attribute(&mut node.attributes, &state, "popup_anchor_x");
+            project_state_value_attribute(&mut node.attributes, &state, "popup_anchor_y");
+            project_state_value_attribute(&mut node.attributes, &state, "query");
             let flags = state.flags();
-            node.attributes
-                .insert("focused".to_string(), TomlValue::Boolean(flags.focused));
-            node.attributes
-                .insert("dragging".to_string(), TomlValue::Boolean(flags.dragging));
+            let force_transient_flags = self.states.contains_key(control_id);
+            project_bool_attribute(
+                &mut node.attributes,
+                "focused",
+                flags.focused,
+                force_transient_flags,
+            );
+            project_bool_attribute(
+                &mut node.attributes,
+                "dragging",
+                flags.dragging,
+                force_transient_flags,
+            );
+            project_bool_attribute(
+                &mut node.attributes,
+                "hovered",
+                flags.hovered,
+                force_transient_flags,
+            );
+            project_bool_attribute(
+                &mut node.attributes,
+                "pressed",
+                flags.pressed,
+                force_transient_flags,
+            );
+            project_bool_attribute(
+                &mut node.attributes,
+                "drop_hovered",
+                flags.drop_hovered,
+                force_transient_flags,
+            );
+            project_bool_attribute(
+                &mut node.attributes,
+                "active_drag_target",
+                flags.active_drag_target,
+                force_transient_flags,
+            );
             if flags.selected {
                 node.attributes
                     .insert("selected".to_string(), TomlValue::Boolean(true));
@@ -306,6 +359,27 @@ impl UiComponentShowcaseDemoState {
     }
 }
 
+fn project_bool_attribute(
+    attributes: &mut BTreeMap<String, TomlValue>,
+    key: &str,
+    value: bool,
+    force: bool,
+) {
+    if value || force {
+        attributes.insert(key.to_string(), TomlValue::Boolean(value));
+    }
+}
+
+fn project_state_value_attribute(
+    attributes: &mut BTreeMap<String, TomlValue>,
+    state: &UiComponentState,
+    key: &str,
+) {
+    if let Some(value) = state.value(key) {
+        attributes.insert(key.to_string(), toml_value(value));
+    }
+}
+
 fn collection_items_for_array(value: Option<&UiValue>, element_type: &str) -> Vec<TomlValue> {
     let Some(UiValue::Array(values)) = value else {
         return vec![TomlValue::String(format!("Empty {element_type} list"))];
@@ -355,7 +429,7 @@ fn primary_property_for_control(control_id: &str) -> Option<&'static str> {
     match control_id {
         "ArrayFieldDemo" => Some("items"),
         "MapFieldDemo" => Some("entries"),
-        "GroupDemo" | "FoldoutDemo" | "TreeRowDemo" => Some("expanded"),
+        "GroupDemo" | "FoldoutDemo" | "InspectorSectionDemo" | "TreeRowDemo" => Some("expanded"),
         control_id if component_id_for_control(control_id).is_some() => Some("value"),
         _ => None,
     }
@@ -441,42 +515,49 @@ fn component_event_for_action(
     let mismatch = || UiComponentShowcaseDemoError::InputMismatch {
         action: action.to_string(),
     };
+    let value_property = value_property_for_action(action);
     match action
         .split_once('.')
         .map(|(kind, _)| kind)
         .unwrap_or(action)
     {
         "Commit" => match input {
-            UiComponentShowcaseDemoEventInput::Value(value) => Ok((
-                UiComponentEvent::Commit {
-                    property: "value".to_string(),
-                    value,
-                },
-                Some("value".to_string()),
-            )),
-            UiComponentShowcaseDemoEventInput::None => Ok((
-                UiComponentEvent::Commit {
-                    property: "value".to_string(),
-                    value: UiValue::Null,
-                },
-                Some("value".to_string()),
-            )),
+            UiComponentShowcaseDemoEventInput::Value(value) => {
+                let property = value_property.to_string();
+                Ok((
+                    UiComponentEvent::Commit {
+                        property: property.clone(),
+                        value,
+                    },
+                    Some(property),
+                ))
+            }
+            UiComponentShowcaseDemoEventInput::None => {
+                let property = value_property.to_string();
+                Ok((
+                    UiComponentEvent::Commit {
+                        property: property.clone(),
+                        value: UiValue::Null,
+                    },
+                    Some(property),
+                ))
+            }
             _ => Err(mismatch()),
         },
         "ValueChanged" | "Change" => match input {
             UiComponentShowcaseDemoEventInput::Value(value) => Ok((
                 UiComponentEvent::ValueChanged {
-                    property: "value".to_string(),
+                    property: value_property.to_string(),
                     value,
                 },
-                Some("value".to_string()),
+                Some(value_property.to_string()),
             )),
             UiComponentShowcaseDemoEventInput::Toggle(value) => Ok((
                 UiComponentEvent::ValueChanged {
-                    property: "value".to_string(),
+                    property: value_property.to_string(),
                     value: UiValue::Bool(value),
                 },
-                Some("value".to_string()),
+                Some(value_property.to_string()),
             )),
             _ => Err(mismatch()),
         },
@@ -486,6 +567,18 @@ fn component_event_for_action(
             },
             None,
         )),
+        "Hover" => match input {
+            UiComponentShowcaseDemoEventInput::Hover(hovered) => {
+                Ok((UiComponentEvent::Hover { hovered }, None))
+            }
+            _ => Err(mismatch()),
+        },
+        "Press" => match input {
+            UiComponentShowcaseDemoEventInput::Press(pressed) => {
+                Ok((UiComponentEvent::Press { pressed }, None))
+            }
+            _ => Err(mismatch()),
+        },
         "DragDelta" => match input {
             UiComponentShowcaseDemoEventInput::DragDelta(delta) => Ok((
                 UiComponentEvent::DragDelta {
@@ -516,6 +609,12 @@ fn component_event_for_action(
             UiComponentShowcaseDemoEventInput::None => Ok((UiComponentEvent::OpenPopup, None)),
             _ => Err(mismatch()),
         },
+        "OpenPopupAt" => match input {
+            UiComponentShowcaseDemoEventInput::OpenPopupAt { x, y } => {
+                Ok((UiComponentEvent::OpenPopupAt { x, y }, None))
+            }
+            _ => Err(mismatch()),
+        },
         "ClosePopup" => match input {
             UiComponentShowcaseDemoEventInput::None => Ok((UiComponentEvent::ClosePopup, None)),
             _ => Err(mismatch()),
@@ -542,13 +641,25 @@ fn component_event_for_action(
             _ => Err(mismatch()),
         },
         "DropReference" => match input {
-            UiComponentShowcaseDemoEventInput::DropReference { kind, reference } => Ok((
+            UiComponentShowcaseDemoEventInput::DropReference { payload } => Ok((
                 UiComponentEvent::DropReference {
                     property: "value".to_string(),
-                    payload: UiDragPayload::new(kind, reference),
+                    payload,
                 },
                 Some("value".to_string()),
             )),
+            _ => Err(mismatch()),
+        },
+        "DropHover" => match input {
+            UiComponentShowcaseDemoEventInput::DropHover(hovered) => {
+                Ok((UiComponentEvent::DropHover { hovered }, None))
+            }
+            _ => Err(mismatch()),
+        },
+        "ActiveDragTarget" => match input {
+            UiComponentShowcaseDemoEventInput::ActiveDragTarget(active) => {
+                Ok((UiComponentEvent::ActiveDragTarget { active }, None))
+            }
             _ => Err(mismatch()),
         },
         "ClearReference" => match input {
@@ -647,6 +758,14 @@ fn component_event_for_action(
                 },
                 Some("entries".to_string()),
             )),
+            UiComponentShowcaseDemoEventInput::RenameMapEntry { from_key, to_key } => Ok((
+                UiComponentEvent::RenameMapKey {
+                    property: "entries".to_string(),
+                    from_key,
+                    to_key,
+                },
+                Some("entries".to_string()),
+            )),
             _ => Err(mismatch()),
         },
         "RemoveMapEntry" => match input {
@@ -680,95 +799,11 @@ fn context_action_menu_option_id(encoded: &str) -> Option<String> {
     Some(label.to_string())
 }
 
-fn component_id_for_control(control_id: &str) -> Option<&'static str> {
-    match control_id {
-        "ButtonDemo" => Some("Button"),
-        "IconButtonDemo" => Some("IconButton"),
-        "ToggleButtonDemo" => Some("ToggleButton"),
-        "CheckboxDemo" => Some("Checkbox"),
-        "RadioDemo" => Some("Radio"),
-        "SegmentedControlDemo" => Some("SegmentedControl"),
-        "InputFieldDemo" => Some("InputField"),
-        "TextFieldDemo" => Some("TextField"),
-        "NumberFieldDemo" => Some("NumberField"),
-        "RangeFieldDemo" => Some("RangeField"),
-        "DropdownDemo" => Some("Dropdown"),
-        "ComboBoxDemo" => Some("ComboBox"),
-        "EnumFieldDemo" => Some("EnumField"),
-        "FlagsFieldDemo" => Some("FlagsField"),
-        "SearchSelectDemo" => Some("SearchSelect"),
-        "AssetFieldDemo" => Some("AssetField"),
-        "InstanceFieldDemo" => Some("InstanceField"),
-        "ObjectFieldDemo" => Some("ObjectField"),
-        "GroupDemo" => Some("Group"),
-        "FoldoutDemo" => Some("Foldout"),
-        "ArrayFieldDemo" => Some("ArrayField"),
-        "MapFieldDemo" => Some("MapField"),
-        "ListRowDemo" => Some("ListRow"),
-        "TreeRowDemo" => Some("TreeRow"),
-        "ContextActionMenuDemo" => Some("ContextActionMenu"),
-        _ => None,
-    }
-}
-
-fn default_state_for_control(control_id: &str) -> UiComponentState {
-    match control_id {
-        "NumberFieldDemo" => UiComponentState::new().with_value("value", UiValue::Float(42.0)),
-        "RangeFieldDemo" => UiComponentState::new().with_value("value", UiValue::Float(68.0)),
-        "DropdownDemo" => {
-            UiComponentState::new().with_value("value", UiValue::Enum("runtime".to_string()))
-        }
-        "ComboBoxDemo" => {
-            UiComponentState::new().with_value("value", UiValue::Enum("material".to_string()))
-        }
-        "EnumFieldDemo" => {
-            UiComponentState::new().with_value("value", UiValue::Enum("RiderDocking".to_string()))
-        }
-        "FlagsFieldDemo" => UiComponentState::new().with_value(
-            "value",
-            UiValue::Flags(vec!["Selectable".to_string(), "Draggable".to_string()]),
-        ),
-        "SearchSelectDemo" => UiComponentState::new()
-            .with_value("value", UiValue::Enum("runtime.ui.NumberField".to_string())),
-        "AssetFieldDemo" => UiComponentState::new().with_value(
-            "value",
-            UiValue::AssetRef("res://textures/grid.albedo.png".to_string()),
-        ),
-        "InstanceFieldDemo" => UiComponentState::new().with_value(
-            "value",
-            UiValue::InstanceRef("scene://Root/CameraRig".to_string()),
-        ),
-        "ObjectFieldDemo" => UiComponentState::new().with_value(
-            "value",
-            UiValue::InstanceRef("object://Selection/MainCamera".to_string()),
-        ),
-        "GroupDemo" => UiComponentState::new().with_value("expanded", UiValue::Bool(true)),
-        "FoldoutDemo" => UiComponentState::new().with_value("expanded", UiValue::Bool(false)),
-        "ArrayFieldDemo" => UiComponentState::new().with_value(
-            "items",
-            UiValue::Array(vec![
-                UiValue::String("Label".to_string()),
-                UiValue::String("NumberField".to_string()),
-                UiValue::String("AssetField".to_string()),
-            ]),
-        ),
-        "MapFieldDemo" => {
-            let mut entries = BTreeMap::new();
-            entries.insert("speed".to_string(), UiValue::Float(1.0));
-            entries.insert("visible".to_string(), UiValue::Bool(true));
-            UiComponentState::new().with_value("entries", UiValue::Map(entries))
-        }
-        "ToggleButtonDemo" | "CheckboxDemo" => {
-            UiComponentState::new().with_value("value", UiValue::Bool(true))
-        }
-        "RadioDemo" => UiComponentState::new().with_value("value", UiValue::Bool(false)),
-        "ListRowDemo" => {
-            UiComponentState::new().with_value("value", UiValue::String("selected".to_string()))
-        }
-        "TreeRowDemo" => UiComponentState::new().with_value("expanded", UiValue::Bool(true)),
-        "ContextActionMenuDemo" => {
-            UiComponentState::new().with_value("value", UiValue::String("Inspect".to_string()))
-        }
-        _ => UiComponentState::new(),
+fn value_property_for_action(action: &str) -> &'static str {
+    match action.rsplit_once('.').map(|(_, component)| component) {
+        Some("SearchSelectQuery") => "query",
+        Some("ArrayField") => "items",
+        Some("MapField") => "entries",
+        _ => "value",
     }
 }

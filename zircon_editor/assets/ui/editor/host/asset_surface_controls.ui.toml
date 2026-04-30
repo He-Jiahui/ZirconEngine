@@ -53,7 +53,7 @@ bindings = []
 [components.AssetSurfaceControls.root.children.node]
 node_id = "component_AssetSurfaceControls_root_0"
 kind = "native"
-type = "UiHostIconButton"
+type = "IconButton"
 control_id = "SelectFolder"
 classes = []
 children = []
@@ -79,7 +79,7 @@ route = "AssetCommand.SelectFolder"
 [components.AssetSurfaceControls.root.children.node]
 node_id = "component_AssetSurfaceControls_root_1"
 kind = "native"
-type = "UiHostIconButton"
+type = "IconButton"
 control_id = "SelectItem"
 classes = []
 children = []
@@ -105,7 +105,7 @@ route = "AssetCommand.SelectItem"
 [components.AssetSurfaceControls.root.children.node]
 node_id = "component_AssetSurfaceControls_root_2"
 kind = "native"
-type = "UiHostIconButton"
+type = "IconButton"
 control_id = "SearchEdited"
 classes = []
 children = []
@@ -131,7 +131,7 @@ route = "AssetCommand.SetSearchQuery"
 [components.AssetSurfaceControls.root.children.node]
 node_id = "component_AssetSurfaceControls_root_3"
 kind = "native"
-type = "UiHostIconButton"
+type = "IconButton"
 control_id = "SetKindFilter"
 classes = []
 children = []
@@ -157,7 +157,7 @@ route = "AssetCommand.SetKindFilter"
 [components.AssetSurfaceControls.root.children.node]
 node_id = "component_AssetSurfaceControls_root_4"
 kind = "native"
-type = "UiHostIconButton"
+type = "IconButton"
 control_id = "SetViewMode"
 classes = []
 children = []
@@ -183,7 +183,7 @@ route = "AssetCommand.SetViewMode"
 [components.AssetSurfaceControls.root.children.node]
 node_id = "component_AssetSurfaceControls_root_5"
 kind = "native"
-type = "UiHostIconButton"
+type = "IconButton"
 control_id = "SetUtilityTab"
 classes = []
 children = []
@@ -209,7 +209,7 @@ route = "AssetCommand.SetUtilityTab"
 [components.AssetSurfaceControls.root.children.node]
 node_id = "component_AssetSurfaceControls_root_6"
 kind = "native"
-type = "UiHostIconButton"
+type = "IconButton"
 control_id = "ActivateReference"
 classes = []
 children = []
@@ -235,7 +235,7 @@ route = "AssetCommand.ActivateReference"
 [components.AssetSurfaceControls.root.children.node]
 node_id = "component_AssetSurfaceControls_root_7"
 kind = "native"
-type = "UiHostIconButton"
+type = "IconButton"
 control_id = "OpenAssetBrowser"
 classes = []
 children = []
@@ -261,7 +261,7 @@ route = "AssetCommand.OpenAssetBrowser"
 [components.AssetSurfaceControls.root.children.node]
 node_id = "component_AssetSurfaceControls_root_8"
 kind = "native"
-type = "UiHostIconButton"
+type = "IconButton"
 control_id = "LocateSelectedAsset"
 classes = []
 children = []
@@ -287,7 +287,7 @@ route = "AssetCommand.LocateSelectedAsset"
 [components.AssetSurfaceControls.root.children.node]
 node_id = "component_AssetSurfaceControls_root_9"
 kind = "native"
-type = "UiHostIconButton"
+type = "IconButton"
 control_id = "ImportModel"
 classes = []
 children = []

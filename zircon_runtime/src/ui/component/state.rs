@@ -4,13 +4,18 @@ use serde::{Deserialize, Serialize};
 
 use super::{
     UiComponentDescriptor, UiComponentEvent, UiComponentEventError, UiComponentEventKind,
-    UiDragPayloadKind, UiValidationState, UiValue, UiValueKind,
+    UiDragPayloadKind, UiDragSourceMetadata, UiValidationState, UiValue, UiValueKind,
 };
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct UiComponentFlags {
     pub focused: bool,
+    pub hovered: bool,
+    pub pressed: bool,
     pub dragging: bool,
+    pub drop_hovered: bool,
+    pub active_drag_target: bool,
     pub popup_open: bool,
     pub expanded: bool,
     pub selected: bool,
@@ -21,6 +26,8 @@ pub struct UiComponentFlags {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiComponentState {
     values: BTreeMap<String, UiValue>,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    reference_sources: BTreeMap<String, UiDragSourceMetadata>,
     validation: UiValidationState,
     flags: UiComponentFlags,
 }
@@ -35,13 +42,14 @@ impl UiComponentState {
     pub fn new() -> Self {
         Self {
             values: BTreeMap::new(),
+            reference_sources: BTreeMap::new(),
             validation: UiValidationState::normal(),
             flags: UiComponentFlags::default(),
         }
     }
 
     pub fn with_value(mut self, property: impl Into<String>, value: UiValue) -> Self {
-        self.values.insert(property.into(), value);
+        self.set_value(property.into(), value);
         self
     }
 
@@ -51,6 +59,10 @@ impl UiComponentState {
 
     pub fn values(&self) -> &BTreeMap<String, UiValue> {
         &self.values
+    }
+
+    pub fn reference_source(&self, property: &str) -> Option<&UiDragSourceMetadata> {
+        self.reference_sources.get(property)
     }
 
     pub fn validation(&self) -> &UiValidationState {
@@ -77,6 +89,14 @@ impl UiComponentState {
                 self.flags.focused = focused;
                 Ok(())
             }
+            UiComponentEvent::Hover { hovered } => {
+                self.flags.hovered = hovered;
+                Ok(())
+            }
+            UiComponentEvent::Press { pressed } => {
+                self.flags.pressed = pressed;
+                Ok(())
+            }
             UiComponentEvent::BeginDrag { .. } => {
                 self.flags.dragging = true;
                 Ok(())
@@ -91,8 +111,22 @@ impl UiComponentState {
                 self.flags.dragging = false;
                 Ok(())
             }
+            UiComponentEvent::DropHover { hovered } => {
+                self.flags.drop_hovered = hovered;
+                Ok(())
+            }
+            UiComponentEvent::ActiveDragTarget { active } => {
+                self.flags.active_drag_target = active;
+                Ok(())
+            }
             UiComponentEvent::OpenPopup => {
                 self.flags.popup_open = true;
+                Ok(())
+            }
+            UiComponentEvent::OpenPopupAt { x, y } => {
+                self.flags.popup_open = true;
+                self.set_value("popup_anchor_x".to_string(), UiValue::Float(x));
+                self.set_value("popup_anchor_y".to_string(), UiValue::Float(y));
                 Ok(())
             }
             UiComponentEvent::ClosePopup => {
@@ -106,11 +140,11 @@ impl UiComponentState {
             } => self.apply_selection(descriptor, property, option_id, selected),
             UiComponentEvent::ToggleExpanded { expanded } => {
                 self.flags.expanded = expanded;
-                self.values
-                    .insert("expanded".to_string(), UiValue::Bool(expanded));
+                self.set_value("expanded".to_string(), UiValue::Bool(expanded));
                 Ok(())
             }
             UiComponentEvent::AddElement { property, value } => {
+                self.clear_reference_source(&property);
                 self.array_value_mut(&property).push(value);
                 Ok(())
             }
@@ -119,31 +153,61 @@ impl UiComponentState {
                 index,
                 value,
             } => {
-                let values = self.array_value_mut(&property);
-                let Some(slot) = values.get_mut(index) else {
-                    return Err(UiComponentEventError::ArrayIndexOutOfBounds { property, index });
+                let missing_index = {
+                    let values = self.array_value_mut(&property);
+                    index >= values.len()
                 };
-                *slot = value;
+                if missing_index {
+                    self.validation = UiValidationState::error(format!(
+                        "array property `{property}` has no element at index {index}"
+                    ));
+                    return Err(UiComponentEventError::ArrayIndexOutOfBounds { property, index });
+                }
+                {
+                    let values = self.array_value_mut(&property);
+                    values[index] = value;
+                }
+                self.clear_reference_source(&property);
                 Ok(())
             }
             UiComponentEvent::RemoveElement { property, index } => {
-                let values = self.array_value_mut(&property);
-                if index >= values.len() {
+                let missing_index = {
+                    let values = self.array_value_mut(&property);
+                    index >= values.len()
+                };
+                if missing_index {
+                    self.validation = UiValidationState::error(format!(
+                        "array property `{property}` has no element at index {index}"
+                    ));
                     return Err(UiComponentEventError::ArrayIndexOutOfBounds { property, index });
                 }
-                values.remove(index);
+                {
+                    let values = self.array_value_mut(&property);
+                    values.remove(index);
+                }
+                self.clear_reference_source(&property);
                 Ok(())
             }
             UiComponentEvent::MoveElement { property, from, to } => {
-                let values = self.array_value_mut(&property);
-                if from >= values.len() {
+                let missing_index = {
+                    let values = self.array_value_mut(&property);
+                    from >= values.len()
+                };
+                if missing_index {
+                    self.validation = UiValidationState::error(format!(
+                        "array property `{property}` has no element at index {from}"
+                    ));
                     return Err(UiComponentEventError::ArrayIndexOutOfBounds {
                         property,
                         index: from,
                     });
                 }
-                let value = values.remove(from);
-                values.insert(to.min(values.len()), value);
+                {
+                    let values = self.array_value_mut(&property);
+                    let value = values.remove(from);
+                    values.insert(to.min(values.len()), value);
+                }
+                self.clear_reference_source(&property);
                 Ok(())
             }
             UiComponentEvent::AddMapEntry {
@@ -151,11 +215,20 @@ impl UiComponentState {
                 key,
                 value,
             } => {
-                let values = self.map_value_mut(&property);
-                if values.contains_key(&key) {
+                let duplicate_key = {
+                    let values = self.map_value_mut(&property);
+                    values.contains_key(&key)
+                };
+                if duplicate_key {
+                    self.validation =
+                        UiValidationState::error(format!("map key `{key}` already exists"));
                     return Err(UiComponentEventError::DuplicateMapKey { property, key });
                 }
-                values.insert(key, value);
+                {
+                    let values = self.map_value_mut(&property);
+                    values.insert(key, value);
+                }
+                self.clear_reference_source(&property);
                 Ok(())
             }
             UiComponentEvent::SetMapEntry {
@@ -163,15 +236,86 @@ impl UiComponentState {
                 key,
                 value,
             } => {
-                let values = self.map_value_mut(&property);
-                let Some(slot) = values.get_mut(&key) else {
-                    return Err(UiComponentEventError::MissingMapKey { property, key });
+                let missing_key = {
+                    let values = self.map_value_mut(&property);
+                    !values.contains_key(&key)
                 };
-                *slot = value;
+                if missing_key {
+                    self.validation =
+                        UiValidationState::error(format!("map key `{key}` does not exist"));
+                    return Err(UiComponentEventError::MissingMapKey { property, key });
+                }
+                {
+                    let values = self.map_value_mut(&property);
+                    values.insert(key, value);
+                }
+                self.clear_reference_source(&property);
                 Ok(())
             }
+            UiComponentEvent::RenameMapKey {
+                property,
+                from_key,
+                to_key,
+            } => {
+                if from_key == to_key {
+                    Ok(())
+                } else {
+                    let rename_error = {
+                        let values = self.map_value_mut(&property);
+                        if values.contains_key(&to_key) {
+                            Some(UiComponentEventError::DuplicateMapKey {
+                                property: property.clone(),
+                                key: to_key.clone(),
+                            })
+                        } else if !values.contains_key(&from_key) {
+                            Some(UiComponentEventError::MissingMapKey {
+                                property: property.clone(),
+                                key: from_key.clone(),
+                            })
+                        } else {
+                            None
+                        }
+                    };
+                    if let Some(error) = rename_error {
+                        match &error {
+                            UiComponentEventError::DuplicateMapKey { key, .. } => {
+                                self.validation = UiValidationState::error(format!(
+                                    "map key `{key}` already exists"
+                                ));
+                            }
+                            UiComponentEventError::MissingMapKey { key, .. } => {
+                                self.validation = UiValidationState::error(format!(
+                                    "map key `{key}` does not exist"
+                                ));
+                            }
+                            _ => {}
+                        }
+                        return Err(error);
+                    }
+                    let values = self.map_value_mut(&property);
+                    let value = values
+                        .remove(&from_key)
+                        .expect("map key was verified before rename");
+                    values.insert(to_key, value);
+                    self.clear_reference_source(&property);
+                    Ok(())
+                }
+            }
             UiComponentEvent::RemoveMapEntry { property, key } => {
-                self.map_value_mut(&property).remove(&key);
+                let missing_key = {
+                    let values = self.map_value_mut(&property);
+                    !values.contains_key(&key)
+                };
+                if missing_key {
+                    self.validation =
+                        UiValidationState::error(format!("map key `{key}` does not exist"));
+                    return Err(UiComponentEventError::MissingMapKey { property, key });
+                }
+                {
+                    let values = self.map_value_mut(&property);
+                    values.remove(&key);
+                }
+                self.clear_reference_source(&property);
                 Ok(())
             }
             UiComponentEvent::DropReference { property, payload } => {
@@ -186,16 +330,23 @@ impl UiComponentState {
                         payload_kind: payload.kind.as_str().to_string(),
                     });
                 }
+                let source = payload.source.clone();
                 let value = match payload.kind {
                     UiDragPayloadKind::Asset => UiValue::AssetRef(payload.reference),
                     UiDragPayloadKind::SceneInstance | UiDragPayloadKind::Object => {
                         UiValue::InstanceRef(payload.reference)
                     }
                 };
+                if let Some(source) = source {
+                    self.reference_sources.insert(property.clone(), source);
+                } else {
+                    self.reference_sources.remove(&property);
+                }
                 self.values.insert(property, value);
                 Ok(())
             }
             UiComponentEvent::ClearReference { property } => {
+                self.reference_sources.remove(&property);
                 self.values.insert(property, UiValue::Null);
                 Ok(())
             }
@@ -216,7 +367,7 @@ impl UiComponentState {
         value: UiValue,
     ) -> Result<(), UiComponentEventError> {
         let Some(schema) = descriptor.prop(&property) else {
-            self.values.insert(property, value);
+            self.set_value(property, value);
             return Ok(());
         };
         let normalized = match schema.value_kind {
@@ -239,10 +390,31 @@ impl UiComponentState {
                     ),
                 )
             }
-            _ => value,
+            _ if value_kind_matches(schema.value_kind, value.kind()) => value,
+            _ => {
+                let actual = value.kind();
+                self.validation = UiValidationState::error(format!(
+                    "invalid value kind `{actual:?}` for `{property}`; expected `{:?}`",
+                    schema.value_kind
+                ));
+                return Err(UiComponentEventError::InvalidValueKind {
+                    property,
+                    expected: schema.value_kind,
+                    actual,
+                });
+            }
         };
-        self.values.insert(property, normalized);
+        self.set_value(property, normalized);
         Ok(())
+    }
+
+    fn set_value(&mut self, property: String, value: UiValue) {
+        self.clear_reference_source(&property);
+        self.values.insert(property, value);
+    }
+
+    fn clear_reference_source(&mut self, property: &str) {
+        self.reference_sources.remove(property);
     }
 
     fn apply_numeric_drag(
@@ -270,8 +442,7 @@ impl UiComponentState {
             self.optional_numeric_setting(descriptor, "min", schema.min),
             self.optional_numeric_setting(descriptor, "max", schema.max),
         );
-        self.values
-            .insert(property, numeric_value(schema.value_kind, next));
+        self.set_value(property, numeric_value(schema.value_kind, next));
         Ok(())
     }
 
@@ -282,11 +453,7 @@ impl UiComponentState {
         option_id: String,
         selected: bool,
     ) -> Result<(), UiComponentEventError> {
-        if descriptor
-            .prop("options")
-            .and_then(|schema| schema.options.iter().find(|option| option.id == option_id))
-            .is_some_and(|option| option.disabled)
-        {
+        if self.option_is_disabled(descriptor, &option_id) {
             self.validation = UiValidationState::error(format!(
                 "disabled option `{option_id}` cannot be selected"
             ));
@@ -301,6 +468,7 @@ impl UiComponentState {
             .is_some_and(|schema| schema.value_kind == UiValueKind::Flags);
         let is_multiple = self.bool_setting(descriptor, "multiple", false);
 
+        self.clear_reference_source(&property);
         match self.values.get_mut(&property) {
             Some(UiValue::Flags(values)) => {
                 if selected {
@@ -398,6 +566,17 @@ impl UiComponentState {
         }
     }
 
+    fn option_is_disabled(&self, descriptor: &UiComponentDescriptor, option_id: &str) -> bool {
+        descriptor
+            .prop("options")
+            .and_then(|schema| schema.options.iter().find(|option| option.id == option_id))
+            .is_some_and(|option| option.disabled)
+            || self
+                .values
+                .get("disabled_options")
+                .is_some_and(|value| option_id_list_contains(value, option_id))
+    }
+
     fn numeric_setting(
         &self,
         descriptor: &UiComponentDescriptor,
@@ -453,11 +632,16 @@ impl UiComponentEvent {
             Self::ValueChanged { .. } => UiComponentEventKind::ValueChanged,
             Self::Commit { .. } => UiComponentEventKind::Commit,
             Self::Focus { .. } => UiComponentEventKind::Focus,
+            Self::Hover { .. } => UiComponentEventKind::Hover,
+            Self::Press { .. } => UiComponentEventKind::Press,
             Self::BeginDrag { .. } => UiComponentEventKind::BeginDrag,
             Self::DragDelta { .. } => UiComponentEventKind::DragDelta,
             Self::LargeDragDelta { .. } => UiComponentEventKind::LargeDragDelta,
             Self::EndDrag { .. } => UiComponentEventKind::EndDrag,
+            Self::DropHover { .. } => UiComponentEventKind::DropHover,
+            Self::ActiveDragTarget { .. } => UiComponentEventKind::ActiveDragTarget,
             Self::OpenPopup => UiComponentEventKind::OpenPopup,
+            Self::OpenPopupAt { .. } => UiComponentEventKind::OpenPopupAt,
             Self::ClosePopup => UiComponentEventKind::ClosePopup,
             Self::SelectOption { .. } => UiComponentEventKind::SelectOption,
             Self::ToggleExpanded { .. } => UiComponentEventKind::ToggleExpanded,
@@ -467,6 +651,7 @@ impl UiComponentEvent {
             Self::MoveElement { .. } => UiComponentEventKind::MoveElement,
             Self::AddMapEntry { .. } => UiComponentEventKind::AddMapEntry,
             Self::SetMapEntry { .. } => UiComponentEventKind::SetMapEntry,
+            Self::RenameMapKey { .. } => UiComponentEventKind::RenameMapKey,
             Self::RemoveMapEntry { .. } => UiComponentEventKind::RemoveMapEntry,
             Self::DropReference { .. } => UiComponentEventKind::DropReference,
             Self::ClearReference { .. } => UiComponentEventKind::ClearReference,
@@ -502,4 +687,19 @@ fn numeric_value(kind: UiValueKind, value: f64) -> UiValue {
         UiValueKind::Int => UiValue::Int(value.round() as i64),
         _ => UiValue::Float(value),
     }
+}
+
+fn option_id_list_contains(value: &UiValue, option_id: &str) -> bool {
+    match value {
+        UiValue::Array(values) => values
+            .iter()
+            .any(|value| option_id_list_contains(value, option_id)),
+        UiValue::String(value) | UiValue::Enum(value) => value == option_id,
+        UiValue::Flags(values) => values.iter().any(|value| value == option_id),
+        _ => false,
+    }
+}
+
+fn value_kind_matches(expected: UiValueKind, actual: UiValueKind) -> bool {
+    expected == UiValueKind::Any || expected == actual
 }

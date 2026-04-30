@@ -10,7 +10,7 @@ use super::dispatch::dispatch;
 use super::queue_params::queue_params;
 
 impl VirtualGeometryGpuResources {
-    pub(crate) fn execute_prepare(
+    pub(in crate::graphics::scene::scene_renderer) fn execute_prepare(
         &self,
         device: &wgpu::Device,
         queue: &wgpu::Queue,

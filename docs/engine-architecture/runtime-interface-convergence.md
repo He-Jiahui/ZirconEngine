@@ -25,18 +25,18 @@ related_code:
   - zircon_runtime/src/scene/world/property_access/mod.rs
   - zircon_runtime/src/scene/world/property_access/entries.rs
   - zircon_runtime/src/scene/world/property_access/write.rs
-  - zircon_plugins/mod.rs
-  - zircon_plugins/animation/runtime/src/mod.rs
+  - zircon_plugins/Cargo.toml
+  - zircon_plugins/animation/runtime/src/lib.rs
   - zircon_plugins/animation/runtime/src/animation_interface.rs
   - zircon_plugins/animation/runtime/src/service_types.rs
-  - zircon_plugins/navigation.rs
-  - zircon_plugins/net/runtime/src.rs
-  - zircon_plugins/particles.rs
-  - zircon_plugins/physics/runtime/src/mod.rs
+  - zircon_plugins/navigation/runtime/src/lib.rs
+  - zircon_plugins/net/runtime/src/lib.rs
+  - zircon_plugins/particles/runtime/src/lib.rs
+  - zircon_plugins/physics/runtime/src/lib.rs
   - zircon_plugins/physics/runtime/src/physics_interface.rs
   - zircon_plugins/physics/runtime/src/service_types.rs
-  - zircon_plugins/sound/runtime/src.rs
-  - zircon_plugins/texture.rs
+  - zircon_plugins/sound/runtime/src/lib.rs
+  - zircon_plugins/texture/runtime/src/lib.rs
   - zircon_scene/src/lib.rs
   - zircon_scene/src/semantics.rs
   - zircon_manager/src/lib.rs
@@ -82,12 +82,12 @@ related_code:
   - zircon_editor/src/scene/viewport/render_packet.rs
   - zircon_editor/src/lib.rs
   - zircon_runtime/src/platform.rs
-  - zircon_sound/src/lib.rs
-  - zircon_texture/src/lib.rs
+  - zircon_plugins/sound/runtime/src/module.rs
+  - zircon_plugins/texture/runtime/src/lib.rs
   - zircon_ui/src/lib.rs
-  - zircon_net/src/lib.rs
-  - zircon_navigation/src/lib.rs
-  - zircon_particles/src/lib.rs
+  - zircon_plugins/net/runtime/src/module.rs
+  - zircon_plugins/navigation/runtime/src/lib.rs
+  - zircon_plugins/particles/runtime/src/lib.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/SKILL.md
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/references/interface-family.md
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/references/structural-audit.md
@@ -118,18 +118,18 @@ implementation_files:
   - zircon_runtime/src/scene/world/property_access/mod.rs
   - zircon_runtime/src/scene/world/property_access/entries.rs
   - zircon_runtime/src/scene/world/property_access/write.rs
-  - zircon_plugins/mod.rs
-  - zircon_plugins/animation/runtime/src/mod.rs
+  - zircon_plugins/Cargo.toml
+  - zircon_plugins/animation/runtime/src/lib.rs
   - zircon_plugins/animation/runtime/src/animation_interface.rs
   - zircon_plugins/animation/runtime/src/service_types.rs
-  - zircon_plugins/navigation.rs
-  - zircon_plugins/net/runtime/src.rs
-  - zircon_plugins/particles.rs
-  - zircon_plugins/physics/runtime/src/mod.rs
+  - zircon_plugins/navigation/runtime/src/lib.rs
+  - zircon_plugins/net/runtime/src/lib.rs
+  - zircon_plugins/particles/runtime/src/lib.rs
+  - zircon_plugins/physics/runtime/src/lib.rs
   - zircon_plugins/physics/runtime/src/physics_interface.rs
   - zircon_plugins/physics/runtime/src/service_types.rs
-  - zircon_plugins/sound/runtime/src.rs
-  - zircon_plugins/texture.rs
+  - zircon_plugins/sound/runtime/src/lib.rs
+  - zircon_plugins/texture/runtime/src/lib.rs
   - zircon_scene/src/lib.rs
   - zircon_scene/src/semantics.rs
   - zircon_manager/src/lib.rs
@@ -171,12 +171,12 @@ implementation_files:
   - zircon_editor/src/scene/viewport/render_packet.rs
   - zircon_editor/src/lib.rs
   - zircon_runtime/src/platform.rs
-  - zircon_sound/src/lib.rs
-  - zircon_texture/src/lib.rs
+  - zircon_plugins/sound/runtime/src/module.rs
+  - zircon_plugins/texture/runtime/src/lib.rs
   - zircon_ui/src/lib.rs
-  - zircon_net/src/lib.rs
-  - zircon_navigation/src/lib.rs
-  - zircon_particles/src/lib.rs
+  - zircon_plugins/net/runtime/src/module.rs
+  - zircon_plugins/navigation/runtime/src/lib.rs
+  - zircon_plugins/particles/runtime/src/lib.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/SKILL.md
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/references/interface-family.md
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/references/structural-audit.md
@@ -234,24 +234,24 @@ doc_type: module-detail
 
 ## Purpose
 
-这份文档记录本轮“接口家族收敛”的落地结果：不是把现有 runtime 完全推翻，而是在保持 `zircon_core` descriptor 主干不变的前提下，把路线图里的 `IEntry`、`IModule`、`IService`、`IDriver`、`IManager`、`IPlugin`、`IObject`、`ISystem`、`IEntity`、`IComponent` 映射到一组实际可用的 Rust 合同，并把结构诊断沉淀为仓库内 skill。
+这份文档记录本轮“接口家族收敛”的落地结果：不是把现有 runtime 完全推翻，而是在保持 `zircon_runtime::core::runtime` descriptor 主干不变的前提下，把路线图里的 `IEntry`、`IModule`、`IService`、`IDriver`、`IManager`、`IPlugin`、`IObject`、`ISystem`、`IEntity`、`IComponent` 映射到一组实际可用的 Rust 合同，并把结构诊断沉淀为仓库内 skill。
 
 ## Interface Family
 
 当前映射固定为：
 
 - `IEntry -> zircon_app::EngineEntry`
-- `IModule -> zircon_module::EngineModule`
-- `IService -> zircon_module::EngineService`
-- `IDriver -> zircon_module::EngineDriver`
-- `IManager -> zircon_module::EngineManager`
-- `IPlugin -> zircon_module::EnginePlugin`
+- `IModule -> zircon_runtime::engine_module::EngineModule`
+- `IService -> zircon_runtime::engine_module::EngineService`
+- `IDriver -> zircon_runtime::engine_module::EngineDriver`
+- `IManager -> zircon_runtime::engine_module::EngineManager`
+- `IPlugin -> zircon_runtime::engine_module::EnginePlugin`
 - `IObject -> zircon_runtime::scene::RuntimeObject`
 - `ISystem -> zircon_runtime::scene::RuntimeSystem`
-- `IEntity -> zircon_scene::semantics::EntityIdentity`
-- `IComponent -> zircon_scene::semantics::ComponentData`
+- `IEntity -> zircon_runtime::scene::semantics::EntityIdentity`
+- `IComponent -> zircon_runtime::scene::semantics::ComponentData`
 
-这里最关键的边界是：`EngineService` 是共享 runtime 元数据合同，不是所有具体 service 实例都必须继承的统一业务基类。具体能力仍由 `AssetManager`、`InputManager`、`RenderFramework`、`VmPluginManager` 这类 façade trait 或 handle surface 承担。
+这里最关键的边界是：`EngineService` 是共享 runtime 元数据合同，不是所有具体 service 实例都必须继承的统一业务基类。具体能力仍由 `AssetManager`、`InputManager`、`RenderFramework`、`VmPluginManager` 这类 contract trait 或 handle surface 承担。
 
 ## Module Owner Convergence
 
@@ -261,11 +261,8 @@ doc_type: module-detail
 - `zircon_runtime`
   - 当前已稳定导出 `FoundationModule` / `PlatformModule` / `InputModule` / `ScriptModule` / `UiModule` / `AssetModule` / `SceneModule`；脚本 VM 实现目录位于 `zircon_runtime/src/script/`，UI/asset/scene module-registration surface 分别位于 `zircon_runtime/src/ui/`、`zircon_runtime/src/asset/`、`zircon_runtime/src/scene/`
   - `zircon_runtime::graphics` 现在已经重新成为 graphics module owner：`GraphicsModule` 保留在 runtime graphics surface，`zircon_runtime::builtin_runtime_modules()` 也直接把 graphics 放在 asset 之后、scene 之前；`zircon_app` 不再手工维护这段 runtime module 顺序
-  - `zircon_plugins/` 现在由 runtime 侧统一持有可选扩展模块注册面；其中 `physics/` 与 `animation/` 已进一步收束为 folder-backed runtime subtree，直接定义 `PhysicsInterface` / `AnimationInterface`、`PhysicsDriver` / `AnimationDriver`、`PhysicsManager` / `AnimationManager`、service-name 常量与 `module_descriptor()`
-  - `zircon_physics` 与 `zircon_animation` 已从 workspace 删除；`builtin_runtime_modules()` 不再通过任何 legacy crate root 间接取得 physics/animation 的服务实现
-- `zircon_sound`、`zircon_texture`、`zircon_net`、`zircon_navigation`、`zircon_particles`
-  - 当前 root 已退回到 driver/manager implementation shell；`builtin_runtime_modules()` 不再直接从这些 legacy crate root 构造 `Arc<dyn EngineModule>`
-  - 这些 crate 仍然属于 `skeleton`，因为服务对象还是空行为壳，不应误判成 `converged`
+  - `zircon_plugins/` 现在由 runtime 侧统一持有可选扩展模块注册面；`physics`、`animation`、`sound`、`net`、`navigation`、`particles`、`texture` 均通过各自 runtime plugin crate 暴露 `RuntimePlugin` registration、module descriptors、service-name 常量或最小 manager-backed activation point
+  - 旧可选扩展 module-owner paths 不再作为 runtime 本体实现入口；`builtin_runtime_modules()` 不再通过 legacy crate root 间接取得可选服务实现
 - `zircon_asset`
   - 当前退回到 asset domain 和 editor-asset protocol crate；`AssetManager` / `resolve_asset_manager` 继续挂在 `zircon_asset::pipeline::manager::*`，editor asset records / resolver / handle 挂在 `zircon_asset::editor::*`，但 root 不再拥有 `AssetModule`、`module_descriptor()` 或根级 module-registration service names
   - `ProjectManager` / `ProjectManifest` / `ProjectPaths` / `AssetMetaDocument` / `PreviewState` 现已显式收口到 `zircon_asset::project::*`，`AssetChange` / `AssetChangeKind` / `AssetWatchEvent` / `AssetWatcher` 则收口到 `zircon_asset::watch::*`
@@ -278,14 +275,14 @@ doc_type: module-detail
   - graphics 行为与 renderer implementation 继续留在 runtime-owned graphics 子树里；`zircon_app` 的 bootstrap 已不再知道 `GraphicsModule` 的具体接线顺序，入口侧对 graphics owner 的知识已经被 runtime 吸收
 - `zircon_ui`
   - 当前已退回到共享 UI 实现与 DTO crate；`UiModule`、`UiConfig`、`UI_MODULE_NAME` 与 `module_descriptor()` 不再由它持有，crate 根继续暴露的是 layout/tree/template/binding/event-ui 这些实现和数据表面
-  - legacy template compat 链现在明确挂在 `zircon_ui::template::{UiTemplateDocument, UiTemplateLoader, UiLegacyTemplateAdapter}`；crate 根不再继续平铺这组三元组
+  - 历史 template fixture conversion 只保留在 runtime/editor test support；production template/runtime 链路只接受 tree-shaped `UiAssetDocument`
   - template compiler 链现已明确挂在 `zircon_ui::template::{UiCompiledDocument, UiDocumentCompiler, UiStyleResolver}`，layout solver 链则挂在 `zircon_ui::layout::{compute_layout_tree, compute_virtual_list_window, solve_axis_constraints}`；crate 根不再继续平铺这些特化 surface
   - template asset component-schema / reflection 链现也明确挂在 `zircon_ui::template::{UiComponentDefinition, UiComponentParamSchema, UiNamedSlotSchema, UiStyleScope}`；`zircon_runtime::ui` 同步保持 namespace-first，不再把这组 asset-side schema surface 重新拍平到吸收层根入口
   - template asset selector/parser 链也明确挂在 `zircon_ui::template::{UiSelector, UiSelectorToken}`；当前 selector stylesheet 解析和匹配逻辑不再依赖 `zircon_ui` root flat export，`zircon_runtime::ui` 也不会把这组 parser model 重新拉回根入口
   - template document/binding model 也已明确挂在 `zircon_ui::template::{UiActionRef, UiBindingRef, UiComponentTemplate, UiSlotTemplate}`；`zircon_editor` 的 binding inspector / document diff / template adapter 与 `zircon_ui` 内部 tree/asset model 都已切到 `template::*` 路径，`zircon_runtime::ui` 也不再把这组 template model 重新拍平到根入口
   - binding 协议链现已明确挂在 `zircon_ui::binding::{UiBindingValue, UiBindingCall, UiEventKind, UiEventPath, UiEventBinding, UiEventRouter}`，event/reflection/invocation 协议链则挂在 `zircon_ui::event_ui::{UiControlRequest, UiControlResponse, UiReflectionSnapshot, UiNodeDescriptor, UiPropertyDescriptor, UiRouteId, UiTreeId, UiEventManager}`；crate 根不再继续平铺这两簇 DTO
 - `zircon_manager`
-  - 当前收敛为 support/facade crate，只保留 trait、resolver、handle 和稳定服务名，不再承载 `EngineModule` owner 或 config/event 具体实现
+  - 当前收敛为 support/contract crate，只保留 trait、resolver、handle 和稳定服务名，不再承载 `EngineModule` owner 或 config/event 具体实现
 
 这样做的目的不是马上删掉所有自由函数，而是先让“模块拥有者”成为明确公共概念，后续其它入口、审计脚本、架构规则都可以围绕它收敛。
 
@@ -318,26 +315,26 @@ doc_type: module-detail
   - `tests/mod.rs` 现在直接锚定新的 `builtin_modules.rs`、`lib.rs`、`runtime_presenter.rs` 与 `runtime_entry_app/*`，避免结构测试继续引用已经删除的旧模块集合路径
 - `zircon_runtime/src/script/vm/`
   - 原 `zircon_script` VM 子树已整体并入 runtime，standalone `zircon_script` workspace member 与 Cargo package 已删除；目录继续分成 `module/`、`backend/`、`host/`、`plugin/`、`runtime/`
-  - `ScriptModule` 现在作为 `zircon_runtime::script::ScriptModule` 暴露，并通过 `PluginDescriptor` 注册 `ScriptModule.Plugin.VmPluginRuntime`；`VmPluginManager` manager façade 继续依赖并复用该 plugin 实例，`resolve_plugin` 路径已接通
-  - `backend/backend_registry.rs`、`plugin/vm_plugin_package_discovery.rs`、`plugin/vm_plugin_package_source.rs`、`runtime/vm_plugin_slot_record.rs` 现已把 package discovery、backend selection 和 slot lifecycle 拉进真实代码路径；当前 plugin runtime 不再只是一个“能 resolve 到 manager façade 的空壳”
+  - `ScriptModule` 现在作为 `zircon_runtime::script::ScriptModule` 暴露，并通过 `PluginDescriptor` 注册 `ScriptModule.Plugin.VmPluginRuntime`；`VmPluginManager` manager contract 继续依赖并复用该 plugin 实例，`resolve_plugin` 路径已接通
+  - `backend/backend_registry.rs`、`plugin/vm_plugin_package_discovery.rs`、`plugin/vm_plugin_package_source.rs`、`runtime/vm_plugin_slot_record.rs` 现已把 package discovery、backend selection 和 slot lifecycle 拉进真实代码路径；当前 plugin runtime 不再只是一个“能 resolve 到 manager contract 的空壳”
 - `zircon_runtime/src/graphics/`
   - runtime tree 现在重新包含 `src/graphics/mod.rs + host/module_host/**`，boundary tests 也重新以这组路径作为 graphics module-host owner surface 的验收目标
   - 这次收束先修复了 owner-tree 漂移和外部目录净化回归，随后又把 `GraphicsModule` 的 builtin registration 顺序一起收回 `zircon_runtime::builtin_runtime_modules()`；入口侧不再保留 graphics-side helper path 或手工 `insert(...)` 逻辑
   - graphics host 这轮又补了一条导出边界修正：`host/module_host/mod.rs` 现在把 `module_descriptor` 从其他 `module_registration` 符号里拆成单独一条 `pub use`，避免 grouped re-export 在继续收窄 public surface 时重新撞上 `module_registration` 内部的私有同名子模块
 - `zircon_runtime/src/ui/`
   - 原先 `zircon_runtime/src/ui.rs -> pub use zircon_ui::*` 的 shim 已改成 folder-backed `mod.rs + module.rs`；`UiModule`、`UiConfig`、`UI_MODULE_NAME` 与 `module_descriptor()` 现在都由 runtime 侧持有
-  - `runtime_ui/` 子树现在也由 runtime 侧持有 `RuntimeUiFixture`、`RuntimeUiManager`、`RuntimeUiManagerError` 与四个 builtin fixture 资产；这部分之前挂在 `zircon_graphics/src/runtime/ui/` 的 runtime-host helper 已删除
+  - `runtime_ui/` 子树现在也由 runtime 侧持有 `RuntimeUiFixture`、`RuntimeUiManager`、`RuntimeUiManagerError` 与四个 builtin fixture 资产；runtime UI host helper 不再由 graphics 子树代持
   - `zircon_runtime::ui` 现在保留 `layout` / `surface` / `template` / `tree` / `binding` / `event_ui` 作为显式 namespace，而不再重新平铺 `UiDocumentCompiler` / `UiTemplateSurfaceBuilder` / `UiTemplateInstance` / `UiTemplateNode` / `UiActionRef` / `UiBindingRef` / `UiComponentTemplate` / `UiSlotTemplate`、binding/event DTO、layout solver、`UiRenderExtract` / `UiRenderCommandKind` 或 `UiTreeError` / `UiTemplateNodeMetadata` 这类子域特化 surface
-  - `zircon_ui/src/module/*.rs` 已删除，crate 根退回到共享实现 surface；这样 `zircon_graphics` / `zircon_asset` 继续直接依赖 `zircon_ui` 类型时不会反向把 `zircon_runtime` 拉进依赖环
+  - `zircon_runtime::ui` 保留共享实现 surface，template/layout/surface/tree/binding/event-ui 子域不经 runtime root 重新拍平
 - `zircon_runtime/src/asset/`
   - `src/asset/mod.rs + module.rs` 现在持有 `AssetModule`、`ASSET_MODULE_NAME`、`ASSET_MANAGER_NAME`、`RESOURCE_MANAGER_NAME`、`PROJECT_ASSET_MANAGER_NAME`、`EDITOR_ASSET_MANAGER_NAME` 与 `module_descriptor()`；`zircon_asset` root 不再代持 module owner 或 registration helper，只保留 asset/editor-asset API
   - `zircon_runtime::asset` 现在保留 `project` / `watch` 作为显式 namespace，而不再重新平铺 `ProjectManager`、`AssetWatcher` 一类子域特化 surface
 - `zircon_runtime/src/scene/`
   - `src/scene/mod.rs + module.rs` 现在持有 `SceneModule`、`SCENE_MODULE_NAME`、`DEFAULT_LEVEL_MANAGER_NAME`、`LEVEL_MANAGER_NAME`、`create_default_level()`、`load_level_asset()` 与 `module_descriptor()`；`zircon_scene` root 退回 runtime world / scene domain surface，不再根级公开 module-registration helper
 - `zircon_plugins/`
-  - `zircon_plugins/<plugin>/runtime/src/lib.rs` 现在成为可选扩展注册面的统一 owner；`sound`、`texture`、`net`、`navigation`、`particles` 继续在各自 plugin crate 内持有对应的 `*Module`、`*Config`、service-name 常量与 `module_descriptor()`
-  - `physics/` 与 `animation/` 已从 flat file 改成 folder-backed runtime subtree：`mod.rs` 只保留 owner/wiring，`physics_interface.rs` / `animation_interface.rs` 提供 runtime-facing 接口，`service_types.rs` 提供 driver/manager stub；这样 physics/animation 的实现所有权也正式收进 `zircon_runtime`
-  - `zircon_physics` 与 `zircon_animation` 已从 workspace 删除；其余 legacy extension crate root 也不再持有 `*Module` 或 `module_descriptor()`，runtime built-in 清单终于不再绕回旧扩展 crate root
+  - `zircon_plugins/<plugin>/runtime/src/lib.rs` 现在成为可选扩展注册面的统一 owner；`physics`、`animation`、`sound`、`net`、`navigation`、`particles`、`texture` 在各自 plugin crate 内持有对应 module/manager/config/service-name contracts 或最小 manager-backed activation point
+  - `physics/` 与 `animation/` 保持 folder-backed runtime subtree：`lib.rs`/`module.rs` 只保留 owner/wiring，`physics_interface.rs` / `animation_interface.rs` 提供 runtime-facing 接口，`service_types.rs` 提供 driver/manager contract
+  - 旧 legacy extension crate root 不再持有 `*Module` 或 `module_descriptor()`，runtime built-in 清单不再绕回旧扩展 crate root
 - `zircon_editor` 热点链路
   - `host/template_runtime/`、`host/manager/ui_asset_sessions/`、`editing/ui_asset/` 已改成 folder-backed 子树；其中 `ui_asset_sessions/mod.rs` 现已退回接线层，host-side 编辑命令入口挪到 `editing.rs`
 - `zircon_scene/src/components/`
@@ -410,28 +407,28 @@ doc_type: module-detail
 
 已经相对收敛的部分：
 
-- `zircon_core`
+- `zircon_runtime::core::runtime`
   - descriptor/lifecycle/runtime spine 已成立
-- `zircon_module`
+- `zircon_runtime::engine_module`
   - 现在拥有明确的接口家族合同
 - `zircon_app`
   - 现在拥有显式 `EngineEntry`
 - `zircon_runtime`
   - 当前已经成为主 runtime module-owner surface；除 foundation/input/platform/script/graphics-host/ui-registration 之外，asset/scene module-registration 与 optional extension registration 也已继续收口到 runtime
   - `engine_module` 的 stub descriptor helper 现在只存在于单元测试本地 helper，不再驻留生产目录或 crate root test re-export；当前 runtime 结构审计里剩余的主因已经收敛到大型生产文件热点，而不是假 owner/stub module wiring
-- `zircon_asset`
-  - 当前更接近 asset domain / editor-asset API crate，而不是 module-owner surface；`AssetManager` 协议仍在这里，但 `AssetModule` registration 已转给 `zircon_runtime::asset`
-- `zircon_scene`
-  - 当前更接近 runtime world / level implementation crate，而不是 module-owner surface；`World` / `LevelSystem` / serialization authority 保留在这里，但 `SceneModule` registration 已转给 `zircon_runtime::scene`
-- `zircon_graphics`
-  - 当前更接近低层 renderer implementation crate，而不是 module owner surface；这层拆分避免了 `runtime -> graphics` 主链反向依赖 host registration
-- `zircon_manager`
-  - 当前不再被误判成模块实现层，而是明确退回到 manager contract/facade support crate
+- `zircon_runtime::asset`
+  - 当前持有 asset domain、asset module registration、project/watch/importer/pipeline 子域和 manager-facing protocol
+- `zircon_runtime::scene`
+  - 当前持有 runtime world、level implementation、serialization authority 和 scene module registration
+- `zircon_runtime::graphics`
+  - 当前持有 renderer implementation、graphics module owner surface 和 runtime-facing graphics contracts
+- `zircon_runtime::core::manager`
+  - 当前不再被误判成模块实现层，而是明确退回到 manager contract support namespace
 
 仍然明确未收敛的部分：
 
-- skeleton module crates 仍然大量存在，不能被误判为完成态
-  - 剩余 `sound/texture/net/navigation/particles` 已经把 registration owner 迁到 `zircon_plugins::*`，但 legacy crate 内的 driver/manager 仍然只是空实现壳
+- 可选 runtime plugin crates 已完成 registration-owner 迁移，但不能被误判为领域功能终点
+  - `navigation`、`particles`、`texture` 已有最小 manager-backed activation point；后续仍需要真实寻路、粒子模拟与纹理导入/运行时能力，而不是再回到 legacy crate root
 - `zircon_plugins::{physics,animation}`
   - 当前已经完成实现所有权吸收与 runtime-facing interface 收束，但服务实现仍然只是基线 stub；真实物理 backend、动画轨道/图/状态机栈仍是后续功能层工作，不应误判成领域功能已经完成
 - `zircon_runtime::script` 现在已经收口到真实 plugin-runtime contract：`PluginDescriptor` 通过 `PluginFactory` 显式接收 `PluginContext`，`VmPluginManager` 保存 base plugin context，load/hot-reload 路径会派生 `VmPluginHostContext`，backend 选择也已经从实例 map 收束到 `VmBackendFamily` registry；当前剩余限制只在 backend breadth，内建仍是 `builtin:{mock,unavailable}` 基线

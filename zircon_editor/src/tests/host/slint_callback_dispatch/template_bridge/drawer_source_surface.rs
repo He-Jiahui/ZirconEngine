@@ -15,7 +15,7 @@ fn builtin_host_drawer_source_document_can_be_loaded_as_shared_surface() {
 
     assert_eq!(
         surface_control_frame(&surface, "WorkbenchDrawerTopBarRoot"),
-        Some(UiFrame::new(0.0, 0.0, 1280.0, 40.0))
+        Some(UiFrame::new(0.0, 0.0, 1280.0, 59.0))
     );
     assert_eq!(
         surface_control_frame(&surface, "WorkbenchDrawerStatusBarRoot"),

@@ -14,10 +14,10 @@ impl SceneRenderer {
     ) -> Result<Vec<RenderVirtualGeometryHardwareRasterizationRecord>, GraphicsError> {
         let entry_count =
             self.advanced_plugin_outputs
-                .virtual_geometry_hardware_rasterization_record_count as usize;
+                .virtual_geometry_hardware_rasterization_record_count() as usize;
         let Some(buffer) = self
             .advanced_plugin_outputs
-            .virtual_geometry_hardware_rasterization_buffer
+            .virtual_geometry_hardware_rasterization_buffer()
             .as_ref()
         else {
             return Ok(Vec::new());

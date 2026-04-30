@@ -1,9 +1,12 @@
+fn source(relative: &str) -> String {
+    std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(relative))
+        .unwrap_or_else(|error| panic!("read `{relative}`: {error}"))
+}
+
 #[test]
-fn shared_menu_pointer_layout_sync_replaces_direct_slint_menu_button_frame_getters() {
-    let pointer_layout = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/src/ui/slint_host/app/pointer_layout.rs"
-    ));
+fn shared_menu_pointer_layout_sync_replaces_direct_menu_button_frame_getters() {
+    let pointer_layout = source("src/ui/slint_host/app/pointer_layout.rs");
+    let pointer_builder = source("src/ui/slint_host/menu_pointer/build_host_menu_pointer_layout.rs");
 
     for getter in [
         "get_file_menu_button_frame()",
@@ -15,85 +18,57 @@ fn shared_menu_pointer_layout_sync_replaces_direct_slint_menu_button_frame_gette
     ] {
         assert!(
             !pointer_layout.contains(getter),
-            "menu pointer sync should not keep direct Slint geometry getter `{getter}`"
+            "menu pointer sync should not keep direct geometry getter `{getter}`"
         );
     }
-
-    assert!(
-        pointer_layout.contains("build_host_menu_pointer_layout("),
-        "menu pointer sync should delegate top-level button frame authority to a shared layout builder"
-    );
+    assert!(pointer_layout.contains("build_host_menu_pointer_layout("));
+    assert!(pointer_builder.contains("menu_button_frames_from_chrome_asset"));
 }
 
 #[test]
-fn shared_menu_popup_presentation_drops_host_menu_button_frame_setters() {
-    let workbench = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/ui/workbench.slint"));
-    let scaffold = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/host_scaffold.slint"
-    ));
-    let host_menu_chrome = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/host_menu_chrome.slint"
-    ));
-    let pointer_layout = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/src/ui/slint_host/app/pointer_layout.rs"
-    ));
+fn host_menu_chrome_uses_projected_toml_frames_and_rust_owned_data() {
+    let host_components = source("src/ui/slint_host/host_contract/data/host_components.rs");
+    let host_interaction = source("src/ui/slint_host/host_contract/data/host_interaction.rs");
+    let pointer_builder = source("src/ui/slint_host/menu_pointer/build_host_menu_pointer_layout.rs");
+    let chrome_projection = source("src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs");
+    let scene_projection = source("src/ui/layouts/windows/workbench_host_window/scene_projection.rs");
+    let menu_asset = source("assets/ui/editor/workbench_menu_chrome.ui.toml");
+    let popup_asset = source("assets/ui/editor/workbench_menu_popup.ui.toml");
 
-    for legacy_anchor in [
-        "x: top_bar.file_menu_button_local_frame.x * 1px;",
-        "x: top_bar.edit_menu_button_local_frame.x * 1px;",
-        "x: top_bar.selection_menu_button_local_frame.x * 1px;",
-        "x: top_bar.view_menu_button_local_frame.x * 1px;",
-        "x: top_bar.window_menu_button_local_frame.x * 1px;",
-        "x: top_bar.help_menu_button_local_frame.x * 1px;",
+    assert!(host_components.contains("pub menu_frames: ModelRc<HostChromeControlFrameData>"));
+    assert!(host_interaction.contains("pub window_menu_scroll_px: f32"));
+    for required in [
+        "menu_button_frames_from_chrome_asset",
+        "SlotFilter::new(MENU_SLOT_PREFIX, MENU_SLOT_COUNT)",
+        "menu_control_frames(&template_nodes, menus.row_count().max(MENU_SLOT_COUNT))",
     ] {
         assert!(
-            !workbench.contains(legacy_anchor),
-            "menu popup presentation should not anchor to legacy local frame `{legacy_anchor}`"
+            pointer_builder.contains(required)
+                || chrome_projection.contains(required)
+                || scene_projection.contains(required),
+            "menu projection missing `{required}`"
         );
     }
-
-    for projected_anchor in [
-        "x: root.file_menu_button_frame.x * 1px;",
-        "x: root.edit_menu_button_frame.x * 1px;",
-        "x: root.selection_menu_button_frame.x * 1px;",
-        "x: root.view_menu_button_frame.x * 1px;",
-        "x: root.window_menu_button_frame.x * 1px;",
-        "x: root.help_menu_button_frame.x * 1px;",
-    ] {
-        assert!(
-            host_menu_chrome.contains(projected_anchor),
-            "host menu chrome is missing shared projected anchor `{projected_anchor}`"
-        );
+    for required in ["WorkbenchMenuBarRoot", "MenuSlot0", "MenuSlot5"] {
+        assert!(menu_asset.contains(required), "menu chrome asset missing `{required}`");
     }
-
-    for removed_setter in [
-        "set_file_menu_button_frame(",
-        "set_edit_menu_button_frame(",
-        "set_selection_menu_button_frame(",
-        "set_view_menu_button_frame(",
-        "set_window_menu_button_frame(",
-        "set_help_menu_button_frame(",
-    ] {
-        assert!(
-            !pointer_layout.contains(removed_setter),
-            "menu popup presentation should not keep host menu frame setter `{removed_setter}`"
-        );
+    for required in ["WorkbenchMenuPopupRoot", "WorkbenchMenuPopupPanel", "MenuPopupItemLabel0"] {
+        assert!(popup_asset.contains(required), "menu popup asset missing `{required}`");
     }
+}
 
-    for removed_binding in [
-        "file_menu_button_frame <=> host.file_menu_button_frame",
-        "edit_menu_button_frame <=> host.edit_menu_button_frame",
-        "selection_menu_button_frame <=> host.selection_menu_button_frame",
-        "view_menu_button_frame <=> host.view_menu_button_frame",
-        "window_menu_button_frame <=> host.window_menu_button_frame",
-        "help_menu_button_frame <=> host.help_menu_button_frame",
+#[test]
+fn menu_popup_projection_mutes_disabled_item_labels() {
+    let chrome_projection = source("src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs");
+
+    for required in [
+        "if !item.enabled {",
+        "label_node.text_tone = \"muted\".into();",
+        "shortcut_node.text_tone = \"muted\".into();",
     ] {
         assert!(
-            !workbench.contains(removed_binding) && !scaffold.contains(removed_binding),
-            "menu popup presentation should not keep root/scaffold frame binding `{removed_binding}`"
+            chrome_projection.contains(required),
+            "menu popup projection should make disabled item text visually muted `{required}`"
         );
     }
 }

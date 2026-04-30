@@ -1,7 +1,9 @@
-use crate::core::math::UVec2;
+use crate::core::math::{UVec2, Vec3};
 use bytemuck::Zeroable;
 
-use crate::core::framework::render::RenderHybridGiProbe;
+use crate::graphics::hybrid_gi_extract_sources::{
+    enabled_hybrid_gi_extract, hybrid_gi_extract_uses_scene_representation_budget,
+};
 use crate::graphics::scene::scene_renderer::HybridGiScenePrepareResourcesSnapshot;
 use crate::graphics::types::ViewportRenderFrame;
 
@@ -15,12 +17,20 @@ use super::encode_hybrid_gi_probe_screen_data::{
 use super::hybrid_gi_hierarchy_irradiance::hybrid_gi_hierarchy_irradiance_with_scene_prepare_resources;
 use super::hybrid_gi_hierarchy_resolve_weight::hybrid_gi_hierarchy_resolve_weight;
 use super::hybrid_gi_hierarchy_rt_lighting::hybrid_gi_hierarchy_rt_lighting_with_scene_prepare_resources;
+use super::hybrid_gi_probe_source::{
+    fallback_probe_sources_by_id, HybridGiProbeSource, HybridGiRuntimeProbeSource,
+};
 use super::hybrid_gi_temporal_signature::{
     hybrid_gi_temporal_scene_truth_confidence, hybrid_gi_temporal_signature,
 };
 use super::runtime_parent_chain::{
-    frame_has_runtime_probe_lineage_scene_truth, runtime_probe_lineage_has_scene_truth,
+    frame_has_runtime_probe_lineage_scene_truth, runtime_parent_topology_is_authoritative,
+    runtime_probe_lineage_has_scene_truth,
 };
+
+const RUNTIME_PROBE_POSITION_SCALE: f32 = 64.0;
+const RUNTIME_PROBE_POSITION_BIAS: i32 = 2048;
+const RUNTIME_PROBE_RADIUS_SCALE: f32 = 96.0;
 
 pub(in super::super) fn encode_hybrid_gi_probes(
     frame: &ViewportRenderFrame,
@@ -39,35 +49,75 @@ pub(in super::super) fn encode_hybrid_gi_probes(
     let frame_has_scene_prepare = frame.hybrid_gi_scene_prepare.is_some();
     let frame_has_stripped_runtime_scene_truth =
         !frame_has_scene_prepare && frame_has_runtime_probe_lineage_scene_truth(frame);
-    let hybrid_gi_extract = frame.extract.lighting.hybrid_global_illumination.as_ref();
+    let frame_has_runtime_owner = frame.hybrid_gi_resolve_runtime.is_some();
+    let frame_has_flat_runtime_owner =
+        frame_has_runtime_owner && !runtime_parent_topology_is_authoritative(frame);
+    let hybrid_gi_extract =
+        enabled_hybrid_gi_extract(frame.extract.lighting.hybrid_global_illumination.as_ref());
+    let extract_uses_scene_representation_budget = hybrid_gi_extract
+        .map(hybrid_gi_extract_uses_scene_representation_budget)
+        .unwrap_or(false);
+    let hybrid_gi_probe_sources_by_id = fallback_probe_sources_by_id(hybrid_gi_extract);
 
     let mut count = 0;
     for probe in prepare.resident_probes.iter().take(MAX_HYBRID_GI_PROBES) {
-        let source = hybrid_gi_extract.and_then(|extract| {
-            extract
-                .probes
-                .iter()
-                .find(|candidate| candidate.probe_id == probe.probe_id)
-        });
+        let extract_source = hybrid_gi_probe_sources_by_id.get(&probe.probe_id);
         let resident_has_runtime_scene_truth =
             runtime_probe_lineage_has_scene_truth(frame, probe.probe_id);
-        let synthetic_runtime_source = (source.is_none()
-            && frame_has_stripped_runtime_scene_truth
-            && resident_has_runtime_scene_truth)
-            .then(|| RenderHybridGiProbe {
-                probe_id: probe.probe_id,
-                resident: true,
-                ray_budget: probe.ray_budget,
-                ..RenderHybridGiProbe::default()
-            });
-        let source = source.or(synthetic_runtime_source.as_ref());
+        let resident_has_runtime_payload =
+            frame_has_exact_runtime_probe_payload(frame, probe.probe_id);
+        let resident_has_runtime_scene_data =
+            frame_has_runtime_probe_scene_data(frame, probe.probe_id);
+        let runtime_scene_data_owns_source = frame_has_runtime_owner
+            && resident_has_runtime_scene_data
+            && (frame_has_scene_prepare
+                || frame_has_stripped_runtime_scene_truth
+                || resident_has_runtime_scene_truth);
+        let should_synthesize_runtime_source = runtime_scene_data_owns_source
+            || (extract_source.is_none()
+                && ((frame_has_stripped_runtime_scene_truth && resident_has_runtime_scene_truth)
+                    || (frame_has_scene_prepare
+                        && frame_has_runtime_owner
+                        && (resident_has_runtime_payload
+                            || resident_has_runtime_scene_truth
+                            || resident_has_runtime_scene_data))));
+        let runtime_probe_source = should_synthesize_runtime_source
+            .then(|| {
+                runtime_probe_scene_source(
+                    frame,
+                    probe.probe_id,
+                    probe.ray_budget,
+                    frame_has_stripped_runtime_scene_truth && resident_has_runtime_scene_truth,
+                )
+            })
+            .flatten();
+        let source = match (runtime_probe_source.as_ref(), extract_source) {
+            (Some(source), _) => Some(source as &dyn HybridGiProbeSource),
+            (None, Some(source)) => Some(source as &dyn HybridGiProbeSource),
+            (None, None) => None,
+        };
         let source_is_scene_driven = source
             .map(|source| {
-                frame_has_scene_prepare
-                    || runtime_probe_lineage_has_scene_truth(frame, source.probe_id)
+                runtime_probe_lineage_has_scene_truth(frame, source.probe_id())
+                    || runtime_scene_data_owns_source
+                    || (frame_has_scene_prepare
+                        && (!frame_has_runtime_owner
+                            || resident_has_runtime_payload
+                            || resident_has_runtime_scene_truth
+                            || resident_has_runtime_scene_data))
             })
             .unwrap_or(false);
         if (frame_has_scene_prepare || frame_has_stripped_runtime_scene_truth) && source.is_none() {
+            continue;
+        }
+        if extract_uses_scene_representation_budget && !source_is_scene_driven {
+            continue;
+        }
+        if frame_has_scene_prepare && frame_has_runtime_owner && !source_is_scene_driven {
+            continue;
+        }
+        if frame_has_flat_runtime_owner && !source_is_scene_driven && !resident_has_runtime_payload
+        {
             continue;
         }
         if frame_has_stripped_runtime_scene_truth && !source_is_scene_driven {
@@ -90,12 +140,12 @@ pub(in super::super) fn encode_hybrid_gi_probes(
                                     &frame.extract,
                                     viewport_size,
                                     scene_prepare,
-                                    source.ray_budget,
+                                    source.ray_budget(),
                                 )
                             },
                         )
                     } else if source_is_scene_driven {
-                        encode_hybrid_gi_scene_truth_fallback_probe_screen_data(source.ray_budget)
+                        encode_hybrid_gi_scene_truth_fallback_probe_screen_data(source.ray_budget())
                     } else {
                         encode_hybrid_gi_probe_screen_data(&frame.extract, viewport_size, source)
                     },
@@ -116,7 +166,7 @@ pub(in super::super) fn encode_hybrid_gi_probes(
         let temporal_signature = hybrid_gi_temporal_signature(
             frame,
             probe.probe_id,
-            source.and_then(|probe| probe.parent_probe_id),
+            source.and_then(|probe| probe.parent_probe_id()),
             source,
             scene_prepare_resources,
         );
@@ -161,6 +211,75 @@ pub(in super::super) fn encode_hybrid_gi_probes(
     (probes, count as u32, count_scheduled_trace_regions(frame))
 }
 
+fn frame_has_exact_runtime_probe_payload(frame: &ViewportRenderFrame, probe_id: u32) -> bool {
+    frame
+        .hybrid_gi_resolve_runtime
+        .as_ref()
+        .map(|runtime| {
+            runtime
+                .hierarchy_irradiance(probe_id)
+                .map(|source| source[3] > f32::EPSILON)
+                .unwrap_or(false)
+                || runtime
+                    .hierarchy_rt_lighting(probe_id)
+                    .map(|source| source[3] > f32::EPSILON)
+                    .unwrap_or(false)
+                || runtime.has_hierarchy_resolve_weight(probe_id)
+                || runtime.has_probe_rt_lighting(probe_id)
+        })
+        .unwrap_or(false)
+}
+
+fn frame_has_runtime_probe_scene_data(frame: &ViewportRenderFrame, probe_id: u32) -> bool {
+    frame
+        .hybrid_gi_resolve_runtime
+        .as_ref()
+        .and_then(|runtime| runtime.probe_scene_data(probe_id))
+        .is_some()
+}
+
+fn runtime_probe_scene_source(
+    frame: &ViewportRenderFrame,
+    probe_id: u32,
+    ray_budget: u32,
+    allow_neutral_fallback: bool,
+) -> Option<HybridGiRuntimeProbeSource> {
+    let runtime = frame.hybrid_gi_resolve_runtime.as_ref()?;
+    if let Some(scene_data) = runtime.probe_scene_data(probe_id) {
+        return Some(HybridGiRuntimeProbeSource::new(
+            probe_id,
+            dequantized_runtime_probe_position(
+                scene_data.position_x_q(),
+                scene_data.position_y_q(),
+                scene_data.position_z_q(),
+            ),
+            scene_data.radius_q() as f32 / RUNTIME_PROBE_RADIUS_SCALE,
+            runtime.parent_probe_id(probe_id),
+            ray_budget,
+        ));
+    }
+
+    allow_neutral_fallback.then_some(HybridGiRuntimeProbeSource::new(
+        probe_id,
+        Vec3::ZERO,
+        0.0,
+        None,
+        ray_budget,
+    ))
+}
+
+fn dequantized_runtime_probe_position(x_q: u32, y_q: u32, z_q: u32) -> Vec3 {
+    Vec3::new(
+        dequantized_runtime_probe_position_component(x_q),
+        dequantized_runtime_probe_position_component(y_q),
+        dequantized_runtime_probe_position_component(z_q),
+    )
+}
+
+fn dequantized_runtime_probe_position_component(value: u32) -> f32 {
+    (value as i32 - RUNTIME_PROBE_POSITION_BIAS) as f32 / RUNTIME_PROBE_POSITION_SCALE
+}
+
 #[cfg(test)]
 mod tests {
     use super::super::super::super::super::constants::MAX_HYBRID_GI_TRACE_REGIONS;
@@ -176,8 +295,8 @@ mod tests {
     use crate::graphics::types::{
         HybridGiPrepareCardCaptureRequest, HybridGiPrepareFrame, HybridGiPrepareProbe,
         HybridGiPrepareSurfaceCachePageContent, HybridGiPrepareVoxelCell,
-        HybridGiPrepareVoxelClipmap, HybridGiResolveRuntime, HybridGiScenePrepareFrame,
-        ViewportRenderFrame,
+        HybridGiPrepareVoxelClipmap, HybridGiResolveProbeSceneData, HybridGiResolveRuntime,
+        HybridGiScenePrepareFrame, ViewportRenderFrame,
     };
 
     #[test]
@@ -266,7 +385,7 @@ mod tests {
             enabled: true,
             probe_budget: 1,
             trace_budget: 0,
-            card_budget: 1,
+            card_budget: 0,
             voxel_budget: 0,
             probes: vec![probe],
             ..Default::default()
@@ -297,33 +416,32 @@ mod tests {
                 voxel_clipmaps: Vec::new(),
                 voxel_cells: Vec::new(),
             }));
-        let resources = HybridGiScenePrepareResourcesSnapshot {
-            card_capture_request_count: 1,
-            occupied_atlas_slots: vec![3],
-            occupied_capture_slots: if capture_sample_rgba[3] > 0 {
-                vec![4]
-            } else {
-                Vec::new()
-            },
-            atlas_slot_rgba_samples: vec![(3, atlas_sample_rgba)],
-            capture_slot_rgba_samples: if capture_sample_rgba[3] > 0 {
-                vec![(4, capture_sample_rgba)]
-            } else {
-                Vec::new()
-            },
-            voxel_clipmap_ids: Vec::new(),
-            voxel_clipmap_rgba_samples: Vec::new(),
-            voxel_clipmap_occupancy_masks: Vec::new(),
-            voxel_clipmap_cell_rgba_samples: Vec::new(),
-            voxel_clipmap_cell_occupancy_counts: Vec::new(),
-            voxel_clipmap_cell_dominant_node_ids: Vec::new(),
-            voxel_clipmap_cell_dominant_rgba_samples: Vec::new(),
-            atlas_slot_count: 4,
-            capture_slot_count: 4,
-            atlas_texture_extent: (16, 16),
-            capture_texture_extent: (16, 16),
-            capture_layer_count: 1,
+        let has_capture_sample = capture_sample_rgba[3] > 0;
+        let occupied_capture_slots = if has_capture_sample {
+            vec![4]
+        } else {
+            Vec::new()
         };
+        let capture_slot_rgba_samples = if has_capture_sample {
+            vec![(4, capture_sample_rgba)]
+        } else {
+            Vec::new()
+        };
+        let mut resources = HybridGiScenePrepareResourcesSnapshot::new(
+            1,
+            Vec::new(),
+            vec![3],
+            occupied_capture_slots,
+            4,
+            4,
+            (16, 16),
+            (16, 16),
+            1,
+        );
+        resources.store_texture_slot_rgba_samples(
+            vec![(3, atlas_sample_rgba)],
+            capture_slot_rgba_samples,
+        );
 
         let (probes, probe_count, _) =
             encode_hybrid_gi_probes(&frame, UVec2::new(32, 32), true, Some(&resources));
@@ -424,6 +542,118 @@ mod tests {
         assert_eq!(
             trace_count, 1,
             "expected duplicate scheduled ids for the same live RenderHybridGiTraceRegion payload to count once instead of inflating the old trace-region path"
+        );
+    }
+
+    #[test]
+    fn encode_hybrid_gi_probes_reports_zero_trace_payloads_when_runtime_is_flat() {
+        let trace_count = encode_probe_trace_count_with_flat_runtime();
+
+        assert_eq!(
+            trace_count, 0,
+            "expected flat runtime ownership to suppress legacy scheduled RenderHybridGiTraceRegion counts instead of reporting old payloads to the probe encoder"
+        );
+    }
+
+    #[test]
+    fn encode_hybrid_gi_probes_ignores_legacy_probe_slots_when_runtime_is_flat() {
+        let (probe_count, legacy_irradiance) = encode_probe_count_with_flat_runtime();
+
+        assert_eq!(
+            probe_count, 0,
+            "expected flat runtime ownership to suppress legacy RenderHybridGiProbe resident slots instead of letting old probe payloads drive main probe output"
+        );
+        assert_eq!(
+            legacy_irradiance,
+            [0.0; 4],
+            "expected flat runtime ownership to leave the legacy probe GPU slot zeroed; legacy_irradiance={legacy_irradiance:?}"
+        );
+    }
+
+    #[test]
+    fn encode_hybrid_gi_probes_keeps_exact_runtime_probe_payload_when_runtime_is_flat() {
+        let (probe_count, runtime_rt_lighting) =
+            encode_probe_count_with_flat_runtime_exact_payload();
+
+        assert_eq!(
+            probe_count, 1,
+            "expected flat runtime ownership to suppress only legacy-only probe slots, not resident probes with exact runtime payloads"
+        );
+        assert!(
+            runtime_rt_lighting[0] > runtime_rt_lighting[2] + 0.4
+                && runtime_rt_lighting[3] > 0.2,
+            "expected exact runtime RT payload to drive encoded hierarchy lighting even without runtime parent topology; runtime_rt_lighting={runtime_rt_lighting:?}"
+        );
+    }
+
+    #[test]
+    fn encode_hybrid_gi_probes_keeps_exact_runtime_resolve_weight_when_runtime_is_flat() {
+        let high_weight = encode_probe_resolve_weight_with_flat_runtime_exact_weight(2.4);
+        let low_weight = encode_probe_resolve_weight_with_flat_runtime_exact_weight(0.6);
+
+        assert!(
+            high_weight > low_weight + 1.5,
+            "expected exact runtime resolve weight to reach the encoded probe even when runtime topology is flat; high_weight={high_weight:.3}, low_weight={low_weight:.3}"
+        );
+    }
+
+    #[test]
+    fn encode_hybrid_gi_probes_keeps_legacy_parent_resolve_weight_without_runtime_owner() {
+        let flat_weight = encode_child_probe_resolve_weight_without_runtime_parent(false);
+        let hierarchical_weight = encode_child_probe_resolve_weight_without_runtime_parent(true);
+
+        assert!(
+            hierarchical_weight > flat_weight + 0.2,
+            "expected legacy RenderHybridGiProbe parent topology to keep affecting resolve weight when no runtime owner is present; flat_weight={flat_weight:.3}, hierarchical_weight={hierarchical_weight:.3}"
+        );
+    }
+
+    #[test]
+    fn encode_hybrid_gi_probes_ignores_legacy_probe_slots_when_scene_representation_is_budgeted() {
+        let (probe_count, legacy_irradiance) =
+            encode_probe_count_with_budgeted_scene_representation_and_legacy_probe_slot();
+
+        assert_eq!(
+            probe_count, 0,
+            "expected budgeted scene-representation extracts to suppress legacy RenderHybridGiProbe resident slots instead of letting authored payloads drive post-process probe output"
+        );
+        assert_eq!(
+            legacy_irradiance,
+            [0.0; 4],
+            "expected budgeted scene-representation ownership to leave the legacy probe GPU slot zeroed; legacy_irradiance={legacy_irradiance:?}"
+        );
+    }
+
+    #[test]
+    fn encode_hybrid_gi_probes_ignores_legacy_probe_slots_when_flat_runtime_has_scene_prepare() {
+        let (probe_count, legacy_irradiance) =
+            encode_probe_count_with_flat_runtime_and_scene_prepare();
+
+        assert_eq!(
+            probe_count, 0,
+            "expected flat runtime ownership to suppress legacy RenderHybridGiProbe resident slots even when scene prepare exists"
+        );
+        assert_eq!(
+            legacy_irradiance,
+            [0.0; 4],
+            "expected scene prepare not to reclassify a legacy RenderHybridGiProbe slot as scene-driven; legacy_irradiance={legacy_irradiance:?}"
+        );
+    }
+
+    #[test]
+    fn encode_hybrid_gi_probes_ignores_legacy_probe_slots_when_unrelated_runtime_topology_has_scene_prepare(
+    ) {
+        let (probe_count, legacy_irradiance) =
+            encode_probe_count_with_unrelated_runtime_topology_and_scene_prepare();
+
+        assert_eq!(
+            probe_count, 0,
+            "expected unrelated runtime parent topology not to reclassify a legacy RenderHybridGiProbe resident slot as scene-driven"
+        );
+        assert_eq!(
+            legacy_irradiance,
+            [0.0; 4],
+            "expected unrelated runtime parent topology with scene prepare to leave the legacy probe GPU slot zeroed; legacy_irradiance={legacy_irradiance:?}"
         );
     }
 
@@ -708,6 +938,178 @@ mod tests {
     }
 
     #[test]
+    fn encode_hybrid_gi_probes_keeps_scene_prepare_runtime_probe_scene_data_without_legacy_probe_source(
+    ) {
+        let probe_id = 300;
+        let viewport_size = UVec2::new(32, 32);
+        let snapshot = RenderSceneSnapshot {
+            scene: RenderSceneGeometryExtract {
+                camera: ViewportCameraSnapshot::default(),
+                meshes: Vec::new(),
+                directional_lights: Vec::new(),
+                point_lights: Vec::new(),
+                spot_lights: Vec::new(),
+            },
+            overlays: RenderOverlayExtract::default(),
+            preview: PreviewEnvironmentExtract {
+                lighting_enabled: true,
+                skybox_enabled: false,
+                fallback_skybox: FallbackSkyboxKind::None,
+                clear_color: Vec4::ZERO,
+            },
+            virtual_geometry_debug: None,
+        };
+        let extract =
+            RenderFrameExtract::from_snapshot(RenderWorldSnapshotHandle::new(99), snapshot);
+        let frame = ViewportRenderFrame::from_extract(extract, viewport_size)
+            .with_hybrid_gi_prepare(Some(HybridGiPrepareFrame {
+                resident_probes: vec![HybridGiPrepareProbe {
+                    probe_id,
+                    slot: 0,
+                    ray_budget: 128,
+                    irradiance_rgb: [240, 96, 48],
+                }],
+                pending_updates: Vec::new(),
+                scheduled_trace_region_ids: Vec::new(),
+                evictable_probe_ids: Vec::new(),
+            }))
+            .with_hybrid_gi_scene_prepare(Some(HybridGiScenePrepareFrame {
+                card_capture_requests: Vec::new(),
+                surface_cache_page_contents: Vec::new(),
+                voxel_clipmaps: Vec::new(),
+                voxel_cells: Vec::new(),
+            }))
+            .with_hybrid_gi_resolve_runtime(Some(
+                HybridGiResolveRuntime::fixture()
+                    .with_probe_scene_data(std::collections::BTreeMap::from([(
+                        probe_id,
+                        HybridGiResolveProbeSceneData::new(2048, 2048, 2048, 96),
+                    )]))
+                    .with_probe_hierarchy_irradiance_rgb_and_weight(
+                        std::collections::BTreeMap::from([(
+                            probe_id,
+                            HybridGiResolveRuntime::pack_rgb_and_weight([0.62, 0.25, 0.12], 0.7),
+                        )]),
+                    )
+                    .with_probe_scene_driven_hierarchy_irradiance_ids(
+                        std::collections::BTreeSet::from([probe_id]),
+                    )
+                    .build(),
+            ));
+
+        let (probes, probe_count, _) = encode_hybrid_gi_probes(&frame, viewport_size, true, None);
+
+        assert_eq!(
+            probe_count, 1,
+            "expected runtime probe scene data to keep a scene-prepare resident slot without requiring a legacy RenderHybridGiProbe source"
+        );
+        assert_eq!(
+            probes[0].irradiance_and_intensity[0..3],
+            [0.0, 0.0, 0.0],
+            "expected runtime-owned scene-prepare output to demote authored resident irradiance"
+        );
+        assert!(
+            probes[0].hierarchy_irradiance_rgb_and_weight[0] > 0.55
+                && probes[0].hierarchy_irradiance_rgb_and_weight[3] > 0.65,
+            "expected runtime hierarchy irradiance to drive the encoded probe; encoded={:?}",
+            probes[0].hierarchy_irradiance_rgb_and_weight
+        );
+    }
+
+    #[test]
+    fn encode_hybrid_gi_probes_prefers_runtime_probe_scene_data_over_stale_legacy_probe_source_in_scene_prepare(
+    ) {
+        let probe_id = 301;
+        let viewport_size = UVec2::new(32, 32);
+        let snapshot = RenderSceneSnapshot {
+            scene: RenderSceneGeometryExtract {
+                camera: ViewportCameraSnapshot::default(),
+                meshes: Vec::new(),
+                directional_lights: Vec::new(),
+                point_lights: Vec::new(),
+                spot_lights: Vec::new(),
+            },
+            overlays: RenderOverlayExtract::default(),
+            preview: PreviewEnvironmentExtract {
+                lighting_enabled: true,
+                skybox_enabled: false,
+                fallback_skybox: FallbackSkyboxKind::None,
+                clear_color: Vec4::ZERO,
+            },
+            virtual_geometry_debug: None,
+        };
+        let mut extract =
+            RenderFrameExtract::from_snapshot(RenderWorldSnapshotHandle::new(100), snapshot);
+        extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
+            enabled: true,
+            probe_budget: 1,
+            probes: vec![RenderHybridGiProbe {
+                probe_id,
+                resident: true,
+                ray_budget: 128,
+                position: Vec3::new(18.0, 0.0, 0.0),
+                radius: 0.2,
+                ..Default::default()
+            }],
+            ..Default::default()
+        });
+
+        let frame = ViewportRenderFrame::from_extract(extract, viewport_size)
+            .with_hybrid_gi_prepare(Some(HybridGiPrepareFrame {
+                resident_probes: vec![HybridGiPrepareProbe {
+                    probe_id,
+                    slot: 0,
+                    ray_budget: 128,
+                    irradiance_rgb: [240, 96, 48],
+                }],
+                pending_updates: Vec::new(),
+                scheduled_trace_region_ids: Vec::new(),
+                evictable_probe_ids: Vec::new(),
+            }))
+            .with_hybrid_gi_scene_prepare(Some(HybridGiScenePrepareFrame {
+                card_capture_requests: Vec::new(),
+                surface_cache_page_contents: vec![HybridGiPrepareSurfaceCachePageContent {
+                    page_id: 11,
+                    owner_card_id: 11,
+                    atlas_slot_id: 0,
+                    capture_slot_id: 0,
+                    bounds_center: Vec3::ZERO,
+                    bounds_radius: 1.0,
+                    atlas_sample_rgba: [0, 0, 0, 0],
+                    capture_sample_rgba: [240, 64, 32, 255],
+                }],
+                voxel_clipmaps: Vec::new(),
+                voxel_cells: Vec::new(),
+            }))
+            .with_hybrid_gi_resolve_runtime(Some(
+                HybridGiResolveRuntime::fixture()
+                    .with_probe_scene_data(std::collections::BTreeMap::from([(
+                        probe_id,
+                        HybridGiResolveProbeSceneData::new(2048, 2048, 2048, 96),
+                    )]))
+                    .build(),
+            ));
+
+        let (probes, probe_count, _) = encode_hybrid_gi_probes(&frame, viewport_size, true, None);
+
+        assert_eq!(
+            probe_count, 1,
+            "expected runtime probe scene data to override a stale legacy RenderHybridGiProbe source during scene prepare"
+        );
+        assert_eq!(
+            probes[0].irradiance_and_intensity[0..3],
+            [0.0, 0.0, 0.0],
+            "expected runtime-owned scene data to demote authored resident irradiance even when a stale legacy probe source is present"
+        );
+        assert!(
+            probes[0].hierarchy_irradiance_rgb_and_weight[0] > 0.85
+                && probes[0].hierarchy_irradiance_rgb_and_weight[3] > 0.2,
+            "expected scene-prepare surface-cache fallback to use runtime probe coordinates instead of stale legacy coordinates; encoded={:?}",
+            probes[0].hierarchy_irradiance_rgb_and_weight
+        );
+    }
+
+    #[test]
     fn encode_hybrid_gi_probes_keeps_runtime_parent_scene_truth_without_legacy_extract_container() {
         let (probe_count, child_irradiance) =
             encode_child_probe_with_runtime_parent_truth_without_legacy_extract_container();
@@ -980,7 +1382,7 @@ mod tests {
             enabled: true,
             probe_budget: 1,
             trace_budget: 0,
-            card_budget: 1,
+            card_budget: 0,
             voxel_budget: 0,
             probes: vec![probe],
             ..Default::default()
@@ -998,29 +1400,35 @@ mod tests {
                 scheduled_trace_region_ids: Vec::new(),
                 evictable_probe_ids: Vec::new(),
             }))
-            .with_hybrid_gi_resolve_runtime(Some(HybridGiResolveRuntime {
-                probe_hierarchy_resolve_weight_q8: std::collections::BTreeMap::from([(
-                    probe.probe_id,
-                    HybridGiResolveRuntime::pack_resolve_weight_q8(2.0),
-                )]),
-                probe_hierarchy_irradiance_rgb_and_weight: std::collections::BTreeMap::from([(
-                    probe.probe_id,
-                    HybridGiResolveRuntime::pack_rgb_and_weight([0.6, 0.6, 0.6], 0.52),
-                )]),
-                probe_scene_driven_hierarchy_irradiance_ids: std::collections::BTreeSet::from([
-                    probe.probe_id,
-                ]),
-                probe_scene_driven_hierarchy_irradiance_quality_q8:
-                    std::collections::BTreeMap::from([(
+            .with_hybrid_gi_resolve_runtime(Some(
+                HybridGiResolveRuntime::fixture()
+                    .with_probe_hierarchy_resolve_weight_q8(std::collections::BTreeMap::from([(
                         probe.probe_id,
-                        HybridGiResolveRuntime::pack_scene_truth_quality_q8(1.0),
-                    )]),
-                probe_hierarchy_rt_lighting_rgb_and_weight: std::collections::BTreeMap::from([(
-                    probe.probe_id,
-                    HybridGiResolveRuntime::pack_rgb_and_weight([0.82, 0.34, 0.16], 0.44),
-                )]),
-                ..Default::default()
-            }))
+                        HybridGiResolveRuntime::pack_resolve_weight_q8(2.0),
+                    )]))
+                    .with_probe_hierarchy_irradiance_rgb_and_weight(
+                        std::collections::BTreeMap::from([(
+                            probe.probe_id,
+                            HybridGiResolveRuntime::pack_rgb_and_weight([0.6, 0.6, 0.6], 0.52),
+                        )]),
+                    )
+                    .with_probe_scene_driven_hierarchy_irradiance_ids(
+                        std::collections::BTreeSet::from([probe.probe_id]),
+                    )
+                    .with_probe_scene_driven_hierarchy_irradiance_quality_q8(
+                        std::collections::BTreeMap::from([(
+                            probe.probe_id,
+                            HybridGiResolveRuntime::pack_scene_truth_quality_q8(1.0),
+                        )]),
+                    )
+                    .with_probe_hierarchy_rt_lighting_rgb_and_weight(
+                        std::collections::BTreeMap::from([(
+                            probe.probe_id,
+                            HybridGiResolveRuntime::pack_rgb_and_weight([0.82, 0.34, 0.16], 0.44),
+                        )]),
+                    )
+                    .build(),
+            ))
             .with_hybrid_gi_scene_prepare(Some(HybridGiScenePrepareFrame {
                 card_capture_requests: Vec::new(),
                 surface_cache_page_contents: vec![HybridGiPrepareSurfaceCachePageContent {
@@ -1079,8 +1487,8 @@ mod tests {
             enabled: true,
             probe_budget: 1,
             trace_budget: 0,
-            card_budget: 1,
-            voxel_budget: 1,
+            card_budget: 0,
+            voxel_budget: 0,
             probes: vec![probe],
             ..Default::default()
         });
@@ -1097,29 +1505,35 @@ mod tests {
                 scheduled_trace_region_ids: Vec::new(),
                 evictable_probe_ids: Vec::new(),
             }))
-            .with_hybrid_gi_resolve_runtime(Some(HybridGiResolveRuntime {
-                probe_hierarchy_resolve_weight_q8: std::collections::BTreeMap::from([(
-                    probe.probe_id,
-                    HybridGiResolveRuntime::pack_resolve_weight_q8(2.0),
-                )]),
-                probe_hierarchy_irradiance_rgb_and_weight: std::collections::BTreeMap::from([(
-                    probe.probe_id,
-                    HybridGiResolveRuntime::pack_rgb_and_weight([0.6, 0.6, 0.6], 0.52),
-                )]),
-                probe_scene_driven_hierarchy_irradiance_ids: std::collections::BTreeSet::from([
-                    probe.probe_id,
-                ]),
-                probe_scene_driven_hierarchy_irradiance_quality_q8:
-                    std::collections::BTreeMap::from([(
+            .with_hybrid_gi_resolve_runtime(Some(
+                HybridGiResolveRuntime::fixture()
+                    .with_probe_hierarchy_resolve_weight_q8(std::collections::BTreeMap::from([(
                         probe.probe_id,
-                        HybridGiResolveRuntime::pack_scene_truth_quality_q8(1.0),
-                    )]),
-                probe_hierarchy_rt_lighting_rgb_and_weight: std::collections::BTreeMap::from([(
-                    probe.probe_id,
-                    HybridGiResolveRuntime::pack_rgb_and_weight([0.82, 0.34, 0.16], 0.44),
-                )]),
-                ..Default::default()
-            }))
+                        HybridGiResolveRuntime::pack_resolve_weight_q8(2.0),
+                    )]))
+                    .with_probe_hierarchy_irradiance_rgb_and_weight(
+                        std::collections::BTreeMap::from([(
+                            probe.probe_id,
+                            HybridGiResolveRuntime::pack_rgb_and_weight([0.6, 0.6, 0.6], 0.52),
+                        )]),
+                    )
+                    .with_probe_scene_driven_hierarchy_irradiance_ids(
+                        std::collections::BTreeSet::from([probe.probe_id]),
+                    )
+                    .with_probe_scene_driven_hierarchy_irradiance_quality_q8(
+                        std::collections::BTreeMap::from([(
+                            probe.probe_id,
+                            HybridGiResolveRuntime::pack_scene_truth_quality_q8(1.0),
+                        )]),
+                    )
+                    .with_probe_hierarchy_rt_lighting_rgb_and_weight(
+                        std::collections::BTreeMap::from([(
+                            probe.probe_id,
+                            HybridGiResolveRuntime::pack_rgb_and_weight([0.82, 0.34, 0.16], 0.44),
+                        )]),
+                    )
+                    .build(),
+            ))
             .with_hybrid_gi_scene_prepare(Some(HybridGiScenePrepareFrame {
                 card_capture_requests: Vec::new(),
                 surface_cache_page_contents: vec![HybridGiPrepareSurfaceCachePageContent {
@@ -1233,7 +1647,7 @@ mod tests {
             enabled: true,
             probe_budget: 2,
             trace_budget: 0,
-            card_budget: 1,
+            card_budget: 0,
             voxel_budget: 0,
             probes: vec![parent_probe, child_probe],
             ..Default::default()
@@ -1251,25 +1665,33 @@ mod tests {
                 scheduled_trace_region_ids: Vec::new(),
                 evictable_probe_ids: Vec::new(),
             }))
-            .with_hybrid_gi_resolve_runtime(Some(HybridGiResolveRuntime {
-                probe_hierarchy_resolve_weight_q8: std::collections::BTreeMap::from([(
-                    runtime_probe_id,
-                    HybridGiResolveRuntime::pack_resolve_weight_q8(0.9),
-                )]),
-                probe_hierarchy_irradiance_rgb_and_weight: std::collections::BTreeMap::from([(
-                    runtime_probe_id,
-                    HybridGiResolveRuntime::pack_rgb_and_weight([0.6, 0.6, 0.6], 0.52),
-                )]),
-                probe_scene_driven_hierarchy_irradiance_ids: std::collections::BTreeSet::from([
-                    runtime_probe_id,
-                ]),
-                probe_scene_driven_hierarchy_irradiance_quality_q8:
-                    std::collections::BTreeMap::from([(
+            .with_hybrid_gi_resolve_runtime(Some(
+                HybridGiResolveRuntime::fixture()
+                    .with_probe_parent_probes(std::collections::BTreeMap::from([(
+                        child_probe.probe_id,
+                        parent_probe.probe_id,
+                    )]))
+                    .with_probe_hierarchy_resolve_weight_q8(std::collections::BTreeMap::from([(
                         runtime_probe_id,
-                        HybridGiResolveRuntime::pack_scene_truth_quality_q8(1.0),
-                    )]),
-                ..Default::default()
-            }));
+                        HybridGiResolveRuntime::pack_resolve_weight_q8(0.9),
+                    )]))
+                    .with_probe_hierarchy_irradiance_rgb_and_weight(
+                        std::collections::BTreeMap::from([(
+                            runtime_probe_id,
+                            HybridGiResolveRuntime::pack_rgb_and_weight([0.6, 0.6, 0.6], 0.52),
+                        )]),
+                    )
+                    .with_probe_scene_driven_hierarchy_irradiance_ids(
+                        std::collections::BTreeSet::from([runtime_probe_id]),
+                    )
+                    .with_probe_scene_driven_hierarchy_irradiance_quality_q8(
+                        std::collections::BTreeMap::from([(
+                            runtime_probe_id,
+                            HybridGiResolveRuntime::pack_scene_truth_quality_q8(1.0),
+                        )]),
+                    )
+                    .build(),
+            ));
         let frame = if let Some((card_id, page_id)) = proxy_card_and_page {
             frame.with_hybrid_gi_scene_prepare(Some(HybridGiScenePrepareFrame {
                 card_capture_requests: vec![HybridGiPrepareCardCaptureRequest {
@@ -1354,15 +1776,20 @@ mod tests {
                 scheduled_trace_region_ids: Vec::new(),
                 evictable_probe_ids: Vec::new(),
             }))
-            .with_hybrid_gi_resolve_runtime(Some(HybridGiResolveRuntime {
-                probe_scene_driven_hierarchy_irradiance_ids: std::collections::BTreeSet::from([
-                    parent_probe.probe_id,
-                ]),
-                probe_scene_driven_hierarchy_rt_lighting_ids: std::collections::BTreeSet::from([
-                    parent_probe.probe_id,
-                ]),
-                ..Default::default()
-            }));
+            .with_hybrid_gi_resolve_runtime(Some(
+                HybridGiResolveRuntime::fixture()
+                    .with_probe_parent_probes(std::collections::BTreeMap::from([(
+                        child_probe.probe_id,
+                        parent_probe.probe_id,
+                    )]))
+                    .with_probe_scene_driven_hierarchy_irradiance_ids(
+                        std::collections::BTreeSet::from([parent_probe.probe_id]),
+                    )
+                    .with_probe_scene_driven_hierarchy_rt_lighting_ids(
+                        std::collections::BTreeSet::from([parent_probe.probe_id]),
+                    )
+                    .build(),
+            ));
 
         let (probes, probe_count, _) =
             encode_hybrid_gi_probes(&frame, UVec2::new(32, 32), true, None);
@@ -1422,7 +1849,7 @@ mod tests {
             enabled: true,
             probe_budget: 1,
             trace_budget: 0,
-            card_budget: 1,
+            card_budget: 0,
             voxel_budget: 0,
             probes: vec![probe],
             ..Default::default()
@@ -1440,25 +1867,29 @@ mod tests {
                 scheduled_trace_region_ids: Vec::new(),
                 evictable_probe_ids: Vec::new(),
             }))
-            .with_hybrid_gi_resolve_runtime(Some(HybridGiResolveRuntime {
-                probe_hierarchy_resolve_weight_q8: std::collections::BTreeMap::from([(
-                    probe.probe_id,
-                    HybridGiResolveRuntime::pack_resolve_weight_q8(0.9),
-                )]),
-                probe_hierarchy_irradiance_rgb_and_weight: std::collections::BTreeMap::from([(
-                    probe.probe_id,
-                    HybridGiResolveRuntime::pack_rgb_and_weight([0.6, 0.6, 0.6], 0.52),
-                )]),
-                probe_scene_driven_hierarchy_irradiance_ids: std::collections::BTreeSet::from([
-                    probe.probe_id,
-                ]),
-                probe_scene_driven_hierarchy_irradiance_quality_q8:
-                    std::collections::BTreeMap::from([(
+            .with_hybrid_gi_resolve_runtime(Some(
+                HybridGiResolveRuntime::fixture()
+                    .with_probe_hierarchy_resolve_weight_q8(std::collections::BTreeMap::from([(
                         probe.probe_id,
-                        HybridGiResolveRuntime::pack_scene_truth_quality_q8(1.0),
-                    )]),
-                ..Default::default()
-            }));
+                        HybridGiResolveRuntime::pack_resolve_weight_q8(0.9),
+                    )]))
+                    .with_probe_hierarchy_irradiance_rgb_and_weight(
+                        std::collections::BTreeMap::from([(
+                            probe.probe_id,
+                            HybridGiResolveRuntime::pack_rgb_and_weight([0.6, 0.6, 0.6], 0.52),
+                        )]),
+                    )
+                    .with_probe_scene_driven_hierarchy_irradiance_ids(
+                        std::collections::BTreeSet::from([probe.probe_id]),
+                    )
+                    .with_probe_scene_driven_hierarchy_irradiance_quality_q8(
+                        std::collections::BTreeMap::from([(
+                            probe.probe_id,
+                            HybridGiResolveRuntime::pack_scene_truth_quality_q8(1.0),
+                        )]),
+                    )
+                    .build(),
+            ));
         let frame = if let Some((card_id, page_id)) = proxy_card_and_page {
             frame.with_hybrid_gi_scene_prepare(Some(HybridGiScenePrepareFrame {
                 card_capture_requests: vec![HybridGiPrepareCardCaptureRequest {
@@ -1568,41 +1999,54 @@ mod tests {
                 scheduled_trace_region_ids: Vec::new(),
                 evictable_probe_ids: Vec::new(),
             }))
-            .with_hybrid_gi_resolve_runtime(Some(HybridGiResolveRuntime {
-                probe_hierarchy_resolve_weight_q8: std::collections::BTreeMap::from([(
-                    probe.probe_id,
-                    HybridGiResolveRuntime::pack_resolve_weight_q8(0.9),
-                )]),
-                probe_hierarchy_irradiance_rgb_and_weight: std::collections::BTreeMap::from([(
-                    probe.probe_id,
-                    HybridGiResolveRuntime::pack_rgb_and_weight(
-                        [0.6, 0.6, 0.6],
-                        irradiance_support,
-                    ),
-                )]),
-                probe_hierarchy_rt_lighting_rgb_and_weight: std::collections::BTreeMap::from([(
-                    probe.probe_id,
-                    HybridGiResolveRuntime::pack_rgb_and_weight([0.6, 0.6, 0.6], rt_support),
-                )]),
-                probe_scene_driven_hierarchy_irradiance_ids: std::collections::BTreeSet::from([
-                    probe.probe_id,
-                ]),
-                probe_scene_driven_hierarchy_irradiance_quality_q8:
-                    std::collections::BTreeMap::from([(
+            .with_hybrid_gi_resolve_runtime(Some(
+                HybridGiResolveRuntime::fixture()
+                    .with_probe_hierarchy_resolve_weight_q8(std::collections::BTreeMap::from([(
                         probe.probe_id,
-                        HybridGiResolveRuntime::pack_scene_truth_quality_q8(irradiance_quality),
-                    )]),
-                probe_scene_driven_hierarchy_rt_lighting_ids: includes_rt_scene_truth
-                    .then_some(std::collections::BTreeSet::from([probe.probe_id]))
-                    .unwrap_or_default(),
-                probe_scene_driven_hierarchy_rt_lighting_quality_q8: includes_rt_scene_truth
-                    .then_some(std::collections::BTreeMap::from([(
-                        probe.probe_id,
-                        HybridGiResolveRuntime::pack_scene_truth_quality_q8(rt_quality),
+                        HybridGiResolveRuntime::pack_resolve_weight_q8(0.9),
                     )]))
-                    .unwrap_or_default(),
-                ..Default::default()
-            }));
+                    .with_probe_hierarchy_irradiance_rgb_and_weight(
+                        std::collections::BTreeMap::from([(
+                            probe.probe_id,
+                            HybridGiResolveRuntime::pack_rgb_and_weight(
+                                [0.6, 0.6, 0.6],
+                                irradiance_support,
+                            ),
+                        )]),
+                    )
+                    .with_probe_hierarchy_rt_lighting_rgb_and_weight(
+                        std::collections::BTreeMap::from([(
+                            probe.probe_id,
+                            HybridGiResolveRuntime::pack_rgb_and_weight(
+                                [0.6, 0.6, 0.6],
+                                rt_support,
+                            ),
+                        )]),
+                    )
+                    .with_probe_scene_driven_hierarchy_irradiance_ids(
+                        std::collections::BTreeSet::from([probe.probe_id]),
+                    )
+                    .with_probe_scene_driven_hierarchy_irradiance_quality_q8(
+                        std::collections::BTreeMap::from([(
+                            probe.probe_id,
+                            HybridGiResolveRuntime::pack_scene_truth_quality_q8(irradiance_quality),
+                        )]),
+                    )
+                    .with_probe_scene_driven_hierarchy_rt_lighting_ids(
+                        includes_rt_scene_truth
+                            .then_some(std::collections::BTreeSet::from([probe.probe_id]))
+                            .unwrap_or_default(),
+                    )
+                    .with_probe_scene_driven_hierarchy_rt_lighting_quality_q8(
+                        includes_rt_scene_truth
+                            .then_some(std::collections::BTreeMap::from([(
+                                probe.probe_id,
+                                HybridGiResolveRuntime::pack_scene_truth_quality_q8(rt_quality),
+                            )]))
+                            .unwrap_or_default(),
+                    )
+                    .build(),
+            ));
 
         let (probes, probe_count, _) =
             encode_hybrid_gi_probes(&frame, UVec2::new(32, 32), true, None);
@@ -1661,25 +2105,27 @@ mod tests {
                 scheduled_trace_region_ids: Vec::new(),
                 evictable_probe_ids: Vec::new(),
             }))
-            .with_hybrid_gi_resolve_runtime(Some(HybridGiResolveRuntime {
-                probe_rt_lighting_rgb: std::collections::BTreeMap::from([(
-                    probe.probe_id,
-                    rt_lighting_rgb,
-                )]),
-                probe_hierarchy_resolve_weight_q8: std::collections::BTreeMap::from([(
-                    probe.probe_id,
-                    HybridGiResolveRuntime::pack_resolve_weight_q8(2.0),
-                )]),
-                probe_scene_driven_hierarchy_rt_lighting_ids: std::collections::BTreeSet::from([
-                    probe.probe_id,
-                ]),
-                probe_scene_driven_hierarchy_rt_lighting_quality_q8:
-                    std::collections::BTreeMap::from([(
+            .with_hybrid_gi_resolve_runtime(Some(
+                HybridGiResolveRuntime::fixture()
+                    .with_probe_rt_lighting_rgb(std::collections::BTreeMap::from([(
                         probe.probe_id,
-                        HybridGiResolveRuntime::pack_scene_truth_quality_q8(1.0),
-                    )]),
-                ..Default::default()
-            }));
+                        rt_lighting_rgb,
+                    )]))
+                    .with_probe_hierarchy_resolve_weight_q8(std::collections::BTreeMap::from([(
+                        probe.probe_id,
+                        HybridGiResolveRuntime::pack_resolve_weight_q8(2.0),
+                    )]))
+                    .with_probe_scene_driven_hierarchy_rt_lighting_ids(
+                        std::collections::BTreeSet::from([probe.probe_id]),
+                    )
+                    .with_probe_scene_driven_hierarchy_rt_lighting_quality_q8(
+                        std::collections::BTreeMap::from([(
+                            probe.probe_id,
+                            HybridGiResolveRuntime::pack_scene_truth_quality_q8(1.0),
+                        )]),
+                    )
+                    .build(),
+            ));
 
         let (probes, probe_count, _) =
             encode_hybrid_gi_probes(&frame, UVec2::new(32, 32), true, None);
@@ -1739,20 +2185,25 @@ mod tests {
                 scheduled_trace_region_ids: Vec::new(),
                 evictable_probe_ids: Vec::new(),
             }))
-            .with_hybrid_gi_resolve_runtime(Some(HybridGiResolveRuntime {
-                probe_hierarchy_irradiance_rgb_and_weight: std::collections::BTreeMap::from([(
-                    probe.probe_id,
-                    HybridGiResolveRuntime::pack_rgb_and_weight([0.92, 0.24, 0.12], 0.58),
-                )]),
-                probe_hierarchy_rt_lighting_rgb_and_weight: std::collections::BTreeMap::from([(
-                    probe.probe_id,
-                    HybridGiResolveRuntime::pack_rgb_and_weight([0.24, 0.48, 0.92], 0.58),
-                )]),
-                probe_scene_driven_hierarchy_rt_lighting_ids: std::collections::BTreeSet::from([
-                    probe.probe_id,
-                ]),
-                ..Default::default()
-            }));
+            .with_hybrid_gi_resolve_runtime(Some(
+                HybridGiResolveRuntime::fixture()
+                    .with_probe_hierarchy_irradiance_rgb_and_weight(
+                        std::collections::BTreeMap::from([(
+                            probe.probe_id,
+                            HybridGiResolveRuntime::pack_rgb_and_weight([0.92, 0.24, 0.12], 0.58),
+                        )]),
+                    )
+                    .with_probe_hierarchy_rt_lighting_rgb_and_weight(
+                        std::collections::BTreeMap::from([(
+                            probe.probe_id,
+                            HybridGiResolveRuntime::pack_rgb_and_weight([0.24, 0.48, 0.92], 0.58),
+                        )]),
+                    )
+                    .with_probe_scene_driven_hierarchy_rt_lighting_ids(
+                        std::collections::BTreeSet::from([probe.probe_id]),
+                    )
+                    .build(),
+            ));
 
         let (probes, probe_count, _) =
             encode_hybrid_gi_probes(&frame, UVec2::new(32, 32), true, None);
@@ -1815,20 +2266,25 @@ mod tests {
                 voxel_clipmaps: Vec::new(),
                 voxel_cells: Vec::new(),
             }))
-            .with_hybrid_gi_resolve_runtime(Some(HybridGiResolveRuntime {
-                probe_hierarchy_irradiance_rgb_and_weight: std::collections::BTreeMap::from([(
-                    probe.probe_id,
-                    HybridGiResolveRuntime::pack_rgb_and_weight([0.92, 0.24, 0.12], 0.58),
-                )]),
-                probe_hierarchy_rt_lighting_rgb_and_weight: std::collections::BTreeMap::from([(
-                    probe.probe_id,
-                    HybridGiResolveRuntime::pack_rgb_and_weight([0.24, 0.48, 0.92], 0.58),
-                )]),
-                probe_scene_driven_hierarchy_rt_lighting_ids: std::collections::BTreeSet::from([
-                    probe.probe_id,
-                ]),
-                ..Default::default()
-            }));
+            .with_hybrid_gi_resolve_runtime(Some(
+                HybridGiResolveRuntime::fixture()
+                    .with_probe_hierarchy_irradiance_rgb_and_weight(
+                        std::collections::BTreeMap::from([(
+                            probe.probe_id,
+                            HybridGiResolveRuntime::pack_rgb_and_weight([0.92, 0.24, 0.12], 0.58),
+                        )]),
+                    )
+                    .with_probe_hierarchy_rt_lighting_rgb_and_weight(
+                        std::collections::BTreeMap::from([(
+                            probe.probe_id,
+                            HybridGiResolveRuntime::pack_rgb_and_weight([0.24, 0.48, 0.92], 0.58),
+                        )]),
+                    )
+                    .with_probe_scene_driven_hierarchy_rt_lighting_ids(
+                        std::collections::BTreeSet::from([probe.probe_id]),
+                    )
+                    .build(),
+            ));
 
         let (probes, probe_count, _) =
             encode_hybrid_gi_probes(&frame, UVec2::new(32, 32), true, None);
@@ -1886,20 +2342,25 @@ mod tests {
                 scheduled_trace_region_ids: Vec::new(),
                 evictable_probe_ids: Vec::new(),
             }))
-            .with_hybrid_gi_resolve_runtime(Some(HybridGiResolveRuntime {
-                probe_hierarchy_irradiance_rgb_and_weight: std::collections::BTreeMap::from([(
-                    probe.probe_id,
-                    HybridGiResolveRuntime::pack_rgb_and_weight([0.92, 0.24, 0.12], 0.58),
-                )]),
-                probe_hierarchy_rt_lighting_rgb_and_weight: std::collections::BTreeMap::from([(
-                    probe.probe_id,
-                    HybridGiResolveRuntime::pack_rgb_and_weight([0.24, 0.48, 0.92], 0.58),
-                )]),
-                probe_scene_driven_hierarchy_irradiance_ids: std::collections::BTreeSet::from([
-                    probe.probe_id,
-                ]),
-                ..Default::default()
-            }));
+            .with_hybrid_gi_resolve_runtime(Some(
+                HybridGiResolveRuntime::fixture()
+                    .with_probe_hierarchy_irradiance_rgb_and_weight(
+                        std::collections::BTreeMap::from([(
+                            probe.probe_id,
+                            HybridGiResolveRuntime::pack_rgb_and_weight([0.92, 0.24, 0.12], 0.58),
+                        )]),
+                    )
+                    .with_probe_hierarchy_rt_lighting_rgb_and_weight(
+                        std::collections::BTreeMap::from([(
+                            probe.probe_id,
+                            HybridGiResolveRuntime::pack_rgb_and_weight([0.24, 0.48, 0.92], 0.58),
+                        )]),
+                    )
+                    .with_probe_scene_driven_hierarchy_irradiance_ids(
+                        std::collections::BTreeSet::from([probe.probe_id]),
+                    )
+                    .build(),
+            ));
 
         let (probes, probe_count, _) =
             encode_hybrid_gi_probes(&frame, UVec2::new(32, 32), true, None);
@@ -1962,20 +2423,25 @@ mod tests {
                 voxel_clipmaps: Vec::new(),
                 voxel_cells: Vec::new(),
             }))
-            .with_hybrid_gi_resolve_runtime(Some(HybridGiResolveRuntime {
-                probe_hierarchy_irradiance_rgb_and_weight: std::collections::BTreeMap::from([(
-                    probe.probe_id,
-                    HybridGiResolveRuntime::pack_rgb_and_weight([0.92, 0.24, 0.12], 0.58),
-                )]),
-                probe_hierarchy_rt_lighting_rgb_and_weight: std::collections::BTreeMap::from([(
-                    probe.probe_id,
-                    HybridGiResolveRuntime::pack_rgb_and_weight([0.24, 0.48, 0.92], 0.58),
-                )]),
-                probe_scene_driven_hierarchy_irradiance_ids: std::collections::BTreeSet::from([
-                    probe.probe_id,
-                ]),
-                ..Default::default()
-            }));
+            .with_hybrid_gi_resolve_runtime(Some(
+                HybridGiResolveRuntime::fixture()
+                    .with_probe_hierarchy_irradiance_rgb_and_weight(
+                        std::collections::BTreeMap::from([(
+                            probe.probe_id,
+                            HybridGiResolveRuntime::pack_rgb_and_weight([0.92, 0.24, 0.12], 0.58),
+                        )]),
+                    )
+                    .with_probe_hierarchy_rt_lighting_rgb_and_weight(
+                        std::collections::BTreeMap::from([(
+                            probe.probe_id,
+                            HybridGiResolveRuntime::pack_rgb_and_weight([0.24, 0.48, 0.92], 0.58),
+                        )]),
+                    )
+                    .with_probe_scene_driven_hierarchy_irradiance_ids(
+                        std::collections::BTreeSet::from([probe.probe_id]),
+                    )
+                    .build(),
+            ));
 
         let (probes, probe_count, _) =
             encode_hybrid_gi_probes(&frame, UVec2::new(32, 32), true, None);
@@ -2041,16 +2507,19 @@ mod tests {
                 scheduled_trace_region_ids: Vec::new(),
                 evictable_probe_ids: Vec::new(),
             }))
-            .with_hybrid_gi_resolve_runtime(Some(HybridGiResolveRuntime {
-                probe_hierarchy_irradiance_rgb_and_weight: std::collections::BTreeMap::from([(
-                    source_probe.probe_id,
-                    HybridGiResolveRuntime::pack_rgb_and_weight([0.6, 0.6, 0.6], 0.52),
-                )]),
-                probe_scene_driven_hierarchy_irradiance_ids: std::collections::BTreeSet::from([
-                    source_probe.probe_id,
-                ]),
-                ..Default::default()
-            }));
+            .with_hybrid_gi_resolve_runtime(Some(
+                HybridGiResolveRuntime::fixture()
+                    .with_probe_hierarchy_irradiance_rgb_and_weight(
+                        std::collections::BTreeMap::from([(
+                            source_probe.probe_id,
+                            HybridGiResolveRuntime::pack_rgb_and_weight([0.6, 0.6, 0.6], 0.52),
+                        )]),
+                    )
+                    .with_probe_scene_driven_hierarchy_irradiance_ids(
+                        std::collections::BTreeSet::from([source_probe.probe_id]),
+                    )
+                    .build(),
+            ));
 
         let (probes, probe_count, _) =
             encode_hybrid_gi_probes(&frame, UVec2::new(32, 32), true, None);
@@ -2100,16 +2569,19 @@ mod tests {
                 scheduled_trace_region_ids: Vec::new(),
                 evictable_probe_ids: Vec::new(),
             }))
-            .with_hybrid_gi_resolve_runtime(Some(HybridGiResolveRuntime {
-                probe_hierarchy_irradiance_rgb_and_weight: std::collections::BTreeMap::from([(
-                    200,
-                    HybridGiResolveRuntime::pack_rgb_and_weight([0.6, 0.6, 0.6], 0.52),
-                )]),
-                probe_scene_driven_hierarchy_irradiance_ids: std::collections::BTreeSet::from([
-                    200,
-                ]),
-                ..Default::default()
-            }));
+            .with_hybrid_gi_resolve_runtime(Some(
+                HybridGiResolveRuntime::fixture()
+                    .with_probe_hierarchy_irradiance_rgb_and_weight(
+                        std::collections::BTreeMap::from([(
+                            200,
+                            HybridGiResolveRuntime::pack_rgb_and_weight([0.6, 0.6, 0.6], 0.52),
+                        )]),
+                    )
+                    .with_probe_scene_driven_hierarchy_irradiance_ids(
+                        std::collections::BTreeSet::from([200]),
+                    )
+                    .build(),
+            ));
 
         let (probes, probe_count, _) =
             encode_hybrid_gi_probes(&frame, UVec2::new(32, 32), true, None);
@@ -2157,20 +2629,23 @@ mod tests {
                 scheduled_trace_region_ids: Vec::new(),
                 evictable_probe_ids: Vec::new(),
             }))
-            .with_hybrid_gi_resolve_runtime(Some(HybridGiResolveRuntime {
-                probe_parent_probes: std::collections::BTreeMap::from([(
-                    child_probe_id,
-                    parent_probe_id,
-                )]),
-                probe_hierarchy_irradiance_rgb_and_weight: std::collections::BTreeMap::from([(
-                    parent_probe_id,
-                    HybridGiResolveRuntime::pack_rgb_and_weight([0.68, 0.08, 0.06], 0.58),
-                )]),
-                probe_scene_driven_hierarchy_irradiance_ids: std::collections::BTreeSet::from([
-                    parent_probe_id,
-                ]),
-                ..Default::default()
-            }));
+            .with_hybrid_gi_resolve_runtime(Some(
+                HybridGiResolveRuntime::fixture()
+                    .with_probe_parent_probes(std::collections::BTreeMap::from([(
+                        child_probe_id,
+                        parent_probe_id,
+                    )]))
+                    .with_probe_hierarchy_irradiance_rgb_and_weight(
+                        std::collections::BTreeMap::from([(
+                            parent_probe_id,
+                            HybridGiResolveRuntime::pack_rgb_and_weight([0.68, 0.08, 0.06], 0.58),
+                        )]),
+                    )
+                    .with_probe_scene_driven_hierarchy_irradiance_ids(
+                        std::collections::BTreeSet::from([parent_probe_id]),
+                    )
+                    .build(),
+            ));
 
         let (probes, probe_count, _) =
             encode_hybrid_gi_probes(&frame, UVec2::new(32, 32), true, None);
@@ -2238,20 +2713,23 @@ mod tests {
                 scheduled_trace_region_ids: Vec::new(),
                 evictable_probe_ids: Vec::new(),
             }))
-            .with_hybrid_gi_resolve_runtime(Some(HybridGiResolveRuntime {
-                probe_parent_probes: std::collections::BTreeMap::from([(
-                    child_probe_id,
-                    runtime_parent_probe_id,
-                )]),
-                probe_hierarchy_irradiance_rgb_and_weight: std::collections::BTreeMap::from([(
-                    runtime_parent_probe_id,
-                    HybridGiResolveRuntime::pack_rgb_and_weight([0.68, 0.08, 0.06], 0.58),
-                )]),
-                probe_scene_driven_hierarchy_irradiance_ids: std::collections::BTreeSet::from([
-                    runtime_parent_probe_id,
-                ]),
-                ..Default::default()
-            }));
+            .with_hybrid_gi_resolve_runtime(Some(
+                HybridGiResolveRuntime::fixture()
+                    .with_probe_parent_probes(std::collections::BTreeMap::from([(
+                        child_probe_id,
+                        runtime_parent_probe_id,
+                    )]))
+                    .with_probe_hierarchy_irradiance_rgb_and_weight(
+                        std::collections::BTreeMap::from([(
+                            runtime_parent_probe_id,
+                            HybridGiResolveRuntime::pack_rgb_and_weight([0.68, 0.08, 0.06], 0.58),
+                        )]),
+                    )
+                    .with_probe_scene_driven_hierarchy_irradiance_ids(
+                        std::collections::BTreeSet::from([runtime_parent_probe_id]),
+                    )
+                    .build(),
+            ));
 
         let (probes, probe_count, _) =
             encode_hybrid_gi_probes(&frame, UVec2::new(32, 32), true, None);
@@ -2336,17 +2814,20 @@ mod tests {
                 scheduled_trace_region_ids: Vec::new(),
                 evictable_probe_ids: Vec::new(),
             }))
-            .with_hybrid_gi_resolve_runtime(Some(HybridGiResolveRuntime {
-                probe_parent_probes,
-                probe_hierarchy_irradiance_rgb_and_weight: std::collections::BTreeMap::from([(
-                    stale_parent_probe_id,
-                    HybridGiResolveRuntime::pack_rgb_and_weight([0.68, 0.08, 0.06], 0.58),
-                )]),
-                probe_scene_driven_hierarchy_irradiance_ids: std::collections::BTreeSet::from([
-                    stale_parent_probe_id,
-                ]),
-                ..Default::default()
-            }));
+            .with_hybrid_gi_resolve_runtime(Some(
+                HybridGiResolveRuntime::fixture()
+                    .with_probe_parent_probes(probe_parent_probes)
+                    .with_probe_hierarchy_irradiance_rgb_and_weight(
+                        std::collections::BTreeMap::from([(
+                            stale_parent_probe_id,
+                            HybridGiResolveRuntime::pack_rgb_and_weight([0.68, 0.08, 0.06], 0.58),
+                        )]),
+                    )
+                    .with_probe_scene_driven_hierarchy_irradiance_ids(
+                        std::collections::BTreeSet::from([stale_parent_probe_id]),
+                    )
+                    .build(),
+            ));
 
         let (probes, probe_count, _) =
             encode_hybrid_gi_probes(&frame, UVec2::new(32, 32), true, None);
@@ -2437,10 +2918,11 @@ mod tests {
                 scheduled_trace_region_ids: Vec::new(),
                 evictable_probe_ids: Vec::new(),
             }))
-            .with_hybrid_gi_resolve_runtime(Some(HybridGiResolveRuntime {
-                probe_parent_probes: std::collections::BTreeMap::from([(900, 901)]),
-                ..Default::default()
-            }));
+            .with_hybrid_gi_resolve_runtime(Some(
+                HybridGiResolveRuntime::fixture()
+                    .with_probe_parent_probes(std::collections::BTreeMap::from([(900, 901)]))
+                    .build(),
+            ));
 
         let (probes, probe_count, _) =
             encode_hybrid_gi_probes(&frame, UVec2::new(32, 32), true, None);
@@ -2506,10 +2988,11 @@ mod tests {
                 scheduled_trace_region_ids: Vec::new(),
                 evictable_probe_ids: Vec::new(),
             }))
-            .with_hybrid_gi_resolve_runtime(Some(HybridGiResolveRuntime {
-                probe_parent_probes: std::collections::BTreeMap::from([(900, 901)]),
-                ..Default::default()
-            }));
+            .with_hybrid_gi_resolve_runtime(Some(
+                HybridGiResolveRuntime::fixture()
+                    .with_probe_parent_probes(std::collections::BTreeMap::from([(900, 901)]))
+                    .build(),
+            ));
 
         let (probes, probe_count, _) =
             encode_hybrid_gi_probes(&frame, UVec2::new(32, 32), true, None);
@@ -2562,20 +3045,23 @@ mod tests {
                 scheduled_trace_region_ids: Vec::new(),
                 evictable_probe_ids: Vec::new(),
             }))
-            .with_hybrid_gi_resolve_runtime(Some(HybridGiResolveRuntime {
-                probe_parent_probes: std::collections::BTreeMap::from([(
-                    child_probe_id,
-                    parent_probe_id,
-                )]),
-                probe_hierarchy_irradiance_rgb_and_weight: std::collections::BTreeMap::from([(
-                    parent_probe_id,
-                    HybridGiResolveRuntime::pack_rgb_and_weight([0.68, 0.08, 0.06], 0.58),
-                )]),
-                probe_scene_driven_hierarchy_irradiance_ids: std::collections::BTreeSet::from([
-                    parent_probe_id,
-                ]),
-                ..Default::default()
-            }));
+            .with_hybrid_gi_resolve_runtime(Some(
+                HybridGiResolveRuntime::fixture()
+                    .with_probe_parent_probes(std::collections::BTreeMap::from([(
+                        child_probe_id,
+                        parent_probe_id,
+                    )]))
+                    .with_probe_hierarchy_irradiance_rgb_and_weight(
+                        std::collections::BTreeMap::from([(
+                            parent_probe_id,
+                            HybridGiResolveRuntime::pack_rgb_and_weight([0.68, 0.08, 0.06], 0.58),
+                        )]),
+                    )
+                    .with_probe_scene_driven_hierarchy_irradiance_ids(
+                        std::collections::BTreeSet::from([parent_probe_id]),
+                    )
+                    .build(),
+            ));
 
         let (probes, probe_count, _) =
             encode_hybrid_gi_probes(&frame, UVec2::new(32, 32), true, None);
@@ -2616,16 +3102,19 @@ mod tests {
                 scheduled_trace_region_ids: Vec::new(),
                 evictable_probe_ids: Vec::new(),
             }))
-            .with_hybrid_gi_resolve_runtime(Some(HybridGiResolveRuntime {
-                probe_hierarchy_rt_lighting_rgb_and_weight: std::collections::BTreeMap::from([(
-                    200,
-                    HybridGiResolveRuntime::pack_rgb_and_weight([0.52, 0.52, 0.52], 0.42),
-                )]),
-                probe_scene_driven_hierarchy_rt_lighting_ids: std::collections::BTreeSet::from([
-                    200,
-                ]),
-                ..Default::default()
-            }));
+            .with_hybrid_gi_resolve_runtime(Some(
+                HybridGiResolveRuntime::fixture()
+                    .with_probe_hierarchy_rt_lighting_rgb_and_weight(
+                        std::collections::BTreeMap::from([(
+                            200,
+                            HybridGiResolveRuntime::pack_rgb_and_weight([0.52, 0.52, 0.52], 0.42),
+                        )]),
+                    )
+                    .with_probe_scene_driven_hierarchy_rt_lighting_ids(
+                        std::collections::BTreeSet::from([200]),
+                    )
+                    .build(),
+            ));
 
         let (probes, probe_count, _) =
             encode_hybrid_gi_probes(&frame, UVec2::new(32, 32), true, None);
@@ -2670,17 +3159,23 @@ mod tests {
                 scheduled_trace_region_ids: Vec::new(),
                 evictable_probe_ids: Vec::new(),
             }))
-            .with_hybrid_gi_resolve_runtime(Some(HybridGiResolveRuntime {
-                probe_hierarchy_rt_lighting_rgb_and_weight: std::collections::BTreeMap::from([(
-                    200,
-                    HybridGiResolveRuntime::pack_rgb_and_weight([0.52, 0.52, 0.52], 0.42),
-                )]),
-                probe_rt_lighting_rgb: std::collections::BTreeMap::from([(200, [255, 16, 16])]),
-                probe_scene_driven_hierarchy_rt_lighting_ids: std::collections::BTreeSet::from([
-                    200,
-                ]),
-                ..Default::default()
-            }));
+            .with_hybrid_gi_resolve_runtime(Some(
+                HybridGiResolveRuntime::fixture()
+                    .with_probe_hierarchy_rt_lighting_rgb_and_weight(
+                        std::collections::BTreeMap::from([(
+                            200,
+                            HybridGiResolveRuntime::pack_rgb_and_weight([0.52, 0.52, 0.52], 0.42),
+                        )]),
+                    )
+                    .with_probe_rt_lighting_rgb(std::collections::BTreeMap::from([(
+                        200,
+                        [255, 16, 16],
+                    )]))
+                    .with_probe_scene_driven_hierarchy_rt_lighting_ids(
+                        std::collections::BTreeSet::from([200]),
+                    )
+                    .build(),
+            ));
 
         let (probes, _, _) = encode_hybrid_gi_probes(&frame, UVec2::new(32, 32), true, None);
         probes[0].hierarchy_rt_lighting_rgb_and_weight
@@ -2751,16 +3246,19 @@ mod tests {
                 scheduled_trace_region_ids: Vec::new(),
                 evictable_probe_ids: Vec::new(),
             }))
-            .with_hybrid_gi_resolve_runtime(Some(HybridGiResolveRuntime {
-                probe_hierarchy_irradiance_rgb_and_weight: std::collections::BTreeMap::from([(
-                    scene_truth_probe.probe_id,
-                    HybridGiResolveRuntime::pack_rgb_and_weight([0.6, 0.6, 0.6], 0.52),
-                )]),
-                probe_scene_driven_hierarchy_irradiance_ids: std::collections::BTreeSet::from([
-                    scene_truth_probe.probe_id,
-                ]),
-                ..Default::default()
-            }));
+            .with_hybrid_gi_resolve_runtime(Some(
+                HybridGiResolveRuntime::fixture()
+                    .with_probe_hierarchy_irradiance_rgb_and_weight(
+                        std::collections::BTreeMap::from([(
+                            scene_truth_probe.probe_id,
+                            HybridGiResolveRuntime::pack_rgb_and_weight([0.6, 0.6, 0.6], 0.52),
+                        )]),
+                    )
+                    .with_probe_scene_driven_hierarchy_irradiance_ids(
+                        std::collections::BTreeSet::from([scene_truth_probe.probe_id]),
+                    )
+                    .build(),
+            ));
 
         let (probes, probe_count, _) =
             encode_hybrid_gi_probes(&frame, UVec2::new(32, 32), true, None);
@@ -2827,16 +3325,19 @@ mod tests {
                 scheduled_trace_region_ids: Vec::new(),
                 evictable_probe_ids: Vec::new(),
             }))
-            .with_hybrid_gi_resolve_runtime(Some(HybridGiResolveRuntime {
-                probe_hierarchy_irradiance_rgb_and_weight: std::collections::BTreeMap::from([(
-                    source_probe.probe_id,
-                    HybridGiResolveRuntime::pack_rgb_and_weight([0.6, 0.6, 0.6], 0.52),
-                )]),
-                probe_scene_driven_hierarchy_irradiance_ids: std::collections::BTreeSet::from([
-                    source_probe.probe_id,
-                ]),
-                ..Default::default()
-            }));
+            .with_hybrid_gi_resolve_runtime(Some(
+                HybridGiResolveRuntime::fixture()
+                    .with_probe_hierarchy_irradiance_rgb_and_weight(
+                        std::collections::BTreeMap::from([(
+                            source_probe.probe_id,
+                            HybridGiResolveRuntime::pack_rgb_and_weight([0.6, 0.6, 0.6], 0.52),
+                        )]),
+                    )
+                    .with_probe_scene_driven_hierarchy_irradiance_ids(
+                        std::collections::BTreeSet::from([source_probe.probe_id]),
+                    )
+                    .build(),
+            ));
 
         let (probes, probe_count, _) =
             encode_hybrid_gi_probes(&frame, UVec2::new(32, 32), true, None);
@@ -2915,25 +3416,29 @@ mod tests {
                 scheduled_trace_region_ids: Vec::new(),
                 evictable_probe_ids: Vec::new(),
             }))
-            .with_hybrid_gi_resolve_runtime(Some(HybridGiResolveRuntime {
-                probe_hierarchy_resolve_weight_q8: std::collections::BTreeMap::from([(
-                    runtime_probe_id,
-                    HybridGiResolveRuntime::pack_resolve_weight_q8(0.9),
-                )]),
-                probe_hierarchy_irradiance_rgb_and_weight: std::collections::BTreeMap::from([(
-                    runtime_probe_id,
-                    HybridGiResolveRuntime::pack_rgb_and_weight([0.6, 0.6, 0.6], support),
-                )]),
-                probe_scene_driven_hierarchy_irradiance_ids: std::collections::BTreeSet::from([
-                    runtime_probe_id,
-                ]),
-                probe_scene_driven_hierarchy_irradiance_quality_q8:
-                    std::collections::BTreeMap::from([(
+            .with_hybrid_gi_resolve_runtime(Some(
+                HybridGiResolveRuntime::fixture()
+                    .with_probe_hierarchy_resolve_weight_q8(std::collections::BTreeMap::from([(
                         runtime_probe_id,
-                        HybridGiResolveRuntime::pack_scene_truth_quality_q8(1.0),
-                    )]),
-                ..Default::default()
-            }));
+                        HybridGiResolveRuntime::pack_resolve_weight_q8(0.9),
+                    )]))
+                    .with_probe_hierarchy_irradiance_rgb_and_weight(
+                        std::collections::BTreeMap::from([(
+                            runtime_probe_id,
+                            HybridGiResolveRuntime::pack_rgb_and_weight([0.6, 0.6, 0.6], support),
+                        )]),
+                    )
+                    .with_probe_scene_driven_hierarchy_irradiance_ids(
+                        std::collections::BTreeSet::from([runtime_probe_id]),
+                    )
+                    .with_probe_scene_driven_hierarchy_irradiance_quality_q8(
+                        std::collections::BTreeMap::from([(
+                            runtime_probe_id,
+                            HybridGiResolveRuntime::pack_scene_truth_quality_q8(1.0),
+                        )]),
+                    )
+                    .build(),
+            ));
 
         let (probes, probe_count, _) =
             encode_hybrid_gi_probes(&frame, UVec2::new(32, 32), true, None);
@@ -3065,13 +3570,16 @@ mod tests {
                 scheduled_trace_region_ids: vec![404],
                 evictable_probe_ids: Vec::new(),
             }))
-            .with_hybrid_gi_resolve_runtime(Some(HybridGiResolveRuntime {
-                probe_hierarchy_irradiance_rgb_and_weight: std::collections::BTreeMap::from([(
-                    probe.probe_id,
-                    HybridGiResolveRuntime::pack_rgb_and_weight([0.24, 0.24, 0.24], 0.32),
-                )]),
-                ..Default::default()
-            }))
+            .with_hybrid_gi_resolve_runtime(Some(
+                HybridGiResolveRuntime::fixture()
+                    .with_probe_hierarchy_irradiance_rgb_and_weight(
+                        std::collections::BTreeMap::from([(
+                            probe.probe_id,
+                            HybridGiResolveRuntime::pack_rgb_and_weight([0.24, 0.24, 0.24], 0.32),
+                        )]),
+                    )
+                    .build(),
+            ))
             .with_hybrid_gi_scene_prepare(Some(HybridGiScenePrepareFrame {
                 card_capture_requests: Vec::new(),
                 surface_cache_page_contents: vec![HybridGiPrepareSurfaceCachePageContent {
@@ -3123,7 +3631,7 @@ mod tests {
         extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
             enabled: true,
             probe_budget: 0,
-            trace_budget: 1,
+            trace_budget: 0,
             card_budget: 0,
             voxel_budget: 0,
             trace_regions: vec![RenderHybridGiTraceRegion {
@@ -3173,7 +3681,7 @@ mod tests {
         extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
             enabled: true,
             probe_budget: 0,
-            trace_budget: 2,
+            trace_budget: 0,
             card_budget: 0,
             voxel_budget: 0,
             trace_regions: vec![RenderHybridGiTraceRegion {
@@ -3197,6 +3705,508 @@ mod tests {
 
         let (_, _, trace_count) = encode_hybrid_gi_probes(&frame, UVec2::new(32, 32), true, None);
         trace_count
+    }
+
+    fn encode_probe_trace_count_with_flat_runtime() -> u32 {
+        let live_region_id = 40;
+        let snapshot = RenderSceneSnapshot {
+            scene: RenderSceneGeometryExtract {
+                camera: ViewportCameraSnapshot::default(),
+                meshes: Vec::new(),
+                directional_lights: Vec::new(),
+                point_lights: Vec::new(),
+                spot_lights: Vec::new(),
+            },
+            overlays: RenderOverlayExtract::default(),
+            preview: PreviewEnvironmentExtract {
+                lighting_enabled: true,
+                skybox_enabled: false,
+                fallback_skybox: FallbackSkyboxKind::None,
+                clear_color: Vec4::ZERO,
+            },
+            virtual_geometry_debug: None,
+        };
+        let mut extract =
+            RenderFrameExtract::from_snapshot(RenderWorldSnapshotHandle::new(1), snapshot);
+        extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
+            enabled: true,
+            probe_budget: 0,
+            trace_budget: 0,
+            card_budget: 0,
+            voxel_budget: 0,
+            trace_regions: vec![RenderHybridGiTraceRegion {
+                entity: u64::from(live_region_id),
+                region_id: live_region_id,
+                bounds_center: Vec3::ZERO,
+                bounds_radius: 2.0,
+                screen_coverage: 0.8,
+                rt_lighting_rgb: [240, 96, 48],
+            }],
+            ..Default::default()
+        });
+
+        let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(32, 32))
+            .with_hybrid_gi_prepare(Some(HybridGiPrepareFrame {
+                resident_probes: Vec::new(),
+                pending_updates: Vec::new(),
+                scheduled_trace_region_ids: vec![live_region_id],
+                evictable_probe_ids: Vec::new(),
+            }))
+            .with_hybrid_gi_resolve_runtime(Some(HybridGiResolveRuntime::default()));
+
+        let (_, _, trace_count) = encode_hybrid_gi_probes(&frame, UVec2::new(32, 32), true, None);
+        trace_count
+    }
+
+    fn encode_probe_count_with_flat_runtime() -> (u32, [f32; 4]) {
+        let probe = RenderHybridGiProbe {
+            probe_id: 200,
+            resident: true,
+            ray_budget: 128,
+            position: Vec3::ZERO,
+            radius: 1.8,
+            ..Default::default()
+        };
+        let snapshot = RenderSceneSnapshot {
+            scene: RenderSceneGeometryExtract {
+                camera: ViewportCameraSnapshot::default(),
+                meshes: Vec::new(),
+                directional_lights: Vec::new(),
+                point_lights: Vec::new(),
+                spot_lights: Vec::new(),
+            },
+            overlays: RenderOverlayExtract::default(),
+            preview: PreviewEnvironmentExtract {
+                lighting_enabled: true,
+                skybox_enabled: false,
+                fallback_skybox: FallbackSkyboxKind::None,
+                clear_color: Vec4::ZERO,
+            },
+            virtual_geometry_debug: None,
+        };
+        let mut extract =
+            RenderFrameExtract::from_snapshot(RenderWorldSnapshotHandle::new(1), snapshot);
+        extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
+            enabled: true,
+            probe_budget: 1,
+            trace_budget: 0,
+            card_budget: 0,
+            voxel_budget: 0,
+            probes: vec![probe],
+            ..Default::default()
+        });
+
+        let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(32, 32))
+            .with_hybrid_gi_prepare(Some(HybridGiPrepareFrame {
+                resident_probes: vec![HybridGiPrepareProbe {
+                    probe_id: probe.probe_id,
+                    slot: 0,
+                    ray_budget: probe.ray_budget,
+                    irradiance_rgb: [240, 96, 48],
+                }],
+                pending_updates: Vec::new(),
+                scheduled_trace_region_ids: Vec::new(),
+                evictable_probe_ids: Vec::new(),
+            }))
+            .with_hybrid_gi_resolve_runtime(Some(HybridGiResolveRuntime::default()));
+
+        let (probes, probe_count, _) =
+            encode_hybrid_gi_probes(&frame, UVec2::new(32, 32), true, None);
+        (probe_count, probes[0].irradiance_and_intensity)
+    }
+
+    fn encode_probe_count_with_flat_runtime_exact_payload() -> (u32, [f32; 4]) {
+        let probe = RenderHybridGiProbe {
+            probe_id: 200,
+            resident: true,
+            ray_budget: 128,
+            position: Vec3::ZERO,
+            radius: 1.8,
+            ..Default::default()
+        };
+        let snapshot = RenderSceneSnapshot {
+            scene: RenderSceneGeometryExtract {
+                camera: ViewportCameraSnapshot::default(),
+                meshes: Vec::new(),
+                directional_lights: Vec::new(),
+                point_lights: Vec::new(),
+                spot_lights: Vec::new(),
+            },
+            overlays: RenderOverlayExtract::default(),
+            preview: PreviewEnvironmentExtract {
+                lighting_enabled: true,
+                skybox_enabled: false,
+                fallback_skybox: FallbackSkyboxKind::None,
+                clear_color: Vec4::ZERO,
+            },
+            virtual_geometry_debug: None,
+        };
+        let mut extract =
+            RenderFrameExtract::from_snapshot(RenderWorldSnapshotHandle::new(1), snapshot);
+        extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
+            enabled: true,
+            probe_budget: 1,
+            trace_budget: 0,
+            card_budget: 0,
+            voxel_budget: 0,
+            probes: vec![probe],
+            ..Default::default()
+        });
+
+        let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(32, 32))
+            .with_hybrid_gi_prepare(Some(HybridGiPrepareFrame {
+                resident_probes: vec![HybridGiPrepareProbe {
+                    probe_id: probe.probe_id,
+                    slot: 0,
+                    ray_budget: probe.ray_budget,
+                    irradiance_rgb: [0, 0, 0],
+                }],
+                pending_updates: Vec::new(),
+                scheduled_trace_region_ids: Vec::new(),
+                evictable_probe_ids: Vec::new(),
+            }))
+            .with_hybrid_gi_resolve_runtime(Some(
+                HybridGiResolveRuntime::fixture()
+                    .with_probe_rt_lighting_rgb(std::collections::BTreeMap::from([(
+                        probe.probe_id,
+                        [240, 96, 48],
+                    )]))
+                    .with_probe_hierarchy_resolve_weight_q8(std::collections::BTreeMap::from([(
+                        probe.probe_id,
+                        HybridGiResolveRuntime::pack_resolve_weight_q8(2.0),
+                    )]))
+                    .build(),
+            ));
+
+        let (probes, probe_count, _) =
+            encode_hybrid_gi_probes(&frame, UVec2::new(32, 32), true, None);
+        (probe_count, probes[0].hierarchy_rt_lighting_rgb_and_weight)
+    }
+
+    fn encode_probe_resolve_weight_with_flat_runtime_exact_weight(resolve_weight: f32) -> f32 {
+        let probe = RenderHybridGiProbe {
+            probe_id: 200,
+            resident: true,
+            ray_budget: 128,
+            position: Vec3::ZERO,
+            radius: 1.8,
+            ..Default::default()
+        };
+        let snapshot = RenderSceneSnapshot {
+            scene: RenderSceneGeometryExtract {
+                camera: ViewportCameraSnapshot::default(),
+                meshes: Vec::new(),
+                directional_lights: Vec::new(),
+                point_lights: Vec::new(),
+                spot_lights: Vec::new(),
+            },
+            overlays: RenderOverlayExtract::default(),
+            preview: PreviewEnvironmentExtract {
+                lighting_enabled: true,
+                skybox_enabled: false,
+                fallback_skybox: FallbackSkyboxKind::None,
+                clear_color: Vec4::ZERO,
+            },
+            virtual_geometry_debug: None,
+        };
+        let mut extract =
+            RenderFrameExtract::from_snapshot(RenderWorldSnapshotHandle::new(1), snapshot);
+        extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
+            enabled: true,
+            probe_budget: 1,
+            trace_budget: 0,
+            card_budget: 0,
+            voxel_budget: 0,
+            probes: vec![probe],
+            ..Default::default()
+        });
+
+        let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(32, 32))
+            .with_hybrid_gi_prepare(Some(HybridGiPrepareFrame {
+                resident_probes: vec![HybridGiPrepareProbe {
+                    probe_id: probe.probe_id,
+                    slot: 0,
+                    ray_budget: probe.ray_budget,
+                    irradiance_rgb: [0, 0, 0],
+                }],
+                pending_updates: Vec::new(),
+                scheduled_trace_region_ids: Vec::new(),
+                evictable_probe_ids: Vec::new(),
+            }))
+            .with_hybrid_gi_resolve_runtime(Some(
+                HybridGiResolveRuntime::fixture()
+                    .with_probe_hierarchy_resolve_weight_q8(std::collections::BTreeMap::from([(
+                        probe.probe_id,
+                        HybridGiResolveRuntime::pack_resolve_weight_q8(resolve_weight),
+                    )]))
+                    .build(),
+            ));
+
+        let (probes, probe_count, _) =
+            encode_hybrid_gi_probes(&frame, UVec2::new(32, 32), true, None);
+        assert_eq!(probe_count, 1, "expected one encoded probe");
+        probes[0].irradiance_and_intensity[3]
+    }
+
+    fn encode_child_probe_resolve_weight_without_runtime_parent(link_child: bool) -> f32 {
+        let parent_probe = RenderHybridGiProbe {
+            probe_id: 200,
+            resident: true,
+            ray_budget: 128,
+            position: Vec3::ZERO,
+            radius: 2.2,
+            ..Default::default()
+        };
+        let child_probe = RenderHybridGiProbe {
+            probe_id: 300,
+            parent_probe_id: link_child.then_some(parent_probe.probe_id),
+            resident: true,
+            ray_budget: 128,
+            position: Vec3::ZERO,
+            radius: 2.2,
+            ..Default::default()
+        };
+        let snapshot = RenderSceneSnapshot {
+            scene: RenderSceneGeometryExtract {
+                camera: ViewportCameraSnapshot::default(),
+                meshes: Vec::new(),
+                directional_lights: Vec::new(),
+                point_lights: Vec::new(),
+                spot_lights: Vec::new(),
+            },
+            overlays: RenderOverlayExtract::default(),
+            preview: PreviewEnvironmentExtract {
+                lighting_enabled: true,
+                skybox_enabled: false,
+                fallback_skybox: FallbackSkyboxKind::None,
+                clear_color: Vec4::ZERO,
+            },
+            virtual_geometry_debug: None,
+        };
+        let mut extract =
+            RenderFrameExtract::from_snapshot(RenderWorldSnapshotHandle::new(1), snapshot);
+        extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
+            enabled: true,
+            probe_budget: 2,
+            trace_budget: 0,
+            card_budget: 0,
+            voxel_budget: 0,
+            probes: vec![parent_probe, child_probe],
+            ..Default::default()
+        });
+
+        let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(32, 32))
+            .with_hybrid_gi_prepare(Some(HybridGiPrepareFrame {
+                resident_probes: vec![
+                    HybridGiPrepareProbe {
+                        probe_id: parent_probe.probe_id,
+                        slot: 0,
+                        ray_budget: parent_probe.ray_budget,
+                        irradiance_rgb: [255, 80, 40],
+                    },
+                    HybridGiPrepareProbe {
+                        probe_id: child_probe.probe_id,
+                        slot: 1,
+                        ray_budget: child_probe.ray_budget,
+                        irradiance_rgb: [40, 96, 255],
+                    },
+                ],
+                pending_updates: Vec::new(),
+                scheduled_trace_region_ids: Vec::new(),
+                evictable_probe_ids: Vec::new(),
+            }));
+
+        let (probes, probe_count, _) =
+            encode_hybrid_gi_probes(&frame, UVec2::new(32, 32), true, None);
+        assert_eq!(probe_count, 2, "expected parent and child probes to encode");
+        probes[1].irradiance_and_intensity[3]
+    }
+
+    fn encode_probe_count_with_budgeted_scene_representation_and_legacy_probe_slot(
+    ) -> (u32, [f32; 4]) {
+        let probe = RenderHybridGiProbe {
+            probe_id: 200,
+            resident: true,
+            ray_budget: 128,
+            position: Vec3::ZERO,
+            radius: 1.8,
+            ..Default::default()
+        };
+        let snapshot = RenderSceneSnapshot {
+            scene: RenderSceneGeometryExtract {
+                camera: ViewportCameraSnapshot::default(),
+                meshes: Vec::new(),
+                directional_lights: Vec::new(),
+                point_lights: Vec::new(),
+                spot_lights: Vec::new(),
+            },
+            overlays: RenderOverlayExtract::default(),
+            preview: PreviewEnvironmentExtract {
+                lighting_enabled: true,
+                skybox_enabled: false,
+                fallback_skybox: FallbackSkyboxKind::None,
+                clear_color: Vec4::ZERO,
+            },
+            virtual_geometry_debug: None,
+        };
+        let mut extract =
+            RenderFrameExtract::from_snapshot(RenderWorldSnapshotHandle::new(1), snapshot);
+        extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
+            enabled: true,
+            probe_budget: 1,
+            trace_budget: 1,
+            card_budget: 1,
+            voxel_budget: 1,
+            probes: vec![probe],
+            ..Default::default()
+        });
+
+        let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(32, 32))
+            .with_hybrid_gi_prepare(Some(HybridGiPrepareFrame {
+                resident_probes: vec![HybridGiPrepareProbe {
+                    probe_id: probe.probe_id,
+                    slot: 0,
+                    ray_budget: probe.ray_budget,
+                    irradiance_rgb: [240, 96, 48],
+                }],
+                pending_updates: Vec::new(),
+                scheduled_trace_region_ids: Vec::new(),
+                evictable_probe_ids: Vec::new(),
+            }));
+
+        let (probes, probe_count, _) =
+            encode_hybrid_gi_probes(&frame, UVec2::new(32, 32), true, None);
+        (probe_count, probes[0].irradiance_and_intensity)
+    }
+
+    fn encode_probe_count_with_flat_runtime_and_scene_prepare() -> (u32, [f32; 4]) {
+        let probe = RenderHybridGiProbe {
+            probe_id: 200,
+            resident: true,
+            ray_budget: 128,
+            position: Vec3::ZERO,
+            radius: 1.8,
+            ..Default::default()
+        };
+        let snapshot = RenderSceneSnapshot {
+            scene: RenderSceneGeometryExtract {
+                camera: ViewportCameraSnapshot::default(),
+                meshes: Vec::new(),
+                directional_lights: Vec::new(),
+                point_lights: Vec::new(),
+                spot_lights: Vec::new(),
+            },
+            overlays: RenderOverlayExtract::default(),
+            preview: PreviewEnvironmentExtract {
+                lighting_enabled: true,
+                skybox_enabled: false,
+                fallback_skybox: FallbackSkyboxKind::None,
+                clear_color: Vec4::ZERO,
+            },
+            virtual_geometry_debug: None,
+        };
+        let mut extract =
+            RenderFrameExtract::from_snapshot(RenderWorldSnapshotHandle::new(1), snapshot);
+        extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
+            enabled: true,
+            probe_budget: 1,
+            trace_budget: 0,
+            card_budget: 0,
+            voxel_budget: 0,
+            probes: vec![probe],
+            ..Default::default()
+        });
+
+        let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(32, 32))
+            .with_hybrid_gi_prepare(Some(HybridGiPrepareFrame {
+                resident_probes: vec![HybridGiPrepareProbe {
+                    probe_id: probe.probe_id,
+                    slot: 0,
+                    ray_budget: probe.ray_budget,
+                    irradiance_rgb: [240, 96, 48],
+                }],
+                pending_updates: Vec::new(),
+                scheduled_trace_region_ids: Vec::new(),
+                evictable_probe_ids: Vec::new(),
+            }))
+            .with_hybrid_gi_scene_prepare(Some(HybridGiScenePrepareFrame {
+                card_capture_requests: Vec::new(),
+                surface_cache_page_contents: Vec::new(),
+                voxel_clipmaps: Vec::new(),
+                voxel_cells: Vec::new(),
+            }))
+            .with_hybrid_gi_resolve_runtime(Some(HybridGiResolveRuntime::default()));
+
+        let (probes, probe_count, _) =
+            encode_hybrid_gi_probes(&frame, UVec2::new(32, 32), true, None);
+        (probe_count, probes[0].irradiance_and_intensity)
+    }
+
+    fn encode_probe_count_with_unrelated_runtime_topology_and_scene_prepare() -> (u32, [f32; 4]) {
+        let probe = RenderHybridGiProbe {
+            probe_id: 200,
+            resident: true,
+            ray_budget: 128,
+            position: Vec3::ZERO,
+            radius: 1.8,
+            ..Default::default()
+        };
+        let snapshot = RenderSceneSnapshot {
+            scene: RenderSceneGeometryExtract {
+                camera: ViewportCameraSnapshot::default(),
+                meshes: Vec::new(),
+                directional_lights: Vec::new(),
+                point_lights: Vec::new(),
+                spot_lights: Vec::new(),
+            },
+            overlays: RenderOverlayExtract::default(),
+            preview: PreviewEnvironmentExtract {
+                lighting_enabled: true,
+                skybox_enabled: false,
+                fallback_skybox: FallbackSkyboxKind::None,
+                clear_color: Vec4::ZERO,
+            },
+            virtual_geometry_debug: None,
+        };
+        let mut extract =
+            RenderFrameExtract::from_snapshot(RenderWorldSnapshotHandle::new(1), snapshot);
+        extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
+            enabled: true,
+            probe_budget: 1,
+            trace_budget: 0,
+            card_budget: 0,
+            voxel_budget: 0,
+            probes: vec![probe],
+            ..Default::default()
+        });
+
+        let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(32, 32))
+            .with_hybrid_gi_prepare(Some(HybridGiPrepareFrame {
+                resident_probes: vec![HybridGiPrepareProbe {
+                    probe_id: probe.probe_id,
+                    slot: 0,
+                    ray_budget: probe.ray_budget,
+                    irradiance_rgb: [240, 96, 48],
+                }],
+                pending_updates: Vec::new(),
+                scheduled_trace_region_ids: Vec::new(),
+                evictable_probe_ids: Vec::new(),
+            }))
+            .with_hybrid_gi_scene_prepare(Some(HybridGiScenePrepareFrame {
+                card_capture_requests: Vec::new(),
+                surface_cache_page_contents: Vec::new(),
+                voxel_clipmaps: Vec::new(),
+                voxel_cells: Vec::new(),
+            }))
+            .with_hybrid_gi_resolve_runtime(Some(
+                HybridGiResolveRuntime::fixture()
+                    .with_probe_parent_probes(std::collections::BTreeMap::from([(301, 300)]))
+                    .build(),
+            ));
+
+        let (probes, probe_count, _) =
+            encode_hybrid_gi_probes(&frame, UVec2::new(32, 32), true, None);
+        (probe_count, probes[0].irradiance_and_intensity)
     }
 
     fn encode_probe_temporal_scene_truth_confidence_with_card_capture_request_proxy(
@@ -3232,7 +4242,7 @@ mod tests {
             enabled: true,
             probe_budget: 1,
             trace_budget: 0,
-            card_budget: 1,
+            card_budget: 0,
             voxel_budget: 0,
             probes: vec![probe],
             ..Default::default()
@@ -3263,24 +4273,23 @@ mod tests {
                 voxel_clipmaps: Vec::new(),
                 voxel_cells: Vec::new(),
             }));
-        let resources = include_capture_resource.then_some(HybridGiScenePrepareResourcesSnapshot {
-            card_capture_request_count: 1,
-            occupied_atlas_slots: vec![3],
-            occupied_capture_slots: vec![4],
-            atlas_slot_rgba_samples: vec![(3, [64, 96, 128, 255])],
-            capture_slot_rgba_samples: vec![(4, [180, 140, 96, 255])],
-            voxel_clipmap_ids: Vec::new(),
-            voxel_clipmap_rgba_samples: Vec::new(),
-            voxel_clipmap_occupancy_masks: Vec::new(),
-            voxel_clipmap_cell_rgba_samples: Vec::new(),
-            voxel_clipmap_cell_occupancy_counts: Vec::new(),
-            voxel_clipmap_cell_dominant_node_ids: Vec::new(),
-            voxel_clipmap_cell_dominant_rgba_samples: Vec::new(),
-            atlas_slot_count: 4,
-            capture_slot_count: 4,
-            atlas_texture_extent: (16, 16),
-            capture_texture_extent: (16, 16),
-            capture_layer_count: 1,
+        let resources = include_capture_resource.then(|| {
+            let mut resources = HybridGiScenePrepareResourcesSnapshot::new(
+                1,
+                Vec::new(),
+                vec![3],
+                vec![4],
+                4,
+                4,
+                (16, 16),
+                (16, 16),
+                1,
+            );
+            resources.store_texture_slot_rgba_samples(
+                vec![(3, [64, 96, 128, 255])],
+                vec![(4, [180, 140, 96, 255])],
+            );
+            resources
         });
 
         let (probes, probe_count, _) =
@@ -3322,7 +4331,7 @@ mod tests {
             enabled: true,
             probe_budget: 1,
             trace_budget: 0,
-            card_budget: 1,
+            card_budget: 0,
             voxel_budget: 0,
             probes: vec![probe],
             ..Default::default()
@@ -3340,17 +4349,20 @@ mod tests {
                 scheduled_trace_region_ids: Vec::new(),
                 evictable_probe_ids: Vec::new(),
             }))
-            .with_hybrid_gi_resolve_runtime(Some(HybridGiResolveRuntime {
-                probe_hierarchy_resolve_weight_q8: std::collections::BTreeMap::from([(
-                    probe.probe_id,
-                    HybridGiResolveRuntime::pack_resolve_weight_q8(0.9),
-                )]),
-                probe_hierarchy_rt_lighting_rgb_and_weight: std::collections::BTreeMap::from([(
-                    probe.probe_id,
-                    HybridGiResolveRuntime::pack_rgb_and_weight([0.82, 0.34, 0.16], 0.44),
-                )]),
-                ..Default::default()
-            }))
+            .with_hybrid_gi_resolve_runtime(Some(
+                HybridGiResolveRuntime::fixture()
+                    .with_probe_hierarchy_resolve_weight_q8(std::collections::BTreeMap::from([(
+                        probe.probe_id,
+                        HybridGiResolveRuntime::pack_resolve_weight_q8(0.9),
+                    )]))
+                    .with_probe_hierarchy_rt_lighting_rgb_and_weight(
+                        std::collections::BTreeMap::from([(
+                            probe.probe_id,
+                            HybridGiResolveRuntime::pack_rgb_and_weight([0.82, 0.34, 0.16], 0.44),
+                        )]),
+                    )
+                    .build(),
+            ))
             .with_hybrid_gi_scene_prepare(Some(HybridGiScenePrepareFrame {
                 card_capture_requests: vec![HybridGiPrepareCardCaptureRequest {
                     card_id: 11,
@@ -3364,24 +4376,23 @@ mod tests {
                 voxel_clipmaps: Vec::new(),
                 voxel_cells: Vec::new(),
             }));
-        let resources = include_capture_resource.then_some(HybridGiScenePrepareResourcesSnapshot {
-            card_capture_request_count: 1,
-            occupied_atlas_slots: vec![3],
-            occupied_capture_slots: vec![4],
-            atlas_slot_rgba_samples: vec![(3, [64, 96, 128, 255])],
-            capture_slot_rgba_samples: vec![(4, [180, 140, 96, 255])],
-            voxel_clipmap_ids: Vec::new(),
-            voxel_clipmap_rgba_samples: Vec::new(),
-            voxel_clipmap_occupancy_masks: Vec::new(),
-            voxel_clipmap_cell_rgba_samples: Vec::new(),
-            voxel_clipmap_cell_occupancy_counts: Vec::new(),
-            voxel_clipmap_cell_dominant_node_ids: Vec::new(),
-            voxel_clipmap_cell_dominant_rgba_samples: Vec::new(),
-            atlas_slot_count: 4,
-            capture_slot_count: 4,
-            atlas_texture_extent: (16, 16),
-            capture_texture_extent: (16, 16),
-            capture_layer_count: 1,
+        let resources = include_capture_resource.then(|| {
+            let mut resources = HybridGiScenePrepareResourcesSnapshot::new(
+                1,
+                Vec::new(),
+                vec![3],
+                vec![4],
+                4,
+                4,
+                (16, 16),
+                (16, 16),
+                1,
+            );
+            resources.store_texture_slot_rgba_samples(
+                vec![(3, [64, 96, 128, 255])],
+                vec![(4, [180, 140, 96, 255])],
+            );
+            resources
         });
 
         let (probes, probe_count, _) =

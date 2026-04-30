@@ -3,6 +3,8 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+mod support;
+
 use zircon_runtime::asset::pipeline::manager::AssetManager;
 use zircon_runtime::asset::pipeline::manager::ProjectAssetManager;
 use zircon_runtime::asset::pipeline::types::MeshVertex;
@@ -42,14 +44,13 @@ use zircon_runtime::core::framework::render::{
 };
 use zircon_runtime::core::math::{view_matrix, Mat4, Transform, UVec2, Vec2, Vec3, Vec4};
 use zircon_runtime::core::resource::{MaterialMarker, ModelMarker, ResourceHandle};
-use zircon_runtime::graphics::WgpuRenderFramework;
 use zircon_runtime::scene::components::{default_render_layer_mask, Mobility};
 use zircon_runtime::scene::world::World;
 
 #[test]
 fn render_framework_exposes_virtual_geometry_debug_snapshot_for_effective_visible_clusters() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let server = WgpuRenderFramework::new(asset_manager).expect("framework should initialize");
+    let server = support::virtual_geometry_wgpu_render_framework(asset_manager);
     let viewport_size = UVec2::new(320, 240);
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(viewport_size))
@@ -433,7 +434,7 @@ fn render_framework_exposes_virtual_geometry_debug_snapshot_for_effective_visibl
 #[test]
 fn render_framework_exposes_node_and_cluster_cull_page_request_ids_in_debug_snapshot() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let server = WgpuRenderFramework::new(asset_manager).expect("framework should initialize");
+    let server = support::virtual_geometry_wgpu_render_framework(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(viewport_size))
@@ -719,8 +720,7 @@ fn render_framework_exposes_virtual_geometry_cpu_reference_bvh_inspection_for_au
     asset_manager
         .open_project(root.to_string_lossy().as_ref())
         .expect("project should open");
-    let server =
-        WgpuRenderFramework::new(asset_manager.clone()).expect("framework should initialize");
+    let server = support::virtual_geometry_wgpu_render_framework(asset_manager.clone());
     let viewport_size = UVec2::new(320, 240);
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(viewport_size))
@@ -1147,7 +1147,7 @@ fn render_framework_automatic_virtual_geometry_bvh_selected_clusters_follow_forc
         ..RenderVirtualGeometryDebugState::default()
     });
 
-    let server = WgpuRenderFramework::new(asset_manager).expect("framework should initialize");
+    let server = support::virtual_geometry_wgpu_render_framework(asset_manager);
     let viewport_size = UVec2::new(320, 240);
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(viewport_size))
@@ -1483,8 +1483,7 @@ fn capture_automatic_virtual_geometry_frame_with_debug(
     zircon_runtime::core::framework::render::CapturedFrame,
     zircon_runtime::core::framework::render::RenderVirtualGeometryDebugSnapshot,
 ) {
-    let server =
-        WgpuRenderFramework::new(asset_manager).expect("framework should initialize for capture");
+    let server = support::virtual_geometry_wgpu_render_framework(asset_manager);
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(viewport_size))
         .expect("viewport should be created");

@@ -175,7 +175,7 @@ pub(super) fn pane_from_tab(
         });
     let ui_asset_pane = ui_asset_pane.cloned().unwrap_or_default();
     let animation_pane = animation_pane.cloned().unwrap_or_default();
-    let pane_presentation = build_compat_pane_presentation(
+    let pane_presentation = build_pane_presentation(
         title,
         icon_key,
         &subtitle,
@@ -187,6 +187,7 @@ pub(super) fn pane_from_tab(
         chrome,
         Some(&animation_pane),
         runtime_diagnostics,
+        module_plugins,
     );
 
     PaneData {
@@ -207,7 +208,7 @@ pub(super) fn pane_from_tab(
         secondary_hint: SharedString::from(secondary_hint),
         show_toolbar,
         viewport,
-        body_compat: PaneBodyCompatData {
+        native_body: PaneNativeBodyData {
             hierarchy: hierarchy_pane_data(chrome),
             inspector: inspector_pane_data(chrome, &info),
             console: console_pane_data(chrome),
@@ -303,7 +304,7 @@ pub(super) fn blank_pane() -> PaneData {
         secondary_hint: SharedString::default(),
         show_toolbar: false,
         viewport: blank_viewport_chrome(),
-        body_compat: PaneBodyCompatData {
+        native_body: PaneNativeBodyData {
             hierarchy: HierarchyPaneViewData::default(),
             inspector: InspectorPaneViewData::default(),
             console: ConsolePaneViewData::default(),
@@ -320,7 +321,7 @@ pub(super) fn blank_pane() -> PaneData {
     }
 }
 
-fn build_compat_pane_presentation(
+fn build_pane_presentation(
     title: &str,
     icon_key: &str,
     subtitle: &str,
@@ -332,6 +333,7 @@ fn build_compat_pane_presentation(
     chrome: &EditorChromeSnapshot,
     animation_pane: Option<&crate::ui::animation_editor::AnimationEditorPanePresentation>,
     runtime_diagnostics: Option<&RuntimeDiagnosticsSnapshot>,
+    module_plugins: &ModulePluginsPaneViewData,
 ) -> Option<PanePresentation> {
     let pane_template = snapshot.and_then(|snapshot| snapshot.pane_template.as_ref())?;
     let mut context = PanePayloadBuildContext::new(chrome);
@@ -341,6 +343,7 @@ fn build_compat_pane_presentation(
     if let Some(runtime_diagnostics) = runtime_diagnostics {
         context = context.with_runtime_diagnostics(runtime_diagnostics);
     }
+    context = context.with_module_plugins(module_plugins);
 
     Some(PanePresentation::new(
         PaneShellPresentation::new(

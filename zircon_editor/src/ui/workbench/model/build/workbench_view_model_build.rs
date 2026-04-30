@@ -1,5 +1,5 @@
 use crate::core::editor_extension::EditorExtensionRegistry;
-use crate::ui::workbench::snapshot::{EditorChromeSnapshot, MainPageSnapshot};
+use crate::ui::workbench::snapshot::EditorChromeSnapshot;
 
 use super::super::document_tabs::document_tabs_for_page;
 use super::super::drawer_ring_model::DrawerRingModel;
@@ -20,13 +20,21 @@ impl WorkbenchViewModel {
         chrome: &EditorChromeSnapshot,
         extensions: &[EditorExtensionRegistry],
     ) -> Self {
+        Self::build_with_extensions_and_capabilities(chrome, extensions, &[])
+    }
+
+    pub fn build_with_extensions_and_capabilities(
+        chrome: &EditorChromeSnapshot,
+        extensions: &[EditorExtensionRegistry],
+        enabled_capabilities: &[String],
+    ) -> Self {
         let active_page = active_page_snapshot(chrome);
         let host_strip = host_strip_model(&active_page, chrome);
-        let drawer_visible = matches!(active_page, MainPageSnapshot::Workbench { .. });
+        let drawer_visible = !chrome.workbench.drawers.is_empty();
         let document_tabs = document_tabs_for_page(&active_page, chrome);
 
         Self {
-            menu_bar: default_menu_bar_with_extensions(chrome, extensions),
+            menu_bar: default_menu_bar_with_extensions(chrome, extensions, enabled_capabilities),
             host_strip,
             drawer_ring: DrawerRingModel {
                 visible: drawer_visible,

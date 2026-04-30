@@ -132,6 +132,7 @@ fn editor_manager_runs_ui_asset_structured_binding_inspector_actions() {
             "onDragBegin".to_string(),
             "onDragUpdate".to_string(),
             "onDragEnd".to_string(),
+            "onDrop".to_string(),
         ]
     );
     assert_eq!(

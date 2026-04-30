@@ -17,14 +17,14 @@ pub(super) fn build_virtual_geometry_debug_snapshot(
     context: &FrameSubmissionContext,
     prepare: Option<&VirtualGeometryPrepareFrame>,
 ) -> Option<RenderVirtualGeometryDebugSnapshot> {
-    let extract = context.virtual_geometry_extract.as_ref()?;
+    let extract = context.virtual_geometry_extract()?;
     let page_upload_plan = context
-        .virtual_geometry_page_upload_plan
-        .clone()
+        .virtual_geometry_page_upload_plan()
+        .cloned()
         .unwrap_or_default();
     let feedback = context
-        .virtual_geometry_feedback
-        .clone()
+        .virtual_geometry_feedback()
+        .cloned()
         .unwrap_or_default();
     let visible_cluster_ids = feedback.visible_cluster_ids.clone();
     let visible_cluster_id_set = visible_cluster_ids.iter().copied().collect::<BTreeSet<_>>();
@@ -53,7 +53,11 @@ pub(super) fn build_virtual_geometry_debug_snapshot(
     let bvh_visualization_instances = extract
         .debug
         .visualize_bvh
-        .then(|| context.virtual_geometry_bvh_visualization_instances.clone())
+        .then(|| {
+            context
+                .virtual_geometry_bvh_visualization_instances()
+                .to_vec()
+        })
         .unwrap_or_default();
     let selected_clusters = prepare
         .and_then(|prepare| {
@@ -126,7 +130,7 @@ pub(super) fn build_virtual_geometry_debug_snapshot(
         cull_input: build_cull_input_snapshot(extract, prepare),
         cluster_selection_input_source:
             RenderVirtualGeometryClusterSelectionInputSource::Unavailable,
-        cpu_reference_instances: context.virtual_geometry_cpu_reference_instances.clone(),
+        cpu_reference_instances: context.virtual_geometry_cpu_reference_instances().to_vec(),
         bvh_visualization_instances,
         visible_cluster_ids,
         selected_clusters,
@@ -343,8 +347,9 @@ mod tests {
         RenderVirtualGeometryInstance, RenderVirtualGeometryVisBufferMark,
     };
     use crate::core::math::{Transform, UVec2, Vec3};
+    use crate::graphics::runtime::HybridGiSceneInputs;
     use crate::graphics::runtime::render_framework::submit_frame_extract::frame_submission_context::{
-        FrameSubmissionContext, HybridGiSceneInputs, UiSubmissionStats,
+        FrameSubmissionContext, UiSubmissionStats,
     };
     use crate::graphics::types::{VirtualGeometryPrepareFrame, VirtualGeometryPreparePage};
     use crate::scene::world::World;
@@ -595,27 +600,27 @@ mod tests {
             .compile_with_options(&frame_extract, &RenderPipelineCompileOptions::default())
             .expect("expected test pipeline to compile");
 
-        FrameSubmissionContext {
-            size: UVec2::new(32, 32),
-            pipeline_handle: RenderPipelineHandle::new(1),
-            quality_profile: None,
+        FrameSubmissionContext::new(
+            UVec2::new(32, 32),
+            RenderPipelineHandle::new(1),
+            None,
             compiled_pipeline,
-            visibility_context: VisibilityContext::default(),
-            ui_stats: UiSubmissionStats::default(),
-            previous_hybrid_gi_runtime: None,
-            previous_virtual_geometry_runtime: None,
-            hybrid_gi_enabled: false,
-            virtual_geometry_enabled: true,
-            hybrid_gi_extract: None,
-            hybrid_gi_scene_inputs: HybridGiSceneInputs::default(),
-            hybrid_gi_update_plan: None,
-            hybrid_gi_feedback: None,
-            virtual_geometry_extract: Some(extract),
-            virtual_geometry_cpu_reference_instances: Vec::new(),
-            virtual_geometry_bvh_visualization_instances: Vec::new(),
-            virtual_geometry_page_upload_plan: Some(page_upload_plan),
-            virtual_geometry_feedback: Some(feedback),
-            predicted_generation: 1,
-        }
+            VisibilityContext::default(),
+            UiSubmissionStats::default(),
+            None,
+            None,
+            false,
+            true,
+            None,
+            HybridGiSceneInputs::default(),
+            None,
+            None,
+            Some(extract),
+            Vec::new(),
+            Vec::new(),
+            Some(page_upload_plan),
+            Some(feedback),
+            1,
+        )
     }
 }

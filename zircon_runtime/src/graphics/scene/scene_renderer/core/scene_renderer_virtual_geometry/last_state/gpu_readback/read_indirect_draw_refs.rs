@@ -14,14 +14,14 @@ impl SceneRenderer {
 
         let Some(buffer) = self
             .advanced_plugin_outputs
-            .virtual_geometry_indirect_draw_refs_buffer
+            .virtual_geometry_indirect_draw_refs_buffer()
             .as_ref()
         else {
             return Ok(Vec::new());
         };
         let indirect_args_count = self
             .advanced_plugin_outputs
-            .virtual_geometry_indirect_args_count;
+            .virtual_geometry_indirect_args_count();
         if indirect_args_count == 0 {
             return Ok(Vec::new());
         }

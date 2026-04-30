@@ -27,47 +27,47 @@ impl HybridGiGpuPendingReadback {
         let scene_prepare_resources = self
             .scene_prepare_resources
             .map(|mut snapshot| -> Result<_, GraphicsError> {
-                snapshot.atlas_slot_rgba_samples = self
+                let atlas_slot_rgba_samples = self
                     .scene_prepare_atlas_slot_sample_buffers
                     .iter()
                     .map(|(slot_id, buffer)| {
                         texture_sample_rgba(device, buffer).map(|rgba| (*slot_id, rgba))
                     })
                     .collect::<Result<Vec<_>, _>>()?;
-                snapshot.capture_slot_rgba_samples = self
+                let capture_slot_rgba_samples = self
                     .scene_prepare_capture_slot_sample_buffers
                     .iter()
                     .map(|(slot_id, buffer)| {
                         texture_sample_rgba(device, buffer).map(|rgba| (*slot_id, rgba))
                     })
                     .collect::<Result<Vec<_>, _>>()?;
+                snapshot.store_texture_slot_rgba_samples(
+                    atlas_slot_rgba_samples,
+                    capture_slot_rgba_samples,
+                );
                 Ok::<_, GraphicsError>(snapshot)
             })
             .transpose()?;
 
-        Ok(HybridGiGpuReadback {
-            cache_entries: cache_entries(device, &self.cache_buffer, self.cache_word_count)?,
-            completed_probe_ids: completed_probe_ids(
+        Ok(HybridGiGpuReadback::new(
+            cache_entries(device, &self.cache_buffer, self.cache_word_count)?,
+            completed_probe_ids(
                 device,
                 &self.completed_probe_buffer,
                 self.completed_probe_word_count,
             )?,
-            completed_trace_region_ids: completed_trace_region_ids(
+            completed_trace_region_ids(
                 device,
                 &self.completed_trace_buffer,
                 self.completed_trace_word_count,
             )?,
-            probe_irradiance_rgb: probe_irradiance_rgb(
-                device,
-                &self.irradiance_buffer,
-                self.irradiance_word_count,
-            )?,
-            probe_trace_lighting_rgb: probe_trace_lighting_rgb(
+            probe_irradiance_rgb(device, &self.irradiance_buffer, self.irradiance_word_count)?,
+            probe_trace_lighting_rgb(
                 device,
                 &self.trace_lighting_buffer,
                 self.trace_lighting_word_count,
             )?,
             scene_prepare_resources,
-        })
+        ))
     }
 }

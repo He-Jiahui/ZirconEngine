@@ -1,95 +1,87 @@
 use super::super::frame_submission_context::FrameSubmissionContext;
-use super::super::gpu_completion::VirtualGeometryGpuCompletion;
 use super::super::prepared_runtime_submission::PreparedRuntimeSubmission;
 use super::super::submission_record_update::VirtualGeometryStatSnapshot;
 use crate::graphics::runtime::virtual_geometry::normalized_page_table_entries;
-use crate::graphics::types::VirtualGeometryPrepareClusterState;
+use crate::graphics::runtime::virtual_geometry::{
+    VirtualGeometryGpuCompletion, VirtualGeometryRuntimeFeedback,
+};
 use std::collections::{BTreeMap, BTreeSet};
 
 pub(super) fn update_virtual_geometry_runtime(
     context: &FrameSubmissionContext,
     prepared: &mut PreparedRuntimeSubmission,
-    virtual_geometry_gpu_completion: Option<&VirtualGeometryGpuCompletion>,
-    node_and_cluster_cull_page_requests: &[u32],
+    virtual_geometry_runtime_feedback: &VirtualGeometryRuntimeFeedback,
 ) -> VirtualGeometryStatSnapshot {
     let previous_slot_owners = prepared
-        .virtual_geometry_runtime
-        .as_ref()
+        .virtual_geometry_runtime()
         .map(|runtime| runtime.resident_slot_owners())
         .unwrap_or_default();
     let previous_pending_pages = prepared
-        .virtual_geometry_runtime
-        .as_ref()
+        .virtual_geometry_runtime()
         .map(|runtime| runtime.pending_page_ids())
         .unwrap_or_default();
-    let confirmed_completion = virtual_geometry_gpu_completion.map(|completion| {
-        confirmed_virtual_geometry_completion(
-            completion,
-            previous_slot_owners.iter().copied(),
-            previous_pending_pages.iter().copied(),
-        )
-    });
-    let (indirect_draw_count, indirect_segment_count) = prepared
-        .virtual_geometry_prepare
-        .as_ref()
-        .map(|prepare| {
-            (
-                prepare.unified_indirect_draws().len(),
-                prepare
-                    .cluster_draw_segments
-                    .iter()
-                    .filter(|segment| {
-                        !matches!(segment.state, VirtualGeometryPrepareClusterState::Missing)
-                    })
-                    .count(),
-            )
-        })
+    let confirmed_completion =
+        virtual_geometry_runtime_feedback
+            .gpu_completion()
+            .map(|completion| {
+                confirmed_virtual_geometry_completion(
+                    completion,
+                    previous_slot_owners.iter().copied(),
+                    previous_pending_pages.iter().copied(),
+                )
+            });
+    let indirect_segment_count = prepared
+        .virtual_geometry_prepare()
+        .map(|prepare| prepare.drawable_indirect_segment_count())
         .unwrap_or_default();
     let completed_page_count = confirmed_completion
         .as_ref()
-        .map(|completion| completion.completed_page_assignments.len())
+        .map(|completion| completion.completed_page_assignments().len())
         .unwrap_or(0);
     let replaced_page_count = confirmed_completion
         .as_ref()
-        .map(|completion| completion.completed_page_replacements.len())
+        .map(|completion| completion.completed_page_replacements().len())
         .unwrap_or(0);
 
-    if let Some(runtime) = prepared.virtual_geometry_runtime.as_mut() {
-        if let Some(feedback) = context.virtual_geometry_feedback.as_ref() {
+    if let Some(runtime) = prepared.virtual_geometry_runtime_mut() {
+        if let Some(feedback) = virtual_geometry_runtime_feedback.visibility_feedback() {
             runtime.refresh_hot_resident_pages(feedback);
         }
         if let Some(completion) = confirmed_completion.as_ref() {
             runtime.complete_gpu_uploads_with_replacements(
-                completion.completed_page_assignments.iter().copied(),
-                completion.completed_page_replacements.iter().copied(),
-                &prepared.virtual_geometry_evictable_page_ids,
+                completion.completed_page_assignments().iter().copied(),
+                completion.completed_page_replacements().iter().copied(),
+                virtual_geometry_runtime_feedback.evictable_page_ids(),
             );
-            runtime.apply_gpu_page_table_entries(&completion.page_table_entries);
-        } else if let Some(feedback) = context.virtual_geometry_feedback.as_ref() {
+            runtime.apply_gpu_page_table_entries(completion.page_table_entries());
+        } else if let Some(feedback) = virtual_geometry_runtime_feedback.visibility_feedback() {
             runtime.consume_feedback(feedback);
         }
         runtime.ingest_page_requests(
-            context.predicted_generation,
-            node_and_cluster_cull_page_requests.iter().copied(),
+            context.predicted_generation(),
+            virtual_geometry_runtime_feedback
+                .node_and_cluster_cull_page_requests()
+                .iter()
+                .copied(),
         );
         let snapshot = runtime.snapshot();
-        VirtualGeometryStatSnapshot {
-            page_table_entry_count: snapshot.page_table_entry_count,
-            resident_page_count: snapshot.resident_page_count,
-            pending_request_count: snapshot.pending_request_count,
+        VirtualGeometryStatSnapshot::new(
+            snapshot.page_table_entry_count(),
+            snapshot.resident_page_count(),
+            snapshot.pending_request_count(),
             completed_page_count,
             replaced_page_count,
-            indirect_draw_count,
             indirect_segment_count,
-        }
+        )
     } else {
-        VirtualGeometryStatSnapshot {
+        VirtualGeometryStatSnapshot::new(
+            0,
+            0,
+            0,
             completed_page_count,
             replaced_page_count,
-            indirect_draw_count,
             indirect_segment_count,
-            ..VirtualGeometryStatSnapshot::default()
-        }
+        )
     }
 }
 
@@ -98,7 +90,7 @@ fn confirmed_virtual_geometry_completion(
     previous_slot_owners: impl IntoIterator<Item = (u32, u32)>,
     previous_pending_pages: impl IntoIterator<Item = u32>,
 ) -> VirtualGeometryGpuCompletion {
-    let page_table_entries = normalized_page_table_entries(&completion.page_table_entries);
+    let page_table_entries = normalized_page_table_entries(completion.page_table_entries());
     let page_table_slot_by_page = page_table_entries
         .iter()
         .copied()
@@ -125,11 +117,11 @@ fn confirmed_virtual_geometry_completion(
         })
         .collect::<Vec<_>>();
 
-    VirtualGeometryGpuCompletion {
+    VirtualGeometryGpuCompletion::new(
         page_table_entries,
         completed_page_assignments,
         completed_page_replacements,
-    }
+    )
 }
 
 #[cfg(test)]
@@ -141,10 +133,9 @@ mod tests {
     use crate::scene::world::World;
 
     use crate::{
-        runtime::render_framework::submit_frame_extract::{
-            frame_submission_context::{HybridGiSceneInputs, UiSubmissionStats},
-            gpu_completion::VirtualGeometryGpuCompletion,
-        },
+        runtime::render_framework::submit_frame_extract::frame_submission_context::UiSubmissionStats,
+        runtime::virtual_geometry::{VirtualGeometryGpuCompletion, VirtualGeometryRuntimeFeedback},
+        runtime::HybridGiSceneInputs,
         types::VirtualGeometryPrepareRequest,
         RenderPipelineAsset, RenderPipelineCompileOptions, VisibilityContext,
         VisibilityVirtualGeometryFeedback, VisibilityVirtualGeometryPageUploadPlan,
@@ -166,17 +157,19 @@ mod tests {
         update_virtual_geometry_runtime(
             &context,
             &mut prepared,
-            Some(&VirtualGeometryGpuCompletion {
-                page_table_entries: vec![(200, 0), (300, 1)],
-                completed_page_assignments: Vec::new(),
-                completed_page_replacements: Vec::new(),
-            }),
-            &[],
+            &VirtualGeometryRuntimeFeedback::new(
+                Some(VirtualGeometryGpuCompletion::new(
+                    vec![(200, 0), (300, 1)],
+                    Vec::new(),
+                    Vec::new(),
+                )),
+                Vec::new(),
+                context.virtual_geometry_feedback().cloned(),
+            ),
         );
 
         let runtime = prepared
-            .virtual_geometry_runtime
-            .as_mut()
+            .virtual_geometry_runtime_mut()
             .expect("expected virtual geometry runtime");
         runtime.ingest_plan(
             2,
@@ -217,17 +210,19 @@ mod tests {
         let stats = update_virtual_geometry_runtime(
             &context,
             &mut prepared,
-            Some(&VirtualGeometryGpuCompletion {
-                page_table_entries: vec![(200, 0), (300, 1)],
-                completed_page_assignments: vec![(700, 1)],
-                completed_page_replacements: vec![(700, 300)],
-            }),
-            &[],
+            &VirtualGeometryRuntimeFeedback::new(
+                Some(VirtualGeometryGpuCompletion::new(
+                    vec![(200, 0), (300, 1)],
+                    vec![(700, 1)],
+                    vec![(700, 300)],
+                )),
+                Vec::new(),
+                context.virtual_geometry_feedback().cloned(),
+            ),
         );
 
         let runtime = prepared
-            .virtual_geometry_runtime
-            .as_mut()
+            .virtual_geometry_runtime_mut()
             .expect("expected virtual geometry runtime");
         runtime.ingest_plan(
             2,
@@ -253,11 +248,11 @@ mod tests {
             "expected page-table truth to preserve the preexisting pending request when the reported completed assignment never becomes resident in the final GPU page table, instead of silently requiring a new dirty request to recreate it"
         );
         assert_eq!(
-            stats.completed_page_count, 0,
+            stats.completed_page_count(), 0,
             "expected runtime stats to follow confirmed page-table truth instead of counting a rejected completed assignment as successful GPU completion"
         );
         assert_eq!(
-            stats.replaced_page_count, 0,
+            stats.replaced_page_count(), 0,
             "expected rejected completed assignments to stop contributing replacement pressure once the final GPU page table does not retain them"
         );
     }
@@ -294,22 +289,29 @@ mod tests {
                 evictable_pages: vec![200, 300],
             },
         );
-        let mut prepared = PreparedRuntimeSubmission {
-            hybrid_gi_runtime: None,
-            hybrid_gi_prepare: None,
-            hybrid_gi_scene_prepare: None,
-            hybrid_gi_resolve_runtime: None,
-            hybrid_gi_evictable_probe_ids: Vec::new(),
-            virtual_geometry_runtime: Some(runtime),
-            virtual_geometry_prepare: None,
-            virtual_geometry_evictable_page_ids: vec![200, 300],
-        };
+        let mut prepared = PreparedRuntimeSubmission::new(
+            None,
+            None,
+            None,
+            None,
+            Vec::new(),
+            Some(runtime),
+            None,
+            vec![200, 300],
+        );
 
-        update_virtual_geometry_runtime(&context, &mut prepared, None, &[700]);
+        update_virtual_geometry_runtime(
+            &context,
+            &mut prepared,
+            &VirtualGeometryRuntimeFeedback::new(
+                None,
+                vec![700],
+                context.virtual_geometry_feedback().cloned(),
+            ),
+        );
 
         let prepare = prepared
-            .virtual_geometry_runtime
-            .as_ref()
+            .virtual_geometry_runtime()
             .expect("expected virtual geometry runtime")
             .build_prepare_frame(&[]);
         assert_eq!(
@@ -360,31 +362,33 @@ mod tests {
                 evictable_pages: vec![200, 300],
             },
         );
-        let mut prepared = PreparedRuntimeSubmission {
-            hybrid_gi_runtime: None,
-            hybrid_gi_prepare: None,
-            hybrid_gi_scene_prepare: None,
-            hybrid_gi_resolve_runtime: None,
-            hybrid_gi_evictable_probe_ids: Vec::new(),
-            virtual_geometry_runtime: Some(runtime),
-            virtual_geometry_prepare: None,
-            virtual_geometry_evictable_page_ids: vec![200, 300],
-        };
+        let mut prepared = PreparedRuntimeSubmission::new(
+            None,
+            None,
+            None,
+            None,
+            Vec::new(),
+            Some(runtime),
+            None,
+            vec![200, 300],
+        );
 
         let stats = update_virtual_geometry_runtime(
             &context,
             &mut prepared,
-            Some(&VirtualGeometryGpuCompletion {
-                page_table_entries: vec![(200, 0), (700, 1), (300, 2)],
-                completed_page_assignments: vec![(700, 1)],
-                completed_page_replacements: vec![(700, 300)],
-            }),
-            &[],
+            &VirtualGeometryRuntimeFeedback::new(
+                Some(VirtualGeometryGpuCompletion::new(
+                    vec![(200, 0), (700, 1), (300, 2)],
+                    vec![(700, 1)],
+                    vec![(700, 300)],
+                )),
+                Vec::new(),
+                context.virtual_geometry_feedback().cloned(),
+            ),
         );
 
         let runtime = prepared
-            .virtual_geometry_runtime
-            .as_ref()
+            .virtual_geometry_runtime()
             .expect("expected virtual geometry runtime");
         assert_eq!(
             runtime.page_slot(300),
@@ -392,11 +396,12 @@ mod tests {
             "expected final GPU page-table truth to keep the previous slot owner resident in its reassigned slot"
         );
         assert_eq!(
-            stats.completed_page_count, 1,
+            stats.completed_page_count(),
+            1,
             "expected page-table-confirmed completion to keep counting the finished page upload"
         );
         assert_eq!(
-            stats.replaced_page_count, 0,
+            stats.replaced_page_count(), 0,
             "expected replacement pressure to ignore stale reported recycled-page ids when the previous slot owner still remains resident in the final GPU page table"
         );
     }
@@ -405,17 +410,17 @@ mod tests {
     fn confirmed_virtual_geometry_completion_uses_previous_slot_owner_when_reported_replacement_is_stale(
     ) {
         let confirmed = confirmed_virtual_geometry_completion(
-            &VirtualGeometryGpuCompletion {
-                page_table_entries: vec![(200, 0), (700, 1)],
-                completed_page_assignments: vec![(700, 1)],
-                completed_page_replacements: vec![(700, 200)],
-            },
+            &VirtualGeometryGpuCompletion::new(
+                vec![(200, 0), (700, 1)],
+                vec![(700, 1)],
+                vec![(700, 200)],
+            ),
             [(0, 200), (1, 300)],
             [700],
         );
 
         assert_eq!(
-            confirmed.completed_page_replacements,
+            confirmed.completed_page_replacements(),
             vec![(700, 300)],
             "expected confirmed replacement truth to follow the previous owner of the final resident slot instead of trusting a stale GPU replacement id from another slot"
         );
@@ -435,17 +440,19 @@ mod tests {
         let stats = update_virtual_geometry_runtime(
             &context,
             &mut prepared,
-            Some(&VirtualGeometryGpuCompletion {
-                page_table_entries: vec![(200, 0), (700, 1)],
-                completed_page_assignments: Vec::new(),
-                completed_page_replacements: Vec::new(),
-            }),
-            &[],
+            &VirtualGeometryRuntimeFeedback::new(
+                Some(VirtualGeometryGpuCompletion::new(
+                    vec![(200, 0), (700, 1)],
+                    Vec::new(),
+                    Vec::new(),
+                )),
+                Vec::new(),
+                context.virtual_geometry_feedback().cloned(),
+            ),
         );
 
         let runtime = prepared
-            .virtual_geometry_runtime
-            .as_ref()
+            .virtual_geometry_runtime()
             .expect("expected virtual geometry runtime");
         assert_eq!(
             runtime.page_slot(700),
@@ -463,11 +470,11 @@ mod tests {
             "expected page-table-confirmed completion to clear the pending request even without a raw completed-assignment record"
         );
         assert_eq!(
-            stats.completed_page_count, 1,
+            stats.completed_page_count(), 1,
             "expected runtime stats to infer confirmed completion from final page-table truth when the pending page is now resident"
         );
         assert_eq!(
-            stats.replaced_page_count, 1,
+            stats.replaced_page_count(), 1,
             "expected replacement pressure to be reconstructed from the confirmed slot owner that disappeared from the final page table, even without raw replacement readback"
         );
     }
@@ -476,22 +483,22 @@ mod tests {
     fn confirmed_virtual_geometry_completion_normalizes_reassigned_page_table_truth_before_runtime_apply(
     ) {
         let confirmed = confirmed_virtual_geometry_completion(
-            &VirtualGeometryGpuCompletion {
-                page_table_entries: vec![(200, 0), (300, 1), (700, 1), (300, 2)],
-                completed_page_assignments: vec![(700, 1)],
-                completed_page_replacements: Vec::new(),
-            },
+            &VirtualGeometryGpuCompletion::new(
+                vec![(200, 0), (300, 1), (700, 1), (300, 2)],
+                vec![(700, 1)],
+                Vec::new(),
+            ),
             [(0, 200), (1, 300)],
             [700],
         );
 
         assert_eq!(
-            confirmed.page_table_entries,
+            confirmed.page_table_entries(),
             vec![(200, 0), (700, 1), (300, 2)],
             "expected confirmed completion to normalize raw page-table readback into the final last-writer slot ownership so runtime apply does not lose a resident page that moved to a new slot in the same GPU snapshot"
         );
         assert_eq!(
-            confirmed.completed_page_assignments,
+            confirmed.completed_page_assignments(),
             vec![(700, 1)],
             "expected normalized page-table truth to keep the pending page completion while ignoring stale intermediate ownership for the page that was later reassigned"
         );
@@ -501,17 +508,17 @@ mod tests {
     fn confirmed_virtual_geometry_completion_deduplicates_replacement_truth_after_page_table_normalization(
     ) {
         let confirmed = confirmed_virtual_geometry_completion(
-            &VirtualGeometryGpuCompletion {
-                page_table_entries: vec![(200, 0), (700, 1), (700, 2)],
-                completed_page_assignments: vec![(700, 1), (700, 2)],
-                completed_page_replacements: vec![(700, 300), (700, 400)],
-            },
+            &VirtualGeometryGpuCompletion::new(
+                vec![(200, 0), (700, 1), (700, 2)],
+                vec![(700, 1), (700, 2)],
+                vec![(700, 300), (700, 400)],
+            ),
             [(0, 200), (1, 300), (2, 400)],
             [700],
         );
 
         assert_eq!(
-            confirmed.completed_page_replacements,
+            confirmed.completed_page_replacements(),
             vec![(700, 400)],
             "expected normalized page-table truth to count replacement pressure once for the final surviving slot owner instead of duplicating replacement stats for stale intermediate entries of the same pending page"
         );
@@ -526,28 +533,28 @@ mod tests {
             .compile_with_options(&extract, &RenderPipelineCompileOptions::default())
             .expect("expected test pipeline to compile");
 
-        FrameSubmissionContext {
-            size: UVec2::new(32, 32),
-            pipeline_handle: RenderPipelineHandle::new(1),
-            quality_profile: None,
+        FrameSubmissionContext::new(
+            UVec2::new(32, 32),
+            RenderPipelineHandle::new(1),
+            None,
             compiled_pipeline,
-            visibility_context: VisibilityContext::default(),
-            ui_stats: UiSubmissionStats::default(),
-            previous_hybrid_gi_runtime: None,
-            previous_virtual_geometry_runtime: None,
-            hybrid_gi_enabled: false,
-            virtual_geometry_enabled: true,
-            hybrid_gi_extract: None,
-            hybrid_gi_scene_inputs: HybridGiSceneInputs::default(),
-            hybrid_gi_update_plan: None,
-            hybrid_gi_feedback: None,
-            virtual_geometry_extract: None,
-            virtual_geometry_cpu_reference_instances: Vec::new(),
-            virtual_geometry_bvh_visualization_instances: Vec::new(),
-            virtual_geometry_page_upload_plan: None,
-            virtual_geometry_feedback: Some(feedback),
-            predicted_generation: 2,
-        }
+            VisibilityContext::default(),
+            UiSubmissionStats::default(),
+            None,
+            None,
+            false,
+            true,
+            None,
+            HybridGiSceneInputs::default(),
+            None,
+            None,
+            None,
+            Vec::new(),
+            Vec::new(),
+            None,
+            Some(feedback),
+            2,
+        )
     }
 
     fn prepared_runtime_submission() -> PreparedRuntimeSubmission {
@@ -576,16 +583,16 @@ mod tests {
             },
         );
 
-        PreparedRuntimeSubmission {
-            hybrid_gi_runtime: None,
-            hybrid_gi_prepare: None,
-            hybrid_gi_scene_prepare: None,
-            hybrid_gi_resolve_runtime: None,
-            hybrid_gi_evictable_probe_ids: Vec::new(),
-            virtual_geometry_runtime: Some(runtime),
-            virtual_geometry_prepare: None,
-            virtual_geometry_evictable_page_ids: vec![200, 300],
-        }
+        PreparedRuntimeSubmission::new(
+            None,
+            None,
+            None,
+            None,
+            Vec::new(),
+            Some(runtime),
+            None,
+            vec![200, 300],
+        )
     }
 
     fn page(page_id: u32, resident: bool, size_bytes: u64) -> RenderVirtualGeometryPage {

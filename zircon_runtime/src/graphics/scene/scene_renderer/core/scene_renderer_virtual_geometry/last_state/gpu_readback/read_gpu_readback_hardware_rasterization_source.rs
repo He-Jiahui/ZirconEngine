@@ -10,6 +10,6 @@ impl SceneRenderer {
     ) -> Option<RenderVirtualGeometryHardwareRasterizationSource> {
         self.advanced_plugin_outputs
             .virtual_geometry_gpu_readback()
-            .map(|readback| readback.hardware_rasterization_source)
+            .map(|readback| readback.hardware_rasterization_source())
     }
 }

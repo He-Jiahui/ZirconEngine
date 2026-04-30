@@ -7,8 +7,9 @@ use super::super::super::prepass::NormalPrepassPipeline;
 use super::super::super::ui::ScreenSpaceUiRenderer;
 use super::SceneRendererAdvancedPluginResources;
 
-pub(crate) struct SceneRendererCore {
-    pub(crate) texture_bind_group_layout: wgpu::BindGroupLayout,
+pub(in crate::graphics::scene::scene_renderer::core) struct SceneRendererCore {
+    pub(in crate::graphics::scene::scene_renderer::core) texture_bind_group_layout:
+        wgpu::BindGroupLayout,
     pub(in crate::graphics::scene::scene_renderer::core) scene_uniform_buffer: wgpu::Buffer,
     pub(in crate::graphics::scene::scene_renderer::core) scene_bind_group: wgpu::BindGroup,
     pub(in crate::graphics::scene::scene_renderer::core) model_bind_group_layout:

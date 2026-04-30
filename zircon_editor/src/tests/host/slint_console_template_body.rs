@@ -9,7 +9,7 @@ use crate::ui::layouts::windows::workbench_host_window::{
     build_pane_body_presentation, ConsolePaneViewData, PaneContentSize, PanePayloadBuildContext,
     PanePresentation, PaneShellPresentation,
 };
-use crate::ui::slint_host::to_slint_console_pane_from_host_pane;
+use crate::ui::slint_host::to_host_contract_console_pane_from_host_pane;
 use crate::ui::workbench::layout::MainPageId;
 use crate::ui::workbench::snapshot::{
     AssetWorkspaceSnapshot, EditorChromeSnapshot, ProjectOverviewSnapshot, WorkbenchSnapshot,
@@ -87,7 +87,7 @@ fn console_pane() -> crate::ui::layouts::windows::workbench_host_window::PaneDat
         secondary_hint: "".into(),
         show_toolbar: false,
         viewport: blank_viewport_chrome(),
-        body_compat: crate::ui::layouts::windows::workbench_host_window::PaneBodyCompatData {
+        native_body: crate::ui::layouts::windows::workbench_host_window::PaneNativeBodyData {
             hierarchy: Default::default(),
             inspector: Default::default(),
             console: ConsolePaneViewData {
@@ -107,8 +107,10 @@ fn console_pane() -> crate::ui::layouts::windows::workbench_host_window::PaneDat
 
 #[test]
 fn console_template_body_projection_replaces_legacy_console_nodes_for_slint_conversion() {
-    let projected =
-        to_slint_console_pane_from_host_pane(&console_pane(), PaneContentSize::new(320.0, 180.0));
+    let projected = to_host_contract_console_pane_from_host_pane(
+        &console_pane(),
+        PaneContentSize::new(320.0, 180.0),
+    );
 
     assert_eq!(projected.status_text, "Console ready");
     let nodes = (0..projected.nodes.row_count())

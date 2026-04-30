@@ -1,7 +1,8 @@
 use toml::Value;
 
 use super::asset_migration_support::{
-    legacy_template_layout_document, legacy_template_layout_source, migrate_flat_ui_asset_toml_str,
+    convert_legacy_template_fixture_document, convert_legacy_template_fixture_source,
+    migrate_flat_ui_asset_fixture_toml_str,
 };
 use crate::ui::event_ui::UiTreeId;
 use crate::ui::surface::{UiRenderCommandKind, UiVisualAssetRef};
@@ -1074,11 +1075,12 @@ fn ui_asset_loader_materializes_recursive_tree_authority_in_memory() {
 }
 
 #[test]
-fn ui_legacy_template_adapter_converts_template_documents_into_asset_documents() {
+fn ui_legacy_template_fixture_conversion_converts_template_documents_into_asset_documents() {
     let legacy = UiTemplateLoader::load_toml_str(LEGACY_TEMPLATE_TOML).unwrap();
 
     let asset_document =
-        legacy_template_layout_document("legacy.workbench", "Legacy Workbench", &legacy).unwrap();
+        convert_legacy_template_fixture_document("legacy.workbench", "Legacy Workbench", &legacy)
+            .unwrap();
 
     assert_eq!(asset_document.asset.kind, UiAssetKind::Layout);
     assert_eq!(asset_document.asset.id, "legacy.workbench");
@@ -1115,11 +1117,12 @@ fn ui_legacy_template_adapter_converts_template_documents_into_asset_documents()
 }
 
 #[test]
-fn ui_legacy_template_adapter_emits_canonical_asset_source_that_roundtrips() {
+fn ui_legacy_template_fixture_conversion_emits_canonical_asset_source_that_roundtrips() {
     let legacy = UiTemplateLoader::load_toml_str(LEGACY_TEMPLATE_TOML).unwrap();
 
     let source =
-        legacy_template_layout_source("legacy.workbench", "Legacy Workbench", &legacy).unwrap();
+        convert_legacy_template_fixture_source("legacy.workbench", "Legacy Workbench", &legacy)
+            .unwrap();
     let document = UiAssetLoader::load_toml_str(&source).unwrap();
     let compiled = UiDocumentCompiler::default().compile(&document).unwrap();
     let instance = compiled.into_template_instance();
@@ -1133,8 +1136,8 @@ fn ui_legacy_template_adapter_emits_canonical_asset_source_that_roundtrips() {
 }
 
 #[test]
-fn ui_flat_asset_migration_adapter_converts_flat_assets_into_tree_authority_source() {
-    let source = migrate_flat_ui_asset_toml_str(FLAT_LAYOUT_ASSET_TOML).unwrap();
+fn ui_flat_fixture_migration_converts_flat_assets_into_tree_authority_source() {
+    let source = migrate_flat_ui_asset_fixture_toml_str(FLAT_LAYOUT_ASSET_TOML).unwrap();
     let document = UiAssetLoader::load_toml_str(&source).unwrap();
     assert!(
         !source.contains("[nodes."),
@@ -1213,6 +1216,7 @@ fn ui_asset_compiler_is_split_into_folder_backed_pipeline_modules() {
         "ui_style_resolver.rs",
         "style_apply.rs",
         "value_normalizer.rs",
+        "component_props.rs",
         "shape_validator.rs",
     ] {
         assert!(
@@ -1221,4 +1225,133 @@ fn ui_asset_compiler_is_split_into_folder_backed_pipeline_modules() {
             root
         );
     }
+}
+
+#[test]
+fn ui_asset_compiler_applies_runtime_component_schema_defaults() {
+    const NUMBER_FIELD_TOML: &str = r#"
+[asset]
+kind = "layout"
+id = "editor.component.defaults"
+version = 1
+display_name = "Component Defaults"
+
+[root]
+node_id = "number"
+kind = "native"
+type = "NumberField"
+control_id = "Number"
+props = { value = 42.0 }
+"#;
+
+    let document = UiAssetLoader::load_toml_str(NUMBER_FIELD_TOML).unwrap();
+    let compiled = UiDocumentCompiler::default().compile(&document).unwrap();
+    let instance = compiled.into_template_instance();
+
+    assert_eq!(instance.root.component.as_deref(), Some("NumberField"));
+    assert_eq!(
+        instance
+            .root
+            .attributes
+            .get("value")
+            .and_then(Value::as_float),
+        Some(42.0)
+    );
+    assert_eq!(
+        instance
+            .root
+            .attributes
+            .get("min")
+            .and_then(Value::as_float),
+        Some(0.0)
+    );
+    assert_eq!(
+        instance
+            .root
+            .attributes
+            .get("max")
+            .and_then(Value::as_float),
+        Some(100.0)
+    );
+    assert_eq!(
+        instance
+            .root
+            .attributes
+            .get("step")
+            .and_then(Value::as_float),
+        Some(1.0)
+    );
+    assert_eq!(
+        instance
+            .root
+            .attributes
+            .get("large_step")
+            .and_then(Value::as_float),
+        Some(10.0)
+    );
+}
+
+#[test]
+fn ui_asset_compiler_rejects_runtime_component_props_with_wrong_type() {
+    const INVALID_NUMBER_FIELD_TOML: &str = r#"
+[asset]
+kind = "layout"
+id = "editor.component.invalid"
+version = 1
+display_name = "Invalid Component Prop"
+
+[root]
+node_id = "number"
+kind = "native"
+type = "NumberField"
+control_id = "Number"
+props = { value = "not numeric" }
+"#;
+
+    let document = UiAssetLoader::load_toml_str(INVALID_NUMBER_FIELD_TOML).unwrap();
+    let error = UiDocumentCompiler::default()
+        .compile(&document)
+        .expect_err("NumberField.value should require a numeric value");
+
+    assert!(
+        error
+            .to_string()
+            .contains("component NumberField prop value expected Float"),
+        "unexpected error: {error:?}"
+    );
+}
+
+#[test]
+fn ui_asset_compiler_preserves_style_attributes_unknown_to_component_schema() {
+    const LABEL_WITH_STYLE_PROP_TOML: &str = r##"
+[asset]
+kind = "layout"
+id = "editor.component.style_props"
+version = 1
+display_name = "Component Style Props"
+
+[root]
+node_id = "label"
+kind = "native"
+type = "Label"
+control_id = "Label"
+props = { text = "Styled", color = "#ffaa00" }
+"##;
+
+    let document = UiAssetLoader::load_toml_str(LABEL_WITH_STYLE_PROP_TOML).unwrap();
+    let compiled = UiDocumentCompiler::default().compile(&document).unwrap();
+    let instance = compiled.into_template_instance();
+
+    assert_eq!(
+        instance.root.attributes.get("text").and_then(Value::as_str),
+        Some("Styled")
+    );
+    assert_eq!(
+        instance
+            .root
+            .attributes
+            .get("color")
+            .and_then(Value::as_str),
+        Some("#ffaa00")
+    );
 }

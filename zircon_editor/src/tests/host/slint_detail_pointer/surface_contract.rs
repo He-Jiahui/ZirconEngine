@@ -1,31 +1,31 @@
+fn source(relative: &str) -> String {
+    std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(relative))
+        .unwrap_or_else(|error| panic!("read `{relative}`: {error}"))
+}
+
 #[test]
-fn shared_detail_scroll_surfaces_do_not_leave_slint_scrollview_as_authority() {
-    let pane_content = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/pane_content.slint"
-    ));
-    let assets = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/assets.slint"
-    ));
+fn shared_detail_scroll_surfaces_keep_scroll_authority_in_rust() {
+    let globals = source("src/ui/slint_host/host_contract/globals.rs");
+    let pointer_layout = source("src/ui/slint_host/app/pointer_layout.rs");
 
-    for needle in [
-        "import { LineEdit, ScrollView } from \"std-widgets.slint\";",
-        "ScrollView {\n        width: parent.width;\n        height: parent.height;\n        viewport-y: root.scroll_px * 1px;",
+    for required in [
+        "set_hierarchy_scroll_px",
+        "set_console_scroll_px",
+        "set_inspector_scroll_px",
+        "set_browser_asset_details_scroll_px",
+        "on_hierarchy_pointer_scrolled",
+        "on_console_pointer_scrolled",
+        "on_inspector_pointer_scrolled",
+        "on_browser_asset_details_pointer_scrolled",
     ] {
-        assert!(
-            !pane_content.contains(needle),
-            "detail panes still leave Slint ScrollView as scroll authority via `{needle}`"
-        );
+        assert!(globals.contains(required), "host contract missing `{required}`");
     }
-
-    for needle in [
-        "import { LineEdit, ScrollView } from \"std-widgets.slint\";",
-        "ScrollView {\n        x: 0px;\n        y: root.header_height + 1px;",
+    for required in [
+        "sync_detail_pointer_layouts",
+        "sync_console_pointer_layout",
+        "sync_inspector_pointer_layout",
+        "sync_browser_asset_details_pointer_layout",
     ] {
-        assert!(
-            !assets.contains(needle),
-            "asset details rail still leaves Slint ScrollView as scroll authority via `{needle}`"
-        );
+        assert!(pointer_layout.contains(required), "pointer layout missing `{required}`");
     }
 }

@@ -1,6 +1,10 @@
 use std::collections::BTreeMap;
 
-use crate::ui::workbench::layout::{ActivityDrawerSlot, WorkbenchLayout};
+use crate::ui::workbench::layout::{
+    ActivityDrawerSlot, ActivityWindowHostMode, ActivityWindowId, ActivityWindowLayout,
+    DocumentNode, WorkbenchLayout,
+};
+use crate::ui::workbench::view::ViewDescriptorId;
 
 use super::super::editor_subsystems::EditorSubsystemReport;
 use super::layout_drawers::{
@@ -16,21 +20,33 @@ pub(crate) fn builtin_hybrid_layout() -> WorkbenchLayout {
 pub(crate) fn builtin_hybrid_layout_for_subsystems(
     subsystems: &EditorSubsystemReport,
 ) -> WorkbenchLayout {
+    let drawers = BTreeMap::from([
+        (ActivityDrawerSlot::LeftTop, left_top_drawer()),
+        (ActivityDrawerSlot::LeftBottom, left_bottom_drawer()),
+        (ActivityDrawerSlot::RightTop, right_top_drawer()),
+        (ActivityDrawerSlot::RightBottom, right_bottom_drawer()),
+        (ActivityDrawerSlot::BottomLeft, bottom_left_drawer()),
+        (
+            ActivityDrawerSlot::BottomRight,
+            bottom_right_drawer(subsystems),
+        ),
+    ]);
     WorkbenchLayout {
         active_main_page: crate::ui::workbench::layout::MainPageId::workbench(),
         main_pages: vec![builtin_workbench_page()],
-        drawers: BTreeMap::from([
-            (ActivityDrawerSlot::LeftTop, left_top_drawer()),
-            (ActivityDrawerSlot::LeftBottom, left_bottom_drawer()),
-            (ActivityDrawerSlot::RightTop, right_top_drawer()),
-            (ActivityDrawerSlot::RightBottom, right_bottom_drawer()),
-            (ActivityDrawerSlot::BottomLeft, bottom_left_drawer()),
-            (
-                ActivityDrawerSlot::BottomRight,
-                bottom_right_drawer(subsystems),
-            ),
-        ]),
-        activity_windows: Default::default(),
+        drawers: drawers.clone(),
+        activity_windows: BTreeMap::from([(
+            ActivityWindowId::workbench(),
+            ActivityWindowLayout {
+                window_id: ActivityWindowId::workbench(),
+                descriptor_id: ViewDescriptorId::new("editor.workbench_window"),
+                host_mode: ActivityWindowHostMode::EmbeddedMainFrame,
+                activity_drawers: drawers,
+                content_workspace: DocumentNode::default(),
+                region_overrides: BTreeMap::new(),
+                view_overrides: BTreeMap::new(),
+            },
+        )]),
         floating_windows: Vec::new(),
         region_overrides: BTreeMap::new(),
         view_overrides: BTreeMap::new(),

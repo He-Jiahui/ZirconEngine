@@ -1,7 +1,6 @@
 use super::super::super::{EditorAssetDetailsRecord, EditorAssetReferenceRecord};
 use super::{
-    record_to_facade::record_to_facade, reference_to_facade::reference_to_facade,
-    DefaultEditorAssetManager,
+    record_to_view::record_to_view, reference_to_view::reference_to_view, DefaultEditorAssetManager,
 };
 
 impl DefaultEditorAssetManager {
@@ -13,7 +12,7 @@ impl DefaultEditorAssetManager {
         let mut direct_references = record
             .direct_references
             .iter()
-            .map(|reference| reference_to_facade(reference, &state))
+            .map(|reference| reference_to_view(reference, &state))
             .collect::<Vec<_>>();
         direct_references.sort_by(|left, right| {
             left.display_name
@@ -41,7 +40,7 @@ impl DefaultEditorAssetManager {
         });
 
         Some(EditorAssetDetailsRecord {
-            asset: record_to_facade(record, &state),
+            asset: record_to_view(record, &state),
             direct_references,
             referenced_by,
             editor_adapter: record.editor_meta.editor_adapter.clone(),

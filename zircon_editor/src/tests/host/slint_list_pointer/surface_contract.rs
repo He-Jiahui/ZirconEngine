@@ -1,84 +1,32 @@
+fn source(relative: &str) -> String {
+    std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(relative))
+        .unwrap_or_else(|error| panic!("read `{relative}`: {error}"))
+}
+
 #[test]
-fn shared_list_surfaces_do_not_expose_legacy_direct_callback_routes() {
-    let workbench = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/ui/workbench.slint"));
-    let assets = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/assets.slint"
-    ));
-    let pane_content = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/pane_content.slint"
-    ));
-    let welcome = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/welcome.slint"
-    ));
-    let app = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/src/ui/slint_host/app.rs"
-    ));
+fn shared_list_surfaces_route_through_pane_surface_host_context() {
+    let globals = source("src/ui/slint_host/host_contract/globals.rs");
+    let wiring = source("src/ui/slint_host/app/callback_wiring.rs");
+    let pointer_layout = source("src/ui/slint_host/app/pointer_layout.rs");
 
-    for needle in [
-        "callback hierarchy_select(",
-        "callback asset_select_folder(",
-        "callback asset_select_item(",
-        "callback asset_activate_reference(",
-        "callback welcome_open_recent_project(",
-        "callback welcome_remove_recent_project(",
-        "hierarchy_select(node_id) =>",
-        "asset_select_folder(folder_id) =>",
-        "asset_select_item(asset_uuid) =>",
-        "asset_activate_reference(asset_uuid) =>",
-        "welcome_open_recent_project(path) =>",
-        "welcome_remove_recent_project(path) =>",
+    for required in [
+        "on_hierarchy_pointer_clicked",
+        "on_asset_tree_pointer_clicked",
+        "on_asset_content_pointer_clicked",
+        "on_asset_reference_pointer_clicked",
+        "on_welcome_recent_pointer_clicked",
     ] {
-        assert!(
-            !workbench.contains(needle),
-            "workbench shell still exposes legacy direct callback `{needle}`"
-        );
+        assert!(globals.contains(required), "host globals missing `{required}`");
     }
-
-    for needle in [
-        "callback select(node_id: string);",
-        "callback select_folder(folder_id: string);",
-        "callback select_asset(asset_uuid: string);",
-        "callback activate_reference(asset_uuid: string);",
-        "select_folder(folder_id) =>",
-        "select_asset(asset_uuid) =>",
-        "activate_reference(asset_uuid) =>",
+    for required in [
+        "pane_surface_host.on_hierarchy_pointer_clicked(",
+        "pane_surface_host.on_asset_tree_pointer_clicked(",
+        "pane_surface_host.on_asset_content_pointer_clicked(",
+        "pane_surface_host.on_asset_reference_pointer_clicked(",
+        "pane_surface_host.on_welcome_recent_pointer_clicked(",
     ] {
-        let found = assets.contains(needle) || pane_content.contains(needle);
-        assert!(
-            !found,
-            "asset or pane leaf surface still exposes legacy direct callback `{needle}`"
-        );
+        assert!(wiring.contains(required), "callback wiring missing `{required}`");
     }
-
-    for needle in [
-        "callback open_recent_project(path: string);",
-        "callback remove_recent_project(path: string);",
-    ] {
-        assert!(
-            !welcome.contains(needle),
-            "welcome leaf surface still exposes legacy direct callback `{needle}`"
-        );
-    }
-
-    for needle in [
-        "ui.on_hierarchy_select(",
-        "ui.on_welcome_open_recent_project(",
-        "ui.on_welcome_remove_recent_project(",
-        "ui.on_asset_select_folder(",
-        "ui.on_asset_select_item(",
-        "ui.on_asset_activate_reference(",
-        "fn select_hierarchy_node(",
-        "fn select_asset_folder(",
-        "fn select_asset_item(",
-        "fn activate_asset_reference(",
-    ] {
-        assert!(
-            !app.contains(needle),
-            "slint host app still registers legacy direct callback `{needle}`"
-        );
-    }
+    assert!(pointer_layout.contains("sync_asset_pointer_layouts"));
+    assert!(pointer_layout.contains("sync_welcome_recent_pointer_layout"));
 }

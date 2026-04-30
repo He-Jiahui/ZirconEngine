@@ -5,8 +5,7 @@ impl VirtualGeometryRuntimeState {
         &mut self,
         page_id: u32,
     ) {
-        self.pending_pages.remove(&page_id);
-        self.pending_requests
-            .retain(|request| request.page_id != page_id);
+        self.remove_pending_page(page_id);
+        self.retain_pending_page_requests(|request| request.page_id() != page_id);
     }
 }

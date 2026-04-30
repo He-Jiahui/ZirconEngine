@@ -20,13 +20,13 @@ use crate::graphics::runtime::{
 use crate::scene::components::Mobility;
 
 #[test]
-fn virtual_geometry_nanite_execution_mode_picks_flagship_compat_and_cpu_paths() {
+fn virtual_geometry_nanite_execution_mode_picks_flagship_baseline_and_cpu_paths() {
     let flagship = RenderCapabilitySummary {
         virtual_geometry_supported: true,
         supports_offscreen: true,
         ..RenderCapabilitySummary::default()
     };
-    let compat = RenderCapabilitySummary {
+    let baseline = RenderCapabilitySummary {
         virtual_geometry_supported: false,
         supports_offscreen: true,
         supports_surface: true,
@@ -44,8 +44,8 @@ fn virtual_geometry_nanite_execution_mode_picks_flagship_compat_and_cpu_paths() 
         VirtualGeometryExecutionMode::FlagshipGpu
     );
     assert_eq!(
-        VirtualGeometryExecutionMode::from_capabilities(&compat),
-        VirtualGeometryExecutionMode::CompatGpu
+        VirtualGeometryExecutionMode::from_capabilities(&baseline),
+        VirtualGeometryExecutionMode::BaselineGpu
     );
     assert_eq!(
         VirtualGeometryExecutionMode::from_capabilities(&cpu),
@@ -60,33 +60,33 @@ fn virtual_geometry_nanite_cpu_reference_traverses_hierarchy_maps_pages_and_filt
         42,
         &asset,
         &[10, 30],
-        VirtualGeometryCpuReferenceConfig {
-            debug: VirtualGeometryDebugConfig {
-                forced_mip: Some(10),
-                print_leaf_clusters: true,
-                ..VirtualGeometryDebugConfig::default()
-            },
-        },
+        VirtualGeometryCpuReferenceConfig::new(VirtualGeometryDebugConfig::new(
+            Some(10),
+            false,
+            false,
+            false,
+            true,
+        )),
     );
 
     assert_eq!(
         frame
-            .visited_nodes
+            .visited_nodes()
             .iter()
-            .map(|visit| visit.node_id)
+            .map(|visit| visit.node_id())
             .collect::<Vec<_>>(),
         vec![0, 1, 2]
     );
     assert_eq!(
         frame
-            .leaf_clusters
+            .leaf_clusters()
             .iter()
             .map(|cluster| (
-                cluster.cluster_ordinal,
-                cluster.cluster_id,
-                cluster.page_id,
-                cluster.mip_level,
-                cluster.loaded
+                cluster.cluster_ordinal(),
+                cluster.cluster_id(),
+                cluster.page_id(),
+                cluster.mip_level(),
+                cluster.loaded()
             ))
             .collect::<Vec<_>>(),
         vec![
@@ -97,15 +97,15 @@ fn virtual_geometry_nanite_cpu_reference_traverses_hierarchy_maps_pages_and_filt
     );
     assert_eq!(
         frame
-            .selected_clusters
+            .selected_clusters()
             .iter()
-            .map(|cluster| (cluster.cluster_ordinal, cluster.cluster_id))
+            .map(|cluster| (cluster.cluster_ordinal(), cluster.cluster_id()))
             .collect::<Vec<_>>(),
         vec![(0, 100), (2, 300)]
     );
-    assert_eq!(frame.page_cluster_map.get(&10).cloned(), Some(vec![100]));
-    assert_eq!(frame.page_cluster_map.get(&20).cloned(), Some(vec![200]));
-    assert_eq!(frame.page_cluster_map.get(&30).cloned(), Some(vec![300]));
+    assert_eq!(frame.page_cluster_map().get(&10).cloned(), Some(vec![100]));
+    assert_eq!(frame.page_cluster_map().get(&20).cloned(), Some(vec![200]));
+    assert_eq!(frame.page_cluster_map().get(&30).cloned(), Some(vec![300]));
 }
 
 #[test]
@@ -115,12 +115,13 @@ fn virtual_geometry_nanite_cpu_reference_bridges_selected_clusters_into_render_e
         7,
         &asset,
         &[10, 30],
-        VirtualGeometryCpuReferenceConfig {
-            debug: VirtualGeometryDebugConfig {
-                forced_mip: Some(10),
-                ..VirtualGeometryDebugConfig::default()
-            },
-        },
+        VirtualGeometryCpuReferenceConfig::new(VirtualGeometryDebugConfig::new(
+            Some(10),
+            false,
+            false,
+            false,
+            false,
+        )),
     );
 
     let extract = frame.to_render_extract(2, 3);
@@ -163,22 +164,22 @@ fn virtual_geometry_nanite_cpu_reference_bridges_selected_clusters_into_render_e
 fn virtual_geometry_nanite_automatic_extract_remaps_multiple_instances_and_preserves_world_space_lineage(
 ) {
     let output = build_virtual_geometry_automatic_extract(&[
-        VirtualGeometryAutomaticExtractInstance {
-            entity: 11,
-            source_model: None,
-            transform: Transform::default(),
-            asset: sample_virtual_geometry_asset(),
-        },
-        VirtualGeometryAutomaticExtractInstance {
-            entity: 22,
-            source_model: None,
-            transform: Transform::from_translation(Vec3::new(10.0, 0.0, 0.0))
+        VirtualGeometryAutomaticExtractInstance::new(
+            11,
+            None,
+            Transform::default(),
+            sample_virtual_geometry_asset(),
+        ),
+        VirtualGeometryAutomaticExtractInstance::new(
+            22,
+            None,
+            Transform::from_translation(Vec3::new(10.0, 0.0, 0.0))
                 .with_scale(Vec3::new(2.0, 1.0, 1.0)),
-            asset: sample_virtual_geometry_asset(),
-        },
+            sample_virtual_geometry_asset(),
+        ),
     ])
     .expect("automatic extract should be synthesized from cooked instances");
-    let extract = &output.extract;
+    let extract = output.extract();
 
     assert_eq!(extract.cluster_budget, 4);
     assert_eq!(extract.page_budget, 4);
@@ -231,11 +232,11 @@ fn virtual_geometry_nanite_automatic_extract_remaps_multiple_instances_and_prese
     assert_eq!(extract.instances[1].page_offset, 3);
     assert_eq!(extract.instances[1].page_count, 3);
     assert_eq!(extract.debug, Default::default());
-    assert_eq!(output.cpu_reference_instances.len(), 2);
-    assert_eq!(output.cpu_reference_instances[0].instance_index, 0);
-    assert_eq!(output.cpu_reference_instances[0].entity, 11);
-    assert_eq!(output.cpu_reference_instances[1].instance_index, 1);
-    assert_eq!(output.cpu_reference_instances[1].entity, 22);
+    assert_eq!(output.cpu_reference_instances().len(), 2);
+    assert_eq!(output.cpu_reference_instances()[0].instance_index, 0);
+    assert_eq!(output.cpu_reference_instances()[0].entity, 11);
+    assert_eq!(output.cpu_reference_instances()[1].instance_index, 1);
+    assert_eq!(output.cpu_reference_instances()[1].entity, 22);
 }
 
 #[test]
@@ -250,12 +251,12 @@ fn virtual_geometry_nanite_extract_resolution_respects_explicit_payload_and_feat
         instances: Vec::new(),
         debug: Default::default(),
     };
-    let instances = vec![VirtualGeometryAutomaticExtractInstance {
-        entity: 99,
-        source_model: None,
-        transform: Transform::default(),
-        asset: sample_virtual_geometry_asset(),
-    }];
+    let instances = vec![VirtualGeometryAutomaticExtractInstance::new(
+        99,
+        None,
+        Transform::default(),
+        sample_virtual_geometry_asset(),
+    )];
 
     assert_eq!(
         resolve_virtual_geometry_extract(false, Some(authored.clone()), &instances),
@@ -335,7 +336,7 @@ fn virtual_geometry_nanite_mesh_based_automatic_extract_only_collects_cooked_mod
         },
     )
     .expect("cooked model should synthesize automatic extract");
-    let extract = &output.extract;
+    let extract = output.extract();
 
     assert_eq!(extract.clusters.len(), 3);
     assert_eq!(extract.pages.len(), 3);
@@ -345,8 +346,8 @@ fn virtual_geometry_nanite_mesh_based_automatic_extract_only_collects_cooked_mod
     assert_eq!(extract.instances[0].source_model, Some(cooked_model_id));
     assert_eq!(extract.instances[0].cluster_count, 3);
     assert_eq!(extract.instances[0].page_count, 3);
-    assert_eq!(output.cpu_reference_instances.len(), 1);
-    assert_eq!(output.cpu_reference_instances[0].entity, 5);
+    assert_eq!(output.cpu_reference_instances().len(), 1);
+    assert_eq!(output.cpu_reference_instances()[0].entity, 5);
 }
 
 #[test]
@@ -386,7 +387,7 @@ fn virtual_geometry_nanite_mesh_based_automatic_extract_with_debug_keeps_extract
     .expect("cooked model should synthesize automatic extract");
 
     assert_eq!(
-        output.extract.debug, debug,
+        output.extract().debug, debug,
         "expected the automatic extract helper to keep its public extract debug state aligned with the debug config that already drives CPU-reference and BVH synthesis"
     );
 }
@@ -421,7 +422,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_clusters_grouped_by_bv
     .expect("cooked model should synthesize automatic extract");
 
     assert_eq!(
-        output.cpu_reference_instances[0]
+        output.cpu_reference_instances()[0]
             .depth_cluster_map
             .iter()
             .map(|entry| (entry.depth, entry.cluster_ids.clone()))
@@ -461,7 +462,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_leaf_clusters_grouped_
     .expect("cooked model should synthesize automatic extract");
 
     assert_eq!(
-        output.cpu_reference_instances[0]
+        output.cpu_reference_instances()[0]
             .mip_cluster_map
             .iter()
             .map(|entry| (entry.mip_level, entry.cluster_ids.clone()))
@@ -506,7 +507,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_selected_clusters_as_w
     .expect("cooked model should synthesize automatic extract");
 
     assert_eq!(
-        output.cpu_reference_instances[0]
+        output.cpu_reference_instances()[0]
             .selected_clusters
             .iter()
             .map(|cluster| (
@@ -557,11 +558,11 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_loaded_leaf_clusters_a
     .expect("cooked model should synthesize automatic extract");
 
     assert!(
-        output.cpu_reference_instances[0].selected_clusters.is_empty(),
+        output.cpu_reference_instances()[0].selected_clusters.is_empty(),
         "forced_mip=9 should reject the loaded mip-10 leafs, keeping the selected worklist empty so the loaded-leaf list proves its distinct residency-only semantics"
     );
     assert_eq!(
-        output.cpu_reference_instances[0]
+        output.cpu_reference_instances()[0]
             .loaded_leaf_clusters
             .iter()
             .map(|cluster| (
@@ -612,11 +613,11 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_mip_accepted_clusters_
     .expect("cooked model should synthesize automatic extract");
 
     assert!(
-        output.cpu_reference_instances[0].selected_clusters.is_empty(),
+        output.cpu_reference_instances()[0].selected_clusters.is_empty(),
         "forced_mip=9 should still leave the selected worklist empty because the only mip-accepted cluster is not resident"
     );
     assert_eq!(
-        output.cpu_reference_instances[0]
+        output.cpu_reference_instances()[0]
             .mip_accepted_clusters
             .iter()
             .map(|cluster| (
@@ -667,11 +668,11 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_mip_accepted_page_clus
     .expect("cooked model should synthesize automatic extract");
 
     assert!(
-        output.cpu_reference_instances[0].selected_clusters.is_empty(),
+        output.cpu_reference_instances()[0].selected_clusters.is_empty(),
         "forced_mip=9 should still leave the selected worklist empty because the only mip-accepted cluster is not resident"
     );
     assert_eq!(
-        output.cpu_reference_instances[0]
+        output.cpu_reference_instances()[0]
             .mip_accepted_page_cluster_map
             .iter()
             .map(|entry| (entry.page_id, entry.cluster_ids.clone()))
@@ -716,11 +717,11 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_loaded_page_cluster_ma
     .expect("cooked model should synthesize automatic extract");
 
     assert!(
-        output.cpu_reference_instances[0].selected_clusters.is_empty(),
+        output.cpu_reference_instances()[0].selected_clusters.is_empty(),
         "forced_mip=9 should keep the selected worklist empty so the loaded page map proves its residency-only semantics"
     );
     assert_eq!(
-        output.cpu_reference_instances[0]
+        output.cpu_reference_instances()[0]
             .loaded_page_cluster_map
             .iter()
             .map(|entry| (entry.page_id, entry.cluster_ids.clone()))
@@ -765,11 +766,11 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_loaded_mip_cluster_map
     .expect("cooked model should synthesize automatic extract");
 
     assert!(
-        output.cpu_reference_instances[0].selected_clusters.is_empty(),
+        output.cpu_reference_instances()[0].selected_clusters.is_empty(),
         "forced_mip=9 should keep the selected worklist empty so the loaded mip map proves its residency-only semantics"
     );
     assert_eq!(
-        output.cpu_reference_instances[0]
+        output.cpu_reference_instances()[0]
             .loaded_mip_cluster_map
             .iter()
             .map(|entry| (entry.mip_level, entry.cluster_ids.clone()))
@@ -814,7 +815,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_selected_page_cluster_
     .expect("cooked model should synthesize automatic extract");
 
     assert_eq!(
-        output.cpu_reference_instances[0]
+        output.cpu_reference_instances()[0]
             .selected_page_cluster_map
             .iter()
             .map(|entry| (entry.page_id, entry.cluster_ids.clone()))
@@ -859,11 +860,11 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_loaded_depth_cluster_m
     .expect("cooked model should synthesize automatic extract");
 
     assert!(
-        output.cpu_reference_instances[0].selected_clusters.is_empty(),
+        output.cpu_reference_instances()[0].selected_clusters.is_empty(),
         "forced_mip=9 should keep the selected worklist empty so the loaded depth map proves its residency-only semantics"
     );
     assert_eq!(
-        output.cpu_reference_instances[0]
+        output.cpu_reference_instances()[0]
             .loaded_depth_cluster_map
             .iter()
             .map(|entry| (entry.depth, entry.cluster_ids.clone()))
@@ -908,11 +909,11 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_mip_accepted_depth_clu
     .expect("cooked model should synthesize automatic extract");
 
     assert!(
-        output.cpu_reference_instances[0].selected_clusters.is_empty(),
+        output.cpu_reference_instances()[0].selected_clusters.is_empty(),
         "forced_mip=9 should still leave the selected worklist empty because the only mip-accepted cluster is not resident"
     );
     assert_eq!(
-        output.cpu_reference_instances[0]
+        output.cpu_reference_instances()[0]
             .mip_accepted_depth_cluster_map
             .iter()
             .map(|entry| (entry.depth, entry.cluster_ids.clone()))
@@ -957,7 +958,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_selected_mip_cluster_m
     .expect("cooked model should synthesize automatic extract");
 
     assert_eq!(
-        output.cpu_reference_instances[0]
+        output.cpu_reference_instances()[0]
             .selected_mip_cluster_map
             .iter()
             .map(|entry| (entry.mip_level, entry.cluster_ids.clone()))
@@ -1002,7 +1003,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_selected_depth_cluster
     .expect("cooked model should synthesize automatic extract");
 
     assert_eq!(
-        output.cpu_reference_instances[0]
+        output.cpu_reference_instances()[0]
             .selected_depth_cluster_map
             .iter()
             .map(|entry| (entry.depth, entry.cluster_ids.clone()))

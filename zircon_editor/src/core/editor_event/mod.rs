@@ -9,11 +9,11 @@ mod workbench;
 
 pub use inspector_field_change::InspectorFieldChange;
 pub use journal::EditorEventJournal;
-pub(crate) use listener::{listener_deliveries, listener_descriptors};
+pub(crate) use listener::{listener_deliveries, listener_descriptors, listener_status};
 pub use listener::{
     EditorEventListenerControlRequest, EditorEventListenerControlResponse,
     EditorEventListenerDelivery, EditorEventListenerDescriptor, EditorEventListenerFilter,
-    EditorEventListenerRegistry,
+    EditorEventListenerRegistry, EditorEventListenerStatus,
 };
 pub use replay::EditorEventReplay;
 pub use runtime::{EditorEventDispatcher, EditorEventRuntime};

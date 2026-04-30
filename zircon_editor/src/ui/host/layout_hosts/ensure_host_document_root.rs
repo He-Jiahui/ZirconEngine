@@ -1,4 +1,6 @@
-use crate::ui::workbench::layout::{DocumentNode, MainHostPageLayout, MainPageId, WorkbenchLayout};
+use crate::ui::workbench::layout::{
+    ActivityWindowId, DocumentNode, MainHostPageLayout, MainPageId, WorkbenchLayout,
+};
 
 pub(super) fn ensure_host_document_root(layout: &mut WorkbenchLayout) -> &mut DocumentNode {
     if let Some(index) = layout
@@ -18,6 +20,7 @@ pub(super) fn ensure_host_document_root(layout: &mut WorkbenchLayout) -> &mut Do
             MainHostPageLayout::WorkbenchPage {
                 id: MainPageId::workbench(),
                 title: "Workbench".to_string(),
+                activity_window: ActivityWindowId::workbench(),
                 document_workspace: DocumentNode::default(),
             },
         );

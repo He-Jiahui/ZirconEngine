@@ -97,6 +97,55 @@ fn render_framework_reports_clipped_ui_commands_for_inventory_fixture() {
 }
 
 #[cfg(feature = "runtime-ui-integration-tests")]
+#[test]
+fn render_framework_submits_all_builtin_runtime_ui_fixtures() {
+    use std::sync::Arc;
+
+    use crate::core::framework::render::{
+        RenderFramework, RenderQualityProfile, RenderViewportDescriptor,
+    };
+
+    let viewport_size = crate::core::math::UVec2::new(800, 450);
+    let asset_manager = Arc::new(crate::asset::ProjectAssetManager::default());
+    let server = crate::graphics::WgpuRenderFramework::new(asset_manager).unwrap();
+    let viewport = server
+        .create_viewport(RenderViewportDescriptor::new(viewport_size))
+        .unwrap();
+    server
+        .set_quality_profile(
+            viewport,
+            RenderQualityProfile::new("runtime-ui-fixtures")
+                .with_clustered_lighting(false)
+                .with_screen_space_ambient_occlusion(false)
+                .with_history_resolve(false),
+        )
+        .unwrap();
+
+    for fixture in [
+        crate::ui::RuntimeUiFixture::HudOverlay,
+        crate::ui::RuntimeUiFixture::PauseMenu,
+        crate::ui::RuntimeUiFixture::SettingsDialog,
+        crate::ui::RuntimeUiFixture::InventoryList,
+    ] {
+        let mut manager = crate::ui::RuntimeUiManager::new(viewport_size);
+        manager.load_builtin_fixture(fixture).unwrap();
+        server
+            .submit_runtime_frame(viewport, manager.build_frame().into())
+            .unwrap();
+
+        let stats = server.query_stats().unwrap();
+        assert!(
+            stats.last_ui_command_count >= 4,
+            "expected fixture {fixture:?} to submit a non-trivial UI command list"
+        );
+        assert!(
+            stats.last_ui_quad_count >= 1 || stats.last_ui_text_payload_count >= 1,
+            "expected fixture {fixture:?} to reach the screen-space UI pass"
+        );
+    }
+}
+
+#[cfg(feature = "runtime-ui-integration-tests")]
 fn count_non_background_pixels(rgba: &[u8]) -> usize {
     rgba.chunks_exact(4)
         .filter(|pixel| pixel[0] > 8 || pixel[1] > 8 || pixel[2] > 8)

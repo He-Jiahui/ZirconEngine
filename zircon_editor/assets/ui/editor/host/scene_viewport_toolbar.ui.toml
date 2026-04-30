@@ -114,7 +114,7 @@ stretch = "Stretch"
 [components.SceneViewportToolbar.root.children.node.children.node]
 node_id = "component_SceneViewportToolbar_root_0_0"
 kind = "native"
-type = "UiHostIconButton"
+type = "IconButton"
 control_id = "SetTool"
 classes = []
 children = []
@@ -184,7 +184,7 @@ stretch = "Fixed"
 [components.SceneViewportToolbar.root.children.node.children.node]
 node_id = "component_SceneViewportToolbar_root_0_2"
 kind = "native"
-type = "UiHostIconButton"
+type = "IconButton"
 control_id = "SetTransformSpace"
 classes = []
 children = []
@@ -254,7 +254,7 @@ stretch = "Fixed"
 [components.SceneViewportToolbar.root.children.node.children.node]
 node_id = "component_SceneViewportToolbar_root_0_4"
 kind = "native"
-type = "UiHostIconButton"
+type = "IconButton"
 control_id = "SetDisplayMode"
 classes = []
 children = []
@@ -292,7 +292,7 @@ route = "ViewportCommand.SetDisplayMode"
 [components.SceneViewportToolbar.root.children.node.children.node]
 node_id = "component_SceneViewportToolbar_root_0_5"
 kind = "native"
-type = "UiHostIconButton"
+type = "IconButton"
 control_id = "SetGridMode"
 classes = []
 children = []
@@ -330,7 +330,7 @@ route = "ViewportCommand.SetGridMode"
 [components.SceneViewportToolbar.root.children.node.children.node]
 node_id = "component_SceneViewportToolbar_root_0_6"
 kind = "native"
-type = "UiHostIconButton"
+type = "IconButton"
 control_id = "SetTranslateSnap"
 classes = []
 children = []
@@ -368,7 +368,7 @@ route = "ViewportCommand.SetTranslateSnap"
 [components.SceneViewportToolbar.root.children.node.children.node]
 node_id = "component_SceneViewportToolbar_root_0_7"
 kind = "native"
-type = "UiHostIconButton"
+type = "IconButton"
 control_id = "SetRotateSnapDegrees"
 classes = []
 children = []
@@ -406,7 +406,7 @@ route = "ViewportCommand.SetRotateSnapDegrees"
 [components.SceneViewportToolbar.root.children.node.children.node]
 node_id = "component_SceneViewportToolbar_root_0_8"
 kind = "native"
-type = "UiHostIconButton"
+type = "IconButton"
 control_id = "SetScaleSnap"
 classes = []
 children = []
@@ -476,7 +476,7 @@ stretch = "Fixed"
 [components.SceneViewportToolbar.root.children.node.children.node]
 node_id = "component_SceneViewportToolbar_root_0_10"
 kind = "native"
-type = "UiHostIconButton"
+type = "IconButton"
 control_id = "SetPreviewLighting"
 classes = []
 children = []
@@ -514,7 +514,7 @@ route = "ViewportCommand.SetPreviewLighting"
 [components.SceneViewportToolbar.root.children.node.children.node]
 node_id = "component_SceneViewportToolbar_root_0_11"
 kind = "native"
-type = "UiHostIconButton"
+type = "IconButton"
 control_id = "SetPreviewSkybox"
 classes = []
 children = []
@@ -552,7 +552,7 @@ route = "ViewportCommand.SetPreviewSkybox"
 [components.SceneViewportToolbar.root.children.node.children.node]
 node_id = "component_SceneViewportToolbar_root_0_12"
 kind = "native"
-type = "UiHostIconButton"
+type = "IconButton"
 control_id = "SetGizmosEnabled"
 classes = []
 children = []
@@ -590,7 +590,7 @@ route = "ViewportCommand.SetGizmosEnabled"
 [components.SceneViewportToolbar.root.children.node.children.node]
 node_id = "component_SceneViewportToolbar_root_0_13"
 kind = "native"
-type = "UiHostIconButton"
+type = "IconButton"
 control_id = "FrameSelection"
 classes = []
 children = []
@@ -676,7 +676,7 @@ stretch = "Fixed"
 [components.SceneViewportToolbar.root.children.node.children.node]
 node_id = "component_SceneViewportToolbar_root_1_0"
 kind = "native"
-type = "UiHostIconButton"
+type = "IconButton"
 control_id = "SetProjectionMode"
 classes = []
 children = []
@@ -714,7 +714,7 @@ route = "ViewportCommand.SetProjectionMode"
 [components.SceneViewportToolbar.root.children.node.children.node]
 node_id = "component_SceneViewportToolbar_root_1_1"
 kind = "native"
-type = "UiHostIconButton"
+type = "IconButton"
 control_id = "AlignView"
 classes = []
 children = []

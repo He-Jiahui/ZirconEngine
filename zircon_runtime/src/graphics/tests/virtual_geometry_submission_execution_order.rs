@@ -891,25 +891,7 @@ fn virtual_geometry_execution_segments_survive_without_shared_segment_and_draw_r
     assert_eq!(
         execution_segments
             .iter()
-            .map(|segment| {
-                (
-                    segment.instance_index,
-                    (
-                        segment.entity,
-                        segment.cluster_start_ordinal,
-                        segment.cluster_span_count,
-                        segment.cluster_total_count,
-                        segment.page_id,
-                        segment.submission_slot,
-                        segment.state,
-                        segment.lineage_depth,
-                        segment.lod_level,
-                        segment.frontier_rank,
-                        segment.submission_index,
-                        segment.draw_ref_rank,
-                    ),
-                )
-            })
+            .map(|segment| segment.execution_order_tuple())
             .collect::<Vec<_>>(),
         vec![
             (
@@ -1472,25 +1454,7 @@ fn virtual_geometry_execution_segments_survive_with_execution_indices_and_gpu_au
     assert_eq!(
         execution_segments
             .iter()
-            .map(|segment| {
-                (
-                    segment.instance_index,
-                    (
-                        segment.entity,
-                        segment.cluster_start_ordinal,
-                        segment.cluster_span_count,
-                        segment.cluster_total_count,
-                        segment.page_id,
-                        segment.submission_slot,
-                        segment.state,
-                        segment.lineage_depth,
-                        segment.lod_level,
-                        segment.frontier_rank,
-                        segment.submission_index,
-                        segment.draw_ref_rank,
-                    ),
-                )
-            })
+            .map(|segment| segment.execution_order_tuple())
             .collect::<Vec<_>>(),
         vec![
             (

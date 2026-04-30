@@ -19,8 +19,8 @@ pub(super) use crate::ui::workbench::autolayout::{
     ShellFrame, ShellRegionId, WorkbenchChromeMetrics, WorkbenchShellGeometry,
 };
 pub(super) use crate::ui::workbench::layout::{
-    ActivityDrawerLayout, ActivityDrawerMode, ActivityDrawerSlot, DockEdge, DocumentNode,
-    FloatingWindowLayout, MainHostPageLayout, MainPageId, SplitAxis, SplitPlacement,
+    ActivityDrawerLayout, ActivityDrawerMode, ActivityDrawerSlot, ActivityWindowId, DockEdge,
+    DocumentNode, FloatingWindowLayout, MainHostPageLayout, MainPageId, SplitAxis, SplitPlacement,
     TabInsertionAnchor, TabInsertionSide, TabStackLayout, WorkbenchLayout, WorkspaceTarget,
 };
 pub(super) use crate::ui::workbench::model::{
@@ -36,6 +36,7 @@ pub(super) fn workbench_page(id: MainPageId) -> MainHostPageLayout {
     MainHostPageLayout::WorkbenchPage {
         id,
         title: "Workbench".to_string(),
+        activity_window: ActivityWindowId::workbench(),
         document_workspace: DocumentNode::default(),
     }
 }

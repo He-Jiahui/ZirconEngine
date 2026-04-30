@@ -6,6 +6,7 @@ pub enum PanePayload {
     AnimationSequenceV1(AnimationSequencePanePayload),
     AnimationGraphV1(AnimationGraphPanePayload),
     RuntimeDiagnosticsV1(RuntimeDiagnosticsPanePayload),
+    ModulePluginsV1(ModulePluginsPanePayload),
     UiComponentShowcaseV1(UiComponentShowcasePanePayload),
 }
 
@@ -68,6 +69,29 @@ pub struct RuntimeDiagnosticsPanePayload {
     pub physics_status: String,
     pub animation_status: String,
     pub detail_items: Vec<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ModulePluginsPanePayload {
+    pub diagnostics: String,
+    pub plugins: Vec<ModulePluginStatusPayload>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ModulePluginStatusPayload {
+    pub plugin_id: String,
+    pub display_name: String,
+    pub package_source: String,
+    pub load_state: String,
+    pub enabled: bool,
+    pub required: bool,
+    pub target_modes: String,
+    pub packaging: String,
+    pub runtime_crate: String,
+    pub editor_crate: String,
+    pub runtime_capabilities: String,
+    pub editor_capabilities: String,
+    pub diagnostics: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

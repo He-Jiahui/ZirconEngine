@@ -1,0 +1,238 @@
+stylesheets = []
+
+[asset]
+kind = "layout"
+id = "editor.workbench_dock_header"
+version = 1
+display_name = "workbench dock header"
+
+[imports]
+widgets = []
+styles = []
+
+[root]
+node_id = "dock_header_root"
+kind = "native"
+type = "Overlay"
+control_id = "DockHeaderRoot"
+
+[root.layout]
+clip = true
+
+[root.layout.container]
+kind = "Overlay"
+
+[root.layout.width]
+stretch = "Stretch"
+
+[root.layout.height]
+stretch = "Stretch"
+
+[[root.children]]
+[root.children.node]
+node_id = "dock_header_bar"
+kind = "native"
+type = "Container"
+control_id = "DockHeaderBar"
+
+[root.children.node.props]
+surface_variant = "panel"
+radius = 0.0
+border_width = 0.0
+
+[root.children.node.layout.position]
+x = 0.0
+y = 0.0
+
+[root.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.layout.height]
+min = 31.0
+preferred = 31.0
+max = 31.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "dock_subtitle"
+kind = "native"
+type = "Label"
+control_id = "DockSubtitle"
+
+[root.children.node.props]
+text = ""
+text_tone = "muted"
+font_size = 10.0
+text_align = "right"
+overflow = "elide"
+
+[root.children.node.layout.anchor]
+x = 1.0
+y = 0.0
+
+[root.children.node.layout.pivot]
+x = 1.0
+y = 0.0
+
+[root.children.node.layout.position]
+x = -12.0
+y = 9.0
+
+[root.children.node.layout.width]
+min = 132.0
+preferred = 132.0
+max = 132.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 14.0
+preferred = 14.0
+max = 14.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "dock_tab_0"
+kind = "native"
+type = "Label"
+control_id = "DockTab0"
+
+[root.children.node.props]
+text = "Project"
+text_tone = "default"
+font_size = 11.0
+text_align = "center"
+overflow = "elide"
+
+[root.children.node.layout.position]
+x = 8.0
+y = 1.0
+
+[root.children.node.layout.width]
+min = 92.0
+preferred = 92.0
+max = 92.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 30.0
+preferred = 30.0
+max = 30.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "dock_tab_close_0"
+kind = "native"
+type = "Container"
+control_id = "DockTabClose0"
+
+[root.children.node.props]
+surface_variant = "inset"
+radius = 8.0
+border_width = 0.0
+
+[root.children.node.layout.position]
+x = 76.0
+y = 8.0
+
+[root.children.node.layout.width]
+min = 16.0
+preferred = 16.0
+max = 16.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 16.0
+preferred = 16.0
+max = 16.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "dock_tab_1"
+kind = "native"
+type = "Label"
+control_id = "DockTab1"
+
+[root.children.node.props]
+text = "Assets"
+text_tone = "subtle"
+font_size = 11.0
+text_align = "center"
+overflow = "elide"
+
+[root.children.node.layout.position]
+x = 102.0
+y = 1.0
+
+[root.children.node.layout.width]
+min = 92.0
+preferred = 92.0
+max = 92.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 30.0
+preferred = 30.0
+max = 30.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "dock_tab_close_1"
+kind = "native"
+type = "Container"
+control_id = "DockTabClose1"
+
+[root.children.node.props]
+surface_variant = "inset"
+radius = 8.0
+border_width = 0.0
+
+[root.children.node.layout.position]
+x = 170.0
+y = 8.0
+
+[root.children.node.layout.width]
+min = 16.0
+preferred = 16.0
+max = 16.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 16.0
+preferred = 16.0
+max = 16.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "dock_tab_2"
+kind = "native"
+type = "Label"
+control_id = "DockTab2"
+
+[root.children.node.props]
+text = "Hierarchy"
+text_tone = "subtle"
+font_size = 11.0
+text_align = "center"
+overflow = "elide"
+
+[root.children.node.layout.position]
+x = 196.0
+y = 1.0
+
+[root.children.node.layout.width]
+min = 92.0
+preferred = 92.0
+max = 92.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 30.0
+preferred = 30.0
+max = 30.0
+stretch = "Fixed"

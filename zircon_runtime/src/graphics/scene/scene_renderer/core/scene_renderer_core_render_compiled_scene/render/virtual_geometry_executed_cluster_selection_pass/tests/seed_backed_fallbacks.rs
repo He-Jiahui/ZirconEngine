@@ -53,7 +53,7 @@ fn seed_backed_execution_selection_falls_back_to_nearest_resident_parent_cluster
             cluster_count: 3,
             page_offset: 0,
             page_count: 3,
-            mesh_name: Some("SeedCompatResidentParentFallbackUnitTestMesh".to_string()),
+            mesh_name: Some("SeedBackedResidentParentFallbackUnitTestMesh".to_string()),
             source_hint: Some("unit-test".to_string()),
         }],
         debug: RenderVirtualGeometryDebugState::default(),
@@ -75,8 +75,8 @@ fn seed_backed_execution_selection_falls_back_to_nearest_resident_parent_cluster
             1,
             None,
         ),
-        vec![SeedBackedExecutionSelectionRecord {
-            selection: VirtualGeometryClusterSelection {
+        vec![SeedBackedExecutionSelectionRecord::new(
+            VirtualGeometryClusterSelection {
                 submission_index: 0,
                 instance_index: Some(0),
                 entity,
@@ -95,7 +95,7 @@ fn seed_backed_execution_selection_falls_back_to_nearest_resident_parent_cluster
                 submission_slot: None,
                 state: VirtualGeometryPrepareClusterState::PendingUpload,
             },
-            selected_cluster: RenderVirtualGeometrySelectedCluster {
+            RenderVirtualGeometrySelectedCluster {
                 instance_index: Some(0),
                 entity,
                 cluster_id: 30,
@@ -104,7 +104,7 @@ fn seed_backed_execution_selection_falls_back_to_nearest_resident_parent_cluster
                 lod_level: 1,
                 state: RenderVirtualGeometryExecutionState::Resident,
             },
-        }],
+        )],
         "expected resident-parent fallback to preserve the original child submission metadata while publishing the nearest resident ancestor on the selected-cluster seam, so later raster/debug passes can distinguish requested child work from the fallback cluster that will actually draw"
     );
 }
@@ -162,7 +162,7 @@ fn seed_backed_execution_selection_keeps_selected_cluster_order_when_later_child
             cluster_count: 3,
             page_offset: 0,
             page_count: 3,
-            mesh_name: Some("SeedCompatDuplicateFallbackUnitTestMesh".to_string()),
+            mesh_name: Some("SeedBackedDuplicateFallbackUnitTestMesh".to_string()),
             source_hint: Some("unit-test".to_string()),
         }],
         debug: RenderVirtualGeometryDebugState::default(),
@@ -185,8 +185,8 @@ fn seed_backed_execution_selection_keeps_selected_cluster_order_when_later_child
             None,
         ),
         vec![
-            SeedBackedExecutionSelectionRecord {
-                selection: VirtualGeometryClusterSelection {
+            SeedBackedExecutionSelectionRecord::new(
+                VirtualGeometryClusterSelection {
                     submission_index: 0,
                     instance_index: Some(0),
                     entity,
@@ -205,7 +205,7 @@ fn seed_backed_execution_selection_keeps_selected_cluster_order_when_later_child
                     submission_slot: None,
                     state: VirtualGeometryPrepareClusterState::PendingUpload,
                 },
-                selected_cluster: RenderVirtualGeometrySelectedCluster {
+                RenderVirtualGeometrySelectedCluster {
                     instance_index: Some(0),
                     entity,
                     cluster_id: 30,
@@ -214,9 +214,9 @@ fn seed_backed_execution_selection_keeps_selected_cluster_order_when_later_child
                     lod_level: 2,
                     state: RenderVirtualGeometryExecutionState::Resident,
                 },
-            },
-            SeedBackedExecutionSelectionRecord {
-                selection: VirtualGeometryClusterSelection {
+            ),
+            SeedBackedExecutionSelectionRecord::new(
+                VirtualGeometryClusterSelection {
                     submission_index: 0,
                     instance_index: Some(0),
                     entity,
@@ -235,7 +235,7 @@ fn seed_backed_execution_selection_keeps_selected_cluster_order_when_later_child
                     submission_slot: None,
                     state: VirtualGeometryPrepareClusterState::Resident,
                 },
-                selected_cluster: RenderVirtualGeometrySelectedCluster {
+                RenderVirtualGeometrySelectedCluster {
                     instance_index: Some(0),
                     entity,
                     cluster_id: 40,
@@ -244,7 +244,7 @@ fn seed_backed_execution_selection_keeps_selected_cluster_order_when_later_child
                     lod_level: 1,
                     state: RenderVirtualGeometryExecutionState::Resident,
                 },
-            },
+            ),
         ],
         "expected duplicate resident-parent fallback to keep the resolved selected-cluster order stable while overwriting only the startup metadata with the later child request that collapsed onto that same resident cluster"
     );

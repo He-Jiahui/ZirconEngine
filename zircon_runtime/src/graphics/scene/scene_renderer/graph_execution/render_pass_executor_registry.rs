@@ -72,6 +72,9 @@ impl RenderPassExecutorRegistry {
     ) -> Result<(), String> {
         for pass in pipeline.graph.passes() {
             let Some(executor_id) = pass.executor_id.as_ref() else {
+                if !pass.culled {
+                    return Err(format!("render pass `{}` has no executor id", pass.name));
+                }
                 continue;
             };
             let executor_id = RenderPassExecutorId::new(executor_id.clone());
@@ -100,7 +103,6 @@ const BUILTIN_NOOP_EXECUTOR_IDS: &[&str] = &[
     "mesh.opaque",
     "mesh.transparent",
     "overlay.gizmo",
-    "particle.transparent",
     "post.bloom-extract",
     "post.color-grade",
     "post.stack",
@@ -123,7 +125,10 @@ mod tests {
     use crate::core::framework::render::{
         RenderFrameExtract, RenderPipelineHandle, RenderWorldSnapshotHandle,
     };
-    use crate::render_graph::{QueueLane, RenderGraphBuilder};
+    use crate::render_graph::{
+        PassFlags, QueueLane, RenderGraphBuilder, RenderGraphPassResourceAccess,
+        RenderGraphResourceAccessKind, RenderGraphResourceKind, RenderPassId,
+    };
     use crate::rhi::{TextureDesc, TextureFormat, TextureUsage};
     use crate::scene::world::World;
     use crate::{
@@ -149,6 +154,70 @@ mod tests {
             error,
             "render pass executor `custom.executor` is not registered"
         );
+    }
+
+    #[test]
+    fn execution_context_records_graph_queue_and_pass_flags() {
+        let context = RenderPassExecutionContext::with_graph_metadata(
+            "async-virtual-geometry-cull",
+            RenderPassExecutorId::new("virtual-geometry.node-cluster-cull"),
+            QueueLane::AsyncCompute,
+            PassFlags {
+                allow_culling: false,
+                has_side_effects: true,
+            },
+        );
+
+        assert_eq!(context.declared_queue, QueueLane::AsyncCompute);
+        assert_eq!(context.queue, QueueLane::AsyncCompute);
+        assert_eq!(
+            context.flags,
+            PassFlags {
+                allow_culling: false,
+                has_side_effects: true,
+            }
+        );
+        assert!(context.resources.is_empty());
+
+        let resources = vec![RenderGraphPassResourceAccess {
+            name: "virtual-geometry-visible-clusters".to_string(),
+            kind: RenderGraphResourceKind::TransientBuffer,
+            access: RenderGraphResourceAccessKind::Read,
+        }];
+        let context = RenderPassExecutionContext::with_graph_metadata_and_resources(
+            "async-virtual-geometry-visbuffer",
+            RenderPassExecutorId::new("virtual-geometry.visbuffer"),
+            QueueLane::Graphics,
+            PassFlags::default(),
+            resources.clone(),
+        );
+
+        assert_eq!(context.resources, resources);
+        assert!(context.dependencies.is_empty());
+        assert!(!context.uses_queue_fallback());
+
+        let context = RenderPassExecutionContext::with_declared_graph_metadata(
+            "fallback-ssao",
+            RenderPassExecutorId::new("ao.ssao-evaluate"),
+            QueueLane::Graphics,
+            QueueLane::AsyncCompute,
+            PassFlags::default(),
+        );
+        assert_eq!(context.queue, QueueLane::Graphics);
+        assert_eq!(context.declared_queue, QueueLane::AsyncCompute);
+        assert!(context.uses_queue_fallback());
+
+        let context =
+            RenderPassExecutionContext::with_declared_graph_metadata_dependencies_and_resources(
+                "lighting",
+                RenderPassExecutorId::new("lighting.clustered-cull"),
+                QueueLane::Graphics,
+                QueueLane::Graphics,
+                PassFlags::default(),
+                vec![RenderPassId(1), RenderPassId(3)],
+                Vec::new(),
+            );
+        assert_eq!(context.dependencies, vec![RenderPassId(1), RenderPassId(3)]);
     }
 
     #[test]
@@ -194,6 +263,7 @@ mod tests {
             "hybrid-gi.trace-schedule",
             "hybrid-gi.resolve",
             "hybrid-gi.history",
+            "particle.transparent",
         ] {
             assert!(
                 !registry.contains(&RenderPassExecutorId::new(executor_id)),
@@ -260,6 +330,29 @@ mod tests {
             error,
             "render pass `custom-pass` references unregistered executor `custom.executor`"
         );
+    }
+
+    #[test]
+    fn registry_rejects_executable_compiled_pipeline_pass_without_executor_id() {
+        let mut graph = RenderGraphBuilder::new("custom-pipeline");
+        graph.add_pass("custom-pass", QueueLane::Graphics);
+        let pipeline = CompiledRenderPipeline {
+            handle: RenderPipelineHandle::new(44),
+            name: "custom pipeline".to_string(),
+            renderer_name: "custom renderer".to_string(),
+            stages: Vec::new(),
+            enabled_features: Vec::new(),
+            required_extract_sections: Vec::new(),
+            capability_requirements: Vec::new(),
+            history_bindings: Vec::new(),
+            graph: graph.compile().unwrap(),
+        };
+
+        let error = RenderPassExecutorRegistry::with_builtin_noop_executors()
+            .validate_compiled_pipeline(&pipeline)
+            .unwrap_err();
+
+        assert_eq!(error, "render pass `custom-pass` has no executor id");
     }
 
     #[test]

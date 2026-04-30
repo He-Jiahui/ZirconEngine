@@ -1,0 +1,114 @@
+stylesheets = []
+
+[asset]
+kind = "layout"
+id = "editor.host.workbench_bottom_dock_header"
+version = 1
+display_name = "workbench bottom dock header"
+
+[imports]
+widgets = []
+styles = []
+
+[root]
+node_id = "bottom_dock_header_root"
+kind = "native"
+type = "Overlay"
+control_id = "BottomDockHeaderRoot"
+
+[root.layout]
+clip = true
+
+[root.layout.container]
+kind = "Overlay"
+
+[root.layout.width]
+stretch = "Stretch"
+
+[root.layout.height]
+stretch = "Stretch"
+
+[[root.children]]
+[root.children.node]
+node_id = "bottom_dock_header_bar"
+kind = "native"
+type = "Container"
+control_id = "BottomDockHeaderBar"
+
+[root.children.node.props]
+surface_variant = "panel"
+radius = 0.0
+border_width = 0.0
+
+[root.children.node.layout.position]
+x = 0.0
+y = 0.0
+
+[root.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.layout.height]
+min = 25.0
+preferred = 25.0
+max = 25.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "bottom_dock_tab_0"
+kind = "native"
+type = "Label"
+control_id = "BottomDockTab0"
+
+[root.children.node.props]
+text = "Console"
+text_tone = "default"
+font_size = 10.0
+text_align = "center"
+overflow = "elide"
+
+[root.children.node.layout.position]
+x = 6.0
+y = 3.0
+
+[root.children.node.layout.width]
+min = 82.0
+preferred = 82.0
+max = 82.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 20.0
+preferred = 20.0
+max = 20.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "bottom_dock_tab_1"
+kind = "native"
+type = "Label"
+control_id = "BottomDockTab1"
+
+[root.children.node.props]
+text = "Runtime Diagnostics"
+text_tone = "subtle"
+font_size = 10.0
+text_align = "center"
+overflow = "elide"
+
+[root.children.node.layout.position]
+x = 92.0
+y = 3.0
+
+[root.children.node.layout.width]
+min = 118.0
+preferred = 118.0
+max = 118.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 20.0
+preferred = 20.0
+max = 20.0
+stretch = "Fixed"

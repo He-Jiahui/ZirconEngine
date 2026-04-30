@@ -15,7 +15,7 @@ impl SceneRenderer {
     ) -> Result<Option<RenderVirtualGeometryCullInputSnapshot>, GraphicsError> {
         let Some(buffer) = self
             .advanced_plugin_outputs
-            .virtual_geometry_cull_input_buffer
+            .virtual_geometry_cull_input_buffer()
             .as_ref()
         else {
             return Ok(None);

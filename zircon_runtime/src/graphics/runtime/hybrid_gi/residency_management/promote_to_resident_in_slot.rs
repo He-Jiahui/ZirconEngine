@@ -7,9 +7,9 @@ impl HybridGiRuntimeState {
         slot: u32,
     ) {
         self.clear_pending_update(probe_id);
-        if let Some(previous_slot) = self.resident_slots.remove(&probe_id) {
+        if let Some(previous_slot) = self.remove_resident_probe_slot(probe_id) {
             if previous_slot != slot {
-                self.free_slots.insert(previous_slot);
+                self.insert_free_slot(previous_slot);
             }
         }
         if let Some(conflicting_probe) = self.probe_in_slot(slot) {
@@ -18,6 +18,6 @@ impl HybridGiRuntimeState {
             }
         }
         self.reserve_slot(slot);
-        self.resident_slots.insert(probe_id, slot);
+        self.insert_resident_probe_slot(probe_id, slot);
     }
 }

@@ -6,7 +6,7 @@ use crate::ui::slint_host::{
     NativeWindowPresenterStore, UiHostContext,
 };
 use crate::ui::workbench::layout::MainPageId;
-use slint::{ComponentHandle, PhysicalSize};
+use slint::PhysicalSize;
 
 fn native_target(
     window_id: &MainPageId,

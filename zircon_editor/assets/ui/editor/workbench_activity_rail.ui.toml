@@ -1,0 +1,167 @@
+stylesheets = []
+
+[asset]
+kind = "layout"
+id = "editor.workbench_activity_rail"
+version = 1
+display_name = "workbench activity rail"
+
+[imports]
+widgets = []
+styles = []
+
+[root]
+node_id = "activity_rail_root"
+kind = "native"
+type = "Overlay"
+control_id = "ActivityRailRoot"
+
+[root.layout]
+clip = true
+
+[root.layout.container]
+kind = "Overlay"
+
+[root.layout.width]
+stretch = "Stretch"
+
+[root.layout.height]
+stretch = "Stretch"
+
+[[root.children]]
+[root.children.node]
+node_id = "activity_rail_panel"
+kind = "native"
+type = "Container"
+control_id = "ActivityRailPanel"
+
+[root.children.node.props]
+surface_variant = "panel"
+radius = 0.0
+border_width = 0.0
+
+[root.children.node.layout.position]
+x = 0.0
+y = 0.0
+
+[root.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children]]
+[root.children.node]
+node_id = "activity_rail_button_0"
+kind = "native"
+type = "Container"
+control_id = "ActivityRailButton0"
+
+[root.children.node.props]
+radius = 3.0
+border_width = 0.0
+
+[root.children.node.layout.position]
+x = 3.0
+y = 6.0
+
+[root.children.node.layout.width]
+min = 30.0
+preferred = 30.0
+max = 30.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 30.0
+preferred = 30.0
+max = 30.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "activity_rail_button_label_0"
+kind = "native"
+type = "Label"
+control_id = "ActivityRailButtonLabel0"
+
+[root.children.node.props]
+text = "PR"
+text_tone = "muted"
+font_size = 10.0
+font_weight = 600
+text_align = "center"
+overflow = "elide"
+
+[root.children.node.layout.position]
+x = 3.0
+y = 6.0
+
+[root.children.node.layout.width]
+min = 30.0
+preferred = 30.0
+max = 30.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 30.0
+preferred = 30.0
+max = 30.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "activity_rail_button_1"
+kind = "native"
+type = "Container"
+control_id = "ActivityRailButton1"
+
+[root.children.node.props]
+radius = 3.0
+border_width = 0.0
+
+[root.children.node.layout.position]
+x = 3.0
+y = 38.0
+
+[root.children.node.layout.width]
+min = 30.0
+preferred = 30.0
+max = 30.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 30.0
+preferred = 30.0
+max = 30.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "activity_rail_button_label_1"
+kind = "native"
+type = "Label"
+control_id = "ActivityRailButtonLabel1"
+
+[root.children.node.props]
+text = "HI"
+text_tone = "muted"
+font_size = 10.0
+font_weight = 600
+text_align = "center"
+overflow = "elide"
+
+[root.children.node.layout.position]
+x = 3.0
+y = 38.0
+
+[root.children.node.layout.width]
+min = 30.0
+preferred = 30.0
+max = 30.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 30.0
+preferred = 30.0
+max = 30.0
+stretch = "Fixed"

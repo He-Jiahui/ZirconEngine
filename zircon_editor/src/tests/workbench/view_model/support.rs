@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use crate::scene::viewport::SceneViewportSettings;
 use crate::ui::workbench::autolayout::ShellFrame;
 use crate::ui::workbench::layout::{
-    ActivityDrawerLayout, ActivityDrawerMode, ActivityDrawerSlot, DocumentNode,
+    ActivityDrawerLayout, ActivityDrawerMode, ActivityDrawerSlot, ActivityWindowId, DocumentNode,
     FloatingWindowLayout, MainHostPageLayout, MainPageId, SplitAxis, TabStackLayout,
     WorkbenchLayout,
 };
@@ -54,6 +54,7 @@ pub(super) fn sample_workbench_chrome() -> EditorChromeSnapshot {
         main_pages: vec![MainHostPageLayout::WorkbenchPage {
             id: MainPageId::workbench(),
             title: "Workbench".to_string(),
+            activity_window: ActivityWindowId::workbench(),
             document_workspace: DocumentNode::Tabs(TabStackLayout {
                 tabs: vec![scene_instance.instance_id.clone()],
                 active_tab: Some(scene_instance.instance_id.clone()),
@@ -228,6 +229,7 @@ pub(super) fn sample_floating_window_chrome() -> EditorChromeSnapshot {
             main_pages: vec![MainHostPageLayout::WorkbenchPage {
                 id: MainPageId::workbench(),
                 title: "Workbench".to_string(),
+                activity_window: ActivityWindowId::workbench(),
                 document_workspace: DocumentNode::Tabs(TabStackLayout {
                     tabs: vec![scene_instance.instance_id.clone()],
                     active_tab: Some(scene_instance.instance_id.clone()),

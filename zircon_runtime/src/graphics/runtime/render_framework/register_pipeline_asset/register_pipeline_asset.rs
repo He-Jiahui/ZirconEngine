@@ -22,7 +22,6 @@ pub(in crate::graphics::runtime::render_framework) fn register_pipeline_asset(
             message,
         })?;
     state.pipelines.insert(handle, pipeline);
-    state.stats.last_pipeline = Some(handle);
     Ok(handle)
 }
 
@@ -46,6 +45,9 @@ fn validation_compile_options(pipeline: &RenderPipelineAsset) -> RenderPipelineC
         .fold(
             RenderPipelineCompileOptions::default(),
             |mut options, feature| {
+                if let Some(builtin) = feature.builtin_feature() {
+                    options = options.with_feature_enabled(builtin);
+                }
                 if let Some(gate) = feature.quality_gate {
                     options = options.with_feature_enabled(gate);
                 }

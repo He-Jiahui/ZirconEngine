@@ -1,21 +1,22 @@
-use crate::core::framework::render::{ProjectionMode, RenderFrameExtract, RenderHybridGiProbe};
+use crate::core::framework::render::{ProjectionMode, RenderFrameExtract};
 use crate::core::math::{UVec2, Vec3};
 use crate::graphics::types::HybridGiScenePrepareFrame;
 
 use super::super::camera_matrices::view_projection;
 use super::hybrid_gi_budget_weight::hybrid_gi_budget_weight;
+use super::hybrid_gi_probe_source::HybridGiProbeSource;
 
-pub(super) fn encode_hybrid_gi_probe_screen_data(
+pub(super) fn encode_hybrid_gi_probe_screen_data<S: HybridGiProbeSource + ?Sized>(
     extract: &RenderFrameExtract,
     viewport_size: UVec2,
-    probe: &RenderHybridGiProbe,
+    probe: &S,
 ) -> [f32; 4] {
     encode_hybrid_gi_bounds_screen_data(
         extract,
         viewport_size,
-        probe.position,
-        probe.radius,
-        hybrid_gi_budget_weight(probe.ray_budget),
+        probe.position(),
+        probe.radius(),
+        hybrid_gi_budget_weight(probe.ray_budget()),
     )
 }
 

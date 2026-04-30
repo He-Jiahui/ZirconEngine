@@ -12,6 +12,15 @@ impl RuntimeExtensionRegistry {
         _plugin_id: impl Into<String>,
         descriptor: ManagerDescriptor,
     ) -> Result<(), RuntimeExtensionRegistryError> {
+        if self
+            .managers
+            .iter()
+            .any(|existing| existing.name == descriptor.name)
+        {
+            return Err(RuntimeExtensionRegistryError::DuplicateManager(
+                descriptor.name.to_string(),
+            ));
+        }
         self.managers.push(descriptor);
         Ok(())
     }
@@ -54,6 +63,15 @@ impl RuntimeExtensionRegistry {
         &mut self,
         descriptor: ComponentTypeDescriptor,
     ) -> Result<(), RuntimeExtensionRegistryError> {
+        let expected_prefix = format!("{}.", descriptor.plugin_id);
+        if !descriptor.type_id.starts_with(&expected_prefix) {
+            return Err(RuntimeExtensionRegistryError::InvalidComponentType(
+                format!(
+                    "component type {} must be prefixed by plugin id {}",
+                    descriptor.type_id, descriptor.plugin_id
+                ),
+            ));
+        }
         if self
             .components
             .iter()
@@ -71,6 +89,13 @@ impl RuntimeExtensionRegistry {
         &mut self,
         descriptor: UiComponentDescriptor,
     ) -> Result<(), RuntimeExtensionRegistryError> {
+        let expected_prefix = format!("{}.", descriptor.plugin_id);
+        if !descriptor.component_id.starts_with(&expected_prefix) {
+            return Err(RuntimeExtensionRegistryError::InvalidUiComponent(format!(
+                "ui component {} must be prefixed by plugin id {}",
+                descriptor.component_id, descriptor.plugin_id
+            )));
+        }
         if self
             .ui_components
             .iter()

@@ -1,5 +1,3 @@
-use std::collections::BTreeMap;
-
 use crate::graphics::types::{
     HybridGiPrepareCardCaptureRequest, HybridGiPrepareSurfaceCachePageContent,
     HybridGiPrepareVoxelClipmap, HybridGiScenePrepareFrame,
@@ -9,29 +7,25 @@ use super::super::HybridGiRuntimeState;
 
 impl HybridGiRuntimeState {
     pub(crate) fn build_scene_prepare_frame(&self) -> HybridGiScenePrepareFrame {
-        let card_bounds_by_owner_card_id = self
-            .scene_representation
-            .cards
-            .iter()
-            .map(|card| (card.card_id, (card.bounds_center, card.bounds_radius)))
-            .collect::<BTreeMap<_, _>>();
+        let scene_representation = self.scene_representation();
+        let card_bounds_by_owner_card_id = scene_representation.card_bounds_by_id();
         HybridGiScenePrepareFrame {
             card_capture_requests: self
-                .scene_representation
-                .card_capture_requests
+                .scene_representation()
+                .card_capture_request_descriptors()
                 .iter()
                 .map(|request| HybridGiPrepareCardCaptureRequest {
-                    card_id: request.card_id,
-                    page_id: request.page_id,
-                    atlas_slot_id: request.atlas_slot_id,
-                    capture_slot_id: request.capture_slot_id,
-                    bounds_center: request.bounds_center,
-                    bounds_radius: request.bounds_radius,
+                    card_id: request.card_id(),
+                    page_id: request.page_id(),
+                    atlas_slot_id: request.atlas_slot_id(),
+                    capture_slot_id: request.capture_slot_id(),
+                    bounds_center: request.bounds_center(),
+                    bounds_radius: request.bounds_radius(),
                 })
                 .collect(),
             surface_cache_page_contents: self
-                .scene_representation
-                .surface_cache
+                .scene_representation()
+                .surface_cache()
                 .page_contents_snapshot()
                 .into_iter()
                 .filter_map(
@@ -59,8 +53,8 @@ impl HybridGiRuntimeState {
                 )
                 .collect(),
             voxel_clipmaps: self
-                .scene_representation
-                .voxel_scene
+                .scene_representation()
+                .voxel_scene()
                 .clipmap_descriptors_snapshot()
                 .into_iter()
                 .map(
@@ -71,7 +65,10 @@ impl HybridGiRuntimeState {
                     },
                 )
                 .collect(),
-            voxel_cells: self.scene_representation.voxel_scene.voxel_cells_snapshot(),
+            voxel_cells: self
+                .scene_representation()
+                .voxel_scene()
+                .voxel_cells_snapshot(),
         }
     }
 }
@@ -99,8 +96,8 @@ mod tests {
         state.register_scene_extract(Some(&extract), &[mesh.clone()], &[], &[], &[]);
         state.register_scene_extract(Some(&extract), &[mesh], &[], &[], &[]);
         state
-            .scene_representation
-            .surface_cache
+            .scene_representation_mut()
+            .surface_cache_mut()
             .replace_page_contents_for_test(&[(22, 7, 0, 0, [10, 20, 30, 255], [40, 50, 60, 255])]);
 
         let frame = state.build_scene_prepare_frame();

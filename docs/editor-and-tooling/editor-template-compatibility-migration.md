@@ -125,7 +125,7 @@ related_code:
   - zircon_editor/ui/workbench/ui_asset_editor_inspector_panel.slint
   - zircon_editor/ui/workbench/ui_asset_editor_stylesheet_panel.slint
   - zircon_editor/ui/workbench/welcome.slint
-  - zircon_editor/src/tests/host/template_runtime/workbench_document.rs
+  - zircon_editor/src/tests/host/template_runtime/host_window_document.rs
   - zircon_editor/src/tests/host/template_runtime/viewport_toolbar.rs
   - zircon_editor/src/tests/host/template_runtime/shared_surface.rs
   - zircon_editor/src/tests/host/binding_dispatch.rs
@@ -276,7 +276,7 @@ tests:
   - zircon_editor/src/tests/ui/template/catalog_registry.rs
   - zircon_editor/src/tests/ui/template/binding_resolution.rs
   - zircon_editor/src/tests/ui/template/repository_assets.rs
-  - zircon_editor/src/tests/host/template_runtime/workbench_document.rs
+  - zircon_editor/src/tests/host/template_runtime/host_window_document.rs
   - zircon_editor/src/tests/host/template_runtime/shared_surface.rs
   - zircon_editor/src/tests/host/binding_dispatch.rs
   - zircon_editor/src/tests/host/slint_callback_dispatch/mod.rs
@@ -313,6 +313,8 @@ tests:
   - cargo test -p zircon_editor --lib binding_dispatch -- --nocapture
   - cargo test -p zircon_editor --lib template_runtime -- --nocapture
   - cargo test -p zircon_editor --lib template_runtime --locked -- --nocapture
+  - cargo test -p zircon_editor --lib builtin_host_runtime_exposes_only_generic_host_window_document_id --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-cutover-move-first --message-format short --color never -- --test-threads=1 --nocapture
+  - cargo test -p zircon_editor --lib catalog_registry --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-cutover-move-first --message-format short --color never -- --test-threads=1 --nocapture
   - cargo test -p zircon_editor --lib slint_callback_dispatch -- --nocapture
   - cargo test -p zircon_editor --lib slint_callback_dispatch --locked -- --nocapture
   - cargo test -p zircon_editor --lib shared_viewport_surface_replaces_legacy_direct_pointer_callback_abi --locked -- --nocapture
@@ -1679,21 +1681,21 @@ viewport 这条链路现在也不再停留在“外框进入 shared bridge，但
 
 这一刀先把 builtin root host 的“文档身份”从 workbench 专名收口成 generic host 边界，而不是继续让 runtime/template/host 主入口对外暴露业务名。
 
-- [`zircon_editor/src/ui/template_runtime/builtin/template_documents.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/template_runtime/builtin/template_documents.rs) 现在把 `ui.host_window` 注册为 builtin root template 的首选 `document_id`，同时继续保留 `workbench.shell` 作为兼容别名；两者都指向同一份 [`workbench_shell.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml)
-- [`zircon_editor/src/ui/template_runtime/builtin/component_descriptors.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/template_runtime/builtin/component_descriptors.rs) 里的 `UiHostWindow/MenuBar/ActivityRail/DocumentHost/StatusBar` descriptor 已切到 `ui.host_window`，因此 component catalog 的默认根入口不再依赖 `workbench.shell`
-- [`zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs) 新增 generic `load_builtin_host_templates()` 入口；旧的 `load_builtin_workbench_shell()` 仅作为兼容包装保留
-- [`zircon_editor/src/ui/slint_host/callback_dispatch/constants.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/callback_dispatch/constants.rs) 与 [`zircon_editor/src/ui/slint_host/callback_dispatch/template_bridge/workbench/bridge.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/callback_dispatch/template_bridge/workbench/bridge.rs) 主消费路径已经改用 `BUILTIN_UI_HOST_WINDOW_DOCUMENT_ID` 与 `UI_HOST_WINDOW_CONTROL_ID`，因此真实 Slint host 的 builtin root projection 默认不再从 `workbench.shell` 取文档
-- [`zircon_editor/src/tests/host/template_runtime/workbench_document.rs`](/E:/Git/ZirconEngine/zircon_editor/src/tests/host/template_runtime/workbench_document.rs) 现在以 `ui.host_window` 作为 builtin projection / shared surface 的主预期，同时新增 `editor_ui_host_runtime_keeps_legacy_workbench_shell_document_alias` 固定住 legacy alias 兼容
+- [`zircon_editor/src/ui/template_runtime/builtin/template_documents.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/template_runtime/builtin/template_documents.rs) 现在只把 `ui.host_window` 注册为 builtin root template 的 `document_id`；旧 workbench shell document alias、测试 re-export 和重复 document entry 已删除，同一份 [`workbench_shell.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml) 不再被双身份注册
+- [`zircon_editor/src/ui/template_runtime/builtin/component_descriptors.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/template_runtime/builtin/component_descriptors.rs) 里的 `UiHostWindow/MenuBar/ActivityRail/DocumentHost/StatusBar` descriptor 已切到 `ui.host_window`，因此 component catalog 的默认根入口只依赖 generic host 文档身份
+- [`zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs) 只保留 generic `load_builtin_host_templates()` 入口，不再通过旧 workbench shell 命名包装加载 builtin host templates
+- [`zircon_editor/src/ui/slint_host/callback_dispatch/constants.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/callback_dispatch/constants.rs) 与 [`zircon_editor/src/ui/slint_host/callback_dispatch/template_bridge/workbench/bridge.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/callback_dispatch/template_bridge/workbench/bridge.rs) 主消费路径已经改用 `BUILTIN_UI_HOST_WINDOW_DOCUMENT_ID` 与 `UI_HOST_WINDOW_CONTROL_ID`，因此真实 Slint host 的 builtin root projection 只按 generic host document id 取文档
+- [`zircon_editor/src/tests/host/template_runtime/host_window_document.rs`](/E:/Git/ZirconEngine/zircon_editor/src/tests/host/template_runtime/host_window_document.rs) 现在以 `ui.host_window` 作为 builtin projection / shared surface 的唯一预期；`editor_ui_host_runtime_registers_only_generic_host_window_document_id` 会锁住 shared surface tree id，`builtin_host_runtime_exposes_only_generic_host_window_document_id` 会禁止 template runtime 和对应测试恢复旧 alias 常量或旧 literal
 - [`zircon_editor/ui/workbench.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench.slint) 现在把导出的 `UiHostWindow` 真正收口成 generic host window/bootstrap wrapper：root 只保留 window 级属性、对 `WorkbenchHostScaffold` 的属性别名，以及 callback forwarding；原来的 menu/drawer/document/floating 业务树已经落回内部 `WorkbenchHostScaffold`
 - 最新这一刀继续把 root/bootstrap 与 pane-surface 目录边界切得更干净：[`zircon_editor/ui/workbench/pane_data.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/pane_data.slint) 现在独立承接 `PaneData + SceneViewportChromeData + ProjectOverviewData`，[`zircon_editor/ui/workbench/asset_panes.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/asset_panes.slint) 独立承接 `ProjectOverviewPane/AssetsActivityPane/AssetBrowserPane`，[`zircon_editor/ui/workbench/ui_asset_editor_pane.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/ui_asset_editor_pane.slint) 进一步退化成 `UiAssetEditorPane` orchestration shell，而 `UiAssetEditorPaneData`、shared widgets、center column、inspector panel 和 stylesheet panel 已分别拆到 [`ui_asset_editor_data.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/ui_asset_editor_data.slint)、[`ui_asset_editor_components.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/ui_asset_editor_components.slint)、[`ui_asset_editor_center_column.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/ui_asset_editor_center_column.slint)、[`ui_asset_editor_inspector_panel.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/ui_asset_editor_inspector_panel.slint) 和 [`ui_asset_editor_stylesheet_panel.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/ui_asset_editor_stylesheet_panel.slint)；[`zircon_editor/ui/workbench/pane_fields.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/pane_fields.slint) 继续只承接 `CompactField/AxisField`，而 [`zircon_editor/ui/workbench/host_workbench_surfaces.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_workbench_surfaces.slint) 则独立承接 `HostSideDockSurface/HostDocumentDockSurface/HostBottomDockSurface/HostFloatingWindowLayer/HostNativeFloatingWindowSurface`
 - 对应地，[`zircon_editor/ui/workbench.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench.slint) 与 [`zircon_editor/ui/workbench/host_components.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_components.slint) 都不再直接 import `pane_surface.slint`；`PaneSurfaceHostContext` 现在从 `host_workbench_surfaces.slint` 转出，`PaneData/ProjectOverviewData/SceneNodeData` 从 `pane_data.slint` 转出
 - [`zircon_editor/tests/workbench_slint_shell.rs`](/E:/Git/ZirconEngine/zircon_editor/tests/workbench_slint_shell.rs) 新增 `ui_host_window_root_delegates_to_internal_scaffold_only`，把“exported root 只能委托内部 scaffold，不能重新直接拥有 `top_bar` / floating overlay / main content zone” 固定成 source regression
 
-这一刀仍然刻意没有直接删除 `workbench.shell`：
+这次不再保留旧 alias：
 
-- 当前 `workbench.slint` 里真正的业务结构仍然还在 `WorkbenchHostScaffold`，builtin template bridge 和更大面的 host projection 也仍然承载 workbench-specific 结构与测试命名
-- exported `UiHostWindow` 目前仍暂时保留一整套业务属性与 callback ABI，只是已经不再直接拥有业务 Slint 树；后续如果继续做更深的 generic host boundary，还需要再收缩这层 ABI 面
-- 先保留 alias，可以在不打断现有 template/runtime 兼容链的前提下，把主入口的对外边界先 generic 化
+- 当前审计没有发现 production caller 需要旧 builtin host document identity；剩余命中只来自 alias 自身、对应测试和旧文档说明
+- `workbench_shell.ui.toml` 仍然是当前 root host asset 文件名，但它只通过 generic `ui.host_window` 文档身份进入 runtime registry
+- Generic host boundary 后续仍要继续迁出 menu/drawer/document/floating 子结构；这些业务结构不再作为保留重复 builtin document identity 的理由
 
 这轮 focused validation 结果：
 
@@ -1705,6 +1707,16 @@ viewport 这条链路现在也不再停留在“外框进入 shared bridge，但
 - `cargo test -p zircon_editor shared_viewport_surface_replaces_legacy_direct_pointer_callback_abi --locked --quiet`
 - `cargo test -p zircon_editor pane_surface_actions_use_generic_template_callbacks_instead_of_legacy_menu_action_abi --locked --quiet`
 - `cargo test -p zircon_editor native_floating_window_mode_forwards_tabs_header_and_pane_callbacks_to_root --locked --quiet`
+
+2026-05-01 继续清理旧 builtin host document alias 后，focused validation 已重新覆盖当前 active Rust path：
+
+- `cargo test -p zircon_editor --lib builtin_host_runtime_exposes_only_generic_host_window_document_id --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-cutover-move-first --message-format short --color never -- --test-threads=1 --nocapture`，1 passed / 0 failed / 847 filtered out
+- `cargo test -p zircon_editor --lib template_runtime --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-cutover-move-first --message-format short --color never -- --test-threads=1 --nocapture`，36 passed / 0 failed / 812 filtered out
+- `cargo test -p zircon_editor --lib generic_host_boundary --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-cutover-move-first --message-format short --color never -- --test-threads=1 --nocapture`，8 passed / 0 failed / 840 filtered out
+- `cargo test -p zircon_editor --lib catalog_registry --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-cutover-move-first --message-format short --color never -- --test-threads=1 --nocapture`，3 passed / 0 failed / 845 filtered out
+- `rustfmt --edition 2021 --check` 覆盖本轮触及 Rust 文件，通过
+- exact source sweeps confirmed the old builtin host document literal and `LEGACY_HOST_WINDOW_DOCUMENT_ID` are gone from active `zircon_editor/src` and docs; only unrelated `editor.workbench.shell_pointer.*` routing ids remain under shell pointer surfaces
+- touched-file `git diff --check` only reported Windows LF-to-CRLF warnings
 
 当前更宽的 `cargo test -p zircon_editor --lib builtin_workbench_template_bridge --locked -- --nocapture` 仍会先失败在相邻 `editing/ui_asset/session.rs` source-cursor refactor 遗留的缺失 helper（例如 `remap_source_byte_offset(...)`）上，而不是这次 `ui.host_window` cutover 本身。
 

@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+mod support;
+
 use zircon_runtime::asset::pipeline::manager::ProjectAssetManager;
 use zircon_runtime::core::framework::render::{
     RenderFramework, RenderQualityProfile, RenderViewportDescriptor, RenderVirtualGeometryCluster,
@@ -11,13 +13,12 @@ use zircon_runtime::core::framework::render::{
     RenderVirtualGeometryVisBuffer64Source, RenderVirtualGeometryVisBufferMark,
 };
 use zircon_runtime::core::math::{Transform, UVec2, Vec3};
-use zircon_runtime::graphics::WgpuRenderFramework;
 use zircon_runtime::scene::world::World;
 
 #[test]
 fn render_framework_visbuffer_marks_follow_execution_segments_not_missing_visibility_superset() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let server = WgpuRenderFramework::new(asset_manager).expect("framework should initialize");
+    let server = support::virtual_geometry_wgpu_render_framework(asset_manager);
     let viewport_size = UVec2::new(320, 240);
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(viewport_size))
@@ -204,7 +205,7 @@ fn render_framework_visbuffer_marks_follow_execution_segments_not_missing_visibi
 #[test]
 fn render_framework_visbuffer64_source_reports_clear_only_for_empty_execution_selection_frames() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let server = WgpuRenderFramework::new(asset_manager).expect("framework should initialize");
+    let server = support::virtual_geometry_wgpu_render_framework(asset_manager);
     let viewport_size = UVec2::new(320, 240);
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(viewport_size))

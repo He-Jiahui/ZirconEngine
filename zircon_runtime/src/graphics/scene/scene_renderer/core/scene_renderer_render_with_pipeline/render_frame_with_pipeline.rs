@@ -3,6 +3,7 @@ use crate::core::framework::render::{
 };
 
 use crate::graphics::types::{GraphicsError, ViewportFrame, ViewportRenderFrame};
+use crate::render_graph::QueueLane;
 use crate::CompiledRenderPipeline;
 
 use super::super::super::graph_execution::{
@@ -105,6 +106,25 @@ impl SceneRenderer {
     pub(crate) fn last_render_graph_executed_executor_ids(&self) -> &[String] {
         self.last_render_graph_execution.executed_executor_ids()
     }
+
+    pub(crate) fn last_render_graph_executed_resource_access_count(&self) -> usize {
+        self.last_render_graph_execution
+            .executed_resource_access_count()
+    }
+
+    pub(crate) fn last_render_graph_executed_dependency_count(&self) -> usize {
+        self.last_render_graph_execution.executed_dependency_count()
+    }
+
+    pub(crate) fn last_render_graph_executed_queue_fallback_count(&self) -> usize {
+        self.last_render_graph_execution
+            .executed_queue_fallback_count()
+    }
+
+    pub(crate) fn last_render_graph_executed_queue_lane_count(&self, queue: QueueLane) -> usize {
+        self.last_render_graph_execution
+            .executed_queue_lane_count(queue)
+    }
 }
 
 fn resolve_virtual_geometry_cull_input(
@@ -195,13 +215,30 @@ fn execute_compiled_graph_passes(
 
     let mut record = RenderGraphExecutionRecord::default();
     for pass in pipeline.graph.passes().iter().filter(|pass| !pass.culled) {
-        let Some(executor_id) = pass.executor_id.as_ref() else {
-            continue;
-        };
+        let executor_id = pass
+            .executor_id
+            .as_ref()
+            .expect("compiled executable pass should be validated with an executor id");
         let executor_id = RenderPassExecutorId::new(executor_id.clone());
-        let context = RenderPassExecutionContext::new(pass.name.clone(), executor_id.clone());
+        let context =
+            RenderPassExecutionContext::with_declared_graph_metadata_dependencies_and_resources(
+                pass.name.clone(),
+                executor_id.clone(),
+                pass.queue,
+                pass.declared_queue,
+                pass.flags,
+                pass.dependencies.clone(),
+                pass.resources.clone(),
+            );
         registry.execute(&context).map_err(GraphicsError::Asset)?;
-        record.push_executed_pass(pass.name.clone(), executor_id.as_str().to_string());
+        record.push_executed_pass_with_declared_queue_dependencies_and_resources(
+            pass.name.clone(),
+            executor_id.as_str().to_string(),
+            pass.queue,
+            pass.declared_queue,
+            pass.dependencies.clone(),
+            pass.resources.clone(),
+        );
     }
     Ok(record)
 }

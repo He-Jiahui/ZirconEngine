@@ -74,6 +74,18 @@ impl AssetContentListPointerBridge {
         })
     }
 
+    pub(crate) fn handle_press(
+        &mut self,
+        point: UiPoint,
+    ) -> Result<AssetContentListPointerDispatch, String> {
+        let route = self.dispatch_event(UiPointerEvent::new(UiPointerEventKind::Down, point))?;
+        self.state.hovered_row_index = hovered_row_from_target(route.as_ref());
+        Ok(AssetContentListPointerDispatch {
+            route: route.map(to_public_route),
+            state: self.state.clone(),
+        })
+    }
+
     pub(crate) fn handle_move(
         &mut self,
         point: UiPoint,

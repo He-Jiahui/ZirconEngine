@@ -1,49 +1,34 @@
 use std::fs;
-use std::path::PathBuf;
+use std::path::Path;
 
-fn read(relative: &str) -> String {
-    fs::read_to_string(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(relative))
-        .unwrap_or_else(|_| panic!("{relative} should be readable"))
+fn source(relative: &str) -> String {
+    fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join(relative))
+        .unwrap_or_else(|error| panic!("read `{relative}`: {error}"))
 }
 
 #[test]
-fn workbench_shell_declares_animation_editor_pane_surface_instead_of_fallback_only() {
-    let pane_surface = read("ui/workbench/pane_surface.slint");
-    let pane_content = read("ui/workbench/pane_content.slint");
-    let pane_data = read("ui/workbench/pane_data.slint");
+fn animation_editor_shell_uses_template_nodes_and_toml_panels() {
+    let panes = source("src/ui/slint_host/host_contract/data/panes.rs");
+    let asset = source("assets/ui/editor/animation_editor.ui.toml");
 
-    assert!(pane_surface.contains("import { PaneContent } from \"pane_content.slint\";"));
-    assert!(!pane_surface
-        .contains("import { AnimationEditorPane } from \"animation_editor_pane.slint\";"));
-    assert!(!pane_data
-        .contains("import { AnimationEditorPaneData } from \"animation_editor_pane.slint\";"));
-    assert!(pane_data.contains("export struct AnimationEditorPaneData {"));
-    assert!(pane_data.contains("nodes: [TemplatePaneNodeData],"));
-    assert!(!pane_data.contains("export struct AnimationEditorShellFrameData {"));
-    assert!(!pane_data.contains("export struct AnimationEditorShellLayoutData {"));
-    assert!(pane_data.contains("animation: AnimationEditorPaneData,"));
-    assert!(!pane_content
-        .contains("import { AnimationEditorPaneView } from \"animation_editor_pane_view.slint\";"));
-    assert!(pane_content.contains(
-        "if !root.pane.show_empty && (root.pane.kind == \"AnimationSequenceEditor\" || root.pane.kind == \"AnimationGraphEditor\"): AnimationEditorPaneView {"
-    ));
-    assert!(pane_content.contains("pane: root.pane.animation;"));
-    assert!(pane_content.contains("component AnimationEditorPaneView inherits Rectangle {"));
-    assert!(pane_content.contains("root.pane.nodes"));
-    assert!(pane_content.contains("AnimationEditorHeaderPanel"));
-    assert!(pane_content.contains("AnimationGraphContentPanel"));
-    assert!(pane_content.contains("AnimationStateMachineTransitionsPanel"));
-    assert!(!pane_content.contains("root.pane.shell_layout.header_panel"));
-    assert!(!pane_content.contains("root.pane.shell_layout.graph_content_panel"));
-    assert!(!pane_content
-        .contains("import { AnimationEditorPane } from \"animation_editor_pane.slint\";"));
-    assert!(!pane_content.contains(
-        "root.pane.kind == \"AnimationSequenceEditor\" || root.pane.kind == \"AnimationGraphEditor\" || root.pane.kind == \"UiAssetEditor\")"
-    ));
-    assert!(!PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("ui/workbench/animation_editor_pane_view.slint")
-        .exists());
-    assert!(!PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("ui/workbench/animation_editor_pane.slint")
-        .exists());
+    for required in [
+        "pub(crate) struct AnimationEditorPaneData",
+        "pub nodes: ModelRc<TemplatePaneNodeData>",
+        "pub track_items: ModelRc<SharedString>",
+        "pub parameter_items: ModelRc<SharedString>",
+        "pub node_items: ModelRc<SharedString>",
+        "pub state_items: ModelRc<SharedString>",
+        "pub transition_items: ModelRc<SharedString>",
+        "pub animation: AnimationEditorPaneData",
+    ] {
+        assert!(panes.contains(required), "animation pane DTO missing `{required}`");
+    }
+    for required in [
+        "AnimationEditorHeaderPanel",
+        "AnimationSequenceTimelineRow",
+        "AnimationGraphContentPanel",
+        "AnimationStateMachineTransitionsPanel",
+    ] {
+        assert!(asset.contains(required), "animation editor TOML missing `{required}`");
+    }
 }

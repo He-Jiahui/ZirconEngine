@@ -63,13 +63,13 @@ children = [
 
 [nodes.open_project]
 kind = "native"
-type = "UiHostIconButton"
+type = "IconButton"
 control_id = "OpenProject"
 bindings = [{ id = "WorkbenchMenuBar/OpenProject", event = "Click", route = "MenuAction.OpenProject" }]
 
 [nodes.save_project]
 kind = "native"
-type = "UiHostIconButton"
+type = "IconButton"
 control_id = "SaveProject"
 bindings = [{ id = "WorkbenchMenuBar/SaveProject", event = "Click", route = "MenuAction.SaveProject" }]
 "##;

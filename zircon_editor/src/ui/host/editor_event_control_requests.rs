@@ -3,6 +3,8 @@ use crate::core::editor_operation::{
     EditorOperationInvocation, EditorOperationPath, EditorOperationSource,
 };
 use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload};
+use serde_json::{Number, Value};
+use zircon_runtime::ui::binding::UiBindingValue;
 use zircon_runtime::ui::{
     binding::UiEventBinding, event_ui::UiControlRequest, event_ui::UiControlResponse,
     event_ui::UiInvocationError, event_ui::UiInvocationResult, event_ui::UiNodePath,
@@ -152,9 +154,14 @@ impl EditorEventRuntime {
         binding: EditorUiBinding,
     ) -> UiInvocationResult {
         let ui_binding = binding.as_ui_binding();
-        if let EditorUiBindingPayload::EditorOperation { operation_id } = binding.payload() {
+        if let EditorUiBindingPayload::EditorOperation {
+            operation_id,
+            arguments,
+        } = binding.payload()
+        {
             let invocation = match EditorOperationPath::parse(operation_id.clone()) {
-                Ok(path) => EditorOperationInvocation::new(path),
+                Ok(path) => EditorOperationInvocation::new(path)
+                    .with_arguments(ui_binding_arguments_to_json(arguments)),
                 Err(error) => {
                     return UiInvocationResult {
                         route_id,
@@ -192,6 +199,29 @@ impl EditorEventRuntime {
                 value: None,
                 error: Some(UiInvocationError::HandlerFailed(error)),
             },
+        }
+    }
+}
+
+fn ui_binding_arguments_to_json(arguments: &[UiBindingValue]) -> Value {
+    if arguments.is_empty() {
+        return Value::Null;
+    }
+    Value::Array(arguments.iter().map(ui_binding_value_to_json).collect())
+}
+
+fn ui_binding_value_to_json(value: &UiBindingValue) -> Value {
+    match value {
+        UiBindingValue::String(value) => Value::String(value.clone()),
+        UiBindingValue::Unsigned(value) => Value::Number(Number::from(*value)),
+        UiBindingValue::Signed(value) => Value::Number(Number::from(*value)),
+        UiBindingValue::Float(value) => Number::from_f64(*value)
+            .map(Value::Number)
+            .unwrap_or(Value::Null),
+        UiBindingValue::Bool(value) => Value::Bool(*value),
+        UiBindingValue::Null => Value::Null,
+        UiBindingValue::Array(values) => {
+            Value::Array(values.iter().map(ui_binding_value_to_json).collect())
         }
     }
 }

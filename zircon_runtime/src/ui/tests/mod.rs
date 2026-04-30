@@ -6,3 +6,4 @@ mod component_catalog;
 mod event_manager;
 mod shared_core;
 mod template;
+mod text_layout;

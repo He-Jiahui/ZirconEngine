@@ -19,46 +19,48 @@ impl HybridGiRuntimeState {
         trace_region_ids: impl IntoIterator<Item = u32>,
     ) {
         let mut seen_region_ids = BTreeSet::new();
-        self.scheduled_trace_regions = trace_region_ids
+        let scheduled_trace_regions = trace_region_ids
             .into_iter()
             .filter(|region_id| seen_region_ids.insert(*region_id))
-            .filter(|region_id| self.trace_region_scene_data.contains_key(region_id))
+            .filter(|region_id| self.trace_region_scene_data().contains_key(region_id))
             .take(MAX_RUNTIME_SCENE_TRACE_REGIONS)
             .collect();
+        self.replace_scheduled_trace_regions(scheduled_trace_regions);
     }
 
     pub(in crate::graphics::runtime::hybrid_gi) fn refresh_recent_lineage_trace_support(&mut self) {
-        let probe_ids = self.probe_scene_data.keys().copied().collect::<Vec<_>>();
+        let probe_ids = self.probe_scene_data().keys().copied().collect::<Vec<_>>();
         for probe_id in probe_ids {
             let current_q8 =
                 quantize_support_q8(self.current_lineage_trace_support_score(probe_id));
             let decayed_recent_q8 = self
-                .recent_lineage_trace_support_q8
+                .recent_lineage_trace_support_q8()
                 .get(&probe_id)
                 .copied()
                 .map(decay_support_q8)
                 .unwrap_or_default();
             let refreshed_q8 = current_q8.max(decayed_recent_q8);
             if refreshed_q8 == 0 {
-                self.recent_lineage_trace_support_q8.remove(&probe_id);
+                self.recent_lineage_trace_support_q8_mut().remove(&probe_id);
             } else {
-                self.recent_lineage_trace_support_q8
+                self.recent_lineage_trace_support_q8_mut()
                     .insert(probe_id, refreshed_q8);
             }
 
             let current_request_q8 =
                 quantize_support_q8(self.current_requested_lineage_support_score(probe_id));
             let decayed_recent_request_q8 = self
-                .recent_requested_lineage_support_q8
+                .recent_requested_lineage_support_q8()
                 .get(&probe_id)
                 .copied()
                 .map(decay_request_support_q8)
                 .unwrap_or_default();
             let refreshed_request_q8 = current_request_q8.max(decayed_recent_request_q8);
             if refreshed_request_q8 == 0 {
-                self.recent_requested_lineage_support_q8.remove(&probe_id);
+                self.recent_requested_lineage_support_q8_mut()
+                    .remove(&probe_id);
             } else {
-                self.recent_requested_lineage_support_q8
+                self.recent_requested_lineage_support_q8_mut()
                     .insert(probe_id, refreshed_request_q8);
             }
         }
@@ -69,14 +71,14 @@ impl HybridGiRuntimeState {
         probe_id: u32,
     ) -> f32 {
         let trace_support = self.current_lineage_trace_support_score(probe_id).max(
-            self.recent_lineage_trace_support_q8
+            self.recent_lineage_trace_support_q8()
                 .get(&probe_id)
                 .copied()
                 .map(dequantize_support_q8)
                 .unwrap_or_default(),
         );
         let request_support = self.current_requested_lineage_support_score(probe_id).max(
-            self.recent_requested_lineage_support_q8
+            self.recent_requested_lineage_support_q8()
                 .get(&probe_id)
                 .copied()
                 .map(dequantize_support_q8)
@@ -101,7 +103,7 @@ impl HybridGiRuntimeState {
         loop {
             total_support +=
                 self.single_probe_scene_trace_support(current_probe_id) * lineage_weight;
-            let Some(parent_probe_id) = self.probe_parent_probes.get(&current_probe_id).copied()
+            let Some(parent_probe_id) = self.probe_parent_probes().get(&current_probe_id).copied()
             else {
                 break;
             };
@@ -116,24 +118,24 @@ impl HybridGiRuntimeState {
     }
 
     fn single_probe_scene_trace_support(&self, probe_id: u32) -> f32 {
-        let Some(probe) = self.probe_scene_data.get(&probe_id) else {
+        let Some(probe) = self.probe_scene_data().get(&probe_id) else {
             return 0.0;
         };
 
         self.scheduled_scene_trace_regions()
             .into_iter()
             .map(|region| {
-                let reach = probe.radius_q.saturating_add(region.radius_q).max(1) as f32;
+                let reach = probe.radius_q().saturating_add(region.radius_q()).max(1) as f32;
                 let max_distance = (reach * 3.0).max(1.0);
-                let distance_to_region = probe.position_x_q.abs_diff(region.center_x_q) as f32
-                    + probe.position_y_q.abs_diff(region.center_y_q) as f32
-                    + probe.position_z_q.abs_diff(region.center_z_q) as f32;
+                let distance_to_region = probe.position_x_q().abs_diff(region.center_x_q()) as f32
+                    + probe.position_y_q().abs_diff(region.center_y_q()) as f32
+                    + probe.position_z_q().abs_diff(region.center_z_q()) as f32;
                 if distance_to_region >= max_distance {
                     return 0.0;
                 }
 
                 let proximity = 1.0 - distance_to_region / max_distance;
-                proximity * proximity * (region.coverage_q.min(255) as f32 / 128.0)
+                proximity * proximity * (region.coverage_q().min(255) as f32 / 128.0)
             })
             .sum()
     }
@@ -141,16 +143,16 @@ impl HybridGiRuntimeState {
     fn scheduled_scene_trace_regions(
         &self,
     ) -> Vec<&super::declarations::HybridGiRuntimeTraceRegionSceneData> {
-        self.scheduled_trace_regions
+        self.scheduled_trace_region_ids()
             .iter()
-            .filter_map(|region_id| self.trace_region_scene_data.get(region_id))
+            .filter_map(|region_id| self.trace_region_scene_data().get(region_id))
             .take(MAX_RUNTIME_SCENE_TRACE_REGIONS)
             .collect()
     }
 
     fn descendant_trace_support_score(&self, probe_id: u32) -> f32 {
         let mut stack = self
-            .probe_parent_probes
+            .probe_parent_probes()
             .iter()
             .filter_map(|(&candidate_probe_id, &parent_probe_id)| {
                 (parent_probe_id == probe_id).then_some((candidate_probe_id, 1usize))
@@ -168,7 +170,7 @@ impl HybridGiRuntimeState {
                 self.single_probe_scene_trace_support(candidate_probe_id)
                     * DESCENDANT_TRACE_SUPPORT_FALLOFF.powi((depth - 1) as i32),
             );
-            stack.extend(self.probe_parent_probes.iter().filter_map(
+            stack.extend(self.probe_parent_probes().iter().filter_map(
                 |(&grandchild_probe_id, &parent_probe_id)| {
                     (parent_probe_id == candidate_probe_id)
                         .then_some((grandchild_probe_id, depth + 1))
@@ -181,7 +183,7 @@ impl HybridGiRuntimeState {
 
     fn current_requested_lineage_support_score(&self, probe_id: u32) -> f32 {
         let direct_support = self
-            .current_requested_probe_ids
+            .current_requested_probe_ids()
             .contains(&probe_id)
             .then_some(REQUESTED_PROBE_SUPPORT)
             .unwrap_or_default();
@@ -195,12 +197,16 @@ impl HybridGiRuntimeState {
         let mut current_probe_id = probe_id;
         let mut visited_probe_ids = BTreeSet::from([probe_id]);
 
-        while let Some(parent_probe_id) = self.probe_parent_probes.get(&current_probe_id).copied() {
+        while let Some(parent_probe_id) = self.probe_parent_probes().get(&current_probe_id).copied()
+        {
             if !visited_probe_ids.insert(parent_probe_id) {
                 break;
             }
             depth += 1;
-            if self.current_requested_probe_ids.contains(&parent_probe_id) {
+            if self
+                .current_requested_probe_ids()
+                .contains(&parent_probe_id)
+            {
                 return REQUESTED_ANCESTOR_SUPPORT
                     * REQUESTED_ANCESTOR_FALLOFF.powi((depth - 1) as i32);
             }
@@ -213,7 +219,7 @@ impl HybridGiRuntimeState {
     fn requested_descendant_support_score(&self, probe_id: u32) -> f32 {
         let mut best_support = 0.0_f32;
         let mut stack = self
-            .probe_parent_probes
+            .probe_parent_probes()
             .iter()
             .filter_map(|(&candidate_probe_id, &parent_probe_id)| {
                 (parent_probe_id == probe_id).then_some((candidate_probe_id, 1usize))
@@ -226,7 +232,7 @@ impl HybridGiRuntimeState {
                 continue;
             }
             if self
-                .current_requested_probe_ids
+                .current_requested_probe_ids()
                 .contains(&candidate_probe_id)
             {
                 best_support = best_support.max(
@@ -234,7 +240,7 @@ impl HybridGiRuntimeState {
                         * REQUESTED_DESCENDANT_FALLOFF.powi((depth - 1) as i32),
                 );
             }
-            stack.extend(self.probe_parent_probes.iter().filter_map(
+            stack.extend(self.probe_parent_probes().iter().filter_map(
                 |(&grandchild_probe_id, &parent_probe_id)| {
                     (parent_probe_id == candidate_probe_id)
                         .then_some((grandchild_probe_id, depth + 1))

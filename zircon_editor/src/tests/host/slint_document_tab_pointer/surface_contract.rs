@@ -1,83 +1,21 @@
+fn source(relative: &str) -> String {
+    std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(relative))
+        .unwrap_or_else(|error| panic!("read `{relative}`: {error}"))
+}
+
 #[test]
-fn shared_document_tab_surfaces_replace_legacy_direct_click_routes() {
-    let workbench = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/ui/workbench.slint"));
-    let host_context = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/host_context.slint"
-    ));
-    let chrome = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/chrome.slint"
-    ));
-    let host_components = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/host_components.slint"
-    ));
-    let app = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/src/ui/slint_host/app.rs"
-    ));
-    let host_surface_owners = concat!(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/ui/workbench/host_document_dock_surface.slint"
-        )),
-        "\n",
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/ui/workbench/host_floating_window_layer.slint"
-        )),
-        "\n",
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/ui/workbench/host_native_floating_window_surface.slint"
-        ))
-    );
-    let wiring = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/src/ui/slint_host/app/callback_wiring.rs"
-    ));
+fn shared_document_tab_surfaces_use_rust_owned_pointer_callbacks() {
+    let globals = source("src/ui/slint_host/host_contract/globals.rs");
+    let wiring = source("src/ui/slint_host/app/callback_wiring.rs");
+    let pointer_layout = source("src/ui/slint_host/app/pointer_layout.rs");
 
-    for needle in [
-        "clicked => { root.activate_document_tab(tab.id); }",
-        "close_clicked => { root.close_tab(tab.id); }",
+    for required in [
+        "on_document_tab_pointer_clicked",
+        "on_document_tab_close_pointer_clicked",
+        "document_tab_pointer_clicked",
+        "document_tab_close_pointer_clicked",
     ] {
-        assert!(
-            !workbench.contains(needle),
-            "workbench shell still exposes legacy document tab callback `{needle}`"
-        );
+        assert!(globals.contains(required) || wiring.contains(required), "missing `{required}`");
     }
-
-    for needle in [
-        "callback document_tab_pointer_clicked(",
-        "callback document_tab_close_pointer_clicked(",
-        "pointer_clicked(x, y) =>",
-        "close_pointer_clicked(x, y) =>",
-    ] {
-        assert!(
-            workbench.contains(needle)
-                || host_context.contains(needle)
-                || chrome.contains(needle)
-                || host_components.contains(needle)
-                || host_surface_owners.contains(needle),
-            "document tab shared pointer hook `{needle}` is missing"
-        );
-    }
-
-    for needle in ["ui.on_activate_document_tab(", "ui.on_close_tab("] {
-        assert!(
-            !app.contains(needle),
-            "slint host app should no longer register direct document tab callback `{needle}`"
-        );
-    }
-
-    for needle in [
-        "host_shell.on_document_tab_pointer_clicked(",
-        "host_shell.on_document_tab_close_pointer_clicked(",
-    ] {
-        assert!(
-            app.contains(needle) || wiring.contains(needle),
-            "slint host app must register shared document tab callback `{needle}`"
-        );
-    }
+    assert!(pointer_layout.contains("build_host_document_tab_pointer_layout("));
 }

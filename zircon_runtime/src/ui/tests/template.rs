@@ -25,8 +25,8 @@ root = { component = "WorkbenchShell", children = [{ slot = "menu_bar" }, { slot
 
 [components.MenuBar]
 root = { component = "UiHostToolbar", children = [
-    { component = "UiHostIconButton", control_id = "OpenProject", bindings = [{ id = "WorkbenchMenuBar/OpenProject", event = "Click", route = "MenuAction.OpenProject" }], attributes = { icon = "folder-open-outline", label = "Open" } },
-    { component = "UiHostIconButton", control_id = "SaveProject", bindings = [{ id = "WorkbenchMenuBar/SaveProject", event = "Click", route = "MenuAction.SaveProject" }], attributes = { icon = "save-outline", label = "Save" } }
+    { component = "IconButton", control_id = "OpenProject", bindings = [{ id = "WorkbenchMenuBar/OpenProject", event = "Click", route = "MenuAction.OpenProject" }], attributes = { icon = "folder-open-outline", label = "Open" } },
+    { component = "IconButton", control_id = "SaveProject", bindings = [{ id = "WorkbenchMenuBar/SaveProject", event = "Click", route = "MenuAction.SaveProject" }], attributes = { icon = "save-outline", label = "Save" } }
 ] }
 "#;
 
@@ -39,7 +39,7 @@ control_id = "ScrollRoot"
 children = [
     { component = "HorizontalBox", control_id = "Row" },
     { component = "Space", control_id = "Gap" },
-    { component = "UiHostIconButton", control_id = "InteractiveLeaf", bindings = [{ id = "Demo/Click", event = "Click", route = "Demo.Click" }], attributes = { label = "Demo" } }
+    { component = "IconButton", control_id = "InteractiveLeaf", bindings = [{ id = "Demo/Click", event = "Click", route = "Demo.Click" }], attributes = { label = "Demo" } }
 ]
 "#;
 
@@ -52,7 +52,7 @@ control_id = "WorkspaceShellRoot"
 attributes = { layout = { container = { kind = "VerticalBox", gap = 12.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, clip = true } }
 children = [
     { component = "UiHostToolbar", control_id = "Toolbar", attributes = { layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 48.0, preferred = 48.0, max = 48.0, stretch = "Fixed" } } }, children = [
-        { component = "UiHostIconButton", control_id = "ToolbarAction", bindings = [{ id = "Toolbar/Action", event = "Click", route = "Toolbar.Action" }], attributes = { label = "Action", layout = { width = { min = 120.0, preferred = 120.0, max = 120.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } } } }
+        { component = "IconButton", control_id = "ToolbarAction", bindings = [{ id = "Toolbar/Action", event = "Click", route = "Toolbar.Action" }], attributes = { label = "Action", layout = { width = { min = 120.0, preferred = 120.0, max = 120.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } } } }
     ] },
     { component = "ViewportHost", control_id = "ViewportHost", attributes = { layout = { container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } } }, children = [
         { component = "OverlayBadge", control_id = "OverlayBadge", attributes = { layout = { width = { min = 60.0, preferred = 60.0, max = 60.0, stretch = "Fixed" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" }, anchor = { x = 1.0, y = 0.0 }, pivot = { x = 1.0, y = 0.0 }, position = { x = -16.0, y = 12.0 }, z_index = 4 } } }
@@ -179,7 +179,7 @@ fn template_tree_builder_projects_template_instance_into_shared_ui_tree_with_met
         })
         .unwrap();
     let open_project_template = open_project.template_metadata.as_ref().unwrap();
-    assert_eq!(open_project_template.component, "UiHostIconButton");
+    assert_eq!(open_project_template.component, "IconButton");
     assert_eq!(
         open_project_template
             .attributes

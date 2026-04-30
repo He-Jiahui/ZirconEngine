@@ -9,6 +9,6 @@ impl SceneRenderer {
     ) -> Option<RenderVirtualGeometryVisBuffer64Source> {
         self.advanced_plugin_outputs
             .virtual_geometry_gpu_readback()
-            .map(|readback| readback.visbuffer64_source)
+            .map(|readback| readback.visbuffer64_source())
     }
 }

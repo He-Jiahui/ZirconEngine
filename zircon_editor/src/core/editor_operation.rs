@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use zircon_runtime::scene::components::NodeKind;
 
-use crate::core::editor_event::{EditorEvent, LayoutCommand, MenuAction};
+use crate::core::editor_event::{EditorEvent, EditorEventSource, LayoutCommand, MenuAction};
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct EditorOperationPath(String);
@@ -13,10 +13,11 @@ pub struct EditorOperationPath(String);
 impl EditorOperationPath {
     pub fn parse(value: impl Into<String>) -> Result<Self, EditorOperationRegistryError> {
         let value = value.into();
-        let valid = value
-            .split('.')
+        let segments = value.split('.').collect::<Vec<_>>();
+        let valid = segments
+            .iter()
             .all(|segment| !segment.is_empty() && segment.chars().all(operation_path_char));
-        if !valid || !value.contains('.') {
+        if !valid || segments.len() < MIN_OPERATION_PATH_SEGMENTS {
             return Err(EditorOperationRegistryError::InvalidOperationPath(value));
         }
         Ok(Self(value))
@@ -32,6 +33,8 @@ impl fmt::Display for EditorOperationPath {
         formatter.write_str(&self.0)
     }
 }
+
+const MIN_OPERATION_PATH_SEGMENTS: usize = 3;
 
 fn operation_path_char(value: char) -> bool {
     value.is_ascii_alphanumeric() || value == '_' || value == '-'
@@ -192,6 +195,8 @@ pub struct EditorOperationInvocation {
     pub operation_id: EditorOperationPath,
     #[serde(default)]
     pub arguments: Value,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub operation_group: Option<String>,
 }
 
 impl EditorOperationInvocation {
@@ -199,6 +204,7 @@ impl EditorOperationInvocation {
         Self {
             operation_id,
             arguments: Value::Null,
+            operation_group: None,
         }
     }
 
@@ -208,6 +214,11 @@ impl EditorOperationInvocation {
 
     pub fn with_arguments(mut self, arguments: Value) -> Self {
         self.arguments = arguments;
+        self
+    }
+
+    pub fn with_operation_group(mut self, group: impl Into<String>) -> Self {
+        self.operation_group = Some(group.into());
         self
     }
 }
@@ -235,8 +246,35 @@ pub struct EditorOperationStack {
 
 impl EditorOperationStack {
     pub fn record(&mut self, entry: EditorOperationStackEntry) {
+        if let Some(group) = entry.operation_group.as_deref() {
+            if let Some(last) = self.undo_stack.last_mut() {
+                if last.operation_id == entry.operation_id
+                    && last.operation_group.as_deref() == Some(group)
+                {
+                    *last = entry;
+                    self.redo_stack.clear();
+                    return;
+                }
+            }
+        }
         self.undo_stack.push(entry);
         self.redo_stack.clear();
+    }
+
+    pub fn move_undo_to_redo(&mut self) -> bool {
+        let Some(entry) = self.undo_stack.pop() else {
+            return false;
+        };
+        self.redo_stack.push(entry);
+        true
+    }
+
+    pub fn move_redo_to_undo(&mut self) -> bool {
+        let Some(entry) = self.redo_stack.pop() else {
+            return false;
+        };
+        self.undo_stack.push(entry);
+        true
     }
 
     pub fn undo_stack(&self) -> &[EditorOperationStackEntry] {
@@ -252,20 +290,30 @@ impl EditorOperationStack {
 pub struct EditorOperationStackEntry {
     pub operation_id: EditorOperationPath,
     pub display_name: String,
+    pub source: EditorEventSource,
     pub sequence: u64,
+    pub operation_group: Option<String>,
 }
 
 impl EditorOperationStackEntry {
     pub fn new(
         operation_id: EditorOperationPath,
         display_name: impl Into<String>,
+        source: EditorEventSource,
         sequence: u64,
     ) -> Self {
         Self {
             operation_id,
             display_name: display_name.into(),
+            source,
             sequence,
+            operation_group: None,
         }
+    }
+
+    pub fn with_operation_group(mut self, group: Option<String>) -> Self {
+        self.operation_group = group;
+        self
     }
 }
 
@@ -358,15 +406,13 @@ fn builtin_operation_descriptors() -> Vec<EditorOperationDescriptor> {
             "Undo",
             "Edit/Undo",
             EditorEvent::WorkbenchMenu(MenuAction::Undo),
-        )
-        .with_undoable(UndoableEditorOperation::new("Undo")),
+        ),
         operation(
             "Edit.History.Redo",
             "Redo",
             "Edit/Redo",
             EditorEvent::WorkbenchMenu(MenuAction::Redo),
-        )
-        .with_undoable(UndoableEditorOperation::new("Redo")),
+        ),
         operation(
             "Window.Layout.Default",
             "Load Default Layout",

@@ -320,7 +320,7 @@ target_modes = ["client_runtime"]
     let entry = BuiltinEngineEntry::for_config_with_runtime_plugin_registrations(
         &config,
         zircon_runtime::NativePluginLoader
-            .load_from_load_manifest(&export_root)
+            .load_runtime_from_load_manifest(&export_root)
             .runtime_plugin_registration_reports(),
     )
     .expect("native dynamic load manifest should satisfy required plugin availability");

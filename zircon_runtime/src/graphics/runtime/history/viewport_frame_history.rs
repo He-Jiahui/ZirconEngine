@@ -5,10 +5,10 @@ use crate::{FrameHistoryBinding, VisibilityHistorySnapshot};
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct ViewportFrameHistory {
-    pub(crate) handle: FrameHistoryHandle,
-    pub(crate) viewport_size: UVec2,
-    pub(crate) pipeline: RenderPipelineHandle,
-    pub(crate) generation: u64,
-    pub(crate) bindings: Vec<FrameHistoryBinding>,
-    pub(crate) visibility: VisibilityHistorySnapshot,
+    pub(super) handle: FrameHistoryHandle,
+    pub(super) viewport_size: UVec2,
+    pub(super) pipeline: RenderPipelineHandle,
+    pub(super) generation: u64,
+    pub(super) bindings: Vec<FrameHistoryBinding>,
+    pub(super) visibility: VisibilityHistorySnapshot,
 }

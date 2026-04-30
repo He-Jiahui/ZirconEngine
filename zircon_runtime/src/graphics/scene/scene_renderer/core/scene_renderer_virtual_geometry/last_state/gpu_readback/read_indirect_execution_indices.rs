@@ -18,7 +18,7 @@ impl SceneRenderer {
         if !execution_authority_records.is_empty() {
             return Ok(execution_authority_records
                 .into_iter()
-                .map(|record| record.draw_ref_index)
+                .map(|record| record.draw_ref_index())
                 .collect());
         }
         if let Some(draw_ref_indices) = draw_ref_indices_from_execution_args_and_authority(self)? {
@@ -45,12 +45,7 @@ fn draw_ref_indices_from_execution_args_and_authority(
     let authority_by_submission_token = renderer
         .read_last_virtual_geometry_indirect_authority_records()?
         .into_iter()
-        .map(|record| {
-            (
-                (record.submission_index.min(0xffff) << 16) | record.draw_ref_rank.min(0xffff),
-                record.draw_ref_index,
-            )
-        })
+        .map(|record| (record.submission_token(), record.draw_ref_index()))
         .collect::<HashMap<_, _>>();
     if authority_by_submission_token.is_empty() {
         return Ok(None);
@@ -129,14 +124,14 @@ fn read_execution_submission_tokens(renderer: &SceneRenderer) -> Result<Vec<u32>
 
     let Some(buffer) = renderer
         .advanced_plugin_outputs
-        .virtual_geometry_indirect_execution_args_buffer
+        .virtual_geometry_indirect_execution_args_buffer()
         .as_ref()
     else {
         return Ok(Vec::new());
     };
     let indirect_draw_count = renderer
         .advanced_plugin_outputs
-        .virtual_geometry_indirect_draw_count;
+        .virtual_geometry_indirect_draw_count();
     if indirect_draw_count == 0 {
         return Ok(Vec::new());
     }

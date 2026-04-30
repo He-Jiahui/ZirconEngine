@@ -1,62 +1,16 @@
-#[test]
-fn shared_drawer_header_surfaces_replace_legacy_direct_click_routes() {
-    let workbench = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/ui/workbench.slint"));
-    let host_context = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/host_context.slint"
-    ));
-    let chrome = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/chrome.slint"
-    ));
-    let host_components = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/host_components.slint"
-    ));
-    let host_surface_owners = concat!(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/ui/workbench/host_side_dock_surface.slint"
-        )),
-        "\n",
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/ui/workbench/host_bottom_dock_surface.slint"
-        ))
-    );
-    let app = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/src/ui/slint_host/app.rs"
-    ));
-    let wiring = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/src/ui/slint_host/app/callback_wiring.rs"
-    ));
+fn source(relative: &str) -> String {
+    std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(relative))
+        .unwrap_or_else(|error| panic!("read `{relative}`: {error}"))
+}
 
-    assert!(
-        !workbench.contains("clicked => { root.toggle_drawer_tab(tab.slot, tab.id); }"),
-        "workbench shell still exposes legacy direct drawer header callback"
-    );
-    for needle in [
-        "callback drawer_header_pointer_clicked(",
-        "pointer_clicked(x, y) =>",
-    ] {
-        assert!(
-            workbench.contains(needle)
-                || host_context.contains(needle)
-                || chrome.contains(needle)
-                || host_components.contains(needle)
-                || host_surface_owners.contains(needle),
-            "drawer header shared pointer hook `{needle}` is missing"
-        );
-    }
-    assert!(
-        !app.contains("ui.on_toggle_drawer_tab("),
-        "slint host app should no longer register direct drawer toggle callback"
-    );
-    assert!(
-        app.contains("host_shell.on_drawer_header_pointer_clicked(")
-            || wiring.contains("host_shell.on_drawer_header_pointer_clicked("),
-        "slint host app must register shared drawer header callback"
-    );
+#[test]
+fn shared_drawer_header_surfaces_use_rust_owned_pointer_callbacks() {
+    let globals = source("src/ui/slint_host/host_contract/globals.rs");
+    let wiring = source("src/ui/slint_host/app/callback_wiring.rs");
+    let pointer_layout = source("src/ui/slint_host/app/pointer_layout.rs");
+
+    assert!(globals.contains("on_drawer_header_pointer_clicked"));
+    assert!(wiring.contains("host_shell.on_drawer_header_pointer_clicked("));
+    assert!(pointer_layout.contains("build_host_drawer_header_pointer_layout("));
+    assert!(!wiring.contains("on_toggle_drawer_tab"));
 }

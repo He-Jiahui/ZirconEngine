@@ -1,14 +1,16 @@
+use std::collections::BTreeSet;
+
 use crate::ui::component::{
     UiComponentCategory, UiComponentDescriptor, UiComponentDescriptorRegistry, UiComponentEvent,
-    UiComponentEventKind, UiComponentState, UiDragPayload, UiDragPayloadKind, UiValidationLevel,
-    UiValue, UiValueKind,
+    UiComponentEventKind, UiComponentState, UiDragPayload, UiDragPayloadKind, UiDragSourceMetadata,
+    UiPropSchema, UiValidationLevel, UiValue, UiValueKind,
 };
 
 #[test]
 fn runtime_component_catalog_contains_showcase_v1_controls() {
     let registry = UiComponentDescriptorRegistry::editor_showcase();
 
-    for component_id in [
+    let showcase_v1_components = [
         "Label",
         "RichLabel",
         "Image",
@@ -50,9 +52,113 @@ fn runtime_component_catalog_contains_showcase_v1_controls() {
         "TreeRow",
         "ContextActionMenu",
         "SvgIcon",
-    ] {
+    ];
+
+    assert!(!registry.is_empty());
+    assert_eq!(
+        registry.len(),
+        showcase_v1_components.len(),
+        "editor showcase registry should expose exactly the V1 component catalog"
+    );
+    assert_eq!(
+        registry.component_ids().collect::<BTreeSet<_>>(),
+        showcase_v1_components
+            .iter()
+            .copied()
+            .collect::<BTreeSet<_>>(),
+        "editor showcase registry component id set should match the authored V1 catalog"
+    );
+    assert_eq!(
+        registry.categories().collect::<BTreeSet<_>>(),
+        [
+            UiComponentCategory::Visual,
+            UiComponentCategory::Input,
+            UiComponentCategory::Numeric,
+            UiComponentCategory::Selection,
+            UiComponentCategory::Reference,
+            UiComponentCategory::Collection,
+            UiComponentCategory::Container,
+            UiComponentCategory::Feedback,
+        ]
+        .iter()
+        .copied()
+        .collect::<BTreeSet<_>>(),
+        "editor showcase registry should expose the full V1 category set"
+    );
+    assert_category_component_ids(
+        &registry,
+        UiComponentCategory::Visual,
+        &[
+            "Icon",
+            "Image",
+            "Label",
+            "RichLabel",
+            "Separator",
+            "SvgIcon",
+        ],
+    );
+    assert_category_component_ids(
+        &registry,
+        UiComponentCategory::Feedback,
+        &["Badge", "HelpRow", "ProgressBar", "Spinner"],
+    );
+    assert_category_component_ids(
+        &registry,
+        UiComponentCategory::Input,
+        &[
+            "Button",
+            "Checkbox",
+            "ContextActionMenu",
+            "IconButton",
+            "InputField",
+            "Radio",
+            "SegmentedControl",
+            "TextField",
+            "ToggleButton",
+        ],
+    );
+    assert_category_component_ids(
+        &registry,
+        UiComponentCategory::Numeric,
+        &[
+            "ColorField",
+            "NumberField",
+            "RangeField",
+            "Vector2Field",
+            "Vector3Field",
+            "Vector4Field",
+        ],
+    );
+    assert_category_component_ids(
+        &registry,
+        UiComponentCategory::Selection,
+        &[
+            "ComboBox",
+            "Dropdown",
+            "EnumField",
+            "FlagsField",
+            "SearchSelect",
+        ],
+    );
+    assert_category_component_ids(
+        &registry,
+        UiComponentCategory::Reference,
+        &["AssetField", "InstanceField", "ObjectField"],
+    );
+    assert_category_component_ids(
+        &registry,
+        UiComponentCategory::Container,
+        &["Foldout", "Group", "InspectorSection", "PropertyRow"],
+    );
+    assert_category_component_ids(
+        &registry,
+        UiComponentCategory::Collection,
+        &["ArrayField", "ListRow", "MapField", "TreeRow"],
+    );
+
+    for component_id in showcase_v1_components {
         assert!(
-            registry.descriptor(component_id).is_some(),
+            registry.contains(component_id),
             "missing V1 component descriptor `{component_id}`"
         );
     }
@@ -75,6 +181,11 @@ fn runtime_component_catalog_contains_showcase_v1_controls() {
     assert!(dropdown.prop("multiple").is_some());
     assert!(dropdown.supports_event(UiComponentEventKind::SelectOption));
     assert_has_prop(dropdown, "validation_level");
+    assert_has_prop(dropdown, "disabled_options");
+    assert_has_prop(dropdown, "special_options");
+    assert_has_prop(dropdown, "focused_options");
+    assert_has_prop(dropdown, "hovered_options");
+    assert_has_prop(dropdown, "pressed_options");
     assert!(
         dropdown
             .prop("options")
@@ -105,14 +216,24 @@ fn runtime_component_catalog_contains_showcase_v1_controls() {
     assert!(!asset.accepts_drag_payload(UiDragPayloadKind::SceneInstance));
     assert_has_state(asset, "focused");
     assert_has_state(asset, "dragging");
+    assert_has_state(asset, "drop_hovered");
+    assert_has_state(asset, "active_drag_target");
     assert_has_prop(asset, "validation_level");
+    assert_has_prop(asset, "drop_hovered");
+    assert_has_prop(asset, "active_drag_target");
 
     let number = registry.descriptor("NumberField").unwrap();
     assert_has_state(number, "focused");
     assert_has_state(number, "dragging");
 
-    let icon = registry.descriptor("SvgIcon").unwrap();
-    assert_has_state(icon, "source");
+    let image = registry.descriptor("Image").unwrap();
+    assert_has_prop(image, "value");
+
+    let icon = registry.descriptor("Icon").unwrap();
+    assert_has_prop(icon, "value");
+
+    let svg_icon = registry.descriptor("SvgIcon").unwrap();
+    assert_has_state(svg_icon, "source");
 
     let help_row = registry.descriptor("HelpRow").unwrap();
     assert_has_prop(help_row, "validation_level");
@@ -153,20 +274,38 @@ fn runtime_component_catalog_contains_showcase_v1_controls() {
     let group = registry.descriptor("Group").unwrap();
     assert_has_state(group, "expanded");
     assert_has_prop(group, "text");
+    assert_has_prop(group, "validation_level");
+    assert!(group.slot_schema("content").is_some());
 
     let menu = registry.descriptor("ContextActionMenu").unwrap();
     assert_has_prop(menu, "value");
+    assert_has_prop(menu, "popup_open");
+    assert_has_prop(menu, "popup_anchor_x");
+    assert_has_prop(menu, "popup_anchor_y");
+    assert_has_prop(menu, "menu_items");
     assert_has_state(menu, "popup_open");
+    assert_has_state(menu, "popup_anchor_x");
+    assert_has_state(menu, "popup_anchor_y");
 
     let prop_row = registry.descriptor("PropertyRow").unwrap();
     assert_has_prop(prop_row, "text");
     assert_has_prop(prop_row, "value");
+    assert!(prop_row.slot_schema("label").is_some());
+    assert!(prop_row.slot_schema("field").is_some());
 
     let inspector_section = registry.descriptor("InspectorSection").unwrap();
     assert_has_prop(inspector_section, "text");
+    assert_has_prop(inspector_section, "expanded");
 
     let list_row = registry.descriptor("ListRow").unwrap();
     assert_has_prop(list_row, "value");
+    assert_has_prop(list_row, "selected");
+    assert_has_prop(list_row, "focused");
+    assert_has_prop(list_row, "hovered");
+
+    let tree_row = registry.descriptor("TreeRow").unwrap();
+    assert_has_prop(tree_row, "tree_depth");
+    assert_has_prop(tree_row, "tree_indent_px");
 
     let icon_button = registry.descriptor("IconButton").unwrap();
     assert_has_prop(icon_button, "text");
@@ -179,6 +318,22 @@ fn runtime_component_catalog_contains_showcase_v1_controls() {
 
     let segmented = registry.descriptor("SegmentedControl").unwrap();
     assert_has_prop(segmented, "value");
+    assert_has_prop(segmented, "selection_state");
+
+    let checkbox = registry.descriptor("Checkbox").unwrap();
+    assert_has_prop(checkbox, "checked");
+
+    let toggle_button = registry.descriptor("ToggleButton").unwrap();
+    assert_has_prop(toggle_button, "checked");
+
+    let radio = registry.descriptor("Radio").unwrap();
+    assert_has_prop(radio, "checked");
+
+    let array_field = registry.descriptor("ArrayField").unwrap();
+    assert_has_prop(array_field, "validation_level");
+
+    let map_field = registry.descriptor("MapField").unwrap();
+    assert_has_prop(map_field, "validation_level");
 }
 
 #[test]
@@ -219,17 +374,35 @@ fn runtime_component_catalog_selection_and_state_coverage() {
         (
             "AssetField",
             "value",
-            &["focused", "dragging", "disabled"][..],
+            &[
+                "focused",
+                "dragging",
+                "drop_hovered",
+                "active_drag_target",
+                "disabled",
+            ][..],
         ),
         (
             "InstanceField",
             "value",
-            &["focused", "dragging", "disabled"][..],
+            &[
+                "focused",
+                "dragging",
+                "drop_hovered",
+                "active_drag_target",
+                "disabled",
+            ][..],
         ),
         (
             "ObjectField",
             "value",
-            &["focused", "dragging", "disabled"][..],
+            &[
+                "focused",
+                "dragging",
+                "drop_hovered",
+                "active_drag_target",
+                "disabled",
+            ][..],
         ),
         (
             "Group",
@@ -246,8 +419,16 @@ fn runtime_component_catalog_selection_and_state_coverage() {
             "options",
             &["focused", "selected", "popup_open"][..],
         ),
-        ("ListRow", "text", &["selected", "focused"][..]),
-        ("TreeRow", "text", &["expanded", "selected", "focused"][..]),
+        (
+            "ListRow",
+            "text",
+            &["selected", "focused", "hovered", "pressed"][..],
+        ),
+        (
+            "TreeRow",
+            "text",
+            &["expanded", "selected", "focused", "hovered", "pressed"][..],
+        ),
     ] {
         let descriptor = registry
             .descriptor(component_id)
@@ -267,6 +448,12 @@ fn runtime_component_catalog_selection_and_state_coverage() {
             ) {
                 assert_has_prop(descriptor, "selection_state");
                 assert_has_prop(descriptor, "value_text");
+                assert_has_prop(descriptor, "popup_open");
+                assert_has_prop(descriptor, "disabled_options");
+                assert_has_prop(descriptor, "special_options");
+                assert_has_prop(descriptor, "focused_options");
+                assert_has_prop(descriptor, "hovered_options");
+                assert_has_prop(descriptor, "pressed_options");
             }
         }
     }
@@ -313,6 +500,9 @@ fn runtime_component_catalog_selection_and_state_coverage() {
     assert_has_event(segmented, UiComponentEventKind::Focus);
     assert_has_event(segmented, UiComponentEventKind::SelectOption);
 
+    let context_menu = registry.descriptor("ContextActionMenu").unwrap();
+    assert_has_event(context_menu, UiComponentEventKind::OpenPopupAt);
+
     for component_id in ["NumberField"] {
         let descriptor = registry.descriptor(component_id).unwrap();
         assert_has_event(descriptor, UiComponentEventKind::Focus);
@@ -340,483 +530,118 @@ fn runtime_component_catalog_selection_and_state_coverage() {
     assert_has_event(input, UiComponentEventKind::ValueChanged);
     assert_has_event(input, UiComponentEventKind::Commit);
     assert_has_event(input, UiComponentEventKind::Focus);
-}
 
-#[test]
-fn component_state_applies_retained_number_dropdown_collection_and_drop_events() {
-    let registry = UiComponentDescriptorRegistry::editor_showcase();
-    let number = registry.descriptor("NumberField").unwrap();
-    let mut number_state = UiComponentState::new().with_value("value", UiValue::Float(98.0));
-
-    number_state
-        .apply_event(
-            number,
-            UiComponentEvent::DragDelta {
-                property: "value".to_string(),
-                delta: 8.0,
-            },
-        )
-        .unwrap();
-    assert_eq!(number_state.value("value"), Some(&UiValue::Float(100.0)));
-
-    let error = number_state
-        .apply_event(
-            number,
-            UiComponentEvent::Commit {
-                property: "value".to_string(),
-                value: UiValue::String("not-a-number".to_string()),
-            },
-        )
-        .unwrap_err();
-    assert!(error.to_string().contains("not-a-number"));
-    assert_eq!(
-        number_state.validation().level,
-        UiValidationLevel::Error,
-        "invalid numeric commits should leave validation state on the retained control"
-    );
-
-    let dropdown = registry.descriptor("Dropdown").unwrap();
-    let mut dropdown_state = UiComponentState::new();
-    dropdown_state
-        .apply_event(
-            dropdown,
-            UiComponentEvent::SelectOption {
-                property: "value".to_string(),
-                option_id: "runtime".to_string(),
-                selected: true,
-            },
-        )
-        .unwrap();
-    assert_eq!(
-        dropdown_state.value("value"),
-        Some(&UiValue::Enum("runtime".to_string()))
-    );
-
-    let flags = registry.descriptor("FlagsField").unwrap();
-    let mut flags_state = UiComponentState::new();
-    flags_state
-        .apply_event(
-            flags,
-            UiComponentEvent::SelectOption {
-                property: "value".to_string(),
-                option_id: "runtime".to_string(),
-                selected: true,
-            },
-        )
-        .unwrap();
-    assert_eq!(
-        flags_state.value("value"),
-        Some(&UiValue::Flags(vec!["runtime".to_string()]))
-    );
-
-    let array = registry.descriptor("ArrayField").unwrap();
-    let mut array_state = UiComponentState::new().with_value("items", UiValue::Array(Vec::new()));
-    array_state
-        .apply_event(
-            array,
-            UiComponentEvent::AddElement {
-                property: "items".to_string(),
-                value: UiValue::String("Label".to_string()),
-            },
-        )
-        .unwrap();
-    assert_eq!(
-        array_state.value("items"),
-        Some(&UiValue::Array(vec![UiValue::String("Label".to_string())]))
-    );
-
-    let map = registry.descriptor("MapField").unwrap();
-    let mut map_state = UiComponentState::new();
-    map_state
-        .apply_event(
-            map,
-            UiComponentEvent::AddMapEntry {
-                property: "entries".to_string(),
-                key: "speed".to_string(),
-                value: UiValue::Float(1.0),
-            },
-        )
-        .unwrap();
-    assert!(
-        map_state
-            .apply_event(
-                map,
-                UiComponentEvent::AddMapEntry {
-                    property: "entries".to_string(),
-                    key: "speed".to_string(),
-                    value: UiValue::Float(2.0),
-                },
-            )
-            .is_err(),
-        "MapField must reject duplicate keys"
-    );
-
-    let group = registry.descriptor("Group").unwrap();
-    let mut group_state = UiComponentState::new();
-    group_state
-        .apply_event(group, UiComponentEvent::ToggleExpanded { expanded: false })
-        .unwrap();
-    assert_eq!(group_state.value("expanded"), Some(&UiValue::Bool(false)));
-    assert!(!group_state.flags().expanded);
-
-    let asset = registry.descriptor("AssetField").unwrap();
-    let mut asset_state = UiComponentState::new();
-    asset_state
-        .apply_event(
-            asset,
-            UiComponentEvent::DropReference {
-                property: "value".to_string(),
-                payload: UiDragPayload::new(
-                    UiDragPayloadKind::Asset,
-                    "res://textures/grid.albedo.png",
-                ),
-            },
-        )
-        .unwrap();
-    assert_eq!(
-        asset_state.value("value"),
-        Some(&UiValue::AssetRef(
-            "res://textures/grid.albedo.png".to_string()
-        ))
-    );
-    assert!(asset_state
-        .apply_event(
-            asset,
-            UiComponentEvent::DropReference {
-                property: "value".to_string(),
-                payload: UiDragPayload::new(UiDragPayloadKind::SceneInstance, "scene://Root"),
-            },
-        )
-        .is_err());
-}
-
-#[test]
-fn component_state_rejects_disabled_selection_options_with_validation_reason() {
-    let registry = UiComponentDescriptorRegistry::editor_showcase();
-    let dropdown = registry.descriptor("Dropdown").unwrap();
-    let mut state =
-        UiComponentState::new().with_value("value", UiValue::Enum("primary".to_string()));
-
-    let error = state
-        .apply_event(
-            dropdown,
-            UiComponentEvent::SelectOption {
-                property: "value".to_string(),
-                option_id: "secondary".to_string(),
-                selected: true,
-            },
-        )
-        .unwrap_err();
-
-    assert!(error.to_string().contains("secondary"));
-    assert_eq!(
-        state.value("value"),
-        Some(&UiValue::Enum("primary".to_string()))
-    );
-    assert_eq!(state.validation().level, UiValidationLevel::Error);
-    assert!(state
-        .validation()
-        .message
-        .as_deref()
-        .is_some_and(|message| message.contains("disabled option")));
-}
-
-#[test]
-fn component_state_edits_and_reorders_array_elements() {
-    let registry = UiComponentDescriptorRegistry::editor_showcase();
-    let array = registry.descriptor("ArrayField").unwrap();
-    let mut state = UiComponentState::new().with_value(
-        "items",
-        UiValue::Array(vec![
-            UiValue::String("Position".to_string()),
-            UiValue::String("Rotation".to_string()),
-            UiValue::String("Scale".to_string()),
-        ]),
-    );
-
-    state
-        .apply_event(
-            array,
-            UiComponentEvent::SetElement {
-                property: "items".to_string(),
-                index: 1,
-                value: UiValue::String("Orientation".to_string()),
-            },
-        )
-        .unwrap();
-    state
-        .apply_event(
-            array,
-            UiComponentEvent::MoveElement {
-                property: "items".to_string(),
-                from: 2,
-                to: 0,
-            },
-        )
-        .unwrap();
-    state
-        .apply_event(
-            array,
-            UiComponentEvent::RemoveElement {
-                property: "items".to_string(),
-                index: 1,
-            },
-        )
-        .unwrap();
-
-    assert_eq!(
-        state.value("items"),
-        Some(&UiValue::Array(vec![
-            UiValue::String("Scale".to_string()),
-            UiValue::String("Orientation".to_string()),
-        ]))
-    );
-}
-
-#[test]
-fn component_state_handles_reference_actions_and_drop_rejection_feedback() {
-    let registry = UiComponentDescriptorRegistry::editor_showcase();
+    for component_id in ["ListRow", "TreeRow"] {
+        let descriptor = registry.descriptor(component_id).unwrap();
+        assert_has_event(descriptor, UiComponentEventKind::Hover);
+        assert_has_event(descriptor, UiComponentEventKind::Press);
+    }
 
     for component_id in ["AssetField", "InstanceField", "ObjectField"] {
         let descriptor = registry.descriptor(component_id).unwrap();
-        assert_has_event(descriptor, UiComponentEventKind::ClearReference);
-        assert_has_event(descriptor, UiComponentEventKind::LocateReference);
-        assert_has_event(descriptor, UiComponentEventKind::OpenReference);
+        assert_has_event(descriptor, UiComponentEventKind::DropHover);
+        assert_has_event(descriptor, UiComponentEventKind::ActiveDragTarget);
     }
-
-    let asset = registry.descriptor("AssetField").unwrap();
-    let mut asset_state = UiComponentState::new().with_value(
-        "value",
-        UiValue::AssetRef("res://materials/demo.mat".to_string()),
-    );
-    asset_state
-        .apply_event(
-            asset,
-            UiComponentEvent::ClearReference {
-                property: "value".to_string(),
-            },
-        )
-        .unwrap();
-    assert_eq!(asset_state.value("value"), Some(&UiValue::Null));
-
-    let error = asset_state
-        .apply_event(
-            asset,
-            UiComponentEvent::OpenReference {
-                property: "value".to_string(),
-            },
-        )
-        .unwrap_err();
-    assert!(error.to_string().contains("value"));
-    assert_eq!(asset_state.validation().level, UiValidationLevel::Error);
-
-    let rejected = asset_state
-        .apply_event(
-            asset,
-            UiComponentEvent::DropReference {
-                property: "value".to_string(),
-                payload: UiDragPayload::new(UiDragPayloadKind::SceneInstance, "scene://Root"),
-            },
-        )
-        .unwrap_err();
-    assert!(rejected.to_string().contains("scene-instance"));
-    assert_eq!(asset_state.validation().level, UiValidationLevel::Error);
-    assert!(asset_state
-        .validation()
-        .message
-        .as_deref()
-        .is_some_and(|message| message.contains("rejected drop")));
-
-    let instance = registry.descriptor("InstanceField").unwrap();
-    let mut instance_state = UiComponentState::new();
-    instance_state
-        .apply_event(
-            instance,
-            UiComponentEvent::DropReference {
-                property: "value".to_string(),
-                payload: UiDragPayload::new(UiDragPayloadKind::SceneInstance, "scene://Root/Light"),
-            },
-        )
-        .unwrap();
-    assert_eq!(
-        instance_state.value("value"),
-        Some(&UiValue::InstanceRef("scene://Root/Light".to_string()))
-    );
-
-    let object = registry.descriptor("ObjectField").unwrap();
-    let mut object_state = UiComponentState::new().with_value(
-        "value",
-        UiValue::InstanceRef("object://Selection/MainCamera".to_string()),
-    );
-    object_state
-        .apply_event(
-            object,
-            UiComponentEvent::LocateReference {
-                property: "value".to_string(),
-            },
-        )
-        .unwrap();
-    object_state
-        .apply_event(
-            object,
-            UiComponentEvent::OpenReference {
-                property: "value".to_string(),
-            },
-        )
-        .unwrap();
-    assert_eq!(
-        object_state.value("value"),
-        Some(&UiValue::InstanceRef(
-            "object://Selection/MainCamera".to_string()
-        ))
-    );
 }
 
 #[test]
-fn component_state_updates_existing_map_entries_without_creating_keys() {
+fn runtime_component_catalog_schemas_are_normalized_and_type_consistent() {
     let registry = UiComponentDescriptorRegistry::editor_showcase();
-    let map = registry.descriptor("MapField").unwrap();
-    assert_has_event(map, UiComponentEventKind::SetMapEntry);
 
-    let mut entries = std::collections::BTreeMap::new();
-    entries.insert("speed".to_string(), UiValue::Float(1.0));
-    entries.insert("visible".to_string(), UiValue::Bool(true));
-    let mut state = UiComponentState::new().with_value("entries", UiValue::Map(entries));
+    for descriptor in registry.descriptors() {
+        assert_unique_schema_names(descriptor, "prop", &descriptor.prop_schema);
+        assert_unique_schema_names(descriptor, "state", &descriptor.state_schema);
+        assert_unique_slot_names(descriptor);
+        assert_unique_events(descriptor);
 
-    state
-        .apply_event(
-            map,
-            UiComponentEvent::SetMapEntry {
-                property: "entries".to_string(),
-                key: "speed".to_string(),
-                value: UiValue::Float(2.5),
-            },
-        )
-        .unwrap();
+        for schema in &descriptor.prop_schema {
+            assert!(
+                descriptor.prop(&schema.name).is_some(),
+                "component {} prop lookup should find schema `{}`",
+                descriptor.id,
+                schema.name
+            );
+        }
 
-    assert!(state
-        .apply_event(
-            map,
-            UiComponentEvent::SetMapEntry {
-                property: "entries".to_string(),
-                key: "missing".to_string(),
-                value: UiValue::String("value".to_string()),
-            },
-        )
-        .is_err());
+        for schema in &descriptor.state_schema {
+            assert!(
+                descriptor.state_prop(&schema.name).is_some(),
+                "component {} state lookup should find schema `{}`",
+                descriptor.id,
+                schema.name
+            );
+        }
 
-    let Some(UiValue::Map(entries)) = state.value("entries") else {
-        panic!("expected retained map entries");
-    };
-    assert_eq!(entries.get("speed"), Some(&UiValue::Float(2.5)));
-    assert!(!entries.contains_key("missing"));
-}
+        for slot in &descriptor.slot_schema {
+            assert!(
+                descriptor.slot_schema(&slot.name).is_some(),
+                "component {} slot lookup should find schema `{}`",
+                descriptor.id,
+                slot.name
+            );
+        }
 
-#[test]
-fn component_state_applies_numeric_state_step_large_step_and_clamp_settings() {
-    let registry = UiComponentDescriptorRegistry::editor_showcase();
-    let number = registry.descriptor("NumberField").unwrap();
-    assert_has_event(number, UiComponentEventKind::LargeDragDelta);
+        for (name, value) in &descriptor.default_props {
+            let schema = descriptor.prop(name).unwrap_or_else(|| {
+                panic!(
+                    "component {} default prop `{}` must have a matching prop schema",
+                    descriptor.id, name
+                )
+            });
+            assert_value_matches_schema_kind(descriptor, name, schema.value_kind, value);
+        }
 
-    let mut state = UiComponentState::new()
-        .with_value("value", UiValue::Float(50.0))
-        .with_value("min", UiValue::Float(10.0))
-        .with_value("max", UiValue::Float(60.0))
-        .with_value("step", UiValue::Float(0.5))
-        .with_value("large_step", UiValue::Float(5.0));
-
-    state
-        .apply_event(
-            number,
-            UiComponentEvent::DragDelta {
-                property: "value".to_string(),
-                delta: 4.0,
-            },
-        )
-        .unwrap();
-    assert_eq!(state.value("value"), Some(&UiValue::Float(52.0)));
-
-    state
-        .apply_event(
-            number,
-            UiComponentEvent::LargeDragDelta {
-                property: "value".to_string(),
-                delta: 2.0,
-            },
-        )
-        .unwrap();
-    assert_eq!(state.value("value"), Some(&UiValue::Float(60.0)));
-
-    state
-        .apply_event(
-            number,
-            UiComponentEvent::Commit {
-                property: "value".to_string(),
-                value: UiValue::Float(3.0),
-            },
-        )
-        .unwrap();
-    assert_eq!(state.value("value"), Some(&UiValue::Float(10.0)));
-}
-
-#[test]
-fn component_state_applies_dropdown_multiple_selection_and_special_options() {
-    let registry = UiComponentDescriptorRegistry::editor_showcase();
-    let dropdown = registry.descriptor("Dropdown").unwrap();
-    assert!(
-        dropdown
-            .prop("options")
-            .unwrap()
-            .options
+        for schema in descriptor
+            .prop_schema
             .iter()
-            .any(|option| option.special_condition.is_some()),
-        "selection controls should expose a special-condition option for mixed inspector states"
-    );
+            .chain(descriptor.state_schema.iter())
+        {
+            if let Some(default_value) = &schema.default_value {
+                assert_value_matches_schema_kind(
+                    descriptor,
+                    &schema.name,
+                    schema.value_kind,
+                    default_value,
+                );
+            }
 
-    let mut state = UiComponentState::new().with_value("multiple", UiValue::Bool(true));
-    state
-        .apply_event(
-            dropdown,
-            UiComponentEvent::SelectOption {
-                property: "value".to_string(),
-                option_id: "runtime".to_string(),
-                selected: true,
-            },
-        )
-        .unwrap();
-    state
-        .apply_event(
-            dropdown,
-            UiComponentEvent::SelectOption {
-                property: "value".to_string(),
-                option_id: "editor".to_string(),
-                selected: true,
-            },
-        )
-        .unwrap();
-    state
-        .apply_event(
-            dropdown,
-            UiComponentEvent::SelectOption {
-                property: "value".to_string(),
-                option_id: "runtime".to_string(),
-                selected: false,
-            },
-        )
-        .unwrap();
+            if let (Some(min), Some(max)) = (schema.min, schema.max) {
+                assert!(
+                    min <= max,
+                    "component {} schema `{}` has inverted range {min}..{max}",
+                    descriptor.id,
+                    schema.name
+                );
+            }
 
-    assert_eq!(
-        state.value("value"),
-        Some(&UiValue::Array(vec![UiValue::Enum("editor".to_string())]))
-    );
+            if let Some(step) = schema.step {
+                assert!(
+                    step > 0.0,
+                    "component {} schema `{}` must use a positive step, got {step}",
+                    descriptor.id,
+                    schema.name
+                );
+            }
+        }
+    }
+}
+
+mod component_state;
+fn test_asset_source() -> UiDragSourceMetadata {
+    UiDragSourceMetadata::asset(
+        "browser",
+        "AssetBrowserContentPanel",
+        "asset-uuid-1",
+        "res://textures/grid.albedo.png",
+        "Grid Albedo",
+        "Texture",
+        "png",
+    )
 }
 
 fn assert_has_state(descriptor: &UiComponentDescriptor, name: &str) {
     assert!(
-        descriptor
-            .state_schema
-            .iter()
-            .any(|state| state.name == name),
+        descriptor.state_prop(name).is_some(),
         "component {} missing state schema entry `{}`",
         descriptor.id,
         name
@@ -838,5 +663,80 @@ fn assert_has_event(descriptor: &UiComponentDescriptor, event: UiComponentEventK
         "component {} missing event support {:?}",
         descriptor.id,
         event
+    );
+}
+
+fn assert_category_component_ids(
+    registry: &UiComponentDescriptorRegistry,
+    category: UiComponentCategory,
+    expected_ids: &[&str],
+) {
+    assert_eq!(
+        registry
+            .descriptors_in_category(category)
+            .map(|descriptor| descriptor.id.as_str())
+            .collect::<BTreeSet<_>>(),
+        expected_ids.iter().copied().collect::<BTreeSet<_>>(),
+        "component category {category:?} should expose the expected V1 component ids"
+    );
+}
+
+fn assert_unique_schema_names(
+    descriptor: &UiComponentDescriptor,
+    schema_label: &str,
+    schemas: &[UiPropSchema],
+) {
+    let mut names = BTreeSet::new();
+    for schema in schemas {
+        assert!(
+            names.insert(schema.name.as_str()),
+            "component {} has duplicate {} schema `{}`",
+            descriptor.id,
+            schema_label,
+            schema.name
+        );
+    }
+}
+
+fn assert_unique_slot_names(descriptor: &UiComponentDescriptor) {
+    let mut names = BTreeSet::new();
+    for slot in &descriptor.slot_schema {
+        assert!(
+            names.insert(slot.name.as_str()),
+            "component {} has duplicate slot schema `{}`",
+            descriptor.id,
+            slot.name
+        );
+    }
+}
+
+fn assert_unique_events(descriptor: &UiComponentDescriptor) {
+    let mut events = BTreeSet::new();
+    for event in &descriptor.events {
+        assert!(
+            events.insert(format!("{event:?}")),
+            "component {} has duplicate event {:?}",
+            descriptor.id,
+            event
+        );
+    }
+}
+
+fn assert_value_matches_schema_kind(
+    descriptor: &UiComponentDescriptor,
+    name: &str,
+    expected_kind: UiValueKind,
+    value: &UiValue,
+) {
+    if expected_kind == UiValueKind::Any {
+        return;
+    }
+
+    assert_eq!(
+        value.kind(),
+        expected_kind,
+        "component {} schema `{}` default value kind mismatch",
+        descriptor.id,
+        name
     );
 }

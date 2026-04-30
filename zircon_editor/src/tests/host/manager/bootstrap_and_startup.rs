@@ -7,8 +7,8 @@ use zircon_runtime::scene::DefaultLevelManager;
 use crate::ui::host::module::EDITOR_MANAGER_NAME;
 use crate::ui::host::EditorManager;
 use crate::ui::workbench::layout::{
-    ActivityDrawerLayout, ActivityDrawerMode, ActivityDrawerSlot, DocumentNode, LayoutCommand,
-    MainHostPageLayout, MainPageId, TabStackLayout, WorkbenchLayout,
+    ActivityDrawerLayout, ActivityDrawerMode, ActivityDrawerSlot, ActivityWindowId, DocumentNode,
+    LayoutCommand, MainHostPageLayout, MainPageId, TabStackLayout, WorkbenchLayout,
 };
 use crate::ui::workbench::project::{EditorProjectDocument, ProjectEditorWorkspace};
 use crate::ui::workbench::startup::{
@@ -247,6 +247,7 @@ fn applying_project_workspace_restores_single_instance_registry_state() {
             main_pages: vec![MainHostPageLayout::WorkbenchPage {
                 id: MainPageId::workbench(),
                 title: "Workbench".to_string(),
+                activity_window: ActivityWindowId::workbench(),
                 document_workspace: DocumentNode::default(),
             }],
             drawers: BTreeMap::from([(

@@ -6,8 +6,8 @@ related_code:
   - zircon_graphics/src/runtime/hybrid_gi/build_resolve_runtime.rs
   - zircon_graphics/src/runtime/hybrid_gi/declarations/hybrid_gi_runtime_state.rs
   - zircon_graphics/src/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/hybrid_gi_hierarchy_resolve_weight.rs
-  - zircon_graphics/src/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/hybrid_gi_hierarchy_irradiance.rs
-  - zircon_graphics/src/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/hybrid_gi_hierarchy_rt_lighting.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/hybrid_gi_hierarchy_irradiance/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/hybrid_gi_hierarchy_rt_lighting/mod.rs
   - zircon_graphics/src/tests/hybrid_gi_runtime.rs
   - zircon_graphics/src/tests/hybrid_gi_resolve_render.rs
   - zircon_graphics/src/runtime/render_framework/submit_frame_extract/prepare_runtime_submission/prepare.rs
@@ -16,8 +16,8 @@ implementation_files:
   - zircon_graphics/src/types/hybrid_gi_resolve_runtime.rs
   - zircon_graphics/src/runtime/hybrid_gi/build_resolve_runtime.rs
   - zircon_graphics/src/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/hybrid_gi_hierarchy_resolve_weight.rs
-  - zircon_graphics/src/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/hybrid_gi_hierarchy_irradiance.rs
-  - zircon_graphics/src/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/hybrid_gi_hierarchy_rt_lighting.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/hybrid_gi_hierarchy_irradiance/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/hybrid_gi_hierarchy_rt_lighting/mod.rs
 plan_sources:
   - user: 2026-04-18 Hybrid GI 把 hierarchy-aware resolve / probe gather / RT hybrid lighting 从 encode-side 向 runtime/GPU source 收拢
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md

@@ -12,11 +12,11 @@ impl SceneRenderer {
     ) -> Result<Vec<u32>, GraphicsError> {
         let child_id_count = self
             .advanced_plugin_outputs
-            .virtual_geometry_node_and_cluster_cull_hierarchy_child_id_count
+            .virtual_geometry_node_and_cluster_cull_hierarchy_child_id_count()
             as usize;
         let Some(buffer) = self
             .advanced_plugin_outputs
-            .virtual_geometry_node_and_cluster_cull_hierarchy_child_id_buffer
+            .virtual_geometry_node_and_cluster_cull_hierarchy_child_id_buffer()
             .as_ref()
         else {
             return Ok(Vec::new());

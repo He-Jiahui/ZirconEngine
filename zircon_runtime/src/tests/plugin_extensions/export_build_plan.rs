@@ -191,7 +191,9 @@ fn source_template_with_native_dynamic_merges_native_loader_reports() {
     let main_source = generated_file(&plan, "src/main.rs");
     let plugin_source = generated_file(&plan, "src/zircon_plugins.rs");
 
-    assert!(main_source.contains("NativePluginLoader.load_from_load_manifest(export_root()?)"));
+    assert!(
+        main_source.contains("NativePluginLoader.load_runtime_from_load_manifest(export_root()?)")
+    );
     assert!(main_source
         .contains("registrations.extend(native_report.runtime_plugin_registration_reports())"));
     assert!(plugin_source.contains("zircon_plugin_physics_runtime::plugin_registration()"));
@@ -287,6 +289,127 @@ fn native_dynamic_materialization_copies_runtime_package_without_source_crates()
 
     let _ = fs::remove_dir_all(plugin_root);
     let _ = fs::remove_dir_all(output_root);
+}
+
+#[test]
+fn native_dynamic_materialization_sanitizes_package_directory_names() {
+    let plugin_root = temp_dir("zircon_native_dynamic_unsafe_plugin_root");
+    let output_root = temp_dir("zircon_native_dynamic_unsafe_output_root");
+    let package_id = "physics/../escape";
+    let package_root = plugin_root.join("unsafe_package");
+    fs::create_dir_all(package_root.join("native")).unwrap();
+    fs::write(
+        package_root.join("plugin.toml"),
+        format!(
+            "id = {package_id:?}\nversion = \"0.1.0\"\ndisplay_name = \"Unsafe Physics\"\n\n[[modules]]\nname = \"physics.runtime\"\nkind = \"runtime\"\ncrate_name = \"zircon_plugin_physics_runtime\"\ntarget_modes = [\"client_runtime\"]\n"
+        ),
+    )
+    .unwrap();
+    fs::write(package_root.join("native/physics.dll"), "dynamic-library").unwrap();
+    let mut manifest = ProjectManifest::new(
+        "Native Dynamic Unsafe Path Test",
+        AssetUri::parse("res://scenes/main.zscene").unwrap(),
+        1,
+    );
+    manifest.plugins = ProjectPluginManifest {
+        selections: vec![ProjectPluginSelection {
+            id: package_id.to_string(),
+            enabled: true,
+            required: false,
+            target_modes: vec![RuntimeTargetMode::ClientRuntime],
+            packaging: ExportPackagingStrategy::NativeDynamic,
+            runtime_crate: Some("zircon_plugin_physics_runtime".to_string()),
+            editor_crate: None,
+        }],
+    };
+    manifest.export_profiles = vec![ExportProfile::new(
+        "client",
+        RuntimeTargetMode::ClientRuntime,
+        ExportTargetPlatform::Windows,
+    )
+    .with_strategies([ExportPackagingStrategy::NativeDynamic])];
+
+    let plan = ExportBuildPlan::from_project_manifest(&manifest, "client").unwrap();
+    let load_manifest = generated_file(&plan, "plugins/native_plugins.toml");
+    assert!(load_manifest.contains("plugins/physics____escape"));
+    assert!(!load_manifest.contains("plugins/physics/../escape"));
+
+    let report = plan
+        .materialize_with_native_packages(&plugin_root, &output_root)
+        .unwrap();
+    let copied = output_root.join("plugins/physics____escape");
+
+    assert!(report.copied_packages.contains(&copied));
+    assert!(copied.join("plugin.toml").exists());
+    assert!(copied.join("native/physics.dll").exists());
+    assert!(!output_root.join("escape/plugin.toml").exists());
+
+    let _ = fs::remove_dir_all(plugin_root);
+    let _ = fs::remove_dir_all(output_root);
+}
+
+#[test]
+fn native_dynamic_materialization_does_not_directly_resolve_package_id_outside_plugin_root() {
+    let plugin_root = temp_dir("zircon_native_dynamic_direct_escape_plugin_root");
+    let output_root = temp_dir("zircon_native_dynamic_direct_escape_output_root");
+    let external_root = temp_dir("zircon_native_dynamic_direct_escape_external_package");
+    let external_name = external_root
+        .file_name()
+        .unwrap()
+        .to_string_lossy()
+        .to_string();
+    let package_id = format!("../{external_name}");
+    fs::create_dir_all(external_root.join("native")).unwrap();
+    fs::write(
+        external_root.join("plugin.toml"),
+        format!(
+            "id = {package_id:?}\nversion = \"0.1.0\"\ndisplay_name = \"External Native\"\n\n[[modules]]\nname = \"external.runtime\"\nkind = \"runtime\"\ncrate_name = \"zircon_plugin_external_runtime\"\ntarget_modes = [\"client_runtime\"]\n"
+        ),
+    )
+    .unwrap();
+    fs::write(external_root.join("native/external.dll"), "dynamic-library").unwrap();
+    let mut manifest = ProjectManifest::new(
+        "Native Dynamic Direct Escape Test",
+        AssetUri::parse("res://scenes/main.zscene").unwrap(),
+        1,
+    );
+    manifest.plugins = ProjectPluginManifest {
+        selections: vec![ProjectPluginSelection {
+            id: package_id.clone(),
+            enabled: true,
+            required: false,
+            target_modes: vec![RuntimeTargetMode::ClientRuntime],
+            packaging: ExportPackagingStrategy::NativeDynamic,
+            runtime_crate: Some("zircon_plugin_external_runtime".to_string()),
+            editor_crate: None,
+        }],
+    };
+    manifest.export_profiles = vec![ExportProfile::new(
+        "client",
+        RuntimeTargetMode::ClientRuntime,
+        ExportTargetPlatform::Windows,
+    )
+    .with_strategies([ExportPackagingStrategy::NativeDynamic])];
+
+    let plan = ExportBuildPlan::from_project_manifest(&manifest, "client").unwrap();
+    let report = plan
+        .materialize_with_native_packages(&plugin_root, &output_root)
+        .unwrap();
+
+    assert!(report.copied_packages.is_empty());
+    assert!(report
+        .diagnostics
+        .iter()
+        .any(|message| { message.contains("was selected but no plugin.toml was found under") }));
+    assert!(!output_root
+        .join("plugins")
+        .join(format!("___{external_name}"))
+        .join("plugin.toml")
+        .exists());
+
+    let _ = fs::remove_dir_all(plugin_root);
+    let _ = fs::remove_dir_all(output_root);
+    let _ = fs::remove_dir_all(external_root);
 }
 
 #[test]

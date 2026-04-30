@@ -34,10 +34,27 @@ pub(crate) struct TabData {
 }
 
 #[derive(Clone)]
+pub(crate) struct HostChromeControlFrameData {
+    pub control_id: SharedString,
+    pub frame: FrameRect,
+}
+
+#[derive(Clone)]
+pub(crate) struct HostChromeTabData {
+    pub control_id: SharedString,
+    pub tab: TabData,
+    pub frame: FrameRect,
+    pub close_frame: FrameRect,
+}
+
+#[derive(Clone)]
 pub(crate) struct FloatingWindowData {
     pub window_id: SharedString,
     pub title: SharedString,
     pub frame: FrameRect,
+    pub header_nodes: ModelRc<ViewTemplateNodeData>,
+    pub header_frame: FrameRect,
+    pub tab_frames: ModelRc<HostChromeTabData>,
     pub target_group: SharedString,
     pub left_edge_target_group: SharedString,
     pub right_edge_target_group: SharedString,
@@ -67,13 +84,13 @@ pub(crate) struct PaneData {
     pub secondary_hint: SharedString,
     pub show_toolbar: bool,
     pub viewport: SceneViewportChromeData,
-    pub body_compat: PaneBodyCompatData,
+    pub native_body: PaneNativeBodyData,
     #[allow(dead_code)]
     pub pane_presentation: Option<super::PanePresentation>,
 }
 
 #[derive(Clone, Default)]
-pub(crate) struct PaneBodyCompatData {
+pub(crate) struct PaneNativeBodyData {
     pub hierarchy: HierarchyPaneViewData,
     pub inspector: InspectorPaneViewData,
     pub console: ConsolePaneViewData,
@@ -132,9 +149,12 @@ pub(crate) struct ModulePluginStatusViewData {
     pub load_state: SharedString,
     pub enabled: bool,
     pub required: bool,
+    pub target_modes: SharedString,
+    pub packaging: SharedString,
     pub runtime_crate: SharedString,
     pub editor_crate: SharedString,
-    pub capabilities: SharedString,
+    pub runtime_capabilities: SharedString,
+    pub editor_capabilities: SharedString,
     pub diagnostics: SharedString,
 }
 
@@ -255,20 +275,31 @@ pub(crate) struct HostWindowSurfaceOrchestrationData {
     pub document_zone_x_px: f32,
     pub right_stack_x_px: f32,
     pub bottom_panel_y_px: f32,
-    pub left_tab_origin_x_px: f32,
-    pub left_tab_origin_y_px: f32,
-    pub document_tab_origin_x_px: f32,
-    pub document_tab_origin_y_px: f32,
-    pub right_tab_origin_x_px: f32,
-    pub right_tab_origin_y_px: f32,
-    pub bottom_tab_origin_x_px: f32,
-    pub bottom_tab_origin_y_px: f32,
+}
+
+#[derive(Clone)]
+pub(crate) struct HostMenuChromeItemData {
+    pub label: SharedString,
+    pub shortcut: SharedString,
+    pub action_id: SharedString,
+    pub enabled: bool,
+}
+
+#[derive(Clone)]
+pub(crate) struct HostMenuChromeMenuData {
+    pub label: SharedString,
+    pub popup_width_px: f32,
+    pub popup_height_px: f32,
+    pub popup_nodes: ModelRc<ViewTemplateNodeData>,
+    pub items: ModelRc<HostMenuChromeItemData>,
 }
 
 #[derive(Clone)]
 pub(crate) struct HostMenuChromeData {
     pub outer_margin_px: f32,
     pub top_bar_height_px: f32,
+    pub template_nodes: ModelRc<ViewTemplateNodeData>,
+    pub menu_frames: ModelRc<HostChromeControlFrameData>,
     pub save_project_enabled: bool,
     pub undo_enabled: bool,
     pub redo_enabled: bool,
@@ -276,12 +307,17 @@ pub(crate) struct HostMenuChromeData {
     pub preset_names: ModelRc<SharedString>,
     pub active_preset_name: SharedString,
     pub resolved_preset_name: SharedString,
+    pub menus: ModelRc<HostMenuChromeMenuData>,
 }
 
 #[derive(Clone)]
 pub(crate) struct HostPageChromeData {
     pub top_bar_height_px: f32,
     pub host_bar_height_px: f32,
+    pub template_nodes: ModelRc<ViewTemplateNodeData>,
+    pub tab_row_frame: FrameRect,
+    pub project_path_frame: FrameRect,
+    pub tab_frames: ModelRc<HostChromeTabData>,
     pub tabs: ModelRc<TabData>,
     pub project_path: SharedString,
 }
@@ -289,6 +325,7 @@ pub(crate) struct HostPageChromeData {
 #[derive(Clone)]
 pub(crate) struct HostStatusBarData {
     pub status_bar_frame: FrameRect,
+    pub template_nodes: ModelRc<ViewTemplateNodeData>,
     pub status_primary: SharedString,
     pub status_secondary: SharedString,
     pub viewport_label: SharedString,
@@ -322,36 +359,46 @@ pub(crate) struct HostSideDockSurfaceData {
     pub region_frame: FrameRect,
     pub surface_key: SharedString,
     pub rail_before_panel: bool,
+    pub rail_nodes: ModelRc<ViewTemplateNodeData>,
+    pub rail_button_frames: ModelRc<HostChromeControlFrameData>,
+    pub rail_active_control_id: SharedString,
+    pub header_nodes: ModelRc<ViewTemplateNodeData>,
+    pub header_frame: FrameRect,
+    pub content_frame: FrameRect,
+    pub tab_frames: ModelRc<HostChromeTabData>,
     pub tabs: ModelRc<TabData>,
     pub pane: PaneData,
     pub rail_width_px: f32,
     pub panel_width_px: f32,
     pub panel_header_height_px: f32,
-    pub tab_origin_x_px: f32,
-    pub tab_origin_y_px: f32,
 }
 
 #[derive(Clone)]
 pub(crate) struct HostDocumentDockSurfaceData {
     pub region_frame: FrameRect,
     pub surface_key: SharedString,
+    pub header_nodes: ModelRc<ViewTemplateNodeData>,
+    pub header_frame: FrameRect,
+    pub subtitle_frame: FrameRect,
+    pub content_frame: FrameRect,
+    pub tab_frames: ModelRc<HostChromeTabData>,
     pub tabs: ModelRc<TabData>,
     pub pane: PaneData,
     pub header_height_px: f32,
-    pub tab_origin_x_px: f32,
-    pub tab_origin_y_px: f32,
 }
 
 #[derive(Clone)]
 pub(crate) struct HostBottomDockSurfaceData {
     pub region_frame: FrameRect,
     pub surface_key: SharedString,
+    pub header_nodes: ModelRc<ViewTemplateNodeData>,
+    pub header_frame: FrameRect,
+    pub content_frame: FrameRect,
+    pub tab_frames: ModelRc<HostChromeTabData>,
     pub tabs: ModelRc<TabData>,
     pub pane: PaneData,
     pub expanded: bool,
     pub header_height_px: f32,
-    pub tab_origin_x_px: f32,
-    pub tab_origin_y_px: f32,
 }
 
 #[derive(Clone)]

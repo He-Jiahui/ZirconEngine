@@ -8,7 +8,8 @@ pub(super) fn update_virtual_geometry_stats(
     context: &FrameSubmissionContext,
     record_update: &SubmissionRecordUpdate,
 ) {
-    let virtual_geometry_extract = context.virtual_geometry_extract.as_ref();
+    let virtual_geometry_stats = record_update.virtual_geometry_stats();
+    let virtual_geometry_extract = context.virtual_geometry_extract();
     let cull_input_snapshot = virtual_geometry_extract
         .and_then(|_| state.renderer.last_virtual_geometry_debug_snapshot())
         .map(|snapshot| snapshot.cull_input);
@@ -41,7 +42,7 @@ pub(super) fn update_virtual_geometry_stats(
                 .unwrap_or(0)
         });
     state.stats.last_virtual_geometry_visible_cluster_count = context
-        .visibility_context
+        .visibility_context()
         .virtual_geometry_visible_clusters
         .len();
     state.stats.last_virtual_geometry_visible_entity_count = cull_input_snapshot
@@ -55,15 +56,13 @@ pub(super) fn update_virtual_geometry_stats(
         .map(|extract| extract.instances.len())
         .unwrap_or(0);
     state.stats.last_virtual_geometry_requested_page_count = context
-        .visibility_context
-        .virtual_geometry_page_upload_plan
-        .requested_pages
-        .len();
+        .virtual_geometry_page_upload_plan()
+        .map(|plan| plan.requested_pages.len())
+        .unwrap_or(0);
     state.stats.last_virtual_geometry_dirty_page_count = context
-        .visibility_context
-        .virtual_geometry_page_upload_plan
-        .dirty_requested_pages
-        .len();
+        .virtual_geometry_page_upload_plan()
+        .map(|plan| plan.dirty_requested_pages.len())
+        .unwrap_or(0);
     state.stats.last_virtual_geometry_forced_mip =
         virtual_geometry_extract.and_then(|extract| extract.debug.forced_mip);
     state.stats.last_virtual_geometry_freeze_cull = virtual_geometry_extract
@@ -79,25 +78,23 @@ pub(super) fn update_virtual_geometry_stats(
         .map(|extract| extract.debug.print_leaf_clusters)
         .unwrap_or(false);
     state.stats.last_virtual_geometry_page_table_entry_count =
-        record_update.virtual_geometry_stats.page_table_entry_count;
+        virtual_geometry_stats.page_table_entry_count();
     state.stats.last_virtual_geometry_resident_page_count =
-        record_update.virtual_geometry_stats.resident_page_count;
+        virtual_geometry_stats.resident_page_count();
     state.stats.last_virtual_geometry_pending_request_count =
-        record_update.virtual_geometry_stats.pending_request_count;
+        virtual_geometry_stats.pending_request_count();
     state.stats.last_virtual_geometry_completed_page_count =
-        record_update.virtual_geometry_stats.completed_page_count;
+        virtual_geometry_stats.completed_page_count();
     state.stats.last_virtual_geometry_replaced_page_count =
-        record_update.virtual_geometry_stats.replaced_page_count;
+        virtual_geometry_stats.replaced_page_count();
     state.stats.last_virtual_geometry_indirect_draw_count =
         state.renderer.last_virtual_geometry_indirect_draw_count() as usize;
     state.stats.last_virtual_geometry_indirect_buffer_count =
         state.renderer.last_virtual_geometry_indirect_buffer_count() as usize;
     state.stats.last_virtual_geometry_indirect_args_count =
         state.renderer.last_virtual_geometry_indirect_args_count() as usize;
-    state.stats.last_virtual_geometry_indirect_segment_count = state
-        .renderer
-        .last_virtual_geometry_indirect_segment_count()
-        as usize;
+    state.stats.last_virtual_geometry_indirect_segment_count =
+        virtual_geometry_stats.indirect_segment_count();
     state.stats.last_virtual_geometry_execution_segment_count = state
         .renderer
         .last_virtual_geometry_execution_segment_count()

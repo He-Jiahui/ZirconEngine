@@ -61,8 +61,11 @@ fn build_drawers(
     instances: &HashMap<ViewInstanceId, ViewInstance>,
     descriptors: &HashMap<ViewDescriptorId, ViewDescriptor>,
 ) -> BTreeMap<crate::ui::workbench::layout::ActivityDrawerSlot, ActivityDrawerSnapshot> {
+    let Some(active_window_id) = layout.active_activity_window_id() else {
+        return BTreeMap::new();
+    };
     let activity_windows = layout.activity_windows();
-    let Some(window) = activity_windows.values().next() else {
+    let Some(window) = activity_windows.get(&active_window_id) else {
         return BTreeMap::new();
     };
 
@@ -103,10 +106,12 @@ fn build_main_pages(
             MainHostPageLayout::WorkbenchPage {
                 id,
                 title,
+                activity_window,
                 document_workspace,
             } => MainPageSnapshot::Workbench {
                 id: id.clone(),
                 title: title.clone(),
+                activity_window: activity_window.clone(),
                 workspace: resolve_document_workspace(document_workspace, instances, descriptors),
             },
             MainHostPageLayout::ExclusiveActivityWindowPage {

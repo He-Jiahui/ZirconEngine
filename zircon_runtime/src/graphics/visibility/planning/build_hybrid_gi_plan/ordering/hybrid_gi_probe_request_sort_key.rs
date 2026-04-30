@@ -3,16 +3,16 @@ use std::{
     collections::{BTreeMap, BTreeSet},
 };
 
-use crate::core::framework::render::{RenderHybridGiProbe, RenderHybridGiTraceRegion};
+use super::super::sources::{HybridGiVisibilityPlanProbe, HybridGiVisibilityPlanTraceRegion};
 
 const ANCESTOR_TRACE_SUPPORT_FALLOFF: f32 = 0.78;
 const MIN_TRACE_SUPPORT_REACH: f32 = 0.0001;
 
 pub(in crate::graphics::visibility::planning::build_hybrid_gi_plan) fn hybrid_gi_probe_request_sort_key(
-    left: &RenderHybridGiProbe,
-    right: &RenderHybridGiProbe,
-    scheduled_trace_regions: &[RenderHybridGiTraceRegion],
-    probes_by_id: &BTreeMap<u32, RenderHybridGiProbe>,
+    left: &HybridGiVisibilityPlanProbe,
+    right: &HybridGiVisibilityPlanProbe,
+    scheduled_trace_regions: &[HybridGiVisibilityPlanTraceRegion],
+    probes_by_id: &BTreeMap<u32, HybridGiVisibilityPlanProbe>,
     previous_requested_probe_ids: &BTreeSet<u32>,
 ) -> Ordering {
     probe_trace_support_score(right, scheduled_trace_regions, probes_by_id)
@@ -35,8 +35,8 @@ pub(in crate::graphics::visibility::planning::build_hybrid_gi_plan) fn hybrid_gi
 }
 
 fn probe_hierarchy_depth(
-    probe: &RenderHybridGiProbe,
-    probes_by_id: &BTreeMap<u32, RenderHybridGiProbe>,
+    probe: &HybridGiVisibilityPlanProbe,
+    probes_by_id: &BTreeMap<u32, HybridGiVisibilityPlanProbe>,
 ) -> usize {
     let mut depth = 0usize;
     let mut current_probe_id = probe.probe_id;
@@ -60,9 +60,9 @@ fn probe_hierarchy_depth(
 }
 
 fn probe_trace_support_score(
-    probe: &RenderHybridGiProbe,
-    scheduled_trace_regions: &[RenderHybridGiTraceRegion],
-    probes_by_id: &BTreeMap<u32, RenderHybridGiProbe>,
+    probe: &HybridGiVisibilityPlanProbe,
+    scheduled_trace_regions: &[HybridGiVisibilityPlanTraceRegion],
+    probes_by_id: &BTreeMap<u32, HybridGiVisibilityPlanProbe>,
 ) -> f32 {
     let mut total_support = single_probe_trace_support_score(probe, scheduled_trace_regions);
     let mut current_probe_id = probe.probe_id;
@@ -93,8 +93,8 @@ fn probe_trace_support_score(
 }
 
 fn single_probe_trace_support_score(
-    probe: &RenderHybridGiProbe,
-    scheduled_trace_regions: &[RenderHybridGiTraceRegion],
+    probe: &HybridGiVisibilityPlanProbe,
+    scheduled_trace_regions: &[HybridGiVisibilityPlanTraceRegion],
 ) -> f32 {
     scheduled_trace_regions
         .iter()

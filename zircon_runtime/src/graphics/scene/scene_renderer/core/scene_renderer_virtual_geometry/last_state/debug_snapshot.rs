@@ -6,7 +6,6 @@ impl SceneRenderer {
         &self,
     ) -> Option<RenderVirtualGeometryDebugSnapshot> {
         self.advanced_plugin_outputs
-            .virtual_geometry_debug_snapshot
-            .clone()
+            .virtual_geometry_debug_snapshot()
     }
 }

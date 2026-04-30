@@ -1,5 +1,10 @@
 use serde::{Deserialize, Serialize};
 
+use crate::ui::component::{
+    UiComponentCategory, UiComponentDescriptor as RuntimeUiComponentDescriptor, UiPropSchema,
+    UiSlotSchema, UiValue, UiValueKind,
+};
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UiComponentDescriptor {
     pub component_id: String,
@@ -18,5 +23,27 @@ impl UiComponentDescriptor {
             plugin_id: plugin_id.into(),
             ui_document: ui_document.into(),
         }
+    }
+
+    pub fn to_runtime_component_descriptor(&self) -> RuntimeUiComponentDescriptor {
+        RuntimeUiComponentDescriptor::new(
+            self.component_id.clone(),
+            self.display_name(),
+            UiComponentCategory::Container,
+            "plugin-ui-component",
+        )
+        .default_prop("plugin_id", UiValue::String(self.plugin_id.clone()))
+        .default_prop("ui_document", UiValue::String(self.ui_document.clone()))
+        .with_prop(UiPropSchema::new("plugin_id", UiValueKind::String).required(true))
+        .with_prop(UiPropSchema::new("ui_document", UiValueKind::String).required(true))
+        .slot(UiSlotSchema::new("content").multiple(true))
+    }
+
+    fn display_name(&self) -> String {
+        self.component_id
+            .rsplit('.')
+            .next()
+            .unwrap_or(&self.component_id)
+            .to_string()
     }
 }

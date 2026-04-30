@@ -1,4 +1,6 @@
-use crate::core::framework::render::RenderDirectionalLightSnapshot;
+use crate::core::framework::render::{
+    RenderDirectionalLightSnapshot, RenderPointLightSnapshot, RenderSpotLightSnapshot,
+};
 
 use crate::graphics::types::HybridGiPrepareFrame;
 
@@ -13,10 +15,12 @@ pub(super) fn queue_params(
     prepare: &HybridGiPrepareFrame,
     inputs: &HybridGiPrepareExecutionInputs,
     directional_lights: &[RenderDirectionalLightSnapshot],
+    point_lights: &[RenderPointLightSnapshot],
+    spot_lights: &[RenderSpotLightSnapshot],
     probe_budget: Option<u32>,
     tracing_budget: Option<u32>,
 ) {
-    let scene_light_seed = scene_light_seed(directional_lights);
+    let scene_light_seed = scene_light_seed(directional_lights, point_lights, spot_lights);
     let params = HybridGiCompletionParams {
         resident_probe_count: prepare.resident_probes.len() as u32,
         pending_probe_count: inputs.pending_probe_inputs.len() as u32,

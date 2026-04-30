@@ -29,7 +29,7 @@ fn block_imports_name(block: &str, name: &str) -> bool {
 }
 
 #[test]
-fn workbench_host_window_keeps_generated_slint_shell_dtos_at_ui_boundary_only() {
+fn workbench_host_window_keeps_host_contract_shell_dtos_at_ui_boundary_only() {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("src")
         .join("ui")
@@ -126,44 +126,44 @@ fn workbench_host_window_keeps_generated_slint_shell_dtos_at_ui_boundary_only() 
             for block in &import_blocks {
                 assert!(
                     !block_imports_name(block, forbidden),
-                    "expected {:?} to stop importing generated Slint host DTO `{forbidden}` into workbench_host_window internals",
+                    "expected {:?} to stop importing host-contract DTO `{forbidden}` into workbench_host_window internals",
                     path.file_name().expect("file name")
                 );
             }
             assert!(
                 !source.contains(&format!("crate::ui::slint_host::{forbidden}")),
-                "expected {:?} to stop importing generated Slint host DTO `{forbidden}` into workbench_host_window internals",
+                "expected {:?} to stop importing host-contract DTO `{forbidden}` into workbench_host_window internals",
                 path.file_name().expect("file name")
             );
         }
     }
 
     assert!(
-        apply_presentation.contains("fn to_slint_hierarchy_pane("),
-        "expected apply_presentation.rs to own hierarchy pane conversion at the Slint boundary"
+        apply_presentation.contains("fn to_host_contract_hierarchy_pane("),
+        "expected apply_presentation.rs to own hierarchy pane conversion at the host-contract boundary"
     );
     assert!(
-        apply_presentation.contains("fn to_slint_inspector_pane("),
-        "expected apply_presentation.rs to own inspector pane conversion at the Slint boundary"
+        apply_presentation.contains("fn to_host_contract_inspector_pane("),
+        "expected apply_presentation.rs to own inspector pane conversion at the host-contract boundary"
     );
     assert!(
-        apply_presentation.contains("fn to_slint_console_pane("),
-        "expected apply_presentation.rs to own console pane conversion at the Slint boundary"
+        apply_presentation.contains("fn to_host_contract_console_pane("),
+        "expected apply_presentation.rs to own console pane conversion at the host-contract boundary"
     );
     assert!(
-        apply_presentation.contains("fn to_slint_assets_activity_pane("),
-        "expected apply_presentation.rs to own assets-activity pane conversion at the Slint boundary"
+        apply_presentation.contains("fn to_host_contract_assets_activity_pane("),
+        "expected apply_presentation.rs to own assets-activity pane conversion at the host-contract boundary"
     );
     assert!(
-        apply_presentation.contains("fn to_slint_project_overview_pane("),
-        "expected apply_presentation.rs to own project overview pane conversion at the Slint boundary"
+        apply_presentation.contains("fn to_host_contract_project_overview_pane("),
+        "expected apply_presentation.rs to own project overview pane conversion at the host-contract boundary"
     );
     assert!(
-        apply_presentation.contains("fn to_slint_animation_editor_pane("),
-        "expected apply_presentation.rs to own animation pane conversion at the Slint boundary"
+        apply_presentation.contains("fn to_host_contract_animation_editor_pane("),
+        "expected apply_presentation.rs to own animation pane conversion at the host-contract boundary"
     );
     assert!(
-        apply_presentation.contains("fn to_slint_ui_asset_pane("),
-        "expected apply_presentation.rs to own ui asset pane conversion at the Slint boundary"
+        apply_presentation.contains("fn to_host_contract_ui_asset_pane("),
+        "expected apply_presentation.rs to own ui asset pane conversion at the host-contract boundary"
     );
 }

@@ -14,11 +14,11 @@ impl SceneRenderer {
     ) -> Result<Vec<RenderVirtualGeometryNodeAndClusterCullInstanceWorkItem>, GraphicsError> {
         let work_item_count = self
             .advanced_plugin_outputs
-            .virtual_geometry_node_and_cluster_cull_instance_work_item_count
+            .virtual_geometry_node_and_cluster_cull_instance_work_item_count()
             as usize;
         let Some(buffer) = self
             .advanced_plugin_outputs
-            .virtual_geometry_node_and_cluster_cull_instance_work_item_buffer
+            .virtual_geometry_node_and_cluster_cull_instance_work_item_buffer()
             .as_ref()
         else {
             return Ok(Vec::new());

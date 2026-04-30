@@ -16,6 +16,17 @@ impl RenderPipelineCompileOptions {
         self
     }
 
+    pub fn with_plugin_feature_enabled(mut self, feature_name: impl Into<String>) -> Self {
+        let feature_name = feature_name.into();
+        self.disabled_plugin_features.remove(&feature_name);
+        self
+    }
+
+    pub fn with_plugin_feature_disabled(mut self, feature_name: impl Into<String>) -> Self {
+        self.disabled_plugin_features.insert(feature_name.into());
+        self
+    }
+
     pub fn with_capability_enabled(
         mut self,
         capability: RenderFeatureCapabilityRequirement,
@@ -51,6 +62,13 @@ impl RenderPipelineCompileOptions {
     ) -> bool {
         if let Some(builtin) = feature.builtin_feature() {
             return self.permits_feature(builtin);
+        }
+
+        if self
+            .disabled_plugin_features
+            .contains(&feature.feature_name())
+        {
+            return false;
         }
 
         let descriptor = feature.descriptor();

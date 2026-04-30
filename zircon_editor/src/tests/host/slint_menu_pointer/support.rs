@@ -8,18 +8,19 @@ pub(super) use crate::ui::slint_host::menu_pointer::{
     build_host_menu_pointer_layout, HostMenuPointerBridge, HostMenuPointerLayout,
     HostMenuPointerRoute, HostMenuPointerState,
 };
+pub(super) use crate::ui::workbench::model::WorkbenchViewModel;
 pub(super) use zircon_runtime::ui::{layout::UiFrame, layout::UiPoint, layout::UiSize};
 
 pub(super) fn default_menu_layout() -> HostMenuPointerLayout {
     HostMenuPointerLayout {
         shell_frame: UiFrame::new(0.0, 0.0, 1280.0, 720.0),
         button_frames: [
-            UiFrame::new(8.0, 1.0, 40.0, 22.0),
-            UiFrame::new(50.0, 1.0, 42.0, 22.0),
-            UiFrame::new(94.0, 1.0, 74.0, 22.0),
-            UiFrame::new(170.0, 1.0, 42.0, 22.0),
-            UiFrame::new(214.0, 1.0, 56.0, 22.0),
-            UiFrame::new(272.0, 1.0, 40.0, 22.0),
+            UiFrame::new(8.0, 2.0, 40.0, 22.0),
+            UiFrame::new(50.0, 2.0, 42.0, 22.0),
+            UiFrame::new(94.0, 2.0, 74.0, 22.0),
+            UiFrame::new(170.0, 2.0, 42.0, 22.0),
+            UiFrame::new(214.0, 2.0, 56.0, 22.0),
+            UiFrame::new(272.0, 2.0, 40.0, 22.0),
         ],
         save_project_enabled: true,
         undo_enabled: true,
@@ -29,6 +30,7 @@ pub(super) fn default_menu_layout() -> HostMenuPointerLayout {
         active_preset_name: "rider".to_string(),
         resolved_preset_name: "rider".to_string(),
         window_popup_height: 132.0,
+        menus: Vec::new(),
     }
 }
 

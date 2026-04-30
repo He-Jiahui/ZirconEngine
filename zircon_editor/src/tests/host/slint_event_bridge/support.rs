@@ -14,6 +14,8 @@ pub(super) fn record_with_event_and_effects(
         event,
         operation_id: None,
         operation_display_name: None,
+        operation_arguments: None,
+        operation_group: None,
         effects,
         undo_policy: EditorEventUndoPolicy::NonUndoable,
         before_revision: 0,

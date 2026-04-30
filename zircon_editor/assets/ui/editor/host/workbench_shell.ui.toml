@@ -153,7 +153,7 @@ stretch = "Fixed"
 [components.ActivityRail.root.children.node]
 node_id = "component_ActivityRail_root_0"
 kind = "native"
-type = "UiHostIconButton"
+type = "IconButton"
 control_id = "ProjectToggle"
 classes = []
 children = []
@@ -200,7 +200,7 @@ route = "DockCommand.ActivateDrawerTab"
 [components.ActivityRail.root.children.node]
 node_id = "component_ActivityRail_root_1"
 kind = "native"
-type = "UiHostIconButton"
+type = "IconButton"
 control_id = "HierarchyToggle"
 classes = []
 children = []
@@ -247,7 +247,7 @@ route = "DockCommand.ActivateDrawerTab"
 [components.ActivityRail.root.children.node]
 node_id = "component_ActivityRail_root_2"
 kind = "native"
-type = "UiHostIconButton"
+type = "IconButton"
 control_id = "ConsoleToggle"
 classes = []
 children = []
@@ -413,9 +413,9 @@ gap = 8.0
 kind = "HorizontalBox"
 
 [components.MenuBar.root.layout.height]
-max = 40.0
-min = 40.0
-preferred = 40.0
+max = 26.0
+min = 26.0
+preferred = 26.0
 stretch = "Fixed"
 
 [components.MenuBar.root.layout.width]
@@ -432,7 +432,7 @@ stretch = "Stretch"
 [components.MenuBar.root.children.node]
 node_id = "component_MenuBar_root_0"
 kind = "native"
-type = "UiHostIconButton"
+type = "IconButton"
 control_id = "OpenProject"
 classes = []
 children = []
@@ -471,7 +471,7 @@ route = "MenuAction.OpenProject"
 [components.MenuBar.root.children.node]
 node_id = "component_MenuBar_root_1"
 kind = "native"
-type = "UiHostIconButton"
+type = "IconButton"
 control_id = "SaveProject"
 classes = []
 children = []
@@ -510,7 +510,7 @@ route = "MenuAction.SaveProject"
 [components.MenuBar.root.children.node]
 node_id = "component_MenuBar_root_2"
 kind = "native"
-type = "UiHostIconButton"
+type = "IconButton"
 control_id = "ResetLayout"
 classes = []
 children = []
@@ -585,7 +585,7 @@ stretch = "Stretch"
 [components.StatusBar.root.children.node]
 node_id = "component_StatusBar_root_0"
 kind = "native"
-type = "UiHostLabel"
+type = "Label"
 control_id = "StatusText"
 classes = []
 bindings = []
@@ -703,6 +703,69 @@ children = []
 [components.UiHostWindow.root.children.node.children.slot]
 
 [components.UiHostWindow.root.children.node.children.node]
+node_id = "component_UiHostWindow_root_0_host_page_strip"
+kind = "native"
+type = "Container"
+control_id = "HostPageStripRoot"
+classes = []
+bindings = []
+children = []
+
+[components.UiHostWindow.root.children.node.children.node.params]
+
+[components.UiHostWindow.root.children.node.children.node.props]
+
+[components.UiHostWindow.root.children.node.children.node.layout]
+clip = true
+
+[components.UiHostWindow.root.children.node.children.node.layout.height]
+max = 32.0
+min = 32.0
+preferred = 32.0
+stretch = "Fixed"
+
+[components.UiHostWindow.root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[components.UiHostWindow.root.children.node.children.node.style_overrides.self]
+
+[components.UiHostWindow.root.children.node.children.node.style_overrides.slot]
+
+[[components.UiHostWindow.root.children.node.children]]
+
+[components.UiHostWindow.root.children.node.children.slot]
+
+[components.UiHostWindow.root.children.node.children.node]
+node_id = "component_UiHostWindow_root_0_host_page_separator"
+kind = "native"
+type = "Container"
+control_id = "HostPageStripSeparator"
+classes = []
+bindings = []
+children = []
+
+[components.UiHostWindow.root.children.node.children.node.params]
+
+[components.UiHostWindow.root.children.node.children.node.props]
+
+[components.UiHostWindow.root.children.node.children.node.layout.height]
+max = 1.0
+min = 1.0
+preferred = 1.0
+stretch = "Fixed"
+
+[components.UiHostWindow.root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[components.UiHostWindow.root.children.node.children.node.style_overrides.self]
+
+[components.UiHostWindow.root.children.node.children.node.style_overrides.slot]
+
+[[components.UiHostWindow.root.children.node.children]]
+
+[components.UiHostWindow.root.children.node.children.slot]
+
+[components.UiHostWindow.root.children.node.children.node]
 node_id = "component_UiHostWindow_root_0_1"
 kind = "native"
 type = "HorizontalBox"
@@ -787,42 +850,6 @@ children = []
 [components.UiHostWindow.root.children.node.children.node.style_overrides.self]
 
 [components.UiHostWindow.root.children.node.children.node.style_overrides.slot]
-
-[[components.UiHostWindow.root.children]]
-
-[components.UiHostWindow.root.children.slot]
-
-[components.UiHostWindow.root.children.node]
-node_id = "component_UiHostWindow_root_1"
-kind = "native"
-type = "Container"
-control_id = "HostPageStripRoot"
-classes = []
-bindings = []
-children = []
-
-[components.UiHostWindow.root.children.node.params]
-
-[components.UiHostWindow.root.children.node.props]
-
-[components.UiHostWindow.root.children.node.layout]
-clip = true
-
-[components.UiHostWindow.root.children.node.layout.height]
-max = 0.0
-min = 0.0
-preferred = 0.0
-stretch = "Fixed"
-
-[components.UiHostWindow.root.children.node.layout.width]
-max = 0.0
-min = 0.0
-preferred = 0.0
-stretch = "Fixed"
-
-[components.UiHostWindow.root.children.node.style_overrides.self]
-
-[components.UiHostWindow.root.children.node.style_overrides.slot]
 
 [[components.UiHostWindow.root.children]]
 

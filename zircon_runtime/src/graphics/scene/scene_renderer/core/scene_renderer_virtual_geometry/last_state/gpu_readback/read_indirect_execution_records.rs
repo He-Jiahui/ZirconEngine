@@ -13,15 +13,7 @@ impl SceneRenderer {
         if !execution_authority_records.is_empty() {
             return Ok(execution_authority_records
                 .into_iter()
-                .map(|record| {
-                    (
-                        record.draw_ref_index,
-                        record.entity,
-                        record.page_id,
-                        record.submission_index,
-                        record.draw_ref_rank,
-                    )
-                })
+                .map(|record| record.execution_record())
                 .collect());
         }
         let authority_records = self.read_last_virtual_geometry_indirect_authority_records()?;
@@ -30,18 +22,7 @@ impl SceneRenderer {
         }
         let authority_by_draw_ref_index = authority_records
             .into_iter()
-            .map(|record| {
-                (
-                    record.draw_ref_index,
-                    (
-                        record.draw_ref_index,
-                        record.entity,
-                        record.page_id,
-                        record.submission_index,
-                        record.draw_ref_rank,
-                    ),
-                )
-            })
+            .map(|record| (record.draw_ref_index(), record.execution_record()))
             .collect::<std::collections::HashMap<_, _>>();
         Ok(self
             .read_last_virtual_geometry_indirect_execution_draw_ref_indices()?

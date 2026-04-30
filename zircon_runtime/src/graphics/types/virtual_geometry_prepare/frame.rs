@@ -163,6 +163,13 @@ impl VirtualGeometryPrepareFrame {
             .collect()
     }
 
+    pub(crate) fn drawable_indirect_segment_count(&self) -> usize {
+        self.cluster_draw_segments
+            .iter()
+            .filter(|segment| !matches!(segment.state, VirtualGeometryPrepareClusterState::Missing))
+            .count()
+    }
+
     pub(crate) fn selected_clusters(
         &self,
         extract: &RenderVirtualGeometryExtract,

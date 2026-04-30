@@ -1,84 +1,25 @@
+fn source(relative: &str) -> String {
+    std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(relative))
+        .unwrap_or_else(|error| panic!("read `{relative}`: {error}"))
+}
+
 #[test]
-fn shared_drag_capture_surface_replaces_legacy_direct_drop_callback_abi() {
-    let workbench = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/ui/workbench.slint"));
-    let host_context = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/host_context.slint"
-    ));
-    let host_tab_drag_overlay = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/host_tab_drag_overlay.slint"
-    ));
-    let host_side_dock_surface = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/host_side_dock_surface.slint"
-    ));
-    let host_document_dock_surface = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/host_document_dock_surface.slint"
-    ));
-    let host_bottom_dock_surface = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/host_bottom_dock_surface.slint"
-    ));
-    let host_floating_window_layer = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/host_floating_window_layer.slint"
-    ));
-    let host_components = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/host_components.slint"
-    ));
-    let wiring = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/src/ui/slint_host/app/callback_wiring.rs"
-    ));
-    let docking = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/src/ui/slint_host/app/workspace_docking.rs"
-    ));
+fn shared_drag_capture_surface_uses_rust_owned_pointer_event_contract() {
+    let globals = source("src/ui/slint_host/host_contract/globals.rs");
+    let wiring = source("src/ui/slint_host/app/callback_wiring.rs");
+    let docking = source("src/ui/slint_host/app/workspace_docking.rs");
 
-    for needle in [
-        "callback drop_tab(tab_id: string, target_group: string, pointer_x: float, pointer_y: float);",
-        "callback update_drag_target(x: float, y: float);",
-        "root.update_drag_target(root.drag_pointer_x, root.drag_pointer_y);",
-        "root.drop_tab(",
-        "ui.on_drop_tab(",
-        "ui.on_update_drag_target(",
-        "fn drop_tab(",
-        "fn update_drag_target(",
+    assert!(globals.contains("on_host_drag_pointer_event"));
+    assert!(wiring.contains("host_shell.on_host_drag_pointer_event("));
+    for required in [
+        "pub(super) fn host_drag_pointer_event",
+        "sync_drag_target_group",
+        "dispatch_drag_drop_from_pointer",
+        "HOST_POINTER_UP",
     ] {
-        let found =
-            workbench.contains(needle) || wiring.contains(needle) || docking.contains(needle);
-        assert!(
-            !found,
-            "drag capture path still exposes legacy direct callback `{needle}`"
-        );
+        assert!(docking.contains(required), "workspace docking missing `{required}`");
     }
-
-    for needle in [
-        "callback host_drag_pointer_event(kind: int, x: float, y: float);",
-        "UiHostContext.host_drag_pointer_event(",
-    ] {
-        assert!(
-            workbench.contains(needle)
-                || host_context.contains(needle)
-                || host_tab_drag_overlay.contains(needle)
-                || host_side_dock_surface.contains(needle)
-                || host_document_dock_surface.contains(needle)
-                || host_bottom_dock_surface.contains(needle)
-                || host_floating_window_layer.contains(needle)
-                || host_components.contains(needle),
-            "workbench shell is missing shared drag pointer hook `{needle}`"
-        );
+    for legacy in ["on_drop_tab", "on_update_drag_target"] {
+        assert!(!wiring.contains(legacy), "drag wiring should not keep `{legacy}`");
     }
-
-    assert!(
-        wiring.contains("host_shell.on_host_drag_pointer_event("),
-        "slint host callback wiring must register shared drag pointer callback"
-    );
-    assert!(
-        docking.contains("fn host_drag_pointer_event("),
-        "workspace docking host must handle shared drag pointer events"
-    );
 }

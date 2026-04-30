@@ -3,7 +3,6 @@ related_code:
   - zircon_runtime/src/ui/template/mod.rs
   - zircon_runtime/src/ui/template/asset/mod.rs
   - zircon_runtime/src/ui/template/asset/document.rs
-  - zircon_runtime/src/ui/template/asset/legacy.rs
   - zircon_runtime/src/ui/template/asset/loader.rs
   - zircon_runtime/src/ui/runtime_ui/runtime_ui_fixture.rs
   - zircon_runtime/src/ui/runtime_ui/runtime_ui_manager.rs
@@ -27,7 +26,6 @@ implementation_files:
   - zircon_runtime/src/ui/template/mod.rs
   - zircon_runtime/src/ui/template/asset/mod.rs
   - zircon_runtime/src/ui/template/asset/document.rs
-  - zircon_runtime/src/ui/template/asset/legacy.rs
   - zircon_runtime/src/ui/template/asset/loader.rs
   - zircon_runtime/src/ui/runtime_ui/runtime_ui_fixture.rs
   - zircon_runtime/src/ui/runtime_ui/runtime_ui_manager.rs
@@ -79,7 +77,7 @@ doc_type: module-detail
 这份文档记录当前 shared UI 资产协议的三个硬结论：
 
 - 生产序列化权威已经切到 tree-shaped `.ui.toml`
-- formal loader 和 formal public template surface 都只接受 tree authority，不再公开 flat migration adapter
+- formal loader 和 formal public template surface 都只接受 tree authority，不再公开 flat migration helper
 - editor/runtime 继续共用同一条 `UiAssetLoader -> UiDocumentCompiler -> UiTemplateSurfaceBuilder` 链路
 
 本篇只描述“资产文档格式”和“editor/runtime 如何消费这份格式”。editor workbench owner 收口见 [`UI Asset Editor Host Session`](../editor-and-tooling/ui-asset-editor-host-session.md)。
@@ -127,7 +125,7 @@ doc_type: module-detail
 
 ## Flat Migration Is Crate-Internal Or Test-Only
 
-为了完成这次一次性 cutover，并兼容 editor 侧仍会接触到历史 flat 夹具/测试文档，shared 模板层保留了 [`UiFlatAssetMigrationAdapter`](../../zircon_runtime/src/ui/template/asset/legacy.rs)。
+为了完成这次一次性 cutover，并兼容 editor 侧仍会接触到历史 flat 夹具/测试文档，flat 迁移逻辑被限制在 runtime test support 与 editor test support。
 
 它的职责仍然被故意压到最小：
 
@@ -144,14 +142,14 @@ doc_type: module-detail
 
 - 正式解析后的 `UiAssetDocument` 只来自 tree wire format
 - canonical save 仍然只会输出 tree TOML
-- flat migration adapter 不是正式 public API，也不会挂在 production loader 上继续兜底
+- flat migration helper 不是正式 public API，也不会挂在 production loader 上继续兜底
 
 ## Internal Compatibility Layer
 
 当前还有一个刻意保留的实现折中：
 
 - 正式磁盘 authority 仍然是 tree TOML
-- runtime 内部的 flat migration 只保留在 `#[cfg(test)]` 单元测试路径
+- runtime 内部的 flat migration 只保留在 `src/ui/tests/asset_migration_support.rs` 单元测试路径
 - editor 对历史 flat fixture 的兼容只保留在 `src/tests/support.rs`
 - editor/runtime 的生产 consumer 已经直接走递归树 helper，而不是继续依赖 `document.nodes` 作为工作态真源
 
@@ -159,7 +157,7 @@ doc_type: module-detail
 
 - 磁盘权威：tree TOML
 - 正式 loader：tree only，flat 输入直接报错
-- legacy 兼容：只保留在 runtime test-only helper 和 editor test support
+- 历史 flat fixture 迁移：只保留在 runtime test-only helper 和 editor test support
 - 生产内存访问：tree-native helper API
 
 ## Editor Protocol Consequences
@@ -192,7 +190,7 @@ doc_type: module-detail
 
 区别只在最后的宿主投影：
 
-- editor 把 `UiSurface` 投影到 Slint host
+- editor 把 `UiSurface` 投影到 Rust-owned host contract
 - runtime 把 `UiSurface.render_extract` 打包进 runtime frame / graphics pass
 
 资产真源、编译器和 surface builder 没有 editor/runtime 分叉实现。
@@ -203,17 +201,17 @@ doc_type: module-detail
 
 - `cargo test -p zircon_runtime ui_document_compiler_expands_imported_widget_references_and_applies_stylesheets --locked`
   - 证明 tree authority 仍能经 shared compiler 展开 import 和 stylesheet
-- `cargo test -p zircon_runtime ui_flat_asset_migration_adapter_converts_flat_assets_into_tree_authority_source --locked`
+- `cargo test -p zircon_runtime ui_flat_fixture_migration_converts_flat_assets_into_tree_authority_source --locked`
   - 证明 flat-to-tree 一次性迁移器能生成新 authority
 - `cargo test -p zircon_runtime ui_asset_loader_rejects_flat_asset_documents_on_formal_path --locked`
   - 证明 formal loader 现在会直接拒绝 flat authority，而不是在 production path 上继续兜底迁移
-- `cargo test -p zircon_runtime ui_legacy_template_adapter_emits_canonical_asset_source_that_roundtrips --locked`
-  - 证明 legacy template adapter 生成的新源码能够 roundtrip
+- `cargo test -p zircon_runtime ui_legacy_template_fixture_conversion_emits_canonical_asset_source_that_roundtrips --locked`
+  - 证明历史 template fixture 转换生成的新源码能够 roundtrip
 - `cargo test -p zircon_editor --locked --offline tests::ui::boundary::editor_test_support_migrates_flat_ui_asset_documents_for_editor_consumers -- --exact`
   - 证明 editor test support 仍能把历史 flat fixture 本地迁成 tree，再复用正式 shared compiler 链路
 - `cargo test -p zircon_editor --lib editor_production_ui_modules_keep_flat_asset_migration_in_test_support_only --locked`
-  - 证明 editor 生产 UI 模块不再持有 flat migration helper，legacy 兼容只留在 `src/tests/support.rs`
+  - 证明 editor 生产 UI 模块不再持有 flat migration helper，历史 fixture 迁移只留在 `src/tests/support.rs`
 - `cargo test -p zircon_editor --lib ui_asset_editor_bootstrap_assets_parse_and_compile_with_imports --locked`
   - 证明 editor bootstrap 资产已经能按新 tree format 打开和编译
 
-这几条证据组合起来，已经覆盖 formal loader tree-only 边界、crate-internal/test-only flat migration、legacy adapter 和 editor/runtime 共用消费链路。
+这几条证据组合起来，已经覆盖 formal loader tree-only 边界、crate-internal/test-only flat migration、历史 template fixture 转换和 editor/runtime 共用消费链路。

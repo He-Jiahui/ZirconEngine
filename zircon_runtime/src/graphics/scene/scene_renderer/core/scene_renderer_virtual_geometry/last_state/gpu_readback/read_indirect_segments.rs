@@ -30,14 +30,14 @@ impl SceneRenderer {
 
         let Some(buffer) = self
             .advanced_plugin_outputs
-            .virtual_geometry_indirect_segments_buffer
+            .virtual_geometry_indirect_segments_buffer()
             .as_ref()
         else {
             return Ok(Vec::new());
         };
         let indirect_segment_count = self
             .advanced_plugin_outputs
-            .virtual_geometry_indirect_segment_count;
+            .virtual_geometry_indirect_segment_count();
         if indirect_segment_count == 0 {
             return Ok(Vec::new());
         }

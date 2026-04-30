@@ -9,10 +9,10 @@ mod virtual_geometry_debug_snapshot;
 mod virtual_geometry_debug_snapshot_streams;
 
 pub use backend_types::{
-    CapturedFrame, FrameHistoryHandle, RenderCapabilitySummary, RenderCommand,
-    RenderFeatureQualitySettings, RenderPipelineHandle, RenderQualityProfile, RenderQuery,
-    RenderQueueCapability, RenderStats, RenderViewportDescriptor, RenderViewportHandle,
-    RenderingBackendInfo,
+    CapturedFrame, FrameHistoryHandle, RenderCapabilityKind, RenderCapabilityMismatchDetail,
+    RenderCapabilitySummary, RenderCommand, RenderFeatureQualitySettings, RenderPipelineHandle,
+    RenderQualityProfile, RenderQuery, RenderQueueCapability, RenderStats,
+    RenderViewportDescriptor, RenderViewportHandle, RenderingBackendInfo,
 };
 pub use camera::{
     aspect_ratio_from_viewport_size, default_viewport_aspect_ratio, DisplayMode,
@@ -71,6 +71,24 @@ pub use virtual_geometry_debug_snapshot::{
     RenderVirtualGeometrySubmissionEntry, RenderVirtualGeometrySubmissionRecord,
     RenderVirtualGeometryVisBuffer64Entry, RenderVirtualGeometryVisBuffer64Source,
     RenderVirtualGeometryVisBufferMark,
+};
+pub use virtual_geometry_debug_snapshot_streams::{
+    RenderVirtualGeometryDebugSnapshotDecodedStreams,
+    RenderVirtualGeometryDebugSnapshotReadbackStreamDecodeDiagnostic,
+    RenderVirtualGeometryDebugSnapshotReadbackStreamDecodeError,
+    RenderVirtualGeometryDebugSnapshotReadbackStreamFootprint,
+    RenderVirtualGeometryDebugSnapshotReadbackStreamReport,
+    RenderVirtualGeometryDebugSnapshotReadbackStreamSection,
+    RenderVirtualGeometryDebugSnapshotReadbackStreamSummary,
+    RenderVirtualGeometryDebugSnapshotReadbackStreams,
+    RenderVirtualGeometryNodeAndClusterCullDecodedStreams,
+    RenderVirtualGeometryNodeAndClusterCullWordStreamDecodeError,
+    RenderVirtualGeometryNodeAndClusterCullWordStreams,
+    RenderVirtualGeometryRenderPathDecodedStreams,
+    RenderVirtualGeometryRenderPathWordStreamDecodeError,
+    RenderVirtualGeometryRenderPathWordStreams, RenderVirtualGeometryVisBuffer64DecodedStream,
+    RenderVirtualGeometryVisBuffer64ReadbackStream,
+    RenderVirtualGeometryVisBuffer64ReadbackStreamDecodeError,
 };
 
 pub trait RenderingManager: Send + Sync {

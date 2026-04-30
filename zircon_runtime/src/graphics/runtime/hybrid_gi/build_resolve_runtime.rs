@@ -2,7 +2,8 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use crate::core::math::Vec3;
 use crate::graphics::types::{
-    hybrid_gi_voxel_clipmap_cell_center, HybridGiPrepareVoxelClipmap, HybridGiResolveRuntime,
+    hybrid_gi_voxel_clipmap_cell_center, HybridGiPrepareVoxelClipmap,
+    HybridGiResolveProbeSceneData, HybridGiResolveRuntime, HybridGiResolveTraceRegionSceneData,
     HYBRID_GI_VOXEL_CLIPMAP_CELL_COUNT, HYBRID_GI_VOXEL_CLIPMAP_CELL_RESOLUTION,
 };
 
@@ -106,36 +107,78 @@ impl HybridGiRuntimeState {
             probe_hierarchy_rt_lighting_rgb_and_weight.insert(probe_id, encoded);
         }
 
-        HybridGiResolveRuntime {
-            probe_parent_probes: self
-                .probe_parent_probes
-                .iter()
-                .filter_map(|(&probe_id, &parent_probe_id)| {
-                    (tracked_probe_ids.contains(&probe_id)
-                        && tracked_probe_ids.contains(&parent_probe_id))
-                    .then_some((probe_id, parent_probe_id))
-                })
-                .collect(),
-            probe_rt_lighting_rgb: self
-                .probe_rt_lighting_rgb
-                .iter()
-                .filter_map(|(&probe_id, &rt_lighting_rgb)| {
-                    tracked_probe_ids
-                        .contains(&probe_id)
-                        .then_some((probe_id, rt_lighting_rgb))
-                })
-                .collect::<BTreeMap<_, _>>(),
-            probe_hierarchy_resolve_weight_q8: tracked_probe_ids
-                .iter()
-                .map(|&probe_id| {
-                    (
-                        probe_id,
-                        HybridGiResolveRuntime::pack_resolve_weight_q8(
-                            self.runtime_hierarchy_resolve_weight(probe_id),
-                        ),
-                    )
-                })
-                .collect(),
+        let probe_scene_data = self
+            .probe_scene_data()
+            .iter()
+            .filter_map(|(&probe_id, scene_data)| {
+                tracked_probe_ids.contains(&probe_id).then_some((
+                    probe_id,
+                    HybridGiResolveProbeSceneData::new(
+                        scene_data.position_x_q(),
+                        scene_data.position_y_q(),
+                        scene_data.position_z_q(),
+                        scene_data.radius_q(),
+                    ),
+                ))
+            })
+            .collect();
+        let trace_region_scene_data = self
+            .scheduled_trace_region_ids()
+            .iter()
+            .filter_map(|&region_id| {
+                self.trace_region_scene_data()
+                    .get(&region_id)
+                    .map(|scene_data| {
+                        (
+                            region_id,
+                            HybridGiResolveTraceRegionSceneData::new(
+                                scene_data.center_x_q(),
+                                scene_data.center_y_q(),
+                                scene_data.center_z_q(),
+                                scene_data.radius_q(),
+                                scene_data.coverage_q(),
+                                scene_data.rt_lighting_rgb(),
+                            ),
+                        )
+                    })
+            })
+            .collect();
+        let probe_parent_probes = self
+            .probe_parent_probes()
+            .iter()
+            .filter_map(|(&probe_id, &parent_probe_id)| {
+                (tracked_probe_ids.contains(&probe_id)
+                    && tracked_probe_ids.contains(&parent_probe_id))
+                .then_some((probe_id, parent_probe_id))
+            })
+            .collect();
+        let probe_rt_lighting_rgb = self
+            .probe_rt_lighting_rgb()
+            .iter()
+            .filter_map(|(&probe_id, &rt_lighting_rgb)| {
+                tracked_probe_ids
+                    .contains(&probe_id)
+                    .then_some((probe_id, rt_lighting_rgb))
+            })
+            .collect::<BTreeMap<_, _>>();
+        let probe_hierarchy_resolve_weight_q8 = tracked_probe_ids
+            .iter()
+            .map(|&probe_id| {
+                (
+                    probe_id,
+                    HybridGiResolveRuntime::pack_resolve_weight_q8(
+                        self.runtime_hierarchy_resolve_weight(probe_id),
+                    ),
+                )
+            })
+            .collect();
+
+        HybridGiResolveRuntime::new(
+            probe_scene_data,
+            trace_region_scene_data,
+            probe_parent_probes,
+            probe_rt_lighting_rgb,
+            probe_hierarchy_resolve_weight_q8,
             probe_hierarchy_irradiance_rgb_and_weight,
             probe_hierarchy_rt_lighting_rgb_and_weight,
             probe_scene_driven_hierarchy_irradiance_ids,
@@ -146,24 +189,32 @@ impl HybridGiRuntimeState {
             probe_scene_driven_hierarchy_rt_lighting_quality_q8,
             probe_scene_driven_hierarchy_rt_lighting_freshness_q8,
             probe_scene_driven_hierarchy_rt_lighting_revision,
-        }
+        )
     }
 
     fn tracked_runtime_probe_ids(&self) -> Vec<u32> {
         let seed_probe_ids = self
-            .resident_slots
-            .keys()
-            .copied()
-            .chain(self.pending_probes.iter().copied())
-            .chain(self.pending_updates.iter().map(|update| update.probe_id))
-            .chain(self.current_requested_probe_ids.iter().copied())
+            .resident_probe_ids()
+            .chain(self.pending_probe_ids())
+            .chain(
+                self.pending_update_requests()
+                    .iter()
+                    .map(|update| update.probe_id()),
+            )
+            .chain(self.current_requested_probe_ids().iter().copied())
+            .chain(
+                self.scene_representation_owns_runtime()
+                    .then_some(self.probe_scene_data().keys().copied())
+                    .into_iter()
+                    .flatten(),
+            )
             .collect::<BTreeSet<_>>();
         let mut tracked_probe_ids = seed_probe_ids.clone();
         for probe_id in seed_probe_ids {
             let mut current_probe_id = probe_id;
             let mut visited_probe_ids = BTreeSet::from([probe_id]);
             while let Some(parent_probe_id) =
-                self.probe_parent_probes.get(&current_probe_id).copied()
+                self.probe_parent_probes().get(&current_probe_id).copied()
             {
                 if !visited_probe_ids.insert(parent_probe_id) {
                     break;
@@ -198,11 +249,11 @@ impl HybridGiRuntimeState {
     }
 
     fn scene_surface_cache_scene_truth_revision(&self) -> u32 {
-        self.scene_representation.surface_cache.scene_revision()
+        self.scene_representation().surface_cache().scene_revision()
     }
 
     fn scene_voxel_scene_truth_revision(&self) -> u32 {
-        self.scene_representation.voxel_scene.scene_revision()
+        self.scene_representation().voxel_scene().scene_revision()
     }
 
     fn runtime_hierarchy_irradiance_entry(
@@ -215,15 +266,16 @@ impl HybridGiRuntimeState {
         let mut resident_ancestor_count = 0usize;
         let mut visited_probe_ids = BTreeSet::from([probe_id]);
 
-        while let Some(parent_probe_id) = self.probe_parent_probes.get(&current_probe_id).copied() {
+        while let Some(parent_probe_id) = self.probe_parent_probes().get(&current_probe_id).copied()
+        {
             if !visited_probe_ids.insert(parent_probe_id) {
                 break;
             }
-            if self.resident_slots.contains_key(&parent_probe_id) {
+            if self.has_resident_probe(parent_probe_id) {
                 resident_ancestor_count += 1;
                 if resident_ancestor_count > 1 {
                     let Some(ancestor_irradiance_rgb) =
-                        self.probe_irradiance_rgb.get(&parent_probe_id).copied()
+                        self.probe_irradiance_rgb().get(&parent_probe_id).copied()
                     else {
                         current_probe_id = parent_probe_id;
                         continue;
@@ -232,7 +284,7 @@ impl HybridGiRuntimeState {
                     let support = FARTHER_ANCESTOR_IRRADIANCE_INHERITANCE_FALLOFF
                         .powi(farther_ancestor_depth as i32)
                         * budget_weight(
-                            self.probe_ray_budgets
+                            self.probe_ray_budgets()
                                 .get(&parent_probe_id)
                                 .copied()
                                 .unwrap_or_default(),
@@ -304,19 +356,20 @@ impl HybridGiRuntimeState {
                 .clamp(0.0, 1.5)
                 * SCENE_TRACE_RT_SCALE;
 
-        while let Some(parent_probe_id) = self.probe_parent_probes.get(&current_probe_id).copied() {
+        while let Some(parent_probe_id) = self.probe_parent_probes().get(&current_probe_id).copied()
+        {
             if !visited_probe_ids.insert(parent_probe_id) {
                 break;
             }
-            if self.resident_slots.contains_key(&parent_probe_id) {
+            if self.has_resident_probe(parent_probe_id) {
                 let Some(ancestor_rt_lighting_rgb) =
-                    self.probe_rt_lighting_rgb.get(&parent_probe_id).copied()
+                    self.probe_rt_lighting_rgb().get(&parent_probe_id).copied()
                 else {
                     current_probe_id = parent_probe_id;
                     continue;
                 };
                 let resident_budget_weight = budget_weight(
-                    self.probe_ray_budgets
+                    self.probe_ray_budgets()
                         .get(&parent_probe_id)
                         .copied()
                         .unwrap_or_default(),
@@ -388,7 +441,7 @@ impl HybridGiRuntimeState {
     }
 
     fn direct_lineage_irradiance_fallback(&self, probe_id: u32) -> Option<[u8; 4]> {
-        if self.resident_slots.contains_key(&probe_id) {
+        if self.has_resident_probe(probe_id) {
             return None;
         }
 
@@ -402,7 +455,7 @@ impl HybridGiRuntimeState {
         let mut weighted_rgb = [0.0_f32; 3];
         let mut total_support = 0.0_f32;
 
-        if let Some(direct_irradiance_rgb) = self.probe_irradiance_rgb.get(&probe_id).copied() {
+        if let Some(direct_irradiance_rgb) = self.probe_irradiance_rgb().get(&probe_id).copied() {
             weighted_rgb[0] += direct_irradiance_rgb[0] as f32 / 255.0 * direct_lineage_support;
             weighted_rgb[1] += direct_irradiance_rgb[1] as f32 / 255.0 * direct_lineage_support;
             weighted_rgb[2] += direct_irradiance_rgb[2] as f32 / 255.0 * direct_lineage_support;
@@ -412,17 +465,18 @@ impl HybridGiRuntimeState {
         let mut current_probe_id = probe_id;
         let mut ancestor_depth = 0usize;
         let mut visited_probe_ids = BTreeSet::from([probe_id]);
-        while let Some(parent_probe_id) = self.probe_parent_probes.get(&current_probe_id).copied() {
+        while let Some(parent_probe_id) = self.probe_parent_probes().get(&current_probe_id).copied()
+        {
             if !visited_probe_ids.insert(parent_probe_id) {
                 break;
             }
             if let Some(ancestor_irradiance_rgb) =
-                self.probe_irradiance_rgb.get(&parent_probe_id).copied()
+                self.probe_irradiance_rgb().get(&parent_probe_id).copied()
             {
                 let ancestor_support = direct_lineage_support
                     * FARTHER_ANCESTOR_IRRADIANCE_INHERITANCE_FALLOFF.powi(ancestor_depth as i32)
                     * budget_weight(
-                        self.probe_ray_budgets
+                        self.probe_ray_budgets()
                             .get(&parent_probe_id)
                             .copied()
                             .unwrap_or_default(),
@@ -453,7 +507,7 @@ impl HybridGiRuntimeState {
     }
 
     fn direct_lineage_rt_lighting_fallback(&self, probe_id: u32) -> Option<[u8; 4]> {
-        if self.resident_slots.contains_key(&probe_id) {
+        if self.has_resident_probe(probe_id) {
             return None;
         }
 
@@ -467,10 +521,10 @@ impl HybridGiRuntimeState {
         let mut weighted_rgb = [0.0_f32; 3];
         let mut total_support = 0.0_f32;
 
-        if let Some(direct_rt_lighting_rgb) = self.probe_rt_lighting_rgb.get(&probe_id).copied() {
+        if let Some(direct_rt_lighting_rgb) = self.probe_rt_lighting_rgb().get(&probe_id).copied() {
             let direct_support = direct_lineage_support
                 * budget_weight(
-                    self.probe_ray_budgets
+                    self.probe_ray_budgets()
                         .get(&probe_id)
                         .copied()
                         .unwrap_or_default(),
@@ -487,17 +541,18 @@ impl HybridGiRuntimeState {
         let mut current_probe_id = probe_id;
         let mut ancestor_depth = 0usize;
         let mut visited_probe_ids = BTreeSet::from([probe_id]);
-        while let Some(parent_probe_id) = self.probe_parent_probes.get(&current_probe_id).copied() {
+        while let Some(parent_probe_id) = self.probe_parent_probes().get(&current_probe_id).copied()
+        {
             if !visited_probe_ids.insert(parent_probe_id) {
                 break;
             }
             if let Some(ancestor_rt_lighting_rgb) =
-                self.probe_rt_lighting_rgb.get(&parent_probe_id).copied()
+                self.probe_rt_lighting_rgb().get(&parent_probe_id).copied()
             {
                 let ancestor_support = direct_lineage_support
                     * ANCESTOR_TRACE_INHERITANCE_FALLOFF.powi(ancestor_depth as i32)
                     * budget_weight(
-                        self.probe_ray_budgets
+                        self.probe_ray_budgets()
                             .get(&parent_probe_id)
                             .copied()
                             .unwrap_or_default(),
@@ -532,15 +587,13 @@ impl HybridGiRuntimeState {
     }
 
     fn standalone_direct_rt_lighting_fallback(&self, probe_id: u32) -> Option<[u8; 4]> {
-        if self.resident_slots.contains_key(&probe_id)
-            || self.probe_parent_probes.contains_key(&probe_id)
-        {
+        if self.has_resident_probe(probe_id) || self.probe_parent_probes().contains_key(&probe_id) {
             return None;
         }
 
-        let direct_rt_lighting_rgb = self.probe_rt_lighting_rgb.get(&probe_id).copied()?;
+        let direct_rt_lighting_rgb = self.probe_rt_lighting_rgb().get(&probe_id).copied()?;
         let support = budget_weight(
-            self.probe_ray_budgets
+            self.probe_ray_budgets()
                 .get(&probe_id)
                 .copied()
                 .unwrap_or_default(),
@@ -570,7 +623,7 @@ impl HybridGiRuntimeState {
         let mut weighted_rgb = [0.0_f32; 3];
         let mut total_support = 0.0_f32;
         let mut stack = self
-            .probe_parent_probes
+            .probe_parent_probes()
             .iter()
             .filter_map(|(&candidate_probe_id, &parent_probe_id)| {
                 (parent_probe_id == probe_id).then_some((candidate_probe_id, 1usize))
@@ -583,13 +636,15 @@ impl HybridGiRuntimeState {
                 continue;
             }
 
-            if let Some(descendant_irradiance_rgb) =
-                self.probe_irradiance_rgb.get(&candidate_probe_id).copied()
+            if let Some(descendant_irradiance_rgb) = self
+                .probe_irradiance_rgb()
+                .get(&candidate_probe_id)
+                .copied()
             {
                 let support = lineage_support
                     * DESCENDANT_LINEAGE_IRRADIANCE_FALLOFF.powi((depth - 1) as i32)
                     * budget_weight(
-                        self.probe_ray_budgets
+                        self.probe_ray_budgets()
                             .get(&candidate_probe_id)
                             .copied()
                             .unwrap_or_default(),
@@ -602,7 +657,7 @@ impl HybridGiRuntimeState {
                 }
             }
 
-            stack.extend(self.probe_parent_probes.iter().filter_map(
+            stack.extend(self.probe_parent_probes().iter().filter_map(
                 |(&grandchild_probe_id, &parent_probe_id)| {
                     (parent_probe_id == candidate_probe_id)
                         .then_some((grandchild_probe_id, depth + 1))
@@ -635,7 +690,7 @@ impl HybridGiRuntimeState {
         let mut weighted_rgb = [0.0_f32; 3];
         let mut total_support = 0.0_f32;
         let mut stack = self
-            .probe_parent_probes
+            .probe_parent_probes()
             .iter()
             .filter_map(|(&candidate_probe_id, &parent_probe_id)| {
                 (parent_probe_id == probe_id).then_some((candidate_probe_id, 1usize))
@@ -648,13 +703,15 @@ impl HybridGiRuntimeState {
                 continue;
             }
 
-            if let Some(descendant_rt_lighting_rgb) =
-                self.probe_rt_lighting_rgb.get(&candidate_probe_id).copied()
+            if let Some(descendant_rt_lighting_rgb) = self
+                .probe_rt_lighting_rgb()
+                .get(&candidate_probe_id)
+                .copied()
             {
                 let support = lineage_support
                     * DESCENDANT_LINEAGE_TRACE_FALLOFF.powi((depth - 1) as i32)
                     * budget_weight(
-                        self.probe_ray_budgets
+                        self.probe_ray_budgets()
                             .get(&candidate_probe_id)
                             .copied()
                             .unwrap_or_default(),
@@ -668,7 +725,7 @@ impl HybridGiRuntimeState {
                 }
             }
 
-            stack.extend(self.probe_parent_probes.iter().filter_map(
+            stack.extend(self.probe_parent_probes().iter().filter_map(
                 |(&grandchild_probe_id, &parent_probe_id)| {
                     (parent_probe_id == candidate_probe_id)
                         .then_some((grandchild_probe_id, depth + 1))
@@ -693,7 +750,7 @@ impl HybridGiRuntimeState {
     fn resident_descendant_count(&self, probe_id: u32) -> usize {
         let mut count = 0usize;
         let mut stack = self
-            .probe_parent_probes
+            .probe_parent_probes()
             .iter()
             .filter_map(|(&candidate_probe_id, &parent_probe_id)| {
                 (parent_probe_id == probe_id).then_some(candidate_probe_id)
@@ -705,10 +762,10 @@ impl HybridGiRuntimeState {
             if !visited_probe_ids.insert(candidate_probe_id) {
                 continue;
             }
-            if self.resident_slots.contains_key(&candidate_probe_id) {
+            if self.has_resident_probe(candidate_probe_id) {
                 count += 1;
             }
-            stack.extend(self.probe_parent_probes.iter().filter_map(
+            stack.extend(self.probe_parent_probes().iter().filter_map(
                 |(&grandchild_probe_id, &parent_probe_id)| {
                     (parent_probe_id == candidate_probe_id).then_some(grandchild_probe_id)
                 },
@@ -721,9 +778,14 @@ impl HybridGiRuntimeState {
     fn resident_parent_depth(&self, probe_id: u32) -> usize {
         let mut depth = 0usize;
         let mut current_probe_id = probe_id;
+        let mut visited_probe_ids = BTreeSet::from([probe_id]);
 
-        while let Some(parent_probe_id) = self.probe_parent_probes.get(&current_probe_id).copied() {
-            if self.resident_slots.contains_key(&parent_probe_id) {
+        while let Some(parent_probe_id) = self.probe_parent_probes().get(&current_probe_id).copied()
+        {
+            if !visited_probe_ids.insert(parent_probe_id) {
+                break;
+            }
+            if self.has_resident_probe(parent_probe_id) {
                 depth += 1;
             }
             current_probe_id = parent_probe_id;
@@ -738,18 +800,19 @@ impl HybridGiRuntimeState {
         let mut total_support = 0.0_f32;
         let mut visited_probe_ids = BTreeSet::from([probe_id]);
 
-        while let Some(parent_probe_id) = self.probe_parent_probes.get(&current_probe_id).copied() {
+        while let Some(parent_probe_id) = self.probe_parent_probes().get(&current_probe_id).copied()
+        {
             if !visited_probe_ids.insert(parent_probe_id) {
                 break;
             }
-            if self.resident_slots.contains_key(&parent_probe_id) {
+            if self.has_resident_probe(parent_probe_id) {
                 resident_ancestor_count += 1;
                 if resident_ancestor_count > 1 {
                     let farther_ancestor_depth = resident_ancestor_count - 2;
                     total_support += FARTHER_ANCESTOR_BUDGET_FALLOFF
                         .powi(farther_ancestor_depth as i32)
                         * budget_weight(
-                            self.probe_ray_budgets
+                            self.probe_ray_budgets()
                                 .get(&parent_probe_id)
                                 .copied()
                                 .unwrap_or_default(),
@@ -766,27 +829,22 @@ impl HybridGiRuntimeState {
         &self,
         probe_id: u32,
     ) -> Option<([u8; 4], f32, f32)> {
-        let probe_scene_data = self.probe_scene_data.get(&probe_id)?;
+        let probe_scene_data = self.probe_scene_data().get(&probe_id)?;
         let probe_position = dequantize_probe_position(probe_scene_data);
-        let probe_radius = dequantize_positive(probe_scene_data.radius_q, POSITIVE_RADIUS_SCALE);
+        let probe_radius = dequantize_positive(probe_scene_data.radius_q(), POSITIVE_RADIUS_SCALE);
         let dirty_page_ids = self
-            .scene_representation
-            .surface_cache
+            .scene_representation()
+            .surface_cache()
             .dirty_page_ids_snapshot()
             .into_iter()
             .collect::<BTreeSet<_>>();
         let invalidation_freshness = scene_invalidation_confidence_freshness(
-            self.scene_representation
-                .surface_cache
+            self.scene_representation()
+                .surface_cache()
                 .invalidated_page_count(),
             SCENE_RUNTIME_SURFACE_INVALIDATION_CONFIDENCE_FRESHNESS_FALLOFF,
         );
-        let card_bounds_by_id = self
-            .scene_representation
-            .cards
-            .iter()
-            .map(|card| (card.card_id, (card.bounds_center, card.bounds_radius)))
-            .collect::<BTreeMap<_, _>>();
+        let card_bounds_by_id = self.scene_representation().card_bounds_by_id();
         let mut weighted_rgb = [0.0_f32; 3];
         let mut total_support = 0.0_f32;
         let mut weighted_confidence_quality = 0.0_f32;
@@ -800,8 +858,8 @@ impl HybridGiRuntimeState {
             atlas_sample_rgba,
             capture_sample_rgba,
         ) in self
-            .scene_representation
-            .surface_cache
+            .scene_representation()
+            .surface_cache()
             .page_contents_snapshot()
         {
             let Some((bounds_center, bounds_radius)) =
@@ -857,36 +915,36 @@ impl HybridGiRuntimeState {
     }
 
     fn scene_voxel_rt_lighting_fallback(&self, probe_id: u32) -> Option<([u8; 4], f32, f32, u32)> {
-        let probe_scene_data = self.probe_scene_data.get(&probe_id)?;
+        let probe_scene_data = self.probe_scene_data().get(&probe_id)?;
         let probe_position = dequantize_probe_position(probe_scene_data);
-        let probe_radius = dequantize_positive(probe_scene_data.radius_q, POSITIVE_RADIUS_SCALE);
+        let probe_radius = dequantize_positive(probe_scene_data.radius_q(), POSITIVE_RADIUS_SCALE);
         let dirty_page_ids = self
-            .scene_representation
-            .surface_cache
+            .scene_representation()
+            .surface_cache()
             .dirty_page_ids_snapshot()
             .into_iter()
             .collect::<BTreeSet<_>>();
         let surface_invalidation_freshness = scene_invalidation_confidence_freshness(
-            self.scene_representation
-                .surface_cache
+            self.scene_representation()
+                .surface_cache()
                 .invalidated_page_count(),
             SCENE_RUNTIME_SURFACE_INVALIDATION_CONFIDENCE_FRESHNESS_FALLOFF,
         );
         let dirty_clipmap_ids = self
-            .scene_representation
-            .voxel_scene
+            .scene_representation()
+            .voxel_scene()
             .dirty_clipmap_ids_snapshot()
             .into_iter()
             .collect::<BTreeSet<_>>();
         let voxel_invalidation_freshness = scene_invalidation_confidence_freshness(
-            self.scene_representation
-                .voxel_scene
+            self.scene_representation()
+                .voxel_scene()
                 .invalidated_clipmap_count(),
             SCENE_RUNTIME_VOXEL_INVALIDATION_CONFIDENCE_FRESHNESS_FALLOFF,
         );
         let clipmaps_by_id = self
-            .scene_representation
-            .voxel_scene
+            .scene_representation()
+            .voxel_scene()
             .clipmap_descriptors_snapshot()
             .into_iter()
             .map(|(clipmap_id, center, half_extent)| {
@@ -901,15 +959,19 @@ impl HybridGiRuntimeState {
             })
             .collect::<BTreeMap<_, _>>();
         let surface_cache_page_contents = self
-            .scene_representation
-            .surface_cache
+            .scene_representation()
+            .surface_cache()
             .page_contents_snapshot();
         let mut weighted_rgb = [0.0_f32; 3];
         let mut total_support = 0.0_f32;
         let mut weighted_confidence_quality = 0.0_f32;
         let mut weighted_confidence_freshness = 0.0_f32;
 
-        for cell in self.scene_representation.voxel_scene.voxel_cells_snapshot() {
+        for cell in self
+            .scene_representation()
+            .voxel_scene()
+            .voxel_cells_snapshot()
+        {
             if cell.occupancy_count == 0 {
                 continue;
             }
@@ -1002,23 +1064,18 @@ impl HybridGiRuntimeState {
         probe_radius: f32,
     ) -> Option<([u8; 4], f32, f32, u32)> {
         let dirty_page_ids = self
-            .scene_representation
-            .surface_cache
+            .scene_representation()
+            .surface_cache()
             .dirty_page_ids_snapshot()
             .into_iter()
             .collect::<BTreeSet<_>>();
         let invalidation_freshness = scene_invalidation_confidence_freshness(
-            self.scene_representation
-                .surface_cache
+            self.scene_representation()
+                .surface_cache()
                 .invalidated_page_count(),
             SCENE_RUNTIME_SURFACE_INVALIDATION_CONFIDENCE_FRESHNESS_FALLOFF,
         );
-        let card_bounds_by_id = self
-            .scene_representation
-            .cards
-            .iter()
-            .map(|card| (card.card_id, (card.bounds_center, card.bounds_radius)))
-            .collect::<BTreeMap<_, _>>();
+        let card_bounds_by_id = self.scene_representation().card_bounds_by_id();
         let mut weighted_rgb = [0.0_f32; 3];
         let mut total_support = 0.0_f32;
         let mut weighted_confidence_quality = 0.0_f32;
@@ -1032,8 +1089,8 @@ impl HybridGiRuntimeState {
             atlas_sample_rgba,
             capture_sample_rgba,
         ) in self
-            .scene_representation
-            .surface_cache
+            .scene_representation()
+            .surface_cache()
             .page_contents_snapshot()
         {
             let Some((bounds_center, bounds_radius)) =
@@ -1103,9 +1160,9 @@ fn dequantize_probe_position(
     probe_scene_data: &super::declarations::HybridGiRuntimeProbeSceneData,
 ) -> Vec3 {
     Vec3::new(
-        dequantize_signed(probe_scene_data.position_x_q),
-        dequantize_signed(probe_scene_data.position_y_q),
-        dequantize_signed(probe_scene_data.position_z_q),
+        dequantize_signed(probe_scene_data.position_x_q()),
+        dequantize_signed(probe_scene_data.position_y_q()),
+        dequantize_signed(probe_scene_data.position_z_q()),
     )
 }
 

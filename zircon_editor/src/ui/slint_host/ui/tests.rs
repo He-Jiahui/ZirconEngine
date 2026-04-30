@@ -1,9 +1,9 @@
-use slint::{ComponentHandle, Model};
+use slint::Model;
 use std::collections::BTreeMap;
 
 use super::{
     apply_presentation as apply_presentation_with_module_plugins,
-    apply_presentation_impl::to_slint_host_scene_data,
+    apply_presentation_impl::to_host_contract_host_scene_data, pane_data_conversion,
 };
 use crate::scene::viewport::{
     DisplayMode, GridMode, ProjectionMode, SceneViewportTool, TransformSpace, ViewOrientation,
@@ -44,6 +44,7 @@ use crate::ui::workbench::view::{
     ViewDescriptor, ViewDescriptorId, ViewHost, ViewInstance, ViewInstanceId, ViewKind,
 };
 use zircon_runtime::core::math::UVec2;
+use zircon_runtime::ui::component::{UiDragPayload, UiDragPayloadKind, UiDragSourceMetadata};
 use zircon_runtime::ui::layout::{UiFrame, UiSize};
 
 fn root_shell_fixture() -> (
@@ -277,6 +278,37 @@ fn host_tabs(ids: &[&str]) -> slint::ModelRc<host_window::TabData> {
     )
 }
 
+fn host_chrome_tab_frames(ids: &[&str]) -> slint::ModelRc<host_window::HostChromeTabData> {
+    let tabs = host_tabs(ids);
+    model_rc(
+        (0..tabs.row_count())
+            .filter_map(|row| {
+                let tab = tabs.row_data(row)?;
+                let x = 8.0 + row as f32 * 94.0;
+                Some(host_window::HostChromeTabData {
+                    control_id: format!("DockTab{row}").into(),
+                    tab,
+                    frame: host_frame_rect(x, 1.0, 92.0, 30.0),
+                    close_frame: host_frame_rect(x + 68.0, 8.0, 16.0, 16.0),
+                })
+            })
+            .collect(),
+    )
+}
+
+fn host_chrome_menu_frames(
+    count: usize,
+) -> slint::ModelRc<host_window::HostChromeControlFrameData> {
+    model_rc(
+        (0..count)
+            .map(|row| host_window::HostChromeControlFrameData {
+                control_id: format!("MenuSlot{row}").into(),
+                frame: host_frame_rect(8.0 + row as f32 * 42.0, 2.0, 40.0, 22.0),
+            })
+            .collect(),
+    )
+}
+
 fn host_pane(id: &str, title: &str) -> host_window::PaneData {
     host_window::PaneData {
         id: id.into(),
@@ -296,7 +328,7 @@ fn host_pane(id: &str, title: &str) -> host_window::PaneData {
         secondary_hint: format!("{title} hint").into(),
         show_toolbar: true,
         viewport: blank_viewport_chrome(),
-        body_compat: host_window::PaneBodyCompatData {
+        native_body: host_window::PaneNativeBodyData {
             hierarchy: host_window::HierarchyPaneViewData::default(),
             inspector: host_window::InspectorPaneViewData::default(),
             console: host_window::ConsolePaneViewData::default(),
@@ -311,586 +343,9 @@ fn host_pane(id: &str, title: &str) -> host_window::PaneData {
     }
 }
 
+mod component_showcase;
 #[test]
-fn component_showcase_template_numeric_drag_tracks_two_axis_delta() {
-    let template = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/template_pane.slint"
-    ));
-
-    assert!(
-        template.contains("property <float> drag_last_y"),
-        "numeric showcase drag should track vertical pointer movement"
-    );
-    assert!(
-        template.contains("root.drag_last_y = self.mouse-y / 1px"),
-        "numeric showcase drag should record the y origin and last y position"
-    );
-    assert!(
-        template.contains(
-            "(self.mouse-x / 1px - root.drag_last_x) - (self.mouse-y / 1px - root.drag_last_y)"
-        ),
-        "numeric showcase drag should map right/up to positive deltas and left/down to negative deltas"
-    );
-}
-
-#[test]
-fn component_showcase_template_fields_dispatch_live_edits() {
-    let template = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/template_pane.slint"
-    ));
-
-    assert!(
-        template.contains("import { LineEdit } from \"std-widgets.slint\";"),
-        "component showcase fields should use the generic Slint text input primitive"
-    );
-    assert!(
-        template.contains("callback node_edited(control_id: string, dispatch_kind: string, action_id: string, value: string);"),
-        "component showcase fields should expose live edited text through a generic callback"
-    );
-    assert!(
-        template.contains("root.node.component_role == \"input-field\""),
-        "InputField rows should render an editable field instead of a static value label"
-    );
-    assert!(
-        template.contains("root.node.component_role == \"number-field\""),
-        "NumberField rows should render an editable field instead of a static value label"
-    );
-    assert!(
-        template.contains("edited(value) => {"),
-        "editable component rows should dispatch typed value text changes"
-    );
-}
-
-#[test]
-fn component_showcase_template_popup_options_dispatch_candidate_selection() {
-    let template = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/template_pane.slint"
-    ));
-    let pane_content = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/pane_content.slint"
-    ));
-    let host_context = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/pane_surface_host_context.slint"
-    ));
-    let callback_wiring = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/src/ui/slint_host/app/callback_wiring.rs"
-    ));
-
-    assert!(
-        template.contains("callback node_option_selected(control_id: string, dispatch_kind: string, action_id: string, option_id: string);"),
-        "component showcase popup rows should expose the selected option id through a generic callback"
-    );
-    assert!(
-        template.contains("for option[index] in root.node.options"),
-        "component showcase popup should render real candidate rows instead of only a summary label"
-    );
-    assert!(
-        template.contains("root.node_option_selected("),
-        "candidate rows should dispatch an option-selection event when clicked"
-    );
-    assert!(
-        pane_content.contains("component_showcase_option_selected(control_id, action_id, option_id)"),
-        "PaneContent should route generic option-selection callbacks into the showcase host context"
-    );
-    assert!(
-        host_context.contains("callback component_showcase_option_selected(control_id: string, action_id: string, option_id: string);"),
-        "PaneSurfaceHostContext should expose a typed option-selection callback"
-    );
-    assert!(
-        callback_wiring.contains("on_component_showcase_option_selected"),
-        "Rust callback wiring should forward option row clicks to the editor host"
-    );
-}
-
-#[test]
-fn component_showcase_template_action_chips_dispatch_secondary_actions() {
-    let template_node_data = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/template_node_data.slint"
-    ));
-    let template = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/template_pane.slint"
-    ));
-    let pane_content = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/pane_content.slint"
-    ));
-    let pane_actions = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/src/ui/slint_host/app/pane_surface_actions.rs"
-    ));
-
-    assert!(
-        template_node_data.contains("export struct TemplatePaneActionData"),
-        "TemplatePane should expose generic secondary action metadata"
-    );
-    assert!(
-        template.contains("callback node_action_invoked(control_id: string, dispatch_kind: string, action_id: string);"),
-        "TemplatePane action chips should dispatch their action ids generically"
-    );
-    assert!(
-        template.contains("for action[index] in root.node.actions"),
-        "TemplatePane should render all projected secondary actions as rows/chips"
-    );
-    assert!(
-        pane_content.contains("node_action_invoked(control_id, dispatch_kind, action_id)"),
-        "PaneContent should route secondary component actions"
-    );
-    assert!(
-        pane_actions.contains("AssetFieldClear")
-            && pane_actions.contains("AssetFieldLocate")
-            && pane_actions.contains("AssetFieldOpen"),
-        "asset action chips should map clear/locate/open into the showcase reducer"
-    );
-}
-
-#[test]
-fn component_showcase_template_materializes_runtime_component_primitives() {
-    let template_node_data = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/template_node_data.slint"
-    ));
-    let template = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/template_pane.slint"
-    ));
-
-    assert!(
-        template_node_data.contains("value_number: float"),
-        "TemplatePane should carry the numeric value behind NumberField and RangeField rows"
-    );
-    assert!(
-        template_node_data.contains("value_percent: float"),
-        "TemplatePane should carry normalized progress/range values for retained static rendering"
-    );
-    assert!(
-        template_node_data.contains("value_color: color"),
-        "TemplatePane should carry parsed ColorField swatches as Slint colors"
-    );
-    assert!(
-        template.contains("root.node.component_role == \"checkbox\""),
-        "Checkbox rows should render a checkbox primitive instead of only a value label"
-    );
-    assert!(
-        template.contains("root.node.component_role == \"radio\""),
-        "Radio rows should render a radio primitive instead of only a value label"
-    );
-    assert!(
-        template.contains("root.node.component_role == \"toggle-button\""),
-        "ToggleButton rows should render a switch primitive instead of only a value label"
-    );
-    assert!(
-        template.contains("root.node.component_role == \"progress-bar\""),
-        "ProgressBar rows should render a progress primitive"
-    );
-    assert!(
-        template.contains("root.node.component_role == \"range-field\""),
-        "RangeField rows should render a slider track and editable value"
-    );
-    assert!(
-        template.contains("root.node.component_role == \"color-field\""),
-        "ColorField rows should render a swatch primitive"
-    );
-    assert!(
-        template.contains("root.node.value_percent"),
-        "Progress and range primitives should use normalized retained values"
-    );
-    assert!(
-        template.contains("root.node.value_color"),
-        "Color swatches should use the parsed retained color"
-    );
-}
-
-#[test]
-fn component_showcase_template_materializes_visual_feedback_and_vector_primitives() {
-    let template_node_data = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/template_node_data.slint"
-    ));
-    let template = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/template_pane.slint"
-    ));
-
-    assert!(
-        template_node_data.contains("media_source: string"),
-        "TemplatePane should carry retained image/svg sources for generic host rendering"
-    );
-    assert!(
-        template_node_data.contains("icon_name: string"),
-        "TemplatePane should carry semantic icon names separately from value text"
-    );
-    assert!(
-        template_node_data.contains("vector_components: [float]"),
-        "TemplatePane should carry Vector2/3/4 components as typed retained values"
-    );
-    assert!(
-        template.contains("root.node.component_role == \"image\""),
-        "Image rows should render a thumbnail primitive"
-    );
-    assert!(
-        template.contains("root.node.component_role == \"icon\""),
-        "Icon rows should render an icon primitive"
-    );
-    assert!(
-        template.contains("root.node.component_role == \"svg-icon\""),
-        "SvgIcon rows should render an SVG/icon primitive"
-    );
-    assert!(
-        template.contains("root.node.component_role == \"spinner\""),
-        "Spinner rows should render a retained feedback primitive"
-    );
-    assert!(
-        template.contains("root.node.component_role == \"badge\""),
-        "Badge rows should render a tag primitive"
-    );
-    assert!(
-        template.contains("root.node.component_role == \"help-row\""),
-        "Help rows should render a validation/help primitive"
-    );
-    assert!(
-        template.contains("root.node.component_role == \"separator\""),
-        "Separator rows should render a retained divider primitive"
-    );
-    assert!(
-        template.contains("root.node.component_role == \"vector3-field\""),
-        "Vector fields should render axis chips instead of plain value text"
-    );
-    assert!(
-        template.contains("root.node.media_source"),
-        "Image and svg primitives should use retained media source metadata"
-    );
-    assert!(
-        template.contains("root.node.icon_name"),
-        "Icon primitives should use retained icon metadata"
-    );
-    assert!(
-        template.contains("root.node.vector_components"),
-        "Vector primitives should iterate retained component values"
-    );
-}
-
-#[test]
-fn component_showcase_pane_projects_runtime_component_nodes_for_template_pane() {
-    let _guard = crate::tests::support::env_lock()
-        .lock()
-        .unwrap_or_else(|poison| poison.into_inner());
-    let (_fixture, chrome, _model, _ui_asset_panes, _animation_panes) = root_shell_fixture();
-    let body_spec = PaneBodySpec::new(
-        "editor.window.ui_component_showcase",
-        PanePayloadKind::UiComponentShowcaseV1,
-        PaneRouteNamespace::UiComponentShowcase,
-        PaneInteractionMode::TemplateOnly,
-    );
-    let body = host_window::build_pane_body_presentation(
-        &body_spec,
-        &host_window::PanePayloadBuildContext::new(&chrome),
-    );
-    let mut pane = host_pane("component-showcase", "UI Component Showcase");
-    pane.kind = "UiComponentShowcase".into();
-    pane.pane_presentation = Some(host_window::PanePresentation::new(
-        host_window::PaneShellPresentation::new(
-            "UI Component Showcase",
-            "ui-components",
-            "Runtime components",
-            "",
-            None,
-            false,
-            blank_viewport_chrome(),
-        ),
-        body,
-    ));
-
-    let slint_pane = super::pane_data_conversion::to_slint_component_showcase_pane_from_host_pane(
-        &pane,
-        host_window::PaneContentSize::new(1080.0, 720.0),
-    );
-
-    let nodes = (0..slint_pane.nodes.row_count())
-        .filter_map(|row| slint_pane.nodes.row_data(row))
-        .collect::<Vec<_>>();
-    let number = nodes
-        .iter()
-        .find(|node| node.control_id.as_str() == "NumberFieldDemo")
-        .expect("component showcase pane should expose NumberFieldDemo");
-    assert_eq!(number.component_role.as_str(), "number-field");
-    assert_eq!(number.value_text.as_str(), "42");
-    assert_eq!(number.value_number, 42.0);
-    assert_eq!(number.value_percent, 0.42);
-    assert_eq!(number.dispatch_kind.as_str(), "showcase");
-    assert_eq!(
-        number.action_id.as_str(),
-        "UiComponentShowcase/NumberFieldDragUpdate"
-    );
-    assert_eq!(
-        number.drag_action_id.as_str(),
-        "UiComponentShowcase/NumberFieldDragUpdate"
-    );
-    assert_eq!(
-        number.begin_drag_action_id.as_str(),
-        "UiComponentShowcase/NumberFieldDragBegin"
-    );
-    assert_eq!(
-        number.end_drag_action_id.as_str(),
-        "UiComponentShowcase/NumberFieldDragEnd"
-    );
-    assert_eq!(
-        number.edit_action_id.as_str(),
-        "UiComponentShowcase/NumberFieldChanged"
-    );
-
-    let input = nodes
-        .iter()
-        .find(|node| node.control_id.as_str() == "InputFieldDemo")
-        .expect("component showcase pane should expose InputFieldDemo");
-    assert_eq!(
-        input.edit_action_id.as_str(),
-        "UiComponentShowcase/InputFieldChanged"
-    );
-
-    let range = nodes
-        .iter()
-        .find(|node| node.control_id.as_str() == "RangeFieldDemo")
-        .expect("component showcase pane should expose RangeFieldDemo");
-    assert_eq!(range.value_number, 68.0);
-    assert_eq!(range.value_percent, 0.68);
-    assert_eq!(
-        range.drag_action_id.as_str(),
-        "UiComponentShowcase/RangeFieldDragUpdate"
-    );
-    assert_eq!(
-        range.edit_action_id.as_str(),
-        "UiComponentShowcase/RangeFieldChanged"
-    );
-
-    let dropdown = nodes
-        .iter()
-        .find(|node| node.control_id.as_str() == "DropdownDemo")
-        .expect("component showcase pane should expose DropdownDemo");
-    assert!(dropdown.popup_open);
-    assert_eq!(dropdown.selection_state.as_str(), "multi");
-    assert_eq!(dropdown.options_text.as_str(), "runtime, editor, debug");
-    assert_eq!(dropdown.options.row_count(), 3);
-    assert_eq!(dropdown.options.row_data(0).as_deref(), Some("runtime"));
-    assert_eq!(dropdown.options.row_data(1).as_deref(), Some("editor"));
-    assert_eq!(dropdown.options.row_data(2).as_deref(), Some("debug"));
-
-    let combo_box = nodes
-        .iter()
-        .find(|node| node.control_id.as_str() == "ComboBoxDemo")
-        .expect("component showcase pane should expose ComboBoxDemo");
-    assert!(!combo_box.popup_open);
-    assert_eq!(
-        combo_box.action_id.as_str(),
-        "UiComponentShowcase/ComboBoxOpenPopup"
-    );
-    assert_eq!(combo_box.options_text.as_str(), "material, fluent, native");
-    assert_eq!(combo_box.options.row_count(), 3);
-
-    let progress = nodes
-        .iter()
-        .find(|node| node.control_id.as_str() == "ProgressBarDemo")
-        .expect("component showcase pane should expose ProgressBarDemo");
-    assert_eq!(progress.value_number, 0.62);
-    assert_eq!(progress.value_percent, 0.62);
-
-    let color = nodes
-        .iter()
-        .find(|node| node.control_id.as_str() == "ColorFieldDemo")
-        .expect("component showcase pane should expose ColorFieldDemo");
-    assert_eq!(color.value_color, slint::Color::from_rgb_u8(77, 137, 255));
-
-    let image = nodes
-        .iter()
-        .find(|node| node.control_id.as_str() == "ImageDemo")
-        .expect("component showcase pane should expose ImageDemo");
-    assert_eq!(
-        image.media_source.as_str(),
-        "res://textures/grid.albedo.png"
-    );
-
-    let icon = nodes
-        .iter()
-        .find(|node| node.control_id.as_str() == "IconDemo")
-        .expect("component showcase pane should expose IconDemo");
-    assert_eq!(icon.icon_name.as_str(), "options-outline");
-
-    let svg_icon = nodes
-        .iter()
-        .find(|node| node.control_id.as_str() == "SvgIconDemo")
-        .expect("component showcase pane should expose SvgIconDemo");
-    assert_eq!(
-        svg_icon.media_source.as_str(),
-        "ionicons/options-outline.svg"
-    );
-
-    let vector2 = nodes
-        .iter()
-        .find(|node| node.control_id.as_str() == "Vector2FieldDemo")
-        .expect("component showcase pane should expose Vector2Demo");
-    assert_eq!(vector2.vector_components.row_count(), 2);
-    assert_eq!(vector2.vector_components.row_data(0), Some(12.0));
-    assert_eq!(vector2.vector_components.row_data(1), Some(24.0));
-
-    let vector3 = nodes
-        .iter()
-        .find(|node| node.control_id.as_str() == "Vector3FieldDemo")
-        .expect("component showcase pane should expose Vector3Demo");
-    assert_eq!(vector3.vector_components.row_count(), 3);
-    assert_eq!(vector3.vector_components.row_data(0), Some(0.0));
-    assert_eq!(vector3.vector_components.row_data(1), Some(1.0));
-    assert_eq!(vector3.vector_components.row_data(2), Some(0.0));
-
-    let vector4 = nodes
-        .iter()
-        .find(|node| node.control_id.as_str() == "Vector4FieldDemo")
-        .expect("component showcase pane should expose Vector4Demo");
-    assert_eq!(vector4.vector_components.row_count(), 4);
-    assert_eq!(vector4.vector_components.row_data(3), Some(1.0));
-
-    let asset = nodes
-        .iter()
-        .find(|node| node.control_id.as_str() == "AssetFieldDemo")
-        .expect("component showcase pane should expose AssetFieldDemo");
-    assert_eq!(asset.actions.row_count(), 3);
-    assert_eq!(
-        asset.actions.row_data(0).map(|action| action.label),
-        Some("Find".into())
-    );
-    assert_eq!(
-        asset.actions.row_data(1).map(|action| action.label),
-        Some("Open".into())
-    );
-    assert_eq!(
-        asset.actions.row_data(2).map(|action| action.label),
-        Some("Clear".into())
-    );
-
-    let array = nodes
-        .iter()
-        .find(|node| node.control_id.as_str() == "ArrayFieldDemo")
-        .expect("component showcase pane should expose ArrayFieldDemo");
-    assert_eq!(array.actions.row_count(), 4);
-
-    let map = nodes
-        .iter()
-        .find(|node| node.control_id.as_str() == "MapFieldDemo")
-        .expect("component showcase pane should expose MapFieldDemo");
-    assert_eq!(map.actions.row_count(), 3);
-
-    let event_log = nodes
-        .iter()
-        .find(|node| node.control_id.as_str() == "ComponentShowcaseEventLog")
-        .expect("component showcase pane should expose event log node");
-    assert!(event_log.text.contains("Registered events"));
-}
-
-#[test]
-fn component_showcase_pane_uses_supplied_runtime_demo_state() {
-    let _guard = crate::tests::support::env_lock()
-        .lock()
-        .unwrap_or_else(|poison| poison.into_inner());
-    let (_fixture, chrome, _model, _ui_asset_panes, _animation_panes) = root_shell_fixture();
-    let body_spec = PaneBodySpec::new(
-        "editor.window.ui_component_showcase",
-        PanePayloadKind::UiComponentShowcaseV1,
-        PaneRouteNamespace::UiComponentShowcase,
-        PaneInteractionMode::TemplateOnly,
-    );
-    let body = host_window::build_pane_body_presentation(
-        &body_spec,
-        &host_window::PanePayloadBuildContext::new(&chrome),
-    );
-    let mut pane = host_pane("component-showcase", "UI Component Showcase");
-    pane.kind = "UiComponentShowcase".into();
-    pane.pane_presentation = Some(host_window::PanePresentation::new(
-        host_window::PaneShellPresentation::new(
-            "UI Component Showcase",
-            "ui-components",
-            "Runtime components",
-            "",
-            None,
-            false,
-            blank_viewport_chrome(),
-        ),
-        body,
-    ));
-
-    let mut runtime = EditorUiHostRuntime::default();
-    runtime
-        .load_builtin_host_templates()
-        .expect("built-in host templates should load");
-    let binding = runtime
-        .project_document("editor.window.ui_component_showcase")
-        .expect("showcase projection should compile")
-        .bindings
-        .into_iter()
-        .find(|binding| binding.binding_id == "UiComponentShowcase/NumberFieldDragUpdate")
-        .expect("showcase should expose NumberField drag binding")
-        .binding;
-    runtime
-        .apply_showcase_demo_binding(&binding, UiComponentShowcaseDemoEventInput::DragDelta(5.0))
-        .expect("showcase runtime should accept NumberField drag input");
-    let combo_open_binding = runtime
-        .project_document("editor.window.ui_component_showcase")
-        .expect("showcase projection should compile")
-        .bindings
-        .into_iter()
-        .find(|binding| binding.binding_id == "UiComponentShowcase/ComboBoxOpenPopup")
-        .expect("showcase should expose ComboBox open binding")
-        .binding;
-    runtime
-        .apply_showcase_demo_binding(&combo_open_binding, UiComponentShowcaseDemoEventInput::None)
-        .expect("showcase runtime should accept ComboBox popup input");
-
-    let slint_pane =
-        super::pane_data_conversion::to_slint_component_showcase_pane_from_host_pane_with_runtime(
-            &pane,
-            host_window::PaneContentSize::new(1080.0, 720.0),
-            &runtime,
-        );
-
-    let nodes = (0..slint_pane.nodes.row_count())
-        .filter_map(|row| slint_pane.nodes.row_data(row))
-        .collect::<Vec<_>>();
-    let number = nodes
-        .iter()
-        .find(|node| node.control_id.as_str() == "NumberFieldDemo")
-        .expect("component showcase pane should expose NumberFieldDemo");
-    assert_eq!(number.value_text.as_str(), "47");
-
-    let combo_box = nodes
-        .iter()
-        .find(|node| node.control_id.as_str() == "ComboBoxDemo")
-        .expect("component showcase pane should expose ComboBoxDemo");
-    assert!(combo_box.popup_open);
-    assert_eq!(
-        combo_box.action_id.as_str(),
-        "UiComponentShowcase/ComboBoxChanged"
-    );
-
-    let event_log = nodes
-        .iter()
-        .find(|node| node.control_id.as_str() == "ComponentShowcaseEventLog")
-        .expect("component showcase pane should expose event log node");
-    assert!(
-        event_log
-            .text
-            .contains("NumberFieldDemo -> DragDelta.NumberField = 47"),
-        "event log should reflect the supplied runtime state: {}",
-        event_log.text
-    );
-}
-
-#[test]
-fn host_scene_projection_converts_host_owned_panes_to_slint_panes() {
+fn host_scene_projection_converts_host_owned_panes_to_host_contract_panes() {
     let mut scene = host_window::HostWindowSceneData {
         layout: host_window::HostWindowLayoutData {
             center_band_frame: host_frame_rect(0.0, 0.0, 1200.0, 700.0),
@@ -908,7 +363,7 @@ fn host_scene_projection_converts_host_owned_panes_to_slint_panes() {
             outer_margin_px: 8.0,
             rail_width_px: 40.0,
             top_bar_height_px: 40.0,
-            host_bar_height_px: 24.0,
+            host_bar_height_px: 32.0,
             panel_header_height_px: 28.0,
             document_header_height_px: 32.0,
         },
@@ -924,18 +379,12 @@ fn host_scene_projection_converts_host_owned_panes_to_slint_panes() {
             document_zone_x_px: 240.0,
             right_stack_x_px: 960.0,
             bottom_panel_y_px: 500.0,
-            left_tab_origin_x_px: 8.0,
-            left_tab_origin_y_px: 48.0,
-            document_tab_origin_x_px: 248.0,
-            document_tab_origin_y_px: 48.0,
-            right_tab_origin_x_px: 968.0,
-            right_tab_origin_y_px: 48.0,
-            bottom_tab_origin_x_px: 248.0,
-            bottom_tab_origin_y_px: 508.0,
         },
         menu_chrome: host_window::HostMenuChromeData {
             outer_margin_px: 8.0,
             top_bar_height_px: 40.0,
+            template_nodes: Default::default(),
+            menu_frames: host_chrome_menu_frames(1),
             save_project_enabled: true,
             undo_enabled: true,
             redo_enabled: true,
@@ -943,15 +392,21 @@ fn host_scene_projection_converts_host_owned_panes_to_slint_panes() {
             preset_names: model_rc(vec!["Default".into()]),
             active_preset_name: "Default".into(),
             resolved_preset_name: "Default".into(),
+            menus: Default::default(),
         },
         page_chrome: host_window::HostPageChromeData {
             top_bar_height_px: 40.0,
-            host_bar_height_px: 24.0,
+            host_bar_height_px: 32.0,
+            template_nodes: Default::default(),
+            tab_row_frame: host_frame_rect(0.0, 40.0, 1200.0, 32.0),
+            project_path_frame: host_frame_rect(900.0, 48.0, 280.0, 14.0),
+            tab_frames: host_chrome_tab_frames(&["document-tab"]),
             tabs: host_tabs(&["document-tab"]),
             project_path: "res://project".into(),
         },
         status_bar: host_window::HostStatusBarData {
             status_bar_frame: host_frame_rect(0.0, 700.0, 1200.0, 24.0),
+            template_nodes: Default::default(),
             status_primary: "Ready".into(),
             status_secondary: "Idle".into(),
             viewport_label: "Viewport".into(),
@@ -979,50 +434,68 @@ fn host_scene_projection_converts_host_owned_panes_to_slint_panes() {
             region_frame: host_frame_rect(0.0, 0.0, 240.0, 700.0),
             surface_key: "left-surface".into(),
             rail_before_panel: true,
+            rail_nodes: Default::default(),
+            rail_button_frames: Default::default(),
+            rail_active_control_id: "".into(),
+            header_nodes: Default::default(),
+            header_frame: host_frame_rect(0.0, 0.0, 200.0, 31.0),
+            content_frame: host_frame_rect(0.0, 32.0, 200.0, 668.0),
+            tab_frames: host_chrome_tab_frames(&["left-tab"]),
             tabs: host_tabs(&["left-tab"]),
             pane: host_pane("left-pane", "Left"),
             rail_width_px: 40.0,
             panel_width_px: 200.0,
             panel_header_height_px: 28.0,
-            tab_origin_x_px: 8.0,
-            tab_origin_y_px: 48.0,
         },
         document_dock: host_window::HostDocumentDockSurfaceData {
             region_frame: host_frame_rect(240.0, 0.0, 720.0, 700.0),
             surface_key: "document-surface".into(),
+            header_nodes: Default::default(),
+            header_frame: host_frame_rect(0.0, 0.0, 720.0, 32.0),
+            subtitle_frame: host_frame_rect(576.0, 9.0, 132.0, 14.0),
+            content_frame: host_frame_rect(0.0, 33.0, 720.0, 667.0),
+            tab_frames: host_chrome_tab_frames(&["document-tab"]),
             tabs: host_tabs(&["document-tab"]),
             pane: host_pane("document-pane", "Document"),
             header_height_px: 32.0,
-            tab_origin_x_px: 248.0,
-            tab_origin_y_px: 48.0,
         },
         right_dock: host_window::HostSideDockSurfaceData {
             region_frame: host_frame_rect(960.0, 0.0, 240.0, 700.0),
             surface_key: "right-surface".into(),
             rail_before_panel: false,
+            rail_nodes: Default::default(),
+            rail_button_frames: Default::default(),
+            rail_active_control_id: "".into(),
+            header_nodes: Default::default(),
+            header_frame: host_frame_rect(0.0, 0.0, 200.0, 31.0),
+            content_frame: host_frame_rect(0.0, 32.0, 200.0, 668.0),
+            tab_frames: host_chrome_tab_frames(&["right-tab"]),
             tabs: host_tabs(&["right-tab"]),
             pane: host_pane("right-pane", "Right"),
             rail_width_px: 40.0,
             panel_width_px: 200.0,
             panel_header_height_px: 28.0,
-            tab_origin_x_px: 968.0,
-            tab_origin_y_px: 48.0,
         },
         bottom_dock: host_window::HostBottomDockSurfaceData {
             region_frame: host_frame_rect(240.0, 500.0, 720.0, 200.0),
             surface_key: "bottom-surface".into(),
+            header_nodes: Default::default(),
+            header_frame: host_frame_rect(0.0, 0.0, 720.0, 31.0),
+            content_frame: host_frame_rect(0.0, 32.0, 720.0, 168.0),
+            tab_frames: host_chrome_tab_frames(&["bottom-tab"]),
             tabs: host_tabs(&["bottom-tab"]),
             pane: host_pane("bottom-pane", "Bottom"),
             expanded: true,
             header_height_px: 28.0,
-            tab_origin_x_px: 248.0,
-            tab_origin_y_px: 508.0,
         },
         floating_layer: host_window::HostFloatingWindowLayerData {
             floating_windows: model_rc(vec![host_window::FloatingWindowData {
                 window_id: "floating-window".into(),
                 title: "Floating".into(),
                 frame: host_frame_rect(320.0, 160.0, 360.0, 240.0),
+                header_nodes: Default::default(),
+                header_frame: host_frame_rect(0.0, 0.0, 360.0, 31.0),
+                tab_frames: host_chrome_tab_frames(&["floating-tab"]),
                 target_group: "floating/window".into(),
                 left_edge_target_group: "floating/window/left".into(),
                 right_edge_target_group: "floating/window/right".into(),
@@ -1260,7 +733,7 @@ fn host_scene_projection_converts_host_owned_panes_to_slint_panes() {
             .cloned()
             .unwrap_or_else(|| panic!("missing ui asset test node `{control_id}`"))
     };
-    scene.left_dock.pane.body_compat.ui_asset = UiAssetEditorPanePresentation {
+    scene.left_dock.pane.native_body.ui_asset = UiAssetEditorPanePresentation {
         asset_id: "asset://ui/test.ui.toml".to_string(),
         mode: "split".to_string(),
         last_error: "clean".to_string(),
@@ -1275,7 +748,7 @@ fn host_scene_projection_converts_host_owned_panes_to_slint_panes() {
         stylesheet_panel_node: ui_asset_node("StylesheetPanel"),
         ..UiAssetEditorPanePresentation::default()
     };
-    scene.right_dock.pane.body_compat.animation = host_window::AnimationEditorPaneViewData {
+    scene.right_dock.pane.native_body.animation = host_window::AnimationEditorPaneViewData {
         nodes: model_rc(vec![
             mount_node(
                 "root/header_panel",
@@ -1421,7 +894,7 @@ fn host_scene_projection_converts_host_owned_panes_to_slint_panes() {
         transition_items: model_rc(vec!["Idle -> Walk".into()]),
     };
     scene.document_dock.pane.kind = "Project".into();
-    scene.document_dock.pane.body_compat.project_overview =
+    scene.document_dock.pane.native_body.project_overview =
         host_window::ProjectOverviewPaneViewData {
             nodes: model_rc(vec![
                 crate::ui::layouts::views::ViewTemplateNodeData {
@@ -1496,7 +969,7 @@ fn host_scene_projection_converts_host_owned_panes_to_slint_panes() {
             ]),
         };
     scene.bottom_dock.pane.kind = "Assets".into();
-    scene.bottom_dock.pane.body_compat.assets_activity = host_window::AssetsActivityPaneViewData {
+    scene.bottom_dock.pane.native_body.assets_activity = host_window::AssetsActivityPaneViewData {
         nodes: model_rc(vec![
             crate::ui::layouts::views::ViewTemplateNodeData {
                 node_id: "root/toolbar_panel".into(),
@@ -1592,7 +1065,7 @@ fn host_scene_projection_converts_host_owned_panes_to_slint_panes() {
             },
         ]),
     };
-    scene.left_dock.pane.body_compat.hierarchy = host_window::HierarchyPaneViewData {
+    scene.left_dock.pane.native_body.hierarchy = host_window::HierarchyPaneViewData {
         nodes: model_rc(vec![crate::ui::layouts::views::ViewTemplateNodeData {
             node_id: "root/list_panel".into(),
             control_id: "HierarchyListPanel".into(),
@@ -1631,7 +1104,7 @@ fn host_scene_projection_converts_host_owned_panes_to_slint_panes() {
             },
         ]),
     };
-    scene.right_dock.pane.body_compat.inspector = host_window::InspectorPaneViewData {
+    scene.right_dock.pane.native_body.inspector = host_window::InspectorPaneViewData {
         nodes: model_rc(vec![
             crate::ui::layouts::views::ViewTemplateNodeData {
                 node_id: "root/content_panel".into(),
@@ -1803,7 +1276,7 @@ fn host_scene_projection_converts_host_owned_panes_to_slint_panes() {
         inspector_z: "3.0".into(),
         delete_enabled: true,
     };
-    scene.bottom_dock.pane.body_compat.console = host_window::ConsolePaneViewData {
+    scene.bottom_dock.pane.native_body.console = host_window::ConsolePaneViewData {
         nodes: model_rc(vec![crate::ui::layouts::views::ViewTemplateNodeData {
             node_id: "root/text_panel".into(),
             control_id: "ConsoleTextPanel".into(),
@@ -1830,7 +1303,7 @@ fn host_scene_projection_converts_host_owned_panes_to_slint_panes() {
         status_text: "Build finished".into(),
     };
 
-    let projected = to_slint_host_scene_data(&scene);
+    let projected = to_host_contract_host_scene_data(&scene);
     let floating_window = projected
         .floating_layer
         .floating_windows
@@ -2235,15 +1708,15 @@ fn apply_presentation_uses_shared_root_projection_frames_when_drawers_are_collap
     let host_layout = ui.get_host_presentation().host_layout;
     let center_band = host_layout.center_band_frame;
     assert_eq!(center_band.x, 0.0);
-    assert_eq!(center_band.y, 40.0);
+    assert_eq!(center_band.y, 59.0);
     assert_eq!(center_band.width, 1280.0);
-    assert_eq!(center_band.height, 656.0);
+    assert_eq!(center_band.height, 637.0);
 
     let document_region = host_layout.document_region_frame;
     assert_eq!(document_region.x, 56.0);
-    assert_eq!(document_region.y, 40.0);
+    assert_eq!(document_region.y, 59.0);
     assert_eq!(document_region.width, 1224.0);
-    assert_eq!(document_region.height, 656.0);
+    assert_eq!(document_region.height, 637.0);
 
     let status_bar = host_layout.status_bar_frame;
     assert_eq!(status_bar.x, 0.0);
@@ -2253,9 +1726,9 @@ fn apply_presentation_uses_shared_root_projection_frames_when_drawers_are_collap
 
     let viewport_content = host_layout.viewport_content_frame;
     assert_eq!(viewport_content.x, 56.0);
-    assert_eq!(viewport_content.y, 100.0);
+    assert_eq!(viewport_content.y, 119.0);
     assert_eq!(viewport_content.width, 1224.0);
-    assert_eq!(viewport_content.height, 596.0);
+    assert_eq!(viewport_content.height, 577.0);
 }
 
 #[test]
@@ -2358,9 +1831,9 @@ fn apply_presentation_prefers_shared_root_projection_for_visible_drawer_document
     let host_layout = ui.get_host_presentation().host_layout;
     let center_band = host_layout.center_band_frame;
     assert_eq!(center_band.x, 0.0);
-    assert_eq!(center_band.y, 40.0);
+    assert_eq!(center_band.y, 59.0);
     assert_eq!(center_band.width, 1280.0);
-    assert_eq!(center_band.height, 656.0);
+    assert_eq!(center_band.height, 637.0);
 
     let document_region = host_layout.document_region_frame;
     assert_eq!(document_region.x, expected_document_frame.x);
@@ -2394,7 +1867,7 @@ fn apply_presentation_prefers_drawer_derived_viewport_when_pane_surface_is_stale
 
     let bridge = BuiltinHostWindowTemplateBridge::new(UiSize::new(1280.0, 720.0)).unwrap();
     let mut projection_frames = bridge.root_shell_frames();
-    projection_frames.left_drawer_shell_frame = Some(UiFrame::new(56.0, 40.0, 312.0, 480.0));
+    projection_frames.left_drawer_shell_frame = Some(UiFrame::new(56.0, 59.0, 312.0, 480.0));
     projection_frames.pane_surface_frame = Some(UiFrame::new(369.0, 100.0, 602.0, 420.0));
 
     let metrics = crate::ui::workbench::autolayout::WorkbenchChromeMetrics::default();
@@ -2765,22 +2238,38 @@ fn apply_presentation_prefers_shared_visible_drawer_projection_when_legacy_geome
             height: projection_frames.bottom_drawer_shell_frame.unwrap().height,
         }
     );
+    let metrics = crate::ui::workbench::autolayout::WorkbenchChromeMetrics::default();
+    let separator = metrics.separator_thickness;
+    let body_frame = projection_frames
+        .host_body_frame
+        .expect("shared host projection should expose a body frame");
+    let left_frame = projection_frames.left_drawer_shell_frame.unwrap();
+    let right_frame = projection_frames.right_drawer_shell_frame.unwrap();
+    let bottom_frame = projection_frames.bottom_drawer_shell_frame.unwrap();
     assert_eq!(
         host_layout.document_region_frame,
         crate::ui::slint_host::FrameRect {
-            x: 313.0,
-            y: 40.0,
-            width: 658.0,
-            height: 491.0,
+            x: body_frame.x + left_frame.width + separator,
+            y: body_frame.y,
+            width: (body_frame.width
+                - left_frame.width
+                - separator
+                - right_frame.width
+                - separator)
+                .max(0.0),
+            height: (body_frame.height - bottom_frame.height - separator).max(0.0),
         }
     );
+    let viewport_chrome_height = metrics.document_header_height
+        + metrics.separator_thickness
+        + metrics.viewport_toolbar_height;
     assert_eq!(
         host_layout.viewport_content_frame,
         crate::ui::slint_host::FrameRect {
-            x: 313.0,
-            y: 68.0,
-            width: 658.0,
-            height: 463.0,
+            x: host_layout.document_region_frame.x,
+            y: host_layout.document_region_frame.y + viewport_chrome_height,
+            width: host_layout.document_region_frame.width,
+            height: host_layout.document_region_frame.height - viewport_chrome_height,
         }
     );
 }
@@ -2848,7 +2337,13 @@ fn apply_presentation_projects_welcome_mount_nodes_into_global_context() {
         &floating_window_projection_bundle,
     );
 
-    let expected_nodes = crate::ui::layouts::views::welcome_pane_nodes(UiSize::new(1224.0, 624.0));
+    let pane_surface_frame = projection_frames
+        .pane_surface_frame
+        .expect("shared host projection should expose the welcome pane surface frame");
+    let expected_nodes = crate::ui::layouts::views::welcome_pane_nodes(UiSize::new(
+        pane_surface_frame.width.max(0.0),
+        pane_surface_frame.height.max(0.0),
+    ));
     let projected = ui
         .global::<crate::ui::slint_host::PaneSurfaceHostContext>()
         .get_welcome_pane();

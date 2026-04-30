@@ -1,8 +1,10 @@
+use std::collections::HashSet;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 
 use crate::PluginPackageManifest;
 
+use super::native_plugin_load_manifest_template::native_dynamic_package_directory;
 use super::{ExportBuildPlan, ExportMaterializeReport};
 
 impl ExportBuildPlan {
@@ -31,7 +33,7 @@ impl ExportBuildPlan {
         Ok(ExportMaterializeReport {
             generated_files,
             copied_packages: Vec::new(),
-            diagnostics: Vec::new(),
+            diagnostics: self.diagnostics.clone(),
         })
     }
 
@@ -43,6 +45,7 @@ impl ExportBuildPlan {
         let plugin_root = plugin_root.as_ref();
         let output_root = output_root.as_ref();
         let mut report = self.materialize(output_root)?;
+        let mut copied_package_directories = HashSet::new();
 
         for package_id in &self.native_dynamic_packages {
             let Some(source) = find_native_package_dir(plugin_root, package_id)? else {
@@ -52,7 +55,14 @@ impl ExportBuildPlan {
                 ));
                 continue;
             };
-            let destination = output_root.join("plugins").join(package_id);
+            let package_directory = native_dynamic_package_directory(package_id);
+            if !copied_package_directories.insert(package_directory.clone()) {
+                report.diagnostics.push(format!(
+                    "native dynamic package {package_id} resolves to duplicate output directory plugins/{package_directory}"
+                ));
+                continue;
+            }
+            let destination = output_root.join("plugins").join(package_directory);
             report.diagnostics.extend(copy_native_dynamic_package(
                 &source,
                 &destination,
@@ -73,9 +83,10 @@ fn find_native_package_dir(
         return Ok(None);
     }
 
-    let direct = root.join(package_id);
-    if package_manifest_matches(&direct.join("plugin.toml"), package_id)? {
-        return Ok(Some(direct));
+    if let Some(direct) = direct_child_package_dir(root, package_id) {
+        if package_manifest_matches(&direct.join("plugin.toml"), package_id)? {
+            return Ok(Some(direct));
+        }
     }
 
     let mut stack = vec![root.to_path_buf()];
@@ -94,6 +105,17 @@ fn find_native_package_dir(
     }
 
     Ok(None)
+}
+
+fn direct_child_package_dir(root: &Path, package_id: &str) -> Option<PathBuf> {
+    let mut components = Path::new(package_id).components();
+    let Some(Component::Normal(_)) = components.next() else {
+        return None;
+    };
+    if components.next().is_some() {
+        return None;
+    }
+    Some(root.join(package_id))
 }
 
 fn package_manifest_matches(path: &Path, package_id: &str) -> Result<bool, std::io::Error> {

@@ -15,7 +15,7 @@
 - Work in the existing `main` checkout. Do not create worktrees or feature branches.
 - Do not create git commits unless the user explicitly grants commit permission during execution. Each task ends with a checkpoint instead of a commit.
 - The worktree is already heavily dirty. Do not revert unrelated files.
-- `zircon_editor/src/ui/slint_host/ui/pane_data_conversion.rs` is already above the large-file threshold. This plan only adds `drop_source_summary` pass-through there. The next projection expansion should extract Runtime UI component projection into a focused child module before adding more behavior.
+- `zircon_editor/src/ui/slint_host/ui/pane_data_conversion/mod.rs` is already above the large-file threshold. This plan only adds `drop_source_summary` pass-through there. The next projection expansion should extract Runtime UI component projection into a focused child module before adding more behavior.
 
 ## File Structure
 
@@ -37,7 +37,7 @@
 - Modify `zircon_editor/ui/workbench/template_node_data.slint`: add `drop_source_summary`.
 - Modify `zircon_editor/ui/workbench/template_pane.slint`: render `drop_source_summary` for reference wells.
 - Modify `zircon_editor/src/ui/template_runtime/slint_adapter.rs`: expose `drop_source_summary` in host projection DTOs.
-- Modify `zircon_editor/src/ui/slint_host/ui/pane_data_conversion.rs`: pass `drop_source_summary` into `TemplatePaneNodeData`.
+- Modify `zircon_editor/src/ui/slint_host/ui/pane_data_conversion/mod.rs`: pass `drop_source_summary` into `TemplatePaneNodeData`.
 - Modify `zircon_editor/src/ui/slint_host/ui/reference_component_tests.rs`: assert reference wells surface source summaries.
 - Modify `docs/ui-and-layout/runtime-ui-component-showcase.md`: document the new metadata path and validation.
 
@@ -852,7 +852,7 @@ Record that Task 5 introduces only internal Slint host drag arming. Do not claim
 - Modify: `zircon_editor/ui/workbench/template_node_data.slint`
 - Modify: `zircon_editor/ui/workbench/template_pane.slint`
 - Modify: `zircon_editor/src/ui/template_runtime/slint_adapter.rs`
-- Modify: `zircon_editor/src/ui/slint_host/ui/pane_data_conversion.rs`
+- Modify: `zircon_editor/src/ui/slint_host/ui/pane_data_conversion/mod.rs`
 - Modify: `zircon_editor/src/ui/slint_host/ui/reference_component_tests.rs`
 - Test: `zircon_editor/src/ui/slint_host/app/tests.rs`
 
@@ -974,7 +974,7 @@ Set it during projection:
 drop_source_summary: string_attribute(&node.attributes, "drop_source_summary"),
 ```
 
-In `pane_data_conversion.rs`, add `drop_source_summary: "".into(),` to `to_slint_template_node`, and add this to `host_template_node` initializers after `accepted_drag_payloads`:
+In `pane_data_conversion/mod.rs`, add `drop_source_summary: "".into(),` to `to_slint_template_node`, and add this to `host_template_node` initializers after `accepted_drag_payloads`:
 
 ```rust
 drop_source_summary: node
@@ -985,7 +985,7 @@ drop_source_summary: node
     .into(),
 ```
 
-This is the only planned edit to `pane_data_conversion.rs` in this slice. Do not add new helper families to that file.
+This is the only planned edit to `pane_data_conversion/mod.rs` in this slice. Do not add new helper families to that file.
 
 - [ ] **Step 6: Assert template support**
 
@@ -1064,7 +1064,7 @@ Update `.codex/sessions/20260428-0044-runtime-ui-drag-source-metadata.md` with t
 
 - [ ] **Step 5: Final checkpoint**
 
-Summarize changed files, validation commands, remaining risks, and the large-file follow-up for `pane_data_conversion.rs`. Do not commit unless explicit commit permission has been granted.
+Summarize changed files, validation commands, remaining risks, and the large-file follow-up for `pane_data_conversion/mod.rs`. Do not commit unless explicit commit permission has been granted.
 
 ## Self-Review
 

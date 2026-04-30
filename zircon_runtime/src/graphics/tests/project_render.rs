@@ -467,7 +467,7 @@ fn ssao_quality_profile_darkens_scene_when_enabled() {
 }
 
 #[test]
-fn clustered_lighting_quality_profile_applies_runtime_tile_lighting() {
+fn clustered_lighting_quality_profile_schedules_cluster_pass_without_tile_tint() {
     let root = unique_temp_project_root("graphics_clustered_lighting");
     let paths = ProjectPaths::from_root(&root).unwrap();
     paths.ensure_layout().unwrap();
@@ -539,6 +539,7 @@ fn clustered_lighting_quality_profile_applies_runtime_tile_lighting() {
         )
         .unwrap();
     let clustered_frame = submit_snapshot(&server, clustered_viewport, snapshot.clone());
+    let clustered_stats = server.query_stats().unwrap();
 
     let flat_viewport = server
         .create_viewport(RenderViewportDescriptor::new(viewport_size))
@@ -553,12 +554,42 @@ fn clustered_lighting_quality_profile_applies_runtime_tile_lighting() {
         )
         .unwrap();
     let flat_frame = submit_snapshot(&server, flat_viewport, snapshot);
+    let flat_stats = server.query_stats().unwrap();
+
+    let has_clustered_feature = |features: &[String]| {
+        features
+            .iter()
+            .any(|feature| feature == "clustered_lighting")
+    };
+    let has_clustered_executor = |executor_ids: &[String]| {
+        executor_ids
+            .iter()
+            .any(|executor_id| executor_id == "lighting.clustered-cull")
+    };
+
+    assert!(
+        has_clustered_feature(&clustered_stats.last_effective_features),
+        "clustered profile should keep clustered lighting in the compiled feature set"
+    );
+    assert!(
+        has_clustered_executor(&clustered_stats.last_graph_executed_executor_ids),
+        "clustered profile should execute the clustered light-list pass"
+    );
+    assert!(
+        !has_clustered_feature(&flat_stats.last_effective_features),
+        "flat profile should remove clustered lighting from the compiled feature set"
+    );
+    assert!(
+        !has_clustered_executor(&flat_stats.last_graph_executed_executor_ids),
+        "flat profile should not execute the clustered light-list pass"
+    );
 
     let clustered_red = average_channel(&clustered_frame.rgba, 0);
     let flat_red = average_channel(&flat_frame.rgba, 0);
+    let red_delta = (clustered_red - flat_red).abs();
     assert!(
-        clustered_red > flat_red + 5.0,
-        "expected clustered lighting to tint the frame; clustered red={clustered_red:.2}, flat red={flat_red:.2}"
+        red_delta <= 1.0,
+        "clustered light-list buffer should not directly tint final color; clustered red={clustered_red:.2}, flat red={flat_red:.2}"
     );
 
     let _ = fs::remove_dir_all(root);

@@ -18,7 +18,7 @@ pub(super) fn prepare_visible_clusters(
     let prepared_visible_clusters = visible_clusters
         .iter()
         .map(|cluster| {
-            let resident_slot = state.resident_slots.get(&cluster.page_id).copied();
+            let resident_slot = state.resident_slot(cluster.page_id);
             let cluster_state = cluster_state(state, cluster.page_id, resident_slot);
 
             if !matches!(cluster_state, VirtualGeometryPrepareClusterState::Missing) {
@@ -70,11 +70,11 @@ pub(super) fn prepare_visible_clusters(
             .collect()
     };
 
-    PreparedVisibleClusters {
-        visible_entities: visible_entities.into_iter().collect(),
-        visible_clusters: prepared_visible_clusters,
+    PreparedVisibleClusters::new(
+        visible_entities.into_iter().collect(),
+        prepared_visible_clusters,
         cluster_draw_segments,
-    }
+    )
 }
 
 fn cluster_state(
@@ -84,7 +84,7 @@ fn cluster_state(
 ) -> VirtualGeometryPrepareClusterState {
     if resident_slot.is_some() {
         VirtualGeometryPrepareClusterState::Resident
-    } else if state.pending_pages.contains(&page_id) {
+    } else if state.has_pending_page(page_id) {
         VirtualGeometryPrepareClusterState::PendingUpload
     } else {
         VirtualGeometryPrepareClusterState::Missing

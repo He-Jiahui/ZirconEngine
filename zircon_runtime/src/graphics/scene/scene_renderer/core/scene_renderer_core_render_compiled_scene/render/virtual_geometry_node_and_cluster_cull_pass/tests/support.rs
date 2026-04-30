@@ -51,12 +51,13 @@ pub(super) fn execute_pass_with_previous(
         .create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("zircon-vg-node-and-cluster-cull-pass-test-encoder"),
         });
-    let virtual_geometry_gpu_resources = VirtualGeometryGpuResources::new(&backend.device);
+    let advanced_plugin_resources =
+        SceneRendererAdvancedPluginResources::new_with_virtual_geometry_for_test(&backend.device);
 
     execute_virtual_geometry_node_and_cluster_cull_pass(
         &backend.device,
         &mut encoder,
-        &virtual_geometry_gpu_resources,
+        &advanced_plugin_resources,
         pass_enabled,
         frame,
         cull_input,

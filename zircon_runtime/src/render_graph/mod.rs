@@ -7,11 +7,14 @@ mod types;
 
 pub use builder::RenderGraphBuilder;
 pub use error::RenderGraphError;
-pub use graph::{CompiledRenderGraph, CompiledRenderPass};
+pub use graph::{
+    CompiledRenderGraph, CompiledRenderGraphStats, CompiledRenderGraphTransientAllocation,
+    CompiledRenderGraphTransientAllocationPlan, CompiledRenderPass,
+};
 pub use types::{
-    ExternalResource, PassFlags, QueueLane, RenderGraphResource, RenderGraphResourceDesc,
-    RenderGraphResourceKind, RenderGraphResourceLifetime, RenderPassId, TransientBuffer,
-    TransientTexture,
+    ExternalResource, PassFlags, QueueLane, RenderGraphPassResourceAccess, RenderGraphResource,
+    RenderGraphResourceAccessKind, RenderGraphResourceDesc, RenderGraphResourceKind,
+    RenderGraphResourceLifetime, RenderPassId, TransientBuffer, TransientTexture,
 };
 
 #[cfg(test)]

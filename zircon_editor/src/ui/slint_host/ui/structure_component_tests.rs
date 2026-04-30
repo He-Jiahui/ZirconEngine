@@ -1,73 +1,74 @@
-#[test]
-fn component_showcase_template_materializes_structure_and_collection_rows() {
-    let template = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/template_pane.slint"
-    ));
-
-    assert!(
-        template.contains("property <bool> structure_value_primitive"),
-        "TemplatePane should classify inspector structure and collection rows"
-    );
-    assert!(
-        template.contains("root.node.component_role == \"group\""),
-        "Group rows should render retained inspector structure chrome"
-    );
-    assert!(
-        template.contains("root.node.component_role == \"foldout\""),
-        "Foldout rows should render retained disclosure chrome"
-    );
-    assert!(
-        template.contains("root.node.component_role == \"array-field\""),
-        "ArrayField rows should render a collection summary primitive"
-    );
-    assert!(
-        template.contains("root.node.component_role == \"map-field\""),
-        "MapField rows should render a key/value summary primitive"
-    );
-    assert!(
-        template.contains("root.node.expanded ? \"v\" : \">\""),
-        "Structure rows should show retained expanded/collapsed state"
-    );
-    assert!(
-        template.contains("root.node.value_text != \"\" ? root.node.value_text"),
-        "Collection rows should surface retained value summaries such as element counts"
-    );
-    assert!(
-        template.contains("root.structure_value_primitive ? parent.width * 0.72"),
-        "Collection action chips should move beside the summary instead of covering it"
-    );
+fn source(relative: &str) -> String {
+    std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(relative))
+        .unwrap_or_else(|error| panic!("read `{relative}`: {error}"))
 }
 
 #[test]
-fn component_showcase_template_materializes_deep_collection_and_menu_state() {
-    let template = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/template_pane.slint"
-    ));
+fn component_showcase_structure_and_collection_state_is_rust_owned() {
+    let template_nodes = source("src/ui/slint_host/host_contract/data/template_nodes.rs");
+    let showcase_asset = source("assets/ui/editor/component_showcase.ui.toml");
 
-    assert!(
-        template.contains("collection_items"),
-        "TemplatePane should render retained ArrayField and MapField child rows"
-    );
-    assert!(
-        template.contains("root.node.selection_state == \"focused\""),
-        "List and tree rows should have a focused retained visual state"
-    );
-    assert!(
-        template.contains("root.node.dragging"),
-        "Dragging state should be projected into the retained generic host"
-    );
-    assert!(
-        template.contains("root.node.drop_hovered"),
-        "Drop-hover state should be projected into reference drop wells"
-    );
-    assert!(
-        template.contains("menu_items"),
-        "ContextActionMenu should render retained menu-row metadata"
-    );
-    assert!(
-        template.contains("root.node.menu_items.length"),
-        "ContextActionMenu rows should surface shortcut-capable retained menu metadata"
-    );
+    for required in [
+        "pub(crate) struct TemplatePaneCollectionFieldData",
+        "pub row_id: SharedString",
+        "pub key_component_role: SharedString",
+        "pub value_component_role: SharedString",
+        "pub value_checked: bool",
+        "pub validation_message: SharedString",
+        "pub key_edit_action_id: SharedString",
+        "pub edit_action_id: SharedString",
+        "pub remove_action_id: SharedString",
+        "pub collection_items: ModelRc<SharedString>",
+        "pub collection_fields: ModelRc<TemplatePaneCollectionFieldData>",
+        "pub expanded: bool",
+    ] {
+        assert!(
+            template_nodes.contains(required),
+            "collection DTO missing `{required}`"
+        );
+    }
+    for required in ["ArrayFieldDemo", "MapFieldDemo", "InspectorSectionDemo"] {
+        assert!(
+            showcase_asset.contains(required),
+            "component showcase asset missing `{required}`"
+        );
+    }
+}
+
+#[test]
+fn component_showcase_option_menu_and_tree_state_is_rust_owned() {
+    let template_nodes = source("src/ui/slint_host/host_contract/data/template_nodes.rs");
+    let showcase_asset = source("assets/ui/editor/component_showcase.ui.toml");
+
+    for required in [
+        "pub(crate) struct TemplatePaneOptionData",
+        "pub focused: bool",
+        "pub hovered: bool",
+        "pub pressed: bool",
+        "pub matched: bool",
+        "pub(crate) struct TemplatePaneMenuItemData",
+        "pub shortcut: SharedString",
+        "pub separator: bool",
+        "pub structured_options: ModelRc<TemplatePaneOptionData>",
+        "pub structured_menu_items: ModelRc<TemplatePaneMenuItemData>",
+        "pub tree_depth: i32",
+        "pub tree_indent_px: f32",
+        "pub search_query: SharedString",
+    ] {
+        assert!(
+            template_nodes.contains(required),
+            "template node DTO missing `{required}`"
+        );
+    }
+    for required in [
+        "DropdownDemo",
+        "SearchSelectDemo",
+        "ContextActionMenuDemo",
+        "TreeRowDemo",
+    ] {
+        assert!(
+            showcase_asset.contains(required),
+            "component showcase asset missing `{required}`"
+        );
+    }
 }

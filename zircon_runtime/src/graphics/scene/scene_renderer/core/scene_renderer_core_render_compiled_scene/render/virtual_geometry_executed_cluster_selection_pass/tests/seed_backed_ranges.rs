@@ -44,7 +44,7 @@ fn seed_backed_execution_selection_expands_all_clusters_in_seed_range_and_page_r
             cluster_count: 2,
             page_offset: 0,
             page_count: 2,
-            mesh_name: Some("SeedCompatUnitTestMesh".to_string()),
+            mesh_name: Some("SeedBackedUnitTestMesh".to_string()),
             source_hint: Some("unit-test".to_string()),
         }],
         debug: RenderVirtualGeometryDebugState::default(),
@@ -106,7 +106,7 @@ fn seed_backed_execution_selection_expands_all_clusters_in_seed_range_and_page_r
                 state: VirtualGeometryPrepareClusterState::PendingUpload,
             },
         ],
-        "expected the seed-backed compat consumer to expand the full cluster range in one instance seed and derive execution state from page residency so later VisBuffer64/HardwareRasterization passes can bind a real multi-cluster seam before full BVH traversal exists"
+        "expected the seed-backed execution selection path to expand the full cluster range in one instance seed and derive execution state from page residency so later VisBuffer64/HardwareRasterization passes can bind a real multi-cluster seam before full BVH traversal exists"
     );
 }
 
@@ -162,7 +162,7 @@ fn seed_backed_execution_selection_derives_lineage_depth_from_parent_chain() {
             cluster_count: 3,
             page_offset: 0,
             page_count: 3,
-            mesh_name: Some("SeedCompatLineageDepthUnitTestMesh".to_string()),
+            mesh_name: Some("SeedBackedLineageDepthUnitTestMesh".to_string()),
             source_hint: Some("unit-test".to_string()),
         }],
         debug: RenderVirtualGeometryDebugState::default(),
@@ -243,7 +243,7 @@ fn seed_backed_execution_selection_derives_lineage_depth_from_parent_chain() {
                 state: VirtualGeometryPrepareClusterState::Missing,
             },
         ],
-        "expected the seed-backed compat consumer to derive lineage_depth from the parent cluster chain so downstream hardware-rasterization startup metadata matches the existing visibility-plan lineage semantics instead of hardcoding every compat-expanded cluster to depth zero"
+        "expected the seed-backed execution selection path to derive lineage_depth from the parent cluster chain so downstream hardware-rasterization startup metadata matches the existing visibility-plan lineage semantics instead of hardcoding every seed-expanded cluster to depth zero"
     );
 }
 
@@ -288,7 +288,7 @@ fn seed_backed_execution_selection_keeps_instance_local_cluster_ordinal_for_subs
             cluster_count: 1,
             page_offset: 0,
             page_count: 2,
-            mesh_name: Some("SeedCompatSubsetOrderingUnitTestMesh".to_string()),
+            mesh_name: Some("SeedBackedSubsetOrderingUnitTestMesh".to_string()),
             source_hint: Some("unit-test".to_string()),
         }],
         debug: RenderVirtualGeometryDebugState::default(),
@@ -329,7 +329,7 @@ fn seed_backed_execution_selection_keeps_instance_local_cluster_ordinal_for_subs
             submission_slot: None,
             state: VirtualGeometryPrepareClusterState::Resident,
         }],
-        "expected the seed-backed compat consumer to preserve the stable instance-local cluster ordinal even when the current root seed covers only a subset of the source slice, so downstream raster slice metadata does not reuse the raw extract offset as though it were already the submission ordinal"
+        "expected the seed-backed execution selection path to preserve the stable instance-local cluster ordinal even when the current root seed covers only a subset of the source slice, so downstream raster slice metadata does not reuse the raw extract offset as though it were already the submission ordinal"
     );
 }
 
@@ -390,7 +390,7 @@ fn seed_backed_execution_selection_collection_uses_node_and_cluster_cull_seed_ra
             cluster_count: 3,
             page_offset: 0,
             page_count: 3,
-            mesh_name: Some("SeedCompatAuthoritativeSeedSliceUnitTestMesh".to_string()),
+            mesh_name: Some("SeedBackedAuthoritativeSeedSliceUnitTestMesh".to_string()),
             source_hint: Some("unit-test".to_string()),
         }],
         debug: RenderVirtualGeometryDebugState::default(),
@@ -414,7 +414,7 @@ fn seed_backed_execution_selection_collection_uses_node_and_cluster_cull_seed_ra
     );
 
     assert_eq!(
-        collection.selections,
+        collection.selections(),
         vec![VirtualGeometryClusterSelection {
             submission_index: 0,
             instance_index: Some(0),
@@ -434,10 +434,10 @@ fn seed_backed_execution_selection_collection_uses_node_and_cluster_cull_seed_ra
             submission_slot: None,
             state: VirtualGeometryPrepareClusterState::Resident,
         }],
-        "expected the seed-backed compat seam to treat NodeAndClusterCull.instance_seeds as the authoritative submission slice, so a later split seed over a larger extract instance still resets ordinal/start/total metadata to that seed-local worklist instead of drifting back to the broader extract slice"
+        "expected the seed-backed baseline seam to treat NodeAndClusterCull.instance_seeds as the authoritative submission slice, so a later split seed over a larger extract instance still resets ordinal/start/total metadata to that seed-local worklist instead of drifting back to the broader extract slice"
     );
     assert_eq!(
-        collection.selected_clusters,
+        collection.selected_clusters(),
         vec![RenderVirtualGeometrySelectedCluster {
             instance_index: Some(0),
             entity,
@@ -447,7 +447,7 @@ fn seed_backed_execution_selection_collection_uses_node_and_cluster_cull_seed_ra
             lod_level: 1,
             state: RenderVirtualGeometryExecutionState::Resident,
         }],
-        "expected the selected-cluster publication on the root-seed compat path to use the same authoritative seed-local ordinal as the submission metadata so later VisBuffer64 and hardware-raster seams stay aligned once NodeAndClusterCull starts emitting narrower seed ranges than the original extract instances"
+        "expected the selected-cluster publication on the root-seed baseline path to use the same authoritative seed-local ordinal as the submission metadata so later VisBuffer64 and hardware-raster seams stay aligned once NodeAndClusterCull starts emitting narrower seed ranges than the original extract instances"
     );
 }
 
@@ -483,7 +483,7 @@ fn seed_backed_execution_selection_collection_requires_explicit_instance_work_it
             cluster_count: 1,
             page_offset: 0,
             page_count: 1,
-            mesh_name: Some("SeedCompatRequiresLaunchWorklistUnitTestMesh".to_string()),
+            mesh_name: Some("SeedBackedRequiresLaunchWorklistUnitTestMesh".to_string()),
             source_hint: Some("unit-test".to_string()),
         }],
         debug: RenderVirtualGeometryDebugState::default(),
@@ -501,9 +501,7 @@ fn seed_backed_execution_selection_collection_requires_explicit_instance_work_it
         }],
         RenderVirtualGeometryDebugState::default(),
     );
-    node_and_cluster_cull_pass.instance_work_item_count = 0;
-    node_and_cluster_cull_pass.instance_work_items.clear();
-    node_and_cluster_cull_pass.instance_work_item_buffer = None;
+    node_and_cluster_cull_pass.clear_instance_work_items_for_test();
 
     let collection = collect_execution_cluster_selection_collection_from_root_seeds(
         Some(&extract),
@@ -511,8 +509,8 @@ fn seed_backed_execution_selection_collection_requires_explicit_instance_work_it
     );
 
     assert!(
-        collection.selections.is_empty() && collection.selected_clusters.is_empty(),
-        "expected the seed-backed compat consumer to require the explicit NodeAndClusterCull instance-work-item contract instead of silently reconstructing execution work from launch setup or the broader extract"
+        collection.selections().is_empty() && collection.selected_clusters().is_empty(),
+        "expected the seed-backed execution selection path to require the explicit NodeAndClusterCull instance-work-item contract instead of silently reconstructing execution work from launch setup or the broader extract"
     );
 }
 
@@ -548,7 +546,7 @@ fn seed_backed_execution_selection_collection_requires_explicit_cluster_work_ite
             cluster_count: 1,
             page_offset: 0,
             page_count: 1,
-            mesh_name: Some("SeedCompatRequiresClusterWorkItemsUnitTestMesh".to_string()),
+            mesh_name: Some("SeedBackedRequiresClusterWorkItemsUnitTestMesh".to_string()),
             source_hint: Some("unit-test".to_string()),
         }],
         debug: RenderVirtualGeometryDebugState::default(),
@@ -566,7 +564,7 @@ fn seed_backed_execution_selection_collection_requires_explicit_cluster_work_ite
         }],
         RenderVirtualGeometryDebugState::default(),
     );
-    node_and_cluster_cull_pass.cluster_work_items.clear();
+    node_and_cluster_cull_pass.clear_cluster_work_items_for_test();
 
     let collection = collect_execution_cluster_selection_collection_from_root_seeds(
         Some(&extract),
@@ -574,8 +572,8 @@ fn seed_backed_execution_selection_collection_requires_explicit_cluster_work_ite
     );
 
     assert!(
-        collection.selections.is_empty() && collection.selected_clusters.is_empty(),
-        "expected the seed-backed compat consumer to require the explicit NodeAndClusterCull cluster-work-item seam instead of silently reconstructing cluster candidates from broader instance ranges"
+        collection.selections().is_empty() && collection.selected_clusters().is_empty(),
+        "expected the seed-backed execution selection path to require the explicit NodeAndClusterCull cluster-work-item seam instead of silently reconstructing cluster candidates from broader instance ranges"
     );
 }
 
@@ -620,7 +618,7 @@ fn seed_backed_execution_selection_respects_forced_mip() {
             cluster_count: 2,
             page_offset: 0,
             page_count: 2,
-            mesh_name: Some("SeedCompatForcedMipUnitTestMesh".to_string()),
+            mesh_name: Some("SeedBackedForcedMipUnitTestMesh".to_string()),
             source_hint: Some("unit-test".to_string()),
         }],
         debug: RenderVirtualGeometryDebugState::default(),
@@ -661,6 +659,6 @@ fn seed_backed_execution_selection_respects_forced_mip() {
             submission_slot: None,
             state: VirtualGeometryPrepareClusterState::PendingUpload,
         }],
-        "expected the seed-backed compat consumer to honor forced_mip while expanding a seed range so render-path execution selection stays aligned with the manual mip override before real BVH traversal lands"
+        "expected the seed-backed execution selection path to honor forced_mip while expanding a seed range so render-path execution selection stays aligned with the manual mip override before real BVH traversal lands"
     );
 }

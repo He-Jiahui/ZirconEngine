@@ -22,6 +22,7 @@ pub use axis_constraint_override::AxisConstraintOverride;
 pub use constraints::{default_constraints_for_content, default_region_constraints};
 pub(crate) use floating_window::{clamp_floating_window_frame, default_floating_window_frame};
 pub use geometry::compute_workbench_shell_geometry;
+pub(crate) use geometry::{compact_bottom_height_limit, compact_side_width_limit};
 pub use pane_constraint_override::PaneConstraintOverride;
 pub use shell_region_id::ShellRegionId;
 pub use workbench_chrome_metrics::WorkbenchChromeMetrics;

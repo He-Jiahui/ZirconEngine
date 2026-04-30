@@ -1249,8 +1249,8 @@ fn render_hybrid_gi_gpu_trace_readback(
         .take_last_hybrid_gi_gpu_readback()
         .expect("expected hybrid gi GPU readback");
     (
-        readback.probe_irradiance_rgb,
-        readback.probe_trace_lighting_rgb,
+        readback.probe_irradiance_rgb().to_vec(),
+        readback.probe_trace_lighting_rgb().to_vec(),
     )
 }
 

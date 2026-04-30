@@ -8,7 +8,6 @@ pub(crate) const ASSET_WINDOW_DOCUMENT_ID: &str = "editor.window.asset";
 pub(crate) const UI_COMPONENT_SHOWCASE_WINDOW_DOCUMENT_ID: &str =
     "editor.window.ui_component_showcase";
 pub(crate) const UI_LAYOUT_EDITOR_WINDOW_DOCUMENT_ID: &str = "editor.window.ui_layout_editor";
-pub(crate) const LEGACY_HOST_WINDOW_DOCUMENT_ID: &str = "workbench.shell";
 pub(crate) const HOST_DRAWER_SOURCE_DOCUMENT_ID: &str = "workbench.drawer_source";
 pub(crate) const FLOATING_WINDOW_SOURCE_DOCUMENT_ID: &str = "floating_window.source";
 pub(crate) const SCENE_VIEWPORT_TOOLBAR_DOCUMENT_ID: &str = "scene.viewport_toolbar";
@@ -22,6 +21,7 @@ pub(crate) const PANE_HIERARCHY_BODY_DOCUMENT_ID: &str = "pane.hierarchy.body";
 pub(crate) const PANE_ANIMATION_SEQUENCE_BODY_DOCUMENT_ID: &str = "pane.animation.sequence.body";
 pub(crate) const PANE_ANIMATION_GRAPH_BODY_DOCUMENT_ID: &str = "pane.animation.graph.body";
 pub(crate) const PANE_RUNTIME_DIAGNOSTICS_BODY_DOCUMENT_ID: &str = "pane.runtime.diagnostics.body";
+pub(crate) const PANE_MODULE_PLUGINS_BODY_DOCUMENT_ID: &str = "pane.module_plugins.body";
 const BUILTIN_HOST_TEMPLATE_ROOT: &str = "/assets/ui/editor/host/";
 const BUILTIN_EDITOR_TEMPLATE_ROOT: &str = "/assets/ui/editor/";
 const BUILTIN_WINDOW_TEMPLATE_ROOT: &str = "/assets/ui/editor/windows/";
@@ -75,10 +75,6 @@ pub(crate) fn builtin_template_documents() -> [(&'static str, PathBuf); 21] {
             builtin_host_template_path("workbench_shell.ui.toml"),
         ),
         (
-            LEGACY_HOST_WINDOW_DOCUMENT_ID,
-            builtin_host_template_path("workbench_shell.ui.toml"),
-        ),
-        (
             HOST_DRAWER_SOURCE_DOCUMENT_ID,
             builtin_host_template_path("workbench_drawer_source.ui.toml"),
         ),
@@ -129,6 +125,10 @@ pub(crate) fn builtin_template_documents() -> [(&'static str, PathBuf); 21] {
         (
             PANE_RUNTIME_DIAGNOSTICS_BODY_DOCUMENT_ID,
             builtin_host_template_path("runtime_diagnostics_body.ui.toml"),
+        ),
+        (
+            PANE_MODULE_PLUGINS_BODY_DOCUMENT_ID,
+            builtin_host_template_path("module_plugins_body.ui.toml"),
         ),
     ]
 }

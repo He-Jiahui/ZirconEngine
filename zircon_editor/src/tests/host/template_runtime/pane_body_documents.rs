@@ -6,6 +6,7 @@ use zircon_runtime::foundation::{
     module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
 };
 use zircon_runtime::ui::binding::UiEventKind;
+use zircon_runtime::ui::component::UiComponentDescriptorRegistry;
 
 use crate::tests::support::load_test_ui_asset;
 use crate::ui::binding::EditorUiBindingPayload;
@@ -43,6 +44,44 @@ fn pane_body_path(file_name: &str) -> std::path::PathBuf {
         .join(file_name)
 }
 
+fn editor_component_showcase_path() -> std::path::PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("assets")
+        .join("ui")
+        .join("editor")
+        .join("component_showcase.ui.toml")
+}
+
+fn collect_showcase_prop_schema_mismatches(
+    node: &toml::Value,
+    registry: &UiComponentDescriptorRegistry,
+    mismatches: &mut Vec<String>,
+) {
+    if let Some(component_type) = node.get("type").and_then(toml::Value::as_str) {
+        if let Some(descriptor) = registry.descriptor(component_type) {
+            if let Some(props) = node.get("props").and_then(toml::Value::as_table) {
+                for prop in props.keys() {
+                    if descriptor.prop(prop).is_none() {
+                        let control_id = node
+                            .get("control_id")
+                            .and_then(toml::Value::as_str)
+                            .unwrap_or("<missing-control-id>");
+                        mismatches.push(format!("{control_id} `{component_type}.{prop}`"));
+                    }
+                }
+            }
+        }
+    }
+
+    if let Some(children) = node.get("children").and_then(toml::Value::as_array) {
+        for child in children {
+            if let Some(child_node) = child.get("node") {
+                collect_showcase_prop_schema_mismatches(child_node, registry, mismatches);
+            }
+        }
+    }
+}
+
 #[test]
 fn builtin_activity_window_documents_are_registered_in_host_runtime() {
     let _guard = crate::tests::support::env_lock()
@@ -65,6 +104,28 @@ fn builtin_activity_window_documents_are_registered_in_host_runtime() {
         assert_eq!(projection.document_id, document_id);
         assert_eq!(projection.root.component, "VerticalBox");
     }
+}
+
+#[test]
+fn component_showcase_authored_props_are_declared_by_runtime_catalog() {
+    let source = fs::read_to_string(editor_component_showcase_path()).unwrap();
+    let document: toml::Value = toml::from_str(&source).unwrap();
+    let registry = UiComponentDescriptorRegistry::editor_showcase();
+    let mut mismatches = Vec::new();
+
+    collect_showcase_prop_schema_mismatches(
+        document
+            .get("root")
+            .expect("component showcase asset should declare a root node"),
+        &registry,
+        &mut mismatches,
+    );
+
+    assert!(
+        mismatches.is_empty(),
+        "component_showcase.ui.toml has props missing from the runtime component catalog:\n{}",
+        mismatches.join("\n")
+    );
 }
 
 #[test]
@@ -168,7 +229,7 @@ fn host_projection_carries_runtime_component_properties_and_routes() {
     let name_field = host_projection
         .node_by_control_id("NameField")
         .expect("inspector surface should project NameField");
-    assert_eq!(name_field.component, "UiHostIconButton");
+    assert_eq!(name_field.component, "IconButton");
     assert_eq!(name_field.text.as_deref(), Some("NameField"));
     assert_eq!(
         name_field.properties.get("label"),
@@ -229,6 +290,12 @@ fn builtin_pane_body_documents_match_descriptor_ids_and_runtime_registration() {
             "pane.runtime.diagnostics.body",
             "RuntimeDiagnosticsPaneBody",
             "RuntimeDiagnosticsPaneBody/FocusDiagnostics",
+        ),
+        (
+            "editor.module_plugins",
+            "pane.module_plugins.body",
+            "ModulePluginsPaneBody",
+            "ModulePluginsPaneBody/FocusModulePlugins",
         ),
     ];
 
@@ -291,6 +358,11 @@ fn builtin_hybrid_pane_body_documents_declare_stable_native_slot_names() {
             "animation_graph_body.ui.toml",
             "AnimationGraphPaneBody",
             "animation_graph_canvas_slot",
+        ),
+        (
+            "module_plugins_body.ui.toml",
+            "ModulePluginsPaneBody",
+            "module_plugin_list_slot",
         ),
     ];
 
@@ -356,6 +428,11 @@ fn builtin_pane_body_bindings_stay_in_expected_command_namespaces() {
         (
             "pane.runtime.diagnostics.body",
             "RuntimeDiagnosticsPaneBody/FocusDiagnostics",
+            "DockCommand",
+        ),
+        (
+            "pane.module_plugins.body",
+            "ModulePluginsPaneBody/FocusModulePlugins",
             "DockCommand",
         ),
     ];

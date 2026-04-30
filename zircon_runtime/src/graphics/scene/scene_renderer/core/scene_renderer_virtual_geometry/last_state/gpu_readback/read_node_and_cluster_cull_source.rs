@@ -8,6 +8,6 @@ impl SceneRenderer {
         &self,
     ) -> RenderVirtualGeometryNodeAndClusterCullSource {
         self.advanced_plugin_outputs
-            .virtual_geometry_node_and_cluster_cull_source
+            .virtual_geometry_node_and_cluster_cull_source()
     }
 }

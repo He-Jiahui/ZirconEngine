@@ -11,6 +11,7 @@ pub use navigation_state::UiNavigationState;
 pub use pointer::{UiPointerButton, UiPointerEventKind, UiPointerRoute};
 pub use render::{
     UiRenderCommand, UiRenderCommandKind, UiRenderExtract, UiRenderList, UiResolvedStyle,
-    UiTextAlign, UiTextRenderMode, UiTextWrap, UiVisualAssetRef,
+    UiResolvedTextLayout, UiResolvedTextLine, UiTextAlign, UiTextRenderMode, UiTextWrap,
+    UiVisualAssetRef,
 };
 pub use surface::UiSurface;

@@ -15,6 +15,8 @@ pub enum EditorUiBindingPayload {
     },
     EditorOperation {
         operation_id: String,
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        arguments: Vec<zircon_runtime::ui::binding::UiBindingValue>,
     },
     DraftCommand(DraftCommand),
     InspectorFieldBatch {

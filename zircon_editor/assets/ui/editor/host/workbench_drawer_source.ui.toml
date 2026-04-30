@@ -831,9 +831,9 @@ children = []
 [components.WorkbenchDrawerSource.root.children.node.props]
 
 [components.WorkbenchDrawerSource.root.children.node.layout.height]
-max = 40.0
-min = 40.0
-preferred = 40.0
+max = 59.0
+min = 59.0
+preferred = 59.0
 stretch = "Fixed"
 
 [components.WorkbenchDrawerSource.root.children.node.layout.width]

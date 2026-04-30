@@ -4,6 +4,9 @@ use crate::ui::workbench::view::ViewInstanceId;
 
 use super::{ActivityDrawerMode, ActivityDrawerSlot, TabStackLayout};
 
+const DEFAULT_SIDE_DRAWER_EXTENT: f32 = 260.0;
+const DEFAULT_BOTTOM_DRAWER_EXTENT: f32 = 148.0;
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ActivityDrawerLayout {
     pub slot: ActivityDrawerSlot,
@@ -25,9 +28,9 @@ impl ActivityDrawerLayout {
                 slot,
                 ActivityDrawerSlot::BottomLeft | ActivityDrawerSlot::BottomRight
             ) {
-                200.0
+                DEFAULT_BOTTOM_DRAWER_EXTENT
             } else {
-                260.0
+                DEFAULT_SIDE_DRAWER_EXTENT
             },
             visible: true,
         }

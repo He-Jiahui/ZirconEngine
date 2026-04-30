@@ -8,10 +8,12 @@ use super::super::MenuBarModel;
 pub(super) fn append_extension_menus(
     menu_bar: &mut MenuBarModel,
     extensions: &[EditorExtensionRegistry],
+    enabled_capabilities: &[String],
 ) {
     let mut contributions = extensions
         .iter()
         .flat_map(EditorExtensionRegistry::menu_items)
+        .filter(|descriptor| descriptor_enabled(descriptor, enabled_capabilities))
         .collect::<Vec<_>>();
     contributions.sort_by(|left, right| {
         left.priority()
@@ -60,6 +62,17 @@ pub(super) fn append_extension_menus(
     }
 }
 
+fn descriptor_enabled(
+    descriptor: &EditorMenuItemDescriptor,
+    enabled_capabilities: &[String],
+) -> bool {
+    descriptor.required_capabilities().iter().all(|required| {
+        enabled_capabilities
+            .iter()
+            .any(|enabled| enabled == required)
+    })
+}
+
 fn append_extension_menu_item(menu_bar: &mut MenuBarModel, descriptor: &EditorMenuItemDescriptor) {
     let mut segments = descriptor
         .path()
@@ -79,7 +92,7 @@ fn append_extension_menu_item(menu_bar: &mut MenuBarModel, descriptor: &EditorMe
         binding: editor_operation_binding(descriptor.operation()),
         operation_path: Some(descriptor.operation().clone()),
         shortcut: descriptor.shortcut().map(str::to_string),
-        enabled: true,
+        enabled: descriptor.enabled(),
     };
 
     if let Some(menu) = menu_bar

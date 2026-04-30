@@ -18,6 +18,7 @@ fn editor_crate_root_stops_flattening_asset_editor_and_workbench_specialists() {
         "pub use ui::workbench::reflection::{",
         "pub use ui::workbench::snapshot::{",
         "pub use ui::workbench::startup::{",
+        "pub use ui::workbench::state::EditorState;",
         "pub use ui::workbench::view::{",
     ] {
         assert!(

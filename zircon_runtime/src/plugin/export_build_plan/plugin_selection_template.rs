@@ -5,8 +5,8 @@ use crate::{
 
 pub(super) fn plugin_selection_template(
     profile: &ExportProfile,
-    enabled_plugins: &[&ProjectPluginSelection],
     project_plugin_selections: &[&ProjectPluginSelection],
+    linked_runtime_crates: &[String],
 ) -> String {
     let selections = project_plugin_selections
         .iter()
@@ -19,13 +19,9 @@ pub(super) fn plugin_selection_template(
         .map(|strategy| packaging_strategy_expr(*strategy))
         .collect::<Vec<_>>()
         .join(", ");
-    let registration_calls = enabled_plugins
+    let registration_calls = linked_runtime_crates
         .iter()
-        .filter(|selection| {
-            selection.runtime_crate.is_some()
-                && selection.packaging != ExportPackagingStrategy::NativeDynamic
-        })
-        .map(|selection| format!("{}::plugin_registration()", selection.runtime_crate_name()))
+        .map(|crate_name| format!("{crate_name}::plugin_registration()"))
         .collect::<Vec<_>>()
         .join(",\n");
     format!(

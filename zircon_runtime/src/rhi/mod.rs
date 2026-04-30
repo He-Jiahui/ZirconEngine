@@ -11,8 +11,8 @@ pub use descriptors::{
     TextureUsage,
 };
 pub use device::{
-    BufferHandle, CommandList, FenceValue, PipelineHandle, RenderDevice, RhiError, SamplerHandle,
-    ShaderModuleHandle, TextureHandle, TransientAllocatorStats,
+    BufferHandle, CommandList, CommandListCommand, FenceValue, PipelineHandle, RenderDevice,
+    RhiError, SamplerHandle, ShaderModuleHandle, TextureHandle, TransientAllocatorStats,
 };
 
 #[cfg(test)]

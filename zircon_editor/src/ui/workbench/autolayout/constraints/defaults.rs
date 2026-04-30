@@ -3,6 +3,11 @@ use crate::ui::workbench::snapshot::ViewContentKind;
 use super::super::{PaneConstraints, ShellRegionId};
 use super::axis_factory::stretch_axis;
 
+const DEFAULT_BOTTOM_REGION_MIN_HEIGHT: f32 = 120.0;
+const DEFAULT_BOTTOM_REGION_PREFERRED_HEIGHT: f32 = 148.0;
+const DEFAULT_LOG_TOOL_MIN_HEIGHT: f32 = 120.0;
+const DEFAULT_LOG_TOOL_PREFERRED_HEIGHT: f32 = 148.0;
+
 pub fn default_region_constraints(region: ShellRegionId) -> PaneConstraints {
     match region {
         ShellRegionId::Left | ShellRegionId::Right => PaneConstraints {
@@ -11,7 +16,12 @@ pub fn default_region_constraints(region: ShellRegionId) -> PaneConstraints {
         },
         ShellRegionId::Bottom => PaneConstraints {
             width: stretch_axis(0.0, 0.0, 50, 1.0),
-            height: stretch_axis(120.0, 164.0, 50, 1.0),
+            height: stretch_axis(
+                DEFAULT_BOTTOM_REGION_MIN_HEIGHT,
+                DEFAULT_BOTTOM_REGION_PREFERRED_HEIGHT,
+                50,
+                1.0,
+            ),
         },
         ShellRegionId::Document => PaneConstraints {
             width: stretch_axis(520.0, 960.0, 100, 3.0),
@@ -41,7 +51,12 @@ pub fn default_constraints_for_content(kind: ViewContentKind) -> PaneConstraints
         | ViewContentKind::RuntimeDiagnostics
         | ViewContentKind::ModulePlugins => PaneConstraints {
             width: stretch_axis(0.0, 0.0, 50, 1.0),
-            height: stretch_axis(140.0, 200.0, 50, 1.0),
+            height: stretch_axis(
+                DEFAULT_LOG_TOOL_MIN_HEIGHT,
+                DEFAULT_LOG_TOOL_PREFERRED_HEIGHT,
+                50,
+                1.0,
+            ),
         },
         ViewContentKind::Assets
         | ViewContentKind::AssetBrowser

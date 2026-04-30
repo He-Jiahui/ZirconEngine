@@ -3,12 +3,10 @@ use crate::core::framework::render::{
 };
 use crate::ui::surface::{UiRenderCommandKind, UiRenderExtract};
 
-use crate::VisibilityContext;
+use crate::{runtime::HybridGiSceneInputs, VisibilityContext};
 
 use super::super::super::wgpu_render_framework::WgpuRenderFramework;
-use super::super::frame_submission_context::{
-    FrameSubmissionContext, HybridGiSceneInputs, UiSubmissionStats,
-};
+use super::super::frame_submission_context::{FrameSubmissionContext, UiSubmissionStats};
 use super::compile_pipeline::compile_submission_pipeline;
 use super::resolve_enabled_features::resolve_enabled_features;
 use super::resolve_viewport_record_state::resolve_viewport_record_state;
@@ -19,7 +17,7 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
     extract: &RenderFrameExtract,
     ui_extract: Option<&UiRenderExtract>,
 ) -> Result<FrameSubmissionContext, RenderFrameworkError> {
-    let viewport_state = resolve_viewport_record_state(server, viewport)?;
+    let mut viewport_state = resolve_viewport_record_state(server, viewport)?;
     let compiled_pipeline = compile_submission_pipeline(&viewport_state, extract)?;
     let (hybrid_gi_enabled, virtual_geometry_enabled) =
         resolve_enabled_features(&compiled_pipeline);
@@ -35,14 +33,14 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
         };
     let synthesized_virtual_geometry_extract = synthesized_virtual_geometry
         .as_ref()
-        .map(|output| output.extract.clone());
+        .map(|output| output.extract().clone());
     let synthesized_virtual_geometry_cpu_reference_instances = synthesized_virtual_geometry
         .as_ref()
-        .map(|output| output.cpu_reference_instances.clone())
+        .map(|output| output.cpu_reference_instances().to_vec())
         .unwrap_or_default();
     let synthesized_virtual_geometry_bvh_visualization_instances = synthesized_virtual_geometry
         .as_ref()
-        .map(|output| output.bvh_visualization_instances.clone())
+        .map(|output| output.bvh_visualization_instances().to_vec())
         .unwrap_or_default();
     let effective_virtual_geometry_extract = apply_virtual_geometry_debug_override(
         extract
@@ -60,20 +58,30 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
             supplemented.geometry.virtual_geometry = Some(virtual_geometry.clone());
             supplemented
         });
+    let visibility_extract = supplemented_extract.as_ref().unwrap_or(extract);
+    let sanitized_visibility_extract;
+    let visibility_extract = if hybrid_gi_enabled {
+        visibility_extract
+    } else {
+        sanitized_visibility_extract = visibility_extract_without_hybrid_gi(visibility_extract);
+        &sanitized_visibility_extract
+    };
     let visibility_context = VisibilityContext::from_extract_with_history(
-        supplemented_extract.as_ref().unwrap_or(extract),
-        viewport_state.previous_visibility.as_ref(),
+        visibility_extract,
+        viewport_state.previous_visibility(),
     );
     let hybrid_gi_update_plan =
         hybrid_gi_enabled.then(|| visibility_context.hybrid_gi_update_plan.clone());
     let hybrid_gi_feedback =
         hybrid_gi_enabled.then(|| visibility_context.hybrid_gi_feedback.clone());
     let hybrid_gi_scene_inputs = hybrid_gi_enabled
-        .then(|| HybridGiSceneInputs {
-            meshes: extract.geometry.meshes.clone(),
-            directional_lights: extract.lighting.directional_lights.clone(),
-            point_lights: extract.lighting.point_lights.clone(),
-            spot_lights: extract.lighting.spot_lights.clone(),
+        .then(|| {
+            HybridGiSceneInputs::new(
+                extract.geometry.meshes.clone(),
+                extract.lighting.directional_lights.clone(),
+                extract.lighting.point_lights.clone(),
+                extract.lighting.spot_lights.clone(),
+            )
         })
         .unwrap_or_default();
     let virtual_geometry_page_upload_plan = virtual_geometry_enabled
@@ -81,36 +89,34 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
     let virtual_geometry_feedback =
         virtual_geometry_enabled.then(|| visibility_context.virtual_geometry_feedback.clone());
 
-    Ok(FrameSubmissionContext {
-        size: viewport_state.size,
-        pipeline_handle: viewport_state.pipeline_handle,
-        quality_profile: viewport_state.quality_profile,
+    Ok(FrameSubmissionContext::new(
+        viewport_state.size(),
+        viewport_state.pipeline_handle(),
+        viewport_state.take_quality_profile(),
         compiled_pipeline,
         visibility_context,
-        ui_stats: ui_extract
+        ui_extract
             .map(compute_ui_submission_stats)
             .unwrap_or_default(),
-        previous_hybrid_gi_runtime: viewport_state.previous_hybrid_gi_runtime,
-        previous_virtual_geometry_runtime: viewport_state.previous_virtual_geometry_runtime,
+        viewport_state.take_previous_hybrid_gi_runtime(),
+        viewport_state.take_previous_virtual_geometry_runtime(),
         hybrid_gi_enabled,
         virtual_geometry_enabled,
-        hybrid_gi_extract: hybrid_gi_enabled
+        hybrid_gi_enabled
             .then(|| extract.lighting.hybrid_global_illumination.clone())
             .flatten(),
         hybrid_gi_scene_inputs,
         hybrid_gi_update_plan,
         hybrid_gi_feedback,
-        virtual_geometry_extract: virtual_geometry_enabled
+        virtual_geometry_enabled
             .then(|| effective_virtual_geometry_extract.clone())
             .flatten(),
-        virtual_geometry_cpu_reference_instances:
-            synthesized_virtual_geometry_cpu_reference_instances,
-        virtual_geometry_bvh_visualization_instances:
-            synthesized_virtual_geometry_bvh_visualization_instances,
+        synthesized_virtual_geometry_cpu_reference_instances,
+        synthesized_virtual_geometry_bvh_visualization_instances,
         virtual_geometry_page_upload_plan,
         virtual_geometry_feedback,
-        predicted_generation: viewport_state.predicted_generation,
-    })
+        viewport_state.predicted_generation(),
+    ))
 }
 
 fn apply_virtual_geometry_debug_override(
@@ -124,21 +130,27 @@ fn apply_virtual_geometry_debug_override(
     Some(extract)
 }
 
+fn visibility_extract_without_hybrid_gi(extract: &RenderFrameExtract) -> RenderFrameExtract {
+    let mut extract = extract.clone();
+    extract.lighting.hybrid_global_illumination = None;
+    extract
+}
+
 fn compute_ui_submission_stats(extract: &UiRenderExtract) -> UiSubmissionStats {
     let mut stats = UiSubmissionStats::default();
     for command in &extract.list.commands {
-        stats.command_count += 1;
+        stats.record_command();
         if matches!(command.kind, UiRenderCommandKind::Quad) {
-            stats.quad_count += 1;
+            stats.record_quad();
         }
         if command.text.is_some() {
-            stats.text_payload_count += 1;
+            stats.record_text_payload();
         }
         if command.image.is_some() {
-            stats.image_payload_count += 1;
+            stats.record_image_payload();
         }
         if command.clip_frame.is_some() {
-            stats.clipped_command_count += 1;
+            stats.record_clipped_command();
         }
     }
     stats

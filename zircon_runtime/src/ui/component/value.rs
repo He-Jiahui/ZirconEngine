@@ -1,9 +1,10 @@
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
-use toml::Value as TomlValue;
+use toml::{map::Map, Value as TomlValue};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+/// Describes the typed value family accepted by Runtime UI component props and state.
 pub enum UiValueKind {
     Any,
     Bool,
@@ -24,6 +25,7 @@ pub enum UiValueKind {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// Stores a typed Runtime UI value for authored props, retained state, and event payloads.
 pub enum UiValue {
     Bool(bool),
     Int(i64),
@@ -43,6 +45,7 @@ pub enum UiValue {
 }
 
 impl UiValue {
+    /// Returns the value kind represented by this concrete typed value.
     pub fn kind(&self) -> UiValueKind {
         match self {
             Self::Bool(_) => UiValueKind::Bool,
@@ -63,6 +66,7 @@ impl UiValue {
         }
     }
 
+    /// Converts numeric-like values into `f64` for numeric component reducers.
     pub fn as_f64(&self) -> Option<f64> {
         match self {
             Self::Int(value) => Some(*value as f64),
@@ -72,6 +76,7 @@ impl UiValue {
         }
     }
 
+    /// Formats a compact user-facing value summary for generic host projection.
     pub fn display_text(&self) -> String {
         match self {
             Self::Bool(value) => value.to_string(),
@@ -103,6 +108,7 @@ impl UiValue {
         }
     }
 
+    /// Converts a TOML value into the nearest Runtime UI typed value.
     pub fn from_toml(value: &TomlValue) -> Self {
         match value {
             TomlValue::String(value) => Self::String(value.clone()),
@@ -119,6 +125,103 @@ impl UiValue {
             TomlValue::Datetime(value) => Self::String(value.to_string()),
         }
     }
+
+    /// Converts a TOML value into a typed Runtime UI value required by a component schema.
+    pub fn from_toml_with_kind(value: &TomlValue, kind: UiValueKind) -> Option<Self> {
+        match kind {
+            UiValueKind::Any => Some(Self::from_toml(value)),
+            UiValueKind::Bool => value.as_bool().map(Self::Bool),
+            UiValueKind::Int => value.as_integer().map(Self::Int),
+            UiValueKind::Float => match value {
+                TomlValue::Integer(value) => Some(Self::Float(*value as f64)),
+                TomlValue::Float(value) => Some(Self::Float(*value)),
+                _ => None,
+            },
+            UiValueKind::String => value.as_str().map(|value| Self::String(value.to_string())),
+            UiValueKind::Color => value.as_str().map(|value| Self::Color(value.to_string())),
+            UiValueKind::Vec2 => fixed_float_array::<2>(value).map(Self::Vec2),
+            UiValueKind::Vec3 => fixed_float_array::<3>(value).map(Self::Vec3),
+            UiValueKind::Vec4 => fixed_float_array::<4>(value).map(Self::Vec4),
+            UiValueKind::AssetRef => value
+                .as_str()
+                .map(|value| Self::AssetRef(value.to_string())),
+            UiValueKind::InstanceRef => value
+                .as_str()
+                .map(|value| Self::InstanceRef(value.to_string())),
+            UiValueKind::Array => value
+                .as_array()
+                .map(|values| Self::Array(values.iter().map(Self::from_toml).collect::<Vec<_>>())),
+            UiValueKind::Map => value.as_table().map(|values| {
+                Self::Map(
+                    values
+                        .iter()
+                        .map(|(key, value)| (key.clone(), Self::from_toml(value)))
+                        .collect(),
+                )
+            }),
+            UiValueKind::Enum => value.as_str().map(|value| Self::Enum(value.to_string())),
+            UiValueKind::Flags => value.as_array().and_then(|values| {
+                values
+                    .iter()
+                    .map(|value| value.as_str().map(str::to_string))
+                    .collect::<Option<Vec<_>>>()
+                    .map(Self::Flags)
+            }),
+            UiValueKind::Null => None,
+        }
+    }
+
+    /// Converts the Runtime UI typed value back into TOML for compiled template attributes.
+    pub fn to_toml(&self) -> TomlValue {
+        match self {
+            Self::Bool(value) => TomlValue::Boolean(*value),
+            Self::Int(value) => TomlValue::Integer(*value),
+            Self::Float(value) => TomlValue::Float(*value),
+            Self::String(value)
+            | Self::Color(value)
+            | Self::AssetRef(value)
+            | Self::InstanceRef(value)
+            | Self::Enum(value) => TomlValue::String(value.clone()),
+            Self::Vec2(value) => float_array_to_toml(value),
+            Self::Vec3(value) => float_array_to_toml(value),
+            Self::Vec4(value) => float_array_to_toml(value),
+            Self::Array(values) => TomlValue::Array(values.iter().map(Self::to_toml).collect()),
+            Self::Map(values) => TomlValue::Table(
+                values
+                    .iter()
+                    .map(|(key, value)| (key.clone(), value.to_toml()))
+                    .collect::<Map<String, TomlValue>>(),
+            ),
+            Self::Flags(values) => TomlValue::Array(
+                values
+                    .iter()
+                    .map(|value| TomlValue::String(value.clone()))
+                    .collect(),
+            ),
+            Self::Null => TomlValue::String(String::new()),
+        }
+    }
+}
+
+fn fixed_float_array<const N: usize>(value: &TomlValue) -> Option<[f64; N]> {
+    let values = value.as_array()?;
+    if values.len() != N {
+        return None;
+    }
+
+    let floats = values
+        .iter()
+        .map(|value| match value {
+            TomlValue::Integer(value) => Some(*value as f64),
+            TomlValue::Float(value) => Some(*value),
+            _ => None,
+        })
+        .collect::<Option<Vec<_>>>()?;
+    floats.try_into().ok()
+}
+
+fn float_array_to_toml<const N: usize>(values: &[f64; N]) -> TomlValue {
+    TomlValue::Array(values.iter().copied().map(TomlValue::Float).collect())
 }
 
 fn trim_float(value: f64) -> String {

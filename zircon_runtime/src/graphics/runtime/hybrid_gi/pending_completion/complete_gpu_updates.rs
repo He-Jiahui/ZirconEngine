@@ -11,22 +11,26 @@ impl HybridGiRuntimeState {
         evictable_probe_ids: &[u32],
     ) {
         for (probe_id, irradiance_rgb) in probe_irradiance_rgb {
-            if !self.probe_scene_data.contains_key(probe_id) {
+            if !self.probe_scene_data().contains_key(probe_id) {
                 continue;
             }
 
-            self.probe_irradiance_rgb.insert(*probe_id, *irradiance_rgb);
+            self.probe_irradiance_rgb_mut()
+                .insert(*probe_id, *irradiance_rgb);
         }
         for (probe_id, trace_lighting_rgb) in probe_trace_lighting_rgb {
-            if !self.probe_scene_data.contains_key(probe_id) {
+            if !self.probe_scene_data().contains_key(probe_id) {
                 continue;
             }
 
-            self.probe_rt_lighting_rgb
+            self.probe_rt_lighting_rgb_mut()
                 .insert(*probe_id, *trace_lighting_rgb);
         }
-        self.current_requested_probe_ids
-            .retain(|probe_id| self.pending_probes.contains(probe_id));
+        let pending_probes = self
+            .pending_probe_ids()
+            .collect::<std::collections::BTreeSet<_>>();
+        self.current_requested_probe_ids_mut()
+            .retain(|probe_id| pending_probes.contains(probe_id));
         self.assign_scheduled_trace_regions(trace_region_ids);
         self.refresh_recent_lineage_trace_support();
         complete_pending_probes(self, probe_ids, evictable_probe_ids);

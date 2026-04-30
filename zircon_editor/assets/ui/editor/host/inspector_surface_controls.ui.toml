@@ -53,7 +53,7 @@ bindings = []
 [components.InspectorSurfaceControls.root.children.node]
 node_id = "component_InspectorSurfaceControls_root_0"
 kind = "native"
-type = "UiHostIconButton"
+type = "IconButton"
 control_id = "NameField"
 classes = []
 children = []
@@ -79,7 +79,7 @@ route = "DraftCommand.SetInspectorField"
 [components.InspectorSurfaceControls.root.children.node]
 node_id = "component_InspectorSurfaceControls_root_1"
 kind = "native"
-type = "UiHostIconButton"
+type = "IconButton"
 control_id = "ParentField"
 classes = []
 children = []
@@ -105,7 +105,7 @@ route = "DraftCommand.SetInspectorField"
 [components.InspectorSurfaceControls.root.children.node]
 node_id = "component_InspectorSurfaceControls_root_2"
 kind = "native"
-type = "UiHostIconButton"
+type = "IconButton"
 control_id = "PositionXField"
 classes = []
 children = []
@@ -131,7 +131,7 @@ route = "DraftCommand.SetInspectorField"
 [components.InspectorSurfaceControls.root.children.node]
 node_id = "component_InspectorSurfaceControls_root_3"
 kind = "native"
-type = "UiHostIconButton"
+type = "IconButton"
 control_id = "PositionYField"
 classes = []
 children = []
@@ -157,7 +157,7 @@ route = "DraftCommand.SetInspectorField"
 [components.InspectorSurfaceControls.root.children.node]
 node_id = "component_InspectorSurfaceControls_root_4"
 kind = "native"
-type = "UiHostIconButton"
+type = "IconButton"
 control_id = "PositionZField"
 classes = []
 children = []
@@ -183,7 +183,7 @@ route = "DraftCommand.SetInspectorField"
 [components.InspectorSurfaceControls.root.children.node]
 node_id = "component_InspectorSurfaceControls_root_5"
 kind = "native"
-type = "UiHostIconButton"
+type = "IconButton"
 control_id = "ApplyBatchButton"
 classes = []
 children = []
@@ -209,7 +209,7 @@ route = "InspectorFieldBatch"
 [components.InspectorSurfaceControls.root.children.node]
 node_id = "component_InspectorSurfaceControls_root_6"
 kind = "native"
-type = "UiHostIconButton"
+type = "IconButton"
 control_id = "DeleteSelected"
 classes = []
 children = []

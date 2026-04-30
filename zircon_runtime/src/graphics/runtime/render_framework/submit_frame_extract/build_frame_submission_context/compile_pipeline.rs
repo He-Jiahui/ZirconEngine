@@ -10,9 +10,9 @@ pub(super) fn compile_submission_pipeline(
     extract: &RenderFrameExtract,
 ) -> Result<CompiledRenderPipeline, RenderFrameworkError> {
     let compiled = state
-        .pipeline_asset
-        .compile_with_options(extract, &state.compile_options)
+        .pipeline_asset()
+        .compile_with_options(extract, state.compile_options())
         .map_err(RenderFrameworkError::Backend)?;
-    validate_compiled_pipeline_capabilities(&compiled, &state.capabilities)?;
+    validate_compiled_pipeline_capabilities(&compiled, state.capabilities())?;
     Ok(compiled)
 }

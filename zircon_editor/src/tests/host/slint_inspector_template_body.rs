@@ -9,7 +9,7 @@ use crate::ui::layouts::windows::workbench_host_window::{
     build_pane_body_presentation, InspectorPaneViewData, PaneContentSize, PanePayloadBuildContext,
     PanePresentation, PaneShellPresentation,
 };
-use crate::ui::slint_host::to_slint_inspector_pane_from_host_pane;
+use crate::ui::slint_host::to_host_contract_inspector_pane_from_host_pane;
 use crate::ui::workbench::layout::MainPageId;
 use crate::ui::workbench::snapshot::{
     AssetWorkspaceSnapshot, EditorChromeSnapshot, InspectorSnapshot, ProjectOverviewSnapshot,
@@ -93,7 +93,7 @@ fn inspector_pane() -> crate::ui::layouts::windows::workbench_host_window::PaneD
         secondary_hint: "".into(),
         show_toolbar: false,
         viewport: blank_viewport_chrome(),
-        body_compat: crate::ui::layouts::windows::workbench_host_window::PaneBodyCompatData {
+        native_body: crate::ui::layouts::windows::workbench_host_window::PaneNativeBodyData {
             hierarchy: Default::default(),
             inspector: InspectorPaneViewData {
                 nodes: slint::ModelRc::default(),
@@ -119,7 +119,7 @@ fn inspector_pane() -> crate::ui::layouts::windows::workbench_host_window::PaneD
 
 #[test]
 fn inspector_template_body_projection_replaces_legacy_inspector_view_data_for_slint_conversion() {
-    let projected = to_slint_inspector_pane_from_host_pane(
+    let projected = to_host_contract_inspector_pane_from_host_pane(
         &inspector_pane(),
         PaneContentSize::new(360.0, 220.0),
     );

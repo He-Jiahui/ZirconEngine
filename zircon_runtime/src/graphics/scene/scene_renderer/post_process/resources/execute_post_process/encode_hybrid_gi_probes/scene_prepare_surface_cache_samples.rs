@@ -153,25 +153,18 @@ fn scene_prepare_card_capture_request_rgb_and_quality(
     scene_prepare_resources: Option<&HybridGiScenePrepareResourcesSnapshot>,
 ) -> ([f32; 3], f32) {
     if let Some(scene_prepare_resources) = scene_prepare_resources {
-        if let Some((_, rgba)) = scene_prepare_resources
-            .capture_slot_rgba_samples
-            .iter()
-            .find(|(slot_id, rgba)| {
-                *slot_id == request.capture_slot_id && rgba_sample_is_present(*rgba)
-            })
+        if let Some(rgba) = scene_prepare_resources
+            .capture_slot_rgba_sample(request.capture_slot_id)
+            .filter(|rgba| rgba_sample_is_present(*rgba))
         {
-            return (rgba_sample_rgb(*rgba), CAPTURE_RESOURCE_CONFIDENCE_QUALITY);
+            return (rgba_sample_rgb(rgba), CAPTURE_RESOURCE_CONFIDENCE_QUALITY);
         }
 
-        if let Some((_, rgba)) =
-            scene_prepare_resources
-                .atlas_slot_rgba_samples
-                .iter()
-                .find(|(slot_id, rgba)| {
-                    *slot_id == request.atlas_slot_id && rgba_sample_is_present(*rgba)
-                })
+        if let Some(rgba) = scene_prepare_resources
+            .atlas_slot_rgba_sample(request.atlas_slot_id)
+            .filter(|rgba| rgba_sample_is_present(*rgba))
         {
-            return (rgba_sample_rgb(*rgba), ATLAS_RESOURCE_CONFIDENCE_QUALITY);
+            return (rgba_sample_rgb(rgba), ATLAS_RESOURCE_CONFIDENCE_QUALITY);
         }
     }
 
@@ -199,25 +192,18 @@ fn scene_prepare_surface_cache_page_rgb_and_quality(
     scene_prepare_resources: Option<&HybridGiScenePrepareResourcesSnapshot>,
 ) -> Option<([f32; 3], f32)> {
     if let Some(scene_prepare_resources) = scene_prepare_resources {
-        if let Some((_, rgba)) = scene_prepare_resources
-            .capture_slot_rgba_samples
-            .iter()
-            .find(|(slot_id, rgba)| {
-                *slot_id == page_content.capture_slot_id && rgba_sample_is_present(*rgba)
-            })
+        if let Some(rgba) = scene_prepare_resources
+            .capture_slot_rgba_sample(page_content.capture_slot_id)
+            .filter(|rgba| rgba_sample_is_present(*rgba))
         {
-            return Some((rgba_sample_rgb(*rgba), CAPTURE_RESOURCE_CONFIDENCE_QUALITY));
+            return Some((rgba_sample_rgb(rgba), CAPTURE_RESOURCE_CONFIDENCE_QUALITY));
         }
 
-        if let Some((_, rgba)) =
-            scene_prepare_resources
-                .atlas_slot_rgba_samples
-                .iter()
-                .find(|(slot_id, rgba)| {
-                    *slot_id == page_content.atlas_slot_id && rgba_sample_is_present(*rgba)
-                })
+        if let Some(rgba) = scene_prepare_resources
+            .atlas_slot_rgba_sample(page_content.atlas_slot_id)
+            .filter(|rgba| rgba_sample_is_present(*rgba))
         {
-            return Some((rgba_sample_rgb(*rgba), ATLAS_RESOURCE_CONFIDENCE_QUALITY));
+            return Some((rgba_sample_rgb(rgba), ATLAS_RESOURCE_CONFIDENCE_QUALITY));
         }
     }
 

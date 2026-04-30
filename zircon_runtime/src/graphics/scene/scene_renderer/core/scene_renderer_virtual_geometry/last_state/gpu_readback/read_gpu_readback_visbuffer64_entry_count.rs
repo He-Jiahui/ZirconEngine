@@ -8,6 +8,6 @@ impl SceneRenderer {
     ) -> Option<u32> {
         self.advanced_plugin_outputs
             .virtual_geometry_gpu_readback()
-            .map(|readback| readback.visbuffer64_entry_count)
+            .map(|readback| readback.visbuffer64_entry_count())
     }
 }

@@ -1,10 +1,10 @@
 use std::cmp::Ordering;
 
-use crate::core::framework::render::RenderHybridGiProbe;
+use super::super::sources::HybridGiVisibilityPlanProbe;
 
 pub(in crate::graphics::visibility::planning::build_hybrid_gi_plan) fn hybrid_gi_probe_sort_key(
-    left: &RenderHybridGiProbe,
-    right: &RenderHybridGiProbe,
+    left: &HybridGiVisibilityPlanProbe,
+    right: &HybridGiVisibilityPlanProbe,
 ) -> Ordering {
     right
         .ray_budget

@@ -311,7 +311,7 @@ tests:
   - zircon_editor/src/tests/host/slint_callback_dispatch/mod.rs
   - zircon_editor/src/tests/host/slint_callback_dispatch/layout/mod.rs
   - zircon_editor/src/tests/host/slint_callback_dispatch/workbench/template_bridge.rs
-  - zircon_editor/src/tests/host/template_runtime/workbench_document.rs
+  - zircon_editor/src/tests/host/template_runtime/host_window_document.rs
   - zircon_editor/src/tests/host/template_runtime/shared_surface.rs
   - zircon_editor/src/tests/host/slint_event_bridge/mod.rs
   - zircon_editor/src/tests/host/slint_window/

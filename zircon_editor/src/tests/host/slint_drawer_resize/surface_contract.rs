@@ -1,68 +1,25 @@
+fn source(relative: &str) -> String {
+    std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(relative))
+        .unwrap_or_else(|error| panic!("read `{relative}`: {error}"))
+}
+
 #[test]
-fn shared_resize_surface_replaces_legacy_direct_resize_callback_abi() {
-    let workbench = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/ui/workbench.slint"));
-    let host_context = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/host_context.slint"
-    ));
-    let host_resize_layer = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/host_resize_layer.slint"
-    ));
-    let host_components = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/ui/workbench/host_components.slint"
-    ));
-    let wiring = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/src/ui/slint_host/app/callback_wiring.rs"
-    ));
-    let docking = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/src/ui/slint_host/app/workspace_docking.rs"
-    ));
+fn shared_resize_surface_uses_rust_owned_pointer_event_contract() {
+    let globals = source("src/ui/slint_host/host_contract/globals.rs");
+    let wiring = source("src/ui/slint_host/app/callback_wiring.rs");
+    let docking = source("src/ui/slint_host/app/workspace_docking.rs");
 
-    for needle in [
-        "callback begin_drawer_resize(x: float, y: float);",
-        "callback update_drawer_resize(x: float, y: float);",
-        "callback finish_drawer_resize(x: float, y: float);",
-        "root.begin_drawer_resize(",
-        "root.update_drawer_resize(",
-        "root.finish_drawer_resize(",
-        "ui.on_begin_drawer_resize(",
-        "ui.on_update_drawer_resize(",
-        "ui.on_finish_drawer_resize(",
-        "fn begin_drawer_resize(",
-        "fn update_drawer_resize(",
-        "fn finish_drawer_resize(",
+    assert!(globals.contains("on_host_resize_pointer_event"));
+    assert!(wiring.contains("host_shell.on_host_resize_pointer_event("));
+    for required in [
+        "pub(super) fn host_resize_pointer_event",
+        "begin_drawer_resize_capture",
+        "update_drawer_resize_capture",
+        "finish_drawer_resize_capture",
     ] {
-        let found =
-            workbench.contains(needle) || wiring.contains(needle) || docking.contains(needle);
-        assert!(
-            !found,
-            "drawer resize path still exposes legacy direct callback `{needle}`"
-        );
+        assert!(docking.contains(required), "workspace docking missing `{required}`");
     }
-
-    for needle in [
-        "callback host_resize_pointer_event(kind: int, x: float, y: float);",
-        "UiHostContext.host_resize_pointer_event(",
-    ] {
-        assert!(
-            workbench.contains(needle)
-                || host_context.contains(needle)
-                || host_resize_layer.contains(needle)
-                || host_components.contains(needle),
-            "workbench shell is missing shared resize pointer hook `{needle}`"
-        );
+    for legacy in ["on_begin_drawer_resize", "on_update_drawer_resize", "on_finish_drawer_resize"] {
+        assert!(!wiring.contains(legacy), "resize wiring should not keep `{legacy}`");
     }
-
-    assert!(
-        wiring.contains("host_shell.on_host_resize_pointer_event("),
-        "slint host callback wiring must register shared resize pointer callback"
-    );
-    assert!(
-        docking.contains("fn host_resize_pointer_event("),
-        "workspace docking host must handle shared resize pointer events"
-    );
 }

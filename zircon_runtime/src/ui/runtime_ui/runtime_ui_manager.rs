@@ -4,7 +4,13 @@ use crate::core::framework::render::{
     ViewportCameraSnapshot,
 };
 use crate::core::math::UVec2;
+use crate::ui::dispatch::{
+    UiNavigationDispatchResult, UiNavigationDispatcher, UiPointerDispatchResult,
+    UiPointerDispatcher, UiPointerEvent,
+};
+use crate::ui::surface::UiNavigationEventKind;
 use crate::ui::template::{UiAssetLoader, UiDocumentCompiler, UiTemplateSurfaceBuilder};
+use crate::ui::tree::UiTreeError;
 use crate::ui::{event_ui::UiTreeId, layout::UiSize, surface::UiSurface};
 
 use super::public_frame::PublicRuntimeFrame;
@@ -50,6 +56,22 @@ impl RuntimeUiManager {
 
     pub(crate) fn surface(&self) -> &UiSurface {
         &self.surface
+    }
+
+    pub(crate) fn dispatch_pointer_event(
+        &mut self,
+        dispatcher: &UiPointerDispatcher,
+        event: UiPointerEvent,
+    ) -> Result<UiPointerDispatchResult, UiTreeError> {
+        self.surface.dispatch_pointer_event(dispatcher, event)
+    }
+
+    pub(crate) fn dispatch_navigation_event(
+        &mut self,
+        dispatcher: &UiNavigationDispatcher,
+        kind: UiNavigationEventKind,
+    ) -> Result<UiNavigationDispatchResult, UiTreeError> {
+        self.surface.dispatch_navigation_event(dispatcher, kind)
     }
 
     pub(crate) fn build_frame(&self) -> PublicRuntimeFrame {

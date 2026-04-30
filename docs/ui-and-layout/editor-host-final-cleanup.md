@@ -18,9 +18,9 @@ related_code:
   - zircon_editor/src/tests/host/slint_menu_pointer/layout.rs
   - zircon_editor/src/tests/host/slint_menu_pointer/surface_contract.rs
   - zircon_editor/src/ui/slint_host/app/tests/floating_window_projection.rs
-  - zircon_editor/tests/workbench_slint_shell.rs
-  - zircon_editor/ui/workbench/panes.slint
-  - zircon_editor/ui/workbench.slint
+  - zircon_editor/tests/integration_contracts/workbench_slint_shell.rs
+  - zircon_editor/src/ui/slint_host/host_contract/mod.rs
+  - zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml
 implementation_files:
   - zircon_editor/src/ui/slint_host/app/callback_wiring.rs
   - zircon_editor/src/ui/slint_host/app/helpers.rs
@@ -36,9 +36,9 @@ implementation_files:
   - zircon_editor/src/ui/slint_host/ui/apply_presentation.rs
   - zircon_editor/src/ui/slint_host/ui/shell_presentation.rs
   - zircon_editor/src/ui/slint_host/ui/workbench_tabs.rs
-  - zircon_editor/tests/workbench_slint_shell.rs
-  - zircon_editor/ui/workbench/panes.slint
-  - zircon_editor/ui/workbench.slint
+  - zircon_editor/tests/integration_contracts/workbench_slint_shell.rs
+  - zircon_editor/src/ui/slint_host/host_contract/mod.rs
+  - zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml
 plan_sources:
   - user: 2026-04-18 下一步可以直接进入 Final cleanup
   - user: 2026-04-18 control-specific Slint callback/property glue 的继续 generic 化
@@ -75,9 +75,9 @@ doc_type: module-detail
 
 ### Drawer extent bridge removed from presentation
 
-`ShellPresentation`、`apply_presentation(...)` 和 `workbench.slint` 不再维护 `left/right/bottom_drawer_extent` 这组三元属性。
+`ShellPresentation`、`apply_presentation(...)` 和 Rust-owned host contract root 不再维护 `left/right/bottom_drawer_extent` 这组三元属性。
 
-这条桥之前已经不再提供真正的布局 authority，只是继续把 drawer extent 从 snapshot/presentation 侧透传到 Slint root。现在：
+这条桥之前已经不再提供真正的布局 authority，只是继续把 drawer extent 从 snapshot/presentation 侧透传到 former host root。现在：
 
 - `ShellPresentation` 不再计算 drawer extent
 - `apply_presentation(...)` 不再调用 `set_left/right/bottom_drawer_extent(...)`
@@ -99,9 +99,9 @@ doc_type: module-detail
 
 这批 setter 的调用。
 
-同时 `workbench.slint` 的 root `UiHostWindow` 与 `host_scaffold.slint` 的 orchestrator 层都不再通过 `*_menu_button_frame` 暴露 control-specific frame 宿主 ABI。
+同时 Rust-owned root `UiHostWindow` / `host_contract` orchestrator 不再通过 `*_menu_button_frame` 暴露 control-specific frame 宿主 ABI。
 
-当前 popup 视觉锚点已经收进 [`HostMenuChrome`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_components.slint) 的内部 `out property`，因此 UI 外观不需要再依赖 root/scaffold 代理 frame；menu hit-test / popup open state 继续由 shared `HostMenuPointerLayout` 和 pointer bridge 决定。
+当前 popup 视觉锚点已经收进 Rust-owned `HostMenuChromeData` / template projection 输出，因此 UI 外观不需要再依赖 root/scaffold 代理 frame；menu hit-test / popup open state 继续由 shared `HostMenuPointerLayout` 和 pointer bridge 决定。
 
 ### Floating-window geometry fallback removed from production consumers
 
@@ -140,7 +140,7 @@ doc_type: module-detail
 
 ### UiAssetEditor collection callback glue genericized at the root/host boundary
 
-`workbench.slint`、`callback_wiring.rs` 和 `ui_asset_editor.rs` 这条链现在不再把 UiAssetEditor 的 collection selection/activation 语义拆成一组 root callback 名字。
+Rust-owned host contract、`callback_wiring.rs` 和 `ui_asset_editor.rs` 这条链现在不再把 UiAssetEditor 的 collection selection/activation 语义拆成一组 root callback 名字。
 
 之前 root/host ABI 仍然暴露并逐层转发一批 control-specific callback，例如：
 
@@ -162,9 +162,9 @@ doc_type: module-detail
 
 - `ui_asset_collection_event(instance_id, collection_id, event_kind, item_index)`
 
-Slint 侧的变化：
+Host-contract side changes：
 
-- `UiHostWindow` / `WorkbenchHostScaffold` / native floating forwarding block 都只暴露并转发 `ui_asset_collection_event(...)`
+- `UiHostWindow` / Rust-owned scaffold / native floating forwarding block 都只暴露并转发 `ui_asset_collection_event(...)`
 - `UiAssetEditorPane` 内部仍保留 `matched_style_rule_selected(...)`、`binding_selected(...)` 这类 pane-local callback，但它们不再把语义编码进 host callback 名字，而是统一映射成 `collection_id + event_kind`
 
 Rust 侧的变化：
@@ -179,7 +179,7 @@ Rust 侧的变化：
 
 这一轮继续把 generic 化往 pane 里面推进，目标是削掉 `UiAssetEditorPane` 内部仍残留的 control-specific callback/property glue，而不是只停在 root/host ABI。
 
-Slint 侧新增一个复用 struct：
+Host-contract side originally added one reusable struct:
 
 - `UiAssetStringSelectionData { items, selected_index }`
 
@@ -201,20 +201,20 @@ Slint 侧新增一个复用 struct：
 
 对应变化：
 
-- `workbench.slint` 的 `UiAssetEditorPane { ... }` 绑定块不再逐个传 `xxx_items + xxx_selected_index`，而是构造 grouped selection object 后再传给 pane
-- `panes.slint` 里的 `UiAssetEditorPane` 不再声明 `palette_selected(...)`、`binding_selected(...)`、`layout_semantic_selected(...)` 这一串 pane-local callback，而是统一成 `collection_event(collection_id, event_kind, item_index)`
+- Rust-owned `UiAssetEditorPane` projection no longer passes each `xxx_items + xxx_selected_index` pair individually; it builds grouped selection objects before forwarding them to the pane surface
+- The pane-local `UiAssetEditorPane` contract no longer declares `palette_selected(...)`、`binding_selected(...)`、`layout_semantic_selected(...)` callback fan-out; it routes them through `collection_event(collection_id, event_kind, item_index)`
 - `UiAssetSelectableSection`、preview canvas、sticky palette target chooser、matched-rule/semantic/binding/mock-preview surface 都改为在 pane 内直接发 `root.collection_event(...)`
 - `palette_has_selection`、binding action-kind 路由文本、payload delete enable、semantic clear enable 这类依赖 selected index 的局部逻辑，全部改成读取 grouped selection object，而不是继续依赖散落的 `*_selected_index` property
 
-这一步的价值不是“少几行 Slint”，而是把 `UiAssetEditorPane` 的内部契约从“每个控件一种 callback/property 名字”收口成“复用 selection data + generic collection event”两条更稳定的局部边界。`workbench.slint` 仍然有很多业务字段，但 `UiAssetEditor` 这块已经不再需要一条 surface 对应一条 ABI/property glue。
+这一步的价值不是“少几行 host glue”，而是把 `UiAssetEditorPane` 的内部契约从“每个控件一种 callback/property 名字”收口成“复用 selection data + generic collection event”两条更稳定的局部边界。后续 2026-04-30 fence 已把 deleted Slint shell copies 降为 non-authoritative；这块当前只允许通过 `.ui.toml` assets 与 Rust-owned `host_contract` projection 继续收敛。
 
 ## Current Boundary After Cleanup
 
 做完这一轮以后，editor host 在这块的剩余边界变成：
 
-- root shell / menu / pane / callback ABI 仍然存在于 `workbench.slint`，因为 `Generic host boundary` 还没完全把业务 scaffold 移出 Slint 文件
+- root shell / menu / pane / callback ABI cleanup now targets Rust-owned `host_contract` projection and `.ui.toml` assets; deleted Slint shell copies are not current authority
 - floating-window projection test helper 仍允许从 geometry 合成 shared source，方便复用老 fixture
-- UiAssetEditor pane 内部的 collection callback 与主要 string-selection property 已经 generic 化，但仍有大量 detail scalar、action-specific callback 和整块 business scaffold 留在 `workbench.slint` / `panes.slint`
+- UiAssetEditor pane 内部的 collection callback 与主要 string-selection property 已经 generic 化，但仍有 detail scalar、action-specific callback 和 business scaffold cleanup to finish in Rust-owned projection / `.ui.toml` assets
 
 但本轮已经把三条最直接的 legacy seam 从生产路径里撤掉：
 
@@ -232,9 +232,9 @@ Slint 侧新增一个复用 struct：
 
 - 源码检索确认生产代码已不再出现 `set_*_menu_button_frame(...)`、`left/right/bottom_drawer_extent` root binding，以及 `drag_surface.rs` 中的 `resolve_floating_window_outer_frame(geometry, ...)` fallback
 - 源码检索确认 `root_shell_projection.rs`、`app/helpers.rs`、`app/viewport.rs`、`app/workspace_docking.rs` 已不再出现 root-shell geometry fallback 字符串
-- 源码检索确认 `workbench.slint` root callback 已只剩 `ui_asset_collection_event(...)` 这条 UiAssetEditor collection ABI，不再出现 root-level `ui_asset_*selected/activated` callback declaration
+- 源码检索确认 Rust-owned host contract root callback 已只剩 `ui_asset_collection_event(...)` 这条 UiAssetEditor collection ABI，不再出现 root-level `ui_asset_*selected/activated` callback declaration
 - 源码检索确认 `UiAssetEditorPane` 已只保留 `collection_event(...)` 这条 pane-local collection callback，不再声明 `palette_selected(...)` / `binding_selected(...)` / `layout_semantic_selected(...)` 这类 callback
-- 源码检索确认 `UiAssetEditorPane` 的主要 string collection 已切到 `UiAssetStringSelectionData`，`workbench.slint` 不再逐个绑定这些 collection 的 `items + selected_index`
+- 源码检索确认 `UiAssetEditorPane` 的主要 string collection 已切到 `UiAssetStringSelectionData`，Rust-owned projection 不再逐个绑定这些 collection 的 `items + selected_index`
 - 新增/更新了对应 source guard：
   - `ui_asset_editor_pane_genericizes_collection_event_boundary`
   - `ui_asset_editor_pane_groups_string_selection_properties`

@@ -13,8 +13,8 @@ mod editor_asset_state;
 mod parse_uuid;
 mod preview_trait_bridge;
 mod record_access;
-mod record_to_facade;
-mod reference_to_facade;
+mod record_to_view;
+mod reference_to_view;
 mod subscribe_editor_asset_changes;
 
 pub(super) use editor_asset_state::EditorAssetState;

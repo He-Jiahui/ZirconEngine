@@ -104,7 +104,7 @@ impl LayoutManager {
             }
             LayoutCommand::SetDrawerMode { slot, mode } => {
                 let drawer = layout
-                    .default_activity_window_mut()
+                    .active_activity_window_mut()
                     .and_then(|window| window.activity_drawers.get_mut(&slot))
                     .ok_or_else(|| format!("missing drawer {:?}", slot))?;
                 drawer.mode = mode;
@@ -116,7 +116,7 @@ impl LayoutManager {
             LayoutCommand::SetDrawerExtent { slot, extent } => {
                 let extent = extent.max(120.0);
                 let drawer = layout
-                    .default_activity_window_mut()
+                    .active_activity_window_mut()
                     .and_then(|window| window.activity_drawers.get_mut(&slot))
                     .ok_or_else(|| format!("missing drawer {:?}", slot))?;
                 drawer.extent = extent;
@@ -127,7 +127,7 @@ impl LayoutManager {
             }
             LayoutCommand::ActivateDrawerTab { slot, instance_id } => {
                 let drawer = layout
-                    .default_activity_window_mut()
+                    .active_activity_window_mut()
                     .and_then(|window| window.activity_drawers.get_mut(&slot))
                     .ok_or_else(|| format!("missing drawer {:?}", slot))?;
                 if drawer.tab_stack.tabs.contains(&instance_id) {

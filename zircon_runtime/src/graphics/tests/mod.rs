@@ -2,6 +2,8 @@ mod boundary;
 mod hybrid_gi_gpu;
 mod hybrid_gi_gpu_hierarchy;
 mod hybrid_gi_gpu_runtime_source;
+mod hybrid_gi_gpu_scene_light_seed;
+mod hybrid_gi_resolve_dynamic_lights;
 mod hybrid_gi_resolve_history;
 mod hybrid_gi_resolve_render;
 mod hybrid_gi_resolve_surface_cache;

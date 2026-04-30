@@ -25,7 +25,7 @@ impl SceneRendererCore {
             frame,
             false,
         );
-        let mesh_draws = built_mesh_draws.draws;
+        let mesh_draws = built_mesh_draws.into_draws();
         let prepared_overlays = self.overlay_renderer.prepare_buffers(
             device,
             queue,

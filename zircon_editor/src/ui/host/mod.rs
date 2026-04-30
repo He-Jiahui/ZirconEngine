@@ -50,7 +50,8 @@ pub use editor_capabilities::EditorCapabilitySnapshot;
 pub use editor_error::EditorError;
 pub use editor_manager::EditorManager;
 pub use editor_manager_plugins_export::{
-    EditorExportBuildReport, EditorPluginEnableReport, EditorPluginStatus, EditorPluginStatusReport,
+    EditorExportBuildReport, EditorExportCargoInvocation, EditorPluginEnableReport,
+    EditorPluginSelectionUpdateReport, EditorPluginStatus, EditorPluginStatusReport,
 };
 pub use editor_subsystems::{
     EditorSubsystemReport, EDITOR_ENABLED_SUBSYSTEMS_CONFIG_KEY,

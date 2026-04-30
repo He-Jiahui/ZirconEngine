@@ -4,14 +4,14 @@ related_code:
   - zircon_graphics/src/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/mod.rs
   - zircon_graphics/src/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/encode.rs
   - zircon_graphics/src/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/hybrid_gi_hierarchy_resolve_weight.rs
-  - zircon_graphics/src/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/hybrid_gi_hierarchy_rt_lighting.rs
+  - zircon_graphics/src/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/hybrid_gi_hierarchy_rt_lighting/mod.rs
   - zircon_graphics/src/scene/scene_renderer/post_process/shaders/post_process.wgsl
   - zircon_graphics/src/tests/hybrid_gi_resolve_render.rs
 implementation_files:
   - zircon_graphics/src/scene/scene_renderer/post_process/gpu_data/hybrid_gi_probe_gpu.rs
   - zircon_graphics/src/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/encode.rs
   - zircon_graphics/src/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/hybrid_gi_hierarchy_resolve_weight.rs
-  - zircon_graphics/src/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/hybrid_gi_hierarchy_rt_lighting.rs
+  - zircon_graphics/src/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/hybrid_gi_hierarchy_rt_lighting/mod.rs
   - zircon_graphics/src/scene/scene_renderer/post_process/shaders/post_process.wgsl
   - zircon_graphics/src/tests/hybrid_gi_resolve_render.rs
 plan_sources:
@@ -46,7 +46,7 @@ doc_type: milestone-detail
 - `hybrid_gi_hierarchy_resolve_weight(...)` 不再只看 direct resident parent/child：
   - resident ancestor depth 现在会沿完整 `parent_probe_id` chain 继续向上遍历，即使中间存在 nonresident hierarchy gap 也不会丢掉 lineage
   - resident descendant attenuation 现在也会递归统计所有 descendant，而不是只看 direct child
-- 新增 `hybrid_gi_hierarchy_rt_lighting.rs`：
+- 新增 `hybrid_gi_hierarchy_rt_lighting/mod.rs`：
   - 它会沿 target probe 的 ancestor chain 收集 scheduled trace region 的 `rt_lighting_rgb`
   - ancestor 与 trace region 的 world-space overlap 会被转成 lineage-weighted inherited RT tint
   - lineage 越深，继承权重越小，但不会因为中间 probe 当前 nonresident 就直接中断

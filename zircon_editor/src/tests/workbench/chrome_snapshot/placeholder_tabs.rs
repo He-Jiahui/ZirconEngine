@@ -4,8 +4,8 @@ use zircon_runtime::core::math::UVec2;
 
 use crate::scene::viewport::SceneViewportSettings;
 use crate::ui::workbench::layout::{
-    ActivityDrawerLayout, ActivityDrawerMode, ActivityDrawerSlot, DocumentNode, MainHostPageLayout,
-    MainPageId, TabStackLayout, WorkbenchLayout,
+    ActivityDrawerLayout, ActivityDrawerMode, ActivityDrawerSlot, ActivityWindowId, DocumentNode,
+    MainHostPageLayout, MainPageId, TabStackLayout, WorkbenchLayout,
 };
 use crate::ui::workbench::snapshot::{
     AssetWorkspaceSnapshot, DocumentWorkspaceSnapshot, EditorChromeSnapshot, EditorDataSnapshot,
@@ -33,6 +33,7 @@ fn chrome_builder_keeps_placeholder_tabs_for_missing_view_instances() {
         main_pages: vec![MainHostPageLayout::WorkbenchPage {
             id: MainPageId::workbench(),
             title: "Workbench".to_string(),
+            activity_window: ActivityWindowId::workbench(),
             document_workspace: DocumentNode::Tabs(TabStackLayout {
                 tabs: vec![missing.clone()],
                 active_tab: Some(missing.clone()),

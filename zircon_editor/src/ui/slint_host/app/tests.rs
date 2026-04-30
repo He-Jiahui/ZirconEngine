@@ -24,13 +24,14 @@ use crate::ui::workbench::startup::{
 };
 use crate::ui::workbench::state::EditorState;
 use crate::ui::workbench::view::{ViewDescriptorId, ViewInstanceId};
-use slint::{ComponentHandle, PhysicalSize};
+use slint::PhysicalSize;
 use zircon_runtime::core::math::UVec2;
 use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::foundation::{
     module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
 };
 use zircon_runtime::scene::DefaultLevelManager;
+mod drag_sources;
 mod floating_window_projection;
 
 use super::*;
@@ -936,7 +937,23 @@ fn root_host_recomputes_builtin_template_bridge_with_visible_drawer_shell_and_he
         .template_bridge
         .control_frame("WorkbenchBody")
         .expect("workbench body control frame should exist");
-    let expected_center_height = body_frame.height - 164.0 - 1.0;
+    let metrics = crate::ui::workbench::autolayout::WorkbenchChromeMetrics::default();
+    let requested_bottom_height = 164.0_f32;
+    let expected_bottom_height = crate::ui::workbench::autolayout::compact_bottom_height_limit(
+        (body_frame.height - metrics.separator_thickness).max(0.0),
+    )
+    .map(|limit| requested_bottom_height.min(limit))
+    .unwrap_or(requested_bottom_height);
+    let expected_bottom_height = round_to_centipixel(expected_bottom_height);
+    let expected_center_height = round_to_centipixel(
+        body_frame.height - expected_bottom_height - metrics.separator_thickness,
+    );
+    let expected_bottom_y =
+        round_to_centipixel(body_frame.y + body_frame.height - expected_bottom_height);
+    let expected_bottom_content_height = round_to_centipixel(
+        (expected_bottom_height - metrics.panel_header_height - metrics.separator_thickness)
+            .max(0.0),
+    );
     assert_eq!(
         host.template_bridge.control_frame("LeftDrawerShellRoot"),
         Some(UiFrame::new(
@@ -990,16 +1007,16 @@ fn root_host_recomputes_builtin_template_bridge_with_visible_drawer_shell_and_he
         host.template_bridge.control_frame("BottomDrawerShellRoot"),
         Some(UiFrame::new(
             body_frame.x,
-            body_frame.y + body_frame.height - 164.0,
+            expected_bottom_y,
             body_frame.width,
-            164.0,
+            expected_bottom_height,
         ))
     );
     assert_eq!(
         host.template_bridge.control_frame("BottomDrawerHeaderRoot"),
         Some(UiFrame::new(
             body_frame.x,
-            body_frame.y + body_frame.height - 164.0,
+            expected_bottom_y,
             body_frame.width,
             25.0,
         ))
@@ -1009,11 +1026,15 @@ fn root_host_recomputes_builtin_template_bridge_with_visible_drawer_shell_and_he
             .control_frame("BottomDrawerContentRoot"),
         Some(UiFrame::new(
             body_frame.x,
-            body_frame.y + body_frame.height - 138.0,
+            expected_bottom_y + metrics.panel_header_height + metrics.separator_thickness,
             body_frame.width,
-            138.0,
+            expected_bottom_content_height,
         ))
     );
+}
+
+fn round_to_centipixel(value: f32) -> f32 {
+    (value * 100.0).round() / 100.0
 }
 
 #[test]

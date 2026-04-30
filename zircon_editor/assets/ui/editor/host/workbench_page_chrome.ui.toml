@@ -1,0 +1,182 @@
+stylesheets = []
+
+[asset]
+kind = "layout"
+id = "editor.host.workbench_page_chrome"
+version = 1
+display_name = "workbench page chrome"
+
+[imports]
+widgets = []
+styles = []
+
+[root]
+node_id = "workbench_page_chrome_root"
+kind = "native"
+type = "Overlay"
+control_id = "WorkbenchPageChromeRoot"
+
+[root.layout]
+clip = true
+
+[root.layout.container]
+kind = "Overlay"
+
+[root.layout.width]
+stretch = "Stretch"
+
+[root.layout.height]
+stretch = "Stretch"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_page_bar"
+kind = "native"
+type = "Container"
+control_id = "WorkbenchPageBar"
+
+[root.children.node.props]
+surface_variant = "panel"
+radius = 0.0
+border_width = 0.0
+
+[root.children.node.layout.position]
+x = 0.0
+y = 26.0
+
+[root.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.layout.height]
+min = 32.0
+preferred = 32.0
+max = 32.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_page_project_path"
+kind = "native"
+type = "Label"
+control_id = "PageProjectPath"
+
+[root.children.node.props]
+text = "No project open"
+text_tone = "muted"
+font_size = 9.0
+text_align = "right"
+overflow = "elide"
+
+[root.children.node.layout.anchor]
+x = 1.0
+y = 0.0
+
+[root.children.node.layout.pivot]
+x = 1.0
+y = 0.0
+
+[root.children.node.layout.position]
+x = -12.0
+y = 35.0
+
+[root.children.node.layout.width]
+min = 280.0
+preferred = 280.0
+max = 280.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 14.0
+preferred = 14.0
+max = 14.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_page_tab_0"
+kind = "native"
+type = "Label"
+control_id = "PageTab0"
+
+[root.children.node.props]
+text = "Workbench"
+text_tone = "default"
+font_size = 11.0
+text_align = "center"
+overflow = "elide"
+
+[root.children.node.layout.position]
+x = 8.0
+y = 27.0
+
+[root.children.node.layout.width]
+min = 108.0
+preferred = 108.0
+max = 108.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 30.0
+preferred = 30.0
+max = 30.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_page_tab_1"
+kind = "native"
+type = "Label"
+control_id = "PageTab1"
+
+[root.children.node.props]
+text = "Asset"
+text_tone = "subtle"
+font_size = 11.0
+text_align = "center"
+overflow = "elide"
+
+[root.children.node.layout.position]
+x = 120.0
+y = 27.0
+
+[root.children.node.layout.width]
+min = 108.0
+preferred = 108.0
+max = 108.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 30.0
+preferred = 30.0
+max = 30.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_page_tab_2"
+kind = "native"
+type = "Label"
+control_id = "PageTab2"
+
+[root.children.node.props]
+text = "UI"
+text_tone = "subtle"
+font_size = 11.0
+text_align = "center"
+overflow = "elide"
+
+[root.children.node.layout.position]
+x = 232.0
+y = 27.0
+
+[root.children.node.layout.width]
+min = 108.0
+preferred = 108.0
+max = 108.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 30.0
+preferred = 30.0
+max = 30.0
+stretch = "Fixed"

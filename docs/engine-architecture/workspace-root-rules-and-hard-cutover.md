@@ -51,7 +51,7 @@ tests:
   - zircon_runtime/src/tests/ui_boundary/assets.rs
   - zircon_runtime/src/tests/extensions/mod.rs
   - zircon_runtime/src/tests/extensions/absorption_surface.rs
-  - zircon_runtime/src/tests/extensions/manager_facades.rs
+  - zircon_runtime/src/tests/extensions/manager_handles.rs
   - zircon_runtime/src/tests/extensions/root_entries.rs
 doc_type: module-detail
 ---
@@ -102,6 +102,7 @@ This document defines the structural rules that stay true after the workspace ha
 
 - `zircon_editor` crate root keeps only high-level entry points; specialist asset-editor, workbench, viewport, and host types must come from their owner modules.
 - `zircon_editor/src/lib.rs` may re-export `EditorModule`, but the `EngineModule` implementation and module descriptor wiring live under `zircon_editor/src/ui/host/module.rs`.
+- `EditorState` is not a crate-root entry point; callers use `zircon_editor::ui::workbench::state::EditorState` so the workbench state owner remains visible.
 - `zircon_runtime` crate root and `graphics` root expose only stable runtime-facing contracts. Deep frame assembly, renderer construction helpers, and overlay seams stay internal.
 - `zircon_runtime::builtin` keeps `builtin_runtime_modules()` as the public entry, but `src/builtin/mod.rs` must stay structural and delegate the actual module list assembly to a child owner file such as `runtime_modules.rs`.
 - `zircon_runtime::platform` and `zircon_plugins::{navigation,net,particles,sound,texture}` roots may re-export their public module/config/service types, but the actual `EngineModule` implementation and descriptor wiring must live in child owner files such as `module.rs`, `service_types.rs`, or `registration.rs`.

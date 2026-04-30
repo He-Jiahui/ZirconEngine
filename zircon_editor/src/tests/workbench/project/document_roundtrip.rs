@@ -7,7 +7,7 @@ use zircon_runtime::scene::DefaultLevelManager;
 
 use crate::ui::workbench::autolayout::ShellFrame;
 use crate::ui::workbench::layout::{
-    ActivityDrawerLayout, ActivityDrawerMode, ActivityDrawerSlot, DocumentNode,
+    ActivityDrawerLayout, ActivityDrawerMode, ActivityDrawerSlot, ActivityWindowId, DocumentNode,
     FloatingWindowLayout, MainHostPageLayout, MainPageId, TabStackLayout, WorkbenchLayout,
 };
 use crate::ui::workbench::project::{EditorProjectDocument, ProjectEditorWorkspace};
@@ -29,6 +29,7 @@ fn editor_project_document_roundtrips_world_and_workspace() {
             main_pages: vec![MainHostPageLayout::WorkbenchPage {
                 id: MainPageId::new("main"),
                 title: "Workbench".to_string(),
+                activity_window: ActivityWindowId::workbench(),
                 document_workspace: DocumentNode::Tabs(TabStackLayout {
                     tabs: vec![ViewInstanceId::new("scene#1")],
                     active_tab: Some(ViewInstanceId::new("scene#1")),

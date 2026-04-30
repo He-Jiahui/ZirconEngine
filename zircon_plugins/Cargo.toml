@@ -22,7 +22,7 @@ members = [
     "runtime_diagnostics/editor",
     "ui_asset_authoring/editor",
     "native_window_hosting/editor",
-    "native_dynamic_sample/native",
+    "native_dynamic_fixture/native",
 ]
 resolver = "2"
 

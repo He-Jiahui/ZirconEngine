@@ -1,0 +1,130 @@
+use slint::{Color, Image, ModelRc, SharedString};
+
+#[derive(Clone, Default)]
+pub(crate) struct TemplateNodeFrameData {
+    pub x: f32,
+    pub y: f32,
+    pub width: f32,
+    pub height: f32,
+}
+
+#[derive(Clone, Default)]
+pub(crate) struct TemplatePaneActionData {
+    pub label: SharedString,
+    pub action_id: SharedString,
+}
+
+#[derive(Clone, Default)]
+pub(crate) struct TemplatePaneOptionData {
+    pub id: SharedString,
+    pub label: SharedString,
+    pub selected: bool,
+    pub disabled: bool,
+    pub special: bool,
+    pub focused: bool,
+    pub hovered: bool,
+    pub pressed: bool,
+    pub matched: bool,
+}
+
+#[derive(Clone, Default)]
+pub(crate) struct TemplatePaneCollectionFieldData {
+    pub row_id: SharedString,
+    pub index_text: SharedString,
+    pub key_type: SharedString,
+    pub key_component_role: SharedString,
+    pub key_text: SharedString,
+    pub value_type: SharedString,
+    pub value_component_role: SharedString,
+    pub value_text: SharedString,
+    pub value_checked: bool,
+    pub validation_level: SharedString,
+    pub validation_message: SharedString,
+    pub key_edit_action_id: SharedString,
+    pub edit_action_id: SharedString,
+    pub remove_action_id: SharedString,
+    pub move_up_action_id: SharedString,
+    pub move_up_payload: SharedString,
+    pub move_down_action_id: SharedString,
+    pub move_down_payload: SharedString,
+    pub empty: bool,
+}
+
+#[derive(Clone, Default)]
+pub(crate) struct TemplatePaneMenuItemData {
+    pub raw: SharedString,
+    pub action_id: SharedString,
+    pub label: SharedString,
+    pub shortcut: SharedString,
+    pub checked: bool,
+    pub disabled: bool,
+    pub separator: bool,
+    pub focused: bool,
+    pub hovered: bool,
+    pub pressed: bool,
+}
+
+#[derive(Clone, Default)]
+pub(crate) struct TemplatePaneNodeData {
+    pub node_id: SharedString,
+    pub control_id: SharedString,
+    pub role: SharedString,
+    pub text: SharedString,
+    pub component_role: SharedString,
+    pub value_text: SharedString,
+    pub value_number: f32,
+    pub value_percent: f32,
+    pub value_color: Color,
+    pub media_source: SharedString,
+    pub icon_name: SharedString,
+    pub has_preview_image: bool,
+    pub preview_image: Image,
+    pub vector_components: ModelRc<f32>,
+    pub validation_level: SharedString,
+    pub validation_message: SharedString,
+    pub popup_open: bool,
+    pub has_popup_anchor: bool,
+    pub popup_anchor_x: f32,
+    pub popup_anchor_y: f32,
+    pub selection_state: SharedString,
+    pub search_query: SharedString,
+    pub selected: bool,
+    pub tree_depth: i32,
+    pub tree_indent_px: f32,
+    pub options_text: SharedString,
+    pub options: ModelRc<SharedString>,
+    pub structured_options: ModelRc<TemplatePaneOptionData>,
+    pub collection_items: ModelRc<SharedString>,
+    pub collection_fields: ModelRc<TemplatePaneCollectionFieldData>,
+    pub menu_items: ModelRc<SharedString>,
+    pub structured_menu_items: ModelRc<TemplatePaneMenuItemData>,
+    pub actions: ModelRc<TemplatePaneActionData>,
+    pub accepted_drag_payloads: SharedString,
+    pub drop_source_summary: SharedString,
+    pub checked: bool,
+    pub expanded: bool,
+    pub focused: bool,
+    pub hovered: bool,
+    pub pressed: bool,
+    pub dragging: bool,
+    pub drop_hovered: bool,
+    pub active_drag_target: bool,
+    pub disabled: bool,
+    pub dispatch_kind: SharedString,
+    pub action_id: SharedString,
+    pub begin_drag_action_id: SharedString,
+    pub drag_action_id: SharedString,
+    pub end_drag_action_id: SharedString,
+    pub commit_action_id: SharedString,
+    pub edit_action_id: SharedString,
+    pub surface_variant: SharedString,
+    pub text_tone: SharedString,
+    pub button_variant: SharedString,
+    pub font_size: f32,
+    pub font_weight: i32,
+    pub text_align: SharedString,
+    pub overflow: SharedString,
+    pub corner_radius: f32,
+    pub border_width: f32,
+    pub frame: TemplateNodeFrameData,
+}

@@ -37,9 +37,23 @@ pub enum RenderGraphResourceDesc {
 pub struct RenderGraphResourceLifetime {
     pub name: String,
     pub kind: RenderGraphResourceKind,
+    pub desc: RenderGraphResourceDesc,
     pub first_pass: usize,
     pub last_pass: usize,
     pub imported: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RenderGraphResourceAccessKind {
+    Read,
+    Write,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RenderGraphPassResourceAccess {
+    pub name: String,
+    pub kind: RenderGraphResourceKind,
+    pub access: RenderGraphResourceAccessKind,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

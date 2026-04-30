@@ -67,7 +67,7 @@ fn node_and_cluster_cull_pass_splits_over_budget_child_nodes_into_enqueue_child_
     );
     assert!(
         output
-            .traversal_records
+            .traversal_records()
             .iter()
             .any(|record| *record
                 == VirtualGeometryNodeAndClusterCullTraversalRecord {
@@ -177,7 +177,7 @@ fn node_and_cluster_cull_pass_consumes_child_decision_enqueue_records_into_next_
     );
 
     let child_visit_node_ids = output
-        .traversal_records
+        .traversal_records()
         .iter()
         .filter(|record| record.op == VirtualGeometryNodeAndClusterCullTraversalOp::VisitNode)
         .map(|record| record.hierarchy_node_id)
@@ -188,7 +188,7 @@ fn node_and_cluster_cull_pass_consumes_child_decision_enqueue_records_into_next_
     );
 
     let stored_child_clusters = output
-        .traversal_records
+        .traversal_records()
         .iter()
         .filter(|record| {
             record.op == VirtualGeometryNodeAndClusterCullTraversalOp::StoreCluster
@@ -282,7 +282,7 @@ fn node_and_cluster_cull_pass_feeds_split_child_nodes_into_next_traversal_wave()
 
     assert!(
         output
-            .traversal_records
+            .traversal_records()
             .iter()
             .any(|record| record.op == VirtualGeometryNodeAndClusterCullTraversalOp::VisitNode
                 && record.hierarchy_node_id == Some(70)
@@ -292,7 +292,7 @@ fn node_and_cluster_cull_pass_feeds_split_child_nodes_into_next_traversal_wave()
     );
     assert!(
         output
-            .traversal_records
+            .traversal_records()
             .iter()
             .any(|record| record.op == VirtualGeometryNodeAndClusterCullTraversalOp::StoreCluster
                 && record.hierarchy_node_id == Some(70)
@@ -376,7 +376,7 @@ fn node_and_cluster_cull_pass_splits_child_nodes_when_cluster_sse_exceeds_thresh
 
     assert!(
         output
-            .traversal_records
+            .traversal_records()
             .iter()
             .any(|record| *record
                 == VirtualGeometryNodeAndClusterCullTraversalRecord {
@@ -396,7 +396,7 @@ fn node_and_cluster_cull_pass_splits_child_nodes_when_cluster_sse_exceeds_thresh
                     page_budget: 2,
                     forced_mip: Some(6),
                 }),
-        "expected an authored child node whose represented cluster exceeds the compat SSE threshold to split even when it remains within the cluster budget"
+        "expected an authored child node whose represented cluster exceeds the baseline SSE threshold to split even when it remains within the cluster budget"
     );
 }
 
@@ -693,7 +693,7 @@ fn node_and_cluster_cull_pass_stores_only_resident_child_cluster_pages() {
     );
 
     let child_store_records = output
-        .traversal_records
+        .traversal_records()
         .iter()
         .filter(|record| {
             record.op == VirtualGeometryNodeAndClusterCullTraversalOp::StoreCluster
@@ -796,7 +796,7 @@ fn node_and_cluster_cull_pass_limits_page_residency_to_cull_input_page_count() {
     );
 
     let child_store_records = output
-        .traversal_records
+        .traversal_records()
         .iter()
         .filter(|record| {
             record.op == VirtualGeometryNodeAndClusterCullTraversalOp::StoreCluster
@@ -811,8 +811,8 @@ fn node_and_cluster_cull_pass_limits_page_residency_to_cull_input_page_count() {
         "expected page_count to cap the effective page residency table before child StoreCluster decisions consume it"
     );
     assert_eq!(
-        output.page_request_ids,
-        vec![20],
+        output.page_request_ids(),
+        &[20],
         "expected the resident page row beyond cull_input.page_count to be ignored and reported as a missing-page request"
     );
 }
@@ -904,7 +904,7 @@ fn node_and_cluster_cull_pass_requests_missing_child_cluster_pages() {
     );
 
     let child_store_records = output
-        .traversal_records
+        .traversal_records()
         .iter()
         .filter(|record| {
             record.op == VirtualGeometryNodeAndClusterCullTraversalOp::StoreCluster
@@ -919,18 +919,18 @@ fn node_and_cluster_cull_pass_requests_missing_child_cluster_pages() {
         "expected child decision to store only resident child cluster pages at this pass boundary"
     );
     assert_eq!(
-        output.page_request_ids,
-        vec![20],
+        output.page_request_ids(),
+        &[20],
         "expected child decision to request the missing page for a visible mip-matching child cluster instead of silently dropping it"
     );
-    assert_eq!(output.page_request_count, 1);
+    assert_eq!(output.page_request_count(), 1);
     assert!(
-        output.page_request_buffer.is_some(),
+        output.page_request_buffer().is_some(),
         "expected NodeAndClusterCull to materialize a pass-local page request buffer when requests exist"
     );
-    assert_eq!(output.child_work_item_count, 1);
+    assert_eq!(output.child_work_item_count(), 1);
     assert!(
-        output.child_work_item_buffer.is_some(),
+        output.child_work_item_buffer().is_some(),
         "expected NodeAndClusterCull to materialize child work items for authored hierarchy expansion"
     );
 }
@@ -1137,11 +1137,11 @@ fn node_and_cluster_cull_pass_keeps_page_requests_when_upload_slots_are_full() {
     );
 
     assert_eq!(
-        output.page_request_ids,
-        vec![20, 30],
+        output.page_request_ids(),
+        &[20, 30],
         "expected NodeAndClusterCull to preserve visible missing-page feedback even when runtime upload slots are full"
     );
-    assert_eq!(output.page_request_count, 2);
+    assert_eq!(output.page_request_count(), 2);
 }
 
 #[test]
@@ -1612,11 +1612,11 @@ fn node_and_cluster_cull_pass_limits_page_requests_to_remaining_page_budget() {
     );
 
     assert_eq!(
-        output.page_request_ids,
-        vec![20],
+        output.page_request_ids(),
+        &[20],
         "expected NodeAndClusterCull to leave room for already-pending page requests when applying page_budget to newly emitted requests"
     );
-    assert_eq!(output.page_request_count, 1);
+    assert_eq!(output.page_request_count(), 1);
 }
 
 #[test]
@@ -1690,7 +1690,7 @@ fn node_and_cluster_cull_pass_stores_only_forced_mip_child_clusters() {
     );
 
     let child_store_records = output
-        .traversal_records
+        .traversal_records()
         .iter()
         .filter(|record| {
             record.op == VirtualGeometryNodeAndClusterCullTraversalOp::StoreCluster
@@ -1785,7 +1785,7 @@ fn node_and_cluster_cull_pass_stores_only_frustum_visible_child_clusters() {
     );
 
     let child_store_records = output
-        .traversal_records
+        .traversal_records()
         .iter()
         .filter(|record| {
             record.op == VirtualGeometryNodeAndClusterCullTraversalOp::StoreCluster

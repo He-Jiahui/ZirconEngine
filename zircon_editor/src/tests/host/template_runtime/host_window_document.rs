@@ -26,7 +26,7 @@ fn editor_ui_host_runtime_projects_builtin_host_template_into_slint_projection()
             .iter()
             .map(|node| node.component.as_str())
             .collect::<Vec<_>>(),
-        vec!["VerticalBox", "Container", "Overlay", "Overlay", "Overlay"]
+        vec!["VerticalBox", "Overlay", "Overlay", "Overlay"]
     );
 
     let open_project = projection
@@ -40,22 +40,22 @@ fn editor_ui_host_runtime_projects_builtin_host_template_into_slint_projection()
 }
 
 #[test]
-fn editor_ui_host_runtime_keeps_legacy_host_window_document_alias() {
+fn editor_ui_host_runtime_registers_only_generic_host_window_document_id() {
     let mut runtime = EditorUiHostRuntime::default();
     runtime.load_builtin_host_templates().unwrap();
 
     let projection = runtime
-        .project_document(LEGACY_HOST_WINDOW_DOCUMENT_ID)
+        .project_document(UI_HOST_WINDOW_DOCUMENT_ID)
         .unwrap();
-    assert_eq!(projection.document_id, LEGACY_HOST_WINDOW_DOCUMENT_ID);
+    assert_eq!(projection.document_id, UI_HOST_WINDOW_DOCUMENT_ID);
     assert_eq!(projection.root.component, "UiHostWindow");
 
     let surface = runtime
-        .build_shared_surface(LEGACY_HOST_WINDOW_DOCUMENT_ID)
+        .build_shared_surface(UI_HOST_WINDOW_DOCUMENT_ID)
         .unwrap();
     assert_eq!(
         surface.tree.tree_id.0,
-        format!("template.{LEGACY_HOST_WINDOW_DOCUMENT_ID}")
+        format!("template.{UI_HOST_WINDOW_DOCUMENT_ID}")
     );
 }
 
@@ -63,7 +63,7 @@ fn editor_ui_host_runtime_keeps_legacy_host_window_document_alias() {
 fn editor_ui_host_runtime_projects_asset_document_source_into_slint_projection() {
     let mut runtime = EditorUiHostRuntime::default();
     runtime
-        .register_document_source("workbench.shell.asset", ASSET_HOST_WINDOW_DOCUMENT_TOML)
+        .register_document_source("ui.host_window.asset", ASSET_HOST_WINDOW_DOCUMENT_TOML)
         .unwrap();
     runtime
         .register_binding(
@@ -88,9 +88,9 @@ fn editor_ui_host_runtime_projects_asset_document_source_into_slint_projection()
         )
         .unwrap();
 
-    let projection = runtime.project_document("workbench.shell.asset").unwrap();
+    let projection = runtime.project_document("ui.host_window.asset").unwrap();
 
-    assert_eq!(projection.document_id, "workbench.shell.asset");
+    assert_eq!(projection.document_id, "ui.host_window.asset");
     assert_eq!(projection.root.component, "UiHostWindow");
     assert_eq!(
         projection

@@ -1,4 +1,7 @@
-use crate::plugin::{ComponentTypeDescriptor, PluginPackageManifest, UiComponentDescriptor};
+use crate::plugin::{
+    ComponentTypeDescriptor, PluginPackageManifest, RuntimePluginDescriptor, UiComponentDescriptor,
+};
+use crate::{ExportPackagingStrategy, RuntimePluginId};
 
 #[test]
 fn plugin_package_manifest_declares_runtime_and_editor_contributions() {
@@ -30,4 +33,19 @@ fn plugin_package_manifest_declares_runtime_and_editor_contributions() {
     let encoded = toml::to_string(&manifest).expect("manifest toml");
     let decoded: PluginPackageManifest = toml::from_str(&encoded).expect("manifest roundtrip");
     assert_eq!(decoded, manifest);
+}
+
+#[test]
+fn runtime_plugin_descriptor_projects_default_packaging_to_project_selection() {
+    let descriptor = RuntimePluginDescriptor::new(
+        "native_weather",
+        "Native Weather",
+        RuntimePluginId::Particles,
+        "zircon_plugin_native_weather_runtime",
+    )
+    .with_default_packaging([ExportPackagingStrategy::NativeDynamic]);
+
+    let selection = descriptor.project_selection();
+
+    assert_eq!(selection.packaging, ExportPackagingStrategy::NativeDynamic);
 }

@@ -43,7 +43,6 @@ fn default_forward_plus_pipeline_compiles_expected_stage_order_and_passes() {
             "clustered-light-culling",
             "opaque-mesh",
             "transparent-mesh",
-            "particle-render",
             "bloom-extract",
             "reflection-probe-composite",
             "baked-lighting-composite",
@@ -59,7 +58,6 @@ fn default_forward_plus_pipeline_compiles_expected_stage_order_and_passes() {
             "debug".to_string(),
             "geometry".to_string(),
             "lighting".to_string(),
-            "particles".to_string(),
             "post_process".to_string(),
             "view".to_string(),
             "visibility".to_string(),
@@ -107,7 +105,6 @@ fn default_deferred_pipeline_compiles_expected_stage_order_and_passes() {
             "clustered-light-culling",
             "deferred-lighting",
             "transparent-mesh",
-            "particle-render",
             "bloom-extract",
             "reflection-probe-composite",
             "baked-lighting-composite",
@@ -123,7 +120,6 @@ fn default_deferred_pipeline_compiles_expected_stage_order_and_passes() {
             "debug".to_string(),
             "geometry".to_string(),
             "lighting".to_string(),
-            "particles".to_string(),
             "post_process".to_string(),
             "view".to_string(),
             "visibility".to_string(),
@@ -162,7 +158,66 @@ fn default_pipeline_assets_do_not_embed_pluginized_advanced_builtin_features() {
             "{} should receive hybrid GI from plugin descriptors",
             pipeline.name
         );
+        assert!(
+            !pipeline
+                .renderer
+                .features
+                .iter()
+                .any(|feature| feature.is_builtin(BuiltinRenderFeature::Particle)),
+            "{} should receive particles from plugin descriptors",
+            pipeline.name
+        );
     }
+}
+
+#[test]
+fn particle_plugin_render_feature_adds_transparent_pass_to_default_pipeline() {
+    let pipeline = RenderPipelineAsset::default_forward_plus()
+        .with_plugin_render_features([particle_render_feature_descriptor()]);
+    let compiled = pipeline.compile(&test_extract()).unwrap();
+    let pass_names = compiled
+        .graph
+        .passes()
+        .iter()
+        .map(|pass| pass.name.as_str())
+        .collect::<Vec<_>>();
+
+    assert!(pass_names.contains(&"particle-render"));
+    assert!(compiled
+        .required_extract_sections
+        .contains(&"particles".to_string()));
+    let particle_feature = compiled
+        .enabled_features
+        .iter()
+        .find(|feature| feature.feature_name() == "particle")
+        .expect("particle plugin feature should remain in compiled pipeline");
+    assert!(
+        particle_feature.builtin_feature().is_none(),
+        "particle plugin feature should not reintroduce built-in feature identity"
+    );
+}
+
+#[test]
+fn compile_options_can_disable_particle_plugin_feature_by_name() {
+    let pipeline = RenderPipelineAsset::default_forward_plus()
+        .with_plugin_render_features([particle_render_feature_descriptor()]);
+    let compiled = pipeline
+        .compile_with_options(
+            &test_extract(),
+            &RenderPipelineCompileOptions::default().with_plugin_feature_disabled("particle"),
+        )
+        .unwrap();
+    let pass_names = compiled
+        .graph
+        .passes()
+        .iter()
+        .map(|pass| pass.name.as_str())
+        .collect::<Vec<_>>();
+
+    assert!(!pass_names.contains(&"particle-render"));
+    assert!(!compiled
+        .required_extract_sections
+        .contains(&"particles".to_string()));
 }
 
 #[test]
@@ -297,12 +352,17 @@ fn compile_options_fallback_async_compute_passes_to_graphics_queue() {
         .graph
         .passes()
         .iter()
-        .any(|pass| pass.name == "ssao-evaluate" && pass.queue == QueueLane::Graphics));
+        .any(|pass| pass.name == "ssao-evaluate"
+            && pass.queue == QueueLane::Graphics
+            && pass.declared_queue == QueueLane::AsyncCompute));
     assert!(compiled
         .graph
         .passes()
         .iter()
-        .any(|pass| pass.name == "clustered-light-culling" && pass.queue == QueueLane::Graphics));
+        .any(|pass| pass.name == "clustered-light-culling"
+            && pass.queue == QueueLane::Graphics
+            && pass.declared_queue == QueueLane::AsyncCompute));
+    assert_eq!(compiled.graph.stats().queue_fallback_pass_count, 2);
 }
 
 #[test]
@@ -611,6 +671,27 @@ fn replacement_hybrid_gi_descriptor() -> RenderFeatureDescriptor {
         .write_texture("plugin-hybrid-gi-lighting")],
     )
     .with_capability_requirement(RenderFeatureCapabilityRequirement::HybridGlobalIllumination)
+}
+
+fn particle_render_feature_descriptor() -> RenderFeatureDescriptor {
+    RenderFeatureDescriptor::new(
+        "particle",
+        vec![
+            "view".to_string(),
+            "particles".to_string(),
+            "visibility".to_string(),
+        ],
+        Vec::new(),
+        vec![RenderFeaturePassDescriptor::new(
+            RenderPassStage::Transparent,
+            "particle-render",
+            QueueLane::Graphics,
+        )
+        .with_executor_id("particle.transparent")
+        .read_texture("scene-depth")
+        .read_texture("scene-color")
+        .write_texture("scene-color")],
+    )
 }
 
 fn legacy_advanced_builtin_pipeline() -> RenderPipelineAsset {

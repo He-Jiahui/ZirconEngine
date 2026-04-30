@@ -329,6 +329,71 @@ fn required_builtin_plugin_cannot_be_disabled_through_manager_api() {
 }
 
 #[test]
+fn project_plugin_packaging_and_target_modes_are_editable_through_manager_api() {
+    let _guard = env_lock().lock().unwrap();
+    let path = unique_temp_path("zircon_editor_plugin_selection_policy");
+    std::env::set_var("ZIRCON_CONFIG_PATH", &path);
+    let runtime = editor_runtime_with_disabled_subsystems_config_path(&path);
+    let manager = runtime
+        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+        .unwrap();
+    let mut manifest = zircon_runtime::asset::project::ProjectManifest::new(
+        "Plugin Selection Policy Test",
+        zircon_runtime::asset::AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+        1,
+    );
+
+    let packaging = manager
+        .set_project_plugin_packaging(
+            &mut manifest,
+            "runtime_diagnostics",
+            zircon_runtime::ExportPackagingStrategy::NativeDynamic,
+        )
+        .unwrap();
+    assert_eq!(packaging.plugin_id, "runtime_diagnostics");
+    assert_eq!(
+        packaging.project_selection.packaging,
+        zircon_runtime::ExportPackagingStrategy::NativeDynamic
+    );
+
+    let target_modes = manager
+        .set_project_plugin_target_modes(
+            &mut manifest,
+            "runtime_diagnostics",
+            [
+                zircon_runtime::RuntimeTargetMode::EditorHost,
+                zircon_runtime::RuntimeTargetMode::EditorHost,
+                zircon_runtime::RuntimeTargetMode::ClientRuntime,
+            ],
+        )
+        .unwrap();
+    assert_eq!(
+        target_modes.project_selection.target_modes,
+        vec![
+            zircon_runtime::RuntimeTargetMode::EditorHost,
+            zircon_runtime::RuntimeTargetMode::ClientRuntime,
+        ]
+    );
+    let selection = manifest
+        .plugins
+        .selections
+        .iter()
+        .find(|selection| selection.id == "runtime_diagnostics")
+        .expect("runtime diagnostics selection");
+    assert_eq!(
+        selection.packaging,
+        zircon_runtime::ExportPackagingStrategy::NativeDynamic
+    );
+    assert_eq!(
+        selection.target_modes,
+        target_modes.project_selection.target_modes
+    );
+
+    std::env::remove_var("ZIRCON_CONFIG_PATH");
+    let _ = std::fs::remove_file(path);
+}
+
+#[test]
 fn native_plugin_status_uses_manifest_when_library_is_missing() {
     let _guard = env_lock().lock().unwrap();
     let config_path = unique_temp_path("zircon_editor_native_plugin_status");
@@ -381,6 +446,18 @@ capabilities = ["editor.extension.native_tool"]
         native.editor_capabilities,
         vec!["editor.extension.native_tool".to_string()]
     );
+    assert_eq!(
+        native.runtime_capabilities,
+        vec!["runtime.plugin.native_tool".to_string()]
+    );
+    assert_eq!(
+        native.target_modes,
+        vec![zircon_runtime::RuntimeTargetMode::EditorHost]
+    );
+    assert_eq!(
+        native.packaging,
+        zircon_runtime::ExportPackagingStrategy::NativeDynamic
+    );
     assert_eq!(native.package_source, "native");
     assert_eq!(native.load_state, "missing library");
     assert!(status
@@ -401,6 +478,11 @@ capabilities = ["editor.extension.native_tool"]
         vec!["editor.extension.native_tool".to_string()]
     );
     assert!(registration
+        .package_manifest
+        .modules
+        .iter()
+        .all(|module| module.kind == zircon_runtime::PluginModuleKind::Editor));
+    assert!(registration
         .diagnostics
         .iter()
         .any(|message| message.contains("library is missing")));
@@ -413,14 +495,45 @@ capabilities = ["editor.extension.native_tool"]
         .capability_snapshot
         .is_enabled("editor.extension.native_tool"));
 
+    let packaging = manager
+        .set_native_aware_project_plugin_packaging(
+            &project_root,
+            &mut manifest,
+            "native_tool",
+            zircon_runtime::ExportPackagingStrategy::LibraryEmbed,
+        )
+        .unwrap();
+    assert_eq!(
+        packaging.project_selection.packaging,
+        zircon_runtime::ExportPackagingStrategy::LibraryEmbed
+    );
+    let target_modes = manager
+        .set_native_aware_project_plugin_target_modes(
+            &project_root,
+            &mut manifest,
+            "native_tool",
+            [zircon_runtime::RuntimeTargetMode::ServerRuntime],
+        )
+        .unwrap();
+    assert_eq!(
+        target_modes.project_selection.target_modes,
+        vec![zircon_runtime::RuntimeTargetMode::ServerRuntime]
+    );
+
     let status = manager.native_plugin_status_report(&project_root, &manifest);
-    assert!(
-        status
-            .plugins
-            .iter()
-            .find(|plugin| plugin.plugin_id == "native_tool")
-            .expect("native plugin remains visible")
-            .enabled
+    let native_status = status
+        .plugins
+        .iter()
+        .find(|plugin| plugin.plugin_id == "native_tool")
+        .expect("native plugin remains visible");
+    assert!(native_status.enabled);
+    assert_eq!(
+        native_status.packaging,
+        zircon_runtime::ExportPackagingStrategy::LibraryEmbed
+    );
+    assert_eq!(
+        native_status.target_modes,
+        vec![zircon_runtime::RuntimeTargetMode::ServerRuntime]
     );
     manifest
         .plugins
@@ -433,6 +546,79 @@ capabilities = ["editor.extension.native_tool"]
         .set_native_aware_project_plugin_enabled(&project_root, &mut manifest, "native_tool", false)
         .unwrap_err();
     assert!(error.contains("required plugin native_tool cannot be disabled"));
+
+    std::env::remove_var("ZIRCON_CONFIG_PATH");
+    let _ = std::fs::remove_file(config_path);
+    let _ = std::fs::remove_dir_all(project_root);
+}
+
+#[test]
+fn native_aware_completion_aggregates_native_module_target_modes() {
+    let _guard = env_lock().lock().unwrap();
+    let config_path = unique_temp_path("zircon_editor_native_split_target_config");
+    let project_root = unique_temp_dir("zircon_editor_native_split_target_project");
+    std::env::set_var("ZIRCON_CONFIG_PATH", &config_path);
+    std::fs::create_dir_all(project_root.join("zircon_plugins/split_target_tool")).unwrap();
+    std::fs::write(
+        project_root.join("zircon_plugins/split_target_tool/plugin.toml"),
+        r#"
+id = "split_target_tool"
+version = "0.1.0"
+display_name = "Split Target Tool"
+default_packaging = ["native_dynamic"]
+
+[[modules]]
+name = "split_target_tool.runtime"
+kind = "runtime"
+crate_name = "zircon_plugin_split_target_tool_runtime"
+target_modes = ["client_runtime"]
+capabilities = ["runtime.plugin.split_target_tool"]
+
+[[modules]]
+name = "split_target_tool.editor"
+kind = "editor"
+crate_name = "zircon_plugin_split_target_tool_editor"
+target_modes = ["editor_host"]
+capabilities = ["editor.extension.split_target_tool"]
+"#,
+    )
+    .unwrap();
+    let runtime = editor_runtime_with_disabled_subsystems_config_path(&config_path);
+    let manager = runtime
+        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+        .unwrap();
+    let manifest = zircon_runtime::asset::project::ProjectManifest::new(
+        "Split Target Native Tool Test",
+        zircon_runtime::asset::AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+        1,
+    );
+
+    let completed = manager.complete_native_aware_project_plugin_manifest(&project_root, &manifest);
+    let selection = completed
+        .plugins
+        .selections
+        .iter()
+        .find(|selection| selection.id == "split_target_tool")
+        .expect("split-target native package selection");
+    assert_eq!(
+        selection.target_modes,
+        vec![
+            zircon_runtime::RuntimeTargetMode::ClientRuntime,
+            zircon_runtime::RuntimeTargetMode::EditorHost,
+        ]
+    );
+    assert_eq!(
+        selection.packaging,
+        zircon_runtime::ExportPackagingStrategy::NativeDynamic
+    );
+    assert_eq!(
+        selection.editor_crate.as_deref(),
+        Some("zircon_plugin_split_target_tool_editor")
+    );
+    assert_eq!(
+        selection.runtime_crate.as_deref(),
+        Some("zircon_plugin_split_target_tool_runtime")
+    );
 
     std::env::remove_var("ZIRCON_CONFIG_PATH");
     let _ = std::fs::remove_file(config_path);
@@ -492,6 +678,14 @@ target_modes = ["client_runtime"]
     )
     .with_strategies([zircon_runtime::ExportPackagingStrategy::NativeDynamic])];
 
+    let editor_registrations = manager.native_editor_plugin_registration_reports(&project_root);
+    assert!(
+        editor_registrations
+            .iter()
+            .all(|registration| registration.package_manifest.id != "native_tool"),
+        "runtime-only native packages must not enter editor extension registration"
+    );
+
     let report = manager
         .execute_native_aware_export_build(&project_root, &output_root, &manifest, "client-native")
         .unwrap();
@@ -521,6 +715,59 @@ target_modes = ["client_runtime"]
     std::env::remove_var("ZIRCON_CONFIG_PATH");
     let _ = std::fs::remove_file(config_path);
     let _ = std::fs::remove_dir_all(project_root);
+    let _ = std::fs::remove_dir_all(output_root);
+}
+
+#[test]
+fn export_build_report_includes_plan_diagnostics_when_no_files_are_generated() {
+    let _guard = env_lock().lock().unwrap();
+    let config_path = unique_temp_path("zircon_editor_export_plan_diagnostics_config");
+    let output_root = unique_temp_dir("zircon_editor_export_plan_diagnostics_output");
+    std::env::set_var("ZIRCON_CONFIG_PATH", &config_path);
+    let runtime = editor_runtime_with_disabled_subsystems_config_path(&config_path);
+    let manager = runtime
+        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+        .unwrap();
+    let mut manifest = zircon_runtime::asset::project::ProjectManifest::new(
+        "Export Plan Diagnostics",
+        zircon_runtime::asset::AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+        1,
+    );
+    manifest.plugins.selections.push(
+        zircon_runtime::ProjectPluginSelection::runtime_plugin(
+            zircon_runtime::RuntimePluginId::Physics,
+            true,
+            false,
+        )
+        .with_runtime_crate("zircon_plugin_physics_runtime"),
+    );
+    manifest.export_profiles = vec![zircon_runtime::ExportProfile::new(
+        "native-only",
+        zircon_runtime::RuntimeTargetMode::ClientRuntime,
+        zircon_runtime::ExportTargetPlatform::Windows,
+    )
+    .with_strategies([zircon_runtime::ExportPackagingStrategy::NativeDynamic])];
+
+    let report = manager
+        .execute_export_build(&output_root, &manifest, "native-only")
+        .unwrap();
+
+    assert!(!report.invoked_cargo);
+    assert!(report.generated_files.is_empty());
+    assert!(report
+        .diagnostics
+        .iter()
+        .any(|message| message.contains("physics") && message.contains("LibraryEmbed")));
+    assert!(report
+        .diagnostics
+        .iter()
+        .any(|message| message.contains("cargo build skipped")));
+    let diagnostics = std::fs::read_to_string(output_root.join("export-diagnostics.txt")).unwrap();
+    assert!(diagnostics.contains("LibraryEmbed"));
+    assert!(diagnostics.contains("cargo build skipped"));
+
+    std::env::remove_var("ZIRCON_CONFIG_PATH");
+    let _ = std::fs::remove_file(config_path);
     let _ = std::fs::remove_dir_all(output_root);
 }
 

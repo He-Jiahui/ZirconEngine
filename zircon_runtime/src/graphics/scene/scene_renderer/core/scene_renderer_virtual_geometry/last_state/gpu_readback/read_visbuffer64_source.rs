@@ -8,6 +8,6 @@ impl SceneRenderer {
         &self,
     ) -> RenderVirtualGeometryVisBuffer64Source {
         self.advanced_plugin_outputs
-            .virtual_geometry_visbuffer64_source
+            .virtual_geometry_visbuffer64_source()
     }
 }

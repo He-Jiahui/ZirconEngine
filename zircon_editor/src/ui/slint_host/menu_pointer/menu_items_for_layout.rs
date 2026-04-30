@@ -5,6 +5,10 @@ pub(in crate::ui::slint_host::menu_pointer) fn menu_items_for_layout(
     layout: &HostMenuPointerLayout,
     menu_index: usize,
 ) -> Vec<MenuItemSpec> {
+    if let Some(items) = layout.menus.get(menu_index) {
+        return items.clone();
+    }
+
     match menu_index {
         0 => vec![
             menu_action("OpenProject", true),

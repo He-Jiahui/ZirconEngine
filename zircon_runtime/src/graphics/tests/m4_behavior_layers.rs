@@ -21,6 +21,8 @@ use crate::scene::components::{default_render_layer_mask, Mobility};
 use image::{ImageBuffer, ImageFormat, Rgba};
 
 use crate::graphics::{offline_bake_frame, OfflineBakeSettings, WgpuRenderFramework};
+use crate::render_graph::QueueLane;
+use crate::{RenderFeatureDescriptor, RenderFeaturePassDescriptor, RenderPassStage};
 
 #[test]
 fn bloom_quality_profile_spreads_bright_pixels_when_enabled() {
@@ -213,9 +215,10 @@ fn particle_rendering_draws_billboard_sprites_in_transparent_stage() {
         }];
     });
 
-    let server = fixture.server();
+    let particle_server =
+        fixture.server_with_render_features([particle_render_feature_descriptor()]);
     let particle_frame = fixture.render_extract(
-        &server,
+        &particle_server,
         extract.clone(),
         RenderQualityProfile::new("particle-on")
             .with_clustered_lighting(false)
@@ -223,7 +226,7 @@ fn particle_rendering_draws_billboard_sprites_in_transparent_stage() {
             .with_history_resolve(false),
     );
     let no_particle_frame = fixture.render_extract(
-        &server,
+        &particle_server,
         extract,
         RenderQualityProfile::new("particle-off")
             .with_clustered_lighting(false)
@@ -304,6 +307,17 @@ impl RenderFixture {
 
     fn server(&self) -> WgpuRenderFramework {
         WgpuRenderFramework::new(self.asset_manager.clone()).unwrap()
+    }
+
+    fn server_with_render_features(
+        &self,
+        render_features: impl IntoIterator<Item = RenderFeatureDescriptor>,
+    ) -> WgpuRenderFramework {
+        WgpuRenderFramework::new_with_plugin_render_features(
+            self.asset_manager.clone(),
+            render_features,
+        )
+        .unwrap()
     }
 
     fn frame_extract<F>(
@@ -417,6 +431,27 @@ fn submit_extract(
         .capture_frame(viewport)
         .unwrap()
         .expect("frame should be available after submission")
+}
+
+fn particle_render_feature_descriptor() -> RenderFeatureDescriptor {
+    RenderFeatureDescriptor::new(
+        "particle",
+        vec![
+            "view".to_string(),
+            "particles".to_string(),
+            "visibility".to_string(),
+        ],
+        Vec::new(),
+        vec![RenderFeaturePassDescriptor::new(
+            RenderPassStage::Transparent,
+            "particle-render",
+            QueueLane::Graphics,
+        )
+        .with_executor_id("particle.transparent")
+        .read_texture("scene-depth")
+        .read_texture("scene-color")
+        .write_texture("scene-color")],
+    )
 }
 
 fn ring_luma(rgba: &[u8], viewport_size: UVec2, inner_radius: f32, outer_radius: f32) -> f32 {

@@ -272,9 +272,9 @@ type = "Space"
 stretch = "Stretch"
 
 [root.children.node.children.node.children.node.layout.height]
-min = 14.0
-preferred = 14.0
-max = 14.0
+min = 6.0
+preferred = 6.0
+max = 6.0
 stretch = "Fixed"
 
 [[root.children.node.children.node.children]]
@@ -299,9 +299,9 @@ kind = "Overlay"
 stretch = "Stretch"
 
 [root.children.node.children.node.children.node.layout.height]
-min = 108.0
-preferred = 108.0
-max = 108.0
+min = 36.0
+preferred = 36.0
+max = 36.0
 stretch = "Fixed"
 
 [[root.children.node.children.node.children.node.children]]
@@ -325,7 +325,7 @@ y = 0.0
 
 [root.children.node.children.node.children.node.children.node.layout.position]
 x = 12.0
-y = 10.0
+y = 5.0
 
 [root.children.node.children.node.children.node.children.node.layout.width]
 stretch = "Stretch"
@@ -359,7 +359,7 @@ y = 0.0
 
 [root.children.node.children.node.children.node.children.node.layout.position]
 x = 12.0
-y = 26.0
+y = 17.0
 
 [root.children.node.children.node.children.node.children.node.layout.width]
 stretch = "Stretch"
@@ -391,7 +391,7 @@ y = 0.0
 
 [root.children.node.children.node.children.node.children.node.layout.position]
 x = 12.0
-y = 50.0
+y = 52.0
 
 [root.children.node.children.node.children.node.children.node.layout.width]
 stretch = "Stretch"
@@ -425,7 +425,7 @@ y = 0.0
 
 [root.children.node.children.node.children.node.children.node.layout.position]
 x = 12.0
-y = 66.0
+y = 64.0
 
 [root.children.node.children.node.children.node.children.node.layout.width]
 stretch = "Stretch"
@@ -459,7 +459,7 @@ y = 0.0
 
 [root.children.node.children.node.children.node.children.node.layout.position]
 x = 12.0
-y = 82.0
+y = 78.0
 
 [root.children.node.children.node.children.node.children.node.layout.width]
 stretch = "Stretch"
@@ -480,9 +480,9 @@ type = "Space"
 stretch = "Stretch"
 
 [root.children.node.children.node.children.node.layout.height]
-min = 16.0
-preferred = 16.0
-max = 16.0
+min = 6.0
+preferred = 6.0
+max = 6.0
 stretch = "Fixed"
 
 [[root.children.node.children.node.children]]
@@ -507,9 +507,9 @@ kind = "Overlay"
 stretch = "Stretch"
 
 [root.children.node.children.node.children.node.layout.height]
-min = 68.0
-preferred = 68.0
-max = 68.0
+min = 84.0
+preferred = 84.0
+max = 84.0
 stretch = "Fixed"
 
 [[root.children.node.children.node.children.node.children]]
@@ -533,7 +533,7 @@ y = 0.0
 
 [root.children.node.children.node.children.node.children.node.layout.position]
 x = 12.0
-y = 12.0
+y = 56.0
 
 [root.children.node.children.node.children.node.children.node.layout.width]
 stretch = "Stretch"
@@ -567,7 +567,7 @@ y = 0.0
 
 [root.children.node.children.node.children.node.children.node.layout.position]
 x = 12.0
-y = 30.0
+y = 68.0
 
 [root.children.node.children.node.children.node.children.node.layout.width]
 stretch = "Stretch"
@@ -592,27 +592,27 @@ action_id = "OpenView.editor.assets"
 button_variant = "primary"
 
 [root.children.node.children.node.children.node.children.node.layout.anchor]
-x = 1.0
+x = 0.0
 y = 0.0
 
 [root.children.node.children.node.children.node.children.node.layout.pivot]
-x = 1.0
+x = 0.0
 y = 0.0
 
 [root.children.node.children.node.children.node.children.node.layout.position]
-x = -118.0
-y = 18.0
+x = 12.0
+y = 6.0
 
 [root.children.node.children.node.children.node.children.node.layout.width]
-min = 94.0
-preferred = 94.0
-max = 94.0
+min = 128.0
+preferred = 128.0
+max = 128.0
 stretch = "Fixed"
 
 [root.children.node.children.node.children.node.children.node.layout.height]
-min = 24.0
-preferred = 24.0
-max = 24.0
+min = 20.0
+preferred = 20.0
+max = 20.0
 stretch = "Fixed"
 
 [[root.children.node.children.node.children.node.children]]
@@ -628,27 +628,27 @@ dispatch_kind = "asset"
 button_variant = "secondary"
 
 [root.children.node.children.node.children.node.children.node.layout.anchor]
-x = 1.0
+x = 0.0
 y = 0.0
 
 [root.children.node.children.node.children.node.children.node.layout.pivot]
-x = 1.0
+x = 0.0
 y = 0.0
 
 [root.children.node.children.node.children.node.children.node.layout.position]
-x = -12.0
-y = 18.0
+x = 12.0
+y = 30.0
 
 [root.children.node.children.node.children.node.children.node.layout.width]
-min = 100.0
-preferred = 100.0
-max = 100.0
+min = 128.0
+preferred = 128.0
+max = 128.0
 stretch = "Fixed"
 
 [root.children.node.children.node.children.node.children.node.layout.height]
-min = 24.0
-preferred = 24.0
-max = 24.0
+min = 20.0
+preferred = 20.0
+max = 20.0
 stretch = "Fixed"
 
 [[root.children.node.children.node.children]]

@@ -29,17 +29,17 @@ fn node_and_cluster_cull_pass_publishes_cull_input_record_when_present() {
     };
     let output = execute_pass(&backend, true, &frame, Some(&cull_input));
     assert_eq!(
-        output.source,
+        output.source(),
         RenderVirtualGeometryNodeAndClusterCullSource::RenderPathCullInput
     );
-    assert_eq!(output.record_count, 1);
+    assert_eq!(output.record_count(), 1);
     assert!(
-        output.buffer.is_some(),
+        output.buffer().is_some(),
         "expected the first NodeAndClusterCull bridge to materialize a real GPU buffer from the stable cull-input layout"
     );
     assert_eq!(
-        output.instance_seeds,
-        vec![RenderVirtualGeometryNodeAndClusterCullInstanceSeed {
+        output.instance_seeds(),
+        &[RenderVirtualGeometryNodeAndClusterCullInstanceSeed {
             instance_index: 0,
             entity: 7,
             cluster_offset: 10,
@@ -49,8 +49,8 @@ fn node_and_cluster_cull_pass_publishes_cull_input_record_when_present() {
         }],
         "expected the next NodeAndClusterCull bridge step to publish one per-instance root seed row from the effective VG extract instead of leaving the typed global-state record without an instance worklist seam"
     );
-    assert_eq!(output.instance_seed_count, 1);
-    assert!(output.instance_seed_buffer.is_some());
+    assert_eq!(output.instance_seed_count(), 1);
+    assert!(output.instance_seed_buffer().is_some());
 }
 
 #[test]
@@ -59,11 +59,11 @@ fn node_and_cluster_cull_pass_reports_clear_only_without_cull_input() {
     let output = execute_pass(&backend, true, &viewport_frame(UVec2::new(96, 64)), None);
 
     assert_eq!(
-        output.source,
+        output.source(),
         RenderVirtualGeometryNodeAndClusterCullSource::RenderPathClearOnly
     );
-    assert_eq!(output.record_count, 0);
-    assert!(output.buffer.is_none());
+    assert_eq!(output.record_count(), 0);
+    assert!(output.buffer().is_none());
 }
 
 #[test]
@@ -98,7 +98,7 @@ fn node_and_cluster_cull_pass_derives_dispatch_setup_from_global_state_and_seed_
     );
 
     assert_eq!(
-        output.dispatch_setup,
+        output.dispatch_setup(),
         Some(RenderVirtualGeometryNodeAndClusterCullDispatchSetupSnapshot {
             instance_seed_count: 1,
             cluster_budget: 1,
@@ -109,7 +109,7 @@ fn node_and_cluster_cull_pass_derives_dispatch_setup_from_global_state_and_seed_
         "expected the first explicit NodeAndClusterCull dispatch/setup seam to consume the typed global-state budget inputs together with the derived root-seed count instead of leaving dispatch dimensions as implicit host logic"
     );
     assert!(
-        output.dispatch_setup_buffer.is_some(),
+        output.dispatch_setup_buffer().is_some(),
         "expected the dispatch/setup seam to materialize a dedicated GPU buffer beside the global-state and seed buffers so a later compute NodeAndClusterCull pass can bind explicit startup parameters"
     );
 }
@@ -147,18 +147,18 @@ fn node_and_cluster_cull_pass_publishes_launch_worklist_from_global_state_dispat
     );
 
     assert_eq!(
-        output.launch_worklist,
-        Some(RenderVirtualGeometryNodeAndClusterCullLaunchWorklistSnapshot {
+        output.launch_worklist(),
+        Some(&RenderVirtualGeometryNodeAndClusterCullLaunchWorklistSnapshot {
             global_state: output
-                .global_state
-                .clone()
+                .global_state()
+                .cloned()
                 .expect("expected cull global state"),
             dispatch_setup: output
-                .dispatch_setup
+                .dispatch_setup()
                 .expect("expected cull dispatch setup"),
-            instance_seeds: output.instance_seeds.clone(),
+            instance_seeds: output.instance_seeds().to_vec(),
         }),
-        "expected NodeAndClusterCull to publish one explicit launch/worklist contract that combines the global-state buffer, dispatch/setup record, and root seed rows before the compat execution path or a future compute traversal consumes them"
+        "expected NodeAndClusterCull to publish one explicit launch/worklist contract that combines the global-state buffer, dispatch/setup record, and root seed rows before the baseline execution path or a future compute traversal consumes them"
     );
 }
 
@@ -194,11 +194,11 @@ fn node_and_cluster_cull_pass_materializes_launch_worklist_buffers_for_seed_cons
         }),
     );
     assert!(
-        output.launch_worklist_buffer.is_some(),
-        "expected NodeAndClusterCull to materialize a renderer-owned launch-worklist GPU buffer so the seed-backed compat consumer can bind one authoritative startup package instead of reconstructing the root seeds ad hoc"
+        output.launch_worklist_buffer().is_some(),
+        "expected NodeAndClusterCull to materialize a renderer-owned launch-worklist GPU buffer so the seed-backed execution selection path can bind one authoritative startup package instead of reconstructing the root seeds ad hoc"
     );
-    assert_eq!(output.instance_seed_count, 1);
-    assert!(output.instance_seed_buffer.is_some());
+    assert_eq!(output.instance_seed_count(), 1);
+    assert!(output.instance_seed_buffer().is_some());
 }
 
 #[test]
@@ -233,10 +233,10 @@ fn node_and_cluster_cull_pass_publishes_instance_work_items_from_launch_worklist
         }),
     );
 
-    assert_eq!(output.instance_work_item_count, 1);
+    assert_eq!(output.instance_work_item_count(), 1);
     assert_eq!(
-        output.instance_work_items,
-        vec![RenderVirtualGeometryNodeAndClusterCullInstanceWorkItem {
+        output.instance_work_items(),
+        &[RenderVirtualGeometryNodeAndClusterCullInstanceWorkItem {
             instance_index: 0,
             entity: 7,
             cluster_offset: 10,
@@ -247,10 +247,10 @@ fn node_and_cluster_cull_pass_publishes_instance_work_items_from_launch_worklist
             page_budget: 2,
             forced_mip: Some(6),
         }],
-        "expected NodeAndClusterCull to publish one typed per-instance work-item seam from the launch-worklist contract so compat execution and later GPU traversal can consume the same first compute-stub output"
+        "expected NodeAndClusterCull to publish one typed per-instance work-item seam from the launch-worklist contract so baseline execution and later GPU traversal can consume the same first compute-stub output"
     );
     assert!(
-        output.instance_work_item_buffer.is_some(),
+        output.instance_work_item_buffer().is_some(),
         "expected the first compute-stub output seam to materialize a renderer-owned GPU buffer instead of keeping instance work items as CPU-only pass-local data"
     );
 }
@@ -288,8 +288,8 @@ fn node_and_cluster_cull_pass_publishes_cluster_work_items_from_instance_work_it
     );
 
     assert_eq!(
-        output.cluster_work_items,
-        vec![
+        output.cluster_work_items(),
+        &[
             VirtualGeometryNodeAndClusterCullClusterWorkItem {
                 instance_index: 0,
                 entity: 7,
@@ -309,7 +309,7 @@ fn node_and_cluster_cull_pass_publishes_cluster_work_items_from_instance_work_it
                 forced_mip: Some(6),
             },
         ],
-        "expected NodeAndClusterCull to expand instance work items into one typed per-cluster candidate seam so later VisitNode or compat cluster selection stops scanning broad instance ranges directly"
+        "expected NodeAndClusterCull to expand instance work items into one typed per-cluster candidate seam so later VisitNode or seed-expanded cluster selection stops scanning broad instance ranges directly"
     );
 }
 
@@ -346,8 +346,8 @@ fn node_and_cluster_cull_pass_limits_cluster_work_items_to_cull_input_cluster_co
     );
 
     assert_eq!(
-        output.cluster_work_items,
-        vec![VirtualGeometryNodeAndClusterCullClusterWorkItem {
+        output.cluster_work_items(),
+        &[VirtualGeometryNodeAndClusterCullClusterWorkItem {
             instance_index: 0,
             entity: 7,
             cluster_array_index: 10,
@@ -358,7 +358,7 @@ fn node_and_cluster_cull_pass_limits_cluster_work_items_to_cull_input_cluster_co
         }],
         "expected NodeAndClusterCull startup to honor cull_input.cluster_count as the root cluster-candidate cap before traversal expands child work"
     );
-    assert_eq!(output.cluster_work_item_count, 1);
+    assert_eq!(output.cluster_work_item_count(), 1);
 }
 
 #[test]

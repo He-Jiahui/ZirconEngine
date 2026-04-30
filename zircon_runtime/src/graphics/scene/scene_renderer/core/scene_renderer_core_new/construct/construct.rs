@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use crate::asset::ProjectAssetManager;
+use crate::graphics::RenderFeatureDescriptor;
 
 use super::super::super::super::deferred::DeferredSceneResources;
 use super::super::super::super::mesh::MeshPipelineCache;
@@ -16,12 +17,13 @@ use super::super::layouts::{create_model_bind_group_layout, create_texture_bind_
 use super::super::scene_bind_group_bundle::create_scene_bind_group_bundle;
 
 impl SceneRendererCore {
-    pub(crate) fn new_with_icon_source(
+    pub(in crate::graphics::scene::scene_renderer::core) fn new_with_icon_source(
         asset_manager: Arc<ProjectAssetManager>,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         target_format: wgpu::TextureFormat,
         icon_source: Arc<dyn ViewportIconSource>,
+        render_features: &[RenderFeatureDescriptor],
     ) -> Self {
         let scene_bind_group_bundle = create_scene_bind_group_bundle(device);
         let model_bind_group_layout = create_model_bind_group_layout(device);
@@ -58,7 +60,8 @@ impl SceneRendererCore {
         );
         let screen_space_ui_renderer =
             ScreenSpaceUiRenderer::new(asset_manager, device, queue, target_format);
-        let advanced_plugin_resources = SceneRendererAdvancedPluginResources::new(device);
+        let advanced_plugin_resources =
+            SceneRendererAdvancedPluginResources::new(device, render_features);
 
         Self {
             texture_bind_group_layout,

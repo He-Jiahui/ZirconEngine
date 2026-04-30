@@ -6,7 +6,7 @@ use super::VirtualGeometryRuntimeState;
 
 impl VirtualGeometryRuntimeState {
     pub(crate) fn register_extract(&mut self, extract: Option<&RenderVirtualGeometryExtract>) {
-        self.evictable_pages.clear();
+        self.clear_evictable_pages();
 
         let Some(extract) = extract else {
             *self = Self::default();
@@ -19,36 +19,30 @@ impl VirtualGeometryRuntimeState {
             .map(|page| page.page_id)
             .collect::<BTreeSet<_>>();
         let stale_resident_page_ids = self
-            .resident_slots
-            .keys()
-            .copied()
+            .resident_page_ids()
             .filter(|page_id| !live_page_ids.contains(page_id))
             .collect::<Vec<_>>();
         for page_id in stale_resident_page_ids {
             self.evict_page(page_id);
         }
-        self.pending_pages
-            .retain(|page_id| live_page_ids.contains(page_id));
-        self.pending_requests
-            .retain(|request| live_page_ids.contains(&request.page_id));
-        self.current_requested_page_order
-            .retain(|page_id, _| live_page_ids.contains(page_id));
-        self.current_hot_resident_pages
-            .retain(|page_id| live_page_ids.contains(page_id));
-        self.recent_hot_resident_pages
-            .retain(|page_id, _| live_page_ids.contains(page_id));
-        self.page_sizes
-            .retain(|page_id, _| live_page_ids.contains(page_id));
-        self.page_parent_pages.retain(|page_id, parent_page_id| {
+        self.retain_pending_pages(|page_id| live_page_ids.contains(page_id));
+        self.retain_pending_page_requests(|request| live_page_ids.contains(&request.page_id()));
+        self.retain_current_requested_page_order(|page_id| live_page_ids.contains(page_id));
+        self.retain_current_hot_resident_pages(|page_id| live_page_ids.contains(page_id));
+        self.retain_recent_hot_resident_pages(|page_id, _| live_page_ids.contains(page_id));
+        self.retain_page_sizes(|page_id| live_page_ids.contains(page_id));
+        self.retain_page_parent_pages(|page_id, parent_page_id| {
             live_page_ids.contains(page_id) && live_page_ids.contains(parent_page_id)
         });
 
-        self.page_budget = (extract.page_budget as usize)
-            .max(extract.pages.iter().filter(|page| page.resident).count());
-        self.page_parent_pages = page_parent_pages(extract);
+        self.set_page_budget(
+            (extract.page_budget as usize)
+                .max(extract.pages.iter().filter(|page| page.resident).count()),
+        );
+        self.replace_page_parent_pages(page_parent_pages(extract));
 
         for page in &extract.pages {
-            self.page_sizes.insert(page.page_id, page.size_bytes);
+            self.insert_page_size(page.page_id, page.size_bytes);
             if page.resident {
                 self.promote_to_resident(page.page_id);
             }

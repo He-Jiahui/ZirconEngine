@@ -8,6 +8,10 @@ impl ActivityWindowId {
         Self(value.into())
     }
 
+    pub fn workbench() -> Self {
+        Self::new("window:workbench")
+    }
+
     pub fn as_str(&self) -> &str {
         &self.0
     }

@@ -14,6 +14,7 @@ related_code:
   - zircon_ui/src/surface/mod.rs
   - zircon_editor/src/ui/binding/mod.rs
   - zircon_editor/src/ui/binding/core/payload.rs
+  - zircon_editor/src/ui/binding/core/editor_ui_binding_conversion.rs
   - zircon_editor/src/ui/binding/core/payload_codec.rs
   - zircon_editor/src/ui/binding/core/payload_constructors.rs
   - zircon_editor/src/ui/binding/asset/mod.rs
@@ -98,6 +99,10 @@ related_code:
   - zircon_editor/src/ui/asset_editor/undo_stack.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/mod.rs
   - zircon_editor/src/ui/slint_host/app/ui_asset_editor.rs
+  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/pane_component_projection/mod.rs
+  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/mod.rs
+  - zircon_editor/src/ui/slint_host/ui/apply_presentation.rs
+  - zircon_editor/src/ui/template_runtime/showcase_demo_state.rs
   - zircon_editor/src/tests/editing/ui_asset/
   - zircon_editor/src/tests/host/slint_window/callback_source_window.rs
   - zircon_editor/src/ui/workbench/event/mod.rs
@@ -109,6 +114,7 @@ related_code:
   - zircon_editor/src/ui/workbench/model/menu/extension_menu.rs
   - zircon_editor/src/ui/workbench/model/menu/default_menu_bar.rs
   - zircon_editor/src/ui/workbench/model/menu_item_model.rs
+  - zircon_editor/src/tests/workbench/view_model/shell_projection.rs
   - zircon_editor/src/ui/workbench/project/mod.rs
   - zircon_editor/src/ui/workbench/reflection/mod.rs
   - zircon_editor/ui/workbench.slint
@@ -116,12 +122,15 @@ related_code:
   - zircon_editor/ui/workbench/assets.slint
   - zircon_editor/assets/ui/editor/assets_activity.ui.toml
   - zircon_editor/assets/ui/editor/asset_browser.ui.toml
+  - zircon_editor/assets/ui/editor/component_showcase.ui.toml
   - zircon_editor/assets/ui/editor/host/pane_surface_controls.ui.toml
   - zircon_editor/ui/workbench/welcome.slint
   - zircon_editor/assets/ui/editor/host/asset_surface_controls.ui.toml
   - zircon_editor/assets/ui/editor/host/startup_welcome_controls.ui.toml
   - zircon_editor/ui/workbench/chrome.slint
   - zircon_editor/ui/workbench/panes.slint
+  - zircon_editor/ui/workbench/template_node_data.slint
+  - zircon_editor/ui/workbench/template_pane.slint
 implementation_files:
   - zircon_ui/src/binding/model/mod.rs
   - zircon_ui/src/event_ui/manager/mod.rs
@@ -136,6 +145,7 @@ implementation_files:
   - zircon_ui/src/surface/mod.rs
   - zircon_editor/src/ui/binding/mod.rs
   - zircon_editor/src/ui/binding/core/payload.rs
+  - zircon_editor/src/ui/binding/core/editor_ui_binding_conversion.rs
   - zircon_editor/src/ui/binding/core/payload_codec.rs
   - zircon_editor/src/ui/binding/core/payload_constructors.rs
   - zircon_editor/src/ui/binding/dock/command.rs
@@ -145,6 +155,7 @@ implementation_files:
   - zircon_editor/src/ui/binding/viewport/command.rs
   - zircon_editor/src/ui/binding/viewport/codec.rs
   - zircon_editor/src/ui/control.rs
+  - zircon_editor/src/ui/reflection.rs
   - zircon_editor/src/ui/workbench/autolayout/mod.rs
   - zircon_editor/src/core/editor_event/mod.rs
   - zircon_editor/src/core/editor_event/types.rs
@@ -195,28 +206,37 @@ implementation_files:
   - zircon_editor/src/ui/asset_editor/undo_stack.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/mod.rs
   - zircon_editor/src/ui/slint_host/app/ui_asset_editor.rs
+  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/pane_component_projection/mod.rs
+  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/mod.rs
+  - zircon_editor/src/ui/slint_host/ui/apply_presentation.rs
+  - zircon_editor/src/ui/template_runtime/showcase_demo_state.rs
   - zircon_editor/src/ui/workbench/event/mod.rs
   - zircon_editor/src/ui/workbench/event/editor_operation_binding.rs
   - zircon_editor/src/ui/workbench/event/dispatch_editor_host_binding.rs
   - zircon_editor/src/ui/workbench/event/editor_host_event.rs
   - zircon_editor/src/ui/workbench/event/editor_host_event_error.rs
   - zircon_editor/src/ui/workbench/model/mod.rs
+  - zircon_editor/src/ui/workbench/model/build/workbench_view_model_build.rs
   - zircon_editor/src/ui/workbench/model/menu/extension_menu.rs
   - zircon_editor/src/ui/workbench/model/menu/default_menu_bar.rs
   - zircon_editor/src/ui/workbench/model/menu_item_model.rs
   - zircon_editor/src/ui/workbench/project/mod.rs
   - zircon_editor/src/ui/workbench/reflection/mod.rs
+  - zircon_editor/src/ui/workbench/reflection/model_build.rs
   - zircon_editor/ui/workbench.slint
   - zircon_editor/ui/workbench/pane_content.slint
   - zircon_editor/ui/workbench/assets.slint
   - zircon_editor/assets/ui/editor/assets_activity.ui.toml
   - zircon_editor/assets/ui/editor/asset_browser.ui.toml
+  - zircon_editor/assets/ui/editor/component_showcase.ui.toml
   - zircon_editor/assets/ui/editor/host/pane_surface_controls.ui.toml
   - zircon_editor/ui/workbench/welcome.slint
   - zircon_editor/assets/ui/editor/host/asset_surface_controls.ui.toml
   - zircon_editor/assets/ui/editor/host/startup_welcome_controls.ui.toml
   - zircon_editor/ui/workbench/chrome.slint
   - zircon_editor/ui/workbench/panes.slint
+  - zircon_editor/ui/workbench/template_node_data.slint
+  - zircon_editor/ui/workbench/template_pane.slint
 plan_sources:
   - user: 2026-04-13 收束 JetBrains Hybrid Shell 的 UI 事件、反射和宿主契约
   - user: 2026-04-14 UI事件系统不应该直接和slint耦合，而是独立一套调度和绑定系统
@@ -235,6 +255,15 @@ plan_sources:
   - user: 2026-04-17 Bindings Inspector 的下一版：事件枚举选择、action/payload 结构化编辑
   - user: 2026-04-26 Runtime/Editor 插件注册与 EditorOperation 设计计划
   - user: 2026-04-28 继续完成 Runtime/Editor 插件注册与 EditorOperation 统一派发闭环
+  - user: 2026-04-28 继续接通 ui.toml/reflection EditorOperation binding 参数到 EditorOperationInvocation
+  - user: 2026-04-28 继续收紧 EditorOperation `XXX.YYY.ZZZ` dotted path 命名契约
+  - user: 2026-04-28 继续修复 Component Showcase Slint host retained row state 验证阻断
+  - user: 2026-04-28 继续收束 EditorOperation undo/redo 命名历史栈
+  - user: 2026-04-28 继续补齐 EditorOperationStack source 审计元数据
+  - user: 2026-04-28 继续完善 EditorEventListener source/result 审计过滤
+  - user: 2026-04-28 继续完善 EditorEventListener 未知 listener 控制错误
+  - user: 2026-04-29 继续完善 EditorEventListener 单 listener 状态查询
+  - user: 2026-04-29 继续实现 EditorOperationStack operation group 合并
   - user: 2026-04-17 Palette 到真实节点/引用节点创建的落地
   - user: 2026-04-17 结构化 undo/redo，从当前 source-text 级别继续往 tree-command 演进
   - .codex/plans/Zircon UI 资产化 Widget Editor 与共享 Layout.md
@@ -258,13 +287,53 @@ tests:
   - cargo test -p zircon_editor --lib explicit_plugin_operation_records_its_own_undo_stack_entry_when_reusing_builtin_event --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-editor-operation-source-20260427-0645 -- --test-threads=1
   - cargo test -p zircon_editor --lib failed_operation_control_request_is_journaled_without_polluting_undo_stack --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-editor-operation-failure-20260428-0010 -- --test-threads=1
   - cargo test -p zircon_editor --lib remote_and_cli_operation_invocation_respects_callable_from_remote_gate --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-editor-check-tests -- --test-threads=1
+  - cargo test -p zircon_editor --lib editor_operation_ui_binding_arguments_are_preserved_in_journal --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-editor-op-args -- --test-threads=1
+  - cargo test -p zircon_editor --lib editor_operation_path_requires_namespace_action_and_leaf_segments --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-editor-operation-path -- --test-threads=1
+  - cargo test -p zircon_editor --lib tests::editor_event::runtime --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-editor-operation-path -- --test-threads=1
+  - cargo test -p zircon_editor --lib component_showcase --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-editor-operation-path -- --test-threads=1
+  - TDD red: cargo test -p zircon_editor --lib editor_extension_registry_rejects_invalid_component_drawer_operation_bindings --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-editor-component-drawer-bindings -- --test-threads=1 (initially failed after Slint contract repairs because invalid drawer binding registered successfully)
+  - cargo test -p zircon_editor --lib editor_extension_registry_rejects_invalid_component_drawer_operation_bindings --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-editor-component-drawer-bindings -- --test-threads=1
+  - cargo test -p zircon_editor --lib tests::editor_event::runtime --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-editor-component-drawer-bindings -- --test-threads=1
+  - cargo test -p zircon_editor --lib component_showcase --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-editor-component-drawer-bindings -- --test-threads=1
+  - rustfmt --edition 2021 --check zircon_editor/src/core/editor_operation.rs zircon_editor/src/ui/host/editor_event_dispatch.rs zircon_editor/src/tests/editor_event/runtime.rs
+  - blocked attempt: cargo test -p zircon_editor --lib operation_stack_moves_entries_across_undo_and_redo_operations --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-editor-operation-stack -- --test-threads=1 (package cache lock/build contention from other active sessions; Cargo exited after dependency compilation without Rust diagnostics)
+  - cargo test -p zircon_editor --lib operation_stack_moves_entries_across_undo_and_redo_operations --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-editor-component-drawer-bindings --message-format short -- --test-threads=1 --nocapture
+  - cargo test -p zircon_editor --lib tests::editor_event::runtime --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-editor-component-drawer-bindings -- --test-threads=1
+  - TDD red: cargo test -p zircon_editor --lib operation_stack_preserves_original_source_across_undo_and_redo --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-editor-component-drawer-bindings --message-format short -- --test-threads=1 --nocapture (first failed on missing `EditorOperationStackEntry.source`, then also surfaced unrelated active Runtime UI showcase compile errors)
+  - cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-editor-component-drawer-bindings (passed with existing editor dead-code and Runtime UI showcase unused-variant warnings)
+  - timed out attempt: cargo test -p zircon_editor --lib operation_stack_preserves_original_source_across_undo_and_redo --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-editor-component-drawer-bindings --message-format short -- --test-threads=1 --nocapture (15 minute local timeout while compiling/linking `zircon_editor` test profile; no Rust or assertion diagnostic was emitted, and no same-target cargo/rustc process remained afterward)
+  - direct test binary rerun: D:\cargo-targets\zircon-codex-editor-listener-audit-green\debug\deps\zircon_editor-86a81a58131e5a21.exe operation_stack_preserves_original_source_across_undo_and_redo --test-threads=1 --nocapture (passed: 1 test, 0 failed, 879 filtered out)
+  - cargo test -p zircon_editor --lib workbench_view_model_filters_and_orders_plugin_menu_contributions --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-editor-menu-capability -- --test-threads=1
+  - cargo test -p zircon_editor --lib editor_runtime_projects_plugin_menu_operations_into_remote_callable_reflection --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-editor-menu-capability -- --test-threads=1
+  - cargo test -p zircon_editor --lib editor_ui_reflection_adapter_projects_activity_hosts_and_menu_bindings --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-editor-menu-capability -- --test-threads=1
+  - cargo test -p zircon_editor --lib tests::workbench::view_model --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-editor-menu-capability -- --test-threads=1
+  - cargo test -p zircon_editor --lib tests::editor_event::runtime --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-editor-menu-capability -- --test-threads=1
+  - cargo test -p zircon_editor --lib tests::editor_event::runtime --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-editor-op-args -- --test-threads=1
   - cargo test -p zircon_editor --lib tests::editor_event::runtime --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-editor-operation-source-20260427-0645 -- --test-threads=1
   - cargo test -p zircon_editor --lib event_listener_control_gates_named_event_deliveries --locked --jobs 1 -- --nocapture
   - cargo test -p zircon_editor --lib event_listener_filter_limits_delivery_by_operation_path_prefix --locked --jobs 1 -- --nocapture
+  - TDD red: cargo check -p zircon_editor --tests --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-editor-component-drawer-bindings --message-format short (failed on missing `EditorEventListenerFilter::source`)
+  - cargo check -p zircon_editor --tests --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-editor-listener-audit-green --message-format short (passed with existing `editor_meta.rs::save` dead-code warning)
+  - timed out attempt: cargo test -p zircon_editor --lib event_listener_filter_limits_delivery_by_source_and_failure_state --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-editor-listener-audit-green --message-format short -- --test-threads=1 --nocapture (15 minute local timeout while linking the `zircon_editor` test binary; no Rust or assertion diagnostic was emitted, and the owned cargo/rustc processes were stopped by exact command-line match)
+  - failed assertion rerun: cargo test -p zircon_editor --lib event_listener_filter_limits_delivery_by_source_and_failure_state --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-editor-listener-audit-green --message-format short -- --test-threads=1 --nocapture (delivery filtering worked, but the test expected the wrong error text fragment)
+  - cargo test -p zircon_editor --lib event_listener_filter_limits_delivery_by_source_and_failure_state --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-editor-listener-audit-green --message-format short -- --test-threads=1 --nocapture
   - cargo test -p zircon_editor --lib event_listener_control_clears_operation_path_filter --locked --jobs 1 -- --nocapture
   - cargo test -p zircon_editor --lib event_listener_control_unregisters_listener_and_drops_deliveries --locked --jobs 1 -- --nocapture
   - cargo test -p zircon_editor --lib event_listener_control_queries_deliveries_after_sequence_cursor --locked --jobs 1 -- --nocapture
   - cargo test -p zircon_editor --lib event_listener_control_acknowledges_deliveries_through_sequence --locked --jobs 1 -- --nocapture
+  - TDD red: cargo test -p zircon_editor --lib event_listener_control_rejects_unknown_listener_queries --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-editor-listener-audit-green --message-format short -- --test-threads=1 --nocapture (failed because `QueryDeliveries` for an unknown listener returned success with `error = None`)
+  - cargo test -p zircon_editor --lib event_listener_control_rejects_unknown_listener_queries --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-editor-listener-audit-green --message-format short -- --test-threads=1 --nocapture
+  - cargo test -p zircon_editor --lib event_listener_control --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-editor-listener-audit-green --message-format short -- --test-threads=1 --nocapture
+  - TDD red: cargo check -p zircon_editor --tests --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-editor-listener-audit-green --message-format short (failed on missing `EditorEventListenerControlRequest::QueryListenerStatus`)
+  - blocked attempt: cargo test -p zircon_editor --lib event_listener_control_reports_listener_status_with_pending_delivery_bounds --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-editor-listener-audit-green --message-format short -- --test-threads=1 --nocapture (10 minute local timeout while linking `zircon_editor` test binary; no Rust or assertion diagnostic was emitted)
+  - blocked attempt: cargo check -p zircon_editor --tests --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-editor-listener-audit-green --message-format short (5 minute and 15 minute local timeouts before any Rust diagnostic after the status-query implementation)
+  - blocked attempt: cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-editor-listener-audit-green --message-format short (10 minute local timeout while compiling the editor lib after the status-query implementation)
+  - WSL blocked attempt: CARGO_TARGET_DIR=/tmp/zircon-target-editor-listener-status cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short (first failed in unrelated active runtime graphics render cutover private-field accessors; retry later timed out while compiling `zircon_editor` without a listener-status Rust diagnostic)
+  - WSL accepted check: CARGO_TARGET_DIR=/tmp/zircon-target-editor-listener-status RUSTFLAGS="-C debuginfo=0" cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never (finished in 14m53s with existing editor warnings only)
+  - WSL accepted test: CARGO_TARGET_DIR=/tmp/zircon-target-editor-listener-status RUSTFLAGS="-C debuginfo=0" cargo test -p zircon_editor --lib event_listener_control_reports_listener_status_with_pending_delivery_bounds --locked --jobs 1 --message-format short --color never -- --test-threads=1 --nocapture (1 passed, 0 failed, 886 filtered out)
+  - TDD red: CARGO_TARGET_DIR=/tmp/zircon-target-editor-listener-status RUSTFLAGS="-C debuginfo=0" cargo check -p zircon_editor --tests --locked --jobs 1 --message-format short --color never (failed on missing `EditorOperationInvocation::with_operation_group` and `EditorOperationStackEntry.operation_group`)
+  - WSL accepted test: CARGO_TARGET_DIR=/tmp/zircon-target-editor-listener-status RUSTFLAGS="-C debuginfo=0" cargo test -p zircon_editor --lib operation_stack_merges_continuous_invocations_with_same_operation_group --locked --jobs 1 --message-format short --color never -- --test-threads=1 --nocapture (1 passed, 0 failed, 887 filtered out)
+  - WSL accepted check: CARGO_TARGET_DIR=/tmp/zircon-target-editor-listener-status RUSTFLAGS="-C debuginfo=0" cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never (passed with existing editor warnings only)
   - cargo test -p zircon_app editor_cli_operation_parser_accepts_list_operations --features target-editor-host --no-default-features --locked --jobs 1 -- --nocapture
   - cargo test -p zircon_app editor_cli_operation_ --features target-editor-host --no-default-features --locked --jobs 1 -- --nocapture
   - cargo test -p zircon_app --lib editor_cli_operation --features target-editor-host --no-default-features --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-app-editor-cli-source-20260427-0710 -- --test-threads=1
@@ -374,6 +443,8 @@ Viewport image polling is edge-triggered from the Slint host perspective. `Slint
 Builtin editor host templates now enter the runtime through [`EditorUiHostRuntime::register_document_file(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs). The method compiles the referenced `ui.toml` file with recursive widget/style import resolution from crate `assets/`, so builtin host assets and future editor plugin `ui.toml` files use the same file-backed registration seam. [`load_builtin_host_templates(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/template_runtime/runtime/build_session.rs) no longer embeds production template strings or manually registers compiled documents behind the runtime API.
 
 The asset activity and asset browser panes now expose their tree/source columns as template-owned mount nodes in [`assets_activity.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/assets_activity.ui.toml) and [`asset_browser.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/asset_browser.ui.toml). [`pane_content.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/pane_content.slint) consumes those nodes directly instead of falling back to a legacy hard-coded `FolderTreeView`, while still routing pointer facts into the shared asset tree dispatch path.
+
+`TemplatePaneNodeData` is the Slint host's generic retained node bridge for editor-authored `ui.toml` documents and future plugin component drawers. Runtime component projection now preserves row state that would otherwise be lost at the host boundary: `selected`, `focused`, `hovered`, `expanded`, `tree_depth`, and `tree_indent_px` all survive from document props or runtime component flags into [`template_pane.slint`](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/template_pane.slint). The showcase runtime overlay only writes transient flags when they are active, so declarative visual state in [`component_showcase.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/component_showcase.ui.toml) is not erased by an inactive default `UiComponentState`; tree rows use explicit `tree_indent_px` when present and otherwise derive indentation from `tree_depth`. This matters for plugin-provided `ui.toml` drawers because custom inspectors need ListRow/TreeRow selection and hierarchy affordances to be first-class data, not hard-coded Slint-only styling.
 
 Asset surface controls also use explicit generic routes for each template control. Kind chips call `root.control_changed("SetKindFilter", "...")`, view buttons call `root.control_changed("SetViewMode", "...")`, utility tabs call `root.control_changed("SetUtilityTab", "...")`, and commands such as `OpenAssetBrowser`, `LocateSelectedAsset`, and `ImportModel` call `root.control_clicked(...)`. No asset-specific business callback is exposed from the Slint shell.
 
@@ -552,6 +623,7 @@ transient hover/focus/pressed/drawer-resize 投影现在已经迁到 [`transient
 - `sequence`
 - `source`
 - normalized `EditorEvent`
+- optional `operation_id` / `operation_display_name` / `operation_arguments`
 - `before_revision` / `after_revision`
 - emitted effects
 - undo policy
@@ -684,10 +756,10 @@ transient hover/focus/pressed/drawer-resize 投影现在已经迁到 [`transient
 4. runtime 通过 `dispatch_normalized_event_with_operation(...)` 把显式 operation path、display name 和 undoable 标记带入 canonical event dispatch
 5. `EditorOperationDescriptor.callable_from_remote` 会 gate Remote / CLI control request；菜单与 `ui.toml`/reflection UI binding 仍可走内部来源触发
 6. registry / remote-callability / capability / handler control failure 会先归一化成 `EditorEvent::Operation(EditorOperationEvent::ControlFailure)`，再写入同一 journal
-7. journal record 额外写入 `operation_id` 与 `operation_display_name`
-8. undoable operation 成功执行后，`EditorOperationStack` 记录被显式调用的 operation id/display name/sequence
+7. journal record 额外写入 `operation_id`、`operation_display_name`、可选 `operation_arguments` 和可选 `operation_group`
+8. undoable operation 成功执行后，`EditorOperationStack` 记录被显式调用的 operation id/display name/sequence/source/group
 
-这让 operation 成为 Unity `MenuItem` / `ExecuteMenuItem` 类似的公共命名入口，而 journal/replay 仍然保留 Zircon 自己的 typed event 权威格式。旧 Slint 菜单 callback、`InvokeBinding` 和普通 `CallAction` 仍可按 canonical event 反查 builtin `EditorOperationRegistry`，因此同一个内建菜单行为会得到同一个 `operation_id`。显式 `invoke_operation(...)`、扩展菜单和 CLI 入口则不再在 dispatch 后补写 metadata，而是在提交 canonical event 前携带被调用 descriptor 的身份；这避免插件 operation 复用 `MenuAction::ResetLayout` 这类内建 event 时，journal 或 operation stack 被错误记录成 `Window.Layout.Reset`。后续 View、Drawer、Component Inspector 的 `ui.toml` 控件只需要绑定 operation path；控制脚本注册的 handler 也应先进入 operation registry，再由 operation 统一提交 editor event。
+这让 operation 成为 Unity `MenuItem` / `ExecuteMenuItem` 类似的公共命名入口，而 journal/replay 仍然保留 Zircon 自己的 typed event 权威格式。Operation id 至少需要三段 dotted namespace，例如 `Weather.CloudLayer.Refresh`；更深层路径如 `View.weather.cloud_layers.Open` 也合法，但 `Weather.Refresh` 这种缺少命名空间/叶子层级的短路径会在注册或调用前被拒绝。旧 Slint 菜单 callback、`InvokeBinding` 和普通 `CallAction` 仍可按 canonical event 反查 builtin `EditorOperationRegistry`，因此同一个内建菜单行为会得到同一个 `operation_id`。显式 `invoke_operation(...)`、扩展菜单和 CLI 入口则不再在 dispatch 后补写 metadata，而是在提交 canonical event 前携带被调用 descriptor 的身份；这避免插件 operation 复用 `MenuAction::ResetLayout` 这类内建 event 时，journal 或 operation stack 被错误记录成 `Window.Layout.Reset`。`EditorOperation` UI binding 还会保留 `CallAction` / `InvokeRoute` 带入的参数，并把它们转换为 `EditorOperationInvocation.arguments` 与 journal/listener delivery 上的 `operation_arguments`，因此 `ui.toml` 控件事件、反射调用和外部程序可以共享同一条带参数 operation 审计记录。连续编辑还可以设置 `EditorOperationInvocation.operation_group`；journal/listener 仍保留每一次 dispatch 的独立 record，但 `EditorOperationStack` 会把同一 operation id 与 group 的连续 undoable invocation 合并到一条历史项，并把 sequence 更新到最新 dispatch。后续 View、Drawer、Component Inspector 的 `ui.toml` 控件只需要绑定 operation path；控制脚本注册的 handler 也应先进入 operation registry，再由 operation 统一提交 editor event。
 
 失败的 control request 也必须进入同一条记录链路。`EditorEvent::Operation(EditorOperationEvent::ControlFailure)` 是非 undoable event：它会把错误写入 status line、journal result 和 listener delivery，但不会污染 `EditorOperationStack`。`EditorEventReplay` 会把 journal 中原本就是失败的 record 当作预期失败重放，并继续处理后续记录；原本成功的 record 如果重放失败仍然会中断。这样外部程序、CLI 和 UI 绑定看到的是完整操作审计流，而 undo/redo 栈只保留真正成功并声明可撤回的操作。
 
@@ -699,28 +771,29 @@ transient hover/focus/pressed/drawer-resize 投影现在已经迁到 [`transient
 
 扩展 View 已经接入 Workbench ViewRegistry。`register_editor_extension(...)` 会把 extension `ViewDescriptor` 转换成 ActivityView 类型的 workbench descriptor，并在下一次 reflection refresh 时注册到 `EditorUiControlService` 的 activity descriptor 列表；这让外部工具能先发现 `weather.cloud_layers` 这类插件 View。注册扩展 View 时 runtime 还会自动补出 `View.<id>.Open` operation，例如 `View.weather.cloud_layers.Open`，其 canonical event 是 `MenuAction::OpenView(...)`。Workbench View 菜单会投影同一个 operation binding，因此外部程序可以从 reflection menu node 调 `CallAction(onClick)` 打开插件 View，并在 journal 中得到同一条 `operation_id`。扩展 Drawer 仍保持为 metadata registry，真正布局层当前仍是固定 slot 模型，后续需要在不破坏现有 drawer ownership 的前提下定义动态 drawer 容器。
 
-组件 Inspector 的扩展入口现在是可查询元数据，而不是脚本旁路。`ComponentDrawerDescriptor::with_binding(...)` 记录 controller 预期注册或触发的 operation path，`EditorEventRuntime::component_drawer_descriptor(...)` 和 `ui_template_descriptor(...)` 提供运行时查询入口。执行阶段仍应由 controller 把控件事件提交成 `EditorOperation`，再进入 journal / operation stack。
+组件 Inspector 的扩展入口现在是可查询元数据，而不是脚本旁路。`ComponentDrawerDescriptor::with_binding(...)` 记录 controller 预期注册或触发的 operation path，`EditorExtensionRegistry::register_component_drawer(...)` 会用同一个 `EditorOperationPath::parse(...)` 校验这些 binding，拒绝 `Weather.Refresh` 这类不满足 `XXX.YYY.ZZZ` 命名契约的 drawer 贡献。`EditorEventRuntime::component_drawer_descriptor(...)` 和 `ui_template_descriptor(...)` 提供运行时查询入口。执行阶段仍应由 controller 把控件事件提交成 `EditorOperation`，再进入 journal / operation stack。
 
-`EditorOperationStack` 当前记录通过 operation 层成功执行的可撤销操作名称和 sequence。显式 operation 调用会记录调用者选择的 operation path，而不是从 canonical event 反推出的第一个内建 descriptor；这保证插件提供的 `Tools/...` operation 可以复用内建 event handler，同时仍在 Photoshop 风格历史栈里保持自己的命名身份。它先作为旧 `EditorHistory` 旁边的统一命名栈存在；scene mutation 的真正 undo/redo 仍由旧 command history 执行，operation stack 提供菜单、远控和未来 grouped transaction 需要的公共展示与归档结构。
+`EditorOperationStack` 当前记录通过 operation 层成功执行的可撤销操作名称、source、sequence 和可选 operation group。显式 operation 调用会记录调用者选择的 operation path，而不是从 canonical event 反推出的第一个内建 descriptor；这保证插件提供的 `Tools/...` operation 可以复用内建 event handler，同时仍在 Photoshop 风格历史栈里保持自己的命名身份。带 `operation_group` 的连续操作只在最后一条 undo stack entry 上更新 sequence/source/group，不会为拖拽、滑块或连续字段编辑的每个中间值堆出独立历史项；redo stack 仍会在新 grouped write 后清空。内建 `Edit.History.Undo` / `Edit.History.Redo` 是非 undoable dispatcher command：执行成功后只把上一条命名操作从 undo stack 移到 redo stack，或从 redo stack 移回 undo stack，不会把 Undo/Redo 自己压入历史，也不会覆盖原条目的 source。它先作为旧 `EditorHistory` 旁边的统一命名栈存在；scene mutation 的真正 undo/redo 仍由旧 command history 执行，operation stack 提供菜单、远控和未来 grouped transaction 需要的公共展示与归档结构。
 
-`EditorEventListenerRegistry` 是 runtime 内部的事件监听控制层。外部历史面板、自动化桥或后续 MCP/WebSocket transport 可以先注册 listener，再用 `SetEnabled` 暂停/恢复投递，用 `SetFilter` 约束接收范围，用 `ClearFilter` 恢复全量监听，用 `QueryDeliveries` 读取已投递的 event id、sequence、operation path 和 operation display name。长期轮询端应优先使用 `QueryDeliveriesSince { after_sequence }`，只拉取上次 cursor 之后的新 delivery，避免每轮消费全量缓存；消费成功后再提交 `AckDeliveriesThrough { listener_id, sequence }`，runtime 会移除该 listener 已确认 sequence 及之前的缓存投递，保留后续未消费记录。第一阶段的 filter 支持 operation path prefix，例如只订阅 `Scene.Node.`，这样外部工具可以按 `XXX.YYY.ZZZ` 命名空间订阅事件，而不需要自己消费全量 journal。外部连接关闭时应调用 `Unregister`，runtime 会同时移除 listener descriptor 和该 listener 的投递缓存，避免断开的远控面板继续累积事件。dispatch 成功或失败都会形成带 operation metadata 的 `EditorEventRecord` 并写入 journal；listener 投递引用同一条 record 的身份信息，因此外部历史面板不会再经历“匿名事件先投递、随后再补写 operation id”的中间状态。
+`EditorEventListenerRegistry` 是 runtime 内部的事件监听控制层。外部历史面板、自动化桥或后续 MCP/WebSocket transport 可以先注册 listener，再用 `SetEnabled` 暂停/恢复投递，用 `SetFilter` 约束接收范围，用 `ClearFilter` 恢复全量监听，用 `ListListeners` 枚举 descriptor，用 `QueryListenerStatus` 查询单个 listener 的 descriptor、pending delivery 数量、首个 pending sequence 和最后一个 pending sequence，再用 `QueryDeliveries` 读取已投递的 event id、sequence、source、operation path、operation display name、operation arguments、operation group 和 result。长期轮询端应优先使用 `QueryDeliveriesSince { after_sequence }`，只拉取上次 cursor 之后的新 delivery，避免每轮消费全量缓存；消费成功后再提交 `AckDeliveriesThrough { listener_id, sequence }`，runtime 会移除该 listener 已确认 sequence 及之前的缓存投递，保留后续未消费记录。filter 支持 operation path prefix、event source 列表以及 success/failure 状态开关，例如只订阅 `Scene.Node.`、只订阅 `EditorEventSource::Cli`、或只订阅失败的 CLI operation control request；这样外部工具可以按 `XXX.YYY.ZZZ` 命名空间、调用来源和审计结果订阅事件，而不需要自己消费全量 journal。外部连接关闭时应调用 `Unregister`，runtime 会同时移除 listener descriptor 和该 listener 的投递缓存，避免断开的远控面板继续累积事件；注销后继续 `QueryDeliveries`、`QueryDeliveriesSince` 或 `AckDeliveriesThrough` 会得到结构化 failure，而不是一个看起来成功的空投递结果。dispatch 成功或失败都会形成带 operation metadata 的 `EditorEventRecord` 并写入 journal；listener 投递引用同一条 record 的身份信息，因此外部历史面板不会再经历“匿名事件先投递、随后再补写 operation id”的中间状态。
 
 Workbench 菜单模型现在也带 operation metadata：
 
 - [`MenuItemModel`](/E:/Git/ZirconEngine/zircon_editor/src/ui/workbench/model/menu_item_model.rs) 保留旧 `MenuAction` 和 typed binding，同时通过 `operation_path_for_menu_action(...)` 给已注册 builtin operation 填入 `operation_path`
-- [`build_workbench_reflection_model(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/workbench/reflection/model_build.rs) 会把该路径投影进 `EditorMenuItemReflectionModel`
-- [`EditorUiReflectionAdapter`](/E:/Git/ZirconEngine/zircon_editor/src/ui/reflection.rs) 会在 menu item node 上暴露 `operation_path` 属性
+- [`build_workbench_reflection_model(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/workbench/reflection/model_build.rs) 会把该路径和可选 shortcut 投影进 `EditorMenuItemReflectionModel`
+- [`EditorUiReflectionAdapter`](/E:/Git/ZirconEngine/zircon_editor/src/ui/reflection.rs) 会在 menu item node 上暴露 `operation_path` 和可选 `shortcut` 属性
 
 这样菜单点击仍可沿用旧 `MenuAction` 热路径，外部程序和未来命令行则可以从同一反射节点读到 `File.Project.Save` / `Window.Layout.Reset` 等 operation 路径，再通过 operation control request 触发同一行为。
 
-扩展贡献的菜单项不再只停留在 `EditorExtensionRegistry`。`WorkbenchViewModel::build_with_extensions(...)` 会把 `EditorMenuItemDescriptor.path()` 的 Unity 风格路径投影到顶层菜单，把叶子段作为显示 label，并使用 [`editor_operation_binding(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/workbench/event/editor_operation_binding.rs) 生成 `EditorOperation` UI payload。`CallAction(onClick)` 进入 `EditorEventRuntime::invoke_editor_binding(...)` 后会直接调用 `invoke_operation(EditorOperationSource::UiBinding, ...)`，因此扩展菜单、远控 route 和显式 operation invocation 都会写入同一个 `operation_id` journal 记录。
+扩展贡献的菜单项不再只停留在 `EditorExtensionRegistry`。`EditorMenuItemDescriptor` 现在支持 Unity `MenuItem` 风格的 `path`、`priority`、`shortcut`、`enabled` 和 `required_capabilities` 元数据；`WorkbenchViewModel::build_with_extensions_and_capabilities(...)` 会先按菜单项 capability 过滤，再按 priority / path 稳定排序，把 `EditorMenuItemDescriptor.path()` 的 Unity 风格路径投影到顶层菜单，把叶子段作为显示 label，并使用 [`editor_operation_binding(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/workbench/event/editor_operation_binding.rs) 生成 `EditorOperation` UI payload。`enabled` 是 v1 的菜单验证结果承载字段：插件或后续 Rust/VM validate handler 可以把当前上下文的校验结果投影成 disabled 菜单项，而 capability 仍负责隐藏不可用贡献。`CallAction(onClick)` 进入 `EditorEventRuntime::invoke_editor_binding(...)` 后会直接调用 `invoke_operation(EditorOperationSource::UiBinding, ...)`，因此扩展菜单、远控 route 和显式 operation invocation 都会写入同一个 `operation_id` journal 记录。
 
 外部控制有两个入口：
 
 - 进程内调用 `EditorEventRuntime::handle_operation_control_request(EditorOperationControlRequest::InvokeOperation(...))`
 - 进程内也可以调用 `EditorOperationControlRequest::ListOperations`，返回 `operations[]`，其中包含 `operation_id`、`display_name`、`menu_path`、`callable_from_remote`、`undoable` 和可选 `undo_display_name`
-- 进程内可以调用 `EditorOperationControlRequest::QueryOperationStack`，返回 `undo_stack[]` 和 `redo_stack[]`，每条记录包含 operation path、展示名和 sequence，用于远控面板或 Photoshop 风格历史面板先展示命名栈
+- 进程内可以调用 `EditorOperationControlRequest::QueryOperationStack`，返回 `undo_stack[]` 和 `redo_stack[]`，每条记录包含 operation path、展示名、source 和 sequence，用于远控面板或 Photoshop 风格历史面板先展示命名栈
 - `zircon_editor` 命令行使用 `--operation <id> --args <json> --headless`，由 app 层构造 headless editor runtime 后走同一 operation control request，并输出结构化 JSON response；该入口会以 `EditorOperationSource::Cli` 派发，journal source 记录为 `EditorEventSource::Cli`，便于远程、脚本和 UI 触发在同一 journal 中区分来源
+- CLI 入口现在通过 `EditorOperationInvocation::new(...).with_arguments(...)` 构造请求，默认 `operation_group = None`；需要合并连续操作的调用方必须显式提供 group，避免命令行触发因为结构字段新增而绕过默认语义
 - `zircon_editor --list-operations --headless` 走同一个 `ListOperations` 请求，供外部工具或脚本先发现可调用路径，再选择触发哪个 operation
 - `zircon_editor --operation-stack --headless` 走同一个 `QueryOperationStack` 请求，供外部历史面板或自动化脚本读取当前命名 undo/redo 栈
 
@@ -1070,6 +1143,7 @@ runtime 每次事件执行后只允许从三类输入重建 reflection：
 - `CARGO_TARGET_DIR=/mnt/d/cargo-targets/zircon-wsl-layout RUSTFLAGS='-C debuginfo=0' cargo test -p zircon_editor --lib root_host_viewport_size_matches_presented_viewport_content_frame_when_drawers_are_collapsed --locked --jobs 1 -- --nocapture`
 - `CARGO_TARGET_DIR=/mnt/d/cargo-targets/zircon-wsl-layout RUSTFLAGS='-C debuginfo=0' cargo test -p zircon_editor --lib controller_does_not_republish_cached_image_when_no_new_frame_is_available --locked --jobs 1 -- --nocapture`
 - `CARGO_TARGET_DIR=/mnt/d/cargo-targets/zircon-wsl-layout RUSTFLAGS='-C debuginfo=0' cargo test -p zircon_editor --lib controller_does_not_republish_unchanged_captured_frame --locked --jobs 1 -- --nocapture`
+- Listener-status WSL follow-up: `CARGO_TARGET_DIR=/tmp/zircon-target-editor-listener-status cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short` used `cargo 1.94.1` / `rustc 1.94.1`; early runs were blocked by unrelated runtime graphics private-field errors or a long editor compile timeout, then the accepted WSL path with `RUSTFLAGS="-C debuginfo=0"` passed both `cargo check -p zircon_editor --lib` and the focused `event_listener_control_reports_listener_status_with_pending_delivery_bounds` regression.
 
 当前重新确认或由现有测试树持续覆盖的关键点包括：
 

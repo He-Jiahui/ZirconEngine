@@ -12,14 +12,14 @@ impl SceneRenderer {
     ) -> Result<Vec<(u32, u32, u32)>, GraphicsError> {
         let Some(buffer) = self
             .advanced_plugin_outputs
-            .virtual_geometry_indirect_args_buffer
+            .virtual_geometry_indirect_args_buffer()
             .as_ref()
         else {
             return Ok(Vec::new());
         };
         let indirect_args_count = self
             .advanced_plugin_outputs
-            .virtual_geometry_indirect_args_count;
+            .virtual_geometry_indirect_args_count();
         let staging = self.backend.device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("zircon-vg-indirect-args-with-instance-readback"),
             size: (indirect_args_count as u64) * (std::mem::size_of::<u32>() as u64) * 5,
@@ -58,14 +58,14 @@ impl SceneRenderer {
     ) -> Result<Vec<(u32, u32)>, GraphicsError> {
         let Some(buffer) = self
             .advanced_plugin_outputs
-            .virtual_geometry_indirect_args_buffer
+            .virtual_geometry_indirect_args_buffer()
             .as_ref()
         else {
             return Ok(Vec::new());
         };
         let indirect_args_count = self
             .advanced_plugin_outputs
-            .virtual_geometry_indirect_args_count;
+            .virtual_geometry_indirect_args_count();
         let staging = self.backend.device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("zircon-vg-indirect-args-readback"),
             size: (indirect_args_count as u64) * (std::mem::size_of::<u32>() as u64) * 5,

@@ -2,15 +2,15 @@
 related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/runtime_parent_chain.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/hybrid_gi_hierarchy_resolve_weight.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/hybrid_gi_hierarchy_irradiance.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/hybrid_gi_hierarchy_rt_lighting.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/hybrid_gi_hierarchy_irradiance/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/hybrid_gi_hierarchy_rt_lighting/mod.rs
   - zircon_runtime/src/graphics/tests/hybrid_gi_resolve_render.rs
   - zircon_runtime/src/graphics/tests/virtual_geometry_execution_args_authority.rs
 implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/runtime_parent_chain.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/hybrid_gi_hierarchy_resolve_weight.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/hybrid_gi_hierarchy_irradiance.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/hybrid_gi_hierarchy_rt_lighting.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/hybrid_gi_hierarchy_irradiance/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/hybrid_gi_hierarchy_rt_lighting/mod.rs
   - zircon_runtime/src/graphics/tests/hybrid_gi_resolve_render.rs
   - zircon_runtime/src/graphics/tests/virtual_geometry_execution_args_authority.rs
 plan_sources:
@@ -58,8 +58,8 @@ doc_type: milestone-detail
 `encode_hybrid_gi_probes` 下的三条 resident probe source 现在都会在 exact lookup 失效后，继续 climb 当前 probe lineage：
 
 - `hybrid_gi_hierarchy_resolve_weight.rs`
-- `hybrid_gi_hierarchy_irradiance.rs`
-- `hybrid_gi_hierarchy_rt_lighting.rs`
+- `hybrid_gi_hierarchy_irradiance/mod.rs`
+- `hybrid_gi_hierarchy_rt_lighting/mod.rs`
 
 结果是 final resolve 不再要求 runtime host 必须事先为每个 resident child probe 写好 exact entry。只要 runtime ancestor 仍有 continuation，当前 child probe 就能在 encode-side 把它接回来。
 

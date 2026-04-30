@@ -1,5 +1,5 @@
 use crate::core::editor_event::{
-    listener_deliveries, listener_descriptors, EditorEventListenerControlRequest,
+    listener_deliveries, listener_descriptors, listener_status, EditorEventListenerControlRequest,
     EditorEventListenerControlResponse, EditorEventRuntime,
 };
 use serde_json::json;
@@ -74,41 +74,58 @@ impl EditorEventRuntime {
                     "listeners": listener_descriptors(inner.event_listeners.listeners()),
                 }))
             }
+            EditorEventListenerControlRequest::QueryListenerStatus { listener_id } => {
+                let inner = self.inner.lock().unwrap();
+                match inner.event_listeners.status_for(&listener_id) {
+                    Ok(status) => {
+                        EditorEventListenerControlResponse::success(listener_status(&status))
+                    }
+                    Err(error) => EditorEventListenerControlResponse::failure(error),
+                }
+            }
             EditorEventListenerControlRequest::QueryDeliveries { listener_id } => {
                 let inner = self.inner.lock().unwrap();
-                let deliveries = inner.event_listeners.deliveries_for(&listener_id);
-                EditorEventListenerControlResponse::success(json!({
-                    "listener_id": listener_id,
-                    "deliveries": listener_deliveries(&deliveries),
-                }))
+                match inner.event_listeners.deliveries_for(&listener_id) {
+                    Ok(deliveries) => EditorEventListenerControlResponse::success(json!({
+                        "listener_id": listener_id,
+                        "deliveries": listener_deliveries(&deliveries),
+                    })),
+                    Err(error) => EditorEventListenerControlResponse::failure(error),
+                }
             }
             EditorEventListenerControlRequest::QueryDeliveriesSince {
                 listener_id,
                 after_sequence,
             } => {
                 let inner = self.inner.lock().unwrap();
-                let deliveries = inner
+                match inner
                     .event_listeners
-                    .deliveries_after(&listener_id, after_sequence);
-                EditorEventListenerControlResponse::success(json!({
-                    "listener_id": listener_id,
-                    "after_sequence": after_sequence,
-                    "deliveries": listener_deliveries(&deliveries),
-                }))
+                    .deliveries_after(&listener_id, after_sequence)
+                {
+                    Ok(deliveries) => EditorEventListenerControlResponse::success(json!({
+                        "listener_id": listener_id,
+                        "after_sequence": after_sequence,
+                        "deliveries": listener_deliveries(&deliveries),
+                    })),
+                    Err(error) => EditorEventListenerControlResponse::failure(error),
+                }
             }
             EditorEventListenerControlRequest::AckDeliveriesThrough {
                 listener_id,
                 sequence,
             } => {
                 let mut inner = self.inner.lock().unwrap();
-                let removed = inner
+                match inner
                     .event_listeners
-                    .acknowledge_through(&listener_id, sequence);
-                EditorEventListenerControlResponse::success(json!({
-                    "listener_id": listener_id,
-                    "sequence": sequence,
-                    "removed": removed,
-                }))
+                    .acknowledge_through(&listener_id, sequence)
+                {
+                    Ok(removed) => EditorEventListenerControlResponse::success(json!({
+                        "listener_id": listener_id,
+                        "sequence": sequence,
+                        "removed": removed,
+                    })),
+                    Err(error) => EditorEventListenerControlResponse::failure(error),
+                }
             }
         }
     }

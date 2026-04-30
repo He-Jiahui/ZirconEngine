@@ -10,7 +10,7 @@ use super::super::prepare_runtime_submission::prepare_runtime_submission;
 use super::super::record_submission::record_submission;
 use super::super::update_stats::update_stats;
 use super::build_runtime_frame::build_runtime_frame;
-use super::collect_gpu_completions::collect_gpu_completions;
+use super::collect_runtime_feedback::collect_runtime_feedback;
 use super::release_previous_history::release_previous_history;
 use super::resolve_history_handle::resolve_history_handle;
 
@@ -38,12 +38,12 @@ pub(in crate::graphics::runtime::render_framework) fn submit_frame_extract_with_
         .renderer
         .render_frame_with_pipeline(
             &runtime_frame,
-            &context.compiled_pipeline,
-            resolved_history.current_history_handle,
+            context.compiled_pipeline(),
+            resolved_history.current_history_handle(),
         )
         .map_err(render_framework_backend_error)?;
     let frame_generation = frame.generation;
-    let gpu_completions = collect_gpu_completions(&mut state.renderer);
+    let runtime_feedback = collect_runtime_feedback(&mut state.renderer, &context);
     let record = state
         .viewports
         .get_mut(&viewport)
@@ -52,11 +52,9 @@ pub(in crate::graphics::runtime::render_framework) fn submit_frame_extract_with_
         record,
         &context,
         prepared,
-        resolved_history.allocated_history,
+        resolved_history.allocated_history(),
         frame,
-        gpu_completions.hybrid_gi_completion,
-        gpu_completions.virtual_geometry_completion,
-        gpu_completions.node_and_cluster_cull_page_requests,
+        runtime_feedback,
     );
     release_previous_history(&mut state.renderer, &record_update);
     update_stats(&mut state, &context, &record_update, frame_generation);

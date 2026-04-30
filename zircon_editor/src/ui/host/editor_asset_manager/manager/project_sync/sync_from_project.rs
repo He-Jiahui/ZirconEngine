@@ -30,8 +30,7 @@ impl DefaultEditorAssetManager {
             let meta_path = meta_path_for_source(&source_path);
             let meta = AssetMetaDocument::load(&meta_path)?;
             let editor_meta_path = editor_meta_path_for_source(&source_path);
-            let editor_meta =
-                EditorAssetMetaDocument::load_or_migrate(&editor_meta_path, &meta_path)?;
+            let editor_meta = EditorAssetMetaDocument::load_or_default(&editor_meta_path)?;
             let preview_state = meta.preview_state;
             let imported = project.load_artifact_by_id(metadata.id())?;
             let direct_references = direct_references(&imported);

@@ -45,7 +45,7 @@ fn seed_backed_execution_selection_collection_applies_cluster_budget_after_stabl
             cluster_count: 2,
             page_offset: 0,
             page_count: 2,
-            mesh_name: Some("SeedCompatBudgetOrderUnitTestMesh".to_string()),
+            mesh_name: Some("SeedBackedBudgetOrderUnitTestMesh".to_string()),
             source_hint: Some("unit-test".to_string()),
         }],
         debug: RenderVirtualGeometryDebugState::default(),
@@ -69,7 +69,7 @@ fn seed_backed_execution_selection_collection_applies_cluster_budget_after_stabl
     );
 
     assert_eq!(
-        collection.selections,
+        collection.selections(),
         vec![VirtualGeometryClusterSelection {
             submission_index: 0,
             instance_index: Some(0),
@@ -89,10 +89,10 @@ fn seed_backed_execution_selection_collection_applies_cluster_budget_after_stabl
             submission_slot: None,
             state: VirtualGeometryPrepareClusterState::Missing,
         }],
-        "expected cluster_budget clamping to happen after the root-seed compat seam reaches stable selected-cluster ordering, so an unsorted extract still keeps the ordinal-0 cluster instead of the first raw slice entry"
+        "expected cluster_budget clamping to happen after the root-seed baseline seam reaches stable selected-cluster ordering, so an unsorted extract still keeps the ordinal-0 cluster instead of the first raw slice entry"
     );
     assert_eq!(
-        collection.selected_clusters,
+        collection.selected_clusters(),
         vec![RenderVirtualGeometrySelectedCluster {
             instance_index: Some(0),
             entity,
@@ -102,7 +102,7 @@ fn seed_backed_execution_selection_collection_applies_cluster_budget_after_stabl
             lod_level: 1,
             state: RenderVirtualGeometryExecutionState::Missing,
         }],
-        "expected selected-cluster publication to see cluster-budget clamping only after stable ordering has been established for the root-seed compat path"
+        "expected selected-cluster publication to see cluster-budget clamping only after stable ordering has been established for the root-seed baseline path"
     );
 }
 
@@ -169,7 +169,7 @@ fn seed_backed_execution_selection_derives_frontier_rank_from_first_unresolved_p
             cluster_count: 4,
             page_offset: 0,
             page_count: 4,
-            mesh_name: Some("SeedCompatFrontierRankUnitTestMesh".to_string()),
+            mesh_name: Some("SeedBackedFrontierRankUnitTestMesh".to_string()),
             source_hint: Some("unit-test".to_string()),
         }],
         debug: RenderVirtualGeometryDebugState::default(),
@@ -269,6 +269,6 @@ fn seed_backed_execution_selection_derives_frontier_rank_from_first_unresolved_p
                 state: VirtualGeometryPrepareClusterState::PendingUpload,
             },
         ],
-        "expected the seed-backed compat consumer to approximate frontier order from the first occurrence of each unresolved page in the expanded worklist, so later raster/debug seams can stop reporting every compat cluster as frontier rank zero before true VisitNode traversal exists"
+        "expected the seed-backed execution selection path to approximate frontier order from the first occurrence of each unresolved page in the expanded worklist, so later raster/debug seams can stop reporting every seed-expanded cluster as frontier rank zero before true VisitNode traversal exists"
     );
 }

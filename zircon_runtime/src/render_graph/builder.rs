@@ -5,9 +5,9 @@ use crate::rhi::{BufferDesc, TextureDesc};
 use super::error::RenderGraphError;
 use super::graph::{CompiledRenderGraph, CompiledRenderPass};
 use super::types::{
-    ExternalResource, PassFlags, QueueLane, RenderGraphResource, RenderGraphResourceDesc,
-    RenderGraphResourceKind, RenderGraphResourceLifetime, RenderPassId, TransientBuffer,
-    TransientTexture,
+    ExternalResource, PassFlags, QueueLane, RenderGraphPassResourceAccess, RenderGraphResource,
+    RenderGraphResourceAccessKind, RenderGraphResourceDesc, RenderGraphResourceKind,
+    RenderGraphResourceLifetime, RenderPassId, TransientBuffer, TransientTexture,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -26,6 +26,7 @@ struct ResourceAccess {
 struct RenderPassNode {
     id: RenderPassId,
     name: String,
+    declared_queue: QueueLane,
     queue: QueueLane,
     flags: PassFlags,
     executor_id: Option<String>,
@@ -72,10 +73,21 @@ impl RenderGraphBuilder {
         queue: QueueLane,
         executor_id: Option<impl Into<String>>,
     ) -> RenderPassId {
+        self.add_pass_with_executor_and_declared_queue(name, queue, queue, executor_id)
+    }
+
+    pub fn add_pass_with_executor_and_declared_queue(
+        &mut self,
+        name: impl Into<String>,
+        queue: QueueLane,
+        declared_queue: QueueLane,
+        executor_id: Option<impl Into<String>>,
+    ) -> RenderPassId {
         let id = RenderPassId(self.passes.len());
         self.passes.push(RenderPassNode {
             id,
             name: name.into(),
+            declared_queue,
             queue,
             flags: PassFlags::default(),
             executor_id: executor_id.map(Into::into),
@@ -230,7 +242,14 @@ impl RenderGraphBuilder {
         let manual_reachability = self.manual_reachability();
         self.validate_write_dependencies(&manual_reachability, &resource_names)?;
 
-        let inferred_dependencies = self.infer_resource_dependencies(&resource_names)?;
+        let manual_dependencies = self
+            .passes
+            .iter()
+            .map(|pass| pass.dependencies.clone())
+            .collect::<Vec<_>>();
+        let manual_order = self.topological_order(&manual_dependencies)?;
+        let inferred_dependencies =
+            self.infer_resource_dependencies(&resource_names, &manual_order)?;
         let ordered = self.topological_order(&inferred_dependencies)?;
         self.validate_reads_have_ordered_producers(&ordered, &resource_names)?;
         let culled = self.cull_passes(&ordered);
@@ -241,10 +260,24 @@ impl RenderGraphBuilder {
                 CompiledRenderPass {
                     id: *id,
                     name: pass.name.clone(),
+                    declared_queue: pass.declared_queue,
                     queue: pass.queue,
                     flags: pass.flags,
+                    dependencies: inferred_dependencies[id.0].clone(),
                     culled: culled.contains(id),
                     executor_id: pass.executor_id.clone(),
+                    resources: pass
+                        .resources
+                        .iter()
+                        .map(|access| RenderGraphPassResourceAccess {
+                            name: resource_names
+                                .get(&access.resource)
+                                .cloned()
+                                .unwrap_or_else(|| format!("{:?}", access.resource)),
+                            kind: render_graph_resource_kind(access.resource),
+                            access: render_graph_resource_access_kind(access.kind),
+                        })
+                        .collect(),
                 }
             })
             .collect::<Vec<_>>();
@@ -352,6 +385,7 @@ impl RenderGraphBuilder {
     fn infer_resource_dependencies(
         &self,
         resource_names: &HashMap<RenderGraphResource, String>,
+        pass_order: &[RenderPassId],
     ) -> Result<Vec<Vec<RenderPassId>>, RenderGraphError> {
         let mut dependencies = self
             .passes
@@ -360,7 +394,8 @@ impl RenderGraphBuilder {
             .collect::<Vec<_>>();
         let mut latest_writer = HashMap::<RenderGraphResource, RenderPassId>::new();
 
-        for pass in &self.passes {
+        for pass_id in pass_order {
+            let pass = &self.passes[pass_id.0];
             for access in &pass.resources {
                 match access.kind {
                     ResourceAccessKind::Read => {
@@ -471,6 +506,7 @@ impl RenderGraphBuilder {
 
     fn cull_passes(&self, ordered: &[RenderPassId]) -> HashSet<RenderPassId> {
         let mut needed_resources = HashSet::<RenderGraphResource>::new();
+        let mut needed_passes = HashSet::<RenderPassId>::new();
         let mut live_passes = HashSet::<RenderPassId>::new();
 
         for id in ordered.iter().rev() {
@@ -488,7 +524,8 @@ impl RenderGraphBuilder {
                 .iter()
                 .any(|resource| matches!(resource, RenderGraphResource::External(_)));
             let has_no_writes = writes.is_empty();
-            let live = !pass.flags.allow_culling
+            let live = needed_passes.contains(id)
+                || !pass.flags.allow_culling
                 || pass.flags.has_side_effects
                 || writes_external
                 || has_no_writes
@@ -501,6 +538,7 @@ impl RenderGraphBuilder {
                         needed_resources.insert(access.resource);
                     }
                 }
+                needed_passes.extend(pass.dependencies.iter().copied());
             }
         }
 
@@ -563,6 +601,10 @@ impl RenderGraphBuilder {
                         .cloned()
                         .unwrap_or_else(|| format!("{resource:?}")),
                     kind,
+                    desc: resource_descs
+                        .get(&resource)
+                        .cloned()
+                        .unwrap_or(RenderGraphResourceDesc::External),
                     first_pass,
                     last_pass,
                     imported: matches!(
@@ -574,5 +616,20 @@ impl RenderGraphBuilder {
             .collect::<Vec<_>>();
         lifetimes.sort_by(|a, b| a.name.cmp(&b.name));
         lifetimes
+    }
+}
+
+fn render_graph_resource_kind(resource: RenderGraphResource) -> RenderGraphResourceKind {
+    match resource {
+        RenderGraphResource::TransientTexture(_) => RenderGraphResourceKind::TransientTexture,
+        RenderGraphResource::TransientBuffer(_) => RenderGraphResourceKind::TransientBuffer,
+        RenderGraphResource::External(_) => RenderGraphResourceKind::External,
+    }
+}
+
+fn render_graph_resource_access_kind(kind: ResourceAccessKind) -> RenderGraphResourceAccessKind {
+    match kind {
+        ResourceAccessKind::Read => RenderGraphResourceAccessKind::Read,
+        ResourceAccessKind::Write => RenderGraphResourceAccessKind::Write,
     }
 }

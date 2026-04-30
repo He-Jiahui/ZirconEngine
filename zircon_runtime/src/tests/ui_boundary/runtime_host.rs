@@ -104,3 +104,45 @@ fn runtime_ui_manager_builds_all_builtin_fixtures_into_shared_surfaces() {
         );
     }
 }
+
+#[test]
+fn runtime_ui_manager_dispatches_pointer_and_navigation_through_shared_surface() {
+    use crate::ui::dispatch::{
+        UiNavigationDispatchEffect, UiNavigationDispatcher, UiPointerDispatchEffect,
+        UiPointerDispatcher, UiPointerEvent,
+    };
+    use crate::ui::layout::UiPoint;
+    use crate::ui::surface::{UiNavigationEventKind, UiPointerButton, UiPointerEventKind};
+
+    let viewport_size = crate::core::math::UVec2::new(640, 360);
+    let mut manager = crate::ui::RuntimeUiManager::new(viewport_size);
+    manager
+        .load_builtin_fixture(crate::ui::RuntimeUiFixture::PauseMenu)
+        .unwrap();
+
+    let root_node = manager.surface().tree.roots[0];
+    let mut pointer_dispatcher = UiPointerDispatcher::default();
+    pointer_dispatcher.register(root_node, UiPointerEventKind::Down, |_| {
+        UiPointerDispatchEffect::Captured
+    });
+
+    let pointer_result = manager
+        .dispatch_pointer_event(
+            &pointer_dispatcher,
+            UiPointerEvent::new(UiPointerEventKind::Down, UiPoint::new(320.0, 180.0))
+                .with_button(UiPointerButton::Primary),
+        )
+        .unwrap();
+    assert_eq!(pointer_result.captured_by, Some(root_node));
+    assert_eq!(manager.surface().focus.captured, Some(root_node));
+
+    let mut navigation_dispatcher = UiNavigationDispatcher::default();
+    navigation_dispatcher.register(root_node, UiNavigationEventKind::Activate, |_| {
+        UiNavigationDispatchEffect::Handled
+    });
+
+    let navigation_result = manager
+        .dispatch_navigation_event(&navigation_dispatcher, UiNavigationEventKind::Activate)
+        .unwrap();
+    assert_eq!(navigation_result.handled_by, Some(root_node));
+}

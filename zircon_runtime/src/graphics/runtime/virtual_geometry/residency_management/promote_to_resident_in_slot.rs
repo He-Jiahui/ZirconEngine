@@ -7,9 +7,9 @@ impl VirtualGeometryRuntimeState {
         slot: u32,
     ) {
         self.clear_pending_request(page_id);
-        if let Some(previous_slot) = self.resident_slots.remove(&page_id) {
+        if let Some(previous_slot) = self.remove_resident_page_slot(page_id) {
             if previous_slot != slot {
-                self.free_slots.insert(previous_slot);
+                self.insert_free_slot(previous_slot);
             }
         }
         if let Some(conflicting_page) = self.page_in_slot(slot) {
@@ -18,6 +18,6 @@ impl VirtualGeometryRuntimeState {
             }
         }
         self.reserve_slot(slot);
-        self.resident_slots.insert(page_id, slot);
+        self.insert_resident_page_slot(page_id, slot);
     }
 }

@@ -103,22 +103,22 @@ fn hybrid_gi_resolve_uses_atlas_only_persisted_surface_cache_page_sample_without
     let cool_readback = renderer.take_last_hybrid_gi_gpu_readback().unwrap();
 
     let warm_resources = warm_readback
-        .scene_prepare_resources
+        .scene_prepare_resources()
         .expect("expected warm scene-prepare resources");
     let cool_resources = cool_readback
-        .scene_prepare_resources
+        .scene_prepare_resources()
         .expect("expected cool scene-prepare resources");
     assert_eq!(
-        warm_resources.atlas_slot_rgba_samples,
+        warm_resources.atlas_slot_rgba_samples().to_vec(),
         vec![(0, warm_atlas_rgba)]
     );
     assert_eq!(
-        cool_resources.atlas_slot_rgba_samples,
+        cool_resources.atlas_slot_rgba_samples().to_vec(),
         vec![(0, cool_atlas_rgba)]
     );
     assert!(
-        warm_resources.capture_slot_rgba_samples.is_empty()
-            && cool_resources.capture_slot_rgba_samples.is_empty(),
+        warm_resources.capture_slot_rgba_samples().is_empty()
+            && cool_resources.capture_slot_rgba_samples().is_empty(),
         "expected atlas-only persisted pages to stay atlas-only at render level instead of fabricating capture-side truth"
     );
 
@@ -187,17 +187,17 @@ fn hybrid_gi_resolve_prefers_capture_surface_cache_page_sample_over_atlas_withou
     let cool_readback = renderer.take_last_hybrid_gi_gpu_readback().unwrap();
 
     let warm_resources = warm_readback
-        .scene_prepare_resources
+        .scene_prepare_resources()
         .expect("expected warm scene-prepare resources");
     let cool_resources = cool_readback
-        .scene_prepare_resources
+        .scene_prepare_resources()
         .expect("expected cool scene-prepare resources");
     assert_eq!(
-        warm_resources.capture_slot_rgba_samples,
+        warm_resources.capture_slot_rgba_samples().to_vec(),
         vec![(0, [240, 96, 48, 255])]
     );
     assert_eq!(
-        cool_resources.capture_slot_rgba_samples,
+        cool_resources.capture_slot_rgba_samples().to_vec(),
         vec![(0, [48, 96, 240, 255])]
     );
 
@@ -264,16 +264,16 @@ fn hybrid_gi_resolve_uses_atlas_only_runtime_scene_voxel_radiance_rehydrated_fro
     let cool_readback = renderer.take_last_hybrid_gi_gpu_readback().unwrap();
 
     let warm_resources = warm_readback
-        .scene_prepare_resources
+        .scene_prepare_resources()
         .expect("expected warm scene-prepare resources");
     let cool_resources = cool_readback
-        .scene_prepare_resources
+        .scene_prepare_resources()
         .expect("expected cool scene-prepare resources");
     assert!(
-        warm_resources.capture_slot_rgba_samples.is_empty()
-            && warm_resources.atlas_slot_rgba_samples.is_empty()
-            && cool_resources.capture_slot_rgba_samples.is_empty()
-            && cool_resources.atlas_slot_rgba_samples.is_empty(),
+        warm_resources.capture_slot_rgba_samples().is_empty()
+            && warm_resources.atlas_slot_rgba_samples().is_empty()
+            && cool_resources.capture_slot_rgba_samples().is_empty()
+            && cool_resources.atlas_slot_rgba_samples().is_empty(),
         "expected atlas-only runtime-voxel rehydration proof to strip page-content fallback from renderer input so the GI difference must come from runtime voxel radiance"
     );
 
@@ -340,16 +340,16 @@ fn hybrid_gi_resolve_prefers_capture_over_atlas_in_runtime_scene_voxel_radiance_
     let cool_readback = renderer.take_last_hybrid_gi_gpu_readback().unwrap();
 
     let warm_resources = warm_readback
-        .scene_prepare_resources
+        .scene_prepare_resources()
         .expect("expected warm scene-prepare resources");
     let cool_resources = cool_readback
-        .scene_prepare_resources
+        .scene_prepare_resources()
         .expect("expected cool scene-prepare resources");
     assert!(
-        warm_resources.capture_slot_rgba_samples.is_empty()
-            && warm_resources.atlas_slot_rgba_samples.is_empty()
-            && cool_resources.capture_slot_rgba_samples.is_empty()
-            && cool_resources.atlas_slot_rgba_samples.is_empty(),
+        warm_resources.capture_slot_rgba_samples().is_empty()
+            && warm_resources.atlas_slot_rgba_samples().is_empty()
+            && cool_resources.capture_slot_rgba_samples().is_empty()
+            && cool_resources.atlas_slot_rgba_samples().is_empty(),
         "expected capture-preferred runtime-voxel rehydration proof to strip page-content fallback from renderer input so the GI difference must come from runtime voxel radiance"
     );
 
@@ -466,14 +466,13 @@ fn hybrid_gi_resolve_blends_exact_runtime_rt_with_current_surface_cache_truth_wh
     let viewport_size = UVec2::new(96, 64);
     let extract = build_extract(viewport_size);
     let compiled = compile_hybrid_gi_pipeline(&extract);
-    let neutral_runtime = HybridGiResolveRuntime {
-        probe_rt_lighting_rgb: std::collections::BTreeMap::from([(200, [120, 120, 120])]),
-        probe_hierarchy_irradiance_rgb_and_weight: std::collections::BTreeMap::from([(
+    let neutral_runtime = HybridGiResolveRuntime::fixture()
+        .with_probe_rt_lighting_rgb(std::collections::BTreeMap::from([(200, [120, 120, 120])]))
+        .with_probe_hierarchy_irradiance_rgb_and_weight(std::collections::BTreeMap::from([(
             200,
             HybridGiResolveRuntime::pack_rgb_and_weight([0.47, 0.47, 0.47], 0.62),
-        )]),
-        ..Default::default()
-    };
+        )]))
+        .build();
     let warm_scene_prepare = scene_prepare_without_runtime_voxel_support(
         runtime_scene_prepare_from_persisted_page_samples(
             [1.0, 1.0, 1.0],
@@ -653,27 +652,21 @@ fn runtime_scene_prepare_from_persisted_page_samples(
         .iter()
         .map(|(slot_id, _)| *slot_id)
         .collect::<Vec<_>>();
-    runtime.apply_scene_prepare_resources(
-        &crate::graphics::scene::HybridGiScenePrepareResourcesSnapshot {
-            card_capture_request_count: occupied_capture_slots.len() as u32,
-            voxel_clipmap_ids: Vec::new(),
+    let mut scene_prepare_resources =
+        crate::graphics::scene::HybridGiScenePrepareResourcesSnapshot::new(
+            occupied_capture_slots.len() as u32,
+            Vec::new(),
             occupied_atlas_slots,
             occupied_capture_slots,
-            atlas_slot_rgba_samples,
-            capture_slot_rgba_samples,
-            voxel_clipmap_rgba_samples: Vec::new(),
-            voxel_clipmap_occupancy_masks: Vec::new(),
-            voxel_clipmap_cell_rgba_samples: Vec::new(),
-            voxel_clipmap_cell_occupancy_counts: Vec::new(),
-            voxel_clipmap_cell_dominant_node_ids: Vec::new(),
-            voxel_clipmap_cell_dominant_rgba_samples: Vec::new(),
-            atlas_slot_count: 0,
-            capture_slot_count: 0,
-            atlas_texture_extent: (0, 0),
-            capture_texture_extent: (0, 0),
-            capture_layer_count: 0,
-        },
-    );
+            0,
+            0,
+            (0, 0),
+            (0, 0),
+            0,
+        );
+    scene_prepare_resources
+        .store_texture_slot_rgba_samples(atlas_slot_rgba_samples, capture_slot_rgba_samples);
+    runtime.apply_scene_prepare_resources_for_test(&scene_prepare_resources);
     runtime.register_scene_extract(
         Some(&extract),
         &[crate::core::framework::render::RenderMeshSnapshot {

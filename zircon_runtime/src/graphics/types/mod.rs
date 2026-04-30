@@ -34,7 +34,9 @@ pub(crate) use hybrid_gi_prepare::{
     HybridGiPrepareVoxelCell, HybridGiPrepareVoxelClipmap, HybridGiScenePrepareFrame,
     HYBRID_GI_VOXEL_CLIPMAP_CELL_COUNT, HYBRID_GI_VOXEL_CLIPMAP_CELL_RESOLUTION,
 };
-pub(crate) use hybrid_gi_resolve_runtime::HybridGiResolveRuntime;
+pub(crate) use hybrid_gi_resolve_runtime::{
+    HybridGiResolveProbeSceneData, HybridGiResolveRuntime, HybridGiResolveTraceRegionSceneData,
+};
 pub use viewport_frame::ViewportFrame;
 pub use viewport_frame_texture_handle::ViewportFrameTextureHandle;
 pub(crate) use viewport_render_frame::ViewportRenderFrame;

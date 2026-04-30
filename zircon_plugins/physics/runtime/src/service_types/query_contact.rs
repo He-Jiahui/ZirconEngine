@@ -22,7 +22,7 @@ pub(super) fn compute_contact_events(
 
             let left_center = left.transform.translation;
             let right_center = right.transform.translation;
-            let mut normal = (right_center - left_center).normalize_or_zero();
+            let mut normal = normalized_offset_or_zero(right_center, left_center);
             if normal.length_squared() <= Real::EPSILON {
                 normal = Vec3::Y;
             }
@@ -64,8 +64,7 @@ pub(super) fn ray_cast_collider(
             let scaled_half_extents =
                 scaled_box_half_extents(half_extents, collider.transform.scale)?;
             let center = collider.transform.translation;
-            let min = center - scaled_half_extents;
-            let max = center + scaled_half_extents;
+            let (min, max) = finite_aabb_bounds(center, scaled_half_extents)?;
             ray_cast_aabb(origin, direction, max_distance, collider.entity, min, max)
         }
         PhysicsColliderShape::Sphere { radius } => {
@@ -276,10 +275,8 @@ fn collider_box(collider: &PhysicsColliderSyncState) -> Option<BoxOverlapProxy> 
     }
     let center = collider.transform.translation;
     let scaled_half_extents = scaled_box_half_extents(half_extents, collider.transform.scale)?;
-    Some(BoxOverlapProxy {
-        min: center - scaled_half_extents,
-        max: center + scaled_half_extents,
-    })
+    let (min, max) = finite_aabb_bounds(center, scaled_half_extents)?;
+    Some(BoxOverlapProxy { min, max })
 }
 
 fn collider_capsule_y(collider: &PhysicsColliderSyncState) -> Option<CapsuleOverlapProxy> {
@@ -307,25 +304,33 @@ fn collider_capsule_y(collider: &PhysicsColliderSyncState) -> Option<CapsuleOver
 }
 
 fn sphere_sphere_overlap(left: SphereOverlapProxy, right: SphereOverlapProxy) -> bool {
-    left.center.distance_squared(right.center) <= (left.radius + right.radius).powi(2)
+    point_distance_squared_lte_radius_sum(left.center, right.center, left.radius, right.radius)
 }
 
 fn sphere_box_overlap(sphere: SphereOverlapProxy, box_proxy: BoxOverlapProxy) -> bool {
     let closest = sphere.center.clamp(box_proxy.min, box_proxy.max);
-    sphere.center.distance_squared(closest) <= sphere.radius * sphere.radius
+    point_distance_squared_lte_radius_sum(sphere.center, closest, sphere.radius, 0.0)
 }
 
 fn sphere_capsule_overlap(sphere: SphereOverlapProxy, capsule: CapsuleOverlapProxy) -> bool {
     let closest = closest_point_on_capsule_segment_y(sphere.center, capsule);
-    sphere.center.distance_squared(closest) <= (sphere.radius + capsule.radius).powi(2)
+    point_distance_squared_lte_radius_sum(sphere.center, closest, sphere.radius, capsule.radius)
 }
 
 fn capsule_box_overlap(capsule: CapsuleOverlapProxy, box_proxy: BoxOverlapProxy) -> bool {
-    capsule_segment_aabb_distance_squared_y(capsule, box_proxy) <= capsule.radius * capsule.radius
+    distance_squared_lte_radius_sum(
+        capsule_segment_aabb_distance_squared_y(capsule, box_proxy),
+        capsule.radius,
+        0.0,
+    )
 }
 
 fn capsule_capsule_overlap(left: CapsuleOverlapProxy, right: CapsuleOverlapProxy) -> bool {
-    segment_segment_distance_squared_y(left, right) <= (left.radius + right.radius).powi(2)
+    distance_squared_lte_radius_sum(
+        segment_segment_distance_squared_y(left, right),
+        left.radius,
+        right.radius,
+    )
 }
 
 fn box_box_overlap(left: BoxOverlapProxy, right: BoxOverlapProxy) -> bool {
@@ -335,6 +340,29 @@ fn box_box_overlap(left: BoxOverlapProxy, right: BoxOverlapProxy) -> bool {
         && left.max.y >= right.min.y
         && left.min.z <= right.max.z
         && left.max.z >= right.min.z
+}
+
+fn point_distance_squared_lte_radius_sum(
+    left_point: Vec3,
+    right_point: Vec3,
+    left_radius: Real,
+    right_radius: Real,
+) -> bool {
+    let dx = f64::from(left_point.x) - f64::from(right_point.x);
+    let dy = f64::from(left_point.y) - f64::from(right_point.y);
+    let dz = f64::from(left_point.z) - f64::from(right_point.z);
+    let distance_squared = dx * dx + dy * dy + dz * dz;
+    distance_squared_lte_radius_sum(distance_squared, left_radius, right_radius)
+}
+
+fn distance_squared_lte_radius_sum(
+    distance_squared: f64,
+    left_radius: Real,
+    right_radius: Real,
+) -> bool {
+    let radius_sum = f64::from(left_radius) + f64::from(right_radius);
+    let radius_squared = radius_sum * radius_sum;
+    distance_squared.is_finite() && radius_squared.is_finite() && distance_squared <= radius_squared
 }
 
 fn closest_point_on_capsule_segment_y(point: Vec3, capsule: CapsuleOverlapProxy) -> Vec3 {
@@ -350,44 +378,43 @@ fn closest_point_on_capsule_segment_y(point: Vec3, capsule: CapsuleOverlapProxy)
 fn segment_segment_distance_squared_y(
     left: CapsuleOverlapProxy,
     right: CapsuleOverlapProxy,
-) -> Real {
-    let left_min = left.center.y - left.half_height;
-    let left_max = left.center.y + left.half_height;
-    let right_min = right.center.y - right.half_height;
-    let right_max = right.center.y + right.half_height;
-    let y_gap = if left_max < right_min {
-        right_min - left_max
-    } else if right_max < left_min {
-        left_min - right_max
-    } else {
-        0.0
-    };
-    let xz_gap = Vec3::new(
-        left.center.x - right.center.x,
-        0.0,
-        left.center.z - right.center.z,
-    );
-    xz_gap.length_squared() + y_gap * y_gap
+) -> f64 {
+    let left_min = f64::from(left.center.y) - f64::from(left.half_height);
+    let left_max = f64::from(left.center.y) + f64::from(left.half_height);
+    let right_min = f64::from(right.center.y) - f64::from(right.half_height);
+    let right_max = f64::from(right.center.y) + f64::from(right.half_height);
+    let y_gap = interval_interval_gap(left_min, left_max, right_min, right_max);
+    let x_gap = f64::from(left.center.x) - f64::from(right.center.x);
+    let z_gap = f64::from(left.center.z) - f64::from(right.center.z);
+    x_gap * x_gap + y_gap * y_gap + z_gap * z_gap
 }
 
 fn capsule_segment_aabb_distance_squared_y(
     capsule: CapsuleOverlapProxy,
     box_proxy: BoxOverlapProxy,
-) -> Real {
-    let segment_min_y = capsule.center.y - capsule.half_height;
-    let segment_max_y = capsule.center.y + capsule.half_height;
-    let x_gap = point_interval_gap(capsule.center.x, box_proxy.min.x, box_proxy.max.x);
+) -> f64 {
+    let segment_min_y = f64::from(capsule.center.y) - f64::from(capsule.half_height);
+    let segment_max_y = f64::from(capsule.center.y) + f64::from(capsule.half_height);
+    let x_gap = point_interval_gap(
+        f64::from(capsule.center.x),
+        f64::from(box_proxy.min.x),
+        f64::from(box_proxy.max.x),
+    );
     let y_gap = interval_interval_gap(
         segment_min_y,
         segment_max_y,
-        box_proxy.min.y,
-        box_proxy.max.y,
+        f64::from(box_proxy.min.y),
+        f64::from(box_proxy.max.y),
     );
-    let z_gap = point_interval_gap(capsule.center.z, box_proxy.min.z, box_proxy.max.z);
+    let z_gap = point_interval_gap(
+        f64::from(capsule.center.z),
+        f64::from(box_proxy.min.z),
+        f64::from(box_proxy.max.z),
+    );
     x_gap * x_gap + y_gap * y_gap + z_gap * z_gap
 }
 
-fn point_interval_gap(point: Real, min: Real, max: Real) -> Real {
+fn point_interval_gap(point: f64, min: f64, max: f64) -> f64 {
     if point < min {
         min - point
     } else if point > max {
@@ -397,7 +424,7 @@ fn point_interval_gap(point: Real, min: Real, max: Real) -> Real {
     }
 }
 
-fn interval_interval_gap(left_min: Real, left_max: Real, right_min: Real, right_max: Real) -> Real {
+fn interval_interval_gap(left_min: f64, left_max: f64, right_min: f64, right_max: f64) -> f64 {
     if left_max < right_min {
         right_min - left_max
     } else if right_max < left_min {
@@ -433,12 +460,7 @@ fn collider_aabb(collider: &PhysicsColliderSyncState) -> Option<(Vec3, Vec3)> {
             half_extents
         }
     };
-    let min = center - half_extents;
-    let max = center + half_extents;
-    if !vec3_is_finite(min) || !vec3_is_finite(max) {
-        return None;
-    }
-    Some((min, max))
+    finite_aabb_bounds(center, half_extents)
 }
 
 fn max_abs_scale(scale: Vec3) -> Real {
@@ -462,6 +484,12 @@ fn box_geometry_is_valid(half_extents: [Real; 3]) -> bool {
 fn scaled_box_half_extents(half_extents: [Real; 3], scale: Vec3) -> Option<Vec3> {
     let scaled_half_extents = Vec3::from_array(half_extents) * scale.abs();
     vec3_is_finite(scaled_half_extents).then_some(scaled_half_extents)
+}
+
+fn finite_aabb_bounds(center: Vec3, half_extents: Vec3) -> Option<(Vec3, Vec3)> {
+    let min = center - half_extents;
+    let max = center + half_extents;
+    (vec3_is_finite(min) && vec3_is_finite(max)).then_some((min, max))
 }
 
 fn ray_cast_aabb(
@@ -528,7 +556,7 @@ fn ray_cast_aabb(
         normal = aabb_surface_normal(origin, direction, min, max).unwrap_or(normal);
     }
 
-    let position = origin + direction * distance;
+    let position = ray_hit_position(origin, direction, distance)?;
     Some(PhysicsRayCastHit {
         entity,
         distance,
@@ -576,35 +604,85 @@ fn ray_cast_sphere(
     center: Vec3,
     radius: Real,
 ) -> Option<PhysicsRayCastHit> {
-    let offset = origin - center;
-    let a = direction.length_squared();
-    let b = 2.0 * offset.dot(direction);
-    let c = offset.length_squared() - radius * radius;
-    let discriminant = b * b - 4.0 * a * c;
-    if discriminant < 0.0 {
-        return None;
-    }
-
-    let sqrt_discriminant = discriminant.sqrt();
-    let near_distance = (-b - sqrt_discriminant) / (2.0 * a);
-    let far_distance = (-b + sqrt_discriminant) / (2.0 * a);
-    let distance = if near_distance >= 0.0 {
+    let [near_distance, far_distance] =
+        ray_sphere_quadratic_distances(origin, direction, center, radius)?;
+    let distance_f64 = if near_distance >= 0.0 {
         near_distance
     } else {
         far_distance
     };
-    if !(0.0..=max_distance).contains(&distance) {
-        return None;
-    }
+    let distance = ray_distance_to_real(distance_f64, max_distance)?;
 
-    let position = origin + direction * distance;
-    let normal = (position - center).normalize_or_zero();
+    let position = ray_hit_position(origin, direction, distance)?;
+    let normal = normalized_offset_or_zero(position, center);
     Some(PhysicsRayCastHit {
         entity,
         distance,
         position: position.to_array(),
         normal: normal.to_array(),
     })
+}
+
+fn ray_sphere_quadratic_distances(
+    origin: Vec3,
+    direction: Vec3,
+    center: Vec3,
+    radius: Real,
+) -> Option<[f64; 2]> {
+    let offset_x = f64::from(origin.x) - f64::from(center.x);
+    let offset_y = f64::from(origin.y) - f64::from(center.y);
+    let offset_z = f64::from(origin.z) - f64::from(center.z);
+    let direction_x = f64::from(direction.x);
+    let direction_y = f64::from(direction.y);
+    let direction_z = f64::from(direction.z);
+    let a = direction_x * direction_x + direction_y * direction_y + direction_z * direction_z;
+    let b = 2.0 * (offset_x * direction_x + offset_y * direction_y + offset_z * direction_z);
+    let c =
+        offset_x * offset_x + offset_y * offset_y + offset_z * offset_z - f64::from(radius).powi(2);
+    ray_quadratic_distances(a, b, c)
+}
+
+fn ray_quadratic_distances(a: f64, b: f64, c: f64) -> Option<[f64; 2]> {
+    if !a.is_finite() || a <= f64::EPSILON || !b.is_finite() || !c.is_finite() {
+        return None;
+    }
+    let discriminant = b * b - 4.0 * a * c;
+    if !discriminant.is_finite() || discriminant < 0.0 {
+        return None;
+    }
+    let sqrt_discriminant = discriminant.sqrt();
+    Some([
+        (-b - sqrt_discriminant) / (2.0 * a),
+        (-b + sqrt_discriminant) / (2.0 * a),
+    ])
+}
+
+fn ray_distance_to_real(distance: f64, max_distance: Real) -> Option<Real> {
+    if !(0.0..=f64::from(max_distance)).contains(&distance) {
+        return None;
+    }
+    let distance = distance as Real;
+    distance.is_finite().then_some(distance)
+}
+
+fn ray_hit_position(origin: Vec3, direction: Vec3, distance: Real) -> Option<Vec3> {
+    let position = origin + direction * distance;
+    vec3_is_finite(position).then_some(position)
+}
+
+fn normalized_offset_or_zero(point: Vec3, center: Vec3) -> Vec3 {
+    let dx = f64::from(point.x) - f64::from(center.x);
+    let dy = f64::from(point.y) - f64::from(center.y);
+    let dz = f64::from(point.z) - f64::from(center.z);
+    let length = (dx * dx + dy * dy + dz * dz).sqrt();
+    if !length.is_finite() || length <= f64::EPSILON {
+        return Vec3::ZERO;
+    }
+    Vec3::new(
+        (dx / length) as Real,
+        (dy / length) as Real,
+        (dz / length) as Real,
+    )
 }
 
 fn ray_cast_capsule_cap_y(
@@ -617,45 +695,32 @@ fn ray_cast_capsule_cap_y(
     boundary_y: Real,
     upper: bool,
 ) -> Option<PhysicsRayCastHit> {
-    let offset = origin - center;
-    let a = direction.length_squared();
-    let b = 2.0 * offset.dot(direction);
-    let c = offset.length_squared() - radius * radius;
-    let discriminant = b * b - 4.0 * a * c;
-    if discriminant < 0.0 {
-        return None;
-    }
-
-    let sqrt_discriminant = discriminant.sqrt();
-    [
-        (-b - sqrt_discriminant) / (2.0 * a),
-        (-b + sqrt_discriminant) / (2.0 * a),
-    ]
-    .into_iter()
-    .filter(|distance| (0.0..=max_distance).contains(distance))
-    .filter_map(|distance| {
-        let position = origin + direction * distance;
-        let on_visible_cap = if upper {
-            position.y >= boundary_y
-        } else {
-            position.y <= boundary_y
-        };
-        if !on_visible_cap {
-            return None;
-        }
-        let normal = (position - center).normalize_or_zero();
-        Some(PhysicsRayCastHit {
-            entity,
-            distance,
-            position: position.to_array(),
-            normal: normal.to_array(),
+    ray_sphere_quadratic_distances(origin, direction, center, radius)?
+        .into_iter()
+        .filter_map(|distance| ray_distance_to_real(distance, max_distance))
+        .filter_map(|distance| {
+            let position = ray_hit_position(origin, direction, distance)?;
+            let on_visible_cap = if upper {
+                position.y >= boundary_y
+            } else {
+                position.y <= boundary_y
+            };
+            if !on_visible_cap {
+                return None;
+            }
+            let normal = normalized_offset_or_zero(position, center);
+            Some(PhysicsRayCastHit {
+                entity,
+                distance,
+                position: position.to_array(),
+                normal: normal.to_array(),
+            })
         })
-    })
-    .min_by(|left, right| {
-        left.distance
-            .partial_cmp(&right.distance)
-            .unwrap_or(std::cmp::Ordering::Equal)
-    })
+        .min_by(|left, right| {
+            left.distance
+                .partial_cmp(&right.distance)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        })
 }
 
 fn ray_cast_capsule_y(
@@ -720,33 +785,23 @@ fn ray_cast_capsule_cylinder_y(
     radius: Real,
     half_height: Real,
 ) -> Option<PhysicsRayCastHit> {
-    let offset = origin - center;
-    let a = direction.x * direction.x + direction.z * direction.z;
-    if a <= Real::EPSILON {
-        return None;
-    }
-
-    let b = 2.0 * (offset.x * direction.x + offset.z * direction.z);
-    let c = offset.x * offset.x + offset.z * offset.z - radius * radius;
-    let discriminant = b * b - 4.0 * a * c;
-    if discriminant < 0.0 {
-        return None;
-    }
-
-    let sqrt_discriminant = discriminant.sqrt();
-    let near = (-b - sqrt_discriminant) / (2.0 * a);
-    let far = (-b + sqrt_discriminant) / (2.0 * a);
-    [near, far]
+    let offset_x = f64::from(origin.x) - f64::from(center.x);
+    let offset_z = f64::from(origin.z) - f64::from(center.z);
+    let direction_x = f64::from(direction.x);
+    let direction_z = f64::from(direction.z);
+    let a = direction_x * direction_x + direction_z * direction_z;
+    let b = 2.0 * (offset_x * direction_x + offset_z * direction_z);
+    let c = offset_x * offset_x + offset_z * offset_z - f64::from(radius).powi(2);
+    ray_quadratic_distances(a, b, c)?
         .into_iter()
-        .filter(|distance| (0.0..=max_distance).contains(distance))
+        .filter_map(|distance| ray_distance_to_real(distance, max_distance))
         .filter_map(|distance| {
-            let position = origin + direction * distance;
+            let position = ray_hit_position(origin, direction, distance)?;
             let local_y = position.y - center.y;
             if local_y.abs() > half_height {
                 return None;
             }
-            let normal =
-                Vec3::new(position.x - center.x, 0.0, position.z - center.z).normalize_or_zero();
+            let normal = normalized_xz_offset_or_zero(position, center);
             Some(PhysicsRayCastHit {
                 entity,
                 distance,
@@ -759,4 +814,14 @@ fn ray_cast_capsule_cylinder_y(
                 .partial_cmp(&right.distance)
                 .unwrap_or(std::cmp::Ordering::Equal)
         })
+}
+
+fn normalized_xz_offset_or_zero(point: Vec3, center: Vec3) -> Vec3 {
+    let dx = f64::from(point.x) - f64::from(center.x);
+    let dz = f64::from(point.z) - f64::from(center.z);
+    let length = (dx * dx + dz * dz).sqrt();
+    if !length.is_finite() || length <= f64::EPSILON {
+        return Vec3::ZERO;
+    }
+    Vec3::new((dx / length) as Real, 0.0, (dz / length) as Real)
 }

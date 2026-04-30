@@ -8,6 +8,7 @@ use crate::ui::workbench::snapshot::{
     EditorChromeSnapshot, MainPageSnapshot, ViewContentKind, ViewTabSnapshot,
 };
 
+mod chrome_template_projection;
 mod floating_windows;
 mod frame_rect;
 mod host_data;
@@ -23,13 +24,15 @@ pub(crate) use frame_rect::frame_rect;
 pub(crate) use host_data::{
     AnimationEditorPaneViewData, AssetBrowserPaneViewData, AssetsActivityPaneViewData,
     ConsolePaneViewData, FloatingWindowData, FrameRect, HierarchyPaneViewData,
-    HostBottomDockSurfaceData, HostDocumentDockSurfaceData, HostFloatingWindowLayerData,
-    HostMenuChromeData, HostNativeFloatingWindowSurfaceData, HostPageChromeData,
-    HostResizeLayerData, HostSideDockSurfaceData, HostStatusBarData, HostTabDragOverlayData,
-    HostWindowLayoutData, HostWindowSceneData, HostWindowShellData, HostWindowSurfaceData,
-    HostWindowSurfaceMetricsData, HostWindowSurfaceOrchestrationData, InspectorPaneViewData,
-    ModulePluginStatusViewData, ModulePluginsPaneViewData, PaneBodyCompatData, PaneContentSize,
-    PaneData, ProjectOverviewData, ProjectOverviewPaneViewData, SceneNodeData, TabData,
+    HostBottomDockSurfaceData, HostChromeControlFrameData, HostChromeTabData,
+    HostDocumentDockSurfaceData, HostFloatingWindowLayerData, HostMenuChromeData,
+    HostMenuChromeItemData, HostMenuChromeMenuData, HostNativeFloatingWindowSurfaceData,
+    HostPageChromeData, HostResizeLayerData, HostSideDockSurfaceData, HostStatusBarData,
+    HostTabDragOverlayData, HostWindowLayoutData, HostWindowSceneData, HostWindowShellData,
+    HostWindowSurfaceData, HostWindowSurfaceMetricsData, HostWindowSurfaceOrchestrationData,
+    InspectorPaneViewData, ModulePluginStatusViewData, ModulePluginsPaneViewData,
+    PaneContentSize, PaneData, PaneNativeBodyData, ProjectOverviewData,
+    ProjectOverviewPaneViewData, SceneNodeData, TabData,
 };
 #[allow(unused_imports)]
 pub(crate) use pane_payload::PanePayload;

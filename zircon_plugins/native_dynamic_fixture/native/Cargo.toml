@@ -1,0 +1,11 @@
+[package]
+name = "zircon_plugin_native_dynamic_fixture_native"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Native dynamic ABI fixture plugin for Zircon."
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]

@@ -10,7 +10,7 @@ use crate::ui::template::{
     UiTemplateDocument, UiTemplateNode,
 };
 
-pub(super) fn legacy_template_layout_document(
+pub(super) fn convert_legacy_template_fixture_document(
     asset_id: impl Into<String>,
     display_name: impl Into<String>,
     document: &UiTemplateDocument,
@@ -57,16 +57,16 @@ pub(super) fn legacy_template_layout_document(
     })
 }
 
-pub(super) fn legacy_template_layout_source(
+pub(super) fn convert_legacy_template_fixture_source(
     asset_id: impl Into<String>,
     display_name: impl Into<String>,
     document: &UiTemplateDocument,
 ) -> Result<String, UiAssetError> {
-    let document = legacy_template_layout_document(asset_id, display_name, document)?;
+    let document = convert_legacy_template_fixture_document(asset_id, display_name, document)?;
     toml::to_string_pretty(&document).map_err(|error| UiAssetError::ParseToml(error.to_string()))
 }
 
-pub(super) fn migrate_flat_ui_asset_toml_str(input: &str) -> Result<String, UiAssetError> {
+pub(super) fn migrate_flat_ui_asset_fixture_toml_str(input: &str) -> Result<String, UiAssetError> {
     let legacy: FlatUiAssetDocument =
         toml::from_str(input).map_err(|error| UiAssetError::ParseToml(error.to_string()))?;
     let migrated = legacy.into_tree_document()?;
@@ -101,7 +101,7 @@ fn convert_template_node(
     } else {
         return Err(UiAssetError::InvalidDocument {
             asset_id: "legacy-template".to_string(),
-            detail: format!("legacy node {node_id} missing component/template/slot"),
+            detail: format!("template fixture node {node_id} missing component/template/slot"),
         });
     };
 

@@ -10,8 +10,8 @@ use zircon_runtime::foundation::{
 
 use crate::ui::host::module::{self, module_descriptor};
 use crate::ui::workbench::layout::{
-    ActivityDrawerLayout, ActivityDrawerMode, ActivityDrawerSlot, DocumentNode, MainHostPageLayout,
-    MainPageId, TabStackLayout, WorkbenchLayout,
+    ActivityDrawerLayout, ActivityDrawerMode, ActivityDrawerSlot, ActivityWindowId, DocumentNode,
+    MainHostPageLayout, MainPageId, TabStackLayout, WorkbenchLayout,
 };
 
 pub(super) fn unique_temp_path(prefix: &str) -> PathBuf {
@@ -388,6 +388,7 @@ pub(super) fn empty_layout_with_page(page_id: &str) -> WorkbenchLayout {
         main_pages: vec![MainHostPageLayout::WorkbenchPage {
             id: page_id,
             title: "Workbench".to_string(),
+            activity_window: ActivityWindowId::workbench(),
             document_workspace: DocumentNode::Tabs(TabStackLayout {
                 tabs: Vec::new(),
                 active_tab: None,

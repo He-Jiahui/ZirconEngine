@@ -13,8 +13,15 @@ mod native_plugin_loader;
 
 pub use loaded_native_plugin::LoadedNativePlugin;
 pub use native_plugin_abi::{
-    NativePluginAbiV1, NativePluginDescriptor, NativePluginEntryReport, NativePluginEntryReportV1,
-    ZIRCON_NATIVE_PLUGIN_ABI_VERSION, ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL,
+    NativePluginAbiV1, NativePluginAbiV2, NativePluginBehaviorCallReport, NativePluginBehaviorV2,
+    NativePluginByteSliceV2, NativePluginCallbackStatusV2, NativePluginDescriptor,
+    NativePluginEntryReport, NativePluginEntryReportV1, NativePluginEntryReportV2,
+    NativePluginHostFunctionTableV2, NativePluginOwnedByteBufferV2,
+    ZIRCON_NATIVE_PLUGIN_ABI_VERSION, ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V1,
+    ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2, ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL,
+    ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V1, ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V2,
+    ZIRCON_NATIVE_PLUGIN_STATUS_DENIED, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
+    ZIRCON_NATIVE_PLUGIN_STATUS_OK, ZIRCON_NATIVE_PLUGIN_STATUS_PANIC,
 };
 pub use native_plugin_candidate::NativePluginCandidate;
 pub use native_plugin_load_manifest::{NativePluginLoadManifest, NativePluginLoadManifestEntry};

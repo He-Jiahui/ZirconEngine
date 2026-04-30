@@ -28,7 +28,7 @@ impl VirtualGeometryNodeAndClusterCullTraversalOp {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum VirtualGeometryNodeAndClusterCullTraversalChildSource {
     None,
-    CompatFixedFanout,
+    FixedFanout,
     AuthoredHierarchy,
 }
 
@@ -36,7 +36,7 @@ impl VirtualGeometryNodeAndClusterCullTraversalChildSource {
     fn packed_word(self) -> u32 {
         match self {
             Self::None => 0,
-            Self::CompatFixedFanout => 1,
+            Self::FixedFanout => 1,
             Self::AuthoredHierarchy => 2,
         }
     }
@@ -45,7 +45,7 @@ impl VirtualGeometryNodeAndClusterCullTraversalChildSource {
     fn from_packed_word(word: u32) -> Option<Self> {
         match word {
             0 => Some(Self::None),
-            1 => Some(Self::CompatFixedFanout),
+            1 => Some(Self::FixedFanout),
             2 => Some(Self::AuthoredHierarchy),
             _ => None,
         }

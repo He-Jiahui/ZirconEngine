@@ -4,7 +4,7 @@ use super::super::error::EditorBindingDispatchError;
 use super::super::inspector::apply_inspector_draft_field;
 use super::dispatch::dispatch_draft_binding;
 use super::draft_host_event::DraftHostEvent;
-use crate::EditorState;
+use crate::ui::workbench::state::EditorState;
 
 pub fn apply_draft_binding(
     state: &mut EditorState,

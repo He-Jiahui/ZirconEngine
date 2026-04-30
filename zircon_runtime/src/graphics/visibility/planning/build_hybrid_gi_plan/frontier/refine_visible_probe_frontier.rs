@@ -1,12 +1,11 @@
 use std::collections::BTreeMap;
 
-use crate::core::framework::render::RenderHybridGiProbe;
-
 use super::super::ordering::hybrid_gi_probe_sort_key;
+use super::super::sources::HybridGiVisibilityPlanProbe;
 
 pub(in crate::graphics::visibility::planning::build_hybrid_gi_plan) fn refine_visible_probe_frontier(
-    visible_probes: &[RenderHybridGiProbe],
-) -> Vec<RenderHybridGiProbe> {
+    visible_probes: &[HybridGiVisibilityPlanProbe],
+) -> Vec<HybridGiVisibilityPlanProbe> {
     if visible_probes.is_empty() {
         return Vec::new();
     }
@@ -15,7 +14,7 @@ pub(in crate::graphics::visibility::planning::build_hybrid_gi_plan) fn refine_vi
         .iter()
         .map(|probe| (probe.probe_id, *probe))
         .collect::<BTreeMap<_, _>>();
-    let mut children_by_parent = BTreeMap::<u32, Vec<RenderHybridGiProbe>>::new();
+    let mut children_by_parent = BTreeMap::<u32, Vec<HybridGiVisibilityPlanProbe>>::new();
     let mut frontier = visible_probes
         .iter()
         .copied()

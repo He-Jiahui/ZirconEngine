@@ -24,7 +24,16 @@ impl EditorEventRuntime {
 
         let chrome = Self::build_chrome_locked(inner, descriptors);
         let active_extensions = active_extension_registries(inner);
-        let view_model = WorkbenchViewModel::build_with_extensions(&chrome, &active_extensions);
+        let enabled_capabilities = inner
+            .manager
+            .capability_snapshot()
+            .enabled_capabilities()
+            .to_vec();
+        let view_model = WorkbenchViewModel::build_with_extensions_and_capabilities(
+            &chrome,
+            &active_extensions,
+            &enabled_capabilities,
+        );
         let model = register_workbench_reflection_routes(
             &mut inner.control_service,
             build_workbench_reflection_model(&chrome, &view_model),

@@ -347,8 +347,8 @@ fn animation_manager_persists_playback_settings_to_runtime_config() {
         .store_playback_settings(playback_settings.clone())
         .unwrap();
 
-    let facade = resolve_animation_manager(&runtime.handle()).unwrap();
-    assert_eq!(facade.playback_settings(), playback_settings);
+    let resolved_manager = resolve_animation_manager(&runtime.handle()).unwrap();
+    assert_eq!(resolved_manager.playback_settings(), playback_settings);
 
     let config = resolve_config_manager(&runtime.handle()).unwrap();
     assert!(config
@@ -455,6 +455,45 @@ fn animation_manager_evaluates_graph_blend_with_non_finite_weight_as_default() {
     assert!(evaluation.clips.iter().all(|clip| clip.weight.is_finite()));
     assert_eq!(evaluation.clips[0].weight, 1.0);
     assert_eq!(evaluation.clips[1].weight, 0.0);
+}
+
+#[test]
+fn animation_manager_evaluates_graph_clip_with_non_finite_playback_speed_as_default() {
+    let manager = super::DefaultAnimationManager::default();
+    let graph = AnimationGraphAsset {
+        name: Some("MalformedGraph".to_string()),
+        parameters: Vec::new(),
+        nodes: vec![
+            AnimationGraphNodeAsset::Clip {
+                id: "idle".to_string(),
+                clip: asset_reference("res://animation/hero_idle.clip.zranim"),
+                playback_speed: f32::NAN,
+                looping: true,
+            },
+            AnimationGraphNodeAsset::Clip {
+                id: "run".to_string(),
+                clip: asset_reference("res://animation/hero_run.clip.zranim"),
+                playback_speed: f32::INFINITY,
+                looping: true,
+            },
+            AnimationGraphNodeAsset::Blend {
+                id: "blend_node".to_string(),
+                inputs: vec!["idle".to_string(), "run".to_string()],
+                weight_parameter: None,
+            },
+            AnimationGraphNodeAsset::Output {
+                source: "blend_node".to_string(),
+            },
+        ],
+    };
+
+    let evaluation = manager.evaluate_graph(&graph, &BTreeMap::new());
+
+    assert_eq!(evaluation.clips.len(), 2);
+    assert!(evaluation
+        .clips
+        .iter()
+        .all(|clip| clip.playback_speed == 1.0));
 }
 
 #[test]
@@ -619,6 +658,94 @@ fn animation_manager_ignores_transition_when_target_state_is_missing() {
         &state_machine,
         Some("Idle"),
         &BTreeMap::from([("jump".to_string(), AnimationParameterValue::Trigger)]),
+    );
+
+    assert_eq!(evaluation.active_state.as_deref(), Some("Idle"));
+    assert!(!evaluation.transitioned);
+    assert_eq!(
+        evaluation
+            .graph
+            .as_ref()
+            .map(|graph| graph.locator.to_string())
+            .as_deref(),
+        Some("res://animation/idle.graph.zranim")
+    );
+}
+
+#[test]
+fn animation_manager_ignores_state_machine_transition_when_condition_parameter_is_missing() {
+    let manager = super::DefaultAnimationManager::default();
+    let state_machine = AnimationStateMachineAsset {
+        name: Some("HeroStateMachine".to_string()),
+        entry_state: "Idle".to_string(),
+        states: vec![
+            AnimationStateAsset {
+                name: "Idle".to_string(),
+                graph: asset_reference("res://animation/idle.graph.zranim"),
+            },
+            AnimationStateAsset {
+                name: "Run".to_string(),
+                graph: asset_reference("res://animation/run.graph.zranim"),
+            },
+        ],
+        transitions: vec![AnimationStateTransitionAsset {
+            from_state: "Idle".to_string(),
+            to_state: "Run".to_string(),
+            duration_seconds: 0.1,
+            conditions: vec![AnimationTransitionConditionAsset {
+                parameter: "speed".to_string(),
+                operator: AnimationConditionOperatorAsset::NotEqual,
+                value: Some(AnimationParameterValue::Scalar(0.0)),
+            }],
+        }],
+    };
+
+    let evaluation = manager.evaluate_state_machine(&state_machine, Some("Idle"), &BTreeMap::new());
+
+    assert_eq!(evaluation.active_state.as_deref(), Some("Idle"));
+    assert!(!evaluation.transitioned);
+    assert_eq!(
+        evaluation
+            .graph
+            .as_ref()
+            .map(|graph| graph.locator.to_string())
+            .as_deref(),
+        Some("res://animation/idle.graph.zranim")
+    );
+}
+
+#[test]
+fn animation_manager_ignores_state_machine_transition_when_comparison_value_is_missing() {
+    let manager = super::DefaultAnimationManager::default();
+    let state_machine = AnimationStateMachineAsset {
+        name: Some("HeroStateMachine".to_string()),
+        entry_state: "Idle".to_string(),
+        states: vec![
+            AnimationStateAsset {
+                name: "Idle".to_string(),
+                graph: asset_reference("res://animation/idle.graph.zranim"),
+            },
+            AnimationStateAsset {
+                name: "Run".to_string(),
+                graph: asset_reference("res://animation/run.graph.zranim"),
+            },
+        ],
+        transitions: vec![AnimationStateTransitionAsset {
+            from_state: "Idle".to_string(),
+            to_state: "Run".to_string(),
+            duration_seconds: 0.1,
+            conditions: vec![AnimationTransitionConditionAsset {
+                parameter: "speed".to_string(),
+                operator: AnimationConditionOperatorAsset::NotEqual,
+                value: None,
+            }],
+        }],
+    };
+
+    let evaluation = manager.evaluate_state_machine(
+        &state_machine,
+        Some("Idle"),
+        &BTreeMap::from([("speed".to_string(), AnimationParameterValue::Scalar(1.0))]),
     );
 
     assert_eq!(evaluation.active_state.as_deref(), Some("Idle"));

@@ -99,6 +99,6 @@ fn executed_cluster_selection_pass_filters_deduplicates_and_sorts_cluster_select
                 VirtualGeometryPrepareClusterState::PendingUpload,
             ),
         ],
-        "expected the shared compat executed-cluster seam to drop non-executed submissions, deduplicate repeated clusters, and emit the exact stable ordering that both VisBuffer64 and HardwareRasterization consume"
+        "expected the shared executed-cluster seam to drop non-executed submissions, deduplicate repeated clusters, and emit the exact stable ordering that both VisBuffer64 and HardwareRasterization consume"
     );
 }

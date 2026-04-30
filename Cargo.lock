@@ -623,10 +623,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cargo-smoke"
-version = "0.1.0"
-
-[[package]]
 name = "cc"
 version = "1.2.60"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1948,7 +1944,6 @@ dependencies = [
  "derive_more",
  "i-slint-common",
  "icu_normalizer",
- "image",
  "itertools 0.14.0",
  "linked_hash_set",
  "lyon_extra",
@@ -1956,14 +1951,9 @@ dependencies = [
  "num_enum",
  "proc-macro2",
  "quote",
- "rayon",
- "resvg",
  "rowan",
- "rspolib",
- "skrifa",
  "smol_str 0.3.6",
  "strum",
- "swash",
  "typed-index-collections",
  "unicode-segmentation",
  "url",
@@ -2890,12 +2880,6 @@ dependencies = [
  "thiserror 2.0.18",
  "unicode-ident",
 ]
-
-[[package]]
-name = "natord"
-version = "1.0.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "308d96db8debc727c3fd9744aac51751243420e46edf401010908da7f8d5e57c"
 
 [[package]]
 name = "ndk"
@@ -4141,19 +4125,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rspolib"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4fda9a7796aff63a7b1b39ccc93fffaaf65e20042984b4843041a49ca4677535"
-dependencies = [
- "lazy_static",
- "natord",
- "snafu",
- "unicode-linebreak",
- "unicode-width",
-]
-
-[[package]]
 name = "rustc-hash"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4480,19 +4451,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "slint-build"
-version = "1.16.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec94124d27a1b691fd8613c653bae47ece44cb469af11ce0edf645acf458ae61"
-dependencies = [
- "derive_more",
- "fontique",
- "i-slint-compiler",
- "spin_on",
- "toml_edit",
-]
-
-[[package]]
 name = "slint-macros"
 version = "1.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4599,27 +4557,6 @@ checksum = "4aaa7368fcf4852a4c2dd92df0cace6a71f2091ca0a23391ce7f3a31833f1523"
 dependencies = [
  "borsh",
  "serde_core",
-]
-
-[[package]]
-name = "snafu"
-version = "0.8.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6e84b3f4eacbf3a1ce05eac6763b4d629d60cbc94d632e4092c54ade71f1e1a2"
-dependencies = [
- "snafu-derive",
-]
-
-[[package]]
-name = "snafu-derive"
-version = "0.8.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c1c97747dbf44bb1ca44a561ece23508e99cb592e862f22222dcf42f51d1e451"
-dependencies = [
- "heck",
- "proc-macro2",
- "quote",
- "syn",
 ]
 
 [[package]]
@@ -5030,7 +4967,6 @@ dependencies = [
  "indexmap",
  "toml_datetime 1.1.1+spec-1.1.0",
  "toml_parser",
- "toml_writer",
  "winnow 1.0.1",
 ]
 
@@ -6854,7 +6790,6 @@ dependencies = [
  "serde",
  "serde_json",
  "slint",
- "slint-build",
  "thiserror 2.0.18",
  "toml 1.1.2+spec-1.1.0",
  "zircon_runtime",

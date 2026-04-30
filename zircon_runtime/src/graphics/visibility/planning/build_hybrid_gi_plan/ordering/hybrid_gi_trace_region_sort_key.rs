@@ -1,10 +1,10 @@
 use std::cmp::Ordering;
 
-use crate::core::framework::render::RenderHybridGiTraceRegion;
+use super::super::sources::HybridGiVisibilityPlanTraceRegion;
 
 pub(in crate::graphics::visibility::planning::build_hybrid_gi_plan) fn hybrid_gi_trace_region_sort_key(
-    left: &RenderHybridGiTraceRegion,
-    right: &RenderHybridGiTraceRegion,
+    left: &HybridGiVisibilityPlanTraceRegion,
+    right: &HybridGiVisibilityPlanTraceRegion,
 ) -> Ordering {
     right
         .screen_coverage

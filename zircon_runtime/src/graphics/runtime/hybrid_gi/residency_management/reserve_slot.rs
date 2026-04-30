@@ -5,15 +5,15 @@ impl HybridGiRuntimeState {
         &mut self,
         slot: u32,
     ) {
-        if self.free_slots.remove(&slot) {
+        if self.remove_free_slot(slot) {
             return;
         }
 
-        if slot >= self.next_slot {
-            for free_slot in self.next_slot..slot {
-                self.free_slots.insert(free_slot);
+        if slot >= self.next_slot() {
+            for free_slot in self.next_slot()..slot {
+                self.insert_free_slot(free_slot);
             }
-            self.next_slot = slot.saturating_add(1);
+            self.advance_next_slot_past(slot);
         }
     }
 }

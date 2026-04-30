@@ -13,13 +13,15 @@ use crate::ui::slint_host::root_shell_projection::{
     resolve_root_right_region_frame, resolve_root_status_bar_frame,
     resolve_root_viewport_content_frame,
 };
-use crate::ui::slint_host::{self as slint_ui, HostWindowPresentationData, UiHostWindow};
+use crate::ui::slint_host::{self as host_contract, HostWindowPresentationData, UiHostWindow};
 use crate::ui::template_runtime::EditorUiHostRuntime;
 use crate::ui::workbench::autolayout::{ShellRegionId, WorkbenchShellGeometry};
 use crate::ui::workbench::model::WorkbenchViewModel;
 use crate::ui::workbench::snapshot::EditorChromeSnapshot;
-use slint::{ComponentHandle, Model, ModelRc};
+use slint::{Model, ModelRc};
 use zircon_runtime::ui::layout::UiSize;
+
+use super::template_node_conversion::to_host_contract_template_nodes;
 
 pub(crate) fn apply_presentation(
     ui: &UiHostWindow,
@@ -56,46 +58,54 @@ pub(crate) fn apply_presentation(
     );
     let document_pane_shows_viewport_toolbar =
         presentation.host_surface_data.document_pane.show_toolbar;
-    let pane_surface_host = ui.global::<slint_ui::PaneSurfaceHostContext>();
+    let pane_surface_host = ui.global::<host_contract::PaneSurfaceHostContext>();
 
-    pane_surface_host.set_recent_projects(to_slint_recent_projects(
+    pane_surface_host.set_recent_projects(to_host_contract_recent_projects(
         &presentation.welcome.recent_projects,
     ));
-    pane_surface_host
-        .set_project_overview(to_slint_project_overview(&presentation.project_overview));
-    pane_surface_host.set_activity_asset_tree_folders(to_slint_asset_folders(
+    pane_surface_host.set_project_overview(to_host_contract_project_overview(
+        &presentation.project_overview,
+    ));
+    pane_surface_host.set_activity_asset_tree_folders(to_host_contract_asset_folders(
         &presentation.activity.tree_folders,
     ));
-    pane_surface_host.set_activity_asset_content_folders(to_slint_asset_folders(
+    pane_surface_host.set_activity_asset_content_folders(to_host_contract_asset_folders(
         &presentation.activity.content_folders,
     ));
-    pane_surface_host.set_activity_asset_content_items(to_slint_asset_items(
+    pane_surface_host.set_activity_asset_content_items(to_host_contract_asset_items(
         &presentation.activity.content_items,
     ));
-    pane_surface_host
-        .set_activity_asset_selection(to_slint_asset_selection(&presentation.activity.selection));
-    pane_surface_host.set_activity_asset_references(to_slint_asset_references(
+    pane_surface_host.set_activity_asset_selection(to_host_contract_asset_selection(
+        &presentation.activity.selection,
+    ));
+    pane_surface_host.set_activity_asset_references(to_host_contract_asset_references(
         &presentation.activity.references,
     ));
-    pane_surface_host
-        .set_activity_asset_used_by(to_slint_asset_references(&presentation.activity.used_by));
+    pane_surface_host.set_activity_asset_used_by(to_host_contract_asset_references(
+        &presentation.activity.used_by,
+    ));
     pane_surface_host.set_activity_asset_search_query(presentation.activity.search_query);
     pane_surface_host.set_activity_asset_kind_filter(presentation.activity.kind_filter);
     pane_surface_host.set_activity_asset_view_mode(presentation.activity.view_mode);
     pane_surface_host.set_activity_asset_utility_tab(presentation.activity.utility_tab);
-    pane_surface_host
-        .set_browser_asset_tree_folders(to_slint_asset_folders(&presentation.browser.tree_folders));
-    pane_surface_host.set_browser_asset_content_folders(to_slint_asset_folders(
+    pane_surface_host.set_browser_asset_tree_folders(to_host_contract_asset_folders(
+        &presentation.browser.tree_folders,
+    ));
+    pane_surface_host.set_browser_asset_content_folders(to_host_contract_asset_folders(
         &presentation.browser.content_folders,
     ));
-    pane_surface_host
-        .set_browser_asset_content_items(to_slint_asset_items(&presentation.browser.content_items));
-    pane_surface_host
-        .set_browser_asset_selection(to_slint_asset_selection(&presentation.browser.selection));
-    pane_surface_host
-        .set_browser_asset_references(to_slint_asset_references(&presentation.browser.references));
-    pane_surface_host
-        .set_browser_asset_used_by(to_slint_asset_references(&presentation.browser.used_by));
+    pane_surface_host.set_browser_asset_content_items(to_host_contract_asset_items(
+        &presentation.browser.content_items,
+    ));
+    pane_surface_host.set_browser_asset_selection(to_host_contract_asset_selection(
+        &presentation.browser.selection,
+    ));
+    pane_surface_host.set_browser_asset_references(to_host_contract_asset_references(
+        &presentation.browser.references,
+    ));
+    pane_surface_host.set_browser_asset_used_by(to_host_contract_asset_references(
+        &presentation.browser.used_by,
+    ));
     pane_surface_host.set_browser_asset_search_query(presentation.browser.search_query);
     pane_surface_host.set_browser_asset_kind_filter(presentation.browser.kind_filter);
     pane_surface_host.set_browser_asset_view_mode(presentation.browser.view_mode);
@@ -107,6 +117,7 @@ pub(crate) fn apply_presentation(
         document_pane_shows_viewport_toolbar,
     );
     let host_scene_data = build_host_scene_data(
+        &model.menu_bar,
         &presentation.host_surface_data,
         &presentation.host_shell,
         &host_layout,
@@ -121,19 +132,19 @@ pub(crate) fn apply_presentation(
         &chrome.project_overview,
     );
     let host_presentation = HostWindowPresentationData {
-        host_scene_data: to_slint_host_scene_data_with_runtime(
+        host_scene_data: to_host_contract_host_scene_data_with_runtime(
             &host_scene_data,
             component_showcase_runtime,
         ),
-        native_floating_surface_data: to_slint_native_floating_surface_data_with_runtime(
+        native_floating_surface_data: to_host_contract_native_floating_surface_data_with_runtime(
             &native_floating_surface_data,
             component_showcase_runtime,
         ),
-        host_shell: to_slint_host_shell(&presentation.host_shell),
-        host_layout: to_slint_host_window_layout(&host_layout),
+        host_shell: to_host_contract_host_shell(&presentation.host_shell),
+        host_layout: to_host_contract_host_window_layout(&host_layout),
     };
     ui.set_host_presentation(host_presentation);
-    pane_surface_host.set_welcome_pane(to_slint_welcome_pane(&welcome_pane));
+    pane_surface_host.set_welcome_pane(to_host_contract_welcome_pane(&welcome_pane));
     pane_surface_host.set_mesh_import_path(presentation.mesh_import_path);
 }
 
@@ -183,8 +194,8 @@ where
     )
 }
 
-fn to_slint_frame_rect(frame: &host_window::FrameRect) -> slint_ui::FrameRect {
-    slint_ui::FrameRect {
+fn to_host_contract_frame_rect(frame: &host_window::FrameRect) -> host_contract::FrameRect {
+    host_contract::FrameRect {
         x: frame.x,
         y: frame.y,
         width: frame.width,
@@ -192,8 +203,8 @@ fn to_slint_frame_rect(frame: &host_window::FrameRect) -> slint_ui::FrameRect {
     }
 }
 
-fn to_slint_tab_data(tab: host_window::TabData) -> slint_ui::TabData {
-    slint_ui::TabData {
+fn to_host_contract_tab_data(tab: host_window::TabData) -> host_contract::TabData {
+    host_contract::TabData {
         id: tab.id,
         slot: tab.slot,
         title: tab.title,
@@ -203,46 +214,60 @@ fn to_slint_tab_data(tab: host_window::TabData) -> slint_ui::TabData {
     }
 }
 
-fn to_slint_tabs(tabs: &ModelRc<host_window::TabData>) -> ModelRc<slint_ui::TabData> {
-    map_model_rc(tabs, to_slint_tab_data)
+fn to_host_contract_tabs(tabs: &ModelRc<host_window::TabData>) -> ModelRc<host_contract::TabData> {
+    map_model_rc(tabs, to_host_contract_tab_data)
 }
 
-fn to_slint_floating_window_data(
+fn to_host_contract_floating_window_data(
     window: host_window::FloatingWindowData,
     header_height_px: f32,
     component_showcase_runtime: Option<&EditorUiHostRuntime>,
-) -> slint_ui::FloatingWindowData {
+) -> host_contract::FloatingWindowData {
+    let resolved_header_height_px = if window.header_frame.height > 0.0 {
+        window.header_frame.height
+    } else {
+        header_height_px
+    };
     let pane_size = host_window::PaneContentSize::new(
         window.frame.width,
-        (window.frame.height - header_height_px).max(0.0),
+        (window.frame.height - resolved_header_height_px - 1.0).max(0.0),
     );
-    slint_ui::FloatingWindowData {
+    host_contract::FloatingWindowData {
         window_id: window.window_id,
         title: window.title,
-        frame: to_slint_frame_rect(&window.frame),
+        frame: to_host_contract_frame_rect(&window.frame),
+        header_nodes: to_host_contract_template_nodes(&window.header_nodes),
+        header_frame: to_host_contract_frame_rect(&window.header_frame),
+        tab_frames: map_model_rc(&window.tab_frames, to_host_contract_chrome_tab),
         target_group: window.target_group,
         left_edge_target_group: window.left_edge_target_group,
         right_edge_target_group: window.right_edge_target_group,
         top_edge_target_group: window.top_edge_target_group,
         bottom_edge_target_group: window.bottom_edge_target_group,
         focus_target_id: window.focus_target_id,
-        tabs: to_slint_tabs(&window.tabs),
-        active_pane: to_slint_pane(window.active_pane, pane_size, component_showcase_runtime),
+        tabs: to_host_contract_tabs(&window.tabs),
+        active_pane: to_host_contract_pane(
+            window.active_pane,
+            pane_size,
+            component_showcase_runtime,
+        ),
     }
 }
 
-fn to_slint_floating_windows(
+fn to_host_contract_floating_windows(
     windows: &ModelRc<host_window::FloatingWindowData>,
     header_height_px: f32,
     component_showcase_runtime: Option<&EditorUiHostRuntime>,
-) -> ModelRc<slint_ui::FloatingWindowData> {
+) -> ModelRc<host_contract::FloatingWindowData> {
     map_model_rc(windows, |window| {
-        to_slint_floating_window_data(window, header_height_px, component_showcase_runtime)
+        to_host_contract_floating_window_data(window, header_height_px, component_showcase_runtime)
     })
 }
 
-fn to_slint_new_project_form(form: &view_data::NewProjectFormData) -> slint_ui::NewProjectFormData {
-    slint_ui::NewProjectFormData {
+fn to_host_contract_new_project_form(
+    form: &view_data::NewProjectFormData,
+) -> host_contract::NewProjectFormData {
+    host_contract::NewProjectFormData {
         project_name: form.project_name.clone(),
         location: form.location.clone(),
         project_path_preview: form.project_path_preview.clone(),
@@ -254,77 +279,15 @@ fn to_slint_new_project_form(form: &view_data::NewProjectFormData) -> slint_ui::
     }
 }
 
-fn to_slint_template_frame(
-    frame: &view_data::ViewTemplateFrameData,
-) -> slint_ui::TemplateNodeFrameData {
-    slint_ui::TemplateNodeFrameData {
-        x: frame.x,
-        y: frame.y,
-        width: frame.width,
-        height: frame.height,
-    }
-}
-
-fn to_slint_template_node(
-    data: &view_data::ViewTemplateNodeData,
-) -> slint_ui::TemplatePaneNodeData {
-    slint_ui::TemplatePaneNodeData {
-        node_id: data.node_id.clone(),
-        control_id: data.control_id.clone(),
-        role: data.role.clone(),
-        text: data.text.clone(),
-        component_role: "".into(),
-        value_text: "".into(),
-        value_number: 0.0,
-        value_percent: 0.0,
-        value_color: slint::Color::from_argb_u8(0, 0, 0, 0),
-        media_source: "".into(),
-        icon_name: "".into(),
-        vector_components: ModelRc::default(),
-        validation_level: "".into(),
-        validation_message: "".into(),
-        popup_open: false,
-        selection_state: "".into(),
-        options_text: "".into(),
-        options: ModelRc::default(),
-        collection_items: ModelRc::default(),
-        menu_items: ModelRc::default(),
-        actions: ModelRc::default(),
-        accepted_drag_payloads: "".into(),
-        checked: false,
-        expanded: false,
-        focused: false,
-        hovered: false,
-        pressed: false,
-        dragging: false,
-        drop_hovered: false,
-        disabled: false,
-        dispatch_kind: data.dispatch_kind.clone(),
-        action_id: data.action_id.clone(),
-        begin_drag_action_id: "".into(),
-        drag_action_id: "".into(),
-        end_drag_action_id: "".into(),
-        edit_action_id: "".into(),
-        surface_variant: data.surface_variant.clone(),
-        text_tone: data.text_tone.clone(),
-        button_variant: data.button_variant.clone(),
-        font_size: data.font_size,
-        font_weight: data.font_weight,
-        text_align: data.text_align.clone(),
-        overflow: data.overflow.clone(),
-        corner_radius: data.corner_radius,
-        border_width: data.border_width,
-        frame: to_slint_template_frame(&data.frame),
-    }
-}
-
-fn to_slint_welcome_pane(pane: &view_data::WelcomePaneData) -> slint_ui::WelcomePaneData {
-    slint_ui::WelcomePaneData {
-        nodes: map_model_rc(&pane.nodes, |node| to_slint_template_node(&node)),
+fn to_host_contract_welcome_pane(
+    pane: &view_data::WelcomePaneData,
+) -> host_contract::WelcomePaneData {
+    host_contract::WelcomePaneData {
+        nodes: to_host_contract_template_nodes(&pane.nodes),
         title: pane.title.clone(),
         subtitle: pane.subtitle.clone(),
         status_message: pane.status_message.clone(),
-        form: to_slint_new_project_form(&pane.form),
+        form: to_host_contract_new_project_form(&pane.form),
     }
 }
 
@@ -396,8 +359,10 @@ fn dock_content_height(region_height: f32, header_height: f32) -> f32 {
     (region_height - header_height - 1.0).max(0.0)
 }
 
-fn to_slint_recent_project(data: view_data::RecentProjectData) -> slint_ui::RecentProjectData {
-    slint_ui::RecentProjectData {
+fn to_host_contract_recent_project(
+    data: view_data::RecentProjectData,
+) -> host_contract::RecentProjectData {
+    host_contract::RecentProjectData {
         display_name: data.display_name,
         path: data.path,
         last_opened_label: data.last_opened_label,
@@ -406,14 +371,16 @@ fn to_slint_recent_project(data: view_data::RecentProjectData) -> slint_ui::Rece
     }
 }
 
-fn to_slint_recent_projects(
+fn to_host_contract_recent_projects(
     data: &ModelRc<view_data::RecentProjectData>,
-) -> ModelRc<slint_ui::RecentProjectData> {
-    map_model_rc(data, to_slint_recent_project)
+) -> ModelRc<host_contract::RecentProjectData> {
+    map_model_rc(data, to_host_contract_recent_project)
 }
 
-fn to_slint_asset_folder(data: view_data::AssetFolderData) -> slint_ui::AssetFolderData {
-    slint_ui::AssetFolderData {
+fn to_host_contract_asset_folder(
+    data: view_data::AssetFolderData,
+) -> host_contract::AssetFolderData {
+    host_contract::AssetFolderData {
         id: data.id,
         name: data.name,
         count: data.count,
@@ -422,14 +389,14 @@ fn to_slint_asset_folder(data: view_data::AssetFolderData) -> slint_ui::AssetFol
     }
 }
 
-fn to_slint_asset_folders(
+fn to_host_contract_asset_folders(
     data: &ModelRc<view_data::AssetFolderData>,
-) -> ModelRc<slint_ui::AssetFolderData> {
-    map_model_rc(data, to_slint_asset_folder)
+) -> ModelRc<host_contract::AssetFolderData> {
+    map_model_rc(data, to_host_contract_asset_folder)
 }
 
-fn to_slint_asset_item(data: view_data::AssetItemData) -> slint_ui::AssetItemData {
-    slint_ui::AssetItemData {
+fn to_host_contract_asset_item(data: view_data::AssetItemData) -> host_contract::AssetItemData {
+    host_contract::AssetItemData {
         uuid: data.uuid,
         locator: data.locator,
         name: data.name,
@@ -446,14 +413,16 @@ fn to_slint_asset_item(data: view_data::AssetItemData) -> slint_ui::AssetItemDat
     }
 }
 
-fn to_slint_asset_items(
+fn to_host_contract_asset_items(
     data: &ModelRc<view_data::AssetItemData>,
-) -> ModelRc<slint_ui::AssetItemData> {
-    map_model_rc(data, to_slint_asset_item)
+) -> ModelRc<host_contract::AssetItemData> {
+    map_model_rc(data, to_host_contract_asset_item)
 }
 
-fn to_slint_asset_reference(data: view_data::AssetReferenceData) -> slint_ui::AssetReferenceData {
-    slint_ui::AssetReferenceData {
+fn to_host_contract_asset_reference(
+    data: view_data::AssetReferenceData,
+) -> host_contract::AssetReferenceData {
+    host_contract::AssetReferenceData {
         uuid: data.uuid,
         locator: data.locator,
         name: data.name,
@@ -462,14 +431,16 @@ fn to_slint_asset_reference(data: view_data::AssetReferenceData) -> slint_ui::As
     }
 }
 
-fn to_slint_asset_references(
+fn to_host_contract_asset_references(
     data: &ModelRc<view_data::AssetReferenceData>,
-) -> ModelRc<slint_ui::AssetReferenceData> {
-    map_model_rc(data, to_slint_asset_reference)
+) -> ModelRc<host_contract::AssetReferenceData> {
+    map_model_rc(data, to_host_contract_asset_reference)
 }
 
-fn to_slint_asset_selection(data: &view_data::AssetSelectionData) -> slint_ui::AssetSelectionData {
-    slint_ui::AssetSelectionData {
+fn to_host_contract_asset_selection(
+    data: &view_data::AssetSelectionData,
+) -> host_contract::AssetSelectionData {
+    host_contract::AssetSelectionData {
         uuid: data.uuid.clone(),
         name: data.name.clone(),
         locator: data.locator.clone(),
@@ -484,10 +455,10 @@ fn to_slint_asset_selection(data: &view_data::AssetSelectionData) -> slint_ui::A
     }
 }
 
-fn to_slint_scene_viewport_chrome(
+fn to_host_contract_scene_viewport_chrome(
     data: &view_data::SceneViewportChromeData,
-) -> slint_ui::SceneViewportChromeData {
-    slint_ui::SceneViewportChromeData {
+) -> host_contract::SceneViewportChromeData {
+    host_contract::SceneViewportChromeData {
         tool: data.tool.clone(),
         transform_space: data.transform_space.clone(),
         projection_mode: data.projection_mode.clone(),
@@ -506,106 +477,109 @@ fn to_slint_scene_viewport_chrome(
     }
 }
 
-fn to_slint_animation_editor_pane(
+fn to_host_contract_animation_editor_pane(
     data: &host_window::PaneData,
     pane_size: host_window::PaneContentSize,
-) -> slint_ui::AnimationEditorPaneData {
-    pane_data_conversion::to_slint_animation_editor_pane_from_host_pane(data, pane_size)
+) -> host_contract::AnimationEditorPaneData {
+    pane_data_conversion::to_host_contract_animation_editor_pane_from_host_pane(data, pane_size)
 }
 
-fn to_slint_assets_activity_pane(
+fn to_host_contract_assets_activity_pane(
     data: host_window::AssetsActivityPaneViewData,
-) -> slint_ui::AssetsActivityPaneData {
-    pane_data_conversion::to_slint_assets_activity_pane(data)
+) -> host_contract::AssetsActivityPaneData {
+    pane_data_conversion::to_host_contract_assets_activity_pane(data)
 }
 
-fn to_slint_hierarchy_pane(
+fn to_host_contract_hierarchy_pane(
     data: &host_window::PaneData,
     pane_size: host_window::PaneContentSize,
-) -> slint_ui::HierarchyPaneData {
-    pane_data_conversion::to_slint_hierarchy_pane_from_host_pane(data, pane_size)
+) -> host_contract::HierarchyPaneData {
+    pane_data_conversion::to_host_contract_hierarchy_pane_from_host_pane(data, pane_size)
 }
 
-fn to_slint_inspector_pane(
+fn to_host_contract_inspector_pane(
     data: &host_window::PaneData,
     pane_size: host_window::PaneContentSize,
-) -> slint_ui::InspectorPaneData {
-    pane_data_conversion::to_slint_inspector_pane_from_host_pane(data, pane_size)
+) -> host_contract::InspectorPaneData {
+    pane_data_conversion::to_host_contract_inspector_pane_from_host_pane(data, pane_size)
 }
 
-fn to_slint_console_pane(
+fn to_host_contract_console_pane(
     data: &host_window::PaneData,
     pane_size: host_window::PaneContentSize,
-) -> slint_ui::ConsolePaneData {
-    pane_data_conversion::to_slint_console_pane_from_host_pane(data, pane_size)
+) -> host_contract::ConsolePaneData {
+    pane_data_conversion::to_host_contract_console_pane_from_host_pane(data, pane_size)
 }
 
-fn to_slint_project_overview_pane(
+fn to_host_contract_project_overview_pane(
     data: host_window::ProjectOverviewPaneViewData,
-) -> slint_ui::ProjectOverviewPaneData {
-    pane_data_conversion::to_slint_project_overview_pane(data)
+) -> host_contract::ProjectOverviewPaneData {
+    pane_data_conversion::to_host_contract_project_overview_pane(data)
 }
 
-fn to_slint_module_plugin_status(
+fn to_host_contract_module_plugin_status(
     data: host_window::ModulePluginStatusViewData,
-) -> slint_ui::ModulePluginStatusData {
-    slint_ui::ModulePluginStatusData {
+) -> host_contract::ModulePluginStatusData {
+    host_contract::ModulePluginStatusData {
         plugin_id: data.plugin_id,
         display_name: data.display_name,
         package_source: data.package_source,
         load_state: data.load_state,
         enabled: data.enabled,
         required: data.required,
+        target_modes: data.target_modes,
+        packaging: data.packaging,
         runtime_crate: data.runtime_crate,
         editor_crate: data.editor_crate,
-        capabilities: data.capabilities,
+        runtime_capabilities: data.runtime_capabilities,
+        editor_capabilities: data.editor_capabilities,
         diagnostics: data.diagnostics,
     }
 }
 
-fn to_slint_module_plugins_pane(
+fn to_host_contract_module_plugins_pane(
     data: host_window::ModulePluginsPaneViewData,
-) -> slint_ui::ModulePluginsPaneData {
-    slint_ui::ModulePluginsPaneData {
-        plugins: map_model_rc(&data.plugins, to_slint_module_plugin_status),
+) -> host_contract::ModulePluginsPaneData {
+    host_contract::ModulePluginsPaneData {
+        plugins: map_model_rc(&data.plugins, to_host_contract_module_plugin_status),
         diagnostics: data.diagnostics,
     }
 }
 
-fn to_slint_ui_asset_pane(
+fn to_host_contract_ui_asset_pane(
     data: crate::ui::asset_editor::UiAssetEditorPanePresentation,
-) -> slint_ui::UiAssetEditorPaneData {
-    pane_data_conversion::to_slint_ui_asset_pane(data)
+) -> host_contract::UiAssetEditorPaneData {
+    pane_data_conversion::to_host_contract_ui_asset_pane(data)
 }
 
-fn to_slint_pane(
+fn to_host_contract_pane(
     data: host_window::PaneData,
     pane_size: host_window::PaneContentSize,
     component_showcase_runtime: Option<&EditorUiHostRuntime>,
-) -> slint_ui::PaneData {
-    let hierarchy = to_slint_hierarchy_pane(&data, pane_size);
-    let inspector = to_slint_inspector_pane(&data, pane_size);
-    let console = to_slint_console_pane(&data, pane_size);
-    let animation = to_slint_animation_editor_pane(&data, pane_size);
+) -> host_contract::PaneData {
+    let hierarchy = to_host_contract_hierarchy_pane(&data, pane_size);
+    let inspector = to_host_contract_inspector_pane(&data, pane_size);
+    let console = to_host_contract_console_pane(&data, pane_size);
+    let animation = to_host_contract_animation_editor_pane(&data, pane_size);
     let pane_kind = data.kind.to_string();
     let project_overview = if pane_kind == "UiComponentShowcase" {
         component_showcase_runtime.map_or_else(
             || {
-                pane_data_conversion::to_slint_component_showcase_pane_from_host_pane(
+                pane_data_conversion::to_host_contract_component_showcase_pane_from_host_pane(
                     &data, pane_size,
                 )
             },
             |runtime| {
-                pane_data_conversion::to_slint_component_showcase_pane_from_host_pane_with_runtime(
+                pane_data_conversion::to_host_contract_component_showcase_pane_from_host_pane_with_runtime(
                     &data, pane_size, runtime,
                 )
             },
         )
     } else {
-        to_slint_project_overview_pane(data.body_compat.project_overview.clone())
+        to_host_contract_project_overview_pane(data.native_body.project_overview.clone())
     };
 
-    slint_ui::PaneData {
+    host_contract::PaneData {
         id: data.id,
         slot: data.slot,
         kind: data.kind,
@@ -622,25 +596,25 @@ fn to_slint_pane(
         secondary_action_id: data.secondary_action_id,
         secondary_hint: data.secondary_hint,
         show_toolbar: data.show_toolbar,
-        viewport: to_slint_scene_viewport_chrome(&data.viewport),
+        viewport: to_host_contract_scene_viewport_chrome(&data.viewport),
         hierarchy,
         inspector,
         console,
-        assets_activity: to_slint_assets_activity_pane(data.body_compat.assets_activity),
-        asset_browser: pane_data_conversion::to_slint_asset_browser_pane(
-            data.body_compat.asset_browser,
+        assets_activity: to_host_contract_assets_activity_pane(data.native_body.assets_activity),
+        asset_browser: pane_data_conversion::to_host_contract_asset_browser_pane(
+            data.native_body.asset_browser,
         ),
         project_overview,
-        module_plugins: to_slint_module_plugins_pane(data.body_compat.module_plugins),
-        ui_asset: to_slint_ui_asset_pane(data.body_compat.ui_asset),
+        module_plugins: to_host_contract_module_plugins_pane(data.native_body.module_plugins),
+        ui_asset: to_host_contract_ui_asset_pane(data.native_body.ui_asset),
         animation,
     }
 }
 
-fn to_slint_project_overview(
+fn to_host_contract_project_overview(
     overview: &host_window::ProjectOverviewData,
-) -> slint_ui::ProjectOverviewData {
-    slint_ui::ProjectOverviewData {
+) -> host_contract::ProjectOverviewData {
+    host_contract::ProjectOverviewData {
         project_name: overview.project_name.clone(),
         project_root: overview.project_root.clone(),
         assets_root: overview.assets_root.clone(),
@@ -652,25 +626,27 @@ fn to_slint_project_overview(
     }
 }
 
-fn to_slint_host_window_layout(
+fn to_host_contract_host_window_layout(
     layout: &host_window::HostWindowLayoutData,
-) -> slint_ui::HostWindowLayoutData {
-    slint_ui::HostWindowLayoutData {
-        center_band_frame: to_slint_frame_rect(&layout.center_band_frame),
-        status_bar_frame: to_slint_frame_rect(&layout.status_bar_frame),
-        left_region_frame: to_slint_frame_rect(&layout.left_region_frame),
-        document_region_frame: to_slint_frame_rect(&layout.document_region_frame),
-        right_region_frame: to_slint_frame_rect(&layout.right_region_frame),
-        bottom_region_frame: to_slint_frame_rect(&layout.bottom_region_frame),
-        left_splitter_frame: to_slint_frame_rect(&layout.left_splitter_frame),
-        right_splitter_frame: to_slint_frame_rect(&layout.right_splitter_frame),
-        bottom_splitter_frame: to_slint_frame_rect(&layout.bottom_splitter_frame),
-        viewport_content_frame: to_slint_frame_rect(&layout.viewport_content_frame),
+) -> host_contract::HostWindowLayoutData {
+    host_contract::HostWindowLayoutData {
+        center_band_frame: to_host_contract_frame_rect(&layout.center_band_frame),
+        status_bar_frame: to_host_contract_frame_rect(&layout.status_bar_frame),
+        left_region_frame: to_host_contract_frame_rect(&layout.left_region_frame),
+        document_region_frame: to_host_contract_frame_rect(&layout.document_region_frame),
+        right_region_frame: to_host_contract_frame_rect(&layout.right_region_frame),
+        bottom_region_frame: to_host_contract_frame_rect(&layout.bottom_region_frame),
+        left_splitter_frame: to_host_contract_frame_rect(&layout.left_splitter_frame),
+        right_splitter_frame: to_host_contract_frame_rect(&layout.right_splitter_frame),
+        bottom_splitter_frame: to_host_contract_frame_rect(&layout.bottom_splitter_frame),
+        viewport_content_frame: to_host_contract_frame_rect(&layout.viewport_content_frame),
     }
 }
 
-fn to_slint_host_shell(shell: &host_window::HostWindowShellData) -> slint_ui::HostWindowShellData {
-    slint_ui::HostWindowShellData {
+fn to_host_contract_host_shell(
+    shell: &host_window::HostWindowShellData,
+) -> host_contract::HostWindowShellData {
+    host_contract::HostWindowShellData {
         project_path: shell.project_path.clone(),
         status_secondary: shell.status_secondary.clone(),
         viewport_label: shell.viewport_label.clone(),
@@ -688,14 +664,14 @@ fn to_slint_host_shell(shell: &host_window::HostWindowShellData) -> slint_ui::Ho
         native_floating_window_mode: shell.native_floating_window_mode,
         native_floating_window_id: shell.native_floating_window_id.clone(),
         native_window_title: shell.native_window_title.clone(),
-        native_window_bounds: to_slint_frame_rect(&shell.native_window_bounds),
+        native_window_bounds: to_host_contract_frame_rect(&shell.native_window_bounds),
     }
 }
 
-fn to_slint_metrics(
+fn to_host_contract_metrics(
     metrics: &host_window::HostWindowSurfaceMetricsData,
-) -> slint_ui::HostWindowSurfaceMetricsData {
-    slint_ui::HostWindowSurfaceMetricsData {
+) -> host_contract::HostWindowSurfaceMetricsData {
+    host_contract::HostWindowSurfaceMetricsData {
         outer_margin_px: metrics.outer_margin_px,
         rail_width_px: metrics.rail_width_px,
         top_bar_height_px: metrics.top_bar_height_px,
@@ -705,10 +681,10 @@ fn to_slint_metrics(
     }
 }
 
-fn to_slint_orchestration(
+fn to_host_contract_orchestration(
     orchestration: &host_window::HostWindowSurfaceOrchestrationData,
-) -> slint_ui::HostWindowSurfaceOrchestrationData {
-    slint_ui::HostWindowSurfaceOrchestrationData {
+) -> host_contract::HostWindowSurfaceOrchestrationData {
+    host_contract::HostWindowSurfaceOrchestrationData {
         left_rail_width_px: orchestration.left_rail_width_px,
         right_rail_width_px: orchestration.right_rail_width_px,
         left_stack_width_px: orchestration.left_stack_width_px,
@@ -720,21 +696,37 @@ fn to_slint_orchestration(
         document_zone_x_px: orchestration.document_zone_x_px,
         right_stack_x_px: orchestration.right_stack_x_px,
         bottom_panel_y_px: orchestration.bottom_panel_y_px,
-        left_tab_origin_x_px: orchestration.left_tab_origin_x_px,
-        left_tab_origin_y_px: orchestration.left_tab_origin_y_px,
-        document_tab_origin_x_px: orchestration.document_tab_origin_x_px,
-        document_tab_origin_y_px: orchestration.document_tab_origin_y_px,
-        right_tab_origin_x_px: orchestration.right_tab_origin_x_px,
-        right_tab_origin_y_px: orchestration.right_tab_origin_y_px,
-        bottom_tab_origin_x_px: orchestration.bottom_tab_origin_x_px,
-        bottom_tab_origin_y_px: orchestration.bottom_tab_origin_y_px,
     }
 }
 
-fn to_slint_menu_chrome(menu: &host_window::HostMenuChromeData) -> slint_ui::HostMenuChromeData {
-    slint_ui::HostMenuChromeData {
+fn to_host_contract_chrome_control_frame(
+    data: host_window::HostChromeControlFrameData,
+) -> host_contract::HostChromeControlFrameData {
+    host_contract::HostChromeControlFrameData {
+        control_id: data.control_id,
+        frame: to_host_contract_frame_rect(&data.frame),
+    }
+}
+
+fn to_host_contract_chrome_tab(
+    data: host_window::HostChromeTabData,
+) -> host_contract::HostChromeTabData {
+    host_contract::HostChromeTabData {
+        control_id: data.control_id,
+        tab: to_host_contract_tab_data(data.tab),
+        frame: to_host_contract_frame_rect(&data.frame),
+        close_frame: to_host_contract_frame_rect(&data.close_frame),
+    }
+}
+
+fn to_host_contract_menu_chrome(
+    menu: &host_window::HostMenuChromeData,
+) -> host_contract::HostMenuChromeData {
+    host_contract::HostMenuChromeData {
         outer_margin_px: menu.outer_margin_px,
         top_bar_height_px: menu.top_bar_height_px,
+        template_nodes: to_host_contract_template_nodes(&menu.template_nodes),
+        menu_frames: map_model_rc(&menu.menu_frames, to_host_contract_chrome_control_frame),
         save_project_enabled: menu.save_project_enabled,
         undo_enabled: menu.undo_enabled,
         redo_enabled: menu.redo_enabled,
@@ -742,41 +734,74 @@ fn to_slint_menu_chrome(menu: &host_window::HostMenuChromeData) -> slint_ui::Hos
         preset_names: menu.preset_names.clone(),
         active_preset_name: menu.active_preset_name.clone(),
         resolved_preset_name: menu.resolved_preset_name.clone(),
+        menus: map_model_rc(&menu.menus, to_host_contract_menu_chrome_menu),
     }
 }
 
-fn to_slint_page_chrome(page: &host_window::HostPageChromeData) -> slint_ui::HostPageChromeData {
-    slint_ui::HostPageChromeData {
+fn to_host_contract_menu_chrome_menu(
+    menu: host_window::HostMenuChromeMenuData,
+) -> host_contract::HostMenuChromeMenuData {
+    host_contract::HostMenuChromeMenuData {
+        label: menu.label,
+        popup_width_px: menu.popup_width_px,
+        popup_height_px: menu.popup_height_px,
+        popup_nodes: to_host_contract_template_nodes(&menu.popup_nodes),
+        items: map_model_rc(&menu.items, to_host_contract_menu_chrome_item),
+    }
+}
+
+fn to_host_contract_menu_chrome_item(
+    item: host_window::HostMenuChromeItemData,
+) -> host_contract::HostMenuChromeItemData {
+    host_contract::HostMenuChromeItemData {
+        label: item.label,
+        shortcut: item.shortcut,
+        action_id: item.action_id,
+        enabled: item.enabled,
+    }
+}
+
+fn to_host_contract_page_chrome(
+    page: &host_window::HostPageChromeData,
+) -> host_contract::HostPageChromeData {
+    host_contract::HostPageChromeData {
         top_bar_height_px: page.top_bar_height_px,
         host_bar_height_px: page.host_bar_height_px,
-        tabs: to_slint_tabs(&page.tabs),
+        template_nodes: to_host_contract_template_nodes(&page.template_nodes),
+        tab_row_frame: to_host_contract_frame_rect(&page.tab_row_frame),
+        project_path_frame: to_host_contract_frame_rect(&page.project_path_frame),
+        tab_frames: map_model_rc(&page.tab_frames, to_host_contract_chrome_tab),
+        tabs: to_host_contract_tabs(&page.tabs),
         project_path: page.project_path.clone(),
     }
 }
 
-fn to_slint_status_bar(status_bar: &host_window::HostStatusBarData) -> slint_ui::HostStatusBarData {
-    slint_ui::HostStatusBarData {
-        status_bar_frame: to_slint_frame_rect(&status_bar.status_bar_frame),
+fn to_host_contract_status_bar(
+    status_bar: &host_window::HostStatusBarData,
+) -> host_contract::HostStatusBarData {
+    host_contract::HostStatusBarData {
+        status_bar_frame: to_host_contract_frame_rect(&status_bar.status_bar_frame),
+        template_nodes: to_host_contract_template_nodes(&status_bar.template_nodes),
         status_primary: status_bar.status_primary.clone(),
         status_secondary: status_bar.status_secondary.clone(),
         viewport_label: status_bar.viewport_label.clone(),
     }
 }
 
-fn to_slint_resize_layer(
+fn to_host_contract_resize_layer(
     resize_layer: &host_window::HostResizeLayerData,
-) -> slint_ui::HostResizeLayerData {
-    slint_ui::HostResizeLayerData {
-        left_splitter_frame: to_slint_frame_rect(&resize_layer.left_splitter_frame),
-        right_splitter_frame: to_slint_frame_rect(&resize_layer.right_splitter_frame),
-        bottom_splitter_frame: to_slint_frame_rect(&resize_layer.bottom_splitter_frame),
+) -> host_contract::HostResizeLayerData {
+    host_contract::HostResizeLayerData {
+        left_splitter_frame: to_host_contract_frame_rect(&resize_layer.left_splitter_frame),
+        right_splitter_frame: to_host_contract_frame_rect(&resize_layer.right_splitter_frame),
+        bottom_splitter_frame: to_host_contract_frame_rect(&resize_layer.bottom_splitter_frame),
     }
 }
 
-fn to_slint_drag_overlay(
+fn to_host_contract_drag_overlay(
     overlay: &host_window::HostTabDragOverlayData,
-) -> slint_ui::HostTabDragOverlayData {
-    slint_ui::HostTabDragOverlayData {
+) -> host_contract::HostTabDragOverlayData {
+    host_contract::HostTabDragOverlayData {
         left_drop_enabled: overlay.left_drop_enabled,
         right_drop_enabled: overlay.right_drop_enabled,
         bottom_drop_enabled: overlay.bottom_drop_enabled,
@@ -792,73 +817,86 @@ fn to_slint_drag_overlay(
     }
 }
 
-fn to_slint_side_dock(
+fn to_host_contract_side_dock(
     dock: &host_window::HostSideDockSurfaceData,
     component_showcase_runtime: Option<&EditorUiHostRuntime>,
-) -> slint_ui::HostSideDockSurfaceData {
+) -> host_contract::HostSideDockSurfaceData {
     let pane_size = host_window::PaneContentSize::new(
         dock.panel_width_px,
         dock_content_height(dock.region_frame.height, dock.panel_header_height_px),
     );
-    slint_ui::HostSideDockSurfaceData {
-        region_frame: to_slint_frame_rect(&dock.region_frame),
+    host_contract::HostSideDockSurfaceData {
+        region_frame: to_host_contract_frame_rect(&dock.region_frame),
         surface_key: dock.surface_key.clone(),
         rail_before_panel: dock.rail_before_panel,
-        tabs: to_slint_tabs(&dock.tabs),
-        pane: to_slint_pane(dock.pane.clone(), pane_size, component_showcase_runtime),
+        rail_nodes: to_host_contract_template_nodes(&dock.rail_nodes),
+        rail_button_frames: map_model_rc(
+            &dock.rail_button_frames,
+            to_host_contract_chrome_control_frame,
+        ),
+        rail_active_control_id: dock.rail_active_control_id.clone(),
+        header_nodes: to_host_contract_template_nodes(&dock.header_nodes),
+        header_frame: to_host_contract_frame_rect(&dock.header_frame),
+        content_frame: to_host_contract_frame_rect(&dock.content_frame),
+        tab_frames: map_model_rc(&dock.tab_frames, to_host_contract_chrome_tab),
+        tabs: to_host_contract_tabs(&dock.tabs),
+        pane: to_host_contract_pane(dock.pane.clone(), pane_size, component_showcase_runtime),
         rail_width_px: dock.rail_width_px,
         panel_width_px: dock.panel_width_px,
         panel_header_height_px: dock.panel_header_height_px,
-        tab_origin_x_px: dock.tab_origin_x_px,
-        tab_origin_y_px: dock.tab_origin_y_px,
     }
 }
 
-fn to_slint_document_dock(
+fn to_host_contract_document_dock(
     dock: &host_window::HostDocumentDockSurfaceData,
     component_showcase_runtime: Option<&EditorUiHostRuntime>,
-) -> slint_ui::HostDocumentDockSurfaceData {
+) -> host_contract::HostDocumentDockSurfaceData {
     let pane_size = host_window::PaneContentSize::new(
         dock.region_frame.width,
         dock_content_height(dock.region_frame.height, dock.header_height_px),
     );
-    slint_ui::HostDocumentDockSurfaceData {
-        region_frame: to_slint_frame_rect(&dock.region_frame),
+    host_contract::HostDocumentDockSurfaceData {
+        region_frame: to_host_contract_frame_rect(&dock.region_frame),
         surface_key: dock.surface_key.clone(),
-        tabs: to_slint_tabs(&dock.tabs),
-        pane: to_slint_pane(dock.pane.clone(), pane_size, component_showcase_runtime),
+        header_nodes: to_host_contract_template_nodes(&dock.header_nodes),
+        header_frame: to_host_contract_frame_rect(&dock.header_frame),
+        subtitle_frame: to_host_contract_frame_rect(&dock.subtitle_frame),
+        content_frame: to_host_contract_frame_rect(&dock.content_frame),
+        tab_frames: map_model_rc(&dock.tab_frames, to_host_contract_chrome_tab),
+        tabs: to_host_contract_tabs(&dock.tabs),
+        pane: to_host_contract_pane(dock.pane.clone(), pane_size, component_showcase_runtime),
         header_height_px: dock.header_height_px,
-        tab_origin_x_px: dock.tab_origin_x_px,
-        tab_origin_y_px: dock.tab_origin_y_px,
     }
 }
 
-fn to_slint_bottom_dock(
+fn to_host_contract_bottom_dock(
     dock: &host_window::HostBottomDockSurfaceData,
     component_showcase_runtime: Option<&EditorUiHostRuntime>,
-) -> slint_ui::HostBottomDockSurfaceData {
+) -> host_contract::HostBottomDockSurfaceData {
     let pane_size = host_window::PaneContentSize::new(
         dock.region_frame.width,
         dock_content_height(dock.region_frame.height, dock.header_height_px),
     );
-    slint_ui::HostBottomDockSurfaceData {
-        region_frame: to_slint_frame_rect(&dock.region_frame),
+    host_contract::HostBottomDockSurfaceData {
+        region_frame: to_host_contract_frame_rect(&dock.region_frame),
         surface_key: dock.surface_key.clone(),
-        tabs: to_slint_tabs(&dock.tabs),
-        pane: to_slint_pane(dock.pane.clone(), pane_size, component_showcase_runtime),
+        header_nodes: to_host_contract_template_nodes(&dock.header_nodes),
+        header_frame: to_host_contract_frame_rect(&dock.header_frame),
+        content_frame: to_host_contract_frame_rect(&dock.content_frame),
+        tab_frames: map_model_rc(&dock.tab_frames, to_host_contract_chrome_tab),
+        tabs: to_host_contract_tabs(&dock.tabs),
+        pane: to_host_contract_pane(dock.pane.clone(), pane_size, component_showcase_runtime),
         expanded: dock.expanded,
         header_height_px: dock.header_height_px,
-        tab_origin_x_px: dock.tab_origin_x_px,
-        tab_origin_y_px: dock.tab_origin_y_px,
     }
 }
 
-fn to_slint_floating_layer(
+fn to_host_contract_floating_layer(
     layer: &host_window::HostFloatingWindowLayerData,
     component_showcase_runtime: Option<&EditorUiHostRuntime>,
-) -> slint_ui::HostFloatingWindowLayerData {
-    slint_ui::HostFloatingWindowLayerData {
-        floating_windows: to_slint_floating_windows(
+) -> host_contract::HostFloatingWindowLayerData {
+    host_contract::HostFloatingWindowLayerData {
+        floating_windows: to_host_contract_floating_windows(
             &layer.floating_windows,
             layer.header_height_px,
             component_showcase_runtime,
@@ -868,45 +906,51 @@ fn to_slint_floating_layer(
 }
 
 #[cfg(test)]
-pub(super) fn to_slint_host_scene_data(
+pub(super) fn to_host_contract_host_scene_data(
     scene: &host_window::HostWindowSceneData,
-) -> slint_ui::HostWindowSceneData {
-    to_slint_host_scene_data_with_runtime(scene, None)
+) -> host_contract::HostWindowSceneData {
+    to_host_contract_host_scene_data_with_runtime(scene, None)
 }
 
-fn to_slint_host_scene_data_with_runtime(
+fn to_host_contract_host_scene_data_with_runtime(
     scene: &host_window::HostWindowSceneData,
     component_showcase_runtime: Option<&EditorUiHostRuntime>,
-) -> slint_ui::HostWindowSceneData {
-    slint_ui::HostWindowSceneData {
-        layout: to_slint_host_window_layout(&scene.layout),
-        metrics: to_slint_metrics(&scene.metrics),
-        orchestration: to_slint_orchestration(&scene.orchestration),
-        menu_chrome: to_slint_menu_chrome(&scene.menu_chrome),
-        page_chrome: to_slint_page_chrome(&scene.page_chrome),
-        status_bar: to_slint_status_bar(&scene.status_bar),
-        resize_layer: to_slint_resize_layer(&scene.resize_layer),
-        drag_overlay: to_slint_drag_overlay(&scene.drag_overlay),
-        left_dock: to_slint_side_dock(&scene.left_dock, component_showcase_runtime),
-        document_dock: to_slint_document_dock(&scene.document_dock, component_showcase_runtime),
-        right_dock: to_slint_side_dock(&scene.right_dock, component_showcase_runtime),
-        bottom_dock: to_slint_bottom_dock(&scene.bottom_dock, component_showcase_runtime),
-        floating_layer: to_slint_floating_layer(&scene.floating_layer, component_showcase_runtime),
+) -> host_contract::HostWindowSceneData {
+    host_contract::HostWindowSceneData {
+        layout: to_host_contract_host_window_layout(&scene.layout),
+        metrics: to_host_contract_metrics(&scene.metrics),
+        orchestration: to_host_contract_orchestration(&scene.orchestration),
+        menu_chrome: to_host_contract_menu_chrome(&scene.menu_chrome),
+        page_chrome: to_host_contract_page_chrome(&scene.page_chrome),
+        status_bar: to_host_contract_status_bar(&scene.status_bar),
+        resize_layer: to_host_contract_resize_layer(&scene.resize_layer),
+        drag_overlay: to_host_contract_drag_overlay(&scene.drag_overlay),
+        left_dock: to_host_contract_side_dock(&scene.left_dock, component_showcase_runtime),
+        document_dock: to_host_contract_document_dock(
+            &scene.document_dock,
+            component_showcase_runtime,
+        ),
+        right_dock: to_host_contract_side_dock(&scene.right_dock, component_showcase_runtime),
+        bottom_dock: to_host_contract_bottom_dock(&scene.bottom_dock, component_showcase_runtime),
+        floating_layer: to_host_contract_floating_layer(
+            &scene.floating_layer,
+            component_showcase_runtime,
+        ),
     }
 }
 
-fn to_slint_native_floating_surface_data_with_runtime(
+fn to_host_contract_native_floating_surface_data_with_runtime(
     surface: &host_window::HostNativeFloatingWindowSurfaceData,
     component_showcase_runtime: Option<&EditorUiHostRuntime>,
-) -> slint_ui::HostNativeFloatingWindowSurfaceData {
-    slint_ui::HostNativeFloatingWindowSurfaceData {
-        floating_windows: to_slint_floating_windows(
+) -> host_contract::HostNativeFloatingWindowSurfaceData {
+    host_contract::HostNativeFloatingWindowSurfaceData {
+        floating_windows: to_host_contract_floating_windows(
             &surface.floating_windows,
             surface.header_height_px,
             component_showcase_runtime,
         ),
         native_floating_window_id: surface.native_floating_window_id.clone(),
-        native_window_bounds: to_slint_frame_rect(&surface.native_window_bounds),
+        native_window_bounds: to_host_contract_frame_rect(&surface.native_window_bounds),
         header_height_px: surface.header_height_px,
     }
 }

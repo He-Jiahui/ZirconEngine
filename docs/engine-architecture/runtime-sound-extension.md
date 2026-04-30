@@ -69,7 +69,7 @@ tests:
   - cargo test -p zircon_runtime asset::tests::project::manager::project_manager_imports_sound_assets_into_runtime_library --locked
   - cargo test -p zircon_runtime zircon_plugin_sound_runtime::tests::sound_manager_loads_project_wav_and_mixes_playback_to_stereo --locked
   - cargo test -p zircon_runtime --lib --locked sound_manager_ --offline
-  - cargo test -p zircon_runtime tests::extensions::manager_facades::physics_and_animation_runtime_extensions_keep_manager_handles_under_core_manager_facades --locked
+  - cargo test -p zircon_runtime tests::extensions::manager_handles::externalized_runtime_plugins_keep_manager_handles_under_core_manager_contracts --locked
   - .codex/skills/zircon-dev/scripts/validate-matrix.ps1
 doc_type: module-detail
 ---
@@ -83,7 +83,7 @@ doc_type: module-detail
 当前完成线不是平台音频设备、空间音频、bus graph、streaming decode 或压缩格式支持，而是更窄的一层：
 
 - `core::framework::sound` 定义共享音频合同
-- `core::manager` 暴露稳定 `SoundManager` façade
+- `core::manager` 暴露稳定 `SoundManager` contract / handle
 - `asset` 管线认识 `.wav` 并落成 `SoundAsset`
 - `zircon_plugin_sound_runtime` 提供默认 `software-mixer` runtime
 
@@ -119,7 +119,7 @@ doc_type: module-detail
 
 也就是说：
 
-- framework 只拥有中性 DTO 和 façade trait
+- framework 只拥有中性 DTO 和 manager trait
 - core manager 只拥有稳定 resolver surface
 - asset 只拥有 `.wav -> SoundAsset` 的导入和 library artifact 管线
 - runtime extension 才拥有 clip cache、playback state 和 software mixing 行为
@@ -226,7 +226,7 @@ doc_type: module-detail
 
 1. `SoundDriver`
 2. `DefaultSoundManager`
-3. façade `SoundManagerHandle`
+3. manager handle `SoundManagerHandle`
 
 并且 `DefaultSoundManager` 明确依赖：
 
@@ -245,7 +245,7 @@ doc_type: module-detail
   - 证明正常路径已经成立：`open_project -> load_clip -> play_clip -> render_mix`
 - `cargo test -p zircon_runtime --lib --locked sound_manager_ --offline`
   - 证明播放生命周期 contract 已经覆盖停止后不再混音、looped playback 跨 clip 结尾回绕，以及项目 WAV 加载混音路径
-- `cargo test -p zircon_runtime tests::extensions::manager_facades::physics_and_animation_runtime_extensions_keep_manager_handles_under_core_manager_facades --locked`
+- `cargo test -p zircon_runtime tests::extensions::manager_handles::externalized_runtime_plugins_keep_manager_handles_under_core_manager_contracts --locked`
   - 证明 `SOUND_MANAGER_NAME`、`SoundManagerHandle` 和 `resolve_sound_manager(...)` 已进入 core manager 稳定表面
 
 ## Next Steps
@@ -256,4 +256,4 @@ doc_type: module-detail
 2. 把 `software-mixer` 接到真实平台音频输出 driver
 3. 再往上才是 bus、spatialization、listener、effect chain 和 scene-attached audio source
 
-关键是这些后续层都应该建立在当前已经收口的 `SoundManager` façade 和 `SoundAsset` importer 之上，而不是重新回到“只有 module 壳、没有真实 runtime 行为”的状态。
+关键是这些后续层都应该建立在当前已经收口的 `SoundManager` contract 和 `SoundAsset` importer 之上，而不是重新回到“只有 module 壳、没有真实 runtime 行为”的状态。

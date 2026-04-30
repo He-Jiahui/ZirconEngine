@@ -11,8 +11,8 @@ impl SceneRenderer {
             .virtual_geometry_gpu_readback()
             .map(|readback| {
                 (
-                    readback.visbuffer64_clear_value,
-                    readback.visbuffer64_entries.clone(),
+                    readback.visbuffer64_clear_value(),
+                    readback.visbuffer64_entries().to_vec(),
                 )
             })
     }

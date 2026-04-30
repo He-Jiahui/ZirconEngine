@@ -1,5 +1,7 @@
+mod activity_rail_template_boundary;
 mod callback_source_window;
 mod generic_host_boundary;
+mod generic_host_layout_paths;
 mod native_mode;
 mod native_window_targets;
 mod presenter_store;

@@ -4,8 +4,8 @@ impl HybridGiRuntimeState {
     pub(in crate::graphics::runtime::hybrid_gi::residency_management) fn take_free_slot(
         &mut self,
     ) -> Option<u32> {
-        let slot = self.free_slots.iter().next().copied()?;
-        self.free_slots.remove(&slot);
+        let slot = self.first_free_slot()?;
+        self.remove_free_slot(slot);
         Some(slot)
     }
 }

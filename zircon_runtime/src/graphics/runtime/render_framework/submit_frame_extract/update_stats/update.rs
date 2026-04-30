@@ -14,13 +14,13 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn upda
 ) {
     update_base_stats(state, context, record_update, frame_generation);
 
-    if context.hybrid_gi_enabled {
+    if context.hybrid_gi_enabled() {
         update_hybrid_gi_stats(state, context, record_update);
     } else {
         reset_hybrid_gi_stats(state);
     }
 
-    if context.virtual_geometry_enabled {
+    if context.virtual_geometry_enabled() {
         update_virtual_geometry_stats(state, context, record_update);
     } else {
         reset_virtual_geometry_stats(state);

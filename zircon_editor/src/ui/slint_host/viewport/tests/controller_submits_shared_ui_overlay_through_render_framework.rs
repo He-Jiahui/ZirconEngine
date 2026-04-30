@@ -49,6 +49,7 @@ fn test_ui_extract(text: &str) -> UiRenderExtract {
                     text_render_mode: UiTextRenderMode::Auto,
                     ..UiResolvedStyle::default()
                 },
+                text_layout: None,
                 text: Some(text.to_string()),
                 image: None,
                 opacity: 1.0,

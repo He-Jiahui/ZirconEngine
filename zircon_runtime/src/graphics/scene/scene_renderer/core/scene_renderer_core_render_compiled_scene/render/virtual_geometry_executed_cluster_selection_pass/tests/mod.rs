@@ -1,14 +1,14 @@
 pub(super) use std::collections::{HashMap, HashSet};
 
-pub(super) use super::seed_backed_compat::{
+pub(super) use super::super::virtual_geometry_node_and_cluster_cull_pass::{
+    VirtualGeometryNodeAndClusterCullPassOutput, VirtualGeometryNodeAndClusterCullPassStoreParts,
+};
+pub(super) use super::seed_backed_execution_selection::{
     build_seed_backed_execution_selection_records, build_seed_backed_execution_selections,
     collect_execution_cluster_selection_collection_from_root_seeds, seed_backed_cluster_ordering,
     SeedBackedClusterOrdering, SeedBackedExecutionSelectionRecord,
 };
-pub(super) use super::{
-    collect_execution_cluster_selections_from_submission_keys,
-    VirtualGeometryNodeAndClusterCullPassOutput,
-};
+pub(super) use super::selection_filter::collect_execution_cluster_selections_from_submission_keys;
 pub(super) use crate::core::framework::render::{
     RenderVirtualGeometryCluster, RenderVirtualGeometryClusterSelectionInputSource,
     RenderVirtualGeometryCullInputSnapshot, RenderVirtualGeometryDebugState,

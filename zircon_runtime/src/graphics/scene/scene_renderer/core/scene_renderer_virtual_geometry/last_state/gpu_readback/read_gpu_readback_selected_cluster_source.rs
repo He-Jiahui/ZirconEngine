@@ -9,6 +9,6 @@ impl SceneRenderer {
     ) -> Option<RenderVirtualGeometrySelectedClusterSource> {
         self.advanced_plugin_outputs
             .virtual_geometry_gpu_readback()
-            .map(|readback| readback.selected_cluster_source)
+            .map(|readback| readback.selected_cluster_source())
     }
 }

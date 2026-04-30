@@ -13,8 +13,8 @@ pub(in crate::graphics::runtime::render_framework) fn destroy_viewport(
             viewport: viewport.raw(),
         });
     }
-    if let Some(history) = removed.and_then(|record| record.history) {
-        state.renderer.release_history(history.handle);
+    if let Some(history) = removed.and_then(|record| record.into_history()) {
+        state.renderer.release_history(history.handle());
     }
     state.stats.active_viewports = state.viewports.len();
     Ok(())

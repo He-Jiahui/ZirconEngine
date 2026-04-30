@@ -14,6 +14,7 @@ use super::assign_execution_owned_indirect_args::assign_execution_owned_indirect
 use super::build_compiled_scene_draws::build_compiled_scene_draws;
 use super::partition_mesh_draws::partition_mesh_draws;
 use super::prepare_overlay_buffers::prepare_overlay_buffers;
+use super::virtual_geometry_indirect_stats::collect_virtual_geometry_indirect_stats;
 
 impl SceneRendererCore {
     #[allow(clippy::too_many_arguments)]
@@ -48,11 +49,11 @@ impl SceneRendererCore {
         let _execution_args_buffer = assign_execution_owned_indirect_args(
             device,
             &mut encoder,
-            &mut compiled_scene_draws.draws,
+            compiled_scene_draws.draws_mut(),
             runtime_features.deferred_lighting_enabled,
         );
         let (opaque_mesh_draws, transparent_mesh_draws) =
-            partition_mesh_draws(&compiled_scene_draws.draws);
+            partition_mesh_draws(compiled_scene_draws.draws());
         let execution_draws = if runtime_features.deferred_lighting_enabled {
             opaque_mesh_draws
                 .iter()
@@ -60,29 +61,28 @@ impl SceneRendererCore {
                 .chain(transparent_mesh_draws.iter().copied())
                 .collect::<Vec<_>>()
         } else {
-            compiled_scene_draws.draws.iter().collect::<Vec<_>>()
+            compiled_scene_draws.draws().iter().collect::<Vec<_>>()
         };
         let resolved_virtual_geometry_cluster_selections =
             frame.resolved_virtual_geometry_cluster_selections();
-        let indirect_stats = self
-            .advanced_plugin_resources
-            .collect_virtual_geometry_indirect_stats(
-                device,
-                &mut encoder,
-                runtime_features.virtual_geometry_enabled,
-                frame,
-                virtual_geometry_cull_input,
-                previous_node_and_cluster_cull_global_state,
-                resolved_virtual_geometry_cluster_selections.as_deref(),
-                &execution_draws,
-                compiled_scene_draws.indirect_args_buffer.clone(),
-                compiled_scene_draws.indirect_args_count,
-                compiled_scene_draws.indirect_segment_count,
-                compiled_scene_draws.indirect_submission_buffer.clone(),
-                compiled_scene_draws.indirect_authority_buffer.clone(),
-                compiled_scene_draws.indirect_draw_ref_buffer.clone(),
-                compiled_scene_draws.indirect_segment_buffer.clone(),
-            );
+        let indirect_stats = collect_virtual_geometry_indirect_stats(
+            &self.advanced_plugin_resources,
+            device,
+            &mut encoder,
+            runtime_features.virtual_geometry_enabled,
+            frame,
+            virtual_geometry_cull_input,
+            previous_node_and_cluster_cull_global_state,
+            resolved_virtual_geometry_cluster_selections.as_deref(),
+            &execution_draws,
+            compiled_scene_draws.indirect_args_buffer(),
+            compiled_scene_draws.indirect_args_count(),
+            compiled_scene_draws.indirect_segment_count(),
+            compiled_scene_draws.indirect_submission_buffer(),
+            compiled_scene_draws.indirect_authority_buffer(),
+            compiled_scene_draws.indirect_draw_ref_buffer(),
+            compiled_scene_draws.indirect_segment_buffer(),
+        );
         let prepared_overlays = prepare_overlay_buffers(self, device, queue, streamer, frame)?;
 
         let advanced_plugin_readbacks =
@@ -96,7 +96,7 @@ impl SceneRendererCore {
             frame,
             target,
             runtime_features,
-            &compiled_scene_draws.draws,
+            compiled_scene_draws.draws(),
             &opaque_mesh_draws,
             &transparent_mesh_draws,
         );

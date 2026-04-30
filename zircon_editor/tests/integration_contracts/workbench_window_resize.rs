@@ -1,31 +1,24 @@
-slint::include_modules!();
+use std::fs;
+use std::path::PathBuf;
 
-use slint::{ComponentHandle, PhysicalSize};
+fn source(relative: &str) -> String {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(relative);
+    fs::read_to_string(&path).unwrap_or_else(|_| panic!("{relative} should be readable"))
+}
 
 #[test]
-fn workbench_shell_window_can_resize_and_toggle_maximize() {
-    i_slint_backend_testing::init_no_event_loop();
+fn workbench_shell_window_resize_contract_is_owned_by_rust_host_contract() {
+    let slint_host_mod = source("src/ui/slint_host/mod.rs");
+    let host_window_contract = source("src/ui/slint_host/host_contract/window.rs");
+    let shell_window_test = source("src/tests/host/slint_window/shell_window.rs");
 
-    let ui = UiHostWindow::new().expect("host window should instantiate");
-    ui.show().expect("host window should show in test backend");
-
-    let initial = ui.window().size();
-    assert!(initial.width > 0);
-    assert!(initial.height > 0);
-
-    ui.window()
-        .set_size(PhysicalSize::new(initial.width + 120, initial.height + 80));
-
-    let resized = ui.window().size();
-    let bootstrap = ui.get_host_window_bootstrap();
-    assert_eq!(resized.width, initial.width + 120);
-    assert_eq!(resized.height, initial.height + 80);
-    assert_eq!(bootstrap.shell_frame.width, resized.width as f32);
-    assert_eq!(bootstrap.shell_frame.height, resized.height as f32);
-
-    assert!(!ui.window().is_maximized());
-    ui.window().set_maximized(true);
-    assert!(ui.window().is_maximized());
-    ui.window().set_maximized(false);
-    assert!(!ui.window().is_maximized());
+    let generated_include = ["slint::", "include_modules!()"].concat();
+    assert!(!slint_host_mod.contains(&generated_include));
+    assert!(host_window_contract.contains("pub(crate) struct UiHostWindow"));
+    assert!(host_window_contract.contains("pub(crate) fn set_size"));
+    assert!(host_window_contract.contains("pub(crate) fn set_maximized"));
+    assert!(host_window_contract.contains("pub(crate) fn get_host_window_bootstrap"));
+    assert!(shell_window_test.contains("UiHostWindow::new()"));
+    assert!(shell_window_test.contains("set_size"));
+    assert!(shell_window_test.contains("set_maximized(true)"));
 }

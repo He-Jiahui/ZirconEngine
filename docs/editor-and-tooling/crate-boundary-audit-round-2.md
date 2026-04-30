@@ -20,7 +20,7 @@ related_code:
   - zircon_scene/src/level_system.rs
   - zircon_scene/src/render_extract/mod.rs
   - zircon_scene/src/module/default_level_manager.rs
-  - zircon_scene/src/module/level_manager_facade.rs
+  - zircon_runtime/src/scene/module/level_manager_contract.rs
   - zircon_scene/src/module/level_manager_lifecycle.rs
   - zircon_scene/src/module/level_manager_project_io.rs
   - zircon_scene/src/tests/boundary.rs
@@ -30,7 +30,7 @@ related_code:
   - zircon_asset/src/pipeline/manager/records/asset_status_record.rs
   - zircon_asset/src/pipeline/manager/records/status_record.rs
   - zircon_asset/src/pipeline/manager/records/metadata_import_state.rs
-  - zircon_asset/src/pipeline/manager/facades/resource_manager_facade.rs
+  - zircon_runtime/src/asset/pipeline/manager/service_contracts/resource_manager_contract.rs
   - zircon_asset/src/pipeline/manager/registration/service_names.rs
   - zircon_asset/src/pipeline/manager/asset_manager/mod.rs
   - zircon_asset/src/pipeline/manager/asset_manager/asset_manager.rs
@@ -108,7 +108,7 @@ implementation_files:
   - zircon_scene/src/level_system.rs
   - zircon_scene/src/render_extract/mod.rs
   - zircon_scene/src/module/default_level_manager.rs
-  - zircon_scene/src/module/level_manager_facade.rs
+  - zircon_runtime/src/scene/module/level_manager_contract.rs
   - zircon_scene/src/module/level_manager_lifecycle.rs
   - zircon_scene/src/module/level_manager_project_io.rs
   - zircon_scene/src/tests/boundary.rs
@@ -125,7 +125,7 @@ implementation_files:
   - zircon_asset/src/pipeline/manager/records/asset_status_record.rs
   - zircon_asset/src/pipeline/manager/records/status_record.rs
   - zircon_asset/src/pipeline/manager/records/metadata_import_state.rs
-  - zircon_asset/src/pipeline/manager/facades/resource_manager_facade.rs
+  - zircon_runtime/src/asset/pipeline/manager/service_contracts/resource_manager_contract.rs
   - zircon_asset/src/pipeline/manager/registration/service_names.rs
   - zircon_asset/src/pipeline/manager/asset_manager/mod.rs
   - zircon_asset/src/pipeline/manager/asset_manager/asset_manager.rs
@@ -268,10 +268,10 @@ doc_type: module-detail
    同一领域的公共枚举只能有一个权威拥有者；别的 crate 不应重复定义语义等价的镜像枚举再到处转换。
 
 2. **Editor-only semantics rule**
-   只服务 editor catalog、preview、authoring、interaction 的记录和状态，必须归 editor 或 asset/editor-owned 协议层，不应挂在 generic manager façade 上。
+   只服务 editor catalog、preview、authoring、interaction 的记录和状态，必须归 editor 或 asset/editor-owned 协议层，不应挂在 generic manager service contract 上。
 
-3. **Facade minimality rule**
-   façade crate 可以定义稳定入口 trait/handle，但不应顺手拥有实现域里的展示语义、preview 状态、authoring 细节和重复 type taxonomy。
+3. **Contract minimality rule**
+   契约 crate 可以定义稳定入口 trait/handle，但不应顺手拥有实现域里的展示语义、preview 状态、authoring 细节和重复 type taxonomy。
 
 4. **Dependency direction rule**
    底层 crate 不能反向依赖 `zircon_editor`；渲染 crate 不能再承载 editor interaction；runtime entry 不能复用 editor-only controller。
@@ -316,7 +316,7 @@ doc_type: module-detail
 - `zircon_editor` 的 asset workspace 和 host tests 通过这组 preview 状态来投影 catalog/details
 - `zircon_manager::traits::AssetManager` / `ResourceManager` 并不直接暴露 preview 生命周期
 
-按 “editor-only semantics rule”，preview 状态不属于 generic manager façade。它描述的是：
+按 “editor-only semantics rule”，preview 状态不属于 generic manager service contract。它描述的是：
 
 - editor preview cache 是否 dirty
 - asset catalog 中的缩略图是否 ready/error
@@ -337,7 +337,7 @@ doc_type: module-detail
 - `RENDERING_MANAGER_NAME = "GraphicsModule.Manager.RenderingManager"`
 - `LEVEL_MANAGER_NAME = "SceneModule.Manager.LevelManager"`
 
-从“名字拥有权”看，这些常量更像实现域信息，而不是 manager façade 自己的领域模型。
+从“名字拥有权”看，这些常量更像实现域信息，而不是 manager service contract 自己的领域模型。
 
 但这轮我把它列为 watchlist，而不是立即迁移，原因是：
 
@@ -377,7 +377,7 @@ doc_type: module-detail
 
 原先这些类型挂在 `zircon_manager/src/records/input.rs`，同时被输入子系统运行态实现和 `zircon_app` 的 runtime 输入桥直接消费。它们满足“子系统协议类型错挂在 façade 层”的全部证据门槛：
 
-1. 它们不是 generic manager façade 自己的抽象，而是纯输入语义
+1. 它们不是 generic manager service contract 自己的抽象，而是纯输入语义
 2. 当前输入协议 owner 已收束到 `zircon_framework::input`，而 `zircon_runtime::input` 是唯一真实拥有输入模块生命周期和运行态状态机的实现表面
 3. `zircon_manager` 一边定义 `InputManager` trait，一边顺手拥有整套输入协议模型，导致实现 crate 反向依赖 façade 类型
 
@@ -417,14 +417,14 @@ doc_type: module-detail
 - [zircon_manager/src/lib.rs](../../zircon_manager/src/lib.rs)、[zircon_manager/src/records/mod.rs](../../zircon_manager/src/records/mod.rs)、[zircon_manager/src/handles.rs](../../zircon_manager/src/handles.rs) 已删除这组 public surface；旧的 `src/records/capability_set.rs` 已删除
 - `zircon_runtime::script` 子树内部实现不再从 `zircon_manager` 反向取脚本私有类型；随着独立 `zircon_script` package 删除，这组能力现在只经 runtime script surface 暴露
 
-这批收口以后，脚本 VM 的 manifest/state/hot-reload 协议终于回到了脚本子系统自己名下；`zircon_manager` 继续只保留真正的 manager façade surface。
+这批收口以后，脚本 VM 的 manifest/state/hot-reload 协议终于回到了脚本子系统自己名下；`zircon_manager` 继续只保留真正的 manager service contract surface。
 
 ### Implemented Batch: AssetManager Protocol Boundary
 
 继续往下扫后，`AssetPipelineInfo` / `ProjectInfo` 并不是“仍应保留在 façade 层的剩余 record”；真正的强候选其实是整条 generic `AssetManager` protocol boundary：
 
 - `AssetManager` trait 只有 `zircon_asset` 一处真实实现
-- `AssetManagerHandle` 与 `resolve_asset_manager` 都只是 asset 子系统公共入口；而 `ASSET_MANAGER_NAME` 属于后续继续下沉到 `zircon_runtime::asset` 的 module-registration surface，并不属于 generic manager façade 自己的领域模型
+- `AssetManagerHandle` 与 `resolve_asset_manager` 都只是 asset 子系统公共入口；而 `ASSET_MANAGER_NAME` 属于后续继续下沉到 `zircon_runtime::asset` 的 module-registration surface，并不属于 generic manager service contract 自己的领域模型
 - `AssetChangeRecord` / `AssetChangeKind` 只是 `zircon_asset::watch::AssetChange` 的镜像投影，增加了无意义 DTO 层
 
 因此这批最终不是只搬 DTO，而是整条协议线一起迁回 `zircon_asset`：
@@ -432,7 +432,7 @@ doc_type: module-detail
 - 新增 [zircon_asset/src/pipeline/manager/asset_manager/mod.rs](../../zircon_asset/src/pipeline/manager/asset_manager/mod.rs)，并把 trait/handle/resolver 继续下沉到 [zircon_asset/src/pipeline/manager/asset_manager/asset_manager.rs](../../zircon_asset/src/pipeline/manager/asset_manager/asset_manager.rs)、[zircon_asset/src/pipeline/manager/asset_manager/asset_manager_handle.rs](../../zircon_asset/src/pipeline/manager/asset_manager/asset_manager_handle.rs) 与 [zircon_asset/src/pipeline/manager/asset_manager/resolve_asset_manager.rs](../../zircon_asset/src/pipeline/manager/asset_manager/resolve_asset_manager.rs)
 - [zircon_asset/src/pipeline/manager/mod.rs](../../zircon_asset/src/pipeline/manager/mod.rs) 与 [zircon_asset/src/lib.rs](../../zircon_asset/src/lib.rs) 现在直接拥有 `AssetManager`、`AssetManagerHandle`、`resolve_asset_manager`、`AssetPipelineInfo` 与 `ProjectInfo`
 - [zircon_runtime/src/asset/mod.rs](../../zircon_runtime/src/asset/mod.rs) 与 [zircon_runtime/src/asset/module.rs](../../zircon_runtime/src/asset/module.rs) 继续持有 `AssetModule`、`ASSET_MODULE_NAME`、`ASSET_MANAGER_NAME`、`RESOURCE_MANAGER_NAME`、`PROJECT_ASSET_MANAGER_NAME` 与 `EDITOR_ASSET_MANAGER_NAME`
-- [zircon_asset/src/pipeline/manager/facades/asset_manager_facade.rs](../../zircon_asset/src/pipeline/manager/facades/asset_manager_facade.rs) 的 `subscribe_asset_changes()` 已统一返回 `ChannelReceiver<zircon_asset::watch::AssetChange>`
+- [zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs](../../zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs) 的 `subscribe_asset_changes()` 已统一返回 `ChannelReceiver<zircon_asset::watch::AssetChange>`
 - `zircon_manager` 已删除 `AssetManager` trait、asset/project records、handle、resolver 和 service-name surface；旧的 [zircon_manager/src/records/asset.rs](../../zircon_manager/src/records/asset.rs) 与 [zircon_manager/src/records/project.rs](../../zircon_manager/src/records/project.rs) 已删除
 
 这说明 `AssetPipelineInfo` / `ProjectInfo` 已经随 canonical owner 一起回到 asset 子系统，不再属于剩余 watchlist。
@@ -447,7 +447,7 @@ doc_type: module-detail
 它们的问题和上一轮 `InputButton` / `InputEvent` 很像：
 
 1. 这组类型只服务 `LevelManager` 协议与 `zircon_scene` 运行时实现
-2. 当前真实生产/消费面只在 [zircon_scene/src/module/default_level_manager.rs](../../zircon_scene/src/module/default_level_manager.rs)、[zircon_scene/src/module/level_manager_facade.rs](../../zircon_scene/src/module/level_manager_facade.rs)、[zircon_scene/src/level_system.rs](../../zircon_scene/src/level_system.rs) 与 [zircon_scene/src/render_extract/mod.rs](../../zircon_scene/src/render_extract/mod.rs)
+2. 当前真实生产/消费面只在 [zircon_scene/src/module/default_level_manager.rs](../../zircon_runtime/src/scene/module/default_level_manager.rs)、[zircon_runtime/src/scene/module/level_manager_contract.rs](../../zircon_runtime/src/scene/module/level_manager_contract.rs)、[zircon_scene/src/level_system.rs](../../zircon_runtime/src/scene/level_system.rs) 与 [zircon_scene/src/render_extract/mod.rs](../../zircon_scene/src/render_extract/mod.rs)
 3. `zircon_manager` 只是顺手持有了 scene 专属 handle 和 summary，本身并不是这组协议的实现 owner
 
 但它们不能直接迁到 `zircon_scene`，否则会形成依赖环：
@@ -483,14 +483,14 @@ doc_type: module-detail
 
 也就是说，虽然 editor 是这组协议的重度调用方，但权威实现和验证目前仍然在 `zircon_ui` 子系统内部。这更像“UI runtime/authoring 共用协议”而不是“editor-only 语义误挂在 runtime crate”。因此这轮先不升级它，继续留在 watchlist。
 
-这轮再把 watchlist 收窄到 legacy template compat 链后，结论仍然是“先不搬”：
+这轮再把 watchlist 收窄到 historical template fixture conversion 后，结论已经从“继续保留 adapter surface”更新为“formal public surface 不保留 adapter”：
 
-- [zircon_ui/src/template/document.rs](../../zircon_ui/src/template/document.rs) 里的 `UiTemplateDocument` 不是孤立 editor DTO；[zircon_ui/src/template/validate.rs](../../zircon_ui/src/template/validate.rs)、[zircon_ui/src/template/instance.rs](../../zircon_ui/src/template/instance.rs) 和 [zircon_ui/src/template/loader.rs](../../zircon_ui/src/template/loader.rs) 共同组成 `zircon_ui` 自己的 template runtime 真源
-- [zircon_editor/src/ui/template/registry.rs](../../zircon_editor/src/ui/template/registry.rs) 当前虽然直接托管 `UiTemplateDocument`，但实例化仍然回到 `UiTemplateInstance::from_document(...)` 这条 shared runtime 合同，而不是 editor 私有实例树
-- [zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs](../../zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs) 对 `UiTemplateLoader::load_toml_str(...)` 的生产态使用，本质上也是 editor runtime 对 shared legacy template 输入格式的 fallback 兼容，而不是 editor 自己拥有 parser
-- [zircon_ui/src/template/asset/legacy.rs](../../zircon_ui/src/template/asset/legacy.rs) 的 `UiLegacyTemplateAdapter` 确实更接近 migration/authoring compat，但它桥接的是 `UiTemplateDocument -> UiAssetDocument` 这两种都由 `zircon_ui` 自己拥有的 shared model；现在把 adapter 迁到 editor 侧，会让 legacy->canonical 的共享合同脱离 model owner
+- [zircon_runtime/src/ui/template/document.rs](../../zircon_runtime/src/ui/template/document.rs) 里的 `UiTemplateDocument` 仍服务 shared template fixture/test coverage；production editor/runtime path 已经固定到 tree-shaped `UiAssetDocument`
+- [zircon_editor/src/ui/template/registry.rs](../../zircon_editor/src/ui/template/registry.rs) 生产态只托管 compiled asset documents，不再托管 legacy template document authority
+- [zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs](../../zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs) 生产态只接受 tree `UiAssetDocument` source，不再以 `UiTemplateLoader` fallback 解析旧模板输入
+- historical template / flat fixture conversion 只保留在 runtime test support 与 editor test support，用来把旧测试夹具转成 canonical tree TOML
 
-因此 `UiTemplateDocument` / `UiTemplateLoader` / `UiLegacyTemplateAdapter` 当前最多只能算 `zircon_ui::template` 下的 legacy compat watchlist，还没有达到 crate 迁移门槛。
+因此 `UiTemplateDocument` / `UiTemplateLoader` 当前只是 shared fixture/test support 输入面，不再构成 production owner 迁移候选或 formal public adapter surface。
 
 ### Keep In `zircon_manager`
 
@@ -546,12 +546,12 @@ doc_type: module-detail
 9. `CapabilitySet` / `HostHandle` / `PluginSlotId` 已从 `zircon_manager` 迁回 `zircon_runtime::script`
 10. `zircon_runtime::script` 不再经 `zircon_manager` 暴露脚本 VM 私有协议和热重载句柄；独立 `zircon_script` package 已删除
 11. `zircon_manager::ResourceStateRecord` 已删除，`ResourceStatusRecord.state` 统一改成 `zircon_resource::ResourceState`
-12. `zircon_asset` pipeline facade、`zircon_editor` resource access / asset snapshots / asset surface 和对应测试已切到 canonical `ResourceState`
+12. `zircon_runtime` asset pipeline service contract、`zircon_editor` resource access / asset snapshots / asset surface 和对应测试已切到 canonical `ResourceState`
 13. `zircon_manager::ResourceStatusRecord` 已删除，`ResourceManager::{resource_status,list_resources}` 统一改成 `zircon_resource::ResourceRecord`
-14. `zircon_asset` 不再把 `AssetMetadata`/registry record 投影成字符串化 façade DTO；resource facade 直接返回 cloned `ResourceRecord`
+14. `zircon_asset` 不再把 `AssetMetadata`/registry record 投影成字符串化 contract DTO；resource contract 直接返回 cloned `ResourceRecord`
 15. `zircon_editor` asset workspace / resource access / host tests 已切到 typed `ResourceRecord`，不再把 `id` / `locator` / `artifact_locator` / `diagnostics` 降级成字符串 record
 16. `zircon_manager::ResourceChangeKind` / `ResourceChangeRecord` 已删除，`ResourceManager::subscribe_resource_changes` 统一改成 `ChannelReceiver<zircon_resource::ResourceEvent>`
-17. `zircon_asset` 不再把 `ResourceEvent` 桥接成字符串化 façade DTO；resource facade 直接转发资源子系统原生事件流
+17. `zircon_asset` 不再把 `ResourceEvent` 桥接成字符串化 contract DTO；resource contract 直接转发资源子系统原生事件流
 18. `zircon_editor` host refresh planner、Slint asset refresh 测试和边界测试已切到 typed `ResourceEvent` / `ResourceEventKind`
 19. generic `AssetManager` trait、`AssetManagerHandle` 与 `resolve_asset_manager` 已从 `zircon_manager` 迁回 `zircon_asset`；对应的 `AssetModule` / `ASSET_MANAGER_NAME` module-registration surface 则继续收口到 `zircon_runtime::asset`
 20. `AssetPipelineInfo` / `ProjectInfo` 已随 `AssetManager` 协议线回到 `zircon_asset`，不再作为 façade 残留 record 保留在 `zircon_manager`
@@ -559,14 +559,14 @@ doc_type: module-detail
 22. `zircon_editor`、`zircon_app` 与 `zircon_graphics` 相关消费者已切到 asset-owned handle / resolver / change stream
 23. 新增 `zircon_scene_protocol` 作为 `WorldHandle` / `LevelSummary` 的独立协议 owner
 24. `zircon_manager` 删除 `WorldHandle` / `LevelSummary` re-export，`src/handles.rs` 与 `src/records/level.rs` 已删除
-25. `zircon_scene` 根级 re-export scene protocol 类型，`level_system` / `render_extract` / `DefaultLevelManager` / `LevelManagerFacade` 不再从 `zircon_manager` 反向取 scene 协议
+25. `zircon_scene` 根级 re-export scene protocol 类型，`level_system` / `render_extract` / `DefaultLevelManager` / `LevelManagerContract` 不再从 `zircon_manager` 反向取 scene 协议
 26. `zircon_scene` 根级对 `WorldHandle` / `LevelSummary` 的 framework-owned re-export 已删除；crate 内部统一改成直接依赖 `zircon_framework::scene`
 27. `zircon_asset` 根级只保留 asset 语义 alias；`AssetMetadata` / `AssetRegistry` / `AssetUriError` / `AssetUriScheme` 已从 root 移除，未接线的 `src/registry/**` 与 `src/uri.rs` 也已删除
 28. `zircon_asset` 的 project public API 已收束到 `zircon_asset::project::{ProjectManager, ProjectManifest, ProjectPaths}`；workspace 调用点不再从 asset root 平铺取这组三元组
-29. `zircon_ui` root 不再平铺 `UiTemplateDocument` / `UiTemplateLoader` / `UiLegacyTemplateAdapter`；legacy template compat 链统一通过 `zircon_ui::template::*` 访问，`zircon_editor` runtime/测试与 `zircon_graphics` / `zircon_scene` 上游消费面也已切到新 namespace
+29. `zircon_runtime::ui` root 不再平铺 `UiTemplateDocument` / `UiTemplateLoader`；historical template fixture conversion 只保留在 runtime/editor test support，production editor/runtime path 统一走 tree `UiAssetDocument`
 30. `zircon_asset` 的 watch public API 也已收束到 `zircon_asset::watch::{AssetChange, AssetChangeKind, AssetWatchEvent, AssetWatcher}`；asset root 不再继续平铺 watch 子域
 31. `zircon_ui` root 不再平铺 compiler/layout/surface specialist surface；`UiCompiledDocument` / `UiDocumentCompiler` / `UiStyleResolver` 统一走 `zircon_ui::template::*`，`compute_layout_tree` / `compute_virtual_list_window` / `solve_axis_constraints` 统一走 `zircon_ui::layout::*`，`UiRenderExtract` / `UiRenderCommand*` / `UiResolvedStyle` / `UiVisualAssetRef` 统一走 `zircon_ui::surface::*`
-32. `zircon_ui` root 继续把 template asset component-schema / reflection surface 收回 `zircon_ui::template::{UiComponentDefinition, UiComponentParamSchema, UiNamedSlotSchema, UiStyleScope}`；editor `ui_asset` core 与 `zircon_ui` 内部 asset compiler/legacy adapter 调用点不再从 crate root 取这组 schema 类型
+32. `zircon_runtime::ui` root 继续把 template asset component-schema / reflection surface 收回 `zircon_runtime::ui::template::{UiComponentDefinition, UiComponentParamSchema, UiNamedSlotSchema, UiStyleScope}`；editor `ui_asset` core 与 runtime asset compiler 调用点不再从 root 取这组 schema 类型
 33. `zircon_ui` root 也继续把 template asset selector/parser surface 收回 `zircon_ui::template::{UiSelector, UiSelectorToken}`；selector stylesheet 的 parse/match model 现在只从 template namespace 获取，crate 内部 style compiler 也不再经 root 绕行
 34. `zircon_ui` root 继续把 template document/binding model 收回 `zircon_ui::template::{UiActionRef, UiBindingRef, UiComponentTemplate, UiSlotTemplate}`；`zircon_editor` 的 binding inspector / command / document diff / template adapter 现在显式从 template namespace 取这组类型，`zircon_ui` 自己的 tree metadata 与 asset document 也不再经 crate root 绕行
 35. `zircon_runtime::{asset,ui}` 吸收层入口也已回到 namespace-first 结构：runtime asset 只保留 `project` / `watch` namespace，runtime ui 只保留 `layout` / `surface` / `template` / `tree` namespace，不再在吸收层重新扁平化这些子域 surface；上述 template component-schema / reflection / selector-parser / binding-model surface 也不会在 runtime ui root 重新出现
@@ -609,7 +609,7 @@ graphics public owner cutover 在入口侧已经继续收口：
 
 1. 继续审计 runtime graphics 内部较深的 helper/public surface，确认 graphics owner cutover 在入口之外也没有遗留 root-surface 泄漏；`GraphicsModule` 本身已经稳定由 `zircon_runtime::graphics` 与 `zircon_runtime::builtin_runtime_modules()` 持有。
 2. `RenderingBackendInfo` 目前已有充分 keep 证据；后续只需在 `RenderingManager` façade 真正删除或出现第二实现时再重开审计。
-3. 继续细分 `zircon_ui` watchlist；当前已经先把 legacy template compat 链收回 `zircon_ui::template::*`，下一步若要再升级，先要证明 `UiTemplateDocument` / `UiTemplateLoader` / `UiLegacyTemplateAdapter` 已经脱离 `zircon_ui` 自己的 validator/instance/surface runtime。
+3. 继续细分 `zircon_runtime::ui` watchlist；当前 production path 已经固定 tree authority，下一步若要再升级，先要证明 `UiTemplateDocument` / `UiTemplateLoader` 已经脱离 runtime 自己的 validator/instance/surface fixture coverage。
 4. 持续扫 live `docs/` 中对旧 asset/scene owner 的残留描述；当前仓库没有 `docs/source/` 目录，因此文档清扫目标以总览型文档为准。
 5. `zircon_asset` 根级 raw-resource foreign re-export、project flatten 与 watch flatten 已完成，`zircon_runtime::{asset,ui}` 也已经回到 namespace-first surface；在 binding / event_ui 这两簇收口闭环后，下一批更合理的非热区候选转向 `zircon_ui` 其它仍高扇出的 root surface，以及 repo 内仍假定 runtime world 会生成 editor overlay 的残留测试/文档。
 6. 在不碰 `zircon_editor` / `zircon_graphics` 热区的前提下，继续找新的“证据充分”候选；除这条 root-surface 泄漏外，本轮还没有发现新的高证据错包。
@@ -686,8 +686,8 @@ graphics public owner cutover 在入口侧已经继续收口：
 - `AssetPipelineInfo` / `ProjectInfo` 已随 `AssetManager` 协议线回到 `zircon_asset`；这一组不再属于剩余 watchlist
 - `WorldHandle` / `LevelSummary` 已完成 scene 协议层收口：`zircon_scene_protocol` 成为唯一 owner，`zircon_manager` 不再 re-export scene handle/summary
 - `RenderingBackendInfo` 当前应保留在 `zircon_manager`：它有实际 graphics 实现、模块注册和 bootstrap 消费，当前定位是 compat façade contract
-- `zircon_ui` binding / reflection / template protocols 当前仍停留在 watchlist，因为 `zircon_ui` 自身仍是这组协议的实现和测试 owner；其中 legacy template compat 链也还没达到 crate 迁移门槛
-- `zircon_ui` 的 root-surface 收口已从 legacy template compat 扩展到 compiler/layout/template-runtime/tree specialist surface：workspace 调用点统一经 `zircon_ui::template::{UiTemplateDocument, UiTemplateLoader, UiLegacyTemplateAdapter, UiCompiledDocument, UiDocumentCompiler, UiStyleResolver, UiTemplateBuildError, UiTemplateError, UiTemplateSurfaceBuilder, UiTemplateTreeBuilder, UiTemplateValidator, UiTemplateInstance, UiTemplateNode}`、`zircon_ui::layout::{compute_layout_tree, compute_virtual_list_window, solve_axis_constraints}` 与 `zircon_ui::tree::{UiTemplateNodeMetadata, UiTreeError, UiDirtyFlags, UiLayoutCache, UiHitTestIndex, UiHitTestResult}` 访问，而不是继续依赖 `zircon_ui` 根级平铺
+- `zircon_runtime::ui` binding / reflection / template protocols 当前仍停留在 watchlist，因为 runtime UI 自身仍是这组协议的实现和测试 owner；historical fixture conversion 不属于 production public surface
+- `zircon_runtime::ui` 的 root-surface 收口已扩展到 compiler/layout/template-runtime/tree specialist surface：workspace 调用点统一经 `zircon_runtime::ui::template::{UiTemplateDocument, UiTemplateLoader, UiCompiledDocument, UiDocumentCompiler, UiStyleResolver, UiTemplateBuildError, UiTemplateError, UiTemplateSurfaceBuilder, UiTemplateTreeBuilder, UiTemplateValidator, UiTemplateInstance, UiTemplateNode}`、`zircon_runtime::ui::layout::{compute_layout_tree, compute_virtual_list_window, solve_axis_constraints}` 与 `zircon_runtime::ui::tree::{UiTemplateNodeMetadata, UiTreeError, UiDirtyFlags, UiLayoutCache, UiHitTestIndex, UiHitTestResult}` 访问，而不是继续依赖 root flat exports
 - `zircon_ui` 的 root-surface 收口也已经覆盖 binding / event_ui specialist：workspace 调用点统一经 `zircon_ui::binding::*` 与 `zircon_ui::event_ui::*` 访问，`zircon_runtime::ui` 只保留 `binding` / `event_ui` namespace，不再在吸收层根入口重新拍平这两簇协议 DTO
 - `zircon_asset` 根级 raw `zircon_resource` foreign re-export 已进入收口实现：raw `Resource*` surface 应回到 `zircon_resource`，asset crate 根只保留 asset-named 语义 alias；其中 `AssetReference` 这类仍有消费证据的 asset 别名不在删除范围
 - `zircon_asset` 的 project/watch public API 都已从“候选”转为“已落地”：`ProjectManager` / `ProjectManifest` / `ProjectPaths` / `AssetMetaDocument` / `PreviewState` 现在只经 `zircon_asset::project::*` 暴露，`AssetChange` / `AssetChangeKind` / `AssetWatchEvent` / `AssetWatcher` 现在只经 `zircon_asset::watch::*` 暴露
