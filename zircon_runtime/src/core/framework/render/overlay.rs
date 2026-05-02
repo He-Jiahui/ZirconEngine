@@ -10,6 +10,7 @@ pub enum SceneGizmoKind {
     DirectionalLight,
     VirtualGeometryBvh,
     VirtualGeometryVisBuffer,
+    NavigationMesh,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]

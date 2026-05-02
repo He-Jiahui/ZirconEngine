@@ -1,12 +1,13 @@
 use std::collections::HashSet;
 
 use crate::asset::project::ProjectManifest;
-use crate::ExportPackagingStrategy;
+use crate::{plugin::ExportPackagingStrategy, plugin::RuntimePluginCatalog};
 
+use super::cargo_manifest_template::plugin_path_for_runtime_crate;
 use super::default_profile::default_profile;
 use super::generated_files::generated_files_for_profile;
 use super::native_plugin_load_manifest_template::native_dynamic_package_directory;
-use super::ExportBuildPlan;
+use super::{ExportBuildPlan, ExportLinkedRuntimeCrate};
 
 impl ExportBuildPlan {
     pub fn from_project_manifest(
@@ -21,13 +22,15 @@ impl ExportBuildPlan {
             .or_else(|| default_profile(profile_name))
             .ok_or_else(|| format!("missing export profile {profile_name}"))?;
 
+        let catalog = RuntimePluginCatalog::builtin();
+        let completed_plugins = catalog.complete_project_manifest(&manifest.plugins);
         let enabled_plugins = manifest
             .plugins
             .enabled_for_target(profile.target_mode)
             .collect::<Vec<_>>();
         let project_plugin_selections = manifest.plugins.selections.iter().collect::<Vec<_>>();
         let mut linked_runtime_crate_names = HashSet::new();
-        let linked_runtime_crates = enabled_plugins
+        let mut linked_runtime_crate_links = enabled_plugins
             .iter()
             .filter(|selection| {
                 selection.runtime_crate.is_some()
@@ -37,6 +40,34 @@ impl ExportBuildPlan {
             })
             .map(|selection| selection.runtime_crate_name())
             .filter(|crate_name| linked_runtime_crate_names.insert(crate_name.clone()))
+            .map(|crate_name| {
+                let path = format!("{}/runtime", plugin_path_for_runtime_crate(&crate_name));
+                ExportLinkedRuntimeCrate::runtime_plugin(crate_name, path)
+            })
+            .collect::<Vec<_>>();
+        let feature_report =
+            catalog.feature_dependency_report(&completed_plugins, profile.target_mode);
+        for feature_id in &feature_report.available_features {
+            let Some((owner, feature)) = feature_selection(&completed_plugins, feature_id) else {
+                continue;
+            };
+            if feature.runtime_crate.is_none()
+                || feature.packaging == ExportPackagingStrategy::NativeDynamic
+                || !profile.uses_strategy(ExportPackagingStrategy::LibraryEmbed)
+            {
+                continue;
+            }
+            let crate_name = feature.runtime_crate_name();
+            if linked_runtime_crate_names.insert(crate_name.clone()) {
+                linked_runtime_crate_links.push(ExportLinkedRuntimeCrate::runtime_feature(
+                    crate_name,
+                    feature.runtime_crate_path(&owner.id),
+                ));
+            }
+        }
+        let linked_runtime_crates = linked_runtime_crate_links
+            .iter()
+            .map(|linked_crate| linked_crate.crate_name.clone())
             .collect::<Vec<_>>();
         let mut native_dynamic_package_ids = HashSet::new();
         let mut native_dynamic_package_directories = HashSet::new();
@@ -73,7 +104,21 @@ impl ExportBuildPlan {
                 )
             })
             .collect::<Vec<_>>();
+        let mut fatal_diagnostics = Vec::new();
         diagnostics.extend(native_dynamic_diagnostics);
+        if profile.uses_strategy(ExportPackagingStrategy::LibraryEmbed)
+            || profile.uses_strategy(ExportPackagingStrategy::SourceTemplate)
+        {
+            diagnostics.extend(feature_report.diagnostics.iter().cloned());
+            fatal_diagnostics.extend(feature_report.diagnostics.iter().cloned());
+            for blocked in &feature_report.blocked_features {
+                let diagnostic = blocked.to_diagnostic();
+                if blocked.required {
+                    fatal_diagnostics.push(diagnostic.clone());
+                }
+                diagnostics.push(diagnostic);
+            }
+        }
         diagnostics.extend(
             enabled_plugins
                 .iter()
@@ -94,7 +139,7 @@ impl ExportBuildPlan {
             manifest,
             &profile,
             &project_plugin_selections,
-            &linked_runtime_crates,
+            &linked_runtime_crate_links,
             &native_dynamic_packages,
         );
 
@@ -106,6 +151,23 @@ impl ExportBuildPlan {
             generated_files,
         );
         plan.diagnostics = diagnostics;
+        plan.fatal_diagnostics = fatal_diagnostics;
         Ok(plan)
     }
+}
+
+fn feature_selection<'a>(
+    manifest: &'a crate::plugin::ProjectPluginManifest,
+    feature_id: &str,
+) -> Option<(
+    &'a crate::plugin::ProjectPluginSelection,
+    &'a crate::plugin::ProjectPluginFeatureSelection,
+)> {
+    manifest.selections.iter().find_map(|selection| {
+        selection
+            .features
+            .iter()
+            .find(|feature| feature.id == feature_id)
+            .map(|feature| (selection, feature))
+    })
 }

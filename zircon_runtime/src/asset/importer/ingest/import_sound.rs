@@ -1,20 +1,15 @@
-use std::fs;
-use std::path::Path;
-
-use super::AssetImporter;
 use crate::asset::assets::{ImportedAsset, SoundAsset};
-use crate::asset::{AssetImportError, AssetUri};
+use crate::asset::{AssetImportContext, AssetImportError, AssetImportOutcome};
 
-impl AssetImporter {
-    pub(super) fn import_sound(
-        &self,
-        source_path: &Path,
-        uri: &AssetUri,
-    ) -> Result<ImportedAsset, AssetImportError> {
-        let bytes = fs::read(source_path)?;
-        let asset = SoundAsset::from_wav_bytes(uri, &bytes).map_err(|error| {
-            AssetImportError::Parse(format!("decode wav {}: {error}", source_path.display()))
+pub(crate) fn import_sound(
+    context: &AssetImportContext,
+) -> Result<AssetImportOutcome, AssetImportError> {
+    let asset =
+        SoundAsset::from_wav_bytes(&context.uri, &context.source_bytes).map_err(|error| {
+            AssetImportError::Parse(format!(
+                "decode wav {}: {error}",
+                context.source_path.display()
+            ))
         })?;
-        Ok(ImportedAsset::Sound(asset))
-    }
+    Ok(AssetImportOutcome::new(ImportedAsset::Sound(asset)))
 }

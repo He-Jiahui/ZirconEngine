@@ -1,50 +1,69 @@
 ---
 related_code:
-  - zircon_runtime/src/core/framework/mod.rs
   - zircon_runtime/src/core/framework/net/mod.rs
+  - zircon_runtime/src/core/framework/net/diagnostics.rs
+  - zircon_runtime/src/core/framework/net/download.rs
   - zircon_runtime/src/core/framework/net/endpoint.rs
   - zircon_runtime/src/core/framework/net/error.rs
+  - zircon_runtime/src/core/framework/net/event.rs
+  - zircon_runtime/src/core/framework/net/http.rs
+  - zircon_runtime/src/core/framework/net/ids.rs
   - zircon_runtime/src/core/framework/net/manager.rs
   - zircon_runtime/src/core/framework/net/packet.rs
+  - zircon_runtime/src/core/framework/net/reliable.rs
+  - zircon_runtime/src/core/framework/net/rpc.rs
+  - zircon_runtime/src/core/framework/net/session.rs
   - zircon_runtime/src/core/framework/net/socket_id.rs
-  - zircon_runtime/src/core/framework/tests.rs
+  - zircon_runtime/src/core/framework/net/sync.rs
+  - zircon_runtime/src/core/framework/net/transport.rs
+  - zircon_runtime/src/core/framework/net/websocket.rs
   - zircon_runtime/src/core/manager/mod.rs
   - zircon_runtime/src/core/manager/resolver.rs
   - zircon_runtime/src/core/manager/service_names.rs
-  - zircon_plugins/net/runtime/src/mod.rs
+  - zircon_plugins/net/plugin.toml
+  - zircon_plugins/net/runtime/Cargo.toml
   - zircon_plugins/net/runtime/src/config.rs
+  - zircon_plugins/net/runtime/src/lib.rs
   - zircon_plugins/net/runtime/src/module.rs
+  - zircon_plugins/net/runtime/src/package.rs
   - zircon_plugins/net/runtime/src/service_types.rs
-  - zircon_runtime/src/tests/extensions/manager_handles.rs
-  - zircon_runtime/src/builtin/runtime_modules.rs
+  - zircon_plugins/net/runtime/src/tests.rs
+  - zircon_plugins/net/editor/src/lib.rs
 implementation_files:
-  - zircon_runtime/src/core/framework/mod.rs
   - zircon_runtime/src/core/framework/net/mod.rs
-  - zircon_runtime/src/core/framework/net/endpoint.rs
+  - zircon_runtime/src/core/framework/net/diagnostics.rs
+  - zircon_runtime/src/core/framework/net/download.rs
   - zircon_runtime/src/core/framework/net/error.rs
+  - zircon_runtime/src/core/framework/net/event.rs
+  - zircon_runtime/src/core/framework/net/http.rs
+  - zircon_runtime/src/core/framework/net/ids.rs
   - zircon_runtime/src/core/framework/net/manager.rs
-  - zircon_runtime/src/core/framework/net/packet.rs
-  - zircon_runtime/src/core/framework/net/socket_id.rs
-  - zircon_runtime/src/core/framework/tests.rs
-  - zircon_runtime/src/core/manager/mod.rs
-  - zircon_runtime/src/core/manager/resolver.rs
-  - zircon_runtime/src/core/manager/service_names.rs
-  - zircon_plugins/net/runtime/src/mod.rs
+  - zircon_runtime/src/core/framework/net/reliable.rs
+  - zircon_runtime/src/core/framework/net/rpc.rs
+  - zircon_runtime/src/core/framework/net/session.rs
+  - zircon_runtime/src/core/framework/net/sync.rs
+  - zircon_runtime/src/core/framework/net/transport.rs
+  - zircon_runtime/src/core/framework/net/websocket.rs
+  - zircon_plugins/net/plugin.toml
+  - zircon_plugins/net/runtime/Cargo.toml
   - zircon_plugins/net/runtime/src/config.rs
-  - zircon_plugins/net/runtime/src/module.rs
+  - zircon_plugins/net/runtime/src/lib.rs
+  - zircon_plugins/net/runtime/src/package.rs
   - zircon_plugins/net/runtime/src/service_types.rs
-  - zircon_runtime/src/tests/extensions/manager_handles.rs
 plan_sources:
-  - user: 2026-04-21 PLEASE IMPLEMENT THIS PLAN
-  - user: 2026-04-21 Later Milestones / M2 基础子系统补齐
-  - user: 2026-04-21 继续
+  - user: 2026-05-02 PLEASE IMPLEMENT THIS PLAN / ZirconEngine Net 插件完善计划
+  - .codex/plans/ZirconEngine 独立插件补齐计划.md
+  - .codex/plans/多插件组合可选功能规则设计.md
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
   - .codex/plans/全系统重构方案.md
 tests:
-  - cargo check -p zircon_runtime --locked
-  - cargo check --workspace --locked
-  - cargo test -p zircon_runtime core::framework::tests::net_framework_root_stays_structural_after_folder_split --locked
-  - cargo test -p zircon_runtime tests::extensions::manager_handles::externalized_runtime_plugins_keep_manager_handles_under_core_manager_contracts --locked
+  - zircon_plugins/net/runtime/src/tests.rs
+  - passed: cargo metadata --manifest-path zircon_plugins/Cargo.toml --locked --no-deps --format-version 1
+  - passed: CARGO_TARGET_DIR=target/codex-net-check cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_runtime --offline
+  - passed: CARGO_TARGET_DIR=target/codex-net-check cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_runtime --tests --offline
+  - passed: CARGO_TARGET_DIR=target/codex-net-check cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_runtime --locked --offline
+  - passed: CARGO_TARGET_DIR=target/codex-net-check cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_runtime --tests --locked --offline
+  - attempted: VS DevCmd + CARGO_TARGET_DIR=target/codex-net-check cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_runtime --offline -j 1
 doc_type: module-detail
 ---
 
@@ -52,27 +71,34 @@ doc_type: module-detail
 
 ## Purpose
 
-这份文档记录 `M2` 的第一个真实子系统起手：把 `zircon_plugin_net_runtime` 从“只有 module descriptor 的占位壳”补成最小可用网络闭环。
+`net` is an independent runtime/editor plugin. The shared engine contract lives in
+`zircon_runtime::core::framework::net`, stable access remains under
+`zircon_runtime::core::manager::NetManagerHandle`, and concrete behavior belongs to
+`zircon_plugins/net/runtime`.
 
-当前完成线不是完整 multiplayer / replication / RPC，而是更薄的一层：
+The first implementation milestone moves the previous UDP-only loopback MVP into a
+Tokio-backed transport foundation:
 
-- `core::framework::net` 定义共享 socket/message-loop 合同
-- `core::manager` 暴露稳定 `NetManager` contract / handle
-- `zircon_plugin_net_runtime` 提供默认 runtime 实现
-- 默认实现能在本机 loopback 上完成 `bind -> send -> poll -> close`
+- UDP socket bind/send/poll/close remains supported through the original `NetManager` API.
+- TCP listener/client/accepted connection handles are now part of the shared manager contract.
+- Runtime mode is explicit: `DedicatedServer`, `Client`, or `ListenServer`.
+- The manager reports copied diagnostics and drains structured runtime events.
+- HTTP route/request dispatch and WebSocket frame queue behavior now have a first runtime slice.
+- RPC, replication, reliable UDP, and content-download contracts are represented as neutral DTOs and optional feature manifests.
 
-这正对应 roadmap 里 `M2` 的“socket/基础消息闭环”。
+This is not the full multiplayer stack yet. The current milestone establishes the low-level
+transport and descriptor surface that later milestones can implement without changing the
+manager boundary again.
 
 ## Ownership
 
-这轮之后网络子系统的 ownership 固定为：
+The ownership split is fixed:
 
 - `zircon_runtime::core::framework::net`
-  - `NetEndpoint`
-  - `NetSocketId`
-  - `NetPacket`
-  - `NetError`
-  - `NetManager`
+  - IDs: `NetListenerId`, `NetConnectionId`, `NetSessionId`, `NetRequestId`, `NetRouteId`, `NetDownloadId`, `NetSocketId`
+  - transport contracts: `NetTransportKind`, `NetConnectionState`, `NetSecurityPolicy`, `NetEvent`, `NetDiagnostics`
+  - higher-layer descriptors: HTTP routes/requests, WebSocket frames, RPC descriptors, sync descriptors, reliable-datagram config/stats, download manifests
+  - `NetManager` trait
 - `zircon_runtime::core::manager`
   - `NET_MANAGER_NAME`
   - `NetManagerHandle`
@@ -81,85 +107,112 @@ doc_type: module-detail
 - `zircon_plugin_net_runtime`
   - `NetModule`
   - `NetDriver`
-  - `DefaultNetManager`
+  - `DefaultNetManager` / `NetRuntimeManager`
+  - plugin options, event catalog, and optional feature bundle declarations
+- `zircon_plugin_net_editor`
+  - network authoring view, drawer, menu operation, and template registration
 
-也就是说：
-
-- framework 只定义中性 DTO 和 manager trait
-- core manager 只定义稳定服务名和 resolver surface
-- runtime extension 才拥有 `std::net::UdpSocket` 的具体行为
+`framework` stays DTO-only. It does not own Tokio, HTTP clients, WebSocket engines, asset caches,
+or replication runtime state.
 
 ## Contract Shape
 
-`NetManager` 当前故意保持很小，只覆盖 `M2` 这一步必须成立的最小动作：
+`NetManager` now covers the transport foundation while keeping the existing UDP calls:
 
-- `backend_name()`
-- `bind_udp(...)`
-- `local_endpoint(...)`
-- `send_udp(...)`
-- `poll_udp(...)`
-- `close_socket(...)`
+- identity and mode: `backend_name()`, `runtime_mode()`
+- UDP: `bind_udp`, `local_endpoint`, `send_udp`, `poll_udp`, `close_socket`
+- TCP: `listen_tcp`, `listener_endpoint`, `accept_tcp`, `connect_tcp`, `connection_state`, `send_tcp`, `poll_tcp`, `close_connection`
+- HTTP: `register_http_route`, `unregister_http_route`, `send_http_request`
+- WebSocket: `open_websocket_loopback`, `send_websocket_frame`, `poll_websocket_frames`
+- observability: `drain_events`, `diagnostics`
 
-对应 DTO 也只保留最小必需集：
-
-- `NetEndpoint { host, port }`
-- `NetSocketId`
-- `NetPacket { source, payload }`
-- `NetError::{InvalidEndpoint, UnknownSocket, Io}`
-
-这里没有提前引入连接状态机、频道、可靠重传、session、replication、RPC schema 或 host migration。那些都属于后续更高层网络协议，而不是这条 `M2` 起手 contract 该承载的范围。
+The manager intentionally exposes handles and copied DTOs only. It does not expose Tokio sockets,
+tasks, streams, borrowed buffers, or runtime-owned connection objects.
 
 ## Runtime Implementation
 
-默认实现 `DefaultNetManager` 目前基于 `std::net::UdpSocket`：
+`DefaultNetManager` is now the Tokio-backed runtime manager, with `NetRuntimeManager` as an alias
+for the same concrete implementation. Internally it owns:
 
-- `bind_udp` 绑定本地 endpoint，并切成 non-blocking
-- `send_udp` 直接通过已绑定 socket 向目标 endpoint 发送 payload
-- `poll_udp` 在 non-blocking 模式下收集最多 `max_packets` 个数据包，遇到 `WouldBlock` 立刻返回
-- `poll_udp(max_packets)` 的 budget 是硬边界；超过 budget 的 datagram 留在 socket 中，等待下一次 poll
-- `close_socket` 从 manager 内部 socket 表移除句柄
+- one Tokio multi-thread runtime
+- an atomic ID source per handle family
+- UDP socket table
+- TCP listener table
+- TCP connection table
+- HTTP route table
+- WebSocket loopback connection table
+- FIFO event queue
 
-内部状态只是一张 `NetSocketId -> UdpSocket` 的表和一个递增 id 计数器，没有后台线程，也没有额外 runtime scheduler 依赖。
+The synchronous `NetManager` trait uses Tokio nonblocking socket APIs internally. Binding and
+connecting use the manager's runtime, while polling and sending use `try_*` methods so the existing
+engine-facing call surface stays deterministic and budgeted.
 
-这让它满足两个条件：
+The M2 starter slice keeps HTTP and WebSocket runtime behavior intentionally local and budgetable:
 
-- 真实可用，不是空壳 manager
-- 范围够小，不会把 `M2` 的网络子系统一上来就做成半套复杂 runtime
+- HTTP routes are registered as `NetHttpRouteDescriptor` plus a stable `NetHttpResponseDescriptor`.
+- `send_http_request` parses the request path and dispatches to registered routes by method/path.
+- WebSocket loopback pairs use `NetConnectionId` handles, `NetWebSocketFrame` values, peer queues, close frames, and frame poll budgets.
 
-## Module Wiring
+This is enough for plugin/catalog/editor surfaces to exercise the feature family without binding the
+framework contract to a specific external library. The production backend still needs the planned
+`reqwest`/`hyper`/`tokio-tungstenite` integration before this becomes real network HTTP(S) or
+WebSocket IO.
 
-`NetModule` 不再走 `module_descriptor_with_driver_and_manager::<_, _>(...)` 这种占位 helper。
+## Optional Features
 
-现在它和 physics / animation 一样，显式注册三层服务：
+`zircon_plugins/net/plugin.toml` and `zircon_plugin_net_runtime::package_manifest()` now declare
+these feature bundles:
 
-1. `NetDriver`
-2. `DefaultNetManager`
-3. manager handle `NetManagerHandle`
+- `net.http` -> `runtime.feature.net.http`
+- `net.websocket` -> `runtime.feature.net.websocket`
+- `net.rpc` -> `runtime.feature.net.rpc`
+- `net.replication` -> `runtime.feature.net.replication`
+- `net.reliable_udp` -> `runtime.feature.net.reliable_udp`
+- `net.content_download` -> `runtime.feature.net.cdn_download`
 
-这一步的意义不是为了复杂化，而是把“默认实现”和“稳定 manager contract”分开：
+Each feature depends on `net/runtime.plugin.net` as its primary owner dependency. The runtime crates
+listed for those features are feature-package targets for later milestones; the base plugin only
+declares and gates them here.
 
-- 以后换掉默认 backend，不需要改 `NET_MANAGER_NAME`
-- 上层 app / editor / plugin 继续只认 `core::manager::resolve_net_manager(...)`
+## Reference Alignment
 
-## Validation
+The shape follows Unreal's split between socket subsystem, net driver, connections, channels,
+control messages, packet handlers, HTTP/WebSocket modules, replication systems, and build-patch
+download services. It translates those ideas into Zircon's current Rust boundaries:
 
-这轮直接跑过的验证包括：
+- driver/manager/service registration remains under `CoreRuntime`
+- public access goes through `core::manager`
+- user-facing feature families become plugin feature bundles
+- replication/RPC/download behavior stays above the base transport manager
 
-- `cargo check -p zircon_runtime --locked`
-  - 证明 `framework::net`、`core::manager` 和 `zircon_plugin_net_runtime` 的 production wiring 已经闭合
-- `cargo check --workspace --locked`
-  - 证明新的 shared manager contract / handle 没有破坏工作区主链
-- `cargo test -p zircon_runtime core::framework::tests::net_framework_root_stays_structural_after_folder_split --locked`
-  - 证明 `core::framework::net/mod.rs` 保持 structural root，而不是重新把实现堆回根文件
-- `cargo test -p zircon_runtime tests::extensions::manager_handles::externalized_runtime_plugins_keep_manager_handles_under_core_manager_contracts --locked`
-  - 证明 `NetManagerHandle` / `resolve_net_manager(...)` / `NET_MANAGER_NAME` 已经进入 core manager 稳定表面，而不是继续留在 extension 内部私有路径；网络行为闭环现在由 `zircon_plugin_net_runtime` 的独立插件 workspace 测试覆盖
+Mirror-style convenience maps to descriptors rather than language attributes:
 
-## Next Steps
+- Commands and ClientRpc/TargetRpc map to `RpcDescriptor` plus `RpcDirection`
+- SyncVar-style state maps to `SyncComponentDescriptor` and `SyncFieldDescriptor`
+- interest management maps to the sync descriptor's interest group and later replication graph work
 
-这条 `M2/net` 起手完成后，后续网络方向可以继续分层推进：
+## Validation Status
 
-1. 在 `framework::net` 上加 session / connection surface
-2. 把 UDP-only MVP 扩到 TCP listener / accepted stream surface
-3. 再往上才是消息 schema、RPC、replication、多人状态同步
+New unit-test coverage was added in `zircon_plugins/net/runtime/src/tests.rs` for:
 
-关键是这些后续层都应该建立在当前已经收口的 `NetManager` contract 之上，而不是重新回到“只有 module 壳、没有真实 runtime 行为”的状态。
+- net package optional feature bundle metadata
+- UDP loopback preservation
+- TCP listen/connect/accept/send/poll echo behavior
+- runtime mode diagnostics and listener events
+- RPC descriptor direction/schema/quota metadata
+
+Validation is currently blocked by unrelated active workspace changes:
+
+- The earlier asset metadata duplicate-field blocker no longer reproduces.
+- The earlier navigation runtime manifest target blocker no longer reproduces.
+- The plugin workspace member blocker for missing `asset_importers/{model,texture,audio,shader,data}/runtime`
+  crates was cleared with minimal runtime skeleton packages.
+- `ResourceRecord` in `zircon_runtime_interface` now has `with_state` and `with_diagnostics`, matching asset pipeline usage through `zircon_runtime::core::resource`.
+- `cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_runtime --offline` passed with `CARGO_TARGET_DIR=target/codex-net-check`.
+- The locked check variant also passed after refreshing `zircon_plugins/Cargo.lock` offline.
+- `cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_runtime --tests --locked --offline` passed with the same target, proving the added HTTP/WebSocket tests type-check.
+- Full `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_runtime --lib --locked --offline -j 1` was attempted inside VS DevCmd. It still timed out while compiling/linking large shared dependencies such as `wgpu`, `gltf`, `glyphon`, `fontsdf`, and `zircon_runtime_interface`; it did not reach the net test runner.
+
+The next clean validation gate for this milestone is to rerun the same package test on a quieter
+machine or after shared target artifacts are warm enough that the test binary can link within the
+local timeout budget.

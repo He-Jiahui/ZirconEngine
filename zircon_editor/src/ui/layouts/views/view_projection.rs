@@ -4,10 +4,8 @@ use std::path::{Path, PathBuf};
 use slint::SharedString;
 use thiserror::Error;
 use toml::Value;
-use zircon_runtime::ui::template::{
-    UiAssetLoader, UiDocumentCompiler, UiTemplateBuildError, UiTemplateSurfaceBuilder,
-};
-use zircon_runtime::ui::{surface::extract_ui_render_tree, tree::UiRuntimeTreeAccessExt};
+use zircon_runtime::ui::template::UiTemplateBuildError;
+use zircon_runtime::ui::tree::UiRuntimeTreeAccessExt;
 use zircon_runtime_interface::ui::{
     event_ui::UiTreeId,
     layout::UiSize,
@@ -15,6 +13,8 @@ use zircon_runtime_interface::ui::{
     template::UiAssetError,
     tree::{UiTemplateNodeMetadata, UiTreeError},
 };
+
+use crate::ui::template::EditorTemplateRuntimeService;
 
 use super::{ViewTemplateFrameData, ViewTemplateNodeData};
 
@@ -53,25 +53,31 @@ pub(crate) fn build_view_template_nodes_with_imports(
     size: UiSize,
     text_overrides: &BTreeMap<String, String>,
 ) -> Result<Vec<ViewTemplateNodeData>, ViewTemplateProjectionError> {
-    let layout = UiAssetLoader::load_toml_file(asset_path(layout_asset_path))?;
-    let mut compiler = UiDocumentCompiler::default();
+    let template_service = EditorTemplateRuntimeService;
+    let layout = template_service.load_document_file(asset_path(layout_asset_path))?;
+    let mut widget_import_documents = BTreeMap::new();
+    let mut style_import_documents = BTreeMap::new();
     for (asset_id, widget_path) in widget_imports {
-        let widget = UiAssetLoader::load_toml_file(asset_path(widget_path))?;
-        compiler.register_widget_import((*asset_id).to_string(), widget)?;
+        let widget = template_service.load_document_file(asset_path(widget_path))?;
+        widget_import_documents.insert((*asset_id).to_string(), widget);
     }
     for (asset_id, style_path) in style_imports {
-        let style = UiAssetLoader::load_toml_file(asset_path(style_path))?;
-        compiler.register_style_import((*asset_id).to_string(), style)?;
+        let style = template_service.load_document_file(asset_path(style_path))?;
+        style_import_documents.insert((*asset_id).to_string(), style);
     }
 
-    let compiled = compiler.compile(&layout)?;
-    let mut surface = UiTemplateSurfaceBuilder::build_surface_from_compiled_document(
+    let compiled = template_service.compile_document_with_import_maps(
+        &layout,
+        &widget_import_documents,
+        &style_import_documents,
+    )?;
+    let mut surface = template_service.build_surface_from_compiled_document(
         UiTreeId::new(document_tree_id.to_string()),
         &compiled,
     )?;
     surface.compute_layout(size)?;
 
-    let render = extract_ui_render_tree(&surface.tree);
+    let render = template_service.extract_render(&surface);
     let mut nodes = Vec::new();
     for command in render.list.commands {
         let Some(tree_node) = surface.tree.node(command.node_id) else {

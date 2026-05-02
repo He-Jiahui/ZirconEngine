@@ -33,6 +33,8 @@ pub(in crate::graphics::runtime::render_framework) fn submit_frame_extract_with_
     let prepared = prepare_runtime_submission(&mut state, viewport, &context);
     let resolved_history = resolve_history_handle(&mut state, viewport, &context);
     let runtime_frame = build_runtime_frame(extract, ui, &context, &prepared);
+    state.last_virtual_geometry_debug_snapshot =
+        runtime_frame.virtual_geometry_debug_snapshot.clone();
     let frame = state
         .renderer
         .render_frame_with_pipeline(

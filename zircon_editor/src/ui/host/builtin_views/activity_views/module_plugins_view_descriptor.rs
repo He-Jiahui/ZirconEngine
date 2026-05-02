@@ -10,7 +10,7 @@ pub(super) fn module_plugins_view_descriptor() -> ViewDescriptor {
     ViewDescriptor::new(
         ViewDescriptorId::new("editor.module_plugins"),
         ViewKind::ActivityView,
-        "Modules",
+        "Plugin Manager",
     )
     .with_preferred_drawer_slot(ActivityDrawerSlot::LeftBottom)
     .with_default_constraints(default_constraints_for_content(

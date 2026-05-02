@@ -8,6 +8,9 @@ pub(in crate::asset::pipeline::manager) fn store_runtime_payload(
     imported: ImportedAsset,
 ) {
     match imported {
+        ImportedAsset::Data(asset) => {
+            resource_manager.store_payload(id, asset);
+        }
         ImportedAsset::Texture(asset) => {
             resource_manager.store_payload(id, asset);
         }
@@ -15,6 +18,9 @@ pub(in crate::asset::pipeline::manager) fn store_runtime_payload(
             resource_manager.store_payload(id, asset);
         }
         ImportedAsset::Material(asset) => {
+            resource_manager.store_payload(id, asset);
+        }
+        ImportedAsset::MaterialGraph(asset) => {
             resource_manager.store_payload(id, asset);
         }
         ImportedAsset::Sound(asset) => {
@@ -39,6 +45,27 @@ pub(in crate::asset::pipeline::manager) fn store_runtime_payload(
             resource_manager.store_payload(id, asset);
         }
         ImportedAsset::PhysicsMaterial(asset) => {
+            resource_manager.store_payload(id, asset);
+        }
+        ImportedAsset::NavMesh(asset) => {
+            resource_manager.store_payload(id, asset);
+        }
+        ImportedAsset::NavigationSettings(asset) => {
+            resource_manager.store_payload(id, asset);
+        }
+        ImportedAsset::Terrain(asset) => {
+            resource_manager.store_payload(id, asset);
+        }
+        ImportedAsset::TerrainLayerStack(asset) => {
+            resource_manager.store_payload(id, asset);
+        }
+        ImportedAsset::TileSet(asset) => {
+            resource_manager.store_payload(id, asset);
+        }
+        ImportedAsset::TileMap(asset) => {
+            resource_manager.store_payload(id, asset);
+        }
+        ImportedAsset::Prefab(asset) => {
             resource_manager.store_payload(id, asset);
         }
         ImportedAsset::AnimationSkeleton(asset) => {

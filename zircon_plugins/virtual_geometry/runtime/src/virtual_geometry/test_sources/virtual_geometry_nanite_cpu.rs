@@ -2,12 +2,14 @@ use zircon_runtime::asset::{
     AssetUri, ModelAsset, ModelPrimitiveAsset, VirtualGeometryAsset,
     VirtualGeometryClusterHeaderAsset, VirtualGeometryClusterPageHeaderAsset,
     VirtualGeometryDebugMetadataAsset, VirtualGeometryHierarchyNodeAsset,
-    VirtualGeometryRootClusterRangeAsset,
+    VirtualGeometryPageDependencyAsset, VirtualGeometryRootClusterRangeAsset,
 };
 use zircon_runtime::core::framework::render::RenderCapabilitySummary;
 use zircon_runtime::core::framework::render::RenderMeshSnapshot;
+use zircon_runtime::core::framework::render::RenderVirtualGeometryCpuReferencePageDependencyEntry;
 use zircon_runtime::core::framework::render::RenderVirtualGeometryDebugState;
 use zircon_runtime::core::framework::render::RenderVirtualGeometryExtract;
+use zircon_runtime::core::framework::render::RenderVirtualGeometryPageDependency;
 use zircon_runtime::core::math::{Transform, Vec3};
 use zircon_runtime::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
 use zircon_runtime::scene::components::Mobility;
@@ -107,6 +109,21 @@ fn virtual_geometry_nanite_cpu_reference_traverses_hierarchy_maps_pages_and_filt
     assert_eq!(frame.page_cluster_map().get(&10).cloned(), Some(vec![100]));
     assert_eq!(frame.page_cluster_map().get(&20).cloned(), Some(vec![200]));
     assert_eq!(frame.page_cluster_map().get(&30).cloned(), Some(vec![300]));
+    assert_eq!(
+        frame
+            .page_dependencies()
+            .iter()
+            .map(|(page_id, (parent_page_id, child_page_ids))| {
+                (*page_id, *parent_page_id, child_page_ids.clone())
+            })
+            .collect::<Vec<_>>(),
+        vec![
+            (10, None, vec![20]),
+            (20, Some(10), Vec::new()),
+            (30, None, Vec::new()),
+        ],
+        "expected CPU reference traversal to expose cooked page dependency metadata beside page-to-cluster grouping"
+    );
 }
 
 #[test]
@@ -221,6 +238,42 @@ fn virtual_geometry_nanite_automatic_extract_remaps_multiple_instances_and_prese
             (6, true, 32),
         ]
     );
+    assert_eq!(
+        extract.page_dependencies,
+        vec![
+            RenderVirtualGeometryPageDependency {
+                page_id: 1,
+                parent_page_id: None,
+                child_page_ids: vec![2],
+            },
+            RenderVirtualGeometryPageDependency {
+                page_id: 2,
+                parent_page_id: Some(1),
+                child_page_ids: Vec::new(),
+            },
+            RenderVirtualGeometryPageDependency {
+                page_id: 3,
+                parent_page_id: None,
+                child_page_ids: Vec::new(),
+            },
+            RenderVirtualGeometryPageDependency {
+                page_id: 4,
+                parent_page_id: None,
+                child_page_ids: vec![5],
+            },
+            RenderVirtualGeometryPageDependency {
+                page_id: 5,
+                parent_page_id: Some(4),
+                child_page_ids: Vec::new(),
+            },
+            RenderVirtualGeometryPageDependency {
+                page_id: 6,
+                parent_page_id: None,
+                child_page_ids: Vec::new(),
+            },
+        ],
+        "automatic extract should promote cooked page dependencies into global render ids"
+    );
     assert_eq!(extract.instances.len(), 2);
     assert_eq!(extract.instances[0].entity, 11);
     assert_eq!(extract.instances[0].cluster_offset, 0);
@@ -249,6 +302,7 @@ fn virtual_geometry_nanite_extract_resolution_respects_explicit_payload_and_feat
         hierarchy_nodes: Vec::new(),
         hierarchy_child_ids: Vec::new(),
         pages: Vec::new(),
+        page_dependencies: Vec::new(),
         instances: Vec::new(),
         debug: Default::default(),
     };
@@ -341,6 +395,26 @@ fn virtual_geometry_nanite_mesh_based_automatic_extract_only_collects_cooked_mod
 
     assert_eq!(extract.clusters.len(), 3);
     assert_eq!(extract.pages.len(), 3);
+    assert_eq!(
+        extract.page_dependencies,
+        vec![
+            RenderVirtualGeometryPageDependency {
+                page_id: 1,
+                parent_page_id: None,
+                child_page_ids: vec![2],
+            },
+            RenderVirtualGeometryPageDependency {
+                page_id: 2,
+                parent_page_id: Some(1),
+                child_page_ids: Vec::new(),
+            },
+            RenderVirtualGeometryPageDependency {
+                page_id: 3,
+                parent_page_id: None,
+                child_page_ids: Vec::new(),
+            },
+        ]
+    );
     assert!(extract.clusters.iter().all(|cluster| cluster.entity == 5));
     assert_eq!(extract.instances.len(), 1);
     assert_eq!(extract.instances[0].entity, 5);
@@ -349,6 +423,27 @@ fn virtual_geometry_nanite_mesh_based_automatic_extract_only_collects_cooked_mod
     assert_eq!(extract.instances[0].page_count, 3);
     assert_eq!(output.cpu_reference_instances().len(), 1);
     assert_eq!(output.cpu_reference_instances()[0].entity, 5);
+    assert_eq!(
+        output.cpu_reference_instances()[0].page_dependencies,
+        vec![
+            RenderVirtualGeometryCpuReferencePageDependencyEntry {
+                page_id: 10,
+                parent_page_id: None,
+                child_page_ids: vec![20],
+            },
+            RenderVirtualGeometryCpuReferencePageDependencyEntry {
+                page_id: 20,
+                parent_page_id: Some(10),
+                child_page_ids: Vec::new(),
+            },
+            RenderVirtualGeometryCpuReferencePageDependencyEntry {
+                page_id: 30,
+                parent_page_id: None,
+                child_page_ids: Vec::new(),
+            },
+        ],
+        "expected automatic extract debug output to carry the cooked page dependency tree without asking runtime to know plugin state"
+    );
 }
 
 #[test]
@@ -1105,6 +1200,23 @@ fn sample_virtual_geometry_asset() -> VirtualGeometryAsset {
         ],
         cluster_page_data: vec![vec![1, 2, 3], vec![4, 5, 6], vec![7, 8, 9]],
         root_page_table: vec![10, 30],
+        page_dependencies: vec![
+            VirtualGeometryPageDependencyAsset {
+                page_id: 10,
+                parent_page_id: None,
+                child_page_ids: vec![20],
+            },
+            VirtualGeometryPageDependencyAsset {
+                page_id: 20,
+                parent_page_id: Some(10),
+                child_page_ids: Vec::new(),
+            },
+            VirtualGeometryPageDependencyAsset {
+                page_id: 30,
+                parent_page_id: None,
+                child_page_ids: Vec::new(),
+            },
+        ],
         root_cluster_ranges: vec![VirtualGeometryRootClusterRangeAsset {
             node_id: 0,
             cluster_start: 0,

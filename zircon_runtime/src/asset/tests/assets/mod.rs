@@ -1,5 +1,6 @@
 mod animation;
 mod artifact_store;
+mod authoring;
 mod font;
 mod importer;
 mod material;

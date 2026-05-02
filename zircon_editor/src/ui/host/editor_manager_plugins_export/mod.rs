@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use zircon_runtime::{PluginPackageManifest, RuntimePluginCatalog};
+use zircon_runtime::{plugin::PluginPackageManifest, plugin::RuntimePluginCatalog};
 
 use crate::core::editor_plugin::EditorPluginCatalog;
 
@@ -16,8 +16,9 @@ mod status;
 
 pub use self::export_build::{EditorExportBuildReport, EditorExportCargoInvocation};
 pub use self::reports::{
-    EditorPluginEnableReport, EditorPluginSelectionUpdateReport, EditorPluginStatus,
-    EditorPluginStatusReport,
+    EditorPluginEnableReport, EditorPluginFeatureDependencyStatus,
+    EditorPluginFeatureSelectionUpdateReport, EditorPluginFeatureStatus,
+    EditorPluginSelectionUpdateReport, EditorPluginStatus, EditorPluginStatusReport,
 };
 
 impl EditorManager {

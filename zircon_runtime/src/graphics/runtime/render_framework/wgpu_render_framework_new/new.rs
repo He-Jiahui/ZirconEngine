@@ -48,6 +48,7 @@ impl WgpuRenderFramework {
                 virtual_geometry_runtime_provider: virtual_geometry_runtime_providers
                     .first()
                     .cloned(),
+                last_virtual_geometry_debug_snapshot: None,
                 viewports: HashMap::new(),
                 stats: crate::core::framework::render::RenderStats {
                     capabilities: capability_summary(render_device.caps()),

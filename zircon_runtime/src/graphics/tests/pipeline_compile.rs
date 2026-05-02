@@ -39,14 +39,10 @@ fn default_forward_plus_pipeline_compiles_expected_stage_order_and_passes() {
         vec![
             "depth-prepass",
             "shadow-map",
-            "ssao-evaluate",
             "clustered-light-culling",
             "opaque-mesh",
             "transparent-mesh",
             "bloom-extract",
-            "reflection-probe-composite",
-            "baked-lighting-composite",
-            "post-process",
             "color-grade",
             "history-resolve",
             "overlay-gizmo",
@@ -65,10 +61,9 @@ fn default_forward_plus_pipeline_compiles_expected_stage_order_and_passes() {
     );
     assert_eq!(
         compiled.history_bindings,
-        vec![
-            FrameHistoryBinding::read_write(FrameHistorySlot::AmbientOcclusion),
-            FrameHistoryBinding::read_write(FrameHistorySlot::SceneColor),
-        ]
+        vec![FrameHistoryBinding::read_write(
+            FrameHistorySlot::SceneColor
+        )]
     );
 }
 
@@ -101,14 +96,10 @@ fn default_deferred_pipeline_compiles_expected_stage_order_and_passes() {
             "depth-prepass",
             "shadow-map",
             "gbuffer-mesh",
-            "ssao-evaluate",
             "clustered-light-culling",
             "deferred-lighting",
             "transparent-mesh",
             "bloom-extract",
-            "reflection-probe-composite",
-            "baked-lighting-composite",
-            "post-process",
             "color-grade",
             "history-resolve",
             "overlay-gizmo",
@@ -127,10 +118,9 @@ fn default_deferred_pipeline_compiles_expected_stage_order_and_passes() {
     );
     assert_eq!(
         compiled.history_bindings,
-        vec![
-            FrameHistoryBinding::read_write(FrameHistorySlot::AmbientOcclusion),
-            FrameHistoryBinding::read_write(FrameHistorySlot::SceneColor),
-        ]
+        vec![FrameHistoryBinding::read_write(
+            FrameHistorySlot::SceneColor
+        )]
     );
 }
 
@@ -140,6 +130,23 @@ fn default_pipeline_assets_do_not_embed_pluginized_advanced_builtin_features() {
         RenderPipelineAsset::default_forward_plus(),
         RenderPipelineAsset::default_deferred(),
     ] {
+        for feature in [
+            BuiltinRenderFeature::ScreenSpaceAmbientOcclusion,
+            BuiltinRenderFeature::ReflectionProbes,
+            BuiltinRenderFeature::BakedLighting,
+            BuiltinRenderFeature::PostProcess,
+        ] {
+            assert!(
+                !pipeline
+                    .renderer
+                    .features
+                    .iter()
+                    .any(|asset| asset.is_builtin(feature)),
+                "{} should receive {:?} from rendering plugin descriptors",
+                pipeline.name,
+                feature
+            );
+        }
         assert!(
             !pipeline
                 .renderer
@@ -168,6 +175,76 @@ fn default_pipeline_assets_do_not_embed_pluginized_advanced_builtin_features() {
             pipeline.name
         );
     }
+}
+
+#[test]
+fn rendering_plugin_default_features_restore_legacy_forward_plus_pass_order() {
+    let pipeline = RenderPipelineAsset::default_forward_plus()
+        .with_plugin_render_features(default_rendering_feature_descriptors());
+    let compiled = pipeline.compile(&test_extract()).unwrap();
+
+    assert_eq!(
+        compiled
+            .graph
+            .passes()
+            .iter()
+            .map(|pass| pass.name.as_str())
+            .collect::<Vec<_>>(),
+        vec![
+            "depth-prepass",
+            "shadow-map",
+            "ssao-evaluate",
+            "clustered-light-culling",
+            "opaque-mesh",
+            "transparent-mesh",
+            "bloom-extract",
+            "reflection-probe-composite",
+            "baked-lighting-composite",
+            "post-process",
+            "color-grade",
+            "history-resolve",
+            "overlay-gizmo",
+        ]
+    );
+    assert_eq!(
+        compiled.history_bindings,
+        vec![
+            FrameHistoryBinding::read_write(FrameHistorySlot::AmbientOcclusion),
+            FrameHistoryBinding::read_write(FrameHistorySlot::SceneColor),
+        ]
+    );
+}
+
+#[test]
+fn rendering_plugin_default_features_restore_legacy_deferred_pass_order() {
+    let pipeline = RenderPipelineAsset::default_deferred()
+        .with_plugin_render_features(default_rendering_feature_descriptors());
+    let compiled = pipeline.compile(&test_extract()).unwrap();
+
+    assert_eq!(
+        compiled
+            .graph
+            .passes()
+            .iter()
+            .map(|pass| pass.name.as_str())
+            .collect::<Vec<_>>(),
+        vec![
+            "depth-prepass",
+            "shadow-map",
+            "gbuffer-mesh",
+            "ssao-evaluate",
+            "clustered-light-culling",
+            "deferred-lighting",
+            "transparent-mesh",
+            "bloom-extract",
+            "reflection-probe-composite",
+            "baked-lighting-composite",
+            "post-process",
+            "color-grade",
+            "history-resolve",
+            "overlay-gizmo",
+        ]
+    );
 }
 
 #[test]
@@ -259,12 +336,13 @@ fn history_binding_accessors_construct_expected_bindings() {
 }
 
 #[test]
-fn compile_options_can_disable_clustered_ssao_and_history_features() {
-    let pipeline = RenderPipelineAsset::default_forward_plus();
+fn compile_options_can_disable_clustered_history_and_rendering_plugin_features() {
+    let pipeline = RenderPipelineAsset::default_forward_plus()
+        .with_plugin_render_features(default_rendering_feature_descriptors());
     let options = RenderPipelineCompileOptions::default()
-        .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
         .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-        .with_feature_disabled(BuiltinRenderFeature::HistoryResolve);
+        .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
+        .with_plugin_feature_disabled("screen_space_ambient_occlusion");
 
     let compiled = pipeline
         .compile_with_options(&test_extract(), &options)
@@ -279,7 +357,11 @@ fn compile_options_can_disable_clustered_ssao_and_history_features() {
     assert!(!pass_names.contains(&"ssao-evaluate"));
     assert!(!pass_names.contains(&"clustered-light-culling"));
     assert!(!pass_names.contains(&"history-resolve"));
-    assert!(compiled.history_bindings.is_empty());
+    assert!(!compiled
+        .history_bindings
+        .contains(&FrameHistoryBinding::read_write(
+            FrameHistorySlot::AmbientOcclusion
+        )));
 }
 
 #[test]
@@ -332,7 +414,8 @@ fn compiled_pipeline_collects_enabled_plugin_feature_capability_requirements() {
 
 #[test]
 fn compile_options_fallback_async_compute_passes_to_graphics_queue() {
-    let pipeline = RenderPipelineAsset::default_forward_plus();
+    let pipeline = RenderPipelineAsset::default_forward_plus()
+        .with_plugin_render_features(default_rendering_feature_descriptors());
     let options = RenderPipelineCompileOptions::default().with_async_compute(false);
 
     let compiled = pipeline
@@ -694,6 +777,89 @@ fn particle_render_feature_descriptor() -> RenderFeatureDescriptor {
     )
 }
 
+fn default_rendering_feature_descriptors() -> Vec<RenderFeatureDescriptor> {
+    vec![
+        rendering_ssao_descriptor(),
+        rendering_reflection_probes_descriptor(),
+        rendering_baked_lighting_descriptor(),
+        rendering_post_process_descriptor(),
+    ]
+}
+
+fn rendering_ssao_descriptor() -> RenderFeatureDescriptor {
+    RenderFeatureDescriptor::new(
+        "screen_space_ambient_occlusion",
+        vec![
+            "view".to_string(),
+            "geometry".to_string(),
+            "visibility".to_string(),
+        ],
+        vec![FrameHistoryBinding::read_write(
+            FrameHistorySlot::AmbientOcclusion,
+        )],
+        vec![RenderFeaturePassDescriptor::new(
+            RenderPassStage::AmbientOcclusion,
+            "ssao-evaluate",
+            QueueLane::AsyncCompute,
+        )
+        .with_executor_id("ao.ssao-evaluate")
+        .read_texture("scene-depth")
+        .write_texture("ambient-occlusion")],
+    )
+}
+
+fn rendering_reflection_probes_descriptor() -> RenderFeatureDescriptor {
+    RenderFeatureDescriptor::new(
+        "reflection_probes",
+        vec![
+            "view".to_string(),
+            "lighting".to_string(),
+            "post_process".to_string(),
+        ],
+        Vec::new(),
+        vec![RenderFeaturePassDescriptor::new(
+            RenderPassStage::PostProcess,
+            "reflection-probe-composite",
+            QueueLane::Graphics,
+        )
+        .with_executor_id("lighting.reflection-probes")
+        .read_texture("scene-color")
+        .write_texture("scene-color")],
+    )
+}
+
+fn rendering_baked_lighting_descriptor() -> RenderFeatureDescriptor {
+    RenderFeatureDescriptor::new(
+        "baked_lighting",
+        vec!["lighting".to_string(), "post_process".to_string()],
+        Vec::new(),
+        vec![RenderFeaturePassDescriptor::new(
+            RenderPassStage::PostProcess,
+            "baked-lighting-composite",
+            QueueLane::Graphics,
+        )
+        .with_executor_id("lighting.baked-composite")
+        .read_texture("scene-color")
+        .write_texture("scene-color")],
+    )
+}
+
+fn rendering_post_process_descriptor() -> RenderFeatureDescriptor {
+    RenderFeatureDescriptor::new(
+        "post_process",
+        vec!["view".to_string(), "post_process".to_string()],
+        Vec::new(),
+        vec![RenderFeaturePassDescriptor::new(
+            RenderPassStage::PostProcess,
+            "post-process",
+            QueueLane::Graphics,
+        )
+        .with_executor_id("post.stack")
+        .read_texture("scene-color")
+        .write_texture("scene-color")],
+    )
+}
+
 fn legacy_advanced_builtin_pipeline() -> RenderPipelineAsset {
     let mut pipeline = RenderPipelineAsset::default_forward_plus();
     pipeline
@@ -742,16 +908,15 @@ fn pipeline_compile_rejects_duplicate_feature_entries() {
 
 #[test]
 fn disabling_post_process_keeps_overlay_extract_requirements_for_debug_gizmos() {
-    let mut pipeline = RenderPipelineAsset::default_forward_plus();
-    pipeline
-        .renderer
-        .features
-        .iter_mut()
-        .find(|feature| feature.is_builtin(BuiltinRenderFeature::PostProcess))
-        .expect("default pipeline should include post-process")
-        .enabled = false;
+    let pipeline = RenderPipelineAsset::default_forward_plus()
+        .with_plugin_render_features(default_rendering_feature_descriptors());
 
-    let compiled = pipeline.compile(&test_extract()).unwrap();
+    let compiled = pipeline
+        .compile_with_options(
+            &test_extract(),
+            &RenderPipelineCompileOptions::default().with_plugin_feature_disabled("post_process"),
+        )
+        .unwrap();
     let pass_names = compiled
         .graph
         .passes()
@@ -961,17 +1126,17 @@ fn pipeline_compile_rejects_duplicate_descriptor_pass_names() {
             Vec::new(),
             vec![RenderFeaturePassDescriptor::new(
                 RenderPassStage::PostProcess,
-                "post-process",
+                "color-grade",
                 QueueLane::Graphics,
             )
-            .with_executor_id("post.stack")
+            .with_executor_id("post.color-grade")
             .with_side_effects()],
         ));
 
     let error = pipeline.compile(&test_extract()).unwrap_err();
 
     assert!(
-        error.contains("duplicate render graph pass name `post-process`"),
+        error.contains("duplicate render graph pass name `color-grade`"),
         "unexpected error: {error}"
     );
 }

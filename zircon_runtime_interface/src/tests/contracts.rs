@@ -4,8 +4,9 @@ use crate::{
     ui::{
         binding::{UiEventBinding, UiEventKind, UiEventPath},
         component::{
-            UiComponentCategory, UiComponentDescriptor, UiComponentEventKind, UiDropPolicy,
-            UiHostCapability, UiPropSchema, UiRenderCapability, UiSlotSchema, UiValue, UiValueKind,
+            UiComponentCategory, UiComponentDescriptor, UiComponentEventKind, UiComponentState,
+            UiDragSourceMetadata, UiDropPolicy, UiHostCapability, UiPropSchema, UiRenderCapability,
+            UiSlotSchema, UiValue, UiValueKind,
         },
         dispatch::{UiPointerDispatchContext, UiPointerEvent},
         event_ui::{UiBindingCodec, UiControlRequest, UiInvocationContext},
@@ -23,9 +24,9 @@ use crate::{
             UiCompiledAssetPackageProfile, UiCompiledAssetPackageSection,
             UiCompiledAssetPackageValidationReport, UiLocalizationReport, UiLocalizedTextRef,
             UiNodeDefinition, UiResourceKind, UiResourceRef, UiSelector, UiSelectorCombinator,
-            UiSelectorToken, UiTemplateDocument, UiTemplateNode, UiTextDirection,
-            UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION, UI_COMPILED_ASSET_COMPILER_SCHEMA_VERSION,
-            UI_COMPILED_ASSET_PACKAGE_SCHEMA_VERSION,
+            UiSelectorSegment, UiSelectorToken, UiTemplateDocument, UiTemplateNode,
+            UiTextDirection, UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION,
+            UI_COMPILED_ASSET_COMPILER_SCHEMA_VERSION, UI_COMPILED_ASSET_PACKAGE_SCHEMA_VERSION,
         },
         tree::{UiInputPolicy, UiTree, UiTreeNode},
     },
@@ -255,6 +256,34 @@ fn ui_layout_surface_dispatch_and_tree_contracts_construct_and_serialize() {
 }
 
 #[test]
+fn ui_component_state_with_value_clears_reference_source_metadata() {
+    let source = UiDragSourceMetadata::asset(
+        "browser",
+        "AssetBrowserContentPanel",
+        "asset-uuid-1",
+        "res://textures/grid.albedo.png",
+        "Grid Albedo",
+        "Texture",
+        "png",
+    );
+    let mut state = UiComponentState::new();
+    state.reference_sources.insert("value".to_string(), source);
+
+    let state = state.with_value(
+        "value",
+        UiValue::AssetRef("res://textures/overridden.png".to_string()),
+    );
+
+    assert_eq!(state.reference_source("value"), None);
+    assert_eq!(
+        state.value("value"),
+        Some(&UiValue::AssetRef(
+            "res://textures/overridden.png".to_string()
+        ))
+    );
+}
+
+#[test]
 fn ui_component_template_policy_localization_and_package_contracts_construct() {
     let descriptor =
         UiComponentDescriptor::new("button", "Button", UiComponentCategory::Input, "control")
@@ -367,6 +396,16 @@ fn ui_selector_contracts_parse_reject_trailing_child_and_serialize() {
 
     assert_eq!(round_trip, selector);
     assert_eq!(selector.segments.len(), 2);
+    assert_eq!(
+        selector.segments[0],
+        UiSelectorSegment {
+            combinator: None,
+            tokens: vec![
+                UiSelectorToken::Type("Button".to_string()),
+                UiSelectorToken::Class("primary".to_string())
+            ],
+        }
+    );
     assert_eq!(
         selector.segments[1].combinator,
         Some(UiSelectorCombinator::Child)

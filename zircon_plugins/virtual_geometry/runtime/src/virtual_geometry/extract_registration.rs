@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use zircon_runtime::core::framework::render::{
-    RenderVirtualGeometryCluster, RenderVirtualGeometryExtract,
+    RenderVirtualGeometryCluster, RenderVirtualGeometryExtract, RenderVirtualGeometryPageDependency,
 };
 
 use super::VirtualGeometryRuntimeState;
@@ -53,6 +53,11 @@ impl VirtualGeometryRuntimeState {
 }
 
 fn page_parent_pages(extract: &RenderVirtualGeometryExtract) -> BTreeMap<u32, u32> {
+    // Cooked page dependencies are authoritative even when they describe a flat root-only graph.
+    if !extract.page_dependencies.is_empty() {
+        return cooked_page_parent_pages(extract);
+    }
+
     let clusters_by_id = extract
         .clusters
         .iter()
@@ -74,6 +79,44 @@ fn page_parent_pages(extract: &RenderVirtualGeometryExtract) -> BTreeMap<u32, u3
     page_parent_pages
 }
 
+fn cooked_page_parent_pages(extract: &RenderVirtualGeometryExtract) -> BTreeMap<u32, u32> {
+    let live_page_ids = extract
+        .pages
+        .iter()
+        .map(|page| page.page_id)
+        .collect::<BTreeSet<_>>();
+    let mut page_parent_pages = BTreeMap::new();
+
+    for dependency in &extract.page_dependencies {
+        insert_cooked_page_parent_link(dependency, &live_page_ids, &mut page_parent_pages);
+        for child_page_id in &dependency.child_page_ids {
+            if live_page_ids.contains(child_page_id) && *child_page_id != dependency.page_id {
+                page_parent_pages
+                    .entry(*child_page_id)
+                    .or_insert(dependency.page_id);
+            }
+        }
+    }
+
+    page_parent_pages
+}
+
+fn insert_cooked_page_parent_link(
+    dependency: &RenderVirtualGeometryPageDependency,
+    live_page_ids: &BTreeSet<u32>,
+    page_parent_pages: &mut BTreeMap<u32, u32>,
+) {
+    let Some(parent_page_id) = dependency.parent_page_id else {
+        return;
+    };
+    if dependency.page_id == parent_page_id {
+        return;
+    }
+    if live_page_ids.contains(&dependency.page_id) && live_page_ids.contains(&parent_page_id) {
+        page_parent_pages.insert(dependency.page_id, parent_page_id);
+    }
+}
+
 fn nearest_distinct_parent_page(
     cluster: RenderVirtualGeometryCluster,
     clusters_by_id: &BTreeMap<u32, RenderVirtualGeometryCluster>,
@@ -93,4 +136,112 @@ fn nearest_distinct_parent_page(
     }
 
     None
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::BTreeMap;
+
+    use zircon_runtime::core::framework::render::{
+        RenderVirtualGeometryPage, RenderVirtualGeometryPageDependency,
+    };
+
+    use super::*;
+
+    #[test]
+    fn cooked_page_dependencies_drive_runtime_page_parent_map() {
+        let extract = RenderVirtualGeometryExtract {
+            pages: vec![page(10), page(20), page(30)],
+            page_dependencies: vec![
+                RenderVirtualGeometryPageDependency {
+                    page_id: 10,
+                    parent_page_id: None,
+                    child_page_ids: vec![20],
+                },
+                RenderVirtualGeometryPageDependency {
+                    page_id: 20,
+                    parent_page_id: Some(10),
+                    child_page_ids: Vec::new(),
+                },
+                RenderVirtualGeometryPageDependency {
+                    page_id: 30,
+                    parent_page_id: None,
+                    child_page_ids: Vec::new(),
+                },
+            ],
+            ..RenderVirtualGeometryExtract::default()
+        };
+
+        assert_eq!(page_parent_pages(&extract), BTreeMap::from([(20, 10)]));
+    }
+
+    #[test]
+    fn cooked_page_dependencies_can_recover_parent_links_from_child_rows() {
+        let extract = RenderVirtualGeometryExtract {
+            pages: vec![page(10), page(20)],
+            page_dependencies: vec![RenderVirtualGeometryPageDependency {
+                page_id: 10,
+                parent_page_id: None,
+                child_page_ids: vec![20],
+            }],
+            ..RenderVirtualGeometryExtract::default()
+        };
+
+        assert_eq!(page_parent_pages(&extract), BTreeMap::from([(20, 10)]));
+    }
+
+    #[test]
+    fn empty_cooked_page_dependency_graph_suppresses_cluster_lineage_fallback() {
+        let extract = RenderVirtualGeometryExtract {
+            clusters: vec![cluster(1, 10, None), cluster(2, 20, Some(1))],
+            pages: vec![page(10), page(20)],
+            page_dependencies: vec![RenderVirtualGeometryPageDependency {
+                page_id: 10,
+                parent_page_id: None,
+                child_page_ids: Vec::new(),
+            }],
+            ..RenderVirtualGeometryExtract::default()
+        };
+
+        assert_eq!(page_parent_pages(&extract), BTreeMap::new());
+    }
+
+    #[test]
+    fn cluster_lineage_remains_fallback_when_cooked_page_dependencies_are_absent() {
+        let extract = RenderVirtualGeometryExtract {
+            clusters: vec![
+                cluster(1, 10, None),
+                cluster(2, 20, Some(1)),
+                cluster(3, 30, Some(2)),
+            ],
+            pages: vec![page(10), page(20), page(30)],
+            ..RenderVirtualGeometryExtract::default()
+        };
+
+        assert_eq!(
+            page_parent_pages(&extract),
+            BTreeMap::from([(20, 10), (30, 20)])
+        );
+    }
+
+    fn page(page_id: u32) -> RenderVirtualGeometryPage {
+        RenderVirtualGeometryPage {
+            page_id,
+            resident: false,
+            size_bytes: 1,
+        }
+    }
+
+    fn cluster(
+        cluster_id: u32,
+        page_id: u32,
+        parent_cluster_id: Option<u32>,
+    ) -> RenderVirtualGeometryCluster {
+        RenderVirtualGeometryCluster {
+            cluster_id,
+            page_id,
+            parent_cluster_id,
+            ..RenderVirtualGeometryCluster::default()
+        }
+    }
 }

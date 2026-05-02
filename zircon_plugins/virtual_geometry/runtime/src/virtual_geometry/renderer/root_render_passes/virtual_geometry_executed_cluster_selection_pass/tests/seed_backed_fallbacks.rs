@@ -45,6 +45,7 @@ fn seed_backed_execution_selection_falls_back_to_nearest_resident_parent_cluster
         hierarchy_nodes: Vec::new(),
         hierarchy_child_ids: Vec::new(),
         pages: Vec::new(),
+        page_dependencies: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity,
             source_model: None,
@@ -154,6 +155,7 @@ fn seed_backed_execution_selection_keeps_selected_cluster_order_when_later_child
         hierarchy_nodes: Vec::new(),
         hierarchy_child_ids: Vec::new(),
         pages: Vec::new(),
+        page_dependencies: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity,
             source_model: None,

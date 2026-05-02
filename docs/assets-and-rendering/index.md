@@ -1,10 +1,10 @@
 ---
 related_code:
-  - zircon_resource/src/lib.rs
-  - zircon_resource/src/locator.rs
-  - zircon_resource/src/handle.rs
-  - zircon_resource/src/record.rs
-  - zircon_resource/src/manager.rs
+  - zircon_runtime_interface/src/resource/mod.rs
+  - zircon_runtime_interface/src/resource/locator.rs
+  - zircon_runtime_interface/src/resource/resource_handle.rs
+  - zircon_runtime_interface/src/resource/resource_record.rs
+  - zircon_runtime/src/core/resource/manager/resource_manager.rs
   - zircon_asset/src/project/manifest.rs
   - zircon_asset/src/project/paths.rs
   - zircon_asset/src/project/manager/mod.rs
@@ -178,11 +178,11 @@ related_code:
   - zircon_editor/src/editing/command.rs
   - zircon_editor/src/editing/state/mod.rs
 implementation_files:
-  - zircon_resource/src/lib.rs
-  - zircon_resource/src/locator.rs
-  - zircon_resource/src/handle.rs
-  - zircon_resource/src/record.rs
-  - zircon_resource/src/manager.rs
+  - zircon_runtime_interface/src/resource/mod.rs
+  - zircon_runtime_interface/src/resource/locator.rs
+  - zircon_runtime_interface/src/resource/resource_handle.rs
+  - zircon_runtime_interface/src/resource/resource_record.rs
+  - zircon_runtime/src/core/resource/manager/resource_manager.rs
   - zircon_asset/src/project/manifest.rs
   - zircon_asset/src/project/paths.rs
   - zircon_asset/src/project/manager/mod.rs
@@ -384,7 +384,9 @@ plan_sources:
   - docs/superpowers/plans/2026-04-19-m5-hybrid-gi-scheduled-trace-region-dedup-closure.md
   - docs/superpowers/plans/2026-04-19-m5-hybrid-gi-first-unique-gpu-cache-truth.md
 tests:
-  - zircon_resource/src/tests.rs
+  - zircon_runtime_interface/src/tests/boundary.rs
+  - zircon_runtime_interface/src/tests/contracts.rs
+  - zircon_runtime/src/core/resource/tests.rs
   - zircon_asset/src/tests/pipeline/manager.rs
   - zircon_scene/src/lib.rs
   - zircon_graphics/src/tests/project_render.rs
@@ -406,7 +408,8 @@ tests:
   - zircon_graphics/src/tests/virtual_geometry_prepare_render.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record.rs
   - zircon_editor/src/lib.rs
-  - cargo test -p zircon_resource -p zircon_asset -p zircon_scene -p zircon_graphics -p zircon_editor
+  - cargo test -p zircon_runtime_interface --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-interface-boundary --message-format short --color never
+  - cargo test -p zircon_runtime --lib core::resource --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-interface-boundary --message-format short --color never
   - cargo test -p zircon_rhi --lib --tests
   - cargo test -p zircon_rhi_wgpu --lib --tests
   - cargo test -p zircon_render_graph --lib --tests
@@ -443,7 +446,7 @@ doc_type: category-index
 
 ## Documents
 
-- [Directory Project Asset Rendering](./directory-project-asset-rendering.md): `zircon_resource` locator/handle/state 契约，`Project/assets` 与 `Project/library` 的职责，`res://`/`lib://`/`builtin://`/`mem://` 统一来源，`AssetManager`/`ResourceManager`/asset-owned `EditorAssetManager`、`SceneAssetSerializer`、`LevelManager -> LevelSystem -> World` 与 graphics revision cache 的自动刷新路径。
+- [Directory Project Asset Rendering](./directory-project-asset-rendering.md): `zircon_runtime_interface::resource` locator/handle/state/record 合同与 `zircon_runtime::core::resource` 执行层分工，`Project/assets` 与 `Project/library` 的职责，`res://`/`lib://`/`builtin://`/`mem://` 统一来源，`AssetManager`/`ResourceManager`/asset-owned `EditorAssetManager`、`SceneAssetSerializer`、`LevelManager -> LevelSystem -> World` 与 graphics revision cache 的自动刷新路径。
 - [Runtime Physics And Animation Assets](./runtime-physics-animation-assets.md): `PhysicsMaterial`、五类 `.zranim` 动画资产，以及 `SceneAsset <-> World` 的 physics/animation 组件 roundtrip 如何一起收进 `zircon_runtime::{asset,scene}`。
 - [Render Framework Architecture](./render-framework-architecture.md): `zircon_rhi`、`zircon_rhi_wgpu`、`zircon_render_graph`、`zircon_framework` 的基础边界，`RenderFrameExtract` 的新公共面，以及 `zircon_graphics` 当前已经迁移到 `runtime/render_framework/` 的 façade/runtime 实现现实；同时记录 M4 已经真正落地的 deferred、clustered lighting、SSAO、history、bloom、color grading、reflection probe、baked lighting、particle 与 offline bake baseline，以及 M5 的 `Virtual Geometry / Hybrid GI` capability-slot 边界。
 - [Hybrid GI Lumen-Style Scene Representation](./hybrid-gi-lumen-scene-representation.md): 记录 `RenderSceneGeometryExtract` 的 split-light cutover、`RenderHybridGiExtract` 从 authored probes/trace-regions 收口为 settings/budget/debug payload，以及 `HybridGiSceneRepresentation / SurfaceCache / VoxelScene / InputSet` 的 milestone-1 内部状态骨架、`RenderStats` readback 面、`HybridGiScenePrepareFrame` 的 renderer seam、统一 `scene_prepare_descriptor_buffer` 和 shader 对 card-capture/voxel descriptors 的首轮真实消费，以及最新一层 runtime-owned `voxel_cells` occupancy/count contract 如何接管 scene-prepare 里的 coarse voxel residency authority。
@@ -555,7 +558,7 @@ doc_type: category-index
 
 当前文档覆盖的交付边界是：
 
-- `zircon_resource` 作为跨 crate 资源基础层，统一 locator、typed handle、state、record、event、manager 契约
+- `zircon_runtime_interface::resource` 作为跨 crate 资源 ABI/DTO/序列化合同层，统一 locator、typed handle、state、record、event 和 marker DTO；`zircon_runtime::core::resource` 继续拥有 manager/IO/lease/registry 执行逻辑
 - `zircon-project.toml` + `assets/` + `library/` 的目录式项目根
 - `res://` / `lib://` / `builtin://` / `mem://` 的统一资源来源模型
 - `zircon_runtime::graphics` 的窄公开面与 runtime 生产 `.ui.toml` 资源必须放在 crate `assets/` 的规则

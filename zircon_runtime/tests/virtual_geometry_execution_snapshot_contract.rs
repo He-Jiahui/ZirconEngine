@@ -64,6 +64,7 @@ fn render_framework_visbuffer_marks_follow_execution_segments_not_missing_visibi
             virtual_geometry_page(200, false),
             virtual_geometry_page(300, true),
         ],
+        page_dependencies: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity: mesh,
             source_model: None,
@@ -238,6 +239,7 @@ fn render_framework_visbuffer64_source_reports_clear_only_for_empty_execution_se
         hierarchy_nodes: Vec::new(),
         hierarchy_child_ids: Vec::new(),
         pages: Vec::new(),
+        page_dependencies: Vec::new(),
         instances: Vec::new(),
         debug: RenderVirtualGeometryDebugState::default(),
     });

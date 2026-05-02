@@ -1,0 +1,26 @@
+id = "animation"
+version = "0.1.0"
+sdk_api_version = "0.1.0"
+display_name = "Animation"
+category = "runtime"
+description = "Optional runtime animation scheduling, clip playback, and editor animation authoring package."
+supported_targets = ["client_runtime", "server_runtime", "editor_host"]
+supported_platforms = ["windows", "linux", "macos"]
+capabilities = ["runtime.plugin.animation", "runtime.feature.animation.timeline_event_track"]
+asset_roots = []
+content_roots = []
+default_packaging = ["source_template", "library_embed"]
+
+[[modules]]
+name = "animation.runtime"
+kind = "runtime"
+crate_name = "zircon_plugin_animation_runtime"
+target_modes = ["client_runtime", "server_runtime", "editor_host"]
+capabilities = ["runtime.plugin.animation", "runtime.feature.animation.timeline_event_track"]
+
+[[modules]]
+name = "animation.editor"
+kind = "editor"
+crate_name = "zircon_plugin_animation_editor"
+target_modes = ["editor_host"]
+capabilities = ["editor.extension.animation_authoring"]

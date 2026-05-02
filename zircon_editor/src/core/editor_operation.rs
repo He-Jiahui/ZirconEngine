@@ -404,7 +404,7 @@ fn validate_operation_menu_path(
 const MIN_MENU_PATH_SEGMENTS: usize = 2;
 
 fn builtin_operation_descriptors() -> Vec<EditorOperationDescriptor> {
-    vec![
+    let mut operations = vec![
         operation(
             "Window.Layout.Reset",
             "Reset Layout",
@@ -439,12 +439,117 @@ fn builtin_operation_descriptors() -> Vec<EditorOperationDescriptor> {
             EditorEvent::WorkbenchMenu(MenuAction::Redo),
         ),
         operation(
+            "Runtime.PlayMode.Enter",
+            "Enter Play Mode",
+            "Play/Enter Play Mode",
+            EditorEvent::WorkbenchMenu(MenuAction::EnterPlayMode),
+        ),
+        operation(
+            "Runtime.PlayMode.Exit",
+            "Exit Play Mode",
+            "Play/Exit Play Mode",
+            EditorEvent::WorkbenchMenu(MenuAction::ExitPlayMode),
+        ),
+        operation(
             "Window.Layout.Default",
             "Load Default Layout",
             "Window/Layout/Default",
             EditorEvent::Layout(LayoutCommand::ResetToDefault),
         ),
+        EditorOperationDescriptor::new(
+            EditorOperationPath::parse("Inspector.Field.ApplyBatch")
+                .expect("valid built-in operation path"),
+            "Apply Inspector Changes",
+        )
+        .with_menu_path("Inspector/Apply Changes")
+        .with_callable_from_remote(false)
+        .with_undoable(UndoableEditorOperation::new("Apply Inspector Changes")),
+    ];
+    operations.extend(builtin_view_operation_descriptors());
+    operations
+}
+
+fn builtin_view_operation_descriptors() -> Vec<EditorOperationDescriptor> {
+    [
+        (
+            "View.Project.Open",
+            "Open Project View",
+            "View/Project",
+            "editor.project",
+        ),
+        (
+            "View.Hierarchy.Open",
+            "Open Hierarchy View",
+            "View/Hierarchy",
+            "editor.hierarchy",
+        ),
+        (
+            "View.Inspector.Open",
+            "Open Inspector View",
+            "View/Inspector",
+            "editor.inspector",
+        ),
+        (
+            "View.Scene.Open",
+            "Open Scene View",
+            "View/Scene",
+            "editor.scene",
+        ),
+        (
+            "View.Game.Open",
+            "Open Game View",
+            "View/Game",
+            "editor.game",
+        ),
+        (
+            "View.Assets.Open",
+            "Open Assets View",
+            "View/Assets",
+            "editor.assets",
+        ),
+        (
+            "View.Console.Open",
+            "Open Console View",
+            "View/Console",
+            "editor.console",
+        ),
+        (
+            "View.RuntimeDiagnostics.Open",
+            "Open Runtime Diagnostics View",
+            "View/Runtime Diagnostics",
+            "editor.runtime_diagnostics",
+        ),
+        (
+            "View.PluginManager.Open",
+            "Open Plugin Manager",
+            "View/Plugin Manager",
+            "editor.module_plugins",
+        ),
+        (
+            "View.Prefab.Open",
+            "Open Prefab Editor",
+            "View/Prefab Editor",
+            "editor.prefab",
+        ),
+        (
+            "View.AssetBrowser.Open",
+            "Open Asset Browser",
+            "View/Asset Browser",
+            "editor.asset_browser",
+        ),
     ]
+    .into_iter()
+    .map(|(path, display_name, menu_path, descriptor_id)| {
+        operation(
+            path,
+            display_name,
+            menu_path,
+            EditorEvent::WorkbenchMenu(MenuAction::OpenView(
+                crate::core::editor_event::ViewDescriptorId::new(descriptor_id),
+            )),
+        )
+    })
+    .collect()
 }
 
 fn operation(

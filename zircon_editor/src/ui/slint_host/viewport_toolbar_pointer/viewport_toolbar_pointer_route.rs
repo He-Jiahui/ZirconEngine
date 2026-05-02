@@ -43,4 +43,10 @@ pub(crate) enum ViewportToolbarPointerRoute {
     FrameSelection {
         surface_key: String,
     },
+    EnterPlayMode {
+        surface_key: String,
+    },
+    ExitPlayMode {
+        surface_key: String,
+    },
 }

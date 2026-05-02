@@ -6,6 +6,8 @@ use super::descriptors::{
     BufferDesc, BufferUsage, PipelineDesc, SamplerDesc, ShaderModuleDesc, TextureDesc, TextureUsage,
 };
 
+pub type GpuBuffer = wgpu::Buffer;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct BufferHandle(u64);
 

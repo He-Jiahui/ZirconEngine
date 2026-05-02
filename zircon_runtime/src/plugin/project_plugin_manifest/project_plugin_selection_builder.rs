@@ -1,6 +1,6 @@
-use crate::{ExportPackagingStrategy, RuntimePluginId, RuntimeTargetMode};
+use crate::{plugin::ExportPackagingStrategy, RuntimePluginId, RuntimeTargetMode};
 
-use super::ProjectPluginSelection;
+use super::{ProjectPluginFeatureSelection, ProjectPluginSelection};
 
 impl ProjectPluginSelection {
     pub fn runtime_plugin(id: RuntimePluginId, enabled: bool, required: bool) -> Self {
@@ -12,6 +12,7 @@ impl ProjectPluginSelection {
             packaging: ExportPackagingStrategy::LibraryEmbed,
             runtime_crate: None,
             editor_crate: None,
+            features: Vec::new(),
         }
     }
 
@@ -35,6 +36,11 @@ impl ProjectPluginSelection {
         target_modes: impl IntoIterator<Item = RuntimeTargetMode>,
     ) -> Self {
         self.target_modes = target_modes.into_iter().collect();
+        self
+    }
+
+    pub fn with_feature(mut self, feature: ProjectPluginFeatureSelection) -> Self {
+        self.features.push(feature);
         self
     }
 }

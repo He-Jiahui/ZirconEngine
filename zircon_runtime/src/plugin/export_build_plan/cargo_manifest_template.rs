@@ -1,18 +1,20 @@
-use crate::{ExportProfile, RuntimeTargetMode};
+use crate::{plugin::ExportProfile, RuntimeTargetMode};
+
+use super::ExportLinkedRuntimeCrate;
 
 pub(super) fn cargo_manifest_template(
     profile: &ExportProfile,
-    linked_runtime_crates: &[String],
+    linked_runtime_crates: &[ExportLinkedRuntimeCrate],
 ) -> String {
     let package_name = sanitize_package_name(&format!("zircon_export_{}", profile.output_name));
     let target_feature = target_feature(profile.target_mode);
     let mut contents = format!(
         "[package]\nname = \"{package_name}\"\nversion = \"0.1.0\"\nedition = \"2021\"\n\n[dependencies]\nzircon_app = {{ path = \"../../zircon_app\", default-features = false, features = [\"{target_feature}\"] }}\nzircon_runtime = {{ path = \"../../zircon_runtime\", default-features = false }}\n"
     );
-    for crate_name in linked_runtime_crates {
+    for linked_crate in linked_runtime_crates {
         contents.push_str(&format!(
-            "{crate_name} = {{ path = \"../../zircon_plugins/{}/runtime\" }}\n",
-            plugin_path_for_runtime_crate(crate_name)
+            "{} = {{ path = \"../../zircon_plugins/{}\" }}\n",
+            linked_crate.crate_name, linked_crate.path
         ));
     }
     contents
@@ -37,7 +39,7 @@ fn sanitize_package_name(value: &str) -> String {
         .collect()
 }
 
-fn plugin_path_for_runtime_crate(crate_name: &str) -> String {
+pub(super) fn plugin_path_for_runtime_crate(crate_name: &str) -> String {
     crate_name
         .strip_prefix("zircon_plugin_")
         .and_then(|value| value.strip_suffix("_runtime"))

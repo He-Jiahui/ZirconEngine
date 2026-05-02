@@ -19,7 +19,7 @@ fn optional_extension_module_registration_keeps_current_owner_packages_explicit(
                 .join(domain)
                 .join("mod.rs")
                 .exists(),
-            "runtime domain {domain} should be absorbed under zircon_runtime/src/{domain}"
+            "runtime domain {domain} should keep its shared runtime contract under zircon_runtime/src/{domain}"
         );
         assert!(
             !runtime_root.join(format!("src/{domain}.rs")).exists(),
@@ -27,7 +27,15 @@ fn optional_extension_module_registration_keeps_current_owner_packages_explicit(
         );
     }
 
-    for plugin in ["sound", "texture", "net", "navigation", "particles"] {
+    for plugin in [
+        "physics",
+        "sound",
+        "texture",
+        "net",
+        "navigation",
+        "particles",
+        "animation",
+    ] {
         let plugin_root = repo_root.join("zircon_plugins").join(plugin);
         assert!(
             plugin_root.join("runtime/Cargo.toml").exists(),

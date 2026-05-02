@@ -4,10 +4,7 @@ use std::path::{Path, PathBuf};
 use slint::SharedString;
 use thiserror::Error;
 use toml::Value;
-use zircon_runtime::ui::surface::extract_ui_render_tree;
-use zircon_runtime::ui::template::{
-    UiAssetLoader, UiDocumentCompiler, UiTemplateBuildError, UiTemplateSurfaceBuilder,
-};
+use zircon_runtime::ui::template::UiTemplateBuildError;
 use zircon_runtime_interface::ui::{
     event_ui::UiTreeId,
     layout::UiSize,
@@ -17,6 +14,7 @@ use zircon_runtime_interface::ui::{
 };
 
 use crate::ui::layouts::views::{ViewTemplateFrameData, ViewTemplateNodeData};
+use crate::ui::template::EditorTemplateRuntimeService;
 
 use super::contract::{
     UI_ASSET_EDITOR_BOOTSTRAP_STYLE_ASSET_ID,
@@ -71,28 +69,37 @@ pub(crate) fn ui_asset_editor_node_projection(size: UiSize) -> UiAssetEditorNode
 fn build_ui_asset_editor_node_projection(
     size: UiSize,
 ) -> Result<UiAssetEditorNodeProjection, UiAssetEditorNodeProjectionError> {
-    let layout = UiAssetLoader::load_toml_file(asset_path(UI_ASSET_EDITOR_LAYOUT_ASSET_PATH))?;
-    let widget = UiAssetLoader::load_toml_file(asset_path(UI_ASSET_EDITOR_WIDGET_ASSET_PATH))?;
-    let style = UiAssetLoader::load_toml_file(asset_path(UI_ASSET_EDITOR_STYLE_ASSET_PATH))?;
-    let mut compiler = UiDocumentCompiler::default();
+    let template_service = EditorTemplateRuntimeService;
+    let layout =
+        template_service.load_document_file(asset_path(UI_ASSET_EDITOR_LAYOUT_ASSET_PATH))?;
+    let widget =
+        template_service.load_document_file(asset_path(UI_ASSET_EDITOR_WIDGET_ASSET_PATH))?;
+    let style =
+        template_service.load_document_file(asset_path(UI_ASSET_EDITOR_STYLE_ASSET_PATH))?;
+    let mut widget_imports = BTreeMap::new();
+    let mut style_imports = BTreeMap::new();
 
     for reference in [
         UI_ASSET_EDITOR_BOOTSTRAP_WIDGET_HEADER_SHELL_REFERENCE,
         UI_ASSET_EDITOR_BOOTSTRAP_WIDGET_SECTION_CARD_REFERENCE,
     ] {
-        compiler.register_widget_import(reference.to_string(), widget.clone())?;
+        widget_imports.insert(reference.to_string(), widget.clone());
     }
-    compiler.register_style_import(UI_ASSET_EDITOR_BOOTSTRAP_STYLE_ASSET_ID.to_string(), style)?;
+    style_imports.insert(UI_ASSET_EDITOR_BOOTSTRAP_STYLE_ASSET_ID.to_string(), style);
 
-    let compiled = compiler.compile(&layout)?;
-    let mut surface = UiTemplateSurfaceBuilder::build_surface_from_compiled_document(
+    let compiled = template_service.compile_document_with_import_maps(
+        &layout,
+        &widget_imports,
+        &style_imports,
+    )?;
+    let mut surface = template_service.build_surface_from_compiled_document(
         UiTreeId::new("ui_asset_editor.node_projection".to_string()),
         &compiled,
     )?;
     surface.compute_layout(size)?;
 
     let mut render_info_by_node = BTreeMap::new();
-    for command in extract_ui_render_tree(&surface.tree).list.commands {
+    for command in template_service.extract_render(&surface).list.commands {
         let entry = render_info_by_node
             .entry(command.node_id)
             .or_insert(TemplateRenderInfo {

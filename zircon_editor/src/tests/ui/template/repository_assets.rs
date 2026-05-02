@@ -1,6 +1,5 @@
-use crate::ui::template::EditorTemplateRegistry;
+use crate::ui::template::{EditorTemplateRegistry, EditorTemplateRuntimeService};
 use std::path::PathBuf;
-use zircon_runtime::ui::template::UiAssetLoader;
 
 #[test]
 fn editor_repository_host_window_template_file_loads_and_instantiates() {
@@ -10,14 +9,16 @@ fn editor_repository_host_window_template_file_loads_and_instantiates() {
         .join("editor")
         .join("host")
         .join("workbench_shell.ui.toml");
-    let document = UiAssetLoader::load_toml_file(&template_path).unwrap();
-
+    let template_service = EditorTemplateRuntimeService;
+    let document = template_service.load_document_file(&template_path).unwrap();
     let mut registry = EditorTemplateRegistry::default();
-    registry
-        .register_asset_document("ui.host_window.file", document)
+    template_service
+        .register_asset_document(&mut registry, "ui.host_window.file", document)
         .unwrap();
 
-    let instance = registry.instantiate("ui.host_window.file").unwrap();
+    let instance = template_service
+        .instantiate(&registry, "ui.host_window.file")
+        .unwrap();
     assert_eq!(instance.root.component.as_deref(), Some("UiHostWindow"));
     assert_eq!(instance.root.children.len(), 4);
     assert_eq!(

@@ -92,6 +92,12 @@ pub(crate) fn dispatch_viewport_toolbar_pointer_route(
         ViewportToolbarPointerRoute::FrameSelection { .. } => {
             ("FrameSelection", UiEventKind::Click, Vec::new())
         }
+        ViewportToolbarPointerRoute::EnterPlayMode { .. } => {
+            ("EnterPlayMode", UiEventKind::Click, Vec::new())
+        }
+        ViewportToolbarPointerRoute::ExitPlayMode { .. } => {
+            ("ExitPlayMode", UiEventKind::Click, Vec::new())
+        }
     };
 
     let Some(result) = dispatch_builtin_viewport_toolbar_control(

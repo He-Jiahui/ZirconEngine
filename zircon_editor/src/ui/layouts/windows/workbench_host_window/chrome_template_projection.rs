@@ -19,7 +19,7 @@ const STATUS_BAR_ASSET: &str = "/assets/ui/editor/workbench_status_bar.ui.toml";
 const ACTIVITY_RAIL_ASSET: &str = "/assets/ui/editor/workbench_activity_rail.ui.toml";
 
 const MENU_SLOT_PREFIX: &str = "MenuSlot";
-pub(super) const MENU_SLOT_COUNT: usize = 6;
+pub(super) const MENU_SLOT_COUNT: usize = 7;
 pub(super) const MENU_POPUP_ITEM_COUNT: usize = 16;
 const MENU_POPUP_ITEM_LABEL_PREFIX: &str = "MenuPopupItemLabel";
 const MENU_POPUP_ITEM_SHORTCUT_PREFIX: &str = "MenuPopupItemShortcut";

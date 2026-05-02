@@ -56,12 +56,21 @@ fn resolve_library_path(
 
 fn asset_kind_directory(kind: AssetKind) -> &'static str {
     match kind {
+        AssetKind::Data => "data",
         AssetKind::Texture => "textures",
         AssetKind::Shader => "shaders",
         AssetKind::Material => "materials",
+        AssetKind::MaterialGraph => "materials/graphs",
         AssetKind::Sound => "sound",
         AssetKind::Font => "fonts",
         AssetKind::PhysicsMaterial => "physics/materials",
+        AssetKind::NavMesh => "navigation/navmeshes",
+        AssetKind::NavigationSettings => "navigation/settings",
+        AssetKind::Terrain => "terrain/heightfields",
+        AssetKind::TerrainLayerStack => "terrain/layers",
+        AssetKind::TileSet => "tilemap_2d/tilesets",
+        AssetKind::TileMap => "tilemap_2d/maps",
+        AssetKind::Prefab => "prefabs",
         AssetKind::Scene => "scenes",
         AssetKind::Model => "models",
         AssetKind::AnimationSkeleton => "animation/skeletons",
@@ -82,6 +91,13 @@ fn artifact_extension(kind: AssetKind) -> &'static str {
         | AssetKind::AnimationSequence
         | AssetKind::AnimationGraph
         | AssetKind::AnimationStateMachine => "bin",
+        AssetKind::NavMesh => "znavmesh",
+        AssetKind::NavigationSettings => "toml",
+        AssetKind::Terrain => "zterrain",
+        AssetKind::TerrainLayerStack => "toml",
+        AssetKind::TileSet => "toml",
+        AssetKind::TileMap => "ztilemap",
+        AssetKind::Prefab => "zprefab",
         _ => "json",
     }
 }
@@ -99,6 +115,9 @@ fn serialize_asset(asset: &ImportedAsset) -> Result<Vec<u8>, AssetImportError> {
         ImportedAsset::AnimationStateMachine(asset) => {
             asset.to_bytes().map_err(AssetImportError::Parse)
         }
+        ImportedAsset::NavigationSettings(asset) => toml::to_string_pretty(asset)
+            .map(|document| document.into_bytes())
+            .map_err(|error| AssetImportError::Parse(error.to_string())),
         _ => serde_json::to_vec_pretty(asset).map_err(AssetImportError::from),
     }
 }
@@ -126,6 +145,13 @@ fn deserialize_asset(path: &str, payload: &[u8]) -> Result<ImportedAsset, AssetI
                 .map(ImportedAsset::AnimationStateMachine)
                 .map_err(AssetImportError::Parse)
         }
+        Some(AssetKind::NavigationSettings) => {
+            let document = std::str::from_utf8(payload)
+                .map_err(|error| AssetImportError::Parse(error.to_string()))?;
+            toml::from_str::<crate::asset::NavigationSettingsAsset>(document)
+                .map(ImportedAsset::NavigationSettings)
+                .map_err(|error| AssetImportError::Parse(error.to_string()))
+        }
         _ => serde_json::from_slice(payload).map_err(AssetImportError::from),
     }
 }
@@ -134,10 +160,19 @@ fn asset_kind_from_artifact_path(path: &str) -> Option<AssetKind> {
     [
         ("textures/", AssetKind::Texture),
         ("shaders/", AssetKind::Shader),
+        ("data/", AssetKind::Data),
         ("physics/materials/", AssetKind::PhysicsMaterial),
+        ("materials/graphs/", AssetKind::MaterialGraph),
         ("materials/", AssetKind::Material),
         ("sound/", AssetKind::Sound),
         ("fonts/", AssetKind::Font),
+        ("navigation/navmeshes/", AssetKind::NavMesh),
+        ("navigation/settings/", AssetKind::NavigationSettings),
+        ("terrain/heightfields/", AssetKind::Terrain),
+        ("terrain/layers/", AssetKind::TerrainLayerStack),
+        ("tilemap_2d/tilesets/", AssetKind::TileSet),
+        ("tilemap_2d/maps/", AssetKind::TileMap),
+        ("prefabs/", AssetKind::Prefab),
         ("scenes/", AssetKind::Scene),
         ("models/", AssetKind::Model),
         ("animation/skeletons/", AssetKind::AnimationSkeleton),

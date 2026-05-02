@@ -11,6 +11,7 @@ mod dispatch_event;
 mod frame_selection_route;
 mod handle_click;
 mod new;
+mod play_mode_route;
 mod rebuild_surface;
 mod register_handled_pointer_node;
 mod root_frame;

@@ -457,6 +457,9 @@ impl World {
                             )
                         })
                         .transpose()?,
+                    terrain: None,
+                    tilemap: None,
+                    prefab_instance: None,
                 })
             })
             .collect::<Result<Vec<_>, SceneProjectError>>()?;

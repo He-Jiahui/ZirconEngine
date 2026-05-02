@@ -1,6 +1,6 @@
 use super::prelude::*;
 
-pub(super) fn viewport_frame(viewport_size: UVec2) -> ViewportRenderFrame {
+pub(super) fn viewport_frame(viewport_size: UVec2) -> VirtualGeometryRenderFrame {
     let mut extract = zircon_runtime::core::framework::render::RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(1),
         World::new().to_render_snapshot(),
@@ -14,6 +14,7 @@ pub(super) fn viewport_frame(viewport_size: UVec2) -> ViewportRenderFrame {
         hierarchy_nodes: Vec::new(),
         hierarchy_child_ids: Vec::new(),
         pages: Vec::new(),
+        page_dependencies: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity: 7,
             source_model: None,
@@ -27,13 +28,13 @@ pub(super) fn viewport_frame(viewport_size: UVec2) -> ViewportRenderFrame {
         }],
         debug: RenderVirtualGeometryDebugState::default(),
     });
-    ViewportRenderFrame::from_extract(extract, viewport_size)
+    VirtualGeometryRenderFrame::from_extract(extract, viewport_size)
 }
 
 pub(super) fn execute_pass(
     backend: &RenderBackend,
     pass_enabled: bool,
-    frame: &ViewportRenderFrame,
+    frame: &VirtualGeometryRenderFrame,
     cull_input: Option<&RenderVirtualGeometryCullInputSnapshot>,
 ) -> VirtualGeometryNodeAndClusterCullPassOutput {
     execute_pass_with_previous(backend, pass_enabled, frame, cull_input, None)
@@ -42,7 +43,7 @@ pub(super) fn execute_pass(
 pub(super) fn execute_pass_with_previous(
     backend: &RenderBackend,
     pass_enabled: bool,
-    frame: &ViewportRenderFrame,
+    frame: &VirtualGeometryRenderFrame,
     cull_input: Option<&RenderVirtualGeometryCullInputSnapshot>,
     previous_global_state: Option<&RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot>,
 ) -> VirtualGeometryNodeAndClusterCullPassOutput {

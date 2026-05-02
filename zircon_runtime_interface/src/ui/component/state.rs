@@ -49,7 +49,10 @@ impl UiComponentState {
     }
 
     pub fn with_value(mut self, property: impl Into<String>, value: UiValue) -> Self {
-        self.values.insert(property.into(), value);
+        let property = property.into();
+        // Replacing a retained value directly invalidates drag/drop provenance for that slot.
+        self.reference_sources.remove(&property);
+        self.values.insert(property, value);
         self
     }
 

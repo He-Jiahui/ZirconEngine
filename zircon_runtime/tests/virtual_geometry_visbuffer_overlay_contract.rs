@@ -137,6 +137,7 @@ fn build_extract(
             virtual_geometry_page(200, false),
             virtual_geometry_page(300, true),
         ],
+        page_dependencies: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity: mesh,
             source_model: None,

@@ -1,10 +1,10 @@
 use crate::asset::{
     VirtualGeometryAsset, VirtualGeometryClusterHeaderAsset, VirtualGeometryClusterPageHeaderAsset,
-    VirtualGeometryHierarchyNodeAsset,
+    VirtualGeometryHierarchyNodeAsset, VirtualGeometryPageDependencyAsset,
 };
 
 const BINARY_DUMP_MAGIC: &[u8; 4] = b"ZVGB";
-const BINARY_DUMP_VERSION: u32 = 1;
+const BINARY_DUMP_VERSION: u32 = 2;
 const NONE_U32: u32 = u32::MAX;
 const MISSING_PAYLOAD_LEN: u64 = u64::MAX;
 
@@ -18,6 +18,7 @@ pub fn encode_virtual_geometry_cook_binary_dump(asset: &VirtualGeometryAsset) ->
     append_u32(&mut dump, asset.root_page_table.len());
     append_u32(&mut dump, asset.root_cluster_ranges.len());
     append_u32(&mut dump, asset.cluster_page_data.len());
+    append_u32(&mut dump, asset.page_dependencies.len());
     append_u64(&mut dump, payload_byte_count(asset));
 
     append_optional_string(&mut dump, asset.debug.mesh_name.as_deref());
@@ -46,6 +47,9 @@ pub fn encode_virtual_geometry_cook_binary_dump(asset: &VirtualGeometryAsset) ->
         append_u32(&mut dump, range.cluster_start);
         append_u32(&mut dump, range.cluster_count);
     }
+    for dependency in sorted_page_dependencies(asset) {
+        append_page_dependency(&mut dump, dependency);
+    }
     for (header, payload) in sorted_pages(asset) {
         append_u32(&mut dump, header.page_id);
         if let Some(payload) = payload {
@@ -57,6 +61,15 @@ pub fn encode_virtual_geometry_cook_binary_dump(asset: &VirtualGeometryAsset) ->
     }
 
     dump
+}
+
+fn append_page_dependency(dump: &mut Vec<u8>, dependency: &VirtualGeometryPageDependencyAsset) {
+    append_u32(dump, dependency.page_id);
+    append_optional_u32(dump, dependency.parent_page_id);
+    append_u32(dump, dependency.child_page_ids.len());
+    for child_page_id in &dependency.child_page_ids {
+        append_u32(dump, *child_page_id);
+    }
 }
 
 fn append_hierarchy_node(dump: &mut Vec<u8>, node: &VirtualGeometryHierarchyNodeAsset) {
@@ -120,6 +133,14 @@ fn sorted_pages(
         .collect::<Vec<_>>();
     pages.sort_by_key(|(header, _)| header.page_id);
     pages
+}
+
+fn sorted_page_dependencies(
+    asset: &VirtualGeometryAsset,
+) -> Vec<&VirtualGeometryPageDependencyAsset> {
+    let mut dependencies = asset.page_dependencies.iter().collect::<Vec<_>>();
+    dependencies.sort_by_key(|dependency| dependency.page_id);
+    dependencies
 }
 
 fn sorted_u32s(mut values: Vec<u32>) -> Vec<u32> {

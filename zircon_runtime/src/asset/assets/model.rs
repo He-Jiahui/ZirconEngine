@@ -37,6 +37,14 @@ pub struct VirtualGeometryClusterPageHeaderAsset {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct VirtualGeometryPageDependencyAsset {
+    pub page_id: u32,
+    pub parent_page_id: Option<u32>,
+    #[serde(default)]
+    pub child_page_ids: Vec<u32>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct VirtualGeometryRootClusterRangeAsset {
     pub node_id: u32,
     pub cluster_start: u32,
@@ -62,6 +70,8 @@ pub struct VirtualGeometryAsset {
     pub cluster_page_data: Vec<Vec<u8>>,
     #[serde(default)]
     pub root_page_table: Vec<u32>,
+    #[serde(default)]
+    pub page_dependencies: Vec<VirtualGeometryPageDependencyAsset>,
     #[serde(default)]
     pub root_cluster_ranges: Vec<VirtualGeometryRootClusterRangeAsset>,
     #[serde(default)]

@@ -861,6 +861,7 @@ fn virtual_geometry_gpu_readback_exposes_execution_backed_visbuffer64_entries() 
                 size_bytes: 4096,
             },
         ],
+        page_dependencies: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity: mesh,
             source_model: None,
@@ -1237,6 +1238,7 @@ fn virtual_geometry_cull_input_buffer_exists_without_snapshot_or_gpu_readback() 
         ],
         hierarchy_child_ids: vec![7, 42],
         pages: vec![page(200, true), page(300, false)],
+        page_dependencies: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity: mesh,
             source_model: None,
@@ -1762,6 +1764,7 @@ fn virtual_geometry_node_and_cluster_cull_page_requests_are_readable_from_last_s
         ],
         hierarchy_child_ids: vec![7],
         pages: vec![page(200, true), page(300, false)],
+        page_dependencies: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity: mesh,
             source_model: None,
@@ -2099,6 +2102,7 @@ fn build_node_and_cluster_cull_history_extract(
         hierarchy_nodes: Vec::new(),
         hierarchy_child_ids: Vec::new(),
         pages: vec![page(200, true)],
+        page_dependencies: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity: mesh,
             source_model: None,
@@ -2133,6 +2137,7 @@ fn build_extract(
         hierarchy_nodes: Vec::new(),
         hierarchy_child_ids: Vec::new(),
         pages: pages.clone(),
+        page_dependencies: Vec::new(),
         instances: Vec::new(),
         debug: Default::default(),
     });

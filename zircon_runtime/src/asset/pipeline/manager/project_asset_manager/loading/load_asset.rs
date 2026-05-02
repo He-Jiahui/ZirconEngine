@@ -1,17 +1,19 @@
 use crate::core::resource::{
     AnimationClipMarker, AnimationGraphMarker, AnimationSequenceMarker, AnimationSkeletonMarker,
-    AnimationStateMachineMarker, FontMarker, MaterialMarker, ModelMarker, PhysicsMaterialMarker,
-    ResourceHandle, SceneMarker, ShaderMarker, SoundMarker, TextureMarker, UiLayoutMarker,
-    UiStyleMarker, UiWidgetMarker,
+    AnimationStateMachineMarker, DataMarker, FontMarker, MaterialGraphMarker, MaterialMarker,
+    ModelMarker, NavMeshMarker, NavigationSettingsMarker, PhysicsMaterialMarker, PrefabMarker,
+    ResourceHandle, SceneMarker, ShaderMarker, SoundMarker, TerrainLayerStackMarker, TerrainMarker,
+    TextureMarker, TileMapMarker, TileSetMarker, UiLayoutMarker, UiStyleMarker, UiWidgetMarker,
 };
 use crate::core::CoreError;
 
 use super::super::ProjectAssetManager;
 use crate::asset::{
     AnimationClipAsset, AnimationGraphAsset, AnimationSequenceAsset, AnimationSkeletonAsset,
-    AnimationStateMachineAsset, AssetId, FontAsset, MaterialAsset, ModelAsset,
-    PhysicsMaterialAsset, SceneAsset, ShaderAsset, SoundAsset, TextureAsset, UiLayoutAsset,
-    UiStyleAsset, UiWidgetAsset,
+    AnimationStateMachineAsset, AssetId, DataAsset, FontAsset, MaterialAsset, MaterialGraphAsset,
+    ModelAsset, NavMeshAsset, NavigationSettingsAsset, PhysicsMaterialAsset, PrefabAsset,
+    SceneAsset, ShaderAsset, SoundAsset, TerrainAsset, TerrainLayerStackAsset, TextureAsset,
+    TileMapAsset, TileSetAsset, UiLayoutAsset, UiStyleAsset, UiWidgetAsset,
 };
 
 impl ProjectAssetManager {
@@ -23,6 +25,18 @@ impl ProjectAssetManager {
         self.load_typed(id, ResourceHandle::<MaterialMarker>::new(id), "material")
     }
 
+    pub fn load_material_graph_asset(&self, id: AssetId) -> Result<MaterialGraphAsset, CoreError> {
+        self.load_typed(
+            id,
+            ResourceHandle::<MaterialGraphMarker>::new(id),
+            "material graph",
+        )
+    }
+
+    pub fn load_data_asset(&self, id: AssetId) -> Result<DataAsset, CoreError> {
+        self.load_typed(id, ResourceHandle::<DataMarker>::new(id), "data")
+    }
+
     pub fn load_physics_material_asset(
         &self,
         id: AssetId,
@@ -32,6 +46,48 @@ impl ProjectAssetManager {
             ResourceHandle::<PhysicsMaterialMarker>::new(id),
             "physics material",
         )
+    }
+
+    pub fn load_nav_mesh_asset(&self, id: AssetId) -> Result<NavMeshAsset, CoreError> {
+        self.load_typed(id, ResourceHandle::<NavMeshMarker>::new(id), "nav mesh")
+    }
+
+    pub fn load_navigation_settings_asset(
+        &self,
+        id: AssetId,
+    ) -> Result<NavigationSettingsAsset, CoreError> {
+        self.load_typed(
+            id,
+            ResourceHandle::<NavigationSettingsMarker>::new(id),
+            "navigation settings",
+        )
+    }
+
+    pub fn load_terrain_asset(&self, id: AssetId) -> Result<TerrainAsset, CoreError> {
+        self.load_typed(id, ResourceHandle::<TerrainMarker>::new(id), "terrain")
+    }
+
+    pub fn load_terrain_layer_stack_asset(
+        &self,
+        id: AssetId,
+    ) -> Result<TerrainLayerStackAsset, CoreError> {
+        self.load_typed(
+            id,
+            ResourceHandle::<TerrainLayerStackMarker>::new(id),
+            "terrain layer stack",
+        )
+    }
+
+    pub fn load_tile_set_asset(&self, id: AssetId) -> Result<TileSetAsset, CoreError> {
+        self.load_typed(id, ResourceHandle::<TileSetMarker>::new(id), "tile set")
+    }
+
+    pub fn load_tile_map_asset(&self, id: AssetId) -> Result<TileMapAsset, CoreError> {
+        self.load_typed(id, ResourceHandle::<TileMapMarker>::new(id), "tile map")
+    }
+
+    pub fn load_prefab_asset(&self, id: AssetId) -> Result<PrefabAsset, CoreError> {
+        self.load_typed(id, ResourceHandle::<PrefabMarker>::new(id), "prefab")
     }
 
     pub fn load_texture_asset(&self, id: AssetId) -> Result<TextureAsset, CoreError> {

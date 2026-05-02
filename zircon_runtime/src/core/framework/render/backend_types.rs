@@ -325,6 +325,7 @@ pub struct RenderStats {
     pub last_virtual_geometry_page_table_entry_count: usize,
     pub last_virtual_geometry_resident_page_count: usize,
     pub last_virtual_geometry_pending_request_count: usize,
+    pub last_virtual_geometry_page_dependency_count: usize,
     pub last_virtual_geometry_completed_page_count: usize,
     pub last_virtual_geometry_replaced_page_count: usize,
     pub last_virtual_geometry_indirect_draw_count: usize,

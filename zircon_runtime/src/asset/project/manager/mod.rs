@@ -11,6 +11,7 @@ mod asset_kind;
 mod asset_lookup;
 mod collect_files;
 mod hash_bytes;
+mod importer_access;
 mod is_meta_sidecar;
 mod load_or_create_meta;
 mod meta_path_for_source;

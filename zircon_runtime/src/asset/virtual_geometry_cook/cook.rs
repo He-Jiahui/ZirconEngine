@@ -1,7 +1,8 @@
 use crate::asset::{
     MeshVertex, VirtualGeometryAsset, VirtualGeometryClusterHeaderAsset,
     VirtualGeometryClusterPageHeaderAsset, VirtualGeometryDebugMetadataAsset,
-    VirtualGeometryHierarchyNodeAsset, VirtualGeometryRootClusterRangeAsset,
+    VirtualGeometryHierarchyNodeAsset, VirtualGeometryPageDependencyAsset,
+    VirtualGeometryRootClusterRangeAsset,
 };
 use crate::core::math::Vec3;
 
@@ -61,6 +62,7 @@ pub fn cook_virtual_geometry_from_mesh(
         &leaf_sources,
         None,
         None,
+        None,
         &mut cooked,
         page_cluster_count,
         leaf_sources.len(),
@@ -72,6 +74,7 @@ pub fn cook_virtual_geometry_from_mesh(
         cluster_page_headers: cooked.cluster_page_headers,
         cluster_page_data: cooked.cluster_page_data,
         root_page_table: vec![root.page_id],
+        page_dependencies: cooked.page_dependencies,
         root_cluster_ranges: vec![VirtualGeometryRootClusterRangeAsset {
             node_id: root.node_id,
             cluster_start: root.cluster_start,
@@ -118,6 +121,7 @@ struct CookBuildState {
     next_node_id: u32,
     next_cluster_id: u32,
     next_page_id: u32,
+    page_dependencies: Vec<VirtualGeometryPageDependencyAsset>,
 }
 
 fn build_leaf_cluster_sources(
@@ -145,6 +149,7 @@ fn append_bvh_node(
     sources: &[CookLeafClusterSource],
     parent_node_id: Option<u32>,
     parent_cluster_id: Option<u32>,
+    parent_page_id: Option<u32>,
     cooked: &mut CookBuildState,
     page_cluster_count: usize,
     leaf_cluster_count: usize,
@@ -161,6 +166,7 @@ fn append_bvh_node(
                     children,
                     Some(node_id),
                     Some(cluster_id),
+                    Some(page_id),
                     cooked,
                     page_cluster_count,
                     leaf_cluster_count,
@@ -173,6 +179,10 @@ fn append_bvh_node(
     let child_node_ids = child_summaries
         .iter()
         .map(|child| child.node_id)
+        .collect::<Vec<_>>();
+    let child_page_ids = child_summaries
+        .iter()
+        .map(|child| child.page_id)
         .collect::<Vec<_>>();
     let mip_level = if child_summaries.is_empty() {
         LEAF_MIP_LEVEL
@@ -222,6 +232,13 @@ fn append_bvh_node(
             bounds_center: bounds_center.to_array(),
             bounds_radius,
             screen_space_error,
+        });
+    cooked
+        .page_dependencies
+        .push(VirtualGeometryPageDependencyAsset {
+            page_id,
+            parent_page_id,
+            child_page_ids,
         });
 
     let summary = CookNodeSummary {

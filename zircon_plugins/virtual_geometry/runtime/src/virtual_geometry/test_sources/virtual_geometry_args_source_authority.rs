@@ -7,17 +7,17 @@ use crate::asset::assets::{AlphaMode, MaterialAsset};
 use crate::asset::pipeline::manager::{AssetManager, ProjectAssetManager};
 use crate::asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
 use crate::asset::{AssetReference, AssetUri};
+use crate::core::math::{Transform, UVec2, Vec3, Vec4};
+use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle};
+use crate::scene::components::{default_render_layer_mask, Mobility};
+use crate::test_support::render_feature_fixtures::virtual_geometry_render_feature_descriptor;
+use image::{ImageBuffer, ImageFormat, Rgba};
 use zircon_runtime::core::framework::render::{
     DisplayMode, FallbackSkyboxKind, PreviewEnvironmentExtract, ProjectionMode, RenderFrameExtract,
     RenderMeshSnapshot, RenderOverlayExtract, RenderSceneGeometryExtract, RenderSceneSnapshot,
     RenderVirtualGeometryCluster, RenderVirtualGeometryExtract, RenderVirtualGeometryPage,
     RenderWorldSnapshotHandle, ViewportCameraSnapshot,
 };
-use crate::core::math::{Transform, UVec2, Vec3, Vec4};
-use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle};
-use crate::scene::components::{default_render_layer_mask, Mobility};
-use crate::test_support::render_feature_fixtures::virtual_geometry_render_feature_descriptor;
-use image::{ImageBuffer, ImageFormat, Rgba};
 
 use crate::{
     types::{
@@ -1259,6 +1259,7 @@ fn build_dual_entity_extract_with_clusters(
         hierarchy_nodes: Vec::new(),
         hierarchy_child_ids: Vec::new(),
         pages,
+        page_dependencies: Vec::new(),
         instances: Vec::new(),
         debug: Default::default(),
     });

@@ -1,0 +1,20 @@
+id = "tilemap_2d"
+version = "0.1.0"
+display_name = "Tilemap 2D"
+category = "authoring"
+description = "Optional runtime and editor package for 2D tilemap authoring."
+default_packaging = ["source_template", "library_embed"]
+
+[[modules]]
+name = "tilemap_2d.runtime"
+kind = "runtime"
+crate_name = "zircon_plugin_tilemap_2d_runtime"
+target_modes = ["client_runtime", "editor_host"]
+capabilities = ["runtime.plugin.tilemap_2d"]
+
+[[modules]]
+name = "tilemap_2d.editor"
+kind = "editor"
+crate_name = "zircon_plugin_tilemap_2d_editor"
+target_modes = ["editor_host"]
+capabilities = ["editor.extension.tilemap_2d_authoring"]

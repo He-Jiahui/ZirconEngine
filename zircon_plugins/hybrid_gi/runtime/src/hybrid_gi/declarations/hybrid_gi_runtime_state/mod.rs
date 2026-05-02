@@ -1,5 +1,6 @@
 mod budget;
 mod probe_scene_data;
+mod probe_topology;
 mod request_state;
 mod residency;
 mod runtime_state;

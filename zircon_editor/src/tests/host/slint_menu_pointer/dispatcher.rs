@@ -66,8 +66,8 @@ fn shared_menu_pointer_click_dispatches_scrolled_window_preset_selection() {
     pointer_bridge.sync(
         layout.clone(),
         HostMenuPointerState {
-            open_menu_index: Some(4),
-            hovered_menu_index: Some(4),
+            open_menu_index: Some(5),
+            hovered_menu_index: Some(5),
             hovered_item_index: None,
             popup_scroll_offset: 0.0,
         },
@@ -91,7 +91,7 @@ fn shared_menu_pointer_click_dispatches_scrolled_window_preset_selection() {
     assert_eq!(
         dispatched.pointer.route,
         Some(HostMenuPointerRoute::MenuItem {
-            menu_index: 4,
+            menu_index: 5,
             item_index,
             action_id: "LoadPreset.alpha-15".to_string(),
         })

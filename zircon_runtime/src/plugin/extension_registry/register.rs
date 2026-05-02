@@ -1,11 +1,17 @@
+use crate::asset::{
+    AssetImporterDescriptor, AssetImporterHandler, DiagnosticOnlyAssetImporter,
+    NativeAssetImporterHandler,
+};
 use crate::core::{ManagerDescriptor, ModuleDescriptor};
 use crate::graphics::{
     RenderFeatureDescriptor, RenderPassExecutorRegistration,
     VirtualGeometryRuntimeProviderRegistration,
 };
 use crate::plugin::{
-    ComponentTypeDescriptor, RuntimeExtensionRegistryError, UiComponentDescriptor,
+    ComponentTypeDescriptor, LoadedNativePlugin, PluginEventCatalogManifest, PluginOptionManifest,
+    RuntimeExtensionRegistryError, UiComponentDescriptor,
 };
+use std::sync::Arc;
 
 use super::RuntimeExtensionRegistry;
 
@@ -146,5 +152,88 @@ impl RuntimeExtensionRegistry {
         }
         self.ui_components.push(descriptor);
         Ok(())
+    }
+
+    pub fn register_plugin_option(
+        &mut self,
+        descriptor: PluginOptionManifest,
+    ) -> Result<(), RuntimeExtensionRegistryError> {
+        if descriptor.key.trim().is_empty() || descriptor.key.trim() != descriptor.key {
+            return Err(RuntimeExtensionRegistryError::InvalidPluginOption(
+                descriptor.key,
+            ));
+        }
+        if self
+            .plugin_options
+            .iter()
+            .any(|existing| existing.key == descriptor.key)
+        {
+            return Err(RuntimeExtensionRegistryError::DuplicatePluginOption(
+                descriptor.key,
+            ));
+        }
+        self.plugin_options.push(descriptor);
+        Ok(())
+    }
+
+    pub fn register_plugin_event_catalog(
+        &mut self,
+        descriptor: PluginEventCatalogManifest,
+    ) -> Result<(), RuntimeExtensionRegistryError> {
+        if descriptor.namespace.trim().is_empty()
+            || descriptor.namespace.trim() != descriptor.namespace
+        {
+            return Err(RuntimeExtensionRegistryError::InvalidPluginEventCatalog(
+                descriptor.namespace,
+            ));
+        }
+        if self
+            .plugin_event_catalogs
+            .iter()
+            .any(|existing| existing.namespace == descriptor.namespace)
+        {
+            return Err(RuntimeExtensionRegistryError::DuplicatePluginEventCatalog(
+                descriptor.namespace,
+            ));
+        }
+        self.plugin_event_catalogs.push(descriptor);
+        Ok(())
+    }
+
+    pub fn register_asset_importer(
+        &mut self,
+        importer: impl AssetImporterHandler + 'static,
+    ) -> Result<(), RuntimeExtensionRegistryError> {
+        self.asset_importers
+            .register(importer)
+            .map_err(|error| RuntimeExtensionRegistryError::AssetImporter(error.to_string()))
+    }
+
+    pub fn register_asset_importer_descriptor(
+        &mut self,
+        descriptor: AssetImporterDescriptor,
+    ) -> Result<(), RuntimeExtensionRegistryError> {
+        let message = format!(
+            "asset importer {} declared by plugin {} has no runtime backend attached",
+            descriptor.id, descriptor.plugin_id
+        );
+        self.register_asset_importer(DiagnosticOnlyAssetImporter::new(descriptor, message))
+    }
+
+    pub fn register_native_asset_importer(
+        &mut self,
+        descriptor: AssetImporterDescriptor,
+        plugin: Arc<LoadedNativePlugin>,
+    ) -> Result<(), RuntimeExtensionRegistryError> {
+        self.register_asset_importer(NativeAssetImporterHandler::new(descriptor, plugin))
+    }
+
+    pub(crate) fn register_asset_importer_arc(
+        &mut self,
+        importer: Arc<dyn AssetImporterHandler>,
+    ) -> Result<(), RuntimeExtensionRegistryError> {
+        self.asset_importers
+            .register_arc(importer)
+            .map_err(|error| RuntimeExtensionRegistryError::AssetImporter(error.to_string()))
     }
 }

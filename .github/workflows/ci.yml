@@ -50,3 +50,6 @@ jobs:
 
       - name: Run unit tests
         run: cargo test --workspace --locked --verbose
+
+      - name: Check plugin workspace
+        run: cargo check --manifest-path zircon_plugins/Cargo.toml --workspace --locked --all-targets --verbose

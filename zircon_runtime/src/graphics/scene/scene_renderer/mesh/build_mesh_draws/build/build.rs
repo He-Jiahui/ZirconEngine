@@ -3,11 +3,9 @@ use crate::graphics::types::ViewportRenderFrame;
 
 use super::super::super::mesh_draw::MeshDraw;
 use super::super::super::mesh_draw::VirtualGeometrySubmissionDetail;
-use super::super::super::virtual_geometry_indirect_args_gpu_resources::VirtualGeometryIndirectArgsGpuResources;
 use super::super::create_mesh_draw::create_mesh_draw;
 use super::super::indexed_indirect_args::IndexedIndirectArgs;
 use super::build_mesh_draw_build_context::build_mesh_draw_build_context;
-use super::build_shared_indirect_args_buffer::build_shared_indirect_args_buffer;
 use super::extend_pending_draws_for_mesh_instance::extend_pending_draws_for_mesh_instance;
 
 pub(crate) struct BuiltMeshDraws {
@@ -57,8 +55,7 @@ impl BuiltMeshDraws {
 
 pub(crate) fn build_mesh_draws(
     device: &wgpu::Device,
-    encoder: &mut wgpu::CommandEncoder,
-    virtual_geometry_indirect_args: Option<&VirtualGeometryIndirectArgsGpuResources>,
+    _encoder: &mut wgpu::CommandEncoder,
     model_layout: &wgpu::BindGroupLayout,
     streamer: &crate::graphics::scene::resources::ResourceStreamer,
     frame: &ViewportRenderFrame,
@@ -75,86 +72,22 @@ pub(crate) fn build_mesh_draws(
             mesh_instance,
         );
     }
-    let authoritative_segment_keys = Vec::new();
-    let authoritative_draw_refs = Vec::new();
-
-    let shared_indirect_args_parts = virtual_geometry_indirect_args
-        .filter(|_| virtual_geometry_enabled)
-        .and_then(|virtual_geometry_indirect_args| {
-            build_shared_indirect_args_buffer(
-                device,
-                encoder,
-                virtual_geometry_indirect_args,
-                &authoritative_segment_keys,
-                &authoritative_draw_refs,
-                &pending_draws,
-            )
-        })
-        .map(|shared| shared.into_parts());
-    let indirect_segment_count = shared_indirect_args_parts
-        .as_ref()
-        .map(|shared| shared.segment_count)
-        .unwrap_or(0);
-    let indirect_args_count = shared_indirect_args_parts
-        .as_ref()
-        .map(|shared| shared.args_count)
-        .unwrap_or(0);
-    let indirect_draw_ref_buffer = shared_indirect_args_parts
-        .as_ref()
-        .map(|shared| std::sync::Arc::clone(&shared.draw_ref_buffer));
-    let indirect_submission_buffer = shared_indirect_args_parts
-        .as_ref()
-        .map(|shared| std::sync::Arc::clone(&shared.submission_buffer));
-    let indirect_authority_buffer = shared_indirect_args_parts
-        .as_ref()
-        .map(|shared| std::sync::Arc::clone(&shared.authority_buffer));
-    let indirect_segment_buffer = shared_indirect_args_parts
-        .as_ref()
-        .map(|shared| std::sync::Arc::clone(&shared.segment_buffer));
-    let indirect_args_offsets = shared_indirect_args_parts
-        .as_ref()
-        .map(|shared| shared.indirect_args_offsets.clone())
-        .unwrap_or_default();
-    let pending_draw_draw_ref_indices = shared_indirect_args_parts
-        .as_ref()
-        .map(|shared| shared.pending_draw_draw_ref_indices.clone())
-        .unwrap_or_default();
-    let pending_draw_submission_tokens = shared_indirect_args_parts
-        .as_ref()
-        .map(|shared| shared.pending_draw_submission_tokens.clone())
-        .unwrap_or_default();
-    let pending_draw_submission_details = shared_indirect_args_parts
-        .as_ref()
-        .map(|shared| shared.pending_draw_submission_details.clone())
-        .unwrap_or_default();
-    let pending_draw_submission_plan = shared_indirect_args_parts
-        .as_ref()
-        .map(|shared| shared.pending_draw_submission_plan.clone())
-        .unwrap_or_default();
-    let shared_indirect_args_buffer = shared_indirect_args_parts
-        .as_ref()
-        .map(|shared| std::sync::Arc::clone(&shared.buffer));
-    let indirect_args_buffer = shared_indirect_args_buffer.clone();
+    let indirect_segment_count = 0;
+    let indirect_args_count = 0;
+    let indirect_draw_ref_buffer = None;
+    let indirect_submission_buffer = None;
+    let indirect_authority_buffer = None;
+    let indirect_segment_buffer = None;
+    let indirect_args_offsets = Vec::new();
+    let pending_draw_draw_ref_indices = Vec::new();
+    let pending_draw_submission_tokens = Vec::new();
+    let pending_draw_submission_details = Vec::new();
+    let shared_indirect_args_buffer = None;
+    let indirect_args_buffer = None;
     let indirect_args_stride = std::mem::size_of::<IndexedIndirectArgs>() as u64;
 
-    let mut pending_draws = pending_draws.into_iter().map(Some).collect::<Vec<_>>();
+    let pending_draws = pending_draws.into_iter().map(Some).collect::<Vec<_>>();
     let mut ordered_pending_draws = Vec::new();
-    if shared_indirect_args_buffer.is_some() {
-        for submission in &pending_draw_submission_plan {
-            let Some(pending_draw) = pending_draws
-                .get_mut(submission.pending_draw_index())
-                .and_then(Option::take)
-            else {
-                continue;
-            };
-            ordered_pending_draws.push((
-                submission.indirect_args_offset(),
-                submission.pending_draw_index(),
-                Some(submission.submission_detail()),
-                pending_draw,
-            ));
-        }
-    }
     ordered_pending_draws.extend(pending_draws.into_iter().enumerate().filter_map(
         |(index, pending_draw)| {
             let pending_draw = pending_draw?;

@@ -13,7 +13,7 @@ use crate::ui::workbench::view::ViewDescriptor;
 
 impl EditorEventRuntime {
     pub(crate) fn refresh_reflection(&self) {
-        let mut inner = self.inner.lock().unwrap();
+        let mut inner = self.lock_inner();
         Self::refresh_reflection_locked(&mut inner);
     }
 

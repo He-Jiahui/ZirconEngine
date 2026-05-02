@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 
-use crate::core::framework::render::{RenderPipelineHandle, RenderStats, RenderViewportHandle};
+use crate::core::framework::render::{
+    RenderPipelineHandle, RenderStats, RenderViewportHandle, RenderVirtualGeometryDebugSnapshot,
+};
 
 use crate::{RenderPipelineAsset, SceneRenderer, VirtualGeometryRuntimeProviderRegistration};
 
@@ -14,6 +16,8 @@ pub(in crate::graphics::runtime::render_framework) struct RenderFrameworkState {
         HashMap<RenderPipelineHandle, RenderPipelineAsset>,
     pub(in crate::graphics::runtime::render_framework) virtual_geometry_runtime_provider:
         Option<VirtualGeometryRuntimeProviderRegistration>,
+    pub(in crate::graphics::runtime::render_framework) last_virtual_geometry_debug_snapshot:
+        Option<RenderVirtualGeometryDebugSnapshot>,
     pub(in crate::graphics::runtime::render_framework) viewports:
         HashMap<RenderViewportHandle, ViewportRecord>,
     pub(in crate::graphics::runtime::render_framework) stats: RenderStats,

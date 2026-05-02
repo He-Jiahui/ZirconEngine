@@ -176,7 +176,7 @@ type = "Label"
 control_id = "MenuSlot3"
 
 [root.children.node.props]
-text = "View"
+text = "Play"
 text_tone = "subtle"
 font_size = 11.0
 text_align = "center"
@@ -206,7 +206,7 @@ type = "Label"
 control_id = "MenuSlot4"
 
 [root.children.node.props]
-text = "Window"
+text = "View"
 text_tone = "subtle"
 font_size = 11.0
 text_align = "center"
@@ -217,9 +217,9 @@ x = 214.0
 y = 2.0
 
 [root.children.node.layout.width]
-min = 56.0
-preferred = 56.0
-max = 56.0
+min = 42.0
+preferred = 42.0
+max = 42.0
 stretch = "Fixed"
 
 [root.children.node.layout.height]
@@ -236,6 +236,36 @@ type = "Label"
 control_id = "MenuSlot5"
 
 [root.children.node.props]
+text = "Window"
+text_tone = "subtle"
+font_size = 11.0
+text_align = "center"
+overflow = "elide"
+
+[root.children.node.layout.position]
+x = 258.0
+y = 2.0
+
+[root.children.node.layout.width]
+min = 56.0
+preferred = 56.0
+max = 56.0
+stretch = "Fixed"
+
+[root.children.node.layout.height]
+min = 22.0
+preferred = 22.0
+max = 22.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "workbench_menu_slot_6"
+kind = "native"
+type = "Label"
+control_id = "MenuSlot6"
+
+[root.children.node.props]
 text = "Help"
 text_tone = "subtle"
 font_size = 11.0
@@ -243,7 +273,7 @@ text_align = "center"
 overflow = "elide"
 
 [root.children.node.layout.position]
-x = 272.0
+x = 316.0
 y = 2.0
 
 [root.children.node.layout.width]

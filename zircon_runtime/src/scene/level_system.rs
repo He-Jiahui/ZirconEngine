@@ -41,6 +41,17 @@ struct WorldRuntimeState {
     animation_poses: BTreeMap<EntityId, AnimationPoseOutput>,
     animation_graph_times: BTreeMap<EntityId, Real>,
     animation_state_machine_times: BTreeMap<EntityId, Real>,
+    animation_state_machine_transitions: BTreeMap<EntityId, AnimationStateTransitionRuntime>,
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct AnimationStateTransitionRuntime {
+    pub from_state: String,
+    pub to_state: String,
+    pub duration_seconds: Real,
+    pub elapsed_seconds: Real,
+    pub from_time_seconds: Real,
+    pub to_time_seconds: Real,
 }
 
 impl LevelSystem {
@@ -123,11 +134,16 @@ impl LevelSystem {
 
     pub(crate) fn animation_playback_times(
         &self,
-    ) -> (BTreeMap<EntityId, Real>, BTreeMap<EntityId, Real>) {
+    ) -> (
+        BTreeMap<EntityId, Real>,
+        BTreeMap<EntityId, Real>,
+        BTreeMap<EntityId, AnimationStateTransitionRuntime>,
+    ) {
         let runtime_state = self.runtime_state.lock().unwrap();
         (
             runtime_state.animation_graph_times.clone(),
             runtime_state.animation_state_machine_times.clone(),
+            runtime_state.animation_state_machine_transitions.clone(),
         )
     }
 
@@ -142,10 +158,12 @@ impl LevelSystem {
         &self,
         animation_graph_times: BTreeMap<EntityId, Real>,
         animation_state_machine_times: BTreeMap<EntityId, Real>,
+        animation_state_machine_transitions: BTreeMap<EntityId, AnimationStateTransitionRuntime>,
     ) {
         let mut runtime_state = self.runtime_state.lock().unwrap();
         runtime_state.animation_graph_times = animation_graph_times;
         runtime_state.animation_state_machine_times = animation_state_machine_times;
+        runtime_state.animation_state_machine_transitions = animation_state_machine_transitions;
     }
 
     pub fn metadata(&self) -> LevelMetadata {

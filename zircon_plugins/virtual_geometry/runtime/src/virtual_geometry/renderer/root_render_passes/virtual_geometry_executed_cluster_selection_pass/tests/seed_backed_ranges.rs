@@ -36,6 +36,7 @@ fn seed_backed_execution_selection_expands_all_clusters_in_seed_range_and_page_r
         hierarchy_nodes: Vec::new(),
         hierarchy_child_ids: Vec::new(),
         pages: Vec::new(),
+        page_dependencies: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity,
             source_model: None,
@@ -154,6 +155,7 @@ fn seed_backed_execution_selection_derives_lineage_depth_from_parent_chain() {
         hierarchy_nodes: Vec::new(),
         hierarchy_child_ids: Vec::new(),
         pages: Vec::new(),
+        page_dependencies: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity,
             source_model: None,
@@ -280,6 +282,7 @@ fn seed_backed_execution_selection_keeps_instance_local_cluster_ordinal_for_subs
         hierarchy_nodes: Vec::new(),
         hierarchy_child_ids: Vec::new(),
         pages: Vec::new(),
+        page_dependencies: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity,
             source_model: None,
@@ -382,6 +385,7 @@ fn seed_backed_execution_selection_collection_uses_node_and_cluster_cull_seed_ra
             resident: true,
             size_bytes: 2048,
         }],
+        page_dependencies: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity,
             source_model: None,
@@ -475,6 +479,7 @@ fn seed_backed_execution_selection_collection_requires_explicit_instance_work_it
             resident: true,
             size_bytes: 2048,
         }],
+        page_dependencies: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity,
             source_model: None,
@@ -538,6 +543,7 @@ fn seed_backed_execution_selection_collection_requires_explicit_cluster_work_ite
             resident: true,
             size_bytes: 2048,
         }],
+        page_dependencies: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity,
             source_model: None,
@@ -610,6 +616,7 @@ fn seed_backed_execution_selection_respects_forced_mip() {
         hierarchy_nodes: Vec::new(),
         hierarchy_child_ids: Vec::new(),
         pages: Vec::new(),
+        page_dependencies: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity,
             source_model: None,

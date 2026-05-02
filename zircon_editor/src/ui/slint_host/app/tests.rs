@@ -463,7 +463,7 @@ fn root_menu_popup_scroll_and_dismiss_flow_through_shared_pointer_bridge_in_real
 
     let (click_x, click_y) = {
         let host = harness.host.borrow();
-        let window_button = host.menu_pointer_layout.button_frames[4];
+        let window_button = host.menu_pointer_layout.button_frames[5];
         (
             window_button.x + window_button.width * 0.5,
             window_button.y + window_button.height * 0.5,
@@ -475,7 +475,7 @@ fn root_menu_popup_scroll_and_dismiss_flow_through_shared_pointer_bridge_in_real
 
     let (popup_scroll_x, popup_scroll_y, dismiss_x, dismiss_y) = {
         let host = harness.host.borrow();
-        assert_eq!(host.menu_pointer_state.open_menu_index, Some(4));
+        assert_eq!(host.menu_pointer_state.open_menu_index, Some(5));
         assert!(
             host.menu_pointer_layout.preset_names.len() >= 10,
             "window menu should include saved presets before scroll"
@@ -485,7 +485,7 @@ fn root_menu_popup_scroll_and_dismiss_flow_through_shared_pointer_bridge_in_real
                 < 72.0 + host.menu_pointer_layout.preset_names.len() as f32 * 30.0,
             "window popup should overflow before scroll"
         );
-        let button = host.menu_pointer_layout.button_frames[4];
+        let button = host.menu_pointer_layout.button_frames[5];
         let popup_y = button.y + button.height + 3.0;
         (
             button.x + 18.0,
@@ -503,7 +503,7 @@ fn root_menu_popup_scroll_and_dismiss_flow_through_shared_pointer_bridge_in_real
 
     {
         let host = harness.host.borrow();
-        assert_eq!(host.menu_pointer_state.open_menu_index, Some(4));
+        assert_eq!(host.menu_pointer_state.open_menu_index, Some(5));
         assert!(host.menu_pointer_state.popup_scroll_offset > 0.0);
     }
 

@@ -27,4 +27,22 @@ fn shared_viewport_toolbar_pointer_bridge_routes_controls_from_shared_hit_test()
             tool: "Scale".to_string(),
         })
     );
+
+    let play = bridge
+        .handle_click(
+            "scene.main",
+            "EnterPlayMode",
+            684.0,
+            0.0,
+            24.0,
+            20.0,
+            UiPoint::new(692.0, 10.0),
+        )
+        .unwrap();
+    assert_eq!(
+        play.route,
+        Some(ViewportToolbarPointerRoute::EnterPlayMode {
+            surface_key: "scene.main".to_string(),
+        })
+    );
 }

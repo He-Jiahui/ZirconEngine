@@ -12,4 +12,4 @@ mod tests;
 pub use engine_entry::{BuiltinEngineEntry, EngineEntry, EntryRunMode};
 pub use entry_config::EntryConfig;
 pub use entry_profile::EntryProfile;
-pub use entry_runner::EntryRunner;
+pub use entry_runner::{EntryRunner, NativePluginRuntimeBootstrap};

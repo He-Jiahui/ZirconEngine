@@ -37,6 +37,7 @@ fn resolve_ready_handle_surfaces_non_ready_state_and_diagnostics() {
         dependency_ids: Vec::new(),
         diagnostics: vec![ResourceDiagnostic::error("shader compile failed")],
         source_hash: String::new(),
+        importer_id: String::new(),
         importer_version: 0,
         config_hash: String::new(),
     }]);
@@ -105,6 +106,7 @@ fn status(locator: &str, kind: ResourceKind, state: ResourceState) -> ResourceRe
         dependency_ids: Vec::new(),
         diagnostics: Vec::new(),
         source_hash: String::new(),
+        importer_id: String::new(),
         importer_version: 0,
         config_hash: String::new(),
     }

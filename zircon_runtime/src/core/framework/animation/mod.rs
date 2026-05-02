@@ -22,6 +22,8 @@ pub use playback_settings::AnimationPlaybackSettings;
 pub use pose_bone::AnimationPoseBone;
 pub use pose_output::AnimationPoseOutput;
 pub use pose_source::AnimationPoseSource;
-pub use state_machine_evaluation::AnimationStateMachineEvaluation;
+pub use state_machine_evaluation::{
+    AnimationStateMachineEvaluation, AnimationStateTransitionEvaluation,
+};
 pub use track_path::AnimationTrackPath;
 pub use track_path_error::AnimationTrackPathError;

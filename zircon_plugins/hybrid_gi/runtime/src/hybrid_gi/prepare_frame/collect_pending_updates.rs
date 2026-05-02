@@ -58,39 +58,15 @@ fn has_pending_ancestor_update(runtime: &HybridGiRuntimeState, probe_id: u32) ->
 }
 
 fn resident_descendant_count(runtime: &HybridGiRuntimeState, probe_id: u32) -> usize {
-    descendant_probe_ids(runtime, probe_id)
+    runtime
+        .probe_descendant_ids(probe_id)
         .into_iter()
         .filter(|descendant_probe_id| runtime.has_resident_probe(*descendant_probe_id))
         .count()
 }
 
 fn descendant_count(runtime: &HybridGiRuntimeState, probe_id: u32) -> usize {
-    descendant_probe_ids(runtime, probe_id).len()
-}
-
-fn descendant_probe_ids(runtime: &HybridGiRuntimeState, probe_id: u32) -> Vec<u32> {
-    let mut stack = runtime
-        .probe_parent_probes()
-        .iter()
-        .filter_map(|(&candidate_probe_id, &parent_probe_id)| {
-            (parent_probe_id == probe_id).then_some(candidate_probe_id)
-        })
-        .collect::<Vec<_>>();
-    let mut descendants = Vec::new();
-
-    while let Some(candidate_probe_id) = stack.pop() {
-        if descendants.contains(&candidate_probe_id) {
-            continue;
-        }
-        descendants.push(candidate_probe_id);
-        stack.extend(runtime.probe_parent_probes().iter().filter_map(
-            |(&grandchild_probe_id, &parent_probe_id)| {
-                (parent_probe_id == candidate_probe_id).then_some(grandchild_probe_id)
-            },
-        ));
-    }
-
-    descendants
+    runtime.probe_descendant_ids(probe_id).len()
 }
 
 fn probe_depth(runtime: &HybridGiRuntimeState, probe_id: u32) -> usize {

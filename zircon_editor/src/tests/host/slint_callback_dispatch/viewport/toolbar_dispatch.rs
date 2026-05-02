@@ -56,6 +56,54 @@ fn builtin_viewport_toolbar_frame_selection_dispatches_static_binding_from_templ
 }
 
 #[test]
+fn builtin_viewport_toolbar_play_buttons_dispatch_menu_play_mode_operations() {
+    let _guard = env_lock().lock().unwrap();
+
+    let harness = EventRuntimeHarness::new("zircon_slint_template_bridge_viewport_play_mode");
+    let bridge = BuiltinViewportToolbarTemplateBridge::new().unwrap();
+
+    let enter_effects = dispatch_builtin_viewport_toolbar_control(
+        &harness.runtime,
+        &bridge,
+        "EnterPlayMode",
+        UiEventKind::Click,
+        Vec::new(),
+    )
+    .expect("viewport toolbar play control should resolve through template bridge")
+    .unwrap();
+    assert_eq!(
+        harness.runtime.journal().records().last().unwrap().event,
+        EditorEvent::WorkbenchMenu(MenuAction::EnterPlayMode)
+    );
+    assert_eq!(
+        harness.runtime.editor_snapshot().session_mode,
+        crate::ui::workbench::startup::EditorSessionMode::Playing
+    );
+    assert!(enter_effects.render_dirty);
+    assert!(enter_effects.presentation_dirty);
+
+    let exit_effects = dispatch_builtin_viewport_toolbar_control(
+        &harness.runtime,
+        &bridge,
+        "ExitPlayMode",
+        UiEventKind::Click,
+        Vec::new(),
+    )
+    .expect("viewport toolbar stop control should resolve through template bridge")
+    .unwrap();
+    assert_eq!(
+        harness.runtime.journal().records().last().unwrap().event,
+        EditorEvent::WorkbenchMenu(MenuAction::ExitPlayMode)
+    );
+    assert_eq!(
+        harness.runtime.editor_snapshot().session_mode,
+        crate::ui::workbench::startup::EditorSessionMode::Project
+    );
+    assert!(exit_effects.render_dirty);
+    assert!(exit_effects.presentation_dirty);
+}
+
+#[test]
 fn builtin_viewport_toolbar_set_tool_matches_legacy_viewport_command_dispatch() {
     let _guard = env_lock().lock().unwrap();
 

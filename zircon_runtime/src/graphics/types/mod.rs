@@ -13,4 +13,4 @@ pub use gpu_resource_handle::GpuResourceHandle;
 pub use graphics_error::GraphicsError;
 pub use viewport_frame::ViewportFrame;
 pub use viewport_frame_texture_handle::ViewportFrameTextureHandle;
-pub use viewport_render_frame::ViewportRenderFrame;
+pub(crate) use viewport_render_frame::ViewportRenderFrame;

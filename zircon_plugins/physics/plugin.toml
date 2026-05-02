@@ -1,0 +1,26 @@
+id = "physics"
+version = "0.1.0"
+sdk_api_version = "0.1.0"
+display_name = "Physics"
+category = "runtime"
+description = "Optional runtime physics world, query, and editor physics authoring package."
+supported_targets = ["client_runtime", "server_runtime", "editor_host"]
+supported_platforms = ["windows", "linux", "macos"]
+capabilities = ["runtime.plugin.physics", "runtime.capability.physics.raycast"]
+asset_roots = []
+content_roots = []
+default_packaging = ["source_template", "library_embed"]
+
+[[modules]]
+name = "physics.runtime"
+kind = "runtime"
+crate_name = "zircon_plugin_physics_runtime"
+target_modes = ["client_runtime", "server_runtime", "editor_host"]
+capabilities = ["runtime.plugin.physics", "runtime.capability.physics.raycast"]
+
+[[modules]]
+name = "physics.editor"
+kind = "editor"
+crate_name = "zircon_plugin_physics_editor"
+target_modes = ["editor_host"]
+capabilities = ["editor.extension.physics_authoring"]

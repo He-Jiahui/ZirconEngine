@@ -4,9 +4,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::asset::{AssetUri, ProjectManifest};
 use crate::{
-    ExportBuildPlan, ExportPackagingStrategy, ExportProfile, ExportTargetPlatform,
-    ProjectPluginManifest, ProjectPluginSelection, RuntimePluginCatalog, RuntimePluginId,
-    RuntimeTargetMode,
+    plugin::ExportBuildPlan, plugin::ExportPackagingStrategy, plugin::ExportProfile, plugin::ExportTargetPlatform,
+    plugin::ProjectPluginFeatureSelection, plugin::ProjectPluginManifest, plugin::ProjectPluginSelection,
+    plugin::RuntimePluginCatalog, RuntimePluginId, RuntimeTargetMode,
 };
 
 #[test]
@@ -39,12 +39,13 @@ fn source_template_generates_linked_external_runtime_plugin_registration_calls()
     assert!(plugin_source
         .contains("pub fn runtime_plugin_registrations() -> Vec<RuntimePluginRegistrationReport>"));
     assert!(plugin_source.contains("zircon_plugin_sound_runtime::plugin_registration()"));
-    assert!(main_source.contains("EntryRunner::bootstrap_with_runtime_plugin_registrations"));
+    assert!(main_source
+        .contains("EntryRunner::bootstrap_with_runtime_plugin_and_feature_registrations"));
     assert!(main_source.contains("zircon_plugins::runtime_plugin_registrations()"));
 }
 
 #[test]
-fn source_template_keeps_runtime_builtin_domains_out_of_plugin_registration_calls() {
+fn source_template_links_physics_as_external_runtime_plugin() {
     let mut manifest = ProjectManifest::new(
         "Builtin Domain Export Test",
         AssetUri::parse("res://scenes/main.zscene").unwrap(),
@@ -56,7 +57,7 @@ fn source_template_keeps_runtime_builtin_domains_out_of_plugin_registration_call
             true,
             true,
         )
-        .with_runtime_crate("builtin_physics_runtime")],
+        .with_runtime_crate("zircon_plugin_physics_runtime")],
     };
     manifest.export_profiles = vec![ExportProfile::new(
         "client",
@@ -70,14 +71,17 @@ fn source_template_keeps_runtime_builtin_domains_out_of_plugin_registration_call
     let plugin_source = generated_file(&plan, "src/zircon_plugins.rs");
     let cargo_manifest = generated_file(&plan, "Cargo.toml");
 
-    assert!(plan.linked_runtime_crates.is_empty());
+    assert_eq!(
+        plan.linked_runtime_crates,
+        vec!["zircon_plugin_physics_runtime".to_string()]
+    );
     assert!(plugin_source.contains("id: \"physics\".to_string()"));
-    assert!(!plugin_source.contains("builtin_physics_runtime::plugin_registration()"));
-    assert!(!cargo_manifest.contains("builtin_physics_runtime"));
+    assert!(plugin_source.contains("zircon_plugin_physics_runtime::plugin_registration()"));
+    assert!(cargo_manifest.contains("zircon_plugin_physics_runtime"));
 }
 
 #[test]
-fn export_plan_keeps_runtime_builtin_domains_out_of_native_plugin_packages_and_diagnostics() {
+fn export_plan_treats_animation_as_external_native_dynamic_package() {
     let mut manifest = ProjectManifest::new(
         "Builtin Native Domain Export Test",
         AssetUri::parse("res://scenes/main.zscene").unwrap(),
@@ -89,7 +93,7 @@ fn export_plan_keeps_runtime_builtin_domains_out_of_native_plugin_packages_and_d
             true,
             true,
         )
-        .with_runtime_crate("builtin_animation_runtime")
+        .with_runtime_crate("zircon_plugin_animation_runtime")
         .with_packaging(ExportPackagingStrategy::NativeDynamic)],
     };
     manifest.export_profiles = vec![ExportProfile::new(
@@ -102,8 +106,12 @@ fn export_plan_keeps_runtime_builtin_domains_out_of_native_plugin_packages_and_d
     let plan = ExportBuildPlan::from_project_manifest(&manifest, "native-only").unwrap();
 
     assert!(plan.linked_runtime_crates.is_empty());
-    assert!(plan.native_dynamic_packages.is_empty());
-    assert!(plan.generated_files.is_empty());
+    assert_eq!(plan.native_dynamic_packages, vec!["animation".to_string()]);
+    assert!(generated_file(&plan, "plugins/native_plugins.toml").contains("id = \"animation\""));
+    assert!(plan
+        .generated_files
+        .iter()
+        .all(|file| file.path != "Cargo.toml"));
     assert!(plan.diagnostics.is_empty());
 }
 
@@ -123,6 +131,7 @@ fn source_template_keeps_editor_only_plugins_out_of_runtime_registrations() {
             packaging: ExportPackagingStrategy::LibraryEmbed,
             runtime_crate: None,
             editor_crate: Some("zircon_plugin_runtime_diagnostics_editor".to_string()),
+            features: Vec::new(),
         }],
     };
     manifest.export_profiles = vec![ExportProfile::new(
@@ -267,6 +276,140 @@ fn source_template_with_native_dynamic_merges_native_loader_reports() {
 }
 
 #[test]
+fn source_template_links_active_optional_feature_runtime_crates() {
+    let mut manifest = ProjectManifest::new(
+        "Optional Feature Export Test",
+        AssetUri::parse("res://scenes/main.zscene").unwrap(),
+        1,
+    );
+    manifest.plugins = ProjectPluginManifest {
+        selections: vec![
+            ProjectPluginSelection::runtime_plugin(RuntimePluginId::Sound, true, false)
+                .with_runtime_crate("zircon_plugin_sound_runtime")
+                .with_feature(
+                    ProjectPluginFeatureSelection::new("sound.timeline_animation_track")
+                        .enabled(true)
+                        .with_runtime_crate("zircon_plugin_sound_timeline_animation_runtime"),
+                ),
+            ProjectPluginSelection::runtime_plugin(RuntimePluginId::Animation, true, false)
+                .with_runtime_crate("zircon_plugin_animation_runtime"),
+        ],
+    };
+    manifest.export_profiles = vec![ExportProfile::new(
+        "client",
+        RuntimeTargetMode::ClientRuntime,
+        ExportTargetPlatform::Windows,
+    )
+    .with_strategy(ExportPackagingStrategy::SourceTemplate)
+    .with_strategy(ExportPackagingStrategy::LibraryEmbed)];
+
+    let plan = ExportBuildPlan::from_project_manifest(&manifest, "client").unwrap();
+    let plugin_source = generated_file(&plan, "src/zircon_plugins.rs");
+    let main_source = generated_file(&plan, "src/main.rs");
+    let cargo_manifest = generated_file(&plan, "Cargo.toml");
+
+    assert!(plan
+        .linked_runtime_crates
+        .contains(&"zircon_plugin_sound_timeline_animation_runtime".to_string()));
+    assert!(
+        cargo_manifest.contains(
+            "zircon_plugin_sound_timeline_animation_runtime = { path = \"../../zircon_plugins/sound/features/timeline_animation_track/runtime\" }"
+        ),
+        "{cargo_manifest}"
+    );
+    assert!(plugin_source.contains(
+        "pub fn runtime_plugin_feature_registrations() -> Vec<RuntimePluginFeatureRegistrationReport>"
+    ));
+    assert!(plugin_source
+        .contains("zircon_plugin_sound_timeline_animation_runtime::plugin_feature_registration()"));
+    assert!(main_source.contains("zircon_plugins::runtime_plugin_feature_registrations()"));
+    assert!(main_source
+        .contains("EntryRunner::bootstrap_with_runtime_plugin_and_feature_registrations"));
+}
+
+#[test]
+fn source_template_reports_blocked_optional_feature_as_warning_only() {
+    let mut manifest = ProjectManifest::new(
+        "Blocked Optional Feature Export Test",
+        AssetUri::parse("res://scenes/main.zscene").unwrap(),
+        1,
+    );
+    manifest.plugins = ProjectPluginManifest {
+        selections: vec![ProjectPluginSelection::runtime_plugin(
+            RuntimePluginId::Sound,
+            true,
+            false,
+        )
+        .with_runtime_crate("zircon_plugin_sound_runtime")
+        .with_feature(
+            ProjectPluginFeatureSelection::new("sound.timeline_animation_track")
+                .enabled(true)
+                .with_runtime_crate("zircon_plugin_sound_timeline_animation_runtime"),
+        )],
+    };
+    manifest.export_profiles = vec![ExportProfile::new(
+        "client",
+        RuntimeTargetMode::ClientRuntime,
+        ExportTargetPlatform::Windows,
+    )
+    .with_strategy(ExportPackagingStrategy::SourceTemplate)
+    .with_strategy(ExportPackagingStrategy::LibraryEmbed)];
+
+    let plan = ExportBuildPlan::from_project_manifest(&manifest, "client").unwrap();
+
+    assert!(!plan
+        .linked_runtime_crates
+        .contains(&"zircon_plugin_sound_timeline_animation_runtime".to_string()));
+    assert!(plan.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("optional feature sound.timeline_animation_track is blocked")
+            && diagnostic.contains("animation")
+    }));
+    assert!(plan.fatal_diagnostics.is_empty());
+}
+
+#[test]
+fn source_template_reports_blocked_required_feature_as_fatal_diagnostic() {
+    let mut manifest = ProjectManifest::new(
+        "Blocked Required Feature Export Test",
+        AssetUri::parse("res://scenes/main.zscene").unwrap(),
+        1,
+    );
+    manifest.plugins = ProjectPluginManifest {
+        selections: vec![ProjectPluginSelection::runtime_plugin(
+            RuntimePluginId::Sound,
+            true,
+            false,
+        )
+        .with_runtime_crate("zircon_plugin_sound_runtime")
+        .with_feature(
+            ProjectPluginFeatureSelection::new("sound.timeline_animation_track")
+                .enabled(true)
+                .required(true)
+                .with_runtime_crate("zircon_plugin_sound_timeline_animation_runtime"),
+        )],
+    };
+    manifest.export_profiles = vec![ExportProfile::new(
+        "client",
+        RuntimeTargetMode::ClientRuntime,
+        ExportTargetPlatform::Windows,
+    )
+    .with_strategy(ExportPackagingStrategy::SourceTemplate)
+    .with_strategy(ExportPackagingStrategy::LibraryEmbed)];
+
+    let plan = ExportBuildPlan::from_project_manifest(&manifest, "client").unwrap();
+
+    assert!(plan.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("required feature sound.timeline_animation_track is blocked")
+            && diagnostic.contains("animation")
+    }));
+    assert!(plan.has_fatal_diagnostics());
+    assert!(plan.fatal_diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("required feature sound.timeline_animation_track is blocked")
+            && diagnostic.contains("animation")
+    }));
+}
+
+#[test]
 fn native_dynamic_generates_loader_manifest_without_source_template() {
     let mut manifest = ProjectManifest::new(
         "Native Dynamic Export Test",
@@ -384,6 +527,7 @@ fn native_dynamic_materialization_sanitizes_package_directory_names() {
             packaging: ExportPackagingStrategy::NativeDynamic,
             runtime_crate: Some("zircon_plugin_sound_runtime".to_string()),
             editor_crate: None,
+            features: Vec::new(),
         }],
     };
     manifest.export_profiles = vec![ExportProfile::new(
@@ -446,6 +590,7 @@ fn native_dynamic_materialization_does_not_directly_resolve_package_id_outside_p
             packaging: ExportPackagingStrategy::NativeDynamic,
             runtime_crate: Some("zircon_plugin_external_runtime".to_string()),
             editor_crate: None,
+            features: Vec::new(),
         }],
     };
     manifest.export_profiles = vec![ExportProfile::new(

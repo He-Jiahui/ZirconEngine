@@ -45,9 +45,18 @@ fn record_kind_matches<TMarker: ResourceMarker>(kind: ResourceKind) -> bool {
 
 fn resource_kind_name(kind: ResourceKind) -> &'static str {
     match kind {
+        ResourceKind::Data => "Data",
         ResourceKind::Model => "Model",
         ResourceKind::Material => "Material",
+        ResourceKind::MaterialGraph => "MaterialGraph",
         ResourceKind::PhysicsMaterial => "PhysicsMaterial",
+        ResourceKind::NavMesh => "NavMesh",
+        ResourceKind::NavigationSettings => "NavigationSettings",
+        ResourceKind::Terrain => "Terrain",
+        ResourceKind::TerrainLayerStack => "TerrainLayerStack",
+        ResourceKind::TileSet => "TileSet",
+        ResourceKind::TileMap => "TileMap",
+        ResourceKind::Prefab => "Prefab",
         ResourceKind::Texture => "Texture",
         ResourceKind::Shader => "Shader",
         ResourceKind::Scene => "Scene",

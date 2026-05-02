@@ -55,6 +55,7 @@ fn update_virtual_geometry_runtime(
         stats.page_table_entry_count(),
         stats.resident_page_count(),
         stats.pending_request_count(),
+        stats.page_dependency_count(),
         stats.completed_page_count(),
         stats.replaced_page_count(),
         indirect_segment_count,

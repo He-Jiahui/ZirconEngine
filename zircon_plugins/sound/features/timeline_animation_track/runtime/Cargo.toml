@@ -1,0 +1,8 @@
+[package]
+name = "zircon_plugin_sound_timeline_animation_runtime"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+zircon_runtime = { path = "../../../../../zircon_runtime" }

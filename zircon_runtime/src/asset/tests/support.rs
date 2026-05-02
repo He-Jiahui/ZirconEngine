@@ -175,6 +175,9 @@ pub(crate) fn write_default_scene(path: PathBuf) {
                 animation_sequence_player: None,
                 animation_graph_player: None,
                 animation_state_machine_player: None,
+                terrain: None,
+                tilemap: None,
+                prefab_instance: None,
             },
             SceneEntityAsset {
                 entity: 2,
@@ -204,6 +207,9 @@ pub(crate) fn write_default_scene(path: PathBuf) {
                 animation_sequence_player: None,
                 animation_graph_player: None,
                 animation_state_machine_player: None,
+                terrain: None,
+                tilemap: None,
+                prefab_instance: None,
             },
         ],
     };

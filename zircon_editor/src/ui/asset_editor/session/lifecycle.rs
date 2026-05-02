@@ -1,9 +1,8 @@
 use std::collections::BTreeMap;
 
 use crate::ui::asset_editor::{UiAssetEditorMode, UiAssetEditorRoute, UiAssetPreviewPreset};
-use zircon_runtime::ui::template::{
-    collect_asset_binding_report, component_contract_diagnostic, UiAssetLoader, UiDocumentCompiler,
-};
+use crate::ui::template::EditorTemplateRuntimeService;
+use zircon_runtime::ui::template::component_contract_diagnostic;
 use zircon_runtime_interface::ui::{
     layout::UiSize,
     template::{UiAssetDocument, UiAssetError, UiAssetKind},
@@ -522,16 +521,7 @@ impl UiAssetEditorSession {
 }
 
 pub(super) fn parse_ui_asset_source(source: &str) -> Result<UiAssetDocument, UiAssetError> {
-    UiAssetLoader::load_toml_str(source).or_else(|error| {
-        #[cfg(test)]
-        {
-            crate::tests::support::load_test_ui_asset(source).or(Err(error))
-        }
-        #[cfg(not(test))]
-        {
-            Err(error)
-        }
-    })
+    EditorTemplateRuntimeService.parse_document_source(source)
 }
 
 fn reconcile_selected_palette_index<T>(items: &[T], current: Option<usize>) -> Option<usize> {
@@ -548,7 +538,8 @@ fn structured_compile_diagnostics(
 ) -> Vec<crate::ui::asset_editor::UiAssetEditorDiagnostic> {
     let mut diagnostics = structured_contract_diagnostics(document, imports);
     diagnostics.extend(
-        collect_asset_binding_report(document, UiDocumentCompiler::default().component_registry())
+        EditorTemplateRuntimeService
+            .collect_binding_report(document)
             .diagnostics
             .into_iter()
             .map(map_binding_diagnostic),

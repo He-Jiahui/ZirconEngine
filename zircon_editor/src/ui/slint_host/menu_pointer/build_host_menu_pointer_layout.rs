@@ -15,7 +15,7 @@ use super::HostMenuPointerLayout;
 
 const MENU_CHROME_ASSET: &str = "/assets/ui/editor/workbench_menu_chrome.ui.toml";
 const MENU_SLOT_PREFIX: &str = "MenuSlot";
-const MENU_BUTTON_COUNT: usize = 6;
+const MENU_BUTTON_COUNT: usize = 7;
 
 pub(crate) fn build_host_menu_pointer_layout(
     menu_bar: &MenuBarModel,

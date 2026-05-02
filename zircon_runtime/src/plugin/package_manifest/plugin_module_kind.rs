@@ -5,4 +5,6 @@ use serde::{Deserialize, Serialize};
 pub enum PluginModuleKind {
     Runtime,
     Editor,
+    Native,
+    Vm,
 }

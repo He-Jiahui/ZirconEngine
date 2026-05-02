@@ -66,7 +66,7 @@ fn capture_scrolled_window_popup_visual_artifact() {
     );
     ui.global::<UiHostContext>()
         .set_menu_state(HostMenuStateData {
-            open_menu_index: 4,
+            open_menu_index: 5,
             hovered_menu_index: -1,
             hovered_menu_item_index: 17,
             window_menu_scroll_px: 360.0,

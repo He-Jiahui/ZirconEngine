@@ -1,0 +1,246 @@
+id = "rendering"
+version = "0.1.0"
+display_name = "Rendering"
+category = "rendering"
+description = "Optional rendering feature owner package for post process, SSAO, decals, probes, baked lighting, ray tracing policy, shader graph, and VFX graph."
+default_packaging = ["source_template", "library_embed"]
+
+[[modules]]
+name = "rendering.runtime"
+kind = "runtime"
+crate_name = "zircon_plugin_rendering_runtime"
+target_modes = ["client_runtime", "editor_host"]
+capabilities = ["runtime.plugin.rendering"]
+
+[[modules]]
+name = "rendering.editor"
+kind = "editor"
+crate_name = "zircon_plugin_rendering_editor"
+target_modes = ["editor_host"]
+capabilities = ["editor.extension.rendering_authoring"]
+
+[[optional_features]]
+id = "rendering.post_process"
+display_name = "Post Process"
+owner_plugin_id = "rendering"
+capabilities = ["runtime.feature.rendering.post_process"]
+default_packaging = ["source_template", "library_embed"]
+enabled_by_default = true
+
+[[optional_features.dependencies]]
+plugin_id = "rendering"
+capability = "runtime.plugin.rendering"
+primary = true
+
+[[optional_features.modules]]
+name = "rendering.post_process.runtime"
+kind = "runtime"
+crate_name = "zircon_plugin_rendering_post_process_runtime"
+target_modes = ["client_runtime", "editor_host"]
+capabilities = ["runtime.feature.rendering.post_process"]
+
+[[optional_features.modules]]
+name = "rendering.post_process.editor"
+kind = "editor"
+crate_name = "zircon_plugin_rendering_post_process_editor"
+target_modes = ["editor_host"]
+capabilities = []
+
+[[optional_features]]
+id = "rendering.ssao"
+display_name = "SSAO"
+owner_plugin_id = "rendering"
+capabilities = ["runtime.feature.rendering.ssao"]
+default_packaging = ["source_template", "library_embed"]
+enabled_by_default = true
+
+[[optional_features.dependencies]]
+plugin_id = "rendering"
+capability = "runtime.plugin.rendering"
+primary = true
+
+[[optional_features.modules]]
+name = "rendering.ssao.runtime"
+kind = "runtime"
+crate_name = "zircon_plugin_rendering_ssao_runtime"
+target_modes = ["client_runtime", "editor_host"]
+capabilities = ["runtime.feature.rendering.ssao"]
+
+[[optional_features.modules]]
+name = "rendering.ssao.editor"
+kind = "editor"
+crate_name = "zircon_plugin_rendering_ssao_editor"
+target_modes = ["editor_host"]
+capabilities = []
+
+[[optional_features]]
+id = "rendering.decals"
+display_name = "Decals"
+owner_plugin_id = "rendering"
+capabilities = ["runtime.feature.rendering.decals"]
+default_packaging = ["source_template", "library_embed"]
+enabled_by_default = false
+
+[[optional_features.dependencies]]
+plugin_id = "rendering"
+capability = "runtime.plugin.rendering"
+primary = true
+
+[[optional_features.modules]]
+name = "rendering.decals.runtime"
+kind = "runtime"
+crate_name = "zircon_plugin_rendering_decals_runtime"
+target_modes = ["client_runtime", "editor_host"]
+capabilities = ["runtime.feature.rendering.decals"]
+
+[[optional_features.modules]]
+name = "rendering.decals.editor"
+kind = "editor"
+crate_name = "zircon_plugin_rendering_decals_editor"
+target_modes = ["editor_host"]
+capabilities = []
+
+[[optional_features]]
+id = "rendering.reflection_probes"
+display_name = "Reflection Probes"
+owner_plugin_id = "rendering"
+capabilities = ["runtime.feature.rendering.reflection_probes"]
+default_packaging = ["source_template", "library_embed"]
+enabled_by_default = true
+
+[[optional_features.dependencies]]
+plugin_id = "rendering"
+capability = "runtime.plugin.rendering"
+primary = true
+
+[[optional_features.modules]]
+name = "rendering.reflection_probes.runtime"
+kind = "runtime"
+crate_name = "zircon_plugin_rendering_reflection_probes_runtime"
+target_modes = ["client_runtime", "editor_host"]
+capabilities = ["runtime.feature.rendering.reflection_probes"]
+
+[[optional_features.modules]]
+name = "rendering.reflection_probes.editor"
+kind = "editor"
+crate_name = "zircon_plugin_rendering_reflection_probes_editor"
+target_modes = ["editor_host"]
+capabilities = []
+
+[[optional_features]]
+id = "rendering.baked_lighting"
+display_name = "Baked Lighting"
+owner_plugin_id = "rendering"
+capabilities = ["runtime.feature.rendering.baked_lighting"]
+default_packaging = ["source_template", "library_embed"]
+enabled_by_default = true
+
+[[optional_features.dependencies]]
+plugin_id = "rendering"
+capability = "runtime.plugin.rendering"
+primary = true
+
+[[optional_features.modules]]
+name = "rendering.baked_lighting.runtime"
+kind = "runtime"
+crate_name = "zircon_plugin_rendering_baked_lighting_runtime"
+target_modes = ["client_runtime", "editor_host"]
+capabilities = ["runtime.feature.rendering.baked_lighting"]
+
+[[optional_features.modules]]
+name = "rendering.baked_lighting.editor"
+kind = "editor"
+crate_name = "zircon_plugin_rendering_baked_lighting_editor"
+target_modes = ["editor_host"]
+capabilities = []
+
+[[optional_features]]
+id = "rendering.ray_tracing_policy"
+display_name = "Ray Tracing Policy"
+owner_plugin_id = "rendering"
+capabilities = ["runtime.feature.rendering.ray_tracing_policy"]
+default_packaging = ["source_template", "library_embed"]
+enabled_by_default = false
+
+[[optional_features.dependencies]]
+plugin_id = "rendering"
+capability = "runtime.plugin.rendering"
+primary = true
+
+[[optional_features.modules]]
+name = "rendering.ray_tracing_policy.runtime"
+kind = "runtime"
+crate_name = "zircon_plugin_rendering_ray_tracing_policy_runtime"
+target_modes = ["client_runtime", "editor_host"]
+capabilities = ["runtime.feature.rendering.ray_tracing_policy"]
+
+[[optional_features.modules]]
+name = "rendering.ray_tracing_policy.editor"
+kind = "editor"
+crate_name = "zircon_plugin_rendering_ray_tracing_policy_editor"
+target_modes = ["editor_host"]
+capabilities = []
+
+[[optional_features]]
+id = "rendering.shader_graph"
+display_name = "Shader Graph"
+owner_plugin_id = "rendering"
+capabilities = ["runtime.feature.rendering.shader_graph"]
+default_packaging = ["source_template", "library_embed"]
+enabled_by_default = false
+
+[[optional_features.dependencies]]
+plugin_id = "rendering"
+capability = "runtime.plugin.rendering"
+primary = true
+
+[[optional_features.modules]]
+name = "rendering.shader_graph.runtime"
+kind = "runtime"
+crate_name = "zircon_plugin_rendering_shader_graph_runtime"
+target_modes = ["client_runtime", "editor_host"]
+capabilities = ["runtime.feature.rendering.shader_graph"]
+
+[[optional_features.modules]]
+name = "rendering.shader_graph.editor"
+kind = "editor"
+crate_name = "zircon_plugin_rendering_shader_graph_editor"
+target_modes = ["editor_host"]
+capabilities = []
+
+[[optional_features]]
+id = "rendering.vfx_graph"
+display_name = "VFX Graph"
+owner_plugin_id = "rendering"
+capabilities = ["runtime.feature.rendering.vfx_graph"]
+default_packaging = ["source_template", "library_embed"]
+enabled_by_default = false
+
+[[optional_features.dependencies]]
+plugin_id = "rendering"
+capability = "runtime.plugin.rendering"
+primary = true
+
+[[optional_features.dependencies]]
+plugin_id = "particles"
+capability = "runtime.plugin.particles"
+primary = false
+
+[[optional_features.dependencies]]
+plugin_id = "rendering"
+capability = "runtime.feature.rendering.shader_graph"
+primary = false
+
+[[optional_features.modules]]
+name = "rendering.vfx_graph.runtime"
+kind = "runtime"
+crate_name = "zircon_plugin_rendering_vfx_graph_runtime"
+target_modes = ["client_runtime", "editor_host"]
+capabilities = ["runtime.feature.rendering.vfx_graph"]
+
+[[optional_features.modules]]
+name = "rendering.vfx_graph.editor"
+kind = "editor"
+crate_name = "zircon_plugin_rendering_vfx_graph_editor"
+target_modes = ["editor_host"]
+capabilities = []

@@ -33,7 +33,7 @@
   - `zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs`
   - `zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs`
   - `zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs`
-- `zircon_editor` still has direct `zircon_runtime::ui` imports. The 2026-05-02 Milestone 4 audit found 128 `zircon_runtime::ui` hits in `zircon_editor/src`, alongside 428 `zircon_runtime_interface::ui` hits. The lower-layer tree/surface identity has now converged: `UiSurface.tree` stores the interface-owned `UiTree`, tree DTOs are imported from `zircon_runtime_interface::ui::tree`, and runtime tree behavior is exposed through `zircon_runtime::ui::tree::UiRuntimeTree*Ext` traits. Remaining runtime imports are dominated by concrete services and behavior APIs such as `UiSurface`, `UiPointerDispatcher`, `UiAssetLoader`, `UiDocumentCompiler`, `UiTemplateSurfaceBuilder`, `UiTemplateBuildError`, `UiComponentDescriptorRegistry`, `UiAssetDocumentRuntimeExt`, and runtime tree behavior extension traits. Do not mechanically rewrite those behavior imports as DTO ownership fixes.
+- `zircon_editor` still has direct `zircon_runtime::ui` imports. The latest 2026-05-02 Milestone 4 audit found 134 `zircon_runtime::ui` hits in `zircon_editor/src`, alongside 431 `zircon_runtime_interface::ui` hits. The lower-layer tree/surface identity has now converged: `UiSurface.tree` stores the interface-owned `UiTree`, tree DTOs are imported from `zircon_runtime_interface::ui::tree`, and runtime tree behavior is exposed through `zircon_runtime::ui::tree::UiRuntimeTree*Ext` traits. Remaining runtime imports are dominated by concrete services and behavior APIs such as `UiSurface`, `UiPointerDispatcher`, `UiAssetLoader`, `UiDocumentCompiler`, `UiTemplateSurfaceBuilder`, `UiTemplateBuildError`, `UiComponentDescriptorRegistry`, `UiAssetDocumentRuntimeExt`, and runtime tree behavior extension traits. Do not mechanically rewrite those behavior imports as DTO ownership fixes.
 
 ## File Structure
 
@@ -170,18 +170,18 @@
 
 **Implementation slices:**
 
-- [ ] Replace `crate::ui::binding::*`, `crate::ui::component::*`, `crate::ui::event_ui::*`, `crate::ui::layout::*`, `crate::ui::surface::*`, `crate::ui::template::*`, and `crate::ui::tree::*` imports in runtime behavior files with direct `zircon_runtime_interface::ui::*` imports when the symbol is a moved neutral DTO.
-- [ ] Remove duplicate DTO declarations from runtime files after their runtime behavior imports interface DTOs.
-- [ ] Keep runtime module roots structural. Do not add runtime `pub use` re-exports solely to preserve old neutral DTO paths.
+- [x] Replace `crate::ui::binding::*`, `crate::ui::component::*`, `crate::ui::event_ui::*`, `crate::ui::layout::*`, `crate::ui::surface::*`, `crate::ui::template::*`, and `crate::ui::tree::*` imports in runtime behavior files with direct `zircon_runtime_interface::ui::*` imports when the symbol is a moved neutral DTO.
+- [x] Remove duplicate DTO declarations from runtime files after their runtime behavior imports interface DTOs.
+- [x] Keep runtime module roots structural. Do not add runtime `pub use` re-exports solely to preserve old neutral DTO paths.
 - [x] Convert `UiRenderExtract::from_tree(tree)` call sites to runtime-owned `extract_ui_render_tree(tree)` behavior in `zircon_runtime/src/ui/surface/render/extract.rs`; the stale editor node/view projection call sites now use the runtime free function.
-- [ ] Keep `layout_text(...)`, dispatchers, event managers, component registry behavior, tree mutation/query behavior, and asset compiler behavior in `zircon_runtime` while using interface DTO types.
-- [ ] Rewire `zircon_runtime/src/ui/template/asset/binding/validation.rs` so M18 validation consumes interface binding expression, target, diagnostic, and report DTOs.
-- [ ] Rewire `zircon_runtime/src/ui/template/asset/action_policy/validate.rs` so M21 validation consumes interface policy, side-effect, diagnostic, and report DTOs.
-- [ ] Rewire `zircon_runtime/src/ui/template/asset/localization/collect.rs` so M14 collection consumes interface localization reference, direction, diagnostic, dependency, candidate, and report DTOs.
-- [ ] Rewire `zircon_runtime/src/ui/template/asset/compiler/package/**` so package validation reports use interface package/action/localization/invalidation/resource DTOs at shared seams.
-- [ ] Update runtime unit tests under `zircon_runtime/src/ui/tests/**` to import interface DTOs where they construct shared UI contract data.
-- [ ] Update `docs/ui-and-layout/ui-asset-documents-and-editor-protocol.md` and `docs/ui-and-layout/ui-asset-foundation-descriptors-contracts-invalidation.md` with the split between interface DTO ownership and runtime behavior ownership.
-- [ ] Update `.codex/sessions/20260502-0805-ui-runtime-interface-big-cutover.md` with touched runtime modules and any compile blockers.
+- [x] Keep `layout_text(...)`, dispatchers, event managers, component registry behavior, tree mutation/query behavior, and asset compiler behavior in `zircon_runtime` while using interface DTO types.
+- [x] Rewire `zircon_runtime/src/ui/template/asset/binding/validation.rs` so M18 validation consumes interface binding expression, target, diagnostic, and report DTOs.
+- [x] Rewire `zircon_runtime/src/ui/template/asset/action_policy/validate.rs` so M21 validation consumes interface policy, side-effect, diagnostic, and report DTOs.
+- [x] Rewire `zircon_runtime/src/ui/template/asset/localization/collect.rs` so M14 collection consumes interface localization reference, direction, diagnostic, dependency, candidate, and report DTOs.
+- [x] Rewire `zircon_runtime/src/ui/template/asset/compiler/package/**` so package validation reports use interface package/action/localization/invalidation/resource DTOs at shared seams.
+- [x] Update runtime unit tests under `zircon_runtime/src/ui/tests/**` to import interface DTOs where they construct shared UI contract data.
+- [x] Update `docs/ui-and-layout/ui-asset-documents-and-editor-protocol.md` and `docs/ui-and-layout/ui-asset-foundation-descriptors-contracts-invalidation.md` with the split between interface DTO ownership and runtime behavior ownership.
+- [x] Update `.codex/sessions/20260502-0805-ui-runtime-interface-big-cutover.md` with touched runtime modules and any compile blockers.
 
 **Testing stage:**
 
@@ -203,14 +203,14 @@
 
 **Implementation slices:**
 
-- [ ] Update `zircon_runtime/src/asset/tests/assets/font.rs` to import `UiTextRenderMode` from `zircon_runtime_interface::ui::surface`.
-- [ ] Update `zircon_runtime/src/graphics/tests/render_framework_bridge.rs` to construct interface `UiRenderExtract` and related event/layout/surface DTOs.
-- [ ] Update `zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs` tests to use interface event/layout/surface DTO imports and remove `crate::ui::surface::UiResolvedStyle` fully-qualified references.
-- [ ] Update `zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs` tests to use interface text enum DTOs.
-- [ ] Update `zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs` tests to use interface text enum DTOs.
-- [ ] Update `zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs` tests to use interface text enum DTOs.
-- [ ] Search the touched runtime test and graphics files for `crate::ui::surface`, `crate::ui::layout`, and `crate::ui::event_ui`; remaining matches must be runtime behavior, not shared DTO construction.
-- [ ] Update `.codex/sessions/20260502-0805-ui-runtime-interface-big-cutover.md` with exact files and new focused-test status.
+- [x] Update `zircon_runtime/src/asset/tests/assets/font.rs` to import `UiTextRenderMode` from `zircon_runtime_interface::ui::surface`.
+- [x] Update `zircon_runtime/src/graphics/tests/render_framework_bridge.rs` to construct interface `UiRenderExtract` and related event/layout/surface DTOs.
+- [x] Update `zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs` tests to use interface event/layout/surface DTO imports and remove `crate::ui::surface::UiResolvedStyle` fully-qualified references.
+- [x] Update `zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs` tests to use interface text enum DTOs.
+- [x] Update `zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs` tests to use interface text enum DTOs.
+- [x] Update `zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs` tests to use interface text enum DTOs.
+- [x] Search the touched runtime test and graphics files for `crate::ui::surface`, `crate::ui::layout`, and `crate::ui::event_ui`; remaining matches must be runtime behavior, not shared DTO construction.
+- [x] Update `.codex/sessions/20260502-0805-ui-runtime-interface-big-cutover.md` with exact files and new focused-test status.
 
 **Testing stage:**
 
@@ -260,12 +260,12 @@
 
 **Implementation slices:**
 
-- [ ] Search `zircon_runtime_interface/src/ui` for `#[path =`, `zircon_runtime/src/ui`, `compat`, `shim`, `facade`, `bridge`, and `legacy`; any live hit in the touched namespace blocks acceptance unless it is historical test text.
-- [ ] Search runtime known mismatch files for `crate::ui::surface`, `crate::ui::layout`, and `crate::ui::event_ui`; any remaining shared DTO construction must be converted to interface imports.
-- [ ] Search `zircon_editor/src` for `zircon_runtime::ui`; any remaining neutral UI import must be converted or explicitly recorded as not a UI DTO.
-- [ ] Run `rustfmt --edition 2021 --check` on all touched Rust files.
-- [ ] Run `git diff --check -- docs/superpowers/specs/2026-05-02-ui-runtime-interface-big-cutover-design.md docs/superpowers/plans/2026-05-02-ui-runtime-interface-big-cutover.md docs/zircon_runtime_interface/ui/mod.md docs/engine-architecture/runtime-interface-cdylib-loader.md docs/ui-and-layout/ui-asset-documents-and-editor-protocol.md docs/ui-and-layout/ui-asset-foundation-descriptors-contracts-invalidation.md docs/editor-and-tooling/ui-asset-editor-host-session.md .codex/sessions/20260502-0805-ui-runtime-interface-big-cutover.md`.
-- [ ] Update the active session note with all passing commands, remaining failures, and whether the older M18/M21/M14 notes can be archived or left blocked for a non-UI reason.
+- [x] Search `zircon_runtime_interface/src/ui` for `#[path =`, `zircon_runtime/src/ui`, `compat`, `shim`, `facade`, `bridge`, and `legacy`; any live hit in the touched namespace blocks acceptance unless it is historical test text.
+- [x] Search runtime known mismatch files for `crate::ui::surface`, `crate::ui::layout`, and `crate::ui::event_ui`; any remaining shared DTO construction must be converted to interface imports.
+- [x] Search `zircon_editor/src` for `zircon_runtime::ui`; any remaining neutral UI import must be converted or explicitly recorded as not a UI DTO.
+- [x] Run `rustfmt --edition 2021 --check` on all touched Rust files.
+- [x] Run `git diff --check -- docs/superpowers/specs/2026-05-02-ui-runtime-interface-big-cutover-design.md docs/superpowers/plans/2026-05-02-ui-runtime-interface-big-cutover.md docs/zircon_runtime_interface/ui/mod.md docs/engine-architecture/runtime-interface-cdylib-loader.md docs/ui-and-layout/ui-asset-documents-and-editor-protocol.md docs/ui-and-layout/ui-asset-foundation-descriptors-contracts-invalidation.md docs/editor-and-tooling/ui-asset-editor-host-session.md .codex/sessions/20260502-0805-ui-runtime-interface-big-cutover.md`.
+- [x] Update the active session note with all passing commands, remaining failures, and whether the older M18/M21/M14 notes can be archived or left blocked for a non-UI reason.
 
 **Testing stage:**
 
@@ -285,12 +285,34 @@
 
 **Exit evidence:** All scoped UI-interface commands have fresh recorded output; docs and session note list implementation files, tests, and residual risks; no workspace-wide success is claimed without running workspace validation.
 
+## Latest Focused Acceptance Evidence
+
+- 2026-05-02 final shared-target rerun used `E:\cargo-targets\zircon-ui-interface-big-cutover` after `Get-PSDrive -Name E` reported 146.55 GB free and no active Cargo/Rustc writers were found before the validation stage.
+- `cargo check -p zircon_runtime_interface --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-big-cutover --message-format short --color never`: pass.
+- `cargo test -p zircon_runtime_interface --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-big-cutover --message-format short --color never`: pass with 17 tests passed, 0 failed, doc-tests 0.
+- `cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-big-cutover --message-format short --color never`: pass with existing graphics/plugin warnings only.
+- `cargo test -p zircon_runtime --test ui_asset_binding_contract --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-big-cutover --message-format short --color never`: pass with 16 tests passed, 0 failed.
+- `cargo test -p zircon_runtime --lib asset_binding --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-big-cutover --message-format short --color never`: pass with 16 tests passed, 0 failed, 646 filtered out. The earlier `RenderFeatureCapabilityRequirement::ScreenSpaceEffects` compile failure is stale for this validation set: current source search found no live `ScreenSpaceEffects` symbol, and this exact required M18 filter rerun compiled and executed.
+- `cargo test -p zircon_runtime --lib asset_action_policy --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-big-cutover --message-format short --color never`: pass with 3 tests passed, 0 failed, 659 filtered out.
+- `cargo test -p zircon_runtime --lib asset_localization --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-big-cutover --message-format short --color never`: pass with 5 tests passed, 0 failed, 657 filtered out.
+- `cargo test -p zircon_runtime --lib asset_package_validation --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-big-cutover --message-format short --color never`: pass with 9 tests passed, 0 failed, 653 filtered out.
+- `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-package-cache-opencode --message-format short --color never`: pass on the 2026-05-02 19:44 rerun with the existing runtime graphics warnings and 3 editor warnings only. The earlier editor-plugin SDK `EditorPluginRegistrationReport.lifecycle` constructor blocker is stale in current source.
+- `cargo tree -p zircon_editor --locked --depth 1`: pass; direct dependencies still include both `zircon_runtime` and `zircon_runtime_interface`, matching the documented split between concrete runtime services and neutral interface DTOs.
+- Residue audit found no `#[path =`, runtime source include, shim, facade, bridge, legacy, or migration-only forwarding residue under `zircon_runtime_interface/src/ui`; the only compatibility-text hit is the real `UiComponentContractApiVersion::is_compatible_with(...)` API.
+- Known runtime mismatch-file audit found no remaining `crate::ui::{surface,layout,event_ui}` DTO construction imports under the scoped asset/graphics paths.
+- Editor import audit still reports 134 `zircon_runtime::ui` hits and 431 `zircon_runtime_interface::ui` hits. A targeted known-neutral DTO grep found no stale DTO imports through `zircon_runtime::ui`; the remaining direct runtime hits are concrete runtime services, runtime behavior extension traits, or runtime compile artifacts such as `UiComponentDescriptorRegistry`, `UiSurface`, `UiPointerDispatcher`, `UiAssetLoader`, `UiDocumentCompiler`, `UiCompiledDocument`, `UiTemplateInstance`, `UiAssetDocumentRuntimeExt`, `extract_ui_render_tree`, and `UiRuntimeTree*Ext`.
+- Current follow-up slice renames the runtime binary package payload wrapper to `UiRuntimeCompiledAssetArtifact`, leaving `UiCompiledAssetArtifact` as the interface-owned neutral `{ report, bytes }` DTO name. It also adds `EditorTemplateRuntimeService` as the editor-owned façade over high-level template parsing, compilation, registry registration/instantiation, surface construction, render extraction, and binding diagnostic collection. Focused interface/runtime/editor validation for this slice is recorded in the module docs and session evidence; it should not be conflated with broad workspace-test acceptance.
+- `cargo build --workspace --locked --verbose --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-package-cache-opencode --message-format short --color never`: pass in the package/cache closeout target. `cargo test --workspace --locked --verbose --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-package-cache-opencode --message-format short --color never` is not green. The first reproduced blocker was outside the UI DTO/package-cache owner cutover: `zircon_runtime/tests/support/mod.rs` used the stale 2-argument `WgpuRenderFramework::new_with_plugin_render_features(...)` call after the plugin-renderer API expanded to 4 arguments. The workspace-closeout follow-up patched that shared VG integration-test fixture to pass descriptor-linked render features, fixture-owned no-op render-pass executors, and a minimal virtual-geometry runtime provider through the normal 4-argument constructor path. After cleaning the inactive scoped target because E drive free space was below the 50 GB Cargo threshold, `cargo check -p zircon_runtime --test virtual_geometry_debug_snapshot_contract --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-package-cache-opencode --message-format short --color never` passed on 2026-05-03 with existing runtime warnings only. This accepts the narrow fixture type-check gate, not workspace-test green.
+- 2026-05-02 20:45 rerun on isolated target `E:\cargo-targets\zircon-ui-interface-followup-opencode`: `rustfmt --edition 2021 --check` on the package/cache and editor-template-service touched Rust files passed; `cargo check -p zircon_runtime_interface --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-followup-opencode --message-format short --color never` passed; `cargo test -p zircon_runtime_interface --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-followup-opencode --message-format short --color never` passed with 17 tests passed, 0 failed, doc-tests 0; `cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-followup-opencode --message-format short --color never` passed with existing warnings; `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-followup-opencode --message-format short --color never` passed with existing runtime graphics warnings and 3 editor warnings. The same rerun could not execute `cargo test -p zircon_runtime --lib asset_package_validation --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-followup-opencode --message-format short --color never` because broader `zircon_runtime` lib-test compilation now fails first in active plugin/sound/export work (`RuntimePluginFeatureBlock` re-export churn, `SoundSourceId`/`thiserror` source handling, and `ProjectPluginSelection` initializers missing `features`). That current blocker is not a UI DTO/package-cache owner mismatch and does not replace the earlier passing package-validation evidence.
+- 2026-05-02 23:38 M6 rerun gate check did not start `cargo test -p zircon_runtime --lib asset_package_validation --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-followup-opencode --message-format short --color never`. Fresh coordination still showed active plugin optional-feature, independent-plugin, sound spatial, navigation, net, rendering, particles, editor, and workspace-closeout sessions. Active Cargo/rustc writers included workspace build/check, runtime lib check, editor checks/tests, and plugin workspace tests. M6 remains blocked on plugin/sound/export stabilization and Cargo-writer clearance; no plugin/sound/export code was edited from this UI validation lane.
+- 2026-05-03 01:56 M6 retry used isolated target dir `E:\cargo-targets\zircon-ui-m6-asset-package-rerun` despite active Cargo writers, per user request. The first `cargo test -p zircon_runtime --lib asset_package_validation --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-m6-asset-package-rerun --message-format short --color never` timed out after 1200000 ms while compiling dependencies before tests or Rust diagnostics. The second attempt on the same target completed in 17m 53s and passed the focused filter: 9 tests passed, 0 failed, 703 filtered out, with existing warnings only. No plugin/sound/export source was edited by this UI validation lane.
+
 ## Acceptance Checklist
 
-- [ ] `zircon_runtime_interface::ui` uses real source modules and no `#[path = "../../../zircon_runtime/src/ui/..." ]` includes.
-- [ ] Runtime shared seams use interface DTO identities for surface render extracts, UI event/layout/surface contracts, and M18/M21/M14 report DTOs.
-- [ ] M18, M21, M14, and package-validation focused lib-test filters no longer fail before execution because of mixed UI DTO identities.
-- [ ] Editor neutral UI imports route through `zircon_runtime_interface`.
-- [ ] Remaining editor `zircon_runtime` dependency, if any, is documented as concrete runtime services or non-UI interface follow-up.
-- [ ] Documentation headers list new interface files, runtime implementation files, plan sources, and tests.
-- [ ] No migration-only compatibility shim, bridge, facade, legacy alias, or old-path re-export remains in the touched UI contract namespace.
+- [x] `zircon_runtime_interface::ui` uses real source modules and no `#[path = "../../../zircon_runtime/src/ui/..." ]` includes.
+- [x] Runtime shared seams use interface DTO identities for surface render extracts, UI event/layout/surface contracts, and M18/M21/M14 report DTOs.
+- [x] M18, M21, M14, and package-validation focused lib-test filters no longer fail before execution because of mixed UI DTO identities.
+- [x] Editor known-neutral stale-owner grep gates are clean; remaining `zircon_runtime::ui` imports are documented as concrete runtime services, behavior extension traits, compile artifacts, or still-explicit follow-up surfaces rather than accepted DTO forwarding paths.
+- [x] Remaining editor `zircon_runtime` dependency, if any, is documented as concrete runtime services or non-UI interface follow-up.
+- [x] Documentation headers list new interface files, runtime implementation files, plan sources, and tests.
+- [x] No migration-only compatibility shim, bridge, facade, legacy alias, or old-path re-export remains in the touched UI contract namespace.

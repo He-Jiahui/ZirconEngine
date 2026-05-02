@@ -17,9 +17,9 @@ related_code:
   - zircon_editor/src/ui/workbench/snapshot/mod.rs
   - zircon_editor/src/ui/workbench/view/mod.rs
   - zircon_editor/src/ui/asset_editor/mod.rs
-  - zircon_resource/src/lib.rs
-  - zircon_resource/src/handle.rs
-  - zircon_resource/src/locator.rs
+  - zircon_runtime_interface/src/resource/mod.rs
+  - zircon_runtime_interface/src/resource/resource_handle.rs
+  - zircon_runtime_interface/src/resource/locator.rs
   - zircon_editor/ui/workbench.slint
   - zircon_editor/ui/workbench/chrome.slint
   - zircon_scene/src/lib.rs
@@ -38,8 +38,8 @@ implementation_files:
   - zircon_editor/src/ui/workbench/snapshot/mod.rs
   - zircon_editor/src/core/editing/state/mod.rs
   - zircon_editor/src/ui/asset_editor/mod.rs
-  - zircon_resource/src/handle.rs
-  - zircon_resource/src/locator.rs
+  - zircon_runtime_interface/src/resource/resource_handle.rs
+  - zircon_runtime_interface/src/resource/locator.rs
   - zircon_editor/src/ui/workbench/view/mod.rs
   - zircon_editor/ui/workbench.slint
   - zircon_editor/ui/workbench/chrome.slint
@@ -62,7 +62,8 @@ tests:
   - cargo test -p zircon_editor --lib --locked tests::ui::activity
   - cargo test -p zircon_editor -- --nocapture
   - cargo test -p zircon_app -- --nocapture
-  - cargo test -p zircon_resource -p zircon_asset -p zircon_scene -p zircon_graphics -p zircon_editor
+  - cargo test -p zircon_runtime_interface --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-interface-boundary --message-format short --color never
+  - cargo test -p zircon_runtime --lib core::resource --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-interface-boundary --message-format short --color never
   - cargo build --workspace --locked --verbose
   - cargo test --workspace --locked --verbose
   - cargo test -p zircon_app --locked
@@ -146,7 +147,7 @@ doc_type: category-index
 - tab drag/drop、split hotzone、exclusive page / float zone 目标解析
 - 目录式项目根、默认 scene 和 `.zircon/editor-workspace.json` sidecar 持久化
 - `ResourceLocator` / typed handle 驱动的 editor 导入与 `LevelSystem` runtime 绑定
-- editor host 通过 asset/resource-owned `AssetManager + ResourceManager + EditorAssetManager` 合同读取项目与资源状态，并在宿主层统一解析 ready typed handle
+- editor host 通过 asset/runtime resource-owned `AssetManager + ResourceManager + EditorAssetManager` 合同读取项目与资源状态，并在宿主层统一解析 interface-owned ready typed handle
 - `EditorManager`、`EditorModule` wiring、view/layout/window/workspace orchestration 与 UI asset session host bookkeeping 现在统一归 `zircon_editor::ui::host`，`core::host` 已删除
 - `zircon_editor` 的长期结构标准：crate root 窄导出、`core/scene/ui` 固定分层、asset editor/workbench specialist path 直达 owner module
 - 项目级最近布局和用户级默认布局/preset 持久化

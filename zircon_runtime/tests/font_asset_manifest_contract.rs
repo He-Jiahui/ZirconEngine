@@ -8,16 +8,10 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use font_asset::load_ui_font_manifest;
 use zircon_runtime::asset::project::{ProjectManifest, ProjectPaths};
 use zircon_runtime::asset::{AssetManager, AssetUri, ProjectAssetManager};
-use zircon_runtime::ui::surface::UiTextRenderMode;
+use zircon_runtime_interface::ui::surface::UiTextRenderMode;
 
 mod asset {
     pub use zircon_runtime::asset::*;
-}
-
-mod ui {
-    pub mod surface {
-        pub use zircon_runtime::ui::surface::*;
-    }
 }
 
 struct TempDirGuard {

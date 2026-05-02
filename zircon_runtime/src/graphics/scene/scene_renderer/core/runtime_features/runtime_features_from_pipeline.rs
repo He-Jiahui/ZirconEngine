@@ -23,11 +23,17 @@ pub(crate) fn runtime_features_from_pipeline(
             .iter()
             .any(|enabled| enabled.builtin_feature().is_none() && enabled.feature_name() == name)
     };
+    let render_feature_enabled = |feature, plugin_name: &str| {
+        feature_enabled(feature) || plugin_feature_enabled(plugin_name)
+    };
 
     SceneRuntimeFeatureFlags {
         deferred_lighting_enabled: feature_enabled(BuiltinRenderFeature::DeferredLighting)
             && feature_enabled(BuiltinRenderFeature::DeferredGeometry),
-        ssao_enabled: feature_enabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion),
+        ssao_enabled: render_feature_enabled(
+            BuiltinRenderFeature::ScreenSpaceAmbientOcclusion,
+            "screen_space_ambient_occlusion",
+        ),
         clustered_lighting_enabled: feature_enabled(BuiltinRenderFeature::ClusteredLighting),
         hybrid_global_illumination_enabled: capability_enabled(
             RenderFeatureCapabilityRequirement::HybridGlobalIllumination,
@@ -35,9 +41,18 @@ pub(crate) fn runtime_features_from_pipeline(
         history_resolve_enabled: feature_enabled(BuiltinRenderFeature::HistoryResolve),
         bloom_enabled: feature_enabled(BuiltinRenderFeature::Bloom),
         color_grading_enabled: feature_enabled(BuiltinRenderFeature::ColorGrading),
-        reflection_probes_enabled: feature_enabled(BuiltinRenderFeature::ReflectionProbes),
-        baked_lighting_enabled: feature_enabled(BuiltinRenderFeature::BakedLighting),
-        particle_rendering_enabled: plugin_feature_enabled("particle"),
+        reflection_probes_enabled: render_feature_enabled(
+            BuiltinRenderFeature::ReflectionProbes,
+            "reflection_probes",
+        ),
+        baked_lighting_enabled: render_feature_enabled(
+            BuiltinRenderFeature::BakedLighting,
+            "baked_lighting",
+        ),
+        particle_rendering_enabled: render_feature_enabled(
+            BuiltinRenderFeature::Particle,
+            "particle",
+        ),
         virtual_geometry_enabled: capability_enabled(
             RenderFeatureCapabilityRequirement::VirtualGeometry,
         ),
@@ -213,6 +228,78 @@ mod tests {
         assert!(
             plugin_flags.particle_rendering_enabled,
             "particle rendering should be enabled only when the particle plugin contributes its render feature"
+        );
+    }
+
+    #[test]
+    fn pluginized_rendering_feature_names_drive_runtime_post_process_flags() {
+        let plugin_compiled = RenderPipelineAsset::default_forward_plus()
+            .with_plugin_render_features([
+                RenderFeatureDescriptor::new(
+                    "screen_space_ambient_occlusion",
+                    vec![
+                        "view".to_string(),
+                        "geometry".to_string(),
+                        "visibility".to_string(),
+                    ],
+                    vec![FrameHistoryBinding::read_write(
+                        FrameHistorySlot::AmbientOcclusion,
+                    )],
+                    vec![RenderFeaturePassDescriptor::new(
+                        RenderPassStage::AmbientOcclusion,
+                        "plugin-ssao-runtime-flag",
+                        QueueLane::AsyncCompute,
+                    )
+                    .with_executor_id("plugin.ssao.runtime-flag")
+                    .read_texture("scene-depth")
+                    .write_texture("ambient-occlusion")],
+                ),
+                RenderFeatureDescriptor::new(
+                    "reflection_probes",
+                    vec![
+                        "view".to_string(),
+                        "lighting".to_string(),
+                        "post_process".to_string(),
+                    ],
+                    Vec::new(),
+                    vec![RenderFeaturePassDescriptor::new(
+                        RenderPassStage::PostProcess,
+                        "plugin-reflection-probes-runtime-flag",
+                        QueueLane::Graphics,
+                    )
+                    .with_executor_id("plugin.reflection-probes.runtime-flag")
+                    .read_texture("scene-color")
+                    .write_texture("scene-color")],
+                ),
+                RenderFeatureDescriptor::new(
+                    "baked_lighting",
+                    vec!["lighting".to_string(), "post_process".to_string()],
+                    Vec::new(),
+                    vec![RenderFeaturePassDescriptor::new(
+                        RenderPassStage::PostProcess,
+                        "plugin-baked-lighting-runtime-flag",
+                        QueueLane::Graphics,
+                    )
+                    .with_executor_id("plugin.baked-lighting.runtime-flag")
+                    .read_texture("scene-color")
+                    .write_texture("scene-color")],
+                ),
+            ])
+            .compile(&test_extract())
+            .unwrap();
+        let flags = runtime_features_from_pipeline(&plugin_compiled);
+
+        assert!(
+            flags.ssao_enabled,
+            "SSAO should follow the rendering plugin feature name"
+        );
+        assert!(
+            flags.reflection_probes_enabled,
+            "reflection probes should follow the rendering plugin feature name"
+        );
+        assert!(
+            flags.baked_lighting_enabled,
+            "baked lighting should follow the rendering plugin feature name"
         );
     }
 

@@ -1,5 +1,6 @@
 use thiserror::Error;
 
+use super::AssetImporterRegistryError;
 use crate::core::resource::ResourceLocatorError;
 
 #[derive(Debug, Error)]
@@ -14,6 +15,18 @@ pub enum AssetImportError {
     UnsupportedFormat(String),
     #[error("wgsl validation failed: {0}")]
     ShaderValidation(String),
+    #[error("asset schema migration failed: {0}")]
+    SchemaMigration(String),
+    #[error("native asset importer failed: {0}")]
+    Native(String),
+    #[error("asset importer registry failed: {0}")]
+    Registry(String),
     #[error("asset serialization failed: {0}")]
     SerdeJson(#[from] serde_json::Error),
+}
+
+impl From<AssetImporterRegistryError> for AssetImportError {
+    fn from(error: AssetImporterRegistryError) -> Self {
+        Self::Registry(error.to_string())
+    }
 }

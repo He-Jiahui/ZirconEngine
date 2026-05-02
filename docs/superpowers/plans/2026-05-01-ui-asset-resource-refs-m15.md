@@ -326,7 +326,7 @@ pub fn resource_dependencies_fingerprint(
 
 - [ ] Fingerprint sorted unique `UiResourceRef` values and exclude source paths.
 - [ ] Add `resource_dependencies_revision: UiAssetFingerprint` to `UiCompileCacheKey` and `UiInvalidationSnapshot`.
-- [ ] Populate `resource_dependencies_revision` from `UiCompileCacheKey::from_compiler(...)`.
+- [ ] Populate `resource_dependencies_revision` from runtime `compile_cache_key_from_compiler(...)` when building the interface-owned `UiCompileCacheKey`.
 - [ ] Add `UiAssetChange::ResourceDependency` to `change.rs`.
 - [ ] Add `UiInvalidationStage::ResourceDependency` to `stage.rs`.
 - [ ] Update `UiInvalidationGraph::classify(...)` so resource-only changes produce `ResourceDependency`, `Render`, and `Projection` stages.

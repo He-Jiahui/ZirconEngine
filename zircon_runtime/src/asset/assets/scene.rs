@@ -7,6 +7,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::asset::AssetReference;
 
+use super::PrefabInstanceAsset;
+
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct TransformAsset {
     pub translation: [Real; 3],
@@ -207,6 +209,16 @@ pub struct SceneAnimationStateMachinePlayerAsset {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct SceneTerrainAsset {
+    pub terrain: AssetReference,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct SceneTileMapAsset {
+    pub tilemap: AssetReference,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SceneEntityAsset {
     pub entity: u64,
     pub name: String,
@@ -241,6 +253,12 @@ pub struct SceneEntityAsset {
     pub animation_graph_player: Option<SceneAnimationGraphPlayerAsset>,
     #[serde(default)]
     pub animation_state_machine_player: Option<SceneAnimationStateMachinePlayerAsset>,
+    #[serde(default)]
+    pub terrain: Option<SceneTerrainAsset>,
+    #[serde(default)]
+    pub tilemap: Option<SceneTileMapAsset>,
+    #[serde(default)]
+    pub prefab_instance: Option<PrefabInstanceAsset>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -255,6 +273,44 @@ impl SceneAsset {
 
     pub fn to_toml_string(&self) -> Result<String, toml::ser::Error> {
         toml::to_string_pretty(self)
+    }
+
+    pub fn direct_references(&self) -> Vec<AssetReference> {
+        let mut references = Vec::new();
+        for entity in &self.entities {
+            if let Some(mesh) = &entity.mesh {
+                references.push(mesh.model.clone());
+                references.push(mesh.material.clone());
+            }
+            if let Some(collider) = &entity.collider {
+                references.extend(collider.material.iter().cloned());
+            }
+            if let Some(skeleton) = &entity.animation_skeleton {
+                references.push(skeleton.skeleton.clone());
+            }
+            if let Some(player) = &entity.animation_player {
+                references.push(player.clip.clone());
+            }
+            if let Some(player) = &entity.animation_sequence_player {
+                references.push(player.sequence.clone());
+            }
+            if let Some(player) = &entity.animation_graph_player {
+                references.push(player.graph.clone());
+            }
+            if let Some(player) = &entity.animation_state_machine_player {
+                references.push(player.state_machine.clone());
+            }
+            if let Some(terrain) = &entity.terrain {
+                references.push(terrain.terrain.clone());
+            }
+            if let Some(tilemap) = &entity.tilemap {
+                references.push(tilemap.tilemap.clone());
+            }
+            if let Some(prefab) = &entity.prefab_instance {
+                references.extend(prefab.direct_references());
+            }
+        }
+        references
     }
 }
 

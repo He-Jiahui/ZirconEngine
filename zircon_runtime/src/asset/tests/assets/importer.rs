@@ -9,7 +9,9 @@ use crate::asset::tests::support::{
     write_default_animation_sequence, write_default_physics_material,
 };
 use crate::asset::{
-    AssetImporter, AssetUri, ImportedAsset, MeshVertex, ModelAsset, ModelPrimitiveAsset,
+    AssetImportContext, AssetImportOutcome, AssetImporter, AssetImporterDescriptor,
+    AssetImporterRegistry, AssetUri, FunctionAssetImporter, ImportedAsset, MeshVertex, ModelAsset,
+    ModelPrimitiveAsset,
 };
 use crate::core::math::{Vec2, Vec3};
 
@@ -95,6 +97,134 @@ fn importer_decodes_png_and_jpeg_textures() {
     }
 
     let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn importer_registry_uses_full_suffix_before_plain_extension_fallback() {
+    let root = unique_temp_project_root("typed_toml_registry");
+    fs::create_dir_all(&root).unwrap();
+    let typed_path = root.join("layout.ui.toml");
+    let plain_path = root.join("settings.toml");
+    fs::write(
+        &typed_path,
+        r#"
+[asset]
+kind = "layout"
+id = "main"
+"#,
+    )
+    .unwrap();
+    fs::write(&plain_path, "answer = 42").unwrap();
+
+    let importer = AssetImporter::default();
+    let typed = importer
+        .import_from_source(
+            &typed_path,
+            &AssetUri::parse("res://ui/layout.ui.toml").unwrap(),
+        )
+        .unwrap();
+    let plain = importer
+        .import_from_source(
+            &plain_path,
+            &AssetUri::parse("res://data/settings.toml").unwrap(),
+        )
+        .unwrap();
+
+    assert!(matches!(typed, ImportedAsset::UiLayout(_)));
+    match plain {
+        ImportedAsset::Data(data) => {
+            assert_eq!(data.format.as_str(), "toml");
+            assert_eq!(data.uri.to_string(), "res://data/settings.toml");
+            assert!(data.text.contains("answer = 42"));
+        }
+        other => panic!("unexpected imported asset: {other:?}"),
+    }
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn importer_registry_rejects_unknown_typed_toml_instead_of_plain_data_fallback() {
+    let root = unique_temp_project_root("unknown_typed_toml_registry");
+    fs::create_dir_all(&root).unwrap();
+    let path = root.join("enemy.ability.toml");
+    fs::write(&path, "name = \"Enemy\"").unwrap();
+
+    let error = AssetImporter::default()
+        .import_from_source(
+            &path,
+            &AssetUri::parse("res://prefabs/enemy.ability.toml").unwrap(),
+        )
+        .unwrap_err();
+
+    assert!(
+        error
+            .to_string()
+            .contains("typed toml asset suffix `.ability.toml` has no registered importer"),
+        "unexpected error: {error}"
+    );
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn importer_registry_priority_overrides_duplicate_extension() {
+    let root = unique_temp_project_root("registry_priority");
+    fs::create_dir_all(&root).unwrap();
+    let path = root.join("payload.testdata");
+    fs::write(&path, "payload").unwrap();
+    let uri = AssetUri::parse("res://data/payload.testdata").unwrap();
+
+    let mut registry = AssetImporterRegistry::default();
+    registry
+        .register(FunctionAssetImporter::new(
+            AssetImporterDescriptor::new("test.low", "test", crate::asset::AssetKind::Data, 1)
+                .with_source_extensions(["testdata"])
+                .with_priority(0),
+            |context| test_data_outcome(context, "low"),
+        ))
+        .unwrap();
+    registry
+        .register(FunctionAssetImporter::new(
+            AssetImporterDescriptor::new("test.high", "test", crate::asset::AssetKind::Data, 1)
+                .with_source_extensions(["testdata"])
+                .with_priority(10),
+            |context| test_data_outcome(context, "high"),
+        ))
+        .unwrap();
+
+    let imported = AssetImporter::with_registry(registry)
+        .import_from_source(&path, &uri)
+        .unwrap();
+
+    match imported {
+        ImportedAsset::Data(data) => assert_eq!(data.canonical_json["winner"], "high"),
+        other => panic!("unexpected imported asset: {other:?}"),
+    }
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn importer_registry_rejects_same_priority_duplicate_matcher() {
+    let mut registry = AssetImporterRegistry::default();
+    registry
+        .register(FunctionAssetImporter::new(
+            AssetImporterDescriptor::new("test.first", "test", crate::asset::AssetKind::Data, 1)
+                .with_source_extensions(["dup"]),
+            |context| test_data_outcome(context, "first"),
+        ))
+        .unwrap();
+
+    let error = registry
+        .register(FunctionAssetImporter::new(
+            AssetImporterDescriptor::new("test.second", "test", crate::asset::AssetKind::Data, 1)
+                .with_source_extensions(["dup"]),
+            |context| test_data_outcome(context, "second"),
+        ))
+        .unwrap_err();
+
+    assert!(error.to_string().contains("duplicate importer matcher"));
 }
 
 #[test]
@@ -318,6 +448,20 @@ fn fs_main() -> @location(0) vec4f {
     return vec4f(1.0, 0.4, 0.2, 1.0);
 }
 "#
+}
+
+fn test_data_outcome(
+    context: &AssetImportContext,
+    winner: &'static str,
+) -> Result<AssetImportOutcome, crate::asset::AssetImportError> {
+    Ok(AssetImportOutcome::new(ImportedAsset::Data(
+        crate::asset::DataAsset {
+            uri: context.uri.clone(),
+            format: crate::asset::DataAssetFormat::Json,
+            text: String::from_utf8_lossy(&context.source_bytes).into_owned(),
+            canonical_json: serde_json::json!({ "winner": winner }),
+        },
+    )))
 }
 
 fn assert_cooked_virtual_geometry(primitive: &ModelPrimitiveAsset, source_hint: &str) {

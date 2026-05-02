@@ -4,6 +4,99 @@ display_name = "Sound"
 description = "Optional runtime audio and editor sound authoring package."
 default_packaging = ["source_template", "library_embed"]
 
+[[dependencies]]
+id = "asset"
+required = true
+capability = "runtime.module.asset"
+
+[[dependencies]]
+id = "scene"
+required = true
+capability = "runtime.module.scene"
+
+[[dependencies]]
+id = "ray_query"
+required = false
+capability = "runtime.capability.ray_query"
+
+[[dependencies]]
+id = "timeline_sequence"
+required = false
+capability = "editor.extension.timeline_authoring"
+
+[[options]]
+key = "sound.backend"
+display_name = "Audio Backend"
+value_type = "string"
+default_value = "software-mixer"
+
+[[options]]
+key = "sound.sample_rate_hz"
+display_name = "Sample Rate"
+value_type = "integer"
+default_value = "48000"
+
+[[options]]
+key = "sound.channel_count"
+display_name = "Channel Count"
+value_type = "integer"
+default_value = "2"
+
+[[options]]
+key = "sound.block_size_frames"
+display_name = "Block Size"
+value_type = "integer"
+default_value = "256"
+
+[[options]]
+key = "sound.max_voices"
+display_name = "Max Voices"
+value_type = "integer"
+default_value = "128"
+
+[[options]]
+key = "sound.max_tracks"
+display_name = "Max Tracks"
+value_type = "integer"
+default_value = "64"
+
+[[options]]
+key = "sound.hrtf_enabled"
+display_name = "HRTF"
+value_type = "bool"
+default_value = "false"
+
+[[options]]
+key = "sound.convolution_enabled"
+display_name = "Convolution Reverb"
+value_type = "bool"
+default_value = "true"
+
+[[options]]
+key = "sound.ray_tracing_quality"
+display_name = "Ray Tracing Quality"
+value_type = "enum"
+default_value = "disabled"
+required_capability = "runtime.capability.ray_query"
+
+[[options]]
+key = "sound.timeline_integration"
+display_name = "Timeline Automation"
+value_type = "bool"
+default_value = "true"
+required_capability = "editor.extension.timeline_authoring"
+
+[[options]]
+key = "sound.dynamic_events_enabled"
+display_name = "Dynamic Events"
+value_type = "bool"
+default_value = "true"
+
+[[event_catalogs]]
+namespace = "sound.dynamic_events"
+version = 1
+events = []
+
 [[modules]]
 name = "sound.runtime"
 kind = "runtime"
@@ -17,3 +110,72 @@ kind = "editor"
 crate_name = "zircon_plugin_sound_editor"
 target_modes = ["editor_host"]
 capabilities = ["editor.extension.sound_authoring"]
+
+[[optional_features]]
+id = "sound.timeline_animation_track"
+display_name = "Sound Timeline Animation Track"
+owner_plugin_id = "sound"
+capabilities = ["runtime.feature.sound.timeline_animation_track"]
+default_packaging = ["source_template", "library_embed"]
+enabled_by_default = false
+
+[[optional_features.dependencies]]
+plugin_id = "sound"
+capability = "runtime.plugin.sound"
+primary = true
+
+[[optional_features.dependencies]]
+plugin_id = "animation"
+capability = "runtime.feature.animation.timeline_event_track"
+primary = false
+
+[[optional_features.modules]]
+name = "sound.timeline_animation_track.runtime"
+kind = "runtime"
+crate_name = "zircon_plugin_sound_timeline_animation_runtime"
+target_modes = ["client_runtime", "editor_host"]
+capabilities = ["runtime.feature.sound.timeline_animation_track"]
+
+[[optional_features.modules]]
+name = "sound.timeline_animation_track.editor"
+kind = "editor"
+crate_name = "zircon_plugin_sound_timeline_animation_editor"
+target_modes = ["editor_host"]
+capabilities = []
+
+[[optional_features]]
+id = "sound.ray_traced_convolution_reverb"
+display_name = "Ray Traced Convolution Reverb"
+owner_plugin_id = "sound"
+capabilities = ["runtime.feature.sound.ray_traced_convolution_reverb"]
+default_packaging = ["source_template", "library_embed"]
+enabled_by_default = false
+
+[[optional_features.dependencies]]
+plugin_id = "sound"
+capability = "runtime.plugin.sound"
+primary = true
+
+[[optional_features.dependencies]]
+plugin_id = "physics"
+capability = "runtime.plugin.physics"
+primary = false
+
+[[optional_features.dependencies]]
+plugin_id = "physics"
+capability = "runtime.capability.physics.raycast"
+primary = false
+
+[[optional_features.modules]]
+name = "sound.ray_traced_convolution_reverb.runtime"
+kind = "runtime"
+crate_name = "zircon_plugin_sound_ray_traced_convolution_runtime"
+target_modes = ["client_runtime", "editor_host"]
+capabilities = ["runtime.feature.sound.ray_traced_convolution_reverb"]
+
+[[optional_features.modules]]
+name = "sound.ray_traced_convolution_reverb.editor"
+kind = "editor"
+crate_name = "zircon_plugin_sound_ray_traced_convolution_editor"
+target_modes = ["editor_host"]
+capabilities = []

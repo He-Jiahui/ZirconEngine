@@ -11,6 +11,8 @@ pub enum MenuAction {
     SaveProject,
     SaveLayout,
     ResetLayout,
+    EnterPlayMode,
+    ExitPlayMode,
     Undo,
     Redo,
     CreateNode(NodeKind),

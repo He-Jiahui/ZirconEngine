@@ -5,6 +5,7 @@ pub struct ExportMaterializeReport {
     pub generated_files: Vec<PathBuf>,
     pub copied_packages: Vec<PathBuf>,
     pub diagnostics: Vec<String>,
+    pub fatal_diagnostics: Vec<String>,
 }
 
 impl ExportMaterializeReport {
@@ -12,5 +13,6 @@ impl ExportMaterializeReport {
         self.generated_files.extend(other.generated_files);
         self.copied_packages.extend(other.copied_packages);
         self.diagnostics.extend(other.diagnostics);
+        self.fatal_diagnostics.extend(other.fatal_diagnostics);
     }
 }

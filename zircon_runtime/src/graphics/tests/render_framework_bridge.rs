@@ -246,7 +246,7 @@ fn headless_wgpu_server_falls_back_async_compute_passes_to_graphics() {
 
     assert!(!stats.capabilities.supports_async_compute);
     assert_eq!(stats.last_async_compute_pass_count, 0);
-    assert_eq!(stats.last_graph_queue_fallback_pass_count, 2);
+    assert_eq!(stats.last_graph_queue_fallback_pass_count, 1);
     assert!(
         stats
             .last_effective_features
@@ -1290,6 +1290,7 @@ fn flagship_extract() -> RenderFrameExtract {
             virtual_geometry_page(300, false),
             virtual_geometry_page(500, true),
         ],
+        page_dependencies: Vec::new(),
         instances: Vec::new(),
         debug: Default::default(),
     });

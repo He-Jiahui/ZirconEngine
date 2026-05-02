@@ -1,12 +1,14 @@
 use crate::ui::template_runtime::builtin::{
     builtin_component_descriptors, builtin_template_bindings, builtin_template_documents,
 };
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
-use zircon_runtime::ui::template::{UiAssetLoader, UiCompiledDocument, UiDocumentCompiler};
+use zircon_runtime::ui::template::UiCompiledDocument;
 use zircon_runtime_interface::ui::template::{
     UiAssetDocument, UiAssetError, UiComponentDefinition,
 };
+
+use crate::ui::template::EditorTemplateRuntimeService;
 
 use super::runtime_host::{EditorUiHostRuntime, EditorUiHostRuntimeError};
 
@@ -42,19 +44,31 @@ fn register_builtin_template_documents(
 }
 
 pub(super) fn compile_template_document_file(
+    template_service: &EditorTemplateRuntimeService,
     path: &Path,
 ) -> Result<UiCompiledDocument, EditorUiHostRuntimeError> {
-    let source =
-        std::fs::read_to_string(path).map_err(|error| UiAssetError::Io(error.to_string()))?;
-    let document = UiAssetLoader::load_toml_str(&source)?;
-    let mut compiler = UiDocumentCompiler::default();
+    let document = template_service.load_document_file(path)?;
+    let mut widget_imports = BTreeMap::new();
+    let mut style_imports = BTreeMap::new();
     let mut seen_imports = BTreeSet::new();
-    register_document_imports(&mut compiler, &document, &mut seen_imports)?;
-    Ok(compiler.compile(&document)?)
+    register_document_imports(
+        template_service,
+        &mut widget_imports,
+        &mut style_imports,
+        &document,
+        &mut seen_imports,
+    )?;
+    Ok(template_service.compile_document_with_import_maps(
+        &document,
+        &widget_imports,
+        &style_imports,
+    )?)
 }
 
 fn register_document_imports(
-    compiler: &mut UiDocumentCompiler,
+    template_service: &EditorTemplateRuntimeService,
+    widget_imports: &mut BTreeMap<String, UiAssetDocument>,
+    style_imports: &mut BTreeMap<String, UiAssetDocument>,
     document: &UiAssetDocument,
     seen_imports: &mut BTreeSet<String>,
 ) -> Result<(), UiAssetError> {
@@ -62,35 +76,38 @@ fn register_document_imports(
         if !seen_imports.insert(reference.clone()) {
             continue;
         }
-        let Some(imported) = resolve_builtin_import(reference)? else {
+        let Some(imported) = resolve_builtin_import(template_service, reference)? else {
             continue;
         };
-        compiler.register_widget_import(reference, imported.clone())?;
+        widget_imports.insert(reference.clone(), imported.clone());
         if !reference.contains('#') {
             for component_name in imported.components.keys() {
-                compiler.register_widget_import(
-                    format!("{reference}#{component_name}"),
-                    imported.clone(),
-                )?;
+                widget_imports.insert(format!("{reference}#{component_name}"), imported.clone());
             }
             for alias in root_component_aliases(&imported) {
-                compiler.register_widget_import(
+                widget_imports.insert(
                     format!("{reference}#{alias}"),
                     document_with_root_component_alias(imported.clone(), alias),
-                )?;
+                );
             }
         }
-        register_document_imports(compiler, &imported, seen_imports)?;
+        register_document_imports(
+            template_service,
+            widget_imports,
+            style_imports,
+            &imported,
+            seen_imports,
+        )?;
     }
 
     for reference in &document.imports.styles {
         if !seen_imports.insert(reference.clone()) {
             continue;
         }
-        let Some(imported) = resolve_builtin_import(reference)? else {
+        let Some(imported) = resolve_builtin_import(template_service, reference)? else {
             continue;
         };
-        compiler.register_style_import(reference, imported.clone())?;
+        style_imports.insert(reference.clone(), imported.clone());
     }
 
     Ok(())
@@ -125,7 +142,10 @@ fn document_with_root_component_alias(
     document
 }
 
-fn resolve_builtin_import(reference: &str) -> Result<Option<UiAssetDocument>, UiAssetError> {
+fn resolve_builtin_import(
+    template_service: &EditorTemplateRuntimeService,
+    reference: &str,
+) -> Result<Option<UiAssetDocument>, UiAssetError> {
     let Some(path) = reference
         .strip_prefix("res://")
         .and_then(|value| value.split('#').next())
@@ -134,7 +154,5 @@ fn resolve_builtin_import(reference: &str) -> Result<Option<UiAssetDocument>, Ui
     };
     let normalized = Path::new("assets").join(PathBuf::from(path));
     let source_path = Path::new(env!("CARGO_MANIFEST_DIR")).join(normalized);
-    let source = std::fs::read_to_string(source_path)
-        .map_err(|error| UiAssetError::Io(error.to_string()))?;
-    Ok(Some(UiAssetLoader::load_toml_str(&source)?))
+    Ok(Some(template_service.load_document_file(source_path)?))
 }

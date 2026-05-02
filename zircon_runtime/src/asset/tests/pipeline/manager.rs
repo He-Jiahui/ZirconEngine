@@ -17,7 +17,8 @@ use crate::asset::{
     AssetManager, AssetUri, MaterialAsset, MeshVertex, ModelAsset, ModelPrimitiveAsset,
     ProjectAssetManager, VirtualGeometryAsset, VirtualGeometryClusterHeaderAsset,
     VirtualGeometryClusterPageHeaderAsset, VirtualGeometryDebugMetadataAsset,
-    VirtualGeometryHierarchyNodeAsset, VirtualGeometryRootClusterRangeAsset,
+    VirtualGeometryHierarchyNodeAsset, VirtualGeometryPageDependencyAsset,
+    VirtualGeometryRootClusterRangeAsset,
 };
 
 #[test]
@@ -664,6 +665,11 @@ fn sample_virtual_geometry_model_asset() -> ModelAsset {
                 }],
                 cluster_page_data: vec![vec![1, 2, 3, 4]],
                 root_page_table: vec![10],
+                page_dependencies: vec![VirtualGeometryPageDependencyAsset {
+                    page_id: 10,
+                    parent_page_id: None,
+                    child_page_ids: Vec::new(),
+                }],
                 root_cluster_ranges: vec![VirtualGeometryRootClusterRangeAsset {
                     node_id: 0,
                     cluster_start: 0,

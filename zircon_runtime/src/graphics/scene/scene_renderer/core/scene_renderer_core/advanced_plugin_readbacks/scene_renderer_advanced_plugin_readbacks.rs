@@ -38,6 +38,7 @@ mod tests {
                 completed_probe_ids: vec![7, 9],
                 ..RenderHybridGiReadbackOutputs::default()
             },
+            ..RenderPluginRendererOutputs::default()
         };
 
         let readbacks = SceneRendererAdvancedPluginReadbacks::from_outputs(outputs.clone());

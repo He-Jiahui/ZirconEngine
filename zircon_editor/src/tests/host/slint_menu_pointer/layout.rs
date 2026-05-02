@@ -26,8 +26,9 @@ fn shared_menu_pointer_layout_prefers_shared_root_menu_bar_projection_over_stale
             UiFrame::new(82.0, 20.0, 42.0, 22.0),
             UiFrame::new(126.0, 20.0, 74.0, 22.0),
             UiFrame::new(202.0, 20.0, 42.0, 22.0),
-            UiFrame::new(246.0, 20.0, 56.0, 22.0),
-            UiFrame::new(304.0, 20.0, 40.0, 22.0),
+            UiFrame::new(246.0, 20.0, 42.0, 22.0),
+            UiFrame::new(290.0, 20.0, 56.0, 22.0),
+            UiFrame::new(348.0, 20.0, 40.0, 22.0),
         ],
         "shared root menu bar projection should own top-level menu button frames"
     );
@@ -61,8 +62,9 @@ fn shared_menu_pointer_layout_derives_button_frames_from_shared_shell_when_menu_
             UiFrame::new(82.0, 20.0, 42.0, 22.0),
             UiFrame::new(126.0, 20.0, 74.0, 22.0),
             UiFrame::new(202.0, 20.0, 42.0, 22.0),
-            UiFrame::new(246.0, 20.0, 56.0, 22.0),
-            UiFrame::new(304.0, 20.0, 40.0, 22.0),
+            UiFrame::new(246.0, 20.0, 42.0, 22.0),
+            UiFrame::new(290.0, 20.0, 56.0, 22.0),
+            UiFrame::new(348.0, 20.0, 40.0, 22.0),
         ],
         "shared shell projection should still own top-level menu button frames when menu bar frame is temporarily unavailable"
     );

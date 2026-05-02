@@ -8,11 +8,13 @@ use crate::graphics::{
     RenderFeatureDescriptor, RenderPassExecutorRegistration,
     VirtualGeometryRuntimeProviderRegistration,
 };
-use crate::plugin::RuntimePluginRegistrationReport;
+use crate::plugin::{
+    RuntimePluginCatalog, RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport,
+};
 #[cfg(feature = "plugin-ui")]
 use crate::ui;
-use crate::{animation, asset, foundation, graphics, input, physics, platform, scene, script};
-use crate::{ProjectPluginManifest, ProjectPluginSelection};
+use crate::{asset, foundation, graphics, input, platform, scene, script};
+use crate::{plugin::ProjectPluginManifest, plugin::ProjectPluginSelection};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -33,6 +35,10 @@ pub enum RuntimePluginId {
     Navigation,
     Particles,
     Animation,
+    Terrain,
+    Tilemap2d,
+    PrefabTools,
+    Rendering,
     VirtualGeometry,
     HybridGi,
 }
@@ -48,6 +54,10 @@ impl RuntimePluginId {
             Self::Navigation => "navigation",
             Self::Particles => "particles",
             Self::Animation => "animation",
+            Self::Terrain => "terrain",
+            Self::Tilemap2d => "tilemap_2d",
+            Self::PrefabTools => "prefab_tools",
+            Self::Rendering => "rendering",
             Self::VirtualGeometry => "virtual_geometry",
             Self::HybridGi => "hybrid_gi",
         }
@@ -63,6 +73,10 @@ impl RuntimePluginId {
             Self::Navigation => "Navigation",
             Self::Particles => "Particles",
             Self::Animation => "Animation",
+            Self::Terrain => "Terrain",
+            Self::Tilemap2d => "Tilemap2d",
+            Self::PrefabTools => "PrefabTools",
+            Self::Rendering => "Rendering",
             Self::VirtualGeometry => "VirtualGeometry",
             Self::HybridGi => "HybridGi",
         }
@@ -78,6 +92,10 @@ impl RuntimePluginId {
             "navigation" | "nav" => Some(Self::Navigation),
             "particles" => Some(Self::Particles),
             "animation" => Some(Self::Animation),
+            "terrain" => Some(Self::Terrain),
+            "tilemap_2d" | "tilemap" | "tile_map_2d" => Some(Self::Tilemap2d),
+            "prefab_tools" | "prefab" | "prefabs" => Some(Self::PrefabTools),
+            "rendering" | "renderer" | "graphics" => Some(Self::Rendering),
             "vg" | "virtual_geometry" => Some(Self::VirtualGeometry),
             "gi" | "hybrid_gi" => Some(Self::HybridGi),
             _ => None,
@@ -152,8 +170,6 @@ fn runtime_core_modules_for_target_with_render_features(
         Arc::new(input::InputModule),
         Arc::new(asset::AssetModule),
         Arc::new(scene::SceneModule),
-        Arc::new(physics::PhysicsModule),
-        Arc::new(animation::AnimationModule),
     ];
     if target != RuntimeTargetMode::ServerRuntime {
         modules.push(Arc::new(graphics::GraphicsModule::with_render_extensions(
@@ -240,6 +256,113 @@ pub fn runtime_modules_for_target_with_plugin_registration_reports<'a>(
         &render_pass_executors,
         &virtual_geometry_runtime_providers,
     )
+}
+
+pub fn runtime_modules_for_target_with_plugin_and_feature_registration_reports<'a>(
+    target: RuntimeTargetMode,
+    manifest_override: Option<&ProjectPluginManifest>,
+    registrations: impl IntoIterator<Item = &'a RuntimePluginRegistrationReport>,
+    feature_registrations: impl IntoIterator<Item = &'a RuntimePluginFeatureRegistrationReport>,
+) -> RuntimeModuleLoadReport {
+    let registrations = registrations.into_iter().cloned().collect::<Vec<_>>();
+    let feature_registrations = feature_registrations
+        .into_iter()
+        .cloned()
+        .collect::<Vec<_>>();
+    let manifest = manifest_with_mode_baseline(target, manifest_override);
+    let catalog = RuntimePluginCatalog::from_registration_reports(
+        registrations.clone(),
+        feature_registrations.clone(),
+    );
+    let active_registrations = registrations
+        .iter()
+        .filter(|registration| {
+            registration.project_selection.enabled
+                && registration.project_selection.supports_target(target)
+        })
+        .collect::<Vec<_>>();
+    let feature_report = catalog.feature_dependency_report(&manifest, target);
+    let active_feature_registrations = feature_registrations
+        .iter()
+        .filter(|registration| {
+            feature_report
+                .available_features
+                .iter()
+                .any(|id| id == &registration.manifest.id)
+        })
+        .collect::<Vec<_>>();
+    let linked_plugin_ids = active_registrations
+        .iter()
+        .map(|registration| registration.package_manifest.id.as_str())
+        .collect::<Vec<_>>();
+    let render_features = active_registrations
+        .iter()
+        .flat_map(|registration| registration.extensions.render_features().iter().cloned())
+        .chain(
+            active_feature_registrations
+                .iter()
+                .flat_map(|registration| registration.extensions.render_features().iter().cloned()),
+        )
+        .collect::<Vec<_>>();
+    let render_pass_executors = active_registrations
+        .iter()
+        .flat_map(|registration| {
+            registration
+                .extensions
+                .render_pass_executors()
+                .iter()
+                .cloned()
+        })
+        .chain(
+            active_feature_registrations
+                .iter()
+                .flat_map(|registration| {
+                    registration
+                        .extensions
+                        .render_pass_executors()
+                        .iter()
+                        .cloned()
+                }),
+        )
+        .collect::<Vec<_>>();
+    let virtual_geometry_runtime_providers = active_registrations
+        .iter()
+        .flat_map(|registration| {
+            registration
+                .extensions
+                .virtual_geometry_runtime_providers()
+                .iter()
+                .cloned()
+        })
+        .chain(
+            active_feature_registrations
+                .iter()
+                .flat_map(|registration| {
+                    registration
+                        .extensions
+                        .virtual_geometry_runtime_providers()
+                        .iter()
+                        .cloned()
+                }),
+        )
+        .collect::<Vec<_>>();
+    let mut report = runtime_modules_for_target_with_linked_plugins_and_render_features(
+        target,
+        Some(&manifest),
+        linked_plugin_ids,
+        &render_features,
+        &render_pass_executors,
+        &virtual_geometry_runtime_providers,
+    );
+    for blocked in feature_report.blocked_features {
+        if blocked.required {
+            report.errors.push(blocked.to_diagnostic());
+        } else {
+            report.warnings.push(blocked.to_diagnostic());
+        }
+    }
+    report.errors.extend(feature_report.diagnostics);
+    report
 }
 
 fn runtime_modules_for_target_with_linked_plugins_and_render_features(
@@ -332,7 +455,12 @@ fn linked_plugin_is_available(
 }
 
 fn builtin_runtime_domain_is_available(id: RuntimePluginId) -> bool {
-    matches!(id, RuntimePluginId::Physics | RuntimePluginId::Animation)
+    let _ = id;
+    false
+}
+
+fn builtin_runtime_domain_message(id: &str) -> String {
+    format!("runtime plugin {id} is provided by the built-in runtime domain")
 }
 
 pub fn default_manifest_for_target(target: RuntimeTargetMode) -> ProjectPluginManifest {
@@ -376,8 +504,8 @@ fn module_for_plugin(
             }
         }
         RuntimePluginId::Physics => {
-            warnings.push(builtin_runtime_domain_message("physics"));
-            Some(Arc::new(physics::PhysicsModule))
+            warnings.push(externalized_runtime_plugin_message("physics"));
+            None
         }
         RuntimePluginId::Sound => {
             warnings.push(externalized_runtime_plugin_message("sound"));
@@ -400,8 +528,24 @@ fn module_for_plugin(
             None
         }
         RuntimePluginId::Animation => {
-            warnings.push(builtin_runtime_domain_message("animation"));
-            Some(Arc::new(animation::AnimationModule))
+            warnings.push(externalized_runtime_plugin_message("animation"));
+            None
+        }
+        RuntimePluginId::Terrain => {
+            warnings.push(externalized_runtime_plugin_message("terrain"));
+            None
+        }
+        RuntimePluginId::Tilemap2d => {
+            warnings.push(externalized_runtime_plugin_message("tilemap_2d"));
+            None
+        }
+        RuntimePluginId::PrefabTools => {
+            warnings.push(externalized_runtime_plugin_message("prefab_tools"));
+            None
+        }
+        RuntimePluginId::Rendering => {
+            warnings.push(externalized_runtime_plugin_message("rendering"));
+            None
         }
         RuntimePluginId::VirtualGeometry => {
             warnings.push(externalized_runtime_plugin_message("virtual_geometry"));
@@ -418,17 +562,13 @@ fn externalized_runtime_plugin_message(plugin_id: &str) -> String {
     format!("runtime implementation is externalized to zircon_plugins/{plugin_id}")
 }
 
-fn builtin_runtime_domain_message(plugin_id: &str) -> String {
-    format!("runtime implementation is built into zircon_runtime::{plugin_id}")
-}
-
 #[cfg(test)]
 mod tests {
     use super::{
         default_manifest_for_target, manifest_with_mode_baseline, RuntimePluginId,
         RuntimeTargetMode,
     };
-    use crate::{ProjectPluginManifest, ProjectPluginSelection};
+    use crate::{plugin::ProjectPluginManifest, plugin::ProjectPluginSelection};
 
     #[test]
     fn default_server_manifest_avoids_ui() {

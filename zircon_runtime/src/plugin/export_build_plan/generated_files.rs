@@ -1,18 +1,18 @@
 use crate::asset::project::ProjectManifest;
-use crate::{ExportPackagingStrategy, ExportProfile, ProjectPluginSelection};
+use crate::{plugin::ExportPackagingStrategy, plugin::ExportProfile, plugin::ProjectPluginSelection};
 
 use super::asset_manifest_template::asset_manifest_template;
 use super::cargo_manifest_template::cargo_manifest_template;
 use super::main_template::main_template;
 use super::native_plugin_load_manifest_template::native_plugin_load_manifest_template;
 use super::plugin_selection_template::plugin_selection_template;
-use super::ExportGeneratedFile;
+use super::{ExportGeneratedFile, ExportLinkedRuntimeCrate};
 
 pub(super) fn generated_files_for_profile(
     manifest: &ProjectManifest,
     profile: &ExportProfile,
     project_plugin_selections: &[&ProjectPluginSelection],
-    linked_runtime_crates: &[String],
+    linked_runtime_crates: &[ExportLinkedRuntimeCrate],
     native_dynamic_packages: &[String],
 ) -> Vec<ExportGeneratedFile> {
     let mut files = Vec::new();

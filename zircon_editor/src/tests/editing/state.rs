@@ -6,7 +6,7 @@ use crate::scene::viewport::{
     ViewportCameraSnapshot,
 };
 use crate::ui::binding::ViewportCommand;
-use crate::ui::workbench::startup::EditorSessionMode;
+use crate::ui::workbench::startup::{EditorSessionMode, WelcomePaneSnapshot};
 use crate::ui::workbench::state::EditorState;
 use zircon_runtime::asset::pipeline::manager::ProjectAssetManager;
 use zircon_runtime::core::framework::render::{
@@ -120,6 +120,75 @@ fn editor_state_with_default_selection_preserves_editor_authored_selection() {
 
     assert!(snapshot.inspector.is_some());
     assert!(state.viewport_controller.selected_node().is_some());
+}
+
+#[test]
+fn play_mode_restores_edit_world_and_history_on_exit() {
+    let manager = DefaultLevelManager::default();
+    let mut state = EditorState::project(
+        manager.create_default_level(),
+        UVec2::new(1280, 720),
+        "sandbox-project",
+    );
+    let cube = cube_id(&state);
+    let original_name = state
+        .world
+        .with_world(|scene| scene.find_node(cube).unwrap().name.clone());
+
+    assert!(state.apply_intent(EditorIntent::SelectNode(cube)).unwrap());
+    assert!(state
+        .apply_intent(EditorIntent::RenameNode(cube, "Edited Cube".to_string()))
+        .unwrap());
+    let edit_world = state.world.with_world(|scene| scene.clone());
+    assert!(state.snapshot().can_undo);
+
+    assert!(state.enter_play_mode().unwrap());
+    assert!(state.is_playing());
+    let play_snapshot = state.snapshot();
+    assert_eq!(play_snapshot.session_mode, EditorSessionMode::Playing);
+    assert!(!play_snapshot.can_undo);
+
+    assert!(state
+        .apply_intent(EditorIntent::RenameNode(cube, "Runtime Cube".to_string()))
+        .unwrap());
+    assert_eq!(
+        state
+            .world
+            .with_world(|scene| scene.find_node(cube).unwrap().name.clone()),
+        "Runtime Cube"
+    );
+    assert!(state.snapshot().can_undo);
+
+    assert!(state.exit_play_mode().unwrap());
+    assert!(!state.is_playing());
+    let restored_snapshot = state.snapshot();
+    assert_eq!(restored_snapshot.session_mode, EditorSessionMode::Project);
+    assert!(restored_snapshot.can_undo);
+    assert_eq!(state.world.with_world(|scene| scene.clone()), edit_world);
+    assert_eq!(state.viewport_controller.selected_node(), Some(cube));
+
+    assert!(state.apply_intent(EditorIntent::Undo).unwrap());
+    assert_eq!(
+        state
+            .world
+            .with_world(|scene| scene.find_node(cube).unwrap().name.clone()),
+        original_name
+    );
+}
+
+#[test]
+fn play_mode_rejects_unloaded_welcome_world() {
+    let mut state = EditorState::welcome(UVec2::new(1280, 720), WelcomePaneSnapshot::default());
+
+    let error = state
+        .enter_play_mode()
+        .expect_err("welcome mode has no world to play");
+
+    assert_eq!(error, "No project open");
+    assert!(!state.is_playing());
+    let snapshot = state.snapshot();
+    assert_eq!(snapshot.session_mode, EditorSessionMode::Welcome);
+    assert!(snapshot.status_line.contains("No project open"));
 }
 
 #[test]

@@ -13,8 +13,9 @@ use zircon_runtime_interface::ui::{
 
 use crate::core::editor_event::{
     EditorAnimationEvent, EditorAssetEvent, EditorEvent, EditorEventEffect, EditorEventReplay,
-    EditorEventSource, EditorEventTransient, LayoutCommand, MenuAction,
-    ViewDescriptorId as EventViewDescriptorId, ViewInstanceId as EventViewInstanceId,
+    EditorEventSource, EditorEventTransient, EditorInspectorEvent, InspectorFieldChange,
+    LayoutCommand, MenuAction, ViewDescriptorId as EventViewDescriptorId,
+    ViewInstanceId as EventViewInstanceId,
 };
 use crate::ui::slint_host::callback_dispatch::slint_menu_action;
 use crate::ui::workbench::event::menu_action_binding;
@@ -38,6 +39,18 @@ fn editor_operation_registry_exposes_builtin_menu_operations_by_path() {
     assert_eq!(reset.menu_path(), Some("Window/Reset Layout"));
     assert!(reset.callable_from_remote());
     assert!(reset.undoable().is_some());
+
+    for (path, menu_path) in [
+        ("Runtime.PlayMode.Enter", "Play/Enter Play Mode"),
+        ("Runtime.PlayMode.Exit", "Play/Exit Play Mode"),
+        ("View.PluginManager.Open", "View/Plugin Manager"),
+        ("Inspector.Field.ApplyBatch", "Inspector/Apply Changes"),
+    ] {
+        let descriptor = registry
+            .descriptor(&EditorOperationPath::parse(path).unwrap())
+            .unwrap_or_else(|| panic!("{path} operation should be registered"));
+        assert_eq!(descriptor.menu_path(), Some(menu_path));
+    }
 }
 
 #[test]
@@ -726,6 +739,142 @@ fn operation_stack_preserves_original_source_across_undo_and_redo() {
     assert_eq!(
         runtime.runtime.operation_stack().undo_stack()[0].source,
         EditorEventSource::Cli
+    );
+}
+
+#[test]
+fn play_mode_menu_operations_use_runtime_backend_and_record_operation_identity() {
+    use std::path::Path;
+    use std::sync::{Arc, Mutex};
+
+    use crate::core::editor_event::{
+        EditorRuntimePlayModeBackend, EditorRuntimePlayModeBackendReport,
+    };
+
+    #[derive(Default)]
+    struct RecordingBackend {
+        calls: Mutex<Vec<String>>,
+    }
+
+    impl EditorRuntimePlayModeBackend for RecordingBackend {
+        fn enter_play_mode(
+            &self,
+            project_root: Option<&Path>,
+        ) -> Result<EditorRuntimePlayModeBackendReport, String> {
+            self.calls.lock().unwrap().push(format!(
+                "enter:{}",
+                project_root.is_some_and(|path| path.is_absolute())
+            ));
+            Ok(EditorRuntimePlayModeBackendReport::default())
+        }
+
+        fn exit_play_mode(&self) -> Result<EditorRuntimePlayModeBackendReport, String> {
+            self.calls.lock().unwrap().push("exit".to_string());
+            Ok(EditorRuntimePlayModeBackendReport::default())
+        }
+    }
+
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_play_mode_backend");
+    let backend = Arc::new(RecordingBackend::default());
+    runtime
+        .runtime
+        .set_runtime_play_mode_backend(backend.clone());
+
+    let enter_record = runtime
+        .runtime
+        .dispatch_event(
+            EditorEventSource::Slint,
+            EditorEvent::WorkbenchMenu(MenuAction::EnterPlayMode),
+        )
+        .expect("enter play mode");
+    assert_eq!(
+        enter_record.operation_id.as_deref(),
+        Some("Runtime.PlayMode.Enter")
+    );
+    assert_eq!(
+        runtime.runtime.editor_snapshot().session_mode,
+        crate::ui::workbench::startup::EditorSessionMode::Playing
+    );
+
+    let exit_record = runtime
+        .runtime
+        .dispatch_event(
+            EditorEventSource::Slint,
+            EditorEvent::WorkbenchMenu(MenuAction::ExitPlayMode),
+        )
+        .expect("exit play mode");
+    assert_eq!(
+        exit_record.operation_id.as_deref(),
+        Some("Runtime.PlayMode.Exit")
+    );
+    assert_eq!(
+        runtime.runtime.editor_snapshot().session_mode,
+        crate::ui::workbench::startup::EditorSessionMode::Project
+    );
+    assert!(runtime.runtime.operation_stack().undo_stack().is_empty());
+    assert_eq!(
+        backend.calls.lock().unwrap().as_slice(),
+        ["enter:true".to_string(), "exit".to_string()]
+    );
+}
+
+#[test]
+fn inspector_field_apply_batch_records_undoable_operation_stack_entry() {
+    use crate::core::editor_operation::{
+        EditorOperationInvocation, EditorOperationPath, EditorOperationSource,
+    };
+
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_inspector_operation_stack");
+
+    let record = runtime
+        .runtime
+        .dispatch_event(
+            EditorEventSource::Slint,
+            EditorEvent::Inspector(EditorInspectorEvent {
+                subject_path: "entity://selected".to_string(),
+                changes: vec![InspectorFieldChange::new(
+                    "name",
+                    UiBindingValue::string("Operation Cube"),
+                )],
+            }),
+        )
+        .expect("inspector field commit");
+
+    assert_eq!(
+        record.operation_id.as_deref(),
+        Some("Inspector.Field.ApplyBatch")
+    );
+    assert_eq!(
+        record.operation_display_name.as_deref(),
+        Some("Apply Inspector Changes")
+    );
+    assert_eq!(
+        runtime.runtime.editor_snapshot().inspector.unwrap().name,
+        "Operation Cube"
+    );
+    assert_eq!(
+        runtime.runtime.operation_stack().undo_stack()[0]
+            .operation_id
+            .as_str(),
+        "Inspector.Field.ApplyBatch"
+    );
+
+    runtime
+        .runtime
+        .invoke_operation(
+            EditorOperationSource::Menu,
+            EditorOperationInvocation::new(
+                EditorOperationPath::parse("Edit.History.Undo").unwrap(),
+            ),
+        )
+        .expect("undo inspector apply batch");
+    let stack_after_undo = runtime.runtime.operation_stack();
+    assert!(stack_after_undo.undo_stack().is_empty());
+    assert_eq!(
+        stack_after_undo.redo_stack()[0].operation_id.as_str(),
+        "Inspector.Field.ApplyBatch"
     );
 }
 
@@ -1668,7 +1817,7 @@ fn editor_runtime_consumes_plugin_registration_reports_with_capability_gate() {
     use crate::core::editor_plugin::EditorPluginRegistrationReport;
     use crate::ui::host::module::EDITOR_MANAGER_NAME;
     use crate::ui::host::EditorManager;
-    use zircon_runtime::{PluginModuleManifest, PluginPackageManifest};
+    use zircon_runtime::{plugin::PluginModuleManifest, plugin::PluginPackageManifest};
 
     let _guard = env_lock().lock().unwrap();
     let runtime = EventRuntimeHarness::with_enabled_subsystems(
@@ -1707,6 +1856,8 @@ fn editor_runtime_consumes_plugin_registration_reports_with_capability_gate() {
             ),
             capabilities: vec![capability.clone()],
             extensions: extension,
+            lifecycle:
+                crate::core::editor_plugin_sdk::lifecycle::EditorPluginLifecycleReport::default(),
             diagnostics: Vec::new(),
         })
         .expect("register editor plugin report");

@@ -1,4 +1,3 @@
-use super::super::super::super::mesh::VirtualGeometryIndirectArgsGpuResources;
 use crate::graphics::{RenderFeatureCapabilityRequirement, RenderFeatureDescriptor};
 
 pub(in crate::graphics::scene::scene_renderer::core) struct SceneRendererAdvancedPluginResources;
@@ -24,12 +23,6 @@ impl SceneRendererAdvancedPluginResources {
         _device: &wgpu::Device,
     ) -> Self {
         Self
-    }
-
-    pub(super) fn virtual_geometry_indirect_args(
-        &self,
-    ) -> Option<&VirtualGeometryIndirectArgsGpuResources> {
-        None
     }
 }
 

@@ -5,10 +5,10 @@ use winit::event::{ButtonSource, ElementState, MouseButton, MouseScrollDelta, Wi
 use winit::event_loop::ActiveEventLoop;
 use winit::window::{Window, WindowAttributes, WindowId};
 use zircon_runtime_interface::{
-    ZrRuntimeEventV1, ZrRuntimeViewportSizeV1, ZR_RUNTIME_BUTTON_STATE_PRESSED_V1,
-    ZR_RUNTIME_BUTTON_STATE_RELEASED_V1, ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1,
-    ZR_RUNTIME_MOUSE_BUTTON_MIDDLE_V1, ZR_RUNTIME_MOUSE_BUTTON_RIGHT_V1,
-    ZIRCON_RUNTIME_ABI_VERSION_V1,
+    ZrRuntimeEventV1, ZrRuntimeViewportSizeV1, ZIRCON_RUNTIME_ABI_VERSION_V1,
+    ZR_RUNTIME_BUTTON_STATE_PRESSED_V1, ZR_RUNTIME_BUTTON_STATE_RELEASED_V1,
+    ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1, ZR_RUNTIME_MOUSE_BUTTON_MIDDLE_V1,
+    ZR_RUNTIME_MOUSE_BUTTON_RIGHT_V1,
 };
 
 use super::RuntimeEntryApp;
@@ -113,7 +113,10 @@ impl ApplicationHandler for RuntimeEntryApp {
             }
             WindowEvent::RedrawRequested => {
                 if let Some(presenter) = self.presenter.as_mut() {
-                    match self.session.capture_frame(self.viewport, self.viewport_size) {
+                    match self
+                        .session
+                        .capture_frame(self.viewport, self.viewport_size)
+                    {
                         Ok(frame) => {
                             if presenter.present(&frame).is_err() {
                                 event_loop.exit();

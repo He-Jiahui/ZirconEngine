@@ -21,7 +21,7 @@ crossbeam-channel = "0.5.15"
 glam = { version = "0.32.1", features = ["serde"] }
 gltf = "1.4.1"
 image = "0.25.10"
-naga = { version = "29.0.1", features = ["wgsl-in"] }
+naga = { version = "29.0.1", features = ["glsl-in", "spv-in", "wgsl-in", "wgsl-out"] }
 notify = "9.0.0-rc.3"
 pollster = "0.4.0"
 serde = { version = "1.0.228", features = ["derive"] }

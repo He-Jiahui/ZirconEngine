@@ -3335,6 +3335,7 @@ fn build_extract(
                 size_bytes: 4096,
             },
         ],
+        page_dependencies: Vec::new(),
         instances: Vec::new(),
         debug: Default::default(),
     });
@@ -3476,6 +3477,7 @@ fn build_single_entity_extract_with_clusters(
         hierarchy_nodes: Vec::new(),
         hierarchy_child_ids: Vec::new(),
         pages,
+        page_dependencies: Vec::new(),
         instances: Vec::new(),
         debug: Default::default(),
     });

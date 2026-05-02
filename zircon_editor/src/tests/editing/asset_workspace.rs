@@ -327,6 +327,7 @@ pub(super) fn sample_resource_status(
         dependency_ids: Vec::new(),
         diagnostics: Vec::new(),
         source_hash: String::new(),
+        importer_id: String::new(),
         importer_version: 0,
         config_hash: String::new(),
     }

@@ -3,11 +3,14 @@ use std::sync::Arc;
 
 use zircon_runtime::core::{CoreError, CoreHandle, CoreRuntime, ModuleDescriptor};
 use zircon_runtime::engine_module::EngineModule;
-use zircon_runtime::RuntimePluginRegistrationReport;
+use zircon_runtime::{
+    plugin::RuntimePluginFeatureRegistrationReport, plugin::RuntimePluginRegistrationReport,
+};
 
 use super::{
     builtin_modules::{
         builtin_modules_for_config, builtin_modules_for_config_with_available_runtime_plugins,
+        builtin_modules_for_config_with_runtime_plugin_and_feature_registrations,
         builtin_modules_for_config_with_runtime_plugin_registrations,
     },
     EntryConfig, EntryProfile,
@@ -88,6 +91,24 @@ impl BuiltinEngineEntry {
             modules: builtin_modules_for_config_with_runtime_plugin_registrations(
                 config,
                 &registrations,
+            )?,
+        })
+    }
+
+    pub fn for_config_with_runtime_plugin_and_feature_registrations(
+        config: &EntryConfig,
+        registrations: impl IntoIterator<Item = RuntimePluginRegistrationReport>,
+        feature_registrations: impl IntoIterator<Item = RuntimePluginFeatureRegistrationReport>,
+    ) -> Result<Self, CoreError> {
+        let registrations = registrations.into_iter().collect::<Vec<_>>();
+        let feature_registrations = feature_registrations.into_iter().collect::<Vec<_>>();
+        Ok(Self {
+            config: config.clone(),
+            profile: config.profile,
+            modules: builtin_modules_for_config_with_runtime_plugin_and_feature_registrations(
+                config,
+                &registrations,
+                &feature_registrations,
             )?,
         })
     }

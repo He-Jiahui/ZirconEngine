@@ -6,6 +6,7 @@ use zircon_runtime::asset::{VirtualGeometryAsset, VirtualGeometryClusterHeaderAs
 use zircon_runtime::core::framework::render::{
     RenderVirtualGeometryCluster, RenderVirtualGeometryDebugState, RenderVirtualGeometryExtract,
     RenderVirtualGeometryHierarchyNode, RenderVirtualGeometryInstance, RenderVirtualGeometryPage,
+    RenderVirtualGeometryPageDependency,
 };
 use zircon_runtime::core::framework::scene::EntityId;
 use zircon_runtime::core::math::{Transform, Vec3};
@@ -183,6 +184,7 @@ pub(crate) struct VirtualGeometryCpuReferenceFrame {
     source_hint: Option<String>,
     resident_pages: BTreeSet<u32>,
     page_sizes: BTreeMap<u32, u64>,
+    page_dependencies: BTreeMap<u32, (Option<u32>, Vec<u32>)>,
 }
 
 impl VirtualGeometryCpuReferenceFrame {
@@ -217,6 +219,10 @@ impl VirtualGeometryCpuReferenceFrame {
     pub(crate) fn source_hint(&self) -> Option<&str> {
         self.source_hint.as_deref()
     }
+
+    pub(crate) fn page_dependencies(&self) -> &BTreeMap<u32, (Option<u32>, Vec<u32>)> {
+        &self.page_dependencies
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -240,6 +246,7 @@ impl VirtualGeometryCpuReferenceFrame {
             .map(|page| (page.page_id, page.payload_size_bytes))
             .collect::<BTreeMap<_, _>>();
         let page_cluster_map = build_page_cluster_map(asset);
+        let page_dependencies = build_page_dependency_map(asset);
         let nodes_by_id = asset
             .hierarchy_buffer
             .iter()
@@ -295,6 +302,7 @@ impl VirtualGeometryCpuReferenceFrame {
             source_hint: asset.debug.source_hint.clone(),
             resident_pages,
             page_sizes,
+            page_dependencies,
         }
     }
 
@@ -352,10 +360,26 @@ impl VirtualGeometryCpuReferenceFrame {
             hierarchy_nodes: self.hierarchy_nodes.clone(),
             hierarchy_child_ids: self.hierarchy_child_ids.clone(),
             pages,
+            page_dependencies: render_extract_page_dependencies(&self.page_dependencies),
             instances,
             debug: render_debug_state(self.debug),
         }
     }
+}
+
+fn render_extract_page_dependencies(
+    page_dependencies: &BTreeMap<u32, (Option<u32>, Vec<u32>)>,
+) -> Vec<RenderVirtualGeometryPageDependency> {
+    page_dependencies
+        .iter()
+        .map(
+            |(page_id, (parent_page_id, child_page_ids))| RenderVirtualGeometryPageDependency {
+                page_id: *page_id,
+                parent_page_id: *parent_page_id,
+                child_page_ids: child_page_ids.clone(),
+            },
+        )
+        .collect()
 }
 
 fn render_hierarchy_for_asset(
@@ -496,6 +520,97 @@ fn build_page_cluster_map(asset: &VirtualGeometryAsset) -> BTreeMap<u32, Vec<u32
             .push(cluster.cluster_id);
     }
     page_cluster_map
+}
+
+fn build_page_dependency_map(
+    asset: &VirtualGeometryAsset,
+) -> BTreeMap<u32, (Option<u32>, Vec<u32>)> {
+    if !asset.page_dependencies.is_empty() {
+        return asset
+            .page_dependencies
+            .iter()
+            .map(|dependency| {
+                (
+                    dependency.page_id,
+                    (
+                        dependency.parent_page_id,
+                        normalized_child_page_ids(&dependency.child_page_ids),
+                    ),
+                )
+            })
+            .collect();
+    }
+
+    // Older hand-authored fixtures may not carry the cooked page graph yet, so derive a stable
+    // parent/child page view from cluster lineage instead of forcing runtime code to reopen assets.
+    let mut page_dependencies = known_page_ids(asset)
+        .into_iter()
+        .map(|page_id| (page_id, (None, Vec::new())))
+        .collect::<BTreeMap<_, _>>();
+    let clusters_by_id = asset
+        .cluster_headers
+        .iter()
+        .map(|cluster| (cluster.cluster_id, cluster))
+        .collect::<BTreeMap<_, _>>();
+
+    for cluster in &asset.cluster_headers {
+        let Some(parent_page_id) = nearest_distinct_parent_page(cluster, &clusters_by_id) else {
+            continue;
+        };
+        page_dependencies.entry(cluster.page_id).or_default().0 = Some(parent_page_id);
+        page_dependencies
+            .entry(parent_page_id)
+            .or_default()
+            .1
+            .push(cluster.page_id);
+    }
+
+    for (_, child_page_ids) in page_dependencies.values_mut() {
+        *child_page_ids = normalized_child_page_ids(child_page_ids);
+    }
+
+    page_dependencies
+}
+
+fn known_page_ids(asset: &VirtualGeometryAsset) -> Vec<u32> {
+    let mut page_ids = asset
+        .cluster_page_headers
+        .iter()
+        .map(|page| page.page_id)
+        .chain(asset.cluster_headers.iter().map(|cluster| cluster.page_id))
+        .chain(asset.root_page_table.iter().copied())
+        .collect::<Vec<_>>();
+    page_ids.sort_unstable();
+    page_ids.dedup();
+    page_ids
+}
+
+fn nearest_distinct_parent_page(
+    cluster: &VirtualGeometryClusterHeaderAsset,
+    clusters_by_id: &BTreeMap<u32, &VirtualGeometryClusterHeaderAsset>,
+) -> Option<u32> {
+    let mut current_parent_cluster_id = cluster.parent_cluster_id;
+    let mut visited_cluster_ids = BTreeSet::new();
+
+    while let Some(parent_cluster_id) = current_parent_cluster_id {
+        if !visited_cluster_ids.insert(parent_cluster_id) {
+            break;
+        }
+        let parent_cluster = clusters_by_id.get(&parent_cluster_id).copied()?;
+        if parent_cluster.page_id != cluster.page_id {
+            return Some(parent_cluster.page_id);
+        }
+        current_parent_cluster_id = parent_cluster.parent_cluster_id;
+    }
+
+    None
+}
+
+fn normalized_child_page_ids(child_page_ids: &[u32]) -> Vec<u32> {
+    let mut child_page_ids = child_page_ids.to_vec();
+    child_page_ids.sort_unstable();
+    child_page_ids.dedup();
+    child_page_ids
 }
 
 #[cfg(test)]

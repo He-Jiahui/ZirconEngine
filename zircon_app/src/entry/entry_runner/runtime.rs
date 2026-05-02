@@ -2,8 +2,8 @@ use std::error::Error;
 
 use winit::event_loop::EventLoop;
 
-use super::super::runtime_library::{LoadedRuntime, RuntimeSession};
 use super::super::runtime_entry_app::RuntimeEntryApp;
+use super::super::runtime_library::{LoadedRuntime, RuntimeSession};
 use super::EntryRunner;
 
 impl EntryRunner {

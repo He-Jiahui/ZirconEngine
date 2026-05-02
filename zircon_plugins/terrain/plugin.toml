@@ -1,0 +1,20 @@
+id = "terrain"
+version = "0.1.0"
+display_name = "Terrain"
+category = "authoring"
+description = "Optional runtime and editor package for terrain heightfield authoring."
+default_packaging = ["source_template", "library_embed"]
+
+[[modules]]
+name = "terrain.runtime"
+kind = "runtime"
+crate_name = "zircon_plugin_terrain_runtime"
+target_modes = ["client_runtime", "editor_host"]
+capabilities = ["runtime.plugin.terrain"]
+
+[[modules]]
+name = "terrain.editor"
+kind = "editor"
+crate_name = "zircon_plugin_terrain_editor"
+target_modes = ["editor_host"]
+capabilities = ["editor.extension.terrain_authoring"]

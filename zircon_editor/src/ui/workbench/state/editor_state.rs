@@ -1,8 +1,11 @@
 use crate::core::editing::history::EditorHistory;
+use std::collections::BTreeMap;
+
 use crate::scene::viewport::SceneViewportController;
 use crate::ui::workbench::project::AssetWorkspaceState;
 use crate::ui::workbench::startup::{EditorSessionMode, WelcomePaneSnapshot};
 
+use super::editor_state_play_mode::EditorPlaySession;
 use super::editor_world_slot::EditorWorldSlot;
 
 /// Editor shell state shared between the UI host and the scene server.
@@ -13,6 +16,7 @@ pub struct EditorState {
     pub(crate) name_field: String,
     pub(crate) parent_field: String,
     pub(crate) transform_fields: [String; 3],
+    pub(crate) inspector_dynamic_fields: BTreeMap<String, String>,
     pub(crate) mesh_import_path: String,
     pub(crate) asset_workspace: AssetWorkspaceState,
     pub(crate) project_path: String,
@@ -21,6 +25,7 @@ pub struct EditorState {
     pub(crate) project_open: bool,
     pub(crate) status_line: String,
     pub(crate) history: EditorHistory,
+    pub(crate) play_session: Option<EditorPlaySession>,
 }
 
 impl EditorState {

@@ -1,16 +1,22 @@
-use std::path::Path;
-
+use std::{collections::HashSet, path::Path};
 use zircon_runtime::asset::project::ProjectManifest;
+
 use zircon_runtime::{
-    ExportPackagingStrategy, NativePluginLoader, PluginModuleKind, PluginPackageManifest,
-    RuntimeTargetMode,
+    plugin::ExportPackagingStrategy, plugin::NativePluginLoader, plugin::PluginModuleKind,
+    plugin::PluginPackageManifest, plugin::RuntimePluginCatalog, RuntimeTargetMode,
 };
 
 use super::super::super::editor_manager::EditorManager;
 use super::super::package_projection::{
     editor_capabilities_for_package, module_crate, runtime_capabilities_for_package,
 };
-use super::super::reports::{EditorPluginStatus, EditorPluginStatusReport};
+use super::super::reports::{
+    EditorPluginFeatureStatus, EditorPluginStatus, EditorPluginStatusReport,
+};
+use super::builtin::{
+    available_capabilities_for_feature_status, blocked_feature_diagnostic_map,
+    optional_feature_statuses,
+};
 use super::native_load_state::native_load_state;
 
 impl EditorManager {
@@ -23,6 +29,38 @@ impl EditorManager {
             NativePluginLoader.load_discovered_all(self.plugin_directory(project_root));
         let native_packages = native_report.package_manifests();
         let mut status_report = self.plugin_status_report(manifest);
+        let status_target = RuntimeTargetMode::EditorHost;
+        let native_runtime_registrations = native_report.runtime_plugin_registration_reports();
+        let status_runtime_catalog = RuntimePluginCatalog::from_registration_reports(
+            self.runtime_plugin_catalog()
+                .registrations()
+                .iter()
+                .cloned()
+                .chain(native_runtime_registrations),
+            [],
+        );
+        let completed_plugins = status_runtime_catalog.complete_project_manifest(&manifest.plugins);
+        let feature_report =
+            status_runtime_catalog.feature_dependency_report(&completed_plugins, status_target);
+        let available_feature_ids = feature_report
+            .available_features
+            .iter()
+            .cloned()
+            .collect::<HashSet<_>>();
+        let enabled_plugins = completed_plugins
+            .enabled_for_target(status_target)
+            .map(|selection| selection.id.clone())
+            .collect::<HashSet<_>>();
+        let mut status_packages = status_runtime_catalog.package_manifests();
+        status_packages.extend(native_packages.iter().cloned());
+        let available_capabilities = available_capabilities_for_feature_status(
+            &status_packages,
+            &enabled_plugins,
+            &available_feature_ids,
+            status_target,
+        );
+        let blocked_feature_diagnostics =
+            blocked_feature_diagnostic_map(&feature_report.blocked_features);
         status_report
             .diagnostics
             .extend(native_report.diagnostics.iter().cloned());
@@ -32,10 +70,26 @@ impl EditorManager {
         status_report
             .diagnostics
             .extend(native_report.entry_diagnostics());
+        status_report
+            .diagnostics
+            .extend(feature_report.diagnostics.iter().cloned());
 
         for package in native_packages {
             let package_diagnostics = native_report.diagnostics_for_plugin(&package.id);
             let load_state = native_load_state(&native_report, &package.id);
+            let completed_project_selection = completed_plugins
+                .selections
+                .iter()
+                .find(|selection| selection.id == package.id);
+            let native_optional_features = optional_feature_statuses(
+                &package,
+                completed_project_selection,
+                &enabled_plugins,
+                &available_capabilities,
+                &available_feature_ids,
+                &blocked_feature_diagnostics,
+                status_target,
+            );
             let Some(existing) = status_report
                 .plugins
                 .iter_mut()
@@ -46,6 +100,7 @@ impl EditorManager {
                     manifest,
                     package_diagnostics,
                     load_state,
+                    native_optional_features,
                 ));
                 continue;
             };
@@ -83,6 +138,10 @@ impl EditorManager {
                 "native".to_string()
             };
             existing.load_state = load_state;
+            merge_optional_feature_statuses(
+                &mut existing.optional_features,
+                native_optional_features,
+            );
             existing.diagnostics.extend(package_diagnostics);
             existing.diagnostics.sort();
             existing.diagnostics.dedup();
@@ -99,6 +158,7 @@ fn native_plugin_status(
     manifest: &ProjectManifest,
     mut diagnostics: Vec<String>,
     load_state: String,
+    optional_features: Vec<EditorPluginFeatureStatus>,
 ) -> EditorPluginStatus {
     let project_selection = manifest
         .plugins
@@ -134,8 +194,23 @@ fn native_plugin_status(
             .or_else(|| module_crate(package, PluginModuleKind::Editor)),
         runtime_capabilities: runtime_capabilities_for_package(package),
         editor_capabilities: editor_capabilities_for_package(package),
+        optional_features,
         diagnostics,
     }
+}
+
+fn merge_optional_feature_statuses(
+    target: &mut Vec<EditorPluginFeatureStatus>,
+    source: Vec<EditorPluginFeatureStatus>,
+) {
+    for feature in source {
+        if let Some(existing) = target.iter_mut().find(|existing| existing.id == feature.id) {
+            *existing = feature;
+        } else {
+            target.push(feature);
+        }
+    }
+    target.sort_by(|left, right| left.id.cmp(&right.id));
 }
 
 fn target_modes_for_package(package: &PluginPackageManifest) -> Vec<RuntimeTargetMode> {

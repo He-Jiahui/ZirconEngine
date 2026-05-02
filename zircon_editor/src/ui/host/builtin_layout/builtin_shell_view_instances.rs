@@ -27,7 +27,7 @@ pub(super) fn builtin_shell_view_instances(
         ViewInstance {
             instance_id: ViewInstanceId::new("editor.module_plugins#1"),
             descriptor_id: ViewDescriptorId::new("editor.module_plugins"),
-            title: "Modules".to_string(),
+            title: "Plugin Manager".to_string(),
             serializable_payload: serde_json::Value::Null,
             dirty: false,
             host: ViewHost::Drawer(ActivityDrawerSlot::LeftBottom),

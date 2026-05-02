@@ -145,31 +145,13 @@ impl HybridGiRuntimeState {
     }
 
     fn descendant_trace_support_score(&self, probe_id: u32) -> f32 {
-        let mut stack = self
-            .probe_parent_probes()
-            .iter()
-            .filter_map(|(&candidate_probe_id, &parent_probe_id)| {
-                (parent_probe_id == probe_id).then_some((candidate_probe_id, 1usize))
-            })
-            .collect::<Vec<_>>();
-        let mut visited_probe_ids = BTreeSet::new();
         let mut best_support = 0.0_f32;
 
-        while let Some((candidate_probe_id, depth)) = stack.pop() {
-            if !visited_probe_ids.insert(candidate_probe_id) {
-                continue;
-            }
-
+        for (candidate_probe_id, depth) in self.probe_descendant_ids_with_depth(probe_id) {
             best_support = best_support.max(
                 self.single_probe_scene_trace_support(candidate_probe_id)
                     * DESCENDANT_TRACE_SUPPORT_FALLOFF.powi((depth - 1) as i32),
             );
-            stack.extend(self.probe_parent_probes().iter().filter_map(
-                |(&grandchild_probe_id, &parent_probe_id)| {
-                    (parent_probe_id == candidate_probe_id)
-                        .then_some((grandchild_probe_id, depth + 1))
-                },
-            ));
         }
 
         best_support
@@ -212,19 +194,8 @@ impl HybridGiRuntimeState {
 
     fn requested_descendant_support_score(&self, probe_id: u32) -> f32 {
         let mut best_support = 0.0_f32;
-        let mut stack = self
-            .probe_parent_probes()
-            .iter()
-            .filter_map(|(&candidate_probe_id, &parent_probe_id)| {
-                (parent_probe_id == probe_id).then_some((candidate_probe_id, 1usize))
-            })
-            .collect::<Vec<_>>();
-        let mut visited_probe_ids = BTreeSet::new();
 
-        while let Some((candidate_probe_id, depth)) = stack.pop() {
-            if !visited_probe_ids.insert(candidate_probe_id) {
-                continue;
-            }
+        for (candidate_probe_id, depth) in self.probe_descendant_ids_with_depth(probe_id) {
             if self
                 .current_requested_probe_ids()
                 .contains(&candidate_probe_id)
@@ -234,12 +205,6 @@ impl HybridGiRuntimeState {
                         * REQUESTED_DESCENDANT_FALLOFF.powi((depth - 1) as i32),
                 );
             }
-            stack.extend(self.probe_parent_probes().iter().filter_map(
-                |(&grandchild_probe_id, &parent_probe_id)| {
-                    (parent_probe_id == candidate_probe_id)
-                        .then_some((grandchild_probe_id, depth + 1))
-                },
-            ));
         }
 
         best_support

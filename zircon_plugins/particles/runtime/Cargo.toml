@@ -6,4 +6,8 @@ license.workspace = true
 description = "Particles runtime plugin package for Zircon."
 
 [dependencies]
+wgpu = "29.0.1"
 zircon_runtime = { path = "../../../zircon_runtime", default-features = false }
+
+[dev-dependencies]
+naga = { version = "29.0.1", features = ["wgsl-in"] }

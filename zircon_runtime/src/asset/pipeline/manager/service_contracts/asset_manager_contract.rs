@@ -10,13 +10,29 @@ use super::super::{
 };
 use crate::asset::project::ProjectManager;
 use crate::asset::watch::{AssetChange, AssetChangeKind};
-use crate::asset::AssetUri;
+use crate::asset::{AssetImporterHandler, AssetUri};
+use std::sync::Arc;
 
 impl AssetManagerContract for ProjectAssetManager {
     fn pipeline_info(&self) -> AssetPipelineInfo {
         AssetPipelineInfo {
             default_worker_count: self.default_worker_count(),
         }
+    }
+
+    fn register_asset_importer(
+        &self,
+        importer: Arc<dyn AssetImporterHandler>,
+    ) -> Result<(), CoreError> {
+        let mut project = self.project_write();
+        let Some(project) = project.as_mut() else {
+            return Err(super::super::errors::asset_error_message(
+                "no project is currently open",
+            ));
+        };
+        project
+            .register_asset_importer_arc(importer)
+            .map_err(asset_error)
     }
 
     fn open_project(&self, root_path: &str) -> Result<ProjectInfo, CoreError> {

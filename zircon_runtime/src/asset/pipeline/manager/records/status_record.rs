@@ -12,6 +12,7 @@ pub(in crate::asset::pipeline::manager) fn build_status_record(
         artifact_uri: metadata.artifact_locator().map(ToString::to_string),
         imported: metadata_import_state(metadata) == ResourceState::Ready,
         source_hash: metadata.source_hash.clone(),
+        importer_id: metadata.importer_id.clone(),
         importer_version: metadata.importer_version,
         config_hash: metadata.config_hash.clone(),
     }

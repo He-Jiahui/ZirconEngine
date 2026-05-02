@@ -10,12 +10,12 @@ const UI_COMPILED_ASSET_BINARY_MAGIC: [u8; 8] = *b"ZRUIA016";
 const ENVELOPE_HEADER_LEN: usize = UI_COMPILED_ASSET_BINARY_MAGIC.len() + 4 + 8;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct UiCompiledAssetArtifact {
+pub struct UiRuntimeCompiledAssetArtifact {
     pub report: UiCompiledAssetPackageValidationReport,
     pub compiled: UiTemplateInstance,
 }
 
-impl UiCompiledAssetArtifact {
+impl UiRuntimeCompiledAssetArtifact {
     pub(super) fn from_report_and_compiled(
         report: UiCompiledAssetPackageValidationReport,
         compiled: UiCompiledDocument,

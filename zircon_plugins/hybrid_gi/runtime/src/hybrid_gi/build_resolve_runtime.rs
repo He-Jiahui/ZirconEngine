@@ -622,20 +622,8 @@ impl HybridGiRuntimeState {
 
         let mut weighted_rgb = [0.0_f32; 3];
         let mut total_support = 0.0_f32;
-        let mut stack = self
-            .probe_parent_probes()
-            .iter()
-            .filter_map(|(&candidate_probe_id, &parent_probe_id)| {
-                (parent_probe_id == probe_id).then_some((candidate_probe_id, 1usize))
-            })
-            .collect::<Vec<_>>();
-        let mut visited_probe_ids = BTreeSet::new();
 
-        while let Some((candidate_probe_id, depth)) = stack.pop() {
-            if !visited_probe_ids.insert(candidate_probe_id) {
-                continue;
-            }
-
+        for (candidate_probe_id, depth) in self.probe_descendant_ids_with_depth(probe_id) {
             if let Some(descendant_irradiance_rgb) = self
                 .probe_irradiance_rgb()
                 .get(&candidate_probe_id)
@@ -656,13 +644,6 @@ impl HybridGiRuntimeState {
                     total_support += support;
                 }
             }
-
-            stack.extend(self.probe_parent_probes().iter().filter_map(
-                |(&grandchild_probe_id, &parent_probe_id)| {
-                    (parent_probe_id == candidate_probe_id)
-                        .then_some((grandchild_probe_id, depth + 1))
-                },
-            ));
         }
 
         if total_support <= f32::EPSILON {
@@ -689,20 +670,8 @@ impl HybridGiRuntimeState {
 
         let mut weighted_rgb = [0.0_f32; 3];
         let mut total_support = 0.0_f32;
-        let mut stack = self
-            .probe_parent_probes()
-            .iter()
-            .filter_map(|(&candidate_probe_id, &parent_probe_id)| {
-                (parent_probe_id == probe_id).then_some((candidate_probe_id, 1usize))
-            })
-            .collect::<Vec<_>>();
-        let mut visited_probe_ids = BTreeSet::new();
 
-        while let Some((candidate_probe_id, depth)) = stack.pop() {
-            if !visited_probe_ids.insert(candidate_probe_id) {
-                continue;
-            }
-
+        for (candidate_probe_id, depth) in self.probe_descendant_ids_with_depth(probe_id) {
             if let Some(descendant_rt_lighting_rgb) = self
                 .probe_rt_lighting_rgb()
                 .get(&candidate_probe_id)
@@ -724,13 +693,6 @@ impl HybridGiRuntimeState {
                     total_support += support;
                 }
             }
-
-            stack.extend(self.probe_parent_probes().iter().filter_map(
-                |(&grandchild_probe_id, &parent_probe_id)| {
-                    (parent_probe_id == candidate_probe_id)
-                        .then_some((grandchild_probe_id, depth + 1))
-                },
-            ));
         }
 
         if total_support <= f32::EPSILON {
@@ -748,31 +710,10 @@ impl HybridGiRuntimeState {
     }
 
     fn resident_descendant_count(&self, probe_id: u32) -> usize {
-        let mut count = 0usize;
-        let mut stack = self
-            .probe_parent_probes()
-            .iter()
-            .filter_map(|(&candidate_probe_id, &parent_probe_id)| {
-                (parent_probe_id == probe_id).then_some(candidate_probe_id)
-            })
-            .collect::<Vec<_>>();
-        let mut visited_probe_ids = BTreeSet::new();
-
-        while let Some(candidate_probe_id) = stack.pop() {
-            if !visited_probe_ids.insert(candidate_probe_id) {
-                continue;
-            }
-            if self.has_resident_probe(candidate_probe_id) {
-                count += 1;
-            }
-            stack.extend(self.probe_parent_probes().iter().filter_map(
-                |(&grandchild_probe_id, &parent_probe_id)| {
-                    (parent_probe_id == candidate_probe_id).then_some(grandchild_probe_id)
-                },
-            ));
-        }
-
-        count
+        self.probe_descendant_ids(probe_id)
+            .into_iter()
+            .filter(|descendant_probe_id| self.has_resident_probe(*descendant_probe_id))
+            .count()
     }
 
     fn resident_parent_depth(&self, probe_id: u32) -> usize {

@@ -517,33 +517,11 @@ fn to_host_contract_project_overview_pane(
     pane_data_conversion::to_host_contract_project_overview_pane(data)
 }
 
-fn to_host_contract_module_plugin_status(
-    data: host_window::ModulePluginStatusViewData,
-) -> host_contract::ModulePluginStatusData {
-    host_contract::ModulePluginStatusData {
-        plugin_id: data.plugin_id,
-        display_name: data.display_name,
-        package_source: data.package_source,
-        load_state: data.load_state,
-        enabled: data.enabled,
-        required: data.required,
-        target_modes: data.target_modes,
-        packaging: data.packaging,
-        runtime_crate: data.runtime_crate,
-        editor_crate: data.editor_crate,
-        runtime_capabilities: data.runtime_capabilities,
-        editor_capabilities: data.editor_capabilities,
-        diagnostics: data.diagnostics,
-    }
-}
-
 fn to_host_contract_module_plugins_pane(
-    data: host_window::ModulePluginsPaneViewData,
+    data: &host_window::PaneData,
+    pane_size: host_window::PaneContentSize,
 ) -> host_contract::ModulePluginsPaneData {
-    host_contract::ModulePluginsPaneData {
-        plugins: map_model_rc(&data.plugins, to_host_contract_module_plugin_status),
-        diagnostics: data.diagnostics,
-    }
+    pane_data_conversion::to_host_contract_module_plugins_pane_from_host_pane(data, pane_size)
 }
 
 fn to_host_contract_ui_asset_pane(
@@ -561,6 +539,7 @@ fn to_host_contract_pane(
     let inspector = to_host_contract_inspector_pane(&data, pane_size);
     let console = to_host_contract_console_pane(&data, pane_size);
     let animation = to_host_contract_animation_editor_pane(&data, pane_size);
+    let module_plugins = to_host_contract_module_plugins_pane(&data, pane_size);
     let pane_kind = data.kind.to_string();
     let project_overview = if pane_kind == "UiComponentShowcase" {
         component_showcase_runtime.map_or_else(
@@ -605,7 +584,7 @@ fn to_host_contract_pane(
             data.native_body.asset_browser,
         ),
         project_overview,
-        module_plugins: to_host_contract_module_plugins_pane(data.native_body.module_plugins),
+        module_plugins,
         ui_asset: to_host_contract_ui_asset_pane(data.native_body.ui_asset),
         animation,
     }

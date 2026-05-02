@@ -1,0 +1,34 @@
+id = "gltf_importer"
+version = "0.1.0"
+sdk_api_version = "0.1.0"
+display_name = "glTF Importer"
+category = "asset_importer"
+description = "Runtime glTF and GLB model importer package."
+supported_targets = ["client_runtime", "editor_host"]
+supported_platforms = ["windows", "linux", "macos"]
+capabilities = [
+    "runtime.plugin.gltf_importer",
+    "runtime.asset.importer.model.gltf",
+]
+asset_roots = []
+content_roots = []
+default_packaging = ["source_template", "library_embed"]
+
+[[asset_importers]]
+id = "gltf_importer.gltf"
+plugin_id = "gltf_importer"
+priority = 120
+source_extensions = ["gltf", "glb"]
+output_kind = "Model"
+importer_version = 1
+required_capabilities = ["runtime.asset.importer.model.gltf"]
+
+[[modules]]
+name = "gltf_importer.runtime"
+kind = "runtime"
+crate_name = "zircon_plugin_gltf_importer_runtime"
+target_modes = ["client_runtime", "editor_host"]
+capabilities = [
+    "runtime.plugin.gltf_importer",
+    "runtime.asset.importer.model.gltf",
+]

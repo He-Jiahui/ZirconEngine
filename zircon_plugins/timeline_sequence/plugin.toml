@@ -1,0 +1,18 @@
+id = "timeline_sequence"
+version = "0.1.0"
+display_name = "Timeline Sequence"
+category = "authoring"
+description = "Optional editor-only timeline authoring package for animation sequences."
+default_packaging = ["source_template", "library_embed"]
+
+[[dependencies]]
+id = "animation"
+required = true
+capability = "runtime.feature.animation.timeline_event_track"
+
+[[modules]]
+name = "timeline_sequence.editor"
+kind = "editor"
+crate_name = "zircon_plugin_timeline_sequence_editor"
+target_modes = ["editor_host"]
+capabilities = ["editor.extension.timeline_sequence_authoring"]

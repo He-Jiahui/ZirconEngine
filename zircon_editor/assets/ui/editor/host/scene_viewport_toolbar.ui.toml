@@ -621,6 +621,114 @@ route = "ViewportCommand.FrameSelection"
 
 [components.SceneViewportToolbar.root.children.node.children.node.style_overrides.slot]
 
+[[components.SceneViewportToolbar.root.children.node.children]]
+
+[components.SceneViewportToolbar.root.children.node.children.slot]
+
+[components.SceneViewportToolbar.root.children.node.children.node]
+node_id = "component_SceneViewportToolbar_root_0_14"
+kind = "native"
+type = "Space"
+classes = []
+bindings = []
+children = []
+
+[components.SceneViewportToolbar.root.children.node.children.node.params]
+
+[components.SceneViewportToolbar.root.children.node.children.node.props]
+
+[components.SceneViewportToolbar.root.children.node.children.node.layout.height]
+max = 14.0
+min = 14.0
+preferred = 14.0
+stretch = "Fixed"
+
+[components.SceneViewportToolbar.root.children.node.children.node.layout.width]
+max = 1.0
+min = 1.0
+preferred = 1.0
+stretch = "Fixed"
+
+[components.SceneViewportToolbar.root.children.node.children.node.style_overrides.self]
+
+[components.SceneViewportToolbar.root.children.node.children.node.style_overrides.slot]
+
+[[components.SceneViewportToolbar.root.children.node.children]]
+
+[components.SceneViewportToolbar.root.children.node.children.slot]
+
+[components.SceneViewportToolbar.root.children.node.children.node]
+node_id = "component_SceneViewportToolbar_root_0_15"
+kind = "native"
+type = "IconButton"
+control_id = "EnterPlayMode"
+classes = []
+children = []
+
+[components.SceneViewportToolbar.root.children.node.children.node.params]
+
+[components.SceneViewportToolbar.root.children.node.children.node.props]
+label = "Play"
+
+[components.SceneViewportToolbar.root.children.node.children.node.layout.height]
+max = 20.0
+min = 20.0
+preferred = 20.0
+stretch = "Fixed"
+
+[components.SceneViewportToolbar.root.children.node.children.node.layout.width]
+max = 24.0
+min = 24.0
+preferred = 24.0
+stretch = "Fixed"
+
+[[components.SceneViewportToolbar.root.children.node.children.node.bindings]]
+id = "ViewportToolbar/EnterPlayMode"
+event = "Click"
+route = "MenuAction.EnterPlayMode"
+
+[components.SceneViewportToolbar.root.children.node.children.node.style_overrides.self]
+
+[components.SceneViewportToolbar.root.children.node.children.node.style_overrides.slot]
+
+[[components.SceneViewportToolbar.root.children.node.children]]
+
+[components.SceneViewportToolbar.root.children.node.children.slot]
+
+[components.SceneViewportToolbar.root.children.node.children.node]
+node_id = "component_SceneViewportToolbar_root_0_16"
+kind = "native"
+type = "IconButton"
+control_id = "ExitPlayMode"
+classes = []
+children = []
+
+[components.SceneViewportToolbar.root.children.node.children.node.params]
+
+[components.SceneViewportToolbar.root.children.node.children.node.props]
+label = "Stop"
+
+[components.SceneViewportToolbar.root.children.node.children.node.layout.height]
+max = 20.0
+min = 20.0
+preferred = 20.0
+stretch = "Fixed"
+
+[components.SceneViewportToolbar.root.children.node.children.node.layout.width]
+max = 24.0
+min = 24.0
+preferred = 24.0
+stretch = "Fixed"
+
+[[components.SceneViewportToolbar.root.children.node.children.node.bindings]]
+id = "ViewportToolbar/ExitPlayMode"
+event = "Click"
+route = "MenuAction.ExitPlayMode"
+
+[components.SceneViewportToolbar.root.children.node.children.node.style_overrides.self]
+
+[components.SceneViewportToolbar.root.children.node.children.node.style_overrides.slot]
+
 [[components.SceneViewportToolbar.root.children]]
 
 [components.SceneViewportToolbar.root.children.slot]

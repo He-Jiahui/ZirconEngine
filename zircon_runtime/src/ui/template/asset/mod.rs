@@ -13,10 +13,9 @@ mod style;
 pub use action_policy::validate_document_action_policy;
 pub use binding::{collect_asset_binding_report, validate_asset_bindings};
 pub use compiler::{
-    UiAssetCompileCache, UiCompileCacheKey, UiCompileCacheOutcome, UiCompiledAssetArtifact,
-    UiCompiledAssetCacheRecord, UiCompiledAssetPackageArtifactEntry,
-    UiCompiledAssetPackageManifest, UiCompiledDocument, UiDocumentCompiler, UiStyleResolver,
-    UI_COMPILED_ASSET_COMPILER_SCHEMA_VERSION, UI_COMPILED_ASSET_PACKAGE_SCHEMA_VERSION,
+    compile_cache_key_from_compiler, compiled_asset_package_manifest_from_artifact_bytes,
+    UiAssetCompileCache, UiCompileCacheOutcome, UiCompiledDocument, UiDocumentCompiler,
+    UiRuntimeCompiledAssetArtifact, UiStyleResolver,
 };
 pub use component_contract::component_contract_diagnostic;
 pub use document::{UiAssetDocumentRuntimeExt, UiAssetNodeIter, UiNodeParent};
@@ -33,4 +32,3 @@ pub use schema::{
     UiAssetSchemaMigrator, UiAssetSchemaVersionPolicy, UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION,
     UI_ASSET_MINIMUM_SUPPORTED_SOURCE_SCHEMA_VERSION,
 };
-pub use style::{UiSelector, UiSelectorToken};

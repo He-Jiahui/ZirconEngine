@@ -246,6 +246,24 @@ pub(crate) fn builtin_template_bindings() -> BTreeMap<String, EditorUiBinding> {
             ),
         ),
         (
+            "ViewportToolbar/EnterPlayMode".to_string(),
+            EditorUiBinding::new(
+                "ViewportToolbar",
+                "EnterPlayMode",
+                EditorUiEventKind::Click,
+                EditorUiBindingPayload::menu_action("EnterPlayMode"),
+            ),
+        ),
+        (
+            "ViewportToolbar/ExitPlayMode".to_string(),
+            EditorUiBinding::new(
+                "ViewportToolbar",
+                "ExitPlayMode",
+                EditorUiEventKind::Click,
+                EditorUiBindingPayload::menu_action("ExitPlayMode"),
+            ),
+        ),
+        (
             "AssetSurface/SelectFolder".to_string(),
             EditorUiBinding::new(
                 "AssetSurface",

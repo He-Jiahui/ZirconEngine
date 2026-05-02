@@ -7,6 +7,10 @@ use crate::asset::assets::{AlphaMode, MaterialAsset};
 use crate::asset::pipeline::manager::{AssetManager, ProjectAssetManager};
 use crate::asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
 use crate::asset::{AssetReference, AssetUri};
+use crate::core::math::{Transform, UVec2, Vec3, Vec4};
+use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle};
+use crate::scene::components::{default_render_layer_mask, Mobility};
+use image::{ImageBuffer, ImageFormat, Rgba};
 use zircon_runtime::core::framework::render::{
     DisplayMode, FallbackSkyboxKind, PreviewEnvironmentExtract, ProjectionMode, RenderFrameExtract,
     RenderFramework, RenderMeshSnapshot, RenderOverlayExtract, RenderQualityProfile,
@@ -14,10 +18,6 @@ use zircon_runtime::core::framework::render::{
     RenderVirtualGeometryCluster, RenderVirtualGeometryExtract, RenderVirtualGeometryPage,
     RenderWorldSnapshotHandle, ViewportCameraSnapshot,
 };
-use crate::core::math::{Transform, UVec2, Vec3, Vec4};
-use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle};
-use crate::scene::components::{default_render_layer_mask, Mobility};
-use image::{ImageBuffer, ImageFormat, Rgba};
 
 use crate::{
     test_support::render_feature_fixtures::{
@@ -412,6 +412,7 @@ fn build_dual_entity_extract(
         hierarchy_nodes: Vec::new(),
         hierarchy_child_ids: Vec::new(),
         pages: pages.clone(),
+        page_dependencies: Vec::new(),
         instances: Vec::new(),
         debug: Default::default(),
     });
@@ -476,6 +477,7 @@ fn build_single_entity_extract(
         hierarchy_nodes: Vec::new(),
         hierarchy_child_ids: Vec::new(),
         pages: vec![page(300, resident)],
+        page_dependencies: Vec::new(),
         instances: Vec::new(),
         debug: Default::default(),
     });

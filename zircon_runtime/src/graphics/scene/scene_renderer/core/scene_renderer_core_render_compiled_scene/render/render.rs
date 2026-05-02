@@ -1,7 +1,3 @@
-use crate::core::framework::render::{
-    RenderVirtualGeometryCullInputSnapshot,
-    RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot,
-};
 use crate::graphics::backend::OffscreenTarget;
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::history::SceneFrameHistoryTextures;
@@ -23,17 +19,11 @@ impl SceneRendererCore {
         queue: &wgpu::Queue,
         streamer: &ResourceStreamer,
         frame: &ViewportRenderFrame,
-        virtual_geometry_cull_input: Option<&RenderVirtualGeometryCullInputSnapshot>,
-        previous_node_and_cluster_cull_global_state: Option<
-            &RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot,
-        >,
         target: &mut OffscreenTarget,
         runtime_features: SceneRuntimeFeatureFlags,
         history_textures: Option<&mut SceneFrameHistoryTextures>,
         history_available: bool,
     ) -> Result<SceneRendererCompiledSceneOutputs, GraphicsError> {
-        let _ = virtual_geometry_cull_input;
-        let _ = previous_node_and_cluster_cull_global_state;
         self.write_scene_uniform(queue, frame);
         let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("zircon-compiled-scene-encoder"),
@@ -55,7 +45,7 @@ impl SceneRendererCore {
         );
         let (opaque_mesh_draws, transparent_mesh_draws) =
             partition_mesh_draws(compiled_scene_draws.draws());
-        let execution_draws = if runtime_features.deferred_lighting_enabled {
+        let _execution_draws = if runtime_features.deferred_lighting_enabled {
             opaque_mesh_draws
                 .iter()
                 .copied()

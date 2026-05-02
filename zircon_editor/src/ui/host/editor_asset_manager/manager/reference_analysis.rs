@@ -34,32 +34,14 @@ pub(super) fn direct_references(imported: &ImportedAsset) -> Vec<AssetReference>
         ImportedAsset::AnimationStateMachine(asset) => {
             references.extend(asset.states.iter().map(|state| state.graph.clone()));
         }
-        ImportedAsset::Scene(scene) => {
-            for entity in &scene.entities {
-                if let Some(mesh) = &entity.mesh {
-                    references.push(mesh.model.clone());
-                    references.push(mesh.material.clone());
-                }
-                if let Some(collider) = &entity.collider {
-                    references.extend(collider.material.clone());
-                }
-                if let Some(animation_skeleton) = &entity.animation_skeleton {
-                    references.push(animation_skeleton.skeleton.clone());
-                }
-                if let Some(animation_player) = &entity.animation_player {
-                    references.push(animation_player.clip.clone());
-                }
-                if let Some(animation_sequence_player) = &entity.animation_sequence_player {
-                    references.push(animation_sequence_player.sequence.clone());
-                }
-                if let Some(animation_graph_player) = &entity.animation_graph_player {
-                    references.push(animation_graph_player.graph.clone());
-                }
-                if let Some(animation_state_machine_player) = &entity.animation_state_machine_player
-                {
-                    references.push(animation_state_machine_player.state_machine.clone());
-                }
-            }
+        ImportedAsset::MaterialGraph(_)
+        | ImportedAsset::Scene(_)
+        | ImportedAsset::Terrain(_)
+        | ImportedAsset::TerrainLayerStack(_)
+        | ImportedAsset::TileSet(_)
+        | ImportedAsset::TileMap(_)
+        | ImportedAsset::Prefab(_) => {
+            references.extend(imported.direct_references());
         }
         ImportedAsset::UiLayout(asset) => {
             references.extend(zircon_runtime::asset::assets::ui_asset_references(
@@ -76,12 +58,15 @@ pub(super) fn direct_references(imported: &ImportedAsset) -> Vec<AssetReference>
                 &asset.document,
             ));
         }
-        ImportedAsset::Texture(_)
+        ImportedAsset::Data(_)
+        | ImportedAsset::Texture(_)
         | ImportedAsset::Shader(_)
         | ImportedAsset::Model(_)
         | ImportedAsset::Sound(_)
         | ImportedAsset::Font(_)
         | ImportedAsset::PhysicsMaterial(_)
+        | ImportedAsset::NavMesh(_)
+        | ImportedAsset::NavigationSettings(_)
         | ImportedAsset::AnimationSkeleton(_)
         | ImportedAsset::AnimationSequence(_) => {}
     }

@@ -1,76 +1,79 @@
 ---
 related_code:
-  - zircon_runtime/src/core/framework/mod.rs
   - zircon_runtime/src/core/framework/sound/mod.rs
+  - zircon_runtime/src/core/framework/sound/automation.rs
+  - zircon_runtime/src/core/framework/sound/components.rs
+  - zircon_runtime/src/core/framework/sound/effects.rs
   - zircon_runtime/src/core/framework/sound/error.rs
+  - zircon_runtime/src/core/framework/sound/graph.rs
   - zircon_runtime/src/core/framework/sound/ids.rs
   - zircon_runtime/src/core/framework/sound/manager.rs
   - zircon_runtime/src/core/framework/sound/mix.rs
+  - zircon_runtime/src/core/framework/sound/options.rs
   - zircon_runtime/src/core/framework/sound/playback.rs
   - zircon_runtime/src/core/framework/sound/status.rs
-  - zircon_runtime/src/core/manager/mod.rs
-  - zircon_runtime/src/core/manager/resolver.rs
-  - zircon_runtime/src/core/manager/service_names.rs
-  - zircon_runtime/src/core/resource/marker.rs
-  - zircon_plugins/sound/runtime/src/mod.rs
+  - zircon_runtime/src/plugin/package_manifest/plugin_dependency_manifest.rs
+  - zircon_runtime/src/plugin/package_manifest/plugin_event_manifest.rs
+  - zircon_runtime/src/plugin/package_manifest/plugin_option_manifest.rs
+  - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry.rs
+  - zircon_runtime/src/plugin/extension_registry/register.rs
+  - zircon_runtime/src/plugin/extension_registry/access.rs
+  - zircon_plugins/sound/plugin.toml
+  - zircon_plugins/sound/runtime/src/lib.rs
+  - zircon_plugins/sound/runtime/src/components.rs
   - zircon_plugins/sound/runtime/src/config.rs
+  - zircon_plugins/sound/runtime/src/engine/mod.rs
+  - zircon_plugins/sound/runtime/src/engine/dsp.rs
+  - zircon_plugins/sound/runtime/src/engine/render.rs
+  - zircon_plugins/sound/runtime/src/engine/state.rs
+  - zircon_plugins/sound/runtime/src/engine/validation.rs
   - zircon_plugins/sound/runtime/src/module.rs
+  - zircon_plugins/sound/runtime/src/package.rs
   - zircon_plugins/sound/runtime/src/service_types.rs
-  - zircon_plugins/sound/runtime/src/tests.rs
-  - zircon_runtime/src/asset/assets/mod.rs
-  - zircon_runtime/src/asset/assets/imported.rs
-  - zircon_runtime/src/asset/assets/sound.rs
-  - zircon_runtime/src/asset/artifact/store.rs
-  - zircon_runtime/src/asset/importer/ingest/import_from_source.rs
-  - zircon_runtime/src/asset/importer/ingest/import_sound.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/load_asset.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/acquire_asset.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/load_imported_asset.rs
-  - zircon_runtime/src/asset/pipeline/manager/resource_sync/register_project_resource.rs
-  - zircon_runtime/src/asset/project/manager/asset_kind.rs
-  - zircon_runtime/src/asset/tests/project/manager.rs
-  - zircon_runtime/src/asset/tests/support.rs
+  - zircon_plugins/sound/features/timeline_animation_track/runtime/src/lib.rs
+  - zircon_plugins/sound/features/timeline_animation_track/editor/src/lib.rs
+  - zircon_plugins/sound/features/ray_traced_convolution_reverb/runtime/src/lib.rs
+  - zircon_plugins/sound/features/ray_traced_convolution_reverb/editor/src/lib.rs
+  - zircon_plugins/sound/editor/src/lib.rs
 implementation_files:
-  - zircon_runtime/src/core/framework/mod.rs
   - zircon_runtime/src/core/framework/sound/mod.rs
-  - zircon_runtime/src/core/framework/sound/error.rs
-  - zircon_runtime/src/core/framework/sound/ids.rs
+  - zircon_runtime/src/core/framework/sound/automation.rs
+  - zircon_runtime/src/core/framework/sound/components.rs
+  - zircon_runtime/src/core/framework/sound/effects.rs
+  - zircon_runtime/src/core/framework/sound/graph.rs
   - zircon_runtime/src/core/framework/sound/manager.rs
-  - zircon_runtime/src/core/framework/sound/mix.rs
-  - zircon_runtime/src/core/framework/sound/playback.rs
-  - zircon_runtime/src/core/framework/sound/status.rs
-  - zircon_runtime/src/core/manager/mod.rs
-  - zircon_runtime/src/core/manager/resolver.rs
-  - zircon_runtime/src/core/manager/service_names.rs
-  - zircon_runtime/src/core/resource/marker.rs
-  - zircon_plugins/sound/runtime/src/mod.rs
-  - zircon_plugins/sound/runtime/src/config.rs
-  - zircon_plugins/sound/runtime/src/module.rs
+  - zircon_runtime/src/plugin/package_manifest/plugin_dependency_manifest.rs
+  - zircon_runtime/src/plugin/package_manifest/plugin_event_manifest.rs
+  - zircon_runtime/src/plugin/package_manifest/plugin_option_manifest.rs
+  - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry.rs
+  - zircon_runtime/src/plugin/extension_registry/register.rs
+  - zircon_runtime/src/plugin/extension_registry/access.rs
+  - zircon_plugins/sound/plugin.toml
+  - zircon_plugins/sound/runtime/src/lib.rs
+  - zircon_plugins/sound/runtime/src/components.rs
+  - zircon_plugins/sound/runtime/src/engine/dsp.rs
+  - zircon_plugins/sound/runtime/src/engine/render.rs
+  - zircon_plugins/sound/runtime/src/engine/state.rs
+  - zircon_plugins/sound/runtime/src/engine/validation.rs
+  - zircon_plugins/sound/runtime/src/package.rs
   - zircon_plugins/sound/runtime/src/service_types.rs
-  - zircon_runtime/src/asset/assets/mod.rs
-  - zircon_runtime/src/asset/assets/imported.rs
-  - zircon_runtime/src/asset/assets/sound.rs
-  - zircon_runtime/src/asset/artifact/store.rs
-  - zircon_runtime/src/asset/importer/ingest/import_from_source.rs
-  - zircon_runtime/src/asset/importer/ingest/import_sound.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/load_asset.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/acquire_asset.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/load_imported_asset.rs
-  - zircon_runtime/src/asset/pipeline/manager/resource_sync/register_project_resource.rs
-  - zircon_runtime/src/asset/project/manager/asset_kind.rs
+  - zircon_plugins/sound/features/timeline_animation_track/runtime/src/lib.rs
+  - zircon_plugins/sound/features/timeline_animation_track/editor/src/lib.rs
+  - zircon_plugins/sound/features/ray_traced_convolution_reverb/runtime/src/lib.rs
+  - zircon_plugins/sound/features/ray_traced_convolution_reverb/editor/src/lib.rs
+  - zircon_plugins/sound/editor/src/lib.rs
 plan_sources:
-  - user: 2026-04-21 PLEASE IMPLEMENT THIS PLAN
-  - user: 2026-04-21 Later Milestones / M2 基础子系统补齐
-  - user: 2026-04-21 继续
-  - .codex/plans/M1 主链收口与文本底座计划.md
+  - user: 2026-05-02 sound plugin mixer/spatial/convolution/timeline core implementation request
+  - .codex/plans/Sound 插件核心完善计划.md
+  - .codex/plans/ZirconEngine 独立插件补齐计划.md
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
   - .codex/plans/全系统重构方案.md
 tests:
-  - cargo test -p zircon_runtime asset::tests::project::manager::project_manager_imports_sound_assets_into_runtime_library --locked
-  - cargo test -p zircon_runtime zircon_plugin_sound_runtime::tests::sound_manager_loads_project_wav_and_mixes_playback_to_stereo --locked
-  - cargo test -p zircon_runtime --lib --locked sound_manager_ --offline
-  - cargo test -p zircon_runtime tests::extensions::manager_handles::externalized_runtime_plugins_keep_manager_handles_under_core_manager_contracts --locked
-  - .codex/skills/zircon-dev/scripts/validate-matrix.ps1
+  - cargo test --manifest-path zircon_plugins\sound\runtime\Cargo.toml --locked --offline --jobs 1 --message-format short --color never (passed with CARGO_TARGET_DIR=E:\Git\ZirconEngine\target\codex-sound-direct; 16 runtime tests passed)
+  - cargo check --manifest-path zircon_plugins\sound\editor\Cargo.toml --lib --locked --offline --jobs 1 --message-format short --color never (passed with CARGO_TARGET_DIR=E:\Git\ZirconEngine\target\codex-sound-direct)
+  - cargo check --manifest-path zircon_plugins\sound\runtime\Cargo.toml --tests --locked --offline --jobs 1 --message-format short --color never (passed with CARGO_TARGET_DIR=E:\Git\ZirconEngine\target\codex-sound-direct)
+  - zircon_plugins/sound/runtime/src/tests.rs
+  - zircon_plugins/sound/editor/src/lib.rs
 doc_type: module-detail
 ---
 
@@ -78,182 +81,116 @@ doc_type: module-detail
 
 ## Purpose
 
-这份文档记录 `M2` 第二个真实子系统起手：把 `zircon_plugin_sound_runtime` 从只有 module/config/service type 壳的占位实现，补成可通过项目资产加载 `.wav`、创建播放实例、并输出真实混音样本的最小音频闭环。
+`sound` is now documented as the first core slice of a plugin-owned audio engine, not only as the earlier WAV clip playback loop. The stable ownership remains the same:
 
-当前完成线不是平台音频设备、空间音频、bus graph、streaming decode 或压缩格式支持，而是更窄的一层：
+- `zircon_runtime::core::framework::sound` owns neutral DTOs, IDs, errors, graph descriptions, component descriptors, automation contracts, plugin options, and the `SoundManager` trait.
+- `zircon_plugins/sound/runtime` owns concrete state, clip/source playback, mixer graph validation, CPU DSP, meters, static impulse responses, and the default software render path.
+- `zircon_plugins/sound/editor` owns editor contribution descriptors for mixer authoring, acoustic debug, and sound component drawers.
 
-- `core::framework::sound` 定义共享音频合同
-- `core::manager` 暴露稳定 `SoundManager` contract / handle
-- `asset` 管线认识 `.wav` 并落成 `SoundAsset`
-- `zircon_plugin_sound_runtime` 提供默认 `software-mixer` runtime
+The design follows the repository boundary rule: heavy audio behavior stays in the independent sound plugin, while `zircon_runtime` exposes only neutral contracts and host-facing registry surfaces.
 
-这正对应 `M2` 里“音频先做资源加载与播放闭环”的完成线。
+## Related Files
 
-## Ownership
+The sound contract is split by responsibility:
 
-这一轮之后声音子系统的 ownership 固定为：
+- `ids.rs` defines stable IDs for clips, playbacks, tracks, nodes, effects, sources, listeners, volumes, parameters, automation bindings, impulse responses, and external source handles.
+- `graph.rs` defines `SoundMixerGraph`, tracks, sends, controls, meters, snapshots, and ray-tracing convolution status.
+- `effects.rs` defines the first deterministic DSP descriptor set: gain, filter, reverb, convolution reverb, compressor with sidechain, wave shaper, flanger, phaser, chorus, delay, pan/stereo, and limiter.
+- `components.rs` defines neutral `AudioSource`, `AudioListener`, and `AudioVolume` contracts plus plugin dynamic component type IDs. Source/listener descriptors now carry position, forward vector, and velocity data so the plugin runtime can spatialize without coupling directly to a concrete scene transform component.
+- `automation.rs` defines Timeline-style sound automation bindings and an empty dynamic event catalog.
+- `options.rs` defines runtime/editor-facing sound plugin options and quality gates.
 
-- `zircon_runtime::core::framework::sound`
-  - `SoundClipId`
-  - `SoundPlaybackId`
-  - `SoundClipInfo`
-  - `SoundPlaybackSettings`
-  - `SoundMixBlock`
-  - `SoundBackendStatus`
-  - `SoundError`
-  - `SoundManager`
-- `zircon_runtime::core::manager`
-  - `SOUND_MANAGER_NAME`
-  - `SoundManagerHandle`
-  - `resolve_sound_manager(...)`
-  - `ManagerResolver::sound()`
-- `zircon_runtime::asset`
-  - `ResourceKind::Sound`
-  - `SoundAsset`
-  - `.wav` importer
-  - `ProjectAssetManager::load_sound_asset(...)`
-- `zircon_plugin_sound_runtime`
-  - `SoundModule`
-  - `SoundDriver`
-  - `DefaultSoundManager`
+The plugin implementation is split under `zircon_plugins/sound/runtime/src/engine/` so `service_types.rs` remains a manager boundary rather than an audio engine dumping ground.
 
-也就是说：
+## Behavior Model
 
-- framework 只拥有中性 DTO 和 manager trait
-- core manager 只拥有稳定 resolver surface
-- asset 只拥有 `.wav -> SoundAsset` 的导入和 library artifact 管线
-- runtime extension 才拥有 clip cache、playback state 和 software mixing 行为
+The default manager keeps a `SoundEngineState` with clip cache, active clip playbacks, explicit source voices, listener/volume descriptors, automation bindings, parameter values, static impulse responses, mixer graph, meters, latency, and ray-tracing status.
 
-## Contract Shape
+The `SoundManager` surface now exposes graph mutation at the track/send/effect level instead of requiring callers to replace the whole graph for common authoring operations. Track sends are keyed by target track ID, so adding a send to the same target updates the existing edge; removing a missing edge returns a typed `UnknownSend` error. Synth/automation parameters also support readback through `parameter_value(...)`, with unknown keys returning `UnknownParameter`.
 
-`SoundManager` 当前故意保持很小，只覆盖 `M2` 这一步必须成立的最小动作：
+The render order is a deterministic topological walk over parent routes, track sends, and post-effect sidechain dependencies. This keeps child tracks before parents, send sources before send targets, and post-effect sidechain key tracks before the compressors that read them.
 
-- `backend_name()`
-- `backend_status()`
-- `load_clip(locator)`
-- `clip_info(clip)`
-- `play_clip(clip, settings)`
-- `stop_playback(playback)`
-- `render_mix(frames)`
+Rendering follows a fixed block pipeline:
 
-对应 DTO 也只保留最小必需集：
+1. Validate the graph has a `master` track and no parent cycles.
+2. Mix `play_clip` convenience playbacks into their requested output track.
+3. Mix explicit `SoundSourceDescriptor` voices into dry source buffers.
+4. Apply the active listener policy, distance attenuation, stereo pan, source cone, deterministic occlusion fallback, Doppler preview gain, source convolution send, and strongest `AudioVolume` influence to each source buffer.
+5. Route post-spatial source buffers into their output tracks, while `SoundSourceSend::pre_spatial` can tap the dry buffer for FMOD-style pre-spatial sends.
+6. Process non-master tracks in topological order, preserving both pre-effect and post-effect sidechain tap buffers.
+7. Run enabled effect chains, then track controls: gain, pan, L/R trims, delay, phase inversion, mute, solo direct-input gating, and bypass.
+8. Route processed tracks into parent tracks and sends.
+9. Process `master`, update meters, apply master gain, and clamp final samples.
 
-- `SoundClipId`
-- `SoundPlaybackId`
-- `SoundClipInfo { locator, sample_rate_hz, channel_count, frame_count, duration_seconds }`
-- `SoundPlaybackSettings { gain, looped }`
-- `SoundMixBlock { sample_rate_hz, channel_count, samples }`
-- `SoundBackendStatus { requested_backend, active_backend, state, detail, sample_rate_hz, channel_count }`
-- `SoundError::{InvalidLocator, BackendUnavailable, NoProjectOpen, UnknownClip, UnknownPlayback, InvalidMixRequest, Decode, Io}`
+`play_clip` is retained only as a convenience path into this graph. It is not a separate compatibility mixer.
 
-这里没有提前引入 source bus、DSP node、listener、spatialization、streaming source、Ogg/MP3、bus automation 或 mixer graph。那些都属于后续音频系统层级，而不是这条 `M2` 起手 contract 该承载的范围。
+## Design and Rationale
 
-## Asset Path
+The contract deliberately models FMOD/Unreal/Godot/Fyrox-style audio structure:
 
-这轮真正的底层补点不在 `SoundManager` 自己，而在 asset importer。
+- `master` is mandatory and cannot be removed.
+- Custom tracks can route to `master` or another parent and can send into other tracks.
+- Explicit send CRUD preserves the graph validator as the single source of truth for missing targets, self-sends, parent cycles, send cycles, and post-effect sidechain dependency cycles.
+- Solo tracks mute non-solo direct playbacks/sources while still allowing solo-track audio to route through parent tracks to `master`.
+- Effect descriptors are data-only so future native/VM plugin paths can serialize them.
+- Sidechain compression references another track by ID instead of holding concrete Rust references. `pre_effects` reads the key track input buffer; post-effect taps require the key track to render earlier and read its processed control-applied buffer.
+- Static convolution reverb uses the same `SoundImpulseResponseId` slot that future ray-traced IR generation will fill.
+- External and synthesizer sound sources are neutral handles/parameter IDs, so other plugins can feed audio without linking to sound internals.
+- Active listeners are selected deterministically by requested mixer target, then `master`, then stable listener ID. This keeps multi-listener editor previews predictable while leaving room for richer runtime routing later.
+- `AudioVolume` influence is deterministic in the first runtime slice: the highest-priority volume with non-zero influence wins, and its crossfade blends exterior/interior gain, low-pass, and static convolution send weight.
 
-如果只给 `DefaultSoundManager` 加一个“直接读文件”的特例路径，`ProjectAssetManager::open_project()` 仍会在遇到 `.wav` 时因为 `UnsupportedFormat` 失败。那样只是让上层 feature 走一条旁路，并没有把共享下层补齐。
+The first CPU DSP implementations are deterministic block effects for tests and editor preview. They are not yet a final low-latency audio-device backend.
 
-所以这里先把 shared support 层补全：
+## Editor and Plugin Metadata
 
-- `ResourceKind` 新增 `Sound`
-- `ImportedAsset` 新增 `Sound(SoundAsset)`
-- `AssetImporter::import_from_source()` 识别 `.wav`
-- `import_sound.rs` 负责把 WAV bytes 解析成 `SoundAsset`
-- `ArtifactStore` 为 `Sound` 分配 `lib://sound/...` artifact 路径
-- `ProjectAssetManager` 增加 `load_sound_asset(...)` / `acquire_sound_asset(...)`
+The sound plugin now contributes:
 
-`SoundAsset` 目前持有：
+- Dynamic component descriptors for `sound.Component.AudioSource`, `sound.Component.AudioListener`, and `sound.Component.AudioVolume`.
+- Plugin options for backend, sample rate, channels, block size, max voices/tracks, HRTF, convolution, ray-tracing quality, Timeline automation, and dynamic event enablement.
+- Manifest dependencies on `asset` and `scene`, plus optional `ray_query` and `timeline_sequence`.
+- An empty `sound.dynamic_events` event catalog, versioned now so later multi-plugin event work has a stable slot.
+- Editor views for Sound Mixer and Acoustic Debug.
+- Component drawers for AudioSource, AudioListener, and AudioVolume.
+- Placeholder feature crates for Timeline animation-track integration and ray-traced convolution reverb. They contribute manifests/capabilities/modules only; the real multi-plugin behavior remains a later slice.
 
-- `uri`
-- `sample_rate_hz`
-- `channel_count`
-- `samples: Vec<f32>`
+The editor side is currently descriptor-level: it exposes the surfaces and gates that the host can discover. The concrete UI templates/controllers can be filled in the next editor implementation slice.
 
-也就是导入后直接保存归一化 PCM 样本，而不是把源文件 bytes 原样留给 runtime 每次再解码。
+## Edge Cases and Constraints
 
-## WAV Support
+- Removing `master` is rejected.
+- Parent cycles, send cycles, and post-effect sidechain cycles are rejected before replacing the stored graph.
+- Missing track references in playbacks, sends, or parent routes return typed errors.
+- Removing a missing track send returns `UnknownSend`; querying a missing sound parameter returns `UnknownParameter`.
+- Effect wet mix must stay within `0..=1`; compressors require `ratio >= 1`; filters and limiters reject invalid core parameters.
+- Source descriptors reject non-finite position/forward/velocity/gain values and spatial ranges outside the supported envelope.
+- Listener descriptors reject non-finite transforms and unknown mixer targets.
+- Volume descriptors reject invalid shapes, non-finite gains, negative crossfade distances, and invalid low-pass cutoffs.
+- Impulse responses must be non-empty and finite.
+- Automation bindings must name a Timeline-style track path, but Timeline execution remains a gated integration point.
+- Ray-traced convolution is not active until a geometry/ray-query provider exists; the status records disabled/static/future ray-traced state.
 
-当前 `.wav` 导入支持以下最小集合：
+## Test Coverage
 
-- PCM 8-bit
-- PCM 16-bit
-- PCM 24-bit
-- PCM 32-bit
-- IEEE float 32-bit
+Added sound runtime tests cover plugin registration, component/option/event contribution, silence rendering, custom track routing, track send CRUD/rendering/errors, parent and send cycle rejection, solo direct-input gating, effect-chain gain, sidechain compression, pre/post sidechain taps, static convolution IR, synth parameter source rendering, parameter readback errors, automation snapshot visibility, listener-driven attenuation/pan/occlusion, volume priority/crossfade gain, pre-spatial source sends, deterministic filter/reverb/wave-shaper/modulation effects, pan/phase/limiter, bypass, and wet/dry behavior.
 
-`SoundAsset::from_wav_bytes(...)` 负责：
+Added editor tests cover mixer and acoustic debug views, templates, menus, operations, and component drawer registration.
 
-- 校验 `RIFF/WAVE` 头
-- 解析 `fmt ` chunk
-- 查找 `data` chunk
-- 检查 `channel_count` / `sample_rate_hz` / `block_align`
-- 把样本归一化成 `f32`
+Validation evidence from this continuation slice:
 
-这一轮没有支持 ADPCM、压缩 WAVE 扩展、metadata chunk 透传、streaming chunk decode 或超大文件分页加载。
+- `cargo test --manifest-path zircon_plugins\sound\runtime\Cargo.toml --locked --offline --jobs 1 --message-format short --color never` passed with `CARGO_TARGET_DIR=E:\Git\ZirconEngine\target\codex-sound-direct`: runtime `16/16` tests passed and doctests had no failures.
+- `cargo check --manifest-path zircon_plugins\sound\editor\Cargo.toml --lib --locked --offline --jobs 1 --message-format short --color never` passed with the same target directory.
+- `cargo check --manifest-path zircon_plugins\sound\runtime\Cargo.toml --tests --locked --offline --jobs 1 --message-format short --color never` passed before the full runtime test run and confirmed the new test code type-checked.
+- A full `cargo test --manifest-path zircon_plugins\sound\editor\Cargo.toml ...` attempt timed out in the editor test-binary stage without Rust diagnostics under concurrent workspace build pressure; the editor library check above is the accepted scoped gate for this slice.
 
-## Runtime Implementation
+## Plan Sources
 
-默认实现 `DefaultSoundManager` 当前基于 `software-mixer`：
+This update implements the first "core first" stage from `Sound 插件核心完善计划`: stable contracts, graph/DSP runtime, components, options/dependencies/events placeholders, and editor authoring descriptors.
 
-- 通过 `ProjectAssetManager` 按 locator 解析 `SoundAsset`
-- 维护 `locator -> SoundClipId` clip cache
-- 维护 `SoundPlaybackId -> ActivePlayback` 播放实例表
-- `render_mix(frames)` 按当前播放游标把 clip 样本混到输出 buffer
-- mono clip 输出到 stereo 时复制到左右声道
-- multi-channel clip 输出到 mono 时先做均值
-- `stop_playback(playback)` 会让播放实例从后续混音中消失
-- `looped = true` 的播放实例会跨 clip 结尾回绕继续混音
-- 播放结束且 `looped = false` 的实例会在混音后自动回收
+The deeper follow-up remains:
 
-默认配置是：
-
-- `backend = "software-mixer"`
-- `sample_rate_hz = 48000`
-- `channel_count = 2`
-- `master_gain = 1.0`
-
-这让它满足两个条件：
-
-- 真正能走完 `project asset -> load_clip -> play_clip -> render_mix`
-- 不依赖本机是否存在可用音频设备，所以测试环境稳定
-
-## Module Wiring
-
-`SoundModule` 不再走 `module_descriptor_with_driver_and_manager::<_, _>(...)` 的占位 helper。
-
-现在和 `net` 一样显式注册三层服务：
-
-1. `SoundDriver`
-2. `DefaultSoundManager`
-3. manager handle `SoundManagerHandle`
-
-并且 `DefaultSoundManager` 明确依赖：
-
-- `SoundDriver`
-- `AssetModule.Manager.ProjectAssetManager`
-
-这样上层 app / editor / runtime host 继续只认 `core::manager::resolve_sound_manager(...)`，而具体默认实现、asset support 和将来的平台 backend 替换都留在 runtime 内部。
-
-## Validation
-
-这轮至少跑过的回归包括：
-
-- `cargo test -p zircon_runtime asset::tests::project::manager::project_manager_imports_sound_assets_into_runtime_library --locked`
-  - 证明最底层 `.wav` importer、`SoundAsset`、artifact store 和 project registry 已经闭合
-- `cargo test -p zircon_runtime zircon_plugin_sound_runtime::tests::sound_manager_loads_project_wav_and_mixes_playback_to_stereo --locked`
-  - 证明正常路径已经成立：`open_project -> load_clip -> play_clip -> render_mix`
-- `cargo test -p zircon_runtime --lib --locked sound_manager_ --offline`
-  - 证明播放生命周期 contract 已经覆盖停止后不再混音、looped playback 跨 clip 结尾回绕，以及项目 WAV 加载混音路径
-- `cargo test -p zircon_runtime tests::extensions::manager_handles::externalized_runtime_plugins_keep_manager_handles_under_core_manager_contracts --locked`
-  - 证明 `SOUND_MANAGER_NAME`、`SoundManagerHandle` 和 `resolve_sound_manager(...)` 已进入 core manager 稳定表面
-
-## Next Steps
-
-这一轮收口后，后续声音方向可以继续分层推进：
-
-1. 在 `SoundAsset` 之上加压缩格式和 streaming decode
-2. 把 `software-mixer` 接到真实平台音频输出 driver
-3. 再往上才是 bus、spatialization、listener、effect chain 和 scene-attached audio source
-
-关键是这些后续层都应该建立在当前已经收口的 `SoundManager` contract 和 `SoundAsset` importer 之上，而不是重新回到“只有 module 壳、没有真实 runtime 行为”的状态。
+- platform audio output driver,
+- stateful low-latency DSP with persistent delay/reverb lines,
+- true spatial HRTF and occlusion,
+- ray-traced impulse-response generation from scene geometry,
+- full Timeline event execution and dynamic multi-plugin event semantics,
+- concrete editor UI templates/controllers.

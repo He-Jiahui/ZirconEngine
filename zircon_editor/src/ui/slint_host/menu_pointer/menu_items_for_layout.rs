@@ -28,6 +28,10 @@ pub(in crate::ui::slint_host::menu_pointer) fn menu_items_for_layout(
             menu_action("DeleteSelected", layout.delete_enabled),
         ],
         3 => vec![
+            menu_action("EnterPlayMode", true),
+            menu_action("ExitPlayMode", false),
+        ],
+        4 => vec![
             menu_action("OpenView.editor.project", true),
             menu_action("OpenView.editor.hierarchy", true),
             menu_action("OpenView.editor.inspector", true),
@@ -37,7 +41,7 @@ pub(in crate::ui::slint_host::menu_pointer) fn menu_items_for_layout(
             menu_action("OpenView.editor.console", true),
             menu_action("OpenView.editor.prefab", true),
         ],
-        4 => {
+        5 => {
             let mut items = vec![
                 menu_action(format!("SavePreset.{}", layout.resolved_preset_name), true),
                 menu_action("ResetLayout", true),
@@ -50,7 +54,7 @@ pub(in crate::ui::slint_host::menu_pointer) fn menu_items_for_layout(
             );
             items
         }
-        5 => vec![menu_action("OpenView.editor.asset_browser", true)],
+        6 => vec![menu_action("OpenView.editor.asset_browser", true)],
         _ => Vec::new(),
     }
 }

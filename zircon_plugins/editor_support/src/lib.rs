@@ -1,7 +1,12 @@
+use zircon_editor::core::editor_authoring_extension::{
+    AssetCreationTemplateDescriptor, GraphEditorDescriptor, GraphNodePaletteDescriptor,
+    TimelineEditorDescriptor, TimelineTrackDescriptor, ViewportToolModeDescriptor,
+};
 use zircon_editor::core::editor_event::{EditorEvent, MenuAction, ViewDescriptorId};
 use zircon_editor::core::editor_extension::{
-    DrawerDescriptor, EditorExtensionRegistry, EditorExtensionRegistryError,
-    EditorMenuItemDescriptor, EditorUiTemplateDescriptor, ViewDescriptor,
+    AssetEditorDescriptor, AssetImporterDescriptor, ComponentDrawerDescriptor, DrawerDescriptor,
+    EditorExtensionRegistry, EditorExtensionRegistryError, EditorMenuItemDescriptor,
+    EditorUiTemplateDescriptor, ViewDescriptor,
 };
 use zircon_editor::core::editor_operation::EditorOperationDescriptor;
 
@@ -52,6 +57,57 @@ pub fn register_authoring_extensions(
     ))?;
     for surface in extensions.surfaces {
         register_authoring_surface(registry, *surface)?;
+    }
+    Ok(())
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct EditorAuthoringContributionBatch {
+    pub operations: Vec<EditorOperationDescriptor>,
+    pub asset_importers: Vec<AssetImporterDescriptor>,
+    pub asset_editors: Vec<AssetEditorDescriptor>,
+    pub component_drawers: Vec<ComponentDrawerDescriptor>,
+    pub asset_creation_templates: Vec<AssetCreationTemplateDescriptor>,
+    pub viewport_tool_modes: Vec<ViewportToolModeDescriptor>,
+    pub graph_editors: Vec<GraphEditorDescriptor>,
+    pub graph_node_palettes: Vec<GraphNodePaletteDescriptor>,
+    pub timeline_editors: Vec<TimelineEditorDescriptor>,
+    pub timeline_track_types: Vec<TimelineTrackDescriptor>,
+}
+
+pub fn register_authoring_contribution_batch(
+    registry: &mut EditorExtensionRegistry,
+    batch: EditorAuthoringContributionBatch,
+) -> Result<(), EditorExtensionRegistryError> {
+    for operation in batch.operations {
+        registry.register_operation(operation)?;
+    }
+    for importer in batch.asset_importers {
+        registry.register_asset_importer(importer)?;
+    }
+    for editor in batch.asset_editors {
+        registry.register_asset_editor(editor)?;
+    }
+    for drawer in batch.component_drawers {
+        registry.register_component_drawer(drawer)?;
+    }
+    for template in batch.asset_creation_templates {
+        registry.register_asset_creation_template(template)?;
+    }
+    for tool_mode in batch.viewport_tool_modes {
+        registry.register_viewport_tool_mode(tool_mode)?;
+    }
+    for graph_editor in batch.graph_editors {
+        registry.register_graph_editor(graph_editor)?;
+    }
+    for palette in batch.graph_node_palettes {
+        registry.register_graph_node_palette(palette)?;
+    }
+    for editor in batch.timeline_editors {
+        registry.register_timeline_editor(editor)?;
+    }
+    for track_type in batch.timeline_track_types {
+        registry.register_timeline_track_type(track_type)?;
     }
     Ok(())
 }

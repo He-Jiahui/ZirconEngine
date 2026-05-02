@@ -1,8 +1,9 @@
 use std::collections::BTreeMap;
 
-use crate::ui::template::{UiCompileCacheKey, UiCompiledDocument, UiInvalidationGraph};
+use crate::ui::template::{UiCompiledDocument, UiInvalidationGraph};
 use zircon_runtime_interface::ui::template::{
-    UiAssetDocument, UiAssetHeader, UiAssetKind, UiInvalidationReport, UiInvalidationSnapshot,
+    UiAssetDocument, UiAssetHeader, UiAssetKind, UiCompileCacheKey, UiInvalidationReport,
+    UiInvalidationSnapshot,
 };
 
 #[derive(Clone, Debug, Default)]

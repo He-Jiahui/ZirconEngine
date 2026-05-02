@@ -10,11 +10,9 @@ mod ui_document_compiler;
 mod ui_style_resolver;
 mod value_normalizer;
 
-pub use cache::{UiAssetCompileCache, UiCompileCacheKey, UiCompileCacheOutcome};
+pub use cache::{compile_cache_key_from_compiler, UiAssetCompileCache, UiCompileCacheOutcome};
 pub use package::{
-    UiCompiledAssetArtifact, UiCompiledAssetCacheRecord, UiCompiledAssetPackageArtifactEntry,
-    UiCompiledAssetPackageManifest, UI_COMPILED_ASSET_COMPILER_SCHEMA_VERSION,
-    UI_COMPILED_ASSET_PACKAGE_SCHEMA_VERSION,
+    compiled_asset_package_manifest_from_artifact_bytes, UiRuntimeCompiledAssetArtifact,
 };
 pub use ui_document_compiler::{UiCompiledDocument, UiDocumentCompiler};
 pub use ui_style_resolver::UiStyleResolver;

@@ -10,7 +10,7 @@ mod sync;
 mod watcher;
 mod workspace_state;
 
-use zircon_runtime::ui::template::UiAssetLoader;
+use crate::ui::template::EditorTemplateRuntimeService;
 use zircon_runtime_interface::ui::template::{UiAssetDocument, UiAssetError};
 
 pub(crate) use editing::{
@@ -25,14 +25,5 @@ pub(crate) use workspace_state::{
 };
 
 fn parse_ui_asset_document_source(source: &str) -> Result<UiAssetDocument, UiAssetError> {
-    UiAssetLoader::load_toml_str(source).or_else(|error| {
-        #[cfg(test)]
-        {
-            crate::tests::support::load_test_ui_asset(source).or(Err(error))
-        }
-        #[cfg(not(test))]
-        {
-            Err(error)
-        }
-    })
+    EditorTemplateRuntimeService.parse_document_source(source)
 }

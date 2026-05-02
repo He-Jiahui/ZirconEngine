@@ -551,6 +551,10 @@ impl AnimationClipAsset {
             &AnimationClipBinaryAsset::from(self),
         )
     }
+
+    pub fn direct_references(&self) -> Vec<AssetReference> {
+        vec![self.skeleton.clone()]
+    }
 }
 
 impl AnimationSequenceAsset {
@@ -582,6 +586,16 @@ impl AnimationGraphAsset {
     pub fn to_bytes(&self) -> Result<Vec<u8>, String> {
         encode_binary_asset(AnimationBinaryAssetKind::Graph, self)
     }
+
+    pub fn direct_references(&self) -> Vec<AssetReference> {
+        let mut references = Vec::new();
+        for node in &self.nodes {
+            if let AnimationGraphNodeAsset::Clip { clip, .. } = node {
+                push_unique_reference(&mut references, clip.clone());
+            }
+        }
+        references
+    }
 }
 
 impl AnimationStateMachineAsset {
@@ -598,6 +612,23 @@ impl AnimationStateMachineAsset {
             AnimationBinaryAssetKind::StateMachine,
             &AnimationStateMachineBinaryAsset::from(self),
         )
+    }
+
+    pub fn direct_references(&self) -> Vec<AssetReference> {
+        let mut references = Vec::new();
+        for state in &self.states {
+            push_unique_reference(&mut references, state.graph.clone());
+        }
+        references
+    }
+}
+
+fn push_unique_reference(references: &mut Vec<AssetReference>, reference: AssetReference) {
+    if !references
+        .iter()
+        .any(|existing| existing.uuid == reference.uuid && existing.locator == reference.locator)
+    {
+        references.push(reference);
     }
 }
 

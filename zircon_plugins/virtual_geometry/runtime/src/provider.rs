@@ -96,6 +96,7 @@ impl RuntimeStateContract for PluginVirtualGeometryRuntimeState {
             snapshot.page_table_entry_count(),
             snapshot.resident_page_count(),
             snapshot.pending_request_count(),
+            snapshot.page_dependency_count(),
             completed_page_count,
             replaced_page_count,
         ))

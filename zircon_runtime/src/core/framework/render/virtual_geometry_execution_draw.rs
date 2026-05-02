@@ -1,10 +1,12 @@
 use std::sync::Arc;
 
+use crate::rhi::GpuBuffer;
+
 use super::RenderVirtualGeometryExecutionSegment;
 
 #[derive(Clone)]
 pub struct RenderVirtualGeometryExecutionDraw {
-    pub indirect_args_buffer: Option<Arc<wgpu::Buffer>>,
+    pub indirect_args_buffer: Option<Arc<GpuBuffer>>,
     pub indirect_args_offset: u64,
     pub uses_indirect_draw: bool,
     pub execution_selection_key: Option<(u64, u32)>,

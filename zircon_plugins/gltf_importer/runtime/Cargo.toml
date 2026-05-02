@@ -1,0 +1,10 @@
+[package]
+name = "zircon_plugin_gltf_importer_runtime"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "glTF and GLB asset importer runtime plugin package for Zircon."
+
+[dependencies]
+gltf = "1.4.1"
+zircon_runtime = { path = "../../../zircon_runtime", default-features = false }

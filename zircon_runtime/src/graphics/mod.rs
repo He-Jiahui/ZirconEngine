@@ -40,10 +40,8 @@ pub use scene::{
     RenderPassExecutorRegistration, SceneRenderer,
 };
 pub use shader::{MaterialGraphAsset, ShaderGraphAsset, ShaderProgramAsset, ShaderVariantKey};
-pub use types::{
-    GpuResourceHandle, GraphicsError, ViewportFrame, ViewportFrameTextureHandle,
-    ViewportRenderFrame,
-};
+pub(crate) use types::ViewportRenderFrame;
+pub use types::{GpuResourceHandle, GraphicsError, ViewportFrame, ViewportFrameTextureHandle};
 pub use virtual_geometry_runtime_provider::{
     VirtualGeometryGpuCompletion, VirtualGeometryRuntimeFeedback,
     VirtualGeometryRuntimePrepareInput, VirtualGeometryRuntimePrepareOutput,

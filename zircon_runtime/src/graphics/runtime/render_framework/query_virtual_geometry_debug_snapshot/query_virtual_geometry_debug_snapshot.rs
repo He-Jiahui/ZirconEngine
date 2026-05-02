@@ -9,6 +9,6 @@ pub(in crate::graphics::runtime::render_framework) fn query_virtual_geometry_deb
         .state
         .lock()
         .unwrap()
-        .renderer
-        .last_virtual_geometry_debug_snapshot())
+        .last_virtual_geometry_debug_snapshot
+        .clone())
 }

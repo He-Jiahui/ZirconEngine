@@ -1,0 +1,9 @@
+[package]
+name = "zircon_plugin_asset_importer_data_runtime"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Data asset importer runtime plugin package for Zircon."
+
+[dependencies]
+zircon_runtime = { path = "../../../../zircon_runtime", default-features = false }

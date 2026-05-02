@@ -1,5 +1,6 @@
 use crate::ui::asset_editor::UiAssetPreviewPreset;
-use zircon_runtime::ui::template::{UiCompiledDocument, UiDocumentCompiler};
+use crate::ui::template::EditorTemplateRuntimeService;
+use zircon_runtime::ui::template::UiCompiledDocument;
 use zircon_runtime_interface::ui::{
     layout::UiSize,
     template::{UiAssetDocument, UiAssetKind},
@@ -18,14 +19,12 @@ pub(super) fn compile_preview(
         return Ok((None, None));
     }
 
-    let mut compiler = UiDocumentCompiler::default();
-    for (reference, widget) in &imports.widgets {
-        compiler.register_widget_import(reference.clone(), widget.clone())?;
-    }
-    for (reference, style) in &imports.styles {
-        compiler.register_style_import(reference.clone(), style.clone())?;
-    }
-    let compiled = compiler.compile(document)?;
+    let template_service = EditorTemplateRuntimeService;
+    let compiled = template_service.compile_document_with_import_maps(
+        document,
+        &imports.widgets,
+        &imports.styles,
+    )?;
     let preview_host = UiAssetPreviewHost::new(preview_size, &document.asset.id, &compiled)?;
     Ok((Some(compiled), Some(preview_host)))
 }

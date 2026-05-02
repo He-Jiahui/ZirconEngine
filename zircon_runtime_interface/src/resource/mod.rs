@@ -1,30 +1,17 @@
 //! Shared resource identity and status DTOs for editor/runtime contracts.
 
-#[path = "../../../zircon_runtime/src/core/resource/diagnostic.rs"]
-mod diagnostic;
-#[path = "../../../zircon_runtime/src/core/resource/handle/resource_handle.rs"]
-mod resource_handle;
-#[path = "../../../zircon_runtime/src/core/resource/id.rs"]
-mod resource_id;
-#[path = "../../../zircon_runtime/src/core/resource/identity/asset_reference.rs"]
 mod asset_reference;
-#[path = "../../../zircon_runtime/src/core/resource/identity/asset_uuid.rs"]
 mod asset_uuid;
-#[path = "../../../zircon_runtime/src/core/resource/identity/stable_uuid.rs"]
-mod stable_uuid;
-#[path = "../../../zircon_runtime/src/core/resource/locator.rs"]
+mod diagnostic;
 mod locator;
-#[path = "../../../zircon_runtime/src/core/resource/marker.rs"]
 mod marker;
-#[path = "../../../zircon_runtime/src/core/resource/record/resource_event.rs"]
 mod resource_event;
-#[path = "../../../zircon_runtime/src/core/resource/record/resource_event_kind.rs"]
 mod resource_event_kind;
-#[path = "../../../zircon_runtime/src/core/resource/record/resource_record.rs"]
+mod resource_handle;
+mod resource_id;
 mod resource_record;
-#[path = "../../../zircon_runtime/src/core/resource/state.rs"]
+mod stable_uuid;
 mod state;
-#[path = "../../../zircon_runtime/src/core/resource/handle/untyped_handle.rs"]
 mod untyped_handle;
 
 pub use asset_reference::AssetReference;
@@ -33,9 +20,11 @@ pub use diagnostic::{ResourceDiagnostic, ResourceDiagnosticSeverity};
 pub use locator::{ResourceLocator, ResourceLocatorError, ResourceScheme};
 pub use marker::{
     AnimationClipMarker, AnimationGraphMarker, AnimationSequenceMarker, AnimationSkeletonMarker,
-    AnimationStateMachineMarker, FontMarker, MaterialMarker, ModelMarker, PhysicsMaterialMarker,
-    ResourceKind, ResourceMarker, SceneMarker, ShaderMarker, SoundMarker, TextureMarker,
-    UiLayoutMarker, UiStyleMarker, UiWidgetMarker,
+    AnimationStateMachineMarker, DataMarker, FontMarker, MaterialGraphMarker, MaterialMarker,
+    ModelMarker, NavMeshMarker, NavigationSettingsMarker, PhysicsMaterialMarker, PrefabMarker,
+    ResourceKind, ResourceMarker, SceneMarker, ShaderMarker, SoundMarker, TerrainLayerStackMarker,
+    TerrainMarker, TextureMarker, TileMapMarker, TileSetMarker, UiLayoutMarker, UiStyleMarker,
+    UiWidgetMarker,
 };
 pub use resource_event::ResourceEvent;
 pub use resource_event_kind::ResourceEventKind;

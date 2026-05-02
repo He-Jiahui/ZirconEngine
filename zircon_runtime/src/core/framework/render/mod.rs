@@ -37,7 +37,7 @@ pub use overlay::{
 pub use plugin_renderer_outputs::{
     RenderHybridGiCacheEntryRecord, RenderHybridGiReadbackOutputs,
     RenderHybridGiScenePrepareReadbackOutputs, RenderHybridGiScenePrepareSample,
-    RenderHybridGiVoxelCellRecord, RenderPluginRendererOutputs,
+    RenderHybridGiVoxelCellRecord, RenderParticleGpuReadbackOutputs, RenderPluginRendererOutputs,
     RenderVirtualGeometryNodeClusterCullReadbackOutputs, RenderVirtualGeometryPageAssignmentRecord,
     RenderVirtualGeometryPageReplacementRecord, RenderVirtualGeometryReadbackOutputs,
 };
@@ -49,7 +49,7 @@ pub use scene_extract::{
     RenderSceneGeometryExtract, RenderSceneSnapshot, RenderSpotLightSnapshot,
     RenderVirtualGeometryCluster, RenderVirtualGeometryDebugState, RenderVirtualGeometryExtract,
     RenderVirtualGeometryHierarchyNode, RenderVirtualGeometryInstance, RenderVirtualGeometryPage,
-    SceneViewportRenderPacket,
+    RenderVirtualGeometryPageDependency, SceneViewportRenderPacket,
 };
 pub use scene_extract::{RenderHybridGiProbe, RenderHybridGiTraceRegion};
 pub use virtual_geometry_debug_snapshot::{
@@ -60,6 +60,7 @@ pub use virtual_geometry_debug_snapshot::{
     RenderVirtualGeometryCpuReferenceMipClusterMapEntry,
     RenderVirtualGeometryCpuReferenceNodeVisit,
     RenderVirtualGeometryCpuReferencePageClusterMapEntry,
+    RenderVirtualGeometryCpuReferencePageDependencyEntry,
     RenderVirtualGeometryCpuReferenceSelectedCluster, RenderVirtualGeometryCullInputSnapshot,
     RenderVirtualGeometryDebugSnapshot, RenderVirtualGeometryExecutionSegment,
     RenderVirtualGeometryExecutionState, RenderVirtualGeometryHardwareRasterizationRecord,

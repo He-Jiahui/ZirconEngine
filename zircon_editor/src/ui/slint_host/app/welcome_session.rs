@@ -37,7 +37,7 @@ impl SlintEditorHost {
         self.startup_session = session;
 
         match (mode, project) {
-            (EditorSessionMode::Project, Some(document)) => {
+            (EditorSessionMode::Project | EditorSessionMode::Playing, Some(document)) => {
                 self.editor_manager
                     .apply_project_workspace(document.editor_workspace.clone())
                     .map_err(|error| error.to_string())?;
@@ -55,7 +55,7 @@ impl SlintEditorHost {
                 self.sync_asset_workspace();
                 self.mark_render_and_presentation_dirty();
             }
-            (EditorSessionMode::Welcome, _) => {
+            (EditorSessionMode::Welcome | EditorSessionMode::Playing, _) => {
                 self.runtime.set_session_mode(EditorSessionMode::Welcome);
                 self.runtime.set_welcome_snapshot(welcome_snapshot);
                 self.editor_manager

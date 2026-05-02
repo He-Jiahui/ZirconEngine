@@ -14,5 +14,6 @@ mod render;
 mod world;
 
 pub use component_type_registry::ComponentTypeRegistry;
+pub use dynamic_components::DynamicComponentInstance;
 pub use project_io::SceneProjectError;
 pub use world::World;

@@ -1,0 +1,36 @@
+id = "plugin_sdk_examples"
+version = "0.1.0"
+sdk_api_version = "0.1.0"
+display_name = "Plugin SDK Examples"
+description = "Editor SDK fixture package containing a window plugin and an importer plus inspector plugin."
+category = "sdk"
+supported_targets = ["editor_host"]
+supported_platforms = ["windows", "linux", "macos"]
+capabilities = [
+    "editor.extension.plugin_sdk_examples",
+    "editor.extension.plugin_sdk_examples.window",
+    "editor.extension.plugin_sdk_examples.asset_fixture",
+]
+asset_roots = ["assets"]
+content_roots = ["examples"]
+default_packaging = ["source_template", "library_embed"]
+
+[[asset_importers]]
+id = "sdk.example.asset.model_importer"
+plugin_id = "plugin_sdk_examples"
+priority = 10
+source_extensions = ["glb", "gltf"]
+output_kind = "Data"
+importer_version = 1
+required_capabilities = ["editor.extension.plugin_sdk_examples.asset_fixture"]
+
+[[modules]]
+name = "plugin_sdk_examples.editor"
+kind = "editor"
+crate_name = "zircon_plugin_sdk_examples_editor"
+target_modes = ["editor_host"]
+capabilities = [
+    "editor.extension.plugin_sdk_examples",
+    "editor.extension.plugin_sdk_examples.window",
+    "editor.extension.plugin_sdk_examples.asset_fixture",
+]

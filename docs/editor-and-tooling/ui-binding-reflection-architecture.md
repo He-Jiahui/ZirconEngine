@@ -42,6 +42,7 @@ related_code:
   - zircon_editor/src/core/editor_event/mod.rs
   - zircon_editor/src/core/editor_event/types.rs
   - zircon_editor/src/core/editor_event/runtime.rs
+  - zircon_editor/src/core/editor_event/runtime/editor_event_runtime.rs
   - zircon_editor/src/core/editor_event/listener.rs
   - zircon_editor/src/core/editor_operation.rs
   - zircon_editor/src/core/editor_extension.rs
@@ -651,7 +652,7 @@ No-preview asset icons are centralized in [`assets.slint`](/E:/Git/ZirconEngine/
 
 transient hover/focus/pressed/drawer-resize 投影现在已经迁到 [`transient_ui_state.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/workbench/reflection/transient_ui_state.rs)，而 Slint workbench 菜单/动态 preset 的字符串归一化则由 [`callback_dispatch/workbench/menu_action.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/callback_dispatch/workbench/menu_action.rs) 持有，再通过 [`core_event_conversion.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/workbench/event/core_event_conversion.rs) 把 UI 内部 layout model 显式转换成 canonical `core::editor_event::workbench::*` DTO。
 
-`EditorEventRuntimeInner` 的声明 owner 这一轮也从 `ui/host` 收回到了 [`core/editor_event/runtime/editor_event_runtime_inner.rs`](/E:/Git/ZirconEngine/zircon_editor/src/core/editor_event/runtime/editor_event_runtime_inner.rs)。`ui/host` 现在只保留 bootstrap、dispatch、execution、reflection 这些行为模块，直接消费 core runtime inner，而不是继续拥有 runtime state declaration 本身。
+`EditorEventRuntimeInner` 的声明 owner 这一轮也从 `ui/host` 收回到了 [`core/editor_event/runtime/editor_event_runtime_inner.rs`](/E:/Git/ZirconEngine/zircon_editor/src/core/editor_event/runtime/editor_event_runtime_inner.rs)。`ui/host` 现在只保留 bootstrap、dispatch、execution、reflection 这些行为模块，直接消费 core runtime inner，而不是继续拥有 runtime state declaration 本身。`EditorEventRuntime::lock_inner()` 是这些 host 行为模块的统一锁入口；如果先前 editor callback 已经 panic 并 poison 了 mutex，后续 snapshot、reflection 和 descriptor 查询会显式取回 inner 状态，而不是在每个访问点继续 `unwrap()` 并把 editor shell 永久卡死在连锁 panic 上。
 
 当前 canonical log record 固定保存：
 

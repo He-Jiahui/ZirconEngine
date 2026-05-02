@@ -1,9 +1,10 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{ExportPackagingStrategy, RuntimeTargetMode};
+use crate::{plugin::ExportPackagingStrategy, RuntimeTargetMode};
 
 use super::default_packaging::default_packaging;
 use super::default_true::default_true;
+use super::ProjectPluginFeatureSelection;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ProjectPluginSelection {
@@ -20,4 +21,6 @@ pub struct ProjectPluginSelection {
     pub runtime_crate: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub editor_crate: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub features: Vec<ProjectPluginFeatureSelection>,
 }

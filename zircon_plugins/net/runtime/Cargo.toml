@@ -6,4 +6,5 @@ license.workspace = true
 description = "Network runtime plugin package for Zircon."
 
 [dependencies]
+tokio = { version = "1", features = ["io-util", "net", "rt-multi-thread", "sync", "time"] }
 zircon_runtime = { path = "../../../zircon_runtime", default-features = false }

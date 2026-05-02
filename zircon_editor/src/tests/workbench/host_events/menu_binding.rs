@@ -17,3 +17,25 @@ fn menu_action_binding_roundtrips_through_headless_dispatch() {
         EditorHostEvent::Menu(action)
     );
 }
+
+#[test]
+fn play_mode_menu_action_bindings_roundtrip_through_headless_dispatch() {
+    for (action, expected_binding) in [
+        (
+            MenuAction::EnterPlayMode,
+            r#"WorkbenchMenuBar/EnterPlayMode:onClick(MenuAction("EnterPlayMode"))"#,
+        ),
+        (
+            MenuAction::ExitPlayMode,
+            r#"WorkbenchMenuBar/ExitPlayMode:onClick(MenuAction("ExitPlayMode"))"#,
+        ),
+    ] {
+        let binding = menu_action_binding(&action);
+
+        assert_eq!(binding.native_binding(), expected_binding);
+        assert_eq!(
+            dispatch_editor_host_binding(&binding).unwrap(),
+            EditorHostEvent::Menu(action)
+        );
+    }
+}

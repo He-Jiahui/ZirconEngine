@@ -2,12 +2,11 @@ use std::collections::BTreeMap;
 
 use toml::Value;
 
-use crate::ui::template::UiSelector;
 use zircon_runtime_interface::ui::template::{
-    UiAssetError, UiStyleDeclarationBlock, UiTemplateNode,
+    UiAssetError, UiSelector, UiStyleDeclarationBlock, UiTemplateNode,
 };
 
-use super::super::style::UiSelectorMatchNode;
+use super::super::style::{UiRuntimeSelectorMatchExt, UiSelectorMatchNode};
 use super::ui_document_compiler::ResolvedStyleSheet;
 use super::value_normalizer::{merge_value_maps, merge_value_maps_resolved};
 

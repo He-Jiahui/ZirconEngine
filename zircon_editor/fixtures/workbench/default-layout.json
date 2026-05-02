@@ -36,10 +36,12 @@
     "LeftBottom": {
       "slot": "LeftBottom",
       "tab_stack": {
-        "tabs": [],
-        "active_tab": null
+        "tabs": [
+          "editor.module_plugins#1"
+        ],
+        "active_tab": "editor.module_plugins#1"
       },
-      "active_view": null,
+      "active_view": "editor.module_plugins#1",
       "mode": "Collapsed",
       "extent": 288.0,
       "visible": true
@@ -84,10 +86,12 @@
     "BottomRight": {
       "slot": "BottomRight",
       "tab_stack": {
-        "tabs": [],
-        "active_tab": null
+        "tabs": [
+          "editor.runtime_diagnostics#1"
+        ],
+        "active_tab": "editor.runtime_diagnostics#1"
       },
-      "active_view": null,
+      "active_view": "editor.runtime_diagnostics#1",
       "mode": "Collapsed",
       "extent": 224.0,
       "visible": true

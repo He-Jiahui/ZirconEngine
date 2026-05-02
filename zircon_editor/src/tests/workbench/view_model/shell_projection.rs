@@ -37,7 +37,15 @@ fn workbench_view_model_projects_menu_strip_drawers_and_status() {
             .iter()
             .map(|menu| menu.label.as_str())
             .collect::<Vec<_>>(),
-        vec!["File", "Edit", "Selection", "View", "Window", "Help"]
+        vec![
+            "File",
+            "Edit",
+            "Selection",
+            "Play",
+            "View",
+            "Window",
+            "Help"
+        ]
     );
     assert!(model
         .menu_bar

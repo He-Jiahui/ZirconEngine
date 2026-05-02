@@ -54,3 +54,42 @@ fn animation_binary_assets_reject_kind_mismatch() {
 
     assert!(error.contains("kind mismatch"), "unexpected error: {error}");
 }
+
+#[test]
+fn animation_assets_report_direct_references() {
+    let clip = sample_animation_clip_asset();
+    let graph = sample_animation_graph_asset();
+    let state_machine = sample_animation_state_machine_asset();
+
+    assert_eq!(
+        reference_locators(clip.direct_references()),
+        vec!["res://animation/hero.skeleton.zranim".to_string()]
+    );
+    assert_eq!(
+        reference_locators(graph.direct_references()),
+        vec!["res://animation/hero.clip.zranim".to_string()]
+    );
+    assert_eq!(
+        reference_locators(state_machine.direct_references()),
+        vec!["res://animation/hero.graph.zranim".to_string()]
+    );
+
+    let graph_roundtrip = AnimationGraphAsset::from_bytes(&graph.to_bytes().unwrap()).unwrap();
+    let machine_roundtrip =
+        AnimationStateMachineAsset::from_bytes(&state_machine.to_bytes().unwrap()).unwrap();
+    assert_eq!(
+        reference_locators(graph_roundtrip.direct_references()),
+        vec!["res://animation/hero.clip.zranim".to_string()]
+    );
+    assert_eq!(
+        reference_locators(machine_roundtrip.direct_references()),
+        vec!["res://animation/hero.graph.zranim".to_string()]
+    );
+}
+
+fn reference_locators(references: Vec<crate::asset::AssetReference>) -> Vec<String> {
+    references
+        .into_iter()
+        .map(|reference| reference.locator.to_string())
+        .collect()
+}

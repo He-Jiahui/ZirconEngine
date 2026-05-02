@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use crate::core::editing::intent::EditorIntent;
 use crate::core::editor_event::{EditorEventEffect, MenuAction};
 use crate::ui::workbench::layout::LayoutCommand;
+use crate::ui::workbench::project::project_root_path;
 
 use super::common::{open_view, scene_effects, scene_intent_event};
 use super::execution_outcome::ExecutionOutcome;
@@ -88,6 +89,49 @@ pub(super) fn execute_menu_action(
                     EditorEventEffect::PresentationChanged,
                     EditorEventEffect::ReflectionChanged,
                 ],
+            })
+        }
+        MenuAction::EnterPlayMode => {
+            let project_root = project_root_path(&inner.state.snapshot().project_path).ok();
+            let changed = inner.state.enter_play_mode()?;
+            if changed {
+                match inner
+                    .runtime_play_mode_backend
+                    .enter_play_mode(project_root.as_deref())
+                {
+                    Ok(report) if report.is_clean() => {}
+                    Ok(report) => inner.state.set_status_line(format!(
+                        "Entered play mode; native runtime diagnostics: {}",
+                        report.diagnostics.join("; ")
+                    )),
+                    Err(error) => {
+                        let _ = inner.state.exit_play_mode();
+                        return Err(format!("Failed to enter runtime play mode: {error}"));
+                    }
+                }
+            }
+            Ok(ExecutionOutcome {
+                changed,
+                effects: scene_effects(),
+            })
+        }
+        MenuAction::ExitPlayMode => {
+            let changed = inner.state.exit_play_mode()?;
+            if changed {
+                match inner.runtime_play_mode_backend.exit_play_mode() {
+                    Ok(report) if report.is_clean() => {}
+                    Ok(report) => inner.state.set_status_line(format!(
+                        "Exited play mode; native runtime diagnostics: {}",
+                        report.diagnostics.join("; ")
+                    )),
+                    Err(error) => inner.state.set_status_line(format!(
+                        "Exited play mode; native runtime exit failed: {error}"
+                    )),
+                }
+            }
+            Ok(ExecutionOutcome {
+                changed,
+                effects: scene_effects(),
             })
         }
         MenuAction::Undo => scene_intent_event(inner, EditorIntent::Undo),

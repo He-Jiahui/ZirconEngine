@@ -29,6 +29,7 @@ pub use builtin::{
     builtin_runtime_modules, default_manifest_for_target, manifest_with_mode_baseline,
     runtime_core_modules, runtime_modules_for_target,
     runtime_modules_for_target_with_linked_plugins,
+    runtime_modules_for_target_with_plugin_and_feature_registration_reports,
     runtime_modules_for_target_with_plugin_registration_reports, RuntimeModuleLoadReport,
     RuntimePluginId, RuntimeRequiredPluginMissing, RuntimeTargetMode,
 };
@@ -55,24 +56,5 @@ pub(crate) use graphics::{
     VisibilityVirtualGeometryDrawSegment, VisibilityVirtualGeometryFeedback,
     VisibilityVirtualGeometryPageUploadPlan, WgpuRenderFramework,
 };
-pub use plugin::{
-    ComponentPropertyDescriptor, ComponentTypeDescriptor, EditorCoreProfile, ExportBuildPlan,
-    ExportGeneratedFile, ExportPackagingStrategy, ExportProfile, ExportTargetPlatform,
-    LoadedNativePlugin, NativePluginAbiV1, NativePluginAbiV2, NativePluginBehaviorCallReport,
-    NativePluginBehaviorV2, NativePluginByteSliceV2, NativePluginCallbackStatusV2,
-    NativePluginCandidate, NativePluginDescriptor, NativePluginEntryReportV2,
-    NativePluginHostFunctionTableV2, NativePluginLoadManifest, NativePluginLoadManifestEntry,
-    NativePluginLoadReport, NativePluginLoader, NativePluginOwnedByteBufferV2, PluginModuleKind,
-    PluginModuleManifest, PluginPackageManifest, ProjectPluginManifest, ProjectPluginSelection,
-    RuntimeCoreProfile, RuntimeExtensionCatalogReport, RuntimeExtensionRegistry,
-    RuntimeExtensionRegistryError, RuntimePlugin, RuntimePluginCatalog, RuntimePluginDescriptor,
-    RuntimePluginRegistrationReport, UiComponentDescriptor, ZIRCON_NATIVE_PLUGIN_ABI_VERSION,
-    ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V1, ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2,
-    ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL, ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V1,
-    ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V2, ZIRCON_NATIVE_PLUGIN_STATUS_DENIED,
-    ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, ZIRCON_NATIVE_PLUGIN_STATUS_OK,
-    ZIRCON_NATIVE_PLUGIN_STATUS_PANIC,
-};
-
 #[cfg(test)]
 mod tests;

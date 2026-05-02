@@ -1,3 +1,4 @@
+use super::SoundTrackId;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -13,6 +14,8 @@ pub struct SoundClipInfo {
 pub struct SoundPlaybackSettings {
     pub gain: f32,
     pub looped: bool,
+    pub output_track: SoundTrackId,
+    pub pan: f32,
 }
 
 impl Default for SoundPlaybackSettings {
@@ -20,6 +23,8 @@ impl Default for SoundPlaybackSettings {
         Self {
             gain: 1.0,
             looped: false,
+            output_track: SoundTrackId::master(),
+            pan: 0.0,
         }
     }
 }

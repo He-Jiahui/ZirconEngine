@@ -68,6 +68,161 @@ fn editor_manager_reports_minimal_host_capabilities_even_without_vm_bridge() {
 }
 
 #[test]
+fn editor_manager_plugin_status_lists_owner_optional_feature_dependencies() {
+    let _guard = env_lock().lock().unwrap();
+    let path = unique_temp_path("zircon_editor_optional_feature_status");
+    let runtime = editor_runtime_with_disabled_subsystems_config_path(&path);
+    let manager = runtime
+        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+        .unwrap();
+    let mut manifest = zircon_runtime::asset::project::ProjectManifest::new(
+        "Optional Feature Status",
+        zircon_runtime::asset::AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+        1,
+    );
+
+    let blocked = manager
+        .set_project_plugin_feature_enabled(
+            &mut manifest,
+            "sound",
+            "sound.timeline_animation_track",
+            true,
+        )
+        .unwrap_err();
+    assert!(blocked.contains("missing plugins"));
+
+    let dependency_report = manager
+        .enable_project_plugin_feature_dependencies(
+            &mut manifest,
+            "sound",
+            "sound.timeline_animation_track",
+        )
+        .expect("explicit dependency enable should update plugin selections");
+    assert_eq!(
+        dependency_report.enabled_dependency_plugins,
+        vec!["sound".to_string(), "animation".to_string()]
+    );
+
+    let status = manager.plugin_status_report(&manifest);
+    let sound = status
+        .plugins
+        .iter()
+        .find(|plugin| plugin.plugin_id == "sound")
+        .expect("sound plugin should be in the builtin catalog");
+    let timeline = sound
+        .optional_features
+        .iter()
+        .find(|feature| feature.id == "sound.timeline_animation_track")
+        .expect("sound timeline animation optional feature should be projected");
+
+    assert!(!timeline.enabled);
+    assert!(timeline.available);
+    assert_eq!(timeline.owner_plugin_id, "sound");
+    assert!(timeline
+        .provided_capabilities
+        .contains(&"runtime.feature.sound.timeline_animation_track".to_string()));
+    assert!(timeline.dependencies.iter().any(|dependency| {
+        dependency.plugin_id == "sound"
+            && dependency.capability == "runtime.plugin.sound"
+            && dependency.primary
+            && dependency.plugin_enabled
+            && dependency.capability_available
+    }));
+    assert!(timeline.dependencies.iter().any(|dependency| {
+        dependency.plugin_id == "animation"
+            && dependency.capability == "runtime.feature.animation.timeline_event_track"
+            && !dependency.primary
+            && dependency.plugin_enabled
+            && dependency.capability_available
+    }));
+
+    let feature_report = manager
+        .set_project_plugin_feature_enabled(
+            &mut manifest,
+            "sound",
+            "sound.timeline_animation_track",
+            true,
+        )
+        .expect("feature should enable after dependency plugins are enabled");
+    assert!(feature_report.enabled);
+    assert!(feature_report
+        .project_selection
+        .features
+        .iter()
+        .any(|feature| feature.id == "sound.timeline_animation_track" && feature.enabled));
+
+    std::env::remove_var("ZIRCON_CONFIG_PATH");
+    let _ = std::fs::remove_file(path);
+}
+
+#[test]
+fn editor_manager_feature_dependency_enablement_turns_on_unique_provider_features() {
+    let _guard = env_lock().lock().unwrap();
+    let path = unique_temp_path("zircon_editor_optional_feature_provider_dependencies");
+    let runtime = editor_runtime_with_disabled_subsystems_config_path(&path);
+    let manager = runtime
+        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+        .unwrap();
+    let mut manifest = zircon_runtime::asset::project::ProjectManifest::new(
+        "Optional Feature Provider Dependencies",
+        zircon_runtime::asset::AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+        1,
+    );
+
+    let report = manager
+        .enable_project_plugin_feature_dependencies(
+            &mut manifest,
+            "rendering",
+            "rendering.vfx_graph",
+        )
+        .expect("explicit dependency enable should include provider features");
+
+    assert!(report
+        .enabled_dependency_plugins
+        .contains(&"rendering".to_string()));
+    assert!(report
+        .enabled_dependency_plugins
+        .contains(&"particles".to_string()));
+    assert_eq!(
+        report.enabled_dependency_features,
+        vec!["rendering.shader_graph".to_string()]
+    );
+
+    let rendering_selection = manifest
+        .plugins
+        .selections
+        .iter()
+        .find(|selection| selection.id == "rendering")
+        .expect("rendering selection should be written back");
+    assert!(rendering_selection
+        .features
+        .iter()
+        .any(|feature| feature.id == "rendering.shader_graph" && feature.enabled));
+    assert!(rendering_selection
+        .features
+        .iter()
+        .any(|feature| feature.id == "rendering.vfx_graph" && !feature.enabled));
+
+    let status = manager.plugin_status_report(&manifest);
+    let vfx_graph = status
+        .plugins
+        .iter()
+        .find(|plugin| plugin.plugin_id == "rendering")
+        .and_then(|plugin| {
+            plugin
+                .optional_features
+                .iter()
+                .find(|feature| feature.id == "rendering.vfx_graph")
+        })
+        .expect("vfx graph optional feature should be projected");
+    assert!(!vfx_graph.enabled);
+    assert!(vfx_graph.available);
+
+    std::env::remove_var("ZIRCON_CONFIG_PATH");
+    let _ = std::fs::remove_file(path);
+}
+
+#[test]
 fn editor_manager_registers_minimal_host_capabilities_as_vm_handles_when_script_is_available() {
     let _guard = env_lock().lock().unwrap();
     let path = unique_temp_path("zircon_editor_minimal_host_vm");
@@ -347,13 +502,13 @@ fn project_plugin_packaging_and_target_modes_are_editable_through_manager_api() 
         .set_project_plugin_packaging(
             &mut manifest,
             "runtime_diagnostics",
-            zircon_runtime::ExportPackagingStrategy::NativeDynamic,
+            zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic,
         )
         .unwrap();
     assert_eq!(packaging.plugin_id, "runtime_diagnostics");
     assert_eq!(
         packaging.project_selection.packaging,
-        zircon_runtime::ExportPackagingStrategy::NativeDynamic
+        zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic
     );
 
     let target_modes = manager
@@ -382,7 +537,7 @@ fn project_plugin_packaging_and_target_modes_are_editable_through_manager_api() 
         .expect("runtime diagnostics selection");
     assert_eq!(
         selection.packaging,
-        zircon_runtime::ExportPackagingStrategy::NativeDynamic
+        zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic
     );
     assert_eq!(
         selection.target_modes,
@@ -422,6 +577,26 @@ kind = "editor"
 crate_name = "zircon_plugin_native_tool_editor"
 target_modes = ["editor_host"]
 capabilities = ["editor.extension.native_tool"]
+
+[[optional_features]]
+id = "native_tool.timeline_bridge"
+display_name = "Native Timeline Bridge"
+owner_plugin_id = "native_tool"
+capabilities = ["runtime.feature.native_tool.timeline_bridge"]
+default_packaging = ["native_dynamic"]
+enabled_by_default = false
+
+[[optional_features.dependencies]]
+plugin_id = "native_tool"
+capability = "runtime.plugin.native_tool"
+primary = true
+
+[[optional_features.modules]]
+name = "native_tool.timeline_bridge.runtime"
+kind = "runtime"
+crate_name = "zircon_plugin_native_tool_timeline_bridge_runtime"
+target_modes = ["editor_host"]
+capabilities = ["runtime.feature.native_tool.timeline_bridge"]
 "#,
     )
     .unwrap();
@@ -456,10 +631,28 @@ capabilities = ["editor.extension.native_tool"]
     );
     assert_eq!(
         native.packaging,
-        zircon_runtime::ExportPackagingStrategy::NativeDynamic
+        zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic
     );
     assert_eq!(native.package_source, "native");
     assert_eq!(native.load_state, "missing library");
+    let feature = native
+        .optional_features
+        .iter()
+        .find(|feature| feature.id == "native_tool.timeline_bridge")
+        .expect("native optional feature should be projected from plugin.toml");
+    assert!(!feature.enabled);
+    assert!(!feature.available);
+    assert_eq!(
+        feature.runtime_crate.as_deref(),
+        Some("zircon_plugin_native_tool_timeline_bridge_runtime")
+    );
+    assert!(feature.dependencies.iter().any(|dependency| {
+        dependency.plugin_id == "native_tool"
+            && dependency.capability == "runtime.plugin.native_tool"
+            && dependency.primary
+            && !dependency.plugin_enabled
+            && !dependency.capability_available
+    }));
     assert!(status
         .diagnostics
         .iter()
@@ -481,7 +674,7 @@ capabilities = ["editor.extension.native_tool"]
         .package_manifest
         .modules
         .iter()
-        .all(|module| module.kind == zircon_runtime::PluginModuleKind::Editor));
+        .all(|module| module.kind == zircon_runtime::plugin::PluginModuleKind::Editor));
     assert!(registration
         .diagnostics
         .iter()
@@ -500,12 +693,12 @@ capabilities = ["editor.extension.native_tool"]
             &project_root,
             &mut manifest,
             "native_tool",
-            zircon_runtime::ExportPackagingStrategy::LibraryEmbed,
+            zircon_runtime::plugin::ExportPackagingStrategy::LibraryEmbed,
         )
         .unwrap();
     assert_eq!(
         packaging.project_selection.packaging,
-        zircon_runtime::ExportPackagingStrategy::LibraryEmbed
+        zircon_runtime::plugin::ExportPackagingStrategy::LibraryEmbed
     );
     let target_modes = manager
         .set_native_aware_project_plugin_target_modes(
@@ -529,7 +722,7 @@ capabilities = ["editor.extension.native_tool"]
     assert!(native_status.enabled);
     assert_eq!(
         native_status.packaging,
-        zircon_runtime::ExportPackagingStrategy::LibraryEmbed
+        zircon_runtime::plugin::ExportPackagingStrategy::LibraryEmbed
     );
     assert_eq!(
         native_status.target_modes,
@@ -609,7 +802,7 @@ capabilities = ["editor.extension.split_target_tool"]
     );
     assert_eq!(
         selection.packaging,
-        zircon_runtime::ExportPackagingStrategy::NativeDynamic
+        zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic
     );
     assert_eq!(
         selection.editor_crate.as_deref(),
@@ -662,21 +855,22 @@ target_modes = ["client_runtime"]
     manifest
         .plugins
         .selections
-        .push(zircon_runtime::ProjectPluginSelection {
+        .push(zircon_runtime::plugin::ProjectPluginSelection {
             id: "native_tool".to_string(),
             enabled: true,
             required: false,
             target_modes: vec![zircon_runtime::RuntimeTargetMode::ClientRuntime],
-            packaging: zircon_runtime::ExportPackagingStrategy::NativeDynamic,
+            packaging: zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic,
             runtime_crate: Some("zircon_plugin_native_tool_runtime".to_string()),
             editor_crate: None,
+            features: Vec::new(),
         });
-    manifest.export_profiles = vec![zircon_runtime::ExportProfile::new(
+    manifest.export_profiles = vec![zircon_runtime::plugin::ExportProfile::new(
         "client-native",
         zircon_runtime::RuntimeTargetMode::ClientRuntime,
-        zircon_runtime::ExportTargetPlatform::Windows,
+        zircon_runtime::plugin::ExportTargetPlatform::Windows,
     )
-    .with_strategies([zircon_runtime::ExportPackagingStrategy::NativeDynamic])];
+    .with_strategies([zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic])];
 
     let editor_registrations = manager.native_editor_plugin_registration_reports(&project_root);
     assert!(
@@ -734,19 +928,19 @@ fn export_build_report_includes_plan_diagnostics_when_no_files_are_generated() {
         1,
     );
     manifest.plugins.selections.push(
-        zircon_runtime::ProjectPluginSelection::runtime_plugin(
+        zircon_runtime::plugin::ProjectPluginSelection::runtime_plugin(
             zircon_runtime::RuntimePluginId::Sound,
             true,
             false,
         )
         .with_runtime_crate("zircon_plugin_sound_runtime"),
     );
-    manifest.export_profiles = vec![zircon_runtime::ExportProfile::new(
+    manifest.export_profiles = vec![zircon_runtime::plugin::ExportProfile::new(
         "native-only",
         zircon_runtime::RuntimeTargetMode::ClientRuntime,
-        zircon_runtime::ExportTargetPlatform::Windows,
+        zircon_runtime::plugin::ExportTargetPlatform::Windows,
     )
-    .with_strategies([zircon_runtime::ExportPackagingStrategy::NativeDynamic])];
+    .with_strategies([zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic])];
 
     let report = manager
         .execute_export_build(&output_root, &manifest, "native-only")
@@ -820,21 +1014,22 @@ target_modes = ["client_runtime"]
     manifest
         .plugins
         .selections
-        .push(zircon_runtime::ProjectPluginSelection {
+        .push(zircon_runtime::plugin::ProjectPluginSelection {
             id: "native_tool".to_string(),
             enabled: true,
             required: false,
             target_modes: vec![zircon_runtime::RuntimeTargetMode::ClientRuntime],
-            packaging: zircon_runtime::ExportPackagingStrategy::NativeDynamic,
+            packaging: zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic,
             runtime_crate: Some("zircon_plugin_native_tool_runtime".to_string()),
             editor_crate: None,
+            features: Vec::new(),
         });
-    manifest.export_profiles = vec![zircon_runtime::ExportProfile::new(
+    manifest.export_profiles = vec![zircon_runtime::plugin::ExportProfile::new(
         "client-native",
         zircon_runtime::RuntimeTargetMode::ClientRuntime,
-        zircon_runtime::ExportTargetPlatform::Windows,
+        zircon_runtime::plugin::ExportTargetPlatform::Windows,
     )
-    .with_strategies([zircon_runtime::ExportPackagingStrategy::NativeDynamic])];
+    .with_strategies([zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic])];
 
     let report = manager
         .execute_native_aware_export_build(&project_root, &output_root, &manifest, "client-native")

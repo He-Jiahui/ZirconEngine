@@ -1,0 +1,20 @@
+id = "prefab_tools"
+version = "0.1.0"
+display_name = "Prefab Tools"
+category = "authoring"
+description = "Optional runtime and editor package for prefab authoring and instancing."
+default_packaging = ["source_template", "library_embed"]
+
+[[modules]]
+name = "prefab_tools.runtime"
+kind = "runtime"
+crate_name = "zircon_plugin_prefab_tools_runtime"
+target_modes = ["client_runtime", "editor_host"]
+capabilities = ["runtime.plugin.prefab_tools"]
+
+[[modules]]
+name = "prefab_tools.editor"
+kind = "editor"
+crate_name = "zircon_plugin_prefab_tools_editor"
+target_modes = ["editor_host"]
+capabilities = ["editor.extension.prefab_tools_authoring"]

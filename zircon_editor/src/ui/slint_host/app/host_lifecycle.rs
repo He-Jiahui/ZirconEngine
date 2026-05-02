@@ -74,12 +74,19 @@ impl SlintEditorHost {
         let mut component_showcase_runtime = EditorUiHostRuntime::default();
         component_showcase_runtime.load_builtin_host_templates()?;
 
+        let native_plugin_live_host = Arc::new(zircon_runtime::plugin::NativePluginLiveHost::default());
+        let runtime = EditorEventRuntime::new(state, editor_manager.clone());
+        runtime.set_runtime_play_mode_backend(Arc::new(
+            NativePluginEditorRuntimePlayModeBackend::new(native_plugin_live_host.clone()),
+        ));
+
         let mut host = Self {
             ui,
             self_handle: None,
-            runtime: EditorEventRuntime::new(state, editor_manager.clone()),
+            runtime,
             runtime_client,
             editor_manager,
+            module_plugin_live_host_backend: Box::new(native_plugin_live_host),
             viewport,
             asset_server,
             editor_asset_server,
@@ -429,26 +436,61 @@ impl SlintEditorHost {
                 report
                     .plugins
                     .into_iter()
-                    .map(|plugin| ModulePluginStatusViewData {
-                        plugin_id: plugin.plugin_id.into(),
-                        display_name: plugin.display_name.into(),
-                        package_source: plugin.package_source.into(),
-                        load_state: plugin.load_state.into(),
-                        enabled: plugin.enabled,
-                        required: plugin.required,
-                        target_modes: plugin
-                            .target_modes
-                            .iter()
-                            .map(target_mode_label)
-                            .collect::<Vec<_>>()
-                            .join(", ")
+                    .map(|plugin| {
+                        let primary_action = module_plugin_primary_action(
+                            &plugin.plugin_id,
+                            plugin.enabled,
+                            plugin.required,
+                        );
+                        let packaging_action_label =
+                            format!("Cycle {}", packaging_label(plugin.packaging));
+                        let packaging_action_id =
+                            module_plugin_action_id("Plugin.Packaging.Next", &plugin.plugin_id);
+                        let target_modes_action_id =
+                            module_plugin_action_id("Plugin.TargetModes.Next", &plugin.plugin_id);
+                        let unload_action_id =
+                            module_plugin_action_id("Plugin.Unload", &plugin.plugin_id);
+                        let hot_reload_action_id =
+                            module_plugin_action_id("Plugin.HotReload", &plugin.plugin_id);
+                        let feature_action =
+                            module_plugin_feature_action(&plugin.optional_features);
+                        ModulePluginStatusViewData {
+                            plugin_id: plugin.plugin_id.into(),
+                            display_name: plugin.display_name.into(),
+                            package_source: plugin.package_source.into(),
+                            load_state: plugin.load_state.into(),
+                            enabled: plugin.enabled,
+                            required: plugin.required,
+                            target_modes: plugin
+                                .target_modes
+                                .iter()
+                                .map(target_mode_label)
+                                .collect::<Vec<_>>()
+                                .join(", ")
+                                .into(),
+                            packaging: packaging_label(plugin.packaging).into(),
+                            runtime_crate: plugin.runtime_crate.unwrap_or_default().into(),
+                            editor_crate: plugin.editor_crate.unwrap_or_default().into(),
+                            runtime_capabilities: plugin.runtime_capabilities.join(", ").into(),
+                            editor_capabilities: plugin.editor_capabilities.join(", ").into(),
+                            optional_features: module_plugin_optional_feature_summary(
+                                &plugin.optional_features,
+                            )
                             .into(),
-                        packaging: packaging_label(plugin.packaging).into(),
-                        runtime_crate: plugin.runtime_crate.unwrap_or_default().into(),
-                        editor_crate: plugin.editor_crate.unwrap_or_default().into(),
-                        runtime_capabilities: plugin.runtime_capabilities.join(", ").into(),
-                        editor_capabilities: plugin.editor_capabilities.join(", ").into(),
-                        diagnostics: plugin.diagnostics.join("\n").into(),
+                            feature_action_label: feature_action.0.into(),
+                            feature_action_id: feature_action.1.into(),
+                            diagnostics: plugin.diagnostics.join("\n").into(),
+                            primary_action_label: primary_action.0.into(),
+                            primary_action_id: primary_action.1.into(),
+                            packaging_action_label: packaging_action_label.into(),
+                            packaging_action_id: packaging_action_id.into(),
+                            target_modes_action_label: "Cycle targets".into(),
+                            target_modes_action_id: target_modes_action_id.into(),
+                            unload_action_label: "Unload".into(),
+                            unload_action_id: unload_action_id.into(),
+                            hot_reload_action_label: "Hot Reload".into(),
+                            hot_reload_action_id: hot_reload_action_id.into(),
+                        }
                     })
                     .collect(),
             ),
@@ -577,6 +619,228 @@ impl SlintEditorHost {
     }
 }
 
+fn module_plugin_optional_feature_summary(
+    features: &[crate::ui::host::EditorPluginFeatureStatus],
+) -> String {
+    features
+        .iter()
+        .map(|feature| {
+            let state = if feature.enabled {
+                if feature.available {
+                    "enabled"
+                } else {
+                    "blocked"
+                }
+            } else if feature.available {
+                "ready"
+            } else {
+                "blocked"
+            };
+            let dependencies = feature
+                .dependencies
+                .iter()
+                .map(|dependency| {
+                    let dependency_state =
+                        match (dependency.plugin_enabled, dependency.capability_available) {
+                            (true, true) => "ok",
+                            (false, _) => "missing plugin",
+                            (true, false) => "missing capability",
+                        };
+                    let role = if dependency.primary { "primary " } else { "" };
+                    format!(
+                        "{role}{}:{} ({dependency_state})",
+                        dependency.plugin_id, dependency.capability
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join("; ");
+            if dependencies.is_empty() {
+                format!("{} [{state}]", feature.display_name)
+            } else {
+                format!("{} [{state}] deps: {dependencies}", feature.display_name)
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+fn module_plugin_feature_action(
+    features: &[crate::ui::host::EditorPluginFeatureStatus],
+) -> (String, String) {
+    if let Some(feature) = features
+        .iter()
+        .find(|feature| !feature.enabled && !feature.available)
+    {
+        return (
+            "Enable Deps".to_string(),
+            module_plugin_feature_action_id(
+                "Plugin.Feature.EnableDependencies",
+                &feature.owner_plugin_id,
+                &feature.id,
+            ),
+        );
+    }
+    if let Some(feature) = features
+        .iter()
+        .find(|feature| !feature.enabled && feature.available)
+    {
+        return (
+            "Enable Feature".to_string(),
+            module_plugin_feature_action_id(
+                "Plugin.Feature.Enable",
+                &feature.owner_plugin_id,
+                &feature.id,
+            ),
+        );
+    }
+    if let Some(feature) = features
+        .iter()
+        .find(|feature| feature.enabled && !feature.required)
+    {
+        return (
+            "Disable Feature".to_string(),
+            module_plugin_feature_action_id(
+                "Plugin.Feature.Disable",
+                &feature.owner_plugin_id,
+                &feature.id,
+            ),
+        );
+    }
+    (String::new(), String::new())
+}
+
+fn module_plugin_feature_action_id(prefix: &str, plugin_id: &str, feature_id: &str) -> String {
+    format!("{prefix}.{plugin_id}.{feature_id}")
+}
+
+fn module_plugin_primary_action(
+    plugin_id: &str,
+    enabled: bool,
+    required: bool,
+) -> (String, String) {
+    if required {
+        return ("Required".to_string(), String::new());
+    }
+
+    if enabled {
+        (
+            "Disable".to_string(),
+            module_plugin_action_id("Plugin.Disable", plugin_id),
+        )
+    } else {
+        (
+            "Enable".to_string(),
+            module_plugin_action_id("Plugin.Enable", plugin_id),
+        )
+    }
+}
+
+fn module_plugin_action_id(prefix: &str, plugin_id: &str) -> String {
+    format!("{prefix}.{plugin_id}")
+}
+
+#[cfg(test)]
+mod module_plugin_action_projection_tests {
+    use super::*;
+
+    #[test]
+    fn module_plugin_primary_action_respects_required_and_enabled_state() {
+        assert_eq!(
+            module_plugin_primary_action("physics", true, false),
+            ("Disable".to_string(), "Plugin.Disable.physics".to_string())
+        );
+        assert_eq!(
+            module_plugin_primary_action("physics", false, false),
+            ("Enable".to_string(), "Plugin.Enable.physics".to_string())
+        );
+        assert_eq!(
+            module_plugin_primary_action("core", true, true),
+            ("Required".to_string(), String::new())
+        );
+    }
+
+    #[test]
+    fn module_plugin_optional_feature_summary_lists_dependency_state() {
+        let summary =
+            module_plugin_optional_feature_summary(&[crate::ui::host::EditorPluginFeatureStatus {
+                id: "sound.timeline_animation_track".to_string(),
+                display_name: "Sound Timeline Animation Track".to_string(),
+                owner_plugin_id: "sound".to_string(),
+                enabled: false,
+                required: false,
+                available: false,
+                target_modes: vec![zircon_runtime::RuntimeTargetMode::EditorHost],
+                packaging: zircon_runtime::plugin::ExportPackagingStrategy::LibraryEmbed,
+                runtime_crate: Some("zircon_plugin_sound_timeline_animation_runtime".to_string()),
+                editor_crate: Some("zircon_plugin_sound_timeline_animation_editor".to_string()),
+                provided_capabilities: vec![
+                    "runtime.feature.sound.timeline_animation_track".to_string()
+                ],
+                dependencies: vec![
+                    crate::ui::host::EditorPluginFeatureDependencyStatus {
+                        plugin_id: "sound".to_string(),
+                        capability: "runtime.plugin.sound".to_string(),
+                        primary: true,
+                        plugin_enabled: true,
+                        capability_available: true,
+                    },
+                    crate::ui::host::EditorPluginFeatureDependencyStatus {
+                        plugin_id: "animation".to_string(),
+                        capability: "runtime.feature.animation.timeline_event_track".to_string(),
+                        primary: false,
+                        plugin_enabled: false,
+                        capability_available: false,
+                    },
+                ],
+                diagnostics: Vec::new(),
+            }]);
+
+        assert!(summary.contains("Sound Timeline Animation Track [blocked]"));
+        assert!(summary.contains("primary sound:runtime.plugin.sound (ok)"));
+        assert!(summary
+            .contains("animation:runtime.feature.animation.timeline_event_track (missing plugin)"));
+    }
+
+    #[test]
+    fn module_plugin_feature_action_prefers_dependency_gate_then_enable() {
+        let blocked = crate::ui::host::EditorPluginFeatureStatus {
+            id: "sound.timeline_animation_track".to_string(),
+            display_name: "Sound Timeline Animation Track".to_string(),
+            owner_plugin_id: "sound".to_string(),
+            enabled: false,
+            required: false,
+            available: false,
+            target_modes: vec![zircon_runtime::RuntimeTargetMode::EditorHost],
+            packaging: zircon_runtime::plugin::ExportPackagingStrategy::LibraryEmbed,
+            runtime_crate: None,
+            editor_crate: None,
+            provided_capabilities: Vec::new(),
+            dependencies: Vec::new(),
+            diagnostics: Vec::new(),
+        };
+        assert_eq!(
+            module_plugin_feature_action(&[blocked.clone()]),
+            (
+                "Enable Deps".to_string(),
+                "Plugin.Feature.EnableDependencies.sound.sound.timeline_animation_track"
+                    .to_string()
+            )
+        );
+
+        let ready = crate::ui::host::EditorPluginFeatureStatus {
+            available: true,
+            ..blocked
+        };
+        assert_eq!(
+            module_plugin_feature_action(&[ready]),
+            (
+                "Enable Feature".to_string(),
+                "Plugin.Feature.Enable.sound.sound.timeline_animation_track".to_string()
+            )
+        );
+    }
+}
+
 #[cfg(not(test))]
 fn resolve_startup_state(
     editor_manager: &EditorManager,
@@ -622,11 +886,11 @@ fn target_mode_label(mode: &zircon_runtime::RuntimeTargetMode) -> &'static str {
     }
 }
 
-fn packaging_label(strategy: zircon_runtime::ExportPackagingStrategy) -> &'static str {
+fn packaging_label(strategy: zircon_runtime::plugin::ExportPackagingStrategy) -> &'static str {
     match strategy {
-        zircon_runtime::ExportPackagingStrategy::SourceTemplate => "source-template",
-        zircon_runtime::ExportPackagingStrategy::LibraryEmbed => "library-embed",
-        zircon_runtime::ExportPackagingStrategy::NativeDynamic => "native-dynamic",
+        zircon_runtime::plugin::ExportPackagingStrategy::SourceTemplate => "source-template",
+        zircon_runtime::plugin::ExportPackagingStrategy::LibraryEmbed => "library-embed",
+        zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic => "native-dynamic",
     }
 }
 

@@ -1,17 +1,22 @@
 use zircon_runtime::graphics::{
     FrameHistoryBinding, FrameHistorySlot, RenderFeatureCapabilityRequirement,
-    RenderFeatureDescriptor, RenderFeaturePassDescriptor, RenderPassExecutionContext,
-    RenderPassExecutorRegistration, RenderPassStage,
+    RenderFeatureDescriptor, RenderFeaturePassDescriptor, RenderPassExecutorRegistration,
+    RenderPassStage,
 };
 use zircon_runtime::render_graph::QueueLane;
 
 mod hybrid_gi;
+mod render_pass_executors;
 #[cfg(test)]
 pub(crate) mod test_support;
 
 pub(crate) use hybrid_gi::{
     HybridGiGpuCompletion, HybridGiRuntimeFeedback, HybridGiRuntimeScenePrepareResources,
     HybridGiRuntimeState, HybridGiSceneInputs,
+};
+use render_pass_executors::{
+    hybrid_gi_history_executor, hybrid_gi_resolve_executor, hybrid_gi_scene_prepare_executor,
+    hybrid_gi_trace_schedule_executor,
 };
 
 pub const PLUGIN_ID: &str = "hybrid_gi";
@@ -20,7 +25,7 @@ pub const HYBRID_GI_MODULE_NAME: &str = "HybridGiPluginModule";
 
 #[derive(Clone, Debug)]
 pub struct HybridGiRuntimePlugin {
-    descriptor: zircon_runtime::RuntimePluginDescriptor,
+    descriptor: zircon_runtime::plugin::RuntimePluginDescriptor,
 }
 
 impl HybridGiRuntimePlugin {
@@ -31,15 +36,15 @@ impl HybridGiRuntimePlugin {
     }
 }
 
-impl zircon_runtime::RuntimePlugin for HybridGiRuntimePlugin {
-    fn descriptor(&self) -> &zircon_runtime::RuntimePluginDescriptor {
+impl zircon_runtime::plugin::RuntimePlugin for HybridGiRuntimePlugin {
+    fn descriptor(&self) -> &zircon_runtime::plugin::RuntimePluginDescriptor {
         &self.descriptor
     }
 
     fn register_runtime_extensions(
         &self,
-        registry: &mut zircon_runtime::RuntimeExtensionRegistry,
-    ) -> Result<(), zircon_runtime::RuntimeExtensionRegistryError> {
+        registry: &mut zircon_runtime::plugin::RuntimeExtensionRegistry,
+    ) -> Result<(), zircon_runtime::plugin::RuntimeExtensionRegistryError> {
         registry.register_module(module_descriptor())?;
         registry.register_render_feature(render_feature_descriptor())?;
         for registration in render_pass_executor_registrations() {
@@ -120,24 +125,8 @@ pub fn render_pass_executor_registrations() -> Vec<RenderPassExecutorRegistratio
     ]
 }
 
-fn hybrid_gi_scene_prepare_executor(_context: &RenderPassExecutionContext) -> Result<(), String> {
-    Ok(())
-}
-
-fn hybrid_gi_trace_schedule_executor(_context: &RenderPassExecutionContext) -> Result<(), String> {
-    Ok(())
-}
-
-fn hybrid_gi_resolve_executor(_context: &RenderPassExecutionContext) -> Result<(), String> {
-    Ok(())
-}
-
-fn hybrid_gi_history_executor(_context: &RenderPassExecutionContext) -> Result<(), String> {
-    Ok(())
-}
-
-pub fn runtime_plugin_descriptor() -> zircon_runtime::RuntimePluginDescriptor {
-    zircon_runtime::RuntimePluginDescriptor::new(
+pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescriptor {
+    zircon_runtime::plugin::RuntimePluginDescriptor::new(
         PLUGIN_ID,
         "Hybrid GI",
         zircon_runtime::RuntimePluginId::HybridGi,
@@ -154,16 +143,16 @@ pub fn runtime_plugin() -> HybridGiRuntimePlugin {
     HybridGiRuntimePlugin::new()
 }
 
-pub fn package_manifest() -> zircon_runtime::PluginPackageManifest {
-    zircon_runtime::RuntimePlugin::package_manifest(&runtime_plugin())
+pub fn package_manifest() -> zircon_runtime::plugin::PluginPackageManifest {
+    zircon_runtime::plugin::RuntimePlugin::package_manifest(&runtime_plugin())
 }
 
-pub fn runtime_selection() -> zircon_runtime::ProjectPluginSelection {
-    zircon_runtime::RuntimePlugin::project_selection(&runtime_plugin())
+pub fn runtime_selection() -> zircon_runtime::plugin::ProjectPluginSelection {
+    zircon_runtime::plugin::RuntimePlugin::project_selection(&runtime_plugin())
 }
 
-pub fn plugin_registration() -> zircon_runtime::RuntimePluginRegistrationReport {
-    zircon_runtime::RuntimePluginRegistrationReport::from_plugin(&runtime_plugin())
+pub fn plugin_registration() -> zircon_runtime::plugin::RuntimePluginRegistrationReport {
+    zircon_runtime::plugin::RuntimePluginRegistrationReport::from_plugin(&runtime_plugin())
 }
 
 pub fn runtime_capabilities() -> &'static [&'static str] {

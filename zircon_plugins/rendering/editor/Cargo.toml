@@ -1,0 +1,11 @@
+[package]
+name = "zircon_plugin_rendering_editor"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Rendering umbrella editor plugin package for Zircon."
+
+[dependencies]
+zircon_editor = { path = "../../../zircon_editor" }
+zircon_plugin_rendering_runtime = { path = "../runtime" }
+zircon_runtime = { path = "../../../zircon_runtime", default-features = false }

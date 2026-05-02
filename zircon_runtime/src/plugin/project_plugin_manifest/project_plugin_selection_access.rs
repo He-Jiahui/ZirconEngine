@@ -12,10 +12,7 @@ impl ProjectPluginSelection {
     }
 
     pub fn is_runtime_builtin_domain(&self) -> bool {
-        matches!(
-            self.runtime_id(),
-            Some(RuntimePluginId::Physics | RuntimePluginId::Animation)
-        )
+        false
     }
 
     pub fn runtime_crate_name(&self) -> String {

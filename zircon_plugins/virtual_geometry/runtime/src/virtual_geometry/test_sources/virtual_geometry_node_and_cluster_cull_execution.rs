@@ -1,6 +1,13 @@
 use std::sync::Arc;
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
+use crate::core::math::{Transform, UVec2, Vec3};
+use crate::scene::world::World;
+use crate::test_support::render_feature_fixtures::virtual_geometry_render_feature_descriptor;
+use crate::{
+    types::ViewportRenderFrame, BuiltinRenderFeature, RenderFeatureCapabilityRequirement,
+    RenderPipelineAsset, RenderPipelineCompileOptions, SceneRenderer,
+};
 use zircon_runtime::core::framework::render::{
     RenderVirtualGeometryCluster, RenderVirtualGeometryClusterSelectionInputSource,
     RenderVirtualGeometryDebugState, RenderVirtualGeometryExecutionState,
@@ -9,13 +16,6 @@ use zircon_runtime::core::framework::render::{
     RenderVirtualGeometryNodeAndClusterCullSource, RenderVirtualGeometryPage,
     RenderVirtualGeometrySelectedCluster, RenderVirtualGeometrySelectedClusterSource,
     RenderVirtualGeometryVisBuffer64Entry, RenderVirtualGeometryVisBuffer64Source,
-};
-use crate::core::math::{Transform, UVec2, Vec3};
-use crate::scene::world::World;
-use crate::test_support::render_feature_fixtures::virtual_geometry_render_feature_descriptor;
-use crate::{
-    types::ViewportRenderFrame, BuiltinRenderFeature, RenderFeatureCapabilityRequirement,
-    RenderPipelineAsset, RenderPipelineCompileOptions, SceneRenderer,
 };
 
 fn compile_virtual_geometry_pipeline(
@@ -810,6 +810,7 @@ fn render_seed_backed_execution_frame(
         hierarchy_nodes: Vec::new(),
         hierarchy_child_ids: Vec::new(),
         pages: vec![page(200, true), page(300, false)],
+        page_dependencies: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity: mesh,
             source_model: None,
@@ -871,6 +872,7 @@ fn render_seed_backed_frontier_rank_execution_frame(
         hierarchy_nodes: Vec::new(),
         hierarchy_child_ids: Vec::new(),
         pages: vec![page(200, true), page(300, false), page(500, false)],
+        page_dependencies: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity: mesh,
             source_model: None,
@@ -931,6 +933,7 @@ fn render_seed_backed_parent_fallback_execution_frame(
         hierarchy_nodes: Vec::new(),
         hierarchy_child_ids: Vec::new(),
         pages: vec![page(200, true), page(300, true), page(400, false)],
+        page_dependencies: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity: mesh,
             source_model: None,
@@ -993,6 +996,7 @@ fn render_seed_backed_duplicate_parent_fallback_execution_frame(
         hierarchy_nodes: Vec::new(),
         hierarchy_child_ids: Vec::new(),
         pages: vec![page(300, true), page(400, true), page(500, false)],
+        page_dependencies: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity: mesh,
             source_model: None,
@@ -1054,6 +1058,7 @@ fn render_seed_backed_budget_order_execution_frame(
         hierarchy_nodes: Vec::new(),
         hierarchy_child_ids: Vec::new(),
         pages: vec![],
+        page_dependencies: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity: mesh,
             source_model: None,
@@ -1113,6 +1118,7 @@ fn render_seed_backed_subset_execution_frame(
         hierarchy_nodes: Vec::new(),
         hierarchy_child_ids: Vec::new(),
         pages: vec![page(200, true), page(300, false)],
+        page_dependencies: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity: mesh,
             source_model: None,
@@ -1173,6 +1179,7 @@ fn render_seed_backed_hierarchical_execution_frame(
         hierarchy_nodes: Vec::new(),
         hierarchy_child_ids: Vec::new(),
         pages: vec![page(200, false), page(300, false)],
+        page_dependencies: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity: mesh,
             source_model: None,

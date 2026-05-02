@@ -142,6 +142,7 @@ impl AnimationManager for DefaultAnimationManager {
                     .then(|| state_machine.entry_state.clone())
             });
         let mut transitioned = false;
+        let mut transition_evaluation = None;
 
         if let Some(current) = active_state.as_deref() {
             if let Some(transition) = state_machine.transitions.iter().find(|transition| {
@@ -152,7 +153,20 @@ impl AnimationManager for DefaultAnimationManager {
                         .iter()
                         .all(|condition| condition_matches(parameters, condition))
             }) {
-                if active_state.as_deref() != Some(transition.to_state.as_str()) {
+                let duration_seconds = if transition.duration_seconds.is_finite() {
+                    transition.duration_seconds.max(0.0)
+                } else {
+                    0.0
+                };
+                if duration_seconds > Real::EPSILON {
+                    transition_evaluation = Some(
+                        crate::core::framework::animation::AnimationStateTransitionEvaluation {
+                            from_state: current.to_string(),
+                            to_state: transition.to_state.clone(),
+                            duration_seconds,
+                        },
+                    );
+                } else if active_state.as_deref() != Some(transition.to_state.as_str()) {
                     active_state = Some(transition.to_state.clone());
                     transitioned = true;
                 }
@@ -172,6 +186,7 @@ impl AnimationManager for DefaultAnimationManager {
             active_state,
             transitioned,
             graph,
+            transition: transition_evaluation,
         }
     }
 

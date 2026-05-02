@@ -23,8 +23,9 @@ pub(super) use zircon_runtime::core::framework::render::{
 };
 pub(super) use zircon_runtime::core::math::{Transform, UVec2, Vec3};
 pub(super) use zircon_runtime::graphics::GraphicsError;
-pub(super) use zircon_runtime::graphics::ViewportRenderFrame;
 pub(super) use zircon_runtime::scene::World;
+
+pub(super) use crate::virtual_geometry::renderer::VirtualGeometryRenderFrame;
 
 pub(super) struct RenderBackend {
     _instance: wgpu::Instance,

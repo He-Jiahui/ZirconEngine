@@ -40,6 +40,61 @@ fn hybrid_gi_runtime_state_registers_scene_cards_from_mesh_extract() {
 }
 
 #[test]
+fn hybrid_gi_runtime_state_exposes_scene_screen_probe_candidates() {
+    let mut state = HybridGiRuntimeState::default();
+    let extract = RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 2,
+        card_budget: 1,
+        voxel_budget: 1,
+        debug_view: Default::default(),
+        probe_budget: 0,
+        tracing_budget: 0,
+        probes: Vec::new(),
+        trace_regions: Vec::new(),
+    };
+
+    state.register_scene_extract(
+        Some(&extract),
+        &[
+            mesh_at(11, "res://materials/a.mat", Vec3::new(-1.0, 0.0, 0.0), 2.0),
+            mesh_at(22, "res://materials/b.mat", Vec3::new(3.0, 0.0, 0.0), 1.0),
+        ],
+        &[directional_light(100, 1.0)],
+        &[],
+        &[],
+    );
+
+    assert_eq!(
+        state.scene_screen_probe_descriptors(),
+        vec![
+            (0, 11, Some(0), [-1.0, 0.0, 0.0], 1.0, 1),
+            (1, 22, None, [3.0, 0.0, 0.0], 0.5, 1),
+        ]
+    );
+    let radiance_cache_entries = state.scene_radiance_cache_entries();
+    assert_eq!(
+        radiance_cache_entries
+            .iter()
+            .map(|entry| (entry.0, entry.1, entry.2, entry.4, entry.5))
+            .collect::<Vec<_>>(),
+        vec![
+            (0, 11, Some(0), 128, "voxel-fallback"),
+            (1, 22, None, 128, "voxel-fallback"),
+        ]
+    );
+    assert!(
+        radiance_cache_entries
+            .iter()
+            .all(|entry| entry.3 != [0, 0, 0]),
+        "expected screen probes to receive voxel fallback radiance before the real radiance cache path is wired to renderer descriptors"
+    );
+    assert_eq!(state.snapshot().scene_screen_probe_count(), 2);
+    assert_eq!(state.snapshot().scene_radiance_cache_entry_count(), 2);
+}
+
+#[test]
 fn hybrid_gi_runtime_state_builds_scene_clipmap_descriptors_from_mesh_bounds() {
     let mut state = HybridGiRuntimeState::default();
     let extract = hybrid_gi_settings(2, 2);
@@ -108,6 +163,8 @@ fn hybrid_gi_runtime_state_snapshot_reports_scene_representation_counts() {
     assert_eq!(snapshot.pending_update_count(), 0);
     assert_eq!(snapshot.scheduled_trace_region_count(), 0);
     assert_eq!(snapshot.scene_card_count(), 3);
+    assert_eq!(snapshot.scene_screen_probe_count(), 0);
+    assert_eq!(snapshot.scene_radiance_cache_entry_count(), 0);
     assert_eq!(snapshot.surface_cache_resident_page_count(), 2);
     assert_eq!(snapshot.surface_cache_dirty_page_count(), 2);
     assert_eq!(snapshot.surface_cache_feedback_card_count(), 1);

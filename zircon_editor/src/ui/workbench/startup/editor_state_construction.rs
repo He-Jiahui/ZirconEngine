@@ -82,6 +82,7 @@ impl EditorState {
             name_field: String::new(),
             parent_field: String::new(),
             transform_fields: Default::default(),
+            inspector_dynamic_fields: Default::default(),
             mesh_import_path: String::new(),
             asset_workspace: AssetWorkspaceState::default(),
             project_path,
@@ -90,6 +91,7 @@ impl EditorState {
             project_open,
             status_line,
             history: EditorHistory::default(),
+            play_session: None,
         }
     }
 

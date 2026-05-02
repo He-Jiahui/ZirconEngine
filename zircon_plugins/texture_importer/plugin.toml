@@ -1,0 +1,60 @@
+id = "texture_importer"
+version = "0.1.0"
+sdk_api_version = "0.1.0"
+display_name = "Texture Importer"
+category = "asset_importer"
+description = "Runtime texture and image importer package."
+supported_targets = ["client_runtime", "editor_host"]
+supported_platforms = ["windows", "linux", "macos"]
+capabilities = [
+    "runtime.plugin.texture_importer",
+    "runtime.asset.importer.texture.image",
+]
+asset_roots = []
+content_roots = []
+default_packaging = ["source_template", "library_embed"]
+
+[[asset_importers]]
+id = "texture_importer.image"
+plugin_id = "texture_importer"
+priority = 120
+source_extensions = [
+    "png",
+    "jpg",
+    "jpeg",
+    "bmp",
+    "tga",
+    "tiff",
+    "tif",
+    "gif",
+    "webp",
+    "hdr",
+    "exr",
+    "qoi",
+    "pnm",
+    "pbm",
+    "pgm",
+    "ppm",
+]
+output_kind = "Texture"
+importer_version = 1
+required_capabilities = ["runtime.asset.importer.texture.image"]
+
+[[asset_importers]]
+id = "texture_importer.optional_container"
+plugin_id = "texture_importer"
+priority = 90
+source_extensions = ["psd", "dds", "ktx", "ktx2", "astc", "cubemap", "dxgi"]
+output_kind = "Texture"
+importer_version = 1
+required_capabilities = ["runtime.asset.importer.native"]
+
+[[modules]]
+name = "texture_importer.runtime"
+kind = "runtime"
+crate_name = "zircon_plugin_texture_importer_runtime"
+target_modes = ["client_runtime", "editor_host"]
+capabilities = [
+    "runtime.plugin.texture_importer",
+    "runtime.asset.importer.texture.image",
+]

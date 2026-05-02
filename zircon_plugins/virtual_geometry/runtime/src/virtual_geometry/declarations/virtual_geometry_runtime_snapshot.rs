@@ -3,6 +3,7 @@ pub(crate) struct VirtualGeometryRuntimeSnapshot {
     page_table_entry_count: usize,
     resident_page_count: usize,
     pending_request_count: usize,
+    page_dependency_count: usize,
 }
 
 impl VirtualGeometryRuntimeSnapshot {
@@ -10,11 +11,13 @@ impl VirtualGeometryRuntimeSnapshot {
         page_table_entry_count: usize,
         resident_page_count: usize,
         pending_request_count: usize,
+        page_dependency_count: usize,
     ) -> Self {
         Self {
             page_table_entry_count,
             resident_page_count,
             pending_request_count,
+            page_dependency_count,
         }
     }
 
@@ -28,5 +31,9 @@ impl VirtualGeometryRuntimeSnapshot {
 
     pub(crate) fn pending_request_count(&self) -> usize {
         self.pending_request_count
+    }
+
+    pub(crate) fn page_dependency_count(&self) -> usize {
+        self.page_dependency_count
     }
 }

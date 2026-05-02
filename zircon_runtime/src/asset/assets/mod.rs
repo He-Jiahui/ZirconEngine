@@ -1,8 +1,11 @@
 mod animation;
+mod authoring;
+mod data;
 mod font;
 mod imported;
 mod material;
 mod model;
+mod navigation;
 mod physics_material;
 mod scene;
 mod shader;
@@ -19,13 +22,25 @@ pub use animation::{
     AnimationStateAsset, AnimationStateMachineAsset, AnimationStateTransitionAsset,
     AnimationTransitionConditionAsset,
 };
+pub use authoring::{
+    MaterialGraphAsset, MaterialGraphLinkAsset, MaterialGraphNodeAsset, MaterialGraphNodeKindAsset,
+    MaterialGraphParameterAsset, PrefabAsset, PrefabInstanceAsset, PrefabPropertyOverrideAsset,
+    TerrainAsset, TerrainLayerAsset, TerrainLayerStackAsset, TileMapAsset, TileMapLayerAsset,
+    TileMapProjectionAsset, TileSetAsset, TileSetTileAsset,
+};
+pub use data::{DataAsset, DataAssetFormat};
 pub use font::{FontAsset, FontAssetError};
-pub use imported::ImportedAsset;
+pub use imported::{asset_kind_for_imported_asset, ImportedAsset};
 pub use material::{AlphaMode, MaterialAsset};
 pub use model::{
     ModelAsset, ModelPrimitiveAsset, VirtualGeometryAsset, VirtualGeometryClusterHeaderAsset,
     VirtualGeometryClusterPageHeaderAsset, VirtualGeometryDebugMetadataAsset,
-    VirtualGeometryHierarchyNodeAsset, VirtualGeometryRootClusterRangeAsset,
+    VirtualGeometryHierarchyNodeAsset, VirtualGeometryPageDependencyAsset,
+    VirtualGeometryRootClusterRangeAsset,
+};
+pub use navigation::{
+    NavMeshAsset, NavMeshGizmoTriangleAsset, NavMeshLinkAsset, NavMeshPolygonAsset,
+    NavMeshTileAsset, NavigationSettingsAsset,
 };
 pub use physics_material::PhysicsMaterialAsset;
 pub use scene::{
@@ -34,11 +49,11 @@ pub use scene::{
     SceneCameraAsset, SceneColliderAsset, SceneColliderShapeAsset, SceneDirectionalLightAsset,
     SceneEntityAsset, SceneJointAsset, SceneJointKindAsset, SceneMeshInstanceAsset,
     SceneMobilityAsset, ScenePointLightAsset, SceneRigidBodyAsset, SceneRigidBodyTypeAsset,
-    SceneSpotLightAsset, TransformAsset,
+    SceneSpotLightAsset, SceneTerrainAsset, SceneTileMapAsset, TransformAsset,
 };
-pub use shader::ShaderAsset;
+pub use shader::{ShaderAsset, ShaderEntryPointAsset, ShaderSourceLanguage};
 pub use sound::SoundAsset;
-pub use texture::TextureAsset;
+pub use texture::{TextureAsset, TexturePayload};
 pub use ui::{
     ui_asset_references, UiAssetDocumentError, UiLayoutAsset, UiStyleAsset, UiWidgetAsset,
 };

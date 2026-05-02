@@ -53,7 +53,9 @@ pub use editor_error::EditorError;
 pub use editor_manager::EditorManager;
 pub use editor_manager_plugins_export::{
     EditorExportBuildReport, EditorExportCargoInvocation, EditorPluginEnableReport,
-    EditorPluginSelectionUpdateReport, EditorPluginStatus, EditorPluginStatusReport,
+    EditorPluginFeatureDependencyStatus, EditorPluginFeatureSelectionUpdateReport,
+    EditorPluginFeatureStatus, EditorPluginSelectionUpdateReport, EditorPluginStatus,
+    EditorPluginStatusReport,
 };
 pub use editor_runtime_client::{
     DetachedEditorRuntimeClient, EditorRuntimeClient, SharedEditorRuntimeClient,

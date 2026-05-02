@@ -13,7 +13,7 @@ use zircon_runtime::asset::{
     AssetUri, ModelAsset, ModelPrimitiveAsset, SceneAsset, VirtualGeometryAsset,
     VirtualGeometryClusterHeaderAsset, VirtualGeometryClusterPageHeaderAsset,
     VirtualGeometryDebugMetadataAsset, VirtualGeometryHierarchyNodeAsset,
-    VirtualGeometryRootClusterRangeAsset,
+    VirtualGeometryPageDependencyAsset, VirtualGeometryRootClusterRangeAsset,
 };
 use zircon_runtime::core::framework::render::{
     RenderFrameExtract, RenderFramework, RenderMeshSnapshot, RenderQualityProfile,
@@ -24,6 +24,7 @@ use zircon_runtime::core::framework::render::{
     RenderVirtualGeometryCpuReferenceMipClusterMapEntry,
     RenderVirtualGeometryCpuReferenceNodeVisit,
     RenderVirtualGeometryCpuReferencePageClusterMapEntry,
+    RenderVirtualGeometryCpuReferencePageDependencyEntry,
     RenderVirtualGeometryCpuReferenceSelectedCluster, RenderVirtualGeometryDebugState,
     RenderVirtualGeometryExecutionState, RenderVirtualGeometryExtract,
     RenderVirtualGeometryHierarchyNode, RenderVirtualGeometryInstance,
@@ -38,9 +39,9 @@ use zircon_runtime::core::framework::render::{
     RenderVirtualGeometryNodeAndClusterCullTraversalChildSource,
     RenderVirtualGeometryNodeAndClusterCullTraversalOp,
     RenderVirtualGeometryNodeAndClusterCullTraversalRecord, RenderVirtualGeometryPage,
-    RenderVirtualGeometryPageRequestInspection, RenderVirtualGeometryResidentPageInspection,
-    RenderVirtualGeometrySelectedCluster, RenderVirtualGeometryVisBufferMark,
-    RenderWorldSnapshotHandle,
+    RenderVirtualGeometryPageDependency, RenderVirtualGeometryPageRequestInspection,
+    RenderVirtualGeometryResidentPageInspection, RenderVirtualGeometrySelectedCluster,
+    RenderVirtualGeometryVisBufferMark, RenderWorldSnapshotHandle,
 };
 use zircon_runtime::core::math::{view_matrix, Mat4, Transform, UVec2, Vec2, Vec3, Vec4};
 use zircon_runtime::core::resource::{MaterialMarker, ModelMarker, ResourceHandle};
@@ -116,6 +117,23 @@ fn render_framework_exposes_virtual_geometry_debug_snapshot_for_effective_visibl
             virtual_geometry_page(200, false),
             virtual_geometry_page(300, true),
         ],
+        page_dependencies: vec![
+            RenderVirtualGeometryPageDependency {
+                page_id: 100,
+                parent_page_id: None,
+                child_page_ids: vec![200, 300],
+            },
+            RenderVirtualGeometryPageDependency {
+                page_id: 200,
+                parent_page_id: Some(100),
+                child_page_ids: Vec::new(),
+            },
+            RenderVirtualGeometryPageDependency {
+                page_id: 300,
+                parent_page_id: Some(100),
+                child_page_ids: Vec::new(),
+            },
+        ],
         instances: vec![instance.clone()],
         debug,
     });
@@ -138,6 +156,27 @@ fn render_framework_exposes_virtual_geometry_debug_snapshot_for_effective_visibl
         .expect("virtual geometry snapshot should be present");
     let stats = server.query_stats().expect("stats query should succeed");
     assert_eq!(snapshot.instances, vec![instance]);
+    assert_eq!(
+        snapshot.page_dependencies,
+        vec![
+            RenderVirtualGeometryPageDependency {
+                page_id: 100,
+                parent_page_id: None,
+                child_page_ids: vec![200, 300],
+            },
+            RenderVirtualGeometryPageDependency {
+                page_id: 200,
+                parent_page_id: Some(100),
+                child_page_ids: Vec::new(),
+            },
+            RenderVirtualGeometryPageDependency {
+                page_id: 300,
+                parent_page_id: Some(100),
+                child_page_ids: Vec::new(),
+            },
+        ],
+        "expected renderer-owned debug snapshot to expose the same cooked page graph carried by the neutral VG extract"
+    );
     assert_eq!(snapshot.debug, debug);
     assert_eq!(snapshot.visible_cluster_ids, vec![20, 30]);
     assert_eq!(snapshot.requested_pages, vec![200]);
@@ -523,6 +562,7 @@ fn render_framework_exposes_node_and_cluster_cull_page_request_ids_in_debug_snap
             virtual_geometry_page(200, true),
             virtual_geometry_page(300, false),
         ],
+        page_dependencies: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity: mesh,
             source_model: None,
@@ -679,6 +719,7 @@ fn render_framework_exposes_node_and_cluster_cull_page_request_ids_in_debug_snap
 }
 
 #[test]
+#[ignore = "automatic virtual geometry extraction is owned by the virtual_geometry runtime plugin; the root runtime workspace keeps authored-extract debug contracts here"]
 fn render_framework_exposes_virtual_geometry_cpu_reference_bvh_inspection_for_automatic_extract() {
     let root = unique_temp_project_root("vg_debug_snapshot_auto_bvh");
     let paths = ProjectPaths::from_root(&root).expect("project paths should resolve");
@@ -962,6 +1003,23 @@ fn render_framework_exposes_virtual_geometry_cpu_reference_bvh_inspection_for_au
                     cluster_ids: vec![300],
                 },
             ],
+            page_dependencies: vec![
+                RenderVirtualGeometryCpuReferencePageDependencyEntry {
+                    page_id: 10,
+                    parent_page_id: None,
+                    child_page_ids: vec![20],
+                },
+                RenderVirtualGeometryCpuReferencePageDependencyEntry {
+                    page_id: 20,
+                    parent_page_id: Some(10),
+                    child_page_ids: Vec::new(),
+                },
+                RenderVirtualGeometryCpuReferencePageDependencyEntry {
+                    page_id: 30,
+                    parent_page_id: None,
+                    child_page_ids: Vec::new(),
+                },
+            ],
             loaded_mip_cluster_map: vec![RenderVirtualGeometryCpuReferenceMipClusterMapEntry {
                 mip_level: 10,
                 cluster_ids: vec![100, 300],
@@ -1074,6 +1132,7 @@ fn render_framework_exposes_virtual_geometry_cpu_reference_bvh_inspection_for_au
 }
 
 #[test]
+#[ignore = "automatic virtual geometry extraction is owned by the virtual_geometry runtime plugin; the root runtime workspace keeps authored-extract debug contracts here"]
 fn render_framework_automatic_virtual_geometry_bvh_selected_clusters_follow_forced_mip_override() {
     let root = unique_temp_project_root("vg_debug_snapshot_auto_forced_mip");
     let paths = ProjectPaths::from_root(&root).expect("project paths should resolve");
@@ -1216,6 +1275,7 @@ fn render_framework_automatic_virtual_geometry_bvh_selected_clusters_follow_forc
 }
 
 #[test]
+#[ignore = "automatic virtual geometry extraction is owned by the virtual_geometry runtime plugin; the root runtime workspace keeps authored-extract debug contracts here"]
 fn render_framework_visualize_bvh_changes_captured_frame_for_automatic_virtual_geometry() {
     let root = unique_temp_project_root("vg_debug_snapshot_bvh_overlay");
     let paths = ProjectPaths::from_root(&root).expect("project paths should resolve");
@@ -1318,6 +1378,7 @@ fn render_framework_visualize_bvh_changes_captured_frame_for_automatic_virtual_g
 }
 
 #[test]
+#[ignore = "automatic virtual geometry extraction is owned by the virtual_geometry runtime plugin; the root runtime workspace keeps authored-extract debug contracts here"]
 fn render_framework_visualize_visbuffer_changes_captured_frame_for_automatic_virtual_geometry() {
     let root = unique_temp_project_root("vg_debug_snapshot_visbuffer_overlay");
     let paths = ProjectPaths::from_root(&root).expect("project paths should resolve");
@@ -1654,6 +1715,23 @@ fn sample_virtual_geometry_asset() -> VirtualGeometryAsset {
         ],
         cluster_page_data: vec![vec![1, 2, 3], vec![4, 5, 6], vec![7, 8, 9]],
         root_page_table: vec![10, 30],
+        page_dependencies: vec![
+            VirtualGeometryPageDependencyAsset {
+                page_id: 10,
+                parent_page_id: None,
+                child_page_ids: vec![20],
+            },
+            VirtualGeometryPageDependencyAsset {
+                page_id: 20,
+                parent_page_id: Some(10),
+                child_page_ids: Vec::new(),
+            },
+            VirtualGeometryPageDependencyAsset {
+                page_id: 30,
+                parent_page_id: None,
+                child_page_ids: Vec::new(),
+            },
+        ],
         root_cluster_ranges: vec![VirtualGeometryRootClusterRangeAsset {
             node_id: 0,
             cluster_start: 0,

@@ -3,11 +3,11 @@ use crate::ui::control::EditorUiControlService;
 use crate::ui::layouts::windows::workbench_host_window::PaneBodyPresentation;
 use crate::ui::template::{
     EditorComponentCatalog, EditorComponentDescriptor, EditorTemplateAdapter, EditorTemplateError,
-    EditorTemplateRegistry,
+    EditorTemplateRegistry, EditorTemplateRuntimeService,
 };
 use thiserror::Error;
 use zircon_runtime::ui::surface::UiSurface;
-use zircon_runtime::ui::template::{UiAssetLoader, UiTemplateBuildError, UiTemplateSurfaceBuilder};
+use zircon_runtime::ui::template::UiTemplateBuildError;
 use zircon_runtime_interface::ui::{
     event_ui::UiTreeId,
     template::{UiAssetDocument, UiAssetError},
@@ -44,21 +44,9 @@ pub struct EditorUiHostRuntime {
     pub(super) component_catalog: EditorComponentCatalog,
     pub(super) template_registry: EditorTemplateRegistry,
     pub(super) template_adapter: EditorTemplateAdapter,
+    pub(super) template_service: EditorTemplateRuntimeService,
     pub(super) builtin_host_templates_loaded: bool,
     showcase_demo_state: UiComponentShowcaseDemoState,
-}
-
-fn parse_ui_asset_document_source(source: &str) -> Result<UiAssetDocument, UiAssetError> {
-    UiAssetLoader::load_toml_str(source).or_else(|error| {
-        #[cfg(test)]
-        {
-            crate::tests::support::load_test_ui_asset(source).or(Err(error))
-        }
-        #[cfg(not(test))]
-        {
-            Err(error)
-        }
-    })
 }
 
 impl EditorUiHostRuntime {
@@ -88,8 +76,8 @@ impl EditorUiHostRuntime {
         document_id: impl Into<String>,
         document: UiAssetDocument,
     ) -> Result<(), EditorUiHostRuntimeError> {
-        self.template_registry
-            .register_asset_document(document_id, document)
+        self.template_service
+            .register_asset_document(&mut self.template_registry, document_id, document)
             .map_err(EditorUiHostRuntimeError::from)
     }
 
@@ -99,7 +87,7 @@ impl EditorUiHostRuntime {
         source: &str,
     ) -> Result<(), EditorUiHostRuntimeError> {
         let document_id = document_id.into();
-        let document = parse_ui_asset_document_source(source)?;
+        let document = self.template_service.parse_document_source(source)?;
         self.register_asset_document(document_id, document)
     }
 
@@ -108,9 +96,9 @@ impl EditorUiHostRuntime {
         document_id: impl Into<String>,
         path: impl AsRef<std::path::Path>,
     ) -> Result<(), EditorUiHostRuntimeError> {
-        let compiled = compile_template_document_file(path.as_ref())?;
-        self.template_registry
-            .register_compiled_document(document_id, compiled)
+        let compiled = compile_template_document_file(&self.template_service, path.as_ref())?;
+        self.template_service
+            .register_compiled_document(&mut self.template_registry, document_id, compiled)
             .map_err(EditorUiHostRuntimeError::from)
     }
 
@@ -153,14 +141,24 @@ impl EditorUiHostRuntime {
         &self,
         document_id: &str,
     ) -> Result<SlintUiProjection, EditorUiHostRuntimeError> {
-        project_document(&self.template_registry, &self.template_adapter, document_id)
+        project_document(
+            &self.template_service,
+            &self.template_registry,
+            &self.template_adapter,
+            document_id,
+        )
     }
 
     pub(crate) fn project_pane_body(
         &self,
         body: &PaneBodyPresentation,
     ) -> Result<SlintUiProjection, EditorUiHostRuntimeError> {
-        project_pane_body(&self.template_registry, &self.template_adapter, body)
+        project_pane_body(
+            &self.template_service,
+            &self.template_registry,
+            &self.template_adapter,
+            body,
+        )
     }
 
     pub fn register_projection_routes(
@@ -203,14 +201,12 @@ impl EditorUiHostRuntime {
         document_id: &str,
     ) -> Result<UiSurface, EditorUiHostRuntimeError> {
         let instance = self
-            .template_registry
-            .instantiate(document_id)
+            .template_service
+            .instantiate(&self.template_registry, document_id)
             .map_err(EditorUiHostRuntimeError::from)?;
-        UiTemplateSurfaceBuilder::build_surface(
-            UiTreeId::new(format!("template.{document_id}")),
-            &instance,
-        )
-        .map_err(EditorUiHostRuntimeError::from)
+        self.template_service
+            .build_surface(UiTreeId::new(format!("template.{document_id}")), &instance)
+            .map_err(EditorUiHostRuntimeError::from)
     }
 
     pub fn build_slint_host_projection(

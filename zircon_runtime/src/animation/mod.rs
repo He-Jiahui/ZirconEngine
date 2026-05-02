@@ -1,4 +1,4 @@
-//! Runtime-owned animation module, manager implementation, and sequence application.
+//! Shared animation runtime contract, manager implementation, and sequence application.
 
 mod module;
 pub mod runtime;

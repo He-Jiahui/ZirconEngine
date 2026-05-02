@@ -1,10 +1,14 @@
+use crate::asset::AssetImporterRegistry;
 use crate::core::ManagerDescriptor;
 use crate::core::ModuleDescriptor;
 use crate::graphics::{
     RenderFeatureDescriptor, RenderPassExecutorRegistration,
     VirtualGeometryRuntimeProviderRegistration,
 };
-use crate::{ComponentTypeDescriptor, UiComponentDescriptor};
+use crate::{
+    plugin::ComponentTypeDescriptor, plugin::PluginEventCatalogManifest, plugin::PluginOptionManifest,
+    plugin::UiComponentDescriptor,
+};
 
 use super::RuntimeExtensionRegistry;
 
@@ -37,5 +41,17 @@ impl RuntimeExtensionRegistry {
 
     pub fn ui_components(&self) -> &[UiComponentDescriptor] {
         &self.ui_components
+    }
+
+    pub fn plugin_options(&self) -> &[PluginOptionManifest] {
+        &self.plugin_options
+    }
+
+    pub fn plugin_event_catalogs(&self) -> &[PluginEventCatalogManifest] {
+        &self.plugin_event_catalogs
+    }
+
+    pub fn asset_importers(&self) -> &AssetImporterRegistry {
+        &self.asset_importers
     }
 }

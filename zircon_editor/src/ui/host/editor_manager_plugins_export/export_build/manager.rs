@@ -2,7 +2,8 @@ use std::path::Path;
 
 use zircon_runtime::asset::project::ProjectManifest;
 use zircon_runtime::{
-    ExportBuildPlan, NativePluginLoadReport, NativePluginLoader, RuntimeTargetMode,
+    plugin::ExportBuildPlan, plugin::NativePluginLoadReport, plugin::NativePluginLoader,
+    RuntimeTargetMode,
 };
 
 use super::super::super::editor_manager::EditorManager;
@@ -74,6 +75,7 @@ impl EditorManager {
             ));
         }
         diagnostics.extend(materialized.diagnostics);
+        let fatal_diagnostics = materialized.fatal_diagnostics;
         diagnostics.extend(cleanup_diagnostics);
         if should_probe_exported_native_manifest(&materialized.generated_files) {
             let exported_native_report = exported_native_load_report_for_profile(
@@ -98,6 +100,7 @@ impl EditorManager {
             generated_files: materialized.generated_files,
             copied_packages: materialized.copied_packages,
             diagnostics,
+            fatal_diagnostics,
         })
     }
 
@@ -118,6 +121,7 @@ impl EditorManager {
             None
         };
         let mut diagnostics = materialized.diagnostics;
+        let fatal_diagnostics = materialized.fatal_diagnostics;
         diagnostics.extend(
             cargo_invocation
                 .as_ref()
@@ -133,6 +137,7 @@ impl EditorManager {
             generated_files: materialized.generated_files,
             copied_packages: materialized.copied_packages,
             diagnostics,
+            fatal_diagnostics,
         })
     }
 }

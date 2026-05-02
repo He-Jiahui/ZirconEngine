@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use std::fs;
 use std::path::{Component, Path, PathBuf};
 
-use crate::PluginPackageManifest;
+use crate::plugin::PluginPackageManifest;
 
 use super::native_plugin_load_manifest_template::native_dynamic_package_directory;
 use super::{ExportBuildPlan, ExportMaterializeReport};
@@ -34,6 +34,7 @@ impl ExportBuildPlan {
             generated_files,
             copied_packages: Vec::new(),
             diagnostics: self.diagnostics.clone(),
+            fatal_diagnostics: self.fatal_diagnostics.clone(),
         })
     }
 

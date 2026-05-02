@@ -1,0 +1,46 @@
+id = "ui_document_importer"
+version = "0.1.0"
+sdk_api_version = "0.1.0"
+display_name = "UI Document Importer"
+category = "asset_importer"
+description = "Runtime UI document importer package."
+supported_targets = ["client_runtime", "editor_host"]
+supported_platforms = ["windows", "linux", "macos"]
+capabilities = [
+    "runtime.plugin.ui_document_importer",
+    "runtime.asset.importer.ui_document",
+]
+asset_roots = []
+content_roots = []
+default_packaging = ["source_template", "library_embed"]
+
+[[asset_importers]]
+id = "ui_document_importer.typed_toml"
+plugin_id = "ui_document_importer"
+priority = 120
+full_suffixes = [".ui.toml"]
+output_kind = "UiLayout"
+additional_output_kinds = ["UiWidget", "UiStyle"]
+importer_version = 1
+required_capabilities = ["runtime.asset.importer.ui_document"]
+
+[[asset_importers]]
+id = "ui_document_importer.serialized_document"
+plugin_id = "ui_document_importer"
+priority = 100
+source_extensions = ["zui", "uidoc"]
+full_suffixes = [".ui.json"]
+output_kind = "UiLayout"
+additional_output_kinds = ["UiWidget", "UiStyle"]
+importer_version = 1
+required_capabilities = ["runtime.asset.importer.ui_document"]
+
+[[modules]]
+name = "ui_document_importer.runtime"
+kind = "runtime"
+crate_name = "zircon_plugin_ui_document_importer_runtime"
+target_modes = ["client_runtime", "editor_host"]
+capabilities = [
+    "runtime.plugin.ui_document_importer",
+    "runtime.asset.importer.ui_document",
+]

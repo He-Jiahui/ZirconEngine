@@ -31,7 +31,9 @@ use zircon_runtime_interface::ui::{
 };
 
 use crate::core::editing::paths::canonical_model_source_path;
-use crate::core::editor_event::{EditorEventRuntime, EditorViewportEvent};
+use crate::core::editor_event::{
+    EditorEventRuntime, EditorViewportEvent, NativePluginEditorRuntimePlayModeBackend,
+};
 use crate::ui::binding_dispatch::WelcomeHostEvent;
 use crate::ui::host::editor_asset_manager::{
     EditorAssetChange, EditorAssetManager as EditorAssetManagerContract,
@@ -177,6 +179,7 @@ struct SlintEditorHost {
     runtime: EditorEventRuntime,
     runtime_client: SharedEditorRuntimeClient,
     editor_manager: Arc<EditorManager>,
+    module_plugin_live_host_backend: Box<dyn module_plugin_actions::ModulePluginLiveHostBackend>,
     viewport: SlintViewportController,
     asset_server: Arc<dyn AssetManager>,
     editor_asset_server: Arc<dyn EditorAssetManagerContract>,

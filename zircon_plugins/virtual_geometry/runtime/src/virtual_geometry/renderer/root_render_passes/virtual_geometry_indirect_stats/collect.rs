@@ -6,7 +6,6 @@ use zircon_runtime::core::framework::render::{
     RenderVirtualGeometryCullInputSnapshot, RenderVirtualGeometryExecutionDraw,
     RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot,
 };
-use zircon_runtime::graphics::ViewportRenderFrame;
 
 use super::super::virtual_geometry_executed_cluster_selection_pass::execute_virtual_geometry_executed_cluster_selection_pass;
 use super::super::virtual_geometry_hardware_rasterization_pass::execute_virtual_geometry_hardware_rasterization_pass;
@@ -17,7 +16,7 @@ use super::execution_owned_buffers::{
 };
 use super::execution_segments::{collect_execution_segments, execution_segment_summary};
 use super::virtual_geometry_indirect_stats::VirtualGeometryIndirectStats;
-use crate::virtual_geometry::renderer::VirtualGeometryGpuResources;
+use crate::virtual_geometry::renderer::{VirtualGeometryGpuResources, VirtualGeometryRenderFrame};
 
 #[allow(clippy::too_many_arguments)]
 pub(in crate::virtual_geometry::renderer::root_render_passes) fn collect_virtual_geometry_indirect_stats(
@@ -25,7 +24,7 @@ pub(in crate::virtual_geometry::renderer::root_render_passes) fn collect_virtual
     device: &wgpu::Device,
     encoder: &mut wgpu::CommandEncoder,
     visbuffer64_pass_enabled: bool,
-    frame: &ViewportRenderFrame,
+    frame: &VirtualGeometryRenderFrame,
     cull_input: Option<&RenderVirtualGeometryCullInputSnapshot>,
     previous_node_and_cluster_cull_global_state: Option<
         &RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot,
@@ -66,7 +65,7 @@ fn virtual_geometry_indirect_stats(
     device: &wgpu::Device,
     encoder: &mut wgpu::CommandEncoder,
     visbuffer64_pass_enabled: bool,
-    frame: &ViewportRenderFrame,
+    frame: &VirtualGeometryRenderFrame,
     cull_input: Option<&RenderVirtualGeometryCullInputSnapshot>,
     previous_node_and_cluster_cull_global_state: Option<
         &RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot,

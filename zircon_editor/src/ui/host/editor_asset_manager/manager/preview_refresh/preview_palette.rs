@@ -2,6 +2,12 @@ use crate::ui::host::editor_asset_manager::preview::PreviewPalette;
 
 pub(super) fn preview_palette(kind: zircon_runtime::asset::AssetKind) -> PreviewPalette {
     match kind {
+        zircon_runtime::asset::AssetKind::Data => PreviewPalette {
+            primary: [92, 112, 124, 255],
+            secondary: [38, 50, 58, 255],
+            accent: [204, 222, 232, 255],
+            banner: [232, 241, 246, 255],
+        },
         zircon_runtime::asset::AssetKind::Texture => PreviewPalette {
             primary: [74, 127, 173, 255],
             secondary: [35, 55, 82, 255],
@@ -14,11 +20,59 @@ pub(super) fn preview_palette(kind: zircon_runtime::asset::AssetKind) -> Preview
             accent: [237, 204, 158, 255],
             banner: [247, 231, 199, 255],
         },
+        zircon_runtime::asset::AssetKind::MaterialGraph => PreviewPalette {
+            primary: [150, 104, 118, 255],
+            secondary: [72, 45, 55, 255],
+            accent: [237, 201, 211, 255],
+            banner: [249, 231, 236, 255],
+        },
         zircon_runtime::asset::AssetKind::PhysicsMaterial => PreviewPalette {
             primary: [114, 134, 87, 255],
             secondary: [48, 63, 34, 255],
             accent: [217, 236, 190, 255],
             banner: [235, 246, 222, 255],
+        },
+        zircon_runtime::asset::AssetKind::NavMesh => PreviewPalette {
+            primary: [72, 142, 116, 255],
+            secondary: [32, 70, 57, 255],
+            accent: [187, 235, 218, 255],
+            banner: [224, 247, 239, 255],
+        },
+        zircon_runtime::asset::AssetKind::NavigationSettings => PreviewPalette {
+            primary: [91, 132, 105, 255],
+            secondary: [39, 62, 48, 255],
+            accent: [199, 230, 207, 255],
+            banner: [230, 245, 234, 255],
+        },
+        zircon_runtime::asset::AssetKind::Terrain => PreviewPalette {
+            primary: [120, 128, 73, 255],
+            secondary: [56, 60, 33, 255],
+            accent: [226, 232, 180, 255],
+            banner: [243, 246, 218, 255],
+        },
+        zircon_runtime::asset::AssetKind::TerrainLayerStack => PreviewPalette {
+            primary: [136, 121, 76, 255],
+            secondary: [65, 56, 34, 255],
+            accent: [235, 222, 181, 255],
+            banner: [249, 241, 218, 255],
+        },
+        zircon_runtime::asset::AssetKind::TileSet => PreviewPalette {
+            primary: [73, 130, 145, 255],
+            secondary: [32, 61, 70, 255],
+            accent: [190, 229, 239, 255],
+            banner: [226, 245, 250, 255],
+        },
+        zircon_runtime::asset::AssetKind::TileMap => PreviewPalette {
+            primary: [82, 118, 158, 255],
+            secondary: [35, 55, 78, 255],
+            accent: [199, 223, 250, 255],
+            banner: [229, 241, 255, 255],
+        },
+        zircon_runtime::asset::AssetKind::Prefab => PreviewPalette {
+            primary: [130, 102, 151, 255],
+            secondary: [58, 44, 72, 255],
+            accent: [226, 210, 242, 255],
+            banner: [242, 234, 250, 255],
         },
         zircon_runtime::asset::AssetKind::Scene => PreviewPalette {
             primary: [67, 118, 91, 255],

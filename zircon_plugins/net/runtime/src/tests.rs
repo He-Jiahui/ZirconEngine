@@ -1,5 +1,9 @@
-use zircon_runtime::core::framework::net::{NetEndpoint, NetManager};
-use zircon_runtime::RuntimePluginRegistrationReport;
+use zircon_runtime::core::framework::net::{
+    NetConnectionState, NetEndpoint, NetEvent, NetHttpMethod, NetHttpRequestDescriptor,
+    NetHttpResponseDescriptor, NetHttpRouteDescriptor, NetManager, NetRequestId, NetRuntimeMode,
+    NetWebSocketCloseReason, NetWebSocketFrame, RpcDescriptor, RpcDirection,
+};
+use zircon_runtime::{plugin::RuntimePlugin, plugin::RuntimePluginRegistrationReport};
 
 use super::{runtime_plugin, DefaultNetManager, NET_MODULE_NAME};
 
@@ -23,6 +27,36 @@ fn net_plugin_registration_contributes_runtime_module() {
 }
 
 #[test]
+fn net_plugin_manifest_advertises_layered_optional_features() {
+    let manifest = runtime_plugin().package_manifest();
+
+    let feature_ids = manifest
+        .optional_features
+        .iter()
+        .map(|feature| feature.id.as_str())
+        .collect::<Vec<_>>();
+    assert_eq!(
+        feature_ids,
+        vec![
+            "net.http",
+            "net.websocket",
+            "net.rpc",
+            "net.replication",
+            "net.reliable_udp",
+            "net.content_download",
+        ]
+    );
+    assert!(manifest
+        .options
+        .iter()
+        .any(|option| option.key == "net.runtime_mode"));
+    assert!(manifest
+        .event_catalogs
+        .iter()
+        .any(|catalog| catalog.namespace == "net.runtime_events"));
+}
+
+#[test]
 fn default_net_manager_sends_udp_packet_to_bound_socket() {
     let net = DefaultNetManager::default();
     let socket = net.bind_udp(&NetEndpoint::new("127.0.0.1", 0)).unwrap();
@@ -33,6 +67,133 @@ fn default_net_manager_sends_udp_packet_to_bound_socket() {
 
     assert_eq!(packets[0].payload, b"ping");
     net.close_socket(socket).unwrap();
+}
+
+#[test]
+fn net_runtime_manager_accepts_tcp_client_and_echoes_payloads() {
+    let net = DefaultNetManager::for_mode(NetRuntimeMode::ListenServer);
+    let listener = net.listen_tcp(&NetEndpoint::new("127.0.0.1", 0)).unwrap();
+    let endpoint = net.listener_endpoint(listener).unwrap();
+
+    let client = net.connect_tcp(&endpoint).unwrap();
+    let server = accept_until_connection(&net, listener);
+
+    assert_eq!(
+        net.connection_state(client).unwrap(),
+        NetConnectionState::Open
+    );
+    assert_eq!(
+        net.connection_state(server).unwrap(),
+        NetConnectionState::Open
+    );
+
+    assert_eq!(net.send_tcp(client, b"hello").unwrap(), 5);
+    assert_eq!(poll_tcp_until(&net, server, 5), b"hello");
+    assert_eq!(net.send_tcp(server, b"pong").unwrap(), 4);
+    assert_eq!(poll_tcp_until(&net, client, 4), b"pong");
+
+    net.close_connection(client).unwrap();
+    net.close_connection(server).unwrap();
+}
+
+#[test]
+fn net_runtime_manager_reports_mode_diagnostics_and_events() {
+    let net = DefaultNetManager::for_mode(NetRuntimeMode::DedicatedServer);
+    let listener = net.listen_tcp(&NetEndpoint::new("127.0.0.1", 0)).unwrap();
+
+    let diagnostics = net.diagnostics();
+    assert_eq!(diagnostics.mode, NetRuntimeMode::DedicatedServer);
+    assert_eq!(diagnostics.open_tcp_listeners, 1);
+    assert_eq!(diagnostics.open_tcp_connections, 0);
+
+    let events = net.drain_events(8);
+    assert!(events.iter().any(|event| matches!(
+        event,
+        NetEvent::ListenerStarted {
+            listener: started,
+            transport,
+            ..
+        } if *started == listener && transport.is_tcp()
+    )));
+}
+
+#[test]
+fn rpc_descriptor_records_direction_schema_and_quota() {
+    let descriptor = RpcDescriptor::new("chat.send_message", RpcDirection::ClientToServer)
+        .with_payload_schema("schema://net/chat/send-message.v1")
+        .with_max_calls_per_second(24)
+        .with_max_payload_bytes(2048);
+
+    assert_eq!(descriptor.id, "chat.send_message");
+    assert_eq!(descriptor.direction, RpcDirection::ClientToServer);
+    assert_eq!(
+        descriptor.payload_schema.as_deref(),
+        Some("schema://net/chat/send-message.v1")
+    );
+    assert_eq!(descriptor.max_calls_per_second, Some(24));
+    assert_eq!(descriptor.max_payload_bytes, Some(2048));
+}
+
+#[test]
+fn net_runtime_dispatches_registered_http_route() {
+    let net = DefaultNetManager::default();
+    let route = net
+        .register_http_route(
+            NetHttpRouteDescriptor::new("/health", [NetHttpMethod::Get]),
+            NetHttpResponseDescriptor::new(NetRequestId::new(0), 200, b"ok".to_vec())
+                .with_header("content-type", "text/plain"),
+        )
+        .unwrap();
+
+    let response = net
+        .send_http_request(NetHttpRequestDescriptor::new(
+            NetRequestId::new(7),
+            NetHttpMethod::Get,
+            "http://127.0.0.1/health",
+        ))
+        .unwrap();
+
+    assert_eq!(response.request, NetRequestId::new(7));
+    assert_eq!(response.status_code, 200);
+    assert_eq!(response.body, b"ok");
+    assert_eq!(response.body_bytes, 2);
+    assert_eq!(net.diagnostics().open_http_routes, 1);
+    net.unregister_http_route(route).unwrap();
+    assert_eq!(net.diagnostics().open_http_routes, 0);
+}
+
+#[test]
+fn net_runtime_queues_websocket_frames_with_budget() {
+    let net = DefaultNetManager::default();
+    let (client, server) = net.open_websocket_loopback().unwrap();
+
+    net.send_websocket_frame(client, NetWebSocketFrame::Text("hello".to_string()))
+        .unwrap();
+    net.send_websocket_frame(client, NetWebSocketFrame::Binary(vec![1, 2, 3]))
+        .unwrap();
+
+    assert_eq!(
+        net.poll_websocket_frames(server, 1).unwrap(),
+        vec![NetWebSocketFrame::Text("hello".to_string())]
+    );
+    assert_eq!(
+        net.poll_websocket_frames(server, 8).unwrap(),
+        vec![NetWebSocketFrame::Binary(vec![1, 2, 3])]
+    );
+
+    net.send_websocket_frame(
+        server,
+        NetWebSocketFrame::Close(NetWebSocketCloseReason::normal("done")),
+    )
+    .unwrap();
+    assert!(matches!(
+        net.poll_websocket_frames(client, 8).unwrap().as_slice(),
+        [NetWebSocketFrame::Close(reason)] if reason.reason == "done"
+    ));
+    assert_eq!(
+        net.connection_state(client).unwrap(),
+        NetConnectionState::Closed
+    );
 }
 
 fn poll_until_packet(
@@ -47,4 +208,33 @@ fn poll_until_packet(
         std::thread::sleep(std::time::Duration::from_millis(1));
     }
     panic!("expected loopback UDP packet");
+}
+
+fn accept_until_connection(
+    net: &DefaultNetManager,
+    listener: zircon_runtime::core::framework::net::NetListenerId,
+) -> zircon_runtime::core::framework::net::NetConnectionId {
+    for _ in 0..100 {
+        let accepted = net.accept_tcp(listener, 4).unwrap();
+        if let Some(connection) = accepted.into_iter().next() {
+            return connection;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(1));
+    }
+    panic!("expected accepted TCP connection");
+}
+
+fn poll_tcp_until(
+    net: &DefaultNetManager,
+    connection: zircon_runtime::core::framework::net::NetConnectionId,
+    expected_len: usize,
+) -> Vec<u8> {
+    for _ in 0..100 {
+        let payload = net.poll_tcp(connection, expected_len).unwrap();
+        if !payload.is_empty() {
+            return payload;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(1));
+    }
+    panic!("expected TCP payload");
 }

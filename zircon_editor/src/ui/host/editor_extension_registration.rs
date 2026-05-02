@@ -60,6 +60,8 @@ impl EditorEventRuntime {
             .collect::<std::collections::BTreeSet<_>>();
         validate_menu_item_operation_bindings(&extension, &available_operations)?;
         validate_component_drawer_operation_bindings(&extension, &available_operations)?;
+        validate_asset_importer_operation_bindings(&extension, &available_operations)?;
+        validate_asset_editor_operation_bindings(&extension, &available_operations)?;
         validate_extension_contribution_conflicts(&inner.editor_extensions, &extension)?;
         inner
             .manager
@@ -166,6 +168,34 @@ fn validate_extension_contribution_conflicts(
             .into_iter()
             .map(|template| template.id().to_string()),
         "ui template",
+    )?;
+    validate_contribution_ids(
+        registrations.iter().flat_map(|registration| {
+            registration
+                .registry()
+                .asset_importers()
+                .into_iter()
+                .map(|importer| importer.id().to_string())
+        }),
+        extension
+            .asset_importers()
+            .into_iter()
+            .map(|importer| importer.id().to_string()),
+        "asset importer",
+    )?;
+    validate_contribution_ids(
+        registrations.iter().flat_map(|registration| {
+            registration
+                .registry()
+                .asset_editors()
+                .into_iter()
+                .map(|editor| editor.asset_kind().to_string())
+        }),
+        extension
+            .asset_editors()
+            .into_iter()
+            .map(|editor| editor.asset_kind().to_string()),
+        "asset editor",
     )
 }
 
@@ -202,6 +232,34 @@ fn validate_component_drawer_operation_bindings(
                     EditorOperationRegistryError::MissingOperation(path),
                 ));
             }
+        }
+    }
+    Ok(())
+}
+
+fn validate_asset_importer_operation_bindings(
+    extension: &EditorExtensionRegistry,
+    available_operations: &std::collections::BTreeSet<EditorOperationPath>,
+) -> Result<(), EditorExtensionRegistryError> {
+    for importer in extension.asset_importers() {
+        if !available_operations.contains(importer.operation()) {
+            return Err(EditorExtensionRegistryError::Operation(
+                EditorOperationRegistryError::MissingOperation(importer.operation().clone()),
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn validate_asset_editor_operation_bindings(
+    extension: &EditorExtensionRegistry,
+    available_operations: &std::collections::BTreeSet<EditorOperationPath>,
+) -> Result<(), EditorExtensionRegistryError> {
+    for editor in extension.asset_editors() {
+        if !available_operations.contains(editor.operation()) {
+            return Err(EditorExtensionRegistryError::Operation(
+                EditorOperationRegistryError::MissingOperation(editor.operation().clone()),
+            ));
         }
     }
     Ok(())

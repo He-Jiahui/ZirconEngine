@@ -4,6 +4,7 @@ pub mod animation;
 pub mod asset;
 pub mod foundation;
 pub mod input;
+pub mod navigation;
 pub mod net;
 pub mod physics;
 pub mod render;

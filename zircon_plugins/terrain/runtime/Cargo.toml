@@ -1,0 +1,9 @@
+[package]
+name = "zircon_plugin_terrain_runtime"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Terrain runtime plugin package for Zircon."
+
+[dependencies]
+zircon_runtime = { path = "../../../zircon_runtime", default-features = false }

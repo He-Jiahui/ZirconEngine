@@ -1,0 +1,33 @@
+id = "editor_build_export_desktop"
+version = "0.1.0"
+sdk_api_version = "0.1.0"
+display_name = "Desktop Build Export"
+description = "Editor-only desktop export panel, compatibility diagnostics, and packaging report surface."
+category = "platform"
+supported_targets = ["editor_host"]
+supported_platforms = ["windows", "linux", "macos"]
+capabilities = [
+    "editor.extension.build_export_desktop",
+    "editor.extension.build_export_desktop.diagnostics",
+    "editor.extension.build_export_desktop.native_dynamic_report",
+]
+asset_roots = ["assets"]
+content_roots = ["templates"]
+default_packaging = ["source_template", "library_embed"]
+
+[[options]]
+key = "editor.build_export_desktop.default_platform"
+display_name = "Default Desktop Platform"
+value_type = "enum"
+default_value = "windows"
+
+[[modules]]
+name = "editor_build_export_desktop.editor"
+kind = "editor"
+crate_name = "zircon_plugin_editor_build_export_desktop_editor"
+target_modes = ["editor_host"]
+capabilities = [
+    "editor.extension.build_export_desktop",
+    "editor.extension.build_export_desktop.diagnostics",
+    "editor.extension.build_export_desktop.native_dynamic_report",
+]

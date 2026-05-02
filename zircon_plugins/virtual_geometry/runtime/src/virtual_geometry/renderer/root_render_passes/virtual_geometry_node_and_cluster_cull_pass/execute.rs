@@ -6,9 +6,8 @@ use zircon_runtime::core::framework::render::{
     RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot,
     RenderVirtualGeometryNodeAndClusterCullSource,
 };
-use zircon_runtime::graphics::ViewportRenderFrame;
 
-use crate::virtual_geometry::renderer::VirtualGeometryGpuResources;
+use crate::virtual_geometry::renderer::{VirtualGeometryGpuResources, VirtualGeometryRenderFrame};
 
 use super::output::VirtualGeometryNodeAndClusterCullPassOutput;
 use super::page_requests::append_node_and_cluster_cull_page_requests;
@@ -22,7 +21,7 @@ pub(in crate::virtual_geometry::renderer::root_render_passes) fn execute_virtual
     encoder: &mut wgpu::CommandEncoder,
     virtual_geometry_resources: &VirtualGeometryGpuResources,
     pass_enabled: bool,
-    frame: &ViewportRenderFrame,
+    frame: &VirtualGeometryRenderFrame,
     cull_input: Option<&RenderVirtualGeometryCullInputSnapshot>,
     previous_global_state: Option<&RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot>,
 ) -> VirtualGeometryNodeAndClusterCullPassOutput {

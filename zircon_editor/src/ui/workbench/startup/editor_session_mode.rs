@@ -5,4 +5,5 @@ pub enum EditorSessionMode {
     #[default]
     Welcome,
     Project,
+    Playing,
 }

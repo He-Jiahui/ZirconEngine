@@ -1,13 +1,13 @@
 use crate::ui::template::{
-    fingerprint_document, UiAssetLoader, UiCompileCacheKey, UiCompiledAssetArtifact,
-    UiCompiledAssetPackageManifest, UiDocumentCompiler,
+    compile_cache_key_from_compiler, compiled_asset_package_manifest_from_artifact_bytes,
+    fingerprint_document, UiAssetLoader, UiDocumentCompiler, UiRuntimeCompiledAssetArtifact,
 };
 use zircon_runtime_interface::ui::template::{
-    UiAssetDocument, UiAssetFingerprint, UiAssetKind, UiCompiledAssetPackageProfile,
-    UiCompiledAssetPackageSection, UiInvalidationStage, UiResourceDependencySource,
-    UiResourceFallbackMode, UiResourceKind, UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION,
-    UI_COMPILED_ASSET_BINARY_ARTIFACT_SCHEMA_VERSION, UI_COMPILED_ASSET_COMPILER_SCHEMA_VERSION,
-    UI_COMPILED_ASSET_PACKAGE_SCHEMA_VERSION,
+    UiAssetDocument, UiAssetFingerprint, UiAssetKind, UiCompiledAssetPackageManifest,
+    UiCompiledAssetPackageProfile, UiCompiledAssetPackageSection, UiInvalidationStage,
+    UiResourceDependencySource, UiResourceFallbackMode, UiResourceKind,
+    UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION, UI_COMPILED_ASSET_BINARY_ARTIFACT_SCHEMA_VERSION,
+    UI_COMPILED_ASSET_COMPILER_SCHEMA_VERSION, UI_COMPILED_ASSET_PACKAGE_SCHEMA_VERSION,
 };
 
 const COMPILED_ASSET_BINARY_MAGIC: &[u8; 8] = b"ZRUIA016";
@@ -315,7 +315,7 @@ fn asset_package_binary_artifact_roundtrips_deterministic_envelope() {
         .unwrap();
     let first = artifact.to_bytes().unwrap();
     let second = artifact.to_bytes().unwrap();
-    let decoded = UiCompiledAssetArtifact::from_bytes(&first).unwrap();
+    let decoded = UiRuntimeCompiledAssetArtifact::from_bytes(&first).unwrap();
     let schema_version = u32::from_le_bytes(
         first[COMPILED_ASSET_BINARY_MAGIC.len()..COMPILED_ASSET_BINARY_MAGIC.len() + 4]
             .try_into()
@@ -327,7 +327,7 @@ fn asset_package_binary_artifact_roundtrips_deterministic_envelope() {
             .unwrap(),
     );
     let payload = std::str::from_utf8(&first[COMPILED_ASSET_BINARY_HEADER_LEN..]).unwrap();
-    let payload_artifact = toml::from_str::<UiCompiledAssetArtifact>(payload).unwrap();
+    let payload_artifact = toml::from_str::<UiRuntimeCompiledAssetArtifact>(payload).unwrap();
 
     assert_eq!(first, second);
     assert_eq!(
@@ -361,7 +361,7 @@ fn asset_package_cache_record_reuses_cache_key_and_invalidation_snapshot() {
         .compile_package_artifact(&layout, UiCompiledAssetPackageProfile::Runtime)
         .unwrap();
     let bytes = artifact.to_bytes().unwrap();
-    let manifest = UiCompiledAssetPackageManifest::from_artifact_bytes(&artifact, &bytes);
+    let manifest = compiled_asset_package_manifest_from_artifact_bytes(&artifact, &bytes);
 
     assert_eq!(
         manifest.cache.cache_key,
@@ -391,7 +391,7 @@ fn asset_package_manifest_writer_importer_preserves_resource_dependencies() {
         .compile_package_artifact(&layout, UiCompiledAssetPackageProfile::Editor)
         .unwrap();
     let bytes = artifact.to_bytes().unwrap();
-    let manifest = UiCompiledAssetPackageManifest::from_artifact_bytes(&artifact, &bytes);
+    let manifest = compiled_asset_package_manifest_from_artifact_bytes(&artifact, &bytes);
     let source = manifest.write_toml().unwrap();
     let imported = UiCompiledAssetPackageManifest::import_toml(&source).unwrap();
 
@@ -493,12 +493,12 @@ fn asset_package_validation_prioritizes_contract_errors_before_resource_fingerpr
 fn asset_package_validation_report_generation_keeps_compiler_cache_inputs_stable() {
     let layout = package_layout();
     let compiler = package_compiler();
-    let before = UiCompileCacheKey::from_compiler(&compiler, &layout).unwrap();
+    let before = compile_cache_key_from_compiler(&compiler, &layout).unwrap();
 
     let report = compiler
         .validate_package(&layout, UiCompiledAssetPackageProfile::Runtime)
         .unwrap();
-    let after = UiCompileCacheKey::from_compiler(&compiler, &layout).unwrap();
+    let after = compile_cache_key_from_compiler(&compiler, &layout).unwrap();
 
     assert_eq!(before, after);
     assert_eq!(

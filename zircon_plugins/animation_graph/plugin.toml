@@ -1,0 +1,18 @@
+id = "animation_graph"
+version = "0.1.0"
+display_name = "Animation Graph"
+category = "authoring"
+description = "Optional editor-only graph authoring package for animation graphs and state machines."
+default_packaging = ["source_template", "library_embed"]
+
+[[dependencies]]
+id = "animation"
+required = true
+capability = "runtime.plugin.animation"
+
+[[modules]]
+name = "animation_graph.editor"
+kind = "editor"
+crate_name = "zircon_plugin_animation_graph_editor"
+target_modes = ["editor_host"]
+capabilities = ["editor.extension.animation_graph_authoring"]

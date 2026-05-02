@@ -8,7 +8,7 @@ use super::super::errors::asset_error_message;
 use super::ProjectAssetManager;
 use crate::asset::project::ProjectManager;
 use crate::asset::worker_pool::AssetWorkerPool;
-use crate::asset::{AssetId, AssetUri, ShaderAsset};
+use crate::asset::{AssetId, AssetImporterHandler, AssetUri, ShaderAsset};
 
 impl Default for ProjectAssetManager {
     fn default() -> Self {
@@ -43,6 +43,19 @@ impl ProjectAssetManager {
 
     pub fn resource_manager(&self) -> ResourceManager {
         self.resource_manager.clone()
+    }
+
+    pub fn register_asset_importer(
+        &self,
+        importer: impl AssetImporterHandler + 'static,
+    ) -> Result<(), CoreError> {
+        let mut project = self.project_write();
+        let Some(project) = project.as_mut() else {
+            return Err(asset_error_message("no project is currently open"));
+        };
+        project
+            .register_asset_importer(importer)
+            .map_err(|error| asset_error_message(error.to_string()))
     }
 
     pub fn resolve_asset_id(&self, uri: &AssetUri) -> Option<AssetId> {

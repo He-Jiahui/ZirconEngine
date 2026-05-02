@@ -9,13 +9,13 @@ use zircon_runtime::core::framework::render::{
 };
 use zircon_runtime::core::math::{Transform, UVec2, Vec4};
 use zircon_runtime::graphics::WgpuRenderFramework;
-use zircon_runtime::ui::event_ui::{UiNodeId, UiTreeId};
-use zircon_runtime::ui::layout::{UiFrame, UiSize};
-use zircon_runtime::ui::surface::{
+use zircon_runtime::ui::template::{UiAssetLoader, UiDocumentCompiler, UiTemplateSurfaceBuilder};
+use zircon_runtime_interface::ui::event_ui::{UiNodeId, UiTreeId};
+use zircon_runtime_interface::ui::layout::{UiFrame, UiSize};
+use zircon_runtime_interface::ui::surface::{
     UiRenderCommand, UiRenderCommandKind, UiRenderExtract, UiRenderList, UiResolvedStyle,
     UiTextAlign, UiTextRenderMode, UiTextWrap,
 };
-use zircon_runtime::ui::template::{UiAssetLoader, UiDocumentCompiler, UiTemplateSurfaceBuilder};
 
 #[test]
 fn native_runtime_ui_text_renders_sparse_glyph_pixels_without_placeholder_band() {

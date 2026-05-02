@@ -1,7 +1,6 @@
 use std::collections::BTreeMap;
 
-use zircon_runtime::ui::template::{UiCompiledDocument, UiDocumentCompiler, UiTemplateInstance};
-use zircon_runtime_interface::ui::template::UiAssetDocument;
+use zircon_runtime::ui::template::UiCompiledDocument;
 
 use crate::ui::template::EditorTemplateError;
 
@@ -11,15 +10,6 @@ pub struct EditorTemplateRegistry {
 }
 
 impl EditorTemplateRegistry {
-    pub fn register_asset_document(
-        &mut self,
-        document_id: impl Into<String>,
-        document: UiAssetDocument,
-    ) -> Result<(), EditorTemplateError> {
-        let compiled = UiDocumentCompiler::default().compile(&document)?;
-        self.register_compiled_document(document_id, compiled)
-    }
-
     pub fn register_compiled_document(
         &mut self,
         document_id: impl Into<String>,
@@ -33,15 +23,14 @@ impl EditorTemplateRegistry {
         Ok(())
     }
 
-    pub fn instantiate(
+    pub(super) fn compiled_document(
         &self,
         document_id: &str,
-    ) -> Result<UiTemplateInstance, EditorTemplateError> {
-        let document = self.documents.get(document_id).ok_or_else(|| {
-            EditorTemplateError::MissingDocument {
+    ) -> Result<&UiCompiledDocument, EditorTemplateError> {
+        self.documents
+            .get(document_id)
+            .ok_or_else(|| EditorTemplateError::MissingDocument {
                 document_id: document_id.to_string(),
-            }
-        })?;
-        Ok(document.clone().into_template_instance())
+            })
     }
 }

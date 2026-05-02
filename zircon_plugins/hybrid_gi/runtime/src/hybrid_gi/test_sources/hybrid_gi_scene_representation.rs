@@ -226,6 +226,84 @@ fn hybrid_gi_scene_representation_builds_card_capture_requests_from_dirty_pages(
 }
 
 #[test]
+fn hybrid_gi_scene_representation_places_screen_probes_from_cards_and_surface_cache_pages() {
+    let mut representation =
+        HybridGiSceneRepresentation::from_extract(&extract_with_trace_and_budgets(2, 3, 0));
+
+    representation.synchronize_scene(
+        &[
+            mesh_at(33, Vec3::new(6.0, 0.0, 0.0), 1.5),
+            mesh_at(11, Vec3::new(-1.0, 0.0, 0.0), 2.0),
+            mesh_at(22, Vec3::new(3.0, 0.0, 0.0), 1.0),
+        ],
+        &[],
+        &[],
+        &[],
+    );
+
+    assert_eq!(representation.screen_probe_count(), 2);
+    assert_eq!(
+        representation.screen_probe_descriptors(),
+        vec![
+            (0, 11, Some(0), [-1.0, 0.0, 0.0], 1.0, 1),
+            (1, 22, Some(1), [3.0, 0.0, 0.0], 0.5, 1),
+        ]
+    );
+}
+
+#[test]
+fn hybrid_gi_scene_representation_keeps_screen_probe_fallback_when_surface_page_is_missing() {
+    let mut representation =
+        HybridGiSceneRepresentation::from_extract(&extract_with_trace_and_budgets(2, 1, 0));
+
+    representation.synchronize_scene(
+        &[
+            mesh_at(11, Vec3::new(-1.0, 0.0, 0.0), 2.0),
+            mesh_at(22, Vec3::new(3.0, 0.0, 0.0), 1.0),
+        ],
+        &[],
+        &[],
+        &[],
+    );
+
+    assert_eq!(
+        representation.screen_probe_descriptors(),
+        vec![
+            (0, 11, Some(0), [-1.0, 0.0, 0.0], 1.0, 1),
+            (1, 22, None, [3.0, 0.0, 0.0], 0.5, 1),
+        ]
+    );
+}
+
+#[test]
+fn hybrid_gi_scene_representation_seeds_radiance_cache_from_surface_cache_then_voxel_fallback() {
+    let mut representation =
+        HybridGiSceneRepresentation::from_extract(&extract_with_trace_and_budgets(2, 2, 1));
+    let meshes = [
+        mesh_at(11, Vec3::new(-1.0, 0.0, 0.0), 2.0),
+        mesh_at(22, Vec3::new(3.0, 0.0, 0.0), 1.0),
+    ];
+
+    representation.synchronize_scene(&meshes, &[], &[], &[]);
+    representation
+        .surface_cache_mut()
+        .replace_page_contents_for_test(&[(0, 11, 0, 0, [10, 20, 30, 255], [40, 50, 60, 255])]);
+    representation.synchronize_scene(&meshes, &[], &[], &[]);
+
+    let entries = representation.radiance_cache_entries();
+    assert_eq!(
+        entries[0],
+        (0, 11, Some(0), [40, 50, 60], 255, "surface-cache")
+    );
+    assert_eq!(entries[1].0, 1);
+    assert_eq!(entries[1].1, 22);
+    assert_eq!(entries[1].2, Some(1));
+    assert_ne!(entries[1].3, [0, 0, 0]);
+    assert_eq!(entries[1].4, 128);
+    assert_eq!(entries[1].5, "voxel-fallback");
+}
+
+#[test]
 fn hybrid_gi_scene_representation_allocates_page_ids_separately_from_owner_card_ids() {
     let mut representation = HybridGiSceneRepresentation::from_extract(&extract_with_budgets(2, 2));
 
@@ -438,10 +516,18 @@ fn hybrid_gi_scene_representation_updates_and_invalidates_voxel_clipmap_descript
 }
 
 fn extract_with_budgets(card_budget: u32, voxel_budget: u32) -> RenderHybridGiExtract {
+    extract_with_trace_and_budgets(24, card_budget, voxel_budget)
+}
+
+fn extract_with_trace_and_budgets(
+    trace_budget: u32,
+    card_budget: u32,
+    voxel_budget: u32,
+) -> RenderHybridGiExtract {
     RenderHybridGiExtract {
         enabled: true,
         quality: RenderHybridGiQuality::High,
-        trace_budget: 24,
+        trace_budget,
         card_budget,
         voxel_budget,
         debug_view: RenderHybridGiDebugView::SurfaceCache,

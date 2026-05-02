@@ -11,6 +11,16 @@ use super::{
 pub struct RenderPluginRendererOutputs {
     pub virtual_geometry: RenderVirtualGeometryReadbackOutputs,
     pub hybrid_gi: RenderHybridGiReadbackOutputs,
+    pub particles: RenderParticleGpuReadbackOutputs,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct RenderParticleGpuReadbackOutputs {
+    pub alive_count: u32,
+    pub spawned_total: u32,
+    pub debug_flags: u32,
+    pub per_emitter_spawned: Vec<u32>,
+    pub indirect_draw_args: [u32; 4],
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -102,5 +112,7 @@ mod tests {
         assert!(outputs.virtual_geometry.selected_clusters.is_empty());
         assert!(outputs.hybrid_gi.completed_probe_ids.is_empty());
         assert!(outputs.hybrid_gi.scene_prepare.voxel_cells.is_empty());
+        assert_eq!(outputs.particles.alive_count, 0);
+        assert!(outputs.particles.per_emitter_spawned.is_empty());
     }
 }

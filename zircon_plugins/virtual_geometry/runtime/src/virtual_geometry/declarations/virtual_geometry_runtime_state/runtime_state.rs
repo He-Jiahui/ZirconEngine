@@ -7,6 +7,7 @@ pub(crate) struct VirtualGeometryRuntimeState {
     pub(super) page_budget: usize,
     pub(super) page_sizes: BTreeMap<u32, u64>,
     pub(super) page_parent_pages: BTreeMap<u32, u32>,
+    pub(super) page_child_pages: BTreeMap<u32, Vec<u32>>,
     pub(super) current_requested_page_order: BTreeMap<u32, usize>,
     pub(super) current_hot_resident_pages: BTreeSet<u32>,
     pub(super) recent_hot_resident_pages: BTreeMap<u32, u8>,

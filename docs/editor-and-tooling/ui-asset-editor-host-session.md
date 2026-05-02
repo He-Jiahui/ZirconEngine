@@ -34,6 +34,13 @@ related_code:
   - zircon_editor/src/ui/asset_editor/diagnostics/contract.rs
   - zircon_editor/src/ui/asset_editor/diagnostics/binding.rs
   - zircon_editor/src/ui/asset_editor/binding/schema_projection.rs
+  - zircon_editor/src/ui/template/mod.rs
+  - zircon_editor/src/ui/template/registry.rs
+  - zircon_editor/src/ui/template/service.rs
+  - zircon_editor/src/ui/template_runtime/runtime/build_session.rs
+  - zircon_editor/src/ui/template_runtime/runtime/pane_payload_projection.rs
+  - zircon_editor/src/ui/template_runtime/runtime/projection.rs
+  - zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs
   - zircon_runtime_interface/src/ui/template/asset/binding/diagnostic.rs
   - zircon_runtime_interface/src/ui/template/asset/binding/target.rs
   - zircon_runtime_interface/src/ui/tree/mod.rs
@@ -158,6 +165,13 @@ implementation_files:
   - zircon_editor/src/ui/asset_editor/diagnostics/contract.rs
   - zircon_editor/src/ui/asset_editor/diagnostics/binding.rs
   - zircon_editor/src/ui/asset_editor/binding/schema_projection.rs
+  - zircon_editor/src/ui/template/mod.rs
+  - zircon_editor/src/ui/template/registry.rs
+  - zircon_editor/src/ui/template/service.rs
+  - zircon_editor/src/ui/template_runtime/runtime/build_session.rs
+  - zircon_editor/src/ui/template_runtime/runtime/pane_payload_projection.rs
+  - zircon_editor/src/ui/template_runtime/runtime/projection.rs
+  - zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs
   - zircon_runtime_interface/src/ui/template/asset/binding/diagnostic.rs
   - zircon_runtime_interface/src/ui/template/asset/binding/target.rs
   - zircon_runtime_interface/src/ui/tree/mod.rs
@@ -249,6 +263,7 @@ plan_sources:
   - docs/superpowers/plans/2026-05-01-ui-productization-editor-binding-parity.md
   - docs/superpowers/specs/2026-05-02-ui-runtime-interface-big-cutover-design.md
   - docs/superpowers/plans/2026-05-02-ui-runtime-interface-big-cutover.md
+  - user: 2026-05-02 continue package/cache classification and editor template-service façade
 tests:
   - zircon_editor/src/tests/editing/ui_asset/structure_split.rs
   - zircon_editor/src/tests/editing/ui_asset/source_projection.rs
@@ -274,6 +289,9 @@ tests:
   - zircon_editor/src/tests/ui/welcome/bootstrap_assets.rs
   - zircon_editor/src/tests/ui/boundary/template_assets.rs
   - zircon_editor/src/tests/ui/boundary/view_projection_cutover.rs
+  - zircon_editor/src/tests/ui/template/binding_resolution.rs
+  - zircon_editor/src/tests/ui/template/catalog_registry.rs
+  - zircon_editor/src/tests/ui/template/repository_assets.rs
   - zircon_editor/src/tests/host/slint_detail_pointer/surface_contract.rs
   - zircon_editor/src/tests/host/slint_window/ui_asset_editor.rs
   - zircon_editor/src/tests/host/slint_detail_pointer/template_callbacks.rs
@@ -336,6 +354,7 @@ tests:
   - cargo test -p zircon_runtime --lib asset_component_contract --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-m10-root-class-authoring --message-format short --color never (blocked by unrelated runtime-interface manifest/lock drift)
   - cargo test -p zircon_editor --lib ui_asset_editor_projects_runtime_binding_diagnostic_and_schema_items --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-big-cutover --message-format short --color never (passed: 1 passed; 0 failed; 888 filtered out)
   - cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-big-cutover --message-format short --color never (blocked before compilation by unrelated workspace lock drift: `web-sys` selected `js-sys` 0.3.97 while `Cargo.lock` selected 0.3.95)
+  - cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-editor-check --message-format short --color never (2026-05-02 editor tree DTO/runtime extension split: passed with existing runtime graphics warnings and 3 editor warnings)
 doc_type: module-detail
 ---
 
@@ -881,10 +900,10 @@ The guard `ui_asset_editor_host_genericizes_detail_event_dispatch` now checks th
 
 The 2026-05-02 UI runtime-interface audit separates remaining editor `zircon_runtime` usage into two groups.
 
-Concrete runtime services still intentionally come from `zircon_runtime::ui`: `UiSurface`, `UiEventManager`, `UiDocumentCompiler`, `UiAssetLoader`, `UiTemplateSurfaceBuilder`, `UiTemplateBuildError`, `UiComponentDescriptorRegistry`, `UiAssetDocumentRuntimeExt`, runtime pointer/surface dispatchers, and runtime layout/render behavior exposed through those services. These dependencies are runtime behavior APIs, not neutral DTO ownership.
+Concrete runtime services still intentionally come from `zircon_runtime::ui`: `UiSurface`, `UiEventManager`, `UiTemplateBuildError`, `UiComponentDescriptorRegistry`, `UiAssetDocumentRuntimeExt`, runtime pointer/surface dispatchers, and runtime layout/render behavior exposed through those services. `EditorTemplateRuntimeService` now owns the high-level editor façade for `.ui.toml` parsing, document compilation, registry registration/instantiation, surface construction, render extraction, and binding diagnostic collection; that façade is the editor-owned boundary around `UiAssetLoader`, `UiDocumentCompiler`, `UiTemplateSurfaceBuilder`, and `extract_ui_render_tree(...)`. These dependencies are runtime behavior APIs, not neutral DTO ownership.
 
-The latest Milestone 4 audit found 128 `zircon_runtime::ui` hits and 428 `zircon_runtime_interface::ui` hits under `zircon_editor/src`. The editor is already broadly consuming interface DTOs for IDs, layout geometry, component values, binding reports, dispatch records, and template asset records, but the remaining runtime hits cannot be treated as one mechanical import rewrite.
+The latest Milestone 4 audit found 134 `zircon_runtime::ui` hits and 431 `zircon_runtime_interface::ui` hits under `zircon_editor/src`. The editor is already broadly consuming interface DTOs for IDs, layout geometry, component values, binding reports, dispatch records, and template asset records, but the remaining runtime hits cannot be treated as one mechanical import rewrite.
 
 The tree/surface identity blocker has been cut over. `zircon_runtime_interface::ui::tree` owns neutral `UiTree`, `UiTreeNode`, `UiInputPolicy`, and `UiTreeError` declarations, and `zircon_runtime::ui::surface::UiSurface` stores that interface `UiTree` directly. Editor files that construct a `UiSurface`, insert `UiTreeNode`s, or set `UiInputPolicy` import those DTOs from `zircon_runtime_interface::ui::tree`; files that call insertion, query, mutation, routing, focus, scroll, or other tree behavior import the needed `zircon_runtime::ui::tree::UiRuntimeTree*Ext` trait instead of importing DTOs through runtime.
 
-Neutral UI DTO imports are therefore not fully cut over yet outside the tree DTO family. Current editor source still has mixed files where IDs, geometry values, binding values/calls/kinds, component values/events/descriptors, drag payloads, render commands/styles/text records, template asset records, and package/report DTOs appear near runtime services. The next hard-cutover slice must split only the safe DTO imports to `zircon_runtime_interface::ui` while leaving concrete services and runtime behavior types on `zircon_runtime::ui`. The focused `cargo check -p zircon_editor --lib` gate proves the editor type-checks only when it is actually rerun for the current dirty workspace; it does not by itself prove this source-import cleanup is complete.
+The follow-up non-tree DTO audit did not find a safe remaining DTO-only import that is still exported from `zircon_runtime::ui`. Targeted searches for runtime-owned `binding::Ui*`, `event_ui::Ui*`, `layout::Ui*`, `surface::UiRender*/UiResolved*/UiText*`, `component::UiValue/UiComponentState/UiComponentEvent/UiDrag*`, dispatch DTOs, and template asset DTOs only found runtime service or behavior names such as `UiEventManager`, `UiComponentDescriptorRegistry`, and `UiAssetDocumentRuntimeExt`. Current editor source still has mixed files where interface DTOs appear near runtime services, but those DTOs already import from `zircon_runtime_interface::ui`; the remaining runtime imports should stay until concrete service APIs move or narrower capability facades replace them. The new `EditorTemplateRuntimeService` narrows the most common high-level runtime-template seams without pretending that low-level pointer/surface dispatchers are interface DTOs. `EditorTemplateRegistry` now stores compiled documents only; callers must use the service façade for compilation and instantiation so registry code no longer owns runtime compiler behavior directly. The 2026-05-02 19:44 rerun `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-package-cache-opencode --message-format short --color never` passed with existing runtime graphics warnings and 3 editor warnings. That proves the UI DTO split and editor template service façade type-check in the current worktree; it does not claim the editor no longer depends on runtime services, and it does not imply workspace-test green.

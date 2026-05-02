@@ -9,6 +9,9 @@ pub(in crate::asset::pipeline::manager) fn register_project_resource(
     imported: ImportedAsset,
 ) {
     match imported {
+        ImportedAsset::Data(asset) => {
+            resource_manager.register_ready(metadata, asset);
+        }
         ImportedAsset::Texture(asset) => {
             resource_manager.register_ready(metadata, asset);
         }
@@ -16,6 +19,9 @@ pub(in crate::asset::pipeline::manager) fn register_project_resource(
             resource_manager.register_ready(metadata, asset);
         }
         ImportedAsset::Material(asset) => {
+            resource_manager.register_ready(metadata, asset);
+        }
+        ImportedAsset::MaterialGraph(asset) => {
             resource_manager.register_ready(metadata, asset);
         }
         ImportedAsset::Sound(asset) => {
@@ -40,6 +46,27 @@ pub(in crate::asset::pipeline::manager) fn register_project_resource(
             resource_manager.register_ready(metadata, asset);
         }
         ImportedAsset::PhysicsMaterial(asset) => {
+            resource_manager.register_ready(metadata, asset);
+        }
+        ImportedAsset::NavMesh(asset) => {
+            resource_manager.register_ready(metadata, asset);
+        }
+        ImportedAsset::NavigationSettings(asset) => {
+            resource_manager.register_ready(metadata, asset);
+        }
+        ImportedAsset::Terrain(asset) => {
+            resource_manager.register_ready(metadata, asset);
+        }
+        ImportedAsset::TerrainLayerStack(asset) => {
+            resource_manager.register_ready(metadata, asset);
+        }
+        ImportedAsset::TileSet(asset) => {
+            resource_manager.register_ready(metadata, asset);
+        }
+        ImportedAsset::TileMap(asset) => {
+            resource_manager.register_ready(metadata, asset);
+        }
+        ImportedAsset::Prefab(asset) => {
             resource_manager.register_ready(metadata, asset);
         }
         ImportedAsset::AnimationSkeleton(asset) => {

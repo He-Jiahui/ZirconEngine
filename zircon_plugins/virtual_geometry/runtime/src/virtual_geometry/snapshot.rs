@@ -7,6 +7,7 @@ impl VirtualGeometryRuntimeState {
             self.resident_page_count(),
             self.resident_page_count(),
             self.pending_request_count(),
+            self.page_dependency_count(),
         )
     }
 

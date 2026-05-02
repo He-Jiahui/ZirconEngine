@@ -12,5 +12,6 @@ mod native_plugin_load_manifest_template;
 mod plugin_selection_template;
 
 pub use export_build_plan::ExportBuildPlan;
+pub(crate) use export_build_plan::{ExportLinkedRuntimeCrate, ExportRuntimeCrateRegistrationKind};
 pub use export_generated_file::ExportGeneratedFile;
 pub use export_materialize_report::ExportMaterializeReport;

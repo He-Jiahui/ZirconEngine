@@ -166,10 +166,19 @@ fn reference_data(
 
 fn asset_kind_label(kind: ResourceKind) -> &'static str {
     match kind {
+        ResourceKind::Data => "Data",
         ResourceKind::Texture => "Texture",
         ResourceKind::Shader => "Shader",
         ResourceKind::Material => "Material",
+        ResourceKind::MaterialGraph => "MaterialGraph",
         ResourceKind::PhysicsMaterial => "PhysicsMaterial",
+        ResourceKind::NavMesh => "NavMesh",
+        ResourceKind::NavigationSettings => "NavigationSettings",
+        ResourceKind::Terrain => "Terrain",
+        ResourceKind::TerrainLayerStack => "TerrainLayerStack",
+        ResourceKind::TileSet => "TileSet",
+        ResourceKind::TileMap => "TileMap",
+        ResourceKind::Prefab => "Prefab",
         ResourceKind::Scene => "Scene",
         ResourceKind::Model => "Model",
         ResourceKind::Sound => "Sound",

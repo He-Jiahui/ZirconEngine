@@ -8,7 +8,8 @@ use zircon_runtime::core::framework::render::{
     RenderVirtualGeometryNodeAndClusterCullLaunchWorklistSnapshot, ViewportCameraSnapshot,
 };
 use zircon_runtime::core::math::{view_matrix, Mat4, Real};
-use zircon_runtime::graphics::ViewportRenderFrame;
+
+use crate::virtual_geometry::renderer::VirtualGeometryRenderFrame;
 
 const NODE_AND_CLUSTER_CULL_DISPATCH_WORKGROUP_SIZE: u32 = 64;
 const NODE_AND_CLUSTER_CULL_BASELINE_CHILD_SPLIT_SCREEN_SPACE_ERROR_THRESHOLD: Real = 1.0;
@@ -19,7 +20,7 @@ const NODE_AND_CLUSTER_CULL_BASELINE_MAX_CHILD_SPLIT_SCREEN_SPACE_ERROR_THRESHOL
 const NODE_AND_CLUSTER_CULL_BASELINE_CHILD_FRUSTUM_CULLING_ENABLED: bool = true;
 
 pub(super) fn build_node_and_cluster_cull_global_state(
-    frame: &ViewportRenderFrame,
+    frame: &VirtualGeometryRenderFrame,
     cull_input: &RenderVirtualGeometryCullInputSnapshot,
     previous_global_state: Option<&RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot>,
 ) -> RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot {
@@ -119,7 +120,7 @@ fn node_and_cluster_cull_child_frustum_culling_enabled(camera: &ViewportCameraSn
 }
 
 pub(super) fn build_node_and_cluster_cull_instance_seeds(
-    frame: &ViewportRenderFrame,
+    frame: &VirtualGeometryRenderFrame,
     global_state: &RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot,
 ) -> Vec<RenderVirtualGeometryNodeAndClusterCullInstanceSeed> {
     let Some(extract) = frame.extract.geometry.virtual_geometry.as_ref() else {
@@ -200,7 +201,7 @@ pub(super) fn build_node_and_cluster_cull_instance_work_items(
 }
 
 pub(super) fn build_node_and_cluster_cull_cluster_work_items(
-    frame: &ViewportRenderFrame,
+    frame: &VirtualGeometryRenderFrame,
     instance_work_items: &[RenderVirtualGeometryNodeAndClusterCullInstanceWorkItem],
     cluster_work_item_limit: u32,
 ) -> Vec<VirtualGeometryNodeAndClusterCullClusterWorkItem> {

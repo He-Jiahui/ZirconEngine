@@ -291,6 +291,9 @@ fn write_default_scene(path: PathBuf) {
                 animation_sequence_player: None,
                 animation_graph_player: None,
                 animation_state_machine_player: None,
+                terrain: None,
+                tilemap: None,
+                prefab_instance: None,
             },
             SceneEntityAsset {
                 entity: 2,
@@ -391,6 +394,9 @@ fn write_default_scene(path: PathBuf) {
                     active_state: Some("Locomotion".to_string()),
                     playing: true,
                 }),
+                terrain: None,
+                tilemap: None,
+                prefab_instance: None,
             },
         ],
     };

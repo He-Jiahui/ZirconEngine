@@ -225,7 +225,20 @@ fn module_plugins_fixture() -> ModulePluginsPaneViewData {
             editor_crate: "zircon_plugins_physics_editor".into(),
             runtime_capabilities: "simulation".into(),
             editor_capabilities: "inspector".into(),
+            optional_features: "Ray Cast Queries [ready]".into(),
+            feature_action_label: "Enable Feature".into(),
+            feature_action_id: "Plugin.Feature.Enable.physics.physics.raycast_queries".into(),
             diagnostics: "".into(),
+            primary_action_label: "Disable".into(),
+            primary_action_id: "Plugin.Disable.physics".into(),
+            packaging_action_label: "Cycle linked".into(),
+            packaging_action_id: "Plugin.Packaging.Next.physics".into(),
+            target_modes_action_label: "Cycle targets".into(),
+            target_modes_action_id: "Plugin.TargetModes.Next.physics".into(),
+            unload_action_label: "Unload".into(),
+            unload_action_id: "Plugin.Unload.physics".into(),
+            hot_reload_action_label: "Hot Reload".into(),
+            hot_reload_action_id: "Plugin.HotReload.physics".into(),
         }]),
         diagnostics: "plugin catalog ready".into(),
     }
@@ -344,6 +357,35 @@ fn pane_payload_builders_emit_stable_body_metadata_for_first_wave_views() {
                 assert_eq!(payload.plugins[0].plugin_id, "physics");
                 assert_eq!(payload.plugins[0].display_name, "Physics");
                 assert!(payload.plugins[0].enabled);
+                assert_eq!(
+                    payload.plugins[0].optional_features,
+                    "Ray Cast Queries [ready]"
+                );
+                assert_eq!(payload.plugins[0].feature_action_label, "Enable Feature");
+                assert_eq!(
+                    payload.plugins[0].feature_action_id,
+                    "Plugin.Feature.Enable.physics.physics.raycast_queries"
+                );
+                assert_eq!(payload.plugins[0].primary_action_label, "Disable");
+                assert_eq!(
+                    payload.plugins[0].primary_action_id,
+                    "Plugin.Disable.physics"
+                );
+                assert_eq!(
+                    payload.plugins[0].packaging_action_id,
+                    "Plugin.Packaging.Next.physics"
+                );
+                assert_eq!(
+                    payload.plugins[0].target_modes_action_id,
+                    "Plugin.TargetModes.Next.physics"
+                );
+                assert_eq!(payload.plugins[0].unload_action_label, "Unload");
+                assert_eq!(payload.plugins[0].unload_action_id, "Plugin.Unload.physics");
+                assert_eq!(payload.plugins[0].hot_reload_action_label, "Hot Reload");
+                assert_eq!(
+                    payload.plugins[0].hot_reload_action_id,
+                    "Plugin.HotReload.physics"
+                );
             }
             (unexpected_id, unexpected_payload) => panic!(
                 "builder for `{unexpected_id}` produced unexpected payload {unexpected_payload:?}"

@@ -8,7 +8,10 @@ use crate::core::editor_event::{
     EditorEvent, EditorEventDispatcher, EditorEventEnvelope, EditorEventJournal, EditorEventRecord,
     EditorEventSource,
 };
-use crate::core::editor_extension::{ComponentDrawerDescriptor, EditorUiTemplateDescriptor};
+use crate::core::editor_extension::{
+    AssetEditorDescriptor, AssetImporterDescriptor, ComponentDrawerDescriptor,
+    EditorUiTemplateDescriptor,
+};
 use crate::core::editor_operation::EditorOperationStack;
 use crate::scene::viewport::{RenderFrameExtract, RenderSceneSnapshot};
 use crate::ui::activity::ActivityViewDescriptor;
@@ -27,54 +30,49 @@ use zircon_runtime_interface::ui::component::{
 
 impl EditorEventRuntime {
     pub fn editor_snapshot(&self) -> EditorDataSnapshot {
-        self.inner.lock().unwrap().state.snapshot()
+        self.lock_inner().state.snapshot()
     }
 
     pub fn current_layout(&self) -> WorkbenchLayout {
-        self.inner.lock().unwrap().manager.current_layout()
+        self.lock_inner().manager.current_layout()
     }
 
     pub fn descriptors(&self) -> Vec<ViewDescriptor> {
-        self.inner.lock().unwrap().manager.descriptors()
+        self.lock_inner().manager.descriptors()
     }
 
     pub fn current_view_instances(&self) -> Vec<ViewInstance> {
-        self.inner.lock().unwrap().manager.current_view_instances()
+        self.lock_inner().manager.current_view_instances()
     }
 
     pub fn chrome_snapshot(&self) -> EditorChromeSnapshot {
-        let inner = self.inner.lock().unwrap();
+        let inner = self.lock_inner();
         let descriptors = inner.manager.descriptors();
         Self::build_chrome_locked(&inner, descriptors)
     }
 
     pub fn preset_names(&self) -> Vec<String> {
-        self.inner
-            .lock()
-            .unwrap()
-            .manager
-            .preset_names()
-            .unwrap_or_default()
+        self.lock_inner().manager.preset_names().unwrap_or_default()
     }
 
     pub fn render_snapshot(&self) -> Option<RenderSceneSnapshot> {
-        self.inner.lock().unwrap().state.render_snapshot()
+        self.lock_inner().state.render_snapshot()
     }
 
     pub fn render_frame_extract(&self) -> Option<RenderFrameExtract> {
-        self.inner.lock().unwrap().state.render_frame_extract()
+        self.lock_inner().state.render_frame_extract()
     }
 
     pub(crate) fn render_frame_submission(&self) -> Option<EditorRenderFrameSubmission> {
-        self.inner.lock().unwrap().state.render_frame_submission()
+        self.lock_inner().state.render_frame_submission()
     }
 
     pub fn viewport_state(&self) -> crate::scene::viewport::ViewportState {
-        self.inner.lock().unwrap().state.viewport_state()
+        self.lock_inner().state.viewport_state()
     }
 
     pub fn set_status_line(&self, message: impl Into<String>) {
-        let mut inner = self.inner.lock().unwrap();
+        let mut inner = self.lock_inner();
         inner.state.set_status_line(message);
         Self::refresh_reflection_locked(&mut inner);
     }
@@ -83,7 +81,7 @@ impl EditorEventRuntime {
         &self,
         envelope: &UiComponentEventEnvelope,
     ) -> Result<UiComponentAdapterResult, UiComponentAdapterError> {
-        let mut inner = self.inner.lock().unwrap();
+        let mut inner = self.lock_inner();
         let manager = inner.manager.clone();
         let result =
             crate::ui::template_runtime::component_adapter::registry::EditorUiComponentAdapterRegistry::apply_envelope(
@@ -102,37 +100,37 @@ impl EditorEventRuntime {
     }
 
     pub fn set_session_mode(&self, session_mode: EditorSessionMode) {
-        let mut inner = self.inner.lock().unwrap();
+        let mut inner = self.lock_inner();
         inner.state.set_session_mode(session_mode);
         Self::refresh_reflection_locked(&mut inner);
     }
 
     pub fn set_welcome_snapshot(&self, welcome: WelcomePaneSnapshot) {
-        let mut inner = self.inner.lock().unwrap();
+        let mut inner = self.lock_inner();
         inner.state.set_welcome_snapshot(welcome);
         Self::refresh_reflection_locked(&mut inner);
     }
 
     pub fn sync_asset_catalog(&self, catalog: EditorAssetCatalogSnapshotRecord) {
-        let mut inner = self.inner.lock().unwrap();
+        let mut inner = self.lock_inner();
         inner.state.sync_asset_catalog(catalog);
         Self::refresh_reflection_locked(&mut inner);
     }
 
     pub fn sync_asset_resources(&self, resources: Vec<ResourceRecord>) {
-        let mut inner = self.inner.lock().unwrap();
+        let mut inner = self.lock_inner();
         inner.state.sync_asset_resources(resources);
         Self::refresh_reflection_locked(&mut inner);
     }
 
     pub fn sync_asset_details(&self, details: Option<EditorAssetDetailsRecord>) {
-        let mut inner = self.inner.lock().unwrap();
+        let mut inner = self.lock_inner();
         inner.state.sync_asset_details(details);
         Self::refresh_reflection_locked(&mut inner);
     }
 
     pub fn replace_world(&self, world: LevelSystem, project_path: impl Into<String>) {
-        let mut inner = self.inner.lock().unwrap();
+        let mut inner = self.lock_inner();
         inner.state.replace_world(world, project_path);
         inner.dragging_gizmo = false;
         Self::refresh_reflection_locked(&mut inner);
@@ -144,7 +142,7 @@ impl EditorEventRuntime {
         material: ResourceHandle<MaterialMarker>,
         display_path: impl Into<String>,
     ) -> Result<bool, String> {
-        let mut inner = self.inner.lock().unwrap();
+        let mut inner = self.lock_inner();
         let changed = inner
             .state
             .import_mesh_asset(model, material, display_path)?;
@@ -153,17 +151,15 @@ impl EditorEventRuntime {
     }
 
     pub fn journal(&self) -> EditorEventJournal {
-        self.inner.lock().unwrap().journal.clone()
+        self.lock_inner().journal.clone()
     }
 
     pub fn operation_stack(&self) -> EditorOperationStack {
-        self.inner.lock().unwrap().operation_stack.clone()
+        self.lock_inner().operation_stack.clone()
     }
 
     pub fn activity_view_descriptor(&self, view_id: &str) -> Option<ActivityViewDescriptor> {
-        self.inner
-            .lock()
-            .unwrap()
+        self.lock_inner()
             .control_service
             .activity_view(view_id)
             .cloned()
@@ -173,7 +169,7 @@ impl EditorEventRuntime {
         &self,
         component_type: &str,
     ) -> Option<ComponentDrawerDescriptor> {
-        let inner = self.inner.lock().unwrap();
+        let inner = self.lock_inner();
         let enabled_capabilities = inner
             .manager
             .capability_snapshot()
@@ -189,7 +185,7 @@ impl EditorEventRuntime {
     }
 
     pub fn ui_template_descriptor(&self, id: &str) -> Option<EditorUiTemplateDescriptor> {
-        let inner = self.inner.lock().unwrap();
+        let inner = self.lock_inner();
         let enabled_capabilities = inner
             .manager
             .capability_snapshot()
@@ -201,6 +197,48 @@ impl EditorEventRuntime {
             .filter(|registration| registration.is_enabled_by(&enabled_capabilities))
             .flat_map(|registration| registration.registry().ui_templates())
             .find(|descriptor| descriptor.id() == id)
+            .cloned()
+    }
+
+    pub fn asset_importers_for_extension(&self, extension: &str) -> Vec<AssetImporterDescriptor> {
+        let normalized = extension
+            .trim()
+            .trim_start_matches('.')
+            .to_ascii_lowercase();
+        let inner = self.lock_inner();
+        let enabled_capabilities = inner
+            .manager
+            .capability_snapshot()
+            .enabled_capabilities()
+            .to_vec();
+        inner
+            .editor_extensions
+            .iter()
+            .filter(|registration| registration.is_enabled_by(&enabled_capabilities))
+            .flat_map(|registration| registration.registry().asset_importers())
+            .filter(|descriptor| {
+                descriptor
+                    .source_extensions()
+                    .iter()
+                    .any(|candidate| candidate == &normalized)
+            })
+            .cloned()
+            .collect()
+    }
+
+    pub fn asset_editor_descriptor(&self, asset_kind: &str) -> Option<AssetEditorDescriptor> {
+        let inner = self.lock_inner();
+        let enabled_capabilities = inner
+            .manager
+            .capability_snapshot()
+            .enabled_capabilities()
+            .to_vec();
+        inner
+            .editor_extensions
+            .iter()
+            .filter(|registration| registration.is_enabled_by(&enabled_capabilities))
+            .flat_map(|registration| registration.registry().asset_editors())
+            .find(|descriptor| descriptor.asset_kind() == asset_kind)
             .cloned()
     }
 

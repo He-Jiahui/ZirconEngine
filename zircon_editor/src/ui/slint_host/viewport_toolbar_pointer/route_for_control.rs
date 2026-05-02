@@ -2,6 +2,7 @@ use super::align_view_route::align_view_route;
 use super::cycle_display_mode_route::cycle_display_mode_route;
 use super::cycle_grid_mode_route::cycle_grid_mode_route;
 use super::frame_selection_route::frame_selection_route;
+use super::play_mode_route::play_mode_route;
 use super::set_projection_mode_route::set_projection_mode_route;
 use super::set_tool_route::set_tool_route;
 use super::set_transform_space_route::set_transform_space_route;
@@ -23,6 +24,7 @@ pub(super) fn route_for_control(
         snap_route(surface_key, control_id),
         toggle_route(surface_key, control_id),
         frame_selection_route(surface_key, control_id),
+        play_mode_route(surface_key, control_id),
     ] {
         if let Some(route) = route {
             return Ok(route);

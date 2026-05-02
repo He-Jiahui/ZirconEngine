@@ -76,5 +76,25 @@
     "host": {
       "Drawer": "BottomLeft"
     }
+  },
+  {
+    "instance_id": "editor.runtime_diagnostics#1",
+    "descriptor_id": "editor.runtime_diagnostics",
+    "title": "Runtime Diagnostics",
+    "serializable_payload": null,
+    "dirty": false,
+    "host": {
+      "Drawer": "BottomRight"
+    }
+  },
+  {
+    "instance_id": "editor.module_plugins#1",
+    "descriptor_id": "editor.module_plugins",
+    "title": "Plugin Manager",
+    "serializable_payload": null,
+    "dirty": false,
+    "host": {
+      "Drawer": "LeftBottom"
+    }
   }
 ]

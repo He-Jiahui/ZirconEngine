@@ -1,4 +1,4 @@
-//! Runtime-owned physics module, manager implementation, and scene sync helpers.
+//! Shared physics runtime contract, manager implementation, and scene sync helpers.
 
 mod module;
 pub mod runtime;

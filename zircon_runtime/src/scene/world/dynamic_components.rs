@@ -1,10 +1,17 @@
-use serde_json::{Map, Value};
+use serde_json::{Map, Number, Value};
 
 use crate::core::framework::scene::{ComponentPropertyPath, ScenePropertyValue};
 use crate::plugin::ComponentTypeDescriptor;
 use crate::scene::EntityId;
 
 use super::World;
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct DynamicComponentInstance {
+    pub component_id: String,
+    pub value: Value,
+    pub descriptor: Option<ComponentTypeDescriptor>,
+}
 
 impl World {
     pub fn register_component_type(
@@ -47,6 +54,22 @@ impl World {
         self.dynamic_components
             .get(&entity)
             .and_then(|components| components.get(component_id))
+    }
+
+    pub fn dynamic_components_for_entity(&self, entity: EntityId) -> Vec<DynamicComponentInstance> {
+        let Some(components) = self.dynamic_components.get(&entity) else {
+            return Vec::new();
+        };
+        let mut components = components
+            .iter()
+            .map(|(component_id, value)| DynamicComponentInstance {
+                component_id: component_id.clone(),
+                value: value.clone(),
+                descriptor: self.component_types.descriptor(component_id).cloned(),
+            })
+            .collect::<Vec<_>>();
+        components.sort_by(|left, right| left.component_id.cmp(&right.component_id));
+        components
     }
 
     pub fn remove_dynamic_component(
@@ -207,7 +230,9 @@ fn scene_value_from_json(value: &Value) -> Option<ScenePropertyValue> {
                     .map(|value| ScenePropertyValue::Scalar(value as _))
             }),
         Value::String(value) => Some(ScenePropertyValue::String(value.clone())),
-        Value::Null | Value::Array(_) | Value::Object(_) => None,
+        Value::Array(values) => scene_vector_from_json(values),
+        Value::Object(object) => scene_object_from_json(object),
+        Value::Null => None,
     }
 }
 
@@ -224,12 +249,65 @@ fn json_from_scene_value(value: ScenePropertyValue) -> Option<Value> {
         ScenePropertyValue::String(value) | ScenePropertyValue::Enum(value) => {
             Some(Value::String(value))
         }
-        ScenePropertyValue::Vec2(_)
-        | ScenePropertyValue::Vec3(_)
-        | ScenePropertyValue::Vec4(_)
-        | ScenePropertyValue::Quaternion(_)
-        | ScenePropertyValue::Entity(_)
-        | ScenePropertyValue::Resource(_)
-        | ScenePropertyValue::AnimationParameter(_) => None,
+        ScenePropertyValue::Vec2(value) => vector_to_json(value),
+        ScenePropertyValue::Vec3(value) => vector_to_json(value),
+        ScenePropertyValue::Vec4(value) => vector_to_json(value),
+        ScenePropertyValue::Entity(value) => {
+            let entity = value
+                .map(|entity| Value::Number(Number::from(entity)))
+                .unwrap_or(Value::Null);
+            Some(Value::Object(Map::from_iter([(
+                "entity".to_string(),
+                entity,
+            )])))
+        }
+        ScenePropertyValue::Resource(value) => Some(Value::Object(Map::from_iter([(
+            "resource".to_string(),
+            Value::String(value),
+        )]))),
+        ScenePropertyValue::Quaternion(_) | ScenePropertyValue::AnimationParameter(_) => None,
     }
+}
+
+fn scene_vector_from_json(values: &[Value]) -> Option<ScenePropertyValue> {
+    let values = values
+        .iter()
+        .map(|value| value.as_f64().map(|value| value as _))
+        .collect::<Option<Vec<_>>>()?;
+    match values.as_slice() {
+        [x, y] => Some(ScenePropertyValue::Vec2([*x, *y])),
+        [x, y, z] => Some(ScenePropertyValue::Vec3([*x, *y, *z])),
+        [x, y, z, w] => Some(ScenePropertyValue::Vec4([*x, *y, *z, *w])),
+        _ => None,
+    }
+}
+
+fn scene_object_from_json(object: &Map<String, Value>) -> Option<ScenePropertyValue> {
+    if let Some(value) = object.get("resource").and_then(Value::as_str) {
+        return Some(ScenePropertyValue::Resource(value.to_string()));
+    }
+    if let Some(value) = object.get("entity") {
+        return match value {
+            Value::Null => Some(ScenePropertyValue::Entity(None)),
+            Value::Number(number) => number
+                .as_u64()
+                .map(|entity| ScenePropertyValue::Entity(Some(entity))),
+            _ => None,
+        };
+    }
+    None
+}
+
+fn vector_to_json<const N: usize>(values: [f32; N]) -> Option<Value> {
+    values
+        .into_iter()
+        .map(|value| {
+            value
+                .is_finite()
+                .then(|| Number::from_f64(value as f64))
+                .flatten()
+                .map(Value::Number)
+        })
+        .collect::<Option<Vec<_>>>()
+        .map(Value::Array)
 }

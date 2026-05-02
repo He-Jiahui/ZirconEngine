@@ -33,6 +33,10 @@ fn virtual_geometry_cook_builds_stable_four_ary_bvh_pages_and_payload() {
         .iter()
         .zip(cooked.cluster_page_data.iter())
         .all(|(header, payload)| header.payload_size_bytes == payload.len() as u64));
+    assert_eq!(
+        cooked.page_dependencies.len(),
+        cooked.cluster_page_headers.len()
+    );
 
     let root_range = &cooked.root_cluster_ranges[0];
     let root_cluster = &cooked.cluster_headers[root_range.cluster_start as usize];
@@ -53,6 +57,38 @@ fn virtual_geometry_cook_builds_stable_four_ary_bvh_pages_and_payload() {
             "parent cluster error must stay monotonic for automatic LOD"
         );
     }
+}
+
+#[test]
+fn virtual_geometry_cook_records_page_dependency_tree() {
+    let cooked = five_triangle_cook("dependency-fixture");
+
+    let dependencies = cooked
+        .page_dependencies
+        .iter()
+        .map(|dependency| {
+            (
+                dependency.page_id,
+                dependency.parent_page_id,
+                dependency.child_page_ids.clone(),
+            )
+        })
+        .collect::<Vec<_>>();
+
+    assert_eq!(
+        dependencies,
+        vec![
+            (3, Some(2), Vec::new()),
+            (4, Some(2), Vec::new()),
+            (2, Some(1), vec![3, 4]),
+            (6, Some(5), Vec::new()),
+            (7, Some(5), Vec::new()),
+            (5, Some(1), vec![6, 7]),
+            (8, Some(1), Vec::new()),
+            (1, None, vec![2, 5, 8]),
+        ],
+        "dependency order should follow deterministic post-order cook emission so streamers can build stable priority tests before adding a runtime page table"
+    );
 }
 
 #[test]
@@ -119,8 +155,11 @@ fn virtual_geometry_cook_dump_exposes_teaching_maps_deterministically() {
     assert!(dump.starts_with("virtual_geometry_cook_dump version=1\n"));
     assert!(dump.contains("debug mesh_name=\"dump-fixture\" source_hint=\"unit-test\"\n"));
     assert!(dump.contains(
-        "counts hierarchy_nodes=8 clusters=8 pages=8 root_pages=1 root_ranges=1 payload_bytes=400\n"
+        "counts hierarchy_nodes=8 clusters=8 pages=8 root_pages=1 root_ranges=1 page_dependencies=8 payload_bytes=400\n"
     ));
+    assert!(dump.contains("section page_dependencies\n"));
+    assert!(dump.contains("page_dependency page_id=1 parent=- child_pages=[2,5,8]\n"));
+    assert!(dump.contains("page_dependency page_id=2 parent=1 child_pages=[3,4]\n"));
     assert!(dump.contains("section hierarchy\n"));
     assert!(dump.contains("node id=0 parent=- mip=8 page=1 cluster_start=7 cluster_count=1"));
     assert!(dump.contains("children=[1,4,7]"));
@@ -173,13 +212,14 @@ fn virtual_geometry_cook_binary_dump_exports_stable_inspection_bytes() {
     assert_eq!(&dump[0..4], b"ZVGB");
 
     let mut cursor = BinaryDumpCursor::new(&dump[4..]);
-    assert_eq!(cursor.read_u32(), 1);
+    assert_eq!(cursor.read_u32(), 2);
     assert_eq!(cursor.read_u32(), cooked.hierarchy_buffer.len() as u32);
     assert_eq!(cursor.read_u32(), cooked.cluster_headers.len() as u32);
     assert_eq!(cursor.read_u32(), cooked.cluster_page_headers.len() as u32);
     assert_eq!(cursor.read_u32(), cooked.root_page_table.len() as u32);
     assert_eq!(cursor.read_u32(), cooked.root_cluster_ranges.len() as u32);
     assert_eq!(cursor.read_u32(), cooked.cluster_page_data.len() as u32);
+    assert_eq!(cursor.read_u32(), cooked.page_dependencies.len() as u32);
     assert_eq!(cursor.read_u64(), 400);
     assert_eq!(cursor.read_string(), "binary-fixture");
     assert_eq!(cursor.read_string(), "unit-test");

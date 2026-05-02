@@ -37,6 +37,7 @@ fn seed_backed_execution_selection_collection_applies_cluster_budget_after_stabl
         hierarchy_nodes: Vec::new(),
         hierarchy_child_ids: Vec::new(),
         pages: Vec::new(),
+        page_dependencies: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity,
             source_model: None,
@@ -161,6 +162,7 @@ fn seed_backed_execution_selection_derives_frontier_rank_from_first_unresolved_p
         hierarchy_nodes: Vec::new(),
         hierarchy_child_ids: Vec::new(),
         pages: Vec::new(),
+        page_dependencies: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity,
             source_model: None,

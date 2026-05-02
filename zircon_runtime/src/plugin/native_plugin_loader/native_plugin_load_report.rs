@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::{PluginModuleKind, PluginPackageManifest, RuntimePluginRegistrationReport};
+use crate::{plugin::PluginModuleKind, plugin::PluginPackageManifest, plugin::RuntimePluginRegistrationReport};
 
 use super::{LoadedNativePlugin, NativePluginCandidate};
 
@@ -210,6 +210,8 @@ fn merge_package_manifest(
     push_unique(&mut existing.modules, manifest.modules);
     push_unique(&mut existing.components, manifest.components);
     push_unique(&mut existing.ui_components, manifest.ui_components);
+    push_unique(&mut existing.asset_importers, manifest.asset_importers);
+    push_unique(&mut existing.optional_features, manifest.optional_features);
     push_unique(&mut existing.default_packaging, manifest.default_packaging);
 }
 
@@ -225,7 +227,10 @@ fn push_unique<T: PartialEq>(target: &mut Vec<T>, source: Vec<T>) {
 mod tests {
     use std::collections::BTreeMap;
 
-    use crate::{PluginModuleKind, PluginModuleManifest, PluginPackageManifest};
+    use crate::{
+        plugin::PluginFeatureBundleManifest, plugin::PluginFeatureDependency, plugin::PluginModuleKind,
+        plugin::PluginModuleManifest, plugin::PluginPackageManifest,
+    };
 
     use super::merge_package_manifest;
 
@@ -263,5 +268,48 @@ mod tests {
             .iter()
             .any(|module| module.kind == PluginModuleKind::Editor));
         assert_eq!(manifest.modules.len(), 2);
+    }
+
+    #[test]
+    fn native_manifest_merge_preserves_optional_feature_declarations() {
+        let mut manifests = BTreeMap::new();
+        manifests.insert(
+            "split_native".to_string(),
+            PluginPackageManifest::new("split_native", "Split Native").with_optional_feature(
+                PluginFeatureBundleManifest::new(
+                    "split_native.runtime_tools",
+                    "Runtime Tools",
+                    "split_native",
+                )
+                .with_dependency(PluginFeatureDependency::primary(
+                    "split_native",
+                    "runtime.plugin.split_native",
+                )),
+            ),
+        );
+
+        merge_package_manifest(
+            &mut manifests,
+            PluginPackageManifest::new("split_native", "Split Native").with_optional_feature(
+                PluginFeatureBundleManifest::new(
+                    "split_native.editor_tools",
+                    "Editor Tools",
+                    "split_native",
+                )
+                .with_dependency(PluginFeatureDependency::primary(
+                    "split_native",
+                    "runtime.plugin.split_native",
+                )),
+            ),
+        );
+
+        let manifest = manifests.get("split_native").unwrap();
+        let feature_ids = manifest
+            .optional_features
+            .iter()
+            .map(|feature| feature.id.as_str())
+            .collect::<Vec<_>>();
+        assert!(feature_ids.contains(&"split_native.runtime_tools"));
+        assert!(feature_ids.contains(&"split_native.editor_tools"));
     }
 }

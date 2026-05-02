@@ -3,7 +3,9 @@ use crate::core::editor_event::{
     EditorEventRecord, EditorEventResult, EditorEventRuntime, EditorEventSequence,
     EditorEventSource, MenuAction,
 };
-use crate::core::editor_operation::{EditorOperationPath, EditorOperationStackEntry};
+use crate::core::editor_operation::{
+    EditorOperationDescriptor, EditorOperationPath, EditorOperationStackEntry,
+};
 use crate::ui::binding::EditorUiBinding;
 use crate::ui::binding_dispatch::editor_event_normalization::normalize_editor_event_binding;
 use serde_json::Value;
@@ -37,13 +39,15 @@ impl EditorEventRuntime {
         let event_id = EditorEventId::new(inner.next_event_id);
         let sequence = EditorEventSequence::new(inner.next_sequence);
         let undo_policy = undo_policy_for_event(&event);
-        let registry_operation = operation.is_none().then(|| {
+        let registry_operation = if operation.is_none() {
             inner
                 .operation_registry
                 .descriptor_for_event(&event)
                 .cloned()
-        });
-        let registry_operation = registry_operation.flatten();
+                .or_else(|| dynamic_operation_for_event(&inner, &event))
+        } else {
+            None
+        };
         let (
             operation_id,
             operation_display_name,
@@ -160,6 +164,18 @@ impl EditorEventRuntime {
         inner.event_listeners.notify(&record);
         Ok(record)
     }
+}
+
+fn dynamic_operation_for_event(
+    inner: &crate::core::editor_event::runtime::editor_event_runtime_inner::EditorEventRuntimeInner,
+    event: &EditorEvent,
+) -> Option<EditorOperationDescriptor> {
+    let path = match event {
+        EditorEvent::Inspector(_) => "Inspector.Field.ApplyBatch",
+        _ => return None,
+    };
+    let path = EditorOperationPath::parse(path).ok()?;
+    inner.operation_registry.descriptor(&path).cloned()
 }
 
 fn operation_arguments_for_record(arguments: Value) -> Option<Value> {

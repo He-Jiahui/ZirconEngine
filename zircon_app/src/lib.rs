@@ -4,4 +4,4 @@ mod entry;
 mod runtime_presenter;
 
 pub use entry::{BuiltinEngineEntry, EngineEntry, EntryRunMode};
-pub use entry::{EntryConfig, EntryProfile, EntryRunner};
+pub use entry::{EntryConfig, EntryProfile, EntryRunner, NativePluginRuntimeBootstrap};

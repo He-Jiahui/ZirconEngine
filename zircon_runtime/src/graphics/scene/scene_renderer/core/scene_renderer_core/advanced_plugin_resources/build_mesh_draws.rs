@@ -16,7 +16,6 @@ impl SceneRendererAdvancedPluginResources {
         build_mesh_draws(
             device,
             encoder,
-            self.virtual_geometry_indirect_args(),
             model_layout,
             streamer,
             frame,

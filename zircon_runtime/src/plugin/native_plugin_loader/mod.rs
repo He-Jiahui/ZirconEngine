@@ -7,6 +7,7 @@ mod load_discovered;
 mod loaded_native_plugin;
 mod native_plugin_abi;
 mod native_plugin_candidate;
+mod native_plugin_live_host;
 mod native_plugin_load_manifest;
 mod native_plugin_load_report;
 mod native_plugin_loader;
@@ -24,6 +25,15 @@ pub use native_plugin_abi::{
     ZIRCON_NATIVE_PLUGIN_STATUS_OK, ZIRCON_NATIVE_PLUGIN_STATUS_PANIC,
 };
 pub use native_plugin_candidate::NativePluginCandidate;
+pub use native_plugin_live_host::{
+    NativePluginLiveHost, NativePluginLiveHostCommand, NativePluginLiveHostLoadReport,
+    NativePluginLiveHostOutcome, NativePluginRuntimeBehaviorCall,
+    NativePluginRuntimeBehaviorDescriptor, NativePluginRuntimeCommandDispatchReport,
+    NativePluginRuntimePlayModeExitReport, NativePluginRuntimePlayModeSnapshot,
+    NativePluginRuntimePluginState, NativePluginRuntimeStateRestoreReport,
+    NativePluginRuntimeStateSnapshot, NATIVE_RUNTIME_PLAY_MODE_ENTER_COMMAND,
+    NATIVE_RUNTIME_PLAY_MODE_EXIT_COMMAND,
+};
 pub use native_plugin_load_manifest::{NativePluginLoadManifest, NativePluginLoadManifestEntry};
 pub use native_plugin_load_report::NativePluginLoadReport;
 pub use native_plugin_loader::NativePluginLoader;

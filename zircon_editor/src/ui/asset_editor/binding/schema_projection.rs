@@ -3,8 +3,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use crate::ui::asset_editor::preview::preview_mock::{
     format_preview_mock_inline_value, resolve_preview_mock_value_preview, UiAssetPreviewMockState,
 };
+use crate::ui::template::EditorTemplateRuntimeService;
 use toml::Value;
-use zircon_runtime::ui::template::{collect_asset_binding_report, UiDocumentCompiler};
 use zircon_runtime_interface::ui::template::{
     UiAssetDocument, UiBindingDiagnostic, UiBindingRef, UiBindingTarget, UiBindingTargetKind,
 };
@@ -81,7 +81,8 @@ fn binding_diagnostics_by_path(
     current_node_id: &str,
     binding_id: &str,
 ) -> BTreeMap<String, Vec<UiBindingDiagnostic>> {
-    collect_asset_binding_report(document, UiDocumentCompiler::default().component_registry())
+    EditorTemplateRuntimeService
+        .collect_binding_report(document)
         .diagnostics
         .into_iter()
         .filter(|diagnostic| {

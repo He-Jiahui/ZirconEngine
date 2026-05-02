@@ -3,6 +3,7 @@ mod edit_menu;
 mod extension_menu;
 mod file_menu;
 mod help_menu;
+mod play_menu;
 mod selection_menu;
 mod view_menu;
 mod window_menu;

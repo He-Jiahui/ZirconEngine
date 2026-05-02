@@ -163,6 +163,8 @@ impl HybridGiRuntimeState {
                 ),
             );
         }
+
+        self.rebuild_probe_child_probes();
     }
 }
 

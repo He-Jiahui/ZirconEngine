@@ -1,5 +1,8 @@
 use std::sync::Arc;
 
+use crate::core::editor_event::runtime::{
+    NoopEditorRuntimePlayModeBackend, SharedEditorRuntimePlayModeBackend,
+};
 use crate::core::editor_event::{EditorEventJournal, EditorEventListenerRegistry};
 use crate::core::editor_extension::EditorExtensionRegistration;
 use crate::core::editor_operation::{EditorOperationRegistry, EditorOperationStack};
@@ -17,6 +20,7 @@ pub(crate) struct EditorEventRuntimeInner {
     pub(crate) editor_extensions: Vec<EditorExtensionRegistration>,
     pub(crate) operation_registry: EditorOperationRegistry,
     pub(crate) operation_stack: EditorOperationStack,
+    pub(crate) runtime_play_mode_backend: SharedEditorRuntimePlayModeBackend,
     pub(crate) control_service: EditorUiControlService,
     pub(crate) next_event_id: u64,
     pub(crate) next_sequence: u64,
@@ -35,6 +39,7 @@ impl EditorEventRuntimeInner {
             editor_extensions: Vec::new(),
             operation_registry: EditorOperationRegistry::with_builtin_operations(),
             operation_stack: EditorOperationStack::default(),
+            runtime_play_mode_backend: std::sync::Arc::new(NoopEditorRuntimePlayModeBackend),
             control_service: EditorUiControlService::default(),
             next_event_id: 0,
             next_sequence: 0,

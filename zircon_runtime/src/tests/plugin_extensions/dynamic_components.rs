@@ -98,6 +98,41 @@ fn dynamic_plugin_components_attach_to_entities_and_roundtrip_with_world_seriali
 }
 
 #[test]
+fn dynamic_plugin_component_instances_report_schema_when_loaded_and_protect_when_missing() {
+    let mut world = World::new();
+    let entity = world.spawn_node(NodeKind::Cube);
+    world
+        .set_dynamic_component(
+            entity,
+            "weather.Component.CloudLayer",
+            json!({ "coverage": 0.75 }),
+        )
+        .unwrap();
+
+    let missing_schema = world.dynamic_components_for_entity(entity);
+    assert_eq!(missing_schema.len(), 1);
+    assert_eq!(
+        missing_schema[0].component_id,
+        "weather.Component.CloudLayer"
+    );
+    assert!(missing_schema[0].descriptor.is_none());
+
+    world
+        .register_component_type(
+            ComponentTypeDescriptor::new("weather.Component.CloudLayer", "weather", "Cloud Layer")
+                .with_property("coverage", "scalar", true),
+        )
+        .unwrap();
+    let loaded_schema = world.dynamic_components_for_entity(entity);
+    let descriptor = loaded_schema[0]
+        .descriptor
+        .as_ref()
+        .expect("loaded schema should be attached to component instance");
+    assert_eq!(descriptor.display_name, "Cloud Layer");
+    assert_eq!(descriptor.properties[0].name, "coverage");
+}
+
+#[test]
 fn dynamic_plugin_component_property_writes_use_existing_scene_property_paths() {
     let mut world = World::new();
     let entity = world.spawn_node(NodeKind::Cube);

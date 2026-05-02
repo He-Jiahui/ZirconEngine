@@ -1,5 +1,6 @@
 use super::scene_extract::{
     RenderVirtualGeometryCluster, RenderVirtualGeometryDebugState, RenderVirtualGeometryInstance,
+    RenderVirtualGeometryPageDependency,
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -68,6 +69,14 @@ pub struct RenderVirtualGeometryCpuReferencePageClusterMapEntry {
     pub cluster_ids: Vec<u32>,
 }
 
+/// Neutral debug view of the cooked VG page graph; plugin residency code owns any mutable streaming state.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RenderVirtualGeometryCpuReferencePageDependencyEntry {
+    pub page_id: u32,
+    pub parent_page_id: Option<u32>,
+    pub child_page_ids: Vec<u32>,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RenderVirtualGeometryCpuReferenceDepthClusterMapEntry {
     pub depth: u32,
@@ -94,6 +103,7 @@ pub struct RenderVirtualGeometryCpuReferenceInstance {
     pub page_cluster_map: Vec<RenderVirtualGeometryCpuReferencePageClusterMapEntry>,
     pub loaded_page_cluster_map: Vec<RenderVirtualGeometryCpuReferencePageClusterMapEntry>,
     pub mip_accepted_page_cluster_map: Vec<RenderVirtualGeometryCpuReferencePageClusterMapEntry>,
+    pub page_dependencies: Vec<RenderVirtualGeometryCpuReferencePageDependencyEntry>,
     pub loaded_mip_cluster_map: Vec<RenderVirtualGeometryCpuReferenceMipClusterMapEntry>,
     pub selected_page_cluster_map: Vec<RenderVirtualGeometryCpuReferencePageClusterMapEntry>,
     pub depth_cluster_map: Vec<RenderVirtualGeometryCpuReferenceDepthClusterMapEntry>,
@@ -1109,6 +1119,7 @@ impl RenderVirtualGeometryNodeAndClusterCullLaunchWorklistSnapshot {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct RenderVirtualGeometryDebugSnapshot {
     pub instances: Vec<RenderVirtualGeometryInstance>,
+    pub page_dependencies: Vec<RenderVirtualGeometryPageDependency>,
     pub debug: RenderVirtualGeometryDebugState,
     pub cull_input: RenderVirtualGeometryCullInputSnapshot,
     pub cluster_selection_input_source: RenderVirtualGeometryClusterSelectionInputSource,

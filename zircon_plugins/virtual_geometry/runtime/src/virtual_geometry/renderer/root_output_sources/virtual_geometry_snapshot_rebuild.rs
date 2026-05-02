@@ -275,6 +275,7 @@ mod tests {
             hierarchy_nodes: Vec::new(),
             hierarchy_child_ids: Vec::new(),
             pages: vec![page(200, false), page(300, true)],
+            page_dependencies: Vec::new(),
             instances: vec![RenderVirtualGeometryInstance {
                 entity,
                 source_model: None,
@@ -363,6 +364,7 @@ mod tests {
             hierarchy_nodes: Vec::new(),
             hierarchy_child_ids: Vec::new(),
             pages: vec![page(200, true), page(300, true)],
+            page_dependencies: Vec::new(),
             instances: vec![RenderVirtualGeometryInstance {
                 entity,
                 source_model: None,

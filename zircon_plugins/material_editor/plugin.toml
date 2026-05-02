@@ -1,0 +1,13 @@
+id = "material_editor"
+version = "0.1.0"
+display_name = "Material Editor"
+category = "authoring"
+description = "Optional editor-only material graph authoring package."
+default_packaging = ["source_template", "library_embed"]
+
+[[modules]]
+name = "material_editor.editor"
+kind = "editor"
+crate_name = "zircon_plugin_material_editor_editor"
+target_modes = ["editor_host"]
+capabilities = ["editor.extension.material_editor_authoring"]

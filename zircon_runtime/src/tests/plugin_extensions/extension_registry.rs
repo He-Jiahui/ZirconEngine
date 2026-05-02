@@ -1,19 +1,34 @@
+use crate::asset::{
+    AssetImportContext, AssetImportOutcome, AssetImporterDescriptor, FunctionAssetImporter,
+    ImportedAsset,
+};
+use crate::core::framework::render::{
+    RenderFrameExtract, RenderPipelineHandle, RenderViewportDescriptor, RenderWorldSnapshotHandle,
+};
+use crate::core::math::UVec2;
 use crate::core::{ManagerDescriptor, ModuleDescriptor, ServiceKind, ServiceObject, StartupMode};
 use crate::engine_module::{factory, qualified_name};
 use crate::graphics::{
     RenderFeatureDescriptor, RenderPassExecutionContext, RenderPassExecutorId,
-    RenderPassExecutorRegistration, VirtualGeometryRuntimeFeedback,
-    VirtualGeometryRuntimePrepareInput, VirtualGeometryRuntimePrepareOutput,
-    VirtualGeometryRuntimeProvider, VirtualGeometryRuntimeProviderRegistration,
-    VirtualGeometryRuntimeState, VirtualGeometryRuntimeUpdate,
+    RenderPassExecutorRegistration, RenderPassStage, RenderPipelineAsset,
+    VirtualGeometryRuntimeFeedback, VirtualGeometryRuntimePrepareInput,
+    VirtualGeometryRuntimePrepareOutput, VirtualGeometryRuntimeProvider,
+    VirtualGeometryRuntimeProviderRegistration, VirtualGeometryRuntimeState,
+    VirtualGeometryRuntimeUpdate,
 };
 use crate::plugin::{
-    ComponentTypeDescriptor, RuntimeExtensionRegistry, RuntimePlugin, RuntimePluginCatalog,
-    RuntimePluginDescriptor, UiComponentDescriptor,
+    ComponentTypeDescriptor, PluginEventCatalogManifest, PluginEventManifest,
+    PluginFeatureBundleManifest, PluginFeatureDependency, PluginModuleManifest,
+    PluginOptionManifest, PluginPackageManifest, ProjectPluginFeatureSelection,
+    RuntimeExtensionRegistry, RuntimePlugin, RuntimePluginCatalog, RuntimePluginDescriptor,
+    RuntimePluginFeature, RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport,
+    UiComponentDescriptor,
 };
 use crate::scene::{components::NodeKind, World};
 use crate::ui::component::UiComponentDescriptorRegistry;
-use crate::{RuntimePluginId, RuntimeTargetMode};
+use crate::RenderFeaturePassDescriptor;
+use crate::{asset, core::manager::RenderFrameworkHandle, render_graph::QueueLane};
+use crate::{plugin::ProjectPluginManifest, plugin::ProjectPluginSelection, RuntimePluginId, RuntimeTargetMode};
 use zircon_runtime_interface::ui::component::{UiComponentCategory, UiSlotSchema, UiValue};
 
 #[test]
@@ -76,6 +91,109 @@ fn runtime_extension_registry_collects_plugin_module_and_render_feature_contribu
     assert_eq!(registry.modules().len(), 1);
     assert_eq!(registry.modules()[0].name, module.name);
     assert_eq!(registry.render_features(), &[render_feature]);
+}
+
+#[test]
+fn runtime_extension_registry_collects_asset_importer_contributions() {
+    let mut registry = RuntimeExtensionRegistry::default();
+    let importer = FunctionAssetImporter::new(
+        AssetImporterDescriptor::new("weather.data", "weather", crate::asset::AssetKind::Data, 7)
+            .with_source_extensions(["weather"])
+            .with_required_capabilities(["runtime.asset.importer.data"]),
+        weather_data_importer,
+    );
+
+    registry
+        .register_asset_importer(importer)
+        .expect("asset importer contribution");
+
+    assert_eq!(registry.asset_importers().descriptors().len(), 1);
+    assert_eq!(
+        registry.asset_importers().descriptors()[0].id,
+        "weather.data"
+    );
+    assert_eq!(
+        registry.asset_importers().descriptors()[0].importer_version,
+        7
+    );
+}
+
+#[test]
+fn runtime_plugin_registration_collects_package_manifest_declared_runtime_contributions() {
+    let plugin = ManifestDeclaredRuntimePlugin {
+        descriptor: RuntimePluginDescriptor::new(
+            "weather",
+            "Weather",
+            RuntimePluginId::Particles,
+            "zircon_plugin_weather_runtime",
+        )
+        .with_target_modes([RuntimeTargetMode::ClientRuntime])
+        .with_capability("runtime.plugin.weather"),
+    };
+    let registration = RuntimePluginRegistrationReport::from_plugin(&plugin);
+
+    assert!(registration.is_success(), "{:?}", registration.diagnostics);
+    assert_eq!(registration.extensions.plugin_options().len(), 1);
+    assert_eq!(
+        registration.extensions.plugin_options()[0].key,
+        "weather.precipitation"
+    );
+    assert_eq!(registration.extensions.plugin_event_catalogs().len(), 1);
+    assert_eq!(
+        registration.extensions.plugin_event_catalogs()[0].namespace,
+        "weather.events"
+    );
+    assert_eq!(registration.extensions.components().len(), 1);
+    assert_eq!(
+        registration.extensions.components()[0].type_id,
+        "weather.Component.CloudLayer"
+    );
+    assert_eq!(registration.extensions.ui_components().len(), 1);
+    assert_eq!(
+        registration.extensions.ui_components()[0].component_id,
+        "weather.Ui.CloudLayerInspector"
+    );
+    assert_eq!(
+        registration.extensions.asset_importers().descriptors()[0].id,
+        "weather.data"
+    );
+
+    let catalog = RuntimePluginCatalog::from_registration_reports([registration], []);
+    let report = catalog.runtime_extensions();
+
+    assert!(report.is_success(), "{:?}", report.diagnostics);
+    assert_eq!(report.registry.plugin_options().len(), 1);
+    assert_eq!(report.registry.plugin_event_catalogs().len(), 1);
+    assert_eq!(report.registry.components().len(), 1);
+    assert_eq!(report.registry.ui_components().len(), 1);
+    assert_eq!(report.registry.asset_importers().descriptors().len(), 1);
+}
+
+#[test]
+fn runtime_extension_registry_rejects_duplicate_asset_importer_matchers() {
+    let mut registry = RuntimeExtensionRegistry::default();
+    let first = FunctionAssetImporter::new(
+        AssetImporterDescriptor::new("weather.first", "weather", crate::asset::AssetKind::Data, 1)
+            .with_source_extensions(["weather"]),
+        weather_data_importer,
+    );
+    let second = FunctionAssetImporter::new(
+        AssetImporterDescriptor::new(
+            "weather.second",
+            "weather",
+            crate::asset::AssetKind::Data,
+            1,
+        )
+        .with_source_extensions(["weather"]),
+        weather_data_importer,
+    );
+
+    registry
+        .register_asset_importer(first)
+        .expect("first asset importer");
+    let error = registry.register_asset_importer(second).unwrap_err();
+
+    assert!(error.to_string().contains("duplicate importer matcher"));
 }
 
 #[test]
@@ -224,6 +342,333 @@ fn runtime_plugin_catalog_merges_module_and_render_feature_contributions() {
 }
 
 #[test]
+fn runtime_plugin_catalog_merges_available_feature_extensions_after_base_plugins() {
+    let feature = SoundTimelineFeaturePlugin;
+    let mut catalog = RuntimePluginCatalog::from_descriptors([
+        RuntimePluginDescriptor::new(
+            "sound",
+            "Sound",
+            RuntimePluginId::Sound,
+            "zircon_plugin_sound_runtime",
+        )
+        .with_target_modes([
+            RuntimeTargetMode::ClientRuntime,
+            RuntimeTargetMode::EditorHost,
+        ])
+        .with_capability("runtime.plugin.sound")
+        .with_optional_feature(feature.manifest()),
+        RuntimePluginDescriptor::new(
+            "animation",
+            "Animation",
+            RuntimePluginId::Animation,
+            "zircon_plugin_animation_runtime",
+        )
+        .with_target_modes([
+            RuntimeTargetMode::ClientRuntime,
+            RuntimeTargetMode::EditorHost,
+        ])
+        .with_capability("runtime.feature.animation.timeline_event_track"),
+    ]);
+    catalog.register_feature(&feature);
+    let manifest = ProjectPluginManifest {
+        selections: vec![
+            ProjectPluginSelection::runtime_plugin(RuntimePluginId::Sound, true, false)
+                .with_feature(
+                    ProjectPluginFeatureSelection::new("sound.timeline_animation_track")
+                        .enabled(true),
+                ),
+            ProjectPluginSelection::runtime_plugin(RuntimePluginId::Animation, true, false),
+        ],
+    };
+
+    let report =
+        catalog.runtime_extensions_for_project(&manifest, RuntimeTargetMode::ClientRuntime);
+
+    assert!(report.is_success(), "{:?}", report.diagnostics);
+    assert_eq!(report.registry.modules().len(), 1);
+    assert_eq!(
+        report.registry.modules()[0].name,
+        "SoundTimelineAnimationFeatureModule"
+    );
+}
+
+#[test]
+fn runtime_plugin_catalog_reports_duplicate_feature_runtime_registrations() {
+    let feature = SoundTimelineFeaturePlugin;
+    let mut catalog = RuntimePluginCatalog::from_descriptors([
+        RuntimePluginDescriptor::new(
+            "sound",
+            "Sound",
+            RuntimePluginId::Sound,
+            "zircon_plugin_sound_runtime",
+        )
+        .with_target_modes([
+            RuntimeTargetMode::ClientRuntime,
+            RuntimeTargetMode::EditorHost,
+        ])
+        .with_capability("runtime.plugin.sound")
+        .with_optional_feature(feature.manifest()),
+        RuntimePluginDescriptor::new(
+            "animation",
+            "Animation",
+            RuntimePluginId::Animation,
+            "zircon_plugin_animation_runtime",
+        )
+        .with_target_modes([
+            RuntimeTargetMode::ClientRuntime,
+            RuntimeTargetMode::EditorHost,
+        ])
+        .with_capability("runtime.feature.animation.timeline_event_track"),
+    ]);
+    catalog.register_feature(&feature);
+    catalog.register_feature(&feature);
+    let manifest = ProjectPluginManifest {
+        selections: vec![
+            ProjectPluginSelection::runtime_plugin(RuntimePluginId::Sound, true, false)
+                .with_feature(
+                    ProjectPluginFeatureSelection::new("sound.timeline_animation_track")
+                        .enabled(true),
+                ),
+            ProjectPluginSelection::runtime_plugin(RuntimePluginId::Animation, true, false),
+        ],
+    };
+
+    let report =
+        catalog.runtime_extensions_for_project(&manifest, RuntimeTargetMode::ClientRuntime);
+
+    assert!(!report.is_success());
+    assert!(report.has_fatal_diagnostics());
+    assert!(report
+        .fatal_diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.contains(
+            "duplicate optional feature id sound.timeline_animation_track registered at runtime"
+        )));
+}
+
+#[test]
+fn runtime_extension_catalog_treats_blocked_optional_features_as_warnings() {
+    let mut catalog = RuntimePluginCatalog::from_descriptors([RuntimePluginDescriptor::new(
+        "sound",
+        "Sound",
+        RuntimePluginId::Sound,
+        "zircon_plugin_sound_runtime",
+    )
+    .with_target_modes([
+        RuntimeTargetMode::ClientRuntime,
+        RuntimeTargetMode::EditorHost,
+    ])
+    .with_capability("runtime.plugin.sound")]);
+    let feature = SoundTimelineFeaturePlugin;
+    catalog.register_feature(&feature);
+    let manifest = ProjectPluginManifest {
+        selections: vec![ProjectPluginSelection::runtime_plugin(
+            RuntimePluginId::Sound,
+            true,
+            false,
+        )
+        .with_feature(
+            ProjectPluginFeatureSelection::new("sound.timeline_animation_track").enabled(true),
+        )],
+    };
+
+    let report =
+        catalog.runtime_extensions_for_project(&manifest, RuntimeTargetMode::ClientRuntime);
+
+    assert!(report.is_success(), "{:?}", report.fatal_diagnostics);
+    assert!(report.fatal_diagnostics.is_empty());
+    assert!(report.diagnostics.iter().any(|diagnostic| diagnostic
+        .contains("optional feature sound.timeline_animation_track is blocked")));
+    assert!(report.registry.modules().is_empty());
+}
+
+#[test]
+fn runtime_extension_catalog_treats_blocked_required_features_as_fatal() {
+    let mut catalog = RuntimePluginCatalog::from_descriptors([RuntimePluginDescriptor::new(
+        "sound",
+        "Sound",
+        RuntimePluginId::Sound,
+        "zircon_plugin_sound_runtime",
+    )
+    .with_target_modes([
+        RuntimeTargetMode::ClientRuntime,
+        RuntimeTargetMode::EditorHost,
+    ])
+    .with_capability("runtime.plugin.sound")]);
+    let feature = SoundTimelineFeaturePlugin;
+    catalog.register_feature(&feature);
+    let manifest = ProjectPluginManifest {
+        selections: vec![ProjectPluginSelection::runtime_plugin(
+            RuntimePluginId::Sound,
+            true,
+            false,
+        )
+        .with_feature(
+            ProjectPluginFeatureSelection::new("sound.timeline_animation_track")
+                .enabled(true)
+                .required(true),
+        )],
+    };
+
+    let report =
+        catalog.runtime_extensions_for_project(&manifest, RuntimeTargetMode::ClientRuntime);
+
+    assert!(!report.is_success());
+    assert!(report.has_fatal_diagnostics());
+    assert!(report.fatal_diagnostics.iter().any(|diagnostic| diagnostic
+        .contains("required feature sound.timeline_animation_track is blocked")));
+    assert!(report.registry.modules().is_empty());
+}
+
+#[test]
+fn runtime_module_load_reports_blocked_optional_features_as_warnings() {
+    let sound = RuntimePluginDescriptor::new(
+        "sound",
+        "Sound",
+        RuntimePluginId::Sound,
+        "zircon_plugin_sound_runtime",
+    )
+    .with_target_modes([
+        RuntimeTargetMode::ClientRuntime,
+        RuntimeTargetMode::EditorHost,
+    ])
+    .with_capability("runtime.plugin.sound");
+    let feature = SoundTimelineFeaturePlugin;
+    let sound_registration = RuntimePluginRegistrationReport::from_plugin(&sound);
+    let feature_registration = RuntimePluginFeatureRegistrationReport::from_feature(&feature);
+    let manifest = ProjectPluginManifest {
+        selections: vec![ProjectPluginSelection::runtime_plugin(
+            RuntimePluginId::Sound,
+            true,
+            false,
+        )
+        .with_feature(
+            ProjectPluginFeatureSelection::new("sound.timeline_animation_track").enabled(true),
+        )],
+    };
+
+    let report = crate::runtime_modules_for_target_with_plugin_and_feature_registration_reports(
+        RuntimeTargetMode::ClientRuntime,
+        Some(&manifest),
+        [&sound_registration],
+        [&feature_registration],
+    );
+
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    assert!(report
+        .warnings
+        .iter()
+        .any(|warning| warning
+            .contains("optional feature sound.timeline_animation_track is blocked")));
+}
+
+#[test]
+fn runtime_module_load_reports_blocked_required_features_as_errors() {
+    let sound = RuntimePluginDescriptor::new(
+        "sound",
+        "Sound",
+        RuntimePluginId::Sound,
+        "zircon_plugin_sound_runtime",
+    )
+    .with_target_modes([
+        RuntimeTargetMode::ClientRuntime,
+        RuntimeTargetMode::EditorHost,
+    ])
+    .with_capability("runtime.plugin.sound");
+    let feature = SoundTimelineFeaturePlugin;
+    let sound_registration = RuntimePluginRegistrationReport::from_plugin(&sound);
+    let feature_registration = RuntimePluginFeatureRegistrationReport::from_feature(&feature);
+    let manifest = ProjectPluginManifest {
+        selections: vec![ProjectPluginSelection::runtime_plugin(
+            RuntimePluginId::Sound,
+            true,
+            false,
+        )
+        .with_feature(
+            ProjectPluginFeatureSelection::new("sound.timeline_animation_track")
+                .enabled(true)
+                .required(true),
+        )],
+    };
+
+    let report = crate::runtime_modules_for_target_with_plugin_and_feature_registration_reports(
+        RuntimeTargetMode::ClientRuntime,
+        Some(&manifest),
+        [&sound_registration],
+        [&feature_registration],
+    );
+
+    assert!(report.warnings.is_empty(), "{:?}", report.warnings);
+    assert!(report.errors.iter().any(|error| {
+        error.contains("required feature sound.timeline_animation_track is blocked")
+    }));
+}
+
+#[test]
+fn runtime_modules_propagate_reported_executor_registrations_into_render_framework() {
+    let plugin = WeatherRuntimePlugin {
+        descriptor: RuntimePluginDescriptor::new(
+            "weather",
+            "Weather",
+            RuntimePluginId::Particles,
+            "zircon_plugin_weather_runtime",
+        )
+        .with_target_modes([RuntimeTargetMode::ClientRuntime]),
+    };
+    let registration = crate::plugin::RuntimePluginRegistrationReport::from_plugin(&plugin);
+    assert!(registration.is_success(), "{:?}", registration.diagnostics);
+
+    let modules = crate::runtime_modules_for_target_with_plugin_registration_reports(
+        RuntimeTargetMode::ClientRuntime,
+        None,
+        [&registration],
+    );
+    let runtime = crate::core::CoreRuntime::new();
+    for module in modules.modules {
+        runtime.register_module(module.descriptor()).unwrap();
+    }
+    runtime.activate_module(asset::ASSET_MODULE_NAME).unwrap();
+    runtime
+        .activate_module(crate::graphics::GRAPHICS_MODULE_NAME)
+        .unwrap();
+    let framework = runtime
+        .resolve_manager::<RenderFrameworkHandle>(crate::core::manager::RENDER_FRAMEWORK_NAME)
+        .unwrap()
+        .shared();
+
+    let mut pipeline = RenderPipelineAsset::default_forward_plus()
+        .with_plugin_render_features([weather_render_feature_descriptor()]);
+    pipeline.handle = RenderPipelineHandle::new(91);
+    pipeline.name = "weather-executor-propagation".to_string();
+    let pipeline = framework
+        .register_pipeline_asset(pipeline)
+        .expect("reported executor should validate through the render framework");
+    let viewport = framework
+        .create_viewport(RenderViewportDescriptor::new(UVec2::new(64, 64)))
+        .expect("viewport");
+    framework
+        .set_pipeline_asset(viewport, pipeline)
+        .expect("plugin pipeline should be selectable after registration");
+
+    let error = framework
+        .submit_frame_extract(
+            viewport,
+            RenderFrameExtract::from_snapshot(
+                RenderWorldSnapshotHandle::new(1),
+                World::new().to_render_snapshot(),
+            ),
+        )
+        .expect_err("reported executor should replace descriptor no-op and run during submission");
+
+    assert!(
+        error
+            .to_string()
+            .contains("weather executor reached graph execution"),
+        "unexpected error: {error:?}"
+    );
+}
+
+#[test]
 fn runtime_plugin_catalog_reports_duplicate_manager_contributions() {
     let left = ManagerRuntimePlugin {
         descriptor: RuntimePluginDescriptor::new(
@@ -266,7 +711,7 @@ impl RuntimePlugin for ManagerRuntimePlugin {
     fn register_runtime_extensions(
         &self,
         registry: &mut RuntimeExtensionRegistry,
-    ) -> Result<(), crate::RuntimeExtensionRegistryError> {
+    ) -> Result<(), crate::plugin::RuntimeExtensionRegistryError> {
         registry.register_manager(
             self.descriptor().package_id.clone(),
             ManagerDescriptor::new(
@@ -276,6 +721,54 @@ impl RuntimePlugin for ManagerRuntimePlugin {
                 factory(|_| Ok(std::sync::Arc::new(()) as ServiceObject)),
             ),
         )
+    }
+}
+
+#[derive(Debug)]
+struct ManifestDeclaredRuntimePlugin {
+    descriptor: RuntimePluginDescriptor,
+}
+
+impl RuntimePlugin for ManifestDeclaredRuntimePlugin {
+    fn descriptor(&self) -> &RuntimePluginDescriptor {
+        &self.descriptor
+    }
+
+    fn package_manifest(&self) -> PluginPackageManifest {
+        self.descriptor
+            .package_manifest()
+            .with_option(
+                PluginOptionManifest::new("weather.precipitation", "Precipitation", "bool", "true")
+                    .with_required_capability("runtime.plugin.weather"),
+            )
+            .with_event_catalog(PluginEventCatalogManifest {
+                namespace: "weather.events".to_string(),
+                version: 1,
+                events: vec![PluginEventManifest {
+                    id: "weather.events.StormFrontArrived".to_string(),
+                    display_name: "Storm Front Arrived".to_string(),
+                    payload_schema: "weather.schemas.StormFrontPayload.v1".to_string(),
+                }],
+            })
+            .with_component(ComponentTypeDescriptor::new(
+                "weather.Component.CloudLayer",
+                "weather",
+                "Cloud Layer",
+            ))
+            .with_ui_component(UiComponentDescriptor::new(
+                "weather.Ui.CloudLayerInspector",
+                "weather",
+                "asset://weather/editor/cloud_layer_inspector.ui.toml",
+            ))
+            .with_asset_importer(
+                AssetImporterDescriptor::new(
+                    "weather.data",
+                    "weather",
+                    crate::asset::AssetKind::Data,
+                    7,
+                )
+                .with_source_extensions(["weather"]),
+            )
     }
 }
 
@@ -292,7 +785,7 @@ impl RuntimePlugin for WeatherRuntimePlugin {
     fn register_runtime_extensions(
         &self,
         registry: &mut RuntimeExtensionRegistry,
-    ) -> Result<(), crate::RuntimeExtensionRegistryError> {
+    ) -> Result<(), crate::plugin::RuntimeExtensionRegistryError> {
         registry.register_module(ModuleDescriptor::new(
             "WeatherPlugin",
             "Weather simulation plugin",
@@ -318,8 +811,78 @@ impl RuntimePlugin for WeatherRuntimePlugin {
     }
 }
 
+#[derive(Debug)]
+struct SoundTimelineFeaturePlugin;
+
+impl RuntimePluginFeature for SoundTimelineFeaturePlugin {
+    fn manifest(&self) -> PluginFeatureBundleManifest {
+        PluginFeatureBundleManifest::new(
+            "sound.timeline_animation_track",
+            "Sound Timeline Animation Track",
+            "sound",
+        )
+        .with_dependency(PluginFeatureDependency::primary(
+            "sound",
+            "runtime.plugin.sound",
+        ))
+        .with_dependency(PluginFeatureDependency::required(
+            "animation",
+            "runtime.feature.animation.timeline_event_track",
+        ))
+        .with_capability("runtime.feature.sound.timeline_animation_track")
+        .with_runtime_module(
+            PluginModuleManifest::runtime(
+                "sound.timeline_animation_track.runtime",
+                "zircon_plugin_sound_timeline_animation_runtime",
+            )
+            .with_target_modes([
+                RuntimeTargetMode::ClientRuntime,
+                RuntimeTargetMode::EditorHost,
+            ]),
+        )
+    }
+
+    fn register_runtime_extensions(
+        &self,
+        registry: &mut RuntimeExtensionRegistry,
+    ) -> Result<(), crate::plugin::RuntimeExtensionRegistryError> {
+        registry.register_module(ModuleDescriptor::new(
+            "SoundTimelineAnimationFeatureModule",
+            "Sound timeline animation track feature",
+        ))
+    }
+}
+
 fn weather_render_executor(_context: &RenderPassExecutionContext) -> Result<(), String> {
-    Ok(())
+    Err("weather executor reached graph execution".to_string())
+}
+
+fn weather_data_importer(
+    context: &AssetImportContext,
+) -> Result<AssetImportOutcome, crate::asset::AssetImportError> {
+    Ok(AssetImportOutcome::new(ImportedAsset::Data(
+        crate::asset::DataAsset {
+            uri: context.uri.clone(),
+            format: crate::asset::DataAssetFormat::Json,
+            text: String::from_utf8_lossy(&context.source_bytes).into_owned(),
+            canonical_json: serde_json::json!({ "kind": "weather" }),
+        },
+    )))
+}
+
+fn weather_render_feature_descriptor() -> RenderFeatureDescriptor {
+    RenderFeatureDescriptor::new(
+        "weather.volumetric_clouds",
+        vec!["weather.cloud_volume".to_string()],
+        Vec::new(),
+        vec![RenderFeaturePassDescriptor::new(
+            RenderPassStage::PostProcess,
+            "weather-volumetric-clouds",
+            QueueLane::Graphics,
+        )
+        .with_executor_id("weather.volumetric-clouds")
+        .with_side_effects()],
+    )
 }
 
 #[derive(Debug)]

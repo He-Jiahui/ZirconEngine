@@ -173,6 +173,14 @@ impl Default for RenderVirtualGeometryPage {
     }
 }
 
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct RenderVirtualGeometryPageDependency {
+    pub page_id: u32,
+    pub parent_page_id: Option<u32>,
+    /// Stable child list from cooked VG data; runtime may derive its parent map from either side.
+    pub child_page_ids: Vec<u32>,
+}
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct RenderVirtualGeometryDebugState {
     pub forced_mip: Option<u8>,
@@ -219,6 +227,7 @@ pub struct RenderVirtualGeometryExtract {
     pub hierarchy_nodes: Vec<RenderVirtualGeometryHierarchyNode>,
     pub hierarchy_child_ids: Vec<u32>,
     pub pages: Vec<RenderVirtualGeometryPage>,
+    pub page_dependencies: Vec<RenderVirtualGeometryPageDependency>,
     pub instances: Vec<RenderVirtualGeometryInstance>,
     pub debug: RenderVirtualGeometryDebugState,
 }
@@ -232,6 +241,7 @@ impl Default for RenderVirtualGeometryExtract {
             hierarchy_nodes: Vec::new(),
             hierarchy_child_ids: Vec::new(),
             pages: Vec::new(),
+            page_dependencies: Vec::new(),
             instances: Vec::new(),
             debug: RenderVirtualGeometryDebugState::default(),
         }

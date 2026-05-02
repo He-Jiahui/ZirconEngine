@@ -10,6 +10,7 @@ pub(crate) struct HybridGiRuntimeState {
     pub(super) scene_representation: HybridGiSceneRepresentation,
     pub(super) probe_budget: usize,
     pub(super) probe_parent_probes: BTreeMap<u32, u32>,
+    pub(super) probe_child_probes: BTreeMap<u32, Vec<u32>>,
     pub(super) probe_ray_budgets: BTreeMap<u32, u32>,
     pub(super) probe_scene_data: BTreeMap<u32, HybridGiRuntimeProbeSceneData>,
     pub(super) probe_irradiance_rgb: BTreeMap<u32, [u8; 3]>,

@@ -7,6 +7,7 @@ use super::super::resource_sync::register_project_resource;
 use super::ProjectAssetManager;
 use crate::asset::project::ProjectManager;
 use crate::asset::watch::{AssetChange, AssetWatcher};
+use crate::core::resource::ResourceState;
 
 impl ProjectAssetManager {
     pub(in crate::asset::pipeline::manager) fn project_read(
@@ -59,6 +60,10 @@ impl ProjectAssetManager {
         project: &ProjectManager,
     ) -> Result<(), CoreError> {
         for metadata in project.registry().values() {
+            if metadata.state == ResourceState::Error || metadata.artifact_locator().is_none() {
+                self.resource_manager.register_record(metadata.clone());
+                continue;
+            }
             let imported = project
                 .load_artifact_by_id(metadata.id())
                 .map_err(asset_error)?;

@@ -135,39 +135,15 @@ fn has_pending_ancestor_request(state: &VirtualGeometryRuntimeState, page_id: u3
 }
 
 fn resident_descendant_count(state: &VirtualGeometryRuntimeState, page_id: u32) -> usize {
-    descendant_page_ids(state, page_id)
+    state
+        .page_descendant_ids(page_id)
         .into_iter()
         .filter(|descendant_page_id| state.has_resident_page(*descendant_page_id))
         .count()
 }
 
 fn descendant_count(state: &VirtualGeometryRuntimeState, page_id: u32) -> usize {
-    descendant_page_ids(state, page_id).len()
-}
-
-fn descendant_page_ids(state: &VirtualGeometryRuntimeState, page_id: u32) -> Vec<u32> {
-    let mut stack = state
-        .page_parent_pages()
-        .iter()
-        .filter_map(|(&candidate_page_id, &parent_page_id)| {
-            (parent_page_id == page_id).then_some(candidate_page_id)
-        })
-        .collect::<Vec<_>>();
-    let mut descendants = Vec::new();
-
-    while let Some(candidate_page_id) = stack.pop() {
-        if descendants.contains(&candidate_page_id) {
-            continue;
-        }
-        descendants.push(candidate_page_id);
-        stack.extend(state.page_parent_pages().iter().filter_map(
-            |(&grandchild_page_id, &parent_page_id)| {
-                (parent_page_id == candidate_page_id).then_some(grandchild_page_id)
-            },
-        ));
-    }
-
-    descendants
+    state.page_descendant_ids(page_id).len()
 }
 
 fn page_depth(state: &VirtualGeometryRuntimeState, page_id: u32) -> usize {

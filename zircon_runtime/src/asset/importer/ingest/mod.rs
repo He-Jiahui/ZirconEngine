@@ -1,6 +1,8 @@
 mod asset_importer;
 mod generate_normals;
 mod import_animation_asset;
+mod import_authoring_asset;
+mod import_data_asset;
 mod import_font_asset;
 mod import_from_source;
 mod import_gltf;

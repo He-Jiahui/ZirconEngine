@@ -22,6 +22,7 @@ related_code:
   - zircon_editor/src/ui/slint_host/app/tests.rs
   - zircon_editor/src/ui/slint_host/app/assets.rs
   - zircon_editor/src/ui/slint_host/app/callback_wiring.rs
+  - zircon_editor/src/ui/slint_host/app/module_plugin_actions.rs
   - zircon_editor/src/ui/slint_host/floating_window_projection.rs
   - zircon_editor/src/ui/slint_host/app/native_windows.rs
   - zircon_editor/src/ui/slint_host/shell_pointer/drag_surface.rs
@@ -38,12 +39,12 @@ related_code:
   - zircon_editor/src/ui/slint_host/menu_pointer/mod.rs
   - zircon_editor/src/ui/slint_host/menu_pointer/build_host_menu_pointer_layout.rs
   - zircon_editor/src/ui/slint_host/menu_pointer/host_menu_pointer_bridge_popup_state.rs
-- zircon_editor/src/ui/slint_host/activity_rail_pointer/mod.rs
+  - zircon_editor/src/ui/slint_host/activity_rail_pointer/mod.rs
   - zircon_editor/src/ui/slint_host/host_page_pointer/mod.rs
-- zircon_editor/src/ui/slint_host/document_tab_pointer/mod.rs
-- zircon_editor/src/ui/slint_host/drawer_header_pointer/mod.rs
-- zircon_editor/src/ui/slint_host/drawer_header_pointer/build_workbench_drawer_header_pointer_layout.rs
-- zircon_editor/src/ui/slint_host/viewport_toolbar_pointer/mod.rs
+  - zircon_editor/src/ui/slint_host/document_tab_pointer/mod.rs
+  - zircon_editor/src/ui/slint_host/drawer_header_pointer/mod.rs
+  - zircon_editor/src/ui/slint_host/drawer_header_pointer/build_workbench_drawer_header_pointer_layout.rs
+  - zircon_editor/src/ui/slint_host/viewport_toolbar_pointer/mod.rs
   - zircon_editor/src/ui/slint_host/callback_dispatch/mod.rs
   - zircon_editor/src/ui/slint_host/callback_dispatch/template_bridge/mod.rs
   - zircon_editor/src/ui/slint_host/callback_dispatch/template_bridge/projection_support.rs
@@ -78,13 +79,16 @@ related_code:
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/floating_windows.rs
   - zircon_editor/src/ui/slint_host/ui/tests.rs
   - zircon_editor/assets/ui/editor/host/floating_window_source.ui.toml
-- zircon_editor/src/ui/slint_host/viewport/mod.rs
-- zircon_editor/src/tests/host/slint_tab_drag/
+  - zircon_editor/src/ui/slint_host/viewport/mod.rs
+  - zircon_editor/src/tests/host/slint_tab_drag/
   - zircon_editor/tests/workbench_slint_shell.rs
   - zircon_editor/src/ui/binding_dispatch/mod.rs
   - zircon_editor/src/core/host/manager.rs
   - zircon_editor/src/core/host/manager/layout_hosts/mod.rs
   - zircon_editor/src/core/host/manager/builtin_views/mod.rs
+  - zircon_editor/src/ui/host/builtin_layout/builtin_shell_view_instances.rs
+  - zircon_editor/src/ui/host/builtin_views/activity_views/module_plugins_view_descriptor.rs
+  - zircon_editor/src/ui/host/builtin_views/activity_views/runtime_diagnostics_view_descriptor.rs
   - zircon_editor/src/core/host/manager/layout_commands.rs
   - zircon_editor/src/core/host/manager/window_host_manager.rs
   - zircon_editor/src/core/host/manager/workspace_state.rs
@@ -95,10 +99,15 @@ related_code:
   - zircon_editor/src/ui/workbench/layout/layout_manager.rs
   - zircon_editor/src/ui/workbench/layout/manager/mod.rs
   - zircon_editor/src/ui/workbench/model/mod.rs
+  - zircon_editor/src/ui/workbench/model/menu/view_menu.rs
   - zircon_editor/src/ui/workbench/fixture/mod.rs
   - zircon_editor/src/ui/workbench/reflection/mod.rs
   - zircon_editor/src/ui/workbench/snapshot/mod.rs
   - zircon_editor/src/ui/workbench/startup/mod.rs
+  - zircon_editor/src/ui/workbench/startup/editor_session_mode.rs
+  - zircon_editor/src/ui/workbench/state/editor_state.rs
+  - zircon_editor/src/ui/workbench/state/editor_state_play_mode.rs
+  - zircon_editor/src/ui/workbench/state/mod.rs
   - zircon_editor/src/ui/workbench/view/mod.rs
   - zircon_editor/ui/workbench.slint
   - zircon_editor/ui/workbench/host_scaffold.slint
@@ -146,6 +155,7 @@ related_code:
   - zircon_editor/src/tests/host/manager/mod.rs
   - zircon_editor/src/tests/host/slint_window/
   - zircon_editor/src/ui/slint_host/app/tests/floating_window_projection.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host.rs
 implementation_files:
   - zircon_ui/src/layout/constraints.rs
   - zircon_ui/src/layout/geometry.rs
@@ -184,12 +194,12 @@ implementation_files:
   - zircon_editor/src/ui/slint_host/menu_pointer/mod.rs
   - zircon_editor/src/ui/slint_host/menu_pointer/build_host_menu_pointer_layout.rs
   - zircon_editor/src/ui/slint_host/menu_pointer/host_menu_pointer_bridge_popup_state.rs
-- zircon_editor/src/ui/slint_host/activity_rail_pointer/mod.rs
+  - zircon_editor/src/ui/slint_host/activity_rail_pointer/mod.rs
   - zircon_editor/src/ui/slint_host/host_page_pointer/mod.rs
-- zircon_editor/src/ui/slint_host/document_tab_pointer/mod.rs
-- zircon_editor/src/ui/slint_host/drawer_header_pointer/mod.rs
-- zircon_editor/src/ui/slint_host/drawer_header_pointer/build_workbench_drawer_header_pointer_layout.rs
-- zircon_editor/src/ui/slint_host/viewport_toolbar_pointer/mod.rs
+  - zircon_editor/src/ui/slint_host/document_tab_pointer/mod.rs
+  - zircon_editor/src/ui/slint_host/drawer_header_pointer/mod.rs
+  - zircon_editor/src/ui/slint_host/drawer_header_pointer/build_workbench_drawer_header_pointer_layout.rs
+  - zircon_editor/src/ui/slint_host/viewport_toolbar_pointer/mod.rs
   - zircon_editor/src/ui/slint_host/callback_dispatch/template_bridge/mod.rs
   - zircon_editor/src/ui/slint_host/callback_dispatch/template_bridge/projection_support.rs
   - zircon_editor/src/ui/slint_host/callback_dispatch/template_bridge/workbench/mod.rs
@@ -212,7 +222,7 @@ implementation_files:
   - zircon_editor/src/ui/slint_host/ui.rs
   - zircon_editor/src/ui/slint_host/ui/apply_presentation.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/floating_windows.rs
-- zircon_editor/src/ui/slint_host/viewport/mod.rs
+  - zircon_editor/src/ui/slint_host/viewport/mod.rs
   - zircon_editor/src/ui/workbench/project/mod.rs
   - zircon_editor/src/ui/workbench/startup/mod.rs
   - zircon_editor/src/ui/workbench/fixture/mod.rs
@@ -247,13 +257,22 @@ implementation_files:
   - zircon_editor/src/core/host/manager.rs
   - zircon_editor/src/core/host/manager/layout_hosts/mod.rs
   - zircon_editor/src/core/host/manager/builtin_views/mod.rs
+  - zircon_editor/src/ui/host/builtin_layout/builtin_shell_view_instances.rs
+  - zircon_editor/src/ui/host/builtin_views/activity_views/module_plugins_view_descriptor.rs
+  - zircon_editor/src/ui/host/builtin_views/activity_views/runtime_diagnostics_view_descriptor.rs
   - zircon_editor/src/core/host/manager/layout_commands.rs
   - zircon_editor/src/core/host/manager/window_host_manager.rs
   - zircon_editor/src/core/host/manager/workspace_state.rs
   - zircon_editor/src/ui/workbench/layout/mod.rs
   - zircon_editor/src/ui/workbench/model/mod.rs
+  - zircon_editor/src/ui/workbench/model/menu/view_menu.rs
   - zircon_editor/src/ui/workbench/reflection/mod.rs
   - zircon_editor/src/ui/workbench/snapshot/mod.rs
+  - zircon_editor/src/ui/workbench/startup/editor_session_mode.rs
+  - zircon_editor/src/ui/workbench/startup/editor_state_construction.rs
+  - zircon_editor/src/ui/workbench/state/editor_state.rs
+  - zircon_editor/src/ui/workbench/state/editor_state_play_mode.rs
+  - zircon_editor/src/ui/workbench/state/mod.rs
   - zircon_editor/src/lib.rs
   - zircon_editor/src/ui/binding/mod.rs
   - zircon_editor/fixtures/workbench/default-layout.json
@@ -269,6 +288,7 @@ implementation_files:
   - zircon_editor/src/core/host/manager/ui_asset_sessions.rs
   - zircon_editor/src/ui/slint_host/app/ui_asset_editor.rs
   - docs/editor-and-tooling/prototypes/editor-workbench-hybrid-shell.html
+  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host.rs
 plan_sources:
   - user: 2026-04-13 JetBrains Hybrid Workbench Shell Spec + Implementation Plan
   - user: 2026-04-14 Slint Workbench 响应式 AutoLayout 与约束求解计划
@@ -288,6 +308,7 @@ plan_sources:
   - user: 2026-04-17 Bindings Inspector 的下一版：事件枚举选择、action/payload 结构化编辑
   - user: 2026-04-17 Palette 到真实节点/引用节点创建的落地
   - user: 2026-04-17 结构化 undo/redo，从当前 source-text 级别继续往 tree-command 演进
+  - .codex/plans/ZirconEngine Unity 式编辑器优先补齐计划.md
 tests:
   - zircon_ui/src/tests/shared_core.rs
   - zircon_editor/src/tests/editing/state.rs
@@ -307,7 +328,7 @@ tests:
   - zircon_editor/src/tests/host/slint_viewport_toolbar_pointer/mod.rs
   - zircon_editor/src/tests/host/slint_menu_pointer/layout.rs
   - zircon_editor/src/tests/host/slint_menu_pointer/surface_contract.rs
-- zircon_editor/src/tests/host/slint_tab_drag/
+  - zircon_editor/src/tests/host/slint_tab_drag/
   - zircon_editor/src/tests/host/slint_callback_dispatch/mod.rs
   - zircon_editor/src/tests/host/slint_callback_dispatch/layout/mod.rs
   - zircon_editor/src/tests/host/slint_callback_dispatch/workbench/template_bridge.rs
@@ -378,6 +399,11 @@ tests:
   - cargo test -p zircon_editor --lib --locked editor_manager_restores_ui_asset_tree_selection_across_undo_and_redo
   - cargo test -p zircon_editor --lib --locked tests::host::slint_window::child_window_callback_wiring_tracks_source_window_for_pane_interactions
   - cargo test -p zircon_editor --test workbench_slint_shell --locked ui_asset_editor_
+  - cargo test -p zircon_editor --lib play_mode_ --locked --jobs 1
+  - cargo test -p zircon_editor --lib default_preview_fixture_ --locked --jobs 1
+  - cargo test -p zircon_editor --lib live_backend --locked --jobs 1
+  - cargo test -p zircon_runtime --lib native_live_host --locked --jobs 1
+  - cargo test -p zircon_editor --lib inspector_pane_projects_editable_field_nodes_and_actions --locked --jobs 1
 doc_type: module-detail
 ---
 
@@ -545,6 +571,7 @@ workbench shell 现在不再把 scene/game viewport 当成一个“可以单独�
 
 - `EditorSessionMode::Project`
 - `EditorSessionMode::Welcome`
+- `EditorSessionMode::Playing`
 
 最近工程配置统一落在 `editor.startup.session`，至少包含：
 
@@ -552,6 +579,17 @@ workbench shell 现在不再把 scene/game viewport 当成一个“可以单独�
 - `recent_projects`
 
 每次启动都会重新验证最近工程，而不是把上一次的验证结果当权威缓存。失效工程会继续保留在 recent list 中，并在 Welcome 页上显示诊断标签。
+
+### Minimal Play Mode Contract
+
+Unity 式播放模式的第一刀先落在 workbench state 层，而不是直接接 UI 菜单：
+
+- [`EditorSessionMode::Playing`](/E:/Git/ZirconEngine/zircon_editor/src/ui/workbench/startup/editor_session_mode.rs) 表示当前 shell 正在运行播放态快照
+- [`EditorState::enter_play_mode()`](/E:/Git/ZirconEngine/zircon_editor/src/ui/workbench/state/editor_state_play_mode.rs) 会捕获进入前的 runtime scene snapshot、选中节点、编辑器 undo/redo 历史和原 session mode，然后清空播放态历史，避免播放中操作混入编辑态 undo 栈
+- [`EditorState::exit_play_mode()`](/E:/Git/ZirconEngine/zircon_editor/src/ui/workbench/state/editor_state_play_mode.rs) 会把世界、选中节点、编辑历史和原 session mode 回滚到进入播放前的状态；播放中创建、删除、重命名或 Inspector 变更都应作为运行态试验丢弃
+- Welcome / unloaded world 不能进入播放模式，会返回 `No project open` 并保留原 session mode
+
+这条契约现在由 [`play_mode_restores_edit_world_and_history_on_exit`](/E:/Git/ZirconEngine/zircon_editor/src/tests/editing/state.rs) 与 [`play_mode_rejects_unloaded_welcome_world`](/E:/Git/ZirconEngine/zircon_editor/src/tests/editing/state.rs) 固定。后续 UI 菜单、工具栏按钮和 Operation/Undo/Redo 命令声明可以接到这层 API 上，而不需要重新定义播放态回滚规则。
 
 ### Welcome Page Contract
 
@@ -1077,6 +1115,8 @@ splitter 现在不再在 Slint 里直接计算最终 extent。当前行为改成
 - `Hierarchy`
 - `Inspector`
 - `Console`
+- `Runtime Diagnostics`
+- `Plugin Manager`
 
 它们的 content kind 现在由 `ViewContentKind` 显式建模，而不是靠固定 slot 推断。
 
@@ -1229,10 +1269,16 @@ splitter 现在不再在 Slint 里直接计算最终 extent。当前行为改成
 
 - `project_open = false`
 - `Scene/Game` tab 已存在
-- `Project/Assets/Hierarchy/Inspector/Console` pane 已存在
+- `Project/Assets/Hierarchy/Inspector/Console/Runtime Diagnostics/Plugin Manager` pane 已存在
 - `Project` 为左侧 active pane
 - `Inspector` 默认右侧打开
 - `Console` 底部打开
+- `Runtime Diagnostics` 默认驻留在右下抽屉并保持折叠，用来承接运行时渲染、物理和动画诊断入口
+- `Plugin Manager` 默认驻留在左下抽屉并保持折叠，但通过 View 菜单和 activity view descriptor 稳定可打开
+- `Plugin Manager` 的 pane payload 会随每个插件行投影启用/禁用、打包策略切换、target mode 切换、Unload 和 Hot Reload action id；当前启停与策略动作会通过 `ModulePluginAction` 回写项目 manifest 并刷新诊断，Unload/Hot Reload 会进入 `SlintEditorHost.module_plugin_live_host_backend` 持有的 runtime-owned `NativePluginLiveHost`，对当前项目根内的 editor native package 执行热重载和卸载；同一个 host 也暴露从导出根目录批量加载 runtime/editor native package 的入口，后续 runtime startup 可复用它来持有动态库 handle；缺少已构建动态库或插件 editor behavior 时会返回明确诊断
+- runtime startup 的 native dynamic 路径现在返回 `NativePluginRuntimeBootstrap`，把 `CoreHandle`、`NativePluginLiveHost` 和启动诊断放在同一个 bundle 中；导出根目录里实际加载成功的 native library handle 会随 bundle 存活，而不是在注册报告投影后立即释放
+- `Plugin Manager` 的 host contract 现在还会投影可视 row/button 节点：每个插件行都有 `ModulePluginRow.<id>` 和一组 `ModulePluginAction` 按钮节点，按钮文字使用紧凑标签，真实动作仍由 stable action id 决定
+- `Inspector` 的 host contract 现在会在 `InspectorBodySection` 内补齐可消费的编辑节点：`NameField`、`ParentField`、`PositionXField`、`PositionYField`、`PositionZField`、`ApplyBatchButton` 和 `DeleteSelected` 都带稳定 edit/commit/action id。插件组件 drawer 暂时通过 pane `info` 中的 missing/unloaded/unavailable 诊断降级成 `InspectorPluginComponentFallback`，保护序列化组件数据，等 editor operation/extension 活跃会话结束后再接真实 drawer 后端和 undo 栈。
 
 HTML 原型使用 fixture-shaped data 渲染 builtin preset，并提供 `Project docks right` 的 alternate preset，证明 pane placement 来自 layout JSON，而不是 DOM 写死。
 
@@ -1246,7 +1292,7 @@ HTML 原型使用 fixture-shaped data 渲染 builtin preset，并提供 `Project
 - `ToolWindowStack`
 - `DocumentWorkspaceHost`
 - `WorkbenchStatusBar`
-- pane components for `Project`, `Assets`, `Hierarchy`, `Inspector`, `Console`, `Scene`, `Game`, `Prefab Editor`
+- pane components for `Project`, `Assets`, `Hierarchy`, `Inspector`, `Console`, `Runtime Diagnostics`, `Plugin Manager`, `Scene`, `Game`, `Prefab Editor`
 
 映射原则：
 

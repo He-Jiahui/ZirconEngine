@@ -2,7 +2,7 @@ use crate::asset::{
     AssetUri, MeshVertex, ModelAsset, ModelPrimitiveAsset, VirtualGeometryAsset,
     VirtualGeometryClusterHeaderAsset, VirtualGeometryClusterPageHeaderAsset,
     VirtualGeometryDebugMetadataAsset, VirtualGeometryHierarchyNodeAsset,
-    VirtualGeometryRootClusterRangeAsset,
+    VirtualGeometryPageDependencyAsset, VirtualGeometryRootClusterRangeAsset,
 };
 use crate::core::math::{Vec2, Vec3};
 
@@ -124,6 +124,23 @@ fn sample_virtual_geometry_asset() -> VirtualGeometryAsset {
         ],
         cluster_page_data: vec![vec![1, 2, 3], vec![4, 5, 6], vec![7, 8, 9]],
         root_page_table: vec![10, 30],
+        page_dependencies: vec![
+            VirtualGeometryPageDependencyAsset {
+                page_id: 10,
+                parent_page_id: None,
+                child_page_ids: vec![20],
+            },
+            VirtualGeometryPageDependencyAsset {
+                page_id: 20,
+                parent_page_id: Some(10),
+                child_page_ids: Vec::new(),
+            },
+            VirtualGeometryPageDependencyAsset {
+                page_id: 30,
+                parent_page_id: None,
+                child_page_ids: Vec::new(),
+            },
+        ],
         root_cluster_ranges: vec![VirtualGeometryRootClusterRangeAsset {
             node_id: 0,
             cluster_start: 0,

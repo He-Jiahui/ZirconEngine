@@ -9,9 +9,10 @@ use zircon_runtime::core::framework::render::{
     RenderVirtualGeometryCpuReferenceMipClusterMapEntry,
     RenderVirtualGeometryCpuReferenceNodeVisit,
     RenderVirtualGeometryCpuReferencePageClusterMapEntry,
+    RenderVirtualGeometryCpuReferencePageDependencyEntry,
     RenderVirtualGeometryCpuReferenceSelectedCluster, RenderVirtualGeometryDebugState,
     RenderVirtualGeometryExtract, RenderVirtualGeometryHierarchyNode,
-    RenderVirtualGeometryInstance, RenderVirtualGeometryPage,
+    RenderVirtualGeometryInstance, RenderVirtualGeometryPage, RenderVirtualGeometryPageDependency,
 };
 use zircon_runtime::core::framework::scene::EntityId;
 use zircon_runtime::core::math::{Transform, Vec3};
@@ -179,6 +180,7 @@ fn build_virtual_geometry_automatic_extract_with_config(
     let mut hierarchy_nodes = Vec::new();
     let mut hierarchy_child_ids = Vec::new();
     let mut pages = Vec::new();
+    let mut page_dependencies = Vec::new();
     let mut instances = Vec::new();
     let mut cpu_reference_instances = Vec::new();
     let mut bvh_visualization_instances = Vec::new();
@@ -243,6 +245,10 @@ fn build_virtual_geometry_automatic_extract_with_config(
                 size_bytes,
             });
         }
+        page_dependencies.extend(render_extract_page_dependencies_for_asset(
+            &instance.asset,
+            &page_remap,
+        ));
 
         let mut cluster_remap = BTreeMap::new();
         for cluster in &instance.asset.cluster_headers {
@@ -317,12 +323,47 @@ fn build_virtual_geometry_automatic_extract_with_config(
             hierarchy_nodes,
             hierarchy_child_ids,
             pages,
+            page_dependencies,
             instances,
             debug: extract_debug,
         },
         cpu_reference_instances,
         bvh_visualization_instances,
     ))
+}
+
+fn render_extract_page_dependencies_for_asset(
+    asset: &VirtualGeometryAsset,
+    page_remap: &BTreeMap<u32, u32>,
+) -> Vec<RenderVirtualGeometryPageDependency> {
+    asset
+        .page_dependencies
+        .iter()
+        .filter_map(|dependency| {
+            let page_id = page_remap.get(&dependency.page_id).copied()?;
+            let parent_page_id = dependency
+                .parent_page_id
+                .and_then(|parent_page_id| page_remap.get(&parent_page_id).copied());
+            let child_page_ids = normalized_remapped_page_ids(
+                dependency
+                    .child_page_ids
+                    .iter()
+                    .filter_map(|child_page_id| page_remap.get(child_page_id).copied()),
+            );
+            Some(RenderVirtualGeometryPageDependency {
+                page_id,
+                parent_page_id,
+                child_page_ids,
+            })
+        })
+        .collect()
+}
+
+fn normalized_remapped_page_ids(page_ids: impl IntoIterator<Item = u32>) -> Vec<u32> {
+    let mut page_ids = page_ids.into_iter().collect::<Vec<_>>();
+    page_ids.sort_unstable();
+    page_ids.dedup();
+    page_ids
 }
 
 fn render_hierarchy_for_asset(
@@ -508,6 +549,7 @@ fn render_cpu_reference_instance(
             frame.leaf_clusters(),
             frame.debug(),
         ),
+        page_dependencies: render_page_dependencies(frame),
         loaded_mip_cluster_map: render_loaded_mip_cluster_map(frame.leaf_clusters()),
         selected_page_cluster_map: render_selected_page_cluster_map(frame.selected_clusters()),
         depth_cluster_map: render_depth_cluster_map(frame.visited_nodes()),
@@ -527,6 +569,22 @@ fn render_cpu_reference_instance(
         mip_cluster_map: render_mip_cluster_map(frame.leaf_clusters()),
         selected_mip_cluster_map: render_selected_mip_cluster_map(frame.selected_clusters()),
     }
+}
+
+fn render_page_dependencies(
+    frame: &VirtualGeometryCpuReferenceFrame,
+) -> Vec<RenderVirtualGeometryCpuReferencePageDependencyEntry> {
+    frame
+        .page_dependencies()
+        .iter()
+        .map(|(page_id, (parent_page_id, child_page_ids))| {
+            RenderVirtualGeometryCpuReferencePageDependencyEntry {
+                page_id: *page_id,
+                parent_page_id: *parent_page_id,
+                child_page_ids: child_page_ids.clone(),
+            }
+        })
+        .collect()
 }
 
 fn render_cpu_reference_leaf_cluster(

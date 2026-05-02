@@ -4,7 +4,27 @@ related_code:
   - zircon_runtime/src/graphics/feature/render_feature_pass_descriptor/render_feature_pass_descriptor.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registration.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
+  - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry.rs
+  - zircon_runtime/src/plugin/extension_registry/register.rs
+  - zircon_runtime/src/plugin/extension_registry/access.rs
+  - zircon_runtime/src/plugin/extension_registry_error.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog.rs
+  - zircon_runtime/src/builtin/runtime_modules.rs
+  - zircon_runtime/src/graphics/runtime_builtin_graphics/mod.rs
+  - zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/module_registration/module_descriptor.rs
+  - zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/create/create_render_framework.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework_new/new.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_new/new.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_new/new_with_icon_source.rs
   - zircon_runtime/src/core/framework/render/mod.rs
+  - zircon_runtime/src/core/framework/render/plugin_renderer_outputs.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_readbacks/scene_renderer_advanced_plugin_readbacks.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_readbacks/collect_into_outputs.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/advanced_plugin_outputs/scene_renderer_advanced_plugin_outputs.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/advanced_plugin_outputs/output_access.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/advanced_plugin_outputs/output_storage.rs
   - zircon_runtime/src/core/framework/render/scene_extract.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
@@ -18,6 +38,7 @@ related_code:
   - zircon_runtime/src/graphics/hybrid_gi_extract_sources/probe_record.rs
   - zircon_runtime/src/graphics/hybrid_gi_extract_sources/trace_region_record.rs
   - zircon_plugins/hybrid_gi/runtime/src/lib.rs
+  - zircon_plugins/hybrid_gi/runtime/src/render_pass_executors.rs
   - zircon_plugins/hybrid_gi/runtime/src/test_support/mod.rs
   - zircon_plugins/hybrid_gi/runtime/src/test_support/render_feature_fixtures.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/mod.rs
@@ -32,6 +53,7 @@ related_code:
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/declarations/hybrid_gi_runtime_state/probe_scene_data.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/declarations/hybrid_gi_runtime_state/trace_region_scene_data.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/declarations/hybrid_gi_runtime_state/scene_data_maps.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/declarations/hybrid_gi_runtime_state/probe_topology.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/declarations/hybrid_gi_runtime_state/request_state.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/declarations/hybrid_gi_runtime_state/residency.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/declarations/hybrid_gi_runtime_state/scene_representation.rs
@@ -72,8 +94,10 @@ related_code:
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/types/hybrid_gi_prepare/voxel_clipmap.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_accessors.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/input_set.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/radiance_cache_state.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/representation.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/scene_prepare_resources.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/screen_probe_state.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/surface_cache_state.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/voxel_scene_state.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_scene_representation.rs
@@ -212,7 +236,28 @@ related_code:
   - zircon_runtime/src/scene/tests/world_basics.rs
   - zircon_runtime/src/asset/tests/assets/scene.rs
 implementation_files:
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registration.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
+  - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry.rs
+  - zircon_runtime/src/plugin/extension_registry/register.rs
+  - zircon_runtime/src/plugin/extension_registry/access.rs
+  - zircon_runtime/src/plugin/extension_registry_error.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog.rs
+  - zircon_runtime/src/builtin/runtime_modules.rs
+  - zircon_runtime/src/graphics/runtime_builtin_graphics/mod.rs
+  - zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/module_registration/module_descriptor.rs
+  - zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/create/create_render_framework.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework_new/new.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_new/new.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_new/new_with_icon_source.rs
   - zircon_runtime/src/core/framework/render/mod.rs
+  - zircon_runtime/src/core/framework/render/plugin_renderer_outputs.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_readbacks/scene_renderer_advanced_plugin_readbacks.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_readbacks/collect_into_outputs.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/advanced_plugin_outputs/scene_renderer_advanced_plugin_outputs.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/advanced_plugin_outputs/output_access.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/advanced_plugin_outputs/output_storage.rs
   - zircon_runtime/src/core/framework/render/scene_extract.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
@@ -225,6 +270,7 @@ implementation_files:
   - zircon_runtime/src/graphics/hybrid_gi_extract_sources/probe_record.rs
   - zircon_runtime/src/graphics/hybrid_gi_extract_sources/trace_region_record.rs
   - zircon_plugins/hybrid_gi/runtime/src/lib.rs
+  - zircon_plugins/hybrid_gi/runtime/src/render_pass_executors.rs
   - zircon_plugins/hybrid_gi/runtime/src/test_support/mod.rs
   - zircon_plugins/hybrid_gi/runtime/src/test_support/render_feature_fixtures.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/mod.rs
@@ -279,8 +325,10 @@ implementation_files:
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/types/hybrid_gi_prepare/voxel_clipmap.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_accessors.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/input_set.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/radiance_cache_state.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/representation.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/scene_prepare_resources.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/screen_probe_state.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/surface_cache_state.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/voxel_scene_state.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/gpu_completion.rs
@@ -399,9 +447,13 @@ plan_sources:
   - docs/superpowers/plans/2026-05-02-plugin-renderer-neutral-readback-execution-surface.md
   - .codex/plans/GI_VG 插件化激进迁移计划.md
   - .codex/plans/zircon_plugins 全量插件化收敛规划.md
+  - user: 2026-05-02 VG/HGI 后续完善计划（参照 Unreal Nanite/Lumen）
   - .codex/plans/Hybrid GI Lumen-Style V1 三阶段计划.md
   - docs/superpowers/plans/2026-05-01-shared-renderer-fixture-localization.md
 tests:
+  - zircon_runtime/src/tests/plugin_extensions/extension_registry.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_readbacks/collect_into_outputs.rs
   - zircon_runtime/src/core/framework/tests.rs
   - zircon_runtime/src/graphics/tests/hybrid_gi_gpu.rs
   - zircon_runtime/src/graphics/tests/hybrid_gi_gpu_scene_light_seed.rs
@@ -414,6 +466,7 @@ tests:
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_scene_representation.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_runtime.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_visibility.rs
+  - zircon_plugins/hybrid_gi/runtime/src/render_pass_executors.rs
   - zircon_plugins/hybrid_gi/runtime/src/test_support/render_feature_fixtures.rs
   - zircon_runtime/src/graphics/tests/render_framework_bridge.rs
   - zircon_runtime/src/scene/tests/world_basics.rs
@@ -547,13 +600,17 @@ tests:
   - runtime-private resource search gate for ResourceStreamer and bare MaterialCaptureSeed owner names under zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer
   - cargo generate-lockfile --manifest-path zircon_plugins\Cargo.toml --offline
   - cargo fmt --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_hybrid_gi_runtime
+  - CARGO_TARGET_DIR=E:\cargo-targets\zircon-render-workspace-validation cargo test -p zircon_runtime --lib render_pass_executor --locked --offline --jobs 1 --message-format short --color never -- --nocapture
+  - CARGO_TARGET_DIR=E:\cargo-targets\zircon-render-workspace-validation cargo test -p zircon_runtime --lib plugin_extensions --locked --offline --jobs 1 --message-format short --color never -- --nocapture
+  - CARGO_TARGET_DIR=E:\cargo-targets\zircon-render-workspace-validation cargo test -p zircon_runtime --lib advanced_plugin_readbacks --locked --offline --jobs 1 --message-format short --color never -- --nocapture
   - cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_hybrid_gi_runtime --lib --locked --offline --jobs 1 --target-dir E:\cargo-targets\zircon-ui-m21-m14 --message-format short --color never
   - cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_hybrid_gi_runtime --lib --locked --offline --jobs 1 --target-dir E:\cargo-targets\zircon-plugin-renderer-neutral --message-format short --color never
   - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_hybrid_gi_runtime --lib --locked --offline --jobs 1 --target-dir E:\cargo-targets\zircon-plugin-renderer-neutral --message-format short --color never
+  - CARGO_TARGET_DIR=E:\cargo-targets\zircon-render-workspace-validation cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_hybrid_gi_runtime --lib --locked --offline --jobs 1 --message-format short --color never -- --nocapture
   - stale frame-owner search gate for ViewportRenderFrame under zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_probes
   - stale runtime frame HGI field search gate for hybrid_gi_prepare, hybrid_gi_scene_prepare, and hybrid_gi_resolve_runtime under zircon_runtime/src/graphics/types/viewport_render_frame.rs
-  - CARGO_TARGET_DIR=E:\cargo-targets\zircon-render-workspace-validation cargo build --workspace --locked --verbose
-  - CARGO_TARGET_DIR=E:\cargo-targets\zircon-render-workspace-validation cargo test --workspace --locked --verbose --jobs 1
+  - CARGO_TARGET_DIR=E:\cargo-targets\zircon-render-workspace-validation cargo build --workspace --locked --verbose --jobs 1 --message-format short --color never
+  - CARGO_TARGET_DIR=E:\cargo-targets\zircon-render-workspace-validation cargo test --workspace --locked --verbose --jobs 1 --message-format short --color never
   - git diff --check
 doc_type: module-detail
 ---
@@ -589,6 +646,10 @@ Milestone 3 scoped evidence: the exact old-owner search and broader `crate::grap
 Milestone 5 closeout evidence was refreshed on 2026-05-02 with `cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_hybrid_gi_runtime --lib --locked --offline -- --nocapture`, which ran 138 library tests with 0 failures. Scoped old-owner searches for the exact `crate::graphics::types`, `crate::graphics::scene::scene_renderer`, `pub(in crate::graphics...)`, `crate::graphics::runtime`, and `crate::graphics::tests` patterns returned no files under `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi`; the broader `crate::graphics::` search also returned no files, and the renderer-private `ResourceStreamer` / bare `MaterialCaptureSeed` search returned no files under `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer`. This evidence accepts package-level renderer ownership and intentionally leaves broader moved renderer tests unwired until a neutral/plugin-local readback and execution API exists.
 
 The 2026-05-02 neutral renderer follow-up now wires the plugin-local `post_process_sources` and `root_output_sources` roots back into `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/mod.rs`. `root_output_sources` exposes plugin-local helpers over `HybridGiGpuReadback` and scene-prepare snapshots instead of stale `SceneRenderer` readback methods. The post-process root also wires `encode_hybrid_gi_probes/**` again through `HybridGiProbeEncodeFrame`, a plugin-local input seam that carries `RenderFrameExtract`, viewport size, `HybridGiPrepareFrame`, `HybridGiScenePrepareFrame`, and `HybridGiResolveRuntime` without restoring those concrete HGI fields to the neutral runtime frame. Focused package evidence refreshed `zircon_plugins/Cargo.lock`, formatted the HGI plugin, passed `cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_hybrid_gi_runtime --lib --locked --offline --jobs 1 --target-dir E:\cargo-targets\zircon-plugin-renderer-neutral --message-format short --color never` with warning-only output, then passed `cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_hybrid_gi_runtime --lib --locked --offline --jobs 1 --target-dir E:\cargo-targets\zircon-plugin-renderer-neutral --message-format short --color never` with 194 tests and 0 failures. Stale-owner search gates returned no files for `ViewportRenderFrame` under the plugin `encode_hybrid_gi_probes` subtree and for `hybrid_gi_prepare`, `hybrid_gi_scene_prepare`, or `hybrid_gi_resolve_runtime` under `zircon_runtime/src/graphics/types/viewport_render_frame.rs`. The earlier HGI test attempt on `E:\cargo-targets\zircon-ui-m21-m14` hit a target-dir artifact-state problem (`debug\.fingerprint` missing), so that target is not accepted as HGI test evidence without cleanup. Workspace build evidence also passed on the isolated renderer target with `CARGO_TARGET_DIR=E:\cargo-targets\zircon-render-workspace-validation cargo build --workspace --locked --verbose`, which reached `Finished dev profile` in 4m 15s. Workspace tests are not accepted as renderer green: `CARGO_TARGET_DIR=E:\cargo-targets\zircon-render-workspace-validation cargo test --workspace --locked --verbose --jobs 1` stopped before executing tests while compiling `zircon_runtime` because active UI cutover code imports `UiAssetMigrationOutcome` from runtime schema after that DTO moved to `zircon_runtime_interface::ui::template`.
+
+Latest 2026-05-02 closeout evidence keeps this HGI slice scoped to renderer ownership rather than workspace green. Runtime executor registration and neutral readback storage passed focused validation with `CARGO_TARGET_DIR=E:\cargo-targets\zircon-render-workspace-validation cargo test -p zircon_runtime --lib render_pass_executor --locked --offline --jobs 1 --message-format short --color never -- --nocapture` (10 passed, 0 failed), `cargo test -p zircon_runtime --lib plugin_extensions ...` (warnings only), and `cargo test -p zircon_runtime --lib advanced_plugin_readbacks ...` (warnings only). The HGI package rerun on the same isolated renderer target passed `cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_hybrid_gi_runtime --lib --locked --offline --jobs 1 --message-format short --color never -- --nocapture` with 194 passed and 0 failed. Workspace build passed on that target, but `cargo test --workspace` stopped in `zircon_editor` because active UI/runtime-interface identities disagree for `UiPointerDispatchEffect`, `ResourceLocator`, `ResourceRecord`, `ResourceEvent`, and `UiTreeId`; that blocker is owned by active UI/editor lanes and is not accepted as an HGI renderer failure.
+
+Deferred HGI renderer test promotion remains intentionally blocked until moved test sources stop depending on stale runtime-owner fixtures such as `crate::asset`, `crate::core`, `crate::scene`, direct `SceneRenderer`, concrete `ViewportRenderFrame` extension methods, and old readback helper paths. No compatibility owner path or `ViewportRenderFrame` HGI field was restored for this closeout.
 
 ## Purpose
 
@@ -685,6 +746,8 @@ probe lighting cache maps 也开始脱离 raw field handoff。GPU completion 只
 probe ray-budget map 现在也由 runtime-state declaration owner 持有字段布局。legacy extract registration 与 test seeding 通过 `probe_ray_budgets_mut()` 写入/清理 per-probe ray budget，plan ingestion、prepare-frame resident probe export 和 resolve-runtime hierarchy/fallback weighting 通过 `probe_ray_budgets()` 读取。下一步仍可把 `unwrap_or_default()` 这类 lookup 策略继续收成 named owner method，但 raw map field 已经不再暴露。
 
 probe parent-topology map 同样完成字段收口。legacy extract registration 与 test seeding 通过 `probe_parent_probes_mut()` 维护 child-to-parent link，resolve-runtime hierarchy traversal、scene-trace support scoring 和 prepare-frame pending update lineage expansion 只通过 `probe_parent_probes()` 读取 parent map。`extract_payloads.rs` 中同名 map 仍是 payload 去重/防环 normalization 的局部变量，不再代表 runtime-state raw field 泄露。
+
+随后补上的 `probe_topology.rs` 把 HGI runtime 内部的 parent map 派生成稳定 child index，并提供 `probe_descendant_ids(...)` / `probe_descendant_ids_with_depth(...)`。prepare-frame pending update 排序、scene-trace descendant support，以及 resolve-runtime descendant irradiance / RT fallback / resident-descendant 计数现在共用这条 traversal，而不是在各自模块里反复扫描 parent map。这一层仍完全留在 `zircon_plugins/hybrid_gi`，只为后续 screen probe、radiance cache 和 history rejection 共享 lineage truth 做铺垫，不新增 runtime 到插件的反向依赖。
 
 runtime slot allocator state 现在也不再以 raw field 暴露。`free_slots` 与 `next_slot` 由 runtime-state declaration owner 私有持有，residency-management helper 只通过 `first_free_slot()`、`remove_free_slot(...)`、`insert_free_slot(...)`、`allocate_next_slot()`、`next_slot()` 与 `advance_next_slot_past(...)` 维护空闲 slot 回收、显式 slot 预留和下一 slot 分配。resident probe map 本身仍在后续 seam 中继续收口，但 slot allocator 的布局已经不再跨 module 泄露。
 
@@ -870,6 +933,12 @@ runtime pending-update queue 也采用同一 owner rule。`HybridGiProbeUpdateRe
 HGI 的 frame-local scene input bundle 也跟进同一规则，并已从 generic submit-context declaration 下沉到 `runtime/hybrid_gi/scene_inputs.rs`。`HybridGiSceneInputs` 现在只通过 `HybridGiSceneInputs::new(...)` 从 frame meshes 与 directional/point/spot lights 组装，`build_hybrid_gi_runtime(...)` 只通过 `meshes()`、`directional_lights()`、`point_lights()` 与 `spot_lights()` accessors 把这些 scene inputs 交给 `HybridGiRuntimeState::register_scene_extract(...)`，避免 runtime host 后续插件化时继续依赖 submit-context vector 字段名。
 
 Renderer-side HGI GPU resources now follow the same descriptor-owned activation rule. `SceneRendererAdvancedPluginResources` receives the linked render descriptors during `SceneRendererCore` construction and creates `HybridGiGpuResources` only when a descriptor advertises `HybridGlobalIllumination`. If the base renderer has no linked HGI descriptor, the advanced resource owner keeps the HGI slot empty and `execute_runtime_prepare_passes(...)` returns no HGI pending readback instead of allocating or dispatching the HGI prepare pipeline.
+
+The 2026-05-02 M0 executor follow-up gives the HGI runtime plugin the same contract-bound render-pass executor layer in `zircon_plugins/hybrid_gi/runtime/src/render_pass_executors.rs`. The scene-prepare, trace-schedule, resolve, and history executors still receive only neutral `RenderPassExecutionContext` metadata, but they now reject stale runtime-owned pass names, wrong executor ids, queue drift outside the supported async-to-graphics fallback, flag drift, and compiled render-graph resource drift. Read-only scene inputs such as `scene-depth` and `scene-color` accept either imported external resources or transient textures, because the same neutral HGI pass can run alone or inside a combined pipeline where another feature owns those scene resources. Focused formatting (`rustfmt --edition 2021 --check` over the touched VG/HGI plugin files) passed; the focused package test command `cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_virtual_geometry_runtime -p zircon_plugin_hybrid_gi_runtime render_pass_executors --lib --locked --offline --jobs 1 --target-dir E:\cargo-targets\zircon-vg-hgi-executor-contract --message-format short --color never` was attempted but timed out during concurrent Cargo/rustc activity, so the new module tests remain pending for a quiet acceptance rerun.
+
+The follow-up screen-probe seed keeps the new state entirely inside the HGI plugin-owned scene representation. `HybridGiScreenProbeState` now derives deterministic probe candidates from sorted scene cards, honors `trace_budget`, attaches the matching surface-cache `page_id` when the card is resident, and keeps `None` as the explicit surface-cache-miss fallback when card budget is lower than trace budget. `HybridGiScenePrepareFrame` remains unchanged for this slice: the probes are exposed only through runtime snapshot/test inspection, so renderer descriptor buffers and final resolve do not yet consume them as Lumen-style `ScreenProbeGather` work.
+
+The next internal layer adds `HybridGiRadianceCacheState` beside those screen-probe candidates. It derives one radiance-cache seed per probe, preferring persisted surface-cache page truth (`capture` sample first, then `atlas` sample) and falling back to runtime voxel-cell radiance for the probe's owner card when no resident page sample exists. Missing page/sample cases stay explicit with zero confidence. This is still plugin-private bookkeeping: runtime snapshot/test accessors can count and inspect the seeds, but renderer descriptor buffers, temporal resolve, and final GI composition have not consumed this radiance cache yet.
 
 - `last_hybrid_gi_scene_card_count`
 - `last_hybrid_gi_surface_cache_resident_page_count`

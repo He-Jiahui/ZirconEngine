@@ -5,16 +5,27 @@ use std::path::{Path, PathBuf};
 fn template_legacy_adapter_is_removed_from_formal_namespace_surface() {
     let lib_source = include_str!("../mod.rs");
     let template_mod_source = include_str!("../template/mod.rs");
+    let interface_template_mod_source =
+        include_str!("../../../../zircon_runtime_interface/src/ui/template/mod.rs");
 
     assert!(
         lib_source.contains("pub mod template;"),
         "zircon_ui root should expose the template namespace directly"
     );
 
-    for required in ["UiTemplateDocument", "UiTemplateLoader"] {
+    assert!(
+        interface_template_mod_source.contains("UiTemplateDocument"),
+        "zircon_runtime_interface::ui::template should own neutral DTO `UiTemplateDocument`"
+    );
+    assert!(
+        !template_mod_source.contains("UiTemplateDocument"),
+        "zircon_ui::template should not re-export interface DTO `UiTemplateDocument`"
+    );
+
+    for required in ["UiTemplateLoader"] {
         assert!(
             template_mod_source.contains(required),
-            "zircon_ui::template should own `{required}`"
+            "zircon_ui::template should expose runtime behavior service `{required}`"
         );
     }
 
@@ -67,17 +78,29 @@ fn template_compiler_api_moves_under_template_namespace() {
 fn template_runtime_builder_api_moves_under_template_namespace() {
     let lib_source = include_str!("../mod.rs");
     let template_mod_source = include_str!("../template/mod.rs");
+    let interface_template_mod_source =
+        include_str!("../../../../zircon_runtime_interface/src/ui/template/mod.rs");
+
+    for required in ["UiTemplateError"] {
+        assert!(
+            interface_template_mod_source.contains(required),
+            "zircon_runtime_interface::ui::template should own neutral DTO `{required}`"
+        );
+        assert!(
+            !template_mod_source.contains(required),
+            "zircon_ui::template should not re-export interface DTO `{required}`"
+        );
+    }
 
     for required in [
         "UiTemplateBuildError",
-        "UiTemplateError",
         "UiTemplateSurfaceBuilder",
         "UiTemplateTreeBuilder",
         "UiTemplateValidator",
     ] {
         assert!(
             template_mod_source.contains(required),
-            "zircon_ui::template should own `{required}`"
+            "zircon_ui::template should expose runtime behavior service `{required}`"
         );
     }
 
@@ -99,11 +122,22 @@ fn template_runtime_builder_api_moves_under_template_namespace() {
 fn template_runtime_model_api_moves_under_template_namespace() {
     let lib_source = include_str!("../mod.rs");
     let template_mod_source = include_str!("../template/mod.rs");
+    let interface_template_mod_source =
+        include_str!("../../../../zircon_runtime_interface/src/ui/template/mod.rs");
 
-    for required in ["UiTemplateInstance", "UiTemplateNode"] {
+    assert!(
+        interface_template_mod_source.contains("UiTemplateNode"),
+        "zircon_runtime_interface::ui::template should own neutral DTO `UiTemplateNode`"
+    );
+    assert!(
+        !template_mod_source.contains("UiTemplateNode"),
+        "zircon_ui::template should not re-export interface DTO `UiTemplateNode`"
+    );
+
+    for required in ["UiTemplateInstance"] {
         assert!(
             template_mod_source.contains(required),
-            "zircon_ui::template should own `{required}`"
+            "zircon_ui::template should expose runtime behavior model `{required}`"
         );
     }
 
@@ -119,6 +153,8 @@ fn template_runtime_model_api_moves_under_template_namespace() {
 fn template_component_schema_api_moves_under_template_namespace() {
     let lib_source = include_str!("../mod.rs");
     let template_mod_source = include_str!("../template/mod.rs");
+    let interface_template_mod_source =
+        include_str!("../../../../zircon_runtime_interface/src/ui/template/mod.rs");
 
     for required in [
         "UiComponentDefinition",
@@ -127,8 +163,12 @@ fn template_component_schema_api_moves_under_template_namespace() {
         "UiStyleScope",
     ] {
         assert!(
-            template_mod_source.contains(required),
-            "zircon_ui::template should own `{required}`"
+            interface_template_mod_source.contains(required),
+            "zircon_runtime_interface::ui::template should own neutral DTO `{required}`"
+        );
+        assert!(
+            !template_mod_source.contains(required),
+            "zircon_ui::template should not re-export interface DTO `{required}`"
         );
     }
 
@@ -149,11 +189,17 @@ fn template_component_schema_api_moves_under_template_namespace() {
 fn template_selector_api_moves_under_template_namespace() {
     let lib_source = include_str!("../mod.rs");
     let template_mod_source = include_str!("../template/mod.rs");
+    let interface_template_mod_source =
+        include_str!("../../../../zircon_runtime_interface/src/ui/template/mod.rs");
 
     for required in ["UiSelector", "UiSelectorToken"] {
         assert!(
-            template_mod_source.contains(required),
-            "zircon_ui::template should own `{required}`"
+            interface_template_mod_source.contains(required),
+            "zircon_runtime_interface::ui::template should own neutral selector DTO `{required}`"
+        );
+        assert!(
+            !template_mod_source.contains(required),
+            "zircon_ui::template should not re-export interface selector DTO `{required}`"
         );
     }
 
@@ -169,6 +215,8 @@ fn template_selector_api_moves_under_template_namespace() {
 fn template_binding_model_api_moves_under_template_namespace() {
     let lib_source = include_str!("../mod.rs");
     let template_mod_source = include_str!("../template/mod.rs");
+    let interface_template_mod_source =
+        include_str!("../../../../zircon_runtime_interface/src/ui/template/mod.rs");
 
     for required in [
         "UiActionRef",
@@ -177,8 +225,12 @@ fn template_binding_model_api_moves_under_template_namespace() {
         "UiSlotTemplate",
     ] {
         assert!(
-            template_mod_source.contains(required),
-            "zircon_ui::template should own `{required}`"
+            interface_template_mod_source.contains(required),
+            "zircon_runtime_interface::ui::template should own neutral DTO `{required}`"
+        );
+        assert!(
+            !template_mod_source.contains(required),
+            "zircon_ui::template should not re-export interface DTO `{required}`"
         );
     }
 
@@ -199,16 +251,24 @@ fn template_binding_model_api_moves_under_template_namespace() {
 fn template_asset_metadata_api_moves_under_template_namespace() {
     let lib_source = include_str!("../mod.rs");
     let template_mod_source = include_str!("../template/mod.rs");
+    let interface_template_mod_source =
+        include_str!("../../../../zircon_runtime_interface/src/ui/template/mod.rs");
 
-    for required in [
-        "UiAssetHeader",
-        "UiAssetImports",
-        "UiAssetNodeIter",
-        "UiNodeParent",
-    ] {
+    for required in ["UiAssetHeader", "UiAssetImports"] {
+        assert!(
+            interface_template_mod_source.contains(required),
+            "zircon_runtime_interface::ui::template should own neutral DTO `{required}`"
+        );
+        assert!(
+            !template_mod_source.contains(required),
+            "zircon_ui::template should not re-export interface DTO `{required}`"
+        );
+    }
+
+    for required in ["UiAssetNodeIter", "UiNodeParent"] {
         assert!(
             template_mod_source.contains(required),
-            "zircon_ui::template should own `{required}`"
+            "zircon_ui::template should expose runtime document helper `{required}`"
         );
     }
 
@@ -229,10 +289,17 @@ fn template_asset_metadata_api_moves_under_template_namespace() {
 fn template_asset_mount_api_moves_under_template_namespace() {
     let lib_source = include_str!("../mod.rs");
     let template_mod_source = include_str!("../template/mod.rs");
+    let interface_template_mod_source =
+        include_str!("../../../../zircon_runtime_interface/src/ui/template/mod.rs");
 
     assert!(
-        template_mod_source.contains("UiChildMount"),
-        "zircon_ui::template should own `UiChildMount`"
+        interface_template_mod_source.contains("UiChildMount"),
+        "zircon_runtime_interface::ui::template should own neutral DTO `UiChildMount`"
+    );
+
+    assert!(
+        !template_mod_source.contains("UiChildMount"),
+        "zircon_ui::template should not re-export interface DTO `UiChildMount`"
     );
 
     assert!(
@@ -261,6 +328,8 @@ fn template_asset_loader_api_moves_under_template_namespace() {
 fn template_asset_style_api_moves_under_template_namespace() {
     let lib_source = include_str!("../mod.rs");
     let template_mod_source = include_str!("../template/mod.rs");
+    let interface_template_mod_source =
+        include_str!("../../../../zircon_runtime_interface/src/ui/template/mod.rs");
 
     for required in [
         "UiAssetError",
@@ -269,8 +338,12 @@ fn template_asset_style_api_moves_under_template_namespace() {
         "UiStyleSheet",
     ] {
         assert!(
-            template_mod_source.contains(required),
-            "zircon_ui::template should own `{required}`"
+            interface_template_mod_source.contains(required),
+            "zircon_runtime_interface::ui::template should own neutral DTO `{required}`"
+        );
+        assert!(
+            !template_mod_source.contains(required),
+            "zircon_ui::template should not re-export interface DTO `{required}`"
         );
     }
 
@@ -291,11 +364,17 @@ fn template_asset_style_api_moves_under_template_namespace() {
 fn template_asset_node_definition_api_moves_under_template_namespace() {
     let lib_source = include_str!("../mod.rs");
     let template_mod_source = include_str!("../template/mod.rs");
+    let interface_template_mod_source =
+        include_str!("../../../../zircon_runtime_interface/src/ui/template/mod.rs");
 
     for required in ["UiNodeDefinition", "UiNodeDefinitionKind"] {
         assert!(
-            template_mod_source.contains(required),
-            "zircon_ui::template should own `{required}`"
+            interface_template_mod_source.contains(required),
+            "zircon_runtime_interface::ui::template should own neutral DTO `{required}`"
+        );
+        assert!(
+            !template_mod_source.contains(required),
+            "zircon_ui::template should not re-export interface DTO `{required}`"
         );
     }
 
@@ -311,10 +390,17 @@ fn template_asset_node_definition_api_moves_under_template_namespace() {
 fn template_asset_kind_api_moves_under_template_namespace() {
     let lib_source = include_str!("../mod.rs");
     let template_mod_source = include_str!("../template/mod.rs");
+    let interface_template_mod_source =
+        include_str!("../../../../zircon_runtime_interface/src/ui/template/mod.rs");
 
     assert!(
-        template_mod_source.contains("UiAssetKind"),
-        "zircon_ui::template should own `UiAssetKind`"
+        interface_template_mod_source.contains("UiAssetKind"),
+        "zircon_runtime_interface::ui::template should own neutral DTO `UiAssetKind`"
+    );
+
+    assert!(
+        !template_mod_source.contains("UiAssetKind"),
+        "zircon_ui::template should not re-export interface DTO `UiAssetKind`"
     );
 
     assert!(
@@ -327,10 +413,22 @@ fn template_asset_kind_api_moves_under_template_namespace() {
 fn template_asset_document_api_moves_under_template_namespace() {
     let lib_source = include_str!("../mod.rs");
     let template_mod_source = include_str!("../template/mod.rs");
+    let interface_template_mod_source =
+        include_str!("../../../../zircon_runtime_interface/src/ui/template/mod.rs");
 
     assert!(
-        template_mod_source.contains("UiAssetDocument"),
-        "zircon_ui::template should own `UiAssetDocument`"
+        interface_template_mod_source.contains("UiAssetDocument"),
+        "zircon_runtime_interface::ui::template should own neutral DTO `UiAssetDocument`"
+    );
+
+    assert!(
+        !template_mod_source.contains("UiAssetDocument,"),
+        "zircon_ui::template should not re-export interface DTO `UiAssetDocument`"
+    );
+
+    assert!(
+        template_mod_source.contains("UiAssetDocumentRuntimeExt"),
+        "zircon_ui::template should expose runtime document behavior `UiAssetDocumentRuntimeExt`"
     );
 
     assert!(
@@ -394,11 +492,17 @@ fn layout_solver_api_moves_under_layout_namespace() {
 fn layout_constraint_model_api_moves_under_layout_namespace() {
     let lib_source = include_str!("../mod.rs");
     let layout_mod_source = include_str!("../layout/mod.rs");
+    let interface_layout_mod_source =
+        include_str!("../../../../zircon_runtime_interface/src/ui/layout/mod.rs");
 
     for required in ["AxisConstraint", "LayoutBoundary", "StretchMode"] {
         assert!(
-            layout_mod_source.contains(required),
-            "zircon_ui::layout should own `{required}`"
+            interface_layout_mod_source.contains(required),
+            "zircon_runtime_interface::ui::layout should own neutral DTO `{required}`"
+        );
+        assert!(
+            !layout_mod_source.contains(required),
+            "zircon_ui::layout should not re-export interface DTO `{required}`"
         );
     }
 
@@ -418,6 +522,8 @@ fn layout_constraint_model_api_moves_under_layout_namespace() {
 fn tree_specialist_api_moves_under_tree_namespace() {
     let lib_source = include_str!("../mod.rs");
     let tree_mod_source = include_str!("../tree/mod.rs");
+    let interface_tree_mod_source =
+        include_str!("../../../../zircon_runtime_interface/src/ui/tree/mod.rs");
 
     assert!(
         lib_source.contains("pub mod tree;"),
@@ -429,12 +535,29 @@ fn tree_specialist_api_moves_under_tree_namespace() {
         "UiTreeError",
         "UiDirtyFlags",
         "UiLayoutCache",
+        "UiTree",
+        "UiTreeNode",
+    ] {
+        assert!(
+            interface_tree_mod_source.contains(required),
+            "zircon_runtime_interface::ui::tree should own neutral DTO `{required}`"
+        );
+        assert!(
+            !tree_mod_source.contains(required),
+            "zircon_ui::tree should not re-export interface DTO `{required}`"
+        );
+    }
+
+    for required in [
         "UiHitTestIndex",
         "UiHitTestResult",
+        "UiRuntimeTreeAccessExt",
+        "UiRuntimeTreeLayoutExt",
+        "UiRuntimeTreeRoutingExt",
     ] {
         assert!(
             tree_mod_source.contains(required),
-            "zircon_ui::tree should own `{required}`"
+            "zircon_ui::tree should expose runtime behavior helper `{required}`"
         );
     }
 
@@ -457,10 +580,17 @@ fn tree_specialist_api_moves_under_tree_namespace() {
 fn tree_input_policy_api_moves_under_tree_namespace() {
     let lib_source = include_str!("../mod.rs");
     let tree_mod_source = include_str!("../tree/mod.rs");
+    let interface_tree_mod_source =
+        include_str!("../../../../zircon_runtime_interface/src/ui/tree/mod.rs");
 
     assert!(
-        tree_mod_source.contains("UiInputPolicy"),
-        "zircon_ui::tree should own `UiInputPolicy`"
+        interface_tree_mod_source.contains("UiInputPolicy"),
+        "zircon_runtime_interface::ui::tree should own `UiInputPolicy`"
+    );
+
+    assert!(
+        !tree_mod_source.contains("UiInputPolicy"),
+        "zircon_ui::tree should not re-export interface input policy DTO"
     );
 
     assert!(
@@ -473,6 +603,8 @@ fn tree_input_policy_api_moves_under_tree_namespace() {
 fn surface_render_api_moves_under_surface_namespace() {
     let lib_source = include_str!("../mod.rs");
     let surface_mod_source = include_str!("../surface/mod.rs");
+    let interface_surface_mod_source =
+        include_str!("../../../../zircon_runtime_interface/src/ui/surface/mod.rs");
 
     assert!(
         lib_source.contains("pub mod surface;"),
@@ -488,8 +620,12 @@ fn surface_render_api_moves_under_surface_namespace() {
         "UiVisualAssetRef",
     ] {
         assert!(
-            surface_mod_source.contains(required),
-            "zircon_ui::surface should own `{required}`"
+            interface_surface_mod_source.contains(required),
+            "zircon_runtime_interface::ui::surface should own neutral render DTO `{required}`"
+        );
+        assert!(
+            !surface_mod_source.contains(required),
+            "zircon_ui::surface should not re-export interface render DTO `{required}`"
         );
     }
 
@@ -512,11 +648,17 @@ fn surface_render_api_moves_under_surface_namespace() {
 fn surface_state_api_moves_under_surface_namespace() {
     let lib_source = include_str!("../mod.rs");
     let surface_mod_source = include_str!("../surface/mod.rs");
+    let interface_surface_mod_source =
+        include_str!("../../../../zircon_runtime_interface/src/ui/surface/mod.rs");
 
     for required in ["UiFocusState", "UiNavigationState"] {
         assert!(
-            surface_mod_source.contains(required),
-            "zircon_ui::surface should own `{required}`"
+            interface_surface_mod_source.contains(required),
+            "zircon_runtime_interface::ui::surface should own neutral state DTO `{required}`"
+        );
+        assert!(
+            !surface_mod_source.contains(required),
+            "zircon_ui::surface should not re-export interface state DTO `{required}`"
         );
     }
 
@@ -532,6 +674,8 @@ fn surface_state_api_moves_under_surface_namespace() {
 fn dispatch_api_moves_under_dispatch_namespace() {
     let lib_source = include_str!("../mod.rs");
     let dispatch_mod_source = include_str!("../dispatch/mod.rs");
+    let interface_dispatch_mod_source =
+        include_str!("../../../../zircon_runtime_interface/src/ui/dispatch/mod.rs");
 
     assert!(
         lib_source.contains("pub mod dispatch;"),
@@ -543,17 +687,26 @@ fn dispatch_api_moves_under_dispatch_namespace() {
         "UiNavigationDispatchEffect",
         "UiNavigationDispatchInvocation",
         "UiNavigationDispatchResult",
-        "UiNavigationDispatcher",
         "UiPointerDispatchContext",
         "UiPointerDispatchEffect",
         "UiPointerDispatchInvocation",
         "UiPointerDispatchResult",
-        "UiPointerDispatcher",
         "UiPointerEvent",
     ] {
         assert!(
+            interface_dispatch_mod_source.contains(required),
+            "zircon_runtime_interface::ui::dispatch should own neutral DTO `{required}`"
+        );
+        assert!(
+            !dispatch_mod_source.contains(required),
+            "zircon_ui::dispatch should not re-export interface DTO `{required}`"
+        );
+    }
+
+    for required in ["UiNavigationDispatcher", "UiPointerDispatcher"] {
+        assert!(
             dispatch_mod_source.contains(required),
-            "zircon_ui::dispatch should own `{required}`"
+            "zircon_ui::dispatch should expose runtime behavior service `{required}`"
         );
     }
 
@@ -584,6 +737,8 @@ fn dispatch_api_moves_under_dispatch_namespace() {
 fn binding_api_moves_under_binding_namespace() {
     let lib_source = include_str!("../mod.rs");
     let binding_mod_source = include_str!("../binding/mod.rs");
+    let interface_binding_mod_source =
+        include_str!("../../../../zircon_runtime_interface/src/ui/binding/mod.rs");
 
     assert!(
         lib_source.contains("pub mod binding;"),
@@ -597,13 +752,21 @@ fn binding_api_moves_under_binding_namespace() {
         "UiEventBinding",
         "UiEventKind",
         "UiEventPath",
-        "UiEventRouter",
     ] {
         assert!(
-            binding_mod_source.contains(required),
-            "zircon_ui::binding should own `{required}`"
+            interface_binding_mod_source.contains(required),
+            "zircon_runtime_interface::ui::binding should own neutral DTO `{required}`"
+        );
+        assert!(
+            !binding_mod_source.contains(required),
+            "zircon_ui::binding should not re-export interface DTO `{required}`"
         );
     }
+
+    assert!(
+        binding_mod_source.contains("UiEventRouter"),
+        "zircon_ui::binding should expose runtime behavior service `UiEventRouter`"
+    );
 
     for forbidden in [
         "UiBindingCall",
@@ -625,6 +788,8 @@ fn binding_api_moves_under_binding_namespace() {
 fn event_ui_api_moves_under_event_ui_namespace() {
     let lib_source = include_str!("../mod.rs");
     let event_ui_mod_source = include_str!("../event_ui/mod.rs");
+    let interface_event_ui_mod_source =
+        include_str!("../../../../zircon_runtime_interface/src/ui/event_ui/mod.rs");
 
     assert!(
         lib_source.contains("pub mod event_ui;"),
@@ -633,10 +798,8 @@ fn event_ui_api_moves_under_event_ui_namespace() {
 
     for required in [
         "UiActionDescriptor",
-        "UiBindingCodec",
         "UiControlRequest",
         "UiControlResponse",
-        "UiEventManager",
         "UiInvocationContext",
         "UiInvocationError",
         "UiInvocationRequest",
@@ -658,17 +821,26 @@ fn event_ui_api_moves_under_event_ui_namespace() {
         "UiValueType",
     ] {
         assert!(
+            interface_event_ui_mod_source.contains(required),
+            "zircon_runtime_interface::ui::event_ui should own neutral DTO `{required}`"
+        );
+        assert!(
+            !event_ui_mod_source.contains(required),
+            "zircon_ui::event_ui should not re-export interface DTO `{required}`"
+        );
+    }
+
+    for required in ["UiBindingCodec", "UiEventManager"] {
+        assert!(
             event_ui_mod_source.contains(required),
-            "zircon_ui::event_ui should own `{required}`"
+            "zircon_ui::event_ui should expose runtime behavior helper `{required}`"
         );
     }
 
     for forbidden in [
         "UiActionDescriptor",
-        "UiBindingCodec",
         "UiControlRequest",
         "UiControlResponse",
-        "UiEventManager",
         "UiInvocationContext",
         "UiInvocationError",
         "UiInvocationRequest",
@@ -699,25 +871,41 @@ fn event_ui_api_moves_under_event_ui_namespace() {
 #[test]
 fn dispatch_root_stays_structural_after_folder_split() {
     let dispatch_mod_source = include_str!("../dispatch/mod.rs");
+    let interface_dispatch_mod_source =
+        include_str!("../../../../zircon_runtime_interface/src/ui/dispatch/mod.rs");
+
+    for required in ["mod navigation;", "mod pointer;"] {
+        assert!(
+            dispatch_mod_source.contains(required),
+            "zircon_ui::dispatch root should keep structural module entry `{required}`"
+        );
+    }
 
     for required in [
-        "mod navigation;",
-        "mod pointer;",
         "UiNavigationDispatchContext",
         "UiNavigationDispatchEffect",
         "UiNavigationDispatchInvocation",
         "UiNavigationDispatchResult",
-        "UiNavigationDispatcher",
         "UiPointerDispatchContext",
         "UiPointerDispatchEffect",
         "UiPointerDispatchInvocation",
         "UiPointerDispatchResult",
-        "UiPointerDispatcher",
         "UiPointerEvent",
     ] {
         assert!(
+            interface_dispatch_mod_source.contains(required),
+            "zircon_runtime_interface::ui::dispatch should keep neutral DTO export `{required}`"
+        );
+        assert!(
+            !dispatch_mod_source.contains(required),
+            "zircon_ui::dispatch root should not keep old-path DTO export `{required}`"
+        );
+    }
+
+    for required in ["UiNavigationDispatcher", "UiPointerDispatcher"] {
+        assert!(
             dispatch_mod_source.contains(required),
-            "zircon_ui::dispatch root should keep the structural export `{required}`"
+            "zircon_ui::dispatch root should keep runtime behavior export `{required}`"
         );
     }
 
@@ -737,14 +925,17 @@ fn dispatch_root_stays_structural_after_folder_split() {
 #[test]
 fn surface_root_stays_structural_after_folder_split() {
     let surface_mod_source = include_str!("../surface/mod.rs");
+    let interface_surface_mod_source =
+        include_str!("../../../../zircon_runtime_interface/src/ui/surface/mod.rs");
+
+    for required in ["mod render;", "mod surface;"] {
+        assert!(
+            surface_mod_source.contains(required),
+            "zircon_ui::surface root should keep structural module entry `{required}`"
+        );
+    }
 
     for required in [
-        "mod focus_state;",
-        "mod navigation;",
-        "mod navigation_state;",
-        "mod pointer;",
-        "mod render;",
-        "mod surface;",
         "UiFocusState",
         "UiNavigationEventKind",
         "UiNavigationRoute",
@@ -758,11 +949,21 @@ fn surface_root_stays_structural_after_folder_split() {
         "UiRenderList",
         "UiResolvedStyle",
         "UiVisualAssetRef",
-        "UiSurface",
     ] {
         assert!(
+            interface_surface_mod_source.contains(required),
+            "zircon_runtime_interface::ui::surface should keep neutral DTO export `{required}`"
+        );
+        assert!(
+            !surface_mod_source.contains(required),
+            "zircon_ui::surface root should not keep old-path DTO export `{required}`"
+        );
+    }
+
+    for required in ["extract_ui_render_tree", "layout_text", "UiSurface"] {
+        assert!(
             surface_mod_source.contains(required),
-            "zircon_ui::surface root should keep the structural export `{required}`"
+            "zircon_ui::surface root should keep runtime behavior export `{required}`"
         );
     }
 

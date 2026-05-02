@@ -11,6 +11,7 @@ use crate::core::manager::{resolve_animation_manager, resolve_physics_manager};
 use crate::core::math::Real;
 use crate::core::{CoreError, CoreHandle};
 use crate::physics::{build_world_sync_state, integrate_builtin_physics_steps};
+use crate::scene::level_system::AnimationStateTransitionRuntime;
 use crate::scene::{EntityId, LevelSystem};
 
 #[derive(Clone, Debug)]
@@ -48,6 +49,8 @@ struct PendingStateMachinePoseSample {
     parameters: AnimationParameterMap,
     active_state: Option<String>,
     time_seconds: Real,
+    delta_seconds: Real,
+    transition: Option<AnimationStateTransitionRuntime>,
 }
 
 #[derive(Debug, Default)]
@@ -70,8 +73,11 @@ impl WorldDriver {
                         crate::asset::PROJECT_ASSET_MANAGER_NAME,
                     )
                     .ok();
-                let (previous_graph_times, previous_state_machine_times) =
-                    level.animation_playback_times();
+                let (
+                    previous_graph_times,
+                    previous_state_machine_times,
+                    previous_state_machine_transitions,
+                ) = level.animation_playback_times();
                 let (
                     pending_sequences,
                     pending_clip_samples,
@@ -179,6 +185,10 @@ impl WorldDriver {
                                                 parameters: player.parameters,
                                                 active_state: player.active_state,
                                                 time_seconds: next_time_seconds,
+                                                delta_seconds,
+                                                transition: previous_state_machine_transitions
+                                                    .get(&entity)
+                                                    .cloned(),
                                             },
                                         );
                                     }
@@ -196,7 +206,6 @@ impl WorldDriver {
                         next_state_machine_times,
                     )
                 });
-                level.record_animation_playback_times(next_graph_times, next_state_machine_times);
 
                 if let Some(asset_manager) = &asset_manager {
                     let loaded_sequences = pending_sequences
@@ -222,7 +231,7 @@ impl WorldDriver {
                         asset_manager,
                         pending_graph_samples,
                     ));
-                    let (state_machine_poses, active_state_updates) =
+                    let (state_machine_poses, active_state_updates, transition_updates) =
                         resolve_state_machine_pose_requests(
                             animation.as_ref(),
                             asset_manager,
@@ -244,11 +253,26 @@ impl WorldDriver {
                         });
                     }
                     level.record_animation_poses(animation_poses);
+                    level.record_animation_playback_times(
+                        next_graph_times,
+                        next_state_machine_times,
+                        transition_updates,
+                    );
                 } else {
                     level.record_animation_poses(BTreeMap::new());
+                    level.record_animation_playback_times(
+                        next_graph_times,
+                        next_state_machine_times,
+                        BTreeMap::new(),
+                    );
                 }
             } else {
                 level.record_animation_poses(BTreeMap::new());
+                level.record_animation_playback_times(
+                    BTreeMap::new(),
+                    BTreeMap::new(),
+                    BTreeMap::new(),
+                );
             }
         }
 
@@ -324,23 +348,15 @@ fn resolve_graph_pose_requests(
                 .load_animation_graph_asset(pending.graph_id)
                 .ok()?;
             let evaluation = animation.evaluate_graph(&graph, &pending.parameters);
-            let clip = dominant_graph_clip(&evaluation)?;
-            let clip_id = asset_manager.resolve_asset_id(&clip.clip.locator)?;
-            sample_pose_request(
+            sample_graph_evaluation_pose(
                 animation,
                 asset_manager,
-                PendingPoseSample {
-                    entity: pending.entity,
-                    skeleton_id: pending.skeleton_id,
-                    clip_id,
-                    time_seconds: resolve_graph_clip_time_seconds(
-                        pending.time_seconds,
-                        clip.playback_speed,
-                    ),
-                    looping: clip.looping,
-                    source: AnimationPoseSource::Graph,
-                    active_state: None,
-                },
+                pending.entity,
+                pending.skeleton_id,
+                pending.time_seconds,
+                AnimationPoseSource::Graph,
+                None,
+                &evaluation,
             )
         })
         .collect()
@@ -353,9 +369,11 @@ fn resolve_state_machine_pose_requests(
 ) -> (
     BTreeMap<EntityId, AnimationPoseOutput>,
     Vec<(EntityId, Option<String>)>,
+    BTreeMap<EntityId, AnimationStateTransitionRuntime>,
 ) {
     let mut poses = BTreeMap::new();
     let mut active_state_updates = Vec::new();
+    let mut transition_updates = BTreeMap::new();
 
     for pending in pending_samples {
         let Some(state_machine) = asset_manager
@@ -369,58 +387,264 @@ fn resolve_state_machine_pose_requests(
             pending.active_state.as_deref(),
             &pending.parameters,
         );
-        active_state_updates.push((pending.entity, evaluation.active_state.clone()));
+        let transition = resolve_state_machine_transition_runtime(
+            pending.transition.clone(),
+            evaluation.transition.as_ref(),
+            pending.time_seconds,
+            pending.delta_seconds,
+        );
+        let state_update = transition
+            .as_ref()
+            .map(|transition| {
+                if transition.elapsed_seconds >= transition.duration_seconds {
+                    transition.to_state.clone()
+                } else {
+                    transition.from_state.clone()
+                }
+            })
+            .or_else(|| evaluation.active_state.clone());
+        active_state_updates.push((pending.entity, state_update.clone()));
 
-        let Some(graph_reference) = evaluation.graph else {
+        if let Some(active_transition) = transition.as_ref() {
+            let Some((entity, pose)) = sample_state_transition_pose(
+                animation,
+                asset_manager,
+                &state_machine,
+                &evaluation.parameters,
+                &pending,
+                active_transition,
+            ) else {
+                continue;
+            };
+            poses.insert(entity, pose);
+            if active_transition.elapsed_seconds < active_transition.duration_seconds {
+                transition_updates.insert(entity, active_transition.clone());
+            }
             continue;
-        };
-        let Some(graph_id) = asset_manager.resolve_asset_id(&graph_reference.locator) else {
-            continue;
-        };
-        let Some(graph) = asset_manager.load_animation_graph_asset(graph_id).ok() else {
-            continue;
-        };
-        let graph_evaluation = animation.evaluate_graph(&graph, &evaluation.parameters);
-        let Some(clip) = dominant_graph_clip(&graph_evaluation) else {
-            continue;
-        };
-        let Some(clip_id) = asset_manager.resolve_asset_id(&clip.clip.locator) else {
-            continue;
-        };
-        let Some((entity, pose)) = sample_pose_request(
+        }
+
+        let Some((entity, pose)) = sample_state_graph_pose(
             animation,
             asset_manager,
-            PendingPoseSample {
-                entity: pending.entity,
-                skeleton_id: pending.skeleton_id,
-                clip_id,
-                time_seconds: resolve_graph_clip_time_seconds(
-                    pending.time_seconds,
-                    clip.playback_speed,
-                ),
-                looping: clip.looping,
-                source: AnimationPoseSource::StateMachine,
-                active_state: evaluation.active_state.clone(),
-            },
+            &state_machine,
+            evaluation.graph.as_ref(),
+            &evaluation.parameters,
+            pending.entity,
+            pending.skeleton_id,
+            pending.time_seconds,
+            state_update,
         ) else {
             continue;
         };
         poses.insert(entity, pose);
     }
 
-    (poses, active_state_updates)
-}
-
-fn dominant_graph_clip<'a>(
-    evaluation: &'a crate::core::framework::animation::AnimationGraphEvaluation,
-) -> Option<&'a AnimationGraphClipInstance> {
-    evaluation.clips.iter().max_by(|left, right| {
-        left.weight
-            .partial_cmp(&right.weight)
-            .unwrap_or(std::cmp::Ordering::Equal)
-    })
+    (poses, active_state_updates, transition_updates)
 }
 
 fn resolve_graph_clip_time_seconds(base_time_seconds: Real, playback_speed: Real) -> Real {
     (base_time_seconds * playback_speed).max(0.0)
+}
+
+fn sample_graph_evaluation_pose(
+    animation: &dyn AnimationManager,
+    asset_manager: &ProjectAssetManager,
+    entity: EntityId,
+    skeleton_id: AssetId,
+    base_time_seconds: Real,
+    source: AnimationPoseSource,
+    active_state: Option<String>,
+    evaluation: &crate::core::framework::animation::AnimationGraphEvaluation,
+) -> Option<(EntityId, AnimationPoseOutput)> {
+    let total_weight = evaluation
+        .clips
+        .iter()
+        .filter_map(finite_positive_graph_clip_weight)
+        .sum::<Real>();
+    if total_weight <= Real::EPSILON {
+        return None;
+    }
+
+    let mut weighted_poses = Vec::new();
+    for clip in &evaluation.clips {
+        let Some(weight) = finite_positive_graph_clip_weight(clip) else {
+            continue;
+        };
+        let clip_id = asset_manager.resolve_asset_id(&clip.clip.locator)?;
+        let (_, pose) = sample_pose_request(
+            animation,
+            asset_manager,
+            PendingPoseSample {
+                entity,
+                skeleton_id,
+                clip_id,
+                time_seconds: resolve_graph_clip_time_seconds(
+                    base_time_seconds,
+                    clip.playback_speed,
+                ),
+                looping: clip.looping,
+                source,
+                active_state: active_state.clone(),
+            },
+        )?;
+        weighted_poses.push((pose, weight / total_weight));
+    }
+
+    blend_weighted_poses(weighted_poses, source, active_state).map(|pose| (entity, pose))
+}
+
+fn finite_positive_graph_clip_weight(clip: &AnimationGraphClipInstance) -> Option<Real> {
+    (clip.weight.is_finite() && clip.weight > 0.0).then_some(clip.weight)
+}
+
+fn blend_weighted_poses(
+    weighted_poses: Vec<(AnimationPoseOutput, Real)>,
+    source: AnimationPoseSource,
+    active_state: Option<String>,
+) -> Option<AnimationPoseOutput> {
+    let (first_pose, first_weight) = weighted_poses.first()?.clone();
+    let mut bones = first_pose.bones;
+    for bone in &mut bones {
+        bone.local_transform.translation *= first_weight;
+        bone.local_transform.scale *= first_weight;
+        bone.local_transform.rotation *= first_weight;
+    }
+
+    for (pose, weight) in weighted_poses.into_iter().skip(1) {
+        for bone in &mut bones {
+            let Some(other) = pose.bones.iter().find(|other| other.name == bone.name) else {
+                continue;
+            };
+            bone.local_transform.translation += other.local_transform.translation * weight;
+            bone.local_transform.scale += other.local_transform.scale * weight;
+            let mut rotation = other.local_transform.rotation;
+            if bone.local_transform.rotation.dot(rotation) < 0.0 {
+                rotation = -rotation;
+            }
+            bone.local_transform.rotation += rotation * weight;
+        }
+    }
+
+    for bone in &mut bones {
+        bone.local_transform.rotation = bone.local_transform.rotation.normalize();
+    }
+
+    Some(AnimationPoseOutput {
+        source,
+        active_state,
+        bones,
+    })
+}
+
+fn resolve_state_machine_transition_runtime(
+    previous: Option<AnimationStateTransitionRuntime>,
+    requested: Option<&crate::core::framework::animation::AnimationStateTransitionEvaluation>,
+    time_seconds: Real,
+    delta_seconds: Real,
+) -> Option<AnimationStateTransitionRuntime> {
+    let delta_seconds = if delta_seconds.is_finite() {
+        delta_seconds.max(0.0)
+    } else {
+        0.0
+    };
+    if let Some(mut previous) = previous {
+        previous.elapsed_seconds = (previous.elapsed_seconds + delta_seconds)
+            .min(previous.duration_seconds)
+            .max(0.0);
+        previous.from_time_seconds = (previous.from_time_seconds + delta_seconds).max(0.0);
+        previous.to_time_seconds = (previous.to_time_seconds + delta_seconds).max(0.0);
+        return Some(previous);
+    }
+
+    requested.map(|requested| AnimationStateTransitionRuntime {
+        from_state: requested.from_state.clone(),
+        to_state: requested.to_state.clone(),
+        duration_seconds: requested.duration_seconds,
+        elapsed_seconds: delta_seconds.min(requested.duration_seconds).max(0.0),
+        from_time_seconds: time_seconds.max(0.0),
+        to_time_seconds: delta_seconds,
+    })
+}
+
+fn sample_state_transition_pose(
+    animation: &dyn AnimationManager,
+    asset_manager: &ProjectAssetManager,
+    state_machine: &crate::asset::AnimationStateMachineAsset,
+    parameters: &AnimationParameterMap,
+    pending: &PendingStateMachinePoseSample,
+    transition: &AnimationStateTransitionRuntime,
+) -> Option<(EntityId, AnimationPoseOutput)> {
+    let from_graph = state_machine_graph_reference(state_machine, &transition.from_state)?;
+    let to_graph = state_machine_graph_reference(state_machine, &transition.to_state)?;
+    let (_, from_pose) = sample_state_graph_pose(
+        animation,
+        asset_manager,
+        state_machine,
+        Some(from_graph),
+        parameters,
+        pending.entity,
+        pending.skeleton_id,
+        transition.from_time_seconds,
+        Some(transition.from_state.clone()),
+    )?;
+    let (_, to_pose) = sample_state_graph_pose(
+        animation,
+        asset_manager,
+        state_machine,
+        Some(to_graph),
+        parameters,
+        pending.entity,
+        pending.skeleton_id,
+        transition.to_time_seconds,
+        Some(transition.to_state.clone()),
+    )?;
+    let progress = (transition.elapsed_seconds / transition.duration_seconds).clamp(0.0, 1.0);
+    blend_weighted_poses(
+        vec![(from_pose, 1.0 - progress), (to_pose, progress)],
+        AnimationPoseSource::StateMachine,
+        Some(if progress >= 1.0 {
+            transition.to_state.clone()
+        } else {
+            transition.from_state.clone()
+        }),
+    )
+    .map(|pose| (pending.entity, pose))
+}
+
+fn sample_state_graph_pose(
+    animation: &dyn AnimationManager,
+    asset_manager: &ProjectAssetManager,
+    _state_machine: &crate::asset::AnimationStateMachineAsset,
+    graph_reference: Option<&crate::core::resource::AssetReference>,
+    parameters: &AnimationParameterMap,
+    entity: EntityId,
+    skeleton_id: AssetId,
+    time_seconds: Real,
+    active_state: Option<String>,
+) -> Option<(EntityId, AnimationPoseOutput)> {
+    let graph_reference = graph_reference?;
+    let graph_id = asset_manager.resolve_asset_id(&graph_reference.locator)?;
+    let graph = asset_manager.load_animation_graph_asset(graph_id).ok()?;
+    let graph_evaluation = animation.evaluate_graph(&graph, parameters);
+    sample_graph_evaluation_pose(
+        animation,
+        asset_manager,
+        entity,
+        skeleton_id,
+        time_seconds,
+        AnimationPoseSource::StateMachine,
+        active_state,
+        &graph_evaluation,
+    )
+}
+
+fn state_machine_graph_reference<'a>(
+    state_machine: &'a crate::asset::AnimationStateMachineAsset,
+    state_name: &str,
+) -> Option<&'a crate::core::resource::AssetReference> {
+    state_machine
+        .states
+        .iter()
+        .find(|state| state.name == state_name)
+        .map(|state| &state.graph)
 }

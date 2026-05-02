@@ -1,19 +1,22 @@
 use toml::{Table, Value};
 
 use crate::ui::layouts::windows::workbench_host_window::{PaneBodyPresentation, PanePayload};
-use crate::ui::template::{EditorTemplateAdapter, EditorTemplateRegistry};
+use crate::ui::template::{
+    EditorTemplateAdapter, EditorTemplateRegistry, EditorTemplateRuntimeService,
+};
 use crate::ui::template_runtime::SlintUiProjection;
 use zircon_runtime_interface::ui::template::UiTemplateNode;
 
 use super::{projection::project_instance, runtime_host::EditorUiHostRuntimeError};
 
 pub(super) fn project_pane_body(
+    template_service: &EditorTemplateRuntimeService,
     template_registry: &EditorTemplateRegistry,
     template_adapter: &EditorTemplateAdapter,
     body: &PaneBodyPresentation,
 ) -> Result<SlintUiProjection, EditorUiHostRuntimeError> {
-    let mut instance = template_registry
-        .instantiate(&body.document_id)
+    let mut instance = template_service
+        .instantiate(template_registry, &body.document_id)
         .map_err(EditorUiHostRuntimeError::from)?;
     inject_pane_body_attributes(&mut instance.root, body);
     append_hybrid_slot_anchor(&mut instance.root, body);

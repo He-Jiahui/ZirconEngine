@@ -87,6 +87,7 @@ doc_type: category-index
 - [Runtime Sound Extension](./runtime-sound-extension.md): `core::framework::sound` 的最小 clip/playback/mix 合同、asset 管线里的 `.wav -> SoundAsset` 支撑、`core::manager` 上的 `SoundManager` contract / handle，以及 `zircon_plugin_sound_runtime` 的 `software-mixer` MVP。
 - [Runtime Diagnostics Contract](./runtime-diagnostics-contract.md): `core::diagnostics` 的只读 runtime inspection snapshot、render/physics/animation manager 聚合，以及 editor diagnostics pane 的 `.ui.toml` 接线边界。
 - [Runtime/Editor Pluginized Export](./runtime-editor-pluginized-export.md): Runtime/Editor 最小本体、项目插件清单、导出 profile、editor capability gating、独立 `zircon_plugins` workspace 与插件包 runtime/editor crate 分离规则。
+- [Plugin Optional Feature Bundles](./plugin-optional-feature-bundles.md): 多插件组合功能的 owner-plugin 子功能模型、all-of capability dependency 规则、feature registration 顺序和导出链接规则。
 - [Runtime Foundation Precision And Scene Authority](./runtime-foundation-precision-and-scene-authority.md): `zircon_math` 精度 seam、`zircon_scene` 的 `LocalTransform + WorldMatrix + ActiveSelf/ActiveInHierarchy + RenderLayerMask + Mobility` authority、scene asset 的默认化新字段，以及 `zircon_graphics` 的 runtime-to-render downcast 边界。
 - [Workspace Ownership Cutover Map](./workspace-ownership-cutover-map.md): workspace hard-cutover 的旧 owner -> 新 owner 权威映射，以及删旧、收根、去兼容层时必须遵守的 owner 依据。
 - [Workspace Root Rules And Hard Cutover](./workspace-root-rules-and-hard-cutover.md): 固定三包形态、root file 红线、hard-cutover 删除规则，以及 crate root/public surface 的长期标准。

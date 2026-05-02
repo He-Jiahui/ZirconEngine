@@ -1,13 +1,13 @@
 ---
 related_code:
-  - zircon_resource/src/lib.rs
-  - zircon_resource/src/locator.rs
-  - zircon_resource/src/handle.rs
-  - zircon_resource/src/identity.rs
-  - zircon_resource/src/lease.rs
-  - zircon_resource/src/record.rs
-  - zircon_resource/src/runtime.rs
-  - zircon_resource/src/manager.rs
+  - zircon_runtime_interface/src/resource/mod.rs
+  - zircon_runtime_interface/src/resource/locator.rs
+  - zircon_runtime_interface/src/resource/resource_handle.rs
+  - zircon_runtime_interface/src/resource/asset_reference.rs
+  - zircon_runtime_interface/src/resource/resource_record.rs
+  - zircon_runtime/src/core/resource/lease.rs
+  - zircon_runtime/src/core/resource/runtime.rs
+  - zircon_runtime/src/core/resource/manager/resource_manager.rs
   - zircon_asset/src/project/manifest.rs
   - zircon_asset/src/project/meta.rs
   - zircon_asset/src/project/paths.rs
@@ -142,14 +142,14 @@ related_code:
   - zircon_editor/ui/workbench/chrome.slint
   - zircon_editor/src/host/bridge/viewport.rs
 implementation_files:
-  - zircon_resource/src/lib.rs
-  - zircon_resource/src/locator.rs
-  - zircon_resource/src/handle.rs
-  - zircon_resource/src/identity.rs
-  - zircon_resource/src/lease.rs
-  - zircon_resource/src/record.rs
-  - zircon_resource/src/runtime.rs
-  - zircon_resource/src/manager.rs
+  - zircon_runtime_interface/src/resource/mod.rs
+  - zircon_runtime_interface/src/resource/locator.rs
+  - zircon_runtime_interface/src/resource/resource_handle.rs
+  - zircon_runtime_interface/src/resource/asset_reference.rs
+  - zircon_runtime_interface/src/resource/resource_record.rs
+  - zircon_runtime/src/core/resource/lease.rs
+  - zircon_runtime/src/core/resource/runtime.rs
+  - zircon_runtime/src/core/resource/manager/resource_manager.rs
   - zircon_asset/src/project/manifest.rs
   - zircon_asset/src/project/meta.rs
   - zircon_asset/src/project/paths.rs
@@ -273,7 +273,7 @@ implementation_files:
   - zircon_editor/src/host/slint_host/event_bridge.rs
   - zircon_editor/src/host/slint_host/ui.rs
   - zircon_editor/ui/workbench/chrome.slint
-  - zircon_resource/src/id.rs
+  - zircon_runtime_interface/src/resource/resource_id.rs
   - zircon_asset/src/tests/pipeline/manager.rs
   - zircon_editor/src/tests/host/resource_access/mod.rs
 plan_sources:
@@ -286,7 +286,7 @@ plan_sources:
   - .codex/plans/全系统重构方案.md
   - .codex/plans/编辑器资源管理器双模式 UI 接线计划.md
 tests:
-  - zircon_resource/src/tests.rs
+  - zircon_runtime/src/core/resource/tests.rs
   - zircon_asset/src/tests/project/manifest.rs
   - zircon_asset/src/tests/project/manager.rs
   - zircon_asset/src/tests/editor/boundary.rs
@@ -307,7 +307,8 @@ tests:
   - zircon_editor/src/tests/host/slint_event_bridge/mod.rs
   - zircon_editor/src/tests/host/slint_asset_refresh/mod.rs
   - zircon_editor/src/tests/host/slint_builtin_assets.rs
-  - cargo test -p zircon_resource -p zircon_asset -p zircon_scene -p zircon_graphics -p zircon_editor
+  - cargo test -p zircon_runtime_interface --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-interface-boundary --message-format short --color never
+  - cargo test -p zircon_runtime --lib core::resource --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-interface-boundary --message-format short --color never
   - cargo test -p zircon_manager manager_public_surface_excludes_editor_asset_api --locked
   - cargo test -p zircon_asset editor_asset_api_boundary_lives_in_zircon_asset --locked
   - cargo test -p zircon_editor editor_asset_boundary_lives_in_asset_crate --locked
@@ -323,7 +324,8 @@ doc_type: module-detail
 
 这一轮实现把主链替换为“目录式项目 + 资源抽象层 + UUID/meta 持久化 + runtime lease/refcount + revision 驱动 prepare/cache + editor catalog/reference/preview”模型：
 
-- `zircon_resource` 定义跨 crate 的 locator、typed handle、record、state、event 和 manager 契约
+- `zircon_runtime_interface::resource` 定义跨 crate 的 locator、typed handle、record、state、event、marker 等 ABI/DTO/序列化合同
+- `zircon_runtime::core::resource` 保留 `ResourceManager`、IO、lease、registry、resident payload 等执行逻辑，并重导出 interface 合同
 - `zircon_asset::pipeline::manager::AssetManager` 负责 runtime resident 资源生命周期
 - `zircon_asset::editor::DefaultEditorAssetManager` 负责 editor catalog/meta/reference/preview 生命周期，并由 `zircon_asset::editor` 自己公开 `EditorAssetManager` / records / resolver
 - `zircon_scene_protocol::{WorldHandle, LevelSummary}` 现在作为 `LevelManager` 的 scene 协议面，不再挂在 `zircon_manager`
@@ -342,7 +344,7 @@ doc_type: module-detail
 
 ## Resource Foundation
 
-`zircon_resource` 是新的基础层，提供四类核心对象：
+资源基础层现在分成两段：`zircon_runtime_interface::resource` 拥有跨 app/runtime/editor/plugin 的稳定 DTO 合同，`zircon_runtime::core::resource` 拥有运行时执行逻辑并重导出这些合同类型。核心对象包括：
 
 - `ResourceLocator`
   - 统一支持 `res://`、`lib://`、`builtin://`、`mem://`
@@ -360,6 +362,8 @@ doc_type: module-detail
 - `ResourceManager`
   - 管 ready payload、runtime refcount、resident unload/reload 和 reload failure
   - 重载失败时保留 last-good payload，只把 record 状态与诊断改成错误态
+
+`ResourceLocator`、`AssetUuid`、`ResourceId`、`ResourceHandle`、`ResourceRecord`、`ResourceEvent` 与 marker/status DTO 的源码只落在 `zircon_runtime_interface/src/resource/**`。`zircon_runtime::core::resource` 只保留 `ResourceData`、`ResourceIo`、`ResourceLease`、`ResourceManager`、`ResourceRegistry`、`ResourceRuntimeInfo` 等执行层文件，不再保留 resource DTO 的第二套 owner 路径。
 
 `res://`、`lib://`、`builtin://` 的 `ResourceId` 都由规范化 locator 稳定派生。项目源资源的主 id 现在改为 `AssetUuid + #label` 稳定派生，`mem://` 则只在当前进程内稳定，不能写回 project/scene/material 文件。
 
@@ -548,7 +552,7 @@ asset workspace 现在明确拆成两条链：
 - idle tick、布局调整、搜索、筛选、tab 切换、普通选择变化都不能导致 runtime `revision` 漂移
 - `PreviewChanged` 只更新 editor catalog/details/thumbnail 呈现，不顺带重拉 runtime resource list
 - visible preview 刷新继续采用“可见即刷新，否则保留 last-good cache”的策略，但 preview/meta 写回不会形成新的 resource revision loop
-- `zircon_resource::ResourceManager::register_ready()` 保持幂等；同一 ready record 重复注册不发 updated event，也不 bump revision
+- `zircon_runtime::core::resource::ResourceManager::register_ready()` 保持幂等；同一 ready record 重复注册不发 updated event，也不 bump revision
 
 因此现在面板里的 `r####` 只应该在源文件、导入结果或真实 resource record 变化时增长，而不会随着 editor 每帧刷新自己累加。
 
@@ -564,7 +568,7 @@ asset workspace 现在明确拆成两条链：
 
 当前主链已经有直接证据覆盖：
 
-- `zircon_resource/src/tests.rs`
+- `zircon_runtime/src/core/resource/tests.rs` 与 `zircon_runtime_interface/src/tests/contracts.rs`
   - locator 规范化
   - stable/non-stable id 规则
   - `AssetUuid` / `AssetReference` roundtrip

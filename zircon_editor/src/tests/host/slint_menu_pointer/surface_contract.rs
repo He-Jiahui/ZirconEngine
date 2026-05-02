@@ -53,7 +53,12 @@ fn host_menu_chrome_uses_projected_toml_frames_and_rust_owned_data() {
             "menu projection missing `{required}`"
         );
     }
-    for required in ["WorkbenchMenuBarRoot", "MenuSlot0", "MenuSlot5"] {
+    for required in [
+        "WorkbenchMenuBarRoot",
+        "MenuSlot0",
+        "MenuSlot5",
+        "MenuSlot6",
+    ] {
         assert!(
             menu_asset.contains(required),
             "menu chrome asset missing `{required}`"

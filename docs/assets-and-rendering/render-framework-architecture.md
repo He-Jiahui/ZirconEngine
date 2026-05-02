@@ -26,9 +26,6 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/advanced_plugin_outputs/scene_renderer_advanced_plugin_outputs.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/advanced_plugin_outputs/output_access.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/advanced_plugin_outputs/output_storage.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_hybrid_gi/take_last_hybrid_gi_gpu_completion_parts.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_virtual_geometry/last_state/gpu_readback/take_gpu_completion_parts.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_virtual_geometry/last_state/indirect_counts/mod.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/gpu_completion.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/runtime_feedback.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_inputs.rs
@@ -52,6 +49,8 @@ related_code:
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/resolve_history_handle.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/render_framework_state/render_framework_state.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/query_virtual_geometry_debug_snapshot/query_virtual_geometry_debug_snapshot.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record_capture.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record_history.rs
@@ -74,19 +73,8 @@ related_code:
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/prepare_frame/collect_pending_updates.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/snapshot.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/scene_prepare_resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/advanced_plugin_outputs/virtual_geometry_cull_access.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/advanced_plugin_outputs/virtual_geometry_render_path_access.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/advanced_plugin_outputs/virtual_geometry_indirect_access.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/root_output_sources/hybrid_gi_readback_outputs.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/advanced_plugin_outputs/virtual_geometry_cull_outputs.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/advanced_plugin_outputs/virtual_geometry_render_path_outputs.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/advanced_plugin_outputs/virtual_geometry_indirect_outputs.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_output_sources/virtual_geometry_readback_outputs.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/virtual_geometry_output_updates/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/virtual_geometry_output_updates/cull_output_update.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/virtual_geometry_output_updates/render_path_output_update.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/virtual_geometry_output_updates/indirect_output_update.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/virtual_geometry_output_updates/last_output_update.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/compiled_scene_outputs.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/build_compiled_scene_draws.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
@@ -109,7 +97,6 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/build.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/build_shared_indirect_args_buffer.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_render_passes/virtual_geometry_indirect_stats_store_parts.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_render_passes/virtual_geometry_executed_cluster_selection_pass/mod.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_render_passes/virtual_geometry_executed_cluster_selection_pass/output.rs
@@ -155,7 +142,6 @@ related_code:
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_resources/virtual_geometry_gpu_resources/new/params_buffer.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_resources/virtual_geometry_gpu_resources/new/node_and_cluster_cull_instance_work_item_pipeline.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/hybrid_gi_gpu_resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/virtual_geometry_indirect_args_gpu_resources/virtual_geometry_indirect_args_gpu_resources.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_readback/mod.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_readback/readback/virtual_geometry_gpu_readback/mod.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_readback/readback/virtual_geometry_gpu_readback/accessors.rs
@@ -186,11 +172,6 @@ related_code:
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_output_sources/virtual_geometry_output_buffers.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_output_sources/virtual_geometry_snapshot_rebuild.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_runtime_outputs/reset_last_runtime_outputs.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_virtual_geometry/last_state/read_mesh_draw_submission_records.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_virtual_geometry/last_state/gpu_readback/read_indirect_authority_records.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_virtual_geometry/last_state/gpu_readback/read_indirect_execution_indices.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_virtual_geometry/last_state/gpu_readback/read_indirect_execution_records.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_virtual_geometry/last_state/gpu_readback/read_indirect_execution_segments.rs
   - zircon_runtime/src/graphics/runtime/render_framework/register_pipeline_asset/register_pipeline_asset.rs
   - zircon_runtime/src/graphics/runtime/render_framework/reload_pipeline/reload_pipeline.rs
   - zircon_runtime/src/graphics/runtime/render_framework/capture_frame/capture_frame.rs
@@ -256,7 +237,6 @@ related_code:
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_output_sources/virtual_geometry_dto_conversions.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_output_sources/virtual_geometry_output_buffers.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_output_sources/virtual_geometry_snapshot_rebuild.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_virtual_geometry/last_state/read_mesh_draw_submission_records.rs
   - zircon_graphics/src/types/mod.rs
   - zircon_graphics/src/runtime/mod.rs
   - zircon_graphics/src/runtime/history/mod.rs
@@ -506,8 +486,6 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_hybrid_gi/take_last_hybrid_gi_gpu_completion_parts.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_virtual_geometry/last_state/gpu_readback/take_gpu_completion_parts.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/gpu_completion.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/runtime_feedback.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_inputs.rs
@@ -724,7 +702,6 @@ implementation_files:
 - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/build/build_shared_indirect_args_buffer.rs
 - zircon_graphics/src/scene/scene_renderer/mesh/mesh_draw/mesh_draw.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/build.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/build_shared_indirect_args_buffer.rs
   - zircon_graphics/src/scene/scene_renderer/particle.rs
   - zircon_graphics/src/scene/scene_renderer/overlay/passes/base_scene_pass.rs
   - zircon_graphics/src/scene/scene_renderer/prepass/normal_prepass_pipeline/record.rs
@@ -1056,13 +1033,13 @@ Hybrid GI 与 Virtual Geometry 的高级 renderer/runtime/type owner 已经从 `
 
 `SceneRendererCore` 自身、`new_with_icon_source(...)` 构造和剩余 `texture_bind_group_layout` 字段也收窄到 `crate::graphics::scene::scene_renderer::core`。外层 renderer 仍通过 `SceneRenderer` facade 驱动 frame render、pipeline render 和 linked plugin executor wiring；core package 之外不再能命名或直接构造 renderer core implementation owner。
 
-`SharedIndirectArgsBuffer` 同步收束为 `build_shared_indirect_args_buffer.rs` 内部 owner：buffer handles、layout offsets、submission tokens、submission details 和 authoritative pending-draw plan 现在只通过 `into_parts(...) -> SharedIndirectArgsBufferParts` 交给 `build_mesh_draws(...)`，而不是让 mesh-build orchestration 直接读取 shared indirect owner 的字段。pending-draw plan entry 本身也只暴露 `pending_draw_index()`、`indirect_args_offset()` 和 `submission_detail()` 访问器，避免最终 MeshDraw assembly 重新耦合到 plan entry 字段布局。这样 shared indirect GPU buffer 构建、layout authority 和最终 `MeshDraw` assembly 之间保持显式 deconstruction contract，后续把 VG indirect resource path 迁往 plugin runtime crate 时可以整体替换 producer 而不暴露内部字段名。
+2026-05-02 的 hard cutover 已移除 root mesh builder 中的 `SharedIndirectArgsBuffer` / `VirtualGeometryIndirectArgsGpuResources` producer、对应 WGSL shader 和 root resource hook。base mesh path 只保留普通 mesh draw assembly；Virtual Geometry 的 indirect args、submission token、execution segment 和 draw-ref authority 归 `zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/` 内部拥有。root renderer 不再为插件保留 VG 专属 GPU resource placeholder，也不再通过永远为 `None` 的 indirect-args resource 入口表达未来迁移意图。
 
 Hybrid GI、Virtual Geometry 与 VG indirect-args 的 concrete GPU resource owner type visibility、`new(...)` 构造入口，以及 VG/GI `execute_prepare(...)` 调度入口也从 `pub(crate)` 收窄到 `pub(in crate::graphics::scene::scene_renderer)`。这些 heavy resource 类型仍暂时物理位于 runtime renderer 内，但不再作为 graphics crate 范围内可随意导入、构造或直接调度的实现类型；当前只有 scene-renderer resource owner、prepare/indirect helpers 与其内部测试能命名它们。VG/GI runtime prepare 现在仍统一从 `SceneRendererAdvancedPluginResources::execute_runtime_prepare_passes(...)` 进入，再由资源 owner 内部转调 concrete GPU resource prepare；这为后续把 concrete GPU resources 移到插件 runtime crate 或插件-owned renderer package 提供了更小的导出面。VG resource bootstrap 同步收束为 `virtual_geometry_gpu_resources/new/` 子包：`mod.rs` 只编排 construction，uploader bind-group layout、uploader pipeline、params buffer 与 node-and-cluster-cull instance-work-item pipeline 各自由独立文件承载，避免后续插件迁移时继续从一个 `new.rs` monolith 拆 WGPU state。
 
 VG/GI pending GPU readback buffer owners 也采用 renderer-local visibility：`VirtualGeometryGpuPendingReadback` 与 `HybridGiGpuPendingReadback` 只在 `crate::graphics::scene::scene_renderer` 内可命名。它们仍由 VG/GI GPU resource prepare 路径创建，并由 `SceneRendererAdvancedPluginReadbacks::collect_into_outputs(...)` 收集成 renderer-owned completed readback DTO；但持有 WGPU staging buffers、texture readback scaffolding 与 prepare-frame transient resources 的 pending owner 不再泄露到 graphics crate 其他层。两组 pending owner 现在也已 folder-backed：VG pending owner 的 transient staging state 位于 `virtual_geometry_gpu_pending_readback/`，Hybrid GI pending owner 的 state 与 scene-prepare snapshot query 分离到 `hybrid_gi_gpu_pending_readback/` 子模块。生产 frame-submission runtime 现在不再取走 full renderer readback DTO，而是通过 `SceneRenderer::take_last_virtual_geometry_gpu_completion_parts(...)` 与 `SceneRenderer::take_last_hybrid_gi_gpu_completion_parts(...)` 取得只包含 runtime completion 需要的数据包，再组装 `VirtualGeometryGpuCompletion` / `HybridGiGpuCompletion`。Hybrid GI 的 completion parts 会先把 `HybridGiScenePrepareResourcesSnapshot` 投影成 atlas/capture surface-cache 样本，frame submission 再构造 runtime-owned `HybridGiRuntimeScenePrepareResources`，所以生产 runtime completion 不再携带完整 renderer scene-prepare snapshot。这两个 completion-part DTO 也保持字段私有：readback producer 只能用 `new(...)` 构造，runtime submission 只能用 `into_parts(...)` 一次性 deconstruct，避免 frame-submission 代码重新耦合到 full renderer readback 或 completion DTO 的字段布局。最终的 `VirtualGeometryGpuReadback` 与 `HybridGiGpuReadback` 字段也已私有化，并且完成态 owner 已 folder-backed：VG readback 的状态声明、accessor、completion handoff、render-path enrichment/fallback 写入分别位于 `virtual_geometry_gpu_readback/` 的子模块；Hybrid GI readback 的完成态 DTO、accessor、completion handoff 以及 `HybridGiScenePrepareResourcesSnapshot` 的声明、metadata/vector accessor、sample query、store 方法也已分离到 `hybrid_gi_gpu_readback/`。pending readback collect 只能通过 `new(...)` 构造，renderer output-storage 只能通过 render-path enrichment/fallback methods 补写 VG render-path inspection 数据，renderer-last-state helpers 与 graphics tests 只能通过 accessor methods 或 test-only readback take 方法读取完成态 readback。`HybridGiScenePrepareResourcesSnapshot` 仍作为 graphics-local scene-prepare inspection/build payload，但字段也已私有化；生产 GPU resource creation 与 renderer-internal scene-prepare consumers 只能通过 `new(...)`、count/extent/vector accessor、sample query 和 store methods 读写它，而不是直接依赖 snapshot 字段；`graphics::scene` 根层只在 `#[cfg(test)]` 暴露 snapshot inspection path。其父级 completed-readback owner 不再把 `scene_prepare_resources` 作为公开字段暴露。
 
-`SceneRendererAdvancedPluginOutputs` 也开始拥有高级插件 last-output 的读取、写入与生命周期规则：`previous_virtual_geometry_node_and_cluster_cull_global_state(...)` 统一从 debug snapshot 或 fallback last-state 解析上一帧 VG node-and-cluster-cull global state，基础 `render_frame_with_pipeline(...)` 不再直接窥探这两个字段的 fallback 细节；`reset(...)`、`take_hybrid_gi_gpu_completion_parts(...)` 与 `take_virtual_geometry_gpu_completion_parts(...)` 把清空输出包、取走 Hybrid GI completion payload 和取走 Virtual Geometry completion payload 的字段操作收回到输出包自身，full completed-readback take 只保留给 `#[cfg(test)]` inspection。Virtual Geometry GPU readback 已进一步收进 `VirtualGeometryReadbackOutputs`，pending readback 收集流程通过 `store_virtual_geometry_gpu_readback(...)` 写入 owner，而不是直接写输出字段。VG GPU readback inspection、render-path summary、execution summary、indirect counts 与 indirect draw count 也通过 `virtual_geometry_gpu_readback(...)` / `virtual_geometry_gpu_readback_mut(...)` / summary accessor 方法读取，使 renderer-last-state facade 不再继续依赖这些高级插件字段名；`store_last_runtime_outputs(...)` 对 VG completed readback 的 render-path enrich/fallback 写入也改走 `VirtualGeometryGpuReadback::replace_render_path_readback(...)`、`fill_missing_render_path_readback(...)` 与 `visbuffer64_packed_words(...)`，不再在 output-storage 脚本中逐字段写入或读取 completed readback 的 render-path 字段。`store_last_runtime_outputs(...)` 现在只组装 `VirtualGeometryLastOutputUpdate`，再交给 `store_virtual_geometry_last_outputs(...)` 批量写入输出包；该 update 又拆成 `VirtualGeometryCullOutputUpdate`、`VirtualGeometryRenderPathOutputUpdate` 与 `VirtualGeometryIndirectOutputUpdate` 三个子包，对应 node-and-cluster-cull、render-path/readback 和 indirect/execution 三条后续插件迁移路径。update 合同已抽到 `virtual_geometry_output_updates/`，`advanced_plugin_outputs/` 也已拆成 state declaration、基础 readback/lifecycle access 与 output storage 子模块；VG cull、render-path、indirect 的 renderer facade access 继续拆到 `virtual_geometry_cull_access.rs`、`virtual_geometry_render_path_access.rs` 与 `virtual_geometry_indirect_access.rs`，让 `output_access.rs` 不再成为横跨所有 VG 状态族的宽文件。输出包内部进一步使用 `VirtualGeometryCullOutputs`、`VirtualGeometryRenderPathOutputs` 与 `VirtualGeometryIndirectOutputs` 三个状态包承载 VG cull、render-path 和 indirect/execution last-output 字段。三组状态包现在各自拥有 read accessor 与 `store(...)` apply 方法，外层 `SceneRendererAdvancedPluginOutputs` 只路由更新包和生命周期操作；因此后续迁移可以逐条替换 owner，而不必每次触碰整包读写逻辑。test-only readback 与 drop helper 也通过 output access/clear 方法读取 mesh-draw submission、indirect buffer、render-path buffer 和 cull buffer 状态，不再重新依赖平铺字段。VG DTO conversion、WGPU output-buffer materialization、selected-cluster/VisBuffer rebuild policy 分别拆到 `virtual_geometry_dto_conversions.rs`、`virtual_geometry_output_buffers.rs` 和 `virtual_geometry_snapshot_rebuild.rs`，让 store 文件保持输出存储编排角色。这让未来把 VG last-output storage 迁往插件 crate 时可以移动一个更新合同和一组窄模块，而不是继续维护一段散落在 renderer core 里的逐字段写入脚本。
+`SceneRendererAdvancedPluginOutputs` 在 2026-05-02 后只保存中立 `RenderPluginRendererOutputs` packet。VG cull、render-path、indirect/execution last-state 包、`VirtualGeometry*OutputUpdate` DTO、`scene_renderer_virtual_geometry/last_state` facade、test-only read/drop helper 和 root render-path debug snapshot storage 都已从 `zircon_runtime` 删除；`store_last_runtime_outputs(...)` 只把 compiled-scene pending readbacks collect 进中立输出包，不再把 VG debug snapshot 拆成 root-owned output fields。`query_virtual_geometry_debug_snapshot(...)` 仍作为 core framework debug API 存在，但它读取 render-framework submit 阶段保存的公共 `RenderVirtualGeometryDebugSnapshot`，而不是回到 scene renderer last-state。运行时统计也只从 extract、visibility 和 neutral submission stats 填充公共计数；插件私有的 selected-cluster/readback/execution 细节归 `zircon_plugins/virtual_geometry` 自己的 renderer/readback surface。
 
 最新补丁把 `VirtualGeometryCullOutputs`、`VirtualGeometryRenderPathOutputs` 与 `VirtualGeometryIndirectOutputs` 内部字段也从 sibling-visible 收回为 owner-private。`advanced_plugin_outputs` 的 sibling 模块仍通过各自 accessor、test-only clear helper 与 `store(VirtualGeometry*OutputUpdate)` 进入这些子 owner，但不能再直接读写 cull/readback/render-path/indirect 计数、buffer handle、submission record 或 debug snapshot 字段。这让 `SceneRendererAdvancedPluginOutputs` 继续作为高级插件 last-output 聚合 owner，而三条 VG 子状态族的字段布局已经可被后续插件 runtime 迁移独立替换。
 
@@ -1124,6 +1101,10 @@ executor registry validation 覆盖 compiled graph 的全部 pass，包括被 cu
 ### 2026-05-01 VG/GI Runtime Plugin Cutover
 
 `Hybrid GI` 与 `Virtual Geometry` 的重型 runtime host 已从 `zircon_runtime/src/graphics/runtime/` 硬切到 `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/` 与 `zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/`。Virtual Geometry 现在通过 `zircon_runtime/src/graphics/virtual_geometry_runtime_provider/` 暴露中立 provider/state/feedback/prepare/stat DTO，linked `virtual_geometry` 插件通过 `PluginVirtualGeometryRuntimeProvider` 注册 concrete runtime state。base render framework 只持有 erased `VirtualGeometryRuntimeState` 和 provider registration；prepare 阶段把 extract、visibility page-upload plan、visible clusters、draw segments 和 generation 交给 provider，record 阶段把 renderer GPU completion、visibility feedback、node/cluster page requests 与 evictable page ids 交回 provider。`RenderFeatureDescriptor` 仍保持 descriptor-only，runtime state 不通过 descriptor 传递，也没有 `zircon_runtime -> zircon_plugins` 反向依赖。Hybrid GI 的 provider/state reconnect 仍属于后续 HGI slice，不在本 VG provider seam 中混入。
+
+2026-05-02 的残余清理继续把 root renderer 里的 VG 具体 last-state/output/resource surface 硬切掉：`SceneRendererAdvancedPluginOutputs` 只保留中立 `RenderPluginRendererOutputs`，`scene_renderer_virtual_geometry/`、`virtual_geometry_output_updates/`、advanced-plugin-output 下的 VG cull/render-path/indirect 子 owner，以及 root mesh 的 `VirtualGeometryIndirectArgsGpuResources` / `virtual_geometry_indirect_args.wgsl` 都已删除。公共 `RenderVirtualGeometryDebugSnapshot` 仍是 core framework debug DTO，但由 render framework submit state 保存和查询，不再由 scene renderer VG last-state facade 提供。新的直接导入边界是插件内的 `zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/types/`、`zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/`、`zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/types/` 与 `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/`；`zircon_runtime/src/graphics/types` 不再导出 GI/VG prepare/readback/completion 高级 DTO。
+
+本轮验证只执行迁移阶段的语法/类型检查：`cargo check -p zircon_runtime --lib --locked --offline` 通过；`cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_virtual_geometry_runtime -p zircon_plugin_hybrid_gi_runtime --locked --offline` 通过。单元测试仍按计划留到全部迁移任务完成后的最终测试阶段。
 
 ### Capability Mismatch Diagnostics
 

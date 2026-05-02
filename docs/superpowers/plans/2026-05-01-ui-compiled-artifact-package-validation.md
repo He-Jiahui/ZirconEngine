@@ -3,11 +3,11 @@
 ## Summary
 Complete the first M16 productization gap by turning the landed M7/M10/M12/M13 UI Asset foundations into a package-facing compiled artifact pipeline: header, dependency manifest, runtime/editor package profile, validation report, deterministic binary artifact envelope, cache record, and package manifest writer/importer.
 
-V1 intentionally kept the validation report metadata-only. The back-half landed under the same runtime package owner with binary artifact, cache-record, and package-manifest surfaces without changing V1 validation semantics. Remaining work is cross-process cache storage plus resolver/runtime-loader/editor resource UX, not the artifact envelope or manifest surface.
+V1 intentionally kept the validation report metadata-only. The back-half landed under the same runtime package owner with binary artifact behavior plus cache-record and package-manifest contract surfaces without changing V1 validation semantics. The runtime-interface hard cutover later moved the cache-record/package-manifest DTO declarations to `zircon_runtime_interface::ui::template` while runtime retained the compiler/artifact builder behavior. Remaining work is cross-process cache storage plus resolver/runtime-loader/editor resource UX, not the artifact envelope or manifest surface.
 
 ## Back-Half Addendum
 - Add the M16 back-half under the same runtime package owner without changing V1 report authority.
-- Expose a deterministic `UiCompiledAssetArtifact` binary envelope with magic, schema version, payload length, and a typed UTF-8 TOML payload.
+- Expose a deterministic runtime compiled artifact binary envelope with magic, schema version, payload length, and a typed UTF-8 TOML payload. After the runtime-interface cutover, this runtime payload wrapper is named `UiRuntimeCompiledAssetArtifact`; `UiCompiledAssetArtifact` is reserved for the interface-owned neutral `{ report, bytes }` DTO.
 - Expose `UiCompiledAssetCacheRecord` so persistent cache indexes reuse the exact M12 `UiCompileCacheKey`, derived invalidation snapshot, artifact fingerprint, and byte length.
 - Expose `UiCompiledAssetPackageManifest` TOML writer/importer that records the header, dependency manifest, cache record, and artifact entry.
 - Consume M15 explicit `imports.resources` through `UiCompiledAssetDependencyManifest.resource_dependencies`; do not add a second resource classification surface.
@@ -37,8 +37,8 @@ V1 intentionally kept the validation report metadata-only. The back-half landed 
 - Current active sessions own plugin renderer, runtime UI showcase/schema panel, and runtime UI data-source areas; this M16 slice avoids those files.
 
 ## Accepted Evidence
-- Runtime owner files: `zircon_runtime/src/ui/template/asset/compiler/package/{artifact.rs,cache_record.rs,header.rs,manifest.rs,package_manifest.rs,profile.rs,report.rs,validate.rs}` plus `zircon_runtime/src/ui/tests/asset_package_validation.rs`.
-- `UiCompiledAssetArtifact` writes magic `ZRUIA016`, little-endian artifact schema version, little-endian payload length, and UTF-8 TOML payload for `UiCompiledAssetArtifact { report, compiled: UiTemplateInstance }`.
+- Runtime owner files: `zircon_runtime/src/ui/template/asset/compiler/package/{artifact.rs,header.rs,manifest.rs,package_manifest.rs,report.rs,validate.rs}` plus `zircon_runtime/src/ui/template/asset/compiler/cache/{cache_key.rs,compile_cache.rs}` and `zircon_runtime/src/ui/tests/asset_package_validation.rs`; neutral cache-record/package-manifest DTO declarations live under `zircon_runtime_interface/src/ui/template/asset/compiler/**` after the runtime-interface cutover.
+- `UiRuntimeCompiledAssetArtifact` writes magic `ZRUIA016`, little-endian artifact schema version, little-endian payload length, and UTF-8 TOML payload for `UiRuntimeCompiledAssetArtifact { report, compiled: UiTemplateInstance }`.
 - `UiCompiledAssetCacheRecord` stores the M12 cache key, invalidation snapshot, artifact fingerprint, and byte length for future persistent cache indexing; it is not itself a cross-process cache store.
 - `UiCompiledAssetPackageManifest` TOML writer/importer records the header, dependency manifest, cache record, and artifact entry, and preserves M15 resource dependency rows from the single package-input manifest surface.
 - `cargo test -p zircon_runtime --lib asset_package_validation --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-m15-m16-resource-package --message-format short --color never` passed with `9 passed; 0 failed`, covering resource dependency rows, binary artifact envelope roundtrip, cache record, package manifest writer/importer, runtime/editor profile sections, compiler error propagation, cache-input stability, and contract-precondition ordering.

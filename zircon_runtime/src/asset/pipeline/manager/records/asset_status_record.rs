@@ -9,6 +9,7 @@ pub struct AssetStatusRecord {
     pub artifact_uri: Option<String>,
     pub imported: bool,
     pub source_hash: String,
+    pub importer_id: String,
     pub importer_version: u32,
     pub config_hash: String,
 }

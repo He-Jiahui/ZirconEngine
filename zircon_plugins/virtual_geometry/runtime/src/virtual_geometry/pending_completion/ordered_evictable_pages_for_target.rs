@@ -26,27 +26,10 @@ impl VirtualGeometryRuntimeState {
             current_page_id = parent_page_id;
         }
 
-        let mut stack = self
-            .page_parent_pages()
-            .iter()
-            .filter_map(|(&candidate_page_id, &parent_page_id)| {
-                (parent_page_id == page_id).then_some(candidate_page_id)
-            })
-            .collect::<Vec<_>>();
-        let mut visited_page_ids = BTreeSet::new();
-
-        while let Some(candidate_page_id) = stack.pop() {
-            if !visited_page_ids.insert(candidate_page_id) {
-                continue;
-            }
+        for candidate_page_id in self.page_descendant_ids(page_id) {
             if frontier_hot_pages.contains(&candidate_page_id) {
                 return true;
             }
-            stack.extend(self.page_parent_pages().iter().filter_map(
-                |(&descendant_page_id, &parent_page_id)| {
-                    (parent_page_id == candidate_page_id).then_some(descendant_page_id)
-                },
-            ));
         }
 
         false

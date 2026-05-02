@@ -13,7 +13,6 @@ mod scene_renderer_render;
 mod scene_renderer_render_with_pipeline;
 mod scene_renderer_runtime_outputs;
 mod scene_renderer_target;
-mod scene_renderer_virtual_geometry;
 mod target_extent;
 
 pub use scene_renderer::SceneRenderer;

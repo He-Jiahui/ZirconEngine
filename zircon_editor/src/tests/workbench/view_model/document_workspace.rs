@@ -1,3 +1,4 @@
+use crate::core::editor_event::MenuAction;
 use crate::ui::binding::EditorUiBindingPayload;
 use crate::ui::workbench::fixture::default_preview_fixture;
 use crate::ui::workbench::layout::{ActivityDrawerMode, ActivityDrawerSlot};
@@ -30,6 +31,16 @@ fn default_preview_fixture_projects_drawers_and_document_workspace() {
         .iter()
         .any(|tab| tab.content_kind == ViewContentKind::Hierarchy));
 
+    let left_bottom = model
+        .drawer_ring
+        .drawers
+        .get(&ActivityDrawerSlot::LeftBottom)
+        .expect("left bottom drawer");
+    assert!(left_bottom
+        .tabs
+        .iter()
+        .any(|tab| tab.content_kind == ViewContentKind::ModulePlugins));
+
     let right_top = model
         .drawer_ring
         .drawers
@@ -49,6 +60,16 @@ fn default_preview_fixture_projects_drawers_and_document_workspace() {
         .tabs
         .iter()
         .any(|tab| tab.content_kind == ViewContentKind::Console));
+
+    let bottom_right = model
+        .drawer_ring
+        .drawers
+        .get(&ActivityDrawerSlot::BottomRight)
+        .expect("bottom right drawer");
+    assert!(bottom_right
+        .tabs
+        .iter()
+        .any(|tab| tab.content_kind == ViewContentKind::RuntimeDiagnostics));
 
     match &model.document {
         DocumentWorkspaceModel::Workbench { workspace, .. } => match workspace {
@@ -102,6 +123,19 @@ fn default_preview_fixture_exposes_hybrid_shell_tool_windows_and_empty_states() 
         left_top.active_tab.as_ref().map(|id| id.0.as_str()),
         Some("editor.project#1")
     );
+
+    let left_bottom = model
+        .tool_windows
+        .get(&ActivityDrawerSlot::LeftBottom)
+        .expect("left bottom tool window");
+    assert_eq!(left_bottom.mode, ActivityDrawerMode::Collapsed);
+    let module_plugins_tab = left_bottom
+        .tabs
+        .iter()
+        .find(|tab| tab.content_kind == ViewContentKind::ModulePlugins)
+        .expect("plugin manager tab");
+    assert_eq!(module_plugins_tab.title, "Plugin Manager");
+    assert!(!module_plugins_tab.closeable);
 
     let project_tab = left_top
         .tabs
@@ -160,6 +194,19 @@ fn default_preview_fixture_exposes_hybrid_shell_tool_windows_and_empty_states() 
         Some("No output yet")
     );
 
+    let bottom_right = model
+        .tool_windows
+        .get(&ActivityDrawerSlot::BottomRight)
+        .expect("bottom right tool window");
+    assert_eq!(bottom_right.mode, ActivityDrawerMode::Collapsed);
+    let runtime_diagnostics_tab = bottom_right
+        .tabs
+        .iter()
+        .find(|tab| tab.content_kind == ViewContentKind::RuntimeDiagnostics)
+        .expect("runtime diagnostics tab");
+    assert_eq!(runtime_diagnostics_tab.title, "Runtime Diagnostics");
+    assert!(!runtime_diagnostics_tab.closeable);
+
     assert_eq!(
         model
             .document_tabs
@@ -186,6 +233,33 @@ fn default_preview_fixture_exposes_hybrid_shell_tool_windows_and_empty_states() 
             .map(|state| state.title.as_str()),
         Some("No project open")
     );
+
+    let view_menu = model
+        .menu_bar
+        .menus
+        .iter()
+        .find(|menu| menu.label == "View")
+        .expect("view menu");
+    assert!(view_menu.items.iter().any(|item| {
+        item.label == "Plugin Manager"
+            && item.action.as_ref().is_some_and(|action| {
+                matches!(
+                    action,
+                    MenuAction::OpenView(descriptor_id)
+                        if descriptor_id.0 == "editor.module_plugins"
+                )
+            })
+    }));
+    assert!(view_menu.items.iter().any(|item| {
+        item.label == "Runtime Diagnostics"
+            && item.action.as_ref().is_some_and(|action| {
+                matches!(
+                    action,
+                    MenuAction::OpenView(descriptor_id)
+                        if descriptor_id.0 == "editor.runtime_diagnostics"
+                )
+            })
+    }));
 }
 
 #[test]

@@ -25,14 +25,8 @@ impl RenderPipelineAsset {
                 features: vec![
                     RendererFeatureAsset::builtin(BuiltinRenderFeature::Mesh),
                     RendererFeatureAsset::builtin(BuiltinRenderFeature::Shadows),
-                    RendererFeatureAsset::builtin(
-                        BuiltinRenderFeature::ScreenSpaceAmbientOcclusion,
-                    ),
                     RendererFeatureAsset::builtin(BuiltinRenderFeature::ClusteredLighting),
                     RendererFeatureAsset::builtin(BuiltinRenderFeature::Bloom),
-                    RendererFeatureAsset::builtin(BuiltinRenderFeature::ReflectionProbes),
-                    RendererFeatureAsset::builtin(BuiltinRenderFeature::BakedLighting),
-                    RendererFeatureAsset::builtin(BuiltinRenderFeature::PostProcess),
                     RendererFeatureAsset::builtin(BuiltinRenderFeature::ColorGrading),
                     RendererFeatureAsset::builtin(BuiltinRenderFeature::HistoryResolve),
                     RendererFeatureAsset::builtin(BuiltinRenderFeature::DebugOverlay),

@@ -22,6 +22,7 @@ pub(super) struct VirtualGeometryStatSnapshot {
     page_table_entry_count: usize,
     resident_page_count: usize,
     pending_request_count: usize,
+    page_dependency_count: usize,
     completed_page_count: usize,
     replaced_page_count: usize,
     indirect_segment_count: usize,
@@ -126,6 +127,7 @@ impl VirtualGeometryStatSnapshot {
         page_table_entry_count: usize,
         resident_page_count: usize,
         pending_request_count: usize,
+        page_dependency_count: usize,
         completed_page_count: usize,
         replaced_page_count: usize,
         indirect_segment_count: usize,
@@ -134,6 +136,7 @@ impl VirtualGeometryStatSnapshot {
             page_table_entry_count,
             resident_page_count,
             pending_request_count,
+            page_dependency_count,
             completed_page_count,
             replaced_page_count,
             indirect_segment_count,
@@ -150,6 +153,10 @@ impl VirtualGeometryStatSnapshot {
 
     pub(super) fn pending_request_count(&self) -> usize {
         self.pending_request_count
+    }
+
+    pub(super) fn page_dependency_count(&self) -> usize {
+        self.page_dependency_count
     }
 
     pub(super) fn completed_page_count(&self) -> usize {

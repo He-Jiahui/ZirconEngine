@@ -16,13 +16,28 @@ impl ProjectAssetManager {
             })?;
 
         match kind {
+            AssetKind::Data => self.load_data_asset(id).map(ImportedAsset::Data),
             AssetKind::Model => self.load_model_asset(id).map(ImportedAsset::Model),
             AssetKind::Material => self.load_material_asset(id).map(ImportedAsset::Material),
+            AssetKind::MaterialGraph => self
+                .load_material_graph_asset(id)
+                .map(ImportedAsset::MaterialGraph),
             AssetKind::Sound => self.load_sound_asset(id).map(ImportedAsset::Sound),
             AssetKind::Font => self.load_font_asset(id).map(ImportedAsset::Font),
             AssetKind::PhysicsMaterial => self
                 .load_physics_material_asset(id)
                 .map(ImportedAsset::PhysicsMaterial),
+            AssetKind::NavMesh => self.load_nav_mesh_asset(id).map(ImportedAsset::NavMesh),
+            AssetKind::NavigationSettings => self
+                .load_navigation_settings_asset(id)
+                .map(ImportedAsset::NavigationSettings),
+            AssetKind::Terrain => self.load_terrain_asset(id).map(ImportedAsset::Terrain),
+            AssetKind::TerrainLayerStack => self
+                .load_terrain_layer_stack_asset(id)
+                .map(ImportedAsset::TerrainLayerStack),
+            AssetKind::TileSet => self.load_tile_set_asset(id).map(ImportedAsset::TileSet),
+            AssetKind::TileMap => self.load_tile_map_asset(id).map(ImportedAsset::TileMap),
+            AssetKind::Prefab => self.load_prefab_asset(id).map(ImportedAsset::Prefab),
             AssetKind::Texture => self.load_texture_asset(id).map(ImportedAsset::Texture),
             AssetKind::Shader => self.load_shader_asset(id).map(ImportedAsset::Shader),
             AssetKind::Scene => self.load_scene_asset(id).map(ImportedAsset::Scene),

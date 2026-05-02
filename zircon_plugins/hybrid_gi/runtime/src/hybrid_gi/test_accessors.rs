@@ -74,6 +74,18 @@ impl HybridGiRuntimeState {
         self.scene_representation().card_capture_requests()
     }
 
+    pub(crate) fn scene_screen_probe_descriptors(
+        &self,
+    ) -> Vec<(u32, u32, Option<u32>, [f32; 3], f32, u32)> {
+        self.scene_representation().screen_probe_descriptors()
+    }
+
+    pub(crate) fn scene_radiance_cache_entries(
+        &self,
+    ) -> Vec<(u32, u32, Option<u32>, [u8; 3], u8, &'static str)> {
+        self.scene_representation().radiance_cache_entries()
+    }
+
     pub(crate) fn scene_surface_cache_page_contents(
         &self,
     ) -> Vec<(u32, u32, u32, u32, [u8; 4], [u8; 4])> {
@@ -134,6 +146,7 @@ impl HybridGiRuntimeState {
                     .insert(probe_id, parent_probe_id);
             }
         }
+        self.rebuild_probe_child_probes();
     }
 
     pub(crate) fn evictable_probes(&self) -> Vec<u32> {

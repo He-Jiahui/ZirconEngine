@@ -21,18 +21,31 @@ pub use native_plugin_loader::{
     NativePluginBehaviorV2, NativePluginByteSliceV2, NativePluginCallbackStatusV2,
     NativePluginCandidate, NativePluginDescriptor, NativePluginEntryReport,
     NativePluginEntryReportV1, NativePluginEntryReportV2, NativePluginHostFunctionTableV2,
-    NativePluginLoadManifest, NativePluginLoadManifestEntry, NativePluginLoadReport,
-    NativePluginLoader, NativePluginOwnedByteBufferV2, ZIRCON_NATIVE_PLUGIN_ABI_VERSION,
-    ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V1, ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2,
-    ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL, ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V1,
-    ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V2, ZIRCON_NATIVE_PLUGIN_STATUS_DENIED,
-    ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, ZIRCON_NATIVE_PLUGIN_STATUS_OK,
-    ZIRCON_NATIVE_PLUGIN_STATUS_PANIC,
+    NativePluginLiveHost, NativePluginLiveHostCommand, NativePluginLiveHostLoadReport,
+    NativePluginLiveHostOutcome, NativePluginLoadManifest, NativePluginLoadManifestEntry,
+    NativePluginLoadReport, NativePluginLoader, NativePluginOwnedByteBufferV2,
+    NativePluginRuntimeBehaviorCall, NativePluginRuntimeBehaviorDescriptor,
+    NativePluginRuntimeCommandDispatchReport, NativePluginRuntimePlayModeExitReport,
+    NativePluginRuntimePlayModeSnapshot, NativePluginRuntimePluginState,
+    NativePluginRuntimeStateRestoreReport, NativePluginRuntimeStateSnapshot,
+    NATIVE_RUNTIME_PLAY_MODE_ENTER_COMMAND, NATIVE_RUNTIME_PLAY_MODE_EXIT_COMMAND,
+    ZIRCON_NATIVE_PLUGIN_ABI_VERSION, ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V1,
+    ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2, ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL,
+    ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V1, ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V2,
+    ZIRCON_NATIVE_PLUGIN_STATUS_DENIED, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
+    ZIRCON_NATIVE_PLUGIN_STATUS_OK, ZIRCON_NATIVE_PLUGIN_STATUS_PANIC,
 };
-pub use package_manifest::{PluginModuleKind, PluginModuleManifest, PluginPackageManifest};
-pub use project_plugin_manifest::{ProjectPluginManifest, ProjectPluginSelection};
+pub use package_manifest::{
+    PluginDependencyManifest, PluginEventCatalogManifest, PluginEventManifest,
+    PluginFeatureBundleManifest, PluginFeatureDependency, PluginModuleKind, PluginModuleManifest,
+    PluginOptionManifest, PluginPackageManifest,
+};
+pub use project_plugin_manifest::{
+    ProjectPluginFeatureSelection, ProjectPluginManifest, ProjectPluginSelection,
+};
 pub use runtime_plugin::{
     RuntimeExtensionCatalogReport, RuntimePlugin, RuntimePluginCatalog, RuntimePluginDescriptor,
-    RuntimePluginRegistrationReport,
+    RuntimePluginFeature, RuntimePluginFeatureBlock, RuntimePluginFeatureDependencyReport,
+    RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport,
 };
 pub use ui_component_descriptor::UiComponentDescriptor;

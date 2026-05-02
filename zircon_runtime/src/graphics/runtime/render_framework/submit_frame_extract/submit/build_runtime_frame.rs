@@ -3,8 +3,8 @@ use std::collections::BTreeMap;
 use crate::core::framework::render::{
     OverlayLineSegment, RenderFrameExtract, RenderVirtualGeometryBvhVisualizationInstance,
     RenderVirtualGeometryBvhVisualizationNode, RenderVirtualGeometryDebugSnapshot,
-    RenderVirtualGeometryExecutionState, RenderVirtualGeometryExtract,
-    RenderVirtualGeometryVisBufferMark, SceneGizmoKind, SceneGizmoOverlayExtract,
+    RenderVirtualGeometryExecutionState, RenderVirtualGeometryVisBufferMark, SceneGizmoKind,
+    SceneGizmoOverlayExtract,
 };
 use crate::core::math::{Vec3, Vec4};
 
@@ -22,7 +22,7 @@ pub(super) fn build_runtime_frame(
     prepared: &PreparedRuntimeSubmission,
 ) -> ViewportRenderFrame {
     let _ = prepared;
-    let virtual_geometry_debug_snapshot = build_virtual_geometry_debug_snapshot(context);
+    let virtual_geometry_debug_snapshot = build_virtual_geometry_debug_snapshot(&extract, context);
     let extract = augment_virtual_geometry_debug_overlays(
         extract,
         context,

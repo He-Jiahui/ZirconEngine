@@ -62,6 +62,7 @@ fn render_framework_stats_expose_virtual_geometry_instance_ranges_and_debug_stat
             virtual_geometry_page(200, true),
             virtual_geometry_page(300, false),
         ],
+        page_dependencies: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity: mesh,
             source_model: None,
@@ -103,6 +104,10 @@ fn render_framework_stats_expose_virtual_geometry_instance_ranges_and_debug_stat
     assert_eq!(stats.last_virtual_geometry_page_budget, 1);
     assert_eq!(stats.last_virtual_geometry_input_cluster_count, 2);
     assert_eq!(stats.last_virtual_geometry_input_page_count, 2);
+    assert_eq!(
+        stats.last_virtual_geometry_page_dependency_count, 0,
+        "expected hand-authored flat VG stats fixtures to report no parent/child page graph"
+    );
     assert_eq!(stats.last_virtual_geometry_visible_entity_count, 1);
     assert_eq!(stats.last_virtual_geometry_forced_mip, Some(1));
     assert!(stats.last_virtual_geometry_freeze_cull);
@@ -246,6 +251,7 @@ fn render_framework_stats_expose_virtual_geometry_instance_ranges_and_debug_stat
     assert_eq!(cleared_stats.last_virtual_geometry_page_budget, 0);
     assert_eq!(cleared_stats.last_virtual_geometry_input_cluster_count, 0);
     assert_eq!(cleared_stats.last_virtual_geometry_input_page_count, 0);
+    assert_eq!(cleared_stats.last_virtual_geometry_page_dependency_count, 0);
     assert_eq!(cleared_stats.last_virtual_geometry_visible_entity_count, 0);
     assert_eq!(cleared_stats.last_virtual_geometry_instance_count, 0);
     assert_eq!(cleared_stats.last_virtual_geometry_forced_mip, None);

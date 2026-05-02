@@ -69,8 +69,8 @@ fn shared_menu_pointer_bridge_scrolls_window_popup_using_shared_scroll_state() {
     bridge.sync(
         window_menu_layout(10),
         HostMenuPointerState {
-            open_menu_index: Some(4),
-            hovered_menu_index: Some(4),
+            open_menu_index: Some(5),
+            hovered_menu_index: Some(5),
             hovered_item_index: None,
             popup_scroll_offset: 0.0,
         },
@@ -80,22 +80,22 @@ fn shared_menu_pointer_bridge_scrolls_window_popup_using_shared_scroll_state() {
     assert_eq!(
         moved.route,
         Some(HostMenuPointerRoute::MenuItem {
-            menu_index: 4,
+            menu_index: 5,
             item_index: 2,
             action_id: "LoadPreset.alpha-00".to_string(),
         })
     );
-    assert_eq!(moved.state.hovered_menu_index, Some(4));
+    assert_eq!(moved.state.hovered_menu_index, Some(5));
     assert_eq!(moved.state.hovered_item_index, Some(2));
 
     bridge.sync(window_menu_layout(10), moved.state);
     let scrolled = bridge
         .handle_scroll(UiPoint::new(240.0, 110.0), 96.0)
         .unwrap();
-    assert_eq!(scrolled.route, Some(HostMenuPointerRoute::PopupSurface(4)));
+    assert_eq!(scrolled.route, Some(HostMenuPointerRoute::PopupSurface(5)));
     assert!(scrolled.state.popup_scroll_offset > 0.0);
     assert_eq!(scrolled.action_id, None);
-    assert_eq!(scrolled.state.open_menu_index, Some(4));
+    assert_eq!(scrolled.state.open_menu_index, Some(5));
 }
 
 #[test]
@@ -104,8 +104,8 @@ fn shared_menu_pointer_bridge_recomputes_hovered_item_after_window_popup_scroll(
     bridge.sync(
         window_menu_layout(20),
         HostMenuPointerState {
-            open_menu_index: Some(4),
-            hovered_menu_index: Some(4),
+            open_menu_index: Some(5),
+            hovered_menu_index: Some(5),
             hovered_item_index: None,
             popup_scroll_offset: 0.0,
         },
@@ -115,7 +115,7 @@ fn shared_menu_pointer_bridge_recomputes_hovered_item_after_window_popup_scroll(
         .handle_scroll(UiPoint::new(240.0, 110.0), 420.0)
         .unwrap();
 
-    assert_eq!(scrolled.state.hovered_menu_index, Some(4));
+    assert_eq!(scrolled.state.hovered_menu_index, Some(5));
     assert_eq!(
         scrolled.state.hovered_item_index,
         Some(16),
@@ -129,8 +129,8 @@ fn shared_menu_pointer_bridge_dismiss_keeps_window_popup_scroll_state() {
     bridge.sync(
         window_menu_layout(10),
         HostMenuPointerState {
-            open_menu_index: Some(4),
-            hovered_menu_index: Some(4),
+            open_menu_index: Some(5),
+            hovered_menu_index: Some(5),
             hovered_item_index: None,
             popup_scroll_offset: 96.0,
         },

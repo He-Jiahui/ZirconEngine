@@ -22,6 +22,7 @@ pub(in crate::graphics::runtime::render_framework) fn submit_runtime_frame(
     let mut state = server.state.lock().unwrap();
     let prepared = prepare_runtime_submission(&mut state, viewport, &context);
     let resolved_history = resolve_history_handle(&mut state, viewport, &context);
+    state.last_virtual_geometry_debug_snapshot = frame.virtual_geometry_debug_snapshot.clone();
     let frame = state
         .renderer
         .render_frame_with_pipeline(

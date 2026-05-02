@@ -10,7 +10,9 @@ pub(super) fn apply_disabled_profile_features(
         options = options.with_feature_disabled(BuiltinRenderFeature::ClusteredLighting);
     }
     if profile.is_some_and(|profile| !profile.features.screen_space_ambient_occlusion) {
-        options = options.with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion);
+        options = options
+            .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
+            .with_plugin_feature_disabled("screen_space_ambient_occlusion");
     }
     if profile.is_some_and(|profile| !profile.features.history_resolve) {
         options = options.with_feature_disabled(BuiltinRenderFeature::HistoryResolve);
@@ -22,10 +24,14 @@ pub(super) fn apply_disabled_profile_features(
         options = options.with_feature_disabled(BuiltinRenderFeature::ColorGrading);
     }
     if profile.is_some_and(|profile| !profile.features.reflection_probes) {
-        options = options.with_feature_disabled(BuiltinRenderFeature::ReflectionProbes);
+        options = options
+            .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
+            .with_plugin_feature_disabled("reflection_probes");
     }
     if profile.is_some_and(|profile| !profile.features.baked_lighting) {
-        options = options.with_feature_disabled(BuiltinRenderFeature::BakedLighting);
+        options = options
+            .with_feature_disabled(BuiltinRenderFeature::BakedLighting)
+            .with_plugin_feature_disabled("baked_lighting");
     }
     if profile.is_some_and(|profile| !profile.features.particle_rendering) {
         options = options

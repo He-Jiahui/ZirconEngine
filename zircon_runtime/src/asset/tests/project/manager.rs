@@ -11,6 +11,7 @@ use crate::asset::tests::support::{
     write_default_scene, write_test_wav, write_triangle_obj, write_valid_wgsl,
 };
 use crate::asset::{AssetId, AssetUri, ImportedAsset};
+use crate::core::resource::ResourceState;
 
 #[test]
 fn project_manager_scans_assets_imports_library_and_loads_artifacts() {
@@ -262,6 +263,69 @@ fn project_manager_imports_sound_assets_into_runtime_library() {
         ImportedAsset::Sound(sample_sound_asset("res://audio/ping.wav"))
     );
     assert!(paths.library_root().join("sound").is_dir());
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn project_manager_records_failed_imports_and_continues_scanning() {
+    let root = unique_temp_project_root("project_manager_failed_import");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths.ensure_layout().unwrap();
+    ProjectManifest::new(
+        "Sandbox",
+        AssetUri::parse("res://shaders/pbr.wgsl").unwrap(),
+        1,
+    )
+    .save(paths.manifest_path())
+    .unwrap();
+
+    write_valid_wgsl(paths.assets_root().join("shaders").join("pbr.wgsl"));
+    fs::create_dir_all(paths.assets_root().join("models")).unwrap();
+    fs::write(
+        paths
+            .assets_root()
+            .join("models")
+            .join("missing_backend.fbx"),
+        b"fbx",
+    )
+    .unwrap();
+
+    let mut manager = ProjectManager::open(&root).unwrap();
+    let imported = manager.scan_and_import().unwrap();
+
+    assert_eq!(imported.len(), 2);
+    let shader = manager
+        .registry()
+        .get_by_locator(&AssetUri::parse("res://shaders/pbr.wgsl").unwrap())
+        .expect("valid shader should still import after another file fails");
+    assert_eq!(shader.state, ResourceState::Ready);
+    assert!(shader.artifact_locator().is_some());
+
+    let failed = manager
+        .registry()
+        .get_by_locator(&AssetUri::parse("res://models/missing_backend.fbx").unwrap())
+        .expect("failed import should still have a registry record");
+    assert_eq!(failed.kind, crate::asset::AssetKind::Model);
+    assert_eq!(failed.state, ResourceState::Error);
+    assert!(failed.artifact_locator().is_none());
+    assert!(failed
+        .diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.message.contains("backend is not installed")));
+
+    let failed_meta = AssetMetaDocument::load(
+        paths
+            .assets_root()
+            .join("models")
+            .join("missing_backend.fbx.meta.toml"),
+    )
+    .unwrap();
+    assert_eq!(failed_meta.importer_id, "zircon.optional.model.fbx");
+    assert_eq!(
+        failed_meta.preview_state,
+        crate::asset::project::PreviewState::Error
+    );
 
     let _ = fs::remove_dir_all(root);
 }

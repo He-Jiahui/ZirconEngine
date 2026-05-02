@@ -139,7 +139,11 @@ impl ZrRuntimeEventV1 {
     ) -> Self {
         Self {
             size,
-            ..Self::new(abi_version, ZR_RUNTIME_EVENT_KIND_VIEWPORT_RESIZED_V1, viewport)
+            ..Self::new(
+                abi_version,
+                ZR_RUNTIME_EVENT_KIND_VIEWPORT_RESIZED_V1,
+                viewport,
+            )
         }
     }
 
@@ -152,7 +156,11 @@ impl ZrRuntimeEventV1 {
         Self {
             x,
             y,
-            ..Self::new(abi_version, ZR_RUNTIME_EVENT_KIND_POINTER_MOVED_V1, viewport)
+            ..Self::new(
+                abi_version,
+                ZR_RUNTIME_EVENT_KIND_POINTER_MOVED_V1,
+                viewport,
+            )
         }
     }
 

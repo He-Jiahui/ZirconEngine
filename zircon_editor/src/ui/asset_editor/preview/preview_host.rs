@@ -1,9 +1,9 @@
 use zircon_runtime::ui::surface::UiSurface;
 use zircon_runtime::ui::template::UiCompiledDocument;
-use zircon_runtime::ui::template::UiTemplateSurfaceBuilder;
 use zircon_runtime_interface::ui::{event_ui::UiTreeId, layout::UiSize};
 
 use crate::ui::asset_editor::session::UiAssetEditorSessionError;
+use crate::ui::template::EditorTemplateRuntimeService;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct UiAssetPreviewHost {
@@ -17,7 +17,8 @@ impl UiAssetPreviewHost {
         asset_id: &str,
         compiled: &UiCompiledDocument,
     ) -> Result<Self, UiAssetEditorSessionError> {
-        let mut surface = UiTemplateSurfaceBuilder::build_surface_from_compiled_document(
+        let template_service = EditorTemplateRuntimeService;
+        let mut surface = template_service.build_surface_from_compiled_document(
             UiTreeId::new(format!("ui_asset.preview.{asset_id}")),
             compiled,
         )?;

@@ -35,6 +35,7 @@ fn visibility_context_uses_instance_ranges_and_forced_mip_for_virtual_geometry_s
             virtual_page(200, false),
             virtual_page(300, true),
         ],
+        page_dependencies: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity: mesh,
             source_model: Some(ResourceId::from_stable_label(
@@ -100,6 +101,7 @@ fn visibility_context_freeze_cull_preserves_previous_virtual_geometry_selection_
         hierarchy_nodes: Vec::new(),
         hierarchy_child_ids: Vec::new(),
         pages: vec![virtual_page(100, false), virtual_page(200, false)],
+        page_dependencies: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity: mesh,
             source_model: None,
@@ -136,6 +138,7 @@ fn visibility_context_freeze_cull_preserves_previous_virtual_geometry_selection_
         hierarchy_nodes: Vec::new(),
         hierarchy_child_ids: Vec::new(),
         pages: vec![virtual_page(100, false), virtual_page(200, false)],
+        page_dependencies: Vec::new(),
         instances: vec![RenderVirtualGeometryInstance {
             entity: mesh,
             source_model: None,

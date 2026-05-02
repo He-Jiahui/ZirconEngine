@@ -10,6 +10,8 @@ pub(super) fn menu_action_id(action: &MenuAction) -> String {
         MenuAction::SaveProject => "SaveProject".to_string(),
         MenuAction::SaveLayout => "SaveLayout".to_string(),
         MenuAction::ResetLayout => "ResetLayout".to_string(),
+        MenuAction::EnterPlayMode => "EnterPlayMode".to_string(),
+        MenuAction::ExitPlayMode => "ExitPlayMode".to_string(),
         MenuAction::Undo => "Undo".to_string(),
         MenuAction::Redo => "Redo".to_string(),
         MenuAction::CreateNode(kind) => format!("CreateNode.{}", node_kind_id(kind)),

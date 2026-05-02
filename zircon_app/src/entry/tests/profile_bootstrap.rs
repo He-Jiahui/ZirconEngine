@@ -25,11 +25,11 @@ use zircon_runtime::{
     input::{InputButton, InputEvent},
     scene::create_default_level,
 };
+use zircon_runtime::{plugin::PluginModuleKind, RuntimePluginId, RuntimeTargetMode};
 use zircon_runtime::{
-    RuntimeExtensionRegistry, RuntimePlugin, RuntimePluginDescriptor,
-    RuntimePluginRegistrationReport,
+    plugin::RuntimeExtensionRegistry, plugin::RuntimePlugin, plugin::RuntimePluginDescriptor,
+    plugin::RuntimePluginRegistrationReport,
 };
-use zircon_runtime::{RuntimePluginId, RuntimeTargetMode};
 
 use super::super::{BuiltinEngineEntry, EngineEntry, EntryConfig, EntryProfile, EntryRunner};
 
@@ -319,7 +319,7 @@ target_modes = ["client_runtime"]
 
     let entry = BuiltinEngineEntry::for_config_with_runtime_plugin_registrations(
         &config,
-        zircon_runtime::NativePluginLoader
+        zircon_runtime::plugin::NativePluginLoader
             .load_runtime_from_load_manifest(&export_root)
             .runtime_plugin_registration_reports(),
     )
@@ -329,10 +329,49 @@ target_modes = ["client_runtime"]
         .iter()
         .any(|descriptor| descriptor.name == "virtual_geometry.runtime"));
 
-    let core = EntryRunner::bootstrap_with_native_plugins_from_export_root(config, &export_root)
-        .expect("native dynamic load manifest should satisfy required plugin availability");
+    let bootstrap =
+        EntryRunner::bootstrap_with_native_plugins_from_export_root(config, &export_root)
+            .expect("native dynamic load manifest should satisfy required plugin availability");
 
-    assert!(ManagerResolver::new(core).rendering().is_ok());
+    assert!(ManagerResolver::new(bootstrap.clone_core())
+        .rendering()
+        .is_ok());
+    assert!(bootstrap
+        .native_plugin_host()
+        .loaded_plugin_ids(PluginModuleKind::Runtime)
+        .expect("bootstrap host should expose loaded native runtime ids")
+        .is_empty());
+    assert_eq!(
+        bootstrap.runtime_behavior_descriptor("virtual_geometry").unwrap_err(),
+        "plugin virtual_geometry is not loaded in the runtime live host; run Hot Reload after building its native dynamic package"
+    );
+    assert!(bootstrap
+        .runtime_behavior_descriptors()
+        .expect("bootstrap should expose runtime native behavior descriptors")
+        .is_empty());
+    let dispatch = bootstrap
+        .dispatch_runtime_plugin_command("play-mode.enter", b"{}")
+        .expect("bootstrap should expose runtime native command dispatch");
+    assert_eq!(dispatch.command_name, "play-mode.enter");
+    assert!(dispatch.calls.is_empty());
+    let native_state_snapshot = bootstrap
+        .save_runtime_plugin_states()
+        .expect("bootstrap should expose runtime native state snapshots");
+    assert!(native_state_snapshot.plugin_states.is_empty());
+    let native_state_restore = bootstrap
+        .restore_runtime_plugin_states(&native_state_snapshot)
+        .expect("bootstrap should expose runtime native state restore");
+    assert!(native_state_restore.calls.is_empty());
+    let play_snapshot = bootstrap
+        .enter_runtime_play_mode()
+        .expect("bootstrap should expose runtime native play-mode entry");
+    assert!(play_snapshot.state_snapshot.plugin_states.is_empty());
+    let play_exit = bootstrap
+        .exit_runtime_play_mode(&play_snapshot)
+        .expect("bootstrap should expose runtime native play-mode exit");
+    assert!(play_exit.restore_report.calls.is_empty());
+    assert!(bootstrap.diagnostics().iter().any(|diagnostic| diagnostic
+        .contains("native plugin virtual_geometry skipped because library is missing")));
 
     let _ = fs::remove_dir_all(export_root);
 }
@@ -350,7 +389,7 @@ impl RuntimePlugin for LinkedVirtualGeometryPlugin {
     fn register_runtime_extensions(
         &self,
         registry: &mut RuntimeExtensionRegistry,
-    ) -> Result<(), zircon_runtime::RuntimeExtensionRegistryError> {
+    ) -> Result<(), zircon_runtime::plugin::RuntimeExtensionRegistryError> {
         registry.register_module(ModuleDescriptor::new(
             "VirtualGeometryPlugin",
             "Linked virtual geometry plugin module",

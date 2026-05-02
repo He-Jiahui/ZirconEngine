@@ -21,8 +21,11 @@ use crate::scene::components::{default_render_layer_mask, Mobility};
 use image::{ImageBuffer, ImageFormat, Rgba};
 
 use crate::graphics::{offline_bake_frame, OfflineBakeSettings, WgpuRenderFramework};
-use crate::render_graph::QueueLane;
-use crate::{RenderFeatureDescriptor, RenderFeaturePassDescriptor, RenderPassStage};
+use crate::RenderFeatureDescriptor;
+
+use super::plugin_render_feature_fixtures::{
+    default_rendering_feature_descriptors, particle_render_feature_descriptor,
+};
 
 #[test]
 fn bloom_quality_profile_spreads_bright_pixels_when_enabled() {
@@ -243,6 +246,16 @@ fn particle_rendering_draws_billboard_sprites_in_transparent_stage() {
     );
 }
 
+#[test]
+fn particle_shader_preserves_sprite_alpha_for_transparent_blending() {
+    let shader = include_str!("../scene/scene_renderer/particle/shaders/particle.wgsl");
+
+    assert!(
+        shader.contains("return input.color;"),
+        "particle shader should preserve vertex alpha instead of forcing opaque output"
+    );
+}
+
 struct RenderFixture {
     root: PathBuf,
     asset_manager: Arc<ProjectAssetManager>,
@@ -306,16 +319,24 @@ impl RenderFixture {
     }
 
     fn server(&self) -> WgpuRenderFramework {
-        WgpuRenderFramework::new(self.asset_manager.clone()).unwrap()
+        WgpuRenderFramework::new_with_plugin_render_features(
+            self.asset_manager.clone(),
+            default_rendering_feature_descriptors(),
+            Vec::new(),
+            Vec::new(),
+        )
+        .unwrap()
     }
 
     fn server_with_render_features(
         &self,
         render_features: impl IntoIterator<Item = RenderFeatureDescriptor>,
     ) -> WgpuRenderFramework {
+        let mut features = default_rendering_feature_descriptors();
+        features.extend(render_features);
         WgpuRenderFramework::new_with_plugin_render_features(
             self.asset_manager.clone(),
-            render_features,
+            features,
             Vec::new(),
             Vec::new(),
         )
@@ -435,27 +456,6 @@ fn submit_extract(
         .expect("frame should be available after submission")
 }
 
-fn particle_render_feature_descriptor() -> RenderFeatureDescriptor {
-    RenderFeatureDescriptor::new(
-        "particle",
-        vec![
-            "view".to_string(),
-            "particles".to_string(),
-            "visibility".to_string(),
-        ],
-        Vec::new(),
-        vec![RenderFeaturePassDescriptor::new(
-            RenderPassStage::Transparent,
-            "particle-render",
-            QueueLane::Graphics,
-        )
-        .with_executor_id("particle.transparent")
-        .read_texture("scene-depth")
-        .read_texture("scene-color")
-        .write_texture("scene-color")],
-    )
-}
-
 fn ring_luma(rgba: &[u8], viewport_size: UVec2, inner_radius: f32, outer_radius: f32) -> f32 {
     let mut total = 0.0;
     let mut count = 0.0;
@@ -486,7 +486,8 @@ fn ring_luma(rgba: &[u8], viewport_size: UVec2, inner_radius: f32, outer_radius:
 fn warm_pixels(rgba: &[u8]) -> usize {
     rgba.chunks_exact(4)
         .filter(|pixel| {
-            pixel[3] == 255 && pixel[0] > 28 && pixel[0] > pixel[1] && pixel[1] > pixel[2]
+            // Particle sprites preserve transparent alpha, so visible warm pixels are not opaque.
+            pixel[3] >= 64 && pixel[0] > 28 && pixel[0] > pixel[1] && pixel[1] > pixel[2]
         })
         .count()
 }

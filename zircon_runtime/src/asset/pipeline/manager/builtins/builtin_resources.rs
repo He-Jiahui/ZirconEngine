@@ -1,6 +1,7 @@
 use crate::asset::load::mesh::generate_cube_mesh;
 use crate::asset::{
-    AlphaMode, AssetUri, ImportedAsset, MaterialAsset, ModelAsset, ModelPrimitiveAsset, ShaderAsset,
+    AlphaMode, AssetUri, ImportedAsset, MaterialAsset, ModelAsset, ModelPrimitiveAsset,
+    ShaderAsset, ShaderSourceLanguage,
 };
 
 use super::{builtin_pbr_wgsl, builtin_reference};
@@ -71,7 +72,11 @@ pub(in crate::asset::pipeline::manager) fn builtin_resources() -> Vec<(&'static 
             "builtin://shader/pbr.wgsl",
             ImportedAsset::Shader(ShaderAsset {
                 uri: AssetUri::parse("builtin://shader/pbr.wgsl").expect("builtin shader uri"),
+                source_language: ShaderSourceLanguage::Wgsl,
                 source: builtin_pbr_wgsl().to_string(),
+                wgsl_source: builtin_pbr_wgsl().to_string(),
+                entry_points: Vec::new(),
+                validation_diagnostics: Vec::new(),
             }),
         ),
     ];

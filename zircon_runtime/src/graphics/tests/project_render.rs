@@ -25,6 +25,8 @@ use image::{ImageBuffer, ImageFormat, Rgba};
 
 use crate::{runtime::WgpuRenderFramework, SceneRenderer};
 
+use super::plugin_render_feature_fixtures::default_rendering_feature_descriptors;
+
 #[test]
 fn directory_project_scene_renders_non_background_frame_with_gizmo_overlay() {
     let root = unique_temp_project_root("graphics_project");
@@ -428,7 +430,13 @@ fn ssao_quality_profile_darkens_scene_when_enabled() {
         viewport_size,
     );
 
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new_with_plugin_render_features(
+        asset_manager,
+        default_rendering_feature_descriptors(),
+        Vec::new(),
+        Vec::new(),
+    )
+    .unwrap();
     let ao_viewport = server
         .create_viewport(RenderViewportDescriptor::new(viewport_size))
         .unwrap();
@@ -981,6 +989,9 @@ fn write_scene(path: PathBuf, material_uri: &str) {
                 animation_sequence_player: None,
                 animation_graph_player: None,
                 animation_state_machine_player: None,
+                terrain: None,
+                tilemap: None,
+                prefab_instance: None,
             },
             SceneEntityAsset {
                 entity: 2,
@@ -1010,6 +1021,9 @@ fn write_scene(path: PathBuf, material_uri: &str) {
                 animation_sequence_player: None,
                 animation_graph_player: None,
                 animation_state_machine_player: None,
+                terrain: None,
+                tilemap: None,
+                prefab_instance: None,
             },
         ],
     };

@@ -33,9 +33,10 @@ impl ProjectPluginManifest {
             enabled,
             required: false,
             target_modes: Vec::new(),
-            packaging: crate::ExportPackagingStrategy::LibraryEmbed,
+            packaging: crate::plugin::ExportPackagingStrategy::LibraryEmbed,
             runtime_crate: None,
             editor_crate: None,
+            features: Vec::new(),
         });
     }
 

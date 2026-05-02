@@ -22,13 +22,19 @@ related_code:
   - zircon_runtime/src/ui/template/asset/compiler/cache/cache_key.rs
   - zircon_runtime/src/ui/template/asset/compiler/cache/compile_cache.rs
   - zircon_runtime/src/ui/template/asset/compiler/cache/outcome.rs
+  - zircon_runtime_interface/src/ui/template/asset/compiler/cache/cache_key.rs
   - zircon_runtime/src/ui/template/asset/compiler/package/mod.rs
   - zircon_runtime/src/ui/template/asset/compiler/package/artifact.rs
-  - zircon_runtime/src/ui/template/asset/compiler/package/cache_record.rs
   - zircon_runtime/src/ui/template/asset/compiler/package/header.rs
   - zircon_runtime/src/ui/template/asset/compiler/package/manifest.rs
   - zircon_runtime/src/ui/template/asset/compiler/package/package_manifest.rs
+  - zircon_runtime_interface/src/ui/template/asset/compiler/package/artifact.rs
+  - zircon_runtime_interface/src/ui/template/asset/compiler/package/cache_record.rs
+  - zircon_runtime_interface/src/ui/template/asset/compiler/package/header.rs
+  - zircon_runtime_interface/src/ui/template/asset/compiler/package/manifest.rs
+  - zircon_runtime_interface/src/ui/template/asset/compiler/package/package_manifest.rs
   - zircon_runtime_interface/src/ui/template/asset/compiler/package/profile.rs
+  - zircon_runtime_interface/src/ui/template/asset/compiler/package/report.rs
   - zircon_runtime/src/ui/template/asset/compiler/package/report.rs
   - zircon_runtime/src/ui/template/asset/compiler/package/validate.rs
   - zircon_runtime/src/ui/template/asset/action_policy/mod.rs
@@ -118,13 +124,19 @@ implementation_files:
   - zircon_runtime/src/ui/template/asset/compiler/cache/cache_key.rs
   - zircon_runtime/src/ui/template/asset/compiler/cache/compile_cache.rs
   - zircon_runtime/src/ui/template/asset/compiler/cache/outcome.rs
+  - zircon_runtime_interface/src/ui/template/asset/compiler/cache/cache_key.rs
   - zircon_runtime/src/ui/template/asset/compiler/package/mod.rs
   - zircon_runtime/src/ui/template/asset/compiler/package/artifact.rs
-  - zircon_runtime/src/ui/template/asset/compiler/package/cache_record.rs
   - zircon_runtime/src/ui/template/asset/compiler/package/header.rs
   - zircon_runtime/src/ui/template/asset/compiler/package/manifest.rs
   - zircon_runtime/src/ui/template/asset/compiler/package/package_manifest.rs
+  - zircon_runtime_interface/src/ui/template/asset/compiler/package/artifact.rs
+  - zircon_runtime_interface/src/ui/template/asset/compiler/package/cache_record.rs
+  - zircon_runtime_interface/src/ui/template/asset/compiler/package/header.rs
+  - zircon_runtime_interface/src/ui/template/asset/compiler/package/manifest.rs
+  - zircon_runtime_interface/src/ui/template/asset/compiler/package/package_manifest.rs
   - zircon_runtime_interface/src/ui/template/asset/compiler/package/profile.rs
+  - zircon_runtime_interface/src/ui/template/asset/compiler/package/report.rs
   - zircon_runtime/src/ui/template/asset/compiler/package/report.rs
   - zircon_runtime/src/ui/template/asset/compiler/package/validate.rs
   - zircon_runtime/src/ui/template/asset/action_policy/mod.rs
@@ -184,6 +196,7 @@ plan_sources:
   - docs/superpowers/specs/2026-05-02-ui-runtime-interface-big-cutover-design.md
   - docs/superpowers/plans/2026-05-02-ui-runtime-interface-big-cutover.md
   - user: 2026-05-02 execute M21 then M14 runtime foundation
+  - user: 2026-05-02 continue package/cache classification and editor template-service façade
 tests:
   - zircon_runtime/src/ui/tests/asset_binding.rs
   - zircon_runtime/tests/ui_asset_binding_contract.rs
@@ -247,6 +260,12 @@ tests:
   - cargo test -p zircon_runtime --lib ui::tests::asset --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-binding-m18 --message-format short --color never -- --nocapture (M18 blocked before filtered tests by the same unrelated lib-test UI DTO type-identity errors)
   - cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-big-cutover --message-format short --color never (2026-05-02 M2 runtime DTO hard-cutover: passed with unrelated graphics/plugin warnings)
   - cargo test -p zircon_runtime --test ui_asset_binding_contract --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-big-cutover --message-format short --color never (2026-05-02 M2 runtime DTO hard-cutover: 16 passed)
+  - cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-big-cutover-opencode --message-format short --color never (2026-05-02 final focused rerun: passed with existing graphics/plugin warnings)
+  - cargo test -p zircon_runtime --test ui_asset_binding_contract --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-big-cutover-opencode --message-format short --color never (2026-05-02 final focused rerun: 16 passed)
+  - cargo test -p zircon_runtime --lib asset_binding --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-big-cutover-opencode --message-format short --color never (2026-05-02 final focused rerun: 16 passed; 644 filtered)
+  - cargo test -p zircon_runtime --lib asset_action_policy --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-big-cutover-opencode --message-format short --color never (2026-05-02 final focused rerun: 3 passed; 657 filtered)
+  - cargo test -p zircon_runtime --lib asset_localization --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-big-cutover-opencode --message-format short --color never (2026-05-02 final focused rerun: 5 passed; 655 filtered)
+  - cargo test -p zircon_runtime --lib asset_package_validation --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-big-cutover-opencode --message-format short --color never (2026-05-02 final focused rerun: 9 passed; 651 filtered)
 doc_type: module-detail
 ---
 
@@ -256,7 +275,9 @@ doc_type: module-detail
 
 The 2026-05-02 UI runtime-interface split makes `zircon_runtime_interface::ui` the canonical namespace for neutral descriptor, binding, component-value, component data-source, event-control/reflection, template asset/template document, layout geometry/window, surface render, tree/node, component-contract, invalidation, resource, action-policy, localization, package-report, schema-report, and related UI DTO declarations. `zircon_runtime::ui` remains the behavior owner for registries, validation, collection, compilation, cache/invalidation execution, package validation, schema migration, layout/window computation, tree access/routing/focus/interaction/scroll behavior, render extraction, and editor/runtime service APIs; behavior that needs methods on interface-owned records is exposed through runtime helpers or extension traits rather than duplicate DTO declarations.
 
-This document still records the runtime behavior owners for M10/M12/M13/M15/M16/M18/M21/M14. Where older text says a runtime module owns a shared DTO, read that as behavior authority only: the M2 runtime hard-cutover removed the duplicate local DTO owner files for binding values, event UI control/reflection, component values, layout geometry, surface render DTOs, tree/node DTOs, schema report DTOs, action policy report DTOs, and localization report DTOs. Focused runtime checks now pass through `zircon_runtime_interface::ui` DTO identities; full workspace acceptance still requires migrating remaining editor neutral DTO imports to `zircon_runtime_interface::ui` directly.
+This document still records the runtime behavior owners for M10/M12/M13/M15/M16/M18/M21/M14. Where older text says a runtime module owns a shared DTO, read that as behavior authority only: the M2 runtime hard-cutover removed the duplicate local DTO owner files for binding values, event UI control/reflection, component values, layout geometry, surface render DTOs, tree/node DTOs, schema report DTOs, action policy report DTOs, and localization report DTOs. Focused runtime checks now pass through `zircon_runtime_interface::ui` DTO identities; full workspace acceptance still requires a dedicated editor owner-surface review for any remaining non-tree runtime UI imports plus workspace-level validation, rather than treating the current service imports as DTO forwarding paths.
+
+The current editor lib check is not a broad workspace signal, but it is no longer blocked by the earlier editor-plugin SDK lifecycle constructor drift. The 2026-05-02 19:44 rerun `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-package-cache-opencode --message-format short --color never` passed with existing runtime graphics warnings and 3 editor warnings. This confirms the editor side of the UI DTO/service split type-checks in the current worktree while leaving workspace-test acceptance to the broader validation gate.
 
 ## M13 Descriptor Authority
 
@@ -276,7 +297,7 @@ M10 adds a folder-backed `zircon_runtime::ui::template::asset::component_contrac
 
 The compiler validates contracts after document-shape validation and before expansion. The validation path rejects invalid public part exports, public part `control_id` values that belong to a different node, closed root-class policies that receive instance class appends, focus/binding contract targets that point at private internals, document or imported-style selectors that target an imported component's private `node_id`/`control_id`, unknown `:part(...)` references, and incompatible component API requirements. Semantic version compatibility is intentionally conservative for V1: matching major versions are required, and the exported minor version must satisfy the requested minor version.
 
-`UiSelector` now parses `:part(label)` into a structured selector token so public part selectors are distinguishable from classes/states and can be validated as contract surface instead of stringly selector text. Contract validation scopes typed selectors such as `Card:part(label)` to matching imported components, while unscoped `:part(...)` and `#id` selectors stay conservative across all referenced imports. Existing flat schema migration, legacy template conversion, descriptor default-node instantiation, editor extraction/wrapping, palette insertion, and fixtures preserve behavior by seeding `UiComponentPublicContract::default()` and `component_api_version = None` unless an asset explicitly opts into M10 contracts.
+Interface-owned `UiSelector` now parses `:part(label)` into a structured selector token so public part selectors are distinguishable from classes/states and can be validated as contract surface instead of stringly selector text. Runtime contract validation and stylesheet application consume that interface DTO directly, while selector path matching remains runtime behavior over `UiSelectorMatchNode`. Contract validation scopes typed selectors such as `Card:part(label)` to matching imported components, while unscoped `:part(...)` and `#id` selectors stay conservative across all referenced imports. Existing flat schema migration, legacy template conversion, descriptor default-node instantiation, editor extraction/wrapping, palette insertion, and fixtures preserve behavior by seeding `UiComponentPublicContract::default()` and `component_api_version = None` unless an asset explicitly opts into M10 contracts.
 
 The structured diagnostic productization slice keeps this runtime contract owner intact. `component_contract/diagnostic.rs` defines stable runtime codes and source paths, while `validation.rs` returns the first `UiComponentContractDiagnostic` through `component_contract_diagnostic(...)` and still converts the same diagnostic into `UiAssetError::InvalidDocument` for the compiler error path. `zircon_editor::ui::asset_editor::diagnostics` maps these runtime diagnostics into `UiAssetEditorDiagnostic` rows; `UiAssetEditorSession` stores them beside the legacy string diagnostics and `presentation_state.rs` uses `target_node_id` to select matching source-outline entries when possible.
 
@@ -304,7 +325,7 @@ M12 adds `zircon_runtime::ui::template::asset::invalidation` as the runtime-owne
 
 `UiInvalidationSnapshot` mirrors the inputs that can invalidate a compiled asset: root document fingerprint, widget import fingerprints, style import fingerprints, descriptor registry revision, component contract revision, and resource dependencies revision. `UiInvalidationGraph::classify(...)` compares snapshots and maps document/import/descriptor/contract/resource changes to parse, shape, import, descriptor, contract, resource dependency, selector, style, layout, render, interaction, and projection stages. Resource dependency changes are intentionally narrower than document-shape changes: they rebuild the compiled asset, dirty render output, and dirty editor projection without implying descriptor or selector drift. The stage impact then maps accepted stages back into runtime dirty consequences without replacing `UiDirtyFlags`.
 
-`zircon_runtime::ui::template::asset::compiler::cache` adds `UiCompileCacheKey`, `UiAssetCompileCache`, and `UiCompileCacheOutcome`. `UiDocumentCompiler::compile_with_cache(...)` first runs document shape and component contract preconditions, then builds the exact cache key from the current compiler imports/descriptor registry, resource dependency collector, and the document. It returns an exact cache hit when possible, and otherwise falls back to the existing full `compile(...)` path while reporting the invalidation miss cause. The cache stores last invalidation snapshots by asset kind/id, so interleaved multi-document compiles compare a miss against the previous snapshot for the same asset instead of inventing cross-document deltas. Large-document diagnostics currently flag broad selector pressure and non-virtualized `ScrollableBox` child pressure with named thresholds.
+`zircon_runtime::ui::template::asset::compiler::cache` adds runtime cache behavior with `UiAssetCompileCache` and `UiCompileCacheOutcome`, while the neutral `UiCompileCacheKey` DTO is owned by `zircon_runtime_interface::ui::template`. `UiDocumentCompiler::compile_with_cache(...)` first runs document shape and component contract preconditions, then builds the exact cache key through runtime `compile_cache_key_from_compiler(...)` from the current compiler imports/descriptor registry, resource dependency collector, and the document. It returns an exact cache hit when possible, and otherwise falls back to the existing full `compile(...)` path while reporting the invalidation miss cause. The cache stores last invalidation snapshots by asset kind/id, so interleaved multi-document compiles compare a miss against the previous snapshot for the same asset instead of inventing cross-document deltas. Large-document diagnostics currently flag broad selector pressure and non-virtualized `ScrollableBox` child pressure with named thresholds.
 
 M12 foundation validation is accepted for the runtime asset compiler path. M16 now consumes these cache-key and invalidation inputs for package validation metadata and the `UiCompiledAssetCacheRecord` cache index record; remaining product-facing work is higher-level editor visual performance surfacing and a real cross-process cache store that reads/writes those records across process runs.
 
@@ -328,8 +349,8 @@ M14 adds `zircon_runtime::ui::template::asset::localization` as the runtime-owne
 
 ## M16 Package Validation Surface
 
-M16 adds `zircon_runtime::ui::template::asset::compiler::package` as the runtime-owned package validation surface for compiled UI asset metadata. `UiDocumentCompiler::validate_package(...)` runs the same document shape and component contract preconditions as full compile before building the M12 `UiCompileCacheKey`, then runs the existing compile path for validation and emits `UiCompiledAssetPackageValidationReport`.
+M16 adds `zircon_runtime::ui::template::asset::compiler::package` as the runtime-owned package validation surface for compiled UI asset metadata. `UiDocumentCompiler::validate_package(...)` runs the same document shape and component contract preconditions as full compile before building the M12 interface-owned `UiCompileCacheKey` through runtime `compile_cache_key_from_compiler(...)`, then runs the existing compile path for validation and emits `UiCompiledAssetPackageValidationReport`.
 
 The report contains a `UiCompiledAssetHeader` with source schema version, package/compiler schema versions, descriptor registry revision, component contract revision, root document fingerprint, and full cache key. It also contains a deterministic `UiCompiledAssetDependencyManifest` for registered widget/style imports plus compiled M15 package-input resource dependencies and M14 localization dependency rows, M21 action policy diagnostics, M14 localization reports, and runtime/editor profile retained and stripped sections. Runtime strips source/authoring/migration sections from the package report view; editor keeps them for authoring diagnostics.
 
-M16 back-half adds a deterministic binary artifact envelope and a TOML package manifest writer/importer without changing compiler authority. `UiCompiledAssetArtifact` stores the package report and compiled `UiTemplateInstance` behind magic `ZRUIA016`, little-endian artifact schema version, little-endian payload length, and a UTF-8 TOML payload; the TOML payload avoids `bincode` assumptions for compiled values that contain `toml::Value`. `UiCompiledAssetCacheRecord` persists the M12 cache key, invalidation snapshot, artifact fingerprint, and byte length as the future cache index; `UiCompiledAssetPackageManifest` records the header, dependency manifest, cache record, and artifact entry. It now preserves M14 localization dependency rows and M21/M14 package reports through the same TOML surfaces. It still does not implement resource resolver IO, runtime loader backends, graphics/RHI resource consumption, editor action policy inspector UX, or editor locale preview UX.
+M16 back-half adds a deterministic binary artifact envelope and a TOML package manifest writer/importer without changing compiler authority. Runtime `UiRuntimeCompiledAssetArtifact` stores the package report and compiled `UiTemplateInstance` behind magic `ZRUIA016`, little-endian artifact schema version, little-endian payload length, and a UTF-8 TOML payload; the TOML payload avoids `bincode` assumptions for compiled values that contain `toml::Value`. Runtime-interface cutover reserves `UiCompiledAssetArtifact` for the interface-owned neutral `{ report, bytes }` DTO and moved `UiCompiledAssetCacheRecord` and `UiCompiledAssetPackageManifest` to `zircon_runtime_interface::ui::template`; runtime now builds those DTOs through `compiled_asset_package_manifest_from_artifact_bytes(...)` instead of defining duplicate package/cache record types. The cache record persists the M12 cache key, invalidation snapshot, artifact fingerprint, and byte length as the future cache index; the package manifest records the header, dependency manifest, cache record, and artifact entry. It now preserves M14 localization dependency rows and M21/M14 package reports through the same TOML surfaces. It still does not implement resource resolver IO, runtime loader backends, graphics/RHI resource consumption, editor action policy inspector UX, or editor locale preview UX.

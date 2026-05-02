@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use zircon_runtime::ExportBuildPlan;
+use zircon_runtime::plugin::ExportBuildPlan;
 
 use super::cargo_invocation::EditorExportCargoInvocation;
 
@@ -13,4 +13,5 @@ pub struct EditorExportBuildReport {
     pub generated_files: Vec<PathBuf>,
     pub copied_packages: Vec<PathBuf>,
     pub diagnostics: Vec<String>,
+    pub fatal_diagnostics: Vec<String>,
 }

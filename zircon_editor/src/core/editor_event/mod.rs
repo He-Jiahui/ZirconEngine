@@ -16,7 +16,11 @@ pub use listener::{
     EditorEventListenerRegistry, EditorEventListenerStatus,
 };
 pub use replay::EditorEventReplay;
-pub use runtime::{EditorEventDispatcher, EditorEventRuntime};
+pub use runtime::{
+    EditorEventDispatcher, EditorEventRuntime, EditorRuntimePlayModeBackend,
+    EditorRuntimePlayModeBackendReport, NativePluginEditorRuntimePlayModeBackend,
+    NoopEditorRuntimePlayModeBackend, SharedEditorRuntimePlayModeBackend,
+};
 pub use selection_host_event::SelectionHostEvent;
 pub use types::{
     EditorAnimationEvent, EditorAssetEvent, EditorAssetSurface, EditorAssetUtilityTab,

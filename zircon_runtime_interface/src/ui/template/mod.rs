@@ -23,9 +23,10 @@ pub use asset::{
     UiNodeDefinitionKind, UiPublicBindingRoute, UiPublicPart, UiResourceCollectionReport,
     UiResourceDependency, UiResourceDependencySource, UiResourceDiagnostic,
     UiResourceDiagnosticSeverity, UiResourceFallbackMode, UiResourceFallbackPolicy, UiResourceKind,
-    UiResourceRef, UiRootClassPolicy, UiSelector, UiSelectorCombinator, UiSelectorToken,
-    UiStyleDeclarationBlock, UiStyleRule, UiStyleScope, UiStyleSheet, UiTextDirection,
-    UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION, UI_ASSET_MINIMUM_SUPPORTED_SOURCE_SCHEMA_VERSION,
+    UiResourceRef, UiRootClassPolicy, UiSelector, UiSelectorCombinator, UiSelectorSegment,
+    UiSelectorToken, UiStyleDeclarationBlock, UiStyleRule, UiStyleScope, UiStyleSheet,
+    UiTextDirection, UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION,
+    UI_ASSET_MINIMUM_SUPPORTED_SOURCE_SCHEMA_VERSION,
     UI_COMPILED_ASSET_BINARY_ARTIFACT_SCHEMA_VERSION, UI_COMPILED_ASSET_COMPILER_SCHEMA_VERSION,
     UI_COMPILED_ASSET_PACKAGE_SCHEMA_VERSION,
 };

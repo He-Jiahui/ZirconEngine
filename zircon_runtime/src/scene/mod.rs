@@ -22,7 +22,7 @@ pub mod semantics;
 pub mod serializer;
 pub mod world;
 
-pub use world::{ComponentTypeRegistry, World};
+pub use world::{ComponentTypeRegistry, DynamicComponentInstance, World};
 
 #[allow(unused_imports)]
 pub(crate) use components::{

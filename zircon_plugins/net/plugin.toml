@@ -17,3 +17,117 @@ kind = "editor"
 crate_name = "zircon_plugin_net_editor"
 target_modes = ["editor_host"]
 capabilities = ["editor.extension.net_authoring"]
+
+[[optional_features]]
+id = "net.http"
+display_name = "HTTP(S)"
+owner_plugin_id = "net"
+capabilities = ["runtime.feature.net.http"]
+enabled_by_default = false
+
+[[optional_features.dependencies]]
+plugin_id = "net"
+capability = "runtime.plugin.net"
+primary = true
+
+[[optional_features.modules]]
+name = "net.http.runtime"
+kind = "runtime"
+crate_name = "zircon_plugin_net_http_runtime"
+target_modes = ["server_runtime", "client_runtime"]
+capabilities = ["runtime.feature.net.http"]
+
+[[optional_features]]
+id = "net.websocket"
+display_name = "WebSocket"
+owner_plugin_id = "net"
+capabilities = ["runtime.feature.net.websocket"]
+enabled_by_default = false
+
+[[optional_features.dependencies]]
+plugin_id = "net"
+capability = "runtime.plugin.net"
+primary = true
+
+[[optional_features.modules]]
+name = "net.websocket.runtime"
+kind = "runtime"
+crate_name = "zircon_plugin_net_websocket_runtime"
+target_modes = ["server_runtime", "client_runtime"]
+capabilities = ["runtime.feature.net.websocket"]
+
+[[optional_features]]
+id = "net.rpc"
+display_name = "Network RPC"
+owner_plugin_id = "net"
+capabilities = ["runtime.feature.net.rpc"]
+enabled_by_default = false
+
+[[optional_features.dependencies]]
+plugin_id = "net"
+capability = "runtime.plugin.net"
+primary = true
+
+[[optional_features.modules]]
+name = "net.rpc.runtime"
+kind = "runtime"
+crate_name = "zircon_plugin_net_rpc_runtime"
+target_modes = ["server_runtime", "client_runtime"]
+capabilities = ["runtime.feature.net.rpc"]
+
+[[optional_features]]
+id = "net.replication"
+display_name = "State Replication"
+owner_plugin_id = "net"
+capabilities = ["runtime.feature.net.replication"]
+enabled_by_default = false
+
+[[optional_features.dependencies]]
+plugin_id = "net"
+capability = "runtime.plugin.net"
+primary = true
+
+[[optional_features.modules]]
+name = "net.replication.runtime"
+kind = "runtime"
+crate_name = "zircon_plugin_net_replication_runtime"
+target_modes = ["server_runtime", "client_runtime"]
+capabilities = ["runtime.feature.net.replication"]
+
+[[optional_features]]
+id = "net.reliable_udp"
+display_name = "Reliable UDP"
+owner_plugin_id = "net"
+capabilities = ["runtime.feature.net.reliable_udp"]
+enabled_by_default = false
+
+[[optional_features.dependencies]]
+plugin_id = "net"
+capability = "runtime.plugin.net"
+primary = true
+
+[[optional_features.modules]]
+name = "net.reliable_udp.runtime"
+kind = "runtime"
+crate_name = "zircon_plugin_net_reliable_udp_runtime"
+target_modes = ["server_runtime", "client_runtime"]
+capabilities = ["runtime.feature.net.reliable_udp"]
+
+[[optional_features]]
+id = "net.content_download"
+display_name = "Content Download"
+owner_plugin_id = "net"
+capabilities = ["runtime.feature.net.cdn_download"]
+enabled_by_default = false
+
+[[optional_features.dependencies]]
+plugin_id = "net"
+capability = "runtime.plugin.net"
+primary = true
+
+[[optional_features.modules]]
+name = "net.content_download.runtime"
+kind = "runtime"
+crate_name = "zircon_plugin_net_content_download_runtime"
+target_modes = ["client_runtime"]
+capabilities = ["runtime.feature.net.cdn_download"]

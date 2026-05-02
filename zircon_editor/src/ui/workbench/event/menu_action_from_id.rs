@@ -10,6 +10,8 @@ pub(super) fn menu_action_from_id(action_id: &str) -> Option<MenuAction> {
         "SaveProject" => Some(MenuAction::SaveProject),
         "SaveLayout" => Some(MenuAction::SaveLayout),
         "ResetLayout" => Some(MenuAction::ResetLayout),
+        "EnterPlayMode" => Some(MenuAction::EnterPlayMode),
+        "ExitPlayMode" => Some(MenuAction::ExitPlayMode),
         "Undo" => Some(MenuAction::Undo),
         "Redo" => Some(MenuAction::Redo),
         "DeleteSelected" => Some(MenuAction::DeleteSelected),

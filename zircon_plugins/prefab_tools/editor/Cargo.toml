@@ -1,0 +1,15 @@
+[package]
+name = "zircon_plugin_prefab_tools_editor"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Prefab tools editor plugin package for Zircon."
+
+[dependencies]
+zircon_editor = { path = "../../../zircon_editor" }
+zircon_plugin_editor_support = { path = "../../editor_support" }
+zircon_plugin_prefab_tools_runtime = { path = "../runtime" }
+zircon_runtime = { path = "../../../zircon_runtime", default-features = false }
+
+[dev-dependencies]
+serde_json = "1.0.149"

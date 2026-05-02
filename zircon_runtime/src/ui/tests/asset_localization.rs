@@ -1,8 +1,10 @@
 use crate::ui::template::{
-    collect_document_localization_report, UiAssetLoader, UiCompiledAssetPackageManifest,
-    UiDocumentCompiler,
+    collect_document_localization_report, compiled_asset_package_manifest_from_artifact_bytes,
+    UiAssetLoader, UiDocumentCompiler,
 };
-use zircon_runtime_interface::ui::template::{UiCompiledAssetPackageProfile, UiTextDirection};
+use zircon_runtime_interface::ui::template::{
+    UiCompiledAssetPackageManifest, UiCompiledAssetPackageProfile, UiTextDirection,
+};
 
 const LOCALIZED_LAYOUT: &str = r##"
 [asset]
@@ -135,7 +137,7 @@ fn package_validation_reports_localization_and_manifest_rows() {
         .compile_package_artifact(&document, UiCompiledAssetPackageProfile::Editor)
         .unwrap();
     let bytes = artifact.to_bytes().unwrap();
-    let manifest = UiCompiledAssetPackageManifest::from_artifact_bytes(&artifact, &bytes);
+    let manifest = compiled_asset_package_manifest_from_artifact_bytes(&artifact, &bytes);
     let imported =
         UiCompiledAssetPackageManifest::import_toml(&manifest.write_toml().unwrap()).unwrap();
 

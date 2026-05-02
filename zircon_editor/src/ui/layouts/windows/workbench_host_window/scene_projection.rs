@@ -24,7 +24,7 @@ use zircon_runtime_interface::ui::layout::UiSize;
 
 const DEFAULT_PRESET_NAME: &str = "rider";
 const MIN_DROP_TARGET_PX: f32 = 92.0;
-const MENU_POPUP_WIDTHS_PX: [f32; 6] = [208.0, 186.0, 218.0, 198.0, 224.0, 194.0];
+const MENU_POPUP_WIDTHS_PX: [f32; 7] = [208.0, 186.0, 218.0, 172.0, 198.0, 224.0, 194.0];
 const DEFAULT_MENU_POPUP_WIDTH_PX: f32 = 224.0;
 const MENU_POPUP_PADDING_PX: f32 = 6.0;
 const MENU_POPUP_ROW_HEIGHT_PX: f32 = 28.0;

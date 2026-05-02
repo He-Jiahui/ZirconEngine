@@ -130,3 +130,107 @@ pub(super) fn hybrid_gi_render_feature_descriptor() -> RenderFeatureDescriptor {
     )
     .with_capability_requirement(RenderFeatureCapabilityRequirement::HybridGlobalIllumination)
 }
+
+pub(super) fn default_rendering_feature_descriptors() -> Vec<RenderFeatureDescriptor> {
+    vec![
+        rendering_ssao_descriptor(),
+        rendering_reflection_probes_descriptor(),
+        rendering_baked_lighting_descriptor(),
+        rendering_post_process_descriptor(),
+    ]
+}
+
+pub(super) fn particle_render_feature_descriptor() -> RenderFeatureDescriptor {
+    RenderFeatureDescriptor::new(
+        "particle",
+        vec![
+            "view".to_string(),
+            "particles".to_string(),
+            "visibility".to_string(),
+        ],
+        Vec::new(),
+        vec![RenderFeaturePassDescriptor::new(
+            RenderPassStage::Transparent,
+            "particle-render",
+            QueueLane::Graphics,
+        )
+        .with_executor_id("particle.transparent")
+        .read_texture("scene-depth")
+        .read_texture("scene-color")
+        .write_texture("scene-color")],
+    )
+}
+
+fn rendering_ssao_descriptor() -> RenderFeatureDescriptor {
+    RenderFeatureDescriptor::new(
+        "screen_space_ambient_occlusion",
+        vec![
+            "view".to_string(),
+            "geometry".to_string(),
+            "visibility".to_string(),
+        ],
+        vec![FrameHistoryBinding::read_write(
+            FrameHistorySlot::AmbientOcclusion,
+        )],
+        vec![RenderFeaturePassDescriptor::new(
+            RenderPassStage::AmbientOcclusion,
+            "ssao-evaluate",
+            QueueLane::AsyncCompute,
+        )
+        .with_executor_id("ao.ssao-evaluate")
+        .read_texture("scene-depth")
+        .write_texture("ambient-occlusion")],
+    )
+}
+
+fn rendering_reflection_probes_descriptor() -> RenderFeatureDescriptor {
+    RenderFeatureDescriptor::new(
+        "reflection_probes",
+        vec![
+            "view".to_string(),
+            "lighting".to_string(),
+            "post_process".to_string(),
+        ],
+        Vec::new(),
+        vec![RenderFeaturePassDescriptor::new(
+            RenderPassStage::PostProcess,
+            "reflection-probe-composite",
+            QueueLane::Graphics,
+        )
+        .with_executor_id("lighting.reflection-probes")
+        .read_texture("scene-color")
+        .write_texture("scene-color")],
+    )
+}
+
+fn rendering_baked_lighting_descriptor() -> RenderFeatureDescriptor {
+    RenderFeatureDescriptor::new(
+        "baked_lighting",
+        vec!["lighting".to_string(), "post_process".to_string()],
+        Vec::new(),
+        vec![RenderFeaturePassDescriptor::new(
+            RenderPassStage::PostProcess,
+            "baked-lighting-composite",
+            QueueLane::Graphics,
+        )
+        .with_executor_id("lighting.baked-composite")
+        .read_texture("scene-color")
+        .write_texture("scene-color")],
+    )
+}
+
+fn rendering_post_process_descriptor() -> RenderFeatureDescriptor {
+    RenderFeatureDescriptor::new(
+        "post_process",
+        vec!["view".to_string(), "post_process".to_string()],
+        Vec::new(),
+        vec![RenderFeaturePassDescriptor::new(
+            RenderPassStage::PostProcess,
+            "post-process",
+            QueueLane::Graphics,
+        )
+        .with_executor_id("post.stack")
+        .read_texture("scene-color")
+        .write_texture("scene-color")],
+    )
+}

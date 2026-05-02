@@ -3,6 +3,7 @@ pub struct VirtualGeometryRuntimeStats {
     page_table_entry_count: usize,
     resident_page_count: usize,
     pending_request_count: usize,
+    page_dependency_count: usize,
     completed_page_count: usize,
     replaced_page_count: usize,
 }
@@ -12,6 +13,7 @@ impl VirtualGeometryRuntimeStats {
         page_table_entry_count: usize,
         resident_page_count: usize,
         pending_request_count: usize,
+        page_dependency_count: usize,
         completed_page_count: usize,
         replaced_page_count: usize,
     ) -> Self {
@@ -19,6 +21,7 @@ impl VirtualGeometryRuntimeStats {
             page_table_entry_count,
             resident_page_count,
             pending_request_count,
+            page_dependency_count,
             completed_page_count,
             replaced_page_count,
         }
@@ -34,6 +37,10 @@ impl VirtualGeometryRuntimeStats {
 
     pub fn pending_request_count(&self) -> usize {
         self.pending_request_count
+    }
+
+    pub fn page_dependency_count(&self) -> usize {
+        self.page_dependency_count
     }
 
     pub fn completed_page_count(&self) -> usize {

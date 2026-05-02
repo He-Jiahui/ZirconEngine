@@ -1,6 +1,6 @@
 use zircon_runtime::core::framework::render::{
     RenderVirtualGeometryCluster, RenderVirtualGeometryDebugState, RenderVirtualGeometryExtract,
-    RenderVirtualGeometryInstance, RenderVirtualGeometryPage,
+    RenderVirtualGeometryInstance, RenderVirtualGeometryPage, RenderVirtualGeometryPageDependency,
 };
 use zircon_runtime::core::math::{Transform, Vec3};
 use zircon_runtime::core::resource::ResourceId;
@@ -10,6 +10,7 @@ fn default_virtual_geometry_extract_starts_without_instances_or_debug_overrides(
     let extract = RenderVirtualGeometryExtract::default();
 
     assert!(extract.instances.is_empty());
+    assert!(extract.page_dependencies.is_empty());
     assert_eq!(extract.debug, RenderVirtualGeometryDebugState::default());
 }
 
@@ -37,6 +38,11 @@ fn virtual_geometry_extract_preserves_instance_ranges_and_debug_state() {
             resident: true,
             size_bytes: 128,
         }],
+        page_dependencies: vec![RenderVirtualGeometryPageDependency {
+            page_id: 10,
+            parent_page_id: None,
+            child_page_ids: Vec::new(),
+        }],
         instances: vec![RenderVirtualGeometryInstance {
             entity: 7,
             source_model: Some(model_id),
@@ -62,6 +68,7 @@ fn virtual_geometry_extract_preserves_instance_ranges_and_debug_state() {
     assert_eq!(cloned, extract);
     assert_eq!(extract.instances.len(), 1);
     assert_eq!(extract.instances[0].source_model, Some(model_id));
+    assert_eq!(extract.page_dependencies[0].page_id, 10);
     assert_eq!(extract.instances[0].cluster_count, 1);
     assert_eq!(extract.instances[0].page_count, 1);
     assert_eq!(extract.debug.forced_mip, Some(10));

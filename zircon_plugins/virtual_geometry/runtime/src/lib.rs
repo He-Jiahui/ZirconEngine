@@ -1,14 +1,20 @@
 use zircon_runtime::graphics::{
     RenderFeatureCapabilityRequirement, RenderFeatureDescriptor, RenderFeaturePassDescriptor,
-    RenderPassExecutionContext, RenderPassExecutorRegistration, RenderPassStage,
+    RenderPassExecutorRegistration, RenderPassStage,
 };
 use zircon_runtime::render_graph::QueueLane;
 
 mod provider;
+mod render_pass_executors;
 #[cfg(test)]
 pub(crate) mod test_support;
 mod virtual_geometry;
 
+use render_pass_executors::{
+    virtual_geometry_debug_overlay_executor, virtual_geometry_node_cluster_cull_executor,
+    virtual_geometry_page_feedback_executor, virtual_geometry_prepare_executor,
+    virtual_geometry_visbuffer_executor,
+};
 use std::sync::Arc;
 
 pub use provider::PluginVirtualGeometryRuntimeProvider;
@@ -19,7 +25,7 @@ pub const VIRTUAL_GEOMETRY_MODULE_NAME: &str = "VirtualGeometryPluginModule";
 
 #[derive(Clone, Debug)]
 pub struct VirtualGeometryRuntimePlugin {
-    descriptor: zircon_runtime::RuntimePluginDescriptor,
+    descriptor: zircon_runtime::plugin::RuntimePluginDescriptor,
 }
 
 impl VirtualGeometryRuntimePlugin {
@@ -30,15 +36,15 @@ impl VirtualGeometryRuntimePlugin {
     }
 }
 
-impl zircon_runtime::RuntimePlugin for VirtualGeometryRuntimePlugin {
-    fn descriptor(&self) -> &zircon_runtime::RuntimePluginDescriptor {
+impl zircon_runtime::plugin::RuntimePlugin for VirtualGeometryRuntimePlugin {
+    fn descriptor(&self) -> &zircon_runtime::plugin::RuntimePluginDescriptor {
         &self.descriptor
     }
 
     fn register_runtime_extensions(
         &self,
-        registry: &mut zircon_runtime::RuntimeExtensionRegistry,
-    ) -> Result<(), zircon_runtime::RuntimeExtensionRegistryError> {
+        registry: &mut zircon_runtime::plugin::RuntimeExtensionRegistry,
+    ) -> Result<(), zircon_runtime::plugin::RuntimeExtensionRegistryError> {
         registry.register_module(module_descriptor())?;
         registry.register_render_feature(render_feature_descriptor())?;
         for registration in render_pass_executor_registrations() {
@@ -145,36 +151,8 @@ pub fn render_pass_executor_registrations() -> Vec<RenderPassExecutorRegistratio
     ]
 }
 
-fn virtual_geometry_prepare_executor(_context: &RenderPassExecutionContext) -> Result<(), String> {
-    Ok(())
-}
-
-fn virtual_geometry_node_cluster_cull_executor(
-    _context: &RenderPassExecutionContext,
-) -> Result<(), String> {
-    Ok(())
-}
-
-fn virtual_geometry_page_feedback_executor(
-    _context: &RenderPassExecutionContext,
-) -> Result<(), String> {
-    Ok(())
-}
-
-fn virtual_geometry_visbuffer_executor(
-    _context: &RenderPassExecutionContext,
-) -> Result<(), String> {
-    Ok(())
-}
-
-fn virtual_geometry_debug_overlay_executor(
-    _context: &RenderPassExecutionContext,
-) -> Result<(), String> {
-    Ok(())
-}
-
-pub fn runtime_plugin_descriptor() -> zircon_runtime::RuntimePluginDescriptor {
-    zircon_runtime::RuntimePluginDescriptor::new(
+pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescriptor {
+    zircon_runtime::plugin::RuntimePluginDescriptor::new(
         PLUGIN_ID,
         "Virtual Geometry",
         zircon_runtime::RuntimePluginId::VirtualGeometry,
@@ -191,16 +169,16 @@ pub fn runtime_plugin() -> VirtualGeometryRuntimePlugin {
     VirtualGeometryRuntimePlugin::new()
 }
 
-pub fn package_manifest() -> zircon_runtime::PluginPackageManifest {
-    zircon_runtime::RuntimePlugin::package_manifest(&runtime_plugin())
+pub fn package_manifest() -> zircon_runtime::plugin::PluginPackageManifest {
+    zircon_runtime::plugin::RuntimePlugin::package_manifest(&runtime_plugin())
 }
 
-pub fn runtime_selection() -> zircon_runtime::ProjectPluginSelection {
-    zircon_runtime::RuntimePlugin::project_selection(&runtime_plugin())
+pub fn runtime_selection() -> zircon_runtime::plugin::ProjectPluginSelection {
+    zircon_runtime::plugin::RuntimePlugin::project_selection(&runtime_plugin())
 }
 
-pub fn plugin_registration() -> zircon_runtime::RuntimePluginRegistrationReport {
-    zircon_runtime::RuntimePluginRegistrationReport::from_plugin(&runtime_plugin())
+pub fn plugin_registration() -> zircon_runtime::plugin::RuntimePluginRegistrationReport {
+    zircon_runtime::plugin::RuntimePluginRegistrationReport::from_plugin(&runtime_plugin())
 }
 
 pub fn runtime_capabilities() -> &'static [&'static str] {

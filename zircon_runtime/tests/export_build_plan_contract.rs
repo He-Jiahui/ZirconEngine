@@ -4,8 +4,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use zircon_runtime::asset::project::ProjectManifest;
 use zircon_runtime::asset::AssetUri;
 use zircon_runtime::{
-    ExportBuildPlan, ExportPackagingStrategy, ExportProfile, ExportTargetPlatform,
-    ProjectPluginManifest, ProjectPluginSelection, RuntimePluginId, RuntimeTargetMode,
+    plugin::ExportBuildPlan, plugin::ExportPackagingStrategy, plugin::ExportProfile, plugin::ExportTargetPlatform,
+    plugin::ProjectPluginManifest, plugin::ProjectPluginSelection, RuntimePluginId, RuntimeTargetMode,
 };
 
 #[test]
@@ -209,6 +209,7 @@ fn materialize_report_carries_planner_diagnostics_even_without_generated_files()
     let report = plan.materialize(&output_root).unwrap();
 
     assert!(report.generated_files.is_empty());
+    assert!(report.fatal_diagnostics.is_empty());
     assert!(report
         .diagnostics
         .iter()
@@ -236,6 +237,7 @@ fn library_embed_deduplicates_runtime_crate_dependencies_and_registration_calls(
                 packaging: ExportPackagingStrategy::LibraryEmbed,
                 runtime_crate: Some("zircon_plugin_sound_runtime".to_string()),
                 editor_crate: None,
+                features: Vec::new(),
             },
         ],
     };
@@ -319,6 +321,7 @@ fn native_dynamic_deduplicates_loader_manifest_packages_by_output_directory() {
                 packaging: ExportPackagingStrategy::NativeDynamic,
                 runtime_crate: Some("zircon_plugin_sound_runtime".to_string()),
                 editor_crate: None,
+                features: Vec::new(),
             },
             ProjectPluginSelection {
                 id: "sound_debug".to_string(),
@@ -328,6 +331,7 @@ fn native_dynamic_deduplicates_loader_manifest_packages_by_output_directory() {
                 packaging: ExportPackagingStrategy::NativeDynamic,
                 runtime_crate: Some("zircon_plugin_sound_runtime".to_string()),
                 editor_crate: None,
+                features: Vec::new(),
             },
         ],
     };

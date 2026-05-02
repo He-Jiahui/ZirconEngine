@@ -1,69 +1,58 @@
-use std::sync::{Arc, Mutex};
-
-use zircon_runtime::core::{
-    ManagerDescriptor, ModuleDescriptor, ServiceKind, ServiceObject, StartupMode,
-};
-use zircon_runtime::engine_module::{factory, qualified_name};
-use zircon_runtime::graphics::{
-    RenderFeatureDescriptor, RenderFeaturePassDescriptor, RenderPassStage,
-};
-use zircon_runtime::render_graph::QueueLane;
-
 pub const PLUGIN_ID: &str = "particles";
 pub const PARTICLES_FEATURE_NAME: &str = "particle";
-pub const PARTICLES_MODULE_NAME: &str = "ParticlesModule";
-pub const PARTICLES_MANAGER_NAME: &str = "ParticlesModule.Manager.ParticlesManager";
+pub const PARTICLES_RUNTIME_CAPABILITY: &str = "runtime.plugin.particles";
 
-#[derive(Clone, Debug, PartialEq)]
-pub struct ParticleEmitterState {
-    pub emitter_id: String,
-    pub live_particles: usize,
-}
+mod asset;
+mod component;
+mod interop;
+mod module;
+mod package;
+mod render;
+mod service;
+mod simulation;
 
-#[derive(Clone, Debug, Default)]
-pub struct DefaultParticlesManager {
-    emitters: Arc<Mutex<Vec<ParticleEmitterState>>>,
-}
-
-impl DefaultParticlesManager {
-    pub fn emit(&self, emitter_id: impl Into<String>, count: usize) -> ParticleEmitterState {
-        let state = ParticleEmitterState {
-            emitter_id: emitter_id.into(),
-            live_particles: count,
-        };
-        self.emitters
-            .lock()
-            .expect("particles emitters mutex poisoned")
-            .push(state.clone());
-        state
-    }
-
-    pub fn snapshot(&self) -> Vec<ParticleEmitterState> {
-        self.emitters
-            .lock()
-            .expect("particles emitters mutex poisoned")
-            .clone()
-    }
-}
-
-pub fn module_descriptor() -> ModuleDescriptor {
-    ModuleDescriptor::new(PARTICLES_MODULE_NAME, "Particle simulation runtime plugin").with_manager(
-        ManagerDescriptor::new(
-            qualified_name(
-                PARTICLES_MODULE_NAME,
-                ServiceKind::Manager,
-                "ParticlesManager",
-            ),
-            StartupMode::Lazy,
-            Vec::new(),
-            factory(|_| Ok(Arc::new(DefaultParticlesManager::default()) as ServiceObject)),
-        ),
-    )
-}
+pub use asset::{
+    ParticleBurst, ParticleColorKey, ParticleCoordinateSpace, ParticleEmitterAsset,
+    ParticleScalarKey, ParticleScalarRange, ParticleShape, ParticleSimulationBackend,
+    ParticleSystemAsset, ParticleVec3Range,
+};
+pub use component::{
+    particle_component_descriptors, ParticleEmitterHandle, ParticleSystemComponent,
+    PARTICLE_SYSTEM_COMPONENT_TYPE,
+};
+pub use interop::{
+    ParticleAnimationBinding, ParticleAnimationEvent, ParticleAnimationEventKind,
+    ParticleOptionalFeatureStatus, ParticlePhysicsOptions,
+};
+pub use module::{
+    module_descriptor, ParticlesModule, PARTICLES_MANAGER_NAME, PARTICLES_MODULE_NAME,
+};
+pub use package::{
+    attach_particles_manifest_contributions, particle_dependencies, particle_event_catalogs,
+    particle_options, PARTICLES_DYNAMIC_EVENT_NAMESPACE,
+};
+pub use render::{
+    build_particle_extract, compile_particle_gpu_layout, compile_particle_gpu_program,
+    particle_render_pass_executor_registrations, render_feature_descriptor, ParticleGpuAttribute,
+    ParticleGpuBackend, ParticleGpuBackendError, ParticleGpuBuffers, ParticleGpuCompileDiagnostic,
+    ParticleGpuCompileDiagnosticSeverity, ParticleGpuCounterReadback, ParticleGpuCpuParityReport,
+    ParticleGpuEmitterFrameParams, ParticleGpuEmitterLayout, ParticleGpuFallbackDiagnostic,
+    ParticleGpuFallbackReason, ParticleGpuFrameParams, ParticleGpuFramePlanner, ParticleGpuLayout,
+    ParticleGpuPassKind, ParticleGpuPassPlan, ParticleGpuProgram, ParticleGpuReadbackDecodeError,
+    ParticleGpuReadbackRequest, ParticleGpuResourcePlan, ParticleGpuShaderEntries,
+    ParticleGpuShaderProgram, ParticleGpuTransparentRenderConfig,
+    ParticleGpuTransparentRenderParams, ParticleGpuTransparentShaderEntries, ParticleGpuValueType,
+    PARTICLE_GPU_MAX_PARTICLES,
+};
+pub use service::{
+    ParticleEmitterState, ParticleRuntimeDiagnostic, ParticleRuntimeDiagnosticSeverity,
+    ParticleRuntimeSnapshot, ParticlesManager,
+};
+pub use simulation::{ParticleSimulationError, ParticleSpriteSnapshot};
 
 #[derive(Clone, Debug)]
 pub struct ParticlesRuntimePlugin {
-    descriptor: zircon_runtime::RuntimePluginDescriptor,
+    descriptor: zircon_runtime::plugin::RuntimePluginDescriptor,
 }
 
 impl ParticlesRuntimePlugin {
@@ -74,43 +63,45 @@ impl ParticlesRuntimePlugin {
     }
 }
 
-impl zircon_runtime::RuntimePlugin for ParticlesRuntimePlugin {
-    fn descriptor(&self) -> &zircon_runtime::RuntimePluginDescriptor {
+impl Default for ParticlesRuntimePlugin {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl zircon_runtime::plugin::RuntimePlugin for ParticlesRuntimePlugin {
+    fn descriptor(&self) -> &zircon_runtime::plugin::RuntimePluginDescriptor {
         &self.descriptor
+    }
+
+    fn package_manifest(&self) -> zircon_runtime::plugin::PluginPackageManifest {
+        attach_particles_manifest_contributions(self.descriptor.package_manifest())
     }
 
     fn register_runtime_extensions(
         &self,
-        registry: &mut zircon_runtime::RuntimeExtensionRegistry,
-    ) -> Result<(), zircon_runtime::RuntimeExtensionRegistryError> {
+        registry: &mut zircon_runtime::plugin::RuntimeExtensionRegistry,
+    ) -> Result<(), zircon_runtime::plugin::RuntimeExtensionRegistryError> {
         registry.register_module(module_descriptor())?;
-        registry.register_render_feature(render_feature_descriptor())
+        registry.register_render_feature(render_feature_descriptor())?;
+        for registration in particle_render_pass_executor_registrations() {
+            registry.register_render_pass_executor(registration)?;
+        }
+        for component in particle_component_descriptors() {
+            registry.register_component(component)?;
+        }
+        for option in particle_options() {
+            registry.register_plugin_option(option)?;
+        }
+        for event_catalog in particle_event_catalogs() {
+            registry.register_plugin_event_catalog(event_catalog)?;
+        }
+        Ok(())
     }
 }
 
-pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
-    RenderFeatureDescriptor::new(
-        PARTICLES_FEATURE_NAME,
-        vec![
-            "view".to_string(),
-            "particles".to_string(),
-            "visibility".to_string(),
-        ],
-        Vec::new(),
-        vec![RenderFeaturePassDescriptor::new(
-            RenderPassStage::Transparent,
-            "particle-render",
-            QueueLane::Graphics,
-        )
-        .with_executor_id("particle.transparent")
-        .read_texture("scene-depth")
-        .read_texture("scene-color")
-        .write_texture("scene-color")],
-    )
-}
-
-pub fn runtime_plugin_descriptor() -> zircon_runtime::RuntimePluginDescriptor {
-    zircon_runtime::RuntimePluginDescriptor::new(
+pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescriptor {
+    zircon_runtime::plugin::RuntimePluginDescriptor::new(
         PLUGIN_ID,
         "Particles",
         zircon_runtime::RuntimePluginId::Particles,
@@ -120,72 +111,82 @@ pub fn runtime_plugin_descriptor() -> zircon_runtime::RuntimePluginDescriptor {
         zircon_runtime::RuntimeTargetMode::ClientRuntime,
         zircon_runtime::RuntimeTargetMode::EditorHost,
     ])
-    .with_capability("runtime.plugin.particles")
+    .with_capability(PARTICLES_RUNTIME_CAPABILITY)
+    .with_optional_feature(particle_physics_feature_manifest())
+    .with_optional_feature(particle_animation_feature_manifest())
+    .with_optional_feature(particle_gpu_feature_manifest())
 }
 
 pub fn runtime_plugin() -> ParticlesRuntimePlugin {
     ParticlesRuntimePlugin::new()
 }
 
-pub fn package_manifest() -> zircon_runtime::PluginPackageManifest {
-    zircon_runtime::RuntimePlugin::package_manifest(&runtime_plugin())
+pub fn package_manifest() -> zircon_runtime::plugin::PluginPackageManifest {
+    zircon_runtime::plugin::RuntimePlugin::package_manifest(&runtime_plugin())
 }
 
-pub fn runtime_selection() -> zircon_runtime::ProjectPluginSelection {
-    zircon_runtime::RuntimePlugin::project_selection(&runtime_plugin())
+pub fn runtime_selection() -> zircon_runtime::plugin::ProjectPluginSelection {
+    zircon_runtime::plugin::RuntimePlugin::project_selection(&runtime_plugin())
 }
 
-pub fn plugin_registration() -> zircon_runtime::RuntimePluginRegistrationReport {
-    zircon_runtime::RuntimePluginRegistrationReport::from_plugin(&runtime_plugin())
+pub fn plugin_registration() -> zircon_runtime::plugin::RuntimePluginRegistrationReport {
+    zircon_runtime::plugin::RuntimePluginRegistrationReport::from_plugin(&runtime_plugin())
 }
 
 pub fn runtime_capabilities() -> &'static [&'static str] {
-    &["runtime.plugin.particles"]
+    &[PARTICLES_RUNTIME_CAPABILITY]
+}
+
+pub fn particle_physics_feature_manifest() -> zircon_runtime::plugin::PluginFeatureBundleManifest {
+    zircon_runtime::plugin::PluginFeatureBundleManifest::new(
+        "particles.physics",
+        "Physical Particles",
+        PLUGIN_ID,
+    )
+    .with_dependency(zircon_runtime::plugin::PluginFeatureDependency::primary(
+        PLUGIN_ID,
+        PARTICLES_RUNTIME_CAPABILITY,
+    ))
+    .with_dependency(zircon_runtime::plugin::PluginFeatureDependency::required(
+        "physics",
+        "runtime.plugin.physics",
+    ))
+    .with_capability("runtime.feature.particles.physics")
+}
+
+pub fn particle_animation_feature_manifest() -> zircon_runtime::plugin::PluginFeatureBundleManifest {
+    zircon_runtime::plugin::PluginFeatureBundleManifest::new(
+        "particles.animation_control",
+        "Animation Controlled Particles",
+        PLUGIN_ID,
+    )
+    .with_dependency(zircon_runtime::plugin::PluginFeatureDependency::primary(
+        PLUGIN_ID,
+        PARTICLES_RUNTIME_CAPABILITY,
+    ))
+    .with_dependency(zircon_runtime::plugin::PluginFeatureDependency::required(
+        "animation",
+        "runtime.plugin.animation",
+    ))
+    .with_capability("runtime.feature.particles.animation_control")
+}
+
+pub fn particle_gpu_feature_manifest() -> zircon_runtime::plugin::PluginFeatureBundleManifest {
+    zircon_runtime::plugin::PluginFeatureBundleManifest::new(
+        "particles.gpu_simulation",
+        "GPU Particle Simulation",
+        PLUGIN_ID,
+    )
+    .with_dependency(zircon_runtime::plugin::PluginFeatureDependency::primary(
+        PLUGIN_ID,
+        PARTICLES_RUNTIME_CAPABILITY,
+    ))
+    .with_dependency(zircon_runtime::plugin::PluginFeatureDependency::required(
+        "render_graph",
+        "runtime.module.render_graph",
+    ))
+    .with_capability("runtime.feature.particles.gpu_simulation")
 }
 
 #[cfg(test)]
-mod tests {
-    use zircon_runtime::core::CoreRuntime;
-
-    use super::*;
-
-    #[test]
-    fn particles_registration_contributes_runtime_module() {
-        let report = plugin_registration();
-
-        assert!(report.is_success(), "{:?}", report.diagnostics);
-        assert!(report
-            .extensions
-            .modules()
-            .iter()
-            .any(|module| module.name == PARTICLES_MODULE_NAME));
-        assert!(report
-            .extensions
-            .render_features()
-            .iter()
-            .any(|feature| feature.name == PARTICLES_FEATURE_NAME));
-        assert_eq!(
-            report.package_manifest.modules[0].target_modes,
-            vec![
-                zircon_runtime::RuntimeTargetMode::ClientRuntime,
-                zircon_runtime::RuntimeTargetMode::EditorHost,
-            ]
-        );
-    }
-
-    #[test]
-    fn particles_module_resolves_manager_and_tracks_emission() {
-        let runtime = CoreRuntime::new();
-        runtime.register_module(module_descriptor()).unwrap();
-        runtime.activate_module(PARTICLES_MODULE_NAME).unwrap();
-        let manager = runtime
-            .handle()
-            .resolve_manager::<DefaultParticlesManager>(PARTICLES_MANAGER_NAME)
-            .unwrap();
-
-        let emitted = manager.emit("sparks", 12);
-
-        assert_eq!(emitted.live_particles, 12);
-        assert_eq!(manager.snapshot(), vec![emitted]);
-    }
-}
+mod tests;

@@ -20,4 +20,14 @@ pub enum RuntimeExtensionRegistryError {
     DuplicateUiComponent(String),
     #[error("invalid ui component: {0}")]
     InvalidUiComponent(String),
+    #[error("plugin option {0} already registered")]
+    DuplicatePluginOption(String),
+    #[error("invalid plugin option: {0}")]
+    InvalidPluginOption(String),
+    #[error("plugin event catalog {0} already registered")]
+    DuplicatePluginEventCatalog(String),
+    #[error("invalid plugin event catalog: {0}")]
+    InvalidPluginEventCatalog(String),
+    #[error("asset importer registration failed: {0}")]
+    AssetImporter(String),
 }

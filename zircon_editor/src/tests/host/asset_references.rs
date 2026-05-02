@@ -354,6 +354,9 @@ fn scene_asset() -> SceneAsset {
                 active_state: Some("Locomotion".to_string()),
                 playing: true,
             }),
+            terrain: None,
+            tilemap: None,
+            prefab_instance: None,
         }],
     }
 }

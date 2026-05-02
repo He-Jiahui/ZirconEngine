@@ -12,6 +12,8 @@ use zircon_runtime::graphics::hybrid_gi_extract_sources::{
 };
 
 use super::input_set::HybridGiInputSet;
+use super::radiance_cache_state::HybridGiRadianceCacheState;
+use super::screen_probe_state::HybridGiScreenProbeState;
 use super::surface_cache_state::HybridGiSurfaceCacheState;
 use super::voxel_scene_state::HybridGiVoxelSceneState;
 
@@ -120,6 +122,8 @@ pub(crate) struct HybridGiSceneRepresentation {
     cards: Vec<HybridGiCardDescriptor>,
     card_capture_requests: Vec<HybridGiCardCaptureRequest>,
     surface_cache: HybridGiSurfaceCacheState,
+    screen_probes: HybridGiScreenProbeState,
+    radiance_cache: HybridGiRadianceCacheState,
     voxel_scene: HybridGiVoxelSceneState,
     inputs: HybridGiInputSet,
     directional_lights: Vec<RenderDirectionalLightSnapshot>,
@@ -136,6 +140,8 @@ impl Default for HybridGiSceneRepresentation {
             cards: Vec::new(),
             card_capture_requests: Vec::new(),
             surface_cache: HybridGiSurfaceCacheState::default(),
+            screen_probes: HybridGiScreenProbeState::default(),
+            radiance_cache: HybridGiRadianceCacheState::default(),
             voxel_scene: HybridGiVoxelSceneState::default(),
             inputs: HybridGiInputSet::deferred(),
             directional_lights: Vec::new(),
@@ -159,6 +165,14 @@ impl HybridGiSceneRepresentation {
 
     pub(crate) fn surface_cache(&self) -> &HybridGiSurfaceCacheState {
         &self.surface_cache
+    }
+
+    pub(crate) fn screen_probe_count(&self) -> usize {
+        self.screen_probes.probe_count()
+    }
+
+    pub(crate) fn radiance_cache_entry_count(&self) -> usize {
+        self.radiance_cache.entry_count()
     }
 
     pub(in crate::hybrid_gi) fn surface_cache_mut(&mut self) -> &mut HybridGiSurfaceCacheState {
@@ -250,6 +264,16 @@ impl HybridGiSceneRepresentation {
             self.settings.voxel_budget as usize,
             cards_changed || lights_changed,
         );
+        self.screen_probes.synchronize(
+            &cards,
+            &self.surface_cache,
+            self.settings.trace_budget as usize,
+        );
+        self.radiance_cache.synchronize(
+            self.screen_probes.descriptors(),
+            &self.surface_cache,
+            &self.voxel_scene,
+        );
 
         self.card_capture_requests = build_card_capture_requests(&cards, &self.surface_cache);
         self.cards = cards;
@@ -290,6 +314,37 @@ impl HybridGiSceneRepresentation {
 
     pub(crate) fn card_capture_request_count(&self) -> usize {
         self.card_capture_requests.len()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn screen_probe_descriptors(
+        &self,
+    ) -> Vec<(u32, u32, Option<u32>, [f32; 3], f32, u32)> {
+        self.screen_probes
+            .descriptors()
+            .iter()
+            .map(|probe| {
+                (
+                    probe.probe_id(),
+                    probe.card_id(),
+                    probe.surface_page_id(),
+                    [
+                        probe.bounds_center().x,
+                        probe.bounds_center().y,
+                        probe.bounds_center().z,
+                    ],
+                    probe.bounds_radius(),
+                    probe.ray_budget(),
+                )
+            })
+            .collect()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn radiance_cache_entries(
+        &self,
+    ) -> Vec<(u32, u32, Option<u32>, [u8; 3], u8, &'static str)> {
+        self.radiance_cache.entries()
     }
 
     #[cfg(test)]

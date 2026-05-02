@@ -42,6 +42,9 @@ fn scene_asset_toml_roundtrip_preserves_entities_and_bindings() {
                 animation_sequence_player: None,
                 animation_graph_player: None,
                 animation_state_machine_player: None,
+                terrain: None,
+                tilemap: None,
+                prefab_instance: None,
             },
             SceneEntityAsset {
                 entity: 2,
@@ -77,6 +80,9 @@ fn scene_asset_toml_roundtrip_preserves_entities_and_bindings() {
                 animation_sequence_player: None,
                 animation_graph_player: None,
                 animation_state_machine_player: None,
+                terrain: None,
+                tilemap: None,
+                prefab_instance: None,
             },
             SceneEntityAsset {
                 entity: 3,
@@ -107,6 +113,9 @@ fn scene_asset_toml_roundtrip_preserves_entities_and_bindings() {
                 animation_sequence_player: None,
                 animation_graph_player: None,
                 animation_state_machine_player: None,
+                terrain: None,
+                tilemap: None,
+                prefab_instance: None,
             },
         ],
     };
@@ -241,6 +250,9 @@ fn scene_asset_toml_roundtrip_preserves_physics_and_animation_components() {
                 active_state: Some("Locomotion".to_string()),
                 playing: true,
             }),
+            terrain: None,
+            tilemap: None,
+            prefab_instance: None,
         }],
     };
 
@@ -336,6 +348,9 @@ fn scene_asset_toml_roundtrip_preserves_point_and_spot_lights() {
                 animation_sequence_player: None,
                 animation_graph_player: None,
                 animation_state_machine_player: None,
+                terrain: None,
+                tilemap: None,
+                prefab_instance: None,
             },
             SceneEntityAsset {
                 entity: 41,
@@ -369,6 +384,9 @@ fn scene_asset_toml_roundtrip_preserves_point_and_spot_lights() {
                 animation_sequence_player: None,
                 animation_graph_player: None,
                 animation_state_machine_player: None,
+                terrain: None,
+                tilemap: None,
+                prefab_instance: None,
             },
         ],
     };

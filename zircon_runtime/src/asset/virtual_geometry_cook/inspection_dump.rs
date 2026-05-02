@@ -3,7 +3,7 @@ use std::fmt::Write as _;
 
 use crate::asset::{
     VirtualGeometryAsset, VirtualGeometryClusterHeaderAsset, VirtualGeometryClusterPageHeaderAsset,
-    VirtualGeometryHierarchyNodeAsset,
+    VirtualGeometryHierarchyNodeAsset, VirtualGeometryPageDependencyAsset,
 };
 
 const DUMP_VERSION: u32 = 1;
@@ -35,18 +35,20 @@ pub fn format_virtual_geometry_cook_inspection_dump(asset: &VirtualGeometryAsset
     write_line(
         &mut dump,
         format_args!(
-            "counts hierarchy_nodes={} clusters={} pages={} root_pages={} root_ranges={} payload_bytes={}",
+            "counts hierarchy_nodes={} clusters={} pages={} root_pages={} root_ranges={} page_dependencies={} payload_bytes={}",
             asset.hierarchy_buffer.len(),
             asset.cluster_headers.len(),
             asset.cluster_page_headers.len(),
             asset.root_page_table.len(),
             asset.root_cluster_ranges.len(),
+            asset.page_dependencies.len(),
             payload_byte_count
         ),
     );
 
     write_root_pages(&mut dump, asset);
     write_root_ranges(&mut dump, asset);
+    write_page_dependencies(&mut dump, asset);
     write_hierarchy(&mut dump, asset);
     write_clusters(&mut dump, asset);
     write_leaf_clusters(&mut dump, asset);
@@ -55,6 +57,21 @@ pub fn format_virtual_geometry_cook_inspection_dump(asset: &VirtualGeometryAsset
     write_pages(&mut dump, asset);
 
     dump
+}
+
+fn write_page_dependencies(dump: &mut String, asset: &VirtualGeometryAsset) {
+    write_line(dump, format_args!("section page_dependencies"));
+    for dependency in sorted_page_dependencies(asset) {
+        write_line(
+            dump,
+            format_args!(
+                "page_dependency page_id={} parent={} child_pages={}",
+                dependency.page_id,
+                format_optional_u32(dependency.parent_page_id),
+                format_u32_list(&dependency.child_page_ids)
+            ),
+        );
+    }
 }
 
 fn write_root_pages(dump: &mut String, asset: &VirtualGeometryAsset) {
@@ -285,6 +302,14 @@ fn sorted_clusters(asset: &VirtualGeometryAsset) -> Vec<&VirtualGeometryClusterH
     let mut clusters = asset.cluster_headers.iter().collect::<Vec<_>>();
     clusters.sort_by_key(|cluster| cluster.cluster_id);
     clusters
+}
+
+fn sorted_page_dependencies(
+    asset: &VirtualGeometryAsset,
+) -> Vec<&VirtualGeometryPageDependencyAsset> {
+    let mut dependencies = asset.page_dependencies.iter().collect::<Vec<_>>();
+    dependencies.sort_by_key(|dependency| dependency.page_id);
+    dependencies
 }
 
 fn child_count_by_node_id(asset: &VirtualGeometryAsset) -> BTreeMap<u32, usize> {

@@ -19,6 +19,7 @@ mod query_contact;
 use query_contact::{collider_matches_query, compute_contact_events, ray_cast_collider};
 
 pub const JOLT_ENABLED: bool = cfg!(feature = "jolt");
+const JOLT_BACKEND_AVAILABLE: bool = false;
 
 pub type PhysicsTickPlan = PhysicsWorldStepPlan;
 
@@ -480,12 +481,12 @@ fn normalized_ray_direction(direction: [Real; 3]) -> Option<Vec3> {
 
 fn default_settings() -> PhysicsSettings {
     PhysicsSettings {
-        backend: if JOLT_ENABLED {
+        backend: if JOLT_BACKEND_AVAILABLE {
             "jolt".to_string()
         } else {
             "unconfigured".to_string()
         },
-        simulation_mode: if JOLT_ENABLED {
+        simulation_mode: if JOLT_BACKEND_AVAILABLE {
             PhysicsSimulationMode::Simulate
         } else {
             PhysicsSimulationMode::Disabled
@@ -593,14 +594,17 @@ fn physics_backend_status(settings: &PhysicsSettings) -> PhysicsBackendStatus {
         };
     }
 
-    if requested_backend.eq_ignore_ascii_case("jolt") && !JOLT_ENABLED {
+    if requested_backend.eq_ignore_ascii_case("jolt") && !JOLT_BACKEND_AVAILABLE {
+        let detail = if JOLT_ENABLED {
+            "feature `jolt` is enabled, but no runtime Jolt backend is linked".to_string()
+        } else {
+            "feature `jolt` is not enabled; physics runs in downgrade mode".to_string()
+        };
         return PhysicsBackendStatus {
             requested_backend,
             active_backend: None,
             state: PhysicsBackendState::Unavailable,
-            detail: Some(
-                "feature `jolt` is not enabled; physics runs in downgrade mode".to_string(),
-            ),
+            detail: Some(detail),
             simulation_mode: settings.simulation_mode,
             feature_gate,
         };

@@ -10,6 +10,8 @@ impl HybridGiRuntimeState {
             self.pending_update_count(),
             self.scheduled_trace_region_ids().len(),
             scene_representation.card_count(),
+            scene_representation.screen_probe_count(),
+            scene_representation.radiance_cache_entry_count(),
             scene_representation.surface_cache().resident_page_count(),
             scene_representation.surface_cache().dirty_page_count(),
             scene_representation.surface_cache().feedback_card_count(),

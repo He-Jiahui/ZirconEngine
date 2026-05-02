@@ -91,7 +91,20 @@ pub struct ModulePluginStatusPayload {
     pub editor_crate: String,
     pub runtime_capabilities: String,
     pub editor_capabilities: String,
+    pub optional_features: String,
+    pub feature_action_label: String,
+    pub feature_action_id: String,
     pub diagnostics: String,
+    pub primary_action_label: String,
+    pub primary_action_id: String,
+    pub packaging_action_label: String,
+    pub packaging_action_id: String,
+    pub target_modes_action_label: String,
+    pub target_modes_action_id: String,
+    pub unload_action_label: String,
+    pub unload_action_id: String,
+    pub hot_reload_action_label: String,
+    pub hot_reload_action_id: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

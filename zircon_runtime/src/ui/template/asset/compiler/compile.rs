@@ -6,7 +6,7 @@ use zircon_runtime_interface::ui::template::{UiAssetDocument, UiAssetError};
 use super::super::component_contract::validate_document_component_contracts;
 use super::super::localization::validate_document_localization;
 use super::super::resource_ref::collect_document_resource_dependencies;
-use super::cache::{UiAssetCompileCache, UiCompileCacheKey, UiCompileCacheOutcome};
+use super::cache::{compile_cache_key_from_compiler, UiAssetCompileCache, UiCompileCacheOutcome};
 use super::shape_validator::validate_document_shape;
 use super::ui_document_compiler::{CompilationArtifacts, UiCompiledDocument, UiDocumentCompiler};
 use super::ui_style_resolver::UiStyleResolver;
@@ -73,7 +73,7 @@ impl UiDocumentCompiler {
         cache: &mut UiAssetCompileCache,
     ) -> Result<UiCompileCacheOutcome, UiAssetError> {
         self.validate_compiler_preconditions(document)?;
-        let key = UiCompileCacheKey::from_compiler(self, document)?;
+        let key = compile_cache_key_from_compiler(self, document)?;
         if let Some(compiled) = cache.get(&key) {
             return Ok(UiCompileCacheOutcome {
                 compiled,
